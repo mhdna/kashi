@@ -1,12 +1,18 @@
+<script setup lang="ts">
+import NavigationMenu from "./NavigationMenu.vue";
+</script>
+
 <template>
-  <v-navigation-drawer location="left" permanent density="compact">
+  <v-navigation-drawer location="left" permanent density="compact" width="200">
     <template v-slot:prepend>
-      <v-list-item
-        lines="two"
-        prepend-avatar="https://randomuser.me/api/portraits/women/81.jpg"
-        subtitle="Logged in"
-        title="Jane Smith"
-      ></v-list-item>
+      <v-list-item lines="two" title="Mahdi Nayef">
+        <!-- subtitle="Logged in" -->
+        <template v-slot:prepend>
+          <v-avatar color="blue-darken-4" class="text-white" size="40">
+            MN
+          </v-avatar>
+        </template>
+      </v-list-item>
     </template>
 
     <v-divider></v-divider>
@@ -17,6 +23,12 @@
         prepend-icon="mdi-home-city"
         title="Login"
         value="home"
+      ></v-list-item>
+      <v-list-item
+        to="/warehouses"
+        prepend-icon="mdi-warehouse"
+        title="Warehouses"
+        value="Warehouses"
       ></v-list-item>
       <v-list-item
         to="/dashboard"
@@ -37,6 +49,18 @@
         value="users"
       ></v-list-item>
       <v-list-item
+        to="/barcode-printing"
+        prepend-icon="mdi-barcode"
+        title="Barcode Printing"
+        value="barcode-printing"
+      ></v-list-item>
+      <v-list-item
+        to="/inventory"
+        prepend-icon="mdi-store-outline"
+        title="Inventory"
+        value="inventory"
+      ></v-list-item>
+      <v-list-item
         to="/purchase-invoice"
         prepend-icon="mdi-invoice"
         title="Purchase Invoice"
@@ -53,6 +77,36 @@
         prepend-icon="mdi-account-group"
         title="Employees"
         value="sales-invoices"
+      ></v-list-item>
+      <v-list-item
+        to="/products"
+        prepend-icon="mdi-package-variant"
+        title="Products"
+        value="products"
+      ></v-list-item>
+      <v-list-item
+        to="/transfers"
+        prepend-icon="mdi-transfer"
+        title="Tranfers"
+        value="tranfers"
+      ></v-list-item>
+      <v-list-item
+        to="/attendance"
+        prepend-icon="mdi-calendar"
+        title="Attendance"
+        value="Attendance"
+      ></v-list-item>
+      <v-list-item
+        to="/storage"
+        prepend-icon="mdi-usb-flash-drive-outline"
+        title="Storage"
+        value="Storage"
+      ></v-list-item>
+      <v-list-item
+        to="/about"
+        prepend-icon="mdi-info"
+        title="About"
+        value="about"
       ></v-list-item>
     </v-list>
   </v-navigation-drawer>
