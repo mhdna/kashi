@@ -1,0 +1,4 @@
+<template>
+  transfers
+  <TransferTree />
+</template>

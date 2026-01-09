@@ -1,10 +1,7 @@
 <template>
-  <v-list class="d-flex">
-    <v-list-item>
+  <div class="d-flex flex-wrap text-center">
+    <v-card v-for="n in 6" to="/employee_page" class="ma-4 pa-4" rounded="xl">
       <EmployeeCard name="Sara" title="Salesman" />
-    </v-list-item>
-    <v-list-item>
-      <EmployeeCard name="Sara" title="Salesman" />
-    </v-list-item>
-  </v-list>
+    </v-card>
+  </div>
 </template>

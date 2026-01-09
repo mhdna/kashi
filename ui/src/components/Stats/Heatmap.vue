@@ -1,11 +1,12 @@
 <template>
-  <VChart class="chart" :option="option" />
+  <VChart class="chart" :theme="currentTheme" autoresize :option="option" />
 </template>
 
 <script setup>
-import Vchart from "vue-echarts";
+// import { ref, provide } from "vue";
 import { use } from "echarts/core";
 import { HeatmapChart } from "echarts/charts";
+import { time } from "echarts";
 import {
   TitleComponent,
   TooltipComponent,
@@ -13,7 +14,7 @@ import {
   CalendarComponent,
 } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
-import { time } from "echarts/core";
+import VChart, { THEME_KEY } from "vue-echarts";
 
 use([
   TitleComponent,
@@ -23,6 +24,15 @@ use([
   HeatmapChart,
   CanvasRenderer,
 ]);
+
+import { useTheme } from "vuetify";
+import { computed } from "vue";
+
+const theme = useTheme();
+const currentTheme = computed(() =>
+  theme.global.current.value?.dark ? "dark" : "light"
+);
+
 function getVirtualData(year) {
   const date = +time.parse(year + "-01-01");
   const end = +time.parse(+year + 1 + "-01-01");
@@ -36,13 +46,13 @@ function getVirtualData(year) {
   }
   return data;
 }
-
-const option = {
-  title: {
-    top: 30,
-    left: "center",
-    text: "Daily Step Count",
-  },
+const option = ref({
+  backgroundColor: "transparent",
+  // title: {
+  //   top: 30,
+  //   left: "center",
+  //   text: "Daily Step Count",
+  // },
   tooltip: {},
   visualMap: {
     min: 0,
@@ -50,12 +60,12 @@ const option = {
     type: "piecewise",
     orient: "horizontal",
     left: "center",
-    top: 65,
+    bottom: 0,
   },
   calendar: {
-    top: 120,
-    left: 30,
-    right: 30,
+    top: 30,
+    left: 20,
+    right: 20,
     cellSize: ["auto", 13],
     range: "2016",
     itemStyle: {
@@ -63,10 +73,40 @@ const option = {
     },
     yearLabel: { show: false },
   },
+  // calendar: [
+  //   {
+  //     top: 14,
+  //     left: 20,
+  //     right: 10,
+  //     cellSize: ["auto", 13],
+  //     range: "2016",
+  //     itemStyle: {
+  //       borderWidth: 0.5,
+  //     },
+  //     yearLabel: { show: false },
+  //   },
+  //   {
+  //     top: 0,
+  //     left: 20,
+  //     right: 10,
+  //     cellSize: ["auto", 13],
+  //     range: "2016",
+  //     itemStyle: {
+  //       borderWidth: 0.5,
+  //     },
+  //     yearLabel: { show: false },
+  //   },
+  // ],
   series: {
     type: "heatmap",
     coordinateSystem: "calendar",
     data: getVirtualData("2016"),
   },
-};
+});
 </script>
+
+<style scoped>
+.chart {
+  height: 300px;
+}
+</style>

@@ -1,15 +1,12 @@
 <template>
   <v-avatar size="150">
-    <v-img
+    <InitialsAvatar :initials="props.name[0]" />
+    <!-- <v-img
       src="https://cdn.vuetifyjs.com/images/profiles/marcus.jpg"
       cover
-    ></v-img>
+    ></v-img> -->
   </v-avatar>
-  <v-list-item
-    class="text-white"
-    :subtitle="title"
-    :title="props.name"
-  ></v-list-item>
+  <v-list-item :subtitle="title" :title="props.name"></v-list-item>
 </template>
 
 <script setup>
