@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import EmployeesAttendance from "@/components/EmployeesAttendance.vue";
+import AttendanceTable from '@/components/Tables/AttendanceTable.vue';
+
 </script>
 
 <template>
-  <EmployeesAttendance />
+  <AttendanceTable/>
 </template>

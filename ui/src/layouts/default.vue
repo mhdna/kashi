@@ -32,9 +32,7 @@
     </v-app-bar>
 
     <NavigationDrawer />
-    <v-container>
       <router-view />
-    </v-container>
   </v-main>
   <!-- <AppFooter /> -->
 </template>
