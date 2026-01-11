@@ -2,12 +2,14 @@
 import InitialsAvatar from "@/components/InitialsAvatar.vue";
 import Heatmap from "@/components/Stats/Heatmap.vue";
 import PercentageCircle from "@/components/Stats/PercentageCircle.vue";
+import TimeProfile from "@/components/Stats/TimeProfile.vue";
 </script>
 
 <template>
   <v-card>
     <div class="d-flex">
-      <InitialsAvatar />
+      <!-- <InitialsAvatar /> -->
+      <AttendanceTable/>
       <div>
         <v-card-title>Test Employee</v-card-title>
         <v-card-text> This is the employee page. </v-card-text>
