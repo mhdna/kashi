@@ -85,6 +85,12 @@ import NavigationMenu from "./NavigationMenu.vue";
         value="products"
       ></v-list-item>
       <v-list-item
+        to="/clients"
+        prepend-icon="mdi-person"
+        title="Clients"
+        value="clients"
+      ></v-list-item>
+      <v-list-item
         to="/transfers"
         prepend-icon="mdi-transfer"
         title="Tranfers"
@@ -107,6 +113,12 @@ import NavigationMenu from "./NavigationMenu.vue";
         prepend-icon="mdi-info"
         title="About"
         value="about"
+      ></v-list-item>
+      <v-list-item
+        to="/settings"
+        prepend-icon="mdi-geer"
+        title="Settings"
+        value="settings"
       ></v-list-item>
     </v-list>
   </v-navigation-drawer>

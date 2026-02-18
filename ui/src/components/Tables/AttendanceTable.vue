@@ -135,7 +135,7 @@
     '4day': '4 Days',
   }
   const colors = ['blue', 'indigo', 'deep-purple', 'cyan', 'green', 'orange', 'grey darken-1']
-  const names = ['Abbass', 'Sara', 'Fatima', 'Mahdi', 'Batoul', 'Hadi', 'Hussein', 'Sami', 'Hasan', 'Kamal', 'Jamal', 'Amal', 'Ahmad', 'Tamah', "lama", "ama"]
+  const names = ['Abbass', 'Sara', 'Fatima', 'Mahdi', 'Batoul', 'Hadi', 'Hussein', 'Mahdi']
 
   const focus = ref('')
   const type = ref('month')
@@ -197,35 +197,14 @@ function updateRange ({ start, end }) {
         const checkIn = new Date(dayStart)
         checkIn.setHours(startHour, startMinute, 0, 0)
         
-        // First shift: 4-5 hours
-        const firstShiftHours = rnd(4, 5)
-        const breakStart = new Date(checkIn.getTime() + (firstShiftHours * 3600000))
+        // 9 hours work + 1 hour break = 10 hours total
+        const checkOut = new Date(checkIn.getTime() + (10 * 3600000))
         
-        // Break: 1 hour
-        const secondShiftStart = new Date(breakStart.getTime() + 3600000)
-        
-        // Second shift: remaining hours to total 9 hours work
-        const secondShiftHours = 9 - firstShiftHours
-        const checkOut = new Date(secondShiftStart.getTime() + (secondShiftHours * 3600000))
-        
-        const employeeName = names[rnd(0, names.length - 1)]
-        const employeeColor = colors[rnd(0, colors.length - 1)]
-        
-        // First shift
         _attendance.push({
-          name: employeeName,
+          name: names[rnd(0, names.length - 1)],
           start: checkIn,
-          end: breakStart,
-          color: employeeColor,
-          timed: true,
-        })
-        
-        // Second shift
-        _attendance.push({
-          name: employeeName,
-          start: secondShiftStart,
           end: checkOut,
-          color: employeeColor,
+          color: colors[rnd(0, colors.length - 1)],
           timed: true,
         })
       }

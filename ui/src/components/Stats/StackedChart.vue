@@ -30,6 +30,10 @@ const option = {
   //     text: 'Stacked Area Chart'
   // },
   backgroundColor: "transparent",
+  grid: {
+    left:0,
+    right: 0,
+  },
   tooltip: {
     trigger: "axis",
     axisPointer: {
@@ -40,7 +44,7 @@ const option = {
     },
   },
   legend: {
-    data: ["Email", "Union Ads", "Video Ads", "Direct", "Search Engine"],
+    data: ["Branch A", "Branch B", "Branch C", "Brand D"],
   },
   toolbox: {
     feature: {
@@ -61,7 +65,7 @@ const option = {
   ],
   series: [
     {
-      name: "Email",
+      name: "Branch A",
       type: "line",
       stack: "Total",
       areaStyle: {},
@@ -71,7 +75,7 @@ const option = {
       data: [120, 132, 101, 134, 90, 230, 210],
     },
     {
-      name: "Union Ads",
+      name: "Branch B",
       type: "line",
       stack: "Total",
       areaStyle: {},
@@ -81,7 +85,7 @@ const option = {
       data: [220, 182, 191, 234, 290, 330, 310],
     },
     {
-      name: "Video Ads",
+      name: "Branch C",
       type: "line",
       stack: "Total",
       areaStyle: {},
@@ -91,7 +95,7 @@ const option = {
       data: [150, 232, 201, 154, 190, 330, 410],
     },
     {
-      name: "Direct",
+      name: "Branch D",
       type: "line",
       stack: "Total",
       areaStyle: {},
@@ -117,3 +121,10 @@ const option = {
   ],
 };
 </script>
+
+<style scoped>
+.chart {
+  height: 400px;
+  width: 100%;
+}
+</style>

@@ -2,14 +2,14 @@
   <v-data-table
     :headers="headers"
     :items="employees"
-    class="text-caption"
+    class="text-caption text-center"
     density="compact"
     item-value="name"
     hide-default-footer
     hover
   >
     <template v-slot:item="{ item }">
-      <tr class="text-no-wrap">
+      <tr class="text-no-wrap text-center">
         <td>{{ item.id }}</td>
         <td>{{ item.name }}</td>
         <td>{{ item.department }}</td>
@@ -78,10 +78,10 @@
       score: 4.2,
     },
     {
-      id: 'E003',
-      name: 'Clara Diaz',
-      department: 'HR',
-      role: 'Recruiter',
+      id: 'E006',
+      name: 'Mahdi Nayef',
+      department: 'IT',
+      role: 'Software Dev',
       salary: 65000,
       hireDate: '2021-06-10',
       hoursPerWeek: 32,
@@ -100,6 +100,54 @@
       location: 'San Francisco',
       status: 'Full-Time',
       score: 4.7,
+    },
+    {
+      id: 'E005',
+      name: 'Ella Smith',
+      department: 'Marketing',
+      role: 'Social Media Mgr',
+      salary: 80000,
+      hireDate: '2020-01-05',
+      hoursPerWeek: 38,
+      location: 'Los Angeles',
+      status: 'Full-Time',
+      score: 4.3,
+    },
+    {
+      id: 'E005',
+      name: 'Ella Smith',
+      department: 'Marketing',
+      role: 'Social Media Mgr',
+      salary: 80000,
+      hireDate: '2020-01-05',
+      hoursPerWeek: 38,
+      location: 'Los Angeles',
+      status: 'Full-Time',
+      score: 4.3,
+    },
+    {
+      id: 'E005',
+      name: 'Ella Smith',
+      department: 'Marketing',
+      role: 'Social Media Mgr',
+      salary: 80000,
+      hireDate: '2020-01-05',
+      hoursPerWeek: 38,
+      location: 'Los Angeles',
+      status: 'Full-Time',
+      score: 4.3,
+    },
+    {
+      id: 'E005',
+      name: 'Ella Smith',
+      department: 'Marketing',
+      role: 'Social Media Mgr',
+      salary: 80000,
+      hireDate: '2020-01-05',
+      hoursPerWeek: 38,
+      location: 'Los Angeles',
+      status: 'Full-Time',
+      score: 4.3,
     },
     {
       id: 'E005',
