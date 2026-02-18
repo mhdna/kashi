@@ -4,5 +4,5 @@ import AttendanceTable from '@/components/Tables/AttendanceTable.vue';
 </script>
 
 <template>
-  <AttendanceTable/>
+  <!-- <AttendanceTable/> -->
 </template>

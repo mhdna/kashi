@@ -1,6 +1,6 @@
 <template>
   <div class="chart-container">
-    <v-chart class="chart" autoresize :option="option" :loading="loading" />
+    <v-chart class="chart" autoresize :option="option" theme="dark" :loading="loading" />
     <!-- @click="handleClick" -->
   </div>
 </template>
@@ -227,7 +227,7 @@ const createChartOption = (data) => {
         levels: [
           {
             itemStyle: {
-              borderColor: "#fff",
+              borderColor: "#000",
               borderWidth: 0,
               gapWidth: 2,
             },
@@ -237,7 +237,7 @@ const createChartOption = (data) => {
           },
           {
             itemStyle: {
-              borderColor: "#fff",
+              borderColor: "#000",
               borderWidth: 0,
               gapWidth: 2,
             },
