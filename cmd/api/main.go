@@ -25,7 +25,7 @@ func main() {
 	var cfg config
 
 	flag.StringVar(&cfg.env, "env", "development", "environment (development|production)")
-	flag.IntVar(&cfg.port, "port", 4010, "HTTP port")
+	flag.IntVar(&cfg.port, "port", 4000, "HTTP port")
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
