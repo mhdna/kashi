@@ -1,9 +1,11 @@
-package models
+package data
 
-import "time"
+import (
+	"time"
+)
 
 type Product struct {
-	ID          uint      `json:"id" gorm:"primaryKey"`
+	ID          int64     `json:"id" gorm:"primaryKey"`
 	SKU         string    `json:"sku" gorm:"unique"`
 	Name        string    `json:"name" gorm:"not null"`
 	Description string    `json:"description"`
