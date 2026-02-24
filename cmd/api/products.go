@@ -1,26 +1,31 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/mhdna/kashi/internal/data"
 	"github.com/mhdna/kashi/internal/validator"
 )
 
 func (app *application) showProductHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.getProductId(r)
+	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
 	}
 
-	product := data.Product{
-		ID:        id,
-		CreatedAt: time.Now(),
-		Name:      "Test",
-		Price:     102,
+	product, err := app.models.Products.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
 	}
 
 	err = app.writeJSON(w, http.StatusOK, envelop{"product": product}, nil)
@@ -30,12 +35,20 @@ func (app *application) showProductHandler(w http.ResponseWriter, r *http.Reques
 }
 
 func (app *application) createProductHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO remove category and other things that are in other tables
 	var input struct {
-		Code    string       `json:"code"`
-		Name    string       `json:"name"`
-		Runtime data.Runtime `json:"runtime"`
-		Year    int32        `json:"year,omitempty"`
-		// Tags    []string     `json:"tags"`
+		Code        string  `json:"code"`
+		Name        string  `json:"name"`
+		Description string  `json:"description"`
+		Kind        string  `json:"kind"`
+		Type        string  `json:"type"`
+		Year        int32   `json:"year,omitempty"`
+		Unit        string  `json:"unit"`
+		Season      string  `json:"season"`
+		Price       float64 `json:"price"`
+		Cost        float64 `json:"cost"`
+		Category    string  `json:"category"`
+		IsActive    bool    `json:"is_active"`
 	}
 
 	err := app.readJSON(w, r, &input)
@@ -44,12 +57,19 @@ func (app *application) createProductHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// copy values from input into the product struct
 	product := &data.Product{
-		Name:    input.Name,
-		Code:    input.Code,
-		Runtime: input.Runtime,
-		Year:    input.Year,
+		Code:        input.Code,
+		Name:        input.Name,
+		Description: input.Description,
+		Kind:        input.Kind,
+		Type:        input.Type,
+		Year:        input.Year,
+		Unit:        input.Unit,
+		Season:      input.Season,
+		Price:       input.Price,
+		Cost:        input.Cost,
+		Category:    input.Category,
+		IsActive:    input.IsActive,
 	}
 
 	v := validator.New()
@@ -60,5 +80,87 @@ func (app *application) createProductHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	fmt.Fprintf(w, "%+v\n", input)
+	err = app.models.Products.Insert(product)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	headers := make(http.Header)
+	headers.Set("Location", fmt.Sprintf("/v1/products/%d", product.ID))
+
+	err = app.writeJSON(w, http.StatusCreated, envelop{"product": product}, headers)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) updateProductHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	product, err := app.models.Products.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	var input struct {
+		Code        string  `json:"code"`
+		Name        string  `json:"name"`
+		Description string  `json:"description"`
+		Kind        string  `json:"kind"`
+		Type        string  `json:"type"`
+		Year        int32   `json:"year"`
+		Unit        string  `json:"unit"`
+		Season      string  `json:"season"`
+		Price       float64 `json:"price"`
+		Cost        float64 `json:"cost"`
+		Category    string  `json:"category"`
+		IsActive    bool    `json:"is_active"`
+	}
+
+	err = app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	product.Code = input.Code
+	product.Name = input.Name
+	product.Description = input.Description
+	product.Kind = input.Kind
+	product.Type = input.Type
+	product.Year = input.Year
+	product.Unit = input.Unit
+	product.Season = input.Season
+	product.Price = input.Price
+	product.Cost = input.Cost
+	product.Category = input.Category
+	product.IsActive = input.IsActive
+
+	v := validator.New()
+
+	if data.ValidateProduct(v, product); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	err = app.models.Products.Update(product)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelop{"product": product}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
