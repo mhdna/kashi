@@ -93,12 +93,12 @@ func (p ProductModel) Get(id int64) (*Product, error) {
 func (p ProductModel) Update(product *Product) error {
 	query := `
 	UPDATE products
-	code = $1, name = $2, description = $3, kind = $4, year = $5, price = $6, is_active = $7, season = $8, unit = $9, type = $10, version = version + 1
-	WHERE id = $10 AND version = $11
-	RETURNING version
-	`
+	SET code = $1, name = $2, description = $3, kind = $4, year = $5, price = $6, is_active = $7, season = $8, unit = $9, type = $10, version = version + 1
+	WHERE id = $11 AND version = $12
+	RETURNING version`
 
 	args := []any{
+		product.Code,
 		product.Name,
 		product.Description,
 		product.Kind,

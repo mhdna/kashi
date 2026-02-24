@@ -14,7 +14,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthCheckHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/products", app.createProductHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/products/:id", app.showProductHandler)
-	router.HandlerFunc(http.MethodPut, "/v1/products/:id", app.updateProductHandler)
+	router.HandlerFunc(http.MethodPatch, "/v1/products/:id", app.updateProductHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/products/:id", app.deleteProductHandler)
 
 	return app.recoverPanic(router)

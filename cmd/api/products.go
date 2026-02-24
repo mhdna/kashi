@@ -114,18 +114,18 @@ func (app *application) updateProductHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	var input struct {
-		Code        string  `json:"code"`
-		Name        string  `json:"name"`
-		Description string  `json:"description"`
-		Kind        string  `json:"kind"`
-		Type        string  `json:"type"`
-		Year        int32   `json:"year"`
-		Unit        string  `json:"unit"`
-		Season      string  `json:"season"`
-		Price       float64 `json:"price"`
-		Cost        float64 `json:"cost"`
-		Category    string  `json:"category"`
-		IsActive    bool    `json:"is_active"`
+		Code        *string  `json:"code"`
+		Name        *string  `json:"name"`
+		Description *string  `json:"description"`
+		Kind        *string  `json:"kind"`
+		Type        *string  `json:"type"`
+		Year        *int32   `json:"year"`
+		Unit        *string  `json:"unit"`
+		Season      *string  `json:"season"`
+		Price       *float64 `json:"price"`
+		Cost        *float64 `json:"cost"`
+		Category    *string  `json:"category"`
+		IsActive    *bool    `json:"is_active"`
 	}
 
 	err = app.readJSON(w, r, &input)
@@ -134,18 +134,42 @@ func (app *application) updateProductHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	product.Code = input.Code
-	product.Name = input.Name
-	product.Description = input.Description
-	product.Kind = input.Kind
-	product.Type = input.Type
-	product.Year = input.Year
-	product.Unit = input.Unit
-	product.Season = input.Season
-	product.Price = input.Price
-	product.Cost = input.Cost
-	product.Category = input.Category
-	product.IsActive = input.IsActive
+	if input.Code != nil {
+		product.Code = *input.Code
+	}
+	if input.Name != nil {
+		product.Name = *input.Name
+	}
+	if input.Description != nil {
+		product.Description = *input.Description
+	}
+	if input.Kind != nil {
+		product.Kind = *input.Kind
+	}
+	if input.Type != nil {
+		product.Type = *input.Type
+	}
+	if input.Year != nil {
+		product.Year = *input.Year
+	}
+	if input.Unit != nil {
+		product.Unit = *input.Unit
+	}
+	if input.Season != nil {
+		product.Season = *input.Season
+	}
+	if input.Price != nil {
+		product.Price = *input.Price
+	}
+	if input.Cost != nil {
+		product.Cost = *input.Cost
+	}
+	if input.Category != nil {
+		product.Category = *input.Category
+	}
+	if input.IsActive != nil {
+		product.IsActive = *input.IsActive
+	}
 
 	v := validator.New()
 
