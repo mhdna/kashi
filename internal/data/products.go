@@ -22,9 +22,9 @@ type Product struct {
 	Cost        float64 `json:"cost"`
 	Category    string  `json:"category"`
 	IsActive    bool    `json:"is_active"`
-	Version     int     `json:"-"`
+	Version     int     `json:"version"`
 	// Runtime     Runtime   `json:"runtime,omitempty"`
-	CreatedAt time.Time `json:"-"`
+	CreatedAt time.Time `json:"created_at"`
 	// TODO change below to have a table of updates log
 	// UpdatedAt   time.Time `json:"updated_at"`
 }
