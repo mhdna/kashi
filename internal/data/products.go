@@ -1,25 +1,133 @@
 package data
 
 import (
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/mhdna/kashi/internal/validator"
 )
 
 type Product struct {
-	ID          int64     `json:"id"`
-	Code        string    `json:"code"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Year        int32     `json:"year,omitempty"`
-	Price       float64   `json:"price"`
-	Cost        float64   `json:"cost"`
-	Category    string    `json:"category"`
-	Active      bool      `json:"active"`
-	Runtime     Runtime   `json:"runtime,omitempty"`
-	CreatedAt   time.Time `json:"-"`
+	ID          int64   `json:"id"`
+	Code        string  `json:"code"`
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Year        int32   `json:"year,omitempty"`
+	Kind        string  `json:"kind"`
+	Type        string  `json:"type"`
+	Unit        string  `json:"unit"`
+	Season      string  `json:"season"`
+	Price       float64 `json:"price"`
+	Cost        float64 `json:"cost"`
+	Category    string  `json:"category"`
+	IsActive    bool    `json:"is_active"`
+	Version     int     `json:"-"`
+	// Runtime     Runtime   `json:"runtime,omitempty"`
+	CreatedAt time.Time `json:"-"`
 	// TODO change below to have a table of updates log
 	// UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type ProductModel struct {
+	DB *sql.DB
+}
+
+func (p ProductModel) Insert(product *Product) error {
+	// TODO fix missing things
+	query := `
+		INSERT INTO products (code, name, description, kind, year, price, is_active, season, unit, type)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		RETURNING id, created_at, version
+	`
+
+	args := []any{product.Code, product.Name, product.Description, product.Kind, product.Year, product.Price, product.IsActive, product.Season, product.Unit, product.Type}
+
+	return p.DB.QueryRow(query, args...).Scan(&product.ID, &product.CreatedAt, &product.Version)
+}
+
+func (p ProductModel) Get(id int64) (*Product, error) {
+	if id < 1 {
+		return nil, ErrRecordNotFound
+	}
+
+	query := `
+		SELECT id, code, name, description, kind, year, price, is_active, season, unit, type, version, created_at
+		FROM products
+		WHERE id = $1`
+
+	var product Product
+
+	err := p.DB.QueryRow(query, id).Scan(
+		&product.ID,
+		&product.Code,
+		&product.Name,
+		&product.Description,
+		&product.Kind,
+		&product.Year,
+		&product.Price,
+		&product.IsActive,
+		&product.Season,
+		&product.Unit,
+		&product.Type,
+		&product.Version,
+		&product.CreatedAt,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+
+		default:
+			return nil, err
+		}
+	}
+
+	return &product, nil
+}
+
+// FINISH THE CRUDS and Race conditions
+// TODO:
+
+func (p ProductModel) Update(product *Product) error {
+	query := `
+	UPDATE products
+	code = $1, name = $2, description = $3, kind = $4, year = $5, price = $6, is_active = $7, season = $8, unit = $9, type = $10, version = version + 1
+	WHERE id = $10 AND version = $11
+	RETURNING version
+	`
+
+	args := []any{
+		product.Name,
+		product.Description,
+		product.Kind,
+		product.Year,
+		product.Price,
+		product.IsActive,
+		product.Season,
+		product.Unit,
+		product.Type,
+		product.ID,
+		product.Version,
+	}
+
+	err := p.DB.QueryRow(query, args...).Scan(&product.Version)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrEditConflict
+		default:
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p ProductModel) Delete(id int64) error {
+	return nil
 }
 
 func ValidateProduct(v *validator.Validator, product *Product) {
