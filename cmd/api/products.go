@@ -239,6 +239,7 @@ func (app *application) listProductsHandler(w http.ResponseWriter, r *http.Reque
 
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
 	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+	input.Filters.ExactSearch = app.readBool(qs, "exact", false, v)
 
 	input.Filters.Sort = app.readString(qs, "sort", "id")
 	input.Filters.SortSafeList = []string{"id", "name", "year", "-id", "-name", "-year"}
