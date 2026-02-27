@@ -167,9 +167,9 @@ func ValidateProduct(v *validator.Validator, product *Product) {
 	// v.Check(validator.Unique(product.Tags), "tags", "must not contain duplicate values")
 }
 
-func (p ProductModel) GetAll(code string, name string, filters Filters) ([]*Product, error) {
+func (p ProductModel) GetAll(code string, name string, filters Filters) ([]*Product, Metadata, error) {
 	query := fmt.Sprintf(`
-	SELECT id, created_at, code, name, year, version
+	SELECT count(*) OVER(), id, created_at, code, name, year, version
 	FROM products
 	WHERE (LOWER(code) = LOWER($1) OR $1 = '')
 	AND (to_tsvector('simple', name) @@ plainto_tsquery('simple', $2) OR $2 = '')
@@ -183,16 +183,18 @@ func (p ProductModel) GetAll(code string, name string, filters Filters) ([]*Prod
 	args := []any{code, name, filters.limit(), filters.offset()}
 	rows, err := p.DB.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 
 	defer rows.Close()
 
+	totalRecords := 0
 	products := []*Product{}
 
 	for rows.Next() {
 		var product Product
 		err := rows.Scan(
+			&totalRecords,
 			&product.ID,
 			&product.CreatedAt,
 			&product.Code,
@@ -201,15 +203,16 @@ func (p ProductModel) GetAll(code string, name string, filters Filters) ([]*Prod
 			&product.Version,
 		)
 		if err != nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
 
 		products = append(products, &product)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 
-	return products, nil
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	return products, metadata, nil
 }
