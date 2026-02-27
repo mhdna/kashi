@@ -173,13 +173,15 @@ func (p ProductModel) GetAll(code string, name string, filters Filters) ([]*Prod
 	FROM products
 	WHERE (LOWER(code) = LOWER($1) OR $1 = '')
 	AND (to_tsvector('simple', name) @@ plainto_tsquery('simple', $2) OR $2 = '')
-	ORDER BY %s %s, id DESC`, filters.sortColumn(), filters.sortDirection())
+	ORDER BY %s %s, id DESC
+	LIMIT $3 OFFSET $4`, filters.sortColumn(), filters.sortDirection())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 
 	defer cancel()
 
-	rows, err := p.DB.QueryContext(ctx, query, code, name)
+	args := []any{code, name, filters.limit(), filters.offset()}
+	rows, err := p.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
