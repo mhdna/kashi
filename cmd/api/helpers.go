@@ -113,6 +113,19 @@ func (app *application) readCSV(qs url.Values, key string, defaultValue []string
 	return strings.Split(csv, ",")
 }
 
+func (app *application) readBool(qs url.Values, key string, defaultValue bool, v *validator.Validator) bool {
+	s := qs.Get(key)
+	if s == "" {
+		return defaultValue
+	}
+	i, err := strconv.ParseBool(s)
+	if err != nil {
+		v.AddError(key, "must be a boolean value. Accepts 1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False")
+		return defaultValue
+	}
+	return i
+}
+
 func (app *application) readInt(qs url.Values, key string, defaultValue int, v *validator.Validator) int {
 	s := qs.Get(key)
 	if s == "" {

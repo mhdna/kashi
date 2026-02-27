@@ -10,6 +10,7 @@ import (
 type Filters struct {
 	Page         int
 	PageSize     int
+	ExactSearch  bool
 	Sort         string
 	SortSafeList []string
 }
