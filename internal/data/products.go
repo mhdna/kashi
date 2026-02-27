@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -163,4 +164,49 @@ func ValidateProduct(v *validator.Validator, product *Product) {
 	v.Check(product.Code != "", "code", "must be provided")
 
 	// v.Check(validator.Unique(product.Tags), "tags", "must not contain duplicate values")
+}
+
+func (p ProductModel) GetAll(code string, name string, filters Filters) ([]*Product, error) {
+	query := `
+	SELECT id, created_at, code, name, year, version
+	FROM products
+	WHERE (LOWER(code) = LOWER($1) OR $1 = '')
+	AND (to_tsvector('simple', name) @@ plainto_tsquery('simple', $2) OR $2 = '')
+	ORDER BY id`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+
+	defer cancel()
+
+	rows, err := p.DB.QueryContext(ctx, query, code, name)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	products := []*Product{}
+
+	for rows.Next() {
+		var product Product
+		err := rows.Scan(
+			&product.ID,
+			&product.CreatedAt,
+			&product.Code,
+			&product.Name,
+			&product.Year,
+			&product.Version,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		products = append(products, &product)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return products, nil
 }

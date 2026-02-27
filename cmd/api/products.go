@@ -213,3 +213,48 @@ func (app *application) deleteProductHandler(w http.ResponseWriter, r *http.Requ
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
+func (app *application) listProductsHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Code        string
+		Name        string
+		Description string
+		Kind        string
+		Type        string
+		Year        string
+		Unit        string
+		Season      string
+		Price       string
+		Cost        string
+		Category    string
+		IsActive    string
+		data.Filters
+	}
+
+	v := validator.New()
+	qs := r.URL.Query()
+
+	input.Code = app.readString(qs, "code", "")
+	input.Name = app.readString(qs, "name", "")
+
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafeList = []string{"id", "title", "year", "-id", "-title", "-year", "-runtime"}
+
+	if data.ValidateFitlers(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	products, err := app.models.Products.GetAll(input.Code, input.Name, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	err = app.writeJSON(w, http.StatusOK, envelop{"products": products}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
