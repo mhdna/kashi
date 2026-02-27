@@ -241,7 +241,7 @@ func (app *application) listProductsHandler(w http.ResponseWriter, r *http.Reque
 	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
 
 	input.Filters.Sort = app.readString(qs, "sort", "id")
-	input.Filters.SortSafeList = []string{"id", "title", "year", "-id", "-title", "-year", "-runtime"}
+	input.Filters.SortSafeList = []string{"id", "name", "year", "-id", "-name", "-year"}
 
 	if data.ValidateFitlers(v, input.Filters); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)

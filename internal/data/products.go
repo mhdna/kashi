@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/mhdna/kashi/internal/validator"
@@ -167,12 +168,12 @@ func ValidateProduct(v *validator.Validator, product *Product) {
 }
 
 func (p ProductModel) GetAll(code string, name string, filters Filters) ([]*Product, error) {
-	query := `
+	query := fmt.Sprintf(`
 	SELECT id, created_at, code, name, year, version
 	FROM products
 	WHERE (LOWER(code) = LOWER($1) OR $1 = '')
 	AND (to_tsvector('simple', name) @@ plainto_tsquery('simple', $2) OR $2 = '')
-	ORDER BY id`
+	ORDER BY %s %s, id DESC`, filters.sortColumn(), filters.sortDirection())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 
