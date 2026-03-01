@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/mhdna/kashi/internal/validator"
@@ -105,7 +106,7 @@ func (m UserModel) Insert(user *User) error {
 	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.Version)
 	if err != nil {
 		switch {
-		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
+		case strings.Contains(err.Error(), `duplicate key value violates unique constraint "users_email_key"`):
 			return ErrDuplicateEmail
 		default:
 			return err
@@ -168,7 +169,7 @@ func (m UserModel) Update(user *User) error {
 	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&user.Version)
 	if err != nil {
 		switch {
-		case err.Error() == `pq: duplicate key value violates unique constraint "user_email_key"`:
+		case strings.Contains(err.Error(), `duplicate key value violates unique constraint "users_email_key"`):
 			return ErrDuplicateEmail
 
 		case errors.Is(err, sql.ErrNoRows):
