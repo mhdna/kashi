@@ -63,8 +63,8 @@ func main() {
 
 	flag.StringVar(&cfg.smpt.host, "smtp-host", "sandbox.smtp.mailtrap.io", "SMTP host")
 	flag.IntVar(&cfg.smpt.port, "smtp-port", 2525, "SMTP port")
-	flag.StringVar(&cfg.smpt.username, "smtp-username", "", "SMTP username")
-	flag.StringVar(&cfg.smpt.password, "smtp-password", "", "SMTP password")
+	flag.StringVar(&cfg.smpt.username, "smtp-username", os.Getenv("KASHI_SMTP_USERNAME"), "SMTP username")
+	flag.StringVar(&cfg.smpt.password, "smtp-password", os.Getenv("KASHI_SMTP_PASSWORD"), "SMTP password")
 	flag.StringVar(&cfg.smpt.sender, "smtp-sender", "Kashi <no-reply@kashi.github.com>", "SMTP sender")
 
 	flag.Parse()
