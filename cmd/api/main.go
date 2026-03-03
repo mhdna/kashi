@@ -10,6 +10,7 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/mhdna/kashi/internal/data"
+	"github.com/mhdna/kashi/internal/mailer"
 )
 
 const version = "1.0.0"
@@ -28,12 +29,20 @@ type config struct {
 		burst   int
 		enabled bool
 	}
+	smpt struct {
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
+	}
 }
 
 type application struct {
 	config config
 	logger *slog.Logger
 	models data.Models
+	mailer mailer.Mailer
 }
 
 func main() {
@@ -52,6 +61,12 @@ func main() {
 	flag.IntVar(&cfg.limiter.burst, "limiter-burst", 4, "Rate limiter maximum burst")
 	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
 
+	flag.StringVar(&cfg.smpt.host, "smtp-host", "sandbox.smtp.mailtrap.io", "SMTP host")
+	flag.IntVar(&cfg.smpt.port, "smtp-port", 2525, "SMTP port")
+	flag.StringVar(&cfg.smpt.username, "smtp-username", "", "SMTP username")
+	flag.StringVar(&cfg.smpt.password, "smtp-password", "", "SMTP password")
+	flag.StringVar(&cfg.smpt.sender, "smtp-sender", "Kashi <no-reply@kashi.github.com>", "SMTP sender")
+
 	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
@@ -68,6 +83,7 @@ func main() {
 		config: cfg,
 		logger: logger,
 		models: data.NewModels(db),
+		mailer: mailer.New(cfg.smpt.host, cfg.smpt.port, cfg.smpt.username, cfg.smpt.password, cfg.smpt.sender),
 	}
 
 	err = app.serve()
