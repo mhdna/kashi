@@ -6,6 +6,7 @@ import (
 	"flag"
 	"log/slog"
 	"os"
+	"sync"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -34,6 +35,7 @@ type application struct {
 	config config
 	logger *slog.Logger
 	models data.Models
+	wg     sync.WaitGroup
 }
 
 func main() {
