@@ -1,0 +1,31 @@
+{{define "subject"}}Welcome to Kashi{{end}}
+
+{{define "plainBody"}}
+Hi,
+
+Thanks for signing up for a Kashi account. We're excited to have you on board!
+
+Fo future reference, your user ID number is {{.ID}}.
+
+Thanks,
+
+The Kashi Team
+{{end}
+
+{{define "htmlBody"}}
+<!doctype html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+</head>
+
+<body>
+    <p>Hi,</p>
+    <p>Thanks for signing up for a Kashi account. We're excited to have you on board!</p>
+    <p>Fo future reference, your user ID number is {{.ID}}.</p>
+    <p>Thanks,</p>
+    <p>The Kashi Team</p>
+</body>
+</html>
+{{end}}
