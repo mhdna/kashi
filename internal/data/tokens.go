@@ -30,6 +30,8 @@ func generateToken(userID int64, ttl time.Duration, scope string) (*Token, error
 		Scope:  scope,
 	}
 
+	// the torken string will have an underlying entropy of 16 bytes of randomness (this is not the width of the token)
+	// encoding this into random bytes to a base-32 string the result will be a string of 26 characters
 	randomBytes := make([]byte, 16)
 
 	_, err := rand.Read(randomBytes)
