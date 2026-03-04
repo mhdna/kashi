@@ -35,7 +35,7 @@ type ProductModel struct {
 	DB *sql.DB
 }
 
-func (p ProductModel) Insert(product *Product) error {
+func (m ProductModel) Insert(product *Product) error {
 	// TODO fix missing things
 	query := `
 		INSERT INTO products (code, name, description, kind, year, price, is_active, season, unit, type)
@@ -48,7 +48,7 @@ func (p ProductModel) Insert(product *Product) error {
 	return p.DB.QueryRow(query, args...).Scan(&product.ID, &product.CreatedAt, &product.Version)
 }
 
-func (p ProductModel) Get(id int64) (*Product, error) {
+func (m ProductModel) Get(id int64) (*Product, error) {
 	if id < 1 {
 		return nil, ErrRecordNotFound
 	}
@@ -92,7 +92,7 @@ func (p ProductModel) Get(id int64) (*Product, error) {
 // FINISH THE CRUDS and Race conditions
 // TODO:
 
-func (p ProductModel) Update(product *Product) error {
+func (m ProductModel) Update(product *Product) error {
 	query := `
 	UPDATE products
 	SET code = $1, name = $2, description = $3, kind = $4, year = $5, price = $6, is_active = $7, season = $8, unit = $9, type = $10, version = version + 1
@@ -128,7 +128,7 @@ func (p ProductModel) Update(product *Product) error {
 	return nil
 }
 
-func (p ProductModel) Delete(id int64) error {
+func (m ProductModel) Delete(id int64) error {
 	if id < 1 {
 		return ErrRecordNotFound
 	}
@@ -167,7 +167,7 @@ func ValidateProduct(v *validator.Validator, product *Product) {
 	// v.Check(validator.Unique(product.Tags), "tags", "must not contain duplicate values")
 }
 
-func (p ProductModel) GetAll(code string, name string, filters Filters) ([]*Product, Metadata, error) {
+func (m ProductModel) GetAll(code string, name string, filters Filters) ([]*Product, Metadata, error) {
 	query := fmt.Sprintf(`
 	SELECT count(*) OVER(), id, created_at, code, name, year, version
 	FROM products
