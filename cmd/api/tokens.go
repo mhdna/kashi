@@ -35,7 +35,7 @@ func (app *application) createAuthenticationTokenHandler(w http.ResponseWriter, 
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			app.invalidCredentialsResponse(w, r, err)
+			app.invalidCredentialsResponse(w, r)
 		default:
 			app.serverErrorResponse(w, r, err)
 		}
@@ -49,7 +49,7 @@ func (app *application) createAuthenticationTokenHandler(w http.ResponseWriter, 
 	}
 
 	if !match {
-		app.invalidCredentialsResponse(w, r, err)
+		app.invalidCredentialsResponse(w, r)
 		return
 	}
 	token, err := app.models.Tokens.New(user.ID, 24*time.Hour, data.ScopeAuthentication)
