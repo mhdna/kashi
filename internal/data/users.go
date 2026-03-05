@@ -16,6 +16,8 @@ var (
 	ErrDuplicateEmail = errors.New("duplicate email")
 )
 
+var AnonymousUser = &User{}
+
 type UserModel struct {
 	DB *sql.DB
 }
@@ -30,6 +32,10 @@ type User struct {
 	Password  password `json:"-"`
 	Activated bool     `json:"activated"`
 	Version   int      `json:"-"`
+}
+
+func (u *User) IsAnnonymous() bool {
+	return u == AnonymousUser
 }
 
 // INFO: The plaintext field is a *pointer* to a string,

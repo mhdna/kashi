@@ -56,7 +56,14 @@ func (app *application) rateLimitExceededResponse(w http.ResponseWriter, r *http
 	app.errorRresponse(w, r, http.StatusConflict, message)
 }
 
-func (app *application) invalidCredentialsResponse(w http.ResponseWriter, r *http.Request, err error) {
+func (app *application) invalidCredentialsResponse(w http.ResponseWriter, r *http.Request) {
+	message := "invalid authentication credentials"
+	app.errorRresponse(w, r, http.StatusUnauthorized, message)
+}
+
+func (app *application) invalidAuthenticationTokenResponse(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("WWW-Authentication", "Bearer")
+
 	message := "invalid authentication credentials"
 	app.errorRresponse(w, r, http.StatusUnauthorized, message)
 }
