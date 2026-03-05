@@ -13,7 +13,7 @@ func (app *application) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthCheckHandler)
 
-	router.HandlerFunc(http.MethodGet, "/v1/products", app.listProductsHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/products", app.requireActivatedUser(app.listProductsHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/products/:id", app.showProductHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/products", app.createProductHandler)
 	router.HandlerFunc(http.MethodPatch, "/v1/products/:id", app.updateProductHandler)
