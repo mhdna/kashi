@@ -45,7 +45,7 @@ func (m ProductModel) Insert(product *Product) error {
 
 	args := []any{product.Code, product.Name, product.Description, product.Kind, product.Year, product.Price, product.IsActive, product.Season, product.Unit, product.Type}
 
-	return p.DB.QueryRow(query, args...).Scan(&product.ID, &product.CreatedAt, &product.Version)
+	return m.DB.QueryRow(query, args...).Scan(&product.ID, &product.CreatedAt, &product.Version)
 }
 
 func (m ProductModel) Get(id int64) (*Product, error) {
@@ -60,7 +60,7 @@ func (m ProductModel) Get(id int64) (*Product, error) {
 
 	var product Product
 
-	err := p.DB.QueryRow(query, id).Scan(
+	err := m.DB.QueryRow(query, id).Scan(
 		&product.ID,
 		&product.Code,
 		&product.Name,
@@ -114,7 +114,7 @@ func (m ProductModel) Update(product *Product) error {
 		product.Version,
 	}
 
-	err := p.DB.QueryRow(query, args...).Scan(&product.Version)
+	err := m.DB.QueryRow(query, args...).Scan(&product.Version)
 
 	if err != nil {
 		switch {
@@ -138,7 +138,7 @@ func (m ProductModel) Delete(id int64) error {
 		WHERE id = $1
 	`
 
-	result, err := p.DB.Exec(query, id)
+	result, err := m.DB.Exec(query, id)
 
 	if err != nil {
 		return err
@@ -181,7 +181,7 @@ func (m ProductModel) GetAll(code string, name string, filters Filters) ([]*Prod
 	defer cancel()
 
 	args := []any{code, name, filters.limit(), filters.offset()}
-	rows, err := p.DB.QueryContext(ctx, query, args...)
+	rows, err := m.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, Metadata{}, err
 	}
