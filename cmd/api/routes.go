@@ -23,5 +23,6 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/users/authentication", app.createAuthenticationTokenHandler)
 
-	return app.recoverPanic(app.rateLimit(app.authenticate(router)))
+	// make sure enableCors is before rateLimit so that rateLimited stuff isn't blocked only because CORS isn't enabled
+	return app.recoverPanic(app.enableCORS(app.rateLimit(app.authenticate(router))))
 }
