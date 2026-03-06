@@ -51,6 +51,13 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// add products:read permission for new users
+	err = app.models.Permissions.AddForUser(user.ID, "products:read")
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
 	err = app.writeJSON(w, http.StatusCreated, envelop{"user": user}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
