@@ -184,6 +184,7 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 		w.Header().Add("Vary", "Origin")
 		origin := r.Header.Get("Origin")
 		if origin != "" {
+			// loop over them because CORS header only allows one value
 			if slices.Contains(app.config.cors.trustedOrigins, origin) {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 			}
