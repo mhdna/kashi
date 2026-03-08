@@ -84,7 +84,6 @@ create table if not exists "products_sizes" (
 );
 
 create table if not exists "barcodes" (
-  "id" bigserial primary key,  
   "barcode" bigint not null unique,
   "product_id" bigint not null references "products",
   "color_id" bigint references "colors",
