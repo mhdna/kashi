@@ -1,41 +1,49 @@
 create table if not exists "kinds" (
   "id" bigserial primary key,  
   "name" text not null unique
+  "version" int NOT NULL DEFAULT 1,
 );
 
 create table if not exists "categories" (
   "id" bigserial primary key,  
   "name" text not null unique
+  "version" int NOT NULL DEFAULT 1,
 );
 
 create table if not exists "subcategories" (
   "id" bigserial primary key,  
   "name" text not null unique
+  "version" int NOT NULL DEFAULT 1,
 );
 
 create table if not exists "units" (
   "id" bigserial primary key,  
   "name" text not null unique
+  "version" int NOT NULL DEFAULT 1,
 );
 
 create table if not exists "types" (
   "id" bigserial primary key,  
   "name" text not null unique
+  "version" int NOT NULL DEFAULT 1,
 );
 
 create table if not exists "seasons" (
   "id" bigserial primary key,  
   "name" text not null unique
+  "version" int NOT NULL DEFAULT 1,
 );
 
 create table if not exists "brands" (
   "id" bigserial primary key,  
   "name" text not null unique
+  "version" int NOT NULL DEFAULT 1,
 );
 
 create table if not exists "origins" (
   "id" bigserial primary key,  
   "name" text not null unique
+  "version" int NOT NULL DEFAULT 1,
 );
 
 CREATE TABLE IF NOT EXISTS "products" (
@@ -62,6 +70,7 @@ create table if not exists "colors" (
   "id" bigserial primary key,  
   "name" text not null unique,
   "hexValue" text not null unique
+  "version" int NOT NULL DEFAULT 1,
 );
 
 create table if not exists "products_colors" (
@@ -75,6 +84,7 @@ create table if not exists "sizes" (
   "name" text not null unique,
   "type" text not null unique,
   "order" text not null unique
+  "version" int NOT NULL DEFAULT 1,
 );
 
 create table if not exists "products_sizes" (
@@ -88,4 +98,5 @@ create table if not exists "barcodes" (
   "product_id" bigint not null references "products",
   "color_id" bigint references "colors",
   "size_id" bigint references "sizes"
+  "version" int NOT NULL DEFAULT 1,
 );
