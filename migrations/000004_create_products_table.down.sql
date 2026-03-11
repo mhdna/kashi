@@ -1,9 +1,3 @@
-DROP TABLE IF EXISTS barcodes;
-DROP TABLE IF EXISTS products_colors;
-DROP TABLE IF EXISTS colors;
-DROP TABLE IF EXISTS products_sizes;
-DROP TABLE IF EXISTS sizes;
-
 DROP TABLE IF EXISTS products;
 
 DROP TABLE IF EXISTS kinds;
