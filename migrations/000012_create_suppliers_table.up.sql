@@ -1,4 +1,4 @@
-create table if not exists "suppliers" (
+create table if not exists suppliers (
   "id" bigserial primary key,  
   "name" text not null unique,
   "phone" text not null unique,
@@ -7,7 +7,7 @@ create table if not exists "suppliers" (
   "size_id" bigint references "sizes"
 );
 
-create table if not exists "products_suppliers" (
+create table if not exists products_suppliers (
   "product_id" bigint not null references "products" on delete cascade,
   "supplier_id" bigint not null references "suppliers" on delete cascade,
   "product_cost" bigint not null,

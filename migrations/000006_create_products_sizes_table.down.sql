@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS products_sizes;
+DROP TABLE IF EXISTS sizes;
