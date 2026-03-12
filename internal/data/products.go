@@ -11,20 +11,22 @@ import (
 )
 
 type Product struct {
-	ID          int64   `json:"id"`
-	Code        string  `json:"code"`
-	Name        string  `json:"name"`
-	Description string  `json:"description"`
-	Year        int32   `json:"year,omitempty"`
-	Kind        string  `json:"kind"`
-	Type        string  `json:"type"`
-	Unit        string  `json:"unit"`
-	Season      string  `json:"season"`
-	Price       float64 `json:"price"`
-	Cost        float64 `json:"cost"`
-	Category    string  `json:"category"`
-	IsActive    bool    `json:"is_active"`
-	Version     int     `json:"version"`
+	ID            int64   `json:"id"`
+	Code          string  `json:"code"`
+	Name          string  `json:"name"`
+	Description   string  `json:"description"`
+	KindId        int64   `json:"kind_id"`
+	CategoryId    int64   `json:"category_id"`
+	SubCategoryId int64   `json:"sub_category_id"`
+	UnitId        int64   `json:"unit_id"`
+	TypeId        int64   `json:"type_id"`
+	Year          int32   `json:"year,omitempty"`
+	SeasonId      int64   `json:"season_id"`
+	BrandId       int64   `json:"brand_id"`
+	OriginId      int64   `json:"origin_id"`
+	Price         float64 `json:"price"`
+	IsActive      bool    `json:"is_active"`
+	Version       int     `json:"version"`
 	// Runtime     Runtime   `json:"runtime,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 	// TODO change below to have a table of updates log
@@ -36,14 +38,13 @@ type ProductModel struct {
 }
 
 func (m ProductModel) Insert(product *Product) error {
-	// TODO fix missing things
 	query := `
-		INSERT INTO products (code, name, description, kind, year, price, is_active, season, unit, type)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		INSERT INTO products (code, name, description, kind_id, category_id, subcategory_id, unit_id, type_id, year, season_id, brand_id, origin_id, price)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		RETURNING id, created_at, version
 	`
 
-	args := []any{product.Code, product.Name, product.Description, product.Kind, product.Year, product.Price, product.IsActive, product.Season, product.Unit, product.Type}
+	args := []any{product.Code, product.Name, product.Description, product.KindId, product.CategoryId, product.SubCategoryId, product.UnitId, product.TypeId, product.Year, product.SeasonId, product.BrandId, product.OriginId, product.Price}
 
 	return m.DB.QueryRow(query, args...).Scan(&product.ID, &product.CreatedAt, &product.Version)
 }
@@ -54,7 +55,7 @@ func (m ProductModel) Get(id int64) (*Product, error) {
 	}
 
 	query := `
-		SELECT id, code, name, description, kind, year, price, is_active, season, unit, type, version, created_at
+		SELECT id, code, name, description, kind_id, category_id, subcategory_id, unit_id, type_id, year, season_id, brand_id, origin_id, price
 		FROM products
 		WHERE id = $1`
 
@@ -65,13 +66,17 @@ func (m ProductModel) Get(id int64) (*Product, error) {
 		&product.Code,
 		&product.Name,
 		&product.Description,
-		&product.Kind,
+		&product.KindId,
+		&product.CategoryId,
+		&product.SubCategoryId,
+		&product.UnitId,
+		&product.TypeId,
 		&product.Year,
+		&product.SeasonId,
+		&product.BrandId,
+		&product.OriginId,
 		&product.Price,
 		&product.IsActive,
-		&product.Season,
-		&product.Unit,
-		&product.Type,
 		&product.Version,
 		&product.CreatedAt,
 	)
@@ -95,21 +100,25 @@ func (m ProductModel) Get(id int64) (*Product, error) {
 func (m ProductModel) Update(product *Product) error {
 	query := `
 	UPDATE products
-	SET code = $1, name = $2, description = $3, kind = $4, year = $5, price = $6, is_active = $7, season = $8, unit = $9, type = $10, version = version + 1
-	WHERE id = $11 AND version = $12
+	SET code = $1, name = $2, description = $3, kind_id = $4, category_id = $5, subcategory_id = $6, unit_id = $7, type_id = $8, year = $9, season_id = $10, brand_id = $11, origin_id = $12, price = $13
+	WHERE id = $14 AND version = $15
 	RETURNING version`
 
 	args := []any{
 		product.Code,
 		product.Name,
 		product.Description,
-		product.Kind,
+		product.KindId,
+		product.CategoryId,
+		product.SubCategoryId,
+		product.UnitId,
+		product.TypeId,
 		product.Year,
+		product.SeasonId,
+		product.BrandId,
+		product.OriginId,
 		product.Price,
 		product.IsActive,
-		product.Season,
-		product.Unit,
-		product.Type,
 		product.ID,
 		product.Version,
 	}

@@ -35,20 +35,20 @@ func (app *application) showProductHandler(w http.ResponseWriter, r *http.Reques
 }
 
 func (app *application) createProductHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO remove category and other things that are in other tables
 	var input struct {
-		Code        string  `json:"code"`
-		Name        string  `json:"name"`
-		Description string  `json:"description"`
-		Kind        string  `json:"kind"`
-		Type        string  `json:"type"`
-		Year        int32   `json:"year,omitempty"`
-		Unit        string  `json:"unit"`
-		Season      string  `json:"season"`
-		Price       float64 `json:"price"`
-		Cost        float64 `json:"cost"`
-		Category    string  `json:"category"`
-		IsActive    bool    `json:"is_active"`
+		Code          string  `json:"code"`
+		Name          string  `json:"name"`
+		Description   string  `json:"description"`
+		KindId        int64   `json:"kind_id"`
+		CategoryId    int64   `json:"category_id"`
+		SubCategoryId int64   `json:"sub_category_id"`
+		UnitId        int64   `json:"unit_id"`
+		TypeId        int64   `json:"type_id"`
+		Year          int32   `json:"year,omitempty"`
+		SeasonId      int64   `json:"season_id"`
+		BrandId       int64   `json:"brand_id"`
+		OriginId      int64   `json:"origin_id"`
+		Price         float64 `json:"price"`
 	}
 
 	err := app.readJSON(w, r, &input)
@@ -58,18 +58,19 @@ func (app *application) createProductHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	product := &data.Product{
-		Code:        input.Code,
-		Name:        input.Name,
-		Description: input.Description,
-		Kind:        input.Kind,
-		Type:        input.Type,
-		Year:        input.Year,
-		Unit:        input.Unit,
-		Season:      input.Season,
-		Price:       input.Price,
-		Cost:        input.Cost,
-		Category:    input.Category,
-		IsActive:    input.IsActive,
+		Code:          input.Code,
+		Name:          input.Name,
+		Description:   input.Description,
+		KindId:        input.KindId,
+		CategoryId:    input.CategoryId,
+		SubCategoryId: input.SubCategoryId,
+		UnitId:        input.UnitId,
+		TypeId:        input.TypeId,
+		Year:          input.Year,
+		SeasonId:      input.SeasonId,
+		BrandId:       input.BrandId,
+		OriginId:      input.OriginId,
+		Price:         input.Price,
 	}
 
 	v := validator.New()
@@ -114,18 +115,20 @@ func (app *application) updateProductHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	var input struct {
-		Code        *string  `json:"code"`
-		Name        *string  `json:"name"`
-		Description *string  `json:"description"`
-		Kind        *string  `json:"kind"`
-		Type        *string  `json:"type"`
-		Year        *int32   `json:"year"`
-		Unit        *string  `json:"unit"`
-		Season      *string  `json:"season"`
-		Price       *float64 `json:"price"`
-		Cost        *float64 `json:"cost"`
-		Category    *string  `json:"category"`
-		IsActive    *bool    `json:"is_active"`
+		Code          *string  `json:"code"`
+		Name          *string  `json:"name"`
+		Description   *string  `json:"description"`
+		KindId        *int64   `json:"kind_id"`
+		CategoryId    *int64   `json:"category_id"`
+		SubCategoryId *int64   `json:"sub_category_id"`
+		UnitId        *int64   `json:"unit_id"`
+		TypeId        *int64   `json:"type_id"`
+		Year          *int32   `json:"year,omitempty"`
+		SeasonId      *int64   `json:"season_id"`
+		BrandId       *int64   `json:"brand_id"`
+		OriginId      *int64   `json:"origin_id"`
+		Price         *float64 `json:"price"`
+		IsActive      *bool    `json:"is_active"`
 	}
 
 	err = app.readJSON(w, r, &input)
@@ -143,29 +146,35 @@ func (app *application) updateProductHandler(w http.ResponseWriter, r *http.Requ
 	if input.Description != nil {
 		product.Description = *input.Description
 	}
-	if input.Kind != nil {
-		product.Kind = *input.Kind
+	if input.KindId != nil {
+		product.KindId = *input.KindId
 	}
-	if input.Type != nil {
-		product.Type = *input.Type
+	if input.CategoryId != nil {
+		product.CategoryId = *input.CategoryId
+	}
+	if input.SubCategoryId != nil {
+		product.SubCategoryId = *input.SubCategoryId
+	}
+	if input.UnitId != nil {
+		product.UnitId = *input.UnitId
+	}
+	if input.TypeId != nil {
+		product.TypeId = *input.TypeId
 	}
 	if input.Year != nil {
 		product.Year = *input.Year
 	}
-	if input.Unit != nil {
-		product.Unit = *input.Unit
+	if input.SeasonId != nil {
+		product.SeasonId = *input.SeasonId
 	}
-	if input.Season != nil {
-		product.Season = *input.Season
+	if input.BrandId != nil {
+		product.BrandId = *input.BrandId
+	}
+	if input.OriginId != nil {
+		product.OriginId = *input.OriginId
 	}
 	if input.Price != nil {
 		product.Price = *input.Price
-	}
-	if input.Cost != nil {
-		product.Cost = *input.Cost
-	}
-	if input.Category != nil {
-		product.Category = *input.Category
 	}
 	if input.IsActive != nil {
 		product.IsActive = *input.IsActive
@@ -216,18 +225,20 @@ func (app *application) deleteProductHandler(w http.ResponseWriter, r *http.Requ
 
 func (app *application) listProductsHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Code        string
-		Name        string
-		Description string
-		Kind        string
-		Type        string
-		Year        string
-		Unit        string
-		Season      string
-		Price       string
-		Cost        string
-		Category    string
-		IsActive    string
+		Code          string
+		Name          string
+		Description   string
+		KindId        int64
+		CategoryId    int64
+		SubCategoryId int64
+		UnitId        int64
+		TypeId        int64
+		Year          int32
+		SeasonId      int64
+		BrandId       int64
+		OriginId      int64
+		Price         float64
+		IsActive      bool
 		data.Filters
 	}
 
