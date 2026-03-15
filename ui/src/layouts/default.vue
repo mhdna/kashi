@@ -2,7 +2,7 @@
   <v-main>
     <v-app-bar :elevation="1" density="compact">
       <template v-slot:prepend>
-        <v-app-bar-nav-icon> </v-app-bar-nav-icon>
+        <v-app-bar-nav-icon @click.stop="showDrawer = !showDrawer"> </v-app-bar-nav-icon>
       </template>
 
       <v-app-bar-title>
@@ -31,8 +31,8 @@
       </template>
     </v-app-bar>
 
-    <NavigationDrawer />
-      <router-view />
+    <NavigationDrawer :showDrawer="showDrawer" />
+    <router-view />
   </v-main>
   <!-- <AppFooter /> -->
 </template>
@@ -40,6 +40,9 @@
 <script lang="ts" setup>
 import ToggleTheme from "@/components/Buttons/ToggleTheme.vue";
 import NotificationMenu from "@/components/Menus/NotificationMenu.vue";
+import { ref } from "vue";
+
+const showDrawer = ref(true);
 
 //
 </script>
