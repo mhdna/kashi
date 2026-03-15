@@ -27,7 +27,13 @@
   </v-dialog>
 
 
-  <v-btn @click="dialog = true" text="Add a New Product"></v-btn>
+  <div class="d-flex justify-space-between">
+    <v-btn @click="dialog = true" text="Add a New Product"></v-btn>
+    <div>
+      <v-icon-btn icon="mdi-view-gallery"></v-icon-btn>
+      <v-icon-btn icon="mdi-format-list-bulleted"></v-icon-btn>
+    </div>
+  </div>
   <ProductsTable />
 </template>
 
