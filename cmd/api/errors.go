@@ -34,7 +34,7 @@ func (app *application) notFoundResponse(w http.ResponseWriter, r *http.Request)
 }
 
 func (app *application) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request) {
-	message := fmt.Sprintf("the %s methdo is not supported for this resource", r.Method)
+	message := fmt.Sprintf("the %s method is not supported for this resource", r.Method)
 	app.errorRresponse(w, r, http.StatusMethodNotAllowed, message)
 }
 
