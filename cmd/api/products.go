@@ -190,6 +190,7 @@ func (app *application) updateProductHandler(w http.ResponseWriter, r *http.Requ
 	err = app.models.Products.Update(product)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
+		return
 	}
 
 	err = app.writeJSON(w, http.StatusOK, envelop{"product": product}, nil)
