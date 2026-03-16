@@ -30,14 +30,18 @@
   <div class="d-flex justify-space-between">
     <v-btn @click="dialog = true" text="Add a New Product"></v-btn>
     <div>
-      <v-icon-btn icon="mdi-view-gallery"></v-icon-btn>
-      <v-icon-btn icon="mdi-format-list-bulleted"></v-icon-btn>
+      <v-icon-btn icon="mdi-view-gallery" @click="galleryView = true"></v-icon-btn>
+      <v-icon-btn icon="mdi-format-list-bulleted" @click="galleryView = false"></v-icon-btn>
     </div>
   </div>
-  <ProductsTable />
+
+  <ProductsGallery v-if="galleryView" />
+  <ProductsTable v-else />
 </template>
 
 <script setup>
 import { ref } from 'vue';
 const dialog = ref(false)
+
+const galleryView = ref(false)
 </script>
