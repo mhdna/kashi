@@ -1,6 +1,6 @@
 <template>
   <v-main>
-    <v-app-bar :elevation="1" density="compact">
+    <v-app-bar :elevation="1" density="compact" color="blue">
       <template v-slot:prepend>
         <v-app-bar-nav-icon @click.stop="showDrawer = !showDrawer"> </v-app-bar-nav-icon>
       </template>
@@ -22,10 +22,10 @@
           <!--     </v-tabs> -->
         </div>
       </v-app-bar-title>
-      <SnackBar />
+      <!-- <SnackBar /> -->
       <!-- <SearchInput /> -->
       <template v-slot:append>
-        <NotificationMenu />
+        <!-- <NotificationMenu /> -->
         <ToggleTheme />
         <div class="me-4"></div>
       </template>

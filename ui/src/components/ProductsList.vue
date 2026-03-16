@@ -3,16 +3,8 @@
     <v-data-iterator :items="games" :items-per-page="9" :search="search">
       <template v-slot:header>
         <v-toolbar class="px-2">
-          <v-text-field
-            v-model="search"
-            density="comfortable"
-            placeholder="Search"
-            prepend-inner-icon="mdi-magnify"
-            style="max-width: 300px"
-            variant="solo"
-            clearable
-            hide-details
-          ></v-text-field>
+          <v-text-field v-model="search" density="comfortable" placeholder="Search" prepend-inner-icon="mdi-magnify"
+            style="max-width: 300px" variant="solo" clearable hide-details></v-text-field>
         </v-toolbar>
       </template>
 
@@ -30,21 +22,13 @@
                 </v-list-item>
 
                 <div class="d-flex justify-space-between px-4">
-                  <div
-                    class="d-flex align-center text-caption text-medium-emphasis me-1"
-                  >
+                  <div class="d-flex align-center text-caption text-medium-emphasis me-1">
                     <v-icon icon="mdi-clock" start></v-icon>
 
                     <div class="text-truncate">{{ item.raw.duration }}</div>
                   </div>
 
-                  <v-btn
-                    class="text-none"
-                    size="small"
-                    text="Read"
-                    variant="flat"
-                    border
-                  >
+                  <v-btn class="text-none" size="small" text="Read" variant="flat" border>
                   </v-btn>
                 </div>
               </v-card>
@@ -55,27 +39,15 @@
 
       <template v-slot:footer="{ page, pageCount, prevPage, nextPage }">
         <div class="d-flex align-center justify-center pa-4">
-          <v-btn
-            :disabled="page === 1"
-            density="comfortable"
-            icon="mdi-arrow-left"
-            variant="tonal"
-            rounded
-            @click="prevPage"
-          ></v-btn>
+          <v-btn :disabled="page === 1" density="comfortable" icon="mdi-arrow-left" variant="tonal" rounded
+            @click="prevPage"></v-btn>
 
           <div class="mx-2 text-caption">
             Page {{ page }} of {{ pageCount }}
           </div>
 
-          <v-btn
-            :disabled="page >= pageCount"
-            density="comfortable"
-            icon="mdi-arrow-right"
-            variant="tonal"
-            rounded
-            @click="nextPage"
-          ></v-btn>
+          <v-btn :disabled="page >= pageCount" density="comfortable" icon="mdi-arrow-right" variant="tonal" rounded
+            @click="nextPage"></v-btn>
         </div>
       </template>
     </v-data-iterator>
