@@ -1,7 +1,7 @@
 create table if not exists "colors" (
   "id" bigserial primary key,
   "name" text not null unique,
-  "hexValue" text not null unique,
+  "hex_value" text not null unique,
   "version" int NOT NULL DEFAULT 1
 );
 
