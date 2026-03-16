@@ -19,6 +19,12 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPatch, "/v1/products/:id", app.requirePermission("products:write", app.updateProductHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/products/:id", app.requirePermission("products:write", app.deleteProductHandler))
 
+	router.HandlerFunc(http.MethodGet, "/v1/colors", app.requirePermission("products:read", app.listColorsHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/colors/:id", app.requirePermission("products:read", app.showColorHandler))
+	router.HandlerFunc(http.MethodPost, "/v1/colors", app.requirePermission("products:write", app.createColorHandler))
+	router.HandlerFunc(http.MethodPatch, "/v1/colors/:id", app.requirePermission("products:write", app.updateColorHandler))
+	router.HandlerFunc(http.MethodDelete, "/v1/colors/:id", app.requirePermission("products:write", app.deleteColorHandler))
+
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/users/authentication", app.createAuthenticationTokenHandler)
