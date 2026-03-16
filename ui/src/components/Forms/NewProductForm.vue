@@ -1,48 +1,59 @@
 <template>
   <form @submit.prevent="submit">
-    <v-text-field
-      v-model="name.value.value"
-      :counter="10"
-      :error-messages="name.errorMessage.value"
-      label="Name"
-    ></v-text-field>
+    <v-row>
+      <v-col cols="8">
+        <div class="w-100">
+          <v-text-field density="compact" v-model="code.value.value" :counter="20"
+            :error-messages="name.errorMessage.value" label="Code"></v-text-field>
+          <v-text-field density="compact" v-model="name.value.value" :counter="100"
+            :error-messages="name.errorMessage.value" label="Name"></v-text-field>
+          <v-textarea no-resize v-model="description.value.value" :counter="100"
+            :error-messages="name.errorMessage.value" label="Description"></v-textarea>
 
-    <v-text-field
-      v-model="phone.value.value"
-      :counter="7"
-      :error-messages="phone.errorMessage.value"
-      label="Phone Number"
-    ></v-text-field>
+          <v-select density="compact" v-model="select.value.value" :error-messages="select.errorMessage.value"
+            :items="items" label="Kind"></v-select>
+          <v-select density="compact" v-model="select.value.value" :error-messages="select.errorMessage.value"
+            :items="items" label="Category"></v-select>
+          <v-select density="compact" v-model="select.value.value" :error-messages="select.errorMessage.value"
+            :items="items" label="SubCategory"></v-select>
+          <v-select density="compact" v-model="select.value.value" :error-messages="select.errorMessage.value"
+            :items="items" label="Unit"></v-select>
 
-    <v-text-field
-      v-model="email.value.value"
-      :error-messages="email.errorMessage.value"
-      label="E-mail"
-    ></v-text-field>
+          <div class="d-flex">
+            <v-checkbox class="me-8" width="110" density="compact" v-model="hasColors.value.value"
+              :error-messages="hasColors.errorMessage.value" label="Has Colors" type="checkbox" value="1"></v-checkbox>
+            <v-select density="compact" multiple clearable v-model="selectedColors.value.value"
+              :error-messages="selectedColors.errorMessage.value" :items="colors" label="Select Colors"></v-select>
+          </div>
 
-    <v-select
-      v-model="select.value.value"
-      :error-messages="select.errorMessage.value"
-      :items="items"
-      label="Select"
-    ></v-select>
-
-    <v-checkbox
-      v-model="checkbox.value.value"
-      :error-messages="checkbox.errorMessage.value"
-      label="Option"
-      type="checkbox"
-      value="1"
-    ></v-checkbox>
-
-    <v-btn class="me-4" type="submit"> Add Product </v-btn>
-
-    <v-btn @click="handleReset"> clear </v-btn>
+          <div class="d-flex">
+            <v-checkbox density="compact" width="110" class="me-8" v-model="hasSizes.value.value"
+              :error-messages="hasSizes.errorMessage.value" label="Has Sizes" type="checkbox" value="1"></v-checkbox>
+            <v-select density="compact" multiple clearable v-model="selectedSizes.value.value"
+              :error-messages="selectedSizes.errorMessage.value" :items="sizes" label="Select Sizes"></v-select>
+          </div>
+        </div>
+      </v-col>
+      <v-col class="4">
+        <v-card flat height="650" width="100%" class="pa-5">
+          <FileUploadCard />
+        </v-card>
+      </v-col>
+    </v-row>
+    <v-row>
+      <v-col>
+        <v-btn class="w-100" @click="handleReset" variant="solid"> clear </v-btn>
+      </v-col>
+      <v-col>
+        <v-btn class="me-4 w-100" type="submit" variant="solid"> Add Product </v-btn>
+      </v-col>
+    </v-row>
   </form>
 </template>
 <script setup>
 import { ref } from "vue";
 import { useField, useForm } from "vee-validate";
+import FileUploadCard from "../Cards/FileUploadCard.vue";
 
 const { handleSubmit, handleReset } = useForm({
   validationSchema: {
@@ -74,12 +85,18 @@ const { handleSubmit, handleReset } = useForm({
   },
 });
 const name = useField("name");
-const phone = useField("phone");
-const email = useField("email");
+const code = useField("email");
+const description = useField("phone");
 const select = useField("select");
 const checkbox = useField("checkbox");
+const selectedSizes = useField("selectedSizes");
+const selectedColors = useField("selectedColors");
+const hasColors = useField("hasColors");
+const hasSizes = useField("hasSizes");
 
 const items = ref(["Item 1", "Item 2", "Item 3", "Item 4"]);
+const colors = ref(["Blue", "White", "Orange", "Yellow"]);
+const sizes = ref(["XL", "L", "M", "S"]);
 
 const submit = handleSubmit((values) => {
   alert(JSON.stringify(values, null, 2));

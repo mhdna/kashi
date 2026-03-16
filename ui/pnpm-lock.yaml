@@ -14,6 +14,18 @@ importers:
       '@mdi/font':
         specifier: 7.4.47
         version: 7.4.47
+      VFileUpload:
+        specifier: link:vuetify/labs/VFileUpload
+        version: link:vuetify/labs/VFileUpload
+      VFileUploadDropzon:
+        specifier: link:vuetify/labs/VFileUploadDropzon
+        version: link:vuetify/labs/VFileUploadDropzon
+      VFileUploadItem:
+        specifier: link:vuetify/labs/VFileUploadItem
+        version: link:vuetify/labs/VFileUploadItem
+      VFileUploadList:
+        specifier: link:vuetify/labs/VFileUploadList
+        version: link:vuetify/labs/VFileUploadList
       echarts:
         specifier: ^6.0.0
         version: 6.0.0
@@ -39,8 +51,8 @@ importers:
         specifier: ^1.0.1
         version: 1.0.1
       vuetify:
-        specifier: ^3.10.1
-        version: 3.11.6(typescript@5.9.3)(vite-plugin-vuetify@2.1.2)(vue@3.5.26(typescript@5.9.3))
+        specifier: ^4.0.2
+        version: 4.0.2(typescript@5.9.3)(vite-plugin-vuetify@2.1.2)(vue@3.5.26(typescript@5.9.3))
     devDependencies:
       '@vitejs/plugin-vue':
         specifier: ^6.0.1
@@ -74,7 +86,7 @@ importers:
         version: 1.3.0(vite@7.3.0(sass-embedded@1.97.2)(sass@1.97.2)(yaml@2.8.2))(vue-router@4.6.4(vue@3.5.26(typescript@5.9.3)))(vue@3.5.26(typescript@5.9.3))
       vite-plugin-vuetify:
         specifier: ^2.1.2
-        version: 2.1.2(vite@7.3.0(sass-embedded@1.97.2)(sass@1.97.2)(yaml@2.8.2))(vue@3.5.26(typescript@5.9.3))(vuetify@3.11.6)
+        version: 2.1.2(vite@7.3.0(sass-embedded@1.97.2)(sass@1.97.2)(yaml@2.8.2))(vue@3.5.26(typescript@5.9.3))(vuetify@4.0.2)
 
 packages:
 
@@ -1929,8 +1941,8 @@ packages:
       typescript:
         optional: true
 
-  vuetify@3.11.6:
-    resolution: {integrity: sha512-vaWvEpDSeldRoib1tCKNVBp60paTD2/n0a0TmrVLF9BN4CJJn6/A4VKG2Sg+DE8Yc+SNOtFtipChxSlQxjcUvw==}
+  vuetify@4.0.2:
+    resolution: {integrity: sha512-klgSGmfXoLajdTuuxreilzDQjp0ojzL2U5v6Z3ZbMYtpihPPXT9rkd/FxWL3dIGevnWdgaP2Kpwoz6aS/MISDA==}
     peerDependencies:
       typescript: '>=4.7'
       vite-plugin-vuetify: '>=2.1.0'
@@ -2550,11 +2562,11 @@ snapshots:
 
   '@vue/shared@3.5.26': {}
 
-  '@vuetify/loader-shared@2.1.1(vue@3.5.26(typescript@5.9.3))(vuetify@3.11.6)':
+  '@vuetify/loader-shared@2.1.1(vue@3.5.26(typescript@5.9.3))(vuetify@4.0.2)':
     dependencies:
       upath: 2.0.1
       vue: 3.5.26(typescript@5.9.3)
-      vuetify: 3.11.6(typescript@5.9.3)(vite-plugin-vuetify@2.1.2)(vue@3.5.26(typescript@5.9.3))
+      vuetify: 4.0.2(typescript@5.9.3)(vite-plugin-vuetify@2.1.2)(vue@3.5.26(typescript@5.9.3))
 
   acorn-jsx@5.3.2(acorn@8.15.0):
     dependencies:
@@ -3707,14 +3719,14 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  vite-plugin-vuetify@2.1.2(vite@7.3.0(sass-embedded@1.97.2)(sass@1.97.2)(yaml@2.8.2))(vue@3.5.26(typescript@5.9.3))(vuetify@3.11.6):
+  vite-plugin-vuetify@2.1.2(vite@7.3.0(sass-embedded@1.97.2)(sass@1.97.2)(yaml@2.8.2))(vue@3.5.26(typescript@5.9.3))(vuetify@4.0.2):
     dependencies:
-      '@vuetify/loader-shared': 2.1.1(vue@3.5.26(typescript@5.9.3))(vuetify@3.11.6)
+      '@vuetify/loader-shared': 2.1.1(vue@3.5.26(typescript@5.9.3))(vuetify@4.0.2)
       debug: 4.4.3
       upath: 2.0.1
       vite: 7.3.0(sass-embedded@1.97.2)(sass@1.97.2)(yaml@2.8.2)
       vue: 3.5.26(typescript@5.9.3)
-      vuetify: 3.11.6(typescript@5.9.3)(vite-plugin-vuetify@2.1.2)(vue@3.5.26(typescript@5.9.3))
+      vuetify: 4.0.2(typescript@5.9.3)(vite-plugin-vuetify@2.1.2)(vue@3.5.26(typescript@5.9.3))
     transitivePeerDependencies:
       - supports-color
 
@@ -3775,12 +3787,12 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
 
-  vuetify@3.11.6(typescript@5.9.3)(vite-plugin-vuetify@2.1.2)(vue@3.5.26(typescript@5.9.3)):
+  vuetify@4.0.2(typescript@5.9.3)(vite-plugin-vuetify@2.1.2)(vue@3.5.26(typescript@5.9.3)):
     dependencies:
       vue: 3.5.26(typescript@5.9.3)
     optionalDependencies:
       typescript: 5.9.3
-      vite-plugin-vuetify: 2.1.2(vite@7.3.0(sass-embedded@1.97.2)(sass@1.97.2)(yaml@2.8.2))(vue@3.5.26(typescript@5.9.3))(vuetify@3.11.6)
+      vite-plugin-vuetify: 2.1.2(vite@7.3.0(sass-embedded@1.97.2)(sass@1.97.2)(yaml@2.8.2))(vue@3.5.26(typescript@5.9.3))(vuetify@4.0.2)
 
   vuex@2.5.0: {}
 
