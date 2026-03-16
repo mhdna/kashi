@@ -7,6 +7,13 @@
 // Styles
 import '@mdi/font/css/materialdesignicons.css'
 import 'vuetify/styles'
+import {
+  VFileUpload,
+  VFileUploadDropzone,
+  VFileUploadItem,
+  VFileUploadList,
+} from 'vuetify/labs/VFileUpload'
+import { VIconBtn } from 'vuetify/labs/VIconBtn'
 
 // Composables
 import { createVuetify } from 'vuetify'
@@ -15,5 +22,12 @@ import { createVuetify } from 'vuetify'
 export default createVuetify({
   theme: {
     defaultTheme: 'system',
+  },
+  components: {
+    VIconBtn,
+    VFileUpload,
+    VFileUploadDropzone,
+    VFileUploadItem,
+    VFileUploadList,
   },
 })
