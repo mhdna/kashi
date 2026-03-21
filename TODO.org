@@ -1,0 +1,21 @@
+- [ ] Product cannot be deleted if it exists in one of the invoices (cuz otherwise product_id which is inside it would get invalid).
+- [ ] Cannot return a product unless it's in the same shift
+
+** Loyality System
+Bronze, Silver, Gold
+
+- You Reach a tier --> 
+  Points have more value (e.g. 1.5 instead of 1)
+  Points Can redeem on special edition/premium products
+  Special Offer
+  
+*** Gold
+- Can access sales before others
+- Free shipping
+- ?? Reserve Limited Items
+  
+** Stats
+*** Customers
+- What does he buy most (type and kind)
+- What coupons did he redeem
+** Compare this year's profits to past year's?
