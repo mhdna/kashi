@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS products_colors;
+DROP TABLE IF EXISTS colors;
