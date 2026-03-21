@@ -54,3 +54,14 @@ func TestGetInventory(t *testing.T) {
 	require.Equal(t, inventory1.Longitude, inventory2.Longitude)
 	require.WithinDuration(t, inventory1.CreatedAt, inventory2.CreatedAt, time.Second)
 }
+
+func TestDeleteInventory(t *testing.T) {
+	inventory1 := createRandomInventory(t)
+	err := testQueries.DeleteInventory(context.Background(), inventory1.ID)
+
+	require.NoError(t, err)
+	inventory2, err := testQueries.GetInventory(context.Background(), inventory1.ID)
+	require.Error(t, err)
+	require.EqualError(t, err, sql.ErrNoRows.Error())
+	require.Empty(t, inventory2)
+}
