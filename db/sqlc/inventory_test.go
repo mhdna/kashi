@@ -5,15 +5,16 @@ import (
 	"database/sql"
 	"testing"
 
+	"github.com/mhdna/go-api/util"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCreateInventory(t *testing.T) {
 	arg := CreateInventoryParams{
-		Name: "Inventory 1",
-		Code: "IN",
+		Name: util.RandomInventory(),
+		Code: util.RandomInventoryCode(),
 		Latitude: sql.NullFloat64{
-			Float64: 30.30,
+			Float64: float64(util.RandomLongitudeLatitude()),
 			Valid:   true,
 		},
 		Longitude: sql.NullFloat64{
