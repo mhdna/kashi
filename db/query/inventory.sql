@@ -23,7 +23,7 @@ SET name = $2
 WHERE id = $1;
 
 -- name: DeleteInventory :exec
-DELETE FROM products
+DELETE FROM inventories
 WHERE id = $1;
 
 -- name: AddInventoryProduct :one
