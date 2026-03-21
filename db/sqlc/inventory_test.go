@@ -4,12 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"testing"
+	"time"
 
-	"github.com/mhdna/go-api/util"
+	"github.com/mhdna/kashi/util"
 	"github.com/stretchr/testify/require"
 )
 
-func TestCreateInventory(t *testing.T) {
+func createRandomInventory(t *testing.T) Inventory {
 	arg := CreateInventoryParams{
 		Name: util.RandomInventory(),
 		Code: util.RandomInventoryCode(),
@@ -33,4 +34,23 @@ func TestCreateInventory(t *testing.T) {
 
 	require.NotZero(t, inventory.ID)
 	require.NotZero(t, inventory.CreatedAt)
+
+	return inventory
+}
+
+func TestCreateInventory(t *testing.T) {
+	createRandomInventory(t)
+}
+
+func TestGetInventory(t *testing.T) {
+	inventory1 := createRandomInventory(t)
+	inventory2, err := testQueries.GetInventory(context.Background(), inventory1.ID)
+	require.NoError(t, err)
+	require.NotEmpty(t, inventory2)
+
+	require.Equal(t, inventory1.ID, inventory2.ID)
+	require.Equal(t, inventory1.Code, inventory2.Code)
+	require.Equal(t, inventory1.Latitude, inventory2.Latitude)
+	require.Equal(t, inventory1.Longitude, inventory2.Longitude)
+	require.WithinDuration(t, inventory1.CreatedAt, inventory2.CreatedAt, time.Second)
 }
