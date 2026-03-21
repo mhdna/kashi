@@ -1,0 +1,16 @@
+* Mercato
+** TODO tomorrow
+- [X] Put colors and sizes into their own migration tables as some other tables depend on them.
+
+** Bugs
+- [ ] Fix Error Conflict Problem
+
+** TODO Custom admin panel:
+- Number of active users.
+- Number of today's logins.
+- Stats for the server (mem used and so on).
+- [ ] Calendar view with most known events in the year. 
+- [ ] Forms for Employees
+
+** Re-Read
+- Preflight CORS
