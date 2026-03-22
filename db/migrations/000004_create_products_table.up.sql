@@ -12,6 +12,7 @@ create table if not exists "categories" (
 
 create table if not exists "subcategories" (
   id bigserial primary key,
+  parent_id bigint references categories(id),
   name text not null unique,
   version int NOT NULL DEFAULT 1
 );
