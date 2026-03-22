@@ -63,6 +63,6 @@ CREATE TABLE IF NOT EXISTS products (
   origin_id bigint not null references origins(id),
   price bigint NOT NULL,
   version int NOT NULL DEFAULT 1,
-  discount bigint not null,
+  discount bigint not null default 0,
   created_at timestamp(0) WITH time zone NOT NULL DEFAULT NOW()
 );
