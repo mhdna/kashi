@@ -23,9 +23,10 @@ INSERT INTO products (
   season_id,
   brand_id,
   origin_id,
-  price 
+  price,
+  discount
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
 ) RETURNING id, code, name, description, kind_id, is_active, category_id, subcategory_id, unit_id, type_id, year, season_id, brand_id, origin_id, price, version, discount, created_at
 `
 
@@ -43,6 +44,7 @@ type CreateProductParams struct {
 	BrandID       int64  `json:"brandId"`
 	OriginID      int64  `json:"originId"`
 	Price         int64  `json:"price"`
+	Discount      int64  `json:"discount"`
 }
 
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error) {
@@ -60,6 +62,7 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		arg.BrandID,
 		arg.OriginID,
 		arg.Price,
+		arg.Discount,
 	)
 	var i Product
 	err := row.Scan(
@@ -194,7 +197,8 @@ UPDATE products
   season_id = $11,
   brand_id = $12,
   origin_id = $13,
-  price = $14
+  price = $14,
+  discount = $15
 WHERE id = $1
 `
 
@@ -213,6 +217,7 @@ type UpdateProductParams struct {
 	BrandID       int64  `json:"brandId"`
 	OriginID      int64  `json:"originId"`
 	Price         int64  `json:"price"`
+	Discount      int64  `json:"discount"`
 }
 
 func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) error {
@@ -231,6 +236,7 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) er
 		arg.BrandID,
 		arg.OriginID,
 		arg.Price,
+		arg.Discount,
 	)
 	return err
 }

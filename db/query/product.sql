@@ -12,9 +12,10 @@ INSERT INTO products (
   season_id,
   brand_id,
   origin_id,
-  price 
+  price,
+  discount
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
 ) RETURNING *;
 
 -- name: GetProduct :one
@@ -41,7 +42,8 @@ UPDATE products
   season_id = $11,
   brand_id = $12,
   origin_id = $13,
-  price = $14
+  price = $14,
+  discount = $15
 WHERE id = $1;
 
 -- name: DeleteProduct :exec
