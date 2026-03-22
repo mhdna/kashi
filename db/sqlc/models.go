@@ -32,9 +32,9 @@ type Atransfer struct {
 }
 
 type AtransfersAsset struct {
-	AtransferID int64 `json:"atransferId"`
-	AssetID     int64 `json:"assetId"`
-	Quantity    int64 `json:"quantity"`
+	TransferID int64 `json:"transferId"`
+	AssetID    int64 `json:"assetId"`
+	Quantity   int64 `json:"quantity"`
 }
 
 type Barcode struct {
@@ -187,9 +187,9 @@ type Ptransfer struct {
 }
 
 type PtransfersProduct struct {
-	PtransferID int64 `json:"ptransferId"`
-	ProductID   int64 `json:"productId"`
-	Quantity    int64 `json:"quantity"`
+	TransferID int64 `json:"transferId"`
+	ProductID  int64 `json:"productId"`
+	Quantity   int64 `json:"quantity"`
 }
 
 type Season struct {
