@@ -28,10 +28,10 @@ func RandomString(n int) string {
 }
 
 func RandomInventoryCode() string {
-	return RandomString(2)
+	return RandomString(4)
 }
 
-func RandomInventory() string {
+func RandomInventoryName() string {
 	return RandomString(6)
 }
 
