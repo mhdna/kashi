@@ -38,18 +38,20 @@ func (q *Queries) CreateATransfer(ctx context.Context, arg CreateATransferParams
 const createATransferAsset = `-- name: CreateATransferAsset :one
 INSERT INTO atransfers_assets (
   transfer_id,
-  asset_id
-) VALUES ( $1, $2 )
+  asset_id,
+  quantity
+) VALUES ( $1, $2, $3 )
 RETURNING transfer_id, asset_id, quantity
 `
 
 type CreateATransferAssetParams struct {
 	TransferID int64 `json:"transferId"`
 	AssetID    int64 `json:"assetId"`
+	Quantity   int64 `json:"quantity"`
 }
 
 func (q *Queries) CreateATransferAsset(ctx context.Context, arg CreateATransferAssetParams) (AtransfersAsset, error) {
-	row := q.db.QueryRowContext(ctx, createATransferAsset, arg.TransferID, arg.AssetID)
+	row := q.db.QueryRowContext(ctx, createATransferAsset, arg.TransferID, arg.AssetID, arg.Quantity)
 	var i AtransfersAsset
 	err := row.Scan(&i.TransferID, &i.AssetID, &i.Quantity)
 	return i, err

@@ -38,18 +38,20 @@ func (q *Queries) CreatePTransfer(ctx context.Context, arg CreatePTransferParams
 const createPTransferProduct = `-- name: CreatePTransferProduct :one
 INSERT INTO ptransfers_products (
   transfer_id,
-  product_id
-) VALUES ( $1, $2 )
+  product_id,
+  quantity
+) VALUES ( $1, $2, $3 )
 RETURNING transfer_id, product_id, quantity
 `
 
 type CreatePTransferProductParams struct {
 	TransferID int64 `json:"transferId"`
 	ProductID  int64 `json:"productId"`
+	Quantity   int64 `json:"quantity"`
 }
 
 func (q *Queries) CreatePTransferProduct(ctx context.Context, arg CreatePTransferProductParams) (PtransfersProduct, error) {
-	row := q.db.QueryRowContext(ctx, createPTransferProduct, arg.TransferID, arg.ProductID)
+	row := q.db.QueryRowContext(ctx, createPTransferProduct, arg.TransferID, arg.ProductID, arg.Quantity)
 	var i PtransfersProduct
 	err := row.Scan(&i.TransferID, &i.ProductID, &i.Quantity)
 	return i, err
