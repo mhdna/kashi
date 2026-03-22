@@ -70,7 +70,7 @@ func (q *Queries) CreateInventory(ctx context.Context, arg CreateInventoryParams
 }
 
 const deleteInventory = `-- name: DeleteInventory :exec
-DELETE FROM products
+DELETE FROM inventories
 WHERE id = $1
 `
 
