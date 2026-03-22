@@ -37,6 +37,7 @@ WHERE t.transfer_id = $1;
 -- name: CreatePTransferProduct :one
 INSERT INTO ptransfers_products (
   transfer_id,
-  product_id
-) VALUES ( $1, $2 )
+  product_id,
+  quantity
+) VALUES ( $1, $2, $3 )
 RETURNING *;

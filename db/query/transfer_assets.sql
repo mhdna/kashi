@@ -36,6 +36,7 @@ WHERE t.transfer_id = $1;
 -- name: CreateATransferAsset :one
 INSERT INTO atransfers_assets (
   transfer_id,
-  asset_id
-) VALUES ( $1, $2 )
+  asset_id,
+  quantity
+) VALUES ( $1, $2, $3 )
 RETURNING *;
