@@ -12,6 +12,8 @@ import (
 const createProduct = `-- name: CreateProduct :one
 INSERT INTO products (
   name,
+  code,
+  description,
   kind_id,
   category_id,
   subcategory_id,
@@ -23,27 +25,31 @@ INSERT INTO products (
   origin_id,
   price 
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
 ) RETURNING id, code, name, description, kind_id, is_active, category_id, subcategory_id, unit_id, type_id, year, season_id, brand_id, origin_id, price, version, discount, created_at
 `
 
 type CreateProductParams struct {
 	Name          string `json:"name"`
+	Code          string `json:"code"`
+	Description   string `json:"description"`
 	KindID        int64  `json:"kindId"`
 	CategoryID    int64  `json:"categoryId"`
 	SubcategoryID int64  `json:"subcategoryId"`
 	UnitID        int64  `json:"unitId"`
 	TypeID        int64  `json:"typeId"`
-	Year          int32  `json:"year"`
+	Year          int64  `json:"year"`
 	SeasonID      int64  `json:"seasonId"`
 	BrandID       int64  `json:"brandId"`
 	OriginID      int64  `json:"originId"`
-	Price         int32  `json:"price"`
+	Price         int64  `json:"price"`
 }
 
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error) {
 	row := q.db.QueryRowContext(ctx, createProduct,
 		arg.Name,
+		arg.Code,
+		arg.Description,
 		arg.KindID,
 		arg.CategoryID,
 		arg.SubcategoryID,
@@ -177,38 +183,44 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]P
 const updateProduct = `-- name: UpdateProduct :exec
 UPDATE products 
   SET name = $2,
-  kind_id = $3,
-  category_id = $4,
-  subcategory_id = $5,
-  unit_id = $6,
-  type_id = $7,
-  year = $8,
-  season_id = $9,
-  brand_id = $10,
-  origin_id = $11,
-  price = $12
+  code = $3,
+  description = $4,
+  kind_id = $5,
+  category_id = $6,
+  subcategory_id = $7,
+  unit_id = $8,
+  type_id = $9,
+  year = $10,
+  season_id = $11,
+  brand_id = $12,
+  origin_id = $13,
+  price = $14
 WHERE id = $1
 `
 
 type UpdateProductParams struct {
 	ID            int64  `json:"id"`
 	Name          string `json:"name"`
+	Code          string `json:"code"`
+	Description   string `json:"description"`
 	KindID        int64  `json:"kindId"`
 	CategoryID    int64  `json:"categoryId"`
 	SubcategoryID int64  `json:"subcategoryId"`
 	UnitID        int64  `json:"unitId"`
 	TypeID        int64  `json:"typeId"`
-	Year          int32  `json:"year"`
+	Year          int64  `json:"year"`
 	SeasonID      int64  `json:"seasonId"`
 	BrandID       int64  `json:"brandId"`
 	OriginID      int64  `json:"originId"`
-	Price         int32  `json:"price"`
+	Price         int64  `json:"price"`
 }
 
 func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) error {
 	_, err := q.db.ExecContext(ctx, updateProduct,
 		arg.ID,
 		arg.Name,
+		arg.Code,
+		arg.Description,
 		arg.KindID,
 		arg.CategoryID,
 		arg.SubcategoryID,

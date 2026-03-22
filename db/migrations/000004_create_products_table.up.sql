@@ -57,11 +57,11 @@ CREATE TABLE IF NOT EXISTS products (
   subcategory_id bigint not null references subcategories(id),
   unit_id bigint NOT NULL references units(id),
   type_id bigint NOT NULL references types(id),
-  year int NOT NULL,
+  year bigint NOT NULL,
   season_id bigint NOT NULL references seasons(id),
   brand_id bigint not null references brands(id),
   origin_id bigint not null references origins(id),
-  price int NOT NULL,
+  price bigint NOT NULL,
   version int NOT NULL DEFAULT 1,
   discount bigint not null,
   created_at timestamp(0) WITH time zone NOT NULL DEFAULT NOW()

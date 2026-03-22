@@ -153,11 +153,11 @@ type Product struct {
 	SubcategoryID int64     `json:"subcategoryId"`
 	UnitID        int64     `json:"unitId"`
 	TypeID        int64     `json:"typeId"`
-	Year          int32     `json:"year"`
+	Year          int64     `json:"year"`
 	SeasonID      int64     `json:"seasonId"`
 	BrandID       int64     `json:"brandId"`
 	OriginID      int64     `json:"originId"`
-	Price         int32     `json:"price"`
+	Price         int64     `json:"price"`
 	Version       int32     `json:"version"`
 	Discount      int64     `json:"discount"`
 	CreatedAt     time.Time `json:"createdAt"`
