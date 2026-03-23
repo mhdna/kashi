@@ -37,6 +37,17 @@ type AtransfersAsset struct {
 	Quantity   int64 `json:"quantity"`
 }
 
+type Attribute struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
+type AttributesValue struct {
+	ID          int64  `json:"id"`
+	AttributeID int64  `json:"attributeId"`
+	Value       string `json:"value"`
+}
+
 type Barcode struct {
 	Barcode   int64         `json:"barcode"`
 	ProductID int64         `json:"productId"`
@@ -44,18 +55,6 @@ type Barcode struct {
 	SizeID    sql.NullInt64 `json:"sizeId"`
 	Version   int32         `json:"version"`
 	CreatedAt time.Time     `json:"createdAt"`
-}
-
-type Brand struct {
-	ID      int64  `json:"id"`
-	Name    string `json:"name"`
-	Version int32  `json:"version"`
-}
-
-type Category struct {
-	ID      int64  `json:"id"`
-	Name    string `json:"name"`
-	Version int32  `json:"version"`
 }
 
 type Client struct {
@@ -101,12 +100,6 @@ type Inventory struct {
 	CreatedAt time.Time       `json:"createdAt"`
 }
 
-type Kind struct {
-	ID      int64  `json:"id"`
-	Name    string `json:"name"`
-	Version int32  `json:"version"`
-}
-
 type Order struct {
 	ID        int64     `json:"id"`
 	TypeID    int64     `json:"typeId"`
@@ -131,36 +124,27 @@ type Orderstype struct {
 	Code string `json:"code"`
 }
 
-type Origin struct {
-	ID      int64  `json:"id"`
-	Name    string `json:"name"`
-	Version int32  `json:"version"`
-}
-
 type Permission struct {
 	ID   int64  `json:"id"`
 	Code string `json:"code"`
 }
 
 type Product struct {
-	ID            int64     `json:"id"`
-	Code          string    `json:"code"`
-	Name          string    `json:"name"`
-	Description   string    `json:"description"`
-	KindID        int64     `json:"kindId"`
-	IsActive      bool      `json:"isActive"`
-	CategoryID    int64     `json:"categoryId"`
-	SubcategoryID int64     `json:"subcategoryId"`
-	UnitID        int64     `json:"unitId"`
-	TypeID        int64     `json:"typeId"`
-	Year          int64     `json:"year"`
-	SeasonID      int64     `json:"seasonId"`
-	BrandID       int64     `json:"brandId"`
-	OriginID      int64     `json:"originId"`
-	Price         int64     `json:"price"`
-	Version       int32     `json:"version"`
-	Discount      int64     `json:"discount"`
-	CreatedAt     time.Time `json:"createdAt"`
+	ID          int64     `json:"id"`
+	Code        string    `json:"code"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	IsActive    bool      `json:"isActive"`
+	Price       int64     `json:"price"`
+	Version     int32     `json:"version"`
+	Discount    int64     `json:"discount"`
+	CreatedAt   time.Time `json:"createdAt"`
+}
+
+type ProductsAttribute struct {
+	AttributeID      int64 `json:"attributeId"`
+	AttributeValueID int64 `json:"attributeValueId"`
+	ProductID        int64 `json:"productId"`
 }
 
 type ProductsColor struct {
@@ -192,12 +176,6 @@ type PtransfersProduct struct {
 	Quantity   int64 `json:"quantity"`
 }
 
-type Season struct {
-	ID      int64  `json:"id"`
-	Name    string `json:"name"`
-	Version int32  `json:"version"`
-}
-
 type Size struct {
 	ID        int64     `json:"id"`
 	Name      string    `json:"name"`
@@ -205,12 +183,6 @@ type Size struct {
 	Order     string    `json:"order"`
 	Version   int32     `json:"version"`
 	CreatedAt time.Time `json:"createdAt"`
-}
-
-type Subcategory struct {
-	ID      int64  `json:"id"`
-	Name    string `json:"name"`
-	Version int32  `json:"version"`
 }
 
 type Supplier struct {
@@ -228,18 +200,6 @@ type Token struct {
 	UserID int64     `json:"userId"`
 	Expiry time.Time `json:"expiry"`
 	Scope  string    `json:"scope"`
-}
-
-type Type struct {
-	ID      int64  `json:"id"`
-	Name    string `json:"name"`
-	Version int32  `json:"version"`
-}
-
-type Unit struct {
-	ID      int64  `json:"id"`
-	Name    string `json:"name"`
-	Version int32  `json:"version"`
 }
 
 type User struct {

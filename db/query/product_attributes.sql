@@ -1,0 +1,22 @@
+-- name: CreateProductAttribute :one
+INSERT INTO products_attributes (
+  product_id,
+  attribute_id,
+  attribute_value_id
+) VALUES (
+    $1, $2, $3
+) RETURNING *;
+
+-- name: ListProductAttributes :many
+SELECT p.id, av.*
+FROM products p
+INNER JOIN attributes_values av
+ON p.id = av.product_id
+ORDER BY value
+LIMIT $1
+OFFSET $2;
+
+-- name: UpdateProductAttribute :exec
+UPDATE products_attributes 
+SET attribute_value_id = $2
+WHERE product_id = $1 AND attribute_id = $2;

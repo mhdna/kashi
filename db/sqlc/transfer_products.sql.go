@@ -86,7 +86,7 @@ func (q *Queries) GetPTransfer(ctx context.Context, id int64) (Ptransfer, error)
 
 const listPTransferProducts = `-- name: ListPTransferProducts :many
 
-SELECT t.transfer_id, t.product_id, t.quantity, p.id, p.code, p.name, p.description, p.kind_id, p.is_active, p.category_id, p.subcategory_id, p.unit_id, p.type_id, p.year, p.season_id, p.brand_id, p.origin_id, p.price, p.version, p.discount, p.created_at
+SELECT t.transfer_id, t.product_id, t.quantity, p.id, p.code, p.name, p.description, p.is_active, p.price, p.version, p.discount, p.created_at
 FROM ptransfers_products t
 INNER JOIN products p
 ON t.product_id = p.id
@@ -94,27 +94,18 @@ WHERE t.transfer_id = $1
 `
 
 type ListPTransferProductsRow struct {
-	TransferID    int64     `json:"transferId"`
-	ProductID     int64     `json:"productId"`
-	Quantity      int64     `json:"quantity"`
-	ID            int64     `json:"id"`
-	Code          string    `json:"code"`
-	Name          string    `json:"name"`
-	Description   string    `json:"description"`
-	KindID        int64     `json:"kindId"`
-	IsActive      bool      `json:"isActive"`
-	CategoryID    int64     `json:"categoryId"`
-	SubcategoryID int64     `json:"subcategoryId"`
-	UnitID        int64     `json:"unitId"`
-	TypeID        int64     `json:"typeId"`
-	Year          int64     `json:"year"`
-	SeasonID      int64     `json:"seasonId"`
-	BrandID       int64     `json:"brandId"`
-	OriginID      int64     `json:"originId"`
-	Price         int64     `json:"price"`
-	Version       int32     `json:"version"`
-	Discount      int64     `json:"discount"`
-	CreatedAt     time.Time `json:"createdAt"`
+	TransferID  int64     `json:"transferId"`
+	ProductID   int64     `json:"productId"`
+	Quantity    int64     `json:"quantity"`
+	ID          int64     `json:"id"`
+	Code        string    `json:"code"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	IsActive    bool      `json:"isActive"`
+	Price       int64     `json:"price"`
+	Version     int32     `json:"version"`
+	Discount    int64     `json:"discount"`
+	CreatedAt   time.Time `json:"createdAt"`
 }
 
 // -----------------------------------
@@ -135,16 +126,7 @@ func (q *Queries) ListPTransferProducts(ctx context.Context, transferID int64) (
 			&i.Code,
 			&i.Name,
 			&i.Description,
-			&i.KindID,
 			&i.IsActive,
-			&i.CategoryID,
-			&i.SubcategoryID,
-			&i.UnitID,
-			&i.TypeID,
-			&i.Year,
-			&i.SeasonID,
-			&i.BrandID,
-			&i.OriginID,
 			&i.Price,
 			&i.Version,
 			&i.Discount,
