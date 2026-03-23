@@ -14,37 +14,19 @@ INSERT INTO products (
   name,
   code,
   description,
-  kind_id,
-  category_id,
-  subcategory_id,
-  unit_id,
-  type_id,
-  year,
-  season_id,
-  brand_id,
-  origin_id,
   price,
   discount
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
-) RETURNING id, code, name, description, kind_id, is_active, category_id, subcategory_id, unit_id, type_id, year, season_id, brand_id, origin_id, price, version, discount, created_at
+    $1, $2, $3, $4, $5
+) RETURNING id, code, name, description, is_active, price, version, discount, created_at
 `
 
 type CreateProductParams struct {
-	Name          string `json:"name"`
-	Code          string `json:"code"`
-	Description   string `json:"description"`
-	KindID        int64  `json:"kindId"`
-	CategoryID    int64  `json:"categoryId"`
-	SubcategoryID int64  `json:"subcategoryId"`
-	UnitID        int64  `json:"unitId"`
-	TypeID        int64  `json:"typeId"`
-	Year          int64  `json:"year"`
-	SeasonID      int64  `json:"seasonId"`
-	BrandID       int64  `json:"brandId"`
-	OriginID      int64  `json:"originId"`
-	Price         int64  `json:"price"`
-	Discount      int64  `json:"discount"`
+	Name        string `json:"name"`
+	Code        string `json:"code"`
+	Description string `json:"description"`
+	Price       int64  `json:"price"`
+	Discount    int64  `json:"discount"`
 }
 
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error) {
@@ -52,15 +34,6 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		arg.Name,
 		arg.Code,
 		arg.Description,
-		arg.KindID,
-		arg.CategoryID,
-		arg.SubcategoryID,
-		arg.UnitID,
-		arg.TypeID,
-		arg.Year,
-		arg.SeasonID,
-		arg.BrandID,
-		arg.OriginID,
 		arg.Price,
 		arg.Discount,
 	)
@@ -70,16 +43,7 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		&i.Code,
 		&i.Name,
 		&i.Description,
-		&i.KindID,
 		&i.IsActive,
-		&i.CategoryID,
-		&i.SubcategoryID,
-		&i.UnitID,
-		&i.TypeID,
-		&i.Year,
-		&i.SeasonID,
-		&i.BrandID,
-		&i.OriginID,
 		&i.Price,
 		&i.Version,
 		&i.Discount,
@@ -99,7 +63,7 @@ func (q *Queries) DeleteProduct(ctx context.Context, id int64) error {
 }
 
 const getProduct = `-- name: GetProduct :one
-SELECT id, code, name, description, kind_id, is_active, category_id, subcategory_id, unit_id, type_id, year, season_id, brand_id, origin_id, price, version, discount, created_at FROM products
+SELECT id, code, name, description, is_active, price, version, discount, created_at FROM products
 WHERE id = $1 LIMIT 1
 `
 
@@ -111,16 +75,7 @@ func (q *Queries) GetProduct(ctx context.Context, id int64) (Product, error) {
 		&i.Code,
 		&i.Name,
 		&i.Description,
-		&i.KindID,
 		&i.IsActive,
-		&i.CategoryID,
-		&i.SubcategoryID,
-		&i.UnitID,
-		&i.TypeID,
-		&i.Year,
-		&i.SeasonID,
-		&i.BrandID,
-		&i.OriginID,
 		&i.Price,
 		&i.Version,
 		&i.Discount,
@@ -130,7 +85,7 @@ func (q *Queries) GetProduct(ctx context.Context, id int64) (Product, error) {
 }
 
 const listProducts = `-- name: ListProducts :many
-SELECT id, code, name, description, kind_id, is_active, category_id, subcategory_id, unit_id, type_id, year, season_id, brand_id, origin_id, price, version, discount, created_at FROM products
+SELECT id, code, name, description, is_active, price, version, discount, created_at FROM products
 ORDER BY name
 LIMIT $1
 OFFSET $2
@@ -155,16 +110,7 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]P
 			&i.Code,
 			&i.Name,
 			&i.Description,
-			&i.KindID,
 			&i.IsActive,
-			&i.CategoryID,
-			&i.SubcategoryID,
-			&i.UnitID,
-			&i.TypeID,
-			&i.Year,
-			&i.SeasonID,
-			&i.BrandID,
-			&i.OriginID,
 			&i.Price,
 			&i.Version,
 			&i.Discount,
@@ -188,36 +134,18 @@ UPDATE products
   SET name = $2,
   code = $3,
   description = $4,
-  kind_id = $5,
-  category_id = $6,
-  subcategory_id = $7,
-  unit_id = $8,
-  type_id = $9,
-  year = $10,
-  season_id = $11,
-  brand_id = $12,
-  origin_id = $13,
-  price = $14,
-  discount = $15
+  price = $5,
+  discount = $6
 WHERE id = $1
 `
 
 type UpdateProductParams struct {
-	ID            int64  `json:"id"`
-	Name          string `json:"name"`
-	Code          string `json:"code"`
-	Description   string `json:"description"`
-	KindID        int64  `json:"kindId"`
-	CategoryID    int64  `json:"categoryId"`
-	SubcategoryID int64  `json:"subcategoryId"`
-	UnitID        int64  `json:"unitId"`
-	TypeID        int64  `json:"typeId"`
-	Year          int64  `json:"year"`
-	SeasonID      int64  `json:"seasonId"`
-	BrandID       int64  `json:"brandId"`
-	OriginID      int64  `json:"originId"`
-	Price         int64  `json:"price"`
-	Discount      int64  `json:"discount"`
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	Code        string `json:"code"`
+	Description string `json:"description"`
+	Price       int64  `json:"price"`
+	Discount    int64  `json:"discount"`
 }
 
 func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) error {
@@ -226,15 +154,6 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) er
 		arg.Name,
 		arg.Code,
 		arg.Description,
-		arg.KindID,
-		arg.CategoryID,
-		arg.SubcategoryID,
-		arg.UnitID,
-		arg.TypeID,
-		arg.Year,
-		arg.SeasonID,
-		arg.BrandID,
-		arg.OriginID,
 		arg.Price,
 		arg.Discount,
 	)
