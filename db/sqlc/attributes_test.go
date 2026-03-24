@@ -55,6 +55,7 @@ func TestListAttributeValues(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, attribute_values, limit)
 	for _, attrattribute_value := range attribute_values {
+		// TODO: complete this
 		require.NotEmpty(t, attrattribute_value)
 	}
 }
