@@ -22,5 +22,5 @@ OFFSET $2;
 
 -- name: UpdateProductAttribute :exec
 UPDATE products_attributes 
-SET attribute_value_id = $2
+SET attribute_value_id = $3
 WHERE product_id = $1 AND attribute_id = $2;

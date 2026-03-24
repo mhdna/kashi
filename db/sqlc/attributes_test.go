@@ -37,3 +37,39 @@ func TestGetAttributeValue(t *testing.T) {
 func TestCreateAttribute(t *testing.T) {
 	createRandomAttributeValue(t)
 }
+
+func TestListAttributeValues(t *testing.T) {
+	for range 10 {
+		createRandomAttributeValue(t)
+	}
+
+	limit := 5
+	offset := 5
+
+	arg := ListAttributeValuesParams{
+		Limit:  int32(limit),
+		Offset: int32(offset),
+	}
+
+	attribute_values, err := testQueries.ListAttributeValues(context.Background(), arg)
+	require.NoError(t, err)
+	require.Len(t, attribute_values, limit)
+	for _, attrattribute_value := range attribute_values {
+		require.NotEmpty(t, attrattribute_value)
+	}
+}
+
+func TestUpdateAttributeValue(t *testing.T) {
+	attribute_value1 := createRandomAttributeValue(t)
+	arg := UpdateAttributeValueParams{
+		ID:    attribute_value1.ID,
+		Value: util.RandomAttributeValue(),
+	}
+
+	err := testQueries.UpdateAttributeValue(context.Background(), arg)
+	require.NoError(t, err)
+
+	attribute_value2, err := testQueries.GetAttributeValue(context.Background(), attribute_value1.ID)
+	require.Equal(t, attribute_value2.ID, arg.ID)
+	require.Equal(t, attribute_value2.Value, arg.Value)
+}
