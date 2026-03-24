@@ -32,11 +32,11 @@ func (q *Queries) CreateAttributeValue(ctx context.Context, arg CreateAttributeV
 
 const getAttributeValue = `-- name: GetAttributeValue :one
 SELECT id, attribute_id, value FROM attributes_values
-WHERE attribute_id = $1
+WHERE id = $1
 `
 
-func (q *Queries) GetAttributeValue(ctx context.Context, attributeID int64) (AttributesValue, error) {
-	row := q.db.QueryRowContext(ctx, getAttributeValue, attributeID)
+func (q *Queries) GetAttributeValue(ctx context.Context, id int64) (AttributesValue, error) {
+	row := q.db.QueryRowContext(ctx, getAttributeValue, id)
 	var i AttributesValue
 	err := row.Scan(&i.ID, &i.AttributeID, &i.Value)
 	return i, err
