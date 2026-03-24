@@ -8,7 +8,7 @@ INSERT INTO attributes_values (
 
 -- name: GetAttributeValue :one
 SELECT * FROM attributes_values
-WHERE attribute_id = $1;
+WHERE id = $1;
 
 
 -- name: ListAttributeValues :many
