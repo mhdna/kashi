@@ -26,6 +26,17 @@ DELETE FROM ptransfers
 WHERE id = $1;
 
 -------------------------------------
+-- name: CreatePTransferProduct :one
+INSERT INTO ptransfers_products (
+  transfer_id,
+  product_id,
+  quantity
+) VALUES ($1, $2, $3)
+RETURNING *;
+
+-- name: GetPTransferProduct :one
+SELECT * FROM ptransfers_products
+WHERE transfer_id = $1 AND product_id = $2;
 
 -- name: ListPTransferProducts :many
 SELECT t.*, p.*
@@ -33,11 +44,3 @@ FROM ptransfers_products t
 INNER JOIN products p
 ON t.product_id = p.id
 WHERE t.transfer_id = $1;
-
--- name: CreatePTransferProduct :one
-INSERT INTO ptransfers_products (
-  transfer_id,
-  product_id,
-  quantity
-) VALUES ( $1, $2, $3 )
-RETURNING *;
