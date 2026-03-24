@@ -7,6 +7,10 @@ INSERT INTO products_attributes (
     $1, $2, $3
 ) RETURNING *;
 
+-- name: GetProductAttributeValue :one
+SELECT * FROM products_attributes
+WHERE product_id = $1 AND attribute_id = $2;
+
 -- name: ListProductAttributes :many
 SELECT p.id, av.*
 FROM products p
