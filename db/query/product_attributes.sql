@@ -12,11 +12,11 @@ SELECT * FROM products_attributes
 WHERE product_id = $1 AND attribute_id = $2;
 
 -- name: ListProductAttributes :many
-SELECT p.id, av.*
+SELECT pa.*
 FROM products p
-INNER JOIN attributes_values av
-ON p.id = av.product_id
-ORDER BY value
+INNER JOIN products_attributes pa
+ON p.id = pa.product_id
+ORDER BY attribute_id
 LIMIT $1
 OFFSET $2;
 
