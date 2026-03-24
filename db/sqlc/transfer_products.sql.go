@@ -40,8 +40,8 @@ INSERT INTO ptransfers_products (
   transfer_id,
   product_id,
   quantity
-) VALUES ( $1, $2, $3 )
-RETURNING transfer_id, product_id, quantity
+) VALUES ($1, $2, $3)
+RETURNING id, transfer_id, product_id, quantity
 `
 
 type CreatePTransferProductParams struct {
@@ -50,10 +50,16 @@ type CreatePTransferProductParams struct {
 	Quantity   int64 `json:"quantity"`
 }
 
+// -----------------------------------
 func (q *Queries) CreatePTransferProduct(ctx context.Context, arg CreatePTransferProductParams) (PtransfersProduct, error) {
 	row := q.db.QueryRowContext(ctx, createPTransferProduct, arg.TransferID, arg.ProductID, arg.Quantity)
 	var i PtransfersProduct
-	err := row.Scan(&i.TransferID, &i.ProductID, &i.Quantity)
+	err := row.Scan(
+		&i.ID,
+		&i.TransferID,
+		&i.ProductID,
+		&i.Quantity,
+	)
 	return i, err
 }
 
@@ -84,9 +90,30 @@ func (q *Queries) GetPTransfer(ctx context.Context, id int64) (Ptransfer, error)
 	return i, err
 }
 
-const listPTransferProducts = `-- name: ListPTransferProducts :many
+const getPTransferProduct = `-- name: GetPTransferProduct :one
+SELECT id, transfer_id, product_id, quantity FROM ptransfers_products
+WHERE transfer_id = $1 AND product_id = $2
+`
 
-SELECT t.transfer_id, t.product_id, t.quantity, p.id, p.code, p.name, p.description, p.is_active, p.price, p.version, p.discount, p.created_at
+type GetPTransferProductParams struct {
+	TransferID int64 `json:"transferId"`
+	ProductID  int64 `json:"productId"`
+}
+
+func (q *Queries) GetPTransferProduct(ctx context.Context, arg GetPTransferProductParams) (PtransfersProduct, error) {
+	row := q.db.QueryRowContext(ctx, getPTransferProduct, arg.TransferID, arg.ProductID)
+	var i PtransfersProduct
+	err := row.Scan(
+		&i.ID,
+		&i.TransferID,
+		&i.ProductID,
+		&i.Quantity,
+	)
+	return i, err
+}
+
+const listPTransferProducts = `-- name: ListPTransferProducts :many
+SELECT t.id, t.transfer_id, t.product_id, t.quantity, p.id, p.code, p.name, p.description, p.is_active, p.price, p.version, p.discount, p.created_at
 FROM ptransfers_products t
 INNER JOIN products p
 ON t.product_id = p.id
@@ -94,10 +121,11 @@ WHERE t.transfer_id = $1
 `
 
 type ListPTransferProductsRow struct {
+	ID          int64     `json:"id"`
 	TransferID  int64     `json:"transferId"`
 	ProductID   int64     `json:"productId"`
 	Quantity    int64     `json:"quantity"`
-	ID          int64     `json:"id"`
+	ID_2        int64     `json:"id2"`
 	Code        string    `json:"code"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
@@ -108,7 +136,6 @@ type ListPTransferProductsRow struct {
 	CreatedAt   time.Time `json:"createdAt"`
 }
 
-// -----------------------------------
 func (q *Queries) ListPTransferProducts(ctx context.Context, transferID int64) ([]ListPTransferProductsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listPTransferProducts, transferID)
 	if err != nil {
@@ -119,10 +146,11 @@ func (q *Queries) ListPTransferProducts(ctx context.Context, transferID int64) (
 	for rows.Next() {
 		var i ListPTransferProductsRow
 		if err := rows.Scan(
+			&i.ID,
 			&i.TransferID,
 			&i.ProductID,
 			&i.Quantity,
-			&i.ID,
+			&i.ID_2,
 			&i.Code,
 			&i.Name,
 			&i.Description,
