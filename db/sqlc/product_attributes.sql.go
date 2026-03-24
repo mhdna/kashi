@@ -32,6 +32,23 @@ func (q *Queries) CreateProductAttribute(ctx context.Context, arg CreateProductA
 	return i, err
 }
 
+const getProductAttributeValue = `-- name: GetProductAttributeValue :one
+SELECT attribute_id, attribute_value_id, product_id FROM products_attributes
+WHERE product_id = $1 AND attribute_id = $2
+`
+
+type GetProductAttributeValueParams struct {
+	ProductID   int64 `json:"productId"`
+	AttributeID int64 `json:"attributeId"`
+}
+
+func (q *Queries) GetProductAttributeValue(ctx context.Context, arg GetProductAttributeValueParams) (ProductsAttribute, error) {
+	row := q.db.QueryRowContext(ctx, getProductAttributeValue, arg.ProductID, arg.AttributeID)
+	var i ProductsAttribute
+	err := row.Scan(&i.AttributeID, &i.AttributeValueID, &i.ProductID)
+	return i, err
+}
+
 const listProductAttributes = `-- name: ListProductAttributes :many
 SELECT p.id, av.id, av.attribute_id, av.value
 FROM products p
