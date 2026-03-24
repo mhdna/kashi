@@ -50,11 +50,11 @@ func (q *Queries) GetProductAttributeValue(ctx context.Context, arg GetProductAt
 }
 
 const listProductAttributes = `-- name: ListProductAttributes :many
-SELECT p.id, av.id, av.attribute_id, av.value
+SELECT pa.attribute_id, pa.attribute_value_id, pa.product_id
 FROM products p
-INNER JOIN attributes_values av
-ON p.id = av.product_id
-ORDER BY value
+INNER JOIN products_attributes pa
+ON p.id = pa.product_id
+ORDER BY attribute_id
 LIMIT $1
 OFFSET $2
 `
@@ -64,28 +64,16 @@ type ListProductAttributesParams struct {
 	Offset int32 `json:"offset"`
 }
 
-type ListProductAttributesRow struct {
-	ID          int64  `json:"id"`
-	ID_2        int64  `json:"id2"`
-	AttributeID int64  `json:"attributeId"`
-	Value       string `json:"value"`
-}
-
-func (q *Queries) ListProductAttributes(ctx context.Context, arg ListProductAttributesParams) ([]ListProductAttributesRow, error) {
+func (q *Queries) ListProductAttributes(ctx context.Context, arg ListProductAttributesParams) ([]ProductsAttribute, error) {
 	rows, err := q.db.QueryContext(ctx, listProductAttributes, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListProductAttributesRow
+	var items []ProductsAttribute
 	for rows.Next() {
-		var i ListProductAttributesRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.ID_2,
-			&i.AttributeID,
-			&i.Value,
-		); err != nil {
+		var i ProductsAttribute
+		if err := rows.Scan(&i.AttributeID, &i.AttributeValueID, &i.ProductID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -101,16 +89,17 @@ func (q *Queries) ListProductAttributes(ctx context.Context, arg ListProductAttr
 
 const updateProductAttribute = `-- name: UpdateProductAttribute :exec
 UPDATE products_attributes 
-SET attribute_value_id = $2
+SET attribute_value_id = $3
 WHERE product_id = $1 AND attribute_id = $2
 `
 
 type UpdateProductAttributeParams struct {
 	ProductID        int64 `json:"productId"`
+	AttributeID      int64 `json:"attributeId"`
 	AttributeValueID int64 `json:"attributeValueId"`
 }
 
 func (q *Queries) UpdateProductAttribute(ctx context.Context, arg UpdateProductAttributeParams) error {
-	_, err := q.db.ExecContext(ctx, updateProductAttribute, arg.ProductID, arg.AttributeValueID)
+	_, err := q.db.ExecContext(ctx, updateProductAttribute, arg.ProductID, arg.AttributeID, arg.AttributeValueID)
 	return err
 }
