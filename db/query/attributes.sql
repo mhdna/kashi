@@ -6,6 +6,11 @@ INSERT INTO attributes_values (
     $1, $2
 ) RETURNING *;
 
+-- name: GetAttributeValue :one
+SELECT * FROM attributes_values
+WHERE attribute_id = $1;
+
+
 -- name: ListAttributeValues :many
 SELECT a.*, av.*
 FROM attributes a

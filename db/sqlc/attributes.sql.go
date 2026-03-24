@@ -30,6 +30,18 @@ func (q *Queries) CreateAttributeValue(ctx context.Context, arg CreateAttributeV
 	return i, err
 }
 
+const getAttributeValue = `-- name: GetAttributeValue :one
+SELECT id, attribute_id, value FROM attributes_values
+WHERE attribute_id = $1
+`
+
+func (q *Queries) GetAttributeValue(ctx context.Context, attributeID int64) (AttributesValue, error) {
+	row := q.db.QueryRowContext(ctx, getAttributeValue, attributeID)
+	var i AttributesValue
+	err := row.Scan(&i.ID, &i.AttributeID, &i.Value)
+	return i, err
+}
+
 const listAttributeValues = `-- name: ListAttributeValues :many
 SELECT a.id, a.name, av.id, av.attribute_id, av.value
 FROM attributes a
