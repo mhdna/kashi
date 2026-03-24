@@ -3,19 +3,10 @@ INSERT INTO products (
   name,
   code,
   description,
-  kind_id,
-  category_id,
-  subcategory_id,
-  unit_id,
-  type_id,
-  year,
-  season_id,
-  brand_id,
-  origin_id,
   price,
   discount
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+    $1, $2, $3, $4, $5
 ) RETURNING *;
 
 -- name: GetProduct :one
@@ -33,17 +24,8 @@ UPDATE products
   SET name = $2,
   code = $3,
   description = $4,
-  kind_id = $5,
-  category_id = $6,
-  subcategory_id = $7,
-  unit_id = $8,
-  type_id = $9,
-  year = $10,
-  season_id = $11,
-  brand_id = $12,
-  origin_id = $13,
-  price = $14,
-  discount = $15
+  price = $5,
+  discount = $6
 WHERE id = $1;
 
 -- name: DeleteProduct :exec
