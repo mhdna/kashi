@@ -53,6 +53,7 @@ type PTransferTxResult struct {
 	Products      []PTransferItem `json:"products"`
 }
 
+// FIXME: it's not returning the correct types. We have to return a Transfer instead of this PtransferResult
 func (store *Store) PTransferTx(ctx context.Context, arg PTransferTxParams) (PTransferTxResult, error) {
 	var result PTransferTxResult
 
@@ -68,7 +69,7 @@ func (store *Store) PTransferTx(ctx context.Context, arg PTransferTxParams) (PTr
 		}
 		for _, p := range arg.Products {
 			_, err := q.CreatePTransferProduct(ctx, CreatePTransferProductParams{
-				TransferID: arg.FromInventoryID,
+				TransferID: result.PTransfer.ID,
 				ProductID:  p.ProductId,
 				Quantity:   -p.Quantity,
 			})
@@ -76,14 +77,14 @@ func (store *Store) PTransferTx(ctx context.Context, arg PTransferTxParams) (PTr
 				return err
 			}
 
-			_, err = q.CreatePTransferProduct(ctx, CreatePTransferProductParams{
-				TransferID: arg.ToInventoryID,
-				ProductID:  p.ProductId,
-				Quantity:   p.Quantity,
-			})
-			if err != nil {
-				return err
-			}
+			// _, err = q.CreatePTransferProduct(ctx, CreatePTransferProductParams{
+			// 	TransferID: result.PTransfer.ID,
+			// 	ProductID:  p.ProductId,
+			// 	Quantity:   p.Quantity,
+			// })
+			// if err != nil {
+			// 	return err
+			// }
 		}
 		return nil
 	})
