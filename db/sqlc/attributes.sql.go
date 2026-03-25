@@ -71,7 +71,7 @@ func (q *Queries) ListAttributeValues(ctx context.Context, arg ListAttributeValu
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListAttributeValuesRow
+	items := []ListAttributeValuesRow{}
 	for rows.Next() {
 		var i ListAttributeValuesRow
 		if err := rows.Scan(

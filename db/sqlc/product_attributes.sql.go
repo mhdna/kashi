@@ -70,7 +70,7 @@ func (q *Queries) ListProductAttributes(ctx context.Context, arg ListProductAttr
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ProductsAttribute
+	items := []ProductsAttribute{}
 	for rows.Next() {
 		var i ProductsAttribute
 		if err := rows.Scan(&i.AttributeID, &i.AttributeValueID, &i.ProductID); err != nil {

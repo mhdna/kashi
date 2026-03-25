@@ -132,7 +132,7 @@ func (q *Queries) ListInventories(ctx context.Context, arg ListInventoriesParams
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Inventory
+	items := []Inventory{}
 	for rows.Next() {
 		var i Inventory
 		if err := rows.Scan(
@@ -183,7 +183,7 @@ func (q *Queries) ListInventoryProducts(ctx context.Context, inventoryID int64) 
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListInventoryProductsRow
+	items := []ListInventoryProductsRow{}
 	for rows.Next() {
 		var i ListInventoryProductsRow
 		if err := rows.Scan(

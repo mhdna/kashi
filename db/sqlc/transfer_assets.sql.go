@@ -112,7 +112,7 @@ func (q *Queries) ListATransferAssets(ctx context.Context, transferID int64) ([]
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListATransferAssetsRow
+	items := []ListATransferAssetsRow{}
 	for rows.Next() {
 		var i ListATransferAssetsRow
 		if err := rows.Scan(
@@ -158,7 +158,7 @@ func (q *Queries) ListATransfers(ctx context.Context, arg ListATransfersParams) 
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Atransfer
+	items := []Atransfer{}
 	for rows.Next() {
 		var i Atransfer
 		if err := rows.Scan(
