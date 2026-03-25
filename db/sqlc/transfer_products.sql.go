@@ -131,7 +131,7 @@ func (q *Queries) ListPTransferProducts(ctx context.Context, transferID int64) (
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListPTransferProductsRow
+	items := []ListPTransferProductsRow{}
 	for rows.Next() {
 		var i ListPTransferProductsRow
 		if err := rows.Scan(
@@ -179,7 +179,7 @@ func (q *Queries) ListPTransfers(ctx context.Context, arg ListPTransfersParams) 
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Ptransfer
+	items := []Ptransfer{}
 	for rows.Next() {
 		var i Ptransfer
 		if err := rows.Scan(
