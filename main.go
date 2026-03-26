@@ -7,25 +7,23 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/mhdna/kashi/api"
 	db "github.com/mhdna/kashi/db/sqlc"
-)
-
-const (
-	address  = "0.0.0.0:8080"
-	dbDriver = "postgres"
-	dbSource = "postgresql://root:secret@localhost:5433/kashi?sslmode=disable"
+	"github.com/mhdna/kashi/util"
 )
 
 func main() {
+	config, err := util.LoadConfig(".")
+	if err != nil {
+		log.Fatal("cannot load config:", err)
+	}
 
-	var err error
-	conn, err := sql.Open(dbDriver, dbSource)
+	conn, err := sql.Open(config.DBDriver, config.DBSource)
 	if err != nil {
 		log.Fatal("cannot connect to db:", err)
 	}
 	store := db.NewStore(conn)
 	server := api.NewServer(store)
 
-	err = server.Start(address)
+	err = server.Start(config.ServerAddress)
 	if err != nil {
 		log.Fatal("cannot start server:", err)
 	}
