@@ -24,19 +24,6 @@ type AssetsType struct {
 	Type string `json:"type"`
 }
 
-type Atransfer struct {
-	ID              int64     `json:"id"`
-	FromInventoryID int64     `json:"fromInventoryId"`
-	ToInventoryID   int64     `json:"toInventoryId"`
-	CreatedAt       time.Time `json:"createdAt"`
-}
-
-type AtransfersAsset struct {
-	TransferID int64 `json:"transferId"`
-	AssetID    int64 `json:"assetId"`
-	Quantity   int64 `json:"quantity"`
-}
-
 type Attribute struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
@@ -163,19 +150,6 @@ type ProductsSupplier struct {
 	ProductCost int64 `json:"productCost"`
 }
 
-type Ptransfer struct {
-	ID              int64     `json:"id"`
-	FromInventoryID int64     `json:"fromInventoryId"`
-	ToInventoryID   int64     `json:"toInventoryId"`
-	CreatedAt       time.Time `json:"createdAt"`
-}
-
-type PtransfersProduct struct {
-	TransferID int64 `json:"transferId"`
-	ProductID  int64 `json:"productId"`
-	Quantity   int64 `json:"quantity"`
-}
-
 type Size struct {
 	ID        int64     `json:"id"`
 	Name      string    `json:"name"`
@@ -200,6 +174,26 @@ type Token struct {
 	UserID int64     `json:"userId"`
 	Expiry time.Time `json:"expiry"`
 	Scope  string    `json:"scope"`
+}
+
+type Transfer struct {
+	ID              int64     `json:"id"`
+	FromInventoryID int64     `json:"fromInventoryId"`
+	ToInventoryID   int64     `json:"toInventoryId"`
+	Type            string    `json:"type"`
+	CreatedAt       time.Time `json:"createdAt"`
+}
+
+type TransfersAsset struct {
+	TransferID int64 `json:"transferId"`
+	AssetID    int64 `json:"assetId"`
+	Quantity   int64 `json:"quantity"`
+}
+
+type TransfersProduct struct {
+	TransferID int64 `json:"transferId"`
+	ProductID  int64 `json:"productId"`
+	Quantity   int64 `json:"quantity"`
 }
 
 type User struct {
