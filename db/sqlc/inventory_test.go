@@ -12,16 +12,10 @@ import (
 
 func createRandomInventory(t *testing.T) Inventory {
 	arg := CreateInventoryParams{
-		Name: util.RandomInventoryName(),
-		Code: util.RandomInventoryCode(),
-		Latitude: sql.NullFloat64{
-			Float64: float64(util.RandomLongitudeLatitude()),
-			Valid:   true,
-		},
-		Longitude: sql.NullFloat64{
-			Float64: 40.40,
-			Valid:   true,
-		},
+		Name:      util.RandomInventoryName(),
+		Code:      util.RandomInventoryCode(),
+		Latitude:  util.RandomLongitudeLatitude(),
+		Longitude: util.RandomLongitudeLatitude(),
 	}
 
 	inventory, err := testQueries.CreateInventory(context.Background(), arg)
