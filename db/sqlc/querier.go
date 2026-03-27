@@ -11,47 +11,38 @@ import (
 type Querier interface {
 	AddInventoryProduct(ctx context.Context, arg AddInventoryProductParams) (InventoriesProduct, error)
 	AddOrderProduct(ctx context.Context, arg AddOrderProductParams) (OrdersProduct, error)
-	CreateATransfer(ctx context.Context, arg CreateATransferParams) (Atransfer, error)
-	CreateATransferAsset(ctx context.Context, arg CreateATransferAssetParams) (AtransfersAsset, error)
 	CreateAttributeValue(ctx context.Context, arg CreateAttributeValueParams) (AttributesValue, error)
 	CreateInventory(ctx context.Context, arg CreateInventoryParams) (Inventory, error)
 	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
-	CreatePTransfer(ctx context.Context, arg CreatePTransferParams) (Ptransfer, error)
-	//-----------------------------------
-	CreatePTransferProduct(ctx context.Context, arg CreatePTransferProductParams) (PtransfersProduct, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreateProductAttribute(ctx context.Context, arg CreateProductAttributeParams) (ProductsAttribute, error)
-	DeleteATransfer(ctx context.Context, id int64) error
+	CreateTransfer(ctx context.Context, arg CreateTransferParams) (Transfer, error)
+	CreateTransferAsset(ctx context.Context, arg CreateTransferAssetParams) (TransfersAsset, error)
+	CreateTransferProduct(ctx context.Context, arg CreateTransferProductParams) (TransfersProduct, error)
 	DeleteInventory(ctx context.Context, id int64) error
 	DeleteInventoryProduct(ctx context.Context, arg DeleteInventoryProductParams) error
-	DeletePTransfer(ctx context.Context, id int64) error
 	DeleteProduct(ctx context.Context, id int64) error
-	GetATransfer(ctx context.Context, id int64) (Atransfer, error)
 	GetAttributeValue(ctx context.Context, id int64) (AttributesValue, error)
 	GetInventory(ctx context.Context, id int64) (Inventory, error)
 	GetOrder(ctx context.Context, id int64) (Order, error)
-	GetPTransfer(ctx context.Context, id int64) (Ptransfer, error)
-	GetPTransferProduct(ctx context.Context, arg GetPTransferProductParams) (PtransfersProduct, error)
 	GetProduct(ctx context.Context, id int64) (Product, error)
 	GetProductAttributeValue(ctx context.Context, arg GetProductAttributeValueParams) (ProductsAttribute, error)
-	//-----------------------------------
-	ListATransferAssets(ctx context.Context, transferID int64) ([]ListATransferAssetsRow, error)
-	ListATransfers(ctx context.Context, arg ListATransfersParams) ([]Atransfer, error)
+	GetTransfer(ctx context.Context, id int64) (Transfer, error)
 	ListAttributeValues(ctx context.Context, arg ListAttributeValuesParams) ([]ListAttributeValuesRow, error)
 	ListInventories(ctx context.Context, arg ListInventoriesParams) ([]Inventory, error)
 	ListInventoryProducts(ctx context.Context, inventoryID int64) ([]ListInventoryProductsRow, error)
 	ListOrders(ctx context.Context, arg ListOrdersParams) ([]Order, error)
-	ListPTransferProducts(ctx context.Context, transferID int64) ([]ListPTransferProductsRow, error)
-	ListPTransfers(ctx context.Context, arg ListPTransfersParams) ([]Ptransfer, error)
 	ListProductAttributes(ctx context.Context, arg ListProductAttributesParams) ([]ProductsAttribute, error)
 	ListProducts(ctx context.Context, arg ListProductsParams) ([]Product, error)
-	UpdateATransfer(ctx context.Context, arg UpdateATransferParams) error
+	ListTransferAssets(ctx context.Context, transferID int64) ([]ListTransferAssetsRow, error)
+	ListTransferProducts(ctx context.Context, transferID int64) ([]ListTransferProductsRow, error)
+	ListTransfers(ctx context.Context, arg ListTransfersParams) ([]Transfer, error)
 	UpdateAttributeValue(ctx context.Context, arg UpdateAttributeValueParams) error
 	UpdateInventory(ctx context.Context, arg UpdateInventoryParams) error
 	UpdateInventoryProduct(ctx context.Context, arg UpdateInventoryProductParams) error
-	UpdatePTransfer(ctx context.Context, arg UpdatePTransferParams) error
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) error
 	UpdateProductAttribute(ctx context.Context, arg UpdateProductAttributeParams) error
+	UpdateTransfer(ctx context.Context, arg UpdateTransferParams) error
 }
 
 var _ Querier = (*Queries)(nil)
