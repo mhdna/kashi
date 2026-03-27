@@ -19,28 +19,50 @@ import (
 func TestGetInventoryAPI(t *testing.T) {
 	inventory := randomInventory()
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	testCases := []struct {
+		name          string
+		inventoryID   int64
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name:        "OK",
+			inventoryID: inventory.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetInventory(gomock.Any(), gomock.Eq(inventory.ID)).
+					Times(1).
+					Return(inventory, nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				requiredBodyMatchInventory(t, recorder.Body, inventory)
+			},
+		},
+	}
 
-	store := mockdb.NewMockStore(ctrl)
-	// build stubs
-	store.EXPECT().
-		GetInventory(gomock.Any(), gomock.Eq(inventory.ID)).
-		Times(1).
-		Return(inventory, nil)
+	for i := range testCases {
+		tc := testCases[i]
 
-	// start the test server
-	server := NewServer(store)
-	recorder := httptest.NewRecorder()
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-	url := fmt.Sprintf("/inventories/%d", inventory.ID)
-	request, err := http.NewRequest(http.MethodGet, url, nil)
-	require.NoError(t, err)
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
 
-	server.router.ServeHTTP(recorder, request)
-	// check successful
-	require.Equal(t, http.StatusOK, recorder.Code)
-	requiredBodyMatchInventory(t, recorder.Body, inventory)
+			// start the test server
+			server := NewServer(store)
+			recorder := httptest.NewRecorder()
+
+			url := fmt.Sprintf("/inventories/%d", inventory.ID)
+			request, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
+
+			server.router.ServeHTTP(recorder, request)
+			tc.checkResponse(t, recorder)
+		})
+	}
 }
 
 func randomInventory() db.Inventory {
