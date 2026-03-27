@@ -6,19 +6,25 @@ import (
 	"fmt"
 )
 
-type Store struct {
+type Store interface {
+	Querier
+	PTransferTx(ctx context.Context, arg PTransferTxParams) (PTransferTxResult, error)
+}
+
+// provides all the functions to execute SQL queries
+type SQLStore struct {
 	*Queries
 	db *sql.DB
 }
 
-func NewStore(db *sql.DB) *Store {
-	return &Store{
+func NewStore(db *sql.DB) Store {
+	return &SQLStore{
 		db:      db,
 		Queries: New(db),
 	}
 }
 
-func (store *Store) execTx(ctx context.Context, fn func(*Queries) error) error {
+func (store *SQLStore) execTx(ctx context.Context, fn func(*Queries) error) error {
 	tx, err := store.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -53,7 +59,7 @@ type PTransferTxResult struct {
 	Products      []PTransferItem `json:"products"`
 }
 
-func (store *Store) PTransferTx(ctx context.Context, arg PTransferTxParams) (PTransferTxResult, error) {
+func (store *SQLStore) PTransferTx(ctx context.Context, arg PTransferTxParams) (PTransferTxResult, error) {
 	var result PTransferTxResult
 
 	err := store.execTx(ctx, func(q *Queries) error {
