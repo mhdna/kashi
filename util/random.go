@@ -1,6 +1,7 @@
 package util
 
 import (
+	"database/sql"
 	"math/rand"
 	"strings"
 	"time"
@@ -28,15 +29,26 @@ func RandomString(n int) string {
 }
 
 func RandomInventoryCode() string {
-	return RandomString(4)
+	return RandomString(20)
 }
 
 func RandomInventoryName() string {
 	return RandomString(6)
 }
 
-func RandomLongitudeLatitude() int64 {
-	return RandomInt(0, 100)
+func RandomAttributeValue() string {
+	return RandomString(6)
+}
+
+func RandomNumber() int64 {
+	return RandomInt(1, 100)
+}
+
+func RandomLongitudeLatitude() sql.NullFloat64 {
+	return sql.NullFloat64{
+		Float64: float64(RandomInt(1, 100)),
+		Valid:   true,
+	}
 }
 
 func RandomCurrency() string {
