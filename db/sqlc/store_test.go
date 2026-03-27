@@ -14,11 +14,11 @@ func TestTransferTX(t *testing.T) {
 	inventory2 := createRandomInventory(t)
 
 	errs := make(chan error)
-	results := make(chan PTransferTxResult)
+	results := make(chan TransferTxResult)
 
 	for range 5 {
 		go func() {
-			result, err := store.PTransferTx(context.Background(), PTransferTxParams{
+			result, err := store.TransferTx(context.Background(), TransferTxParams{
 				FromInventoryID: inventory1.ID,
 				ToInventoryID:   inventory2.ID,
 			})
@@ -35,7 +35,9 @@ func TestTransferTX(t *testing.T) {
 		require.NotEmpty(t, results)
 
 		// check transfer
-		transfer := result.PTransfer
+		transfer := result.Transfer
+
+		// TODO: change those to items that depends on type
 		products := result.Products
 
 		require.NotEmpty(t, transfer)
