@@ -8,7 +8,7 @@ import (
 
 type Store interface {
 	Querier
-	PTransferTx(ctx context.Context, arg PTransferTxParams) (PTransferTxResult, error)
+	TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error)
 }
 
 // provides all the functions to execute SQL queries
@@ -41,75 +41,59 @@ func (store *SQLStore) execTx(ctx context.Context, fn func(*Queries) error) erro
 	return tx.Commit()
 }
 
-type PTransferTxParams struct {
-	FromInventoryID int64           `json:"from_inventory_id"`
-	ToInventoryID   int64           `json:"to_inventory_id"`
-	Products        []PTransferItem `json:"products"`
+type TransferTxParams struct {
+	FromInventoryID int64          `json:"from_inventory_id"`
+	ToInventoryID   int64          `json:"to_inventory_id"`
+	Items           []TransferItem `json:"items"`
+	TransferType    string         `json:"type"`
 }
 
-type PTransferItem struct {
-	ProductId int64
-	Quantity  int64
+type TransferItem struct {
+	ID       int64
+	Quantity int64
 }
 
-type PTransferTxResult struct {
-	PTransfer     Ptransfer       `json:"ptransfer"`
-	FromInventory Inventory       `json:"from_inventory"`
-	ToInventory   Inventory       `json:"to_inventory"`
-	Products      []PTransferItem `json:"products"`
+type TransferTxResult struct {
+	Transfer      Transfer       `json:"transfer"`
+	FromInventory Inventory      `json:"from_inventory"`
+	ToInventory   Inventory      `json:"to_inventory"`
+	Products      []TransferItem `json:"products"`
 }
 
-func (store *SQLStore) PTransferTx(ctx context.Context, arg PTransferTxParams) (PTransferTxResult, error) {
-	var result PTransferTxResult
+func (store *SQLStore) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
+	var result TransferTxResult
 
 	err := store.execTx(ctx, func(q *Queries) error {
 		var err error
 
-		result.PTransfer, err = q.CreatePTransfer(ctx, CreatePTransferParams{
+		result.Transfer, err = q.CreateTransfer(ctx, CreateTransferParams{
 			FromInventoryID: arg.FromInventoryID,
 			ToInventoryID:   arg.ToInventoryID,
 		})
 		if err != nil {
 			return err
 		}
-		for _, p := range arg.Products {
-			_, err := q.CreatePTransferProduct(ctx, CreatePTransferProductParams{
-				TransferID: arg.FromInventoryID,
-				ProductID:  p.ProductId,
-				Quantity:   -p.Quantity,
+		for _, i := range arg.Items {
+			_, err := q.CreateTransferProduct(ctx, CreateTransferProductParams{
+				TransferID: result.Transfer.ID,
+				ProductID:  i.ID,
+				Quantity:   -i.Quantity,
 			})
 			if err != nil {
 				return err
 			}
 
-			_, err = q.CreatePTransferProduct(ctx, CreatePTransferProductParams{
-				TransferID: arg.ToInventoryID,
-				ProductID:  p.ProductId,
-				Quantity:   p.Quantity,
-			})
-			if err != nil {
-				return err
-			}
+			// _, err = q.CreateTransferProduct(ctx, CreateTransferProductParams{
+			// 	TransferID: result.Transfer.ID,
+			// 	ProductID:  i.ID,
+			// 	Quantity:   i.Quantity,
+			// })
+			// if err != nil {
+			// 	return err
+			// }
 		}
 		return nil
 	})
 
 	return result, err
-}
-
-type ATransferTxParams struct {
-	FromInventoryID int64 `json:"from_inventory_id"`
-	ToInventoryID   int64 `json:"to_inventory_id"`
-	Assets          []ATransferItem
-}
-
-type ATransferItem struct {
-	AssetId  int64
-	Quantity int64
-}
-
-type ATransferTxResult struct {
-	ATransfer     Ptransfer `json:"atransfer"`
-	FromInventory Inventory `json:"from_inventory"`
-	ToInventory   Inventory `json:"to_inventory"`
 }

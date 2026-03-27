@@ -65,36 +65,6 @@ func (mr *MockStoreMockRecorder) AddOrderProduct(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddOrderProduct", reflect.TypeOf((*MockStore)(nil).AddOrderProduct), arg0, arg1)
 }
 
-// CreateATransfer mocks base method.
-func (m *MockStore) CreateATransfer(arg0 context.Context, arg1 db.CreateATransferParams) (db.Atransfer, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateATransfer", arg0, arg1)
-	ret0, _ := ret[0].(db.Atransfer)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateATransfer indicates an expected call of CreateATransfer.
-func (mr *MockStoreMockRecorder) CreateATransfer(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateATransfer", reflect.TypeOf((*MockStore)(nil).CreateATransfer), arg0, arg1)
-}
-
-// CreateATransferAsset mocks base method.
-func (m *MockStore) CreateATransferAsset(arg0 context.Context, arg1 db.CreateATransferAssetParams) (db.AtransfersAsset, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateATransferAsset", arg0, arg1)
-	ret0, _ := ret[0].(db.AtransfersAsset)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateATransferAsset indicates an expected call of CreateATransferAsset.
-func (mr *MockStoreMockRecorder) CreateATransferAsset(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateATransferAsset", reflect.TypeOf((*MockStore)(nil).CreateATransferAsset), arg0, arg1)
-}
-
 // CreateAttributeValue mocks base method.
 func (m *MockStore) CreateAttributeValue(arg0 context.Context, arg1 db.CreateAttributeValueParams) (db.AttributesValue, error) {
 	m.ctrl.T.Helper()
@@ -140,36 +110,6 @@ func (mr *MockStoreMockRecorder) CreateOrder(arg0, arg1 interface{}) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrder", reflect.TypeOf((*MockStore)(nil).CreateOrder), arg0, arg1)
 }
 
-// CreatePTransfer mocks base method.
-func (m *MockStore) CreatePTransfer(arg0 context.Context, arg1 db.CreatePTransferParams) (db.Ptransfer, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreatePTransfer", arg0, arg1)
-	ret0, _ := ret[0].(db.Ptransfer)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreatePTransfer indicates an expected call of CreatePTransfer.
-func (mr *MockStoreMockRecorder) CreatePTransfer(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePTransfer", reflect.TypeOf((*MockStore)(nil).CreatePTransfer), arg0, arg1)
-}
-
-// CreatePTransferProduct mocks base method.
-func (m *MockStore) CreatePTransferProduct(arg0 context.Context, arg1 db.CreatePTransferProductParams) (db.PtransfersProduct, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreatePTransferProduct", arg0, arg1)
-	ret0, _ := ret[0].(db.PtransfersProduct)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreatePTransferProduct indicates an expected call of CreatePTransferProduct.
-func (mr *MockStoreMockRecorder) CreatePTransferProduct(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePTransferProduct", reflect.TypeOf((*MockStore)(nil).CreatePTransferProduct), arg0, arg1)
-}
-
 // CreateProduct mocks base method.
 func (m *MockStore) CreateProduct(arg0 context.Context, arg1 db.CreateProductParams) (db.Product, error) {
 	m.ctrl.T.Helper()
@@ -200,18 +140,49 @@ func (mr *MockStoreMockRecorder) CreateProductAttribute(arg0, arg1 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateProductAttribute", reflect.TypeOf((*MockStore)(nil).CreateProductAttribute), arg0, arg1)
 }
 
-// DeleteATransfer mocks base method.
-func (m *MockStore) DeleteATransfer(arg0 context.Context, arg1 int64) error {
+// CreateTransfer mocks base method.
+func (m *MockStore) CreateTransfer(arg0 context.Context, arg1 db.CreateTransferParams) (db.Transfer, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteATransfer", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret := m.ctrl.Call(m, "CreateTransfer", arg0, arg1)
+	ret0, _ := ret[0].(db.Transfer)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// DeleteATransfer indicates an expected call of DeleteATransfer.
-func (mr *MockStoreMockRecorder) DeleteATransfer(arg0, arg1 interface{}) *gomock.Call {
+// CreateTransfer indicates an expected call of CreateTransfer.
+func (mr *MockStoreMockRecorder) CreateTransfer(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteATransfer", reflect.TypeOf((*MockStore)(nil).DeleteATransfer), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransfer", reflect.TypeOf((*MockStore)(nil).CreateTransfer), arg0, arg1)
+}
+
+// CreateTransferAsset mocks base method.
+func (m *MockStore) CreateTransferAsset(arg0 context.Context, arg1 db.CreateTransferAssetParams) (db.TransfersAsset, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateTransferAsset", arg0, arg1)
+	ret0, _ := ret[0].(db.TransfersAsset)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateTransferAsset indicates an expected call of CreateTransferAsset.
+func (mr *MockStoreMockRecorder) CreateTransferAsset(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransferAsset", reflect.TypeOf((*MockStore)(nil).CreateTransferAsset), arg0, arg1)
+}
+
+// CreateTransferProduct mocks base method.
+func (m *MockStore) CreateTransferProduct(arg0 context.Context, arg1 db.CreateTransferProductParams) (db.TransfersProduct, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateTransferProduct", arg0, arg1)
+	ret0, _ := ret[0].(db.TransfersProduct)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateTransferProduct indicates an expected call of CreateTransferProduct.
+func (mr *MockStoreMockRecorder) CreateTransferProduct(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransferProduct", reflect.TypeOf((*MockStore)(nil).CreateTransferProduct), arg0, arg1)
 }
 
 // DeleteInventory mocks base method.
@@ -242,20 +213,6 @@ func (mr *MockStoreMockRecorder) DeleteInventoryProduct(arg0, arg1 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInventoryProduct", reflect.TypeOf((*MockStore)(nil).DeleteInventoryProduct), arg0, arg1)
 }
 
-// DeletePTransfer mocks base method.
-func (m *MockStore) DeletePTransfer(arg0 context.Context, arg1 int64) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeletePTransfer", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeletePTransfer indicates an expected call of DeletePTransfer.
-func (mr *MockStoreMockRecorder) DeletePTransfer(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePTransfer", reflect.TypeOf((*MockStore)(nil).DeletePTransfer), arg0, arg1)
-}
-
 // DeleteProduct mocks base method.
 func (m *MockStore) DeleteProduct(arg0 context.Context, arg1 int64) error {
 	m.ctrl.T.Helper()
@@ -268,21 +225,6 @@ func (m *MockStore) DeleteProduct(arg0 context.Context, arg1 int64) error {
 func (mr *MockStoreMockRecorder) DeleteProduct(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteProduct", reflect.TypeOf((*MockStore)(nil).DeleteProduct), arg0, arg1)
-}
-
-// GetATransfer mocks base method.
-func (m *MockStore) GetATransfer(arg0 context.Context, arg1 int64) (db.Atransfer, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetATransfer", arg0, arg1)
-	ret0, _ := ret[0].(db.Atransfer)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetATransfer indicates an expected call of GetATransfer.
-func (mr *MockStoreMockRecorder) GetATransfer(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetATransfer", reflect.TypeOf((*MockStore)(nil).GetATransfer), arg0, arg1)
 }
 
 // GetAttributeValue mocks base method.
@@ -330,36 +272,6 @@ func (mr *MockStoreMockRecorder) GetOrder(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrder", reflect.TypeOf((*MockStore)(nil).GetOrder), arg0, arg1)
 }
 
-// GetPTransfer mocks base method.
-func (m *MockStore) GetPTransfer(arg0 context.Context, arg1 int64) (db.Ptransfer, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPTransfer", arg0, arg1)
-	ret0, _ := ret[0].(db.Ptransfer)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPTransfer indicates an expected call of GetPTransfer.
-func (mr *MockStoreMockRecorder) GetPTransfer(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPTransfer", reflect.TypeOf((*MockStore)(nil).GetPTransfer), arg0, arg1)
-}
-
-// GetPTransferProduct mocks base method.
-func (m *MockStore) GetPTransferProduct(arg0 context.Context, arg1 db.GetPTransferProductParams) (db.PtransfersProduct, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPTransferProduct", arg0, arg1)
-	ret0, _ := ret[0].(db.PtransfersProduct)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPTransferProduct indicates an expected call of GetPTransferProduct.
-func (mr *MockStoreMockRecorder) GetPTransferProduct(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPTransferProduct", reflect.TypeOf((*MockStore)(nil).GetPTransferProduct), arg0, arg1)
-}
-
 // GetProduct mocks base method.
 func (m *MockStore) GetProduct(arg0 context.Context, arg1 int64) (db.Product, error) {
 	m.ctrl.T.Helper()
@@ -390,34 +302,19 @@ func (mr *MockStoreMockRecorder) GetProductAttributeValue(arg0, arg1 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductAttributeValue", reflect.TypeOf((*MockStore)(nil).GetProductAttributeValue), arg0, arg1)
 }
 
-// ListATransferAssets mocks base method.
-func (m *MockStore) ListATransferAssets(arg0 context.Context, arg1 int64) ([]db.ListATransferAssetsRow, error) {
+// GetTransfer mocks base method.
+func (m *MockStore) GetTransfer(arg0 context.Context, arg1 int64) (db.Transfer, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListATransferAssets", arg0, arg1)
-	ret0, _ := ret[0].([]db.ListATransferAssetsRow)
+	ret := m.ctrl.Call(m, "GetTransfer", arg0, arg1)
+	ret0, _ := ret[0].(db.Transfer)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListATransferAssets indicates an expected call of ListATransferAssets.
-func (mr *MockStoreMockRecorder) ListATransferAssets(arg0, arg1 interface{}) *gomock.Call {
+// GetTransfer indicates an expected call of GetTransfer.
+func (mr *MockStoreMockRecorder) GetTransfer(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListATransferAssets", reflect.TypeOf((*MockStore)(nil).ListATransferAssets), arg0, arg1)
-}
-
-// ListATransfers mocks base method.
-func (m *MockStore) ListATransfers(arg0 context.Context, arg1 db.ListATransfersParams) ([]db.Atransfer, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListATransfers", arg0, arg1)
-	ret0, _ := ret[0].([]db.Atransfer)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListATransfers indicates an expected call of ListATransfers.
-func (mr *MockStoreMockRecorder) ListATransfers(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListATransfers", reflect.TypeOf((*MockStore)(nil).ListATransfers), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransfer", reflect.TypeOf((*MockStore)(nil).GetTransfer), arg0, arg1)
 }
 
 // ListAttributeValues mocks base method.
@@ -480,36 +377,6 @@ func (mr *MockStoreMockRecorder) ListOrders(arg0, arg1 interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListOrders", reflect.TypeOf((*MockStore)(nil).ListOrders), arg0, arg1)
 }
 
-// ListPTransferProducts mocks base method.
-func (m *MockStore) ListPTransferProducts(arg0 context.Context, arg1 int64) ([]db.ListPTransferProductsRow, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListPTransferProducts", arg0, arg1)
-	ret0, _ := ret[0].([]db.ListPTransferProductsRow)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListPTransferProducts indicates an expected call of ListPTransferProducts.
-func (mr *MockStoreMockRecorder) ListPTransferProducts(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPTransferProducts", reflect.TypeOf((*MockStore)(nil).ListPTransferProducts), arg0, arg1)
-}
-
-// ListPTransfers mocks base method.
-func (m *MockStore) ListPTransfers(arg0 context.Context, arg1 db.ListPTransfersParams) ([]db.Ptransfer, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListPTransfers", arg0, arg1)
-	ret0, _ := ret[0].([]db.Ptransfer)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListPTransfers indicates an expected call of ListPTransfers.
-func (mr *MockStoreMockRecorder) ListPTransfers(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPTransfers", reflect.TypeOf((*MockStore)(nil).ListPTransfers), arg0, arg1)
-}
-
 // ListProductAttributes mocks base method.
 func (m *MockStore) ListProductAttributes(arg0 context.Context, arg1 db.ListProductAttributesParams) ([]db.ProductsAttribute, error) {
 	m.ctrl.T.Helper()
@@ -540,33 +407,64 @@ func (mr *MockStoreMockRecorder) ListProducts(arg0, arg1 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListProducts", reflect.TypeOf((*MockStore)(nil).ListProducts), arg0, arg1)
 }
 
-// PTransferTx mocks base method.
-func (m *MockStore) PTransferTx(arg0 context.Context, arg1 db.PTransferTxParams) (db.PTransferTxResult, error) {
+// ListTransferAssets mocks base method.
+func (m *MockStore) ListTransferAssets(arg0 context.Context, arg1 int64) ([]db.ListTransferAssetsRow, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PTransferTx", arg0, arg1)
-	ret0, _ := ret[0].(db.PTransferTxResult)
+	ret := m.ctrl.Call(m, "ListTransferAssets", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListTransferAssetsRow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// PTransferTx indicates an expected call of PTransferTx.
-func (mr *MockStoreMockRecorder) PTransferTx(arg0, arg1 interface{}) *gomock.Call {
+// ListTransferAssets indicates an expected call of ListTransferAssets.
+func (mr *MockStoreMockRecorder) ListTransferAssets(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PTransferTx", reflect.TypeOf((*MockStore)(nil).PTransferTx), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTransferAssets", reflect.TypeOf((*MockStore)(nil).ListTransferAssets), arg0, arg1)
 }
 
-// UpdateATransfer mocks base method.
-func (m *MockStore) UpdateATransfer(arg0 context.Context, arg1 db.UpdateATransferParams) error {
+// ListTransferProducts mocks base method.
+func (m *MockStore) ListTransferProducts(arg0 context.Context, arg1 int64) ([]db.ListTransferProductsRow, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateATransfer", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret := m.ctrl.Call(m, "ListTransferProducts", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListTransferProductsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// UpdateATransfer indicates an expected call of UpdateATransfer.
-func (mr *MockStoreMockRecorder) UpdateATransfer(arg0, arg1 interface{}) *gomock.Call {
+// ListTransferProducts indicates an expected call of ListTransferProducts.
+func (mr *MockStoreMockRecorder) ListTransferProducts(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateATransfer", reflect.TypeOf((*MockStore)(nil).UpdateATransfer), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTransferProducts", reflect.TypeOf((*MockStore)(nil).ListTransferProducts), arg0, arg1)
+}
+
+// ListTransfers mocks base method.
+func (m *MockStore) ListTransfers(arg0 context.Context, arg1 db.ListTransfersParams) ([]db.Transfer, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListTransfers", arg0, arg1)
+	ret0, _ := ret[0].([]db.Transfer)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListTransfers indicates an expected call of ListTransfers.
+func (mr *MockStoreMockRecorder) ListTransfers(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTransfers", reflect.TypeOf((*MockStore)(nil).ListTransfers), arg0, arg1)
+}
+
+// TransferTx mocks base method.
+func (m *MockStore) TransferTx(arg0 context.Context, arg1 db.TransferTxParams) (db.TransferTxResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TransferTx", arg0, arg1)
+	ret0, _ := ret[0].(db.TransferTxResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TransferTx indicates an expected call of TransferTx.
+func (mr *MockStoreMockRecorder) TransferTx(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TransferTx", reflect.TypeOf((*MockStore)(nil).TransferTx), arg0, arg1)
 }
 
 // UpdateAttributeValue mocks base method.
@@ -611,20 +509,6 @@ func (mr *MockStoreMockRecorder) UpdateInventoryProduct(arg0, arg1 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInventoryProduct", reflect.TypeOf((*MockStore)(nil).UpdateInventoryProduct), arg0, arg1)
 }
 
-// UpdatePTransfer mocks base method.
-func (m *MockStore) UpdatePTransfer(arg0 context.Context, arg1 db.UpdatePTransferParams) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdatePTransfer", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdatePTransfer indicates an expected call of UpdatePTransfer.
-func (mr *MockStoreMockRecorder) UpdatePTransfer(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePTransfer", reflect.TypeOf((*MockStore)(nil).UpdatePTransfer), arg0, arg1)
-}
-
 // UpdateProduct mocks base method.
 func (m *MockStore) UpdateProduct(arg0 context.Context, arg1 db.UpdateProductParams) error {
 	m.ctrl.T.Helper()
@@ -651,4 +535,18 @@ func (m *MockStore) UpdateProductAttribute(arg0 context.Context, arg1 db.UpdateP
 func (mr *MockStoreMockRecorder) UpdateProductAttribute(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateProductAttribute", reflect.TypeOf((*MockStore)(nil).UpdateProductAttribute), arg0, arg1)
+}
+
+// UpdateTransfer mocks base method.
+func (m *MockStore) UpdateTransfer(arg0 context.Context, arg1 db.UpdateTransferParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateTransfer", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateTransfer indicates an expected call of UpdateTransfer.
+func (mr *MockStoreMockRecorder) UpdateTransfer(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateTransfer", reflect.TypeOf((*MockStore)(nil).UpdateTransfer), arg0, arg1)
 }
