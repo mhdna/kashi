@@ -1,7 +1,10 @@
 package api
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -37,6 +40,7 @@ func TestGetInventoryAPI(t *testing.T) {
 	server.router.ServeHTTP(recorder, request)
 	// check successful
 	require.Equal(t, http.StatusOK, recorder.Code)
+	requiredBodyMatchInventory(t, recorder.Body, inventory)
 }
 
 func randomInventory() db.Inventory {
@@ -46,4 +50,14 @@ func randomInventory() db.Inventory {
 		Latitude:  util.RandomLongitudeLatitude(),
 		Longitude: util.RandomLongitudeLatitude(),
 	}
+}
+
+func requiredBodyMatchInventory(t *testing.T, body *bytes.Buffer, inventory db.Inventory) {
+	data, err := io.ReadAll(body)
+	require.NoError(t, err)
+
+	var gotInventory db.Inventory
+	err = json.Unmarshal(data, &gotInventory)
+	require.NoError(t, err)
+	require.Equal(t, inventory, gotInventory)
 }
