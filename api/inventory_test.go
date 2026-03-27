@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -39,6 +40,44 @@ func TestGetInventoryAPI(t *testing.T) {
 				requiredBodyMatchInventory(t, recorder.Body, inventory)
 			},
 		},
+		{
+			name:        "NotFound",
+			inventoryID: inventory.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetInventory(gomock.Any(), gomock.Eq(inventory.ID)).
+					Times(1).
+					Return(db.Inventory{}, sql.ErrNoRows)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
+		{
+			name:        "InternalError",
+			inventoryID: inventory.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetInventory(gomock.Any(), gomock.Eq(inventory.ID)).
+					Times(1).
+					Return(db.Inventory{}, sql.ErrConnDone)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:        "InvalidID",
+			inventoryID: 0,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetInventory(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
 	}
 
 	for i := range testCases {
@@ -55,7 +94,7 @@ func TestGetInventoryAPI(t *testing.T) {
 			server := NewServer(store)
 			recorder := httptest.NewRecorder()
 
-			url := fmt.Sprintf("/inventories/%d", inventory.ID)
+			url := fmt.Sprintf("/inventories/%d", tc.inventoryID)
 			request, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
