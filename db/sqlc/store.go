@@ -45,7 +45,7 @@ type TransferTxParams struct {
 	FromInventoryID int64          `json:"from_inventory_id"`
 	ToInventoryID   int64          `json:"to_inventory_id"`
 	Items           []TransferItem `json:"items"`
-	TransferType    string         `json:"type"`
+	TransferType    TransferType   `json:"type"`
 }
 
 type TransferItem struct {
@@ -57,7 +57,7 @@ type TransferTxResult struct {
 	Transfer      Transfer       `json:"transfer"`
 	FromInventory Inventory      `json:"from_inventory"`
 	ToInventory   Inventory      `json:"to_inventory"`
-	Products      []TransferItem `json:"products"`
+	Items         []TransferItem `json:"items"`
 }
 
 func (store *SQLStore) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
@@ -69,29 +69,36 @@ func (store *SQLStore) TransferTx(ctx context.Context, arg TransferTxParams) (Tr
 		result.Transfer, err = q.CreateTransfer(ctx, CreateTransferParams{
 			FromInventoryID: arg.FromInventoryID,
 			ToInventoryID:   arg.ToInventoryID,
+			Type:            arg.TransferType,
 		})
 		if err != nil {
 			return err
 		}
-		for _, i := range arg.Items {
-			_, err := q.CreateTransferProduct(ctx, CreateTransferProductParams{
-				TransferID: result.Transfer.ID,
-				ProductID:  i.ID,
-				Quantity:   -i.Quantity,
-			})
-			if err != nil {
-				return err
+		switch arg.TransferType {
+		case TransferTypeProducts:
+			for _, i := range arg.Items {
+				_, err := q.CreateTransferProduct(ctx, CreateTransferProductParams{
+					TransferID: result.Transfer.ID,
+					ProductID:  i.ID,
+					Quantity:   i.Quantity,
+				})
+				if err != nil {
+					return err
+				}
 			}
-
-			// _, err = q.CreateTransferProduct(ctx, CreateTransferProductParams{
-			// 	TransferID: result.Transfer.ID,
-			// 	ProductID:  i.ID,
-			// 	Quantity:   i.Quantity,
-			// })
-			// if err != nil {
-			// 	return err
-			// }
+		case TransferTypeAssets:
+			for _, i := range arg.Items {
+				_, err := q.CreateTransferAsset(ctx, CreateTransferAssetParams{
+					TransferID: result.Transfer.ID,
+					AssetID:    i.ID,
+					Quantity:   i.Quantity,
+				})
+				if err != nil {
+					return err
+				}
+			}
 		}
+
 		return nil
 	})
 

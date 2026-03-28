@@ -37,8 +37,7 @@ func TestTransferTX(t *testing.T) {
 		// check transfer
 		transfer := result.Transfer
 
-		// TODO: change those to items that depends on type
-		products := result.Products
+		items := result.Items
 
 		require.NotEmpty(t, transfer)
 		require.Equal(t, inventory1.ID, transfer.FromInventoryID)
@@ -46,9 +45,8 @@ func TestTransferTX(t *testing.T) {
 		require.NotZero(t, transfer.ID)
 		require.NotZero(t, transfer.CreatedAt)
 
-		for _, p := range products {
-			require.NotZero(t, p.Quantity)
-			// TODO check every product equal and pass it
+		for _, i := range items {
+			require.NotZero(t, i.Quantity)
 		}
 	}
 }
