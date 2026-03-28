@@ -196,6 +196,17 @@ type Color struct {
 	Version  int32  `json:"version"`
 }
 
+type Entry struct {
+	ID            int64              `json:"id"`
+	InventoryID   sql.NullInt64      `json:"inventoryId"`
+	ReferenceType EntryReferenceType `json:"referenceType"`
+	ReferenceID   int64              `json:"referenceId"`
+	ProductID     sql.NullInt64      `json:"productId"`
+	AssetID       sql.NullInt64      `json:"assetId"`
+	Quantity      int64              `json:"quantity"`
+	CreatedAt     time.Time          `json:"createdAt"`
+}
+
 type InventoriesAsset struct {
 	AssetID     int64 `json:"assetId"`
 	InventoryID int64 `json:"inventoryId"`
@@ -215,17 +226,6 @@ type Inventory struct {
 	Longitude sql.NullFloat64 `json:"longitude"`
 	Latitude  sql.NullFloat64 `json:"latitude"`
 	CreatedAt time.Time       `json:"createdAt"`
-}
-
-type InventoryEntry struct {
-	ID            int64              `json:"id"`
-	InventoryID   sql.NullInt64      `json:"inventoryId"`
-	ReferenceType EntryReferenceType `json:"referenceType"`
-	ReferenceID   int64              `json:"referenceId"`
-	ProductID     sql.NullInt64      `json:"productId"`
-	AssetID       sql.NullInt64      `json:"assetId"`
-	Quantity      int64              `json:"quantity"`
-	CreatedAt     time.Time          `json:"createdAt"`
 }
 
 type Order struct {

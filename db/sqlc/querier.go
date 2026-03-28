@@ -11,11 +11,13 @@ import (
 type Querier interface {
 	AddInventoryProduct(ctx context.Context, arg AddInventoryProductParams) (InventoriesProduct, error)
 	AddOrderProduct(ctx context.Context, arg AddOrderProductParams) (OrdersProduct, error)
+	CreateAssetEntry(ctx context.Context, arg CreateAssetEntryParams) (Entry, error)
 	CreateAttributeValue(ctx context.Context, arg CreateAttributeValueParams) (AttributesValue, error)
 	CreateInventory(ctx context.Context, arg CreateInventoryParams) (Inventory, error)
 	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreateProductAttribute(ctx context.Context, arg CreateProductAttributeParams) (ProductsAttribute, error)
+	CreateProductEntry(ctx context.Context, arg CreateProductEntryParams) (Entry, error)
 	CreateTransfer(ctx context.Context, arg CreateTransferParams) (Transfer, error)
 	CreateTransferAsset(ctx context.Context, arg CreateTransferAssetParams) (TransfersAsset, error)
 	CreateTransferProduct(ctx context.Context, arg CreateTransferProductParams) (TransfersProduct, error)
@@ -23,12 +25,14 @@ type Querier interface {
 	DeleteInventoryProduct(ctx context.Context, arg DeleteInventoryProductParams) error
 	DeleteProduct(ctx context.Context, id int64) error
 	GetAttributeValue(ctx context.Context, id int64) (AttributesValue, error)
+	GetEntry(ctx context.Context, id int64) (Entry, error)
 	GetInventory(ctx context.Context, id int64) (Inventory, error)
 	GetOrder(ctx context.Context, id int64) (Order, error)
 	GetProduct(ctx context.Context, id int64) (Product, error)
 	GetProductAttributeValue(ctx context.Context, arg GetProductAttributeValueParams) (ProductsAttribute, error)
 	GetTransfer(ctx context.Context, id int64) (Transfer, error)
 	ListAttributeValues(ctx context.Context, arg ListAttributeValuesParams) ([]ListAttributeValuesRow, error)
+	ListEntries(ctx context.Context, arg ListEntriesParams) ([]Entry, error)
 	ListInventories(ctx context.Context, arg ListInventoriesParams) ([]Inventory, error)
 	ListInventoryProducts(ctx context.Context, inventoryID int64) ([]ListInventoryProductsRow, error)
 	ListOrders(ctx context.Context, arg ListOrdersParams) ([]Order, error)
