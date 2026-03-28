@@ -65,6 +65,21 @@ func (mr *MockStoreMockRecorder) AddOrderProduct(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddOrderProduct", reflect.TypeOf((*MockStore)(nil).AddOrderProduct), arg0, arg1)
 }
 
+// CreateAssetEntry mocks base method.
+func (m *MockStore) CreateAssetEntry(arg0 context.Context, arg1 db.CreateAssetEntryParams) (db.Entry, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateAssetEntry", arg0, arg1)
+	ret0, _ := ret[0].(db.Entry)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateAssetEntry indicates an expected call of CreateAssetEntry.
+func (mr *MockStoreMockRecorder) CreateAssetEntry(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAssetEntry", reflect.TypeOf((*MockStore)(nil).CreateAssetEntry), arg0, arg1)
+}
+
 // CreateAttributeValue mocks base method.
 func (m *MockStore) CreateAttributeValue(arg0 context.Context, arg1 db.CreateAttributeValueParams) (db.AttributesValue, error) {
 	m.ctrl.T.Helper()
@@ -138,6 +153,21 @@ func (m *MockStore) CreateProductAttribute(arg0 context.Context, arg1 db.CreateP
 func (mr *MockStoreMockRecorder) CreateProductAttribute(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateProductAttribute", reflect.TypeOf((*MockStore)(nil).CreateProductAttribute), arg0, arg1)
+}
+
+// CreateProductEntry mocks base method.
+func (m *MockStore) CreateProductEntry(arg0 context.Context, arg1 db.CreateProductEntryParams) (db.Entry, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateProductEntry", arg0, arg1)
+	ret0, _ := ret[0].(db.Entry)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateProductEntry indicates an expected call of CreateProductEntry.
+func (mr *MockStoreMockRecorder) CreateProductEntry(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateProductEntry", reflect.TypeOf((*MockStore)(nil).CreateProductEntry), arg0, arg1)
 }
 
 // CreateTransfer mocks base method.
@@ -242,6 +272,21 @@ func (mr *MockStoreMockRecorder) GetAttributeValue(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAttributeValue", reflect.TypeOf((*MockStore)(nil).GetAttributeValue), arg0, arg1)
 }
 
+// GetEntry mocks base method.
+func (m *MockStore) GetEntry(arg0 context.Context, arg1 int64) (db.Entry, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEntry", arg0, arg1)
+	ret0, _ := ret[0].(db.Entry)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEntry indicates an expected call of GetEntry.
+func (mr *MockStoreMockRecorder) GetEntry(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEntry", reflect.TypeOf((*MockStore)(nil).GetEntry), arg0, arg1)
+}
+
 // GetInventory mocks base method.
 func (m *MockStore) GetInventory(arg0 context.Context, arg1 int64) (db.Inventory, error) {
 	m.ctrl.T.Helper()
@@ -330,6 +375,21 @@ func (m *MockStore) ListAttributeValues(arg0 context.Context, arg1 db.ListAttrib
 func (mr *MockStoreMockRecorder) ListAttributeValues(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAttributeValues", reflect.TypeOf((*MockStore)(nil).ListAttributeValues), arg0, arg1)
+}
+
+// ListEntries mocks base method.
+func (m *MockStore) ListEntries(arg0 context.Context, arg1 db.ListEntriesParams) ([]db.Entry, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListEntries", arg0, arg1)
+	ret0, _ := ret[0].([]db.Entry)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListEntries indicates an expected call of ListEntries.
+func (mr *MockStoreMockRecorder) ListEntries(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEntries", reflect.TypeOf((*MockStore)(nil).ListEntries), arg0, arg1)
 }
 
 // ListInventories mocks base method.
