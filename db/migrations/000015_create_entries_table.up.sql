@@ -5,7 +5,7 @@ CREATE TYPE entry_reference_type AS ENUM (
      'adjustment' 
 );
 
-create table if not exists inventory_entries (
+create table if not exists entries (
     id bigserial primary key,
     inventory_id bigint references inventories(id),
     reference_type entry_reference_type not null,
