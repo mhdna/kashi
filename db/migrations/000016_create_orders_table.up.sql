@@ -1,12 +1,11 @@
-create table if not exists orderstypes (
-    id bigserial primary key,
-    type text not null unique,
-    code text not null unique
+create type order_type as enum (
+    'sales',
+    'return'
 );
 
 create table if not exists orders (
     id bigserial primary key,
-    type_id bigint not null references orderstypes(id),
+    type order_type not null,
     sequence bigint not null,
     code text not null unique,
     amount bigint not null,

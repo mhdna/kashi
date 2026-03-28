@@ -1,6 +1,6 @@
 -- name: CreateOrder :one
 INSERT INTO orders (
-  type_id,
+  type,
   sequence
 ) 
 VALUES ( $1, $2 )
