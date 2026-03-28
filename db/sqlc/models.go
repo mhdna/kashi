@@ -6,8 +6,52 @@ package db
 
 import (
 	"database/sql"
+	"database/sql/driver"
+	"fmt"
 	"time"
 )
+
+type TransferType string
+
+const (
+	TransferTypeAssets   TransferType = "assets"
+	TransferTypeProducts TransferType = "products"
+)
+
+func (e *TransferType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = TransferType(s)
+	case string:
+		*e = TransferType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for TransferType: %T", src)
+	}
+	return nil
+}
+
+type NullTransferType struct {
+	TransferType TransferType `json:"transferType"`
+	Valid        bool         `json:"valid"` // Valid is true if TransferType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullTransferType) Scan(value interface{}) error {
+	if value == nil {
+		ns.TransferType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.TransferType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullTransferType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.TransferType), nil
+}
 
 type Asset struct {
 	ID        int64     `json:"id"`
@@ -177,11 +221,11 @@ type Token struct {
 }
 
 type Transfer struct {
-	ID              int64     `json:"id"`
-	FromInventoryID int64     `json:"fromInventoryId"`
-	ToInventoryID   int64     `json:"toInventoryId"`
-	Type            string    `json:"type"`
-	CreatedAt       time.Time `json:"createdAt"`
+	ID              int64        `json:"id"`
+	FromInventoryID int64        `json:"fromInventoryId"`
+	ToInventoryID   int64        `json:"toInventoryId"`
+	Type            TransferType `json:"type"`
+	CreatedAt       time.Time    `json:"createdAt"`
 }
 
 type TransfersAsset struct {
