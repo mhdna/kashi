@@ -11,6 +11,92 @@ import (
 	"time"
 )
 
+type EntryReferenceType string
+
+const (
+	EntryReferenceTypeTransfer   EntryReferenceType = "transfer"
+	EntryReferenceTypeSale       EntryReferenceType = "sale"
+	EntryReferenceTypePurchase   EntryReferenceType = "purchase"
+	EntryReferenceTypeAdjustment EntryReferenceType = "adjustment"
+)
+
+func (e *EntryReferenceType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = EntryReferenceType(s)
+	case string:
+		*e = EntryReferenceType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for EntryReferenceType: %T", src)
+	}
+	return nil
+}
+
+type NullEntryReferenceType struct {
+	EntryReferenceType EntryReferenceType `json:"entryReferenceType"`
+	Valid              bool               `json:"valid"` // Valid is true if EntryReferenceType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullEntryReferenceType) Scan(value interface{}) error {
+	if value == nil {
+		ns.EntryReferenceType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.EntryReferenceType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullEntryReferenceType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.EntryReferenceType), nil
+}
+
+type OrderType string
+
+const (
+	OrderTypeSales  OrderType = "sales"
+	OrderTypeReturn OrderType = "return"
+)
+
+func (e *OrderType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = OrderType(s)
+	case string:
+		*e = OrderType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for OrderType: %T", src)
+	}
+	return nil
+}
+
+type NullOrderType struct {
+	OrderType OrderType `json:"orderType"`
+	Valid     bool      `json:"valid"` // Valid is true if OrderType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullOrderType) Scan(value interface{}) error {
+	if value == nil {
+		ns.OrderType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.OrderType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullOrderType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.OrderType), nil
+}
+
 type TransferType string
 
 const (
@@ -131,9 +217,20 @@ type Inventory struct {
 	CreatedAt time.Time       `json:"createdAt"`
 }
 
+type InventoryEntry struct {
+	ID            int64              `json:"id"`
+	InventoryID   sql.NullInt64      `json:"inventoryId"`
+	ReferenceType EntryReferenceType `json:"referenceType"`
+	ReferenceID   int64              `json:"referenceId"`
+	ProductID     sql.NullInt64      `json:"productId"`
+	AssetID       sql.NullInt64      `json:"assetId"`
+	Quantity      int64              `json:"quantity"`
+	CreatedAt     time.Time          `json:"createdAt"`
+}
+
 type Order struct {
 	ID        int64     `json:"id"`
-	TypeID    int64     `json:"typeId"`
+	Type      OrderType `json:"type"`
 	Sequence  int64     `json:"sequence"`
 	Code      string    `json:"code"`
 	Amount    int64     `json:"amount"`
@@ -147,12 +244,6 @@ type OrdersProduct struct {
 	ProductID int64     `json:"productId"`
 	Quantity  int64     `json:"quantity"`
 	CreatedAt time.Time `json:"createdAt"`
-}
-
-type Orderstype struct {
-	ID   int64  `json:"id"`
-	Type string `json:"type"`
-	Code string `json:"code"`
 }
 
 type Permission struct {

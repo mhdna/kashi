@@ -39,24 +39,24 @@ func (q *Queries) AddOrderProduct(ctx context.Context, arg AddOrderProductParams
 
 const createOrder = `-- name: CreateOrder :one
 INSERT INTO orders (
-  type_id,
+  type,
   sequence
 ) 
 VALUES ( $1, $2 )
-RETURNING id, type_id, sequence, code, amount, net_amount, discount, created_at
+RETURNING id, type, sequence, code, amount, net_amount, discount, created_at
 `
 
 type CreateOrderParams struct {
-	TypeID   int64 `json:"typeId"`
-	Sequence int64 `json:"sequence"`
+	Type     OrderType `json:"type"`
+	Sequence int64     `json:"sequence"`
 }
 
 func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) {
-	row := q.db.QueryRowContext(ctx, createOrder, arg.TypeID, arg.Sequence)
+	row := q.db.QueryRowContext(ctx, createOrder, arg.Type, arg.Sequence)
 	var i Order
 	err := row.Scan(
 		&i.ID,
-		&i.TypeID,
+		&i.Type,
 		&i.Sequence,
 		&i.Code,
 		&i.Amount,
@@ -68,7 +68,7 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 }
 
 const getOrder = `-- name: GetOrder :one
-SELECT id, type_id, sequence, code, amount, net_amount, discount, created_at FROM orders
+SELECT id, type, sequence, code, amount, net_amount, discount, created_at FROM orders
 WHERE id = $1 LIMIT 1
 `
 
@@ -77,7 +77,7 @@ func (q *Queries) GetOrder(ctx context.Context, id int64) (Order, error) {
 	var i Order
 	err := row.Scan(
 		&i.ID,
-		&i.TypeID,
+		&i.Type,
 		&i.Sequence,
 		&i.Code,
 		&i.Amount,
@@ -89,7 +89,7 @@ func (q *Queries) GetOrder(ctx context.Context, id int64) (Order, error) {
 }
 
 const listOrders = `-- name: ListOrders :many
-SELECT id, type_id, sequence, code, amount, net_amount, discount, created_at FROM orders
+SELECT id, type, sequence, code, amount, net_amount, discount, created_at FROM orders
 ORDER BY id
 LIMIT $1
 OFFSET $2
@@ -111,7 +111,7 @@ func (q *Queries) ListOrders(ctx context.Context, arg ListOrdersParams) ([]Order
 		var i Order
 		if err := rows.Scan(
 			&i.ID,
-			&i.TypeID,
+			&i.Type,
 			&i.Sequence,
 			&i.Code,
 			&i.Amount,
