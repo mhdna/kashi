@@ -20,9 +20,9 @@ RETURNING id, from_inventory_id, to_inventory_id, type, created_at
 `
 
 type CreateTransferParams struct {
-	FromInventoryID int64  `json:"fromInventoryId"`
-	ToInventoryID   int64  `json:"toInventoryId"`
-	Type            string `json:"type"`
+	FromInventoryID int64        `json:"fromInventoryId"`
+	ToInventoryID   int64        `json:"toInventoryId"`
+	Type            TransferType `json:"type"`
 }
 
 func (q *Queries) CreateTransfer(ctx context.Context, arg CreateTransferParams) (Transfer, error) {
@@ -262,9 +262,9 @@ WHERE id = $1
 `
 
 type UpdateTransferParams struct {
-	FromInventoryID int64  `json:"fromInventoryId"`
-	ToInventoryID   int64  `json:"toInventoryId"`
-	Type            string `json:"type"`
+	FromInventoryID int64        `json:"fromInventoryId"`
+	ToInventoryID   int64        `json:"toInventoryId"`
+	Type            TransferType `json:"type"`
 }
 
 func (q *Queries) UpdateTransfer(ctx context.Context, arg UpdateTransferParams) error {
