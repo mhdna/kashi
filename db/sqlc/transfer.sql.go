@@ -255,19 +255,25 @@ func (q *Queries) ListTransfers(ctx context.Context, arg ListTransfersParams) ([
 
 const updateTransfer = `-- name: UpdateTransfer :exec
 UPDATE transfers 
-SET from_inventory_id = $1,
-to_inventory_id = $2,
-type = $3
+SET from_inventory_id = $2,
+to_inventory_id = $3,
+type = $4
 WHERE id = $1
 `
 
 type UpdateTransferParams struct {
+	ID              int64        `json:"id"`
 	FromInventoryID int64        `json:"fromInventoryId"`
 	ToInventoryID   int64        `json:"toInventoryId"`
 	Type            TransferType `json:"type"`
 }
 
 func (q *Queries) UpdateTransfer(ctx context.Context, arg UpdateTransferParams) error {
-	_, err := q.db.ExecContext(ctx, updateTransfer, arg.FromInventoryID, arg.ToInventoryID, arg.Type)
+	_, err := q.db.ExecContext(ctx, updateTransfer,
+		arg.ID,
+		arg.FromInventoryID,
+		arg.ToInventoryID,
+		arg.Type,
+	)
 	return err
 }
