@@ -11,6 +11,7 @@ import (
 type Querier interface {
 	AddInventoryProduct(ctx context.Context, arg AddInventoryProductParams) (InventoriesProduct, error)
 	AddOrderProduct(ctx context.Context, arg AddOrderProductParams) (OrdersProduct, error)
+	AddPurchaseItem(ctx context.Context, arg AddPurchaseItemParams) (PurchaseItem, error)
 	CreateAttributeValue(ctx context.Context, arg CreateAttributeValueParams) (AttributesValue, error)
 	CreateEntryItem(ctx context.Context, arg CreateEntryItemParams) (Entry, error)
 	CreateInventory(ctx context.Context, arg CreateInventoryParams) (Inventory, error)
@@ -18,17 +19,20 @@ type Querier interface {
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreateProductAttribute(ctx context.Context, arg CreateProductAttributeParams) (ProductsAttribute, error)
 	CreateProductEntry(ctx context.Context, arg CreateProductEntryParams) (Entry, error)
+	CreatePurchase(ctx context.Context, arg CreatePurchaseParams) (Purchase, error)
 	CreateTransfer(ctx context.Context, arg CreateTransferParams) (Transfer, error)
 	CreateTransferItem(ctx context.Context, arg CreateTransferItemParams) (TransferItem, error)
 	DeleteInventory(ctx context.Context, id int64) error
 	DeleteInventoryProduct(ctx context.Context, arg DeleteInventoryProductParams) error
 	DeleteProduct(ctx context.Context, id int64) error
+	DeletePurchaseItem(ctx context.Context, arg DeletePurchaseItemParams) error
 	GetAttributeValue(ctx context.Context, id int64) (AttributesValue, error)
 	GetEntry(ctx context.Context, id int64) (Entry, error)
 	GetInventory(ctx context.Context, id int64) (Inventory, error)
 	GetOrder(ctx context.Context, id int64) (Order, error)
 	GetProduct(ctx context.Context, id int64) (Product, error)
 	GetProductAttributeValue(ctx context.Context, arg GetProductAttributeValueParams) (ProductsAttribute, error)
+	GetPurchase(ctx context.Context, id int64) (Purchase, error)
 	GetTransfer(ctx context.Context, id int64) (Transfer, error)
 	ListAttributeValues(ctx context.Context, arg ListAttributeValuesParams) ([]ListAttributeValuesRow, error)
 	ListEntries(ctx context.Context, arg ListEntriesParams) ([]Entry, error)
@@ -37,6 +41,7 @@ type Querier interface {
 	ListOrders(ctx context.Context, arg ListOrdersParams) ([]Order, error)
 	ListProductAttributes(ctx context.Context, arg ListProductAttributesParams) ([]ProductsAttribute, error)
 	ListProducts(ctx context.Context, arg ListProductsParams) ([]Product, error)
+	ListPurchases(ctx context.Context, arg ListPurchasesParams) ([]Purchase, error)
 	// TODO maybe this is not so clean
 	ListTransferItems(ctx context.Context, transferID int64) ([]ListTransferItemsRow, error)
 	ListTransfers(ctx context.Context, arg ListTransfersParams) ([]Transfer, error)
