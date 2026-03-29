@@ -322,7 +322,7 @@ type Transfer struct {
 // Each row references either a product or an asset. Never both.
 type TransferItem struct {
 	ID         int64         `json:"id"`
-	TransferID sql.NullInt64 `json:"transferId"`
+	TransferID int64         `json:"transferId"`
 	ProductID  sql.NullInt64 `json:"productId"`
 	AssetID    sql.NullInt64 `json:"assetId"`
 	Quantity   int64         `json:"quantity"`

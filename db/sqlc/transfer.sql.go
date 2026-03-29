@@ -49,7 +49,7 @@ RETURNING id, transfer_id, product_id, asset_id, quantity
 `
 
 type CreateTransferItemParams struct {
-	TransferID sql.NullInt64 `json:"transferId"`
+	TransferID int64         `json:"transferId"`
 	ProductID  sql.NullInt64 `json:"productId"`
 	AssetID    sql.NullInt64 `json:"assetId"`
 	Quantity   int64         `json:"quantity"`
@@ -101,7 +101,7 @@ where t.transfer_id = $1
 
 type ListTransferItemsRow struct {
 	ID          int64          `json:"id"`
-	TransferID  sql.NullInt64  `json:"transferId"`
+	TransferID  int64          `json:"transferId"`
 	ProductID   sql.NullInt64  `json:"productId"`
 	AssetID     sql.NullInt64  `json:"assetId"`
 	Quantity    int64          `json:"quantity"`
@@ -110,7 +110,7 @@ type ListTransferItemsRow struct {
 }
 
 // TODO maybe this is not so clean
-func (q *Queries) ListTransferItems(ctx context.Context, transferID sql.NullInt64) ([]ListTransferItemsRow, error) {
+func (q *Queries) ListTransferItems(ctx context.Context, transferID int64) ([]ListTransferItemsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listTransferItems, transferID)
 	if err != nil {
 		return nil, err
