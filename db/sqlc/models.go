@@ -198,7 +198,7 @@ type Color struct {
 
 type Entry struct {
 	ID            int64              `json:"id"`
-	InventoryID   sql.NullInt64      `json:"inventoryId"`
+	InventoryID   int64              `json:"inventoryId"`
 	ReferenceType EntryReferenceType `json:"referenceType"`
 	ReferenceID   int64              `json:"referenceId"`
 	ProductID     sql.NullInt64      `json:"productId"`
