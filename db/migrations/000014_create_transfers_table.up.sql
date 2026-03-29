@@ -9,6 +9,7 @@ create table if not exists transfers (
 );
 
 create table if not exists transfer_items (
+    id bigserial primary key,
     transfer_id bigint references transfers(id) on delete cascade,
     product_id bigint references products(id), -- nullable
     asset_id bigint references assets(id), -- nullable
@@ -17,7 +18,7 @@ create table if not exists transfer_items (
         (product_id is not null and asset_id is null) or
         (product_id is null and asset_id is not null)
     ),
-    primary key(transfer_id, product_id, asset_id)
+    unique (transfer_id, product_id, asset_id)
 );
 
 comment on table transfer_items is 'Each row references either a product or an asset. Never both.';

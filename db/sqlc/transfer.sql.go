@@ -45,14 +45,14 @@ INSERT INTO transfer_items (
   asset_id,
   quantity
 ) VALUES ( $1, $2, $3, $4 )
-RETURNING transfer_id, product_id, asset_id, quantity
+RETURNING id, transfer_id, product_id, asset_id, quantity
 `
 
 type CreateTransferItemParams struct {
-	TransferID int64 `json:"transferId"`
-	ProductID  int64 `json:"productId"`
-	AssetID    int64 `json:"assetId"`
-	Quantity   int64 `json:"quantity"`
+	TransferID sql.NullInt64 `json:"transferId"`
+	ProductID  sql.NullInt64 `json:"productId"`
+	AssetID    sql.NullInt64 `json:"assetId"`
+	Quantity   int64         `json:"quantity"`
 }
 
 func (q *Queries) CreateTransferItem(ctx context.Context, arg CreateTransferItemParams) (TransferItem, error) {
@@ -64,6 +64,7 @@ func (q *Queries) CreateTransferItem(ctx context.Context, arg CreateTransferItem
 	)
 	var i TransferItem
 	err := row.Scan(
+		&i.ID,
 		&i.TransferID,
 		&i.ProductID,
 		&i.AssetID,
@@ -91,7 +92,7 @@ func (q *Queries) GetTransfer(ctx context.Context, id int64) (Transfer, error) {
 }
 
 const listTransferItems = `-- name: ListTransferItems :many
-SELECT t.transfer_id, t.product_id, t.asset_id, t.quantity, p.name as product_name, a.name as asset_name
+SELECT t.id, t.transfer_id, t.product_id, t.asset_id, t.quantity, p.name as product_name, a.name as asset_name
 FROM transfer_items t
 left join products p on product_id = p.id
 left join assets a on asset_id = a.id
@@ -99,16 +100,17 @@ where t.transfer_id = $1
 `
 
 type ListTransferItemsRow struct {
-	TransferID  int64          `json:"transferId"`
-	ProductID   int64          `json:"productId"`
-	AssetID     int64          `json:"assetId"`
+	ID          int64          `json:"id"`
+	TransferID  sql.NullInt64  `json:"transferId"`
+	ProductID   sql.NullInt64  `json:"productId"`
+	AssetID     sql.NullInt64  `json:"assetId"`
 	Quantity    int64          `json:"quantity"`
 	ProductName sql.NullString `json:"productName"`
 	AssetName   sql.NullString `json:"assetName"`
 }
 
 // TODO maybe this is not so clean
-func (q *Queries) ListTransferItems(ctx context.Context, transferID int64) ([]ListTransferItemsRow, error) {
+func (q *Queries) ListTransferItems(ctx context.Context, transferID sql.NullInt64) ([]ListTransferItemsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listTransferItems, transferID)
 	if err != nil {
 		return nil, err
@@ -118,6 +120,7 @@ func (q *Queries) ListTransferItems(ctx context.Context, transferID int64) ([]Li
 	for rows.Next() {
 		var i ListTransferItemsRow
 		if err := rows.Scan(
+			&i.ID,
 			&i.TransferID,
 			&i.ProductID,
 			&i.AssetID,
