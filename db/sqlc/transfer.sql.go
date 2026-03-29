@@ -7,7 +7,7 @@ package db
 
 import (
 	"context"
-	"time"
+	"database/sql"
 )
 
 const createTransfer = `-- name: CreateTransfer :one
@@ -38,47 +38,37 @@ func (q *Queries) CreateTransfer(ctx context.Context, arg CreateTransferParams) 
 	return i, err
 }
 
-const createTransferAsset = `-- name: CreateTransferAsset :one
-INSERT INTO transfers_assets (
+const createTransferItem = `-- name: CreateTransferItem :one
+INSERT INTO transfer_items (
   transfer_id,
+  product_id,
   asset_id,
   quantity
-) VALUES ( $1, $2, $3 )
-RETURNING transfer_id, asset_id, quantity
+) VALUES ( $1, $2, $3, $4 )
+RETURNING transfer_id, product_id, asset_id, quantity
 `
 
-type CreateTransferAssetParams struct {
+type CreateTransferItemParams struct {
 	TransferID int64 `json:"transferId"`
+	ProductID  int64 `json:"productId"`
 	AssetID    int64 `json:"assetId"`
 	Quantity   int64 `json:"quantity"`
 }
 
-func (q *Queries) CreateTransferAsset(ctx context.Context, arg CreateTransferAssetParams) (TransfersAsset, error) {
-	row := q.db.QueryRowContext(ctx, createTransferAsset, arg.TransferID, arg.AssetID, arg.Quantity)
-	var i TransfersAsset
-	err := row.Scan(&i.TransferID, &i.AssetID, &i.Quantity)
-	return i, err
-}
-
-const createTransferProduct = `-- name: CreateTransferProduct :one
-INSERT INTO transfers_products (
-  transfer_id,
-  product_id,
-  quantity
-) VALUES ( $1, $2, $3 )
-RETURNING transfer_id, product_id, quantity
-`
-
-type CreateTransferProductParams struct {
-	TransferID int64 `json:"transferId"`
-	ProductID  int64 `json:"productId"`
-	Quantity   int64 `json:"quantity"`
-}
-
-func (q *Queries) CreateTransferProduct(ctx context.Context, arg CreateTransferProductParams) (TransfersProduct, error) {
-	row := q.db.QueryRowContext(ctx, createTransferProduct, arg.TransferID, arg.ProductID, arg.Quantity)
-	var i TransfersProduct
-	err := row.Scan(&i.TransferID, &i.ProductID, &i.Quantity)
+func (q *Queries) CreateTransferItem(ctx context.Context, arg CreateTransferItemParams) (TransferItem, error) {
+	row := q.db.QueryRowContext(ctx, createTransferItem,
+		arg.TransferID,
+		arg.ProductID,
+		arg.AssetID,
+		arg.Quantity,
+	)
+	var i TransferItem
+	err := row.Scan(
+		&i.TransferID,
+		&i.ProductID,
+		&i.AssetID,
+		&i.Quantity,
+	)
 	return i, err
 }
 
@@ -100,104 +90,40 @@ func (q *Queries) GetTransfer(ctx context.Context, id int64) (Transfer, error) {
 	return i, err
 }
 
-const listTransferAssets = `-- name: ListTransferAssets :many
-SELECT transfer_id, asset_id, quantity, id, name, code, type_id, version, bought_at, created_at FROM transfers_assets t
-INNER JOIN assets a
-ON t.asset_id = a.id
-WHERE t.transfer_id = $1
+const listTransferItems = `-- name: ListTransferItems :many
+SELECT t.transfer_id, t.product_id, t.asset_id, t.quantity, p.name as product_name, a.name as asset_name
+FROM transfer_items t
+left join products p on product_id = p.id
+left join assets a on asset_id = a.id
+where t.transfer_id = $1
 `
 
-type ListTransferAssetsRow struct {
-	TransferID int64     `json:"transferId"`
-	AssetID    int64     `json:"assetId"`
-	Quantity   int64     `json:"quantity"`
-	ID         int64     `json:"id"`
-	Name       string    `json:"name"`
-	Code       string    `json:"code"`
-	TypeID     int64     `json:"typeId"`
-	Version    int32     `json:"version"`
-	BoughtAt   time.Time `json:"boughtAt"`
-	CreatedAt  time.Time `json:"createdAt"`
+type ListTransferItemsRow struct {
+	TransferID  int64          `json:"transferId"`
+	ProductID   int64          `json:"productId"`
+	AssetID     int64          `json:"assetId"`
+	Quantity    int64          `json:"quantity"`
+	ProductName sql.NullString `json:"productName"`
+	AssetName   sql.NullString `json:"assetName"`
 }
 
-func (q *Queries) ListTransferAssets(ctx context.Context, transferID int64) ([]ListTransferAssetsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listTransferAssets, transferID)
+// TODO maybe this is not so clean
+func (q *Queries) ListTransferItems(ctx context.Context, transferID int64) ([]ListTransferItemsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listTransferItems, transferID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListTransferAssetsRow{}
+	items := []ListTransferItemsRow{}
 	for rows.Next() {
-		var i ListTransferAssetsRow
-		if err := rows.Scan(
-			&i.TransferID,
-			&i.AssetID,
-			&i.Quantity,
-			&i.ID,
-			&i.Name,
-			&i.Code,
-			&i.TypeID,
-			&i.Version,
-			&i.BoughtAt,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listTransferProducts = `-- name: ListTransferProducts :many
-SELECT transfer_id, product_id, quantity, id, code, name, description, is_active, price, version, discount, created_at FROM transfers_products t
-INNER JOIN products p
-ON t.product_id = p.id
-WHERE t.transfer_id = $1
-`
-
-type ListTransferProductsRow struct {
-	TransferID  int64     `json:"transferId"`
-	ProductID   int64     `json:"productId"`
-	Quantity    int64     `json:"quantity"`
-	ID          int64     `json:"id"`
-	Code        string    `json:"code"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	IsActive    bool      `json:"isActive"`
-	Price       int64     `json:"price"`
-	Version     int32     `json:"version"`
-	Discount    int64     `json:"discount"`
-	CreatedAt   time.Time `json:"createdAt"`
-}
-
-func (q *Queries) ListTransferProducts(ctx context.Context, transferID int64) ([]ListTransferProductsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listTransferProducts, transferID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []ListTransferProductsRow{}
-	for rows.Next() {
-		var i ListTransferProductsRow
+		var i ListTransferItemsRow
 		if err := rows.Scan(
 			&i.TransferID,
 			&i.ProductID,
+			&i.AssetID,
 			&i.Quantity,
-			&i.ID,
-			&i.Code,
-			&i.Name,
-			&i.Description,
-			&i.IsActive,
-			&i.Price,
-			&i.Version,
-			&i.Discount,
-			&i.CreatedAt,
+			&i.ProductName,
+			&i.AssetName,
 		); err != nil {
 			return nil, err
 		}

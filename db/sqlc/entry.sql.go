@@ -10,32 +10,36 @@ import (
 	"database/sql"
 )
 
-const createAssetEntry = `-- name: CreateAssetEntry :one
+const createEntryItem = `-- name: CreateEntryItem :one
 INSERT INTO entries (
   inventory_id,
   reference_type,
   reference_id,
+  -- either product id or asset id (one must be NULL)
   asset_id,
+  product_id,
   quantity
 ) 
-VALUES ( $1, $2, $3, $4, $5 )
+VALUES ( $1, $2, $3, $4, $5, $6)
 RETURNING id, inventory_id, reference_type, reference_id, product_id, asset_id, quantity, created_at
 `
 
-type CreateAssetEntryParams struct {
+type CreateEntryItemParams struct {
 	InventoryID   int64              `json:"inventoryId"`
 	ReferenceType EntryReferenceType `json:"referenceType"`
 	ReferenceID   int64              `json:"referenceId"`
 	AssetID       sql.NullInt64      `json:"assetId"`
+	ProductID     sql.NullInt64      `json:"productId"`
 	Quantity      int64              `json:"quantity"`
 }
 
-func (q *Queries) CreateAssetEntry(ctx context.Context, arg CreateAssetEntryParams) (Entry, error) {
-	row := q.db.QueryRowContext(ctx, createAssetEntry,
+func (q *Queries) CreateEntryItem(ctx context.Context, arg CreateEntryItemParams) (Entry, error) {
+	row := q.db.QueryRowContext(ctx, createEntryItem,
 		arg.InventoryID,
 		arg.ReferenceType,
 		arg.ReferenceID,
 		arg.AssetID,
+		arg.ProductID,
 		arg.Quantity,
 	)
 	var i Entry

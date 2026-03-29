@@ -23,30 +23,19 @@ to_inventory_id = $3,
 type = $4
 WHERE id = $1;
 
--- name: ListTransferAssets :many
-SELECT * FROM transfers_assets t
-INNER JOIN assets a
-ON t.asset_id = a.id
-WHERE t.transfer_id = $1;
-
--- name: CreateTransferAsset :one
-INSERT INTO transfers_assets (
-  transfer_id,
-  asset_id,
-  quantity
-) VALUES ( $1, $2, $3 )
-RETURNING *;
-
--- name: ListTransferProducts :many
-SELECT * FROM transfers_products t
-INNER JOIN products p
-ON t.product_id = p.id
-WHERE t.transfer_id = $1;
-
--- name: CreateTransferProduct :one
-INSERT INTO transfers_products (
+-- name: CreateTransferItem :one
+INSERT INTO transfer_items (
   transfer_id,
   product_id,
+  asset_id,
   quantity
-) VALUES ( $1, $2, $3 )
+) VALUES ( $1, $2, $3, $4 )
 RETURNING *;
+
+-- TODO maybe this is not so clean
+-- name: ListTransferItems :many
+SELECT t.*, p.name as product_name, a.name as asset_name
+FROM transfer_items t
+left join products p on product_id = p.id
+left join assets a on asset_id = a.id
+where t.transfer_id = $1;
