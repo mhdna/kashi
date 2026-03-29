@@ -18,9 +18,9 @@ OFFSET $2;
 
 -- name: UpdateTransfer :exec
 UPDATE transfers 
-SET from_inventory_id = $1,
-to_inventory_id = $2,
-type = $3
+SET from_inventory_id = $2,
+to_inventory_id = $3,
+type = $4
 WHERE id = $1;
 
 -- name: ListTransferAssets :many
