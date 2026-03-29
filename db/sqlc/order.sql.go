@@ -51,6 +51,7 @@ type CreateOrderParams struct {
 	Sequence int64     `json:"sequence"`
 }
 
+// TODO: finish this
 func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) {
 	row := q.db.QueryRowContext(ctx, createOrder, arg.Type, arg.Sequence)
 	var i Order

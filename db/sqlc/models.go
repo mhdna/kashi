@@ -196,6 +196,12 @@ type Color struct {
 	Version  int32  `json:"version"`
 }
 
+type Currency struct {
+	ID         int64  `json:"id"`
+	Name       string `json:"name"`
+	ValueInUsd string `json:"valueInUsd"`
+}
+
 type Entry struct {
 	ID            int64              `json:"id"`
 	InventoryID   int64              `json:"inventoryId"`
@@ -264,6 +270,19 @@ type Product struct {
 	CreatedAt   time.Time `json:"createdAt"`
 }
 
+type ProductSupplier struct {
+	ID         int64 `json:"id"`
+	ProductID  int64 `json:"productId"`
+	SupplierID int64 `json:"supplierId"`
+}
+
+type ProductSupplierCost struct {
+	ProductSupplierID int64     `json:"productSupplierId"`
+	UnitCost          int64     `json:"unitCost"`
+	CurrencyID        int64     `json:"currencyId"`
+	CreatedAt         time.Time `json:"createdAt"`
+}
+
 type ProductsAttribute struct {
 	AttributeID      int64 `json:"attributeId"`
 	AttributeValueID int64 `json:"attributeValueId"`
@@ -278,12 +297,6 @@ type ProductsColor struct {
 type ProductsSize struct {
 	ProductID int64 `json:"productId"`
 	SizeID    int64 `json:"sizeId"`
-}
-
-type ProductsSupplier struct {
-	ProductID   int64 `json:"productId"`
-	SupplierID  int64 `json:"supplierId"`
-	ProductCost int64 `json:"productCost"`
 }
 
 type Purchase struct {
@@ -311,13 +324,14 @@ type Size struct {
 }
 
 type Supplier struct {
-	ID        int64         `json:"id"`
-	Name      string        `json:"name"`
-	Phone     string        `json:"phone"`
-	ProductID int64         `json:"productId"`
-	ColorID   sql.NullInt64 `json:"colorId"`
-	SizeID    sql.NullInt64 `json:"sizeId"`
-	CreatedAt time.Time     `json:"createdAt"`
+	ID               int64           `json:"id"`
+	Name             string          `json:"name"`
+	Phone            string          `json:"phone"`
+	Country          string          `json:"country"`
+	Address          string          `json:"address"`
+	AddressLatitude  sql.NullFloat64 `json:"addressLatitude"`
+	AddressLongitude sql.NullFloat64 `json:"addressLongitude"`
+	CreatedAt        time.Time       `json:"createdAt"`
 }
 
 type Token struct {
