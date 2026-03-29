@@ -287,9 +287,9 @@ type ProductsSupplier struct {
 }
 
 type Purchase struct {
-	ID         int64     `json:"id"`
-	SupplierID int64     `json:"supplierId"`
-	CreatedAt  time.Time `json:"createdAt"`
+	ID          int64     `json:"id"`
+	SupplierID  int64     `json:"supplierId"`
+	PurchasedAt time.Time `json:"purchasedAt"`
 }
 
 type PurchaseItem struct {
