@@ -23,7 +23,7 @@ RETURNING id, inventory_id, reference_type, reference_id, product_id, asset_id, 
 `
 
 type CreateAssetEntryParams struct {
-	InventoryID   sql.NullInt64      `json:"inventoryId"`
+	InventoryID   int64              `json:"inventoryId"`
 	ReferenceType EntryReferenceType `json:"referenceType"`
 	ReferenceID   int64              `json:"referenceId"`
 	AssetID       sql.NullInt64      `json:"assetId"`
@@ -65,7 +65,7 @@ RETURNING id, inventory_id, reference_type, reference_id, product_id, asset_id, 
 `
 
 type CreateProductEntryParams struct {
-	InventoryID   sql.NullInt64      `json:"inventoryId"`
+	InventoryID   int64              `json:"inventoryId"`
 	ReferenceType EntryReferenceType `json:"referenceType"`
 	ReferenceID   int64              `json:"referenceId"`
 	ProductID     sql.NullInt64      `json:"productId"`
@@ -124,9 +124,9 @@ OFFSET $3
 `
 
 type ListEntriesParams struct {
-	InventoryID sql.NullInt64 `json:"inventoryId"`
-	Limit       int32         `json:"limit"`
-	Offset      int32         `json:"offset"`
+	InventoryID int64 `json:"inventoryId"`
+	Limit       int32 `json:"limit"`
+	Offset      int32 `json:"offset"`
 }
 
 func (q *Queries) ListEntries(ctx context.Context, arg ListEntriesParams) ([]Entry, error) {

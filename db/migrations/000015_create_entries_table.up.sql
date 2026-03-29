@@ -7,7 +7,7 @@ CREATE TYPE entry_reference_type AS ENUM (
 
 create table if not exists entries (
     id bigserial primary key,
-    inventory_id bigint references inventories(id),
+    inventory_id bigint not null references inventories(id),
     reference_type entry_reference_type not null,
     reference_id bigint not null,
     product_id bigint references products(id),
