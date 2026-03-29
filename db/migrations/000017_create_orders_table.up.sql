@@ -5,6 +5,7 @@ create type order_type as enum (
 
 create table if not exists orders (
     id bigserial primary key,
+    client_id bigint not null references clients(id),
     type order_type not null,
     sequence bigint not null,
     code text not null unique,
