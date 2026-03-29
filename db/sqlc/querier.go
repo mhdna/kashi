@@ -12,29 +12,39 @@ type Querier interface {
 	AddInventoryProduct(ctx context.Context, arg AddInventoryProductParams) (InventoriesProduct, error)
 	AddOrderProduct(ctx context.Context, arg AddOrderProductParams) (OrdersProduct, error)
 	AddPurchaseItem(ctx context.Context, arg AddPurchaseItemParams) (PurchaseItem, error)
+	AddSupplierProduct(ctx context.Context, arg AddSupplierProductParams) (ProductSupplier, error)
+	AddSupplierProductCost(ctx context.Context, arg AddSupplierProductCostParams) (ProductSupplierCost, error)
 	CreateAttributeValue(ctx context.Context, arg CreateAttributeValueParams) (AttributesValue, error)
+	CreateCurrency(ctx context.Context, arg CreateCurrencyParams) (Currency, error)
 	CreateEntryItem(ctx context.Context, arg CreateEntryItemParams) (Entry, error)
 	CreateInventory(ctx context.Context, arg CreateInventoryParams) (Inventory, error)
+	// TODO: finish this
 	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreateProductAttribute(ctx context.Context, arg CreateProductAttributeParams) (ProductsAttribute, error)
 	CreateProductEntry(ctx context.Context, arg CreateProductEntryParams) (Entry, error)
 	CreatePurchase(ctx context.Context, arg CreatePurchaseParams) (Purchase, error)
+	CreateSupplier(ctx context.Context, arg CreateSupplierParams) (Supplier, error)
 	CreateTransfer(ctx context.Context, arg CreateTransferParams) (Transfer, error)
 	CreateTransferItem(ctx context.Context, arg CreateTransferItemParams) (TransferItem, error)
+	DeleteCurrency(ctx context.Context, id int64) error
 	DeleteInventory(ctx context.Context, id int64) error
 	DeleteInventoryProduct(ctx context.Context, arg DeleteInventoryProductParams) error
 	DeleteProduct(ctx context.Context, id int64) error
 	DeletePurchaseItem(ctx context.Context, arg DeletePurchaseItemParams) error
+	DeleteSupplierProduct(ctx context.Context, id int64) error
 	GetAttributeValue(ctx context.Context, id int64) (AttributesValue, error)
+	GetCurrency(ctx context.Context, id int64) (Currency, error)
 	GetEntry(ctx context.Context, id int64) (Entry, error)
 	GetInventory(ctx context.Context, id int64) (Inventory, error)
 	GetOrder(ctx context.Context, id int64) (Order, error)
 	GetProduct(ctx context.Context, id int64) (Product, error)
 	GetProductAttributeValue(ctx context.Context, arg GetProductAttributeValueParams) (ProductsAttribute, error)
 	GetPurchase(ctx context.Context, id int64) (Purchase, error)
+	GetSupplier(ctx context.Context, id int64) (Supplier, error)
 	GetTransfer(ctx context.Context, id int64) (Transfer, error)
 	ListAttributeValues(ctx context.Context, arg ListAttributeValuesParams) ([]ListAttributeValuesRow, error)
+	ListCurrencies(ctx context.Context, arg ListCurrenciesParams) ([]Currency, error)
 	ListEntries(ctx context.Context, arg ListEntriesParams) ([]Entry, error)
 	ListInventories(ctx context.Context, arg ListInventoriesParams) ([]Inventory, error)
 	ListInventoryProducts(ctx context.Context, inventoryID int64) ([]ListInventoryProductsRow, error)
@@ -42,6 +52,7 @@ type Querier interface {
 	ListProductAttributes(ctx context.Context, arg ListProductAttributesParams) ([]ProductsAttribute, error)
 	ListProducts(ctx context.Context, arg ListProductsParams) ([]Product, error)
 	ListPurchases(ctx context.Context, arg ListPurchasesParams) ([]Purchase, error)
+	ListSuppliers(ctx context.Context, arg ListSuppliersParams) ([]Supplier, error)
 	// TODO maybe this is not so clean
 	ListTransferItems(ctx context.Context, transferID int64) ([]ListTransferItemsRow, error)
 	ListTransfers(ctx context.Context, arg ListTransfersParams) ([]Transfer, error)
