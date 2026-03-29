@@ -319,15 +319,11 @@ type Transfer struct {
 	CreatedAt       time.Time    `json:"createdAt"`
 }
 
-type TransfersAsset struct {
-	TransferID int64 `json:"transferId"`
-	AssetID    int64 `json:"assetId"`
-	Quantity   int64 `json:"quantity"`
-}
-
-type TransfersProduct struct {
+// Each row references either a product or an asset. Never both.
+type TransferItem struct {
 	TransferID int64 `json:"transferId"`
 	ProductID  int64 `json:"productId"`
+	AssetID    int64 `json:"assetId"`
 	Quantity   int64 `json:"quantity"`
 }
 

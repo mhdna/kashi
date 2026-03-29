@@ -9,15 +9,17 @@ INSERT INTO entries (
 VALUES ( $1, $2, $3, $4, $5 )
 RETURNING *;
 
--- name: CreateAssetEntry :one
+-- name: CreateEntryItem :one
 INSERT INTO entries (
   inventory_id,
   reference_type,
   reference_id,
+  -- either product id or asset id (one must be NULL)
   asset_id,
+  product_id,
   quantity
 ) 
-VALUES ( $1, $2, $3, $4, $5 )
+VALUES ( $1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: GetEntry :one

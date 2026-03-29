@@ -11,16 +11,15 @@ import (
 type Querier interface {
 	AddInventoryProduct(ctx context.Context, arg AddInventoryProductParams) (InventoriesProduct, error)
 	AddOrderProduct(ctx context.Context, arg AddOrderProductParams) (OrdersProduct, error)
-	CreateAssetEntry(ctx context.Context, arg CreateAssetEntryParams) (Entry, error)
 	CreateAttributeValue(ctx context.Context, arg CreateAttributeValueParams) (AttributesValue, error)
+	CreateEntryItem(ctx context.Context, arg CreateEntryItemParams) (Entry, error)
 	CreateInventory(ctx context.Context, arg CreateInventoryParams) (Inventory, error)
 	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreateProductAttribute(ctx context.Context, arg CreateProductAttributeParams) (ProductsAttribute, error)
 	CreateProductEntry(ctx context.Context, arg CreateProductEntryParams) (Entry, error)
 	CreateTransfer(ctx context.Context, arg CreateTransferParams) (Transfer, error)
-	CreateTransferAsset(ctx context.Context, arg CreateTransferAssetParams) (TransfersAsset, error)
-	CreateTransferProduct(ctx context.Context, arg CreateTransferProductParams) (TransfersProduct, error)
+	CreateTransferItem(ctx context.Context, arg CreateTransferItemParams) (TransferItem, error)
 	DeleteInventory(ctx context.Context, id int64) error
 	DeleteInventoryProduct(ctx context.Context, arg DeleteInventoryProductParams) error
 	DeleteProduct(ctx context.Context, id int64) error
@@ -38,8 +37,8 @@ type Querier interface {
 	ListOrders(ctx context.Context, arg ListOrdersParams) ([]Order, error)
 	ListProductAttributes(ctx context.Context, arg ListProductAttributesParams) ([]ProductsAttribute, error)
 	ListProducts(ctx context.Context, arg ListProductsParams) ([]Product, error)
-	ListTransferAssets(ctx context.Context, transferID int64) ([]ListTransferAssetsRow, error)
-	ListTransferProducts(ctx context.Context, transferID int64) ([]ListTransferProductsRow, error)
+	// TODO maybe this is not so clean
+	ListTransferItems(ctx context.Context, transferID int64) ([]ListTransferItemsRow, error)
 	ListTransfers(ctx context.Context, arg ListTransfersParams) ([]Transfer, error)
 	UpdateAttributeValue(ctx context.Context, arg UpdateAttributeValueParams) error
 	UpdateInventory(ctx context.Context, arg UpdateInventoryParams) error
