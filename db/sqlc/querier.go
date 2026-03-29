@@ -18,7 +18,6 @@ type Querier interface {
 	CreateCurrency(ctx context.Context, arg CreateCurrencyParams) (Currency, error)
 	CreateEntryItem(ctx context.Context, arg CreateEntryItemParams) (Entry, error)
 	CreateInventory(ctx context.Context, arg CreateInventoryParams) (Inventory, error)
-	// TODO: finish this
 	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreateProductAttribute(ctx context.Context, arg CreateProductAttributeParams) (ProductsAttribute, error)

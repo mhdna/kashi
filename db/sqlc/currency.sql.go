@@ -12,21 +12,28 @@ import (
 const createCurrency = `-- name: CreateCurrency :one
 INSERT INTO currencies (
   name,
+  code,
   value_in_usd
 ) 
-VALUES ( $1, $2 )
-RETURNING id, name, value_in_usd
+VALUES ( $1, $2, $3 )
+RETURNING id, name, code, value_in_usd
 `
 
 type CreateCurrencyParams struct {
 	Name       string `json:"name"`
+	Code       string `json:"code"`
 	ValueInUsd string `json:"valueInUsd"`
 }
 
 func (q *Queries) CreateCurrency(ctx context.Context, arg CreateCurrencyParams) (Currency, error) {
-	row := q.db.QueryRowContext(ctx, createCurrency, arg.Name, arg.ValueInUsd)
+	row := q.db.QueryRowContext(ctx, createCurrency, arg.Name, arg.Code, arg.ValueInUsd)
 	var i Currency
-	err := row.Scan(&i.ID, &i.Name, &i.ValueInUsd)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Code,
+		&i.ValueInUsd,
+	)
 	return i, err
 }
 
@@ -41,19 +48,24 @@ func (q *Queries) DeleteCurrency(ctx context.Context, id int64) error {
 }
 
 const getCurrency = `-- name: GetCurrency :one
-SELECT id, name, value_in_usd FROM currencies
+SELECT id, name, code, value_in_usd FROM currencies
 WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetCurrency(ctx context.Context, id int64) (Currency, error) {
 	row := q.db.QueryRowContext(ctx, getCurrency, id)
 	var i Currency
-	err := row.Scan(&i.ID, &i.Name, &i.ValueInUsd)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Code,
+		&i.ValueInUsd,
+	)
 	return i, err
 }
 
 const listCurrencies = `-- name: ListCurrencies :many
-SELECT id, name, value_in_usd FROM currencies
+SELECT id, name, code, value_in_usd FROM currencies
 ORDER BY id
 LIMIT $1
 OFFSET $2
@@ -73,7 +85,12 @@ func (q *Queries) ListCurrencies(ctx context.Context, arg ListCurrenciesParams) 
 	items := []Currency{}
 	for rows.Next() {
 		var i Currency
-		if err := rows.Scan(&i.ID, &i.Name, &i.ValueInUsd); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Code,
+			&i.ValueInUsd,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
