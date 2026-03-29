@@ -1,9 +1,10 @@
 -- name: CreateCurrency :one
 INSERT INTO currencies (
   name,
+  code,
   value_in_usd
 ) 
-VALUES ( $1, $2 )
+VALUES ( $1, $2, $3 )
 RETURNING *;
 
 -- name: DeleteCurrency :exec
