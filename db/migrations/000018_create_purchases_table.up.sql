@@ -1,7 +1,7 @@
 create table if not exists purchases (
     id bigserial primary key,
     supplier_id bigint not null references suppliers(id),
-    created_at timestamp(0) WITH time zone NOT NULL DEFAULT NOW()
+    purchased_at timestamp(0) WITH time zone NOT NULL DEFAULT NOW()
 );
 
 create table if not exists purchase_items (
