@@ -230,6 +230,7 @@ type Inventory struct {
 
 type Order struct {
 	ID        int64     `json:"id"`
+	ClientID  int64     `json:"clientId"`
 	Type      OrderType `json:"type"`
 	Sequence  int64     `json:"sequence"`
 	Code      string    `json:"code"`
@@ -283,6 +284,21 @@ type ProductsSupplier struct {
 	ProductID   int64 `json:"productId"`
 	SupplierID  int64 `json:"supplierId"`
 	ProductCost int64 `json:"productCost"`
+}
+
+type Purchase struct {
+	ID         int64     `json:"id"`
+	SupplierID int64     `json:"supplierId"`
+	CreatedAt  time.Time `json:"createdAt"`
+}
+
+type PurchaseItem struct {
+	ID         int64         `json:"id"`
+	PurchaseID sql.NullInt64 `json:"purchaseId"`
+	ProductID  sql.NullInt64 `json:"productId"`
+	AssetID    sql.NullInt64 `json:"assetId"`
+	Quantity   int64         `json:"quantity"`
+	UnitPrice  string        `json:"unitPrice"`
 }
 
 type Size struct {

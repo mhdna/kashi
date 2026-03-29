@@ -43,7 +43,7 @@ INSERT INTO orders (
   sequence
 ) 
 VALUES ( $1, $2 )
-RETURNING id, type, sequence, code, amount, net_amount, discount, created_at
+RETURNING id, client_id, type, sequence, code, amount, net_amount, discount, created_at
 `
 
 type CreateOrderParams struct {
@@ -56,6 +56,7 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 	var i Order
 	err := row.Scan(
 		&i.ID,
+		&i.ClientID,
 		&i.Type,
 		&i.Sequence,
 		&i.Code,
@@ -68,7 +69,7 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 }
 
 const getOrder = `-- name: GetOrder :one
-SELECT id, type, sequence, code, amount, net_amount, discount, created_at FROM orders
+SELECT id, client_id, type, sequence, code, amount, net_amount, discount, created_at FROM orders
 WHERE id = $1 LIMIT 1
 `
 
@@ -77,6 +78,7 @@ func (q *Queries) GetOrder(ctx context.Context, id int64) (Order, error) {
 	var i Order
 	err := row.Scan(
 		&i.ID,
+		&i.ClientID,
 		&i.Type,
 		&i.Sequence,
 		&i.Code,
@@ -89,7 +91,7 @@ func (q *Queries) GetOrder(ctx context.Context, id int64) (Order, error) {
 }
 
 const listOrders = `-- name: ListOrders :many
-SELECT id, type, sequence, code, amount, net_amount, discount, created_at FROM orders
+SELECT id, client_id, type, sequence, code, amount, net_amount, discount, created_at FROM orders
 ORDER BY id
 LIMIT $1
 OFFSET $2
@@ -111,6 +113,7 @@ func (q *Queries) ListOrders(ctx context.Context, arg ListOrdersParams) ([]Order
 		var i Order
 		if err := rows.Scan(
 			&i.ID,
+			&i.ClientID,
 			&i.Type,
 			&i.Sequence,
 			&i.Code,
