@@ -1,0 +1,2 @@
+# index go files correctly
+*.go linguist-generated=false
