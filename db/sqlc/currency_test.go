@@ -13,7 +13,7 @@ func createRandomCurrency(t *testing.T) Currency {
 	arg := CreateCurrencyParams{
 		Name:       util.RandomName(),
 		Code:       util.RandomCode(),
-		ValueInUsd: util.RandomCurrencyValue(),
+		ValueInUsd: util.RandomMoneyAmount(),
 	}
 
 	currency, err := testQueries.CreateCurrency(context.Background(), arg)
