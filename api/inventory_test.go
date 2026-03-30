@@ -107,7 +107,7 @@ func TestGetInventoryAPI(t *testing.T) {
 func randomInventory() db.Inventory {
 	return db.Inventory{
 		ID:        util.RandomInt(1, 1000),
-		Code:      util.RandomInventoryCode(),
+		Code:      util.RandomCode(),
 		Latitude:  util.RandomLongitudeLatitude(),
 		Longitude: util.RandomLongitudeLatitude(),
 	}
