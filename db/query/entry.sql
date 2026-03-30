@@ -1,14 +1,3 @@
--- name: CreateProductEntry :one
-INSERT INTO entries (
-  inventory_id,
-  reference_type,
-  reference_id,
-  product_id,
-  quantity
-) 
-VALUES ( $1, $2, $3, $4, $5 )
-RETURNING *;
-
 -- name: CreateEntryItem :one
 INSERT INTO entries (
   inventory_id,
