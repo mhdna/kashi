@@ -1,7 +1,7 @@
 create table if not exists clients (
     id bigserial primary key,
     name text not null,
-    phone bigint not null,
+    phone text not null,
     loyalty_points bigint not null default 0,
     created_at timestamp(0) WITH time zone NOT NULL DEFAULT NOW()
 );

@@ -20,7 +20,7 @@ INSERT INTO clients (
 
 type CreateClientParams struct {
 	Name  string `json:"name"`
-	Phone int64  `json:"phone"`
+	Phone string `json:"phone"`
 }
 
 func (q *Queries) CreateClient(ctx context.Context, arg CreateClientParams) (Client, error) {
@@ -116,7 +116,7 @@ WHERE id = $1
 type UpdateClientParams struct {
 	ID            int64  `json:"id"`
 	Name          string `json:"name"`
-	Phone         int64  `json:"phone"`
+	Phone         string `json:"phone"`
 	LoyaltyPoints int64  `json:"loyaltyPoints"`
 }
 
