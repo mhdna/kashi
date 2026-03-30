@@ -69,7 +69,7 @@ func TestAddPurchaseItem(t *testing.T) {
 		PurchaseID: sql.NullInt64{Int64: purchase.ID, Valid: true},
 		ProductID:  sql.NullInt64{Int64: product.ID, Valid: true},
 		Quantity:   util.RandomQuantity(),
-		UnitPrice:  util.RandomMoney(),
+		UnitPrice:  util.RandomMoneyAmount(),
 		CurrencyID: currency.ID,
 	}
 

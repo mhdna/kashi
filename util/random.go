@@ -18,7 +18,7 @@ func RandomInt(min, max int64) int64 {
 	return min + rand.Int63n(max-min+1)
 }
 
-func RandomCurrencyValue() string {
+func RandomMoneyAmount() string {
 	v := int64(1) + rand.Int63n(100000)
 	return fmt.Sprintf("%d.0000", v)
 }
