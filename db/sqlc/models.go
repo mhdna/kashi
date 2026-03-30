@@ -177,7 +177,7 @@ type Barcode struct {
 type Client struct {
 	ID            int64     `json:"id"`
 	Name          string    `json:"name"`
-	Phone         int64     `json:"phone"`
+	Phone         string    `json:"phone"`
 	LoyaltyPoints int64     `json:"loyaltyPoints"`
 	CreatedAt     time.Time `json:"createdAt"`
 }
