@@ -56,48 +56,6 @@ func (q *Queries) CreateEntryItem(ctx context.Context, arg CreateEntryItemParams
 	return i, err
 }
 
-const createProductEntry = `-- name: CreateProductEntry :one
-INSERT INTO entries (
-  inventory_id,
-  reference_type,
-  reference_id,
-  product_id,
-  quantity
-) 
-VALUES ( $1, $2, $3, $4, $5 )
-RETURNING id, inventory_id, reference_type, reference_id, product_id, asset_id, quantity, created_at
-`
-
-type CreateProductEntryParams struct {
-	InventoryID   int64              `json:"inventoryId"`
-	ReferenceType EntryReferenceType `json:"referenceType"`
-	ReferenceID   int64              `json:"referenceId"`
-	ProductID     sql.NullInt64      `json:"productId"`
-	Quantity      int64              `json:"quantity"`
-}
-
-func (q *Queries) CreateProductEntry(ctx context.Context, arg CreateProductEntryParams) (Entry, error) {
-	row := q.db.QueryRowContext(ctx, createProductEntry,
-		arg.InventoryID,
-		arg.ReferenceType,
-		arg.ReferenceID,
-		arg.ProductID,
-		arg.Quantity,
-	)
-	var i Entry
-	err := row.Scan(
-		&i.ID,
-		&i.InventoryID,
-		&i.ReferenceType,
-		&i.ReferenceID,
-		&i.ProductID,
-		&i.AssetID,
-		&i.Quantity,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
 const getEntry = `-- name: GetEntry :one
 SELECT id, inventory_id, reference_type, reference_id, product_id, asset_id, quantity, created_at FROM entries
 WHERE id = $1 LIMIT 1
