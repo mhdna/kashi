@@ -15,6 +15,7 @@ type Querier interface {
 	AddSupplierProduct(ctx context.Context, arg AddSupplierProductParams) (ProductSupplier, error)
 	AddSupplierProductCost(ctx context.Context, arg AddSupplierProductCostParams) (ProductSupplierCost, error)
 	CreateAttributeValue(ctx context.Context, arg CreateAttributeValueParams) (AttributesValue, error)
+	CreateClient(ctx context.Context, arg CreateClientParams) (Client, error)
 	CreateCurrency(ctx context.Context, arg CreateCurrencyParams) (Currency, error)
 	CreateEntryItem(ctx context.Context, arg CreateEntryItemParams) (Entry, error)
 	CreateInventory(ctx context.Context, arg CreateInventoryParams) (Inventory, error)
@@ -25,12 +26,14 @@ type Querier interface {
 	CreateSupplier(ctx context.Context, arg CreateSupplierParams) (Supplier, error)
 	CreateTransfer(ctx context.Context, arg CreateTransferParams) (Transfer, error)
 	CreateTransferItem(ctx context.Context, arg CreateTransferItemParams) (TransferItem, error)
+	DeleteClient(ctx context.Context, id int64) error
 	DeleteCurrency(ctx context.Context, id int64) error
 	DeleteInventory(ctx context.Context, id int64) error
 	DeleteInventoryProduct(ctx context.Context, arg DeleteInventoryProductParams) error
 	DeleteProduct(ctx context.Context, id int64) error
 	DeleteSupplierProduct(ctx context.Context, id int64) error
 	GetAttributeValue(ctx context.Context, id int64) (AttributesValue, error)
+	GetClient(ctx context.Context, id int64) (Client, error)
 	GetCurrency(ctx context.Context, id int64) (Currency, error)
 	GetEntry(ctx context.Context, id int64) (Entry, error)
 	GetInventory(ctx context.Context, id int64) (Inventory, error)
@@ -41,6 +44,7 @@ type Querier interface {
 	GetSupplier(ctx context.Context, id int64) (Supplier, error)
 	GetTransfer(ctx context.Context, id int64) (Transfer, error)
 	ListAttributeValues(ctx context.Context, arg ListAttributeValuesParams) ([]ListAttributeValuesRow, error)
+	ListClients(ctx context.Context, arg ListClientsParams) ([]Client, error)
 	ListCurrencies(ctx context.Context, arg ListCurrenciesParams) ([]Currency, error)
 	ListEntries(ctx context.Context, arg ListEntriesParams) ([]Entry, error)
 	ListInventories(ctx context.Context, arg ListInventoriesParams) ([]Inventory, error)
@@ -54,6 +58,7 @@ type Querier interface {
 	ListTransferItems(ctx context.Context, transferID int64) ([]ListTransferItemsRow, error)
 	ListTransfers(ctx context.Context, arg ListTransfersParams) ([]Transfer, error)
 	UpdateAttributeValue(ctx context.Context, arg UpdateAttributeValueParams) error
+	UpdateClient(ctx context.Context, arg UpdateClientParams) error
 	UpdateInventory(ctx context.Context, arg UpdateInventoryParams) error
 	UpdateInventoryProduct(ctx context.Context, arg UpdateInventoryProductParams) error
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) error
