@@ -40,20 +40,21 @@ func (q *Queries) AddOrderProduct(ctx context.Context, arg AddOrderProductParams
 const createOrder = `-- name: CreateOrder :one
 INSERT INTO orders (
   type,
-  sequence
+  sequence,
+  client_id
 ) 
-VALUES ( $1, $2 )
+VALUES ( $1, $2, $3 )
 RETURNING id, client_id, type, sequence, code, amount, net_amount, discount, created_at
 `
 
 type CreateOrderParams struct {
 	Type     OrderType `json:"type"`
 	Sequence int64     `json:"sequence"`
+	ClientID int64     `json:"clientId"`
 }
 
-// TODO: finish this
 func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) {
-	row := q.db.QueryRowContext(ctx, createOrder, arg.Type, arg.Sequence)
+	row := q.db.QueryRowContext(ctx, createOrder, arg.Type, arg.Sequence, arg.ClientID)
 	var i Order
 	err := row.Scan(
 		&i.ID,
