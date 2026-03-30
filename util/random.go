@@ -56,6 +56,10 @@ func RandomNumber() int64 {
 	return RandomInt(1, 100)
 }
 
+func RandomQuantity() int64 {
+	return RandomInt(1, 1000)
+}
+
 func RandomLongitudeLatitude() sql.NullFloat64 {
 	return sql.NullFloat64{
 		Float64: float64(RandomInt(1, 100)),
