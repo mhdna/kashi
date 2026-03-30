@@ -1,9 +1,10 @@
 -- name: CreateOrder :one
 INSERT INTO orders (
   type,
-  sequence
+  sequence,
+  client_id
 ) 
-VALUES ( $1, $2 )
+VALUES ( $1, $2, $3 )
 RETURNING *;
 
 -- name: AddOrderProduct :one
