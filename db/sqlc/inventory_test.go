@@ -12,8 +12,8 @@ import (
 
 func createRandomInventory(t *testing.T) Inventory {
 	arg := CreateInventoryParams{
-		Name:      util.RandomInventoryName(),
-		Code:      util.RandomInventoryCode(),
+		Name:      util.RandomName(),
+		Code:      util.RandomCode(),
 		Latitude:  util.RandomLongitudeLatitude(),
 		Longitude: util.RandomLongitudeLatitude(),
 	}
@@ -81,7 +81,7 @@ func TestUpdateInventory(t *testing.T) {
 	inventory1 := createRandomInventory(t)
 	arg := UpdateInventoryParams{
 		ID:   inventory1.ID,
-		Name: util.RandomInventoryName(),
+		Name: util.RandomName(),
 	}
 
 	err := testQueries.UpdateInventory(context.Background(), arg)
