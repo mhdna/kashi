@@ -17,10 +17,11 @@ INSERT INTO purchase_items (
   product_id,
   asset_id,
   quantity,
-  unit_price
+  unit_price,
+  currency_id
 ) 
-VALUES ( $1, $2, $3, $4, $5 )
-RETURNING id, purchase_id, product_id, asset_id, quantity, unit_price
+VALUES ( $1, $2, $3, $4, $5, $6 )
+RETURNING id, purchase_id, product_id, asset_id, quantity, unit_price, currency_id
 `
 
 type AddPurchaseItemParams struct {
@@ -29,6 +30,7 @@ type AddPurchaseItemParams struct {
 	AssetID    sql.NullInt64 `json:"assetId"`
 	Quantity   int64         `json:"quantity"`
 	UnitPrice  string        `json:"unitPrice"`
+	CurrencyID int64         `json:"currencyId"`
 }
 
 func (q *Queries) AddPurchaseItem(ctx context.Context, arg AddPurchaseItemParams) (PurchaseItem, error) {
@@ -38,6 +40,7 @@ func (q *Queries) AddPurchaseItem(ctx context.Context, arg AddPurchaseItemParams
 		arg.AssetID,
 		arg.Quantity,
 		arg.UnitPrice,
+		arg.CurrencyID,
 	)
 	var i PurchaseItem
 	err := row.Scan(
@@ -47,6 +50,7 @@ func (q *Queries) AddPurchaseItem(ctx context.Context, arg AddPurchaseItemParams
 		&i.AssetID,
 		&i.Quantity,
 		&i.UnitPrice,
+		&i.CurrencyID,
 	)
 	return i, err
 }
@@ -70,24 +74,6 @@ func (q *Queries) CreatePurchase(ctx context.Context, arg CreatePurchaseParams) 
 	var i Purchase
 	err := row.Scan(&i.ID, &i.SupplierID, &i.PurchasedAt)
 	return i, err
-}
-
-const deletePurchaseItem = `-- name: DeletePurchaseItem :exec
-delete from purchase_items
-where id = $1 
-  and product_id = $2 
-  and asset_id = $3
-`
-
-type DeletePurchaseItemParams struct {
-	ID        int64         `json:"id"`
-	ProductID sql.NullInt64 `json:"productId"`
-	AssetID   sql.NullInt64 `json:"assetId"`
-}
-
-func (q *Queries) DeletePurchaseItem(ctx context.Context, arg DeletePurchaseItemParams) error {
-	_, err := q.db.ExecContext(ctx, deletePurchaseItem, arg.ID, arg.ProductID, arg.AssetID)
-	return err
 }
 
 const getPurchase = `-- name: GetPurchase :one

@@ -29,7 +29,6 @@ type Querier interface {
 	DeleteInventory(ctx context.Context, id int64) error
 	DeleteInventoryProduct(ctx context.Context, arg DeleteInventoryProductParams) error
 	DeleteProduct(ctx context.Context, id int64) error
-	DeletePurchaseItem(ctx context.Context, arg DeletePurchaseItemParams) error
 	DeleteSupplierProduct(ctx context.Context, id int64) error
 	GetAttributeValue(ctx context.Context, id int64) (AttributesValue, error)
 	GetCurrency(ctx context.Context, id int64) (Currency, error)
