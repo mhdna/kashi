@@ -313,6 +313,7 @@ type PurchaseItem struct {
 	AssetID    sql.NullInt64 `json:"assetId"`
 	Quantity   int64         `json:"quantity"`
 	UnitPrice  string        `json:"unitPrice"`
+	CurrencyID int64         `json:"currencyId"`
 }
 
 type Size struct {
