@@ -55,48 +55,6 @@ func (ns NullEntryReferenceType) Value() (driver.Value, error) {
 	return string(ns.EntryReferenceType), nil
 }
 
-type OrderType string
-
-const (
-	OrderTypeSales  OrderType = "sales"
-	OrderTypeReturn OrderType = "return"
-)
-
-func (e *OrderType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = OrderType(s)
-	case string:
-		*e = OrderType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for OrderType: %T", src)
-	}
-	return nil
-}
-
-type NullOrderType struct {
-	OrderType OrderType `json:"orderType"`
-	Valid     bool      `json:"valid"` // Valid is true if OrderType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullOrderType) Scan(value interface{}) error {
-	if value == nil {
-		ns.OrderType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.OrderType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullOrderType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.OrderType), nil
-}
-
 type TransferType string
 
 const (
@@ -235,25 +193,6 @@ type Inventory struct {
 	CreatedAt time.Time       `json:"createdAt"`
 }
 
-type Order struct {
-	ID        int64     `json:"id"`
-	ClientID  int64     `json:"clientId"`
-	Type      OrderType `json:"type"`
-	Sequence  int64     `json:"sequence"`
-	Code      string    `json:"code"`
-	Amount    int64     `json:"amount"`
-	NetAmount int64     `json:"netAmount"`
-	Discount  int64     `json:"discount"`
-	CreatedAt time.Time `json:"createdAt"`
-}
-
-type OrdersProduct struct {
-	OrderID   int64     `json:"orderId"`
-	ProductID int64     `json:"productId"`
-	Quantity  int64     `json:"quantity"`
-	CreatedAt time.Time `json:"createdAt"`
-}
-
 type Permission struct {
 	ID   int64  `json:"id"`
 	Code string `json:"code"`
@@ -314,6 +253,31 @@ type PurchaseItem struct {
 	Quantity   int64         `json:"quantity"`
 	UnitPrice  string        `json:"unitPrice"`
 	CurrencyID int64         `json:"currencyId"`
+}
+
+type ReturnInvoice struct {
+	ID             int64     `json:"id"`
+	InvoiceNumber  string    `json:"invoiceNumber"`
+	SalesInvoiceID int64     `json:"salesInvoiceId"`
+	CreatedAt      time.Time `json:"createdAt"`
+}
+
+type SalesInvoice struct {
+	ID            int64     `json:"id"`
+	InvoiceNumber string    `json:"invoiceNumber"`
+	InventoryID   int64     `json:"inventoryId"`
+	ClientID      int64     `json:"clientId"`
+	Amount        int64     `json:"amount"`
+	Discount      int64     `json:"discount"`
+	NetAmount     string    `json:"netAmount"`
+	CreatedAt     time.Time `json:"createdAt"`
+}
+
+type SalesInvoiceProduct struct {
+	InvoiceID int64     `json:"invoiceId"`
+	ProductID int64     `json:"productId"`
+	Quantity  int64     `json:"quantity"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 type Size struct {
