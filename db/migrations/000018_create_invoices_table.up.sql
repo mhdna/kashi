@@ -3,7 +3,7 @@ create table if not exists sales_invoices (
     invoice_number text not null,
     inventory_id bigint not null references inventories(id),
     client_id bigint not null references clients(id),
-    amount bigint not null,
+    amount numeric(12,4) not null,
     discount bigint not null,
     net_amount numeric(12,4) not null,
     created_at timestamp(0) WITH time zone NOT NULL DEFAULT NOW()
