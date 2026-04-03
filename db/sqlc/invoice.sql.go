@@ -80,7 +80,7 @@ type CreateSalesInvoiceParams struct {
 	InvoiceNumber string `json:"invoiceNumber"`
 	InventoryID   int64  `json:"inventoryId"`
 	ClientID      int64  `json:"clientId"`
-	Amount        int64  `json:"amount"`
+	Amount        string `json:"amount"`
 	Discount      int64  `json:"discount"`
 	NetAmount     string `json:"netAmount"`
 }
