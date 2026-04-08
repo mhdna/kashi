@@ -1,14 +1,12 @@
 -- name: CreateEntryItem :one
 INSERT INTO entries (
+  cashbox_id,
   inventory_id,
   reference_type,
   reference_id,
-  -- either product id or asset id (one must be NULL)
-  asset_id,
-  product_id,
-  quantity
+  net_amount
 ) 
-VALUES ( $1, $2, $3, $4, $5, $6)
+VALUES ( $1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: GetEntry :one
