@@ -8,5 +8,5 @@ create table if not exists users (
     password_changed_at timestamp(0) with time zone not null default '0001-01-01 00:00:00+00',
     activated bool not null,
     version int not null default 1,
-    created_at timestamp(0) with time zone not null default now(),
+    created_at timestamp(0) with time zone not null default now()
 );
