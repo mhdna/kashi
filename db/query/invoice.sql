@@ -1,13 +1,15 @@
 -- name: CreateSalesInvoice :one
 INSERT INTO sales_invoices (
+  cashbox_id,
   invoice_number,
   inventory_id,
   client_id,
   amount,
+  net_amount,
   discount,
-  net_amount
+  currency_id
 ) 
-VALUES ( $1, $2, $3, $4, $5, $6 )
+VALUES ( $1, $2, $3, $4, $5, $6, $7, $8 )
 RETURNING *;
 
 -- name: AddSalesInvoiceProduct :one
