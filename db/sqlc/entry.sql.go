@@ -7,57 +7,51 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createEntryItem = `-- name: CreateEntryItem :one
 INSERT INTO entries (
+  cashbox_id,
   inventory_id,
   reference_type,
   reference_id,
-  -- either product id or asset id (one must be NULL)
-  asset_id,
-  product_id,
-  quantity
+  net_amount
 ) 
-VALUES ( $1, $2, $3, $4, $5, $6)
-RETURNING id, inventory_id, reference_type, reference_id, product_id, asset_id, quantity, created_at
+VALUES ( $1, $2, $3, $4, $5)
+RETURNING id, cashbox_id, inventory_id, reference_type, reference_id, net_amount, created_at
 `
 
 type CreateEntryItemParams struct {
+	CashboxID     int64              `json:"cashboxId"`
 	InventoryID   int64              `json:"inventoryId"`
 	ReferenceType EntryReferenceType `json:"referenceType"`
 	ReferenceID   int64              `json:"referenceId"`
-	AssetID       sql.NullInt64      `json:"assetId"`
-	ProductID     sql.NullInt64      `json:"productId"`
-	Quantity      int64              `json:"quantity"`
+	NetAmount     string             `json:"netAmount"`
 }
 
 func (q *Queries) CreateEntryItem(ctx context.Context, arg CreateEntryItemParams) (Entry, error) {
 	row := q.db.QueryRowContext(ctx, createEntryItem,
+		arg.CashboxID,
 		arg.InventoryID,
 		arg.ReferenceType,
 		arg.ReferenceID,
-		arg.AssetID,
-		arg.ProductID,
-		arg.Quantity,
+		arg.NetAmount,
 	)
 	var i Entry
 	err := row.Scan(
 		&i.ID,
+		&i.CashboxID,
 		&i.InventoryID,
 		&i.ReferenceType,
 		&i.ReferenceID,
-		&i.ProductID,
-		&i.AssetID,
-		&i.Quantity,
+		&i.NetAmount,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getEntry = `-- name: GetEntry :one
-SELECT id, inventory_id, reference_type, reference_id, product_id, asset_id, quantity, created_at FROM entries
+SELECT id, cashbox_id, inventory_id, reference_type, reference_id, net_amount, created_at FROM entries
 WHERE id = $1 LIMIT 1
 `
 
@@ -66,19 +60,18 @@ func (q *Queries) GetEntry(ctx context.Context, id int64) (Entry, error) {
 	var i Entry
 	err := row.Scan(
 		&i.ID,
+		&i.CashboxID,
 		&i.InventoryID,
 		&i.ReferenceType,
 		&i.ReferenceID,
-		&i.ProductID,
-		&i.AssetID,
-		&i.Quantity,
+		&i.NetAmount,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const listEntries = `-- name: ListEntries :many
-SELECT id, inventory_id, reference_type, reference_id, product_id, asset_id, quantity, created_at FROM entries
+SELECT id, cashbox_id, inventory_id, reference_type, reference_id, net_amount, created_at FROM entries
 WHERE inventory_id = $1
 ORDER BY id
 LIMIT $2
@@ -102,12 +95,11 @@ func (q *Queries) ListEntries(ctx context.Context, arg ListEntriesParams) ([]Ent
 		var i Entry
 		if err := rows.Scan(
 			&i.ID,
+			&i.CashboxID,
 			&i.InventoryID,
 			&i.ReferenceType,
 			&i.ReferenceID,
-			&i.ProductID,
-			&i.AssetID,
-			&i.Quantity,
+			&i.NetAmount,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
