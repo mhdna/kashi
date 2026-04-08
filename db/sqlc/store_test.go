@@ -21,6 +21,7 @@ func TestTransferTX(t *testing.T) {
 			result, err := store.TransferTx(context.Background(), TransferTxParams{
 				FromInventoryID: inventory1.ID,
 				ToInventoryID:   inventory2.ID,
+				TransferType:    TransferTypeProducts,
 			})
 			errs <- err
 			results <- result

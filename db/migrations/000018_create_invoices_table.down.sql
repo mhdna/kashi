@@ -1,3 +1,3 @@
-drop table if exists orders_products;
-drop table if exists orders;
-drop type if exists order_type;
+drop table if exists return_invoices;
+drop table if exists sales_invoice_products;
+drop table if exists sales_invoices;
