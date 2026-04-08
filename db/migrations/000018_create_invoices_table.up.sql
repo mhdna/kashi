@@ -1,6 +1,8 @@
 create table if not exists sales_invoices (
     id bigserial primary key,
-    invoice_number text not null,
+    invoice_number text not null unique,
+    cashbox_id bigint not null references cashboxes(id),
+    currency_id bigint not null references currencies(id),
     inventory_id bigint not null references inventories(id),
     client_id bigint not null references clients(id),
     amount numeric(12,4) not null,
