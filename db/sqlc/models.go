@@ -14,10 +14,10 @@ import (
 type EntryReferenceType string
 
 const (
-	EntryReferenceTypeTransfer   EntryReferenceType = "transfer"
-	EntryReferenceTypeSale       EntryReferenceType = "sale"
-	EntryReferenceTypePurchase   EntryReferenceType = "purchase"
-	EntryReferenceTypeAdjustment EntryReferenceType = "adjustment"
+	EntryReferenceTypeSalesInvoice  EntryReferenceType = "sales_invoice"
+	EntryReferenceTypeReturnInvoice EntryReferenceType = "return_invoice"
+	EntryReferenceTypeExpense       EntryReferenceType = "expense"
+	EntryReferenceTypePurchase      EntryReferenceType = "purchase"
 )
 
 func (e *EntryReferenceType) Scan(src interface{}) error {
@@ -132,6 +132,18 @@ type Barcode struct {
 	CreatedAt time.Time     `json:"createdAt"`
 }
 
+type Cashbox struct {
+	ID        int64     `json:"id"`
+	Code      string    `json:"code"`
+	IsActive  bool      `json:"isActive"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type CashboxShift struct {
+	CashboxID int64 `json:"cashboxId"`
+	ShiftID   int64 `json:"shiftId"`
+}
+
 type Client struct {
 	ID            int64     `json:"id"`
 	Name          string    `json:"name"`
@@ -163,13 +175,20 @@ type Currency struct {
 
 type Entry struct {
 	ID            int64              `json:"id"`
+	CashboxID     int64              `json:"cashboxId"`
 	InventoryID   int64              `json:"inventoryId"`
 	ReferenceType EntryReferenceType `json:"referenceType"`
 	ReferenceID   int64              `json:"referenceId"`
-	ProductID     sql.NullInt64      `json:"productId"`
-	AssetID       sql.NullInt64      `json:"assetId"`
-	Quantity      int64              `json:"quantity"`
+	NetAmount     string             `json:"netAmount"`
 	CreatedAt     time.Time          `json:"createdAt"`
+}
+
+type Expense struct {
+	ID          int64     `json:"id"`
+	Description string    `json:"description"`
+	Amount      string    `json:"amount"`
+	CurrencyID  int64     `json:"currencyId"`
+	CreatedAt   time.Time `json:"createdAt"`
 }
 
 type InventoriesAsset struct {
@@ -265,6 +284,8 @@ type ReturnInvoice struct {
 type SalesInvoice struct {
 	ID            int64     `json:"id"`
 	InvoiceNumber string    `json:"invoiceNumber"`
+	CashboxID     int64     `json:"cashboxId"`
+	CurrencyID    int64     `json:"currencyId"`
 	InventoryID   int64     `json:"inventoryId"`
 	ClientID      int64     `json:"clientId"`
 	Amount        string    `json:"amount"`
@@ -278,6 +299,14 @@ type SalesInvoiceProduct struct {
 	ProductID int64     `json:"productId"`
 	Quantity  int64     `json:"quantity"`
 	CreatedAt time.Time `json:"createdAt"`
+}
+
+type Shift struct {
+	ID              int64        `json:"id"`
+	OpeningBalance  string       `json:"openingBalance"`
+	CurrentBalance  string       `json:"currentBalance"`
+	OpeningDateTime time.Time    `json:"openingDateTime"`
+	ClosingDateTime sql.NullTime `json:"closingDateTime"`
 }
 
 type Size struct {
@@ -325,13 +354,14 @@ type TransferItem struct {
 }
 
 type User struct {
-	ID           int64     `json:"id"`
-	CreatedAt    time.Time `json:"createdAt"`
-	Name         string    `json:"name"`
-	Email        string    `json:"email"`
-	PasswordHash []byte    `json:"passwordHash"`
-	Activated    bool      `json:"activated"`
-	Version      int32     `json:"version"`
+	ID                int64     `json:"id"`
+	Name              string    `json:"name"`
+	Email             string    `json:"email"`
+	PasswordHash      []byte    `json:"passwordHash"`
+	PasswordChangedAt time.Time `json:"passwordChangedAt"`
+	Activated         bool      `json:"activated"`
+	Version           int32     `json:"version"`
+	CreatedAt         time.Time `json:"createdAt"`
 }
 
 type UsersPermission struct {
