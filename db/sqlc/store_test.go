@@ -41,7 +41,7 @@ func TestTransferTX(t *testing.T) {
 		items := result.Items
 
 		require.NotEmpty(t, transfer)
-		require.Equal(t, inventory1.ID, transfer.FromInventoryID)
+		require.Equal(t, inventory.ID, salesInvoice.FromInventoryID)
 		require.Equal(t, inventory2.ID, transfer.ToInventoryID)
 		require.NotZero(t, transfer.ID)
 		require.NotZero(t, transfer.CreatedAt)

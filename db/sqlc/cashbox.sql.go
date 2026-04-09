@@ -12,22 +12,25 @@ import (
 const createCashbox = `-- name: CreateCashbox :one
 INSERT INTO cashboxes (
   code,
+  name,
   is_active
 ) 
-VALUES ( $1, $2 )
-RETURNING id, code, is_active, created_at
+VALUES ( $1, $2, $3 )
+RETURNING id, name, code, is_active, created_at
 `
 
 type CreateCashboxParams struct {
 	Code     string `json:"code"`
+	Name     string `json:"name"`
 	IsActive bool   `json:"isActive"`
 }
 
 func (q *Queries) CreateCashbox(ctx context.Context, arg CreateCashboxParams) (Cashbox, error) {
-	row := q.db.QueryRowContext(ctx, createCashbox, arg.Code, arg.IsActive)
+	row := q.db.QueryRowContext(ctx, createCashbox, arg.Code, arg.Name, arg.IsActive)
 	var i Cashbox
 	err := row.Scan(
 		&i.ID,
+		&i.Name,
 		&i.Code,
 		&i.IsActive,
 		&i.CreatedAt,
@@ -36,7 +39,7 @@ func (q *Queries) CreateCashbox(ctx context.Context, arg CreateCashboxParams) (C
 }
 
 const getCashbox = `-- name: GetCashbox :one
-SELECT id, code, is_active, created_at FROM cashboxes
+SELECT id, name, code, is_active, created_at FROM cashboxes
 WHERE id = $1 LIMIT 1
 `
 
@@ -45,6 +48,7 @@ func (q *Queries) GetCashbox(ctx context.Context, id int64) (Cashbox, error) {
 	var i Cashbox
 	err := row.Scan(
 		&i.ID,
+		&i.Name,
 		&i.Code,
 		&i.IsActive,
 		&i.CreatedAt,
@@ -53,7 +57,7 @@ func (q *Queries) GetCashbox(ctx context.Context, id int64) (Cashbox, error) {
 }
 
 const listCashboxes = `-- name: ListCashboxes :many
-SELECT id, code, is_active, created_at FROM cashboxes
+SELECT id, name, code, is_active, created_at FROM cashboxes
 WHERE id = $1
 ORDER BY id
 LIMIT $2
@@ -77,6 +81,7 @@ func (q *Queries) ListCashboxes(ctx context.Context, arg ListCashboxesParams) ([
 		var i Cashbox
 		if err := rows.Scan(
 			&i.ID,
+			&i.Name,
 			&i.Code,
 			&i.IsActive,
 			&i.CreatedAt,
