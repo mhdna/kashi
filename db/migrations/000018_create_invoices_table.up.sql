@@ -6,7 +6,7 @@ create table if not exists sales_invoices (
     inventory_id bigint not null references inventories(id),
     client_id bigint not null references clients(id),
     amount numeric(12,4) not null,
-    discount bigint not null,
+    discount SMALLINT not null CHECK (discount >= 0 AND discount <= 100),
     net_amount numeric(12,4) not null,
     created_at timestamp(0) WITH time zone NOT NULL DEFAULT NOW()
 );
