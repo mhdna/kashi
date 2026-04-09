@@ -2,8 +2,7 @@ package db
 
 import (
 	"context"
-	"fmt"
-	"strconv"
+	"log"
 	"testing"
 
 	"github.com/mhdna/kashi/util"
@@ -12,18 +11,23 @@ import (
 
 func createRandomSalesInvoice(t *testing.T) SalesInvoice {
 	client := createRandomClient(t)
+	cashbox := createRandomCashbox(t)
 	inventory := createRandomInventory(t)
 	amount := util.RandomMoneyAmount()
-	discount := int64(0)
-	a, _ := strconv.ParseFloat(amount, 64)
-	netAmount := fmt.Sprintf("%.2f", a*(1-float64(discount)/100))
+	currency := createRandomCurrency(t)
+	discount := int16(0)
+	netAmount, err := util.CalculateNetAmount(amount, discount)
+	if err != nil {
+		log.Fatal(err)
+	}
 	arg := CreateSalesInvoiceParams{
-		InvoiceNumber: string(util.RandomInt(0, 100)),
-		InventoryID:   inventory.ID,
-		ClientID:      client.ID,
-		Amount:        amount, // TODO: check Random amount if redundant
-		Discount:      discount,
-		NetAmount:     netAmount,
+		InventoryID: inventory.ID,
+		ClientID:    client.ID,
+		CashboxID:   cashbox.ID,
+		Amount:      amount,
+		Discount:    discount,
+		NetAmount:   netAmount,
+		CurrencyID:  currency.ID,
 	}
 
 	order, err := testQueries.CreateSalesInvoice(context.Background(), arg)
@@ -42,6 +46,6 @@ func createRandomSalesInvoice(t *testing.T) SalesInvoice {
 	return order
 }
 
-func TestCreateOrder(t *testing.T) {
+func TestCreateSalesInvoice(t *testing.T) {
 	createRandomSalesInvoice(t)
 }
