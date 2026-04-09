@@ -134,6 +134,7 @@ type Barcode struct {
 
 type Cashbox struct {
 	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
 	Code      string    `json:"code"`
 	IsActive  bool      `json:"isActive"`
 	CreatedAt time.Time `json:"createdAt"`
@@ -289,7 +290,7 @@ type SalesInvoice struct {
 	InventoryID   int64     `json:"inventoryId"`
 	ClientID      int64     `json:"clientId"`
 	Amount        string    `json:"amount"`
-	Discount      int64     `json:"discount"`
+	Discount      int16     `json:"discount"`
 	NetAmount     string    `json:"netAmount"`
 	CreatedAt     time.Time `json:"createdAt"`
 }
