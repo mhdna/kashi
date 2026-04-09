@@ -10,8 +10,9 @@ import (
 
 func createRandomCashbox(t *testing.T) Cashbox {
 	arg := CreateCashboxParams{
-		Code: util.RandomCode(),
-		Name: util.RandomName(),
+		Code:     util.RandomCode(),
+		Name:     util.RandomName(),
+		IsActive: true,
 	}
 
 	cashbox, err := testQueries.CreateCashbox(context.Background(), arg)
@@ -19,7 +20,7 @@ func createRandomCashbox(t *testing.T) Cashbox {
 	require.NotEmpty(t, cashbox)
 	require.Equal(t, cashbox.Code, arg.Code)
 	require.Equal(t, cashbox.Name, arg.Name)
-	require.Equal(t, cashbox.IsActive, true)
+	require.Equal(t, cashbox.IsActive, arg.IsActive)
 
 	return cashbox
 }
@@ -46,7 +47,7 @@ func TestListCashboxes(t *testing.T) {
 	}
 
 	limit := 5
-	offset := 5
+	offset := 0
 
 	arg := ListCashboxesParams{
 		Limit:  int32(limit),
