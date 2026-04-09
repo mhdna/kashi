@@ -31,6 +31,10 @@ ORDER BY id
 LIMIT $1
 OFFSET $2;
 
+-- name: CountSalesInvoicesThisYear :one
+SELECT count(*) FROM sales_invoices
+WHERE created_at >= date_trunc('year', now() AT TIME ZONE 'UTC');
+
 -- name: CreateReturnInvoice :one
 INSERT INTO return_invoices (
   invoice_number,
@@ -38,3 +42,11 @@ INSERT INTO return_invoices (
 ) 
 VALUES ( $1, $2 )
 RETURNING *;
+
+-- name: GetReturnInvoice :one
+SELECT * FROM return_invoices
+WHERE id = $1 LIMIT 1;
+
+-- name: CountReturnInvoicesThisYear :one
+SELECT count(*) FROM return_invoices
+WHERE created_at >= date_trunc('year', now() AT TIME ZONE 'UTC');
