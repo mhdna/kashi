@@ -6,6 +6,7 @@ package mockdb
 
 import (
 	context "context"
+	sql "database/sql"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -110,6 +111,36 @@ func (mr *MockStoreMockRecorder) AddSupplierProductCost(arg0, arg1 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddSupplierProductCost", reflect.TypeOf((*MockStore)(nil).AddSupplierProductCost), arg0, arg1)
 }
 
+// CountReturnInvoicesThisYear mocks base method.
+func (m *MockStore) CountReturnInvoicesThisYear(arg0 context.Context) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountReturnInvoicesThisYear", arg0)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountReturnInvoicesThisYear indicates an expected call of CountReturnInvoicesThisYear.
+func (mr *MockStoreMockRecorder) CountReturnInvoicesThisYear(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountReturnInvoicesThisYear", reflect.TypeOf((*MockStore)(nil).CountReturnInvoicesThisYear), arg0)
+}
+
+// CountSalesInvoicesThisYear mocks base method.
+func (m *MockStore) CountSalesInvoicesThisYear(arg0 context.Context) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountSalesInvoicesThisYear", arg0)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountSalesInvoicesThisYear indicates an expected call of CountSalesInvoicesThisYear.
+func (mr *MockStoreMockRecorder) CountSalesInvoicesThisYear(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountSalesInvoicesThisYear", reflect.TypeOf((*MockStore)(nil).CountSalesInvoicesThisYear), arg0)
+}
+
 // CreateAttributeValue mocks base method.
 func (m *MockStore) CreateAttributeValue(arg0 context.Context, arg1 db.CreateAttributeValueParams) (db.AttributesValue, error) {
 	m.ctrl.T.Helper()
@@ -123,6 +154,21 @@ func (m *MockStore) CreateAttributeValue(arg0 context.Context, arg1 db.CreateAtt
 func (mr *MockStoreMockRecorder) CreateAttributeValue(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAttributeValue", reflect.TypeOf((*MockStore)(nil).CreateAttributeValue), arg0, arg1)
+}
+
+// CreateCashbox mocks base method.
+func (m *MockStore) CreateCashbox(arg0 context.Context, arg1 db.CreateCashboxParams) (db.Cashbox, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateCashbox", arg0, arg1)
+	ret0, _ := ret[0].(db.Cashbox)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateCashbox indicates an expected call of CreateCashbox.
+func (mr *MockStoreMockRecorder) CreateCashbox(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCashbox", reflect.TypeOf((*MockStore)(nil).CreateCashbox), arg0, arg1)
 }
 
 // CreateClient mocks base method.
@@ -168,6 +214,21 @@ func (m *MockStore) CreateEntryItem(arg0 context.Context, arg1 db.CreateEntryIte
 func (mr *MockStoreMockRecorder) CreateEntryItem(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEntryItem", reflect.TypeOf((*MockStore)(nil).CreateEntryItem), arg0, arg1)
+}
+
+// CreateExpense mocks base method.
+func (m *MockStore) CreateExpense(arg0 context.Context, arg1 db.CreateExpenseParams) (db.Expense, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateExpense", arg0, arg1)
+	ret0, _ := ret[0].(db.Expense)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateExpense indicates an expected call of CreateExpense.
+func (mr *MockStoreMockRecorder) CreateExpense(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateExpense", reflect.TypeOf((*MockStore)(nil).CreateExpense), arg0, arg1)
 }
 
 // CreateInventory mocks base method.
@@ -258,6 +319,21 @@ func (m *MockStore) CreateSalesInvoice(arg0 context.Context, arg1 db.CreateSales
 func (mr *MockStoreMockRecorder) CreateSalesInvoice(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSalesInvoice", reflect.TypeOf((*MockStore)(nil).CreateSalesInvoice), arg0, arg1)
+}
+
+// CreateShift mocks base method.
+func (m *MockStore) CreateShift(arg0 context.Context, arg1 db.CreateShiftParams) (db.Shift, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateShift", arg0, arg1)
+	ret0, _ := ret[0].(db.Shift)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateShift indicates an expected call of CreateShift.
+func (mr *MockStoreMockRecorder) CreateShift(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateShift", reflect.TypeOf((*MockStore)(nil).CreateShift), arg0, arg1)
 }
 
 // CreateSupplier mocks base method.
@@ -404,6 +480,21 @@ func (mr *MockStoreMockRecorder) GetAttributeValue(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAttributeValue", reflect.TypeOf((*MockStore)(nil).GetAttributeValue), arg0, arg1)
 }
 
+// GetCashbox mocks base method.
+func (m *MockStore) GetCashbox(arg0 context.Context, arg1 int64) (db.Cashbox, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCashbox", arg0, arg1)
+	ret0, _ := ret[0].(db.Cashbox)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCashbox indicates an expected call of GetCashbox.
+func (mr *MockStoreMockRecorder) GetCashbox(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCashbox", reflect.TypeOf((*MockStore)(nil).GetCashbox), arg0, arg1)
+}
+
 // GetClient mocks base method.
 func (m *MockStore) GetClient(arg0 context.Context, arg1 int64) (db.Client, error) {
 	m.ctrl.T.Helper()
@@ -447,6 +538,21 @@ func (m *MockStore) GetEntry(arg0 context.Context, arg1 int64) (db.Entry, error)
 func (mr *MockStoreMockRecorder) GetEntry(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEntry", reflect.TypeOf((*MockStore)(nil).GetEntry), arg0, arg1)
+}
+
+// GetExpense mocks base method.
+func (m *MockStore) GetExpense(arg0 context.Context, arg1 int64) (db.Expense, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetExpense", arg0, arg1)
+	ret0, _ := ret[0].(db.Expense)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetExpense indicates an expected call of GetExpense.
+func (mr *MockStoreMockRecorder) GetExpense(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetExpense", reflect.TypeOf((*MockStore)(nil).GetExpense), arg0, arg1)
 }
 
 // GetInventory mocks base method.
@@ -509,6 +615,21 @@ func (mr *MockStoreMockRecorder) GetPurchase(arg0, arg1 interface{}) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPurchase", reflect.TypeOf((*MockStore)(nil).GetPurchase), arg0, arg1)
 }
 
+// GetReturnInvoice mocks base method.
+func (m *MockStore) GetReturnInvoice(arg0 context.Context, arg1 int64) (db.ReturnInvoice, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetReturnInvoice", arg0, arg1)
+	ret0, _ := ret[0].(db.ReturnInvoice)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetReturnInvoice indicates an expected call of GetReturnInvoice.
+func (mr *MockStoreMockRecorder) GetReturnInvoice(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReturnInvoice", reflect.TypeOf((*MockStore)(nil).GetReturnInvoice), arg0, arg1)
+}
+
 // GetSalesInvoice mocks base method.
 func (m *MockStore) GetSalesInvoice(arg0 context.Context, arg1 int64) (db.SalesInvoice, error) {
 	m.ctrl.T.Helper()
@@ -569,6 +690,21 @@ func (mr *MockStoreMockRecorder) ListAttributeValues(arg0, arg1 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAttributeValues", reflect.TypeOf((*MockStore)(nil).ListAttributeValues), arg0, arg1)
 }
 
+// ListCashboxes mocks base method.
+func (m *MockStore) ListCashboxes(arg0 context.Context, arg1 db.ListCashboxesParams) ([]db.Cashbox, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListCashboxes", arg0, arg1)
+	ret0, _ := ret[0].([]db.Cashbox)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListCashboxes indicates an expected call of ListCashboxes.
+func (mr *MockStoreMockRecorder) ListCashboxes(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCashboxes", reflect.TypeOf((*MockStore)(nil).ListCashboxes), arg0, arg1)
+}
+
 // ListClients mocks base method.
 func (m *MockStore) ListClients(arg0 context.Context, arg1 db.ListClientsParams) ([]db.Client, error) {
 	m.ctrl.T.Helper()
@@ -612,6 +748,21 @@ func (m *MockStore) ListEntries(arg0 context.Context, arg1 db.ListEntriesParams)
 func (mr *MockStoreMockRecorder) ListEntries(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEntries", reflect.TypeOf((*MockStore)(nil).ListEntries), arg0, arg1)
+}
+
+// ListExpenses mocks base method.
+func (m *MockStore) ListExpenses(arg0 context.Context, arg1 db.ListExpensesParams) ([]db.Expense, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListExpenses", arg0, arg1)
+	ret0, _ := ret[0].([]db.Expense)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListExpenses indicates an expected call of ListExpenses.
+func (mr *MockStoreMockRecorder) ListExpenses(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListExpenses", reflect.TypeOf((*MockStore)(nil).ListExpenses), arg0, arg1)
 }
 
 // ListInventories mocks base method.
@@ -749,19 +900,48 @@ func (mr *MockStoreMockRecorder) ListTransfers(arg0, arg1 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTransfers", reflect.TypeOf((*MockStore)(nil).ListTransfers), arg0, arg1)
 }
 
-// TransferTx mocks base method.
-func (m *MockStore) TransferTx(arg0 context.Context, arg1 db.TransferTxParams) (db.TransferTxResult, error) {
+// ReturnInvoiceTx mocks base method.
+func (m *MockStore) ReturnInvoiceTx(arg0 context.Context, arg1 db.ReturnInvoiceTxParams) (db.ReturnInvoiceTxResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TransferTx", arg0, arg1)
-	ret0, _ := ret[0].(db.TransferTxResult)
+	ret := m.ctrl.Call(m, "ReturnInvoiceTx", arg0, arg1)
+	ret0, _ := ret[0].(db.ReturnInvoiceTxResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// TransferTx indicates an expected call of TransferTx.
-func (mr *MockStoreMockRecorder) TransferTx(arg0, arg1 interface{}) *gomock.Call {
+// ReturnInvoiceTx indicates an expected call of ReturnInvoiceTx.
+func (mr *MockStoreMockRecorder) ReturnInvoiceTx(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TransferTx", reflect.TypeOf((*MockStore)(nil).TransferTx), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReturnInvoiceTx", reflect.TypeOf((*MockStore)(nil).ReturnInvoiceTx), arg0, arg1)
+}
+
+// SalesInvoiceTx mocks base method.
+func (m *MockStore) SalesInvoiceTx(arg0 context.Context, arg1 db.SalesInvoiceTxParams) (db.SalesInvoiceTxResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SalesInvoiceTx", arg0, arg1)
+	ret0, _ := ret[0].(db.SalesInvoiceTxResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SalesInvoiceTx indicates an expected call of SalesInvoiceTx.
+func (mr *MockStoreMockRecorder) SalesInvoiceTx(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SalesInvoiceTx", reflect.TypeOf((*MockStore)(nil).SalesInvoiceTx), arg0, arg1)
+}
+
+// SetShiftCloseingTime mocks base method.
+func (m *MockStore) SetShiftCloseingTime(arg0 context.Context, arg1 sql.NullTime) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetShiftCloseingTime", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetShiftCloseingTime indicates an expected call of SetShiftCloseingTime.
+func (mr *MockStoreMockRecorder) SetShiftCloseingTime(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetShiftCloseingTime", reflect.TypeOf((*MockStore)(nil).SetShiftCloseingTime), arg0, arg1)
 }
 
 // UpdateAttributeValue mocks base method.
