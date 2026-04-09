@@ -37,6 +37,30 @@ func (q *Queries) AddSalesInvoiceProduct(ctx context.Context, arg AddSalesInvoic
 	return i, err
 }
 
+const countReturnInvoicesThisYear = `-- name: CountReturnInvoicesThisYear :one
+SELECT count(*) FROM return_invoices
+WHERE created_at >= date_trunc('year', now() AT TIME ZONE 'UTC')
+`
+
+func (q *Queries) CountReturnInvoicesThisYear(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countReturnInvoicesThisYear)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countSalesInvoicesThisYear = `-- name: CountSalesInvoicesThisYear :one
+SELECT count(*) FROM sales_invoices
+WHERE created_at >= date_trunc('year', now() AT TIME ZONE 'UTC')
+`
+
+func (q *Queries) CountSalesInvoicesThisYear(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countSalesInvoicesThisYear)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createReturnInvoice = `-- name: CreateReturnInvoice :one
 INSERT INTO return_invoices (
   invoice_number,
@@ -85,7 +109,7 @@ type CreateSalesInvoiceParams struct {
 	ClientID      int64  `json:"clientId"`
 	Amount        string `json:"amount"`
 	NetAmount     string `json:"netAmount"`
-	Discount      int64  `json:"discount"`
+	Discount      int16  `json:"discount"`
 	CurrencyID    int64  `json:"currencyId"`
 }
 
@@ -111,6 +135,23 @@ func (q *Queries) CreateSalesInvoice(ctx context.Context, arg CreateSalesInvoice
 		&i.Amount,
 		&i.Discount,
 		&i.NetAmount,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getReturnInvoice = `-- name: GetReturnInvoice :one
+SELECT id, invoice_number, sales_invoice_id, created_at FROM return_invoices
+WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetReturnInvoice(ctx context.Context, id int64) (ReturnInvoice, error) {
+	row := q.db.QueryRowContext(ctx, getReturnInvoice, id)
+	var i ReturnInvoice
+	err := row.Scan(
+		&i.ID,
+		&i.InvoiceNumber,
+		&i.SalesInvoiceID,
 		&i.CreatedAt,
 	)
 	return i, err
