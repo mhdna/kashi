@@ -1,9 +1,10 @@
 -- name: CreateCashbox :one
 INSERT INTO cashboxes (
   code,
+  name,
   is_active
 ) 
-VALUES ( $1, $2 )
+VALUES ( $1, $2, $3 )
 RETURNING *;
 
 -- name: GetCashbox :one
