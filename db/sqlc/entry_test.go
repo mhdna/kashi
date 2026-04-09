@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 	"time"
 
@@ -13,21 +12,21 @@ import (
 func createRandomEntry(t *testing.T) Entry {
 	inventory := createRandomInventory(t)
 	purchase := createRandomPurchase(t)
-	product := createRandomProduct(t)
+	cashbox := createRandomCashbox(t)
 	arg := CreateEntryItemParams{
+		CashboxID:     cashbox.ID,
 		InventoryID:   inventory.ID,
 		ReferenceType: EntryReferenceTypePurchase,
 		ReferenceID:   purchase.ID,
-		ProductID:     sql.NullInt64{Int64: product.ID, Valid: true},
-		Quantity:      util.RandomInt(1, 50),
+		NetAmount:     util.RandomMoneyAmount(),
 	}
 	entry, err := testQueries.CreateEntryItem(context.Background(), arg)
 	require.NoError(t, err)
+	require.Equal(t, entry.CashboxID, arg.CashboxID)
 	require.Equal(t, entry.InventoryID, arg.InventoryID)
 	require.Equal(t, entry.ReferenceType, arg.ReferenceType)
 	require.Equal(t, entry.ReferenceID, arg.ReferenceID)
-	require.Equal(t, entry.ProductID, arg.ProductID)
-	require.Equal(t, entry.Quantity, arg.Quantity)
+	require.Equal(t, entry.NetAmount, arg.NetAmount)
 
 	return entry
 }
@@ -42,12 +41,12 @@ func TestGetEntry(t *testing.T) {
 	entry2, err := testQueries.GetEntry(context.Background(), entry1.ID)
 	require.NoError(t, err)
 	require.Equal(t, entry1.ID, entry2.ID)
+	require.Equal(t, entry1.CashboxID, entry2.CashboxID)
 	require.Equal(t, entry1.InventoryID, entry2.InventoryID)
-	require.Equal(t, entry1.AssetID, entry2.AssetID)
-	require.Equal(t, entry1.ProductID, entry2.ProductID)
 	require.Equal(t, entry1.ReferenceID, entry2.ReferenceID)
 	require.Equal(t, entry1.ReferenceType, entry2.ReferenceType)
-	require.Equal(t, entry1.Quantity, entry2.Quantity)
+	require.Equal(t, entry1.NetAmount, entry2.NetAmount)
+
 	require.WithinDuration(t, entry1.CreatedAt, entry2.CreatedAt, time.Second)
 }
 
