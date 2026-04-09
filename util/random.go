@@ -5,14 +5,9 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
-	"time"
 )
 
 const alphabet = "abcdefghijklmnopqrstuvwxyz"
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 func RandomInt(min, max int64) int64 {
 	return min + rand.Int63n(max-min+1)
