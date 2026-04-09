@@ -58,20 +58,18 @@ func (q *Queries) GetCashbox(ctx context.Context, id int64) (Cashbox, error) {
 
 const listCashboxes = `-- name: ListCashboxes :many
 SELECT id, name, code, is_active, created_at FROM cashboxes
-WHERE id = $1
 ORDER BY id
-LIMIT $2
-OFFSET $3
+LIMIT $1
+OFFSET $2
 `
 
 type ListCashboxesParams struct {
-	ID     int64 `json:"id"`
 	Limit  int32 `json:"limit"`
 	Offset int32 `json:"offset"`
 }
 
 func (q *Queries) ListCashboxes(ctx context.Context, arg ListCashboxesParams) ([]Cashbox, error) {
-	rows, err := q.db.QueryContext(ctx, listCashboxes, arg.ID, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, listCashboxes, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
