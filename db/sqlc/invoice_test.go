@@ -21,13 +21,13 @@ func createRandomSalesInvoice(t *testing.T) SalesInvoice {
 		log.Fatal(err)
 	}
 	arg := CreateSalesInvoiceParams{
-		InventoryID: inventory.ID,
-		ClientID:    client.ID,
-		CashboxID:   cashbox.ID,
-		Amount:      amount,
-		Discount:    discount,
-		NetAmount:   netAmount,
-		CurrencyID:  currency.ID,
+		InventoryID:  inventory.ID,
+		ClientID:     client.ID,
+		CashboxID:    cashbox.ID,
+		Amount:       amount,
+		Discount:     discount,
+		NetAmount:    netAmount,
+		CurrencyCode: currency.Code,
 	}
 
 	order, err := testQueries.CreateSalesInvoice(context.Background(), arg)
