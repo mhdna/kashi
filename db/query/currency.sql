@@ -2,9 +2,10 @@
 INSERT INTO currencies (
   name,
   code,
-  value_in_usd
+  symbol,
+  value_in_default_currency 
 ) 
-VALUES ( $1, $2, $3 )
+VALUES ( $1, $2, $3, $4 )
 RETURNING *;
 
 -- name: DeleteCurrency :exec
@@ -14,6 +15,10 @@ where code = $1;
 -- name: GetCurrency :one
 SELECT * FROM currencies
 WHERE code = $1 LIMIT 1;
+
+-- name: GetDefaultCurrency :one
+SELECT * FROM currencies
+WHERE is_default = true;
 
 -- name: ListCurrencies :many
 SELECT * FROM currencies
