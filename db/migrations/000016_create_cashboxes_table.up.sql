@@ -16,11 +16,12 @@ create table if not exists cashboxes (
 
 create table if not exists shifts (
     id bigserial primary key,
+    is_closed boolean not null default false,
     cashbox_id bigint not null references cashboxes(id),
     total_opening_balance bigint not null,
     total_balance bigint not null,
     opening_date_time timestamp(0) WITH time zone NOT NULL DEFAULT NOW(),
-    closing_date_time timestamp(0) WITH time zone NOT NULL
+    closing_date_time timestamp(0) WITH time zone 
 );
 
 -- E.g. Cash, paypal, ...
