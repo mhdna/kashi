@@ -1,12 +1,39 @@
 -- name: CreateShift :one
 INSERT INTO shifts (
-  opening_balance,
-  current_balance
+  cashbox_id,
+  total_opening_balance,
+  total_balance
 ) 
-VALUES ( $1, $2 )
+VALUES ( $1, $2, $3 )
 RETURNING *;
 
--- name: SetShiftCloseingTime :exec
+-- name: GetShift :one
+SELECT * FROM shifts
+WHERE id = $1
+LIMIT 1;
+
+-- name: UpdateShift :exec
 UPDATE shifts 
-  SET closing_date_time = $1
-WHERE id = $1;
+  SET total_balance = $1,
+  closing_date_time = $2
+WHERE id = $3;
+
+-- name: ListShifts :many
+SELECT * FROM shifts
+ORDER BY id
+LIMIT $1
+OFFSET $2;
+
+-- name: CreateCashBoxAccount :one
+INSERT INTO cashbox_accounts (
+  title 
+) 
+VALUES ($1)
+RETURNING *;
+
+-- name: UpdateAccountBalance :exec
+UPDATE accounts_balances
+SET balance = $1
+WHERE cashbox_account_id = $2 
+AND shift_id = $3
+AND currency_code = $4;
