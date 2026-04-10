@@ -13,33 +13,33 @@ const createExpense = `-- name: CreateExpense :one
 INSERT INTO expenses (
   description,
   amount,
-  currency_id
+  currency_code
 ) 
 VALUES ( $1, $2, $3 )
-RETURNING id, description, amount, currency_id, created_at
+RETURNING id, description, amount, currency_code, created_at
 `
 
 type CreateExpenseParams struct {
-	Description string `json:"description"`
-	Amount      string `json:"amount"`
-	CurrencyID  int64  `json:"currencyId"`
+	Description  string `json:"description"`
+	Amount       int64  `json:"amount"`
+	CurrencyCode string `json:"currencyCode"`
 }
 
 func (q *Queries) CreateExpense(ctx context.Context, arg CreateExpenseParams) (Expense, error) {
-	row := q.db.QueryRowContext(ctx, createExpense, arg.Description, arg.Amount, arg.CurrencyID)
+	row := q.db.QueryRowContext(ctx, createExpense, arg.Description, arg.Amount, arg.CurrencyCode)
 	var i Expense
 	err := row.Scan(
 		&i.ID,
 		&i.Description,
 		&i.Amount,
-		&i.CurrencyID,
+		&i.CurrencyCode,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getExpense = `-- name: GetExpense :one
-SELECT id, description, amount, currency_id, created_at FROM expenses
+SELECT id, description, amount, currency_code, created_at FROM expenses
 WHERE id = $1 LIMIT 1
 `
 
@@ -50,14 +50,14 @@ func (q *Queries) GetExpense(ctx context.Context, id int64) (Expense, error) {
 		&i.ID,
 		&i.Description,
 		&i.Amount,
-		&i.CurrencyID,
+		&i.CurrencyCode,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const listExpenses = `-- name: ListExpenses :many
-SELECT id, description, amount, currency_id, created_at FROM expenses
+SELECT id, description, amount, currency_code, created_at FROM expenses
 WHERE id = $1
 ORDER BY id
 LIMIT $2
@@ -83,7 +83,7 @@ func (q *Queries) ListExpenses(ctx context.Context, arg ListExpensesParams) ([]E
 			&i.ID,
 			&i.Description,
 			&i.Amount,
-			&i.CurrencyID,
+			&i.CurrencyCode,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err

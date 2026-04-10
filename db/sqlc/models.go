@@ -97,6 +97,14 @@ func (ns NullTransferType) Value() (driver.Value, error) {
 	return string(ns.TransferType), nil
 }
 
+type AccountsBalance struct {
+	CashboxAccountID int64  `json:"cashboxAccountId"`
+	ShiftID          int64  `json:"shiftId"`
+	CurrencyCode     string `json:"currencyCode"`
+	OpeningBalance   int64  `json:"openingBalance"`
+	Balance          int64  `json:"balance"`
+}
+
 type Asset struct {
 	ID        int64     `json:"id"`
 	Name      string    `json:"name"`
@@ -140,9 +148,9 @@ type Cashbox struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-type CashboxShift struct {
-	CashboxID int64 `json:"cashboxId"`
-	ShiftID   int64 `json:"shiftId"`
+type CashboxAccount struct {
+	ID    int64  `json:"id"`
+	Title string `json:"title"`
 }
 
 type Client struct {
@@ -168,10 +176,11 @@ type Color struct {
 }
 
 type Currency struct {
-	ID         int64  `json:"id"`
-	Name       string `json:"name"`
-	Code       string `json:"code"`
-	ValueInUsd string `json:"valueInUsd"`
+	Code                   string `json:"code"`
+	Name                   string `json:"name"`
+	Symbol                 string `json:"symbol"`
+	IsDefault              bool   `json:"isDefault"`
+	ValueInDefaultCurrency int64  `json:"valueInDefaultCurrency"`
 }
 
 type Entry struct {
@@ -180,16 +189,16 @@ type Entry struct {
 	InventoryID   int64              `json:"inventoryId"`
 	ReferenceType EntryReferenceType `json:"referenceType"`
 	ReferenceID   int64              `json:"referenceId"`
-	NetAmount     string             `json:"netAmount"`
+	NetAmount     int64              `json:"netAmount"`
 	CreatedAt     time.Time          `json:"createdAt"`
 }
 
 type Expense struct {
-	ID          int64     `json:"id"`
-	Description string    `json:"description"`
-	Amount      string    `json:"amount"`
-	CurrencyID  int64     `json:"currencyId"`
-	CreatedAt   time.Time `json:"createdAt"`
+	ID           int64     `json:"id"`
+	Description  string    `json:"description"`
+	Amount       int64     `json:"amount"`
+	CurrencyCode string    `json:"currencyCode"`
+	CreatedAt    time.Time `json:"createdAt"`
 }
 
 type InventoriesAsset struct {
@@ -239,7 +248,7 @@ type ProductSupplier struct {
 type ProductSupplierCost struct {
 	ProductSupplierID int64     `json:"productSupplierId"`
 	UnitCost          int64     `json:"unitCost"`
-	CurrencyID        int64     `json:"currencyId"`
+	CurrencyCode      string    `json:"currencyCode"`
 	CreatedAt         time.Time `json:"createdAt"`
 }
 
@@ -266,13 +275,13 @@ type Purchase struct {
 }
 
 type PurchaseItem struct {
-	ID         int64         `json:"id"`
-	PurchaseID sql.NullInt64 `json:"purchaseId"`
-	ProductID  sql.NullInt64 `json:"productId"`
-	AssetID    sql.NullInt64 `json:"assetId"`
-	Quantity   int64         `json:"quantity"`
-	UnitPrice  string        `json:"unitPrice"`
-	CurrencyID int64         `json:"currencyId"`
+	ID           int64         `json:"id"`
+	PurchaseID   sql.NullInt64 `json:"purchaseId"`
+	ProductID    sql.NullInt64 `json:"productId"`
+	AssetID      sql.NullInt64 `json:"assetId"`
+	Quantity     int64         `json:"quantity"`
+	UnitPrice    int64         `json:"unitPrice"`
+	CurrencyCode string        `json:"currencyCode"`
 }
 
 type ReturnInvoice struct {
@@ -286,12 +295,12 @@ type SalesInvoice struct {
 	ID            int64     `json:"id"`
 	InvoiceNumber string    `json:"invoiceNumber"`
 	CashboxID     int64     `json:"cashboxId"`
-	CurrencyID    int64     `json:"currencyId"`
+	CurrencyCode  string    `json:"currencyCode"`
 	InventoryID   int64     `json:"inventoryId"`
 	ClientID      int64     `json:"clientId"`
-	Amount        string    `json:"amount"`
+	Amount        int64     `json:"amount"`
 	Discount      int16     `json:"discount"`
-	NetAmount     string    `json:"netAmount"`
+	NetAmount     int64     `json:"netAmount"`
 	CreatedAt     time.Time `json:"createdAt"`
 }
 
@@ -303,11 +312,12 @@ type SalesInvoiceProduct struct {
 }
 
 type Shift struct {
-	ID              int64        `json:"id"`
-	OpeningBalance  string       `json:"openingBalance"`
-	CurrentBalance  string       `json:"currentBalance"`
-	OpeningDateTime time.Time    `json:"openingDateTime"`
-	ClosingDateTime sql.NullTime `json:"closingDateTime"`
+	ID                  int64     `json:"id"`
+	CashboxID           int64     `json:"cashboxId"`
+	TotalOpeningBalance int64     `json:"totalOpeningBalance"`
+	TotalBalance        int64     `json:"totalBalance"`
+	OpeningDateTime     time.Time `json:"openingDateTime"`
+	ClosingDateTime     time.Time `json:"closingDateTime"`
 }
 
 type Size struct {

@@ -35,25 +35,25 @@ const addSupplierProductCost = `-- name: AddSupplierProductCost :one
 INSERT INTO product_supplier_costs (
   product_supplier_id,
   unit_cost,
-  currency_id
+  currency_code
 ) 
 VALUES ( $1, $2, $3 )
-RETURNING product_supplier_id, unit_cost, currency_id, created_at
+RETURNING product_supplier_id, unit_cost, currency_code, created_at
 `
 
 type AddSupplierProductCostParams struct {
-	ProductSupplierID int64 `json:"productSupplierId"`
-	UnitCost          int64 `json:"unitCost"`
-	CurrencyID        int64 `json:"currencyId"`
+	ProductSupplierID int64  `json:"productSupplierId"`
+	UnitCost          int64  `json:"unitCost"`
+	CurrencyCode      string `json:"currencyCode"`
 }
 
 func (q *Queries) AddSupplierProductCost(ctx context.Context, arg AddSupplierProductCostParams) (ProductSupplierCost, error) {
-	row := q.db.QueryRowContext(ctx, addSupplierProductCost, arg.ProductSupplierID, arg.UnitCost, arg.CurrencyID)
+	row := q.db.QueryRowContext(ctx, addSupplierProductCost, arg.ProductSupplierID, arg.UnitCost, arg.CurrencyCode)
 	var i ProductSupplierCost
 	err := row.Scan(
 		&i.ProductSupplierID,
 		&i.UnitCost,
-		&i.CurrencyID,
+		&i.CurrencyCode,
 		&i.CreatedAt,
 	)
 	return i, err

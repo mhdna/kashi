@@ -13,60 +13,87 @@ const createCurrency = `-- name: CreateCurrency :one
 INSERT INTO currencies (
   name,
   code,
-  value_in_usd
+  symbol,
+  value_in_default_currency 
 ) 
-VALUES ( $1, $2, $3 )
-RETURNING id, name, code, value_in_usd
+VALUES ( $1, $2, $3, $4 )
+RETURNING code, name, symbol, is_default, value_in_default_currency
 `
 
 type CreateCurrencyParams struct {
-	Name       string `json:"name"`
-	Code       string `json:"code"`
-	ValueInUsd string `json:"valueInUsd"`
+	Name                   string `json:"name"`
+	Code                   string `json:"code"`
+	Symbol                 string `json:"symbol"`
+	ValueInDefaultCurrency int64  `json:"valueInDefaultCurrency"`
 }
 
 func (q *Queries) CreateCurrency(ctx context.Context, arg CreateCurrencyParams) (Currency, error) {
-	row := q.db.QueryRowContext(ctx, createCurrency, arg.Name, arg.Code, arg.ValueInUsd)
+	row := q.db.QueryRowContext(ctx, createCurrency,
+		arg.Name,
+		arg.Code,
+		arg.Symbol,
+		arg.ValueInDefaultCurrency,
+	)
 	var i Currency
 	err := row.Scan(
-		&i.ID,
-		&i.Name,
 		&i.Code,
-		&i.ValueInUsd,
+		&i.Name,
+		&i.Symbol,
+		&i.IsDefault,
+		&i.ValueInDefaultCurrency,
 	)
 	return i, err
 }
 
 const deleteCurrency = `-- name: DeleteCurrency :exec
 delete from currencies
-where id = $1
+where code = $1
 `
 
-func (q *Queries) DeleteCurrency(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteCurrency, id)
+func (q *Queries) DeleteCurrency(ctx context.Context, code string) error {
+	_, err := q.db.ExecContext(ctx, deleteCurrency, code)
 	return err
 }
 
 const getCurrency = `-- name: GetCurrency :one
-SELECT id, name, code, value_in_usd FROM currencies
-WHERE id = $1 LIMIT 1
+SELECT code, name, symbol, is_default, value_in_default_currency FROM currencies
+WHERE code = $1 LIMIT 1
 `
 
-func (q *Queries) GetCurrency(ctx context.Context, id int64) (Currency, error) {
-	row := q.db.QueryRowContext(ctx, getCurrency, id)
+func (q *Queries) GetCurrency(ctx context.Context, code string) (Currency, error) {
+	row := q.db.QueryRowContext(ctx, getCurrency, code)
 	var i Currency
 	err := row.Scan(
-		&i.ID,
-		&i.Name,
 		&i.Code,
-		&i.ValueInUsd,
+		&i.Name,
+		&i.Symbol,
+		&i.IsDefault,
+		&i.ValueInDefaultCurrency,
+	)
+	return i, err
+}
+
+const getDefaultCurrency = `-- name: GetDefaultCurrency :one
+SELECT code, name, symbol, is_default, value_in_default_currency FROM currencies
+WHERE is_default = true
+`
+
+func (q *Queries) GetDefaultCurrency(ctx context.Context) (Currency, error) {
+	row := q.db.QueryRowContext(ctx, getDefaultCurrency)
+	var i Currency
+	err := row.Scan(
+		&i.Code,
+		&i.Name,
+		&i.Symbol,
+		&i.IsDefault,
+		&i.ValueInDefaultCurrency,
 	)
 	return i, err
 }
 
 const listCurrencies = `-- name: ListCurrencies :many
-SELECT id, name, code, value_in_usd FROM currencies
-ORDER BY id
+SELECT code, name, symbol, is_default, value_in_default_currency FROM currencies
+ORDER BY code
 LIMIT $1
 OFFSET $2
 `
@@ -86,10 +113,11 @@ func (q *Queries) ListCurrencies(ctx context.Context, arg ListCurrenciesParams) 
 	for rows.Next() {
 		var i Currency
 		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
 			&i.Code,
-			&i.ValueInUsd,
+			&i.Name,
+			&i.Symbol,
+			&i.IsDefault,
+			&i.ValueInDefaultCurrency,
 		); err != nil {
 			return nil, err
 		}
