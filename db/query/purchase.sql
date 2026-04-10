@@ -23,7 +23,7 @@ INSERT INTO purchase_items (
   asset_id,
   quantity,
   unit_price,
-  currency_id
+  currency_code
 ) 
 VALUES ( $1, $2, $3, $4, $5, $6 )
 RETURNING *;

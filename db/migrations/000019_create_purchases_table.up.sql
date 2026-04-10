@@ -11,7 +11,7 @@ create table if not exists purchase_items (
     asset_id bigint references assets(id),
     quantity bigint not null,
     unit_price numeric(12,4) not null default 0,
-    currency_id bigint not null references currencies(id),
+    currency_code text not null references currencies(code),
     check (
         (product_id is not null and asset_id is null) or
         (product_id is null and asset_id is not null)
