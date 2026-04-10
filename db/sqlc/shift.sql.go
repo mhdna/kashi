@@ -7,43 +7,155 @@ package db
 
 import (
 	"context"
-	"database/sql"
+	"time"
 )
+
+const createCashBoxAccount = `-- name: CreateCashBoxAccount :one
+INSERT INTO cashbox_accounts (
+  title 
+) 
+VALUES ($1)
+RETURNING id, title
+`
+
+func (q *Queries) CreateCashBoxAccount(ctx context.Context, title string) (CashboxAccount, error) {
+	row := q.db.QueryRowContext(ctx, createCashBoxAccount, title)
+	var i CashboxAccount
+	err := row.Scan(&i.ID, &i.Title)
+	return i, err
+}
 
 const createShift = `-- name: CreateShift :one
 INSERT INTO shifts (
-  opening_balance,
-  current_balance
+  cashbox_id,
+  total_opening_balance,
+  total_balance
 ) 
-VALUES ( $1, $2 )
-RETURNING id, opening_balance, current_balance, opening_date_time, closing_date_time
+VALUES ( $1, $2, $3 )
+RETURNING id, cashbox_id, total_opening_balance, total_balance, opening_date_time, closing_date_time
 `
 
 type CreateShiftParams struct {
-	OpeningBalance string `json:"openingBalance"`
-	CurrentBalance string `json:"currentBalance"`
+	CashboxID           int64 `json:"cashboxId"`
+	TotalOpeningBalance int64 `json:"totalOpeningBalance"`
+	TotalBalance        int64 `json:"totalBalance"`
 }
 
 func (q *Queries) CreateShift(ctx context.Context, arg CreateShiftParams) (Shift, error) {
-	row := q.db.QueryRowContext(ctx, createShift, arg.OpeningBalance, arg.CurrentBalance)
+	row := q.db.QueryRowContext(ctx, createShift, arg.CashboxID, arg.TotalOpeningBalance, arg.TotalBalance)
 	var i Shift
 	err := row.Scan(
 		&i.ID,
-		&i.OpeningBalance,
-		&i.CurrentBalance,
+		&i.CashboxID,
+		&i.TotalOpeningBalance,
+		&i.TotalBalance,
 		&i.OpeningDateTime,
 		&i.ClosingDateTime,
 	)
 	return i, err
 }
 
-const setShiftCloseingTime = `-- name: SetShiftCloseingTime :exec
-UPDATE shifts 
-  SET closing_date_time = $1
+const getShift = `-- name: GetShift :one
+SELECT id, cashbox_id, total_opening_balance, total_balance, opening_date_time, closing_date_time FROM shifts
 WHERE id = $1
+LIMIT 1
 `
 
-func (q *Queries) SetShiftCloseingTime(ctx context.Context, closingDateTime sql.NullTime) error {
-	_, err := q.db.ExecContext(ctx, setShiftCloseingTime, closingDateTime)
+func (q *Queries) GetShift(ctx context.Context, id int64) (Shift, error) {
+	row := q.db.QueryRowContext(ctx, getShift, id)
+	var i Shift
+	err := row.Scan(
+		&i.ID,
+		&i.CashboxID,
+		&i.TotalOpeningBalance,
+		&i.TotalBalance,
+		&i.OpeningDateTime,
+		&i.ClosingDateTime,
+	)
+	return i, err
+}
+
+const listShifts = `-- name: ListShifts :many
+SELECT id, cashbox_id, total_opening_balance, total_balance, opening_date_time, closing_date_time FROM shifts
+ORDER BY id
+LIMIT $1
+OFFSET $2
+`
+
+type ListShiftsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) ListShifts(ctx context.Context, arg ListShiftsParams) ([]Shift, error) {
+	rows, err := q.db.QueryContext(ctx, listShifts, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Shift{}
+	for rows.Next() {
+		var i Shift
+		if err := rows.Scan(
+			&i.ID,
+			&i.CashboxID,
+			&i.TotalOpeningBalance,
+			&i.TotalBalance,
+			&i.OpeningDateTime,
+			&i.ClosingDateTime,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateAccountBalance = `-- name: UpdateAccountBalance :exec
+UPDATE accounts_balances
+SET balance = $1
+WHERE cashbox_account_id = $2 
+AND shift_id = $3
+AND currency_code = $4
+`
+
+type UpdateAccountBalanceParams struct {
+	Balance          int64  `json:"balance"`
+	CashboxAccountID int64  `json:"cashboxAccountId"`
+	ShiftID          int64  `json:"shiftId"`
+	CurrencyCode     string `json:"currencyCode"`
+}
+
+func (q *Queries) UpdateAccountBalance(ctx context.Context, arg UpdateAccountBalanceParams) error {
+	_, err := q.db.ExecContext(ctx, updateAccountBalance,
+		arg.Balance,
+		arg.CashboxAccountID,
+		arg.ShiftID,
+		arg.CurrencyCode,
+	)
+	return err
+}
+
+const updateShift = `-- name: UpdateShift :exec
+UPDATE shifts 
+  SET total_balance = $1,
+  closing_date_time = $2
+WHERE id = $3
+`
+
+type UpdateShiftParams struct {
+	TotalBalance    int64     `json:"totalBalance"`
+	ClosingDateTime time.Time `json:"closingDateTime"`
+	ID              int64     `json:"id"`
+}
+
+func (q *Queries) UpdateShift(ctx context.Context, arg UpdateShiftParams) error {
+	_, err := q.db.ExecContext(ctx, updateShift, arg.TotalBalance, arg.ClosingDateTime, arg.ID)
 	return err
 }
