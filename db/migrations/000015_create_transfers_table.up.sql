@@ -11,6 +11,7 @@ create table if not exists transfers (
 create table if not exists transfer_items (
     id bigserial primary key,
     transfer_id bigint not null references transfers(id) on delete cascade,
+    -- you can transfer a product OR an asset at a time
     product_id bigint references products(id), -- nullable
     asset_id bigint references assets(id), -- nullable
     quantity bigint not null,
