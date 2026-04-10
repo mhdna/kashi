@@ -22,9 +22,8 @@ func createRandomCurrency(t *testing.T) Currency {
 	require.NotEmpty(t, currency)
 	require.Equal(t, arg.Name, currency.Name)
 	require.Equal(t, arg.Code, currency.Code)
-	require.Equal(t, arg.ValueInUsd, currency.ValueInUsd)
-
-	require.NotZero(t, currency.ID)
+	require.Equal(t, arg.Symbol, currency.Symbol)
+	require.Equal(t, arg.ValueInDefaultCurrency, currency.ValueInDefaultCurrency)
 
 	return currency
 }
@@ -35,22 +34,23 @@ func TestCreateCurrency(t *testing.T) {
 
 func TestGetCurrency(t *testing.T) {
 	currency1 := createRandomCurrency(t)
-	currency2, err := testQueries.GetCurrency(context.Background(), currency1.ID)
+	currency2, err := testQueries.GetCurrency(context.Background(), currency1.Code)
 
 	require.NoError(t, err)
 	require.NotEmpty(t, currency2)
 
 	require.Equal(t, currency1.Name, currency2.Name)
 	require.Equal(t, currency1.Code, currency2.Code)
-	require.Equal(t, currency1.ValueInUsd, currency2.ValueInUsd)
+	require.Equal(t, currency1.Symbol, currency2.Symbol)
+	require.Equal(t, currency1.ValueInDefaultCurrency, currency2.ValueInDefaultCurrency)
 }
 
 func TestDeleteCurrency(t *testing.T) {
 	currency1 := createRandomCurrency(t)
-	err := testQueries.DeleteCurrency(context.Background(), currency1.ID)
+	err := testQueries.DeleteCurrency(context.Background(), currency1.Code)
 	require.NoError(t, err)
 
-	currency2, err := testQueries.GetCurrency(context.Background(), currency1.ID)
+	currency2, err := testQueries.GetCurrency(context.Background(), currency1.Code)
 	require.Error(t, err)
 	require.EqualError(t, err, sql.ErrNoRows.Error())
 	require.Empty(t, currency2)
