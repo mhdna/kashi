@@ -1,3 +1,5 @@
+-- all entries are stored in the default currency
+
 CREATE TYPE entry_reference_type AS ENUM ( 
      'sales_invoice', 
      'return_invoice', 
@@ -11,6 +13,6 @@ create table if not exists entries (
     inventory_id bigint not null references inventories(id),
     reference_type entry_reference_type not null,
     reference_id bigint not null,
-    net_amount bigint not null,
+    net_amount_in_default_currency bigint not null,
     created_at timestamp(0) WITH time zone NOT NULL DEFAULT NOW()
 );
