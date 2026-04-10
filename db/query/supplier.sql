@@ -32,7 +32,7 @@ RETURNING *;
 INSERT INTO product_supplier_costs (
   product_supplier_id,
   unit_cost,
-  currency_id
+  currency_code
 ) 
 VALUES ( $1, $2, $3 )
 RETURNING *;

@@ -9,14 +9,14 @@ RETURNING *;
 
 -- name: DeleteCurrency :exec
 delete from currencies
-where id = $1;
+where code = $1;
 
 -- name: GetCurrency :one
 SELECT * FROM currencies
-WHERE id = $1 LIMIT 1;
+WHERE code = $1 LIMIT 1;
 
 -- name: ListCurrencies :many
 SELECT * FROM currencies
-ORDER BY id
+ORDER BY code
 LIMIT $1
 OFFSET $2;

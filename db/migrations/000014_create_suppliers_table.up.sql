@@ -18,7 +18,7 @@ create table if not exists product_suppliers (
 create table if not exists product_supplier_costs (
   product_supplier_id bigint not null references product_suppliers(id) on delete cascade,
   unit_cost bigint not null,
-  currency_id bigint not null references currencies(id),
+  currency_code text not null references currencies(code),
   created_at timestamp(0) WITH time zone NOT NULL DEFAULT NOW(),
   primary key (product_supplier_id, unit_cost)
 );
