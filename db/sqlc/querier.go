@@ -15,8 +15,8 @@ type Querier interface {
 	AddSupplierProduct(ctx context.Context, arg AddSupplierProductParams) (ProductSupplier, error)
 	AddSupplierProductCost(ctx context.Context, arg AddSupplierProductCostParams) (ProductSupplierCost, error)
 	CloseShift(ctx context.Context, arg CloseShiftParams) error
-	CountReturnInvoicesThisYear(ctx context.Context) (int64, error)
-	CountSalesInvoicesThisYear(ctx context.Context) (int64, error)
+	CountReturnInvoicesThisYear(ctx context.Context, salesInvoiceID int64) (int64, error)
+	CountSalesInvoicesThisYear(ctx context.Context, cashboxID int64) (int64, error)
 	CreateAttributeValue(ctx context.Context, arg CreateAttributeValueParams) (AttributesValue, error)
 	CreateCashBoxAccount(ctx context.Context, title string) (CashboxAccount, error)
 	CreateCashbox(ctx context.Context, arg CreateCashboxParams) (Cashbox, error)

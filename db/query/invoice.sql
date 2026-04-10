@@ -33,7 +33,8 @@ OFFSET $2;
 
 -- name: CountSalesInvoicesThisYear :one
 SELECT count(*) FROM sales_invoices
-WHERE created_at >= date_trunc('year', now() AT TIME ZONE 'UTC');
+WHERE cashbox_id = $1
+AND created_at >= date_trunc('year', now() AT TIME ZONE 'UTC');
 
 -- name: CreateReturnInvoice :one
 INSERT INTO return_invoices (
@@ -49,4 +50,5 @@ WHERE id = $1 LIMIT 1;
 
 -- name: CountReturnInvoicesThisYear :one
 SELECT count(*) FROM return_invoices
-WHERE created_at >= date_trunc('year', now() AT TIME ZONE 'UTC');
+WHERE sales_invoice_id = $1
+AND created_at >= date_trunc('year', now() AT TIME ZONE 'UTC');

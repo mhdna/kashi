@@ -39,11 +39,12 @@ func (q *Queries) AddSalesInvoiceProduct(ctx context.Context, arg AddSalesInvoic
 
 const countReturnInvoicesThisYear = `-- name: CountReturnInvoicesThisYear :one
 SELECT count(*) FROM return_invoices
-WHERE created_at >= date_trunc('year', now() AT TIME ZONE 'UTC')
+WHERE sales_invoice_id = $1
+AND created_at >= date_trunc('year', now() AT TIME ZONE 'UTC')
 `
 
-func (q *Queries) CountReturnInvoicesThisYear(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countReturnInvoicesThisYear)
+func (q *Queries) CountReturnInvoicesThisYear(ctx context.Context, salesInvoiceID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countReturnInvoicesThisYear, salesInvoiceID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -51,11 +52,12 @@ func (q *Queries) CountReturnInvoicesThisYear(ctx context.Context) (int64, error
 
 const countSalesInvoicesThisYear = `-- name: CountSalesInvoicesThisYear :one
 SELECT count(*) FROM sales_invoices
-WHERE created_at >= date_trunc('year', now() AT TIME ZONE 'UTC')
+WHERE cashbox_id = $1
+AND created_at >= date_trunc('year', now() AT TIME ZONE 'UTC')
 `
 
-func (q *Queries) CountSalesInvoicesThisYear(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countSalesInvoicesThisYear)
+func (q *Queries) CountSalesInvoicesThisYear(ctx context.Context, cashboxID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countSalesInvoicesThisYear, cashboxID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
