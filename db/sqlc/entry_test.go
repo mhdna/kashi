@@ -18,7 +18,7 @@ func createRandomEntry(t *testing.T) Entry {
 		InventoryID:                inventory.ID,
 		ReferenceType:              EntryReferenceTypePurchase,
 		ReferenceID:                purchase.ID,
-		NetAmountInDefaultCurrency: util.RandomMoneyAmount(),
+		NetAmountInDefaultCurrency: util.RandomAmount(),
 	}
 	entry, err := testQueries.CreateEntryItem(context.Background(), arg)
 	require.NoError(t, err)

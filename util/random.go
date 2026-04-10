@@ -13,7 +13,7 @@ func RandomInt(min, max int64) int64 {
 	return min + rand.Int63n(max-min+1)
 }
 
-func RandomMoneyAmount() int64 {
+func RandomAmount() int64 {
 	return RandomInt(1, 100000)
 }
 }

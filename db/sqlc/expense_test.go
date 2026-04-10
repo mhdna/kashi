@@ -14,7 +14,7 @@ func createRandomExpense(t *testing.T) Expense {
 
 	arg := CreateExpenseParams{
 		Description:  util.RandomName(),
-		Amount:       util.RandomMoneyAmount(),
+		Amount:       util.RandomAmount(),
 		CurrencyCode: currency.Code,
 	}
 	expense, err := testQueries.CreateExpense(context.Background(), arg)

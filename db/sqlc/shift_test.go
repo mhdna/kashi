@@ -16,8 +16,8 @@ func createRandomShift(t *testing.T) Shift {
 
 	arg := CreateShiftParams{
 		CashboxID:           cashbox.ID,
-		TotalOpeningBalance: util.RandomMoneyAmount(),
-		TotalBalance:        util.RandomMoneyAmount(),
+		TotalOpeningBalance: util.RandomAmount(),
+		TotalBalance:        util.RandomAmount(),
 	}
 
 	shift, err := testQueries.CreateShift(context.Background(), arg)
@@ -60,6 +60,7 @@ func TestListShifts(t *testing.T) {
 	shifts, err := testQueries.ListShifts(context.Background(), arg)
 	require.NoError(t, err)
 	for shift := range shifts {
+		// FIXME
 		require.NotEmpty(t, shift)
 	}
 }
@@ -71,7 +72,7 @@ func TestUpdateShiftBalance(t *testing.T) {
 
 	arg := UpdateShiftBalanceParams{
 		ID:           shift.ID,
-		TotalBalance: currentBalance + util.RandomMoneyAmount(),
+		TotalBalance: currentBalance + util.RandomAmount(),
 	}
 
 	err := testQueries.UpdateShiftBalance(context.Background(), arg)
