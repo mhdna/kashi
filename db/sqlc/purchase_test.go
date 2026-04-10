@@ -66,11 +66,11 @@ func TestAddPurchaseItem(t *testing.T) {
 	purchase := createRandomPurchase(t)
 	currency := createRandomCurrency(t)
 	arg := AddPurchaseItemParams{
-		PurchaseID: sql.NullInt64{Int64: purchase.ID, Valid: true},
-		ProductID:  sql.NullInt64{Int64: product.ID, Valid: true},
-		Quantity:   util.RandomQuantity(),
-		UnitPrice:  util.RandomMoneyAmount(),
-		CurrencyID: currency.ID,
+		PurchaseID:   sql.NullInt64{Int64: purchase.ID, Valid: true},
+		ProductID:    sql.NullInt64{Int64: product.ID, Valid: true},
+		Quantity:     util.RandomQuantity(),
+		UnitPrice:    util.RandomMoneyAmount(),
+		CurrencyCode: currency.Code,
 	}
 
 	purchased_item, err := testQueries.AddPurchaseItem(context.Background(), arg)
@@ -80,7 +80,7 @@ func TestAddPurchaseItem(t *testing.T) {
 	require.Equal(t, arg.ProductID, purchased_item.ProductID)
 	require.Equal(t, arg.Quantity, purchased_item.Quantity)
 	require.Equal(t, arg.UnitPrice, purchased_item.UnitPrice)
-	require.Equal(t, arg.CurrencyID, purchased_item.CurrencyID)
+	require.Equal(t, arg.CurrencyCode, purchased_item.CurrencyCode)
 
 	require.NotZero(t, purchased_item.ID)
 }

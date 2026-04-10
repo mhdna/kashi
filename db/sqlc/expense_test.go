@@ -13,15 +13,15 @@ func createRandomExpense(t *testing.T) Expense {
 	currency := createRandomCurrency(t)
 
 	arg := CreateExpenseParams{
-		Description: util.RandomName(),
-		Amount:      util.RandomMoneyAmount(),
-		CurrencyID:  currency.ID,
+		Description:  util.RandomName(),
+		Amount:       util.RandomMoneyAmount(),
+		CurrencyCode: currency.Code,
 	}
 	expense, err := testQueries.CreateExpense(context.Background(), arg)
 	require.NoError(t, err)
 	require.Equal(t, expense.Description, arg.Description)
 	require.Equal(t, expense.Amount, arg.Amount)
-	require.Equal(t, expense.CurrencyID, arg.CurrencyID)
+	require.Equal(t, expense.CurrencyCode, arg.CurrencyCode)
 
 	return expense
 }
@@ -38,7 +38,7 @@ func TestGetExpense(t *testing.T) {
 	require.Equal(t, expense1.ID, expense2.ID)
 	require.Equal(t, expense1.Amount, expense2.Amount)
 	require.Equal(t, expense1.Description, expense2.Description)
-	require.Equal(t, expense1.CurrencyID, expense2.CurrencyID)
+	require.Equal(t, expense1.CurrencyCode, expense2.CurrencyCode)
 
 	require.WithinDuration(t, expense1.CreatedAt, expense2.CreatedAt, time.Second)
 }
