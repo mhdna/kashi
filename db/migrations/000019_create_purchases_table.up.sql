@@ -10,7 +10,7 @@ create table if not exists purchase_items (
     product_id bigint references products(id),
     asset_id bigint references assets(id),
     quantity bigint not null,
-    unit_price numeric(12,4) not null default 0,
+    unit_price bigint not null default 0,
     currency_code text not null references currencies(code),
     check (
         (product_id is not null and asset_id is null) or
