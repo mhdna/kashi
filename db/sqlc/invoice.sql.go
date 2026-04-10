@@ -96,10 +96,10 @@ INSERT INTO sales_invoices (
   amount,
   net_amount,
   discount,
-  currency_id
+  currency_code
 ) 
 VALUES ( $1, $2, $3, $4, $5, $6, $7, $8 )
-RETURNING id, invoice_number, cashbox_id, currency_id, inventory_id, client_id, amount, discount, net_amount, created_at
+RETURNING id, invoice_number, cashbox_id, currency_code, inventory_id, client_id, amount, discount, net_amount, created_at
 `
 
 type CreateSalesInvoiceParams struct {
@@ -107,10 +107,10 @@ type CreateSalesInvoiceParams struct {
 	InvoiceNumber string `json:"invoiceNumber"`
 	InventoryID   int64  `json:"inventoryId"`
 	ClientID      int64  `json:"clientId"`
-	Amount        string `json:"amount"`
-	NetAmount     string `json:"netAmount"`
+	Amount        int64  `json:"amount"`
+	NetAmount     int64  `json:"netAmount"`
 	Discount      int16  `json:"discount"`
-	CurrencyID    int64  `json:"currencyId"`
+	CurrencyCode  string `json:"currencyCode"`
 }
 
 func (q *Queries) CreateSalesInvoice(ctx context.Context, arg CreateSalesInvoiceParams) (SalesInvoice, error) {
@@ -122,14 +122,14 @@ func (q *Queries) CreateSalesInvoice(ctx context.Context, arg CreateSalesInvoice
 		arg.Amount,
 		arg.NetAmount,
 		arg.Discount,
-		arg.CurrencyID,
+		arg.CurrencyCode,
 	)
 	var i SalesInvoice
 	err := row.Scan(
 		&i.ID,
 		&i.InvoiceNumber,
 		&i.CashboxID,
-		&i.CurrencyID,
+		&i.CurrencyCode,
 		&i.InventoryID,
 		&i.ClientID,
 		&i.Amount,
@@ -158,7 +158,7 @@ func (q *Queries) GetReturnInvoice(ctx context.Context, id int64) (ReturnInvoice
 }
 
 const getSalesInvoice = `-- name: GetSalesInvoice :one
-SELECT id, invoice_number, cashbox_id, currency_id, inventory_id, client_id, amount, discount, net_amount, created_at FROM sales_invoices
+SELECT id, invoice_number, cashbox_id, currency_code, inventory_id, client_id, amount, discount, net_amount, created_at FROM sales_invoices
 WHERE id = $1 LIMIT 1
 `
 
@@ -169,7 +169,7 @@ func (q *Queries) GetSalesInvoice(ctx context.Context, id int64) (SalesInvoice, 
 		&i.ID,
 		&i.InvoiceNumber,
 		&i.CashboxID,
-		&i.CurrencyID,
+		&i.CurrencyCode,
 		&i.InventoryID,
 		&i.ClientID,
 		&i.Amount,
@@ -181,7 +181,7 @@ func (q *Queries) GetSalesInvoice(ctx context.Context, id int64) (SalesInvoice, 
 }
 
 const listSalesInvoices = `-- name: ListSalesInvoices :many
-SELECT id, invoice_number, cashbox_id, currency_id, inventory_id, client_id, amount, discount, net_amount, created_at FROM sales_invoices
+SELECT id, invoice_number, cashbox_id, currency_code, inventory_id, client_id, amount, discount, net_amount, created_at FROM sales_invoices
 ORDER BY id
 LIMIT $1
 OFFSET $2
@@ -205,7 +205,7 @@ func (q *Queries) ListSalesInvoices(ctx context.Context, arg ListSalesInvoicesPa
 			&i.ID,
 			&i.InvoiceNumber,
 			&i.CashboxID,
-			&i.CurrencyID,
+			&i.CurrencyCode,
 			&i.InventoryID,
 			&i.ClientID,
 			&i.Amount,

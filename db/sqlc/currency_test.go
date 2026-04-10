@@ -11,9 +11,10 @@ import (
 
 func createRandomCurrency(t *testing.T) Currency {
 	arg := CreateCurrencyParams{
-		Name:       util.RandomName(),
-		Code:       util.RandomCode(),
-		ValueInUsd: util.RandomMoneyAmount(),
+		Name:                   util.RandomName(),
+		Code:                   util.RandomCode(),
+		Symbol:                 util.RandomCode(),
+		ValueInDefaultCurrency: util.RandomMoneyAmount(),
 	}
 
 	currency, err := testQueries.CreateCurrency(context.Background(), arg)

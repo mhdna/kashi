@@ -6,7 +6,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 type Querier interface {
@@ -18,6 +17,7 @@ type Querier interface {
 	CountReturnInvoicesThisYear(ctx context.Context) (int64, error)
 	CountSalesInvoicesThisYear(ctx context.Context) (int64, error)
 	CreateAttributeValue(ctx context.Context, arg CreateAttributeValueParams) (AttributesValue, error)
+	CreateCashBoxAccount(ctx context.Context, title string) (CashboxAccount, error)
 	CreateCashbox(ctx context.Context, arg CreateCashboxParams) (Cashbox, error)
 	CreateClient(ctx context.Context, arg CreateClientParams) (Client, error)
 	CreateCurrency(ctx context.Context, arg CreateCurrencyParams) (Currency, error)
@@ -34,7 +34,7 @@ type Querier interface {
 	CreateTransfer(ctx context.Context, arg CreateTransferParams) (Transfer, error)
 	CreateTransferItem(ctx context.Context, arg CreateTransferItemParams) (TransferItem, error)
 	DeleteClient(ctx context.Context, id int64) error
-	DeleteCurrency(ctx context.Context, id int64) error
+	DeleteCurrency(ctx context.Context, code string) error
 	DeleteInventory(ctx context.Context, id int64) error
 	DeleteInventoryProduct(ctx context.Context, arg DeleteInventoryProductParams) error
 	DeleteProduct(ctx context.Context, id int64) error
@@ -42,7 +42,8 @@ type Querier interface {
 	GetAttributeValue(ctx context.Context, id int64) (AttributesValue, error)
 	GetCashbox(ctx context.Context, id int64) (Cashbox, error)
 	GetClient(ctx context.Context, id int64) (Client, error)
-	GetCurrency(ctx context.Context, id int64) (Currency, error)
+	GetCurrency(ctx context.Context, code string) (Currency, error)
+	GetDefaultCurrency(ctx context.Context) (Currency, error)
 	GetEntry(ctx context.Context, id int64) (Entry, error)
 	GetExpense(ctx context.Context, id int64) (Expense, error)
 	GetInventory(ctx context.Context, id int64) (Inventory, error)
@@ -51,6 +52,7 @@ type Querier interface {
 	GetPurchase(ctx context.Context, id int64) (Purchase, error)
 	GetReturnInvoice(ctx context.Context, id int64) (ReturnInvoice, error)
 	GetSalesInvoice(ctx context.Context, id int64) (SalesInvoice, error)
+	GetShift(ctx context.Context, id int64) (Shift, error)
 	GetSupplier(ctx context.Context, id int64) (Supplier, error)
 	GetTransfer(ctx context.Context, id int64) (Transfer, error)
 	ListAttributeValues(ctx context.Context, arg ListAttributeValuesParams) ([]ListAttributeValuesRow, error)
@@ -65,17 +67,19 @@ type Querier interface {
 	ListProducts(ctx context.Context, arg ListProductsParams) ([]Product, error)
 	ListPurchases(ctx context.Context, arg ListPurchasesParams) ([]Purchase, error)
 	ListSalesInvoices(ctx context.Context, arg ListSalesInvoicesParams) ([]SalesInvoice, error)
+	ListShifts(ctx context.Context, arg ListShiftsParams) ([]Shift, error)
 	ListSuppliers(ctx context.Context, arg ListSuppliersParams) ([]Supplier, error)
 	// TODO maybe this is not so clean
 	ListTransferItems(ctx context.Context, transferID int64) ([]ListTransferItemsRow, error)
 	ListTransfers(ctx context.Context, arg ListTransfersParams) ([]Transfer, error)
-	SetShiftCloseingTime(ctx context.Context, closingDateTime sql.NullTime) error
+	UpdateAccountBalance(ctx context.Context, arg UpdateAccountBalanceParams) error
 	UpdateAttributeValue(ctx context.Context, arg UpdateAttributeValueParams) error
 	UpdateClient(ctx context.Context, arg UpdateClientParams) error
 	UpdateInventory(ctx context.Context, arg UpdateInventoryParams) error
 	UpdateInventoryProduct(ctx context.Context, arg UpdateInventoryProductParams) error
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) error
 	UpdateProductAttribute(ctx context.Context, arg UpdateProductAttributeParams) error
+	UpdateShift(ctx context.Context, arg UpdateShiftParams) error
 	UpdateTransfer(ctx context.Context, arg UpdateTransferParams) error
 }
 

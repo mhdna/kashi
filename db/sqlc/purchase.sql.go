@@ -18,19 +18,19 @@ INSERT INTO purchase_items (
   asset_id,
   quantity,
   unit_price,
-  currency_id
+  currency_code
 ) 
 VALUES ( $1, $2, $3, $4, $5, $6 )
-RETURNING id, purchase_id, product_id, asset_id, quantity, unit_price, currency_id
+RETURNING id, purchase_id, product_id, asset_id, quantity, unit_price, currency_code
 `
 
 type AddPurchaseItemParams struct {
-	PurchaseID sql.NullInt64 `json:"purchaseId"`
-	ProductID  sql.NullInt64 `json:"productId"`
-	AssetID    sql.NullInt64 `json:"assetId"`
-	Quantity   int64         `json:"quantity"`
-	UnitPrice  string        `json:"unitPrice"`
-	CurrencyID int64         `json:"currencyId"`
+	PurchaseID   sql.NullInt64 `json:"purchaseId"`
+	ProductID    sql.NullInt64 `json:"productId"`
+	AssetID      sql.NullInt64 `json:"assetId"`
+	Quantity     int64         `json:"quantity"`
+	UnitPrice    int64         `json:"unitPrice"`
+	CurrencyCode string        `json:"currencyCode"`
 }
 
 func (q *Queries) AddPurchaseItem(ctx context.Context, arg AddPurchaseItemParams) (PurchaseItem, error) {
@@ -40,7 +40,7 @@ func (q *Queries) AddPurchaseItem(ctx context.Context, arg AddPurchaseItemParams
 		arg.AssetID,
 		arg.Quantity,
 		arg.UnitPrice,
-		arg.CurrencyID,
+		arg.CurrencyCode,
 	)
 	var i PurchaseItem
 	err := row.Scan(
@@ -50,7 +50,7 @@ func (q *Queries) AddPurchaseItem(ctx context.Context, arg AddPurchaseItemParams
 		&i.AssetID,
 		&i.Quantity,
 		&i.UnitPrice,
-		&i.CurrencyID,
+		&i.CurrencyCode,
 	)
 	return i, err
 }

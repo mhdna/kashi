@@ -26,7 +26,7 @@ type CreateEntryItemParams struct {
 	InventoryID   int64              `json:"inventoryId"`
 	ReferenceType EntryReferenceType `json:"referenceType"`
 	ReferenceID   int64              `json:"referenceId"`
-	NetAmount     string             `json:"netAmount"`
+	NetAmount     int64              `json:"netAmount"`
 }
 
 func (q *Queries) CreateEntryItem(ctx context.Context, arg CreateEntryItemParams) (Entry, error) {
