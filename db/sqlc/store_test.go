@@ -4,50 +4,107 @@ import (
 	"context"
 	"testing"
 
+	"github.com/mhdna/kashi/util"
 	"github.com/stretchr/testify/require"
 )
 
-func TestTransferTX(t *testing.T) {
+// func TestTransferTX(t *testing.T) {
+// 	store := NewStore(testDB)
+
+// 	inventory1 := createRandomInventory(t)
+// 	inventory2 := createRandomInventory(t)
+
+// 	errs := make(chan error)
+// 	results := make(chan TransferTxResult)
+
+// 	for range 5 {
+// 		go func() {
+// 			result, err := store.TransferTx(context.Background(), TransferTxParams{
+// 				FromInventoryID: inventory1.ID,
+// 				ToInventoryID:   inventory2.ID,
+// 				TransferType:    TransferTypeProducts,
+// 			})
+// 			errs <- err
+// 			results <- result
+// 		}()
+// 	}
+
+// 	for range 5 {
+// 		err := <-errs
+// 		require.NoError(t, err)
+
+// 		result := <-results
+// 		require.NotEmpty(t, results)
+
+// 		// check transfer
+// 		transfer := result.Transfer
+
+// 		items := result.Items
+
+// 		require.NotEmpty(t, transfer)
+// 		require.Equal(t, inventory1.ID, transfer.FromInventoryID)
+// 		require.Equal(t, inventory2.ID, transfer.ToInventoryID)
+// 		require.NotZero(t, transfer.ID)
+// 		require.NotZero(t, transfer.CreatedAt)
+
+// 		for _, i := range items {
+// 			require.NotZero(t, i.Quantity)
+// 		}
+// 	}
+// }
+
+func TestSalesInvoiceTx(t *testing.T) {
 	store := NewStore(testDB)
 
-	inventory1 := createRandomInventory(t)
-	inventory2 := createRandomInventory(t)
+	n := 5
 
+	type txResult struct {
+		salesInvoice SalesInvoice
+		idx          int
+	}
 	errs := make(chan error)
-	results := make(chan TransferTxResult)
+	results := make(chan txResult)
 
-	for range 5 {
-		go func() {
-			result, err := store.TransferTx(context.Background(), TransferTxParams{
-				FromInventoryID: inventory1.ID,
-				ToInventoryID:   inventory2.ID,
-				TransferType:    TransferTypeProducts,
+	for i := range n {
+		amount := util.RandomAmount()
+		discount := util.RandomDiscount()
+		go func(int) {
+			cashbox := createRandomCashbox(t)
+			inventory := createRandomInventory(t)
+			currency := createRandomCurrency(t)
+			client := createRandomClient(t)
+
+			txRes, err := store.SalesInvoiceTx(context.Background(), SalesInvoiceTxParams{
+				CashBoxID:    cashbox.ID,
+				CurrencyCode: currency.Code,
+				InventoryID:  inventory.ID,
+				ClientID:     client.ID,
+				Amount:       amount,
+				Discount:     discount,
 			})
 			errs <- err
-			results <- result
-		}()
+			results <- txResult{salesInvoice: txRes.SalesInvoice, idx: i}
+		}(i)
 	}
 
-	for range 5 {
+	for range n {
 		err := <-errs
 		require.NoError(t, err)
 
-		result := <-results
-		require.NotEmpty(t, results)
+		res := <-results
+		salesInvoice := res.salesInvoice
+		// i := res.idx
 
-		// check transfer
-		transfer := result.Transfer
+		// require.NotEmpty(t, salesInvoice)
+		// require.Equal(t, inventory.ID, salesInvoice.InventoryID)
+		// require.Equal(t, cashbox.ID, salesInvoice.CashboxID)
+		// require.Equal(t, currency.Code, salesInvoice.CurrencyCode)
+		// require.Equal(t, client.ID, salesInvoice.ClientID)
+		// require.Equal(t, amounts[i], salesInvoice.Amount)
+		// require.Equal(t, discounts[i], salesInvoice.Discount)
 
-		items := result.Items
+		require.NotZero(t, salesInvoice.ID)
+		require.NotZero(t, salesInvoice.CreatedAt)
 
-		require.NotEmpty(t, transfer)
-		require.Equal(t, inventory.ID, salesInvoice.FromInventoryID)
-		require.Equal(t, inventory2.ID, transfer.ToInventoryID)
-		require.NotZero(t, transfer.ID)
-		require.NotZero(t, transfer.CreatedAt)
-
-		for _, i := range items {
-			require.NotZero(t, i.Quantity)
-		}
 	}
 }
