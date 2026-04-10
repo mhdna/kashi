@@ -13,7 +13,7 @@ func createRandomSalesInvoice(t *testing.T) SalesInvoice {
 	client := createRandomClient(t)
 	cashbox := createRandomCashbox(t)
 	inventory := createRandomInventory(t)
-	amount := util.RandomMoneyAmount()
+	amount := util.RandomAmount()
 	currency := createRandomCurrency(t)
 	discount := int16(0)
 	netAmount, err := util.CalculateNetAmount(amount, discount)
