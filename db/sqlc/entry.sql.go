@@ -15,18 +15,18 @@ INSERT INTO entries (
   inventory_id,
   reference_type,
   reference_id,
-  net_amount
+  net_amount_in_default_currency
 ) 
 VALUES ( $1, $2, $3, $4, $5)
-RETURNING id, cashbox_id, inventory_id, reference_type, reference_id, net_amount, created_at
+RETURNING id, cashbox_id, inventory_id, reference_type, reference_id, net_amount_in_default_currency, created_at
 `
 
 type CreateEntryItemParams struct {
-	CashboxID     int64              `json:"cashboxId"`
-	InventoryID   int64              `json:"inventoryId"`
-	ReferenceType EntryReferenceType `json:"referenceType"`
-	ReferenceID   int64              `json:"referenceId"`
-	NetAmount     int64              `json:"netAmount"`
+	CashboxID                  int64              `json:"cashboxId"`
+	InventoryID                int64              `json:"inventoryId"`
+	ReferenceType              EntryReferenceType `json:"referenceType"`
+	ReferenceID                int64              `json:"referenceId"`
+	NetAmountInDefaultCurrency int64              `json:"netAmountInDefaultCurrency"`
 }
 
 func (q *Queries) CreateEntryItem(ctx context.Context, arg CreateEntryItemParams) (Entry, error) {
@@ -35,7 +35,7 @@ func (q *Queries) CreateEntryItem(ctx context.Context, arg CreateEntryItemParams
 		arg.InventoryID,
 		arg.ReferenceType,
 		arg.ReferenceID,
-		arg.NetAmount,
+		arg.NetAmountInDefaultCurrency,
 	)
 	var i Entry
 	err := row.Scan(
@@ -44,14 +44,14 @@ func (q *Queries) CreateEntryItem(ctx context.Context, arg CreateEntryItemParams
 		&i.InventoryID,
 		&i.ReferenceType,
 		&i.ReferenceID,
-		&i.NetAmount,
+		&i.NetAmountInDefaultCurrency,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getEntry = `-- name: GetEntry :one
-SELECT id, cashbox_id, inventory_id, reference_type, reference_id, net_amount, created_at FROM entries
+SELECT id, cashbox_id, inventory_id, reference_type, reference_id, net_amount_in_default_currency, created_at FROM entries
 WHERE id = $1 LIMIT 1
 `
 
@@ -64,14 +64,14 @@ func (q *Queries) GetEntry(ctx context.Context, id int64) (Entry, error) {
 		&i.InventoryID,
 		&i.ReferenceType,
 		&i.ReferenceID,
-		&i.NetAmount,
+		&i.NetAmountInDefaultCurrency,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const listEntries = `-- name: ListEntries :many
-SELECT id, cashbox_id, inventory_id, reference_type, reference_id, net_amount, created_at FROM entries
+SELECT id, cashbox_id, inventory_id, reference_type, reference_id, net_amount_in_default_currency, created_at FROM entries
 WHERE inventory_id = $1
 ORDER BY id
 LIMIT $2
@@ -99,7 +99,7 @@ func (q *Queries) ListEntries(ctx context.Context, arg ListEntriesParams) ([]Ent
 			&i.InventoryID,
 			&i.ReferenceType,
 			&i.ReferenceID,
-			&i.NetAmount,
+			&i.NetAmountInDefaultCurrency,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err

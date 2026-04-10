@@ -4,7 +4,7 @@ INSERT INTO entries (
   inventory_id,
   reference_type,
   reference_id,
-  net_amount
+  net_amount_in_default_currency
 ) 
 VALUES ( $1, $2, $3, $4, $5)
 RETURNING *;

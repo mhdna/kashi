@@ -14,11 +14,11 @@ func createRandomEntry(t *testing.T) Entry {
 	purchase := createRandomPurchase(t)
 	cashbox := createRandomCashbox(t)
 	arg := CreateEntryItemParams{
-		CashboxID:     cashbox.ID,
-		InventoryID:   inventory.ID,
-		ReferenceType: EntryReferenceTypePurchase,
-		ReferenceID:   purchase.ID,
-		NetAmount:     util.RandomMoneyAmount(),
+		CashboxID:                  cashbox.ID,
+		InventoryID:                inventory.ID,
+		ReferenceType:              EntryReferenceTypePurchase,
+		ReferenceID:                purchase.ID,
+		NetAmountInDefaultCurrency: util.RandomMoneyAmount(),
 	}
 	entry, err := testQueries.CreateEntryItem(context.Background(), arg)
 	require.NoError(t, err)
@@ -26,7 +26,7 @@ func createRandomEntry(t *testing.T) Entry {
 	require.Equal(t, entry.InventoryID, arg.InventoryID)
 	require.Equal(t, entry.ReferenceType, arg.ReferenceType)
 	require.Equal(t, entry.ReferenceID, arg.ReferenceID)
-	require.Equal(t, entry.NetAmount, arg.NetAmount)
+	require.Equal(t, entry.NetAmountInDefaultCurrency, arg.NetAmountInDefaultCurrency)
 
 	return entry
 }
@@ -45,7 +45,7 @@ func TestGetEntry(t *testing.T) {
 	require.Equal(t, entry1.InventoryID, entry2.InventoryID)
 	require.Equal(t, entry1.ReferenceID, entry2.ReferenceID)
 	require.Equal(t, entry1.ReferenceType, entry2.ReferenceType)
-	require.Equal(t, entry1.NetAmount, entry2.NetAmount)
+	require.Equal(t, entry1.NetAmountInDefaultCurrency, entry2.NetAmountInDefaultCurrency)
 
 	require.WithinDuration(t, entry1.CreatedAt, entry2.CreatedAt, time.Second)
 }
