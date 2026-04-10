@@ -184,13 +184,13 @@ type Currency struct {
 }
 
 type Entry struct {
-	ID            int64              `json:"id"`
-	CashboxID     int64              `json:"cashboxId"`
-	InventoryID   int64              `json:"inventoryId"`
-	ReferenceType EntryReferenceType `json:"referenceType"`
-	ReferenceID   int64              `json:"referenceId"`
-	NetAmount     int64              `json:"netAmount"`
-	CreatedAt     time.Time          `json:"createdAt"`
+	ID                         int64              `json:"id"`
+	CashboxID                  int64              `json:"cashboxId"`
+	InventoryID                int64              `json:"inventoryId"`
+	ReferenceType              EntryReferenceType `json:"referenceType"`
+	ReferenceID                int64              `json:"referenceId"`
+	NetAmountInDefaultCurrency int64              `json:"netAmountInDefaultCurrency"`
+	CreatedAt                  time.Time          `json:"createdAt"`
 }
 
 type Expense struct {
@@ -312,12 +312,13 @@ type SalesInvoiceProduct struct {
 }
 
 type Shift struct {
-	ID                  int64     `json:"id"`
-	CashboxID           int64     `json:"cashboxId"`
-	TotalOpeningBalance int64     `json:"totalOpeningBalance"`
-	TotalBalance        int64     `json:"totalBalance"`
-	OpeningDateTime     time.Time `json:"openingDateTime"`
-	ClosingDateTime     time.Time `json:"closingDateTime"`
+	ID                  int64        `json:"id"`
+	IsClosed            bool         `json:"isClosed"`
+	CashboxID           int64        `json:"cashboxId"`
+	TotalOpeningBalance int64        `json:"totalOpeningBalance"`
+	TotalBalance        int64        `json:"totalBalance"`
+	OpeningDateTime     time.Time    `json:"openingDateTime"`
+	ClosingDateTime     sql.NullTime `json:"closingDateTime"`
 }
 
 type Size struct {
