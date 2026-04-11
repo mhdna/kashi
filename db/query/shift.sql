@@ -30,16 +30,29 @@ ORDER BY id
 LIMIT $1
 OFFSET $2;
 
--- name: CreateCashBoxAccount :one
+-- name: CreateCashboxAccount :one
 INSERT INTO cashbox_accounts (
-  title 
+  type,
+  shift_id,
+  currency_code,
+  opening_balance,
+  balance
 ) 
-VALUES ($1)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
+-- name: GetCashboxAccount :one
+SELECT * FROM cashbox_accounts
+WHERE id = $1
+LIMIT 1;
+
 -- name: UpdateAccountBalance :exec
-UPDATE accounts_balances
+UPDATE cashbox_accounts
 SET balance = $1
-WHERE cashbox_account_id = $2 
-AND shift_id = $3
-AND currency_code = $4;
+WHERE id = $2;
+
+-- name: ListAccounts :many
+SELECT * FROM cashbox_accounts
+ORDER BY id
+LIMIT $1
+OFFSET $2;

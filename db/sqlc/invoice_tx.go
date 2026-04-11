@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/mhdna/kashi/util"
@@ -12,18 +13,21 @@ import (
 // NetAmount & InvoiceCode are calculated and generated
 // automatically inside the trasaction function itself.
 type SalesInvoiceTxParams struct {
-	CashBoxID    int64  `json:"cashbox_id"`
-	CurrencyCode string `json:"currency_code"`
-	InventoryID  int64  `json:"inventory_id"`
-	ClientID     int64  `json:"client_id"`
-	Amount       int64  `json:"amount"`
-	Discount     int16  `json:"discount"`
-	Year         int32  `json:"year"`
+	CashBoxID        int64  `json:"cashbox_id"`
+	CashboxAccountID int64  `json:"cashbox_account_id"`
+	ShiftID          int64  `json:"shift_id"`
+	CurrencyCode     string `json:"currency_code"`
+	InventoryID      int64  `json:"inventory_id"`
+	ClientID         int64  `json:"client_id"`
+	Amount           int64  `json:"amount"`
+	Discount         int16  `json:"discount"`
+	Year             int32  `json:"year"`
 }
 
 type SalesInvoiceTxResult struct {
 	SalesInvoice SalesInvoice `json:"sales_invoice"`
-	NetAmount    int64        `json:"net_amount"`
+	// NetAmount    int64        `json:"net_amount"`
+	Balance int64 `json:"balance"`
 }
 
 func (store *SQLStore) generateSalesInvoiceIndex(ctx context.Context, cashboxID int64) (int64, error) {
@@ -112,13 +116,29 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 			InventoryID:                arg.InventoryID,
 			ReferenceType:              EntryReferenceTypeSalesInvoice,
 			ReferenceID:                result.SalesInvoice.ID,
-			NetAmountInDefaultCurrency: result.NetAmount,
+			NetAmountInDefaultCurrency: netAmount,
 		})
 		if err != nil {
 			return err
 		}
 
-		// TODO: update cashbox
+		account, err := q.GetCashboxAccount(ctx, arg.CashboxAccountID)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// update account balance
+		updateAccountBalance := UpdateAccountBalanceParams{
+			Balance: account.Balance + arg.Amount,
+			ID:      account.ID,
+		}
+		err = q.UpdateAccountBalance(ctx, updateAccountBalance)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		result.Balance = account.Balance
+
 		return nil
 	})
 
