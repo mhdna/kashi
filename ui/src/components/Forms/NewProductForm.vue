@@ -53,7 +53,6 @@
 <script setup>
 import { ref } from "vue";
 import { useField, useForm } from "vee-validate";
-import FileUploadCard from "../Cards/FileUploadCard.vue";
 
 const { handleSubmit, handleReset } = useForm({
   validationSchema: {
