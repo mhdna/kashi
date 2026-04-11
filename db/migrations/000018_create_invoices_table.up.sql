@@ -1,6 +1,6 @@
 create table if not exists sales_invoices (
     id bigserial primary key,
-    invoice_number text not null unique,
+    year int not null,
     cashbox_id bigint not null references cashboxes(id),
     currency_code text not null references currencies(code),
     inventory_id bigint not null references inventories(id),
@@ -21,7 +21,7 @@ create table if not exists sales_invoice_products (
 
 create table if not exists return_invoices (
     id bigserial primary key,
-    invoice_number text not null,
+    year int not null,
     sales_invoice_id bigint not null references sales_invoices(id),
     created_at timestamp(0) WITH time zone NOT NULL DEFAULT NOW()
 );

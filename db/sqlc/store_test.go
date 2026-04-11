@@ -76,6 +76,7 @@ func TestSalesInvoiceTx(t *testing.T) {
 				ClientID:     client.ID,
 				Amount:       amount,
 				Discount:     discount,
+				Year:         int32(time.Now().Year()),
 			})
 			errs <- err
 			results <- txResult{salesInvoice: txRes.SalesInvoice, idx: i}
