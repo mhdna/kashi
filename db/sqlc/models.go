@@ -97,14 +97,6 @@ func (ns NullTransferType) Value() (driver.Value, error) {
 	return string(ns.TransferType), nil
 }
 
-type AccountsBalance struct {
-	CashboxAccountID int64  `json:"cashboxAccountId"`
-	ShiftID          int64  `json:"shiftId"`
-	CurrencyCode     string `json:"currencyCode"`
-	OpeningBalance   int64  `json:"openingBalance"`
-	Balance          int64  `json:"balance"`
-}
-
 type Asset struct {
 	ID        int64     `json:"id"`
 	Name      string    `json:"name"`
@@ -149,8 +141,12 @@ type Cashbox struct {
 }
 
 type CashboxAccount struct {
-	ID    int64  `json:"id"`
-	Title string `json:"title"`
+	ID             int64  `json:"id"`
+	Type           string `json:"type"`
+	ShiftID        int64  `json:"shiftId"`
+	CurrencyCode   string `json:"currencyCode"`
+	OpeningBalance int64  `json:"openingBalance"`
+	Balance        int64  `json:"balance"`
 }
 
 type Client struct {

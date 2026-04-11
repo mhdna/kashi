@@ -24,18 +24,11 @@ create table if not exists shifts (
     closing_date_time timestamp(0) WITH time zone 
 );
 
--- E.g. Cash, paypal, ...
 create table if not exists cashbox_accounts (
     id bigserial primary key,
-    title text not null
-);
-
--- balance per each account
-create table if not exists accounts_balances (
-    cashbox_account_id bigint not null references cashbox_accounts(id),
+    type text not null,
     shift_id bigint not null references shifts(id),
     currency_code text not null references currencies(code),
     opening_balance bigint not null,
-    balance bigint not null,
-    primary key (cashbox_account_id, shift_id)
+    balance bigint not null
 );

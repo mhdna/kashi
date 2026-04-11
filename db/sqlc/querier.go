@@ -16,8 +16,8 @@ type Querier interface {
 	AddSupplierProductCost(ctx context.Context, arg AddSupplierProductCostParams) (ProductSupplierCost, error)
 	CloseShift(ctx context.Context, arg CloseShiftParams) error
 	CreateAttributeValue(ctx context.Context, arg CreateAttributeValueParams) (AttributesValue, error)
-	CreateCashBoxAccount(ctx context.Context, title string) (CashboxAccount, error)
 	CreateCashbox(ctx context.Context, arg CreateCashboxParams) (Cashbox, error)
+	CreateCashboxAccount(ctx context.Context, arg CreateCashboxAccountParams) (CashboxAccount, error)
 	CreateClient(ctx context.Context, arg CreateClientParams) (Client, error)
 	CreateCurrency(ctx context.Context, arg CreateCurrencyParams) (Currency, error)
 	CreateEntryItem(ctx context.Context, arg CreateEntryItemParams) (Entry, error)
@@ -40,6 +40,7 @@ type Querier interface {
 	DeleteSupplierProduct(ctx context.Context, id int64) error
 	GetAttributeValue(ctx context.Context, id int64) (AttributesValue, error)
 	GetCashbox(ctx context.Context, id int64) (Cashbox, error)
+	GetCashboxAccount(ctx context.Context, id int64) (CashboxAccount, error)
 	GetClient(ctx context.Context, id int64) (Client, error)
 	GetCurrency(ctx context.Context, code string) (Currency, error)
 	GetDefaultCurrency(ctx context.Context) (Currency, error)
@@ -54,6 +55,7 @@ type Querier interface {
 	GetShift(ctx context.Context, id int64) (Shift, error)
 	GetSupplier(ctx context.Context, id int64) (Supplier, error)
 	GetTransfer(ctx context.Context, id int64) (Transfer, error)
+	ListAccounts(ctx context.Context, arg ListAccountsParams) ([]CashboxAccount, error)
 	ListAttributeValues(ctx context.Context, arg ListAttributeValuesParams) ([]ListAttributeValuesRow, error)
 	ListCashboxes(ctx context.Context, arg ListCashboxesParams) ([]Cashbox, error)
 	ListClients(ctx context.Context, arg ListClientsParams) ([]Client, error)
