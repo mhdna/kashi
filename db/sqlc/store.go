@@ -180,12 +180,14 @@ func (store *SQLStore) generateInvoiceNumber(referenceType EntryReferenceType, c
 
 	return fmt.Sprintf("%s/%s/%d/%d", cashboxCode, referenceCode, thisYear, invoiceNumber), nil
 }
+var txKey = struct{}{}
 
 func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxParams) (SalesInvoiceTxResult, error) {
 	var result SalesInvoiceTxResult
 
 	err := store.execTx(ctx, func(q *Queries) error {
 		var err error
+		// txName := ctx.Value(txKey)
 
 		invoiceNumber, err := store.generateInvoiceNumber(EntryReferenceTypeSalesInvoice, arg.CashBoxID)
 		if err != nil {

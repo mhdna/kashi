@@ -66,15 +66,8 @@ func TestSalesInvoiceTx(t *testing.T) {
 	results := make(chan txResult)
 
 	for i := range n {
-		amount := util.RandomAmount()
-		discount := util.RandomDiscount()
-		go func(int) {
-			cashbox := createRandomCashbox(t)
-			inventory := createRandomInventory(t)
-			currency := createRandomCurrency(t)
-			client := createRandomClient(t)
-
-			txRes, err := store.SalesInvoiceTx(context.Background(), SalesInvoiceTxParams{
+			txName := fmt.Sprintf("tx %d", i+1)
+			txRes, err := store.SalesInvoiceTx(context.WithValue(context.Background(), txKey, txName), SalesInvoiceTxParams{
 				CashBoxID:    cashbox.ID,
 				CurrencyCode: currency.Code,
 				InventoryID:  inventory.ID,
