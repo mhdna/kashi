@@ -53,6 +53,8 @@ import (
 // 	}
 // }
 
+// TODO add tests to see if invoices are incrementing properly
+// TODO add tests to cover different cashboxes, accounts, etc.
 func TestSalesInvoiceTx(t *testing.T) {
 	store := NewStore(testDB)
 
