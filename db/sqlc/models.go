@@ -286,22 +286,33 @@ type PurchaseItem struct {
 
 type ReturnInvoice struct {
 	ID             int64     `json:"id"`
-	InvoiceNumber  string    `json:"invoiceNumber"`
+	InvoiceCode    string    `json:"invoiceCode"`
+	InvoiceIndex   int64     `json:"invoiceIndex"`
+	Year           int32     `json:"year"`
+	CashboxID      int64     `json:"cashboxId"`
 	SalesInvoiceID int64     `json:"salesInvoiceId"`
 	CreatedAt      time.Time `json:"createdAt"`
 }
 
+type ReturnInvoicesIndex struct {
+	Year      int32 `json:"year"`
+	CashboxID int64 `json:"cashboxId"`
+	LastIndex int64 `json:"lastIndex"`
+}
+
 type SalesInvoice struct {
-	ID            int64     `json:"id"`
-	InvoiceNumber string    `json:"invoiceNumber"`
-	CashboxID     int64     `json:"cashboxId"`
-	CurrencyCode  string    `json:"currencyCode"`
-	InventoryID   int64     `json:"inventoryId"`
-	ClientID      int64     `json:"clientId"`
-	Amount        int64     `json:"amount"`
-	Discount      int16     `json:"discount"`
-	NetAmount     int64     `json:"netAmount"`
-	CreatedAt     time.Time `json:"createdAt"`
+	ID           int64     `json:"id"`
+	InvoiceCode  string    `json:"invoiceCode"`
+	InvoiceIndex int64     `json:"invoiceIndex"`
+	Year         int32     `json:"year"`
+	CashboxID    int64     `json:"cashboxId"`
+	CurrencyCode string    `json:"currencyCode"`
+	InventoryID  int64     `json:"inventoryId"`
+	ClientID     int64     `json:"clientId"`
+	Amount       int64     `json:"amount"`
+	Discount     int16     `json:"discount"`
+	NetAmount    int64     `json:"netAmount"`
+	CreatedAt    time.Time `json:"createdAt"`
 }
 
 type SalesInvoiceProduct struct {
@@ -309,6 +320,12 @@ type SalesInvoiceProduct struct {
 	ProductID int64     `json:"productId"`
 	Quantity  int64     `json:"quantity"`
 	CreatedAt time.Time `json:"createdAt"`
+}
+
+type SalesInvoicesIndex struct {
+	Year      int32 `json:"year"`
+	CashboxID int64 `json:"cashboxId"`
+	LastIndex int64 `json:"lastIndex"`
 }
 
 type Shift struct {
