@@ -463,6 +463,21 @@ func (mr *MockStoreMockRecorder) DeleteSupplierProduct(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSupplierProduct", reflect.TypeOf((*MockStore)(nil).DeleteSupplierProduct), arg0, arg1)
 }
 
+// GetAccountBalance mocks base method.
+func (m *MockStore) GetAccountBalance(arg0 context.Context, arg1 db.GetAccountBalanceParams) (db.AccountsBalance, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAccountBalance", arg0, arg1)
+	ret0, _ := ret[0].(db.AccountsBalance)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAccountBalance indicates an expected call of GetAccountBalance.
+func (mr *MockStoreMockRecorder) GetAccountBalance(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountBalance", reflect.TypeOf((*MockStore)(nil).GetAccountBalance), arg0, arg1)
+}
+
 // GetAttributeValue mocks base method.
 func (m *MockStore) GetAttributeValue(arg0 context.Context, arg1 int64) (db.AttributesValue, error) {
 	m.ctrl.T.Helper()
