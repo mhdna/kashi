@@ -1,9 +1,8 @@
 <template>
     <ServerSideTable :header="headers" :apiURL="apiURL" />
 </template>
-<script setup>
-import ServerSideTable from './Tables/ServerSideTable.vue'
 
+<script setup>
 const apiURL = 'http://localhost:4123/products'
 const headers = ref([
     { title: 'ID', key: 'id', align: 'start' },
