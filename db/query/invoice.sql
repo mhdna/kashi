@@ -3,6 +3,7 @@ INSERT INTO sales_invoices (
   cashbox_id,
   invoice_number,
   inventory_id,
+  year,
   client_id,
   amount,
   net_amount,
