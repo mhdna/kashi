@@ -37,52 +37,38 @@ func (q *Queries) AddSalesInvoiceProduct(ctx context.Context, arg AddSalesInvoic
 	return i, err
 }
 
-const countReturnInvoicesThisYear = `-- name: CountReturnInvoicesThisYear :one
-SELECT count(*) FROM return_invoices
-WHERE sales_invoice_id = $1
-AND created_at >= date_trunc('year', now() AT TIME ZONE 'UTC')
-`
-
-func (q *Queries) CountReturnInvoicesThisYear(ctx context.Context, salesInvoiceID int64) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countReturnInvoicesThisYear, salesInvoiceID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countSalesInvoicesThisYear = `-- name: CountSalesInvoicesThisYear :one
-SELECT count(*) FROM sales_invoices
-WHERE cashbox_id = $1
-AND created_at >= date_trunc('year', now() AT TIME ZONE 'UTC')
-`
-
-func (q *Queries) CountSalesInvoicesThisYear(ctx context.Context, cashboxID int64) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countSalesInvoicesThisYear, cashboxID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const createReturnInvoice = `-- name: CreateReturnInvoice :one
 INSERT INTO return_invoices (
-  invoice_number,
+  invoice_index,
+  invoice_code,
+  cashbox_id,
   sales_invoice_id
 ) 
-VALUES ( $1, $2 )
-RETURNING id, invoice_number, sales_invoice_id, created_at
+VALUES ( $1, $2, $3, $4 )
+RETURNING id, invoice_code, invoice_index, year, cashbox_id, sales_invoice_id, created_at
 `
 
 type CreateReturnInvoiceParams struct {
-	InvoiceNumber  string `json:"invoiceNumber"`
+	InvoiceIndex   int64  `json:"invoiceIndex"`
+	InvoiceCode    string `json:"invoiceCode"`
+	CashboxID      int64  `json:"cashboxId"`
 	SalesInvoiceID int64  `json:"salesInvoiceId"`
 }
 
 func (q *Queries) CreateReturnInvoice(ctx context.Context, arg CreateReturnInvoiceParams) (ReturnInvoice, error) {
-	row := q.db.QueryRowContext(ctx, createReturnInvoice, arg.InvoiceNumber, arg.SalesInvoiceID)
+	row := q.db.QueryRowContext(ctx, createReturnInvoice,
+		arg.InvoiceIndex,
+		arg.InvoiceCode,
+		arg.CashboxID,
+		arg.SalesInvoiceID,
+	)
 	var i ReturnInvoice
 	err := row.Scan(
 		&i.ID,
-		&i.InvoiceNumber,
+		&i.InvoiceCode,
+		&i.InvoiceIndex,
+		&i.Year,
+		&i.CashboxID,
 		&i.SalesInvoiceID,
 		&i.CreatedAt,
 	)
@@ -92,34 +78,40 @@ func (q *Queries) CreateReturnInvoice(ctx context.Context, arg CreateReturnInvoi
 const createSalesInvoice = `-- name: CreateSalesInvoice :one
 INSERT INTO sales_invoices (
   cashbox_id,
-  invoice_number,
+  invoice_index,
+  invoice_code,
   inventory_id,
+  year,
   client_id,
   amount,
   net_amount,
   discount,
   currency_code
 ) 
-VALUES ( $1, $2, $3, $4, $5, $6, $7, $8 )
-RETURNING id, invoice_number, cashbox_id, currency_code, inventory_id, client_id, amount, discount, net_amount, created_at
+VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 )
+RETURNING id, invoice_code, invoice_index, year, cashbox_id, currency_code, inventory_id, client_id, amount, discount, net_amount, created_at
 `
 
 type CreateSalesInvoiceParams struct {
-	CashboxID     int64  `json:"cashboxId"`
-	InvoiceNumber string `json:"invoiceNumber"`
-	InventoryID   int64  `json:"inventoryId"`
-	ClientID      int64  `json:"clientId"`
-	Amount        int64  `json:"amount"`
-	NetAmount     int64  `json:"netAmount"`
-	Discount      int16  `json:"discount"`
-	CurrencyCode  string `json:"currencyCode"`
+	CashboxID    int64  `json:"cashboxId"`
+	InvoiceIndex int64  `json:"invoiceIndex"`
+	InvoiceCode  string `json:"invoiceCode"`
+	InventoryID  int64  `json:"inventoryId"`
+	Year         int32  `json:"year"`
+	ClientID     int64  `json:"clientId"`
+	Amount       int64  `json:"amount"`
+	NetAmount    int64  `json:"netAmount"`
+	Discount     int16  `json:"discount"`
+	CurrencyCode string `json:"currencyCode"`
 }
 
 func (q *Queries) CreateSalesInvoice(ctx context.Context, arg CreateSalesInvoiceParams) (SalesInvoice, error) {
 	row := q.db.QueryRowContext(ctx, createSalesInvoice,
 		arg.CashboxID,
-		arg.InvoiceNumber,
+		arg.InvoiceIndex,
+		arg.InvoiceCode,
 		arg.InventoryID,
+		arg.Year,
 		arg.ClientID,
 		arg.Amount,
 		arg.NetAmount,
@@ -129,7 +121,9 @@ func (q *Queries) CreateSalesInvoice(ctx context.Context, arg CreateSalesInvoice
 	var i SalesInvoice
 	err := row.Scan(
 		&i.ID,
-		&i.InvoiceNumber,
+		&i.InvoiceCode,
+		&i.InvoiceIndex,
+		&i.Year,
 		&i.CashboxID,
 		&i.CurrencyCode,
 		&i.InventoryID,
@@ -143,7 +137,7 @@ func (q *Queries) CreateSalesInvoice(ctx context.Context, arg CreateSalesInvoice
 }
 
 const getReturnInvoice = `-- name: GetReturnInvoice :one
-SELECT id, invoice_number, sales_invoice_id, created_at FROM return_invoices
+SELECT id, invoice_code, invoice_index, year, cashbox_id, sales_invoice_id, created_at FROM return_invoices
 WHERE id = $1 LIMIT 1
 `
 
@@ -152,7 +146,10 @@ func (q *Queries) GetReturnInvoice(ctx context.Context, id int64) (ReturnInvoice
 	var i ReturnInvoice
 	err := row.Scan(
 		&i.ID,
-		&i.InvoiceNumber,
+		&i.InvoiceCode,
+		&i.InvoiceIndex,
+		&i.Year,
+		&i.CashboxID,
 		&i.SalesInvoiceID,
 		&i.CreatedAt,
 	)
@@ -160,7 +157,7 @@ func (q *Queries) GetReturnInvoice(ctx context.Context, id int64) (ReturnInvoice
 }
 
 const getSalesInvoice = `-- name: GetSalesInvoice :one
-SELECT id, invoice_number, cashbox_id, currency_code, inventory_id, client_id, amount, discount, net_amount, created_at FROM sales_invoices
+SELECT id, invoice_code, invoice_index, year, cashbox_id, currency_code, inventory_id, client_id, amount, discount, net_amount, created_at FROM sales_invoices
 WHERE id = $1 LIMIT 1
 `
 
@@ -169,7 +166,9 @@ func (q *Queries) GetSalesInvoice(ctx context.Context, id int64) (SalesInvoice, 
 	var i SalesInvoice
 	err := row.Scan(
 		&i.ID,
-		&i.InvoiceNumber,
+		&i.InvoiceCode,
+		&i.InvoiceIndex,
+		&i.Year,
 		&i.CashboxID,
 		&i.CurrencyCode,
 		&i.InventoryID,
@@ -183,7 +182,7 @@ func (q *Queries) GetSalesInvoice(ctx context.Context, id int64) (SalesInvoice, 
 }
 
 const listSalesInvoices = `-- name: ListSalesInvoices :many
-SELECT id, invoice_number, cashbox_id, currency_code, inventory_id, client_id, amount, discount, net_amount, created_at FROM sales_invoices
+SELECT id, invoice_code, invoice_index, year, cashbox_id, currency_code, inventory_id, client_id, amount, discount, net_amount, created_at FROM sales_invoices
 ORDER BY id
 LIMIT $1
 OFFSET $2
@@ -205,7 +204,9 @@ func (q *Queries) ListSalesInvoices(ctx context.Context, arg ListSalesInvoicesPa
 		var i SalesInvoice
 		if err := rows.Scan(
 			&i.ID,
-			&i.InvoiceNumber,
+			&i.InvoiceCode,
+			&i.InvoiceIndex,
+			&i.Year,
 			&i.CashboxID,
 			&i.CurrencyCode,
 			&i.InventoryID,
@@ -226,4 +227,44 @@ func (q *Queries) ListSalesInvoices(ctx context.Context, arg ListSalesInvoicesPa
 		return nil, err
 	}
 	return items, nil
+}
+
+const nextReturnInvoiceIndexIncrement = `-- name: NextReturnInvoiceIndexIncrement :one
+INSERT INTO return_invoices_indexes (year, cashbox_id, last_index)
+VALUES ($1, $2, 1)
+ON CONFLICT (year, cashbox_id)
+DO UPDATE SET last_index = return_invoices_indexes.last_index + 1
+RETURNING last_index
+`
+
+type NextReturnInvoiceIndexIncrementParams struct {
+	Year      int32 `json:"year"`
+	CashboxID int64 `json:"cashboxId"`
+}
+
+func (q *Queries) NextReturnInvoiceIndexIncrement(ctx context.Context, arg NextReturnInvoiceIndexIncrementParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, nextReturnInvoiceIndexIncrement, arg.Year, arg.CashboxID)
+	var last_index int64
+	err := row.Scan(&last_index)
+	return last_index, err
+}
+
+const nextSalesInvoiceIndexIncrement = `-- name: NextSalesInvoiceIndexIncrement :one
+INSERT INTO sales_invoices_indexes  (year, cashbox_id, last_index)
+VALUES ($1, $2, 1)
+ON CONFLICT (year, cashbox_id)
+DO UPDATE SET last_index = sales_invoices_indexes.last_index + 1
+RETURNING last_index
+`
+
+type NextSalesInvoiceIndexIncrementParams struct {
+	Year      int32 `json:"year"`
+	CashboxID int64 `json:"cashboxId"`
+}
+
+func (q *Queries) NextSalesInvoiceIndexIncrement(ctx context.Context, arg NextSalesInvoiceIndexIncrementParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, nextSalesInvoiceIndexIncrement, arg.Year, arg.CashboxID)
+	var last_index int64
+	err := row.Scan(&last_index)
+	return last_index, err
 }
