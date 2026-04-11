@@ -26,13 +26,13 @@ type SalesInvoiceTxResult struct {
 	NetAmount    int64        `json:"net_amount"`
 }
 
-func (store *SQLStore) generateSalesInvoiceIndex(cashboxID int64) (int64, error) {
+func (store *SQLStore) generateSalesInvoiceIndex(ctx context.Context, cashboxID int64) (int64, error) {
 	thisYear := time.Now().Year()
 	arg := NextSalesInvoiceIndexIncrementParams{
 		CashboxID: cashboxID,
 		Year:      int32(thisYear),
 	}
-	index, err := store.NextSalesInvoiceIndexIncrement(context.Background(), arg)
+	index, err := store.NextSalesInvoiceIndexIncrement(ctx, arg)
 	if err != nil {
 		return 0, err
 	}
@@ -42,12 +42,12 @@ func (store *SQLStore) generateSalesInvoiceIndex(cashboxID int64) (int64, error)
 // generate invoice number in the format:
 // CashboxCode/Type of Invoice/Year/Number of Invoice this Year
 // E.g. BR1/SA/2026/34 is the sales invoice number 34 in 2026 from POS Brooklyn1 that has the code BR1
-func (store *SQLStore) generateInvoiceNumber(referenceType EntryReferenceType, invoiceIndex, cashboxID int64, year int32) (string, error) {
+func (store *SQLStore) generateInvoiceNumber(ctx context.Context, referenceType EntryReferenceType, invoiceIndex, cashboxID int64, year int32) (string, error) {
 	var referenceCode string
 	var err error
 
 	// set countedInvoices and cashBox code
-	cashbox, err := store.GetCashbox(context.Background(), cashboxID)
+	cashbox, err := store.GetCashbox(ctx, cashboxID)
 	if err != nil {
 		return "", err
 	}
@@ -75,14 +75,14 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 		var err error
 
 		// txName := ctx.Value(txKey)
-		invoiceIndex, err := store.generateSalesInvoiceIndex(arg.CashBoxID)
+		invoiceIndex, err := store.generateSalesInvoiceIndex(ctx, arg.CashBoxID)
 		if err != nil {
 			return err
 		}
 
 		thisYear := int32(time.Now().Year())
 
-		invoiceCode, err := store.generateInvoiceNumber(EntryReferenceTypeSalesInvoice, invoiceIndex, arg.CashBoxID, thisYear)
+		invoiceCode, err := store.generateInvoiceNumber(ctx, EntryReferenceTypeSalesInvoice, invoiceIndex, arg.CashBoxID, thisYear)
 		if err != nil {
 			return err
 		}
