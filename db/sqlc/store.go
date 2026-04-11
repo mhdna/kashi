@@ -136,7 +136,9 @@ type SalesInvoiceTxParams struct {
 	ClientID     int64  `json:"client_id"`
 	Amount       int64  `json:"amount"`
 	Discount     int16  `json:"discount"`
-	// Net amount is automatically calculated inside the trasaction function itself.
+	Year         int32  `json:"year"`
+	// NetAmount & InvoiceCode are calculated and generated
+	// automatically inside the trasaction function itself.
 }
 
 type SalesInvoiceTxResult struct {
@@ -144,42 +146,46 @@ type SalesInvoiceTxResult struct {
 	NetAmount    int64        `json:"net_amount"`
 }
 
+func (store *SQLStore) generateSalesInvoiceIndex(cashboxID int64) (int64, error) {
+	thisYear := time.Now().Year()
+	arg := NextSalesInvoiceIndexIncrementParams{
+		CashboxID: cashboxID,
+		Year:      int32(thisYear),
+	}
+	index, err := store.NextSalesInvoiceIndexIncrement(context.Background(), arg)
+	if err != nil {
+		return 0, err
+	}
+	return index, nil
+}
+
 // generate invoice number in the format:
 // CashboxCode/Type of Invoice/Year/Number of Invoice this Year
 // E.g. BR1/SA/2026/34 is the sales invoice number 34 in 2026 from POS Brooklyn1 that has the code BR1
-func (store *SQLStore) generateInvoiceNumber(referenceType EntryReferenceType, cashboxID int64) (string, error) {
-	var countedInvoices int64
+func (store *SQLStore) generateInvoiceNumber(referenceType EntryReferenceType, invoiceIndex, cashboxID int64, year int32) (string, error) {
 	var referenceCode string
 	var err error
 
 	// set countedInvoices and cashBox code
 	cashbox, err := store.GetCashbox(context.Background(), cashboxID)
+	if err != nil {
+		return "", err
+	}
 	cashboxCode := cashbox.Code
 
 	// set referenceCode and countedInvoices
 	switch referenceType {
 	case EntryReferenceTypeSalesInvoice:
-		countedInvoices, err = store.CountSalesInvoicesThisYear(context.Background(), cashboxID)
-		if err != nil {
-			return "", err
-		}
 		referenceCode = "SA"
 	case EntryReferenceTypeReturnInvoice:
-		countedInvoices, err = store.CountReturnInvoicesThisYear(context.Background(), 1)
-		if err != nil {
-			return "", err
-		}
 		referenceCode = "RN"
 	default:
 		return "", errors.New("Invalid Reference Type")
 	}
 
-	thisYear := time.Now().Year()
-
-	invoiceNumber := countedInvoices + 1
-
-	return fmt.Sprintf("%s/%s/%d/%d", cashboxCode, referenceCode, thisYear, invoiceNumber), nil
+	return fmt.Sprintf("%s/%s/%d/%d", cashboxCode, referenceCode, year, invoiceIndex), nil
 }
+
 var txKey = struct{}{}
 
 func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxParams) (SalesInvoiceTxResult, error) {
@@ -187,25 +193,35 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 
 	err := store.execTx(ctx, func(q *Queries) error {
 		var err error
-		// txName := ctx.Value(txKey)
 
-		invoiceNumber, err := store.generateInvoiceNumber(EntryReferenceTypeSalesInvoice, arg.CashBoxID)
+		// txName := ctx.Value(txKey)
+		invoiceIndex, err := store.generateSalesInvoiceIndex(arg.CashBoxID)
 		if err != nil {
 			return err
 		}
+
+		thisYear := int32(time.Now().Year())
+
+		invoiceCode, err := store.generateInvoiceNumber(EntryReferenceTypeSalesInvoice, invoiceIndex, arg.CashBoxID, thisYear)
+		if err != nil {
+			return err
+		}
+		fmt.Println(invoiceCode)
 		netAmount, err := util.CalculateNetAmount(arg.Amount, arg.Discount)
 		if err != nil {
 			return err
 		}
 		result.SalesInvoice, err = q.CreateSalesInvoice(ctx, CreateSalesInvoiceParams{
-			CashboxID:     arg.CashBoxID,
-			InvoiceNumber: invoiceNumber,
-			InventoryID:   arg.InventoryID,
-			ClientID:      arg.ClientID,
-			Amount:        arg.Amount,
-			Discount:      arg.Discount,
-			NetAmount:     netAmount,
-			CurrencyCode:  arg.CurrencyCode,
+			CashboxID:    arg.CashBoxID,
+			InvoiceIndex: invoiceIndex,
+			InvoiceCode:  invoiceCode,
+			Year:         thisYear,
+			InventoryID:  arg.InventoryID,
+			ClientID:     arg.ClientID,
+			Amount:       arg.Amount,
+			Discount:     arg.Discount,
+			NetAmount:    netAmount,
+			CurrencyCode: arg.CurrencyCode,
 		})
 		if err != nil {
 			return err
