@@ -21,6 +21,14 @@ create table if not exists sales_invoice_products (
     created_at timestamp(0) WITH time zone NOT NULL DEFAULT NOW()
 );
 
+create table if not exists sales_invoices_indexes (
+    year int not null,
+    cashbox_id bigint not null references cashboxes(id),
+    last_index bigint not null,
+    PRIMARY KEY (cashbox_id, year)
+);
+
+
 create table if not exists return_invoices (
     id bigserial primary key,
     invoice_code text not null,
