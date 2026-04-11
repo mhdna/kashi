@@ -9,6 +9,8 @@ import (
 	"github.com/mhdna/kashi/util"
 )
 
+// NetAmount & InvoiceCode are calculated and generated
+// automatically inside the trasaction function itself.
 type SalesInvoiceTxParams struct {
 	CashBoxID    int64  `json:"cashbox_id"`
 	CurrencyCode string `json:"currency_code"`
@@ -17,8 +19,6 @@ type SalesInvoiceTxParams struct {
 	Amount       int64  `json:"amount"`
 	Discount     int16  `json:"discount"`
 	Year         int32  `json:"year"`
-	// NetAmount & InvoiceCode are calculated and generated
-	// automatically inside the trasaction function itself.
 }
 
 type SalesInvoiceTxResult struct {
