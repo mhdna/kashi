@@ -28,18 +28,43 @@ func (q *Queries) CloseShift(ctx context.Context, arg CloseShiftParams) error {
 	return err
 }
 
-const createCashBoxAccount = `-- name: CreateCashBoxAccount :one
+const createCashboxAccount = `-- name: CreateCashboxAccount :one
 INSERT INTO cashbox_accounts (
-  title 
+  type,
+  shift_id,
+  currency_code,
+  opening_balance,
+  balance
 ) 
-VALUES ($1)
-RETURNING id, title
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, type, shift_id, currency_code, opening_balance, balance
 `
 
-func (q *Queries) CreateCashBoxAccount(ctx context.Context, title string) (CashboxAccount, error) {
-	row := q.db.QueryRowContext(ctx, createCashBoxAccount, title)
+type CreateCashboxAccountParams struct {
+	Type           string `json:"type"`
+	ShiftID        int64  `json:"shiftId"`
+	CurrencyCode   string `json:"currencyCode"`
+	OpeningBalance int64  `json:"openingBalance"`
+	Balance        int64  `json:"balance"`
+}
+
+func (q *Queries) CreateCashboxAccount(ctx context.Context, arg CreateCashboxAccountParams) (CashboxAccount, error) {
+	row := q.db.QueryRowContext(ctx, createCashboxAccount,
+		arg.Type,
+		arg.ShiftID,
+		arg.CurrencyCode,
+		arg.OpeningBalance,
+		arg.Balance,
+	)
 	var i CashboxAccount
-	err := row.Scan(&i.ID, &i.Title)
+	err := row.Scan(
+		&i.ID,
+		&i.Type,
+		&i.ShiftID,
+		&i.CurrencyCode,
+		&i.OpeningBalance,
+		&i.Balance,
+	)
 	return i, err
 }
 
@@ -74,6 +99,26 @@ func (q *Queries) CreateShift(ctx context.Context, arg CreateShiftParams) (Shift
 	return i, err
 }
 
+const getCashboxAccount = `-- name: GetCashboxAccount :one
+SELECT id, type, shift_id, currency_code, opening_balance, balance FROM cashbox_accounts
+WHERE id = $1
+LIMIT 1
+`
+
+func (q *Queries) GetCashboxAccount(ctx context.Context, id int64) (CashboxAccount, error) {
+	row := q.db.QueryRowContext(ctx, getCashboxAccount, id)
+	var i CashboxAccount
+	err := row.Scan(
+		&i.ID,
+		&i.Type,
+		&i.ShiftID,
+		&i.CurrencyCode,
+		&i.OpeningBalance,
+		&i.Balance,
+	)
+	return i, err
+}
+
 const getShift = `-- name: GetShift :one
 SELECT id, is_closed, cashbox_id, total_opening_balance, total_balance, opening_date_time, closing_date_time FROM shifts
 WHERE id = $1
@@ -93,6 +138,48 @@ func (q *Queries) GetShift(ctx context.Context, id int64) (Shift, error) {
 		&i.ClosingDateTime,
 	)
 	return i, err
+}
+
+const listAccounts = `-- name: ListAccounts :many
+SELECT id, type, shift_id, currency_code, opening_balance, balance FROM cashbox_accounts
+ORDER BY id
+LIMIT $1
+OFFSET $2
+`
+
+type ListAccountsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) ListAccounts(ctx context.Context, arg ListAccountsParams) ([]CashboxAccount, error) {
+	rows, err := q.db.QueryContext(ctx, listAccounts, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CashboxAccount{}
+	for rows.Next() {
+		var i CashboxAccount
+		if err := rows.Scan(
+			&i.ID,
+			&i.Type,
+			&i.ShiftID,
+			&i.CurrencyCode,
+			&i.OpeningBalance,
+			&i.Balance,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listShifts = `-- name: ListShifts :many
@@ -139,27 +226,18 @@ func (q *Queries) ListShifts(ctx context.Context, arg ListShiftsParams) ([]Shift
 }
 
 const updateAccountBalance = `-- name: UpdateAccountBalance :exec
-UPDATE accounts_balances
+UPDATE cashbox_accounts
 SET balance = $1
-WHERE cashbox_account_id = $2 
-AND shift_id = $3
-AND currency_code = $4
+WHERE id = $2
 `
 
 type UpdateAccountBalanceParams struct {
-	Balance          int64  `json:"balance"`
-	CashboxAccountID int64  `json:"cashboxAccountId"`
-	ShiftID          int64  `json:"shiftId"`
-	CurrencyCode     string `json:"currencyCode"`
+	Balance int64 `json:"balance"`
+	ID      int64 `json:"id"`
 }
 
 func (q *Queries) UpdateAccountBalance(ctx context.Context, arg UpdateAccountBalanceParams) error {
-	_, err := q.db.ExecContext(ctx, updateAccountBalance,
-		arg.Balance,
-		arg.CashboxAccountID,
-		arg.ShiftID,
-		arg.CurrencyCode,
-	)
+	_, err := q.db.ExecContext(ctx, updateAccountBalance, arg.Balance, arg.ID)
 	return err
 }
 
