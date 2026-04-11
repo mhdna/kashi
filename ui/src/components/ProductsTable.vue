@@ -1,5 +1,5 @@
 <template>
-    <ServerSideTable :header="headers" :apiURL="apiURL" />
+    <ServerSideTable :header="headers" :apiURL="apiURL" rootKey="products" />
 </template>
 
 <script setup>

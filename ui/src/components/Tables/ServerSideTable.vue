@@ -16,6 +16,10 @@ const props = defineProps({
     headers: {
         type: Array,
         required: true,
+    },
+    rootKey: {
+        type: String,
+        required: true,
     }
 })
 
@@ -23,7 +27,7 @@ async function fetchProducts({ page, itemsPerPage, sortBy }) {
     const res = await fetch(props.apiURL)
     const data = await res.json()
 
-    let items = data.products // <-- from your Go envelope
+    let items = data[props.rootKey]
 
     // sorting
     if (sortBy.length) {
