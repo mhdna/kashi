@@ -62,6 +62,7 @@ func TestSalesInvoiceTx(t *testing.T) {
 	amount := util.RandomAmount()
 	discount := util.RandomDiscount()
 	cashbox := createRandomCashbox(t)
+	account := createRandomAccount(t)
 	inventory := createRandomInventory(t)
 	currency := createRandomCurrency(t)
 	client := createRandomClient(t)
@@ -79,13 +80,14 @@ func TestSalesInvoiceTx(t *testing.T) {
 		go func() {
 			txName := fmt.Sprintf("tx %d", i+1)
 			txRes, err := store.SalesInvoiceTx(context.WithValue(context.Background(), txKey, txName), SalesInvoiceTxParams{
-				CashBoxID:    cashbox.ID,
-				CurrencyCode: currency.Code,
-				InventoryID:  inventory.ID,
-				ClientID:     client.ID,
-				Amount:       amount,
-				Discount:     discount,
-				Year:         int32(time.Now().Year()),
+				CashBoxID:        cashbox.ID,
+				CashboxAccountID: account.ID,
+				CurrencyCode:     currency.Code,
+				InventoryID:      inventory.ID,
+				ClientID:         client.ID,
+				Amount:           amount,
+				Discount:         discount,
+				Year:             int32(time.Now().Year()),
 			})
 			errs <- err
 			results <- txResult{salesInvoice: txRes.SalesInvoice, idx: i}
@@ -100,6 +102,7 @@ func TestSalesInvoiceTx(t *testing.T) {
 		salesInvoice := res.salesInvoice
 		// i := res.idx
 
+		// TODO check account and its balance
 		require.NotEmpty(t, salesInvoice)
 		require.Equal(t, inventory.ID, salesInvoice.InventoryID)
 		require.Equal(t, cashbox.ID, salesInvoice.CashboxID)
