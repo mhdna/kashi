@@ -6,7 +6,6 @@ package mockdb
 
 import (
 	context "context"
-	sql "database/sql"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -111,34 +110,18 @@ func (mr *MockStoreMockRecorder) AddSupplierProductCost(arg0, arg1 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddSupplierProductCost", reflect.TypeOf((*MockStore)(nil).AddSupplierProductCost), arg0, arg1)
 }
 
-// CountReturnInvoicesThisYear mocks base method.
-func (m *MockStore) CountReturnInvoicesThisYear(arg0 context.Context) (int64, error) {
+// CloseShift mocks base method.
+func (m *MockStore) CloseShift(arg0 context.Context, arg1 db.CloseShiftParams) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CountReturnInvoicesThisYear", arg0)
-	ret0, _ := ret[0].(int64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "CloseShift", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// CountReturnInvoicesThisYear indicates an expected call of CountReturnInvoicesThisYear.
-func (mr *MockStoreMockRecorder) CountReturnInvoicesThisYear(arg0 interface{}) *gomock.Call {
+// CloseShift indicates an expected call of CloseShift.
+func (mr *MockStoreMockRecorder) CloseShift(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountReturnInvoicesThisYear", reflect.TypeOf((*MockStore)(nil).CountReturnInvoicesThisYear), arg0)
-}
-
-// CountSalesInvoicesThisYear mocks base method.
-func (m *MockStore) CountSalesInvoicesThisYear(arg0 context.Context) (int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CountSalesInvoicesThisYear", arg0)
-	ret0, _ := ret[0].(int64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CountSalesInvoicesThisYear indicates an expected call of CountSalesInvoicesThisYear.
-func (mr *MockStoreMockRecorder) CountSalesInvoicesThisYear(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountSalesInvoicesThisYear", reflect.TypeOf((*MockStore)(nil).CountSalesInvoicesThisYear), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseShift", reflect.TypeOf((*MockStore)(nil).CloseShift), arg0, arg1)
 }
 
 // CreateAttributeValue mocks base method.
@@ -154,6 +137,21 @@ func (m *MockStore) CreateAttributeValue(arg0 context.Context, arg1 db.CreateAtt
 func (mr *MockStoreMockRecorder) CreateAttributeValue(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAttributeValue", reflect.TypeOf((*MockStore)(nil).CreateAttributeValue), arg0, arg1)
+}
+
+// CreateCashBoxAccount mocks base method.
+func (m *MockStore) CreateCashBoxAccount(arg0 context.Context, arg1 string) (db.CashboxAccount, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateCashBoxAccount", arg0, arg1)
+	ret0, _ := ret[0].(db.CashboxAccount)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateCashBoxAccount indicates an expected call of CreateCashBoxAccount.
+func (mr *MockStoreMockRecorder) CreateCashBoxAccount(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCashBoxAccount", reflect.TypeOf((*MockStore)(nil).CreateCashBoxAccount), arg0, arg1)
 }
 
 // CreateCashbox mocks base method.
@@ -396,7 +394,7 @@ func (mr *MockStoreMockRecorder) DeleteClient(arg0, arg1 interface{}) *gomock.Ca
 }
 
 // DeleteCurrency mocks base method.
-func (m *MockStore) DeleteCurrency(arg0 context.Context, arg1 int64) error {
+func (m *MockStore) DeleteCurrency(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteCurrency", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -511,7 +509,7 @@ func (mr *MockStoreMockRecorder) GetClient(arg0, arg1 interface{}) *gomock.Call 
 }
 
 // GetCurrency mocks base method.
-func (m *MockStore) GetCurrency(arg0 context.Context, arg1 int64) (db.Currency, error) {
+func (m *MockStore) GetCurrency(arg0 context.Context, arg1 string) (db.Currency, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCurrency", arg0, arg1)
 	ret0, _ := ret[0].(db.Currency)
@@ -523,6 +521,21 @@ func (m *MockStore) GetCurrency(arg0 context.Context, arg1 int64) (db.Currency, 
 func (mr *MockStoreMockRecorder) GetCurrency(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCurrency", reflect.TypeOf((*MockStore)(nil).GetCurrency), arg0, arg1)
+}
+
+// GetDefaultCurrency mocks base method.
+func (m *MockStore) GetDefaultCurrency(arg0 context.Context) (db.Currency, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDefaultCurrency", arg0)
+	ret0, _ := ret[0].(db.Currency)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDefaultCurrency indicates an expected call of GetDefaultCurrency.
+func (mr *MockStoreMockRecorder) GetDefaultCurrency(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDefaultCurrency", reflect.TypeOf((*MockStore)(nil).GetDefaultCurrency), arg0)
 }
 
 // GetEntry mocks base method.
@@ -643,6 +656,21 @@ func (m *MockStore) GetSalesInvoice(arg0 context.Context, arg1 int64) (db.SalesI
 func (mr *MockStoreMockRecorder) GetSalesInvoice(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSalesInvoice", reflect.TypeOf((*MockStore)(nil).GetSalesInvoice), arg0, arg1)
+}
+
+// GetShift mocks base method.
+func (m *MockStore) GetShift(arg0 context.Context, arg1 int64) (db.Shift, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetShift", arg0, arg1)
+	ret0, _ := ret[0].(db.Shift)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetShift indicates an expected call of GetShift.
+func (mr *MockStoreMockRecorder) GetShift(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetShift", reflect.TypeOf((*MockStore)(nil).GetShift), arg0, arg1)
 }
 
 // GetSupplier mocks base method.
@@ -855,6 +883,21 @@ func (mr *MockStoreMockRecorder) ListSalesInvoices(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSalesInvoices", reflect.TypeOf((*MockStore)(nil).ListSalesInvoices), arg0, arg1)
 }
 
+// ListShifts mocks base method.
+func (m *MockStore) ListShifts(arg0 context.Context, arg1 db.ListShiftsParams) ([]db.Shift, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListShifts", arg0, arg1)
+	ret0, _ := ret[0].([]db.Shift)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListShifts indicates an expected call of ListShifts.
+func (mr *MockStoreMockRecorder) ListShifts(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListShifts", reflect.TypeOf((*MockStore)(nil).ListShifts), arg0, arg1)
+}
+
 // ListSuppliers mocks base method.
 func (m *MockStore) ListSuppliers(arg0 context.Context, arg1 db.ListSuppliersParams) ([]db.Supplier, error) {
 	m.ctrl.T.Helper()
@@ -900,19 +943,34 @@ func (mr *MockStoreMockRecorder) ListTransfers(arg0, arg1 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTransfers", reflect.TypeOf((*MockStore)(nil).ListTransfers), arg0, arg1)
 }
 
-// ReturnInvoiceTx mocks base method.
-func (m *MockStore) ReturnInvoiceTx(arg0 context.Context, arg1 db.ReturnInvoiceTxParams) (db.ReturnInvoiceTxResult, error) {
+// NextReturnInvoiceIndexIncrement mocks base method.
+func (m *MockStore) NextReturnInvoiceIndexIncrement(arg0 context.Context, arg1 db.NextReturnInvoiceIndexIncrementParams) (int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ReturnInvoiceTx", arg0, arg1)
-	ret0, _ := ret[0].(db.ReturnInvoiceTxResult)
+	ret := m.ctrl.Call(m, "NextReturnInvoiceIndexIncrement", arg0, arg1)
+	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ReturnInvoiceTx indicates an expected call of ReturnInvoiceTx.
-func (mr *MockStoreMockRecorder) ReturnInvoiceTx(arg0, arg1 interface{}) *gomock.Call {
+// NextReturnInvoiceIndexIncrement indicates an expected call of NextReturnInvoiceIndexIncrement.
+func (mr *MockStoreMockRecorder) NextReturnInvoiceIndexIncrement(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReturnInvoiceTx", reflect.TypeOf((*MockStore)(nil).ReturnInvoiceTx), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NextReturnInvoiceIndexIncrement", reflect.TypeOf((*MockStore)(nil).NextReturnInvoiceIndexIncrement), arg0, arg1)
+}
+
+// NextSalesInvoiceIndexIncrement mocks base method.
+func (m *MockStore) NextSalesInvoiceIndexIncrement(arg0 context.Context, arg1 db.NextSalesInvoiceIndexIncrementParams) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NextSalesInvoiceIndexIncrement", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NextSalesInvoiceIndexIncrement indicates an expected call of NextSalesInvoiceIndexIncrement.
+func (mr *MockStoreMockRecorder) NextSalesInvoiceIndexIncrement(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NextSalesInvoiceIndexIncrement", reflect.TypeOf((*MockStore)(nil).NextSalesInvoiceIndexIncrement), arg0, arg1)
 }
 
 // SalesInvoiceTx mocks base method.
@@ -930,18 +988,18 @@ func (mr *MockStoreMockRecorder) SalesInvoiceTx(arg0, arg1 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SalesInvoiceTx", reflect.TypeOf((*MockStore)(nil).SalesInvoiceTx), arg0, arg1)
 }
 
-// SetShiftCloseingTime mocks base method.
-func (m *MockStore) SetShiftCloseingTime(arg0 context.Context, arg1 sql.NullTime) error {
+// UpdateAccountBalance mocks base method.
+func (m *MockStore) UpdateAccountBalance(arg0 context.Context, arg1 db.UpdateAccountBalanceParams) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetShiftCloseingTime", arg0, arg1)
+	ret := m.ctrl.Call(m, "UpdateAccountBalance", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// SetShiftCloseingTime indicates an expected call of SetShiftCloseingTime.
-func (mr *MockStoreMockRecorder) SetShiftCloseingTime(arg0, arg1 interface{}) *gomock.Call {
+// UpdateAccountBalance indicates an expected call of UpdateAccountBalance.
+func (mr *MockStoreMockRecorder) UpdateAccountBalance(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetShiftCloseingTime", reflect.TypeOf((*MockStore)(nil).SetShiftCloseingTime), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAccountBalance", reflect.TypeOf((*MockStore)(nil).UpdateAccountBalance), arg0, arg1)
 }
 
 // UpdateAttributeValue mocks base method.
@@ -1026,6 +1084,20 @@ func (m *MockStore) UpdateProductAttribute(arg0 context.Context, arg1 db.UpdateP
 func (mr *MockStoreMockRecorder) UpdateProductAttribute(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateProductAttribute", reflect.TypeOf((*MockStore)(nil).UpdateProductAttribute), arg0, arg1)
+}
+
+// UpdateShiftBalance mocks base method.
+func (m *MockStore) UpdateShiftBalance(arg0 context.Context, arg1 db.UpdateShiftBalanceParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateShiftBalance", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateShiftBalance indicates an expected call of UpdateShiftBalance.
+func (mr *MockStoreMockRecorder) UpdateShiftBalance(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateShiftBalance", reflect.TypeOf((*MockStore)(nil).UpdateShiftBalance), arg0, arg1)
 }
 
 // UpdateTransfer mocks base method.
