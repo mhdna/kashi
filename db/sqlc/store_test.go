@@ -2,7 +2,9 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/mhdna/kashi/util"
 	"github.com/stretchr/testify/require"
@@ -57,6 +59,12 @@ import (
 // TODO add tests to cover different cashboxes, accounts, etc.
 func TestSalesInvoiceTx(t *testing.T) {
 	store := NewStore(testDB)
+	amount := util.RandomAmount()
+	discount := util.RandomDiscount()
+	cashbox := createRandomCashbox(t)
+	inventory := createRandomInventory(t)
+	currency := createRandomCurrency(t)
+	client := createRandomClient(t)
 
 	n := 5
 
@@ -68,6 +76,7 @@ func TestSalesInvoiceTx(t *testing.T) {
 	results := make(chan txResult)
 
 	for i := range n {
+		go func() {
 			txName := fmt.Sprintf("tx %d", i+1)
 			txRes, err := store.SalesInvoiceTx(context.WithValue(context.Background(), txKey, txName), SalesInvoiceTxParams{
 				CashBoxID:    cashbox.ID,
@@ -80,7 +89,7 @@ func TestSalesInvoiceTx(t *testing.T) {
 			})
 			errs <- err
 			results <- txResult{salesInvoice: txRes.SalesInvoice, idx: i}
-		}(i)
+		}()
 	}
 
 	for range n {
@@ -91,13 +100,13 @@ func TestSalesInvoiceTx(t *testing.T) {
 		salesInvoice := res.salesInvoice
 		// i := res.idx
 
-		// require.NotEmpty(t, salesInvoice)
-		// require.Equal(t, inventory.ID, salesInvoice.InventoryID)
-		// require.Equal(t, cashbox.ID, salesInvoice.CashboxID)
-		// require.Equal(t, currency.Code, salesInvoice.CurrencyCode)
-		// require.Equal(t, client.ID, salesInvoice.ClientID)
-		// require.Equal(t, amounts[i], salesInvoice.Amount)
-		// require.Equal(t, discounts[i], salesInvoice.Discount)
+		require.NotEmpty(t, salesInvoice)
+		require.Equal(t, inventory.ID, salesInvoice.InventoryID)
+		require.Equal(t, cashbox.ID, salesInvoice.CashboxID)
+		require.Equal(t, currency.Code, salesInvoice.CurrencyCode)
+		require.Equal(t, client.ID, salesInvoice.ClientID)
+		require.Equal(t, amount, salesInvoice.Amount)
+		require.Equal(t, discount, salesInvoice.Discount)
 
 		require.NotZero(t, salesInvoice.ID)
 		require.NotZero(t, salesInvoice.CreatedAt)
