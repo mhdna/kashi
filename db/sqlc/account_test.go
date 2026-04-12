@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"log"
 	"testing"
 
 	"github.com/mhdna/kashi/util"
@@ -69,23 +68,15 @@ func TestListAccounts(t *testing.T) {
 	}
 }
 
-func TestUpdateAccountBalance(t *testing.T) {
+func TestAddAccountBalance(t *testing.T) {
 	account := createRandomAccount(t)
 
-	currentBalance := account.Balance
-
-	arg := UpdateAccountBalanceParams{
+	arg := AddAccountBalanceParams{
 		ID:      account.ID,
-		Balance: currentBalance + util.RandomAmount(),
+		Balance: util.RandomAmount(),
 	}
 
-	err := testQueries.UpdateAccountBalance(context.Background(), arg)
+	account2, err := testQueries.AddAccountBalance(context.Background(), arg)
 	require.NoError(t, err)
-
-	account2, err := testQueries.GetCashboxAccount(context.Background(), account.ID)
-	if err != nil {
-		log.Fatal(err)
-	}
-	require.NoError(t, err)
-	require.Equal(t, account2.Balance, arg.Balance)
+	require.Equal(t, account2.Balance, account.Balance+arg.Balance)
 }

@@ -9,6 +9,7 @@ import (
 )
 
 type Querier interface {
+	AddAccountBalance(ctx context.Context, arg AddAccountBalanceParams) (CashboxAccount, error)
 	AddInventoryProduct(ctx context.Context, arg AddInventoryProductParams) (InventoriesProduct, error)
 	AddPurchaseItem(ctx context.Context, arg AddPurchaseItemParams) (PurchaseItem, error)
 	AddSalesInvoiceProduct(ctx context.Context, arg AddSalesInvoiceProductParams) (SalesInvoiceProduct, error)
@@ -75,7 +76,6 @@ type Querier interface {
 	ListTransfers(ctx context.Context, arg ListTransfersParams) ([]Transfer, error)
 	NextReturnInvoiceIndexIncrement(ctx context.Context, arg NextReturnInvoiceIndexIncrementParams) (int64, error)
 	NextSalesInvoiceIndexIncrement(ctx context.Context, arg NextSalesInvoiceIndexIncrementParams) (int64, error)
-	UpdateAccountBalance(ctx context.Context, arg UpdateAccountBalanceParams) error
 	UpdateAttributeValue(ctx context.Context, arg UpdateAttributeValueParams) error
 	UpdateClient(ctx context.Context, arg UpdateClientParams) error
 	UpdateInventory(ctx context.Context, arg UpdateInventoryParams) error
