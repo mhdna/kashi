@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"testing"
+	"time"
 
 	"github.com/mhdna/kashi/util"
 	"github.com/stretchr/testify/require"
@@ -28,12 +29,15 @@ func createRandomSalesInvoice(t *testing.T) SalesInvoice {
 		Discount:     discount,
 		NetAmount:    netAmount,
 		CurrencyCode: currency.Code,
+		Year:         int32(time.Now().Year()),
 	}
 
 	order, err := testQueries.CreateSalesInvoice(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, order)
-	require.Equal(t, arg.InvoiceNumber, order.InvoiceNumber)
+	require.Equal(t, arg.InvoiceIndex, order.InvoiceIndex)
+	require.Equal(t, arg.InvoiceCode, order.InvoiceCode)
+	require.Equal(t, arg.Year, order.Year)
 	require.Equal(t, arg.InventoryID, order.InventoryID)
 	require.Equal(t, arg.ClientID, order.ClientID)
 	require.Equal(t, arg.Amount, order.Amount)
