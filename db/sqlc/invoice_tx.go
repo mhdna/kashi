@@ -27,8 +27,8 @@ type SalesInvoiceTxParams struct {
 type SalesInvoiceTxResult struct {
 	SalesInvoice SalesInvoice `json:"sales_invoice"`
 	// NetAmount    int64        `json:"net_amount"`
-	Entry   Entry `json:"entry"`
-	Balance int64 `json:"balance"`
+	Entry   Entry          `json:"entry"`
+	Account CashboxAccount `json:"account"`
 }
 
 func (store *SQLStore) generateSalesInvoiceIndex(ctx context.Context, cashboxID int64) (int64, error) {
@@ -89,7 +89,6 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 		if err != nil {
 			return err
 		}
-		fmt.Println(invoiceCode)
 		netAmount, err := util.CalculateNetAmount(arg.Amount, arg.Discount)
 		if err != nil {
 			return err
@@ -132,7 +131,7 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 		}
 
 		result.Entry = entry
-		result.Balance = account.Balance
+		result.Account = account
 
 		return nil
 	})
