@@ -71,8 +71,6 @@ func (store *SQLStore) generateInvoiceNumber(ctx context.Context, referenceType 
 	return fmt.Sprintf("%s/%s/%d/%d", cashboxCode, referenceCode, year, invoiceIndex), nil
 }
 
-var txKey = struct{}{}
-
 func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxParams) (SalesInvoiceTxResult, error) {
 	var result SalesInvoiceTxResult
 

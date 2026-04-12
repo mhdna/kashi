@@ -14,7 +14,7 @@ func RandomInt(min, max int64) int64 {
 }
 
 func RandomAmount() int64 {
-	return RandomInt(1, 100000)
+	return RandomInt(1, 300)
 }
 }
 
