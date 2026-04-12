@@ -69,17 +69,12 @@ func TestSalesInvoiceTx(t *testing.T) {
 
 	n := 5
 
-	type txResult struct {
-		salesInvoice SalesInvoice
-		idx          int
-	}
 	errs := make(chan error)
-	results := make(chan txResult)
+	results := make(chan SalesInvoiceTxResult)
 
-	for i := range n {
+	for range n {
 		go func() {
-			txName := fmt.Sprintf("tx %d", i+1)
-			txRes, err := store.SalesInvoiceTx(context.WithValue(context.Background(), txKey, txName), SalesInvoiceTxParams{
+			res, err := store.SalesInvoiceTx(context.Background(), SalesInvoiceTxParams{
 				CashBoxID:        cashbox.ID,
 				CashboxAccountID: account.ID,
 				CurrencyCode:     currency.Code,
@@ -90,7 +85,7 @@ func TestSalesInvoiceTx(t *testing.T) {
 				Year:             int32(time.Now().Year()),
 			})
 			errs <- err
-			results <- txResult{salesInvoice: txRes.SalesInvoice, idx: i}
+			results <- res
 		}()
 	}
 
@@ -99,10 +94,8 @@ func TestSalesInvoiceTx(t *testing.T) {
 		require.NoError(t, err)
 
 		res := <-results
-		salesInvoice := res.salesInvoice
-		// i := res.idx
 
-		// TODO check account and its balance
+		salesInvoice := res.SalesInvoice
 		require.NotEmpty(t, salesInvoice)
 		require.Equal(t, inventory.ID, salesInvoice.InventoryID)
 		require.Equal(t, cashbox.ID, salesInvoice.CashboxID)
@@ -110,7 +103,6 @@ func TestSalesInvoiceTx(t *testing.T) {
 		require.Equal(t, client.ID, salesInvoice.ClientID)
 		require.Equal(t, amount, salesInvoice.Amount)
 		require.Equal(t, discount, salesInvoice.Discount)
-
 		require.NotZero(t, salesInvoice.ID)
 		require.NotZero(t, salesInvoice.CreatedAt)
 
