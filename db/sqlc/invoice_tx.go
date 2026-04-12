@@ -27,6 +27,7 @@ type SalesInvoiceTxParams struct {
 type SalesInvoiceTxResult struct {
 	SalesInvoice SalesInvoice `json:"sales_invoice"`
 	// NetAmount    int64        `json:"net_amount"`
+	Entry   Entry `json:"entry"`
 	Balance int64 `json:"balance"`
 }
 
@@ -111,7 +112,7 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 			return err
 		}
 
-		_, err = q.CreateEntryItem(ctx, CreateEntryItemParams{
+		entry, err := q.CreateEntryItem(ctx, CreateEntryItemParams{
 			CashboxID:                  arg.CashBoxID,
 			InventoryID:                arg.InventoryID,
 			ReferenceType:              EntryReferenceTypeSalesInvoice,
@@ -132,6 +133,7 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 			log.Fatal(err)
 		}
 
+		result.Entry = entry
 		result.Balance = account.Balance
 
 		return nil
