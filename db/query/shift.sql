@@ -46,10 +46,11 @@ SELECT * FROM cashbox_accounts
 WHERE id = $1
 LIMIT 1;
 
--- name: UpdateAccountBalance :exec
+-- name: AddAccountBalance :one
 UPDATE cashbox_accounts
-SET balance = $1
-WHERE id = $2;
+SET balance = balance + $1
+WHERE id = $2
+RETURNING *;
 
 -- name: ListAccounts :many
 SELECT * FROM cashbox_accounts

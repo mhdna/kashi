@@ -10,6 +10,32 @@ import (
 	"database/sql"
 )
 
+const addAccountBalance = `-- name: AddAccountBalance :one
+UPDATE cashbox_accounts
+SET balance = balance + $1
+WHERE id = $2
+RETURNING id, type, shift_id, currency_code, opening_balance, balance
+`
+
+type AddAccountBalanceParams struct {
+	Balance int64 `json:"balance"`
+	ID      int64 `json:"id"`
+}
+
+func (q *Queries) AddAccountBalance(ctx context.Context, arg AddAccountBalanceParams) (CashboxAccount, error) {
+	row := q.db.QueryRowContext(ctx, addAccountBalance, arg.Balance, arg.ID)
+	var i CashboxAccount
+	err := row.Scan(
+		&i.ID,
+		&i.Type,
+		&i.ShiftID,
+		&i.CurrencyCode,
+		&i.OpeningBalance,
+		&i.Balance,
+	)
+	return i, err
+}
+
 const closeShift = `-- name: CloseShift :exec
 UPDATE shifts 
   SET closing_date_time = $1,
@@ -223,22 +249,6 @@ func (q *Queries) ListShifts(ctx context.Context, arg ListShiftsParams) ([]Shift
 		return nil, err
 	}
 	return items, nil
-}
-
-const updateAccountBalance = `-- name: UpdateAccountBalance :exec
-UPDATE cashbox_accounts
-SET balance = $1
-WHERE id = $2
-`
-
-type UpdateAccountBalanceParams struct {
-	Balance int64 `json:"balance"`
-	ID      int64 `json:"id"`
-}
-
-func (q *Queries) UpdateAccountBalance(ctx context.Context, arg UpdateAccountBalanceParams) error {
-	_, err := q.db.ExecContext(ctx, updateAccountBalance, arg.Balance, arg.ID)
-	return err
 }
 
 const updateShiftBalance = `-- name: UpdateShiftBalance :exec
