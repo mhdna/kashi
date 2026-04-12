@@ -15,6 +15,7 @@ type Querier interface {
 	AddSalesInvoiceProduct(ctx context.Context, arg AddSalesInvoiceProductParams) (SalesInvoiceProduct, error)
 	AddSupplierProduct(ctx context.Context, arg AddSupplierProductParams) (ProductSupplier, error)
 	AddSupplierProductCost(ctx context.Context, arg AddSupplierProductCostParams) (ProductSupplierCost, error)
+	AddToShiftBalance(ctx context.Context, arg AddToShiftBalanceParams) (Shift, error)
 	CloseShift(ctx context.Context, arg CloseShiftParams) error
 	CreateAttributeValue(ctx context.Context, arg CreateAttributeValueParams) (AttributesValue, error)
 	CreateCashbox(ctx context.Context, arg CreateCashboxParams) (Cashbox, error)
@@ -82,7 +83,6 @@ type Querier interface {
 	UpdateInventoryProduct(ctx context.Context, arg UpdateInventoryProductParams) error
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) error
 	UpdateProductAttribute(ctx context.Context, arg UpdateProductAttributeParams) error
-	UpdateShiftBalance(ctx context.Context, arg UpdateShiftBalanceParams) error
 	UpdateTransfer(ctx context.Context, arg UpdateTransferParams) error
 }
 

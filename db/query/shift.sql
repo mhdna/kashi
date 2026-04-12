@@ -12,10 +12,11 @@ SELECT * FROM shifts
 WHERE id = $1
 LIMIT 1;
 
--- name: UpdateShiftBalance :exec
+-- name: AddToShiftBalance :one
 UPDATE shifts 
-  SET total_balance = $1
-WHERE id = $2;
+  SET total_balance = total_balance + sqlc.arg(amount)
+WHERE id = sqlc.arg(id)
+RETURNING *;
 
 -- name: CloseShift :exec
 UPDATE shifts 
