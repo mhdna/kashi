@@ -18,12 +18,12 @@ RETURNING id, type, shift_id, currency_code, opening_balance, balance
 `
 
 type AddAccountBalanceParams struct {
-	Balance int64 `json:"balance"`
-	ID      int64 `json:"id"`
+	Amount int64 `json:"amount"`
+	ID     int64 `json:"id"`
 }
 
 func (q *Queries) AddAccountBalance(ctx context.Context, arg AddAccountBalanceParams) (CashboxAccount, error) {
-	row := q.db.QueryRowContext(ctx, addAccountBalance, arg.Balance, arg.ID)
+	row := q.db.QueryRowContext(ctx, addAccountBalance, arg.Amount, arg.ID)
 	var i CashboxAccount
 	err := row.Scan(
 		&i.ID,

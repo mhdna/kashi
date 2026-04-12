@@ -48,8 +48,8 @@ LIMIT 1;
 
 -- name: AddAccountBalance :one
 UPDATE cashbox_accounts
-SET balance = balance + $1
-WHERE id = $2
+SET balance = balance + sqlc.arg(amount)
+WHERE id = sqlc.arg(id)
 RETURNING *;
 
 -- name: ListAccounts :many
