@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"testing"
 	"time"
 
@@ -106,5 +106,20 @@ func TestSalesInvoiceTx(t *testing.T) {
 		require.NotZero(t, salesInvoice.ID)
 		require.NotZero(t, salesInvoice.CreatedAt)
 
+		entry := res.Entry
+		require.Equal(t, cashbox.ID, entry.CashboxID)
+		require.Equal(t, inventory.ID, entry.InventoryID)
+		netAmount, err := util.CalculateNetAmount(amount, discount)
+		if err != nil {
+			log.Fatal(err)
+		}
+		require.Equal(t, netAmount, entry.NetAmountInDefaultCurrency)
+		require.Equal(t, salesInvoice.ID, entry.ReferenceID)
+		require.Equal(t, EntryReferenceTypeSalesInvoice, entry.ReferenceType)
+		require.NotZero(t, entry.CreatedAt)
+		require.NotZero(t, entry.ID)
+
+		balance := res.Balance
+		_ = balance
 	}
 }
