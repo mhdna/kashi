@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"testing"
 	"time"
@@ -67,7 +68,7 @@ func TestSalesInvoiceTx(t *testing.T) {
 	currency := createRandomCurrency(t)
 	client := createRandomClient(t)
 
-	n := 5
+	n := int64(5)
 
 	errs := make(chan error)
 	results := make(chan SalesInvoiceTxResult)
@@ -89,7 +90,7 @@ func TestSalesInvoiceTx(t *testing.T) {
 		}()
 	}
 
-	for range n {
+	for i := int64(1); i <= n; i++ {
 		err := <-errs
 		require.NoError(t, err)
 
@@ -119,7 +120,14 @@ func TestSalesInvoiceTx(t *testing.T) {
 		require.NotZero(t, entry.CreatedAt)
 		require.NotZero(t, entry.ID)
 
-		balance := res.Balance
-		_ = balance
+		// check accounts and their balances
+		resAccount := res.Account
+		require.Equal(t, account.ID, resAccount.ID)
+		iterationNetAmount := netAmount * i
+		iterationAmount := amount * i
+		fmt.Printf(">> tx: %d + %d (%d - %d%%) = %d\n", account.Balance, iterationNetAmount, iterationAmount, discount, resAccount.Balance)
+		diff := resAccount.Balance - account.Balance
+		require.Equal(t, iterationNetAmount, diff)
+		require.True(t, diff%iterationNetAmount == 0)
 	}
 }
