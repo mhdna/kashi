@@ -66,24 +66,22 @@ func TestListShifts(t *testing.T) {
 }
 
 func TestUpdateShiftBalance(t *testing.T) {
-	shift := createRandomShift(t)
+	shift1 := createRandomShift(t)
 
-	currentBalance := shift.TotalBalance
-
-	arg := UpdateShiftBalanceParams{
-		ID:           shift.ID,
-		TotalBalance: currentBalance + util.RandomAmount(),
+	arg := AddToShiftBalanceParams{
+		ID:     shift1.ID,
+		Amount: util.RandomAmount(),
 	}
 
-	err := testQueries.UpdateShiftBalance(context.Background(), arg)
+	_, err := testQueries.AddToShiftBalance(context.Background(), arg)
 	require.NoError(t, err)
 
-	shift2, err := testQueries.GetShift(context.Background(), shift.ID)
+	shift2, err := testQueries.GetShift(context.Background(), shift1.ID)
 	if err != nil {
 		log.Fatal(err)
 	}
 	require.NoError(t, err)
-	require.Equal(t, shift2.TotalBalance, arg.TotalBalance)
+	require.Equal(t, shift2.TotalBalance, arg.Amount+shift1.TotalBalance)
 }
 
 func TestCloseShift(t *testing.T) {

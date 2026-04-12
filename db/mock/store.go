@@ -125,6 +125,21 @@ func (mr *MockStoreMockRecorder) AddSupplierProductCost(arg0, arg1 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddSupplierProductCost", reflect.TypeOf((*MockStore)(nil).AddSupplierProductCost), arg0, arg1)
 }
 
+// AddToShiftBalance mocks base method.
+func (m *MockStore) AddToShiftBalance(arg0 context.Context, arg1 db.AddToShiftBalanceParams) (db.Shift, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddToShiftBalance", arg0, arg1)
+	ret0, _ := ret[0].(db.Shift)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AddToShiftBalance indicates an expected call of AddToShiftBalance.
+func (mr *MockStoreMockRecorder) AddToShiftBalance(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddToShiftBalance", reflect.TypeOf((*MockStore)(nil).AddToShiftBalance), arg0, arg1)
+}
+
 // CloseShift mocks base method.
 func (m *MockStore) CloseShift(arg0 context.Context, arg1 db.CloseShiftParams) error {
 	m.ctrl.T.Helper()
@@ -1115,20 +1130,6 @@ func (m *MockStore) UpdateProductAttribute(arg0 context.Context, arg1 db.UpdateP
 func (mr *MockStoreMockRecorder) UpdateProductAttribute(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateProductAttribute", reflect.TypeOf((*MockStore)(nil).UpdateProductAttribute), arg0, arg1)
-}
-
-// UpdateShiftBalance mocks base method.
-func (m *MockStore) UpdateShiftBalance(arg0 context.Context, arg1 db.UpdateShiftBalanceParams) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateShiftBalance", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateShiftBalance indicates an expected call of UpdateShiftBalance.
-func (mr *MockStoreMockRecorder) UpdateShiftBalance(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateShiftBalance", reflect.TypeOf((*MockStore)(nil).UpdateShiftBalance), arg0, arg1)
 }
 
 // UpdateTransfer mocks base method.
