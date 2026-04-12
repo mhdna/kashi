@@ -124,7 +124,7 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 		// update account balance
 		addAccountBalance := AddAccountBalanceParams{
 			ID:     arg.CashboxAccountID,
-			Amount: arg.Amount,
+			Amount: netAmount,
 		}
 		account, err := q.AddAccountBalance(ctx, addAccountBalance)
 		if err != nil {
