@@ -12,18 +12,16 @@ const formattedDate = computed(() => {
 })
 </script>
 <template>
-    <v-sheet width="100%" style="height: 60px;" class="d-flex align-center ">
-        <!-- color="surface-light" -->
+    <v-sheet color="surface-light" width="100%" style="height: 50px;" class="d-flex align-center pt-0">
         <v-row class="d-flex align-center ">
             <v-spacer />
             <!-- <div class="me-2 mt-4"> -->
             <!--     Filters: -->
             <!-- </div> -->
-            <v-select class="mt-10" label="Branch" :items="['Branch 1', 'Branch 2', 'Branch 3', 'Branch 4']"
-                max-width="150" density="compact" variant="outlined"></v-select>
+            <v-icon icon="mdi-arrow-left-thin" variant="flat" size="22" class="pt-1" />
             <v-menu v-model="menu" :close-on-content-click="false" location="end">
                 <template v-slot:activator="{ props }">
-                    <v-btn variant="outlined" v-bind="props" class="mt-4 py-4 pt-5 me-6" width="200">
+                    <v-btn color="surface-light" variant="flat" v-bind="props" class="ma-0 py-4 pt-5" max-width="180">
                         {{ formattedDate }}
                     </v-btn>
                 </template>
@@ -41,6 +39,10 @@ const formattedDate = computed(() => {
                     </v-card-actions>
                 </v-card>
             </v-menu>
+            <v-icon icon="mdi-arrow-right-thin" variant="flat" size="22" class="pt-1" />
+            <v-spacer />
+            <v-select label="Branch" :items="['Branch 1', 'Branch 2', 'Branch 3', 'Branch 4']" max-width="150"
+                density="compact" variant="flat" class="pt-6"></v-select>
         </v-row>
     </v-sheet>
 </template>
