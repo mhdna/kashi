@@ -30,7 +30,9 @@ import { ref } from 'vue'
 
 const option = ref({
   tooltip: {
-    trigger: 'axis'
+    trigger: 'axis',
+    z: 9999,
+    appendToBody: true
   },
   grid: {
     top: '4%',
