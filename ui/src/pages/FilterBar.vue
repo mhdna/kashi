@@ -1,6 +1,11 @@
 <script setup>
 const menu = ref(false)
-const date = ref([new Date(), new Date()])
+const today = new Date()
+const past = new Date()
+past.setDate(today.getDate() - 30)
+
+const date = ref([past, today])
+
 const formattedDate = computed(() => {
     if (!date.value || date.value.length === 0) return ""
 
@@ -8,10 +13,10 @@ const formattedDate = computed(() => {
         new Date(d).toLocaleDateString("en-GB")
 
     if (date.value.length === 1) {
-        return new Date(date.value[0]).toLocaleDateString()
+        return format(date.value[0])
     }
 
-    return `${new Date(date.value[0]).toLocaleDateString()} → ${new Date(date.value[1]).toLocaleDateString()}`
+    return `${format(date.value[0])} → ${format(date.value[1])}`
 })
 </script>
 <template>
