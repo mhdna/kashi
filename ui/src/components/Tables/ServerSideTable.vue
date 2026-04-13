@@ -1,13 +1,24 @@
 <template>
-    <v-text-field v-model="search" label="Search" prepend-inner-icon="mdi-magnify" variant="outlined" hide-details
-        single-line></v-text-field>
-    <v-data-table-server v-model:items-per-page="itemsPerPage" :headers="headers" :items="serverItems"
-        :items-length="totalItems" :loading="loading" :search="search" item-value="name"
-        @update:options="loadItems"></v-data-table-server>
+    <v-card class="mx-2" flat>
+        <v-card-title class="px-2 py-2  d-flex justify-space-between text-headline-small">
+            Latest Invoices
+            <v-text-field v-model="search" label="Search" prepend-inner-icon="mdi-magnify" variant="filled" clearable
+                hide-details class="mx-4 mb-1 w-100" density="compact" single-line max-width="380" />
+            <!-- <v-tooltip text="Search"> -->
+            <!--     <template v-slot:activator="{ props }"> -->
+            <!--         <v-btn v-bind="props" variant="flat" icon="mdi-magnify" @click="searchBar = !searchBar"></v-btn> -->
+            <!--     </template> -->
+            <!-- </v-tooltip> -->
+        </v-card-title>
+        <v-data-table-server v-model:items-per-page="itemsPerPage" :headers="headers" :items="serverItems"
+            hide-default-footer density="compact" :items-length="totalItems" :loading="loading" :search="search"
+            item-value="name" @update:options="loadItems"></v-data-table-server>
+    </v-card>
 </template>
 <script setup>
 import { ref } from 'vue'
 
+const searchBar = ref(false)
 const props = defineProps({
     apiURL: {
         type: String,
@@ -52,7 +63,7 @@ async function fetchProducts({ page, itemsPerPage, sortBy }) {
         total: items.length,
     }
 }
-const itemsPerPage = ref(12)
+const itemsPerPage = ref(8);
 
 const search = ref('')
 const serverItems = ref([])
