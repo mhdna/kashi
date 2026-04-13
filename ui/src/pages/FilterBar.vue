@@ -4,6 +4,9 @@ const date = ref([new Date(), new Date()])
 const formattedDate = computed(() => {
     if (!date.value || date.value.length === 0) return ""
 
+    const format = (d) =>
+        new Date(d).toLocaleDateString("en-GB")
+
     if (date.value.length === 1) {
         return new Date(date.value[0]).toLocaleDateString()
     }
