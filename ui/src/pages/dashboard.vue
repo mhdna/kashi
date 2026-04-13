@@ -1,25 +1,10 @@
 <template>
-  <v-row>
-  <v-card width="150" height="150" class="my-6 mb-4 pa-4">
-    Number of New clients
-  </v-card>
-  <v-card width="150" height="150" class="my-6 mb-4 pa-4">
-    Number of Invoices
-  </v-card>
-  <v-card width="150" height="150" class="my-6 mb-4 pa-4">
-    Revenue This month
-  </v-card>
-  <v-card width="150" height="150" class="my-6 mb-4 pa-4">
-    Cost Of Products Sold
-  </v-card>
-  <v-card width="150" height="150" class="my-6 mb-4 pa-4">
-    Number of Items Sold
-  </v-card>
-</v-row>
-<v-row>
-  <v-card height="100%" class="w-100" flat>
-    <v-card-title>Daily Updates</v-card-title>
-<LineChart/>
+    <SparklineCard title="Items Sold" icon="mdi-cart-check" unit="" />
+    <SparklineCard title="New Clients" icon="mdi-card-account-details" unit="" />
+    <SparklineCard title="Revenue" icon="mdi-currency-usd" unit="$" />
+    <SparklineCard title="Expenses" icon="mdi-currency-usd-off" unit="$" />
+    <SparklineCard title="Invoices" icon="mdi-receipt-text-check" unit="" />
+  </div>
   </v-card>
 </v-row>
 
