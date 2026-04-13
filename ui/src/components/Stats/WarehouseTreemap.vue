@@ -1,8 +1,6 @@
 <template>
-  <div class="chart-container">
-    <v-chart class="chart" autoresize :option="option" theme="dark" :loading="loading" />
-    <!-- @click="handleClick" -->
-  </div>
+  <v-chart class="chart" autoresize :option="option" theme="dark" :loading="loading" />
+  <!-- @click="handleClick" -->
 </template>
 
 <script setup>
@@ -276,19 +274,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.chart-container {
-  width: 100vw;
-  height: 100vh;
-  margin: 0;
-  padding: 0;
-  position: fixed;
-  top: 0;
-  left: 0;
-}
-
 .chart {
   height: 100%;
-  width: 100%;
   cursor: pointer;
 }
 </style>
