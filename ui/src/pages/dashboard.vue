@@ -29,7 +29,7 @@ const headers = ref([
   </div>
   <!-- <v-card class="w-100 my-0 pb-2" flat> -->
   <v-card class="mx-2" flat>
-    <v-card-title class="px-2 py-2 font-weight-bold">Daily Updates</v-card-title>
+    <v-card-title class="card-title">Daily Updates</v-card-title>
     <LineChart />
   </v-card>
 
