@@ -1,6 +1,6 @@
 <template>
     <v-card class="mx-2" flat>
-        <v-card-title class="px-2 py-2  d-flex justify-space-between text-headline-small">
+        <v-card-title class="card-title d-flex justify-space-between">
             Latest Invoices
             <v-text-field v-model="search" label="Search" prepend-inner-icon="mdi-magnify" variant="filled" clearable
                 hide-details class="mx-4 mb-1 w-100" density="compact" single-line max-width="380" />
