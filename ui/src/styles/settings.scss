@@ -8,3 +8,8 @@
 // @use 'vuetify/settings' with (
 //   $color-pack: false
 // );
+.card-title {
+    padding: 8px 8px;
+    /* px-2 py-2 equivalent in Vuetify */
+    font-weight: bold;
+}

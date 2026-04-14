@@ -64,17 +64,17 @@ import PieChart from '@/components/Stats/PieChart.vue';
     <v-row>
         <v-col md="7">
             <v-card max-height="180" class="pa-4 mb-2" flat max-width="800">
-                <v-card-title class="px-2 py-2 font-weight-bold">Activity Over the Year</v-card-title>
+                <v-card-title class="card-title">Activity Over the Year</v-card-title>
                 <Heatmap />
             </v-card>
             <ServerSideTable apiURL="http://localhost:4123/invoices" rootKey="invoices" />
         </v-col>
         <v-col md="5">
             <v-card max-height="300" class="pa-4 mb-2" flat max-width="800">
-                <v-card-title class="px-2 py-2 font-weight-bold">Most Bought Genre</v-card-title>
+                <v-card-title class="card-title">Most Bought Genre</v-card-title>
                 <PieChart />
             </v-card>
-            <v-card max-height="300" class="pa-4 mb-2" flat max-width="800">
+            <v-card max-height="300" class="card-title" flat max-width="800">
                 <v-card-title class="px-2 py-2 font-weight-bold">Most Bought Categories</v-card-title>
                 <PieChart />
             </v-card>
