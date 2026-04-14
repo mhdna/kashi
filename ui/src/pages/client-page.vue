@@ -1,6 +1,9 @@
 <script setup lang="ts">
+import ClientRankTag from '@/components/ClientRankTag.vue';
 import Heatmap from '@/components/Stats/Heatmap.vue';
 import PieChart from '@/components/Stats/PieChart.vue';
+
+const clientRank = ref('Gold Tier');
 
 </script>
 
@@ -15,12 +18,7 @@ import PieChart from '@/components/Stats/PieChart.vue';
                     <div class="text-headline-large pb-2">
                         Aisha Miliki
                     </div>
-                    <div class="d-flex mt-2 mx-3 px-2" style="background-color: gold; height: 25px; width: 120px;">
-                        <v-icon icon="mdi-star" class="me-2" />
-                        <div>
-                            Gold Tier
-                        </div>
-                    </div>
+                    <ClientRankTag :rank="clientRank" />
                 </div>
                 <div class="d-flex">
                     <div style="width: 130px;" class="text-title-medium text-grey">
