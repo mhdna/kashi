@@ -250,9 +250,8 @@ type Color struct {
 }
 
 type Coupon struct {
-	ID           int64        `json:"id"`
-	Status       CouponStatus `json:"status"`
 	Code         string       `json:"code"`
+	Status       CouponStatus `json:"status"`
 	DiscountType DiscountType `json:"discountType"`
 	Reason       string       `json:"reason"`
 	ClientID     int64        `json:"clientId"`

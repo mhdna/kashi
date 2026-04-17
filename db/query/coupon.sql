@@ -1,7 +1,7 @@
 -- name: CreateCoupon :one
 INSERT INTO coupons (
-  status,
   code,
+  status,
   discount_type,
   reason,
   client_id,
@@ -12,15 +12,15 @@ INSERT INTO coupons (
 
 -- name: GetCoupon :one
 SELECT * FROM coupons
-WHERE id = $1 LIMIT 1;
+WHERE code = $1 LIMIT 1;
 
 -- name: ListCoupons :many
 SELECT * FROM coupons
-ORDER BY id
+ORDER BY code
 LIMIT $1
 OFFSET $2;
 
 -- name: UpdateCouponStatus :exec
 UPDATE coupons 
   SET status = $2
-WHERE id = $1;
+WHERE code = $1;

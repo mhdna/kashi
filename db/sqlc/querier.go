@@ -45,7 +45,7 @@ type Querier interface {
 	GetCashbox(ctx context.Context, id int64) (Cashbox, error)
 	GetCashboxAccount(ctx context.Context, id int64) (CashboxAccount, error)
 	GetClient(ctx context.Context, id int64) (Client, error)
-	GetCoupon(ctx context.Context, id int64) (Coupon, error)
+	GetCoupon(ctx context.Context, code string) (Coupon, error)
 	GetCurrency(ctx context.Context, code string) (Currency, error)
 	GetDefaultCurrency(ctx context.Context) (Currency, error)
 	GetEntry(ctx context.Context, id int64) (Entry, error)

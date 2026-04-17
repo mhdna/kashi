@@ -19,9 +19,8 @@ create  type coupon_status as enum (
 
 
 create table if not exists coupons (
-    id bigserial primary key,
+    code text primary key,
     status coupon_status not null,
-    code text not null,
     discount_type discount_type not null,
     reason text not null,
     client_id bigint not null references clients(id),

@@ -12,20 +12,20 @@ import (
 
 const createCoupon = `-- name: CreateCoupon :one
 INSERT INTO coupons (
-  status,
   code,
+  status,
   discount_type,
   reason,
   client_id,
   valid_until
 ) VALUES (
     $1, $2, $3, $4, $5, $6
-) RETURNING id, status, code, discount_type, reason, client_id, valid_until, created_at
+) RETURNING code, status, discount_type, reason, client_id, valid_until, created_at
 `
 
 type CreateCouponParams struct {
-	Status       CouponStatus `json:"status"`
 	Code         string       `json:"code"`
+	Status       CouponStatus `json:"status"`
 	DiscountType DiscountType `json:"discountType"`
 	Reason       string       `json:"reason"`
 	ClientID     int64        `json:"clientId"`
@@ -34,8 +34,8 @@ type CreateCouponParams struct {
 
 func (q *Queries) CreateCoupon(ctx context.Context, arg CreateCouponParams) (Coupon, error) {
 	row := q.db.QueryRowContext(ctx, createCoupon,
-		arg.Status,
 		arg.Code,
+		arg.Status,
 		arg.DiscountType,
 		arg.Reason,
 		arg.ClientID,
@@ -43,9 +43,8 @@ func (q *Queries) CreateCoupon(ctx context.Context, arg CreateCouponParams) (Cou
 	)
 	var i Coupon
 	err := row.Scan(
-		&i.ID,
-		&i.Status,
 		&i.Code,
+		&i.Status,
 		&i.DiscountType,
 		&i.Reason,
 		&i.ClientID,
@@ -56,17 +55,16 @@ func (q *Queries) CreateCoupon(ctx context.Context, arg CreateCouponParams) (Cou
 }
 
 const getCoupon = `-- name: GetCoupon :one
-SELECT id, status, code, discount_type, reason, client_id, valid_until, created_at FROM coupons
-WHERE id = $1 LIMIT 1
+SELECT code, status, discount_type, reason, client_id, valid_until, created_at FROM coupons
+WHERE code = $1 LIMIT 1
 `
 
-func (q *Queries) GetCoupon(ctx context.Context, id int64) (Coupon, error) {
-	row := q.db.QueryRowContext(ctx, getCoupon, id)
+func (q *Queries) GetCoupon(ctx context.Context, code string) (Coupon, error) {
+	row := q.db.QueryRowContext(ctx, getCoupon, code)
 	var i Coupon
 	err := row.Scan(
-		&i.ID,
-		&i.Status,
 		&i.Code,
+		&i.Status,
 		&i.DiscountType,
 		&i.Reason,
 		&i.ClientID,
@@ -77,8 +75,8 @@ func (q *Queries) GetCoupon(ctx context.Context, id int64) (Coupon, error) {
 }
 
 const listCoupons = `-- name: ListCoupons :many
-SELECT id, status, code, discount_type, reason, client_id, valid_until, created_at FROM coupons
-ORDER BY id
+SELECT code, status, discount_type, reason, client_id, valid_until, created_at FROM coupons
+ORDER BY code
 LIMIT $1
 OFFSET $2
 `
@@ -98,9 +96,8 @@ func (q *Queries) ListCoupons(ctx context.Context, arg ListCouponsParams) ([]Cou
 	for rows.Next() {
 		var i Coupon
 		if err := rows.Scan(
-			&i.ID,
-			&i.Status,
 			&i.Code,
+			&i.Status,
 			&i.DiscountType,
 			&i.Reason,
 			&i.ClientID,
@@ -123,15 +120,15 @@ func (q *Queries) ListCoupons(ctx context.Context, arg ListCouponsParams) ([]Cou
 const updateCouponStatus = `-- name: UpdateCouponStatus :exec
 UPDATE coupons 
   SET status = $2
-WHERE id = $1
+WHERE code = $1
 `
 
 type UpdateCouponStatusParams struct {
-	ID     int64        `json:"id"`
+	Code   string       `json:"code"`
 	Status CouponStatus `json:"status"`
 }
 
 func (q *Queries) UpdateCouponStatus(ctx context.Context, arg UpdateCouponStatusParams) error {
-	_, err := q.db.ExecContext(ctx, updateCouponStatus, arg.ID, arg.Status)
+	_, err := q.db.ExecContext(ctx, updateCouponStatus, arg.Code, arg.Status)
 	return err
 }
