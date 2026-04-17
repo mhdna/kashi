@@ -38,7 +38,7 @@ func TestGetCashbox(t *testing.T) {
 }
 
 func TestCreateCashbox(t *testing.T) {
-	createRandomAttributeValue(t)
+	createRandomCashbox(t)
 }
 
 func TestListCashboxes(t *testing.T) {
