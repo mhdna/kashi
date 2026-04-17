@@ -19,11 +19,15 @@ OFFSET $2;
 -- name: UpdateClient :exec
 UPDATE clients 
   SET name = $2,
-  phone = $3,
-  loyalty_points = $4
+  phone = $3
 WHERE id = $1;
 
 -- name: DeleteClient :exec
 DELETE FROM clients
 WHERE id = $1;
 
+-- name: UpdateClientLoyaltyPoints :exec
+UPDATE clients 
+  SET total_loyalty_points = $2,
+  valid_loyalty_points = $3
+WHERE id = $1;
