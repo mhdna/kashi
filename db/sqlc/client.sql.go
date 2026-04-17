@@ -15,7 +15,7 @@ INSERT INTO clients (
   phone
 ) VALUES (
     $1, $2
-) RETURNING id, name, phone, loyalty_points, created_at
+) RETURNING id, name, phone, total_loyalty_points, valid_loyalty_points, created_at
 `
 
 type CreateClientParams struct {
@@ -30,7 +30,8 @@ func (q *Queries) CreateClient(ctx context.Context, arg CreateClientParams) (Cli
 		&i.ID,
 		&i.Name,
 		&i.Phone,
-		&i.LoyaltyPoints,
+		&i.TotalLoyaltyPoints,
+		&i.ValidLoyaltyPoints,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -47,7 +48,7 @@ func (q *Queries) DeleteClient(ctx context.Context, id int64) error {
 }
 
 const getClient = `-- name: GetClient :one
-SELECT id, name, phone, loyalty_points, created_at FROM clients
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at FROM clients
 WHERE id = $1 LIMIT 1
 `
 
@@ -58,14 +59,15 @@ func (q *Queries) GetClient(ctx context.Context, id int64) (Client, error) {
 		&i.ID,
 		&i.Name,
 		&i.Phone,
-		&i.LoyaltyPoints,
+		&i.TotalLoyaltyPoints,
+		&i.ValidLoyaltyPoints,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const listClients = `-- name: ListClients :many
-SELECT id, name, phone, loyalty_points, created_at FROM clients
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at FROM clients
 ORDER BY name
 LIMIT $1
 OFFSET $2
@@ -89,7 +91,8 @@ func (q *Queries) ListClients(ctx context.Context, arg ListClientsParams) ([]Cli
 			&i.ID,
 			&i.Name,
 			&i.Phone,
-			&i.LoyaltyPoints,
+			&i.TotalLoyaltyPoints,
+			&i.ValidLoyaltyPoints,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -108,24 +111,35 @@ func (q *Queries) ListClients(ctx context.Context, arg ListClientsParams) ([]Cli
 const updateClient = `-- name: UpdateClient :exec
 UPDATE clients 
   SET name = $2,
-  phone = $3,
-  loyalty_points = $4
+  phone = $3
 WHERE id = $1
 `
 
 type UpdateClientParams struct {
-	ID            int64  `json:"id"`
-	Name          string `json:"name"`
-	Phone         string `json:"phone"`
-	LoyaltyPoints int64  `json:"loyaltyPoints"`
+	ID    int64  `json:"id"`
+	Name  string `json:"name"`
+	Phone string `json:"phone"`
 }
 
 func (q *Queries) UpdateClient(ctx context.Context, arg UpdateClientParams) error {
-	_, err := q.db.ExecContext(ctx, updateClient,
-		arg.ID,
-		arg.Name,
-		arg.Phone,
-		arg.LoyaltyPoints,
-	)
+	_, err := q.db.ExecContext(ctx, updateClient, arg.ID, arg.Name, arg.Phone)
+	return err
+}
+
+const updateClientLoyaltyPoints = `-- name: UpdateClientLoyaltyPoints :exec
+UPDATE clients 
+  SET total_loyalty_points = $2,
+  valid_loyalty_points = $3
+WHERE id = $1
+`
+
+type UpdateClientLoyaltyPointsParams struct {
+	ID                 int64 `json:"id"`
+	TotalLoyaltyPoints int64 `json:"totalLoyaltyPoints"`
+	ValidLoyaltyPoints int64 `json:"validLoyaltyPoints"`
+}
+
+func (q *Queries) UpdateClientLoyaltyPoints(ctx context.Context, arg UpdateClientLoyaltyPointsParams) error {
+	_, err := q.db.ExecContext(ctx, updateClientLoyaltyPoints, arg.ID, arg.TotalLoyaltyPoints, arg.ValidLoyaltyPoints)
 	return err
 }
