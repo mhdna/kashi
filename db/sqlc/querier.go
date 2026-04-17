@@ -82,7 +82,7 @@ type Querier interface {
 	ListTransfers(ctx context.Context, arg ListTransfersParams) ([]Transfer, error)
 	NextReturnInvoiceIndexIncrement(ctx context.Context, arg NextReturnInvoiceIndexIncrementParams) (int64, error)
 	NextSalesInvoiceIndexIncrement(ctx context.Context, arg NextSalesInvoiceIndexIncrementParams) (int64, error)
-	UpdateAttributeValue(ctx context.Context, arg UpdateAttributeValueParams) error
+	UpdateAttributeValue(ctx context.Context, arg UpdateAttributeValueParams) (AttributesValue, error)
 	UpdateClient(ctx context.Context, arg UpdateClientParams) error
 	UpdateClientLoyaltyPoints(ctx context.Context, arg UpdateClientLoyaltyPointsParams) error
 	UpdateInventory(ctx context.Context, arg UpdateInventoryParams) error

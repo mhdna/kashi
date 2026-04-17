@@ -121,10 +121,11 @@ func (q *Queries) ListAttributes(ctx context.Context) ([]string, error) {
 	return items, nil
 }
 
-const updateAttributeValue = `-- name: UpdateAttributeValue :exec
+const updateAttributeValue = `-- name: UpdateAttributeValue :one
 UPDATE attributes_values 
 SET value = $2
 WHERE id = $1
+RETURNING id, attribute, value
 `
 
 type UpdateAttributeValueParams struct {
@@ -132,7 +133,9 @@ type UpdateAttributeValueParams struct {
 	Value string `json:"value"`
 }
 
-func (q *Queries) UpdateAttributeValue(ctx context.Context, arg UpdateAttributeValueParams) error {
-	_, err := q.db.ExecContext(ctx, updateAttributeValue, arg.ID, arg.Value)
-	return err
+func (q *Queries) UpdateAttributeValue(ctx context.Context, arg UpdateAttributeValueParams) (AttributesValue, error) {
+	row := q.db.QueryRowContext(ctx, updateAttributeValue, arg.ID, arg.Value)
+	var i AttributesValue
+	err := row.Scan(&i.ID, &i.Attribute, &i.Value)
+	return i, err
 }
