@@ -1138,11 +1138,12 @@ func (mr *MockStoreMockRecorder) SalesInvoiceTx(arg0, arg1 interface{}) *gomock.
 }
 
 // UpdateAttributeValue mocks base method.
-func (m *MockStore) UpdateAttributeValue(arg0 context.Context, arg1 db.UpdateAttributeValueParams) error {
+func (m *MockStore) UpdateAttributeValue(arg0 context.Context, arg1 db.UpdateAttributeValueParams) (db.AttributesValue, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateAttributeValue", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(db.AttributesValue)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // UpdateAttributeValue indicates an expected call of UpdateAttributeValue.

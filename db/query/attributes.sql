@@ -25,7 +25,8 @@ ORDER BY value
 LIMIT $1
 OFFSET $2;
 
--- name: UpdateAttributeValue :exec
+-- name: UpdateAttributeValue :one
 UPDATE attributes_values 
 SET value = $2
-WHERE id = $1;
+WHERE id = $1
+RETURNING *;
