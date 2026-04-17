@@ -14,7 +14,7 @@ create  type discount_type as enum (
 
 create  type coupon_status as enum (
     'active',
-    'used'
+    'inactive'
 );
 
 

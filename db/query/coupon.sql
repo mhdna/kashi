@@ -20,7 +20,7 @@ ORDER BY code
 LIMIT $1
 OFFSET $2;
 
--- name: UpdateCouponStatus :exec
+-- name: DeactivateCoupon :exec
 UPDATE coupons 
-  SET status = $2
+  SET status = 'inactive'
 WHERE code = $1;

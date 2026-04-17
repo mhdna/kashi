@@ -54,6 +54,17 @@ func (q *Queries) CreateCoupon(ctx context.Context, arg CreateCouponParams) (Cou
 	return i, err
 }
 
+const deactivateCoupon = `-- name: DeactivateCoupon :exec
+UPDATE coupons 
+  SET status = 'inactive'
+WHERE code = $1
+`
+
+func (q *Queries) DeactivateCoupon(ctx context.Context, code string) error {
+	_, err := q.db.ExecContext(ctx, deactivateCoupon, code)
+	return err
+}
+
 const getCoupon = `-- name: GetCoupon :one
 SELECT code, status, discount_type, reason, client_id, valid_until, created_at FROM coupons
 WHERE code = $1 LIMIT 1
@@ -115,20 +126,4 @@ func (q *Queries) ListCoupons(ctx context.Context, arg ListCouponsParams) ([]Cou
 		return nil, err
 	}
 	return items, nil
-}
-
-const updateCouponStatus = `-- name: UpdateCouponStatus :exec
-UPDATE coupons 
-  SET status = $2
-WHERE code = $1
-`
-
-type UpdateCouponStatusParams struct {
-	Code   string       `json:"code"`
-	Status CouponStatus `json:"status"`
-}
-
-func (q *Queries) UpdateCouponStatus(ctx context.Context, arg UpdateCouponStatusParams) error {
-	_, err := q.db.ExecContext(ctx, updateCouponStatus, arg.Code, arg.Status)
-	return err
 }

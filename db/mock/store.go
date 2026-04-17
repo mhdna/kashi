@@ -424,6 +424,20 @@ func (mr *MockStoreMockRecorder) CreateTransferItem(arg0, arg1 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransferItem", reflect.TypeOf((*MockStore)(nil).CreateTransferItem), arg0, arg1)
 }
 
+// DeactivateCoupon mocks base method.
+func (m *MockStore) DeactivateCoupon(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeactivateCoupon", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeactivateCoupon indicates an expected call of DeactivateCoupon.
+func (mr *MockStoreMockRecorder) DeactivateCoupon(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeactivateCoupon", reflect.TypeOf((*MockStore)(nil).DeactivateCoupon), arg0, arg1)
+}
+
 // DeleteClient mocks base method.
 func (m *MockStore) DeleteClient(arg0 context.Context, arg1 int64) error {
 	m.ctrl.T.Helper()
@@ -1133,20 +1147,6 @@ func (m *MockStore) UpdateClientLoyaltyPoints(arg0 context.Context, arg1 db.Upda
 func (mr *MockStoreMockRecorder) UpdateClientLoyaltyPoints(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClientLoyaltyPoints", reflect.TypeOf((*MockStore)(nil).UpdateClientLoyaltyPoints), arg0, arg1)
-}
-
-// UpdateCouponStatus mocks base method.
-func (m *MockStore) UpdateCouponStatus(arg0 context.Context, arg1 db.UpdateCouponStatusParams) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateCouponStatus", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateCouponStatus indicates an expected call of UpdateCouponStatus.
-func (mr *MockStoreMockRecorder) UpdateCouponStatus(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCouponStatus", reflect.TypeOf((*MockStore)(nil).UpdateCouponStatus), arg0, arg1)
 }
 
 // UpdateInventory mocks base method.
