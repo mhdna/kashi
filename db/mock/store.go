@@ -319,6 +319,21 @@ func (mr *MockStoreMockRecorder) CreateProductAttribute(arg0, arg1 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateProductAttribute", reflect.TypeOf((*MockStore)(nil).CreateProductAttribute), arg0, arg1)
 }
 
+// CreateProductTx mocks base method.
+func (m *MockStore) CreateProductTx(arg0 context.Context, arg1 db.CreateProductTxParams) (db.CreateProductTxResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateProductTx", arg0, arg1)
+	ret0, _ := ret[0].(db.CreateProductTxResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateProductTx indicates an expected call of CreateProductTx.
+func (mr *MockStoreMockRecorder) CreateProductTx(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateProductTx", reflect.TypeOf((*MockStore)(nil).CreateProductTx), arg0, arg1)
+}
+
 // CreatePurchase mocks base method.
 func (m *MockStore) CreatePurchase(arg0 context.Context, arg1 db.CreatePurchaseParams) (db.Purchase, error) {
 	m.ctrl.T.Helper()
@@ -820,6 +835,21 @@ func (m *MockStore) ListAttributeValues(arg0 context.Context, arg1 db.ListAttrib
 func (mr *MockStoreMockRecorder) ListAttributeValues(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAttributeValues", reflect.TypeOf((*MockStore)(nil).ListAttributeValues), arg0, arg1)
+}
+
+// ListAttributes mocks base method.
+func (m *MockStore) ListAttributes(arg0 context.Context) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListAttributes", arg0)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListAttributes indicates an expected call of ListAttributes.
+func (mr *MockStoreMockRecorder) ListAttributes(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAttributes", reflect.TypeOf((*MockStore)(nil).ListAttributes), arg0)
 }
 
 // ListCashboxes mocks base method.
