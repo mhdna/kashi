@@ -35,6 +35,7 @@ type Querier interface {
 	CreateSupplier(ctx context.Context, arg CreateSupplierParams) (Supplier, error)
 	CreateTransfer(ctx context.Context, arg CreateTransferParams) (Transfer, error)
 	CreateTransferItem(ctx context.Context, arg CreateTransferItemParams) (TransferItem, error)
+	DeactivateCoupon(ctx context.Context, code string) error
 	DeleteClient(ctx context.Context, id int64) error
 	DeleteCurrency(ctx context.Context, code string) error
 	DeleteInventory(ctx context.Context, id int64) error
@@ -83,7 +84,6 @@ type Querier interface {
 	UpdateAttributeValue(ctx context.Context, arg UpdateAttributeValueParams) error
 	UpdateClient(ctx context.Context, arg UpdateClientParams) error
 	UpdateClientLoyaltyPoints(ctx context.Context, arg UpdateClientLoyaltyPointsParams) error
-	UpdateCouponStatus(ctx context.Context, arg UpdateCouponStatusParams) error
 	UpdateInventory(ctx context.Context, arg UpdateInventoryParams) error
 	UpdateInventoryProduct(ctx context.Context, arg UpdateInventoryProductParams) error
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) error

@@ -14,8 +14,8 @@ import (
 type CouponStatus string
 
 const (
-	CouponStatusActive CouponStatus = "active"
-	CouponStatusUsed   CouponStatus = "used"
+	CouponStatusActive   CouponStatus = "active"
+	CouponStatusInactive CouponStatus = "inactive"
 )
 
 func (e *CouponStatus) Scan(src interface{}) error {
