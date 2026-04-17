@@ -59,7 +59,7 @@ func TestListShifts(t *testing.T) {
 
 	shifts, err := testQueries.ListShifts(context.Background(), arg)
 	require.NoError(t, err)
-	for shift := range shifts {
+	for _, shift := range shifts {
 		// FIXME
 		require.NotEmpty(t, shift)
 	}
