@@ -214,6 +214,21 @@ func (mr *MockStoreMockRecorder) CreateClient(arg0, arg1 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClient", reflect.TypeOf((*MockStore)(nil).CreateClient), arg0, arg1)
 }
 
+// CreateCoupon mocks base method.
+func (m *MockStore) CreateCoupon(arg0 context.Context, arg1 db.CreateCouponParams) (db.Coupon, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateCoupon", arg0, arg1)
+	ret0, _ := ret[0].(db.Coupon)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateCoupon indicates an expected call of CreateCoupon.
+func (mr *MockStoreMockRecorder) CreateCoupon(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCoupon", reflect.TypeOf((*MockStore)(nil).CreateCoupon), arg0, arg1)
+}
+
 // CreateCurrency mocks base method.
 func (m *MockStore) CreateCurrency(arg0 context.Context, arg1 db.CreateCurrencyParams) (db.Currency, error) {
 	m.ctrl.T.Helper()
@@ -553,6 +568,21 @@ func (mr *MockStoreMockRecorder) GetClient(arg0, arg1 interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClient", reflect.TypeOf((*MockStore)(nil).GetClient), arg0, arg1)
 }
 
+// GetCoupon mocks base method.
+func (m *MockStore) GetCoupon(arg0 context.Context, arg1 int64) (db.Coupon, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCoupon", arg0, arg1)
+	ret0, _ := ret[0].(db.Coupon)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCoupon indicates an expected call of GetCoupon.
+func (mr *MockStoreMockRecorder) GetCoupon(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCoupon", reflect.TypeOf((*MockStore)(nil).GetCoupon), arg0, arg1)
+}
+
 // GetCurrency mocks base method.
 func (m *MockStore) GetCurrency(arg0 context.Context, arg1 string) (db.Currency, error) {
 	m.ctrl.T.Helper()
@@ -806,6 +836,21 @@ func (m *MockStore) ListClients(arg0 context.Context, arg1 db.ListClientsParams)
 func (mr *MockStoreMockRecorder) ListClients(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClients", reflect.TypeOf((*MockStore)(nil).ListClients), arg0, arg1)
+}
+
+// ListCoupons mocks base method.
+func (m *MockStore) ListCoupons(arg0 context.Context, arg1 db.ListCouponsParams) ([]db.Coupon, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListCoupons", arg0, arg1)
+	ret0, _ := ret[0].([]db.Coupon)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListCoupons indicates an expected call of ListCoupons.
+func (mr *MockStoreMockRecorder) ListCoupons(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCoupons", reflect.TypeOf((*MockStore)(nil).ListCoupons), arg0, arg1)
 }
 
 // ListCurrencies mocks base method.
@@ -1074,6 +1119,34 @@ func (m *MockStore) UpdateClient(arg0 context.Context, arg1 db.UpdateClientParam
 func (mr *MockStoreMockRecorder) UpdateClient(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClient", reflect.TypeOf((*MockStore)(nil).UpdateClient), arg0, arg1)
+}
+
+// UpdateClientLoyaltyPoints mocks base method.
+func (m *MockStore) UpdateClientLoyaltyPoints(arg0 context.Context, arg1 db.UpdateClientLoyaltyPointsParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateClientLoyaltyPoints", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateClientLoyaltyPoints indicates an expected call of UpdateClientLoyaltyPoints.
+func (mr *MockStoreMockRecorder) UpdateClientLoyaltyPoints(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClientLoyaltyPoints", reflect.TypeOf((*MockStore)(nil).UpdateClientLoyaltyPoints), arg0, arg1)
+}
+
+// UpdateCouponStatus mocks base method.
+func (m *MockStore) UpdateCouponStatus(arg0 context.Context, arg1 db.UpdateCouponStatusParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateCouponStatus", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateCouponStatus indicates an expected call of UpdateCouponStatus.
+func (mr *MockStoreMockRecorder) UpdateCouponStatus(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCouponStatus", reflect.TypeOf((*MockStore)(nil).UpdateCouponStatus), arg0, arg1)
 }
 
 // UpdateInventory mocks base method.

@@ -21,6 +21,7 @@ type Querier interface {
 	CreateCashbox(ctx context.Context, arg CreateCashboxParams) (Cashbox, error)
 	CreateCashboxAccount(ctx context.Context, arg CreateCashboxAccountParams) (CashboxAccount, error)
 	CreateClient(ctx context.Context, arg CreateClientParams) (Client, error)
+	CreateCoupon(ctx context.Context, arg CreateCouponParams) (Coupon, error)
 	CreateCurrency(ctx context.Context, arg CreateCurrencyParams) (Currency, error)
 	CreateEntryItem(ctx context.Context, arg CreateEntryItemParams) (Entry, error)
 	CreateExpense(ctx context.Context, arg CreateExpenseParams) (Expense, error)
@@ -44,6 +45,7 @@ type Querier interface {
 	GetCashbox(ctx context.Context, id int64) (Cashbox, error)
 	GetCashboxAccount(ctx context.Context, id int64) (CashboxAccount, error)
 	GetClient(ctx context.Context, id int64) (Client, error)
+	GetCoupon(ctx context.Context, id int64) (Coupon, error)
 	GetCurrency(ctx context.Context, code string) (Currency, error)
 	GetDefaultCurrency(ctx context.Context) (Currency, error)
 	GetEntry(ctx context.Context, id int64) (Entry, error)
@@ -61,6 +63,7 @@ type Querier interface {
 	ListAttributeValues(ctx context.Context, arg ListAttributeValuesParams) ([]ListAttributeValuesRow, error)
 	ListCashboxes(ctx context.Context, arg ListCashboxesParams) ([]Cashbox, error)
 	ListClients(ctx context.Context, arg ListClientsParams) ([]Client, error)
+	ListCoupons(ctx context.Context, arg ListCouponsParams) ([]Coupon, error)
 	ListCurrencies(ctx context.Context, arg ListCurrenciesParams) ([]Currency, error)
 	ListEntries(ctx context.Context, arg ListEntriesParams) ([]Entry, error)
 	ListExpenses(ctx context.Context, arg ListExpensesParams) ([]Expense, error)
@@ -79,6 +82,8 @@ type Querier interface {
 	NextSalesInvoiceIndexIncrement(ctx context.Context, arg NextSalesInvoiceIndexIncrementParams) (int64, error)
 	UpdateAttributeValue(ctx context.Context, arg UpdateAttributeValueParams) error
 	UpdateClient(ctx context.Context, arg UpdateClientParams) error
+	UpdateClientLoyaltyPoints(ctx context.Context, arg UpdateClientLoyaltyPointsParams) error
+	UpdateCouponStatus(ctx context.Context, arg UpdateCouponStatusParams) error
 	UpdateInventory(ctx context.Context, arg UpdateInventoryParams) error
 	UpdateInventoryProduct(ctx context.Context, arg UpdateInventoryProductParams) error
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) error
