@@ -569,7 +569,7 @@ func (mr *MockStoreMockRecorder) GetClient(arg0, arg1 interface{}) *gomock.Call 
 }
 
 // GetCoupon mocks base method.
-func (m *MockStore) GetCoupon(arg0 context.Context, arg1 int64) (db.Coupon, error) {
+func (m *MockStore) GetCoupon(arg0 context.Context, arg1 string) (db.Coupon, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCoupon", arg0, arg1)
 	ret0, _ := ret[0].(db.Coupon)
