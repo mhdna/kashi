@@ -8,39 +8,49 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createRandomAttributeValue(t *testing.T) AttributesValue {
-	arg := CreateAttributeValueParams{
-		AttributeID: util.RandomInt(1, 9),
-		Value:       util.RandomString(6),
+func createRandomAttributeValues(t *testing.T) []AttributesValue {
+	attributes, err := testQueries.ListAttributes(context.Background())
+	require.NoError(t, err)
+
+	attributeValues := make([]AttributesValue, 0, len(attributes))
+
+	for _, a := range attributes {
+		arg := CreateAttributeValueParams{
+			Attribute: a,
+			Value:     util.RandomString(6),
+		}
+		attributeValue, err := testQueries.CreateAttributeValue(context.Background(), arg)
+		require.NoError(t, err)
+		require.NotEmpty(t, attributeValue)
+		require.Equal(t, attributeValue.Attribute, arg.Attribute)
+		require.Equal(t, attributeValue.Value, arg.Value)
+
+		attributeValues = append(attributeValues, attributeValue)
 	}
 
-	attribute, err := testQueries.CreateAttributeValue(context.Background(), arg)
-	require.NoError(t, err)
-	require.NotEmpty(t, attribute)
-	require.Equal(t, attribute.AttributeID, arg.AttributeID)
-	require.Equal(t, attribute.Value, arg.Value)
-
-	return attribute
-}
-
-func TestGetAttributeValue(t *testing.T) {
-	attribute_value := createRandomAttributeValue(t)
-
-	attribute_value2, err := testQueries.GetAttributeValue(context.Background(), attribute_value.ID)
-
-	require.NoError(t, err)
-	require.Equal(t, attribute_value.ID, attribute_value2.ID)
-	require.Equal(t, attribute_value.AttributeID, attribute_value2.AttributeID)
-	require.Equal(t, attribute_value.Value, attribute_value2.Value)
+	return attributeValues
 }
 
 func TestCreateAttribute(t *testing.T) {
-	createRandomAttributeValue(t)
+	createRandomAttributeValues(t)
+}
+
+func TestGetAttributeValue(t *testing.T) {
+	attributeValues := createRandomAttributeValues(t)
+
+	for _, a := range attributeValues {
+		attributeValue, err := testQueries.GetAttributeValue(context.Background(), a.ID)
+
+		require.NoError(t, err)
+		require.Equal(t, attributeValue.ID, a.ID)
+		require.Equal(t, attributeValue.Attribute, a.Attribute)
+		require.Equal(t, attributeValue.Value, a.Value)
+	}
 }
 
 func TestListAttributeValues(t *testing.T) {
 	for range 10 {
-		createRandomAttributeValue(t)
+		createRandomAttributeValues(t)
 	}
 
 	limit := 5
@@ -55,22 +65,24 @@ func TestListAttributeValues(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, attribute_values, limit)
 	for _, attrattribute_value := range attribute_values {
-		// TODO: complete this
 		require.NotEmpty(t, attrattribute_value)
 	}
 }
 
 func TestUpdateAttributeValue(t *testing.T) {
-	attribute_value1 := createRandomAttributeValue(t)
-	arg := UpdateAttributeValueParams{
-		ID:    attribute_value1.ID,
-		Value: util.RandomAttributeValue(),
+	attributeValues := createRandomAttributeValues(t)
+
+	for _, a := range attributeValues {
+		arg := UpdateAttributeValueParams{
+			ID:    a.ID,
+			Value: util.RandomAttributeValue(),
+		}
+
+		err := testQueries.UpdateAttributeValue(context.Background(), arg)
+		require.NoError(t, err)
+
+		attributeValue2, err := testQueries.GetAttributeValue(context.Background(), a.ID)
+		require.Equal(t, attributeValue2.ID, arg.ID)
+		require.Equal(t, attributeValue2.Value, arg.Value)
 	}
-
-	err := testQueries.UpdateAttributeValue(context.Background(), arg)
-	require.NoError(t, err)
-
-	attribute_value2, err := testQueries.GetAttributeValue(context.Background(), attribute_value1.ID)
-	require.Equal(t, attribute_value2.ID, arg.ID)
-	require.Equal(t, attribute_value2.Value, arg.Value)
 }
