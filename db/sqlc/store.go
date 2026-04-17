@@ -10,6 +10,7 @@ type Store interface {
 	Querier
 	// TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error)
 	SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxParams) (SalesInvoiceTxResult, error)
+	CreateProductTx(ctx context.Context, arg CreateProductTxParams) (CreateProductTxResult, error)
 	// ReturnInvoiceTx(ctx context.Context, arg ReturnInvoiceTxParams) (ReturnInvoiceTxResult, error)
 }
 
