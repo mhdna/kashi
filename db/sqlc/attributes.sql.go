@@ -11,42 +11,42 @@ import (
 
 const createAttributeValue = `-- name: CreateAttributeValue :one
 INSERT INTO attributes_values (
-  attribute_id,
+  attribute,
   value
 ) VALUES (
     $1, $2
-) RETURNING id, attribute_id, value
+) RETURNING id, attribute, value
 `
 
 type CreateAttributeValueParams struct {
-	AttributeID int64  `json:"attributeId"`
-	Value       string `json:"value"`
+	Attribute string `json:"attribute"`
+	Value     string `json:"value"`
 }
 
 func (q *Queries) CreateAttributeValue(ctx context.Context, arg CreateAttributeValueParams) (AttributesValue, error) {
-	row := q.db.QueryRowContext(ctx, createAttributeValue, arg.AttributeID, arg.Value)
+	row := q.db.QueryRowContext(ctx, createAttributeValue, arg.Attribute, arg.Value)
 	var i AttributesValue
-	err := row.Scan(&i.ID, &i.AttributeID, &i.Value)
+	err := row.Scan(&i.ID, &i.Attribute, &i.Value)
 	return i, err
 }
 
 const getAttributeValue = `-- name: GetAttributeValue :one
-SELECT id, attribute_id, value FROM attributes_values
+SELECT id, attribute, value FROM attributes_values
 WHERE id = $1
 `
 
 func (q *Queries) GetAttributeValue(ctx context.Context, id int64) (AttributesValue, error) {
 	row := q.db.QueryRowContext(ctx, getAttributeValue, id)
 	var i AttributesValue
-	err := row.Scan(&i.ID, &i.AttributeID, &i.Value)
+	err := row.Scan(&i.ID, &i.Attribute, &i.Value)
 	return i, err
 }
 
 const listAttributeValues = `-- name: ListAttributeValues :many
-SELECT a.id, a.name, av.id, av.attribute_id, av.value
+SELECT a.name, av.id, av.attribute, av.value
 FROM attributes a
 INNER JOIN attributes_values av
-ON a.id = av.attribute_id
+ON a.name = av.attribute
 ORDER BY value
 LIMIT $1
 OFFSET $2
@@ -58,11 +58,10 @@ type ListAttributeValuesParams struct {
 }
 
 type ListAttributeValuesRow struct {
-	ID          int64  `json:"id"`
-	Name        string `json:"name"`
-	ID_2        int64  `json:"id2"`
-	AttributeID int64  `json:"attributeId"`
-	Value       string `json:"value"`
+	Name      string `json:"name"`
+	ID        int64  `json:"id"`
+	Attribute string `json:"attribute"`
+	Value     string `json:"value"`
 }
 
 func (q *Queries) ListAttributeValues(ctx context.Context, arg ListAttributeValuesParams) ([]ListAttributeValuesRow, error) {
@@ -75,10 +74,9 @@ func (q *Queries) ListAttributeValues(ctx context.Context, arg ListAttributeValu
 	for rows.Next() {
 		var i ListAttributeValuesRow
 		if err := rows.Scan(
-			&i.ID,
 			&i.Name,
-			&i.ID_2,
-			&i.AttributeID,
+			&i.ID,
+			&i.Attribute,
 			&i.Value,
 		); err != nil {
 			return nil, err
