@@ -23,7 +23,8 @@ func createRandomClient(t *testing.T) Client {
 	require.NotEmpty(t, client)
 	require.Equal(t, arg.Name, client.Name)
 	require.Equal(t, arg.Phone, client.Phone)
-	require.Equal(t, client.LoyaltyPoints, int64(0))
+	require.Equal(t, client.TotalLoyaltyPoints, int64(0))
+	require.Equal(t, client.ValidLoyaltyPoints, int64(0))
 
 	require.NotZero(t, client.ID)
 	require.NotZero(t, client.CreatedAt)
@@ -44,7 +45,8 @@ func TestGetClient(t *testing.T) {
 	require.Equal(t, client1.ID, client2.ID)
 	require.Equal(t, client1.Name, client2.Name)
 	require.Equal(t, client1.Phone, client2.Phone)
-	require.Equal(t, client1.LoyaltyPoints, client2.LoyaltyPoints)
+	require.Equal(t, client1.TotalLoyaltyPoints, client2.TotalLoyaltyPoints)
+	require.Equal(t, client1.ValidLoyaltyPoints, client2.ValidLoyaltyPoints)
 	require.WithinDuration(t, client1.CreatedAt, client2.CreatedAt, time.Second)
 }
 
@@ -69,10 +71,9 @@ func TestUpdateClient(t *testing.T) {
 	client := createRandomClient(t)
 
 	arg := UpdateClientParams{
-		ID:            client.ID,
-		Name:          util.RandomName(),
-		Phone:         util.RandomPhone(),
-		LoyaltyPoints: util.RandomInt(0, 100),
+		ID:    client.ID,
+		Name:  util.RandomName(),
+		Phone: util.RandomPhone(),
 	}
 	err := testQueries.UpdateClient(context.Background(), arg)
 	require.NoError(t, err)
@@ -81,7 +82,8 @@ func TestUpdateClient(t *testing.T) {
 	require.Equal(t, arg.ID, client2.ID)
 	require.Equal(t, arg.Name, client2.Name)
 	require.Equal(t, arg.Phone, client2.Phone)
-	require.Equal(t, arg.LoyaltyPoints, client2.LoyaltyPoints)
+	require.Equal(t, client.TotalLoyaltyPoints, client2.TotalLoyaltyPoints)
+	require.Equal(t, client.ValidLoyaltyPoints, client2.ValidLoyaltyPoints)
 }
 
 func TestDeleteClient(t *testing.T) {
