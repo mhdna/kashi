@@ -17,6 +17,10 @@ func NewServer(store db.Store) *Server {
 	router.POST("/inventories", server.createInventory)
 	router.GET("/inventories/:id", server.getInventory)
 	router.GET("/inventories/", server.listInventories)
+	router.POST("/products", server.createProduct)
+	router.GET("/products/:id", server.getProduct)
+	router.GET("/products/", server.listProducts)
+	router.DELETE("/products/:id", server.deleteProduct)
 
 	server.router = router
 	return server
