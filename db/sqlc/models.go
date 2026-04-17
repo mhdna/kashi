@@ -11,6 +11,90 @@ import (
 	"time"
 )
 
+type CouponStatus string
+
+const (
+	CouponStatusActive CouponStatus = "active"
+	CouponStatusUsed   CouponStatus = "used"
+)
+
+func (e *CouponStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = CouponStatus(s)
+	case string:
+		*e = CouponStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for CouponStatus: %T", src)
+	}
+	return nil
+}
+
+type NullCouponStatus struct {
+	CouponStatus CouponStatus `json:"couponStatus"`
+	Valid        bool         `json:"valid"` // Valid is true if CouponStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullCouponStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.CouponStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.CouponStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullCouponStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.CouponStatus), nil
+}
+
+type DiscountType string
+
+const (
+	DiscountTypeFixed      DiscountType = "fixed"
+	DiscountTypePercentage DiscountType = "percentage"
+)
+
+func (e *DiscountType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DiscountType(s)
+	case string:
+		*e = DiscountType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DiscountType: %T", src)
+	}
+	return nil
+}
+
+type NullDiscountType struct {
+	DiscountType DiscountType `json:"discountType"`
+	Valid        bool         `json:"valid"` // Valid is true if DiscountType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDiscountType) Scan(value interface{}) error {
+	if value == nil {
+		ns.DiscountType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DiscountType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDiscountType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DiscountType), nil
+}
+
 type EntryReferenceType string
 
 const (
@@ -169,6 +253,17 @@ type Color struct {
 	Name     string `json:"name"`
 	HexValue string `json:"hexValue"`
 	Version  int32  `json:"version"`
+}
+
+type Coupon struct {
+	ID           int64        `json:"id"`
+	Status       CouponStatus `json:"status"`
+	Code         string       `json:"code"`
+	DiscountType DiscountType `json:"discountType"`
+	Reason       string       `json:"reason"`
+	ClientID     int64        `json:"clientId"`
+	ValidUntil   time.Time    `json:"validUntil"`
+	CreatedAt    time.Time    `json:"createdAt"`
 }
 
 type Currency struct {
