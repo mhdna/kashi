@@ -234,18 +234,12 @@ type CashboxAccount struct {
 }
 
 type Client struct {
-	ID            int64     `json:"id"`
-	Name          string    `json:"name"`
-	Phone         string    `json:"phone"`
-	LoyaltyPoints int64     `json:"loyaltyPoints"`
-	CreatedAt     time.Time `json:"createdAt"`
-}
-
-type ClientsDiscount struct {
-	ProductID int64     `json:"productId"`
-	ClientID  int64     `json:"clientId"`
-	Discount  int64     `json:"discount"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID                 int64     `json:"id"`
+	Name               string    `json:"name"`
+	Phone              string    `json:"phone"`
+	TotalLoyaltyPoints int64     `json:"totalLoyaltyPoints"`
+	ValidLoyaltyPoints int64     `json:"validLoyaltyPoints"`
+	CreatedAt          time.Time `json:"createdAt"`
 }
 
 type Color struct {
