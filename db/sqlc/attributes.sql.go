@@ -92,6 +92,35 @@ func (q *Queries) ListAttributeValues(ctx context.Context, arg ListAttributeValu
 	return items, nil
 }
 
+const listAttributes = `-- name: ListAttributes :many
+SELECT name
+FROM attributes 
+ORDER BY name
+`
+
+func (q *Queries) ListAttributes(ctx context.Context) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listAttributes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		items = append(items, name)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateAttributeValue = `-- name: UpdateAttributeValue :exec
 UPDATE attributes_values 
 SET value = $2

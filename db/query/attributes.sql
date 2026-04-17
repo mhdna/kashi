@@ -1,3 +1,8 @@
+-- name: ListAttributes :many
+SELECT *
+FROM attributes 
+ORDER BY name;
+
 -- name: CreateAttributeValue :one
 INSERT INTO attributes_values (
   attribute,
