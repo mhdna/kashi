@@ -197,14 +197,13 @@ type AssetsType struct {
 }
 
 type Attribute struct {
-	ID   int64  `json:"id"`
 	Name string `json:"name"`
 }
 
 type AttributesValue struct {
-	ID          int64  `json:"id"`
-	AttributeID int64  `json:"attributeId"`
-	Value       string `json:"value"`
+	ID        int64  `json:"id"`
+	Attribute string `json:"attribute"`
+	Value     string `json:"value"`
 }
 
 type Barcode struct {
@@ -337,9 +336,9 @@ type ProductSupplierCost struct {
 }
 
 type ProductsAttribute struct {
-	AttributeID      int64 `json:"attributeId"`
-	AttributeValueID int64 `json:"attributeValueId"`
-	ProductID        int64 `json:"productId"`
+	Attribute        string `json:"attribute"`
+	AttributeValueID int64  `json:"attributeValueId"`
+	ProductID        int64  `json:"productId"`
 }
 
 type ProductsColor struct {

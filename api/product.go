@@ -36,6 +36,7 @@ func (server *Server) createProduct(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+		
 
 	ctx.JSON(http.StatusOK, product)
 }

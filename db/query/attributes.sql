@@ -1,6 +1,6 @@
 -- name: CreateAttributeValue :one
 INSERT INTO attributes_values (
-  attribute_id,
+  attribute,
   value
 ) VALUES (
     $1, $2
@@ -15,7 +15,7 @@ WHERE id = $1;
 SELECT a.*, av.*
 FROM attributes a
 INNER JOIN attributes_values av
-ON a.id = av.attribute_id
+ON a.name = av.attribute
 ORDER BY value
 LIMIT $1
 OFFSET $2;
