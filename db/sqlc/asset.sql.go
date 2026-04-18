@@ -14,16 +14,16 @@ const createAsset = `-- name: CreateAsset :one
 INSERT INTO assets (
   name,
   code,
-  type,
+  type_id,
   bought_at
 ) VALUES ( $1, $2, $3, $4)
-RETURNING id, name, code, type, version, bought_at, created_at
+RETURNING id, name, code, type_id, version, bought_at, created_at
 `
 
 type CreateAssetParams struct {
 	Name     string    `json:"name"`
 	Code     string    `json:"code"`
-	Type     string    `json:"type"`
+	TypeID   int64     `json:"typeId"`
 	BoughtAt time.Time `json:"boughtAt"`
 }
 
@@ -31,7 +31,7 @@ func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset
 	row := q.db.QueryRowContext(ctx, createAsset,
 		arg.Name,
 		arg.Code,
-		arg.Type,
+		arg.TypeID,
 		arg.BoughtAt,
 	)
 	var i Asset
@@ -39,11 +39,25 @@ func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset
 		&i.ID,
 		&i.Name,
 		&i.Code,
-		&i.Type,
+		&i.TypeID,
 		&i.Version,
 		&i.BoughtAt,
 		&i.CreatedAt,
 	)
+	return i, err
+}
+
+const createAssetType = `-- name: CreateAssetType :one
+INSERT INTO assets_types (
+  type
+) VALUES ( $1 )
+RETURNING id, type
+`
+
+func (q *Queries) CreateAssetType(ctx context.Context, type_ string) (AssetsType, error) {
+	row := q.db.QueryRowContext(ctx, createAssetType, type_)
+	var i AssetsType
+	err := row.Scan(&i.ID, &i.Type)
 	return i, err
 }
 
@@ -57,8 +71,18 @@ func (q *Queries) DeleteAsset(ctx context.Context, id int64) error {
 	return err
 }
 
+const deleteAssetType = `-- name: DeleteAssetType :exec
+DELETE FROM assets_types
+WHERE id = $1
+`
+
+func (q *Queries) DeleteAssetType(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteAssetType, id)
+	return err
+}
+
 const getAsset = `-- name: GetAsset :one
-SELECT id, name, code, type, version, bought_at, created_at FROM assets
+SELECT id, name, code, type_id, version, bought_at, created_at FROM assets
 WHERE id = $1 LIMIT 1
 `
 
@@ -69,7 +93,7 @@ func (q *Queries) GetAsset(ctx context.Context, id int64) (Asset, error) {
 		&i.ID,
 		&i.Name,
 		&i.Code,
-		&i.Type,
+		&i.TypeID,
 		&i.Version,
 		&i.BoughtAt,
 		&i.CreatedAt,
@@ -78,7 +102,7 @@ func (q *Queries) GetAsset(ctx context.Context, id int64) (Asset, error) {
 }
 
 const listAssets = `-- name: ListAssets :many
-SELECT id, name, code, type, version, bought_at, created_at FROM assets
+SELECT id, name, code, type_id, version, bought_at, created_at FROM assets
 ORDER BY id
 LIMIT $1
 OFFSET $2
@@ -102,7 +126,7 @@ func (q *Queries) ListAssets(ctx context.Context, arg ListAssetsParams) ([]Asset
 			&i.ID,
 			&i.Name,
 			&i.Code,
-			&i.Type,
+			&i.TypeID,
 			&i.Version,
 			&i.BoughtAt,
 			&i.CreatedAt,
@@ -124,15 +148,15 @@ const updateAsset = `-- name: UpdateAsset :exec
 UPDATE assets 
   SET name = $2,
   code = $3,
-  type = $4
+  type_id = $4
 WHERE id = $1
 `
 
 type UpdateAssetParams struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
-	Code string `json:"code"`
-	Type string `json:"type"`
+	ID     int64  `json:"id"`
+	Name   string `json:"name"`
+	Code   string `json:"code"`
+	TypeID int64  `json:"typeId"`
 }
 
 func (q *Queries) UpdateAsset(ctx context.Context, arg UpdateAssetParams) error {
@@ -140,7 +164,7 @@ func (q *Queries) UpdateAsset(ctx context.Context, arg UpdateAssetParams) error 
 		arg.ID,
 		arg.Name,
 		arg.Code,
-		arg.Type,
+		arg.TypeID,
 	)
 	return err
 }

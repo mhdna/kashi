@@ -2,7 +2,7 @@
 INSERT INTO assets (
   name,
   code,
-  type,
+  type_id,
   bought_at
 ) VALUES ( $1, $2, $3, $4)
 RETURNING *;
@@ -21,7 +21,7 @@ OFFSET $2;
 UPDATE assets 
   SET name = $2,
   code = $3,
-  type = $4
+  type_id = $4
 WHERE id = $1;
 
 -- name: DeleteAsset :exec
