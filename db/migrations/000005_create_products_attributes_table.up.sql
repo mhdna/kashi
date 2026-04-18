@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS attributes (
 CREATE TABLE IF NOT EXISTS attributes_values (
   id bigserial primary key,
   attribute text not null references attributes(name),
-  value text not null unique
+  value text not null,
+  UNIQUE (attribute, value)
 );
 
 CREATE TABLE IF NOT EXISTS products_attributes (
