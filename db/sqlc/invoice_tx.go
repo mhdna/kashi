@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/mhdna/kashi/util"
@@ -32,13 +31,13 @@ type SalesInvoiceTxResult struct {
 	Account CashboxAccount `json:"account"`
 }
 
-func (store *SQLStore) generateSalesInvoiceIndex(ctx context.Context, cashboxID int64) (int64, error) {
+func (q *Queries) generateSalesInvoiceIndex(ctx context.Context, cashboxID int64) (int64, error) {
 	thisYear := time.Now().Year()
 	arg := NextSalesInvoiceIndexIncrementParams{
 		CashboxID: cashboxID,
 		Year:      int32(thisYear),
 	}
-	index, err := store.NextSalesInvoiceIndexIncrement(ctx, arg)
+	index, err := q.NextSalesInvoiceIndexIncrement(ctx, arg)
 	if err != nil {
 		return 0, err
 	}
@@ -48,12 +47,12 @@ func (store *SQLStore) generateSalesInvoiceIndex(ctx context.Context, cashboxID 
 // generate invoice number in the format:
 // CashboxCode/Type of Invoice/Year/Number of Invoice this Year
 // E.g. BR1/SA/2026/34 is the sales invoice number 34 in 2026 from POS Brooklyn1 that has the code BR1
-func (store *SQLStore) generateInvoiceNumber(ctx context.Context, referenceType EntryReferenceType, invoiceIndex, cashboxID int64, year int32) (string, error) {
+func (q *Queries) generateInvoiceNumber(ctx context.Context, referenceType EntryReferenceType, invoiceIndex, cashboxID int64, year int32) (string, error) {
 	var referenceCode string
 	var err error
 
 	// set countedInvoices and cashBox code
-	cashbox, err := store.GetCashbox(ctx, cashboxID)
+	cashbox, err := q.GetCashbox(ctx, cashboxID)
 	if err != nil {
 		return "", err
 	}
@@ -79,7 +78,7 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 		var err error
 
 		// txName := ctx.Value(txKey)
-		invoiceIndex, err := store.generateSalesInvoiceIndex(ctx, arg.CashBoxID)
+		invoiceIndex, err := q.generateSalesInvoiceIndex(ctx, arg.CashBoxID)
 		if err != nil {
 			return err
 		}
@@ -128,7 +127,7 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 		}
 		shift, err := q.AddToShiftBalance(ctx, addShiftBalanceArg)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		// update account balance
@@ -138,8 +137,10 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 		}
 		account, err := q.AddAccountBalance(ctx, addAccountBalance)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
+
+		// TODO: Update client points
 
 		result.Entry = entry
 		result.Shift = shift
