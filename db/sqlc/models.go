@@ -318,7 +318,7 @@ type Product struct {
 	IsActive    bool      `json:"isActive"`
 	Price       int64     `json:"price"`
 	Version     int32     `json:"version"`
-	Discount    int64     `json:"discount"`
+	Discount    int16     `json:"discount"`
 	CreatedAt   time.Time `json:"createdAt"`
 }
 
