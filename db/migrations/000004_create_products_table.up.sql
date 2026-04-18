@@ -6,6 +6,6 @@ CREATE TABLE IF NOT EXISTS products (
   is_active bool not null DEFAULT true,
   price bigint NOT NULL,
   version int NOT NULL DEFAULT 1,
-  discount bigint not null default 0,
+  discount SMALLINT not null CHECK (discount >= 0 AND discount <= 100),
   created_at timestamp(0) WITH time zone NOT NULL DEFAULT NOW()
 );
