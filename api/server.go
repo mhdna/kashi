@@ -39,6 +39,9 @@ func NewServer(store db.Store) *Server {
 	router.PUT("/clients", server.updateClient)
 	router.GET("/clients/:id", server.getClient)
 	router.GET("/clients/", server.listClients)
+	router.POST("/currencies", server.createCurrency)
+	router.GET("/currencies/:id", server.getCurrency)
+	router.GET("/currencies/", server.listCurrencies)
 
 	server.router = router
 	return server
