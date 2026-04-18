@@ -10,7 +10,7 @@ type CreateProductTxParams struct {
 	Name            string            `json:"name"`
 	Description     string            `json:"description"`
 	Price           int64             `json:"price"`
-	Discount        int64             `json:"discount"`
+	Discount        int16             `json:"discount"`
 	AttributeValues []AttributesValue `json:"attribute_values"`
 }
 
