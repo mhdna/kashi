@@ -32,6 +32,9 @@ func NewServer(store db.Store) *Server {
 	// TODO: add getAssetType
 	router.POST("/asset_types", server.createAssetType)
 	router.DELETE("/asset_types/:id", server.deleteAssetType)
+	router.POST("/cashboxes", server.createCashbox)
+	router.GET("/cashboxes/:id", server.getCashbox)
+	router.GET("/cashboxes/", server.listCashboxes)
 
 	server.router = router
 	return server
