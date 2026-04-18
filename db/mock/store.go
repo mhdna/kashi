@@ -169,6 +169,21 @@ func (mr *MockStoreMockRecorder) CreateAsset(arg0, arg1 interface{}) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAsset", reflect.TypeOf((*MockStore)(nil).CreateAsset), arg0, arg1)
 }
 
+// CreateAssetType mocks base method.
+func (m *MockStore) CreateAssetType(arg0 context.Context, arg1 string) (db.AssetsType, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateAssetType", arg0, arg1)
+	ret0, _ := ret[0].(db.AssetsType)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateAssetType indicates an expected call of CreateAssetType.
+func (mr *MockStoreMockRecorder) CreateAssetType(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAssetType", reflect.TypeOf((*MockStore)(nil).CreateAssetType), arg0, arg1)
+}
+
 // CreateAttributeValue mocks base method.
 func (m *MockStore) CreateAttributeValue(arg0 context.Context, arg1 db.CreateAttributeValueParams) (db.AttributesValue, error) {
 	m.ctrl.T.Helper()
@@ -480,6 +495,20 @@ func (m *MockStore) DeleteAsset(arg0 context.Context, arg1 int64) error {
 func (mr *MockStoreMockRecorder) DeleteAsset(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAsset", reflect.TypeOf((*MockStore)(nil).DeleteAsset), arg0, arg1)
+}
+
+// DeleteAssetType mocks base method.
+func (m *MockStore) DeleteAssetType(arg0 context.Context, arg1 int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteAssetType", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteAssetType indicates an expected call of DeleteAssetType.
+func (mr *MockStoreMockRecorder) DeleteAssetType(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAssetType", reflect.TypeOf((*MockStore)(nil).DeleteAssetType), arg0, arg1)
 }
 
 // DeleteClient mocks base method.
