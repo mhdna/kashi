@@ -18,6 +18,7 @@ type Querier interface {
 	AddToShiftBalance(ctx context.Context, arg AddToShiftBalanceParams) (Shift, error)
 	CloseShift(ctx context.Context, arg CloseShiftParams) error
 	CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset, error)
+	CreateAssetType(ctx context.Context, type_ string) (AssetsType, error)
 	CreateAttributeValue(ctx context.Context, arg CreateAttributeValueParams) (AttributesValue, error)
 	CreateCashbox(ctx context.Context, arg CreateCashboxParams) (Cashbox, error)
 	CreateCashboxAccount(ctx context.Context, arg CreateCashboxAccountParams) (CashboxAccount, error)
@@ -38,6 +39,7 @@ type Querier interface {
 	CreateTransferItem(ctx context.Context, arg CreateTransferItemParams) (TransferItem, error)
 	DeactivateCoupon(ctx context.Context, code string) error
 	DeleteAsset(ctx context.Context, id int64) error
+	DeleteAssetType(ctx context.Context, id int64) error
 	DeleteClient(ctx context.Context, id int64) error
 	DeleteCurrency(ctx context.Context, code string) error
 	DeleteInventory(ctx context.Context, id int64) error
