@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 )
 
 type CreateProductTxParams struct {
@@ -32,7 +31,6 @@ func (store *SQLStore) CreateProductTx(ctx context.Context, arg CreateProductTxP
 			Price:       arg.Price,
 			Discount:    arg.Discount,
 		}
-		fmt.Println(arg.Code)
 
 		product, err := q.CreateProduct(ctx, createProductArg)
 		if err != nil {
