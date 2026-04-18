@@ -27,3 +27,13 @@ WHERE id = $1;
 -- name: DeleteAsset :exec
 DELETE FROM assets
 WHERE id = $1;
+
+-- name: CreateAssetType :one
+INSERT INTO assets_types (
+  type
+) VALUES ( $1 )
+RETURNING *;
+
+-- name: DeleteAssetType :exec
+DELETE FROM assets_types
+WHERE id = $1;
