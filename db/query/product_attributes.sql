@@ -1,3 +1,7 @@
+-- name: GetProductAttributes :many
+SELECT * FROM products_attributes
+WHERE product_id = $1;
+
 -- name: CreateProductAttribute :one
 INSERT INTO products_attributes (
   product_id,
