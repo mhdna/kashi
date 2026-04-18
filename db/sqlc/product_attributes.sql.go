@@ -49,6 +49,33 @@ func (q *Queries) GetProductAttributeValue(ctx context.Context, arg GetProductAt
 	return i, err
 }
 
+const getProductAttributes = `-- name: GetProductAttributes :many
+SELECT attribute, attribute_value_id, product_id FROM products_attributes WHERE product_id = $1
+`
+
+func (q *Queries) GetProductAttributes(ctx context.Context, productID int64) ([]ProductsAttribute, error) {
+	rows, err := q.db.QueryContext(ctx, getProductAttributes, productID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ProductsAttribute{}
+	for rows.Next() {
+		var i ProductsAttribute
+		if err := rows.Scan(&i.Attribute, &i.AttributeValueID, &i.ProductID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listProductAttributes = `-- name: ListProductAttributes :many
 SELECT pa.attribute, pa.attribute_value_id, pa.product_id
 FROM products p
