@@ -26,7 +26,7 @@ type CreateProductParams struct {
 	Code        string `json:"code"`
 	Description string `json:"description"`
 	Price       int64  `json:"price"`
-	Discount    int64  `json:"discount"`
+	Discount    int16  `json:"discount"`
 }
 
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error) {
@@ -145,7 +145,7 @@ type UpdateProductParams struct {
 	Code        string `json:"code"`
 	Description string `json:"description"`
 	Price       int64  `json:"price"`
-	Discount    int64  `json:"discount"`
+	Discount    int16  `json:"discount"`
 }
 
 func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) error {
