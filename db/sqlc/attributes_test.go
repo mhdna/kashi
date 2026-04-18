@@ -78,10 +78,8 @@ func TestUpdateAttributeValue(t *testing.T) {
 			Value: util.RandomAttributeValue(),
 		}
 
-		err := testQueries.UpdateAttributeValue(context.Background(), arg)
+		attributeValue2, err := testQueries.UpdateAttributeValue(context.Background(), arg)
 		require.NoError(t, err)
-
-		attributeValue2, err := testQueries.GetAttributeValue(context.Background(), a.ID)
 		require.Equal(t, attributeValue2.ID, arg.ID)
 		require.Equal(t, attributeValue2.Value, arg.Value)
 	}
