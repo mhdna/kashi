@@ -17,6 +17,29 @@ ORDER BY id
 LIMIT $1
 OFFSET $2;
 
+-- name: UpdateCashbox :one
+UPDATE cashboxes
+SET code = $2,
+name = $3,
+is_active = $4
+WHERE id = $1
+RETURNING *;
+
+-- TODO: move these into balances file
+
+-- name: CreateCashboxAccountType :one
+INSERT INTO cashbox_account_types (
+  name
+) 
+VALUES ( $1 )
+RETURNING *;
+
+-- name: UpdateCashboxAccountType :one
+UPDATE cashbox_account_types
+SET name = $2
+WHERE id = $1
+RETURNING *;
+
 -- name: CreateCashboxAccount :one
 INSERT INTO cashbox_accounts (
   type,

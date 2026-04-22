@@ -15,13 +15,14 @@ type Querier interface {
 	AddSalesInvoiceProduct(ctx context.Context, arg AddSalesInvoiceProductParams) (SalesInvoiceProduct, error)
 	AddSupplierProduct(ctx context.Context, arg AddSupplierProductParams) (ProductSupplier, error)
 	AddSupplierProductCost(ctx context.Context, arg AddSupplierProductCostParams) (ProductSupplierCost, error)
-	AddToShiftBalance(ctx context.Context, arg AddToShiftBalanceParams) (Shift, error)
 	CloseShift(ctx context.Context, arg CloseShiftParams) error
 	CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset, error)
 	CreateAssetType(ctx context.Context, type_ string) (AssetsType, error)
 	CreateAttributeValue(ctx context.Context, arg CreateAttributeValueParams) (AttributesValue, error)
 	CreateCashbox(ctx context.Context, arg CreateCashboxParams) (Cashbox, error)
 	CreateCashboxAccount(ctx context.Context, arg CreateCashboxAccountParams) (CashboxAccount, error)
+	// TODO: move these into balances file
+	CreateCashboxAccountType(ctx context.Context, name string) (CashboxAccountType, error)
 	CreateClient(ctx context.Context, arg CreateClientParams) (Client, error)
 	CreateCoupon(ctx context.Context, arg CreateCouponParams) (Coupon, error)
 	CreateCurrency(ctx context.Context, arg CreateCurrencyParams) (Currency, error)
@@ -33,7 +34,7 @@ type Querier interface {
 	CreatePurchase(ctx context.Context, arg CreatePurchaseParams) (Purchase, error)
 	CreateReturnInvoice(ctx context.Context, arg CreateReturnInvoiceParams) (ReturnInvoice, error)
 	CreateSalesInvoice(ctx context.Context, arg CreateSalesInvoiceParams) (SalesInvoice, error)
-	CreateShift(ctx context.Context, arg CreateShiftParams) (Shift, error)
+	CreateShift(ctx context.Context, cashboxID int64) (Shift, error)
 	CreateSupplier(ctx context.Context, arg CreateSupplierParams) (Supplier, error)
 	CreateTransfer(ctx context.Context, arg CreateTransferParams) (Transfer, error)
 	CreateTransferItem(ctx context.Context, arg CreateTransferItemParams) (TransferItem, error)
@@ -92,6 +93,8 @@ type Querier interface {
 	UpdateAsset(ctx context.Context, arg UpdateAssetParams) error
 	UpdateAttributeValue(ctx context.Context, arg UpdateAttributeValueParams) (AttributesValue, error)
 	UpdateCashbox(ctx context.Context, arg UpdateCashboxParams) (Cashbox, error)
+	UpdateCashboxAccountType(ctx context.Context, arg UpdateCashboxAccountTypeParams) (CashboxAccountType, error)
+	UpdateClient(ctx context.Context, arg UpdateClientParams) (Client, error)
 	UpdateClientLoyaltyPoints(ctx context.Context, arg UpdateClientLoyaltyPointsParams) error
 	UpdateInventory(ctx context.Context, arg UpdateInventoryParams) error
 	UpdateInventoryProduct(ctx context.Context, arg UpdateInventoryProductParams) error
