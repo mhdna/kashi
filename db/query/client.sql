@@ -16,11 +16,12 @@ ORDER BY name
 LIMIT $1
 OFFSET $2;
 
--- name: UpdateClient :exec
+-- name: UpdateClient :one
 UPDATE clients 
   SET name = $2,
   phone = $3
-WHERE id = $1;
+WHERE id = $1
+RETURNING *;
 
 -- name: DeleteClient :exec
 DELETE FROM clients
