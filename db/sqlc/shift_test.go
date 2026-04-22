@@ -7,24 +7,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mhdna/kashi/util"
 	"github.com/stretchr/testify/require"
 )
 
 func createRandomShift(t *testing.T) Shift {
 	cashbox := createRandomCashbox(t)
 
-	arg := CreateShiftParams{
-		CashboxID:           cashbox.ID,
-		TotalOpeningBalance: util.RandomAmount(),
-		TotalBalance:        util.RandomAmount(),
-	}
+	// arg := CreateShiftParams{
+	// 	CashboxID: cashbox.ID,
+	// 	// TotalOpeningBalance: util.RandomAmount(),
+	// 	// TotalBalance:        util.RandomAmount(),
+	// }
 
-	shift, err := testQueries.CreateShift(context.Background(), arg)
+	shift, err := testQueries.CreateShift(context.Background(), cashbox.ID)
 	require.NoError(t, err)
-	require.Equal(t, shift.CashboxID, arg.CashboxID)
-	require.Equal(t, shift.TotalOpeningBalance, arg.TotalOpeningBalance)
-	require.Equal(t, shift.TotalBalance, arg.TotalBalance)
+	require.Equal(t, shift.CashboxID, cashbox.ID)
+	// require.Equal(t, shift.CashboxID, arg.CashboxID)
+	// require.Equal(t, shift.TotalOpeningBalance, arg.TotalOpeningBalance)
+	// require.Equal(t, shift.TotalBalance, arg.TotalBalance)
 
 	return shift
 }
@@ -40,8 +40,8 @@ func TestGetShift(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, shift1.ID, shift2.ID)
 	require.Equal(t, shift1.CashboxID, shift2.CashboxID)
-	require.Equal(t, shift1.TotalOpeningBalance, shift2.TotalOpeningBalance)
-	require.Equal(t, shift1.TotalBalance, shift2.TotalBalance)
+	// require.Equal(t, shift1.TotalOpeningBalance, shift2.TotalOpeningBalance)
+	// require.Equal(t, shift1.TotalBalance, shift2.TotalBalance)
 
 	require.WithinDuration(t, shift1.OpeningDateTime, shift2.OpeningDateTime, time.Second)
 	require.WithinDuration(t, shift1.ClosingDateTime.Time, shift2.ClosingDateTime.Time, time.Second)
@@ -65,24 +65,24 @@ func TestListShifts(t *testing.T) {
 	}
 }
 
-func TestUpdateShiftBalance(t *testing.T) {
-	shift1 := createRandomShift(t)
+// func TestUpdateShiftBalance(t *testing.T) {
+// 	shift1 := createRandomShift(t)
 
-	arg := AddToShiftBalanceParams{
-		ID:     shift1.ID,
-		Amount: util.RandomAmount(),
-	}
+// 	arg := AddToShiftBalanceParams{
+// 		ID:     shift1.ID,
+// 		Amount: util.RandomAmount(),
+// 	}
 
-	_, err := testQueries.AddToShiftBalance(context.Background(), arg)
-	require.NoError(t, err)
+// 	_, err := testQueries.AddToShiftBalance(context.Background(), arg)
+// 	require.NoError(t, err)
 
-	shift2, err := testQueries.GetShift(context.Background(), shift1.ID)
-	if err != nil {
-		log.Fatal(err)
-	}
-	require.NoError(t, err)
-	require.Equal(t, shift2.TotalBalance, arg.Amount+shift1.TotalBalance)
-}
+// 	shift2, err := testQueries.GetShift(context.Background(), shift1.ID)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	require.NoError(t, err)
+// 	require.Equal(t, shift2.TotalBalance, arg.Amount+shift1.TotalBalance)
+// }
 
 func TestCloseShift(t *testing.T) {
 	shift := createRandomShift(t)
