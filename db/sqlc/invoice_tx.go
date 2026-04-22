@@ -12,7 +12,7 @@ import (
 // NetAmount & InvoiceCode are calculated and generated
 // automatically inside the trasaction function itself.
 type SalesInvoiceTxParams struct {
-	CashBoxID        int64  `json:"cashbox_id"`
+	CashboxID        int64  `json:"cashbox_id"`
 	CashboxAccountID int64  `json:"cashbox_account_id"`
 	ShiftID          int64  `json:"shift_id"`
 	CurrencyCode     string `json:"currency_code"`
@@ -78,14 +78,14 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 		var err error
 
 		// txName := ctx.Value(txKey)
-		invoiceIndex, err := q.generateSalesInvoiceIndex(ctx, arg.CashBoxID)
+		invoiceIndex, err := q.generateSalesInvoiceIndex(ctx, arg.CashboxID)
 		if err != nil {
 			return err
 		}
 
 		thisYear := int32(time.Now().Year())
 
-		invoiceCode, err := store.generateInvoiceNumber(ctx, EntryReferenceTypeSalesInvoice, invoiceIndex, arg.CashBoxID, thisYear)
+		invoiceCode, err := store.generateInvoiceNumber(ctx, EntryReferenceTypeSalesInvoice, invoiceIndex, arg.CashboxID, thisYear)
 		if err != nil {
 			return err
 		}
@@ -94,7 +94,7 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 			return err
 		}
 		result.SalesInvoice, err = q.CreateSalesInvoice(ctx, CreateSalesInvoiceParams{
-			CashboxID:    arg.CashBoxID,
+			CashboxID:    arg.CashboxID,
 			InvoiceIndex: invoiceIndex,
 			InvoiceCode:  invoiceCode,
 			Year:         thisYear,
@@ -110,7 +110,7 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 		}
 
 		entry, err := q.CreateEntryItem(ctx, CreateEntryItemParams{
-			CashboxID:                  arg.CashBoxID,
+			CashboxID:                  arg.CashboxID,
 			InventoryID:                arg.InventoryID,
 			ReferenceType:              EntryReferenceTypeSalesInvoice,
 			ReferenceID:                result.SalesInvoice.ID,
