@@ -28,8 +28,10 @@ SELECT * FROM sales_invoices
 WHERE id = $1 LIMIT 1;
 
 -- name: ListSalesInvoices :many
-SELECT * FROM sales_invoices
-ORDER BY id
+SELECT *
+FROM sales_invoices
+ORDER BY created_at
+DESC
 LIMIT $1
 OFFSET $2;
 
@@ -60,3 +62,11 @@ VALUES ($1, $2, 1)
 ON CONFLICT (year, cashbox_id)
 DO UPDATE SET last_index = return_invoices_indexes.last_index + 1
 RETURNING last_index;
+
+-- name: ListReturnInvoices :many
+SELECT *
+FROM return_invoices
+ORDER BY created_at
+DESC
+LIMIT $1
+OFFSET $2;

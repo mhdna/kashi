@@ -82,6 +82,7 @@ type Querier interface {
 	ListProductAttributes(ctx context.Context, arg ListProductAttributesParams) ([]ProductsAttribute, error)
 	ListProducts(ctx context.Context, arg ListProductsParams) ([]Product, error)
 	ListPurchases(ctx context.Context, arg ListPurchasesParams) ([]Purchase, error)
+	ListReturnInvoices(ctx context.Context, arg ListReturnInvoicesParams) ([]ReturnInvoice, error)
 	ListSalesInvoices(ctx context.Context, arg ListSalesInvoicesParams) ([]SalesInvoice, error)
 	ListShifts(ctx context.Context, arg ListShiftsParams) ([]Shift, error)
 	ListSuppliers(ctx context.Context, arg ListSuppliersParams) ([]Supplier, error)

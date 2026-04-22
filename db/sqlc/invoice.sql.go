@@ -181,9 +181,56 @@ func (q *Queries) GetSalesInvoice(ctx context.Context, id int64) (SalesInvoice, 
 	return i, err
 }
 
+const listReturnInvoices = `-- name: ListReturnInvoices :many
+SELECT id, invoice_code, invoice_index, year, cashbox_id, sales_invoice_id, created_at
+FROM return_invoices
+ORDER BY created_at
+DESC
+LIMIT $1
+OFFSET $2
+`
+
+type ListReturnInvoicesParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) ListReturnInvoices(ctx context.Context, arg ListReturnInvoicesParams) ([]ReturnInvoice, error) {
+	rows, err := q.db.QueryContext(ctx, listReturnInvoices, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReturnInvoice{}
+	for rows.Next() {
+		var i ReturnInvoice
+		if err := rows.Scan(
+			&i.ID,
+			&i.InvoiceCode,
+			&i.InvoiceIndex,
+			&i.Year,
+			&i.CashboxID,
+			&i.SalesInvoiceID,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listSalesInvoices = `-- name: ListSalesInvoices :many
-SELECT id, invoice_code, invoice_index, year, cashbox_id, currency_code, inventory_id, client_id, amount, discount, net_amount, created_at FROM sales_invoices
-ORDER BY id
+SELECT id, invoice_code, invoice_index, year, cashbox_id, currency_code, inventory_id, client_id, amount, discount, net_amount, created_at
+FROM sales_invoices
+ORDER BY created_at
+DESC
 LIMIT $1
 OFFSET $2
 `
