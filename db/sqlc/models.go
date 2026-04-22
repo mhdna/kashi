@@ -226,10 +226,23 @@ type Cashbox struct {
 type CashboxAccount struct {
 	ID             int64  `json:"id"`
 	Type           string `json:"type"`
-	ShiftID        int64  `json:"shiftId"`
 	CurrencyCode   string `json:"currencyCode"`
+	ShiftID        int64  `json:"shiftId"`
 	OpeningBalance int64  `json:"openingBalance"`
 	Balance        int64  `json:"balance"`
+}
+
+type CashboxAccountTemplate struct {
+	ID             int64  `json:"id"`
+	CashboxID      int64  `json:"cashboxId"`
+	Type           string `json:"type"`
+	CurrencyCode   string `json:"currencyCode"`
+	OpeningBalance int64  `json:"openingBalance"`
+}
+
+type CashboxAccountType struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
 }
 
 type Client struct {
@@ -412,13 +425,11 @@ type SalesInvoicesIndex struct {
 }
 
 type Shift struct {
-	ID                  int64        `json:"id"`
-	IsClosed            bool         `json:"isClosed"`
-	CashboxID           int64        `json:"cashboxId"`
-	TotalOpeningBalance int64        `json:"totalOpeningBalance"`
-	TotalBalance        int64        `json:"totalBalance"`
-	OpeningDateTime     time.Time    `json:"openingDateTime"`
-	ClosingDateTime     sql.NullTime `json:"closingDateTime"`
+	ID              int64        `json:"id"`
+	IsClosed        bool         `json:"isClosed"`
+	CashboxID       int64        `json:"cashboxId"`
+	OpeningDateTime time.Time    `json:"openingDateTime"`
+	ClosingDateTime sql.NullTime `json:"closingDateTime"`
 }
 
 type Size struct {

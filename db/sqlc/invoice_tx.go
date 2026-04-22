@@ -26,8 +26,8 @@ type SalesInvoiceTxParams struct {
 type SalesInvoiceTxResult struct {
 	SalesInvoice SalesInvoice `json:"sales_invoice"`
 	// NetAmount    int64        `json:"net_amount"`
-	Entry   Entry          `json:"entry"`
-	Shift   Shift          `json:"shift"`
+	Entry Entry `json:"entry"`
+	// Shift   Shift          `json:"shift"`
 	Account CashboxAccount `json:"account"`
 }
 
@@ -120,15 +120,15 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 			return err
 		}
 
-		// update shift total balance
-		addShiftBalanceArg := AddToShiftBalanceParams{
-			ID:     arg.ShiftID,
-			Amount: netAmount,
-		}
-		shift, err := q.AddToShiftBalance(ctx, addShiftBalanceArg)
-		if err != nil {
-			return err
-		}
+		// // update shift total balance
+		// addShiftBalanceArg := AddToShiftBalanceParams{
+		// 	ID:     arg.ShiftID,
+		// 	Amount: netAmount,
+		// }
+		// shift, err := q.AddToShiftBalance(ctx, addShiftBalanceArg)
+		// if err != nil {
+		// 	return err
+		// }
 
 		// update account balance
 		addAccountBalance := AddAccountBalanceParams{
@@ -143,7 +143,7 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 		// TODO: Update client points
 
 		result.Entry = entry
-		result.Shift = shift
+		// result.Shift = shift
 		result.Account = account
 
 		return nil

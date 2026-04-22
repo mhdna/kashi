@@ -10,33 +10,6 @@ import (
 	"database/sql"
 )
 
-const addToShiftBalance = `-- name: AddToShiftBalance :one
-UPDATE shifts 
-  SET total_balance = total_balance + $1
-WHERE id = $2
-RETURNING id, is_closed, cashbox_id, total_opening_balance, total_balance, opening_date_time, closing_date_time
-`
-
-type AddToShiftBalanceParams struct {
-	Amount int64 `json:"amount"`
-	ID     int64 `json:"id"`
-}
-
-func (q *Queries) AddToShiftBalance(ctx context.Context, arg AddToShiftBalanceParams) (Shift, error) {
-	row := q.db.QueryRowContext(ctx, addToShiftBalance, arg.Amount, arg.ID)
-	var i Shift
-	err := row.Scan(
-		&i.ID,
-		&i.IsClosed,
-		&i.CashboxID,
-		&i.TotalOpeningBalance,
-		&i.TotalBalance,
-		&i.OpeningDateTime,
-		&i.ClosingDateTime,
-	)
-	return i, err
-}
-
 const closeShift = `-- name: CloseShift :exec
 UPDATE shifts 
   SET closing_date_time = $1,
@@ -57,29 +30,19 @@ func (q *Queries) CloseShift(ctx context.Context, arg CloseShiftParams) error {
 
 const createShift = `-- name: CreateShift :one
 INSERT INTO shifts (
-  cashbox_id,
-  total_opening_balance,
-  total_balance
+  cashbox_id
 ) 
-VALUES ( $1, $2, $3 )
-RETURNING id, is_closed, cashbox_id, total_opening_balance, total_balance, opening_date_time, closing_date_time
+VALUES ( $1 )
+RETURNING id, is_closed, cashbox_id, opening_date_time, closing_date_time
 `
 
-type CreateShiftParams struct {
-	CashboxID           int64 `json:"cashboxId"`
-	TotalOpeningBalance int64 `json:"totalOpeningBalance"`
-	TotalBalance        int64 `json:"totalBalance"`
-}
-
-func (q *Queries) CreateShift(ctx context.Context, arg CreateShiftParams) (Shift, error) {
-	row := q.db.QueryRowContext(ctx, createShift, arg.CashboxID, arg.TotalOpeningBalance, arg.TotalBalance)
+func (q *Queries) CreateShift(ctx context.Context, cashboxID int64) (Shift, error) {
+	row := q.db.QueryRowContext(ctx, createShift, cashboxID)
 	var i Shift
 	err := row.Scan(
 		&i.ID,
 		&i.IsClosed,
 		&i.CashboxID,
-		&i.TotalOpeningBalance,
-		&i.TotalBalance,
 		&i.OpeningDateTime,
 		&i.ClosingDateTime,
 	)
@@ -87,7 +50,7 @@ func (q *Queries) CreateShift(ctx context.Context, arg CreateShiftParams) (Shift
 }
 
 const getShift = `-- name: GetShift :one
-SELECT id, is_closed, cashbox_id, total_opening_balance, total_balance, opening_date_time, closing_date_time FROM shifts
+SELECT id, is_closed, cashbox_id, opening_date_time, closing_date_time FROM shifts
 WHERE id = $1
 LIMIT 1
 `
@@ -99,8 +62,6 @@ func (q *Queries) GetShift(ctx context.Context, id int64) (Shift, error) {
 		&i.ID,
 		&i.IsClosed,
 		&i.CashboxID,
-		&i.TotalOpeningBalance,
-		&i.TotalBalance,
 		&i.OpeningDateTime,
 		&i.ClosingDateTime,
 	)
@@ -108,7 +69,7 @@ func (q *Queries) GetShift(ctx context.Context, id int64) (Shift, error) {
 }
 
 const listShifts = `-- name: ListShifts :many
-SELECT id, is_closed, cashbox_id, total_opening_balance, total_balance, opening_date_time, closing_date_time FROM shifts
+SELECT id, is_closed, cashbox_id, opening_date_time, closing_date_time FROM shifts
 ORDER BY id
 LIMIT $1
 OFFSET $2
@@ -132,8 +93,6 @@ func (q *Queries) ListShifts(ctx context.Context, arg ListShiftsParams) ([]Shift
 			&i.ID,
 			&i.IsClosed,
 			&i.CashboxID,
-			&i.TotalOpeningBalance,
-			&i.TotalBalance,
 			&i.OpeningDateTime,
 			&i.ClosingDateTime,
 		); err != nil {

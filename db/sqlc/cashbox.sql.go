@@ -13,7 +13,7 @@ const addAccountBalance = `-- name: AddAccountBalance :one
 UPDATE cashbox_accounts
 SET balance = balance + $1
 WHERE id = $2
-RETURNING id, type, shift_id, currency_code, opening_balance, balance
+RETURNING id, type, currency_code, shift_id, opening_balance, balance
 `
 
 type AddAccountBalanceParams struct {
@@ -27,8 +27,8 @@ func (q *Queries) AddAccountBalance(ctx context.Context, arg AddAccountBalancePa
 	err := row.Scan(
 		&i.ID,
 		&i.Type,
-		&i.ShiftID,
 		&i.CurrencyCode,
+		&i.ShiftID,
 		&i.OpeningBalance,
 		&i.Balance,
 	)
@@ -73,7 +73,7 @@ INSERT INTO cashbox_accounts (
   balance
 ) 
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, type, shift_id, currency_code, opening_balance, balance
+RETURNING id, type, currency_code, shift_id, opening_balance, balance
 `
 
 type CreateCashboxAccountParams struct {
@@ -96,11 +96,28 @@ func (q *Queries) CreateCashboxAccount(ctx context.Context, arg CreateCashboxAcc
 	err := row.Scan(
 		&i.ID,
 		&i.Type,
-		&i.ShiftID,
 		&i.CurrencyCode,
+		&i.ShiftID,
 		&i.OpeningBalance,
 		&i.Balance,
 	)
+	return i, err
+}
+
+const createCashboxAccountType = `-- name: CreateCashboxAccountType :one
+
+INSERT INTO cashbox_account_types (
+  name
+) 
+VALUES ( $1 )
+RETURNING id, name
+`
+
+// TODO: move these into balances file
+func (q *Queries) CreateCashboxAccountType(ctx context.Context, name string) (CashboxAccountType, error) {
+	row := q.db.QueryRowContext(ctx, createCashboxAccountType, name)
+	var i CashboxAccountType
+	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }
 
@@ -123,7 +140,7 @@ func (q *Queries) GetCashbox(ctx context.Context, id int64) (Cashbox, error) {
 }
 
 const getCashboxAccount = `-- name: GetCashboxAccount :one
-SELECT id, type, shift_id, currency_code, opening_balance, balance FROM cashbox_accounts
+SELECT id, type, currency_code, shift_id, opening_balance, balance FROM cashbox_accounts
 WHERE id = $1
 LIMIT 1
 `
@@ -134,8 +151,8 @@ func (q *Queries) GetCashboxAccount(ctx context.Context, id int64) (CashboxAccou
 	err := row.Scan(
 		&i.ID,
 		&i.Type,
-		&i.ShiftID,
 		&i.CurrencyCode,
+		&i.ShiftID,
 		&i.OpeningBalance,
 		&i.Balance,
 	)
@@ -143,7 +160,7 @@ func (q *Queries) GetCashboxAccount(ctx context.Context, id int64) (CashboxAccou
 }
 
 const listAccounts = `-- name: ListAccounts :many
-SELECT id, type, shift_id, currency_code, opening_balance, balance FROM cashbox_accounts
+SELECT id, type, currency_code, shift_id, opening_balance, balance FROM cashbox_accounts
 ORDER BY id
 LIMIT $1
 OFFSET $2
@@ -166,8 +183,8 @@ func (q *Queries) ListAccounts(ctx context.Context, arg ListAccountsParams) ([]C
 		if err := rows.Scan(
 			&i.ID,
 			&i.Type,
-			&i.ShiftID,
 			&i.CurrencyCode,
+			&i.ShiftID,
 			&i.OpeningBalance,
 			&i.Balance,
 		); err != nil {
@@ -223,4 +240,57 @@ func (q *Queries) ListCashboxes(ctx context.Context, arg ListCashboxesParams) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateCashbox = `-- name: UpdateCashbox :one
+UPDATE cashboxes
+SET code = $2,
+name = $3,
+is_active = $4
+WHERE id = $1
+RETURNING id, name, code, is_active, created_at
+`
+
+type UpdateCashboxParams struct {
+	ID       int64  `json:"id"`
+	Code     string `json:"code"`
+	Name     string `json:"name"`
+	IsActive bool   `json:"isActive"`
+}
+
+func (q *Queries) UpdateCashbox(ctx context.Context, arg UpdateCashboxParams) (Cashbox, error) {
+	row := q.db.QueryRowContext(ctx, updateCashbox,
+		arg.ID,
+		arg.Code,
+		arg.Name,
+		arg.IsActive,
+	)
+	var i Cashbox
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Code,
+		&i.IsActive,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateCashboxAccountType = `-- name: UpdateCashboxAccountType :one
+UPDATE cashbox_account_types
+SET name = $2
+WHERE id = $1
+RETURNING id, name
+`
+
+type UpdateCashboxAccountTypeParams struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
+func (q *Queries) UpdateCashboxAccountType(ctx context.Context, arg UpdateCashboxAccountTypeParams) (CashboxAccountType, error) {
+	row := q.db.QueryRowContext(ctx, updateCashboxAccountType, arg.ID, arg.Name)
+	var i CashboxAccountType
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
 }
