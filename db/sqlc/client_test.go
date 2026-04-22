@@ -75,10 +75,8 @@ func TestUpdateClient(t *testing.T) {
 		Name:  util.RandomName(),
 		Phone: util.RandomPhone(),
 	}
-	err := testQueries.UpdateClient(context.Background(), arg)
+	client2, err := testQueries.UpdateClient(context.Background(), arg)
 	require.NoError(t, err)
-
-	client2, err := testQueries.GetClient(context.Background(), client.ID)
 	require.Equal(t, arg.ID, client2.ID)
 	require.Equal(t, arg.Name, client2.Name)
 	require.Equal(t, arg.Phone, client2.Phone)

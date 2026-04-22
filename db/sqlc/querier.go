@@ -91,7 +91,7 @@ type Querier interface {
 	NextSalesInvoiceIndexIncrement(ctx context.Context, arg NextSalesInvoiceIndexIncrementParams) (int64, error)
 	UpdateAsset(ctx context.Context, arg UpdateAssetParams) error
 	UpdateAttributeValue(ctx context.Context, arg UpdateAttributeValueParams) (AttributesValue, error)
-	UpdateClient(ctx context.Context, arg UpdateClientParams) error
+	UpdateCashbox(ctx context.Context, arg UpdateCashboxParams) (Cashbox, error)
 	UpdateClientLoyaltyPoints(ctx context.Context, arg UpdateClientLoyaltyPointsParams) error
 	UpdateInventory(ctx context.Context, arg UpdateInventoryParams) error
 	UpdateInventoryProduct(ctx context.Context, arg UpdateInventoryProductParams) error
