@@ -51,6 +51,10 @@ func NewServer(store db.Store) *Server {
 	router.GET("/suppliers/:id", server.getSupplier)
 	router.GET("/suppliers", server.listSuppliers)
 
+	router.POST("/sales_invoices", server.createSalesInvoice)
+	router.GET("/sales_invoices/:id", server.getSalesInvoice)
+	router.GET("/sales_invoices", server.listSalesInvoices)
+
 	server.router = router
 	return server
 }
