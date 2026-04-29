@@ -89,11 +89,8 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 		if err != nil {
 			return err
 		}
-		netAmount, err := util.CalculateNetAmount(arg.Amount, arg.Discount)
-		if err != nil {
-			return err
-		}
-		result.SalesInvoice, err = q.CreateSalesInvoice(ctx, CreateSalesInvoiceParams{
+
+		salesInvoice, err := q.CreateSalesInvoice(ctx, CreateSalesInvoiceParams{
 			CashboxID:    arg.CashboxID,
 			InvoiceIndex: invoiceIndex,
 			InvoiceCode:  invoiceCode,
@@ -113,7 +110,7 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 			CashboxID:                  arg.CashboxID,
 			InventoryID:                arg.InventoryID,
 			ReferenceType:              EntryReferenceTypeSalesInvoice,
-			ReferenceID:                result.SalesInvoice.ID,
+			ReferenceID:                salesInvoice.ID,
 			NetAmountInDefaultCurrency: netAmount,
 		})
 		if err != nil {
@@ -140,8 +137,7 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 			return err
 		}
 
-		// TODO: Update client points
-
+		result.SalesInvoice = salesInvoice
 		result.Entry = entry
 		// result.Shift = shift
 		result.Account = account
