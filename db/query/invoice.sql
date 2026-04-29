@@ -52,6 +52,15 @@ INSERT INTO return_invoices (
 VALUES ( $1, $2, $3, $4 )
 RETURNING *;
 
+-- name: AddReturnInvoiceProduct :one
+INSERT INTO return_invoice_products (
+  invoice_id,
+  product_id,
+  quantity
+) 
+VALUES ( $1, $2, $3 )
+RETURNING *;
+
 -- name: GetReturnInvoice :one
 SELECT * FROM return_invoices
 WHERE id = $1 LIMIT 1;
