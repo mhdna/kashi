@@ -85,7 +85,7 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 
 		thisYear := int32(time.Now().Year())
 
-		invoiceCode, err := store.generateInvoiceNumber(ctx, EntryReferenceTypeSalesInvoice, invoiceIndex, arg.CashboxID, thisYear)
+		invoiceCode, err := q.generateInvoiceNumber(ctx, EntryReferenceTypeSalesInvoice, invoiceIndex, arg.CashboxID, thisYear)
 		if err != nil {
 			return err
 		}
