@@ -39,6 +39,14 @@ create table if not exists return_invoices (
     created_at timestamp(0) WITH time zone NOT NULL DEFAULT NOW()
 );
 
+create table if not exists return_invoice_products (
+    invoice_id bigint not null references return_invoices(id) on delete cascade,
+    product_id bigint not null references products(id),
+    quantity bigint not null,
+    primary key (invoice_id, product_id),
+    created_at timestamp(0) WITH time zone NOT NULL DEFAULT NOW()
+);
+
 create table if not exists return_invoices_indexes (
     year int not null,
     cashbox_id bigint not null references cashboxes(id),
