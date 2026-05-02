@@ -34,8 +34,10 @@ create table if not exists return_invoices (
     invoice_code text not null,
     invoice_index bigint not null,
     year int not null,
+    net_amount bigint not null,
     cashbox_id bigint not null references cashboxes(id),
     sales_invoice_id bigint not null references sales_invoices(id),
+    shift_id bigint not null references shifts(id),
     created_at timestamp(0) WITH time zone NOT NULL DEFAULT NOW()
 );
 
