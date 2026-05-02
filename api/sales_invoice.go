@@ -17,8 +17,7 @@ type createSalesInvoiceRequest struct {
 	Amount           int64 `json:"amount" binding:"required"`
 	// TODO: add netamount at run time instead of calculating it
 	// NetAmount    int64  `json:"net_amount" binding:"required"`
-	Discount     int16  `json:"discount" binding:"required"`
-	CurrencyCode string `json:"currency_code" binding:"required"`
+	Discount int16 `json:"discount" binding:"required"`
 }
 
 func (server *Server) createSalesInvoice(ctx *gin.Context) {
