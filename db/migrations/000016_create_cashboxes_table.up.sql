@@ -33,15 +33,13 @@ CREATE TABLE IF NOT EXISTS cashbox_account_templates (
     id            bigserial primary key,
     cashbox_id    bigint not null references cashboxes(id),
     type          text not null references cashbox_account_types(name),
-    currency_code text not null references currencies(code),
     opening_balance bigint not null,
-    UNIQUE (cashbox_id, type, currency_code)
+    UNIQUE (cashbox_id, type)
 );
 
 create table if not exists cashbox_accounts (
     id bigserial primary key,
     type text not null references cashbox_account_types(name),
-    currency_code text not null references currencies(code),
     shift_id bigint not null references shifts(id),
     opening_balance bigint not null,
     balance bigint not null
