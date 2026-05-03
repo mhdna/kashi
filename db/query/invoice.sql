@@ -8,10 +8,9 @@ INSERT INTO sales_invoices (
   client_id,
   amount,
   net_amount,
-  discount,
-  currency_code
+  discount
 ) 
-VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 )
+VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )
 RETURNING *;
 
 -- name: AddSalesInvoiceProduct :one
