@@ -10,13 +10,11 @@ import (
 
 func createRandomAccount(t *testing.T) CashboxAccount {
 	shift := createRandomShift(t)
-	currency := createRandomCurrency(t)
 	balance := util.RandomAmount()
 
 	arg := CreateCashboxAccountParams{
 		Type:           util.RandomName(),
 		ShiftID:        shift.ID,
-		CurrencyCode:   currency.Code,
 		OpeningBalance: balance,
 		Balance:        balance,
 	}
@@ -25,7 +23,6 @@ func createRandomAccount(t *testing.T) CashboxAccount {
 	require.NoError(t, err)
 	require.Equal(t, account.Type, arg.Type)
 	require.Equal(t, account.ShiftID, arg.ShiftID)
-	require.Equal(t, account.CurrencyCode, arg.CurrencyCode)
 	require.Equal(t, account.OpeningBalance, arg.OpeningBalance)
 	require.Equal(t, account.Balance, arg.Balance)
 
@@ -44,7 +41,6 @@ func TestGetAccount(t *testing.T) {
 	require.Equal(t, account1.ID, account2.ID)
 	require.Equal(t, account1.Type, account2.Type)
 	require.Equal(t, account1.ShiftID, account2.ShiftID)
-	require.Equal(t, account1.CurrencyCode, account2.CurrencyCode)
 	require.Equal(t, account1.OpeningBalance, account2.OpeningBalance)
 	require.Equal(t, account1.Balance, account2.Balance)
 }

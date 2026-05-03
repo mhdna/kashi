@@ -65,7 +65,6 @@ func TestSalesInvoiceTx(t *testing.T) {
 	cashbox := createRandomCashbox(t)
 	account := createRandomAccount(t)
 	inventory := createRandomInventory(t)
-	currency := createRandomCurrency(t)
 	shift := createRandomShift(t)
 	client := createRandomClient(t)
 
@@ -80,7 +79,6 @@ func TestSalesInvoiceTx(t *testing.T) {
 				CashboxID:        cashbox.ID,
 				CashboxAccountID: account.ID,
 				ShiftID:          shift.ID,
-				CurrencyCode:     currency.Code,
 				InventoryID:      inventory.ID,
 				ClientID:         client.ID,
 				Amount:           amount,
@@ -102,7 +100,6 @@ func TestSalesInvoiceTx(t *testing.T) {
 		require.NotEmpty(t, salesInvoice)
 		require.Equal(t, inventory.ID, salesInvoice.InventoryID)
 		require.Equal(t, cashbox.ID, salesInvoice.CashboxID)
-		require.Equal(t, currency.Code, salesInvoice.CurrencyCode)
 		require.Equal(t, client.ID, salesInvoice.ClientID)
 		require.Equal(t, amount, salesInvoice.Amount)
 		require.Equal(t, discount, salesInvoice.Discount)
