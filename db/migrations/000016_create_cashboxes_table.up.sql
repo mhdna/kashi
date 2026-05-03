@@ -16,31 +16,19 @@ create table if not exists cashboxes (
 
 create table if not exists shifts (
     id bigserial primary key,
-    is_closed boolean not null default false,
     cashbox_id bigint not null references cashboxes(id),
-    opening_date_time timestamp(0) WITH time zone NOT NULL DEFAULT NOW(),
-    closing_date_time timestamp(0) WITH time zone 
+    created_at timestamp(0) WITH time zone NOT NULL DEFAULT NOW(),
+    closed_at timestamp(0) WITH time zone not null
 );
 
 -- Cash, Digital Card, etc.
-create table if not exists cashbox_account_types (
+create table if not exists cashbox_accounts (
     id bigserial primary key,
     name text not null unique
 );
 
--- create default cashbox_account default template
-CREATE TABLE IF NOT EXISTS cashbox_account_templates (
-    id            bigserial primary key,
-    cashbox_id    bigint not null references cashboxes(id),
-    type          text not null references cashbox_account_types(name),
-    opening_balance bigint not null,
-    UNIQUE (cashbox_id, type)
-);
-
-create table if not exists cashbox_accounts (
-    id bigserial primary key,
-    type text not null references cashbox_account_types(name),
+create table if not exists shifts_accounts_balances (
+    account_id bigint not null references cashbox_accounts(id),
     shift_id bigint not null references shifts(id),
-    opening_balance bigint not null,
     balance bigint not null
 );
