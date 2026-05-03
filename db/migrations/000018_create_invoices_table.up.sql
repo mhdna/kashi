@@ -4,7 +4,6 @@ create table if not exists sales_invoices (
     invoice_index bigint not null,
     year int not null,
     cashbox_id bigint not null references cashboxes(id),
-    currency_code text not null references currencies(code),
     inventory_id bigint not null references inventories(id),
     client_id bigint not null references clients(id),
     amount bigint not null,
@@ -42,6 +41,7 @@ create table if not exists return_invoices (
 );
 
 create table if not exists return_invoice_products (
+    -- TODO: rename this to a clearer name
     invoice_id bigint not null references return_invoices(id) on delete cascade,
     product_id bigint not null references products(id),
     quantity bigint not null,
