@@ -15,21 +15,19 @@ func createRandomSalesInvoice(t *testing.T) SalesInvoice {
 	cashbox := createRandomCashbox(t)
 	inventory := createRandomInventory(t)
 	amount := util.RandomAmount()
-	currency := createRandomCurrency(t)
 	discount := int16(0)
 	netAmount, err := util.CalculateNetAmount(amount, discount)
 	if err != nil {
 		log.Fatal(err)
 	}
 	arg := CreateSalesInvoiceParams{
-		InventoryID:  inventory.ID,
-		ClientID:     client.ID,
-		CashboxID:    cashbox.ID,
-		Amount:       amount,
-		Discount:     discount,
-		NetAmount:    netAmount,
-		CurrencyCode: currency.Code,
-		Year:         int32(time.Now().Year()),
+		InventoryID: inventory.ID,
+		ClientID:    client.ID,
+		CashboxID:   cashbox.ID,
+		Amount:      amount,
+		Discount:    discount,
+		NetAmount:   netAmount,
+		Year:        int32(time.Now().Year()),
 	}
 
 	order, err := testQueries.CreateSalesInvoice(context.Background(), arg)
