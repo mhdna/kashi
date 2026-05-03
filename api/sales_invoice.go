@@ -34,7 +34,6 @@ func (server *Server) createSalesInvoice(ctx *gin.Context) {
 		Year:             req.Year,
 		ClientID:         req.ClientID,
 		Amount:           req.Amount,
-		CurrencyCode:     req.CurrencyCode,
 		Discount:         req.Discount,
 	}
 
