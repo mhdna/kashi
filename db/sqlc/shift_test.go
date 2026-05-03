@@ -43,8 +43,8 @@ func TestGetShift(t *testing.T) {
 	// require.Equal(t, shift1.TotalOpeningBalance, shift2.TotalOpeningBalance)
 	// require.Equal(t, shift1.TotalBalance, shift2.TotalBalance)
 
-	require.WithinDuration(t, shift1.OpeningDateTime, shift2.OpeningDateTime, time.Second)
-	require.WithinDuration(t, shift1.ClosingDateTime.Time, shift2.ClosingDateTime.Time, time.Second)
+	require.WithinDuration(t, shift1.CreatedAt, shift2.CreatedAt, time.Second)
+	require.WithinDuration(t, shift1.ClosedAt, shift2.ClosedAt, time.Second)
 }
 
 func TestListShifts(t *testing.T) {
