@@ -1,5 +1,8 @@
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 create table if not exists clients (
     id bigserial primary key,
+    uuid uuid unique not null default gen_random_uuid(),
     name text not null,
     phone text not null unique,
     total_loyalty_points bigint not null default 0,
