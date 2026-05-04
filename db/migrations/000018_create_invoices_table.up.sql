@@ -6,9 +6,10 @@ create table if not exists sales_invoices (
     cashbox_id bigint not null references cashboxes(id),
     inventory_id bigint not null references inventories(id),
     client_id bigint not null references clients(id),
-    amount bigint not null,
     discount SMALLINT not null CHECK (discount >= 0 AND discount <= 100),
-    net_amount bigint not null,
+    subtotal bigint not null,
+    discounted_total bigint not null,
+    grand_total bigint not null,
     created_at timestamp(0) WITH time zone NOT NULL DEFAULT NOW()
 );
 
@@ -35,7 +36,10 @@ create table if not exists return_invoices (
     invoice_code text not null,
     invoice_index bigint not null,
     year int not null,
-    net_amount bigint not null,
+    discount SMALLINT not null CHECK (discount >= 0 AND discount <= 100),
+    subtotal bigint not null,
+    discounted_total bigint not null,
+    grand_total bigint not null,
     cashbox_id bigint not null references cashboxes(id),
     sales_invoice_id bigint not null references sales_invoices(id),
     shift_id bigint not null references shifts(id),
