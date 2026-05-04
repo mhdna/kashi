@@ -43,7 +43,7 @@ SET name = $2
 WHERE id = $1
 RETURNING *;
 
--- name: AddAccountBalance :one
+-- name: AddCashboxAccountBalance :one
 UPDATE shifts_accounts_balances
 SET balance = balance + sqlc.arg(amount)
 WHERE account_id = sqlc.arg(account_id)
