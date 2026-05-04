@@ -10,28 +10,23 @@ import (
 )
 
 const addAccountBalance = `-- name: AddAccountBalance :one
-UPDATE cashbox_accounts
+UPDATE shifts_accounts_balances
 SET balance = balance + $1
-WHERE id = $2
-RETURNING id, type, currency_code, shift_id, opening_balance, balance
+WHERE account_id = $2
+AND shift_id = $3
+RETURNING account_id, shift_id, balance
 `
 
 type AddAccountBalanceParams struct {
-	Amount int64 `json:"amount"`
-	ID     int64 `json:"id"`
+	Amount    int64 `json:"amount"`
+	AccountID int64 `json:"accountId"`
+	ShiftID   int64 `json:"shiftId"`
 }
 
-func (q *Queries) AddAccountBalance(ctx context.Context, arg AddAccountBalanceParams) (CashboxAccount, error) {
-	row := q.db.QueryRowContext(ctx, addAccountBalance, arg.Amount, arg.ID)
-	var i CashboxAccount
-	err := row.Scan(
-		&i.ID,
-		&i.Type,
-		&i.CurrencyCode,
-		&i.ShiftID,
-		&i.OpeningBalance,
-		&i.Balance,
-	)
+func (q *Queries) AddAccountBalance(ctx context.Context, arg AddAccountBalanceParams) (ShiftsAccountsBalance, error) {
+	row := q.db.QueryRowContext(ctx, addAccountBalance, arg.Amount, arg.AccountID, arg.ShiftID)
+	var i ShiftsAccountsBalance
+	err := row.Scan(&i.AccountID, &i.ShiftID, &i.Balance)
 	return i, err
 }
 
@@ -66,57 +61,15 @@ func (q *Queries) CreateCashbox(ctx context.Context, arg CreateCashboxParams) (C
 
 const createCashboxAccount = `-- name: CreateCashboxAccount :one
 INSERT INTO cashbox_accounts (
-  type,
-  shift_id,
-  currency_code,
-  opening_balance,
-  balance
-) 
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, type, currency_code, shift_id, opening_balance, balance
-`
-
-type CreateCashboxAccountParams struct {
-	Type           string `json:"type"`
-	ShiftID        int64  `json:"shiftId"`
-	CurrencyCode   string `json:"currencyCode"`
-	OpeningBalance int64  `json:"openingBalance"`
-	Balance        int64  `json:"balance"`
-}
-
-func (q *Queries) CreateCashboxAccount(ctx context.Context, arg CreateCashboxAccountParams) (CashboxAccount, error) {
-	row := q.db.QueryRowContext(ctx, createCashboxAccount,
-		arg.Type,
-		arg.ShiftID,
-		arg.CurrencyCode,
-		arg.OpeningBalance,
-		arg.Balance,
-	)
-	var i CashboxAccount
-	err := row.Scan(
-		&i.ID,
-		&i.Type,
-		&i.CurrencyCode,
-		&i.ShiftID,
-		&i.OpeningBalance,
-		&i.Balance,
-	)
-	return i, err
-}
-
-const createCashboxAccountType = `-- name: CreateCashboxAccountType :one
-
-INSERT INTO cashbox_account_types (
   name
 ) 
-VALUES ( $1 )
+VALUES ($1 )
 RETURNING id, name
 `
 
-// TODO: move these into balances file
-func (q *Queries) CreateCashboxAccountType(ctx context.Context, name string) (CashboxAccountType, error) {
-	row := q.db.QueryRowContext(ctx, createCashboxAccountType, name)
-	var i CashboxAccountType
+func (q *Queries) CreateCashboxAccount(ctx context.Context, name string) (CashboxAccount, error) {
+	row := q.db.QueryRowContext(ctx, createCashboxAccount, name)
+	var i CashboxAccount
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }
@@ -140,7 +93,7 @@ func (q *Queries) GetCashbox(ctx context.Context, id int64) (Cashbox, error) {
 }
 
 const getCashboxAccount = `-- name: GetCashboxAccount :one
-SELECT id, type, currency_code, shift_id, opening_balance, balance FROM cashbox_accounts
+SELECT id, name FROM cashbox_accounts
 WHERE id = $1
 LIMIT 1
 `
@@ -148,19 +101,12 @@ LIMIT 1
 func (q *Queries) GetCashboxAccount(ctx context.Context, id int64) (CashboxAccount, error) {
 	row := q.db.QueryRowContext(ctx, getCashboxAccount, id)
 	var i CashboxAccount
-	err := row.Scan(
-		&i.ID,
-		&i.Type,
-		&i.CurrencyCode,
-		&i.ShiftID,
-		&i.OpeningBalance,
-		&i.Balance,
-	)
+	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }
 
 const listAccounts = `-- name: ListAccounts :many
-SELECT id, type, currency_code, shift_id, opening_balance, balance FROM cashbox_accounts
+SELECT id, name FROM cashbox_accounts
 ORDER BY id
 LIMIT $1
 OFFSET $2
@@ -180,14 +126,7 @@ func (q *Queries) ListAccounts(ctx context.Context, arg ListAccountsParams) ([]C
 	items := []CashboxAccount{}
 	for rows.Next() {
 		var i CashboxAccount
-		if err := rows.Scan(
-			&i.ID,
-			&i.Type,
-			&i.CurrencyCode,
-			&i.ShiftID,
-			&i.OpeningBalance,
-			&i.Balance,
-		); err != nil {
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -276,21 +215,21 @@ func (q *Queries) UpdateCashbox(ctx context.Context, arg UpdateCashboxParams) (C
 	return i, err
 }
 
-const updateCashboxAccountType = `-- name: UpdateCashboxAccountType :one
-UPDATE cashbox_account_types
+const updateCashboxAccount = `-- name: UpdateCashboxAccount :one
+UPDATE cashbox_accounts
 SET name = $2
 WHERE id = $1
 RETURNING id, name
 `
 
-type UpdateCashboxAccountTypeParams struct {
+type UpdateCashboxAccountParams struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
 }
 
-func (q *Queries) UpdateCashboxAccountType(ctx context.Context, arg UpdateCashboxAccountTypeParams) (CashboxAccountType, error) {
-	row := q.db.QueryRowContext(ctx, updateCashboxAccountType, arg.ID, arg.Name)
-	var i CashboxAccountType
+func (q *Queries) UpdateCashboxAccount(ctx context.Context, arg UpdateCashboxAccountParams) (CashboxAccount, error) {
+	row := q.db.QueryRowContext(ctx, updateCashboxAccount, arg.ID, arg.Name)
+	var i CashboxAccount
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }
