@@ -82,3 +82,33 @@ func (server *Server) listCashboxes(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, cashboxes)
 }
+
+type updateCashboxRequest struct {
+	ID   int64  `json:"id" binding:"required,min=1"`
+	Code string `json:"code" binding:"required"`
+	Name string `json:"name" binding:"required"`
+}
+
+func (server *Server) updateCashbox(ctx *gin.Context) {
+	var req updateCashboxRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	arg := db.UpdateCashboxParams{
+		ID:   req.ID,
+		Name: req.Name,
+		Code: req.Code,
+	}
+	cashbox, err := server.store.UpdateCashbox(ctx, arg)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusBadRequest, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, cashbox)
+}
