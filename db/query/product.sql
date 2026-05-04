@@ -23,8 +23,7 @@ UPDATE products
   SET name = $2,
   code = $3,
   description = $4,
-  price = $5,
-  discount = $6
+  discount = $5
 WHERE id = $1;
 
 -- name: DeleteProduct :exec
