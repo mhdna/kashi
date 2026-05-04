@@ -16,6 +16,7 @@ create table if not exists cashboxes (
 
 create table if not exists shifts (
     id bigserial primary key,
+    is_closed boolean not null default false,
     cashbox_id bigint not null references cashboxes(id),
     created_at timestamp(0) WITH time zone NOT NULL DEFAULT NOW(),
     closed_at timestamp(0) WITH time zone not null
