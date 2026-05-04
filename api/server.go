@@ -32,9 +32,6 @@ func NewServer(store db.Store) *Server {
 	// TODO: add getAssetType
 	router.POST("/asset_types", server.createAssetType)
 	router.DELETE("/asset_types/:id", server.deleteAssetType)
-	router.POST("/cashboxes", server.createCashbox)
-	router.GET("/cashboxes/:id", server.getCashbox)
-	router.GET("/cashboxes/", server.listCashboxes)
 	router.POST("/clients", server.createClient)
 	router.PUT("/clients", server.updateClient)
 	router.GET("/clients/:id", server.getClient)
@@ -42,10 +39,18 @@ func NewServer(store db.Store) *Server {
 	router.POST("/currencies", server.createCurrency)
 	router.GET("/currencies/:id", server.getCurrency)
 	router.GET("/currencies/", server.listCurrencies)
+
+	router.POST("/cashboxes", server.createCashbox)
+	router.GET("/cashboxes/:id", server.getCashbox)
+	router.GET("/cashboxes/", server.listCashboxes)
 	router.POST("/shifts", server.createShift)
 	router.POST("/shifts/:id/close", server.CloseShift)
 	router.GET("/shifts", server.listShifts)
 	router.GET("/shifts/:id", server.getShift)
+	router.POST("/cashbox_accounts", server.createCashboxAccount)
+	router.GET("/cashboxes_accounts/", server.listCashboxAccounts)
+	router.PUT("/cashbox_accounts", server.updateCashboxAccount)
+	router.POST("/cashbox_accounts", server.addCashboxAccountBalance)
 
 	router.POST("/suppliers", server.createSupplier)
 	router.GET("/suppliers/:id", server.getSupplier)
