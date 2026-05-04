@@ -51,8 +51,7 @@ create table if not exists return_invoice_products (
     invoice_id bigint not null references return_invoices(id) on delete cascade,
     product_id bigint not null references products(id),
     price bigint not null,
-    discount int not null,
-    quantity SMALLINT  not null,
+    discount SMALLINT not null CHECK (discount >= 0 AND discount <= 100),
     quantity bigint not null,
     primary key (invoice_id, product_id)
 );
