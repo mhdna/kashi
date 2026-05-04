@@ -9,3 +9,23 @@ CREATE TABLE IF NOT EXISTS products (
   discount SMALLINT not null CHECK (discount >= 0 AND discount <= 100),
   created_at timestamp(0) WITH time zone NOT NULL DEFAULT NOW()
 );
+
+create table price_lists (
+  id bigserial primary key,
+  name text not null,
+  code text not null,
+  is_active boolean not null default true,
+  
+  valid_from timestamp,
+  valid_to timestamp,
+  
+  created_at timestamp with time zone default now()
+);
+
+create table price_list_items (
+  price_list_id bigint references price_lists(id),
+  product_id bigint references products(id),
+  price bigint not null,
+  
+  primary key (price_list_id, product_id)
+);
