@@ -16,7 +16,7 @@ create table if not exists sales_invoice_products (
     invoice_id bigint not null references sales_invoices(id) on delete cascade,
     product_id bigint not null references products(id),
     price bigint not null,
-    discount int not null,
+    discount SMALLINT not null CHECK (discount >= 0 AND discount <= 100),
     quantity SMALLINT  not null,
     primary key (invoice_id, product_id),
     created_at timestamp(0) WITH time zone NOT NULL DEFAULT NOW()
