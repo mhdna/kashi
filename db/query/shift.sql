@@ -12,9 +12,9 @@ LIMIT 1;
 
 -- name: CloseShift :exec
 UPDATE shifts 
-  SET closing_date_time = $1,
-  is_closed = $2
-WHERE id = $3;
+  SET closing_date_time = NOW(),
+  is_closed = true
+WHERE id = $1;
 
 
 -- name: ListShifts :many
