@@ -25,30 +25,11 @@ is_active = $4
 WHERE id = $1
 RETURNING *;
 
--- TODO: move these into balances file
-
--- name: CreateCashboxAccountType :one
-INSERT INTO cashbox_account_types (
-  name
-) 
-VALUES ( $1 )
-RETURNING *;
-
--- name: UpdateCashboxAccountType :one
-UPDATE cashbox_account_types
-SET name = $2
-WHERE id = $1
-RETURNING *;
-
 -- name: CreateCashboxAccount :one
 INSERT INTO cashbox_accounts (
-  type,
-  shift_id,
-  currency_code,
-  opening_balance,
-  balance
+  name
 ) 
-VALUES ($1, $2, $3, $4, $5)
+VALUES ($1 )
 RETURNING *;
 
 -- name: GetCashboxAccount :one
@@ -56,10 +37,17 @@ SELECT * FROM cashbox_accounts
 WHERE id = $1
 LIMIT 1;
 
--- name: AddAccountBalance :one
+-- name: UpdateCashboxAccount :one
 UPDATE cashbox_accounts
+SET name = $2
+WHERE id = $1
+RETURNING *;
+
+-- name: AddAccountBalance :one
+UPDATE shifts_accounts_balances
 SET balance = balance + sqlc.arg(amount)
-WHERE id = sqlc.arg(id)
+WHERE account_id = sqlc.arg(account_id)
+AND shift_id = sqlc.arg(shift_id)
 RETURNING *;
 
 -- name: ListAccounts :many
