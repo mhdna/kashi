@@ -1,25 +1,29 @@
 -- name: CreateSalesInvoice :one
 INSERT INTO sales_invoices (
   cashbox_id,
-  invoice_index,
+  shift_id,
   invoice_code,
-  inventory_id,
+  invoice_index,
   year,
   client_id,
-  amount,
-  net_amount,
-  discount
+  inventory_id,
+  discount,
+  subtotal,
+  discounted_total,
+  grand_total
 ) 
-VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )
+VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11 )
 RETURNING *;
 
 -- name: AddSalesInvoiceProduct :one
 INSERT INTO sales_invoice_products (
   invoice_id,
   product_id,
+  price,
+  discount,
   quantity
 ) 
-VALUES ( $1, $2, $3 )
+VALUES ( $1, $2, $3, $4, $5 )
 RETURNING *;
 
 -- name: GetSalesInvoice :one
@@ -43,21 +47,31 @@ RETURNING last_index;
 
 -- name: CreateReturnInvoice :one
 INSERT INTO return_invoices (
-  invoice_index,
-  invoice_code,
   cashbox_id,
+  shift_id,
+  invoice_code,
+  invoice_index,
+  year,
+  client_id,
+  inventory_id,
+  discount,
+  subtotal,
+  discounted_total,
+  grand_total,
   sales_invoice_id
 ) 
-VALUES ( $1, $2, $3, $4 )
+VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12 )
 RETURNING *;
 
 -- name: AddReturnInvoiceProduct :one
 INSERT INTO return_invoice_products (
   invoice_id,
   product_id,
+  price,
+  discount,
   quantity
 ) 
-VALUES ( $1, $2, $3 )
+VALUES ( $1, $2, $3, $4, $5 )
 RETURNING *;
 
 -- name: GetReturnInvoice :one
