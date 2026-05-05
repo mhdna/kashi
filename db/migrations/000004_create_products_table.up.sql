@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS products (
 create table price_lists (
   id bigserial primary key,
   name text not null,
-  code text not null,
   is_active boolean not null default true,
   
   valid_from timestamp,
@@ -30,7 +29,6 @@ create table price_list_items (
 create table discount_lists (
   id bigserial primary key,
   name text not null,
-  code text not null,
   is_active boolean not null default true,
   
   valid_from timestamp,
