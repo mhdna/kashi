@@ -32,17 +32,21 @@ WHERE id = $1;
 -- name: CreatePriceList :one
 INSERT INTO price_lists (
   name,
+  is_active,
+  is_default,
   valid_from,
   valid_to
 ) VALUES (
-    $1, $2, $3
+    $1, $2, $3, $4, $5
 ) RETURNING *;
 
 -- name: UpdatePriceList :exec
 UPDATE price_lists
   SET name = $2,
-  valid_from = $3,
-  valid_to = $4
+  is_active = $3,
+  is_default = $4,
+  valid_from = $5,
+  valid_to = $6
 WHERE id = $1;
 
 -- name: CreateProductPrice :one
@@ -62,17 +66,21 @@ WHERE product_id = $1 AND price_list_id = $2;
 -- name: CreateDiscountList :one
 INSERT INTO discount_lists (
   name,
+  is_active,
+  is_default,
   valid_from,
   valid_to
 ) VALUES (
-    $1, $2, $3
+    $1, $2, $3, $4, $5
 ) RETURNING *;
 
 -- name: UpdateDiscountList :exec
 UPDATE price_lists
   SET name = $2,
-  valid_from = $3,
-  valid_to = $4
+  is_active = $3,
+  is_default = $4,
+  valid_from = $5,
+  valid_to = $6
 WHERE id = $1;
 
 -- name: CreateProductDiscount :one
