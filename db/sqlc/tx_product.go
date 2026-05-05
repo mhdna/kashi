@@ -8,7 +8,6 @@ type CreateProductTxParams struct {
 	Code            string            `json:"code"`
 	Name            string            `json:"name"`
 	Description     string            `json:"description"`
-	Price           int64             `json:"price"`
 	Discount        int16             `json:"discount"`
 	AttributeValues []AttributesValue `json:"attribute_values"`
 }
@@ -28,8 +27,6 @@ func (store *SQLStore) CreateProductTx(ctx context.Context, arg CreateProductTxP
 			Code:        arg.Code,
 			Name:        arg.Name,
 			Description: arg.Description,
-			Price:       arg.Price,
-			Discount:    arg.Discount,
 		}
 
 		product, err := q.CreateProduct(ctx, createProductArg)

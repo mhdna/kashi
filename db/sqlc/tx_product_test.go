@@ -16,7 +16,6 @@ func TestCreateProductTx(t *testing.T) {
 	names := make([]string, n)
 	codes := make([]string, n)
 	descriptions := make([]string, n)
-	prices := make([]int64, n)
 	discounts := make([]int16, n)
 	attributeValuesArray := make([][]AttributesValue, n)
 
@@ -24,7 +23,6 @@ func TestCreateProductTx(t *testing.T) {
 		names[i] = util.RandomString(20)
 		codes[i] = util.RandomString(8)
 		descriptions[i] = util.RandomString(200)
-		prices[i] = util.RandomNumber()
 		discounts[i] = util.RandomDiscount()
 		attributeValuesArray[i] = createRandomAttributeValues(t)
 	}
@@ -44,7 +42,6 @@ func TestCreateProductTx(t *testing.T) {
 				Code:            codes[idx],
 				Name:            names[idx],
 				Description:     descriptions[idx],
-				Price:           prices[idx],
 				Discount:        discounts[idx],
 				AttributeValues: attributeValuesArray[idx],
 			})
@@ -66,7 +63,6 @@ func TestCreateProductTx(t *testing.T) {
 		require.NotEmpty(t, resProduct)
 		require.Equal(t, codes[idx], resProduct.Code)
 		require.Equal(t, descriptions[idx], resProduct.Description)
-		require.Equal(t, discounts[idx], resProduct.Discount)
 		require.NotZero(t, resProduct.ID)
 		require.NotZero(t, resProduct.CreatedAt)
 		fmt.Println(">> tx product:", res.Product.Code)
