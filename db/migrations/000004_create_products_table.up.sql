@@ -42,5 +42,5 @@ create table discount_list_items (
   product_id bigint references products(id),
   discount SMALLINT not null CHECK (discount >= 0 AND discount <= 100),
 
-  primary key (price_list_id, product_id)
+  primary key (discount_list_id, product_id)
 );
