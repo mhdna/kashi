@@ -62,3 +62,33 @@ INSERT INTO price_list_items (
 UPDATE price_list_items
   SET price = $3
 WHERE product_id = $1 AND price_list_id = $2;
+
+-- name: CreateDiscountList :one
+INSERT INTO discount_lists (
+  name,
+  valid_from,
+  valid_to
+) VALUES (
+    $1, $2, $3, $4
+) RETURNING *;
+
+-- name: UpdateDiscountList :exec
+UPDATE price_lists
+  SET name = $2,
+  valid_from = $4,
+  valid_to = $5
+WHERE id = $1;
+
+-- name: CreateProductDiscount :one
+INSERT INTO discount_list_items (
+  discount_list_id,
+  product_id,
+  discount
+) VALUES (
+    $1, $2, $3
+) RETURNING *;
+
+-- name: UpdateProductDiscount :exec
+UPDATE discount_list_items
+  SET discount = $3
+WHERE product_id = $1 AND price_list_id = $2;
