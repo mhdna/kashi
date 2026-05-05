@@ -1,11 +1,10 @@
 -- name: CreateProduct :one
 INSERT INTO products (
-  name,
   code,
-  description,
-  discount
+  name,
+  description
 ) VALUES (
-    $1, $2, $3, $4
+    $1, $2, $3
 ) RETURNING *;
 
 -- name: GetProduct :one
@@ -22,8 +21,7 @@ OFFSET $2;
 UPDATE products 
   SET name = $2,
   code = $3,
-  description = $4,
-  discount = $5
+  description = $4
 WHERE id = $1;
 
 -- name: DeleteProduct :exec
@@ -34,19 +32,17 @@ WHERE id = $1;
 -- name: CreatePriceList :one
 INSERT INTO price_lists (
   name,
-  code,
   valid_from,
   valid_to
 ) VALUES (
-    $1, $2, $3, $4
+    $1, $2, $3
 ) RETURNING *;
 
 -- name: UpdatePriceList :exec
 UPDATE price_lists
   SET name = $2,
-  code = $3,
-  valid_from = $4,
-  valid_to = $5
+  valid_from = $3,
+  valid_to = $4
 WHERE id = $1;
 
 -- name: CreateProductPrice :one
@@ -69,14 +65,14 @@ INSERT INTO discount_lists (
   valid_from,
   valid_to
 ) VALUES (
-    $1, $2, $3, $4
+    $1, $2, $3
 ) RETURNING *;
 
 -- name: UpdateDiscountList :exec
 UPDATE price_lists
   SET name = $2,
-  valid_from = $4,
-  valid_to = $5
+  valid_from = $3,
+  valid_to = $4
 WHERE id = $1;
 
 -- name: CreateProductDiscount :one
@@ -91,4 +87,4 @@ INSERT INTO discount_list_items (
 -- name: UpdateProductDiscount :exec
 UPDATE discount_list_items
   SET discount = $3
-WHERE product_id = $1 AND price_list_id = $2;
+WHERE product_id = $1 AND discount_list_id = $2;
