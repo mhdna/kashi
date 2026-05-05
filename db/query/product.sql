@@ -40,6 +40,12 @@ INSERT INTO price_lists (
     $1, $2, $3, $4, $5
 ) RETURNING *;
 
+-- name: ListPriceLists :many
+SELECT * FROM price_lists
+ORDER BY name
+LIMIT $1
+OFFSET $2;
+
 -- name: UpdatePriceList :exec
 UPDATE price_lists
   SET name = $2,
@@ -73,6 +79,12 @@ INSERT INTO discount_lists (
 ) VALUES (
     $1, $2, $3, $4, $5
 ) RETURNING *;
+
+-- name: ListDiscountLists :many
+SELECT * FROM discount_lists
+ORDER BY name
+LIMIT $1
+OFFSET $2;
 
 -- name: UpdateDiscountList :exec
 UPDATE price_lists
