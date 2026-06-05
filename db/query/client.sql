@@ -27,8 +27,8 @@ RETURNING *;
 DELETE FROM clients
 WHERE id = $1;
 
--- name: UpdateClientLoyaltyPoints :exec
+-- name: AddClientLoyaltyPoints :exec
 UPDATE clients 
-  SET total_loyalty_points = $2,
-  valid_loyalty_points = $3
+  SET total_loyalty_points = total_loyalty_points + $2,
+  valid_loyalty_points = valid_loyalty_points + $3
 WHERE id = $1;
