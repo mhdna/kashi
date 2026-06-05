@@ -94,3 +94,41 @@ func TestDeleteClient(t *testing.T) {
 	require.Error(t, err)
 	require.EqualError(t, err, sql.ErrNoRows.Error())
 }
+
+func TestAddClientLoyaltyPoints(t *testing.T) {
+	client := createRandomClient(t)
+
+	require.Equal(t, int64(0), client.TotalLoyaltyPoints)
+	require.Equal(t, int64(0), client.ValidLoyaltyPoints)
+
+	totalPoints := util.RandomAmount()
+	validPoints := util.RandomAmount()
+
+	err := testQueries.AddClientLoyaltyPoints(context.Background(), AddClientLoyaltyPointsParams{
+		ID:                 client.ID,
+		TotalLoyaltyPoints: totalPoints,
+		ValidLoyaltyPoints: validPoints,
+	})
+	require.NoError(t, err)
+
+	updatedClient, err := testQueries.GetClient(context.Background(), client.ID)
+	require.NoError(t, err)
+	require.Equal(t, totalPoints, updatedClient.TotalLoyaltyPoints)
+	require.Equal(t, validPoints, updatedClient.ValidLoyaltyPoints)
+
+	// add again to verify it's additive
+	secondTotal := util.RandomAmount()
+	secondValid := util.RandomAmount()
+
+	err = testQueries.AddClientLoyaltyPoints(context.Background(), AddClientLoyaltyPointsParams{
+		ID:                 client.ID,
+		TotalLoyaltyPoints: secondTotal,
+		ValidLoyaltyPoints: secondValid,
+	})
+	require.NoError(t, err)
+
+	updatedClient2, err := testQueries.GetClient(context.Background(), client.ID)
+	require.NoError(t, err)
+	require.Equal(t, totalPoints+secondTotal, updatedClient2.TotalLoyaltyPoints)
+	require.Equal(t, validPoints+secondValid, updatedClient2.ValidLoyaltyPoints)
+}
