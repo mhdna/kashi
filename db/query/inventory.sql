@@ -47,9 +47,9 @@ JOIN products p ON p.id = ip.product_id
 WHERE ip.inventory_id = $1
 ORDER BY p.name;
 
--- name: UpdateInventoryProduct :exec
+-- name: AddInventoryProductQuantity :exec
 UPDATE inventories_products
-SET quantity = $3
+SET quantity = quantity + $3
 WHERE inventory_id = $1
 AND product_id = $2;
 
