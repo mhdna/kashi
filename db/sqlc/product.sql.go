@@ -11,19 +11,19 @@ import (
 
 const createProduct = `-- name: CreateProduct :one
 INSERT INTO products (
-  name,
   code,
+  name,
   description,
   price,
   discount
 ) VALUES (
     $1, $2, $3, $4, $5
-) RETURNING id, code, name, description, is_active, price, version, discount, created_at
+) RETURNING id, code, name, description, is_active, price, discount, created_at
 `
 
 type CreateProductParams struct {
-	Name        string `json:"name"`
 	Code        string `json:"code"`
+	Name        string `json:"name"`
 	Description string `json:"description"`
 	Price       int64  `json:"price"`
 	Discount    int16  `json:"discount"`
@@ -31,8 +31,8 @@ type CreateProductParams struct {
 
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error) {
 	row := q.db.QueryRowContext(ctx, createProduct,
-		arg.Name,
 		arg.Code,
+		arg.Name,
 		arg.Description,
 		arg.Price,
 		arg.Discount,
@@ -45,7 +45,6 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		&i.Description,
 		&i.IsActive,
 		&i.Price,
-		&i.Version,
 		&i.Discount,
 		&i.CreatedAt,
 	)
@@ -63,7 +62,7 @@ func (q *Queries) DeleteProduct(ctx context.Context, id int64) error {
 }
 
 const getProduct = `-- name: GetProduct :one
-SELECT id, code, name, description, is_active, price, version, discount, created_at FROM products
+SELECT id, code, name, description, is_active, price, discount, created_at FROM products
 WHERE id = $1 LIMIT 1
 `
 
@@ -77,7 +76,6 @@ func (q *Queries) GetProduct(ctx context.Context, id int64) (Product, error) {
 		&i.Description,
 		&i.IsActive,
 		&i.Price,
-		&i.Version,
 		&i.Discount,
 		&i.CreatedAt,
 	)
@@ -85,7 +83,7 @@ func (q *Queries) GetProduct(ctx context.Context, id int64) (Product, error) {
 }
 
 const listProducts = `-- name: ListProducts :many
-SELECT id, code, name, description, is_active, price, version, discount, created_at FROM products
+SELECT id, code, name, description, is_active, price, discount, created_at FROM products
 ORDER BY name
 LIMIT $1
 OFFSET $2
@@ -112,7 +110,6 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]P
 			&i.Description,
 			&i.IsActive,
 			&i.Price,
-			&i.Version,
 			&i.Discount,
 			&i.CreatedAt,
 		); err != nil {
@@ -133,9 +130,7 @@ const updateProduct = `-- name: UpdateProduct :exec
 UPDATE products 
   SET name = $2,
   code = $3,
-  description = $4,
-  price = $5,
-  discount = $6
+  description = $4
 WHERE id = $1
 `
 
@@ -144,8 +139,6 @@ type UpdateProductParams struct {
 	Name        string `json:"name"`
 	Code        string `json:"code"`
 	Description string `json:"description"`
-	Price       int64  `json:"price"`
-	Discount    int16  `json:"discount"`
 }
 
 func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) error {
@@ -154,8 +147,6 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) er
 		arg.Name,
 		arg.Code,
 		arg.Description,
-		arg.Price,
-		arg.Discount,
 	)
 	return err
 }

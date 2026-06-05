@@ -10,55 +10,6 @@ import (
 	"database/sql"
 )
 
-const addSupplierProduct = `-- name: AddSupplierProduct :one
-INSERT INTO product_suppliers (
-  product_id,
-  supplier_id
-) 
-VALUES ( $1, $2 )
-RETURNING id, product_id, supplier_id
-`
-
-type AddSupplierProductParams struct {
-	ProductID  int64 `json:"productId"`
-	SupplierID int64 `json:"supplierId"`
-}
-
-func (q *Queries) AddSupplierProduct(ctx context.Context, arg AddSupplierProductParams) (ProductSupplier, error) {
-	row := q.db.QueryRowContext(ctx, addSupplierProduct, arg.ProductID, arg.SupplierID)
-	var i ProductSupplier
-	err := row.Scan(&i.ID, &i.ProductID, &i.SupplierID)
-	return i, err
-}
-
-const addSupplierProductCost = `-- name: AddSupplierProductCost :one
-INSERT INTO product_supplier_costs (
-  product_supplier_id,
-  unit_cost,
-  currency_code
-) 
-VALUES ( $1, $2, $3 )
-RETURNING product_supplier_id, unit_cost, currency_code, created_at
-`
-
-type AddSupplierProductCostParams struct {
-	ProductSupplierID int64  `json:"productSupplierId"`
-	UnitCost          int64  `json:"unitCost"`
-	CurrencyCode      string `json:"currencyCode"`
-}
-
-func (q *Queries) AddSupplierProductCost(ctx context.Context, arg AddSupplierProductCostParams) (ProductSupplierCost, error) {
-	row := q.db.QueryRowContext(ctx, addSupplierProductCost, arg.ProductSupplierID, arg.UnitCost, arg.CurrencyCode)
-	var i ProductSupplierCost
-	err := row.Scan(
-		&i.ProductSupplierID,
-		&i.UnitCost,
-		&i.CurrencyCode,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
 const createSupplier = `-- name: CreateSupplier :one
 INSERT INTO suppliers (
   name,
@@ -104,16 +55,6 @@ func (q *Queries) CreateSupplier(ctx context.Context, arg CreateSupplierParams) 
 	return i, err
 }
 
-const deleteSupplierProduct = `-- name: DeleteSupplierProduct :exec
-delete from product_suppliers
-where id = $1
-`
-
-func (q *Queries) DeleteSupplierProduct(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteSupplierProduct, id)
-	return err
-}
-
 const getSupplier = `-- name: GetSupplier :one
 SELECT id, name, phone, country, address, address_latitude, address_longitude, created_at FROM suppliers
 WHERE id = $1 LIMIT 1
@@ -136,6 +77,7 @@ func (q *Queries) GetSupplier(ctx context.Context, id int64) (Supplier, error) {
 }
 
 const listSuppliers = `-- name: ListSuppliers :many
+
 SELECT id, name, phone, country, address, address_latitude, address_longitude, created_at FROM suppliers
 ORDER BY id
 LIMIT $1
@@ -147,6 +89,7 @@ type ListSuppliersParams struct {
 	Offset int32 `json:"offset"`
 }
 
+// TOOD: add UpdateSupplier
 func (q *Queries) ListSuppliers(ctx context.Context, arg ListSuppliersParams) ([]Supplier, error) {
 	rows, err := q.db.QueryContext(ctx, listSuppliers, arg.Limit, arg.Offset)
 	if err != nil {

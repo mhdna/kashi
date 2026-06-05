@@ -55,6 +55,55 @@ func (q *Queries) AddPurchaseItem(ctx context.Context, arg AddPurchaseItemParams
 	return i, err
 }
 
+const addPurchasedProduct = `-- name: AddPurchasedProduct :one
+INSERT INTO product_suppliers (
+  product_id,
+  supplier_id
+) 
+VALUES ( $1, $2 )
+RETURNING id, product_id, supplier_id
+`
+
+type AddPurchasedProductParams struct {
+	ProductID  int64 `json:"productId"`
+	SupplierID int64 `json:"supplierId"`
+}
+
+func (q *Queries) AddPurchasedProduct(ctx context.Context, arg AddPurchasedProductParams) (ProductSupplier, error) {
+	row := q.db.QueryRowContext(ctx, addPurchasedProduct, arg.ProductID, arg.SupplierID)
+	var i ProductSupplier
+	err := row.Scan(&i.ID, &i.ProductID, &i.SupplierID)
+	return i, err
+}
+
+const addPurchasedProductCost = `-- name: AddPurchasedProductCost :one
+INSERT INTO product_supplier_costs (
+  product_supplier_id,
+  unit_cost,
+  currency_code
+) 
+VALUES ( $1, $2, $3 )
+RETURNING product_supplier_id, unit_cost, currency_code, created_at
+`
+
+type AddPurchasedProductCostParams struct {
+	ProductSupplierID int64  `json:"productSupplierId"`
+	UnitCost          int64  `json:"unitCost"`
+	CurrencyCode      string `json:"currencyCode"`
+}
+
+func (q *Queries) AddPurchasedProductCost(ctx context.Context, arg AddPurchasedProductCostParams) (ProductSupplierCost, error) {
+	row := q.db.QueryRowContext(ctx, addPurchasedProductCost, arg.ProductSupplierID, arg.UnitCost, arg.CurrencyCode)
+	var i ProductSupplierCost
+	err := row.Scan(
+		&i.ProductSupplierID,
+		&i.UnitCost,
+		&i.CurrencyCode,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const createPurchase = `-- name: CreatePurchase :one
 INSERT INTO purchases (
   supplier_id,

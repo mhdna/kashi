@@ -50,7 +50,8 @@ func (q *Queries) GetProductAttributeValue(ctx context.Context, arg GetProductAt
 }
 
 const getProductAttributes = `-- name: GetProductAttributes :many
-SELECT attribute, attribute_value_id, product_id FROM products_attributes WHERE product_id = $1
+SELECT attribute, attribute_value_id, product_id FROM products_attributes
+WHERE product_id = $1
 `
 
 func (q *Queries) GetProductAttributes(ctx context.Context, productID int64) ([]ProductsAttribute, error) {

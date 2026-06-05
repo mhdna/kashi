@@ -9,7 +9,7 @@ import (
 	"context"
 )
 
-const addAccountBalance = `-- name: AddAccountBalance :one
+const addCashboxAccountBalance = `-- name: AddCashboxAccountBalance :one
 UPDATE shifts_accounts_balances
 SET balance = balance + $1
 WHERE account_id = $2
@@ -17,14 +17,14 @@ AND shift_id = $3
 RETURNING account_id, shift_id, balance
 `
 
-type AddAccountBalanceParams struct {
+type AddCashboxAccountBalanceParams struct {
 	Amount    int64 `json:"amount"`
 	AccountID int64 `json:"accountId"`
 	ShiftID   int64 `json:"shiftId"`
 }
 
-func (q *Queries) AddAccountBalance(ctx context.Context, arg AddAccountBalanceParams) (ShiftsAccountsBalance, error) {
-	row := q.db.QueryRowContext(ctx, addAccountBalance, arg.Amount, arg.AccountID, arg.ShiftID)
+func (q *Queries) AddCashboxAccountBalance(ctx context.Context, arg AddCashboxAccountBalanceParams) (ShiftsAccountsBalance, error) {
+	row := q.db.QueryRowContext(ctx, addCashboxAccountBalance, arg.Amount, arg.AccountID, arg.ShiftID)
 	var i ShiftsAccountsBalance
 	err := row.Scan(&i.AccountID, &i.ShiftID, &i.Balance)
 	return i, err
@@ -63,7 +63,7 @@ const createCashboxAccount = `-- name: CreateCashboxAccount :one
 INSERT INTO cashbox_accounts (
   name
 ) 
-VALUES ($1 )
+VALUES ($1)
 RETURNING id, name
 `
 
@@ -105,20 +105,38 @@ func (q *Queries) GetCashboxAccount(ctx context.Context, id int64) (CashboxAccou
 	return i, err
 }
 
-const listAccounts = `-- name: ListAccounts :many
+const getCashboxAccountBalance = `-- name: GetCashboxAccountBalance :one
+SELECT account_id, shift_id, balance FROM shifts_accounts_balances
+WHERE account_id = $1
+AND shift_id = $2
+`
+
+type GetCashboxAccountBalanceParams struct {
+	AccountID int64 `json:"accountId"`
+	ShiftID   int64 `json:"shiftId"`
+}
+
+func (q *Queries) GetCashboxAccountBalance(ctx context.Context, arg GetCashboxAccountBalanceParams) (ShiftsAccountsBalance, error) {
+	row := q.db.QueryRowContext(ctx, getCashboxAccountBalance, arg.AccountID, arg.ShiftID)
+	var i ShiftsAccountsBalance
+	err := row.Scan(&i.AccountID, &i.ShiftID, &i.Balance)
+	return i, err
+}
+
+const listCashboxAccounts = `-- name: ListCashboxAccounts :many
 SELECT id, name FROM cashbox_accounts
 ORDER BY id
 LIMIT $1
 OFFSET $2
 `
 
-type ListAccountsParams struct {
+type ListCashboxAccountsParams struct {
 	Limit  int32 `json:"limit"`
 	Offset int32 `json:"offset"`
 }
 
-func (q *Queries) ListAccounts(ctx context.Context, arg ListAccountsParams) ([]CashboxAccount, error) {
-	rows, err := q.db.QueryContext(ctx, listAccounts, arg.Limit, arg.Offset)
+func (q *Queries) ListCashboxAccounts(ctx context.Context, arg ListCashboxAccountsParams) ([]CashboxAccount, error) {
+	rows, err := q.db.QueryContext(ctx, listCashboxAccounts, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

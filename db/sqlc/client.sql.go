@@ -9,6 +9,24 @@ import (
 	"context"
 )
 
+const addClientLoyaltyPoints = `-- name: AddClientLoyaltyPoints :exec
+UPDATE clients 
+  SET total_loyalty_points = total_loyalty_points + $2,
+  valid_loyalty_points = valid_loyalty_points + $3
+WHERE id = $1
+`
+
+type AddClientLoyaltyPointsParams struct {
+	ID                 int64 `json:"id"`
+	TotalLoyaltyPoints int64 `json:"totalLoyaltyPoints"`
+	ValidLoyaltyPoints int64 `json:"validLoyaltyPoints"`
+}
+
+func (q *Queries) AddClientLoyaltyPoints(ctx context.Context, arg AddClientLoyaltyPointsParams) error {
+	_, err := q.db.ExecContext(ctx, addClientLoyaltyPoints, arg.ID, arg.TotalLoyaltyPoints, arg.ValidLoyaltyPoints)
+	return err
+}
+
 const createClient = `-- name: CreateClient :one
 INSERT INTO clients (
   name,
@@ -134,22 +152,4 @@ func (q *Queries) UpdateClient(ctx context.Context, arg UpdateClientParams) (Cli
 		&i.CreatedAt,
 	)
 	return i, err
-}
-
-const updateClientLoyaltyPoints = `-- name: UpdateClientLoyaltyPoints :exec
-UPDATE clients 
-  SET total_loyalty_points = $2,
-  valid_loyalty_points = $3
-WHERE id = $1
-`
-
-type UpdateClientLoyaltyPointsParams struct {
-	ID                 int64 `json:"id"`
-	TotalLoyaltyPoints int64 `json:"totalLoyaltyPoints"`
-	ValidLoyaltyPoints int64 `json:"validLoyaltyPoints"`
-}
-
-func (q *Queries) UpdateClientLoyaltyPoints(ctx context.Context, arg UpdateClientLoyaltyPointsParams) error {
-	_, err := q.db.ExecContext(ctx, updateClientLoyaltyPoints, arg.ID, arg.TotalLoyaltyPoints, arg.ValidLoyaltyPoints)
-	return err
 }
