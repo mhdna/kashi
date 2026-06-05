@@ -92,3 +92,94 @@ func TestUpdateInventory(t *testing.T) {
 	require.Equal(t, inventory2.ID, arg.ID)
 	require.Equal(t, inventory2.Name, arg.Name)
 }
+
+func TestAddInventoryProduct(t *testing.T) {
+	inventory := createRandomInventory(t)
+	product := createRandomProduct(t)
+	quantity := util.RandomQuantity()
+
+	arg := AddInventoryProductParams{
+		InventoryID: inventory.ID,
+		ProductID:   product.ID,
+		Quantity:    quantity,
+	}
+
+	invProduct, err := testQueries.AddInventoryProduct(context.Background(), arg)
+	require.NoError(t, err)
+	require.NotEmpty(t, invProduct)
+	require.Equal(t, arg.InventoryID, invProduct.InventoryID)
+	require.Equal(t, arg.ProductID, invProduct.ProductID)
+	require.Equal(t, arg.Quantity, invProduct.Quantity)
+}
+
+func TestAddInventoryProductQuantity(t *testing.T) {
+	inventory := createRandomInventory(t)
+	product := createRandomProduct(t)
+	initialQuantity := util.RandomQuantity()
+
+	_, err := testQueries.AddInventoryProduct(context.Background(), AddInventoryProductParams{
+		InventoryID: inventory.ID,
+		ProductID:   product.ID,
+		Quantity:    initialQuantity,
+	})
+	require.NoError(t, err)
+
+	additionalQuantity := util.RandomQuantity()
+	err = testQueries.AddInventoryProductQuantity(context.Background(), AddInventoryProductQuantityParams{
+		InventoryID: inventory.ID,
+		ProductID:   product.ID,
+		Quantity:    additionalQuantity,
+	})
+	require.NoError(t, err)
+
+	products, err := testQueries.ListInventoryProducts(context.Background(), inventory.ID)
+	require.NoError(t, err)
+	require.Len(t, products, 1)
+	require.Equal(t, initialQuantity+additionalQuantity, products[0].Quantity)
+}
+
+func TestDeleteInventoryProduct(t *testing.T) {
+	inventory := createRandomInventory(t)
+	product := createRandomProduct(t)
+
+	_, err := testQueries.AddInventoryProduct(context.Background(), AddInventoryProductParams{
+		InventoryID: inventory.ID,
+		ProductID:   product.ID,
+		Quantity:    util.RandomQuantity(),
+	})
+	require.NoError(t, err)
+
+	err = testQueries.DeleteInventoryProduct(context.Background(), DeleteInventoryProductParams{
+		InventoryID: inventory.ID,
+		ProductID:   product.ID,
+	})
+	require.NoError(t, err)
+
+	products, err := testQueries.ListInventoryProducts(context.Background(), inventory.ID)
+	require.NoError(t, err)
+	require.Len(t, products, 0)
+}
+
+func TestListInventoryProducts(t *testing.T) {
+	inventory := createRandomInventory(t)
+
+	n := 5
+	for range n {
+		product := createRandomProduct(t)
+		_, err := testQueries.AddInventoryProduct(context.Background(), AddInventoryProductParams{
+			InventoryID: inventory.ID,
+			ProductID:   product.ID,
+			Quantity:    util.RandomQuantity(),
+		})
+		require.NoError(t, err)
+	}
+
+	products, err := testQueries.ListInventoryProducts(context.Background(), inventory.ID)
+	require.NoError(t, err)
+	require.Len(t, products, n)
+	for _, p := range products {
+		require.NotEmpty(t, p.ProductID)
+		require.NotEmpty(t, p.ProductName)
+		require.Greater(t, p.Quantity, int64(0))
+	}
+}
