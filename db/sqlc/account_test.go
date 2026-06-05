@@ -9,22 +9,25 @@ import (
 )
 
 func createRandomAccount(t *testing.T) CashboxAccount {
-	shift := createRandomShift(t)
-	balance := util.RandomAmount()
 
-	arg := CreateCashboxAccountParams{
-		Type:           util.RandomName(),
-		ShiftID:        shift.ID,
-		OpeningBalance: balance,
-		Balance:        balance,
-	}
+	// shift := createRandomShift(t)
+	// balance := util.RandomAmount()
+	cashboxAccountName := util.RandomName()
 
-	account, err := testQueries.CreateCashboxAccount(context.Background(), arg)
+	// arg := CreateCashboxAccountParams{
+	// 	Type:           util.RandomName(),
+	// 	ShiftID:        shift.ID,
+	// 	OpeningBalance: balance,
+	// 	Balance:        balance,
+	// }
+
+	account, err := testQueries.CreateCashboxAccount(context.Background(), cashboxAccountName)
 	require.NoError(t, err)
-	require.Equal(t, account.Type, arg.Type)
-	require.Equal(t, account.ShiftID, arg.ShiftID)
-	require.Equal(t, account.OpeningBalance, arg.OpeningBalance)
-	require.Equal(t, account.Balance, arg.Balance)
+	require.Equal(t, account.Name, cashboxAccountName)
+	// require.Equal(t, account.Type, arg.Type)
+	// require.Equal(t, account.ShiftID, arg.ShiftID)
+	// require.Equal(t, account.OpeningBalance, arg.OpeningBalance)
+	// require.Equal(t, account.Balance, arg.Balance)
 
 	return account
 }
@@ -39,10 +42,11 @@ func TestGetAccount(t *testing.T) {
 	account2, err := testQueries.GetCashboxAccount(context.Background(), account1.ID)
 	require.NoError(t, err)
 	require.Equal(t, account1.ID, account2.ID)
-	require.Equal(t, account1.Type, account2.Type)
-	require.Equal(t, account1.ShiftID, account2.ShiftID)
-	require.Equal(t, account1.OpeningBalance, account2.OpeningBalance)
-	require.Equal(t, account1.Balance, account2.Balance)
+	require.Equal(t, account1.Name, account2.Name)
+	// require.Equal(t, account1.Type, account2.Type)
+	// require.Equal(t, account1.ShiftID, account2.ShiftID)
+	// require.Equal(t, account1.OpeningBalance, account2.OpeningBalance)
+	// require.Equal(t, account1.Balance, account2.Balance)
 }
 
 func TestListAccounts(t *testing.T) {
@@ -50,12 +54,12 @@ func TestListAccounts(t *testing.T) {
 		createRandomAccount(t)
 	}
 
-	arg := ListAccountsParams{
+	arg := ListCashboxAccountsParams{
 		Limit:  5,
 		Offset: 5,
 	}
 
-	accounts, err := testQueries.ListAccounts(context.Background(), arg)
+	accounts, err := testQueries.ListCashboxAccounts(context.Background(), arg)
 	require.NoError(t, err)
 	require.Len(t, accounts, 5)
 	for _, account := range accounts {
@@ -66,13 +70,22 @@ func TestListAccounts(t *testing.T) {
 
 func TestAddAccountBalance(t *testing.T) {
 	account := createRandomAccount(t)
+	shift := createRandomShift(t)
 
-	arg := AddAccountBalanceParams{
-		ID:     account.ID,
-		Amount: util.RandomAmount(),
+	arg := AddCashboxAccountBalanceParams{
+		AccountID: account.ID,
+		Amount:    util.RandomAmount(),
+		ShiftID:   shift.ID,
 	}
 
-	account2, err := testQueries.AddAccountBalance(context.Background(), arg)
+	getBalanceArg := GetCashboxAccountBalanceParams{
+		AccountID: account.ID,
+		ShiftID:   shift.ID,
+	}
+	balance, err := testQueries.GetCashboxAccountBalance(context.Background(), getBalanceArg)
 	require.NoError(t, err)
-	require.Equal(t, account2.Balance, account.Balance+arg.Amount)
+
+	account2, err := testQueries.AddCashboxAccountBalance(context.Background(), arg)
+	require.NoError(t, err)
+	require.Equal(t, account2.Balance, balance.Balance+arg.Amount)
 }
