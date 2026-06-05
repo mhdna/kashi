@@ -33,6 +33,24 @@ func (q *Queries) AddInventoryProduct(ctx context.Context, arg AddInventoryProdu
 	return i, err
 }
 
+const addInventoryProductQuantity = `-- name: AddInventoryProductQuantity :exec
+UPDATE inventories_products
+SET quantity = quantity + $3
+WHERE inventory_id = $1
+AND product_id = $2
+`
+
+type AddInventoryProductQuantityParams struct {
+	InventoryID int64 `json:"inventoryId"`
+	ProductID   int64 `json:"productId"`
+	Quantity    int64 `json:"quantity"`
+}
+
+func (q *Queries) AddInventoryProductQuantity(ctx context.Context, arg AddInventoryProductQuantityParams) error {
+	_, err := q.db.ExecContext(ctx, addInventoryProductQuantity, arg.InventoryID, arg.ProductID, arg.Quantity)
+	return err
+}
+
 const createInventory = `-- name: CreateInventory :one
 INSERT INTO inventories (
   name,
@@ -40,7 +58,7 @@ INSERT INTO inventories (
   longitude,
   latitude
 ) VALUES ( $1, $2, $3, $4)
-RETURNING id, name, code, longitude, latitude, created_at
+RETURNING id, name, type, code, longitude, latitude, created_at
 `
 
 type CreateInventoryParams struct {
@@ -61,6 +79,7 @@ func (q *Queries) CreateInventory(ctx context.Context, arg CreateInventoryParams
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
+		&i.Type,
 		&i.Code,
 		&i.Longitude,
 		&i.Latitude,
@@ -96,7 +115,7 @@ func (q *Queries) DeleteInventoryProduct(ctx context.Context, arg DeleteInventor
 }
 
 const getInventory = `-- name: GetInventory :one
-SELECT id, name, code, longitude, latitude, created_at FROM inventories
+SELECT id, name, type, code, longitude, latitude, created_at FROM inventories
 WHERE id = $1 LIMIT 1
 `
 
@@ -106,6 +125,7 @@ func (q *Queries) GetInventory(ctx context.Context, id int64) (Inventory, error)
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
+		&i.Type,
 		&i.Code,
 		&i.Longitude,
 		&i.Latitude,
@@ -115,7 +135,7 @@ func (q *Queries) GetInventory(ctx context.Context, id int64) (Inventory, error)
 }
 
 const listInventories = `-- name: ListInventories :many
-SELECT id, name, code, longitude, latitude, created_at FROM inventories
+SELECT id, name, type, code, longitude, latitude, created_at FROM inventories
 ORDER BY name
 LIMIT $1
 OFFSET $2
@@ -138,6 +158,7 @@ func (q *Queries) ListInventories(ctx context.Context, arg ListInventoriesParams
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
+			&i.Type,
 			&i.Code,
 			&i.Longitude,
 			&i.Latitude,
@@ -219,23 +240,5 @@ type UpdateInventoryParams struct {
 
 func (q *Queries) UpdateInventory(ctx context.Context, arg UpdateInventoryParams) error {
 	_, err := q.db.ExecContext(ctx, updateInventory, arg.ID, arg.Name)
-	return err
-}
-
-const updateInventoryProduct = `-- name: UpdateInventoryProduct :exec
-UPDATE inventories_products
-SET quantity = $3
-WHERE inventory_id = $1
-AND product_id = $2
-`
-
-type UpdateInventoryProductParams struct {
-	InventoryID int64 `json:"inventoryId"`
-	ProductID   int64 `json:"productId"`
-	Quantity    int64 `json:"quantity"`
-}
-
-func (q *Queries) UpdateInventoryProduct(ctx context.Context, arg UpdateInventoryProductParams) error {
-	_, err := q.db.ExecContext(ctx, updateInventoryProduct, arg.InventoryID, arg.ProductID, arg.Quantity)
 	return err
 }

@@ -7,24 +7,17 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const closeShift = `-- name: CloseShift :exec
 UPDATE shifts 
-  SET closing_date_time = $1,
-  is_closed = $2
-WHERE id = $3
+  SET closing_date_time = NOW(),
+  is_closed = true
+WHERE id = $1
 `
 
-type CloseShiftParams struct {
-	ClosingDateTime sql.NullTime `json:"closingDateTime"`
-	IsClosed        bool         `json:"isClosed"`
-	ID              int64        `json:"id"`
-}
-
-func (q *Queries) CloseShift(ctx context.Context, arg CloseShiftParams) error {
-	_, err := q.db.ExecContext(ctx, closeShift, arg.ClosingDateTime, arg.IsClosed, arg.ID)
+func (q *Queries) CloseShift(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, closeShift, id)
 	return err
 }
 
@@ -33,7 +26,7 @@ INSERT INTO shifts (
   cashbox_id
 ) 
 VALUES ( $1 )
-RETURNING id, is_closed, cashbox_id, opening_date_time, closing_date_time
+RETURNING id, is_closed, cashbox_id, created_at, closed_at
 `
 
 func (q *Queries) CreateShift(ctx context.Context, cashboxID int64) (Shift, error) {
@@ -43,14 +36,14 @@ func (q *Queries) CreateShift(ctx context.Context, cashboxID int64) (Shift, erro
 		&i.ID,
 		&i.IsClosed,
 		&i.CashboxID,
-		&i.OpeningDateTime,
-		&i.ClosingDateTime,
+		&i.CreatedAt,
+		&i.ClosedAt,
 	)
 	return i, err
 }
 
 const getShift = `-- name: GetShift :one
-SELECT id, is_closed, cashbox_id, opening_date_time, closing_date_time FROM shifts
+SELECT id, is_closed, cashbox_id, created_at, closed_at FROM shifts
 WHERE id = $1
 LIMIT 1
 `
@@ -62,14 +55,14 @@ func (q *Queries) GetShift(ctx context.Context, id int64) (Shift, error) {
 		&i.ID,
 		&i.IsClosed,
 		&i.CashboxID,
-		&i.OpeningDateTime,
-		&i.ClosingDateTime,
+		&i.CreatedAt,
+		&i.ClosedAt,
 	)
 	return i, err
 }
 
 const listShifts = `-- name: ListShifts :many
-SELECT id, is_closed, cashbox_id, opening_date_time, closing_date_time FROM shifts
+SELECT id, is_closed, cashbox_id, created_at, closed_at FROM shifts
 ORDER BY id
 LIMIT $1
 OFFSET $2
@@ -93,8 +86,8 @@ func (q *Queries) ListShifts(ctx context.Context, arg ListShiftsParams) ([]Shift
 			&i.ID,
 			&i.IsClosed,
 			&i.CashboxID,
-			&i.OpeningDateTime,
-			&i.ClosingDateTime,
+			&i.CreatedAt,
+			&i.ClosedAt,
 		); err != nil {
 			return nil, err
 		}
