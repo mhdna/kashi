@@ -2,8 +2,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
-	"log"
 	"testing"
 	"time"
 
@@ -84,23 +82,35 @@ func TestListShifts(t *testing.T) {
 // 	require.Equal(t, shift2.TotalBalance, arg.Amount+shift1.TotalBalance)
 // }
 
+// func TestCloseShift(t *testing.T) {
+// 	shift := createRandomShift(t)
+//
+// 	arg := CloseShiftParams{
+// 		ID:              shift.ID,
+// 		ClosingDateTime: sql.NullTime{Time: time.Now(), Valid: true},
+// 		IsClosed:        true,
+// 	}
+//
+// 	err := testQueries.CloseShift(context.Background(), arg)
+// 	require.NoError(t, err)
+//
+// 	shift2, err := testQueries.GetShift(context.Background(), shift.ID)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	require.NoError(t, err)
+// 	require.Equal(t, shift2.IsClosed, arg.IsClosed)
+// 	require.WithinDuration(t, shift2.ClosingDateTime.Time, arg.ClosingDateTime.Time, time.Second)
+// }
+
 func TestCloseShift(t *testing.T) {
 	shift := createRandomShift(t)
 
-	arg := CloseShiftParams{
-		ID:              shift.ID,
-		ClosingDateTime: sql.NullTime{Time: time.Now(), Valid: true},
-		IsClosed:        true,
-	}
-
-	err := testQueries.CloseShift(context.Background(), arg)
+	err := testQueries.CloseShift(context.Background(), shift.ID)
 	require.NoError(t, err)
 
-	shift2, err := testQueries.GetShift(context.Background(), shift.ID)
-	if err != nil {
-		log.Fatal(err)
-	}
+	closedShift, err := testQueries.GetShift(context.Background(), shift.ID)
 	require.NoError(t, err)
-	require.Equal(t, shift2.IsClosed, arg.IsClosed)
-	require.WithinDuration(t, shift2.ClosingDateTime.Time, arg.ClosingDateTime.Time, time.Second)
+	require.True(t, closedShift.IsClosed)
+	require.False(t, closedShift.ClosedAt.IsZero())
 }
