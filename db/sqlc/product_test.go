@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 	"time"
 
@@ -9,12 +10,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TODO: add price list and discount list tests
 func createRandomProduct(t *testing.T) Product {
 	arg := CreateProductParams{
 		Name:        util.RandomString(20),
 		Code:        util.RandomString(8),
 		Description: util.RandomString(200),
-		Price:       util.RandomNumber(),
+		Price:       util.RandomAmount(),
 		Discount:    util.RandomDiscount(),
 	}
 
@@ -25,6 +27,7 @@ func createRandomProduct(t *testing.T) Product {
 	require.Equal(t, arg.Code, product.Code)
 	require.Equal(t, arg.Description, product.Description)
 	require.Equal(t, arg.Price, product.Price)
+	require.Equal(t, arg.Discount, product.Discount)
 
 	require.NotZero(t, product.ID)
 	require.NotZero(t, product.CreatedAt)
@@ -47,5 +50,55 @@ func TestGetProduct(t *testing.T) {
 	require.Equal(t, product1.Code, product2.Code)
 	require.Equal(t, product1.Description, product2.Description)
 	require.Equal(t, product1.Price, product2.Price)
+	require.Equal(t, product1.Discount, product2.Discount)
 	require.WithinDuration(t, product1.CreatedAt, product2.CreatedAt, time.Second)
+}
+
+func TestListProducts(t *testing.T) {
+	for range 10 {
+		createRandomProduct(t)
+	}
+
+	arg := ListProductsParams{
+		Limit:  5,
+		Offset: 5,
+	}
+
+	products, err := testQueries.ListProducts(context.Background(), arg)
+	require.NoError(t, err)
+	require.Len(t, products, 5)
+	for _, product := range products {
+		require.NotEmpty(t, product)
+	}
+}
+
+func TestUpdateProduct(t *testing.T) {
+	product := createRandomProduct(t)
+
+	arg := UpdateProductParams{
+		ID:          product.ID,
+		Name:        util.RandomString(20),
+		Code:        util.RandomString(8),
+		Description: util.RandomString(200),
+	}
+
+	err := testQueries.UpdateProduct(context.Background(), arg)
+	require.NoError(t, err)
+
+	updated, err := testQueries.GetProduct(context.Background(), product.ID)
+	require.NoError(t, err)
+	require.Equal(t, arg.Name, updated.Name)
+	require.Equal(t, arg.Code, updated.Code)
+	require.Equal(t, arg.Description, updated.Description)
+}
+
+func TestDeleteProduct(t *testing.T) {
+	product := createRandomProduct(t)
+
+	err := testQueries.DeleteProduct(context.Background(), product.ID)
+	require.NoError(t, err)
+
+	_, err = testQueries.GetProduct(context.Background(), product.ID)
+	require.Error(t, err)
+	require.EqualError(t, err, sql.ErrNoRows.Error())
 }
