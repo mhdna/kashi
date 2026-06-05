@@ -84,3 +84,44 @@ func TestAddPurchaseItem(t *testing.T) {
 
 	require.NotZero(t, purchased_item.ID)
 }
+
+func TestAddPurchasedProduct(t *testing.T) {
+	product := createRandomProduct(t)
+	supplier := createRandomSupplier(t)
+
+	arg := AddPurchasedProductParams{
+		ProductID:  product.ID,
+		SupplierID: supplier.ID,
+	}
+
+	result, err := testQueries.AddPurchasedProduct(context.Background(), arg)
+	require.NoError(t, err)
+	require.NotEmpty(t, result)
+	require.Equal(t, arg.ProductID, result.ProductID)
+	require.Equal(t, arg.SupplierID, result.SupplierID)
+}
+
+func TestAddPurchasedProductCost(t *testing.T) {
+	product := createRandomProduct(t)
+	supplier := createRandomSupplier(t)
+	currency := createRandomCurrency(t)
+
+	ps, err := testQueries.AddPurchasedProduct(context.Background(), AddPurchasedProductParams{
+		ProductID:  product.ID,
+		SupplierID: supplier.ID,
+	})
+	require.NoError(t, err)
+
+	cost := util.RandomAmount()
+	arg := AddPurchasedProductCostParams{
+		ProductSupplierID: ps.ID,
+		UnitCost:          cost,
+		CurrencyCode:      currency.Code,
+	}
+
+	result, err := testQueries.AddPurchasedProductCost(context.Background(), arg)
+	require.NoError(t, err)
+	require.NotEmpty(t, result)
+	require.Equal(t, cost, result.UnitCost)
+	require.Equal(t, currency.Code, result.CurrencyCode)
+}
