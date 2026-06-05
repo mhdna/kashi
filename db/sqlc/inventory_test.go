@@ -179,7 +179,7 @@ func TestListInventoryProducts(t *testing.T) {
 	require.Len(t, products, n)
 	for _, p := range products {
 		require.NotEmpty(t, p.ProductID)
-		require.NotEmpty(t, p.ProductName)
+		require.NotEmpty(t, p.Name)
 		require.Greater(t, p.Quantity, int64(0))
 	}
 }
