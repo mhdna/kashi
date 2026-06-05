@@ -29,16 +29,11 @@ DELETE FROM products
 WHERE id = $1;
 
 
--- name: CreatePriceList :one
-INSERT INTO price_lists (
-  name,
-  is_active,
-  is_default,
-  valid_from,
-  valid_to
-) VALUES (
-    $1, $2, $3, $4, $5
-) RETURNING *;
+-- -- name: ListPriceLists :many
+-- SELECT * FROM price_lists
+-- ORDER BY name
+-- LIMIT $1
+-- OFFSET $2;
 
 -- name: ListPriceLists :many
 SELECT * FROM price_lists

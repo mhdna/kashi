@@ -29,7 +29,7 @@ RETURNING *;
 INSERT INTO cashbox_accounts (
   name
 ) 
-VALUES ($1 )
+VALUES ($1)
 RETURNING *;
 
 -- name: GetCashboxAccount :one
@@ -43,6 +43,11 @@ SET name = $2
 WHERE id = $1
 RETURNING *;
 
+-- name: GetCashboxAccountBalance :one
+SELECT * FROM shifts_accounts_balances
+WHERE account_id = $1
+AND shift_id = $2;
+
 -- name: AddCashboxAccountBalance :one
 UPDATE shifts_accounts_balances
 SET balance = balance + sqlc.arg(amount)
@@ -50,7 +55,7 @@ WHERE account_id = sqlc.arg(account_id)
 AND shift_id = sqlc.arg(shift_id)
 RETURNING *;
 
--- name: ListAccounts :many
+-- name: ListCashboxAccounts :many
 SELECT * FROM cashbox_accounts
 ORDER BY id
 LIMIT $1
