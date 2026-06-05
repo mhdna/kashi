@@ -98,3 +98,20 @@ func TestUpdateProductAttribute(t *testing.T) {
 		require.Equal(t, productAttribute2.AttributeValueID, arg.AttributeValueID)
 	}
 }
+
+func TestGetProductAttributes(t *testing.T) {
+	productAttributes := createRandomProductAttributes(t)
+	require.NotEmpty(t, productAttributes)
+
+	pID := productAttributes[0].ProductID
+
+	fetched, err := testQueries.GetProductAttributes(context.Background(), pID)
+	require.NoError(t, err)
+	require.Len(t, fetched, len(productAttributes))
+
+	for i, fa := range fetched {
+		require.Equal(t, pID, fa.ProductID)
+		require.Equal(t, productAttributes[i].Attribute, fa.Attribute)
+		require.Equal(t, productAttributes[i].AttributeValueID, fa.AttributeValueID)
+	}
+}
