@@ -7,7 +7,6 @@ create table if not exists inventories (
     id bigserial primary key,
     name text not null unique,
     type inventory_type not null,
-    price_list_id bigint references price_lists(id),
     code text not null unique,
     longitude double precision,
     latitude double precision,
