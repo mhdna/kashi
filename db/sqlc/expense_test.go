@@ -17,6 +17,7 @@ func createRandomExpense(t *testing.T) Expense {
 		Amount:       util.RandomAmount(),
 		CurrencyCode: currency.Code,
 	}
+
 	expense, err := testQueries.CreateExpense(context.Background(), arg)
 	require.NoError(t, err)
 	require.Equal(t, expense.Description, arg.Description)
