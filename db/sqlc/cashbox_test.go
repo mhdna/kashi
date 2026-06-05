@@ -62,3 +62,35 @@ func TestListCashboxes(t *testing.T) {
 		require.NotEmpty(t, cashbox)
 	}
 }
+
+func TestUpdateCashbox(t *testing.T) {
+	cashbox := createRandomCashbox(t)
+
+	arg := UpdateCashboxParams{
+		ID:       cashbox.ID,
+		Code:     util.RandomCode(),
+		Name:     util.RandomName(),
+		IsActive: !cashbox.IsActive,
+	}
+
+	updated, err := testQueries.UpdateCashbox(context.Background(), arg)
+	require.NoError(t, err)
+	require.Equal(t, arg.ID, updated.ID)
+	require.Equal(t, arg.Code, updated.Code)
+	require.Equal(t, arg.Name, updated.Name)
+	require.Equal(t, arg.IsActive, updated.IsActive)
+}
+
+func TestUpdateCashboxAccount(t *testing.T) {
+	account := createRandomAccount(t)
+
+	arg := UpdateCashboxAccountParams{
+		ID:   account.ID,
+		Name: util.RandomName(),
+	}
+
+	updated, err := testQueries.UpdateCashboxAccount(context.Background(), arg)
+	require.NoError(t, err)
+	require.Equal(t, arg.ID, updated.ID)
+	require.Equal(t, arg.Name, updated.Name)
+}
