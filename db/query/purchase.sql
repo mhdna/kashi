@@ -27,3 +27,20 @@ INSERT INTO purchase_items (
 ) 
 VALUES ( $1, $2, $3, $4, $5, $6 )
 RETURNING *;
+
+-- name: AddPurchasedProduct :one
+INSERT INTO product_suppliers (
+  product_id,
+  supplier_id
+) 
+VALUES ( $1, $2 )
+RETURNING *;
+
+-- name: AddPurchasedProductCost :one
+INSERT INTO product_supplier_costs (
+  product_supplier_id,
+  unit_cost,
+  currency_code
+) 
+VALUES ( $1, $2, $3 )
+RETURNING *;
