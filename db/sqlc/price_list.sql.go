@@ -113,3 +113,41 @@ func (q *Queries) ListPriceLists(ctx context.Context, arg ListPriceListsParams) 
 	}
 	return items, nil
 }
+
+const unsetDefaultPriceList = `-- name: UnsetDefaultPriceList :exec
+UPDATE price_lists
+SET is_default = false
+WHERE is_default = true AND id != $1
+`
+
+func (q *Queries) UnsetDefaultPriceList(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, unsetDefaultPriceList, id)
+	return err
+}
+
+const updatePriceList = `-- name: UpdatePriceList :exec
+UPDATE price_lists
+SET name = $2, is_active = $3, is_default = $4, valid_from = $5, valid_to = $6
+WHERE id = $1
+`
+
+type UpdatePriceListParams struct {
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	IsActive  bool      `json:"isActive"`
+	IsDefault bool      `json:"isDefault"`
+	ValidFrom time.Time `json:"validFrom"`
+	ValidTo   time.Time `json:"validTo"`
+}
+
+func (q *Queries) UpdatePriceList(ctx context.Context, arg UpdatePriceListParams) error {
+	_, err := q.db.ExecContext(ctx, updatePriceList,
+		arg.ID,
+		arg.Name,
+		arg.IsActive,
+		arg.IsDefault,
+		arg.ValidFrom,
+		arg.ValidTo,
+	)
+	return err
+}
