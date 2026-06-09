@@ -11,7 +11,7 @@ import (
 
 const closeShift = `-- name: CloseShift :exec
 UPDATE shifts 
-  SET closing_date_time = NOW(),
+  SET closed_at = NOW(),
   is_closed = true
 WHERE id = $1
 `

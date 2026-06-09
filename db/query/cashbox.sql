@@ -49,10 +49,10 @@ WHERE account_id = $1
 AND shift_id = $2;
 
 -- name: AddCashboxAccountBalance :one
-UPDATE shifts_accounts_balances
-SET balance = balance + sqlc.arg(amount)
-WHERE account_id = sqlc.arg(account_id)
-AND shift_id = sqlc.arg(shift_id)
+INSERT INTO shifts_accounts_balances (account_id, shift_id, balance)
+VALUES ($1, $2, $3)
+ON CONFLICT (account_id, shift_id)
+DO UPDATE SET balance = shifts_accounts_balances.balance + $3
 RETURNING *;
 
 -- name: ListCashboxAccounts :many

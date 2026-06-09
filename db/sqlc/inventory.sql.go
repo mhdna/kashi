@@ -54,15 +54,17 @@ func (q *Queries) AddInventoryProductQuantity(ctx context.Context, arg AddInvent
 const createInventory = `-- name: CreateInventory :one
 INSERT INTO inventories (
   name,
+  type,
   code,
   longitude,
   latitude
-) VALUES ( $1, $2, $3, $4)
+) VALUES ( $1, $2, $3, $4, $5)
 RETURNING id, name, type, code, longitude, latitude, created_at
 `
 
 type CreateInventoryParams struct {
 	Name      string          `json:"name"`
+	Type      InventoryType   `json:"type"`
 	Code      string          `json:"code"`
 	Longitude sql.NullFloat64 `json:"longitude"`
 	Latitude  sql.NullFloat64 `json:"latitude"`
@@ -71,6 +73,7 @@ type CreateInventoryParams struct {
 func (q *Queries) CreateInventory(ctx context.Context, arg CreateInventoryParams) (Inventory, error) {
 	row := q.db.QueryRowContext(ctx, createInventory,
 		arg.Name,
+		arg.Type,
 		arg.Code,
 		arg.Longitude,
 		arg.Latitude,
