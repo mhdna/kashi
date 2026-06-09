@@ -9,155 +9,51 @@ import (
 	"context"
 )
 
-const addReturnInvoiceProduct = `-- name: AddReturnInvoiceProduct :one
-INSERT INTO return_invoice_products (
+const addInvoiceProduct = `-- name: AddInvoiceProduct :one
+INSERT INTO invoice_products (
   invoice_id,
   product_id,
-  price,
+  unit_price,
+  line_total,
   discount,
   quantity
 ) 
-VALUES ( $1, $2, $3, $4, $5 )
-RETURNING invoice_id, product_id, price, discount, quantity
+VALUES ( $1, $2, $3, $4, $5, $6 )
+RETURNING invoice_id, product_id, unit_price, line_total, discount, quantity
 `
 
-type AddReturnInvoiceProductParams struct {
+type AddInvoiceProductParams struct {
 	InvoiceID int64 `json:"invoiceId"`
 	ProductID int64 `json:"productId"`
-	Price     int64 `json:"price"`
+	UnitPrice int64 `json:"unitPrice"`
+	LineTotal int64 `json:"lineTotal"`
 	Discount  int16 `json:"discount"`
 	Quantity  int64 `json:"quantity"`
 }
 
-func (q *Queries) AddReturnInvoiceProduct(ctx context.Context, arg AddReturnInvoiceProductParams) (ReturnInvoiceProduct, error) {
-	row := q.db.QueryRowContext(ctx, addReturnInvoiceProduct,
+func (q *Queries) AddInvoiceProduct(ctx context.Context, arg AddInvoiceProductParams) (InvoiceProduct, error) {
+	row := q.db.QueryRowContext(ctx, addInvoiceProduct,
 		arg.InvoiceID,
 		arg.ProductID,
-		arg.Price,
+		arg.UnitPrice,
+		arg.LineTotal,
 		arg.Discount,
 		arg.Quantity,
 	)
-	var i ReturnInvoiceProduct
+	var i InvoiceProduct
 	err := row.Scan(
 		&i.InvoiceID,
 		&i.ProductID,
-		&i.Price,
+		&i.UnitPrice,
+		&i.LineTotal,
 		&i.Discount,
 		&i.Quantity,
 	)
 	return i, err
 }
 
-const addSalesInvoiceProduct = `-- name: AddSalesInvoiceProduct :one
-INSERT INTO sales_invoice_products (
-  invoice_id,
-  product_id,
-  price,
-  discount,
-  quantity
-) 
-VALUES ( $1, $2, $3, $4, $5 )
-RETURNING invoice_id, product_id, price, discount, quantity
-`
-
-type AddSalesInvoiceProductParams struct {
-	InvoiceID int64 `json:"invoiceId"`
-	ProductID int64 `json:"productId"`
-	Price     int64 `json:"price"`
-	Discount  int16 `json:"discount"`
-	Quantity  int64 `json:"quantity"`
-}
-
-func (q *Queries) AddSalesInvoiceProduct(ctx context.Context, arg AddSalesInvoiceProductParams) (SalesInvoiceProduct, error) {
-	row := q.db.QueryRowContext(ctx, addSalesInvoiceProduct,
-		arg.InvoiceID,
-		arg.ProductID,
-		arg.Price,
-		arg.Discount,
-		arg.Quantity,
-	)
-	var i SalesInvoiceProduct
-	err := row.Scan(
-		&i.InvoiceID,
-		&i.ProductID,
-		&i.Price,
-		&i.Discount,
-		&i.Quantity,
-	)
-	return i, err
-}
-
-const createReturnInvoice = `-- name: CreateReturnInvoice :one
-INSERT INTO return_invoices (
-  cashbox_id,
-  shift_id,
-  invoice_code,
-  invoice_index,
-  year,
-  client_id,
-  inventory_id,
-  discount,
-  subtotal,
-  discounted_total,
-  grand_total,
-  sales_invoice_id
-) 
-VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12 )
-RETURNING id, cashbox_id, shift_id, invoice_code, invoice_index, year, client_id, inventory_id, discount, subtotal, discounted_total, grand_total, sales_invoice_id, created_at
-`
-
-type CreateReturnInvoiceParams struct {
-	CashboxID       int64  `json:"cashboxId"`
-	ShiftID         int64  `json:"shiftId"`
-	InvoiceCode     string `json:"invoiceCode"`
-	InvoiceIndex    int64  `json:"invoiceIndex"`
-	Year            int32  `json:"year"`
-	ClientID        int64  `json:"clientId"`
-	InventoryID     int64  `json:"inventoryId"`
-	Discount        int16  `json:"discount"`
-	Subtotal        int64  `json:"subtotal"`
-	DiscountedTotal int64  `json:"discountedTotal"`
-	GrandTotal      int64  `json:"grandTotal"`
-	SalesInvoiceID  int64  `json:"salesInvoiceId"`
-}
-
-func (q *Queries) CreateReturnInvoice(ctx context.Context, arg CreateReturnInvoiceParams) (ReturnInvoice, error) {
-	row := q.db.QueryRowContext(ctx, createReturnInvoice,
-		arg.CashboxID,
-		arg.ShiftID,
-		arg.InvoiceCode,
-		arg.InvoiceIndex,
-		arg.Year,
-		arg.ClientID,
-		arg.InventoryID,
-		arg.Discount,
-		arg.Subtotal,
-		arg.DiscountedTotal,
-		arg.GrandTotal,
-		arg.SalesInvoiceID,
-	)
-	var i ReturnInvoice
-	err := row.Scan(
-		&i.ID,
-		&i.CashboxID,
-		&i.ShiftID,
-		&i.InvoiceCode,
-		&i.InvoiceIndex,
-		&i.Year,
-		&i.ClientID,
-		&i.InventoryID,
-		&i.Discount,
-		&i.Subtotal,
-		&i.DiscountedTotal,
-		&i.GrandTotal,
-		&i.SalesInvoiceID,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
-const createSalesInvoice = `-- name: CreateSalesInvoice :one
-INSERT INTO sales_invoices (
+const createInvoice = `-- name: CreateInvoice :one
+INSERT INTO invoices (
   cashbox_id,
   shift_id,
   invoice_code,
@@ -174,7 +70,7 @@ VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11 )
 RETURNING id, cashbox_id, shift_id, invoice_code, invoice_index, year, client_id, inventory_id, discount, subtotal, discounted_total, grand_total, created_at
 `
 
-type CreateSalesInvoiceParams struct {
+type CreateInvoiceParams struct {
 	CashboxID       int64  `json:"cashboxId"`
 	ShiftID         int64  `json:"shiftId"`
 	InvoiceCode     string `json:"invoiceCode"`
@@ -188,8 +84,8 @@ type CreateSalesInvoiceParams struct {
 	GrandTotal      int64  `json:"grandTotal"`
 }
 
-func (q *Queries) CreateSalesInvoice(ctx context.Context, arg CreateSalesInvoiceParams) (SalesInvoice, error) {
-	row := q.db.QueryRowContext(ctx, createSalesInvoice,
+func (q *Queries) CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (Invoice, error) {
+	row := q.db.QueryRowContext(ctx, createInvoice,
 		arg.CashboxID,
 		arg.ShiftID,
 		arg.InvoiceCode,
@@ -202,7 +98,7 @@ func (q *Queries) CreateSalesInvoice(ctx context.Context, arg CreateSalesInvoice
 		arg.DiscountedTotal,
 		arg.GrandTotal,
 	)
-	var i SalesInvoice
+	var i Invoice
 	err := row.Scan(
 		&i.ID,
 		&i.CashboxID,
@@ -221,198 +117,107 @@ func (q *Queries) CreateSalesInvoice(ctx context.Context, arg CreateSalesInvoice
 	return i, err
 }
 
-const getReturnInvoice = `-- name: GetReturnInvoice :one
-SELECT id, cashbox_id, shift_id, invoice_code, invoice_index, year, client_id, inventory_id, discount, subtotal, discounted_total, grand_total, sales_invoice_id, created_at FROM return_invoices
-WHERE id = $1 LIMIT 1
-`
-
-func (q *Queries) GetReturnInvoice(ctx context.Context, id int64) (ReturnInvoice, error) {
-	row := q.db.QueryRowContext(ctx, getReturnInvoice, id)
-	var i ReturnInvoice
-	err := row.Scan(
-		&i.ID,
-		&i.CashboxID,
-		&i.ShiftID,
-		&i.InvoiceCode,
-		&i.InvoiceIndex,
-		&i.Year,
-		&i.ClientID,
-		&i.InventoryID,
-		&i.Discount,
-		&i.Subtotal,
-		&i.DiscountedTotal,
-		&i.GrandTotal,
-		&i.SalesInvoiceID,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
-const getSalesInvoice = `-- name: GetSalesInvoice :one
-SELECT id, cashbox_id, shift_id, invoice_code, invoice_index, year, client_id, inventory_id, discount, subtotal, discounted_total, grand_total, created_at FROM sales_invoices
-WHERE id = $1 LIMIT 1
-`
-
-func (q *Queries) GetSalesInvoice(ctx context.Context, id int64) (SalesInvoice, error) {
-	row := q.db.QueryRowContext(ctx, getSalesInvoice, id)
-	var i SalesInvoice
-	err := row.Scan(
-		&i.ID,
-		&i.CashboxID,
-		&i.ShiftID,
-		&i.InvoiceCode,
-		&i.InvoiceIndex,
-		&i.Year,
-		&i.ClientID,
-		&i.InventoryID,
-		&i.Discount,
-		&i.Subtotal,
-		&i.DiscountedTotal,
-		&i.GrandTotal,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
-const listReturnInvoices = `-- name: ListReturnInvoices :many
-SELECT id, cashbox_id, shift_id, invoice_code, invoice_index, year, client_id, inventory_id, discount, subtotal, discounted_total, grand_total, sales_invoice_id, created_at
-FROM return_invoices
-ORDER BY created_at
-DESC
-LIMIT $1
-OFFSET $2
-`
-
-type ListReturnInvoicesParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
-}
-
-func (q *Queries) ListReturnInvoices(ctx context.Context, arg ListReturnInvoicesParams) ([]ReturnInvoice, error) {
-	rows, err := q.db.QueryContext(ctx, listReturnInvoices, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []ReturnInvoice{}
-	for rows.Next() {
-		var i ReturnInvoice
-		if err := rows.Scan(
-			&i.ID,
-			&i.CashboxID,
-			&i.ShiftID,
-			&i.InvoiceCode,
-			&i.InvoiceIndex,
-			&i.Year,
-			&i.ClientID,
-			&i.InventoryID,
-			&i.Discount,
-			&i.Subtotal,
-			&i.DiscountedTotal,
-			&i.GrandTotal,
-			&i.SalesInvoiceID,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listSalesInvoices = `-- name: ListSalesInvoices :many
-SELECT id, cashbox_id, shift_id, invoice_code, invoice_index, year, client_id, inventory_id, discount, subtotal, discounted_total, grand_total, created_at
-FROM sales_invoices
-ORDER BY created_at
-DESC
-LIMIT $1
-OFFSET $2
-`
-
-type ListSalesInvoicesParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
-}
-
-func (q *Queries) ListSalesInvoices(ctx context.Context, arg ListSalesInvoicesParams) ([]SalesInvoice, error) {
-	rows, err := q.db.QueryContext(ctx, listSalesInvoices, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []SalesInvoice{}
-	for rows.Next() {
-		var i SalesInvoice
-		if err := rows.Scan(
-			&i.ID,
-			&i.CashboxID,
-			&i.ShiftID,
-			&i.InvoiceCode,
-			&i.InvoiceIndex,
-			&i.Year,
-			&i.ClientID,
-			&i.InventoryID,
-			&i.Discount,
-			&i.Subtotal,
-			&i.DiscountedTotal,
-			&i.GrandTotal,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const nextReturnInvoiceIndexIncrement = `-- name: NextReturnInvoiceIndexIncrement :one
-INSERT INTO return_invoices_indexes (year, cashbox_id, last_index)
-VALUES ($1, $2, 1)
+const decrementInvoicesIndex = `-- name: DecrementInvoicesIndex :one
+INSERT INTO invoice_indexes  (year, cashbox_id, type, last_index)
+VALUES ($1, $2, $3, 1)
 ON CONFLICT (year, cashbox_id)
-DO UPDATE SET last_index = return_invoices_indexes.last_index + 1
+DO UPDATE SET last_index = sales_invoices_indexes.last_index - 1
 RETURNING last_index
 `
 
-type NextReturnInvoiceIndexIncrementParams struct {
-	Year      int32 `json:"year"`
-	CashboxID int64 `json:"cashboxId"`
+type DecrementInvoicesIndexParams struct {
+	Year      int32     `json:"year"`
+	CashboxID int64     `json:"cashboxId"`
+	Type      IndexType `json:"type"`
 }
 
-func (q *Queries) NextReturnInvoiceIndexIncrement(ctx context.Context, arg NextReturnInvoiceIndexIncrementParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, nextReturnInvoiceIndexIncrement, arg.Year, arg.CashboxID)
+func (q *Queries) DecrementInvoicesIndex(ctx context.Context, arg DecrementInvoicesIndexParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, decrementInvoicesIndex, arg.Year, arg.CashboxID, arg.Type)
 	var last_index int64
 	err := row.Scan(&last_index)
 	return last_index, err
 }
 
-const nextSalesInvoiceIndexIncrement = `-- name: NextSalesInvoiceIndexIncrement :one
-INSERT INTO sales_invoices_indexes  (year, cashbox_id, last_index)
-VALUES ($1, $2, 1)
+const getInvoice = `-- name: GetInvoice :one
+SELECT invoice_id FROM sales_invoices
+WHERE invoice_id = $1 LIMIT 1
+`
+
+func (q *Queries) GetInvoice(ctx context.Context, invoiceID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getInvoice, invoiceID)
+	var invoice_id int64
+	err := row.Scan(&invoice_id)
+	return invoice_id, err
+}
+
+const incrementInvoicesIndex = `-- name: IncrementInvoicesIndex :one
+INSERT INTO invoice_indexes  (year, cashbox_id, type, last_index)
+VALUES ($1, $2, $3, 1)
 ON CONFLICT (year, cashbox_id)
 DO UPDATE SET last_index = sales_invoices_indexes.last_index + 1
 RETURNING last_index
 `
 
-type NextSalesInvoiceIndexIncrementParams struct {
-	Year      int32 `json:"year"`
-	CashboxID int64 `json:"cashboxId"`
+type IncrementInvoicesIndexParams struct {
+	Year      int32     `json:"year"`
+	CashboxID int64     `json:"cashboxId"`
+	Type      IndexType `json:"type"`
 }
 
-func (q *Queries) NextSalesInvoiceIndexIncrement(ctx context.Context, arg NextSalesInvoiceIndexIncrementParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, nextSalesInvoiceIndexIncrement, arg.Year, arg.CashboxID)
+func (q *Queries) IncrementInvoicesIndex(ctx context.Context, arg IncrementInvoicesIndexParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, incrementInvoicesIndex, arg.Year, arg.CashboxID, arg.Type)
 	var last_index int64
 	err := row.Scan(&last_index)
 	return last_index, err
+}
+
+const listInvoices = `-- name: ListInvoices :many
+SELECT id, cashbox_id, shift_id, invoice_code, invoice_index, year, client_id, inventory_id, discount, subtotal, discounted_total, grand_total, created_at
+FROM invoices
+ORDER BY created_at
+DESC
+LIMIT $1
+OFFSET $2
+`
+
+type ListInvoicesParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) ListInvoices(ctx context.Context, arg ListInvoicesParams) ([]Invoice, error) {
+	rows, err := q.db.QueryContext(ctx, listInvoices, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Invoice{}
+	for rows.Next() {
+		var i Invoice
+		if err := rows.Scan(
+			&i.ID,
+			&i.CashboxID,
+			&i.ShiftID,
+			&i.InvoiceCode,
+			&i.InvoiceIndex,
+			&i.Year,
+			&i.ClientID,
+			&i.InventoryID,
+			&i.Discount,
+			&i.Subtotal,
+			&i.DiscountedTotal,
+			&i.GrandTotal,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
