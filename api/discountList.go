@@ -1,0 +1,157 @@
+package api
+
+import (
+	"database/sql"
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	db "github.com/mhdna/kashi/db/sqlc"
+)
+
+type createDiscountListRequest struct {
+	Name      string    `json:"name" binding:"required"`
+	IsActive  bool      `json:"is_active"`
+	IsDefault bool      `json:"is_default"`
+	ValidFrom time.Time `json:"valid_from"`
+	ValidTo   time.Time `json:"valid_to"`
+}
+
+func (server *Server) createDiscountList(ctx *gin.Context) {
+	var req createDiscountListRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	arg := db.CreateDiscountListParams{
+		Name:      req.Name,
+		IsActive:  req.IsActive,
+		IsDefault: req.IsDefault,
+		ValidFrom: req.ValidFrom,
+		ValidTo:   req.ValidTo,
+	}
+
+	discountList, err := server.store.CreateDiscountList(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, discountList)
+}
+
+type getDiscountListRequest struct {
+	ID int64 `uri:"id" binding:"required,min=1"`
+}
+
+func (server *Server) getDiscountList(ctx *gin.Context) {
+	var req getDiscountListRequest
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	discountList, err := server.store.GetDiscountList(ctx, req.ID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, discountList)
+}
+
+type listDiscountListsRequest struct {
+	PageSize int32 `form:"page_size,default=10" binding:"min=5,max=10"`
+	PageID   int32 `form:"page_id,default=1" binding:"min=1"`
+}
+
+func (server *Server) listDiscountLists(ctx *gin.Context) {
+	var req listDiscountListsRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	arg := db.ListDiscountListsParams{
+		Limit:  req.PageSize,
+		Offset: req.PageID,
+	}
+	discountLists, err := server.store.ListDiscountLists(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, discountLists)
+}
+
+type createDiscountListItemRequest struct {
+	DiscountListID int64 `json:"discount_list_id" binding:"required"`
+	ProductID      int64 `json:"product_id" binding:"required"`
+	Discount       int16 `json:"discount" binding:"required"`
+}
+
+func (server *Server) createDiscountListItem(ctx *gin.Context) {
+	var req createDiscountListItemRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	arg := db.CreateDiscountListItemParams{
+		DiscountListID: req.DiscountListID,
+		ProductID:      req.ProductID,
+		Discount:       req.Discount,
+	}
+
+	item, err := server.store.CreateDiscountListItem(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, item)
+}
+
+type listDiscountListItemsRequest struct {
+	DiscountListID int64 `uri:"id" binding:"required,min=1"`
+}
+
+func (server *Server) listDiscountListItems(ctx *gin.Context) {
+	var req listDiscountListItemsRequest
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	items, err := server.store.ListDiscountListItems(ctx, req.DiscountListID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, items)
+}
+
+type deleteDiscountListItemRequest struct {
+	DiscountListID int64 `uri:"id" binding:"required,min=1"`
+	ProductID      int64 `uri:"product_id" binding:"required,min=1"`
+}
+
+func (server *Server) deleteDiscountListItem(ctx *gin.Context) {
+	var req deleteDiscountListItemRequest
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	err := server.store.DeleteDiscountListItem(ctx, db.DeleteDiscountListItemParams{
+		DiscountListID: req.DiscountListID,
+		ProductID:      req.ProductID,
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"status": "deleted"})
+}
