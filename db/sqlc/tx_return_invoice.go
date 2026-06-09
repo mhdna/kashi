@@ -1,0 +1,167 @@
+package db
+
+import (
+	"context"
+	"errors"
+)
+
+type ReturnInvoiceItem struct {
+	ProductID int64 `json:"product_id"`
+	UnitPrice int64 `json:"unit_price"`
+	LineTotal int64 `json:"line_total"`
+	Discount  int16 `json:"discount"`
+	Quantity  int64 `json:"quantity"`
+}
+
+type ReturnInvoiceTxParams struct {
+	CashboxID        int64 `json:"cashbox_id"`
+	ShiftID          int64 `json:"shift_id"`
+	Year             int32 `json:"year"`
+	ClientID         int64 `json:"client_id"`
+	InventoryID      int64 `json:"inventory_id"`
+	Discount         int16 `json:"discount"`
+	SubTotal         int64 `json:"sub_total"`
+	DiscountedTotal  int64 `json:"discounted_total"`
+	GrandTotal       int64 `json:"grand_total"`
+	SalesInvoiceID   int64 `json:"sales_invoice_id"`
+	CashboxAccountID int64 `json:"cashbox_account_id"`
+
+	Items []ReturnInvoiceItem `json:"items"`
+}
+
+type ReturnInvoiceTxResult struct {
+	Invoice               Invoice               `json:"invoice"`
+	SalesInvoiceID        int64                 `json:"sales_invoice_id"`
+	Entry                 Entry                 `json:"entry"`
+	ShiftsAccountsBalance ShiftsAccountsBalance `json:"shift_account_balance"`
+}
+
+func validateReturnInvoiceAmounts(items []ReturnInvoiceItem, grandTotal int64) error {
+	var calculatedNetAmount int64
+	for _, item := range items {
+		itemTotal := item.UnitPrice * item.Quantity
+		itemDiscountedTotal := itemTotal
+		if item.Discount > 0 {
+			itemDiscountedTotal = itemTotal - (itemTotal * int64(item.Discount) / 100)
+		}
+		calculatedNetAmount += itemDiscountedTotal
+	}
+	if calculatedNetAmount != grandTotal {
+		return errors.New("Invalid Amount")
+	}
+	return nil
+}
+
+func (store *SQLStore) ReturnInvoiceTx(ctx context.Context, arg ReturnInvoiceTxParams) (ReturnInvoiceTxResult, error) {
+	var result ReturnInvoiceTxResult
+
+	err := store.execTx(ctx, func(q *Queries) error {
+		var err error
+
+		invoiceIndex, err := q.generateInvoiceIndex(ctx, arg.CashboxID, arg.Year, IndexTypeReturn)
+		if err != nil {
+			return err
+		}
+
+		invoiceCode, err := q.generateInvoiceNumber(ctx, EntryReferenceTypeReturnInvoice, invoiceIndex, arg.CashboxID, arg.Year)
+		if err != nil {
+			return err
+		}
+
+		err = validateReturnInvoiceAmounts(arg.Items, arg.GrandTotal)
+		if err != nil {
+			return err
+		}
+
+		invoice, err := q.CreateInvoice(ctx, CreateInvoiceParams{
+			CashboxID:       arg.CashboxID,
+			ShiftID:         arg.ShiftID,
+			InvoiceCode:     invoiceCode,
+			InvoiceIndex:    invoiceIndex,
+			Year:            arg.Year,
+			ClientID:        arg.ClientID,
+			InventoryID:     arg.InventoryID,
+			Discount:        arg.Discount,
+			Subtotal:        arg.SubTotal,
+			DiscountedTotal: arg.DiscountedTotal,
+			GrandTotal:      arg.GrandTotal,
+		})
+		if err != nil {
+			return err
+		}
+
+		_, err = q.CreateReturnInvoice(ctx, CreateReturnInvoiceParams{
+			InvoiceID:      invoice.ID,
+			SalesInvoiceID: arg.SalesInvoiceID,
+		})
+		if err != nil {
+			return err
+		}
+
+		for _, item := range arg.Items {
+			_, err = q.AddInvoiceProduct(ctx, AddInvoiceProductParams{
+				InvoiceID: invoice.ID,
+				ProductID: item.ProductID,
+				UnitPrice: item.UnitPrice,
+				LineTotal: item.LineTotal,
+				Discount:  item.Discount,
+				Quantity:  item.Quantity,
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		entry, err := q.CreateEntryItem(ctx, CreateEntryItemParams{
+			CashboxID:     arg.CashboxID,
+			InventoryID:   arg.InventoryID,
+			ReferenceType: EntryReferenceTypeReturnInvoice,
+			ReferenceID:   invoice.ID,
+			Amount:        -arg.GrandTotal,
+		})
+		if err != nil {
+			return err
+		}
+
+		addAccountBalanceArg := AddCashboxAccountBalanceParams{
+			AccountID: arg.CashboxAccountID,
+			ShiftID:   arg.ShiftID,
+			Balance:   -arg.GrandTotal,
+		}
+		shiftAccountsBalance, err := q.AddCashboxAccountBalance(ctx, addAccountBalanceArg)
+		if err != nil {
+			return err
+		}
+
+		for _, i := range arg.Items {
+			addInventoryProductQuantityArg := AddInventoryProductQuantityParams{
+				InventoryID: arg.InventoryID,
+				ProductID:   i.ProductID,
+				Quantity:    i.Quantity,
+			}
+			err = q.AddInventoryProductQuantity(ctx, addInventoryProductQuantityArg)
+			if err != nil {
+				return err
+			}
+		}
+
+		addPointsArg := AddClientLoyaltyPointsParams{
+			ID:                 invoice.ClientID,
+			TotalLoyaltyPoints: -arg.GrandTotal,
+			ValidLoyaltyPoints: -arg.GrandTotal,
+		}
+		err = q.AddClientLoyaltyPoints(ctx, addPointsArg)
+		if err != nil {
+			return err
+		}
+
+		result.Invoice = invoice
+		result.SalesInvoiceID = arg.SalesInvoiceID
+		result.Entry = entry
+		result.ShiftsAccountsBalance = shiftAccountsBalance
+
+		return nil
+	})
+
+	return result, err
+}

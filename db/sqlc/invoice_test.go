@@ -9,81 +9,90 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createRandomSalesInvoice(t *testing.T) SalesInvoice {
+func createRandomSalesInvoice(t *testing.T) Invoice {
 	client := createRandomClient(t)
 	cashbox := createRandomCashbox(t)
+	shift := createRandomShift(t)
 	inventory := createRandomInventory(t)
 	discount := int16(0)
 	grandTotal := util.RandomAmount()
 	subTotal := util.RandomAmount()
 	discountedTotal := util.RandomAmount()
 
-	arg := CreateSalesInvoiceParams{
+	arg := CreateInvoiceParams{
 		InventoryID:     inventory.ID,
 		ClientID:        client.ID,
 		CashboxID:       cashbox.ID,
+		ShiftID:         shift.ID,
 		Discount:        discount,
 		Subtotal:        subTotal,
 		GrandTotal:      grandTotal,
 		DiscountedTotal: discountedTotal,
+		InvoiceCode:     "TEST-SA-2026-00001",
+		InvoiceIndex:    1,
 		Year:            int32(time.Now().Year()),
 	}
 
-	order, err := testQueries.CreateSalesInvoice(context.Background(), arg)
+	invoice, err := testQueries.CreateInvoice(context.Background(), arg)
 	require.NoError(t, err)
-	require.NotEmpty(t, order)
-	require.Equal(t, arg.InvoiceIndex, order.InvoiceIndex)
-	require.Equal(t, arg.InvoiceCode, order.InvoiceCode)
-	require.Equal(t, arg.Year, order.Year)
-	require.Equal(t, arg.InventoryID, order.InventoryID)
-	require.Equal(t, arg.ClientID, order.ClientID)
-	require.Equal(t, arg.Discount, order.Discount)
-	require.Equal(t, arg.GrandTotal, order.GrandTotal)
-	require.Equal(t, arg.Subtotal, order.Subtotal)
-	require.Equal(t, arg.DiscountedTotal, order.DiscountedTotal)
+	require.NotEmpty(t, invoice)
 
-	require.NotZero(t, order.ID)
-	require.NotZero(t, order.CreatedAt)
+	_, err = testQueries.CreateSalesInvoice(context.Background(), invoice.ID)
+	require.NoError(t, err)
 
-	return order
+	require.Equal(t, arg.InvoiceIndex, invoice.InvoiceIndex)
+	require.Equal(t, arg.InvoiceCode, invoice.InvoiceCode)
+	require.Equal(t, arg.Year, invoice.Year)
+	require.Equal(t, arg.InventoryID, invoice.InventoryID)
+	require.Equal(t, arg.ClientID, invoice.ClientID)
+	require.Equal(t, arg.Discount, invoice.Discount)
+	require.Equal(t, arg.GrandTotal, invoice.GrandTotal)
+	require.Equal(t, arg.Subtotal, invoice.Subtotal)
+	require.Equal(t, arg.DiscountedTotal, invoice.DiscountedTotal)
+
+	require.NotZero(t, invoice.ID)
+	require.NotZero(t, invoice.CreatedAt)
+
+	return invoice
 }
 
 func TestCreateSalesInvoice(t *testing.T) {
 	createRandomSalesInvoice(t)
 }
 
-func TestAddSalesInvoiceProduct(t *testing.T) {
+func TestAddInvoiceProduct(t *testing.T) {
 	salesInvoice := createRandomSalesInvoice(t)
 	product := createRandomProduct(t)
 
-	arg := AddSalesInvoiceProductParams{
+	arg := AddInvoiceProductParams{
 		InvoiceID: salesInvoice.ID,
 		ProductID: product.ID,
-		Price:     product.Price,
+		UnitPrice: product.Price,
 		Discount:  product.Discount,
 		Quantity:  util.RandomQuantity(),
+		LineTotal: product.Price * util.RandomQuantity(),
 	}
 
-	result, err := testQueries.AddSalesInvoiceProduct(context.Background(), arg)
+	result, err := testQueries.AddInvoiceProduct(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, result)
 	require.Equal(t, arg.InvoiceID, result.InvoiceID)
 	require.Equal(t, arg.ProductID, result.ProductID)
-	require.Equal(t, arg.Price, result.Price)
+	require.Equal(t, arg.UnitPrice, result.UnitPrice)
 	require.Equal(t, arg.Quantity, result.Quantity)
 }
 
-func TestListSalesInvoices(t *testing.T) {
+func TestListInvoices(t *testing.T) {
 	for range 10 {
 		createRandomSalesInvoice(t)
 	}
 
-	arg := ListSalesInvoicesParams{
+	arg := ListInvoicesParams{
 		Limit:  5,
 		Offset: 5,
 	}
 
-	invoices, err := testQueries.ListSalesInvoices(context.Background(), arg)
+	invoices, err := testQueries.ListInvoices(context.Background(), arg)
 	require.NoError(t, err)
 	require.Len(t, invoices, 5)
 	for _, invoice := range invoices {
@@ -91,66 +100,67 @@ func TestListSalesInvoices(t *testing.T) {
 	}
 }
 
-func TestNextSalesInvoiceIndexIncrement(t *testing.T) {
+func TestIncrementInvoicesIndex(t *testing.T) {
 	cashbox := createRandomCashbox(t)
 	year := int32(time.Now().Year())
 
-	arg := NextSalesInvoiceIndexIncrementParams{
+	arg := IncrementInvoicesIndexParams{
 		Year:      year,
 		CashboxID: cashbox.ID,
+		Type:      IndexTypeSales,
 	}
 
-	index1, err := testQueries.NextSalesInvoiceIndexIncrement(context.Background(), arg)
+	index1, err := testQueries.IncrementInvoicesIndex(context.Background(), arg)
 	require.NoError(t, err)
 	require.Equal(t, int64(1), index1)
 
-	index2, err := testQueries.NextSalesInvoiceIndexIncrement(context.Background(), arg)
+	index2, err := testQueries.IncrementInvoicesIndex(context.Background(), arg)
 	require.NoError(t, err)
 	require.Equal(t, int64(2), index2)
 
-	index3, err := testQueries.NextSalesInvoiceIndexIncrement(context.Background(), arg)
+	index3, err := testQueries.IncrementInvoicesIndex(context.Background(), arg)
 	require.NoError(t, err)
 	require.Equal(t, int64(3), index3)
 }
 
-func createRandomReturnInvoice(t *testing.T) ReturnInvoice {
+func createRandomReturnInvoice(t *testing.T) Invoice {
 	salesInvoice := createRandomSalesInvoice(t)
 	cashbox := createRandomCashbox(t)
+	shift := createRandomShift(t)
 	client := createRandomClient(t)
 	inventory := createRandomInventory(t)
 
-	year := int32(time.Now().Year())
-
-	arg := CreateReturnInvoiceParams{
+	arg := CreateInvoiceParams{
 		CashboxID:       cashbox.ID,
-		ShiftID:         0,
-		InvoiceCode:     "",
-		InvoiceIndex:    0,
-		Year:            year,
+		ShiftID:         shift.ID,
+		InvoiceCode:     "TEST-RN-2026-00001",
+		InvoiceIndex:    1,
+		Year:            int32(time.Now().Year()),
 		ClientID:        client.ID,
 		InventoryID:     inventory.ID,
 		Discount:        0,
 		Subtotal:        util.RandomAmount(),
 		DiscountedTotal: util.RandomAmount(),
 		GrandTotal:      util.RandomAmount(),
-		SalesInvoiceID:  salesInvoice.ID,
 	}
 
-	returnInvoice, err := testQueries.CreateReturnInvoice(context.Background(), arg)
+	invoice, err := testQueries.CreateInvoice(context.Background(), arg)
+	require.NoError(t, err)
+	require.NotEmpty(t, invoice)
+
+	returnInvoice, err := testQueries.CreateReturnInvoice(context.Background(), CreateReturnInvoiceParams{
+		InvoiceID:      invoice.ID,
+		SalesInvoiceID: salesInvoice.ID,
+	})
 	require.NoError(t, err)
 	require.NotEmpty(t, returnInvoice)
-	require.Equal(t, arg.CashboxID, returnInvoice.CashboxID)
-	require.Equal(t, arg.ClientID, returnInvoice.ClientID)
-	require.Equal(t, arg.InventoryID, returnInvoice.InventoryID)
-	require.Equal(t, arg.Subtotal, returnInvoice.Subtotal)
-	require.Equal(t, arg.DiscountedTotal, returnInvoice.DiscountedTotal)
-	require.Equal(t, arg.GrandTotal, returnInvoice.GrandTotal)
-	require.Equal(t, arg.SalesInvoiceID, returnInvoice.SalesInvoiceID)
+	require.Equal(t, invoice.ID, returnInvoice.InvoiceID)
+	require.Equal(t, salesInvoice.ID, returnInvoice.SalesInvoiceID)
 
-	require.NotZero(t, returnInvoice.ID)
-	require.NotZero(t, returnInvoice.CreatedAt)
+	require.NotZero(t, invoice.ID)
+	require.NotZero(t, invoice.CreatedAt)
 
-	return returnInvoice
+	return invoice
 }
 
 func TestCreateReturnInvoice(t *testing.T) {
@@ -158,68 +168,45 @@ func TestCreateReturnInvoice(t *testing.T) {
 }
 
 func TestGetReturnInvoice(t *testing.T) {
-	returnInvoice1 := createRandomReturnInvoice(t)
-	returnInvoice2, err := testQueries.GetReturnInvoice(context.Background(), returnInvoice1.ID)
+	invoice := createRandomReturnInvoice(t)
+	returnInvoice, err := testQueries.GetReturnInvoice(context.Background(), invoice.ID)
 	require.NoError(t, err)
-	require.Equal(t, returnInvoice1.ID, returnInvoice2.ID)
-	require.Equal(t, returnInvoice1.CashboxID, returnInvoice2.CashboxID)
-	require.Equal(t, returnInvoice1.ClientID, returnInvoice2.ClientID)
-	require.Equal(t, returnInvoice1.SalesInvoiceID, returnInvoice2.SalesInvoiceID)
+	require.Equal(t, invoice.ID, returnInvoice.InvoiceID)
 }
 
 func TestAddReturnInvoiceProduct(t *testing.T) {
-	returnInvoice := createRandomReturnInvoice(t)
+	invoice := createRandomReturnInvoice(t)
 	product := createRandomProduct(t)
 
-	arg := AddReturnInvoiceProductParams{
-		InvoiceID: returnInvoice.ID,
+	arg := AddInvoiceProductParams{
+		InvoiceID: invoice.ID,
 		ProductID: product.ID,
-		Price:     product.Price,
+		UnitPrice: product.Price,
 		Discount:  product.Discount,
 		Quantity:  util.RandomQuantity(),
+		LineTotal: product.Price * util.RandomQuantity(),
 	}
 
-	result, err := testQueries.AddReturnInvoiceProduct(context.Background(), arg)
+	result, err := testQueries.AddInvoiceProduct(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, result)
 	require.Equal(t, arg.InvoiceID, result.InvoiceID)
 	require.Equal(t, arg.ProductID, result.ProductID)
-	require.Equal(t, arg.Price, result.Price)
+	require.Equal(t, arg.UnitPrice, result.UnitPrice)
 	require.Equal(t, arg.Quantity, result.Quantity)
 }
 
-func TestListReturnInvoices(t *testing.T) {
-	for range 10 {
-		createRandomReturnInvoice(t)
-	}
-
-	arg := ListReturnInvoicesParams{
-		Limit:  5,
-		Offset: 5,
-	}
-
-	invoices, err := testQueries.ListReturnInvoices(context.Background(), arg)
-	require.NoError(t, err)
-	require.Len(t, invoices, 5)
-	for _, invoice := range invoices {
-		require.NotEmpty(t, invoice)
-	}
-}
-
-func TestNextReturnInvoiceIndexIncrement(t *testing.T) {
+func TestDecrementInvoicesIndex(t *testing.T) {
 	cashbox := createRandomCashbox(t)
 	year := int32(time.Now().Year())
 
-	arg := NextReturnInvoiceIndexIncrementParams{
+	arg := IncrementInvoicesIndexParams{
 		Year:      year,
 		CashboxID: cashbox.ID,
+		Type:      IndexTypeReturn,
 	}
 
-	index1, err := testQueries.NextReturnInvoiceIndexIncrement(context.Background(), arg)
+	index1, err := testQueries.IncrementInvoicesIndex(context.Background(), arg)
 	require.NoError(t, err)
 	require.Equal(t, int64(1), index1)
-
-	index2, err := testQueries.NextReturnInvoiceIndexIncrement(context.Background(), arg)
-	require.NoError(t, err)
-	require.Equal(t, int64(2), index2)
 }

@@ -11,7 +11,7 @@ type Store interface {
 	// TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error)
 	SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxParams) (SalesInvoiceTxResult, error)
 	CreateProductTx(ctx context.Context, arg CreateProductTxParams) (CreateProductTxResult, error)
-	// ReturnInvoiceTx(ctx context.Context, arg ReturnInvoiceTxParams) (ReturnInvoiceTxResult, error)
+	ReturnInvoiceTx(ctx context.Context, arg ReturnInvoiceTxParams) (ReturnInvoiceTxResult, error)
 }
 
 // provides all the functions to execute SQL queries

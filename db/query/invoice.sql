@@ -28,7 +28,25 @@ VALUES ( $1, $2, $3, $4, $5, $6 )
 RETURNING *;
 
 -- name: GetInvoice :one
+SELECT * FROM invoices
+WHERE id = $1 LIMIT 1;
+
+-- name: CreateSalesInvoice :one
+INSERT INTO sales_invoices (invoice_id)
+VALUES ($1)
+RETURNING *;
+
+-- name: GetSalesInvoice :one
 SELECT * FROM sales_invoices
+WHERE invoice_id = $1 LIMIT 1;
+
+-- name: CreateReturnInvoice :one
+INSERT INTO return_invoices (invoice_id, sales_invoice_id)
+VALUES ($1, $2)
+RETURNING *;
+
+-- name: GetReturnInvoice :one
+SELECT * FROM return_invoices
 WHERE invoice_id = $1 LIMIT 1;
 
 -- name: ListInvoices :many
@@ -43,12 +61,12 @@ OFFSET $2;
 INSERT INTO invoice_indexes  (year, cashbox_id, type, last_index)
 VALUES ($1, $2, $3, 1)
 ON CONFLICT (year, cashbox_id)
-DO UPDATE SET last_index = sales_invoices_indexes.last_index + 1
+DO UPDATE SET last_index = invoice_indexes.last_index + 1
 RETURNING last_index;
 
 -- name: DecrementInvoicesIndex :one
 INSERT INTO invoice_indexes  (year, cashbox_id, type, last_index)
 VALUES ($1, $2, $3, 1)
 ON CONFLICT (year, cashbox_id)
-DO UPDATE SET last_index = sales_invoices_indexes.last_index - 1
+DO UPDATE SET last_index = invoice_indexes.last_index - 1
 RETURNING last_index;
