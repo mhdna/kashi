@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 )
@@ -28,7 +29,8 @@ type SalesInvoiceTxParams struct {
 
 	Items []SalesInvoiceItem `json:"items"`
 
-	CashboxAccountID int64 `json:"cashbox_account_id"`
+	CashboxAccountID int64         `json:"cashbox_account_id"`
+	PriceListID      sql.NullInt64 `json:"price_list_id"`
 }
 
 type SalesInvoiceTxResult struct {
@@ -133,6 +135,7 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 			Subtotal:        arg.SubTotal,
 			DiscountedTotal: arg.DiscountedTotal,
 			GrandTotal:      arg.GrandTotal,
+			PriceListID:     arg.PriceListID,
 		})
 		if err != nil {
 			return err
@@ -144,12 +147,30 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 		}
 
 		for _, item := range arg.Items {
+			unitPrice := item.UnitPrice
+			discount := item.Discount
+
+			if arg.PriceListID.Valid {
+				listPrice, priceErr := q.GetProductPriceFromList(ctx, GetProductPriceFromListParams{
+					PriceListID: arg.PriceListID.Int64,
+					ProductID:   item.ProductID,
+				})
+				if priceErr == nil {
+					unitPrice = listPrice.Price
+				}
+			}
+
+			lineTotal := unitPrice * item.Quantity
+			if discount > 0 {
+				lineTotal = lineTotal - (lineTotal * int64(discount) / 100)
+			}
+
 			_, err = q.AddInvoiceProduct(ctx, AddInvoiceProductParams{
 				InvoiceID: invoice.ID,
 				ProductID: item.ProductID,
-				UnitPrice: item.UnitPrice,
-				LineTotal: item.LineTotal,
-				Discount:  item.Discount,
+				UnitPrice: unitPrice,
+				LineTotal: lineTotal,
+				Discount:  discount,
 				Quantity:  item.Quantity,
 			})
 			if err != nil {

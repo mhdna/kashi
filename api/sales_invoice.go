@@ -9,16 +9,17 @@ import (
 )
 
 type createSalesInvoiceRequest struct {
-	CashboxID        int64 `json:"cashbox_id" binding:"required"`
-	CashboxAccountID int64 `json:"cashbox_account_id" binding:"required"`
-	ShiftID          int64 `json:"shift_id" binding:"required"`
-	InventoryID      int64 `json:"inventory_id" binding:"required"`
-	Year             int32 `json:"year" binding:"required"`
-	ClientID         int64 `json:"client_id" binding:"required"`
-	Discount         int16 `json:"discount" binding:"required"`
-	GrandTotal       int64 `json:"grand_total" binding:"required"`
-	Subtotal         int64 `json:"sub_total" binding:"required"`
-	DiscountedTotal  int64 `json:"discounted_total" binding:"required"`
+	CashboxID        int64  `json:"cashbox_id" binding:"required"`
+	CashboxAccountID int64  `json:"cashbox_account_id" binding:"required"`
+	ShiftID          int64  `json:"shift_id" binding:"required"`
+	InventoryID      int64  `json:"inventory_id" binding:"required"`
+	Year             int32  `json:"year" binding:"required"`
+	ClientID         int64  `json:"client_id" binding:"required"`
+	Discount         int16  `json:"discount" binding:"required"`
+	GrandTotal       int64  `json:"grand_total" binding:"required"`
+	Subtotal         int64  `json:"sub_total" binding:"required"`
+	DiscountedTotal  int64  `json:"discounted_total" binding:"required"`
+	PriceListID      *int64 `json:"price_list_id"`
 }
 
 func (server *Server) createSalesInvoice(ctx *gin.Context) {
@@ -26,6 +27,11 @@ func (server *Server) createSalesInvoice(ctx *gin.Context) {
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
+	}
+
+	var priceListID sql.NullInt64
+	if req.PriceListID != nil {
+		priceListID = sql.NullInt64{Int64: *req.PriceListID, Valid: true}
 	}
 
 	arg := db.SalesInvoiceTxParams{
@@ -39,6 +45,7 @@ func (server *Server) createSalesInvoice(ctx *gin.Context) {
 		GrandTotal:       req.GrandTotal,
 		SubTotal:         req.Subtotal,
 		DiscountedTotal:  req.DiscountedTotal,
+		PriceListID:      priceListID,
 	}
 
 	salesInvoice, err := server.store.SalesInvoiceTx(ctx, arg)
