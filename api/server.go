@@ -67,6 +67,16 @@ func NewServer(store db.Store) *Server {
 	router.POST("/price_lists", server.createPriceList)
 	router.GET("/price_lists/:id", server.getPriceList)
 	router.GET("/price_lists", server.listPriceLists)
+	router.POST("/price_lists/items", server.createPriceListItem)
+	router.GET("/price_lists/:id/items", server.listPriceListItems)
+	router.DELETE("/price_lists/:id/items/:product_id", server.deletePriceListItem)
+
+	router.POST("/discount_lists", server.createDiscountList)
+	router.GET("/discount_lists/:id", server.getDiscountList)
+	router.GET("/discount_lists", server.listDiscountLists)
+	router.POST("/discount_lists/items", server.createDiscountListItem)
+	router.GET("/discount_lists/:id/items", server.listDiscountListItems)
+	router.DELETE("/discount_lists/:id/items/:product_id", server.deleteDiscountListItem)
 
 	server.router = router
 	return server
