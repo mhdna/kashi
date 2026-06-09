@@ -51,18 +51,20 @@ func TestGetEntry(t *testing.T) {
 }
 
 func TestListEntries(t *testing.T) {
+	inventory := createRandomInventory(t)
 	for range 10 {
 		createRandomEntry(t)
 	}
 
 	arg := ListEntriesParams{
-		Limit:  5,
-		Offset: 5,
+		InventoryID: inventory.ID,
+		Limit:       5,
+		Offset:      0,
 	}
 
 	entries, err := testQueries.ListEntries(context.Background(), arg)
 	require.NoError(t, err)
-	for entry := range entries {
+	for _, entry := range entries {
 		require.NotEmpty(t, entry)
 	}
 }

@@ -85,7 +85,6 @@ func TestGetInventoryAPI(t *testing.T) {
 
 		t.Run(tc.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
 
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
@@ -107,6 +106,7 @@ func TestGetInventoryAPI(t *testing.T) {
 func randomInventory() db.Inventory {
 	return db.Inventory{
 		ID:        util.RandomInt(1, 1000),
+		Type:      db.InventoryTypeStore,
 		Code:      util.RandomCode(),
 		Latitude:  util.RandomLongitudeLatitude(),
 		Longitude: util.RandomLongitudeLatitude(),

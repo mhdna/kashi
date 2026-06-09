@@ -42,7 +42,7 @@ func TestGetShift(t *testing.T) {
 	// require.Equal(t, shift1.TotalBalance, shift2.TotalBalance)
 
 	require.WithinDuration(t, shift1.CreatedAt, shift2.CreatedAt, time.Second)
-	require.WithinDuration(t, shift1.ClosedAt, shift2.ClosedAt, time.Second)
+	require.Equal(t, shift1.ClosedAt.Valid, shift2.ClosedAt.Valid)
 }
 
 func TestListShifts(t *testing.T) {
@@ -112,5 +112,5 @@ func TestCloseShift(t *testing.T) {
 	closedShift, err := testQueries.GetShift(context.Background(), shift.ID)
 	require.NoError(t, err)
 	require.True(t, closedShift.IsClosed)
-	require.False(t, closedShift.ClosedAt.IsZero())
+	require.True(t, closedShift.ClosedAt.Valid)
 }

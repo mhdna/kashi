@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/mhdna/kashi/util"
 	"github.com/stretchr/testify/require"
 )
 
@@ -73,17 +72,17 @@ func TestListProductAttributes(t *testing.T) {
 
 func TestUpdateProductAttribute(t *testing.T) {
 	productAttributes := createRandomProductAttributes(t)
+	require.NotEmpty(t, productAttributes)
 
-	attributesLength := int64(5)
-	for range attributesLength {
-		createRandomAttributeValues(t)
-	}
+	newAttributeValues := createRandomAttributeValues(t)
+	require.NotEmpty(t, newAttributeValues)
 
-	for _, productAttribute := range productAttributes {
+	for i, productAttribute := range productAttributes {
+		newValue := newAttributeValues[i%len(newAttributeValues)]
 		arg := UpdateProductAttributeParams{
 			ProductID:        productAttribute.ProductID,
 			Attribute:        productAttribute.Attribute,
-			AttributeValueID: util.RandomInt(1, attributesLength),
+			AttributeValueID: newValue.ID,
 		}
 		err := testQueries.UpdateProductAttribute(context.Background(), arg)
 		require.NoError(t, err)
@@ -93,6 +92,7 @@ func TestUpdateProductAttribute(t *testing.T) {
 			Attribute: productAttribute.Attribute,
 		}
 		productAttribute2, err := testQueries.GetProductAttributeValue(context.Background(), arg2)
+		require.NoError(t, err)
 		require.Equal(t, productAttribute2.ProductID, arg.ProductID)
 		require.Equal(t, productAttribute2.Attribute, arg.Attribute)
 		require.Equal(t, productAttribute2.AttributeValueID, arg.AttributeValueID)

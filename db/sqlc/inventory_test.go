@@ -13,6 +13,7 @@ import (
 func createRandomInventory(t *testing.T) Inventory {
 	arg := CreateInventoryParams{
 		Name:      util.RandomName(),
+		Type:      InventoryTypeStore,
 		Code:      util.RandomCode(),
 		Latitude:  util.RandomLongitudeLatitude(),
 		Longitude: util.RandomLongitudeLatitude(),
