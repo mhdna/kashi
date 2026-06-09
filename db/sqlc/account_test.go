@@ -74,9 +74,13 @@ func TestAddAccountBalance(t *testing.T) {
 
 	arg := AddCashboxAccountBalanceParams{
 		AccountID: account.ID,
-		Amount:    util.RandomAmount(),
+		Balance:   util.RandomAmount(),
 		ShiftID:   shift.ID,
 	}
+
+	account2, err := testQueries.AddCashboxAccountBalance(context.Background(), arg)
+	require.NoError(t, err)
+	require.Equal(t, arg.Balance, account2.Balance)
 
 	getBalanceArg := GetCashboxAccountBalanceParams{
 		AccountID: account.ID,
@@ -84,8 +88,5 @@ func TestAddAccountBalance(t *testing.T) {
 	}
 	balance, err := testQueries.GetCashboxAccountBalance(context.Background(), getBalanceArg)
 	require.NoError(t, err)
-
-	account2, err := testQueries.AddCashboxAccountBalance(context.Background(), arg)
-	require.NoError(t, err)
-	require.Equal(t, account2.Balance, balance.Balance+arg.Amount)
+	require.Equal(t, account2.Balance, balance.Balance)
 }
