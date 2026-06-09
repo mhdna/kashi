@@ -139,6 +139,48 @@ func (ns NullEntryReferenceType) Value() (driver.Value, error) {
 	return string(ns.EntryReferenceType), nil
 }
 
+type IndexType string
+
+const (
+	IndexTypeSales  IndexType = "sales"
+	IndexTypeReturn IndexType = "return"
+)
+
+func (e *IndexType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = IndexType(s)
+	case string:
+		*e = IndexType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for IndexType: %T", src)
+	}
+	return nil
+}
+
+type NullIndexType struct {
+	IndexType IndexType `json:"indexType"`
+	Valid     bool      `json:"valid"` // Valid is true if IndexType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullIndexType) Scan(value interface{}) error {
+	if value == nil {
+		ns.IndexType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.IndexType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullIndexType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.IndexType), nil
+}
+
 type InventoryType string
 
 const (
@@ -352,9 +394,51 @@ type Inventory struct {
 	CreatedAt time.Time       `json:"createdAt"`
 }
 
+type Invoice struct {
+	ID              int64     `json:"id"`
+	CashboxID       int64     `json:"cashboxId"`
+	ShiftID         int64     `json:"shiftId"`
+	InvoiceCode     string    `json:"invoiceCode"`
+	InvoiceIndex    int64     `json:"invoiceIndex"`
+	Year            int32     `json:"year"`
+	ClientID        int64     `json:"clientId"`
+	InventoryID     int64     `json:"inventoryId"`
+	Discount        int16     `json:"discount"`
+	Subtotal        int64     `json:"subtotal"`
+	DiscountedTotal int64     `json:"discountedTotal"`
+	GrandTotal      int64     `json:"grandTotal"`
+	CreatedAt       time.Time `json:"createdAt"`
+}
+
+type InvoiceIndex struct {
+	Year      int32     `json:"year"`
+	CashboxID int64     `json:"cashboxId"`
+	LastIndex int64     `json:"lastIndex"`
+	Type      IndexType `json:"type"`
+}
+
+type InvoiceProduct struct {
+	InvoiceID int64 `json:"invoiceId"`
+	ProductID int64 `json:"productId"`
+	UnitPrice int64 `json:"unitPrice"`
+	LineTotal int64 `json:"lineTotal"`
+	Discount  int16 `json:"discount"`
+	Quantity  int64 `json:"quantity"`
+}
+
 type Permission struct {
 	ID   int64  `json:"id"`
 	Code string `json:"code"`
+}
+
+type PriceList struct {
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	IsActive  bool      `json:"isActive"`
+	IsDefault bool      `json:"isDefault"`
+	ValidFrom time.Time `json:"validFrom"`
+	ValidTo   time.Time `json:"validTo"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 type PriceOverride struct {
@@ -422,72 +506,20 @@ type PurchaseItem struct {
 }
 
 type ReturnInvoice struct {
-	ID              int64     `json:"id"`
-	CashboxID       int64     `json:"cashboxId"`
-	ShiftID         int64     `json:"shiftId"`
-	InvoiceCode     string    `json:"invoiceCode"`
-	InvoiceIndex    int64     `json:"invoiceIndex"`
-	Year            int32     `json:"year"`
-	ClientID        int64     `json:"clientId"`
-	InventoryID     int64     `json:"inventoryId"`
-	Discount        int16     `json:"discount"`
-	Subtotal        int64     `json:"subtotal"`
-	DiscountedTotal int64     `json:"discountedTotal"`
-	GrandTotal      int64     `json:"grandTotal"`
-	SalesInvoiceID  int64     `json:"salesInvoiceId"`
-	CreatedAt       time.Time `json:"createdAt"`
-}
-
-type ReturnInvoiceProduct struct {
-	InvoiceID int64 `json:"invoiceId"`
-	ProductID int64 `json:"productId"`
-	Price     int64 `json:"price"`
-	Discount  int16 `json:"discount"`
-	Quantity  int64 `json:"quantity"`
-}
-
-type ReturnInvoicesIndex struct {
-	Year      int32 `json:"year"`
-	CashboxID int64 `json:"cashboxId"`
-	LastIndex int64 `json:"lastIndex"`
+	InvoiceID      int64 `json:"invoiceId"`
+	SalesInvoiceID int64 `json:"salesInvoiceId"`
 }
 
 type SalesInvoice struct {
-	ID              int64     `json:"id"`
-	CashboxID       int64     `json:"cashboxId"`
-	ShiftID         int64     `json:"shiftId"`
-	InvoiceCode     string    `json:"invoiceCode"`
-	InvoiceIndex    int64     `json:"invoiceIndex"`
-	Year            int32     `json:"year"`
-	ClientID        int64     `json:"clientId"`
-	InventoryID     int64     `json:"inventoryId"`
-	Discount        int16     `json:"discount"`
-	Subtotal        int64     `json:"subtotal"`
-	DiscountedTotal int64     `json:"discountedTotal"`
-	GrandTotal      int64     `json:"grandTotal"`
-	CreatedAt       time.Time `json:"createdAt"`
-}
-
-type SalesInvoiceProduct struct {
 	InvoiceID int64 `json:"invoiceId"`
-	ProductID int64 `json:"productId"`
-	Price     int64 `json:"price"`
-	Discount  int16 `json:"discount"`
-	Quantity  int64 `json:"quantity"`
-}
-
-type SalesInvoicesIndex struct {
-	Year      int32 `json:"year"`
-	CashboxID int64 `json:"cashboxId"`
-	LastIndex int64 `json:"lastIndex"`
 }
 
 type Shift struct {
-	ID        int64     `json:"id"`
-	IsClosed  bool      `json:"isClosed"`
-	CashboxID int64     `json:"cashboxId"`
-	CreatedAt time.Time `json:"createdAt"`
-	ClosedAt  time.Time `json:"closedAt"`
+	ID        int64        `json:"id"`
+	IsClosed  bool         `json:"isClosed"`
+	CashboxID int64        `json:"cashboxId"`
+	CreatedAt time.Time    `json:"createdAt"`
+	ClosedAt  sql.NullTime `json:"closedAt"`
 }
 
 type ShiftsAccountsBalance struct {
