@@ -26,11 +26,14 @@ type Querier interface {
 	CreateClient(ctx context.Context, arg CreateClientParams) (Client, error)
 	CreateCoupon(ctx context.Context, arg CreateCouponParams) (Coupon, error)
 	CreateCurrency(ctx context.Context, arg CreateCurrencyParams) (Currency, error)
+	CreateDiscountList(ctx context.Context, arg CreateDiscountListParams) (DiscountList, error)
+	CreateDiscountListItem(ctx context.Context, arg CreateDiscountListItemParams) (DiscountListItem, error)
 	CreateEntryItem(ctx context.Context, arg CreateEntryItemParams) (Entry, error)
 	CreateExpense(ctx context.Context, arg CreateExpenseParams) (Expense, error)
 	CreateInventory(ctx context.Context, arg CreateInventoryParams) (Inventory, error)
 	CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (Invoice, error)
 	CreatePriceList(ctx context.Context, arg CreatePriceListParams) (PriceList, error)
+	CreatePriceListItem(ctx context.Context, arg CreatePriceListItemParams) (PriceListItem, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreateProductAttribute(ctx context.Context, arg CreateProductAttributeParams) (ProductsAttribute, error)
 	CreatePurchase(ctx context.Context, arg CreatePurchaseParams) (Purchase, error)
@@ -47,8 +50,10 @@ type Querier interface {
 	DeleteAssetType(ctx context.Context, id int64) error
 	DeleteClient(ctx context.Context, id int64) error
 	DeleteCurrency(ctx context.Context, code string) error
+	DeleteDiscountListItem(ctx context.Context, arg DeleteDiscountListItemParams) error
 	DeleteInventory(ctx context.Context, id int64) error
 	DeleteInventoryProduct(ctx context.Context, arg DeleteInventoryProductParams) error
+	DeletePriceListItem(ctx context.Context, arg DeletePriceListItemParams) error
 	DeleteProduct(ctx context.Context, id int64) error
 	DeleteUser(ctx context.Context, id int64) error
 	GetAsset(ctx context.Context, id int64) (Asset, error)
@@ -60,6 +65,9 @@ type Querier interface {
 	GetCoupon(ctx context.Context, code string) (Coupon, error)
 	GetCurrency(ctx context.Context, code string) (Currency, error)
 	GetDefaultCurrency(ctx context.Context) (Currency, error)
+	GetDefaultDiscountForProduct(ctx context.Context, productID int64) (int16, error)
+	GetDefaultPriceForProduct(ctx context.Context, productID int64) (int64, error)
+	GetDiscountList(ctx context.Context, id int64) (DiscountList, error)
 	GetEntry(ctx context.Context, id int64) (Entry, error)
 	GetExpense(ctx context.Context, id int64) (Expense, error)
 	GetInventory(ctx context.Context, id int64) (Inventory, error)
@@ -68,6 +76,8 @@ type Querier interface {
 	GetProduct(ctx context.Context, id int64) (Product, error)
 	GetProductAttributeValue(ctx context.Context, arg GetProductAttributeValueParams) (ProductsAttribute, error)
 	GetProductAttributes(ctx context.Context, productID int64) ([]ProductsAttribute, error)
+	GetProductDiscountFromList(ctx context.Context, arg GetProductDiscountFromListParams) (DiscountListItem, error)
+	GetProductPriceFromList(ctx context.Context, arg GetProductPriceFromListParams) (PriceListItem, error)
 	GetPurchase(ctx context.Context, id int64) (Purchase, error)
 	GetReturnInvoice(ctx context.Context, invoiceID int64) (ReturnInvoice, error)
 	GetSalesInvoice(ctx context.Context, invoiceID int64) (int64, error)
@@ -84,11 +94,14 @@ type Querier interface {
 	ListClients(ctx context.Context, arg ListClientsParams) ([]Client, error)
 	ListCoupons(ctx context.Context, arg ListCouponsParams) ([]Coupon, error)
 	ListCurrencies(ctx context.Context, arg ListCurrenciesParams) ([]Currency, error)
+	ListDiscountListItems(ctx context.Context, discountListID int64) ([]DiscountListItem, error)
+	ListDiscountLists(ctx context.Context, arg ListDiscountListsParams) ([]DiscountList, error)
 	ListEntries(ctx context.Context, arg ListEntriesParams) ([]Entry, error)
 	ListExpenses(ctx context.Context, arg ListExpensesParams) ([]Expense, error)
 	ListInventories(ctx context.Context, arg ListInventoriesParams) ([]Inventory, error)
 	ListInventoryProducts(ctx context.Context, inventoryID int64) ([]ListInventoryProductsRow, error)
 	ListInvoices(ctx context.Context, arg ListInvoicesParams) ([]Invoice, error)
+	ListPriceListItems(ctx context.Context, priceListID int64) ([]PriceListItem, error)
 	ListPriceLists(ctx context.Context, arg ListPriceListsParams) ([]PriceList, error)
 	ListProductAttributes(ctx context.Context, arg ListProductAttributesParams) ([]ProductsAttribute, error)
 	ListProducts(ctx context.Context, arg ListProductsParams) ([]Product, error)
@@ -100,12 +113,18 @@ type Querier interface {
 	ListTransferItems(ctx context.Context, transferID int64) ([]ListTransferItemsRow, error)
 	ListTransfers(ctx context.Context, arg ListTransfersParams) ([]Transfer, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
+	UnsetDefaultDiscountList(ctx context.Context, id int64) error
+	UnsetDefaultPriceList(ctx context.Context, id int64) error
 	UpdateAsset(ctx context.Context, arg UpdateAssetParams) error
 	UpdateAttributeValue(ctx context.Context, arg UpdateAttributeValueParams) (AttributesValue, error)
 	UpdateCashbox(ctx context.Context, arg UpdateCashboxParams) (Cashbox, error)
 	UpdateCashboxAccount(ctx context.Context, arg UpdateCashboxAccountParams) (CashboxAccount, error)
 	UpdateClient(ctx context.Context, arg UpdateClientParams) (Client, error)
+	UpdateDiscountList(ctx context.Context, arg UpdateDiscountListParams) error
+	UpdateDiscountListItem(ctx context.Context, arg UpdateDiscountListItemParams) error
 	UpdateInventory(ctx context.Context, arg UpdateInventoryParams) error
+	UpdatePriceList(ctx context.Context, arg UpdatePriceListParams) error
+	UpdatePriceListItem(ctx context.Context, arg UpdatePriceListItemParams) error
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) error
 	UpdateProductAttribute(ctx context.Context, arg UpdateProductAttributeParams) error
 	UpdateTransfer(ctx context.Context, arg UpdateTransferParams) error

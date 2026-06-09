@@ -346,12 +346,20 @@ type Currency struct {
 	ValueInDefaultCurrency int64  `json:"valueInDefaultCurrency"`
 }
 
-type DiscountOverride struct {
-	ID        int64         `json:"id"`
-	Name      string        `json:"name"`
-	ProductID sql.NullInt64 `json:"productId"`
-	Discount  int16         `json:"discount"`
-	CreatedAt sql.NullTime  `json:"createdAt"`
+type DiscountList struct {
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	IsActive  bool      `json:"isActive"`
+	IsDefault bool      `json:"isDefault"`
+	ValidFrom time.Time `json:"validFrom"`
+	ValidTo   time.Time `json:"validTo"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type DiscountListItem struct {
+	DiscountListID int64 `json:"discountListId"`
+	ProductID      int64 `json:"productId"`
+	Discount       int16 `json:"discount"`
 }
 
 type Entry struct {
@@ -395,19 +403,20 @@ type Inventory struct {
 }
 
 type Invoice struct {
-	ID              int64     `json:"id"`
-	CashboxID       int64     `json:"cashboxId"`
-	ShiftID         int64     `json:"shiftId"`
-	InvoiceCode     string    `json:"invoiceCode"`
-	InvoiceIndex    int64     `json:"invoiceIndex"`
-	Year            int32     `json:"year"`
-	ClientID        int64     `json:"clientId"`
-	InventoryID     int64     `json:"inventoryId"`
-	Discount        int16     `json:"discount"`
-	Subtotal        int64     `json:"subtotal"`
-	DiscountedTotal int64     `json:"discountedTotal"`
-	GrandTotal      int64     `json:"grandTotal"`
-	CreatedAt       time.Time `json:"createdAt"`
+	ID              int64         `json:"id"`
+	CashboxID       int64         `json:"cashboxId"`
+	ShiftID         int64         `json:"shiftId"`
+	InvoiceCode     string        `json:"invoiceCode"`
+	InvoiceIndex    int64         `json:"invoiceIndex"`
+	Year            int32         `json:"year"`
+	ClientID        int64         `json:"clientId"`
+	InventoryID     int64         `json:"inventoryId"`
+	Discount        int16         `json:"discount"`
+	Subtotal        int64         `json:"subtotal"`
+	DiscountedTotal int64         `json:"discountedTotal"`
+	GrandTotal      int64         `json:"grandTotal"`
+	CreatedAt       time.Time     `json:"createdAt"`
+	PriceListID     sql.NullInt64 `json:"priceListId"`
 }
 
 type InvoiceIndex struct {
@@ -441,12 +450,10 @@ type PriceList struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-type PriceOverride struct {
-	ID        int64         `json:"id"`
-	Name      string        `json:"name"`
-	ProductID sql.NullInt64 `json:"productId"`
-	Price     int64         `json:"price"`
-	CreatedAt sql.NullTime  `json:"createdAt"`
+type PriceListItem struct {
+	PriceListID int64 `json:"priceListId"`
+	ProductID   int64 `json:"productId"`
+	Price       int64 `json:"price"`
 }
 
 type Product struct {
