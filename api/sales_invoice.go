@@ -11,13 +11,14 @@ import (
 type createSalesInvoiceRequest struct {
 	CashboxID        int64 `json:"cashbox_id" binding:"required"`
 	CashboxAccountID int64 `json:"cashbox_account_id" binding:"required"`
+	ShiftID          int64 `json:"shift_id" binding:"required"`
 	InventoryID      int64 `json:"inventory_id" binding:"required"`
 	Year             int32 `json:"year" binding:"required"`
 	ClientID         int64 `json:"client_id" binding:"required"`
-	Amount           int64 `json:"amount" binding:"required"`
-	// TODO: add netamount at run time instead of calculating it
-	// NetAmount    int64  `json:"net_amount" binding:"required"`
-	Discount int16 `json:"discount" binding:"required"`
+	Discount         int16 `json:"discount" binding:"required"`
+	GrandTotal       int64 `json:"grand_total" binding:"required"`
+	Subtotal         int64 `json:"sub_total" binding:"required"`
+	DiscountedTotal  int64 `json:"discounted_total" binding:"required"`
 }
 
 func (server *Server) createSalesInvoice(ctx *gin.Context) {
@@ -30,11 +31,14 @@ func (server *Server) createSalesInvoice(ctx *gin.Context) {
 	arg := db.SalesInvoiceTxParams{
 		CashboxID:        req.CashboxID,
 		CashboxAccountID: req.CashboxAccountID,
+		ShiftID:          req.ShiftID,
 		InventoryID:      req.InventoryID,
 		Year:             req.Year,
 		ClientID:         req.ClientID,
-		Amount:           req.Amount,
 		Discount:         req.Discount,
+		GrandTotal:       req.GrandTotal,
+		SubTotal:         req.Subtotal,
+		DiscountedTotal:  req.DiscountedTotal,
 	}
 
 	salesInvoice, err := server.store.SalesInvoiceTx(ctx, arg)
@@ -56,7 +60,7 @@ func (server *Server) getSalesInvoice(ctx *gin.Context) {
 		return
 	}
 
-	salesInvoice, err := server.store.GetSalesInvoice(ctx, req.ID)
+	invoice, err := server.store.GetInvoice(ctx, req.ID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
@@ -67,7 +71,7 @@ func (server *Server) getSalesInvoice(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, salesInvoice)
+	ctx.JSON(http.StatusOK, invoice)
 }
 
 type listSalesInvoiceRequest struct {
@@ -82,15 +86,15 @@ func (server *Server) listSalesInvoices(ctx *gin.Context) {
 		return
 	}
 
-	arg := db.ListSalesInvoicesParams{
+	arg := db.ListInvoicesParams{
 		Limit:  req.PageSize,
 		Offset: req.PageID,
 	}
-	salesInvoice, err := server.store.ListSalesInvoices(ctx, arg)
+	invoices, err := server.store.ListInvoices(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, salesInvoice)
+	ctx.JSON(http.StatusOK, invoices)
 }

@@ -97,7 +97,7 @@ func TestSalesInvoiceTx(t *testing.T) {
 		res := <-results
 		require.NoError(t, err)
 
-		salesInvoice := res.SalesInvoice
+		salesInvoice := res.Invoice
 		require.NotEmpty(t, salesInvoice)
 		require.Equal(t, inventory.ID, salesInvoice.InventoryID)
 		require.Equal(t, cashbox.ID, salesInvoice.CashboxID)

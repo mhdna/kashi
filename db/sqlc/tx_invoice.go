@@ -4,65 +4,62 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 )
 
-type InvoiceItems struct {
-	Product  Product
-	Quantity int64
+type SalesInvoiceItem struct {
+	ProductID int64 `json:"product_id"`
+	UnitPrice int64 `json:"unit_price"`
+	LineTotal int64 `json:"line_total"`
+	Discount  int16 `json:"discount"`
+	Quantity  int64 `json:"quantity"`
 }
 
-// InvoiceCode is generated inside the trasaction function itself.
 type SalesInvoiceTxParams struct {
-	CashboxID        int64          `json:"cashbox_id"`
-	CashboxAccountID int64          `json:"cashbox_account_id"`
-	ShiftID          int64          `json:"shift_id"`
-	InventoryID      int64          `json:"inventory_id"`
-	ClientID         int64          `json:"client_id"`
-	Discount         int16          `json:"discount"`
-	SubTotal         int64          `json:"sub_total"`
-	DiscountedTotal  int64          `json:"discounted_total"`
-	GrandTotal       int64          `json:"grand_total"`
-	Year             int32          `json:"year"`
-	Items            []InvoiceItems `json:"items"`
+	CashboxID int64 `json:"cashbox_id"`
+	ShiftID   int64 `json:"shift_id"`
+
+	Year            int32 `json:"year"`
+	ClientID        int64 `json:"client_id"`
+	InventoryID     int64 `json:"inventory_id"`
+	Discount        int16 `json:"discount"`
+	SubTotal        int64 `json:"sub_total"`
+	DiscountedTotal int64 `json:"discounted_total"`
+	GrandTotal      int64 `json:"grand_total"`
+
+	Items []SalesInvoiceItem `json:"items"`
+
+	CashboxAccountID int64 `json:"cashbox_account_id"`
 }
 
 type SalesInvoiceTxResult struct {
-	SalesInvoice SalesInvoice          `json:"sales_invoice"`
-	Entry        Entry                 `json:"entry"`
-	Balance      ShiftsAccountsBalance `json:"balance"`
-	// NetAmount    int64        `json:"net_amount"`
-	// Shift   Shift          `json:"shift"`
-	// TODO: should we return items or inventory here?
+	Invoice Invoice               `json:"invoice"`
+	Entry   Entry                 `json:"entry"`
+	Balance ShiftsAccountsBalance `json:"balance"`
 }
 
-func (q *Queries) generateInvoiceIndex(ctx context.Context, cashboxID int64, year int32) (int64, error) {
-	arg := NextSalesInvoiceIndexIncrementParams{
+func (q *Queries) generateInvoiceIndex(ctx context.Context, cashboxID int64, year int32, indexType IndexType) (int64, error) {
+	arg := IncrementInvoicesIndexParams{
 		CashboxID: cashboxID,
 		Year:      year,
+		Type:      indexType,
 	}
-	index, err := q.NextSalesInvoiceIndexIncrement(ctx, arg)
+	index, err := q.IncrementInvoicesIndex(ctx, arg)
 	if err != nil {
 		return 0, err
 	}
 	return index, nil
 }
 
-// generate invoice number in the format:
-// CashboxCode/Type of Invoice/Year/Number of Invoice this Year
-// E.g. BR1-SA-2026-00034 is the sales invoice number 34 in 2026 from POS Brooklyn1 that has the code BR1
 func (q *Queries) generateInvoiceNumber(ctx context.Context, referenceType EntryReferenceType, invoiceIndex, cashboxID int64, year int32) (string, error) {
 	var referenceCode string
 	var err error
 
-	// set countedInvoices and cashBox code
 	cashbox, err := q.GetCashbox(ctx, cashboxID)
 	if err != nil {
 		return "", err
 	}
 	cashboxCode := cashbox.Code
 
-	// set referenceCode and countedInvoices
 	switch referenceType {
 	case EntryReferenceTypeSalesInvoice:
 		referenceCode = "SA"
@@ -75,22 +72,24 @@ func (q *Queries) generateInvoiceNumber(ctx context.Context, referenceType Entry
 	return fmt.Sprintf("%s-%s-%d-%05d", cashboxCode, referenceCode, year, invoiceIndex), nil
 }
 
-// TODO: see for return & sales & exchange
-func validateInvoiceAmounts(items []InvoiceItems, discount int16, grandTotal, subTotal int64) error {
+func validateInvoiceAmounts(items []SalesInvoiceItem, discount int16, grandTotal, subTotal int64) error {
+	if len(items) == 0 {
+		return nil
+	}
+
 	var calculatedAmount, calculatedNetAmount int64
 
 	for _, item := range items {
-		itemPrice := item.Product.Price
+		itemPrice := item.UnitPrice * item.Quantity
 		itemDiscountedPrice := itemPrice
-		if item.Product.Discount > 0 {
-			itemDiscountedPrice = itemPrice * int64(item.Product.Discount) / 100
+		if item.Discount > 0 {
+			itemDiscountedPrice = itemPrice - (itemPrice * int64(item.Discount) / 100)
 		}
 		calculatedAmount += itemPrice
 		calculatedNetAmount += itemDiscountedPrice
 	}
-	if discount > 0 {
-		calculatedAmount = calculatedAmount * int64(discount) / 100
-	}
+
+	calculatedAmount = calculatedAmount * (100 - int64(discount)) / 100
 
 	if calculatedAmount != subTotal {
 		return errors.New("Invalid Amount")
@@ -107,15 +106,12 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 	err := store.execTx(ctx, func(q *Queries) error {
 		var err error
 
-		thisYear := int32(time.Now().Year())
-
-		// txName := ctx.Value(txKey)
-		invoiceIndex, err := q.generateInvoiceIndex(ctx, arg.CashboxID, thisYear)
+		invoiceIndex, err := q.generateInvoiceIndex(ctx, arg.CashboxID, arg.Year, IndexTypeSales)
 		if err != nil {
 			return err
 		}
 
-		invoiceCode, err := q.generateInvoiceNumber(ctx, EntryReferenceTypeSalesInvoice, invoiceIndex, arg.CashboxID, thisYear)
+		invoiceCode, err := q.generateInvoiceNumber(ctx, EntryReferenceTypeSalesInvoice, invoiceIndex, arg.CashboxID, arg.Year)
 		if err != nil {
 			return err
 		}
@@ -125,50 +121,67 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 			return err
 		}
 
-		salesInvoice, err := q.CreateSalesInvoice(ctx, CreateSalesInvoiceParams{
+		invoice, err := q.CreateInvoice(ctx, CreateInvoiceParams{
 			CashboxID:       arg.CashboxID,
-			InvoiceIndex:    invoiceIndex,
+			ShiftID:         arg.ShiftID,
 			InvoiceCode:     invoiceCode,
-			Year:            thisYear,
-			InventoryID:     arg.InventoryID,
+			InvoiceIndex:    invoiceIndex,
+			Year:            arg.Year,
 			ClientID:        arg.ClientID,
+			InventoryID:     arg.InventoryID,
 			Discount:        arg.Discount,
 			Subtotal:        arg.SubTotal,
 			DiscountedTotal: arg.DiscountedTotal,
 			GrandTotal:      arg.GrandTotal,
 		})
-
 		if err != nil {
 			return err
+		}
+
+		_, err = q.CreateSalesInvoice(ctx, invoice.ID)
+		if err != nil {
+			return err
+		}
+
+		for _, item := range arg.Items {
+			_, err = q.AddInvoiceProduct(ctx, AddInvoiceProductParams{
+				InvoiceID: invoice.ID,
+				ProductID: item.ProductID,
+				UnitPrice: item.UnitPrice,
+				LineTotal: item.LineTotal,
+				Discount:  item.Discount,
+				Quantity:  item.Quantity,
+			})
+			if err != nil {
+				return err
+			}
 		}
 
 		entry, err := q.CreateEntryItem(ctx, CreateEntryItemParams{
 			CashboxID:     arg.CashboxID,
 			InventoryID:   arg.InventoryID,
 			ReferenceType: EntryReferenceTypeSalesInvoice,
-			ReferenceID:   salesInvoice.ID,
+			ReferenceID:   invoice.ID,
 			Amount:        arg.GrandTotal,
 		})
 		if err != nil {
 			return err
 		}
 
-		// update account balance
 		addAccountBalanceArg := AddCashboxAccountBalanceParams{
 			AccountID: arg.CashboxAccountID,
 			ShiftID:   arg.ShiftID,
-			Amount:    arg.GrandTotal,
+			Balance:   arg.GrandTotal,
 		}
 		balance, err := q.AddCashboxAccountBalance(ctx, addAccountBalanceArg)
 		if err != nil {
 			return err
 		}
 
-		// update inventory
 		for _, i := range arg.Items {
 			addInventoryProductQuantityArg := AddInventoryProductQuantityParams{
 				InventoryID: arg.InventoryID,
-				ProductID:   i.Product.ID,
+				ProductID:   i.ProductID,
 				Quantity:    -i.Quantity,
 			}
 			err = q.AddInventoryProductQuantity(ctx, addInventoryProductQuantityArg)
@@ -178,7 +191,7 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 		}
 
 		addPointsArg := AddClientLoyaltyPointsParams{
-			ID:                 salesInvoice.ClientID,
+			ID:                 invoice.ClientID,
 			TotalLoyaltyPoints: arg.GrandTotal,
 			ValidLoyaltyPoints: arg.GrandTotal,
 		}
@@ -187,7 +200,7 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 			return err
 		}
 
-		result.SalesInvoice = salesInvoice
+		result.Invoice = invoice
 		result.Entry = entry
 		result.Balance = balance
 

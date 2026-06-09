@@ -117,11 +117,42 @@ func (q *Queries) CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (I
 	return i, err
 }
 
+const createReturnInvoice = `-- name: CreateReturnInvoice :one
+INSERT INTO return_invoices (invoice_id, sales_invoice_id)
+VALUES ($1, $2)
+RETURNING invoice_id, sales_invoice_id
+`
+
+type CreateReturnInvoiceParams struct {
+	InvoiceID      int64 `json:"invoiceId"`
+	SalesInvoiceID int64 `json:"salesInvoiceId"`
+}
+
+func (q *Queries) CreateReturnInvoice(ctx context.Context, arg CreateReturnInvoiceParams) (ReturnInvoice, error) {
+	row := q.db.QueryRowContext(ctx, createReturnInvoice, arg.InvoiceID, arg.SalesInvoiceID)
+	var i ReturnInvoice
+	err := row.Scan(&i.InvoiceID, &i.SalesInvoiceID)
+	return i, err
+}
+
+const createSalesInvoice = `-- name: CreateSalesInvoice :one
+INSERT INTO sales_invoices (invoice_id)
+VALUES ($1)
+RETURNING invoice_id
+`
+
+func (q *Queries) CreateSalesInvoice(ctx context.Context, invoiceID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, createSalesInvoice, invoiceID)
+	var invoice_id int64
+	err := row.Scan(&invoice_id)
+	return invoice_id, err
+}
+
 const decrementInvoicesIndex = `-- name: DecrementInvoicesIndex :one
 INSERT INTO invoice_indexes  (year, cashbox_id, type, last_index)
 VALUES ($1, $2, $3, 1)
 ON CONFLICT (year, cashbox_id)
-DO UPDATE SET last_index = sales_invoices_indexes.last_index - 1
+DO UPDATE SET last_index = invoice_indexes.last_index - 1
 RETURNING last_index
 `
 
@@ -139,12 +170,50 @@ func (q *Queries) DecrementInvoicesIndex(ctx context.Context, arg DecrementInvoi
 }
 
 const getInvoice = `-- name: GetInvoice :one
+SELECT id, cashbox_id, shift_id, invoice_code, invoice_index, year, client_id, inventory_id, discount, subtotal, discounted_total, grand_total, created_at FROM invoices
+WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetInvoice(ctx context.Context, id int64) (Invoice, error) {
+	row := q.db.QueryRowContext(ctx, getInvoice, id)
+	var i Invoice
+	err := row.Scan(
+		&i.ID,
+		&i.CashboxID,
+		&i.ShiftID,
+		&i.InvoiceCode,
+		&i.InvoiceIndex,
+		&i.Year,
+		&i.ClientID,
+		&i.InventoryID,
+		&i.Discount,
+		&i.Subtotal,
+		&i.DiscountedTotal,
+		&i.GrandTotal,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getReturnInvoice = `-- name: GetReturnInvoice :one
+SELECT invoice_id, sales_invoice_id FROM return_invoices
+WHERE invoice_id = $1 LIMIT 1
+`
+
+func (q *Queries) GetReturnInvoice(ctx context.Context, invoiceID int64) (ReturnInvoice, error) {
+	row := q.db.QueryRowContext(ctx, getReturnInvoice, invoiceID)
+	var i ReturnInvoice
+	err := row.Scan(&i.InvoiceID, &i.SalesInvoiceID)
+	return i, err
+}
+
+const getSalesInvoice = `-- name: GetSalesInvoice :one
 SELECT invoice_id FROM sales_invoices
 WHERE invoice_id = $1 LIMIT 1
 `
 
-func (q *Queries) GetInvoice(ctx context.Context, invoiceID int64) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getInvoice, invoiceID)
+func (q *Queries) GetSalesInvoice(ctx context.Context, invoiceID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getSalesInvoice, invoiceID)
 	var invoice_id int64
 	err := row.Scan(&invoice_id)
 	return invoice_id, err
@@ -154,7 +223,7 @@ const incrementInvoicesIndex = `-- name: IncrementInvoicesIndex :one
 INSERT INTO invoice_indexes  (year, cashbox_id, type, last_index)
 VALUES ($1, $2, $3, 1)
 ON CONFLICT (year, cashbox_id)
-DO UPDATE SET last_index = sales_invoices_indexes.last_index + 1
+DO UPDATE SET last_index = invoice_indexes.last_index + 1
 RETURNING last_index
 `
 
