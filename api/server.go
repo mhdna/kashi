@@ -50,7 +50,7 @@ func NewServer(store db.Store) *Server {
 	router.POST("/cashbox_accounts", server.createCashboxAccount)
 	router.GET("/cashboxes_accounts/", server.listCashboxAccounts)
 	router.PUT("/cashbox_accounts", server.updateCashboxAccount)
-	router.POST("/cashbox_accounts", server.addCashboxAccountBalance)
+	router.POST("/cashbox_accounts/balance", server.addCashboxAccountBalance)
 
 	router.POST("/suppliers", server.createSupplier)
 	router.GET("/suppliers/:id", server.getSupplier)
@@ -59,6 +59,14 @@ func NewServer(store db.Store) *Server {
 	router.POST("/sales_invoices", server.createSalesInvoice)
 	router.GET("/sales_invoices/:id", server.getSalesInvoice)
 	router.GET("/sales_invoices", server.listSalesInvoices)
+
+	router.POST("/return_invoices", server.createReturnInvoice)
+	router.GET("/return_invoices/:id", server.getReturnInvoice)
+	router.GET("/return_invoices", server.listReturnInvoices)
+
+	router.POST("/price_lists", server.createPriceList)
+	router.GET("/price_lists/:id", server.getPriceList)
+	router.GET("/price_lists", server.listPriceLists)
 
 	server.router = router
 	return server

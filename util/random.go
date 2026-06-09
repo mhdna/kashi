@@ -16,7 +16,6 @@ func RandomInt(min, max int64) int64 {
 func RandomAmount() int64 {
 	return RandomInt(1, 300)
 }
-}
 
 func RandomString(n int) string {
 	var sb strings.Builder
@@ -66,4 +65,8 @@ func RandomCurrency() string {
 	currencies := []string{"USD", "LBP", "EUR"}
 	n := len(currencies)
 	return currencies[rand.Intn(n)]
+}
+
+func RandomDiscount() int16 {
+	return int16(RandomInt(0, 100))
 }
