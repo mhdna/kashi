@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 )
 
@@ -14,17 +15,18 @@ type ReturnInvoiceItem struct {
 }
 
 type ReturnInvoiceTxParams struct {
-	CashboxID        int64 `json:"cashbox_id"`
-	ShiftID          int64 `json:"shift_id"`
-	Year             int32 `json:"year"`
-	ClientID         int64 `json:"client_id"`
-	InventoryID      int64 `json:"inventory_id"`
-	Discount         int16 `json:"discount"`
-	SubTotal         int64 `json:"sub_total"`
-	DiscountedTotal  int64 `json:"discounted_total"`
-	GrandTotal       int64 `json:"grand_total"`
-	SalesInvoiceID   int64 `json:"sales_invoice_id"`
-	CashboxAccountID int64 `json:"cashbox_account_id"`
+	CashboxID        int64         `json:"cashbox_id"`
+	ShiftID          int64         `json:"shift_id"`
+	Year             int32         `json:"year"`
+	ClientID         int64         `json:"client_id"`
+	InventoryID      int64         `json:"inventory_id"`
+	Discount         int16         `json:"discount"`
+	SubTotal         int64         `json:"sub_total"`
+	DiscountedTotal  int64         `json:"discounted_total"`
+	GrandTotal       int64         `json:"grand_total"`
+	SalesInvoiceID   int64         `json:"sales_invoice_id"`
+	CashboxAccountID int64         `json:"cashbox_account_id"`
+	PriceListID      sql.NullInt64 `json:"price_list_id"`
 
 	Items []ReturnInvoiceItem `json:"items"`
 }
@@ -85,6 +87,7 @@ func (store *SQLStore) ReturnInvoiceTx(ctx context.Context, arg ReturnInvoiceTxP
 			Subtotal:        arg.SubTotal,
 			DiscountedTotal: arg.DiscountedTotal,
 			GrandTotal:      arg.GrandTotal,
+			PriceListID:     arg.PriceListID,
 		})
 		if err != nil {
 			return err
@@ -99,12 +102,30 @@ func (store *SQLStore) ReturnInvoiceTx(ctx context.Context, arg ReturnInvoiceTxP
 		}
 
 		for _, item := range arg.Items {
+			unitPrice := item.UnitPrice
+			discount := item.Discount
+
+			if arg.PriceListID.Valid {
+				listPrice, priceErr := q.GetProductPriceFromList(ctx, GetProductPriceFromListParams{
+					PriceListID: arg.PriceListID.Int64,
+					ProductID:   item.ProductID,
+				})
+				if priceErr == nil {
+					unitPrice = listPrice.Price
+				}
+			}
+
+			lineTotal := unitPrice * item.Quantity
+			if discount > 0 {
+				lineTotal = lineTotal - (lineTotal * int64(discount) / 100)
+			}
+
 			_, err = q.AddInvoiceProduct(ctx, AddInvoiceProductParams{
 				InvoiceID: invoice.ID,
 				ProductID: item.ProductID,
-				UnitPrice: item.UnitPrice,
-				LineTotal: item.LineTotal,
-				Discount:  item.Discount,
+				UnitPrice: unitPrice,
+				LineTotal: lineTotal,
+				Discount:  discount,
 				Quantity:  item.Quantity,
 			})
 			if err != nil {

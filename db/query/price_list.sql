@@ -18,3 +18,13 @@ SELECT * FROM price_lists
 ORDER BY name
 LIMIT $1
 OFFSET $2;
+
+-- name: UpdatePriceList :exec
+UPDATE price_lists
+SET name = $2, is_active = $3, is_default = $4, valid_from = $5, valid_to = $6
+WHERE id = $1;
+
+-- name: UnsetDefaultPriceList :exec
+UPDATE price_lists
+SET is_default = false
+WHERE is_default = true AND id != $1;
