@@ -1,0 +1,1 @@
+ALTER TABLE shifts ALTER COLUMN closed_at DROP NOT NULL;

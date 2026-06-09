@@ -95,7 +95,7 @@ func (server *Server) addCashboxAccountBalance(ctx *gin.Context) {
 
 	arg := db.AddCashboxAccountBalanceParams{
 		AccountID: req.AccountID,
-		Amount:    req.Amount,
+		Balance:   req.Amount,
 		ShiftID:   req.ShiftID,
 	}
 	cashboxBalance, err := server.store.AddCashboxAccountBalance(ctx, arg)

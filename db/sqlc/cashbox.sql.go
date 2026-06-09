@@ -10,21 +10,21 @@ import (
 )
 
 const addCashboxAccountBalance = `-- name: AddCashboxAccountBalance :one
-UPDATE shifts_accounts_balances
-SET balance = balance + $1
-WHERE account_id = $2
-AND shift_id = $3
+INSERT INTO shifts_accounts_balances (account_id, shift_id, balance)
+VALUES ($1, $2, $3)
+ON CONFLICT (account_id, shift_id)
+DO UPDATE SET balance = shifts_accounts_balances.balance + $3
 RETURNING account_id, shift_id, balance
 `
 
 type AddCashboxAccountBalanceParams struct {
-	Amount    int64 `json:"amount"`
 	AccountID int64 `json:"accountId"`
 	ShiftID   int64 `json:"shiftId"`
+	Balance   int64 `json:"balance"`
 }
 
 func (q *Queries) AddCashboxAccountBalance(ctx context.Context, arg AddCashboxAccountBalanceParams) (ShiftsAccountsBalance, error) {
-	row := q.db.QueryRowContext(ctx, addCashboxAccountBalance, arg.Amount, arg.AccountID, arg.ShiftID)
+	row := q.db.QueryRowContext(ctx, addCashboxAccountBalance, arg.AccountID, arg.ShiftID, arg.Balance)
 	var i ShiftsAccountsBalance
 	err := row.Scan(&i.AccountID, &i.ShiftID, &i.Balance)
 	return i, err
