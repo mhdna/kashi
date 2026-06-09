@@ -1,5 +1,5 @@
--- name: CreateSalesInvoice :one
-INSERT INTO sales_invoices (
+-- name: CreateInvoice :one
+INSERT INTO invoices (
   cashbox_id,
   shift_id,
   invoice_code,
@@ -15,80 +15,40 @@ INSERT INTO sales_invoices (
 VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11 )
 RETURNING *;
 
--- name: AddSalesInvoiceProduct :one
-INSERT INTO sales_invoice_products (
+-- name: AddInvoiceProduct :one
+INSERT INTO invoice_products (
   invoice_id,
   product_id,
-  price,
+  unit_price,
+  line_total,
   discount,
   quantity
 ) 
-VALUES ( $1, $2, $3, $4, $5 )
+VALUES ( $1, $2, $3, $4, $5, $6 )
 RETURNING *;
 
--- name: GetSalesInvoice :one
+-- name: GetInvoice :one
 SELECT * FROM sales_invoices
-WHERE id = $1 LIMIT 1;
+WHERE invoice_id = $1 LIMIT 1;
 
--- name: ListSalesInvoices :many
+-- name: ListInvoices :many
 SELECT *
-FROM sales_invoices
+FROM invoices
 ORDER BY created_at
 DESC
 LIMIT $1
 OFFSET $2;
 
--- name: NextSalesInvoiceIndexIncrement :one
-INSERT INTO sales_invoices_indexes  (year, cashbox_id, last_index)
-VALUES ($1, $2, 1)
+-- name: IncrementInvoicesIndex :one
+INSERT INTO invoice_indexes  (year, cashbox_id, type, last_index)
+VALUES ($1, $2, $3, 1)
 ON CONFLICT (year, cashbox_id)
 DO UPDATE SET last_index = sales_invoices_indexes.last_index + 1
 RETURNING last_index;
 
--- name: CreateReturnInvoice :one
-INSERT INTO return_invoices (
-  cashbox_id,
-  shift_id,
-  invoice_code,
-  invoice_index,
-  year,
-  client_id,
-  inventory_id,
-  discount,
-  subtotal,
-  discounted_total,
-  grand_total,
-  sales_invoice_id
-) 
-VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12 )
-RETURNING *;
-
--- name: AddReturnInvoiceProduct :one
-INSERT INTO return_invoice_products (
-  invoice_id,
-  product_id,
-  price,
-  discount,
-  quantity
-) 
-VALUES ( $1, $2, $3, $4, $5 )
-RETURNING *;
-
--- name: GetReturnInvoice :one
-SELECT * FROM return_invoices
-WHERE id = $1 LIMIT 1;
-
--- name: NextReturnInvoiceIndexIncrement :one
-INSERT INTO return_invoices_indexes (year, cashbox_id, last_index)
-VALUES ($1, $2, 1)
+-- name: DecrementInvoicesIndex :one
+INSERT INTO invoice_indexes  (year, cashbox_id, type, last_index)
+VALUES ($1, $2, $3, 1)
 ON CONFLICT (year, cashbox_id)
-DO UPDATE SET last_index = return_invoices_indexes.last_index + 1
+DO UPDATE SET last_index = sales_invoices_indexes.last_index - 1
 RETURNING last_index;
-
--- name: ListReturnInvoices :many
-SELECT *
-FROM return_invoices
-ORDER BY created_at
-DESC
-LIMIT $1
-OFFSET $2;
