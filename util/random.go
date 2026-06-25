@@ -70,3 +70,7 @@ func RandomCurrency() string {
 func RandomDiscount() int16 {
 	return int16(RandomInt(0, 100))
 }
+
+func RandomEmail() string {
+	return fmt.Sprintf("%s@email.com", RandomString(6))
+}
