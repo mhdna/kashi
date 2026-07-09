@@ -70,9 +70,9 @@ func TestCreateProductTx(t *testing.T) {
 		resProductAttributes := res.ProductAttributes
 		for _, attributeValue := range attributeValuesArray[idx] {
 			for _, resProductAttribute := range resProductAttributes {
-				if resProductAttribute.Attribute == attributeValue.Attribute {
-					fmt.Println(">> attribute:", resProductAttribute.Attribute, attributeValue.Attribute, resProductAttribute.AttributeValueID, attributeValue.ID)
-					require.Equal(t, attributeValue.Attribute, resProductAttribute.Attribute)
+				if resProductAttribute.AttributeID == attributeValue.AttributeID {
+					fmt.Println(">> attribute:", resProductAttribute.AttributeID, attributeValue.AttributeID, resProductAttribute.AttributeValueID, attributeValue.ID)
+					require.Equal(t, attributeValue.AttributeID, resProductAttribute.AttributeID)
 					require.Equal(t, attributeValue.ID, resProductAttribute.AttributeValueID)
 				}
 			}
