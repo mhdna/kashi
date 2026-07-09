@@ -15,14 +15,14 @@ func createRandomAttributeValues(t *testing.T) []AttributesValue {
 	attributeValues := make([]AttributesValue, 0, len(attributes))
 
 	for _, a := range attributes {
-		arg := CreateAttributeValueParams{
-			Attribute: a,
-			Value:     util.RandomString(6),
+		arg := UpsertAttributeValueParams{
+			AttributeID: a.ID,
+			Value:       util.RandomString(6),
 		}
-		attributeValue, err := testQueries.CreateAttributeValue(context.Background(), arg)
+		attributeValue, err := testQueries.UpsertAttributeValue(context.Background(), arg)
 		require.NoError(t, err)
 		require.NotEmpty(t, attributeValue)
-		require.Equal(t, attributeValue.Attribute, arg.Attribute)
+		require.Equal(t, attributeValue.AttributeID, arg.AttributeID)
 		require.Equal(t, attributeValue.Value, arg.Value)
 
 		attributeValues = append(attributeValues, attributeValue)
@@ -43,7 +43,7 @@ func TestGetAttributeValue(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Equal(t, attributeValue.ID, a.ID)
-		require.Equal(t, attributeValue.Attribute, a.Attribute)
+		require.Equal(t, attributeValue.AttributeID, a.AttributeID)
 		require.Equal(t, attributeValue.Value, a.Value)
 	}
 }
