@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package pb;
+
+import "user.proto";
+
+option go_package = "github.com/mhdna/kashi/pb";
+
+
+message CreateUserRequest {
+	string name       = 1;
+	string email      = 2;
+	string hash_password   = 3;
+	bool activated  = 4;
+}
+
+message CreateUserResponse {
+  User user = 1;
+}
