@@ -23,15 +23,16 @@ migratedown1:
 
 sqlc:
 	sqlc generate
-	
+
 test:
-	go test -v -cover ./...
-	
+	# go test -v -cover ./...
+	richgo test -v -cover ./...
+
 server:
 	go run main.go
-	
+
 mock:
-	mockgen -package mockdb -destination db/mock/store.go github.com/mhdna/kashi/db/sqlc Store 
+	mockgen -package mockdb -destination db/mock/store.go github.com/mhdna/kashi/db/sqlc Store
 
 proto:
 	rm -f pb/*.go
