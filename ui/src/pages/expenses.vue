@@ -10,10 +10,14 @@
             :error-messages="description.errorMessage.value"
             label="Description"
           />
-          <v-text-field
-            v-model="category.value.value"
+          <v-select
+            v-model="categoryId.value.value"
+            clearable
             density="compact"
-            :error-messages="category.errorMessage.value"
+            :error-messages="categoryId.errorMessage.value"
+            item-title="name"
+            item-value="id"
+            :items="activeExpenseCategories"
             label="Category"
           />
           <v-text-field
@@ -55,10 +59,14 @@
             :error-messages="rDescription.errorMessage.value"
             label="Description"
           />
-          <v-text-field
-            v-model="rCategory.value.value"
+          <v-select
+            v-model="rCategoryId.value.value"
+            clearable
             density="compact"
-            :error-messages="rCategory.errorMessage.value"
+            :error-messages="rCategoryId.errorMessage.value"
+            item-title="name"
+            item-value="id"
+            :items="activeExpenseCategories"
             label="Category"
           />
           <v-text-field
@@ -116,6 +124,39 @@
     </v-card>
   </v-dialog>
 
+  <v-dialog v-model="categoryDialog" max-width="480" :persistent="true">
+    <v-card class="px-4">
+      <v-card-title>{{ editingCategoryId ? 'Edit Category' : 'Add a New Category' }}</v-card-title>
+      <v-card-text>
+        <form @submit.prevent="submitCategory">
+          <v-text-field
+            v-model="categoryName.value.value"
+            density="compact"
+            :error-messages="categoryName.errorMessage.value"
+            label="Name"
+          />
+          <v-switch
+            v-model="categoryIsActive.value.value"
+            color="primary"
+            density="compact"
+            hide-details
+            label="Active"
+          />
+
+          <v-alert v-if="categorySubmitError" class="mb-4 mt-4" type="error" variant="tonal">
+            {{ categorySubmitError }}
+          </v-alert>
+
+          <v-card-actions class="px-0">
+            <v-spacer />
+            <v-btn text="Cancel" @click="closeCategoryDialog" />
+            <v-btn color="primary" :loading="categorySubmitting" :text="editingCategoryId ? 'Save' : 'Add Category'" type="submit" />
+          </v-card-actions>
+        </form>
+      </v-card-text>
+    </v-card>
+  </v-dialog>
+
   <v-container>
     <v-card>
       <div class="d-flex justify-space-between align-center pe-4">
@@ -123,6 +164,7 @@
           <v-tab value="own">Expenses</v-tab>
           <v-tab value="recurring">Recurring</v-tab>
           <v-tab value="branch">Branch Expenses</v-tab>
+          <v-tab value="categories">Categories</v-tab>
         </v-tabs>
         <v-btn
           v-if="tab === 'own'"
@@ -138,8 +180,15 @@
           text="Add Recurring Expense"
           @click="recurringDialog = true"
         />
+        <v-btn
+          v-else-if="tab === 'categories'"
+          color="primary"
+          prepend-icon="mdi-plus"
+          text="Add Category"
+          @click="openCreateCategory"
+        />
         <v-select
-          v-else
+          v-else-if="tab === 'branch'"
           v-model="branchFilter"
           clearable
           density="compact"
@@ -162,7 +211,11 @@
               :api-u-r-l="`${API_BASE}/expenses`"
               :headers="headers"
               root-key="expenses"
-            />
+            >
+              <template #item.category_id="{ item }">
+                {{ categoryNameFor(item.category_id) }}
+              </template>
+            </ServerSideTable>
           </v-card-text>
         </v-window-item>
 
@@ -172,6 +225,9 @@
               {{ recurringLoadError }}
             </v-alert>
             <v-data-table density="compact" :headers="recurringHeaders" :items="recurringExpenses" :loading="recurringLoading">
+              <template #item.category_id="{ item }">
+                {{ categoryNameFor(item.category_id) }}
+              </template>
               <template #item.amount="{ item }">
                 {{ formatMoney(item.amount) }} {{ item.currency_code }}
               </template>
@@ -183,10 +239,10 @@
               </template>
               <template #item.active="{ item }">
                 <v-switch
-                  :model-value="item.active"
                   color="primary"
                   density="compact"
                   hide-details
+                  :model-value="item.active"
                   @update:model-value="value => toggleRecurringActive(item, value)"
                 />
               </template>
@@ -205,6 +261,9 @@
               <template #item.branch_id="{ item }">
                 {{ branchName(item.branch_id) }}
               </template>
+              <template #item.category_id="{ item }">
+                {{ categoryNameFor(item.category_id) }}
+              </template>
               <template #item.amount="{ item }">
                 {{ formatMoney(item.amount) }} {{ item.currency_code }}
               </template>
@@ -217,6 +276,34 @@
             </ServerSideTable>
           </v-card-text>
         </v-window-item>
+
+        <v-window-item value="categories">
+          <v-card-text>
+            <v-table density="compact">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Status</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="category in expenseCategories" :key="category.id">
+                  <td>{{ category.name }}</td>
+                  <td>
+                    <v-chip :color="category.is_active ? 'success' : 'default'" size="small">
+                      {{ category.is_active ? 'Active' : 'Inactive' }}
+                    </v-chip>
+                  </td>
+                  <td class="text-end">
+                    <v-icon-btn icon="mdi-pencil" size="small" variant="text" @click="openEditCategory(category)" />
+                    <v-icon-btn icon="mdi-delete" size="small" variant="text" @click="removeCategory(category)" />
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </v-card-text>
+        </v-window-item>
       </v-window>
     </v-card>
   </v-container>
@@ -224,17 +311,29 @@
 
 <script setup>
   import { useField, useForm } from 'vee-validate'
-  import { onMounted, ref, watch } from 'vue'
+  import { computed, onMounted, ref, watch } from 'vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
-  import { useBranches } from '@/composables/useBranches'
   import { authFetch } from '@/composables/useApi'
+  import { useBranches } from '@/composables/useBranches'
+  import { useExpenseCategories } from '@/composables/useExpenseCategories'
   import { API_BASE } from '@/config'
 
   const { branches, fetchBranches } = useBranches()
-  onMounted(() => fetchBranches())
+  const { expenseCategories, fetchExpenseCategories, createExpenseCategory, updateExpenseCategory, deleteExpenseCategory } = useExpenseCategories()
+  onMounted(() => {
+    fetchBranches()
+    fetchExpenseCategories()
+  })
+
+  const activeExpenseCategories = computed(() => expenseCategories.value.filter(c => c.is_active))
 
   function branchName (id) {
     return branches.value.find(b => b.id === id)?.name ?? `Branch #${id}`
+  }
+
+  function categoryNameFor (id) {
+    if (!id) return ''
+    return expenseCategories.value.find(c => c.id === id)?.name ?? `Category #${id}`
   }
 
   function formatMoney (cents) {
@@ -246,7 +345,7 @@
   const headers = [
     { title: 'ID', key: 'id', align: 'start' },
     { title: 'Description', key: 'description', align: 'start' },
-    { title: 'Category', key: 'category', align: 'start' },
+    { title: 'Category', key: 'category_id', align: 'start', sortable: false },
     { title: 'Amount', key: 'amount', align: 'end' },
     { title: 'Date', key: 'created_at', align: 'start' },
   ]
@@ -254,7 +353,7 @@
   const branchHeaders = [
     { title: 'Branch', key: 'branch_id', align: 'start', sortable: false },
     { title: 'Description', key: 'description', align: 'start', sortable: false },
-    { title: 'Category', key: 'category', align: 'start', sortable: false },
+    { title: 'Category', key: 'category_id', align: 'start', sortable: false },
     { title: 'Amount', key: 'amount', align: 'end', sortable: false },
     { title: 'Occurred At', key: 'occurred_at', align: 'start', sortable: false },
     { title: 'Received At', key: 'received_at', align: 'start', sortable: false },
@@ -262,7 +361,7 @@
 
   const recurringHeaders = [
     { title: 'Description', key: 'description', align: 'start' },
-    { title: 'Category', key: 'category', align: 'start' },
+    { title: 'Category', key: 'category_id', align: 'start', sortable: false },
     { title: 'Amount', key: 'amount', align: 'end' },
     { title: 'Interval', key: 'interval', align: 'start', sortable: false },
     { title: 'Next Due', key: 'next_due_at', align: 'start' },
@@ -304,7 +403,7 @@
   })
 
   const description = useField('description')
-  const category = useField('category')
+  const categoryId = useField('categoryId')
   const amount = useField('amount')
   const currencyCode = useField('currencyCode')
 
@@ -323,7 +422,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           description: values.description,
-          category: values.category,
+          category_id: values.categoryId ?? undefined,
           amount: Math.round(Number(values.amount) * 100),
           currency_code: values.currencyCode,
         }),
@@ -421,7 +520,7 @@
   })
 
   const rDescription = useField('rDescription')
-  const rCategory = useField('rCategory')
+  const rCategoryId = useField('rCategoryId')
   const rAmount = useField('rAmount')
   const rCurrencyCode = useField('rCurrencyCode')
   const rIntervalCount = useField('rIntervalCount', undefined, { initialValue: 1 })
@@ -443,7 +542,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           description: values.rDescription,
-          category: values.rCategory,
+          category_id: values.rCategoryId ?? undefined,
           amount: Math.round(Number(values.rAmount) * 100),
           currency_code: values.rCurrencyCode,
           interval_count: Number(values.rIntervalCount),
@@ -465,4 +564,77 @@
       recurringSubmitting.value = false
     }
   })
+
+  // -- Categories --
+
+  const categoryDialog = ref(false)
+  const categorySubmitting = ref(false)
+  const categorySubmitError = ref('')
+  const editingCategoryId = ref(null)
+
+  const { handleSubmit: handleCategorySubmit, handleReset: handleCategoryReset, setValues: setCategoryValues } = useForm({
+    validationSchema: {
+      categoryName (value) {
+        if (value?.length >= 2) return true
+        return 'Name needs to be at least 2 characters.'
+      },
+    },
+  })
+
+  const categoryName = useField('categoryName')
+  const categoryIsActive = useField('categoryIsActive')
+
+  function openCreateCategory () {
+    editingCategoryId.value = null
+    handleCategoryReset()
+    categoryIsActive.value.value = true
+    categoryDialog.value = true
+  }
+
+  function openEditCategory (category) {
+    editingCategoryId.value = category.id
+    setCategoryValues({
+      categoryName: category.name,
+      categoryIsActive: category.is_active,
+    })
+    categoryDialog.value = true
+  }
+
+  function closeCategoryDialog () {
+    categoryDialog.value = false
+    handleCategoryReset()
+    categorySubmitError.value = ''
+    editingCategoryId.value = null
+  }
+
+  const submitCategory = handleCategorySubmit(async values => {
+    categorySubmitting.value = true
+    categorySubmitError.value = ''
+    try {
+      await (editingCategoryId.value
+        ? updateExpenseCategory({
+          id: editingCategoryId.value,
+          name: values.categoryName,
+          is_active: !!values.categoryIsActive,
+        })
+        : createExpenseCategory({
+          name: values.categoryName,
+          is_active: !!values.categoryIsActive,
+        }))
+      closeCategoryDialog()
+    } catch (error) {
+      categorySubmitError.value = error.message
+    } finally {
+      categorySubmitting.value = false
+    }
+  })
+
+  async function removeCategory (category) {
+    if (!confirm(`Delete category "${category.name}"? Categories still used by an expense can't be deleted.`)) return
+    try {
+      await deleteExpenseCategory(category.id)
+    } catch (error) {
+      categorySubmitError.value = error.message
+    }
+  }
 </script>
