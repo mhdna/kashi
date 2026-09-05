@@ -8,7 +8,7 @@
 </template>
 
 <script setup lang="ts">
-  import logoImage from '../../GB.png'
+  import logoImage from '@/assets/app-logo.png'
 </script>
 
 <style scoped>

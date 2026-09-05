@@ -4,7 +4,7 @@
       <v-img
         alt="Kashi Cloud"
         class="unsupported-device__logo mx-auto"
-        src="/app-icon.png"
+        :src="appLogo"
       />
 
       <h1 class="text-h4 font-weight-bold mt-6">Desktop only</h1>
@@ -14,6 +14,10 @@
     </section>
   </v-main>
 </template>
+
+<script lang="ts" setup>
+  import appLogo from '@/assets/app-logo.png'
+</script>
 
 <style scoped>
 .unsupported-device {
