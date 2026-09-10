@@ -105,6 +105,80 @@ func (server *Server) createBranchVisitorEvent(ctx *gin.Context) {
 	server.writeJSON(ctx, http.StatusOK, envelope{"visitor_event": event})
 }
 
+// branchVisitorEventsRequest is the batched counterpart to
+// branchVisitorEventRequest: kashi-pos coalesces a burst of counter presses
+// (see branchVisitorEventsPayload in that repo's sync_outbox.go) into one
+// POST so a rapid ▲▲▲▲▲ reaches kashi as a single round trip instead of one
+// per press. The singular /branch/visitor_events route stays for older
+// till builds.
+type branchVisitorEventsRequest struct {
+	Events []branchVisitorEventRequest `json:"events" binding:"required,min=1,dive"`
+}
+
+// createBranchVisitorEvents ingests a coalesced burst of counter presses.
+// Each event follows the same idempotent-insert path as
+// createBranchVisitorEvent (look up by (branch_id, client_ref) first, fall
+// back to the same lookup on a unique-violation race), and every
+// genuinely-new insert broadcasts its own "branch_visitor_event" carrying
+// the running per-direction tally -- identical to the singular handler, so
+// the admin views need no change.
+func (server *Server) createBranchVisitorEvents(ctx *gin.Context) {
+	branchID := ctx.MustGet(branchIDKey).(int64)
+
+	var req branchVisitorEventsRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	inserted := 0
+	for _, ev := range req.Events {
+		if _, err := server.store.GetBranchVisitorEventByClientRef(ctx, db.GetBranchVisitorEventByClientRefParams{
+			BranchID:  branchID,
+			ClientRef: ev.Ref,
+		}); err == nil {
+			continue
+		} else if err != sql.ErrNoRows {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
+		event, err := server.store.CreateBranchVisitorEvent(ctx, db.CreateBranchVisitorEventParams{
+			BranchID:   branchID,
+			ClientRef:  ev.Ref,
+			Day:        ev.Day,
+			Direction:  ev.Direction,
+			OccurredAt: ev.OccurredAt,
+		})
+		if err != nil {
+			if isUniqueViolation(err) {
+				continue
+			}
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		inserted++
+
+		soFar, err := server.store.CountBranchVisitorDayByDirection(ctx, db.CountBranchVisitorDayByDirectionParams{
+			BranchID:  branchID,
+			Day:       event.Day,
+			Direction: event.Direction,
+		})
+		if err != nil {
+			soFar = 0 // count is display-only; don't fail the write over it
+		}
+		server.adminHub.broadcastAll(adminWSMessage{
+			Type:     "branch_visitor_event",
+			BranchID: branchID,
+			Kind:     event.Direction,
+			Amount:   soFar,
+			Label:    event.Day,
+		})
+	}
+
+	server.writeJSON(ctx, http.StatusOK, envelope{"inserted": inserted})
+}
+
 type listBranchVisitorDaysRequest struct {
 	PageSize int32 `form:"page_size,default=10" binding:"min=5,max=100"`
 	PageID   int32 `form:"page_id,default=0" binding:"min=0"`

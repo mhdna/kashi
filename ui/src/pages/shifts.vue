@@ -309,18 +309,28 @@
   // Live-refresh the Visitors tab when a branch reports a counter press, so
   // the per-day rollup doesn't need a manual reload. The visitors table is
   // only mounted while that tab is open, so this is a no-op otherwise and
-  // switching to the tab refetches on mount anyway.
+  // switching to the tab refetches on mount anyway. Debounced so a burst of
+  // presses is one reload, not one network round trip per press.
   const { ensureConnected, onMessage } = useAdminSocket()
   let unsubscribeAdmin = null
+  let visitorReloadTimer = null
+  function scheduleVisitorsReload () {
+    if (visitorReloadTimer) return
+    visitorReloadTimer = setTimeout(() => {
+      visitorReloadTimer = null
+      visitorsTableRef.value?.reload()
+    }, 1000)
+  }
   onMounted(() => {
     ensureConnected()
     unsubscribeAdmin = onMessage(message => {
       if (message.type === 'branch_visitor_event') {
-        visitorsTableRef.value?.reload()
+        scheduleVisitorsReload()
       }
     })
   })
   onUnmounted(() => {
+    clearTimeout(visitorReloadTimer)
     unsubscribeAdmin?.()
   })
   const submitting = ref(false)
