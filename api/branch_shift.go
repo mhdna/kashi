@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"log"
 	"net/http"
 	"time"
 
@@ -127,7 +128,21 @@ func (server *Server) createBranchShiftClose(ctx *gin.Context) {
 		Label:        req.ClosingPersonName,
 	})
 
-	server.writeJSON(ctx, http.StatusOK, envelope{"shift": shift})
+	// Mint a one-time receipt-photo upload token for this new shift close so
+	// kashi-pos can point its QR straight here when it has a connection --
+	// see shift_upload.go and the hybrid flow in the POS's shifts.go. Only
+	// on the fresh-insert path: a retried outbox entry that hit the
+	// "already exists" branches above must never mint a second token.
+	uploadToken, err := server.createBranchShiftUploadToken(ctx, shift.ID)
+	if err != nil {
+		// The shift close is safely recorded; losing the token just means
+		// the POS falls back to its own local upload path.
+		log.Printf("create upload token for branch shift %d: %v", shift.ID, err)
+		server.writeJSON(ctx, http.StatusOK, envelope{"shift": shift})
+		return
+	}
+
+	server.writeJSON(ctx, http.StatusOK, envelope{"shift": shift, "upload_token": uploadToken})
 }
 
 type listBranchShiftsRequest struct {

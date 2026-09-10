@@ -767,6 +767,24 @@ type BranchShift struct {
 	ReceivedAt        time.Time    `json:"received_at"`
 }
 
+type BranchShiftReceiptImage struct {
+	ID            int64     `json:"id"`
+	BranchShiftID int64     `json:"branch_shift_id"`
+	FilePath      string    `json:"file_path"`
+	ContentType   string    `json:"content_type"`
+	SizeBytes     int64     `json:"size_bytes"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
+type BranchShiftUploadToken struct {
+	ID            int64        `json:"id"`
+	BranchShiftID int64        `json:"branch_shift_id"`
+	Token         string       `json:"token"`
+	ExpiresAt     time.Time    `json:"expires_at"`
+	UsedAt        sql.NullTime `json:"used_at"`
+	CreatedAt     time.Time    `json:"created_at"`
+}
+
 type BranchSyncConflict struct {
 	ID              int64                 `json:"id"`
 	BranchID        int64                 `json:"branch_id"`

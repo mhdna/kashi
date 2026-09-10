@@ -292,6 +292,9 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/branch_expense_images", server.listBranchExpenseImages)
 	authRoutes.GET("/branch_expenses/:id/images", server.listBranchExpenseImagesForExpense)
 	authRoutes.GET("/branch_expense_images/:id/file", server.getBranchExpenseImageFile)
+	authRoutes.GET("/branch_shift_receipt_images", server.listBranchShiftReceiptImages)
+	authRoutes.GET("/branch_shifts/:id/receipt_image", server.getBranchShiftReceiptImageForShift)
+	authRoutes.GET("/branch_shift_receipt_images/:id/file", server.getBranchShiftReceiptImageFile)
 	authRoutes.GET("/branch_invoices", server.listBranchInvoices)
 	authRoutes.GET("/branch_sync_conflicts", server.listBranchSyncConflicts)
 	authRoutes.POST("/branch_sync_conflicts/bulk_resolve", server.bulkResolveBranchSyncConflicts)
@@ -381,6 +384,8 @@ func (server *Server) setupRoutes() {
 	branchRoutes.GET("/commands/pending", server.branchPendingCommands)
 	branchRoutes.POST("/commands/:id/ack", server.ackBranchCommand)
 	branchRoutes.GET("/expenses/upload_status", server.branchExpenseUploadStatus)
+	branchRoutes.GET("/shift_closes/upload_status", server.branchShiftUploadStatus)
+	branchRoutes.POST("/shift_receipt_images", server.createBranchShiftReceiptImage)
 
 	// expense_uploads is deliberately public: a phone scanning the QR code
 	// kashi-pos shows has no kashi login and shouldn't need one. Every
@@ -389,6 +394,12 @@ func (server *Server) setupRoutes() {
 	router.GET("/expense_uploads/:token", server.expenseUploadPage)
 	router.GET("/expense_uploads/:token/status", server.expenseUploadStatus)
 	router.POST("/expense_uploads/:token/images", server.uploadExpenseImages)
+
+	// shift_uploads is the same public, token-gated flow for the one
+	// close-shift receipt photo -- see shift_upload.go.
+	router.GET("/shift_uploads/:token", server.shiftUploadPage)
+	router.GET("/shift_uploads/:token/status", server.shiftUploadStatus)
+	router.POST("/shift_uploads/:token/images", server.uploadShiftReceiptImage)
 
 	server.router = router
 }

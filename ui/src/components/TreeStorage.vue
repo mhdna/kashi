@@ -17,9 +17,9 @@
     <v-divider vertical />
 
     <div class="flex-grow-1 pa-4" style="overflow-y: auto">
-      <template v-if="activeNode === 'expenses'">
+      <template v-if="source">
         <div class="d-flex align-center justify-space-between mb-4">
-          <div class="text-h6">Expense receipts</div>
+          <div class="text-h6">{{ source.title }}</div>
           <div class="d-flex align-center ga-2">
             <v-text-field
               v-model="search"
@@ -38,11 +38,11 @@
         <v-alert v-if="loadError" class="mb-4" type="error" variant="tonal">{{ loadError }}</v-alert>
 
         <div v-if="!loading && images.length === 0" class="text-medium-emphasis">
-          No receipt photos uploaded yet.
+          No photos uploaded yet.
         </div>
 
         <div v-else-if="!loading && filteredImages.length === 0" class="text-medium-emphasis">
-          No receipts match your search.
+          No photos match your search.
         </div>
 
         <div class="image-grid">
@@ -61,7 +61,7 @@
               </template>
             </v-img>
             <v-card-text class="pa-2">
-              <div class="text-body-2 text-truncate">{{ image.expense_description }}</div>
+              <div class="text-body-2 text-truncate">{{ source.primaryText(image) }}</div>
               <div class="text-caption text-medium-emphasis">{{ image.branch_name }}</div>
               <div class="text-caption text-medium-emphasis">{{ formatDate(image.created_at) }}</div>
             </v-card-text>
@@ -82,7 +82,7 @@
       <v-card>
         <v-img v-if="previewImage" contain max-height="80vh" :src="thumbnailUrls[previewImage.id]" />
         <v-card-text v-if="previewImage">
-          <div class="text-subtitle-1">{{ previewImage.expense_description }}</div>
+          <div class="text-subtitle-1">{{ source?.primaryText(previewImage) }}</div>
           <div class="text-caption text-medium-emphasis">
             {{ previewImage.branch_name }} — {{ formatDate(previewImage.created_at) }}
           </div>
@@ -100,19 +100,41 @@
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useExpenseImages } from '@/composables/useExpenseImages'
+  import { useShiftReceiptImages } from '@/composables/useShiftReceiptImages'
 
-  // Only one node today (per CLAUDE.md-style room-to-grow convention used
-  // elsewhere in this codebase) -- more storage kinds land as siblings
-  // here later without reshaping this component.
+  const { fetchExpenseImages, fetchExpenseImageObjectUrl } = useExpenseImages()
+  const { fetchShiftReceiptImages, fetchShiftReceiptImageObjectUrl } = useShiftReceiptImages()
+  const { ensureConnected, onMessage } = useAdminSocket()
+
+  // Each tree node is one image source. Adding a storage kind later is a
+  // new entry here plus its composable -- the panel below is generic.
+  const SOURCES = {
+    expenses: {
+      title: 'Expense receipts',
+      icon: 'mdi-receipt-text-check',
+      fetchPage: fetchExpenseImages,
+      fetchObjectUrl: fetchExpenseImageObjectUrl,
+      refreshOn: 'branch_expense_images_uploaded',
+      primaryText: image => image.expense_description,
+    },
+    shiftReceipts: {
+      title: 'Shift receipts',
+      icon: 'mdi-camera',
+      fetchPage: fetchShiftReceiptImages,
+      fetchObjectUrl: fetchShiftReceiptImageObjectUrl,
+      refreshOn: 'branch_shift_receipt_uploaded',
+      primaryText: image => `Shift #${image.shift_local_id} · ${image.closing_person_name || '—'}`,
+    },
+  }
+
   const items = [
     { id: 'expenses', title: 'Expenses', icon: 'mdi-receipt-text-check' },
+    { id: 'shiftReceipts', title: 'Shift receipts', icon: 'mdi-camera' },
   ]
 
   const activated = ref(['expenses'])
   const activeNode = computed(() => activated.value[0] ?? null)
-
-  const { fetchExpenseImages, fetchExpenseImageObjectUrl } = useExpenseImages()
-  const { ensureConnected, onMessage } = useAdminSocket()
+  const source = computed(() => (activeNode.value ? SOURCES[activeNode.value] : null))
 
   const images = ref([])
   const search = ref('')
@@ -128,7 +150,7 @@
     if (!query) return images.value
 
     return images.value.filter(image => [
-      image.expense_description,
+      source.value?.primaryText(image),
       image.branch_name,
       formatDate(image.created_at),
     ].some(value => String(value ?? '').toLowerCase().includes(query)))
@@ -142,11 +164,17 @@
     return new Date(value).toLocaleString()
   }
 
+  function revokeThumbnails () {
+    for (const url of Object.values(thumbnailUrls.value)) URL.revokeObjectURL(url)
+    thumbnailUrls.value = {}
+  }
+
   async function loadThumbnails (rows) {
+    if (!source.value) return
     await Promise.all(rows.map(async image => {
       if (thumbnailUrls.value[image.id]) return
       try {
-        thumbnailUrls.value[image.id] = await fetchExpenseImageObjectUrl(image.id)
+        thumbnailUrls.value[image.id] = await source.value.fetchObjectUrl(image.id)
       } catch {
         // Leave it unset -- the v-img placeholder just stays put.
       }
@@ -154,11 +182,12 @@
   }
 
   async function loadImages ({ reset = false } = {}) {
+    if (!source.value) return
     loading.value = true
     loadError.value = ''
     try {
       const page = reset ? 0 : pageId.value
-      const data = await fetchExpenseImages(page, pageSize)
+      const data = await source.value.fetchPage(page, pageSize)
       images.value = reset ? data.images : [...images.value, ...data.images]
       total.value = data.total
       pageId.value = page + 1
@@ -179,19 +208,24 @@
     previewDialog.value = true
   }
 
-  watch(activeNode, node => {
-    if (node === 'expenses' && images.value.length === 0) {
-      loadImages({ reset: true })
-    }
+  function resetAndLoad () {
+    search.value = ''
+    images.value = []
+    total.value = 0
+    pageId.value = 0
+    revokeThumbnails()
+    loadImages({ reset: true })
+  }
+
+  watch(activeNode, () => {
+    if (source.value) resetAndLoad()
   })
 
   onMounted(() => {
-    if (activeNode.value === 'expenses') {
-      loadImages({ reset: true })
-    }
+    if (source.value) loadImages({ reset: true })
     ensureConnected()
     unsubscribe = onMessage(message => {
-      if (message.type === 'branch_expense_images_uploaded') {
+      if (source.value && message.type === source.value.refreshOn) {
         pageId.value = 0
         loadImages({ reset: true })
       }
@@ -200,7 +234,7 @@
 
   onUnmounted(() => {
     unsubscribe?.()
-    for (const url of Object.values(thumbnailUrls.value)) URL.revokeObjectURL(url)
+    revokeThumbnails()
   })
 </script>
 

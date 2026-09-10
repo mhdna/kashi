@@ -53,6 +53,7 @@ type Querier interface {
 	CountBranchInvoiceSettlements(ctx context.Context, branchID sql.NullInt64) (int64, error)
 	CountBranchInvoices(ctx context.Context, branchID sql.NullInt64) (int64, error)
 	CountBranchInvoicesFiltered(ctx context.Context, arg CountBranchInvoicesFilteredParams) (int64, error)
+	CountBranchShiftReceiptImages(ctx context.Context) (int64, error)
 	CountBranchShifts(ctx context.Context, branchID sql.NullInt64) (int64, error)
 	CountBranchSyncConflicts(ctx context.Context, arg CountBranchSyncConflictsParams) (int64, error)
 	// Running gross tally for one branch, one local day, one direction -- used
@@ -116,6 +117,8 @@ type Querier interface {
 	CreateBranchLoan(ctx context.Context, arg CreateBranchLoanParams) (Loan, error)
 	CreateBranchSalesperson(ctx context.Context, arg CreateBranchSalespersonParams) (Salesperson, error)
 	CreateBranchShift(ctx context.Context, arg CreateBranchShiftParams) (BranchShift, error)
+	CreateBranchShiftReceiptImage(ctx context.Context, arg CreateBranchShiftReceiptImageParams) (BranchShiftReceiptImage, error)
+	CreateBranchShiftUploadToken(ctx context.Context, arg CreateBranchShiftUploadTokenParams) (BranchShiftUploadToken, error)
 	CreateBranchTarget(ctx context.Context, arg CreateBranchTargetParams) (BranchTarget, error)
 	CreateBranchTargetSeries(ctx context.Context, arg CreateBranchTargetSeriesParams) (BranchTargetSeries, error)
 	CreateBranchUser(ctx context.Context, arg CreateBranchUserParams) (BranchUser, error)
@@ -315,7 +318,11 @@ type Querier interface {
 	GetBranchInvoiceSettlementByClientRef(ctx context.Context, arg GetBranchInvoiceSettlementByClientRefParams) (BranchInvoiceSettlement, error)
 	GetBranchLoanByClientRef(ctx context.Context, arg GetBranchLoanByClientRefParams) (Loan, error)
 	GetBranchSettings(ctx context.Context, branchID int64) (BranchSetting, error)
+	GetBranchShift(ctx context.Context, id int64) (BranchShift, error)
 	GetBranchShiftByClientRef(ctx context.Context, arg GetBranchShiftByClientRefParams) (BranchShift, error)
+	GetBranchShiftReceiptImage(ctx context.Context, id int64) (BranchShiftReceiptImage, error)
+	GetBranchShiftReceiptImageForShift(ctx context.Context, branchShiftID int64) (BranchShiftReceiptImage, error)
+	GetBranchShiftUploadTokenByToken(ctx context.Context, token string) (BranchShiftUploadToken, error)
 	GetBranchSyncConflict(ctx context.Context, id int64) (BranchSyncConflict, error)
 	GetBranchTarget(ctx context.Context, id int64) (BranchTarget, error)
 	GetBranchTargetBySeriesAndStart(ctx context.Context, arg GetBranchTargetBySeriesAndStartParams) (BranchTarget, error)
@@ -504,9 +511,15 @@ type Querier interface {
 	// date bounds (not AT TIME ZONE per row) so idx_branch_invoices_occurred_at
 	// stays usable, same reasoning as ListDailyIncome.
 	ListBranchSalesDaysRange(ctx context.Context, arg ListBranchSalesDaysRangeParams) ([]ListBranchSalesDaysRangeRow, error)
+	// Storage-explorer feed: every uploaded close-shift receipt photo, newest
+	// first, joined with its shift and branch so the admin UI never needs a
+	// second round trip per row. Mirrors ListBranchExpenseImages.
+	ListBranchShiftReceiptImages(ctx context.Context, arg ListBranchShiftReceiptImagesParams) ([]ListBranchShiftReceiptImagesRow, error)
 	// sqlc.narg(branch_id) is nullable: NULL means "all branches", matching
-	// ListBranchExpenses' admin-filter convention.
-	ListBranchShifts(ctx context.Context, arg ListBranchShiftsParams) ([]BranchShift, error)
+	// ListBranchExpenses' admin-filter convention. has_receipt_image lets the
+	// admin Shifts page show a per-row indicator without an extra request per
+	// shift (see branch_shift_receipt_images / api/branch_shift_receipt_image.go).
+	ListBranchShifts(ctx context.Context, arg ListBranchShiftsParams) ([]ListBranchShiftsRow, error)
 	ListBranchSyncConflictsPage(ctx context.Context, arg ListBranchSyncConflictsPageParams) ([]ListBranchSyncConflictsPageRow, error)
 	ListBranchTargetSeriesForBranch(ctx context.Context, branchID int64) ([]BranchTargetSeries, error)
 	ListBranchTargetsForBranch(ctx context.Context, branchID int64) ([]BranchTarget, error)
@@ -701,6 +714,7 @@ type Querier interface {
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	ListVariantsForBarcodes(ctx context.Context, arg ListVariantsForBarcodesParams) ([]ListVariantsForBarcodesRow, error)
 	MarkBranchExpenseUploadTokenUsed(ctx context.Context, id int64) error
+	MarkBranchShiftUploadTokenUsed(ctx context.Context, id int64) error
 	ProductBarcodesPresent(ctx context.Context, dollar_1 []string) ([]string, error)
 	// Apply an inbound quantity delta and roll the per-location moving-average
 	// cost forward. When existing on-hand is <= 0 the average is just reset to

@@ -47,6 +47,9 @@ func TestCreateBranchShiftClose_OK_DerivesVarianceAndNotifiesOnce(t *testing.T) 
 			return db.BranchShift{ID: 1, BranchID: arg.BranchID, ClientRef: arg.ClientRef, VarianceUsd: arg.VarianceUsd}, nil
 		})
 	store.EXPECT().GetDefaultCurrency(gomock.Any()).Return(db.Currency{Code: "USD"}, nil).AnyTimes()
+	store.EXPECT().
+		CreateBranchShiftUploadToken(gomock.Any(), gomock.Any()).
+		Return(db.BranchShiftUploadToken{ID: 1}, nil)
 
 	server := newTestServer(t, store)
 	recorder := httptest.NewRecorder()
@@ -110,7 +113,7 @@ func TestListBranchShifts_OK(t *testing.T) {
 	defer ctrl.Finish()
 	store := mockdb.NewMockStore(ctrl)
 
-	store.EXPECT().ListBranchShifts(gomock.Any(), gomock.Any()).Return([]db.BranchShift{{ID: 1}}, nil)
+	store.EXPECT().ListBranchShifts(gomock.Any(), gomock.Any()).Return([]db.ListBranchShiftsRow{{ID: 1}}, nil)
 	store.EXPECT().CountBranchShifts(gomock.Any(), gomock.Any()).Return(int64(1), nil)
 
 	server := newTestServer(t, store)

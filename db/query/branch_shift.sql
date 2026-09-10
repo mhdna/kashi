@@ -31,10 +31,23 @@ SELECT * FROM branch_shifts
 WHERE branch_id = $1 AND client_ref = $2
 LIMIT 1;
 
+-- name: GetBranchShift :one
+SELECT * FROM branch_shifts
+WHERE id = $1
+LIMIT 1;
+
 -- name: ListBranchShifts :many
 -- sqlc.narg(branch_id) is nullable: NULL means "all branches", matching
--- ListBranchExpenses' admin-filter convention.
-SELECT * FROM branch_shifts
+-- ListBranchExpenses' admin-filter convention. has_receipt_image lets the
+-- admin Shifts page show a per-row indicator without an extra request per
+-- shift (see branch_shift_receipt_images / api/branch_shift_receipt_image.go).
+SELECT
+  branch_shifts.*,
+  EXISTS (
+    SELECT 1 FROM branch_shift_receipt_images
+    WHERE branch_shift_receipt_images.branch_shift_id = branch_shifts.id
+  ) AS has_receipt_image
+FROM branch_shifts
 WHERE sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id)
 ORDER BY id DESC
 LIMIT $1 OFFSET $2;

@@ -128,6 +128,7 @@
 
         <div class="shifts-content">
           <ServerSideTable
+            ref="branchTableRef"
             :api-u-r-l="`${API_BASE}/branch_shifts`"
             class="shifts-table"
             density="comfortable"
@@ -146,6 +147,17 @@
               <v-chip :color="varianceColor(item.variance_usd)" size="small" variant="tonal">
                 {{ signedMoney(item.variance_usd) }}
               </v-chip>
+            </template>
+            <template #item.receipt="{ item }">
+              <v-btn
+                v-if="item.has_receipt_image"
+                color="primary"
+                icon="mdi-camera"
+                size="small"
+                variant="text"
+                @click="openReceipt(item)"
+              />
+              <v-icon v-else class="text-disabled" icon="mdi-camera-off" size="small" />
             </template>
             <template #item.received_at="{ item }">{{ formatDate(item.received_at) }}</template>
           </ServerSideTable>
@@ -219,6 +231,31 @@
         </v-card-text>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="receiptDialog" max-width="720">
+      <v-card>
+        <v-card-title class="d-flex align-center ga-2">
+          <v-icon icon="mdi-camera" />
+          <span>Close-shift receipt</span>
+          <v-spacer />
+          <span v-if="receiptShift" class="text-caption text-medium-emphasis">
+            {{ branchName(receiptShift.branch_id) }} · {{ receiptShift.closing_person_name || '—' }}
+          </span>
+        </v-card-title>
+        <v-divider />
+        <div class="pa-2">
+          <v-alert v-if="receiptError" type="error" variant="tonal">{{ receiptError }}</v-alert>
+          <div v-else-if="receiptLoading" class="d-flex justify-center pa-8">
+            <v-progress-circular indeterminate />
+          </div>
+          <v-img v-else-if="receiptUrl" contain max-height="80vh" :src="receiptUrl" />
+        </div>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="receiptDialog = false">Close</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -230,6 +267,7 @@
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useBranches } from '@/composables/useBranches'
   import { useCashboxes } from '@/composables/useCashboxes'
+  import { useShiftReceiptImages } from '@/composables/useShiftReceiptImages'
   import { useShifts } from '@/composables/useShifts'
   import { API_BASE } from '@/config'
 
@@ -265,6 +303,7 @@
     { title: 'Expected USD', key: 'expected_usd', align: 'end', sortable: false },
     { title: 'Counted USD', key: 'counted_usd', align: 'end', sortable: false },
     { title: 'Variance USD', key: 'variance_usd', align: 'end', sortable: false },
+    { title: 'Receipt', key: 'receipt', align: 'center', sortable: false, width: 90 },
     { title: 'Received', key: 'received_at', align: 'end', sortable: false },
   ]
 
@@ -304,7 +343,43 @@
 
   const tableRef = ref(null)
   const visitorsTableRef = ref(null)
+  const branchTableRef = ref(null)
   const dialog = ref(false)
+
+  // --- Close-shift receipt photo (see api/branch_shift_receipt_image.go) ---
+  const { fetchShiftReceiptImageForShift, fetchShiftReceiptImageObjectUrl } = useShiftReceiptImages()
+  const receiptDialog = ref(false)
+  const receiptShift = ref(null)
+  const receiptUrl = ref('')
+  const receiptLoading = ref(false)
+  const receiptError = ref('')
+
+  function revokeReceiptUrl () {
+    if (receiptUrl.value) {
+      URL.revokeObjectURL(receiptUrl.value)
+      receiptUrl.value = ''
+    }
+  }
+
+  async function openReceipt (item) {
+    receiptShift.value = item
+    receiptError.value = ''
+    revokeReceiptUrl()
+    receiptDialog.value = true
+    receiptLoading.value = true
+    try {
+      const image = await fetchShiftReceiptImageForShift(item.id)
+      if (!image) {
+        receiptError.value = 'No receipt photo for this shift yet.'
+        return
+      }
+      receiptUrl.value = await fetchShiftReceiptImageObjectUrl(image.id)
+    } catch (error) {
+      receiptError.value = error.message
+    } finally {
+      receiptLoading.value = false
+    }
+  }
 
   // Live-refresh the Visitors tab when a branch reports a counter press, so
   // the per-day rollup doesn't need a manual reload. The visitors table is
@@ -326,12 +401,15 @@
     unsubscribeAdmin = onMessage(message => {
       if (message.type === 'branch_visitor_event') {
         scheduleVisitorsReload()
+      } else if (message.type === 'branch_shift_receipt_uploaded') {
+        branchTableRef.value?.reload()
       }
     })
   })
   onUnmounted(() => {
     clearTimeout(visitorReloadTimer)
     unsubscribeAdmin?.()
+    revokeReceiptUrl()
   })
   const submitting = ref(false)
   const submitError = ref('')

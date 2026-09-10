@@ -561,6 +561,21 @@ func (mr *MockStoreMockRecorder) CountBranchInvoicesFiltered(arg0, arg1 interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountBranchInvoicesFiltered", reflect.TypeOf((*MockStore)(nil).CountBranchInvoicesFiltered), arg0, arg1)
 }
 
+// CountBranchShiftReceiptImages mocks base method.
+func (m *MockStore) CountBranchShiftReceiptImages(arg0 context.Context) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountBranchShiftReceiptImages", arg0)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountBranchShiftReceiptImages indicates an expected call of CountBranchShiftReceiptImages.
+func (mr *MockStoreMockRecorder) CountBranchShiftReceiptImages(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountBranchShiftReceiptImages", reflect.TypeOf((*MockStore)(nil).CountBranchShiftReceiptImages), arg0)
+}
+
 // CountBranchShifts mocks base method.
 func (m *MockStore) CountBranchShifts(arg0 context.Context, arg1 sql.NullInt64) (int64, error) {
 	m.ctrl.T.Helper()
@@ -1429,6 +1444,36 @@ func (m *MockStore) CreateBranchShift(arg0 context.Context, arg1 db.CreateBranch
 func (mr *MockStoreMockRecorder) CreateBranchShift(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBranchShift", reflect.TypeOf((*MockStore)(nil).CreateBranchShift), arg0, arg1)
+}
+
+// CreateBranchShiftReceiptImage mocks base method.
+func (m *MockStore) CreateBranchShiftReceiptImage(arg0 context.Context, arg1 db.CreateBranchShiftReceiptImageParams) (db.BranchShiftReceiptImage, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateBranchShiftReceiptImage", arg0, arg1)
+	ret0, _ := ret[0].(db.BranchShiftReceiptImage)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateBranchShiftReceiptImage indicates an expected call of CreateBranchShiftReceiptImage.
+func (mr *MockStoreMockRecorder) CreateBranchShiftReceiptImage(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBranchShiftReceiptImage", reflect.TypeOf((*MockStore)(nil).CreateBranchShiftReceiptImage), arg0, arg1)
+}
+
+// CreateBranchShiftUploadToken mocks base method.
+func (m *MockStore) CreateBranchShiftUploadToken(arg0 context.Context, arg1 db.CreateBranchShiftUploadTokenParams) (db.BranchShiftUploadToken, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateBranchShiftUploadToken", arg0, arg1)
+	ret0, _ := ret[0].(db.BranchShiftUploadToken)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateBranchShiftUploadToken indicates an expected call of CreateBranchShiftUploadToken.
+func (mr *MockStoreMockRecorder) CreateBranchShiftUploadToken(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBranchShiftUploadToken", reflect.TypeOf((*MockStore)(nil).CreateBranchShiftUploadToken), arg0, arg1)
 }
 
 // CreateBranchTarget mocks base method.
@@ -3480,6 +3525,21 @@ func (mr *MockStoreMockRecorder) GetBranchSettings(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBranchSettings", reflect.TypeOf((*MockStore)(nil).GetBranchSettings), arg0, arg1)
 }
 
+// GetBranchShift mocks base method.
+func (m *MockStore) GetBranchShift(arg0 context.Context, arg1 int64) (db.BranchShift, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBranchShift", arg0, arg1)
+	ret0, _ := ret[0].(db.BranchShift)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBranchShift indicates an expected call of GetBranchShift.
+func (mr *MockStoreMockRecorder) GetBranchShift(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBranchShift", reflect.TypeOf((*MockStore)(nil).GetBranchShift), arg0, arg1)
+}
+
 // GetBranchShiftByClientRef mocks base method.
 func (m *MockStore) GetBranchShiftByClientRef(arg0 context.Context, arg1 db.GetBranchShiftByClientRefParams) (db.BranchShift, error) {
 	m.ctrl.T.Helper()
@@ -3493,6 +3553,51 @@ func (m *MockStore) GetBranchShiftByClientRef(arg0 context.Context, arg1 db.GetB
 func (mr *MockStoreMockRecorder) GetBranchShiftByClientRef(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBranchShiftByClientRef", reflect.TypeOf((*MockStore)(nil).GetBranchShiftByClientRef), arg0, arg1)
+}
+
+// GetBranchShiftReceiptImage mocks base method.
+func (m *MockStore) GetBranchShiftReceiptImage(arg0 context.Context, arg1 int64) (db.BranchShiftReceiptImage, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBranchShiftReceiptImage", arg0, arg1)
+	ret0, _ := ret[0].(db.BranchShiftReceiptImage)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBranchShiftReceiptImage indicates an expected call of GetBranchShiftReceiptImage.
+func (mr *MockStoreMockRecorder) GetBranchShiftReceiptImage(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBranchShiftReceiptImage", reflect.TypeOf((*MockStore)(nil).GetBranchShiftReceiptImage), arg0, arg1)
+}
+
+// GetBranchShiftReceiptImageForShift mocks base method.
+func (m *MockStore) GetBranchShiftReceiptImageForShift(arg0 context.Context, arg1 int64) (db.BranchShiftReceiptImage, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBranchShiftReceiptImageForShift", arg0, arg1)
+	ret0, _ := ret[0].(db.BranchShiftReceiptImage)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBranchShiftReceiptImageForShift indicates an expected call of GetBranchShiftReceiptImageForShift.
+func (mr *MockStoreMockRecorder) GetBranchShiftReceiptImageForShift(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBranchShiftReceiptImageForShift", reflect.TypeOf((*MockStore)(nil).GetBranchShiftReceiptImageForShift), arg0, arg1)
+}
+
+// GetBranchShiftUploadTokenByToken mocks base method.
+func (m *MockStore) GetBranchShiftUploadTokenByToken(arg0 context.Context, arg1 string) (db.BranchShiftUploadToken, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBranchShiftUploadTokenByToken", arg0, arg1)
+	ret0, _ := ret[0].(db.BranchShiftUploadToken)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBranchShiftUploadTokenByToken indicates an expected call of GetBranchShiftUploadTokenByToken.
+func (mr *MockStoreMockRecorder) GetBranchShiftUploadTokenByToken(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBranchShiftUploadTokenByToken", reflect.TypeOf((*MockStore)(nil).GetBranchShiftUploadTokenByToken), arg0, arg1)
 }
 
 // GetBranchSyncConflict mocks base method.
@@ -4770,11 +4875,26 @@ func (mr *MockStoreMockRecorder) ListBranchSalesDaysRange(arg0, arg1 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchSalesDaysRange", reflect.TypeOf((*MockStore)(nil).ListBranchSalesDaysRange), arg0, arg1)
 }
 
+// ListBranchShiftReceiptImages mocks base method.
+func (m *MockStore) ListBranchShiftReceiptImages(arg0 context.Context, arg1 db.ListBranchShiftReceiptImagesParams) ([]db.ListBranchShiftReceiptImagesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBranchShiftReceiptImages", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListBranchShiftReceiptImagesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBranchShiftReceiptImages indicates an expected call of ListBranchShiftReceiptImages.
+func (mr *MockStoreMockRecorder) ListBranchShiftReceiptImages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchShiftReceiptImages", reflect.TypeOf((*MockStore)(nil).ListBranchShiftReceiptImages), arg0, arg1)
+}
+
 // ListBranchShifts mocks base method.
-func (m *MockStore) ListBranchShifts(arg0 context.Context, arg1 db.ListBranchShiftsParams) ([]db.BranchShift, error) {
+func (m *MockStore) ListBranchShifts(arg0 context.Context, arg1 db.ListBranchShiftsParams) ([]db.ListBranchShiftsRow, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListBranchShifts", arg0, arg1)
-	ret0, _ := ret[0].([]db.BranchShift)
+	ret0, _ := ret[0].([]db.ListBranchShiftsRow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -6027,6 +6147,20 @@ func (m *MockStore) MarkBranchExpenseUploadTokenUsed(arg0 context.Context, arg1 
 func (mr *MockStoreMockRecorder) MarkBranchExpenseUploadTokenUsed(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkBranchExpenseUploadTokenUsed", reflect.TypeOf((*MockStore)(nil).MarkBranchExpenseUploadTokenUsed), arg0, arg1)
+}
+
+// MarkBranchShiftUploadTokenUsed mocks base method.
+func (m *MockStore) MarkBranchShiftUploadTokenUsed(arg0 context.Context, arg1 int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkBranchShiftUploadTokenUsed", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkBranchShiftUploadTokenUsed indicates an expected call of MarkBranchShiftUploadTokenUsed.
+func (mr *MockStoreMockRecorder) MarkBranchShiftUploadTokenUsed(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkBranchShiftUploadTokenUsed", reflect.TypeOf((*MockStore)(nil).MarkBranchShiftUploadTokenUsed), arg0, arg1)
 }
 
 // PostStockCountTx mocks base method.
