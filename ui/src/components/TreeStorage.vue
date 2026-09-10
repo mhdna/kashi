@@ -48,12 +48,12 @@
         <div class="image-grid">
           <v-card
             v-for="image in filteredImages"
-            :key="image.id"
+            :key="imageKey(image)"
             class="image-card"
             hover
             @click="openPreview(image)"
           >
-            <v-img aspect-ratio="1" cover :src="thumbnailUrls[image.id]">
+            <v-img aspect-ratio="1" cover :src="thumbnailUrls[imageKey(image)]">
               <template #placeholder>
                 <div class="d-flex align-center justify-center fill-height">
                   <v-progress-circular indeterminate size="24" />
@@ -80,7 +80,13 @@
 
     <v-dialog v-model="previewDialog" max-width="720">
       <v-card>
-        <v-img v-if="previewImage" contain max-height="80vh" :src="thumbnailUrls[previewImage.id]" />
+        <v-img v-if="previewImage" contain max-height="80vh" :src="previewUrl">
+          <template #placeholder>
+            <div class="d-flex align-center justify-center" style="min-height: 240px">
+              <v-progress-circular indeterminate size="32" />
+            </div>
+          </template>
+        </v-img>
         <v-card-text v-if="previewImage">
           <div class="text-subtitle-1">{{ source?.primaryText(previewImage) }}</div>
           <div class="text-caption text-medium-emphasis">
@@ -106,14 +112,15 @@
   const { fetchShiftReceiptImages, fetchShiftReceiptImageObjectUrl } = useShiftReceiptImages()
   const { ensureConnected, onMessage } = useAdminSocket()
 
-  // Each tree node is one image source. Adding a storage kind later is a
-  // new entry here plus its composable -- the panel below is generic.
-  const SOURCES = {
+  // One entry per real image kind. Every handler takes the whole image row
+  // so the generic panel -- and the "All" source below -- can stay kind
+  // agnostic. Adding a storage kind is a new entry here plus its composable.
+  const KINDS = {
     expenses: {
       title: 'Expense receipts',
       icon: 'mdi-receipt-text-check',
       fetchPage: fetchExpenseImages,
-      fetchObjectUrl: fetchExpenseImageObjectUrl,
+      fetchObjectUrl: (image, opts) => fetchExpenseImageObjectUrl(image.id, opts),
       refreshOn: 'branch_expense_images_uploaded',
       primaryText: image => image.expense_description,
     },
@@ -121,18 +128,45 @@
       title: 'Shift receipts',
       icon: 'mdi-camera',
       fetchPage: fetchShiftReceiptImages,
-      fetchObjectUrl: fetchShiftReceiptImageObjectUrl,
+      fetchObjectUrl: (image, opts) => fetchShiftReceiptImageObjectUrl(image.id, opts),
       refreshOn: 'branch_shift_receipt_uploaded',
       primaryText: image => `Shift #${image.shift_local_id} · ${image.closing_person_name || '—'}`,
     },
   }
 
+  const KIND_KEYS = Object.keys(KINDS)
+
+  // "All" fans one page request out to every kind, tags each row with its
+  // kind, and interleaves them newest-first. Pagination is per-kind, so a
+  // "Load more" pulls the next page from each -- ordering across page
+  // boundaries is approximate, which is fine for a photo grid.
+  const ALL = {
+    title: 'All storage',
+    icon: 'mdi-view-gallery',
+    refreshOn: KIND_KEYS.map(kind => KINDS[kind].refreshOn),
+    primaryText: image => KINDS[image.__kind].primaryText(image),
+    fetchObjectUrl: (image, opts) => KINDS[image.__kind].fetchObjectUrl(image, opts),
+    async fetchPage (pageId, pageSize) {
+      const results = await Promise.all(
+        KIND_KEYS.map(kind => KINDS[kind].fetchPage(pageId, pageSize)),
+      )
+      const merged = results.flatMap((data, index) =>
+        data.images.map(image => ({ ...image, __kind: KIND_KEYS[index] })),
+      ).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      const total = results.reduce((sum, data) => sum + data.total, 0)
+      return { images: merged, total }
+    },
+  }
+
+  const SOURCES = { all: ALL, ...KINDS }
+
   const items = [
+    { id: 'all', title: 'All', icon: 'mdi-view-gallery' },
     { id: 'expenses', title: 'Expenses', icon: 'mdi-receipt-text-check' },
     { id: 'shiftReceipts', title: 'Shift receipts', icon: 'mdi-camera' },
   ]
 
-  const activated = ref(['expenses'])
+  const activated = ref(['all'])
   const activeNode = computed(() => activated.value[0] ?? null)
   const source = computed(() => (activeNode.value ? SOURCES[activeNode.value] : null))
 
@@ -144,6 +178,18 @@
   const loading = ref(false)
   const loadError = ref('')
   const thumbnailUrls = ref({})
+  const previewUrl = ref('')
+
+  // The grid tiles are ~160px; ask the server for a long-edge-capped
+  // thumbnail (see serveStoredImage) instead of the multi-MB original, and
+  // fetch them a few at a time so the first rows paint fast.
+  const THUMB_WIDTH = 480
+  const THUMB_CONCURRENCY = 5
+
+  // Ids are only unique within a kind, so the "All" grid keys on both.
+  function imageKey (image) {
+    return image.__kind ? `${image.__kind}:${image.id}` : String(image.id)
+  }
 
   const filteredImages = computed(() => {
     const query = search.value.trim().toLowerCase()
@@ -169,16 +215,29 @@
     thumbnailUrls.value = {}
   }
 
+  function revokePreviewUrl () {
+    if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
+    previewUrl.value = ''
+  }
+
   async function loadThumbnails (rows) {
     if (!source.value) return
-    await Promise.all(rows.map(async image => {
-      if (thumbnailUrls.value[image.id]) return
-      try {
-        thumbnailUrls.value[image.id] = await source.value.fetchObjectUrl(image.id)
-      } catch {
-        // Leave it unset -- the v-img placeholder just stays put.
+    const pending = rows.filter(image => !thumbnailUrls.value[imageKey(image)])
+    let cursor = 0
+    async function worker () {
+      while (cursor < pending.length) {
+        const image = pending[cursor++]
+        const key = imageKey(image)
+        try {
+          thumbnailUrls.value[key] = await source.value.fetchObjectUrl(image, { width: THUMB_WIDTH })
+        } catch {
+          // Leave it unset -- the v-img placeholder just stays put.
+        }
       }
-    }))
+    }
+    await Promise.all(
+      Array.from({ length: Math.min(THUMB_CONCURRENCY, pending.length) }, worker),
+    )
   }
 
   async function loadImages ({ reset = false } = {}) {
@@ -203,9 +262,16 @@
     loadImages()
   }
 
-  function openPreview (image) {
+  async function openPreview (image) {
     previewImage.value = image
     previewDialog.value = true
+    revokePreviewUrl()
+    try {
+      previewUrl.value = await source.value.fetchObjectUrl(image)
+    } catch {
+      // Fall back to the already-loaded thumbnail rather than a blank dialog.
+      previewUrl.value = thumbnailUrls.value[imageKey(image)] ?? ''
+    }
   }
 
   function resetAndLoad () {
@@ -217,15 +283,24 @@
     loadImages({ reset: true })
   }
 
+  function refreshMatches (messageType) {
+    const on = source.value?.refreshOn
+    return Array.isArray(on) ? on.includes(messageType) : on === messageType
+  }
+
   watch(activeNode, () => {
     if (source.value) resetAndLoad()
+  })
+
+  watch(previewDialog, open => {
+    if (!open) revokePreviewUrl()
   })
 
   onMounted(() => {
     if (source.value) loadImages({ reset: true })
     ensureConnected()
     unsubscribe = onMessage(message => {
-      if (source.value && message.type === source.value.refreshOn) {
+      if (source.value && refreshMatches(message.type)) {
         pageId.value = 0
         loadImages({ reset: true })
       }
@@ -235,6 +310,7 @@
   onUnmounted(() => {
     unsubscribe?.()
     revokeThumbnails()
+    revokePreviewUrl()
   })
 </script>
 
