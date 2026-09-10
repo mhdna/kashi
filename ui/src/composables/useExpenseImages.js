@@ -25,8 +25,9 @@ export function useExpenseImages () {
   // as a blob and handed back as an object URL the caller can bind
   // directly -- same Bearer-token gate as every other admin endpoint,
   // rather than a separate unauthenticated static route.
-  async function fetchExpenseImageObjectUrl (imageId) {
-    const res = await authFetch(`${API_BASE}/branch_expense_images/${imageId}/file`)
+  async function fetchExpenseImageObjectUrl (imageId, { width } = {}) {
+    const q = width ? `?w=${width}` : ''
+    const res = await authFetch(`${API_BASE}/branch_expense_images/${imageId}/file${q}`)
     if (!res.ok) {
       throw new Error(`Failed to load image ${imageId}`)
     }

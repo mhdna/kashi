@@ -39,8 +39,9 @@ export function useShiftReceiptImages () {
   // <img src> can't carry an Authorization header, so the file is fetched
   // as a blob and handed back as an object URL the caller can bind
   // directly.
-  async function fetchShiftReceiptImageObjectUrl (imageId) {
-    const res = await authFetch(`${API_BASE}/branch_shift_receipt_images/${imageId}/file`)
+  async function fetchShiftReceiptImageObjectUrl (imageId, { width } = {}) {
+    const q = width ? `?w=${width}` : ''
+    const res = await authFetch(`${API_BASE}/branch_shift_receipt_images/${imageId}/file${q}`)
     if (!res.ok) {
       throw new Error(`Failed to load image ${imageId}`)
     }
