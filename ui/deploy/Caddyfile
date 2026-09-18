@@ -1,0 +1,25 @@
+# /etc/caddy/Caddyfile on the example.com droplet (<server-ip>).
+# Caddy runs as user `caddy` and gets a Let's Encrypt cert automatically
+# as long as example.com's A record points here.
+
+example.com {
+	encode zstd gzip
+
+	# API: browser calls /api/..., the Go server sees /... on :8090
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy 127.0.0.1:8090
+	}
+
+	# SPA: serve the built files, fall back to index.html for client routes
+	handle {
+		root * /var/www/kashi-ui
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+# Optional: uncomment once www.example.com has an A record.
+# www.example.com {
+# 	redir https://example.com{uri} permanent
+# }

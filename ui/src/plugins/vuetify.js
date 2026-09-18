@@ -14,6 +14,7 @@ import {
   VIconBtn,
 } from 'vuetify/components'
 import { VCommandPalette } from 'vuetify/labs/VCommandPalette'
+import { VHeatmap } from 'vuetify/labs/VHeatmap'
 
 import { aliases, mdi } from './icons'
 // Styles
@@ -82,6 +83,7 @@ export default createVuetify({
   components: {
     VIconBtn,
     VCommandPalette,
+    VHeatmap,
     VFileUpload,
     VFileUploadDropzone,
     VFileUploadItem,

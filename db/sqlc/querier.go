@@ -543,6 +543,21 @@ type Querier interface {
 	ListCashboxAccounts(ctx context.Context, arg ListCashboxAccountsParams) ([]CashboxAccount, error)
 	ListCashboxAccountsUpdatedSince(ctx context.Context, updatedAt time.Time) ([]CashboxAccount, error)
 	ListCashboxes(ctx context.Context, arg ListCashboxesParams) ([]Cashbox, error)
+	// Whole-population feed for the loyalty page, which buckets every client
+	// into a front-end tier by total_spent and so needs all of them, not a
+	// page. ListClientsBySpending can't serve that: its aggregation scans all
+	// invoices/branch_invoices on every call, so paging 25k clients through it
+	// re-runs that scan once per page. This runs it once and returns only the
+	// five columns the loyalty page reads, so the payload stays small even at
+	// tens of thousands of rows.
+	//
+	// Same two sources and sign conventions as ListClientsBySpending (see the
+	// comment there); item_count and the branch_id/search filters are dropped
+	// -- nothing on the loyalty page uses them, and dropping item_count also
+	// drops the two line-item joins whose row fan-out made the DISTINCTs
+	// necessary (kept anyway, so a non-unique sales_invoices/client_links row
+	// can't inflate a count).
+	ListClientSpendingSummary(ctx context.Context, clientType sql.NullString) ([]ListClientSpendingSummaryRow, error)
 	// sqlc.narg(client_type) is nullable: NULL means "all types" -- the admin
 	// clients page passes it when a Retail/Wholesale tab is selected, and
 	// omits it for a combined view if one is ever added.
@@ -657,6 +672,18 @@ type Querier interface {
 	ListPriceListItemsWithProduct(ctx context.Context, arg ListPriceListItemsWithProductParams) ([]ListPriceListItemsWithProductRow, error)
 	ListPriceLists(ctx context.Context, arg ListPriceListsParams) ([]PriceList, error)
 	ListProductAttributes(ctx context.Context, arg ListProductAttributesParams) ([]ProductsAttribute, error)
+	// Revenue per product from kashi's own admin sales invoices (invoice_products
+	// joined through sales_invoices, so returns don't count as revenue). Branch
+	// (POS) sales can't be included here: branch_invoice_items.branch_product_id
+	// is a branch-local id with no FK into products, so it has no category/
+	// subcategory/brand to filter or group by -- see 000025_create_branch_invoices
+	// .up.sql. category/subcategory/brand are the EAV attributes seeded in
+	// 000005_create_products_attributes_table (ids 0/1/2), joined once per
+	// attribute the same way ListProductVariantsForSync does.
+	ListProductRevenue(ctx context.Context, arg ListProductRevenueParams) ([]ListProductRevenueRow, error)
+	// Same scope and filters as ListProductRevenue, rolled up by local calendar
+	// day instead of by product -- the trend line for the Product Revenues page.
+	ListProductRevenueDaily(ctx context.Context, arg ListProductRevenueDailyParams) ([]ListProductRevenueDailyRow, error)
 	ListProductVariants(ctx context.Context, arg ListProductVariantsParams) ([]ListProductVariantsRow, error)
 	ListProductVariantsByProduct(ctx context.Context, productID int64) ([]ProductVariant, error)
 	// Flattened for kashi-pos, which has no separate "product" row -- each

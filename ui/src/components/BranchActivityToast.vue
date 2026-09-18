@@ -1,33 +1,32 @@
 <template>
   <!-- A fixed reel pinned to the bottom-right corner. Up to MAX_VISIBLE
-       toasts sit side by side, newest nearest the corner; extras queue and
+       toasts stack vertically, newest nearest the corner; extras queue and
        slot in as older ones dismiss. Replaces v-snackbar-queue, which only
        ever showed one at a time. -->
   <div class="activity-reel">
-    <TransitionGroup class="d-flex align-end ga-2" name="toast" tag="div">
+    <TransitionGroup class="d-flex flex-column align-end ga-2" name="toast" tag="div">
       <v-card
         v-for="item in activeItems"
         :key="item.id"
-        class="activity-toast d-flex align-center ga-2 pa-3"
-        color="surface-light"
+        class="activity-toast d-flex align-center ga-2"
+        :color="item.tone"
+        variant="flat"
       >
-        <v-icon :icon="item.icon" size="20" />
-        <div class="text-body-2">
+        <div class="activity-toast__text text-caption">
           <template v-if="item.money">
             {{ item.branchName }}:
             <v-icon
-              :class="item.colorClass"
               :icon="item.trendIcon"
-              size="18"
+              size="14"
               style="vertical-align: text-bottom"
             />
-            <span :class="item.colorClass">{{ item.amountText }}</span> {{ item.currencyCode }} {{ item.kindWord }}
+            <span class="font-weight-medium">{{ item.amountText }}</span> {{ item.currencyCode }} {{ item.kindWord }}
           </template>
           <template v-else>{{ item.text }}</template>
         </div>
         <v-btn
-          class="ms-1"
-          density="comfortable"
+          class="flex-shrink-0"
+          density="compact"
           icon="mdi-close"
           size="x-small"
           variant="text"
@@ -64,12 +63,6 @@
     return branches.value.find(b => b.id === branchId)?.name ?? `Branch #${branchId}`
   }
 
-  function amountColorClass (amount) {
-    if (amount > 0) return 'text-green'
-    if (amount < 0) return 'text-red'
-    return 'text-yellow'
-  }
-
   function removeItem (id) {
     clearTimeout(itemTimers.get(id))
     itemTimers.delete(id)
@@ -82,8 +75,8 @@
     if (!described) return
     const item = {
       id: ++itemSeq,
-      icon: described.icon,
       money: described.money,
+      tone: described.tone ?? described.color,
       text: described.text,
       // Money-layout fields (only read when described.money is true).
       trendIcon: described.trendIcon,
@@ -91,7 +84,6 @@
       amountText: formatMoney(message.amount),
       currencyCode: message.currency_code,
       kindWord: described.kindWord,
-      colorClass: amountColorClass(message.amount),
     }
     activeItems.value.push(item)
     itemTimers.set(item.id, setTimeout(() => removeItem(item.id), settingsStore.activityMessageSeconds * 1000))
@@ -126,8 +118,19 @@
 }
 
 .activity-toast {
-  max-width: 340px;
+  width: 380px;
+  padding: 14px 10px 14px 14px;
+  border-radius: 6px;
   pointer-events: auto;
+}
+
+.activity-toast__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .toast-enter-active,
@@ -137,7 +140,7 @@
 
 .toast-enter-from,
 .toast-leave-to {
-  transform: translateY(12px);
+  transform: translateX(12px);
   opacity: 0;
 }
 

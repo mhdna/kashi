@@ -24,7 +24,7 @@ export function useBranchVisitors () {
     const url = new URL(`${API_BASE}/branch_visitor_events`)
     url.searchParams.set('page_size', String(Math.min(pageSize, 100)))
     url.searchParams.set('page_id', '0')
-    if (branchId) url.searchParams.set('branch_id', String(branchId))
+    if (branchId) {url.searchParams.set('branch_id', String(branchId))}
     const data = await requestJSON(url.toString())
     return data?.visitor_days ?? []
   }
@@ -36,7 +36,7 @@ export function useBranchVisitors () {
     const url = new URL(`${API_BASE}/branch_visitor_stats`)
     url.searchParams.set('from', from)
     url.searchParams.set('to', to)
-    if (branchId) url.searchParams.set('branch_id', String(branchId))
+    if (branchId) {url.searchParams.set('branch_id', String(branchId))}
     const data = await requestJSON(url.toString())
     return data?.visitor_days ?? []
   }

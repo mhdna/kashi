@@ -26,15 +26,15 @@
       </v-card>
     </template>
 
-    <v-card max-width="400" min-width="300">
-      <v-card-title class="text-subtitle-1 d-flex align-center">
-        Upcoming events
+    <v-card class="menu-card" max-width="400" min-width="300">
+      <v-card-title class="d-flex align-center ga-2 py-2">
+        <span class="text-subtitle-2">Upcoming events</span>
         <v-spacer />
         <span class="text-caption text-medium-emphasis">next {{ menuLabel }}</span>
       </v-card-title>
       <v-divider />
 
-      <v-list v-if="events.length > 0" density="compact" lines="two">
+      <v-list v-if="events.length > 0" class="menu-scroll" density="compact" lines="two">
         <v-list-item
           v-for="event in events"
           :key="`${event.name}-${event.start.getTime()}`"
@@ -187,5 +187,17 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: min(32vw, 340px);
+}
+
+/* Keep the dropdown from growing past a comfortable height -- the list
+   scrolls inside instead. */
+.menu-card {
+  display: flex;
+  flex-direction: column;
+  max-height: min(60vh, 420px);
+}
+
+.menu-scroll {
+  overflow-y: auto;
 }
 </style>

@@ -116,6 +116,33 @@ func (server *Server) listClients(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"clients": clients, "total": total})
 }
 
+type listClientSpendingSummaryRequest struct {
+	ClientType string `form:"client_type" binding:"omitempty,oneof=retail wholesale"`
+}
+
+// listClientSpendingSummary is the loyalty page's data source: every client
+// with just the columns that page buckets by (spend, invoices, points, join
+// date), ranked by spend, in one pass. The page tiers the whole population
+// client-side, so it needs all rows -- paging it through
+// listClientsBySpending re-ran that endpoint's full invoice aggregation once
+// per page.
+func (server *Server) listClientSpendingSummary(ctx *gin.Context) {
+	var req listClientSpendingSummaryRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	clients, err := server.store.ListClientSpendingSummary(ctx,
+		sql.NullString{String: req.ClientType, Valid: req.ClientType != ""})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"clients": clients, "total": len(clients)})
+}
+
 type listClientsBySpendingRequest struct {
 	PageSize   int32  `form:"page_size,default=20" binding:"min=1,max=100"`
 	PageID     int32  `form:"page_id,default=0" binding:"min=0"`

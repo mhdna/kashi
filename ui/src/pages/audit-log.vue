@@ -59,6 +59,7 @@
         <div class="pa-4">
           <ServerSideTable
             :api-u-r-l="apiURL"
+            :default-items-per-page="15"
             density="comfortable"
             flush
             :headers="headers"

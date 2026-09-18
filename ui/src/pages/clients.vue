@@ -50,7 +50,7 @@
     </v-card>
   </v-dialog>
 
-  <div class="clients-toolbar d-flex flex-wrap align-center justify-space-between ga-3 mb-4">
+  <div class="clients-toolbar d-flex flex-wrap align-center justify-space-between ga-3 mb-2">
     <v-tabs v-model="tab" color="primary">
       <v-tab value="retail">Retail</v-tab>
       <v-tab value="wholesale">Wholesale</v-tab>

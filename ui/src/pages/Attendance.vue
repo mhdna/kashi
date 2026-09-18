@@ -53,8 +53,8 @@
       </v-alert>
 
       <v-alert v-if="!branchId" class="notice ma-4" type="info" variant="tonal">
-        Attendance punches sync from kashi-pos automatically. Pick a branch to review them,
-        or import a CSV (<code>date,time,name,type,status,user_id</code>) for a branch with no device.
+        Pick a branch to review its punches, or import a CSV
+        (<code>date,time,name,type,status,user_id</code>).
       </v-alert>
 
       <ServerSideTable

@@ -82,110 +82,110 @@
           :items-per-page="-1"
           :loading="loading"
         >
-      <template #item="{ item }">
-        <tr class="text-no-wrap text-center">
-          <td class="text-start">{{ item.name }}</td>
-          <td>{{ branchName(item.branch_id) }}</td>
-          <td>{{ item.role || '—' }}</td>
+          <template #item="{ item }">
+            <tr class="text-no-wrap text-center">
+              <td class="text-start">{{ item.name }}</td>
+              <td>{{ branchName(item.branch_id) }}</td>
+              <td>{{ item.role || '—' }}</td>
 
-          <!-- Base salary: never colorized (per requirements) -->
-          <td class="text-end">
-            <v-text-field
-              v-if="editing"
-              v-model="draft[item.id].base"
-              density="compact"
-              hide-details
-              prefix="$"
-              style="min-width: 90px"
-              type="number"
-              variant="plain"
-            />
-            <template v-else>{{ money(item.base_salary_cents) }}</template>
-          </td>
+              <!-- Base salary: never colorized (per requirements) -->
+              <td class="text-end">
+                <v-text-field
+                  v-if="editing"
+                  v-model="draft[item.id].base"
+                  density="compact"
+                  hide-details
+                  prefix="$"
+                  style="min-width: 90px"
+                  type="number"
+                  variant="plain"
+                />
+                <template v-else>{{ money(item.base_salary_cents) }}</template>
+              </td>
 
-          <!-- Commission: green when positive -->
-          <td class="text-end" :class="commissionClass(item)">
-            <v-text-field
-              v-if="editing"
-              v-model="draft[item.id].commission"
-              density="compact"
-              hide-details
-              prefix="$"
-              style="min-width: 90px"
-              type="number"
-              variant="plain"
-            />
-            <template v-else>{{ money(item.commission_cents) }}</template>
-          </td>
+              <!-- Commission: green when positive -->
+              <td class="text-end" :class="commissionClass(item)">
+                <v-text-field
+                  v-if="editing"
+                  v-model="draft[item.id].commission"
+                  density="compact"
+                  hide-details
+                  prefix="$"
+                  style="min-width: 90px"
+                  type="number"
+                  variant="plain"
+                />
+                <template v-else>{{ money(item.commission_cents) }}</template>
+              </td>
 
-          <!-- Late deduction rate x units: amber when any lateness -->
-          <td :class="lateClass(item)">
-            <div v-if="editing" class="d-flex align-center ga-1 justify-center">
-              <v-text-field
-                v-model="draft[item.id].rate"
-                density="compact"
-                hide-details
-                prefix="$"
-                style="min-width: 70px"
-                type="number"
-                variant="plain"
-              />
-              <span>/</span>
-              <v-select
-                v-model="draft[item.id].unit"
-                density="compact"
-                hide-details
-                :items="['hour', 'day']"
-                style="min-width: 74px"
-                variant="plain"
-              />
-              <span class="mx-1">×</span>
-              <v-text-field
-                v-model="draft[item.id].units"
-                density="compact"
-                hide-details
-                style="min-width: 60px"
-                :suffix="draft[item.id].unit === 'day' ? 'd' : 'h'"
-                type="number"
-                variant="plain"
-              />
-            </div>
-            <template v-else>
-              {{ money(item.late_deduction_rate_cents) }}/{{ item.late_deduction_unit }}
-              × {{ unitsLabel(item) }}
-            </template>
-          </td>
+              <!-- Late deduction rate x units: amber when any lateness -->
+              <td :class="lateClass(item)">
+                <div v-if="editing" class="d-flex align-center ga-1 justify-center">
+                  <v-text-field
+                    v-model="draft[item.id].rate"
+                    density="compact"
+                    hide-details
+                    prefix="$"
+                    style="min-width: 70px"
+                    type="number"
+                    variant="plain"
+                  />
+                  <span>/</span>
+                  <v-select
+                    v-model="draft[item.id].unit"
+                    density="compact"
+                    hide-details
+                    :items="['hour', 'day']"
+                    style="min-width: 74px"
+                    variant="plain"
+                  />
+                  <span class="mx-1">×</span>
+                  <v-text-field
+                    v-model="draft[item.id].units"
+                    density="compact"
+                    hide-details
+                    style="min-width: 60px"
+                    :suffix="draft[item.id].unit === 'day' ? 'd' : 'h'"
+                    type="number"
+                    variant="plain"
+                  />
+                </div>
+                <template v-else>
+                  {{ money(item.late_deduction_rate_cents) }}/{{ item.late_deduction_unit }}
+                  × {{ unitsLabel(item) }}
+                </template>
+              </td>
 
-          <!-- Deduction: red when positive -->
-          <td class="text-end" :class="deductionClass(item)" v-text="`-${money(deductionOf(item))}`" />
+              <!-- Deduction: red when positive -->
+              <td class="text-end" :class="deductionClass(item)" v-text="`-${money(deductionOf(item))}`" />
 
-          <!-- Net salary: colorized background by ratio to base -->
-          <td class="text-end font-weight-medium" :class="netClass(item)" v-text="money(netOf(item))" />
+              <!-- Net salary: colorized background by ratio to base -->
+              <td class="text-end font-weight-medium" :class="netClass(item)" v-text="money(netOf(item))" />
 
-          <td>
-            <v-chip
-              :color="item.status === 'active' ? 'success' : 'default'"
-              size="x-small"
-              :text="item.status"
-            />
-          </td>
-          <td class="text-end">
-            <v-btn
-              icon="mdi-pencil"
-              size="x-small"
-              variant="text"
-              @click="openEdit(item)"
-            />
-            <v-btn
-              color="error"
-              icon="mdi-delete"
-              size="x-small"
-              variant="text"
-              @click="remove(item)"
-            />
-          </td>
-        </tr>
-      </template>
+              <td>
+                <v-chip
+                  :color="item.status === 'active' ? 'success' : 'default'"
+                  size="x-small"
+                  :text="item.status"
+                />
+              </td>
+              <td class="text-end">
+                <v-btn
+                  icon="mdi-pencil"
+                  size="x-small"
+                  variant="text"
+                  @click="openEdit(item)"
+                />
+                <v-btn
+                  color="error"
+                  icon="mdi-delete"
+                  size="x-small"
+                  variant="text"
+                  @click="remove(item)"
+                />
+              </td>
+            </tr>
+          </template>
         </v-data-table>
       </div>
     </v-card>

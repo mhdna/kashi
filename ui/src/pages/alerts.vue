@@ -8,238 +8,193 @@
           <v-chip filter size="small" variant="tonal">Active</v-chip>
           <v-chip filter size="small" variant="tonal">
             Ignored
-            <v-badge v-if="ignoredCount" class="ml-2" color="grey" :content="ignoredCount" inline />
+            <v-badge
+              v-if="ignoredCount"
+              class="ml-2"
+              color="grey"
+              :content="ignoredCount"
+              inline
+            />
           </v-chip>
         </v-chip-group>
         <v-spacer />
-        <v-text-field
-          v-model="search"
-          class="alerts-search"
-          clearable
-          density="compact"
-          hide-details
-          label="Search products"
-          prepend-inner-icon="mdi-magnify"
-          variant="outlined"
-        />
-        <v-text-field
-          v-model.number="defaultThresholdInput"
-          density="compact"
-          hide-details
-          label="Default threshold"
-          style="max-width: 180px"
-          type="number"
-          variant="outlined"
-          @keyup.enter="saveDefaultThreshold"
+        <v-btn
+          prepend-icon="mdi-cog-outline"
+          variant="text"
+          @click="defaultDialog = true"
         >
-          <template #append-inner>
-            <v-icon-btn
-              v-if="defaultThresholdDirty"
-              icon="mdi-check"
-              :loading="savingDefault"
-              size="small"
-              variant="text"
-              @click="saveDefaultThreshold"
-            />
-          </template>
-        </v-text-field>
+          Default threshold: {{ defaultThresholdSaved ?? '—' }}
+        </v-btn>
       </v-card-title>
       <v-divider />
 
       <div class="alerts-content">
-        <div class="pa-4">
-          <!-- Click a card to filter the table below to that bucket -->
-          <v-row v-if="!showIgnored" class="mb-2" dense>
-            <v-col v-for="kpi in kpis" :key="kpi.bucket" cols="12" sm="4">
-              <v-card
-                class="summary-card kpi"
-                :class="{ 'kpi--active': bucket === kpi.bucket }"
-                :color="kpi.color"
-                variant="tonal"
-                @click="toggleBucket(kpi.bucket)"
-              >
-                <v-card-item>
-                  <template #prepend>
-                    <v-avatar :color="kpi.color" variant="tonal">
-                      <v-icon :icon="kpi.icon" />
-                    </v-avatar>
-                  </template>
-                  <v-card-title class="text-h4">{{ kpi.value ?? '—' }}</v-card-title>
-                  <v-card-subtitle>{{ kpi.label }}</v-card-subtitle>
-                </v-card-item>
-              </v-card>
+        <div class="pa-4 alerts-body">
+          <!-- Active view: Out of Stock and Low Stock side by side, each an
+            infinite-scroll column with its own search. Tap a row to edit its
+            threshold or mute it. -->
+          <v-row class="alerts-columns" density="compact">
+            <template v-if="!showIgnored">
+              <v-col cols="12" md="6">
+                <AlertList
+                  ref="outListRef"
+                  color="error"
+                  empty-text="Nothing is out of stock."
+                  :endpoint="activeURL"
+                  icon="mdi-close-circle"
+                  status="out_of_stock"
+                  title="Out of Stock"
+                  @select="item => openEdit(item, false)"
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <AlertList
+                  ref="lowListRef"
+                  color="warning"
+                  empty-text="Nothing is running low."
+                  :endpoint="activeURL"
+                  icon="mdi-alert"
+                  status="low_stock"
+                  title="Low Stock"
+                  @select="item => openEdit(item, false)"
+                />
+              </v-col>
+            </template>
+            <v-col v-else cols="12">
+              <AlertList
+                ref="ignoredListRef"
+                color="grey"
+                empty-text="No ignored products."
+                :endpoint="ignoredURL"
+                icon="mdi-bell-off-outline"
+                title="Ignored Products"
+                @select="item => openEdit(item, true)"
+              />
             </v-col>
           </v-row>
-
-          <v-alert v-if="showIgnored" class="mb-2" density="compact" type="info" variant="tonal">
-            These products are excluded from low-stock alerts. Unmute one to start tracking it again.
-          </v-alert>
-
-          <ServerSideTable
-            :key="showIgnored"
-            ref="tableRef"
-            :api-u-r-l="apiURL"
-            density="comfortable"
-            :external-search="search"
-            flush
-            :headers="headers"
-            hover
-            :query-params="showIgnored ? {} : { status: bucket === 'all' ? null : bucket }"
-            root-key="products"
-            :show-search-icon="false"
-          >
-            <template #item.name="{ item }">
-              <div class="d-flex align-center ga-2">
-                <v-icon
-                  v-if="!showIgnored"
-                  :color="item.on_hand <= 0 ? 'error' : 'warning'"
-                  :icon="item.on_hand <= 0 ? 'mdi-close-circle' : 'mdi-alert'"
-                  size="small"
-                />
-                <v-icon v-else color="grey" icon="mdi-bell-off-outline" size="small" />
-                <div>
-                  <div>{{ item.name }}</div>
-                  <div class="text-caption text-medium-emphasis">{{ item.code }}</div>
-                </div>
-              </div>
-            </template>
-            <template #item.on_hand="{ item }">
-              <span :class="item.on_hand <= 0 ? 'text-error font-weight-bold' : 'text-warning font-weight-bold'">
-                {{ item.on_hand }}
-              </span>
-            </template>
-            <template #item.threshold="{ item }">
-              <div class="d-flex align-center ga-1">
-                <v-text-field
-                  :model-value="displayThreshold(item)"
-                  density="compact"
-                  hide-details
-                  reverse
-                  style="max-width: 90px"
-                  type="number"
-                  @keyup.enter="saveThreshold(item)"
-                  @update:model-value="v => (thresholdInputs[item.id] = v)"
-                />
-                <v-icon-btn
-                  v-if="thresholdDirty(item)"
-                  icon="mdi-check"
-                  :loading="savingId === item.id"
-                  size="small"
-                  variant="text"
-                  @click="saveThreshold(item)"
-                />
-                <v-chip v-if="!hasOverride(item)" class="ml-1" size="x-small" variant="tonal">default</v-chip>
-                <v-icon-btn
-                  v-else
-                  icon="mdi-restore"
-                  size="small"
-                  title="Reset to default"
-                  variant="text"
-                  @click="clearThreshold(item)"
-                />
-              </div>
-            </template>
-            <template #item.status="{ item }">
-              <v-chip :color="item.on_hand <= 0 ? 'error' : 'warning'" size="small">
-                {{ item.on_hand <= 0 ? 'Out of Stock' : 'Low Stock' }}
-              </v-chip>
-            </template>
-            <template #item.mute="{ item }">
-              <v-icon-btn
-                v-if="!showIgnored"
-                icon="mdi-bell-off-outline"
-                :loading="mutingId === item.id"
-                size="small"
-                title="Don't alert on this product"
-                variant="text"
-                @click="muteProduct(item)"
-              />
-              <v-icon-btn
-                v-else
-                icon="mdi-bell-outline"
-                :loading="mutingId === item.id"
-                size="small"
-                title="Resume alerting on this product"
-                variant="text"
-                @click="unmuteProduct(item)"
-              />
-            </template>
-          </ServerSideTable>
         </div>
       </div>
     </v-card>
+
+    <v-dialog v-model="defaultDialog" max-width="380">
+      <v-card>
+        <v-card-title class="d-flex align-center justify-space-between ga-2">
+          Default low-stock threshold
+          <v-icon-btn icon="mdi-close" variant="text" @click="defaultDialog = false" />
+        </v-card-title>
+        <v-card-text>
+          <p class="text-caption text-medium-emphasis mb-4">
+            Applied to every product that has no threshold of its own.
+          </p>
+          <v-text-field
+            v-model.number="defaultThresholdInput"
+            density="compact"
+            hide-details
+            label="Threshold"
+            min="0"
+            type="number"
+            variant="outlined"
+            @keyup.enter="saveDefaultThreshold"
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn text="Cancel" variant="text" @click="defaultDialog = false" />
+          <v-btn
+            color="primary"
+            :disabled="!defaultThresholdDirty"
+            :loading="savingDefault"
+            text="Save"
+            @click="saveDefaultThreshold"
+          />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="editOpen" max-width="420">
+      <v-card v-if="editItem">
+        <v-card-title class="d-flex align-center justify-space-between ga-2">
+          <span class="text-truncate">{{ editItem.name }}</span>
+          <v-icon-btn icon="mdi-close" variant="text" @click="editOpen = false" />
+        </v-card-title>
+        <v-card-text>
+          <div class="text-caption text-medium-emphasis mb-4">
+            {{ editItem.code }} · On hand: {{ editItem.on_hand }}
+          </div>
+          <v-text-field
+            v-model.number="editThreshold"
+            density="compact"
+            hide-details
+            label="Low-stock threshold"
+            min="0"
+            type="number"
+            variant="outlined"
+          />
+          <div class="text-caption text-medium-emphasis mt-2">
+            {{ editHasOverride
+              ? 'Custom threshold set for this product.'
+              : `Currently using the default (${defaultThresholdSaved ?? '—'}).` }}
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn
+            v-if="editHasOverride"
+            :loading="editSaving"
+            text="Reset to default"
+            variant="text"
+            @click="resetEditThreshold"
+          />
+          <v-spacer />
+          <v-btn
+            :loading="editMuting"
+            :prepend-icon="editMuted ? 'mdi-bell-outline' : 'mdi-bell-off-outline'"
+            :text="editMuted ? 'Resume alerts' : 'Mute alerts'"
+            variant="tonal"
+            @click="toggleEditMute"
+          />
+          <v-btn color="primary" :loading="editSaving" text="Save" @click="saveEditThreshold" />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, reactive, ref } from 'vue'
-  import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
+  import { computed, onMounted, ref } from 'vue'
+  import AlertList from '@/components/Alerts/AlertList.vue'
   import { useAppSettings } from '@/composables/useAppSettings'
   import { useLowStockAlerts } from '@/composables/useLowStockAlerts'
   import { API_BASE } from '@/config'
 
   const { getAppSettings } = useAppSettings()
-  const { fetchSummary, fetchIgnoredCount, setProductThreshold, setDefaultThreshold, setAlertsEnabled } = useLowStockAlerts()
+  const { fetchIgnoredCount, setProductThreshold, setDefaultThreshold, setAlertsEnabled } = useLowStockAlerts()
 
-  const search = ref('')
-  const tableRef = ref(null)
+  const activeURL = `${API_BASE}/low_stock`
+  const ignoredURL = `${API_BASE}/low_stock/ignored`
 
   const viewIndex = ref(0)
   const showIgnored = computed(() => viewIndex.value === 1)
-  const apiURL = computed(() => `${API_BASE}${showIgnored.value ? '/low_stock/ignored' : '/low_stock'}`)
 
-  const headers = computed(() => showIgnored.value
-    ? [
-      { title: 'Product', key: 'name', sortable: false },
-      { title: 'On Hand', key: 'on_hand', align: 'end', sortable: false },
-      { title: '', key: 'mute', align: 'end', sortable: false, width: 56 },
-    ]
-    : [
-      { title: 'Product', key: 'name', sortable: false },
-      { title: 'On Hand', key: 'on_hand', align: 'end', sortable: false },
-      { title: 'Threshold', key: 'threshold', align: 'end', sortable: false, width: 220 },
-      { title: 'Status', key: 'status', sortable: false },
-      { title: '', key: 'mute', align: 'end', sortable: false, width: 56 },
-    ])
+  const outListRef = ref(null)
+  const lowListRef = ref(null)
+  const ignoredListRef = ref(null)
 
-  const summary = ref({})
+  function refreshLists () {
+    outListRef.value?.reload()
+    lowListRef.value?.reload()
+    ignoredListRef.value?.reload()
+    loadIgnoredCount()
+  }
+
   const ignoredCount = ref(0)
-  async function loadSummary () {
+
+  async function loadIgnoredCount () {
     try {
-      summary.value = await fetchSummary() ?? {}
+      ignoredCount.value = await fetchIgnoredCount()
     } catch {
-      summary.value = {}
+      ignoredCount.value = 0
     }
   }
-
-  const bucket = ref('all')
-  function toggleBucket (b) {
-    bucket.value = bucket.value === b ? 'all' : b
-  }
-
-  const kpis = computed(() => [
-    {
-      bucket: 'out_of_stock',
-      label: 'Out of Stock',
-      icon: 'mdi-close-circle-outline',
-      color: 'error',
-      value: summary.value.out_of_stock_count,
-    },
-    {
-      bucket: 'low_stock',
-      label: 'Low Stock',
-      icon: 'mdi-alert-outline',
-      color: 'warning',
-      value: summary.value.low_stock_count,
-    },
-    {
-      bucket: 'all',
-      label: 'Active Products Monitored',
-      icon: 'mdi-package-variant',
-      color: 'primary',
-      value: summary.value.total_products,
-    },
-  ])
 
   const defaultThresholdInput = ref(null)
   const defaultThresholdSaved = ref(null)
@@ -248,6 +203,7 @@
     && Number(defaultThresholdInput.value) !== Number(defaultThresholdSaved.value),
   )
   const savingDefault = ref(false)
+  const defaultDialog = ref(false)
 
   async function loadDefaultThreshold () {
     try {
@@ -266,16 +222,15 @@
     try {
       const settings = await setDefaultThreshold(Number(defaultThresholdInput.value))
       defaultThresholdSaved.value = settings?.default_low_stock_threshold ?? defaultThresholdInput.value
-      tableRef.value?.reload()
-      loadSummary()
+      defaultDialog.value = false
+      refreshLists()
     } finally {
       savingDefault.value = false
     }
   }
 
   // Go's sql.NullInt64 marshals as {Int64, Valid} (no json tags on that
-  // type) -- mirrors the nullableString/displayUnitCost pattern used
-  // elsewhere in this app for the same reason.
+  // type) -- mirrors the nullableString pattern used elsewhere in this app.
   function nullableInt (value) {
     if (value == null) return null
     if (typeof value !== 'object') return value
@@ -284,85 +239,59 @@
     return value.Int64 ?? value.int64 ?? null
   }
 
-  function hasOverride (item) {
-    return nullableInt(item.low_stock_threshold) != null
+  const editOpen = ref(false)
+  const editItem = ref(null)
+  const editMuted = ref(false)
+  const editThreshold = ref(null)
+  const editSaving = ref(false)
+  const editMuting = ref(false)
+
+  const editHasOverride = computed(() => nullableInt(editItem.value?.low_stock_threshold) != null)
+
+  function openEdit (item, muted) {
+    editItem.value = item
+    editMuted.value = muted
+    editThreshold.value = nullableInt(item.low_stock_threshold) ?? item.effective_threshold ?? defaultThresholdSaved.value
+    editOpen.value = true
   }
 
-  function displayThreshold (item) {
-    if (thresholdInputs[item.id] != null) return thresholdInputs[item.id]
-    return nullableInt(item.low_stock_threshold) ?? item.effective_threshold
-  }
-
-  const thresholdInputs = reactive({})
-  const savingId = ref(null)
-
-  function thresholdDirty (item) {
-    const current = nullableInt(item.low_stock_threshold) ?? item.effective_threshold
-    return thresholdInputs[item.id] != null && Number(thresholdInputs[item.id]) !== Number(current)
-  }
-
-  async function saveThreshold (item) {
-    const value = thresholdInputs[item.id]
-    if (value == null || value === '') return
-    savingId.value = item.id
+  async function saveEditThreshold () {
+    if (!editItem.value || editThreshold.value == null || editThreshold.value === '') return
+    editSaving.value = true
     try {
-      await setProductThreshold(item.id, Number(value))
-      delete thresholdInputs[item.id]
-      tableRef.value?.reload()
-      loadSummary()
+      await setProductThreshold(editItem.value.id, Number(editThreshold.value))
+      editOpen.value = false
+      refreshLists()
     } finally {
-      savingId.value = null
+      editSaving.value = false
     }
   }
 
-  async function clearThreshold (item) {
-    savingId.value = item.id
+  async function resetEditThreshold () {
+    if (!editItem.value) return
+    editSaving.value = true
     try {
-      await setProductThreshold(item.id, null)
-      delete thresholdInputs[item.id]
-      tableRef.value?.reload()
-      loadSummary()
+      await setProductThreshold(editItem.value.id, null)
+      editOpen.value = false
+      refreshLists()
     } finally {
-      savingId.value = null
+      editSaving.value = false
     }
   }
 
-  const mutingId = ref(null)
-
-  async function loadIgnoredCount () {
+  async function toggleEditMute () {
+    if (!editItem.value) return
+    editMuting.value = true
     try {
-      ignoredCount.value = await fetchIgnoredCount()
-    } catch {
-      ignoredCount.value = 0
-    }
-  }
-
-  async function muteProduct (item) {
-    mutingId.value = item.id
-    try {
-      await setAlertsEnabled(item.id, false)
-      tableRef.value?.reload()
-      loadSummary()
-      loadIgnoredCount()
+      await setAlertsEnabled(editItem.value.id, editMuted.value)
+      editOpen.value = false
+      refreshLists()
     } finally {
-      mutingId.value = null
-    }
-  }
-
-  async function unmuteProduct (item) {
-    mutingId.value = item.id
-    try {
-      await setAlertsEnabled(item.id, true)
-      tableRef.value?.reload()
-      loadSummary()
-      loadIgnoredCount()
-    } finally {
-      mutingId.value = null
+      editMuting.value = false
     }
   }
 
   onMounted(() => {
-    loadSummary()
     loadDefaultThreshold()
     loadIgnoredCount()
   })
@@ -386,20 +315,23 @@
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
-.alerts-search {
-  flex: 0 1 280px;
+/* Let the columns row grow into whatever height is left below the KPI
+   cards; each AlertList caps itself with a max-height. */
+.alerts-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
-.summary-card :deep(.v-card-item) {
-  padding: 12px 16px;
+.alerts-columns {
+  flex: 1 1 auto;
+  min-height: 0;
 }
-.kpi {
-  cursor: pointer;
-  transition: outline-color 0.15s ease;
-  outline: 2px solid transparent;
-  outline-offset: -2px;
-}
-.kpi--active {
-  outline-color: currentColor;
+.alerts-columns > :deep(.v-col-12) {
+  display: flex;
+  min-height: 0;
 }
 </style>

@@ -1,9 +1,9 @@
 <template>
   <div class="d-flex loyalty-board">
-    <v-card class="d-flex flex-column pyramid-card" flat>
+    <div class="d-flex flex-column pyramid-card">
       <v-card-title class="d-flex flex-wrap align-center justify-space-between ga-2">
         <div class="d-flex align-center">
-          <v-icon class="me-2" color="amber-darken-2" icon="mdi-trophy" />
+          <v-icon class="me-2" icon="mdi-account-cash" />
           Top Spenders
         </div>
         <div class="d-flex align-center ga-2">
@@ -30,16 +30,7 @@
       </v-card-title>
 
       <div class="d-flex flex-wrap ga-2 px-4 pb-3">
-        <v-chip
-          v-for="t in sortedTiers()"
-          :key="t.id"
-          class="text-white"
-          :color="t.color"
-          size="small"
-          variant="flat"
-        >
-          {{ t.label }} · ${{ t.minAmount }}+
-        </v-chip>
+        <TierChip v-for="t in sortedTiers()" :key="t.id" show-threshold :tier="t" />
       </div>
 
       <v-card-text class="pyramid-scroll flex-grow-1">
@@ -66,11 +57,11 @@
           </div>
         </div>
       </v-card-text>
-    </v-card>
+    </div>
 
     <v-divider class="board-divider" vertical />
 
-    <v-card class="d-flex flex-column rest-card" flat>
+    <div class="d-flex flex-column rest-card">
       <v-card-title class="d-flex flex-wrap align-center justify-space-between ga-2">
         <div class="d-flex align-center ga-2">
           All Clients
@@ -99,7 +90,7 @@
         stays smooth at tens of thousands of clients. Paging is driven by the
         near-bottom check in onRestScroll rather than a pager. -->
       <v-virtual-scroll
-        v-else
+        v-else-if="restItems.length > 0"
         ref="restScroller"
         class="rest-scroll flex-grow-1"
         height="100%"
@@ -113,18 +104,13 @@
             :style="{ height: `${REST_ROW_HEIGHT}px` }"
             @click="openDetail(item)"
           >
-            <v-avatar class="flex-shrink-0" :color="avatarColor(item.name)" size="38">
+            <v-avatar class="flex-shrink-0" :color="tierFor(item.total_spent)?.color" size="38">
               <span class="text-caption font-weight-bold text-white">{{ initials(item.name) }}</span>
             </v-avatar>
 
             <div class="client-row-main">
               <div class="d-flex align-center ga-2">
                 <span class="text-body-2 font-weight-medium text-truncate">{{ item.name }}</span>
-                <span
-                  class="tier-dot flex-shrink-0"
-                  :style="{ backgroundColor: tierFor(item.total_spent)?.color }"
-                  :title="tierFor(item.total_spent)?.label"
-                />
               </div>
               <div class="text-caption text-medium-emphasis text-truncate">
                 {{ item.phone || '—' }}
@@ -162,7 +148,7 @@
         <v-progress-circular color="primary" indeterminate size="14" width="2" />
         Loading more…
       </div>
-    </v-card>
+    </div>
 
     <v-navigation-drawer
       v-model="detailOpen"
@@ -172,19 +158,12 @@
     >
       <template v-if="detailClient">
         <div class="pa-4 d-flex align-center ga-3">
-          <v-avatar :color="avatarColor(detailClient.name)" size="48">
+          <v-avatar :color="tierFor(detailClient.total_spent)?.color" size="48">
             <span class="text-subtitle-2 font-weight-bold text-white">{{ initials(detailClient.name) }}</span>
           </v-avatar>
           <div class="flex-grow-1" style="min-width: 0">
             <div class="text-subtitle-1 font-weight-medium text-truncate">{{ detailClient.name }}</div>
-            <v-chip
-              class="text-white mt-1"
-              :color="tierFor(detailClient.total_spent)?.color"
-              size="x-small"
-              variant="flat"
-            >
-              {{ tierFor(detailClient.total_spent)?.label }}
-            </v-chip>
+            <TierChip class="mt-1" size="x-small" :spent="detailClient.total_spent" />
           </div>
           <v-icon-btn icon="mdi-close" variant="text" @click="detailOpen = false" />
         </div>
@@ -298,6 +277,7 @@
 
 <script setup>
   import { computed, onMounted, ref, watch } from 'vue'
+  import TierChip from '@/components/Clients/TierChip.vue'
   import { useClientTiers } from '@/composables/useClientTiers'
   import { dedupedFetch } from '@/composables/useRequestDedup'
   import { API_BASE } from '@/config'
@@ -386,21 +366,6 @@
     } finally {
       pyramidLoading.value = false
     }
-  }
-
-  function avatarColor (name = '') {
-    // Deterministic muted colour per name so rows are visually distinct
-    // without a loud palette.
-    const palette = [
-      'indigo-lighten-1', 'teal-lighten-1', 'deep-purple-lighten-1',
-      'blue-grey-lighten-1', 'cyan-darken-1', 'green-lighten-1',
-      'orange-lighten-1', 'pink-lighten-1',
-    ]
-    const key = name
-    if (!key) return 'grey-lighten-1'
-    let hash = 0
-    for (let i = 0; i < key.length; i++) hash = Math.trunc(hash * 31 + key.codePointAt(i))
-    return palette[Math.abs(hash) % palette.length]
   }
 
   function formatDate (value) {

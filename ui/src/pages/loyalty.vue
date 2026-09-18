@@ -22,16 +22,7 @@
       Edited from the Clients page; shared across retail and wholesale. -->
     <div class="d-flex flex-wrap align-center ga-2 px-4 pb-2">
       <span class="text-caption text-medium-emphasis me-1">Tiers</span>
-      <v-chip
-        v-for="t in tierLadder"
-        :key="t.id"
-        class="text-white"
-        :color="t.color"
-        size="small"
-        variant="flat"
-      >
-        {{ t.label }} · ${{ t.minAmount.toLocaleString() }}+
-      </v-chip>
+      <TierChip v-for="t in tierLadder" :key="t.id" show-threshold :tier="t" />
     </div>
 
     <v-alert
@@ -49,9 +40,7 @@
 
     <div v-if="loading" class="d-flex flex-column align-center ga-2 pa-12">
       <v-progress-circular color="primary" indeterminate />
-      <span class="text-caption text-medium-emphasis">
-        Loading clients… {{ loadedCount.toLocaleString() }}<template v-if="totalClients"> / {{ totalClients.toLocaleString() }}</template>
-      </span>
+      <span class="text-caption text-medium-emphasis">Loading clients…</span>
     </div>
 
     <v-alert v-else-if="rows.length === 0" class="ly-notice mx-4" type="info" variant="tonal">
@@ -59,17 +48,6 @@
     </v-alert>
 
     <v-container v-else class="pa-4 pt-2" fluid>
-      <v-alert
-        v-if="truncated"
-        class="mb-3"
-        density="compact"
-        type="info"
-        variant="tonal"
-      >
-        Showing the top {{ rows.length.toLocaleString() }} of {{ totalClients.toLocaleString() }} clients by spend.
-        The lowest tier's count is understated by the untracked tail.
-      </v-alert>
-
       <!-- KPIs -->
       <v-row dense>
         <v-col v-for="kpi in kpis" :key="kpi.label" cols="6" md="2">
@@ -82,7 +60,7 @@
       </v-row>
 
       <!-- Members per tier + revenue share -->
-      <v-row>
+      <v-row dense>
         <v-col cols="12" md="8">
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title">Members by tier</div>
@@ -100,7 +78,7 @@
       </v-row>
 
       <!-- New members trend + points liability -->
-      <v-row>
+      <v-row dense>
         <v-col cols="12" md="8">
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title">New members per month</div>
@@ -118,7 +96,7 @@
       </v-row>
 
       <!-- Tier breakdown table + composition bars -->
-      <v-row>
+      <v-row dense>
         <v-col cols="12" md="7">
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title">Tier breakdown</div>
@@ -214,12 +192,27 @@
       </v-row>
 
       <!-- Close to leveling up -->
-      <v-row>
+      <v-row dense>
         <v-col cols="12">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Close to leveling up</div>
-            <div class="chart-card__subtitle">
-              Clients within reach of their next tier — a nudge here moves them up
+            <div class="d-flex align-center flex-wrap ga-3">
+              <div>
+                <div class="chart-card__title">Close to leveling up</div>
+                <div class="chart-card__subtitle">
+                  Clients within reach of their next tier — a nudge here moves them up
+                </div>
+              </div>
+              <v-spacer />
+              <v-text-field
+                v-model="risingSearch"
+                class="rising-search"
+                clearable
+                density="compact"
+                hide-details
+                placeholder="Search clients"
+                prepend-inner-icon="mdi-magnify"
+                variant="outlined"
+              />
             </div>
             <v-data-table
               class="mt-1"
@@ -227,22 +220,19 @@
               :headers="risingHeaders"
               :items="risingClients"
               :items-per-page="10"
+              :search="risingSearch"
               :sort-by="[{ key: 'gapCents', order: 'asc' }]"
             >
               <template #item.name="{ item }">
                 <router-link class="client-link" :to="`/clients/${item.id}`">{{ item.name }}</router-link>
               </template>
               <template #item.current="{ item }">
-                <v-chip class="text-white" :color="item.currentColor" size="x-small" variant="flat">
-                  {{ item.current }}
-                </v-chip>
+                <TierChip size="x-small" :tier="{ label: item.current, color: item.currentColor }" />
               </template>
               <template #item.spent="{ item }">${{ money(item.spent) }}</template>
               <template #item.gapCents="{ item }">${{ money(item.gapCents) }}</template>
               <template #item.next="{ item }">
-                <v-chip class="text-white" :color="item.nextColor" size="x-small" variant="flat">
-                  {{ item.next }}
-                </v-chip>
+                <TierChip size="x-small" :tier="{ label: item.next, color: item.nextColor }" />
               </template>
               <template #item.progress="{ item }">
                 <v-progress-linear
@@ -268,6 +258,7 @@
   import { computed, onMounted, ref, watch } from 'vue'
   import VChart from 'vue-echarts'
   import { useTheme } from 'vuetify'
+  import TierChip from '@/components/Clients/TierChip.vue'
   import { useClientTiers } from '@/composables/useClientTiers'
   import { dedupedFetch } from '@/composables/useRequestDedup'
   import { API_BASE } from '@/config'
@@ -304,53 +295,27 @@
   const tierLadder = computed(() => sortedTiers().toReversed())
 
   // --- data load ----------------------------------------------------------
-  // No aggregate endpoint exists for tiers (they're a front-end bucketing
-  // over total_spent), so we page the ranked client list and bucket it
-  // here. CAP keeps a pathological client count from firing hundreds of
-  // requests; because the list is ranked by spend, the truncated tail is
-  // all lowest-tier members -- noted in the UI when it happens.
-  const PAGE_SIZE = 100
-  const CAP = 5000
-
+  // Tiers are a front-end bucketing over total_spent, so this page needs
+  // every client, not a page of them. /clients/spending_summary returns the
+  // whole population ranked by spend, carrying only the five columns used
+  // below -- one request, one server-side aggregation pass. (The paged
+  // /clients/by_spending re-runs that aggregation per page, which is what
+  // made this page take minutes on a 25k-client tenant.)
   const rows = ref([])
-  const totalClients = ref(0)
-  const loadedCount = ref(0)
   const loading = ref(false)
   const error = ref('')
-  const truncated = computed(() => totalClients.value > rows.value.length)
-
-  function pageURL (offset) {
-    const params = new URLSearchParams()
-    if (clientType.value !== 'all') params.set('client_type', clientType.value)
-    params.set('sort_by', 'spending')
-    params.set('page_size', String(PAGE_SIZE))
-    params.set('page_id', String(offset))
-    return `${API_BASE}/clients/by_spending?${params}`
-  }
 
   async function load () {
     loading.value = true
     error.value = ''
-    loadedCount.value = 0
     try {
-      const first = await dedupedFetch(pageURL(0))
-      const collected = first?.clients ?? []
-      totalClients.value = first?.total ?? collected.length
-      loadedCount.value = collected.length
-
-      const target = Math.min(totalClients.value, CAP)
-      while (collected.length < target) {
-        const batch = await dedupedFetch(pageURL(collected.length))
-        const chunk = batch?.clients ?? []
-        if (chunk.length === 0) break
-        collected.push(...chunk)
-        loadedCount.value = collected.length
-      }
-      rows.value = collected
+      const params = new URLSearchParams()
+      if (clientType.value !== 'all') params.set('client_type', clientType.value)
+      const data = await dedupedFetch(`${API_BASE}/clients/spending_summary?${params}`)
+      rows.value = data?.clients ?? []
     } catch (error_) {
       error.value = error_.message
       rows.value = []
-      totalClients.value = 0
     } finally {
       loading.value = false
     }
@@ -543,6 +508,7 @@
   }))
 
   // --- close to leveling up -------------------------------------------------
+  const risingSearch = ref('')
   const risingHeaders = [
     { title: 'Client', key: 'name' },
     { title: 'Current', key: 'current', sortable: false },
@@ -643,6 +609,10 @@
   font-size: 0.75rem;
   color: rgba(var(--v-theme-on-surface), 0.7);
   white-space: nowrap;
+}
+
+.rising-search {
+  max-width: 220px;
 }
 
 .client-link {

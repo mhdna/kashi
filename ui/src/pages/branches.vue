@@ -484,12 +484,6 @@
           <template #item.actions="{ item }">
             <v-icon-btn icon="mdi-flag-outline" size="small" variant="text" @click="openTargets(item)" />
             <v-icon-btn icon="mdi-account-tie-outline" size="small" variant="text" @click="openSalespersons(item)" />
-            <v-icon-btn
-              icon="mdi-cog-outline"
-              size="small"
-              :to="`/branch-settings?branch=${item.id}`"
-              variant="text"
-            />
             <v-icon-btn icon="mdi-key" size="small" variant="text" @click="openRotate(item)" />
           </template>
         </v-data-table>

@@ -1,6 +1,30 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { SERVER_DOWN_MESSAGE } from '@/composables/useApi'
 import { API_BASE } from '@/config'
+
+// Turn a login response status into a message the user can act on. The
+// backend leaks raw Go errors, so nothing here relies on its body text.
+function loginMessage (status, bodyError) {
+  switch (status) {
+    case 400: {
+      return 'Enter a valid username and password.'
+    }
+    case 401:
+    case 403: {
+      return 'Incorrect username or password.'
+    }
+    case 423: {
+      return 'This account is locked. Try again later or contact an administrator.'
+    }
+    case 429: {
+      return bodyError || 'Too many attempts. Please wait a while and try again.'
+    }
+    default: {
+      return 'Something went wrong on our end. Please try again in a moment.'
+    }
+  }
+}
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token') || '')
@@ -10,15 +34,29 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!token.value)
 
   async function login (name, password) {
-    const res = await fetch(`${API_BASE}/users/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, password }),
-    })
+    let res
+    try {
+      res = await fetch(`${API_BASE}/users/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, password }),
+      })
+    } catch {
+      // fetch only rejects on network-level failures (server unreachable,
+      // DNS, offline) -- never on HTTP error status. Same message authFetch
+      // uses so the "server is down" state stays consistent.
+      throw new Error(SERVER_DOWN_MESSAGE)
+    }
 
     if (!res.ok) {
+      // The API returns raw Go error strings in `body.error` (bcrypt
+      // mismatches, DB dial failures, ...), so map by status instead of
+      // trusting the body. Only 429's body is safe enough to pass through
+      // since it may carry a specific lockout duration.
       const body = await res.json().catch(() => ({}))
-      throw new Error(body.error || 'Invalid credentials')
+      const err = new Error(loginMessage(res.status, body.error))
+      err.status = res.status
+      throw err
     }
 
     const data = await res.json()

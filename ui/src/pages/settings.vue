@@ -32,7 +32,7 @@
 
             <div class="text-body-2 mb-2">Display mode</div>
             <v-btn-toggle
-              v-model="displayMode"
+              v-model="draft.activityDisplayMode"
               class="mb-4"
               color="primary"
               divided
@@ -43,7 +43,7 @@
             </v-btn-toggle>
 
             <v-text-field
-              v-model.number="messageSeconds"
+              v-model.number="draft.activityMessageSeconds"
               class="field-md"
               density="compact"
               hint="How long each message is shown before moving to the next one queued behind it"
@@ -61,7 +61,7 @@
             </p>
 
             <v-text-field
-              v-model.number="upcomingEventsDays"
+              v-model.number="draft.upcomingEventsDays"
               class="field-md"
               density="compact"
               hint="Days ahead the inline card text looks for the next event"
@@ -74,7 +74,7 @@
             />
 
             <v-text-field
-              v-model.number="upcomingEventsMenuDays"
+              v-model.number="draft.upcomingEventsMenuDays"
               class="field-md mt-4"
               density="compact"
               hint="Days ahead the dropdown lists events (default 180 ≈ 6 months)"
@@ -85,6 +85,38 @@
               type="number"
               variant="outlined"
             />
+
+            <h3 class="text-subtitle-1 mb-1 mt-6">Your avatar</h3>
+            <p class="text-body-2 text-medium-emphasis mb-3">
+              The initials badge in the top bar — your name's first two letters.
+              The colour is saved on this device and applies right away.
+            </p>
+
+            <div class="d-flex align-center ga-4 mb-2">
+              <v-avatar class="text-white font-weight-medium" :color="avatarColor" size="48">
+                <span class="text-subtitle-1">{{ avatarInitials }}</span>
+              </v-avatar>
+              <div class="d-flex flex-wrap ga-2">
+                <button
+                  v-for="c in avatarColors"
+                  :key="c"
+                  class="swatch"
+                  :class="{ 'swatch--active': c === avatarColor }"
+                  :style="{ background: c }"
+                  type="button"
+                  @click="setAvatarColor(c)"
+                />
+              </div>
+            </div>
+            <v-btn
+              v-if="avatarIsCustom"
+              class="px-1"
+              size="small"
+              variant="text"
+              @click="resetAvatarColor"
+            >
+              Reset to default colour
+            </v-btn>
           </section>
 
           <!-- ---------------------------------------------------- FINANCIALS -->
@@ -95,7 +127,7 @@
             </p>
 
             <v-select
-              v-model="highSeasonMonths"
+              v-model="draft.financialsHighSeasonMonths"
               chips
               class="field-md"
               density="compact"
@@ -117,7 +149,7 @@
 
             <div class="d-flex ga-3 field-md">
               <v-text-field
-                v-model.number="labelWidth"
+                v-model.number="draft.barcodeLabelWidth"
                 density="compact"
                 hide-details
                 label="Width (pt)"
@@ -125,7 +157,7 @@
                 variant="outlined"
               />
               <v-text-field
-                v-model.number="labelHeight"
+                v-model.number="draft.barcodeLabelHeight"
                 density="compact"
                 hide-details
                 label="Height (pt)"
@@ -136,15 +168,6 @@
             <div class="text-caption text-medium-emphasis mt-2">
               72 pt = 1 inch. Common thermal label: 288 &times; 144 (4 &times; 2 in).
             </div>
-            <v-btn
-              class="mt-3"
-              :disabled="!labelSizeDirty"
-              :loading="savingLabel"
-              size="small"
-              text="Save"
-              variant="tonal"
-              @click="saveLabelSize"
-            />
           </section>
 
           <!-- --------------------------------------------------------- USERS -->
@@ -219,6 +242,32 @@
           </section>
         </div>
       </div>
+
+      <template v-if="tab !== 'users'">
+        <v-divider />
+        <div class="set-actions px-5 py-3 d-flex align-center ga-3">
+          <span class="text-caption text-medium-emphasis">
+            {{ dirty ? 'Unsaved changes' : 'All changes saved' }}
+          </span>
+          <v-spacer />
+          <v-btn
+            :disabled="!dirty || savingSettings"
+            size="small"
+            text="Discard"
+            variant="text"
+            @click="seedDraft"
+          />
+          <v-btn
+            color="primary"
+            :disabled="!dirty || !draftValid"
+            :loading="savingSettings"
+            size="small"
+            text="Save"
+            variant="flat"
+            @click="saveSettings"
+          />
+        </div>
+      </template>
     </v-card>
 
     <!-- Add user -->
@@ -334,85 +383,112 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, reactive, ref } from 'vue'
+  import { computed, onMounted, reactive, ref, watch } from 'vue'
+  import { useUserAvatar } from '@/composables/useUserAvatar'
   import { useUsers } from '@/composables/useUsers'
   import { useSettingsStore } from '@/stores/settings'
 
   const tab = ref('general')
 
+  const {
+    initials: avatarInitials,
+    color: avatarColor,
+    colors: avatarColors,
+    isCustom: avatarIsCustom,
+    setColor: setAvatarColor,
+    resetColor: resetAvatarColor,
+  } = useUserAvatar()
+
   const settingsStore = useSettingsStore()
-  onMounted(async () => {
-    await settingsStore.init()
-    labelWidth.value = settingsStore.barcodeLabelWidth
-    labelHeight.value = settingsStore.barcodeLabelHeight
+
+  // The page edits a local draft and only writes to the store (and the DB) when
+  // the user hits Save. `seedDraft` copies the current persisted values in;
+  // `dirty` compares field by field so Save/Discard only light up on a real
+  // change.
+  const draft = reactive({
+    activityDisplayMode: settingsStore.activityDisplayMode,
+    activityMessageSeconds: settingsStore.activityMessageSeconds,
+    upcomingEventsDays: settingsStore.upcomingEventsDays,
+    upcomingEventsMenuDays: settingsStore.upcomingEventsMenuDays,
+    financialsHighSeasonMonths: [...settingsStore.financialsHighSeasonMonths],
+    barcodeLabelWidth: settingsStore.barcodeLabelWidth,
+    barcodeLabelHeight: settingsStore.barcodeLabelHeight,
   })
 
-  // ---- Barcode label size ----
-  const labelWidth = ref(288)
-  const labelHeight = ref(144)
-  const savingLabel = ref(false)
-  const labelSizeDirty = computed(() =>
-    Number(labelWidth.value) !== settingsStore.barcodeLabelWidth
-    || Number(labelHeight.value) !== settingsStore.barcodeLabelHeight,
+  function seedDraft () {
+    draft.activityDisplayMode = settingsStore.activityDisplayMode
+    draft.activityMessageSeconds = settingsStore.activityMessageSeconds
+    draft.upcomingEventsDays = settingsStore.upcomingEventsDays
+    draft.upcomingEventsMenuDays = settingsStore.upcomingEventsMenuDays
+    draft.financialsHighSeasonMonths = [...settingsStore.financialsHighSeasonMonths]
+    draft.barcodeLabelWidth = settingsStore.barcodeLabelWidth
+    draft.barcodeLabelHeight = settingsStore.barcodeLabelHeight
+  }
+
+  const savingSettings = ref(false)
+
+  onMounted(async () => {
+    await settingsStore.init()
+    seedDraft()
+  })
+
+  function sameMonths (a, b) {
+    return a.length === b.length && a.toSorted().join(',') === b.toSorted().join(',')
+  }
+
+  const dirty = computed(() =>
+    draft.activityDisplayMode !== settingsStore.activityDisplayMode
+    || Number(draft.activityMessageSeconds) !== settingsStore.activityMessageSeconds
+    || Number(draft.upcomingEventsDays) !== settingsStore.upcomingEventsDays
+    || Number(draft.upcomingEventsMenuDays) !== settingsStore.upcomingEventsMenuDays
+    || Number(draft.barcodeLabelWidth) !== settingsStore.barcodeLabelWidth
+    || Number(draft.barcodeLabelHeight) !== settingsStore.barcodeLabelHeight
+    || !sameMonths(draft.financialsHighSeasonMonths, settingsStore.financialsHighSeasonMonths),
   )
-  async function saveLabelSize () {
-    const w = Number(labelWidth.value)
-    const h = Number(labelHeight.value)
-    if (!(w > 0) || !(h > 0)) {
+
+  // Bounds mirror the old per-field setters that silently rejected out-of-range
+  // input; here they gate the Save button instead.
+  const inRange = (v, lo, hi) => Number.isFinite(Number(v)) && Number(v) >= lo && Number(v) <= hi
+  const draftValid = computed(() =>
+    inRange(draft.activityMessageSeconds, 1, Number.POSITIVE_INFINITY)
+    && inRange(draft.upcomingEventsDays, 1, 365)
+    && inRange(draft.upcomingEventsMenuDays, 1, 730)
+    && Number(draft.barcodeLabelWidth) > 0
+    && Number(draft.barcodeLabelHeight) > 0,
+  )
+
+  async function saveSettings () {
+    if (!dirty.value || !draftValid.value) {
       return
     }
-    savingLabel.value = true
+    savingSettings.value = true
     try {
-      await settingsStore.setBarcodeLabelSize(w, h)
+      await settingsStore.saveAll({
+        activityDisplayMode: draft.activityDisplayMode,
+        activityMessageSeconds: Number(draft.activityMessageSeconds),
+        upcomingEventsDays: Number(draft.upcomingEventsDays),
+        upcomingEventsMenuDays: Number(draft.upcomingEventsMenuDays),
+        financialsHighSeasonMonths: [...draft.financialsHighSeasonMonths],
+        barcodeLabelWidth: Number(draft.barcodeLabelWidth),
+        barcodeLabelHeight: Number(draft.barcodeLabelHeight),
+      })
     } finally {
-      savingLabel.value = false
+      savingSettings.value = false
     }
   }
 
-  const displayMode = computed({
-    get: () => settingsStore.activityDisplayMode,
-    set: value => settingsStore.setActivityDisplayMode(value),
-  })
-
-  const messageSeconds = computed({
-    get: () => settingsStore.activityMessageSeconds,
-    set: value => {
-      const seconds = Number(value)
-      if (Number.isFinite(seconds) && seconds > 0) {
-        settingsStore.setActivityMessageSeconds(seconds)
-      }
-    },
-  })
-
-  const upcomingEventsDays = computed({
-    get: () => settingsStore.upcomingEventsDays,
-    set: value => {
-      const days = Number(value)
-      if (Number.isFinite(days) && days >= 1 && days <= 365) {
-        settingsStore.setUpcomingEventsDays(days)
-      }
-    },
-  })
-
-  const upcomingEventsMenuDays = computed({
-    get: () => settingsStore.upcomingEventsMenuDays,
-    set: value => {
-      const days = Number(value)
-      if (Number.isFinite(days) && days >= 1 && days <= 730) {
-        settingsStore.setUpcomingEventsMenuDays(days)
-      }
-    },
+  // If init() resolves after mount, re-seed so the draft reflects real values
+  // rather than the store defaults.
+  watch(() => settingsStore.loaded, loaded => {
+    if (loaded && !dirty.value) {
+      seedDraft()
+    }
   })
 
   const monthItems = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ].map((title, i) => ({ title, value: i + 1 }))
-
-  const highSeasonMonths = computed({
-    get: () => settingsStore.financialsHighSeasonMonths,
-    set: value => settingsStore.setFinancialsHighSeasonMonths(value),
-  })
 
   // ---- Users ----
   const { users, fetchUsers, createUser, updateUser, deleteUser } = useUsers()
@@ -554,7 +630,26 @@
 .set-section {
   max-width: 640px;
 }
+/* Save / Discard bar pinned under the tab content. */
+.set-actions {
+  flex: 0 0 auto;
+}
 .field-md {
   max-width: 420px;
+}
+.swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  outline-offset: 2px;
+  transition: transform 0.1s ease;
+}
+.swatch:hover {
+  transform: scale(1.12);
+}
+.swatch--active {
+  border-color: rgb(var(--v-theme-on-surface));
 }
 </style>

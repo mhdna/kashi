@@ -7,7 +7,7 @@ async function requestJSON (url, options) {
     const err = await res.json().catch(() => ({}))
     throw new Error(err.error || `Request failed with status ${res.status}`)
   }
-  if (res.status === 204) return null
+  if (res.status === 204) {return null}
   return res.json().catch(() => null)
 }
 

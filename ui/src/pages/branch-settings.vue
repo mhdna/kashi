@@ -107,6 +107,16 @@
                 <v-tab class="text-none" text="Printing" value="printing" />
                 <v-tab class="text-none" text="Attendance" value="attendance" />
                 <v-tab class="text-none" text="Users" value="users" />
+                <v-tab class="text-none" value="conflicts">
+                  <span class="text-none">Conflicts</span>
+                  <v-badge
+                    v-if="conflictCount > 0"
+                    class="ms-2"
+                    color="warning"
+                    :content="conflictCount"
+                    inline
+                  />
+                </v-tab>
                 <v-tab class="text-none" text="Commands" value="commands" />
               </v-tabs>
 
@@ -307,6 +317,20 @@
                           hide-details
                           label="Require a client on every invoice"
                         />
+                      </div>
+                      <v-select
+                        v-model="settingsForm.shift_receipt_upload_mode"
+                        class="mt-3"
+                        density="compact"
+                        hide-details
+                        :items="SHIFT_RECEIPT_UPLOAD_MODES"
+                        label="Close-shift receipt photo"
+                        variant="outlined"
+                      />
+                      <div class="text-caption text-medium-emphasis mt-1">
+                        Hybrid uploads to the office when the branch is online and buffers on
+                        the till otherwise; Local always uploads to the till over shop Wi-Fi;
+                        Central always goes straight to the office; Off skips the photo.
                       </div>
                     </section>
 
@@ -584,7 +608,7 @@
                   </div>
 
                   <div
-                    v-show="sectionTab !== 'commands' && sectionTab !== 'users'"
+                    v-show="sectionTab !== 'commands' && sectionTab !== 'users' && sectionTab !== 'conflicts'"
                     class="bs-savebar d-flex justify-end"
                   >
                     <v-btn
@@ -672,6 +696,99 @@
                   </v-table>
                 </div>
 
+                <div v-show="sectionTab === 'conflicts'">
+                  <div class="d-flex align-center justify-space-between mb-2">
+                    <div class="bs-section-title mb-0">Sync conflicts</div>
+                    <div class="d-flex align-center ga-2">
+                      <v-btn
+                        v-if="selectedConflicts.length > 0"
+                        color="primary"
+                        size="small"
+                        variant="tonal"
+                        @click="bulkTakeBranch"
+                      >
+                        Take branch spelling ({{ selectedConflicts.length }})
+                      </v-btn>
+                      <v-icon-btn
+                        icon="mdi-refresh"
+                        size="small"
+                        variant="text"
+                        @click="reloadConflicts"
+                      />
+                    </div>
+                  </div>
+
+                  <v-alert
+                    v-if="conflictOutcome"
+                    class="mb-3"
+                    density="compact"
+                    :type="conflictOutcome.ok ? 'success' : 'error'"
+                    variant="tonal"
+                  >
+                    {{ conflictOutcome.message }}
+                  </v-alert>
+
+                  <ServerSideTable
+                    v-if="selectedId != null"
+                    ref="conflictTableRef"
+                    :api-u-r-l="`${apiBase}/branch_sync_conflicts`"
+                    density="compact"
+                    expandable
+                    :headers="conflictHeaders"
+                    :query-params="conflictQuery"
+                    root-key="conflicts"
+                    selectable
+                    :show-search-icon="false"
+                    @update:selected="v => (selectedConflicts = v)"
+                  >
+                    <template #item.data-table-select="{ item, internalItem, isSelected, toggleSelect }">
+                      <v-checkbox-btn
+                        :disabled="item.kind !== 'phone_name_mismatch'"
+                        :model-value="isSelected(internalItem)"
+                        @click.stop
+                        @update:model-value="toggleSelect(internalItem)"
+                      />
+                    </template>
+                    <template #item.kind="{ item }">
+                      <v-chip size="small" variant="tonal">{{ conflictKindLabel(item.kind) }}</v-chip>
+                    </template>
+                    <template #item.created_at="{ item }">
+                      {{ new Date(item.created_at).toLocaleString() }}
+                    </template>
+                    <template #item.actions="{ item }">
+                      <v-btn size="small" variant="text" @click.stop="openResolve(item)">Resolve</v-btn>
+                      <v-btn size="small" variant="text" @click.stop="dismiss(item)">Dismiss</v-btn>
+                    </template>
+                    <template #expanded-row="{ columns, item }">
+                      <tr>
+                        <td :colspan="columns.length">
+                          <div class="py-3 px-2">
+                            <table class="conflict-diff">
+                              <tr><th /><th>Branch says</th><th>kashi has</th></tr>
+                              <tr>
+                                <td>Name</td>
+                                <td :class="diffClass(branchPayload(item).name, item.central_name)">
+                                  {{ branchPayload(item).name || '—' }}
+                                </td>
+                                <td>{{ item.central_name || '—' }}</td>
+                              </tr>
+                              <tr>
+                                <td>Phone</td>
+                                <td>{{ branchPayload(item).phone || '—' }}</td>
+                                <td>{{ item.central_phone || '—' }}</td>
+                              </tr>
+                              <tr v-if="item.entity === 'product'">
+                                <td>Barcode</td>
+                                <td colspan="2">{{ item.ref }}</td>
+                              </tr>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    </template>
+                  </ServerSideTable>
+                </div>
+
                 <div v-show="sectionTab === 'commands'">
                   <div class="d-flex align-center justify-space-between mb-2">
                     <div class="bs-section-title mb-0">Recent Commands</div>
@@ -717,6 +834,88 @@
         </div>
       </div>
     </v-card>
+
+    <!-- resolve a sync conflict -->
+    <v-dialog v-model="resolveDialog" max-width="480">
+      <v-card v-if="resolveTarget">
+        <v-card-title class="text-subtitle-1">
+          Resolve — {{ conflictKindLabel(resolveTarget.kind) }}
+        </v-card-title>
+        <v-card-text>
+          <div v-if="resolveTarget.kind === 'phone_name_mismatch'">
+            <div class="text-caption text-medium-emphasis mb-2">
+              Phone {{ branchPayload(resolveTarget).phone }} already belongs to a
+              kashi client under a different name.
+            </div>
+            <v-radio-group v-model="resolveForm.choice" density="compact" hide-details>
+              <v-radio
+                :label="`Keep kashi's name (${resolveTarget.central_name})`"
+                value="central"
+              />
+              <v-radio
+                :label="`Use the branch's name (${branchPayload(resolveTarget).name})`"
+                value="branch"
+              />
+              <v-radio label="Type a name" value="custom" />
+            </v-radio-group>
+            <v-text-field
+              v-if="resolveForm.choice === 'custom'"
+              v-model="resolveForm.name"
+              class="mt-2"
+              density="compact"
+              label="Name"
+              variant="outlined"
+            />
+          </div>
+
+          <div v-else-if="resolveTarget.kind === 'invalid_phone'">
+            <div class="text-caption text-medium-emphasis mb-2">
+              The branch reported "{{ branchPayload(resolveTarget).name }}" with no
+              usable phone.
+            </div>
+            <v-radio-group v-model="resolveForm.choice" density="compact" hide-details>
+              <v-radio label="Merge into an existing client" value="merge" />
+              <v-radio label="Create a new client with a phone" value="create" />
+            </v-radio-group>
+            <v-autocomplete
+              v-if="resolveForm.choice === 'merge'"
+              v-model="resolveForm.clientId"
+              class="mt-2"
+              density="compact"
+              :items="clientOptions"
+              label="Existing client"
+              variant="outlined"
+            />
+            <v-text-field
+              v-else
+              v-model="resolveForm.phone"
+              class="mt-2"
+              density="compact"
+              label="Phone"
+              variant="outlined"
+            />
+          </div>
+
+          <div v-else class="text-body-2">
+            Adopt "{{ branchPayload(resolveTarget).name || resolveTarget.ref }}"
+            (barcode {{ resolveTarget.ref }}) into the central catalog. Colour and
+            size are created if missing; brand / season / year can be filled in
+            afterwards from the product editor.
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn text="Cancel" variant="text" @click="resolveDialog = false" />
+          <v-btn
+            color="primary"
+            :loading="resolveSaving"
+            text="Resolve"
+            variant="flat"
+            @click="submitResolve"
+          />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <!-- add / edit POS user -->
     <v-dialog v-model="userDialog" max-width="440">
@@ -830,12 +1029,17 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+  import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import PageSidebar from '@/components/PageSidebar.vue'
+  import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
+  import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useBranches } from '@/composables/useBranches'
   import { useBranchSettings } from '@/composables/useBranchSettings'
+  import { useBranchSyncConflicts } from '@/composables/useBranchSyncConflicts'
   import { useBranchUsers } from '@/composables/useBranchUsers'
+  import { useClients } from '@/composables/useClients'
+  import { API_BASE } from '@/config'
 
   const route = useRoute()
   const router = useRouter()
@@ -853,6 +1057,153 @@
   const selectedId = ref(null)
   // Which settings section (vertical sub-tab) is showing for the active branch.
   const sectionTab = ref('general')
+
+  const apiBase = API_BASE
+  const { resolveConflict, dismissConflict, bulkResolve, openConflictCount } = useBranchSyncConflicts()
+  const conflictTableRef = ref(null)
+  const conflictCount = ref(0)
+  const selectedConflicts = ref([])
+  const conflictOutcome = ref(null)
+  const conflictHeaders = [
+    { title: '', key: 'data-table-select', sortable: false, width: '44px' },
+    { title: 'Type', key: 'kind', sortable: false },
+    { title: 'Entity', key: 'entity', sortable: false },
+    { title: 'Ref', key: 'ref', sortable: false },
+    { title: 'Reported', key: 'created_at', sortable: true },
+    { title: '', key: 'actions', sortable: false, align: 'end' },
+  ]
+  const conflictQuery = computed(() => ({
+    branch_id: selectedId.value ?? 0,
+    status: 'open',
+    sort_by: 'created_at',
+    sort_order: 'desc',
+  }))
+
+  function conflictKindLabel (kind) {
+    return {
+      phone_name_mismatch: 'Name differs',
+      invalid_phone: 'No usable phone',
+      unknown_product: 'Unknown product',
+    }[kind] ?? kind
+  }
+  function branchPayload (item) {
+    try { return JSON.parse(item.branch_payload) } catch { return {} }
+  }
+  function diffClass (a, b) {
+    return a && b && a !== b ? 'text-error' : ''
+  }
+  function reloadConflicts () {
+    conflictTableRef.value?.reloadFromFirstPage?.()
+    refreshConflictCount()
+  }
+  async function refreshConflictCount () {
+    if (selectedId.value == null) return
+    try { conflictCount.value = await openConflictCount(selectedId.value) } catch { /* informational */ }
+  }
+  // A single sync can push hundreds of conflict rows, and each one emits its
+  // own branch_sync_conflict WS nudge. Coalesce a burst into one refetch --
+  // fanning them straight through hammered the server (thundering herd).
+  let conflictRefreshTimer = null
+  function refreshConflictCountSoon () {
+    if (conflictRefreshTimer) return
+    conflictRefreshTimer = setTimeout(() => {
+      conflictRefreshTimer = null
+      refreshConflictCount()
+    }, 2000)
+  }
+  async function dismiss (item) {
+    try {
+      await dismissConflict(item.id)
+      conflictOutcome.value = { ok: true, message: 'Dismissed.' }
+      reloadConflicts()
+    } catch (error) {
+      conflictOutcome.value = { ok: false, message: String(error.message || error) }
+    }
+  }
+  async function bulkTakeBranch () {
+    try {
+      const res = await bulkResolve(selectedConflicts.value.map(c => c.id), 'branch')
+      conflictOutcome.value = { ok: true, message: `Resolved ${res?.resolved ?? 0} conflict(s).` }
+      selectedConflicts.value = []
+      reloadConflicts()
+    } catch (error) {
+      conflictOutcome.value = { ok: false, message: String(error.message || error) }
+    }
+  }
+  const resolveDialog = ref(false)
+  const resolveTarget = ref(null)
+  const resolveSaving = ref(false)
+  const resolveForm = reactive({ choice: 'branch', name: '', phone: '', clientId: null })
+  const { clients, fetchClients } = useClients()
+  const clientOptions = computed(() =>
+    clients.value.map(c => ({ title: `${c.name} — ${c.phone}`, value: c.id })),
+  )
+
+  function openResolve (item) {
+    resolveTarget.value = item
+    const payload = branchPayload(item)
+    if (item.kind === 'phone_name_mismatch') {
+      resolveForm.choice = 'branch'
+      resolveForm.name = payload.name || ''
+    } else if (item.kind === 'invalid_phone') {
+      resolveForm.choice = 'create'
+      resolveForm.phone = ''
+      resolveForm.clientId = null
+      fetchClients()
+    } else {
+      resolveForm.choice = 'create'
+    }
+    resolveDialog.value = true
+  }
+
+  async function submitResolve () {
+    const item = resolveTarget.value
+    if (!item) {
+      return
+    }
+    const body = { choice: resolveForm.choice }
+    if (item.kind === 'phone_name_mismatch' && resolveForm.choice === 'custom') {
+      body.name = resolveForm.name.trim()
+    }
+    if (item.kind === 'invalid_phone') {
+      if (resolveForm.choice === 'merge') {
+        body.client_id = resolveForm.clientId
+      } else {
+        body.phone = resolveForm.phone.trim()
+      }
+    }
+    resolveSaving.value = true
+    try {
+      await resolveConflict(item.id, body)
+      conflictOutcome.value = { ok: true, message: 'Resolved.' }
+      resolveDialog.value = false
+      reloadConflicts()
+    } catch (error) {
+      conflictOutcome.value = { ok: false, message: String(error.message || error) }
+    } finally {
+      resolveSaving.value = false
+    }
+  }
+
+  let conflictPoll = null
+  let offAdminMessage = null
+  const { onMessage: onAdminMessage, ensureConnected: ensureAdminSocket } = useAdminSocket()
+  onMounted(() => {
+    ensureAdminSocket?.()
+    conflictPoll = setInterval(refreshConflictCount, 30_000)
+    // onMessage registers into a module-level Set and returns an unsubscribe;
+    // without keeping it, every visit to this page stacks another live
+    // handler that never goes away.
+    offAdminMessage = onAdminMessage?.((msg) => {
+      if (msg?.type === 'branch_sync_conflict') refreshConflictCountSoon()
+    })
+  })
+  onUnmounted(() => {
+    if (conflictPoll) clearInterval(conflictPoll)
+    if (conflictRefreshTimer) clearTimeout(conflictRefreshTimer)
+    offAdminMessage?.()
+  })
+  watch(selectedId, () => { refreshConflictCount() })
 
   const activeBranch = computed(() => branches.value.find(b => b.id === selectedId.value) ?? null)
 
@@ -920,6 +1271,13 @@
     secrets: ['akuvox_password', 'attendance_approver_password', 'admin_password'],
   }
 
+  const SHIFT_RECEIPT_UPLOAD_MODES = [
+    { title: 'Hybrid (office when online, else the till)', value: 2 },
+    { title: 'Local only (the till, over shop Wi-Fi)', value: 3 },
+    { title: 'Central only (straight to the office)', value: 1 },
+    { title: 'Off (no photo)', value: 0 },
+  ]
+
   const BOOL_KEYS = [
     'search_button_enabled',
     'custom_item_discounts_enabled',
@@ -969,6 +1327,9 @@
       akuvox_ip: d.akuvox_ip ?? '',
       akuvox_username: d.akuvox_username ?? '',
       attendance_duplicate_interval_seconds: d.attendance_duplicate_interval_seconds ?? 0,
+      // Not reported back up by the branch yet -- defaults to hybrid; sending
+      // the command sets it on the till.
+      shift_receipt_upload_mode: d.shift_receipt_upload_mode ?? 2,
     }
     for (const k of BOOL_KEYS) {
       if (k === 'search_button_enabled') continue

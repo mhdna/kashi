@@ -22,6 +22,9 @@ ui/.env
 # accidental local artifacts
 /f
 /kashi
+
+# air live-reload build dir (make dev)
+/tmp/
 hexdump_session.log
 
 # junk downloads

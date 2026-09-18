@@ -9,6 +9,7 @@ const routes = [
   { path: '/financials', component: () => import('@/pages/financials.vue'), meta: { title: 'Financials' } },
   { path: '/targets', component: () => import('@/pages/targets.vue'), meta: { title: 'Targets' } },
   { path: '/footfall', component: () => import('@/pages/footfall.vue'), meta: { title: 'Footfall' } },
+  { path: '/product-revenues', component: () => import('@/pages/product-revenues.vue'), meta: { title: 'Product Revenues' } },
   { path: '/conversion', component: () => import('@/pages/conversion.vue'), meta: { title: 'Conversion' } },
   { path: '/alerts', component: () => import('@/pages/alerts.vue'), meta: { title: 'Alerts' } },
   { path: '/stock-health', component: () => import('@/pages/stock-health.vue'), meta: { title: 'Stock Health' } },
@@ -21,6 +22,11 @@ const routes = [
     path: '/login',
     component: () => import('@/pages/Login.vue'),
     meta: { title: 'Login', layout: 'auth' },
+  },
+  {
+    path: '/review',
+    component: () => import('@/pages/review.vue'),
+    meta: { title: 'Feedback', layout: 'login', public: true },
   },
 
   { path: '/products', component: () => import('@/pages/products.vue'), meta: { title: 'Products' } },
@@ -66,7 +72,7 @@ const routes = [
 
   { path: '/users', component: () => import('@/pages/users.vue'), meta: { title: 'Users' } },
   { path: '/settings', component: () => import('@/pages/settings.vue'), meta: { title: 'Settings' } },
-  { path: '/logs', component: () => import('@/pages/logs.vue'), meta: { title: 'Logs' } },
+  { path: '/logs', component: () => import('@/pages/logs.vue'), meta: { title: 'Dev Logs' } },
 ]
 
 const router = createRouter({
@@ -81,7 +87,7 @@ function updateDocumentTitle (route) {
 
 router.beforeEach(to => {
   const authStore = useAuthStore()
-  if (to.path !== '/login' && !authStore.isAuthenticated) {
+  if (to.path !== '/login' && !to.meta.public && !authStore.isAuthenticated) {
     return '/login'
   }
   if (to.path === '/login' && authStore.isAuthenticated) {

@@ -71,7 +71,7 @@ export const retailCalendarEvents = [
   },
   {
     name: 'Black Friday',
-    color: 'grey-darken-3',
+    color: 'blue-grey',
     icon: 'mdi-sale',
     dates: year => {
       const thanksgiving = nthWeekdayOfMonth(year, 10, 4, 4) // 4th Thursday of Nov

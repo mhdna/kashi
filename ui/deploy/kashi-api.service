@@ -1,0 +1,24 @@
+# /etc/systemd/system/kashi-api.service
+#
+#   sudo cp deploy/kashi-api.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now kashi-api
+#   journalctl -u kashi-api -f
+
+[Unit]
+Description=Kashi API
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+User=kashi
+Group=kashi
+WorkingDirectory=/home/kashi/app
+ExecStart=/home/kashi/app/api-linux
+Restart=on-failure
+RestartSec=3
+# Config is read from app.env in WorkingDirectory (DB_SOURCE,
+# TOKEN_SYMMETRIC_KEY, HTTP_SERVER_ADDRESS=127.0.0.1:8090, ...).
+
+[Install]
+WantedBy=multi-user.target

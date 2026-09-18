@@ -103,7 +103,7 @@
                     <th class="text-left">Period</th>
                     <th class="text-right">Achieved</th>
                     <th class="text-right">Target</th>
-                    <th class="text-right">Progress</th>
+                    <th class="text-left" style="min-width: 160px">Progress</th>
                     <th class="text-left">Status</th>
                   </tr>
                 </thead>
@@ -113,7 +113,20 @@
                     <td>{{ formatDate(t.date_from) }} – {{ formatDate(t.date_to) }}</td>
                     <td class="text-right">{{ formatMoney(t.achieved) }}</td>
                     <td class="text-right">{{ formatMoney(t.target_amount) }}</td>
-                    <td class="text-right">{{ Math.round(t.progressPct) }}%</td>
+                    <td>
+                      <div class="d-flex align-center ga-2">
+                        <v-progress-linear
+                          :color="STATUS_META[t.status].color"
+                          height="8"
+                          :model-value="t.progressPct"
+                          rounded
+                          style="flex: 1"
+                        />
+                        <span class="text-caption font-weight-medium text-medium-emphasis" style="min-width: 34px; text-align: right">
+                          {{ Math.round(t.progressPct) }}%
+                        </span>
+                      </div>
+                    </td>
                     <td>
                       <v-chip :color="STATUS_META[t.status].color" size="small" variant="tonal">
                         {{ STATUS_META[t.status].label }}

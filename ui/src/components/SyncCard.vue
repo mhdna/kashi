@@ -9,10 +9,15 @@
         style="cursor: pointer"
         variant="tonal"
       >
+        <!-- Idle "synced ... ago" state leads with the cloud. On desktop
+             during activity the per-message trend arrows carry the meaning,
+             so the leading glyph is dropped; the mobile icon-only pill still
+             needs it, so it keeps the activity's own glyph there. -->
         <v-icon
+          v-if="mobile || !currentActivity"
           :class="{ 'me-2': !mobile }"
-          :color="activeItems.length > 0 ? activeItems[0].color : wsIconColor"
-          icon="mdi-cloud"
+          :color="currentActivity ? currentActivity.color : wsIconColor"
+          :icon="currentActivity ? currentActivity.icon : 'mdi-cloud'"
           :size="mobile ? 20 : undefined"
         />
         <div v-if="!mobile" class="text-body-2 ticker">
@@ -37,14 +42,14 @@
       </v-card>
     </template>
 
-    <v-card max-width="400" min-width="320">
+    <v-card class="menu-card" max-width="400" min-width="320">
       <v-card-title class="text-subtitle-1">Branch sync</v-card-title>
       <v-divider />
 
       <v-card-text v-if="serverDown" class="text-medium-emphasis">
         Can't reach the server, we'll be back soon.
       </v-card-text>
-      <v-list v-else-if="recentInvoices.length > 0" density="compact" lines="two">
+      <v-list v-else-if="recentInvoices.length > 0" class="menu-scroll" density="compact" lines="two">
         <v-list-item
           v-for="invoice in recentInvoices"
           :key="invoice.id"
@@ -99,8 +104,11 @@
   let clockTimer = null
 
   // No live socket means we can't confirm branch data is flowing, so the
-  // card reports "not syncing" rather than a stale "synced ... ago".
-  const serverDown = computed(() => wsStatus.value !== 'open')
+  // card reports "not syncing" rather than a stale "synced ... ago". Only a
+  // confirmed 'closed' counts -- 'connecting' is the normal pre-handshake
+  // state right after a page load and should read as "syncing...", not an
+  // outage.
+  const serverDown = computed(() => wsStatus.value === 'closed')
   const wsIconColor = computed(() => (serverDown.value ? undefined : 'success'))
 
   // 'appbar' mode: branch activity (sales/returns/expenses) rides on the
@@ -113,7 +121,10 @@
   // 'notification' mode (the default) BranchActivityToast owns this instead
   // and activeItems is never fed -- see the onMessage handler.
   const MAX_VISIBLE = 3
-  const activeItems = ref([]) // [{ id, text, color, trendIcon }], oldest first
+  const activeItems = ref([]) // [{ id, text, color, trendIcon, icon }], oldest first
+
+  // The newest visible activity -- drives the pill's leading icon.
+  const currentActivity = computed(() => activeItems.value.at(-1) ?? null)
   const itemTimers = new Map()
   let itemSeq = 0
 
@@ -132,6 +143,7 @@
       text: described.shortText ?? described.text,
       color: described.color,
       trendIcon: described.trendIcon,
+      icon: described.icon,
     }
     activeItems.value.push(item)
     itemTimers.set(item.id, setTimeout(() => dropItem(item.id), settingsStore.activityMessageSeconds * 1000))
@@ -247,18 +259,33 @@
   justify-content: center;
 }
 
-.ticker {
-  position: relative;
+/* Cap the dropdown height; the list scrolls inside. */
+.menu-card {
   display: flex;
-  align-items: center;
-  /* min-height keeps the box a full text-line tall even when the reel is
-     empty -- otherwise it collapses and overflow:hidden clips the
-     absolutely-positioned status line. */
+  flex-direction: column;
+  max-height: min(60vh, 420px);
+}
+
+.menu-scroll {
+  overflow-y: auto;
+}
+
+/* The reel and the status line are stacked in a single grid cell so they
+   can crossfade in place, while the cell -- and therefore the pill --
+   sizes itself to whichever one is currently wider. No fixed width: the
+   card grows and shrinks with its content, capped by max-width. */
+.ticker {
+  display: grid;
+  grid-template: 1fr / 1fr;
+  place-items: center;
   min-height: 24px;
   overflow: hidden;
   white-space: nowrap;
-  min-width: 168px; /* room for "synced 23 hours ago" when the reel is empty */
   max-width: min(44vw, 520px);
+}
+
+.ticker > * {
+  grid-area: 1 / 1;
 }
 
 .reel {
@@ -266,14 +293,10 @@
   gap: 6px;
 }
 
-/* The "synced ... ago" line lives under the reel, pinned to the same left
-   edge. It fades out when messages are showing and fades back in as the
-   last pill collapses -- a crossfade in place, no layout swap. */
+/* Fades out when messages are showing and fades back in as the last pill
+   collapses -- a crossfade in place, no layout swap. */
 .status {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  text-align: center;
   transition: opacity 0.24s ease;
 }
 
@@ -281,16 +304,13 @@
   opacity: 0;
 }
 
-/* Each message is a self-contained pill -- no pseudo-element separators
-   between siblings, so the only thing that moves when one leaves is the
-   pills themselves. */
+/* Each message rides directly on the pill's own surface -- no separate
+   background -- so the only thing that moves when one leaves is the
+   messages themselves. */
 .activity-item {
   display: inline-flex;
   align-items: center;
   max-width: 220px;
-  padding: 1px 8px;
-  border-radius: 6px;
-  background: rgba(var(--v-theme-on-surface), 0.06);
 }
 
 .activity-item__text {

@@ -38,17 +38,6 @@
         @keyup.enter="submit"
       />
 
-      <v-alert v-if="error" class="mb-4" type="error" variant="tonal">
-        {{ error }}
-      </v-alert>
-
-      <v-card v-if="failedAttempts >= 3" class="mb-12" color="surface-variant" variant="tonal">
-        <v-card-text class="text-medium-emphasis text-caption">
-          Warning: After 3 consecutive failed login attempts, your account will be temporarily locked for three hours. If
-          you must login now, you can also click "Forgot login password?" below to reset the login password.
-        </v-card-text>
-      </v-card>
-
       <v-btn
         block
         color="blue"
@@ -60,6 +49,28 @@
         Log In
       </v-btn>
 
+      <!-- Feedback lives here, absolutely positioned under the card so an
+           error message or the lockout warning can appear/disappear without
+           ever changing the centered form's height or nudging it upward. -->
+      <div class="login-feedback">
+        <div aria-live="polite" role="alert">
+          <v-alert v-if="error" density="compact" type="error" variant="tonal">
+            {{ error }}
+          </v-alert>
+        </div>
+
+        <v-card
+          v-if="failedAttempts >= 3"
+          class="mt-3"
+          color="surface-variant"
+          variant="tonal"
+        >
+          <v-card-text class="text-medium-emphasis text-caption">
+            Warning: After 3 consecutive failed login attempts, your account will be temporarily locked for three hours.
+            If you must login now, you can also click "Forgot login password?" below to reset the login password.
+          </v-card-text>
+        </v-card>
+      </div>
     </div>
   </div>
 </template>
@@ -81,13 +92,24 @@
   const failedAttempts = ref(0)
 
   async function submit () {
+    if (submitting.value) return
+
     error.value = ''
+    if (!username.value.trim() || !password.value) {
+      error.value = 'Enter your username and password.'
+      return
+    }
+
     submitting.value = true
     try {
-      await authStore.login(username.value, password.value)
+      await authStore.login(username.value.trim(), password.value)
       router.push('/')
     } catch (error_) {
-      failedAttempts.value += 1
+      // Only a rejected credential (400/401) counts toward the lockout
+      // warning, not a server/network problem the user can't act on.
+      if (error_.status === 400 || error_.status === 401) {
+        failedAttempts.value += 1
+      }
       error.value = error_.message
     } finally {
       submitting.value = false
@@ -110,11 +132,29 @@
   flex-shrink: 0;
   margin: auto;
   padding: 48px;
+  position: relative;
   width: min(100%, 448px);
 }
 
 .login-logo {
   margin-bottom: 24px;
+}
+
+/* Pinned just below the card and taken out of flow, so the error message
+   and lockout warning never affect the centered form's height or position. */
+.login-feedback {
+  position: absolute;
+  top: 100%;
+  left: 48px;
+  right: 48px;
+  margin-top: -16px;
+}
+
+@media (max-width: 600px) {
+  .login-feedback {
+    left: 0;
+    right: 0;
+  }
 }
 
 @media (max-width: 600px) {

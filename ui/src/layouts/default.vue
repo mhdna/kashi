@@ -13,7 +13,6 @@
         </div>
       </v-app-bar-title>
       <!-- <SnackBar /> -->
-      <BranchActivityToast />
       <template #append>
         <UpcomingEventsCard />
         <SyncCard />
@@ -23,18 +22,25 @@
         <!-- <v-icon icon="mdi-translate" /> -->
         <ToggleTheme />
         <v-avatar
-          class="text-white"
-          color="red"
+          class="text-white font-weight-medium"
+          :color="avatarColor"
           size="35"
           style="cursor: pointer"
+          title="Settings"
+          @click="router.push('/settings')"
         >
-          <span class="text-h2">OW</span>
+          <span class="text-body-2">{{ avatarInitials }}</span>
         </v-avatar>
         <v-btn icon="mdi-logout" variant="text" @click="handleLogout" />
       </template>
     </v-app-bar>
 
     <NavigationDrawer v-model="showDrawer" :mobile="mobile" :rail="isRail" />
+
+    <!-- Kept outside <v-app-bar>: Vuetify transforms the app bar for its
+         scroll behaviour, and a transformed ancestor would anchor this
+         fixed reel to the bar (top, clipped) instead of the viewport. -->
+    <BranchActivityToast />
 
     <div class="page-wrapper">
       <div v-if="isNavigating" class="loading-overlay">
@@ -70,11 +76,13 @@
   import CommandPalette from '@/components/CommandPalette.vue'
   import ConnectedBranchesCard from '@/components/ConnectedBranchesCard.vue'
   // import NotificationMenu from '@/components/Menus/NotificationMenu.vue'
+  import { useUserAvatar } from '@/composables/useUserAvatar'
   import { useAuthStore } from '@/stores/auth'
   import { useSettingsStore } from '@/stores/settings'
 
   const auth = useAuthStore()
   const settingsStore = useSettingsStore()
+  const { initials: avatarInitials, color: avatarColor } = useUserAvatar()
   // Loads the global app settings (activity display prefs, financials high
   // season months) once per session -- BranchActivityToast/SyncCard read
   // settingsStore's activity fields reactively, so this can resolve after

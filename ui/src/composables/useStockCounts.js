@@ -52,12 +52,12 @@ async function fetchCountSheet (inventoryId, { search = '', onPage } = {}) {
   let pageId = 0
   for (;;) {
     const params = new URLSearchParams({ page_id: String(pageId), page_size: String(COUNT_SHEET_PAGE_SIZE) })
-    if (search) params.set('search', search)
+    if (search) {params.set('search', search)}
     const data = await resource.requestJSON(`${API_BASE}/inventories/${inventoryId}/count_sheet?${params}`)
     const rows = data?.stock ?? []
     all.push(...rows)
     onPage?.(rows, { loaded: all.length, total: data?.total ?? all.length })
-    if (rows.length < COUNT_SHEET_PAGE_SIZE || all.length >= (data?.total ?? 0)) break
+    if (rows.length < COUNT_SHEET_PAGE_SIZE || all.length >= (data?.total ?? 0)) {break}
     pageId += COUNT_SHEET_PAGE_SIZE
   }
   return all

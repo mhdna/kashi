@@ -2,8 +2,8 @@
   <div class="page-root">
     <v-card class="logs-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
-        <v-icon icon="mdi-text" />
-        <span>Application logs</span>
+        <v-icon icon="mdi-code-tags" />
+        <span>Dev logs</span>
         <v-chip
           v-if="errorCount"
           color="error"
@@ -86,7 +86,7 @@
           density="comfortable"
           :headers="headers"
           :items="filteredEntries"
-          :items-per-page="25"
+          :items-per-page="15"
           :sort-by="[{ key: 'timestamp', order: 'desc' }]"
         >
           <template #item.timestamp="{ item }">

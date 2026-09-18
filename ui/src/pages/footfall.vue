@@ -32,7 +32,13 @@
       </v-select>
     </div>
 
-    <v-alert v-if="error" class="ff-notice mx-4 mb-2" density="compact" type="error" variant="tonal">
+    <v-alert
+      v-if="error"
+      class="ff-notice mx-4 mb-2"
+      density="compact"
+      type="error"
+      variant="tonal"
+    >
       {{ error }}
     </v-alert>
 
@@ -68,11 +74,11 @@
       </v-row>
 
       <!-- Daily heatmap + weekday -->
-      <v-row>
+      <v-row dense>
         <v-col cols="12" md="8">
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title">Daily footfall — customers in</div>
-            <div class="ff-heat-wrap">
+            <div ref="heatWrapRef" class="ff-heat-wrap">
               <table class="ff-heat" @mouseleave="heatHoverCol = null">
                 <thead>
                   <tr>
@@ -93,7 +99,11 @@
                     <td
                       v-for="(m, mi) in heatMonths"
                       :key="m"
-                      :class="{ 'ff-heat__col-hover': heatHoverCol === mi }"
+                      :ref="el => setHeatCellRef(mi, d, el)"
+                      :class="{
+                        'ff-heat__col-hover': heatHoverCol === mi,
+                        'ff-heat__today': isHeatToday(mi, d),
+                      }"
                       :style="d <= heatDaysInMonth[mi] ? heatCellStyle(heatGrid[mi][d - 1]) : {}"
                       @mouseenter="heatHoverCol = mi"
                     >
@@ -128,7 +138,7 @@
       </v-row>
 
       <!-- Month comparison + branch comparison -->
-      <v-row>
+      <v-row dense>
         <v-col cols="12" md="7">
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title">Month over month by branch</div>
@@ -144,7 +154,7 @@
       </v-row>
 
       <!-- Month x branch table -->
-      <v-row>
+      <v-row dense>
         <v-col cols="12">
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title">Customers in — month × branch</div>
@@ -185,7 +195,7 @@
 </template>
 
 <script setup>
-  import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+  import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
   import VChart from 'vue-echarts'
   import { useTheme } from 'vuetify'
   import { useAdminSocket } from '@/composables/useAdminSocket'
@@ -493,6 +503,39 @@
     }
   }
 
+  // Outline today's cell and scroll it into view on first render -- mirrors
+  // HeatmapTable on the Daily income page. The sticky day column / month
+  // header overlap the grid, so their size is subtracted rather than using
+  // scrollIntoView (which ignores them).
+  const heatWrapRef = ref(null)
+  const heatToday = new Date()
+  const heatTodayMonthKey = `${heatToday.getFullYear()}-${String(heatToday.getMonth() + 1).padStart(2, '0')}`
+  const heatTodayDay = heatToday.getDate()
+  const heatTodayColIndex = computed(() => heatMonths.value.indexOf(heatTodayMonthKey))
+  const isHeatToday = (mi, d) => mi === heatTodayColIndex.value && d === heatTodayDay
+  let heatTodayCellEl = null
+  let scrolledToHeatToday = false
+
+  function setHeatCellRef (mi, d, el) {
+    if (isHeatToday(mi, d)) heatTodayCellEl = el
+  }
+
+  async function scrollToHeatToday () {
+    if (scrolledToHeatToday) return
+    await nextTick()
+    const wrap = heatWrapRef.value
+    if (!wrap || !heatTodayCellEl) return
+    scrolledToHeatToday = true
+    const stickyColWidth = wrap.querySelector('.ff-heat__daycol')?.offsetWidth ?? 0
+    const stickyHeaderHeight = wrap.querySelector('thead')?.offsetHeight ?? 0
+    wrap.scrollLeft = heatTodayCellEl.offsetLeft - stickyColWidth
+      - (wrap.clientWidth - stickyColWidth) / 2 + heatTodayCellEl.offsetWidth / 2
+    wrap.scrollTop = heatTodayCellEl.offsetTop - stickyHeaderHeight
+      - (wrap.clientHeight - stickyHeaderHeight) / 2 + heatTodayCellEl.offsetHeight / 2
+  }
+
+  watch([heatGrid, heatWrapRef], scrollToHeatToday, { flush: 'post' })
+
   // --- charts -----------------------------------------------------------
   const weekdayOption = computed(() => {
     const LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -670,6 +713,10 @@
 }
 .ff-heat__col-hover {
   background-image: linear-gradient(rgba(255, 140, 0, 0.16), rgba(255, 140, 0, 0.16));
+}
+.ff-heat__today {
+  outline: 2px solid #f44336;
+  outline-offset: -2px;
 }
 .ff-heat tfoot td {
   position: sticky;

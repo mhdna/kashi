@@ -13,6 +13,7 @@ export const BRANCH_ACTIVITY_TYPES = [
   'branch_attendance_events',
   'branch_attendance_changed',
   'branch_visitor_event',
+  'branch_sync_conflict',
 ]
 
 export function isBranchActivityMessage (message) {
@@ -80,6 +81,45 @@ function attendanceChangeIcon (kind) {
   return ATTENDANCE_CHANGE_ICON[kind] ?? 'mdi-clock-edit-outline'
 }
 
+const SYNC_CONFLICT_WORDING = {
+  phone_name_mismatch: 'a client name disagreement',
+  invalid_phone: 'a client with no usable phone',
+  unknown_product: 'an unknown product',
+}
+
+// invoiceTone picks the toast background tint for an invoice-family
+// message. Extracted from describeBranchActivity to keep that function's
+// complexity under the lint ceiling (and out of a nested ternary).
+function invoiceTone (type, kind) {
+  if (type === 'branch_expense_created') {
+    return 'red-darken-4'
+  }
+  if (type === 'branch_loan_created') {
+    return 'deep-purple-darken-4'
+  }
+  if (kind === 'exchange') {
+    return 'orange-darken-4'
+  }
+  if (kind === 'return') {
+    return 'red-darken-4'
+  }
+  return 'green-darken-4'
+}
+
+// describeSyncConflict is split out of describeBranchActivity's switch so
+// that function's cyclomatic complexity doesn't creep further.
+function describeSyncConflict (message, branch) {
+  const what = SYNC_CONFLICT_WORDING[message.kind] ?? 'a sync conflict'
+  return {
+    text: `${branch}: ${what} needs resolving`,
+    shortText: `${branch}: sync conflict`,
+    color: 'warning',
+    tone: 'amber-darken-4',
+    icon: 'mdi-alert-circle-outline',
+    money: false,
+  }
+}
+
 // describeBranchActivity turns one admin-socket message into the shape both
 // the toast (BranchActivityToast) and the app-bar reel (SyncCard) render:
 //
@@ -107,6 +147,9 @@ export function describeBranchActivity (message, branchName) {
         // Kind is already carried by the icon + colour, so the reel drops it.
         shortText: `${branch}: ${money}`,
         color: amountColor(message.amount),
+        // Toast background tint keys off what happened, not the amount sign:
+        // green revenue, red return/expense, orange exchange, purple loan.
+        tone: invoiceTone(message.type, kind),
         trendIcon: message.amount < 0 ? 'mdi-triangle-down' : 'mdi-triangle',
         icon: invoiceIcon(message),
         amount: message.amount,
@@ -194,9 +237,14 @@ export function describeBranchActivity (message, branchName) {
         text: `${branch}: customer ${word} — ${soFar} ${word} today`,
         shortText: `${branch}: ${soFar} ${word}`,
         color: 'info',
+        tone: 'blue-darken-4',
         icon: isOut ? 'mdi-account-arrow-left' : 'mdi-account-arrow-right',
         money: false,
       }
+    }
+
+    case 'branch_sync_conflict': {
+      return describeSyncConflict(message, branch)
     }
 
     default: {

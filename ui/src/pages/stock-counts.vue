@@ -24,7 +24,13 @@
             />
           </v-col>
           <v-col cols="6" md="6">
-            <v-text-field v-model="note" density="compact" :disabled="!isDraft" hide-details label="Note" />
+            <v-text-field
+              v-model="note"
+              density="compact"
+              :disabled="!isDraft"
+              hide-details
+              label="Note"
+            />
           </v-col>
           <v-col v-if="isDraft" cols="12" md="3">
             <v-autocomplete
@@ -60,8 +66,8 @@
           fixed-header
           :headers="lineHeaders"
           height="calc(100vh - 340px)"
-          :items="lines"
           item-value="variantId"
+          :items="lines"
         >
           <template #item.system_quantity="{ item }">
             <div class="text-end">{{ item.systemQuantity }}</div>
@@ -109,7 +115,13 @@
         <v-spacer />
         <template v-if="isDraft">
           <v-btn :loading="saving" text="Save Draft" @click="save" />
-          <v-btn color="success" :disabled="!editingId" :loading="posting" text="Post" @click="post" />
+          <v-btn
+            color="success"
+            :disabled="!editingId"
+            :loading="posting"
+            text="Post"
+            @click="post"
+          />
         </template>
       </v-card-actions>
     </v-card>
@@ -133,7 +145,13 @@
           label="Inventory"
           variant="outlined"
         />
-        <v-btn color="primary" prepend-icon="mdi-plus" text="New Count" variant="flat" @click="openCreate" />
+        <v-btn
+          color="primary"
+          prepend-icon="mdi-plus"
+          text="New Count"
+          variant="flat"
+          @click="openCreate"
+        />
       </v-card-title>
       <v-divider />
 

@@ -74,7 +74,7 @@
       </v-row>
 
       <!-- Conversion trend + weekday profile -->
-      <v-row>
+      <v-row dense>
         <v-col cols="12" md="8">
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title">Conversion rate by month</div>
@@ -93,7 +93,7 @@
       </v-row>
 
       <!-- Funnel (visitors vs invoices) + branch comparison -->
-      <v-row>
+      <v-row dense>
         <v-col cols="12" md="7">
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title">Visitors vs invoices by month</div>
@@ -109,7 +109,7 @@
       </v-row>
 
       <!-- Month x branch conversion table -->
-      <v-row>
+      <v-row dense>
         <v-col cols="12">
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title">Conversion rate — month × branch</div>

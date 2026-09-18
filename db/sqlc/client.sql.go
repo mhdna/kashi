@@ -164,6 +164,89 @@ func (q *Queries) GetClientLink(ctx context.Context, arg GetClientLinkParams) (i
 	return client_id, err
 }
 
+const listClientSpendingSummary = `-- name: ListClientSpendingSummary :many
+WITH central AS (
+  SELECT i.client_id,
+    SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END) AS total,
+    COUNT(DISTINCT i.id) AS invoice_count
+  FROM invoices i
+  LEFT JOIN sales_invoices si ON si.invoice_id = i.id
+  GROUP BY i.client_id
+), branch AS (
+  SELECT cl.client_id,
+    SUM(b.grand_total) AS total,
+    COUNT(DISTINCT b.id) AS invoice_count
+  FROM branch_invoices b
+  JOIN client_links cl ON cl.branch_id = b.branch_id AND cl.branch_client_id = b.branch_client_id
+  GROUP BY cl.client_id
+)
+SELECT
+  c.id,
+  c.name,
+  c.created_at,
+  c.valid_loyalty_points,
+  (COALESCE(ce.total, 0) + COALESCE(br.total, 0))::bigint AS total_spent,
+  (COALESCE(ce.invoice_count, 0) + COALESCE(br.invoice_count, 0))::bigint AS invoice_count
+FROM clients c
+LEFT JOIN central ce ON ce.client_id = c.id
+LEFT JOIN branch br ON br.client_id = c.id
+WHERE $1::text IS NULL OR c.client_type = $1
+ORDER BY total_spent DESC, c.name ASC
+`
+
+type ListClientSpendingSummaryRow struct {
+	ID                 int64     `json:"id"`
+	Name               string    `json:"name"`
+	CreatedAt          time.Time `json:"created_at"`
+	ValidLoyaltyPoints int64     `json:"valid_loyalty_points"`
+	TotalSpent         int64     `json:"total_spent"`
+	InvoiceCount       int64     `json:"invoice_count"`
+}
+
+// Whole-population feed for the loyalty page, which buckets every client
+// into a front-end tier by total_spent and so needs all of them, not a
+// page. ListClientsBySpending can't serve that: its aggregation scans all
+// invoices/branch_invoices on every call, so paging 25k clients through it
+// re-runs that scan once per page. This runs it once and returns only the
+// five columns the loyalty page reads, so the payload stays small even at
+// tens of thousands of rows.
+//
+// Same two sources and sign conventions as ListClientsBySpending (see the
+// comment there); item_count and the branch_id/search filters are dropped
+// -- nothing on the loyalty page uses them, and dropping item_count also
+// drops the two line-item joins whose row fan-out made the DISTINCTs
+// necessary (kept anyway, so a non-unique sales_invoices/client_links row
+// can't inflate a count).
+func (q *Queries) ListClientSpendingSummary(ctx context.Context, clientType sql.NullString) ([]ListClientSpendingSummaryRow, error) {
+	rows, err := q.db.QueryContext(ctx, listClientSpendingSummary, clientType)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListClientSpendingSummaryRow{}
+	for rows.Next() {
+		var i ListClientSpendingSummaryRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CreatedAt,
+			&i.ValidLoyaltyPoints,
+			&i.TotalSpent,
+			&i.InvoiceCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listClients = `-- name: ListClients :many
 SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type FROM clients
 WHERE $3::text IS NULL OR client_type = $3
@@ -237,7 +320,14 @@ WITH ranked AS (
       COALESCE(SUM(ip.quantity), 0) AS central_item_count
     FROM invoices i
     LEFT JOIN sales_invoices si ON si.invoice_id = i.id
-    LEFT JOIN invoice_products ip ON ip.invoice_id = i.id
+    -- Line items are pre-aggregated to one row per invoice. Joining
+    -- invoice_products directly would repeat each invoice once per line and
+    -- multiply grand_total into central_total by the line count.
+    LEFT JOIN (
+      SELECT invoice_id, SUM(quantity) AS quantity
+      FROM invoice_products
+      GROUP BY invoice_id
+    ) ip ON ip.invoice_id = i.id
     GROUP BY i.client_id
   ) ci ON ci.client_id = c.id
   LEFT JOIN (
@@ -247,7 +337,12 @@ WITH ranked AS (
       COALESCE(SUM(bii.quantity), 0) AS branch_item_count
     FROM branch_invoices b
     JOIN client_links cl ON cl.branch_id = b.branch_id AND cl.branch_client_id = b.branch_client_id
-    LEFT JOIN branch_invoice_items bii ON bii.branch_invoice_id = b.id
+    -- Pre-aggregated per invoice for the same reason as invoice_products above.
+    LEFT JOIN (
+      SELECT branch_invoice_id, SUM(quantity) AS quantity
+      FROM branch_invoice_items
+      GROUP BY branch_invoice_id
+    ) bii ON bii.branch_invoice_id = b.id
     WHERE $4::bigint IS NULL OR b.branch_id = $4
     GROUP BY cl.client_id
   ) bi ON bi.client_id = c.id
