@@ -546,6 +546,23 @@ type AuditLog struct {
 	CreatedAt  time.Time             `json:"created_at"`
 }
 
+type Batch struct {
+	ID          int64         `json:"id"`
+	Code        string        `json:"code"`
+	PurchaseID  sql.NullInt64 `json:"purchase_id"`
+	InventoryID sql.NullInt64 `json:"inventory_id"`
+	Note        string        `json:"note"`
+	CreatedAt   time.Time     `json:"created_at"`
+}
+
+type BatchItem struct {
+	ID             int64 `json:"id"`
+	BatchID        int64 `json:"batch_id"`
+	VariantID      int64 `json:"variant_id"`
+	QuantityBought int64 `json:"quantity_bought"`
+	UnitCost       int64 `json:"unit_cost"`
+}
+
 type Branch struct {
 	ID          int64         `json:"id"`
 	Name        string        `json:"name"`

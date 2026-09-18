@@ -283,6 +283,11 @@ func (server *Server) setupRoutes() {
 	authRoutes.POST("/purchases/:id/receive", server.receivePurchase)
 	authRoutes.POST("/purchases/:id/cancel", server.cancelPurchase)
 
+	authRoutes.POST("/batches", server.createBatch)
+	authRoutes.GET("/batches/:id", server.getBatch)
+	authRoutes.GET("/batches", server.listBatches)
+	authRoutes.DELETE("/batches/:id", server.deleteBatch)
+
 	authRoutes.POST("/branches", server.createBranch)
 	authRoutes.GET("/branches", server.listBranches)
 	authRoutes.GET("/branches/connected", server.listConnectedBranches)

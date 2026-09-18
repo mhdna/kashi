@@ -13,6 +13,7 @@ import (
 )
 
 type Querier interface {
+	AddBatchItem(ctx context.Context, arg AddBatchItemParams) (BatchItem, error)
 	AddCashboxAccountBalance(ctx context.Context, arg AddCashboxAccountBalanceParams) (ShiftsAccountsBalance, error)
 	AddClientLoyaltyPoints(ctx context.Context, arg AddClientLoyaltyPointsParams) error
 	// Apply a signed quantity delta to one SKU's on-hand in one inventory,
@@ -46,6 +47,7 @@ type Querier interface {
 	CountAssets(ctx context.Context, arg CountAssetsParams) (int64, error)
 	CountAttributeValues(ctx context.Context, arg CountAttributeValuesParams) (int64, error)
 	CountAuditLogs(ctx context.Context, arg CountAuditLogsParams) (int64, error)
+	CountBatchesFiltered(ctx context.Context, search string) (int64, error)
 	CountBranchAttendanceChanges(ctx context.Context, branchID sql.NullInt64) (int64, error)
 	CountBranchAttendanceEvents(ctx context.Context, branchID sql.NullInt64) (int64, error)
 	CountBranchExpenseImages(ctx context.Context) (int64, error)
@@ -102,6 +104,7 @@ type Querier interface {
 	CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset, error)
 	CreateAssetCategory(ctx context.Context, arg CreateAssetCategoryParams) (AssetCategory, error)
 	CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) (AuditLog, error)
+	CreateBatch(ctx context.Context, arg CreateBatchParams) (Batch, error)
 	CreateBranch(ctx context.Context, arg CreateBranchParams) (Branch, error)
 	CreateBranchAttendanceChange(ctx context.Context, arg CreateBranchAttendanceChangeParams) (BranchAttendanceChange, error)
 	CreateBranchAttendanceEvent(ctx context.Context, arg CreateBranchAttendanceEventParams) (BranchAttendanceEvent, error)
@@ -255,6 +258,7 @@ type Querier interface {
 	DeleteAssets(ctx context.Context, ids []int64) (int64, error)
 	DeleteAttributeValue(ctx context.Context, id int64) error
 	DeleteAttributeValues(ctx context.Context, ids []int64) (int64, error)
+	DeleteBatch(ctx context.Context, id int64) error
 	DeleteBranchAttendanceEvent(ctx context.Context, id int64) error
 	DeleteBranchInvoicePaymentsForInvoice(ctx context.Context, branchInvoiceID int64) error
 	DeleteBranchTargetSeries(ctx context.Context, id int64) (BranchTargetSeries, error)
@@ -303,6 +307,7 @@ type Querier interface {
 	GetAttribute(ctx context.Context, name string) (Attribute, error)
 	// upserting instead of inserting makes product creation with attributes easier
 	GetAttributeValue(ctx context.Context, id int64) (AttributesValue, error)
+	GetBatch(ctx context.Context, id int64) (GetBatchRow, error)
 	GetBranch(ctx context.Context, id int64) (Branch, error)
 	GetBranchAttendanceChangeByClientRef(ctx context.Context, arg GetBranchAttendanceChangeByClientRefParams) (BranchAttendanceChange, error)
 	GetBranchAttendanceEvent(ctx context.Context, id int64) (BranchAttendanceEvent, error)
@@ -478,6 +483,12 @@ type Querier interface {
 	ListAttributeValuesPage(ctx context.Context, arg ListAttributeValuesPageParams) ([]ListAttributeValuesPageRow, error)
 	ListAttributes(ctx context.Context) ([]Attribute, error)
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]ListAuditLogsRow, error)
+	// Per-item numbers for the batch's "Products" tab: what was bought (frozen
+	// on the batch), plus what has ever sold/on-hand/COGS is for that variant
+	// today -- see the comment on the batches table for why this isn't scoped
+	// strictly to units from this batch.
+	ListBatchItemsStats(ctx context.Context, batchID int64) ([]ListBatchItemsStatsRow, error)
+	ListBatches(ctx context.Context, arg ListBatchesParams) ([]ListBatchesRow, error)
 	ListBranchAttendanceChanges(ctx context.Context, arg ListBranchAttendanceChangesParams) ([]BranchAttendanceChange, error)
 	ListBranchAttendanceEvents(ctx context.Context, arg ListBranchAttendanceEventsParams) ([]BranchAttendanceEvent, error)
 	ListBranchCommands(ctx context.Context, arg ListBranchCommandsParams) ([]BranchCommand, error)

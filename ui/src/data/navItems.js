@@ -98,6 +98,7 @@ export const navItems = [
     children: [
       { title: 'Inventory', icon: 'mdi-warehouse', to: '/inventory' },
       { title: 'Purchase Invoices', icon: 'mdi-invoice', to: '/purchase-invoice' },
+      { title: 'Batches', icon: 'mdi-package-variant-closed', to: '/batches' },
       { title: 'Transfers', icon: 'mdi-transfer', to: '/transfers' },
       { title: 'Stock Counts', icon: 'mdi-clipboard-list-outline', to: '/stock-counts' },
       { title: 'Stock Movements', icon: 'mdi-swap-vertical', to: '/stock-movements' },

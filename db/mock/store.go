@@ -38,6 +38,21 @@ func (m *MockStore) EXPECT() *MockStoreMockRecorder {
 	return m.recorder
 }
 
+// AddBatchItem mocks base method.
+func (m *MockStore) AddBatchItem(arg0 context.Context, arg1 db.AddBatchItemParams) (db.BatchItem, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddBatchItem", arg0, arg1)
+	ret0, _ := ret[0].(db.BatchItem)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AddBatchItem indicates an expected call of AddBatchItem.
+func (mr *MockStoreMockRecorder) AddBatchItem(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBatchItem", reflect.TypeOf((*MockStore)(nil).AddBatchItem), arg0, arg1)
+}
+
 // AddCashboxAccountBalance mocks base method.
 func (m *MockStore) AddCashboxAccountBalance(arg0 context.Context, arg1 db.AddCashboxAccountBalanceParams) (db.ShiftsAccountsBalance, error) {
 	m.ctrl.T.Helper()
@@ -454,6 +469,21 @@ func (m *MockStore) CountAuditLogs(arg0 context.Context, arg1 db.CountAuditLogsP
 func (mr *MockStoreMockRecorder) CountAuditLogs(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountAuditLogs", reflect.TypeOf((*MockStore)(nil).CountAuditLogs), arg0, arg1)
+}
+
+// CountBatchesFiltered mocks base method.
+func (m *MockStore) CountBatchesFiltered(arg0 context.Context, arg1 string) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountBatchesFiltered", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountBatchesFiltered indicates an expected call of CountBatchesFiltered.
+func (mr *MockStoreMockRecorder) CountBatchesFiltered(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountBatchesFiltered", reflect.TypeOf((*MockStore)(nil).CountBatchesFiltered), arg0, arg1)
 }
 
 // CountBranchAttendanceChanges mocks base method.
@@ -1204,6 +1234,36 @@ func (m *MockStore) CreateAuditLog(arg0 context.Context, arg1 db.CreateAuditLogP
 func (mr *MockStoreMockRecorder) CreateAuditLog(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAuditLog", reflect.TypeOf((*MockStore)(nil).CreateAuditLog), arg0, arg1)
+}
+
+// CreateBatch mocks base method.
+func (m *MockStore) CreateBatch(arg0 context.Context, arg1 db.CreateBatchParams) (db.Batch, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateBatch", arg0, arg1)
+	ret0, _ := ret[0].(db.Batch)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateBatch indicates an expected call of CreateBatch.
+func (mr *MockStoreMockRecorder) CreateBatch(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBatch", reflect.TypeOf((*MockStore)(nil).CreateBatch), arg0, arg1)
+}
+
+// CreateBatchTx mocks base method.
+func (m *MockStore) CreateBatchTx(arg0 context.Context, arg1 db.CreateBatchTxParams) (db.CreateBatchTxResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateBatchTx", arg0, arg1)
+	ret0, _ := ret[0].(db.CreateBatchTxResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateBatchTx indicates an expected call of CreateBatchTx.
+func (mr *MockStoreMockRecorder) CreateBatchTx(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBatchTx", reflect.TypeOf((*MockStore)(nil).CreateBatchTx), arg0, arg1)
 }
 
 // CreateBranch mocks base method.
@@ -2611,6 +2671,20 @@ func (mr *MockStoreMockRecorder) DeleteAttributeValues(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAttributeValues", reflect.TypeOf((*MockStore)(nil).DeleteAttributeValues), arg0, arg1)
 }
 
+// DeleteBatch mocks base method.
+func (m *MockStore) DeleteBatch(arg0 context.Context, arg1 int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteBatch", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteBatch indicates an expected call of DeleteBatch.
+func (mr *MockStoreMockRecorder) DeleteBatch(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBatch", reflect.TypeOf((*MockStore)(nil).DeleteBatch), arg0, arg1)
+}
+
 // DeleteBranchAttendanceEvent mocks base method.
 func (m *MockStore) DeleteBranchAttendanceEvent(arg0 context.Context, arg1 int64) error {
 	m.ctrl.T.Helper()
@@ -3298,6 +3372,21 @@ func (m *MockStore) GetAttributeValue(arg0 context.Context, arg1 int64) (db.Attr
 func (mr *MockStoreMockRecorder) GetAttributeValue(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAttributeValue", reflect.TypeOf((*MockStore)(nil).GetAttributeValue), arg0, arg1)
+}
+
+// GetBatch mocks base method.
+func (m *MockStore) GetBatch(arg0 context.Context, arg1 int64) (db.GetBatchRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBatch", arg0, arg1)
+	ret0, _ := ret[0].(db.GetBatchRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBatch indicates an expected call of GetBatch.
+func (mr *MockStoreMockRecorder) GetBatch(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBatch", reflect.TypeOf((*MockStore)(nil).GetBatch), arg0, arg1)
 }
 
 // GetBranch mocks base method.
@@ -4678,6 +4767,36 @@ func (m *MockStore) ListAuditLogs(arg0 context.Context, arg1 db.ListAuditLogsPar
 func (mr *MockStoreMockRecorder) ListAuditLogs(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAuditLogs", reflect.TypeOf((*MockStore)(nil).ListAuditLogs), arg0, arg1)
+}
+
+// ListBatchItemsStats mocks base method.
+func (m *MockStore) ListBatchItemsStats(arg0 context.Context, arg1 int64) ([]db.ListBatchItemsStatsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBatchItemsStats", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListBatchItemsStatsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBatchItemsStats indicates an expected call of ListBatchItemsStats.
+func (mr *MockStoreMockRecorder) ListBatchItemsStats(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBatchItemsStats", reflect.TypeOf((*MockStore)(nil).ListBatchItemsStats), arg0, arg1)
+}
+
+// ListBatches mocks base method.
+func (m *MockStore) ListBatches(arg0 context.Context, arg1 db.ListBatchesParams) ([]db.ListBatchesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBatches", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListBatchesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBatches indicates an expected call of ListBatches.
+func (mr *MockStoreMockRecorder) ListBatches(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBatches", reflect.TypeOf((*MockStore)(nil).ListBatches), arg0, arg1)
 }
 
 // ListBranchAttendanceChanges mocks base method.
