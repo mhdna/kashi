@@ -104,7 +104,7 @@ func (store *SQLStore) TransferDispatchTx(ctx context.Context, arg TransferStage
 			if !it.VariantID.Valid {
 				continue
 			}
-			movement, err := q.applyStockMovement(ctx, applyStockMovementParams{
+			movements, err := q.applyStockMovement(ctx, applyStockMovementParams{
 				InventoryID:   transfer.FromInventoryID,
 				VariantID:     it.VariantID.Int64,
 				Quantity:      -it.Quantity,
@@ -116,7 +116,7 @@ func (store *SQLStore) TransferDispatchTx(ctx context.Context, arg TransferStage
 			if err != nil {
 				return err
 			}
-			result.Movements = append(result.Movements, movement)
+			result.Movements = append(result.Movements, movements...)
 		}
 
 		updated, err := q.SetTransferStatus(ctx, SetTransferStatusParams{
@@ -172,7 +172,7 @@ func (store *SQLStore) TransferReceiveTx(ctx context.Context, arg TransferStageT
 				return err
 			}
 
-			movement, err := q.applyStockMovement(ctx, applyStockMovementParams{
+			movements, err := q.applyStockMovement(ctx, applyStockMovementParams{
 				InventoryID:   transfer.ToInventoryID,
 				VariantID:     it.VariantID.Int64,
 				Quantity:      it.Quantity,
@@ -185,7 +185,7 @@ func (store *SQLStore) TransferReceiveTx(ctx context.Context, arg TransferStageT
 			if err != nil {
 				return err
 			}
-			result.Movements = append(result.Movements, movement)
+			result.Movements = append(result.Movements, movements...)
 		}
 
 		updated, err := q.SetTransferStatus(ctx, SetTransferStatusParams{
@@ -231,7 +231,7 @@ func (store *SQLStore) CancelTransferTx(ctx context.Context, transferID int64, c
 				if !it.VariantID.Valid {
 					continue
 				}
-				movement, err := q.applyStockMovement(ctx, applyStockMovementParams{
+				movements, err := q.applyStockMovement(ctx, applyStockMovementParams{
 					InventoryID:   transfer.FromInventoryID,
 					VariantID:     it.VariantID.Int64,
 					Quantity:      it.Quantity,
@@ -243,7 +243,7 @@ func (store *SQLStore) CancelTransferTx(ctx context.Context, transferID int64, c
 				if err != nil {
 					return err
 				}
-				result.Movements = append(result.Movements, movement)
+				result.Movements = append(result.Movements, movements...)
 			}
 		}
 
@@ -252,7 +252,7 @@ func (store *SQLStore) CancelTransferTx(ctx context.Context, transferID int64, c
 				if !it.VariantID.Valid {
 					continue
 				}
-				movement, err := q.applyStockMovement(ctx, applyStockMovementParams{
+				movements, err := q.applyStockMovement(ctx, applyStockMovementParams{
 					InventoryID:   transfer.ToInventoryID,
 					VariantID:     it.VariantID.Int64,
 					Quantity:      -it.Quantity,
@@ -264,7 +264,7 @@ func (store *SQLStore) CancelTransferTx(ctx context.Context, transferID int64, c
 				if err != nil {
 					return err
 				}
-				result.Movements = append(result.Movements, movement)
+				result.Movements = append(result.Movements, movements...)
 			}
 		}
 

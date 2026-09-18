@@ -187,6 +187,21 @@ func (mr *MockStoreMockRecorder) AddVariantTx(arg0, arg1 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddVariantTx", reflect.TypeOf((*MockStore)(nil).AddVariantTx), arg0, arg1)
 }
 
+// AdjustBatchItemRemainingQuantity mocks base method.
+func (m *MockStore) AdjustBatchItemRemainingQuantity(arg0 context.Context, arg1 db.AdjustBatchItemRemainingQuantityParams) (db.BatchItem, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AdjustBatchItemRemainingQuantity", arg0, arg1)
+	ret0, _ := ret[0].(db.BatchItem)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AdjustBatchItemRemainingQuantity indicates an expected call of AdjustBatchItemRemainingQuantity.
+func (mr *MockStoreMockRecorder) AdjustBatchItemRemainingQuantity(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdjustBatchItemRemainingQuantity", reflect.TypeOf((*MockStore)(nil).AdjustBatchItemRemainingQuantity), arg0, arg1)
+}
+
 // ApplyBranchSettlementTx mocks base method.
 func (m *MockStore) ApplyBranchSettlementTx(arg0 context.Context, arg1 db.ApplyBranchSettlementTxParams) (db.ApplyBranchSettlementTxResult, error) {
 	m.ctrl.T.Helper()
@@ -3389,6 +3404,21 @@ func (mr *MockStoreMockRecorder) GetBatch(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBatch", reflect.TypeOf((*MockStore)(nil).GetBatch), arg0, arg1)
 }
 
+// GetBatchItemByBatchVariant mocks base method.
+func (m *MockStore) GetBatchItemByBatchVariant(arg0 context.Context, arg1 db.GetBatchItemByBatchVariantParams) (db.BatchItem, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBatchItemByBatchVariant", arg0, arg1)
+	ret0, _ := ret[0].(db.BatchItem)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBatchItemByBatchVariant indicates an expected call of GetBatchItemByBatchVariant.
+func (mr *MockStoreMockRecorder) GetBatchItemByBatchVariant(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBatchItemByBatchVariant", reflect.TypeOf((*MockStore)(nil).GetBatchItemByBatchVariant), arg0, arg1)
+}
+
 // GetBranch mocks base method.
 func (m *MockStore) GetBranch(arg0 context.Context, arg1 int64) (db.Branch, error) {
 	m.ctrl.T.Helper()
@@ -4769,6 +4799,21 @@ func (mr *MockStoreMockRecorder) ListAuditLogs(arg0, arg1 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAuditLogs", reflect.TypeOf((*MockStore)(nil).ListAuditLogs), arg0, arg1)
 }
 
+// ListAvailableBatchItemsForVariant mocks base method.
+func (m *MockStore) ListAvailableBatchItemsForVariant(arg0 context.Context, arg1 int64) ([]db.BatchItem, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListAvailableBatchItemsForVariant", arg0, arg1)
+	ret0, _ := ret[0].([]db.BatchItem)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListAvailableBatchItemsForVariant indicates an expected call of ListAvailableBatchItemsForVariant.
+func (mr *MockStoreMockRecorder) ListAvailableBatchItemsForVariant(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAvailableBatchItemsForVariant", reflect.TypeOf((*MockStore)(nil).ListAvailableBatchItemsForVariant), arg0, arg1)
+}
+
 // ListBatchItemsStats mocks base method.
 func (m *MockStore) ListBatchItemsStats(arg0 context.Context, arg1 int64) ([]db.ListBatchItemsStatsRow, error) {
 	m.ctrl.T.Helper()
@@ -6042,6 +6087,21 @@ func (m *MockStore) ListRecurringExpenses(arg0 context.Context) ([]db.RecurringE
 func (mr *MockStoreMockRecorder) ListRecurringExpenses(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRecurringExpenses", reflect.TypeOf((*MockStore)(nil).ListRecurringExpenses), arg0)
+}
+
+// ListSaleMovementsForInvoiceVariant mocks base method.
+func (m *MockStore) ListSaleMovementsForInvoiceVariant(arg0 context.Context, arg1 db.ListSaleMovementsForInvoiceVariantParams) ([]db.ListSaleMovementsForInvoiceVariantRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListSaleMovementsForInvoiceVariant", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListSaleMovementsForInvoiceVariantRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListSaleMovementsForInvoiceVariant indicates an expected call of ListSaleMovementsForInvoiceVariant.
+func (mr *MockStoreMockRecorder) ListSaleMovementsForInvoiceVariant(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSaleMovementsForInvoiceVariant", reflect.TypeOf((*MockStore)(nil).ListSaleMovementsForInvoiceVariant), arg0, arg1)
 }
 
 // ListSalespersons mocks base method.

@@ -171,9 +171,10 @@ INSERT INTO stock_movements (
   created_by,
   quantity_before,
   quantity_after,
-  metadata
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-RETURNING id, inventory_id, variant_id, quantity, reason, reference_type, reference_id, unit_cost, note, created_by, created_at, quantity_before, quantity_after, metadata
+  metadata,
+  batch_id
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+RETURNING id, inventory_id, variant_id, quantity, reason, reference_type, reference_id, unit_cost, note, created_by, created_at, quantity_before, quantity_after, metadata, batch_id
 `
 
 type CreateStockMovementParams struct {
@@ -189,6 +190,7 @@ type CreateStockMovementParams struct {
 	QuantityBefore int64               `json:"quantity_before"`
 	QuantityAfter  int64               `json:"quantity_after"`
 	Metadata       json.RawMessage     `json:"metadata"`
+	BatchID        sql.NullInt64       `json:"batch_id"`
 }
 
 // ---------------------------------------------------------------------------
@@ -208,6 +210,7 @@ func (q *Queries) CreateStockMovement(ctx context.Context, arg CreateStockMoveme
 		arg.QuantityBefore,
 		arg.QuantityAfter,
 		arg.Metadata,
+		arg.BatchID,
 	)
 	var i StockMovement
 	err := row.Scan(
@@ -225,6 +228,7 @@ func (q *Queries) CreateStockMovement(ctx context.Context, arg CreateStockMoveme
 		&i.QuantityBefore,
 		&i.QuantityAfter,
 		&i.Metadata,
+		&i.BatchID,
 	)
 	return i, err
 }
@@ -451,13 +455,15 @@ SELECT
   sm.quantity_before,
   sm.quantity_after,
   sm.metadata,
+  sm.batch_id,
   i.name AS inventory_name,
   pv.barcode,
   p.code AS product_code,
   p.name AS product_name,
   COALESCE(c.name, '') AS color_name,
   COALESCE(s.name, '') AS size_name,
-  COALESCE(u.name, '') AS created_by_name
+  COALESCE(u.name, '') AS created_by_name,
+  COALESCE(b.code, '') AS batch_code
 FROM stock_movements sm
 JOIN inventories i ON i.id = sm.inventory_id
 JOIN product_variants pv ON pv.id = sm.variant_id
@@ -465,6 +471,7 @@ JOIN products p ON p.id = pv.product_id
 LEFT JOIN colors c ON c.id = pv.color_id
 LEFT JOIN sizes  s ON s.id = pv.size_id
 LEFT JOIN users  u ON u.id = sm.created_by
+LEFT JOIN batches b ON b.id = sm.batch_id
 WHERE ($1::bigint IS NULL OR sm.inventory_id = $1)
   AND ($2::bigint IS NULL OR sm.variant_id = $2)
   AND ($3::stock_movement_reason IS NULL OR sm.reason = $3)
@@ -504,6 +511,7 @@ type ListStockMovementsRow struct {
 	QuantityBefore int64               `json:"quantity_before"`
 	QuantityAfter  int64               `json:"quantity_after"`
 	Metadata       json.RawMessage     `json:"metadata"`
+	BatchID        sql.NullInt64       `json:"batch_id"`
 	InventoryName  string              `json:"inventory_name"`
 	Barcode        string              `json:"barcode"`
 	ProductCode    string              `json:"product_code"`
@@ -511,6 +519,7 @@ type ListStockMovementsRow struct {
 	ColorName      string              `json:"color_name"`
 	SizeName       string              `json:"size_name"`
 	CreatedByName  string              `json:"created_by_name"`
+	BatchCode      string              `json:"batch_code"`
 }
 
 func (q *Queries) ListStockMovements(ctx context.Context, arg ListStockMovementsParams) ([]ListStockMovementsRow, error) {
@@ -547,6 +556,7 @@ func (q *Queries) ListStockMovements(ctx context.Context, arg ListStockMovements
 			&i.QuantityBefore,
 			&i.QuantityAfter,
 			&i.Metadata,
+			&i.BatchID,
 			&i.InventoryName,
 			&i.Barcode,
 			&i.ProductCode,
@@ -554,6 +564,7 @@ func (q *Queries) ListStockMovements(ctx context.Context, arg ListStockMovements
 			&i.ColorName,
 			&i.SizeName,
 			&i.CreatedByName,
+			&i.BatchCode,
 		); err != nil {
 			return nil, err
 		}

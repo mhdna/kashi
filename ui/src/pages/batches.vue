@@ -156,7 +156,7 @@
                         <th>Barcode</th>
                         <th class="text-end">Bought</th>
                         <th class="text-end">Sold</th>
-                        <th class="text-end">On Hand</th>
+                        <th class="text-end">Remaining</th>
                         <th class="text-end">Unit Cost</th>
                         <th class="text-end">Total Cost</th>
                         <th class="text-end">Revenue</th>
@@ -170,7 +170,7 @@
                         <td class="text-medium-emphasis">{{ it.variant_barcode || '—' }}</td>
                         <td class="text-end">{{ it.quantity_bought }}</td>
                         <td class="text-end">{{ it.quantity_sold }}</td>
-                        <td class="text-end">{{ it.quantity_on_hand }}</td>
+                        <td class="text-end">{{ it.remaining_quantity }}</td>
                         <td class="text-end">${{ formatMoney(it.unit_cost) }}</td>
                         <td class="text-end">${{ formatMoney(it.quantity_bought * it.unit_cost) }}</td>
                         <td class="text-end text-success">${{ formatMoney(it.revenue) }}</td>
@@ -233,7 +233,7 @@
                         <span class="text-subtitle-2">Low Stock ({{ lowStock.length }})</span>
                       </div>
                       <v-list v-if="lowStock.length > 0" density="compact">
-                        <v-list-item v-for="it in lowStock" :key="it.batch_item_id" :subtitle="`${it.quantity_on_hand} left`" :title="it.product_name" />
+                        <v-list-item v-for="it in lowStock" :key="it.batch_item_id" :subtitle="`${it.remaining_quantity} left`" :title="it.product_name" />
                       </v-list>
                       <div v-else class="text-medium-emphasis text-body-2">Nothing low.</div>
                     </v-col>
@@ -428,8 +428,8 @@
   }
 
   function itemStatus (it) {
-    if (it.quantity_on_hand <= 0) return { label: 'Out of stock', color: 'error' }
-    if (it.quantity_on_hand <= it.low_stock_threshold) return { label: 'Low stock', color: 'warning' }
+    if (it.remaining_quantity <= 0) return { label: 'Out of stock', color: 'error' }
+    if (it.remaining_quantity <= it.low_stock_threshold) return { label: 'Low stock', color: 'warning' }
     if (it.quantity_sold === 0) return { label: 'Dead stock', color: 'grey' }
     return null
   }
@@ -440,8 +440,8 @@
     return items.value.toSorted((a, b) => b.quantity_sold - a.quantity_sold)[0]
   })
   const deadStock = computed(() => items.value.filter(it => it.quantity_sold === 0))
-  const lowStock = computed(() => items.value.filter(it => it.quantity_on_hand > 0 && it.quantity_on_hand <= it.low_stock_threshold))
-  const outOfStock = computed(() => items.value.filter(it => it.quantity_on_hand <= 0))
+  const lowStock = computed(() => items.value.filter(it => it.remaining_quantity > 0 && it.remaining_quantity <= it.low_stock_threshold))
+  const outOfStock = computed(() => items.value.filter(it => it.remaining_quantity <= 0))
 
   // ---- add batch ------------------------------------------------------
   const createDialog = ref(false)

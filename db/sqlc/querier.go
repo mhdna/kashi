@@ -13,6 +13,9 @@ import (
 )
 
 type Querier interface {
+	// remaining_quantity starts equal to quantity_bought -- FIFO consumption
+	// (applyStockMovement) draws it down as sales are attributed to this
+	// batch, and returns of those sales put it back.
 	AddBatchItem(ctx context.Context, arg AddBatchItemParams) (BatchItem, error)
 	AddCashboxAccountBalance(ctx context.Context, arg AddCashboxAccountBalanceParams) (ShiftsAccountsBalance, error)
 	AddClientLoyaltyPoints(ctx context.Context, arg AddClientLoyaltyPointsParams) error
@@ -25,6 +28,10 @@ type Querier interface {
 	AddPurchasedProduct(ctx context.Context, arg AddPurchasedProductParams) (ProductSupplier, error)
 	AddPurchasedProductCost(ctx context.Context, arg AddPurchasedProductCostParams) (ProductSupplierCost, error)
 	AddStockCountItem(ctx context.Context, arg AddStockCountItemParams) (StockCountItem, error)
+	// Signed delta: negative consumes (a sale), positive replenishes (a return
+	// of that sale). No floor at zero -- same "ledger stays authoritative, UI
+	// surfaces negatives" rule as inventory_stock.
+	AdjustBatchItemRemainingQuantity(ctx context.Context, arg AdjustBatchItemRemainingQuantityParams) (BatchItem, error)
 	BranchAttendanceChangeRefsPresent(ctx context.Context, arg BranchAttendanceChangeRefsPresentParams) ([]string, error)
 	BranchAttendanceEventRefsPresent(ctx context.Context, arg BranchAttendanceEventRefsPresentParams) ([]string, error)
 	BranchClientLinksPresent(ctx context.Context, arg BranchClientLinksPresentParams) ([]int64, error)
@@ -308,6 +315,7 @@ type Querier interface {
 	// upserting instead of inserting makes product creation with attributes easier
 	GetAttributeValue(ctx context.Context, id int64) (AttributesValue, error)
 	GetBatch(ctx context.Context, id int64) (GetBatchRow, error)
+	GetBatchItemByBatchVariant(ctx context.Context, arg GetBatchItemByBatchVariantParams) (BatchItem, error)
 	GetBranch(ctx context.Context, id int64) (Branch, error)
 	GetBranchAttendanceChangeByClientRef(ctx context.Context, arg GetBranchAttendanceChangeByClientRefParams) (BranchAttendanceChange, error)
 	GetBranchAttendanceEvent(ctx context.Context, id int64) (BranchAttendanceEvent, error)
@@ -483,10 +491,16 @@ type Querier interface {
 	ListAttributeValuesPage(ctx context.Context, arg ListAttributeValuesPageParams) ([]ListAttributeValuesPageRow, error)
 	ListAttributes(ctx context.Context) ([]Attribute, error)
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]ListAuditLogsRow, error)
-	// Per-item numbers for the batch's "Products" tab: what was bought (frozen
-	// on the batch), plus what has ever sold/on-hand/COGS is for that variant
-	// today -- see the comment on the batches table for why this isn't scoped
-	// strictly to units from this batch.
+	// FIFO order: oldest batch (by receipt/creation date) first. Walked by
+	// applyStockMovement to decide which batch(es) a sold unit debits.
+	// FOR UPDATE so two sales racing on the same variant can't both allocate
+	// the same remaining units.
+	ListAvailableBatchItemsForVariant(ctx context.Context, variantID int64) ([]BatchItem, error)
+	// Per-item numbers for the batch's "Products" tab, scoped to this batch's
+	// own units via FIFO-tagged stock_movements: remaining_quantity is exactly
+	// what's left of this batch unsold, and quantity_sold/revenue are summed
+	// only from sale movements this batch's FIFO consumption actually
+	// produced (revenue prorated off the source invoice line's price/unit).
 	ListBatchItemsStats(ctx context.Context, batchID int64) ([]ListBatchItemsStatsRow, error)
 	ListBatches(ctx context.Context, arg ListBatchesParams) ([]ListBatchesRow, error)
 	ListBranchAttendanceChanges(ctx context.Context, arg ListBranchAttendanceChangesParams) ([]BranchAttendanceChange, error)
@@ -725,6 +739,11 @@ type Querier interface {
 	ListPurchaseItems(ctx context.Context, purchaseID sql.NullInt64) ([]ListPurchaseItemsRow, error)
 	ListPurchases(ctx context.Context, arg ListPurchasesParams) ([]ListPurchasesRow, error)
 	ListRecurringExpenses(ctx context.Context) ([]RecurringExpense, error)
+	// Which batch(es) a specific sales-invoice line actually drew from, so a
+	// return of that line can replenish the same batches instead of going
+	// untracked. quantity is negative (sale); batch_id is null for the
+	// unattributed remainder, if the sale outran every tracked batch.
+	ListSaleMovementsForInvoiceVariant(ctx context.Context, arg ListSaleMovementsForInvoiceVariantParams) ([]ListSaleMovementsForInvoiceVariantRow, error)
 	ListSalespersons(ctx context.Context, arg ListSalespersonsParams) ([]Salesperson, error)
 	ListSalespersonsByCashbox(ctx context.Context, cashboxID sql.NullInt64) ([]Salesperson, error)
 	ListSalespersonsForBranch(ctx context.Context, branchID sql.NullInt64) ([]Salesperson, error)

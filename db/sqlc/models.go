@@ -556,11 +556,12 @@ type Batch struct {
 }
 
 type BatchItem struct {
-	ID             int64 `json:"id"`
-	BatchID        int64 `json:"batch_id"`
-	VariantID      int64 `json:"variant_id"`
-	QuantityBought int64 `json:"quantity_bought"`
-	UnitCost       int64 `json:"unit_cost"`
+	ID                int64 `json:"id"`
+	BatchID           int64 `json:"batch_id"`
+	VariantID         int64 `json:"variant_id"`
+	QuantityBought    int64 `json:"quantity_bought"`
+	UnitCost          int64 `json:"unit_cost"`
+	RemainingQuantity int64 `json:"remaining_quantity"`
 }
 
 type Branch struct {
@@ -1327,6 +1328,7 @@ type StockMovement struct {
 	QuantityBefore int64               `json:"quantity_before"`
 	QuantityAfter  int64               `json:"quantity_after"`
 	Metadata       json.RawMessage     `json:"metadata"`
+	BatchID        sql.NullInt64       `json:"batch_id"`
 }
 
 type Supplier struct {

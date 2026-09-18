@@ -16,12 +16,14 @@ INSERT INTO batch_items (
   batch_id,
   variant_id,
   quantity_bought,
-  unit_cost
+  unit_cost,
+  remaining_quantity
 )
-VALUES ( $1, $2, $3, $4 )
+VALUES ( $1, $2, $3, $4, $3 )
 ON CONFLICT (batch_id, variant_id) DO UPDATE
-  SET quantity_bought = batch_items.quantity_bought + EXCLUDED.quantity_bought
-RETURNING id, batch_id, variant_id, quantity_bought, unit_cost
+  SET quantity_bought = batch_items.quantity_bought + EXCLUDED.quantity_bought,
+      remaining_quantity = batch_items.remaining_quantity + EXCLUDED.quantity_bought
+RETURNING id, batch_id, variant_id, quantity_bought, unit_cost, remaining_quantity
 `
 
 type AddBatchItemParams struct {
@@ -31,6 +33,9 @@ type AddBatchItemParams struct {
 	UnitCost       int64 `json:"unit_cost"`
 }
 
+// remaining_quantity starts equal to quantity_bought -- FIFO consumption
+// (applyStockMovement) draws it down as sales are attributed to this
+// batch, and returns of those sales put it back.
 func (q *Queries) AddBatchItem(ctx context.Context, arg AddBatchItemParams) (BatchItem, error) {
 	row := q.db.QueryRowContext(ctx, addBatchItem,
 		arg.BatchID,
@@ -45,6 +50,36 @@ func (q *Queries) AddBatchItem(ctx context.Context, arg AddBatchItemParams) (Bat
 		&i.VariantID,
 		&i.QuantityBought,
 		&i.UnitCost,
+		&i.RemainingQuantity,
+	)
+	return i, err
+}
+
+const adjustBatchItemRemainingQuantity = `-- name: AdjustBatchItemRemainingQuantity :one
+UPDATE batch_items
+SET remaining_quantity = remaining_quantity + $1
+WHERE id = $2
+RETURNING id, batch_id, variant_id, quantity_bought, unit_cost, remaining_quantity
+`
+
+type AdjustBatchItemRemainingQuantityParams struct {
+	Delta int64 `json:"delta"`
+	ID    int64 `json:"id"`
+}
+
+// Signed delta: negative consumes (a sale), positive replenishes (a return
+// of that sale). No floor at zero -- same "ledger stays authoritative, UI
+// surfaces negatives" rule as inventory_stock.
+func (q *Queries) AdjustBatchItemRemainingQuantity(ctx context.Context, arg AdjustBatchItemRemainingQuantityParams) (BatchItem, error) {
+	row := q.db.QueryRowContext(ctx, adjustBatchItemRemainingQuantity, arg.Delta, arg.ID)
+	var i BatchItem
+	err := row.Scan(
+		&i.ID,
+		&i.BatchID,
+		&i.VariantID,
+		&i.QuantityBought,
+		&i.UnitCost,
+		&i.RemainingQuantity,
 	)
 	return i, err
 }
@@ -160,41 +195,105 @@ func (q *Queries) GetBatch(ctx context.Context, id int64) (GetBatchRow, error) {
 	return i, err
 }
 
+const getBatchItemByBatchVariant = `-- name: GetBatchItemByBatchVariant :one
+SELECT id, batch_id, variant_id, quantity_bought, unit_cost, remaining_quantity FROM batch_items
+WHERE batch_id = $1 AND variant_id = $2
+LIMIT 1
+FOR UPDATE
+`
+
+type GetBatchItemByBatchVariantParams struct {
+	BatchID   int64 `json:"batch_id"`
+	VariantID int64 `json:"variant_id"`
+}
+
+func (q *Queries) GetBatchItemByBatchVariant(ctx context.Context, arg GetBatchItemByBatchVariantParams) (BatchItem, error) {
+	row := q.db.QueryRowContext(ctx, getBatchItemByBatchVariant, arg.BatchID, arg.VariantID)
+	var i BatchItem
+	err := row.Scan(
+		&i.ID,
+		&i.BatchID,
+		&i.VariantID,
+		&i.QuantityBought,
+		&i.UnitCost,
+		&i.RemainingQuantity,
+	)
+	return i, err
+}
+
+const listAvailableBatchItemsForVariant = `-- name: ListAvailableBatchItemsForVariant :many
+SELECT bi.id, bi.batch_id, bi.variant_id, bi.quantity_bought, bi.unit_cost, bi.remaining_quantity
+FROM batch_items bi
+JOIN batches b ON b.id = bi.batch_id
+WHERE bi.variant_id = $1 AND bi.remaining_quantity > 0
+ORDER BY b.created_at ASC, bi.id ASC
+FOR UPDATE OF bi
+`
+
+// FIFO order: oldest batch (by receipt/creation date) first. Walked by
+// applyStockMovement to decide which batch(es) a sold unit debits.
+// FOR UPDATE so two sales racing on the same variant can't both allocate
+// the same remaining units.
+func (q *Queries) ListAvailableBatchItemsForVariant(ctx context.Context, variantID int64) ([]BatchItem, error) {
+	rows, err := q.db.QueryContext(ctx, listAvailableBatchItemsForVariant, variantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []BatchItem{}
+	for rows.Next() {
+		var i BatchItem
+		if err := rows.Scan(
+			&i.ID,
+			&i.BatchID,
+			&i.VariantID,
+			&i.QuantityBought,
+			&i.UnitCost,
+			&i.RemainingQuantity,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listBatchItemsStats = `-- name: ListBatchItemsStats :many
-WITH sold AS (
-  SELECT ip.variant_id,
-         SUM(ip.quantity)::bigint AS quantity_sold,
-         SUM(ip.line_total)::bigint AS revenue
-  FROM invoice_products ip
-  JOIN sales_invoices si ON si.invoice_id = ip.invoice_id
-  WHERE ip.variant_id IS NOT NULL
-  GROUP BY ip.variant_id
-),
-stock AS (
-  SELECT variant_id, SUM(quantity)::bigint AS quantity_on_hand
-  FROM inventory_stock
-  GROUP BY variant_id
+WITH batch_sales AS (
+  SELECT sm.batch_id, sm.variant_id,
+         SUM(-sm.quantity)::bigint AS quantity_sold,
+         SUM(-sm.quantity * COALESCE(ip.line_total, 0) / NULLIF(ip.quantity, 0))::bigint AS revenue
+  FROM stock_movements sm
+  LEFT JOIN invoice_products ip
+    ON ip.invoice_id = sm.reference_id AND ip.variant_id = sm.variant_id
+  WHERE sm.reason = 'sale' AND sm.batch_id IS NOT NULL
+  GROUP BY sm.batch_id, sm.variant_id
 )
 SELECT
   bi.id AS batch_item_id,
   bi.batch_id,
   bi.variant_id,
   bi.quantity_bought,
+  bi.remaining_quantity,
   bi.unit_cost,
   p.id AS product_id,
   p.name AS product_name,
   p.code AS product_code,
   pv.barcode AS variant_barcode,
   COALESCE(p.low_stock_threshold, a.default_low_stock_threshold)::bigint AS low_stock_threshold,
-  COALESCE(sold.quantity_sold, 0)::bigint AS quantity_sold,
-  COALESCE(sold.revenue, 0)::bigint AS revenue,
-  COALESCE(stock.quantity_on_hand, 0)::bigint AS quantity_on_hand
+  COALESCE(bs.quantity_sold, 0)::bigint AS quantity_sold,
+  COALESCE(bs.revenue, 0)::bigint AS revenue
 FROM batch_items bi
 JOIN product_variants pv ON pv.id = bi.variant_id
 JOIN products p ON p.id = pv.product_id
 CROSS JOIN app_settings a
-LEFT JOIN sold ON sold.variant_id = bi.variant_id
-LEFT JOIN stock ON stock.variant_id = bi.variant_id
+LEFT JOIN batch_sales bs ON bs.batch_id = bi.batch_id AND bs.variant_id = bi.variant_id
 WHERE bi.batch_id = $1
 ORDER BY bi.id
 `
@@ -204,6 +303,7 @@ type ListBatchItemsStatsRow struct {
 	BatchID           int64  `json:"batch_id"`
 	VariantID         int64  `json:"variant_id"`
 	QuantityBought    int64  `json:"quantity_bought"`
+	RemainingQuantity int64  `json:"remaining_quantity"`
 	UnitCost          int64  `json:"unit_cost"`
 	ProductID         int64  `json:"product_id"`
 	ProductName       string `json:"product_name"`
@@ -212,13 +312,13 @@ type ListBatchItemsStatsRow struct {
 	LowStockThreshold int64  `json:"low_stock_threshold"`
 	QuantitySold      int64  `json:"quantity_sold"`
 	Revenue           int64  `json:"revenue"`
-	QuantityOnHand    int64  `json:"quantity_on_hand"`
 }
 
-// Per-item numbers for the batch's "Products" tab: what was bought (frozen
-// on the batch), plus what has ever sold/on-hand/COGS is for that variant
-// today -- see the comment on the batches table for why this isn't scoped
-// strictly to units from this batch.
+// Per-item numbers for the batch's "Products" tab, scoped to this batch's
+// own units via FIFO-tagged stock_movements: remaining_quantity is exactly
+// what's left of this batch unsold, and quantity_sold/revenue are summed
+// only from sale movements this batch's FIFO consumption actually
+// produced (revenue prorated off the source invoice line's price/unit).
 func (q *Queries) ListBatchItemsStats(ctx context.Context, batchID int64) ([]ListBatchItemsStatsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listBatchItemsStats, batchID)
 	if err != nil {
@@ -233,6 +333,7 @@ func (q *Queries) ListBatchItemsStats(ctx context.Context, batchID int64) ([]Lis
 			&i.BatchID,
 			&i.VariantID,
 			&i.QuantityBought,
+			&i.RemainingQuantity,
 			&i.UnitCost,
 			&i.ProductID,
 			&i.ProductName,
@@ -241,7 +342,6 @@ func (q *Queries) ListBatchItemsStats(ctx context.Context, batchID int64) ([]Lis
 			&i.LowStockThreshold,
 			&i.QuantitySold,
 			&i.Revenue,
-			&i.QuantityOnHand,
 		); err != nil {
 			return nil, err
 		}
@@ -318,6 +418,53 @@ func (q *Queries) ListBatches(ctx context.Context, arg ListBatchesParams) ([]Lis
 			&i.InventoryName,
 			&i.ItemCount,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listSaleMovementsForInvoiceVariant = `-- name: ListSaleMovementsForInvoiceVariant :many
+SELECT batch_id, quantity
+FROM stock_movements
+WHERE reference_type = 'sales_invoice'
+  AND reference_id = $1
+  AND variant_id = $2
+  AND reason = 'sale'
+ORDER BY id
+`
+
+type ListSaleMovementsForInvoiceVariantParams struct {
+	ReferenceID sql.NullInt64 `json:"reference_id"`
+	VariantID   int64         `json:"variant_id"`
+}
+
+type ListSaleMovementsForInvoiceVariantRow struct {
+	BatchID  sql.NullInt64 `json:"batch_id"`
+	Quantity int64         `json:"quantity"`
+}
+
+// Which batch(es) a specific sales-invoice line actually drew from, so a
+// return of that line can replenish the same batches instead of going
+// untracked. quantity is negative (sale); batch_id is null for the
+// unattributed remainder, if the sale outran every tracked batch.
+func (q *Queries) ListSaleMovementsForInvoiceVariant(ctx context.Context, arg ListSaleMovementsForInvoiceVariantParams) ([]ListSaleMovementsForInvoiceVariantRow, error) {
+	rows, err := q.db.QueryContext(ctx, listSaleMovementsForInvoiceVariant, arg.ReferenceID, arg.VariantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListSaleMovementsForInvoiceVariantRow{}
+	for rows.Next() {
+		var i ListSaleMovementsForInvoiceVariantRow
+		if err := rows.Scan(&i.BatchID, &i.Quantity); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

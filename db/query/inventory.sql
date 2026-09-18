@@ -128,8 +128,9 @@ INSERT INTO stock_movements (
   created_by,
   quantity_before,
   quantity_after,
-  metadata
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+  metadata,
+  batch_id
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 RETURNING *;
 
 -- name: ListStockMovements :many
@@ -148,13 +149,15 @@ SELECT
   sm.quantity_before,
   sm.quantity_after,
   sm.metadata,
+  sm.batch_id,
   i.name AS inventory_name,
   pv.barcode,
   p.code AS product_code,
   p.name AS product_name,
   COALESCE(c.name, '') AS color_name,
   COALESCE(s.name, '') AS size_name,
-  COALESCE(u.name, '') AS created_by_name
+  COALESCE(u.name, '') AS created_by_name,
+  COALESCE(b.code, '') AS batch_code
 FROM stock_movements sm
 JOIN inventories i ON i.id = sm.inventory_id
 JOIN product_variants pv ON pv.id = sm.variant_id
@@ -162,6 +165,7 @@ JOIN products p ON p.id = pv.product_id
 LEFT JOIN colors c ON c.id = pv.color_id
 LEFT JOIN sizes  s ON s.id = pv.size_id
 LEFT JOIN users  u ON u.id = sm.created_by
+LEFT JOIN batches b ON b.id = sm.batch_id
 WHERE (sqlc.narg(inventory_id)::bigint IS NULL OR sm.inventory_id = sqlc.narg(inventory_id))
   AND (sqlc.narg(variant_id)::bigint IS NULL OR sm.variant_id = sqlc.narg(variant_id))
   AND (sqlc.narg(reason)::stock_movement_reason IS NULL OR sm.reason = sqlc.narg(reason))
