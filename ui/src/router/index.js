@@ -13,6 +13,7 @@ const routes = [
   { path: '/conversion', component: () => import('@/pages/conversion.vue'), meta: { title: 'Conversion' } },
   { path: '/alerts', component: () => import('@/pages/alerts.vue'), meta: { title: 'Alerts' } },
   { path: '/stock-health', component: () => import('@/pages/stock-health.vue'), meta: { title: 'Stock Health' } },
+  { path: '/inventory-analysis', component: () => import('@/pages/inventory-analysis.vue'), meta: { title: 'Inventory Analysis' } },
   { path: '/sales-analytics', component: () => import('@/pages/sales-analytics.vue'), meta: { title: 'Sales Analytics' } },
   { path: '/sales-analysis', component: () => import('@/pages/sales-analysis.vue'), meta: { title: 'Sales Analysis' } },
   { path: '/sales-dashboard', component: () => import('@/pages/sales-dashboard.vue'), meta: { title: 'Sales Dashboard' } },

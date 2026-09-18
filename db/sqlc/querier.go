@@ -523,6 +523,34 @@ type Querier interface {
 	// option, not a required selection).
 	ListBranchInvoices(ctx context.Context, arg ListBranchInvoicesParams) ([]BranchInvoice, error)
 	ListBranchInvoicesPage(ctx context.Context, arg ListBranchInvoicesPageParams) ([]BranchInvoice, error)
+	// ---------------------------------------------------------------------------
+	// Branch (kashi-pos) sales. branch_invoice_items itself carries no product
+	// link (branch_product_id is a branch-local id, not an FK -- see
+	// 000025_create_branch_invoices.up.sql), so it can't be the source. But
+	// CreateBranchInvoiceTx (tx_branch_invoice.go) already resolves each line's
+	// barcode to a real product_variants row at sync time and records the sale
+	// as a stock_movements row (reason='sale', reference_type='branch_invoice',
+	// inventory_id = the branch's own store inventory) purely to decrement
+	// central stock -- that ledger is the only place a branch sale is linked to
+	// a real product. It carries quantity but no transaction price, so revenue
+	// here is an ESTIMATE: each unit priced at the variant's *current* catalog
+	// price (product_variants.price), not whatever kashi-pos actually charged
+	// at checkout (which may have included a since-changed price or a
+	// branch-side discount neither table records at this granularity). A line
+	// whose barcode never resolved (old kashi-pos build, unknown barcode, or a
+	// historical backfill -- see CreateBranchInvoiceTx's Historical branch)
+	// never got a stock_movements row at all and so is silently absent here,
+	// same as it's absent from central stock.
+	// ---------------------------------------------------------------------------
+	ListBranchProductRevenue(ctx context.Context, arg ListBranchProductRevenueParams) ([]ListBranchProductRevenueRow, error)
+	// Same scope/filters/estimate caveat as ListBranchProductRevenue, rolled up
+	// by local calendar day -- the trend line for the kashi-pos tab.
+	ListBranchProductRevenueDaily(ctx context.Context, arg ListBranchProductRevenueDailyParams) ([]ListBranchProductRevenueDailyRow, error)
+	// Same scope/filters/estimate caveat as ListBranchProductRevenue, rolled up
+	// by branch instead of by product -- backs the "revenue by branch" chart,
+	// deliberately with no branch_id filter of its own (that would defeat the
+	// point of a per-branch breakdown).
+	ListBranchRevenueByBranch(ctx context.Context, arg ListBranchRevenueByBranchParams) ([]ListBranchRevenueByBranchRow, error)
 	// Per (branch, local day) sales-invoice count and gross sales revenue in an
 	// inclusive "YYYY-MM-DD" range, oldest first. Deliberately shaped like
 	// ListBranchVisitorDaysRange so the Footfall page can line footfall up
@@ -699,12 +727,13 @@ type Querier interface {
 	ListProductAttributes(ctx context.Context, arg ListProductAttributesParams) ([]ProductsAttribute, error)
 	// Revenue per product from kashi's own admin sales invoices (invoice_products
 	// joined through sales_invoices, so returns don't count as revenue). Branch
-	// (POS) sales can't be included here: branch_invoice_items.branch_product_id
-	// is a branch-local id with no FK into products, so it has no category/
-	// subcategory/brand to filter or group by -- see 000025_create_branch_invoices
-	// .up.sql. category/subcategory/brand are the EAV attributes seeded in
-	// 000005_create_products_attributes_table (ids 0/1/2), joined once per
-	// attribute the same way ListProductVariantsForSync does.
+	// (POS) sales are deliberately excluded here -- see ListBranchProductRevenue
+	// below for those; branch_invoice_items itself still isn't linkable to a
+	// product (its branch_product_id has no FK), so the two sources stay
+	// separate rather than merged into one figure. category/subcategory/brand
+	// are the EAV attributes seeded in 000005_create_products_attributes_table
+	// (ids 0/1/2), joined once per attribute the same way
+	// ListProductVariantsForSync does.
 	ListProductRevenue(ctx context.Context, arg ListProductRevenueParams) ([]ListProductRevenueRow, error)
 	// Same scope and filters as ListProductRevenue, rolled up by local calendar
 	// day instead of by product -- the trend line for the Product Revenues page.

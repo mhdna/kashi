@@ -11,6 +11,271 @@ import (
 	"time"
 )
 
+const listBranchProductRevenue = `-- name: ListBranchProductRevenue :many
+
+SELECT
+  p.id AS product_id,
+  p.name AS product_name,
+  p.code AS product_code,
+  COALESCE(cat_val.value, '')::text AS category,
+  COALESCE(subcat_val.value, '')::text AS subcategory,
+  COALESCE(brand_val.value, '')::text AS brand,
+  SUM(-sm.quantity)::bigint AS quantity,
+  SUM(-sm.quantity * COALESCE(pv.price, 0))::bigint AS revenue,
+  COUNT(DISTINCT sm.reference_id)::bigint AS invoice_count
+FROM stock_movements sm
+JOIN product_variants pv ON pv.id = sm.variant_id
+JOIN products p ON p.id = pv.product_id
+JOIN inventories i ON i.id = sm.inventory_id
+JOIN branches b ON b.inventory_id = i.id
+LEFT JOIN products_attributes cat_pa ON cat_pa.product_id = p.id AND cat_pa.attribute_id = 0
+LEFT JOIN attributes_values cat_val ON cat_val.id = cat_pa.attribute_value_id
+LEFT JOIN products_attributes subcat_pa ON subcat_pa.product_id = p.id AND subcat_pa.attribute_id = 1
+LEFT JOIN attributes_values subcat_val ON subcat_val.id = subcat_pa.attribute_value_id
+LEFT JOIN products_attributes brand_pa ON brand_pa.product_id = p.id AND brand_pa.attribute_id = 2
+LEFT JOIN attributes_values brand_val ON brand_val.id = brand_pa.attribute_value_id
+WHERE sm.reason = 'sale'
+  AND sm.reference_type = 'branch_invoice'
+  AND sm.created_at >= $1::timestamptz
+  AND sm.created_at < $2::timestamptz
+  AND ($3::bigint IS NULL OR b.id = $3)
+  AND ($4::bigint IS NULL OR cat_pa.attribute_value_id = $4)
+  AND ($5::bigint IS NULL OR subcat_pa.attribute_value_id = $5)
+  AND ($6::bigint IS NULL OR brand_pa.attribute_value_id = $6)
+GROUP BY p.id, p.name, p.code, cat_val.value, subcat_val.value, brand_val.value
+ORDER BY revenue DESC
+`
+
+type ListBranchProductRevenueParams struct {
+	DateFrom           time.Time     `json:"date_from"`
+	DateTo             time.Time     `json:"date_to"`
+	BranchID           sql.NullInt64 `json:"branch_id"`
+	CategoryValueID    sql.NullInt64 `json:"category_value_id"`
+	SubcategoryValueID sql.NullInt64 `json:"subcategory_value_id"`
+	BrandValueID       sql.NullInt64 `json:"brand_value_id"`
+}
+
+type ListBranchProductRevenueRow struct {
+	ProductID    int64  `json:"product_id"`
+	ProductName  string `json:"product_name"`
+	ProductCode  string `json:"product_code"`
+	Category     string `json:"category"`
+	Subcategory  string `json:"subcategory"`
+	Brand        string `json:"brand"`
+	Quantity     int64  `json:"quantity"`
+	Revenue      int64  `json:"revenue"`
+	InvoiceCount int64  `json:"invoice_count"`
+}
+
+// ---------------------------------------------------------------------------
+// Branch (kashi-pos) sales. branch_invoice_items itself carries no product
+// link (branch_product_id is a branch-local id, not an FK -- see
+// 000025_create_branch_invoices.up.sql), so it can't be the source. But
+// CreateBranchInvoiceTx (tx_branch_invoice.go) already resolves each line's
+// barcode to a real product_variants row at sync time and records the sale
+// as a stock_movements row (reason='sale', reference_type='branch_invoice',
+// inventory_id = the branch's own store inventory) purely to decrement
+// central stock -- that ledger is the only place a branch sale is linked to
+// a real product. It carries quantity but no transaction price, so revenue
+// here is an ESTIMATE: each unit priced at the variant's *current* catalog
+// price (product_variants.price), not whatever kashi-pos actually charged
+// at checkout (which may have included a since-changed price or a
+// branch-side discount neither table records at this granularity). A line
+// whose barcode never resolved (old kashi-pos build, unknown barcode, or a
+// historical backfill -- see CreateBranchInvoiceTx's Historical branch)
+// never got a stock_movements row at all and so is silently absent here,
+// same as it's absent from central stock.
+// ---------------------------------------------------------------------------
+func (q *Queries) ListBranchProductRevenue(ctx context.Context, arg ListBranchProductRevenueParams) ([]ListBranchProductRevenueRow, error) {
+	rows, err := q.db.QueryContext(ctx, listBranchProductRevenue,
+		arg.DateFrom,
+		arg.DateTo,
+		arg.BranchID,
+		arg.CategoryValueID,
+		arg.SubcategoryValueID,
+		arg.BrandValueID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListBranchProductRevenueRow{}
+	for rows.Next() {
+		var i ListBranchProductRevenueRow
+		if err := rows.Scan(
+			&i.ProductID,
+			&i.ProductName,
+			&i.ProductCode,
+			&i.Category,
+			&i.Subcategory,
+			&i.Brand,
+			&i.Quantity,
+			&i.Revenue,
+			&i.InvoiceCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listBranchProductRevenueDaily = `-- name: ListBranchProductRevenueDaily :many
+SELECT
+  (sm.created_at AT TIME ZONE 'UTC')::date AS day,
+  SUM(-sm.quantity * COALESCE(pv.price, 0))::bigint AS revenue,
+  SUM(-sm.quantity)::bigint AS quantity
+FROM stock_movements sm
+JOIN product_variants pv ON pv.id = sm.variant_id
+JOIN products p ON p.id = pv.product_id
+JOIN inventories i ON i.id = sm.inventory_id
+JOIN branches b ON b.inventory_id = i.id
+LEFT JOIN products_attributes cat_pa ON cat_pa.product_id = p.id AND cat_pa.attribute_id = 0
+LEFT JOIN products_attributes subcat_pa ON subcat_pa.product_id = p.id AND subcat_pa.attribute_id = 1
+LEFT JOIN products_attributes brand_pa ON brand_pa.product_id = p.id AND brand_pa.attribute_id = 2
+WHERE sm.reason = 'sale'
+  AND sm.reference_type = 'branch_invoice'
+  AND sm.created_at >= $1::timestamptz
+  AND sm.created_at < $2::timestamptz
+  AND ($3::bigint IS NULL OR b.id = $3)
+  AND ($4::bigint IS NULL OR cat_pa.attribute_value_id = $4)
+  AND ($5::bigint IS NULL OR subcat_pa.attribute_value_id = $5)
+  AND ($6::bigint IS NULL OR brand_pa.attribute_value_id = $6)
+GROUP BY day
+ORDER BY day
+`
+
+type ListBranchProductRevenueDailyParams struct {
+	DateFrom           time.Time     `json:"date_from"`
+	DateTo             time.Time     `json:"date_to"`
+	BranchID           sql.NullInt64 `json:"branch_id"`
+	CategoryValueID    sql.NullInt64 `json:"category_value_id"`
+	SubcategoryValueID sql.NullInt64 `json:"subcategory_value_id"`
+	BrandValueID       sql.NullInt64 `json:"brand_value_id"`
+}
+
+type ListBranchProductRevenueDailyRow struct {
+	Day      time.Time `json:"day"`
+	Revenue  int64     `json:"revenue"`
+	Quantity int64     `json:"quantity"`
+}
+
+// Same scope/filters/estimate caveat as ListBranchProductRevenue, rolled up
+// by local calendar day -- the trend line for the kashi-pos tab.
+func (q *Queries) ListBranchProductRevenueDaily(ctx context.Context, arg ListBranchProductRevenueDailyParams) ([]ListBranchProductRevenueDailyRow, error) {
+	rows, err := q.db.QueryContext(ctx, listBranchProductRevenueDaily,
+		arg.DateFrom,
+		arg.DateTo,
+		arg.BranchID,
+		arg.CategoryValueID,
+		arg.SubcategoryValueID,
+		arg.BrandValueID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListBranchProductRevenueDailyRow{}
+	for rows.Next() {
+		var i ListBranchProductRevenueDailyRow
+		if err := rows.Scan(&i.Day, &i.Revenue, &i.Quantity); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listBranchRevenueByBranch = `-- name: ListBranchRevenueByBranch :many
+SELECT
+  b.id AS branch_id,
+  b.name AS branch_name,
+  SUM(-sm.quantity)::bigint AS quantity,
+  SUM(-sm.quantity * COALESCE(pv.price, 0))::bigint AS revenue
+FROM stock_movements sm
+JOIN product_variants pv ON pv.id = sm.variant_id
+JOIN products p ON p.id = pv.product_id
+JOIN inventories i ON i.id = sm.inventory_id
+JOIN branches b ON b.inventory_id = i.id
+LEFT JOIN products_attributes cat_pa ON cat_pa.product_id = p.id AND cat_pa.attribute_id = 0
+LEFT JOIN products_attributes subcat_pa ON subcat_pa.product_id = p.id AND subcat_pa.attribute_id = 1
+LEFT JOIN products_attributes brand_pa ON brand_pa.product_id = p.id AND brand_pa.attribute_id = 2
+WHERE sm.reason = 'sale'
+  AND sm.reference_type = 'branch_invoice'
+  AND sm.created_at >= $1::timestamptz
+  AND sm.created_at < $2::timestamptz
+  AND ($3::bigint IS NULL OR cat_pa.attribute_value_id = $3)
+  AND ($4::bigint IS NULL OR subcat_pa.attribute_value_id = $4)
+  AND ($5::bigint IS NULL OR brand_pa.attribute_value_id = $5)
+GROUP BY b.id, b.name
+ORDER BY revenue DESC
+`
+
+type ListBranchRevenueByBranchParams struct {
+	DateFrom           time.Time     `json:"date_from"`
+	DateTo             time.Time     `json:"date_to"`
+	CategoryValueID    sql.NullInt64 `json:"category_value_id"`
+	SubcategoryValueID sql.NullInt64 `json:"subcategory_value_id"`
+	BrandValueID       sql.NullInt64 `json:"brand_value_id"`
+}
+
+type ListBranchRevenueByBranchRow struct {
+	BranchID   int64  `json:"branch_id"`
+	BranchName string `json:"branch_name"`
+	Quantity   int64  `json:"quantity"`
+	Revenue    int64  `json:"revenue"`
+}
+
+// Same scope/filters/estimate caveat as ListBranchProductRevenue, rolled up
+// by branch instead of by product -- backs the "revenue by branch" chart,
+// deliberately with no branch_id filter of its own (that would defeat the
+// point of a per-branch breakdown).
+func (q *Queries) ListBranchRevenueByBranch(ctx context.Context, arg ListBranchRevenueByBranchParams) ([]ListBranchRevenueByBranchRow, error) {
+	rows, err := q.db.QueryContext(ctx, listBranchRevenueByBranch,
+		arg.DateFrom,
+		arg.DateTo,
+		arg.CategoryValueID,
+		arg.SubcategoryValueID,
+		arg.BrandValueID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListBranchRevenueByBranchRow{}
+	for rows.Next() {
+		var i ListBranchRevenueByBranchRow
+		if err := rows.Scan(
+			&i.BranchID,
+			&i.BranchName,
+			&i.Quantity,
+			&i.Revenue,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listProductRevenue = `-- name: ListProductRevenue :many
 SELECT
   p.id AS product_id,
@@ -63,12 +328,13 @@ type ListProductRevenueRow struct {
 
 // Revenue per product from kashi's own admin sales invoices (invoice_products
 // joined through sales_invoices, so returns don't count as revenue). Branch
-// (POS) sales can't be included here: branch_invoice_items.branch_product_id
-// is a branch-local id with no FK into products, so it has no category/
-// subcategory/brand to filter or group by -- see 000025_create_branch_invoices
-// .up.sql. category/subcategory/brand are the EAV attributes seeded in
-// 000005_create_products_attributes_table (ids 0/1/2), joined once per
-// attribute the same way ListProductVariantsForSync does.
+// (POS) sales are deliberately excluded here -- see ListBranchProductRevenue
+// below for those; branch_invoice_items itself still isn't linkable to a
+// product (its branch_product_id has no FK), so the two sources stay
+// separate rather than merged into one figure. category/subcategory/brand
+// are the EAV attributes seeded in 000005_create_products_attributes_table
+// (ids 0/1/2), joined once per attribute the same way
+// ListProductVariantsForSync does.
 func (q *Queries) ListProductRevenue(ctx context.Context, arg ListProductRevenueParams) ([]ListProductRevenueRow, error) {
 	rows, err := q.db.QueryContext(ctx, listProductRevenue,
 		arg.DateFrom,

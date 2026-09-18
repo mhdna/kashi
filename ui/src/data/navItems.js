@@ -97,6 +97,7 @@ export const navItems = [
     icon: 'mdi-warehouse',
     children: [
       { title: 'Inventory', icon: 'mdi-warehouse', to: '/inventory' },
+      { title: 'Inventory Analysis', icon: 'mdi-chart-box-outline', to: '/inventory-analysis' },
       { title: 'Purchase Invoices', icon: 'mdi-invoice', to: '/purchase-invoice' },
       { title: 'Batches', icon: 'mdi-package-variant-closed', to: '/batches' },
       { title: 'Transfers', icon: 'mdi-transfer', to: '/transfers' },

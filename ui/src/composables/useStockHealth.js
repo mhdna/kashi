@@ -18,5 +18,16 @@ export function useStockHealth () {
     return requestJSON(`${API_BASE}/stock_health`)
   }
 
-  return { fetchStockHealth }
+  // Per-location (warehouse or branch store) breakdown -- same metrics as
+  // fetchStockHealth, one row per inventory. page_size caps at 100
+  // server-side; this app's location count stays well under that, so one
+  // unpaginated call is enough for the Inventory Analysis page's charts and
+  // location table.
+  async function fetchStockHealthByInventory ({ search = '', pageSize = 100, pageId = 0 } = {}) {
+    const params = new URLSearchParams({ search, page_size: pageSize, page_id: pageId })
+    const data = await requestJSON(`${API_BASE}/stock_health/by_inventory?${params}`)
+    return { inventories: data?.inventories ?? [], total: data?.total ?? 0 }
+  }
+
+  return { fetchStockHealth, fetchStockHealthByInventory }
 }

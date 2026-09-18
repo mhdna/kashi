@@ -43,115 +43,60 @@
         style="min-width: 160px; max-width: 200px"
         variant="outlined"
       />
+      <v-select
+        v-if="tab === 'pos'"
+        v-model="selectedBranch"
+        clearable
+        density="compact"
+        hide-details
+        :items="branchOptions"
+        label="Branch"
+        style="min-width: 160px; max-width: 200px"
+        variant="outlined"
+      />
     </div>
 
-    <v-alert
-      v-if="error"
-      class="pr-notice mx-4 mb-2"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ error }}
-    </v-alert>
+    <v-tabs v-model="tab" class="px-4" color="primary">
+      <v-tab value="kashi">Kashi Sales</v-tab>
+      <v-tab value="pos">Kashi-POS Sales</v-tab>
+    </v-tabs>
+    <v-divider />
 
-    <div v-if="loading" class="d-flex justify-center pa-12">
-      <v-progress-circular color="primary" indeterminate />
-    </div>
+    <v-window v-model="tab" class="flex-grow-1" style="overflow-y: auto">
+      <v-window-item value="kashi">
+        <v-container class="pa-4 pt-2" fluid>
+          <ProductRevenuePanel
+            :daily="dailyRevenue"
+            :error="error"
+            :loading="loading"
+            :products="products"
+          />
+        </v-container>
+      </v-window-item>
 
-    <v-alert v-else-if="products.length === 0" class="pr-notice mx-4" type="info" variant="tonal">
-      No product sales in this range.
-    </v-alert>
-
-    <v-container v-else class="pa-4 pt-2" fluid>
-      <!-- KPIs -->
-      <v-row dense>
-        <v-col v-for="kpi in kpis" :key="kpi.label" cols="6" md="2">
-          <v-card class="pa-3 d-flex flex-column justify-center fill-height" variant="tonal">
-            <div class="text-h6 font-weight-medium text-truncate">{{ kpi.value }}</div>
-            <div class="text-caption text-medium-emphasis mt-1">{{ kpi.label }}</div>
-            <div v-if="kpi.hint" class="text-caption text-disabled text-truncate">{{ kpi.hint }}</div>
-          </v-card>
-        </v-col>
-      </v-row>
-
-      <!-- Trend + top products -->
-      <v-row dense>
-        <v-col cols="12" md="7">
-          <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Revenue trend</div>
-            <v-chart autoresize class="chart" :option="trendOption" />
-          </v-card>
-        </v-col>
-        <v-col cols="12" md="5">
-          <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Top products by revenue</div>
-            <v-chart autoresize class="chart" :option="topProductsOption" />
-          </v-card>
-        </v-col>
-      </v-row>
-
-      <!-- Category + brand breakdown -->
-      <v-row dense>
-        <v-col cols="12" md="6">
-          <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Revenue by category</div>
-            <v-chart autoresize class="chart" :option="categoryOption" />
-          </v-card>
-        </v-col>
-        <v-col cols="12" md="6">
-          <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Revenue by brand</div>
-            <v-chart autoresize class="chart" :option="brandOption" />
-          </v-card>
-        </v-col>
-      </v-row>
-
-      <!-- Product table -->
-      <v-row dense>
-        <v-col cols="12">
-          <v-card class="chart-card" variant="flat">
-            <div class="d-flex align-center flex-wrap ga-3 mb-2">
-              <div class="chart-card__title mb-0">Revenue by product</div>
-              <v-spacer />
-              <v-text-field
-                v-model="search"
-                clearable
-                density="compact"
-                hide-details
-                prepend-inner-icon="mdi-magnify"
-                style="max-width: 260px"
-                variant="outlined"
-              />
-            </div>
-            <v-data-table
-              class="pr-table"
-              :headers="headers"
-              :items="products"
-              :items-per-page="15"
-              :search="search"
-              sort-by="revenue"
-            >
-              <template #item.revenue="{ item }">{{ formatMoney(item.revenue) }}</template>
-              <template #item.quantity="{ item }">{{ item.quantity.toLocaleString() }}</template>
-              <template #item.invoice_count="{ item }">{{ item.invoice_count.toLocaleString() }}</template>
-              <template #item.category="{ item }">
-                <span v-if="item.category">{{ item.category }}</span>
-                <span v-else class="text-disabled">—</span>
-              </template>
-              <template #item.subcategory="{ item }">
-                <span v-if="item.subcategory">{{ item.subcategory }}</span>
-                <span v-else class="text-disabled">—</span>
-              </template>
-              <template #item.brand="{ item }">
-                <span v-if="item.brand">{{ item.brand }}</span>
-                <span v-else class="text-disabled">—</span>
-              </template>
-            </v-data-table>
-          </v-card>
-        </v-col>
-      </v-row>
-    </v-container>
+      <v-window-item value="pos">
+        <v-container class="pa-4 pt-2" fluid>
+          <ProductRevenuePanel
+            :daily="posDailyRevenue"
+            :error="posError"
+            :loading="posLoading"
+            :products="posProducts"
+            revenue-note="Kashi-POS doesn't yet report the exact price charged per line item centrally, so revenue here is an ESTIMATE: quantity sold × each SKU's current catalog price, not the actual transaction total. Units sold and branch/category/brand breakdowns are real."
+          >
+            <template #extra-charts>
+              <v-row dense>
+                <v-col cols="12">
+                  <v-card class="chart-card" variant="flat">
+                    <div class="chart-card__title">Revenue by branch</div>
+                    <v-chart autoresize class="chart" :option="branchOption" />
+                  </v-card>
+                </v-col>
+              </v-row>
+            </template>
+          </ProductRevenuePanel>
+        </v-container>
+      </v-window-item>
+    </v-window>
   </div>
 </template>
 
@@ -159,9 +104,10 @@
   import { computed, onMounted, ref, watch } from 'vue'
   import VChart from 'vue-echarts'
   import { useTheme } from 'vuetify'
+  import ProductRevenuePanel from '@/components/Products/ProductRevenuePanel.vue'
   import { useAttributes } from '@/composables/useAttributes'
+  import { useBranches } from '@/composables/useBranches'
   import { useProductRevenues } from '@/composables/useProductRevenues'
-  import { formatMoney } from '@/utils/money'
 
   const theme = useTheme()
   const c = computed(() => theme.current.value.colors)
@@ -169,7 +115,6 @@
   const primary = computed(() => c.value.primary)
   const axisColor = computed(() => (isDark.value ? '#3a3a3a' : '#e0e0e0'))
   const textColor = computed(() => (isDark.value ? '#aaa' : '#666'))
-
   const catAxis = computed(() => ({
     axisLine: { lineStyle: { color: axisColor.value } },
     axisTick: { show: false },
@@ -179,6 +124,8 @@
     axisLabel: { color: textColor.value, fontSize: 11 },
     splitLine: { lineStyle: { color: axisColor.value, type: 'dashed' } },
   }))
+
+  const tab = ref('kashi')
 
   const RANGE_OPTIONS = [
     { title: 'Last 30 days', value: 30 },
@@ -190,10 +137,14 @@
   const selectedCategory = ref(null)
   const selectedSubcategory = ref(null)
   const selectedBrand = ref(null)
-  const search = ref('')
+  const selectedBranch = ref(null)
 
   const { valuesByType, fetchAll: fetchAttributes } = useAttributes()
-  const { listProductRevenue, listProductRevenueDaily } = useProductRevenues()
+  const { branches, fetchBranches } = useBranches()
+  const {
+    listProductRevenue, listProductRevenueDaily,
+    listBranchProductRevenue, listBranchProductRevenueDaily, listBranchRevenueByBranch,
+  } = useProductRevenues()
 
   function toOptions (attributeName) {
     return computed(() =>
@@ -203,11 +154,9 @@
   const categoryOptions = toOptions('category')
   const subcategoryOptions = toOptions('sub-category')
   const brandOptions = toOptions('brand')
-
-  const loading = ref(false)
-  const error = ref('')
-  const products = ref([])
-  const dailyRevenue = ref([])
+  const branchOptions = computed(() =>
+    [...branches.value].toSorted((a, b) => a.name.localeCompare(b.name)).map(b => ({ title: b.name, value: b.id })),
+  )
 
   function ymd (d) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -219,21 +168,28 @@
     return { from: ymd(from), to: ymd(today) }
   })
 
-  const filters = computed(() => ({
+  const baseFilters = computed(() => ({
     from: windowBounds.value.from,
     to: windowBounds.value.to,
     categoryValueId: selectedCategory.value,
     subcategoryValueId: selectedSubcategory.value,
     brandValueId: selectedBrand.value,
   }))
+  const posFilters = computed(() => ({ ...baseFilters.value, branchId: selectedBranch.value }))
 
-  async function load () {
+  // --- Kashi (admin) sales --------------------------------------------------
+  const loading = ref(false)
+  const error = ref('')
+  const products = ref([])
+  const dailyRevenue = ref([])
+
+  async function loadKashi () {
     loading.value = true
     error.value = ''
     try {
       const [productRows, dayRows] = await Promise.all([
-        listProductRevenue(filters.value),
-        listProductRevenueDaily(filters.value),
+        listProductRevenue(baseFilters.value),
+        listProductRevenueDaily(baseFilters.value),
       ])
       products.value = productRows
       dailyRevenue.value = dayRows
@@ -244,85 +200,46 @@
     }
   }
 
+  // --- Kashi-POS (branch) sales ----------------------------------------------
+  const posLoading = ref(false)
+  const posError = ref('')
+  const posProducts = ref([])
+  const posDailyRevenue = ref([])
+  const revenueByBranch = ref([])
+
+  async function loadPos () {
+    posLoading.value = true
+    posError.value = ''
+    try {
+      const [productRows, dayRows, branchRows] = await Promise.all([
+        listBranchProductRevenue(posFilters.value),
+        listBranchProductRevenueDaily(posFilters.value),
+        listBranchRevenueByBranch(baseFilters.value),
+      ])
+      posProducts.value = productRows
+      posDailyRevenue.value = dayRows
+      revenueByBranch.value = branchRows
+    } catch (error_) {
+      posError.value = error_.message
+    } finally {
+      posLoading.value = false
+    }
+  }
+
   onMounted(async () => {
-    await fetchAttributes()
-    load()
+    await Promise.all([fetchAttributes(), fetchBranches()])
+    loadKashi()
+    loadPos()
   })
-  watch([rangeDays, selectedCategory, selectedSubcategory, selectedBrand], load)
-
-  // --- KPIs ---------------------------------------------------------------
-  const totalRevenue = computed(() => products.value.reduce((t, p) => t + p.revenue, 0))
-  const totalQuantity = computed(() => products.value.reduce((t, p) => t + p.quantity, 0))
-  const topProduct = computed(() =>
-    products.value.length > 0 ? products.value.toSorted((a, b) => b.revenue - a.revenue)[0] : null,
-  )
-  const revenueByCategory = computed(() => {
-    const byCat = {}
-    for (const p of products.value) {
-      const key = p.category || 'Uncategorized'
-      byCat[key] = (byCat[key] ?? 0) + p.revenue
-    }
-    return Object.entries(byCat).map(([name, value]) => ({ name, value }))
+  watch([rangeDays, selectedCategory, selectedSubcategory, selectedBrand], () => {
+    loadKashi()
+    loadPos()
   })
-  const topCategory = computed(() =>
-    revenueByCategory.value.length > 0 ? revenueByCategory.value.toSorted((a, b) => b.value - a.value)[0] : null,
-  )
+  watch(selectedBranch, loadPos)
 
-  const kpis = computed(() => [
-    { label: 'Total revenue', value: formatMoney(totalRevenue.value) },
-    { label: 'Units sold', value: totalQuantity.value.toLocaleString() },
-    { label: 'Products sold', value: products.value.length.toLocaleString() },
-    {
-      label: 'Avg revenue / unit',
-      value: totalQuantity.value > 0 ? formatMoney(Math.round(totalRevenue.value / totalQuantity.value)) : '—',
-    },
-    {
-      label: 'Top product',
-      value: topProduct.value ? formatMoney(topProduct.value.revenue) : '—',
-      hint: topProduct.value?.product_name ?? '',
-    },
-    {
-      label: 'Top category',
-      value: topCategory.value ? formatMoney(topCategory.value.value) : '—',
-      hint: topCategory.value?.name ?? '',
-    },
-  ])
-
-  // --- charts -----------------------------------------------------------
-  const trendOption = computed(() => {
-    const labels = dailyRevenue.value.map(d =>
-      new Date(`${d.day}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-    )
-    return {
-      grid: { top: 16, right: 16, bottom: 24, left: 56 },
-      tooltip: {
-        trigger: 'axis',
-        appendTo: 'body',
-        valueFormatter: v => `$${(v / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
-      },
-      xAxis: { type: 'category', data: labels, ...catAxis.value },
-      yAxis: {
-        type: 'value',
-        ...valAxis.value,
-        axisLabel: { ...valAxis.value.axisLabel, formatter: v => `$${(v / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}` },
-      },
-      series: [{
-        type: 'line',
-        smooth: true,
-        symbol: 'none',
-        areaStyle: { color: primary.value, opacity: 0.12 },
-        lineStyle: { color: primary.value, width: 2 },
-        itemStyle: { color: primary.value },
-        data: dailyRevenue.value.map(d => d.revenue),
-      }],
-    }
-  })
-
-  const topProductsOption = computed(() => {
-    const top = products.value
-      .toSorted((a, b) => b.revenue - a.revenue)
-      .slice(0, 10)
-      .toReversed()
+  const branchOption = computed(() => {
+    const totals = revenueByBranch.value
+      .toSorted((a, b) => a.revenue - b.revenue)
     return {
       grid: { top: 8, right: 56, bottom: 24, left: 8, containLabel: true },
       tooltip: {
@@ -336,7 +253,7 @@
         ...valAxis.value,
         axisLabel: { ...valAxis.value.axisLabel, formatter: v => `$${(v / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}` },
       },
-      yAxis: { type: 'category', data: top.map(p => p.product_name), ...catAxis.value },
+      yAxis: { type: 'category', data: totals.map(t => t.branch_name), ...catAxis.value },
       series: [{
         type: 'bar',
         barWidth: '55%',
@@ -348,72 +265,13 @@
           formatter: p => `$${(p.value / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
         },
         itemStyle: { color: primary.value, borderRadius: [0, 3, 3, 0] },
-        data: top.map(p => p.revenue),
+        data: totals.map(t => t.revenue),
       }],
     }
   })
-
-  function breakdownPieOption (data) {
-    const alphas = ['ff', 'cc', 'aa', '88', '66', '4d', '33']
-    const sorted = data.toSorted((a, b) => b.value - a.value)
-    return {
-      tooltip: {
-        trigger: 'item',
-        appendTo: 'body',
-        valueFormatter: v => `$${(v / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
-      },
-      legend: {
-        type: 'scroll',
-        orient: 'vertical',
-        right: 0,
-        top: 'center',
-        itemWidth: 10,
-        itemHeight: 10,
-        textStyle: { color: textColor.value, fontSize: 10 },
-      },
-      series: [{
-        type: 'pie',
-        radius: ['45%', '72%'],
-        center: ['38%', '52%'],
-        avoidLabelOverlap: true,
-        label: { show: false },
-        labelLine: { show: false },
-        data: sorted.map((d, i) => ({
-          name: d.name,
-          value: d.value,
-          itemStyle: { color: primary.value + alphas[i % alphas.length] },
-        })),
-      }],
-    }
-  }
-
-  const categoryOption = computed(() => breakdownPieOption(revenueByCategory.value))
-  const brandOption = computed(() => {
-    const byBrand = {}
-    for (const p of products.value) {
-      const key = p.brand || 'Unbranded'
-      byBrand[key] = (byBrand[key] ?? 0) + p.revenue
-    }
-    return breakdownPieOption(Object.entries(byBrand).map(([name, value]) => ({ name, value })))
-  })
-
-  // --- table --------------------------------------------------------------
-  const headers = [
-    { title: 'Product', key: 'product_name' },
-    { title: 'Code', key: 'product_code' },
-    { title: 'Category', key: 'category' },
-    { title: 'Sub-category', key: 'subcategory' },
-    { title: 'Brand', key: 'brand' },
-    { title: 'Qty sold', key: 'quantity', align: 'end' },
-    { title: 'Revenue', key: 'revenue', align: 'end' },
-    { title: 'Orders', key: 'invoice_count', align: 'end' },
-  ]
 </script>
 
 <style scoped>
-.pr-notice {
-  flex: 0 0 auto;
-}
 .chart-card {
   padding: 12px 14px 4px;
   margin-bottom: 8px;
@@ -429,8 +287,5 @@
 .chart {
   height: 280px;
   width: 100%;
-}
-.pr-table :deep(tbody tr) {
-  cursor: default;
 }
 </style>
