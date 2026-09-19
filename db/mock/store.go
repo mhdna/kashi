@@ -4664,6 +4664,21 @@ func (mr *MockStoreMockRecorder) GetVariantTotalOnHand(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVariantTotalOnHand", reflect.TypeOf((*MockStore)(nil).GetVariantTotalOnHand), arg0, arg1)
 }
 
+// GetWhatsAppSettings mocks base method.
+func (m *MockStore) GetWhatsAppSettings(arg0 context.Context) (db.GetWhatsAppSettingsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetWhatsAppSettings", arg0)
+	ret0, _ := ret[0].(db.GetWhatsAppSettingsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetWhatsAppSettings indicates an expected call of GetWhatsAppSettings.
+func (mr *MockStoreMockRecorder) GetWhatsAppSettings(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWhatsAppSettings", reflect.TypeOf((*MockStore)(nil).GetWhatsAppSettings), arg0)
+}
+
 // IncrementInvoicesIndex mocks base method.
 func (m *MockStore) IncrementInvoicesIndex(arg0 context.Context, arg1 db.IncrementInvoicesIndexParams) (int64, error) {
 	m.ctrl.T.Helper()
@@ -6785,6 +6800,20 @@ func (m *MockStore) SetVariantBarcode(arg0 context.Context, arg1 db.SetVariantBa
 func (mr *MockStoreMockRecorder) SetVariantBarcode(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetVariantBarcode", reflect.TypeOf((*MockStore)(nil).SetVariantBarcode), arg0, arg1)
+}
+
+// SetWhatsAppSettings mocks base method.
+func (m *MockStore) SetWhatsAppSettings(arg0 context.Context, arg1 db.SetWhatsAppSettingsParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetWhatsAppSettings", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetWhatsAppSettings indicates an expected call of SetWhatsAppSettings.
+func (mr *MockStoreMockRecorder) SetWhatsAppSettings(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetWhatsAppSettings", reflect.TypeOf((*MockStore)(nil).SetWhatsAppSettings), arg0, arg1)
 }
 
 // StockAdjustmentTx mocks base method.

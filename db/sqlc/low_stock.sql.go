@@ -265,7 +265,7 @@ const setDefaultLowStockThreshold = `-- name: SetDefaultLowStockThreshold :one
 UPDATE app_settings
 SET default_low_stock_threshold = $1
 WHERE id = 1
-RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold
+RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params
 `
 
 func (q *Queries) SetDefaultLowStockThreshold(ctx context.Context, defaultLowStockThreshold int64) (AppSetting, error) {
@@ -283,6 +283,12 @@ func (q *Queries) SetDefaultLowStockThreshold(ctx context.Context, defaultLowSto
 		&i.UpcomingEventsMenuDays,
 		&i.HiddenBuiltinEvents,
 		&i.DefaultLowStockThreshold,
+		&i.WhatsappEnabled,
+		&i.WhatsappPhoneNumberID,
+		&i.WhatsappAccessToken,
+		&i.WhatsappTemplateName,
+		&i.WhatsappTemplateLang,
+		&i.WhatsappTemplateParams,
 	)
 	return i, err
 }

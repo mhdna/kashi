@@ -150,6 +150,9 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/app_settings", server.getAppSettings)
 	authRoutes.PUT("/app_settings", server.updateAppSettings)
 
+	authRoutes.GET("/whatsapp_settings", server.getWhatsAppSettings)
+	authRoutes.PUT("/whatsapp_settings", server.updateWhatsAppSettings)
+
 	authRoutes.GET("/calendar_events", server.listCalendarEvents)
 	authRoutes.POST("/calendar_events", server.createCalendarEvent)
 	authRoutes.DELETE("/calendar_events/:id", server.deleteCalendarEvent)
@@ -381,6 +384,7 @@ func (server *Server) setupRoutes() {
 	branchRoutes.POST("/expenses", server.createBranchExpense)
 	branchRoutes.POST("/loans", server.createBranchLoan)
 	branchRoutes.POST("/shift_closes", server.createBranchShiftClose)
+	branchRoutes.POST("/whatsapp/thank_you", server.sendBranchWhatsAppThankYou)
 	branchRoutes.POST("/visitor_events", server.createBranchVisitorEvent)
 	branchRoutes.POST("/visitor_events_batch", server.createBranchVisitorEvents)
 	branchRoutes.POST("/invoice_settlements", server.createBranchInvoiceSettlement)

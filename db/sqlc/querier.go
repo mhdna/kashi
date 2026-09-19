@@ -482,6 +482,7 @@ type Querier interface {
 	GetUserByUsername(ctx context.Context, name string) (User, error)
 	GetVariantForLabel(ctx context.Context, id int64) (GetVariantForLabelRow, error)
 	GetVariantTotalOnHand(ctx context.Context, variantID int64) (int64, error)
+	GetWhatsAppSettings(ctx context.Context) (GetWhatsAppSettingsRow, error)
 	IncrementInvoicesIndex(ctx context.Context, arg IncrementInvoicesIndexParams) (int64, error)
 	ListActiveBranchTargetSeries(ctx context.Context) ([]BranchTargetSeries, error)
 	ListAllAttributeValues(ctx context.Context) ([]ListAllAttributeValuesRow, error)
@@ -827,6 +828,7 @@ type Querier interface {
 	SetStockCountStatus(ctx context.Context, arg SetStockCountStatusParams) (StockCount, error)
 	SetTransferStatus(ctx context.Context, arg SetTransferStatusParams) (Transfer, error)
 	SetVariantBarcode(ctx context.Context, arg SetVariantBarcodeParams) (ProductVariant, error)
+	SetWhatsAppSettings(ctx context.Context, arg SetWhatsAppSettingsParams) error
 	// Net sales revenue: same grand_total-sum convention as ListDailyIncome in
 	// branch_invoice.sql (returns already net out via their signed grand_total).
 	SumBranchRevenueForRange(ctx context.Context, arg SumBranchRevenueForRangeParams) (int64, error)

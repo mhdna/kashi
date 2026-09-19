@@ -501,6 +501,12 @@ type AppSetting struct {
 	UpcomingEventsMenuDays     int16           `json:"upcoming_events_menu_days"`
 	HiddenBuiltinEvents        json.RawMessage `json:"hidden_builtin_events"`
 	DefaultLowStockThreshold   int64           `json:"default_low_stock_threshold"`
+	WhatsappEnabled            bool            `json:"whatsapp_enabled"`
+	WhatsappPhoneNumberID      string          `json:"whatsapp_phone_number_id"`
+	WhatsappAccessToken        string          `json:"whatsapp_access_token"`
+	WhatsappTemplateName       string          `json:"whatsapp_template_name"`
+	WhatsappTemplateLang       string          `json:"whatsapp_template_lang"`
+	WhatsappTemplateParams     string          `json:"whatsapp_template_params"`
 }
 
 type Asset struct {
