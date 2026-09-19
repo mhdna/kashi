@@ -18,6 +18,7 @@
           <v-tab prepend-icon="mdi-chart-line" text="Financials" value="financials" />
           <v-tab prepend-icon="mdi-barcode" text="Barcode labels" value="barcodes" />
           <v-tab prepend-icon="mdi-account-group" text="Users" value="users" />
+          <v-tab prepend-icon="mdi-whatsapp" text="WhatsApp" value="whatsapp" />
         </v-tabs>
 
         <v-divider vertical />
@@ -240,10 +241,107 @@
               </tbody>
             </v-table>
           </section>
+
+          <!-- ------------------------------------------------------ WHATSAPP -->
+          <section v-show="tab === 'whatsapp'" class="set-section">
+            <h3 class="text-subtitle-1 mb-1">Post-sale thank-you message</h3>
+            <p class="text-body-2 text-medium-emphasis mb-4">
+              Sent via Meta's <strong>WhatsApp Business Platform (Cloud API)</strong> after a sale
+              to a named client with a phone number. Cloud API only allows a pre-approved message
+              template for business-initiated messages, so this configures which one to use and
+              how to fill it -- not free-form text.
+            </p>
+
+            <v-alert
+              v-if="whatsappError"
+              class="mb-3"
+              density="compact"
+              type="error"
+              variant="tonal"
+            >
+              {{ whatsappError }}
+            </v-alert>
+
+            <v-switch
+              v-model="whatsappDraft.enabled"
+              class="mb-2"
+              color="primary"
+              hide-details
+              label="Send a thank-you WhatsApp after each sale"
+            />
+
+            <v-text-field
+              v-model="whatsappDraft.phoneNumberId"
+              class="field-md mb-4"
+              density="compact"
+              hide-details
+              label="Phone Number ID"
+              variant="outlined"
+            />
+            <v-text-field
+              v-model="whatsappDraft.accessToken"
+              :append-inner-icon="showToken ? 'mdi-eye-off' : 'mdi-eye'"
+              class="field-md mb-4"
+              density="compact"
+              hide-details
+              label="Access token"
+              :type="showToken ? 'text' : 'password'"
+              variant="outlined"
+              @click:append-inner="showToken = !showToken"
+            />
+            <v-text-field
+              v-model="whatsappDraft.templateName"
+              class="field-md mb-4"
+              density="compact"
+              hide-details
+              label="Template name"
+              variant="outlined"
+            />
+            <v-text-field
+              v-model="whatsappDraft.templateLang"
+              class="field-md mb-4"
+              density="compact"
+              hide-details
+              label="Template language"
+              variant="outlined"
+            />
+            <v-text-field
+              v-model="whatsappDraft.templateParams"
+              class="field-md"
+              density="compact"
+              hint="Comma-separated, in order, filling the template's {{1}}, {{2}}, ... body parameters. Supported: name, market, branch, invoice, total"
+              label="Body params"
+              persistent-hint
+              variant="outlined"
+            />
+
+            <div class="d-flex align-center ga-3 mt-6">
+              <span class="text-caption text-medium-emphasis">
+                {{ whatsappDirty ? 'Unsaved changes' : 'All changes saved' }}
+              </span>
+              <v-spacer />
+              <v-btn
+                :disabled="!whatsappDirty || savingWhatsApp"
+                size="small"
+                text="Discard"
+                variant="text"
+                @click="seedWhatsAppDraft"
+              />
+              <v-btn
+                color="primary"
+                :disabled="!whatsappDirty"
+                :loading="savingWhatsApp"
+                size="small"
+                text="Save"
+                variant="flat"
+                @click="saveWhatsAppSettings"
+              />
+            </div>
+          </section>
         </div>
       </div>
 
-      <template v-if="tab !== 'users'">
+      <template v-if="tab !== 'users' && tab !== 'whatsapp'">
         <v-divider />
         <div class="set-actions px-5 py-3 d-flex align-center ga-3">
           <span class="text-caption text-medium-emphasis">
@@ -386,6 +484,7 @@
   import { computed, onMounted, reactive, ref, watch } from 'vue'
   import { useUserAvatar } from '@/composables/useUserAvatar'
   import { useUsers } from '@/composables/useUsers'
+  import { useWhatsAppSettings } from '@/composables/useWhatsAppSettings'
   import { useSettingsStore } from '@/stores/settings'
 
   const tab = ref('general')
@@ -594,6 +693,84 @@
       deleteDialog.value = false
     } finally {
       saving.value = false
+    }
+  }
+
+  // ---- WhatsApp (Cloud API) ----
+  // Self-contained, like Users above: its own load/dirty/save rather than
+  // going through settingsStore, since it's a different set of app_settings
+  // columns with its own admin endpoint (GET/PUT /whatsapp_settings).
+  const { getWhatsAppSettings, updateWhatsAppSettings } = useWhatsAppSettings()
+
+  const whatsappError = ref('')
+  const savingWhatsApp = ref(false)
+  const showToken = ref(false)
+  const whatsappLoaded = ref(false)
+
+  const whatsappSaved = reactive({
+    enabled: false,
+    phoneNumberId: '',
+    accessToken: '',
+    templateName: '',
+    templateLang: 'en_US',
+    templateParams: 'name,invoice,total',
+  })
+  const whatsappDraft = reactive({ ...whatsappSaved })
+
+  function seedWhatsAppDraft () {
+    Object.assign(whatsappDraft, whatsappSaved)
+  }
+
+  const whatsappDirty = computed(() =>
+    whatsappDraft.enabled !== whatsappSaved.enabled
+    || whatsappDraft.phoneNumberId !== whatsappSaved.phoneNumberId
+    || whatsappDraft.accessToken !== whatsappSaved.accessToken
+    || whatsappDraft.templateName !== whatsappSaved.templateName
+    || whatsappDraft.templateLang !== whatsappSaved.templateLang
+    || whatsappDraft.templateParams !== whatsappSaved.templateParams,
+  )
+
+  onMounted(async () => {
+    try {
+      const settings = await getWhatsAppSettings()
+      if (settings) {
+        Object.assign(whatsappSaved, {
+          enabled: Boolean(settings.whatsapp_enabled),
+          phoneNumberId: settings.whatsapp_phone_number_id ?? '',
+          accessToken: settings.whatsapp_access_token ?? '',
+          templateName: settings.whatsapp_template_name ?? '',
+          templateLang: settings.whatsapp_template_lang ?? 'en_US',
+          templateParams: settings.whatsapp_template_params ?? 'name,invoice,total',
+        })
+        seedWhatsAppDraft()
+      }
+    } catch (error) {
+      whatsappError.value = error.message
+    } finally {
+      whatsappLoaded.value = true
+    }
+  })
+
+  async function saveWhatsAppSettings () {
+    if (!whatsappDirty.value) {
+      return
+    }
+    savingWhatsApp.value = true
+    whatsappError.value = ''
+    try {
+      await updateWhatsAppSettings({
+        whatsapp_enabled: whatsappDraft.enabled,
+        whatsapp_phone_number_id: whatsappDraft.phoneNumberId,
+        whatsapp_access_token: whatsappDraft.accessToken,
+        whatsapp_template_name: whatsappDraft.templateName,
+        whatsapp_template_lang: whatsappDraft.templateLang,
+        whatsapp_template_params: whatsappDraft.templateParams,
+      })
+      Object.assign(whatsappSaved, whatsappDraft)
+    } catch (error) {
+      whatsappError.value = error.message
+    } finally {
+      savingWhatsApp.value = false
     }
   }
 </script>
