@@ -396,6 +396,7 @@ func (server *Server) setupRoutes() {
 	branchRoutes.GET("/ws", server.branchWS)
 	branchRoutes.PUT("/settings", server.putBranchSettings)
 	branchRoutes.POST("/clients", server.putBranchClient)
+	branchRoutes.POST("/clients_batch", server.putBranchClients)
 	branchRoutes.GET("/commands/pending", server.branchPendingCommands)
 	branchRoutes.POST("/commands/:id/ack", server.ackBranchCommand)
 	branchRoutes.GET("/expenses/upload_status", server.branchExpenseUploadStatus)

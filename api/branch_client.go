@@ -60,6 +60,38 @@ func (server *Server) putBranchClient(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
 	}
+
+	outcome, err := server.resolveBranchClient(ctx, branchID, req)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.branchHub.broadcastAll(branchWSMessage{Type: "client_updated"})
+	if outcome.conflictKind != "" {
+		server.writeJSON(ctx, http.StatusOK, envelope{
+			"client": outcome.client, "conflict": true, "conflict_kind": outcome.conflictKind,
+		})
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"client": outcome.client})
+}
+
+// branchClientOutcome is what resolveBranchClient decided for one client:
+// the central client the branch client now maps to, and -- only for the
+// "linked to an existing phone under a different name" case -- the conflict
+// kind that was staged for an admin.
+type branchClientOutcome struct {
+	client       db.Client
+	conflictKind string
+}
+
+// resolveBranchClient applies the resolution rules documented on
+// putBranchClient to one branch-reported client. It has no HTTP or websocket
+// side effects of its own, so the single-client route and the batch route
+// (branch_client_batch.go) share it and each decides how to respond and
+// when to notify the other branches. A returned error is a server-side
+// failure (retryable); the request itself is never rejected here.
+func (server *Server) resolveBranchClient(ctx *gin.Context, branchID int64, req branchClientRequest) (branchClientOutcome, error) {
 	req.Phone = strings.TrimSpace(req.Phone)
 	payloadJSON, _ := json.Marshal(req)
 	refStr := strconv.FormatInt(req.BranchClientID, 10)
@@ -82,8 +114,7 @@ func (server *Server) putBranchClient(ctx *gin.Context) {
 		// branch till has no business reverting that.
 		linked, getErr := server.store.GetClient(ctx, linkedClientID)
 		if getErr != nil {
-			server.writeError(ctx, http.StatusInternalServerError, getErr)
-			return
+			return branchClientOutcome{}, getErr
 		}
 		client, updErr := server.store.UpdateClient(ctx, db.UpdateClientParams{
 			ID:         linkedClientID,
@@ -92,12 +123,9 @@ func (server *Server) putBranchClient(ctx *gin.Context) {
 			ClientType: linked.ClientType,
 		})
 		if updErr != nil {
-			server.writeError(ctx, http.StatusInternalServerError, updErr)
-			return
+			return branchClientOutcome{}, updErr
 		}
-		server.branchHub.broadcastAll(branchWSMessage{Type: "client_updated"})
-		server.writeJSON(ctx, http.StatusOK, envelope{"client": client})
-		return
+		return branchClientOutcome{client: client}, nil
 
 	case err == sql.ErrNoRows:
 		// Not linked yet.
@@ -109,21 +137,14 @@ func (server *Server) putBranchClient(ctx *gin.Context) {
 				BranchClientID: req.BranchClientID,
 				ClientID:       existing.ID,
 			}); linkErr != nil {
-				server.writeError(ctx, http.StatusInternalServerError, linkErr)
-				return
+				return branchClientOutcome{}, linkErr
 			}
 			if strings.TrimSpace(existing.Name) != strings.TrimSpace(req.Name) {
 				server.stageBranchSyncConflict(ctx, branchID, "client", refStr, "phone_name_mismatch", payloadJSON,
 					sql.NullInt64{Int64: existing.ID, Valid: true})
-				server.branchHub.broadcastAll(branchWSMessage{Type: "client_updated"})
-				server.writeJSON(ctx, http.StatusOK, envelope{
-					"client": existing, "conflict": true, "conflict_kind": "phone_name_mismatch",
-				})
-				return
+				return branchClientOutcome{client: existing, conflictKind: "phone_name_mismatch"}, nil
 			}
-			server.branchHub.broadcastAll(branchWSMessage{Type: "client_updated"})
-			server.writeJSON(ctx, http.StatusOK, envelope{"client": existing})
-			return
+			return branchClientOutcome{client: existing}, nil
 
 		case phoneErr == sql.ErrNoRows:
 			created, createErr := server.store.CreateClient(ctx, db.CreateClientParams{
@@ -140,33 +161,26 @@ func (server *Server) putBranchClient(ctx *gin.Context) {
 				// Resolve to the winner rather than 500ing the loser forever.
 				won, lookupErr := server.store.GetClientByPhone(ctx, req.Phone)
 				if lookupErr != nil {
-					server.writeError(ctx, http.StatusInternalServerError, lookupErr)
-					return
+					return branchClientOutcome{}, lookupErr
 				}
 				client = won
 			default:
-				server.writeError(ctx, http.StatusInternalServerError, createErr)
-				return
+				return branchClientOutcome{}, createErr
 			}
 			if linkErr := server.store.UpsertClientLink(ctx, db.UpsertClientLinkParams{
 				BranchID:       branchID,
 				BranchClientID: req.BranchClientID,
 				ClientID:       client.ID,
 			}); linkErr != nil {
-				server.writeError(ctx, http.StatusInternalServerError, linkErr)
-				return
+				return branchClientOutcome{}, linkErr
 			}
-			server.branchHub.broadcastAll(branchWSMessage{Type: "client_updated"})
-			server.writeJSON(ctx, http.StatusOK, envelope{"client": client})
-			return
+			return branchClientOutcome{client: client}, nil
 
 		default:
-			server.writeError(ctx, http.StatusInternalServerError, phoneErr)
-			return
+			return branchClientOutcome{}, phoneErr
 		}
 
 	default:
-		server.writeError(ctx, http.StatusInternalServerError, err)
-		return
+		return branchClientOutcome{}, err
 	}
 }
