@@ -80,6 +80,7 @@
           variant="outlined"
         />
         <v-btn
+          v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
           text="Add Supplier"
@@ -108,7 +109,11 @@
   import { ref } from 'vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { authFetch } from '@/composables/useApi'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const apiURL = `${API_BASE}/suppliers`
   const headers = ref([

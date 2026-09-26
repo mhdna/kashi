@@ -38,7 +38,7 @@
           variant="outlined"
         />
         <v-btn
-          v-if="tab === 'currencies'"
+          v-if="canEdit && tab === 'currencies'"
           color="primary"
           prepend-icon="mdi-plus"
           text="Add Currency"
@@ -46,7 +46,7 @@
           @click="openAddCurrency"
         />
         <v-btn
-          v-else
+          v-if="canEdit && tab !== 'currencies'"
           color="primary"
           prepend-icon="mdi-plus"
           text="Add Payment Method"
@@ -92,7 +92,7 @@
                 :items-per-page-options="[15, 25, 50, 100]"
                 :loading="currencyLoading"
                 :search="currencySearch"
-                show-select
+                :show-select="canEdit"
                 @click:row="openCurrencyRow"
               >
                 <template #item.data-table-select="{ item, internalItem, isSelected, toggleSelect }">
@@ -312,6 +312,10 @@
   import { useBulkDelete } from '@/composables/useBulkDelete'
   import { useCashboxAccounts } from '@/composables/useCashboxAccounts'
   import { useCurrencies } from '@/composables/useCurrencies'
+  import { usePageAccess } from '@/composables/usePageAccess'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const {
     currencies,
@@ -441,6 +445,7 @@
   const editingIsDefault = ref(false)
 
   function openEditCurrency (item) {
+    if (!canEdit.value) return
     editingCode.value = item.code
     editingIsDefault.value = !!item.is_default
     currencyError.value = ''
@@ -543,6 +548,7 @@
   }
 
   function openEditMethod (item) {
+    if (!canEdit.value) return
     if (item.reserved) return
     editingMethodId.value = item.id
     methodError.value = ''

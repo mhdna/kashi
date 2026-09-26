@@ -83,7 +83,13 @@
           </v-list-item>
         </v-list>
       </v-menu>
-      <v-btn color="primary" prepend-icon="mdi-plus" text="Add Client" @click="openCreate" />
+      <v-btn
+        v-if="canEdit"
+        color="primary"
+        prepend-icon="mdi-plus"
+        text="Add Client"
+        @click="openCreate"
+      />
     </div>
   </div>
 
@@ -103,6 +109,10 @@
   import ClientLoyaltyBoard from '@/components/Clients/ClientLoyaltyBoard.vue'
   import { useBranches } from '@/composables/useBranches'
   import { useClients } from '@/composables/useClients'
+  import { usePageAccess } from '@/composables/usePageAccess'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const { createClient, updateClient, deleteClient } = useClients()
   const { branches, fetchBranches } = useBranches()

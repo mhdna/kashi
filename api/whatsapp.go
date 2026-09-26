@@ -214,13 +214,16 @@ func (server *Server) getWhatsAppSettings(ctx *gin.Context) {
 	server.writeJSON(ctx, http.StatusOK, envelope{"settings": settings})
 }
 
+// updateWhatsAppSettingsRequest's json tags deliberately mirror
+// GetWhatsAppSettings's response field names (whatsapp_*) so the settings
+// page can round-trip GET's body straight back through PUT unchanged.
 type updateWhatsAppSettingsRequest struct {
-	Enabled        bool   `json:"enabled"`
-	PhoneNumberID  string `json:"phone_number_id"`
-	AccessToken    string `json:"access_token"`
-	TemplateName   string `json:"template_name"`
-	TemplateLang   string `json:"template_lang"`
-	TemplateParams string `json:"template_params"`
+	Enabled        bool   `json:"whatsapp_enabled"`
+	PhoneNumberID  string `json:"whatsapp_phone_number_id"`
+	AccessToken    string `json:"whatsapp_access_token"`
+	TemplateName   string `json:"whatsapp_template_name"`
+	TemplateLang   string `json:"whatsapp_template_lang"`
+	TemplateParams string `json:"whatsapp_template_params"`
 }
 
 func (server *Server) updateWhatsAppSettings(ctx *gin.Context) {

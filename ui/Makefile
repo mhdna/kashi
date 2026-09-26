@@ -1,5 +1,6 @@
-# Kashi UI -- build + deploy the SPA to the example.com droplet, where Caddy
-# serves it statically and reverse-proxies /api/* to the Go server.
+# Kashi UI -- build + deploy the SPA to cloud.example.com on the shared
+# droplet, where Caddy serves it statically and reverse-proxies /api/* to
+# the Go server.
 #
 # This is the UI-only fast path. For a full release (API + migrations + UI)
 # use `make deploy` in the repo root. One-time server setup: deploy/SETUP.md.
@@ -21,7 +22,7 @@ build: install
 # longer in a fresh build; --chmod keeps them readable by the `caddy` user.
 deploy: build
 	rsync -avz --delete --chmod=D755,F644 $(DIST)/ $(SSH):$(UI_ROOT)/
-	@echo "Deployed -> https://example.com/"
+	@echo "Deployed -> https://cloud.example.com/"
 
 caddy-reload:
 	ssh $(SSH) 'systemctl reload caddy'

@@ -62,7 +62,7 @@
           <v-btn value="visitors">Visitors</v-btn>
         </v-btn-toggle>
         <v-btn
-          v-if="tab === 'central'"
+          v-if="canEdit && tab === 'central'"
           color="primary"
           prepend-icon="mdi-plus"
           text="Open Shift"
@@ -102,6 +102,7 @@
           <template #item.closed_at="{ item }">{{ formatDate(item.closed_at) }}</template>
           <template #item.actions="{ item }">
             <v-btn
+              v-if="canEdit"
               :disabled="item.is_closed"
               :loading="closingId === item.id"
               size="small"
@@ -243,12 +244,17 @@
           </span>
         </v-card-title>
         <v-divider />
-        <div class="pa-2">
+        <!-- Fixed-height stage so the dialog doesn't resize when the photo lands. -->
+        <div class="image-stage d-flex align-center justify-center pa-2">
           <v-alert v-if="receiptError" type="error" variant="tonal">{{ receiptError }}</v-alert>
-          <div v-else-if="receiptLoading" class="d-flex justify-center pa-8">
-            <v-progress-circular indeterminate />
-          </div>
-          <v-img v-else-if="receiptUrl" contain max-height="80vh" :src="receiptUrl" />
+          <v-progress-circular v-else-if="receiptLoading" indeterminate />
+          <v-img
+            v-else-if="receiptUrl"
+            class="image-stage__img"
+            contain
+            height="100%"
+            :src="receiptUrl"
+          />
         </div>
         <v-card-actions>
           <v-spacer />
@@ -267,9 +273,13 @@
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useBranches } from '@/composables/useBranches'
   import { useCashboxes } from '@/composables/useCashboxes'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { useShiftReceiptImages } from '@/composables/useShiftReceiptImages'
   import { useShifts } from '@/composables/useShifts'
   import { API_BASE } from '@/config'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const STATUS_OPTIONS = [
     { title: 'Open', value: 'open' },
@@ -495,6 +505,15 @@
 </script>
 
 <style scoped>
+.image-stage {
+  height: min(70vh, 640px);
+  width: 100%;
+}
+
+.image-stage__img {
+  width: 100%;
+}
+
 .page-root {
   flex: 1 1 auto;
   min-height: 0;

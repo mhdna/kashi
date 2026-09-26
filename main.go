@@ -39,9 +39,11 @@ func main() {
 	// database/sql defaults to unlimited open connections -- fine for one
 	// branch, but a burst of branches syncing at once could otherwise open
 	// enough connections to hit Postgres's own max_connections and take the
-	// whole app down at once instead of just queuing/slowing down.
-	conn.SetMaxOpenConns(25)
-	conn.SetMaxIdleConns(25)
+	// whole app down at once instead of just queuing/slowing down. Kept
+	// small in prod: this shares a 512MB droplet with kashi-commerce, and
+	// each idle Postgres backend costs ~20MB RSS.
+	conn.SetMaxOpenConns(8)
+	conn.SetMaxIdleConns(2)
 	conn.SetConnMaxLifetime(5 * time.Minute)
 	store := db.NewStore(conn)
 

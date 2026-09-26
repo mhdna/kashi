@@ -25,6 +25,7 @@ func randomUser() db.User {
 		Email:        util.RandomEmail(),
 		PasswordHash: util.RandomString(32),
 		Activated:    true,
+		RoleID:       2,
 	}
 }
 
@@ -41,8 +42,9 @@ func TestCreateUserAPI(t *testing.T) {
 			name: "OK",
 			body: map[string]interface{}{
 				"name":      user.Name,
-				"password":  "123456",
+				"password":  "correct-horse",
 				"activated": true,
+				"role_id":   user.RoleID,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
@@ -59,8 +61,9 @@ func TestCreateUserAPI(t *testing.T) {
 			name: "InternalError",
 			body: map[string]interface{}{
 				"name":      user.Name,
-				"password":  "123456",
+				"password":  "correct-horse",
 				"activated": true,
+				"role_id":   user.RoleID,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
@@ -295,6 +298,8 @@ func TestDeleteUserAPI(t *testing.T) {
 			name:   "OK",
 			userID: user.ID,
 			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetUser(gomock.Any(), gomock.Eq(user.ID)).Return(user, nil)
+				store.EXPECT().GetRole(gomock.Any(), gomock.Eq(user.RoleID)).Return(db.Role{ID: user.RoleID}, nil)
 				store.EXPECT().
 					DeleteUser(gomock.Any(), gomock.Eq(user.ID)).
 					Times(1).
@@ -308,6 +313,8 @@ func TestDeleteUserAPI(t *testing.T) {
 			name:   "InternalError",
 			userID: user.ID,
 			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetUser(gomock.Any(), gomock.Eq(user.ID)).Return(user, nil)
+				store.EXPECT().GetRole(gomock.Any(), gomock.Eq(user.RoleID)).Return(db.Role{ID: user.RoleID}, nil)
 				store.EXPECT().
 					DeleteUser(gomock.Any(), gomock.Eq(user.ID)).
 					Times(1).
@@ -315,6 +322,19 @@ func TestDeleteUserAPI(t *testing.T) {
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:   "LastAdmin",
+			userID: user.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetUser(gomock.Any(), gomock.Eq(user.ID)).Return(user, nil)
+				store.EXPECT().GetRole(gomock.Any(), gomock.Eq(user.RoleID)).Return(db.Role{ID: user.RoleID, IsAdmin: true}, nil)
+				store.EXPECT().CountOtherAdmins(gomock.Any(), gomock.Eq(user.ID)).Return(int64(0), nil)
+				store.EXPECT().DeleteUser(gomock.Any(), gomock.Any()).Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusConflict, recorder.Code)
 			},
 		},
 		{

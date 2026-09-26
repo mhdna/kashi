@@ -146,6 +146,7 @@
           variant="outlined"
         />
         <v-btn
+          v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
           text="New Count"
@@ -183,9 +184,13 @@
   import { useRoute } from 'vue-router'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useInventories } from '@/composables/useInventories'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { useStockCounts } from '@/composables/useStockCounts'
   import { useVariants, variantLabel } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const route = useRoute()
   const { inventories, fetchInventories } = useInventories()
@@ -231,7 +236,7 @@
   const posting = ref(false)
   const cancelling = ref(false)
 
-  const isDraft = computed(() => editorStatus.value === 'draft')
+  const isDraft = computed(() => editorStatus.value === 'draft' && canEdit.value)
 
   const lineHeaders = computed(() => [
     { title: 'SKU', key: 'label' },
@@ -266,7 +271,7 @@
   // Arriving from Inventory's "Start Count" button pre-selects that
   // inventory and seeds the sheet from its live stock.
   const preselectInventoryId = route.query.inventory_id ? Number(route.query.inventory_id) : null
-  if (preselectInventoryId) {
+  if (preselectInventoryId && canEdit.value) {
     openCreate()
     inventoryId.value = preselectInventoryId
     seedFromInventory(preselectInventoryId)

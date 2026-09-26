@@ -26,6 +26,7 @@
           variant="outlined"
         />
         <v-btn
+          v-if="canEdit"
           color="primary"
           :disabled="activeCategories.length === 0"
           prepend-icon="mdi-plus"
@@ -68,7 +69,7 @@
               item-value="id"
               :query-params="{ category_id: selectedCategory }"
               root-key="assets"
-              selectable
+              :selectable="canEdit"
               :show-search-icon="false"
               :sort-keys="['id', 'name', 'code', 'bought_at', 'created_at']"
               @row-click="openEdit"
@@ -218,8 +219,12 @@
   import { useAssetCategories } from '@/composables/useAssetCategories'
   import { useAssets } from '@/composables/useAssets'
   import { useBulkDelete } from '@/composables/useBulkDelete'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
   import { categoryColor, categoryIcon } from '@/data/expenseCategoryIcons'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const {
     assetCategories,
@@ -307,6 +312,7 @@
   }
 
   function openEdit (item) {
+    if (!canEdit.value) return
     editing.value = item
     formError.value = ''
     Object.assign(form, {

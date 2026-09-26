@@ -11,7 +11,7 @@
     @update:model-value="props.mobile && $emit('update:modelValue', $event)"
   >
     <v-list density="compact" nav>
-      <template v-for="item in navItems" :key="item.title">
+      <template v-for="item in visibleNavItems" :key="item.title">
         <!-- Group item -->
         <v-list-group
           v-if="item.children"
@@ -86,7 +86,7 @@
       <v-list class="pa-0" density="compact" nav>
         <div class="pa-2">
           <v-list-item
-            v-for="item in appendItems"
+            v-for="item in visibleAppendItems"
             :key="item.title"
             :prepend-icon="item.icon"
             :title="item.title"
@@ -101,9 +101,10 @@
 
 <script setup>
   import { onMounted, ref } from 'vue'
+  import { useAllowedNav } from '@/composables/useAllowedNav'
   import { useLowStockAlerts } from '@/composables/useLowStockAlerts'
   import { useStockHealth } from '@/composables/useStockHealth'
-  import { appendItems, navItems } from '@/data/navItems'
+  import { useAuthStore } from '@/stores/auth'
 
   const props = defineProps({
     modelValue: { type: Boolean, required: true },
@@ -112,6 +113,10 @@
   })
   defineEmits(['update:modelValue', 'update:rail'])
 
+  // Links to pages the user's role can't open are hidden (see useAllowedNav).
+  const auth = useAuthStore()
+  const { allowedNavItems: visibleNavItems, allowedAppendItems: visibleAppendItems } = useAllowedNav()
+
   // Real counts backing the Alerts nav badges, shown separately: red for
   // out-of-stock, orange for merely low (see pages/alerts.vue, api/low_stock.go).
   const { fetchSummary } = useLowStockAlerts()
@@ -119,6 +124,7 @@
   const lowStockCount = ref(0)
 
   onMounted(async () => {
+    if (!auth.canView('inventory')) {return}
     try {
       const summary = await fetchSummary()
       outOfStockCount.value = summary?.out_of_stock_count ?? 0
@@ -135,6 +141,7 @@
   const healthStatus = ref('healthy')
 
   onMounted(async () => {
+    if (!auth.canView('inventory')) {return}
     try {
       const health = await fetchStockHealth()
       healthStatus.value = health?.status ?? 'healthy'

@@ -51,7 +51,7 @@
         <v-chip class="ml-2" :color="statusColor(itemsTarget?.status)" size="small">{{ itemsTarget?.status }}</v-chip>
       </v-card-title>
       <v-card-text>
-        <div v-if="itemsTarget?.status === 'draft'" class="d-flex align-center mb-4" style="gap: 12px;">
+        <div v-if="canEdit && itemsTarget?.status === 'draft'" class="d-flex align-center mb-4" style="gap: 12px;">
           <v-autocomplete
             v-model="itemVariantId"
             density="compact"
@@ -95,21 +95,21 @@
       </v-card-text>
       <v-card-actions>
         <v-btn
-          v-if="itemsTarget?.status === 'draft'"
+          v-if="canEdit && itemsTarget?.status === 'draft'"
           color="primary"
           :loading="staging"
           text="Dispatch"
           @click="stage('dispatch')"
         />
         <v-btn
-          v-if="itemsTarget?.status === 'dispatched'"
+          v-if="canEdit && itemsTarget?.status === 'dispatched'"
           color="success"
           :loading="staging"
           text="Receive"
           @click="stage('receive')"
         />
         <v-btn
-          v-if="itemsTarget?.status === 'draft' || itemsTarget?.status === 'dispatched' || itemsTarget?.status === 'received'"
+          v-if="canEdit && (itemsTarget?.status === 'draft' || itemsTarget?.status === 'dispatched' || itemsTarget?.status === 'received')"
           color="error"
           :loading="staging"
           text="Cancel Transfer"
@@ -129,6 +129,7 @@
         <span>Transfers</span>
         <v-spacer />
         <v-btn
+          v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
           text="Add Transfer"
@@ -156,7 +157,7 @@
             <template #item.actions="{ item }">
               <v-icon-btn icon="mdi-format-list-bulleted" size="small" variant="text" @click="openItems(item)" />
               <v-icon-btn
-                v-if="item.status === 'draft'"
+                v-if="canEdit && item.status === 'draft'"
                 icon="mdi-pencil"
                 size="small"
                 variant="text"
@@ -175,9 +176,13 @@
   import { ref } from 'vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useInventories } from '@/composables/useInventories'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { useTransfers } from '@/composables/useTransfers'
   import { useVariants } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const {
     createTransfer, updateTransfer, fetchTransferItems, createTransferItem,

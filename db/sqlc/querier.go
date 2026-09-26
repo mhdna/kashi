@@ -49,6 +49,7 @@ type Querier interface {
 	BranchShiftIsClosed(ctx context.Context, arg BranchShiftIsClosedParams) (bool, error)
 	BranchShiftRefsPresent(ctx context.Context, arg BranchShiftRefsPresentParams) ([]string, error)
 	BranchVisitorEventRefsPresent(ctx context.Context, arg BranchVisitorEventRefsPresentParams) ([]string, error)
+	ClientPhonesPresent(ctx context.Context, dollar_1 []string) ([]string, error)
 	CloseShift(ctx context.Context, id int64) error
 	CompleteBranchCommand(ctx context.Context, arg CompleteBranchCommandParams) (BranchCommand, error)
 	CountAssets(ctx context.Context, arg CountAssetsParams) (int64, error)
@@ -94,6 +95,8 @@ type Querier interface {
 	CountLoans(ctx context.Context, arg CountLoansParams) (int64, error)
 	CountLowStockProducts(ctx context.Context, arg CountLowStockProductsParams) (int64, error)
 	CountOpenBranchSyncConflicts(ctx context.Context, branchID int64) (int64, error)
+	// Admin users besides $1, so the last admin can't be deleted or demoted.
+	CountOtherAdmins(ctx context.Context, id int64) (int64, error)
 	CountPriceListItemsWithProduct(ctx context.Context, arg CountPriceListItemsWithProductParams) (int64, error)
 	CountPriceListsFiltered(ctx context.Context, search string) (int64, error)
 	CountProductVariants(ctx context.Context) (int64, error)
@@ -169,6 +172,7 @@ type Querier interface {
 	CreatePurchase(ctx context.Context, arg CreatePurchaseParams) (Purchase, error)
 	CreateRecurringExpense(ctx context.Context, arg CreateRecurringExpenseParams) (RecurringExpense, error)
 	CreateReturnInvoice(ctx context.Context, arg CreateReturnInvoiceParams) (ReturnInvoice, error)
+	CreateRole(ctx context.Context, name string) (Role, error)
 	CreateSalesInvoice(ctx context.Context, invoiceID int64) (int64, error)
 	CreateSalesperson(ctx context.Context, arg CreateSalespersonParams) (Salesperson, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
@@ -302,6 +306,8 @@ type Querier interface {
 	DeleteProduct(ctx context.Context, id int64) error
 	DeleteProductVariant(ctx context.Context, id int64) error
 	DeletePurchaseItem(ctx context.Context, arg DeletePurchaseItemParams) error
+	DeleteRole(ctx context.Context, id int64) error
+	DeleteRolePermissions(ctx context.Context, roleID int64) error
 	DeleteSalesperson(ctx context.Context, id int64) error
 	DeleteSize(ctx context.Context, id int64) error
 	DeleteSizes(ctx context.Context, ids []int64) (int64, error)
@@ -465,6 +471,7 @@ type Querier interface {
 	GetPurchase(ctx context.Context, id int64) (GetPurchaseRow, error)
 	GetRecurringExpense(ctx context.Context, id int64) (RecurringExpense, error)
 	GetReturnInvoice(ctx context.Context, invoiceID int64) (ReturnInvoice, error)
+	GetRole(ctx context.Context, id int64) (Role, error)
 	GetSalesInvoice(ctx context.Context, invoiceID int64) (int64, error)
 	GetSalesperson(ctx context.Context, id int64) (Salesperson, error)
 	GetSession(ctx context.Context, id uuid.UUID) (Session, error)
@@ -479,6 +486,10 @@ type Querier interface {
 	GetSupplier(ctx context.Context, id int64) (Supplier, error)
 	GetTransfer(ctx context.Context, id int64) (Transfer, error)
 	GetUser(ctx context.Context, id int64) (User, error)
+	// One row per permission of the user's role, or a single row with NULL
+	// section for a role that has none (an admin, or a brand-new role). No rows
+	// at all means the user no longer exists.
+	GetUserAccess(ctx context.Context, id int64) ([]GetUserAccessRow, error)
 	GetUserByUsername(ctx context.Context, name string) (User, error)
 	GetVariantForLabel(ctx context.Context, id int64) (GetVariantForLabelRow, error)
 	GetVariantTotalOnHand(ctx context.Context, variantID int64) (int64, error)
@@ -602,8 +613,13 @@ type Querier interface {
 	// page. ListClientsBySpending can't serve that: its aggregation scans all
 	// invoices/branch_invoices on every call, so paging 25k clients through it
 	// re-runs that scan once per page. This runs it once and returns only the
-	// five columns the loyalty page reads, so the payload stays small even at
-	// tens of thousands of rows.
+	// handful of columns the loyalty page reads, so the payload stays small even
+	// at tens of thousands of rows.
+	//
+	// total_spent/invoice_count are lifetime (they drive the tier bucketing);
+	// period_spent/period_invoice_count cover [date_from, date_to) only, either
+	// bound optional. Half-open so the caller can pass the first instant of the
+	// day after the last selected day.
 	//
 	// Same two sources and sign conventions as ListClientsBySpending (see the
 	// comment there); item_count and the branch_id/search filters are dropped
@@ -611,7 +627,7 @@ type Querier interface {
 	// drops the two line-item joins whose row fan-out made the DISTINCTs
 	// necessary (kept anyway, so a non-unique sales_invoices/client_links row
 	// can't inflate a count).
-	ListClientSpendingSummary(ctx context.Context, clientType sql.NullString) ([]ListClientSpendingSummaryRow, error)
+	ListClientSpendingSummary(ctx context.Context, arg ListClientSpendingSummaryParams) ([]ListClientSpendingSummaryRow, error)
 	// sqlc.narg(client_type) is nullable: NULL means "all types" -- the admin
 	// clients page passes it when a Retail/Wholesale tab is selected, and
 	// omits it for a combined view if one is ever added.
@@ -769,6 +785,8 @@ type Querier interface {
 	ListPurchaseItems(ctx context.Context, purchaseID sql.NullInt64) ([]ListPurchaseItemsRow, error)
 	ListPurchases(ctx context.Context, arg ListPurchasesParams) ([]ListPurchasesRow, error)
 	ListRecurringExpenses(ctx context.Context) ([]RecurringExpense, error)
+	ListRolePermissions(ctx context.Context) ([]RolePermission, error)
+	ListRoles(ctx context.Context) ([]ListRolesRow, error)
 	// Which batch(es) a specific sales-invoice line actually drew from, so a
 	// return of that line can replenish the same batches instead of going
 	// untracked. quantity is negative (sale); batch_id is null for the
@@ -807,6 +825,7 @@ type Querier interface {
 	// cost forward. When existing on-hand is <= 0 the average is just reset to
 	// the incoming cost (no meaningful prior average to blend).
 	ReceiveInventoryStock(ctx context.Context, arg ReceiveInventoryStockParams) (InventoryStock, error)
+	RenameRole(ctx context.Context, arg RenameRoleParams) error
 	ResolveBranchSyncConflict(ctx context.Context, arg ResolveBranchSyncConflictParams) (BranchSyncConflict, error)
 	SetBranchActive(ctx context.Context, arg SetBranchActiveParams) error
 	SetBranchInventory(ctx context.Context, arg SetBranchInventoryParams) error
@@ -897,6 +916,7 @@ type Querier interface {
 	UpsertDiscountListBranch(ctx context.Context, arg UpsertDiscountListBranchParams) error
 	UpsertPriceListBranch(ctx context.Context, arg UpsertPriceListBranchParams) error
 	UpsertProductAttribute(ctx context.Context, arg UpsertProductAttributeParams) error
+	UpsertRolePermission(ctx context.Context, arg UpsertRolePermissionParams) error
 }
 
 var _ Querier = (*Queries)(nil)

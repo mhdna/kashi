@@ -1250,6 +1250,20 @@ type ReturnInvoice struct {
 	SalesInvoiceID int64 `json:"sales_invoice_id"`
 }
 
+type Role struct {
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	IsAdmin   bool      `json:"is_admin"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type RolePermission struct {
+	RoleID  int64  `json:"role_id"`
+	Section string `json:"section"`
+	CanView bool   `json:"can_view"`
+	CanEdit bool   `json:"can_edit"`
+}
+
 type SalesInvoice struct {
 	InvoiceID int64 `json:"invoice_id"`
 }
@@ -1386,6 +1400,7 @@ type User struct {
 	Activated         bool      `json:"activated"`
 	Version           int32     `json:"version"`
 	CreatedAt         time.Time `json:"created_at"`
+	RoleID            int64     `json:"role_id"`
 }
 
 type UsersPermission struct {

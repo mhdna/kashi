@@ -80,13 +80,25 @@
 
     <v-dialog v-model="previewDialog" max-width="720">
       <v-card>
-        <v-img v-if="previewImage" contain max-height="80vh" :src="previewUrl">
-          <template #placeholder>
-            <div class="d-flex align-center justify-center" style="min-height: 240px">
-              <v-progress-circular indeterminate size="32" />
-            </div>
-          </template>
-        </v-img>
+        <!-- Fixed-height stage: the dialog keeps its size while the photo
+          loads, then the photo fits inside it. -->
+        <div class="image-stage d-flex align-center justify-center">
+          <v-progress-circular v-if="previewLoading" indeterminate size="32" />
+          <v-img
+            v-else-if="previewUrl"
+            class="image-stage__img"
+            contain
+            height="100%"
+            :src="previewUrl"
+          >
+            <template #placeholder>
+              <div class="d-flex align-center justify-center fill-height">
+                <v-progress-circular indeterminate size="32" />
+              </div>
+            </template>
+          </v-img>
+          <span v-else class="text-medium-emphasis">Couldn't load this image.</span>
+        </div>
         <v-card-text v-if="previewImage">
           <div class="text-subtitle-1">{{ source?.primaryText(previewImage) }}</div>
           <div class="text-caption text-medium-emphasis">
@@ -179,6 +191,7 @@
   const loadError = ref('')
   const thumbnailUrls = ref({})
   const previewUrl = ref('')
+  const previewLoading = ref(false)
 
   // The grid tiles are ~160px; ask the server for a long-edge-capped
   // thumbnail (see serveStoredImage) instead of the multi-MB original, and
@@ -266,11 +279,22 @@
     previewImage.value = image
     previewDialog.value = true
     revokePreviewUrl()
+    previewLoading.value = true
     try {
-      previewUrl.value = await source.value.fetchObjectUrl(image)
+      const url = await source.value.fetchObjectUrl(image)
+      // A newer preview may have been opened while this one was fetching.
+      if (previewImage.value !== image) {
+        URL.revokeObjectURL(url)
+        return
+      }
+      previewUrl.value = url
     } catch {
       // Fall back to the already-loaded thumbnail rather than a blank dialog.
-      previewUrl.value = thumbnailUrls.value[imageKey(image)] ?? ''
+      if (previewImage.value === image) {
+        previewUrl.value = thumbnailUrls.value[imageKey(image)] ?? ''
+      }
+    } finally {
+      if (previewImage.value === image) previewLoading.value = false
     }
   }
 
@@ -315,6 +339,15 @@
 </script>
 
 <style scoped>
+.image-stage {
+  height: min(70vh, 640px);
+  width: 100%;
+}
+
+.image-stage__img {
+  width: 100%;
+}
+
 .image-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));

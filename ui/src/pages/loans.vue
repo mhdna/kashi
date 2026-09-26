@@ -46,7 +46,7 @@
           <v-btn value="branch">Branch</v-btn>
         </v-btn-toggle>
         <v-btn
-          v-if="tab === 'own'"
+          v-if="canEdit && tab === 'own'"
           color="primary"
           prepend-icon="mdi-plus"
           text="Add Loan"
@@ -103,7 +103,7 @@
               :headers="headers"
               :query-params="queryParams"
               root-key="loans"
-              selectable
+              :selectable="canEdit"
               :show-search-icon="false"
               @loaded="onRowsLoaded"
               @update:expanded="onExpandedChange"
@@ -138,7 +138,7 @@
               <template #item.occurred_at="{ item }">{{ formatDate(item.occurred_at) }}</template>
               <template #item.actions="{ item }">
                 <v-icon-btn
-                  v-if="item.origin === 'central_loan'"
+                  v-if="canEdit && item.origin === 'central_loan'"
                   icon="mdi-pencil"
                   size="small"
                   variant="text"
@@ -199,6 +199,7 @@
                             <td>{{ formatDate(p.paid_at) }}</td>
                             <td class="text-end">
                               <v-icon-btn
+                                v-if="canEdit"
                                 icon="mdi-delete"
                                 size="x-small"
                                 variant="text"
@@ -216,7 +217,7 @@
                       </div>
 
                       <form
-                        v-if="item.status !== 'paid'"
+                        v-if="canEdit && item.status !== 'paid'"
                         class="d-flex flex-wrap align-start ga-2"
                         @submit.prevent="addPayment(item)"
                       >
@@ -342,7 +343,11 @@
   import { useBranches } from '@/composables/useBranches'
   import { useBulkDelete } from '@/composables/useBulkDelete'
   import { useLoanCategories } from '@/composables/useLoanCategories'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const STATUS_META = {
     paid: { color: 'success', label: 'Paid' },

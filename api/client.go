@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/mhdna/kashi/db/sqlc"
@@ -118,6 +119,10 @@ func (server *Server) listClients(ctx *gin.Context) {
 
 type listClientSpendingSummaryRequest struct {
 	ClientType string `form:"client_type" binding:"omitempty,oneof=retail wholesale"`
+	// Activity window for period_spent/period_invoice_count, [from, to).
+	// Either bound may be omitted; RFC 3339.
+	From time.Time `form:"from" time_format:"2006-01-02T15:04:05Z07:00"`
+	To   time.Time `form:"to" time_format:"2006-01-02T15:04:05Z07:00"`
 }
 
 // listClientSpendingSummary is the loyalty page's data source: every client
@@ -133,8 +138,11 @@ func (server *Server) listClientSpendingSummary(ctx *gin.Context) {
 		return
 	}
 
-	clients, err := server.store.ListClientSpendingSummary(ctx,
-		sql.NullString{String: req.ClientType, Valid: req.ClientType != ""})
+	clients, err := server.store.ListClientSpendingSummary(ctx, db.ListClientSpendingSummaryParams{
+		ClientType: sql.NullString{String: req.ClientType, Valid: req.ClientType != ""},
+		DateFrom:   sql.NullTime{Time: req.From, Valid: !req.From.IsZero()},
+		DateTo:     sql.NullTime{Time: req.To, Valid: !req.To.IsZero()},
+	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return

@@ -16,6 +16,7 @@
           variant="outlined"
         />
         <v-btn
+          v-if="canEdit"
           :disabled="selected.length === 0 || assigning"
           :loading="assigning"
           prepend-icon="mdi-barcode"
@@ -182,9 +183,13 @@
   import { onMounted, reactive, ref } from 'vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useBarcodes } from '@/composables/useBarcodes'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
   import { useSettingsStore } from '@/stores/settings'
   import { formatMoney } from '@/utils/money'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const { assignBarcodes, printLabels } = useBarcodes()
   const settings = useSettingsStore()

@@ -55,7 +55,7 @@
         <v-chip class="ml-2" :color="statusColor(itemsTarget?.status)" size="small">{{ itemsTarget?.status }}</v-chip>
       </v-card-title>
       <v-card-text>
-        <v-row v-if="itemsTarget?.status !== 'received'" align="center">
+        <v-row v-if="canEdit && itemsTarget?.status !== 'received'" align="center">
           <v-col cols="5">
             <v-autocomplete
               v-model="itemVariantId"
@@ -115,14 +115,14 @@
       </v-card-text>
       <v-card-actions>
         <v-btn
-          v-if="itemsTarget?.status === 'draft'"
+          v-if="canEdit && itemsTarget?.status === 'draft'"
           color="success"
           :loading="receiving"
           text="Receive"
           @click="receive"
         />
         <v-btn
-          v-if="itemsTarget?.status === 'draft' || itemsTarget?.status === 'received'"
+          v-if="canEdit && (itemsTarget?.status === 'draft' || itemsTarget?.status === 'received')"
           color="error"
           :loading="cancelling"
           text="Cancel Purchase"
@@ -152,6 +152,7 @@
           variant="outlined"
         />
         <v-btn
+          v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
           text="Add Purchase"
@@ -189,10 +190,14 @@
   import { ref } from 'vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useInventories } from '@/composables/useInventories'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { usePurchases } from '@/composables/usePurchases'
   import { useSuppliers } from '@/composables/useSuppliers'
   import { useVariants } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const { createPurchase, fetchPurchase, addPurchaseItem, receivePurchase, cancelPurchase } = usePurchases()
   const { suppliers, fetchSuppliers } = useSuppliers()

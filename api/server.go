@@ -54,7 +54,7 @@ func (server *Server) setupRoutes() {
 	router := gin.Default()
 	router.Use(corsMiddleware())
 
-	authRoutes := router.Group("/").Use(server.authMiddleware())
+	authRoutes := router.Group("/").Use(server.authMiddleware(), server.permissionMiddleware())
 
 	authRoutes.POST("/inventories", server.createInventory)
 	authRoutes.GET("/inventories/:id", server.getInventory)
@@ -216,10 +216,17 @@ func (server *Server) setupRoutes() {
 	router.POST("/users/login", server.loginUser)
 	router.POST("/tokens/renew_access", server.renewAccessToken)
 	authRoutes.POST("/users", server.createUser)
+	authRoutes.GET("/users/online", server.listOnlineUsers)
+	authRoutes.GET("/users/me", server.getMe)
 	authRoutes.GET("/users/:id", server.getUser)
 	authRoutes.GET("/users", server.listUsers)
 	authRoutes.PUT("/users", server.updateUser)
 	authRoutes.DELETE("/users/:id", server.deleteUser)
+
+	authRoutes.GET("/roles", server.listRoles)
+	authRoutes.POST("/roles", server.createRole)
+	authRoutes.PUT("/roles/:id", server.updateRole)
+	authRoutes.DELETE("/roles/:id", server.deleteRole)
 
 	authRoutes.POST("/entries", server.createEntry)
 	authRoutes.GET("/entries/:id", server.getEntry)
@@ -392,7 +399,6 @@ func (server *Server) setupRoutes() {
 	branchRoutes.POST("/attendance_changes", server.createBranchAttendanceChange)
 	branchRoutes.GET("/sync/changes", server.branchSyncChanges)
 	branchRoutes.POST("/sync/reconcile", server.branchReconcile)
-	branchRoutes.POST("/products/report", server.reportBranchProducts)
 	branchRoutes.GET("/ws", server.branchWS)
 	branchRoutes.PUT("/settings", server.putBranchSettings)
 	branchRoutes.POST("/clients", server.putBranchClient)

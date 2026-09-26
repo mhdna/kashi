@@ -21,16 +21,7 @@
         <!-- <NotificationMenu class="me-4" /> -->
         <!-- <v-icon icon="mdi-translate" /> -->
         <ToggleTheme />
-        <v-avatar
-          class="text-white font-weight-medium"
-          :color="avatarColor"
-          size="35"
-          style="cursor: pointer"
-          title="Settings"
-          @click="router.push('/settings')"
-        >
-          <span class="text-body-2">{{ avatarInitials }}</span>
-        </v-avatar>
+        <OnlineUsersStack />
         <v-btn icon="mdi-logout" variant="text" @click="handleLogout" />
       </template>
     </v-app-bar>
@@ -68,58 +59,60 @@
 </template>
 
 <script lang="ts" setup>
-  import { onMounted, ref } from 'vue'
-  import { useRoute, useRouter } from 'vue-router'
-  import { useDisplay } from 'vuetify'
-  import BranchActivityToast from '@/components/BranchActivityToast.vue'
-  import ToggleTheme from '@/components/Buttons/ToggleTheme.vue'
-  import CommandPalette from '@/components/CommandPalette.vue'
-  import ConnectedBranchesCard from '@/components/ConnectedBranchesCard.vue'
-  // import NotificationMenu from '@/components/Menus/NotificationMenu.vue'
-  import { useUserAvatar } from '@/composables/useUserAvatar'
-  import { useAuthStore } from '@/stores/auth'
-  import { useSettingsStore } from '@/stores/settings'
+import { onMounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useDisplay } from "vuetify";
+import BranchActivityToast from "@/components/BranchActivityToast.vue";
+import ToggleTheme from "@/components/Buttons/ToggleTheme.vue";
+import CommandPalette from "@/components/CommandPalette.vue";
+import ConnectedBranchesCard from "@/components/ConnectedBranchesCard.vue";
+import OnlineUsersStack from "@/components/OnlineUsersStack.vue";
+// import NotificationMenu from '@/components/Menus/NotificationMenu.vue'
+import { useAuthStore } from "@/stores/auth";
+import { useSettingsStore } from "@/stores/settings";
 
-  const auth = useAuthStore()
-  const settingsStore = useSettingsStore()
-  const { initials: avatarInitials, color: avatarColor } = useUserAvatar()
-  // Loads the global app settings (activity display prefs, financials high
-  // season months) once per session -- BranchActivityToast/SyncCard read
-  // settingsStore's activity fields reactively, so this can resolve after
-  // they mount without any special handling.
-  onMounted(() => settingsStore.init())
+const auth = useAuthStore();
+const settingsStore = useSettingsStore();
+// Loads the global app settings (activity display prefs, financials high
+// season months) once per session -- BranchActivityToast/SyncCard read
+// settingsStore's activity fields reactively, so this can resolve after
+// they mount without any special handling.
+onMounted(() => {
+  settingsStore.init();
+  auth.refreshAccess();
+});
 
-  function handleLogout () {
-    auth.logout()
-    window.location.href = '/login'
+function handleLogout() {
+  auth.logout();
+  window.location.href = "/login";
+}
+
+const showDrawer = ref(false);
+const isRail = ref(false);
+const { mobile } = useDisplay();
+
+function toggleDrawer() {
+  if (mobile.value) {
+    showDrawer.value = !showDrawer.value;
+    isRail.value = false;
+  } else {
+    isRail.value = !isRail.value;
   }
+}
 
-  const showDrawer = ref(false)
-  const isRail = ref(false)
-  const { mobile } = useDisplay()
+const router = useRouter();
+const route = useRoute();
+const isNavigating = ref(false);
+const pageTitle = ref(route.meta.title || "");
+const navStart = 0;
 
-  function toggleDrawer () {
-    if (mobile.value) {
-      showDrawer.value = !showDrawer.value
-      isRail.value = false
-    } else {
-      isRail.value = !isRail.value
-    }
-  }
+router.beforeEach((to) => {
+  pageTitle.value = to.meta.title || "";
+});
 
-  const router = useRouter()
-  const route = useRoute()
-  const isNavigating = ref(false)
-  const pageTitle = ref(route.meta.title || '')
-  const navStart = 0
-
-  router.beforeEach(to => {
-    pageTitle.value = to.meta.title || ''
-  })
-
-  router.afterEach(() => {
-    isNavigating.value = false
-  })
+router.afterEach(() => {
+  isNavigating.value = false;
+});
 </script>
 
 <style scoped>

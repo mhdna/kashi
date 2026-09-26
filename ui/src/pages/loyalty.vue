@@ -5,6 +5,39 @@
       <v-icon icon="mdi-trophy" />
       <div class="text-h6 font-weight-medium">Loyalty</div>
       <v-spacer />
+      <v-menu v-model="rangeMenu" :close-on-content-click="false">
+        <template #activator="{ props }">
+          <v-text-field
+            v-bind="props"
+            class="range-field"
+            density="compact"
+            hide-details
+            label="Period"
+            :model-value="rangeLabel"
+            prepend-inner-icon="mdi-calendar"
+            readonly
+            variant="outlined"
+          />
+        </template>
+        <v-card>
+          <div class="d-flex flex-wrap ga-2 pa-3 pb-0">
+            <v-chip
+              v-for="p in rangePresets"
+              :key="p.key"
+              :color="activePreset === p.key ? 'primary' : undefined"
+              size="small"
+              @click="applyPreset(p)"
+            >
+              {{ p.title }}
+            </v-chip>
+          </div>
+          <v-date-picker v-model="dateRange" :max="todayIso" multiple="range" />
+          <v-card-actions>
+            <v-spacer />
+            <v-btn color="primary" text="Done" variant="text" @click="rangeMenu = false" />
+          </v-card-actions>
+        </v-card>
+      </v-menu>
       <v-btn-toggle
         v-model="clientType"
         density="compact"
@@ -71,7 +104,7 @@
         <v-col cols="12" md="4">
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title">Revenue share by tier</div>
-            <div class="chart-card__subtitle">Lifetime spend, split by current tier</div>
+            <div class="chart-card__subtitle">Spend in {{ rangeLabel }}, split by current tier</div>
             <v-chart autoresize class="chart" :option="revenueShareOption" />
           </v-card>
         </v-col>
@@ -108,9 +141,10 @@
                     <th class="text-right">Min spend</th>
                     <th class="text-right">Members</th>
                     <th class="text-right">% of base</th>
+                    <th class="text-right">Active</th>
                     <th class="text-right">Revenue</th>
                     <th class="text-right">% of rev.</th>
-                    <th class="text-right">Avg spend</th>
+                    <th class="text-right">Avg / active</th>
                     <th class="text-right">Points</th>
                   </tr>
                 </thead>
@@ -123,6 +157,7 @@
                     <td class="text-right">${{ t.minAmount.toLocaleString() }}</td>
                     <td class="text-right font-weight-medium">{{ t.members.toLocaleString() }}</td>
                     <td class="text-right">{{ pct(t.baseShare) }}</td>
+                    <td class="text-right">{{ t.active.toLocaleString() }}</td>
                     <td class="text-right">${{ money(t.revenue) }}</td>
                     <td class="text-right">{{ pct(t.revShare) }}</td>
                     <td class="text-right">${{ money(t.avgSpend) }}</td>
@@ -135,10 +170,11 @@
                     <td />
                     <td class="text-right font-weight-bold">{{ totalMembers.toLocaleString() }}</td>
                     <td class="text-right font-weight-bold">100%</td>
+                    <td class="text-right font-weight-bold">{{ activeMembers.toLocaleString() }}</td>
                     <td class="text-right font-weight-bold">${{ money(totalRevenue) }}</td>
                     <td class="text-right font-weight-bold">100%</td>
                     <td class="text-right font-weight-bold">
-                      ${{ money(totalMembers ? totalRevenue / totalMembers : 0) }}
+                      ${{ money(activeMembers ? totalRevenue / activeMembers : 0) }}
                     </td>
                     <td class="text-right font-weight-bold">{{ totalPoints.toLocaleString() }}</td>
                   </tr>
@@ -301,6 +337,66 @@
   // below -- one request, one server-side aggregation pass. (The paged
   // /clients/by_spending re-runs that aggregation per page, which is what
   // made this page take minutes on a 25k-client tenant.)
+  // Period the activity numbers (revenue, active members) cover. Tiers, points
+  // and "close to leveling up" stay lifetime -- a tier is earned over a
+  // client's whole history, so bucketing by one month's spend would put
+  // nearly everyone in the entry tier.
+  const rangeMenu = ref(false)
+  const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  const todayIso = (() => {
+    const t = startOfDay(new Date())
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`
+  })()
+  function monthRange (offset = 0) {
+    const now = new Date()
+    const first = new Date(now.getFullYear(), now.getMonth() + offset, 1)
+    const last = offset === 0 ? startOfDay(now) : new Date(now.getFullYear(), now.getMonth() + offset + 1, 0)
+    return [first, last]
+  }
+  const rangePresets = [
+    { key: 'month', title: 'This month', range: () => monthRange(0) },
+    { key: 'last-month', title: 'Last month', range: () => monthRange(-1) },
+    {
+      key: '90d',
+      title: 'Last 90 days',
+      range: () => {
+        const now = startOfDay(new Date())
+        return [new Date(now.getFullYear(), now.getMonth(), now.getDate() - 89), now]
+      },
+    },
+    { key: 'all', title: 'All time', range: () => [] },
+  ]
+  const dateRange = ref(monthRange(0))
+  const activePreset = ref('month')
+  function applyPreset (p) {
+    activePreset.value = p.key
+    dateRange.value = p.range()
+  }
+  watch(dateRange, () => {
+    // The picker fired, not a preset: only clear the highlight when the
+    // selection no longer matches the active preset.
+    const p = rangePresets.find(x => x.key === activePreset.value)
+    const want = p ? p.range() : []
+    const same = want.length === dateRange.value.length
+      && want.every((d, i) => startOfDay(new Date(d)).getTime() === startOfDay(new Date(dateRange.value[i])).getTime())
+    if (!same) activePreset.value = ''
+  })
+
+  // [from, to) in local time; to is the first instant after the last picked day.
+  const bounds = computed(() => {
+    const days = dateRange.value.map(d => startOfDay(new Date(d))).toSorted((a, b) => a - b)
+    if (days.length === 0) return null
+    const last = days.at(-1)
+    return { from: days[0], to: new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1) }
+  })
+  const rangeLabel = computed(() => {
+    const b = bounds.value
+    if (!b) return 'All time'
+    const fmt = d => d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+    const lastDay = new Date(b.to.getFullYear(), b.to.getMonth(), b.to.getDate() - 1)
+    return b.from.getTime() === lastDay.getTime() ? fmt(b.from) : `${fmt(b.from)} – ${fmt(lastDay)}`
+  })
+
   const rows = ref([])
   const loading = ref(false)
   const error = ref('')
@@ -311,6 +407,10 @@
     try {
       const params = new URLSearchParams()
       if (clientType.value !== 'all') params.set('client_type', clientType.value)
+      if (bounds.value) {
+        params.set('from', bounds.value.from.toISOString())
+        params.set('to', bounds.value.to.toISOString())
+      }
       const data = await dedupedFetch(`${API_BASE}/clients/spending_summary?${params}`)
       rows.value = data?.clients ?? []
     } catch (error_) {
@@ -322,7 +422,7 @@
   }
 
   onMounted(load)
-  watch(clientType, load)
+  watch([clientType, bounds], load)
 
   // --- aggregation ------------------------------------------------------------
   function money (cents) {
@@ -335,10 +435,10 @@
 
   const totalMembers = computed(() => rows.value.length)
   const activeMembers = computed(
-    () => rows.value.filter(c => (c.invoice_count ?? 0) > 0).length,
+    () => rows.value.filter(c => (c.period_invoice_count ?? 0) > 0).length,
   )
   const totalRevenue = computed(
-    () => rows.value.reduce((s, c) => s + (c.total_spent ?? 0), 0),
+    () => rows.value.reduce((s, c) => s + (c.period_spent ?? 0), 0),
   )
   const totalPoints = computed(
     () => rows.value.reduce((s, c) => s + (c.valid_loyalty_points ?? 0), 0),
@@ -355,8 +455,8 @@
       const bucket = buckets.get(tierFor(c.total_spent)?.id)
       if (!bucket) continue
       bucket.members++
-      if ((c.invoice_count ?? 0) > 0) bucket.active++
-      bucket.revenue += c.total_spent ?? 0
+      if ((c.period_invoice_count ?? 0) > 0) bucket.active++
+      bucket.revenue += c.period_spent ?? 0
       bucket.points += c.valid_loyalty_points ?? 0
     }
     const members = rows.value.length
@@ -367,7 +467,7 @@
         ...b,
         baseShare: members ? b.members / members : 0,
         revShare: revenue ? b.revenue / revenue : 0,
-        avgSpend: b.members ? b.revenue / b.members : 0,
+        avgSpend: b.active ? b.revenue / b.active : 0,
       }
     })
   })
@@ -388,12 +488,12 @@
 
   const kpis = computed(() => [
     { label: 'Members', value: totalMembers.value.toLocaleString(), hint: clientTypeLabel.value },
-    { label: 'Active members', value: activeMembers.value.toLocaleString(), hint: '≥ 1 purchase' },
-    { label: 'Lifetime revenue', value: formatCompactMoney(totalRevenue.value) },
+    { label: 'Active members', value: activeMembers.value.toLocaleString(), hint: '≥ 1 purchase in period' },
+    { label: 'Revenue', value: formatCompactMoney(totalRevenue.value), hint: rangeLabel.value },
     { label: 'Points outstanding', value: totalPoints.value.toLocaleString(), hint: 'unredeemed balance' },
     {
-      label: 'Avg spend / member',
-      value: totalMembers.value ? formatCompactMoney(totalRevenue.value / totalMembers.value) : '—',
+      label: 'Avg spend / active member',
+      value: activeMembers.value ? formatCompactMoney(totalRevenue.value / activeMembers.value) : '—',
     },
     { label: `${topTier.value?.label ?? 'Top'} revenue share`, value: pct(topTierRevShare.value) },
   ])
@@ -613,6 +713,11 @@
 
 .rising-search {
   max-width: 220px;
+}
+
+.range-field {
+  min-width: 240px;
+  max-width: 280px;
 }
 
 .client-link {

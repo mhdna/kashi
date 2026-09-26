@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	_ "golang.org/x/image/webp"
 )
 
 func TestParseThumbWidth(t *testing.T) {
@@ -37,7 +38,7 @@ func TestGenerateThumbnail(t *testing.T) {
 	require.NoError(t, jpeg.Encode(&buf, big, &jpeg.Options{Quality: 95}))
 	require.NoError(t, os.WriteFile(srcPath, buf.Bytes(), 0o644))
 
-	dstPath := filepath.Join(dir, ".thumb", "480_orig.jpg")
+	dstPath := filepath.Join(dir, ".thumb", "480_orig.jpg.webp")
 	require.NoError(t, generateThumbnail(srcPath, dstPath, 480))
 
 	f, err := os.Open(dstPath)
@@ -45,7 +46,7 @@ func TestGenerateThumbnail(t *testing.T) {
 	defer f.Close()
 	cfg, format, err := image.DecodeConfig(f)
 	require.NoError(t, err)
-	require.Equal(t, "jpeg", format)
+	require.Equal(t, "webp", format)
 	require.Equal(t, 480, cfg.Width, "long edge capped to the requested width")
 	require.Equal(t, 240, cfg.Height, "aspect ratio preserved")
 

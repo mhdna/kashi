@@ -26,6 +26,7 @@
         <span>{{ cfg.title }}</span>
         <v-spacer />
         <v-btn
+          v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
           :text="`Add ${cfg.singularTitle}`"
@@ -69,14 +70,22 @@
               </span>
               <v-spacer />
               <v-btn
+                v-if="canEdit"
                 prepend-icon="mdi-store-outline"
                 size="small"
                 text="Branches"
                 variant="tonal"
                 @click="branchesDialog = true"
               />
-              <v-btn icon="mdi-pencil" size="small" variant="text" @click="openEditList" />
               <v-btn
+                v-if="canEdit"
+                icon="mdi-pencil"
+                size="small"
+                variant="text"
+                @click="openEditList"
+              />
+              <v-btn
+                v-if="canEdit"
                 color="error"
                 icon="mdi-delete"
                 size="small"
@@ -87,7 +96,7 @@
 
             <v-divider />
 
-            <div class="d-flex align-end ga-3 pa-4">
+            <div v-if="canEdit" class="d-flex align-end ga-3 pa-4">
               <v-autocomplete
                 v-model="addProductId"
                 class="flex-grow-1"
@@ -164,7 +173,7 @@
               :headers="itemHeaders"
               item-value="product_id"
               root-key="items"
-              selectable
+              :selectable="canEdit"
               :show-search-icon="false"
               @row-click="openEditItem"
               @update:selected="v => (selectedItems = v)"
@@ -323,9 +332,13 @@
   import { authFetch } from '@/composables/useApi'
   import { useBulkDelete } from '@/composables/useBulkDelete'
   import { useDiscountLists } from '@/composables/useDiscountLists'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { usePriceLists } from '@/composables/usePriceLists'
   import { API_BASE } from '@/config'
   import { formatMoney } from '@/utils/money'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const props = defineProps({
     kind: { type: String, required: true, validator: v => v === 'price' || v === 'discount' },
@@ -482,6 +495,7 @@
   const savingItem = ref(false)
 
   function openEditItem (item) {
+    if (!canEdit.value) return
     editItemTarget.value = item
     editItemValue.value = cfg.value.toInput(item[cfg.value.valueKey])
     editItemDialog.value = true

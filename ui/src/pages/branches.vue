@@ -138,8 +138,20 @@
                   {{ new Date(target.date_from).toLocaleDateString() }} -- {{ new Date(target.date_to).toLocaleDateString() }}
                 </v-list-item-subtitle>
                 <template #append>
-                  <v-icon-btn icon="mdi-pencil" size="small" variant="text" @click="openEditTarget(target)" />
-                  <v-icon-btn icon="mdi-delete" size="small" variant="text" @click="removeTarget(target)" />
+                  <v-icon-btn
+                    v-if="canEdit"
+                    icon="mdi-pencil"
+                    size="small"
+                    variant="text"
+                    @click="openEditTarget(target)"
+                  />
+                  <v-icon-btn
+                    v-if="canEdit"
+                    icon="mdi-delete"
+                    size="small"
+                    variant="text"
+                    @click="removeTarget(target)"
+                  />
                 </template>
               </v-list-item>
             </v-list>
@@ -165,13 +177,26 @@
                     class="me-1"
                     color="primary"
                     density="compact"
+                    :disabled="!canEdit"
                     hide-details
                     :model-value="s.active"
                     title="Pause/resume -- keeps already-generated targets"
                     @update:model-value="value => toggleSeriesActive(s, value)"
                   />
-                  <v-icon-btn icon="mdi-pencil" size="small" variant="text" @click="openEditSeries(s)" />
-                  <v-icon-btn icon="mdi-delete" size="small" variant="text" @click="openDeleteSeriesConfirm(s)" />
+                  <v-icon-btn
+                    v-if="canEdit"
+                    icon="mdi-pencil"
+                    size="small"
+                    variant="text"
+                    @click="openEditSeries(s)"
+                  />
+                  <v-icon-btn
+                    v-if="canEdit"
+                    icon="mdi-delete"
+                    size="small"
+                    variant="text"
+                    @click="openDeleteSeriesConfirm(s)"
+                  />
                 </template>
               </v-list-item>
             </v-list>
@@ -182,7 +207,7 @@
       <v-divider />
       <v-card-actions>
         <v-btn
-          v-if="targetsTab === 'targets'"
+          v-if="canEdit && targetsTab === 'targets'"
           color="primary"
           prepend-icon="mdi-plus"
           text="Add Target"
@@ -190,7 +215,7 @@
           @click="openAddTarget"
         />
         <v-btn
-          v-else
+          v-if="canEdit && targetsTab !== 'targets'"
           color="primary"
           prepend-icon="mdi-plus"
           text="Add Recurring Target"
@@ -405,6 +430,7 @@
                   <v-switch
                     color="primary"
                     density="compact"
+                    :disabled="!canEdit"
                     hide-details
                     :model-value="person.is_active"
                     @update:model-value="value => toggleSalespersonActive(person, value)"
@@ -412,14 +438,14 @@
                 </td>
                 <td class="text-end">
                   <v-icon-btn
-                    v-if="editingSalespersonId === person.id"
+                    v-if="canEdit && editingSalespersonId === person.id"
                     icon="mdi-check"
                     size="small"
                     variant="text"
                     @click="submitEditSalesperson(person)"
                   />
                   <v-icon-btn
-                    v-else
+                    v-else-if="canEdit"
                     icon="mdi-pencil"
                     size="small"
                     variant="text"
@@ -430,7 +456,7 @@
             </tbody>
           </v-table>
 
-          <form class="d-flex ga-2 align-start" @submit.prevent="submitNewSalesperson">
+          <form v-if="canEdit" class="d-flex ga-2 align-start" @submit.prevent="submitNewSalesperson">
             <v-text-field
               v-model="newSalespersonName"
               density="compact"
@@ -456,6 +482,7 @@
         <span>Branches</span>
         <v-spacer />
         <v-btn
+          v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
           text="Add Branch"
@@ -473,6 +500,7 @@
             <v-switch
               color="primary"
               density="compact"
+              :disabled="!canEdit"
               hide-details
               :model-value="item.is_active"
               @update:model-value="value => toggleActive(item, value)"
@@ -484,7 +512,13 @@
           <template #item.actions="{ item }">
             <v-icon-btn icon="mdi-flag-outline" size="small" variant="text" @click="openTargets(item)" />
             <v-icon-btn icon="mdi-account-tie-outline" size="small" variant="text" @click="openSalespersons(item)" />
-            <v-icon-btn icon="mdi-key" size="small" variant="text" @click="openRotate(item)" />
+            <v-icon-btn
+              v-if="canEdit"
+              icon="mdi-key"
+              size="small"
+              variant="text"
+              @click="openRotate(item)"
+            />
           </template>
         </v-data-table>
       </div>
@@ -497,6 +531,10 @@
   import { useBranches } from '@/composables/useBranches'
   import { useBranchSalespersons } from '@/composables/useBranchSalespersons'
   import { useBranchTargets } from '@/composables/useBranchTargets'
+  import { usePageAccess } from '@/composables/usePageAccess'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const { branches, fetchBranches, createBranch, setBranchActive, rotateBranchKey } = useBranches()
   const {

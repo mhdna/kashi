@@ -61,6 +61,7 @@
           <v-divider />
           <div class="pa-3">
             <v-btn
+              v-if="canEdit"
               block
               color="primary"
               prepend-icon="mdi-plus"
@@ -94,6 +95,7 @@
               </div>
               <v-spacer />
               <v-btn
+                v-if="canEdit"
                 color="error"
                 icon="mdi-delete"
                 size="small"
@@ -347,7 +349,11 @@
 <script setup lang="ts">
   import { computed, onMounted, reactive, ref } from 'vue'
   import { useBatches } from '@/composables/useBatches'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { formatMoney } from '@/utils/money'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const { searchBatches, searchPurchases, createBatch, fetchBatch, deleteBatch } = useBatches()
 

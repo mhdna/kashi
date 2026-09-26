@@ -55,7 +55,9 @@
     revoke()
     if (!id) return
     try {
-      url.value = await fetchExpenseImageObjectUrl(id)
+      // Avatar is 36px and the hover card 360px: a 720px thumbnail covers
+      // both (hi-dpi) without downloading the full-size original.
+      url.value = await fetchExpenseImageObjectUrl(id, { width: 720 })
     } catch {
       // Leave unset -- the avatar falls back to a placeholder icon.
     }

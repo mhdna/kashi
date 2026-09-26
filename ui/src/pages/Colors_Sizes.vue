@@ -38,7 +38,7 @@
           variant="outlined"
         />
         <v-btn
-          v-if="tab === 'colors'"
+          v-if="canEdit && tab === 'colors'"
           color="primary"
           prepend-icon="mdi-plus"
           text="Add Color"
@@ -46,7 +46,7 @@
           @click="openAddColor"
         />
         <v-btn
-          v-else
+          v-if="canEdit && tab !== 'colors'"
           color="primary"
           prepend-icon="mdi-plus"
           text="Add Size"
@@ -90,7 +90,7 @@
                 :headers="colorHeaders"
                 item-value="id"
                 root-key="colors"
-                selectable
+                :selectable="canEdit"
                 :show-search-icon="false"
                 :sort-keys="['id', 'name', 'hex_value', 'created_at']"
                 @row-click="openEditColor"
@@ -127,7 +127,7 @@
                 :headers="sizeHeaders"
                 item-value="id"
                 root-key="sizes"
-                selectable
+                :selectable="canEdit"
                 :show-search-icon="false"
                 :sort-keys="['id', 'name', 'type', 'order', 'created_at']"
                 @row-click="openEditSize"
@@ -416,7 +416,11 @@
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useBulkDelete } from '@/composables/useBulkDelete'
   import { useColorsAndSizes } from '@/composables/useColorsAndSizes'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const {
     sizes,
@@ -588,6 +592,7 @@
   const editError = ref('')
 
   function openEditColor (item) {
+    if (!canEdit.value) return
     editError.value = ''
     Object.assign(editColorForm, { id: item.id, name: item.name, hex: item.hex_value })
     editColorDialog.value = true
@@ -600,6 +605,7 @@
   }
 
   function openEditSize (item) {
+    if (!canEdit.value) return
     editError.value = ''
     Object.assign(editSizeForm, { id: item.id, name: item.name, type: item.type, order: item.order })
     editSizeDialog.value = true

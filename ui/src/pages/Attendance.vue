@@ -24,6 +24,7 @@
           @click="reload"
         />
         <v-btn
+          v-if="canEdit"
           color="primary"
           prepend-icon="mdi-file-delimited-outline"
           text="Import CSV"
@@ -78,8 +79,15 @@
           />
         </template>
         <template #item.actions="{ item }">
-          <v-btn icon="mdi-pencil" size="x-small" variant="text" @click.stop="openEdit(item)" />
           <v-btn
+            v-if="canEdit"
+            icon="mdi-pencil"
+            size="x-small"
+            variant="text"
+            @click.stop="openEdit(item)"
+          />
+          <v-btn
+            v-if="canEdit"
             color="error"
             icon="mdi-delete"
             size="x-small"
@@ -136,7 +144,11 @@
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useAttendance } from '@/composables/useAttendance'
   import { useBranches } from '@/composables/useBranches'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const { importCsv, updateEvent, deleteEvent } = useAttendance()
   const { branches, fetchBranches } = useBranches()

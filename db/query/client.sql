@@ -196,8 +196,13 @@ WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_
 -- page. ListClientsBySpending can't serve that: its aggregation scans all
 -- invoices/branch_invoices on every call, so paging 25k clients through it
 -- re-runs that scan once per page. This runs it once and returns only the
--- five columns the loyalty page reads, so the payload stays small even at
--- tens of thousands of rows.
+-- handful of columns the loyalty page reads, so the payload stays small even
+-- at tens of thousands of rows.
+--
+-- total_spent/invoice_count are lifetime (they drive the tier bucketing);
+-- period_spent/period_invoice_count cover [date_from, date_to) only, either
+-- bound optional. Half-open so the caller can pass the first instant of the
+-- day after the last selected day.
 --
 -- Same two sources and sign conventions as ListClientsBySpending (see the
 -- comment there); item_count and the branch_id/search filters are dropped
@@ -208,16 +213,27 @@ WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_
 WITH central AS (
   SELECT i.client_id,
     SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END) AS total,
-    COUNT(DISTINCT i.id) AS invoice_count
+    COUNT(DISTINCT i.id) AS invoice_count,
+    SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END)
+      FILTER (WHERE p.in_period) AS period_total,
+    COUNT(DISTINCT i.id) FILTER (WHERE p.in_period) AS period_invoice_count
   FROM invoices i
   LEFT JOIN sales_invoices si ON si.invoice_id = i.id
+  CROSS JOIN LATERAL (SELECT
+    (sqlc.narg(date_from)::timestamptz IS NULL OR i.created_at >= sqlc.narg(date_from)::timestamptz)
+    AND (sqlc.narg(date_to)::timestamptz IS NULL OR i.created_at < sqlc.narg(date_to)::timestamptz) AS in_period) p
   GROUP BY i.client_id
 ), branch AS (
   SELECT cl.client_id,
     SUM(b.grand_total) AS total,
-    COUNT(DISTINCT b.id) AS invoice_count
+    COUNT(DISTINCT b.id) AS invoice_count,
+    SUM(b.grand_total) FILTER (WHERE p.in_period) AS period_total,
+    COUNT(DISTINCT b.id) FILTER (WHERE p.in_period) AS period_invoice_count
   FROM branch_invoices b
   JOIN client_links cl ON cl.branch_id = b.branch_id AND cl.branch_client_id = b.branch_client_id
+  CROSS JOIN LATERAL (SELECT
+    (sqlc.narg(date_from)::timestamptz IS NULL OR b.occurred_at >= sqlc.narg(date_from)::timestamptz)
+    AND (sqlc.narg(date_to)::timestamptz IS NULL OR b.occurred_at < sqlc.narg(date_to)::timestamptz) AS in_period) p
   GROUP BY cl.client_id
 )
 SELECT
@@ -226,7 +242,9 @@ SELECT
   c.created_at,
   c.valid_loyalty_points,
   (COALESCE(ce.total, 0) + COALESCE(br.total, 0))::bigint AS total_spent,
-  (COALESCE(ce.invoice_count, 0) + COALESCE(br.invoice_count, 0))::bigint AS invoice_count
+  (COALESCE(ce.invoice_count, 0) + COALESCE(br.invoice_count, 0))::bigint AS invoice_count,
+  (COALESCE(ce.period_total, 0) + COALESCE(br.period_total, 0))::bigint AS period_spent,
+  (COALESCE(ce.period_invoice_count, 0) + COALESCE(br.period_invoice_count, 0))::bigint AS period_invoice_count
 FROM clients c
 LEFT JOIN central ce ON ce.client_id = c.id
 LEFT JOIN branch br ON br.client_id = c.id

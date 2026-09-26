@@ -31,6 +31,7 @@ type Store interface {
 	CancelPurchaseTx(ctx context.Context, purchaseID int64, cancelledBy sql.NullInt64) (PurchaseReceiveTxResult, error)
 	CancelTransferTx(ctx context.Context, transferID int64, cancelledBy sql.NullInt64) (TransferStageTxResult, error)
 	CreateBatchTx(ctx context.Context, arg CreateBatchTxParams) (CreateBatchTxResult, error)
+	SaveRolePermissionsTx(ctx context.Context, roleID int64, perms []RolePermission) error
 }
 
 // provides all the functions to execute SQL queries

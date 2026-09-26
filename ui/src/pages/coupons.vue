@@ -37,6 +37,7 @@
           <v-btn value="inactive">Inactive</v-btn>
         </v-btn-toggle>
         <v-btn
+          v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
           text="Add Coupon"
@@ -79,7 +80,7 @@
               :max-page-size="100"
               :query-params="queryParams"
               root-key="coupons"
-              selectable
+              :selectable="canEdit"
               :show-search-icon="false"
               @row-click="openEdit"
               @update:selected="v => (selectedCoupons = v)"
@@ -97,6 +98,7 @@
               </template>
               <template #item.actions="{ item }">
                 <v-btn
+                  v-if="canEdit"
                   :disabled="item.status !== 'active'"
                   size="small"
                   text="Deactivate"
@@ -209,7 +211,11 @@
   import { useClients } from '@/composables/useClients'
   import { useCouponCategories } from '@/composables/useCouponCategories'
   import { useCoupons } from '@/composables/useCoupons'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const { createCoupon, updateCoupon, deactivateCoupon } = useCoupons()
   const { clients, fetchClients } = useClients()
@@ -315,6 +321,7 @@
   }
 
   function openEdit (item) {
+    if (!canEdit.value) return
     editingCode.value = item.code
     resetForm()
     Object.assign(form, {

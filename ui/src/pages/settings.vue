@@ -17,75 +17,89 @@
           <v-tab prepend-icon="mdi-cog-outline" text="General" value="general" />
           <v-tab prepend-icon="mdi-chart-line" text="Financials" value="financials" />
           <v-tab prepend-icon="mdi-barcode" text="Barcode labels" value="barcodes" />
-          <v-tab prepend-icon="mdi-account-group" text="Users" value="users" />
-          <v-tab prepend-icon="mdi-whatsapp" text="WhatsApp" value="whatsapp" />
+          <v-tab v-if="auth.isAdmin" prepend-icon="mdi-account-group" text="Users" value="users" />
+          <v-tab v-if="auth.isAdmin" prepend-icon="mdi-shield-account-outline" text="Roles" value="roles" />
+          <v-tab v-if="auth.canView('system')" prepend-icon="mdi-whatsapp" text="WhatsApp" value="whatsapp" />
         </v-tabs>
 
         <v-divider vertical />
 
         <div class="set-content pa-5">
+          <v-alert
+            v-if="!canEditSystem && tab !== 'users' && tab !== 'roles'"
+            class="mb-4"
+            density="compact"
+            type="info"
+            variant="tonal"
+          >
+            Your role can view these settings but not change them.
+          </v-alert>
+
           <!-- ------------------------------------------------------- GENERAL -->
           <section v-show="tab === 'general'" class="set-section">
-            <h3 class="text-subtitle-1 mb-1">Branch activity</h3>
-            <p class="text-body-2 text-medium-emphasis mb-4">
-              How live branch sales / returns / expenses are shown in the appbar.
-            </p>
+            <v-form :disabled="!canEditSystem">
+              <h3 class="text-subtitle-1 mb-1">Branch activity</h3>
+              <p class="text-body-2 text-medium-emphasis mb-4">
+                How live branch sales / returns / expenses are shown in the appbar.
+              </p>
 
-            <div class="text-body-2 mb-2">Display mode</div>
-            <v-btn-toggle
-              v-model="draft.activityDisplayMode"
-              class="mb-4"
-              color="primary"
-              divided
-              mandatory
-            >
-              <v-btn value="notification">Notification</v-btn>
-              <v-btn value="appbar">Appbar messages</v-btn>
-            </v-btn-toggle>
+              <div class="text-body-2 mb-2">Display mode</div>
+              <v-btn-toggle
+                v-model="draft.activityDisplayMode"
+                class="mb-4"
+                color="primary"
+                divided
+                mandatory
+              >
+                <v-btn value="notification">Notification</v-btn>
+                <v-btn value="appbar">Appbar messages</v-btn>
+              </v-btn-toggle>
 
-            <v-text-field
-              v-model.number="draft.activityMessageSeconds"
-              class="field-md"
-              density="compact"
-              hint="How long each message is shown before moving to the next one queued behind it"
-              label="Message duration (seconds)"
-              min="1"
-              persistent-hint
-              type="number"
-              variant="outlined"
-            />
+              <v-text-field
+                v-model.number="draft.activityMessageSeconds"
+                class="field-md"
+                density="compact"
+                hint="How long each message is shown before moving to the next one queued behind it"
+                label="Message duration (seconds)"
+                min="1"
+                persistent-hint
+                type="number"
+                variant="outlined"
+              />
 
-            <h3 class="text-subtitle-1 mb-1 mt-6">Upcoming events</h3>
-            <p class="text-body-2 text-medium-emphasis mb-4">
-              The appbar &ldquo;Upcoming event&rdquo; card scans the retail calendar this
-              far ahead.
-            </p>
+              <h3 class="text-subtitle-1 mb-1 mt-6">Upcoming events</h3>
+              <p class="text-body-2 text-medium-emphasis mb-4">
+                The appbar &ldquo;Upcoming event&rdquo; card scans the retail calendar this
+                far ahead.
+              </p>
 
-            <v-text-field
-              v-model.number="draft.upcomingEventsDays"
-              class="field-md"
-              density="compact"
-              hint="Days ahead the inline card text looks for the next event"
-              label="Card look-ahead (days)"
-              max="365"
-              min="1"
-              persistent-hint
-              type="number"
-              variant="outlined"
-            />
+              <v-text-field
+                v-model.number="draft.upcomingEventsDays"
+                class="field-md"
+                density="compact"
+                hint="Days ahead the inline card text looks for the next event"
+                label="Card look-ahead (days)"
+                max="365"
+                min="1"
+                persistent-hint
+                type="number"
+                variant="outlined"
+              />
 
-            <v-text-field
-              v-model.number="draft.upcomingEventsMenuDays"
-              class="field-md mt-4"
-              density="compact"
-              hint="Days ahead the dropdown lists events (default 180 ≈ 6 months)"
-              label="Dropdown look-ahead (days)"
-              max="730"
-              min="1"
-              persistent-hint
-              type="number"
-              variant="outlined"
-            />
+              <v-text-field
+                v-model.number="draft.upcomingEventsMenuDays"
+                class="field-md mt-4"
+                density="compact"
+                hint="Days ahead the dropdown lists events (default 180 ≈ 6 months)"
+                label="Dropdown look-ahead (days)"
+                max="730"
+                min="1"
+                persistent-hint
+                type="number"
+                variant="outlined"
+              />
+
+            </v-form>
 
             <h3 class="text-subtitle-1 mb-1 mt-6">Your avatar</h3>
             <p class="text-body-2 text-medium-emphasis mb-3">
@@ -122,53 +136,57 @@
 
           <!-- ---------------------------------------------------- FINANCIALS -->
           <section v-show="tab === 'financials'" class="set-section">
-            <h3 class="text-subtitle-1 mb-1">Revenue chart</h3>
-            <p class="text-body-2 text-medium-emphasis mb-4">
-              Dashboard &ldquo;Financials&rdquo; tab revenue candles.
-            </p>
+            <v-form :disabled="!canEditSystem">
+              <h3 class="text-subtitle-1 mb-1">Revenue chart</h3>
+              <p class="text-body-2 text-medium-emphasis mb-4">
+                Dashboard &ldquo;Financials&rdquo; tab revenue candles.
+              </p>
 
-            <v-select
-              v-model="draft.financialsHighSeasonMonths"
-              chips
-              class="field-md"
-              density="compact"
-              hint="Months that earn ~1.5x a normal month, shaded on the revenue candles chart"
-              :items="monthItems"
-              label="High season months"
-              multiple
-              persistent-hint
-              variant="outlined"
-            />
+              <v-select
+                v-model="draft.financialsHighSeasonMonths"
+                chips
+                class="field-md"
+                density="compact"
+                hint="Months that earn ~1.5x a normal month, shaded on the revenue candles chart"
+                :items="monthItems"
+                label="High season months"
+                multiple
+                persistent-hint
+                variant="outlined"
+              />
+            </v-form>
           </section>
 
           <!-- ------------------------------------------------------ BARCODES -->
           <section v-show="tab === 'barcodes'" class="set-section">
-            <h3 class="text-subtitle-1 mb-1">Barcode labels</h3>
-            <p class="text-body-2 text-medium-emphasis mb-4">
-              Default page size for generated barcode-label PDFs.
-            </p>
+            <v-form :disabled="!canEditSystem">
+              <h3 class="text-subtitle-1 mb-1">Barcode labels</h3>
+              <p class="text-body-2 text-medium-emphasis mb-4">
+                Default page size for generated barcode-label PDFs.
+              </p>
 
-            <div class="d-flex ga-3 field-md">
-              <v-text-field
-                v-model.number="draft.barcodeLabelWidth"
-                density="compact"
-                hide-details
-                label="Width (pt)"
-                type="number"
-                variant="outlined"
-              />
-              <v-text-field
-                v-model.number="draft.barcodeLabelHeight"
-                density="compact"
-                hide-details
-                label="Height (pt)"
-                type="number"
-                variant="outlined"
-              />
-            </div>
-            <div class="text-caption text-medium-emphasis mt-2">
-              72 pt = 1 inch. Common thermal label: 288 &times; 144 (4 &times; 2 in).
-            </div>
+              <div class="d-flex ga-3 field-md">
+                <v-text-field
+                  v-model.number="draft.barcodeLabelWidth"
+                  density="compact"
+                  hide-details
+                  label="Width (pt)"
+                  type="number"
+                  variant="outlined"
+                />
+                <v-text-field
+                  v-model.number="draft.barcodeLabelHeight"
+                  density="compact"
+                  hide-details
+                  label="Height (pt)"
+                  type="number"
+                  variant="outlined"
+                />
+              </div>
+              <div class="text-caption text-medium-emphasis mt-2">
+                72 pt = 1 inch. Common thermal label: 288 &times; 144 (4 &times; 2 in).
+              </div>
+            </v-form>
           </section>
 
           <!-- --------------------------------------------------------- USERS -->
@@ -186,7 +204,7 @@
               </v-btn>
             </div>
             <p class="text-body-2 text-medium-emphasis mb-4">
-              POS operators and their login PINs. Changes take effect on the next login.
+              People who can sign in to this site (cloud.example.com), with their own passwords and the role that decides what they can see and change (see the Roles tab). POS operators are separate: they are managed per branch under Branch Settings.
             </p>
 
             <v-alert
@@ -203,6 +221,7 @@
               <thead>
                 <tr>
                   <th class="text-left">Name</th>
+                  <th class="text-left">Role</th>
                   <th class="text-left">Status</th>
                   <th class="text-left">Created</th>
                   <th class="text-right">Actions</th>
@@ -211,6 +230,7 @@
               <tbody>
                 <tr v-for="u in users" :key="u.id">
                   <td>{{ u.name }}</td>
+                  <td>{{ roleName(u.role_id) }}</td>
                   <td>
                     <v-chip :color="u.activated ? 'success' : 'default'" size="x-small" variant="tonal">
                       {{ u.activated ? 'Active' : 'Inactive' }}
@@ -219,11 +239,18 @@
                   <td>{{ formatDate(u.created_at) }}</td>
                   <td class="text-right">
                     <v-btn
+                      icon="mdi-pencil"
+                      size="small"
+                      title="Edit name, role and status"
+                      variant="text"
+                      @click="openEdit(u)"
+                    />
+                    <v-btn
                       icon="mdi-key"
                       size="small"
-                      title="Change PIN"
+                      title="Change password"
                       variant="text"
-                      @click="openPin(u)"
+                      @click="openPassword(u)"
                     />
                     <v-btn
                       color="error"
@@ -236,112 +263,119 @@
                   </td>
                 </tr>
                 <tr v-if="users.length === 0">
-                  <td class="text-medium-emphasis py-4" colspan="4">No users yet.</td>
+                  <td class="text-medium-emphasis py-4" colspan="5">No users yet.</td>
                 </tr>
               </tbody>
             </v-table>
           </section>
 
+          <!-- --------------------------------------------------------- ROLES -->
+          <section v-if="auth.isAdmin" v-show="tab === 'roles'" class="set-section">
+            <RolesManager />
+          </section>
+
           <!-- ------------------------------------------------------ WHATSAPP -->
           <section v-show="tab === 'whatsapp'" class="set-section">
-            <h3 class="text-subtitle-1 mb-1">Post-sale thank-you message</h3>
-            <p class="text-body-2 text-medium-emphasis mb-4">
-              Sent via Meta's <strong>WhatsApp Business Platform (Cloud API)</strong> after a sale
-              to a named client with a phone number. Cloud API only allows a pre-approved message
-              template for business-initiated messages, so this configures which one to use and
-              how to fill it -- not free-form text.
-            </p>
+            <v-form :disabled="!canEditSystem">
+              <h3 class="text-subtitle-1 mb-1">Post-sale thank-you message</h3>
+              <p class="text-body-2 text-medium-emphasis mb-4">
+                Sent via Meta's <strong>WhatsApp Business Platform (Cloud API)</strong> after a sale
+                to a named client with a phone number. Cloud API only allows a pre-approved message
+                template for business-initiated messages, so this configures which one to use and
+                how to fill it -- not free-form text.
+              </p>
 
-            <v-alert
-              v-if="whatsappError"
-              class="mb-3"
-              density="compact"
-              type="error"
-              variant="tonal"
-            >
-              {{ whatsappError }}
-            </v-alert>
+              <v-alert
+                v-if="whatsappError"
+                class="mb-3"
+                density="compact"
+                type="error"
+                variant="tonal"
+              >
+                {{ whatsappError }}
+              </v-alert>
 
-            <v-switch
-              v-model="whatsappDraft.enabled"
-              class="mb-2"
-              color="primary"
-              hide-details
-              label="Send a thank-you WhatsApp after each sale"
-            />
-
-            <v-text-field
-              v-model="whatsappDraft.phoneNumberId"
-              class="field-md mb-4"
-              density="compact"
-              hide-details
-              label="Phone Number ID"
-              variant="outlined"
-            />
-            <v-text-field
-              v-model="whatsappDraft.accessToken"
-              :append-inner-icon="showToken ? 'mdi-eye-off' : 'mdi-eye'"
-              class="field-md mb-4"
-              density="compact"
-              hide-details
-              label="Access token"
-              :type="showToken ? 'text' : 'password'"
-              variant="outlined"
-              @click:append-inner="showToken = !showToken"
-            />
-            <v-text-field
-              v-model="whatsappDraft.templateName"
-              class="field-md mb-4"
-              density="compact"
-              hide-details
-              label="Template name"
-              variant="outlined"
-            />
-            <v-text-field
-              v-model="whatsappDraft.templateLang"
-              class="field-md mb-4"
-              density="compact"
-              hide-details
-              label="Template language"
-              variant="outlined"
-            />
-            <v-text-field
-              v-model="whatsappDraft.templateParams"
-              class="field-md"
-              density="compact"
-              hint="Comma-separated, in order, filling the template's {{1}}, {{2}}, ... body parameters. Supported: name, market, branch, invoice, total"
-              label="Body params"
-              persistent-hint
-              variant="outlined"
-            />
-
-            <div class="d-flex align-center ga-3 mt-6">
-              <span class="text-caption text-medium-emphasis">
-                {{ whatsappDirty ? 'Unsaved changes' : 'All changes saved' }}
-              </span>
-              <v-spacer />
-              <v-btn
-                :disabled="!whatsappDirty || savingWhatsApp"
-                size="small"
-                text="Discard"
-                variant="text"
-                @click="seedWhatsAppDraft"
-              />
-              <v-btn
+              <v-switch
+                v-model="whatsappDraft.enabled"
+                class="mb-2"
                 color="primary"
-                :disabled="!whatsappDirty"
-                :loading="savingWhatsApp"
-                size="small"
-                text="Save"
-                variant="flat"
-                @click="saveWhatsAppSettings"
+                hide-details
+                label="Send a thank-you WhatsApp after each sale"
               />
-            </div>
+
+              <v-text-field
+                v-model="whatsappDraft.phoneNumberId"
+                class="field-md mb-4"
+                density="compact"
+                hide-details
+                label="Phone Number ID"
+                variant="outlined"
+              />
+              <v-text-field
+                v-model="whatsappDraft.accessToken"
+                :append-inner-icon="showToken ? 'mdi-eye-off' : 'mdi-eye'"
+                class="field-md mb-4"
+                density="compact"
+                hide-details
+                label="Access token"
+                :type="showToken ? 'text' : 'password'"
+                variant="outlined"
+                @click:append-inner="showToken = !showToken"
+              />
+              <v-text-field
+                v-model="whatsappDraft.templateName"
+                class="field-md mb-4"
+                density="compact"
+                hide-details
+                label="Template name"
+                variant="outlined"
+              />
+              <v-text-field
+                v-model="whatsappDraft.templateLang"
+                class="field-md mb-4"
+                density="compact"
+                hide-details
+                label="Template language"
+                variant="outlined"
+              />
+              <v-text-field
+                v-model="whatsappDraft.templateParams"
+                class="field-md"
+                density="compact"
+                hint="Comma-separated, in order, filling the template's {{1}}, {{2}}, ... body parameters. Supported: name, market, branch, invoice, total"
+                label="Body params"
+                persistent-hint
+                variant="outlined"
+              />
+
+              <div class="d-flex align-center ga-3 mt-6">
+                <span class="text-caption text-medium-emphasis">
+                  {{ whatsappDirty ? 'Unsaved changes' : 'All changes saved' }}
+                </span>
+                <v-spacer />
+                <v-btn
+                  :disabled="!whatsappDirty || savingWhatsApp"
+                  size="small"
+                  text="Discard"
+                  variant="text"
+                  @click="seedWhatsAppDraft"
+                />
+                <v-btn
+                  color="primary"
+                  :disabled="!whatsappDirty || !canEditSystem"
+                  :loading="savingWhatsApp"
+                  size="small"
+                  text="Save"
+                  variant="flat"
+                  @click="saveWhatsAppSettings"
+                />
+              </div>
+            </v-form>
           </section>
         </div>
       </div>
 
-      <template v-if="tab !== 'users' && tab !== 'whatsapp'">
+      <template v-if="tab !== 'users' && tab !== 'roles' && tab !== 'whatsapp'">
         <v-divider />
         <div class="set-actions px-5 py-3 d-flex align-center ga-3">
           <span class="text-caption text-medium-emphasis">
@@ -357,7 +391,7 @@
           />
           <v-btn
             color="primary"
-            :disabled="!dirty || !draftValid"
+            :disabled="!dirty || !draftValid || !canEditSystem"
             :loading="savingSettings"
             size="small"
             text="Save"
@@ -389,14 +423,22 @@
             :rules="[nameRule]"
           />
           <v-text-field
-            v-model="form.pin"
+            v-model="form.password"
+            autocomplete="new-password"
             density="compact"
-            hint="4 to 6 digits"
-            inputmode="numeric"
-            label="PIN"
-            maxlength="6"
+            hint="8 to 72 characters"
+            label="Password"
             persistent-hint
-            :rules="[pinRule]"
+            :rules="[passwordRule]"
+            type="password"
+          />
+          <v-select
+            v-model="form.roleId"
+            density="compact"
+            item-title="name"
+            item-value="id"
+            :items="roles"
+            label="Role"
           />
           <v-switch
             v-model="form.activated"
@@ -421,10 +463,10 @@
       </v-card>
     </v-dialog>
 
-    <!-- Change PIN -->
-    <v-dialog v-model="pinDialog" max-width="420">
+    <!-- Edit user -->
+    <v-dialog v-model="editDialog" max-width="420">
       <v-card>
-        <v-card-title class="text-subtitle-1">Change PIN — {{ pinTarget?.name }}</v-card-title>
+        <v-card-title class="text-subtitle-1">Edit user — {{ editTarget?.name }}</v-card-title>
         <v-card-text>
           <v-alert
             v-if="formError"
@@ -436,26 +478,77 @@
             {{ formError }}
           </v-alert>
           <v-text-field
-            v-model="newPin"
-            autofocus
+            v-model="editForm.name"
             density="compact"
-            hint="4 to 6 digits"
-            inputmode="numeric"
-            label="New PIN"
-            maxlength="6"
-            persistent-hint
-            :rules="[pinRule]"
+            label="Name"
+            :rules="[nameRule]"
+          />
+          <v-select
+            v-model="editForm.roleId"
+            density="compact"
+            item-title="name"
+            item-value="id"
+            :items="roles"
+            label="Role"
+          />
+          <v-switch
+            v-model="editForm.activated"
+            color="primary"
+            hide-details
+            label="Active"
           />
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="pinDialog = false">Cancel</v-btn>
+          <v-btn variant="text" @click="editDialog = false">Cancel</v-btn>
           <v-btn
             color="primary"
-            :disabled="!isPin(newPin)"
+            :disabled="nameRule(editForm.name) !== true || !editForm.roleId"
             :loading="saving"
             variant="tonal"
-            @click="submitPin"
+            @click="submitEdit"
+          >
+            Save
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Change password -->
+    <v-dialog v-model="passwordDialog" max-width="420">
+      <v-card>
+        <v-card-title class="text-subtitle-1">Change password — {{ passwordTarget?.name }}</v-card-title>
+        <v-card-text>
+          <v-alert
+            v-if="formError"
+            class="mb-3"
+            density="compact"
+            type="error"
+            variant="tonal"
+          >
+            {{ formError }}
+          </v-alert>
+          <v-text-field
+            v-model="newPassword"
+            autocomplete="new-password"
+            autofocus
+            density="compact"
+            hint="8 to 72 characters"
+            label="New password"
+            persistent-hint
+            :rules="[passwordRule]"
+            type="password"
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="passwordDialog = false">Cancel</v-btn>
+          <v-btn
+            color="primary"
+            :disabled="!isPassword(newPassword)"
+            :loading="saving"
+            variant="tonal"
+            @click="submitPassword"
           >
             Save
           </v-btn>
@@ -482,12 +575,19 @@
 
 <script setup lang="ts">
   import { computed, onMounted, reactive, ref, watch } from 'vue'
+  import RolesManager from '@/components/RolesManager.vue'
+  import { useRoles } from '@/composables/useRoles'
   import { useUserAvatar } from '@/composables/useUserAvatar'
   import { useUsers } from '@/composables/useUsers'
   import { useWhatsAppSettings } from '@/composables/useWhatsAppSettings'
+  import { useAuthStore } from '@/stores/auth'
   import { useSettingsStore } from '@/stores/settings'
 
   const tab = ref('general')
+  const auth = useAuthStore()
+  // Saving app settings / WhatsApp needs Edit on System; without it the forms
+  // render read-only. (Your own avatar colour is per-device and always yours.)
+  const canEditSystem = computed(() => auth.canEdit('system'))
 
   const {
     initials: avatarInitials,
@@ -596,13 +696,21 @@
   const formError = ref('')
   const saving = ref(false)
 
+  const { roles, fetchRoles } = useRoles()
+
+  // Users and roles are admin-only endpoints; other roles never see the tab.
   onMounted(async () => {
+    if (!auth.isAdmin) {return}
     try {
-      await fetchUsers()
+      await Promise.all([fetchUsers(), fetchRoles()])
     } catch (error) {
       usersError.value = error.message
     }
   })
+
+  function roleName (id) {
+    return roles.value.find(r => r.id === id)?.name ?? '—'
+  }
 
   function formatDate (value) {
     if (!value) return '—'
@@ -610,19 +718,20 @@
     return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
   }
 
-  const isPin = v => /^\d{4,6}$/.test(String(v ?? ''))
-  const pinRule = v => isPin(v) || 'PIN must be 4 to 6 digits'
+  const isPassword = v => String(v ?? '').length >= 8 && String(v).length <= 72
+  const passwordRule = v => isPassword(v) || 'Password must be 8 to 72 characters'
   const nameRule = v => /^[a-zA-Z0-9]+$/.test(String(v ?? '')) || 'Letters and numbers only'
 
   // Add user
   const createDialog = ref(false)
-  const form = reactive({ name: '', pin: '', activated: true })
-  const canSubmitCreate = computed(() => nameRule(form.name) === true && isPin(form.pin))
+  const form = reactive({ name: '', password: '', activated: true, roleId: null })
+  const canSubmitCreate = computed(() => nameRule(form.name) === true && isPassword(form.password) && !!form.roleId)
 
   function openCreate () {
     form.name = ''
-    form.pin = ''
+    form.password = ''
     form.activated = true
+    form.roleId = null
     formError.value = ''
     createDialog.value = true
   }
@@ -631,7 +740,7 @@
     saving.value = true
     formError.value = ''
     try {
-      await createUser({ name: form.name, password: form.pin, activated: form.activated })
+      await createUser({ name: form.name, password: form.password, activated: form.activated, role_id: form.roleId })
       await fetchUsers(true)
       createDialog.value = false
     } catch (error) {
@@ -641,30 +750,64 @@
     }
   }
 
-  // Change PIN
-  const pinDialog = ref(false)
-  const pinTarget = ref(null)
-  const newPin = ref('')
+  // Edit name / role / status
+  const editDialog = ref(false)
+  const editTarget = ref(null)
+  const editForm = reactive({ name: '', roleId: null, activated: true })
 
-  function openPin (user) {
-    pinTarget.value = user
-    newPin.value = ''
+  function openEdit (user) {
+    editTarget.value = user
+    editForm.name = user.name
+    editForm.roleId = user.role_id
+    editForm.activated = user.activated
     formError.value = ''
-    pinDialog.value = true
+    editDialog.value = true
   }
 
-  async function submitPin () {
+  async function submitEdit () {
     saving.value = true
     formError.value = ''
     try {
       await updateUser({
-        id: pinTarget.value.id,
-        name: pinTarget.value.name,
-        activated: pinTarget.value.activated,
-        password: newPin.value,
+        id: editTarget.value.id,
+        name: editForm.name,
+        activated: editForm.activated,
+        role_id: editForm.roleId,
+      })
+      await Promise.all([fetchUsers(true), fetchRoles()])
+      editDialog.value = false
+    } catch (error) {
+      formError.value = error.message
+    } finally {
+      saving.value = false
+    }
+  }
+
+  // Change password
+  const passwordDialog = ref(false)
+  const passwordTarget = ref(null)
+  const newPassword = ref('')
+
+  function openPassword (user) {
+    passwordTarget.value = user
+    newPassword.value = ''
+    formError.value = ''
+    passwordDialog.value = true
+  }
+
+  async function submitPassword () {
+    saving.value = true
+    formError.value = ''
+    try {
+      await updateUser({
+        id: passwordTarget.value.id,
+        name: passwordTarget.value.name,
+        activated: passwordTarget.value.activated,
+        role_id: passwordTarget.value.role_id,
+        password: newPassword.value,
       })
       await fetchUsers(true)
-      pinDialog.value = false
+      passwordDialog.value = false
     } catch (error) {
       formError.value = error.message
     } finally {

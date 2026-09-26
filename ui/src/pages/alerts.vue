@@ -19,6 +19,7 @@
         </v-chip-group>
         <v-spacer />
         <v-btn
+          :disabled="!canEdit"
           prepend-icon="mdi-cog-outline"
           variant="text"
           @click="defaultDialog = true"
@@ -164,7 +165,11 @@
   import AlertList from '@/components/Alerts/AlertList.vue'
   import { useAppSettings } from '@/composables/useAppSettings'
   import { useLowStockAlerts } from '@/composables/useLowStockAlerts'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const { getAppSettings } = useAppSettings()
   const { fetchIgnoredCount, setProductThreshold, setDefaultThreshold, setAlertsEnabled } = useLowStockAlerts()
@@ -249,6 +254,7 @@
   const editHasOverride = computed(() => nullableInt(editItem.value?.low_stock_threshold) != null)
 
   function openEdit (item, muted) {
+    if (!canEdit.value) return
     editItem.value = item
     editMuted.value = muted
     editThreshold.value = nullableInt(item.low_stock_threshold) ?? item.effective_threshold ?? defaultThresholdSaved.value

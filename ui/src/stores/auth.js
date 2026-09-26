@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { SERVER_DOWN_MESSAGE } from '@/composables/useApi'
+import { authFetch, SERVER_DOWN_MESSAGE } from '@/composables/useApi'
 import { API_BASE } from '@/config'
 
 // Turn a login response status into a message the user can act on. The
@@ -30,8 +30,42 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token') || '')
   const refreshToken = ref(localStorage.getItem('refreshToken') || '')
   const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
+  // What the user's role allows: { role_name, is_admin, sections: { key: { view, edit } } }.
+  // Only for hiding UI -- the API enforces the same rules (api/access.go).
+  const access = ref(JSON.parse(localStorage.getItem('access') || 'null'))
 
   const isAuthenticated = computed(() => !!token.value)
+  const isAdmin = computed(() => !!access.value?.is_admin)
+
+  function setAccess (value) {
+    access.value = value
+    localStorage.setItem('access', JSON.stringify(value))
+  }
+
+  // Edit implies view (the server normalises it, this just mirrors that).
+  function canView (section) {
+    return isAdmin.value || !!(access.value?.sections?.[section]?.view || access.value?.sections?.[section]?.edit)
+  }
+
+  function canEdit (section) {
+    return isAdmin.value || !!access.value?.sections?.[section]?.edit
+  }
+
+  // Re-read the role from the server so a change made in Settings > Roles shows
+  // up on the next page load without logging out. Failures keep the cached
+  // value: the API rejects anything the role no longer allows regardless.
+  async function refreshAccess () {
+    try {
+      const res = await authFetch(`${API_BASE}/users/me`)
+      if (!res.ok) {return}
+      const data = await res.json()
+      user.value = data.user
+      localStorage.setItem('user', JSON.stringify(data.user))
+      setAccess(data.access)
+    } catch {
+      // keep cached access
+    }
+  }
 
   async function login (name, password) {
     let res
@@ -66,6 +100,7 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('token', token.value)
     localStorage.setItem('refreshToken', refreshToken.value)
     localStorage.setItem('user', JSON.stringify(user.value))
+    setAccess(data.access)
     return true
   }
 
@@ -94,10 +129,12 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = ''
     refreshToken.value = ''
     user.value = null
+    access.value = null
+    localStorage.removeItem('access')
     localStorage.removeItem('token')
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('user')
   }
 
-  return { token, refreshToken, user, isAuthenticated, login, renew, logout }
+  return { token, refreshToken, user, access, isAuthenticated, isAdmin, canView, canEdit, refreshAccess, login, renew, logout }
 })

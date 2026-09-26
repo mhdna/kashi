@@ -83,77 +83,79 @@
             {{ eventsError }}
           </v-alert>
 
-          <div class="text-subtitle-2 mb-2">Add an event</div>
-          <v-row dense>
-            <v-col cols="12" sm="6">
-              <v-text-field
-                v-model="form.name"
-                density="compact"
-                hide-details
-                label="Name"
-                variant="outlined"
+          <template v-if="canEdit">
+            <div class="text-subtitle-2 mb-2">Add an event</div>
+            <v-row dense>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="form.name"
+                  density="compact"
+                  hide-details
+                  label="Name"
+                  variant="outlined"
+                />
+              </v-col>
+              <v-col cols="6" sm="3">
+                <v-text-field
+                  v-model="form.start_date"
+                  density="compact"
+                  hide-details
+                  label="Start"
+                  type="date"
+                  variant="outlined"
+                />
+              </v-col>
+              <v-col cols="6" sm="3">
+                <v-text-field
+                  v-model="form.end_date"
+                  density="compact"
+                  hide-details
+                  label="End"
+                  type="date"
+                  variant="outlined"
+                />
+              </v-col>
+              <v-col cols="6" sm="6">
+                <v-select
+                  v-model="form.color"
+                  density="compact"
+                  hide-details
+                  :items="colorOptions"
+                  label="Colour"
+                  variant="outlined"
+                >
+                  <template #prepend-inner>
+                    <v-icon :color="form.color" icon="mdi-circle" size="14" />
+                  </template>
+                </v-select>
+              </v-col>
+              <v-col cols="6" sm="6">
+                <v-text-field
+                  v-model="form.icon"
+                  density="compact"
+                  hide-details
+                  hint="Any mdi-* icon name"
+                  label="Icon"
+                  variant="outlined"
+                >
+                  <template #prepend-inner>
+                    <v-icon :icon="form.icon || 'mdi-calendar-star'" size="16" />
+                  </template>
+                </v-text-field>
+              </v-col>
+            </v-row>
+            <div class="d-flex justify-end mt-2">
+              <v-btn
+                :disabled="!canAdd"
+                :loading="adding"
+                prepend-icon="mdi-plus"
+                size="small"
+                text="Add event"
+                variant="tonal"
+                @click="addEvent"
               />
-            </v-col>
-            <v-col cols="6" sm="3">
-              <v-text-field
-                v-model="form.start_date"
-                density="compact"
-                hide-details
-                label="Start"
-                type="date"
-                variant="outlined"
-              />
-            </v-col>
-            <v-col cols="6" sm="3">
-              <v-text-field
-                v-model="form.end_date"
-                density="compact"
-                hide-details
-                label="End"
-                type="date"
-                variant="outlined"
-              />
-            </v-col>
-            <v-col cols="6" sm="6">
-              <v-select
-                v-model="form.color"
-                density="compact"
-                hide-details
-                :items="colorOptions"
-                label="Colour"
-                variant="outlined"
-              >
-                <template #prepend-inner>
-                  <v-icon :color="form.color" icon="mdi-circle" size="14" />
-                </template>
-              </v-select>
-            </v-col>
-            <v-col cols="6" sm="6">
-              <v-text-field
-                v-model="form.icon"
-                density="compact"
-                hide-details
-                hint="Any mdi-* icon name"
-                label="Icon"
-                variant="outlined"
-              >
-                <template #prepend-inner>
-                  <v-icon :icon="form.icon || 'mdi-calendar-star'" size="16" />
-                </template>
-              </v-text-field>
-            </v-col>
-          </v-row>
-          <div class="d-flex justify-end mt-2">
-            <v-btn
-              :disabled="!canAdd"
-              :loading="adding"
-              prepend-icon="mdi-plus"
-              size="small"
-              text="Add event"
-              variant="tonal"
-              @click="addEvent"
-            />
-          </div>
+            </div>
+          </template>
 
           <template v-if="customEvents.length > 0">
             <v-divider class="my-4" />
@@ -170,6 +172,7 @@
                 </template>
                 <template #append>
                   <v-btn
+                    v-if="canEdit"
                     color="error"
                     icon="mdi-delete"
                     size="small"
@@ -215,8 +218,12 @@
 <script setup>
   import { computed, onMounted, ref, watch } from 'vue'
   import { useCalendarEvents } from '@/composables/useCalendarEvents'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { getEventsForRange, retailCalendarEvents } from '@/data/retailCalendarEvents'
   import { useSettingsStore } from '@/stores/settings'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const settingsStore = useSettingsStore()
   const { listCalendarEvents, createCalendarEvent, deleteCalendarEvent } = useCalendarEvents()

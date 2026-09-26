@@ -62,7 +62,7 @@
         />
       </div>
 
-      <section aria-label="Recent activity" class="home-activities">
+      <section v-if="canViewActivity" aria-label="Recent activity" class="home-activities">
         <div class="home-activities-head d-flex align-center px-1 mb-2">
           <v-icon class="me-2 text-medium-emphasis" icon="mdi-history" size="18" />
           <span class="text-body-2 font-weight-medium">Recent activity</span>
@@ -190,10 +190,11 @@
   import appLogo from '@/assets/app-logo.png'
   import AppLogo from '@/components/AppLogo.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
+  import { useAllowedNav } from '@/composables/useAllowedNav'
   import { authFetch } from '@/composables/useApi'
   import { BRANCH_ACTIVITY_TYPES } from '@/composables/useBranchActivityMessage'
   import { API_BASE } from '@/config'
-  import { appendItems, navItems } from '@/data/navItems'
+  import { useAuthStore } from '@/stores/auth'
 
   const router = useRouter()
   const { mdAndUp } = useDisplay()
@@ -208,14 +209,20 @@
     offset: 4,
   }
 
-  const links = []
-  for (const item of [...navItems, ...appendItems]) {
-    if (item.children?.length > 0) {
-      links.push(...item.children)
-    } else if (item.to) {
-      links.push(item)
+  const auth = useAuthStore()
+  const { allowedNavItems, allowedAppendItems, allowed } = useAllowedNav()
+
+  const links = computed(() => {
+    const result = []
+    for (const item of [...allowedNavItems.value, ...allowedAppendItems.value]) {
+      if (item.children?.length > 0) {
+        result.push(...item.children)
+      } else if (item.to) {
+        result.push(item)
+      }
     }
-  }
+    return result
+  })
 
   function openLink (to) {
     if (!to) return
@@ -223,7 +230,7 @@
     selectedLink.value = null
   }
 
-  const shortcuts = [
+  const allShortcuts = [
     { title: 'Dashboard', description: 'View sales, expenses, and totals', icon: 'mdi-view-dashboard', to: '/dashboard' },
     { title: 'Invoices', description: 'Review retail and wholesale invoices', icon: 'mdi-invoice', to: '/invoices' },
     { title: 'Inventory', description: 'Check products and stock levels', icon: 'mdi-package-variant', to: '/inventory' },
@@ -231,6 +238,7 @@
     { title: 'Branches', description: 'Manage branches and check sync status', icon: 'mdi-store-outline', to: '/branches' },
     { title: 'Settings', description: 'Change app settings', icon: 'mdi-cog-outline', to: '/settings' },
   ]
+  const shortcuts = computed(() => allShortcuts.filter(item => allowed(item)))
 
   // Recent activity: a read-only glance at the latest branch-sync activity.
   // Reuses the dashboard's /activities endpoint, which defaults to the
@@ -242,6 +250,9 @@
   // websocket (the same push stream the dashboard listens to), so there's no
   // manual refresh button.
   const PAGE_SIZE = 20
+
+  // The feed comes from the dashboard endpoints, which need Analytics access.
+  const canViewActivity = computed(() => auth.canView('analytics'))
 
   const activities = ref([])
   const loading = ref(false)
@@ -279,6 +290,7 @@
   // Fetch the newest page and replace the list. There's no "load more" --
   // the dashboard is where the full, filterable history lives.
   async function reload () {
+    if (!canViewActivity.value) return
     loading.value = true
     error.value = ''
     try {

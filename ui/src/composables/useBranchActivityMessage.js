@@ -84,7 +84,6 @@ function attendanceChangeIcon (kind) {
 const SYNC_CONFLICT_WORDING = {
   phone_name_mismatch: 'a client name disagreement',
   invalid_phone: 'a client with no usable phone',
-  unknown_product: 'an unknown product',
 }
 
 // invoiceTone picks the toast background tint for an invoice-family

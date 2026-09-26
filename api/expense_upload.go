@@ -6,8 +6,6 @@ import (
 	_ "embed"
 	"encoding/hex"
 	"fmt"
-	"io"
-	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -169,8 +167,13 @@ func (server *Server) uploadExpenseImages(ctx *gin.Context) {
 			return
 		}
 
-		destPath := filepath.Join(destDir, uuid.NewString()+ext)
-		if err := saveUploadedExpenseImage(fileHeader, destPath); err != nil {
+		stored, err := optimizeUploadedImage(fileHeader, contentType, ext)
+		if err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		destPath := filepath.Join(destDir, uuid.NewString()+stored.Ext)
+		if err := os.WriteFile(destPath, stored.Data, 0o644); err != nil {
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
 		}
@@ -178,9 +181,10 @@ func (server *Server) uploadExpenseImages(ctx *gin.Context) {
 		if _, err := server.store.CreateBranchExpenseImage(ctx, db.CreateBranchExpenseImageParams{
 			BranchExpenseID: expense.ID,
 			FilePath:        destPath,
-			ContentType:     contentType,
-			SizeBytes:       fileHeader.Size,
+			ContentType:     stored.ContentType,
+			SizeBytes:       int64(len(stored.Data)),
 		}); err != nil {
+			os.Remove(destPath)
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
 		}
@@ -201,23 +205,6 @@ func (server *Server) uploadExpenseImages(ctx *gin.Context) {
 	})
 
 	server.writeJSON(ctx, http.StatusOK, envelope{"success": true})
-}
-
-func saveUploadedExpenseImage(fileHeader *multipart.FileHeader, destPath string) error {
-	src, err := fileHeader.Open()
-	if err != nil {
-		return err
-	}
-	defer src.Close()
-
-	dst, err := os.Create(destPath)
-	if err != nil {
-		return err
-	}
-	defer dst.Close()
-
-	_, err = io.Copy(dst, src)
-	return err
 }
 
 func formatMoneyLabel(amount int64, currencyCode string) string {

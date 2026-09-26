@@ -1,8 +1,12 @@
-# /etc/caddy/Caddyfile on the example.com droplet (<server-ip>).
-# Caddy runs as user `caddy` and gets a Let's Encrypt cert automatically
-# as long as example.com's A record points here.
+# /etc/caddy/Caddyfile on the shared droplet (<server-ip>).
+#
+# SUPERSEDED: this box now also runs kashi-commerce on the bare example.com
+# domain, and kashi lives at cloud.example.com instead. The Caddyfile that's
+# actually live on the server is ../../../kashi-commerce/deploy/Caddyfile,
+# which includes this same block plus kashi-commerce's. Keep both in sync
+# if you change kashi's site block.
 
-example.com {
+cloud.example.com {
 	encode zstd gzip
 
 	# API: browser calls /api/..., the Go server sees /... on :8090
@@ -18,8 +22,3 @@ example.com {
 		file_server
 	}
 }
-
-# Optional: uncomment once www.example.com has an A record.
-# www.example.com {
-# 	redir https://example.com{uri} permanent
-# }

@@ -43,6 +43,32 @@ func TestBranchReconcile_ReturnsOnlyMissing(t *testing.T) {
 	require.Equal(t, []string{"ref-b"}, body.Missing)
 }
 
+func TestBranchReconcile_ClientPhones_ReturnsOnlyMissing(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	store := mockdb.NewMockStore(ctrl)
+	stubBranchAuth(store)
+
+	// kashi holds phone-a; phone-b is missing (e.g. deleted centrally).
+	store.EXPECT().
+		ClientPhonesPresent(gomock.Any(), gomock.Eq([]string{"phone-a", "phone-b"})).
+		Return([]string{"phone-a"}, nil)
+
+	server := newTestServer(t, store)
+	rec := httptest.NewRecorder()
+	server.router.ServeHTTP(rec, newBranchRequest(t, http.MethodPost, "/branch/sync/reconcile", map[string]any{
+		"entity": "client_phones",
+		"refs":   []string{"phone-a", "phone-b"},
+	}))
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var body struct {
+		Missing []string `json:"missing"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	require.Equal(t, []string{"phone-b"}, body.Missing)
+}
+
 func TestBranchReconcile_RejectsOversizedBatch(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

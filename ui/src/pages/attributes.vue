@@ -26,6 +26,7 @@
           variant="outlined"
         />
         <v-btn
+          v-if="canEdit"
           color="primary"
           :disabled="!selectedType"
           prepend-icon="mdi-plus"
@@ -65,7 +66,7 @@
               item-value="id"
               :query-params="{ attribute: selectedType }"
               root-key="values"
-              selectable
+              :selectable="canEdit"
               :show-search-icon="false"
               :sort-keys="['id', 'value', 'created_at']"
               @row-click="openEdit"
@@ -165,7 +166,11 @@
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useAttributes } from '@/composables/useAttributes'
   import { useBulkDelete } from '@/composables/useBulkDelete'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const {
     types,
@@ -253,6 +258,7 @@
   }
 
   function openEdit (item) {
+    if (!canEdit.value) return
     editing.value = item
     draftValue.value = item.value
     formError.value = ''

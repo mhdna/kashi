@@ -90,6 +90,7 @@
         <span>Inventory</span>
         <v-spacer />
         <v-btn
+          v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
           text="Add Inventory"
@@ -117,7 +118,7 @@
             flush
             :headers="headers"
             root-key="inventories"
-            selectable
+            :selectable="canEdit"
             :show-search-icon="false"
             @row-click="openEdit"
             @update:selected="selectedRows = $event"
@@ -152,7 +153,7 @@
               <th>Barcode</th>
               <th class="text-end">On hand</th>
               <th class="text-end">Avg cost</th>
-              <th class="text-end" style="width: 220px;">Adjust</th>
+              <th v-if="canEdit" class="text-end" style="width: 220px;">Adjust</th>
             </tr>
           </thead>
           <tbody>
@@ -166,7 +167,7 @@
               <td>{{ row.barcode }}</td>
               <td class="text-end" :class="row.quantity < 0 ? 'text-error' : ''">{{ row.quantity }}</td>
               <td class="text-end">{{ row.avg_cost }}</td>
-              <td class="text-end">
+              <td v-if="canEdit" class="text-end">
                 <v-text-field
                   v-model.number="adjustInputs[row.variant_id]"
                   density="compact"
@@ -189,6 +190,7 @@
       </v-card-text>
       <v-card-actions>
         <v-btn
+          v-if="canEdit"
           prepend-icon="mdi-clipboard-list-outline"
           text="Start Count"
           variant="tonal"
@@ -209,7 +211,11 @@
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useBulkDelete } from '@/composables/useBulkDelete'
   import { useInventories } from '@/composables/useInventories'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const router = useRouter()
 
@@ -287,6 +293,7 @@
   }
 
   function openEdit (item) {
+    if (!canEdit.value) return
     editingId.value = item.id
     setValues({ name: item.name, type: item.type, code: item.code })
     dialog.value = true

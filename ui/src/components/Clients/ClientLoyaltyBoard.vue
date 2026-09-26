@@ -209,7 +209,7 @@
           >
             Open full profile
           </v-btn>
-          <div class="d-flex ga-2">
+          <div v-if="canEdit" class="d-flex ga-2">
             <v-btn
               class="flex-grow-1"
               prepend-icon="mdi-pencil"
@@ -279,9 +279,13 @@
   import { computed, onMounted, ref, watch } from 'vue'
   import TierChip from '@/components/Clients/TierChip.vue'
   import { useClientTiers } from '@/composables/useClientTiers'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { dedupedFetch } from '@/composables/useRequestDedup'
   import { API_BASE } from '@/config'
   import { formatMoney } from '@/utils/money'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const props = defineProps({
     branchId: { type: [Number, String, null], default: null },

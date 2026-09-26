@@ -55,9 +55,11 @@ evans:
 seed:
 	go run ./cmd/seed/main.go
 
-# --- cloud deploy (example.com droplet) -----------------------------------
-# One-time server setup lives in ui/deploy/SETUP.md. Needs an ssh alias
-# `kashi` -> root@<server-ip> (in ~/.ssh/config).
+# --- cloud deploy (example.com droplet, shared with kashi-commerce) -------
+# kashi lives at cloud.example.com now (example.com itself serves
+# kashi-commerce). One-time server setup lives in ui/deploy/SETUP.md and
+# kashi-commerce/deploy/SETUP.md. Needs an ssh alias `kashi` ->
+# root@<server-ip> (in ~/.ssh/config).
 SSH      ?= kashi
 UI_ROOT  ?= /var/www/kashi-ui
 APP_DIR  ?= /home/kashi/app
@@ -65,7 +67,7 @@ PROD_DB  ?= postgresql://kashi:kashi@localhost:5432/kashi?sslmode=disable
 
 # Full release: API binary + migrations, then the UI.
 deploy: deploy-api deploy-ui
-	@echo "Deployed -> https://example.com/"
+	@echo "Deployed -> https://cloud.example.com/"
 
 # Cross-compile the API, ship it with the current migrations, run any
 # pending ones on the prod DB (idempotent), restart the service.

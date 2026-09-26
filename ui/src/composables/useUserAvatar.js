@@ -12,14 +12,14 @@ export const AVATAR_COLORS = [
   '#FB8C00', '#FF5722', '#6D4C41', '#546E7A',
 ]
 
-function initialsOf (name) {
+export function initialsOf (name) {
   const clean = String(name || '').trim()
   return clean ? clean.slice(0, 2).toUpperCase() : '?'
 }
 
 // Small deterministic string hash -> palette index, so a given name always
 // lands on the same colour.
-function hashColor (seed) {
+export function hashColor (seed) {
   const s = String(seed || '')
   let h = 0
   for (let i = 0; i < s.length; i++) {

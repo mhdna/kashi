@@ -154,8 +154,13 @@ func (server *Server) uploadShiftReceiptImage(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	destPath := filepath.Join(destDir, uuid.NewString()+ext)
-	if err := saveUploadedExpenseImage(fileHeader, destPath); err != nil {
+	stored, err := optimizeUploadedImage(fileHeader, contentType, ext)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	destPath := filepath.Join(destDir, uuid.NewString()+stored.Ext)
+	if err := os.WriteFile(destPath, stored.Data, 0o644); err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -163,8 +168,8 @@ func (server *Server) uploadShiftReceiptImage(ctx *gin.Context) {
 	if _, err := server.store.CreateBranchShiftReceiptImage(ctx, db.CreateBranchShiftReceiptImageParams{
 		BranchShiftID: shift.ID,
 		FilePath:      destPath,
-		ContentType:   contentType,
-		SizeBytes:     fileHeader.Size,
+		ContentType:   stored.ContentType,
+		SizeBytes:     int64(len(stored.Data)),
 	}); err != nil {
 		if isUniqueViolation(err) {
 			os.Remove(destPath)

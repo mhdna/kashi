@@ -329,6 +329,13 @@ func (server *Server) branchReconcile(ctx *gin.Context) {
 		for _, r := range found {
 			present[r] = true
 		}
+	case "client_phones":
+		// Refs are client phone numbers; phone is globally unique, no branch scope.
+		var found []string
+		found, err = server.store.ClientPhonesPresent(ctx, req.Refs)
+		for _, r := range found {
+			present[r] = true
+		}
 	case "shift_closes":
 		var found []string
 		found, err = server.store.BranchShiftRefsPresent(ctx, db.BranchShiftRefsPresentParams{

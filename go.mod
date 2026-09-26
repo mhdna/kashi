@@ -4,6 +4,8 @@ go 1.25.5
 
 require (
 	github.com/aead/chacha20poly1305 v0.0.0-20201124145622-1a5aba2a8b29
+	github.com/disintegration/imaging v1.6.2
+	github.com/gen2brain/webp v0.6.4
 	github.com/gin-gonic/gin v1.12.0
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.6.0
@@ -31,6 +33,7 @@ require (
 	github.com/bytedance/sonic/loader v0.5.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/ebitengine/purego v0.10.1 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect

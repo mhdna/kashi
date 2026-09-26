@@ -29,7 +29,7 @@
           variant="outlined"
           @update:model-value="reload"
         />
-        <template v-if="editing">
+        <template v-if="canEdit && editing">
           <v-btn text="Cancel" variant="text" @click="cancelEdit" />
           <v-btn
             color="primary"
@@ -41,7 +41,7 @@
             @click="saveAll"
           />
         </template>
-        <template v-else>
+        <template v-else-if="canEdit">
           <v-btn
             prepend-icon="mdi-pencil"
             text="Edit salaries"
@@ -171,12 +171,14 @@
               </td>
               <td class="text-end">
                 <v-btn
+                  v-if="canEdit"
                   icon="mdi-pencil"
                   size="x-small"
                   variant="text"
                   @click="openEdit(item)"
                 />
                 <v-btn
+                  v-if="canEdit"
                   color="error"
                   icon="mdi-delete"
                   size="x-small"
@@ -271,6 +273,10 @@
   import { computed, onMounted, reactive, ref } from 'vue'
   import { useBranches } from '@/composables/useBranches'
   import { useEmployees } from '@/composables/useEmployees'
+  import { usePageAccess } from '@/composables/usePageAccess'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const { listEmployees, createEmployee, updateEmployee, deleteEmployee, batchSetSalaries } = useEmployees()
   const { branches, fetchBranches } = useBranches()

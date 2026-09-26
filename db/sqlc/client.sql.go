@@ -168,16 +168,27 @@ const listClientSpendingSummary = `-- name: ListClientSpendingSummary :many
 WITH central AS (
   SELECT i.client_id,
     SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END) AS total,
-    COUNT(DISTINCT i.id) AS invoice_count
+    COUNT(DISTINCT i.id) AS invoice_count,
+    SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END)
+      FILTER (WHERE p.in_period) AS period_total,
+    COUNT(DISTINCT i.id) FILTER (WHERE p.in_period) AS period_invoice_count
   FROM invoices i
   LEFT JOIN sales_invoices si ON si.invoice_id = i.id
+  CROSS JOIN LATERAL (SELECT
+    ($2::timestamptz IS NULL OR i.created_at >= $2::timestamptz)
+    AND ($3::timestamptz IS NULL OR i.created_at < $3::timestamptz) AS in_period) p
   GROUP BY i.client_id
 ), branch AS (
   SELECT cl.client_id,
     SUM(b.grand_total) AS total,
-    COUNT(DISTINCT b.id) AS invoice_count
+    COUNT(DISTINCT b.id) AS invoice_count,
+    SUM(b.grand_total) FILTER (WHERE p.in_period) AS period_total,
+    COUNT(DISTINCT b.id) FILTER (WHERE p.in_period) AS period_invoice_count
   FROM branch_invoices b
   JOIN client_links cl ON cl.branch_id = b.branch_id AND cl.branch_client_id = b.branch_client_id
+  CROSS JOIN LATERAL (SELECT
+    ($2::timestamptz IS NULL OR b.occurred_at >= $2::timestamptz)
+    AND ($3::timestamptz IS NULL OR b.occurred_at < $3::timestamptz) AS in_period) p
   GROUP BY cl.client_id
 )
 SELECT
@@ -186,13 +197,21 @@ SELECT
   c.created_at,
   c.valid_loyalty_points,
   (COALESCE(ce.total, 0) + COALESCE(br.total, 0))::bigint AS total_spent,
-  (COALESCE(ce.invoice_count, 0) + COALESCE(br.invoice_count, 0))::bigint AS invoice_count
+  (COALESCE(ce.invoice_count, 0) + COALESCE(br.invoice_count, 0))::bigint AS invoice_count,
+  (COALESCE(ce.period_total, 0) + COALESCE(br.period_total, 0))::bigint AS period_spent,
+  (COALESCE(ce.period_invoice_count, 0) + COALESCE(br.period_invoice_count, 0))::bigint AS period_invoice_count
 FROM clients c
 LEFT JOIN central ce ON ce.client_id = c.id
 LEFT JOIN branch br ON br.client_id = c.id
 WHERE $1::text IS NULL OR c.client_type = $1
 ORDER BY total_spent DESC, c.name ASC
 `
+
+type ListClientSpendingSummaryParams struct {
+	ClientType sql.NullString `json:"client_type"`
+	DateFrom   sql.NullTime   `json:"date_from"`
+	DateTo     sql.NullTime   `json:"date_to"`
+}
 
 type ListClientSpendingSummaryRow struct {
 	ID                 int64     `json:"id"`
@@ -201,6 +220,8 @@ type ListClientSpendingSummaryRow struct {
 	ValidLoyaltyPoints int64     `json:"valid_loyalty_points"`
 	TotalSpent         int64     `json:"total_spent"`
 	InvoiceCount       int64     `json:"invoice_count"`
+	PeriodSpent        int64     `json:"period_spent"`
+	PeriodInvoiceCount int64     `json:"period_invoice_count"`
 }
 
 // Whole-population feed for the loyalty page, which buckets every client
@@ -208,8 +229,13 @@ type ListClientSpendingSummaryRow struct {
 // page. ListClientsBySpending can't serve that: its aggregation scans all
 // invoices/branch_invoices on every call, so paging 25k clients through it
 // re-runs that scan once per page. This runs it once and returns only the
-// five columns the loyalty page reads, so the payload stays small even at
-// tens of thousands of rows.
+// handful of columns the loyalty page reads, so the payload stays small even
+// at tens of thousands of rows.
+//
+// total_spent/invoice_count are lifetime (they drive the tier bucketing);
+// period_spent/period_invoice_count cover [date_from, date_to) only, either
+// bound optional. Half-open so the caller can pass the first instant of the
+// day after the last selected day.
 //
 // Same two sources and sign conventions as ListClientsBySpending (see the
 // comment there); item_count and the branch_id/search filters are dropped
@@ -217,8 +243,8 @@ type ListClientSpendingSummaryRow struct {
 // drops the two line-item joins whose row fan-out made the DISTINCTs
 // necessary (kept anyway, so a non-unique sales_invoices/client_links row
 // can't inflate a count).
-func (q *Queries) ListClientSpendingSummary(ctx context.Context, clientType sql.NullString) ([]ListClientSpendingSummaryRow, error) {
-	rows, err := q.db.QueryContext(ctx, listClientSpendingSummary, clientType)
+func (q *Queries) ListClientSpendingSummary(ctx context.Context, arg ListClientSpendingSummaryParams) ([]ListClientSpendingSummaryRow, error) {
+	rows, err := q.db.QueryContext(ctx, listClientSpendingSummary, arg.ClientType, arg.DateFrom, arg.DateTo)
 	if err != nil {
 		return nil, err
 	}
@@ -233,6 +259,8 @@ func (q *Queries) ListClientSpendingSummary(ctx context.Context, clientType sql.
 			&i.ValidLoyaltyPoints,
 			&i.TotalSpent,
 			&i.InvoiceCount,
+			&i.PeriodSpent,
+			&i.PeriodInvoiceCount,
 		); err != nil {
 			return nil, err
 		}

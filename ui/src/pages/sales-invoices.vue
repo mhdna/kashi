@@ -286,12 +286,14 @@
             variant="outlined"
           />
           <v-btn
+            v-if="canEdit"
             prepend-icon="mdi-tag-multiple"
             text="Invoice Types"
             variant="tonal"
             @click="invoiceTypesDialog = true"
           />
           <v-btn
+            v-if="canEdit"
             color="primary"
             prepend-icon="mdi-plus"
             text="Add Invoice"
@@ -359,6 +361,7 @@
   import { useClients } from '@/composables/useClients'
   import { useInventories } from '@/composables/useInventories'
   import { useInvoiceDetails } from '@/composables/useInvoiceDetails'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { usePosSettings } from '@/composables/usePosSettings'
   import { usePriceLists } from '@/composables/usePriceLists'
   import { useSalesInvoices } from '@/composables/useSalesInvoices'
@@ -366,6 +369,9 @@
   import { useVariants } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
   import BranchInvoices from '@/pages/branch-invoices.vue'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const { branches, fetchBranches } = useBranches()
   const { createSalesInvoice } = useSalesInvoices()

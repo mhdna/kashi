@@ -245,21 +245,21 @@
         />
         <div class="d-flex ga-2">
           <v-btn
-            v-if="tab === 'recurring'"
+            v-if="canEdit && tab === 'recurring'"
             color="primary"
             prepend-icon="mdi-plus"
             text="Add Recurring"
             @click="recurringDialog = true"
           />
           <v-btn
-            v-else-if="tab === 'own'"
+            v-else-if="canEdit && tab === 'own'"
             color="primary"
             prepend-icon="mdi-plus"
             text="Add Expense"
             @click="openCreateExpense"
           />
           <v-btn
-            v-else-if="tab === 'branch'"
+            v-else-if="canEdit && tab === 'branch'"
             color="primary"
             prepend-icon="mdi-plus"
             text="Add Branch Expense"
@@ -287,7 +287,7 @@
               <v-alert v-if="expensesError" class="ma-4" type="error" variant="tonal">{{ expensesError }}</v-alert>
 
               <div class="px-4 pt-3">
-                <div v-if="filteredExpenses.length > 0" class="d-flex align-center ga-2 mb-1">
+                <div v-if="canEdit && filteredExpenses.length > 0" class="d-flex align-center ga-2 mb-1">
                   <v-checkbox-btn
                     :indeterminate="expenseSelected.length > 0 && !allExpensesSelected"
                     label="Select all"
@@ -309,6 +309,7 @@
                   <v-list-item class="expense-row px-4 py-2" @click="openEditExpense(item)">
                     <template #prepend>
                       <v-checkbox-btn
+                        v-if="canEdit"
                         class="me-1"
                         :model-value="expenseSelected.includes(item.id)"
                         @click.stop
@@ -364,6 +365,7 @@
                     <v-switch
                       color="primary"
                       density="compact"
+                      :disabled="!canEdit"
                       hide-details
                       :model-value="item.active"
                       @update:model-value="value => toggleRecurringActive(item, value)"
@@ -450,8 +452,12 @@
   import { useBranches } from '@/composables/useBranches'
   import { useBulkDelete } from '@/composables/useBulkDelete'
   import { useExpenseCategories } from '@/composables/useExpenseCategories'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
   import { categoryIcon } from '@/data/expenseCategoryIcons'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const PAGE_SIZE = 25
 
@@ -647,6 +653,7 @@
   }
 
   function openEditExpense (item) {
+    if (!canEdit.value) return
     editingExpenseId.value = item.id
     setValues({
       description: item.description,

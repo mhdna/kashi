@@ -123,7 +123,7 @@
               <v-divider vertical />
 
               <div class="bs-section-pane">
-                <form @submit.prevent="saveSettings">
+                <v-form :disabled="!canEdit" @submit.prevent="saveSettings">
                   <div v-show="sectionTab === 'general'">
                     <section class="bs-section">
                       <div class="bs-section-title">General</div>
@@ -608,7 +608,7 @@
                   </div>
 
                   <div
-                    v-show="sectionTab !== 'commands' && sectionTab !== 'users' && sectionTab !== 'conflicts'"
+                    v-show="canEdit && sectionTab !== 'commands' && sectionTab !== 'users' && sectionTab !== 'conflicts'"
                     class="bs-savebar d-flex justify-end"
                   >
                     <v-btn
@@ -619,12 +619,13 @@
                       variant="flat"
                     />
                   </div>
-                </form>
+                </v-form>
 
                 <div v-show="sectionTab === 'users'">
                   <div class="d-flex align-center justify-space-between mb-2">
                     <div class="bs-section-title mb-0">POS Users</div>
                     <v-btn
+                      v-if="canEdit"
                       color="primary"
                       prepend-icon="mdi-plus"
                       size="small"
@@ -668,6 +669,7 @@
                         </td>
                         <td class="text-end">
                           <v-icon-btn
+                            v-if="canEdit"
                             icon="mdi-key"
                             size="small"
                             title="Set PIN"
@@ -675,12 +677,14 @@
                             @click="openPinDialog(u)"
                           />
                           <v-icon-btn
+                            v-if="canEdit"
                             icon="mdi-pencil"
                             size="small"
                             variant="text"
                             @click="openUserDialog(u)"
                           />
                           <v-icon-btn
+                            v-if="canEdit"
                             color="error"
                             icon="mdi-delete"
                             size="small"
@@ -701,7 +705,7 @@
                     <div class="bs-section-title mb-0">Sync conflicts</div>
                     <div class="d-flex align-center ga-2">
                       <v-btn
-                        v-if="selectedConflicts.length > 0"
+                        v-if="canEdit && selectedConflicts.length > 0"
                         color="primary"
                         size="small"
                         variant="tonal"
@@ -737,7 +741,7 @@
                     :headers="conflictHeaders"
                     :query-params="conflictQuery"
                     root-key="conflicts"
-                    selectable
+                    :selectable="canEdit"
                     :show-search-icon="false"
                     @update:selected="v => (selectedConflicts = v)"
                   >
@@ -756,8 +760,8 @@
                       {{ new Date(item.created_at).toLocaleString() }}
                     </template>
                     <template #item.actions="{ item }">
-                      <v-btn size="small" variant="text" @click.stop="openResolve(item)">Resolve</v-btn>
-                      <v-btn size="small" variant="text" @click.stop="dismiss(item)">Dismiss</v-btn>
+                      <v-btn v-if="canEdit" size="small" variant="text" @click.stop="openResolve(item)">Resolve</v-btn>
+                      <v-btn v-if="canEdit" size="small" variant="text" @click.stop="dismiss(item)">Dismiss</v-btn>
                     </template>
                     <template #expanded-row="{ columns, item }">
                       <tr>
@@ -1039,7 +1043,11 @@
   import { useBranchSyncConflicts } from '@/composables/useBranchSyncConflicts'
   import { useBranchUsers } from '@/composables/useBranchUsers'
   import { useClients } from '@/composables/useClients'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const route = useRoute()
   const router = useRouter()
@@ -1083,7 +1091,6 @@
     return {
       phone_name_mismatch: 'Name differs',
       invalid_phone: 'No usable phone',
-      unknown_product: 'Unknown product',
     }[kind] ?? kind
   }
   function branchPayload (item) {
