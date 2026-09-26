@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // maxBranchClientsBatch caps one clients_batch call. A "sync everything"
@@ -32,7 +33,11 @@ type branchClientBatchResult struct {
 	BranchClientID int64  `json:"branch_client_id"`
 	Status         string `json:"status"`
 	ConflictKind   string `json:"conflict_kind,omitempty"`
-	Error          string `json:"error,omitempty"`
+	// UID is the canonical uid of the central client this branch client now
+	// maps to. It differs from the uid the till sent when the phone already
+	// belonged to another client -- the till then adopts this one.
+	UID   string `json:"uid,omitempty"`
+	Error string `json:"error,omitempty"`
 }
 
 // putBranchClients is putBranchClient for many clients at once: same
@@ -79,6 +84,9 @@ func (server *Server) putBranchClients(ctx *gin.Context) {
 			} else {
 				res.Status = batchClientOK
 				res.ConflictKind = outcome.conflictKind
+				if outcome.client.Uid != uuid.Nil {
+					res.UID = outcome.client.Uid.String()
+				}
 				changed = true
 			}
 		}

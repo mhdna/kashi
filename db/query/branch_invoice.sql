@@ -16,9 +16,10 @@ INSERT INTO branch_invoices (
   loyalty_points_delta,
   occurred_at,
   salesperson_name,
-  historical
+  historical,
+  client_uid
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
 )
 RETURNING *;
 
@@ -44,8 +45,9 @@ INSERT INTO branch_invoice_items (
   unit_price,
   line_total,
   discount,
-  quantity
-) VALUES ( $1, $2, $3, $4, $5, $6 )
+  quantity,
+  product_uid
+) VALUES ( $1, $2, $3, $4, $5, $6, $7 )
 RETURNING *;
 
 -- name: ListBranchInvoiceItems :many

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 	db "github.com/mhdna/kashi/db/sqlc"
 )
@@ -34,11 +35,14 @@ type branchInvoiceItemRequest struct {
 	// inventory can be decremented. Optional -- an older kashi-pos build
 	// that hasn't been updated omits it, and such a line is recorded but
 	// doesn't move central stock.
-	Barcode   string `json:"barcode"`
-	UnitPrice int64  `json:"unit_price"`
-	LineTotal int64  `json:"line_total"`
-	Discount  int16  `json:"discount"`
-	Quantity  int64  `json:"quantity" binding:"required"`
+	Barcode string `json:"barcode"`
+	// ProductUID is the variant's shared identity; preferred over Barcode
+	// when present. Empty from tills that predate uid sync.
+	ProductUID string `json:"product_uid"`
+	UnitPrice  int64  `json:"unit_price"`
+	LineTotal  int64  `json:"line_total"`
+	Discount   int16  `json:"discount"`
+	Quantity   int64  `json:"quantity" binding:"required"`
 }
 
 // branchInvoiceRequest is deliberately NOT the same shape as
@@ -66,7 +70,10 @@ type branchInvoiceRequest struct {
 	BranchShiftID          int64  `json:"branch_shift_id" binding:"required"`
 	BranchInventoryID      int64  `json:"branch_inventory_id" binding:"required"`
 	BranchClientID         *int64 `json:"branch_client_id"`
-	Discount               int16  `json:"discount"`
+	// ClientUID is the buyer's shared identity. Tills that predate uid sync
+	// omit it; kashi then derives it from client_links via BranchClientID.
+	ClientUID string `json:"client_uid"`
+	Discount  int16  `json:"discount"`
 	// GrandTotal/Subtotal/DiscountedTotal have no "required" tag for the
 	// same reason as branchInvoiceItemRequest.LineTotal above: 0 is a
 	// legitimate amount (a fully-discounted invoice), not a missing field.
@@ -132,11 +139,18 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 		relatedRef = sql.NullString{String: req.RelatedClientRef, Valid: true}
 	}
 
+	clientUID, err := server.resolveBranchInvoiceClientUID(ctx, branchID, req)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
 	items := make([]db.BranchInvoiceItemParams, 0, len(req.Items))
 	for _, item := range req.Items {
 		items = append(items, db.BranchInvoiceItemParams{
 			BranchProductID: item.BranchProductID,
 			Barcode:         item.Barcode,
+			ProductUID:      parseNullUUID(item.ProductUID),
 			UnitPrice:       item.UnitPrice,
 			LineTotal:       item.LineTotal,
 			Discount:        item.Discount,
@@ -171,6 +185,7 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 			OccurredAt:             req.OccurredAt,
 			SalespersonName:        req.SalespersonName,
 			Historical:             req.Historical,
+			ClientUid:              clientUID,
 		},
 		Items:    items,
 		Payments: payments,
@@ -229,6 +244,47 @@ func (server *Server) createBranchReturnInvoice(ctx *gin.Context) {
 
 func (server *Server) createBranchExchangeInvoice(ctx *gin.Context) {
 	server.createBranchInvoice(ctx, "exchange")
+}
+
+// parseNullUUID turns an optional uid string from a till into a NullUUID;
+// empty or malformed means "not sent" (the caller falls back to the older
+// branch-local identifiers), never a rejected request.
+func parseNullUUID(s string) uuid.NullUUID {
+	if s == "" {
+		return uuid.NullUUID{}
+	}
+	u, err := uuid.Parse(s)
+	if err != nil {
+		return uuid.NullUUID{}
+	}
+	return uuid.NullUUID{UUID: u, Valid: true}
+}
+
+// resolveBranchInvoiceClientUID picks the invoice's client uid: the one the
+// till sent, else the central client its branch_client_id is linked to.
+// Walk-in sales (no client, or an unlinked id) resolve to NULL.
+func (server *Server) resolveBranchInvoiceClientUID(ctx *gin.Context, branchID int64, req branchInvoiceRequest) (uuid.NullUUID, error) {
+	if u := parseNullUUID(req.ClientUID); u.Valid {
+		return u, nil
+	}
+	if req.BranchClientID == nil {
+		return uuid.NullUUID{}, nil
+	}
+	clientID, err := server.store.GetClientLink(ctx, db.GetClientLinkParams{
+		BranchID:       branchID,
+		BranchClientID: *req.BranchClientID,
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		return uuid.NullUUID{}, nil
+	}
+	if err != nil {
+		return uuid.NullUUID{}, err
+	}
+	client, err := server.store.GetClient(ctx, clientID)
+	if err != nil {
+		return uuid.NullUUID{}, err
+	}
+	return uuid.NullUUID{UUID: client.Uid, Valid: true}, nil
 }
 
 // isUniqueViolation reports whether err is a Postgres unique-constraint

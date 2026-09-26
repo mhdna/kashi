@@ -42,6 +42,8 @@ type Querier interface {
 	// everything to a (possibly new) central server". Each is a single indexed
 	// `= ANY` lookup; the handler caps the input array size.
 	BranchInvoiceRefsPresent(ctx context.Context, arg BranchInvoiceRefsPresentParams) ([]string, error)
+	BranchInvoicesReferenceClient(ctx context.Context, id int64) (bool, error)
+	BranchInvoicesReferenceVariant(ctx context.Context, id int64) (bool, error)
 	BranchLoanRefsPresent(ctx context.Context, arg BranchLoanRefsPresentParams) ([]sql.NullString, error)
 	// A branch_shifts row exists only once kashi-pos has reported that shift's
 	// close, so its mere presence is the "this shift is closed" signal --
@@ -141,6 +143,9 @@ type Querier interface {
 	CreateCashboxAccount(ctx context.Context, arg CreateCashboxAccountParams) (CashboxAccount, error)
 	CreateCentralLoan(ctx context.Context, arg CreateCentralLoanParams) (Loan, error)
 	CreateClient(ctx context.Context, arg CreateClientParams) (Client, error)
+	// A till-created client keeps the uid the till minted, so the till never
+	// has to rewrite anything once kashi accepts it.
+	CreateClientWithUID(ctx context.Context, arg CreateClientWithUIDParams) (Client, error)
 	CreateColor(ctx context.Context, arg CreateColorParams) (Color, error)
 	CreateCoupon(ctx context.Context, arg CreateCouponParams) (Coupon, error)
 	CreateCouponCategory(ctx context.Context, arg CreateCouponCategoryParams) (CouponCategory, error)
@@ -353,6 +358,8 @@ type Querier interface {
 	GetCashboxAccountBalance(ctx context.Context, arg GetCashboxAccountBalanceParams) (ShiftsAccountsBalance, error)
 	GetClient(ctx context.Context, id int64) (Client, error)
 	GetClientByPhone(ctx context.Context, phone string) (Client, error)
+	// Shared-identity (uid) queries for branch sync. See 000093_sync_uid.up.sql.
+	GetClientByUID(ctx context.Context, uid uuid.UUID) (Client, error)
 	GetClientLink(ctx context.Context, arg GetClientLinkParams) (int64, error)
 	GetColorByName(ctx context.Context, name string) (Color, error)
 	GetCoupon(ctx context.Context, code string) (Coupon, error)
@@ -468,6 +475,7 @@ type Querier interface {
 	GetProductSupplier(ctx context.Context, arg GetProductSupplierParams) (ProductSupplier, error)
 	GetProductVariant(ctx context.Context, id int64) (ProductVariant, error)
 	GetProductVariantByBarcode(ctx context.Context, barcode string) (ProductVariant, error)
+	GetProductVariantByUID(ctx context.Context, uid uuid.UUID) (ProductVariant, error)
 	GetPurchase(ctx context.Context, id int64) (GetPurchaseRow, error)
 	GetRecurringExpense(ctx context.Context, id int64) (RecurringExpense, error)
 	GetReturnInvoice(ctx context.Context, invoiceID int64) (ReturnInvoice, error)
@@ -517,6 +525,9 @@ type Querier interface {
 	ListBatches(ctx context.Context, arg ListBatchesParams) ([]ListBatchesRow, error)
 	ListBranchAttendanceChanges(ctx context.Context, arg ListBranchAttendanceChangesParams) ([]BranchAttendanceChange, error)
 	ListBranchAttendanceEvents(ctx context.Context, arg ListBranchAttendanceEventsParams) ([]BranchAttendanceEvent, error)
+	// Adoption: which central client each of this branch's local client ids is
+	// linked to, so a till can stamp the right uid without guessing by phone.
+	ListBranchClientUIDs(ctx context.Context, branchID int64) ([]ListBranchClientUIDsRow, error)
 	ListBranchCommands(ctx context.Context, arg ListBranchCommandsParams) ([]BranchCommand, error)
 	// Storage-explorer feed: every uploaded image, newest first, joined with
 	// its expense and branch so the admin UI never needs a second round trip
@@ -628,6 +639,10 @@ type Querier interface {
 	// necessary (kept anyway, so a non-unique sales_invoices/client_links row
 	// can't inflate a count).
 	ListClientSpendingSummary(ctx context.Context, arg ListClientSpendingSummaryParams) ([]ListClientSpendingSummaryRow, error)
+	// Completeness check: every retail client's uid + updated_at, keyset-paged
+	// by uid. Inactive clients are included -- a till must learn they're
+	// inactive, not just stop hearing about them.
+	ListClientSyncIDs(ctx context.Context, arg ListClientSyncIDsParams) ([]ListClientSyncIDsRow, error)
 	// sqlc.narg(client_type) is nullable: NULL means "all types" -- the admin
 	// clients page passes it when a Retail/Wholesale tab is selected, and
 	// omits it for a combined view if one is ever added.
@@ -652,6 +667,7 @@ type Querier interface {
 	// of the FROM clause's columns). Wrapping in a CTE turns them into real
 	// columns of the derived table, so the CASE inside ORDER BY resolves fine.
 	ListClientsBySpending(ctx context.Context, arg ListClientsBySpendingParams) ([]ListClientsBySpendingRow, error)
+	ListClientsByUIDs(ctx context.Context, uids []uuid.UUID) ([]Client, error)
 	// Feeds the branch catch-up endpoint (see branch_catchup.go), same pattern
 	// as currencies/cashbox_accounts/products. Wholesale clients never appear
 	// here -- they're a central-office concept, not something a branch till
@@ -772,6 +788,9 @@ type Querier interface {
 	// creation time, in the same moment the variant's own updated_at is set,
 	// so this doesn't miss anything in practice yet.
 	ListProductVariantsForSync(ctx context.Context, updatedAt time.Time) ([]ListProductVariantsForSyncRow, error)
+	// Same flattened row as ListProductVariantsForSyncPaged, for the uids a
+	// till's completeness check found missing or stale.
+	ListProductVariantsForSyncByUIDs(ctx context.Context, uids []uuid.UUID) ([]ListProductVariantsForSyncByUIDsRow, error)
 	// Keyset-paginated ListProductVariantsForSync -- same flattened row, same
 	// joins, ordered by (product_variants.updated_at, product_variants.id) for
 	// a stable page boundary during a branch's full catch-up.
@@ -817,6 +836,7 @@ type Querier interface {
 	ListTransferItems(ctx context.Context, transferID int64) ([]ListTransferItemsRow, error)
 	ListTransfers(ctx context.Context, arg ListTransfersParams) ([]ListTransfersRow, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
+	ListVariantSyncIDs(ctx context.Context, arg ListVariantSyncIDsParams) ([]ListVariantSyncIDsRow, error)
 	ListVariantsForBarcodes(ctx context.Context, arg ListVariantsForBarcodesParams) ([]ListVariantsForBarcodesRow, error)
 	MarkBranchExpenseUploadTokenUsed(ctx context.Context, id int64) error
 	MarkBranchShiftUploadTokenUsed(ctx context.Context, id int64) error
@@ -826,6 +846,10 @@ type Querier interface {
 	// the incoming cost (no meaningful prior average to blend).
 	ReceiveInventoryStock(ctx context.Context, arg ReceiveInventoryStockParams) (InventoryStock, error)
 	RenameRole(ctx context.Context, arg RenameRoleParams) error
+	// A till's client turned out to be an existing central client (same phone):
+	// invoices the till already sent under its own uid now point at the
+	// canonical one.
+	RepointBranchInvoicesClientUID(ctx context.Context, arg RepointBranchInvoicesClientUIDParams) error
 	ResolveBranchSyncConflict(ctx context.Context, arg ResolveBranchSyncConflictParams) (BranchSyncConflict, error)
 	SetBranchActive(ctx context.Context, arg SetBranchActiveParams) error
 	SetBranchInventory(ctx context.Context, arg SetBranchInventoryParams) error
@@ -837,8 +861,10 @@ type Querier interface {
 	SetBranchTargetActive(ctx context.Context, arg SetBranchTargetActiveParams) (BranchTarget, error)
 	SetBranchTargetSeriesActive(ctx context.Context, arg SetBranchTargetSeriesActiveParams) (BranchTargetSeries, error)
 	SetBranchUserActive(ctx context.Context, arg SetBranchUserActiveParams) (BranchUser, error)
+	SetClientActive(ctx context.Context, arg SetClientActiveParams) error
 	SetDefaultLowStockThreshold(ctx context.Context, defaultLowStockThreshold int64) (AppSetting, error)
 	SetProductLowStockAlertsEnabled(ctx context.Context, arg SetProductLowStockAlertsEnabledParams) error
+	SetProductVariantActive(ctx context.Context, arg SetProductVariantActiveParams) error
 	SetPurchaseStatus(ctx context.Context, arg SetPurchaseStatusParams) (Purchase, error)
 	SetPurchaseTotals(ctx context.Context, arg SetPurchaseTotalsParams) error
 	SetRecurringExpenseActive(ctx context.Context, arg SetRecurringExpenseActiveParams) (RecurringExpense, error)

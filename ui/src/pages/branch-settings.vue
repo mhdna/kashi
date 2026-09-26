@@ -1091,6 +1091,7 @@
     return {
       phone_name_mismatch: 'Name differs',
       invalid_phone: 'No usable phone',
+      phone_taken: 'Phone already taken',
     }[kind] ?? kind
   }
   function branchPayload (item) {

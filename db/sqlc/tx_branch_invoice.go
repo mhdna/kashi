@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 type BranchInvoiceItemParams struct {
@@ -12,11 +14,15 @@ type BranchInvoiceItemParams struct {
 	// that resolves a branch line to a central product_variants row (see
 	// applySyncedProductVariant in kashi-pos). Empty from older kashi-pos
 	// builds; such lines are recorded but skip the central stock decrement.
-	Barcode   string `json:"barcode"`
-	UnitPrice int64  `json:"unit_price"`
-	LineTotal int64  `json:"line_total"`
-	Discount  int16  `json:"discount"`
-	Quantity  int64  `json:"quantity"`
+	Barcode string `json:"barcode"`
+	// ProductUID is the variant's shared identity (see 000093_sync_uid).
+	// When set it wins over Barcode for resolving the central variant;
+	// older tills leave it empty and fall back to the barcode.
+	ProductUID uuid.NullUUID `json:"product_uid"`
+	UnitPrice  int64         `json:"unit_price"`
+	LineTotal  int64         `json:"line_total"`
+	Discount   int16         `json:"discount"`
+	Quantity   int64         `json:"quantity"`
 }
 
 type BranchInvoicePaymentParams struct {
@@ -53,8 +59,26 @@ func (store *SQLStore) CreateBranchInvoiceTx(ctx context.Context, arg CreateBran
 			return err
 		}
 
+		// Resolve each line to its central variant once: by uid when the till
+		// sent one, else by barcode. nil means "doesn't resolve" -- the line
+		// is still recorded, it just can't move central stock.
+		variants := make([]*ProductVariant, len(arg.Items))
+		for i, item := range arg.Items {
+			v, err := resolveBranchLineVariant(ctx, q, item)
+			if err != nil {
+				return err
+			}
+			variants[i] = v
+		}
+
 		items := make([]BranchInvoiceItem, 0, len(arg.Items))
-		for _, item := range arg.Items {
+		for i, item := range arg.Items {
+			// Only a uid that resolved is stored: an unresolved one (a
+			// till-only product) would just dangle.
+			var productUID uuid.NullUUID
+			if variants[i] != nil {
+				productUID = uuid.NullUUID{UUID: variants[i].Uid, Valid: true}
+			}
 			created, err := q.CreateBranchInvoiceItem(ctx, CreateBranchInvoiceItemParams{
 				BranchInvoiceID: invoice.ID,
 				BranchProductID: item.BranchProductID,
@@ -62,6 +86,7 @@ func (store *SQLStore) CreateBranchInvoiceTx(ctx context.Context, arg CreateBran
 				LineTotal:       item.LineTotal,
 				Discount:        item.Discount,
 				Quantity:        item.Quantity,
+				ProductUid:      productUID,
 			})
 			if err != nil {
 				return err
@@ -109,18 +134,11 @@ func (store *SQLStore) CreateBranchInvoiceTx(ctx context.Context, arg CreateBran
 		if arg.Kind == "return" {
 			reason = StockMovementReasonReturn
 		}
-		for _, item := range arg.Items {
-			if !branch.InventoryID.Valid || item.Barcode == "" {
+		for i, item := range arg.Items {
+			variant := variants[i]
+			if !branch.InventoryID.Valid || variant == nil {
 				result.StockSkippedItems++
 				continue
-			}
-			variant, err := q.GetProductVariantByBarcode(ctx, item.Barcode)
-			if errors.Is(err, sql.ErrNoRows) {
-				result.StockSkippedItems++
-				continue
-			}
-			if err != nil {
-				return err
 			}
 			if _, err := q.applyStockMovement(ctx, applyStockMovementParams{
 				InventoryID:   branch.InventoryID.Int64,
@@ -141,4 +159,30 @@ func (store *SQLStore) CreateBranchInvoiceTx(ctx context.Context, arg CreateBran
 	})
 
 	return result, err
+}
+
+// resolveBranchLineVariant finds the central variant a branch invoice line
+// refers to: by ProductUID when present, else by Barcode. It returns nil
+// (no error) when neither resolves.
+func resolveBranchLineVariant(ctx context.Context, q *Queries, item BranchInvoiceItemParams) (*ProductVariant, error) {
+	if item.ProductUID.Valid {
+		v, err := q.GetProductVariantByUID(ctx, item.ProductUID.UUID)
+		if err == nil {
+			return &v, nil
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			return nil, err
+		}
+	}
+	if item.Barcode == "" {
+		return nil, nil
+	}
+	v, err := q.GetProductVariantByBarcode(ctx, item.Barcode)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &v, nil
 }

@@ -264,12 +264,33 @@ func (server *Server) deleteClient(ctx *gin.Context) {
 		return
 	}
 
-	err := server.store.DeleteClient(ctx, req.ID)
+	// A client anything refers to -- kashi invoices, a branch link, a
+	// branch invoice -- is deactivated, never deleted: every till keeps a
+	// copy and its own invoices point at it. Only a never-used client is
+	// really removed.
+	referenced, err := server.store.BranchInvoicesReferenceClient(ctx, req.ID)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"status": "deleted"})
+	if !referenced {
+		err = server.store.DeleteClient(ctx, req.ID)
+		if err == nil {
+			server.branchHub.broadcastAll(branchWSMessage{Type: "client_updated"})
+			ctx.JSON(http.StatusOK, gin.H{"status": "deleted"})
+			return
+		}
+		if !isForeignKeyViolation(err) {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+	}
+	if err := server.store.SetClientActive(ctx, db.SetClientActiveParams{ID: req.ID, IsActive: false}); err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.branchHub.broadcastAll(branchWSMessage{Type: "client_updated"})
+	ctx.JSON(http.StatusOK, gin.H{"status": "deactivated"})
 }
 
 type clientLoyaltyTotalRequest struct {

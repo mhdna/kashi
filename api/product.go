@@ -441,19 +441,35 @@ func (server *Server) deleteProductVariant(ctx *gin.Context) {
 		return
 	}
 
-	if err := server.store.DeleteProductVariant(ctx, req.ID); err != nil {
+	// Same rule as clients: a variant that stock, batches, counts or any
+	// branch invoice refers to is deactivated instead of deleted -- tills
+	// hold a copy and their invoices point at it.
+	referenced, err := server.store.BranchInvoicesReferenceVariant(ctx, req.ID)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if !referenced {
+		err = server.store.DeleteProductVariant(ctx, req.ID)
+		if err == nil {
+			server.branchHub.broadcastAll(branchWSMessage{Type: "products_updated"})
+			ctx.JSON(http.StatusOK, gin.H{"message": "deleted"})
+			return
+		}
 		if err == sql.ErrNoRows {
 			server.writeError(ctx, http.StatusNotFound, err)
 			return
 		}
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
-			server.writeError(ctx, http.StatusConflict, errInUse)
+		if pqErr, ok := err.(*pq.Error); !ok || pqErr.Code.Name() != "foreign_key_violation" {
+			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
 		}
+	}
+	if err := server.store.SetProductVariantActive(ctx, db.SetProductVariantActiveParams{ID: req.ID, IsActive: false}); err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	server.branchHub.broadcastAll(branchWSMessage{Type: "products_updated"})
-	ctx.JSON(http.StatusOK, gin.H{"message": "deleted"})
+	ctx.JSON(http.StatusOK, gin.H{"message": "deactivated"})
 }

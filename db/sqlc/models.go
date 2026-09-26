@@ -679,16 +679,18 @@ type BranchInvoice struct {
 	ReceivedAt             time.Time      `json:"received_at"`
 	SalespersonName        string         `json:"salesperson_name"`
 	Historical             bool           `json:"historical"`
+	ClientUid              uuid.NullUUID  `json:"client_uid"`
 }
 
 type BranchInvoiceItem struct {
-	ID              int64 `json:"id"`
-	BranchInvoiceID int64 `json:"branch_invoice_id"`
-	BranchProductID int64 `json:"branch_product_id"`
-	UnitPrice       int64 `json:"unit_price"`
-	LineTotal       int64 `json:"line_total"`
-	Discount        int16 `json:"discount"`
-	Quantity        int64 `json:"quantity"`
+	ID              int64         `json:"id"`
+	BranchInvoiceID int64         `json:"branch_invoice_id"`
+	BranchProductID int64         `json:"branch_product_id"`
+	UnitPrice       int64         `json:"unit_price"`
+	LineTotal       int64         `json:"line_total"`
+	Discount        int16         `json:"discount"`
+	Quantity        int64         `json:"quantity"`
+	ProductUid      uuid.NullUUID `json:"product_uid"`
 }
 
 type BranchInvoicePayment struct {
@@ -906,6 +908,8 @@ type Client struct {
 	CreatedAt          time.Time `json:"created_at"`
 	UpdatedAt          time.Time `json:"updated_at"`
 	ClientType         string    `json:"client_type"`
+	Uid                uuid.UUID `json:"uid"`
+	IsActive           bool      `json:"is_active"`
 }
 
 type ClientLink struct {
@@ -1200,6 +1204,7 @@ type ProductVariant struct {
 	CreatedAt time.Time     `json:"created_at"`
 	UpdatedAt time.Time     `json:"updated_at"`
 	AvgCost   int64         `json:"avg_cost"`
+	Uid       uuid.UUID     `json:"uid"`
 }
 
 type ProductsAttribute struct {
