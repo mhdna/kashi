@@ -111,6 +111,7 @@
             <div class="client-row-main">
               <div class="d-flex align-center ga-2">
                 <span class="text-body-2 font-weight-medium text-truncate">{{ item.name }}</span>
+                <v-chip v-if="item.is_active === false" size="x-small" variant="tonal">Inactive</v-chip>
               </div>
               <div class="text-caption text-medium-emphasis text-truncate">
                 {{ item.phone || '—' }}
@@ -163,7 +164,10 @@
           </v-avatar>
           <div class="flex-grow-1" style="min-width: 0">
             <div class="text-subtitle-1 font-weight-medium text-truncate">{{ detailClient.name }}</div>
-            <TierChip class="mt-1" size="x-small" :spent="detailClient.total_spent" />
+            <div class="d-flex align-center ga-1 mt-1">
+              <TierChip size="x-small" :spent="detailClient.total_spent" />
+              <v-chip v-if="detailClient.is_active === false" size="x-small" variant="tonal">Inactive</v-chip>
+            </div>
           </div>
           <v-icon-btn icon="mdi-close" variant="text" @click="detailOpen = false" />
         </div>
@@ -219,6 +223,16 @@
               Edit
             </v-btn>
             <v-btn
+              v-if="detailClient.is_active === false"
+              class="flex-grow-1"
+              prepend-icon="mdi-restore"
+              variant="outlined"
+              @click="$emit('reactivate', detailClient); detailOpen = false"
+            >
+              Reactivate
+            </v-btn>
+            <v-btn
+              v-else
               class="flex-grow-1"
               color="error"
               prepend-icon="mdi-delete"
@@ -291,7 +305,7 @@
     branchId: { type: [Number, String, null], default: null },
     clientType: { type: String, required: true },
   })
-  defineEmits(['edit', 'delete'])
+  defineEmits(['edit', 'delete', 'reactivate'])
 
   const { tiers, sortedTiers, tierFor, addTier, removeTier, resetTiers } = useClientTiers()
   const tiersDialog = ref(false)

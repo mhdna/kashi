@@ -40,7 +40,11 @@
   <v-dialog v-model="deleteDialog" max-width="420">
     <v-card>
       <v-card-title>Delete Client</v-card-title>
-      <v-card-text>Are you sure you want to delete "{{ deleteTarget?.name }}"? This cannot be undone.</v-card-text>
+      <v-card-text>
+        Delete "{{ deleteTarget?.name }}"? A client with invoices, loyalty history or a
+        branch link is deactivated instead, so their history stays intact and every till
+        stops offering them. You can reactivate them later.
+      </v-card-text>
       <v-alert v-if="deleteError" class="mx-4 mb-2" type="error" variant="tonal">{{ deleteError }}</v-alert>
       <v-card-actions>
         <v-spacer />
@@ -100,12 +104,15 @@
     :client-type="tab"
     @delete="openDelete"
     @edit="openEdit"
+    @reactivate="reactivate"
   />
+
+  <v-snackbar v-model="snackbar.show" timeout="3500">{{ snackbar.text }}</v-snackbar>
 </template>
 
 <script setup>
   import { useField, useForm } from 'vee-validate'
-  import { computed, onMounted, ref } from 'vue'
+  import { computed, onMounted, reactive, ref } from 'vue'
   import ClientLoyaltyBoard from '@/components/Clients/ClientLoyaltyBoard.vue'
   import { useBranches } from '@/composables/useBranches'
   import { useClients } from '@/composables/useClients'
@@ -114,7 +121,8 @@
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
 
-  const { createClient, updateClient, deleteClient } = useClients()
+  const { createClient, updateClient, deleteClient, setClientActive } = useClients()
+  const snackbar = reactive({ show: false, text: '' })
   const { branches, fetchBranches } = useBranches()
 
   onMounted(() => fetchBranches())
@@ -203,13 +211,28 @@
     deleting.value = true
     deleteError.value = ''
     try {
-      await deleteClient(deleteTarget.value.id)
+      const outcome = await deleteClient(deleteTarget.value.id)
       deleteDialog.value = false
+      snackbar.text = outcome === 'deactivated'
+        ? `${deleteTarget.value.name} has history, so they were deactivated instead`
+        : `${deleteTarget.value.name} deleted`
+      snackbar.show = true
       boardRef.value?.reload()
     } catch (error) {
       deleteError.value = error.message
     } finally {
       deleting.value = false
     }
+  }
+
+  async function reactivate (item) {
+    try {
+      await setClientActive(item.id, true)
+      snackbar.text = `${item.name} reactivated`
+      boardRef.value?.reload()
+    } catch (error) {
+      snackbar.text = error.message
+    }
+    snackbar.show = true
   }
 </script>

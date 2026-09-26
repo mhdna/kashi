@@ -140,7 +140,7 @@
               :error-messages="formErrors.clientId"
               :item-title="c => `${c.name} (${c.phone})`"
               :item-value="c => c.id"
-              :items="clients"
+              :items="selectableClients"
               label="Client"
             />
             <v-row>
@@ -219,6 +219,10 @@
 
   const { createCoupon, updateCoupon, deactivateCoupon } = useCoupons()
   const { clients, fetchClients } = useClients()
+  // Inactive (deactivated) clients can't be picked for something new; the
+  // one already selected stays listed so an existing value still renders.
+  const selectableClients = computed(() =>
+    clients.value.filter(c => c.is_active !== false || c.id === form.clientId))
   const {
     couponCategories,
     fetchCouponCategories,

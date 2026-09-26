@@ -57,7 +57,7 @@
                 :error-messages="clientId.errorMessage.value"
                 :item-title="c => c.name"
                 :item-value="c => c.id"
-                :items="clients"
+                :items="selectableClients"
                 label="Client"
               />
             </v-col>
@@ -380,6 +380,10 @@
   const { shifts, fetchShifts } = useShifts()
   const { inventories, fetchInventories } = useInventories()
   const { clients, fetchClients } = useClients()
+  // Inactive (deactivated) clients can't be picked for something new; the
+  // one already selected stays listed so an existing value still renders.
+  const selectableClients = computed(() =>
+    clients.value.filter(c => c.is_active !== false || c.id === clientId.value.value))
   const { priceLists, fetchPriceLists } = usePriceLists()
   const { variants: skuOptions, loading: skuLoading, searchVariants } = useVariants()
 

@@ -316,3 +316,33 @@ func (server *Server) getClientLoyaltyTotal(ctx *gin.Context) {
 
 	server.writeJSON(ctx, http.StatusOK, envelope{"client_id": req.ID, "loyalty_points_total": total})
 }
+
+type setClientActiveURI struct {
+	ID int64 `uri:"id" binding:"required,min=1"`
+}
+
+type setClientActiveRequest struct {
+	IsActive *bool `json:"is_active" binding:"required"`
+}
+
+// setClientActive reactivates (or deactivates) a client without deleting
+// it. A deactivated client is kept for its history; tills copy the flag on
+// their next pull.
+func (server *Server) setClientActive(ctx *gin.Context) {
+	var uri setClientActiveURI
+	if err := ctx.ShouldBindUri(&uri); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	var req setClientActiveRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	if err := server.store.SetClientActive(ctx, db.SetClientActiveParams{ID: uri.ID, IsActive: *req.IsActive}); err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.branchHub.broadcastAll(branchWSMessage{Type: "client_updated"})
+	ctx.JSON(http.StatusOK, gin.H{"status": "ok"})
+}

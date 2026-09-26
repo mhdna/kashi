@@ -63,8 +63,12 @@ async function updateVariant ({ id, color_id, size_id, barcode, price, is_active
   return data?.variant ?? data
 }
 
+// Resolves to "deleted" or "deactivated": a variant with stock, batches or
+// branch sales is deactivated instead (see deleteProductVariant in
+// api/product.go).
 async function deleteVariant (id) {
-  await requestJSON(`${API_BASE}/product_variants/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  const res = await requestJSON(`${API_BASE}/product_variants/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  return res?.message === 'deactivated' ? 'deactivated' : 'deleted'
 }
 
 export function useProducts () {

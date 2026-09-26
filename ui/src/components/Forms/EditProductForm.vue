@@ -407,8 +407,14 @@
     v._deleting = true
     variantError.value = ''
     try {
-      await deleteVariant(v.id)
-      variants.value = variants.value.filter(x => x.id !== v.id)
+      const outcome = await deleteVariant(v.id)
+      if (outcome === 'deactivated') {
+        // Kept for its history; tick "active" and save to bring it back.
+        v.is_active = false
+        variantError.value = 'This variant has stock or sales history, so it was deactivated instead of deleted.'
+      } else {
+        variants.value = variants.value.filter(x => x.id !== v.id)
+      }
     } catch (error) {
       variantError.value = error.message === 'still referenced by one or more products'
         ? 'This variant is used on an invoice or transfer and can\'t be deleted.'
