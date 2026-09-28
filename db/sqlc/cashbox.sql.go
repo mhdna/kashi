@@ -316,6 +316,46 @@ func (q *Queries) ListCashboxAccounts(ctx context.Context, arg ListCashboxAccoun
 	return items, nil
 }
 
+const listCashboxAccountsForSync = `-- name: ListCashboxAccountsForSync :many
+SELECT id, name, currency_code, sort_order, color, updated_at FROM cashbox_accounts
+ORDER BY sort_order, id
+`
+
+// The whole set, not a "changed since" delta. A branch has to be able to tell
+// that kashi no longer has a payment method at all, and an incremental feed
+// can only say what changed -- it has no way to say what is gone. Sending
+// every row lets the till reconcile by absence, the same shape the price and
+// discount lists use. The table is a handful of rows, so the cost is nil.
+func (q *Queries) ListCashboxAccountsForSync(ctx context.Context) ([]CashboxAccount, error) {
+	rows, err := q.db.QueryContext(ctx, listCashboxAccountsForSync)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CashboxAccount{}
+	for rows.Next() {
+		var i CashboxAccount
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CurrencyCode,
+			&i.SortOrder,
+			&i.Color,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listCashboxAccountsUpdatedSince = `-- name: ListCashboxAccountsUpdatedSince :many
 SELECT id, name, currency_code, sort_order, color, updated_at FROM cashbox_accounts
 WHERE updated_at > $1

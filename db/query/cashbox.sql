@@ -55,6 +55,15 @@ SELECT * FROM cashbox_accounts
 WHERE updated_at > $1
 ORDER BY updated_at;
 
+-- name: ListCashboxAccountsForSync :many
+-- The whole set, not a "changed since" delta. A branch has to be able to tell
+-- that kashi no longer has a payment method at all, and an incremental feed
+-- can only say what changed -- it has no way to say what is gone. Sending
+-- every row lets the till reconcile by absence, the same shape the price and
+-- discount lists use. The table is a handful of rows, so the cost is nil.
+SELECT * FROM cashbox_accounts
+ORDER BY sort_order, id;
+
 -- name: GetCashboxAccountBalance :one
 SELECT * FROM shifts_accounts_balances
 WHERE account_id = $1

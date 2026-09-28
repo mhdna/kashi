@@ -114,9 +114,12 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 	var err error
 	switch req.Entity {
 	case "currencies":
-		items, err = server.store.ListCurrenciesUpdatedSince(ctx, since)
+		// Whole set every time, ignoring `since`: a branch has to be able to
+		// see that kashi no longer has a currency or a payment method, and a
+		// delta cannot express absence. Both tables are tiny.
+		items, err = server.store.ListCurrenciesForSync(ctx)
 	case "cashbox_accounts":
-		items, err = server.store.ListCashboxAccountsUpdatedSince(ctx, since)
+		items, err = server.store.ListCashboxAccountsForSync(ctx)
 	case "products":
 		if paged {
 			var rows []db.ListProductVariantsForSyncPagedRow

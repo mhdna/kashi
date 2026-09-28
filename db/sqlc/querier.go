@@ -627,6 +627,12 @@ type Querier interface {
 	ListBranchesForPriceList(ctx context.Context, priceListID int64) ([]ListBranchesForPriceListRow, error)
 	ListCalendarEvents(ctx context.Context) ([]CalendarEvent, error)
 	ListCashboxAccounts(ctx context.Context, arg ListCashboxAccountsParams) ([]CashboxAccount, error)
+	// The whole set, not a "changed since" delta. A branch has to be able to tell
+	// that kashi no longer has a payment method at all, and an incremental feed
+	// can only say what changed -- it has no way to say what is gone. Sending
+	// every row lets the till reconcile by absence, the same shape the price and
+	// discount lists use. The table is a handful of rows, so the cost is nil.
+	ListCashboxAccountsForSync(ctx context.Context) ([]CashboxAccount, error)
 	ListCashboxAccountsUpdatedSince(ctx context.Context, updatedAt time.Time) ([]CashboxAccount, error)
 	ListCashboxes(ctx context.Context, arg ListCashboxesParams) ([]Cashbox, error)
 	// Whole-population feed for the loyalty page, which buckets every client
@@ -706,6 +712,8 @@ type Querier interface {
 	// whole list); any positive value pages. Order is always by code, so the
 	// picker and the paged table agree.
 	ListCurrencies(ctx context.Context, arg ListCurrenciesParams) ([]Currency, error)
+	// The whole set -- see ListCashboxAccountsForSync for why this is not a delta.
+	ListCurrenciesForSync(ctx context.Context) ([]Currency, error)
 	ListCurrenciesUpdatedSince(ctx context.Context, updatedAt time.Time) ([]Currency, error)
 	// Sums grand_total across both kinds ('sales' and 'return') rather than
 	// treating them separately: a branch's return/exchange grand_total is

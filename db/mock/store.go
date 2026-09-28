@@ -5577,6 +5577,21 @@ func (mr *MockStoreMockRecorder) ListCashboxAccounts(arg0, arg1 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCashboxAccounts", reflect.TypeOf((*MockStore)(nil).ListCashboxAccounts), arg0, arg1)
 }
 
+// ListCashboxAccountsForSync mocks base method.
+func (m *MockStore) ListCashboxAccountsForSync(arg0 context.Context) ([]db.CashboxAccount, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListCashboxAccountsForSync", arg0)
+	ret0, _ := ret[0].([]db.CashboxAccount)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListCashboxAccountsForSync indicates an expected call of ListCashboxAccountsForSync.
+func (mr *MockStoreMockRecorder) ListCashboxAccountsForSync(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCashboxAccountsForSync", reflect.TypeOf((*MockStore)(nil).ListCashboxAccountsForSync), arg0)
+}
+
 // ListCashboxAccountsUpdatedSince mocks base method.
 func (m *MockStore) ListCashboxAccountsUpdatedSince(arg0 context.Context, arg1 time.Time) ([]db.CashboxAccount, error) {
 	m.ctrl.T.Helper()
@@ -5800,6 +5815,21 @@ func (m *MockStore) ListCurrencies(arg0 context.Context, arg1 db.ListCurrenciesP
 func (mr *MockStoreMockRecorder) ListCurrencies(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCurrencies", reflect.TypeOf((*MockStore)(nil).ListCurrencies), arg0, arg1)
+}
+
+// ListCurrenciesForSync mocks base method.
+func (m *MockStore) ListCurrenciesForSync(arg0 context.Context) ([]db.Currency, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListCurrenciesForSync", arg0)
+	ret0, _ := ret[0].([]db.Currency)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListCurrenciesForSync indicates an expected call of ListCurrenciesForSync.
+func (mr *MockStoreMockRecorder) ListCurrenciesForSync(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCurrenciesForSync", reflect.TypeOf((*MockStore)(nil).ListCurrenciesForSync), arg0)
 }
 
 // ListCurrenciesUpdatedSince mocks base method.

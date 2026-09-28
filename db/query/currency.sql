@@ -54,3 +54,8 @@ SELECT COUNT(*) FROM currencies;
 SELECT * FROM currencies
 WHERE updated_at > $1
 ORDER BY updated_at;
+
+-- name: ListCurrenciesForSync :many
+-- The whole set -- see ListCashboxAccountsForSync for why this is not a delta.
+SELECT * FROM currencies
+ORDER BY code;

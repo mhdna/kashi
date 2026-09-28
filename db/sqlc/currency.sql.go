@@ -184,6 +184,45 @@ func (q *Queries) ListCurrencies(ctx context.Context, arg ListCurrenciesParams) 
 	return items, nil
 }
 
+const listCurrenciesForSync = `-- name: ListCurrenciesForSync :many
+SELECT code, name, symbol, is_default, value_in_default_currency, is_active, units_per_usd_micros, cash_rounding_unit, updated_at FROM currencies
+ORDER BY code
+`
+
+// The whole set -- see ListCashboxAccountsForSync for why this is not a delta.
+func (q *Queries) ListCurrenciesForSync(ctx context.Context) ([]Currency, error) {
+	rows, err := q.db.QueryContext(ctx, listCurrenciesForSync)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Currency{}
+	for rows.Next() {
+		var i Currency
+		if err := rows.Scan(
+			&i.Code,
+			&i.Name,
+			&i.Symbol,
+			&i.IsDefault,
+			&i.ValueInDefaultCurrency,
+			&i.IsActive,
+			&i.UnitsPerUsdMicros,
+			&i.CashRoundingUnit,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listCurrenciesUpdatedSince = `-- name: ListCurrenciesUpdatedSince :many
 SELECT code, name, symbol, is_default, value_in_default_currency, is_active, units_per_usd_micros, cash_rounding_unit, updated_at FROM currencies
 WHERE updated_at > $1
