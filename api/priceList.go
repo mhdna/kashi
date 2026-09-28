@@ -154,7 +154,9 @@ func (server *Server) listPriceLists(ctx *gin.Context) {
 
 type createPriceListItemRequest struct {
 	PriceListID int64 `json:"price_list_id" binding:"required"`
-	ProductID   int64 `json:"product_id" binding:"required"`
+	// The variant, not the product: the variant owns the barcode and is the
+	// thing actually rung up, so two colors of one product can be priced apart.
+	ProductVariantID int64 `json:"product_variant_id" binding:"required"`
 	// 0 is a legitimate price (a giveaway line), so no "required" here.
 	Price int64 `json:"price" binding:"min=0"`
 }
@@ -167,9 +169,9 @@ func (server *Server) createPriceListItem(ctx *gin.Context) {
 	}
 
 	arg := db.CreatePriceListItemParams{
-		PriceListID: req.PriceListID,
-		ProductID:   req.ProductID,
-		Price:       req.Price,
+		PriceListID:      req.PriceListID,
+		ProductVariantID: req.ProductVariantID,
+		Price:            req.Price,
 	}
 
 	item, err := server.store.CreatePriceListItem(ctx, arg)
@@ -214,8 +216,8 @@ func (server *Server) listPriceListItems(ctx *gin.Context) {
 }
 
 type deletePriceListItemRequest struct {
-	PriceListID int64 `uri:"id" binding:"required,min=0"`
-	ProductID   int64 `uri:"product_id" binding:"required,min=0"`
+	PriceListID      int64 `uri:"id" binding:"required,min=0"`
+	ProductVariantID int64 `uri:"product_variant_id" binding:"required,min=0"`
 }
 
 func (server *Server) deletePriceListItem(ctx *gin.Context) {
@@ -226,8 +228,8 @@ func (server *Server) deletePriceListItem(ctx *gin.Context) {
 	}
 
 	err := server.store.DeletePriceListItem(ctx, db.DeletePriceListItemParams{
-		PriceListID: req.PriceListID,
-		ProductID:   req.ProductID,
+		PriceListID:      req.PriceListID,
+		ProductVariantID: req.ProductVariantID,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)

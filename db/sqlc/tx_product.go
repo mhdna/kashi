@@ -14,7 +14,6 @@ type CreateProductTxParams struct {
 	Code            string            `json:"code"`
 	Name            string            `json:"name"`
 	Description     string            `json:"description"`
-	Price           int64             `json:"price"`
 	Discount        int16             `json:"discount"`
 	AttributeValues []AttributesValue `json:"attribute_values"`
 	ColorID         *int64            `json:"color_id"`
@@ -38,14 +37,13 @@ type CreateProductTxResult struct {
 
 // createVariantWithBarcode inserts one variant, auto-generating a unique
 // EAN-13 barcode (retrying on collision) unless an explicit barcode is given.
-func createVariantWithBarcode(ctx context.Context, q *Queries, productID int64, colorID, sizeID, price sql.NullInt64, explicitBarcode *int64) (ProductVariant, error) {
+func createVariantWithBarcode(ctx context.Context, q *Queries, productID int64, colorID, sizeID sql.NullInt64, explicitBarcode *int64) (ProductVariant, error) {
 	if explicitBarcode != nil {
 		return q.CreateProductVariant(ctx, CreateProductVariantParams{
 			ProductID: productID,
 			ColorID:   colorID,
 			SizeID:    sizeID,
 			Barcode:   strconv.FormatInt(*explicitBarcode, 10),
-			Price:     price,
 		})
 	}
 
@@ -59,7 +57,6 @@ func createVariantWithBarcode(ctx context.Context, q *Queries, productID int64, 
 			ColorID:   colorID,
 			SizeID:    sizeID,
 			Barcode:   strconv.FormatInt(generateEAN13(itemNumber), 10),
-			Price:     price,
 		})
 		if err == nil {
 			return variant, nil
@@ -130,11 +127,6 @@ func (store *SQLStore) CreateProductTx(ctx context.Context, arg CreateProductTxP
 			productAttributes = append(productAttributes, productAttribute)
 		}
 
-		price := sql.NullInt64{}
-		if arg.Price != 0 {
-			price = sql.NullInt64{Int64: arg.Price, Valid: true}
-		}
-
 		// Build the set of colour ids and size ids to fan out over. An
 		// empty slice means "no dimension" -> a single nil entry.
 		colorIDs := arg.ColorIDs
@@ -168,7 +160,7 @@ func (store *SQLStore) CreateProductTx(ctx context.Context, arg CreateProductTxP
 
 		for _, c := range colorCells {
 			for _, s := range sizeCells {
-				variant, err := createVariantWithBarcode(ctx, q, product.ID, c, s, price, explicitBarcode)
+				variant, err := createVariantWithBarcode(ctx, q, product.ID, c, s, explicitBarcode)
 				if err != nil {
 					return err
 				}
@@ -260,7 +252,6 @@ type AddVariantTxParams struct {
 	ProductID int64  `json:"product_id"`
 	ColorID   *int64 `json:"color_id"`
 	SizeID    *int64 `json:"size_id"`
-	Price     *int64 `json:"price"`
 	// Barcode is optional -- a unique EAN-13 is generated when it's nil.
 	Barcode *int64 `json:"barcode"`
 }
@@ -279,12 +270,7 @@ func (store *SQLStore) AddVariantTx(ctx context.Context, arg AddVariantTxParams)
 		if arg.SizeID != nil {
 			sizeID = nullInt64(*arg.SizeID)
 		}
-		price := sql.NullInt64{}
-		if arg.Price != nil {
-			price = nullInt64(*arg.Price)
-		}
-
-		v, err := createVariantWithBarcode(ctx, q, arg.ProductID, colorID, sizeID, price, arg.Barcode)
+		v, err := createVariantWithBarcode(ctx, q, arg.ProductID, colorID, sizeID, arg.Barcode)
 		if err != nil {
 			return err
 		}

@@ -43,7 +43,6 @@ type createProductRequest struct {
 	Code        string     `json:"code" binding:"required"`
 	Name        string     `json:"name" binding:"required"`
 	Description string     `json:"description"`
-	Price       int64      `json:"price"`
 	Discount    int16      `json:"discount"`
 	Attributes  Attributes `json:"attributes"`
 	Barcode     *int64     `json:"barcode"`
@@ -65,7 +64,6 @@ func (server *Server) createProduct(ctx *gin.Context) {
 		Code:            req.Code,
 		Name:            req.Name,
 		Description:     req.Description,
-		Price:           req.Price,
 		Discount:        req.Discount,
 		AttributeValues: attributeValues(req.Attributes),
 		Barcode:         req.Barcode,
@@ -145,7 +143,6 @@ type updateProductVariantRequest struct {
 	ColorID  *int64 `json:"color_id"`
 	SizeID   *int64 `json:"size_id"`
 	Barcode  string `json:"barcode" binding:"required"`
-	Price    *int64 `json:"price"`
 	IsActive bool   `json:"is_active"`
 }
 
@@ -164,17 +161,11 @@ func (server *Server) updateProductVariant(ctx *gin.Context) {
 	if req.SizeID != nil {
 		sizeID = sql.NullInt64{Int64: *req.SizeID, Valid: true}
 	}
-	price := sql.NullInt64{}
-	if req.Price != nil {
-		price = sql.NullInt64{Int64: *req.Price, Valid: true}
-	}
-
 	variant, err := server.store.UpdateProductVariant(ctx, db.UpdateProductVariantParams{
 		ID:       req.ID,
 		ColorID:  colorID,
 		SizeID:   sizeID,
 		Barcode:  req.Barcode,
-		Price:    price,
 		IsActive: req.IsActive,
 	})
 	if err != nil {
@@ -207,7 +198,6 @@ type variantResponse struct {
 	ColorID   *int64    `json:"color_id"`
 	SizeID    *int64    `json:"size_id"`
 	Barcode   string    `json:"barcode"`
-	Price     *int64    `json:"price"`
 	IsActive  bool      `json:"is_active"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -227,9 +217,6 @@ func toVariantResponse(v db.ProductVariant) variantResponse {
 	}
 	if v.SizeID.Valid {
 		out.SizeID = &v.SizeID.Int64
-	}
-	if v.Price.Valid {
-		out.Price = &v.Price.Int64
 	}
 	return out
 }
@@ -390,7 +377,6 @@ type createProductVariantRequest struct {
 	ProductID int64  `json:"product_id" binding:"required,min=1"`
 	ColorID   *int64 `json:"color_id"`
 	SizeID    *int64 `json:"size_id"`
-	Price     *int64 `json:"price"`
 	Barcode   *int64 `json:"barcode"`
 }
 
@@ -407,7 +393,6 @@ func (server *Server) createProductVariant(ctx *gin.Context) {
 		ProductID: req.ProductID,
 		ColorID:   req.ColorID,
 		SizeID:    req.SizeID,
-		Price:     req.Price,
 		Barcode:   req.Barcode,
 	})
 	if err != nil {

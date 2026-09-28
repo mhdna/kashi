@@ -58,6 +58,10 @@ func main() {
 	fmt.Println("🏷️ Seeding product variants...")
 	variantIDs := seedProductVariants(ctx, store, productIDs)
 
+	// Price them in the default list -- a variant with no list entry can't be sold
+	fmt.Println("💲 Seeding default price list...")
+	seedDefaultPriceList(ctx, store, variantIDs)
+
 	// Seed currencies
 	fmt.Println("💱 Seeding currencies...")
 	currencyCodes := seedCurrencies(ctx, store)
@@ -88,7 +92,7 @@ func main() {
 
 	// Seed discount lists
 	fmt.Println("🏷️ Seeding discount lists...")
-	seedDiscountLists(ctx, store, productIDs)
+	seedDiscountLists(ctx, store, variantIDs)
 
 	// Seed transfers
 	fmt.Println("🚚 Seeding transfers...")
@@ -528,7 +532,6 @@ func seedProductVariants(ctx context.Context, store db.Store, productIDs []int64
 		variant, err := store.CreateProductVariant(ctx, db.CreateProductVariantParams{
 			ProductID: productID,
 			Barcode:   fmt.Sprintf("VAR%010d", productID),
-			Price:     nullInt64(int64(rand.Intn(9000) + 1000)),
 		})
 		if err != nil {
 			log.Printf("warning: failed to create variant for product %d: %v", productID, err)
@@ -538,6 +541,34 @@ func seedProductVariants(ctx context.Context, store db.Store, productIDs []int64
 	}
 	fmt.Printf("  ✓ Completed: %d variants created\n", len(variantIDs))
 	return variantIDs
+}
+
+// seedDefaultPriceList prices every seeded variant in the default price list.
+// Without this the seeded catalog would be unsellable: since 000094 a variant
+// has no price of its own, and a variant absent from every price list is
+// rejected at checkout rather than treated as free.
+func seedDefaultPriceList(ctx context.Context, store db.Store, variantIDs []int64) {
+	if len(variantIDs) == 0 {
+		return
+	}
+	list, err := store.GetDefaultPriceList(ctx)
+	if err != nil {
+		log.Printf("warning: no default price list to seed prices into: %v", err)
+		return
+	}
+	count := 0
+	for _, variantID := range variantIDs {
+		if _, err := store.CreatePriceListItem(ctx, db.CreatePriceListItemParams{
+			PriceListID:      list.ID,
+			ProductVariantID: variantID,
+			Price:            int64(rand.Intn(9000) + 1000),
+		}); err != nil {
+			log.Printf("warning: failed to price variant %d: %v", variantID, err)
+			continue
+		}
+		count++
+	}
+	fmt.Printf("  ✓ Completed: %d variants priced in %q\n", count, list.Name)
 }
 
 // seedInventoryStock stocks a random sample of variants in each inventory and
@@ -630,8 +661,8 @@ func seedCoupons(ctx context.Context, store db.Store, clientIDs []int64) {
 	fmt.Printf("  ✓ Completed: %d coupons created\n", count)
 }
 
-func seedDiscountLists(ctx context.Context, store db.Store, productIDs []int64) {
-	if len(productIDs) == 0 {
+func seedDiscountLists(ctx context.Context, store db.Store, variantIDs []int64) {
+	if len(variantIDs) == 0 {
 		return
 	}
 	lists := []string{"Summer Sale", "Clearance", "VIP Discount", "Black Friday", "New Season Launch"}
@@ -651,19 +682,19 @@ func seedDiscountLists(ctx context.Context, store db.Store, productIDs []int64) 
 		}
 		listCount++
 
-		perm := rand.Perm(len(productIDs))
+		perm := rand.Perm(len(variantIDs))
 		itemsForList := 20
 		if itemsForList > len(perm) {
 			itemsForList = len(perm)
 		}
 		for _, idx := range perm[:itemsForList] {
 			_, err := store.CreateDiscountListItem(ctx, db.CreateDiscountListItemParams{
-				DiscountListID: list.ID,
-				ProductID:      productIDs[idx],
-				Discount:       int16(rand.Intn(40) + 5),
+				DiscountListID:   list.ID,
+				ProductVariantID: variantIDs[idx],
+				Discount:         int16(rand.Intn(40) + 5),
 			})
 			if err != nil {
-				log.Printf("warning: failed to add product %d to discount list %d: %v", productIDs[idx], list.ID, err)
+				log.Printf("warning: failed to add variant %d to discount list %d: %v", variantIDs[idx], list.ID, err)
 				continue
 			}
 			itemCount++

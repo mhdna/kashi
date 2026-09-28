@@ -56,12 +56,16 @@ func TestListAttributeValues(t *testing.T) {
 	limit := 5
 	offset := 5
 
-	arg := ListAttributeValuesParams{
-		Limit:  int32(limit),
-		Offset: int32(offset),
+	arg := ListAttributeValuesPageParams{
+		AttributeName: "category",
+		Search:        "",
+		SortBy:        "value",
+		SortOrder:     "asc",
+		PageSize:      int32(limit),
+		PageOffset:    int32(offset),
 	}
 
-	attribute_values, err := testQueries.ListAttributeValues(context.Background(), arg)
+	attribute_values, err := testQueries.ListAttributeValuesPage(context.Background(), arg)
 	require.NoError(t, err)
 	require.Len(t, attribute_values, limit)
 	for _, attrattribute_value := range attribute_values {

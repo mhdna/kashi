@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const countPriceListsFiltered = `-- name: CountPriceListsFiltered :one
@@ -32,7 +34,7 @@ INSERT INTO price_lists (
   valid_to
 ) VALUES (
     $1, $2, $3, $4, $5
-) RETURNING id, name, is_active, is_default, valid_from, valid_to, created_at
+) RETURNING id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at
 `
 
 type CreatePriceListParams struct {
@@ -60,6 +62,8 @@ func (q *Queries) CreatePriceList(ctx context.Context, arg CreatePriceListParams
 		&i.ValidFrom,
 		&i.ValidTo,
 		&i.CreatedAt,
+		&i.Uid,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -74,8 +78,30 @@ func (q *Queries) DeletePriceList(ctx context.Context, id int64) error {
 	return err
 }
 
+const getDefaultPriceList = `-- name: GetDefaultPriceList :one
+SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at FROM price_lists
+WHERE is_default = true LIMIT 1
+`
+
+func (q *Queries) GetDefaultPriceList(ctx context.Context) (PriceList, error) {
+	row := q.db.QueryRowContext(ctx, getDefaultPriceList)
+	var i PriceList
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.IsActive,
+		&i.IsDefault,
+		&i.ValidFrom,
+		&i.ValidTo,
+		&i.CreatedAt,
+		&i.Uid,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getPriceList = `-- name: GetPriceList :one
-SELECT id, name, is_active, is_default, valid_from, valid_to, created_at FROM price_lists
+SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at FROM price_lists
 WHERE id = $1 LIMIT 1
 `
 
@@ -90,12 +116,74 @@ func (q *Queries) GetPriceList(ctx context.Context, id int64) (PriceList, error)
 		&i.ValidFrom,
 		&i.ValidTo,
 		&i.CreatedAt,
+		&i.Uid,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
+const getPriceListByUID = `-- name: GetPriceListByUID :one
+SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at FROM price_lists
+WHERE uid = $1 LIMIT 1
+`
+
+func (q *Queries) GetPriceListByUID(ctx context.Context, uid uuid.UUID) (PriceList, error) {
+	row := q.db.QueryRowContext(ctx, getPriceListByUID, uid)
+	var i PriceList
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.IsActive,
+		&i.IsDefault,
+		&i.ValidFrom,
+		&i.ValidTo,
+		&i.CreatedAt,
+		&i.Uid,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const listPriceListItemsForSync = `-- name: ListPriceListItemsForSync :many
+SELECT pv.uid AS product_variant_uid, pli.price
+FROM price_list_items pli
+JOIN product_variants pv ON pv.id = pli.product_variant_id
+WHERE pli.price_list_id = $1
+ORDER BY pv.uid
+`
+
+type ListPriceListItemsForSyncRow struct {
+	ProductVariantUid uuid.UUID `json:"product_variant_uid"`
+	Price             int64     `json:"price"`
+}
+
+// Items of one list, keyed by the variant's uid -- the till's own row ids are
+// a different number space, so nothing crosses the boundary by integer id.
+func (q *Queries) ListPriceListItemsForSync(ctx context.Context, priceListID int64) ([]ListPriceListItemsForSyncRow, error) {
+	rows, err := q.db.QueryContext(ctx, listPriceListItemsForSync, priceListID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListPriceListItemsForSyncRow{}
+	for rows.Next() {
+		var i ListPriceListItemsForSyncRow
+		if err := rows.Scan(&i.ProductVariantUid, &i.Price); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPriceLists = `-- name: ListPriceLists :many
-SELECT id, name, is_active, is_default, valid_from, valid_to, created_at FROM price_lists
+SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at FROM price_lists
 WHERE BTRIM($1::text) = ''
    OR name ILIKE '%' || BTRIM($1::text) || '%'
 ORDER BY id DESC
@@ -126,6 +214,62 @@ func (q *Queries) ListPriceLists(ctx context.Context, arg ListPriceListsParams) 
 			&i.ValidFrom,
 			&i.ValidTo,
 			&i.CreatedAt,
+			&i.Uid,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPriceListsForBranchSync = `-- name: ListPriceListsForBranchSync :many
+SELECT pl.id, pl.name, pl.is_active, pl.is_default, pl.valid_from, pl.valid_to, pl.created_at, pl.uid, pl.updated_at FROM price_lists pl
+LEFT JOIN price_list_branches plb
+  ON plb.price_list_id = pl.id AND plb.branch_id = $1
+WHERE (plb.branch_id IS NOT NULL OR pl.is_default = true)
+  AND pl.updated_at > $2
+ORDER BY pl.updated_at
+`
+
+type ListPriceListsForBranchSyncParams struct {
+	BranchID  int64     `json:"branch_id"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// The only price lists a branch is allowed to know about: the default one
+// (its fallback) and the one it is assigned, if any. Deliberately not every
+// list -- a till has no business holding another branch's pricing.
+//
+// is_active is carried rather than filtered on, because a list going inactive
+// is exactly the event the till needs in order to drop its local copy; filter
+// it out here and the till would keep pricing from a list kashi has retired.
+func (q *Queries) ListPriceListsForBranchSync(ctx context.Context, arg ListPriceListsForBranchSyncParams) ([]PriceList, error) {
+	rows, err := q.db.QueryContext(ctx, listPriceListsForBranchSync, arg.BranchID, arg.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PriceList{}
+	for rows.Next() {
+		var i PriceList
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.IsActive,
+			&i.IsDefault,
+			&i.ValidFrom,
+			&i.ValidTo,
+			&i.CreatedAt,
+			&i.Uid,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -142,7 +286,7 @@ func (q *Queries) ListPriceLists(ctx context.Context, arg ListPriceListsParams) 
 
 const unsetDefaultPriceList = `-- name: UnsetDefaultPriceList :exec
 UPDATE price_lists
-SET is_default = false
+SET is_default = false, updated_at = now()
 WHERE is_default = true AND id != $1
 `
 
@@ -153,7 +297,8 @@ func (q *Queries) UnsetDefaultPriceList(ctx context.Context, id int64) error {
 
 const updatePriceList = `-- name: UpdatePriceList :exec
 UPDATE price_lists
-SET name = $2, is_active = $3, is_default = $4, valid_from = $5, valid_to = $6
+SET name = $2, is_active = $3, is_default = $4, valid_from = $5, valid_to = $6,
+    updated_at = now()
 WHERE id = $1
 `
 

@@ -47,10 +47,9 @@ INSERT INTO product_variants (
   product_id,
   color_id,
   size_id,
-  barcode,
-  price
+  barcode
 ) VALUES (
-  $1, $2, $3, $4, $5
+  $1, $2, $3, $4
 ) RETURNING id, product_id, color_id, size_id, barcode, price, is_active, created_at, updated_at, avg_cost, uid
 `
 
@@ -59,16 +58,17 @@ type CreateProductVariantParams struct {
 	ColorID   sql.NullInt64 `json:"color_id"`
 	SizeID    sql.NullInt64 `json:"size_id"`
 	Barcode   string        `json:"barcode"`
-	Price     sql.NullInt64 `json:"price"`
 }
 
+// No price column: since 000094 a variant's price is an entry in a price
+// list, not a property of the variant, so a newly created variant starts with
+// no price and is unsellable until it is added to one.
 func (q *Queries) CreateProductVariant(ctx context.Context, arg CreateProductVariantParams) (ProductVariant, error) {
 	row := q.db.QueryRowContext(ctx, createProductVariant,
 		arg.ProductID,
 		arg.ColorID,
 		arg.SizeID,
 		arg.Barcode,
-		arg.Price,
 	)
 	var i ProductVariant
 	err := row.Scan(
@@ -149,7 +149,7 @@ const getVariantForLabel = `-- name: GetVariantForLabel :one
 SELECT
   pv.id,
   pv.barcode,
-  pv.price,
+  vdp.price,
   p.code AS product_code,
   p.name AS product_name,
   COALESCE(c.name, '')  AS color_name,
@@ -157,6 +157,7 @@ SELECT
   COALESCE(brand_val.value, '') AS brand
 FROM product_variants pv
 JOIN products p ON p.id = pv.product_id
+LEFT JOIN variant_default_prices vdp ON vdp.product_variant_id = pv.id
 LEFT JOIN colors c ON c.id = pv.color_id
 LEFT JOIN sizes  s ON s.id = pv.size_id
 LEFT JOIN products_attributes brand_pa ON brand_pa.product_id = p.id AND brand_pa.attribute_id = 2
@@ -311,7 +312,6 @@ SELECT
   product_variants.uid,
   product_variants.id,
   product_variants.barcode,
-  product_variants.price,
   product_variants.is_active,
   product_variants.updated_at,
   products.code,
@@ -346,7 +346,6 @@ type ListProductVariantsForSyncRow struct {
 	Uid         uuid.UUID      `json:"uid"`
 	ID          int64          `json:"id"`
 	Barcode     string         `json:"barcode"`
-	Price       sql.NullInt64  `json:"price"`
 	IsActive    bool           `json:"is_active"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	Code        string         `json:"code"`
@@ -366,6 +365,12 @@ type ListProductVariantsForSyncRow struct {
 // flat product row. Colors/sizes/attributes are resolved to their name
 // here (not sent as ids) since kashi-pos matches everything by name, not
 // by kashi's internal ids.
+//
+// Price is deliberately absent: since 000094 a variant has no price of its
+// own, it has an entry in a price list, and those sync down as their own
+// entities (see the price_lists/discount_lists cases in branch_catchup.go).
+// A till receiving no price here keeps whatever the lists last told it,
+// which is what applySyncedProductVariant already does for an absent price.
 //
 // Attribute ids (2=brand, 1=sub-category, 3=kind, 7=season, 6=year) match
 // the fixed seed in 000005_create_products_attributes_table.up.sql.
@@ -388,7 +393,6 @@ func (q *Queries) ListProductVariantsForSync(ctx context.Context, updatedAt time
 			&i.Uid,
 			&i.ID,
 			&i.Barcode,
-			&i.Price,
 			&i.IsActive,
 			&i.UpdatedAt,
 			&i.Code,
@@ -420,7 +424,6 @@ SELECT
   product_variants.uid,
   product_variants.id,
   product_variants.barcode,
-  product_variants.price,
   product_variants.is_active,
   product_variants.updated_at,
   products.code,
@@ -454,7 +457,6 @@ type ListProductVariantsForSyncByUIDsRow struct {
 	Uid         uuid.UUID      `json:"uid"`
 	ID          int64          `json:"id"`
 	Barcode     string         `json:"barcode"`
-	Price       sql.NullInt64  `json:"price"`
 	IsActive    bool           `json:"is_active"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	Code        string         `json:"code"`
@@ -484,7 +486,6 @@ func (q *Queries) ListProductVariantsForSyncByUIDs(ctx context.Context, uids []u
 			&i.Uid,
 			&i.ID,
 			&i.Barcode,
-			&i.Price,
 			&i.IsActive,
 			&i.UpdatedAt,
 			&i.Code,
@@ -516,7 +517,6 @@ SELECT
   product_variants.uid,
   product_variants.id,
   product_variants.barcode,
-  product_variants.price,
   product_variants.is_active,
   product_variants.updated_at,
   products.code,
@@ -558,7 +558,6 @@ type ListProductVariantsForSyncPagedRow struct {
 	Uid         uuid.UUID      `json:"uid"`
 	ID          int64          `json:"id"`
 	Barcode     string         `json:"barcode"`
-	Price       sql.NullInt64  `json:"price"`
 	IsActive    bool           `json:"is_active"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	Code        string         `json:"code"`
@@ -589,7 +588,6 @@ func (q *Queries) ListProductVariantsForSyncPaged(ctx context.Context, arg ListP
 			&i.Uid,
 			&i.ID,
 			&i.Barcode,
-			&i.Price,
 			&i.IsActive,
 			&i.UpdatedAt,
 			&i.Code,
@@ -661,7 +659,7 @@ const listVariantsForBarcodes = `-- name: ListVariantsForBarcodes :many
 SELECT
   pv.id,
   pv.barcode,
-  pv.price,
+  vdp.price,
   pv.is_active,
   pv.created_at,
   p.id   AS product_id,
@@ -673,6 +671,7 @@ SELECT
   COALESCE(brand_val.value, '') AS brand
 FROM product_variants pv
 JOIN products p ON p.id = pv.product_id
+LEFT JOIN variant_default_prices vdp ON vdp.product_variant_id = pv.id
 LEFT JOIN colors c ON c.id = pv.color_id
 LEFT JOIN sizes  s ON s.id = pv.size_id
 LEFT JOIN products_attributes brand_pa ON brand_pa.product_id = p.id AND brand_pa.attribute_id = 2
@@ -779,8 +778,7 @@ UPDATE product_variants
 SET color_id = $2,
 size_id = $3,
 barcode = $4,
-price = $5,
-is_active = $6,
+is_active = $5,
 updated_at = now()
 WHERE id = $1
 RETURNING id, product_id, color_id, size_id, barcode, price, is_active, created_at, updated_at, avg_cost, uid
@@ -791,17 +789,16 @@ type UpdateProductVariantParams struct {
 	ColorID  sql.NullInt64 `json:"color_id"`
 	SizeID   sql.NullInt64 `json:"size_id"`
 	Barcode  string        `json:"barcode"`
-	Price    sql.NullInt64 `json:"price"`
 	IsActive bool          `json:"is_active"`
 }
 
+// price is deliberately not settable here -- see CreateProductVariant.
 func (q *Queries) UpdateProductVariant(ctx context.Context, arg UpdateProductVariantParams) (ProductVariant, error) {
 	row := q.db.QueryRowContext(ctx, updateProductVariant,
 		arg.ID,
 		arg.ColorID,
 		arg.SizeID,
 		arg.Barcode,
-		arg.Price,
 		arg.IsActive,
 	)
 	var i ProductVariant

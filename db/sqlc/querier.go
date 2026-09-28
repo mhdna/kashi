@@ -173,6 +173,9 @@ type Querier interface {
 	CreatePriceListItem(ctx context.Context, arg CreatePriceListItemParams) (PriceListItem, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreateProductAttribute(ctx context.Context, arg CreateProductAttributeParams) (ProductsAttribute, error)
+	// No price column: since 000094 a variant's price is an entry in a price
+	// list, not a property of the variant, so a newly created variant starts with
+	// no price and is unsellable until it is added to one.
 	CreateProductVariant(ctx context.Context, arg CreateProductVariantParams) (ProductVariant, error)
 	CreatePurchase(ctx context.Context, arg CreatePurchaseParams) (Purchase, error)
 	CreateRecurringExpense(ctx context.Context, arg CreateRecurringExpenseParams) (RecurringExpense, error)
@@ -366,11 +369,16 @@ type Querier interface {
 	GetCouponCategory(ctx context.Context, id int64) (CouponCategory, error)
 	GetCurrency(ctx context.Context, code string) (Currency, error)
 	GetDefaultCurrency(ctx context.Context) (Currency, error)
-	GetDefaultDiscountForProduct(ctx context.Context, productID int64) (int16, error)
+	GetDefaultDiscountForVariant(ctx context.Context, productVariantID int64) (int16, error)
+	GetDefaultDiscountList(ctx context.Context) (DiscountList, error)
 	GetDefaultInvoiceType(ctx context.Context) (InvoiceType, error)
-	GetDefaultPriceForProduct(ctx context.Context, productID int64) (int64, error)
+	// Branch-independent price, for the contexts that have no branch to speak of:
+	// printed labels, stock listings, head-office reporting.
+	GetDefaultPriceForVariant(ctx context.Context, productVariantID int64) (int64, error)
+	GetDefaultPriceList(ctx context.Context) (PriceList, error)
 	GetDiscountList(ctx context.Context, id int64) (DiscountList, error)
 	GetDiscountListBranch(ctx context.Context, branchID int64) (DiscountListBranch, error)
+	GetDiscountListByUID(ctx context.Context, uid uuid.UUID) (DiscountList, error)
 	GetEmployee(ctx context.Context, id int64) (Employee, error)
 	GetEntry(ctx context.Context, id int64) (Entry, error)
 	GetExpense(ctx context.Context, id int64) (Expense, error)
@@ -392,6 +400,7 @@ type Querier interface {
 	GetNextBarcodeItemValue(ctx context.Context) (int64, error)
 	GetPriceList(ctx context.Context, id int64) (PriceList, error)
 	GetPriceListBranch(ctx context.Context, branchID int64) (PriceListBranch, error)
+	GetPriceListByUID(ctx context.Context, uid uuid.UUID) (PriceList, error)
 	GetProduct(ctx context.Context, id int64) (Product, error)
 	GetProductAttributeValue(ctx context.Context, arg GetProductAttributeValueParams) (ProductsAttribute, error)
 	GetProductAttributes(ctx context.Context, productID int64) ([]ProductsAttribute, error)
@@ -470,8 +479,6 @@ type Querier interface {
 	//   SET discount = $3
 	// WHERE product_id = $1 AND discount_list_id = $2;
 	GetProductByCode(ctx context.Context, code string) (Product, error)
-	GetProductDiscountFromList(ctx context.Context, arg GetProductDiscountFromListParams) (DiscountListItem, error)
-	GetProductPriceFromList(ctx context.Context, arg GetProductPriceFromListParams) (PriceListItem, error)
 	GetProductSupplier(ctx context.Context, arg GetProductSupplierParams) (ProductSupplier, error)
 	GetProductVariant(ctx context.Context, id int64) (ProductVariant, error)
 	GetProductVariantByBarcode(ctx context.Context, barcode string) (ProductVariant, error)
@@ -499,7 +506,9 @@ type Querier interface {
 	// at all means the user no longer exists.
 	GetUserAccess(ctx context.Context, id int64) ([]GetUserAccessRow, error)
 	GetUserByUsername(ctx context.Context, name string) (User, error)
+	GetVariantDiscountFromList(ctx context.Context, arg GetVariantDiscountFromListParams) (DiscountListItem, error)
 	GetVariantForLabel(ctx context.Context, id int64) (GetVariantForLabelRow, error)
+	GetVariantPriceFromList(ctx context.Context, arg GetVariantPriceFromListParams) (PriceListItem, error)
 	GetVariantTotalOnHand(ctx context.Context, variantID int64) (int64, error)
 	GetWhatsAppSettings(ctx context.Context) (GetWhatsAppSettingsRow, error)
 	IncrementInvoicesIndex(ctx context.Context, arg IncrementInvoicesIndexParams) (int64, error)
@@ -557,7 +566,8 @@ type Querier interface {
 	// central stock -- that ledger is the only place a branch sale is linked to
 	// a real product. It carries quantity but no transaction price, so revenue
 	// here is an ESTIMATE: each unit priced at the variant's *current* catalog
-	// price (product_variants.price), not whatever kashi-pos actually charged
+	// price (its entry in the default price list -- see the variant_default_prices
+	// view in 000094), not whatever kashi-pos actually charged
 	// at checkout (which may have included a since-changed price or a
 	// branch-side discount neither table records at this granularity). A line
 	// whose barcode never resolved (old kashi-pos build, unknown barcode, or a
@@ -711,8 +721,14 @@ type Querier interface {
 	ListDailyIncome(ctx context.Context, arg ListDailyIncomeParams) ([]ListDailyIncomeRow, error)
 	ListDiscountListBranchIDs(ctx context.Context, discountListID int64) ([]int64, error)
 	ListDiscountListItems(ctx context.Context, discountListID int64) ([]DiscountListItem, error)
+	ListDiscountListItemsForSync(ctx context.Context, discountListID int64) ([]ListDiscountListItemsForSyncRow, error)
+	// See ListPriceListItemsWithProduct: rows are variant-level, so the label needs
+	// the barcode and color/size to be identifiable.
 	ListDiscountListItemsWithProduct(ctx context.Context, arg ListDiscountListItemsWithProductParams) ([]ListDiscountListItemsWithProductRow, error)
 	ListDiscountLists(ctx context.Context, arg ListDiscountListsParams) ([]DiscountList, error)
+	// See ListPriceListsForBranchSync -- same scoping and same reason for
+	// carrying is_active rather than filtering on it.
+	ListDiscountListsForBranchSync(ctx context.Context, arg ListDiscountListsForBranchSyncParams) ([]DiscountList, error)
 	ListDueRecurringExpenses(ctx context.Context, nextDueAt time.Time) ([]RecurringExpense, error)
 	ListEmployees(ctx context.Context, arg ListEmployeesParams) ([]Employee, error)
 	ListEntries(ctx context.Context, arg ListEntriesParams) ([]Entry, error)
@@ -755,8 +771,22 @@ type Querier interface {
 	ListPendingBranchCommands(ctx context.Context, branchID int64) ([]BranchCommand, error)
 	ListPriceListBranchIDs(ctx context.Context, priceListID int64) ([]int64, error)
 	ListPriceListItems(ctx context.Context, priceListID int64) ([]PriceListItem, error)
+	// Items of one list, keyed by the variant's uid -- the till's own row ids are
+	// a different number space, so nothing crosses the boundary by integer id.
+	ListPriceListItemsForSync(ctx context.Context, priceListID int64) ([]ListPriceListItemsForSyncRow, error)
+	// Rows are variant-level now, so the display label needs the variant's own
+	// barcode and its color/size -- a product code and name alone no longer
+	// identify which row a price belongs to.
 	ListPriceListItemsWithProduct(ctx context.Context, arg ListPriceListItemsWithProductParams) ([]ListPriceListItemsWithProductRow, error)
 	ListPriceLists(ctx context.Context, arg ListPriceListsParams) ([]PriceList, error)
+	// The only price lists a branch is allowed to know about: the default one
+	// (its fallback) and the one it is assigned, if any. Deliberately not every
+	// list -- a till has no business holding another branch's pricing.
+	//
+	// is_active is carried rather than filtered on, because a list going inactive
+	// is exactly the event the till needs in order to drop its local copy; filter
+	// it out here and the till would keep pricing from a list kashi has retired.
+	ListPriceListsForBranchSync(ctx context.Context, arg ListPriceListsForBranchSyncParams) ([]PriceList, error)
 	ListProductAttributes(ctx context.Context, arg ListProductAttributesParams) ([]ProductsAttribute, error)
 	// Revenue per product from kashi's own admin sales invoices (invoice_products
 	// joined through sales_invoices, so returns don't count as revenue). Branch
@@ -778,6 +808,12 @@ type Querier interface {
 	// flat product row. Colors/sizes/attributes are resolved to their name
 	// here (not sent as ids) since kashi-pos matches everything by name, not
 	// by kashi's internal ids.
+	//
+	// Price is deliberately absent: since 000094 a variant has no price of its
+	// own, it has an entry in a price list, and those sync down as their own
+	// entities (see the price_lists/discount_lists cases in branch_catchup.go).
+	// A till receiving no price here keeps whatever the lists last told it,
+	// which is what applySyncedProductVariant already does for an absent price.
 	//
 	// Attribute ids (2=brand, 1=sub-category, 3=kind, 7=season, 6=year) match
 	// the fixed seed in 000005_create_products_attributes_table.up.sql.
@@ -851,6 +887,22 @@ type Querier interface {
 	// canonical one.
 	RepointBranchInvoicesClientUID(ctx context.Context, arg RepointBranchInvoicesClientUIDParams) error
 	ResolveBranchSyncConflict(ctx context.Context, arg ResolveBranchSyncConflictParams) (BranchSyncConflict, error)
+	// Mirrors ResolveVariantPrice: a branch assigned a discount list is discounted
+	// from it, everyone else from the default list. Unlike price, no row here means
+	// no discount (i.e. zero), not "unsellable" -- a product with no discount is a
+	// product sold at full price.
+	ResolveVariantDiscount(ctx context.Context, arg ResolveVariantDiscountParams) (int16, error)
+	ResolveVariantDiscounts(ctx context.Context, arg ResolveVariantDiscountsParams) ([]ResolveVariantDiscountsRow, error)
+	// The one place that answers "what does this variant cost at this branch".
+	// A branch assigned a list via price_list_branches is priced from it; every
+	// other branch, and any variant the assigned list doesn't mention, falls back
+	// to the default list. No row means no price, which callers must treat as
+	// "not sellable" rather than as zero.
+	ResolveVariantPrice(ctx context.Context, arg ResolveVariantPriceParams) (int64, error)
+	// Batch form of ResolveVariantPrice, for listings and the branch sync payload,
+	// so pricing N variants costs one query rather than N. DISTINCT ON keeps the
+	// branch list's row ahead of the default list's for the same variant.
+	ResolveVariantPrices(ctx context.Context, arg ResolveVariantPricesParams) ([]ResolveVariantPricesRow, error)
 	SetBranchActive(ctx context.Context, arg SetBranchActiveParams) error
 	SetBranchInventory(ctx context.Context, arg SetBranchInventoryParams) error
 	// managed_locally is admin-owned, not branch-reported: a branch's settings
@@ -923,6 +975,7 @@ type Querier interface {
 	UpdateProductAttribute(ctx context.Context, arg UpdateProductAttributeParams) error
 	// A null threshold clears the override, falling back to the app-wide default.
 	UpdateProductLowStockThreshold(ctx context.Context, arg UpdateProductLowStockThresholdParams) error
+	// price is deliberately not settable here -- see CreateProductVariant.
 	UpdateProductVariant(ctx context.Context, arg UpdateProductVariantParams) (ProductVariant, error)
 	// Roll the variant's global moving-average cost forward on a stock receipt.
 	// current_qty is the on-hand across all locations before this receipt.

@@ -21,10 +21,11 @@ SELECT
   COALESCE(subcat_val.value, '')::text AS subcategory,
   COALESCE(brand_val.value, '')::text AS brand,
   SUM(-sm.quantity)::bigint AS quantity,
-  SUM(-sm.quantity * COALESCE(pv.price, 0))::bigint AS revenue,
+  SUM(-sm.quantity * COALESCE(vdp.price, 0))::bigint AS revenue,
   COUNT(DISTINCT sm.reference_id)::bigint AS invoice_count
 FROM stock_movements sm
 JOIN product_variants pv ON pv.id = sm.variant_id
+LEFT JOIN variant_default_prices vdp ON vdp.product_variant_id = pv.id
 JOIN products p ON p.id = pv.product_id
 JOIN inventories i ON i.id = sm.inventory_id
 JOIN branches b ON b.inventory_id = i.id
@@ -78,7 +79,8 @@ type ListBranchProductRevenueRow struct {
 // central stock -- that ledger is the only place a branch sale is linked to
 // a real product. It carries quantity but no transaction price, so revenue
 // here is an ESTIMATE: each unit priced at the variant's *current* catalog
-// price (product_variants.price), not whatever kashi-pos actually charged
+// price (its entry in the default price list -- see the variant_default_prices
+// view in 000094), not whatever kashi-pos actually charged
 // at checkout (which may have included a since-changed price or a
 // branch-side discount neither table records at this granularity). A line
 // whose barcode never resolved (old kashi-pos build, unknown barcode, or a
@@ -129,10 +131,11 @@ func (q *Queries) ListBranchProductRevenue(ctx context.Context, arg ListBranchPr
 const listBranchProductRevenueDaily = `-- name: ListBranchProductRevenueDaily :many
 SELECT
   (sm.created_at AT TIME ZONE 'UTC')::date AS day,
-  SUM(-sm.quantity * COALESCE(pv.price, 0))::bigint AS revenue,
+  SUM(-sm.quantity * COALESCE(vdp.price, 0))::bigint AS revenue,
   SUM(-sm.quantity)::bigint AS quantity
 FROM stock_movements sm
 JOIN product_variants pv ON pv.id = sm.variant_id
+LEFT JOIN variant_default_prices vdp ON vdp.product_variant_id = pv.id
 JOIN products p ON p.id = pv.product_id
 JOIN inventories i ON i.id = sm.inventory_id
 JOIN branches b ON b.inventory_id = i.id
@@ -203,9 +206,10 @@ SELECT
   b.id AS branch_id,
   b.name AS branch_name,
   SUM(-sm.quantity)::bigint AS quantity,
-  SUM(-sm.quantity * COALESCE(pv.price, 0))::bigint AS revenue
+  SUM(-sm.quantity * COALESCE(vdp.price, 0))::bigint AS revenue
 FROM stock_movements sm
 JOIN product_variants pv ON pv.id = sm.variant_id
+LEFT JOIN variant_default_prices vdp ON vdp.product_variant_id = pv.id
 JOIN products p ON p.id = pv.product_id
 JOIN inventories i ON i.id = sm.inventory_id
 JOIN branches b ON b.inventory_id = i.id

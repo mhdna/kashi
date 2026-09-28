@@ -16,14 +16,15 @@ func TestCreateProductTxGeneratesUniqueBarcodeWhenNoneGiven(t *testing.T) {
 		Code:        util.RandomString(8),
 		Name:        util.RandomString(20),
 		Description: util.RandomString(50),
-		Price:       util.RandomAmount(),
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, result.Product)
 	require.NotEmpty(t, result.Variant)
 	require.Equal(t, result.Product.ID, result.Variant.ProductID)
 	require.NotEmpty(t, result.Variant.Barcode)
-	require.True(t, result.Variant.Price.Valid)
+	// A new variant starts with no price -- it gets one by being added to a
+	// price list, and is unsellable until then.
+	require.False(t, result.Variant.Price.Valid)
 
 	// The variant must actually be retrievable by the barcode that came back
 	// — proves it was written to product_variants, not silently dropped.

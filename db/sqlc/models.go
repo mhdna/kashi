@@ -968,6 +968,8 @@ type DiscountList struct {
 	ValidFrom time.Time `json:"valid_from"`
 	ValidTo   time.Time `json:"valid_to"`
 	CreatedAt time.Time `json:"created_at"`
+	Uid       uuid.UUID `json:"uid"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type DiscountListBranch struct {
@@ -977,9 +979,9 @@ type DiscountListBranch struct {
 }
 
 type DiscountListItem struct {
-	DiscountListID int64 `json:"discount_list_id"`
-	ProductID      int64 `json:"product_id"`
-	Discount       int16 `json:"discount"`
+	DiscountListID   int64 `json:"discount_list_id"`
+	Discount         int16 `json:"discount"`
+	ProductVariantID int64 `json:"product_variant_id"`
 }
 
 type Employee struct {
@@ -1155,6 +1157,8 @@ type PriceList struct {
 	ValidFrom time.Time `json:"valid_from"`
 	ValidTo   time.Time `json:"valid_to"`
 	CreatedAt time.Time `json:"created_at"`
+	Uid       uuid.UUID `json:"uid"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type PriceListBranch struct {
@@ -1164,9 +1168,9 @@ type PriceListBranch struct {
 }
 
 type PriceListItem struct {
-	PriceListID int64 `json:"price_list_id"`
-	ProductID   int64 `json:"product_id"`
-	Price       int64 `json:"price"`
+	PriceListID      int64 `json:"price_list_id"`
+	Price            int64 `json:"price"`
+	ProductVariantID int64 `json:"product_variant_id"`
 }
 
 type Product struct {
@@ -1411,4 +1415,14 @@ type User struct {
 type UsersPermission struct {
 	UserID       int64 `json:"user_id"`
 	PermissionID int64 `json:"permission_id"`
+}
+
+type VariantDefaultDiscount struct {
+	ProductVariantID int64 `json:"product_variant_id"`
+	Discount         int16 `json:"discount"`
+}
+
+type VariantDefaultPrice struct {
+	ProductVariantID int64 `json:"product_variant_id"`
+	Price            int64 `json:"price"`
 }

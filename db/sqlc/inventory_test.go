@@ -99,7 +99,6 @@ func createRandomVariant(t *testing.T) ProductVariant {
 	variant, err := testQueries.CreateProductVariant(context.Background(), CreateProductVariantParams{
 		ProductID: product.ID,
 		Barcode:   util.RandomString(16),
-		Price:     sql.NullInt64{Int64: util.RandomInt(100, 9999), Valid: true},
 	})
 	require.NoError(t, err)
 	return variant

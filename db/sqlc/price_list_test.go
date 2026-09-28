@@ -46,34 +46,34 @@ func TestListPriceLists(t *testing.T) {
 
 func TestCreatePriceListItem(t *testing.T) {
 	priceList := createRandomPriceList(t)
-	product := createRandomProduct(t)
+	variant := createRandomVariant(t)
 
 	arg := CreatePriceListItemParams{
-		PriceListID: priceList.ID,
-		ProductID:   product.ID,
-		Price:       999,
+		PriceListID:      priceList.ID,
+		ProductVariantID: variant.ID,
+		Price:            999,
 	}
 	item, err := testQueries.CreatePriceListItem(context.Background(), arg)
 	require.NoError(t, err)
 	require.Equal(t, priceList.ID, item.PriceListID)
-	require.Equal(t, product.ID, item.ProductID)
+	require.Equal(t, variant.ID, item.ProductVariantID)
 	require.Equal(t, int64(999), item.Price)
 }
 
-func TestGetProductPriceFromList(t *testing.T) {
+func TestGetVariantPriceFromList(t *testing.T) {
 	priceList := createRandomPriceList(t)
-	product := createRandomProduct(t)
+	variant := createRandomVariant(t)
 
 	_, err := testQueries.CreatePriceListItem(context.Background(), CreatePriceListItemParams{
-		PriceListID: priceList.ID,
-		ProductID:   product.ID,
-		Price:       500,
+		PriceListID:      priceList.ID,
+		ProductVariantID: variant.ID,
+		Price:            500,
 	})
 	require.NoError(t, err)
 
-	got, err := testQueries.GetProductPriceFromList(context.Background(), GetProductPriceFromListParams{
-		PriceListID: priceList.ID,
-		ProductID:   product.ID,
+	got, err := testQueries.GetVariantPriceFromList(context.Background(), GetVariantPriceFromListParams{
+		PriceListID:      priceList.ID,
+		ProductVariantID: variant.ID,
 	})
 	require.NoError(t, err)
 	require.Equal(t, int64(500), got.Price)
@@ -81,25 +81,25 @@ func TestGetProductPriceFromList(t *testing.T) {
 
 func TestUpdatePriceListItem(t *testing.T) {
 	priceList := createRandomPriceList(t)
-	product := createRandomProduct(t)
+	variant := createRandomVariant(t)
 
 	_, err := testQueries.CreatePriceListItem(context.Background(), CreatePriceListItemParams{
-		PriceListID: priceList.ID,
-		ProductID:   product.ID,
-		Price:       100,
+		PriceListID:      priceList.ID,
+		ProductVariantID: variant.ID,
+		Price:            100,
 	})
 	require.NoError(t, err)
 
 	err = testQueries.UpdatePriceListItem(context.Background(), UpdatePriceListItemParams{
-		PriceListID: priceList.ID,
-		ProductID:   product.ID,
-		Price:       200,
+		PriceListID:      priceList.ID,
+		ProductVariantID: variant.ID,
+		Price:            200,
 	})
 	require.NoError(t, err)
 
-	got, err := testQueries.GetProductPriceFromList(context.Background(), GetProductPriceFromListParams{
-		PriceListID: priceList.ID,
-		ProductID:   product.ID,
+	got, err := testQueries.GetVariantPriceFromList(context.Background(), GetVariantPriceFromListParams{
+		PriceListID:      priceList.ID,
+		ProductVariantID: variant.ID,
 	})
 	require.NoError(t, err)
 	require.Equal(t, int64(200), got.Price)
@@ -107,18 +107,18 @@ func TestUpdatePriceListItem(t *testing.T) {
 
 func TestDeletePriceListItem(t *testing.T) {
 	priceList := createRandomPriceList(t)
-	product := createRandomProduct(t)
+	variant := createRandomVariant(t)
 
 	_, err := testQueries.CreatePriceListItem(context.Background(), CreatePriceListItemParams{
-		PriceListID: priceList.ID,
-		ProductID:   product.ID,
-		Price:       300,
+		PriceListID:      priceList.ID,
+		ProductVariantID: variant.ID,
+		Price:            300,
 	})
 	require.NoError(t, err)
 
 	err = testQueries.DeletePriceListItem(context.Background(), DeletePriceListItemParams{
-		PriceListID: priceList.ID,
-		ProductID:   product.ID,
+		PriceListID:      priceList.ID,
+		ProductVariantID: variant.ID,
 	})
 	require.NoError(t, err)
 }
@@ -126,11 +126,11 @@ func TestDeletePriceListItem(t *testing.T) {
 func TestListPriceListItems(t *testing.T) {
 	priceList := createRandomPriceList(t)
 	for range 3 {
-		product := createRandomProduct(t)
+		variant := createRandomVariant(t)
 		_, err := testQueries.CreatePriceListItem(context.Background(), CreatePriceListItemParams{
-			PriceListID: priceList.ID,
-			ProductID:   product.ID,
-			Price:       100,
+			PriceListID:      priceList.ID,
+			ProductVariantID: variant.ID,
+			Price:            100,
 		})
 		require.NoError(t, err)
 	}
@@ -179,17 +179,17 @@ func TestCreateDiscountListItem(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	product := createRandomProduct(t)
+	variant := createRandomVariant(t)
 	item, err := testQueries.CreateDiscountListItem(context.Background(), CreateDiscountListItemParams{
-		DiscountListID: dl.ID,
-		ProductID:      product.ID,
-		Discount:       15,
+		DiscountListID:   dl.ID,
+		ProductVariantID: variant.ID,
+		Discount:         15,
 	})
 	require.NoError(t, err)
 	require.Equal(t, int16(15), item.Discount)
 }
 
-func TestGetProductDiscountFromList(t *testing.T) {
+func TestGetVariantDiscountFromList(t *testing.T) {
 	dl, err := testQueries.CreateDiscountList(context.Background(), CreateDiscountListParams{
 		Name:      "DL for get",
 		IsActive:  true,
@@ -199,17 +199,17 @@ func TestGetProductDiscountFromList(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	product := createRandomProduct(t)
+	variant := createRandomVariant(t)
 	_, err = testQueries.CreateDiscountListItem(context.Background(), CreateDiscountListItemParams{
-		DiscountListID: dl.ID,
-		ProductID:      product.ID,
-		Discount:       25,
+		DiscountListID:   dl.ID,
+		ProductVariantID: variant.ID,
+		Discount:         25,
 	})
 	require.NoError(t, err)
 
-	got, err := testQueries.GetProductDiscountFromList(context.Background(), GetProductDiscountFromListParams{
-		DiscountListID: dl.ID,
-		ProductID:      product.ID,
+	got, err := testQueries.GetVariantDiscountFromList(context.Background(), GetVariantDiscountFromListParams{
+		DiscountListID:   dl.ID,
+		ProductVariantID: variant.ID,
 	})
 	require.NoError(t, err)
 	require.Equal(t, int16(25), got.Discount)
@@ -225,17 +225,17 @@ func TestDeleteDiscountListItem(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	product := createRandomProduct(t)
+	variant := createRandomVariant(t)
 	_, err = testQueries.CreateDiscountListItem(context.Background(), CreateDiscountListItemParams{
-		DiscountListID: dl.ID,
-		ProductID:      product.ID,
-		Discount:       10,
+		DiscountListID:   dl.ID,
+		ProductVariantID: variant.ID,
+		Discount:         10,
 	})
 	require.NoError(t, err)
 
 	err = testQueries.DeleteDiscountListItem(context.Background(), DeleteDiscountListItemParams{
-		DiscountListID: dl.ID,
-		ProductID:      product.ID,
+		DiscountListID:   dl.ID,
+		ProductVariantID: variant.ID,
 	})
 	require.NoError(t, err)
 }

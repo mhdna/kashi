@@ -80,7 +80,7 @@ SELECT
   ist.avg_cost,
   ist.updated_at,
   pv.barcode,
-  pv.price,
+  vdp.price,
   p.id   AS product_id,
   p.code AS product_code,
   p.name AS product_name,
@@ -88,6 +88,7 @@ SELECT
   COALESCE(s.name, '') AS size_name
 FROM inventory_stock ist
 JOIN product_variants pv ON pv.id = ist.variant_id
+LEFT JOIN variant_default_prices vdp ON vdp.product_variant_id = pv.id
 JOIN products p ON p.id = pv.product_id
 LEFT JOIN colors c ON c.id = pv.color_id
 LEFT JOIN sizes  s ON s.id = pv.size_id

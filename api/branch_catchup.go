@@ -187,6 +187,14 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 			BranchID:  branchID,
 			UpdatedAt: since,
 		})
+	case "price_lists":
+		// Branch-specific: the default list plus whatever this branch is
+		// assigned. Sent whole, items included -- see branch_sync_lists.go.
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		items, err = server.priceListsForBranchSync(ctx, branchID, since)
+	case "discount_lists":
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		items, err = server.discountListsForBranchSync(ctx, branchID, since)
 	case "expense_categories":
 		// Global like currencies; the query itself restricts to
 		// scope='branch' rows -- central-only categories never leave kashi.

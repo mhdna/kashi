@@ -7,18 +7,22 @@ package db
 
 import (
 	"context"
+	"database/sql"
 
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
 
 const countPriceListItemsWithProduct = `-- name: CountPriceListItemsWithProduct :one
 SELECT COUNT(*)
 FROM price_list_items pli
-JOIN products p ON p.id = pli.product_id
+JOIN product_variants pv ON pv.id = pli.product_variant_id
+JOIN products p ON p.id = pv.product_id
 WHERE pli.price_list_id = $1
   AND ($2::text = ''
        OR p.name ILIKE '%' || $2::text || '%'
-       OR p.code ILIKE '%' || $2::text || '%')
+       OR p.code ILIKE '%' || $2::text || '%'
+       OR pv.barcode ILIKE '%' || $2::text || '%')
 `
 
 type CountPriceListItemsWithProductParams struct {
@@ -34,96 +38,95 @@ func (q *Queries) CountPriceListItemsWithProduct(ctx context.Context, arg CountP
 }
 
 const createPriceListItem = `-- name: CreatePriceListItem :one
-INSERT INTO price_list_items (price_list_id, product_id, price)
+INSERT INTO price_list_items (price_list_id, product_variant_id, price)
 VALUES ($1, $2, $3)
-ON CONFLICT (price_list_id, product_id)
+ON CONFLICT (price_list_id, product_variant_id)
 DO UPDATE SET price = $3
-RETURNING price_list_id, product_id, price
+RETURNING price_list_id, price, product_variant_id
 `
 
 type CreatePriceListItemParams struct {
-	PriceListID int64 `json:"price_list_id"`
-	ProductID   int64 `json:"product_id"`
-	Price       int64 `json:"price"`
+	PriceListID      int64 `json:"price_list_id"`
+	ProductVariantID int64 `json:"product_variant_id"`
+	Price            int64 `json:"price"`
 }
 
 func (q *Queries) CreatePriceListItem(ctx context.Context, arg CreatePriceListItemParams) (PriceListItem, error) {
-	row := q.db.QueryRowContext(ctx, createPriceListItem, arg.PriceListID, arg.ProductID, arg.Price)
+	row := q.db.QueryRowContext(ctx, createPriceListItem, arg.PriceListID, arg.ProductVariantID, arg.Price)
 	var i PriceListItem
-	err := row.Scan(&i.PriceListID, &i.ProductID, &i.Price)
+	err := row.Scan(&i.PriceListID, &i.Price, &i.ProductVariantID)
 	return i, err
 }
 
 const deletePriceListItem = `-- name: DeletePriceListItem :exec
 DELETE FROM price_list_items
-WHERE price_list_id = $1 AND product_id = $2
+WHERE price_list_id = $1 AND product_variant_id = $2
 `
 
 type DeletePriceListItemParams struct {
-	PriceListID int64 `json:"price_list_id"`
-	ProductID   int64 `json:"product_id"`
+	PriceListID      int64 `json:"price_list_id"`
+	ProductVariantID int64 `json:"product_variant_id"`
 }
 
 func (q *Queries) DeletePriceListItem(ctx context.Context, arg DeletePriceListItemParams) error {
-	_, err := q.db.ExecContext(ctx, deletePriceListItem, arg.PriceListID, arg.ProductID)
+	_, err := q.db.ExecContext(ctx, deletePriceListItem, arg.PriceListID, arg.ProductVariantID)
 	return err
 }
 
 const deletePriceListItems = `-- name: DeletePriceListItems :execrows
 DELETE FROM price_list_items
-WHERE price_list_id = $1 AND product_id = ANY($2::bigint[])
+WHERE price_list_id = $1
+  AND product_variant_id = ANY($2::bigint[])
 `
 
 type DeletePriceListItemsParams struct {
-	PriceListID int64   `json:"price_list_id"`
-	ProductIds  []int64 `json:"product_ids"`
+	PriceListID       int64   `json:"price_list_id"`
+	ProductVariantIds []int64 `json:"product_variant_ids"`
 }
 
 func (q *Queries) DeletePriceListItems(ctx context.Context, arg DeletePriceListItemsParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, deletePriceListItems, arg.PriceListID, pq.Array(arg.ProductIds))
+	result, err := q.db.ExecContext(ctx, deletePriceListItems, arg.PriceListID, pq.Array(arg.ProductVariantIds))
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected()
 }
 
-const getDefaultPriceForProduct = `-- name: GetDefaultPriceForProduct :one
-SELECT pli.price FROM price_list_items pli
-JOIN price_lists pl ON pl.id = pli.price_list_id
-WHERE pli.product_id = $1
-AND pl.is_active = true AND pl.is_default = true
-AND now() >= pl.valid_from AND now() <= pl.valid_to
-LIMIT 1
+const getDefaultPriceForVariant = `-- name: GetDefaultPriceForVariant :one
+SELECT price FROM variant_default_prices
+WHERE product_variant_id = $1
 `
 
-func (q *Queries) GetDefaultPriceForProduct(ctx context.Context, productID int64) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getDefaultPriceForProduct, productID)
+// Branch-independent price, for the contexts that have no branch to speak of:
+// printed labels, stock listings, head-office reporting.
+func (q *Queries) GetDefaultPriceForVariant(ctx context.Context, productVariantID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getDefaultPriceForVariant, productVariantID)
 	var price int64
 	err := row.Scan(&price)
 	return price, err
 }
 
-const getProductPriceFromList = `-- name: GetProductPriceFromList :one
-SELECT price_list_id, product_id, price FROM price_list_items
-WHERE price_list_id = $1 AND product_id = $2
+const getVariantPriceFromList = `-- name: GetVariantPriceFromList :one
+SELECT price_list_id, price, product_variant_id FROM price_list_items
+WHERE price_list_id = $1 AND product_variant_id = $2
 `
 
-type GetProductPriceFromListParams struct {
-	PriceListID int64 `json:"price_list_id"`
-	ProductID   int64 `json:"product_id"`
+type GetVariantPriceFromListParams struct {
+	PriceListID      int64 `json:"price_list_id"`
+	ProductVariantID int64 `json:"product_variant_id"`
 }
 
-func (q *Queries) GetProductPriceFromList(ctx context.Context, arg GetProductPriceFromListParams) (PriceListItem, error) {
-	row := q.db.QueryRowContext(ctx, getProductPriceFromList, arg.PriceListID, arg.ProductID)
+func (q *Queries) GetVariantPriceFromList(ctx context.Context, arg GetVariantPriceFromListParams) (PriceListItem, error) {
+	row := q.db.QueryRowContext(ctx, getVariantPriceFromList, arg.PriceListID, arg.ProductVariantID)
 	var i PriceListItem
-	err := row.Scan(&i.PriceListID, &i.ProductID, &i.Price)
+	err := row.Scan(&i.PriceListID, &i.Price, &i.ProductVariantID)
 	return i, err
 }
 
 const listPriceListItems = `-- name: ListPriceListItems :many
-SELECT price_list_id, product_id, price FROM price_list_items
+SELECT price_list_id, price, product_variant_id FROM price_list_items
 WHERE price_list_id = $1
-ORDER BY product_id
+ORDER BY product_variant_id
 `
 
 func (q *Queries) ListPriceListItems(ctx context.Context, priceListID int64) ([]PriceListItem, error) {
@@ -135,7 +138,7 @@ func (q *Queries) ListPriceListItems(ctx context.Context, priceListID int64) ([]
 	items := []PriceListItem{}
 	for rows.Next() {
 		var i PriceListItem
-		if err := rows.Scan(&i.PriceListID, &i.ProductID, &i.Price); err != nil {
+		if err := rows.Scan(&i.PriceListID, &i.Price, &i.ProductVariantID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -150,15 +153,21 @@ func (q *Queries) ListPriceListItems(ctx context.Context, priceListID int64) ([]
 }
 
 const listPriceListItemsWithProduct = `-- name: ListPriceListItemsWithProduct :many
-SELECT pli.price_list_id, pli.product_id, pli.price,
-       p.code AS product_code, p.name AS product_name
+SELECT pli.price_list_id, pli.product_variant_id, pli.price,
+       pv.uid AS product_variant_uid, pv.barcode,
+       p.code AS product_code, p.name AS product_name,
+       colors.name AS color_name, sizes.name AS size_name
 FROM price_list_items pli
-JOIN products p ON p.id = pli.product_id
+JOIN product_variants pv ON pv.id = pli.product_variant_id
+JOIN products p ON p.id = pv.product_id
+LEFT JOIN colors ON colors.id = pv.color_id
+LEFT JOIN sizes ON sizes.id = pv.size_id
 WHERE pli.price_list_id = $1
   AND ($2::text = ''
        OR p.name ILIKE '%' || $2::text || '%'
-       OR p.code ILIKE '%' || $2::text || '%')
-ORDER BY p.name, pli.product_id
+       OR p.code ILIKE '%' || $2::text || '%'
+       OR pv.barcode ILIKE '%' || $2::text || '%')
+ORDER BY p.name, pli.product_variant_id
 LIMIT $4
 OFFSET $3
 `
@@ -171,13 +180,20 @@ type ListPriceListItemsWithProductParams struct {
 }
 
 type ListPriceListItemsWithProductRow struct {
-	PriceListID int64  `json:"price_list_id"`
-	ProductID   int64  `json:"product_id"`
-	Price       int64  `json:"price"`
-	ProductCode string `json:"product_code"`
-	ProductName string `json:"product_name"`
+	PriceListID       int64          `json:"price_list_id"`
+	ProductVariantID  int64          `json:"product_variant_id"`
+	Price             int64          `json:"price"`
+	ProductVariantUid uuid.UUID      `json:"product_variant_uid"`
+	Barcode           string         `json:"barcode"`
+	ProductCode       string         `json:"product_code"`
+	ProductName       string         `json:"product_name"`
+	ColorName         sql.NullString `json:"color_name"`
+	SizeName          sql.NullString `json:"size_name"`
 }
 
+// Rows are variant-level now, so the display label needs the variant's own
+// barcode and its color/size -- a product code and name alone no longer
+// identify which row a price belongs to.
 func (q *Queries) ListPriceListItemsWithProduct(ctx context.Context, arg ListPriceListItemsWithProductParams) ([]ListPriceListItemsWithProductRow, error) {
 	rows, err := q.db.QueryContext(ctx, listPriceListItemsWithProduct,
 		arg.PriceListID,
@@ -194,11 +210,95 @@ func (q *Queries) ListPriceListItemsWithProduct(ctx context.Context, arg ListPri
 		var i ListPriceListItemsWithProductRow
 		if err := rows.Scan(
 			&i.PriceListID,
-			&i.ProductID,
+			&i.ProductVariantID,
 			&i.Price,
+			&i.ProductVariantUid,
+			&i.Barcode,
 			&i.ProductCode,
 			&i.ProductName,
+			&i.ColorName,
+			&i.SizeName,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const resolveVariantPrice = `-- name: ResolveVariantPrice :one
+SELECT pli.price FROM price_list_items pli
+JOIN price_lists pl ON pl.id = pli.price_list_id
+LEFT JOIN price_list_branches plb
+  ON plb.price_list_id = pl.id AND plb.branch_id = $1
+WHERE pli.product_variant_id = $2
+  AND pl.is_active = true
+  AND now() >= pl.valid_from AND now() <= pl.valid_to
+  AND (plb.branch_id IS NOT NULL OR pl.is_default = true)
+ORDER BY (plb.branch_id IS NOT NULL) DESC
+LIMIT 1
+`
+
+type ResolveVariantPriceParams struct {
+	BranchID         int64 `json:"branch_id"`
+	ProductVariantID int64 `json:"product_variant_id"`
+}
+
+// The one place that answers "what does this variant cost at this branch".
+// A branch assigned a list via price_list_branches is priced from it; every
+// other branch, and any variant the assigned list doesn't mention, falls back
+// to the default list. No row means no price, which callers must treat as
+// "not sellable" rather than as zero.
+func (q *Queries) ResolveVariantPrice(ctx context.Context, arg ResolveVariantPriceParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, resolveVariantPrice, arg.BranchID, arg.ProductVariantID)
+	var price int64
+	err := row.Scan(&price)
+	return price, err
+}
+
+const resolveVariantPrices = `-- name: ResolveVariantPrices :many
+SELECT DISTINCT ON (pli.product_variant_id)
+       pli.product_variant_id, pli.price
+FROM price_list_items pli
+JOIN price_lists pl ON pl.id = pli.price_list_id
+LEFT JOIN price_list_branches plb
+  ON plb.price_list_id = pl.id AND plb.branch_id = $1
+WHERE pli.product_variant_id = ANY($2::bigint[])
+  AND pl.is_active = true
+  AND now() >= pl.valid_from AND now() <= pl.valid_to
+  AND (plb.branch_id IS NOT NULL OR pl.is_default = true)
+ORDER BY pli.product_variant_id, (plb.branch_id IS NOT NULL) DESC
+`
+
+type ResolveVariantPricesParams struct {
+	BranchID          int64   `json:"branch_id"`
+	ProductVariantIds []int64 `json:"product_variant_ids"`
+}
+
+type ResolveVariantPricesRow struct {
+	ProductVariantID int64 `json:"product_variant_id"`
+	Price            int64 `json:"price"`
+}
+
+// Batch form of ResolveVariantPrice, for listings and the branch sync payload,
+// so pricing N variants costs one query rather than N. DISTINCT ON keeps the
+// branch list's row ahead of the default list's for the same variant.
+func (q *Queries) ResolveVariantPrices(ctx context.Context, arg ResolveVariantPricesParams) ([]ResolveVariantPricesRow, error) {
+	rows, err := q.db.QueryContext(ctx, resolveVariantPrices, arg.BranchID, pq.Array(arg.ProductVariantIds))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ResolveVariantPricesRow{}
+	for rows.Next() {
+		var i ResolveVariantPricesRow
+		if err := rows.Scan(&i.ProductVariantID, &i.Price); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -215,16 +315,16 @@ func (q *Queries) ListPriceListItemsWithProduct(ctx context.Context, arg ListPri
 const updatePriceListItem = `-- name: UpdatePriceListItem :exec
 UPDATE price_list_items
 SET price = $3
-WHERE price_list_id = $1 AND product_id = $2
+WHERE price_list_id = $1 AND product_variant_id = $2
 `
 
 type UpdatePriceListItemParams struct {
-	PriceListID int64 `json:"price_list_id"`
-	ProductID   int64 `json:"product_id"`
-	Price       int64 `json:"price"`
+	PriceListID      int64 `json:"price_list_id"`
+	ProductVariantID int64 `json:"product_variant_id"`
+	Price            int64 `json:"price"`
 }
 
 func (q *Queries) UpdatePriceListItem(ctx context.Context, arg UpdatePriceListItemParams) error {
-	_, err := q.db.ExecContext(ctx, updatePriceListItem, arg.PriceListID, arg.ProductID, arg.Price)
+	_, err := q.db.ExecContext(ctx, updatePriceListItem, arg.PriceListID, arg.ProductVariantID, arg.Price)
 	return err
 }

@@ -38,12 +38,12 @@ func TestCreateDiscountListItemZeroDiscountAPI(t *testing.T) {
 
 	store := mockdb.NewMockStore(ctrl)
 	store.EXPECT().CreateDiscountListItem(gomock.Any(), db.CreateDiscountListItemParams{
-		DiscountListID: 1, ProductID: 5, Discount: 0,
-	}).Times(1).Return(db.DiscountListItem{DiscountListID: 1, ProductID: 5, Discount: 0}, nil)
+		DiscountListID: 1, ProductVariantID: 5, Discount: 0,
+	}).Times(1).Return(db.DiscountListItem{DiscountListID: 1, ProductVariantID: 5, Discount: 0}, nil)
 
 	server := newTestServer(t, store)
 	rec := httptest.NewRecorder()
-	body, err := json.Marshal(map[string]any{"discount_list_id": 1, "product_id": 5, "discount": 0})
+	body, err := json.Marshal(map[string]any{"discount_list_id": 1, "product_variant_id": 5, "discount": 0})
 	require.NoError(t, err)
 	req, err := http.NewRequest(http.MethodPost, "/discount_lists/items", bytes.NewReader(body))
 	require.NoError(t, err)
