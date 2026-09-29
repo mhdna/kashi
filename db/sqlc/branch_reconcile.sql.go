@@ -282,6 +282,34 @@ func (q *Queries) BranchVisitorEventRefsPresent(ctx context.Context, arg BranchV
 	return items, nil
 }
 
+const clientPhonesPresent = `-- name: ClientPhonesPresent :many
+SELECT phone FROM clients
+WHERE phone = ANY($1::text[])
+`
+
+func (q *Queries) ClientPhonesPresent(ctx context.Context, dollar_1 []string) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, clientPhonesPresent, pq.Array(dollar_1))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var phone string
+		if err := rows.Scan(&phone); err != nil {
+			return nil, err
+		}
+		items = append(items, phone)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const productBarcodesPresent = `-- name: ProductBarcodesPresent :many
 SELECT barcode FROM product_variants
 WHERE barcode = ANY($1::text[])

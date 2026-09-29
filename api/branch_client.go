@@ -3,12 +3,14 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	db "github.com/mhdna/kashi/db/sqlc"
 )
 
@@ -19,6 +21,9 @@ type branchClientRequest struct {
 	// phone. Rather than 400 (retried forever) or create an unmatchable
 	// central row, that case is staged as an 'invalid_phone' conflict.
 	Phone string `json:"phone"`
+	// UID is the client's shared identity, minted by whichever side created
+	// the client. Tills that predate uid sync omit it.
+	UID string `json:"uid"`
 }
 
 // validBranchPhone reports whether a branch-reported phone is usable as the
@@ -60,6 +65,38 @@ func (server *Server) putBranchClient(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
 	}
+
+	outcome, err := server.resolveBranchClient(ctx, branchID, req)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.branchHub.broadcastAll(branchWSMessage{Type: "client_updated"})
+	if outcome.conflictKind != "" {
+		server.writeJSON(ctx, http.StatusOK, envelope{
+			"client": outcome.client, "conflict": true, "conflict_kind": outcome.conflictKind,
+		})
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"client": outcome.client})
+}
+
+// branchClientOutcome is what resolveBranchClient decided for one client:
+// the central client the branch client now maps to, and -- only for the
+// "linked to an existing phone under a different name" case -- the conflict
+// kind that was staged for an admin.
+type branchClientOutcome struct {
+	client       db.Client
+	conflictKind string
+}
+
+// resolveBranchClient applies the resolution rules documented on
+// putBranchClient to one branch-reported client. It has no HTTP or websocket
+// side effects of its own, so the single-client route and the batch route
+// (branch_client_batch.go) share it and each decides how to respond and
+// when to notify the other branches. A returned error is a server-side
+// failure (retryable); the request itself is never rejected here.
+func (server *Server) resolveBranchClient(ctx *gin.Context, branchID int64, req branchClientRequest) (branchClientOutcome, error) {
 	req.Phone = strings.TrimSpace(req.Phone)
 	payloadJSON, _ := json.Marshal(req)
 	refStr := strconv.FormatInt(req.BranchClientID, 10)
@@ -69,6 +106,12 @@ func (server *Server) putBranchClient(ctx *gin.Context) {
 	// still attribute; an admin can set the real number later.
 	if !validBranchPhone(req.Phone) {
 		req.Phone = syntheticBranchPhone(branchID, req.BranchClientID)
+	}
+
+	// A till that sent a uid already knows which central client it means:
+	// either kashi has it (edit) or it's a new client the till created.
+	if uid := parseNullUUID(req.UID); uid.Valid {
+		return server.resolveBranchClientByUID(ctx, branchID, req, uid.UUID, refStr, payloadJSON)
 	}
 
 	linkedClientID, err := server.store.GetClientLink(ctx, db.GetClientLinkParams{
@@ -82,8 +125,7 @@ func (server *Server) putBranchClient(ctx *gin.Context) {
 		// branch till has no business reverting that.
 		linked, getErr := server.store.GetClient(ctx, linkedClientID)
 		if getErr != nil {
-			server.writeError(ctx, http.StatusInternalServerError, getErr)
-			return
+			return branchClientOutcome{}, getErr
 		}
 		client, updErr := server.store.UpdateClient(ctx, db.UpdateClientParams{
 			ID:         linkedClientID,
@@ -92,12 +134,9 @@ func (server *Server) putBranchClient(ctx *gin.Context) {
 			ClientType: linked.ClientType,
 		})
 		if updErr != nil {
-			server.writeError(ctx, http.StatusInternalServerError, updErr)
-			return
+			return branchClientOutcome{}, updErr
 		}
-		server.branchHub.broadcastAll(branchWSMessage{Type: "client_updated"})
-		server.writeJSON(ctx, http.StatusOK, envelope{"client": client})
-		return
+		return branchClientOutcome{client: client}, nil
 
 	case err == sql.ErrNoRows:
 		// Not linked yet.
@@ -109,21 +148,14 @@ func (server *Server) putBranchClient(ctx *gin.Context) {
 				BranchClientID: req.BranchClientID,
 				ClientID:       existing.ID,
 			}); linkErr != nil {
-				server.writeError(ctx, http.StatusInternalServerError, linkErr)
-				return
+				return branchClientOutcome{}, linkErr
 			}
 			if strings.TrimSpace(existing.Name) != strings.TrimSpace(req.Name) {
 				server.stageBranchSyncConflict(ctx, branchID, "client", refStr, "phone_name_mismatch", payloadJSON,
 					sql.NullInt64{Int64: existing.ID, Valid: true})
-				server.branchHub.broadcastAll(branchWSMessage{Type: "client_updated"})
-				server.writeJSON(ctx, http.StatusOK, envelope{
-					"client": existing, "conflict": true, "conflict_kind": "phone_name_mismatch",
-				})
-				return
+				return branchClientOutcome{client: existing, conflictKind: "phone_name_mismatch"}, nil
 			}
-			server.branchHub.broadcastAll(branchWSMessage{Type: "client_updated"})
-			server.writeJSON(ctx, http.StatusOK, envelope{"client": existing})
-			return
+			return branchClientOutcome{client: existing}, nil
 
 		case phoneErr == sql.ErrNoRows:
 			created, createErr := server.store.CreateClient(ctx, db.CreateClientParams{
@@ -140,33 +172,117 @@ func (server *Server) putBranchClient(ctx *gin.Context) {
 				// Resolve to the winner rather than 500ing the loser forever.
 				won, lookupErr := server.store.GetClientByPhone(ctx, req.Phone)
 				if lookupErr != nil {
-					server.writeError(ctx, http.StatusInternalServerError, lookupErr)
-					return
+					return branchClientOutcome{}, lookupErr
 				}
 				client = won
 			default:
-				server.writeError(ctx, http.StatusInternalServerError, createErr)
-				return
+				return branchClientOutcome{}, createErr
 			}
 			if linkErr := server.store.UpsertClientLink(ctx, db.UpsertClientLinkParams{
 				BranchID:       branchID,
 				BranchClientID: req.BranchClientID,
 				ClientID:       client.ID,
 			}); linkErr != nil {
-				server.writeError(ctx, http.StatusInternalServerError, linkErr)
-				return
+				return branchClientOutcome{}, linkErr
 			}
-			server.branchHub.broadcastAll(branchWSMessage{Type: "client_updated"})
-			server.writeJSON(ctx, http.StatusOK, envelope{"client": client})
-			return
+			return branchClientOutcome{client: client}, nil
 
 		default:
-			server.writeError(ctx, http.StatusInternalServerError, phoneErr)
-			return
+			return branchClientOutcome{}, phoneErr
 		}
 
 	default:
-		server.writeError(ctx, http.StatusInternalServerError, err)
-		return
+		return branchClientOutcome{}, err
 	}
+}
+
+// resolveBranchClientByUID is resolveBranchClient for a till that sends the
+// client's shared uid. Resolution order:
+//  1. uid known centrally: update its name/phone (kashi keeps client_type).
+//  2. phone already belongs to another client: that client is canonical --
+//     the till adopts its uid (the response carries it). Nothing is created.
+//  3. otherwise: create the client under the till's uid.
+//
+// client_links is still upserted every time so older reports and
+// invoice attribution keyed on branch_client_id keep working.
+func (server *Server) resolveBranchClientByUID(ctx *gin.Context, branchID int64, req branchClientRequest, uid uuid.UUID, refStr string, payloadJSON []byte) (branchClientOutcome, error) {
+	var client db.Client
+	conflictKind := ""
+
+	existing, err := server.store.GetClientByUID(ctx, uid)
+	switch {
+	case err == nil:
+		// If the new phone is taken by a different client, keep this
+		// client's phone as is rather than violating the unique index; an
+		// admin resolves the clash from the staged conflict.
+		phone := req.Phone
+		if other, phoneErr := server.store.GetClientByPhone(ctx, req.Phone); phoneErr == nil && other.ID != existing.ID {
+			phone = existing.Phone
+			conflictKind = "phone_taken"
+			server.stageBranchSyncConflict(ctx, branchID, "client", refStr, conflictKind, payloadJSON,
+				sql.NullInt64{Int64: other.ID, Valid: true})
+		}
+		client, err = server.store.UpdateClient(ctx, db.UpdateClientParams{
+			ID:         existing.ID,
+			Name:       req.Name,
+			Phone:      phone,
+			ClientType: existing.ClientType,
+		})
+		if err != nil {
+			return branchClientOutcome{}, err
+		}
+
+	case errors.Is(err, sql.ErrNoRows):
+		byPhone, phoneErr := server.store.GetClientByPhone(ctx, req.Phone)
+		switch {
+		case phoneErr == nil:
+			client = byPhone
+			if err := server.store.RepointBranchInvoicesClientUID(ctx, db.RepointBranchInvoicesClientUIDParams{
+				CanonicalUid: byPhone.Uid,
+				BranchID:     branchID,
+				TillUid:      uid,
+			}); err != nil {
+				return branchClientOutcome{}, err
+			}
+			if strings.TrimSpace(byPhone.Name) != strings.TrimSpace(req.Name) {
+				conflictKind = "phone_name_mismatch"
+				server.stageBranchSyncConflict(ctx, branchID, "client", refStr, conflictKind, payloadJSON,
+					sql.NullInt64{Int64: byPhone.ID, Valid: true})
+			}
+		case errors.Is(phoneErr, sql.ErrNoRows):
+			created, createErr := server.store.CreateClientWithUID(ctx, db.CreateClientWithUIDParams{
+				Uid:   uid,
+				Name:  req.Name,
+				Phone: req.Phone,
+			})
+			switch {
+			case createErr == nil:
+				client = created
+			case isUniqueViolation(createErr):
+				// A concurrent push won the race on phone or uid; resolve
+				// to whichever row now holds this phone.
+				won, lookupErr := server.store.GetClientByPhone(ctx, req.Phone)
+				if lookupErr != nil {
+					return branchClientOutcome{}, lookupErr
+				}
+				client = won
+			default:
+				return branchClientOutcome{}, createErr
+			}
+		default:
+			return branchClientOutcome{}, phoneErr
+		}
+
+	default:
+		return branchClientOutcome{}, err
+	}
+
+	if err := server.store.UpsertClientLink(ctx, db.UpsertClientLinkParams{
+		BranchID:       branchID,
+		BranchClientID: req.BranchClientID,
+		ClientID:       client.ID,
+	}); err != nil {
+		return branchClientOutcome{}, err
+	}
+	return branchClientOutcome{client: client, conflictKind: conflictKind}, nil
 }

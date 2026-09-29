@@ -33,7 +33,13 @@ function handleClose () {
 function connect () {
   const authStore = useAuthStore()
 
-  status.value = 'connecting'
+  // Don't stomp a confirmed 'closed' back to 'connecting' on the 5s reconnect
+  // loop -- consumers show an outage state for 'closed' and we don't want it
+  // flickering away on every retry. The initial connect still starts here
+  // because status is 'connecting' at module load.
+  if (status.value !== 'closed') {
+    status.value = 'connecting'
+  }
   ws = new WebSocket(`${WS_BASE}/admin/ws?token=${authStore.token}`)
 
   ws.addEventListener('open', () => {

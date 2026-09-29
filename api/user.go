@@ -13,36 +13,34 @@ import (
 	"github.com/mhdna/kashi/util"
 )
 
-// PIN codes are the only credential in this POS -- 4 to 6 digits, no email.
+// Passwords for cloud (admin site) users. This is a separate list from the
+// POS operators in branch_users, whose 4-6 digit PINs are pushed down to each
+// till (see branch_user.go). Accounts created before this rule existed may
+// still have a short PIN as their password; they keep working until changed.
 const (
-	pinMinLen = 4
-	pinMaxLen = 6
+	passwordMinLen = 8
+	// bcrypt only hashes the first 72 bytes and errors past that.
+	passwordMaxLen = 72
 )
 
-var errPINFormat = errors.New("pin must be 4 to 6 digits")
+var errPasswordFormat = errors.New("password must be 8 to 72 characters")
 
-func isPIN(s string) bool {
-	if len(s) < pinMinLen || len(s) > pinMaxLen {
-		return false
-	}
-	for _, r := range s {
-		if r < '0' || r > '9' {
-			return false
-		}
-	}
-	return true
+func validPassword(s string) bool {
+	return len(s) >= passwordMinLen && len(s) <= passwordMaxLen
 }
 
 type createUserRequest struct {
 	Name      string `json:"name" binding:"required,alphanum"`
 	Password  string `json:"password" binding:"required"`
 	Activated bool   `json:"activated"`
+	RoleID    int64  `json:"role_id" binding:"required,min=1"`
 }
 
 type userResponse struct {
 	ID                int64     `json:"id"`
 	Name              string    `json:"name"`
 	Activated         bool      `json:"activated"`
+	RoleID            int64     `json:"role_id"`
 	PasswordChangedAt time.Time `json:"password_changed_at"`
 	CreatedAt         time.Time `json:"created_at"`
 }
@@ -52,9 +50,32 @@ func newUserResponse(user db.User) userResponse {
 		ID:                user.ID,
 		Name:              user.Name,
 		Activated:         user.Activated,
+		RoleID:            user.RoleID,
 		PasswordChangedAt: user.PasswordChangedAt,
 		CreatedAt:         user.CreatedAt,
 	}
+}
+
+// getMe returns the caller's own user and access so the UI can hide what
+// their role can't use. It's re-fetched on load rather than trusted from the
+// login response, so a role change shows up without logging out.
+func (server *Server) getMe(ctx *gin.Context) {
+	payload := ctx.MustGet(authoizationPayloadKey).(*token.Payload)
+	user, err := server.store.GetUser(ctx, payload.UserID)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	access, _ := currentAccess(ctx)
+	server.writeJSON(ctx, http.StatusOK, envelope{"user": newUserResponse(user), "access": access})
+}
+
+// listOnlineUsers gives the admin UI an initial value for "who is signed in
+// right now" on load -- the live figure after that comes from the
+// "admin_presence_changed" push over the admin WebSocket (see adminWS in
+// admin_ws.go), same poll-then-push pattern as listConnectedBranches.
+func (server *Server) listOnlineUsers(ctx *gin.Context) {
+	server.writeJSON(ctx, http.StatusOK, envelope{"users": server.adminHub.onlineUsers()})
 }
 
 func (server *Server) createUser(ctx *gin.Context) {
@@ -64,8 +85,8 @@ func (server *Server) createUser(ctx *gin.Context) {
 		return
 	}
 
-	if !isPIN(req.Password) {
-		server.writeError(ctx, http.StatusBadRequest, errPINFormat)
+	if !validPassword(req.Password) {
+		server.writeError(ctx, http.StatusBadRequest, errPasswordFormat)
 		return
 	}
 
@@ -82,14 +103,19 @@ func (server *Server) createUser(ctx *gin.Context) {
 		Email:        util.RandomEmail(),
 		PasswordHash: hashPassword,
 		Activated:    req.Activated,
+		RoleID:       req.RoleID,
 	}
 
 	user, err := server.store.CreateUser(ctx, arg)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			switch pqErr.Code.Name() {
-			case "foreign_key_violation", "unique_violation":
+			case "foreign_key_violation":
+				server.writeError(ctx, http.StatusBadRequest, errors.New("unknown role"))
+				return
+			case "unique_violation":
 				server.writeError(ctx, http.StatusForbidden, err)
+				return
 			}
 		}
 		server.writeError(ctx, http.StatusInternalServerError, err)
@@ -157,8 +183,9 @@ func (server *Server) listUsers(ctx *gin.Context) {
 type updateUserRequest struct {
 	ID        int64  `json:"id" binding:"required,min=1"`
 	Name      string `json:"name" binding:"required,alphanum"`
-	Password  string `json:"password"` // optional -- blank keeps the current PIN
+	Password  string `json:"password"` // optional -- blank keeps the current password
 	Activated bool   `json:"activated"`
+	RoleID    int64  `json:"role_id" binding:"required,min=1"`
 }
 
 func (server *Server) updateUser(ctx *gin.Context) {
@@ -178,11 +205,20 @@ func (server *Server) updateUser(ctx *gin.Context) {
 		return
 	}
 
-	// Keep the existing hash unless a new PIN was supplied.
+	// Changing a user's role must leave someone who can still manage users and
+	// roles.
+	if req.RoleID != current.RoleID {
+		if err := server.ensureAnotherAdmin(ctx, current); err != nil {
+			server.writeAdminGuardError(ctx, err)
+			return
+		}
+	}
+
+	// Keep the existing hash unless a new password was supplied.
 	hashPassword := current.PasswordHash
 	if req.Password != "" {
-		if !isPIN(req.Password) {
-			server.writeError(ctx, http.StatusBadRequest, errPINFormat)
+		if !validPassword(req.Password) {
+			server.writeError(ctx, http.StatusBadRequest, errPasswordFormat)
 			return
 		}
 		hashPassword, err = util.HashPassword(req.Password)
@@ -198,6 +234,7 @@ func (server *Server) updateUser(ctx *gin.Context) {
 		Email:        current.Email,
 		PasswordHash: hashPassword,
 		Activated:    req.Activated,
+		RoleID:       req.RoleID,
 	}
 
 	err = server.store.UpdateUser(ctx, arg)
@@ -214,9 +251,40 @@ func (server *Server) updateUser(ctx *gin.Context) {
 		ID:                req.ID,
 		Name:              req.Name,
 		Activated:         req.Activated,
+		RoleID:            req.RoleID,
 		PasswordChangedAt: current.PasswordChangedAt,
 		CreatedAt:         current.CreatedAt,
 	})
+}
+
+var errLastAdmin = errors.New("there must be at least one admin user left")
+
+// ensureAnotherAdmin is called before a change that could remove `user` from
+// the admin set (delete, demote, deactivate). It's a no-op for a non-admin.
+func (server *Server) ensureAnotherAdmin(ctx *gin.Context, user db.User) error {
+	role, err := server.store.GetRole(ctx, user.RoleID)
+	if err != nil {
+		return err
+	}
+	if !role.IsAdmin {
+		return nil
+	}
+	others, err := server.store.CountOtherAdmins(ctx, user.ID)
+	if err != nil {
+		return err
+	}
+	if others == 0 {
+		return errLastAdmin
+	}
+	return nil
+}
+
+func (server *Server) writeAdminGuardError(ctx *gin.Context, err error) {
+	if errors.Is(err, errLastAdmin) {
+		server.writeError(ctx, http.StatusConflict, err)
+		return
+	}
+	server.writeError(ctx, http.StatusInternalServerError, err)
 }
 
 type deleteUserRequest struct {
@@ -230,7 +298,21 @@ func (server *Server) deleteUser(ctx *gin.Context) {
 		return
 	}
 
-	err := server.store.DeleteUser(ctx, req.ID)
+	target, err := server.store.GetUser(ctx, req.ID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			server.writeError(ctx, http.StatusNotFound, err)
+			return
+		}
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if err := server.ensureAnotherAdmin(ctx, target); err != nil {
+		server.writeAdminGuardError(ctx, err)
+		return
+	}
+
+	err = server.store.DeleteUser(ctx, req.ID)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
@@ -250,6 +332,7 @@ type loginUserResponse struct {
 	RefreshToken          string       `json:"refresh_token"`
 	RefreshTokenExpiresAt time.Time    `json:"refresh_token_expires_at"`
 	User                  userResponse `json:"user"`
+	Access                userAccess   `json:"access"`
 }
 
 func (server *Server) loginUser(ctx *gin.Context) {
@@ -305,6 +388,12 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		return
 	}
 
+	access, err := server.loadUserAccess(ctx, user.ID)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
 	rsp := loginUserResponse{
 		SessionID:             session.ID.String(),
 		AccessToken:           accessToken,
@@ -312,6 +401,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		RefreshToken:          refreshToken,
 		RefreshTokenExpiresAt: refreshPayload.ExpiredAt,
 		User:                  newUserResponse(user),
+		Access:                access,
 	}
 
 	ctx.JSON(http.StatusOK, rsp)

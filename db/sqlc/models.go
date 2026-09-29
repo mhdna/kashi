@@ -63,6 +63,7 @@ type CouponStatus string
 const (
 	CouponStatusActive   CouponStatus = "active"
 	CouponStatusInactive CouponStatus = "inactive"
+	CouponStatusRedeemed CouponStatus = "redeemed"
 )
 
 func (e *CouponStatus) Scan(src interface{}) error {
@@ -98,48 +99,6 @@ func (ns NullCouponStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.CouponStatus), nil
-}
-
-type DiscountType string
-
-const (
-	DiscountTypeFixed      DiscountType = "fixed"
-	DiscountTypePercentage DiscountType = "percentage"
-)
-
-func (e *DiscountType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = DiscountType(s)
-	case string:
-		*e = DiscountType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for DiscountType: %T", src)
-	}
-	return nil
-}
-
-type NullDiscountType struct {
-	DiscountType DiscountType `json:"discount_type"`
-	Valid        bool         `json:"valid"` // Valid is true if DiscountType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullDiscountType) Scan(value interface{}) error {
-	if value == nil {
-		ns.DiscountType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.DiscountType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullDiscountType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.DiscountType), nil
 }
 
 type EntryReferenceType string
@@ -410,6 +369,7 @@ const (
 	TransferStatusDispatched TransferStatus = "dispatched"
 	TransferStatusReceived   TransferStatus = "received"
 	TransferStatusCancelled  TransferStatus = "cancelled"
+	TransferStatusRequested  TransferStatus = "requested"
 )
 
 func (e *TransferStatus) Scan(src interface{}) error {
@@ -501,6 +461,12 @@ type AppSetting struct {
 	UpcomingEventsMenuDays     int16           `json:"upcoming_events_menu_days"`
 	HiddenBuiltinEvents        json.RawMessage `json:"hidden_builtin_events"`
 	DefaultLowStockThreshold   int64           `json:"default_low_stock_threshold"`
+	WhatsappEnabled            bool            `json:"whatsapp_enabled"`
+	WhatsappPhoneNumberID      string          `json:"whatsapp_phone_number_id"`
+	WhatsappAccessToken        string          `json:"whatsapp_access_token"`
+	WhatsappTemplateName       string          `json:"whatsapp_template_name"`
+	WhatsappTemplateLang       string          `json:"whatsapp_template_lang"`
+	WhatsappTemplateParams     string          `json:"whatsapp_template_params"`
 }
 
 type Asset struct {
@@ -544,6 +510,24 @@ type AuditLog struct {
 	ActorID    sql.NullInt64         `json:"actor_id"`
 	Source     string                `json:"source"`
 	CreatedAt  time.Time             `json:"created_at"`
+}
+
+type Batch struct {
+	ID          int64         `json:"id"`
+	Code        string        `json:"code"`
+	PurchaseID  sql.NullInt64 `json:"purchase_id"`
+	InventoryID sql.NullInt64 `json:"inventory_id"`
+	Note        string        `json:"note"`
+	CreatedAt   time.Time     `json:"created_at"`
+}
+
+type BatchItem struct {
+	ID                int64 `json:"id"`
+	BatchID           int64 `json:"batch_id"`
+	VariantID         int64 `json:"variant_id"`
+	QuantityBought    int64 `json:"quantity_bought"`
+	UnitCost          int64 `json:"unit_cost"`
+	RemainingQuantity int64 `json:"remaining_quantity"`
 }
 
 type Branch struct {
@@ -590,6 +574,16 @@ type BranchAttendanceEvent struct {
 	ReceivedAt       time.Time `json:"received_at"`
 }
 
+type BranchCashboxAccount struct {
+	BranchID         int64          `json:"branch_id"`
+	CashboxAccountID int64          `json:"cashbox_account_id"`
+	IsEnabled        bool           `json:"is_enabled"`
+	SortOrder        sql.NullInt32  `json:"sort_order"`
+	Color            sql.NullString `json:"color"`
+	CurrencyCode     sql.NullString `json:"currency_code"`
+	UpdatedAt        time.Time      `json:"updated_at"`
+}
+
 type BranchCommand struct {
 	ID          int64                 `json:"id"`
 	BranchID    int64                 `json:"branch_id"`
@@ -604,17 +598,18 @@ type BranchCommand struct {
 }
 
 type BranchExpense struct {
-	ID                     int64         `json:"id"`
-	BranchID               int64         `json:"branch_id"`
-	ClientRef              string        `json:"client_ref"`
-	Description            string        `json:"description"`
-	Amount                 int64         `json:"amount"`
-	CurrencyCode           string        `json:"currency_code"`
-	BranchCashboxAccountID int64         `json:"branch_cashbox_account_id"`
-	BranchShiftID          sql.NullInt64 `json:"branch_shift_id"`
-	OccurredAt             time.Time     `json:"occurred_at"`
-	ReceivedAt             time.Time     `json:"received_at"`
-	CategoryID             sql.NullInt64 `json:"category_id"`
+	ID                       int64          `json:"id"`
+	BranchID                 int64          `json:"branch_id"`
+	ClientRef                string         `json:"client_ref"`
+	Description              string         `json:"description"`
+	Amount                   int64          `json:"amount"`
+	CurrencyCode             string         `json:"currency_code"`
+	BranchCashboxAccountID   int64          `json:"branch_cashbox_account_id"`
+	BranchShiftID            sql.NullInt64  `json:"branch_shift_id"`
+	OccurredAt               time.Time      `json:"occurred_at"`
+	ReceivedAt               time.Time      `json:"received_at"`
+	CategoryID               sql.NullInt64  `json:"category_id"`
+	BranchCashboxAccountName sql.NullString `json:"branch_cashbox_account_name"`
 }
 
 type BranchExpenseImage struct {
@@ -655,16 +650,18 @@ type BranchInvoice struct {
 	ReceivedAt             time.Time      `json:"received_at"`
 	SalespersonName        string         `json:"salesperson_name"`
 	Historical             bool           `json:"historical"`
+	ClientUid              uuid.NullUUID  `json:"client_uid"`
 }
 
 type BranchInvoiceItem struct {
-	ID              int64 `json:"id"`
-	BranchInvoiceID int64 `json:"branch_invoice_id"`
-	BranchProductID int64 `json:"branch_product_id"`
-	UnitPrice       int64 `json:"unit_price"`
-	LineTotal       int64 `json:"line_total"`
-	Discount        int16 `json:"discount"`
-	Quantity        int64 `json:"quantity"`
+	ID              int64         `json:"id"`
+	BranchInvoiceID int64         `json:"branch_invoice_id"`
+	BranchProductID int64         `json:"branch_product_id"`
+	UnitPrice       int64         `json:"unit_price"`
+	LineTotal       int64         `json:"line_total"`
+	Discount        int16         `json:"discount"`
+	Quantity        int64         `json:"quantity"`
+	ProductUid      uuid.NullUUID `json:"product_uid"`
 }
 
 type BranchInvoicePayment struct {
@@ -739,6 +736,9 @@ type BranchSetting struct {
 	AttendanceDuplicateIntervalSeconds int64           `json:"attendance_duplicate_interval_seconds"`
 	AttendanceCashierHistory           bool            `json:"attendance_cashier_history"`
 	ManagedLocally                     []string        `json:"managed_locally"`
+	SplitPrimaryCurrency               string          `json:"split_primary_currency"`
+	SplitPrimaryFirst                  bool            `json:"split_primary_first"`
+	SplitPrimaryStep                   int64           `json:"split_primary_step"`
 }
 
 type BranchShift struct {
@@ -765,6 +765,24 @@ type BranchShift struct {
 	VarianceWhish     int64        `json:"variance_whish"`
 	OccurredAt        time.Time    `json:"occurred_at"`
 	ReceivedAt        time.Time    `json:"received_at"`
+}
+
+type BranchShiftReceiptImage struct {
+	ID            int64     `json:"id"`
+	BranchShiftID int64     `json:"branch_shift_id"`
+	FilePath      string    `json:"file_path"`
+	ContentType   string    `json:"content_type"`
+	SizeBytes     int64     `json:"size_bytes"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
+type BranchShiftUploadToken struct {
+	ID            int64        `json:"id"`
+	BranchShiftID int64        `json:"branch_shift_id"`
+	Token         string       `json:"token"`
+	ExpiresAt     time.Time    `json:"expires_at"`
+	UsedAt        sql.NullTime `json:"used_at"`
+	CreatedAt     time.Time    `json:"created_at"`
 }
 
 type BranchSyncConflict struct {
@@ -805,6 +823,15 @@ type BranchTargetSeries struct {
 	Active        bool      `json:"active"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+type BranchTransferUploadToken struct {
+	ID         int64        `json:"id"`
+	TransferID int64        `json:"transfer_id"`
+	Token      string       `json:"token"`
+	ExpiresAt  time.Time    `json:"expires_at"`
+	UsedAt     sql.NullTime `json:"used_at"`
+	CreatedAt  time.Time    `json:"created_at"`
 }
 
 type BranchUser struct {
@@ -853,6 +880,7 @@ type CashboxAccount struct {
 	SortOrder    int32     `json:"sort_order"`
 	Color        string    `json:"color"`
 	UpdatedAt    time.Time `json:"updated_at"`
+	IsActive     bool      `json:"is_active"`
 }
 
 type Client struct {
@@ -864,6 +892,8 @@ type Client struct {
 	CreatedAt          time.Time `json:"created_at"`
 	UpdatedAt          time.Time `json:"updated_at"`
 	ClientType         string    `json:"client_type"`
+	Uid                uuid.UUID `json:"uid"`
+	IsActive           bool      `json:"is_active"`
 }
 
 type ClientLink struct {
@@ -881,14 +911,19 @@ type Color struct {
 }
 
 type Coupon struct {
-	Code         string        `json:"code"`
-	Status       CouponStatus  `json:"status"`
-	DiscountType DiscountType  `json:"discount_type"`
-	Reason       string        `json:"reason"`
-	ClientID     int64         `json:"client_id"`
-	ValidUntil   time.Time     `json:"valid_until"`
-	CreatedAt    time.Time     `json:"created_at"`
-	CategoryID   sql.NullInt64 `json:"category_id"`
+	Code               string         `json:"code"`
+	Status             CouponStatus   `json:"status"`
+	ClientID           sql.NullInt64  `json:"client_id"`
+	ValidUntil         sql.NullTime   `json:"valid_until"`
+	CreatedAt          time.Time      `json:"created_at"`
+	CategoryID         sql.NullInt64  `json:"category_id"`
+	TypeID             sql.NullInt64  `json:"type_id"`
+	ListID             sql.NullInt64  `json:"list_id"`
+	ValueCents         int64          `json:"value_cents"`
+	RedeemedBranchID   sql.NullInt64  `json:"redeemed_branch_id"`
+	RedeemedInvoiceRef sql.NullString `json:"redeemed_invoice_ref"`
+	RedeemedAt         sql.NullTime   `json:"redeemed_at"`
+	UpdatedAt          time.Time      `json:"updated_at"`
 }
 
 type CouponCategory struct {
@@ -900,6 +935,29 @@ type CouponCategory struct {
 	Scope     string    `json:"scope"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type CouponList struct {
+	ID           int64     `json:"id"`
+	Name         string    `json:"name"`
+	CouponTypeID int64     `json:"coupon_type_id"`
+	IsActive     bool      `json:"is_active"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+type CouponType struct {
+	ID                  int64         `json:"id"`
+	Name                string        `json:"name"`
+	ValueCents          int64         `json:"value_cents"`
+	CurrencyCode        string        `json:"currency_code"`
+	IsActive            bool          `json:"is_active"`
+	ReferenceOnly       bool          `json:"reference_only"`
+	CalculateOnCheckout bool          `json:"calculate_on_checkout"`
+	CodeOptional        bool          `json:"code_optional"`
+	CategoryID          sql.NullInt64 `json:"category_id"`
+	CreatedAt           time.Time     `json:"created_at"`
+	UpdatedAt           time.Time     `json:"updated_at"`
 }
 
 type Currency struct {
@@ -922,6 +980,8 @@ type DiscountList struct {
 	ValidFrom time.Time `json:"valid_from"`
 	ValidTo   time.Time `json:"valid_to"`
 	CreatedAt time.Time `json:"created_at"`
+	Uid       uuid.UUID `json:"uid"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type DiscountListBranch struct {
@@ -931,9 +991,9 @@ type DiscountListBranch struct {
 }
 
 type DiscountListItem struct {
-	DiscountListID int64 `json:"discount_list_id"`
-	ProductID      int64 `json:"product_id"`
-	Discount       int16 `json:"discount"`
+	DiscountListID   int64 `json:"discount_list_id"`
+	Discount         int16 `json:"discount"`
+	ProductVariantID int64 `json:"product_variant_id"`
 }
 
 type Employee struct {
@@ -1000,11 +1060,12 @@ type Inventory struct {
 }
 
 type InventoryStock struct {
-	InventoryID int64     `json:"inventory_id"`
-	VariantID   int64     `json:"variant_id"`
-	Quantity    int64     `json:"quantity"`
-	AvgCost     int64     `json:"avg_cost"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	InventoryID int64         `json:"inventory_id"`
+	VariantID   int64         `json:"variant_id"`
+	Quantity    int64         `json:"quantity"`
+	AvgCost     int64         `json:"avg_cost"`
+	UpdatedAt   time.Time     `json:"updated_at"`
+	ID          sql.NullInt64 `json:"id"`
 }
 
 type Invoice struct {
@@ -1062,18 +1123,19 @@ type InvoiceType struct {
 }
 
 type Loan struct {
-	ID                     int64          `json:"id"`
-	Origin                 string         `json:"origin"`
-	Description            string         `json:"description"`
-	CategoryID             int64          `json:"category_id"`
-	Amount                 int64          `json:"amount"`
-	CurrencyCode           string         `json:"currency_code"`
-	BranchID               sql.NullInt64  `json:"branch_id"`
-	ClientRef              sql.NullString `json:"client_ref"`
-	BranchCashboxAccountID sql.NullInt64  `json:"branch_cashbox_account_id"`
-	BranchShiftID          sql.NullInt64  `json:"branch_shift_id"`
-	OccurredAt             time.Time      `json:"occurred_at"`
-	ReceivedAt             time.Time      `json:"received_at"`
+	ID                       int64          `json:"id"`
+	Origin                   string         `json:"origin"`
+	Description              string         `json:"description"`
+	CategoryID               int64          `json:"category_id"`
+	Amount                   int64          `json:"amount"`
+	CurrencyCode             string         `json:"currency_code"`
+	BranchID                 sql.NullInt64  `json:"branch_id"`
+	ClientRef                sql.NullString `json:"client_ref"`
+	BranchCashboxAccountID   sql.NullInt64  `json:"branch_cashbox_account_id"`
+	BranchShiftID            sql.NullInt64  `json:"branch_shift_id"`
+	OccurredAt               time.Time      `json:"occurred_at"`
+	ReceivedAt               time.Time      `json:"received_at"`
+	BranchCashboxAccountName sql.NullString `json:"branch_cashbox_account_name"`
 }
 
 type LoanCategory struct {
@@ -1109,6 +1171,8 @@ type PriceList struct {
 	ValidFrom time.Time `json:"valid_from"`
 	ValidTo   time.Time `json:"valid_to"`
 	CreatedAt time.Time `json:"created_at"`
+	Uid       uuid.UUID `json:"uid"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type PriceListBranch struct {
@@ -1118,9 +1182,9 @@ type PriceListBranch struct {
 }
 
 type PriceListItem struct {
-	PriceListID int64 `json:"price_list_id"`
-	ProductID   int64 `json:"product_id"`
-	Price       int64 `json:"price"`
+	PriceListID      int64 `json:"price_list_id"`
+	Price            int64 `json:"price"`
+	ProductVariantID int64 `json:"product_variant_id"`
 }
 
 type Product struct {
@@ -1158,6 +1222,7 @@ type ProductVariant struct {
 	CreatedAt time.Time     `json:"created_at"`
 	UpdatedAt time.Time     `json:"updated_at"`
 	AvgCost   int64         `json:"avg_cost"`
+	Uid       uuid.UUID     `json:"uid"`
 }
 
 type ProductsAttribute struct {
@@ -1206,6 +1271,20 @@ type RecurringExpense struct {
 type ReturnInvoice struct {
 	InvoiceID      int64 `json:"invoice_id"`
 	SalesInvoiceID int64 `json:"sales_invoice_id"`
+}
+
+type Role struct {
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	IsAdmin   bool      `json:"is_admin"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type RolePermission struct {
+	RoleID  int64  `json:"role_id"`
+	Section string `json:"section"`
+	CanView bool   `json:"can_view"`
+	CanEdit bool   `json:"can_edit"`
 }
 
 type SalesInvoice struct {
@@ -1292,6 +1371,7 @@ type StockMovement struct {
 	QuantityBefore int64               `json:"quantity_before"`
 	QuantityAfter  int64               `json:"quantity_after"`
 	Metadata       json.RawMessage     `json:"metadata"`
+	BatchID        sql.NullInt64       `json:"batch_id"`
 }
 
 type Supplier struct {
@@ -1323,15 +1403,22 @@ type Transfer struct {
 	DispatchedAt    sql.NullTime   `json:"dispatched_at"`
 	ReceivedAt      sql.NullTime   `json:"received_at"`
 	Note            string         `json:"note"`
+	BranchID        sql.NullInt64  `json:"branch_id"`
+	ClientRef       sql.NullString `json:"client_ref"`
+	AttachmentPath  string         `json:"attachment_path"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	ConfirmedAt     sql.NullTime   `json:"confirmed_at"`
+	ConfirmedNote   string         `json:"confirmed_note"`
 }
 
 // Each row references either a product or an asset. Never both.
 type TransferItem struct {
-	ID         int64         `json:"id"`
-	TransferID int64         `json:"transfer_id"`
-	AssetID    sql.NullInt64 `json:"asset_id"`
-	Quantity   int64         `json:"quantity"`
-	VariantID  sql.NullInt64 `json:"variant_id"`
+	ID               int64         `json:"id"`
+	TransferID       int64         `json:"transfer_id"`
+	AssetID          sql.NullInt64 `json:"asset_id"`
+	Quantity         int64         `json:"quantity"`
+	VariantID        sql.NullInt64 `json:"variant_id"`
+	ReceivedQuantity sql.NullInt64 `json:"received_quantity"`
 }
 
 type User struct {
@@ -1343,9 +1430,20 @@ type User struct {
 	Activated         bool      `json:"activated"`
 	Version           int32     `json:"version"`
 	CreatedAt         time.Time `json:"created_at"`
+	RoleID            int64     `json:"role_id"`
 }
 
 type UsersPermission struct {
 	UserID       int64 `json:"user_id"`
 	PermissionID int64 `json:"permission_id"`
+}
+
+type VariantDefaultDiscount struct {
+	ProductVariantID int64 `json:"product_variant_id"`
+	Discount         int16 `json:"discount"`
+}
+
+type VariantDefaultPrice struct {
+	ProductVariantID int64 `json:"product_variant_id"`
+	Price            int64 `json:"price"`
 }

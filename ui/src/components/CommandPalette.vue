@@ -18,9 +18,9 @@
 </template>
 
 <script setup>
-  import { nextTick, shallowRef } from 'vue'
+  import { computed, nextTick, shallowRef } from 'vue'
   import { useRouter } from 'vue-router'
-  import { appendItems, navItems } from '@/data/navItems'
+  import { useAllowedNav } from '@/composables/useAllowedNav'
 
   const router = useRouter()
   const search = shallowRef('')
@@ -40,10 +40,13 @@
     }
   }
 
+  // Built once per mount, from the pages this user's role can open.
+  const { allowedNavItems, allowedAppendItems } = useAllowedNav()
+
   function buildItems () {
     const items = []
 
-    for (const item of navItems) {
+    for (const item of allowedNavItems.value) {
       if (item.children) {
         items.push({ type: 'subheader', title: item.title })
         for (const child of item.children) {
@@ -64,7 +67,7 @@
     }
 
     items.push({ type: 'divider' }, { type: 'subheader', title: 'More' })
-    for (const item of appendItems) {
+    for (const item of allowedAppendItems.value) {
       items.push({
         title: item.title,
         prependIcon: item.icon,
@@ -75,7 +78,7 @@
     return items
   }
 
-  const items = buildItems()
+  const items = computed(buildItems)
 
   function onItemClick (item) {
     if (item.value) {

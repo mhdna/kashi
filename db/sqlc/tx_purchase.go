@@ -154,7 +154,7 @@ func (store *SQLStore) PurchaseReceiveTx(ctx context.Context, arg PurchaseReceiv
 				return err
 			}
 
-			movement, err := q.applyStockMovement(ctx, applyStockMovementParams{
+			movements, err := q.applyStockMovement(ctx, applyStockMovementParams{
 				InventoryID:   inventoryID,
 				VariantID:     variantID,
 				Quantity:      it.Quantity,
@@ -167,7 +167,7 @@ func (store *SQLStore) PurchaseReceiveTx(ctx context.Context, arg PurchaseReceiv
 			if err != nil {
 				return err
 			}
-			result.Movements = append(result.Movements, movement)
+			result.Movements = append(result.Movements, movements...)
 
 			if err := q.recordSupplierCost(ctx, variant.ProductID, purchase.SupplierID, it.UnitPrice, purchase.CurrencyCode); err != nil {
 				return err
@@ -221,7 +221,7 @@ func (store *SQLStore) CancelPurchaseTx(ctx context.Context, purchaseID int64, c
 				if !it.VariantID.Valid {
 					continue
 				}
-				movement, err := q.applyStockMovement(ctx, applyStockMovementParams{
+				movements, err := q.applyStockMovement(ctx, applyStockMovementParams{
 					InventoryID:   inventoryID,
 					VariantID:     it.VariantID.Int64,
 					Quantity:      -it.Quantity,
@@ -233,7 +233,7 @@ func (store *SQLStore) CancelPurchaseTx(ctx context.Context, purchaseID int64, c
 				if err != nil {
 					return err
 				}
-				result.Movements = append(result.Movements, movement)
+				result.Movements = append(result.Movements, movements...)
 			}
 		}
 

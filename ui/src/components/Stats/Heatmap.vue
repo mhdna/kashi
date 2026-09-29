@@ -1,62 +1,60 @@
 <template>
-  <VChart autoresize class="chart" :option="option" />
+  <div class="heatmap-wrap">
+    <v-heatmap
+      :cell-size="15"
+      :columns="weeks"
+      gap="3"
+      hide-column-headers
+      item-column="week"
+      item-row="weekday"
+      item-value="value"
+      :items="items"
+      :rows="weekdays"
+      :thresholds="thresholds"
+    />
+  </div>
 </template>
 
 <script setup>
-  import { ref } from 'vue'
-  import VChart from 'vue-echarts'
+  import { computed } from 'vue'
 
-  function getVirtualData (year) {
-    const date = +new Date(year + '-01-01')
-    const end = +new Date(+year + 1 + '-01-01')
-    const dayTime = 3600 * 24 * 1000
-    const data = []
-    for (let t = date; t < end; t += dayTime) {
-      const yyyy = new Date(t).getFullYear()
-      const mm = String(new Date(t).getMonth() + 1).padStart(2, '0')
-      const dd = String(new Date(t).getDate()).padStart(2, '0')
-      data.push([
-        `${yyyy}-${mm}-${dd}`,
-        Math.floor(Math.random() * 10_000),
-      ])
-    }
-    return data
+  const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+  // Linear ramp from a faint primary tint to the solid primary, matching the
+  // old echarts calendar heatmap's single-hue intensity scale.
+  const thresholds = {
+    from: { min: 0, color: '#C5CAE9' },
+    to: { min: 10_000, color: '#3F51B5' },
   }
 
-  const option = ref({
-    backgroundColor: 'transparent',
-    tooltip: {
-      appendTo: 'body',
-    },
-    visualMap: {
-      min: 0,
-      max: 10_000,
-      type: 'piecewise',
-      orient: 'horizontal',
-      left: 'center',
-      bottom: 0,
-    },
-    calendar: {
-      top: 30,
-      left: 20,
-      right: 20,
-      cellSize: ['auto', 13],
-      range: '2016',
-      itemStyle: {
-        borderWidth: 0.5,
-      },
-      yearLabel: { show: false },
-    },
-    series: {
-      type: 'heatmap',
-      coordinateSystem: 'calendar',
-      data: getVirtualData('2016'),
-    },
-  })
+  // One row per day of the given year, pivoted as weekday x ISO-ish week so
+  // v-heatmap renders the familiar contribution-calendar grid.
+  function buildYear (year) {
+    const start = new Date(`${year}-01-01T00:00:00`)
+    const end = new Date(`${Number(year) + 1}-01-01T00:00:00`)
+    const rows = []
+    // Monday-based weekday index (0 = Mon ... 6 = Sun).
+    const mondayIndex = d => (d.getDay() + 6) % 7
+    let week = 1
+    for (const t = new Date(start); t < end; t.setDate(t.getDate() + 1)) {
+      if (t > start && mondayIndex(t) === 0) week++
+      rows.push({
+        date: t.toISOString().slice(0, 10),
+        weekday: weekdays[mondayIndex(t)],
+        week,
+        value: Math.floor(Math.random() * 10_000),
+      })
+    }
+    return rows
+  }
+
+  const items = computed(() => buildYear(new Date().getFullYear()))
+  const weeks = computed(() => [...new Set(items.value.map(r => r.week))])
 </script>
 
 <style scoped>
-.chart {
-  height: 300px;
+.heatmap-wrap {
+  width: 100%;
+  overflow-x: auto;
 }
 </style>

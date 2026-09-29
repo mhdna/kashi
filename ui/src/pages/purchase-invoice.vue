@@ -34,10 +34,6 @@
             type="date"
           />
 
-          <v-alert v-if="submitError" class="mb-4" type="error" variant="tonal">
-            {{ submitError }}
-          </v-alert>
-
           <v-card-actions class="px-0">
             <v-spacer />
             <v-btn text="Cancel" @click="closeDialog" />
@@ -55,7 +51,7 @@
         <v-chip class="ml-2" :color="statusColor(itemsTarget?.status)" size="small">{{ itemsTarget?.status }}</v-chip>
       </v-card-title>
       <v-card-text>
-        <v-row v-if="itemsTarget?.status !== 'received'" align="center">
+        <v-row v-if="canEdit && itemsTarget?.status !== 'received'" align="center">
           <v-col cols="5">
             <v-autocomplete
               v-model="itemVariantId"
@@ -93,7 +89,6 @@
             <v-btn :loading="itemSubmitting" text="Add" @click="addItem" />
           </v-col>
         </v-row>
-        <v-alert v-if="itemError" class="mb-4 mt-2" type="error" variant="tonal">{{ itemError }}</v-alert>
         <v-table density="compact">
           <thead>
             <tr>
@@ -115,14 +110,14 @@
       </v-card-text>
       <v-card-actions>
         <v-btn
-          v-if="itemsTarget?.status === 'draft'"
+          v-if="canEdit && itemsTarget?.status === 'draft'"
           color="success"
           :loading="receiving"
           text="Receive"
           @click="receive"
         />
         <v-btn
-          v-if="itemsTarget?.status === 'draft' || itemsTarget?.status === 'received'"
+          v-if="canEdit && (itemsTarget?.status === 'draft' || itemsTarget?.status === 'received')"
           color="error"
           :loading="cancelling"
           text="Cancel Purchase"
@@ -152,6 +147,7 @@
           variant="outlined"
         />
         <v-btn
+          v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
           text="Add Purchase"
@@ -189,10 +185,15 @@
   import { ref } from 'vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useInventories } from '@/composables/useInventories'
+  import { usePageAccess } from '@/composables/usePageAccess'
+  import { useNotify } from '@/composables/useNotify'
   import { usePurchases } from '@/composables/usePurchases'
   import { useSuppliers } from '@/composables/useSuppliers'
   import { useVariants } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const { createPurchase, fetchPurchase, addPurchaseItem, receivePurchase, cancelPurchase } = usePurchases()
   const { suppliers, fetchSuppliers } = useSuppliers()
@@ -241,7 +242,7 @@
   const search = ref('')
   const dialog = ref(false)
   const submitting = ref(false)
-  const submitError = ref('')
+  const notify = useNotify()
 
   const { handleSubmit, handleReset } = useForm({
     validationSchema: {
@@ -273,12 +274,10 @@
   function closeDialog () {
     dialog.value = false
     handleReset()
-    submitError.value = ''
   }
 
   const submit = handleSubmit(async values => {
     submitting.value = true
-    submitError.value = ''
     try {
       const created = await createPurchase({
         supplierId: values.supplierId,
@@ -291,7 +290,7 @@
       tableRef.value?.reload()
       openItems(created?.purchase ?? created)
     } catch (error) {
-      submitError.value = error.message
+      notify.error(error.message)
     } finally {
       submitting.value = false
     }
@@ -304,13 +303,11 @@
   const itemQuantity = ref(null)
   const itemUnitPrice = ref(null)
   const itemSubmitting = ref(false)
-  const itemError = ref('')
   const receiving = ref(false)
   const cancelling = ref(false)
 
   async function openItems (item) {
     itemsTarget.value = item
-    itemError.value = ''
     items.value = []
     itemsDialog.value = true
     await refreshItems()
@@ -322,14 +319,13 @@
       itemsTarget.value = data?.purchase ?? itemsTarget.value
       items.value = data?.items ?? []
     } catch (error) {
-      itemError.value = error.message
+      notify.error(error.message)
     }
   }
 
   async function addItem () {
     if (!itemVariantId.value || !itemQuantity.value) return
     itemSubmitting.value = true
-    itemError.value = ''
     try {
       await addPurchaseItem({
         purchaseId: itemsTarget.value.id,
@@ -343,7 +339,7 @@
       itemUnitPrice.value = null
       await refreshItems()
     } catch (error) {
-      itemError.value = error.message
+      notify.error(error.message)
     } finally {
       itemSubmitting.value = false
     }
@@ -351,13 +347,12 @@
 
   async function receive () {
     receiving.value = true
-    itemError.value = ''
     try {
       const res = await receivePurchase(itemsTarget.value.id)
       itemsTarget.value = res?.purchase ?? itemsTarget.value
       tableRef.value?.reload()
     } catch (error) {
-      itemError.value = error.message
+      notify.error(error.message)
     } finally {
       receiving.value = false
     }
@@ -365,13 +360,12 @@
 
   async function cancel () {
     cancelling.value = true
-    itemError.value = ''
     try {
       const res = await cancelPurchase(itemsTarget.value.id)
       itemsTarget.value = res?.purchase ?? itemsTarget.value
       tableRef.value?.reload()
     } catch (error) {
-      itemError.value = error.message
+      notify.error(error.message)
     } finally {
       cancelling.value = false
     }

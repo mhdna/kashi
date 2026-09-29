@@ -1,15 +1,5 @@
 <template>
   <div class="page-root">
-    <v-alert
-      v-if="loadError"
-      class="mb-4"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ loadError }}
-    </v-alert>
-
     <v-card class="attr-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-tag-multiple" />
@@ -26,6 +16,7 @@
           variant="outlined"
         />
         <v-btn
+          v-if="canEdit"
           color="primary"
           :disabled="!selectedType"
           prepend-icon="mdi-plus"
@@ -65,7 +56,7 @@
               item-value="id"
               :query-params="{ attribute: selectedType }"
               root-key="values"
-              selectable
+              :selectable="canEdit"
               :show-search-icon="false"
               :sort-keys="['id', 'value', 'created_at']"
               @row-click="openEdit"
@@ -95,15 +86,6 @@
             variant="outlined"
             @keyup.enter="saveValue"
           />
-          <v-alert
-            v-if="formError"
-            class="mt-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ formError }}
-          </v-alert>
         </v-card-text>
         <v-card-actions>
           <v-btn
@@ -132,15 +114,6 @@
         <v-card-title class="text-h6">Delete value</v-card-title>
         <v-card-text>
           Delete <strong>{{ deleteTarget?.value }}</strong>? This can't be undone.
-          <v-alert
-            v-if="deleteError"
-            class="mt-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ deleteError }}
-          </v-alert>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -165,7 +138,12 @@
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useAttributes } from '@/composables/useAttributes'
   import { useBulkDelete } from '@/composables/useBulkDelete'
+  import { usePageAccess } from '@/composables/usePageAccess'
+  import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const {
     types,
@@ -196,7 +174,7 @@
     } catch { /* error shown in the bar */ }
   }
 
-  const loadError = ref('')
+  const notify = useNotify()
   const selectedType = ref(null)
   const search = ref('')
 
@@ -234,7 +212,7 @@
         selectedType.value = types.value[0].name
       }
     } catch (error) {
-      loadError.value = error.message
+      notify.error(error.message)
     }
   })
 
@@ -243,36 +221,33 @@
   const editing = ref(null)
   const draftValue = ref('')
   const saving = ref(false)
-  const formError = ref('')
 
   function openCreate () {
     editing.value = null
     draftValue.value = ''
-    formError.value = ''
     editDialog.value = true
   }
 
   function openEdit (item) {
+    if (!canEdit.value) return
     editing.value = item
     draftValue.value = item.value
-    formError.value = ''
     editDialog.value = true
   }
 
   async function saveValue () {
     const value = draftValue.value.trim()
     if (!value) {
-      formError.value = 'Value is required.'
+      notify.error('Value is required.')
       return
     }
     saving.value = true
-    formError.value = ''
     try {
       await (editing.value ? updateValue({ id: editing.value.id, value }) : createValue({ attribute: selectedType.value, value }))
       editDialog.value = false
       reloadRows()
     } catch (error) {
-      formError.value = error.message
+      notify.error(error.message)
     } finally {
       saving.value = false
     }
@@ -282,11 +257,9 @@
   const deleteDialog = ref(false)
   const deleteTarget = ref(null)
   const deleting = ref(false)
-  const deleteError = ref('')
 
   function confirmDelete (item) {
     deleteTarget.value = item
-    deleteError.value = ''
     deleteDialog.value = true
   }
 
@@ -298,13 +271,12 @@
 
   async function doDelete () {
     deleting.value = true
-    deleteError.value = ''
     try {
       await deleteValue(deleteTarget.value.id)
       deleteDialog.value = false
       reloadRows()
     } catch (error) {
-      deleteError.value = error.message
+      notify.error(error.message)
     } finally {
       deleting.value = false
     }

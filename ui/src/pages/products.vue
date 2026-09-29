@@ -52,6 +52,7 @@
           />
         </v-badge>
         <v-btn
+          v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
           text="Add Product"
@@ -182,6 +183,10 @@
   import NewProductForm from '@/components/Forms/NewProductForm.vue'
   import ProductsTable from '@/components/ProductsTable.vue'
   import { useAttributes } from '@/composables/useAttributes'
+  import { usePageAccess } from '@/composables/usePageAccess'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const dialog = ref(false)
   const search = ref('')
@@ -191,6 +196,7 @@
   const editId = ref(null)
 
   function openEdit (product) {
+    if (!canEdit.value) return
     editId.value = product.id
     editDialog.value = true
   }

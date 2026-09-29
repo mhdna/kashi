@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
 
@@ -20,7 +21,7 @@ VALUES ($1, $2, $3)
 ON CONFLICT (inventory_id, variant_id)
 DO UPDATE SET quantity = inventory_stock.quantity + $3,
              updated_at = now()
-RETURNING inventory_id, variant_id, quantity, avg_cost, updated_at
+RETURNING inventory_id, variant_id, quantity, avg_cost, updated_at, id
 `
 
 type AddInventoryStockQuantityParams struct {
@@ -41,6 +42,7 @@ func (q *Queries) AddInventoryStockQuantity(ctx context.Context, arg AddInventor
 		&i.Quantity,
 		&i.AvgCost,
 		&i.UpdatedAt,
+		&i.ID,
 	)
 	return i, err
 }
@@ -171,9 +173,10 @@ INSERT INTO stock_movements (
   created_by,
   quantity_before,
   quantity_after,
-  metadata
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-RETURNING id, inventory_id, variant_id, quantity, reason, reference_type, reference_id, unit_cost, note, created_by, created_at, quantity_before, quantity_after, metadata
+  metadata,
+  batch_id
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+RETURNING id, inventory_id, variant_id, quantity, reason, reference_type, reference_id, unit_cost, note, created_by, created_at, quantity_before, quantity_after, metadata, batch_id
 `
 
 type CreateStockMovementParams struct {
@@ -189,6 +192,7 @@ type CreateStockMovementParams struct {
 	QuantityBefore int64               `json:"quantity_before"`
 	QuantityAfter  int64               `json:"quantity_after"`
 	Metadata       json.RawMessage     `json:"metadata"`
+	BatchID        sql.NullInt64       `json:"batch_id"`
 }
 
 // ---------------------------------------------------------------------------
@@ -208,6 +212,7 @@ func (q *Queries) CreateStockMovement(ctx context.Context, arg CreateStockMoveme
 		arg.QuantityBefore,
 		arg.QuantityAfter,
 		arg.Metadata,
+		arg.BatchID,
 	)
 	var i StockMovement
 	err := row.Scan(
@@ -225,6 +230,7 @@ func (q *Queries) CreateStockMovement(ctx context.Context, arg CreateStockMoveme
 		&i.QuantityBefore,
 		&i.QuantityAfter,
 		&i.Metadata,
+		&i.BatchID,
 	)
 	return i, err
 }
@@ -274,7 +280,7 @@ func (q *Queries) GetInventory(ctx context.Context, id int64) (Inventory, error)
 
 const getInventoryStock = `-- name: GetInventoryStock :one
 
-SELECT inventory_id, variant_id, quantity, avg_cost, updated_at FROM inventory_stock
+SELECT inventory_id, variant_id, quantity, avg_cost, updated_at, id FROM inventory_stock
 WHERE inventory_id = $1 AND variant_id = $2
 LIMIT 1
 `
@@ -296,8 +302,104 @@ func (q *Queries) GetInventoryStock(ctx context.Context, arg GetInventoryStockPa
 		&i.Quantity,
 		&i.AvgCost,
 		&i.UpdatedAt,
+		&i.ID,
 	)
 	return i, err
+}
+
+const listBranchStockForSync = `-- name: ListBranchStockForSync :many
+
+SELECT
+  b.code AS branch_code,
+  pv.uid AS variant_uid,
+  pv.barcode,
+  ist.quantity,
+  COALESCE(priced.price, 0) AS price,
+  ist.updated_at,
+  ist.id
+FROM inventory_stock ist
+JOIN branches b ON b.inventory_id = ist.inventory_id
+JOIN product_variants pv ON pv.id = ist.variant_id
+LEFT JOIN LATERAL (
+  -- Mirrors ResolveVariantPrice (price_list_item.sql) exactly, just joined
+  -- per-row against that row's own branch instead of one $1 branch_id.
+  SELECT pli.price FROM price_list_items pli
+  JOIN price_lists pl ON pl.id = pli.price_list_id
+  LEFT JOIN price_list_branches plb
+    ON plb.price_list_id = pl.id AND plb.branch_id = b.id
+  WHERE pli.product_variant_id = pv.id
+    AND pl.is_active = true
+    AND now() >= pl.valid_from AND now() <= pl.valid_to
+    AND (plb.branch_id IS NOT NULL OR pl.is_default = true)
+  ORDER BY (plb.branch_id IS NOT NULL) DESC
+  LIMIT 1
+) priced ON true
+WHERE b.id != $1
+  AND b.is_active = true
+  AND (ist.updated_at, ist.id) > ($2::timestamptz, $3::bigint)
+ORDER BY ist.updated_at, ist.id
+LIMIT $4
+`
+
+type ListBranchStockForSyncParams struct {
+	BranchID       int64     `json:"branch_id"`
+	AfterUpdatedAt time.Time `json:"after_updated_at"`
+	AfterID        int64     `json:"after_id"`
+	RowLimit       int32     `json:"row_limit"`
+}
+
+type ListBranchStockForSyncRow struct {
+	BranchCode string        `json:"branch_code"`
+	VariantUid uuid.UUID     `json:"variant_uid"`
+	Barcode    string        `json:"barcode"`
+	Quantity   int64         `json:"quantity"`
+	Price      int64         `json:"price"`
+	UpdatedAt  time.Time     `json:"updated_at"`
+	ID         sql.NullInt64 `json:"id"`
+}
+
+// ---------------------------------------------------------------------------
+// Cross-branch stock visibility: every OTHER branch's on-hand quantity and
+// resolved selling price for a variant, so a till can search what a
+// different branch is carrying. Keyset-paginated on inventory_stock's
+// surrogate id (000101 -- the table's real key, (inventory_id,
+// variant_id), has no single ordering column), same cursor shape as
+// ListProductVariantsForSyncPaged.
+// ---------------------------------------------------------------------------
+func (q *Queries) ListBranchStockForSync(ctx context.Context, arg ListBranchStockForSyncParams) ([]ListBranchStockForSyncRow, error) {
+	rows, err := q.db.QueryContext(ctx, listBranchStockForSync,
+		arg.BranchID,
+		arg.AfterUpdatedAt,
+		arg.AfterID,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListBranchStockForSyncRow{}
+	for rows.Next() {
+		var i ListBranchStockForSyncRow
+		if err := rows.Scan(
+			&i.BranchCode,
+			&i.VariantUid,
+			&i.Barcode,
+			&i.Quantity,
+			&i.Price,
+			&i.UpdatedAt,
+			&i.ID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listInventories = `-- name: ListInventories :many
@@ -351,7 +453,7 @@ SELECT
   ist.avg_cost,
   ist.updated_at,
   pv.barcode,
-  pv.price,
+  vdp.price,
   p.id   AS product_id,
   p.code AS product_code,
   p.name AS product_name,
@@ -359,6 +461,7 @@ SELECT
   COALESCE(s.name, '') AS size_name
 FROM inventory_stock ist
 JOIN product_variants pv ON pv.id = ist.variant_id
+LEFT JOIN variant_default_prices vdp ON vdp.product_variant_id = pv.id
 JOIN products p ON p.id = pv.product_id
 LEFT JOIN colors c ON c.id = pv.color_id
 LEFT JOIN sizes  s ON s.id = pv.size_id
@@ -451,13 +554,15 @@ SELECT
   sm.quantity_before,
   sm.quantity_after,
   sm.metadata,
+  sm.batch_id,
   i.name AS inventory_name,
   pv.barcode,
   p.code AS product_code,
   p.name AS product_name,
   COALESCE(c.name, '') AS color_name,
   COALESCE(s.name, '') AS size_name,
-  COALESCE(u.name, '') AS created_by_name
+  COALESCE(u.name, '') AS created_by_name,
+  COALESCE(b.code, '') AS batch_code
 FROM stock_movements sm
 JOIN inventories i ON i.id = sm.inventory_id
 JOIN product_variants pv ON pv.id = sm.variant_id
@@ -465,6 +570,7 @@ JOIN products p ON p.id = pv.product_id
 LEFT JOIN colors c ON c.id = pv.color_id
 LEFT JOIN sizes  s ON s.id = pv.size_id
 LEFT JOIN users  u ON u.id = sm.created_by
+LEFT JOIN batches b ON b.id = sm.batch_id
 WHERE ($1::bigint IS NULL OR sm.inventory_id = $1)
   AND ($2::bigint IS NULL OR sm.variant_id = $2)
   AND ($3::stock_movement_reason IS NULL OR sm.reason = $3)
@@ -504,6 +610,7 @@ type ListStockMovementsRow struct {
 	QuantityBefore int64               `json:"quantity_before"`
 	QuantityAfter  int64               `json:"quantity_after"`
 	Metadata       json.RawMessage     `json:"metadata"`
+	BatchID        sql.NullInt64       `json:"batch_id"`
 	InventoryName  string              `json:"inventory_name"`
 	Barcode        string              `json:"barcode"`
 	ProductCode    string              `json:"product_code"`
@@ -511,6 +618,7 @@ type ListStockMovementsRow struct {
 	ColorName      string              `json:"color_name"`
 	SizeName       string              `json:"size_name"`
 	CreatedByName  string              `json:"created_by_name"`
+	BatchCode      string              `json:"batch_code"`
 }
 
 func (q *Queries) ListStockMovements(ctx context.Context, arg ListStockMovementsParams) ([]ListStockMovementsRow, error) {
@@ -547,6 +655,7 @@ func (q *Queries) ListStockMovements(ctx context.Context, arg ListStockMovements
 			&i.QuantityBefore,
 			&i.QuantityAfter,
 			&i.Metadata,
+			&i.BatchID,
 			&i.InventoryName,
 			&i.Barcode,
 			&i.ProductCode,
@@ -554,6 +663,7 @@ func (q *Queries) ListStockMovements(ctx context.Context, arg ListStockMovements
 			&i.ColorName,
 			&i.SizeName,
 			&i.CreatedByName,
+			&i.BatchCode,
 		); err != nil {
 			return nil, err
 		}
@@ -581,7 +691,7 @@ DO UPDATE SET
   END,
   quantity = inventory_stock.quantity + $3,
   updated_at = now()
-RETURNING inventory_id, variant_id, quantity, avg_cost, updated_at
+RETURNING inventory_id, variant_id, quantity, avg_cost, updated_at, id
 `
 
 type ReceiveInventoryStockParams struct {
@@ -608,6 +718,7 @@ func (q *Queries) ReceiveInventoryStock(ctx context.Context, arg ReceiveInventor
 		&i.Quantity,
 		&i.AvgCost,
 		&i.UpdatedAt,
+		&i.ID,
 	)
 	return i, err
 }

@@ -23,10 +23,6 @@
             label="Type"
           />
 
-          <v-alert v-if="submitError" class="mb-4" type="error" variant="tonal">
-            {{ submitError }}
-          </v-alert>
-
           <v-card-actions class="px-0">
             <v-spacer />
             <v-btn text="Cancel" @click="closeDialog" />
@@ -40,8 +36,11 @@
   <v-dialog v-model="deleteDialog" max-width="420">
     <v-card>
       <v-card-title>Delete Client</v-card-title>
-      <v-card-text>Are you sure you want to delete "{{ deleteTarget?.name }}"? This cannot be undone.</v-card-text>
-      <v-alert v-if="deleteError" class="mx-4 mb-2" type="error" variant="tonal">{{ deleteError }}</v-alert>
+      <v-card-text>
+        Delete "{{ deleteTarget?.name }}"? A client with invoices, loyalty history or a
+        branch link is deactivated instead, so their history stays intact and every till
+        stops offering them. You can reactivate them later.
+      </v-card-text>
       <v-card-actions>
         <v-spacer />
         <v-btn text="Cancel" @click="deleteDialog = false" />
@@ -50,7 +49,7 @@
     </v-card>
   </v-dialog>
 
-  <div class="clients-toolbar d-flex flex-wrap align-center justify-space-between ga-3 mb-4">
+  <div class="clients-toolbar d-flex flex-wrap align-center justify-space-between ga-3 mb-2">
     <v-tabs v-model="tab" color="primary">
       <v-tab value="retail">Retail</v-tab>
       <v-tab value="wholesale">Wholesale</v-tab>
@@ -83,7 +82,13 @@
           </v-list-item>
         </v-list>
       </v-menu>
-      <v-btn color="primary" prepend-icon="mdi-plus" text="Add Client" @click="openCreate" />
+      <v-btn
+        v-if="canEdit"
+        color="primary"
+        prepend-icon="mdi-plus"
+        text="Add Client"
+        @click="openCreate"
+      />
     </div>
   </div>
 
@@ -94,7 +99,9 @@
     :client-type="tab"
     @delete="openDelete"
     @edit="openEdit"
+    @reactivate="reactivate"
   />
+
 </template>
 
 <script setup>
@@ -103,8 +110,14 @@
   import ClientLoyaltyBoard from '@/components/Clients/ClientLoyaltyBoard.vue'
   import { useBranches } from '@/composables/useBranches'
   import { useClients } from '@/composables/useClients'
+  import { usePageAccess } from '@/composables/usePageAccess'
+  import { useNotify } from '@/composables/useNotify'
 
-  const { createClient, updateClient, deleteClient } = useClients()
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
+
+  const { createClient, updateClient, deleteClient, setClientActive } = useClients()
+  const notify = useNotify()
   const { branches, fetchBranches } = useBranches()
 
   onMounted(() => fetchBranches())
@@ -119,7 +132,6 @@
   const boardRef = ref(null)
   const dialog = ref(false)
   const submitting = ref(false)
-  const submitError = ref('')
   const editingId = ref(null)
 
   const { handleSubmit, handleReset, setValues } = useForm({
@@ -158,13 +170,11 @@
   function closeDialog () {
     dialog.value = false
     handleReset()
-    submitError.value = ''
     editingId.value = null
   }
 
   const submit = handleSubmit(async values => {
     submitting.value = true
-    submitError.value = ''
     try {
       await (editingId.value
         ? updateClient({ id: editingId.value, name: values.name, phone: values.phone, client_type: clientType.value })
@@ -172,7 +182,7 @@
       closeDialog()
       boardRef.value?.reload()
     } catch (error) {
-      submitError.value = error.message
+      notify.error(error.message)
     } finally {
       submitting.value = false
     }
@@ -181,25 +191,35 @@
   const deleteDialog = ref(false)
   const deleteTarget = ref(null)
   const deleting = ref(false)
-  const deleteError = ref('')
 
   function openDelete (item) {
     deleteTarget.value = item
-    deleteError.value = ''
     deleteDialog.value = true
   }
 
   async function confirmDelete () {
     deleting.value = true
-    deleteError.value = ''
     try {
-      await deleteClient(deleteTarget.value.id)
+      const outcome = await deleteClient(deleteTarget.value.id)
       deleteDialog.value = false
+      notify.success(outcome === 'deactivated'
+        ? `${deleteTarget.value.name} has history, so they were deactivated instead`
+        : `${deleteTarget.value.name} deleted`)
       boardRef.value?.reload()
     } catch (error) {
-      deleteError.value = error.message
+      notify.error(error.message)
     } finally {
       deleting.value = false
+    }
+  }
+
+  async function reactivate (item) {
+    try {
+      await setClientActive(item.id, true)
+      notify.success(`${item.name} reactivated`)
+      boardRef.value?.reload()
+    } catch (error) {
+      notify.error(error.message)
     }
   }
 </script>

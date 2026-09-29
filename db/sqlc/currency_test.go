@@ -63,8 +63,8 @@ func TestListCurrencies(t *testing.T) {
 		createRandomCurrency(t)
 	}
 	arg := ListCurrenciesParams{
-		Limit:  5,
-		Offset: 5,
+		PageSize:   5,
+		PageOffset: 5,
 	}
 	currencies, err := testQueries.ListCurrencies(context.Background(), arg)
 	require.NoError(t, err)

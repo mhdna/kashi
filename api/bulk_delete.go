@@ -111,7 +111,7 @@ type bulkDeleteListItemsURI struct {
 }
 
 type bulkDeleteListItemsRequest struct {
-	ProductIDs []int64 `json:"product_ids" binding:"required,min=1,max=1000,dive,min=1"`
+	ProductVariantIDs []int64 `json:"product_variant_ids" binding:"required,min=1,max=1000,dive,min=1"`
 }
 
 func (server *Server) bulkDeletePriceListItems(ctx *gin.Context) {
@@ -126,8 +126,8 @@ func (server *Server) bulkDeletePriceListItems(ctx *gin.Context) {
 		return
 	}
 	rows, err := server.store.DeletePriceListItems(ctx, db.DeletePriceListItemsParams{
-		PriceListID: uri.ID,
-		ProductIds:  req.ProductIDs,
+		PriceListID:       uri.ID,
+		ProductVariantIds: req.ProductVariantIDs,
 	})
 	server.bulkRespond(ctx, rows, err)
 }
@@ -144,8 +144,8 @@ func (server *Server) bulkDeleteDiscountListItems(ctx *gin.Context) {
 		return
 	}
 	rows, err := server.store.DeleteDiscountListItems(ctx, db.DeleteDiscountListItemsParams{
-		DiscountListID: uri.ID,
-		ProductIds:     req.ProductIDs,
+		DiscountListID:    uri.ID,
+		ProductVariantIds: req.ProductVariantIDs,
 	})
 	server.bulkRespond(ctx, rows, err)
 }

@@ -13,7 +13,6 @@
         </div>
       </v-app-bar-title>
       <!-- <SnackBar /> -->
-      <BranchActivityToast />
       <template #append>
         <UpcomingEventsCard />
         <SyncCard />
@@ -22,19 +21,17 @@
         <!-- <NotificationMenu class="me-4" /> -->
         <!-- <v-icon icon="mdi-translate" /> -->
         <ToggleTheme />
-        <v-avatar
-          class="text-white"
-          color="red"
-          size="35"
-          style="cursor: pointer"
-        >
-          <span class="text-h2">OW</span>
-        </v-avatar>
+        <OnlineUsersStack />
         <v-btn icon="mdi-logout" variant="text" @click="handleLogout" />
       </template>
     </v-app-bar>
 
     <NavigationDrawer v-model="showDrawer" :mobile="mobile" :rail="isRail" />
+
+    <!-- Kept outside <v-app-bar>: Vuetify transforms the app bar for its
+         scroll behaviour, and a transformed ancestor would anchor this
+         fixed reel to the bar (top, clipped) instead of the viewport. -->
+    <BranchActivityToast />
 
     <div class="page-wrapper">
       <div v-if="isNavigating" class="loading-overlay">
@@ -59,59 +56,65 @@
     </div>
   </v-main>
   <!-- <AppFooter /> -->
+  <AppNotifications />
 </template>
 
 <script lang="ts" setup>
-  import { onMounted, ref } from 'vue'
-  import { useRoute, useRouter } from 'vue-router'
-  import { useDisplay } from 'vuetify'
-  import BranchActivityToast from '@/components/BranchActivityToast.vue'
-  import ToggleTheme from '@/components/Buttons/ToggleTheme.vue'
-  import CommandPalette from '@/components/CommandPalette.vue'
-  import ConnectedBranchesCard from '@/components/ConnectedBranchesCard.vue'
-  // import NotificationMenu from '@/components/Menus/NotificationMenu.vue'
-  import { useAuthStore } from '@/stores/auth'
-  import { useSettingsStore } from '@/stores/settings'
+import { onMounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useDisplay } from "vuetify";
+import AppNotifications from "@/components/AppNotifications.vue";
+import BranchActivityToast from "@/components/BranchActivityToast.vue";
+import ToggleTheme from "@/components/Buttons/ToggleTheme.vue";
+import CommandPalette from "@/components/CommandPalette.vue";
+import ConnectedBranchesCard from "@/components/ConnectedBranchesCard.vue";
+import OnlineUsersStack from "@/components/OnlineUsersStack.vue";
+// import NotificationMenu from '@/components/Menus/NotificationMenu.vue'
+import { useAuthStore } from "@/stores/auth";
+import { useSettingsStore } from "@/stores/settings";
 
-  const auth = useAuthStore()
-  const settingsStore = useSettingsStore()
-  // Loads the global app settings (activity display prefs, financials high
-  // season months) once per session -- BranchActivityToast/SyncCard read
-  // settingsStore's activity fields reactively, so this can resolve after
-  // they mount without any special handling.
-  onMounted(() => settingsStore.init())
+const auth = useAuthStore();
+const settingsStore = useSettingsStore();
+// Loads the global app settings (activity display prefs, financials high
+// season months) once per session -- BranchActivityToast/SyncCard read
+// settingsStore's activity fields reactively, so this can resolve after
+// they mount without any special handling.
+onMounted(() => {
+  settingsStore.init();
+  auth.refreshAccess();
+});
 
-  function handleLogout () {
-    auth.logout()
-    window.location.href = '/login'
+function handleLogout() {
+  auth.logout();
+  window.location.href = "/login";
+}
+
+const showDrawer = ref(false);
+const isRail = ref(false);
+const { mobile } = useDisplay();
+
+function toggleDrawer() {
+  if (mobile.value) {
+    showDrawer.value = !showDrawer.value;
+    isRail.value = false;
+  } else {
+    isRail.value = !isRail.value;
   }
+}
 
-  const showDrawer = ref(false)
-  const isRail = ref(false)
-  const { mobile } = useDisplay()
+const router = useRouter();
+const route = useRoute();
+const isNavigating = ref(false);
+const pageTitle = ref(route.meta.title || "");
+const navStart = 0;
 
-  function toggleDrawer () {
-    if (mobile.value) {
-      showDrawer.value = !showDrawer.value
-      isRail.value = false
-    } else {
-      isRail.value = !isRail.value
-    }
-  }
+router.beforeEach((to) => {
+  pageTitle.value = to.meta.title || "";
+});
 
-  const router = useRouter()
-  const route = useRoute()
-  const isNavigating = ref(false)
-  const pageTitle = ref(route.meta.title || '')
-  const navStart = 0
-
-  router.beforeEach(to => {
-    pageTitle.value = to.meta.title || ''
-  })
-
-  router.afterEach(() => {
-    isNavigating.value = false
-  })
+router.afterEach(() => {
+  isNavigating.value = false;
+});
 </script>
 
 <style scoped>

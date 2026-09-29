@@ -32,16 +32,6 @@
       </v-select>
     </div>
 
-    <v-alert
-      v-if="error"
-      class="tg-notice mx-4 mb-2"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ error }}
-    </v-alert>
-
     <div v-if="loading" class="d-flex justify-center pa-12">
       <v-progress-circular color="primary" indeterminate />
     </div>
@@ -103,7 +93,7 @@
                     <th class="text-left">Period</th>
                     <th class="text-right">Achieved</th>
                     <th class="text-right">Target</th>
-                    <th class="text-right">Progress</th>
+                    <th class="text-left" style="min-width: 160px">Progress</th>
                     <th class="text-left">Status</th>
                   </tr>
                 </thead>
@@ -113,7 +103,20 @@
                     <td>{{ formatDate(t.date_from) }} – {{ formatDate(t.date_to) }}</td>
                     <td class="text-right">{{ formatMoney(t.achieved) }}</td>
                     <td class="text-right">{{ formatMoney(t.target_amount) }}</td>
-                    <td class="text-right">{{ Math.round(t.progressPct) }}%</td>
+                    <td>
+                      <div class="d-flex align-center ga-2">
+                        <v-progress-linear
+                          :color="STATUS_META[t.status].color"
+                          height="8"
+                          :model-value="t.progressPct"
+                          rounded
+                          style="flex: 1"
+                        />
+                        <span class="text-caption font-weight-medium text-medium-emphasis" style="min-width: 34px; text-align: right">
+                          {{ Math.round(t.progressPct) }}%
+                        </span>
+                      </div>
+                    </td>
                     <td>
                       <v-chip :color="STATUS_META[t.status].color" size="small" variant="tonal">
                         {{ STATUS_META[t.status].label }}
@@ -134,12 +137,13 @@
   import { computed, onMounted, ref, watch } from 'vue'
   import { useBranches } from '@/composables/useBranches'
   import { useBranchTargets } from '@/composables/useBranchTargets'
+  import { useNotify } from '@/composables/useNotify'
 
   const { branches, fetchBranches } = useBranches()
   const { listBranchTargets } = useBranchTargets()
 
   const loading = ref(false)
-  const error = ref('')
+  const notify = useNotify()
   // One flat list across every branch, each row carrying its branch name and
   // a derived status. The API already returns `achieved` per target, so met /
   // missed is purely client-side arithmetic -- no extra endpoint.
@@ -182,7 +186,6 @@
 
   async function load () {
     loading.value = true
-    error.value = ''
     try {
       await fetchBranches()
       const perBranch = await Promise.all(
@@ -201,7 +204,7 @@
       )
       allTargets.value = perBranch.flat()
     } catch (error_) {
-      error.value = error_.message
+      notify.error(error_.message)
     } finally {
       loading.value = false
     }

@@ -2,8 +2,8 @@
   <div class="page-root">
     <v-card class="logs-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
-        <v-icon icon="mdi-text" />
-        <span>Application logs</span>
+        <v-icon icon="mdi-code-tags" />
+        <span>Dev logs</span>
         <v-chip
           v-if="errorCount"
           color="error"
@@ -70,23 +70,13 @@
       </v-card-title>
       <v-divider />
 
-      <v-alert
-        v-if="serverError"
-        class="ma-3 mb-0"
-        density="compact"
-        type="error"
-        variant="tonal"
-      >
-        {{ serverError }}
-      </v-alert>
-
       <div class="logs-content">
         <v-data-table
           class="logs-table"
           density="comfortable"
           :headers="headers"
           :items="filteredEntries"
-          :items-per-page="25"
+          :items-per-page="15"
           :sort-by="[{ key: 'timestamp', order: 'desc' }]"
         >
           <template #item.timestamp="{ item }">
@@ -126,12 +116,13 @@
   import { computed, onMounted, ref } from 'vue'
   import { authFetch } from '@/composables/useApi'
   import { useClientLogs } from '@/composables/useClientLogs'
+  import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
 
   const { clear, entries: clientEntries } = useClientLogs()
   const serverEntries = ref([])
   const loadingServerLogs = ref(false)
-  const serverError = ref('')
+  const notify = useNotify()
   const query = ref('')
   const level = ref('all')
   const source = ref('all')
@@ -204,7 +195,6 @@
 
   async function loadServerLogs () {
     loadingServerLogs.value = true
-    serverError.value = ''
     try {
       const response = await authFetch(`${API_BASE}/logs?limit=200`)
       if (!response.ok) throw new Error(`Server returned ${response.status}`)
@@ -213,7 +203,7 @@
         .slice(-200)
         .map((line, index) => parseServerLine(line, index))
     } catch (error) {
-      serverError.value = error.message || 'Could not load backend logs.'
+      notify.error(error.message || 'Could not load backend logs.')
     } finally {
       loadingServerLogs.value = false
     }

@@ -11,15 +11,6 @@
       @click="$emit('clear')"
     />
     <v-spacer />
-    <v-alert
-      v-if="error"
-      class="py-1"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ error }}
-    </v-alert>
     <v-btn
       color="error"
       :loading="loading"
@@ -53,14 +44,20 @@
 </template>
 
 <script setup lang="ts">
-  import { ref } from 'vue'
+  import { ref, watch } from 'vue'
+  import { useNotify } from '@/composables/useNotify'
 
-  defineProps({
+  const props = defineProps({
     count: { type: Number, default: 0 },
     loading: { type: Boolean, default: false },
     error: { type: String, default: '' },
   })
   const emit = defineEmits(['clear', 'confirm'])
+  const notify = useNotify()
+
+  watch(() => props.error, val => {
+    if (val) notify.error(val)
+  })
 
   const confirm = ref(false)
 

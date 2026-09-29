@@ -1,0 +1,24 @@
+# /etc/caddy/Caddyfile on the shared droplet (<server-ip>).
+#
+# SUPERSEDED: this box now also runs kashi-commerce on the bare example.com
+# domain, and kashi lives at cloud.example.com instead. The Caddyfile that's
+# actually live on the server is ../../../kashi-commerce/deploy/Caddyfile,
+# which includes this same block plus kashi-commerce's. Keep both in sync
+# if you change kashi's site block.
+
+cloud.example.com {
+	encode zstd gzip
+
+	# API: browser calls /api/..., the Go server sees /... on :8090
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy 127.0.0.1:8090
+	}
+
+	# SPA: serve the built files, fall back to index.html for client routes
+	handle {
+		root * /var/www/kashi-ui
+		try_files {path} /index.html
+		file_server
+	}
+}

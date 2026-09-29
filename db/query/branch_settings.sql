@@ -44,12 +44,15 @@ INSERT INTO branch_settings (
   attendance_enabled,
   attendance_duplicate_interval_seconds,
   attendance_cashier_history,
+  split_primary_currency,
+  split_primary_first,
+  split_primary_step,
   updated_at
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
   $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27,
   $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39,
-  $40, $41, $42, $43, $44, now()
+  $40, $41, $42, $43, $44, $45, $46, $47, now()
 )
 ON CONFLICT (branch_id) DO UPDATE SET
   branch_name = EXCLUDED.branch_name,
@@ -95,6 +98,9 @@ ON CONFLICT (branch_id) DO UPDATE SET
   attendance_enabled = EXCLUDED.attendance_enabled,
   attendance_duplicate_interval_seconds = EXCLUDED.attendance_duplicate_interval_seconds,
   attendance_cashier_history = EXCLUDED.attendance_cashier_history,
+  split_primary_currency = EXCLUDED.split_primary_currency,
+  split_primary_first = EXCLUDED.split_primary_first,
+  split_primary_step = EXCLUDED.split_primary_step,
   updated_at = now()
 RETURNING *;
 

@@ -3,6 +3,7 @@ package api
 import (
 	"log"
 	"net/http"
+	"sort"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -28,23 +29,50 @@ import (
 // truth for anything that matters.
 type adminHub struct {
 	mu    sync.RWMutex
-	conns map[*wsConn]bool
+	conns map[*wsConn]onlineUser
+}
+
+// onlineUser is who owns an admin connection, taken from the verified token.
+// It doubles as the wire shape for presence, so the UI can render an avatar
+// without a second lookup.
+type onlineUser struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
 }
 
 func newAdminHub() *adminHub {
-	return &adminHub{conns: make(map[*wsConn]bool)}
+	return &adminHub{conns: make(map[*wsConn]onlineUser)}
 }
 
-func (h *adminHub) add(conn *wsConn) {
+func (h *adminHub) add(conn *wsConn, user onlineUser) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	h.conns[conn] = true
+	h.conns[conn] = user
 }
 
 func (h *adminHub) remove(conn *wsConn) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	delete(h.conns, conn)
+}
+
+// onlineUsers reports each user with at least one live admin connection,
+// once, however many tabs or devices they have open. Sorted by ID so the
+// list -- and therefore the avatar order in the app bar -- is stable across
+// pushes instead of shuffling with map iteration order.
+func (h *adminHub) onlineUsers() []onlineUser {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	seen := make(map[int64]bool, len(h.conns))
+	users := make([]onlineUser, 0, len(h.conns))
+	for _, u := range h.conns {
+		if !seen[u.ID] {
+			seen[u.ID] = true
+			users = append(users, u)
+		}
+	}
+	sort.Slice(users, func(i, j int) bool { return users[i].ID < users[j].ID })
+	return users
 }
 
 // Message types the admin UI's toast queue knows how to render:
@@ -59,6 +87,7 @@ func (h *adminHub) remove(conn *wsConn) {
 //	branch_attendance_changed  Kind=complaint|approved|rejected, Label="<name> <verb> <date>"
 //	branch_visitor_event       Kind=in|out (counter direction), Label=local day "YYYY-MM-DD"
 //	branch_connection_changed  BranchIDs=full connected list
+//	admin_presence_changed     Users=full list of signed-in users with a live connection
 type adminWSMessage struct {
 	Type     string `json:"type"`
 	BranchID int64  `json:"branch_id,omitempty"`
@@ -84,6 +113,13 @@ type adminWSMessage struct {
 	// order push still leaves the client correct on the next one, same
 	// idempotency reasoning as branchWSMessage's pointer-only payloads.
 	BranchIDs []int64 `json:"branch_ids,omitempty"`
+	// Users is the full current list of signed-in users -- only set for
+	// "admin_presence_changed". omitempty because this struct is shared by
+	// every message type; an absent field therefore means "nobody online"
+	// for that message, and the UI reads it with `?? []` as it does for
+	// branch_ids. Full list rather than a delta for the same idempotency
+	// reason as BranchIDs.
+	Users []onlineUser `json:"users,omitempty"`
 }
 
 // broadcastAll notifies every currently-connected admin client. There's no
@@ -128,8 +164,12 @@ func (server *Server) adminWS(ctx *gin.Context) {
 	defer conn.Close()
 
 	wrapped := newWSConn(conn)
-	server.adminHub.add(wrapped)
-	defer server.adminHub.remove(wrapped)
+	server.adminHub.add(wrapped, onlineUser{ID: payload.UserID, Name: payload.Username})
+	server.adminHub.broadcastAll(adminWSMessage{Type: "admin_presence_changed", Users: server.adminHub.onlineUsers()})
+	defer func() {
+		server.adminHub.remove(wrapped)
+		server.adminHub.broadcastAll(adminWSMessage{Type: "admin_presence_changed", Users: server.adminHub.onlineUsers()})
+	}()
 
 	for {
 		if _, _, err := conn.ReadMessage(); err != nil {

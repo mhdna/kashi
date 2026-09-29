@@ -9,17 +9,75 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const countTransfers = `-- name: CountTransfers :one
 SELECT COUNT(*) FROM transfers
+WHERE ($1::transfer_status IS NULL OR status = $1)
 `
 
-func (q *Queries) CountTransfers(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countTransfers)
+func (q *Queries) CountTransfers(ctx context.Context, status NullTransferStatus) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countTransfers, status)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
+}
+
+const createBranchTransferRequest = `-- name: CreateBranchTransferRequest :one
+INSERT INTO transfers (
+  from_inventory_id,
+  to_inventory_id,
+  type,
+  note,
+  branch_id,
+  client_ref
+) VALUES ( $1, $2, $3, $4, $5, $6 )
+RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note
+`
+
+type CreateBranchTransferRequestParams struct {
+	FromInventoryID int64          `json:"from_inventory_id"`
+	ToInventoryID   int64          `json:"to_inventory_id"`
+	Type            TransferType   `json:"type"`
+	Note            string         `json:"note"`
+	BranchID        sql.NullInt64  `json:"branch_id"`
+	ClientRef       sql.NullString `json:"client_ref"`
+}
+
+// A branch's own proposed transfer: always starts 'requested', always
+// carries branch_id + client_ref (the idempotency key -- see
+// idx_transfers_branch_client_ref).
+func (q *Queries) CreateBranchTransferRequest(ctx context.Context, arg CreateBranchTransferRequestParams) (Transfer, error) {
+	row := q.db.QueryRowContext(ctx, createBranchTransferRequest,
+		arg.FromInventoryID,
+		arg.ToInventoryID,
+		arg.Type,
+		arg.Note,
+		arg.BranchID,
+		arg.ClientRef,
+	)
+	var i Transfer
+	err := row.Scan(
+		&i.ID,
+		&i.FromInventoryID,
+		&i.ToInventoryID,
+		&i.Type,
+		&i.CreatedAt,
+		&i.Code,
+		&i.Status,
+		&i.DispatchedAt,
+		&i.ReceivedAt,
+		&i.Note,
+		&i.BranchID,
+		&i.ClientRef,
+		&i.AttachmentPath,
+		&i.UpdatedAt,
+		&i.ConfirmedAt,
+		&i.ConfirmedNote,
+	)
+	return i, err
 }
 
 const createTransfer = `-- name: CreateTransfer :one
@@ -30,7 +88,7 @@ INSERT INTO transfers (
   code,
   note
 ) VALUES ( $1, $2, $3, $4, $5 )
-RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note
+RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note
 `
 
 type CreateTransferParams struct {
@@ -61,6 +119,12 @@ func (q *Queries) CreateTransfer(ctx context.Context, arg CreateTransferParams) 
 		&i.DispatchedAt,
 		&i.ReceivedAt,
 		&i.Note,
+		&i.BranchID,
+		&i.ClientRef,
+		&i.AttachmentPath,
+		&i.UpdatedAt,
+		&i.ConfirmedAt,
+		&i.ConfirmedNote,
 	)
 	return i, err
 }
@@ -72,7 +136,7 @@ INSERT INTO transfer_items (
   asset_id,
   quantity
 ) VALUES ( $1, $2, $3, $4 )
-RETURNING id, transfer_id, asset_id, quantity, variant_id
+RETURNING id, transfer_id, asset_id, quantity, variant_id, received_quantity
 `
 
 type CreateTransferItemParams struct {
@@ -96,6 +160,7 @@ func (q *Queries) CreateTransferItem(ctx context.Context, arg CreateTransferItem
 		&i.AssetID,
 		&i.Quantity,
 		&i.VariantID,
+		&i.ReceivedQuantity,
 	)
 	return i, err
 }
@@ -105,7 +170,7 @@ DELETE FROM transfer_items
 WHERE transfer_items.id = $1
   AND transfer_items.transfer_id IN (
     SELECT transfers.id FROM transfers
-    WHERE transfers.id = $2 AND transfers.status = 'draft'
+    WHERE transfers.id = $2 AND transfers.status IN ('draft', 'requested')
   )
 `
 
@@ -119,8 +184,42 @@ func (q *Queries) DeleteTransferItem(ctx context.Context, arg DeleteTransferItem
 	return err
 }
 
+const getBranchTransferByClientRef = `-- name: GetBranchTransferByClientRef :one
+SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note FROM transfers
+WHERE branch_id = $1 AND client_ref = $2 LIMIT 1
+`
+
+type GetBranchTransferByClientRefParams struct {
+	BranchID  sql.NullInt64  `json:"branch_id"`
+	ClientRef sql.NullString `json:"client_ref"`
+}
+
+func (q *Queries) GetBranchTransferByClientRef(ctx context.Context, arg GetBranchTransferByClientRefParams) (Transfer, error) {
+	row := q.db.QueryRowContext(ctx, getBranchTransferByClientRef, arg.BranchID, arg.ClientRef)
+	var i Transfer
+	err := row.Scan(
+		&i.ID,
+		&i.FromInventoryID,
+		&i.ToInventoryID,
+		&i.Type,
+		&i.CreatedAt,
+		&i.Code,
+		&i.Status,
+		&i.DispatchedAt,
+		&i.ReceivedAt,
+		&i.Note,
+		&i.BranchID,
+		&i.ClientRef,
+		&i.AttachmentPath,
+		&i.UpdatedAt,
+		&i.ConfirmedAt,
+		&i.ConfirmedNote,
+	)
+	return i, err
+}
+
 const getTransfer = `-- name: GetTransfer :one
-SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note FROM transfers
+SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note FROM transfers
 WHERE id = $1 LIMIT 1
 `
 
@@ -138,16 +237,130 @@ func (q *Queries) GetTransfer(ctx context.Context, id int64) (Transfer, error) {
 		&i.DispatchedAt,
 		&i.ReceivedAt,
 		&i.Note,
+		&i.BranchID,
+		&i.ClientRef,
+		&i.AttachmentPath,
+		&i.UpdatedAt,
+		&i.ConfirmedAt,
+		&i.ConfirmedNote,
 	)
 	return i, err
 }
 
+const listBranchTransfersUpdatedSince = `-- name: ListBranchTransfersUpdatedSince :many
+SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note FROM transfers
+WHERE branch_id = $1 AND updated_at > $2
+ORDER BY updated_at
+`
+
+type ListBranchTransfersUpdatedSinceParams struct {
+	BranchID  sql.NullInt64 `json:"branch_id"`
+	UpdatedAt time.Time     `json:"updated_at"`
+}
+
+// The till's own poll: what happened to the requests it made -- see
+// approveTransfer/rejectTransfer, which both bump updated_at.
+func (q *Queries) ListBranchTransfersUpdatedSince(ctx context.Context, arg ListBranchTransfersUpdatedSinceParams) ([]Transfer, error) {
+	rows, err := q.db.QueryContext(ctx, listBranchTransfersUpdatedSince, arg.BranchID, arg.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Transfer{}
+	for rows.Next() {
+		var i Transfer
+		if err := rows.Scan(
+			&i.ID,
+			&i.FromInventoryID,
+			&i.ToInventoryID,
+			&i.Type,
+			&i.CreatedAt,
+			&i.Code,
+			&i.Status,
+			&i.DispatchedAt,
+			&i.ReceivedAt,
+			&i.Note,
+			&i.BranchID,
+			&i.ClientRef,
+			&i.AttachmentPath,
+			&i.UpdatedAt,
+			&i.ConfirmedAt,
+			&i.ConfirmedNote,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listIncomingBranchTransfersUpdatedSince = `-- name: ListIncomingBranchTransfersUpdatedSince :many
+SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note FROM transfers
+WHERE to_inventory_id = $1 AND updated_at > $2
+ORDER BY updated_at
+`
+
+type ListIncomingBranchTransfersUpdatedSinceParams struct {
+	ToInventoryID int64     `json:"to_inventory_id"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+// The destination branch's own poll: transfers addressed to it, whoever
+// sent them. Matched by to_inventory_id, not branch_id -- that column is
+// always the sender's.
+func (q *Queries) ListIncomingBranchTransfersUpdatedSince(ctx context.Context, arg ListIncomingBranchTransfersUpdatedSinceParams) ([]Transfer, error) {
+	rows, err := q.db.QueryContext(ctx, listIncomingBranchTransfersUpdatedSince, arg.ToInventoryID, arg.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Transfer{}
+	for rows.Next() {
+		var i Transfer
+		if err := rows.Scan(
+			&i.ID,
+			&i.FromInventoryID,
+			&i.ToInventoryID,
+			&i.Type,
+			&i.CreatedAt,
+			&i.Code,
+			&i.Status,
+			&i.DispatchedAt,
+			&i.ReceivedAt,
+			&i.Note,
+			&i.BranchID,
+			&i.ClientRef,
+			&i.AttachmentPath,
+			&i.UpdatedAt,
+			&i.ConfirmedAt,
+			&i.ConfirmedNote,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTransferItems = `-- name: ListTransferItems :many
 SELECT
-  ti.id, ti.transfer_id, ti.asset_id, ti.quantity, ti.variant_id,
+  ti.id, ti.transfer_id, ti.asset_id, ti.quantity, ti.variant_id, ti.received_quantity,
   p.name AS product_name,
   p.code AS product_code,
   pv.barcode AS variant_barcode,
+  pv.uid AS variant_uid,
   a.name AS asset_name
 FROM transfer_items ti
 LEFT JOIN product_variants pv ON pv.id = ti.variant_id
@@ -158,15 +371,17 @@ ORDER BY ti.id
 `
 
 type ListTransferItemsRow struct {
-	ID             int64          `json:"id"`
-	TransferID     int64          `json:"transfer_id"`
-	AssetID        sql.NullInt64  `json:"asset_id"`
-	Quantity       int64          `json:"quantity"`
-	VariantID      sql.NullInt64  `json:"variant_id"`
-	ProductName    sql.NullString `json:"product_name"`
-	ProductCode    sql.NullString `json:"product_code"`
-	VariantBarcode sql.NullString `json:"variant_barcode"`
-	AssetName      sql.NullString `json:"asset_name"`
+	ID               int64          `json:"id"`
+	TransferID       int64          `json:"transfer_id"`
+	AssetID          sql.NullInt64  `json:"asset_id"`
+	Quantity         int64          `json:"quantity"`
+	VariantID        sql.NullInt64  `json:"variant_id"`
+	ReceivedQuantity sql.NullInt64  `json:"received_quantity"`
+	ProductName      sql.NullString `json:"product_name"`
+	ProductCode      sql.NullString `json:"product_code"`
+	VariantBarcode   sql.NullString `json:"variant_barcode"`
+	VariantUid       uuid.NullUUID  `json:"variant_uid"`
+	AssetName        sql.NullString `json:"asset_name"`
 }
 
 func (q *Queries) ListTransferItems(ctx context.Context, transferID int64) ([]ListTransferItemsRow, error) {
@@ -184,9 +399,11 @@ func (q *Queries) ListTransferItems(ctx context.Context, transferID int64) ([]Li
 			&i.AssetID,
 			&i.Quantity,
 			&i.VariantID,
+			&i.ReceivedQuantity,
 			&i.ProductName,
 			&i.ProductCode,
 			&i.VariantBarcode,
+			&i.VariantUid,
 			&i.AssetName,
 		); err != nil {
 			return nil, err
@@ -204,21 +421,25 @@ func (q *Queries) ListTransferItems(ctx context.Context, transferID int64) ([]Li
 
 const listTransfers = `-- name: ListTransfers :many
 SELECT
-  t.id, t.from_inventory_id, t.to_inventory_id, t.type, t.created_at, t.code, t.status, t.dispatched_at, t.received_at, t.note,
+  t.id, t.from_inventory_id, t.to_inventory_id, t.type, t.created_at, t.code, t.status, t.dispatched_at, t.received_at, t.note, t.branch_id, t.client_ref, t.attachment_path, t.updated_at, t.confirmed_at, t.confirmed_note,
   fi.name AS from_inventory_name,
   ti.name AS to_inventory_name,
+  b.name AS branch_name,
   (SELECT COUNT(*) FROM transfer_items x WHERE x.transfer_id = t.id) AS item_count
 FROM transfers t
 JOIN inventories fi ON fi.id = t.from_inventory_id
 JOIN inventories ti ON ti.id = t.to_inventory_id
+LEFT JOIN branches b ON b.id = t.branch_id
+WHERE ($3::transfer_status IS NULL OR t.status = $3)
 ORDER BY t.id DESC
 LIMIT $1
 OFFSET $2
 `
 
 type ListTransfersParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Limit  int32              `json:"limit"`
+	Offset int32              `json:"offset"`
+	Status NullTransferStatus `json:"status"`
 }
 
 type ListTransfersRow struct {
@@ -232,13 +453,20 @@ type ListTransfersRow struct {
 	DispatchedAt      sql.NullTime   `json:"dispatched_at"`
 	ReceivedAt        sql.NullTime   `json:"received_at"`
 	Note              string         `json:"note"`
+	BranchID          sql.NullInt64  `json:"branch_id"`
+	ClientRef         sql.NullString `json:"client_ref"`
+	AttachmentPath    string         `json:"attachment_path"`
+	UpdatedAt         time.Time      `json:"updated_at"`
+	ConfirmedAt       sql.NullTime   `json:"confirmed_at"`
+	ConfirmedNote     string         `json:"confirmed_note"`
 	FromInventoryName string         `json:"from_inventory_name"`
 	ToInventoryName   string         `json:"to_inventory_name"`
+	BranchName        sql.NullString `json:"branch_name"`
 	ItemCount         int64          `json:"item_count"`
 }
 
 func (q *Queries) ListTransfers(ctx context.Context, arg ListTransfersParams) ([]ListTransfersRow, error) {
-	rows, err := q.db.QueryContext(ctx, listTransfers, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, listTransfers, arg.Limit, arg.Offset, arg.Status)
 	if err != nil {
 		return nil, err
 	}
@@ -257,8 +485,15 @@ func (q *Queries) ListTransfers(ctx context.Context, arg ListTransfersParams) ([
 			&i.DispatchedAt,
 			&i.ReceivedAt,
 			&i.Note,
+			&i.BranchID,
+			&i.ClientRef,
+			&i.AttachmentPath,
+			&i.UpdatedAt,
+			&i.ConfirmedAt,
+			&i.ConfirmedNote,
 			&i.FromInventoryName,
 			&i.ToInventoryName,
+			&i.BranchName,
 			&i.ItemCount,
 		); err != nil {
 			return nil, err
@@ -274,13 +509,123 @@ func (q *Queries) ListTransfers(ctx context.Context, arg ListTransfersParams) ([
 	return items, nil
 }
 
+const setTransferAttachmentPath = `-- name: SetTransferAttachmentPath :exec
+UPDATE transfers
+SET attachment_path = $2,
+    updated_at = now()
+WHERE id = $1
+`
+
+type SetTransferAttachmentPathParams struct {
+	ID             int64  `json:"id"`
+	AttachmentPath string `json:"attachment_path"`
+}
+
+func (q *Queries) SetTransferAttachmentPath(ctx context.Context, arg SetTransferAttachmentPathParams) error {
+	_, err := q.db.ExecContext(ctx, setTransferAttachmentPath, arg.ID, arg.AttachmentPath)
+	return err
+}
+
+const setTransferConfirmed = `-- name: SetTransferConfirmed :one
+UPDATE transfers
+SET confirmed_at = now(),
+    confirmed_note = $1,
+    updated_at = now()
+WHERE id = $2
+RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note
+`
+
+type SetTransferConfirmedParams struct {
+	ConfirmedNote string `json:"confirmed_note"`
+	ID            int64  `json:"id"`
+}
+
+func (q *Queries) SetTransferConfirmed(ctx context.Context, arg SetTransferConfirmedParams) (Transfer, error) {
+	row := q.db.QueryRowContext(ctx, setTransferConfirmed, arg.ConfirmedNote, arg.ID)
+	var i Transfer
+	err := row.Scan(
+		&i.ID,
+		&i.FromInventoryID,
+		&i.ToInventoryID,
+		&i.Type,
+		&i.CreatedAt,
+		&i.Code,
+		&i.Status,
+		&i.DispatchedAt,
+		&i.ReceivedAt,
+		&i.Note,
+		&i.BranchID,
+		&i.ClientRef,
+		&i.AttachmentPath,
+		&i.UpdatedAt,
+		&i.ConfirmedAt,
+		&i.ConfirmedNote,
+	)
+	return i, err
+}
+
+const setTransferItemReceivedQuantity = `-- name: SetTransferItemReceivedQuantity :one
+UPDATE transfer_items
+SET received_quantity = $1
+WHERE id = $2
+RETURNING id, transfer_id, asset_id, quantity, variant_id, received_quantity
+`
+
+type SetTransferItemReceivedQuantityParams struct {
+	ReceivedQuantity sql.NullInt64 `json:"received_quantity"`
+	ID               int64         `json:"id"`
+}
+
+// The admin's own edit, keyed by transfer_item id directly (unlike the
+// branch's own confirm, which only ever knows an item by variant) --
+// lets kashi correct a destination's count, or fill one in before it
+// ever arrives, from the transfer detail dialog.
+func (q *Queries) SetTransferItemReceivedQuantity(ctx context.Context, arg SetTransferItemReceivedQuantityParams) (TransferItem, error) {
+	row := q.db.QueryRowContext(ctx, setTransferItemReceivedQuantity, arg.ReceivedQuantity, arg.ID)
+	var i TransferItem
+	err := row.Scan(
+		&i.ID,
+		&i.TransferID,
+		&i.AssetID,
+		&i.Quantity,
+		&i.VariantID,
+		&i.ReceivedQuantity,
+	)
+	return i, err
+}
+
+const setTransferItemReceivedQuantityByVariant = `-- name: SetTransferItemReceivedQuantityByVariant :execrows
+UPDATE transfer_items
+SET received_quantity = $1
+WHERE transfer_id = $2 AND variant_id = $3
+`
+
+type SetTransferItemReceivedQuantityByVariantParams struct {
+	ReceivedQuantity sql.NullInt64 `json:"received_quantity"`
+	TransferID       int64         `json:"transfer_id"`
+	VariantID        sql.NullInt64 `json:"variant_id"`
+}
+
+// The destination branch reporting what it actually counted for one line.
+// Keyed by variant, not transfer_item id -- the till only ever knows an
+// item by barcode/uid, resolved to variant_id the same way
+// CreateBranchTransferRequestTx resolves an outgoing line.
+func (q *Queries) SetTransferItemReceivedQuantityByVariant(ctx context.Context, arg SetTransferItemReceivedQuantityByVariantParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, setTransferItemReceivedQuantityByVariant, arg.ReceivedQuantity, arg.TransferID, arg.VariantID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const setTransferStatus = `-- name: SetTransferStatus :one
 UPDATE transfers
 SET status = $1,
     dispatched_at = COALESCE($2, dispatched_at),
-    received_at = COALESCE($3, received_at)
+    received_at = COALESCE($3, received_at),
+    updated_at = now()
 WHERE id = $4
-RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note
+RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note
 `
 
 type SetTransferStatusParams struct {
@@ -309,6 +654,12 @@ func (q *Queries) SetTransferStatus(ctx context.Context, arg SetTransferStatusPa
 		&i.DispatchedAt,
 		&i.ReceivedAt,
 		&i.Note,
+		&i.BranchID,
+		&i.ClientRef,
+		&i.AttachmentPath,
+		&i.UpdatedAt,
+		&i.ConfirmedAt,
+		&i.ConfirmedNote,
 	)
 	return i, err
 }
@@ -318,8 +669,9 @@ UPDATE transfers
 SET from_inventory_id = $2,
     to_inventory_id = $3,
     type = $4,
-    note = $5
-WHERE id = $1 AND status = 'draft'
+    note = $5,
+    updated_at = now()
+WHERE id = $1 AND status IN ('draft', 'requested')
 `
 
 type UpdateTransferParams struct {

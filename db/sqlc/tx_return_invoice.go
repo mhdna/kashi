@@ -132,9 +132,9 @@ func (store *SQLStore) ReturnInvoiceTx(ctx context.Context, arg ReturnInvoiceTxP
 			}
 
 			if arg.PriceListID.Valid {
-				listPrice, priceErr := q.GetProductPriceFromList(ctx, GetProductPriceFromListParams{
-					PriceListID: arg.PriceListID.Int64,
-					ProductID:   variant.ProductID,
+				listPrice, priceErr := q.GetVariantPriceFromList(ctx, GetVariantPriceFromListParams{
+					PriceListID:      arg.PriceListID.Int64,
+					ProductVariantID: variant.ID,
 				})
 				if priceErr == nil {
 					unitPrice = listPrice.Price
@@ -193,13 +193,14 @@ func (store *SQLStore) ReturnInvoiceTx(ctx context.Context, arg ReturnInvoiceTxP
 
 		for _, i := range arg.Items {
 			_, err = q.applyStockMovement(ctx, applyStockMovementParams{
-				InventoryID:   arg.InventoryID,
-				VariantID:     i.VariantID,
-				Quantity:      i.Quantity,
-				Reason:        StockMovementReasonReturn,
-				ReferenceType: "return_invoice",
-				ReferenceID:   invoice.ID,
-				CreatedBy:     arg.CreatedBy,
+				InventoryID:            arg.InventoryID,
+				VariantID:              i.VariantID,
+				Quantity:               i.Quantity,
+				Reason:                 StockMovementReasonReturn,
+				ReferenceType:          "return_invoice",
+				ReferenceID:            invoice.ID,
+				CreatedBy:              arg.CreatedBy,
+				OriginalSalesInvoiceID: sql.NullInt64{Int64: arg.SalesInvoiceID, Valid: true},
 			})
 			if err != nil {
 				return err

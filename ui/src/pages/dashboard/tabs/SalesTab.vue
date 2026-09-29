@@ -1,14 +1,5 @@
 <template>
   <div class="sales-tab pa-4" style="min-height: 0; overflow-y: auto">
-    <v-alert
-      v-if="error"
-      class="mb-4"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ error }}
-    </v-alert>
     <div class="summary-grid">
       <MetricCard
         icon="mdi-cart-check"
@@ -83,7 +74,7 @@
   import MetricCard from '@/components/Cards/MetricCard.vue'
   import { useDashboardSummary } from '@/composables/useDashboardSummary'
 
-  const { summary, prevSummary, loading, error } = useDashboardSummary()
+  const { summary, prevSummary, loading } = useDashboardSummary()
 
   function metric (key) {
     const value = summary.value?.[key]

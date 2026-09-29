@@ -24,7 +24,13 @@
             />
           </v-col>
           <v-col cols="6" md="6">
-            <v-text-field v-model="note" density="compact" :disabled="!isDraft" hide-details label="Note" />
+            <v-text-field
+              v-model="note"
+              density="compact"
+              :disabled="!isDraft"
+              hide-details
+              label="Note"
+            />
           </v-col>
           <v-col v-if="isDraft" cols="12" md="3">
             <v-autocomplete
@@ -44,7 +50,6 @@
           </v-col>
         </v-row>
 
-        <v-alert v-if="editorError" class="my-2" type="error" variant="tonal">{{ editorError }}</v-alert>
 
         <div v-if="seedProgress" class="d-flex align-center ga-2 my-2">
           <v-progress-linear color="primary" :model-value="seedProgress.pct" />
@@ -60,8 +65,8 @@
           fixed-header
           :headers="lineHeaders"
           height="calc(100vh - 340px)"
-          :items="lines"
           item-value="variantId"
+          :items="lines"
         >
           <template #item.system_quantity="{ item }">
             <div class="text-end">{{ item.systemQuantity }}</div>
@@ -109,7 +114,13 @@
         <v-spacer />
         <template v-if="isDraft">
           <v-btn :loading="saving" text="Save Draft" @click="save" />
-          <v-btn color="success" :disabled="!editingId" :loading="posting" text="Post" @click="post" />
+          <v-btn
+            color="success"
+            :disabled="!editingId"
+            :loading="posting"
+            text="Post"
+            @click="post"
+          />
         </template>
       </v-card-actions>
     </v-card>
@@ -133,7 +144,14 @@
           label="Inventory"
           variant="outlined"
         />
-        <v-btn color="primary" prepend-icon="mdi-plus" text="New Count" variant="flat" @click="openCreate" />
+        <v-btn
+          v-if="canEdit"
+          color="primary"
+          prepend-icon="mdi-plus"
+          text="New Count"
+          variant="flat"
+          @click="openCreate"
+        />
       </v-card-title>
       <v-divider />
 
@@ -165,9 +183,14 @@
   import { useRoute } from 'vue-router'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useInventories } from '@/composables/useInventories'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { useStockCounts } from '@/composables/useStockCounts'
+  import { useNotify } from '@/composables/useNotify'
   import { useVariants, variantLabel } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const route = useRoute()
   const { inventories, fetchInventories } = useInventories()
@@ -208,12 +231,12 @@
   const note = ref('')
   const lines = ref([])
   const addVariantId = ref(null)
-  const editorError = ref('')
+  const notify = useNotify()
   const saving = ref(false)
   const posting = ref(false)
   const cancelling = ref(false)
 
-  const isDraft = computed(() => editorStatus.value === 'draft')
+  const isDraft = computed(() => editorStatus.value === 'draft' && canEdit.value)
 
   const lineHeaders = computed(() => [
     { title: 'SKU', key: 'label' },
@@ -241,14 +264,13 @@
     inventoryId.value = null
     note.value = ''
     lines.value = []
-    editorError.value = ''
     editorDialog.value = true
   }
 
   // Arriving from Inventory's "Start Count" button pre-selects that
   // inventory and seeds the sheet from its live stock.
   const preselectInventoryId = route.query.inventory_id ? Number(route.query.inventory_id) : null
-  if (preselectInventoryId) {
+  if (preselectInventoryId && canEdit.value) {
     openCreate()
     inventoryId.value = preselectInventoryId
     seedFromInventory(preselectInventoryId)
@@ -257,7 +279,6 @@
   async function openExisting (item) {
     seedToken++ // cancel any in-flight seed from a previous open
     seedProgress.value = null
-    editorError.value = ''
     try {
       const data = await fetchStockCount(item.id)
       const count = data?.stock_count ?? item
@@ -273,7 +294,7 @@
       }))
       editorDialog.value = true
     } catch (error) {
-      editorError.value = error.message
+      notify.error(error.message)
     }
   }
 
@@ -296,7 +317,6 @@
   // inventory streams in instead of blocking on one giant fetch.
   async function seedFromInventory (id) {
     if (!id || editingId.value) return
-    editorError.value = ''
     lines.value = []
     const token = ++seedToken
     seedProgress.value = { loaded: 0, total: 0, pct: 0 }
@@ -309,7 +329,7 @@
         },
       })
     } catch (error) {
-      if (token === seedToken) editorError.value = error.message
+      if (token === seedToken) notify.error(error.message)
     } finally {
       if (token === seedToken) seedProgress.value = null
     }
@@ -337,11 +357,10 @@
 
   async function save () {
     if (!inventoryId.value) {
-      editorError.value = 'Select an inventory.'
+      notify.error('Select an inventory.')
       return
     }
     saving.value = true
-    editorError.value = ''
     try {
       const saved = editingId.value
         ? await updateStockCount({ id: editingId.value, inventoryId: inventoryId.value, note: note.value, items: toItems() })
@@ -350,7 +369,7 @@
       editorStatus.value = saved?.status ?? editorStatus.value
       tableRef.value?.reload()
     } catch (error) {
-      editorError.value = error.message
+      notify.error(error.message)
     } finally {
       saving.value = false
     }
@@ -359,14 +378,13 @@
   async function post () {
     if (!editingId.value) return
     posting.value = true
-    editorError.value = ''
     try {
       await save()
       const res = await postStockCount(editingId.value)
       editorStatus.value = res?.stock_count?.status ?? 'posted'
       tableRef.value?.reload()
     } catch (error) {
-      editorError.value = error.message
+      notify.error(error.message)
     } finally {
       posting.value = false
     }
@@ -375,13 +393,12 @@
   async function cancelDraft () {
     if (!editingId.value) return
     cancelling.value = true
-    editorError.value = ''
     try {
       const cancelled = await cancelStockCount(editingId.value)
       editorStatus.value = cancelled?.status ?? 'cancelled'
       tableRef.value?.reload()
     } catch (error) {
-      editorError.value = error.message
+      notify.error(error.message)
     } finally {
       cancelling.value = false
     }

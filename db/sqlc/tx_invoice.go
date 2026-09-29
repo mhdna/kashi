@@ -180,9 +180,9 @@ func (store *SQLStore) SalesInvoiceTx(ctx context.Context, arg SalesInvoiceTxPar
 			}
 
 			if arg.PriceListID.Valid {
-				listPrice, priceErr := q.GetProductPriceFromList(ctx, GetProductPriceFromListParams{
-					PriceListID: arg.PriceListID.Int64,
-					ProductID:   variant.ProductID,
+				listPrice, priceErr := q.GetVariantPriceFromList(ctx, GetVariantPriceFromListParams{
+					PriceListID:      arg.PriceListID.Int64,
+					ProductVariantID: variant.ID,
 				})
 				if priceErr == nil {
 					unitPrice = listPrice.Price

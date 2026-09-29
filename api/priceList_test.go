@@ -186,12 +186,12 @@ func TestCreatePriceListItemAPI(t *testing.T) {
 
 	store := mockdb.NewMockStore(ctrl)
 	store.EXPECT().CreatePriceListItem(gomock.Any(), db.CreatePriceListItemParams{
-		PriceListID: 1, ProductID: 5, Price: 2500,
-	}).Times(1).Return(db.PriceListItem{PriceListID: 1, ProductID: 5, Price: 2500}, nil)
+		PriceListID: 1, ProductVariantID: 5, Price: 2500,
+	}).Times(1).Return(db.PriceListItem{PriceListID: 1, ProductVariantID: 5, Price: 2500}, nil)
 
 	server := newTestServer(t, store)
 	rec := httptest.NewRecorder()
-	body, err := json.Marshal(map[string]any{"price_list_id": 1, "product_id": 5, "price": 2500})
+	body, err := json.Marshal(map[string]any{"price_list_id": 1, "product_variant_id": 5, "price": 2500})
 	require.NoError(t, err)
 	req, err := http.NewRequest(http.MethodPost, "/price_lists/items", bytes.NewReader(body))
 	require.NoError(t, err)

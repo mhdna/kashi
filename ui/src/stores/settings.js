@@ -63,13 +63,12 @@ export const useSettingsStore = defineStore('settings', {
       })
     },
 
-    async setUpcomingEventsDays (days) {
-      this.upcomingEventsDays = days
-      await this.persist()
-    },
-
-    async setUpcomingEventsMenuDays (days) {
-      this.upcomingEventsMenuDays = days
+    // The Settings page edits a local draft and calls this once on Save, so a
+    // multi-field change is a single DB round-trip. The calendar's built-in
+    // event toggles below still persist per action -- they're one-click, not
+    // form fields.
+    async saveAll (patch) {
+      Object.assign(this, patch)
       await this.persist()
     },
 
@@ -86,27 +85,6 @@ export const useSettingsStore = defineStore('settings', {
         hidden.add(name)
       }
       this.hiddenBuiltinEvents = [...hidden]
-      await this.persist()
-    },
-
-    async setBarcodeLabelSize (width, height) {
-      this.barcodeLabelWidth = width
-      this.barcodeLabelHeight = height
-      await this.persist()
-    },
-
-    async setActivityMessageSeconds (seconds) {
-      this.activityMessageSeconds = seconds
-      await this.persist()
-    },
-
-    async setActivityDisplayMode (mode) {
-      this.activityDisplayMode = mode
-      await this.persist()
-    },
-
-    async setFinancialsHighSeasonMonths (months) {
-      this.financialsHighSeasonMonths = months
       await this.persist()
     },
   },

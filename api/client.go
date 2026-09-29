@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/mhdna/kashi/db/sqlc"
@@ -114,6 +115,40 @@ func (server *Server) listClients(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"clients": clients, "total": total})
+}
+
+type listClientSpendingSummaryRequest struct {
+	ClientType string `form:"client_type" binding:"omitempty,oneof=retail wholesale"`
+	// Activity window for period_spent/period_invoice_count, [from, to).
+	// Either bound may be omitted; RFC 3339.
+	From time.Time `form:"from" time_format:"2006-01-02T15:04:05Z07:00"`
+	To   time.Time `form:"to" time_format:"2006-01-02T15:04:05Z07:00"`
+}
+
+// listClientSpendingSummary is the loyalty page's data source: every client
+// with just the columns that page buckets by (spend, invoices, points, join
+// date), ranked by spend, in one pass. The page tiers the whole population
+// client-side, so it needs all rows -- paging it through
+// listClientsBySpending re-ran that endpoint's full invoice aggregation once
+// per page.
+func (server *Server) listClientSpendingSummary(ctx *gin.Context) {
+	var req listClientSpendingSummaryRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	clients, err := server.store.ListClientSpendingSummary(ctx, db.ListClientSpendingSummaryParams{
+		ClientType: sql.NullString{String: req.ClientType, Valid: req.ClientType != ""},
+		DateFrom:   sql.NullTime{Time: req.From, Valid: !req.From.IsZero()},
+		DateTo:     sql.NullTime{Time: req.To, Valid: !req.To.IsZero()},
+	})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"clients": clients, "total": len(clients)})
 }
 
 type listClientsBySpendingRequest struct {
@@ -229,12 +264,33 @@ func (server *Server) deleteClient(ctx *gin.Context) {
 		return
 	}
 
-	err := server.store.DeleteClient(ctx, req.ID)
+	// A client anything refers to -- kashi invoices, a branch link, a
+	// branch invoice -- is deactivated, never deleted: every till keeps a
+	// copy and its own invoices point at it. Only a never-used client is
+	// really removed.
+	referenced, err := server.store.BranchInvoicesReferenceClient(ctx, req.ID)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"status": "deleted"})
+	if !referenced {
+		err = server.store.DeleteClient(ctx, req.ID)
+		if err == nil {
+			server.branchHub.broadcastAll(branchWSMessage{Type: "client_updated"})
+			ctx.JSON(http.StatusOK, gin.H{"status": "deleted"})
+			return
+		}
+		if !isForeignKeyViolation(err) {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+	}
+	if err := server.store.SetClientActive(ctx, db.SetClientActiveParams{ID: req.ID, IsActive: false}); err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.branchHub.broadcastAll(branchWSMessage{Type: "client_updated"})
+	ctx.JSON(http.StatusOK, gin.H{"status": "deactivated"})
 }
 
 type clientLoyaltyTotalRequest struct {
@@ -259,4 +315,34 @@ func (server *Server) getClientLoyaltyTotal(ctx *gin.Context) {
 	}
 
 	server.writeJSON(ctx, http.StatusOK, envelope{"client_id": req.ID, "loyalty_points_total": total})
+}
+
+type setClientActiveURI struct {
+	ID int64 `uri:"id" binding:"required,min=1"`
+}
+
+type setClientActiveRequest struct {
+	IsActive *bool `json:"is_active" binding:"required"`
+}
+
+// setClientActive reactivates (or deactivates) a client without deleting
+// it. A deactivated client is kept for its history; tills copy the flag on
+// their next pull.
+func (server *Server) setClientActive(ctx *gin.Context) {
+	var uri setClientActiveURI
+	if err := ctx.ShouldBindUri(&uri); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	var req setClientActiveRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	if err := server.store.SetClientActive(ctx, db.SetClientActiveParams{ID: uri.ID, IsActive: *req.IsActive}); err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.branchHub.broadcastAll(branchWSMessage{Type: "client_updated"})
+	ctx.JSON(http.StatusOK, gin.H{"status": "ok"})
 }

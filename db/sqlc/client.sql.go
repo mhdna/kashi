@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const addClientLoyaltyPoints = `-- name: AddClientLoyaltyPoints :exec
@@ -70,7 +72,7 @@ INSERT INTO clients (
   client_type
 ) VALUES (
     $1, $2, $3
-) RETURNING id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type
+) RETURNING id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active
 `
 
 type CreateClientParams struct {
@@ -91,6 +93,8 @@ func (q *Queries) CreateClient(ctx context.Context, arg CreateClientParams) (Cli
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ClientType,
+		&i.Uid,
+		&i.IsActive,
 	)
 	return i, err
 }
@@ -106,7 +110,7 @@ func (q *Queries) DeleteClient(ctx context.Context, id int64) error {
 }
 
 const getClient = `-- name: GetClient :one
-SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type FROM clients
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active FROM clients
 WHERE id = $1 LIMIT 1
 `
 
@@ -122,12 +126,14 @@ func (q *Queries) GetClient(ctx context.Context, id int64) (Client, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ClientType,
+		&i.Uid,
+		&i.IsActive,
 	)
 	return i, err
 }
 
 const getClientByPhone = `-- name: GetClientByPhone :one
-SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type FROM clients
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active FROM clients
 WHERE phone = $1 LIMIT 1
 `
 
@@ -143,6 +149,8 @@ func (q *Queries) GetClientByPhone(ctx context.Context, phone string) (Client, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ClientType,
+		&i.Uid,
+		&i.IsActive,
 	)
 	return i, err
 }
@@ -164,8 +172,119 @@ func (q *Queries) GetClientLink(ctx context.Context, arg GetClientLinkParams) (i
 	return client_id, err
 }
 
+const listClientSpendingSummary = `-- name: ListClientSpendingSummary :many
+WITH central AS (
+  SELECT i.client_id,
+    SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END) AS total,
+    COUNT(DISTINCT i.id) AS invoice_count,
+    SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END)
+      FILTER (WHERE p.in_period) AS period_total,
+    COUNT(DISTINCT i.id) FILTER (WHERE p.in_period) AS period_invoice_count
+  FROM invoices i
+  LEFT JOIN sales_invoices si ON si.invoice_id = i.id
+  CROSS JOIN LATERAL (SELECT
+    ($2::timestamptz IS NULL OR i.created_at >= $2::timestamptz)
+    AND ($3::timestamptz IS NULL OR i.created_at < $3::timestamptz) AS in_period) p
+  GROUP BY i.client_id
+), branch AS (
+  SELECT cl.client_id,
+    SUM(b.grand_total) AS total,
+    COUNT(DISTINCT b.id) AS invoice_count,
+    SUM(b.grand_total) FILTER (WHERE p.in_period) AS period_total,
+    COUNT(DISTINCT b.id) FILTER (WHERE p.in_period) AS period_invoice_count
+  FROM branch_invoices b
+  JOIN client_links cl ON cl.branch_id = b.branch_id AND cl.branch_client_id = b.branch_client_id
+  CROSS JOIN LATERAL (SELECT
+    ($2::timestamptz IS NULL OR b.occurred_at >= $2::timestamptz)
+    AND ($3::timestamptz IS NULL OR b.occurred_at < $3::timestamptz) AS in_period) p
+  GROUP BY cl.client_id
+)
+SELECT
+  c.id,
+  c.name,
+  c.created_at,
+  c.valid_loyalty_points,
+  (COALESCE(ce.total, 0) + COALESCE(br.total, 0))::bigint AS total_spent,
+  (COALESCE(ce.invoice_count, 0) + COALESCE(br.invoice_count, 0))::bigint AS invoice_count,
+  (COALESCE(ce.period_total, 0) + COALESCE(br.period_total, 0))::bigint AS period_spent,
+  (COALESCE(ce.period_invoice_count, 0) + COALESCE(br.period_invoice_count, 0))::bigint AS period_invoice_count
+FROM clients c
+LEFT JOIN central ce ON ce.client_id = c.id
+LEFT JOIN branch br ON br.client_id = c.id
+WHERE $1::text IS NULL OR c.client_type = $1
+ORDER BY total_spent DESC, c.name ASC
+`
+
+type ListClientSpendingSummaryParams struct {
+	ClientType sql.NullString `json:"client_type"`
+	DateFrom   sql.NullTime   `json:"date_from"`
+	DateTo     sql.NullTime   `json:"date_to"`
+}
+
+type ListClientSpendingSummaryRow struct {
+	ID                 int64     `json:"id"`
+	Name               string    `json:"name"`
+	CreatedAt          time.Time `json:"created_at"`
+	ValidLoyaltyPoints int64     `json:"valid_loyalty_points"`
+	TotalSpent         int64     `json:"total_spent"`
+	InvoiceCount       int64     `json:"invoice_count"`
+	PeriodSpent        int64     `json:"period_spent"`
+	PeriodInvoiceCount int64     `json:"period_invoice_count"`
+}
+
+// Whole-population feed for the loyalty page, which buckets every client
+// into a front-end tier by total_spent and so needs all of them, not a
+// page. ListClientsBySpending can't serve that: its aggregation scans all
+// invoices/branch_invoices on every call, so paging 25k clients through it
+// re-runs that scan once per page. This runs it once and returns only the
+// handful of columns the loyalty page reads, so the payload stays small even
+// at tens of thousands of rows.
+//
+// total_spent/invoice_count are lifetime (they drive the tier bucketing);
+// period_spent/period_invoice_count cover [date_from, date_to) only, either
+// bound optional. Half-open so the caller can pass the first instant of the
+// day after the last selected day.
+//
+// Same two sources and sign conventions as ListClientsBySpending (see the
+// comment there); item_count and the branch_id/search filters are dropped
+// -- nothing on the loyalty page uses them, and dropping item_count also
+// drops the two line-item joins whose row fan-out made the DISTINCTs
+// necessary (kept anyway, so a non-unique sales_invoices/client_links row
+// can't inflate a count).
+func (q *Queries) ListClientSpendingSummary(ctx context.Context, arg ListClientSpendingSummaryParams) ([]ListClientSpendingSummaryRow, error) {
+	rows, err := q.db.QueryContext(ctx, listClientSpendingSummary, arg.ClientType, arg.DateFrom, arg.DateTo)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListClientSpendingSummaryRow{}
+	for rows.Next() {
+		var i ListClientSpendingSummaryRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CreatedAt,
+			&i.ValidLoyaltyPoints,
+			&i.TotalSpent,
+			&i.InvoiceCount,
+			&i.PeriodSpent,
+			&i.PeriodInvoiceCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listClients = `-- name: ListClients :many
-SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type FROM clients
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active FROM clients
 WHERE $3::text IS NULL OR client_type = $3
 ORDER BY name
 LIMIT $1
@@ -199,6 +318,8 @@ func (q *Queries) ListClients(ctx context.Context, arg ListClientsParams) ([]Cli
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.ClientType,
+			&i.Uid,
+			&i.IsActive,
 		); err != nil {
 			return nil, err
 		}
@@ -216,7 +337,7 @@ func (q *Queries) ListClients(ctx context.Context, arg ListClientsParams) ([]Cli
 const listClientsBySpending = `-- name: ListClientsBySpending :many
 WITH ranked AS (
   SELECT
-    c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type,
+    c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type, c.uid, c.is_active,
     (
       CASE WHEN $4::bigint IS NULL THEN COALESCE(ci.central_total, 0) ELSE 0 END
       + COALESCE(bi.branch_total, 0)
@@ -237,7 +358,14 @@ WITH ranked AS (
       COALESCE(SUM(ip.quantity), 0) AS central_item_count
     FROM invoices i
     LEFT JOIN sales_invoices si ON si.invoice_id = i.id
-    LEFT JOIN invoice_products ip ON ip.invoice_id = i.id
+    -- Line items are pre-aggregated to one row per invoice. Joining
+    -- invoice_products directly would repeat each invoice once per line and
+    -- multiply grand_total into central_total by the line count.
+    LEFT JOIN (
+      SELECT invoice_id, SUM(quantity) AS quantity
+      FROM invoice_products
+      GROUP BY invoice_id
+    ) ip ON ip.invoice_id = i.id
     GROUP BY i.client_id
   ) ci ON ci.client_id = c.id
   LEFT JOIN (
@@ -247,14 +375,19 @@ WITH ranked AS (
       COALESCE(SUM(bii.quantity), 0) AS branch_item_count
     FROM branch_invoices b
     JOIN client_links cl ON cl.branch_id = b.branch_id AND cl.branch_client_id = b.branch_client_id
-    LEFT JOIN branch_invoice_items bii ON bii.branch_invoice_id = b.id
+    -- Pre-aggregated per invoice for the same reason as invoice_products above.
+    LEFT JOIN (
+      SELECT branch_invoice_id, SUM(quantity) AS quantity
+      FROM branch_invoice_items
+      GROUP BY branch_invoice_id
+    ) bii ON bii.branch_invoice_id = b.id
     WHERE $4::bigint IS NULL OR b.branch_id = $4
     GROUP BY cl.client_id
   ) bi ON bi.client_id = c.id
   WHERE ($5::text IS NULL OR c.client_type = $5)
     AND ($6::text IS NULL OR c.name ILIKE '%' || $6::text || '%' OR c.phone ILIKE '%' || $6::text || '%')
 )
-SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, total_spent, invoice_count, item_count
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, total_spent, invoice_count, item_count
 FROM ranked
 ORDER BY
   (CASE $3::text
@@ -285,6 +418,8 @@ type ListClientsBySpendingRow struct {
 	CreatedAt          time.Time `json:"created_at"`
 	UpdatedAt          time.Time `json:"updated_at"`
 	ClientType         string    `json:"client_type"`
+	Uid                uuid.UUID `json:"uid"`
+	IsActive           bool      `json:"is_active"`
 	TotalSpent         int64     `json:"total_spent"`
 	InvoiceCount       int64     `json:"invoice_count"`
 	ItemCount          int64     `json:"item_count"`
@@ -334,6 +469,8 @@ func (q *Queries) ListClientsBySpending(ctx context.Context, arg ListClientsBySp
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.ClientType,
+			&i.Uid,
+			&i.IsActive,
 			&i.TotalSpent,
 			&i.InvoiceCount,
 			&i.ItemCount,
@@ -352,7 +489,7 @@ func (q *Queries) ListClientsBySpending(ctx context.Context, arg ListClientsBySp
 }
 
 const listClientsUpdatedSince = `-- name: ListClientsUpdatedSince :many
-SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type FROM clients
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active FROM clients
 WHERE updated_at > $1 AND client_type = 'retail'
 ORDER BY updated_at
 `
@@ -382,6 +519,8 @@ func (q *Queries) ListClientsUpdatedSince(ctx context.Context, updatedAt time.Ti
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.ClientType,
+			&i.Uid,
+			&i.IsActive,
 		); err != nil {
 			return nil, err
 		}
@@ -397,7 +536,7 @@ func (q *Queries) ListClientsUpdatedSince(ctx context.Context, updatedAt time.Ti
 }
 
 const listClientsUpdatedSincePaged = `-- name: ListClientsUpdatedSincePaged :many
-SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type FROM clients
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active FROM clients
 WHERE client_type = 'retail'
   AND (updated_at, id) > ($1::timestamptz, $2::bigint)
 ORDER BY updated_at, id
@@ -433,6 +572,8 @@ func (q *Queries) ListClientsUpdatedSincePaged(ctx context.Context, arg ListClie
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.ClientType,
+			&i.Uid,
+			&i.IsActive,
 		); err != nil {
 			return nil, err
 		}
@@ -448,7 +589,7 @@ func (q *Queries) ListClientsUpdatedSincePaged(ctx context.Context, arg ListClie
 }
 
 const listClientsWithLoyalty = `-- name: ListClientsWithLoyalty :many
-SELECT c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type, COALESCE(bl.branch_points, 0)::bigint AS branch_loyalty_points
+SELECT c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type, c.uid, c.is_active, COALESCE(bl.branch_points, 0)::bigint AS branch_loyalty_points
 FROM clients c
 LEFT JOIN (
   SELECT cl.client_id, SUM(bi.loyalty_points_delta) AS branch_points
@@ -477,6 +618,8 @@ type ListClientsWithLoyaltyRow struct {
 	CreatedAt           time.Time `json:"created_at"`
 	UpdatedAt           time.Time `json:"updated_at"`
 	ClientType          string    `json:"client_type"`
+	Uid                 uuid.UUID `json:"uid"`
+	IsActive            bool      `json:"is_active"`
 	BranchLoyaltyPoints int64     `json:"branch_loyalty_points"`
 }
 
@@ -503,6 +646,8 @@ func (q *Queries) ListClientsWithLoyalty(ctx context.Context, arg ListClientsWit
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.ClientType,
+			&i.Uid,
+			&i.IsActive,
 			&i.BranchLoyaltyPoints,
 		); err != nil {
 			return nil, err
@@ -543,7 +688,7 @@ UPDATE clients
   client_type = $4,
   updated_at = now()
 WHERE id = $1
-RETURNING id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type
+RETURNING id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active
 `
 
 type UpdateClientParams struct {
@@ -570,6 +715,8 @@ func (q *Queries) UpdateClient(ctx context.Context, arg UpdateClientParams) (Cli
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ClientType,
+		&i.Uid,
+		&i.IsActive,
 	)
 	return i, err
 }

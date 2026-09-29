@@ -394,59 +394,23 @@ export function buildPaymentMethodPieOption () {
   }
 }
 
-// Day-of-week x hour-of-day sales intensity.
-export function buildHourlyHeatmapOption () {
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  const hours = Array.from({ length: 24 }, (_, h) => `${h}:00`)
+// Day-of-week x hour-of-day sales intensity, shaped as flat rows for
+// <v-heatmap> (Vuetify labs) rather than an echarts heatmap series.
+export const HEATMAP_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+export const HEATMAP_HOURS = Array.from({ length: 24 }, (_, h) => `${h}:00`)
 
-  const data = []
-  let max = 0
-  for (let d = 0; d < days.length; d++) {
-    for (let h = 0; h < hours.length; h++) {
+export function buildHourlyHeatmapItems () {
+  const items = []
+  for (const [d, day] of HEATMAP_DAYS.entries()) {
+    for (const [h, hour] of HEATMAP_HOURS.entries()) {
       const isOpenHours = h >= 8 && h <= 22
       const isWeekend = d >= 5
       const base = isOpenHours ? (isWeekend ? 60 : 40) : 4
       const value = Math.round(Math.max(0, base + (Math.random() - 0.5) * base))
-      max = Math.max(max, value)
-      data.push([h, d, value])
+      items.push({ day, hour, value })
     }
   }
-
-  return {
-    tooltip: { position: 'top', appendTo: 'body' },
-    grid: { top: 8, right: 12, bottom: 28, left: 48 },
-    xAxis: {
-      type: 'category',
-      data: hours,
-      splitArea: { show: true },
-      axisLabel: { color: label, fontSize: 9, interval: 1 },
-      axisLine: { lineStyle: { color: axis } },
-    },
-    yAxis: {
-      type: 'category',
-      data: days,
-      splitArea: { show: true },
-      axisLabel: { color: label, fontSize: 10 },
-      axisLine: { lineStyle: { color: axis } },
-    },
-    visualMap: {
-      min: 0,
-      max: max || 1,
-      calculable: true,
-      orient: 'horizontal',
-      left: 'center',
-      bottom: -4,
-      textStyle: { color: label, fontSize: 10 },
-      inRange: { color: ['#e8f0fe', '#4285F4'] },
-    },
-    series: [{
-      name: 'Sales intensity',
-      type: 'heatmap',
-      data,
-      label: { show: false },
-      emphasis: { itemStyle: { shadowBlur: 6, shadowColor: 'rgba(0,0,0,0.3)' } },
-    }],
-  }
+  return items
 }
 
 export function buildMarginTrendOption (days = 30) {

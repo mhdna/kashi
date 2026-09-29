@@ -54,7 +54,7 @@ func (server *Server) setupRoutes() {
 	router := gin.Default()
 	router.Use(corsMiddleware())
 
-	authRoutes := router.Group("/").Use(server.authMiddleware())
+	authRoutes := router.Group("/").Use(server.authMiddleware(), server.permissionMiddleware())
 
 	authRoutes.POST("/inventories", server.createInventory)
 	authRoutes.GET("/inventories/:id", server.getInventory)
@@ -86,6 +86,11 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/products", server.updateProduct)
 	authRoutes.GET("/products/:id", server.getProduct)
 	authRoutes.GET("/products", server.listProducts)
+	authRoutes.GET("/product_revenue", server.listProductRevenue)
+	authRoutes.GET("/product_revenue/daily", server.listProductRevenueDaily)
+	authRoutes.GET("/branch_product_revenue", server.listBranchProductRevenue)
+	authRoutes.GET("/branch_product_revenue/daily", server.listBranchProductRevenueDaily)
+	authRoutes.GET("/branch_product_revenue/by_branch", server.listBranchRevenueByBranch)
 	authRoutes.PUT("/product_variants", server.updateProductVariant)
 	authRoutes.POST("/product_variants", server.createProductVariant)
 	authRoutes.DELETE("/product_variants/:id", server.deleteProductVariant)
@@ -116,9 +121,12 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/clients", server.updateClient)
 	authRoutes.GET("/clients/:id", server.getClient)
 	authRoutes.GET("/clients/:id/loyalty_total", server.getClientLoyaltyTotal)
+	authRoutes.GET("/clients/:id/profile", server.getClientProfile)
 	authRoutes.GET("/clients/", server.listClients)
 	authRoutes.GET("/clients/by_spending", server.listClientsBySpending)
+	authRoutes.GET("/clients/spending_summary", server.listClientSpendingSummary)
 	authRoutes.DELETE("/clients/:id", server.deleteClient)
+	authRoutes.PUT("/clients/:id/active", server.setClientActive)
 	authRoutes.POST("/currencies", server.createCurrency)
 	authRoutes.GET("/currencies/:code", server.getCurrency)
 	authRoutes.GET("/currencies/", server.listCurrencies)
@@ -137,12 +145,17 @@ func (server *Server) setupRoutes() {
 	authRoutes.POST("/cashbox_accounts", server.createCashboxAccount)
 	authRoutes.GET("/cashbox_accounts/", server.listCashboxAccounts)
 	authRoutes.PUT("/cashbox_accounts", server.updateCashboxAccount)
+	authRoutes.PUT("/cashbox_accounts/:id/active", server.setCashboxAccountActive)
+	authRoutes.DELETE("/cashbox_accounts/:id", server.deleteCashboxAccount)
 	authRoutes.POST("/cashbox_accounts/balance", server.addCashboxAccountBalance)
 
 	authRoutes.GET("/pos_settings", server.posSettings)
 
 	authRoutes.GET("/app_settings", server.getAppSettings)
 	authRoutes.PUT("/app_settings", server.updateAppSettings)
+
+	authRoutes.GET("/whatsapp_settings", server.getWhatsAppSettings)
+	authRoutes.PUT("/whatsapp_settings", server.updateWhatsAppSettings)
 
 	authRoutes.GET("/calendar_events", server.listCalendarEvents)
 	authRoutes.POST("/calendar_events", server.createCalendarEvent)
@@ -187,7 +200,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.DELETE("/price_lists/:id", server.deletePriceList)
 	authRoutes.POST("/price_lists/items", server.createPriceListItem)
 	authRoutes.GET("/price_lists/:id/items", server.listPriceListItems)
-	authRoutes.DELETE("/price_lists/:id/items/:product_id", server.deletePriceListItem)
+	authRoutes.DELETE("/price_lists/:id/items/:product_variant_id", server.deletePriceListItem)
 	authRoutes.POST("/price_lists/:id/items/bulk_delete", server.bulkDeletePriceListItems)
 	authRoutes.GET("/price_lists/:id/branches", server.listPriceListBranches)
 	authRoutes.PUT("/price_lists/:id/branches", server.setPriceListBranches)
@@ -199,7 +212,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.DELETE("/discount_lists/:id", server.deleteDiscountList)
 	authRoutes.POST("/discount_lists/items", server.createDiscountListItem)
 	authRoutes.GET("/discount_lists/:id/items", server.listDiscountListItems)
-	authRoutes.DELETE("/discount_lists/:id/items/:product_id", server.deleteDiscountListItem)
+	authRoutes.DELETE("/discount_lists/:id/items/:product_variant_id", server.deleteDiscountListItem)
 	authRoutes.POST("/discount_lists/:id/items/bulk_delete", server.bulkDeleteDiscountListItems)
 	authRoutes.GET("/discount_lists/:id/branches", server.listDiscountListBranches)
 	authRoutes.PUT("/discount_lists/:id/branches", server.setDiscountListBranches)
@@ -207,10 +220,17 @@ func (server *Server) setupRoutes() {
 	router.POST("/users/login", server.loginUser)
 	router.POST("/tokens/renew_access", server.renewAccessToken)
 	authRoutes.POST("/users", server.createUser)
+	authRoutes.GET("/users/online", server.listOnlineUsers)
+	authRoutes.GET("/users/me", server.getMe)
 	authRoutes.GET("/users/:id", server.getUser)
 	authRoutes.GET("/users", server.listUsers)
 	authRoutes.PUT("/users", server.updateUser)
 	authRoutes.DELETE("/users/:id", server.deleteUser)
+
+	authRoutes.GET("/roles", server.listRoles)
+	authRoutes.POST("/roles", server.createRole)
+	authRoutes.PUT("/roles/:id", server.updateRole)
+	authRoutes.DELETE("/roles/:id", server.deleteRole)
 
 	authRoutes.POST("/entries", server.createEntry)
 	authRoutes.GET("/entries/:id", server.getEntry)
@@ -256,6 +276,16 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/coupon_categories", server.updateCouponCategory)
 	authRoutes.DELETE("/coupon_categories/:id", server.deleteCouponCategory)
 
+	authRoutes.POST("/coupon_types", server.createCouponType)
+	authRoutes.GET("/coupon_types/:id", server.getCouponType)
+	authRoutes.GET("/coupon_types", server.listCouponTypes)
+	authRoutes.PUT("/coupon_types/:id", server.updateCouponType)
+	authRoutes.DELETE("/coupon_types/:id", server.deleteCouponType)
+
+	authRoutes.POST("/coupon_lists", server.createCouponList)
+	authRoutes.GET("/coupon_lists", server.listCouponLists)
+	authRoutes.POST("/coupon_lists/:id/deactivate", server.deactivateCouponList)
+
 	authRoutes.POST("/coupons", server.createCoupon)
 	authRoutes.POST("/coupons/bulk_delete", server.bulkDeleteCoupons)
 	authRoutes.GET("/coupons/:code", server.getCoupon)
@@ -269,9 +299,12 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/transfers", server.updateTransfer)
 	authRoutes.POST("/transfers/:id/dispatch", server.dispatchTransfer)
 	authRoutes.POST("/transfers/:id/receive", server.receiveTransfer)
+	authRoutes.POST("/transfers/:id/approve", server.approveTransfer)
 	authRoutes.POST("/transfers/:id/cancel", server.cancelTransfer)
+	authRoutes.GET("/transfers/:id/attachment", server.getTransferAttachment)
 	authRoutes.POST("/transfer_items", server.createTransferItem)
 	authRoutes.GET("/transfer_items/:transfer_id", server.listTransferItems)
+	authRoutes.PUT("/transfer_items/:id/received_quantity", server.setTransferItemReceivedQuantity)
 
 	authRoutes.POST("/purchases", server.createPurchase)
 	authRoutes.GET("/purchases/:id", server.getPurchase)
@@ -279,6 +312,11 @@ func (server *Server) setupRoutes() {
 	authRoutes.POST("/purchase_items", server.addPurchaseItem)
 	authRoutes.POST("/purchases/:id/receive", server.receivePurchase)
 	authRoutes.POST("/purchases/:id/cancel", server.cancelPurchase)
+
+	authRoutes.POST("/batches", server.createBatch)
+	authRoutes.GET("/batches/:id", server.getBatch)
+	authRoutes.GET("/batches", server.listBatches)
+	authRoutes.DELETE("/batches/:id", server.deleteBatch)
 
 	authRoutes.POST("/branches", server.createBranch)
 	authRoutes.GET("/branches", server.listBranches)
@@ -292,6 +330,9 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/branch_expense_images", server.listBranchExpenseImages)
 	authRoutes.GET("/branch_expenses/:id/images", server.listBranchExpenseImagesForExpense)
 	authRoutes.GET("/branch_expense_images/:id/file", server.getBranchExpenseImageFile)
+	authRoutes.GET("/branch_shift_receipt_images", server.listBranchShiftReceiptImages)
+	authRoutes.GET("/branch_shifts/:id/receipt_image", server.getBranchShiftReceiptImageForShift)
+	authRoutes.GET("/branch_shift_receipt_images/:id/file", server.getBranchShiftReceiptImageFile)
 	authRoutes.GET("/branch_invoices", server.listBranchInvoices)
 	authRoutes.GET("/branch_sync_conflicts", server.listBranchSyncConflicts)
 	authRoutes.POST("/branch_sync_conflicts/bulk_resolve", server.bulkResolveBranchSyncConflicts)
@@ -319,6 +360,9 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/branches/:id/settings/managed_locally", server.putBranchSettingsManagedLocally)
 	authRoutes.POST("/branches/:id/commands", server.createBranchCommand)
 	authRoutes.GET("/branches/:id/commands", server.listBranchCommands)
+
+	authRoutes.GET("/branches/:id/payment_methods", server.listBranchPaymentMethods)
+	authRoutes.PUT("/branches/:id/payment_methods/:account_id", server.putBranchPaymentMethod)
 
 	authRoutes.GET("/branches/:id/targets", server.listBranchTargets)
 	authRoutes.POST("/branches/:id/targets", server.createBranchTarget)
@@ -367,19 +411,29 @@ func (server *Server) setupRoutes() {
 	branchRoutes.POST("/expenses", server.createBranchExpense)
 	branchRoutes.POST("/loans", server.createBranchLoan)
 	branchRoutes.POST("/shift_closes", server.createBranchShiftClose)
+	branchRoutes.POST("/whatsapp/thank_you", server.sendBranchWhatsAppThankYou)
 	branchRoutes.POST("/visitor_events", server.createBranchVisitorEvent)
+	branchRoutes.POST("/visitor_events_batch", server.createBranchVisitorEvents)
 	branchRoutes.POST("/invoice_settlements", server.createBranchInvoiceSettlement)
 	branchRoutes.POST("/attendance_events", server.createBranchAttendanceEvents)
 	branchRoutes.POST("/attendance_changes", server.createBranchAttendanceChange)
 	branchRoutes.GET("/sync/changes", server.branchSyncChanges)
 	branchRoutes.POST("/sync/reconcile", server.branchReconcile)
-	branchRoutes.POST("/products/report", server.reportBranchProducts)
+	branchRoutes.POST("/sync/ids", server.branchSyncIDs)
+	branchRoutes.POST("/sync/fetch", server.branchSyncFetch)
+	branchRoutes.GET("/sync/client_uids", server.branchClientUIDs)
 	branchRoutes.GET("/ws", server.branchWS)
 	branchRoutes.PUT("/settings", server.putBranchSettings)
 	branchRoutes.POST("/clients", server.putBranchClient)
+	branchRoutes.POST("/clients_batch", server.putBranchClients)
 	branchRoutes.GET("/commands/pending", server.branchPendingCommands)
 	branchRoutes.POST("/commands/:id/ack", server.ackBranchCommand)
 	branchRoutes.GET("/expenses/upload_status", server.branchExpenseUploadStatus)
+	branchRoutes.GET("/shift_closes/upload_status", server.branchShiftUploadStatus)
+	branchRoutes.POST("/shift_receipt_images", server.createBranchShiftReceiptImage)
+	branchRoutes.POST("/transfer_requests", server.createBranchTransferRequest)
+	branchRoutes.POST("/transfer_requests/:id/confirm", server.confirmBranchTransfer)
+	branchRoutes.GET("/transfer_requests/upload_status", server.branchTransferUploadStatus)
 
 	// expense_uploads is deliberately public: a phone scanning the QR code
 	// kashi-pos shows has no kashi login and shouldn't need one. Every
@@ -388,6 +442,18 @@ func (server *Server) setupRoutes() {
 	router.GET("/expense_uploads/:token", server.expenseUploadPage)
 	router.GET("/expense_uploads/:token/status", server.expenseUploadStatus)
 	router.POST("/expense_uploads/:token/images", server.uploadExpenseImages)
+
+	// shift_uploads is the same public, token-gated flow for the one
+	// close-shift receipt photo -- see shift_upload.go.
+	router.GET("/shift_uploads/:token", server.shiftUploadPage)
+	router.GET("/shift_uploads/:token/status", server.shiftUploadStatus)
+	router.POST("/shift_uploads/:token/images", server.uploadShiftReceiptImage)
+
+	// transfer_uploads is the same public, token-gated flow for the one
+	// optional transfer photo -- see transfer_upload.go.
+	router.GET("/transfer_uploads/:token", server.transferUploadPage)
+	router.GET("/transfer_uploads/:token/status", server.transferUploadStatus)
+	router.POST("/transfer_uploads/:token/images", server.uploadTransferAttachment)
 
 	server.router = router
 }

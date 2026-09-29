@@ -24,6 +24,10 @@ WHERE branch_id = $1 AND branch_client_id = ANY($2::bigint[]);
 SELECT barcode FROM product_variants
 WHERE barcode = ANY($1::text[]);
 
+-- name: ClientPhonesPresent :many
+SELECT phone FROM clients
+WHERE phone = ANY($1::text[]);
+
 -- name: BranchShiftRefsPresent :many
 SELECT client_ref FROM branch_shifts
 WHERE branch_id = $1 AND client_ref = ANY($2::text[]);

@@ -9,17 +9,20 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
 
 const countDiscountListItemsWithProduct = `-- name: CountDiscountListItemsWithProduct :one
 SELECT COUNT(*)
 FROM discount_list_items dli
-JOIN products p ON p.id = dli.product_id
+JOIN product_variants pv ON pv.id = dli.product_variant_id
+JOIN products p ON p.id = pv.product_id
 WHERE dli.discount_list_id = $1
   AND ($2::text = ''
        OR p.name ILIKE '%' || $2::text || '%'
-       OR p.code ILIKE '%' || $2::text || '%')
+       OR p.code ILIKE '%' || $2::text || '%'
+       OR pv.barcode ILIKE '%' || $2::text || '%')
 `
 
 type CountDiscountListItemsWithProductParams struct {
@@ -48,7 +51,7 @@ func (q *Queries) CountDiscountLists(ctx context.Context) (int64, error) {
 const createDiscountList = `-- name: CreateDiscountList :one
 INSERT INTO discount_lists (name, is_active, is_default, valid_from, valid_to)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, name, is_active, is_default, valid_from, valid_to, created_at
+RETURNING id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at
 `
 
 type CreateDiscountListParams struct {
@@ -76,28 +79,30 @@ func (q *Queries) CreateDiscountList(ctx context.Context, arg CreateDiscountList
 		&i.ValidFrom,
 		&i.ValidTo,
 		&i.CreatedAt,
+		&i.Uid,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const createDiscountListItem = `-- name: CreateDiscountListItem :one
-INSERT INTO discount_list_items (discount_list_id, product_id, discount)
+INSERT INTO discount_list_items (discount_list_id, product_variant_id, discount)
 VALUES ($1, $2, $3)
-ON CONFLICT (discount_list_id, product_id)
+ON CONFLICT (discount_list_id, product_variant_id)
 DO UPDATE SET discount = $3
-RETURNING discount_list_id, product_id, discount
+RETURNING discount_list_id, discount, product_variant_id
 `
 
 type CreateDiscountListItemParams struct {
-	DiscountListID int64 `json:"discount_list_id"`
-	ProductID      int64 `json:"product_id"`
-	Discount       int16 `json:"discount"`
+	DiscountListID   int64 `json:"discount_list_id"`
+	ProductVariantID int64 `json:"product_variant_id"`
+	Discount         int16 `json:"discount"`
 }
 
 func (q *Queries) CreateDiscountListItem(ctx context.Context, arg CreateDiscountListItemParams) (DiscountListItem, error) {
-	row := q.db.QueryRowContext(ctx, createDiscountListItem, arg.DiscountListID, arg.ProductID, arg.Discount)
+	row := q.db.QueryRowContext(ctx, createDiscountListItem, arg.DiscountListID, arg.ProductVariantID, arg.Discount)
 	var i DiscountListItem
-	err := row.Scan(&i.DiscountListID, &i.ProductID, &i.Discount)
+	err := row.Scan(&i.DiscountListID, &i.Discount, &i.ProductVariantID)
 	return i, err
 }
 
@@ -113,55 +118,74 @@ func (q *Queries) DeleteDiscountList(ctx context.Context, id int64) error {
 
 const deleteDiscountListItem = `-- name: DeleteDiscountListItem :exec
 DELETE FROM discount_list_items
-WHERE discount_list_id = $1 AND product_id = $2
+WHERE discount_list_id = $1 AND product_variant_id = $2
 `
 
 type DeleteDiscountListItemParams struct {
-	DiscountListID int64 `json:"discount_list_id"`
-	ProductID      int64 `json:"product_id"`
+	DiscountListID   int64 `json:"discount_list_id"`
+	ProductVariantID int64 `json:"product_variant_id"`
 }
 
 func (q *Queries) DeleteDiscountListItem(ctx context.Context, arg DeleteDiscountListItemParams) error {
-	_, err := q.db.ExecContext(ctx, deleteDiscountListItem, arg.DiscountListID, arg.ProductID)
+	_, err := q.db.ExecContext(ctx, deleteDiscountListItem, arg.DiscountListID, arg.ProductVariantID)
 	return err
 }
 
 const deleteDiscountListItems = `-- name: DeleteDiscountListItems :execrows
 DELETE FROM discount_list_items
-WHERE discount_list_id = $1 AND product_id = ANY($2::bigint[])
+WHERE discount_list_id = $1
+  AND product_variant_id = ANY($2::bigint[])
 `
 
 type DeleteDiscountListItemsParams struct {
-	DiscountListID int64   `json:"discount_list_id"`
-	ProductIds     []int64 `json:"product_ids"`
+	DiscountListID    int64   `json:"discount_list_id"`
+	ProductVariantIds []int64 `json:"product_variant_ids"`
 }
 
 func (q *Queries) DeleteDiscountListItems(ctx context.Context, arg DeleteDiscountListItemsParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, deleteDiscountListItems, arg.DiscountListID, pq.Array(arg.ProductIds))
+	result, err := q.db.ExecContext(ctx, deleteDiscountListItems, arg.DiscountListID, pq.Array(arg.ProductVariantIds))
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected()
 }
 
-const getDefaultDiscountForProduct = `-- name: GetDefaultDiscountForProduct :one
-SELECT dli.discount FROM discount_list_items dli
-JOIN discount_lists dl ON dl.id = dli.discount_list_id
-WHERE dli.product_id = $1
-AND dl.is_active = true AND dl.is_default = true
-AND now() >= dl.valid_from AND now() <= dl.valid_to
-LIMIT 1
+const getDefaultDiscountForVariant = `-- name: GetDefaultDiscountForVariant :one
+SELECT discount FROM variant_default_discounts
+WHERE product_variant_id = $1
 `
 
-func (q *Queries) GetDefaultDiscountForProduct(ctx context.Context, productID int64) (int16, error) {
-	row := q.db.QueryRowContext(ctx, getDefaultDiscountForProduct, productID)
+func (q *Queries) GetDefaultDiscountForVariant(ctx context.Context, productVariantID int64) (int16, error) {
+	row := q.db.QueryRowContext(ctx, getDefaultDiscountForVariant, productVariantID)
 	var discount int16
 	err := row.Scan(&discount)
 	return discount, err
 }
 
+const getDefaultDiscountList = `-- name: GetDefaultDiscountList :one
+SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at FROM discount_lists
+WHERE is_default = true LIMIT 1
+`
+
+func (q *Queries) GetDefaultDiscountList(ctx context.Context) (DiscountList, error) {
+	row := q.db.QueryRowContext(ctx, getDefaultDiscountList)
+	var i DiscountList
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.IsActive,
+		&i.IsDefault,
+		&i.ValidFrom,
+		&i.ValidTo,
+		&i.CreatedAt,
+		&i.Uid,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getDiscountList = `-- name: GetDiscountList :one
-SELECT id, name, is_active, is_default, valid_from, valid_to, created_at FROM discount_lists
+SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at FROM discount_lists
 WHERE id = $1 LIMIT 1
 `
 
@@ -176,31 +200,55 @@ func (q *Queries) GetDiscountList(ctx context.Context, id int64) (DiscountList, 
 		&i.ValidFrom,
 		&i.ValidTo,
 		&i.CreatedAt,
+		&i.Uid,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const getProductDiscountFromList = `-- name: GetProductDiscountFromList :one
-SELECT discount_list_id, product_id, discount FROM discount_list_items
-WHERE discount_list_id = $1 AND product_id = $2
+const getDiscountListByUID = `-- name: GetDiscountListByUID :one
+SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at FROM discount_lists
+WHERE uid = $1 LIMIT 1
 `
 
-type GetProductDiscountFromListParams struct {
-	DiscountListID int64 `json:"discount_list_id"`
-	ProductID      int64 `json:"product_id"`
+func (q *Queries) GetDiscountListByUID(ctx context.Context, uid uuid.UUID) (DiscountList, error) {
+	row := q.db.QueryRowContext(ctx, getDiscountListByUID, uid)
+	var i DiscountList
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.IsActive,
+		&i.IsDefault,
+		&i.ValidFrom,
+		&i.ValidTo,
+		&i.CreatedAt,
+		&i.Uid,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
-func (q *Queries) GetProductDiscountFromList(ctx context.Context, arg GetProductDiscountFromListParams) (DiscountListItem, error) {
-	row := q.db.QueryRowContext(ctx, getProductDiscountFromList, arg.DiscountListID, arg.ProductID)
+const getVariantDiscountFromList = `-- name: GetVariantDiscountFromList :one
+SELECT discount_list_id, discount, product_variant_id FROM discount_list_items
+WHERE discount_list_id = $1 AND product_variant_id = $2
+`
+
+type GetVariantDiscountFromListParams struct {
+	DiscountListID   int64 `json:"discount_list_id"`
+	ProductVariantID int64 `json:"product_variant_id"`
+}
+
+func (q *Queries) GetVariantDiscountFromList(ctx context.Context, arg GetVariantDiscountFromListParams) (DiscountListItem, error) {
+	row := q.db.QueryRowContext(ctx, getVariantDiscountFromList, arg.DiscountListID, arg.ProductVariantID)
 	var i DiscountListItem
-	err := row.Scan(&i.DiscountListID, &i.ProductID, &i.Discount)
+	err := row.Scan(&i.DiscountListID, &i.Discount, &i.ProductVariantID)
 	return i, err
 }
 
 const listDiscountListItems = `-- name: ListDiscountListItems :many
-SELECT discount_list_id, product_id, discount FROM discount_list_items
+SELECT discount_list_id, discount, product_variant_id FROM discount_list_items
 WHERE discount_list_id = $1
-ORDER BY product_id
+ORDER BY product_variant_id
 `
 
 func (q *Queries) ListDiscountListItems(ctx context.Context, discountListID int64) ([]DiscountListItem, error) {
@@ -212,7 +260,43 @@ func (q *Queries) ListDiscountListItems(ctx context.Context, discountListID int6
 	items := []DiscountListItem{}
 	for rows.Next() {
 		var i DiscountListItem
-		if err := rows.Scan(&i.DiscountListID, &i.ProductID, &i.Discount); err != nil {
+		if err := rows.Scan(&i.DiscountListID, &i.Discount, &i.ProductVariantID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listDiscountListItemsForSync = `-- name: ListDiscountListItemsForSync :many
+SELECT pv.uid AS product_variant_uid, dli.discount
+FROM discount_list_items dli
+JOIN product_variants pv ON pv.id = dli.product_variant_id
+WHERE dli.discount_list_id = $1
+ORDER BY pv.uid
+`
+
+type ListDiscountListItemsForSyncRow struct {
+	ProductVariantUid uuid.UUID `json:"product_variant_uid"`
+	Discount          int16     `json:"discount"`
+}
+
+func (q *Queries) ListDiscountListItemsForSync(ctx context.Context, discountListID int64) ([]ListDiscountListItemsForSyncRow, error) {
+	rows, err := q.db.QueryContext(ctx, listDiscountListItemsForSync, discountListID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListDiscountListItemsForSyncRow{}
+	for rows.Next() {
+		var i ListDiscountListItemsForSyncRow
+		if err := rows.Scan(&i.ProductVariantUid, &i.Discount); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -227,15 +311,23 @@ func (q *Queries) ListDiscountListItems(ctx context.Context, discountListID int6
 }
 
 const listDiscountListItemsWithProduct = `-- name: ListDiscountListItemsWithProduct :many
-SELECT dli.discount_list_id, dli.product_id, dli.discount,
-       p.code AS product_code, p.name AS product_name
+SELECT dli.discount_list_id, dli.product_variant_id, dli.discount,
+       pv.uid AS product_variant_uid, pv.barcode,
+       p.code AS product_code, p.name AS product_name,
+       -- See ListPriceListItemsWithProduct for why these coalesce.
+       COALESCE(colors.name, '')::text AS color_name,
+       COALESCE(sizes.name, '')::text AS size_name
 FROM discount_list_items dli
-JOIN products p ON p.id = dli.product_id
+JOIN product_variants pv ON pv.id = dli.product_variant_id
+JOIN products p ON p.id = pv.product_id
+LEFT JOIN colors ON colors.id = pv.color_id
+LEFT JOIN sizes ON sizes.id = pv.size_id
 WHERE dli.discount_list_id = $1
   AND ($2::text = ''
        OR p.name ILIKE '%' || $2::text || '%'
-       OR p.code ILIKE '%' || $2::text || '%')
-ORDER BY p.name, dli.product_id
+       OR p.code ILIKE '%' || $2::text || '%'
+       OR pv.barcode ILIKE '%' || $2::text || '%')
+ORDER BY p.name, dli.product_variant_id
 LIMIT $4
 OFFSET $3
 `
@@ -248,13 +340,19 @@ type ListDiscountListItemsWithProductParams struct {
 }
 
 type ListDiscountListItemsWithProductRow struct {
-	DiscountListID int64  `json:"discount_list_id"`
-	ProductID      int64  `json:"product_id"`
-	Discount       int16  `json:"discount"`
-	ProductCode    string `json:"product_code"`
-	ProductName    string `json:"product_name"`
+	DiscountListID    int64     `json:"discount_list_id"`
+	ProductVariantID  int64     `json:"product_variant_id"`
+	Discount          int16     `json:"discount"`
+	ProductVariantUid uuid.UUID `json:"product_variant_uid"`
+	Barcode           string    `json:"barcode"`
+	ProductCode       string    `json:"product_code"`
+	ProductName       string    `json:"product_name"`
+	ColorName         string    `json:"color_name"`
+	SizeName          string    `json:"size_name"`
 }
 
+// See ListPriceListItemsWithProduct: rows are variant-level, so the label needs
+// the barcode and color/size to be identifiable.
 func (q *Queries) ListDiscountListItemsWithProduct(ctx context.Context, arg ListDiscountListItemsWithProductParams) ([]ListDiscountListItemsWithProductRow, error) {
 	rows, err := q.db.QueryContext(ctx, listDiscountListItemsWithProduct,
 		arg.DiscountListID,
@@ -271,10 +369,14 @@ func (q *Queries) ListDiscountListItemsWithProduct(ctx context.Context, arg List
 		var i ListDiscountListItemsWithProductRow
 		if err := rows.Scan(
 			&i.DiscountListID,
-			&i.ProductID,
+			&i.ProductVariantID,
 			&i.Discount,
+			&i.ProductVariantUid,
+			&i.Barcode,
 			&i.ProductCode,
 			&i.ProductName,
+			&i.ColorName,
+			&i.SizeName,
 		); err != nil {
 			return nil, err
 		}
@@ -290,7 +392,7 @@ func (q *Queries) ListDiscountListItemsWithProduct(ctx context.Context, arg List
 }
 
 const listDiscountLists = `-- name: ListDiscountLists :many
-SELECT id, name, is_active, is_default, valid_from, valid_to, created_at FROM discount_lists
+SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at FROM discount_lists
 ORDER BY name
 LIMIT $1
 OFFSET $2
@@ -318,7 +420,134 @@ func (q *Queries) ListDiscountLists(ctx context.Context, arg ListDiscountListsPa
 			&i.ValidFrom,
 			&i.ValidTo,
 			&i.CreatedAt,
+			&i.Uid,
+			&i.UpdatedAt,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listDiscountListsForBranchSync = `-- name: ListDiscountListsForBranchSync :many
+SELECT dl.id, dl.name, dl.is_active, dl.is_default, dl.valid_from, dl.valid_to, dl.created_at, dl.uid, dl.updated_at FROM discount_lists dl
+LEFT JOIN discount_list_branches dlb
+  ON dlb.discount_list_id = dl.id AND dlb.branch_id = $1
+WHERE (dlb.branch_id IS NOT NULL OR dl.is_default = true)
+  AND dl.updated_at > $2
+ORDER BY dl.updated_at
+`
+
+type ListDiscountListsForBranchSyncParams struct {
+	BranchID  int64     `json:"branch_id"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// See ListPriceListsForBranchSync -- same scoping and same reason for
+// carrying is_active rather than filtering on it.
+func (q *Queries) ListDiscountListsForBranchSync(ctx context.Context, arg ListDiscountListsForBranchSyncParams) ([]DiscountList, error) {
+	rows, err := q.db.QueryContext(ctx, listDiscountListsForBranchSync, arg.BranchID, arg.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DiscountList{}
+	for rows.Next() {
+		var i DiscountList
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.IsActive,
+			&i.IsDefault,
+			&i.ValidFrom,
+			&i.ValidTo,
+			&i.CreatedAt,
+			&i.Uid,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const resolveVariantDiscount = `-- name: ResolveVariantDiscount :one
+SELECT dli.discount FROM discount_list_items dli
+JOIN discount_lists dl ON dl.id = dli.discount_list_id
+LEFT JOIN discount_list_branches dlb
+  ON dlb.discount_list_id = dl.id AND dlb.branch_id = $1
+WHERE dli.product_variant_id = $2
+  AND dl.is_active = true
+  AND now() >= dl.valid_from AND now() <= dl.valid_to
+  AND (dlb.branch_id IS NOT NULL OR dl.is_default = true)
+ORDER BY (dlb.branch_id IS NOT NULL) DESC
+LIMIT 1
+`
+
+type ResolveVariantDiscountParams struct {
+	BranchID         int64 `json:"branch_id"`
+	ProductVariantID int64 `json:"product_variant_id"`
+}
+
+// Mirrors ResolveVariantPrice: a branch assigned a discount list is discounted
+// from it, everyone else from the default list. Unlike price, no row here means
+// no discount (i.e. zero), not "unsellable" -- a product with no discount is a
+// product sold at full price.
+func (q *Queries) ResolveVariantDiscount(ctx context.Context, arg ResolveVariantDiscountParams) (int16, error) {
+	row := q.db.QueryRowContext(ctx, resolveVariantDiscount, arg.BranchID, arg.ProductVariantID)
+	var discount int16
+	err := row.Scan(&discount)
+	return discount, err
+}
+
+const resolveVariantDiscounts = `-- name: ResolveVariantDiscounts :many
+SELECT DISTINCT ON (dli.product_variant_id)
+       dli.product_variant_id, dli.discount
+FROM discount_list_items dli
+JOIN discount_lists dl ON dl.id = dli.discount_list_id
+LEFT JOIN discount_list_branches dlb
+  ON dlb.discount_list_id = dl.id AND dlb.branch_id = $1
+WHERE dli.product_variant_id = ANY($2::bigint[])
+  AND dl.is_active = true
+  AND now() >= dl.valid_from AND now() <= dl.valid_to
+  AND (dlb.branch_id IS NOT NULL OR dl.is_default = true)
+ORDER BY dli.product_variant_id, (dlb.branch_id IS NOT NULL) DESC
+`
+
+type ResolveVariantDiscountsParams struct {
+	BranchID          int64   `json:"branch_id"`
+	ProductVariantIds []int64 `json:"product_variant_ids"`
+}
+
+type ResolveVariantDiscountsRow struct {
+	ProductVariantID int64 `json:"product_variant_id"`
+	Discount         int16 `json:"discount"`
+}
+
+func (q *Queries) ResolveVariantDiscounts(ctx context.Context, arg ResolveVariantDiscountsParams) ([]ResolveVariantDiscountsRow, error) {
+	rows, err := q.db.QueryContext(ctx, resolveVariantDiscounts, arg.BranchID, pq.Array(arg.ProductVariantIds))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ResolveVariantDiscountsRow{}
+	for rows.Next() {
+		var i ResolveVariantDiscountsRow
+		if err := rows.Scan(&i.ProductVariantID, &i.Discount); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -334,7 +563,7 @@ func (q *Queries) ListDiscountLists(ctx context.Context, arg ListDiscountListsPa
 
 const unsetDefaultDiscountList = `-- name: UnsetDefaultDiscountList :exec
 UPDATE discount_lists
-SET is_default = false
+SET is_default = false, updated_at = now()
 WHERE is_default = true AND id != $1
 `
 
@@ -345,7 +574,8 @@ func (q *Queries) UnsetDefaultDiscountList(ctx context.Context, id int64) error 
 
 const updateDiscountList = `-- name: UpdateDiscountList :exec
 UPDATE discount_lists
-SET name = $2, is_active = $3, is_default = $4, valid_from = $5, valid_to = $6
+SET name = $2, is_active = $3, is_default = $4, valid_from = $5, valid_to = $6,
+    updated_at = now()
 WHERE id = $1
 `
 
@@ -373,16 +603,16 @@ func (q *Queries) UpdateDiscountList(ctx context.Context, arg UpdateDiscountList
 const updateDiscountListItem = `-- name: UpdateDiscountListItem :exec
 UPDATE discount_list_items
 SET discount = $3
-WHERE discount_list_id = $1 AND product_id = $2
+WHERE discount_list_id = $1 AND product_variant_id = $2
 `
 
 type UpdateDiscountListItemParams struct {
-	DiscountListID int64 `json:"discount_list_id"`
-	ProductID      int64 `json:"product_id"`
-	Discount       int16 `json:"discount"`
+	DiscountListID   int64 `json:"discount_list_id"`
+	ProductVariantID int64 `json:"product_variant_id"`
+	Discount         int16 `json:"discount"`
 }
 
 func (q *Queries) UpdateDiscountListItem(ctx context.Context, arg UpdateDiscountListItemParams) error {
-	_, err := q.db.ExecContext(ctx, updateDiscountListItem, arg.DiscountListID, arg.ProductID, arg.Discount)
+	_, err := q.db.ExecContext(ctx, updateDiscountListItem, arg.DiscountListID, arg.ProductVariantID, arg.Discount)
 	return err
 }

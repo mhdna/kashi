@@ -12,7 +12,6 @@
       </v-card-title>
       <v-divider />
       <v-card-text class="invoice-details-content pa-6">
-        <v-alert v-if="itemsError" class="mb-4" type="error" variant="tonal">{{ itemsError }}</v-alert>
         <div v-if="itemsLoading" class="d-flex justify-center pa-4">
           <v-progress-circular color="primary" indeterminate />
         </div>
@@ -144,7 +143,6 @@
             the return itself. It isn't executed instantly -- the branch picks it up next time
             it's online.
           </v-alert>
-          <v-alert v-if="remoteReturnError" class="mb-4" type="error" variant="tonal">{{ remoteReturnError }}</v-alert>
 
           <div v-if="remoteReturnItemsLoading" class="d-flex justify-center pa-4">
             <v-progress-circular color="primary" indeterminate />
@@ -232,6 +230,7 @@
   import { useBranchInvoices } from '@/composables/useBranchInvoices'
   import { useBranchSettings } from '@/composables/useBranchSettings'
   import { useInvoiceDetails } from '@/composables/useInvoiceDetails'
+  import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
 
   const props = defineProps({
@@ -244,6 +243,7 @@
   const { listBranchInvoiceItems, requestRemoteReturn } = useBranchInvoices()
   const { listBranchCommands } = useBranchSettings()
   const { getBranchInvoiceDetails } = useInvoiceDetails()
+  const notify = useNotify()
 
   // Live refresh -- api/branch_sync.go broadcasts "branch_invoice_created"
   // for every kind (sales/return/exchange), so a remotely-triggered return
@@ -302,18 +302,16 @@
   const itemsTarget = ref(null)
   const itemsDetails = ref(null)
   const itemsLoading = ref(false)
-  const itemsError = ref('')
 
   async function openItems (invoice) {
     itemsTarget.value = invoice
     itemsDialog.value = true
     itemsLoading.value = true
-    itemsError.value = ''
     itemsDetails.value = null
     try {
       itemsDetails.value = await getBranchInvoiceDetails(invoice.id)
     } catch (error) {
-      itemsError.value = error.message
+      notify.error(error.message)
     } finally {
       itemsLoading.value = false
     }
@@ -329,7 +327,6 @@
   const remoteReturnTarget = ref(null)
   const remoteReturnReason = ref('')
   const remoteReturnLoading = ref(false)
-  const remoteReturnError = ref('')
   const remoteReturnRows = ref([])
   const remoteReturnItemsLoading = ref(false)
   // 'items' (picking what to return) -> 'polling' (command queued, waiting
@@ -343,7 +340,6 @@
   async function openRemoteReturn (invoice) {
     remoteReturnTarget.value = invoice
     remoteReturnReason.value = ''
-    remoteReturnError.value = ''
     remoteReturnRows.value = []
     remoteReturnPhase.value = 'items'
     remoteReturnDialog.value = true
@@ -359,7 +355,7 @@
         selected: true,
       }))
     } catch (error) {
-      remoteReturnError.value = error.message
+      notify.error(error.message)
     } finally {
       remoteReturnItemsLoading.value = false
     }
@@ -367,7 +363,6 @@
 
   async function submitRemoteReturn () {
     remoteReturnLoading.value = true
-    remoteReturnError.value = ''
     try {
       const items = remoteReturnRows.value
         .filter(row => row.selected)
@@ -379,7 +374,7 @@
       remoteReturnPhase.value = 'polling'
       pollRemoteReturnCommand(remoteReturnTarget.value.branch_id, command?.id)
     } catch (error) {
-      remoteReturnError.value = error.message
+      notify.error(error.message)
     } finally {
       remoteReturnLoading.value = false
     }

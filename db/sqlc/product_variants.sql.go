@@ -9,6 +9,9 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const countProductVariants = `-- name: CountProductVariants :one
@@ -44,11 +47,10 @@ INSERT INTO product_variants (
   product_id,
   color_id,
   size_id,
-  barcode,
-  price
+  barcode
 ) VALUES (
-  $1, $2, $3, $4, $5
-) RETURNING id, product_id, color_id, size_id, barcode, price, is_active, created_at, updated_at, avg_cost
+  $1, $2, $3, $4
+) RETURNING id, product_id, color_id, size_id, barcode, price, is_active, created_at, updated_at, avg_cost, uid
 `
 
 type CreateProductVariantParams struct {
@@ -56,16 +58,17 @@ type CreateProductVariantParams struct {
 	ColorID   sql.NullInt64 `json:"color_id"`
 	SizeID    sql.NullInt64 `json:"size_id"`
 	Barcode   string        `json:"barcode"`
-	Price     sql.NullInt64 `json:"price"`
 }
 
+// No price column: since 000094 a variant's price is an entry in a price
+// list, not a property of the variant, so a newly created variant starts with
+// no price and is unsellable until it is added to one.
 func (q *Queries) CreateProductVariant(ctx context.Context, arg CreateProductVariantParams) (ProductVariant, error) {
 	row := q.db.QueryRowContext(ctx, createProductVariant,
 		arg.ProductID,
 		arg.ColorID,
 		arg.SizeID,
 		arg.Barcode,
-		arg.Price,
 	)
 	var i ProductVariant
 	err := row.Scan(
@@ -79,6 +82,7 @@ func (q *Queries) CreateProductVariant(ctx context.Context, arg CreateProductVar
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.AvgCost,
+		&i.Uid,
 	)
 	return i, err
 }
@@ -94,7 +98,7 @@ func (q *Queries) DeleteProductVariant(ctx context.Context, id int64) error {
 }
 
 const getProductVariant = `-- name: GetProductVariant :one
-SELECT id, product_id, color_id, size_id, barcode, price, is_active, created_at, updated_at, avg_cost FROM product_variants
+SELECT id, product_id, color_id, size_id, barcode, price, is_active, created_at, updated_at, avg_cost, uid FROM product_variants
 WHERE id = $1 LIMIT 1
 `
 
@@ -112,12 +116,13 @@ func (q *Queries) GetProductVariant(ctx context.Context, id int64) (ProductVaria
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.AvgCost,
+		&i.Uid,
 	)
 	return i, err
 }
 
 const getProductVariantByBarcode = `-- name: GetProductVariantByBarcode :one
-SELECT id, product_id, color_id, size_id, barcode, price, is_active, created_at, updated_at, avg_cost FROM product_variants
+SELECT id, product_id, color_id, size_id, barcode, price, is_active, created_at, updated_at, avg_cost, uid FROM product_variants
 WHERE barcode = $1 LIMIT 1
 `
 
@@ -135,6 +140,7 @@ func (q *Queries) GetProductVariantByBarcode(ctx context.Context, barcode string
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.AvgCost,
+		&i.Uid,
 	)
 	return i, err
 }
@@ -143,7 +149,7 @@ const getVariantForLabel = `-- name: GetVariantForLabel :one
 SELECT
   pv.id,
   pv.barcode,
-  pv.price,
+  vdp.price,
   p.code AS product_code,
   p.name AS product_name,
   COALESCE(c.name, '')  AS color_name,
@@ -151,6 +157,7 @@ SELECT
   COALESCE(brand_val.value, '') AS brand
 FROM product_variants pv
 JOIN products p ON p.id = pv.product_id
+LEFT JOIN variant_default_prices vdp ON vdp.product_variant_id = pv.id
 LEFT JOIN colors c ON c.id = pv.color_id
 LEFT JOIN sizes  s ON s.id = pv.size_id
 LEFT JOIN products_attributes brand_pa ON brand_pa.product_id = p.id AND brand_pa.attribute_id = 2
@@ -199,7 +206,7 @@ func (q *Queries) GetVariantTotalOnHand(ctx context.Context, variantID int64) (i
 }
 
 const listProductVariants = `-- name: ListProductVariants :many
-SELECT product_variants.id, product_variants.product_id, product_variants.color_id, product_variants.size_id, product_variants.barcode, product_variants.price, product_variants.is_active, product_variants.created_at, product_variants.updated_at, product_variants.avg_cost, products.id, products.code, products.name, products.description, products.is_active, products.created_at, products.low_stock_threshold, products.low_stock_alerts_enabled FROM product_variants
+SELECT product_variants.id, product_variants.product_id, product_variants.color_id, product_variants.size_id, product_variants.barcode, product_variants.price, product_variants.is_active, product_variants.created_at, product_variants.updated_at, product_variants.avg_cost, product_variants.uid, products.id, products.code, products.name, products.description, products.is_active, products.created_at, products.low_stock_threshold, products.low_stock_alerts_enabled FROM product_variants
 INNER JOIN products ON products.id = product_variants.product_id
 ORDER BY product_variants.id
 LIMIT $1
@@ -236,6 +243,7 @@ func (q *Queries) ListProductVariants(ctx context.Context, arg ListProductVarian
 			&i.ProductVariant.CreatedAt,
 			&i.ProductVariant.UpdatedAt,
 			&i.ProductVariant.AvgCost,
+			&i.ProductVariant.Uid,
 			&i.Product.ID,
 			&i.Product.Code,
 			&i.Product.Name,
@@ -259,7 +267,7 @@ func (q *Queries) ListProductVariants(ctx context.Context, arg ListProductVarian
 }
 
 const listProductVariantsByProduct = `-- name: ListProductVariantsByProduct :many
-SELECT id, product_id, color_id, size_id, barcode, price, is_active, created_at, updated_at, avg_cost FROM product_variants
+SELECT id, product_id, color_id, size_id, barcode, price, is_active, created_at, updated_at, avg_cost, uid FROM product_variants
 WHERE product_id = $1
 ORDER BY id
 `
@@ -284,6 +292,7 @@ func (q *Queries) ListProductVariantsByProduct(ctx context.Context, productID in
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.AvgCost,
+			&i.Uid,
 		); err != nil {
 			return nil, err
 		}
@@ -300,9 +309,9 @@ func (q *Queries) ListProductVariantsByProduct(ctx context.Context, productID in
 
 const listProductVariantsForSync = `-- name: ListProductVariantsForSync :many
 SELECT
+  product_variants.uid,
   product_variants.id,
   product_variants.barcode,
-  product_variants.price,
   product_variants.is_active,
   product_variants.updated_at,
   products.code,
@@ -334,9 +343,9 @@ ORDER BY product_variants.updated_at
 `
 
 type ListProductVariantsForSyncRow struct {
+	Uid         uuid.UUID      `json:"uid"`
 	ID          int64          `json:"id"`
 	Barcode     string         `json:"barcode"`
-	Price       sql.NullInt64  `json:"price"`
 	IsActive    bool           `json:"is_active"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	Code        string         `json:"code"`
@@ -357,6 +366,12 @@ type ListProductVariantsForSyncRow struct {
 // here (not sent as ids) since kashi-pos matches everything by name, not
 // by kashi's internal ids.
 //
+// Price is deliberately absent: since 000094 a variant has no price of its
+// own, it has an entry in a price list, and those sync down as their own
+// entities (see the price_lists/discount_lists cases in branch_catchup.go).
+// A till receiving no price here keeps whatever the lists last told it,
+// which is what applySyncedProductVariant already does for an absent price.
+//
 // Attribute ids (2=brand, 1=sub-category, 3=kind, 7=season, 6=year) match
 // the fixed seed in 000005_create_products_attributes_table.up.sql.
 // Editing a product's attributes doesn't currently bump
@@ -375,9 +390,102 @@ func (q *Queries) ListProductVariantsForSync(ctx context.Context, updatedAt time
 	for rows.Next() {
 		var i ListProductVariantsForSyncRow
 		if err := rows.Scan(
+			&i.Uid,
 			&i.ID,
 			&i.Barcode,
-			&i.Price,
+			&i.IsActive,
+			&i.UpdatedAt,
+			&i.Code,
+			&i.Name,
+			&i.Description,
+			&i.ColorName,
+			&i.SizeName,
+			&i.Brand,
+			&i.SubCategory,
+			&i.Kind,
+			&i.Season,
+			&i.Year,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listProductVariantsForSyncByUIDs = `-- name: ListProductVariantsForSyncByUIDs :many
+SELECT
+  product_variants.uid,
+  product_variants.id,
+  product_variants.barcode,
+  product_variants.is_active,
+  product_variants.updated_at,
+  products.code,
+  products.name,
+  products.description,
+  colors.name AS color_name,
+  sizes.name AS size_name,
+  brand_val.value AS brand,
+  subcategory_val.value AS sub_category,
+  kind_val.value AS kind,
+  season_val.value AS season,
+  year_val.value AS year
+FROM product_variants
+JOIN products ON products.id = product_variants.product_id
+LEFT JOIN colors ON colors.id = product_variants.color_id
+LEFT JOIN sizes ON sizes.id = product_variants.size_id
+LEFT JOIN products_attributes brand_pa ON brand_pa.product_id = products.id AND brand_pa.attribute_id = 2
+LEFT JOIN attributes_values brand_val ON brand_val.id = brand_pa.attribute_value_id
+LEFT JOIN products_attributes subcategory_pa ON subcategory_pa.product_id = products.id AND subcategory_pa.attribute_id = 1
+LEFT JOIN attributes_values subcategory_val ON subcategory_val.id = subcategory_pa.attribute_value_id
+LEFT JOIN products_attributes kind_pa ON kind_pa.product_id = products.id AND kind_pa.attribute_id = 3
+LEFT JOIN attributes_values kind_val ON kind_val.id = kind_pa.attribute_value_id
+LEFT JOIN products_attributes season_pa ON season_pa.product_id = products.id AND season_pa.attribute_id = 7
+LEFT JOIN attributes_values season_val ON season_val.id = season_pa.attribute_value_id
+LEFT JOIN products_attributes year_pa ON year_pa.product_id = products.id AND year_pa.attribute_id = 6
+LEFT JOIN attributes_values year_val ON year_val.id = year_pa.attribute_value_id
+WHERE product_variants.uid = ANY($1::uuid[])
+`
+
+type ListProductVariantsForSyncByUIDsRow struct {
+	Uid         uuid.UUID      `json:"uid"`
+	ID          int64          `json:"id"`
+	Barcode     string         `json:"barcode"`
+	IsActive    bool           `json:"is_active"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	Code        string         `json:"code"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	ColorName   sql.NullString `json:"color_name"`
+	SizeName    sql.NullString `json:"size_name"`
+	Brand       sql.NullString `json:"brand"`
+	SubCategory sql.NullString `json:"sub_category"`
+	Kind        sql.NullString `json:"kind"`
+	Season      sql.NullString `json:"season"`
+	Year        sql.NullString `json:"year"`
+}
+
+// Same flattened row as ListProductVariantsForSyncPaged, for the uids a
+// till's completeness check found missing or stale.
+func (q *Queries) ListProductVariantsForSyncByUIDs(ctx context.Context, uids []uuid.UUID) ([]ListProductVariantsForSyncByUIDsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listProductVariantsForSyncByUIDs, pq.Array(uids))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListProductVariantsForSyncByUIDsRow{}
+	for rows.Next() {
+		var i ListProductVariantsForSyncByUIDsRow
+		if err := rows.Scan(
+			&i.Uid,
+			&i.ID,
+			&i.Barcode,
 			&i.IsActive,
 			&i.UpdatedAt,
 			&i.Code,
@@ -406,9 +514,9 @@ func (q *Queries) ListProductVariantsForSync(ctx context.Context, updatedAt time
 
 const listProductVariantsForSyncPaged = `-- name: ListProductVariantsForSyncPaged :many
 SELECT
+  product_variants.uid,
   product_variants.id,
   product_variants.barcode,
-  product_variants.price,
   product_variants.is_active,
   product_variants.updated_at,
   products.code,
@@ -447,9 +555,9 @@ type ListProductVariantsForSyncPagedParams struct {
 }
 
 type ListProductVariantsForSyncPagedRow struct {
+	Uid         uuid.UUID      `json:"uid"`
 	ID          int64          `json:"id"`
 	Barcode     string         `json:"barcode"`
-	Price       sql.NullInt64  `json:"price"`
 	IsActive    bool           `json:"is_active"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	Code        string         `json:"code"`
@@ -477,9 +585,9 @@ func (q *Queries) ListProductVariantsForSyncPaged(ctx context.Context, arg ListP
 	for rows.Next() {
 		var i ListProductVariantsForSyncPagedRow
 		if err := rows.Scan(
+			&i.Uid,
 			&i.ID,
 			&i.Barcode,
-			&i.Price,
 			&i.IsActive,
 			&i.UpdatedAt,
 			&i.Code,
@@ -507,7 +615,7 @@ func (q *Queries) ListProductVariantsForSyncPaged(ctx context.Context, arg ListP
 }
 
 const listProductVariantsUpdatedSince = `-- name: ListProductVariantsUpdatedSince :many
-SELECT id, product_id, color_id, size_id, barcode, price, is_active, created_at, updated_at, avg_cost FROM product_variants
+SELECT id, product_id, color_id, size_id, barcode, price, is_active, created_at, updated_at, avg_cost, uid FROM product_variants
 WHERE updated_at > $1
 ORDER BY updated_at
 `
@@ -532,6 +640,7 @@ func (q *Queries) ListProductVariantsUpdatedSince(ctx context.Context, updatedAt
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.AvgCost,
+			&i.Uid,
 		); err != nil {
 			return nil, err
 		}
@@ -550,7 +659,7 @@ const listVariantsForBarcodes = `-- name: ListVariantsForBarcodes :many
 SELECT
   pv.id,
   pv.barcode,
-  pv.price,
+  vdp.price,
   pv.is_active,
   pv.created_at,
   p.id   AS product_id,
@@ -562,6 +671,7 @@ SELECT
   COALESCE(brand_val.value, '') AS brand
 FROM product_variants pv
 JOIN products p ON p.id = pv.product_id
+LEFT JOIN variant_default_prices vdp ON vdp.product_variant_id = pv.id
 LEFT JOIN colors c ON c.id = pv.color_id
 LEFT JOIN sizes  s ON s.id = pv.size_id
 LEFT JOIN products_attributes brand_pa ON brand_pa.product_id = p.id AND brand_pa.attribute_id = 2
@@ -636,7 +746,7 @@ const setVariantBarcode = `-- name: SetVariantBarcode :one
 UPDATE product_variants
 SET barcode = $2, updated_at = now()
 WHERE id = $1
-RETURNING id, product_id, color_id, size_id, barcode, price, is_active, created_at, updated_at, avg_cost
+RETURNING id, product_id, color_id, size_id, barcode, price, is_active, created_at, updated_at, avg_cost, uid
 `
 
 type SetVariantBarcodeParams struct {
@@ -658,6 +768,7 @@ func (q *Queries) SetVariantBarcode(ctx context.Context, arg SetVariantBarcodePa
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.AvgCost,
+		&i.Uid,
 	)
 	return i, err
 }
@@ -667,11 +778,10 @@ UPDATE product_variants
 SET color_id = $2,
 size_id = $3,
 barcode = $4,
-price = $5,
-is_active = $6,
+is_active = $5,
 updated_at = now()
 WHERE id = $1
-RETURNING id, product_id, color_id, size_id, barcode, price, is_active, created_at, updated_at, avg_cost
+RETURNING id, product_id, color_id, size_id, barcode, price, is_active, created_at, updated_at, avg_cost, uid
 `
 
 type UpdateProductVariantParams struct {
@@ -679,17 +789,16 @@ type UpdateProductVariantParams struct {
 	ColorID  sql.NullInt64 `json:"color_id"`
 	SizeID   sql.NullInt64 `json:"size_id"`
 	Barcode  string        `json:"barcode"`
-	Price    sql.NullInt64 `json:"price"`
 	IsActive bool          `json:"is_active"`
 }
 
+// price is deliberately not settable here -- see CreateProductVariant.
 func (q *Queries) UpdateProductVariant(ctx context.Context, arg UpdateProductVariantParams) (ProductVariant, error) {
 	row := q.db.QueryRowContext(ctx, updateProductVariant,
 		arg.ID,
 		arg.ColorID,
 		arg.SizeID,
 		arg.Barcode,
-		arg.Price,
 		arg.IsActive,
 	)
 	var i ProductVariant
@@ -704,6 +813,7 @@ func (q *Queries) UpdateProductVariant(ctx context.Context, arg UpdateProductVar
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.AvgCost,
+		&i.Uid,
 	)
 	return i, err
 }

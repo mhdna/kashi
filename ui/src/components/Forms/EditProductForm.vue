@@ -12,17 +12,10 @@
         <v-progress-circular color="primary" indeterminate />
       </div>
 
-      <v-alert
-        v-else-if="loadError"
-        density="compact"
-        type="error"
-        variant="tonal"
-      >
-        {{ loadError }}
-        <template #append>
-          <v-btn size="small" text="Retry" variant="text" @click="load" />
-        </template>
-      </v-alert>
+      <div v-else-if="loadError" class="text-center py-8 text-medium-emphasis">
+        <div class="mb-2">Failed to load product.</div>
+        <v-btn size="small" text="Retry" variant="tonal" @click="load" />
+      </div>
 
       <template v-else>
         <v-row density="compact">
@@ -89,17 +82,6 @@
             @click="addVariant"
           />
         </div>
-
-        <v-alert
-          v-if="variantError"
-          class="mb-2"
-          density="compact"
-          type="error"
-          variant="tonal"
-          @click:close="variantError = ''"
-        >
-          {{ variantError }}
-        </v-alert>
 
         <v-table v-if="variants.length > 0" density="compact">
           <thead>
@@ -180,15 +162,6 @@
         </v-table>
         <div v-else class="text-caption text-medium-emphasis mb-2">No variants.</div>
 
-        <v-alert
-          v-if="saveError"
-          class="mt-4"
-          density="compact"
-          type="error"
-          variant="tonal"
-        >
-          {{ saveError }}
-        </v-alert>
       </template>
     </v-card-text>
 
@@ -219,15 +192,6 @@
         <v-card-text>
           Delete <strong>{{ form.name || 'this product' }}</strong> and all its variants?
           This can't be undone.
-          <v-alert
-            v-if="deleteError"
-            class="mt-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ deleteError }}
-          </v-alert>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -250,6 +214,7 @@
   import { useAttributes } from '@/composables/useAttributes'
   import { useColorsAndSizes } from '@/composables/useColorsAndSizes'
   import { useProducts } from '@/composables/useProducts'
+  import { useNotify } from '@/composables/useNotify'
 
   const props = defineProps({
     productId: {
@@ -285,11 +250,10 @@
     { key: 'origin', attrName: 'origin', label: 'Origin', id: 8 },
   ]
 
+  const notify = useNotify()
   const loading = ref(true)
-  const loadError = ref('')
+  const loadError = ref(false)
   const saving = ref(false)
-  const saveError = ref('')
-  const variantError = ref('')
 
   const form = reactive({
     code: '',
@@ -310,7 +274,7 @@
 
   async function load () {
     loading.value = true
-    loadError.value = ''
+    loadError.value = false
     try {
       await Promise.all([fetchColors(), fetchSizes(), fetchAttributes()])
       const data = await fetchProduct(props.productId)
@@ -339,7 +303,8 @@
         _deleting: false,
       }))
     } catch (error) {
-      loadError.value = error.message
+      loadError.value = true
+      notify.error(error.message)
     } finally {
       loading.value = false
     }
@@ -356,7 +321,6 @@
   async function save () {
     if (!validate()) return
     saving.value = true
-    saveError.value = ''
     try {
       await updateProduct({
         id: Number(props.productId),
@@ -368,7 +332,7 @@
       })
       emit('saved')
     } catch (error) {
-      saveError.value = error.message
+      notify.error(error.message)
     } finally {
       saving.value = false
     }
@@ -376,7 +340,6 @@
 
   async function saveVariant (v) {
     v._saving = true
-    variantError.value = ''
     try {
       await updateVariant({
         id: v.id,
@@ -387,32 +350,36 @@
         is_active: v.is_active,
       })
     } catch (error) {
-      variantError.value = error.message
+      notify.error(error.message)
     } finally {
       v._saving = false
     }
   }
 
   async function addVariant () {
-    variantError.value = ''
     try {
       await createVariant({ product_id: Number(props.productId) })
       await load()
     } catch (error) {
-      variantError.value = error.message
+      notify.error(error.message)
     }
   }
 
   async function removeVariant (v) {
     v._deleting = true
-    variantError.value = ''
     try {
-      await deleteVariant(v.id)
-      variants.value = variants.value.filter(x => x.id !== v.id)
+      const outcome = await deleteVariant(v.id)
+      if (outcome === 'deactivated') {
+        // Kept for its history; tick "active" and save to bring it back.
+        v.is_active = false
+        notify.warning('This variant has stock or sales history, so it was deactivated instead of deleted.')
+      } else {
+        variants.value = variants.value.filter(x => x.id !== v.id)
+      }
     } catch (error) {
-      variantError.value = error.message === 'still referenced by one or more products'
+      notify.error(error.message === 'still referenced by one or more products'
         ? 'This variant is used on an invoice or transfer and can\'t be deleted.'
-        : error.message
+        : error.message)
     } finally {
       v._deleting = false
     }
@@ -421,19 +388,17 @@
   // ---- delete product --------------------------------------------------
   const deleteConfirm = ref(false)
   const deleting = ref(false)
-  const deleteError = ref('')
 
   async function doDelete () {
     deleting.value = true
-    deleteError.value = ''
     try {
       await deleteProduct(props.productId)
       deleteConfirm.value = false
       emit('deleted')
     } catch (error) {
-      deleteError.value = error.message === 'still referenced by one or more products'
+      notify.error(error.message === 'still referenced by one or more products'
         ? 'This product is referenced elsewhere (invoices, purchases, or transfers) and can\'t be deleted.'
-        : error.message
+        : error.message)
     } finally {
       deleting.value = false
     }

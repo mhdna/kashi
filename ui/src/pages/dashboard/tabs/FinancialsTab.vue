@@ -36,7 +36,19 @@
 
     <v-card class="px-1 py-0 mt-2" flat>
       <v-card-title class="card-title pa-1 mb-n2">Sales Activity by Hour</v-card-title>
-      <VChart autoresize :option="heatmapOption" style="height: 260px; width: 100%" />
+      <div style="overflow-x: auto">
+        <v-heatmap
+          :cell-size="[26, 22]"
+          :columns="HEATMAP_HOURS"
+          gap="2"
+          item-column="hour"
+          item-row="day"
+          item-value="value"
+          :items="heatmapItems"
+          :rows="HEATMAP_DAYS"
+          :thresholds="heatmapThresholds"
+        />
+      </div>
     </v-card>
   </div>
 </template>
@@ -47,13 +59,15 @@
   import { useSettingsStore } from '@/stores/settings'
   import FinancialChartCard from './FinancialChartCard.vue'
   import {
-    buildHourlyHeatmapOption,
+    buildHourlyHeatmapItems,
     buildMarginTrendOption,
     buildPaymentMethodPieOption,
     buildRevenueForecastOption,
     buildTopBranchesBarOption,
     DEFAULT_ZOOM_WINDOW,
     generateFinancialsSeries,
+    HEATMAP_DAYS,
+    HEATMAP_HOURS,
     ZOOM_PRESETS,
   } from './financialsChartOptions'
 
@@ -77,5 +91,9 @@
   const barOption = buildTopBranchesBarOption()
   const pieOption = buildPaymentMethodPieOption()
   const marginOption = buildMarginTrendOption()
-  const heatmapOption = buildHourlyHeatmapOption()
+  const heatmapItems = buildHourlyHeatmapItems()
+  const heatmapThresholds = {
+    from: { min: 0, color: '#E8F0FE' },
+    to: { min: 70, color: '#4285F4' },
+  }
 </script>

@@ -18,19 +18,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func randomCoupon() db.Coupon {
+func randomCouponType() db.CouponType {
+	return db.CouponType{
+		ID:           util.RandomInt(1, 1000),
+		Name:         util.RandomName(),
+		ValueCents:   util.RandomInt(100, 10000),
+		CurrencyCode: "USD",
+		IsActive:     true,
+	}
+}
+
+func randomCoupon(couponType db.CouponType) db.Coupon {
 	return db.Coupon{
-		Code:         util.RandomString(10),
-		Status:       db.CouponStatusActive,
-		DiscountType: db.DiscountTypeFixed,
-		Reason:       util.RandomName(),
-		ClientID:     util.RandomInt(1, 1000),
-		ValidUntil:   time.Now().Add(24 * time.Hour),
+		Code:       util.RandomString(10),
+		Status:     db.CouponStatusActive,
+		TypeID:     sql.NullInt64{Int64: couponType.ID, Valid: true},
+		ValueCents: couponType.ValueCents,
+		ClientID:   sql.NullInt64{Int64: util.RandomInt(1, 1000), Valid: true},
+		ValidUntil: sql.NullTime{Time: time.Now().Add(24 * time.Hour), Valid: true},
 	}
 }
 
 func TestCreateCouponAPI(t *testing.T) {
-	coupon := randomCoupon()
+	couponType := randomCouponType()
+	coupon := randomCoupon(couponType)
 
 	testCases := []struct {
 		name          string
@@ -41,14 +52,17 @@ func TestCreateCouponAPI(t *testing.T) {
 		{
 			name: "OK",
 			body: map[string]interface{}{
-				"code":          coupon.Code,
-				"status":        string(coupon.Status),
-				"discount_type": string(coupon.DiscountType),
-				"reason":        coupon.Reason,
-				"client_id":     coupon.ClientID,
-				"valid_until":   coupon.ValidUntil.Format(time.RFC3339),
+				"code":        coupon.Code,
+				"status":      string(coupon.Status),
+				"type_id":     couponType.ID,
+				"client_id":   coupon.ClientID.Int64,
+				"valid_until": coupon.ValidUntil.Time.Format(time.RFC3339),
 			},
 			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetCouponType(gomock.Any(), gomock.Eq(couponType.ID)).
+					Times(1).
+					Return(couponType, nil)
 				store.EXPECT().
 					CreateCoupon(gomock.Any(), gomock.Any()).
 					Times(1).
@@ -62,14 +76,17 @@ func TestCreateCouponAPI(t *testing.T) {
 		{
 			name: "InternalError",
 			body: map[string]interface{}{
-				"code":          coupon.Code,
-				"status":        string(coupon.Status),
-				"discount_type": string(coupon.DiscountType),
-				"reason":        coupon.Reason,
-				"client_id":     coupon.ClientID,
-				"valid_until":   coupon.ValidUntil.Format(time.RFC3339),
+				"code":        coupon.Code,
+				"status":      string(coupon.Status),
+				"type_id":     couponType.ID,
+				"client_id":   coupon.ClientID.Int64,
+				"valid_until": coupon.ValidUntil.Time.Format(time.RFC3339),
 			},
 			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetCouponType(gomock.Any(), gomock.Eq(couponType.ID)).
+					Times(1).
+					Return(couponType, nil)
 				store.EXPECT().
 					CreateCoupon(gomock.Any(), gomock.Any()).
 					Times(1).
@@ -85,6 +102,9 @@ func TestCreateCouponAPI(t *testing.T) {
 				"code": "",
 			},
 			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetCouponType(gomock.Any(), gomock.Any()).
+					Times(0)
 				store.EXPECT().
 					CreateCoupon(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -123,7 +143,8 @@ func TestCreateCouponAPI(t *testing.T) {
 }
 
 func TestGetCouponAPI(t *testing.T) {
-	coupon := randomCoupon()
+	couponType := randomCouponType()
+	coupon := randomCoupon(couponType)
 
 	testCases := []struct {
 		name          string
@@ -200,9 +221,21 @@ func TestGetCouponAPI(t *testing.T) {
 
 func TestListCouponsAPI(t *testing.T) {
 	n := 5
-	coupons := make([]db.Coupon, n)
+	couponType := randomCouponType()
+	coupons := make([]db.ListCouponsRow, n)
 	for i := 0; i < n; i++ {
-		coupons[i] = randomCoupon()
+		c := randomCoupon(couponType)
+		coupons[i] = db.ListCouponsRow{
+			Code:       c.Code,
+			Status:     c.Status,
+			ClientID:   c.ClientID,
+			ValidUntil: c.ValidUntil,
+			CategoryID: c.CategoryID,
+			TypeID:     c.TypeID,
+			ListID:     c.ListID,
+			ValueCents: c.ValueCents,
+			TypeName:   sql.NullString{String: couponType.Name, Valid: true},
+		}
 	}
 
 	testCases := []struct {
@@ -281,7 +314,8 @@ func TestListCouponsAPI(t *testing.T) {
 }
 
 func TestDeactivateCouponAPI(t *testing.T) {
-	coupon := randomCoupon()
+	couponType := randomCouponType()
+	coupon := randomCoupon(couponType)
 
 	testCases := []struct {
 		name          string
@@ -363,18 +397,17 @@ func requiredBodyMatchCoupon(t *testing.T, body *bytes.Buffer, coupon db.Coupon)
 	require.NoError(t, err)
 	require.Equal(t, coupon.Code, gotCoupon.Code)
 	require.Equal(t, coupon.Status, gotCoupon.Status)
-	require.Equal(t, coupon.DiscountType, gotCoupon.DiscountType)
-	require.Equal(t, coupon.Reason, gotCoupon.Reason)
+	require.Equal(t, coupon.TypeID, gotCoupon.TypeID)
 	require.Equal(t, coupon.ClientID, gotCoupon.ClientID)
 }
 
-func requireBodyMatchCoupons(t *testing.T, body *bytes.Buffer, coupons []db.Coupon) {
+func requireBodyMatchCoupons(t *testing.T, body *bytes.Buffer, coupons []db.ListCouponsRow) {
 	data, err := io.ReadAll(body)
 	require.NoError(t, err)
 
 	// listCoupons responds with {"coupons": [...], "total": ...}, not a bare array.
 	var resp struct {
-		Coupons []db.Coupon `json:"coupons"`
+		Coupons []db.ListCouponsRow `json:"coupons"`
 	}
 	err = json.Unmarshal(data, &resp)
 	require.NoError(t, err)
@@ -383,6 +416,6 @@ func requireBodyMatchCoupons(t *testing.T, body *bytes.Buffer, coupons []db.Coup
 	for i := range coupons {
 		require.Equal(t, coupons[i].Code, gotCoupons[i].Code)
 		require.Equal(t, coupons[i].Status, gotCoupons[i].Status)
-		require.Equal(t, coupons[i].DiscountType, gotCoupons[i].DiscountType)
+		require.Equal(t, coupons[i].TypeID, gotCoupons[i].TypeID)
 	}
 }

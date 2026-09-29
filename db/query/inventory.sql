@@ -80,7 +80,7 @@ SELECT
   ist.avg_cost,
   ist.updated_at,
   pv.barcode,
-  pv.price,
+  vdp.price,
   p.id   AS product_id,
   p.code AS product_code,
   p.name AS product_name,
@@ -88,6 +88,7 @@ SELECT
   COALESCE(s.name, '') AS size_name
 FROM inventory_stock ist
 JOIN product_variants pv ON pv.id = ist.variant_id
+LEFT JOIN variant_default_prices vdp ON vdp.product_variant_id = pv.id
 JOIN products p ON p.id = pv.product_id
 LEFT JOIN colors c ON c.id = pv.color_id
 LEFT JOIN sizes  s ON s.id = pv.size_id
@@ -128,8 +129,9 @@ INSERT INTO stock_movements (
   created_by,
   quantity_before,
   quantity_after,
-  metadata
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+  metadata,
+  batch_id
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 RETURNING *;
 
 -- name: ListStockMovements :many
@@ -148,13 +150,15 @@ SELECT
   sm.quantity_before,
   sm.quantity_after,
   sm.metadata,
+  sm.batch_id,
   i.name AS inventory_name,
   pv.barcode,
   p.code AS product_code,
   p.name AS product_name,
   COALESCE(c.name, '') AS color_name,
   COALESCE(s.name, '') AS size_name,
-  COALESCE(u.name, '') AS created_by_name
+  COALESCE(u.name, '') AS created_by_name,
+  COALESCE(b.code, '') AS batch_code
 FROM stock_movements sm
 JOIN inventories i ON i.id = sm.inventory_id
 JOIN product_variants pv ON pv.id = sm.variant_id
@@ -162,6 +166,7 @@ JOIN products p ON p.id = pv.product_id
 LEFT JOIN colors c ON c.id = pv.color_id
 LEFT JOIN sizes  s ON s.id = pv.size_id
 LEFT JOIN users  u ON u.id = sm.created_by
+LEFT JOIN batches b ON b.id = sm.batch_id
 WHERE (sqlc.narg(inventory_id)::bigint IS NULL OR sm.inventory_id = sqlc.narg(inventory_id))
   AND (sqlc.narg(variant_id)::bigint IS NULL OR sm.variant_id = sqlc.narg(variant_id))
   AND (sqlc.narg(reason)::stock_movement_reason IS NULL OR sm.reason = sqlc.narg(reason))
@@ -183,3 +188,44 @@ WHERE (sqlc.narg(inventory_id)::bigint IS NULL OR sm.inventory_id = sqlc.narg(in
   AND (sqlc.narg(created_by)::bigint IS NULL OR sm.created_by = sqlc.narg(created_by))
   AND (sqlc.narg(from_date)::timestamptz IS NULL OR sm.created_at >= sqlc.narg(from_date))
   AND (sqlc.narg(to_date)::timestamptz IS NULL OR sm.created_at <= sqlc.narg(to_date));
+
+-- ---------------------------------------------------------------------------
+-- Cross-branch stock visibility: every OTHER branch's on-hand quantity and
+-- resolved selling price for a variant, so a till can search what a
+-- different branch is carrying. Keyset-paginated on inventory_stock's
+-- surrogate id (000101 -- the table's real key, (inventory_id,
+-- variant_id), has no single ordering column), same cursor shape as
+-- ListProductVariantsForSyncPaged.
+-- ---------------------------------------------------------------------------
+
+-- name: ListBranchStockForSync :many
+SELECT
+  b.code AS branch_code,
+  pv.uid AS variant_uid,
+  pv.barcode,
+  ist.quantity,
+  COALESCE(priced.price, 0) AS price,
+  ist.updated_at,
+  ist.id
+FROM inventory_stock ist
+JOIN branches b ON b.inventory_id = ist.inventory_id
+JOIN product_variants pv ON pv.id = ist.variant_id
+LEFT JOIN LATERAL (
+  -- Mirrors ResolveVariantPrice (price_list_item.sql) exactly, just joined
+  -- per-row against that row's own branch instead of one $1 branch_id.
+  SELECT pli.price FROM price_list_items pli
+  JOIN price_lists pl ON pl.id = pli.price_list_id
+  LEFT JOIN price_list_branches plb
+    ON plb.price_list_id = pl.id AND plb.branch_id = b.id
+  WHERE pli.product_variant_id = pv.id
+    AND pl.is_active = true
+    AND now() >= pl.valid_from AND now() <= pl.valid_to
+    AND (plb.branch_id IS NOT NULL OR pl.is_default = true)
+  ORDER BY (plb.branch_id IS NOT NULL) DESC
+  LIMIT 1
+) priced ON true
+WHERE b.id != sqlc.arg(branch_id)
+  AND b.is_active = true
+  AND (ist.updated_at, ist.id) > (sqlc.arg(after_updated_at)::timestamptz, sqlc.arg(after_id)::bigint)
+ORDER BY ist.updated_at, ist.id
+LIMIT sqlc.arg(row_limit);

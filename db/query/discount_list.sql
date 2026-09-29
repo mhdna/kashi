@@ -7,80 +7,127 @@ RETURNING *;
 SELECT * FROM discount_lists
 WHERE id = $1 LIMIT 1;
 
+-- name: GetDiscountListByUID :one
+SELECT * FROM discount_lists
+WHERE uid = $1 LIMIT 1;
+
 -- name: ListDiscountLists :many
 SELECT * FROM discount_lists
 ORDER BY name
 LIMIT $1
 OFFSET $2;
 
+-- name: GetDefaultDiscountList :one
+SELECT * FROM discount_lists
+WHERE is_default = true LIMIT 1;
+
 -- name: UpdateDiscountList :exec
 UPDATE discount_lists
-SET name = $2, is_active = $3, is_default = $4, valid_from = $5, valid_to = $6
+SET name = $2, is_active = $3, is_default = $4, valid_from = $5, valid_to = $6,
+    updated_at = now()
 WHERE id = $1;
 
 -- name: UnsetDefaultDiscountList :exec
 UPDATE discount_lists
-SET is_default = false
+SET is_default = false, updated_at = now()
 WHERE is_default = true AND id != $1;
 
 -- name: CreateDiscountListItem :one
-INSERT INTO discount_list_items (discount_list_id, product_id, discount)
+INSERT INTO discount_list_items (discount_list_id, product_variant_id, discount)
 VALUES ($1, $2, $3)
-ON CONFLICT (discount_list_id, product_id)
+ON CONFLICT (discount_list_id, product_variant_id)
 DO UPDATE SET discount = $3
 RETURNING *;
 
--- name: GetProductDiscountFromList :one
+-- name: GetVariantDiscountFromList :one
 SELECT * FROM discount_list_items
-WHERE discount_list_id = $1 AND product_id = $2;
+WHERE discount_list_id = $1 AND product_variant_id = $2;
 
--- name: GetDefaultDiscountForProduct :one
+-- name: ResolveVariantDiscount :one
+-- Mirrors ResolveVariantPrice: a branch assigned a discount list is discounted
+-- from it, everyone else from the default list. Unlike price, no row here means
+-- no discount (i.e. zero), not "unsellable" -- a product with no discount is a
+-- product sold at full price.
 SELECT dli.discount FROM discount_list_items dli
 JOIN discount_lists dl ON dl.id = dli.discount_list_id
-WHERE dli.product_id = $1
-AND dl.is_active = true AND dl.is_default = true
-AND now() >= dl.valid_from AND now() <= dl.valid_to
+LEFT JOIN discount_list_branches dlb
+  ON dlb.discount_list_id = dl.id AND dlb.branch_id = sqlc.arg(branch_id)
+WHERE dli.product_variant_id = sqlc.arg(product_variant_id)
+  AND dl.is_active = true
+  AND now() >= dl.valid_from AND now() <= dl.valid_to
+  AND (dlb.branch_id IS NOT NULL OR dl.is_default = true)
+ORDER BY (dlb.branch_id IS NOT NULL) DESC
 LIMIT 1;
+
+-- name: ResolveVariantDiscounts :many
+SELECT DISTINCT ON (dli.product_variant_id)
+       dli.product_variant_id, dli.discount
+FROM discount_list_items dli
+JOIN discount_lists dl ON dl.id = dli.discount_list_id
+LEFT JOIN discount_list_branches dlb
+  ON dlb.discount_list_id = dl.id AND dlb.branch_id = sqlc.arg(branch_id)
+WHERE dli.product_variant_id = ANY(sqlc.arg(product_variant_ids)::bigint[])
+  AND dl.is_active = true
+  AND now() >= dl.valid_from AND now() <= dl.valid_to
+  AND (dlb.branch_id IS NOT NULL OR dl.is_default = true)
+ORDER BY dli.product_variant_id, (dlb.branch_id IS NOT NULL) DESC;
+
+-- name: GetDefaultDiscountForVariant :one
+SELECT discount FROM variant_default_discounts
+WHERE product_variant_id = $1;
 
 -- name: UpdateDiscountListItem :exec
 UPDATE discount_list_items
 SET discount = $3
-WHERE discount_list_id = $1 AND product_id = $2;
+WHERE discount_list_id = $1 AND product_variant_id = $2;
 
 -- name: DeleteDiscountListItem :exec
 DELETE FROM discount_list_items
-WHERE discount_list_id = $1 AND product_id = $2;
+WHERE discount_list_id = $1 AND product_variant_id = $2;
 
 -- name: DeleteDiscountListItems :execrows
 DELETE FROM discount_list_items
-WHERE discount_list_id = $1 AND product_id = ANY(sqlc.arg(product_ids)::bigint[]);
+WHERE discount_list_id = $1
+  AND product_variant_id = ANY(sqlc.arg(product_variant_ids)::bigint[]);
 
 -- name: ListDiscountListItems :many
 SELECT * FROM discount_list_items
 WHERE discount_list_id = $1
-ORDER BY product_id;
+ORDER BY product_variant_id;
 
 -- name: ListDiscountListItemsWithProduct :many
-SELECT dli.discount_list_id, dli.product_id, dli.discount,
-       p.code AS product_code, p.name AS product_name
+-- See ListPriceListItemsWithProduct: rows are variant-level, so the label needs
+-- the barcode and color/size to be identifiable.
+SELECT dli.discount_list_id, dli.product_variant_id, dli.discount,
+       pv.uid AS product_variant_uid, pv.barcode,
+       p.code AS product_code, p.name AS product_name,
+       -- See ListPriceListItemsWithProduct for why these coalesce.
+       COALESCE(colors.name, '')::text AS color_name,
+       COALESCE(sizes.name, '')::text AS size_name
 FROM discount_list_items dli
-JOIN products p ON p.id = dli.product_id
+JOIN product_variants pv ON pv.id = dli.product_variant_id
+JOIN products p ON p.id = pv.product_id
+LEFT JOIN colors ON colors.id = pv.color_id
+LEFT JOIN sizes ON sizes.id = pv.size_id
 WHERE dli.discount_list_id = $1
   AND (sqlc.arg(search)::text = ''
        OR p.name ILIKE '%' || sqlc.arg(search)::text || '%'
-       OR p.code ILIKE '%' || sqlc.arg(search)::text || '%')
-ORDER BY p.name, dli.product_id
+       OR p.code ILIKE '%' || sqlc.arg(search)::text || '%'
+       OR pv.barcode ILIKE '%' || sqlc.arg(search)::text || '%')
+ORDER BY p.name, dli.product_variant_id
 LIMIT sqlc.arg(page_size)
 OFFSET sqlc.arg(page_offset);
 
 -- name: CountDiscountListItemsWithProduct :one
 SELECT COUNT(*)
 FROM discount_list_items dli
-JOIN products p ON p.id = dli.product_id
+JOIN product_variants pv ON pv.id = dli.product_variant_id
+JOIN products p ON p.id = pv.product_id
 WHERE dli.discount_list_id = $1
   AND (sqlc.arg(search)::text = ''
        OR p.name ILIKE '%' || sqlc.arg(search)::text || '%'
-       OR p.code ILIKE '%' || sqlc.arg(search)::text || '%');
+       OR p.code ILIKE '%' || sqlc.arg(search)::text || '%'
+       OR pv.barcode ILIKE '%' || sqlc.arg(search)::text || '%');
 
 -- name: CountDiscountLists :one
 SELECT COUNT(*) FROM discount_lists;
@@ -88,3 +135,20 @@ SELECT COUNT(*) FROM discount_lists;
 -- name: DeleteDiscountList :exec
 DELETE FROM discount_lists
 WHERE id = $1;
+
+-- name: ListDiscountListsForBranchSync :many
+-- See ListPriceListsForBranchSync -- same scoping and same reason for
+-- carrying is_active rather than filtering on it.
+SELECT dl.* FROM discount_lists dl
+LEFT JOIN discount_list_branches dlb
+  ON dlb.discount_list_id = dl.id AND dlb.branch_id = sqlc.arg(branch_id)
+WHERE (dlb.branch_id IS NOT NULL OR dl.is_default = true)
+  AND dl.updated_at > sqlc.arg(updated_at)
+ORDER BY dl.updated_at;
+
+-- name: ListDiscountListItemsForSync :many
+SELECT pv.uid AS product_variant_uid, dli.discount
+FROM discount_list_items dli
+JOIN product_variants pv ON pv.id = dli.product_variant_id
+WHERE dli.discount_list_id = $1
+ORDER BY pv.uid;

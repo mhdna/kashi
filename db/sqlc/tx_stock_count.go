@@ -127,7 +127,7 @@ func (store *SQLStore) PostStockCountTx(ctx context.Context, id int64, postedBy 
 				continue
 			}
 
-			movement, err := q.applyStockMovement(ctx, applyStockMovementParams{
+			movements, err := q.applyStockMovement(ctx, applyStockMovementParams{
 				InventoryID:   count.InventoryID,
 				VariantID:     item.VariantID,
 				Quantity:      delta,
@@ -143,7 +143,7 @@ func (store *SQLStore) PostStockCountTx(ctx context.Context, id int64, postedBy 
 			if err != nil {
 				return err
 			}
-			result.Movements = append(result.Movements, movement)
+			result.Movements = append(result.Movements, movements...)
 		}
 
 		posted, err := q.SetStockCountStatus(ctx, SetStockCountStatusParams{

@@ -240,7 +240,7 @@ func TestListTransfersAPI(t *testing.T) {
 					Times(1).
 					Return(transfers, nil)
 				store.EXPECT().
-					CountTransfers(gomock.Any()).
+					CountTransfers(gomock.Any(), gomock.Any()).
 					Times(1).
 					Return(int64(n), nil)
 			},

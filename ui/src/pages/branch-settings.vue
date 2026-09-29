@@ -1,15 +1,5 @@
 <template>
   <div class="page-root">
-    <v-alert
-      v-if="listError"
-      class="mb-4"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ listError }}
-    </v-alert>
-
     <v-card class="bs-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-store-cog-outline" />
@@ -61,25 +51,6 @@
               branch database directly.
             </p>
 
-            <v-alert
-              v-if="settingsError"
-              class="mb-4"
-              density="compact"
-              type="error"
-              variant="tonal"
-            >
-              {{ settingsError }}
-            </v-alert>
-            <v-alert
-              v-if="saveOutcome"
-              class="mb-4"
-              density="compact"
-              :type="saveOutcome.ok ? 'success' : 'error'"
-              variant="tonal"
-            >
-              {{ saveOutcome.message }}
-            </v-alert>
-
             <div v-if="settingsLoading" class="d-flex justify-center pa-8">
               <v-progress-circular color="primary" indeterminate />
             </div>
@@ -107,13 +78,24 @@
                 <v-tab class="text-none" text="Printing" value="printing" />
                 <v-tab class="text-none" text="Attendance" value="attendance" />
                 <v-tab class="text-none" text="Users" value="users" />
+                <v-tab class="text-none" text="Payments" value="payments" />
+                <v-tab class="text-none" value="conflicts">
+                  <span class="text-none">Conflicts</span>
+                  <v-badge
+                    v-if="conflictCount > 0"
+                    class="ms-2"
+                    color="warning"
+                    :content="conflictCount"
+                    inline
+                  />
+                </v-tab>
                 <v-tab class="text-none" text="Commands" value="commands" />
               </v-tabs>
 
               <v-divider vertical />
 
               <div class="bs-section-pane">
-                <form @submit.prevent="saveSettings">
+                <v-form :disabled="!canEdit" @submit.prevent="saveSettings">
                   <div v-show="sectionTab === 'general'">
                     <section class="bs-section">
                       <div class="bs-section-title">General</div>
@@ -153,6 +135,32 @@
                         <CurrencySelect
                           v-model="settingsForm.rounding_currency"
                           label="Rounding Currency"
+                          variant="outlined"
+                        />
+                        <CurrencySelect
+                          v-model="settingsForm.split_primary_currency"
+                          hint="First half of the till's split total; the rounding currency is the second."
+                          label="Split Primary Currency"
+                          persistent-hint
+                          variant="outlined"
+                        />
+                        <v-switch
+                          v-model="settingsForm.split_primary_first"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          :label="settingsForm.split_primary_first
+                            ? 'Primary currency shown first'
+                            : 'Rounding currency shown first'"
+                        />
+                        <v-text-field
+                          v-model.number="settingsForm.split_primary_step"
+                          density="compact"
+                          hide-details="auto"
+                          hint="Denomination the split truncates the primary to. 0 = use that currency's own Cash Rounding Unit."
+                          label="Split Step"
+                          persistent-hint
+                          type="number"
                           variant="outlined"
                         />
                         <v-text-field
@@ -307,6 +315,20 @@
                           hide-details
                           label="Require a client on every invoice"
                         />
+                      </div>
+                      <v-select
+                        v-model="settingsForm.shift_receipt_upload_mode"
+                        class="mt-3"
+                        density="compact"
+                        hide-details
+                        :items="SHIFT_RECEIPT_UPLOAD_MODES"
+                        label="Close-shift receipt photo"
+                        variant="outlined"
+                      />
+                      <div class="text-caption text-medium-emphasis mt-1">
+                        Hybrid uploads to the office when the branch is online and buffers on
+                        the till otherwise; Local always uploads to the till over shop Wi-Fi;
+                        Central always goes straight to the office; Off skips the photo.
                       </div>
                     </section>
 
@@ -584,7 +606,7 @@
                   </div>
 
                   <div
-                    v-show="sectionTab !== 'commands' && sectionTab !== 'users'"
+                    v-show="canEdit && sectionTab !== 'commands' && sectionTab !== 'users' && sectionTab !== 'conflicts'"
                     class="bs-savebar d-flex justify-end"
                   >
                     <v-btn
@@ -595,12 +617,13 @@
                       variant="flat"
                     />
                   </div>
-                </form>
+                </v-form>
 
                 <div v-show="sectionTab === 'users'">
                   <div class="d-flex align-center justify-space-between mb-2">
                     <div class="bs-section-title mb-0">POS Users</div>
                     <v-btn
+                      v-if="canEdit"
                       color="primary"
                       prepend-icon="mdi-plus"
                       size="small"
@@ -613,15 +636,6 @@
                     Roster is managed here and synced down to the till read-only. Adding a user or
                     changing a PIN sends a command the branch applies on its next sync.
                   </p>
-                  <v-alert
-                    v-if="usersError"
-                    class="mb-3"
-                    density="compact"
-                    type="error"
-                    variant="tonal"
-                  >
-                    {{ usersError }}
-                  </v-alert>
                   <v-table density="compact">
                     <thead>
                       <tr>
@@ -644,6 +658,7 @@
                         </td>
                         <td class="text-end">
                           <v-icon-btn
+                            v-if="canEdit"
                             icon="mdi-key"
                             size="small"
                             title="Set PIN"
@@ -651,12 +666,14 @@
                             @click="openPinDialog(u)"
                           />
                           <v-icon-btn
+                            v-if="canEdit"
                             icon="mdi-pencil"
                             size="small"
                             variant="text"
                             @click="openUserDialog(u)"
                           />
                           <v-icon-btn
+                            v-if="canEdit"
                             color="error"
                             icon="mdi-delete"
                             size="small"
@@ -670,6 +687,184 @@
                       </tr>
                     </tbody>
                   </v-table>
+                </div>
+
+                <div v-show="sectionTab === 'payments'">
+                  <div class="bs-section-title mb-0">Payment methods</div>
+                  <p class="text-body-2 text-medium-emphasis mb-3">
+                    Every branch inherits the central payment methods. Switch one off to stop this
+                    branch offering it, or pin a position, colour or currency to differ from central
+                    here only. Anything left blank keeps following central.
+                  </p>
+                  <v-table density="compact">
+                    <thead>
+                      <tr>
+                        <th>Method</th>
+                        <th>Offered</th>
+                        <th>Order</th>
+                        <th>Currency</th>
+                        <th>Colour</th>
+                        <th class="text-end" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="m in branchPaymentMethods" :key="m.id">
+                        <td>{{ m.name }}</td>
+                        <td>
+                          <v-switch
+                            color="primary"
+                            density="compact"
+                            :disabled="!canEdit"
+                            hide-details
+                            :model-value="m.is_enabled"
+                            @update:model-value="setMethodEnabled(m, $event)"
+                          />
+                        </td>
+                        <td style="width: 120px">
+                          <v-text-field
+                            density="compact"
+                            :disabled="!canEdit"
+                            hide-details
+                            :model-value="m.override_sort_order"
+                            :placeholder="String(m.sort_order)"
+                            type="number"
+                            variant="outlined"
+                            @blur="saveMethod(m)"
+                            @update:model-value="setMethodOverride(m, 'sortOrder', $event)"
+                          />
+                        </td>
+                        <td style="width: 160px">
+                          <CurrencySelect
+                            clearable
+                            :disabled="!canEdit"
+                            hide-details
+                            label=""
+                            :model-value="m.override_currency_code || ''"
+                            :placeholder="m.currency_code"
+                            @update:model-value="setMethodOverride(m, 'currencyCode', $event)"
+                          />
+                        </td>
+                        <td style="width: 150px">
+                          <v-text-field
+                            density="compact"
+                            :disabled="!canEdit"
+                            hide-details
+                            :model-value="m.override_color"
+                            :placeholder="m.color || '—'"
+                            variant="outlined"
+                            @blur="saveMethod(m)"
+                            @update:model-value="setMethodOverride(m, 'color', $event)"
+                          />
+                        </td>
+                        <td class="text-end">
+                          <v-chip
+                            v-if="methodIsOverridden(m)"
+                            size="x-small"
+                            variant="tonal"
+                          >
+                            Overridden
+                          </v-chip>
+                          <span v-else class="text-medium-emphasis text-caption">Inherited</span>
+                          <v-icon-btn
+                            v-if="canEdit && methodIsOverridden(m)"
+                            icon="mdi-restore"
+                            size="small"
+                            title="Back to central"
+                            variant="text"
+                            @click="resetMethod(m)"
+                          />
+                        </td>
+                      </tr>
+                      <tr v-if="branchPaymentMethods.length === 0">
+                        <td class="text-medium-emphasis py-4" colspan="6">
+                          No payment methods defined centrally yet.
+                        </td>
+                      </tr>
+                    </tbody>
+                  </v-table>
+                </div>
+
+                <div v-show="sectionTab === 'conflicts'">
+                  <div class="d-flex align-center justify-space-between mb-2">
+                    <div class="bs-section-title mb-0">Sync conflicts</div>
+                    <div class="d-flex align-center ga-2">
+                      <v-btn
+                        v-if="canEdit && selectedConflicts.length > 0"
+                        color="primary"
+                        size="small"
+                        variant="tonal"
+                        @click="bulkTakeBranch"
+                      >
+                        Take branch spelling ({{ selectedConflicts.length }})
+                      </v-btn>
+                      <v-icon-btn
+                        icon="mdi-refresh"
+                        size="small"
+                        variant="text"
+                        @click="reloadConflicts"
+                      />
+                    </div>
+                  </div>
+
+                  <ServerSideTable
+                    v-if="selectedId != null"
+                    ref="conflictTableRef"
+                    :api-u-r-l="`${apiBase}/branch_sync_conflicts`"
+                    density="compact"
+                    expandable
+                    :headers="conflictHeaders"
+                    :query-params="conflictQuery"
+                    root-key="conflicts"
+                    :selectable="canEdit"
+                    :show-search-icon="false"
+                    @update:selected="v => (selectedConflicts = v)"
+                  >
+                    <template #item.data-table-select="{ item, internalItem, isSelected, toggleSelect }">
+                      <v-checkbox-btn
+                        :disabled="item.kind !== 'phone_name_mismatch'"
+                        :model-value="isSelected(internalItem)"
+                        @click.stop
+                        @update:model-value="toggleSelect(internalItem)"
+                      />
+                    </template>
+                    <template #item.kind="{ item }">
+                      <v-chip size="small" variant="tonal">{{ conflictKindLabel(item.kind) }}</v-chip>
+                    </template>
+                    <template #item.created_at="{ item }">
+                      {{ new Date(item.created_at).toLocaleString() }}
+                    </template>
+                    <template #item.actions="{ item }">
+                      <v-btn v-if="canEdit" size="small" variant="text" @click.stop="openResolve(item)">Resolve</v-btn>
+                      <v-btn v-if="canEdit" size="small" variant="text" @click.stop="dismiss(item)">Dismiss</v-btn>
+                    </template>
+                    <template #expanded-row="{ columns, item }">
+                      <tr>
+                        <td :colspan="columns.length">
+                          <div class="py-3 px-2">
+                            <table class="conflict-diff">
+                              <tr><th /><th>Branch says</th><th>kashi has</th></tr>
+                              <tr>
+                                <td>Name</td>
+                                <td :class="diffClass(branchPayload(item).name, item.central_name)">
+                                  {{ branchPayload(item).name || '—' }}
+                                </td>
+                                <td>{{ item.central_name || '—' }}</td>
+                              </tr>
+                              <tr>
+                                <td>Phone</td>
+                                <td>{{ branchPayload(item).phone || '—' }}</td>
+                                <td>{{ item.central_phone || '—' }}</td>
+                              </tr>
+                              <tr v-if="item.entity === 'product'">
+                                <td>Barcode</td>
+                                <td colspan="2">{{ item.ref }}</td>
+                              </tr>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    </template>
+                  </ServerSideTable>
                 </div>
 
                 <div v-show="sectionTab === 'commands'">
@@ -718,20 +913,93 @@
       </div>
     </v-card>
 
+    <!-- resolve a sync conflict -->
+    <v-dialog v-model="resolveDialog" max-width="480">
+      <v-card v-if="resolveTarget">
+        <v-card-title class="text-subtitle-1">
+          Resolve — {{ conflictKindLabel(resolveTarget.kind) }}
+        </v-card-title>
+        <v-card-text>
+          <div v-if="resolveTarget.kind === 'phone_name_mismatch'">
+            <div class="text-caption text-medium-emphasis mb-2">
+              Phone {{ branchPayload(resolveTarget).phone }} already belongs to a
+              kashi client under a different name.
+            </div>
+            <v-radio-group v-model="resolveForm.choice" density="compact" hide-details>
+              <v-radio
+                :label="`Keep kashi's name (${resolveTarget.central_name})`"
+                value="central"
+              />
+              <v-radio
+                :label="`Use the branch's name (${branchPayload(resolveTarget).name})`"
+                value="branch"
+              />
+              <v-radio label="Type a name" value="custom" />
+            </v-radio-group>
+            <v-text-field
+              v-if="resolveForm.choice === 'custom'"
+              v-model="resolveForm.name"
+              class="mt-2"
+              density="compact"
+              label="Name"
+              variant="outlined"
+            />
+          </div>
+
+          <div v-else-if="resolveTarget.kind === 'invalid_phone'">
+            <div class="text-caption text-medium-emphasis mb-2">
+              The branch reported "{{ branchPayload(resolveTarget).name }}" with no
+              usable phone.
+            </div>
+            <v-radio-group v-model="resolveForm.choice" density="compact" hide-details>
+              <v-radio label="Merge into an existing client" value="merge" />
+              <v-radio label="Create a new client with a phone" value="create" />
+            </v-radio-group>
+            <v-autocomplete
+              v-if="resolveForm.choice === 'merge'"
+              v-model="resolveForm.clientId"
+              class="mt-2"
+              density="compact"
+              :items="clientOptions"
+              label="Existing client"
+              variant="outlined"
+            />
+            <v-text-field
+              v-else
+              v-model="resolveForm.phone"
+              class="mt-2"
+              density="compact"
+              label="Phone"
+              variant="outlined"
+            />
+          </div>
+
+          <div v-else class="text-body-2">
+            Adopt "{{ branchPayload(resolveTarget).name || resolveTarget.ref }}"
+            (barcode {{ resolveTarget.ref }}) into the central catalog. Colour and
+            size are created if missing; brand / season / year can be filled in
+            afterwards from the product editor.
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn text="Cancel" variant="text" @click="resolveDialog = false" />
+          <v-btn
+            color="primary"
+            :loading="resolveSaving"
+            text="Resolve"
+            variant="flat"
+            @click="submitResolve"
+          />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- add / edit POS user -->
     <v-dialog v-model="userDialog" max-width="440">
       <v-card>
         <v-card-title class="text-subtitle-1">{{ editingUser ? 'Edit user' : 'Add user' }}</v-card-title>
         <v-card-text>
-          <v-alert
-            v-if="userFormError"
-            class="mb-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ userFormError }}
-          </v-alert>
           <v-text-field
             v-model="userForm.username"
             density="compact"
@@ -792,15 +1060,6 @@
       <v-card>
         <v-card-title class="text-subtitle-1">Set PIN — {{ pinTarget?.username }}</v-card-title>
         <v-card-text>
-          <v-alert
-            v-if="pinError"
-            class="mb-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ pinError }}
-          </v-alert>
           <v-text-field
             v-model="pinValue"
             autofocus
@@ -830,12 +1089,26 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+  import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
+  import CurrencySelect from '@/components/CurrencySelect.vue'
   import PageSidebar from '@/components/PageSidebar.vue'
+  import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
+  import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useBranches } from '@/composables/useBranches'
+  import { useBranchPaymentMethods } from '@/composables/useBranchPaymentMethods'
   import { useBranchSettings } from '@/composables/useBranchSettings'
+  import { useBranchSyncConflicts } from '@/composables/useBranchSyncConflicts'
   import { useBranchUsers } from '@/composables/useBranchUsers'
+  import { useClients } from '@/composables/useClients'
+  import { useNotify } from '@/composables/useNotify'
+  import { usePageAccess } from '@/composables/usePageAccess'
+  import { API_BASE } from '@/config'
+
+  const notify = useNotify()
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const route = useRoute()
   const router = useRouter()
@@ -849,10 +1122,155 @@
   } = useBranchSettings()
 
   const listLoading = ref(false)
-  const listError = ref('')
   const selectedId = ref(null)
   // Which settings section (vertical sub-tab) is showing for the active branch.
   const sectionTab = ref('general')
+
+  const apiBase = API_BASE
+  const { resolveConflict, dismissConflict, bulkResolve, openConflictCount } = useBranchSyncConflicts()
+  const conflictTableRef = ref(null)
+  const conflictCount = ref(0)
+  const selectedConflicts = ref([])
+  const conflictHeaders = [
+    { title: '', key: 'data-table-select', sortable: false, width: '44px' },
+    { title: 'Type', key: 'kind', sortable: false },
+    { title: 'Entity', key: 'entity', sortable: false },
+    { title: 'Ref', key: 'ref', sortable: false },
+    { title: 'Reported', key: 'created_at', sortable: true },
+    { title: '', key: 'actions', sortable: false, align: 'end' },
+  ]
+  const conflictQuery = computed(() => ({
+    branch_id: selectedId.value ?? 0,
+    status: 'open',
+    sort_by: 'created_at',
+    sort_order: 'desc',
+  }))
+
+  function conflictKindLabel (kind) {
+    return {
+      phone_name_mismatch: 'Name differs',
+      invalid_phone: 'No usable phone',
+      phone_taken: 'Phone already taken',
+    }[kind] ?? kind
+  }
+  function branchPayload (item) {
+    try { return JSON.parse(item.branch_payload) } catch { return {} }
+  }
+  function diffClass (a, b) {
+    return a && b && a !== b ? 'text-error' : ''
+  }
+  function reloadConflicts () {
+    conflictTableRef.value?.reloadFromFirstPage?.()
+    refreshConflictCount()
+  }
+  async function refreshConflictCount () {
+    if (selectedId.value == null) return
+    try { conflictCount.value = await openConflictCount(selectedId.value) } catch { /* informational */ }
+  }
+  // A single sync can push hundreds of conflict rows, and each one emits its
+  // own branch_sync_conflict WS nudge. Coalesce a burst into one refetch --
+  // fanning them straight through hammered the server (thundering herd).
+  let conflictRefreshTimer = null
+  function refreshConflictCountSoon () {
+    if (conflictRefreshTimer) return
+    conflictRefreshTimer = setTimeout(() => {
+      conflictRefreshTimer = null
+      refreshConflictCount()
+    }, 2000)
+  }
+  async function dismiss (item) {
+    try {
+      await dismissConflict(item.id)
+      notify.success('Dismissed.')
+      reloadConflicts()
+    } catch (error) {
+      notify.error(String(error.message || error))
+    }
+  }
+  async function bulkTakeBranch () {
+    try {
+      const res = await bulkResolve(selectedConflicts.value.map(c => c.id), 'branch')
+      notify.success(`Resolved ${res?.resolved ?? 0} conflict(s).`)
+      selectedConflicts.value = []
+      reloadConflicts()
+    } catch (error) {
+      notify.error(String(error.message || error))
+    }
+  }
+  const resolveDialog = ref(false)
+  const resolveTarget = ref(null)
+  const resolveSaving = ref(false)
+  const resolveForm = reactive({ choice: 'branch', name: '', phone: '', clientId: null })
+  const { clients, fetchClients } = useClients()
+  const clientOptions = computed(() =>
+    clients.value.map(c => ({ title: `${c.name} — ${c.phone}`, value: c.id })),
+  )
+
+  function openResolve (item) {
+    resolveTarget.value = item
+    const payload = branchPayload(item)
+    if (item.kind === 'phone_name_mismatch') {
+      resolveForm.choice = 'branch'
+      resolveForm.name = payload.name || ''
+    } else if (item.kind === 'invalid_phone') {
+      resolveForm.choice = 'create'
+      resolveForm.phone = ''
+      resolveForm.clientId = null
+      fetchClients()
+    } else {
+      resolveForm.choice = 'create'
+    }
+    resolveDialog.value = true
+  }
+
+  async function submitResolve () {
+    const item = resolveTarget.value
+    if (!item) {
+      return
+    }
+    const body = { choice: resolveForm.choice }
+    if (item.kind === 'phone_name_mismatch' && resolveForm.choice === 'custom') {
+      body.name = resolveForm.name.trim()
+    }
+    if (item.kind === 'invalid_phone') {
+      if (resolveForm.choice === 'merge') {
+        body.client_id = resolveForm.clientId
+      } else {
+        body.phone = resolveForm.phone.trim()
+      }
+    }
+    resolveSaving.value = true
+    try {
+      await resolveConflict(item.id, body)
+      notify.success('Resolved.')
+      resolveDialog.value = false
+      reloadConflicts()
+    } catch (error) {
+      notify.error(String(error.message || error))
+    } finally {
+      resolveSaving.value = false
+    }
+  }
+
+  let conflictPoll = null
+  let offAdminMessage = null
+  const { onMessage: onAdminMessage, ensureConnected: ensureAdminSocket } = useAdminSocket()
+  onMounted(() => {
+    ensureAdminSocket?.()
+    conflictPoll = setInterval(refreshConflictCount, 30_000)
+    // onMessage registers into a module-level Set and returns an unsubscribe;
+    // without keeping it, every visit to this page stacks another live
+    // handler that never goes away.
+    offAdminMessage = onAdminMessage?.((msg) => {
+      if (msg?.type === 'branch_sync_conflict') refreshConflictCountSoon()
+    })
+  })
+  onUnmounted(() => {
+    if (conflictPoll) clearInterval(conflictPoll)
+    if (conflictRefreshTimer) clearTimeout(conflictRefreshTimer)
+    offAdminMessage?.()
+  })
+  watch(selectedId, () => { refreshConflictCount() })
 
   const activeBranch = computed(() => branches.value.find(b => b.id === selectedId.value) ?? null)
 
@@ -882,7 +1300,6 @@
 
   onMounted(async () => {
     listLoading.value = true
-    listError.value = ''
     try {
       await fetchBranches(true)
       const wanted = Number(route.query.branch)
@@ -890,7 +1307,7 @@
         ?? branches.value[0]?.id
         ?? null
     } catch (error) {
-      listError.value = error.message
+      notify.error(error.message)
     } finally {
       listLoading.value = false
     }
@@ -900,9 +1317,7 @@
   const settingsForm = ref(null)
   const secretForm = ref({ akuvox_password: '', attendance_approver_password: '', admin_password: '' })
   const settingsLoading = ref(false)
-  const settingsError = ref('')
   const saving = ref(false)
-  const saveOutcome = ref(null)
   const socialPlatformsText = ref('[]')
   const socialHandlesText = ref('{}')
   const commandHistory = ref([])
@@ -919,6 +1334,13 @@
     device_ids: ['printer_id', 'receipt_printer', 'screen_port'],
     secrets: ['akuvox_password', 'attendance_approver_password', 'admin_password'],
   }
+
+  const SHIFT_RECEIPT_UPLOAD_MODES = [
+    { title: 'Hybrid (office when online, else the till)', value: 2 },
+    { title: 'Local only (the till, over shop Wi-Fi)', value: 3 },
+    { title: 'Central only (straight to the office)', value: 1 },
+    { title: 'Off (no photo)', value: 0 },
+  ]
 
   const BOOL_KEYS = [
     'search_button_enabled',
@@ -937,6 +1359,7 @@
     'receipt_cutoff',
     'attendance_enabled',
     'attendance_cashier_history',
+    'split_primary_first',
   ]
 
   function formFromSettings (d) {
@@ -969,9 +1392,21 @@
       akuvox_ip: d.akuvox_ip ?? '',
       akuvox_username: d.akuvox_username ?? '',
       attendance_duplicate_interval_seconds: d.attendance_duplicate_interval_seconds ?? 0,
+      // Not reported back up by the branch yet -- defaults to hybrid; sending
+      // the command sets it on the till.
+      shift_receipt_upload_mode: d.shift_receipt_upload_mode ?? 2,
+      split_primary_currency: d.split_primary_currency ?? '',
+      split_primary_step: d.split_primary_step ?? 0,
     }
     for (const k of BOOL_KEYS) {
       if (k === 'search_button_enabled') continue
+      // Like search_button_enabled: absent on a till that predates the field,
+      // and the primary currency leading is the shape every branch had when
+      // it was hardcoded -- so only an explicit false flips it.
+      if (k === 'split_primary_first') {
+        form[k] = d[k] !== false
+        continue
+      }
       form[k] = d[k] === true
     }
     return form
@@ -986,8 +1421,6 @@
 
   async function loadSettings (id) {
     settingsLoading.value = true
-    settingsError.value = ''
-    saveOutcome.value = null
     sectionTab.value = 'general'
     settingsForm.value = null
     secretForm.value = { akuvox_password: '', attendance_approver_password: '', admin_password: '' }
@@ -1001,42 +1434,109 @@
         socialHandlesText.value = JSON.stringify(data.social_handles ?? {})
       }
     } catch (error) {
-      settingsError.value = error.message
+      notify.error(error.message)
     } finally {
       settingsLoading.value = false
     }
     loadCommandHistory()
     loadBranchUsers(id)
+    loadBranchPaymentMethods(id)
   }
 
   function reloadActive () {
     if (selectedId.value != null) loadSettings(selectedId.value)
   }
 
+  // ---- payment method overrides -----------------------------------------
+  // The rows carry both central's value and this branch's override, so an
+  // edit only has to send the override side. An empty string from a cleared
+  // field means "stop overriding", which is null on the wire -- the server
+  // drops the row entirely once nothing is pinned and the method is offered.
+  const { listBranchPaymentMethods, setBranchPaymentMethod } = useBranchPaymentMethods()
+  const branchPaymentMethods = ref([])
+
+  async function loadBranchPaymentMethods (id) {
+    branchPaymentMethods.value = []
+    try {
+      branchPaymentMethods.value = await listBranchPaymentMethods(id)
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
+
+  function methodIsOverridden (m) {
+    return !m.is_enabled
+      || m.override_sort_order != null
+      || m.override_color != null
+      || m.override_currency_code != null
+  }
+
+  // Every write sends the method's whole override state, because the server
+  // replaces the row rather than patching it -- sending one field alone would
+  // clear the others.
+  async function saveMethod (m) {
+    try {
+      await setBranchPaymentMethod(selectedId.value, m.id, {
+        isEnabled: m.is_enabled,
+        sortOrder: m.override_sort_order,
+        color: m.override_color,
+        currencyCode: m.override_currency_code,
+      })
+    } catch (error) {
+      notify.error(error.message)
+    }
+    await loadBranchPaymentMethods(selectedId.value)
+  }
+
+  function setMethodEnabled (m, value) {
+    m.is_enabled = !!value
+    saveMethod(m)
+  }
+
+  // Records the edit without saving. The free-text fields save on blur, so a
+  // half-typed colour is not sent (and not echoed back mid-keystroke by the
+  // reload); the currency picker commits immediately, since a selection is a
+  // complete value the moment it is made.
+  function setMethodOverride (m, field, value) {
+    const blank = value === '' || value == null
+    if (field === 'sortOrder') {
+      m.override_sort_order = blank ? null : Number(value)
+    } else if (field === 'color') {
+      m.override_color = blank ? null : value
+    } else {
+      m.override_currency_code = blank ? null : value
+      saveMethod(m)
+    }
+  }
+
+  function resetMethod (m) {
+    m.is_enabled = true
+    m.override_sort_order = null
+    m.override_color = null
+    m.override_currency_code = null
+    saveMethod(m)
+  }
+
   // ---- POS users --------------------------------------------------------
   const { listBranchUsers, createBranchUser, updateBranchUser, setBranchUserPin, deleteBranchUser } = useBranchUsers()
   const branchUsers = ref([])
-  const usersError = ref('')
 
   async function loadBranchUsers (id) {
     branchUsers.value = []
-    usersError.value = ''
     try {
       branchUsers.value = await listBranchUsers(id)
     } catch (error) {
-      usersError.value = error.message
+      notify.error(error.message)
     }
   }
 
   const userDialog = ref(false)
   const editingUser = ref(null)
   const userSaving = ref(false)
-  const userFormError = ref('')
   const userForm = ref({ username: '', role: 'cashier', akuvox_user_id: '', pin: '', is_active: true })
 
   function openUserDialog (u = null) {
     editingUser.value = u
-    userFormError.value = ''
     userForm.value = u
       ? { username: u.username, role: u.role, akuvox_user_id: u.akuvox_user_id, pin: '', is_active: u.is_active }
       : { username: '', role: 'cashier', akuvox_user_id: '', pin: '', is_active: true }
@@ -1046,15 +1546,14 @@
   async function submitUser () {
     const f = userForm.value
     if (!f.username.trim()) {
-      userFormError.value = 'Username is required.'
+      notify.error('Username is required.')
       return
     }
     if (!editingUser.value && !/^\d{4,6}$/.test(f.pin)) {
-      userFormError.value = 'Initial PIN must be 4 to 6 digits.'
+      notify.error('Initial PIN must be 4 to 6 digits.')
       return
     }
     userSaving.value = true
-    userFormError.value = ''
     try {
       await (editingUser.value ? updateBranchUser(editingUser.value.id, {
         username: f.username.trim(),
@@ -1071,19 +1570,18 @@
       userDialog.value = false
       await loadBranchUsers(selectedId.value)
     } catch (error) {
-      userFormError.value = error.message
+      notify.error(error.message)
     } finally {
       userSaving.value = false
     }
   }
 
   async function removeUser (u) {
-    usersError.value = ''
     try {
       await deleteBranchUser(u.id)
       await loadBranchUsers(selectedId.value)
     } catch (error) {
-      usersError.value = error.message
+      notify.error(error.message)
     }
   }
 
@@ -1091,28 +1589,25 @@
   const pinTarget = ref(null)
   const pinValue = ref('')
   const pinSaving = ref(false)
-  const pinError = ref('')
 
   function openPinDialog (u) {
     pinTarget.value = u
     pinValue.value = ''
-    pinError.value = ''
     pinDialog.value = true
   }
 
   async function submitPin () {
     if (!/^\d{4,6}$/.test(pinValue.value)) {
-      pinError.value = 'PIN must be 4 to 6 digits.'
+      notify.error('PIN must be 4 to 6 digits.')
       return
     }
     pinSaving.value = true
-    pinError.value = ''
     try {
       await setBranchUserPin(pinTarget.value.id, pinValue.value)
       pinDialog.value = false
       await loadCommandHistory()
     } catch (error) {
-      pinError.value = error.message
+      notify.error(error.message)
     } finally {
       pinSaving.value = false
     }
@@ -1128,7 +1623,7 @@
       await setBranchSettingsManagedLocally(selectedId.value, next)
     } catch (error) {
       managedLocally.value = prev
-      settingsError.value = error.message
+      notify.error(error.message)
     }
   }
 
@@ -1137,14 +1632,12 @@
     try {
       commandHistory.value = await listBranchCommands(selectedId.value)
     } catch (error) {
-      settingsError.value = error.message
+      notify.error(error.message)
     }
   }
 
   async function saveSettings () {
     saving.value = true
-    saveOutcome.value = null
-    settingsError.value = ''
     try {
       let socialPlatforms
       let socialHandles
@@ -1179,11 +1672,11 @@
       }
 
       await updateBranchSettings(selectedId.value, payload)
-      saveOutcome.value = { ok: true, message: 'Command sent -- the branch will apply it within a few seconds if online.' }
+      notify.success('Command sent — the branch will apply it within a few seconds if online.')
       secretForm.value = { akuvox_password: '', attendance_approver_password: '', admin_password: '' }
       await loadCommandHistory()
     } catch (error) {
-      saveOutcome.value = { ok: false, message: error.message }
+      notify.error(error.message)
     } finally {
       saving.value = false
     }

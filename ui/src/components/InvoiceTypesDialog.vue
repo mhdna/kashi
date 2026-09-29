@@ -22,15 +22,6 @@
       <v-divider />
 
       <v-card-text class="pa-4">
-        <v-alert
-          v-if="loadError"
-          class="mb-3"
-          density="compact"
-          type="error"
-          variant="tonal"
-        >
-          {{ loadError }}
-        </v-alert>
         <v-data-table
           class="invoice-types-table"
           density="comfortable"
@@ -87,16 +78,6 @@
             label="Active"
           />
 
-          <v-alert
-            v-if="submitError"
-            class="mt-4"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ submitError }}
-          </v-alert>
-
           <v-card-actions class="px-0 pt-4">
             <v-spacer />
             <v-btn text="Cancel" variant="text" @click="closeForm" />
@@ -118,6 +99,7 @@
   import { useField, useForm } from 'vee-validate'
   import { ref, watch } from 'vue'
   import { useInvoiceTypes } from '@/composables/useInvoiceTypes'
+  import { useNotify } from '@/composables/useNotify'
 
   const props = defineProps({
     modelValue: {
@@ -128,11 +110,10 @@
 
   const emit = defineEmits(['update:modelValue'])
   const { invoiceTypes, fetchInvoiceTypes, createInvoiceType, updateInvoiceType } = useInvoiceTypes()
+  const notify = useNotify()
   const loading = ref(false)
-  const loadError = ref('')
   const formDialog = ref(false)
   const submitting = ref(false)
-  const submitError = ref('')
   const editingId = ref(null)
 
   const headers = [
@@ -159,11 +140,10 @@
 
   async function loadInvoiceTypes () {
     loading.value = true
-    loadError.value = ''
     try {
       await fetchInvoiceTypes(true)
     } catch (error) {
-      loadError.value = error.message
+      notify.error(error.message)
     } finally {
       loading.value = false
     }
@@ -177,14 +157,12 @@
     editingId.value = null
     handleReset()
     isActive.value.value = true
-    submitError.value = ''
     formDialog.value = true
   }
 
   function openEdit (item) {
     editingId.value = item.id
     setValues({ name: item.name, code: item.code, isActive: item.is_active })
-    submitError.value = ''
     formDialog.value = true
   }
 
@@ -195,7 +173,6 @@
   function closeForm () {
     formDialog.value = false
     handleReset()
-    submitError.value = ''
     editingId.value = null
   }
 
@@ -205,7 +182,6 @@
 
   const submit = handleSubmit(async values => {
     submitting.value = true
-    submitError.value = ''
     try {
       await (editingId.value
         ? updateInvoiceType({
@@ -222,7 +198,7 @@
         }))
       closeForm()
     } catch (error) {
-      submitError.value = error.message
+      notify.error(error.message)
     } finally {
       submitting.value = false
     }

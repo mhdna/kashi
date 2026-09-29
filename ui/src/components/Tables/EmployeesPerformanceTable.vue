@@ -29,7 +29,7 @@
           variant="outlined"
           @update:model-value="reload"
         />
-        <template v-if="editing">
+        <template v-if="canEdit && editing">
           <v-btn text="Cancel" variant="text" @click="cancelEdit" />
           <v-btn
             color="primary"
@@ -41,7 +41,7 @@
             @click="saveAll"
           />
         </template>
-        <template v-else>
+        <template v-else-if="canEdit">
           <v-btn
             prepend-icon="mdi-pencil"
             text="Edit salaries"
@@ -59,18 +59,6 @@
       </v-card-title>
       <v-divider />
 
-      <v-alert
-        v-if="error"
-        class="notice ma-4 mb-0"
-        closable
-        density="compact"
-        type="error"
-        variant="tonal"
-        @click:close="error = ''"
-      >
-        {{ error }}
-      </v-alert>
-
       <div class="employees-content">
         <v-data-table
           class="text-caption text-center"
@@ -82,110 +70,112 @@
           :items-per-page="-1"
           :loading="loading"
         >
-      <template #item="{ item }">
-        <tr class="text-no-wrap text-center">
-          <td class="text-start">{{ item.name }}</td>
-          <td>{{ branchName(item.branch_id) }}</td>
-          <td>{{ item.role || '—' }}</td>
+          <template #item="{ item }">
+            <tr class="text-no-wrap text-center">
+              <td class="text-start">{{ item.name }}</td>
+              <td>{{ branchName(item.branch_id) }}</td>
+              <td>{{ item.role || '—' }}</td>
 
-          <!-- Base salary: never colorized (per requirements) -->
-          <td class="text-end">
-            <v-text-field
-              v-if="editing"
-              v-model="draft[item.id].base"
-              density="compact"
-              hide-details
-              prefix="$"
-              style="min-width: 90px"
-              type="number"
-              variant="plain"
-            />
-            <template v-else>{{ money(item.base_salary_cents) }}</template>
-          </td>
+              <!-- Base salary: never colorized (per requirements) -->
+              <td class="text-end">
+                <v-text-field
+                  v-if="editing"
+                  v-model="draft[item.id].base"
+                  density="compact"
+                  hide-details
+                  prefix="$"
+                  style="min-width: 90px"
+                  type="number"
+                  variant="plain"
+                />
+                <template v-else>{{ money(item.base_salary_cents) }}</template>
+              </td>
 
-          <!-- Commission: green when positive -->
-          <td class="text-end" :class="commissionClass(item)">
-            <v-text-field
-              v-if="editing"
-              v-model="draft[item.id].commission"
-              density="compact"
-              hide-details
-              prefix="$"
-              style="min-width: 90px"
-              type="number"
-              variant="plain"
-            />
-            <template v-else>{{ money(item.commission_cents) }}</template>
-          </td>
+              <!-- Commission: green when positive -->
+              <td class="text-end" :class="commissionClass(item)">
+                <v-text-field
+                  v-if="editing"
+                  v-model="draft[item.id].commission"
+                  density="compact"
+                  hide-details
+                  prefix="$"
+                  style="min-width: 90px"
+                  type="number"
+                  variant="plain"
+                />
+                <template v-else>{{ money(item.commission_cents) }}</template>
+              </td>
 
-          <!-- Late deduction rate x units: amber when any lateness -->
-          <td :class="lateClass(item)">
-            <div v-if="editing" class="d-flex align-center ga-1 justify-center">
-              <v-text-field
-                v-model="draft[item.id].rate"
-                density="compact"
-                hide-details
-                prefix="$"
-                style="min-width: 70px"
-                type="number"
-                variant="plain"
-              />
-              <span>/</span>
-              <v-select
-                v-model="draft[item.id].unit"
-                density="compact"
-                hide-details
-                :items="['hour', 'day']"
-                style="min-width: 74px"
-                variant="plain"
-              />
-              <span class="mx-1">×</span>
-              <v-text-field
-                v-model="draft[item.id].units"
-                density="compact"
-                hide-details
-                style="min-width: 60px"
-                :suffix="draft[item.id].unit === 'day' ? 'd' : 'h'"
-                type="number"
-                variant="plain"
-              />
-            </div>
-            <template v-else>
-              {{ money(item.late_deduction_rate_cents) }}/{{ item.late_deduction_unit }}
-              × {{ unitsLabel(item) }}
-            </template>
-          </td>
+              <!-- Late deduction rate x units: amber when any lateness -->
+              <td :class="lateClass(item)">
+                <div v-if="editing" class="d-flex align-center ga-1 justify-center">
+                  <v-text-field
+                    v-model="draft[item.id].rate"
+                    density="compact"
+                    hide-details
+                    prefix="$"
+                    style="min-width: 70px"
+                    type="number"
+                    variant="plain"
+                  />
+                  <span>/</span>
+                  <v-select
+                    v-model="draft[item.id].unit"
+                    density="compact"
+                    hide-details
+                    :items="['hour', 'day']"
+                    style="min-width: 74px"
+                    variant="plain"
+                  />
+                  <span class="mx-1">×</span>
+                  <v-text-field
+                    v-model="draft[item.id].units"
+                    density="compact"
+                    hide-details
+                    style="min-width: 60px"
+                    :suffix="draft[item.id].unit === 'day' ? 'd' : 'h'"
+                    type="number"
+                    variant="plain"
+                  />
+                </div>
+                <template v-else>
+                  {{ money(item.late_deduction_rate_cents) }}/{{ item.late_deduction_unit }}
+                  × {{ unitsLabel(item) }}
+                </template>
+              </td>
 
-          <!-- Deduction: red when positive -->
-          <td class="text-end" :class="deductionClass(item)" v-text="`-${money(deductionOf(item))}`" />
+              <!-- Deduction: red when positive -->
+              <td class="text-end" :class="deductionClass(item)" v-text="`-${money(deductionOf(item))}`" />
 
-          <!-- Net salary: colorized background by ratio to base -->
-          <td class="text-end font-weight-medium" :class="netClass(item)" v-text="money(netOf(item))" />
+              <!-- Net salary: colorized background by ratio to base -->
+              <td class="text-end font-weight-medium" :class="netClass(item)" v-text="money(netOf(item))" />
 
-          <td>
-            <v-chip
-              :color="item.status === 'active' ? 'success' : 'default'"
-              size="x-small"
-              :text="item.status"
-            />
-          </td>
-          <td class="text-end">
-            <v-btn
-              icon="mdi-pencil"
-              size="x-small"
-              variant="text"
-              @click="openEdit(item)"
-            />
-            <v-btn
-              color="error"
-              icon="mdi-delete"
-              size="x-small"
-              variant="text"
-              @click="remove(item)"
-            />
-          </td>
-        </tr>
-      </template>
+              <td>
+                <v-chip
+                  :color="item.status === 'active' ? 'success' : 'default'"
+                  size="x-small"
+                  :text="item.status"
+                />
+              </td>
+              <td class="text-end">
+                <v-btn
+                  v-if="canEdit"
+                  icon="mdi-pencil"
+                  size="x-small"
+                  variant="text"
+                  @click="openEdit(item)"
+                />
+                <v-btn
+                  v-if="canEdit"
+                  color="error"
+                  icon="mdi-delete"
+                  size="x-small"
+                  variant="text"
+                  @click="remove(item)"
+                />
+              </td>
+            </tr>
+          </template>
         </v-data-table>
       </div>
     </v-card>
@@ -242,15 +232,6 @@
             prefix="$"
             type="number"
           />
-          <v-alert
-            v-if="formError.submit"
-            class="mt-2"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ formError.submit }}
-          </v-alert>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -270,7 +251,13 @@
 <script setup lang="ts">
   import { computed, onMounted, reactive, ref } from 'vue'
   import { useBranches } from '@/composables/useBranches'
+  import { useNotify } from '@/composables/useNotify'
   import { useEmployees } from '@/composables/useEmployees'
+  import { usePageAccess } from '@/composables/usePageAccess'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
+  const notify = useNotify()
 
   const { listEmployees, createEmployee, updateEmployee, deleteEmployee, batchSetSalaries } = useEmployees()
   const { branches, fetchBranches } = useBranches()
@@ -290,7 +277,6 @@
 
   const rows = ref([])
   const loading = ref(false)
-  const error = ref('')
   const search = ref('')
   const branchFilter = ref(null)
 
@@ -352,7 +338,6 @@
 
   async function reload () {
     loading.value = true
-    error.value = ''
     try {
       const { employees } = await listEmployees({
         search: search.value || '',
@@ -361,7 +346,7 @@
       rows.value = employees
       if (editing.value) seedDraft()
     } catch (error_) {
-      error.value = error_.message
+      notify.error(error_.message)
     } finally {
       loading.value = false
     }
@@ -433,14 +418,13 @@
     })
     if (items.length === 0) return
     saving.value = true
-    error.value = ''
     try {
       await batchSetSalaries(items)
       editing.value = false
       draft.value = {}
       await reload()
     } catch (error_) {
-      error.value = error_.message
+      notify.error(error_.message)
     } finally {
       saving.value = false
     }
@@ -456,14 +440,14 @@
     id: null, name: '', role: '', branchId: null, status: 'active', hiredOn: '', base: '0',
     payroll: { commission_cents: 0, late_deduction_rate_cents: 0, late_deduction_unit: 'hour', late_units_centi: 0 },
   })
-  const formError = reactive({ name: '', submit: '' })
+  const formError = reactive({ name: '' })
 
   function resetForm () {
     Object.assign(form, {
       id: null, name: '', role: '', branchId: null, status: 'active', hiredOn: '', base: '0',
       payroll: { commission_cents: 0, late_deduction_rate_cents: 0, late_deduction_unit: 'hour', late_units_centi: 0 },
     })
-    Object.assign(formError, { name: '', submit: '' })
+    Object.assign(formError, { name: '' })
   }
 
   function openCreate () {
@@ -495,7 +479,6 @@
     formError.name = form.name.trim() ? '' : 'Name is required.'
     if (formError.name) return
     submitting.value = true
-    formError.submit = ''
     const payload = {
       name: form.name.trim(),
       role: form.role.trim(),
@@ -510,7 +493,7 @@
       dialog.value = false
       await reload()
     } catch (error_) {
-      formError.submit = error_.message
+      notify.error(error_.message)
     } finally {
       submitting.value = false
     }
@@ -522,7 +505,7 @@
       await deleteEmployee(item.id)
       await reload()
     } catch (error_) {
-      error.value = error_.message
+      notify.error(error_.message)
     }
   }
 </script>
@@ -552,10 +535,5 @@
 }
 .employees-branch {
   flex: 0 1 200px;
-}
-/* v-alert defaults to flex: 1 1; keep the error notice at its natural
-   height instead of stretching to fill the card. */
-.notice {
-  flex: 0 0 auto;
 }
 </style>

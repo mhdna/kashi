@@ -129,6 +129,43 @@ func (q *Queries) CreateBranchShift(ctx context.Context, arg CreateBranchShiftPa
 	return i, err
 }
 
+const getBranchShift = `-- name: GetBranchShift :one
+SELECT id, branch_id, client_ref, branch_shift_id, opened_at, closed_at, closing_person_name, opening_float_usd, opening_float_lbp, expected_usd, expected_lbp, expected_visa, expected_whish, counted_usd, counted_lbp, counted_visa, counted_whish, variance_usd, variance_lbp, variance_visa, variance_whish, occurred_at, received_at FROM branch_shifts
+WHERE id = $1
+LIMIT 1
+`
+
+func (q *Queries) GetBranchShift(ctx context.Context, id int64) (BranchShift, error) {
+	row := q.db.QueryRowContext(ctx, getBranchShift, id)
+	var i BranchShift
+	err := row.Scan(
+		&i.ID,
+		&i.BranchID,
+		&i.ClientRef,
+		&i.BranchShiftID,
+		&i.OpenedAt,
+		&i.ClosedAt,
+		&i.ClosingPersonName,
+		&i.OpeningFloatUsd,
+		&i.OpeningFloatLbp,
+		&i.ExpectedUsd,
+		&i.ExpectedLbp,
+		&i.ExpectedVisa,
+		&i.ExpectedWhish,
+		&i.CountedUsd,
+		&i.CountedLbp,
+		&i.CountedVisa,
+		&i.CountedWhish,
+		&i.VarianceUsd,
+		&i.VarianceLbp,
+		&i.VarianceVisa,
+		&i.VarianceWhish,
+		&i.OccurredAt,
+		&i.ReceivedAt,
+	)
+	return i, err
+}
+
 const getBranchShiftByClientRef = `-- name: GetBranchShiftByClientRef :one
 SELECT id, branch_id, client_ref, branch_shift_id, opened_at, closed_at, closing_person_name, opening_float_usd, opening_float_lbp, expected_usd, expected_lbp, expected_visa, expected_whish, counted_usd, counted_lbp, counted_visa, counted_whish, variance_usd, variance_lbp, variance_visa, variance_whish, occurred_at, received_at FROM branch_shifts
 WHERE branch_id = $1 AND client_ref = $2
@@ -172,7 +209,13 @@ func (q *Queries) GetBranchShiftByClientRef(ctx context.Context, arg GetBranchSh
 }
 
 const listBranchShifts = `-- name: ListBranchShifts :many
-SELECT id, branch_id, client_ref, branch_shift_id, opened_at, closed_at, closing_person_name, opening_float_usd, opening_float_lbp, expected_usd, expected_lbp, expected_visa, expected_whish, counted_usd, counted_lbp, counted_visa, counted_whish, variance_usd, variance_lbp, variance_visa, variance_whish, occurred_at, received_at FROM branch_shifts
+SELECT
+  branch_shifts.id, branch_shifts.branch_id, branch_shifts.client_ref, branch_shifts.branch_shift_id, branch_shifts.opened_at, branch_shifts.closed_at, branch_shifts.closing_person_name, branch_shifts.opening_float_usd, branch_shifts.opening_float_lbp, branch_shifts.expected_usd, branch_shifts.expected_lbp, branch_shifts.expected_visa, branch_shifts.expected_whish, branch_shifts.counted_usd, branch_shifts.counted_lbp, branch_shifts.counted_visa, branch_shifts.counted_whish, branch_shifts.variance_usd, branch_shifts.variance_lbp, branch_shifts.variance_visa, branch_shifts.variance_whish, branch_shifts.occurred_at, branch_shifts.received_at,
+  EXISTS (
+    SELECT 1 FROM branch_shift_receipt_images
+    WHERE branch_shift_receipt_images.branch_shift_id = branch_shifts.id
+  ) AS has_receipt_image
+FROM branch_shifts
 WHERE $3::bigint IS NULL OR branch_id = $3
 ORDER BY id DESC
 LIMIT $1 OFFSET $2
@@ -184,17 +227,46 @@ type ListBranchShiftsParams struct {
 	BranchID sql.NullInt64 `json:"branch_id"`
 }
 
+type ListBranchShiftsRow struct {
+	ID                int64        `json:"id"`
+	BranchID          int64        `json:"branch_id"`
+	ClientRef         string       `json:"client_ref"`
+	BranchShiftID     int64        `json:"branch_shift_id"`
+	OpenedAt          sql.NullTime `json:"opened_at"`
+	ClosedAt          sql.NullTime `json:"closed_at"`
+	ClosingPersonName string       `json:"closing_person_name"`
+	OpeningFloatUsd   int64        `json:"opening_float_usd"`
+	OpeningFloatLbp   int64        `json:"opening_float_lbp"`
+	ExpectedUsd       int64        `json:"expected_usd"`
+	ExpectedLbp       int64        `json:"expected_lbp"`
+	ExpectedVisa      int64        `json:"expected_visa"`
+	ExpectedWhish     int64        `json:"expected_whish"`
+	CountedUsd        int64        `json:"counted_usd"`
+	CountedLbp        int64        `json:"counted_lbp"`
+	CountedVisa       int64        `json:"counted_visa"`
+	CountedWhish      int64        `json:"counted_whish"`
+	VarianceUsd       int64        `json:"variance_usd"`
+	VarianceLbp       int64        `json:"variance_lbp"`
+	VarianceVisa      int64        `json:"variance_visa"`
+	VarianceWhish     int64        `json:"variance_whish"`
+	OccurredAt        time.Time    `json:"occurred_at"`
+	ReceivedAt        time.Time    `json:"received_at"`
+	HasReceiptImage   bool         `json:"has_receipt_image"`
+}
+
 // sqlc.narg(branch_id) is nullable: NULL means "all branches", matching
-// ListBranchExpenses' admin-filter convention.
-func (q *Queries) ListBranchShifts(ctx context.Context, arg ListBranchShiftsParams) ([]BranchShift, error) {
+// ListBranchExpenses' admin-filter convention. has_receipt_image lets the
+// admin Shifts page show a per-row indicator without an extra request per
+// shift (see branch_shift_receipt_images / api/branch_shift_receipt_image.go).
+func (q *Queries) ListBranchShifts(ctx context.Context, arg ListBranchShiftsParams) ([]ListBranchShiftsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listBranchShifts, arg.Limit, arg.Offset, arg.BranchID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []BranchShift{}
+	items := []ListBranchShiftsRow{}
 	for rows.Next() {
-		var i BranchShift
+		var i ListBranchShiftsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.BranchID,
@@ -219,6 +291,7 @@ func (q *Queries) ListBranchShifts(ctx context.Context, arg ListBranchShiftsPara
 			&i.VarianceWhish,
 			&i.OccurredAt,
 			&i.ReceivedAt,
+			&i.HasReceiptImage,
 		); err != nil {
 			return nil, err
 		}

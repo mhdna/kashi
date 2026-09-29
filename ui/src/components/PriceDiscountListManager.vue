@@ -10,22 +10,13 @@
 -->
 <template>
   <div class="page-root">
-    <v-alert
-      v-if="loadError"
-      class="mb-4"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ loadError }}
-    </v-alert>
-
     <v-card class="vlm-card" flat>
       <v-card-title class="page-heading d-flex align-center ga-3 px-4 py-3">
         <v-icon :icon="cfg.icon" />
         <span>{{ cfg.title }}</span>
         <v-spacer />
         <v-btn
+          v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
           :text="`Add ${cfg.singularTitle}`"
@@ -69,14 +60,22 @@
               </span>
               <v-spacer />
               <v-btn
+                v-if="canEdit"
                 prepend-icon="mdi-store-outline"
                 size="small"
                 text="Branches"
                 variant="tonal"
                 @click="branchesDialog = true"
               />
-              <v-btn icon="mdi-pencil" size="small" variant="text" @click="openEditList" />
               <v-btn
+                v-if="canEdit"
+                icon="mdi-pencil"
+                size="small"
+                variant="text"
+                @click="openEditList"
+              />
+              <v-btn
+                v-if="canEdit"
                 color="error"
                 icon="mdi-delete"
                 size="small"
@@ -87,21 +86,21 @@
 
             <v-divider />
 
-            <div class="d-flex align-end ga-3 pa-4">
+            <div v-if="canEdit" class="d-flex align-end ga-3 pa-4">
               <v-autocomplete
-                v-model="addProductId"
+                v-model="addVariantId"
                 class="flex-grow-1"
                 clearable
                 density="compact"
                 hide-details
-                :item-title="p => `${p.code} — ${p.name}`"
+                item-title="label"
                 item-value="id"
-                :items="productOptions"
-                label="Product"
-                :loading="productSearchLoading"
+                :items="variantOptions"
+                label="Product variant"
+                :loading="variantSearchLoading"
                 no-filter
                 variant="outlined"
-                @update:search="onProductSearch"
+                @update:search="onVariantSearch"
               />
               <v-text-field
                 v-model="addValue"
@@ -117,7 +116,7 @@
               />
               <v-btn
                 color="primary"
-                :disabled="!addProductId || addValue === ''"
+                :disabled="!addVariantId || addValue === ''"
                 :loading="addingItem"
                 text="Add"
                 variant="flat"
@@ -136,16 +135,6 @@
               variant="outlined"
             />
 
-            <v-alert
-              v-if="itemError"
-              class="mx-4 mb-2 mt-2"
-              density="compact"
-              type="error"
-              variant="tonal"
-            >
-              {{ itemError }}
-            </v-alert>
-
             <BulkDeleteBar
               :count="selectedItems.length"
               :error="itemSelError"
@@ -162,13 +151,16 @@
               :external-search="itemSearch ?? ''"
               flush
               :headers="itemHeaders"
-              item-value="product_id"
+              item-value="product_variant_id"
               root-key="items"
-              selectable
+              :selectable="canEdit"
               :show-search-icon="false"
               @row-click="openEditItem"
               @update:selected="v => (selectedItems = v)"
             >
+              <template #item.variant="{ item }">
+                {{ variantText(item) }}
+              </template>
               <template #[`item.${cfg.valueKey}`]="{ item }">
                 {{ cfg.display(item[cfg.valueKey]) }}
               </template>
@@ -220,15 +212,6 @@
               label="Default"
             />
           </div>
-          <v-alert
-            v-if="listError"
-            class="mt-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ listError }}
-          </v-alert>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -247,7 +230,12 @@
     <!-- edit item value -->
     <v-dialog v-model="editItemDialog" max-width="420">
       <v-card>
-        <v-card-title>{{ editItemTarget?.product_code }} — {{ editItemTarget?.product_name }}</v-card-title>
+        <v-card-title>
+          {{ editItemTarget?.product_code }} — {{ editItemTarget?.product_name }}
+          <div class="text-caption text-medium-emphasis">
+            {{ variantText(editItemTarget) }} · {{ editItemTarget?.barcode }}
+          </div>
+        </v-card-title>
         <v-card-text>
           <v-text-field
             v-model="editItemValue"
@@ -317,15 +305,20 @@
 <script setup lang="ts">
   import { computed, onMounted, reactive, ref, watch } from 'vue'
   import BranchAssignDialog from '@/components/BranchAssignDialog.vue'
+  import { useNotify } from '@/composables/useNotify'
   import PageSidebar from '@/components/PageSidebar.vue'
   import BulkDeleteBar from '@/components/Tables/BulkDeleteBar.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
-  import { authFetch } from '@/composables/useApi'
   import { useBulkDelete } from '@/composables/useBulkDelete'
   import { useDiscountLists } from '@/composables/useDiscountLists'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { usePriceLists } from '@/composables/usePriceLists'
-  import { API_BASE } from '@/config'
+  import { useVariants } from '@/composables/useVariants'
   import { formatMoney } from '@/utils/money'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
+  const notify = useNotify()
 
   const props = defineProps({
     kind: { type: String, required: true, validator: v => v === 'price' || v === 'discount' },
@@ -367,19 +360,27 @@
     itemsURL, saveItem, deleteItem, fetchBranchIds, setBranches,
   } = store
 
+  // Code + name no longer identify a row on their own — every variant of a
+  // product shares them — so the variant's colour/size and barcode are shown
+  // alongside.
   const itemHeaders = computed(() => [
     { title: 'Code', key: 'product_code', align: 'start', width: 140 },
     { title: 'Product', key: 'product_name', align: 'start' },
+    { title: 'Variant', key: 'variant', align: 'start', width: 160, sortable: false },
+    { title: 'Barcode', key: 'barcode', align: 'start', width: 150 },
     { title: cfg.value.valueLabel, key: cfg.value.valueKey, align: 'end', width: 140 },
   ])
 
-  const loadError = ref('')
+  // color_name/size_name arrive as nullable strings from the join.
+  function variantText (item) {
+    return [item?.color_name, item?.size_name].filter(Boolean).join(' / ') || '—'
+  }
+
   const selectedListId = ref(null)
   const selectedList = computed(() => lists.value.find(l => l.id === selectedListId.value) ?? null)
   const listItems = computed(() => lists.value.map(l => ({ value: l.id, title: l.name, raw: l })))
   const tableRef = ref(null)
   const itemSearch = ref('')
-  const itemError = ref('')
 
   function reloadItems () {
     tableRef.value?.reload()
@@ -398,7 +399,7 @@
     if (!selectedList.value) return
     try {
       await runItemBulk(`/${props.kind === 'price' ? 'price_lists' : 'discount_lists'}/${selectedList.value.id}/items/bulk_delete`, {
-        product_ids: selectedItems.value,
+        product_variant_ids: selectedItems.value,
       })
       resetItemSel()
       reloadItems()
@@ -408,7 +409,6 @@
   watch(selectedListId, () => {
     resetItemSel()
     itemSearch.value = ''
-    itemError.value = ''
   })
 
   onMounted(async () => {
@@ -418,58 +418,42 @@
         selectedListId.value = lists.value[0].id
       }
     } catch (error) {
-      loadError.value = error.message
+      notify.error(error.message)
     }
   })
 
-  // ---- product search -------------------------------------------------
-  const productOptions = ref([])
-  const productSearchLoading = ref(false)
-  const addProductId = ref(null)
+  // ---- variant search ---------------------------------------------------
+  // List items key on the variant, so the picker searches SKUs (GET /barcodes)
+  // rather than products -- reusing useVariants, the same source the sales
+  // invoice picker uses, so a row reads identically in both places.
+  const { variants: variantOptions, loading: variantSearchLoading, searchVariants } = useVariants()
+  const addVariantId = ref(null)
   const addValue = ref('')
   const addingItem = ref(false)
-  let productSearchTimer
+  let variantSearchTimer
 
-  function onProductSearch (query) {
-    clearTimeout(productSearchTimer)
-    productSearchTimer = setTimeout(() => searchProducts(query), 300)
+  function onVariantSearch (query) {
+    clearTimeout(variantSearchTimer)
+    variantSearchTimer = setTimeout(() => searchVariants(query?.trim() ?? ''), 300)
   }
 
-  async function searchProducts (query) {
-    productSearchLoading.value = true
-    try {
-      const url = new URL(`${API_BASE}/products`)
-      url.searchParams.set('page_size', '20')
-      url.searchParams.set('page_id', '0')
-      if (query && query.trim()) url.searchParams.set('search', query.trim())
-      const res = await authFetch(url)
-      const data = await res.json().catch(() => ({}))
-      productOptions.value = data.products ?? []
-    } catch {
-      productOptions.value = []
-    } finally {
-      productSearchLoading.value = false
-    }
-  }
-
-  onMounted(() => searchProducts(''))
+  onMounted(() => searchVariants(''))
 
   async function addItem () {
-    if (!addProductId.value || addValue.value === '') return
+    if (!addVariantId.value || addValue.value === '') return
     const parsed = cfg.value.parse(addValue.value)
     if (!Number.isFinite(parsed) || parsed < 0) {
-      itemError.value = `Enter a valid ${cfg.value.valueLabel.toLowerCase()}.`
+      notify.error(`Enter a valid ${cfg.value.valueLabel.toLowerCase()}.`)
       return
     }
     addingItem.value = true
-    itemError.value = ''
     try {
-      await saveItem(selectedList.value.id, addProductId.value, parsed)
-      addProductId.value = null
+      await saveItem(selectedList.value.id, addVariantId.value, parsed)
+      addVariantId.value = null
       addValue.value = ''
       reloadItems()
     } catch (error) {
-      itemError.value = error.message
+      notify.error(error.message)
     } finally {
       addingItem.value = false
     }
@@ -482,6 +466,7 @@
   const savingItem = ref(false)
 
   function openEditItem (item) {
+    if (!canEdit.value) return
     editItemTarget.value = item
     editItemValue.value = cfg.value.toInput(item[cfg.value.valueKey])
     editItemDialog.value = true
@@ -498,11 +483,11 @@
     if (!Number.isFinite(parsed) || parsed < 0) return
     savingItem.value = true
     try {
-      await saveItem(selectedList.value.id, editItemTarget.value.product_id, parsed)
+      await saveItem(selectedList.value.id, editItemTarget.value.product_variant_id, parsed)
       editItemDialog.value = false
       reloadItems()
     } catch (error) {
-      itemError.value = error.message
+      notify.error(error.message)
     } finally {
       savingItem.value = false
     }
@@ -510,10 +495,10 @@
 
   async function removeItem (item) {
     try {
-      await deleteItem(selectedList.value.id, item.product_id)
+      await deleteItem(selectedList.value.id, item.product_variant_id)
       reloadItems()
     } catch (error) {
-      itemError.value = error.message
+      notify.error(error.message)
     }
   }
 
@@ -521,13 +506,11 @@
   const listDialog = ref(false)
   const editingList = ref(false)
   const savingList = ref(false)
-  const listError = ref('')
   const listForm = reactive({ name: '', validFrom: '', validTo: '', isActive: true, isDefault: false })
 
   function openCreateList () {
     editingList.value = false
     Object.assign(listForm, { name: '', validFrom: '', validTo: '', isActive: true, isDefault: false })
-    listError.value = ''
     listDialog.value = true
   }
 
@@ -540,17 +523,15 @@
       isActive: selectedList.value.is_active,
       isDefault: selectedList.value.is_default,
     })
-    listError.value = ''
     listDialog.value = true
   }
 
   async function saveList () {
     if (!listForm.name.trim() || !listForm.validFrom || !listForm.validTo) {
-      listError.value = 'Name and both dates are required.'
+      notify.error('Name and both dates are required.')
       return
     }
     savingList.value = true
-    listError.value = ''
     const payload = {
       name: listForm.name.trim(),
       is_active: listForm.isActive,
@@ -567,7 +548,7 @@
       }
       listDialog.value = false
     } catch (error) {
-      listError.value = error.message
+      notify.error(error.message)
     } finally {
       savingList.value = false
     }
@@ -583,7 +564,7 @@
       deleteListDialog.value = false
       selectedListId.value = lists.value.length > 0 ? lists.value[0].id : null
     } catch (error) {
-      loadError.value = error.message
+      notify.error(error.message)
     } finally {
       deletingList.value = false
     }

@@ -104,7 +104,7 @@ func (store *SQLStore) TransferDispatchTx(ctx context.Context, arg TransferStage
 			if !it.VariantID.Valid {
 				continue
 			}
-			movement, err := q.applyStockMovement(ctx, applyStockMovementParams{
+			movements, err := q.applyStockMovement(ctx, applyStockMovementParams{
 				InventoryID:   transfer.FromInventoryID,
 				VariantID:     it.VariantID.Int64,
 				Quantity:      -it.Quantity,
@@ -116,7 +116,7 @@ func (store *SQLStore) TransferDispatchTx(ctx context.Context, arg TransferStage
 			if err != nil {
 				return err
 			}
-			result.Movements = append(result.Movements, movement)
+			result.Movements = append(result.Movements, movements...)
 		}
 
 		updated, err := q.SetTransferStatus(ctx, SetTransferStatusParams{
@@ -172,7 +172,7 @@ func (store *SQLStore) TransferReceiveTx(ctx context.Context, arg TransferStageT
 				return err
 			}
 
-			movement, err := q.applyStockMovement(ctx, applyStockMovementParams{
+			movements, err := q.applyStockMovement(ctx, applyStockMovementParams{
 				InventoryID:   transfer.ToInventoryID,
 				VariantID:     it.VariantID.Int64,
 				Quantity:      it.Quantity,
@@ -185,13 +185,112 @@ func (store *SQLStore) TransferReceiveTx(ctx context.Context, arg TransferStageT
 			if err != nil {
 				return err
 			}
-			result.Movements = append(result.Movements, movement)
+			result.Movements = append(result.Movements, movements...)
 		}
 
 		updated, err := q.SetTransferStatus(ctx, SetTransferStatusParams{
 			Status:     TransferStatusReceived,
 			ReceivedAt: nowNullTime(),
 			ID:         transfer.ID,
+		})
+		if err != nil {
+			return err
+		}
+		result.Transfer = updated
+		return nil
+	})
+
+	return result, err
+}
+
+// TransferApproveTx is how a kashi admin approves a branch-requested
+// transfer: dispatch and receive collapsed into one atomic step (a
+// branch's request either lands in full or not at all -- there's no
+// "in transit" state a human approval workflow needs to expose, unlike
+// the manual draft->dispatched->received flow above, which stays
+// separate for that reason). Legal from 'requested' or 'draft', so it
+// also works as a one-click approve for a transfer a kashi operator
+// drafted centrally.
+func (store *SQLStore) TransferApproveTx(ctx context.Context, arg TransferStageTxParams) (TransferStageTxResult, error) {
+	var result TransferStageTxResult
+
+	err := store.execTx(ctx, func(q *Queries) error {
+		transfer, err := q.GetTransfer(ctx, arg.TransferID)
+		if err != nil {
+			return err
+		}
+		if transfer.Status != TransferStatusRequested && transfer.Status != TransferStatusDraft {
+			return errors.New("only a requested or draft transfer can be approved")
+		}
+
+		items, err := q.ListTransferItems(ctx, arg.TransferID)
+		if err != nil {
+			return err
+		}
+
+		for _, it := range items {
+			if !it.VariantID.Valid {
+				continue
+			}
+
+			var unitCost sql.NullInt64
+			src, err := q.GetInventoryStock(ctx, GetInventoryStockParams{
+				InventoryID: transfer.FromInventoryID,
+				VariantID:   it.VariantID.Int64,
+			})
+			if err == nil {
+				unitCost = sql.NullInt64{Int64: src.AvgCost, Valid: true}
+			} else if !errors.Is(err, sql.ErrNoRows) {
+				return err
+			}
+
+			outMovements, err := q.applyStockMovement(ctx, applyStockMovementParams{
+				InventoryID:   transfer.FromInventoryID,
+				VariantID:     it.VariantID.Int64,
+				Quantity:      -it.Quantity,
+				Reason:        StockMovementReasonTransferOut,
+				ReferenceType: "transfer",
+				ReferenceID:   transfer.ID,
+				CreatedBy:     arg.CreatedBy,
+			})
+			if err != nil {
+				return err
+			}
+			result.Movements = append(result.Movements, outMovements...)
+
+			// The destination's own counted amount, once confirmed --
+			// falling back to the sender's reported quantity if kashi
+			// approves before a confirmation ever lands (approval is
+			// never blocked on one). A discrepancy between the two stays
+			// visible in transfer_items.received_quantity vs .quantity,
+			// rather than being silently reconciled away.
+			receiveQty := it.Quantity
+			if it.ReceivedQuantity.Valid {
+				receiveQty = it.ReceivedQuantity.Int64
+			}
+
+			inMovements, err := q.applyStockMovement(ctx, applyStockMovementParams{
+				InventoryID:   transfer.ToInventoryID,
+				VariantID:     it.VariantID.Int64,
+				Quantity:      receiveQty,
+				Reason:        StockMovementReasonTransferIn,
+				ReferenceType: "transfer",
+				ReferenceID:   transfer.ID,
+				UnitCost:      unitCost,
+				CreatedBy:     arg.CreatedBy,
+			})
+			if err != nil {
+				return err
+			}
+			result.Movements = append(result.Movements, inMovements...)
+		}
+
+		now := nowNullTime()
+		updated, err := q.SetTransferStatus(ctx, SetTransferStatusParams{
+			Status:       TransferStatusReceived,
+			DispatchedAt: now,
+			ReceivedAt:   now,
+			ID:           transfer.ID,
 		})
 		if err != nil {
 			return err
@@ -231,7 +330,7 @@ func (store *SQLStore) CancelTransferTx(ctx context.Context, transferID int64, c
 				if !it.VariantID.Valid {
 					continue
 				}
-				movement, err := q.applyStockMovement(ctx, applyStockMovementParams{
+				movements, err := q.applyStockMovement(ctx, applyStockMovementParams{
 					InventoryID:   transfer.FromInventoryID,
 					VariantID:     it.VariantID.Int64,
 					Quantity:      it.Quantity,
@@ -243,7 +342,7 @@ func (store *SQLStore) CancelTransferTx(ctx context.Context, transferID int64, c
 				if err != nil {
 					return err
 				}
-				result.Movements = append(result.Movements, movement)
+				result.Movements = append(result.Movements, movements...)
 			}
 		}
 
@@ -252,7 +351,7 @@ func (store *SQLStore) CancelTransferTx(ctx context.Context, transferID int64, c
 				if !it.VariantID.Valid {
 					continue
 				}
-				movement, err := q.applyStockMovement(ctx, applyStockMovementParams{
+				movements, err := q.applyStockMovement(ctx, applyStockMovementParams{
 					InventoryID:   transfer.ToInventoryID,
 					VariantID:     it.VariantID.Int64,
 					Quantity:      -it.Quantity,
@@ -264,7 +363,7 @@ func (store *SQLStore) CancelTransferTx(ctx context.Context, transferID int64, c
 				if err != nil {
 					return err
 				}
-				result.Movements = append(result.Movements, movement)
+				result.Movements = append(result.Movements, movements...)
 			}
 		}
 

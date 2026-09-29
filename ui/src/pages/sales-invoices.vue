@@ -57,7 +57,7 @@
                 :error-messages="clientId.errorMessage.value"
                 :item-title="c => c.name"
                 :item-value="c => c.id"
-                :items="clients"
+                :items="selectableClients"
                 label="Client"
               />
             </v-col>
@@ -152,10 +152,6 @@
             <v-col class="text-end" cols="4">Grand Total: <strong>{{ grandTotal }}</strong></v-col>
           </v-row>
 
-          <v-alert v-if="submitError" class="mb-4" type="error" variant="tonal">
-            {{ submitError }}
-          </v-alert>
-
           <v-card-actions class="px-0">
             <v-spacer />
             <v-btn text="Cancel" @click="closeDialog" />
@@ -176,7 +172,6 @@
     <v-card>
       <v-card-title>Invoice Details -- {{ details?.invoice?.invoice_code }}</v-card-title>
       <v-card-text>
-        <v-alert v-if="detailsError" class="mb-4" type="error" variant="tonal">{{ detailsError }}</v-alert>
         <div v-if="detailsLoading" class="d-flex justify-center pa-4">
           <v-progress-circular color="primary" indeterminate />
         </div>
@@ -286,12 +281,14 @@
             variant="outlined"
           />
           <v-btn
+            v-if="canEdit"
             prepend-icon="mdi-tag-multiple"
             text="Invoice Types"
             variant="tonal"
             @click="invoiceTypesDialog = true"
           />
           <v-btn
+            v-if="canEdit"
             color="primary"
             prepend-icon="mdi-plus"
             text="Add Invoice"
@@ -359,6 +356,8 @@
   import { useClients } from '@/composables/useClients'
   import { useInventories } from '@/composables/useInventories'
   import { useInvoiceDetails } from '@/composables/useInvoiceDetails'
+  import { usePageAccess } from '@/composables/usePageAccess'
+  import { useNotify } from '@/composables/useNotify'
   import { usePosSettings } from '@/composables/usePosSettings'
   import { usePriceLists } from '@/composables/usePriceLists'
   import { useSalesInvoices } from '@/composables/useSalesInvoices'
@@ -367,6 +366,9 @@
   import { API_BASE } from '@/config'
   import BranchInvoices from '@/pages/branch-invoices.vue'
 
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
+
   const { branches, fetchBranches } = useBranches()
   const { createSalesInvoice } = useSalesInvoices()
   const { cashboxes, fetchCashboxes } = useCashboxes()
@@ -374,6 +376,10 @@
   const { shifts, fetchShifts } = useShifts()
   const { inventories, fetchInventories } = useInventories()
   const { clients, fetchClients } = useClients()
+  // Inactive (deactivated) clients can't be picked for something new; the
+  // one already selected stays listed so an existing value still renders.
+  const selectableClients = computed(() =>
+    clients.value.filter(c => c.is_active !== false || c.id === clientId.value.value))
   const { priceLists, fetchPriceLists } = usePriceLists()
   const { variants: skuOptions, loading: skuLoading, searchVariants } = useVariants()
 
@@ -415,7 +421,7 @@
   const retailBranchFilter = ref(null)
   const wholesaleSearch = ref('')
   const submitting = ref(false)
-  const submitError = ref('')
+  const notify = useNotify()
 
   const { handleSubmit, handleReset } = useForm({
     validationSchema: {
@@ -510,12 +516,10 @@
   function closeDialog () {
     dialog.value = false
     handleReset()
-    submitError.value = ''
   }
 
   const submit = handleSubmit(async values => {
     submitting.value = true
-    submitError.value = ''
     try {
       const items = lines.value.map(l => ({
         variant_id: l.variantId,
@@ -543,7 +547,7 @@
       closeDialog()
       tableRef.value?.reload()
     } catch (error) {
-      submitError.value = error.message
+      notify.error(error.message)
     } finally {
       submitting.value = false
     }
@@ -552,17 +556,15 @@
   const detailsDialog = ref(false)
   const details = ref(null)
   const detailsLoading = ref(false)
-  const detailsError = ref('')
 
   async function openDetails (invoice) {
     detailsDialog.value = true
     detailsLoading.value = true
-    detailsError.value = ''
     details.value = null
     try {
       details.value = await getInvoiceDetails(invoice.id)
     } catch (error) {
-      detailsError.value = error.message
+      notify.error(error.message)
     } finally {
       detailsLoading.value = false
     }

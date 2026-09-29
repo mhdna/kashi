@@ -106,8 +106,6 @@ type resolveBranchSyncConflictRequest struct {
 	//     the till's) | "custom" (use Name)
 	//   invalid_phone: "merge" (link to ClientID) | "create" (new client
 	//     with Phone)
-	//   unknown_product: "create" (adopt the reported product into the
-	//     catalog)
 	Choice   string `json:"choice" binding:"required"`
 	Name     string `json:"name"`
 	Phone    string `json:"phone"`
@@ -316,113 +314,9 @@ func (server *Server) applyConflictResolution(ctx *gin.Context, conflict db.Bran
 			ClientID:       targetID,
 		})
 
-	case "unknown_product":
-		if req.Choice != "create" {
-			return errors.New("choice must be create")
-		}
-		return server.adoptBranchProduct(ctx, conflict)
-
 	default:
 		return errors.New("unknown conflict kind")
 	}
-}
-
-// adoptBranchProduct creates the products + product_variants rows for a
-// barcode a branch reported that kashi didn't have. Colour/size are
-// resolved by name, created if absent; brand/kind/season/year from the
-// branch payload are left for the admin to fill in kashi's product editor
-// (they live in the separate attribute system).
-func (server *Server) adoptBranchProduct(ctx *gin.Context, conflict db.BranchSyncConflict) error {
-	var p branchProductReportItem
-	if err := json.Unmarshal(conflict.BranchPayload, &p); err != nil {
-		return err
-	}
-	if p.Barcode == "" {
-		return errors.New("reported product has no barcode")
-	}
-	if _, err := server.store.GetProductVariantByBarcode(ctx, p.Barcode); err == nil {
-		return nil // adopted already (double resolve)
-	}
-
-	code := strings.TrimSpace(p.Code)
-	if code == "" {
-		code = p.Barcode
-	}
-	product, err := server.store.GetProductByCode(ctx, code)
-	if errors.Is(err, sql.ErrNoRows) {
-		product, err = server.store.CreateProduct(ctx, db.CreateProductParams{
-			Code:        code,
-			Name:        firstNonEmpty(p.Name, code),
-			Description: p.Description,
-		})
-	}
-	if err != nil {
-		return err
-	}
-
-	colorID, err := server.resolveColorID(ctx, p.Color)
-	if err != nil {
-		return err
-	}
-	sizeID, err := server.resolveSizeID(ctx, p.Size)
-	if err != nil {
-		return err
-	}
-	price := sql.NullInt64{}
-	if p.Price != 0 {
-		price = sql.NullInt64{Int64: p.Price, Valid: true}
-	}
-	_, err = server.store.CreateProductVariant(ctx, db.CreateProductVariantParams{
-		ProductID: product.ID,
-		ColorID:   colorID,
-		SizeID:    sizeID,
-		Barcode:   p.Barcode,
-		Price:     price,
-	})
-	return err
-}
-
-func (server *Server) resolveColorID(ctx *gin.Context, name string) (sql.NullInt64, error) {
-	name = strings.TrimSpace(name)
-	if name == "" {
-		return sql.NullInt64{}, nil
-	}
-	if c, err := server.store.GetColorByName(ctx, name); err == nil {
-		return sql.NullInt64{Int64: c.ID, Valid: true}, nil
-	} else if !errors.Is(err, sql.ErrNoRows) {
-		return sql.NullInt64{}, err
-	}
-	c, err := server.store.CreateColor(ctx, db.CreateColorParams{Name: name, HexValue: ""})
-	if err != nil {
-		return sql.NullInt64{}, err
-	}
-	return sql.NullInt64{Int64: c.ID, Valid: true}, nil
-}
-
-func (server *Server) resolveSizeID(ctx *gin.Context, name string) (sql.NullInt64, error) {
-	name = strings.TrimSpace(name)
-	if name == "" {
-		return sql.NullInt64{}, nil
-	}
-	if s, err := server.store.GetSizeByName(ctx, name); err == nil {
-		return sql.NullInt64{Int64: s.ID, Valid: true}, nil
-	} else if !errors.Is(err, sql.ErrNoRows) {
-		return sql.NullInt64{}, err
-	}
-	s, err := server.store.CreateSize(ctx, db.CreateSizeParams{Name: name, Type: "other", Order: "0"})
-	if err != nil {
-		return sql.NullInt64{}, err
-	}
-	return sql.NullInt64{Int64: s.ID, Valid: true}, nil
-}
-
-func firstNonEmpty(vals ...string) string {
-	for _, v := range vals {
-		if strings.TrimSpace(v) != "" {
-			return v
-		}
-	}
-	return ""
 }
 
 // currentUserID resolves the PASETO username to a users.id for the audit

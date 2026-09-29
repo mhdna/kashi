@@ -21,20 +21,11 @@ code,
   scrollbar-color: rgba(128, 128, 128, 0.65) transparent;
 }
 
-// Theme-switch colour fade. The navigation drawer, lists and list items are
-// deliberately left out: Vuetify renders an active nav item as a stack of
-// sub-elements (root text colour, prepend icon, __overlay highlight, dividers,
-// badges) that don't all inherit this transition, so animating them makes the
-// drawer flicker through a half-light/half-dark state while toggling. Without a
-// transition the drawer just switches instantly and stays visually coherent.
-.v-application,
-.v-card,
-.v-sheet,
-.v-app-bar,
-.v-table,
-.v-btn {
-  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
+// No colour transition on theme switch. Vuetify flips the v-theme--light /
+// v-theme--dark class on each themed component individually, so a per-component
+// transition starts on a different frame for every node and the switch arrives
+// as a visible wave rolling down the page. An instant repaint reads as snappy;
+// the drawer was already excluded for the same flicker reason.
 
 // Keep Vuetify table headers visually clean; sorting remains available by
 // clicking the header, but its hover/active icon is hidden globally.

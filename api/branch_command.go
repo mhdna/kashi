@@ -25,6 +25,12 @@ var allowedBranchCommandTypes = map[string]bool{
 	"update_settings":       true,
 	"remote_return_invoice": true,
 	"set_branch_user_pin":   true,
+	// transfer_decision is never enqueued through createBranchCommand (the
+	// admin-typed endpoint below) -- only by notifyBranchTransferDecision
+	// in api/transfer.go, straight from an approve/cancel. Listed here
+	// anyway so this map stays the single place documenting every command
+	// type kashi-pos's executor needs to know.
+	"transfer_decision": true,
 }
 
 type createBranchCommandRequest struct {

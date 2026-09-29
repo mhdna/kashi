@@ -1,15 +1,5 @@
 <template>
   <div class="page-root">
-    <v-alert
-      v-if="loadError"
-      class="mb-4"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ loadError }}
-    </v-alert>
-
     <v-card class="shifts-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-clock-outline" />
@@ -62,7 +52,7 @@
           <v-btn value="visitors">Visitors</v-btn>
         </v-btn-toggle>
         <v-btn
-          v-if="tab === 'central'"
+          v-if="canEdit && tab === 'central'"
           color="primary"
           prepend-icon="mdi-plus"
           text="Open Shift"
@@ -102,6 +92,7 @@
           <template #item.closed_at="{ item }">{{ formatDate(item.closed_at) }}</template>
           <template #item.actions="{ item }">
             <v-btn
+              v-if="canEdit"
               :disabled="item.is_closed"
               :loading="closingId === item.id"
               size="small"
@@ -128,6 +119,7 @@
 
         <div class="shifts-content">
           <ServerSideTable
+            ref="branchTableRef"
             :api-u-r-l="`${API_BASE}/branch_shifts`"
             class="shifts-table"
             density="comfortable"
@@ -146,6 +138,17 @@
               <v-chip :color="varianceColor(item.variance_usd)" size="small" variant="tonal">
                 {{ signedMoney(item.variance_usd) }}
               </v-chip>
+            </template>
+            <template #item.receipt="{ item }">
+              <v-btn
+                v-if="item.has_receipt_image"
+                color="primary"
+                icon="mdi-camera"
+                size="small"
+                variant="text"
+                @click="openReceipt(item)"
+              />
+              <v-icon v-else class="text-disabled" icon="mdi-camera-off" size="small" />
             </template>
             <template #item.received_at="{ item }">{{ formatDate(item.received_at) }}</template>
           </ServerSideTable>
@@ -206,10 +209,6 @@
               label="Cashbox"
             />
 
-            <v-alert v-if="submitError" class="mb-4" type="error" variant="tonal">
-              {{ submitError }}
-            </v-alert>
-
             <v-card-actions class="px-0">
               <v-spacer />
               <v-btn text="Cancel" @click="closeDialog" />
@@ -217,6 +216,35 @@
             </v-card-actions>
           </form>
         </v-card-text>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="receiptDialog" max-width="720">
+      <v-card>
+        <v-card-title class="d-flex align-center ga-2">
+          <v-icon icon="mdi-camera" />
+          <span>Close-shift receipt</span>
+          <v-spacer />
+          <span v-if="receiptShift" class="text-caption text-medium-emphasis">
+            {{ branchName(receiptShift.branch_id) }} · {{ receiptShift.closing_person_name || '—' }}
+          </span>
+        </v-card-title>
+        <v-divider />
+        <!-- Fixed-height stage so the dialog doesn't resize when the photo lands. -->
+        <div class="image-stage d-flex align-center justify-center pa-2">
+          <v-progress-circular v-if="receiptLoading" indeterminate />
+          <v-img
+            v-else-if="receiptUrl"
+            class="image-stage__img"
+            contain
+            height="100%"
+            :src="receiptUrl"
+          />
+        </div>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="receiptDialog = false">Close</v-btn>
+        </v-card-actions>
       </v-card>
     </v-dialog>
   </div>
@@ -230,8 +258,14 @@
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useBranches } from '@/composables/useBranches'
   import { useCashboxes } from '@/composables/useCashboxes'
+  import { usePageAccess } from '@/composables/usePageAccess'
+  import { useNotify } from '@/composables/useNotify'
+  import { useShiftReceiptImages } from '@/composables/useShiftReceiptImages'
   import { useShifts } from '@/composables/useShifts'
   import { API_BASE } from '@/config'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const STATUS_OPTIONS = [
     { title: 'Open', value: 'open' },
@@ -265,6 +299,7 @@
     { title: 'Expected USD', key: 'expected_usd', align: 'end', sortable: false },
     { title: 'Counted USD', key: 'counted_usd', align: 'end', sortable: false },
     { title: 'Variance USD', key: 'variance_usd', align: 'end', sortable: false },
+    { title: 'Receipt', key: 'receipt', align: 'center', sortable: false, width: 90 },
     { title: 'Received', key: 'received_at', align: 'end', sortable: false },
   ]
 
@@ -304,29 +339,75 @@
 
   const tableRef = ref(null)
   const visitorsTableRef = ref(null)
+  const branchTableRef = ref(null)
   const dialog = ref(false)
+
+  // --- Close-shift receipt photo (see api/branch_shift_receipt_image.go) ---
+  const { fetchShiftReceiptImageForShift, fetchShiftReceiptImageObjectUrl } = useShiftReceiptImages()
+  const receiptDialog = ref(false)
+  const receiptShift = ref(null)
+  const receiptUrl = ref('')
+  const receiptLoading = ref(false)
+  const notify = useNotify()
+
+  function revokeReceiptUrl () {
+    if (receiptUrl.value) {
+      URL.revokeObjectURL(receiptUrl.value)
+      receiptUrl.value = ''
+    }
+  }
+
+  async function openReceipt (item) {
+    receiptShift.value = item
+    revokeReceiptUrl()
+    receiptDialog.value = true
+    receiptLoading.value = true
+    try {
+      const image = await fetchShiftReceiptImageForShift(item.id)
+      if (!image) {
+        notify.warning('No receipt photo for this shift yet.')
+        return
+      }
+      receiptUrl.value = await fetchShiftReceiptImageObjectUrl(image.id)
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      receiptLoading.value = false
+    }
+  }
 
   // Live-refresh the Visitors tab when a branch reports a counter press, so
   // the per-day rollup doesn't need a manual reload. The visitors table is
   // only mounted while that tab is open, so this is a no-op otherwise and
-  // switching to the tab refetches on mount anyway.
+  // switching to the tab refetches on mount anyway. Debounced so a burst of
+  // presses is one reload, not one network round trip per press.
   const { ensureConnected, onMessage } = useAdminSocket()
   let unsubscribeAdmin = null
+  let visitorReloadTimer = null
+  function scheduleVisitorsReload () {
+    if (visitorReloadTimer) return
+    visitorReloadTimer = setTimeout(() => {
+      visitorReloadTimer = null
+      visitorsTableRef.value?.reload()
+    }, 1000)
+  }
   onMounted(() => {
     ensureConnected()
     unsubscribeAdmin = onMessage(message => {
       if (message.type === 'branch_visitor_event') {
-        visitorsTableRef.value?.reload()
+        scheduleVisitorsReload()
+      } else if (message.type === 'branch_shift_receipt_uploaded') {
+        branchTableRef.value?.reload()
       }
     })
   })
   onUnmounted(() => {
+    clearTimeout(visitorReloadTimer)
     unsubscribeAdmin?.()
+    revokeReceiptUrl()
   })
   const submitting = ref(false)
-  const submitError = ref('')
   const closingId = ref(null)
-  const loadError = ref('')
 
   function money (cents) {
     return (Number(cents) / 100).toLocaleString(undefined, {
@@ -369,25 +450,22 @@
 
   function openCreate () {
     handleReset()
-    submitError.value = ''
     dialog.value = true
   }
 
   function closeDialog () {
     dialog.value = false
     handleReset()
-    submitError.value = ''
   }
 
   const submit = handleSubmit(async values => {
     submitting.value = true
-    submitError.value = ''
     try {
       await createShift({ cashbox_id: values.cashboxId })
       closeDialog()
       tableRef.value?.reload()
     } catch (error) {
-      submitError.value = error.message
+      notify.error(error.message)
     } finally {
       submitting.value = false
     }
@@ -399,7 +477,7 @@
       await closeShift(item.id)
       tableRef.value?.reload()
     } catch (error) {
-      loadError.value = error.message
+      notify.error(error.message)
     } finally {
       closingId.value = null
     }
@@ -407,6 +485,15 @@
 </script>
 
 <style scoped>
+.image-stage {
+  height: min(70vh, 640px);
+  width: 100%;
+}
+
+.image-stage__img {
+  width: 100%;
+}
+
 .page-root {
   flex: 1 1 auto;
   min-height: 0;

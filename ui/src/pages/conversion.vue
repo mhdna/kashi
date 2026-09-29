@@ -32,16 +32,6 @@
       </v-select>
     </div>
 
-    <v-alert
-      v-if="error"
-      class="cv-notice mx-4 mb-2"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ error }}
-    </v-alert>
-
     <div v-if="loading" class="d-flex justify-center pa-12">
       <v-progress-circular color="primary" indeterminate />
     </div>
@@ -74,7 +64,7 @@
       </v-row>
 
       <!-- Conversion trend + weekday profile -->
-      <v-row>
+      <v-row dense>
         <v-col cols="12" md="8">
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title">Conversion rate by month</div>
@@ -93,7 +83,7 @@
       </v-row>
 
       <!-- Funnel (visitors vs invoices) + branch comparison -->
-      <v-row>
+      <v-row dense>
         <v-col cols="12" md="7">
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title">Visitors vs invoices by month</div>
@@ -109,7 +99,7 @@
       </v-row>
 
       <!-- Month x branch conversion table -->
-      <v-row>
+      <v-row dense>
         <v-col cols="12">
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title">Conversion rate — month × branch</div>
@@ -157,6 +147,7 @@
   import { useBranches } from '@/composables/useBranches'
   import { useBranchInvoices } from '@/composables/useBranchInvoices'
   import { useBranchVisitors } from '@/composables/useBranchVisitors'
+  import { useNotify } from '@/composables/useNotify'
 
   // --- echarts chrome (identical helpers to footfall.vue) --------------
   const theme = useTheme()
@@ -202,7 +193,7 @@
   const { ensureConnected, onMessage } = useAdminSocket()
 
   const loading = ref(false)
-  const error = ref('')
+  const notify = useNotify()
   // Both sides of the funnel over [prevFrom, to] -- current window plus one
   // preceding window, so the conversion-rate KPI can show a period delta
   // without a second round of requests. Kept as the raw API rows; merged
@@ -234,22 +225,20 @@
 
   async function load () {
     loading.value = true
-    error.value = ''
     try {
       await fetchBranches()
       const [visitors, sales] = await fetchWindow()
       visitorDays.value = visitors
       salesDays.value = sales
     } catch (error_) {
-      error.value = error_.message
+      notify.error(error_.message)
     } finally {
       loading.value = false
     }
   }
 
   // Background refetch on a live event -- no spinner, last good data kept on
-  // failure. No optimistic in-memory merge here (Footfall has one for its
-  // counter); a debounced refetch is enough for a rate that moves slowly.
+  // failure. Reconciles the optimistic merges below against the server.
   const refreshing = ref(false)
   async function backgroundRefresh () {
     if (refreshing.value) return
@@ -258,19 +247,51 @@
       const [visitors, sales] = await fetchWindow()
       visitorDays.value = visitors
       salesDays.value = sales
-      error.value = ''
     } catch { /* keep the last successful fetch */ } finally {
       refreshing.value = false
     }
   }
 
+  // Apply a live event to the in-memory rows immediately, so the funnel and
+  // KPIs move the instant a customer is counted or a sale lands instead of
+  // waiting for the debounced refetch -- same approach as Footfall.
+  function upsertRow (list, branchId, day, patch) {
+    const row = list.value.find(r => r.branch_id === branchId && r.day === day)
+    if (row) {
+      Object.assign(row, patch(row))
+    } else {
+      list.value = [...list.value, { branch_id: branchId, day, in_count: 0, out_count: 0, invoice_count: 0, ...patch({}) }]
+    }
+  }
+  function applyVisitorEvent (message) {
+    const day = message.label
+    const branchId = Number(message.branch_id)
+    if (!day || !branchId) return
+    // message.amount is the authoritative running gross tally for that
+    // branch/day/direction, so clamp upward -- a duplicate push is a no-op.
+    const key = message.kind === 'out' ? 'out_count' : 'in_count'
+    const n = Number(message.amount) || 0
+    upsertRow(visitorDays, branchId, day, row => ({ [key]: Math.max(row[key] ?? 0, n) }))
+  }
+  function applyInvoiceEvent (message) {
+    // invoice_count is kind='sales' only (see ListBranchSalesDaysRange), so
+    // ignore returns/exchanges. No day in the payload; "today" locally is
+    // close enough for an optimistic bump the refetch reconciles in ~1s.
+    if (message.kind !== 'sales') return
+    const branchId = Number(message.branch_id)
+    if (!branchId) return
+    upsertRow(salesDays, branchId, ymd(new Date()), row => ({ invoice_count: (row.invoice_count ?? 0) + 1 }))
+  }
+
+  // Trailing debounce that can't be starved: kept only as server
+  // reconciliation now that the merges above carry the live path.
   let refreshTimer = null
   function scheduleRefresh () {
     if (refreshTimer) return
     refreshTimer = setTimeout(() => {
       refreshTimer = null
       backgroundRefresh()
-    }, 4000)
+    }, 1000)
   }
   let unsubscribe = null
 
@@ -278,9 +299,12 @@
     load()
     ensureConnected()
     unsubscribe = onMessage(message => {
-      // A counter press moves the denominator, a synced invoice the
-      // numerator -- either should nudge the page.
-      if (message.type === 'branch_visitor_event' || message.type === 'branch_invoice_created') {
+      // A counter press moves the denominator, a synced sale the numerator.
+      if (message.type === 'branch_visitor_event') {
+        applyVisitorEvent(message)
+        scheduleRefresh()
+      } else if (message.type === 'branch_invoice_created') {
+        applyInvoiceEvent(message)
         scheduleRefresh()
       }
     })

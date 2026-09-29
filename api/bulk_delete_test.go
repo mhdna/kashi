@@ -105,7 +105,7 @@ func TestBulkDeletePriceListItemsAPI(t *testing.T) {
 	server := newTestServer(t, store)
 	recorder := httptest.NewRecorder()
 
-	body, _ := json.Marshal(map[string]any{"product_ids": []int64{10, 11}})
+	body, _ := json.Marshal(map[string]any{"product_variant_ids": []int64{10, 11}})
 	request, err := http.NewRequest(http.MethodPost, "/price_lists/7/items/bulk_delete", bytes.NewReader(body))
 	require.NoError(t, err)
 	addAuthorization(t, request, server.tokenMaker, authorizationTypeBearer, "user", time.Minute)

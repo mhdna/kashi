@@ -114,16 +114,6 @@
       variant="outlined"
     />
 
-    <v-alert
-      v-if="submitError"
-      class="mt-4"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ submitError }}
-    </v-alert>
-
     <div class="d-flex justify-end ga-2 mt-4">
       <v-btn text="Clear" variant="text" @click="handleReset" />
       <v-btn
@@ -144,6 +134,7 @@
   import { useAttributes } from '@/composables/useAttributes'
   import { useColorsAndSizes } from '@/composables/useColorsAndSizes'
   import { API_BASE } from '@/config'
+  import { useNotify } from '@/composables/useNotify'
 
   const emit = defineEmits(['created'])
 
@@ -207,12 +198,11 @@
     return (valuesByType.value[attribute] ?? []).map(v => v.value)
   }
 
+  const notify = useNotify()
   const submitting = ref(false)
-  const submitError = ref('')
 
   const submit = handleSubmit(async values => {
     submitting.value = true
-    submitError.value = ''
     try {
       const attributes = {}
       for (const field of attributeFields) {
@@ -241,7 +231,7 @@
       handleReset()
       emit('created')
     } catch (error) {
-      submitError.value = error.message
+      notify.error(error.message)
     } finally {
       submitting.value = false
     }

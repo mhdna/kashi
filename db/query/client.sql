@@ -140,7 +140,14 @@ WITH ranked AS (
       COALESCE(SUM(ip.quantity), 0) AS central_item_count
     FROM invoices i
     LEFT JOIN sales_invoices si ON si.invoice_id = i.id
-    LEFT JOIN invoice_products ip ON ip.invoice_id = i.id
+    -- Line items are pre-aggregated to one row per invoice. Joining
+    -- invoice_products directly would repeat each invoice once per line and
+    -- multiply grand_total into central_total by the line count.
+    LEFT JOIN (
+      SELECT invoice_id, SUM(quantity) AS quantity
+      FROM invoice_products
+      GROUP BY invoice_id
+    ) ip ON ip.invoice_id = i.id
     GROUP BY i.client_id
   ) ci ON ci.client_id = c.id
   LEFT JOIN (
@@ -150,7 +157,12 @@ WITH ranked AS (
       COALESCE(SUM(bii.quantity), 0) AS branch_item_count
     FROM branch_invoices b
     JOIN client_links cl ON cl.branch_id = b.branch_id AND cl.branch_client_id = b.branch_client_id
-    LEFT JOIN branch_invoice_items bii ON bii.branch_invoice_id = b.id
+    -- Pre-aggregated per invoice for the same reason as invoice_products above.
+    LEFT JOIN (
+      SELECT branch_invoice_id, SUM(quantity) AS quantity
+      FROM branch_invoice_items
+      GROUP BY branch_invoice_id
+    ) bii ON bii.branch_invoice_id = b.id
     WHERE sqlc.narg(branch_id)::bigint IS NULL OR b.branch_id = sqlc.narg(branch_id)
     GROUP BY cl.client_id
   ) bi ON bi.client_id = c.id
@@ -177,6 +189,67 @@ OFFSET $2;
 SELECT COUNT(*) FROM clients c
 WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type))
   AND (sqlc.narg(search)::text IS NULL OR c.name ILIKE '%' || sqlc.narg(search)::text || '%' OR c.phone ILIKE '%' || sqlc.narg(search)::text || '%');
+
+-- name: ListClientSpendingSummary :many
+-- Whole-population feed for the loyalty page, which buckets every client
+-- into a front-end tier by total_spent and so needs all of them, not a
+-- page. ListClientsBySpending can't serve that: its aggregation scans all
+-- invoices/branch_invoices on every call, so paging 25k clients through it
+-- re-runs that scan once per page. This runs it once and returns only the
+-- handful of columns the loyalty page reads, so the payload stays small even
+-- at tens of thousands of rows.
+--
+-- total_spent/invoice_count are lifetime (they drive the tier bucketing);
+-- period_spent/period_invoice_count cover [date_from, date_to) only, either
+-- bound optional. Half-open so the caller can pass the first instant of the
+-- day after the last selected day.
+--
+-- Same two sources and sign conventions as ListClientsBySpending (see the
+-- comment there); item_count and the branch_id/search filters are dropped
+-- -- nothing on the loyalty page uses them, and dropping item_count also
+-- drops the two line-item joins whose row fan-out made the DISTINCTs
+-- necessary (kept anyway, so a non-unique sales_invoices/client_links row
+-- can't inflate a count).
+WITH central AS (
+  SELECT i.client_id,
+    SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END) AS total,
+    COUNT(DISTINCT i.id) AS invoice_count,
+    SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END)
+      FILTER (WHERE p.in_period) AS period_total,
+    COUNT(DISTINCT i.id) FILTER (WHERE p.in_period) AS period_invoice_count
+  FROM invoices i
+  LEFT JOIN sales_invoices si ON si.invoice_id = i.id
+  CROSS JOIN LATERAL (SELECT
+    (sqlc.narg(date_from)::timestamptz IS NULL OR i.created_at >= sqlc.narg(date_from)::timestamptz)
+    AND (sqlc.narg(date_to)::timestamptz IS NULL OR i.created_at < sqlc.narg(date_to)::timestamptz) AS in_period) p
+  GROUP BY i.client_id
+), branch AS (
+  SELECT cl.client_id,
+    SUM(b.grand_total) AS total,
+    COUNT(DISTINCT b.id) AS invoice_count,
+    SUM(b.grand_total) FILTER (WHERE p.in_period) AS period_total,
+    COUNT(DISTINCT b.id) FILTER (WHERE p.in_period) AS period_invoice_count
+  FROM branch_invoices b
+  JOIN client_links cl ON cl.branch_id = b.branch_id AND cl.branch_client_id = b.branch_client_id
+  CROSS JOIN LATERAL (SELECT
+    (sqlc.narg(date_from)::timestamptz IS NULL OR b.occurred_at >= sqlc.narg(date_from)::timestamptz)
+    AND (sqlc.narg(date_to)::timestamptz IS NULL OR b.occurred_at < sqlc.narg(date_to)::timestamptz) AS in_period) p
+  GROUP BY cl.client_id
+)
+SELECT
+  c.id,
+  c.name,
+  c.created_at,
+  c.valid_loyalty_points,
+  (COALESCE(ce.total, 0) + COALESCE(br.total, 0))::bigint AS total_spent,
+  (COALESCE(ce.invoice_count, 0) + COALESCE(br.invoice_count, 0))::bigint AS invoice_count,
+  (COALESCE(ce.period_total, 0) + COALESCE(br.period_total, 0))::bigint AS period_spent,
+  (COALESCE(ce.period_invoice_count, 0) + COALESCE(br.period_invoice_count, 0))::bigint AS period_invoice_count
+FROM clients c
+LEFT JOIN central ce ON ce.client_id = c.id
+LEFT JOIN branch br ON br.client_id = c.id
+WHERE sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type)
+ORDER BY total_spent DESC, c.name ASC;
 
 -- name: ListClientsUpdatedSincePaged :many
 -- Keyset-paginated form of ListClientsUpdatedSince for a branch doing a

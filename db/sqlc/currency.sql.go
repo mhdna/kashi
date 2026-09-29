@@ -23,6 +23,24 @@ func (q *Queries) CountCurrencies(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const countCurrencyUsage = `-- name: CountCurrencyUsage :one
+SELECT
+  (SELECT COUNT(*) FROM cashbox_accounts ca WHERE ca.currency_code = $1::text) +
+  (SELECT COUNT(*) FROM branch_cashbox_accounts bca WHERE bca.currency_code = $1::text) AS usage_count
+`
+
+// Whether anything in kashi's own tables still points at this currency --
+// a payment method priced in it, or a branch override that prices one in it.
+// A currency that's still referenced can't be hard-deleted (it would either
+// violate the FK or silently orphan those rows); the delete handler blocks
+// on this and points the admin at deactivating instead.
+func (q *Queries) CountCurrencyUsage(ctx context.Context, code string) (int32, error) {
+	row := q.db.QueryRowContext(ctx, countCurrencyUsage, code)
+	var usage_count int32
+	err := row.Scan(&usage_count)
+	return usage_count, err
+}
+
 const createCurrency = `-- name: CreateCurrency :one
 INSERT INTO currencies (
   name,
@@ -153,6 +171,45 @@ type ListCurrenciesParams struct {
 // picker and the paged table agree.
 func (q *Queries) ListCurrencies(ctx context.Context, arg ListCurrenciesParams) ([]Currency, error) {
 	rows, err := q.db.QueryContext(ctx, listCurrencies, arg.PageOffset, arg.PageSize)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Currency{}
+	for rows.Next() {
+		var i Currency
+		if err := rows.Scan(
+			&i.Code,
+			&i.Name,
+			&i.Symbol,
+			&i.IsDefault,
+			&i.ValueInDefaultCurrency,
+			&i.IsActive,
+			&i.UnitsPerUsdMicros,
+			&i.CashRoundingUnit,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listCurrenciesForSync = `-- name: ListCurrenciesForSync :many
+SELECT code, name, symbol, is_default, value_in_default_currency, is_active, units_per_usd_micros, cash_rounding_unit, updated_at FROM currencies
+ORDER BY code
+`
+
+// The whole set -- see ListCashboxAccountsForSync for why this is not a delta.
+func (q *Queries) ListCurrenciesForSync(ctx context.Context) ([]Currency, error) {
+	rows, err := q.db.QueryContext(ctx, listCurrenciesForSync)
 	if err != nil {
 		return nil, err
 	}

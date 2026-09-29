@@ -18,6 +18,14 @@ type Config struct {
 	// ExpenseImageStorageDir is where receipt photos uploaded through the
 	// one-time QR flow (api/expense_upload.go) are saved on local disk.
 	ExpenseImageStorageDir string `mapstructure:"EXPENSE_IMAGE_STORAGE_DIR"`
+	// ShiftReceiptImageStorageDir is where close-shift receipt photos
+	// forwarded by kashi-pos (api/branch_shift_receipt_image.go) are saved.
+	// Defaults to ./storage/shift_receipt_images when unset.
+	ShiftReceiptImageStorageDir string `mapstructure:"SHIFT_RECEIPT_IMAGE_STORAGE_DIR"`
+	// TransferAttachmentStorageDir is where the optional photo attached to
+	// a branch-initiated transfer request (api/branch_transfer.go) is
+	// saved. Defaults to ./storage/transfer_attachments when unset.
+	TransferAttachmentStorageDir string `mapstructure:"TRANSFER_ATTACHMENT_STORAGE_DIR"`
 	// AppLogPath is the bounded, rotating backend log file. It defaults to
 	// logs/kashi.log when APP_LOG_PATH is not set.
 	AppLogPath string `mapstructure:"APP_LOG_PATH"`

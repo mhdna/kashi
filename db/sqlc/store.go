@@ -19,8 +19,11 @@ type Store interface {
 	CreateTransferTx(ctx context.Context, arg CreateTransferTxParams) (CreateTransferTxResult, error)
 	TransferDispatchTx(ctx context.Context, arg TransferStageTxParams) (TransferStageTxResult, error)
 	TransferReceiveTx(ctx context.Context, arg TransferStageTxParams) (TransferStageTxResult, error)
+	TransferApproveTx(ctx context.Context, arg TransferStageTxParams) (TransferStageTxResult, error)
 	StockAdjustmentTx(ctx context.Context, arg StockAdjustmentTxParams) (StockAdjustmentTxResult, error)
 	CreateBranchInvoiceTx(ctx context.Context, arg CreateBranchInvoiceTxParams) (CreateBranchInvoiceTxResult, error)
+	CreateBranchTransferRequestTx(ctx context.Context, arg CreateBranchTransferRequestTxParams) (CreateBranchTransferRequestTxResult, error)
+	ConfirmBranchTransferTx(ctx context.Context, arg ConfirmBranchTransferTxParams) (Transfer, error)
 	ApplyBranchSettlementTx(ctx context.Context, arg ApplyBranchSettlementTxParams) (ApplyBranchSettlementTxResult, error)
 	FireRecurringExpenseTx(ctx context.Context, recurring RecurringExpense) (Expense, error)
 	DeleteBranchTargetSeriesTx(ctx context.Context, seriesID int64) (BranchTargetSeries, error)
@@ -30,6 +33,8 @@ type Store interface {
 	CancelStockCountTx(ctx context.Context, id int64) (StockCount, error)
 	CancelPurchaseTx(ctx context.Context, purchaseID int64, cancelledBy sql.NullInt64) (PurchaseReceiveTxResult, error)
 	CancelTransferTx(ctx context.Context, transferID int64, cancelledBy sql.NullInt64) (TransferStageTxResult, error)
+	CreateBatchTx(ctx context.Context, arg CreateBatchTxParams) (CreateBatchTxResult, error)
+	SaveRolePermissionsTx(ctx context.Context, roleID int64, perms []RolePermission) error
 }
 
 // provides all the functions to execute SQL queries

@@ -30,6 +30,13 @@ type branchExpenseRequest struct {
 	Amount                 int64  `json:"amount" binding:"required"`
 	CurrencyCode           string `json:"currency_code" binding:"required"`
 	BranchCashboxAccountID int64  `json:"branch_cashbox_account_id" binding:"required"`
+	// AccountName is the payment account's display name -- optional (older
+	// kashi-pos builds omit it), but this is what lets a branch's own
+	// historical expenses be matched back to a real local account by name
+	// if that branch's till database is ever wiped and re-provisioned;
+	// BranchCashboxAccountID alone can't survive that, see the migration
+	// that added this column.
+	AccountName string `json:"account_name"`
 	// A branch may report an expense with no shift open (e.g. before the
 	// day's first shift starts), so this is optional unlike
 	// BranchCashboxAccountID.
@@ -77,15 +84,16 @@ func (server *Server) createBranchExpense(ctx *gin.Context) {
 	}
 
 	expense, err := server.store.CreateBranchExpense(ctx, db.CreateBranchExpenseParams{
-		BranchID:               branchID,
-		ClientRef:              req.ClientRef,
-		Description:            req.Description,
-		CategoryID:             categoryID,
-		Amount:                 req.Amount,
-		CurrencyCode:           req.CurrencyCode,
-		BranchCashboxAccountID: req.BranchCashboxAccountID,
-		BranchShiftID:          branchShiftID,
-		OccurredAt:             req.OccurredAt,
+		BranchID:                 branchID,
+		ClientRef:                req.ClientRef,
+		Description:              req.Description,
+		CategoryID:               categoryID,
+		Amount:                   req.Amount,
+		CurrencyCode:             req.CurrencyCode,
+		BranchCashboxAccountID:   req.BranchCashboxAccountID,
+		BranchCashboxAccountName: sql.NullString{String: req.AccountName, Valid: req.AccountName != ""},
+		BranchShiftID:            branchShiftID,
+		OccurredAt:               req.OccurredAt,
 	})
 	if err != nil {
 		if isUniqueViolation(err) {

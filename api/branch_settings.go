@@ -78,6 +78,17 @@ type branchSettingsRequest struct {
 	AttendanceEnabled                  *bool   `json:"attendance_enabled"`
 	AttendanceDuplicateIntervalSeconds *int64  `json:"attendance_duplicate_interval_seconds"`
 	AttendanceCashierHistory           *bool   `json:"attendance_cashier_history"`
+
+	// --- totals split (POS: settings columns) ---
+	// Which currency forms the first half of the till's two-currency total,
+	// and whether it comes first. The second half is RoundingCurrency, which
+	// predates these. Empty/nil leaves the branch on its own default.
+	SplitPrimaryCurrency *string `json:"split_primary_currency"`
+	SplitPrimaryFirst    *bool   `json:"split_primary_first"`
+	// The split's own denomination, independent of the primary currency's
+	// cash_rounding_unit (see 000097). Nil/0 leaves the branch on its own
+	// default, which is that currency's cash_rounding_unit.
+	SplitPrimaryStep *int64 `json:"split_primary_step"`
 }
 
 func orZero[T any](p *T) T {
@@ -171,6 +182,9 @@ func (server *Server) putBranchSettings(ctx *gin.Context) {
 		AttendanceEnabled:                  orZero(req.AttendanceEnabled),
 		AttendanceDuplicateIntervalSeconds: orZero(req.AttendanceDuplicateIntervalSeconds),
 		AttendanceCashierHistory:           orZero(req.AttendanceCashierHistory),
+		SplitPrimaryCurrency:               orZero(req.SplitPrimaryCurrency),
+		SplitPrimaryFirst:                  orTrue(req.SplitPrimaryFirst),
+		SplitPrimaryStep:                   orZero(req.SplitPrimaryStep),
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)

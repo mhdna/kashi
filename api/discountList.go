@@ -151,7 +151,8 @@ func (server *Server) deleteDiscountList(ctx *gin.Context) {
 
 type createDiscountListItemRequest struct {
 	DiscountListID int64 `json:"discount_list_id" binding:"required"`
-	ProductID      int64 `json:"product_id" binding:"required"`
+	// The variant, not the product -- see createPriceListItemRequest.
+	ProductVariantID int64 `json:"product_variant_id" binding:"required"`
 	// 0 is a legitimate value, so no "required" here -- it's validated by range.
 	Discount int16 `json:"discount" binding:"min=0,max=100"`
 }
@@ -164,9 +165,9 @@ func (server *Server) createDiscountListItem(ctx *gin.Context) {
 	}
 
 	arg := db.CreateDiscountListItemParams{
-		DiscountListID: req.DiscountListID,
-		ProductID:      req.ProductID,
-		Discount:       req.Discount,
+		DiscountListID:   req.DiscountListID,
+		ProductVariantID: req.ProductVariantID,
+		Discount:         req.Discount,
 	}
 
 	item, err := server.store.CreateDiscountListItem(ctx, arg)
@@ -211,8 +212,8 @@ func (server *Server) listDiscountListItems(ctx *gin.Context) {
 }
 
 type deleteDiscountListItemRequest struct {
-	DiscountListID int64 `uri:"id" binding:"required,min=1"`
-	ProductID      int64 `uri:"product_id" binding:"required,min=1"`
+	DiscountListID   int64 `uri:"id" binding:"required,min=1"`
+	ProductVariantID int64 `uri:"product_variant_id" binding:"required,min=1"`
 }
 
 func (server *Server) deleteDiscountListItem(ctx *gin.Context) {
@@ -223,8 +224,8 @@ func (server *Server) deleteDiscountListItem(ctx *gin.Context) {
 	}
 
 	err := server.store.DeleteDiscountListItem(ctx, db.DeleteDiscountListItemParams{
-		DiscountListID: req.DiscountListID,
-		ProductID:      req.ProductID,
+		DiscountListID:   req.DiscountListID,
+		ProductVariantID: req.ProductVariantID,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)

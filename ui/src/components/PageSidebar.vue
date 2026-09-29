@@ -62,7 +62,7 @@
 
           <template #append>
             <slot :item="item.raw ?? item" name="append" />
-            <div v-if="rowActions" class="ps-actions">
+            <div v-if="rowActions && canEdit" class="ps-actions">
               <v-btn
                 density="comfortable"
                 icon="mdi-pencil"
@@ -87,7 +87,7 @@
       </div>
     </v-list>
 
-    <template v-if="addLabel">
+    <template v-if="addLabel && canEdit">
       <v-divider />
       <v-btn
         block
@@ -104,6 +104,10 @@
 
 <script setup lang="ts">
   import { computed } from 'vue'
+  import { usePageAccess } from '@/composables/usePageAccess'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   // Sentinel for the optional "All" row — v-list-item can't key off null.
   const ALL_VALUE = '__ps_all__'

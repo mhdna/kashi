@@ -12,21 +12,7 @@
         <span v-if="total >= 0" class="text-caption text-disabled">{{ total }}</span>
       </div>
 
-      <v-alert
-        v-if="error"
-        class="ma-1"
-        density="compact"
-        type="error"
-        variant="tonal"
-      >
-        {{ error }}
-        <template #append>
-          <v-btn size="x-small" variant="text" @click="reset">Retry</v-btn>
-        </template>
-      </v-alert>
-
       <v-virtual-scroll
-        v-else
         ref="scroller"
         class="dash-scroll"
         :height="height || undefined"
@@ -104,6 +90,7 @@
 <script setup>
   import { computed, onMounted, ref, watch } from 'vue'
   import { dedupedFetch } from '@/composables/useRequestDedup'
+  import { useNotify } from '@/composables/useNotify'
 
   const props = defineProps({
     // Base URL with filters already applied; DashboardList adds paging.
@@ -150,7 +137,7 @@
   const items = ref([])
   const total = ref(-1)
   const loading = ref(false)
-  const error = ref('')
+  const notify = useNotify()
   const scroller = ref(null)
 
   let offset = 0
@@ -170,7 +157,6 @@
     }
 
     loading.value = true
-    error.value = ''
     const mySeq = ++seq
     const from = reset ? 0 : offset
     try {
@@ -185,7 +171,7 @@
       offset = items.value.length
       done = batch.length < props.pageSize || items.value.length >= props.maxItems
     } catch (error_) {
-      if (mySeq === seq) error.value = error_.message
+      if (mySeq === seq) notify.error(error_.message)
     } finally {
       if (mySeq === seq) loading.value = false
     }

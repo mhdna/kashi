@@ -2,11 +2,17 @@ package api
 
 import (
 	"database/sql"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/mhdna/kashi/db/sqlc"
 )
+
+// errCurrencyInUse is returned instead of deleting a currency that a payment
+// method or branch override still prices in -- deactivating it (is_active)
+// is the safe way to retire it once it's been used anywhere.
+var errCurrencyInUse = errors.New("currency is used by a payment method or branch override; deactivate it instead of deleting")
 
 // defaultUnitsPerUSDMicros/defaultCashRoundingUnit match the values
 // kashi-pos itself defaults to for a currency at par with USD (see its
@@ -23,8 +29,8 @@ type createCurrencyRequest struct {
 	Code                   string `json:"code" binding:"required"`
 	Symbol                 string `json:"symbol" binding:"required"`
 	ValueInDefaultCurrency int64  `json:"value_in_default_currency" binding:"required,min=1"`
-	UnitsPerUsdMicros      int64  `json:"units_per_usd_micros"`
-	CashRoundingUnit       int64  `json:"cash_rounding_unit"`
+	UnitsPerUsdMicros      int64  `json:"units_per_usd_micros" binding:"omitempty,min=1"`
+	CashRoundingUnit       int64  `json:"cash_rounding_unit" binding:"omitempty,min=1"`
 }
 
 func (server *Server) createCurrency(ctx *gin.Context) {
@@ -114,14 +120,21 @@ func (server *Server) listCurrencies(ctx *gin.Context) {
 	)
 }
 
+// A nil pointer here means "the caller said nothing about this field", which
+// is not the same as the zero value -- UpdateCurrency rewrites the whole row,
+// so an omitted field has to fall back to what is already stored rather than
+// to a default. Defaulting an omitted rate to par (the create path's
+// behavior) would silently flatten a configured currency every time someone
+// saved an unrelated edit, and broadcastAll would push that loss to every
+// branch.
 type updateCurrencyRequest struct {
 	Code                   string `json:"code" binding:"required"`
 	Name                   string `json:"name" binding:"required"`
 	Symbol                 string `json:"symbol" binding:"required"`
 	ValueInDefaultCurrency int64  `json:"value_in_default_currency" binding:"required,min=1"`
 	IsActive               *bool  `json:"is_active"`
-	UnitsPerUsdMicros      int64  `json:"units_per_usd_micros"`
-	CashRoundingUnit       int64  `json:"cash_rounding_unit"`
+	UnitsPerUsdMicros      *int64 `json:"units_per_usd_micros" binding:"omitempty,min=1"`
+	CashRoundingUnit       *int64 `json:"cash_rounding_unit" binding:"omitempty,min=1"`
 }
 
 func (server *Server) updateCurrency(ctx *gin.Context) {
@@ -130,15 +143,28 @@ func (server *Server) updateCurrency(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	isActive := true
+
+	existing, err := server.store.GetCurrency(ctx, req.Code)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	isActive := existing.IsActive
 	if req.IsActive != nil {
 		isActive = *req.IsActive
 	}
-	if req.UnitsPerUsdMicros == 0 {
-		req.UnitsPerUsdMicros = defaultUnitsPerUSDMicros
+	unitsPerUsdMicros := existing.UnitsPerUsdMicros
+	if req.UnitsPerUsdMicros != nil {
+		unitsPerUsdMicros = *req.UnitsPerUsdMicros
 	}
-	if req.CashRoundingUnit == 0 {
-		req.CashRoundingUnit = defaultCashRoundingUnit
+	cashRoundingUnit := existing.CashRoundingUnit
+	if req.CashRoundingUnit != nil {
+		cashRoundingUnit = *req.CashRoundingUnit
 	}
 
 	currency, err := server.store.UpdateCurrency(ctx, db.UpdateCurrencyParams{
@@ -147,8 +173,8 @@ func (server *Server) updateCurrency(ctx *gin.Context) {
 		Symbol:                 req.Symbol,
 		ValueInDefaultCurrency: req.ValueInDefaultCurrency,
 		IsActive:               isActive,
-		UnitsPerUsdMicros:      req.UnitsPerUsdMicros,
-		CashRoundingUnit:       req.CashRoundingUnit,
+		UnitsPerUsdMicros:      unitsPerUsdMicros,
+		CashRoundingUnit:       cashRoundingUnit,
 	})
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -173,7 +199,17 @@ func (server *Server) deleteCurrency(ctx *gin.Context) {
 		return
 	}
 
-	err := server.store.DeleteCurrency(ctx, req.Code)
+	usage, err := server.store.CountCurrencyUsage(ctx, req.Code)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if usage > 0 {
+		server.writeError(ctx, http.StatusConflict, errCurrencyInUse)
+		return
+	}
+
+	err = server.store.DeleteCurrency(ctx, req.Code)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return

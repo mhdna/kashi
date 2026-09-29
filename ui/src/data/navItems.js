@@ -9,6 +9,7 @@ export const navItems = [
       { title: 'Financials', icon: 'mdi-currency-usd', to: '/financials' },
       { title: 'Targets', icon: 'mdi-target', to: '/targets' },
       { title: 'Footfall', icon: 'mdi-walk', to: '/footfall' },
+      { title: 'Product Revenues', icon: 'mdi-package-variant', to: '/product-revenues' },
       { title: 'Conversion', icon: 'mdi-percent-outline', to: '/conversion' },
       { title: 'Sales Analytics', icon: 'mdi-chart-line', to: '/sales-analytics' },
       { title: 'Sales Analysis', icon: 'mdi-chart-box-outline', to: '/sales-analysis' },
@@ -96,7 +97,9 @@ export const navItems = [
     icon: 'mdi-warehouse',
     children: [
       { title: 'Inventory', icon: 'mdi-warehouse', to: '/inventory' },
+      { title: 'Inventory Analysis', icon: 'mdi-chart-box-outline', to: '/inventory-analysis' },
       { title: 'Purchase Invoices', icon: 'mdi-invoice', to: '/purchase-invoice' },
+      { title: 'Batches', icon: 'mdi-package-variant-closed', to: '/batches' },
       { title: 'Transfers', icon: 'mdi-transfer', to: '/transfers' },
       { title: 'Stock Counts', icon: 'mdi-clipboard-list-outline', to: '/stock-counts' },
       { title: 'Stock Movements', icon: 'mdi-swap-vertical', to: '/stock-movements' },
@@ -109,7 +112,7 @@ export const navItems = [
 export const appendItems = [
   { title: 'Calendar', icon: 'mdi-calendar', to: '/calendar' },
   { title: 'Storage', icon: 'mdi-google-drive', to: '/storage' },
-  { title: 'Logs', icon: 'mdi-text', to: '/logs' },
+  { title: 'Dev Logs', icon: 'mdi-code-tags', to: '/logs' },
   { title: 'Audit Log', icon: 'mdi-history', to: '/audit-log' },
   { title: 'Settings', icon: 'mdi-cog-outline', to: '/settings' },
 ]

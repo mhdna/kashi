@@ -25,14 +25,14 @@
       </v-card>
     </template>
 
-    <v-card max-width="320" min-width="240">
+    <v-card class="menu-card" max-width="320" min-width="240">
       <v-card-title class="text-subtitle-1">Connected branches</v-card-title>
       <v-divider />
 
       <v-card-text v-if="serverDown" class="text-medium-emphasis">
         Server is down, we'll be back soon.
       </v-card-text>
-      <v-list v-else-if="connectedBranchIds.length > 0" density="compact">
+      <v-list v-else-if="connectedBranchIds.length > 0" class="menu-scroll" density="compact">
         <v-list-item v-for="id in connectedBranchIds" :key="id" :title="branchName(id)">
           <template #prepend>
             <v-icon color="success" icon="mdi-circle" size="10" />
@@ -61,8 +61,10 @@
   let unsubscribe = null
 
   // Without a live socket we have no idea which branches are actually online,
-  // so the count would be stale -- surface the outage message instead of a number.
-  const serverDown = computed(() => status.value !== 'open')
+  // so the count would be stale -- surface the outage message instead of a
+  // number. Only a confirmed 'closed' counts: 'connecting' is the normal
+  // pre-handshake state on page load and must not flash the outage copy.
+  const serverDown = computed(() => status.value === 'closed')
   const statusColor = computed(() => {
     if (serverDown.value) return 'white'
     return connectedBranchIds.value.length > 0 ? 'success' : 'error'
@@ -107,5 +109,16 @@
     width: 34px;
     height: 34px;
     justify-content: center;
+  }
+
+  /* Cap the dropdown height; the list scrolls inside. */
+  .menu-card {
+    display: flex;
+    flex-direction: column;
+    max-height: min(60vh, 420px);
+  }
+
+  .menu-scroll {
+    overflow-y: auto;
   }
 </style>

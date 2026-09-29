@@ -1,6 +1,7 @@
 import { createResource } from './useApiResource'
 
-// Users are POS operators identified by name + a 4-6 digit PIN. The list route
+// Users are cloud (admin site) accounts: name + password + role. They're a
+// separate list from a branch's POS users. The list route
 // is registered without a trailing slash (see api/server.go), hence listPath.
 const resource = createResource({ path: '/users', listPath: '/users', rootKey: 'users' })
 

@@ -1,15 +1,5 @@
 <template>
   <div class="page-root">
-    <v-alert
-      v-if="loadError"
-      class="mb-4"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ loadError }}
-    </v-alert>
-
     <v-card class="cp-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-cash-multiple" />
@@ -38,7 +28,7 @@
           variant="outlined"
         />
         <v-btn
-          v-if="tab === 'currencies'"
+          v-if="canEdit && tab === 'currencies'"
           color="primary"
           prepend-icon="mdi-plus"
           text="Add Currency"
@@ -46,7 +36,7 @@
           @click="openAddCurrency"
         />
         <v-btn
-          v-else
+          v-if="canEdit && tab !== 'currencies'"
           color="primary"
           prepend-icon="mdi-plus"
           text="Add Payment Method"
@@ -92,7 +82,7 @@
                 :items-per-page-options="[15, 25, 50, 100]"
                 :loading="currencyLoading"
                 :search="currencySearch"
-                show-select
+                :show-select="canEdit"
                 @click:row="openCurrencyRow"
               >
                 <template #item.data-table-select="{ item, internalItem, isSelected, toggleSelect }">
@@ -102,8 +92,23 @@
                     @update:model-value="toggleSelect(internalItem)"
                   />
                 </template>
+                <template #item.units_per_usd_micros="{ item }">
+                  {{ formatUnitsPerUsd(item.units_per_usd_micros) }}
+                </template>
                 <template #item.is_default="{ item }">
                   <v-chip v-if="item.is_default" color="primary" size="small">Default</v-chip>
+                </template>
+                <template #item.is_active="{ item }">
+                  <v-switch
+                    color="primary"
+                    density="compact"
+                    :disabled="!canEdit || item.is_default"
+                    hide-details
+                    :loading="currencyTogglingCode === item.code"
+                    :model-value="item.is_active"
+                    @click.stop
+                    @update:model-value="value => toggleCurrencyActive(item, value)"
+                  />
                 </template>
               </v-data-table>
             </div>
@@ -133,6 +138,28 @@
                 </template>
                 <template #item.reserved="{ item }">
                   <v-chip v-if="item.reserved" size="small" variant="tonal">System</v-chip>
+                </template>
+                <template #item.is_active="{ item }">
+                  <v-switch
+                    color="primary"
+                    density="compact"
+                    :disabled="!canEdit || item.reserved"
+                    hide-details
+                    :loading="methodTogglingId === item.id"
+                    :model-value="item.is_active"
+                    @click.stop
+                    @update:model-value="value => toggleMethodActive(item, value)"
+                  />
+                </template>
+                <template #item.actions="{ item }">
+                  <v-btn
+                    color="error"
+                    :disabled="!canEdit || item.reserved"
+                    icon="mdi-delete"
+                    size="small"
+                    variant="text"
+                    @click.stop="openDeleteMethod(item)"
+                  />
                 </template>
               </v-data-table>
             </div>
@@ -169,16 +196,28 @@
             label="Value in Default Currency"
             type="number"
           />
-
-          <v-alert
-            v-if="currencyError"
-            class="mb-2 mt-4"
+          <v-text-field
+            v-model.number="currencyForm.unitsPerUsd"
             density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ currencyError }}
-          </v-alert>
+            :disabled="editingIsDefault"
+            :hint="editingIsDefault
+              ? 'The default currency is the accounting anchor; its rate is fixed.'
+              : 'e.g. 90000 for LBP, 0.92 for EUR'"
+            label="Units per 1 USD"
+            persistent-hint
+            type="number"
+          />
+          <v-text-field
+            v-model.number="currencyForm.cashRoundingUnit"
+            class="mt-3"
+            density="compact"
+            :disabled="editingIsDefault"
+            hint="Cash in this currency rounds to the nearest multiple of this. 1 = no rounding."
+            label="Cash rounding unit"
+            persistent-hint
+            type="number"
+          />
+
         </v-card-text>
         <v-card-actions>
           <v-btn
@@ -209,13 +248,6 @@
         <v-card-title>Delete Currency</v-card-title>
         <v-card-text>
           Delete <strong>{{ deleteTarget?.name }}</strong>? This cannot be undone.
-          <v-alert
-            v-if="deleteError"
-            class="mt-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >{{ deleteError }}</v-alert>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -226,6 +258,28 @@
             text="Delete"
             variant="flat"
             @click="confirmDeleteCurrency"
+          />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- delete payment method -->
+    <v-dialog v-model="methodDeleteDialog" max-width="420">
+      <v-card>
+        <v-card-title>Delete Payment Method</v-card-title>
+        <v-card-text>
+          Delete <strong>{{ methodDeleteTarget?.name }}</strong>? This cannot be undone. If any
+          branch has customized this method, deactivate it instead.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn text="Cancel" variant="text" @click="methodDeleteDialog = false" />
+          <v-btn
+            color="error"
+            :loading="methodDeleting"
+            text="Delete"
+            variant="flat"
+            @click="confirmDeleteMethod"
           />
         </v-card-actions>
       </v-card>
@@ -281,13 +335,6 @@
             mode="hex"
             width="100%"
           />
-          <v-alert
-            v-if="methodError"
-            class="mt-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >{{ methodError }}</v-alert>
         </v-card-text>
         <v-card-actions class="px-4 pb-4">
           <v-spacer />
@@ -312,6 +359,13 @@
   import { useBulkDelete } from '@/composables/useBulkDelete'
   import { useCashboxAccounts } from '@/composables/useCashboxAccounts'
   import { useCurrencies } from '@/composables/useCurrencies'
+  import { useNotify } from '@/composables/useNotify'
+  import { usePageAccess } from '@/composables/usePageAccess'
+
+  const notify = useNotify()
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
 
   const {
     currencies,
@@ -341,10 +395,11 @@
     fetchCashboxAccounts,
     createCashboxAccount,
     updateCashboxAccount,
+    deleteCashboxAccount,
+    setCashboxAccountActive,
   } = useCashboxAccounts()
 
   const tab = ref('currencies')
-  const loadError = ref('')
   const currencyLoading = ref(false)
   const methodLoading = ref(false)
   const currencySearch = ref('')
@@ -361,7 +416,10 @@
     { title: 'Name', key: 'name', align: 'start' },
     { title: 'Symbol', key: 'symbol', align: 'start' },
     { title: 'Value in Default Currency', key: 'value_in_default_currency', align: 'end' },
+    { title: 'Units per 1 USD', key: 'units_per_usd_micros', align: 'end' },
+    { title: 'Cash rounding', key: 'cash_rounding_unit', align: 'end' },
     { title: '', key: 'is_default', align: 'center', sortable: false },
+    { title: 'Active', key: 'is_active', align: 'center', sortable: false },
   ]
 
   const methodHeaders = [
@@ -370,6 +428,8 @@
     { title: 'Color', key: 'color', align: 'start' },
     { title: 'Order', key: 'sort_order', align: 'end', width: 90 },
     { title: '', key: 'reserved', align: 'center', sortable: false },
+    { title: 'Active', key: 'is_active', align: 'center', sortable: false },
+    { title: '', key: 'actions', align: 'end', sortable: false },
   ]
 
   // "On Account" / "On Coupon" are internal bookkeeping tenders in kashi-pos
@@ -402,11 +462,10 @@
 
   async function reloadCurrencies () {
     currencyLoading.value = true
-    loadError.value = ''
     try {
       await fetchCurrencies(true)
     } catch (error) {
-      loadError.value = error.message
+      notify.error(error.message)
     } finally {
       currencyLoading.value = false
     }
@@ -414,11 +473,10 @@
 
   async function reloadMethods () {
     methodLoading.value = true
-    loadError.value = ''
     try {
       await fetchCashboxAccounts(true)
     } catch (error) {
-      loadError.value = error.message
+      notify.error(error.message)
     } finally {
       methodLoading.value = false
     }
@@ -427,28 +485,40 @@
   // ---- currency add / edit -------------------------------------------------
   const currencyDialog = ref(false)
   const currencySaving = ref(false)
-  const currencyError = ref('')
   const editingCode = ref(null)
-  const currencyForm = reactive({ code: '', name: '', symbol: '', valueInDefaultCurrency: 1 })
+  // units_per_usd_micros is stored as micro-units (x1,000,000) so a rate like
+  // EUR's 0.92 stays an integer in the database. The form talks in the rate a
+  // person actually knows -- 90000 LL to the dollar -- and converts on the
+  // way in and out.
+  const MICROS_PER_UNIT = 1_000_000
 
-  function openAddCurrency () {
-    editingCode.value = null
-    currencyError.value = ''
-    Object.assign(currencyForm, { code: '', name: '', symbol: '', valueInDefaultCurrency: 1 })
-    currencyDialog.value = true
+  // Trailing zeros from the fixed-point scale are noise: 90000, not 90000.000000.
+  function formatUnitsPerUsd (micros) {
+    if (!micros) return '—'
+    return String(Number((micros / MICROS_PER_UNIT).toFixed(6)))
   }
 
   const editingIsDefault = ref(false)
+  const currencyForm = reactive({ code: '', name: '', symbol: '', valueInDefaultCurrency: 1, unitsPerUsd: 1, cashRoundingUnit: 1 })
+
+  function openAddCurrency () {
+    editingCode.value = null
+    editingIsDefault.value = false
+    Object.assign(currencyForm, { code: '', name: '', symbol: '', valueInDefaultCurrency: 1, unitsPerUsd: 1, cashRoundingUnit: 1 })
+    currencyDialog.value = true
+  }
 
   function openEditCurrency (item) {
+    if (!canEdit.value) return
     editingCode.value = item.code
     editingIsDefault.value = !!item.is_default
-    currencyError.value = ''
     Object.assign(currencyForm, {
       code: item.code,
       name: item.name,
       symbol: item.symbol,
       valueInDefaultCurrency: item.value_in_default_currency,
+      unitsPerUsd: item.units_per_usd_micros / MICROS_PER_UNIT,
+      cashRoundingUnit: item.cash_rounding_unit,
     })
     currencyDialog.value = true
   }
@@ -467,37 +537,75 @@
 
   async function saveCurrency () {
     if (!editingCode.value && (currencyForm.code ?? '').trim().length < 2) {
-      currencyError.value = 'Code is required.'
+      notify.error('Code is required.')
       return
     }
     if ((currencyForm.name ?? '').trim().length < 2) {
-      currencyError.value = 'Name needs to be at least 2 characters.'
+      notify.error('Name needs to be at least 2 characters.')
       return
     }
     if (!(currencyForm.symbol ?? '').trim()) {
-      currencyError.value = 'Symbol is required.'
+      notify.error('Symbol is required.')
       return
     }
     if (!(Number(currencyForm.valueInDefaultCurrency) > 0)) {
-      currencyError.value = 'Value in default currency must be greater than 0.'
+      notify.error('Value in default currency must be greater than 0.')
       return
     }
+    // The default currency's rate is the anchor everything else is expressed
+    // against, so the form leaves it alone and sends nothing for it.
+    const unitsPerUsdMicros = Math.round(Number(currencyForm.unitsPerUsd) * MICROS_PER_UNIT)
+    const cashRoundingUnit = Number(currencyForm.cashRoundingUnit)
+    if (!editingIsDefault.value) {
+      if (!(unitsPerUsdMicros > 0)) {
+        notify.error('Units per 1 USD must be greater than 0.')
+        return
+      }
+      if (!Number.isInteger(cashRoundingUnit) || cashRoundingUnit < 1) {
+        notify.error('Cash rounding unit must be a whole number of 1 or more.')
+        return
+      }
+    }
     currencySaving.value = true
-    currencyError.value = ''
     try {
       const payload = {
         code: currencyForm.code.trim(),
         name: currencyForm.name.trim(),
         symbol: currencyForm.symbol.trim(),
         value_in_default_currency: Number(currencyForm.valueInDefaultCurrency),
+        ...(editingIsDefault.value ? {} : {
+          units_per_usd_micros: unitsPerUsdMicros,
+          cash_rounding_unit: cashRoundingUnit,
+        }),
       }
       await (editingCode.value ? updateCurrency(payload) : createCurrency(payload))
       currencyDialog.value = false
       reloadCurrencies()
     } catch (error) {
-      currencyError.value = error.message
+      notify.error(error.message)
     } finally {
       currencySaving.value = false
+    }
+  }
+
+  // ---- currency activate / deactivate ------------------------------------
+  const currencyTogglingCode = ref(null)
+
+  async function toggleCurrencyActive (item, isActive) {
+    currencyTogglingCode.value = item.code
+    try {
+      await updateCurrency({
+        code: item.code,
+        name: item.name,
+        symbol: item.symbol,
+        value_in_default_currency: item.value_in_default_currency,
+        is_active: isActive,
+      })
+      reloadCurrencies()
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      currencyTogglingCode.value = null
     }
   }
 
@@ -505,23 +613,20 @@
   const deleteDialog = ref(false)
   const deleteTarget = ref(null)
   const deleting = ref(false)
-  const deleteError = ref('')
 
   function openDeleteCurrency (item) {
     deleteTarget.value = item
-    deleteError.value = ''
     deleteDialog.value = true
   }
 
   async function confirmDeleteCurrency () {
     deleting.value = true
-    deleteError.value = ''
     try {
       await deleteCurrency(deleteTarget.value.code)
       deleteDialog.value = false
       reloadCurrencies()
     } catch (error) {
-      deleteError.value = error.message
+      notify.error(error.message)
     } finally {
       deleting.value = false
     }
@@ -530,22 +635,20 @@
   // ---- payment method add / edit ---------------------------------------
   const methodDialog = ref(false)
   const methodSaving = ref(false)
-  const methodError = ref('')
   const editingMethodId = ref(null)
   const methodForm = reactive({ name: '', currencyCode: 'USD', sortOrder: 0, color: '' })
 
   function openAddMethod () {
     editingMethodId.value = null
-    methodError.value = ''
     const nextOrder = methodRows.value.reduce((max, m) => Math.max(max, m.sort_order ?? 0), 0) + 1
     Object.assign(methodForm, { name: '', currencyCode: 'USD', sortOrder: nextOrder, color: '' })
     methodDialog.value = true
   }
 
   function openEditMethod (item) {
+    if (!canEdit.value) return
     if (item.reserved) return
     editingMethodId.value = item.id
-    methodError.value = ''
     Object.assign(methodForm, {
       name: item.name,
       currencyCode: item.currency_code || 'USD',
@@ -559,18 +662,55 @@
     openEditMethod(item)
   }
 
+  // ---- payment method activate / deactivate ------------------------------
+  const methodTogglingId = ref(null)
+
+  async function toggleMethodActive (item, isActive) {
+    methodTogglingId.value = item.id
+    try {
+      await setCashboxAccountActive(item.id, isActive)
+      reloadMethods()
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      methodTogglingId.value = null
+    }
+  }
+
+  // ---- payment method delete ---------------------------------------------
+  const methodDeleteDialog = ref(false)
+  const methodDeleteTarget = ref(null)
+  const methodDeleting = ref(false)
+
+  function openDeleteMethod (item) {
+    methodDeleteTarget.value = item
+    methodDeleteDialog.value = true
+  }
+
+  async function confirmDeleteMethod () {
+    methodDeleting.value = true
+    try {
+      await deleteCashboxAccount(methodDeleteTarget.value.id)
+      methodDeleteDialog.value = false
+      reloadMethods()
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      methodDeleting.value = false
+    }
+  }
+
   async function saveMethod () {
     if (!(methodForm.name ?? '').trim()) {
-      methodError.value = 'Name is required.'
+      notify.error('Name is required.')
       return
     }
     const color = normalizeHex(methodForm.color)
     if (color && !isValidHex(color)) {
-      methodError.value = 'Accent color must be a valid hex value.'
+      notify.error('Accent color must be a valid hex value.')
       return
     }
     methodSaving.value = true
-    methodError.value = ''
     try {
       const payload = {
         name: methodForm.name.trim(),
@@ -582,7 +722,7 @@
       methodDialog.value = false
       reloadMethods()
     } catch (error) {
-      methodError.value = error.message
+      notify.error(error.message)
     } finally {
       methodSaving.value = false
     }

@@ -30,8 +30,13 @@ const (
 // (currencies, cashbox_accounts, categories, and the per-branch feeds) is
 // small by construction and still answered in a single shot.
 var pagedSyncEntities = map[string]bool{
-	"products": true,
-	"clients":  true,
+	"products":               true,
+	"clients":                true,
+	"branch_stock":           true,
+	"branch_invoice_history": true,
+	"branch_expense_history": true,
+	"branch_loan_history":    true,
+	"branch_shift_history":   true,
 }
 
 // branchSyncChangesRequest: `since` is an RFC3339 timestamp, or omitted
@@ -114,9 +119,17 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 	var err error
 	switch req.Entity {
 	case "currencies":
-		items, err = server.store.ListCurrenciesUpdatedSince(ctx, since)
+		// Whole set every time, ignoring `since`: a branch has to be able to
+		// see that kashi no longer has a currency or a payment method, and a
+		// delta cannot express absence. Both tables are tiny.
+		items, err = server.store.ListCurrenciesForSync(ctx)
 	case "cashbox_accounts":
-		items, err = server.store.ListCashboxAccountsUpdatedSince(ctx, since)
+		// Branch-scoped, unlike currencies: the central set is the default,
+		// but a branch can switch a method off or reposition it. Still the
+		// whole (resolved) set every time -- a method this branch disabled is
+		// expressed by its absence, which is what the till reconciles on.
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		items, err = server.store.ListCashboxAccountsForBranchSync(ctx, branchID)
 	case "products":
 		if paged {
 			var rows []db.ListProductVariantsForSyncPagedRow
@@ -187,12 +200,201 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 			BranchID:  branchID,
 			UpdatedAt: since,
 		})
+	case "price_lists":
+		// Branch-specific: the default list plus whatever this branch is
+		// assigned. Sent whole, items included -- see branch_sync_lists.go.
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		items, err = server.priceListsForBranchSync(ctx, branchID, since)
+	case "discount_lists":
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		items, err = server.discountListsForBranchSync(ctx, branchID, since)
 	case "expense_categories":
 		// Global like currencies; the query itself restricts to
 		// scope='branch' rows -- central-only categories never leave kashi.
 		items, err = server.store.ListExpenseCategoriesUpdatedSince(ctx, since)
 	case "loan_categories":
 		items, err = server.store.ListLoanCategoriesUpdatedSince(ctx, since)
+	case "branch_stock":
+		// Always paged -- a brand-new entity with no pre-paging kashi-pos
+		// build to keep working, unlike products/clients above. clampSyncLimit
+		// already defaults a missing/zero limit sensibly.
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		var rows []db.ListBranchStockForSyncRow
+		cur := syncCursor{updatedAt: since}
+		cur, err = resolveCursor(req.Cursor, cur)
+		if err != nil {
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		limit := clampSyncLimit(req.Limit)
+		rows, err = server.store.ListBranchStockForSync(ctx, db.ListBranchStockForSyncParams{
+			BranchID:       branchID,
+			AfterUpdatedAt: cur.updatedAt,
+			AfterID:        cur.id,
+			RowLimit:       int32(limit),
+		})
+		if err == nil && len(rows) == limit {
+			last := rows[len(rows)-1]
+			nextCursor = syncCursor{updatedAt: last.UpdatedAt, id: last.ID.Int64}.encode()
+		}
+		if err == nil {
+			out := make([]syncBranchStockRow, len(rows))
+			for i, r := range rows {
+				out[i] = newSyncBranchStockRow(r)
+			}
+			items = out
+		}
+	case "branch_invoice_history":
+		// A branch pulling its OWN previously-submitted invoices back down --
+		// see branch_history_sync.sql's doc comment. Always paged, like
+		// branch_stock.
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		var rows []db.BranchInvoice
+		cur := syncCursor{updatedAt: since}
+		cur, err = resolveCursor(req.Cursor, cur)
+		if err != nil {
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		limit := clampSyncLimit(req.Limit)
+		rows, err = server.store.ListBranchInvoiceHistoryForSync(ctx, db.ListBranchInvoiceHistoryForSyncParams{
+			BranchID: branchID, AfterReceivedAt: cur.updatedAt, AfterID: cur.id, RowLimit: int32(limit),
+		})
+		if err == nil && len(rows) == limit {
+			last := rows[len(rows)-1]
+			nextCursor = syncCursor{updatedAt: last.ReceivedAt, id: last.ID}.encode()
+		}
+		if err == nil {
+			items, err = server.branchInvoiceHistoryRows(ctx, branchID, rows)
+		}
+	case "branch_expense_history":
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		var rows []db.ListBranchExpenseHistoryForSyncRow
+		cur := syncCursor{updatedAt: since}
+		cur, err = resolveCursor(req.Cursor, cur)
+		if err != nil {
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		limit := clampSyncLimit(req.Limit)
+		rows, err = server.store.ListBranchExpenseHistoryForSync(ctx, db.ListBranchExpenseHistoryForSyncParams{
+			BranchID: branchID, AfterReceivedAt: cur.updatedAt, AfterID: cur.id, RowLimit: int32(limit),
+		})
+		if err == nil && len(rows) == limit {
+			last := rows[len(rows)-1]
+			nextCursor = syncCursor{updatedAt: last.ReceivedAt, id: last.ID}.encode()
+		}
+		if err == nil {
+			out := make([]syncBranchExpenseHistoryRow, len(rows))
+			for i, r := range rows {
+				out[i] = newSyncBranchExpenseHistoryRow(r)
+			}
+			items = out
+		}
+	case "branch_loan_history":
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		var rows []db.ListBranchLoanHistoryForSyncRow
+		cur := syncCursor{updatedAt: since}
+		cur, err = resolveCursor(req.Cursor, cur)
+		if err != nil {
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		limit := clampSyncLimit(req.Limit)
+		rows, err = server.store.ListBranchLoanHistoryForSync(ctx, db.ListBranchLoanHistoryForSyncParams{
+			BranchID: sql.NullInt64{Int64: branchID, Valid: true}, AfterReceivedAt: cur.updatedAt, AfterID: cur.id, RowLimit: int32(limit),
+		})
+		if err == nil && len(rows) == limit {
+			last := rows[len(rows)-1]
+			nextCursor = syncCursor{updatedAt: last.ReceivedAt, id: last.ID}.encode()
+		}
+		if err == nil {
+			out := make([]syncBranchLoanHistoryRow, len(rows))
+			for i, r := range rows {
+				out[i] = newSyncBranchLoanHistoryRow(r)
+			}
+			items = out
+		}
+	case "branch_shift_history":
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		var rows []db.BranchShift
+		cur := syncCursor{updatedAt: since}
+		cur, err = resolveCursor(req.Cursor, cur)
+		if err != nil {
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		limit := clampSyncLimit(req.Limit)
+		rows, err = server.store.ListBranchShiftHistoryForSync(ctx, db.ListBranchShiftHistoryForSyncParams{
+			BranchID: branchID, AfterReceivedAt: cur.updatedAt, AfterID: cur.id, RowLimit: int32(limit),
+		})
+		if err == nil && len(rows) == limit {
+			last := rows[len(rows)-1]
+			nextCursor = syncCursor{updatedAt: last.ReceivedAt, id: last.ID}.encode()
+		}
+		if err == nil {
+			out := make([]syncBranchShiftHistoryRow, len(rows))
+			for i, r := range rows {
+				out[i] = newSyncBranchShiftHistoryRow(r)
+			}
+			items = out
+		}
+	case "incoming_transfer_requests":
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		branch, branchErr := server.store.GetBranch(ctx, branchID)
+		if branchErr != nil {
+			server.writeError(ctx, http.StatusInternalServerError, branchErr)
+			return
+		}
+		if branch.InventoryID.Valid {
+			items, err = server.incomingTransfersForBranchSync(ctx, branch.InventoryID.Int64, since)
+		} else {
+			items = []syncIncomingTransfer{}
+		}
+	case "coupon_types":
+		var rows []db.CouponType
+		rows, err = server.store.ListCouponTypesUpdatedSince(ctx, since)
+		if err == nil {
+			out := make([]syncCouponType, len(rows))
+			for i, r := range rows {
+				out[i] = newSyncCouponType(r)
+			}
+			items = out
+		}
+	case "coupons":
+		// Sent whole (every status, not filtered to 'active') -- see the
+		// comment on ListCouponsUpdatedSince: absence can't tell a till a
+		// code was redeemed elsewhere or deactivated, the row has to.
+		var rows []db.Coupon
+		rows, err = server.store.ListCouponsUpdatedSince(ctx, since)
+		if err == nil {
+			out := make([]syncCoupon, len(rows))
+			for i, r := range rows {
+				out[i] = newSyncCoupon(r)
+			}
+			items = out
+		}
+	case "branches":
+		// Whole set every time, like currencies -- see
+		// ListBranchesForSync's own comment. Ignores `since`.
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		items, err = server.store.ListBranchesForSync(ctx, branchID)
+	case "transfer_requests":
+		// Branch-scoped, like branch_targets: the till's own poll for what
+		// happened to the transfers it proposed.
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		var rows []db.Transfer
+		rows, err = server.store.ListBranchTransfersUpdatedSince(ctx, db.ListBranchTransfersUpdatedSinceParams{
+			BranchID:  sql.NullInt64{Int64: branchID, Valid: true},
+			UpdatedAt: since,
+		})
+		if err == nil {
+			out := make([]syncTransferRequest, len(rows))
+			for i, r := range rows {
+				out[i] = newSyncTransferRequest(r)
+			}
+			items = out
+		}
 	default:
 		server.writeError(ctx, http.StatusBadRequest, errUnknownSyncEntity)
 		return
@@ -326,6 +528,13 @@ func (server *Server) branchReconcile(ctx *gin.Context) {
 		// Refs are barcodes; barcode is globally unique, no branch scope.
 		var found []string
 		found, err = server.store.ProductBarcodesPresent(ctx, req.Refs)
+		for _, r := range found {
+			present[r] = true
+		}
+	case "client_phones":
+		// Refs are client phone numbers; phone is globally unique, no branch scope.
+		var found []string
+		found, err = server.store.ClientPhonesPresent(ctx, req.Refs)
 		for _, r := range found {
 			present[r] = true
 		}

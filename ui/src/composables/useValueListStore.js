@@ -12,11 +12,15 @@ async function requestJSON (url, options) {
 }
 
 /**
- * Shared store for the "list of lists, each with per-product line items and a
+ * Shared store for the "list of lists, each with per-variant line items and a
  * branch assignment" shape — price lists and discount lists are the same
  * entity with one differently-named value column (`price` cents vs
  * `discount` percent). `base` is the REST root ("/price_lists"), `rootKey`
  * the list envelope key ("price_lists"), `valueKey` the line-item column.
+ *
+ * Line items key on the product *variant*, not the product: the variant is
+ * what carries a barcode and what gets rung up, so two colors of one product
+ * can be priced apart.
  *
  * The list of lists is small (capped page) and module-cached; line items are
  * paged server-side by the caller (ServerSideTable), so this exposes an
@@ -64,16 +68,16 @@ export function useValueListStore ({ base, rootKey, listIdKey, valueKey }) {
   const itemsURL = id => `${API_BASE}${base}/${id}/items`
 
   // Upsert — POST does INSERT ... ON CONFLICT DO UPDATE, so it adds or edits.
-  async function saveItem (listId, productId, value) {
+  async function saveItem (listId, variantId, value) {
     return requestJSON(`${API_BASE}${base}/items`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ [listIdKey]: listId, product_id: productId, [valueKey]: value }),
+      body: JSON.stringify({ [listIdKey]: listId, product_variant_id: variantId, [valueKey]: value }),
     })
   }
 
-  async function deleteItem (listId, productId) {
-    await requestJSON(`${API_BASE}${base}/${listId}/items/${productId}`, { method: 'DELETE' })
+  async function deleteItem (listId, variantId) {
+    await requestJSON(`${API_BASE}${base}/${listId}/items/${variantId}`, { method: 'DELETE' })
   }
 
   async function fetchBranchIds (listId) {

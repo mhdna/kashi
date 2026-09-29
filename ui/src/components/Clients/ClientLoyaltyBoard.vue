@@ -1,9 +1,9 @@
 <template>
   <div class="d-flex loyalty-board">
-    <v-card class="d-flex flex-column pyramid-card" flat>
+    <div class="d-flex flex-column pyramid-card">
       <v-card-title class="d-flex flex-wrap align-center justify-space-between ga-2">
         <div class="d-flex align-center">
-          <v-icon class="me-2" color="amber-darken-2" icon="mdi-trophy" />
+          <v-icon class="me-2" icon="mdi-account-cash" />
           Top Spenders
         </div>
         <div class="d-flex align-center ga-2">
@@ -30,25 +30,13 @@
       </v-card-title>
 
       <div class="d-flex flex-wrap ga-2 px-4 pb-3">
-        <v-chip
-          v-for="t in sortedTiers()"
-          :key="t.id"
-          class="text-white"
-          :color="t.color"
-          size="small"
-          variant="flat"
-        >
-          {{ t.label }} · ${{ t.minAmount }}+
-        </v-chip>
+        <TierChip v-for="t in sortedTiers()" :key="t.id" show-threshold :tier="t" />
       </div>
 
       <v-card-text class="pyramid-scroll flex-grow-1">
         <div v-if="pyramidLoading" class="d-flex justify-center pa-8">
           <v-progress-circular color="primary" indeterminate />
         </div>
-        <v-alert v-else-if="pyramidError" class="ma-4" type="error" variant="tonal">
-          {{ pyramidError === "Server is down, we'll be back soon." ? pyramidError : `Failed to load data: ${pyramidError}` }}
-        </v-alert>
         <div v-else-if="pyramidClients.length === 0" class="text-center text-medium-emphasis pa-8">
           No spending data yet.
         </div>
@@ -66,11 +54,11 @@
           </div>
         </div>
       </v-card-text>
-    </v-card>
+    </div>
 
     <v-divider class="board-divider" vertical />
 
-    <v-card class="d-flex flex-column rest-card" flat>
+    <div class="d-flex flex-column rest-card">
       <v-card-title class="d-flex flex-wrap align-center justify-space-between ga-2">
         <div class="d-flex align-center ga-2">
           All Clients
@@ -88,18 +76,11 @@
         />
       </v-card-title>
 
-      <v-alert v-if="restError" class="ma-4" type="error" variant="tonal">
-        {{ restError === "Server is down, we'll be back soon." ? restError : `Failed to load data: ${restError}` }}
-        <template #append>
-          <v-btn size="small" variant="text" @click="reload">Retry</v-btn>
-        </template>
-      </v-alert>
-
       <!-- v-virtual-scroll only mounts the handful of rows on screen, so this
         stays smooth at tens of thousands of clients. Paging is driven by the
         near-bottom check in onRestScroll rather than a pager. -->
       <v-virtual-scroll
-        v-else
+        v-if="restItems.length > 0"
         ref="restScroller"
         class="rest-scroll flex-grow-1"
         height="100%"
@@ -113,18 +94,14 @@
             :style="{ height: `${REST_ROW_HEIGHT}px` }"
             @click="openDetail(item)"
           >
-            <v-avatar class="flex-shrink-0" :color="avatarColor(item.name)" size="38">
+            <v-avatar class="flex-shrink-0" :color="tierFor(item.total_spent)?.color" size="38">
               <span class="text-caption font-weight-bold text-white">{{ initials(item.name) }}</span>
             </v-avatar>
 
             <div class="client-row-main">
               <div class="d-flex align-center ga-2">
                 <span class="text-body-2 font-weight-medium text-truncate">{{ item.name }}</span>
-                <span
-                  class="tier-dot flex-shrink-0"
-                  :style="{ backgroundColor: tierFor(item.total_spent)?.color }"
-                  :title="tierFor(item.total_spent)?.label"
-                />
+                <v-chip v-if="item.is_active === false" size="x-small" variant="tonal">Inactive</v-chip>
               </div>
               <div class="text-caption text-medium-emphasis text-truncate">
                 {{ item.phone || '—' }}
@@ -144,13 +121,13 @@
       </v-virtual-scroll>
 
       <div
-        v-if="!restError && restLoading && restItems.length === 0"
+        v-if="restLoading && restItems.length === 0"
         class="flex-grow-1 d-flex align-center justify-center"
       >
         <v-progress-circular color="primary" indeterminate size="24" width="2" />
       </div>
       <div
-        v-else-if="!restError && !restLoading && restItems.length === 0"
+        v-else-if="!restLoading && restItems.length === 0"
         class="flex-grow-1 d-flex align-center justify-center text-medium-emphasis text-body-2"
       >
         {{ search ? 'No clients match your search.' : 'No clients yet.' }}
@@ -162,7 +139,7 @@
         <v-progress-circular color="primary" indeterminate size="14" width="2" />
         Loading more…
       </div>
-    </v-card>
+    </div>
 
     <v-navigation-drawer
       v-model="detailOpen"
@@ -172,19 +149,15 @@
     >
       <template v-if="detailClient">
         <div class="pa-4 d-flex align-center ga-3">
-          <v-avatar :color="avatarColor(detailClient.name)" size="48">
+          <v-avatar :color="tierFor(detailClient.total_spent)?.color" size="48">
             <span class="text-subtitle-2 font-weight-bold text-white">{{ initials(detailClient.name) }}</span>
           </v-avatar>
           <div class="flex-grow-1" style="min-width: 0">
             <div class="text-subtitle-1 font-weight-medium text-truncate">{{ detailClient.name }}</div>
-            <v-chip
-              class="text-white mt-1"
-              :color="tierFor(detailClient.total_spent)?.color"
-              size="x-small"
-              variant="flat"
-            >
-              {{ tierFor(detailClient.total_spent)?.label }}
-            </v-chip>
+            <div class="d-flex align-center ga-1 mt-1">
+              <TierChip size="x-small" :spent="detailClient.total_spent" />
+              <v-chip v-if="detailClient.is_active === false" size="x-small" variant="tonal">Inactive</v-chip>
+            </div>
           </div>
           <v-icon-btn icon="mdi-close" variant="text" @click="detailOpen = false" />
         </div>
@@ -230,7 +203,7 @@
           >
             Open full profile
           </v-btn>
-          <div class="d-flex ga-2">
+          <div v-if="canEdit" class="d-flex ga-2">
             <v-btn
               class="flex-grow-1"
               prepend-icon="mdi-pencil"
@@ -240,6 +213,16 @@
               Edit
             </v-btn>
             <v-btn
+              v-if="detailClient.is_active === false"
+              class="flex-grow-1"
+              prepend-icon="mdi-restore"
+              variant="outlined"
+              @click="$emit('reactivate', detailClient); detailOpen = false"
+            >
+              Reactivate
+            </v-btn>
+            <v-btn
+              v-else
               class="flex-grow-1"
               color="error"
               prepend-icon="mdi-delete"
@@ -298,16 +281,23 @@
 
 <script setup>
   import { computed, onMounted, ref, watch } from 'vue'
+  import TierChip from '@/components/Clients/TierChip.vue'
+  import { useNotify } from '@/composables/useNotify'
   import { useClientTiers } from '@/composables/useClientTiers'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { dedupedFetch } from '@/composables/useRequestDedup'
   import { API_BASE } from '@/config'
   import { formatMoney } from '@/utils/money'
+
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
+  const notify = useNotify()
 
   const props = defineProps({
     branchId: { type: [Number, String, null], default: null },
     clientType: { type: String, required: true },
   })
-  defineEmits(['edit', 'delete'])
+  defineEmits(['edit', 'delete', 'reactivate'])
 
   const { tiers, sortedTiers, tierFor, addTier, removeTier, resetTiers } = useClientTiers()
   const tiersDialog = ref(false)
@@ -361,7 +351,6 @@
   const pyramidCount = ref(50)
   const pyramidClients = ref([])
   const pyramidLoading = ref(true)
-  const pyramidError = ref('')
 
   function baseParams () {
     const params = new URLSearchParams()
@@ -373,7 +362,6 @@
 
   async function fetchPyramid () {
     pyramidLoading.value = true
-    pyramidError.value = ''
     try {
       const params = baseParams()
       params.set('page_size', pyramidCount.value)
@@ -382,25 +370,10 @@
       pyramidClients.value = data?.clients ?? []
     } catch (error) {
       pyramidClients.value = []
-      pyramidError.value = error.message
+      notify.error(error.message)
     } finally {
       pyramidLoading.value = false
     }
-  }
-
-  function avatarColor (name = '') {
-    // Deterministic muted colour per name so rows are visually distinct
-    // without a loud palette.
-    const palette = [
-      'indigo-lighten-1', 'teal-lighten-1', 'deep-purple-lighten-1',
-      'blue-grey-lighten-1', 'cyan-darken-1', 'green-lighten-1',
-      'orange-lighten-1', 'pink-lighten-1',
-    ]
-    const key = name
-    if (!key) return 'grey-lighten-1'
-    let hash = 0
-    for (let i = 0; i < key.length; i++) hash = Math.trunc(hash * 31 + key.codePointAt(i))
-    return palette[Math.abs(hash) % palette.length]
   }
 
   function formatDate (value) {
@@ -415,7 +388,6 @@
   const restItems = ref([])
   const restTotal = ref(0)
   const restLoading = ref(false)
-  const restError = ref('')
   const restScroller = ref(null)
 
   // Infinite-scroll bookkeeping. restDone stops us paging past the end;
@@ -436,7 +408,6 @@
     const from = reset ? base : base + restItems.value.length
 
     restLoading.value = true
-    restError.value = ''
     const mySeq = ++restSeq
     try {
       const params = baseParams()
@@ -456,7 +427,7 @@
       if (mySeq !== restSeq) return
       if (reset) restItems.value = []
       restTotal.value = 0
-      restError.value = error.message
+      notify.error(error.message)
     } finally {
       if (mySeq === restSeq) restLoading.value = false
     }

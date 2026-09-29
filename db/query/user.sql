@@ -3,8 +3,9 @@ INSERT INTO users (
   name,
   email,
   password_hash,
-  activated
-) VALUES ( $1, $2, $3, $4 )
+  activated,
+  role_id
+) VALUES ( $1, $2, $3, $4, $5 )
 RETURNING *;
 
 -- name: GetUser :one
@@ -26,7 +27,8 @@ UPDATE users
   SET name = $2,
   email = $3,
   password_hash = $4,
-  activated = $5
+  activated = $5,
+  role_id = $6
 WHERE id = $1;
 
 -- name: DeleteUser :exec

@@ -30,10 +30,6 @@
           </v-row>
           <v-text-field v-model="note.value.value" density="compact" label="Note (optional)" />
 
-          <v-alert v-if="submitError" class="mb-4" type="error" variant="tonal">
-            {{ submitError }}
-          </v-alert>
-
           <v-card-actions class="px-0">
             <v-spacer />
             <v-btn text="Cancel" @click="closeDialog" />
@@ -51,7 +47,30 @@
         <v-chip class="ml-2" :color="statusColor(itemsTarget?.status)" size="small">{{ itemsTarget?.status }}</v-chip>
       </v-card-title>
       <v-card-text>
-        <div v-if="itemsTarget?.status === 'draft'" class="d-flex align-center mb-4" style="gap: 12px;">
+        <div v-if="itemsTarget?.branch_name" class="text-body-2 text-medium-emphasis mb-2">
+          Requested by <strong>{{ itemsTarget.branch_name }}</strong>
+          <span v-if="itemsTarget.note"> — {{ itemsTarget.note }}</span>
+        </div>
+        <div class="text-body-2 mb-2">
+          <v-chip v-if="itemsTarget?.confirmed_at" color="success" size="small" variant="tonal">
+            <v-icon icon="mdi-check-circle-outline" start />
+            Confirmed by destination {{ formatDateTime(itemsTarget.confirmed_at) }}
+          </v-chip>
+          <v-chip v-else-if="itemsTarget?.status === 'requested'" color="warning" size="small" variant="tonal">
+            Awaiting destination confirmation
+          </v-chip>
+          <div v-if="itemsTarget?.confirmed_note" class="text-caption text-medium-emphasis mt-1">
+            “{{ itemsTarget.confirmed_note }}”
+          </div>
+        </div>
+        <v-img
+          v-if="attachmentObjectUrl"
+          class="mb-4 transfer-attachment"
+          max-height="260"
+          rounded
+          :src="attachmentObjectUrl"
+        />
+        <div v-if="canEdit && itemsTarget?.status === 'draft'" class="d-flex align-center mb-4" style="gap: 12px;">
           <v-autocomplete
             v-model="itemVariantId"
             density="compact"
@@ -75,13 +94,13 @@
           />
           <v-btn :loading="itemSubmitting" text="Add" @click="addItem" />
         </div>
-        <v-alert v-if="itemError" class="mb-4" type="error" variant="tonal">{{ itemError }}</v-alert>
         <v-table density="compact">
           <thead>
             <tr>
               <th>SKU</th>
               <th>Barcode</th>
-              <th class="text-end">Quantity</th>
+              <th class="text-end">Sent</th>
+              <th class="text-end">Received</th>
             </tr>
           </thead>
           <tbody>
@@ -89,35 +108,61 @@
               <td>{{ item.product_code }} — {{ item.product_name }}</td>
               <td>{{ item.variant_barcode }}</td>
               <td class="text-end">{{ item.quantity }}</td>
+              <td class="text-end">
+                <v-text-field
+                  v-if="canEdit"
+                  v-model.number="item.received_quantity"
+                  density="compact"
+                  hide-details
+                  :placeholder="String(item.quantity)"
+                  style="max-width: 100px; display: inline-block;"
+                  type="number"
+                  @update:model-value="v => onReceivedQuantityChange(item, v)"
+                />
+                <span
+                  v-else
+                  :class="{ 'text-warning': item.received_quantity != null && item.received_quantity !== item.quantity }"
+                >
+                  {{ item.received_quantity ?? '—' }}
+                </span>
+              </td>
             </tr>
           </tbody>
         </v-table>
       </v-card-text>
       <v-card-actions>
         <v-btn
-          v-if="itemsTarget?.status === 'draft'"
+          v-if="canEdit && itemsTarget?.status === 'requested'"
+          color="success"
+          :loading="staging"
+          prepend-icon="mdi-check"
+          text="Approve"
+          @click="stage('approve')"
+        />
+        <v-btn
+          v-if="canEdit && itemsTarget?.status === 'draft'"
           color="primary"
           :loading="staging"
           text="Dispatch"
           @click="stage('dispatch')"
         />
         <v-btn
-          v-if="itemsTarget?.status === 'dispatched'"
+          v-if="canEdit && itemsTarget?.status === 'dispatched'"
           color="success"
           :loading="staging"
           text="Receive"
           @click="stage('receive')"
         />
         <v-btn
-          v-if="itemsTarget?.status === 'draft' || itemsTarget?.status === 'dispatched' || itemsTarget?.status === 'received'"
+          v-if="canEdit && ['requested', 'draft', 'dispatched', 'received'].includes(itemsTarget?.status)"
           color="error"
           :loading="staging"
-          text="Cancel Transfer"
+          :text="itemsTarget?.status === 'requested' ? 'Reject' : 'Cancel Transfer'"
           variant="text"
           @click="stage('cancel')"
         />
         <v-spacer />
-        <v-btn text="Close" @click="itemsDialog = false" />
+        <v-btn text="Close" @click="closeItemsDialog" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -127,8 +172,22 @@
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-transfer" />
         <span>Transfers</span>
+        <v-btn-toggle
+          v-model="statusFilter"
+          color="primary"
+          density="comfortable"
+          mandatory
+          variant="outlined"
+        >
+          <v-btn value="">All</v-btn>
+          <v-btn value="requested">Requested</v-btn>
+          <v-btn value="draft">Draft</v-btn>
+          <v-btn value="dispatched">Dispatched</v-btn>
+          <v-btn value="received">Received</v-btn>
+        </v-btn-toggle>
         <v-spacer />
         <v-btn
+          v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
           text="Add Transfer"
@@ -147,16 +206,20 @@
             flush
             :headers="headers"
             :max-page-size="10"
+            :query-params="queryParams"
             root-key="transfers"
             :show-search-icon="false"
           >
+            <template #item.branch_name="{ item }">
+              {{ item.branch_name || '—' }}
+            </template>
             <template #item.status="{ item }">
               <v-chip :color="statusColor(item.status)" size="small">{{ item.status }}</v-chip>
             </template>
             <template #item.actions="{ item }">
               <v-icon-btn icon="mdi-format-list-bulleted" size="small" variant="text" @click="openItems(item)" />
               <v-icon-btn
-                v-if="item.status === 'draft'"
+                v-if="canEdit && item.status === 'draft'"
                 icon="mdi-pencil"
                 size="small"
                 variant="text"
@@ -172,16 +235,23 @@
 
 <script setup lang="ts">
   import { useField, useForm } from 'vee-validate'
-  import { ref } from 'vue'
+  import { computed, onBeforeUnmount, ref } from 'vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
+  import { authFetch } from '@/composables/useApi'
   import { useInventories } from '@/composables/useInventories'
+  import { useNotify } from '@/composables/useNotify'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { useTransfers } from '@/composables/useTransfers'
   import { useVariants } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
 
+  // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
+  const { canEdit } = usePageAccess()
+
   const {
     createTransfer, updateTransfer, fetchTransferItems, createTransferItem,
-    dispatchTransfer, receiveTransfer, cancelTransfer,
+    setTransferItemReceivedQuantity,
+    dispatchTransfer, receiveTransfer, approveTransfer, cancelTransfer,
   } = useTransfers()
   const { inventories, fetchInventories } = useInventories()
   const { variants: skuOptions, loading: skuLoading, searchVariants } = useVariants()
@@ -199,6 +269,7 @@
     { title: 'ID', key: 'id', align: 'start' },
     { title: 'From', key: 'from_inventory_name', align: 'start' },
     { title: 'To', key: 'to_inventory_name', align: 'start' },
+    { title: 'Branch', key: 'branch_name', align: 'start' },
     { title: 'Items', key: 'item_count', align: 'end' },
     { title: 'Status', key: 'status', align: 'start' },
     { title: 'Created At', key: 'created_at', align: 'end' },
@@ -206,13 +277,23 @@
   ])
 
   function statusColor (s) {
-    return { draft: 'grey', dispatched: 'warning', received: 'success', cancelled: 'error' }[s] || 'grey'
+    return {
+      requested: 'info', draft: 'grey', dispatched: 'warning', received: 'success', cancelled: 'error',
+    }[s] || 'grey'
   }
 
+  function formatDateTime (value) {
+    if (!value) return ''
+    const d = new Date(value)
+    return Number.isNaN(d.getTime()) ? value : d.toLocaleString()
+  }
+
+  const statusFilter = ref('')
+  const queryParams = computed(() => ({ status: statusFilter.value }))
   const tableRef = ref(null)
   const dialog = ref(false)
   const submitting = ref(false)
-  const submitError = ref('')
+  const notify = useNotify()
   const editingId = ref(null)
 
   const { handleSubmit, handleReset, setValues } = useForm({
@@ -247,13 +328,11 @@
   function closeDialog () {
     dialog.value = false
     handleReset()
-    submitError.value = ''
     editingId.value = null
   }
 
   const submit = handleSubmit(async values => {
     submitting.value = true
-    submitError.value = ''
     try {
       await (editingId.value
         ? updateTransfer({
@@ -272,7 +351,7 @@
       closeDialog()
       tableRef.value?.reload()
     } catch (error) {
-      submitError.value = error.message
+      notify.error(error.message)
     } finally {
       submitting.value = false
     }
@@ -284,24 +363,52 @@
   const itemVariantId = ref(null)
   const itemQuantity = ref(null)
   const itemSubmitting = ref(false)
-  const itemError = ref('')
   const staging = ref(false)
+  const attachmentObjectUrl = ref(null)
+
+  // <v-img src> can't carry an Authorization header, so the attachment is
+  // fetched as a blob and handed back as an object URL -- same pattern as
+  // useShiftReceiptImages.js's fetchShiftReceiptImageObjectUrl.
+  function releaseAttachmentObjectUrl () {
+    if (attachmentObjectUrl.value) {
+      URL.revokeObjectURL(attachmentObjectUrl.value)
+      attachmentObjectUrl.value = null
+    }
+  }
+
+  async function loadAttachment (transferId) {
+    releaseAttachmentObjectUrl()
+    try {
+      const res = await authFetch(`${API_BASE}/transfers/${transferId}/attachment`)
+      if (!res.ok) return
+      const blob = await res.blob()
+      attachmentObjectUrl.value = URL.createObjectURL(blob)
+    } catch {
+      // No attachment, or it failed to load -- the dialog just shows none.
+    }
+  }
+
+  onBeforeUnmount(releaseAttachmentObjectUrl)
+
+  function closeItemsDialog () {
+    itemsDialog.value = false
+    releaseAttachmentObjectUrl()
+  }
 
   async function openItems (item) {
     itemsTarget.value = item
-    itemError.value = ''
     itemsDialog.value = true
+    if (item.attachment_path) loadAttachment(item.id)
     try {
       items.value = await fetchTransferItems(item.id)
     } catch (error) {
-      itemError.value = error.message
+      notify.error(error.message)
     }
   }
 
   async function addItem () {
     if (!itemVariantId.value || !itemQuantity.value) return
     itemSubmitting.value = true
-    itemError.value = ''
     try {
       await createTransferItem({
         transferId: itemsTarget.value.id,
@@ -312,22 +419,38 @@
       itemVariantId.value = null
       itemQuantity.value = null
     } catch (error) {
-      itemError.value = error.message
+      notify.error(error.message)
     } finally {
       itemSubmitting.value = false
     }
   }
 
+  // Debounced so admin isn't firing a PUT on every keystroke while typing
+  // a corrected count.
+  let receivedQuantityTimers = {}
+  function onReceivedQuantityChange (item, value) {
+    clearTimeout(receivedQuantityTimers[item.id])
+    receivedQuantityTimers[item.id] = setTimeout(async () => {
+      if (value === '' || value == null || Number.isNaN(Number(value))) return
+      try {
+        await setTransferItemReceivedQuantity(item.id, Number(value))
+      } catch (error) {
+        notify.error(error.message)
+      }
+    }, 500)
+  }
+
   async function stage (action) {
     staging.value = true
-    itemError.value = ''
     try {
-      const fn = { dispatch: dispatchTransfer, receive: receiveTransfer, cancel: cancelTransfer }[action]
+      const fn = {
+        dispatch: dispatchTransfer, receive: receiveTransfer, approve: approveTransfer, cancel: cancelTransfer,
+      }[action]
       const res = await fn(itemsTarget.value.id)
       itemsTarget.value = res?.transfer ?? itemsTarget.value
       tableRef.value?.reload()
     } catch (error) {
-      itemError.value = error.message
+      notify.error(error.message)
     } finally {
       staging.value = false
     }
