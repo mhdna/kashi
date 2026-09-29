@@ -1,7 +1,9 @@
 package api
 
 import (
+	"context"
 	"database/sql"
+	"errors"
 	"net/http"
 	"time"
 
@@ -307,7 +309,12 @@ func (server *Server) listProducts(ctx *gin.Context) {
 		req.AttributeValueID = []int64{}
 	}
 
-	rows, err := server.store.ListProducts(ctx, db.ListProductsParams{
+	// A slow/pathological filter combination should fail fast and visibly
+	// rather than hang the admin UI's table indefinitely.
+	queryCtx, cancel := context.WithTimeout(ctx.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	rows, err := server.store.ListProducts(queryCtx, db.ListProductsParams{
 		PageLimit:         req.PageSize,
 		PageOffset:        req.PageID,
 		Search:            req.Search,
@@ -318,6 +325,10 @@ func (server *Server) listProducts(ctx *gin.Context) {
 		AttributeValueIds: req.AttributeValueID,
 	})
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			server.writeError(ctx, http.StatusGatewayTimeout, err)
+			return
+		}
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
