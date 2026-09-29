@@ -20,10 +20,11 @@ INSERT INTO loans (
   amount,
   currency_code,
   branch_cashbox_account_id,
+  branch_cashbox_account_name,
   branch_shift_id,
   occurred_at
 ) VALUES (
-  'branch_loan', $1, $2, $3, $4, $5, $6, $7, $8, $9
+  'branch_loan', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 )
 RETURNING *;
 

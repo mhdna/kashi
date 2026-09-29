@@ -5453,6 +5453,21 @@ func (mr *MockStoreMockRecorder) ListBranchCommands(arg0, arg1 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchCommands", reflect.TypeOf((*MockStore)(nil).ListBranchCommands), arg0, arg1)
 }
 
+// ListBranchExpenseHistoryForSync mocks base method.
+func (m *MockStore) ListBranchExpenseHistoryForSync(arg0 context.Context, arg1 db.ListBranchExpenseHistoryForSyncParams) ([]db.ListBranchExpenseHistoryForSyncRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBranchExpenseHistoryForSync", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListBranchExpenseHistoryForSyncRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBranchExpenseHistoryForSync indicates an expected call of ListBranchExpenseHistoryForSync.
+func (mr *MockStoreMockRecorder) ListBranchExpenseHistoryForSync(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchExpenseHistoryForSync", reflect.TypeOf((*MockStore)(nil).ListBranchExpenseHistoryForSync), arg0, arg1)
+}
+
 // ListBranchExpenseImages mocks base method.
 func (m *MockStore) ListBranchExpenseImages(arg0 context.Context, arg1 db.ListBranchExpenseImagesParams) ([]db.ListBranchExpenseImagesRow, error) {
 	m.ctrl.T.Helper()
@@ -5498,6 +5513,36 @@ func (mr *MockStoreMockRecorder) ListBranchExpenses(arg0, arg1 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchExpenses", reflect.TypeOf((*MockStore)(nil).ListBranchExpenses), arg0, arg1)
 }
 
+// ListBranchInvoiceCouponCodesForHistory mocks base method.
+func (m *MockStore) ListBranchInvoiceCouponCodesForHistory(arg0 context.Context, arg1 db.ListBranchInvoiceCouponCodesForHistoryParams) ([]db.ListBranchInvoiceCouponCodesForHistoryRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBranchInvoiceCouponCodesForHistory", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListBranchInvoiceCouponCodesForHistoryRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBranchInvoiceCouponCodesForHistory indicates an expected call of ListBranchInvoiceCouponCodesForHistory.
+func (mr *MockStoreMockRecorder) ListBranchInvoiceCouponCodesForHistory(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchInvoiceCouponCodesForHistory", reflect.TypeOf((*MockStore)(nil).ListBranchInvoiceCouponCodesForHistory), arg0, arg1)
+}
+
+// ListBranchInvoiceHistoryForSync mocks base method.
+func (m *MockStore) ListBranchInvoiceHistoryForSync(arg0 context.Context, arg1 db.ListBranchInvoiceHistoryForSyncParams) ([]db.BranchInvoice, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBranchInvoiceHistoryForSync", arg0, arg1)
+	ret0, _ := ret[0].([]db.BranchInvoice)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBranchInvoiceHistoryForSync indicates an expected call of ListBranchInvoiceHistoryForSync.
+func (mr *MockStoreMockRecorder) ListBranchInvoiceHistoryForSync(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchInvoiceHistoryForSync", reflect.TypeOf((*MockStore)(nil).ListBranchInvoiceHistoryForSync), arg0, arg1)
+}
+
 // ListBranchInvoiceItems mocks base method.
 func (m *MockStore) ListBranchInvoiceItems(arg0 context.Context, arg1 int64) ([]db.BranchInvoiceItem, error) {
 	m.ctrl.T.Helper()
@@ -5513,6 +5558,21 @@ func (mr *MockStoreMockRecorder) ListBranchInvoiceItems(arg0, arg1 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchInvoiceItems", reflect.TypeOf((*MockStore)(nil).ListBranchInvoiceItems), arg0, arg1)
 }
 
+// ListBranchInvoiceItemsForHistory mocks base method.
+func (m *MockStore) ListBranchInvoiceItemsForHistory(arg0 context.Context, arg1 []int64) ([]db.ListBranchInvoiceItemsForHistoryRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBranchInvoiceItemsForHistory", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListBranchInvoiceItemsForHistoryRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBranchInvoiceItemsForHistory indicates an expected call of ListBranchInvoiceItemsForHistory.
+func (mr *MockStoreMockRecorder) ListBranchInvoiceItemsForHistory(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchInvoiceItemsForHistory", reflect.TypeOf((*MockStore)(nil).ListBranchInvoiceItemsForHistory), arg0, arg1)
+}
+
 // ListBranchInvoicePayments mocks base method.
 func (m *MockStore) ListBranchInvoicePayments(arg0 context.Context, arg1 int64) ([]db.BranchInvoicePayment, error) {
 	m.ctrl.T.Helper()
@@ -5526,6 +5586,21 @@ func (m *MockStore) ListBranchInvoicePayments(arg0 context.Context, arg1 int64) 
 func (mr *MockStoreMockRecorder) ListBranchInvoicePayments(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchInvoicePayments", reflect.TypeOf((*MockStore)(nil).ListBranchInvoicePayments), arg0, arg1)
+}
+
+// ListBranchInvoicePaymentsForHistory mocks base method.
+func (m *MockStore) ListBranchInvoicePaymentsForHistory(arg0 context.Context, arg1 []int64) ([]db.BranchInvoicePayment, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBranchInvoicePaymentsForHistory", arg0, arg1)
+	ret0, _ := ret[0].([]db.BranchInvoicePayment)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBranchInvoicePaymentsForHistory indicates an expected call of ListBranchInvoicePaymentsForHistory.
+func (mr *MockStoreMockRecorder) ListBranchInvoicePaymentsForHistory(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchInvoicePaymentsForHistory", reflect.TypeOf((*MockStore)(nil).ListBranchInvoicePaymentsForHistory), arg0, arg1)
 }
 
 // ListBranchInvoiceSettlementPayments mocks base method.
@@ -5588,6 +5663,21 @@ func (mr *MockStoreMockRecorder) ListBranchInvoicesPage(arg0, arg1 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchInvoicesPage", reflect.TypeOf((*MockStore)(nil).ListBranchInvoicesPage), arg0, arg1)
 }
 
+// ListBranchLoanHistoryForSync mocks base method.
+func (m *MockStore) ListBranchLoanHistoryForSync(arg0 context.Context, arg1 db.ListBranchLoanHistoryForSyncParams) ([]db.ListBranchLoanHistoryForSyncRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBranchLoanHistoryForSync", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListBranchLoanHistoryForSyncRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBranchLoanHistoryForSync indicates an expected call of ListBranchLoanHistoryForSync.
+func (mr *MockStoreMockRecorder) ListBranchLoanHistoryForSync(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchLoanHistoryForSync", reflect.TypeOf((*MockStore)(nil).ListBranchLoanHistoryForSync), arg0, arg1)
+}
+
 // ListBranchProductRevenue mocks base method.
 func (m *MockStore) ListBranchProductRevenue(arg0 context.Context, arg1 db.ListBranchProductRevenueParams) ([]db.ListBranchProductRevenueRow, error) {
 	m.ctrl.T.Helper()
@@ -5646,6 +5736,21 @@ func (m *MockStore) ListBranchSalesDaysRange(arg0 context.Context, arg1 db.ListB
 func (mr *MockStoreMockRecorder) ListBranchSalesDaysRange(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchSalesDaysRange", reflect.TypeOf((*MockStore)(nil).ListBranchSalesDaysRange), arg0, arg1)
+}
+
+// ListBranchShiftHistoryForSync mocks base method.
+func (m *MockStore) ListBranchShiftHistoryForSync(arg0 context.Context, arg1 db.ListBranchShiftHistoryForSyncParams) ([]db.BranchShift, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBranchShiftHistoryForSync", arg0, arg1)
+	ret0, _ := ret[0].([]db.BranchShift)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBranchShiftHistoryForSync indicates an expected call of ListBranchShiftHistoryForSync.
+func (mr *MockStoreMockRecorder) ListBranchShiftHistoryForSync(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchShiftHistoryForSync", reflect.TypeOf((*MockStore)(nil).ListBranchShiftHistoryForSync), arg0, arg1)
 }
 
 // ListBranchShiftReceiptImages mocks base method.

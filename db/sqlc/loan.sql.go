@@ -63,24 +63,26 @@ INSERT INTO loans (
   amount,
   currency_code,
   branch_cashbox_account_id,
+  branch_cashbox_account_name,
   branch_shift_id,
   occurred_at
 ) VALUES (
-  'branch_loan', $1, $2, $3, $4, $5, $6, $7, $8, $9
+  'branch_loan', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 )
-RETURNING id, origin, description, category_id, amount, currency_code, branch_id, client_ref, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at
+RETURNING id, origin, description, category_id, amount, currency_code, branch_id, client_ref, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, branch_cashbox_account_name
 `
 
 type CreateBranchLoanParams struct {
-	BranchID               sql.NullInt64  `json:"branch_id"`
-	ClientRef              sql.NullString `json:"client_ref"`
-	Description            string         `json:"description"`
-	CategoryID             int64          `json:"category_id"`
-	Amount                 int64          `json:"amount"`
-	CurrencyCode           string         `json:"currency_code"`
-	BranchCashboxAccountID sql.NullInt64  `json:"branch_cashbox_account_id"`
-	BranchShiftID          sql.NullInt64  `json:"branch_shift_id"`
-	OccurredAt             time.Time      `json:"occurred_at"`
+	BranchID                 sql.NullInt64  `json:"branch_id"`
+	ClientRef                sql.NullString `json:"client_ref"`
+	Description              string         `json:"description"`
+	CategoryID               int64          `json:"category_id"`
+	Amount                   int64          `json:"amount"`
+	CurrencyCode             string         `json:"currency_code"`
+	BranchCashboxAccountID   sql.NullInt64  `json:"branch_cashbox_account_id"`
+	BranchCashboxAccountName sql.NullString `json:"branch_cashbox_account_name"`
+	BranchShiftID            sql.NullInt64  `json:"branch_shift_id"`
+	OccurredAt               time.Time      `json:"occurred_at"`
 }
 
 func (q *Queries) CreateBranchLoan(ctx context.Context, arg CreateBranchLoanParams) (Loan, error) {
@@ -92,6 +94,7 @@ func (q *Queries) CreateBranchLoan(ctx context.Context, arg CreateBranchLoanPara
 		arg.Amount,
 		arg.CurrencyCode,
 		arg.BranchCashboxAccountID,
+		arg.BranchCashboxAccountName,
 		arg.BranchShiftID,
 		arg.OccurredAt,
 	)
@@ -109,6 +112,7 @@ func (q *Queries) CreateBranchLoan(ctx context.Context, arg CreateBranchLoanPara
 		&i.BranchShiftID,
 		&i.OccurredAt,
 		&i.ReceivedAt,
+		&i.BranchCashboxAccountName,
 	)
 	return i, err
 }
@@ -123,7 +127,7 @@ INSERT INTO loans (
 ) VALUES (
   'central_loan', $1, $2, $3, $4
 )
-RETURNING id, origin, description, category_id, amount, currency_code, branch_id, client_ref, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at
+RETURNING id, origin, description, category_id, amount, currency_code, branch_id, client_ref, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, branch_cashbox_account_name
 `
 
 type CreateCentralLoanParams struct {
@@ -154,6 +158,7 @@ func (q *Queries) CreateCentralLoan(ctx context.Context, arg CreateCentralLoanPa
 		&i.BranchShiftID,
 		&i.OccurredAt,
 		&i.ReceivedAt,
+		&i.BranchCashboxAccountName,
 	)
 	return i, err
 }
@@ -183,7 +188,7 @@ func (q *Queries) DeleteLoans(ctx context.Context, ids []int64) (int64, error) {
 }
 
 const getBranchLoanByClientRef = `-- name: GetBranchLoanByClientRef :one
-SELECT id, origin, description, category_id, amount, currency_code, branch_id, client_ref, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at FROM loans
+SELECT id, origin, description, category_id, amount, currency_code, branch_id, client_ref, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, branch_cashbox_account_name FROM loans
 WHERE branch_id = $1 AND client_ref = $2
 LIMIT 1
 `
@@ -209,12 +214,13 @@ func (q *Queries) GetBranchLoanByClientRef(ctx context.Context, arg GetBranchLoa
 		&i.BranchShiftID,
 		&i.OccurredAt,
 		&i.ReceivedAt,
+		&i.BranchCashboxAccountName,
 	)
 	return i, err
 }
 
 const getLoan = `-- name: GetLoan :one
-SELECT id, origin, description, category_id, amount, currency_code, branch_id, client_ref, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at FROM loans
+SELECT id, origin, description, category_id, amount, currency_code, branch_id, client_ref, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, branch_cashbox_account_name FROM loans
 WHERE id = $1 LIMIT 1
 `
 
@@ -234,13 +240,14 @@ func (q *Queries) GetLoan(ctx context.Context, id int64) (Loan, error) {
 		&i.BranchShiftID,
 		&i.OccurredAt,
 		&i.ReceivedAt,
+		&i.BranchCashboxAccountName,
 	)
 	return i, err
 }
 
 const listLoans = `-- name: ListLoans :many
 SELECT
-  loans.id, loans.origin, loans.description, loans.category_id, loans.amount, loans.currency_code, loans.branch_id, loans.client_ref, loans.branch_cashbox_account_id, loans.branch_shift_id, loans.occurred_at, loans.received_at,
+  loans.id, loans.origin, loans.description, loans.category_id, loans.amount, loans.currency_code, loans.branch_id, loans.client_ref, loans.branch_cashbox_account_id, loans.branch_shift_id, loans.occurred_at, loans.received_at, loans.branch_cashbox_account_name,
   COALESCE(pay.paid_amount, 0)::bigint AS paid_amount,
   (CASE
     WHEN COALESCE(pay.paid_amount, 0) >= loans.amount THEN 'paid'
@@ -277,20 +284,21 @@ type ListLoansParams struct {
 }
 
 type ListLoansRow struct {
-	ID                     int64          `json:"id"`
-	Origin                 string         `json:"origin"`
-	Description            string         `json:"description"`
-	CategoryID             int64          `json:"category_id"`
-	Amount                 int64          `json:"amount"`
-	CurrencyCode           string         `json:"currency_code"`
-	BranchID               sql.NullInt64  `json:"branch_id"`
-	ClientRef              sql.NullString `json:"client_ref"`
-	BranchCashboxAccountID sql.NullInt64  `json:"branch_cashbox_account_id"`
-	BranchShiftID          sql.NullInt64  `json:"branch_shift_id"`
-	OccurredAt             time.Time      `json:"occurred_at"`
-	ReceivedAt             time.Time      `json:"received_at"`
-	PaidAmount             int64          `json:"paid_amount"`
-	Status                 string         `json:"status"`
+	ID                       int64          `json:"id"`
+	Origin                   string         `json:"origin"`
+	Description              string         `json:"description"`
+	CategoryID               int64          `json:"category_id"`
+	Amount                   int64          `json:"amount"`
+	CurrencyCode             string         `json:"currency_code"`
+	BranchID                 sql.NullInt64  `json:"branch_id"`
+	ClientRef                sql.NullString `json:"client_ref"`
+	BranchCashboxAccountID   sql.NullInt64  `json:"branch_cashbox_account_id"`
+	BranchShiftID            sql.NullInt64  `json:"branch_shift_id"`
+	OccurredAt               time.Time      `json:"occurred_at"`
+	ReceivedAt               time.Time      `json:"received_at"`
+	BranchCashboxAccountName sql.NullString `json:"branch_cashbox_account_name"`
+	PaidAmount               int64          `json:"paid_amount"`
+	Status                   string         `json:"status"`
 }
 
 // sqlc.narg(branch_id)/sqlc.narg(origin) are nullable: NULL means "no
@@ -329,6 +337,7 @@ func (q *Queries) ListLoans(ctx context.Context, arg ListLoansParams) ([]ListLoa
 			&i.BranchShiftID,
 			&i.OccurredAt,
 			&i.ReceivedAt,
+			&i.BranchCashboxAccountName,
 			&i.PaidAmount,
 			&i.Status,
 		); err != nil {
@@ -352,7 +361,7 @@ SET description = $2,
     amount = $4,
     currency_code = $5
 WHERE id = $1 AND origin = 'central_loan'
-RETURNING id, origin, description, category_id, amount, currency_code, branch_id, client_ref, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at
+RETURNING id, origin, description, category_id, amount, currency_code, branch_id, client_ref, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, branch_cashbox_account_name
 `
 
 type UpdateLoanParams struct {
@@ -388,6 +397,7 @@ func (q *Queries) UpdateLoan(ctx context.Context, arg UpdateLoanParams) (Loan, e
 		&i.BranchShiftID,
 		&i.OccurredAt,
 		&i.ReceivedAt,
+		&i.BranchCashboxAccountName,
 	)
 	return i, err
 }

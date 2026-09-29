@@ -30,9 +30,13 @@ const (
 // (currencies, cashbox_accounts, categories, and the per-branch feeds) is
 // small by construction and still answered in a single shot.
 var pagedSyncEntities = map[string]bool{
-	"products":     true,
-	"clients":      true,
-	"branch_stock": true,
+	"products":               true,
+	"clients":                true,
+	"branch_stock":           true,
+	"branch_invoice_history": true,
+	"branch_expense_history": true,
+	"branch_loan_history":    true,
+	"branch_shift_history":   true,
 }
 
 // branchSyncChangesRequest: `since` is an RFC3339 timestamp, or omitted
@@ -240,6 +244,83 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 			}
 			items = out
 		}
+	case "branch_invoice_history":
+		// A branch pulling its OWN previously-submitted invoices back down --
+		// see branch_history_sync.sql's doc comment. Always paged, like
+		// branch_stock.
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		var rows []db.BranchInvoice
+		cur := syncCursor{updatedAt: since}
+		cur, err = resolveCursor(req.Cursor, cur)
+		if err != nil {
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		limit := clampSyncLimit(req.Limit)
+		rows, err = server.store.ListBranchInvoiceHistoryForSync(ctx, db.ListBranchInvoiceHistoryForSyncParams{
+			BranchID: branchID, AfterReceivedAt: cur.updatedAt, AfterID: cur.id, RowLimit: int32(limit),
+		})
+		if err == nil && len(rows) == limit {
+			last := rows[len(rows)-1]
+			nextCursor = syncCursor{updatedAt: last.ReceivedAt, id: last.ID}.encode()
+		}
+		if err == nil {
+			items, err = server.branchInvoiceHistoryRows(ctx, branchID, rows)
+		}
+	case "branch_expense_history":
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		var rows []db.ListBranchExpenseHistoryForSyncRow
+		cur := syncCursor{updatedAt: since}
+		cur, err = resolveCursor(req.Cursor, cur)
+		if err != nil {
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		limit := clampSyncLimit(req.Limit)
+		rows, err = server.store.ListBranchExpenseHistoryForSync(ctx, db.ListBranchExpenseHistoryForSyncParams{
+			BranchID: branchID, AfterReceivedAt: cur.updatedAt, AfterID: cur.id, RowLimit: int32(limit),
+		})
+		if err == nil && len(rows) == limit {
+			last := rows[len(rows)-1]
+			nextCursor = syncCursor{updatedAt: last.ReceivedAt, id: last.ID}.encode()
+		}
+		items = rows
+	case "branch_loan_history":
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		var rows []db.ListBranchLoanHistoryForSyncRow
+		cur := syncCursor{updatedAt: since}
+		cur, err = resolveCursor(req.Cursor, cur)
+		if err != nil {
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		limit := clampSyncLimit(req.Limit)
+		rows, err = server.store.ListBranchLoanHistoryForSync(ctx, db.ListBranchLoanHistoryForSyncParams{
+			BranchID: sql.NullInt64{Int64: branchID, Valid: true}, AfterReceivedAt: cur.updatedAt, AfterID: cur.id, RowLimit: int32(limit),
+		})
+		if err == nil && len(rows) == limit {
+			last := rows[len(rows)-1]
+			nextCursor = syncCursor{updatedAt: last.ReceivedAt, id: last.ID}.encode()
+		}
+		items = rows
+	case "branch_shift_history":
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		var rows []db.BranchShift
+		cur := syncCursor{updatedAt: since}
+		cur, err = resolveCursor(req.Cursor, cur)
+		if err != nil {
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		limit := clampSyncLimit(req.Limit)
+		rows, err = server.store.ListBranchShiftHistoryForSync(ctx, db.ListBranchShiftHistoryForSyncParams{
+			BranchID: branchID, AfterReceivedAt: cur.updatedAt, AfterID: cur.id, RowLimit: int32(limit),
+		})
+		if err == nil && len(rows) == limit {
+			last := rows[len(rows)-1]
+			nextCursor = syncCursor{updatedAt: last.ReceivedAt, id: last.ID}.encode()
+		}
+		items = rows
 	case "incoming_transfer_requests":
 		branchID := ctx.MustGet(branchIDKey).(int64)
 		branch, branchErr := server.store.GetBranch(ctx, branchID)

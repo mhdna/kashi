@@ -27,6 +27,8 @@ type branchLoanRequest struct {
 	Amount                 int64  `json:"amount" binding:"required"`
 	CurrencyCode           string `json:"currency_code" binding:"required"`
 	BranchCashboxAccountID int64  `json:"branch_cashbox_account_id" binding:"required"`
+	// AccountName -- see branchExpenseRequest.AccountName.
+	AccountName string `json:"account_name"`
 	// A branch may report a loan with no shift open, same reasoning as
 	// BranchShiftID on branchExpenseRequest.
 	BranchShiftID *int64    `json:"branch_shift_id"`
@@ -69,15 +71,16 @@ func (server *Server) createBranchLoan(ctx *gin.Context) {
 	}
 
 	loan, err := server.store.CreateBranchLoan(ctx, db.CreateBranchLoanParams{
-		BranchID:               sql.NullInt64{Int64: branchID, Valid: true},
-		ClientRef:              sql.NullString{String: req.ClientRef, Valid: true},
-		Description:            req.Description,
-		CategoryID:             categoryID,
-		Amount:                 req.Amount,
-		CurrencyCode:           req.CurrencyCode,
-		BranchCashboxAccountID: sql.NullInt64{Int64: req.BranchCashboxAccountID, Valid: true},
-		BranchShiftID:          branchShiftID,
-		OccurredAt:             req.OccurredAt,
+		BranchID:                 sql.NullInt64{Int64: branchID, Valid: true},
+		ClientRef:                sql.NullString{String: req.ClientRef, Valid: true},
+		Description:              req.Description,
+		CategoryID:               categoryID,
+		Amount:                   req.Amount,
+		CurrencyCode:             req.CurrencyCode,
+		BranchCashboxAccountID:   sql.NullInt64{Int64: req.BranchCashboxAccountID, Valid: true},
+		BranchCashboxAccountName: sql.NullString{String: req.AccountName, Valid: req.AccountName != ""},
+		BranchShiftID:            branchShiftID,
+		OccurredAt:               req.OccurredAt,
 	})
 	if err != nil {
 		if isUniqueViolation(err) {

@@ -580,6 +580,7 @@ type Querier interface {
 	// linked to, so a till can stamp the right uid without guessing by phone.
 	ListBranchClientUIDs(ctx context.Context, branchID int64) ([]ListBranchClientUIDsRow, error)
 	ListBranchCommands(ctx context.Context, arg ListBranchCommandsParams) ([]BranchCommand, error)
+	ListBranchExpenseHistoryForSync(ctx context.Context, arg ListBranchExpenseHistoryForSyncParams) ([]ListBranchExpenseHistoryForSyncRow, error)
 	// Storage-explorer feed: every uploaded image, newest first, joined with
 	// its expense and branch so the admin UI never needs a second round trip
 	// per row.
@@ -588,8 +589,37 @@ type Querier interface {
 	// sqlc.narg(branch_id) is nullable: NULL means "all branches", matching
 	// ListBranchInvoices' admin-filter convention. search '' means no filter.
 	ListBranchExpenses(ctx context.Context, arg ListBranchExpensesParams) ([]BranchExpense, error)
+	// At most one coupon redemption per invoice (see CreateBranchInvoiceTx's own
+	// comment) -- the code a redeemed coupon carries for the given invoices'
+	// client_refs, so the branch can reattach it to whichever payment line it
+	// recognizes as its own coupon-settlement placeholder account. Coupon codes
+	// are never persisted on branch_invoice_payments itself (see
+	// CreateBranchInvoiceTx: a coupon payment only ever calls RedeemCoupon), so
+	// this is the only way to recover which line was the coupon.
+	ListBranchInvoiceCouponCodesForHistory(ctx context.Context, arg ListBranchInvoiceCouponCodesForHistoryParams) ([]ListBranchInvoiceCouponCodesForHistoryRow, error)
+	// ---------------------------------------------------------------------------
+	// Branch-scoped historical read-back (see api/branch_catchup.go's
+	// branchSyncChanges "branch_invoice_history"/"branch_expense_history"/
+	// "branch_loan_history"/"branch_shift_history" cases). Lets a branch pull
+	// its OWN previously-submitted invoices/expenses/loans/shift-closes back
+	// down -- e.g. re-provisioning a wiped till for a branch that already has
+	// real history on kashi. branch_id always comes from the authenticated
+	// branch (ctx.MustGet(branchIDKey)), never a request parameter, so a
+	// branch can only ever pull its own data. Keyset-paginated on
+	// (received_at, id), same cursor shape as ListBranchStockForSync.
+	// ---------------------------------------------------------------------------
+	ListBranchInvoiceHistoryForSync(ctx context.Context, arg ListBranchInvoiceHistoryForSyncParams) ([]BranchInvoice, error)
 	ListBranchInvoiceItems(ctx context.Context, branchInvoiceID int64) ([]BranchInvoiceItem, error)
+	// Items for a whole page of invoices at once, batched by id -- distinct
+	// from ListBranchInvoiceItems (branch_invoice.sql), which is the
+	// single-invoice admin detail view. resolved_barcode comes from
+	// product_variants via product_uid (nullable: an item pushed before
+	// product_uid existed, and whose barcode never resolved to a variant at
+	// push time either, has neither -- see resolveVariantByUIDOrBarcode in
+	// tx_branch_invoice.go).
+	ListBranchInvoiceItemsForHistory(ctx context.Context, branchInvoiceIds []int64) ([]ListBranchInvoiceItemsForHistoryRow, error)
 	ListBranchInvoicePayments(ctx context.Context, branchInvoiceID int64) ([]BranchInvoicePayment, error)
+	ListBranchInvoicePaymentsForHistory(ctx context.Context, branchInvoiceIds []int64) ([]BranchInvoicePayment, error)
 	ListBranchInvoiceSettlementPayments(ctx context.Context, branchInvoiceSettlementID int64) ([]BranchInvoiceSettlementPayment, error)
 	ListBranchInvoiceSettlements(ctx context.Context, arg ListBranchInvoiceSettlementsParams) ([]BranchInvoiceSettlement, error)
 	// sqlc.narg(branch_id) is nullable: NULL means "all branches", matching how
@@ -597,6 +627,7 @@ type Querier interface {
 	// option, not a required selection).
 	ListBranchInvoices(ctx context.Context, arg ListBranchInvoicesParams) ([]BranchInvoice, error)
 	ListBranchInvoicesPage(ctx context.Context, arg ListBranchInvoicesPageParams) ([]BranchInvoice, error)
+	ListBranchLoanHistoryForSync(ctx context.Context, arg ListBranchLoanHistoryForSyncParams) ([]ListBranchLoanHistoryForSyncRow, error)
 	// ---------------------------------------------------------------------------
 	// Branch (kashi-pos) sales. branch_invoice_items itself carries no product
 	// link (branch_product_id is a branch-local id, not an FK -- see
@@ -639,6 +670,7 @@ type Querier interface {
 	// date bounds (not AT TIME ZONE per row) so idx_branch_invoices_occurred_at
 	// stays usable, same reasoning as ListDailyIncome.
 	ListBranchSalesDaysRange(ctx context.Context, arg ListBranchSalesDaysRangeParams) ([]ListBranchSalesDaysRangeRow, error)
+	ListBranchShiftHistoryForSync(ctx context.Context, arg ListBranchShiftHistoryForSyncParams) ([]BranchShift, error)
 	// Storage-explorer feed: every uploaded close-shift receipt photo, newest
 	// first, joined with its shift and branch so the admin UI never needs a
 	// second round trip per row. Mirrors ListBranchExpenseImages.

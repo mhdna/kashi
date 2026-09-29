@@ -598,17 +598,18 @@ type BranchCommand struct {
 }
 
 type BranchExpense struct {
-	ID                     int64         `json:"id"`
-	BranchID               int64         `json:"branch_id"`
-	ClientRef              string        `json:"client_ref"`
-	Description            string        `json:"description"`
-	Amount                 int64         `json:"amount"`
-	CurrencyCode           string        `json:"currency_code"`
-	BranchCashboxAccountID int64         `json:"branch_cashbox_account_id"`
-	BranchShiftID          sql.NullInt64 `json:"branch_shift_id"`
-	OccurredAt             time.Time     `json:"occurred_at"`
-	ReceivedAt             time.Time     `json:"received_at"`
-	CategoryID             sql.NullInt64 `json:"category_id"`
+	ID                       int64          `json:"id"`
+	BranchID                 int64          `json:"branch_id"`
+	ClientRef                string         `json:"client_ref"`
+	Description              string         `json:"description"`
+	Amount                   int64          `json:"amount"`
+	CurrencyCode             string         `json:"currency_code"`
+	BranchCashboxAccountID   int64          `json:"branch_cashbox_account_id"`
+	BranchShiftID            sql.NullInt64  `json:"branch_shift_id"`
+	OccurredAt               time.Time      `json:"occurred_at"`
+	ReceivedAt               time.Time      `json:"received_at"`
+	CategoryID               sql.NullInt64  `json:"category_id"`
+	BranchCashboxAccountName sql.NullString `json:"branch_cashbox_account_name"`
 }
 
 type BranchExpenseImage struct {
@@ -1122,18 +1123,19 @@ type InvoiceType struct {
 }
 
 type Loan struct {
-	ID                     int64          `json:"id"`
-	Origin                 string         `json:"origin"`
-	Description            string         `json:"description"`
-	CategoryID             int64          `json:"category_id"`
-	Amount                 int64          `json:"amount"`
-	CurrencyCode           string         `json:"currency_code"`
-	BranchID               sql.NullInt64  `json:"branch_id"`
-	ClientRef              sql.NullString `json:"client_ref"`
-	BranchCashboxAccountID sql.NullInt64  `json:"branch_cashbox_account_id"`
-	BranchShiftID          sql.NullInt64  `json:"branch_shift_id"`
-	OccurredAt             time.Time      `json:"occurred_at"`
-	ReceivedAt             time.Time      `json:"received_at"`
+	ID                       int64          `json:"id"`
+	Origin                   string         `json:"origin"`
+	Description              string         `json:"description"`
+	CategoryID               int64          `json:"category_id"`
+	Amount                   int64          `json:"amount"`
+	CurrencyCode             string         `json:"currency_code"`
+	BranchID                 sql.NullInt64  `json:"branch_id"`
+	ClientRef                sql.NullString `json:"client_ref"`
+	BranchCashboxAccountID   sql.NullInt64  `json:"branch_cashbox_account_id"`
+	BranchShiftID            sql.NullInt64  `json:"branch_shift_id"`
+	OccurredAt               time.Time      `json:"occurred_at"`
+	ReceivedAt               time.Time      `json:"received_at"`
+	BranchCashboxAccountName sql.NullString `json:"branch_cashbox_account_name"`
 }
 
 type LoanCategory struct {

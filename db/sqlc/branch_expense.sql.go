@@ -38,24 +38,26 @@ INSERT INTO branch_expenses (
   amount,
   currency_code,
   branch_cashbox_account_id,
+  branch_cashbox_account_name,
   branch_shift_id,
   occurred_at
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 )
-RETURNING id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id
+RETURNING id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id, branch_cashbox_account_name
 `
 
 type CreateBranchExpenseParams struct {
-	BranchID               int64         `json:"branch_id"`
-	ClientRef              string        `json:"client_ref"`
-	Description            string        `json:"description"`
-	CategoryID             sql.NullInt64 `json:"category_id"`
-	Amount                 int64         `json:"amount"`
-	CurrencyCode           string        `json:"currency_code"`
-	BranchCashboxAccountID int64         `json:"branch_cashbox_account_id"`
-	BranchShiftID          sql.NullInt64 `json:"branch_shift_id"`
-	OccurredAt             time.Time     `json:"occurred_at"`
+	BranchID                 int64          `json:"branch_id"`
+	ClientRef                string         `json:"client_ref"`
+	Description              string         `json:"description"`
+	CategoryID               sql.NullInt64  `json:"category_id"`
+	Amount                   int64          `json:"amount"`
+	CurrencyCode             string         `json:"currency_code"`
+	BranchCashboxAccountID   int64          `json:"branch_cashbox_account_id"`
+	BranchCashboxAccountName sql.NullString `json:"branch_cashbox_account_name"`
+	BranchShiftID            sql.NullInt64  `json:"branch_shift_id"`
+	OccurredAt               time.Time      `json:"occurred_at"`
 }
 
 func (q *Queries) CreateBranchExpense(ctx context.Context, arg CreateBranchExpenseParams) (BranchExpense, error) {
@@ -67,6 +69,7 @@ func (q *Queries) CreateBranchExpense(ctx context.Context, arg CreateBranchExpen
 		arg.Amount,
 		arg.CurrencyCode,
 		arg.BranchCashboxAccountID,
+		arg.BranchCashboxAccountName,
 		arg.BranchShiftID,
 		arg.OccurredAt,
 	)
@@ -83,12 +86,13 @@ func (q *Queries) CreateBranchExpense(ctx context.Context, arg CreateBranchExpen
 		&i.OccurredAt,
 		&i.ReceivedAt,
 		&i.CategoryID,
+		&i.BranchCashboxAccountName,
 	)
 	return i, err
 }
 
 const getBranchExpense = `-- name: GetBranchExpense :one
-SELECT id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id FROM branch_expenses
+SELECT id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id, branch_cashbox_account_name FROM branch_expenses
 WHERE id = $1
 LIMIT 1
 `
@@ -108,12 +112,13 @@ func (q *Queries) GetBranchExpense(ctx context.Context, id int64) (BranchExpense
 		&i.OccurredAt,
 		&i.ReceivedAt,
 		&i.CategoryID,
+		&i.BranchCashboxAccountName,
 	)
 	return i, err
 }
 
 const getBranchExpenseByClientRef = `-- name: GetBranchExpenseByClientRef :one
-SELECT id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id FROM branch_expenses
+SELECT id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id, branch_cashbox_account_name FROM branch_expenses
 WHERE branch_id = $1 AND client_ref = $2
 LIMIT 1
 `
@@ -138,12 +143,13 @@ func (q *Queries) GetBranchExpenseByClientRef(ctx context.Context, arg GetBranch
 		&i.OccurredAt,
 		&i.ReceivedAt,
 		&i.CategoryID,
+		&i.BranchCashboxAccountName,
 	)
 	return i, err
 }
 
 const listBranchExpenses = `-- name: ListBranchExpenses :many
-SELECT id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id FROM branch_expenses
+SELECT id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id, branch_cashbox_account_name FROM branch_expenses
 WHERE ($3::bigint IS NULL OR branch_id = $3)
   AND ($4::text = '' OR description ILIKE '%' || $4::text || '%')
 ORDER BY id DESC
@@ -185,6 +191,7 @@ func (q *Queries) ListBranchExpenses(ctx context.Context, arg ListBranchExpenses
 			&i.OccurredAt,
 			&i.ReceivedAt,
 			&i.CategoryID,
+			&i.BranchCashboxAccountName,
 		); err != nil {
 			return nil, err
 		}
