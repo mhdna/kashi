@@ -102,6 +102,9 @@
                     @update:model-value="toggleSelect(internalItem)"
                   />
                 </template>
+                <template #item.units_per_usd_micros="{ item }">
+                  {{ formatUnitsPerUsd(item.units_per_usd_micros) }}
+                </template>
                 <template #item.is_default="{ item }">
                   <v-chip v-if="item.is_default" color="primary" size="small">Default</v-chip>
                 </template>
@@ -167,6 +170,27 @@
             v-model.number="currencyForm.valueInDefaultCurrency"
             density="compact"
             label="Value in Default Currency"
+            type="number"
+          />
+          <v-text-field
+            v-model.number="currencyForm.unitsPerUsd"
+            density="compact"
+            :disabled="editingIsDefault"
+            :hint="editingIsDefault
+              ? 'The default currency is the accounting anchor; its rate is fixed.'
+              : 'e.g. 90000 for LBP, 0.92 for EUR'"
+            label="Units per 1 USD"
+            persistent-hint
+            type="number"
+          />
+          <v-text-field
+            v-model.number="currencyForm.cashRoundingUnit"
+            class="mt-3"
+            density="compact"
+            :disabled="editingIsDefault"
+            hint="Cash in this currency rounds to the nearest multiple of this. 1 = no rounding."
+            label="Cash rounding unit"
+            persistent-hint
             type="number"
           />
 
@@ -365,6 +389,8 @@
     { title: 'Name', key: 'name', align: 'start' },
     { title: 'Symbol', key: 'symbol', align: 'start' },
     { title: 'Value in Default Currency', key: 'value_in_default_currency', align: 'end' },
+    { title: 'Units per 1 USD', key: 'units_per_usd_micros', align: 'end' },
+    { title: 'Cash rounding', key: 'cash_rounding_unit', align: 'end' },
     { title: '', key: 'is_default', align: 'center', sortable: false },
   ]
 
@@ -433,16 +459,28 @@
   const currencySaving = ref(false)
   const currencyError = ref('')
   const editingCode = ref(null)
-  const currencyForm = reactive({ code: '', name: '', symbol: '', valueInDefaultCurrency: 1 })
+  // units_per_usd_micros is stored as micro-units (x1,000,000) so a rate like
+  // EUR's 0.92 stays an integer in the database. The form talks in the rate a
+  // person actually knows -- 90000 LL to the dollar -- and converts on the
+  // way in and out.
+  const MICROS_PER_UNIT = 1_000_000
 
-  function openAddCurrency () {
-    editingCode.value = null
-    currencyError.value = ''
-    Object.assign(currencyForm, { code: '', name: '', symbol: '', valueInDefaultCurrency: 1 })
-    currencyDialog.value = true
+  // Trailing zeros from the fixed-point scale are noise: 90000, not 90000.000000.
+  function formatUnitsPerUsd (micros) {
+    if (!micros) return '—'
+    return String(Number((micros / MICROS_PER_UNIT).toFixed(6)))
   }
 
   const editingIsDefault = ref(false)
+  const currencyForm = reactive({ code: '', name: '', symbol: '', valueInDefaultCurrency: 1, unitsPerUsd: 1, cashRoundingUnit: 1 })
+
+  function openAddCurrency () {
+    editingCode.value = null
+    editingIsDefault.value = false
+    currencyError.value = ''
+    Object.assign(currencyForm, { code: '', name: '', symbol: '', valueInDefaultCurrency: 1, unitsPerUsd: 1, cashRoundingUnit: 1 })
+    currencyDialog.value = true
+  }
 
   function openEditCurrency (item) {
     if (!canEdit.value) return
@@ -454,6 +492,8 @@
       name: item.name,
       symbol: item.symbol,
       valueInDefaultCurrency: item.value_in_default_currency,
+      unitsPerUsd: item.units_per_usd_micros / MICROS_PER_UNIT,
+      cashRoundingUnit: item.cash_rounding_unit,
     })
     currencyDialog.value = true
   }
@@ -487,6 +527,20 @@
       currencyError.value = 'Value in default currency must be greater than 0.'
       return
     }
+    // The default currency's rate is the anchor everything else is expressed
+    // against, so the form leaves it alone and sends nothing for it.
+    const unitsPerUsdMicros = Math.round(Number(currencyForm.unitsPerUsd) * MICROS_PER_UNIT)
+    const cashRoundingUnit = Number(currencyForm.cashRoundingUnit)
+    if (!editingIsDefault.value) {
+      if (!(unitsPerUsdMicros > 0)) {
+        currencyError.value = 'Units per 1 USD must be greater than 0.'
+        return
+      }
+      if (!Number.isInteger(cashRoundingUnit) || cashRoundingUnit < 1) {
+        currencyError.value = 'Cash rounding unit must be a whole number of 1 or more.'
+        return
+      }
+    }
     currencySaving.value = true
     currencyError.value = ''
     try {
@@ -495,6 +549,10 @@
         name: currencyForm.name.trim(),
         symbol: currencyForm.symbol.trim(),
         value_in_default_currency: Number(currencyForm.valueInDefaultCurrency),
+        ...(editingIsDefault.value ? {} : {
+          units_per_usd_micros: unitsPerUsdMicros,
+          cash_rounding_unit: cashRoundingUnit,
+        }),
       }
       await (editingCode.value ? updateCurrency(payload) : createCurrency(payload))
       currencyDialog.value = false
