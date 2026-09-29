@@ -98,6 +98,18 @@
                 <template #item.is_default="{ item }">
                   <v-chip v-if="item.is_default" color="primary" size="small">Default</v-chip>
                 </template>
+                <template #item.is_active="{ item }">
+                  <v-switch
+                    color="primary"
+                    density="compact"
+                    :disabled="!canEdit || item.is_default"
+                    hide-details
+                    :loading="currencyTogglingCode === item.code"
+                    :model-value="item.is_active"
+                    @click.stop
+                    @update:model-value="value => toggleCurrencyActive(item, value)"
+                  />
+                </template>
               </v-data-table>
             </div>
           </div>
@@ -126,6 +138,28 @@
                 </template>
                 <template #item.reserved="{ item }">
                   <v-chip v-if="item.reserved" size="small" variant="tonal">System</v-chip>
+                </template>
+                <template #item.is_active="{ item }">
+                  <v-switch
+                    color="primary"
+                    density="compact"
+                    :disabled="!canEdit || item.reserved"
+                    hide-details
+                    :loading="methodTogglingId === item.id"
+                    :model-value="item.is_active"
+                    @click.stop
+                    @update:model-value="value => toggleMethodActive(item, value)"
+                  />
+                </template>
+                <template #item.actions="{ item }">
+                  <v-btn
+                    color="error"
+                    :disabled="!canEdit || item.reserved"
+                    icon="mdi-delete"
+                    size="small"
+                    variant="text"
+                    @click.stop="openDeleteMethod(item)"
+                  />
                 </template>
               </v-data-table>
             </div>
@@ -224,6 +258,28 @@
             text="Delete"
             variant="flat"
             @click="confirmDeleteCurrency"
+          />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- delete payment method -->
+    <v-dialog v-model="methodDeleteDialog" max-width="420">
+      <v-card>
+        <v-card-title>Delete Payment Method</v-card-title>
+        <v-card-text>
+          Delete <strong>{{ methodDeleteTarget?.name }}</strong>? This cannot be undone. If any
+          branch has customized this method, deactivate it instead.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn text="Cancel" variant="text" @click="methodDeleteDialog = false" />
+          <v-btn
+            color="error"
+            :loading="methodDeleting"
+            text="Delete"
+            variant="flat"
+            @click="confirmDeleteMethod"
           />
         </v-card-actions>
       </v-card>
@@ -339,6 +395,8 @@
     fetchCashboxAccounts,
     createCashboxAccount,
     updateCashboxAccount,
+    deleteCashboxAccount,
+    setCashboxAccountActive,
   } = useCashboxAccounts()
 
   const tab = ref('currencies')
@@ -361,6 +419,7 @@
     { title: 'Units per 1 USD', key: 'units_per_usd_micros', align: 'end' },
     { title: 'Cash rounding', key: 'cash_rounding_unit', align: 'end' },
     { title: '', key: 'is_default', align: 'center', sortable: false },
+    { title: 'Active', key: 'is_active', align: 'center', sortable: false },
   ]
 
   const methodHeaders = [
@@ -369,6 +428,8 @@
     { title: 'Color', key: 'color', align: 'start' },
     { title: 'Order', key: 'sort_order', align: 'end', width: 90 },
     { title: '', key: 'reserved', align: 'center', sortable: false },
+    { title: 'Active', key: 'is_active', align: 'center', sortable: false },
+    { title: '', key: 'actions', align: 'end', sortable: false },
   ]
 
   // "On Account" / "On Coupon" are internal bookkeeping tenders in kashi-pos
@@ -527,6 +588,27 @@
     }
   }
 
+  // ---- currency activate / deactivate ------------------------------------
+  const currencyTogglingCode = ref(null)
+
+  async function toggleCurrencyActive (item, isActive) {
+    currencyTogglingCode.value = item.code
+    try {
+      await updateCurrency({
+        code: item.code,
+        name: item.name,
+        symbol: item.symbol,
+        value_in_default_currency: item.value_in_default_currency,
+        is_active: isActive,
+      })
+      reloadCurrencies()
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      currencyTogglingCode.value = null
+    }
+  }
+
   // ---- currency delete ---------------------------------------------------
   const deleteDialog = ref(false)
   const deleteTarget = ref(null)
@@ -578,6 +660,44 @@
 
   function openMethodRow (_event, { item }) {
     openEditMethod(item)
+  }
+
+  // ---- payment method activate / deactivate ------------------------------
+  const methodTogglingId = ref(null)
+
+  async function toggleMethodActive (item, isActive) {
+    methodTogglingId.value = item.id
+    try {
+      await setCashboxAccountActive(item.id, isActive)
+      reloadMethods()
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      methodTogglingId.value = null
+    }
+  }
+
+  // ---- payment method delete ---------------------------------------------
+  const methodDeleteDialog = ref(false)
+  const methodDeleteTarget = ref(null)
+  const methodDeleting = ref(false)
+
+  function openDeleteMethod (item) {
+    methodDeleteTarget.value = item
+    methodDeleteDialog.value = true
+  }
+
+  async function confirmDeleteMethod () {
+    methodDeleting.value = true
+    try {
+      await deleteCashboxAccount(methodDeleteTarget.value.id)
+      methodDeleteDialog.value = false
+      reloadMethods()
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      methodDeleting.value = false
+    }
   }
 
   async function saveMethod () {

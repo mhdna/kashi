@@ -55,13 +55,40 @@ SELECT * FROM cashbox_accounts
 WHERE updated_at > $1
 ORDER BY updated_at;
 
+-- name: SetCashboxAccountActive :one
+UPDATE cashbox_accounts
+SET is_active = $2,
+updated_at = now()
+WHERE id = $1
+RETURNING *;
+
+-- name: CountCashboxAccountOverrides :one
+-- How many branches reference this method, either via an explicit override
+-- row or by inheriting it as-is. A payment method that any branch still
+-- overrides can't be hard-deleted without leaving that override dangling
+-- (or silently cascading it away), so the delete handler blocks on this and
+-- points the admin at deactivating instead.
+SELECT COUNT(*) FROM branch_cashbox_accounts
+WHERE cashbox_account_id = $1;
+
+-- name: DeleteCashboxAccount :exec
+DELETE FROM cashbox_accounts
+WHERE id = $1;
+
 -- name: ListCashboxAccountsForSync :many
 -- The whole set, not a "changed since" delta. A branch has to be able to tell
 -- that kashi no longer has a payment method at all, and an incremental feed
 -- can only say what changed -- it has no way to say what is gone. Sending
 -- every row lets the till reconcile by absence, the same shape the price and
 -- discount lists use. The table is a handful of rows, so the cost is nil.
+--
+-- Inactive methods are left out on purpose: absence is what the till
+-- reconciles a deactivation on (see ListCashboxAccountsForBranchSync and
+-- reconcileCashboxAccounts in kashi-pos), so a centrally deactivated method
+-- reaches every branch the same way a deleted one would, without kashi-pos
+-- ever needing to know about is_active at all.
 SELECT * FROM cashbox_accounts
+WHERE is_active
 ORDER BY sort_order, id;
 
 -- name: ListCashboxAccountsForBranchSync :many
@@ -84,7 +111,7 @@ SELECT
 FROM cashbox_accounts ca
 LEFT JOIN branch_cashbox_accounts bca
   ON bca.cashbox_account_id = ca.id AND bca.branch_id = sqlc.arg(branch_id)
-WHERE COALESCE(bca.is_enabled, true)
+WHERE ca.is_active AND COALESCE(bca.is_enabled, true)
 ORDER BY COALESCE(bca.sort_order, ca.sort_order), ca.id;
 
 -- name: ListCashboxAccountOverridesForBranch :many

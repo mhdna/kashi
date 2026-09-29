@@ -23,6 +23,24 @@ func (q *Queries) CountCurrencies(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const countCurrencyUsage = `-- name: CountCurrencyUsage :one
+SELECT
+  (SELECT COUNT(*) FROM cashbox_accounts ca WHERE ca.currency_code = $1::text) +
+  (SELECT COUNT(*) FROM branch_cashbox_accounts bca WHERE bca.currency_code = $1::text) AS usage_count
+`
+
+// Whether anything in kashi's own tables still points at this currency --
+// a payment method priced in it, or a branch override that prices one in it.
+// A currency that's still referenced can't be hard-deleted (it would either
+// violate the FK or silently orphan those rows); the delete handler blocks
+// on this and points the admin at deactivating instead.
+func (q *Queries) CountCurrencyUsage(ctx context.Context, code string) (int32, error) {
+	row := q.db.QueryRowContext(ctx, countCurrencyUsage, code)
+	var usage_count int32
+	err := row.Scan(&usage_count)
+	return usage_count, err
+}
+
 const createCurrency = `-- name: CreateCurrency :one
 INSERT INTO currencies (
   name,

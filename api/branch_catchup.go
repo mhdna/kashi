@@ -209,6 +209,50 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 		items, err = server.store.ListExpenseCategoriesUpdatedSince(ctx, since)
 	case "loan_categories":
 		items, err = server.store.ListLoanCategoriesUpdatedSince(ctx, since)
+	case "coupon_types":
+		var rows []db.CouponType
+		rows, err = server.store.ListCouponTypesUpdatedSince(ctx, since)
+		if err == nil {
+			out := make([]syncCouponType, len(rows))
+			for i, r := range rows {
+				out[i] = newSyncCouponType(r)
+			}
+			items = out
+		}
+	case "coupons":
+		// Sent whole (every status, not filtered to 'active') -- see the
+		// comment on ListCouponsUpdatedSince: absence can't tell a till a
+		// code was redeemed elsewhere or deactivated, the row has to.
+		var rows []db.Coupon
+		rows, err = server.store.ListCouponsUpdatedSince(ctx, since)
+		if err == nil {
+			out := make([]syncCoupon, len(rows))
+			for i, r := range rows {
+				out[i] = newSyncCoupon(r)
+			}
+			items = out
+		}
+	case "branches":
+		// Whole set every time, like currencies -- see
+		// ListBranchesForSync's own comment. Ignores `since`.
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		items, err = server.store.ListBranchesForSync(ctx, branchID)
+	case "transfer_requests":
+		// Branch-scoped, like branch_targets: the till's own poll for what
+		// happened to the transfers it proposed.
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		var rows []db.Transfer
+		rows, err = server.store.ListBranchTransfersUpdatedSince(ctx, db.ListBranchTransfersUpdatedSinceParams{
+			BranchID:  sql.NullInt64{Int64: branchID, Valid: true},
+			UpdatedAt: since,
+		})
+		if err == nil {
+			out := make([]syncTransferRequest, len(rows))
+			for i, r := range rows {
+				out[i] = newSyncTransferRequest(r)
+			}
+			items = out
+		}
 	default:
 		server.writeError(ctx, http.StatusBadRequest, errUnknownSyncEntity)
 		return

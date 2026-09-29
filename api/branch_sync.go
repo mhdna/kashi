@@ -104,6 +104,10 @@ type branchInvoiceRequest struct {
 type branchInvoicePaymentRequest struct {
 	AccountName string `json:"account_name" binding:"required"`
 	Amount      int64  `json:"amount"`
+	// CouponCode is set only when this payment line redeemed a coupon --
+	// see BranchInvoicePaymentParams.CouponCode. Older kashi-pos builds
+	// that predate coupon sync simply omit it.
+	CouponCode string `json:"coupon_code"`
 }
 
 func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
@@ -163,6 +167,7 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 		payments = append(payments, db.BranchInvoicePaymentParams{
 			AccountName: payment.AccountName,
 			Amount:      payment.Amount,
+			CouponCode:  payment.CouponCode,
 		})
 	}
 

@@ -32,6 +32,23 @@ func (q *Queries) AddCashboxAccountBalance(ctx context.Context, arg AddCashboxAc
 	return i, err
 }
 
+const countCashboxAccountOverrides = `-- name: CountCashboxAccountOverrides :one
+SELECT COUNT(*) FROM branch_cashbox_accounts
+WHERE cashbox_account_id = $1
+`
+
+// How many branches reference this method, either via an explicit override
+// row or by inheriting it as-is. A payment method that any branch still
+// overrides can't be hard-deleted without leaving that override dangling
+// (or silently cascading it away), so the delete handler blocks on this and
+// points the admin at deactivating instead.
+func (q *Queries) CountCashboxAccountOverrides(ctx context.Context, cashboxAccountID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countCashboxAccountOverrides, cashboxAccountID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createBranchSalesperson = `-- name: CreateBranchSalesperson :one
 INSERT INTO salespersons (
   name,
@@ -97,7 +114,7 @@ INSERT INTO cashbox_accounts (
   color
 )
 VALUES ($1, $2, $3, $4)
-RETURNING id, name, currency_code, sort_order, color, updated_at
+RETURNING id, name, currency_code, sort_order, color, updated_at, is_active
 `
 
 type CreateCashboxAccountParams struct {
@@ -122,6 +139,7 @@ func (q *Queries) CreateCashboxAccount(ctx context.Context, arg CreateCashboxAcc
 		&i.SortOrder,
 		&i.Color,
 		&i.UpdatedAt,
+		&i.IsActive,
 	)
 	return i, err
 }
@@ -152,6 +170,16 @@ func (q *Queries) CreateSalesperson(ctx context.Context, arg CreateSalespersonPa
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const deleteCashboxAccount = `-- name: DeleteCashboxAccount :exec
+DELETE FROM cashbox_accounts
+WHERE id = $1
+`
+
+func (q *Queries) DeleteCashboxAccount(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteCashboxAccount, id)
+	return err
 }
 
 const deleteCashboxAccountOverride = `-- name: DeleteCashboxAccountOverride :exec
@@ -200,7 +228,7 @@ func (q *Queries) GetCashbox(ctx context.Context, id int64) (Cashbox, error) {
 }
 
 const getCashboxAccount = `-- name: GetCashboxAccount :one
-SELECT id, name, currency_code, sort_order, color, updated_at FROM cashbox_accounts
+SELECT id, name, currency_code, sort_order, color, updated_at, is_active FROM cashbox_accounts
 WHERE id = $1
 LIMIT 1
 `
@@ -215,6 +243,7 @@ func (q *Queries) GetCashboxAccount(ctx context.Context, id int64) (CashboxAccou
 		&i.SortOrder,
 		&i.Color,
 		&i.UpdatedAt,
+		&i.IsActive,
 	)
 	return i, err
 }
@@ -257,7 +286,7 @@ func (q *Queries) GetSalesperson(ctx context.Context, id int64) (Salesperson, er
 }
 
 const listAllCashboxAccounts = `-- name: ListAllCashboxAccounts :many
-SELECT id, name, currency_code, sort_order, color, updated_at FROM cashbox_accounts
+SELECT id, name, currency_code, sort_order, color, updated_at, is_active FROM cashbox_accounts
 ORDER BY id
 `
 
@@ -277,6 +306,7 @@ func (q *Queries) ListAllCashboxAccounts(ctx context.Context) ([]CashboxAccount,
 			&i.SortOrder,
 			&i.Color,
 			&i.UpdatedAt,
+			&i.IsActive,
 		); err != nil {
 			return nil, err
 		}
@@ -358,7 +388,7 @@ func (q *Queries) ListCashboxAccountOverridesForBranch(ctx context.Context, bran
 }
 
 const listCashboxAccounts = `-- name: ListCashboxAccounts :many
-SELECT id, name, currency_code, sort_order, color, updated_at FROM cashbox_accounts
+SELECT id, name, currency_code, sort_order, color, updated_at, is_active FROM cashbox_accounts
 ORDER BY id
 LIMIT $1
 OFFSET $2
@@ -385,6 +415,7 @@ func (q *Queries) ListCashboxAccounts(ctx context.Context, arg ListCashboxAccoun
 			&i.SortOrder,
 			&i.Color,
 			&i.UpdatedAt,
+			&i.IsActive,
 		); err != nil {
 			return nil, err
 		}
@@ -410,7 +441,7 @@ SELECT
 FROM cashbox_accounts ca
 LEFT JOIN branch_cashbox_accounts bca
   ON bca.cashbox_account_id = ca.id AND bca.branch_id = $1
-WHERE COALESCE(bca.is_enabled, true)
+WHERE ca.is_active AND COALESCE(bca.is_enabled, true)
 ORDER BY COALESCE(bca.sort_order, ca.sort_order), ca.id
 `
 
@@ -463,7 +494,8 @@ func (q *Queries) ListCashboxAccountsForBranchSync(ctx context.Context, branchID
 }
 
 const listCashboxAccountsForSync = `-- name: ListCashboxAccountsForSync :many
-SELECT id, name, currency_code, sort_order, color, updated_at FROM cashbox_accounts
+SELECT id, name, currency_code, sort_order, color, updated_at, is_active FROM cashbox_accounts
+WHERE is_active
 ORDER BY sort_order, id
 `
 
@@ -472,6 +504,12 @@ ORDER BY sort_order, id
 // can only say what changed -- it has no way to say what is gone. Sending
 // every row lets the till reconcile by absence, the same shape the price and
 // discount lists use. The table is a handful of rows, so the cost is nil.
+//
+// Inactive methods are left out on purpose: absence is what the till
+// reconciles a deactivation on (see ListCashboxAccountsForBranchSync and
+// reconcileCashboxAccounts in kashi-pos), so a centrally deactivated method
+// reaches every branch the same way a deleted one would, without kashi-pos
+// ever needing to know about is_active at all.
 func (q *Queries) ListCashboxAccountsForSync(ctx context.Context) ([]CashboxAccount, error) {
 	rows, err := q.db.QueryContext(ctx, listCashboxAccountsForSync)
 	if err != nil {
@@ -488,6 +526,7 @@ func (q *Queries) ListCashboxAccountsForSync(ctx context.Context) ([]CashboxAcco
 			&i.SortOrder,
 			&i.Color,
 			&i.UpdatedAt,
+			&i.IsActive,
 		); err != nil {
 			return nil, err
 		}
@@ -503,7 +542,7 @@ func (q *Queries) ListCashboxAccountsForSync(ctx context.Context) ([]CashboxAcco
 }
 
 const listCashboxAccountsUpdatedSince = `-- name: ListCashboxAccountsUpdatedSince :many
-SELECT id, name, currency_code, sort_order, color, updated_at FROM cashbox_accounts
+SELECT id, name, currency_code, sort_order, color, updated_at, is_active FROM cashbox_accounts
 WHERE updated_at > $1
 ORDER BY updated_at
 `
@@ -524,6 +563,7 @@ func (q *Queries) ListCashboxAccountsUpdatedSince(ctx context.Context, updatedAt
 			&i.SortOrder,
 			&i.Color,
 			&i.UpdatedAt,
+			&i.IsActive,
 		); err != nil {
 			return nil, err
 		}
@@ -734,6 +774,34 @@ func (q *Queries) ListSalespersonsUpdatedSince(ctx context.Context, arg ListSale
 	return items, nil
 }
 
+const setCashboxAccountActive = `-- name: SetCashboxAccountActive :one
+UPDATE cashbox_accounts
+SET is_active = $2,
+updated_at = now()
+WHERE id = $1
+RETURNING id, name, currency_code, sort_order, color, updated_at, is_active
+`
+
+type SetCashboxAccountActiveParams struct {
+	ID       int64 `json:"id"`
+	IsActive bool  `json:"is_active"`
+}
+
+func (q *Queries) SetCashboxAccountActive(ctx context.Context, arg SetCashboxAccountActiveParams) (CashboxAccount, error) {
+	row := q.db.QueryRowContext(ctx, setCashboxAccountActive, arg.ID, arg.IsActive)
+	var i CashboxAccount
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CurrencyCode,
+		&i.SortOrder,
+		&i.Color,
+		&i.UpdatedAt,
+		&i.IsActive,
+	)
+	return i, err
+}
+
 const setSalespersonActive = `-- name: SetSalespersonActive :one
 UPDATE salespersons
 SET is_active = $2,
@@ -831,7 +899,7 @@ sort_order = $4,
 color = $5,
 updated_at = now()
 WHERE id = $1
-RETURNING id, name, currency_code, sort_order, color, updated_at
+RETURNING id, name, currency_code, sort_order, color, updated_at, is_active
 `
 
 type UpdateCashboxAccountParams struct {
@@ -858,6 +926,7 @@ func (q *Queries) UpdateCashboxAccount(ctx context.Context, arg UpdateCashboxAcc
 		&i.SortOrder,
 		&i.Color,
 		&i.UpdatedAt,
+		&i.IsActive,
 	)
 	return i, err
 }

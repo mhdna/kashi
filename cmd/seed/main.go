@@ -632,12 +632,28 @@ func seedCoupons(ctx context.Context, store db.Store, clientIDs []int64) {
 	if len(clientIDs) == 0 {
 		return
 	}
-	discountTypes := []db.DiscountType{db.DiscountTypeFixed, db.DiscountTypePercentage}
-	reasons := []string{"Loyalty reward", "Birthday promo", "Referral bonus", "Seasonal sale", "Customer complaint compensation"}
+	typeNames := []string{"Loyalty reward", "Birthday promo", "Referral bonus", "Seasonal sale", "Customer complaint compensation"}
+	types := make([]db.CouponType, 0, len(typeNames))
+	for i, name := range typeNames {
+		ct, err := store.CreateCouponType(ctx, db.CreateCouponTypeParams{
+			Name:         name,
+			ValueCents:   int64((i + 1) * 500),
+			CurrencyCode: "USD",
+		})
+		if err != nil {
+			log.Printf("warning: failed to create coupon type %s: %v", name, err)
+			continue
+		}
+		types = append(types, ct)
+	}
+	if len(types) == 0 {
+		return
+	}
 
 	count := 0
 	for i := 0; i < 100; i++ {
 		clientID := clientIDs[rand.Intn(len(clientIDs))]
+		couponType := types[rand.Intn(len(types))]
 		code := fmt.Sprintf("COUPON%05d", i+1)
 		status := db.CouponStatusActive
 		if rand.Intn(4) == 0 {
@@ -645,12 +661,12 @@ func seedCoupons(ctx context.Context, store db.Store, clientIDs []int64) {
 		}
 
 		_, err := store.CreateCoupon(ctx, db.CreateCouponParams{
-			Code:         code,
-			Status:       status,
-			DiscountType: discountTypes[rand.Intn(len(discountTypes))],
-			Reason:       reasons[rand.Intn(len(reasons))],
-			ClientID:     clientID,
-			ValidUntil:   time.Now().AddDate(0, rand.Intn(12)+1, 0),
+			Code:       code,
+			Status:     status,
+			TypeID:     sql.NullInt64{Int64: couponType.ID, Valid: true},
+			ValueCents: couponType.ValueCents,
+			ClientID:   sql.NullInt64{Int64: clientID, Valid: true},
+			ValidUntil: sql.NullTime{Time: time.Now().AddDate(0, rand.Intn(12)+1, 0), Valid: true},
 		})
 		if err != nil {
 			log.Printf("warning: failed to create coupon %s: %v", code, err)

@@ -18,14 +18,20 @@ func couponCategoryID(id int64) sql.NullInt64 {
 	return sql.NullInt64{}
 }
 
+func nullInt64OrZero(id int64) sql.NullInt64 {
+	if id > 0 {
+		return sql.NullInt64{Int64: id, Valid: true}
+	}
+	return sql.NullInt64{}
+}
+
 type createCouponRequest struct {
-	Code         string `json:"code" binding:"required"`
-	Status       string `json:"status" binding:"required"`
-	DiscountType string `json:"discount_type" binding:"required"`
-	Reason       string `json:"reason" binding:"required"`
-	ClientID     int64  `json:"client_id" binding:"required"`
-	ValidUntil   string `json:"valid_until" binding:"required"`
-	CategoryID   int64  `json:"category_id"`
+	Code       string `json:"code" binding:"required"`
+	Status     string `json:"status" binding:"required"`
+	TypeID     int64  `json:"type_id" binding:"required"`
+	ClientID   int64  `json:"client_id"`
+	ValidUntil string `json:"valid_until"`
+	CategoryID int64  `json:"category_id"`
 }
 
 func (server *Server) createCoupon(ctx *gin.Context) {
@@ -35,20 +41,34 @@ func (server *Server) createCoupon(ctx *gin.Context) {
 		return
 	}
 
-	validUntil, err := time.Parse(time.RFC3339, req.ValidUntil)
+	couponType, err := server.store.GetCouponType(ctx, req.TypeID)
 	if err != nil {
-		server.writeError(ctx, http.StatusBadRequest, err)
+		if err == sql.ErrNoRows {
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
+	var validUntil sql.NullTime
+	if req.ValidUntil != "" {
+		parsed, err := time.Parse(time.RFC3339, req.ValidUntil)
+		if err != nil {
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		validUntil = sql.NullTime{Time: parsed, Valid: true}
+	}
+
 	arg := db.CreateCouponParams{
-		Code:         req.Code,
-		Status:       db.CouponStatus(req.Status),
-		DiscountType: db.DiscountType(req.DiscountType),
-		Reason:       req.Reason,
-		ClientID:     req.ClientID,
-		ValidUntil:   validUntil,
-		CategoryID:   couponCategoryID(req.CategoryID),
+		Code:       req.Code,
+		Status:     db.CouponStatus(req.Status),
+		TypeID:     sql.NullInt64{Int64: couponType.ID, Valid: true},
+		ValueCents: couponType.ValueCents,
+		ClientID:   nullInt64OrZero(req.ClientID),
+		ValidUntil: validUntil,
+		CategoryID: couponCategoryID(req.CategoryID),
 	}
 
 	coupon, err := server.store.CreateCoupon(ctx, arg)
@@ -64,12 +84,11 @@ type updateCouponURI struct {
 }
 
 type updateCouponRequest struct {
-	Status       string `json:"status" binding:"required"`
-	DiscountType string `json:"discount_type" binding:"required"`
-	Reason       string `json:"reason" binding:"required"`
-	ClientID     int64  `json:"client_id" binding:"required"`
-	ValidUntil   string `json:"valid_until" binding:"required"`
-	CategoryID   int64  `json:"category_id"`
+	Status     string `json:"status" binding:"required"`
+	TypeID     int64  `json:"type_id" binding:"required"`
+	ClientID   int64  `json:"client_id"`
+	ValidUntil string `json:"valid_until"`
+	CategoryID int64  `json:"category_id"`
 }
 
 func (server *Server) updateCoupon(ctx *gin.Context) {
@@ -84,20 +103,34 @@ func (server *Server) updateCoupon(ctx *gin.Context) {
 		return
 	}
 
-	validUntil, err := time.Parse(time.RFC3339, req.ValidUntil)
+	couponType, err := server.store.GetCouponType(ctx, req.TypeID)
 	if err != nil {
-		server.writeError(ctx, http.StatusBadRequest, err)
+		if err == sql.ErrNoRows {
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
+	var validUntil sql.NullTime
+	if req.ValidUntil != "" {
+		parsed, err := time.Parse(time.RFC3339, req.ValidUntil)
+		if err != nil {
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		validUntil = sql.NullTime{Time: parsed, Valid: true}
+	}
+
 	coupon, err := server.store.UpdateCoupon(ctx, db.UpdateCouponParams{
-		Code:         uri.Code,
-		Status:       db.CouponStatus(req.Status),
-		DiscountType: db.DiscountType(req.DiscountType),
-		Reason:       req.Reason,
-		ClientID:     req.ClientID,
-		ValidUntil:   validUntil,
-		CategoryID:   couponCategoryID(req.CategoryID),
+		Code:       uri.Code,
+		Status:     db.CouponStatus(req.Status),
+		TypeID:     sql.NullInt64{Int64: couponType.ID, Valid: true},
+		ValueCents: couponType.ValueCents,
+		ClientID:   nullInt64OrZero(req.ClientID),
+		ValidUntil: validUntil,
+		CategoryID: couponCategoryID(req.CategoryID),
 	})
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -138,8 +171,9 @@ type listCouponsRequest struct {
 	PageSize   int32  `form:"page_size,default=10" binding:"min=5,max=100"`
 	PageID     int32  `form:"page_id,default=0" binding:"min=0"`
 	Search     string `form:"search"`
-	Status     string `form:"status" binding:"omitempty,oneof=active inactive"`
+	Status     string `form:"status" binding:"omitempty,oneof=active inactive redeemed"`
 	CategoryID int64  `form:"category_id"`
+	ListID     int64  `form:"list_id"`
 }
 
 func (server *Server) listCoupons(ctx *gin.Context) {
@@ -154,13 +188,15 @@ func (server *Server) listCoupons(ctx *gin.Context) {
 		status = db.NullCouponStatus{CouponStatus: db.CouponStatus(req.Status), Valid: true}
 	}
 	categoryID := couponCategoryID(req.CategoryID)
+	listID := nullInt64OrZero(req.ListID)
 
 	respondList(server, ctx, "coupons",
-		func() ([]db.Coupon, error) {
+		func() ([]db.ListCouponsRow, error) {
 			return server.store.ListCoupons(ctx, db.ListCouponsParams{
 				Search:     req.Search,
 				Status:     status,
 				CategoryID: categoryID,
+				ListID:     listID,
 				PageSize:   req.PageSize,
 				PageOffset: req.PageID,
 			})
@@ -170,6 +206,7 @@ func (server *Server) listCoupons(ctx *gin.Context) {
 				Search:     req.Search,
 				Status:     status,
 				CategoryID: categoryID,
+				ListID:     listID,
 			})
 		},
 	)

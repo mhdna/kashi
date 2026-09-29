@@ -86,6 +86,35 @@ func (q *Queries) GetBranchByCode(ctx context.Context, code string) (Branch, err
 	return i, err
 }
 
+const getBranchByCodeExcluding = `-- name: GetBranchByCodeExcluding :one
+SELECT id, name, code, api_key_hash, is_active, last_seen_at, created_at, inventory_id, timezone FROM branches
+WHERE code = $1 AND id != $2 AND is_active LIMIT 1
+`
+
+type GetBranchByCodeExcludingParams struct {
+	Code string `json:"code"`
+	ID   int64  `json:"id"`
+}
+
+// Resolves a till's chosen transfer destination by branch code, refusing
+// a branch naming itself as its own destination.
+func (q *Queries) GetBranchByCodeExcluding(ctx context.Context, arg GetBranchByCodeExcludingParams) (Branch, error) {
+	row := q.db.QueryRowContext(ctx, getBranchByCodeExcluding, arg.Code, arg.ID)
+	var i Branch
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Code,
+		&i.ApiKeyHash,
+		&i.IsActive,
+		&i.LastSeenAt,
+		&i.CreatedAt,
+		&i.InventoryID,
+		&i.Timezone,
+	)
+	return i, err
+}
+
 const listBranches = `-- name: ListBranches :many
 SELECT id, name, code, api_key_hash, is_active, last_seen_at, created_at, inventory_id, timezone FROM branches
 ORDER BY name
@@ -110,6 +139,51 @@ func (q *Queries) ListBranches(ctx context.Context) ([]Branch, error) {
 			&i.CreatedAt,
 			&i.InventoryID,
 			&i.Timezone,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listBranchesForSync = `-- name: ListBranchesForSync :many
+SELECT id, name, code, is_active FROM branches
+WHERE id != $1 AND is_active
+ORDER BY name
+`
+
+type ListBranchesForSyncRow struct {
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	Code     string `json:"code"`
+	IsActive bool   `json:"is_active"`
+}
+
+// Whole set, small table like currencies -- a till needs to see a branch
+// go inactive (and so disappear from its destination picker), which an
+// updated-since delta can't express. Excludes the requesting branch
+// itself: it can't transfer to itself.
+func (q *Queries) ListBranchesForSync(ctx context.Context, id int64) ([]ListBranchesForSyncRow, error) {
+	rows, err := q.db.QueryContext(ctx, listBranchesForSync, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListBranchesForSyncRow{}
+	for rows.Next() {
+		var i ListBranchesForSyncRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Code,
+			&i.IsActive,
 		); err != nil {
 			return nil, err
 		}

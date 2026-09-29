@@ -2,11 +2,17 @@ package api
 
 import (
 	"database/sql"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/mhdna/kashi/db/sqlc"
 )
+
+// errCurrencyInUse is returned instead of deleting a currency that a payment
+// method or branch override still prices in -- deactivating it (is_active)
+// is the safe way to retire it once it's been used anywhere.
+var errCurrencyInUse = errors.New("currency is used by a payment method or branch override; deactivate it instead of deleting")
 
 // defaultUnitsPerUSDMicros/defaultCashRoundingUnit match the values
 // kashi-pos itself defaults to for a currency at par with USD (see its
@@ -193,7 +199,17 @@ func (server *Server) deleteCurrency(ctx *gin.Context) {
 		return
 	}
 
-	err := server.store.DeleteCurrency(ctx, req.Code)
+	usage, err := server.store.CountCurrencyUsage(ctx, req.Code)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if usage > 0 {
+		server.writeError(ctx, http.StatusConflict, errCurrencyInUse)
+		return
+	}
+
+	err = server.store.DeleteCurrency(ctx, req.Code)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return

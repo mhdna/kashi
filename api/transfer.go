@@ -2,6 +2,8 @@ package api
 
 import (
 	"database/sql"
+	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -95,8 +97,9 @@ func (server *Server) getTransfer(ctx *gin.Context) {
 }
 
 type listTransfersRequest struct {
-	PageSize int32 `form:"page_size,default=10" binding:"min=5,max=100"`
-	PageID   int32 `form:"page_id,default=0" binding:"min=0"`
+	PageSize int32  `form:"page_size,default=10" binding:"min=5,max=100"`
+	PageID   int32  `form:"page_id,default=0" binding:"min=0"`
+	Status   string `form:"status" binding:"omitempty,oneof=requested draft dispatched received cancelled"`
 }
 
 func (server *Server) listTransfers(ctx *gin.Context) {
@@ -106,7 +109,13 @@ func (server *Server) listTransfers(ctx *gin.Context) {
 		return
 	}
 
+	var status db.NullTransferStatus
+	if req.Status != "" {
+		status = db.NullTransferStatus{TransferStatus: db.TransferStatus(req.Status), Valid: true}
+	}
+
 	transfers, err := server.store.ListTransfers(ctx, db.ListTransfersParams{
+		Status: status,
 		Limit:  req.PageSize,
 		Offset: req.PageID,
 	})
@@ -115,7 +124,7 @@ func (server *Server) listTransfers(ctx *gin.Context) {
 		return
 	}
 
-	total, err := server.store.CountTransfers(ctx)
+	total, err := server.store.CountTransfers(ctx, status)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
@@ -247,6 +256,31 @@ func (server *Server) receiveTransfer(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"transfer": result.Transfer, "movements": result.Movements})
 }
 
+// approveTransfer is how a kashi admin accepts a branch's proposed
+// transfer (or fast-tracks a centrally-drafted one): dispatch and receive
+// happen together in one atomic step -- see TransferApproveTx. Also
+// notifies the origin branch, if any, so a connected till reflects the
+// decision immediately rather than waiting for its next sync poll.
+func (server *Server) approveTransfer(ctx *gin.Context) {
+	var req transferIDRequest
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	result, err := server.store.TransferApproveTx(ctx, db.TransferStageTxParams{TransferID: req.ID, CreatedBy: actorID(ctx)})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			server.writeError(ctx, http.StatusNotFound, err)
+			return
+		}
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.notifyBranchTransferDecision(ctx, result.Transfer)
+	ctx.JSON(http.StatusOK, gin.H{"transfer": result.Transfer, "movements": result.Movements})
+}
+
 // cancelTransfer moves a transfer to 'cancelled', unwinding whichever legs
 // already ran.
 func (server *Server) cancelTransfer(ctx *gin.Context) {
@@ -265,5 +299,39 @@ func (server *Server) cancelTransfer(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	server.notifyBranchTransferDecision(ctx, result.Transfer)
 	ctx.JSON(http.StatusOK, gin.H{"transfer": result.Transfer, "movements": result.Movements})
+}
+
+// notifyBranchTransferDecision enqueues a transfer_decision command for the
+// transfer's origin branch, if it has one -- a central-drafted transfer
+// (branch_id NULL) has no till to notify. Best-effort: a connected branch
+// gets it over the WebSocket immediately via createBranchCommand's own
+// nudge; a disconnected one still sees the outcome on its next
+// transfer_requests sync poll (branchSyncChanges), so a failure to enqueue
+// here is logged, never surfaced to the admin as an error -- the approval
+// itself already succeeded.
+func (server *Server) notifyBranchTransferDecision(ctx *gin.Context, transfer db.Transfer) {
+	if !transfer.BranchID.Valid || !transfer.ClientRef.Valid {
+		return
+	}
+	payload, err := json.Marshal(gin.H{
+		"client_ref": transfer.ClientRef.String,
+		"status":     string(transfer.Status),
+	})
+	if err != nil {
+		log.Printf("transfer %d: marshal decision payload: %v", transfer.ID, err)
+		return
+	}
+	command, err := server.store.CreateBranchCommand(ctx, db.CreateBranchCommandParams{
+		BranchID: transfer.BranchID.Int64,
+		Type:     "transfer_decision",
+		Payload:  payload,
+		IssuedBy: actorID(ctx).Int64,
+	})
+	if err != nil {
+		log.Printf("transfer %d: enqueue transfer_decision command: %v", transfer.ID, err)
+		return
+	}
+	server.branchHub.notify(transfer.BranchID.Int64, branchWSMessage{Type: "command", CommandID: command.ID})
 }

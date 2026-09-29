@@ -8,36 +8,72 @@ INSERT INTO transfers (
 ) VALUES ( $1, $2, $3, $4, $5 )
 RETURNING *;
 
+-- name: CreateBranchTransferRequest :one
+-- A branch's own proposed transfer: always starts 'requested', always
+-- carries branch_id + client_ref (the idempotency key -- see
+-- idx_transfers_branch_client_ref).
+INSERT INTO transfers (
+  from_inventory_id,
+  to_inventory_id,
+  type,
+  note,
+  branch_id,
+  client_ref
+) VALUES ( $1, $2, $3, $4, $5, $6 )
+RETURNING *;
+
 -- name: GetTransfer :one
 SELECT * FROM transfers
 WHERE id = $1 LIMIT 1;
+
+-- name: GetBranchTransferByClientRef :one
+SELECT * FROM transfers
+WHERE branch_id = $1 AND client_ref = $2 LIMIT 1;
 
 -- name: ListTransfers :many
 SELECT
   t.*,
   fi.name AS from_inventory_name,
   ti.name AS to_inventory_name,
+  b.name AS branch_name,
   (SELECT COUNT(*) FROM transfer_items x WHERE x.transfer_id = t.id) AS item_count
 FROM transfers t
 JOIN inventories fi ON fi.id = t.from_inventory_id
 JOIN inventories ti ON ti.id = t.to_inventory_id
+LEFT JOIN branches b ON b.id = t.branch_id
+WHERE (sqlc.narg(status)::transfer_status IS NULL OR t.status = sqlc.narg(status))
 ORDER BY t.id DESC
 LIMIT $1
 OFFSET $2;
+
+-- name: ListBranchTransfersUpdatedSince :many
+-- The till's own poll: what happened to the requests it made -- see
+-- approveTransfer/rejectTransfer, which both bump updated_at.
+SELECT * FROM transfers
+WHERE branch_id = $1 AND updated_at > $2
+ORDER BY updated_at;
 
 -- name: UpdateTransfer :exec
 UPDATE transfers
 SET from_inventory_id = $2,
     to_inventory_id = $3,
     type = $4,
-    note = $5
-WHERE id = $1 AND status = 'draft';
+    note = $5,
+    updated_at = now()
+WHERE id = $1 AND status IN ('draft', 'requested');
+
+-- name: SetTransferAttachmentPath :exec
+UPDATE transfers
+SET attachment_path = $2,
+    updated_at = now()
+WHERE id = $1;
 
 -- name: SetTransferStatus :one
 UPDATE transfers
 SET status = sqlc.arg(status),
     dispatched_at = COALESCE(sqlc.narg(dispatched_at), dispatched_at),
-    received_at = COALESCE(sqlc.narg(received_at), received_at)
+    received_at = COALESCE(sqlc.narg(received_at), received_at),
+    updated_at = now()
 WHERE id = sqlc.arg(id)
 RETURNING *;
 
@@ -55,7 +91,7 @@ DELETE FROM transfer_items
 WHERE transfer_items.id = $1
   AND transfer_items.transfer_id IN (
     SELECT transfers.id FROM transfers
-    WHERE transfers.id = $2 AND transfers.status = 'draft'
+    WHERE transfers.id = $2 AND transfers.status IN ('draft', 'requested')
   );
 
 -- name: ListTransferItems :many
@@ -73,4 +109,5 @@ WHERE ti.transfer_id = $1
 ORDER BY ti.id;
 
 -- name: CountTransfers :one
-SELECT COUNT(*) FROM transfers;
+SELECT COUNT(*) FROM transfers
+WHERE (sqlc.narg(status)::transfer_status IS NULL OR status = sqlc.narg(status));

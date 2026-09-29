@@ -162,3 +162,48 @@ func TestUpdateCurrencyPreservesOmittedFields(t *testing.T) {
 		})
 	}
 }
+
+// A currency still priced by a payment method or a branch override can't be
+// hard-deleted -- the row would either violate the FK or silently orphan
+// whatever pointed at it. The handler must check usage before deleting and
+// never delete when there is any.
+func TestDeleteCurrencyBlocksWhenInUse(t *testing.T) {
+	testCases := []struct {
+		name       string
+		usageCount int32
+		wantStatus int
+		wantDelete int
+	}{
+		{name: "InUseIsBlocked", usageCount: 1, wantStatus: http.StatusConflict, wantDelete: 0},
+		{name: "UnusedIsDeleted", usageCount: 0, wantStatus: http.StatusOK, wantDelete: 1},
+	}
+
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			store.EXPECT().
+				CountCurrencyUsage(gomock.Any(), gomock.Eq("LBP")).
+				Times(1).
+				Return(tc.usageCount, nil)
+			store.EXPECT().
+				DeleteCurrency(gomock.Any(), gomock.Eq("LBP")).
+				Times(tc.wantDelete).
+				Return(nil)
+
+			server := newTestServer(t, store)
+			recorder := httptest.NewRecorder()
+
+			request, err := http.NewRequest(http.MethodDelete, "/currencies/LBP", nil)
+			require.NoError(t, err)
+			addAuthorization(t, request, server.tokenMaker, authorizationTypeBearer, "user", time.Minute)
+
+			server.router.ServeHTTP(recorder, request)
+			require.Equal(t, tc.wantStatus, recorder.Code)
+		})
+	}
+}

@@ -63,6 +63,7 @@ type CouponStatus string
 const (
 	CouponStatusActive   CouponStatus = "active"
 	CouponStatusInactive CouponStatus = "inactive"
+	CouponStatusRedeemed CouponStatus = "redeemed"
 )
 
 func (e *CouponStatus) Scan(src interface{}) error {
@@ -98,48 +99,6 @@ func (ns NullCouponStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.CouponStatus), nil
-}
-
-type DiscountType string
-
-const (
-	DiscountTypeFixed      DiscountType = "fixed"
-	DiscountTypePercentage DiscountType = "percentage"
-)
-
-func (e *DiscountType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = DiscountType(s)
-	case string:
-		*e = DiscountType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for DiscountType: %T", src)
-	}
-	return nil
-}
-
-type NullDiscountType struct {
-	DiscountType DiscountType `json:"discount_type"`
-	Valid        bool         `json:"valid"` // Valid is true if DiscountType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullDiscountType) Scan(value interface{}) error {
-	if value == nil {
-		ns.DiscountType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.DiscountType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullDiscountType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.DiscountType), nil
 }
 
 type EntryReferenceType string
@@ -410,6 +369,7 @@ const (
 	TransferStatusDispatched TransferStatus = "dispatched"
 	TransferStatusReceived   TransferStatus = "received"
 	TransferStatusCancelled  TransferStatus = "cancelled"
+	TransferStatusRequested  TransferStatus = "requested"
 )
 
 func (e *TransferStatus) Scan(src interface{}) error {
@@ -864,6 +824,15 @@ type BranchTargetSeries struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
+type BranchTransferUploadToken struct {
+	ID         int64        `json:"id"`
+	TransferID int64        `json:"transfer_id"`
+	Token      string       `json:"token"`
+	ExpiresAt  time.Time    `json:"expires_at"`
+	UsedAt     sql.NullTime `json:"used_at"`
+	CreatedAt  time.Time    `json:"created_at"`
+}
+
 type BranchUser struct {
 	ID           int64     `json:"id"`
 	BranchID     int64     `json:"branch_id"`
@@ -910,6 +879,7 @@ type CashboxAccount struct {
 	SortOrder    int32     `json:"sort_order"`
 	Color        string    `json:"color"`
 	UpdatedAt    time.Time `json:"updated_at"`
+	IsActive     bool      `json:"is_active"`
 }
 
 type Client struct {
@@ -940,14 +910,19 @@ type Color struct {
 }
 
 type Coupon struct {
-	Code         string        `json:"code"`
-	Status       CouponStatus  `json:"status"`
-	DiscountType DiscountType  `json:"discount_type"`
-	Reason       string        `json:"reason"`
-	ClientID     int64         `json:"client_id"`
-	ValidUntil   time.Time     `json:"valid_until"`
-	CreatedAt    time.Time     `json:"created_at"`
-	CategoryID   sql.NullInt64 `json:"category_id"`
+	Code               string         `json:"code"`
+	Status             CouponStatus   `json:"status"`
+	ClientID           sql.NullInt64  `json:"client_id"`
+	ValidUntil         sql.NullTime   `json:"valid_until"`
+	CreatedAt          time.Time      `json:"created_at"`
+	CategoryID         sql.NullInt64  `json:"category_id"`
+	TypeID             sql.NullInt64  `json:"type_id"`
+	ListID             sql.NullInt64  `json:"list_id"`
+	ValueCents         int64          `json:"value_cents"`
+	RedeemedBranchID   sql.NullInt64  `json:"redeemed_branch_id"`
+	RedeemedInvoiceRef sql.NullString `json:"redeemed_invoice_ref"`
+	RedeemedAt         sql.NullTime   `json:"redeemed_at"`
+	UpdatedAt          time.Time      `json:"updated_at"`
 }
 
 type CouponCategory struct {
@@ -959,6 +934,29 @@ type CouponCategory struct {
 	Scope     string    `json:"scope"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type CouponList struct {
+	ID           int64     `json:"id"`
+	Name         string    `json:"name"`
+	CouponTypeID int64     `json:"coupon_type_id"`
+	IsActive     bool      `json:"is_active"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+type CouponType struct {
+	ID                  int64         `json:"id"`
+	Name                string        `json:"name"`
+	ValueCents          int64         `json:"value_cents"`
+	CurrencyCode        string        `json:"currency_code"`
+	IsActive            bool          `json:"is_active"`
+	ReferenceOnly       bool          `json:"reference_only"`
+	CalculateOnCheckout bool          `json:"calculate_on_checkout"`
+	CodeOptional        bool          `json:"code_optional"`
+	CategoryID          sql.NullInt64 `json:"category_id"`
+	CreatedAt           time.Time     `json:"created_at"`
+	UpdatedAt           time.Time     `json:"updated_at"`
 }
 
 type Currency struct {
@@ -1402,6 +1400,10 @@ type Transfer struct {
 	DispatchedAt    sql.NullTime   `json:"dispatched_at"`
 	ReceivedAt      sql.NullTime   `json:"received_at"`
 	Note            string         `json:"note"`
+	BranchID        sql.NullInt64  `json:"branch_id"`
+	ClientRef       sql.NullString `json:"client_ref"`
+	AttachmentPath  string         `json:"attachment_path"`
+	UpdatedAt       time.Time      `json:"updated_at"`
 }
 
 // Each row references either a product or an asset. Never both.

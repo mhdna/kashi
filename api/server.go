@@ -145,6 +145,8 @@ func (server *Server) setupRoutes() {
 	authRoutes.POST("/cashbox_accounts", server.createCashboxAccount)
 	authRoutes.GET("/cashbox_accounts/", server.listCashboxAccounts)
 	authRoutes.PUT("/cashbox_accounts", server.updateCashboxAccount)
+	authRoutes.PUT("/cashbox_accounts/:id/active", server.setCashboxAccountActive)
+	authRoutes.DELETE("/cashbox_accounts/:id", server.deleteCashboxAccount)
 	authRoutes.POST("/cashbox_accounts/balance", server.addCashboxAccountBalance)
 
 	authRoutes.GET("/pos_settings", server.posSettings)
@@ -274,6 +276,16 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/coupon_categories", server.updateCouponCategory)
 	authRoutes.DELETE("/coupon_categories/:id", server.deleteCouponCategory)
 
+	authRoutes.POST("/coupon_types", server.createCouponType)
+	authRoutes.GET("/coupon_types/:id", server.getCouponType)
+	authRoutes.GET("/coupon_types", server.listCouponTypes)
+	authRoutes.PUT("/coupon_types/:id", server.updateCouponType)
+	authRoutes.DELETE("/coupon_types/:id", server.deleteCouponType)
+
+	authRoutes.POST("/coupon_lists", server.createCouponList)
+	authRoutes.GET("/coupon_lists", server.listCouponLists)
+	authRoutes.POST("/coupon_lists/:id/deactivate", server.deactivateCouponList)
+
 	authRoutes.POST("/coupons", server.createCoupon)
 	authRoutes.POST("/coupons/bulk_delete", server.bulkDeleteCoupons)
 	authRoutes.GET("/coupons/:code", server.getCoupon)
@@ -287,6 +299,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/transfers", server.updateTransfer)
 	authRoutes.POST("/transfers/:id/dispatch", server.dispatchTransfer)
 	authRoutes.POST("/transfers/:id/receive", server.receiveTransfer)
+	authRoutes.POST("/transfers/:id/approve", server.approveTransfer)
 	authRoutes.POST("/transfers/:id/cancel", server.cancelTransfer)
 	authRoutes.POST("/transfer_items", server.createTransferItem)
 	authRoutes.GET("/transfer_items/:transfer_id", server.listTransferItems)
@@ -416,6 +429,8 @@ func (server *Server) setupRoutes() {
 	branchRoutes.GET("/expenses/upload_status", server.branchExpenseUploadStatus)
 	branchRoutes.GET("/shift_closes/upload_status", server.branchShiftUploadStatus)
 	branchRoutes.POST("/shift_receipt_images", server.createBranchShiftReceiptImage)
+	branchRoutes.POST("/transfer_requests", server.createBranchTransferRequest)
+	branchRoutes.GET("/transfer_requests/upload_status", server.branchTransferUploadStatus)
 
 	// expense_uploads is deliberately public: a phone scanning the QR code
 	// kashi-pos shows has no kashi login and shouldn't need one. Every
@@ -430,6 +445,12 @@ func (server *Server) setupRoutes() {
 	router.GET("/shift_uploads/:token", server.shiftUploadPage)
 	router.GET("/shift_uploads/:token/status", server.shiftUploadStatus)
 	router.POST("/shift_uploads/:token/images", server.uploadShiftReceiptImage)
+
+	// transfer_uploads is the same public, token-gated flow for the one
+	// optional transfer photo -- see transfer_upload.go.
+	router.GET("/transfer_uploads/:token", server.transferUploadPage)
+	router.GET("/transfer_uploads/:token/status", server.transferUploadStatus)
+	router.POST("/transfer_uploads/:token/images", server.uploadTransferAttachment)
 
 	server.router = router
 }

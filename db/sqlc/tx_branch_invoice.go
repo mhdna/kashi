@@ -28,6 +28,10 @@ type BranchInvoiceItemParams struct {
 type BranchInvoicePaymentParams struct {
 	AccountName string `json:"account_name"`
 	Amount      int64  `json:"amount"`
+	// CouponCode is set only when this payment line was a coupon redeemed
+	// at checkout -- empty for every ordinary cash/card/account payment.
+	// See RedeemCoupon.
+	CouponCode string `json:"coupon_code"`
 }
 
 type CreateBranchInvoiceTxParams struct {
@@ -105,6 +109,21 @@ func (store *SQLStore) CreateBranchInvoiceTx(ctx context.Context, arg CreateBran
 				return err
 			}
 			payments = append(payments, created)
+
+			// Mark the coupon redeemed centrally, whichever branch it was
+			// actually spent at. Idempotent: RedeemCoupon only ever moves
+			// 'active' -> 'redeemed', so a retried invoice post (same
+			// client_ref, already landed once) is a harmless no-op here --
+			// it just won't find an 'active' row to redeem a second time.
+			if payment.CouponCode != "" {
+				if _, err := q.RedeemCoupon(ctx, RedeemCouponParams{
+					Code:               payment.CouponCode,
+					RedeemedBranchID:   sql.NullInt64{Int64: arg.BranchID, Valid: true},
+					RedeemedInvoiceRef: sql.NullString{String: arg.ClientRef, Valid: true},
+				}); err != nil && !errors.Is(err, sql.ErrNoRows) {
+					return err
+				}
+			}
 		}
 
 		// A historical backfill (a sale from before the branch was syncing)
@@ -165,8 +184,15 @@ func (store *SQLStore) CreateBranchInvoiceTx(ctx context.Context, arg CreateBran
 // refers to: by ProductUID when present, else by Barcode. It returns nil
 // (no error) when neither resolves.
 func resolveBranchLineVariant(ctx context.Context, q *Queries, item BranchInvoiceItemParams) (*ProductVariant, error) {
-	if item.ProductUID.Valid {
-		v, err := q.GetProductVariantByUID(ctx, item.ProductUID.UUID)
+	return resolveVariantByUIDOrBarcode(ctx, q, item.ProductUID, item.Barcode)
+}
+
+// resolveVariantByUIDOrBarcode finds the central variant a branch line
+// refers to, whatever the entity (invoice, transfer request): by uid when
+// present, else by barcode. Returns nil (no error) when neither resolves.
+func resolveVariantByUIDOrBarcode(ctx context.Context, q *Queries, productUID uuid.NullUUID, barcode string) (*ProductVariant, error) {
+	if productUID.Valid {
+		v, err := q.GetProductVariantByUID(ctx, productUID.UUID)
 		if err == nil {
 			return &v, nil
 		}
@@ -174,10 +200,10 @@ func resolveBranchLineVariant(ctx context.Context, q *Queries, item BranchInvoic
 			return nil, err
 		}
 	}
-	if item.Barcode == "" {
+	if barcode == "" {
 		return nil, nil
 	}
-	v, err := q.GetProductVariantByBarcode(ctx, item.Barcode)
+	v, err := q.GetProductVariantByBarcode(ctx, barcode)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}

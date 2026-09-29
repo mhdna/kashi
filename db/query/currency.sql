@@ -14,6 +14,16 @@ RETURNING *;
 delete from currencies
 where code = $1;
 
+-- name: CountCurrencyUsage :one
+-- Whether anything in kashi's own tables still points at this currency --
+-- a payment method priced in it, or a branch override that prices one in it.
+-- A currency that's still referenced can't be hard-deleted (it would either
+-- violate the FK or silently orphan those rows); the delete handler blocks
+-- on this and points the admin at deactivating instead.
+SELECT
+  (SELECT COUNT(*) FROM cashbox_accounts ca WHERE ca.currency_code = sqlc.arg(code)::text) +
+  (SELECT COUNT(*) FROM branch_cashbox_accounts bca WHERE bca.currency_code = sqlc.arg(code)::text) AS usage_count;
+
 -- name: DeleteCurrencies :execrows
 delete from currencies
 where code = ANY(sqlc.arg(codes)::text[]);

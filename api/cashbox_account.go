@@ -2,11 +2,33 @@ package api
 
 import (
 	"database/sql"
+	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/mhdna/kashi/db/sqlc"
 )
+
+// errCashboxAccountInUse is returned instead of deleting a payment method
+// that a branch still overrides -- deactivating it (is_active) is the safe
+// way to retire it once any branch has touched it. This also covers the
+// case that matters most but isn't visible in kashi's own tables: kashi-pos
+// resolves methods by name and treats absence from a sync as a signal to
+// deactivate, not delete, its own local copy (which may have invoice or
+// shift history against it) -- so removing a method centrally is only ever
+// safe if it can be removed without a trace here first.
+var errCashboxAccountInUse = errors.New("payment method is overridden by a branch; deactivate it instead of deleting")
+
+// errCashboxAccountReserved guards "On Account" / "On Coupon", the
+// bookkeeping tenders kashi-pos resolves by exact name and can't have
+// renamed, deactivated or deleted out from under it.
+var errCashboxAccountReserved = errors.New("this payment method is used internally by kashi-pos and can't be deactivated or deleted")
+
+func isReservedCashboxAccountName(name string) bool {
+	n := strings.ToLower(strings.TrimSpace(name))
+	return n == "on account" || n == "on coupon"
+}
 
 type createCashboxAccountRequest struct {
 	Name         string `json:"name" binding:"required"`
@@ -100,6 +122,101 @@ func (server *Server) updateCashboxAccount(ctx *gin.Context) {
 	}
 	server.branchHub.broadcastAll(branchWSMessage{Type: "cashbox_account_updated"})
 	ctx.JSON(http.StatusOK, cashboxAccount)
+}
+
+type setCashboxAccountActiveURI struct {
+	ID int64 `uri:"id" binding:"required,min=1"`
+}
+
+type setCashboxAccountActiveRequest struct {
+	IsActive *bool `json:"is_active" binding:"required"`
+}
+
+func (server *Server) setCashboxAccountActive(ctx *gin.Context) {
+	var uri setCashboxAccountActiveURI
+	if err := ctx.ShouldBindUri(&uri); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	var req setCashboxAccountActiveRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	if !*req.IsActive {
+		existing, err := server.store.GetCashboxAccount(ctx, uri.ID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				server.writeError(ctx, http.StatusBadRequest, err)
+				return
+			}
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		if isReservedCashboxAccountName(existing.Name) {
+			server.writeError(ctx, http.StatusConflict, errCashboxAccountReserved)
+			return
+		}
+	}
+
+	cashboxAccount, err := server.store.SetCashboxAccountActive(ctx, db.SetCashboxAccountActiveParams{
+		ID:       uri.ID,
+		IsActive: *req.IsActive,
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.branchHub.broadcastAll(branchWSMessage{Type: "cashbox_account_updated"})
+	ctx.JSON(http.StatusOK, cashboxAccount)
+}
+
+type deleteCashboxAccountURI struct {
+	ID int64 `uri:"id" binding:"required,min=1"`
+}
+
+func (server *Server) deleteCashboxAccount(ctx *gin.Context) {
+	var uri deleteCashboxAccountURI
+	if err := ctx.ShouldBindUri(&uri); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	existing, err := server.store.GetCashboxAccount(ctx, uri.ID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if isReservedCashboxAccountName(existing.Name) {
+		server.writeError(ctx, http.StatusConflict, errCashboxAccountReserved)
+		return
+	}
+
+	usage, err := server.store.CountCashboxAccountOverrides(ctx, uri.ID)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if usage > 0 {
+		server.writeError(ctx, http.StatusConflict, errCashboxAccountInUse)
+		return
+	}
+
+	if err := server.store.DeleteCashboxAccount(ctx, uri.ID); err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.branchHub.broadcastAll(branchWSMessage{Type: "cashbox_account_updated"})
+	ctx.JSON(http.StatusOK, gin.H{"status": "deleted"})
 }
 
 type addCashboxAccountBalance struct {

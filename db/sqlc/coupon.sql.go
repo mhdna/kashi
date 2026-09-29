@@ -14,24 +14,30 @@ import (
 )
 
 const countCoupons = `-- name: CountCoupons :one
-SELECT COUNT(*) FROM coupons
+SELECT COUNT(*) FROM coupons c
 WHERE (
     BTRIM($1::text) = ''
-    OR code ILIKE '%' || BTRIM($1::text) || '%'
-    OR reason ILIKE '%' || BTRIM($1::text) || '%'
+    OR c.code ILIKE '%' || BTRIM($1::text) || '%'
   )
-  AND ($2::coupon_status IS NULL OR status = $2)
-  AND ($3::bigint IS NULL OR category_id = $3)
+  AND ($2::coupon_status IS NULL OR c.status = $2)
+  AND ($3::bigint IS NULL OR c.category_id = $3)
+  AND ($4::bigint IS NULL OR c.list_id = $4)
 `
 
 type CountCouponsParams struct {
 	Search     string           `json:"search"`
 	Status     NullCouponStatus `json:"status"`
 	CategoryID sql.NullInt64    `json:"category_id"`
+	ListID     sql.NullInt64    `json:"list_id"`
 }
 
 func (q *Queries) CountCoupons(ctx context.Context, arg CountCouponsParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countCoupons, arg.Search, arg.Status, arg.CategoryID)
+	row := q.db.QueryRowContext(ctx, countCoupons,
+		arg.Search,
+		arg.Status,
+		arg.CategoryID,
+		arg.ListID,
+	)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -41,32 +47,33 @@ const createCoupon = `-- name: CreateCoupon :one
 INSERT INTO coupons (
   code,
   status,
-  discount_type,
-  reason,
+  type_id,
+  value_cents,
   client_id,
   valid_until,
   category_id
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7
-) RETURNING code, status, discount_type, reason, client_id, valid_until, created_at, category_id
+) RETURNING code, status, client_id, valid_until, created_at, category_id, type_id, list_id, value_cents, redeemed_branch_id, redeemed_invoice_ref, redeemed_at, updated_at
 `
 
 type CreateCouponParams struct {
-	Code         string        `json:"code"`
-	Status       CouponStatus  `json:"status"`
-	DiscountType DiscountType  `json:"discount_type"`
-	Reason       string        `json:"reason"`
-	ClientID     int64         `json:"client_id"`
-	ValidUntil   time.Time     `json:"valid_until"`
-	CategoryID   sql.NullInt64 `json:"category_id"`
+	Code       string        `json:"code"`
+	Status     CouponStatus  `json:"status"`
+	TypeID     sql.NullInt64 `json:"type_id"`
+	ValueCents int64         `json:"value_cents"`
+	ClientID   sql.NullInt64 `json:"client_id"`
+	ValidUntil sql.NullTime  `json:"valid_until"`
+	CategoryID sql.NullInt64 `json:"category_id"`
 }
 
+// A one-off coupon, not part of a list -- list_id stays NULL.
 func (q *Queries) CreateCoupon(ctx context.Context, arg CreateCouponParams) (Coupon, error) {
 	row := q.db.QueryRowContext(ctx, createCoupon,
 		arg.Code,
 		arg.Status,
-		arg.DiscountType,
-		arg.Reason,
+		arg.TypeID,
+		arg.ValueCents,
 		arg.ClientID,
 		arg.ValidUntil,
 		arg.CategoryID,
@@ -75,19 +82,74 @@ func (q *Queries) CreateCoupon(ctx context.Context, arg CreateCouponParams) (Cou
 	err := row.Scan(
 		&i.Code,
 		&i.Status,
-		&i.DiscountType,
-		&i.Reason,
 		&i.ClientID,
 		&i.ValidUntil,
 		&i.CreatedAt,
 		&i.CategoryID,
+		&i.TypeID,
+		&i.ListID,
+		&i.ValueCents,
+		&i.RedeemedBranchID,
+		&i.RedeemedInvoiceRef,
+		&i.RedeemedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const createListCoupon = `-- name: CreateListCoupon :one
+INSERT INTO coupons (
+  code,
+  status,
+  type_id,
+  list_id,
+  value_cents,
+  valid_until
+) VALUES (
+    $1, 'active', $2, $3, $4, $5
+) RETURNING code, status, client_id, valid_until, created_at, category_id, type_id, list_id, value_cents, redeemed_branch_id, redeemed_invoice_ref, redeemed_at, updated_at
+`
+
+type CreateListCouponParams struct {
+	Code       string        `json:"code"`
+	TypeID     sql.NullInt64 `json:"type_id"`
+	ListID     sql.NullInt64 `json:"list_id"`
+	ValueCents int64         `json:"value_cents"`
+	ValidUntil sql.NullTime  `json:"valid_until"`
+}
+
+// One code minted as part of a coupon_lists batch (see coupon_list.sql).
+// Not pre-assigned to a client -- whoever redeems it first claims it.
+func (q *Queries) CreateListCoupon(ctx context.Context, arg CreateListCouponParams) (Coupon, error) {
+	row := q.db.QueryRowContext(ctx, createListCoupon,
+		arg.Code,
+		arg.TypeID,
+		arg.ListID,
+		arg.ValueCents,
+		arg.ValidUntil,
+	)
+	var i Coupon
+	err := row.Scan(
+		&i.Code,
+		&i.Status,
+		&i.ClientID,
+		&i.ValidUntil,
+		&i.CreatedAt,
+		&i.CategoryID,
+		&i.TypeID,
+		&i.ListID,
+		&i.ValueCents,
+		&i.RedeemedBranchID,
+		&i.RedeemedInvoiceRef,
+		&i.RedeemedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const deactivateCoupon = `-- name: DeactivateCoupon :exec
 UPDATE coupons
-  SET status = 'inactive'
+  SET status = 'inactive', updated_at = now()
 WHERE code = $1
 `
 
@@ -110,7 +172,7 @@ func (q *Queries) DeleteCoupons(ctx context.Context, codes []string) (int64, err
 }
 
 const getCoupon = `-- name: GetCoupon :one
-SELECT code, status, discount_type, reason, client_id, valid_until, created_at, category_id FROM coupons
+SELECT code, status, client_id, valid_until, created_at, category_id, type_id, list_id, value_cents, redeemed_branch_id, redeemed_invoice_ref, redeemed_at, updated_at FROM coupons
 WHERE code = $1 LIMIT 1
 `
 
@@ -120,43 +182,68 @@ func (q *Queries) GetCoupon(ctx context.Context, code string) (Coupon, error) {
 	err := row.Scan(
 		&i.Code,
 		&i.Status,
-		&i.DiscountType,
-		&i.Reason,
 		&i.ClientID,
 		&i.ValidUntil,
 		&i.CreatedAt,
 		&i.CategoryID,
+		&i.TypeID,
+		&i.ListID,
+		&i.ValueCents,
+		&i.RedeemedBranchID,
+		&i.RedeemedInvoiceRef,
+		&i.RedeemedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const listCoupons = `-- name: ListCoupons :many
-SELECT code, status, discount_type, reason, client_id, valid_until, created_at, category_id FROM coupons
+SELECT c.code, c.status, c.client_id, c.valid_until, c.created_at, c.category_id, c.type_id, c.list_id, c.value_cents, c.redeemed_branch_id, c.redeemed_invoice_ref, c.redeemed_at, c.updated_at, ct.name AS type_name FROM coupons c
+LEFT JOIN coupon_types ct ON ct.id = c.type_id
 WHERE (
     BTRIM($1::text) = ''
-    OR code ILIKE '%' || BTRIM($1::text) || '%'
-    OR reason ILIKE '%' || BTRIM($1::text) || '%'
+    OR c.code ILIKE '%' || BTRIM($1::text) || '%'
   )
-  AND ($2::coupon_status IS NULL OR status = $2)
-  AND ($3::bigint IS NULL OR category_id = $3)
-ORDER BY code
-LIMIT $5
-OFFSET $4
+  AND ($2::coupon_status IS NULL OR c.status = $2)
+  AND ($3::bigint IS NULL OR c.category_id = $3)
+  AND ($4::bigint IS NULL OR c.list_id = $4)
+ORDER BY c.code
+LIMIT $6
+OFFSET $5
 `
 
 type ListCouponsParams struct {
 	Search     string           `json:"search"`
 	Status     NullCouponStatus `json:"status"`
 	CategoryID sql.NullInt64    `json:"category_id"`
+	ListID     sql.NullInt64    `json:"list_id"`
 	PageOffset int32            `json:"page_offset"`
 	PageSize   int32            `json:"page_size"`
 }
 
-func (q *Queries) ListCoupons(ctx context.Context, arg ListCouponsParams) ([]Coupon, error) {
+type ListCouponsRow struct {
+	Code               string         `json:"code"`
+	Status             CouponStatus   `json:"status"`
+	ClientID           sql.NullInt64  `json:"client_id"`
+	ValidUntil         sql.NullTime   `json:"valid_until"`
+	CreatedAt          time.Time      `json:"created_at"`
+	CategoryID         sql.NullInt64  `json:"category_id"`
+	TypeID             sql.NullInt64  `json:"type_id"`
+	ListID             sql.NullInt64  `json:"list_id"`
+	ValueCents         int64          `json:"value_cents"`
+	RedeemedBranchID   sql.NullInt64  `json:"redeemed_branch_id"`
+	RedeemedInvoiceRef sql.NullString `json:"redeemed_invoice_ref"`
+	RedeemedAt         sql.NullTime   `json:"redeemed_at"`
+	UpdatedAt          time.Time      `json:"updated_at"`
+	TypeName           sql.NullString `json:"type_name"`
+}
+
+func (q *Queries) ListCoupons(ctx context.Context, arg ListCouponsParams) ([]ListCouponsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listCoupons,
 		arg.Search,
 		arg.Status,
 		arg.CategoryID,
+		arg.ListID,
 		arg.PageOffset,
 		arg.PageSize,
 	)
@@ -164,18 +251,24 @@ func (q *Queries) ListCoupons(ctx context.Context, arg ListCouponsParams) ([]Cou
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Coupon{}
+	items := []ListCouponsRow{}
 	for rows.Next() {
-		var i Coupon
+		var i ListCouponsRow
 		if err := rows.Scan(
 			&i.Code,
 			&i.Status,
-			&i.DiscountType,
-			&i.Reason,
 			&i.ClientID,
 			&i.ValidUntil,
 			&i.CreatedAt,
 			&i.CategoryID,
+			&i.TypeID,
+			&i.ListID,
+			&i.ValueCents,
+			&i.RedeemedBranchID,
+			&i.RedeemedInvoiceRef,
+			&i.RedeemedAt,
+			&i.UpdatedAt,
+			&i.TypeName,
 		); err != nil {
 			return nil, err
 		}
@@ -190,34 +283,126 @@ func (q *Queries) ListCoupons(ctx context.Context, arg ListCouponsParams) ([]Cou
 	return items, nil
 }
 
+const listCouponsUpdatedSince = `-- name: ListCouponsUpdatedSince :many
+SELECT code, status, client_id, valid_until, created_at, category_id, type_id, list_id, value_cents, redeemed_branch_id, redeemed_invoice_ref, redeemed_at, updated_at FROM coupons
+WHERE updated_at > $1
+ORDER BY updated_at, code
+`
+
+// Sent whole (every status, not just active): absence can't express
+// "redeemed elsewhere" or "deactivated" to a till that already has the
+// row, so the row itself carries the new status down. See
+// ListPriceListsForBranchSync's comment in branch_sync_lists.go for the
+// same reasoning.
+func (q *Queries) ListCouponsUpdatedSince(ctx context.Context, updatedAt time.Time) ([]Coupon, error) {
+	rows, err := q.db.QueryContext(ctx, listCouponsUpdatedSince, updatedAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Coupon{}
+	for rows.Next() {
+		var i Coupon
+		if err := rows.Scan(
+			&i.Code,
+			&i.Status,
+			&i.ClientID,
+			&i.ValidUntil,
+			&i.CreatedAt,
+			&i.CategoryID,
+			&i.TypeID,
+			&i.ListID,
+			&i.ValueCents,
+			&i.RedeemedBranchID,
+			&i.RedeemedInvoiceRef,
+			&i.RedeemedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const redeemCoupon = `-- name: RedeemCoupon :one
+UPDATE coupons
+SET status = 'redeemed',
+    redeemed_branch_id = $2,
+    redeemed_invoice_ref = $3,
+    redeemed_at = now(),
+    updated_at = now()
+WHERE code = $1 AND status = 'active'
+RETURNING code, status, client_id, valid_until, created_at, category_id, type_id, list_id, value_cents, redeemed_branch_id, redeemed_invoice_ref, redeemed_at, updated_at
+`
+
+type RedeemCouponParams struct {
+	Code               string         `json:"code"`
+	RedeemedBranchID   sql.NullInt64  `json:"redeemed_branch_id"`
+	RedeemedInvoiceRef sql.NullString `json:"redeemed_invoice_ref"`
+}
+
+// Idempotent: a retried invoice post that already redeemed this code just
+// returns the row unchanged rather than erroring (matches
+// CreateBranchInvoice's own idempotent-retry shape). Only actually moves
+// an 'active' coupon to 'redeemed' -- an inactive/already-redeemed code is
+// left alone so a stale retry never resurrects it.
+func (q *Queries) RedeemCoupon(ctx context.Context, arg RedeemCouponParams) (Coupon, error) {
+	row := q.db.QueryRowContext(ctx, redeemCoupon, arg.Code, arg.RedeemedBranchID, arg.RedeemedInvoiceRef)
+	var i Coupon
+	err := row.Scan(
+		&i.Code,
+		&i.Status,
+		&i.ClientID,
+		&i.ValidUntil,
+		&i.CreatedAt,
+		&i.CategoryID,
+		&i.TypeID,
+		&i.ListID,
+		&i.ValueCents,
+		&i.RedeemedBranchID,
+		&i.RedeemedInvoiceRef,
+		&i.RedeemedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const updateCoupon = `-- name: UpdateCoupon :one
 UPDATE coupons
 SET status = $2,
-    discount_type = $3,
-    reason = $4,
+    type_id = $3,
+    value_cents = $4,
     client_id = $5,
     valid_until = $6,
-    category_id = $7
+    category_id = $7,
+    updated_at = now()
 WHERE code = $1
-RETURNING code, status, discount_type, reason, client_id, valid_until, created_at, category_id
+RETURNING code, status, client_id, valid_until, created_at, category_id, type_id, list_id, value_cents, redeemed_branch_id, redeemed_invoice_ref, redeemed_at, updated_at
 `
 
 type UpdateCouponParams struct {
-	Code         string        `json:"code"`
-	Status       CouponStatus  `json:"status"`
-	DiscountType DiscountType  `json:"discount_type"`
-	Reason       string        `json:"reason"`
-	ClientID     int64         `json:"client_id"`
-	ValidUntil   time.Time     `json:"valid_until"`
-	CategoryID   sql.NullInt64 `json:"category_id"`
+	Code       string        `json:"code"`
+	Status     CouponStatus  `json:"status"`
+	TypeID     sql.NullInt64 `json:"type_id"`
+	ValueCents int64         `json:"value_cents"`
+	ClientID   sql.NullInt64 `json:"client_id"`
+	ValidUntil sql.NullTime  `json:"valid_until"`
+	CategoryID sql.NullInt64 `json:"category_id"`
 }
 
 func (q *Queries) UpdateCoupon(ctx context.Context, arg UpdateCouponParams) (Coupon, error) {
 	row := q.db.QueryRowContext(ctx, updateCoupon,
 		arg.Code,
 		arg.Status,
-		arg.DiscountType,
-		arg.Reason,
+		arg.TypeID,
+		arg.ValueCents,
 		arg.ClientID,
 		arg.ValidUntil,
 		arg.CategoryID,
@@ -226,12 +411,17 @@ func (q *Queries) UpdateCoupon(ctx context.Context, arg UpdateCouponParams) (Cou
 	err := row.Scan(
 		&i.Code,
 		&i.Status,
-		&i.DiscountType,
-		&i.Reason,
 		&i.ClientID,
 		&i.ValidUntil,
 		&i.CreatedAt,
 		&i.CategoryID,
+		&i.TypeID,
+		&i.ListID,
+		&i.ValueCents,
+		&i.RedeemedBranchID,
+		&i.RedeemedInvoiceRef,
+		&i.RedeemedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
