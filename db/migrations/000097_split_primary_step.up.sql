@@ -1,0 +1,17 @@
+-- 000096 deliberately left the split with no denomination of its own,
+-- reusing the primary currency's cash_rounding_unit as the split point. That
+-- field also drives the till's headline total when that currency is shown on
+-- its own (Calculator.vue's formatAmountInCurrency), which is a separate
+-- concern -- a currency genuinely can't make change finer than its own
+-- smallest note, independent of what denomination the split happens to use.
+-- Raising a currency's cash_rounding_unit purely to get a coarser split (the
+-- pre-000096 hardcoded-10 USD behaviour) now also rounds its standalone
+-- total, which never happened before.
+--
+-- split_primary_step restores that independence: it is the split's own
+-- denomination, separate from cash_rounding_unit. 0 means "unset, fall back
+-- to the primary currency's own cash_rounding_unit" -- same NOT NULL/default
+-- shape as split_primary_currency/split_primary_first in 000096: these rows
+-- mirror what a branch reports, and an older POS build that predates the
+-- field should not have kashi inventing a nonzero value on its behalf.
+ALTER TABLE branch_settings ADD COLUMN split_primary_step BIGINT NOT NULL DEFAULT 0;

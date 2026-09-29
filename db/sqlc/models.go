@@ -777,6 +777,7 @@ type BranchSetting struct {
 	ManagedLocally                     []string        `json:"managed_locally"`
 	SplitPrimaryCurrency               string          `json:"split_primary_currency"`
 	SplitPrimaryFirst                  bool            `json:"split_primary_first"`
+	SplitPrimaryStep                   int64           `json:"split_primary_step"`
 }
 
 type BranchShift struct {

@@ -183,6 +183,16 @@
                             : 'Rounding currency shown first'"
                         />
                         <v-text-field
+                          v-model.number="settingsForm.split_primary_step"
+                          density="compact"
+                          hide-details="auto"
+                          hint="Denomination the split truncates the primary to. 0 = use that currency's own Cash Rounding Unit."
+                          label="Split Step"
+                          persistent-hint
+                          type="number"
+                          variant="outlined"
+                        />
+                        <v-text-field
                           v-model.number="settingsForm.exchange_rate"
                           density="compact"
                           hide-details="auto"
@@ -1463,6 +1473,7 @@
       // the command sets it on the till.
       shift_receipt_upload_mode: d.shift_receipt_upload_mode ?? 2,
       split_primary_currency: d.split_primary_currency ?? '',
+      split_primary_step: d.split_primary_step ?? 0,
     }
     for (const k of BOOL_KEYS) {
       if (k === 'search_button_enabled') continue
