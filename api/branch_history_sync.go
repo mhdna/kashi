@@ -179,3 +179,111 @@ func (server *Server) branchInvoiceHistoryRows(ctx context.Context, branchID int
 	}
 	return out, nil
 }
+
+// syncBranchExpenseHistoryRow/syncBranchLoanHistoryRow/syncBranchShiftHistoryRow
+// flatten their sqlc row's sql.Null* fields into plain JSON values (a bare
+// number/string, or absent/null) -- sql.NullString etc. marshal by default
+// to {"String":...,"Valid":...}, which is what kashi-pos's importer expects
+// NOT to see; it unmarshals these straight into plain Go fields.
+type syncBranchExpenseHistoryRow struct {
+	ClientRef                string    `json:"client_ref"`
+	Description              string    `json:"description"`
+	Amount                   int64     `json:"amount"`
+	CurrencyCode             string    `json:"currency_code"`
+	BranchShiftID            *int64    `json:"branch_shift_id,omitempty"`
+	OccurredAt               time.Time `json:"occurred_at"`
+	CategoryName             string    `json:"category_name"`
+	BranchCashboxAccountName *string   `json:"branch_cashbox_account_name,omitempty"`
+}
+
+func newSyncBranchExpenseHistoryRow(r db.ListBranchExpenseHistoryForSyncRow) syncBranchExpenseHistoryRow {
+	out := syncBranchExpenseHistoryRow{
+		ClientRef:    r.ClientRef,
+		Description:  r.Description,
+		Amount:       r.Amount,
+		CurrencyCode: r.CurrencyCode,
+		OccurredAt:   r.OccurredAt,
+		CategoryName: r.CategoryName,
+	}
+	if r.BranchShiftID.Valid {
+		out.BranchShiftID = &r.BranchShiftID.Int64
+	}
+	if r.BranchCashboxAccountName.Valid {
+		out.BranchCashboxAccountName = &r.BranchCashboxAccountName.String
+	}
+	return out
+}
+
+type syncBranchLoanHistoryRow struct {
+	ClientRef                string    `json:"client_ref"`
+	Description              string    `json:"description"`
+	Amount                   int64     `json:"amount"`
+	CurrencyCode             string    `json:"currency_code"`
+	BranchShiftID            *int64    `json:"branch_shift_id,omitempty"`
+	OccurredAt               time.Time `json:"occurred_at"`
+	CategoryName             string    `json:"category_name"`
+	BranchCashboxAccountName *string   `json:"branch_cashbox_account_name,omitempty"`
+}
+
+func newSyncBranchLoanHistoryRow(r db.ListBranchLoanHistoryForSyncRow) syncBranchLoanHistoryRow {
+	out := syncBranchLoanHistoryRow{
+		Description:  r.Description,
+		Amount:       r.Amount,
+		CurrencyCode: r.CurrencyCode,
+		OccurredAt:   r.OccurredAt,
+		CategoryName: r.CategoryName,
+	}
+	if r.ClientRef.Valid {
+		out.ClientRef = r.ClientRef.String
+	}
+	if r.BranchShiftID.Valid {
+		out.BranchShiftID = &r.BranchShiftID.Int64
+	}
+	if r.BranchCashboxAccountName.Valid {
+		out.BranchCashboxAccountName = &r.BranchCashboxAccountName.String
+	}
+	return out
+}
+
+type syncBranchShiftHistoryRow struct {
+	ClientRef         string    `json:"client_ref"`
+	BranchShiftID     int64     `json:"branch_shift_id"`
+	OpenedAt          time.Time `json:"opened_at"`
+	ClosedAt          time.Time `json:"closed_at"`
+	ClosingPersonName string    `json:"closing_person_name"`
+	OpeningFloatUsd   int64     `json:"opening_float_usd"`
+	OpeningFloatLbp   int64     `json:"opening_float_lbp"`
+	ExpectedUsd       int64     `json:"expected_usd"`
+	ExpectedLbp       int64     `json:"expected_lbp"`
+	ExpectedVisa      int64     `json:"expected_visa"`
+	ExpectedWhish     int64     `json:"expected_whish"`
+	CountedUsd        int64     `json:"counted_usd"`
+	CountedLbp        int64     `json:"counted_lbp"`
+	CountedVisa       int64     `json:"counted_visa"`
+	CountedWhish      int64     `json:"counted_whish"`
+}
+
+func newSyncBranchShiftHistoryRow(r db.BranchShift) syncBranchShiftHistoryRow {
+	out := syncBranchShiftHistoryRow{
+		ClientRef:         r.ClientRef,
+		BranchShiftID:     r.BranchShiftID,
+		ClosingPersonName: r.ClosingPersonName,
+		OpeningFloatUsd:   r.OpeningFloatUsd,
+		OpeningFloatLbp:   r.OpeningFloatLbp,
+		ExpectedUsd:       r.ExpectedUsd,
+		ExpectedLbp:       r.ExpectedLbp,
+		ExpectedVisa:      r.ExpectedVisa,
+		ExpectedWhish:     r.ExpectedWhish,
+		CountedUsd:        r.CountedUsd,
+		CountedLbp:        r.CountedLbp,
+		CountedVisa:       r.CountedVisa,
+		CountedWhish:      r.CountedWhish,
+	}
+	if r.OpenedAt.Valid {
+		out.OpenedAt = r.OpenedAt.Time
+	}
+	if r.ClosedAt.Valid {
+		out.ClosedAt = r.ClosedAt.Time
+	}
+	return out
+}

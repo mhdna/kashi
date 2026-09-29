@@ -284,7 +284,13 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 			last := rows[len(rows)-1]
 			nextCursor = syncCursor{updatedAt: last.ReceivedAt, id: last.ID}.encode()
 		}
-		items = rows
+		if err == nil {
+			out := make([]syncBranchExpenseHistoryRow, len(rows))
+			for i, r := range rows {
+				out[i] = newSyncBranchExpenseHistoryRow(r)
+			}
+			items = out
+		}
 	case "branch_loan_history":
 		branchID := ctx.MustGet(branchIDKey).(int64)
 		var rows []db.ListBranchLoanHistoryForSyncRow
@@ -302,7 +308,13 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 			last := rows[len(rows)-1]
 			nextCursor = syncCursor{updatedAt: last.ReceivedAt, id: last.ID}.encode()
 		}
-		items = rows
+		if err == nil {
+			out := make([]syncBranchLoanHistoryRow, len(rows))
+			for i, r := range rows {
+				out[i] = newSyncBranchLoanHistoryRow(r)
+			}
+			items = out
+		}
 	case "branch_shift_history":
 		branchID := ctx.MustGet(branchIDKey).(int64)
 		var rows []db.BranchShift
@@ -320,7 +332,13 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 			last := rows[len(rows)-1]
 			nextCursor = syncCursor{updatedAt: last.ReceivedAt, id: last.ID}.encode()
 		}
-		items = rows
+		if err == nil {
+			out := make([]syncBranchShiftHistoryRow, len(rows))
+			for i, r := range rows {
+				out[i] = newSyncBranchShiftHistoryRow(r)
+			}
+			items = out
+		}
 	case "incoming_transfer_requests":
 		branchID := ctx.MustGet(branchIDKey).(int64)
 		branch, branchErr := server.store.GetBranch(ctx, branchID)

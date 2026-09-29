@@ -17,6 +17,9 @@ func createRandomUser(t *testing.T) User {
 		Email:        util.RandomEmail(),
 		PasswordHash: hashedPassword,
 		Activated:    true,
+		// role_id has been NOT NULL since migration 000092; id 1 is the
+		// seeded "Admin" role every environment has (see seed/main.go).
+		RoleID: 1,
 	}
 
 	user, err := testQueries.CreateUser(context.Background(), arg)
@@ -73,6 +76,7 @@ func TestUpdateUser(t *testing.T) {
 		Email:        util.RandomEmail(),
 		PasswordHash: util.RandomString(32),
 		Activated:    user.Activated,
+		RoleID:       user.RoleID,
 	}
 
 	err := testQueries.UpdateUser(context.Background(), arg)
