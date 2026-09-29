@@ -115,7 +115,6 @@ type Querier interface {
 	CountPriceListItemsWithProduct(ctx context.Context, arg CountPriceListItemsWithProductParams) (int64, error)
 	CountPriceListsFiltered(ctx context.Context, search string) (int64, error)
 	CountProductVariants(ctx context.Context) (int64, error)
-	CountProducts(ctx context.Context, arg CountProductsParams) (int64, error)
 	CountPurchasesFiltered(ctx context.Context, search string) (int64, error)
 	CountShifts(ctx context.Context, arg CountShiftsParams) (int64, error)
 	CountSizes(ctx context.Context, search string) (int64, error)
@@ -969,6 +968,10 @@ type Querier interface {
 	// optional: empty search string, NULL narg, or empty attribute_value_ids
 	// array all mean "don't filter on this". attribute_value_ids is an AND --
 	// the product must carry every selected value.
+	//
+	// total_count is carried alongside each row via a window function so the
+	// caller doesn't need a second CountProducts round-trip that re-scans the
+	// same filtered set again.
 	ListProducts(ctx context.Context, arg ListProductsParams) ([]ListProductsRow, error)
 	ListPurchaseItems(ctx context.Context, purchaseID sql.NullInt64) ([]ListPurchaseItemsRow, error)
 	ListPurchases(ctx context.Context, arg ListPurchasesParams) ([]ListPurchasesRow, error)

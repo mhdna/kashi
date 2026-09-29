@@ -307,7 +307,7 @@ func (server *Server) listProducts(ctx *gin.Context) {
 		req.AttributeValueID = []int64{}
 	}
 
-	products, err := server.store.ListProducts(ctx, db.ListProductsParams{
+	rows, err := server.store.ListProducts(ctx, db.ListProductsParams{
 		PageLimit:         req.PageSize,
 		PageOffset:        req.PageID,
 		Search:            req.Search,
@@ -322,21 +322,13 @@ func (server *Server) listProducts(ctx *gin.Context) {
 		return
 	}
 
-	total, err := server.store.CountProducts(ctx, db.CountProductsParams{
-		Search:            req.Search,
-		IsActive:          nullBool(req.IsActive),
-		HasVariants:       nullBool(req.HasVariants),
-		CreatedFrom:       nullTime(req.CreatedFrom),
-		CreatedTo:         nullTime(createdTo),
-		AttributeValueIds: req.AttributeValueID,
-	})
-	if err != nil {
-		server.writeError(ctx, http.StatusInternalServerError, err)
-		return
+	var total int64
+	if len(rows) > 0 {
+		total = rows[0].TotalCount
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"products": products,
+		"products": rows,
 		"total":    total,
 	})
 }

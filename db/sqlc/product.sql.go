@@ -13,49 +13,6 @@ import (
 	"github.com/lib/pq"
 )
 
-const countProducts = `-- name: CountProducts :one
-SELECT count(*)
-FROM products p
-WHERE ($1::text = ''
-       OR p.code ILIKE '%' || $1 || '%'
-       OR p.name ILIKE '%' || $1 || '%'
-       OR p.description ILIKE '%' || $1 || '%')
-  AND ($2::bool IS NULL OR p.is_active = $2)
-  AND ($3::timestamptz IS NULL OR p.created_at >= $3)
-  AND ($4::timestamptz IS NULL OR p.created_at < $4)
-  AND ($5::bool IS NULL
-       OR EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id) = $5)
-  AND (cardinality($6::bigint[]) = 0
-       OR (SELECT count(DISTINCT pa.attribute_value_id)
-             FROM products_attributes pa
-            WHERE pa.product_id = p.id
-              AND pa.attribute_value_id = ANY($6::bigint[]))
-           = cardinality($6::bigint[]))
-`
-
-type CountProductsParams struct {
-	Search            string       `json:"search"`
-	IsActive          sql.NullBool `json:"is_active"`
-	CreatedFrom       sql.NullTime `json:"created_from"`
-	CreatedTo         sql.NullTime `json:"created_to"`
-	HasVariants       sql.NullBool `json:"has_variants"`
-	AttributeValueIds []int64      `json:"attribute_value_ids"`
-}
-
-func (q *Queries) CountProducts(ctx context.Context, arg CountProductsParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countProducts,
-		arg.Search,
-		arg.IsActive,
-		arg.CreatedFrom,
-		arg.CreatedTo,
-		arg.HasVariants,
-		pq.Array(arg.AttributeValueIds),
-	)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const createProduct = `-- name: CreateProduct :one
 INSERT INTO products (
   code,
@@ -251,7 +208,8 @@ func (q *Queries) GetProductByCode(ctx context.Context, code string) (Product, e
 }
 
 const listProducts = `-- name: ListProducts :many
-SELECT p.id, p.code, p.name, p.description, p.is_active, p.created_at
+SELECT p.id, p.code, p.name, p.description, p.is_active, p.created_at,
+       count(*) OVER() AS total_count
 FROM products p
 WHERE ($1::text = ''
        OR p.code ILIKE '%' || $1 || '%'
@@ -290,12 +248,17 @@ type ListProductsRow struct {
 	Description string    `json:"description"`
 	IsActive    bool      `json:"is_active"`
 	CreatedAt   time.Time `json:"created_at"`
+	TotalCount  int64     `json:"total_count"`
 }
 
 // Search matches code/name/description (case-insensitive). Every filter is
 // optional: empty search string, NULL narg, or empty attribute_value_ids
 // array all mean "don't filter on this". attribute_value_ids is an AND --
 // the product must carry every selected value.
+//
+// total_count is carried alongside each row via a window function so the
+// caller doesn't need a second CountProducts round-trip that re-scans the
+// same filtered set again.
 func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]ListProductsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listProducts,
 		arg.Search,
@@ -321,6 +284,7 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]L
 			&i.Description,
 			&i.IsActive,
 			&i.CreatedAt,
+			&i.TotalCount,
 		); err != nil {
 			return nil, err
 		}
