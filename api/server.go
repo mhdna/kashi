@@ -431,6 +431,7 @@ func (server *Server) setupRoutes() {
 	branchRoutes.GET("/shift_closes/upload_status", server.branchShiftUploadStatus)
 	branchRoutes.POST("/shift_receipt_images", server.createBranchShiftReceiptImage)
 	branchRoutes.POST("/transfer_requests", server.createBranchTransferRequest)
+	branchRoutes.POST("/transfer_requests/:id/confirm", server.confirmBranchTransfer)
 	branchRoutes.GET("/transfer_requests/upload_status", server.branchTransferUploadStatus)
 
 	// expense_uploads is deliberately public: a phone scanning the QR code

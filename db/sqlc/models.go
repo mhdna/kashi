@@ -1059,11 +1059,12 @@ type Inventory struct {
 }
 
 type InventoryStock struct {
-	InventoryID int64     `json:"inventory_id"`
-	VariantID   int64     `json:"variant_id"`
-	Quantity    int64     `json:"quantity"`
-	AvgCost     int64     `json:"avg_cost"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	InventoryID int64         `json:"inventory_id"`
+	VariantID   int64         `json:"variant_id"`
+	Quantity    int64         `json:"quantity"`
+	AvgCost     int64         `json:"avg_cost"`
+	UpdatedAt   time.Time     `json:"updated_at"`
+	ID          sql.NullInt64 `json:"id"`
 }
 
 type Invoice struct {
@@ -1404,15 +1405,18 @@ type Transfer struct {
 	ClientRef       sql.NullString `json:"client_ref"`
 	AttachmentPath  string         `json:"attachment_path"`
 	UpdatedAt       time.Time      `json:"updated_at"`
+	ConfirmedAt     sql.NullTime   `json:"confirmed_at"`
+	ConfirmedNote   string         `json:"confirmed_note"`
 }
 
 // Each row references either a product or an asset. Never both.
 type TransferItem struct {
-	ID         int64         `json:"id"`
-	TransferID int64         `json:"transfer_id"`
-	AssetID    sql.NullInt64 `json:"asset_id"`
-	Quantity   int64         `json:"quantity"`
-	VariantID  sql.NullInt64 `json:"variant_id"`
+	ID               int64         `json:"id"`
+	TransferID       int64         `json:"transfer_id"`
+	AssetID          sql.NullInt64 `json:"asset_id"`
+	Quantity         int64         `json:"quantity"`
+	VariantID        sql.NullInt64 `json:"variant_id"`
+	ReceivedQuantity sql.NullInt64 `json:"received_quantity"`
 }
 
 type User struct {

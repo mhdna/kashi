@@ -87,3 +87,79 @@ func (store *SQLStore) CreateBranchTransferRequestTx(ctx context.Context, arg Cr
 
 	return result, err
 }
+
+var (
+	errNotTransferDestination = errors.New("branch is not this transfer's destination")
+)
+
+type ConfirmBranchTransferItemParams struct {
+	Barcode          string        `json:"barcode"`
+	ProductUID       uuid.NullUUID `json:"product_uid"`
+	ReceivedQuantity int64         `json:"received_quantity"`
+}
+
+type ConfirmBranchTransferTxParams struct {
+	BranchID   int64                             `json:"branch_id"`
+	TransferID int64                             `json:"transfer_id"`
+	Note       string                            `json:"note"`
+	Items      []ConfirmBranchTransferItemParams `json:"items"`
+}
+
+// ConfirmBranchTransferTx is the destination branch reporting what it
+// actually counted on physical receipt. It never moves stock itself --
+// that's still TransferApproveTx's job, reading these counts back via
+// transfer_items.received_quantity -- so a confirmation can arrive (and be
+// re-sent, overwriting the previous one) any time before or after kashi's
+// approval with no ordering requirement between the two.
+//
+// An item the till reports that doesn't resolve to a known variant, or
+// that doesn't match any line on the transfer, is silently skipped rather
+// than failing the whole confirmation -- kashi's admin sees the gap
+// (that line's received_quantity stays NULL) and can follow up, same
+// tolerance CreateBranchInvoiceTx gives an unresolved barcode.
+func (store *SQLStore) ConfirmBranchTransferTx(ctx context.Context, arg ConfirmBranchTransferTxParams) (Transfer, error) {
+	var result Transfer
+
+	err := store.execTx(ctx, func(q *Queries) error {
+		branch, err := q.GetBranch(ctx, arg.BranchID)
+		if err != nil {
+			return err
+		}
+		transfer, err := q.GetTransfer(ctx, arg.TransferID)
+		if err != nil {
+			return err
+		}
+		if !branch.InventoryID.Valid || transfer.ToInventoryID != branch.InventoryID.Int64 {
+			return errNotTransferDestination
+		}
+
+		for _, it := range arg.Items {
+			variant, err := resolveVariantByUIDOrBarcode(ctx, q, it.ProductUID, it.Barcode)
+			if err != nil {
+				return err
+			}
+			if variant == nil {
+				continue
+			}
+			if _, err := q.SetTransferItemReceivedQuantityByVariant(ctx, SetTransferItemReceivedQuantityByVariantParams{
+				ReceivedQuantity: sql.NullInt64{Int64: it.ReceivedQuantity, Valid: true},
+				TransferID:       transfer.ID,
+				VariantID:        sql.NullInt64{Int64: variant.ID, Valid: true},
+			}); err != nil {
+				return err
+			}
+		}
+
+		updated, err := q.SetTransferConfirmed(ctx, SetTransferConfirmedParams{
+			ID:            transfer.ID,
+			ConfirmedNote: arg.Note,
+		})
+		if err != nil {
+			return err
+		}
+		result = updated
+		return nil
+	})
+
+	return result, err
+}

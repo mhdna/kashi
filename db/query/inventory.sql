@@ -188,3 +188,44 @@ WHERE (sqlc.narg(inventory_id)::bigint IS NULL OR sm.inventory_id = sqlc.narg(in
   AND (sqlc.narg(created_by)::bigint IS NULL OR sm.created_by = sqlc.narg(created_by))
   AND (sqlc.narg(from_date)::timestamptz IS NULL OR sm.created_at >= sqlc.narg(from_date))
   AND (sqlc.narg(to_date)::timestamptz IS NULL OR sm.created_at <= sqlc.narg(to_date));
+
+-- ---------------------------------------------------------------------------
+-- Cross-branch stock visibility: every OTHER branch's on-hand quantity and
+-- resolved selling price for a variant, so a till can search what a
+-- different branch is carrying. Keyset-paginated on inventory_stock's
+-- surrogate id (000101 -- the table's real key, (inventory_id,
+-- variant_id), has no single ordering column), same cursor shape as
+-- ListProductVariantsForSyncPaged.
+-- ---------------------------------------------------------------------------
+
+-- name: ListBranchStockForSync :many
+SELECT
+  b.code AS branch_code,
+  pv.uid AS variant_uid,
+  pv.barcode,
+  ist.quantity,
+  COALESCE(priced.price, 0) AS price,
+  ist.updated_at,
+  ist.id
+FROM inventory_stock ist
+JOIN branches b ON b.inventory_id = ist.inventory_id
+JOIN product_variants pv ON pv.id = ist.variant_id
+LEFT JOIN LATERAL (
+  -- Mirrors ResolveVariantPrice (price_list_item.sql) exactly, just joined
+  -- per-row against that row's own branch instead of one $1 branch_id.
+  SELECT pli.price FROM price_list_items pli
+  JOIN price_lists pl ON pl.id = pli.price_list_id
+  LEFT JOIN price_list_branches plb
+    ON plb.price_list_id = pl.id AND plb.branch_id = b.id
+  WHERE pli.product_variant_id = pv.id
+    AND pl.is_active = true
+    AND now() >= pl.valid_from AND now() <= pl.valid_to
+    AND (plb.branch_id IS NOT NULL OR pl.is_default = true)
+  ORDER BY (plb.branch_id IS NOT NULL) DESC
+  LIMIT 1
+) priced ON true
+WHERE b.id != sqlc.arg(branch_id)
+  AND b.is_active = true
+  AND (ist.updated_at, ist.id) > (sqlc.arg(after_updated_at)::timestamptz, sqlc.arg(after_id)::bigint)
+ORDER BY ist.updated_at, ist.id
+LIMIT sqlc.arg(row_limit);

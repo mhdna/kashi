@@ -53,6 +53,31 @@ SELECT * FROM transfers
 WHERE branch_id = $1 AND updated_at > $2
 ORDER BY updated_at;
 
+-- name: ListIncomingBranchTransfersUpdatedSince :many
+-- The destination branch's own poll: transfers addressed to it, whoever
+-- sent them. Matched by to_inventory_id, not branch_id -- that column is
+-- always the sender's.
+SELECT * FROM transfers
+WHERE to_inventory_id = $1 AND updated_at > $2
+ORDER BY updated_at;
+
+-- name: SetTransferItemReceivedQuantityByVariant :execrows
+-- The destination branch reporting what it actually counted for one line.
+-- Keyed by variant, not transfer_item id -- the till only ever knows an
+-- item by barcode/uid, resolved to variant_id the same way
+-- CreateBranchTransferRequestTx resolves an outgoing line.
+UPDATE transfer_items
+SET received_quantity = sqlc.arg(received_quantity)
+WHERE transfer_id = sqlc.arg(transfer_id) AND variant_id = sqlc.arg(variant_id);
+
+-- name: SetTransferConfirmed :one
+UPDATE transfers
+SET confirmed_at = now(),
+    confirmed_note = sqlc.arg(confirmed_note),
+    updated_at = now()
+WHERE id = sqlc.arg(id)
+RETURNING *;
+
 -- name: UpdateTransfer :exec
 UPDATE transfers
 SET from_inventory_id = $2,
@@ -100,6 +125,7 @@ SELECT
   p.name AS product_name,
   p.code AS product_code,
   pv.barcode AS variant_barcode,
+  pv.uid AS variant_uid,
   a.name AS asset_name
 FROM transfer_items ti
 LEFT JOIN product_variants pv ON pv.id = ti.variant_id

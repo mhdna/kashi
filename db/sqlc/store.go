@@ -23,6 +23,7 @@ type Store interface {
 	StockAdjustmentTx(ctx context.Context, arg StockAdjustmentTxParams) (StockAdjustmentTxResult, error)
 	CreateBranchInvoiceTx(ctx context.Context, arg CreateBranchInvoiceTxParams) (CreateBranchInvoiceTxResult, error)
 	CreateBranchTransferRequestTx(ctx context.Context, arg CreateBranchTransferRequestTxParams) (CreateBranchTransferRequestTxResult, error)
+	ConfirmBranchTransferTx(ctx context.Context, arg ConfirmBranchTransferTxParams) (Transfer, error)
 	ApplyBranchSettlementTx(ctx context.Context, arg ApplyBranchSettlementTxParams) (ApplyBranchSettlementTxResult, error)
 	FireRecurringExpenseTx(ctx context.Context, recurring RecurringExpense) (Expense, error)
 	DeleteBranchTargetSeriesTx(ctx context.Context, seriesID int64) (BranchTargetSeries, error)

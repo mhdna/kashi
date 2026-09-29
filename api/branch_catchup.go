@@ -30,8 +30,9 @@ const (
 // (currencies, cashbox_accounts, categories, and the per-branch feeds) is
 // small by construction and still answered in a single shot.
 var pagedSyncEntities = map[string]bool{
-	"products": true,
-	"clients":  true,
+	"products":     true,
+	"clients":      true,
+	"branch_stock": true,
 }
 
 // branchSyncChangesRequest: `since` is an RFC3339 timestamp, or omitted
@@ -209,6 +210,48 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 		items, err = server.store.ListExpenseCategoriesUpdatedSince(ctx, since)
 	case "loan_categories":
 		items, err = server.store.ListLoanCategoriesUpdatedSince(ctx, since)
+	case "branch_stock":
+		// Always paged -- a brand-new entity with no pre-paging kashi-pos
+		// build to keep working, unlike products/clients above. clampSyncLimit
+		// already defaults a missing/zero limit sensibly.
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		var rows []db.ListBranchStockForSyncRow
+		cur := syncCursor{updatedAt: since}
+		cur, err = resolveCursor(req.Cursor, cur)
+		if err != nil {
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		limit := clampSyncLimit(req.Limit)
+		rows, err = server.store.ListBranchStockForSync(ctx, db.ListBranchStockForSyncParams{
+			BranchID:       branchID,
+			AfterUpdatedAt: cur.updatedAt,
+			AfterID:        cur.id,
+			RowLimit:       int32(limit),
+		})
+		if err == nil && len(rows) == limit {
+			last := rows[len(rows)-1]
+			nextCursor = syncCursor{updatedAt: last.UpdatedAt, id: last.ID.Int64}.encode()
+		}
+		if err == nil {
+			out := make([]syncBranchStockRow, len(rows))
+			for i, r := range rows {
+				out[i] = newSyncBranchStockRow(r)
+			}
+			items = out
+		}
+	case "incoming_transfer_requests":
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		branch, branchErr := server.store.GetBranch(ctx, branchID)
+		if branchErr != nil {
+			server.writeError(ctx, http.StatusInternalServerError, branchErr)
+			return
+		}
+		if branch.InventoryID.Valid {
+			items, err = server.incomingTransfersForBranchSync(ctx, branch.InventoryID.Int64, since)
+		} else {
+			items = []syncIncomingTransfer{}
+		}
 	case "coupon_types":
 		var rows []db.CouponType
 		rows, err = server.store.ListCouponTypesUpdatedSince(ctx, since)

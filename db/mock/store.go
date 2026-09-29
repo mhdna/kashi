@@ -486,6 +486,21 @@ func (mr *MockStoreMockRecorder) CompleteBranchCommand(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompleteBranchCommand", reflect.TypeOf((*MockStore)(nil).CompleteBranchCommand), arg0, arg1)
 }
 
+// ConfirmBranchTransferTx mocks base method.
+func (m *MockStore) ConfirmBranchTransferTx(arg0 context.Context, arg1 db.ConfirmBranchTransferTxParams) (db.Transfer, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ConfirmBranchTransferTx", arg0, arg1)
+	ret0, _ := ret[0].(db.Transfer)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ConfirmBranchTransferTx indicates an expected call of ConfirmBranchTransferTx.
+func (mr *MockStoreMockRecorder) ConfirmBranchTransferTx(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfirmBranchTransferTx", reflect.TypeOf((*MockStore)(nil).ConfirmBranchTransferTx), arg0, arg1)
+}
+
 // CountAssets mocks base method.
 func (m *MockStore) CountAssets(arg0 context.Context, arg1 db.CountAssetsParams) (int64, error) {
 	m.ctrl.T.Helper()
@@ -5663,6 +5678,21 @@ func (mr *MockStoreMockRecorder) ListBranchShifts(arg0, arg1 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchShifts", reflect.TypeOf((*MockStore)(nil).ListBranchShifts), arg0, arg1)
 }
 
+// ListBranchStockForSync mocks base method.
+func (m *MockStore) ListBranchStockForSync(arg0 context.Context, arg1 db.ListBranchStockForSyncParams) ([]db.ListBranchStockForSyncRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBranchStockForSync", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListBranchStockForSyncRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBranchStockForSync indicates an expected call of ListBranchStockForSync.
+func (mr *MockStoreMockRecorder) ListBranchStockForSync(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchStockForSync", reflect.TypeOf((*MockStore)(nil).ListBranchStockForSync), arg0, arg1)
+}
+
 // ListBranchSyncConflictsPage mocks base method.
 func (m *MockStore) ListBranchSyncConflictsPage(arg0 context.Context, arg1 db.ListBranchSyncConflictsPageParams) ([]db.ListBranchSyncConflictsPageRow, error) {
 	m.ctrl.T.Helper()
@@ -6456,6 +6486,21 @@ func (m *MockStore) ListIgnoredLowStockProducts(arg0 context.Context, arg1 db.Li
 func (mr *MockStoreMockRecorder) ListIgnoredLowStockProducts(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListIgnoredLowStockProducts", reflect.TypeOf((*MockStore)(nil).ListIgnoredLowStockProducts), arg0, arg1)
+}
+
+// ListIncomingBranchTransfersUpdatedSince mocks base method.
+func (m *MockStore) ListIncomingBranchTransfersUpdatedSince(arg0 context.Context, arg1 db.ListIncomingBranchTransfersUpdatedSinceParams) ([]db.Transfer, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListIncomingBranchTransfersUpdatedSince", arg0, arg1)
+	ret0, _ := ret[0].([]db.Transfer)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListIncomingBranchTransfersUpdatedSince indicates an expected call of ListIncomingBranchTransfersUpdatedSince.
+func (mr *MockStoreMockRecorder) ListIncomingBranchTransfersUpdatedSince(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListIncomingBranchTransfersUpdatedSince", reflect.TypeOf((*MockStore)(nil).ListIncomingBranchTransfersUpdatedSince), arg0, arg1)
 }
 
 // ListInventories mocks base method.
@@ -7792,6 +7837,36 @@ func (m *MockStore) SetTransferAttachmentPath(arg0 context.Context, arg1 db.SetT
 func (mr *MockStoreMockRecorder) SetTransferAttachmentPath(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetTransferAttachmentPath", reflect.TypeOf((*MockStore)(nil).SetTransferAttachmentPath), arg0, arg1)
+}
+
+// SetTransferConfirmed mocks base method.
+func (m *MockStore) SetTransferConfirmed(arg0 context.Context, arg1 db.SetTransferConfirmedParams) (db.Transfer, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetTransferConfirmed", arg0, arg1)
+	ret0, _ := ret[0].(db.Transfer)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetTransferConfirmed indicates an expected call of SetTransferConfirmed.
+func (mr *MockStoreMockRecorder) SetTransferConfirmed(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetTransferConfirmed", reflect.TypeOf((*MockStore)(nil).SetTransferConfirmed), arg0, arg1)
+}
+
+// SetTransferItemReceivedQuantityByVariant mocks base method.
+func (m *MockStore) SetTransferItemReceivedQuantityByVariant(arg0 context.Context, arg1 db.SetTransferItemReceivedQuantityByVariantParams) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetTransferItemReceivedQuantityByVariant", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetTransferItemReceivedQuantityByVariant indicates an expected call of SetTransferItemReceivedQuantityByVariant.
+func (mr *MockStoreMockRecorder) SetTransferItemReceivedQuantityByVariant(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetTransferItemReceivedQuantityByVariant", reflect.TypeOf((*MockStore)(nil).SetTransferItemReceivedQuantityByVariant), arg0, arg1)
 }
 
 // SetTransferStatus mocks base method.

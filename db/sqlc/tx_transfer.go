@@ -258,10 +258,21 @@ func (store *SQLStore) TransferApproveTx(ctx context.Context, arg TransferStageT
 			}
 			result.Movements = append(result.Movements, outMovements...)
 
+			// The destination's own counted amount, once confirmed --
+			// falling back to the sender's reported quantity if kashi
+			// approves before a confirmation ever lands (approval is
+			// never blocked on one). A discrepancy between the two stays
+			// visible in transfer_items.received_quantity vs .quantity,
+			// rather than being silently reconciled away.
+			receiveQty := it.Quantity
+			if it.ReceivedQuantity.Valid {
+				receiveQty = it.ReceivedQuantity.Int64
+			}
+
 			inMovements, err := q.applyStockMovement(ctx, applyStockMovementParams{
 				InventoryID:   transfer.ToInventoryID,
 				VariantID:     it.VariantID.Int64,
-				Quantity:      it.Quantity,
+				Quantity:      receiveQty,
 				Reason:        StockMovementReasonTransferIn,
 				ReferenceType: "transfer",
 				ReferenceID:   transfer.ID,

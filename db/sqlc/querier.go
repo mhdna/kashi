@@ -648,6 +648,15 @@ type Querier interface {
 	// admin Shifts page show a per-row indicator without an extra request per
 	// shift (see branch_shift_receipt_images / api/branch_shift_receipt_image.go).
 	ListBranchShifts(ctx context.Context, arg ListBranchShiftsParams) ([]ListBranchShiftsRow, error)
+	// ---------------------------------------------------------------------------
+	// Cross-branch stock visibility: every OTHER branch's on-hand quantity and
+	// resolved selling price for a variant, so a till can search what a
+	// different branch is carrying. Keyset-paginated on inventory_stock's
+	// surrogate id (000101 -- the table's real key, (inventory_id,
+	// variant_id), has no single ordering column), same cursor shape as
+	// ListProductVariantsForSyncPaged.
+	// ---------------------------------------------------------------------------
+	ListBranchStockForSync(ctx context.Context, arg ListBranchStockForSyncParams) ([]ListBranchStockForSyncRow, error)
 	ListBranchSyncConflictsPage(ctx context.Context, arg ListBranchSyncConflictsPageParams) ([]ListBranchSyncConflictsPageRow, error)
 	ListBranchTargetSeriesForBranch(ctx context.Context, branchID int64) ([]BranchTargetSeries, error)
 	ListBranchTargetsForBranch(ctx context.Context, branchID int64) ([]BranchTarget, error)
@@ -827,6 +836,10 @@ type Querier interface {
 	// Products that have opted out of low-stock alerting entirely, regardless
 	// of on-hand or threshold -- lets the muted list be reviewed and reversed.
 	ListIgnoredLowStockProducts(ctx context.Context, arg ListIgnoredLowStockProductsParams) ([]ListIgnoredLowStockProductsRow, error)
+	// The destination branch's own poll: transfers addressed to it, whoever
+	// sent them. Matched by to_inventory_id, not branch_id -- that column is
+	// always the sender's.
+	ListIncomingBranchTransfersUpdatedSince(ctx context.Context, arg ListIncomingBranchTransfersUpdatedSinceParams) ([]Transfer, error)
 	ListInventories(ctx context.Context, arg ListInventoriesParams) ([]Inventory, error)
 	ListInventoryStock(ctx context.Context, arg ListInventoryStockParams) ([]ListInventoryStockRow, error)
 	ListInvoicePaymentsByInvoice(ctx context.Context, invoiceID int64) ([]ListInvoicePaymentsByInvoiceRow, error)
@@ -1020,6 +1033,12 @@ type Querier interface {
 	SetStockCountNote(ctx context.Context, arg SetStockCountNoteParams) error
 	SetStockCountStatus(ctx context.Context, arg SetStockCountStatusParams) (StockCount, error)
 	SetTransferAttachmentPath(ctx context.Context, arg SetTransferAttachmentPathParams) error
+	SetTransferConfirmed(ctx context.Context, arg SetTransferConfirmedParams) (Transfer, error)
+	// The destination branch reporting what it actually counted for one line.
+	// Keyed by variant, not transfer_item id -- the till only ever knows an
+	// item by barcode/uid, resolved to variant_id the same way
+	// CreateBranchTransferRequestTx resolves an outgoing line.
+	SetTransferItemReceivedQuantityByVariant(ctx context.Context, arg SetTransferItemReceivedQuantityByVariantParams) (int64, error)
 	SetTransferStatus(ctx context.Context, arg SetTransferStatusParams) (Transfer, error)
 	SetVariantBarcode(ctx context.Context, arg SetVariantBarcodeParams) (ProductVariant, error)
 	SetWhatsAppSettings(ctx context.Context, arg SetWhatsAppSettingsParams) error
