@@ -48,8 +48,6 @@
                 </v-col>
               </v-row>
 
-              <v-alert v-if="colorError" class="mb-4" type="error" variant="tonal">{{ colorError }}</v-alert>
-
               <v-btn color="primary" :loading="colorSubmitting" text="Add Color" type="submit" />
             </form>
 
@@ -100,8 +98,6 @@
                 </v-col>
               </v-row>
 
-              <v-alert v-if="sizeError" class="mb-4" type="error" variant="tonal">{{ sizeError }}</v-alert>
-
               <v-btn color="primary" :loading="sizeSubmitting" text="Add Size" type="submit" />
             </form>
 
@@ -132,6 +128,7 @@
   import { useField, useForm } from 'vee-validate'
   import { ref } from 'vue'
   import { useColorsAndSizes } from '@/composables/useColorsAndSizes'
+  import { useNotify } from '@/composables/useNotify'
 
   const { colors, sizes, fetchColors, fetchSizes, createColor, createSize } = useColorsAndSizes()
 
@@ -159,17 +156,16 @@
   })
   const colorName = useField('colorName')
   const colorHex = useField('colorHex')
+  const notify = useNotify()
   const colorSubmitting = ref(false)
-  const colorError = ref('')
 
   const submitColor = handleColorSubmit(async values => {
     colorSubmitting.value = true
-    colorError.value = ''
     try {
       await createColor({ name: values.colorName, hexValue: values.colorHex })
       resetColorForm()
     } catch (error) {
-      colorError.value = error.message
+      notify.error(error.message)
     } finally {
       colorSubmitting.value = false
     }
@@ -195,16 +191,14 @@
   const sizeType = useField('sizeType')
   const sizeOrder = useField('sizeOrder')
   const sizeSubmitting = ref(false)
-  const sizeError = ref('')
 
   const submitSize = handleSizeSubmit(async values => {
     sizeSubmitting.value = true
-    sizeError.value = ''
     try {
       await createSize({ name: values.sizeName, type: values.sizeType, order: values.sizeOrder })
       resetSizeForm()
     } catch (error) {
-      sizeError.value = error.message
+      notify.error(error.message)
     } finally {
       sizeSubmitting.value = false
     }

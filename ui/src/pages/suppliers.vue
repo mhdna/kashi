@@ -49,10 +49,6 @@
             </v-col>
           </v-row>
 
-          <v-alert v-if="submitError" class="mb-4" type="error" variant="tonal">
-            {{ submitError }}
-          </v-alert>
-
           <v-card-actions class="px-0">
             <v-spacer />
             <v-btn text="Cancel" @click="closeDialog" />
@@ -110,6 +106,7 @@
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { authFetch } from '@/composables/useApi'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
@@ -129,7 +126,7 @@
   const search = ref('')
   const dialog = ref(false)
   const submitting = ref(false)
-  const submitError = ref('')
+  const notify = useNotify()
 
   const { handleSubmit, handleReset } = useForm({
     validationSchema: {
@@ -170,12 +167,10 @@
   function closeDialog () {
     dialog.value = false
     handleReset()
-    submitError.value = ''
   }
 
   const submit = handleSubmit(async values => {
     submitting.value = true
-    submitError.value = ''
     try {
       const res = await authFetch(apiURL, {
         method: 'POST',
@@ -198,7 +193,7 @@
       closeDialog()
       tableRef.value?.reload()
     } catch (error) {
-      submitError.value = error.message
+      notify.error(error.message)
     } finally {
       submitting.value = false
     }

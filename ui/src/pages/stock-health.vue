@@ -18,8 +18,6 @@
           <div v-if="loading && !loaded" class="d-flex justify-center pa-12">
             <v-progress-circular color="primary" indeterminate />
           </div>
-          <v-alert v-else-if="loadError" type="error" variant="tonal">{{ loadError }}</v-alert>
-
           <template v-else>
             <v-row class="mb-2 flex-grow-0" density="compact">
               <v-col cols="12" sm="6">
@@ -167,6 +165,7 @@
   import { computed, onMounted, ref } from 'vue'
   import { authFetch } from '@/composables/useApi'
   import { useStockHealth } from '@/composables/useStockHealth'
+  import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
 
   const { fetchStockHealth } = useStockHealth()
@@ -174,7 +173,7 @@
   const health = ref({})
   const loading = ref(false)
   const loaded = ref(false)
-  const loadError = ref('')
+  const notify = useNotify()
 
   // The two slow-mover columns: fetched once as a capped list and rendered
   // with v-virtual-scroll, so a large catalog stays smooth without paging
@@ -207,7 +206,6 @@
 
   async function load () {
     loading.value = true
-    loadError.value = ''
     try {
       const [healthData, dead, over] = await Promise.all([
         fetchStockHealth(),
@@ -219,7 +217,7 @@
       overstocked.value = over
       loaded.value = true
     } catch (error) {
-      loadError.value = error.message
+      notify.error(error.message)
     } finally {
       loading.value = false
     }

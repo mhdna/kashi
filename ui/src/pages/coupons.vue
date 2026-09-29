@@ -1,15 +1,5 @@
 <template>
   <div class="page-root">
-    <v-alert
-      v-if="loadError"
-      class="mb-4"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ loadError }}
-    </v-alert>
-
     <v-card class="coupons-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-ticket-percent" />
@@ -172,10 +162,6 @@
               rows="2"
             />
 
-            <v-alert v-if="submitError" class="mb-4" type="error" variant="tonal">
-              {{ submitError }}
-            </v-alert>
-
             <v-card-actions class="px-0">
               <v-spacer />
               <v-btn text="Cancel" @click="closeDialog" />
@@ -212,6 +198,7 @@
   import { useCouponCategories } from '@/composables/useCouponCategories'
   import { useCoupons } from '@/composables/useCoupons'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
@@ -247,7 +234,7 @@
   const search = ref('')
   const statusFilter = ref('all')
   const selectedCategory = ref(null)
-  const loadError = ref('')
+  const notify = useNotify()
 
   const queryParams = computed(() => ({
     status: statusFilter.value === 'all' ? '' : statusFilter.value,
@@ -272,7 +259,7 @@
 
   onMounted(() => {
     fetchClients()
-    fetchCouponCategories(true).catch(error => (loadError.value = error.message))
+    fetchCouponCategories(true).catch(error => notify.error(error.message))
   })
 
   // ---- bulk delete ---------------------------------------------------
@@ -298,7 +285,6 @@
   const dialog = ref(false)
   const editingCode = ref('')
   const submitting = ref(false)
-  const submitError = ref('')
   const form = reactive({
     code: '',
     categoryId: null,
@@ -315,7 +301,6 @@
       discountType: 'percentage', validUntil: '', reason: '',
     })
     Object.assign(formErrors, { code: '', clientId: '', discountType: '', validUntil: '', reason: '' })
-    submitError.value = ''
   }
 
   function openCreate () {
@@ -357,7 +342,6 @@
   async function submit () {
     if (!validate()) return
     submitting.value = true
-    submitError.value = ''
     const payload = {
       status: 'active',
       discount_type: form.discountType,
@@ -371,7 +355,7 @@
       closeDialog()
       reload()
     } catch (error) {
-      submitError.value = error.message
+      notify.error(error.message)
     } finally {
       submitting.value = false
     }
@@ -382,7 +366,7 @@
       await deactivateCoupon(item.code)
       reload()
     } catch (error) {
-      loadError.value = error.message
+      notify.error(error.message)
     }
   }
 
@@ -415,7 +399,7 @@
       if (selectedCategory.value === category.id) selectedCategory.value = null
       await fetchCouponCategories(true)
     } catch (error) {
-      loadError.value = error.message
+      notify.error(error.message)
     }
   }
 </script>

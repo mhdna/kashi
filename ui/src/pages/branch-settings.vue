@@ -1,15 +1,5 @@
 <template>
   <div class="page-root">
-    <v-alert
-      v-if="listError"
-      class="mb-4"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ listError }}
-    </v-alert>
-
     <v-card class="bs-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-store-cog-outline" />
@@ -60,25 +50,6 @@
               seconds if it's online, or on its next sync otherwise. Nothing here writes to the
               branch database directly.
             </p>
-
-            <v-alert
-              v-if="settingsError"
-              class="mb-4"
-              density="compact"
-              type="error"
-              variant="tonal"
-            >
-              {{ settingsError }}
-            </v-alert>
-            <v-alert
-              v-if="saveOutcome"
-              class="mb-4"
-              density="compact"
-              :type="saveOutcome.ok ? 'success' : 'error'"
-              variant="tonal"
-            >
-              {{ saveOutcome.message }}
-            </v-alert>
 
             <div v-if="settingsLoading" class="d-flex justify-center pa-8">
               <v-progress-circular color="primary" indeterminate />
@@ -665,15 +636,6 @@
                     Roster is managed here and synced down to the till read-only. Adding a user or
                     changing a PIN sends a command the branch applies on its next sync.
                   </p>
-                  <v-alert
-                    v-if="usersError"
-                    class="mb-3"
-                    density="compact"
-                    type="error"
-                    variant="tonal"
-                  >
-                    {{ usersError }}
-                  </v-alert>
                   <v-table density="compact">
                     <thead>
                       <tr>
@@ -734,15 +696,6 @@
                     branch offering it, or pin a position, colour or currency to differ from central
                     here only. Anything left blank keeps following central.
                   </p>
-                  <v-alert
-                    v-if="paymentMethodsError"
-                    class="mb-3"
-                    density="compact"
-                    type="error"
-                    variant="tonal"
-                  >
-                    {{ paymentMethodsError }}
-                  </v-alert>
                   <v-table density="compact">
                     <thead>
                       <tr>
@@ -852,16 +805,6 @@
                       />
                     </div>
                   </div>
-
-                  <v-alert
-                    v-if="conflictOutcome"
-                    class="mb-3"
-                    density="compact"
-                    :type="conflictOutcome.ok ? 'success' : 'error'"
-                    variant="tonal"
-                  >
-                    {{ conflictOutcome.message }}
-                  </v-alert>
 
                   <ServerSideTable
                     v-if="selectedId != null"
@@ -1057,15 +1000,6 @@
       <v-card>
         <v-card-title class="text-subtitle-1">{{ editingUser ? 'Edit user' : 'Add user' }}</v-card-title>
         <v-card-text>
-          <v-alert
-            v-if="userFormError"
-            class="mb-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ userFormError }}
-          </v-alert>
           <v-text-field
             v-model="userForm.username"
             density="compact"
@@ -1126,15 +1060,6 @@
       <v-card>
         <v-card-title class="text-subtitle-1">Set PIN — {{ pinTarget?.username }}</v-card-title>
         <v-card-text>
-          <v-alert
-            v-if="pinError"
-            class="mb-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ pinError }}
-          </v-alert>
           <v-text-field
             v-model="pinValue"
             autofocus
@@ -1176,8 +1101,11 @@
   import { useBranchSyncConflicts } from '@/composables/useBranchSyncConflicts'
   import { useBranchUsers } from '@/composables/useBranchUsers'
   import { useClients } from '@/composables/useClients'
+  import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
+
+  const notify = useNotify()
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
@@ -1194,7 +1122,6 @@
   } = useBranchSettings()
 
   const listLoading = ref(false)
-  const listError = ref('')
   const selectedId = ref(null)
   // Which settings section (vertical sub-tab) is showing for the active branch.
   const sectionTab = ref('general')
@@ -1204,7 +1131,6 @@
   const conflictTableRef = ref(null)
   const conflictCount = ref(0)
   const selectedConflicts = ref([])
-  const conflictOutcome = ref(null)
   const conflictHeaders = [
     { title: '', key: 'data-table-select', sortable: false, width: '44px' },
     { title: 'Type', key: 'kind', sortable: false },
@@ -1255,20 +1181,20 @@
   async function dismiss (item) {
     try {
       await dismissConflict(item.id)
-      conflictOutcome.value = { ok: true, message: 'Dismissed.' }
+      notify.success('Dismissed.')
       reloadConflicts()
     } catch (error) {
-      conflictOutcome.value = { ok: false, message: String(error.message || error) }
+      notify.error(String(error.message || error))
     }
   }
   async function bulkTakeBranch () {
     try {
       const res = await bulkResolve(selectedConflicts.value.map(c => c.id), 'branch')
-      conflictOutcome.value = { ok: true, message: `Resolved ${res?.resolved ?? 0} conflict(s).` }
+      notify.success(`Resolved ${res?.resolved ?? 0} conflict(s).`)
       selectedConflicts.value = []
       reloadConflicts()
     } catch (error) {
-      conflictOutcome.value = { ok: false, message: String(error.message || error) }
+      notify.error(String(error.message || error))
     }
   }
   const resolveDialog = ref(false)
@@ -1316,11 +1242,11 @@
     resolveSaving.value = true
     try {
       await resolveConflict(item.id, body)
-      conflictOutcome.value = { ok: true, message: 'Resolved.' }
+      notify.success('Resolved.')
       resolveDialog.value = false
       reloadConflicts()
     } catch (error) {
-      conflictOutcome.value = { ok: false, message: String(error.message || error) }
+      notify.error(String(error.message || error))
     } finally {
       resolveSaving.value = false
     }
@@ -1374,7 +1300,6 @@
 
   onMounted(async () => {
     listLoading.value = true
-    listError.value = ''
     try {
       await fetchBranches(true)
       const wanted = Number(route.query.branch)
@@ -1382,7 +1307,7 @@
         ?? branches.value[0]?.id
         ?? null
     } catch (error) {
-      listError.value = error.message
+      notify.error(error.message)
     } finally {
       listLoading.value = false
     }
@@ -1392,9 +1317,7 @@
   const settingsForm = ref(null)
   const secretForm = ref({ akuvox_password: '', attendance_approver_password: '', admin_password: '' })
   const settingsLoading = ref(false)
-  const settingsError = ref('')
   const saving = ref(false)
-  const saveOutcome = ref(null)
   const socialPlatformsText = ref('[]')
   const socialHandlesText = ref('{}')
   const commandHistory = ref([])
@@ -1498,8 +1421,6 @@
 
   async function loadSettings (id) {
     settingsLoading.value = true
-    settingsError.value = ''
-    saveOutcome.value = null
     sectionTab.value = 'general'
     settingsForm.value = null
     secretForm.value = { akuvox_password: '', attendance_approver_password: '', admin_password: '' }
@@ -1513,7 +1434,7 @@
         socialHandlesText.value = JSON.stringify(data.social_handles ?? {})
       }
     } catch (error) {
-      settingsError.value = error.message
+      notify.error(error.message)
     } finally {
       settingsLoading.value = false
     }
@@ -1533,15 +1454,13 @@
   // drops the row entirely once nothing is pinned and the method is offered.
   const { listBranchPaymentMethods, setBranchPaymentMethod } = useBranchPaymentMethods()
   const branchPaymentMethods = ref([])
-  const paymentMethodsError = ref('')
 
   async function loadBranchPaymentMethods (id) {
     branchPaymentMethods.value = []
-    paymentMethodsError.value = ''
     try {
       branchPaymentMethods.value = await listBranchPaymentMethods(id)
     } catch (error) {
-      paymentMethodsError.value = error.message
+      notify.error(error.message)
     }
   }
 
@@ -1556,7 +1475,6 @@
   // replaces the row rather than patching it -- sending one field alone would
   // clear the others.
   async function saveMethod (m) {
-    paymentMethodsError.value = ''
     try {
       await setBranchPaymentMethod(selectedId.value, m.id, {
         isEnabled: m.is_enabled,
@@ -1565,7 +1483,7 @@
         currencyCode: m.override_currency_code,
       })
     } catch (error) {
-      paymentMethodsError.value = error.message
+      notify.error(error.message)
     }
     await loadBranchPaymentMethods(selectedId.value)
   }
@@ -1602,27 +1520,23 @@
   // ---- POS users --------------------------------------------------------
   const { listBranchUsers, createBranchUser, updateBranchUser, setBranchUserPin, deleteBranchUser } = useBranchUsers()
   const branchUsers = ref([])
-  const usersError = ref('')
 
   async function loadBranchUsers (id) {
     branchUsers.value = []
-    usersError.value = ''
     try {
       branchUsers.value = await listBranchUsers(id)
     } catch (error) {
-      usersError.value = error.message
+      notify.error(error.message)
     }
   }
 
   const userDialog = ref(false)
   const editingUser = ref(null)
   const userSaving = ref(false)
-  const userFormError = ref('')
   const userForm = ref({ username: '', role: 'cashier', akuvox_user_id: '', pin: '', is_active: true })
 
   function openUserDialog (u = null) {
     editingUser.value = u
-    userFormError.value = ''
     userForm.value = u
       ? { username: u.username, role: u.role, akuvox_user_id: u.akuvox_user_id, pin: '', is_active: u.is_active }
       : { username: '', role: 'cashier', akuvox_user_id: '', pin: '', is_active: true }
@@ -1632,15 +1546,14 @@
   async function submitUser () {
     const f = userForm.value
     if (!f.username.trim()) {
-      userFormError.value = 'Username is required.'
+      notify.error('Username is required.')
       return
     }
     if (!editingUser.value && !/^\d{4,6}$/.test(f.pin)) {
-      userFormError.value = 'Initial PIN must be 4 to 6 digits.'
+      notify.error('Initial PIN must be 4 to 6 digits.')
       return
     }
     userSaving.value = true
-    userFormError.value = ''
     try {
       await (editingUser.value ? updateBranchUser(editingUser.value.id, {
         username: f.username.trim(),
@@ -1657,19 +1570,18 @@
       userDialog.value = false
       await loadBranchUsers(selectedId.value)
     } catch (error) {
-      userFormError.value = error.message
+      notify.error(error.message)
     } finally {
       userSaving.value = false
     }
   }
 
   async function removeUser (u) {
-    usersError.value = ''
     try {
       await deleteBranchUser(u.id)
       await loadBranchUsers(selectedId.value)
     } catch (error) {
-      usersError.value = error.message
+      notify.error(error.message)
     }
   }
 
@@ -1677,28 +1589,25 @@
   const pinTarget = ref(null)
   const pinValue = ref('')
   const pinSaving = ref(false)
-  const pinError = ref('')
 
   function openPinDialog (u) {
     pinTarget.value = u
     pinValue.value = ''
-    pinError.value = ''
     pinDialog.value = true
   }
 
   async function submitPin () {
     if (!/^\d{4,6}$/.test(pinValue.value)) {
-      pinError.value = 'PIN must be 4 to 6 digits.'
+      notify.error('PIN must be 4 to 6 digits.')
       return
     }
     pinSaving.value = true
-    pinError.value = ''
     try {
       await setBranchUserPin(pinTarget.value.id, pinValue.value)
       pinDialog.value = false
       await loadCommandHistory()
     } catch (error) {
-      pinError.value = error.message
+      notify.error(error.message)
     } finally {
       pinSaving.value = false
     }
@@ -1714,7 +1623,7 @@
       await setBranchSettingsManagedLocally(selectedId.value, next)
     } catch (error) {
       managedLocally.value = prev
-      settingsError.value = error.message
+      notify.error(error.message)
     }
   }
 
@@ -1723,14 +1632,12 @@
     try {
       commandHistory.value = await listBranchCommands(selectedId.value)
     } catch (error) {
-      settingsError.value = error.message
+      notify.error(error.message)
     }
   }
 
   async function saveSettings () {
     saving.value = true
-    saveOutcome.value = null
-    settingsError.value = ''
     try {
       let socialPlatforms
       let socialHandles
@@ -1765,11 +1672,11 @@
       }
 
       await updateBranchSettings(selectedId.value, payload)
-      saveOutcome.value = { ok: true, message: 'Command sent -- the branch will apply it within a few seconds if online.' }
+      notify.success('Command sent — the branch will apply it within a few seconds if online.')
       secretForm.value = { akuvox_password: '', attendance_approver_password: '', admin_password: '' }
       await loadCommandHistory()
     } catch (error) {
-      saveOutcome.value = { ok: false, message: error.message }
+      notify.error(error.message)
     } finally {
       saving.value = false
     }

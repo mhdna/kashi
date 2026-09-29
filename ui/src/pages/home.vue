@@ -76,17 +76,7 @@
         </div>
 
         <v-card class="home-activities-card" rounded="lg" variant="outlined">
-          <v-alert
-            v-if="error"
-            class="ma-2"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ error }}
-          </v-alert>
-
-          <div v-else class="home-activities-scroll">
+          <div class="home-activities-scroll">
             <v-list class="py-1" density="compact" lines="two">
               <v-list-item
                 v-for="(item, index) in activities"
@@ -193,6 +183,7 @@
   import { useAllowedNav } from '@/composables/useAllowedNav'
   import { authFetch } from '@/composables/useApi'
   import { BRANCH_ACTIVITY_TYPES } from '@/composables/useBranchActivityMessage'
+  import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
   import { useAuthStore } from '@/stores/auth'
 
@@ -256,7 +247,7 @@
 
   const activities = ref([])
   const loading = ref(false)
-  const error = ref('')
+  const notify = useNotify()
 
   const detailOpen = ref(false)
   const detail = ref(null)
@@ -292,7 +283,6 @@
   async function reload () {
     if (!canViewActivity.value) return
     loading.value = true
-    error.value = ''
     try {
       const response = await authFetch(
         `${API_BASE}/dashboard/activities?page_size=${PAGE_SIZE}&page_id=0`,
@@ -304,7 +294,7 @@
       const data = await response.json()
       activities.value = data.activities ?? []
     } catch (error_) {
-      error.value = error_.message
+      notify.error(error_.message)
     } finally {
       loading.value = false
     }

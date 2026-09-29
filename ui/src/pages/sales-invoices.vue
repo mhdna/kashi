@@ -152,10 +152,6 @@
             <v-col class="text-end" cols="4">Grand Total: <strong>{{ grandTotal }}</strong></v-col>
           </v-row>
 
-          <v-alert v-if="submitError" class="mb-4" type="error" variant="tonal">
-            {{ submitError }}
-          </v-alert>
-
           <v-card-actions class="px-0">
             <v-spacer />
             <v-btn text="Cancel" @click="closeDialog" />
@@ -176,7 +172,6 @@
     <v-card>
       <v-card-title>Invoice Details -- {{ details?.invoice?.invoice_code }}</v-card-title>
       <v-card-text>
-        <v-alert v-if="detailsError" class="mb-4" type="error" variant="tonal">{{ detailsError }}</v-alert>
         <div v-if="detailsLoading" class="d-flex justify-center pa-4">
           <v-progress-circular color="primary" indeterminate />
         </div>
@@ -362,6 +357,7 @@
   import { useInventories } from '@/composables/useInventories'
   import { useInvoiceDetails } from '@/composables/useInvoiceDetails'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { useNotify } from '@/composables/useNotify'
   import { usePosSettings } from '@/composables/usePosSettings'
   import { usePriceLists } from '@/composables/usePriceLists'
   import { useSalesInvoices } from '@/composables/useSalesInvoices'
@@ -425,7 +421,7 @@
   const retailBranchFilter = ref(null)
   const wholesaleSearch = ref('')
   const submitting = ref(false)
-  const submitError = ref('')
+  const notify = useNotify()
 
   const { handleSubmit, handleReset } = useForm({
     validationSchema: {
@@ -520,12 +516,10 @@
   function closeDialog () {
     dialog.value = false
     handleReset()
-    submitError.value = ''
   }
 
   const submit = handleSubmit(async values => {
     submitting.value = true
-    submitError.value = ''
     try {
       const items = lines.value.map(l => ({
         variant_id: l.variantId,
@@ -553,7 +547,7 @@
       closeDialog()
       tableRef.value?.reload()
     } catch (error) {
-      submitError.value = error.message
+      notify.error(error.message)
     } finally {
       submitting.value = false
     }
@@ -562,17 +556,15 @@
   const detailsDialog = ref(false)
   const details = ref(null)
   const detailsLoading = ref(false)
-  const detailsError = ref('')
 
   async function openDetails (invoice) {
     detailsDialog.value = true
     detailsLoading.value = true
-    detailsError.value = ''
     details.value = null
     try {
       details.value = await getInvoiceDetails(invoice.id)
     } catch (error) {
-      detailsError.value = error.message
+      notify.error(error.message)
     } finally {
       detailsLoading.value = false
     }

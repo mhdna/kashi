@@ -233,12 +233,19 @@ export function describeBranchActivity (message, branchName) {
       const isOut = message.kind === 'out'
       const word = isOut ? 'out' : 'in'
       const soFar = message.amount ?? 0
+      const trendIcon = isOut ? 'mdi-account-arrow-left' : 'mdi-account-arrow-right'
       return {
         text: `${branch}: customer ${word} — ${soFar} ${word} today`,
         shortText: `${branch}: ${soFar} ${word}`,
-        color: 'info',
+        // "in" reads as an arrival and gets the warm orange accent; "out"
+        // stays the neutral info blue.
+        color: isOut ? 'info' : 'orange',
         tone: 'blue-darken-4',
-        icon: isOut ? 'mdi-account-arrow-left' : 'mdi-account-arrow-right',
+        icon: trendIcon,
+        // The app-bar reel only draws a leading glyph per item when
+        // trendIcon is set (see SyncCard) -- without it these entries were
+        // showing as bare "Main: 2 in" text.
+        trendIcon,
         money: false,
       }
     }

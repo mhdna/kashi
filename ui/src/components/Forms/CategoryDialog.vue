@@ -69,10 +69,6 @@
             label="Active"
           />
 
-          <v-alert v-if="submitError" class="mb-4 mt-4" type="error" variant="tonal">
-            {{ submitError }}
-          </v-alert>
-
           <v-card-actions class="px-0">
             <v-spacer />
             <v-btn text="Cancel" @click="$emit('update:modelValue', false)" />
@@ -91,6 +87,7 @@
 
 <script setup lang="ts">
   import { computed, reactive, ref, watch } from 'vue'
+  import { useNotify } from '@/composables/useNotify'
   import {
     categoryColor,
     categoryIcon,
@@ -122,8 +119,8 @@
     color: DEFAULT_EXPENSE_CATEGORY_COLOR,
     is_active: true,
   })
+  const notify = useNotify()
   const submitting = ref(false)
-  const submitError = ref('')
   const nameError = ref('')
 
   const pickedIcon = computed(() => form.icon || DEFAULT_EXPENSE_CATEGORY_ICON)
@@ -131,7 +128,6 @@
 
   watch(() => props.modelValue, open => {
     if (!open) return
-    submitError.value = ''
     nameError.value = ''
     if (props.category) {
       form.name = props.category.name
@@ -155,7 +151,6 @@
     }
     nameError.value = ''
     submitting.value = true
-    submitError.value = ''
     try {
       await props.onSubmit({
         name: form.name.trim(),
@@ -167,7 +162,7 @@
       emit('saved')
       emit('update:modelValue', false)
     } catch (error) {
-      submitError.value = error.message
+      notify.error(error.message)
     } finally {
       submitting.value = false
     }

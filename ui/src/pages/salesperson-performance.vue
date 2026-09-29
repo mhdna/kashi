@@ -118,18 +118,6 @@
       </v-card-text>
     </v-card>
 
-    <v-alert
-      v-if="error"
-      class="mb-5"
-      closable
-      type="error"
-      variant="tonal"
-      @click:close="error = ''"
-    >
-      {{ error }}
-      <template #append><v-btn size="small" text="Retry" variant="text" @click="loadData" /></template>
-    </v-alert>
-
     <v-row class="mb-3" density="compact">
       <v-col v-for="summary in summaries" :key="summary.label" cols="12" sm="4">
         <v-card class="h-100" rounded="lg">
@@ -295,13 +283,14 @@
   import { authFetch } from '@/composables/useApi'
   import { useBranches } from '@/composables/useBranches'
   import { useBranchInvoices } from '@/composables/useBranchInvoices'
+  import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
 
   const { branches, fetchBranches } = useBranches()
   const { listBranchInvoiceItems } = useBranchInvoices()
   const invoices = ref([])
   const loading = ref(false)
-  const error = ref('')
+  const notify = useNotify()
   const branchId = ref(null)
   const salespersonId = ref(null)
   const period = ref('month')
@@ -540,7 +529,6 @@
 
   async function loadData () {
     loading.value = true
-    error.value = ''
     try {
       const [, response] = await Promise.all([
         fetchBranches(),
@@ -560,7 +548,7 @@
         items: itemResults[index].status === 'fulfilled' ? itemResults[index].value : [],
       }))
     } catch (loadError) {
-      error.value = loadError.message || 'Failed to load salesperson performance.'
+      notify.error(loadError.message || 'Failed to load salesperson performance.')
       invoices.value = []
     } finally {
       loading.value = false

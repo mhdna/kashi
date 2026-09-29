@@ -1,15 +1,5 @@
 <template>
   <div class="page-root">
-    <v-alert
-      v-if="loadError"
-      class="mb-4"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ loadError }}
-    </v-alert>
-
     <v-card class="cp-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-cash-multiple" />
@@ -194,15 +184,6 @@
             type="number"
           />
 
-          <v-alert
-            v-if="currencyError"
-            class="mb-2 mt-4"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ currencyError }}
-          </v-alert>
         </v-card-text>
         <v-card-actions>
           <v-btn
@@ -233,13 +214,6 @@
         <v-card-title>Delete Currency</v-card-title>
         <v-card-text>
           Delete <strong>{{ deleteTarget?.name }}</strong>? This cannot be undone.
-          <v-alert
-            v-if="deleteError"
-            class="mt-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >{{ deleteError }}</v-alert>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -305,13 +279,6 @@
             mode="hex"
             width="100%"
           />
-          <v-alert
-            v-if="methodError"
-            class="mt-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >{{ methodError }}</v-alert>
         </v-card-text>
         <v-card-actions class="px-4 pb-4">
           <v-spacer />
@@ -336,7 +303,10 @@
   import { useBulkDelete } from '@/composables/useBulkDelete'
   import { useCashboxAccounts } from '@/composables/useCashboxAccounts'
   import { useCurrencies } from '@/composables/useCurrencies'
+  import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
+
+  const notify = useNotify()
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
@@ -372,7 +342,6 @@
   } = useCashboxAccounts()
 
   const tab = ref('currencies')
-  const loadError = ref('')
   const currencyLoading = ref(false)
   const methodLoading = ref(false)
   const currencySearch = ref('')
@@ -432,11 +401,10 @@
 
   async function reloadCurrencies () {
     currencyLoading.value = true
-    loadError.value = ''
     try {
       await fetchCurrencies(true)
     } catch (error) {
-      loadError.value = error.message
+      notify.error(error.message)
     } finally {
       currencyLoading.value = false
     }
@@ -444,11 +412,10 @@
 
   async function reloadMethods () {
     methodLoading.value = true
-    loadError.value = ''
     try {
       await fetchCashboxAccounts(true)
     } catch (error) {
-      loadError.value = error.message
+      notify.error(error.message)
     } finally {
       methodLoading.value = false
     }
@@ -457,7 +424,6 @@
   // ---- currency add / edit -------------------------------------------------
   const currencyDialog = ref(false)
   const currencySaving = ref(false)
-  const currencyError = ref('')
   const editingCode = ref(null)
   // units_per_usd_micros is stored as micro-units (x1,000,000) so a rate like
   // EUR's 0.92 stays an integer in the database. The form talks in the rate a
@@ -477,7 +443,6 @@
   function openAddCurrency () {
     editingCode.value = null
     editingIsDefault.value = false
-    currencyError.value = ''
     Object.assign(currencyForm, { code: '', name: '', symbol: '', valueInDefaultCurrency: 1, unitsPerUsd: 1, cashRoundingUnit: 1 })
     currencyDialog.value = true
   }
@@ -486,7 +451,6 @@
     if (!canEdit.value) return
     editingCode.value = item.code
     editingIsDefault.value = !!item.is_default
-    currencyError.value = ''
     Object.assign(currencyForm, {
       code: item.code,
       name: item.name,
@@ -512,19 +476,19 @@
 
   async function saveCurrency () {
     if (!editingCode.value && (currencyForm.code ?? '').trim().length < 2) {
-      currencyError.value = 'Code is required.'
+      notify.error('Code is required.')
       return
     }
     if ((currencyForm.name ?? '').trim().length < 2) {
-      currencyError.value = 'Name needs to be at least 2 characters.'
+      notify.error('Name needs to be at least 2 characters.')
       return
     }
     if (!(currencyForm.symbol ?? '').trim()) {
-      currencyError.value = 'Symbol is required.'
+      notify.error('Symbol is required.')
       return
     }
     if (!(Number(currencyForm.valueInDefaultCurrency) > 0)) {
-      currencyError.value = 'Value in default currency must be greater than 0.'
+      notify.error('Value in default currency must be greater than 0.')
       return
     }
     // The default currency's rate is the anchor everything else is expressed
@@ -533,16 +497,15 @@
     const cashRoundingUnit = Number(currencyForm.cashRoundingUnit)
     if (!editingIsDefault.value) {
       if (!(unitsPerUsdMicros > 0)) {
-        currencyError.value = 'Units per 1 USD must be greater than 0.'
+        notify.error('Units per 1 USD must be greater than 0.')
         return
       }
       if (!Number.isInteger(cashRoundingUnit) || cashRoundingUnit < 1) {
-        currencyError.value = 'Cash rounding unit must be a whole number of 1 or more.'
+        notify.error('Cash rounding unit must be a whole number of 1 or more.')
         return
       }
     }
     currencySaving.value = true
-    currencyError.value = ''
     try {
       const payload = {
         code: currencyForm.code.trim(),
@@ -558,7 +521,7 @@
       currencyDialog.value = false
       reloadCurrencies()
     } catch (error) {
-      currencyError.value = error.message
+      notify.error(error.message)
     } finally {
       currencySaving.value = false
     }
@@ -568,23 +531,20 @@
   const deleteDialog = ref(false)
   const deleteTarget = ref(null)
   const deleting = ref(false)
-  const deleteError = ref('')
 
   function openDeleteCurrency (item) {
     deleteTarget.value = item
-    deleteError.value = ''
     deleteDialog.value = true
   }
 
   async function confirmDeleteCurrency () {
     deleting.value = true
-    deleteError.value = ''
     try {
       await deleteCurrency(deleteTarget.value.code)
       deleteDialog.value = false
       reloadCurrencies()
     } catch (error) {
-      deleteError.value = error.message
+      notify.error(error.message)
     } finally {
       deleting.value = false
     }
@@ -593,13 +553,11 @@
   // ---- payment method add / edit ---------------------------------------
   const methodDialog = ref(false)
   const methodSaving = ref(false)
-  const methodError = ref('')
   const editingMethodId = ref(null)
   const methodForm = reactive({ name: '', currencyCode: 'USD', sortOrder: 0, color: '' })
 
   function openAddMethod () {
     editingMethodId.value = null
-    methodError.value = ''
     const nextOrder = methodRows.value.reduce((max, m) => Math.max(max, m.sort_order ?? 0), 0) + 1
     Object.assign(methodForm, { name: '', currencyCode: 'USD', sortOrder: nextOrder, color: '' })
     methodDialog.value = true
@@ -609,7 +567,6 @@
     if (!canEdit.value) return
     if (item.reserved) return
     editingMethodId.value = item.id
-    methodError.value = ''
     Object.assign(methodForm, {
       name: item.name,
       currencyCode: item.currency_code || 'USD',
@@ -625,16 +582,15 @@
 
   async function saveMethod () {
     if (!(methodForm.name ?? '').trim()) {
-      methodError.value = 'Name is required.'
+      notify.error('Name is required.')
       return
     }
     const color = normalizeHex(methodForm.color)
     if (color && !isValidHex(color)) {
-      methodError.value = 'Accent color must be a valid hex value.'
+      notify.error('Accent color must be a valid hex value.')
       return
     }
     methodSaving.value = true
-    methodError.value = ''
     try {
       const payload = {
         name: methodForm.name.trim(),
@@ -646,7 +602,7 @@
       methodDialog.value = false
       reloadMethods()
     } catch (error) {
-      methodError.value = error.message
+      notify.error(error.message)
     } finally {
       methodSaving.value = false
     }

@@ -58,19 +58,6 @@
       <TierChip v-for="t in tierLadder" :key="t.id" show-threshold :tier="t" />
     </div>
 
-    <v-alert
-      v-if="error"
-      class="ly-notice mx-4 mb-2"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ error }}
-      <template #append>
-        <v-btn size="small" text="Retry" variant="text" @click="load" />
-      </template>
-    </v-alert>
-
     <div v-if="loading" class="d-flex flex-column align-center ga-2 pa-12">
       <v-progress-circular color="primary" indeterminate />
       <span class="text-caption text-medium-emphasis">Loading clients…</span>
@@ -297,6 +284,7 @@
   import TierChip from '@/components/Clients/TierChip.vue'
   import { useClientTiers } from '@/composables/useClientTiers'
   import { dedupedFetch } from '@/composables/useRequestDedup'
+  import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
   import { formatCompactMoney } from '@/utils/money'
 
@@ -399,11 +387,10 @@
 
   const rows = ref([])
   const loading = ref(false)
-  const error = ref('')
+  const notify = useNotify()
 
   async function load () {
     loading.value = true
-    error.value = ''
     try {
       const params = new URLSearchParams()
       if (clientType.value !== 'all') params.set('client_type', clientType.value)
@@ -414,7 +401,7 @@
       const data = await dedupedFetch(`${API_BASE}/clients/spending_summary?${params}`)
       rows.value = data?.clients ?? []
     } catch (error_) {
-      error.value = error_.message
+      notify.error(error_.message)
       rows.value = []
     } finally {
       loading.value = false

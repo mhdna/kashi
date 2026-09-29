@@ -48,10 +48,6 @@
             </v-col>
           </v-row>
 
-          <v-alert v-if="submitError" class="mb-4" type="error" variant="tonal">
-            {{ submitError }}
-          </v-alert>
-
           <v-card-actions class="px-0">
             <v-btn
               v-if="editingId"
@@ -74,7 +70,6 @@
     <v-card>
       <v-card-title>Delete Inventory</v-card-title>
       <v-card-text>Are you sure you want to delete "{{ deleteTarget?.name }}"? This cannot be undone.</v-card-text>
-      <v-alert v-if="deleteError" class="mx-4 mb-2" type="error" variant="tonal">{{ deleteError }}</v-alert>
       <v-card-actions>
         <v-spacer />
         <v-btn text="Cancel" @click="deleteDialog = false" />
@@ -145,7 +140,6 @@
           placeholder="Search SKU / barcode"
           @update:model-value="onStockSearch"
         />
-        <v-alert v-if="stockError" class="mb-2" type="error" variant="tonal">{{ stockError }}</v-alert>
         <v-table density="compact">
           <thead>
             <tr>
@@ -212,6 +206,7 @@
   import { useBulkDelete } from '@/composables/useBulkDelete'
   import { useInventories } from '@/composables/useInventories'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
@@ -260,7 +255,7 @@
   const tableRef = ref(null)
   const dialog = ref(false)
   const submitting = ref(false)
-  const submitError = ref('')
+  const notify = useNotify()
   const editingId = ref(null)
 
   const { handleSubmit, handleReset, setValues } = useForm({
@@ -302,13 +297,11 @@
   function closeDialog () {
     dialog.value = false
     handleReset()
-    submitError.value = ''
     editingId.value = null
   }
 
   const submit = handleSubmit(async values => {
     submitting.value = true
-    submitError.value = ''
     try {
       await (editingId.value
         ? updateInventory({ id: editingId.value, name: values.name })
@@ -322,7 +315,7 @@
       closeDialog()
       tableRef.value?.reload()
     } catch (error) {
-      submitError.value = error.message
+      notify.error(error.message)
     } finally {
       submitting.value = false
     }
@@ -331,11 +324,9 @@
   const deleteDialog = ref(false)
   const deleteTarget = ref(null)
   const deleting = ref(false)
-  const deleteError = ref('')
 
   function openDelete (item) {
     deleteTarget.value = item
-    deleteError.value = ''
     deleteDialog.value = true
   }
 
@@ -349,13 +340,12 @@
 
   async function confirmDelete () {
     deleting.value = true
-    deleteError.value = ''
     try {
       await deleteInventory(deleteTarget.value.id)
       deleteDialog.value = false
       tableRef.value?.reload()
     } catch (error) {
-      deleteError.value = error.message
+      notify.error(error.message)
     } finally {
       deleting.value = false
     }
@@ -365,18 +355,16 @@
   const stockDialog = ref(false)
   const stockTarget = ref(null)
   const stockRows = ref([])
-  const stockError = ref('')
   const stockSearch = ref('')
   const adjustInputs = ref({})
   const adjustingId = ref(null)
 
   async function loadStock () {
-    stockError.value = ''
     try {
       const { stock } = await fetchStock(stockTarget.value.id, { search: stockSearch.value || '' })
       stockRows.value = stock
     } catch (error) {
-      stockError.value = error.message
+      notify.error(error.message)
     }
   }
 
@@ -398,7 +386,6 @@
     const target = adjustInputs.value[row.variant_id]
     if (target === undefined || target === null || target === '') return
     adjustingId.value = row.variant_id
-    stockError.value = ''
     try {
       await createAdjustment(stockTarget.value.id, {
         variantId: row.variant_id,
@@ -409,7 +396,7 @@
       adjustInputs.value[row.variant_id] = null
       await loadStock()
     } catch (error) {
-      stockError.value = error.message
+      notify.error(error.message)
     } finally {
       adjustingId.value = null
     }

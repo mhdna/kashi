@@ -1,15 +1,5 @@
 <template>
   <div class="page-root">
-    <v-alert
-      v-if="loadError"
-      class="mb-4"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ loadError }}
-    </v-alert>
-
     <v-card class="shifts-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-clock-outline" />
@@ -219,10 +209,6 @@
               label="Cashbox"
             />
 
-            <v-alert v-if="submitError" class="mb-4" type="error" variant="tonal">
-              {{ submitError }}
-            </v-alert>
-
             <v-card-actions class="px-0">
               <v-spacer />
               <v-btn text="Cancel" @click="closeDialog" />
@@ -246,8 +232,7 @@
         <v-divider />
         <!-- Fixed-height stage so the dialog doesn't resize when the photo lands. -->
         <div class="image-stage d-flex align-center justify-center pa-2">
-          <v-alert v-if="receiptError" type="error" variant="tonal">{{ receiptError }}</v-alert>
-          <v-progress-circular v-else-if="receiptLoading" indeterminate />
+          <v-progress-circular v-if="receiptLoading" indeterminate />
           <v-img
             v-else-if="receiptUrl"
             class="image-stage__img"
@@ -274,6 +259,7 @@
   import { useBranches } from '@/composables/useBranches'
   import { useCashboxes } from '@/composables/useCashboxes'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { useNotify } from '@/composables/useNotify'
   import { useShiftReceiptImages } from '@/composables/useShiftReceiptImages'
   import { useShifts } from '@/composables/useShifts'
   import { API_BASE } from '@/config'
@@ -362,7 +348,7 @@
   const receiptShift = ref(null)
   const receiptUrl = ref('')
   const receiptLoading = ref(false)
-  const receiptError = ref('')
+  const notify = useNotify()
 
   function revokeReceiptUrl () {
     if (receiptUrl.value) {
@@ -373,19 +359,18 @@
 
   async function openReceipt (item) {
     receiptShift.value = item
-    receiptError.value = ''
     revokeReceiptUrl()
     receiptDialog.value = true
     receiptLoading.value = true
     try {
       const image = await fetchShiftReceiptImageForShift(item.id)
       if (!image) {
-        receiptError.value = 'No receipt photo for this shift yet.'
+        notify.warning('No receipt photo for this shift yet.')
         return
       }
       receiptUrl.value = await fetchShiftReceiptImageObjectUrl(image.id)
     } catch (error) {
-      receiptError.value = error.message
+      notify.error(error.message)
     } finally {
       receiptLoading.value = false
     }
@@ -422,9 +407,7 @@
     revokeReceiptUrl()
   })
   const submitting = ref(false)
-  const submitError = ref('')
   const closingId = ref(null)
-  const loadError = ref('')
 
   function money (cents) {
     return (Number(cents) / 100).toLocaleString(undefined, {
@@ -467,25 +450,22 @@
 
   function openCreate () {
     handleReset()
-    submitError.value = ''
     dialog.value = true
   }
 
   function closeDialog () {
     dialog.value = false
     handleReset()
-    submitError.value = ''
   }
 
   const submit = handleSubmit(async values => {
     submitting.value = true
-    submitError.value = ''
     try {
       await createShift({ cashbox_id: values.cashboxId })
       closeDialog()
       tableRef.value?.reload()
     } catch (error) {
-      submitError.value = error.message
+      notify.error(error.message)
     } finally {
       submitting.value = false
     }
@@ -497,7 +477,7 @@
       await closeShift(item.id)
       tableRef.value?.reload()
     } catch (error) {
-      loadError.value = error.message
+      notify.error(error.message)
     } finally {
       closingId.value = null
     }

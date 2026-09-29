@@ -10,16 +10,6 @@
 -->
 <template>
   <div class="page-root">
-    <v-alert
-      v-if="loadError"
-      class="mb-4"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ loadError }}
-    </v-alert>
-
     <v-card class="vlm-card" flat>
       <v-card-title class="page-heading d-flex align-center ga-3 px-4 py-3">
         <v-icon :icon="cfg.icon" />
@@ -145,16 +135,6 @@
               variant="outlined"
             />
 
-            <v-alert
-              v-if="itemError"
-              class="mx-4 mb-2 mt-2"
-              density="compact"
-              type="error"
-              variant="tonal"
-            >
-              {{ itemError }}
-            </v-alert>
-
             <BulkDeleteBar
               :count="selectedItems.length"
               :error="itemSelError"
@@ -232,15 +212,6 @@
               label="Default"
             />
           </div>
-          <v-alert
-            v-if="listError"
-            class="mt-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ listError }}
-          </v-alert>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -334,6 +305,7 @@
 <script setup lang="ts">
   import { computed, onMounted, reactive, ref, watch } from 'vue'
   import BranchAssignDialog from '@/components/BranchAssignDialog.vue'
+  import { useNotify } from '@/composables/useNotify'
   import PageSidebar from '@/components/PageSidebar.vue'
   import BulkDeleteBar from '@/components/Tables/BulkDeleteBar.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
@@ -346,6 +318,7 @@
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
+  const notify = useNotify()
 
   const props = defineProps({
     kind: { type: String, required: true, validator: v => v === 'price' || v === 'discount' },
@@ -403,13 +376,11 @@
     return [item?.color_name, item?.size_name].filter(Boolean).join(' / ') || '—'
   }
 
-  const loadError = ref('')
   const selectedListId = ref(null)
   const selectedList = computed(() => lists.value.find(l => l.id === selectedListId.value) ?? null)
   const listItems = computed(() => lists.value.map(l => ({ value: l.id, title: l.name, raw: l })))
   const tableRef = ref(null)
   const itemSearch = ref('')
-  const itemError = ref('')
 
   function reloadItems () {
     tableRef.value?.reload()
@@ -438,7 +409,6 @@
   watch(selectedListId, () => {
     resetItemSel()
     itemSearch.value = ''
-    itemError.value = ''
   })
 
   onMounted(async () => {
@@ -448,7 +418,7 @@
         selectedListId.value = lists.value[0].id
       }
     } catch (error) {
-      loadError.value = error.message
+      notify.error(error.message)
     }
   })
 
@@ -473,18 +443,17 @@
     if (!addVariantId.value || addValue.value === '') return
     const parsed = cfg.value.parse(addValue.value)
     if (!Number.isFinite(parsed) || parsed < 0) {
-      itemError.value = `Enter a valid ${cfg.value.valueLabel.toLowerCase()}.`
+      notify.error(`Enter a valid ${cfg.value.valueLabel.toLowerCase()}.`)
       return
     }
     addingItem.value = true
-    itemError.value = ''
     try {
       await saveItem(selectedList.value.id, addVariantId.value, parsed)
       addVariantId.value = null
       addValue.value = ''
       reloadItems()
     } catch (error) {
-      itemError.value = error.message
+      notify.error(error.message)
     } finally {
       addingItem.value = false
     }
@@ -518,7 +487,7 @@
       editItemDialog.value = false
       reloadItems()
     } catch (error) {
-      itemError.value = error.message
+      notify.error(error.message)
     } finally {
       savingItem.value = false
     }
@@ -529,7 +498,7 @@
       await deleteItem(selectedList.value.id, item.product_variant_id)
       reloadItems()
     } catch (error) {
-      itemError.value = error.message
+      notify.error(error.message)
     }
   }
 
@@ -537,13 +506,11 @@
   const listDialog = ref(false)
   const editingList = ref(false)
   const savingList = ref(false)
-  const listError = ref('')
   const listForm = reactive({ name: '', validFrom: '', validTo: '', isActive: true, isDefault: false })
 
   function openCreateList () {
     editingList.value = false
     Object.assign(listForm, { name: '', validFrom: '', validTo: '', isActive: true, isDefault: false })
-    listError.value = ''
     listDialog.value = true
   }
 
@@ -556,17 +523,15 @@
       isActive: selectedList.value.is_active,
       isDefault: selectedList.value.is_default,
     })
-    listError.value = ''
     listDialog.value = true
   }
 
   async function saveList () {
     if (!listForm.name.trim() || !listForm.validFrom || !listForm.validTo) {
-      listError.value = 'Name and both dates are required.'
+      notify.error('Name and both dates are required.')
       return
     }
     savingList.value = true
-    listError.value = ''
     const payload = {
       name: listForm.name.trim(),
       is_active: listForm.isActive,
@@ -583,7 +548,7 @@
       }
       listDialog.value = false
     } catch (error) {
-      listError.value = error.message
+      notify.error(error.message)
     } finally {
       savingList.value = false
     }
@@ -599,7 +564,7 @@
       deleteListDialog.value = false
       selectedListId.value = lists.value.length > 0 ? lists.value[0].id : null
     } catch (error) {
-      loadError.value = error.message
+      notify.error(error.message)
     } finally {
       deletingList.value = false
     }

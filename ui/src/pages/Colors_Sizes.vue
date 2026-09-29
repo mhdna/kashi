@@ -1,15 +1,5 @@
 <template>
   <div class="page-root">
-    <v-alert
-      v-if="loadError"
-      class="mb-4"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ loadError }}
-    </v-alert>
-
     <v-card class="cs-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-palette" />
@@ -179,13 +169,6 @@
               <div class="swatch" :style="{ backgroundColor: isValidHex(colorForm.hex) ? colorForm.hex : 'transparent' }" />
             </template>
           </v-text-field>
-          <v-alert
-            v-if="colorError"
-            class="mt-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >{{ colorError }}</v-alert>
         </v-card-text>
         <v-card-actions class="px-4 pb-4">
           <v-spacer />
@@ -232,13 +215,6 @@
             type="number"
             variant="outlined"
           />
-          <v-alert
-            v-if="sizeError"
-            class="mt-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >{{ sizeError }}</v-alert>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -292,13 +268,6 @@
               <div class="swatch" :style="{ backgroundColor: isValidHex(editColorForm.hex) ? editColorForm.hex : 'transparent' }" />
             </template>
           </v-text-field>
-          <v-alert
-            v-if="editError"
-            class="mt-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >{{ editError }}</v-alert>
         </v-card-text>
         <v-card-actions class="px-4 pb-4">
           <v-btn
@@ -351,13 +320,6 @@
             type="number"
             variant="outlined"
           />
-          <v-alert
-            v-if="editError"
-            class="mt-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >{{ editError }}</v-alert>
         </v-card-text>
         <v-card-actions>
           <v-btn
@@ -386,13 +348,6 @@
         <v-card-title class="text-h6">Delete {{ deleteKind }}</v-card-title>
         <v-card-text>
           Delete <strong>{{ deleteLabel }}</strong>? This can't be undone.
-          <v-alert
-            v-if="deleteError"
-            class="mt-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >{{ deleteError }}</v-alert>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -417,6 +372,7 @@
   import { useBulkDelete } from '@/composables/useBulkDelete'
   import { useColorsAndSizes } from '@/composables/useColorsAndSizes'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
@@ -476,7 +432,7 @@
   }
 
   const tab = ref('colors')
-  const loadError = ref('')
+  const notify = useNotify()
   const colorSearch = ref('')
   const sizeSearch = ref('')
 
@@ -500,7 +456,7 @@
   const sizeTypes = computed(() => [...new Set(sizes.value.map(s => s.type))].toSorted())
 
   onMounted(() => {
-    fetchSizes().catch(error => { loadError.value = error.message })
+    fetchSizes().catch(error => { notify.error(error.message) })
   })
 
   function isValidHex (value) {
@@ -523,31 +479,28 @@
   const colorForm = reactive({ name: '', hex: '#1976D2' })
   const addColorDialog = ref(false)
   const colorSaving = ref(false)
-  const colorError = ref('')
 
   function openAddColor () {
-    colorError.value = ''
     Object.assign(colorForm, { name: '', hex: '#1976D2' })
     addColorDialog.value = true
   }
 
   async function addColor () {
     if (!colorForm.name.trim()) {
-      colorError.value = 'Name is required.'
+      notify.error('Name is required.')
       return
     }
     if (!isValidHex(normalizeHex(colorForm.hex))) {
-      colorError.value = 'Pick a valid hex color.'
+      notify.error('Pick a valid hex color.')
       return
     }
     colorSaving.value = true
-    colorError.value = ''
     try {
       await createColor({ name: colorForm.name.trim(), hexValue: normalizeHex(colorForm.hex) })
       addColorDialog.value = false
       reloadColors()
     } catch (error) {
-      colorError.value = error.message
+      notify.error(error.message)
     } finally {
       colorSaving.value = false
     }
@@ -557,27 +510,24 @@
   const sizeForm = reactive({ name: '', type: '', order: '' })
   const addSizeDialog = ref(false)
   const sizeSaving = ref(false)
-  const sizeError = ref('')
 
   function openAddSize () {
-    sizeError.value = ''
     Object.assign(sizeForm, { name: '', type: '', order: '' })
     addSizeDialog.value = true
   }
 
   async function addSize () {
     if (!sizeForm.type?.trim() || !sizeForm.name.trim() || sizeForm.order === '') {
-      sizeError.value = 'Type, name and order are all required.'
+      notify.error('Type, name and order are all required.')
       return
     }
     sizeSaving.value = true
-    sizeError.value = ''
     try {
       await createSize({ name: sizeForm.name.trim(), type: sizeForm.type.trim(), order: sizeForm.order })
       addSizeDialog.value = false
       reloadSizes()
     } catch (error) {
-      sizeError.value = error.message
+      notify.error(error.message)
     } finally {
       sizeSaving.value = false
     }
@@ -589,11 +539,9 @@
   const editColorForm = reactive({ id: null, name: '', hex: '' })
   const editSizeForm = reactive({ id: null, name: '', type: '', order: '' })
   const editSaving = ref(false)
-  const editError = ref('')
 
   function openEditColor (item) {
     if (!canEdit.value) return
-    editError.value = ''
     Object.assign(editColorForm, { id: item.id, name: item.name, hex: item.hex_value })
     editColorDialog.value = true
   }
@@ -606,7 +554,6 @@
 
   function openEditSize (item) {
     if (!canEdit.value) return
-    editError.value = ''
     Object.assign(editSizeForm, { id: item.id, name: item.name, type: item.type, order: item.order })
     editSizeDialog.value = true
   }
@@ -619,17 +566,16 @@
 
   async function saveColor () {
     if (!editColorForm.name.trim() || !isValidHex(normalizeHex(editColorForm.hex))) {
-      editError.value = 'Name and a valid hex are required.'
+      notify.error('Name and a valid hex are required.')
       return
     }
     editSaving.value = true
-    editError.value = ''
     try {
       await updateColor({ id: editColorForm.id, name: editColorForm.name.trim(), hexValue: normalizeHex(editColorForm.hex) })
       editColorDialog.value = false
       reloadColors()
     } catch (error) {
-      editError.value = error.message
+      notify.error(error.message)
     } finally {
       editSaving.value = false
     }
@@ -637,11 +583,10 @@
 
   async function saveSize () {
     if (!editSizeForm.type?.trim() || !editSizeForm.name.trim() || editSizeForm.order === '') {
-      editError.value = 'Type, name and order are all required.'
+      notify.error('Type, name and order are all required.')
       return
     }
     editSaving.value = true
-    editError.value = ''
     try {
       await updateSize({
         id: editSizeForm.id,
@@ -652,7 +597,7 @@
       editSizeDialog.value = false
       reloadSizes()
     } catch (error) {
-      editError.value = error.message
+      notify.error(error.message)
     } finally {
       editSaving.value = false
     }
@@ -661,7 +606,6 @@
   // ---- delete -------------------------------------------------------
   const deleteDialog = ref(false)
   const deleting = ref(false)
-  const deleteError = ref('')
   const deleteKind = ref('')
   const deleteTarget = ref(null)
 
@@ -675,13 +619,11 @@
   function confirmDelete (kind, item) {
     deleteKind.value = kind
     deleteTarget.value = item
-    deleteError.value = ''
     deleteDialog.value = true
   }
 
   async function doDelete () {
     deleting.value = true
-    deleteError.value = ''
     try {
       await (deleteKind.value === 'color'
         ? deleteColor(deleteTarget.value.id)
@@ -690,7 +632,7 @@
       if (deleteKind.value === 'color') reloadColors()
       else reloadSizes()
     } catch (error) {
-      deleteError.value = error.message
+      notify.error(error.message)
     } finally {
       deleting.value = false
     }

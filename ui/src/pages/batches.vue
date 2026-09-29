@@ -1,15 +1,5 @@
 <template>
   <div class="page-root">
-    <v-alert
-      v-if="loadError"
-      class="mb-4"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ loadError }}
-    </v-alert>
-
     <v-card class="batches-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-package-variant-closed" />
@@ -106,14 +96,6 @@
             <v-divider />
 
             <div v-if="detailLoading" class="pa-4 text-medium-emphasis">Loading…</div>
-            <v-alert
-              v-else-if="detailError"
-              class="ma-4"
-              density="compact"
-              type="error"
-              variant="tonal"
-            >{{ detailError }}</v-alert>
-
             <template v-else>
               <!-- summary strip -->
               <div class="stat-strip px-4 py-3">
@@ -294,13 +276,6 @@
             rows="2"
             variant="outlined"
           />
-          <v-alert
-            v-if="createError"
-            class="mt-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >{{ createError }}</v-alert>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -322,13 +297,6 @@
         <v-card-title class="text-h6">Delete Batch</v-card-title>
         <v-card-text>
           Delete <strong>{{ selectedBatch?.code || `Batch #${selectedId}` }}</strong>? This can't be undone.
-          <v-alert
-            v-if="deleteError"
-            class="mt-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >{{ deleteError }}</v-alert>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -350,6 +318,7 @@
   import { computed, onMounted, reactive, ref } from 'vue'
   import { useBatches } from '@/composables/useBatches'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { useNotify } from '@/composables/useNotify'
   import { formatMoney } from '@/utils/money'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
@@ -368,7 +337,7 @@
   // ---- left list ---------------------------------------------------
   const batches = ref([])
   const listLoading = ref(false)
-  const loadError = ref('')
+  const notify = useNotify()
   const search = ref('')
   let searchTimer = null
 
@@ -378,7 +347,7 @@
       const data = await searchBatches(search.value)
       batches.value = data?.batches ?? []
     } catch (error) {
-      loadError.value = error.message
+      notify.error(error.message)
     } finally {
       listLoading.value = false
     }
@@ -396,20 +365,18 @@
   const selectedBatch = ref(null)
   const items = ref([])
   const detailLoading = ref(false)
-  const detailError = ref('')
   const tab = ref('products')
 
   async function selectBatch (id) {
     selectedId.value = id
     tab.value = 'products'
     detailLoading.value = true
-    detailError.value = ''
     try {
       const data = await fetchBatch(id)
       selectedBatch.value = data?.batch ?? null
       items.value = data?.items ?? []
     } catch (error) {
-      detailError.value = error.message
+      notify.error(error.message)
     } finally {
       detailLoading.value = false
     }
@@ -452,7 +419,6 @@
   // ---- add batch ------------------------------------------------------
   const createDialog = ref(false)
   const creating = ref(false)
-  const createError = ref('')
   const form = reactive({ purchaseId: null, code: '', note: '' })
   const purchaseOptions = ref([])
   const purchaseLoading = ref(false)
@@ -479,7 +445,6 @@
   }
 
   function openCreate () {
-    createError.value = ''
     Object.assign(form, { purchaseId: null, code: '', note: '' })
     createDialog.value = true
     runPurchaseSearch('')
@@ -487,11 +452,10 @@
 
   async function submitCreate () {
     if (!form.purchaseId) {
-      createError.value = 'Select a purchase invoice.'
+      notify.error('Select a purchase invoice.')
       return
     }
     creating.value = true
-    createError.value = ''
     try {
       const created = await createBatch({ purchaseId: form.purchaseId, code: form.code.trim(), note: form.note.trim() })
       createDialog.value = false
@@ -499,7 +463,7 @@
       const newId = created?.batch?.id
       if (newId) await selectBatch(newId)
     } catch (error) {
-      createError.value = error.message
+      notify.error(error.message)
     } finally {
       creating.value = false
     }
@@ -508,16 +472,13 @@
   // ---- delete -----------------------------------------------------
   const deleteDialog = ref(false)
   const deleting = ref(false)
-  const deleteError = ref('')
 
   function confirmDelete () {
-    deleteError.value = ''
     deleteDialog.value = true
   }
 
   async function doDelete () {
     deleting.value = true
-    deleteError.value = ''
     try {
       await deleteBatch(selectedId.value)
       deleteDialog.value = false
@@ -526,7 +487,7 @@
       items.value = []
       await reloadBatches()
     } catch (error) {
-      deleteError.value = error.message
+      notify.error(error.message)
     } finally {
       deleting.value = false
     }

@@ -1,15 +1,5 @@
 <template>
   <div>
-    <v-alert
-      v-if="error"
-      class="prp-notice mb-2"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ error }}
-    </v-alert>
-
     <div v-if="loading" class="d-flex justify-center pa-12">
       <v-progress-circular color="primary" indeterminate />
     </div>
@@ -123,10 +113,11 @@
 </template>
 
 <script setup>
-  import { computed, ref } from 'vue'
+  import { computed, ref, watch } from 'vue'
   import VChart from 'vue-echarts'
   import { useTheme } from 'vuetify'
   import { formatMoney } from '@/utils/money'
+  import { useNotify } from '@/composables/useNotify'
 
   const props = defineProps({
     products: { type: Array, required: true },
@@ -138,6 +129,9 @@
     // "revenue is estimated at catalog price" caveat.
     revenueNote: { type: String, default: '' },
   })
+
+  const notify = useNotify()
+  watch(() => props.error, val => { if (val) notify.error(val) })
 
   const theme = useTheme()
   const c = computed(() => theme.current.value.colors)

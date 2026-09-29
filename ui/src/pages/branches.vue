@@ -18,10 +18,6 @@
             @update:model-value="createCode = createCode.toUpperCase()"
           />
 
-          <v-alert v-if="createError" class="mb-4 mt-4" type="error" variant="tonal">
-            {{ createError }}
-          </v-alert>
-
           <v-card-actions class="px-0">
             <v-spacer />
             <v-btn text="Cancel" @click="createDialog = false" />
@@ -39,10 +35,6 @@
     <v-card class="px-4">
       <v-card-title>API Key</v-card-title>
       <v-card-text>
-        <v-alert class="mb-4" type="warning" variant="tonal">
-          This key is shown once. Copy it into the branch's kashi-pos settings now --
-          it cannot be retrieved again after closing this dialog.
-        </v-alert>
         <v-text-field
           v-model="revealedKey"
           density="compact"
@@ -54,7 +46,6 @@
             <v-icon-btn icon="mdi-content-copy" size="small" variant="text" @click="copyKey" />
           </template>
         </v-text-field>
-        <v-alert v-if="copied" class="mt-2" type="success" variant="tonal">Copied to clipboard</v-alert>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
@@ -70,7 +61,6 @@
         Rotating "{{ rotateTarget?.name }}"'s key immediately invalidates its current key.
         The branch's kashi-pos install will need the new key entered before it can sync again.
       </v-card-text>
-      <v-alert v-if="rotateError" class="mx-4 mb-2" type="error" variant="tonal">{{ rotateError }}</v-alert>
       <v-card-actions>
         <v-spacer />
         <v-btn text="Cancel" @click="rotateDialog = false" />
@@ -99,16 +89,6 @@
       <v-divider />
 
       <v-card-text class="targets-dialog-body">
-        <v-alert
-          v-if="targetsError"
-          class="mb-4"
-          closable
-          type="error"
-          variant="tonal"
-          @click:close="targetsError = ''"
-        >
-          {{ targetsError }}
-        </v-alert>
         <div v-if="targetsLoading" class="d-flex justify-center pa-8">
           <v-progress-circular color="primary" indeterminate />
         </div>
@@ -277,10 +257,6 @@
             />
           </div>
 
-          <v-alert v-if="targetFormError" class="mb-2 mt-2 field-full" type="error" variant="tonal">
-            {{ targetFormError }}
-          </v-alert>
-
           <v-card-actions class="px-0 field-full">
             <v-spacer />
             <v-btn text="Cancel" variant="text" @click="targetFormDialog = false" />
@@ -357,10 +333,6 @@
             already-set amount and color.
           </div>
 
-          <v-alert v-if="seriesFormError" class="mb-2 mt-2 field-full" type="error" variant="tonal">
-            {{ seriesFormError }}
-          </v-alert>
-
           <v-card-actions class="px-0 field-full">
             <v-spacer />
             <v-btn text="Cancel" variant="text" @click="seriesFormDialog = false" />
@@ -383,7 +355,6 @@
         This removes the recurring schedule and every target it has generated (past and
         current), for every branch install syncing it. This can't be undone.
       </v-card-text>
-      <v-alert v-if="deleteSeriesError" class="mx-4 mb-2" type="error" variant="tonal">{{ deleteSeriesError }}</v-alert>
       <v-card-actions>
         <v-spacer />
         <v-btn text="Cancel" @click="deleteSeriesDialog = false" />
@@ -400,7 +371,6 @@
     <v-card>
       <v-card-title>Salespersons -- {{ salespersonsBranch?.name }}</v-card-title>
       <v-card-text>
-        <v-alert v-if="salespersonsError" class="mb-4" type="error" variant="tonal">{{ salespersonsError }}</v-alert>
         <div v-if="salespersonsLoading" class="d-flex justify-center pa-4">
           <v-progress-circular color="primary" indeterminate />
         </div>
@@ -493,8 +463,6 @@
       <v-divider />
 
       <div class="branches-content pa-4">
-        <v-alert v-if="listError" class="mb-4" type="error" variant="tonal">{{ listError }}</v-alert>
-
         <v-data-table class="branches-table" :headers="headers" :items="branches" :loading="listLoading">
           <template #item.is_active="{ item }">
             <v-switch
@@ -531,7 +499,10 @@
   import { useBranches } from '@/composables/useBranches'
   import { useBranchSalespersons } from '@/composables/useBranchSalespersons'
   import { useBranchTargets } from '@/composables/useBranchTargets'
+  import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
+
+  const notify = useNotify()
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
@@ -564,15 +535,13 @@
   ])
 
   const listLoading = ref(false)
-  const listError = ref('')
 
   async function load () {
     listLoading.value = true
-    listError.value = ''
     try {
       await fetchBranches(true)
     } catch (error) {
-      listError.value = error.message
+      notify.error(error.message)
     } finally {
       listLoading.value = false
     }
@@ -584,30 +553,26 @@
   const createName = ref('')
   const createCode = ref('')
   const creating = ref(false)
-  const createError = ref('')
 
   function openCreate () {
     createName.value = ''
     createCode.value = ''
-    createError.value = ''
     createDialog.value = true
   }
 
   const keyDialog = ref(false)
   const revealedKey = ref('')
-  const copied = ref(false)
 
   async function submitCreate () {
     creating.value = true
-    createError.value = ''
     try {
       const { api_key: apiKey } = await createBranch({ name: createName.value, code: createCode.value })
       createDialog.value = false
       revealedKey.value = apiKey
-      copied.value = false
+      notify.warning('This key is shown once. Copy it into the branch\'s kashi-pos settings now — it cannot be retrieved again.')
       keyDialog.value = true
     } catch (error) {
-      createError.value = error.message
+      notify.error(error.message)
     } finally {
       creating.value = false
     }
@@ -616,9 +581,9 @@
   async function copyKey () {
     try {
       await navigator.clipboard.writeText(revealedKey.value)
-      copied.value = true
+      notify.success('Copied to clipboard')
     } catch {
-      copied.value = false
+      notify.error('Failed to copy to clipboard')
     }
   }
 
@@ -626,7 +591,7 @@
     try {
       await setBranchActive(item.id, value)
     } catch (error) {
-      listError.value = error.message
+      notify.error(error.message)
     }
   }
 
@@ -635,30 +600,26 @@
   const targetsBranch = ref(null)
   const targetsList = ref([])
   const targetsLoading = ref(false)
-  const targetsError = ref('')
 
   async function openTargets (item) {
     targetsBranch.value = item
     targetsTab.value = 'targets'
     targetsDialog.value = true
-    targetsError.value = ''
     await Promise.all([loadTargets(), loadSeries()])
   }
 
   async function loadTargets () {
     targetsLoading.value = true
-    targetsError.value = ''
     try {
       targetsList.value = await listBranchTargets(targetsBranch.value.id)
     } catch (error) {
-      targetsError.value = error.message
+      notify.error(error.message)
     } finally {
       targetsLoading.value = false
     }
   }
 
   const targetFormDialog = ref(false)
-  const targetFormError = ref('')
   const targetSaving = ref(false)
   const targetForm = ref({ dateFrom: '', dateTo: '', targetAmount: null, autoColor: true, color: '#4C6EF5' })
   const editingTargetId = ref(null)
@@ -666,7 +627,6 @@
   function openAddTarget () {
     editingTargetId.value = null
     targetForm.value = { dateFrom: '', dateTo: '', targetAmount: null, autoColor: true, color: '#4C6EF5' }
-    targetFormError.value = ''
     targetFormDialog.value = true
   }
 
@@ -679,13 +639,11 @@
       autoColor: true,
       color: target.color || '#4C6EF5',
     }
-    targetFormError.value = ''
     targetFormDialog.value = true
   }
 
   async function submitTarget () {
     targetSaving.value = true
-    targetFormError.value = ''
     try {
       const payload = {
         dateFrom: targetForm.value.dateFrom,
@@ -697,7 +655,7 @@
       targetFormDialog.value = false
       await loadTargets()
     } catch (error) {
-      targetFormError.value = error.message
+      notify.error(error.message)
     } finally {
       targetSaving.value = false
     }
@@ -708,7 +666,7 @@
       await deleteBranchTarget(target.id)
       await loadTargets()
     } catch (error) {
-      targetsError.value = error.message
+      notify.error(error.message)
     }
   }
 
@@ -718,7 +676,7 @@
     try {
       seriesList.value = await listBranchTargetSeries(targetsBranch.value.id)
     } catch (error) {
-      targetsError.value = error.message
+      notify.error(error.message)
     }
   }
 
@@ -728,7 +686,6 @@
   }
 
   const seriesFormDialog = ref(false)
-  const seriesFormError = ref('')
   const seriesSaving = ref(false)
   const seriesForm = ref({ targetAmount: null, startDay: 1, intervalCount: 1, autoColor: true, color: '#4C6EF5' })
   const editingSeriesId = ref(null)
@@ -736,7 +693,6 @@
   function openAddSeries () {
     editingSeriesId.value = null
     seriesForm.value = { targetAmount: null, startDay: 1, intervalCount: 1, autoColor: true, color: '#4C6EF5' }
-    seriesFormError.value = ''
     seriesFormDialog.value = true
   }
 
@@ -749,13 +705,11 @@
       autoColor: true,
       color: s.color || '#4C6EF5',
     }
-    seriesFormError.value = ''
     seriesFormDialog.value = true
   }
 
   async function submitSeries () {
     seriesSaving.value = true
-    seriesFormError.value = ''
     try {
       const payload = {
         targetAmount: Math.round(Number(seriesForm.value.targetAmount) * 100),
@@ -767,7 +721,7 @@
       seriesFormDialog.value = false
       await Promise.all([loadSeries(), loadTargets()])
     } catch (error) {
-      seriesFormError.value = error.message
+      notify.error(error.message)
     } finally {
       seriesSaving.value = false
     }
@@ -778,30 +732,27 @@
       await setBranchTargetSeriesActive(s.id, value)
       await loadSeries()
     } catch (error) {
-      targetsError.value = error.message
+      notify.error(error.message)
     }
   }
 
   const deleteSeriesDialog = ref(false)
-  const deleteSeriesError = ref('')
   const deleteSeriesSaving = ref(false)
   const deleteSeriesTarget = ref(null)
 
   function openDeleteSeriesConfirm (s) {
     deleteSeriesTarget.value = s
-    deleteSeriesError.value = ''
     deleteSeriesDialog.value = true
   }
 
   async function confirmDeleteSeries () {
     deleteSeriesSaving.value = true
-    deleteSeriesError.value = ''
     try {
       await deleteBranchTargetSeries(deleteSeriesTarget.value.id)
       deleteSeriesDialog.value = false
       await Promise.all([loadSeries(), loadTargets()])
     } catch (error) {
-      deleteSeriesError.value = error.message
+      notify.error(error.message)
     } finally {
       deleteSeriesSaving.value = false
     }
@@ -811,7 +762,6 @@
   const salespersonsBranch = ref(null)
   const salespersonsList = ref([])
   const salespersonsLoading = ref(false)
-  const salespersonsError = ref('')
   const salespersonSaving = ref(false)
   const newSalespersonName = ref('')
   const editingSalespersonId = ref(null)
@@ -820,7 +770,6 @@
   async function openSalespersons (item) {
     salespersonsBranch.value = item
     salespersonsDialog.value = true
-    salespersonsError.value = ''
     newSalespersonName.value = ''
     editingSalespersonId.value = null
     await loadSalespersons()
@@ -828,11 +777,10 @@
 
   async function loadSalespersons () {
     salespersonsLoading.value = true
-    salespersonsError.value = ''
     try {
       salespersonsList.value = await listBranchSalespersons(salespersonsBranch.value.id)
     } catch (error) {
-      salespersonsError.value = error.message
+      notify.error(error.message)
     } finally {
       salespersonsLoading.value = false
     }
@@ -841,13 +789,12 @@
   async function submitNewSalesperson () {
     if (!newSalespersonName.value.trim()) return
     salespersonSaving.value = true
-    salespersonsError.value = ''
     try {
       await createBranchSalesperson(salespersonsBranch.value.id, newSalespersonName.value.trim())
       newSalespersonName.value = ''
       await loadSalespersons()
     } catch (error) {
-      salespersonsError.value = error.message
+      notify.error(error.message)
     } finally {
       salespersonSaving.value = false
     }
@@ -860,48 +807,43 @@
 
   async function submitEditSalesperson (person) {
     if (!editingSalespersonName.value.trim()) return
-    salespersonsError.value = ''
     try {
       await updateBranchSalesperson(person.id, editingSalespersonName.value.trim())
       editingSalespersonId.value = null
       await loadSalespersons()
     } catch (error) {
-      salespersonsError.value = error.message
+      notify.error(error.message)
     }
   }
 
   async function toggleSalespersonActive (person, value) {
-    salespersonsError.value = ''
     try {
       await setBranchSalespersonActive(person.id, value)
       await loadSalespersons()
     } catch (error) {
-      salespersonsError.value = error.message
+      notify.error(error.message)
     }
   }
 
   const rotateDialog = ref(false)
   const rotateTarget = ref(null)
   const rotating = ref(false)
-  const rotateError = ref('')
 
   function openRotate (item) {
     rotateTarget.value = item
-    rotateError.value = ''
     rotateDialog.value = true
   }
 
   async function confirmRotate () {
     rotating.value = true
-    rotateError.value = ''
     try {
       const { api_key: apiKey } = await rotateBranchKey(rotateTarget.value.id)
       rotateDialog.value = false
       revealedKey.value = apiKey
-      copied.value = false
+      notify.warning('This key is shown once. Copy it into the branch\'s kashi-pos settings now — it cannot be retrieved again.')
       keyDialog.value = true
     } catch (error) {
-      rotateError.value = error.message
+      notify.error(error.message)
     } finally {
       rotating.value = false
     }

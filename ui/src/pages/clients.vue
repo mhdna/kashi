@@ -23,10 +23,6 @@
             label="Type"
           />
 
-          <v-alert v-if="submitError" class="mb-4" type="error" variant="tonal">
-            {{ submitError }}
-          </v-alert>
-
           <v-card-actions class="px-0">
             <v-spacer />
             <v-btn text="Cancel" @click="closeDialog" />
@@ -45,7 +41,6 @@
         branch link is deactivated instead, so their history stays intact and every till
         stops offering them. You can reactivate them later.
       </v-card-text>
-      <v-alert v-if="deleteError" class="mx-4 mb-2" type="error" variant="tonal">{{ deleteError }}</v-alert>
       <v-card-actions>
         <v-spacer />
         <v-btn text="Cancel" @click="deleteDialog = false" />
@@ -107,22 +102,22 @@
     @reactivate="reactivate"
   />
 
-  <v-snackbar v-model="snackbar.show" timeout="3500">{{ snackbar.text }}</v-snackbar>
 </template>
 
 <script setup>
   import { useField, useForm } from 'vee-validate'
-  import { computed, onMounted, reactive, ref } from 'vue'
+  import { computed, onMounted, ref } from 'vue'
   import ClientLoyaltyBoard from '@/components/Clients/ClientLoyaltyBoard.vue'
   import { useBranches } from '@/composables/useBranches'
   import { useClients } from '@/composables/useClients'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { useNotify } from '@/composables/useNotify'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
 
   const { createClient, updateClient, deleteClient, setClientActive } = useClients()
-  const snackbar = reactive({ show: false, text: '' })
+  const notify = useNotify()
   const { branches, fetchBranches } = useBranches()
 
   onMounted(() => fetchBranches())
@@ -137,7 +132,6 @@
   const boardRef = ref(null)
   const dialog = ref(false)
   const submitting = ref(false)
-  const submitError = ref('')
   const editingId = ref(null)
 
   const { handleSubmit, handleReset, setValues } = useForm({
@@ -176,13 +170,11 @@
   function closeDialog () {
     dialog.value = false
     handleReset()
-    submitError.value = ''
     editingId.value = null
   }
 
   const submit = handleSubmit(async values => {
     submitting.value = true
-    submitError.value = ''
     try {
       await (editingId.value
         ? updateClient({ id: editingId.value, name: values.name, phone: values.phone, client_type: clientType.value })
@@ -190,7 +182,7 @@
       closeDialog()
       boardRef.value?.reload()
     } catch (error) {
-      submitError.value = error.message
+      notify.error(error.message)
     } finally {
       submitting.value = false
     }
@@ -199,27 +191,23 @@
   const deleteDialog = ref(false)
   const deleteTarget = ref(null)
   const deleting = ref(false)
-  const deleteError = ref('')
 
   function openDelete (item) {
     deleteTarget.value = item
-    deleteError.value = ''
     deleteDialog.value = true
   }
 
   async function confirmDelete () {
     deleting.value = true
-    deleteError.value = ''
     try {
       const outcome = await deleteClient(deleteTarget.value.id)
       deleteDialog.value = false
-      snackbar.text = outcome === 'deactivated'
+      notify.success(outcome === 'deactivated'
         ? `${deleteTarget.value.name} has history, so they were deactivated instead`
-        : `${deleteTarget.value.name} deleted`
-      snackbar.show = true
+        : `${deleteTarget.value.name} deleted`)
       boardRef.value?.reload()
     } catch (error) {
-      deleteError.value = error.message
+      notify.error(error.message)
     } finally {
       deleting.value = false
     }
@@ -228,11 +216,10 @@
   async function reactivate (item) {
     try {
       await setClientActive(item.id, true)
-      snackbar.text = `${item.name} reactivated`
+      notify.success(`${item.name} reactivated`)
       boardRef.value?.reload()
     } catch (error) {
-      snackbar.text = error.message
+      notify.error(error.message)
     }
-    snackbar.show = true
   }
 </script>

@@ -207,16 +207,6 @@
               People who can sign in to this site (cloud.example.com), with their own passwords and the role that decides what they can see and change (see the Roles tab). POS operators are separate: they are managed per branch under Branch Settings.
             </p>
 
-            <v-alert
-              v-if="usersError"
-              class="mb-3"
-              density="compact"
-              type="error"
-              variant="tonal"
-            >
-              {{ usersError }}
-            </v-alert>
-
             <v-table density="compact">
               <thead>
                 <tr>
@@ -284,16 +274,6 @@
                 template for business-initiated messages, so this configures which one to use and
                 how to fill it -- not free-form text.
               </p>
-
-              <v-alert
-                v-if="whatsappError"
-                class="mb-3"
-                density="compact"
-                type="error"
-                variant="tonal"
-              >
-                {{ whatsappError }}
-              </v-alert>
 
               <v-switch
                 v-model="whatsappDraft.enabled"
@@ -407,15 +387,6 @@
       <v-card>
         <v-card-title class="text-subtitle-1">Add user</v-card-title>
         <v-card-text>
-          <v-alert
-            v-if="formError"
-            class="mb-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ formError }}
-          </v-alert>
           <v-text-field
             v-model="form.name"
             density="compact"
@@ -468,15 +439,6 @@
       <v-card>
         <v-card-title class="text-subtitle-1">Edit user — {{ editTarget?.name }}</v-card-title>
         <v-card-text>
-          <v-alert
-            v-if="formError"
-            class="mb-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ formError }}
-          </v-alert>
           <v-text-field
             v-model="editForm.name"
             density="compact"
@@ -519,15 +481,6 @@
       <v-card>
         <v-card-title class="text-subtitle-1">Change password — {{ passwordTarget?.name }}</v-card-title>
         <v-card-text>
-          <v-alert
-            v-if="formError"
-            class="mb-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ formError }}
-          </v-alert>
           <v-text-field
             v-model="newPassword"
             autocomplete="new-password"
@@ -576,12 +529,15 @@
 <script setup lang="ts">
   import { computed, onMounted, reactive, ref, watch } from 'vue'
   import RolesManager from '@/components/RolesManager.vue'
+  import { useNotify } from '@/composables/useNotify'
   import { useRoles } from '@/composables/useRoles'
   import { useUserAvatar } from '@/composables/useUserAvatar'
   import { useUsers } from '@/composables/useUsers'
   import { useWhatsAppSettings } from '@/composables/useWhatsAppSettings'
   import { useAuthStore } from '@/stores/auth'
   import { useSettingsStore } from '@/stores/settings'
+
+  const notify = useNotify()
 
   const tab = ref('general')
   const auth = useAuthStore()
@@ -692,8 +648,6 @@
   // ---- Users ----
   const { users, fetchUsers, createUser, updateUser, deleteUser } = useUsers()
 
-  const usersError = ref('')
-  const formError = ref('')
   const saving = ref(false)
 
   const { roles, fetchRoles } = useRoles()
@@ -704,7 +658,7 @@
     try {
       await Promise.all([fetchUsers(), fetchRoles()])
     } catch (error) {
-      usersError.value = error.message
+      notify.error(error.message)
     }
   })
 
@@ -732,19 +686,17 @@
     form.password = ''
     form.activated = true
     form.roleId = null
-    formError.value = ''
     createDialog.value = true
   }
 
   async function submitCreate () {
     saving.value = true
-    formError.value = ''
     try {
       await createUser({ name: form.name, password: form.password, activated: form.activated, role_id: form.roleId })
       await fetchUsers(true)
       createDialog.value = false
     } catch (error) {
-      formError.value = error.message
+      notify.error(error.message)
     } finally {
       saving.value = false
     }
@@ -760,13 +712,11 @@
     editForm.name = user.name
     editForm.roleId = user.role_id
     editForm.activated = user.activated
-    formError.value = ''
     editDialog.value = true
   }
 
   async function submitEdit () {
     saving.value = true
-    formError.value = ''
     try {
       await updateUser({
         id: editTarget.value.id,
@@ -777,7 +727,7 @@
       await Promise.all([fetchUsers(true), fetchRoles()])
       editDialog.value = false
     } catch (error) {
-      formError.value = error.message
+      notify.error(error.message)
     } finally {
       saving.value = false
     }
@@ -791,13 +741,11 @@
   function openPassword (user) {
     passwordTarget.value = user
     newPassword.value = ''
-    formError.value = ''
     passwordDialog.value = true
   }
 
   async function submitPassword () {
     saving.value = true
-    formError.value = ''
     try {
       await updateUser({
         id: passwordTarget.value.id,
@@ -809,7 +757,7 @@
       await fetchUsers(true)
       passwordDialog.value = false
     } catch (error) {
-      formError.value = error.message
+      notify.error(error.message)
     } finally {
       saving.value = false
     }
@@ -821,7 +769,6 @@
 
   function confirmDelete (user) {
     deleteTarget.value = user
-    formError.value = ''
     deleteDialog.value = true
   }
 
@@ -832,7 +779,7 @@
       await fetchUsers(true)
       deleteDialog.value = false
     } catch (error) {
-      usersError.value = error.message
+      notify.error(error.message)
       deleteDialog.value = false
     } finally {
       saving.value = false
@@ -845,7 +792,6 @@
   // columns with its own admin endpoint (GET/PUT /whatsapp_settings).
   const { getWhatsAppSettings, updateWhatsAppSettings } = useWhatsAppSettings()
 
-  const whatsappError = ref('')
   const savingWhatsApp = ref(false)
   const showToken = ref(false)
   const whatsappLoaded = ref(false)
@@ -888,7 +834,7 @@
         seedWhatsAppDraft()
       }
     } catch (error) {
-      whatsappError.value = error.message
+      notify.error(error.message)
     } finally {
       whatsappLoaded.value = true
     }
@@ -899,7 +845,6 @@
       return
     }
     savingWhatsApp.value = true
-    whatsappError.value = ''
     try {
       await updateWhatsAppSettings({
         whatsapp_enabled: whatsappDraft.enabled,
@@ -911,7 +856,7 @@
       })
       Object.assign(whatsappSaved, whatsappDraft)
     } catch (error) {
-      whatsappError.value = error.message
+      notify.error(error.message)
     } finally {
       savingWhatsApp.value = false
     }

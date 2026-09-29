@@ -38,15 +38,6 @@
           </v-list>
         </template>
 
-        <v-alert
-          v-if="error"
-          class="mt-3"
-          density="compact"
-          type="error"
-          variant="tonal"
-        >
-          {{ error }}
-        </v-alert>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
@@ -66,6 +57,7 @@
 <script setup lang="ts">
   import { ref, watch } from 'vue'
   import { useBranches } from '@/composables/useBranches'
+  import { useNotify } from '@/composables/useNotify'
 
   const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -79,9 +71,9 @@
   const emit = defineEmits(['update:modelValue', 'saved'])
 
   const { branches, fetchBranches } = useBranches()
+  const notify = useNotify()
   const loading = ref(false)
   const saving = ref(false)
-  const error = ref('')
   const selected = ref([])
 
   function toggle (id) {
@@ -95,13 +87,12 @@
 
   watch(() => props.modelValue, async open => {
     if (!open) return
-    error.value = ''
     loading.value = true
     try {
       await fetchBranches()
       selected.value = [...await props.loadFn()]
     } catch (error_) {
-      error.value = error_.message
+      notify.error(error_.message)
     } finally {
       loading.value = false
     }
@@ -109,13 +100,12 @@
 
   async function save () {
     saving.value = true
-    error.value = ''
     try {
       await props.saveFn([...selected.value])
       emit('saved')
       emit('update:modelValue', false)
     } catch (error_) {
-      error.value = error_.message
+      notify.error(error_.message)
     } finally {
       saving.value = false
     }

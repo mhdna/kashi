@@ -32,16 +32,6 @@
       </v-select>
     </div>
 
-    <v-alert
-      v-if="error"
-      class="tg-notice mx-4 mb-2"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ error }}
-    </v-alert>
-
     <div v-if="loading" class="d-flex justify-center pa-12">
       <v-progress-circular color="primary" indeterminate />
     </div>
@@ -147,12 +137,13 @@
   import { computed, onMounted, ref, watch } from 'vue'
   import { useBranches } from '@/composables/useBranches'
   import { useBranchTargets } from '@/composables/useBranchTargets'
+  import { useNotify } from '@/composables/useNotify'
 
   const { branches, fetchBranches } = useBranches()
   const { listBranchTargets } = useBranchTargets()
 
   const loading = ref(false)
-  const error = ref('')
+  const notify = useNotify()
   // One flat list across every branch, each row carrying its branch name and
   // a derived status. The API already returns `achieved` per target, so met /
   // missed is purely client-side arithmetic -- no extra endpoint.
@@ -195,7 +186,6 @@
 
   async function load () {
     loading.value = true
-    error.value = ''
     try {
       await fetchBranches()
       const perBranch = await Promise.all(
@@ -214,7 +204,7 @@
       )
       allTargets.value = perBranch.flat()
     } catch (error_) {
-      error.value = error_.message
+      notify.error(error_.message)
     } finally {
       loading.value = false
     }

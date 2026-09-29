@@ -1,14 +1,5 @@
 <template>
   <div class="d-flex flex-column flex-grow-1" style="height: 100%; min-height: 0; overflow: hidden">
-    <v-alert
-      v-if="error"
-      class="ma-2"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ error }}
-    </v-alert>
     <div class="kpi-grid mt-4 mb-3">
       <SparklineCard
         icon="mdi-currency-usd"
@@ -74,7 +65,7 @@
   // import ChartsRow from '../ChartsRow.vue'
   import TablesRow from '../TablesRow.vue'
 
-  const { summary, prevSummary, loading, error } = useDashboardSummary()
+  const { summary, prevSummary, loading } = useDashboardSummary()
 
   function metric (key) {
     const v = summary.value?.[key]

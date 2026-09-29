@@ -7,19 +7,6 @@
       {{ props.title }}
       <v-icon v-if="props.showSearchIcon" icon="mdi-magnify" size="26" />
     </v-card-title>
-    <v-alert
-      v-if="error"
-      class="mb-2"
-      closable
-      type="error"
-      variant="tonal"
-      @click:close="error = ''"
-    >
-      {{ error === "Server is down, we'll be back soon." ? error : `Failed to load data: ${error}` }}
-      <template #append>
-        <v-btn size="small" text="Retry" variant="text" @click="reload" />
-      </template>
-    </v-alert>
     <v-data-table-server
       v-model:expanded="expandedRows"
       v-model:items-per-page="itemsPerPage"
@@ -48,6 +35,7 @@
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue'
   import { dedupedFetch } from '@/composables/useRequestDedup'
+  import { useNotify } from '@/composables/useNotify'
 
   const props = defineProps({
     apiURL: {
@@ -174,10 +162,10 @@
       : (itemsPerPageOptions.at(-1) ?? props.maxPageSize),
   )
   const page = ref(1)
+  const notify = useNotify()
   const serverItems = ref([])
   const loading = ref(true)
   const totalItems = ref(-1)
-  const error = ref('')
   const selected = ref([])
 
   watch(selected, value => emit('update:selected', value), { deep: true })
@@ -238,7 +226,7 @@
         emit('loaded', items)
       })
       .catch(error_ => {
-        error.value = error_.message
+        notify.error(error_.message === "Server is down, we'll be back soon." ? error_.message : `Failed to load data: ${error_.message}`)
         serverItems.value = []
         totalItems.value = 0
       })

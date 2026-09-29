@@ -56,12 +56,14 @@
     </div>
   </v-main>
   <!-- <AppFooter /> -->
+  <AppNotifications />
 </template>
 
 <script lang="ts" setup>
 import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useDisplay } from "vuetify";
+import AppNotifications from "@/components/AppNotifications.vue";
 import BranchActivityToast from "@/components/BranchActivityToast.vue";
 import ToggleTheme from "@/components/Buttons/ToggleTheme.vue";
 import CommandPalette from "@/components/CommandPalette.vue";

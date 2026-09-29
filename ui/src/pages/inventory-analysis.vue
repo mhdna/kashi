@@ -28,16 +28,6 @@
       <v-btn icon="mdi-refresh" :loading="loading" variant="text" @click="load" />
     </div>
 
-    <v-alert
-      v-if="error"
-      class="ia-notice mx-4 mb-2"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ error }}
-    </v-alert>
-
     <v-tabs v-model="tab" class="px-4" color="primary">
       <v-tab value="overview">Overview</v-tab>
       <v-tab value="locations">By Branch / Location</v-tab>
@@ -342,6 +332,7 @@
   import { useLowStockAlerts } from '@/composables/useLowStockAlerts'
   import { useStockHealth } from '@/composables/useStockHealth'
   import { STOCK_MOVEMENT_REASONS } from '@/composables/useStockMovements'
+  import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
   import { formatMoney } from '@/utils/money'
 
@@ -368,14 +359,13 @@
   const { fetchStockHealth, fetchStockHealthByInventory } = useStockHealth()
 
   const loading = ref(false)
-  const error = ref('')
+  const notify = useNotify()
   const overview = ref(null)
   const locations = ref([])
   const selectedLocationId = ref(null)
 
   async function load () {
     loading.value = true
-    error.value = ''
     try {
       const [health, byInventory] = await Promise.all([
         fetchStockHealth(),
@@ -384,7 +374,7 @@
       overview.value = health
       locations.value = byInventory.inventories
     } catch (error_) {
-      error.value = error_.message
+      notify.error(error_.message)
     } finally {
       loading.value = false
     }

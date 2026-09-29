@@ -59,18 +59,6 @@
       </v-card-title>
       <v-divider />
 
-      <v-alert
-        v-if="error"
-        class="notice ma-4 mb-0"
-        closable
-        density="compact"
-        type="error"
-        variant="tonal"
-        @click:close="error = ''"
-      >
-        {{ error }}
-      </v-alert>
-
       <div class="employees-content">
         <v-data-table
           class="text-caption text-center"
@@ -244,15 +232,6 @@
             prefix="$"
             type="number"
           />
-          <v-alert
-            v-if="formError.submit"
-            class="mt-2"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ formError.submit }}
-          </v-alert>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -272,11 +251,13 @@
 <script setup lang="ts">
   import { computed, onMounted, reactive, ref } from 'vue'
   import { useBranches } from '@/composables/useBranches'
+  import { useNotify } from '@/composables/useNotify'
   import { useEmployees } from '@/composables/useEmployees'
   import { usePageAccess } from '@/composables/usePageAccess'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
+  const notify = useNotify()
 
   const { listEmployees, createEmployee, updateEmployee, deleteEmployee, batchSetSalaries } = useEmployees()
   const { branches, fetchBranches } = useBranches()
@@ -296,7 +277,6 @@
 
   const rows = ref([])
   const loading = ref(false)
-  const error = ref('')
   const search = ref('')
   const branchFilter = ref(null)
 
@@ -358,7 +338,6 @@
 
   async function reload () {
     loading.value = true
-    error.value = ''
     try {
       const { employees } = await listEmployees({
         search: search.value || '',
@@ -367,7 +346,7 @@
       rows.value = employees
       if (editing.value) seedDraft()
     } catch (error_) {
-      error.value = error_.message
+      notify.error(error_.message)
     } finally {
       loading.value = false
     }
@@ -439,14 +418,13 @@
     })
     if (items.length === 0) return
     saving.value = true
-    error.value = ''
     try {
       await batchSetSalaries(items)
       editing.value = false
       draft.value = {}
       await reload()
     } catch (error_) {
-      error.value = error_.message
+      notify.error(error_.message)
     } finally {
       saving.value = false
     }
@@ -462,14 +440,14 @@
     id: null, name: '', role: '', branchId: null, status: 'active', hiredOn: '', base: '0',
     payroll: { commission_cents: 0, late_deduction_rate_cents: 0, late_deduction_unit: 'hour', late_units_centi: 0 },
   })
-  const formError = reactive({ name: '', submit: '' })
+  const formError = reactive({ name: '' })
 
   function resetForm () {
     Object.assign(form, {
       id: null, name: '', role: '', branchId: null, status: 'active', hiredOn: '', base: '0',
       payroll: { commission_cents: 0, late_deduction_rate_cents: 0, late_deduction_unit: 'hour', late_units_centi: 0 },
     })
-    Object.assign(formError, { name: '', submit: '' })
+    Object.assign(formError, { name: '' })
   }
 
   function openCreate () {
@@ -501,7 +479,6 @@
     formError.name = form.name.trim() ? '' : 'Name is required.'
     if (formError.name) return
     submitting.value = true
-    formError.submit = ''
     const payload = {
       name: form.name.trim(),
       role: form.role.trim(),
@@ -516,7 +493,7 @@
       dialog.value = false
       await reload()
     } catch (error_) {
-      formError.submit = error_.message
+      notify.error(error_.message)
     } finally {
       submitting.value = false
     }
@@ -528,7 +505,7 @@
       await deleteEmployee(item.id)
       await reload()
     } catch (error_) {
-      error.value = error_.message
+      notify.error(error_.message)
     }
   }
 </script>
@@ -558,10 +535,5 @@
 }
 .employees-branch {
   flex: 0 1 200px;
-}
-/* v-alert defaults to flex: 1 1; keep the error notice at its natural
-   height instead of stretching to fill the card. */
-.notice {
-  flex: 0 0 auto;
 }
 </style>

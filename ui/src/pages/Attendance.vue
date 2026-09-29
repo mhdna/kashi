@@ -41,18 +41,6 @@
       </v-card-title>
       <v-divider />
 
-      <v-alert
-        v-if="message"
-        class="notice ma-4 mb-0"
-        closable
-        density="compact"
-        :type="messageType"
-        variant="tonal"
-        @click:close="message = ''"
-      >
-        {{ message }}
-      </v-alert>
-
       <v-alert v-if="!branchId" class="notice ma-4" type="info" variant="tonal">
         Pick a branch to review its punches, or import a CSV
         (<code>date,time,name,type,status,user_id</code>).
@@ -119,15 +107,6 @@
               <v-text-field v-model="form.status" density="compact" label="Status" />
             </v-col>
           </v-row>
-          <v-alert
-            v-if="formError"
-            class="mt-2"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ formError }}
-          </v-alert>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -145,6 +124,7 @@
   import { useAttendance } from '@/composables/useAttendance'
   import { useBranches } from '@/composables/useBranches'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
@@ -167,16 +147,10 @@
   const branchId = ref(null)
   const tableRef = ref(null)
   const fileInput = ref(null)
-  const message = ref('')
-  const messageType = ref('success')
+  const notify = useNotify()
 
   function reload () {
     tableRef.value?.reload()
-  }
-
-  function flash (text, type = 'success') {
-    message.value = text
-    messageType.value = type
   }
 
   onMounted(() => {
@@ -188,22 +162,21 @@
     event.target.value = ''
     if (!file) return
     if (!branchId.value) {
-      flash('Pick a branch before importing.', 'warning')
+      notify.warning('Pick a branch before importing.')
       return
     }
     try {
       const res = await importCsv(file, branchId.value)
-      flash(`Imported ${res?.inserted ?? 0} punches (${res?.skipped ?? 0} already present).`)
+      notify.success(`Imported ${res?.inserted ?? 0} punches (${res?.skipped ?? 0} already present).`)
       reload()
     } catch (error) {
-      flash(error.message, 'error')
+      notify.error(error.message)
     }
   }
 
   // ---- edit / delete ---------------------------------------------------
   const dialog = ref(false)
   const submitting = ref(false)
-  const formError = ref('')
   const editingId = ref(null)
   const form = reactive({ salesperson_name: '', event_date: '', event_time: '', type: '', status: '', attendance_user_id: '', event_at: '' })
 
@@ -218,13 +191,11 @@
       attendance_user_id: item.attendance_user_id ?? '',
       event_at: item.event_at ?? '',
     })
-    formError.value = ''
     dialog.value = true
   }
 
   async function submit () {
     submitting.value = true
-    formError.value = ''
     try {
       await updateEvent(editingId.value, {
         salesperson_name: form.salesperson_name,
@@ -238,7 +209,7 @@
       dialog.value = false
       reload()
     } catch (error) {
-      formError.value = error.message
+      notify.error(error.message)
     } finally {
       submitting.value = false
     }
@@ -250,7 +221,7 @@
       await deleteEvent(item.id)
       reload()
     } catch (error) {
-      flash(error.message, 'error')
+      notify.error(error.message)
     }
   }
 </script>

@@ -37,9 +37,6 @@
         <div v-if="pyramidLoading" class="d-flex justify-center pa-8">
           <v-progress-circular color="primary" indeterminate />
         </div>
-        <v-alert v-else-if="pyramidError" class="ma-4" type="error" variant="tonal">
-          {{ pyramidError === "Server is down, we'll be back soon." ? pyramidError : `Failed to load data: ${pyramidError}` }}
-        </v-alert>
         <div v-else-if="pyramidClients.length === 0" class="text-center text-medium-emphasis pa-8">
           No spending data yet.
         </div>
@@ -79,18 +76,11 @@
         />
       </v-card-title>
 
-      <v-alert v-if="restError" class="ma-4" type="error" variant="tonal">
-        {{ restError === "Server is down, we'll be back soon." ? restError : `Failed to load data: ${restError}` }}
-        <template #append>
-          <v-btn size="small" variant="text" @click="reload">Retry</v-btn>
-        </template>
-      </v-alert>
-
       <!-- v-virtual-scroll only mounts the handful of rows on screen, so this
         stays smooth at tens of thousands of clients. Paging is driven by the
         near-bottom check in onRestScroll rather than a pager. -->
       <v-virtual-scroll
-        v-else-if="restItems.length > 0"
+        v-if="restItems.length > 0"
         ref="restScroller"
         class="rest-scroll flex-grow-1"
         height="100%"
@@ -131,13 +121,13 @@
       </v-virtual-scroll>
 
       <div
-        v-if="!restError && restLoading && restItems.length === 0"
+        v-if="restLoading && restItems.length === 0"
         class="flex-grow-1 d-flex align-center justify-center"
       >
         <v-progress-circular color="primary" indeterminate size="24" width="2" />
       </div>
       <div
-        v-else-if="!restError && !restLoading && restItems.length === 0"
+        v-else-if="!restLoading && restItems.length === 0"
         class="flex-grow-1 d-flex align-center justify-center text-medium-emphasis text-body-2"
       >
         {{ search ? 'No clients match your search.' : 'No clients yet.' }}
@@ -292,6 +282,7 @@
 <script setup>
   import { computed, onMounted, ref, watch } from 'vue'
   import TierChip from '@/components/Clients/TierChip.vue'
+  import { useNotify } from '@/composables/useNotify'
   import { useClientTiers } from '@/composables/useClientTiers'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { dedupedFetch } from '@/composables/useRequestDedup'
@@ -300,6 +291,7 @@
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
+  const notify = useNotify()
 
   const props = defineProps({
     branchId: { type: [Number, String, null], default: null },
@@ -359,7 +351,6 @@
   const pyramidCount = ref(50)
   const pyramidClients = ref([])
   const pyramidLoading = ref(true)
-  const pyramidError = ref('')
 
   function baseParams () {
     const params = new URLSearchParams()
@@ -371,7 +362,6 @@
 
   async function fetchPyramid () {
     pyramidLoading.value = true
-    pyramidError.value = ''
     try {
       const params = baseParams()
       params.set('page_size', pyramidCount.value)
@@ -380,7 +370,7 @@
       pyramidClients.value = data?.clients ?? []
     } catch (error) {
       pyramidClients.value = []
-      pyramidError.value = error.message
+      notify.error(error.message)
     } finally {
       pyramidLoading.value = false
     }
@@ -398,7 +388,6 @@
   const restItems = ref([])
   const restTotal = ref(0)
   const restLoading = ref(false)
-  const restError = ref('')
   const restScroller = ref(null)
 
   // Infinite-scroll bookkeeping. restDone stops us paging past the end;
@@ -419,7 +408,6 @@
     const from = reset ? base : base + restItems.value.length
 
     restLoading.value = true
-    restError.value = ''
     const mySeq = ++restSeq
     try {
       const params = baseParams()
@@ -439,7 +427,7 @@
       if (mySeq !== restSeq) return
       if (reset) restItems.value = []
       restTotal.value = 0
-      restError.value = error.message
+      notify.error(error.message)
     } finally {
       if (mySeq === restSeq) restLoading.value = false
     }

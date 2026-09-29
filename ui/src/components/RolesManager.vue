@@ -18,16 +18,6 @@
       the Users tab.
     </p>
 
-    <v-alert
-      v-if="error"
-      class="mb-3"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ error }}
-    </v-alert>
-
     <v-table density="compact">
       <thead>
         <tr>
@@ -78,15 +68,6 @@
           {{ editing ? `Edit role — ${editing.name}` : 'Add role' }}
         </v-card-title>
         <v-card-text>
-          <v-alert
-            v-if="formError"
-            class="mb-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ formError }}
-          </v-alert>
           <v-text-field
             v-model="form.name"
             density="compact"
@@ -164,18 +145,17 @@
 <script setup>
   import { onMounted, reactive, ref } from 'vue'
   import { useRoles } from '@/composables/useRoles'
+  import { useNotify } from '@/composables/useNotify'
 
   const { roles, sections, fetchRoles, createRole, updateRole, deleteRole } = useRoles()
-
-  const error = ref('')
-  const formError = ref('')
+  const notify = useNotify()
   const saving = ref(false)
 
   onMounted(async () => {
     try {
       await fetchRoles()
     } catch (error_) {
-      error.value = error_.message
+      notify.error(error_.message)
     }
   })
 
@@ -206,7 +186,6 @@
     form.levels = Object.fromEntries(
       sections.value.map(s => [s.key, levelOf(role?.permissions[s.key])]),
     )
-    formError.value = ''
     editorOpen.value = true
   }
 
@@ -224,14 +203,13 @@
 
   async function submit () {
     saving.value = true
-    formError.value = ''
     try {
       await (editing.value
         ? updateRole(editing.value.id, form.name.trim(), toPermissions())
         : createRole(form.name.trim(), toPermissions()))
       editorOpen.value = false
     } catch (error_) {
-      formError.value = error_.message
+      notify.error(error_.message)
     } finally {
       saving.value = false
     }
@@ -250,7 +228,7 @@
     try {
       await deleteRole(deleteTarget.value.id)
     } catch (error_) {
-      error.value = error_.message
+      notify.error(error_.message)
     } finally {
       saving.value = false
       deleteOpen.value = false

@@ -35,8 +35,6 @@
           </div>
         </div>
 
-        <v-alert v-if="loadError" class="mb-4" type="error" variant="tonal">{{ loadError }}</v-alert>
-
         <div v-if="!loading && images.length === 0" class="text-medium-emphasis">
           No photos uploaded yet.
         </div>
@@ -117,12 +115,14 @@
 <script setup>
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
+  import { useNotify } from '@/composables/useNotify'
   import { useExpenseImages } from '@/composables/useExpenseImages'
   import { useShiftReceiptImages } from '@/composables/useShiftReceiptImages'
 
   const { fetchExpenseImages, fetchExpenseImageObjectUrl } = useExpenseImages()
   const { fetchShiftReceiptImages, fetchShiftReceiptImageObjectUrl } = useShiftReceiptImages()
   const { ensureConnected, onMessage } = useAdminSocket()
+  const notify = useNotify()
 
   // One entry per real image kind. Every handler takes the whole image row
   // so the generic panel -- and the "All" source below -- can stay kind
@@ -188,7 +188,6 @@
   const pageId = ref(0)
   const pageSize = 24
   const loading = ref(false)
-  const loadError = ref('')
   const thumbnailUrls = ref({})
   const previewUrl = ref('')
   const previewLoading = ref(false)
@@ -256,7 +255,6 @@
   async function loadImages ({ reset = false } = {}) {
     if (!source.value) return
     loading.value = true
-    loadError.value = ''
     try {
       const page = reset ? 0 : pageId.value
       const data = await source.value.fetchPage(page, pageSize)
@@ -265,7 +263,7 @@
       pageId.value = page + 1
       await loadThumbnails(data.images)
     } catch (error) {
-      loadError.value = error.message
+      notify.error(error.message)
     } finally {
       loading.value = false
     }

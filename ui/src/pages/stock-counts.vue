@@ -50,7 +50,6 @@
           </v-col>
         </v-row>
 
-        <v-alert v-if="editorError" class="my-2" type="error" variant="tonal">{{ editorError }}</v-alert>
 
         <div v-if="seedProgress" class="d-flex align-center ga-2 my-2">
           <v-progress-linear color="primary" :model-value="seedProgress.pct" />
@@ -186,6 +185,7 @@
   import { useInventories } from '@/composables/useInventories'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { useStockCounts } from '@/composables/useStockCounts'
+  import { useNotify } from '@/composables/useNotify'
   import { useVariants, variantLabel } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
 
@@ -231,7 +231,7 @@
   const note = ref('')
   const lines = ref([])
   const addVariantId = ref(null)
-  const editorError = ref('')
+  const notify = useNotify()
   const saving = ref(false)
   const posting = ref(false)
   const cancelling = ref(false)
@@ -264,7 +264,6 @@
     inventoryId.value = null
     note.value = ''
     lines.value = []
-    editorError.value = ''
     editorDialog.value = true
   }
 
@@ -280,7 +279,6 @@
   async function openExisting (item) {
     seedToken++ // cancel any in-flight seed from a previous open
     seedProgress.value = null
-    editorError.value = ''
     try {
       const data = await fetchStockCount(item.id)
       const count = data?.stock_count ?? item
@@ -296,7 +294,7 @@
       }))
       editorDialog.value = true
     } catch (error) {
-      editorError.value = error.message
+      notify.error(error.message)
     }
   }
 
@@ -319,7 +317,6 @@
   // inventory streams in instead of blocking on one giant fetch.
   async function seedFromInventory (id) {
     if (!id || editingId.value) return
-    editorError.value = ''
     lines.value = []
     const token = ++seedToken
     seedProgress.value = { loaded: 0, total: 0, pct: 0 }
@@ -332,7 +329,7 @@
         },
       })
     } catch (error) {
-      if (token === seedToken) editorError.value = error.message
+      if (token === seedToken) notify.error(error.message)
     } finally {
       if (token === seedToken) seedProgress.value = null
     }
@@ -360,11 +357,10 @@
 
   async function save () {
     if (!inventoryId.value) {
-      editorError.value = 'Select an inventory.'
+      notify.error('Select an inventory.')
       return
     }
     saving.value = true
-    editorError.value = ''
     try {
       const saved = editingId.value
         ? await updateStockCount({ id: editingId.value, inventoryId: inventoryId.value, note: note.value, items: toItems() })
@@ -373,7 +369,7 @@
       editorStatus.value = saved?.status ?? editorStatus.value
       tableRef.value?.reload()
     } catch (error) {
-      editorError.value = error.message
+      notify.error(error.message)
     } finally {
       saving.value = false
     }
@@ -382,14 +378,13 @@
   async function post () {
     if (!editingId.value) return
     posting.value = true
-    editorError.value = ''
     try {
       await save()
       const res = await postStockCount(editingId.value)
       editorStatus.value = res?.stock_count?.status ?? 'posted'
       tableRef.value?.reload()
     } catch (error) {
-      editorError.value = error.message
+      notify.error(error.message)
     } finally {
       posting.value = false
     }
@@ -398,13 +393,12 @@
   async function cancelDraft () {
     if (!editingId.value) return
     cancelling.value = true
-    editorError.value = ''
     try {
       const cancelled = await cancelStockCount(editingId.value)
       editorStatus.value = cancelled?.status ?? 'cancelled'
       tableRef.value?.reload()
     } catch (error) {
-      editorError.value = error.message
+      notify.error(error.message)
     } finally {
       cancelling.value = false
     }

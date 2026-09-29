@@ -5,21 +5,21 @@
        ever showed one at a time. -->
   <div class="activity-reel">
     <TransitionGroup class="d-flex flex-column align-end ga-2" name="toast" tag="div">
-      <v-card
+      <div
         v-for="item in activeItems"
         :key="item.id"
         class="activity-toast d-flex align-center ga-2"
-        :color="item.tone"
-        variant="flat"
       >
+        <v-icon
+          v-if="item.money"
+          :color="item.tone"
+          :icon="item.trendIcon"
+          size="16"
+          class="flex-shrink-0"
+        />
         <div class="activity-toast__text text-caption">
           <template v-if="item.money">
             {{ item.branchName }}:
-            <v-icon
-              :icon="item.trendIcon"
-              size="14"
-              style="vertical-align: text-bottom"
-            />
             <span class="font-weight-medium">{{ item.amountText }}</span> {{ item.currencyCode }} {{ item.kindWord }}
           </template>
           <template v-else>{{ item.text }}</template>
@@ -32,7 +32,7 @@
           variant="text"
           @click="removeItem(item.id)"
         />
-      </v-card>
+      </div>
     </TransitionGroup>
   </div>
 </template>
@@ -118,10 +118,15 @@
 }
 
 .activity-toast {
-  width: 380px;
-  padding: 14px 10px 14px 14px;
+  width: 360px;
+  padding: 10px 10px 10px 14px;
   border-radius: 6px;
   pointer-events: auto;
+  background: rgba(var(--v-theme-surface-variant), 0.72);
+  color: rgb(var(--v-theme-on-surface-variant));
+  border: 1px solid rgba(var(--v-theme-on-surface-variant), 0.1);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(8px);
 }
 
 .activity-toast__text {

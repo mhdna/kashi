@@ -3,6 +3,7 @@ import { API_BASE } from '@/config'
 import { useIncomeFilters } from '@/pages/dashboard/composables/useIncomeFilters'
 import { authFetch } from './useApi'
 import { useDashboardLiveEvents } from './useDashboardLiveEvents'
+import { useNotify } from './useNotify'
 
 // Feeds the Overview tab's summary cards and trend charts from
 // GET /dashboard/summary -- fetched twice, once for the selected period and
@@ -16,7 +17,7 @@ export function useDashboardSummary () {
   // show period-over-period deltas without a second composable.
   const prevSummary = ref(null)
   const loading = ref(false)
-  const error = ref('')
+  const notify = useNotify()
 
   let reqToken = 0
 
@@ -32,7 +33,6 @@ export function useDashboardSummary () {
   async function refresh () {
     const token = ++reqToken
     loading.value = true
-    error.value = ''
     try {
       const [data, prev] = await Promise.all([
         fetchSummary(dashboardQuery()),
@@ -47,7 +47,7 @@ export function useDashboardSummary () {
       if (token !== reqToken) {
         return
       }
-      error.value = error_.message
+      notify.error(error_.message)
       // Keep the last good numbers on screen -- a failed background refresh
       // shouldn't blank every card. Only clear if we never had data.
     } finally {
@@ -62,5 +62,5 @@ export function useDashboardSummary () {
   // Re-pull when a branch syncs new data.
   useDashboardLiveEvents(refresh)
 
-  return { summary, prevSummary, loading, error, refresh }
+  return { summary, prevSummary, loading, refresh }
 }

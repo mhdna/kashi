@@ -37,18 +37,6 @@
 
       <div class="barcodes-content">
         <div class="pa-4">
-          <v-alert
-            v-if="message"
-            class="mb-3"
-            closable
-            density="compact"
-            :type="messageType"
-            variant="tonal"
-            @click:close="message = ''"
-          >
-            {{ message }}
-          </v-alert>
-
           <ServerSideTable
             ref="tableRef"
             :api-u-r-l="apiURL"
@@ -155,13 +143,6 @@
             Default comes from Settings ({{ settings.barcodeLabelWidth }} × {{ settings.barcodeLabelHeight }}).
           </div>
 
-          <v-alert
-            v-if="printError"
-            class="mt-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >{{ printError }}</v-alert>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -184,6 +165,7 @@
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useBarcodes } from '@/composables/useBarcodes'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
   import { useSettingsStore } from '@/stores/settings'
   import { formatMoney } from '@/utils/money'
@@ -216,13 +198,11 @@
   const selected = ref([])
   const qtyById = reactive({})
 
-  const message = ref('')
-  const messageType = ref('success')
+  const notify = useNotify()
   const assigning = ref(false)
 
   const printDialog = ref(false)
   const printing = ref(false)
-  const printError = ref('')
   const separatorEnabled = ref(false)
   const separatorFields = ref(['name', 'qty'])
   const labelWidth = ref(0)
@@ -241,18 +221,15 @@
 
   async function generate () {
     assigning.value = true
-    message.value = ''
     try {
       const res = await assignBarcodes(selected.value)
       const n = res?.updated?.length ?? 0
-      message.value = n
+      notify.success(n
         ? `Generated ${n} barcode${n === 1 ? '' : 's'}.`
-        : 'All selected items already had a barcode.'
-      messageType.value = 'success'
+        : 'All selected items already had a barcode.')
       tableRef.value?.reload()
     } catch (error) {
-      message.value = error.message
-      messageType.value = 'error'
+      notify.error(error.message)
     } finally {
       assigning.value = false
     }
@@ -260,7 +237,6 @@
 
   async function doPrint () {
     printing.value = true
-    printError.value = ''
     try {
       const items = selected.value.map(id => ({ variant_id: id, qty: Math.max(1, Number(qtyById[id]) || 1) }))
       const blob = await printLabels({
@@ -273,7 +249,7 @@
       setTimeout(() => URL.revokeObjectURL(url), 60_000)
       printDialog.value = false
     } catch (error) {
-      printError.value = error.message
+      notify.error(error.message)
     } finally {
       printing.value = false
     }

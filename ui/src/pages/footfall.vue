@@ -32,16 +32,6 @@
       </v-select>
     </div>
 
-    <v-alert
-      v-if="error"
-      class="ff-notice mx-4 mb-2"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ error }}
-    </v-alert>
-
     <div v-if="loading" class="d-flex justify-center pa-12">
       <v-progress-circular color="primary" indeterminate />
     </div>
@@ -201,6 +191,7 @@
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useBranches } from '@/composables/useBranches'
   import { useBranchVisitors } from '@/composables/useBranchVisitors'
+  import { useNotify } from '@/composables/useNotify'
 
   const theme = useTheme()
   const c = computed(() => theme.current.value.colors)
@@ -239,7 +230,7 @@
   const { ensureConnected, onMessage } = useAdminSocket()
 
   const loading = ref(false)
-  const error = ref('')
+  const notify = useNotify()
   // Raw rows for [prevFrom, to] -- current + one preceding period, split
   // client-side so the KPI deltas don't need a second request.
   const allDays = ref([])
@@ -268,12 +259,11 @@
 
   async function load () {
     loading.value = true
-    error.value = ''
     try {
       await fetchBranches()
       allDays.value = await fetchWindow()
     } catch (error_) {
-      error.value = error_.message
+      notify.error(error_.message)
     } finally {
       loading.value = false
     }
@@ -288,7 +278,6 @@
     refreshing.value = true
     try {
       allDays.value = await fetchWindow()
-      error.value = ''
     } catch { /* keep showing the last successful fetch */ } finally {
       refreshing.value = false
     }

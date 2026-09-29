@@ -1,15 +1,5 @@
 <template>
   <div class="page-root">
-    <v-alert
-      v-if="loadError"
-      class="mb-4"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ loadError }}
-    </v-alert>
-
     <v-card class="assets-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-hammer-wrench" />
@@ -137,15 +127,6 @@
             type="date"
             variant="outlined"
           />
-          <v-alert
-            v-if="formError"
-            class="mt-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ formError }}
-          </v-alert>
         </v-card-text>
         <v-card-actions>
           <v-btn
@@ -175,15 +156,6 @@
         <v-card-title class="text-h6">Delete asset</v-card-title>
         <v-card-text>
           Delete <strong>{{ deleteTarget?.name }}</strong>? This can't be undone.
-          <v-alert
-            v-if="deleteError"
-            class="mt-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ deleteError }}
-          </v-alert>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -220,6 +192,7 @@
   import { useAssets } from '@/composables/useAssets'
   import { useBulkDelete } from '@/composables/useBulkDelete'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
   import { categoryColor, categoryIcon } from '@/data/expenseCategoryIcons'
 
@@ -256,7 +229,7 @@
     } catch { /* error shown in the bar */ }
   }
 
-  const loadError = ref('')
+  const notify = useNotify()
   const search = ref('')
   const selectedCategory = ref(null)
 
@@ -287,7 +260,7 @@
   }
 
   onMounted(() => {
-    fetchAssetCategories(true).catch(error => { loadError.value = error.message })
+    fetchAssetCategories(true).catch(error => { notify.error(error.message) })
   })
 
   watch(selectedCategory, () => resetSel())
@@ -296,12 +269,10 @@
   const editDialog = ref(false)
   const editing = ref(null)
   const saving = ref(false)
-  const formError = ref('')
   const form = reactive({ name: '', code: '', categoryId: null, boughtAt: '' })
 
   function openCreate () {
     editing.value = null
-    formError.value = ''
     Object.assign(form, {
       name: '',
       code: '',
@@ -314,7 +285,6 @@
   function openEdit (item) {
     if (!canEdit.value) return
     editing.value = item
-    formError.value = ''
     Object.assign(form, {
       name: item.name,
       code: item.code,
@@ -326,15 +296,14 @@
 
   async function saveAsset () {
     if (!form.name.trim() || !form.code.trim()) {
-      formError.value = 'Name and code are required.'
+      notify.error('Name and code are required.')
       return
     }
     if (!form.categoryId) {
-      formError.value = 'Pick a category.'
+      notify.error('Pick a category.')
       return
     }
     saving.value = true
-    formError.value = ''
     const payload = {
       name: form.name.trim(),
       code: form.code.trim(),
@@ -348,7 +317,7 @@
       editDialog.value = false
       reloadRows()
     } catch (error) {
-      formError.value = error.message
+      notify.error(error.message)
     } finally {
       saving.value = false
     }
@@ -358,25 +327,22 @@
   const deleteDialog = ref(false)
   const deleteTarget = ref(null)
   const deleting = ref(false)
-  const deleteError = ref('')
 
   function deleteEditedAsset () {
     if (!editing.value) return
     deleteTarget.value = editing.value
-    deleteError.value = ''
     editDialog.value = false
     deleteDialog.value = true
   }
 
   async function doDelete () {
     deleting.value = true
-    deleteError.value = ''
     try {
       await deleteAsset(deleteTarget.value.id)
       deleteDialog.value = false
       reloadRows()
     } catch (error) {
-      deleteError.value = error.message
+      notify.error(error.message)
     } finally {
       deleting.value = false
     }
@@ -411,7 +377,7 @@
       if (selectedCategory.value === category.id) selectedCategory.value = null
       await fetchAssetCategories(true)
     } catch (error) {
-      loadError.value = error.message
+      notify.error(error.message)
     }
   }
 </script>

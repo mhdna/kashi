@@ -1,15 +1,5 @@
 <template>
   <div class="page-root">
-    <v-alert
-      v-if="loadError"
-      class="mb-4"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ loadError }}
-    </v-alert>
-
     <v-card class="loans-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-cash-multiple" />
@@ -173,16 +163,6 @@
                         />
                       </div>
 
-                      <v-alert
-                        v-if="paymentsFor(item.id).error"
-                        class="mb-2"
-                        density="compact"
-                        type="error"
-                        variant="tonal"
-                      >
-                        {{ paymentsFor(item.id).error }}
-                      </v-alert>
-
                       <v-table v-if="paymentsFor(item.id).list.length > 0" class="mb-3" density="compact">
                         <thead>
                           <tr>
@@ -296,10 +276,6 @@
               :error-messages="formErrors.currencyCode"
             />
 
-            <v-alert v-if="submitError" class="mb-4" type="error" variant="tonal">
-              {{ submitError }}
-            </v-alert>
-
             <v-card-actions class="px-0">
               <v-btn
                 v-if="editingId"
@@ -344,6 +320,7 @@
   import { useBulkDelete } from '@/composables/useBulkDelete'
   import { useLoanCategories } from '@/composables/useLoanCategories'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
@@ -462,7 +439,7 @@
   const branchFilter = ref(null)
   const expanded = ref([])
   const rows = ref([])
-  const loadError = ref('')
+  const notify = useNotify()
   const tableRef = ref(null)
 
   // Per-loan payment lists + add-payment forms, keyed by loan id; populated
@@ -570,7 +547,7 @@
       await loadPayments(loan.id)
       reload()
     } catch (error) {
-      payments[loan.id] = { ...paymentsFor(loan.id), error: error.message }
+      notify.error(error.message)
     } finally {
       pf.submitting = false
     }
@@ -587,7 +564,7 @@
       await loadPayments(loan.id)
       reload()
     } catch (error) {
-      payments[loan.id] = { ...paymentsFor(loan.id), error: error.message }
+      notify.error(error.message)
     }
   }
 
@@ -596,14 +573,12 @@
   const dialog = ref(false)
   const editingId = ref(null)
   const submitting = ref(false)
-  const submitError = ref('')
   const form = reactive({ description: '', categoryId: null, amount: null, currencyCode: '' })
   const formErrors = reactive({ description: '', categoryId: '', amount: '', currencyCode: '' })
 
   function resetForm () {
     Object.assign(form, { description: '', categoryId: null, amount: null, currencyCode: '' })
     Object.assign(formErrors, { description: '', categoryId: '', amount: '', currencyCode: '' })
-    submitError.value = ''
   }
 
   function openCreate () {
@@ -641,7 +616,6 @@
   async function submit () {
     if (!validate()) return
     submitting.value = true
-    submitError.value = ''
     try {
       const body = {
         description: form.description.trim(),
@@ -661,7 +635,7 @@
       closeDialog()
       reload()
     } catch (error) {
-      submitError.value = error.message
+      notify.error(error.message)
     } finally {
       submitting.value = false
     }
@@ -671,7 +645,6 @@
     if (!editingId.value) return
     if (!confirm('Delete this loan? Loans that still have payments can\'t be deleted.')) return
     submitting.value = true
-    submitError.value = ''
     try {
       const res = await authFetch(`${API_BASE}/loans/${editingId.value}`, { method: 'DELETE' })
       if (!res.ok) {
@@ -681,7 +654,7 @@
       closeDialog()
       reload()
     } catch (error) {
-      submitError.value = error.message
+      notify.error(error.message)
     } finally {
       submitting.value = false
     }
@@ -717,7 +690,7 @@
       if (selectedCategory.value === category.id) selectedCategory.value = null
       await fetchLoanCategories(true)
     } catch (error) {
-      loadError.value = error.message
+      notify.error(error.message)
     }
   }
 </script>

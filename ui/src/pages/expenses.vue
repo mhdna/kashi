@@ -43,10 +43,6 @@
             </v-col>
           </v-row>
 
-          <v-alert v-if="expenseSubmitError" class="mb-4" type="error" variant="tonal">
-            {{ expenseSubmitError }}
-          </v-alert>
-
           <v-card-actions class="px-0">
             <v-btn
               v-if="editingExpenseId"
@@ -137,10 +133,6 @@
             type="date"
           />
 
-          <v-alert v-if="recurringSubmitError" class="mb-4" type="error" variant="tonal">
-            {{ recurringSubmitError }}
-          </v-alert>
-
           <v-card-actions class="px-0">
             <v-spacer />
             <v-btn text="Cancel" @click="closeRecurringDialog" />
@@ -207,10 +199,6 @@
             persistent-hint
             type="date"
           />
-
-          <v-alert v-if="branchExpenseSubmitError" class="mb-4 mt-4" type="error" variant="tonal">
-            {{ branchExpenseSubmitError }}
-          </v-alert>
 
           <v-card-actions class="px-0">
             <v-spacer />
@@ -284,8 +272,6 @@
           <v-window v-model="tab">
             <!-- Mine -->
             <v-window-item value="own">
-              <v-alert v-if="expensesError" class="ma-4" type="error" variant="tonal">{{ expensesError }}</v-alert>
-
               <div class="px-4 pt-3">
                 <div v-if="canEdit && filteredExpenses.length > 0" class="d-flex align-center ga-2 mb-1">
                   <v-checkbox-btn
@@ -345,9 +331,6 @@
             <!-- Recurring -->
             <v-window-item value="recurring">
               <v-card-text>
-                <v-alert v-if="recurringLoadError" class="mb-2" type="error" variant="tonal">
-                  {{ recurringLoadError }}
-                </v-alert>
                 <v-data-table density="compact" :headers="recurringHeaders" :items="filteredRecurring" :loading="recurringLoading">
                   <template #item.category_id="{ item }">
                     <CategoryChip :category="categoryFor(item.category_id)" />
@@ -392,8 +375,6 @@
                   @update:model-value="reloadBranchExpenses"
                 />
               </div>
-
-              <v-alert v-if="branchError" class="ma-4" type="error" variant="tonal">{{ branchError }}</v-alert>
 
               <v-list v-if="filteredBranchExpenses.length > 0" class="py-0" lines="two">
                 <template v-for="(item, i) in filteredBranchExpenses" :key="item.id">
@@ -453,11 +434,13 @@
   import { useBulkDelete } from '@/composables/useBulkDelete'
   import { useExpenseCategories } from '@/composables/useExpenseCategories'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
   import { categoryIcon } from '@/data/expenseCategoryIcons'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
+  const notify = useNotify()
 
   const PAGE_SIZE = 25
 
@@ -542,7 +525,6 @@
 
   const expenses = ref([])
   const expensesLoading = ref(false)
-  const expensesError = ref('')
   const expensesHasMore = ref(false)
   const expensesSentinel = ref(null)
   let expensesObserver = null
@@ -590,7 +572,6 @@
 
   async function fetchExpenses (append = false) {
     expensesLoading.value = true
-    expensesError.value = ''
     try {
       const offset = append ? expenses.value.length : 0
       const url = new URL(`${API_BASE}/expenses`, window.location.origin)
@@ -603,7 +584,7 @@
       expenses.value = append ? [...expenses.value, ...rows] : rows
       expensesHasMore.value = rows.length === PAGE_SIZE
     } catch (error) {
-      expensesError.value = error.message
+      notify.error(error.message)
     } finally {
       expensesLoading.value = false
       nextTick(setupInfiniteScroll)
@@ -620,7 +601,6 @@
   const expenseDialog = ref(false)
   const editingExpenseId = ref(null)
   const expenseSubmitting = ref(false)
-  const expenseSubmitError = ref('')
 
   const { handleSubmit, handleReset, setValues } = useForm({
     validationSchema: {
@@ -648,7 +628,6 @@
     editingExpenseId.value = null
     handleReset()
     currencyCode.value.value = 'USD'
-    expenseSubmitError.value = ''
     expenseDialog.value = true
   }
 
@@ -661,7 +640,6 @@
       amount: Number(item.amount) / 100,
       currencyCode: item.currency_code,
     })
-    expenseSubmitError.value = ''
     expenseDialog.value = true
   }
 
@@ -669,12 +647,10 @@
     expenseDialog.value = false
     handleReset()
     editingExpenseId.value = null
-    expenseSubmitError.value = ''
   }
 
   const submitExpense = handleSubmit(async values => {
     expenseSubmitting.value = true
-    expenseSubmitError.value = ''
     try {
       const body = {
         description: values.description,
@@ -696,7 +672,7 @@
       closeExpenseDialog()
       fetchExpenses()
     } catch (error) {
-      expenseSubmitError.value = error.message
+      notify.error(error.message)
     } finally {
       expenseSubmitting.value = false
     }
@@ -708,7 +684,7 @@
       await apiJSON(`${API_BASE}/expenses/${item.id}`, { method: 'DELETE' })
       fetchExpenses()
     } catch (error) {
-      expensesError.value = error.message
+      notify.error(error.message)
     }
   }
 
@@ -716,7 +692,6 @@
 
   const branchExpenses = ref([])
   const branchLoading = ref(false)
-  const branchError = ref('')
   const branchHasMore = ref(false)
   const branchFilter = ref(null)
   let branchLoaded = false
@@ -767,7 +742,6 @@
 
   async function fetchBranchExpenses (append = false) {
     branchLoading.value = true
-    branchError.value = ''
     try {
       const offset = append ? branchExpenses.value.length : 0
       const url = new URL(`${API_BASE}/branch_expenses`, window.location.origin)
@@ -781,7 +755,7 @@
       branchHasMore.value = rows.length === PAGE_SIZE
       branchLoaded = true
     } catch (error) {
-      branchError.value = error.message
+      notify.error(error.message)
     } finally {
       branchLoading.value = false
       nextTick(setupInfiniteScroll)
@@ -801,7 +775,6 @@
 
   const branchExpenseDialog = ref(false)
   const branchExpenseSubmitting = ref(false)
-  const branchExpenseSubmitError = ref('')
   const bxForm = ref({
     branchId: null,
     description: '',
@@ -830,14 +803,12 @@
       currencyCode: 'USD',
       occurredAt: '',
     }
-    branchExpenseSubmitError.value = ''
     branchExpenseDialog.value = true
   }
 
   async function submitBranchExpense () {
     if (Object.values(bxErrors.value).some(Boolean)) return
     branchExpenseSubmitting.value = true
-    branchExpenseSubmitError.value = ''
     try {
       const f = bxForm.value
       await apiJSON(`${API_BASE}/branch_expenses`, {
@@ -856,7 +827,7 @@
       branchLoaded = true
       fetchBranchExpenses(false)
     } catch (error) {
-      branchExpenseSubmitError.value = error.message
+      notify.error(error.message)
     } finally {
       branchExpenseSubmitting.value = false
     }
@@ -872,7 +843,6 @@
 
   const recurringExpenses = ref([])
   const recurringLoading = ref(false)
-  const recurringLoadError = ref('')
 
   const filteredRecurring = computed(() => recurringExpenses.value.filter(item => matchesCategory(item)))
 
@@ -887,11 +857,10 @@
 
   async function fetchRecurringExpenses () {
     recurringLoading.value = true
-    recurringLoadError.value = ''
     try {
       recurringExpenses.value = await apiJSON(`${API_BASE}/recurring_expenses`) ?? []
     } catch (error) {
-      recurringLoadError.value = error.message
+      notify.error(error.message)
     } finally {
       recurringLoading.value = false
     }
@@ -906,13 +875,12 @@
       })
       item.active = active
     } catch (error) {
-      recurringLoadError.value = error.message
+      notify.error(error.message)
     }
   }
 
   const recurringDialog = ref(false)
   const recurringSubmitting = ref(false)
-  const recurringSubmitError = ref('')
 
   const { handleSubmit: handleRecurringSubmit, handleReset: handleRecurringReset } = useForm({
     validationSchema: {
@@ -954,12 +922,10 @@
   function closeRecurringDialog () {
     recurringDialog.value = false
     handleRecurringReset()
-    recurringSubmitError.value = ''
   }
 
   const submitRecurring = handleRecurringSubmit(async values => {
     recurringSubmitting.value = true
-    recurringSubmitError.value = ''
     try {
       await apiJSON(`${API_BASE}/recurring_expenses`, {
         method: 'POST',
@@ -977,7 +943,7 @@
       closeRecurringDialog()
       fetchRecurringExpenses()
     } catch (error) {
-      recurringSubmitError.value = error.message
+      notify.error(error.message)
     } finally {
       recurringSubmitting.value = false
     }
@@ -1012,7 +978,7 @@
       if (selectedCategory.value === category.id) selectedCategory.value = null
       await fetchExpenseCategories()
     } catch (error) {
-      expensesError.value = error.message
+      notify.error(error.message)
     }
   }
 </script>

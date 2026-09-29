@@ -73,16 +73,6 @@
         <v-divider />
 
         <v-card-text>
-          <v-alert
-            v-if="eventsError"
-            class="mb-3"
-            density="compact"
-            type="error"
-            variant="tonal"
-          >
-            {{ eventsError }}
-          </v-alert>
-
           <template v-if="canEdit">
             <div class="text-subtitle-2 mb-2">Add an event</div>
             <v-row dense>
@@ -220,6 +210,7 @@
   import { useCalendarEvents } from '@/composables/useCalendarEvents'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { getEventsForRange, retailCalendarEvents } from '@/data/retailCalendarEvents'
+  import { useNotify } from '@/composables/useNotify'
   import { useSettingsStore } from '@/stores/settings'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
@@ -241,7 +232,7 @@
   const lastRange = ref(null)
 
   const manageOpen = ref(false)
-  const eventsError = ref('')
+  const notify = useNotify()
   const adding = ref(false)
   const form = ref(blankForm())
 
@@ -321,9 +312,8 @@
   async function loadCustom () {
     try {
       customEvents.value = await listCalendarEvents()
-      eventsError.value = ''
     } catch (error) {
-      eventsError.value = error.message
+      notify.error(error.message)
     }
     renderRange()
   }
@@ -331,7 +321,6 @@
   async function addEvent () {
     if (!canAdd.value) return
     adding.value = true
-    eventsError.value = ''
     try {
       await createCalendarEvent({
         name: form.value.name.trim(),
@@ -343,19 +332,18 @@
       form.value = blankForm()
       await loadCustom()
     } catch (error) {
-      eventsError.value = error.message
+      notify.error(error.message)
     } finally {
       adding.value = false
     }
   }
 
   async function removeEvent (id) {
-    eventsError.value = ''
     try {
       await deleteCalendarEvent(id)
       await loadCustom()
     } catch (error) {
-      eventsError.value = error.message
+      notify.error(error.message)
     }
   }
 

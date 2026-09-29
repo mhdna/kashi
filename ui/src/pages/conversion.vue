@@ -32,16 +32,6 @@
       </v-select>
     </div>
 
-    <v-alert
-      v-if="error"
-      class="cv-notice mx-4 mb-2"
-      density="compact"
-      type="error"
-      variant="tonal"
-    >
-      {{ error }}
-    </v-alert>
-
     <div v-if="loading" class="d-flex justify-center pa-12">
       <v-progress-circular color="primary" indeterminate />
     </div>
@@ -157,6 +147,7 @@
   import { useBranches } from '@/composables/useBranches'
   import { useBranchInvoices } from '@/composables/useBranchInvoices'
   import { useBranchVisitors } from '@/composables/useBranchVisitors'
+  import { useNotify } from '@/composables/useNotify'
 
   // --- echarts chrome (identical helpers to footfall.vue) --------------
   const theme = useTheme()
@@ -202,7 +193,7 @@
   const { ensureConnected, onMessage } = useAdminSocket()
 
   const loading = ref(false)
-  const error = ref('')
+  const notify = useNotify()
   // Both sides of the funnel over [prevFrom, to] -- current window plus one
   // preceding window, so the conversion-rate KPI can show a period delta
   // without a second round of requests. Kept as the raw API rows; merged
@@ -234,14 +225,13 @@
 
   async function load () {
     loading.value = true
-    error.value = ''
     try {
       await fetchBranches()
       const [visitors, sales] = await fetchWindow()
       visitorDays.value = visitors
       salesDays.value = sales
     } catch (error_) {
-      error.value = error_.message
+      notify.error(error_.message)
     } finally {
       loading.value = false
     }
@@ -257,7 +247,6 @@
       const [visitors, sales] = await fetchWindow()
       visitorDays.value = visitors
       salesDays.value = sales
-      error.value = ''
     } catch { /* keep the last successful fetch */ } finally {
       refreshing.value = false
     }

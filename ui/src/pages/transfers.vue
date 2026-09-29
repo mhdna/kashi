@@ -30,10 +30,6 @@
           </v-row>
           <v-text-field v-model="note.value.value" density="compact" label="Note (optional)" />
 
-          <v-alert v-if="submitError" class="mb-4" type="error" variant="tonal">
-            {{ submitError }}
-          </v-alert>
-
           <v-card-actions class="px-0">
             <v-spacer />
             <v-btn text="Cancel" @click="closeDialog" />
@@ -75,7 +71,6 @@
           />
           <v-btn :loading="itemSubmitting" text="Add" @click="addItem" />
         </div>
-        <v-alert v-if="itemError" class="mb-4" type="error" variant="tonal">{{ itemError }}</v-alert>
         <v-table density="compact">
           <thead>
             <tr>
@@ -178,6 +173,7 @@
   import { useInventories } from '@/composables/useInventories'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { useTransfers } from '@/composables/useTransfers'
+  import { useNotify } from '@/composables/useNotify'
   import { useVariants } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
 
@@ -217,7 +213,7 @@
   const tableRef = ref(null)
   const dialog = ref(false)
   const submitting = ref(false)
-  const submitError = ref('')
+  const notify = useNotify()
   const editingId = ref(null)
 
   const { handleSubmit, handleReset, setValues } = useForm({
@@ -252,13 +248,11 @@
   function closeDialog () {
     dialog.value = false
     handleReset()
-    submitError.value = ''
     editingId.value = null
   }
 
   const submit = handleSubmit(async values => {
     submitting.value = true
-    submitError.value = ''
     try {
       await (editingId.value
         ? updateTransfer({
@@ -277,7 +271,7 @@
       closeDialog()
       tableRef.value?.reload()
     } catch (error) {
-      submitError.value = error.message
+      notify.error(error.message)
     } finally {
       submitting.value = false
     }
@@ -289,24 +283,21 @@
   const itemVariantId = ref(null)
   const itemQuantity = ref(null)
   const itemSubmitting = ref(false)
-  const itemError = ref('')
   const staging = ref(false)
 
   async function openItems (item) {
     itemsTarget.value = item
-    itemError.value = ''
     itemsDialog.value = true
     try {
       items.value = await fetchTransferItems(item.id)
     } catch (error) {
-      itemError.value = error.message
+      notify.error(error.message)
     }
   }
 
   async function addItem () {
     if (!itemVariantId.value || !itemQuantity.value) return
     itemSubmitting.value = true
-    itemError.value = ''
     try {
       await createTransferItem({
         transferId: itemsTarget.value.id,
@@ -317,7 +308,7 @@
       itemVariantId.value = null
       itemQuantity.value = null
     } catch (error) {
-      itemError.value = error.message
+      notify.error(error.message)
     } finally {
       itemSubmitting.value = false
     }
@@ -325,14 +316,13 @@
 
   async function stage (action) {
     staging.value = true
-    itemError.value = ''
     try {
       const fn = { dispatch: dispatchTransfer, receive: receiveTransfer, cancel: cancelTransfer }[action]
       const res = await fn(itemsTarget.value.id)
       itemsTarget.value = res?.transfer ?? itemsTarget.value
       tableRef.value?.reload()
     } catch (error) {
-      itemError.value = error.message
+      notify.error(error.message)
     } finally {
       staging.value = false
     }

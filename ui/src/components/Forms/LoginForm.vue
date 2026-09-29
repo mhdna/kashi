@@ -49,16 +49,10 @@
         Log In
       </v-btn>
 
-      <!-- Feedback lives here, absolutely positioned under the card so an
-           error message or the lockout warning can appear/disappear without
-           ever changing the centered form's height or nudging it upward. -->
+      <!-- Feedback lives here, absolutely positioned under the card so the
+           lockout warning can appear/disappear without ever changing the
+           centered form's height or nudging it upward. -->
       <div class="login-feedback">
-        <div aria-live="polite" role="alert">
-          <v-alert v-if="error" density="compact" type="error" variant="tonal">
-            {{ error }}
-          </v-alert>
-        </div>
-
         <v-card
           v-if="failedAttempts >= 3"
           class="mt-3"
@@ -80,23 +74,23 @@
   import { useRouter } from 'vue-router'
   import AppLogo from '@/components/AppLogo.vue'
   import { useAuthStore } from '@/stores/auth'
+  import { useNotify } from '@/composables/useNotify'
 
   const router = useRouter()
   const authStore = useAuthStore()
+  const notify = useNotify()
 
   const visible = ref(false)
   const username = ref('')
   const password = ref('')
   const submitting = ref(false)
-  const error = ref('')
   const failedAttempts = ref(0)
 
   async function submit () {
     if (submitting.value) return
 
-    error.value = ''
     if (!username.value.trim() || !password.value) {
-      error.value = 'Enter your username and password.'
+      notify.error('Enter your username and password.')
       return
     }
 
@@ -110,7 +104,7 @@
       if (error_.status === 400 || error_.status === 401) {
         failedAttempts.value += 1
       }
-      error.value = error_.message
+      notify.error(error_.message)
     } finally {
       submitting.value = false
     }
