@@ -564,6 +564,36 @@ func (q *Queries) SetTransferConfirmed(ctx context.Context, arg SetTransferConfi
 	return i, err
 }
 
+const setTransferItemReceivedQuantity = `-- name: SetTransferItemReceivedQuantity :one
+UPDATE transfer_items
+SET received_quantity = $1
+WHERE id = $2
+RETURNING id, transfer_id, asset_id, quantity, variant_id, received_quantity
+`
+
+type SetTransferItemReceivedQuantityParams struct {
+	ReceivedQuantity sql.NullInt64 `json:"received_quantity"`
+	ID               int64         `json:"id"`
+}
+
+// The admin's own edit, keyed by transfer_item id directly (unlike the
+// branch's own confirm, which only ever knows an item by variant) --
+// lets kashi correct a destination's count, or fill one in before it
+// ever arrives, from the transfer detail dialog.
+func (q *Queries) SetTransferItemReceivedQuantity(ctx context.Context, arg SetTransferItemReceivedQuantityParams) (TransferItem, error) {
+	row := q.db.QueryRowContext(ctx, setTransferItemReceivedQuantity, arg.ReceivedQuantity, arg.ID)
+	var i TransferItem
+	err := row.Scan(
+		&i.ID,
+		&i.TransferID,
+		&i.AssetID,
+		&i.Quantity,
+		&i.VariantID,
+		&i.ReceivedQuantity,
+	)
+	return i, err
+}
+
 const setTransferItemReceivedQuantityByVariant = `-- name: SetTransferItemReceivedQuantityByVariant :execrows
 UPDATE transfer_items
 SET received_quantity = $1

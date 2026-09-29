@@ -35,6 +35,14 @@ async function createTransferItem ({ transferId, variantId, quantity }) {
   })
 }
 
+async function setTransferItemReceivedQuantity (itemId, receivedQuantity) {
+  return resource.requestJSON(`${API_BASE}/transfer_items/${itemId}/received_quantity`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ received_quantity: receivedQuantity }),
+  })
+}
+
 const stage = action => id => resource.requestJSON(`${API_BASE}/transfers/${id}/${action}`, { method: 'POST' })
 
 export function useTransfers () {
@@ -46,6 +54,7 @@ export function useTransfers () {
     fetchTransfer,
     fetchTransferItems,
     createTransferItem,
+    setTransferItemReceivedQuantity,
     dispatchTransfer: stage('dispatch'),
     receiveTransfer: stage('receive'),
     approveTransfer: stage('approve'),

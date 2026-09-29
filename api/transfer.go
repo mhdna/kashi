@@ -198,6 +198,46 @@ func (server *Server) createTransferItem(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, item)
 }
 
+type setTransferItemReceivedQuantityURI struct {
+	ID int64 `uri:"id" binding:"required,min=1"`
+}
+
+type setTransferItemReceivedQuantityRequest struct {
+	ReceivedQuantity int64 `json:"received_quantity" binding:"required"`
+}
+
+// setTransferItemReceivedQuantity is the admin's own edit to a line's
+// counted quantity -- correcting or filling in what the destination
+// branch reported (or hasn't yet), from the transfer detail dialog.
+// TransferApproveTx reads this same column, so an edit here changes what
+// actually lands centrally on approve.
+func (server *Server) setTransferItemReceivedQuantity(ctx *gin.Context) {
+	var uri setTransferItemReceivedQuantityURI
+	if err := ctx.ShouldBindUri(&uri); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	var req setTransferItemReceivedQuantityRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	item, err := server.store.SetTransferItemReceivedQuantity(ctx, db.SetTransferItemReceivedQuantityParams{
+		ID:               uri.ID,
+		ReceivedQuantity: sql.NullInt64{Int64: req.ReceivedQuantity, Valid: true},
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			server.writeError(ctx, http.StatusNotFound, err)
+			return
+		}
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, item)
+}
+
 type listTransferItemsRequest struct {
 	TransferID int64 `uri:"transfer_id" binding:"required,min=1"`
 }

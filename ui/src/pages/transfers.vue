@@ -51,6 +51,18 @@
           Requested by <strong>{{ itemsTarget.branch_name }}</strong>
           <span v-if="itemsTarget.note"> — {{ itemsTarget.note }}</span>
         </div>
+        <div class="text-body-2 mb-2">
+          <v-chip v-if="itemsTarget?.confirmed_at" color="success" size="small" variant="tonal">
+            <v-icon icon="mdi-check-circle-outline" start />
+            Confirmed by destination {{ formatDateTime(itemsTarget.confirmed_at) }}
+          </v-chip>
+          <v-chip v-else-if="itemsTarget?.status === 'requested'" color="warning" size="small" variant="tonal">
+            Awaiting destination confirmation
+          </v-chip>
+          <div v-if="itemsTarget?.confirmed_note" class="text-caption text-medium-emphasis mt-1">
+            “{{ itemsTarget.confirmed_note }}”
+          </div>
+        </div>
         <v-img
           v-if="attachmentObjectUrl"
           class="mb-4 transfer-attachment"
@@ -87,7 +99,8 @@
             <tr>
               <th>SKU</th>
               <th>Barcode</th>
-              <th class="text-end">Quantity</th>
+              <th class="text-end">Sent</th>
+              <th class="text-end">Received</th>
             </tr>
           </thead>
           <tbody>
@@ -95,6 +108,24 @@
               <td>{{ item.product_code }} — {{ item.product_name }}</td>
               <td>{{ item.variant_barcode }}</td>
               <td class="text-end">{{ item.quantity }}</td>
+              <td class="text-end">
+                <v-text-field
+                  v-if="canEdit"
+                  v-model.number="item.received_quantity"
+                  density="compact"
+                  hide-details
+                  :placeholder="String(item.quantity)"
+                  style="max-width: 100px; display: inline-block;"
+                  type="number"
+                  @update:model-value="v => onReceivedQuantityChange(item, v)"
+                />
+                <span
+                  v-else
+                  :class="{ 'text-warning': item.received_quantity != null && item.received_quantity !== item.quantity }"
+                >
+                  {{ item.received_quantity ?? '—' }}
+                </span>
+              </td>
             </tr>
           </tbody>
         </v-table>
@@ -219,6 +250,7 @@
 
   const {
     createTransfer, updateTransfer, fetchTransferItems, createTransferItem,
+    setTransferItemReceivedQuantity,
     dispatchTransfer, receiveTransfer, approveTransfer, cancelTransfer,
   } = useTransfers()
   const { inventories, fetchInventories } = useInventories()
@@ -248,6 +280,12 @@
     return {
       requested: 'info', draft: 'grey', dispatched: 'warning', received: 'success', cancelled: 'error',
     }[s] || 'grey'
+  }
+
+  function formatDateTime (value) {
+    if (!value) return ''
+    const d = new Date(value)
+    return Number.isNaN(d.getTime()) ? value : d.toLocaleString()
   }
 
   const statusFilter = ref('')
@@ -385,6 +423,21 @@
     } finally {
       itemSubmitting.value = false
     }
+  }
+
+  // Debounced so admin isn't firing a PUT on every keystroke while typing
+  // a corrected count.
+  let receivedQuantityTimers = {}
+  function onReceivedQuantityChange (item, value) {
+    clearTimeout(receivedQuantityTimers[item.id])
+    receivedQuantityTimers[item.id] = setTimeout(async () => {
+      if (value === '' || value == null || Number.isNaN(Number(value))) return
+      try {
+        await setTransferItemReceivedQuantity(item.id, Number(value))
+      } catch (error) {
+        notify.error(error.message)
+      }
+    }, 500)
   }
 
   async function stage (action) {

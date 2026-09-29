@@ -7854,6 +7854,21 @@ func (mr *MockStoreMockRecorder) SetTransferConfirmed(arg0, arg1 interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetTransferConfirmed", reflect.TypeOf((*MockStore)(nil).SetTransferConfirmed), arg0, arg1)
 }
 
+// SetTransferItemReceivedQuantity mocks base method.
+func (m *MockStore) SetTransferItemReceivedQuantity(arg0 context.Context, arg1 db.SetTransferItemReceivedQuantityParams) (db.TransferItem, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetTransferItemReceivedQuantity", arg0, arg1)
+	ret0, _ := ret[0].(db.TransferItem)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetTransferItemReceivedQuantity indicates an expected call of SetTransferItemReceivedQuantity.
+func (mr *MockStoreMockRecorder) SetTransferItemReceivedQuantity(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetTransferItemReceivedQuantity", reflect.TypeOf((*MockStore)(nil).SetTransferItemReceivedQuantity), arg0, arg1)
+}
+
 // SetTransferItemReceivedQuantityByVariant mocks base method.
 func (m *MockStore) SetTransferItemReceivedQuantityByVariant(arg0 context.Context, arg1 db.SetTransferItemReceivedQuantityByVariantParams) (int64, error) {
 	m.ctrl.T.Helper()

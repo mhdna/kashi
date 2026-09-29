@@ -61,6 +61,16 @@ SELECT * FROM transfers
 WHERE to_inventory_id = $1 AND updated_at > $2
 ORDER BY updated_at;
 
+-- name: SetTransferItemReceivedQuantity :one
+-- The admin's own edit, keyed by transfer_item id directly (unlike the
+-- branch's own confirm, which only ever knows an item by variant) --
+-- lets kashi correct a destination's count, or fill one in before it
+-- ever arrives, from the transfer detail dialog.
+UPDATE transfer_items
+SET received_quantity = sqlc.arg(received_quantity)
+WHERE id = sqlc.arg(id)
+RETURNING *;
+
 -- name: SetTransferItemReceivedQuantityByVariant :execrows
 -- The destination branch reporting what it actually counted for one line.
 -- Keyed by variant, not transfer_item id -- the till only ever knows an

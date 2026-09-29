@@ -1034,6 +1034,11 @@ type Querier interface {
 	SetStockCountStatus(ctx context.Context, arg SetStockCountStatusParams) (StockCount, error)
 	SetTransferAttachmentPath(ctx context.Context, arg SetTransferAttachmentPathParams) error
 	SetTransferConfirmed(ctx context.Context, arg SetTransferConfirmedParams) (Transfer, error)
+	// The admin's own edit, keyed by transfer_item id directly (unlike the
+	// branch's own confirm, which only ever knows an item by variant) --
+	// lets kashi correct a destination's count, or fill one in before it
+	// ever arrives, from the transfer detail dialog.
+	SetTransferItemReceivedQuantity(ctx context.Context, arg SetTransferItemReceivedQuantityParams) (TransferItem, error)
 	// The destination branch reporting what it actually counted for one line.
 	// Keyed by variant, not transfer_item id -- the till only ever knows an
 	// item by barcode/uid, resolved to variant_id the same way
