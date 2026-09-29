@@ -3,8 +3,11 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
+	"mime"
 	"net/http"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/mhdna/kashi/db/sqlc"
@@ -334,4 +337,37 @@ func (server *Server) notifyBranchTransferDecision(ctx *gin.Context, transfer db
 		return
 	}
 	server.branchHub.notify(transfer.BranchID.Int64, branchWSMessage{Type: "command", CommandID: command.ID})
+}
+
+// getTransferAttachment serves the one optional photo a transfer request
+// carries -- uploaded via the QR flow (transfer_upload.go), never by the
+// admin, so there's no dedicated image row (and no separately-tracked
+// content type) the way shift receipts and expenses have; the extension
+// on disk is what optimizeUploadedImage already normalized it to.
+func (server *Server) getTransferAttachment(ctx *gin.Context) {
+	var req transferIDRequest
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	transfer, err := server.store.GetTransfer(ctx, req.ID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			server.writeError(ctx, http.StatusNotFound, err)
+			return
+		}
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if transfer.AttachmentPath == "" {
+		server.writeError(ctx, http.StatusNotFound, fmt.Errorf("no attachment on this transfer"))
+		return
+	}
+
+	contentType := mime.TypeByExtension(filepath.Ext(transfer.AttachmentPath))
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	server.serveStoredImage(ctx, transfer.AttachmentPath, contentType)
 }

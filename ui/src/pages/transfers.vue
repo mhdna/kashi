@@ -47,6 +47,17 @@
         <v-chip class="ml-2" :color="statusColor(itemsTarget?.status)" size="small">{{ itemsTarget?.status }}</v-chip>
       </v-card-title>
       <v-card-text>
+        <div v-if="itemsTarget?.branch_name" class="text-body-2 text-medium-emphasis mb-2">
+          Requested by <strong>{{ itemsTarget.branch_name }}</strong>
+          <span v-if="itemsTarget.note"> — {{ itemsTarget.note }}</span>
+        </div>
+        <v-img
+          v-if="attachmentObjectUrl"
+          class="mb-4 transfer-attachment"
+          max-height="260"
+          rounded
+          :src="attachmentObjectUrl"
+        />
         <div v-if="canEdit && itemsTarget?.status === 'draft'" class="d-flex align-center mb-4" style="gap: 12px;">
           <v-autocomplete
             v-model="itemVariantId"
@@ -90,6 +101,14 @@
       </v-card-text>
       <v-card-actions>
         <v-btn
+          v-if="canEdit && itemsTarget?.status === 'requested'"
+          color="success"
+          :loading="staging"
+          prepend-icon="mdi-check"
+          text="Approve"
+          @click="stage('approve')"
+        />
+        <v-btn
           v-if="canEdit && itemsTarget?.status === 'draft'"
           color="primary"
           :loading="staging"
@@ -104,15 +123,15 @@
           @click="stage('receive')"
         />
         <v-btn
-          v-if="canEdit && (itemsTarget?.status === 'draft' || itemsTarget?.status === 'dispatched' || itemsTarget?.status === 'received')"
+          v-if="canEdit && ['requested', 'draft', 'dispatched', 'received'].includes(itemsTarget?.status)"
           color="error"
           :loading="staging"
-          text="Cancel Transfer"
+          :text="itemsTarget?.status === 'requested' ? 'Reject' : 'Cancel Transfer'"
           variant="text"
           @click="stage('cancel')"
         />
         <v-spacer />
-        <v-btn text="Close" @click="itemsDialog = false" />
+        <v-btn text="Close" @click="closeItemsDialog" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -122,6 +141,19 @@
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-transfer" />
         <span>Transfers</span>
+        <v-btn-toggle
+          v-model="statusFilter"
+          color="primary"
+          density="comfortable"
+          mandatory
+          variant="outlined"
+        >
+          <v-btn value="">All</v-btn>
+          <v-btn value="requested">Requested</v-btn>
+          <v-btn value="draft">Draft</v-btn>
+          <v-btn value="dispatched">Dispatched</v-btn>
+          <v-btn value="received">Received</v-btn>
+        </v-btn-toggle>
         <v-spacer />
         <v-btn
           v-if="canEdit"
@@ -143,9 +175,13 @@
             flush
             :headers="headers"
             :max-page-size="10"
+            :query-params="queryParams"
             root-key="transfers"
             :show-search-icon="false"
           >
+            <template #item.branch_name="{ item }">
+              {{ item.branch_name || '—' }}
+            </template>
             <template #item.status="{ item }">
               <v-chip :color="statusColor(item.status)" size="small">{{ item.status }}</v-chip>
             </template>
@@ -168,12 +204,13 @@
 
 <script setup lang="ts">
   import { useField, useForm } from 'vee-validate'
-  import { ref } from 'vue'
+  import { computed, onBeforeUnmount, ref } from 'vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
+  import { authFetch } from '@/composables/useApi'
   import { useInventories } from '@/composables/useInventories'
+  import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { useTransfers } from '@/composables/useTransfers'
-  import { useNotify } from '@/composables/useNotify'
   import { useVariants } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
 
@@ -182,7 +219,7 @@
 
   const {
     createTransfer, updateTransfer, fetchTransferItems, createTransferItem,
-    dispatchTransfer, receiveTransfer, cancelTransfer,
+    dispatchTransfer, receiveTransfer, approveTransfer, cancelTransfer,
   } = useTransfers()
   const { inventories, fetchInventories } = useInventories()
   const { variants: skuOptions, loading: skuLoading, searchVariants } = useVariants()
@@ -200,6 +237,7 @@
     { title: 'ID', key: 'id', align: 'start' },
     { title: 'From', key: 'from_inventory_name', align: 'start' },
     { title: 'To', key: 'to_inventory_name', align: 'start' },
+    { title: 'Branch', key: 'branch_name', align: 'start' },
     { title: 'Items', key: 'item_count', align: 'end' },
     { title: 'Status', key: 'status', align: 'start' },
     { title: 'Created At', key: 'created_at', align: 'end' },
@@ -207,9 +245,13 @@
   ])
 
   function statusColor (s) {
-    return { draft: 'grey', dispatched: 'warning', received: 'success', cancelled: 'error' }[s] || 'grey'
+    return {
+      requested: 'info', draft: 'grey', dispatched: 'warning', received: 'success', cancelled: 'error',
+    }[s] || 'grey'
   }
 
+  const statusFilter = ref('')
+  const queryParams = computed(() => ({ status: statusFilter.value }))
   const tableRef = ref(null)
   const dialog = ref(false)
   const submitting = ref(false)
@@ -284,10 +326,41 @@
   const itemQuantity = ref(null)
   const itemSubmitting = ref(false)
   const staging = ref(false)
+  const attachmentObjectUrl = ref(null)
+
+  // <v-img src> can't carry an Authorization header, so the attachment is
+  // fetched as a blob and handed back as an object URL -- same pattern as
+  // useShiftReceiptImages.js's fetchShiftReceiptImageObjectUrl.
+  function releaseAttachmentObjectUrl () {
+    if (attachmentObjectUrl.value) {
+      URL.revokeObjectURL(attachmentObjectUrl.value)
+      attachmentObjectUrl.value = null
+    }
+  }
+
+  async function loadAttachment (transferId) {
+    releaseAttachmentObjectUrl()
+    try {
+      const res = await authFetch(`${API_BASE}/transfers/${transferId}/attachment`)
+      if (!res.ok) return
+      const blob = await res.blob()
+      attachmentObjectUrl.value = URL.createObjectURL(blob)
+    } catch {
+      // No attachment, or it failed to load -- the dialog just shows none.
+    }
+  }
+
+  onBeforeUnmount(releaseAttachmentObjectUrl)
+
+  function closeItemsDialog () {
+    itemsDialog.value = false
+    releaseAttachmentObjectUrl()
+  }
 
   async function openItems (item) {
     itemsTarget.value = item
     itemsDialog.value = true
+    if (item.attachment_path) loadAttachment(item.id)
     try {
       items.value = await fetchTransferItems(item.id)
     } catch (error) {
@@ -317,7 +390,9 @@
   async function stage (action) {
     staging.value = true
     try {
-      const fn = { dispatch: dispatchTransfer, receive: receiveTransfer, cancel: cancelTransfer }[action]
+      const fn = {
+        dispatch: dispatchTransfer, receive: receiveTransfer, approve: approveTransfer, cancel: cancelTransfer,
+      }[action]
       const res = await fn(itemsTarget.value.id)
       itemsTarget.value = res?.transfer ?? itemsTarget.value
       tableRef.value?.reload()
