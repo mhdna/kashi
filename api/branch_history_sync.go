@@ -37,20 +37,29 @@ type syncBranchInvoiceHistoryPayment struct {
 }
 
 type syncBranchInvoiceHistoryRow struct {
-	ClientRef          string                            `json:"client_ref"`
-	Kind               string                            `json:"kind"`
-	BranchInvoiceCode  string                            `json:"branch_invoice_code"`
-	RelatedClientRef   string                            `json:"related_client_ref,omitempty"`
-	Discount           int16                             `json:"discount"`
-	Subtotal           int64                             `json:"subtotal"`
-	DiscountedTotal    int64                             `json:"discounted_total"`
-	GrandTotal         int64                             `json:"grand_total"`
-	LoyaltyPointsDelta int64                             `json:"loyalty_points_delta"`
-	OccurredAt         time.Time                         `json:"occurred_at"`
-	SalespersonName    string                            `json:"salesperson_name"`
-	Historical         bool                              `json:"historical"`
-	Items              []syncBranchInvoiceHistoryItem    `json:"items"`
-	Payments           []syncBranchInvoiceHistoryPayment `json:"payments"`
+	ClientRef         string `json:"client_ref"`
+	Kind              string `json:"kind"`
+	BranchInvoiceCode string `json:"branch_invoice_code"`
+	RelatedClientRef  string `json:"related_client_ref,omitempty"`
+	// BranchShiftID/BranchCashboxAccountID are the branch's own opaque local
+	// ids -- meaningless once that till's database is gone, same reasoning
+	// as everywhere else in this protocol. BranchShiftID is still useful
+	// here: the branch's own shift-history import runs first and can
+	// resolve its *own* old ids back to new local shift rows from that same
+	// pull, since both came from the same now-gone till.
+	BranchShiftID          int64                             `json:"branch_shift_id"`
+	BranchCashboxAccountID int64                             `json:"branch_cashbox_account_id"`
+	ClientUID              string                            `json:"client_uid,omitempty"`
+	Discount               int16                             `json:"discount"`
+	Subtotal               int64                             `json:"subtotal"`
+	DiscountedTotal        int64                             `json:"discounted_total"`
+	GrandTotal             int64                             `json:"grand_total"`
+	LoyaltyPointsDelta     int64                             `json:"loyalty_points_delta"`
+	OccurredAt             time.Time                         `json:"occurred_at"`
+	SalespersonName        string                            `json:"salesperson_name"`
+	Historical             bool                              `json:"historical"`
+	Items                  []syncBranchInvoiceHistoryItem    `json:"items"`
+	Payments               []syncBranchInvoiceHistoryPayment `json:"payments"`
 }
 
 const branchHistoryCouponPlaceholderAccount = "On Coupon"
@@ -143,22 +152,29 @@ func (server *Server) branchInvoiceHistoryRows(ctx context.Context, branchID int
 		if r.RelatedClientRef.Valid {
 			related = r.RelatedClientRef.String
 		}
+		clientUID := ""
+		if r.ClientUid.Valid {
+			clientUID = r.ClientUid.UUID.String()
+		}
 
 		out[i] = syncBranchInvoiceHistoryRow{
-			ClientRef:          r.ClientRef,
-			Kind:               r.Kind,
-			BranchInvoiceCode:  r.BranchInvoiceCode,
-			RelatedClientRef:   related,
-			Discount:           r.Discount,
-			Subtotal:           r.Subtotal,
-			DiscountedTotal:    r.DiscountedTotal,
-			GrandTotal:         r.GrandTotal,
-			LoyaltyPointsDelta: r.LoyaltyPointsDelta,
-			OccurredAt:         r.OccurredAt,
-			SalespersonName:    r.SalespersonName,
-			Historical:         r.Historical,
-			Items:              itemsByInvoice[r.ID],
-			Payments:           outPayments,
+			ClientRef:              r.ClientRef,
+			Kind:                   r.Kind,
+			BranchInvoiceCode:      r.BranchInvoiceCode,
+			RelatedClientRef:       related,
+			BranchShiftID:          r.BranchShiftID,
+			BranchCashboxAccountID: r.BranchCashboxAccountID,
+			ClientUID:              clientUID,
+			Discount:               r.Discount,
+			Subtotal:               r.Subtotal,
+			DiscountedTotal:        r.DiscountedTotal,
+			GrandTotal:             r.GrandTotal,
+			LoyaltyPointsDelta:     r.LoyaltyPointsDelta,
+			OccurredAt:             r.OccurredAt,
+			SalespersonName:        r.SalespersonName,
+			Historical:             r.Historical,
+			Items:                  itemsByInvoice[r.ID],
+			Payments:               outPayments,
 		}
 	}
 	return out, nil
