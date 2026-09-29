@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -156,7 +155,12 @@ const listPriceListItemsWithProduct = `-- name: ListPriceListItemsWithProduct :m
 SELECT pli.price_list_id, pli.product_variant_id, pli.price,
        pv.uid AS product_variant_uid, pv.barcode,
        p.code AS product_code, p.name AS product_name,
-       colors.name AS color_name, sizes.name AS size_name
+       -- COALESCE, not the bare column: a LEFT JOIN miss would otherwise be
+       -- sql.NullString, which marshals as {"String":...,"Valid":...} and
+       -- renders as [object Object] in the variant label. Every other
+       -- variant-joining query in this codebase coalesces for the same reason.
+       COALESCE(colors.name, '')::text AS color_name,
+       COALESCE(sizes.name, '')::text AS size_name
 FROM price_list_items pli
 JOIN product_variants pv ON pv.id = pli.product_variant_id
 JOIN products p ON p.id = pv.product_id
@@ -180,15 +184,15 @@ type ListPriceListItemsWithProductParams struct {
 }
 
 type ListPriceListItemsWithProductRow struct {
-	PriceListID       int64          `json:"price_list_id"`
-	ProductVariantID  int64          `json:"product_variant_id"`
-	Price             int64          `json:"price"`
-	ProductVariantUid uuid.UUID      `json:"product_variant_uid"`
-	Barcode           string         `json:"barcode"`
-	ProductCode       string         `json:"product_code"`
-	ProductName       string         `json:"product_name"`
-	ColorName         sql.NullString `json:"color_name"`
-	SizeName          sql.NullString `json:"size_name"`
+	PriceListID       int64     `json:"price_list_id"`
+	ProductVariantID  int64     `json:"product_variant_id"`
+	Price             int64     `json:"price"`
+	ProductVariantUid uuid.UUID `json:"product_variant_uid"`
+	Barcode           string    `json:"barcode"`
+	ProductCode       string    `json:"product_code"`
+	ProductName       string    `json:"product_name"`
+	ColorName         string    `json:"color_name"`
+	SizeName          string    `json:"size_name"`
 }
 
 // Rows are variant-level now, so the display label needs the variant's own

@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -315,7 +314,9 @@ const listDiscountListItemsWithProduct = `-- name: ListDiscountListItemsWithProd
 SELECT dli.discount_list_id, dli.product_variant_id, dli.discount,
        pv.uid AS product_variant_uid, pv.barcode,
        p.code AS product_code, p.name AS product_name,
-       colors.name AS color_name, sizes.name AS size_name
+       -- See ListPriceListItemsWithProduct for why these coalesce.
+       COALESCE(colors.name, '')::text AS color_name,
+       COALESCE(sizes.name, '')::text AS size_name
 FROM discount_list_items dli
 JOIN product_variants pv ON pv.id = dli.product_variant_id
 JOIN products p ON p.id = pv.product_id
@@ -339,15 +340,15 @@ type ListDiscountListItemsWithProductParams struct {
 }
 
 type ListDiscountListItemsWithProductRow struct {
-	DiscountListID    int64          `json:"discount_list_id"`
-	ProductVariantID  int64          `json:"product_variant_id"`
-	Discount          int16          `json:"discount"`
-	ProductVariantUid uuid.UUID      `json:"product_variant_uid"`
-	Barcode           string         `json:"barcode"`
-	ProductCode       string         `json:"product_code"`
-	ProductName       string         `json:"product_name"`
-	ColorName         sql.NullString `json:"color_name"`
-	SizeName          sql.NullString `json:"size_name"`
+	DiscountListID    int64     `json:"discount_list_id"`
+	ProductVariantID  int64     `json:"product_variant_id"`
+	Discount          int16     `json:"discount"`
+	ProductVariantUid uuid.UUID `json:"product_variant_uid"`
+	Barcode           string    `json:"barcode"`
+	ProductCode       string    `json:"product_code"`
+	ProductName       string    `json:"product_name"`
+	ColorName         string    `json:"color_name"`
+	SizeName          string    `json:"size_name"`
 }
 
 // See ListPriceListItemsWithProduct: rows are variant-level, so the label needs

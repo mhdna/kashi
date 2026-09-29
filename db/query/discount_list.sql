@@ -101,7 +101,9 @@ ORDER BY product_variant_id;
 SELECT dli.discount_list_id, dli.product_variant_id, dli.discount,
        pv.uid AS product_variant_uid, pv.barcode,
        p.code AS product_code, p.name AS product_name,
-       colors.name AS color_name, sizes.name AS size_name
+       -- See ListPriceListItemsWithProduct for why these coalesce.
+       COALESCE(colors.name, '')::text AS color_name,
+       COALESCE(sizes.name, '')::text AS size_name
 FROM discount_list_items dli
 JOIN product_variants pv ON pv.id = dli.product_variant_id
 JOIN products p ON p.id = pv.product_id
