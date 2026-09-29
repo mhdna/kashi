@@ -121,6 +121,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/clients", server.updateClient)
 	authRoutes.GET("/clients/:id", server.getClient)
 	authRoutes.GET("/clients/:id/loyalty_total", server.getClientLoyaltyTotal)
+	authRoutes.GET("/clients/:id/profile", server.getClientProfile)
 	authRoutes.GET("/clients/", server.listClients)
 	authRoutes.GET("/clients/by_spending", server.listClientsBySpending)
 	authRoutes.GET("/clients/spending_summary", server.listClientSpendingSummary)
@@ -344,6 +345,9 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/branches/:id/settings/managed_locally", server.putBranchSettingsManagedLocally)
 	authRoutes.POST("/branches/:id/commands", server.createBranchCommand)
 	authRoutes.GET("/branches/:id/commands", server.listBranchCommands)
+
+	authRoutes.GET("/branches/:id/payment_methods", server.listBranchPaymentMethods)
+	authRoutes.PUT("/branches/:id/payment_methods/:account_id", server.putBranchPaymentMethod)
 
 	authRoutes.GET("/branches/:id/targets", server.listBranchTargets)
 	authRoutes.POST("/branches/:id/targets", server.createBranchTarget)

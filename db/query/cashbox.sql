@@ -64,6 +64,75 @@ ORDER BY updated_at;
 SELECT * FROM cashbox_accounts
 ORDER BY sort_order, id;
 
+-- name: ListCashboxAccountsForBranchSync :many
+-- What one branch's tills should actually show: the central set with that
+-- branch's overrides folded in, and the methods it switched off left out
+-- entirely. Absence is the signal kashi-pos reconciles on, so an excluded
+-- method needs no flag of its own -- not sending it is what deactivates it
+-- at the till (see reconcileCashboxAccounts in kashi-pos).
+--
+-- COALESCE per column rather than per row: an override that only sets
+-- sort_order keeps inheriting central's color and currency, so a later
+-- central color change still reaches a branch that reordered its buttons.
+SELECT
+  ca.id,
+  ca.name,
+  COALESCE(bca.currency_code, ca.currency_code)::text AS currency_code,
+  COALESCE(bca.sort_order, ca.sort_order)::int AS sort_order,
+  COALESCE(bca.color, ca.color)::text AS color,
+  GREATEST(ca.updated_at, COALESCE(bca.updated_at, ca.updated_at))::timestamptz AS updated_at
+FROM cashbox_accounts ca
+LEFT JOIN branch_cashbox_accounts bca
+  ON bca.cashbox_account_id = ca.id AND bca.branch_id = sqlc.arg(branch_id)
+WHERE COALESCE(bca.is_enabled, true)
+ORDER BY COALESCE(bca.sort_order, ca.sort_order), ca.id;
+
+-- name: ListCashboxAccountOverridesForBranch :many
+-- The admin view: every central method with this branch's override state, so
+-- the UI can show what is inherited and what is explicitly set. Unlike the
+-- sync query this keeps disabled rows -- switching one back on is the whole
+-- point of the screen.
+SELECT
+  ca.id,
+  ca.name,
+  ca.currency_code,
+  ca.sort_order,
+  ca.color,
+  COALESCE(bca.is_enabled, true)::boolean AS is_enabled,
+  bca.sort_order AS override_sort_order,
+  bca.color AS override_color,
+  bca.currency_code AS override_currency_code
+FROM cashbox_accounts ca
+LEFT JOIN branch_cashbox_accounts bca
+  ON bca.cashbox_account_id = ca.id AND bca.branch_id = sqlc.arg(branch_id)
+ORDER BY COALESCE(bca.sort_order, ca.sort_order), ca.id;
+
+-- name: UpsertCashboxAccountOverride :one
+INSERT INTO branch_cashbox_accounts (
+  branch_id,
+  cashbox_account_id,
+  is_enabled,
+  sort_order,
+  color,
+  currency_code,
+  updated_at
+)
+VALUES ($1, $2, $3, $4, $5, $6, now())
+ON CONFLICT (branch_id, cashbox_account_id)
+DO UPDATE SET
+  is_enabled = EXCLUDED.is_enabled,
+  sort_order = EXCLUDED.sort_order,
+  color = EXCLUDED.color,
+  currency_code = EXCLUDED.currency_code,
+  updated_at = now()
+RETURNING *;
+
+-- name: DeleteCashboxAccountOverride :exec
+-- Back to inheriting central. Deleting the row rather than writing one full
+-- of NULLs keeps "no override" a single state instead of two.
+DELETE FROM branch_cashbox_accounts
+WHERE branch_id = $1 AND cashbox_account_id = $2;
+
 -- name: GetCashboxAccountBalance :one
 SELECT * FROM shifts_accounts_balances
 WHERE account_id = $1

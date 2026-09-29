@@ -614,6 +614,16 @@ type BranchAttendanceEvent struct {
 	ReceivedAt       time.Time `json:"received_at"`
 }
 
+type BranchCashboxAccount struct {
+	BranchID         int64          `json:"branch_id"`
+	CashboxAccountID int64          `json:"cashbox_account_id"`
+	IsEnabled        bool           `json:"is_enabled"`
+	SortOrder        sql.NullInt32  `json:"sort_order"`
+	Color            sql.NullString `json:"color"`
+	CurrencyCode     sql.NullString `json:"currency_code"`
+	UpdatedAt        time.Time      `json:"updated_at"`
+}
+
 type BranchCommand struct {
 	ID          int64                 `json:"id"`
 	BranchID    int64                 `json:"branch_id"`
@@ -765,6 +775,8 @@ type BranchSetting struct {
 	AttendanceDuplicateIntervalSeconds int64           `json:"attendance_duplicate_interval_seconds"`
 	AttendanceCashierHistory           bool            `json:"attendance_cashier_history"`
 	ManagedLocally                     []string        `json:"managed_locally"`
+	SplitPrimaryCurrency               string          `json:"split_primary_currency"`
+	SplitPrimaryFirst                  bool            `json:"split_primary_first"`
 }
 
 type BranchShift struct {

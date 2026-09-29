@@ -283,6 +283,9 @@ type Querier interface {
 	DeleteBranchTargetSeries(ctx context.Context, id int64) (BranchTargetSeries, error)
 	DeleteBranchUser(ctx context.Context, id int64) error
 	DeleteCalendarEvent(ctx context.Context, id int64) error
+	// Back to inheriting central. Deleting the row rather than writing one full
+	// of NULLs keeps "no override" a single state instead of two.
+	DeleteCashboxAccountOverride(ctx context.Context, arg DeleteCashboxAccountOverrideParams) error
 	DeleteClient(ctx context.Context, id int64) error
 	DeleteColor(ctx context.Context, id int64) error
 	DeleteColors(ctx context.Context, ids []int64) (int64, error)
@@ -626,7 +629,22 @@ type Querier interface {
 	ListBranchesForDiscountList(ctx context.Context, discountListID int64) ([]ListBranchesForDiscountListRow, error)
 	ListBranchesForPriceList(ctx context.Context, priceListID int64) ([]ListBranchesForPriceListRow, error)
 	ListCalendarEvents(ctx context.Context) ([]CalendarEvent, error)
+	// The admin view: every central method with this branch's override state, so
+	// the UI can show what is inherited and what is explicitly set. Unlike the
+	// sync query this keeps disabled rows -- switching one back on is the whole
+	// point of the screen.
+	ListCashboxAccountOverridesForBranch(ctx context.Context, branchID int64) ([]ListCashboxAccountOverridesForBranchRow, error)
 	ListCashboxAccounts(ctx context.Context, arg ListCashboxAccountsParams) ([]CashboxAccount, error)
+	// What one branch's tills should actually show: the central set with that
+	// branch's overrides folded in, and the methods it switched off left out
+	// entirely. Absence is the signal kashi-pos reconciles on, so an excluded
+	// method needs no flag of its own -- not sending it is what deactivates it
+	// at the till (see reconcileCashboxAccounts in kashi-pos).
+	//
+	// COALESCE per column rather than per row: an override that only sets
+	// sort_order keeps inheriting central's color and currency, so a later
+	// central color change still reaches a branch that reordered its buttons.
+	ListCashboxAccountsForBranchSync(ctx context.Context, branchID int64) ([]ListCashboxAccountsForBranchSyncRow, error)
 	// The whole set, not a "changed since" delta. A branch has to be able to tell
 	// that kashi no longer has a payment method at all, and an incremental feed
 	// can only say what changed -- it has no way to say what is gone. Sending
@@ -999,6 +1017,7 @@ type Querier interface {
 	// the same conflict. A row an admin already resolved/dismissed is left
 	// alone (nothing to re-open).
 	UpsertBranchSyncConflict(ctx context.Context, arg UpsertBranchSyncConflictParams) (BranchSyncConflict, error)
+	UpsertCashboxAccountOverride(ctx context.Context, arg UpsertCashboxAccountOverrideParams) (BranchCashboxAccount, error)
 	UpsertClientLink(ctx context.Context, arg UpsertClientLinkParams) error
 	UpsertDiscountListBranch(ctx context.Context, arg UpsertDiscountListBranchParams) error
 	UpsertPriceListBranch(ctx context.Context, arg UpsertPriceListBranchParams) error

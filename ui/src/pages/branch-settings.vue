@@ -107,6 +107,7 @@
                 <v-tab class="text-none" text="Printing" value="printing" />
                 <v-tab class="text-none" text="Attendance" value="attendance" />
                 <v-tab class="text-none" text="Users" value="users" />
+                <v-tab class="text-none" text="Payments" value="payments" />
                 <v-tab class="text-none" value="conflicts">
                   <span class="text-none">Conflicts</span>
                   <v-badge
@@ -164,6 +165,22 @@
                           v-model="settingsForm.rounding_currency"
                           label="Rounding Currency"
                           variant="outlined"
+                        />
+                        <CurrencySelect
+                          v-model="settingsForm.split_primary_currency"
+                          hint="First half of the till's split total; the rounding currency is the second."
+                          label="Split Primary Currency"
+                          persistent-hint
+                          variant="outlined"
+                        />
+                        <v-switch
+                          v-model="settingsForm.split_primary_first"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          :label="settingsForm.split_primary_first
+                            ? 'Primary currency shown first'
+                            : 'Rounding currency shown first'"
                         />
                         <v-text-field
                           v-model.number="settingsForm.exchange_rate"
@@ -700,6 +717,110 @@
                   </v-table>
                 </div>
 
+                <div v-show="sectionTab === 'payments'">
+                  <div class="bs-section-title mb-0">Payment methods</div>
+                  <p class="text-body-2 text-medium-emphasis mb-3">
+                    Every branch inherits the central payment methods. Switch one off to stop this
+                    branch offering it, or pin a position, colour or currency to differ from central
+                    here only. Anything left blank keeps following central.
+                  </p>
+                  <v-alert
+                    v-if="paymentMethodsError"
+                    class="mb-3"
+                    density="compact"
+                    type="error"
+                    variant="tonal"
+                  >
+                    {{ paymentMethodsError }}
+                  </v-alert>
+                  <v-table density="compact">
+                    <thead>
+                      <tr>
+                        <th>Method</th>
+                        <th>Offered</th>
+                        <th>Order</th>
+                        <th>Currency</th>
+                        <th>Colour</th>
+                        <th class="text-end" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="m in branchPaymentMethods" :key="m.id">
+                        <td>{{ m.name }}</td>
+                        <td>
+                          <v-switch
+                            color="primary"
+                            density="compact"
+                            :disabled="!canEdit"
+                            hide-details
+                            :model-value="m.is_enabled"
+                            @update:model-value="setMethodEnabled(m, $event)"
+                          />
+                        </td>
+                        <td style="width: 120px">
+                          <v-text-field
+                            density="compact"
+                            :disabled="!canEdit"
+                            hide-details
+                            :model-value="m.override_sort_order"
+                            :placeholder="String(m.sort_order)"
+                            type="number"
+                            variant="outlined"
+                            @blur="saveMethod(m)"
+                            @update:model-value="setMethodOverride(m, 'sortOrder', $event)"
+                          />
+                        </td>
+                        <td style="width: 160px">
+                          <CurrencySelect
+                            clearable
+                            :disabled="!canEdit"
+                            hide-details
+                            label=""
+                            :model-value="m.override_currency_code || ''"
+                            :placeholder="m.currency_code"
+                            @update:model-value="setMethodOverride(m, 'currencyCode', $event)"
+                          />
+                        </td>
+                        <td style="width: 150px">
+                          <v-text-field
+                            density="compact"
+                            :disabled="!canEdit"
+                            hide-details
+                            :model-value="m.override_color"
+                            :placeholder="m.color || '—'"
+                            variant="outlined"
+                            @blur="saveMethod(m)"
+                            @update:model-value="setMethodOverride(m, 'color', $event)"
+                          />
+                        </td>
+                        <td class="text-end">
+                          <v-chip
+                            v-if="methodIsOverridden(m)"
+                            size="x-small"
+                            variant="tonal"
+                          >
+                            Overridden
+                          </v-chip>
+                          <span v-else class="text-medium-emphasis text-caption">Inherited</span>
+                          <v-icon-btn
+                            v-if="canEdit && methodIsOverridden(m)"
+                            icon="mdi-restore"
+                            size="small"
+                            title="Back to central"
+                            variant="text"
+                            @click="resetMethod(m)"
+                          />
+                        </td>
+                      </tr>
+                      <tr v-if="branchPaymentMethods.length === 0">
+                        <td class="text-medium-emphasis py-4" colspan="6">
+                          No payment methods defined centrally yet.
+                        </td>
+                      </tr>
+                    </tbody>
+                  </v-table>
+                </div>
+
                 <div v-show="sectionTab === 'conflicts'">
                   <div class="d-flex align-center justify-space-between mb-2">
                     <div class="bs-section-title mb-0">Sync conflicts</div>
@@ -1035,10 +1156,12 @@
 <script setup lang="ts">
   import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
+  import CurrencySelect from '@/components/CurrencySelect.vue'
   import PageSidebar from '@/components/PageSidebar.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useBranches } from '@/composables/useBranches'
+  import { useBranchPaymentMethods } from '@/composables/useBranchPaymentMethods'
   import { useBranchSettings } from '@/composables/useBranchSettings'
   import { useBranchSyncConflicts } from '@/composables/useBranchSyncConflicts'
   import { useBranchUsers } from '@/composables/useBranchUsers'
@@ -1303,6 +1426,7 @@
     'receipt_cutoff',
     'attendance_enabled',
     'attendance_cashier_history',
+    'split_primary_first',
   ]
 
   function formFromSettings (d) {
@@ -1338,9 +1462,17 @@
       // Not reported back up by the branch yet -- defaults to hybrid; sending
       // the command sets it on the till.
       shift_receipt_upload_mode: d.shift_receipt_upload_mode ?? 2,
+      split_primary_currency: d.split_primary_currency ?? '',
     }
     for (const k of BOOL_KEYS) {
       if (k === 'search_button_enabled') continue
+      // Like search_button_enabled: absent on a till that predates the field,
+      // and the primary currency leading is the shape every branch had when
+      // it was hardcoded -- so only an explicit false flips it.
+      if (k === 'split_primary_first') {
+        form[k] = d[k] !== false
+        continue
+      }
       form[k] = d[k] === true
     }
     return form
@@ -1376,10 +1508,84 @@
     }
     loadCommandHistory()
     loadBranchUsers(id)
+    loadBranchPaymentMethods(id)
   }
 
   function reloadActive () {
     if (selectedId.value != null) loadSettings(selectedId.value)
+  }
+
+  // ---- payment method overrides -----------------------------------------
+  // The rows carry both central's value and this branch's override, so an
+  // edit only has to send the override side. An empty string from a cleared
+  // field means "stop overriding", which is null on the wire -- the server
+  // drops the row entirely once nothing is pinned and the method is offered.
+  const { listBranchPaymentMethods, setBranchPaymentMethod } = useBranchPaymentMethods()
+  const branchPaymentMethods = ref([])
+  const paymentMethodsError = ref('')
+
+  async function loadBranchPaymentMethods (id) {
+    branchPaymentMethods.value = []
+    paymentMethodsError.value = ''
+    try {
+      branchPaymentMethods.value = await listBranchPaymentMethods(id)
+    } catch (error) {
+      paymentMethodsError.value = error.message
+    }
+  }
+
+  function methodIsOverridden (m) {
+    return !m.is_enabled
+      || m.override_sort_order != null
+      || m.override_color != null
+      || m.override_currency_code != null
+  }
+
+  // Every write sends the method's whole override state, because the server
+  // replaces the row rather than patching it -- sending one field alone would
+  // clear the others.
+  async function saveMethod (m) {
+    paymentMethodsError.value = ''
+    try {
+      await setBranchPaymentMethod(selectedId.value, m.id, {
+        isEnabled: m.is_enabled,
+        sortOrder: m.override_sort_order,
+        color: m.override_color,
+        currencyCode: m.override_currency_code,
+      })
+    } catch (error) {
+      paymentMethodsError.value = error.message
+    }
+    await loadBranchPaymentMethods(selectedId.value)
+  }
+
+  function setMethodEnabled (m, value) {
+    m.is_enabled = !!value
+    saveMethod(m)
+  }
+
+  // Records the edit without saving. The free-text fields save on blur, so a
+  // half-typed colour is not sent (and not echoed back mid-keystroke by the
+  // reload); the currency picker commits immediately, since a selection is a
+  // complete value the moment it is made.
+  function setMethodOverride (m, field, value) {
+    const blank = value === '' || value == null
+    if (field === 'sortOrder') {
+      m.override_sort_order = blank ? null : Number(value)
+    } else if (field === 'color') {
+      m.override_color = blank ? null : value
+    } else {
+      m.override_currency_code = blank ? null : value
+      saveMethod(m)
+    }
+  }
+
+  function resetMethod (m) {
+    m.is_enabled = true
+    m.override_sort_order = null
+    m.override_color = null
+    m.override_currency_code = null
+    saveMethod(m)
   }
 
   // ---- POS users --------------------------------------------------------

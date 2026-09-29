@@ -2876,6 +2876,20 @@ func (mr *MockStoreMockRecorder) DeleteCalendarEvent(arg0, arg1 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCalendarEvent", reflect.TypeOf((*MockStore)(nil).DeleteCalendarEvent), arg0, arg1)
 }
 
+// DeleteCashboxAccountOverride mocks base method.
+func (m *MockStore) DeleteCashboxAccountOverride(arg0 context.Context, arg1 db.DeleteCashboxAccountOverrideParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteCashboxAccountOverride", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteCashboxAccountOverride indicates an expected call of DeleteCashboxAccountOverride.
+func (mr *MockStoreMockRecorder) DeleteCashboxAccountOverride(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCashboxAccountOverride", reflect.TypeOf((*MockStore)(nil).DeleteCashboxAccountOverride), arg0, arg1)
+}
+
 // DeleteClient mocks base method.
 func (m *MockStore) DeleteClient(arg0 context.Context, arg1 int64) error {
 	m.ctrl.T.Helper()
@@ -5562,6 +5576,21 @@ func (mr *MockStoreMockRecorder) ListCalendarEvents(arg0 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCalendarEvents", reflect.TypeOf((*MockStore)(nil).ListCalendarEvents), arg0)
 }
 
+// ListCashboxAccountOverridesForBranch mocks base method.
+func (m *MockStore) ListCashboxAccountOverridesForBranch(arg0 context.Context, arg1 int64) ([]db.ListCashboxAccountOverridesForBranchRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListCashboxAccountOverridesForBranch", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListCashboxAccountOverridesForBranchRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListCashboxAccountOverridesForBranch indicates an expected call of ListCashboxAccountOverridesForBranch.
+func (mr *MockStoreMockRecorder) ListCashboxAccountOverridesForBranch(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCashboxAccountOverridesForBranch", reflect.TypeOf((*MockStore)(nil).ListCashboxAccountOverridesForBranch), arg0, arg1)
+}
+
 // ListCashboxAccounts mocks base method.
 func (m *MockStore) ListCashboxAccounts(arg0 context.Context, arg1 db.ListCashboxAccountsParams) ([]db.CashboxAccount, error) {
 	m.ctrl.T.Helper()
@@ -5575,6 +5604,21 @@ func (m *MockStore) ListCashboxAccounts(arg0 context.Context, arg1 db.ListCashbo
 func (mr *MockStoreMockRecorder) ListCashboxAccounts(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCashboxAccounts", reflect.TypeOf((*MockStore)(nil).ListCashboxAccounts), arg0, arg1)
+}
+
+// ListCashboxAccountsForBranchSync mocks base method.
+func (m *MockStore) ListCashboxAccountsForBranchSync(arg0 context.Context, arg1 int64) ([]db.ListCashboxAccountsForBranchSyncRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListCashboxAccountsForBranchSync", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListCashboxAccountsForBranchSyncRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListCashboxAccountsForBranchSync indicates an expected call of ListCashboxAccountsForBranchSync.
+func (mr *MockStoreMockRecorder) ListCashboxAccountsForBranchSync(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCashboxAccountsForBranchSync", reflect.TypeOf((*MockStore)(nil).ListCashboxAccountsForBranchSync), arg0, arg1)
 }
 
 // ListCashboxAccountsForSync mocks base method.
@@ -8127,6 +8171,21 @@ func (m *MockStore) UpsertBranchSyncConflict(arg0 context.Context, arg1 db.Upser
 func (mr *MockStoreMockRecorder) UpsertBranchSyncConflict(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpsertBranchSyncConflict", reflect.TypeOf((*MockStore)(nil).UpsertBranchSyncConflict), arg0, arg1)
+}
+
+// UpsertCashboxAccountOverride mocks base method.
+func (m *MockStore) UpsertCashboxAccountOverride(arg0 context.Context, arg1 db.UpsertCashboxAccountOverrideParams) (db.BranchCashboxAccount, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpsertCashboxAccountOverride", arg0, arg1)
+	ret0, _ := ret[0].(db.BranchCashboxAccount)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpsertCashboxAccountOverride indicates an expected call of UpsertCashboxAccountOverride.
+func (mr *MockStoreMockRecorder) UpsertCashboxAccountOverride(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpsertCashboxAccountOverride", reflect.TypeOf((*MockStore)(nil).UpsertCashboxAccountOverride), arg0, arg1)
 }
 
 // UpsertClientLink mocks base method.

@@ -154,6 +154,23 @@ func (q *Queries) CreateSalesperson(ctx context.Context, arg CreateSalespersonPa
 	return i, err
 }
 
+const deleteCashboxAccountOverride = `-- name: DeleteCashboxAccountOverride :exec
+DELETE FROM branch_cashbox_accounts
+WHERE branch_id = $1 AND cashbox_account_id = $2
+`
+
+type DeleteCashboxAccountOverrideParams struct {
+	BranchID         int64 `json:"branch_id"`
+	CashboxAccountID int64 `json:"cashbox_account_id"`
+}
+
+// Back to inheriting central. Deleting the row rather than writing one full
+// of NULLs keeps "no override" a single state instead of two.
+func (q *Queries) DeleteCashboxAccountOverride(ctx context.Context, arg DeleteCashboxAccountOverrideParams) error {
+	_, err := q.db.ExecContext(ctx, deleteCashboxAccountOverride, arg.BranchID, arg.CashboxAccountID)
+	return err
+}
+
 const deleteSalesperson = `-- name: DeleteSalesperson :exec
 DELETE FROM salespersons
 WHERE id = $1
@@ -274,6 +291,72 @@ func (q *Queries) ListAllCashboxAccounts(ctx context.Context) ([]CashboxAccount,
 	return items, nil
 }
 
+const listCashboxAccountOverridesForBranch = `-- name: ListCashboxAccountOverridesForBranch :many
+SELECT
+  ca.id,
+  ca.name,
+  ca.currency_code,
+  ca.sort_order,
+  ca.color,
+  COALESCE(bca.is_enabled, true)::boolean AS is_enabled,
+  bca.sort_order AS override_sort_order,
+  bca.color AS override_color,
+  bca.currency_code AS override_currency_code
+FROM cashbox_accounts ca
+LEFT JOIN branch_cashbox_accounts bca
+  ON bca.cashbox_account_id = ca.id AND bca.branch_id = $1
+ORDER BY COALESCE(bca.sort_order, ca.sort_order), ca.id
+`
+
+type ListCashboxAccountOverridesForBranchRow struct {
+	ID                   int64          `json:"id"`
+	Name                 string         `json:"name"`
+	CurrencyCode         string         `json:"currency_code"`
+	SortOrder            int32          `json:"sort_order"`
+	Color                string         `json:"color"`
+	IsEnabled            bool           `json:"is_enabled"`
+	OverrideSortOrder    sql.NullInt32  `json:"override_sort_order"`
+	OverrideColor        sql.NullString `json:"override_color"`
+	OverrideCurrencyCode sql.NullString `json:"override_currency_code"`
+}
+
+// The admin view: every central method with this branch's override state, so
+// the UI can show what is inherited and what is explicitly set. Unlike the
+// sync query this keeps disabled rows -- switching one back on is the whole
+// point of the screen.
+func (q *Queries) ListCashboxAccountOverridesForBranch(ctx context.Context, branchID int64) ([]ListCashboxAccountOverridesForBranchRow, error) {
+	rows, err := q.db.QueryContext(ctx, listCashboxAccountOverridesForBranch, branchID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListCashboxAccountOverridesForBranchRow{}
+	for rows.Next() {
+		var i ListCashboxAccountOverridesForBranchRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CurrencyCode,
+			&i.SortOrder,
+			&i.Color,
+			&i.IsEnabled,
+			&i.OverrideSortOrder,
+			&i.OverrideColor,
+			&i.OverrideCurrencyCode,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listCashboxAccounts = `-- name: ListCashboxAccounts :many
 SELECT id, name, currency_code, sort_order, color, updated_at FROM cashbox_accounts
 ORDER BY id
@@ -295,6 +378,69 @@ func (q *Queries) ListCashboxAccounts(ctx context.Context, arg ListCashboxAccoun
 	items := []CashboxAccount{}
 	for rows.Next() {
 		var i CashboxAccount
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CurrencyCode,
+			&i.SortOrder,
+			&i.Color,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listCashboxAccountsForBranchSync = `-- name: ListCashboxAccountsForBranchSync :many
+SELECT
+  ca.id,
+  ca.name,
+  COALESCE(bca.currency_code, ca.currency_code)::text AS currency_code,
+  COALESCE(bca.sort_order, ca.sort_order)::int AS sort_order,
+  COALESCE(bca.color, ca.color)::text AS color,
+  GREATEST(ca.updated_at, COALESCE(bca.updated_at, ca.updated_at))::timestamptz AS updated_at
+FROM cashbox_accounts ca
+LEFT JOIN branch_cashbox_accounts bca
+  ON bca.cashbox_account_id = ca.id AND bca.branch_id = $1
+WHERE COALESCE(bca.is_enabled, true)
+ORDER BY COALESCE(bca.sort_order, ca.sort_order), ca.id
+`
+
+type ListCashboxAccountsForBranchSyncRow struct {
+	ID           int64     `json:"id"`
+	Name         string    `json:"name"`
+	CurrencyCode string    `json:"currency_code"`
+	SortOrder    int32     `json:"sort_order"`
+	Color        string    `json:"color"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+// What one branch's tills should actually show: the central set with that
+// branch's overrides folded in, and the methods it switched off left out
+// entirely. Absence is the signal kashi-pos reconciles on, so an excluded
+// method needs no flag of its own -- not sending it is what deactivates it
+// at the till (see reconcileCashboxAccounts in kashi-pos).
+//
+// COALESCE per column rather than per row: an override that only sets
+// sort_order keeps inheriting central's color and currency, so a later
+// central color change still reaches a branch that reordered its buttons.
+func (q *Queries) ListCashboxAccountsForBranchSync(ctx context.Context, branchID int64) ([]ListCashboxAccountsForBranchSyncRow, error) {
+	rows, err := q.db.QueryContext(ctx, listCashboxAccountsForBranchSync, branchID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListCashboxAccountsForBranchSyncRow{}
+	for rows.Next() {
+		var i ListCashboxAccountsForBranchSyncRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -739,6 +885,58 @@ func (q *Queries) UpdateSalesperson(ctx context.Context, arg UpdateSalespersonPa
 		&i.CashboxID,
 		&i.BranchID,
 		&i.IsActive,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const upsertCashboxAccountOverride = `-- name: UpsertCashboxAccountOverride :one
+INSERT INTO branch_cashbox_accounts (
+  branch_id,
+  cashbox_account_id,
+  is_enabled,
+  sort_order,
+  color,
+  currency_code,
+  updated_at
+)
+VALUES ($1, $2, $3, $4, $5, $6, now())
+ON CONFLICT (branch_id, cashbox_account_id)
+DO UPDATE SET
+  is_enabled = EXCLUDED.is_enabled,
+  sort_order = EXCLUDED.sort_order,
+  color = EXCLUDED.color,
+  currency_code = EXCLUDED.currency_code,
+  updated_at = now()
+RETURNING branch_id, cashbox_account_id, is_enabled, sort_order, color, currency_code, updated_at
+`
+
+type UpsertCashboxAccountOverrideParams struct {
+	BranchID         int64          `json:"branch_id"`
+	CashboxAccountID int64          `json:"cashbox_account_id"`
+	IsEnabled        bool           `json:"is_enabled"`
+	SortOrder        sql.NullInt32  `json:"sort_order"`
+	Color            sql.NullString `json:"color"`
+	CurrencyCode     sql.NullString `json:"currency_code"`
+}
+
+func (q *Queries) UpsertCashboxAccountOverride(ctx context.Context, arg UpsertCashboxAccountOverrideParams) (BranchCashboxAccount, error) {
+	row := q.db.QueryRowContext(ctx, upsertCashboxAccountOverride,
+		arg.BranchID,
+		arg.CashboxAccountID,
+		arg.IsEnabled,
+		arg.SortOrder,
+		arg.Color,
+		arg.CurrencyCode,
+	)
+	var i BranchCashboxAccount
+	err := row.Scan(
+		&i.BranchID,
+		&i.CashboxAccountID,
+		&i.IsEnabled,
+		&i.SortOrder,
+		&i.Color,
+		&i.CurrencyCode,
 		&i.UpdatedAt,
 	)
 	return i, err

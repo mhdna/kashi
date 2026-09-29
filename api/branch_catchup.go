@@ -119,7 +119,12 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 		// delta cannot express absence. Both tables are tiny.
 		items, err = server.store.ListCurrenciesForSync(ctx)
 	case "cashbox_accounts":
-		items, err = server.store.ListCashboxAccountsForSync(ctx)
+		// Branch-scoped, unlike currencies: the central set is the default,
+		// but a branch can switch a method off or reposition it. Still the
+		// whole (resolved) set every time -- a method this branch disabled is
+		// expressed by its absence, which is what the till reconciles on.
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		items, err = server.store.ListCashboxAccountsForBranchSync(ctx, branchID)
 	case "products":
 		if paged {
 			var rows []db.ListProductVariantsForSyncPagedRow
