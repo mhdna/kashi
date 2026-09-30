@@ -49,9 +49,9 @@ func (q *Queries) CountDiscountLists(ctx context.Context) (int64, error) {
 }
 
 const createDiscountList = `-- name: CreateDiscountList :one
-INSERT INTO discount_lists (name, is_active, is_default, valid_from, valid_to)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at
+INSERT INTO discount_lists (name, is_active, is_default, valid_from, valid_to, is_special)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at, is_special
 `
 
 type CreateDiscountListParams struct {
@@ -60,6 +60,7 @@ type CreateDiscountListParams struct {
 	IsDefault bool      `json:"is_default"`
 	ValidFrom time.Time `json:"valid_from"`
 	ValidTo   time.Time `json:"valid_to"`
+	IsSpecial bool      `json:"is_special"`
 }
 
 func (q *Queries) CreateDiscountList(ctx context.Context, arg CreateDiscountListParams) (DiscountList, error) {
@@ -69,6 +70,7 @@ func (q *Queries) CreateDiscountList(ctx context.Context, arg CreateDiscountList
 		arg.IsDefault,
 		arg.ValidFrom,
 		arg.ValidTo,
+		arg.IsSpecial,
 	)
 	var i DiscountList
 	err := row.Scan(
@@ -81,6 +83,7 @@ func (q *Queries) CreateDiscountList(ctx context.Context, arg CreateDiscountList
 		&i.CreatedAt,
 		&i.Uid,
 		&i.UpdatedAt,
+		&i.IsSpecial,
 	)
 	return i, err
 }
@@ -163,7 +166,7 @@ func (q *Queries) GetDefaultDiscountForVariant(ctx context.Context, productVaria
 }
 
 const getDefaultDiscountList = `-- name: GetDefaultDiscountList :one
-SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at FROM discount_lists
+SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at, is_special FROM discount_lists
 WHERE is_default = true LIMIT 1
 `
 
@@ -180,12 +183,13 @@ func (q *Queries) GetDefaultDiscountList(ctx context.Context) (DiscountList, err
 		&i.CreatedAt,
 		&i.Uid,
 		&i.UpdatedAt,
+		&i.IsSpecial,
 	)
 	return i, err
 }
 
 const getDiscountList = `-- name: GetDiscountList :one
-SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at FROM discount_lists
+SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at, is_special FROM discount_lists
 WHERE id = $1 LIMIT 1
 `
 
@@ -202,12 +206,13 @@ func (q *Queries) GetDiscountList(ctx context.Context, id int64) (DiscountList, 
 		&i.CreatedAt,
 		&i.Uid,
 		&i.UpdatedAt,
+		&i.IsSpecial,
 	)
 	return i, err
 }
 
 const getDiscountListByUID = `-- name: GetDiscountListByUID :one
-SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at FROM discount_lists
+SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at, is_special FROM discount_lists
 WHERE uid = $1 LIMIT 1
 `
 
@@ -224,6 +229,7 @@ func (q *Queries) GetDiscountListByUID(ctx context.Context, uid uuid.UUID) (Disc
 		&i.CreatedAt,
 		&i.Uid,
 		&i.UpdatedAt,
+		&i.IsSpecial,
 	)
 	return i, err
 }
@@ -392,7 +398,7 @@ func (q *Queries) ListDiscountListItemsWithProduct(ctx context.Context, arg List
 }
 
 const listDiscountLists = `-- name: ListDiscountLists :many
-SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at FROM discount_lists
+SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at, is_special FROM discount_lists
 ORDER BY name
 LIMIT $1
 OFFSET $2
@@ -422,6 +428,7 @@ func (q *Queries) ListDiscountLists(ctx context.Context, arg ListDiscountListsPa
 			&i.CreatedAt,
 			&i.Uid,
 			&i.UpdatedAt,
+			&i.IsSpecial,
 		); err != nil {
 			return nil, err
 		}
@@ -437,7 +444,7 @@ func (q *Queries) ListDiscountLists(ctx context.Context, arg ListDiscountListsPa
 }
 
 const listDiscountListsForBranchSync = `-- name: ListDiscountListsForBranchSync :many
-SELECT dl.id, dl.name, dl.is_active, dl.is_default, dl.valid_from, dl.valid_to, dl.created_at, dl.uid, dl.updated_at FROM discount_lists dl
+SELECT dl.id, dl.name, dl.is_active, dl.is_default, dl.valid_from, dl.valid_to, dl.created_at, dl.uid, dl.updated_at, dl.is_special FROM discount_lists dl
 LEFT JOIN discount_list_branches dlb
   ON dlb.discount_list_id = dl.id AND dlb.branch_id = $1
 WHERE (dlb.branch_id IS NOT NULL OR dl.is_default = true)
@@ -471,6 +478,7 @@ func (q *Queries) ListDiscountListsForBranchSync(ctx context.Context, arg ListDi
 			&i.CreatedAt,
 			&i.Uid,
 			&i.UpdatedAt,
+			&i.IsSpecial,
 		); err != nil {
 			return nil, err
 		}
@@ -575,7 +583,7 @@ func (q *Queries) UnsetDefaultDiscountList(ctx context.Context, id int64) error 
 const updateDiscountList = `-- name: UpdateDiscountList :exec
 UPDATE discount_lists
 SET name = $2, is_active = $3, is_default = $4, valid_from = $5, valid_to = $6,
-    updated_at = now()
+    is_special = $7, updated_at = now()
 WHERE id = $1
 `
 
@@ -586,6 +594,7 @@ type UpdateDiscountListParams struct {
 	IsDefault bool      `json:"is_default"`
 	ValidFrom time.Time `json:"valid_from"`
 	ValidTo   time.Time `json:"valid_to"`
+	IsSpecial bool      `json:"is_special"`
 }
 
 func (q *Queries) UpdateDiscountList(ctx context.Context, arg UpdateDiscountListParams) error {
@@ -596,6 +605,7 @@ func (q *Queries) UpdateDiscountList(ctx context.Context, arg UpdateDiscountList
 		arg.IsDefault,
 		arg.ValidFrom,
 		arg.ValidTo,
+		arg.IsSpecial,
 	)
 	return err
 }

@@ -4,9 +4,10 @@ INSERT INTO price_lists (
   is_active,
   is_default,
   valid_from,
-  valid_to
+  valid_to,
+  is_special
 ) VALUES (
-    $1, $2, $3, $4, $5
+    $1, $2, $3, $4, $5, $6
 ) RETURNING *;
 
 -- name: GetPriceList :one
@@ -37,7 +38,7 @@ WHERE BTRIM(sqlc.arg(search)::text) = ''
 -- name: UpdatePriceList :exec
 UPDATE price_lists
 SET name = $2, is_active = $3, is_default = $4, valid_from = $5, valid_to = $6,
-    updated_at = now()
+    is_special = $7, updated_at = now()
 WHERE id = $1;
 
 -- name: UnsetDefaultPriceList :exec

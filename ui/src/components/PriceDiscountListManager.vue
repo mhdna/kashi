@@ -29,6 +29,7 @@
       <div class="vlm-layout">
         <PageSidebar v-model="selectedListId" :items="listItems" :width="240">
           <template #append="{ item }">
+            <v-icon v-if="item.is_special" color="amber-darken-2" icon="mdi-star" size="16" />
             <v-chip v-if="item.is_default" color="primary" size="x-small" text="Default" />
             <v-icon
               v-else-if="!item.is_active"
@@ -54,6 +55,13 @@
                 :color="selectedList.is_active ? 'success' : 'grey'"
                 size="small"
                 :text="selectedList.is_active ? 'Active' : 'Inactive'"
+              />
+              <v-chip
+                v-if="selectedList.is_special"
+                color="amber-darken-2"
+                prepend-icon="mdi-star"
+                size="small"
+                text="Special"
               />
               <span class="text-medium-emphasis text-body-2">
                 {{ formatDate(selectedList.valid_from) }} – {{ formatDate(selectedList.valid_to) }}
@@ -211,7 +219,18 @@
               hide-details
               label="Default"
             />
+            <v-switch
+              v-model="listForm.isSpecial"
+              color="amber-darken-2"
+              density="compact"
+              hide-details
+              label="Special"
+            />
           </div>
+          <p class="text-caption text-medium-emphasis mt-1">
+            Special lists get a star badge on the till's invoice screen, so cashiers notice
+            the price came from a promo/loyalty list rather than the usual catalog price.
+          </p>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -506,11 +525,11 @@
   const listDialog = ref(false)
   const editingList = ref(false)
   const savingList = ref(false)
-  const listForm = reactive({ name: '', validFrom: '', validTo: '', isActive: true, isDefault: false })
+  const listForm = reactive({ name: '', validFrom: '', validTo: '', isActive: true, isDefault: false, isSpecial: false })
 
   function openCreateList () {
     editingList.value = false
-    Object.assign(listForm, { name: '', validFrom: '', validTo: '', isActive: true, isDefault: false })
+    Object.assign(listForm, { name: '', validFrom: '', validTo: '', isActive: true, isDefault: false, isSpecial: false })
     listDialog.value = true
   }
 
@@ -522,6 +541,7 @@
       validTo: selectedList.value.valid_to?.slice(0, 10) ?? '',
       isActive: selectedList.value.is_active,
       isDefault: selectedList.value.is_default,
+      isSpecial: selectedList.value.is_special,
     })
     listDialog.value = true
   }
@@ -536,6 +556,7 @@
       name: listForm.name.trim(),
       is_active: listForm.isActive,
       is_default: listForm.isDefault,
+      is_special: listForm.isSpecial,
       valid_from: new Date(listForm.validFrom).toISOString(),
       valid_to: new Date(listForm.validTo).toISOString(),
     }

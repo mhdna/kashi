@@ -34,6 +34,7 @@ type syncPriceList struct {
 	Name      string              `json:"name"`
 	IsActive  bool                `json:"is_active"`
 	IsDefault bool                `json:"is_default"`
+	IsSpecial bool                `json:"is_special"`
 	ValidFrom time.Time           `json:"valid_from"`
 	ValidTo   time.Time           `json:"valid_to"`
 	UpdatedAt time.Time           `json:"updated_at"`
@@ -50,6 +51,7 @@ type syncDiscountList struct {
 	Name      string                 `json:"name"`
 	IsActive  bool                   `json:"is_active"`
 	IsDefault bool                   `json:"is_default"`
+	IsSpecial bool                   `json:"is_special"`
 	ValidFrom time.Time              `json:"valid_from"`
 	ValidTo   time.Time              `json:"valid_to"`
 	UpdatedAt time.Time              `json:"updated_at"`
@@ -75,6 +77,7 @@ func (server *Server) priceListsForBranchSync(ctx *gin.Context, branchID int64, 
 			Name:      l.Name,
 			IsActive:  l.IsActive,
 			IsDefault: l.IsDefault,
+			IsSpecial: l.IsSpecial,
 			ValidFrom: l.ValidFrom,
 			ValidTo:   l.ValidTo,
 			UpdatedAt: l.UpdatedAt,
@@ -113,6 +116,7 @@ func (server *Server) discountListsForBranchSync(ctx *gin.Context, branchID int6
 			Name:      l.Name,
 			IsActive:  l.IsActive,
 			IsDefault: l.IsDefault,
+			IsSpecial: l.IsSpecial,
 			ValidFrom: l.ValidFrom,
 			ValidTo:   l.ValidTo,
 			UpdatedAt: l.UpdatedAt,

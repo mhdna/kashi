@@ -972,6 +972,12 @@ type Currency struct {
 	UpdatedAt              time.Time `json:"updated_at"`
 }
 
+type DefaultBranchSetting struct {
+	ID        int16           `json:"id"`
+	Settings  json.RawMessage `json:"settings"`
+	UpdatedAt time.Time       `json:"updated_at"`
+}
+
 type DiscountList struct {
 	ID        int64     `json:"id"`
 	Name      string    `json:"name"`
@@ -982,6 +988,7 @@ type DiscountList struct {
 	CreatedAt time.Time `json:"created_at"`
 	Uid       uuid.UUID `json:"uid"`
 	UpdatedAt time.Time `json:"updated_at"`
+	IsSpecial bool      `json:"is_special"`
 }
 
 type DiscountListBranch struct {
@@ -1173,6 +1180,7 @@ type PriceList struct {
 	CreatedAt time.Time `json:"created_at"`
 	Uid       uuid.UUID `json:"uid"`
 	UpdatedAt time.Time `json:"updated_at"`
+	IsSpecial bool      `json:"is_special"`
 }
 
 type PriceListBranch struct {

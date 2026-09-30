@@ -7,6 +7,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -409,6 +410,7 @@ type Querier interface {
 	GetCouponList(ctx context.Context, id int64) (CouponList, error)
 	GetCouponType(ctx context.Context, id int64) (CouponType, error)
 	GetCurrency(ctx context.Context, code string) (Currency, error)
+	GetDefaultBranchSettings(ctx context.Context) (DefaultBranchSetting, error)
 	GetDefaultCurrency(ctx context.Context) (Currency, error)
 	GetDefaultDiscountForVariant(ctx context.Context, productVariantID int64) (int16, error)
 	GetDefaultDiscountList(ctx context.Context) (DiscountList, error)
@@ -1150,6 +1152,7 @@ type Querier interface {
 	UpsertBranchSyncConflict(ctx context.Context, arg UpsertBranchSyncConflictParams) (BranchSyncConflict, error)
 	UpsertCashboxAccountOverride(ctx context.Context, arg UpsertCashboxAccountOverrideParams) (BranchCashboxAccount, error)
 	UpsertClientLink(ctx context.Context, arg UpsertClientLinkParams) error
+	UpsertDefaultBranchSettings(ctx context.Context, settings json.RawMessage) (DefaultBranchSetting, error)
 	UpsertDiscountListBranch(ctx context.Context, arg UpsertDiscountListBranchParams) error
 	UpsertPriceListBranch(ctx context.Context, arg UpsertPriceListBranchParams) error
 	UpsertProductAttribute(ctx context.Context, arg UpsertProductAttributeParams) error

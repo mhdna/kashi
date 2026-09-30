@@ -16,6 +16,8 @@ type createDiscountListRequest struct {
 	IsDefault bool      `json:"is_default"`
 	ValidFrom time.Time `json:"valid_from"`
 	ValidTo   time.Time `json:"valid_to"`
+	// See createPriceListRequest.IsSpecial.
+	IsSpecial bool `json:"is_special"`
 }
 
 func (server *Server) createDiscountList(ctx *gin.Context) {
@@ -31,6 +33,7 @@ func (server *Server) createDiscountList(ctx *gin.Context) {
 		IsDefault: req.IsDefault,
 		ValidFrom: req.ValidFrom,
 		ValidTo:   req.ValidTo,
+		IsSpecial: req.IsSpecial,
 	}
 
 	discountList, err := server.store.CreateDiscountList(ctx, arg)
@@ -95,6 +98,7 @@ type updateDiscountListRequest struct {
 	IsDefault bool      `json:"is_default"`
 	ValidFrom time.Time `json:"valid_from"`
 	ValidTo   time.Time `json:"valid_to"`
+	IsSpecial bool      `json:"is_special"`
 }
 
 func (server *Server) updateDiscountList(ctx *gin.Context) {
@@ -111,6 +115,7 @@ func (server *Server) updateDiscountList(ctx *gin.Context) {
 		IsDefault: req.IsDefault,
 		ValidFrom: req.ValidFrom,
 		ValidTo:   req.ValidTo,
+		IsSpecial: req.IsSpecial,
 	})
 	if err != nil {
 		if err == sql.ErrNoRows {

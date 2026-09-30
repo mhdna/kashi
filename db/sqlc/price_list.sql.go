@@ -31,10 +31,11 @@ INSERT INTO price_lists (
   is_active,
   is_default,
   valid_from,
-  valid_to
+  valid_to,
+  is_special
 ) VALUES (
-    $1, $2, $3, $4, $5
-) RETURNING id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at
+    $1, $2, $3, $4, $5, $6
+) RETURNING id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at, is_special
 `
 
 type CreatePriceListParams struct {
@@ -43,6 +44,7 @@ type CreatePriceListParams struct {
 	IsDefault bool      `json:"is_default"`
 	ValidFrom time.Time `json:"valid_from"`
 	ValidTo   time.Time `json:"valid_to"`
+	IsSpecial bool      `json:"is_special"`
 }
 
 func (q *Queries) CreatePriceList(ctx context.Context, arg CreatePriceListParams) (PriceList, error) {
@@ -52,6 +54,7 @@ func (q *Queries) CreatePriceList(ctx context.Context, arg CreatePriceListParams
 		arg.IsDefault,
 		arg.ValidFrom,
 		arg.ValidTo,
+		arg.IsSpecial,
 	)
 	var i PriceList
 	err := row.Scan(
@@ -64,6 +67,7 @@ func (q *Queries) CreatePriceList(ctx context.Context, arg CreatePriceListParams
 		&i.CreatedAt,
 		&i.Uid,
 		&i.UpdatedAt,
+		&i.IsSpecial,
 	)
 	return i, err
 }
@@ -79,7 +83,7 @@ func (q *Queries) DeletePriceList(ctx context.Context, id int64) error {
 }
 
 const getDefaultPriceList = `-- name: GetDefaultPriceList :one
-SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at FROM price_lists
+SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at, is_special FROM price_lists
 WHERE is_default = true LIMIT 1
 `
 
@@ -96,12 +100,13 @@ func (q *Queries) GetDefaultPriceList(ctx context.Context) (PriceList, error) {
 		&i.CreatedAt,
 		&i.Uid,
 		&i.UpdatedAt,
+		&i.IsSpecial,
 	)
 	return i, err
 }
 
 const getPriceList = `-- name: GetPriceList :one
-SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at FROM price_lists
+SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at, is_special FROM price_lists
 WHERE id = $1 LIMIT 1
 `
 
@@ -118,12 +123,13 @@ func (q *Queries) GetPriceList(ctx context.Context, id int64) (PriceList, error)
 		&i.CreatedAt,
 		&i.Uid,
 		&i.UpdatedAt,
+		&i.IsSpecial,
 	)
 	return i, err
 }
 
 const getPriceListByUID = `-- name: GetPriceListByUID :one
-SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at FROM price_lists
+SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at, is_special FROM price_lists
 WHERE uid = $1 LIMIT 1
 `
 
@@ -140,6 +146,7 @@ func (q *Queries) GetPriceListByUID(ctx context.Context, uid uuid.UUID) (PriceLi
 		&i.CreatedAt,
 		&i.Uid,
 		&i.UpdatedAt,
+		&i.IsSpecial,
 	)
 	return i, err
 }
@@ -183,7 +190,7 @@ func (q *Queries) ListPriceListItemsForSync(ctx context.Context, priceListID int
 }
 
 const listPriceLists = `-- name: ListPriceLists :many
-SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at FROM price_lists
+SELECT id, name, is_active, is_default, valid_from, valid_to, created_at, uid, updated_at, is_special FROM price_lists
 WHERE BTRIM($1::text) = ''
    OR name ILIKE '%' || BTRIM($1::text) || '%'
 ORDER BY id DESC
@@ -216,6 +223,7 @@ func (q *Queries) ListPriceLists(ctx context.Context, arg ListPriceListsParams) 
 			&i.CreatedAt,
 			&i.Uid,
 			&i.UpdatedAt,
+			&i.IsSpecial,
 		); err != nil {
 			return nil, err
 		}
@@ -231,7 +239,7 @@ func (q *Queries) ListPriceLists(ctx context.Context, arg ListPriceListsParams) 
 }
 
 const listPriceListsForBranchSync = `-- name: ListPriceListsForBranchSync :many
-SELECT pl.id, pl.name, pl.is_active, pl.is_default, pl.valid_from, pl.valid_to, pl.created_at, pl.uid, pl.updated_at FROM price_lists pl
+SELECT pl.id, pl.name, pl.is_active, pl.is_default, pl.valid_from, pl.valid_to, pl.created_at, pl.uid, pl.updated_at, pl.is_special FROM price_lists pl
 LEFT JOIN price_list_branches plb
   ON plb.price_list_id = pl.id AND plb.branch_id = $1
 WHERE (plb.branch_id IS NOT NULL OR pl.is_default = true)
@@ -270,6 +278,7 @@ func (q *Queries) ListPriceListsForBranchSync(ctx context.Context, arg ListPrice
 			&i.CreatedAt,
 			&i.Uid,
 			&i.UpdatedAt,
+			&i.IsSpecial,
 		); err != nil {
 			return nil, err
 		}
@@ -298,7 +307,7 @@ func (q *Queries) UnsetDefaultPriceList(ctx context.Context, id int64) error {
 const updatePriceList = `-- name: UpdatePriceList :exec
 UPDATE price_lists
 SET name = $2, is_active = $3, is_default = $4, valid_from = $5, valid_to = $6,
-    updated_at = now()
+    is_special = $7, updated_at = now()
 WHERE id = $1
 `
 
@@ -309,6 +318,7 @@ type UpdatePriceListParams struct {
 	IsDefault bool      `json:"is_default"`
 	ValidFrom time.Time `json:"valid_from"`
 	ValidTo   time.Time `json:"valid_to"`
+	IsSpecial bool      `json:"is_special"`
 }
 
 func (q *Queries) UpdatePriceList(ctx context.Context, arg UpdatePriceListParams) error {
@@ -319,6 +329,7 @@ func (q *Queries) UpdatePriceList(ctx context.Context, arg UpdatePriceListParams
 		arg.IsDefault,
 		arg.ValidFrom,
 		arg.ValidTo,
+		arg.IsSpecial,
 	)
 	return err
 }

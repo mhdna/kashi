@@ -16,6 +16,11 @@ type createPriceListRequest struct {
 	IsDefault bool      `json:"is_default"`
 	ValidFrom time.Time `json:"valid_from"`
 	ValidTo   time.Time `json:"valid_to"`
+	// IsSpecial marks a list whose prices the till should call out to the
+	// cashier (a star badge) rather than treat as ordinary. The Default list
+	// is never special just for being the fallback everything else falls
+	// back to -- this has to be set explicitly.
+	IsSpecial bool `json:"is_special"`
 }
 
 func (server *Server) createPriceList(ctx *gin.Context) {
@@ -31,6 +36,7 @@ func (server *Server) createPriceList(ctx *gin.Context) {
 		IsDefault: req.IsDefault,
 		ValidFrom: req.ValidFrom,
 		ValidTo:   req.ValidTo,
+		IsSpecial: req.IsSpecial,
 	}
 
 	priceList, err := server.store.CreatePriceList(ctx, arg)
@@ -57,6 +63,7 @@ type updatePriceListRequest struct {
 	IsDefault bool      `json:"is_default"`
 	ValidFrom time.Time `json:"valid_from"`
 	ValidTo   time.Time `json:"valid_to"`
+	IsSpecial bool      `json:"is_special"`
 }
 
 func (server *Server) updatePriceList(ctx *gin.Context) {
@@ -73,6 +80,7 @@ func (server *Server) updatePriceList(ctx *gin.Context) {
 		IsDefault: req.IsDefault,
 		ValidFrom: req.ValidFrom,
 		ValidTo:   req.ValidTo,
+		IsSpecial: req.IsSpecial,
 	})
 	if err != nil {
 		if err == sql.ErrNoRows {

@@ -7,6 +7,7 @@ package mockdb
 import (
 	context "context"
 	sql "database/sql"
+	jsontext "encoding/json/jsontext"
 	reflect "reflect"
 	time "time"
 
@@ -4371,6 +4372,21 @@ func (m *MockStore) GetCurrency(arg0 context.Context, arg1 string) (db.Currency,
 func (mr *MockStoreMockRecorder) GetCurrency(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCurrency", reflect.TypeOf((*MockStore)(nil).GetCurrency), arg0, arg1)
+}
+
+// GetDefaultBranchSettings mocks base method.
+func (m *MockStore) GetDefaultBranchSettings(arg0 context.Context) (db.DefaultBranchSetting, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDefaultBranchSettings", arg0)
+	ret0, _ := ret[0].(db.DefaultBranchSetting)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDefaultBranchSettings indicates an expected call of GetDefaultBranchSettings.
+func (mr *MockStoreMockRecorder) GetDefaultBranchSettings(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDefaultBranchSettings", reflect.TypeOf((*MockStore)(nil).GetDefaultBranchSettings), arg0)
 }
 
 // GetDefaultCurrency mocks base method.
@@ -8825,6 +8841,21 @@ func (m *MockStore) UpsertClientLink(arg0 context.Context, arg1 db.UpsertClientL
 func (mr *MockStoreMockRecorder) UpsertClientLink(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpsertClientLink", reflect.TypeOf((*MockStore)(nil).UpsertClientLink), arg0, arg1)
+}
+
+// UpsertDefaultBranchSettings mocks base method.
+func (m *MockStore) UpsertDefaultBranchSettings(arg0 context.Context, arg1 jsontext.Value) (db.DefaultBranchSetting, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpsertDefaultBranchSettings", arg0, arg1)
+	ret0, _ := ret[0].(db.DefaultBranchSetting)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpsertDefaultBranchSettings indicates an expected call of UpsertDefaultBranchSettings.
+func (mr *MockStoreMockRecorder) UpsertDefaultBranchSettings(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpsertDefaultBranchSettings", reflect.TypeOf((*MockStore)(nil).UpsertDefaultBranchSettings), arg0, arg1)
 }
 
 // UpsertDiscountListBranch mocks base method.
