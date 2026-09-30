@@ -5,12 +5,13 @@
   import { useWarehouseTreemap } from '@/composables/useWarehouseTreemap'
 
   const notify = useNotify()
-  const { fetchRows, totalQty, locationOptions } = useWarehouseTreemap()
+  const { fetchRows, totals, locationOptions } = useWarehouseTreemap()
 
   const options = ref([{ title: 'All Locations', value: 'all' }])
   const selected = ref('all')
 
-  const totalCount = computed(() => totalQty(selected.value).toLocaleString('en-US') + ' units')
+  const totalValue = computed(() => '$ ' + Math.round(totals(selected.value).valueCents / 100).toLocaleString('en-US'))
+  const totalCount = computed(() => totals(selected.value).qty.toLocaleString('en-US') + ' units')
 
   onMounted(async () => {
     try {
@@ -37,8 +38,8 @@
 
       <v-spacer />
       <div class="text-center">
-        <div class="text-h6 font-weight-bold">{{ totalCount }}</div>
-        <div class="text-caption text-medium-emphasis">Total units in stock</div>
+        <div class="text-h6 font-weight-bold">{{ totalValue }}</div>
+        <div class="text-caption text-medium-emphasis">Total book value &middot; {{ totalCount }}</div>
       </div>
       <v-spacer />
     </div>

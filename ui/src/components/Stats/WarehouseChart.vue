@@ -30,6 +30,8 @@
   const chartWrap = ref<HTMLDivElement | null>(null)
   const option = ref({})
 
+  const formatMoney = (cents: number) => '$ ' + Math.round(Number(cents || 0) / 100).toLocaleString('en-US')
+
   function createChartOption (data: any[]) {
     return {
       tooltip: {
@@ -41,7 +43,10 @@
             content += `<br/>Code: ${itemData.code}`
           }
           if (value) {
-            content += `<br/>Quantity: ${value}`
+            content += `<br/>Book Value: ${formatMoney(value)}`
+          }
+          if (itemData?.qty !== undefined) {
+            content += `<br/>Quantity: ${itemData.qty}`
           }
           if (itemData?.location) {
             content += `<br/>Location: ${itemData.location}`
@@ -68,7 +73,7 @@
             show: true,
             formatter: (params: any) => {
               if (params.value) {
-                return `${params.name}\n${params.value}`
+                return `${params.name}\n${formatMoney(params.value)}`
               }
               return params.name
             },

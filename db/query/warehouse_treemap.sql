@@ -15,6 +15,7 @@ SELECT
   p.code AS product_code,
   pv.id  AS variant_id,
   pv.barcode,
+  pv.avg_cost AS variant_cost,
   COALESCE(c.name, '') AS color_name,
   s.quantity
 FROM inventory_stock s

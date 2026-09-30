@@ -23,7 +23,7 @@ function groupRows (rows, inventoryId) {
     }
     const group = groups.get(r.category_id)
     if (!group.items.has(r.variant_id)) {
-      group.items.set(r.variant_id, { name: r.product_name, code: r.product_code, qty: 0, locations: [] })
+      group.items.set(r.variant_id, { name: r.product_name, code: r.product_code, qty: 0, costCents: Number(r.variant_cost), locations: [] })
     }
     const item = group.items.get(r.variant_id)
     item.qty += Number(r.quantity)
@@ -34,7 +34,9 @@ function groupRows (rows, inventoryId) {
 
 // Same shape/responsibility as useAssetsTreemap, for the "stuff inventory"
 // (products/product_variants/inventory_stock) side that feeds the
-// Warehouses Treemap.
+// Warehouses Treemap. Sized by total book value (qty * avg_cost, both from
+// the DB) now that real costs exist for these products; falls back to 0 for
+// any variant whose avg_cost is still unset.
 export function useWarehouseTreemap () {
   const rows = ref([])
   const loaded = ref(false)
@@ -58,19 +60,27 @@ export function useWarehouseTreemap () {
     return [...groups.values()].map(g => {
       const children = [...g.items.values()].map(item => ({
         name: item.name,
-        value: item.qty,
+        value: item.qty * item.costCents,
+        qty: item.qty,
         code: item.code,
         location: [...new Set(item.locations)].join(', '),
       }))
-      return { name: g.name, code: g.code, itemStyle: { color: g.color || '#546E7A' }, children }
+      const value = children.reduce((sum, i) => sum + i.value, 0)
+      return { name: g.name, code: g.code, value, itemStyle: { color: g.color || '#546E7A' }, children }
     })
   }
 
-  function totalQty (inventoryId = 'all') {
+  function totals (inventoryId = 'all') {
     const source = inventoryId === 'all'
       ? rows.value
       : rows.value.filter(r => String(r.inventory_id) === String(inventoryId))
-    return source.reduce((sum, r) => sum + Number(r.quantity), 0)
+    let qty = 0
+    let valueCents = 0
+    for (const r of source) {
+      qty += Number(r.quantity)
+      valueCents += Number(r.quantity) * Number(r.variant_cost)
+    }
+    return { qty, valueCents }
   }
 
   function locationOptions () {
@@ -81,5 +91,5 @@ export function useWarehouseTreemap () {
     return [...seen.entries()].map(([value, title]) => ({ title, value: String(value) }))
   }
 
-  return { rows, loading, fetchRows, buildTreemapData, totalQty, locationOptions }
+  return { rows, loading, fetchRows, buildTreemapData, totals, locationOptions }
 }
