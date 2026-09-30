@@ -22,6 +22,27 @@ func (server *Server) branchHealth(ctx *gin.Context) {
 	server.writeJSON(ctx, http.StatusOK, envelope{"branch_id": branchID})
 }
 
+// branchFullSyncStart/End bracket a kashi-pos "Sync everything" run so the
+// admin UI can show that branch as syncing for as long as it actually takes,
+// rather than a spinner that vanishes after the first request. Best-effort
+// on kashi-pos's side (a failed start/end call shouldn't block or fail the
+// sync itself) -- see the full-list-not-delta reasoning on
+// branch_connection_changed for why this pushes syncingBranchIDs() in full
+// rather than a per-branch delta.
+func (server *Server) branchFullSyncStart(ctx *gin.Context) {
+	branchID := ctx.MustGet(branchIDKey).(int64)
+	server.branchHub.setSyncing(branchID, true)
+	server.adminHub.broadcastAll(adminWSMessage{Type: "branch_sync_status_changed", BranchIDs: server.branchHub.syncingBranchIDs()})
+	ctx.Status(http.StatusOK)
+}
+
+func (server *Server) branchFullSyncEnd(ctx *gin.Context) {
+	branchID := ctx.MustGet(branchIDKey).(int64)
+	server.branchHub.setSyncing(branchID, false)
+	server.adminHub.broadcastAll(adminWSMessage{Type: "branch_sync_status_changed", BranchIDs: server.branchHub.syncingBranchIDs()})
+	ctx.Status(http.StatusOK)
+}
+
 // UnitPrice/LineTotal deliberately have no "required" validation tag: Go's
 // validator treats the zero value of a plain numeric field as "missing"
 // under required, but 0 is a legitimate amount here -- e.g. a line with a

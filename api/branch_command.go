@@ -81,20 +81,36 @@ func (server *Server) createBranchCommand(ctx *gin.Context) {
 		return
 	}
 
-	command, err := server.store.CreateBranchCommand(ctx, db.CreateBranchCommandParams{
-		BranchID: idReq.ID,
-		Type:     req.Type,
-		Payload:  req.Payload,
-		IssuedBy: user.ID,
-	})
+	command, err := server.enqueueBranchCommand(ctx, idReq.ID, req.Type, req.Payload, user.ID)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	server.branchHub.notify(idReq.ID, branchWSMessage{Type: "command", CommandID: command.ID})
-
 	server.writeJSON(ctx, http.StatusOK, envelope{"command": command})
+}
+
+// enqueueBranchCommand is the shared write side of the remote command
+// channel: it writes the pending row (the audit trail) and, if the branch
+// happens to be connected right now, nudges it over the WebSocket to fetch
+// it immediately. A disconnected or slow-to-notice branch still picks it up
+// on its next sync tick (see branchPendingCommands). Used both by
+// createBranchCommand (one branch, admin-typed) and
+// applyDefaultBranchSettingsToAll (every branch, same command type fanned
+// out).
+func (server *Server) enqueueBranchCommand(ctx *gin.Context, branchID int64, cmdType string, payload json.RawMessage, issuedBy int64) (db.BranchCommand, error) {
+	command, err := server.store.CreateBranchCommand(ctx, db.CreateBranchCommandParams{
+		BranchID: branchID,
+		Type:     cmdType,
+		Payload:  payload,
+		IssuedBy: issuedBy,
+	})
+	if err != nil {
+		return db.BranchCommand{}, err
+	}
+
+	server.branchHub.notify(branchID, branchWSMessage{Type: "command", CommandID: command.ID})
+	return command, nil
 }
 
 // listBranchCommands is the admin-facing audit trail for one branch --

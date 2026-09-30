@@ -112,6 +112,14 @@ func (server *Server) listConnectedBranches(ctx *gin.Context) {
 	server.writeJSON(ctx, http.StatusOK, envelope{"branch_ids": server.branchHub.connectedBranchIDs()})
 }
 
+// listSyncingBranches gives the admin UI an initial value for "which
+// branches are mid a full sync right now" on load, same poll-then-push
+// pairing with "branch_sync_status_changed" that listConnectedBranches has
+// with "branch_connection_changed".
+func (server *Server) listSyncingBranches(ctx *gin.Context) {
+	server.writeJSON(ctx, http.StatusOK, envelope{"branch_ids": server.branchHub.syncingBranchIDs()})
+}
+
 type branchIDRequest struct {
 	ID int64 `uri:"id" binding:"required,min=1"`
 }

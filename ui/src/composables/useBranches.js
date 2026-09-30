@@ -64,5 +64,14 @@ export function useBranches () {
     return data?.branch_ids ?? []
   }
 
-  return { branches, fetchBranches, createBranch, setBranchActive, rotateBranchKey, fetchConnectedBranches }
+  // Initial value for "which branches are mid a full sync right now" --
+  // kept fresh after this by the "branch_sync_status_changed" push over the
+  // admin WebSocket (see SyncingBranchesCard.vue), same poll-then-push
+  // pairing as fetchConnectedBranches above.
+  async function fetchSyncingBranches () {
+    const data = await requestJSON(`${API_BASE}/branches/syncing`)
+    return data?.branch_ids ?? []
+  }
+
+  return { branches, fetchBranches, createBranch, setBranchActive, rotateBranchKey, fetchConnectedBranches, fetchSyncingBranches }
 }

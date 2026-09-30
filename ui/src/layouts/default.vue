@@ -17,6 +17,7 @@
         <UpcomingEventsCard />
         <SyncCard />
         <ConnectedBranchesCard />
+        <SyncingBranchesCard />
         <CommandPalette />
         <!-- <NotificationMenu class="me-4" /> -->
         <!-- <v-icon icon="mdi-translate" /> -->
@@ -69,6 +70,7 @@ import ToggleTheme from "@/components/Buttons/ToggleTheme.vue";
 import CommandPalette from "@/components/CommandPalette.vue";
 import ConnectedBranchesCard from "@/components/ConnectedBranchesCard.vue";
 import OnlineUsersStack from "@/components/OnlineUsersStack.vue";
+import SyncingBranchesCard from "@/components/SyncingBranchesCard.vue";
 // import NotificationMenu from '@/components/Menus/NotificationMenu.vue'
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
