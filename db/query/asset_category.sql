@@ -13,6 +13,10 @@ RETURNING *;
 SELECT * FROM asset_categories
 WHERE id = $1 LIMIT 1;
 
+-- name: GetAssetCategoryByName :one
+SELECT * FROM asset_categories
+WHERE name = $1 LIMIT 1;
+
 -- name: ListAssetCategories :many
 SELECT * FROM asset_categories
 ORDER BY id;

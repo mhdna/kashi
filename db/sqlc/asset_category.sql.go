@@ -76,6 +76,25 @@ func (q *Queries) GetAssetCategory(ctx context.Context, id int64) (AssetCategory
 	return i, err
 }
 
+const getAssetCategoryByName = `-- name: GetAssetCategoryByName :one
+SELECT id, name, is_active, icon, color, created_at FROM asset_categories
+WHERE name = $1 LIMIT 1
+`
+
+func (q *Queries) GetAssetCategoryByName(ctx context.Context, name string) (AssetCategory, error) {
+	row := q.db.QueryRowContext(ctx, getAssetCategoryByName, name)
+	var i AssetCategory
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.IsActive,
+		&i.Icon,
+		&i.Color,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const listAssetCategories = `-- name: ListAssetCategories :many
 SELECT id, name, is_active, icon, color, created_at FROM asset_categories
 ORDER BY id

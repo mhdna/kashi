@@ -11,6 +11,10 @@ RETURNING *;
 SELECT * FROM assets
 WHERE id = $1 LIMIT 1;
 
+-- name: GetAssetByName :one
+SELECT * FROM assets
+WHERE name = $1 LIMIT 1;
+
 -- name: ListAssetsPage :many
 SELECT * FROM assets
 WHERE (sqlc.narg(category_id)::bigint IS NULL OR category_id = sqlc.narg(category_id))

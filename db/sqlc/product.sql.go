@@ -20,7 +20,7 @@ INSERT INTO products (
   description
 ) VALUES (
     $1, $2, $3
-) RETURNING id, code, name, description, is_active, created_at, low_stock_threshold, low_stock_alerts_enabled
+) RETURNING id, code, name, description, is_active, created_at, low_stock_threshold, low_stock_alerts_enabled, category_id
 `
 
 type CreateProductParams struct {
@@ -41,6 +41,7 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		&i.CreatedAt,
 		&i.LowStockThreshold,
 		&i.LowStockAlertsEnabled,
+		&i.CategoryID,
 	)
 	return i, err
 }
@@ -56,7 +57,7 @@ func (q *Queries) DeleteProduct(ctx context.Context, id int64) error {
 }
 
 const getProduct = `-- name: GetProduct :one
-SELECT id, code, name, description, is_active, created_at, low_stock_threshold, low_stock_alerts_enabled FROM products
+SELECT id, code, name, description, is_active, created_at, low_stock_threshold, low_stock_alerts_enabled, category_id FROM products
 WHERE id = $1 LIMIT 1
 `
 
@@ -72,6 +73,7 @@ func (q *Queries) GetProduct(ctx context.Context, id int64) (Product, error) {
 		&i.CreatedAt,
 		&i.LowStockThreshold,
 		&i.LowStockAlertsEnabled,
+		&i.CategoryID,
 	)
 	return i, err
 }
@@ -88,7 +90,7 @@ const getProductByCode = `-- name: GetProductByCode :one
 
 
 
-SELECT id, code, name, description, is_active, created_at, low_stock_threshold, low_stock_alerts_enabled FROM products WHERE code = $1 LIMIT 1
+SELECT id, code, name, description, is_active, created_at, low_stock_threshold, low_stock_alerts_enabled, category_id FROM products WHERE code = $1 LIMIT 1
 `
 
 // -- name: CreatePriceList :one
@@ -203,6 +205,29 @@ func (q *Queries) GetProductByCode(ctx context.Context, code string) (Product, e
 		&i.CreatedAt,
 		&i.LowStockThreshold,
 		&i.LowStockAlertsEnabled,
+		&i.CategoryID,
+	)
+	return i, err
+}
+
+const getProductByName = `-- name: GetProductByName :one
+SELECT id, code, name, description, is_active, created_at, low_stock_threshold, low_stock_alerts_enabled, category_id FROM products
+WHERE name = $1 LIMIT 1
+`
+
+func (q *Queries) GetProductByName(ctx context.Context, name string) (Product, error) {
+	row := q.db.QueryRowContext(ctx, getProductByName, name)
+	var i Product
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.Name,
+		&i.Description,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.LowStockThreshold,
+		&i.LowStockAlertsEnabled,
+		&i.CategoryID,
 	)
 	return i, err
 }
@@ -297,6 +322,22 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]L
 		return nil, err
 	}
 	return items, nil
+}
+
+const setProductCategory = `-- name: SetProductCategory :exec
+UPDATE products
+SET category_id = $2
+WHERE id = $1
+`
+
+type SetProductCategoryParams struct {
+	ID         int64         `json:"id"`
+	CategoryID sql.NullInt64 `json:"category_id"`
+}
+
+func (q *Queries) SetProductCategory(ctx context.Context, arg SetProductCategoryParams) error {
+	_, err := q.db.ExecContext(ctx, setProductCategory, arg.ID, arg.CategoryID)
+	return err
 }
 
 const updateProduct = `-- name: UpdateProduct :exec

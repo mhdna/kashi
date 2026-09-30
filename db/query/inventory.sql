@@ -12,6 +12,10 @@ RETURNING *;
 SELECT * FROM inventories
 WHERE id = $1 LIMIT 1;
 
+-- name: GetInventoryByName :one
+SELECT * FROM inventories
+WHERE name = $1 LIMIT 1;
+
 -- name: ListInventories :many
 SELECT * FROM inventories
 ORDER BY name

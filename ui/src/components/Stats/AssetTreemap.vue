@@ -1,32 +1,32 @@
 <template>
-  <v-chart autoresize class="chart" :option="option" />
+  <v-chart autoresize class="chart" :loading="loading" :option="option" />
 </template>
 
-<script setup>
-  import { ref, watch } from 'vue'
+<script setup lang="ts">
+  import { onMounted, ref, watch } from 'vue'
   import VChart from 'vue-echarts'
-  import { buildTreemapData } from '@/data/assetValues'
+  import { useAssetsTreemap } from '@/composables/useAssetsTreemap'
+  import { useNotify } from '@/composables/useNotify'
 
   const props = defineProps({
-    // location id, or 'all' for every location
+    // inventory id, or 'all' for every location
     location: {
       type: String,
       default: 'all',
     },
   })
 
+  const notify = useNotify()
+  const { loading, fetchRows, buildTreemapData } = useAssetsTreemap()
   const option = ref({})
 
-  const formatMoney = n => '$ ' + Number(n || 0).toLocaleString('en-US')
   const formatCount = n => Number(n || 0).toLocaleString('en-US') + ' units'
 
   function tooltipFormatter (info) {
-    const value = info.value || []
     const d = info.data || {}
     const rows = [
       `<div style="font-weight:600;margin-bottom:4px">${info.name}</div>`,
-      `Book Value:&nbsp;&nbsp;${formatMoney(value[0])}`,
-      `Count:&nbsp;&nbsp;${formatCount(value[1])}`,
+      `Count:&nbsp;&nbsp;${formatCount(info.value)}`,
     ]
     if (d.code) rows.push(`Asset Tag:&nbsp;&nbsp;${d.code}`)
     if (d.location) rows.push(`Location:&nbsp;&nbsp;${d.location}`)
@@ -77,8 +77,7 @@
             textBorderColor: 'rgba(0,0,0,0.5)',
             textBorderWidth: 2,
             formatter (params) {
-              const v = params.value || []
-              const arr = [`{name|${params.name}}`, `{cost|${formatMoney(v[0])}}`]
+              const arr = [`{name|${params.name}}`, `{cost|${formatCount(params.value)}}`]
               if (params.data && params.data.code) arr.push(`{code|${params.data.code}}`)
               return arr.join('\n')
             },
@@ -108,7 +107,7 @@
             formatter (params) {
               // the invisible root node has no name/value -- skip its header
               if (!params.name) return ''
-              return `  ${params.name}  ${formatMoney((params.value || [])[0])}`
+              return `  ${params.name}  ${formatCount(params.value)}`
             },
           },
           itemStyle: { borderColor: 'rgba(0,0,0,0.4)', borderWidth: 1, gapWidth: 2 },
@@ -136,7 +135,16 @@
     }
   }
 
-  watch(() => props.location, buildOption, { immediate: true })
+  onMounted(async () => {
+    try {
+      await fetchRows()
+    } catch (error) {
+      notify.error(error.message)
+    }
+    buildOption()
+  })
+
+  watch(() => props.location, buildOption)
 </script>
 
 <style scoped>

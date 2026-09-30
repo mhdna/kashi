@@ -1204,6 +1204,16 @@ type Product struct {
 	CreatedAt             time.Time     `json:"created_at"`
 	LowStockThreshold     sql.NullInt64 `json:"low_stock_threshold"`
 	LowStockAlertsEnabled bool          `json:"low_stock_alerts_enabled"`
+	CategoryID            sql.NullInt64 `json:"category_id"`
+}
+
+type ProductCategory struct {
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	IsActive  bool      `json:"is_active"`
+	Icon      string    `json:"icon"`
+	Color     string    `json:"color"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type ProductSupplier struct {

@@ -197,6 +197,7 @@ type Querier interface {
 	CreatePriceListItem(ctx context.Context, arg CreatePriceListItemParams) (PriceListItem, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreateProductAttribute(ctx context.Context, arg CreateProductAttributeParams) (ProductsAttribute, error)
+	CreateProductCategory(ctx context.Context, arg CreateProductCategoryParams) (ProductCategory, error)
 	// No price column: since 000094 a variant's price is an entry in a price
 	// list, not a property of the variant, so a newly created variant starts with
 	// no price and is unsellable until it is added to one.
@@ -347,6 +348,7 @@ type Querier interface {
 	DeletePriceListItem(ctx context.Context, arg DeletePriceListItemParams) error
 	DeletePriceListItems(ctx context.Context, arg DeletePriceListItemsParams) (int64, error)
 	DeleteProduct(ctx context.Context, id int64) error
+	DeleteProductCategory(ctx context.Context, id int64) error
 	DeleteProductVariant(ctx context.Context, id int64) error
 	DeletePurchaseItem(ctx context.Context, arg DeletePurchaseItemParams) error
 	DeleteRole(ctx context.Context, id int64) error
@@ -359,7 +361,10 @@ type Querier interface {
 	DeleteUser(ctx context.Context, id int64) error
 	GetAppSettings(ctx context.Context) (AppSetting, error)
 	GetAsset(ctx context.Context, id int64) (Asset, error)
+	GetAssetByName(ctx context.Context, name string) (Asset, error)
 	GetAssetCategory(ctx context.Context, id int64) (AssetCategory, error)
+	GetAssetCategoryByName(ctx context.Context, name string) (AssetCategory, error)
+	GetAssetTreemapData(ctx context.Context, inventoryID sql.NullInt64) ([]GetAssetTreemapDataRow, error)
 	GetAttribute(ctx context.Context, name string) (Attribute, error)
 	// upserting instead of inserting makes product creation with attributes easier
 	GetAttributeValue(ctx context.Context, id int64) (AttributesValue, error)
@@ -427,6 +432,7 @@ type Querier interface {
 	GetExpense(ctx context.Context, id int64) (Expense, error)
 	GetExpenseCategory(ctx context.Context, id int64) (ExpenseCategory, error)
 	GetInventory(ctx context.Context, id int64) (Inventory, error)
+	GetInventoryByName(ctx context.Context, name string) (Inventory, error)
 	// ---------------------------------------------------------------------------
 	// Per-variant stock: cached on-hand quantity + moving-average cost.
 	// ---------------------------------------------------------------------------
@@ -522,6 +528,9 @@ type Querier interface {
 	//   SET discount = $3
 	// WHERE product_id = $1 AND discount_list_id = $2;
 	GetProductByCode(ctx context.Context, code string) (Product, error)
+	GetProductByName(ctx context.Context, name string) (Product, error)
+	GetProductCategory(ctx context.Context, id int64) (ProductCategory, error)
+	GetProductCategoryByName(ctx context.Context, name string) (ProductCategory, error)
 	GetProductSupplier(ctx context.Context, arg GetProductSupplierParams) (ProductSupplier, error)
 	GetProductVariant(ctx context.Context, id int64) (ProductVariant, error)
 	GetProductVariantByBarcode(ctx context.Context, barcode string) (ProductVariant, error)
@@ -553,6 +562,11 @@ type Querier interface {
 	GetVariantForLabel(ctx context.Context, id int64) (GetVariantForLabelRow, error)
 	GetVariantPriceFromList(ctx context.Context, arg GetVariantPriceFromListParams) (PriceListItem, error)
 	GetVariantTotalOnHand(ctx context.Context, variantID int64) (int64, error)
+	// Feeds the Warehouses Treemap: on-hand quantity per product, grouped by
+	// product_categories and by inventory. The inner join on product_categories
+	// means only products we've explicitly categorized show up here -- ordinary
+	// POS-sellable products with no category_id are never pulled into this view.
+	GetWarehouseTreemapData(ctx context.Context, inventoryID sql.NullInt64) ([]GetWarehouseTreemapDataRow, error)
 	GetWhatsAppSettings(ctx context.Context) (GetWhatsAppSettingsRow, error)
 	IncrementInvoicesIndex(ctx context.Context, arg IncrementInvoicesIndexParams) (int64, error)
 	ListActiveBranchTargetSeries(ctx context.Context) ([]BranchTargetSeries, error)
@@ -922,6 +936,7 @@ type Querier interface {
 	// it out here and the till would keep pricing from a list kashi has retired.
 	ListPriceListsForBranchSync(ctx context.Context, arg ListPriceListsForBranchSyncParams) ([]PriceList, error)
 	ListProductAttributes(ctx context.Context, arg ListProductAttributesParams) ([]ProductsAttribute, error)
+	ListProductCategories(ctx context.Context) ([]ProductCategory, error)
 	// Revenue per product from kashi's own admin sales invoices (invoice_products
 	// joined through sales_invoices, so returns don't count as revenue). Branch
 	// (POS) sales are deliberately excluded here -- see ListBranchProductRevenue
@@ -1061,6 +1076,7 @@ type Querier interface {
 	SetCashboxAccountActive(ctx context.Context, arg SetCashboxAccountActiveParams) (CashboxAccount, error)
 	SetClientActive(ctx context.Context, arg SetClientActiveParams) error
 	SetDefaultLowStockThreshold(ctx context.Context, defaultLowStockThreshold int64) (AppSetting, error)
+	SetProductCategory(ctx context.Context, arg SetProductCategoryParams) error
 	SetProductLowStockAlertsEnabled(ctx context.Context, arg SetProductLowStockAlertsEnabledParams) error
 	SetProductVariantActive(ctx context.Context, arg SetProductVariantActiveParams) error
 	SetPurchaseStatus(ctx context.Context, arg SetPurchaseStatusParams) (Purchase, error)
@@ -1132,6 +1148,7 @@ type Querier interface {
 	UpdatePriceListItem(ctx context.Context, arg UpdatePriceListItemParams) error
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) error
 	UpdateProductAttribute(ctx context.Context, arg UpdateProductAttributeParams) error
+	UpdateProductCategory(ctx context.Context, arg UpdateProductCategoryParams) (ProductCategory, error)
 	// A null threshold clears the override, falling back to the app-wide default.
 	UpdateProductLowStockThreshold(ctx context.Context, arg UpdateProductLowStockThresholdParams) error
 	// price is deliberately not settable here -- see CreateProductVariant.
@@ -1154,6 +1171,11 @@ type Querier interface {
 	UpsertClientLink(ctx context.Context, arg UpsertClientLinkParams) error
 	UpsertDefaultBranchSettings(ctx context.Context, settings json.RawMessage) (DefaultBranchSetting, error)
 	UpsertDiscountListBranch(ctx context.Context, arg UpsertDiscountListBranchParams) error
+	// Reactivates inventories_assets (created 000012, never wired up until now):
+	// per-location unit counts for fixed assets, feeding the Assets Treemap.
+	// One assets row is a distinct item *type*; the same asset can sit in more
+	// than one location, each with its own counted quantity here.
+	UpsertInventoryAssetQuantity(ctx context.Context, arg UpsertInventoryAssetQuantityParams) (InventoriesAsset, error)
 	UpsertPriceListBranch(ctx context.Context, arg UpsertPriceListBranchParams) error
 	UpsertProductAttribute(ctx context.Context, arg UpsertProductAttributeParams) error
 	UpsertRolePermission(ctx context.Context, arg UpsertRolePermissionParams) error

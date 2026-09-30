@@ -424,7 +424,7 @@ SELECT
   t.id, t.from_inventory_id, t.to_inventory_id, t.type, t.created_at, t.code, t.status, t.dispatched_at, t.received_at, t.note, t.branch_id, t.client_ref, t.attachment_path, t.updated_at, t.confirmed_at, t.confirmed_note,
   fi.name AS from_inventory_name,
   ti.name AS to_inventory_name,
-  b.name AS branch_name,
+  COALESCE(b.name, '') AS branch_name,
   (SELECT COUNT(*) FROM transfer_items x WHERE x.transfer_id = t.id) AS item_count
 FROM transfers t
 JOIN inventories fi ON fi.id = t.from_inventory_id
@@ -461,7 +461,7 @@ type ListTransfersRow struct {
 	ConfirmedNote     string         `json:"confirmed_note"`
 	FromInventoryName string         `json:"from_inventory_name"`
 	ToInventoryName   string         `json:"to_inventory_name"`
-	BranchName        sql.NullString `json:"branch_name"`
+	BranchName        string         `json:"branch_name"`
 	ItemCount         int64          `json:"item_count"`
 }
 

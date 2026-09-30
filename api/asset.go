@@ -216,6 +216,34 @@ func (server *Server) deleteAsset(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "deleted"})
 }
 
+type getAssetsTreemapRequest struct {
+	InventoryID int64 `form:"inventory_id" binding:"omitempty,min=1"`
+}
+
+// getAssetsTreemap returns every (inventory, category, asset) row with a
+// non-zero quantity, feeding the Assets Treemap. Grouping the flat rows into
+// the nested echarts shape happens client-side, same split of
+// responsibility as every other list endpoint in this file.
+func (server *Server) getAssetsTreemap(ctx *gin.Context) {
+	var req getAssetsTreemapRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	var inventoryID sql.NullInt64
+	if req.InventoryID != 0 {
+		inventoryID = sql.NullInt64{Int64: req.InventoryID, Valid: true}
+	}
+
+	rows, err := server.store.GetAssetTreemapData(ctx, inventoryID)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"rows": rows})
+}
+
 func (server *Server) bulkDeleteAssets(ctx *gin.Context) {
 	var req bulkDeleteIDsRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {

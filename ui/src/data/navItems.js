@@ -18,6 +18,7 @@ export const navItems = [
     ],
   },
   { title: 'Assets Treemap', icon: 'mdi-view-gallery', to: '/assets-treemap' },
+  { title: 'Warehouses Treemap', icon: 'mdi-warehouse', to: '/warehouses-treemap' },
   {
     title: 'Alerts',
     icon: 'mdi-alert-circle-outline',

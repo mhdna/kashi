@@ -34,6 +34,7 @@ const routes = [
   { path: '/inventory', component: () => import('@/pages/inventory.vue'), meta: { title: 'Inventory', section: 'inventory' } },
   { path: '/storage', component: () => import('@/pages/storage.vue'), meta: { title: 'Storage', section: 'system' } },
   { path: '/assets-treemap', component: () => import('@/pages/assets-treemap.vue'), meta: { title: 'Assets Treemap', section: 'accounting' } },
+  { path: '/warehouses-treemap', component: () => import('@/pages/warehouses-treemap.vue'), meta: { title: 'Warehouses Treemap', section: 'accounting' } },
   { path: '/branches', component: () => import('@/pages/branches.vue'), meta: { title: 'Branches', section: 'branches' } },
   { path: '/branch-settings', component: () => import('@/pages/branch-settings.vue'), meta: { title: 'Branch Settings', section: 'branches' } },
   { path: '/default-branch-settings', component: () => import('@/pages/default-branch-settings.vue'), meta: { title: 'Default Settings', section: 'branches' } },

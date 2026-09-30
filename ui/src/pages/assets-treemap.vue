@@ -1,14 +1,25 @@
-<script setup>
-  import { computed, ref } from 'vue'
+<script setup lang="ts">
+  import { computed, onMounted, ref } from 'vue'
   import AssetTreemap from '@/components/Stats/AssetTreemap.vue'
-  import { assetLocationOptions, assetTotals } from '@/data/assetValues'
+  import { useAssetsTreemap } from '@/composables/useAssetsTreemap'
+  import { useNotify } from '@/composables/useNotify'
 
-  const options = ref([...assetLocationOptions])
+  const notify = useNotify()
+  const { fetchRows, totalQty, locationOptions } = useAssetsTreemap()
+
+  const options = ref([{ title: 'All Locations', value: 'all' }])
   const selected = ref('all')
 
-  const totals = computed(() => assetTotals(selected.value))
-  const totalValue = computed(() => '$ ' + totals.value.value.toLocaleString('en-US'))
-  const totalCount = computed(() => totals.value.qty.toLocaleString('en-US') + ' units')
+  const totalCount = computed(() => totalQty(selected.value).toLocaleString('en-US') + ' units')
+
+  onMounted(async () => {
+    try {
+      await fetchRows()
+      options.value = [{ title: 'All Locations', value: 'all' }, ...locationOptions()]
+    } catch (error) {
+      notify.error(error.message)
+    }
+  })
 
   const dialog = ref(false)
   const newName = ref('')
@@ -43,9 +54,9 @@
 
       <v-spacer />
       <div class="text-center">
-        <div class="text-h6 font-weight-bold">{{ totalValue }}</div>
+        <div class="text-h6 font-weight-bold">{{ totalCount }}</div>
         <div class="text-caption text-medium-emphasis">
-          Total book value &middot; {{ totalCount }}
+          Total units &middot; book value pending cost data
         </div>
       </div>
       <v-spacer />

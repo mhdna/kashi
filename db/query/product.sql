@@ -11,6 +11,15 @@ INSERT INTO products (
 SELECT * FROM products
 WHERE id = $1 LIMIT 1;
 
+-- name: GetProductByName :one
+SELECT * FROM products
+WHERE name = $1 LIMIT 1;
+
+-- name: SetProductCategory :exec
+UPDATE products
+SET category_id = $2
+WHERE id = $1;
+
 -- name: ListProducts :many
 -- Search matches code/name/description (case-insensitive). Every filter is
 -- optional: empty search string, NULL narg, or empty attribute_value_ids

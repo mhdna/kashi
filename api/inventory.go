@@ -103,6 +103,34 @@ func (server *Server) listInventories(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"inventories": inventories, "total": total})
 }
 
+type getWarehouseTreemapRequest struct {
+	InventoryID int64 `form:"inventory_id" binding:"omitempty,min=1"`
+}
+
+// getWarehouseTreemap returns every (inventory, category, product) row with
+// on-hand stock, feeding the Warehouses Treemap. Only products with a
+// category_id show up (see GetWarehouseTreemapData) -- ordinary POS stock is
+// never pulled into this view.
+func (server *Server) getWarehouseTreemap(ctx *gin.Context) {
+	var req getWarehouseTreemapRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	var inventoryID sql.NullInt64
+	if req.InventoryID != 0 {
+		inventoryID = sql.NullInt64{Int64: req.InventoryID, Valid: true}
+	}
+
+	rows, err := server.store.GetWarehouseTreemapData(ctx, inventoryID)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"rows": rows})
+}
+
 type updateInventoryRequest struct {
 	ID   int64  `json:"id" binding:"required,min=1"`
 	Name string `json:"name" binding:"required"`

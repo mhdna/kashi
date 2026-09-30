@@ -115,6 +115,26 @@ func (q *Queries) GetAsset(ctx context.Context, id int64) (Asset, error) {
 	return i, err
 }
 
+const getAssetByName = `-- name: GetAssetByName :one
+SELECT id, name, code, category_id, version, bought_at, created_at FROM assets
+WHERE name = $1 LIMIT 1
+`
+
+func (q *Queries) GetAssetByName(ctx context.Context, name string) (Asset, error) {
+	row := q.db.QueryRowContext(ctx, getAssetByName, name)
+	var i Asset
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Code,
+		&i.CategoryID,
+		&i.Version,
+		&i.BoughtAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const listAssetsPage = `-- name: ListAssetsPage :many
 SELECT id, name, code, category_id, version, bought_at, created_at FROM assets
 WHERE ($1::bigint IS NULL OR category_id = $1)

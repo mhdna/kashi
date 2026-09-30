@@ -206,7 +206,7 @@ func (q *Queries) GetVariantTotalOnHand(ctx context.Context, variantID int64) (i
 }
 
 const listProductVariants = `-- name: ListProductVariants :many
-SELECT product_variants.id, product_variants.product_id, product_variants.color_id, product_variants.size_id, product_variants.barcode, product_variants.price, product_variants.is_active, product_variants.created_at, product_variants.updated_at, product_variants.avg_cost, product_variants.uid, products.id, products.code, products.name, products.description, products.is_active, products.created_at, products.low_stock_threshold, products.low_stock_alerts_enabled FROM product_variants
+SELECT product_variants.id, product_variants.product_id, product_variants.color_id, product_variants.size_id, product_variants.barcode, product_variants.price, product_variants.is_active, product_variants.created_at, product_variants.updated_at, product_variants.avg_cost, product_variants.uid, products.id, products.code, products.name, products.description, products.is_active, products.created_at, products.low_stock_threshold, products.low_stock_alerts_enabled, products.category_id FROM product_variants
 INNER JOIN products ON products.id = product_variants.product_id
 ORDER BY product_variants.id
 LIMIT $1
@@ -252,6 +252,7 @@ func (q *Queries) ListProductVariants(ctx context.Context, arg ListProductVarian
 			&i.Product.CreatedAt,
 			&i.Product.LowStockThreshold,
 			&i.Product.LowStockAlertsEnabled,
+			&i.Product.CategoryID,
 		); err != nil {
 			return nil, err
 		}
