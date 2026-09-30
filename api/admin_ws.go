@@ -87,6 +87,7 @@ func (h *adminHub) onlineUsers() []onlineUser {
 //	branch_attendance_changed  Kind=complaint|approved|rejected, Label="<name> <verb> <date>"
 //	branch_visitor_event       Kind=in|out (counter direction), Label=local day "YYYY-MM-DD"
 //	branch_connection_changed  BranchIDs=full connected list
+//	branch_sync_status_changed BranchIDs=full list of branches mid a full sync run
 //	admin_presence_changed     Users=full list of signed-in users with a live connection
 type adminWSMessage struct {
 	Type     string `json:"type"`
@@ -170,6 +171,15 @@ func (server *Server) adminWS(ctx *gin.Context) {
 		server.adminHub.remove(wrapped)
 		server.adminHub.broadcastAll(adminWSMessage{Type: "admin_presence_changed", Users: server.adminHub.onlineUsers()})
 	}()
+
+	// Browsers answer a ping control frame with a pong automatically at the
+	// protocol level -- no client-side JS needed -- so a server-side
+	// heartbeat alone is enough to detect a tab that's gone away without a
+	// clean close (laptop sleep, network drop) instead of leaving it marked
+	// online indefinitely. See startHeartbeat's comment.
+	done := make(chan struct{})
+	defer close(done)
+	wrapped.startHeartbeat(done)
 
 	for {
 		if _, _, err := conn.ReadMessage(); err != nil {

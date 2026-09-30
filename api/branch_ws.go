@@ -29,10 +29,39 @@ import (
 type branchHub struct {
 	mu    sync.RWMutex
 	conns map[int64]*wsConn
+	// syncing tracks branches currently mid "Sync everything" run in
+	// kashi-pos, set by branchSyncFullSyncStart/End. Unlike conns, it isn't
+	// tied to a live connection -- a full sync can outlive any single HTTP
+	// or WS round-trip -- so it's only ever cleared explicitly (by the end
+	// call) or on branch reconnect, never on its own.
+	syncing map[int64]bool
 }
 
 func newBranchHub() *branchHub {
-	return &branchHub{conns: make(map[int64]*wsConn)}
+	return &branchHub{conns: make(map[int64]*wsConn), syncing: make(map[int64]bool)}
+}
+
+// setSyncing marks whether branchID is currently mid a full sync run.
+func (h *branchHub) setSyncing(branchID int64, active bool) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if active {
+		h.syncing[branchID] = true
+	} else {
+		delete(h.syncing, branchID)
+	}
+}
+
+// syncingBranchIDs reports which branches are currently mid a full sync
+// run, same full-list-not-delta shape as connectedBranchIDs.
+func (h *branchHub) syncingBranchIDs() []int64 {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	ids := make([]int64, 0, len(h.syncing))
+	for branchID := range h.syncing {
+		ids = append(ids, branchID)
+	}
+	return ids
 }
 
 func (h *branchHub) add(branchID int64, conn *wsConn) {
@@ -144,6 +173,15 @@ func (server *Server) branchWS(ctx *gin.Context) {
 		server.branchHub.remove(branchID, wrapped)
 		server.adminHub.broadcastAll(adminWSMessage{Type: "branch_connection_changed", BranchIDs: server.branchHub.connectedBranchIDs()})
 	}()
+
+	// Without a heartbeat, this otherwise-idle push-only socket can outlive
+	// the actual TCP path (a dead peer, or an intermediary silently
+	// dropping the connection) for as long as neither side happens to
+	// write -- see startHeartbeat's comment. done stops the ping goroutine
+	// once the read loop below returns.
+	done := make(chan struct{})
+	defer close(done)
+	wrapped.startHeartbeat(done)
 
 	for {
 		if _, _, err := conn.ReadMessage(); err != nil {
