@@ -40,6 +40,7 @@ export const useAuthStore = defineStore('auth', () => {
   function setAccess (value) {
     access.value = value
     localStorage.setItem('access', JSON.stringify(value))
+    applyTextSelection()
   }
 
   // Edit implies view (the server normalises it, this just mirrors that).
@@ -50,6 +51,14 @@ export const useAuthStore = defineStore('auth', () => {
   function canEdit (section) {
     return isAdmin.value || !!access.value?.sections?.[section]?.edit
   }
+
+  // Text selection is off by default (see global.scss) and turned on per role
+  // in Settings > Roles ("Text Selection"), like any other section -- it just
+  // doesn't gate an API route.
+  function applyTextSelection () {
+    document.documentElement.classList.toggle('text-selection-enabled', canView('text_selection'))
+  }
+  applyTextSelection()
 
   // Re-read the role from the server so a change made in Settings > Roles shows
   // up on the next page load without logging out. Failures keep the cached
@@ -134,6 +143,7 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('token')
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('user')
+    applyTextSelection()
   }
 
   return { token, refreshToken, user, access, isAuthenticated, isAdmin, canView, canEdit, refreshAccess, login, renew, logout }

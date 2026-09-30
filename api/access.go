@@ -46,6 +46,7 @@ var accessSections = []accessSection{
 	{"hr", "Human resources", "Employees, attendance, shifts and salespersons"},
 	{"calendar", "Calendar", "Calendar events"},
 	{"system", "System", "App settings, WhatsApp, audit log, dev logs and storage"},
+	{"text_selection", "Text Selection", "Select and copy text anywhere in the admin interface (off by default; doesn't gate any data)"},
 }
 
 func isAccessSection(key string) bool {
