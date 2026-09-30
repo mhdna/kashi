@@ -212,7 +212,6 @@
 
   function loadItems ({ page, itemsPerPage, sortBy }) {
     loading.value = true
-    error.value = ''
     fetchPage({ page, itemsPerPage, sortBy })
       .then(({ items, total }) => {
         serverItems.value = items
