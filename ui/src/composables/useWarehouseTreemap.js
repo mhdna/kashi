@@ -11,25 +11,48 @@ async function requestJSON (url) {
   return res.json()
 }
 
-function groupRows (rows, inventoryId) {
+// Category -> (color group, only when the item actually has a color, e.g.
+// Packs) -> product. Categories whose items have no color (Baby/Kids/Men/
+// Lady/Unidentified today) skip the middle level entirely, same 2-level
+// shape as before -- this only adds structure where real color data exists,
+// so packs never get flattened together with plain clothing.
+function buildTree (rows, inventoryId) {
   const source = inventoryId === 'all'
     ? rows
     : rows.filter(r => String(r.inventory_id) === String(inventoryId))
 
-  const groups = new Map()
+  const categories = new Map()
   for (const r of source) {
-    if (!groups.has(r.category_id)) {
-      groups.set(r.category_id, { name: r.category_name, color: r.category_color, code: `C${r.category_id}`, items: new Map() })
+    if (!categories.has(r.category_id)) {
+      categories.set(r.category_id, { name: r.category_name, color: r.category_color, colorGroups: new Map(), items: new Map() })
     }
-    const group = groups.get(r.category_id)
-    if (!group.items.has(r.variant_id)) {
-      group.items.set(r.variant_id, { name: r.product_name, code: r.product_code, qty: 0, costCents: Number(r.variant_cost), locations: [] })
+    const cat = categories.get(r.category_id)
+    const bucket = r.color_name
+      ? (cat.colorGroups.has(r.color_name) ? cat.colorGroups.get(r.color_name) : (() => {
+        const g = { name: r.color_name, hex: r.color_hex, items: new Map() }
+        cat.colorGroups.set(r.color_name, g)
+        return g
+      })())
+      : cat
+
+    if (!bucket.items.has(r.variant_id)) {
+      bucket.items.set(r.variant_id, { name: r.product_name, code: r.product_code, qty: 0, costCents: Number(r.variant_cost), locations: [] })
     }
-    const item = group.items.get(r.variant_id)
+    const item = bucket.items.get(r.variant_id)
     item.qty += Number(r.quantity)
     item.locations.push(r.inventory_name)
   }
-  return groups
+  return categories
+}
+
+function leafNode (item) {
+  return {
+    name: item.name,
+    value: item.qty * item.costCents,
+    qty: item.qty,
+    code: item.code,
+    location: [...new Set(item.locations)].join(', '),
+  }
 }
 
 // Same shape/responsibility as useAssetsTreemap, for the "stuff inventory"
@@ -56,17 +79,17 @@ export function useWarehouseTreemap () {
   }
 
   function buildTreemapData (inventoryId = 'all') {
-    const groups = groupRows(rows.value, inventoryId)
-    return [...groups.values()].map(g => {
-      const children = [...g.items.values()].map(item => ({
-        name: item.name,
-        value: item.qty * item.costCents,
-        qty: item.qty,
-        code: item.code,
-        location: [...new Set(item.locations)].join(', '),
-      }))
+    const categories = buildTree(rows.value, inventoryId)
+    return [...categories.values()].map(cat => {
+      const directLeaves = [...cat.items.values()].map(item => leafNode(item))
+      const colorGroups = [...cat.colorGroups.values()].map(g => {
+        const children = [...g.items.values()].map(item => leafNode(item))
+        const value = children.reduce((sum, i) => sum + i.value, 0)
+        return { name: g.name, value, itemStyle: { color: g.hex || '#546E7A' }, children }
+      })
+      const children = [...colorGroups, ...directLeaves]
       const value = children.reduce((sum, i) => sum + i.value, 0)
-      return { name: g.name, code: g.code, value, itemStyle: { color: g.color || '#546E7A' }, children }
+      return { name: cat.name, value, itemStyle: { color: cat.color || '#546E7A' }, children }
     })
   }
 

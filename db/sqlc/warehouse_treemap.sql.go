@@ -25,6 +25,7 @@ SELECT
   pv.barcode,
   pv.avg_cost AS variant_cost,
   COALESCE(c.name, '') AS color_name,
+  COALESCE(c.hex_value, '') AS color_hex,
   s.quantity
 FROM inventory_stock s
 JOIN product_variants pv ON pv.id = s.variant_id
@@ -50,6 +51,7 @@ type GetWarehouseTreemapDataRow struct {
 	Barcode       string `json:"barcode"`
 	VariantCost   int64  `json:"variant_cost"`
 	ColorName     string `json:"color_name"`
+	ColorHex      string `json:"color_hex"`
 	Quantity      int64  `json:"quantity"`
 }
 
@@ -79,6 +81,7 @@ func (q *Queries) GetWarehouseTreemapData(ctx context.Context, inventoryID sql.N
 			&i.Barcode,
 			&i.VariantCost,
 			&i.ColorName,
+			&i.ColorHex,
 			&i.Quantity,
 		); err != nil {
 			return nil, err
