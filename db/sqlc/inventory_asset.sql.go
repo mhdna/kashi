@@ -20,6 +20,7 @@ SELECT
   a.id   AS asset_id,
   a.name AS asset_name,
   a.code AS asset_code,
+  a.cost AS asset_cost,
   ia.quantity AS quantity
 FROM inventories_assets ia
 JOIN assets a ON a.id = ia.asset_id
@@ -38,6 +39,7 @@ type GetAssetTreemapDataRow struct {
 	AssetID       int64  `json:"asset_id"`
 	AssetName     string `json:"asset_name"`
 	AssetCode     string `json:"asset_code"`
+	AssetCost     int64  `json:"asset_cost"`
 	Quantity      int64  `json:"quantity"`
 }
 
@@ -59,6 +61,7 @@ func (q *Queries) GetAssetTreemapData(ctx context.Context, inventoryID sql.NullI
 			&i.AssetID,
 			&i.AssetName,
 			&i.AssetCode,
+			&i.AssetCost,
 			&i.Quantity,
 		); err != nil {
 			return nil, err

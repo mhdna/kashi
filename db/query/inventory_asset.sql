@@ -20,6 +20,7 @@ SELECT
   a.id   AS asset_id,
   a.name AS asset_name,
   a.code AS asset_code,
+  a.cost AS asset_cost,
   ia.quantity AS quantity
 FROM inventories_assets ia
 JOIN assets a ON a.id = ia.asset_id

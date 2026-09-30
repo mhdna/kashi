@@ -1063,6 +1063,7 @@ type Querier interface {
 	// so pricing N variants costs one query rather than N. DISTINCT ON keeps the
 	// branch list's row ahead of the default list's for the same variant.
 	ResolveVariantPrices(ctx context.Context, arg ResolveVariantPricesParams) ([]ResolveVariantPricesRow, error)
+	SetAssetCost(ctx context.Context, arg SetAssetCostParams) error
 	SetBranchActive(ctx context.Context, arg SetBranchActiveParams) error
 	SetBranchInventory(ctx context.Context, arg SetBranchInventoryParams) error
 	// managed_locally is admin-owned, not branch-reported: a branch's settings

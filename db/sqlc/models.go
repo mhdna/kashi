@@ -477,6 +477,7 @@ type Asset struct {
 	Version    int32     `json:"version"`
 	BoughtAt   time.Time `json:"bought_at"`
 	CreatedAt  time.Time `json:"created_at"`
+	Cost       int64     `json:"cost"`
 }
 
 type AssetCategory struct {

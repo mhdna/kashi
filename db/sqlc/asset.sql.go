@@ -42,7 +42,7 @@ INSERT INTO assets (
   category_id,
   bought_at
 ) VALUES ( $1, $2, $3, $4 )
-RETURNING id, name, code, category_id, version, bought_at, created_at
+RETURNING id, name, code, category_id, version, bought_at, created_at, cost
 `
 
 type CreateAssetParams struct {
@@ -68,6 +68,7 @@ func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset
 		&i.Version,
 		&i.BoughtAt,
 		&i.CreatedAt,
+		&i.Cost,
 	)
 	return i, err
 }
@@ -96,7 +97,7 @@ func (q *Queries) DeleteAssets(ctx context.Context, ids []int64) (int64, error) 
 }
 
 const getAsset = `-- name: GetAsset :one
-SELECT id, name, code, category_id, version, bought_at, created_at FROM assets
+SELECT id, name, code, category_id, version, bought_at, created_at, cost FROM assets
 WHERE id = $1 LIMIT 1
 `
 
@@ -111,12 +112,13 @@ func (q *Queries) GetAsset(ctx context.Context, id int64) (Asset, error) {
 		&i.Version,
 		&i.BoughtAt,
 		&i.CreatedAt,
+		&i.Cost,
 	)
 	return i, err
 }
 
 const getAssetByName = `-- name: GetAssetByName :one
-SELECT id, name, code, category_id, version, bought_at, created_at FROM assets
+SELECT id, name, code, category_id, version, bought_at, created_at, cost FROM assets
 WHERE name = $1 LIMIT 1
 `
 
@@ -131,12 +133,13 @@ func (q *Queries) GetAssetByName(ctx context.Context, name string) (Asset, error
 		&i.Version,
 		&i.BoughtAt,
 		&i.CreatedAt,
+		&i.Cost,
 	)
 	return i, err
 }
 
 const listAssetsPage = `-- name: ListAssetsPage :many
-SELECT id, name, code, category_id, version, bought_at, created_at FROM assets
+SELECT id, name, code, category_id, version, bought_at, created_at, cost FROM assets
 WHERE ($1::bigint IS NULL OR category_id = $1)
   AND (
     $2::text = ''
@@ -192,6 +195,7 @@ func (q *Queries) ListAssetsPage(ctx context.Context, arg ListAssetsPageParams) 
 			&i.Version,
 			&i.BoughtAt,
 			&i.CreatedAt,
+			&i.Cost,
 		); err != nil {
 			return nil, err
 		}
@@ -206,6 +210,22 @@ func (q *Queries) ListAssetsPage(ctx context.Context, arg ListAssetsPageParams) 
 	return items, nil
 }
 
+const setAssetCost = `-- name: SetAssetCost :exec
+UPDATE assets
+SET cost = $2
+WHERE id = $1
+`
+
+type SetAssetCostParams struct {
+	ID   int64 `json:"id"`
+	Cost int64 `json:"cost"`
+}
+
+func (q *Queries) SetAssetCost(ctx context.Context, arg SetAssetCostParams) error {
+	_, err := q.db.ExecContext(ctx, setAssetCost, arg.ID, arg.Cost)
+	return err
+}
+
 const updateAsset = `-- name: UpdateAsset :one
 UPDATE assets
   SET name = $2,
@@ -214,7 +234,7 @@ UPDATE assets
   bought_at = $5,
   version = version + 1
 WHERE id = $1
-RETURNING id, name, code, category_id, version, bought_at, created_at
+RETURNING id, name, code, category_id, version, bought_at, created_at, cost
 `
 
 type UpdateAssetParams struct {
@@ -242,6 +262,7 @@ func (q *Queries) UpdateAsset(ctx context.Context, arg UpdateAssetParams) (Asset
 		&i.Version,
 		&i.BoughtAt,
 		&i.CreatedAt,
+		&i.Cost,
 	)
 	return i, err
 }

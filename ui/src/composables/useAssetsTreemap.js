@@ -23,7 +23,7 @@ function groupRows (rows, inventoryId) {
     }
     const group = groups.get(r.category_id)
     if (!group.items.has(r.asset_id)) {
-      group.items.set(r.asset_id, { name: r.asset_name, code: r.asset_code, qty: 0, locations: [] })
+      group.items.set(r.asset_id, { name: r.asset_name, code: r.asset_code, qty: 0, costCents: Number(r.asset_cost), locations: [] })
     }
     const item = group.items.get(r.asset_id)
     item.qty += Number(r.quantity)
@@ -34,8 +34,9 @@ function groupRows (rows, inventoryId) {
 
 // Fetches the flat (inventory, category, asset) rows once and reshapes them
 // on demand into the echarts treemap tree AssetTreemap.vue renders, and into
-// the location dropdown options assets-treemap.vue needs. Sized by quantity,
-// not book value -- assets have no cost data yet (see plan).
+// the location dropdown options assets-treemap.vue needs. Sized by total
+// book value (qty * per-unit cost, both from the DB) -- falls back to
+// quantity only if an asset's cost is still 0 (not backfilled yet).
 export function useAssetsTreemap () {
   const rows = ref([])
   const loaded = ref(false)
@@ -59,25 +60,32 @@ export function useAssetsTreemap () {
     return [...groups.values()].map(g => {
       const items = [...g.items.values()].map(item => ({
         name: item.name,
-        value: item.qty,
+        value: item.qty * item.costCents,
+        qty: item.qty,
         code: item.code,
         location: [...new Set(item.locations)].join(', '),
       }))
-      const qty = items.reduce((sum, i) => sum + i.value, 0)
+      const value = items.reduce((sum, i) => sum + i.value, 0)
       return {
         name: g.name,
-        value: qty,
+        value,
         itemStyle: { color: g.color || '#546E7A' },
         children: items,
       }
     })
   }
 
-  function totalQty (inventoryId = 'all') {
+  function totals (inventoryId = 'all') {
     const source = inventoryId === 'all'
       ? rows.value
       : rows.value.filter(r => String(r.inventory_id) === String(inventoryId))
-    return source.reduce((sum, r) => sum + Number(r.quantity), 0)
+    let qty = 0
+    let valueCents = 0
+    for (const r of source) {
+      qty += Number(r.quantity)
+      valueCents += Number(r.quantity) * Number(r.asset_cost)
+    }
+    return { qty, valueCents }
   }
 
   // Distinct locations actually present in the data, so the dropdown never
@@ -91,5 +99,5 @@ export function useAssetsTreemap () {
     return [...seen.entries()].map(([value, title]) => ({ title, value: String(value) }))
   }
 
-  return { rows, loading, fetchRows, buildTreemapData, totalQty, locationOptions }
+  return { rows, loading, fetchRows, buildTreemapData, totals, locationOptions }
 }

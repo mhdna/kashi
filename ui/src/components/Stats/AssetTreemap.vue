@@ -20,14 +20,16 @@
   const { loading, fetchRows, buildTreemapData } = useAssetsTreemap()
   const option = ref({})
 
+  const formatMoney = cents => '$ ' + Math.round(Number(cents || 0) / 100).toLocaleString('en-US')
   const formatCount = n => Number(n || 0).toLocaleString('en-US') + ' units'
 
   function tooltipFormatter (info) {
     const d = info.data || {}
     const rows = [
       `<div style="font-weight:600;margin-bottom:4px">${info.name}</div>`,
-      `Count:&nbsp;&nbsp;${formatCount(info.value)}`,
+      `Book Value:&nbsp;&nbsp;${formatMoney(info.value)}`,
     ]
+    if (d.qty !== undefined) rows.push(`Count:&nbsp;&nbsp;${formatCount(d.qty)}`)
     if (d.code) rows.push(`Asset Tag:&nbsp;&nbsp;${d.code}`)
     if (d.location) rows.push(`Location:&nbsp;&nbsp;${d.location}`)
     return rows.join('<br>')
@@ -77,7 +79,7 @@
             textBorderColor: 'rgba(0,0,0,0.5)',
             textBorderWidth: 2,
             formatter (params) {
-              const arr = [`{name|${params.name}}`, `{cost|${formatCount(params.value)}}`]
+              const arr = [`{name|${params.name}}`, `{cost|${formatMoney(params.value)}}`]
               if (params.data && params.data.code) arr.push(`{code|${params.data.code}}`)
               return arr.join('\n')
             },
@@ -107,7 +109,7 @@
             formatter (params) {
               // the invisible root node has no name/value -- skip its header
               if (!params.name) return ''
-              return `  ${params.name}  ${formatCount(params.value)}`
+              return `  ${params.name}  ${formatMoney(params.value)}`
             },
           },
           itemStyle: { borderColor: 'rgba(0,0,0,0.4)', borderWidth: 1, gapWidth: 2 },

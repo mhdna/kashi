@@ -15,6 +15,11 @@ WHERE id = $1 LIMIT 1;
 SELECT * FROM assets
 WHERE name = $1 LIMIT 1;
 
+-- name: SetAssetCost :exec
+UPDATE assets
+SET cost = $2
+WHERE id = $1;
+
 -- name: ListAssetsPage :many
 SELECT * FROM assets
 WHERE (sqlc.narg(category_id)::bigint IS NULL OR category_id = sqlc.narg(category_id))

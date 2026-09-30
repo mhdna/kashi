@@ -7847,6 +7847,20 @@ func (mr *MockStoreMockRecorder) SaveStockCountTx(arg0, arg1 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveStockCountTx", reflect.TypeOf((*MockStore)(nil).SaveStockCountTx), arg0, arg1)
 }
 
+// SetAssetCost mocks base method.
+func (m *MockStore) SetAssetCost(arg0 context.Context, arg1 db.SetAssetCostParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetAssetCost", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetAssetCost indicates an expected call of SetAssetCost.
+func (mr *MockStoreMockRecorder) SetAssetCost(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetAssetCost", reflect.TypeOf((*MockStore)(nil).SetAssetCost), arg0, arg1)
+}
+
 // SetBranchActive mocks base method.
 func (m *MockStore) SetBranchActive(arg0 context.Context, arg1 db.SetBranchActiveParams) error {
 	m.ctrl.T.Helper()
