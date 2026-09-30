@@ -49,6 +49,7 @@ export const navItems = [
     children: [
       { title: 'Branches', icon: 'mdi-store-outline', to: '/branches' },
       { title: 'Branch Settings', icon: 'mdi-store-cog-outline', to: '/branch-settings' },
+      { title: 'Default Settings', icon: 'mdi-content-copy', to: '/default-branch-settings' },
     ],
   },
   {

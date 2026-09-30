@@ -36,6 +36,7 @@ const routes = [
   { path: '/assets-treemap', component: () => import('@/pages/assets-treemap.vue'), meta: { title: 'Assets Treemap', section: 'accounting' } },
   { path: '/branches', component: () => import('@/pages/branches.vue'), meta: { title: 'Branches', section: 'branches' } },
   { path: '/branch-settings', component: () => import('@/pages/branch-settings.vue'), meta: { title: 'Branch Settings', section: 'branches' } },
+  { path: '/default-branch-settings', component: () => import('@/pages/default-branch-settings.vue'), meta: { title: 'Default Settings', section: 'branches' } },
   { path: '/branch-invoices', redirect: '/invoices' },
   { path: '/transfers', component: () => import('@/pages/transfers.vue'), meta: { title: 'Transfers', section: 'inventory' } },
   { path: '/stock-movements', component: () => import('@/pages/stock-movements.vue'), meta: { title: 'Stock Movements', section: 'inventory' } },
