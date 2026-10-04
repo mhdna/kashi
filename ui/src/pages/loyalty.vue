@@ -409,7 +409,15 @@
   }
 
   onMounted(load)
-  watch([clientType, bounds], load)
+  watch(clientType, load)
+  // bounds changes while the picker is open (one per day clicked); wait for
+  // the menu to close so dragging across a range doesn't reload per click.
+  watch(bounds, () => {
+    if (!rangeMenu.value) load()
+  })
+  watch(rangeMenu, isOpen => {
+    if (!isOpen) load()
+  })
 
   // --- aggregation ------------------------------------------------------------
   function money (cents) {
