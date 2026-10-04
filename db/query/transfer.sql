@@ -18,8 +18,9 @@ INSERT INTO transfers (
   type,
   note,
   branch_id,
-  client_ref
-) VALUES ( $1, $2, $3, $4, $5, $6 )
+  client_ref,
+  register_id
+) VALUES ( $1, $2, $3, $4, $5, $6, $7 )
 RETURNING *;
 
 -- name: GetTransfer :one
@@ -35,7 +36,7 @@ SELECT
   t.*,
   fi.name AS from_inventory_name,
   ti.name AS to_inventory_name,
-  b.name AS branch_name,
+  COALESCE(b.name, '') AS branch_name,
   (SELECT COUNT(*) FROM transfer_items x WHERE x.transfer_id = t.id) AS item_count
 FROM transfers t
 JOIN inventories fi ON fi.id = t.from_inventory_id

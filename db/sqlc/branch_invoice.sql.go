@@ -66,11 +66,12 @@ INSERT INTO branch_invoices (
   occurred_at,
   salesperson_name,
   historical,
-  client_uid
+  client_uid,
+  register_id
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
 )
-RETURNING id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid
+RETURNING id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id
 `
 
 type CreateBranchInvoiceParams struct {
@@ -92,6 +93,7 @@ type CreateBranchInvoiceParams struct {
 	SalespersonName        string         `json:"salesperson_name"`
 	Historical             bool           `json:"historical"`
 	ClientUid              uuid.NullUUID  `json:"client_uid"`
+	RegisterID             int64          `json:"register_id"`
 }
 
 func (q *Queries) CreateBranchInvoice(ctx context.Context, arg CreateBranchInvoiceParams) (BranchInvoice, error) {
@@ -114,6 +116,7 @@ func (q *Queries) CreateBranchInvoice(ctx context.Context, arg CreateBranchInvoi
 		arg.SalespersonName,
 		arg.Historical,
 		arg.ClientUid,
+		arg.RegisterID,
 	)
 	var i BranchInvoice
 	err := row.Scan(
@@ -137,6 +140,7 @@ func (q *Queries) CreateBranchInvoice(ctx context.Context, arg CreateBranchInvoi
 		&i.SalespersonName,
 		&i.Historical,
 		&i.ClientUid,
+		&i.RegisterID,
 	)
 	return i, err
 }
@@ -213,7 +217,7 @@ func (q *Queries) CreateBranchInvoicePayment(ctx context.Context, arg CreateBran
 }
 
 const getBranchInvoice = `-- name: GetBranchInvoice :one
-SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid FROM branch_invoices WHERE id = $1
+SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id FROM branch_invoices WHERE id = $1
 `
 
 func (q *Queries) GetBranchInvoice(ctx context.Context, id int64) (BranchInvoice, error) {
@@ -240,12 +244,13 @@ func (q *Queries) GetBranchInvoice(ctx context.Context, id int64) (BranchInvoice
 		&i.SalespersonName,
 		&i.Historical,
 		&i.ClientUid,
+		&i.RegisterID,
 	)
 	return i, err
 }
 
 const getBranchInvoiceByClientRef = `-- name: GetBranchInvoiceByClientRef :one
-SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid FROM branch_invoices
+SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id FROM branch_invoices
 WHERE branch_id = $1 AND client_ref = $2
 LIMIT 1
 `
@@ -279,6 +284,7 @@ func (q *Queries) GetBranchInvoiceByClientRef(ctx context.Context, arg GetBranch
 		&i.SalespersonName,
 		&i.Historical,
 		&i.ClientUid,
+		&i.RegisterID,
 	)
 	return i, err
 }
@@ -355,7 +361,7 @@ func (q *Queries) ListBranchInvoicePayments(ctx context.Context, branchInvoiceID
 }
 
 const listBranchInvoices = `-- name: ListBranchInvoices :many
-SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid FROM branch_invoices
+SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id FROM branch_invoices
 WHERE $3::bigint IS NULL OR branch_id = $3
 ORDER BY id DESC
 LIMIT $1 OFFSET $2
@@ -400,6 +406,7 @@ func (q *Queries) ListBranchInvoices(ctx context.Context, arg ListBranchInvoices
 			&i.SalespersonName,
 			&i.Historical,
 			&i.ClientUid,
+			&i.RegisterID,
 		); err != nil {
 			return nil, err
 		}
@@ -415,7 +422,7 @@ func (q *Queries) ListBranchInvoices(ctx context.Context, arg ListBranchInvoices
 }
 
 const listBranchInvoicesPage = `-- name: ListBranchInvoicesPage :many
-SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid FROM branch_invoices
+SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id FROM branch_invoices
 WHERE ($1::bigint IS NULL OR branch_id = $1)
   AND (
     $2::text = ''
@@ -469,6 +476,7 @@ func (q *Queries) ListBranchInvoicesPage(ctx context.Context, arg ListBranchInvo
 			&i.SalespersonName,
 			&i.Historical,
 			&i.ClientUid,
+			&i.RegisterID,
 		); err != nil {
 			return nil, err
 		}

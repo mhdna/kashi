@@ -53,6 +53,10 @@ type createProductRequest struct {
 	// When creating several variants at once: one variant per colour x size.
 	ColorIDs []int64 `json:"color_ids"`
 	SizeIDs  []int64 `json:"size_ids"`
+	// Optional starting price in cents, applied to every variant created.
+	// Without price_list_id it goes on the default list.
+	Price       *int64 `json:"price" binding:"omitempty,min=0"`
+	PriceListID *int64 `json:"price_list_id" binding:"omitempty,min=1"`
 }
 
 func (server *Server) createProduct(ctx *gin.Context) {
@@ -73,6 +77,8 @@ func (server *Server) createProduct(ctx *gin.Context) {
 		SizeID:          req.SizeID,
 		ColorIDs:        req.ColorIDs,
 		SizeIDs:         req.SizeIDs,
+		Price:           req.Price,
+		PriceListID:     req.PriceListID,
 	}
 
 	product, err := server.store.CreateProductTx(ctx, createProductArg)
@@ -81,6 +87,7 @@ func (server *Server) createProduct(ctx *gin.Context) {
 			switch pqErr.Code.Name() {
 			case "foreign_key_violation", "unique_violation":
 				server.writeError(ctx, http.StatusForbidden, err)
+				return
 			}
 		}
 		server.writeError(ctx, http.StatusInternalServerError, err)

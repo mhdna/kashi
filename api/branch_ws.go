@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -27,74 +28,151 @@ import (
 // instance that made the change. Note as a known limitation if kashi is
 // ever horizontally scaled.
 type branchHub struct {
-	mu    sync.RWMutex
-	conns map[int64]*wsConn
-	// syncing tracks branches currently mid "Sync everything" run in
-	// kashi-pos, set by branchSyncFullSyncStart/End. Unlike conns, it isn't
-	// tied to a live connection -- a full sync can outlive any single HTTP
-	// or WS round-trip -- so it's only ever cleared explicitly (by the end
-	// call) or on branch reconnect, never on its own.
-	syncing map[int64]bool
+	mu sync.RWMutex
+	// conns is keyed by register id: a branch with several tills has one
+	// live connection per register. registerBranch maps each connected
+	// register back to its branch, for branch-wide notifications.
+	conns          map[int64]*wsConn
+	registerBranch map[int64]int64
+	// syncing tracks registers currently mid "Sync everything" run in
+	// kashi-pos, as a lease: the start call (which kashi-pos repeats as a
+	// heartbeat while the run lasts) grants syncLeaseTTL, the end call
+	// drops it. A run whose end never arrives -- the till was closed or
+	// lost its connection mid-run -- simply lapses, instead of showing the
+	// branch as syncing until kashi restarts (which is what a plain flag
+	// did). It is also dropped when the register's WebSocket closes.
+	syncing map[int64]syncLease
+}
+
+// syncLeaseTTL is how long one start/heartbeat keeps a register marked as
+// syncing. kashi-pos renews every 30s, so this tolerates a few lost beats.
+const syncLeaseTTL = 2 * time.Minute
+
+type syncLease struct {
+	branchID  int64
+	expiresAt time.Time
 }
 
 func newBranchHub() *branchHub {
-	return &branchHub{conns: make(map[int64]*wsConn), syncing: make(map[int64]bool)}
-}
-
-// setSyncing marks whether branchID is currently mid a full sync run.
-func (h *branchHub) setSyncing(branchID int64, active bool) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	if active {
-		h.syncing[branchID] = true
-	} else {
-		delete(h.syncing, branchID)
+	return &branchHub{
+		conns:          make(map[int64]*wsConn),
+		registerBranch: make(map[int64]int64),
+		syncing:        make(map[int64]syncLease),
 	}
 }
 
-// syncingBranchIDs reports which branches are currently mid a full sync
-// run, same full-list-not-delta shape as connectedBranchIDs.
-func (h *branchHub) syncingBranchIDs() []int64 {
+// setSyncing starts or renews (active) or ends a register's full-sync lease.
+func (h *branchHub) setSyncing(branchID, registerID int64, active bool, now time.Time) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if active {
+		h.syncing[registerID] = syncLease{branchID: branchID, expiresAt: now.Add(syncLeaseTTL)}
+	} else {
+		delete(h.syncing, registerID)
+	}
+}
+
+// syncingBranchIDs reports which branches have at least one register with a
+// live full-sync lease, same full-list-not-delta shape as
+// connectedBranchIDs. A lapsed lease is left out even before
+// expireSyncLeases gets to it.
+func (h *branchHub) syncingBranchIDs(now time.Time) []int64 {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
+	seen := make(map[int64]bool, len(h.syncing))
 	ids := make([]int64, 0, len(h.syncing))
-	for branchID := range h.syncing {
-		ids = append(ids, branchID)
+	for _, lease := range h.syncing {
+		if now.Before(lease.expiresAt) && !seen[lease.branchID] {
+			seen[lease.branchID] = true
+			ids = append(ids, lease.branchID)
+		}
 	}
 	return ids
 }
 
-func (h *branchHub) add(branchID int64, conn *wsConn) {
+// expireSyncLeases drops lapsed leases and reports whether it dropped any,
+// so the caller knows to tell admin UIs.
+func (h *branchHub) expireSyncLeases(now time.Time) bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	if existing, ok := h.conns[branchID]; ok {
-		// A branch reconnecting (e.g. after a network blip) shouldn't leave
-		// the old socket open and leaking — replace it, closing the old one.
+	expired := false
+	for registerID, lease := range h.syncing {
+		if !now.Before(lease.expiresAt) {
+			delete(h.syncing, registerID)
+			expired = true
+		}
+	}
+	return expired
+}
+
+// broadcastSyncingBranches tells admin UIs which branches are mid a full
+// sync now -- see branchFullSyncStart.
+func (server *Server) broadcastSyncingBranches() {
+	server.adminHub.broadcastAll(adminWSMessage{Type: "branch_sync_status_changed", BranchIDs: server.branchHub.syncingBranchIDs(time.Now())})
+}
+
+// expireSyncLeasesLoop clears lapsed full-sync leases every 30s and, when it
+// clears any, pushes the new list -- otherwise an admin UI already showing
+// "syncing" would keep showing it until its next reload.
+func (server *Server) expireSyncLeasesLoop() {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	for now := range ticker.C {
+		if server.branchHub.expireSyncLeases(now) {
+			server.broadcastSyncingBranches()
+		}
+	}
+}
+
+func (h *branchHub) add(branchID, registerID int64, conn *wsConn) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if existing, ok := h.conns[registerID]; ok {
+		// A register reconnecting (e.g. after a network blip) shouldn't
+		// leave the old socket open and leaking — replace it, closing the
+		// old one.
 		existing.close()
 	}
-	h.conns[branchID] = conn
+	h.conns[registerID] = conn
+	h.registerBranch[registerID] = branchID
 }
 
-func (h *branchHub) remove(branchID int64, conn *wsConn) {
+func (h *branchHub) remove(registerID int64, conn *wsConn) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	if h.conns[branchID] == conn {
-		delete(h.conns, branchID)
+	if h.conns[registerID] == conn {
+		delete(h.conns, registerID)
+		delete(h.registerBranch, registerID)
 	}
 }
 
-// connectedBranchIDs reports which distinct branches currently have a live
-// connection. Since add() replaces rather than accumulates a branch's
-// connection (see its comment above), this is really "connected branches",
-// not "connected devices" -- a branch with several tills sharing one
-// branch API key still appears once here, since branchHub has no way to
-// tell those apart.
+// connectedBranchIDs reports which distinct branches have at least one
+// register connected right now.
 func (h *branchHub) connectedBranchIDs() []int64 {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
+	return distinctValues(h.registerBranch)
+}
+
+// connectedRegisterIDs reports which registers are connected right now.
+func (h *branchHub) connectedRegisterIDs() []int64 {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
 	ids := make([]int64, 0, len(h.conns))
-	for branchID := range h.conns {
-		ids = append(ids, branchID)
+	for registerID := range h.conns {
+		ids = append(ids, registerID)
+	}
+	return ids
+}
+
+func distinctValues(m map[int64]int64) []int64 {
+	seen := make(map[int64]bool, len(m))
+	ids := make([]int64, 0, len(m))
+	for _, v := range m {
+		if !seen[v] {
+			seen[v] = true
+			ids = append(ids, v)
+		}
 	}
 	return ids
 }
@@ -108,39 +186,71 @@ type branchWSMessage struct {
 	// is about (to flip the matching QR dialog to success), not just "go
 	// re-fetch this kind of thing".
 	ClientRef string `json:"client_ref,omitempty"`
+	// Entities lists the sync entities to re-fetch for "sync_changed" --
+	// see sync_notify.go.
+	Entities []string `json:"entities,omitempty"`
+	// Features is set on "hello", the first message of every session: what
+	// this kashi pushes, so a till knows how much it can rely on pushes
+	// instead of polling. "sync_changed" means every change to synced data
+	// is pushed (sync_notify.go), not just the hand-wired message types;
+	// "quick_access" means the quick_access sync entity and its endpoints
+	// exist (branch_quick_access.go).
+	Features []string `json:"features,omitempty"`
 }
 
-// notify sends a message to exactly one branch, if it currently has a live
-// connection. Unlike broadcastAll, this is for branch-scoped events (a
-// command enqueued for one specific branch) — silently doing nothing when
-// the branch isn't connected is fine, since notify is always paired with a
-// poll-based catch-up path (see kashi-pos's runSyncTick fetching pending
-// commands every tick) that doesn't depend on this push ever arriving.
+// notify sends a message to every connected register of one branch. Unlike
+// broadcastAll, this is for branch-scoped events -- silently doing nothing
+// when no register is connected is fine, since notify is always paired with
+// a poll-based catch-up path (see kashi-pos's runSyncTick) that doesn't
+// depend on this push ever arriving.
 func (h *branchHub) notify(branchID int64, message branchWSMessage) {
 	h.mu.RLock()
-	conn, ok := h.conns[branchID]
+	defer h.mu.RUnlock()
+	for registerID, conn := range h.conns {
+		if h.registerBranch[registerID] != branchID {
+			continue
+		}
+		if err := conn.writeJSON(message); err != nil {
+			log.Printf("branch hub: notify register %d failed: %v", registerID, err)
+		}
+	}
+}
+
+// notifyRegister sends a message to one register, if it's connected --
+// for things only that till should act on, such as a command addressed to it.
+func (h *branchHub) notifyRegister(registerID int64, message branchWSMessage) {
+	h.mu.RLock()
+	conn, ok := h.conns[registerID]
 	h.mu.RUnlock()
 	if !ok {
 		return
 	}
 	if err := conn.writeJSON(message); err != nil {
-		log.Printf("branch hub: notify branch %d failed: %v", branchID, err)
+		log.Printf("branch hub: notify register %d failed: %v", registerID, err)
 	}
 }
 
-// broadcastAll notifies every currently-connected branch — appropriate for
-// today's only pushed entities (currencies, cashbox_accounts), which apply
-// identically to every branch. A branch-scoped notification (once
-// branch-scoped pushed entities exist) would instead look up and send to
-// one specific branch id.
+// broadcastAll notifies every currently-connected register — for global
+// master data (currencies, cashbox_accounts) that applies identically to
+// every branch.
 func (h *branchHub) broadcastAll(message branchWSMessage) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	for branchID, conn := range h.conns {
+	for registerID, conn := range h.conns {
 		if err := conn.writeJSON(message); err != nil {
-			log.Printf("branch hub: notify branch %d failed: %v", branchID, err)
+			log.Printf("branch hub: notify register %d failed: %v", registerID, err)
 		}
 	}
+}
+
+// broadcastBranchConnections tells admin UIs which branches and registers
+// are live now.
+func (server *Server) broadcastBranchConnections() {
+	server.adminHub.broadcastAll(adminWSMessage{
+		Type:        "branch_connection_changed",
+		BranchIDs:   server.branchHub.connectedBranchIDs(),
+		RegisterIDs: server.branchHub.connectedRegisterIDs(),
+	})
 }
 
 var wsUpgrader = websocket.Upgrader{
@@ -158,20 +268,30 @@ var wsUpgrader = websocket.Upgrader{
 // the connection; nothing it reads is acted on.
 func (server *Server) branchWS(ctx *gin.Context) {
 	branchID := ctx.MustGet(branchIDKey).(int64)
+	registerID := ctx.MustGet(registerIDKey).(int64)
 
 	conn, err := wsUpgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
-		log.Printf("branch %d: websocket upgrade failed: %v", branchID, err)
+		log.Printf("branch %d register %d: websocket upgrade failed: %v", branchID, registerID, err)
 		return
 	}
 	defer conn.Close()
 
 	wrapped := newWSConn(conn)
-	server.branchHub.add(branchID, wrapped)
-	server.adminHub.broadcastAll(adminWSMessage{Type: "branch_connection_changed", BranchIDs: server.branchHub.connectedBranchIDs()})
+	if err := wrapped.writeJSON(branchWSMessage{Type: "hello", Features: []string{"sync_changed", "quick_access"}}); err != nil {
+		log.Printf("branch %d register %d: websocket hello failed: %v", branchID, registerID, err)
+		return
+	}
+	server.branchHub.add(branchID, registerID, wrapped)
+	server.broadcastBranchConnections()
 	defer func() {
-		server.branchHub.remove(branchID, wrapped)
-		server.adminHub.broadcastAll(adminWSMessage{Type: "branch_connection_changed", BranchIDs: server.branchHub.connectedBranchIDs()})
+		server.branchHub.remove(registerID, wrapped)
+		server.broadcastBranchConnections()
+		// A till that disconnected isn't running a sync anymore as far as
+		// anyone can tell; if it is (a network blip), its next heartbeat
+		// re-marks it within 30s.
+		server.branchHub.setSyncing(branchID, registerID, false, time.Now())
+		server.broadcastSyncingBranches()
 	}()
 
 	// Without a heartbeat, this otherwise-idle push-only socket can outlive

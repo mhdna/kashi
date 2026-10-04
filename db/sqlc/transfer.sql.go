@@ -32,9 +32,10 @@ INSERT INTO transfers (
   type,
   note,
   branch_id,
-  client_ref
-) VALUES ( $1, $2, $3, $4, $5, $6 )
-RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note
+  client_ref,
+  register_id
+) VALUES ( $1, $2, $3, $4, $5, $6, $7 )
+RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id
 `
 
 type CreateBranchTransferRequestParams struct {
@@ -44,6 +45,7 @@ type CreateBranchTransferRequestParams struct {
 	Note            string         `json:"note"`
 	BranchID        sql.NullInt64  `json:"branch_id"`
 	ClientRef       sql.NullString `json:"client_ref"`
+	RegisterID      sql.NullInt64  `json:"register_id"`
 }
 
 // A branch's own proposed transfer: always starts 'requested', always
@@ -57,6 +59,7 @@ func (q *Queries) CreateBranchTransferRequest(ctx context.Context, arg CreateBra
 		arg.Note,
 		arg.BranchID,
 		arg.ClientRef,
+		arg.RegisterID,
 	)
 	var i Transfer
 	err := row.Scan(
@@ -76,6 +79,7 @@ func (q *Queries) CreateBranchTransferRequest(ctx context.Context, arg CreateBra
 		&i.UpdatedAt,
 		&i.ConfirmedAt,
 		&i.ConfirmedNote,
+		&i.RegisterID,
 	)
 	return i, err
 }
@@ -88,7 +92,7 @@ INSERT INTO transfers (
   code,
   note
 ) VALUES ( $1, $2, $3, $4, $5 )
-RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note
+RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id
 `
 
 type CreateTransferParams struct {
@@ -125,6 +129,7 @@ func (q *Queries) CreateTransfer(ctx context.Context, arg CreateTransferParams) 
 		&i.UpdatedAt,
 		&i.ConfirmedAt,
 		&i.ConfirmedNote,
+		&i.RegisterID,
 	)
 	return i, err
 }
@@ -185,7 +190,7 @@ func (q *Queries) DeleteTransferItem(ctx context.Context, arg DeleteTransferItem
 }
 
 const getBranchTransferByClientRef = `-- name: GetBranchTransferByClientRef :one
-SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note FROM transfers
+SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id FROM transfers
 WHERE branch_id = $1 AND client_ref = $2 LIMIT 1
 `
 
@@ -214,12 +219,13 @@ func (q *Queries) GetBranchTransferByClientRef(ctx context.Context, arg GetBranc
 		&i.UpdatedAt,
 		&i.ConfirmedAt,
 		&i.ConfirmedNote,
+		&i.RegisterID,
 	)
 	return i, err
 }
 
 const getTransfer = `-- name: GetTransfer :one
-SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note FROM transfers
+SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id FROM transfers
 WHERE id = $1 LIMIT 1
 `
 
@@ -243,12 +249,13 @@ func (q *Queries) GetTransfer(ctx context.Context, id int64) (Transfer, error) {
 		&i.UpdatedAt,
 		&i.ConfirmedAt,
 		&i.ConfirmedNote,
+		&i.RegisterID,
 	)
 	return i, err
 }
 
 const listBranchTransfersUpdatedSince = `-- name: ListBranchTransfersUpdatedSince :many
-SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note FROM transfers
+SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id FROM transfers
 WHERE branch_id = $1 AND updated_at > $2
 ORDER BY updated_at
 `
@@ -286,6 +293,7 @@ func (q *Queries) ListBranchTransfersUpdatedSince(ctx context.Context, arg ListB
 			&i.UpdatedAt,
 			&i.ConfirmedAt,
 			&i.ConfirmedNote,
+			&i.RegisterID,
 		); err != nil {
 			return nil, err
 		}
@@ -301,7 +309,7 @@ func (q *Queries) ListBranchTransfersUpdatedSince(ctx context.Context, arg ListB
 }
 
 const listIncomingBranchTransfersUpdatedSince = `-- name: ListIncomingBranchTransfersUpdatedSince :many
-SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note FROM transfers
+SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id FROM transfers
 WHERE to_inventory_id = $1 AND updated_at > $2
 ORDER BY updated_at
 `
@@ -340,6 +348,7 @@ func (q *Queries) ListIncomingBranchTransfersUpdatedSince(ctx context.Context, a
 			&i.UpdatedAt,
 			&i.ConfirmedAt,
 			&i.ConfirmedNote,
+			&i.RegisterID,
 		); err != nil {
 			return nil, err
 		}
@@ -421,7 +430,7 @@ func (q *Queries) ListTransferItems(ctx context.Context, transferID int64) ([]Li
 
 const listTransfers = `-- name: ListTransfers :many
 SELECT
-  t.id, t.from_inventory_id, t.to_inventory_id, t.type, t.created_at, t.code, t.status, t.dispatched_at, t.received_at, t.note, t.branch_id, t.client_ref, t.attachment_path, t.updated_at, t.confirmed_at, t.confirmed_note,
+  t.id, t.from_inventory_id, t.to_inventory_id, t.type, t.created_at, t.code, t.status, t.dispatched_at, t.received_at, t.note, t.branch_id, t.client_ref, t.attachment_path, t.updated_at, t.confirmed_at, t.confirmed_note, t.register_id,
   fi.name AS from_inventory_name,
   ti.name AS to_inventory_name,
   COALESCE(b.name, '') AS branch_name,
@@ -459,6 +468,7 @@ type ListTransfersRow struct {
 	UpdatedAt         time.Time      `json:"updated_at"`
 	ConfirmedAt       sql.NullTime   `json:"confirmed_at"`
 	ConfirmedNote     string         `json:"confirmed_note"`
+	RegisterID        sql.NullInt64  `json:"register_id"`
 	FromInventoryName string         `json:"from_inventory_name"`
 	ToInventoryName   string         `json:"to_inventory_name"`
 	BranchName        string         `json:"branch_name"`
@@ -491,6 +501,7 @@ func (q *Queries) ListTransfers(ctx context.Context, arg ListTransfersParams) ([
 			&i.UpdatedAt,
 			&i.ConfirmedAt,
 			&i.ConfirmedNote,
+			&i.RegisterID,
 			&i.FromInventoryName,
 			&i.ToInventoryName,
 			&i.BranchName,
@@ -532,7 +543,7 @@ SET confirmed_at = now(),
     confirmed_note = $1,
     updated_at = now()
 WHERE id = $2
-RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note
+RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id
 `
 
 type SetTransferConfirmedParams struct {
@@ -560,6 +571,7 @@ func (q *Queries) SetTransferConfirmed(ctx context.Context, arg SetTransferConfi
 		&i.UpdatedAt,
 		&i.ConfirmedAt,
 		&i.ConfirmedNote,
+		&i.RegisterID,
 	)
 	return i, err
 }
@@ -625,7 +637,7 @@ SET status = $1,
     received_at = COALESCE($3, received_at),
     updated_at = now()
 WHERE id = $4
-RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note
+RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id
 `
 
 type SetTransferStatusParams struct {
@@ -660,6 +672,7 @@ func (q *Queries) SetTransferStatus(ctx context.Context, arg SetTransferStatusPa
 		&i.UpdatedAt,
 		&i.ConfirmedAt,
 		&i.ConfirmedNote,
+		&i.RegisterID,
 	)
 	return i, err
 }

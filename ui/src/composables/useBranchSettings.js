@@ -31,11 +31,16 @@ export function useBranchSettings () {
   // it; it does NOT wait for the branch to execute it (that happens
   // asynchronously, usually within a second or two if the branch is
   // online, via the WebSocket push, or on its next sync tick otherwise).
-  async function updateBranchSettings (branchId, payload) {
+  //
+  // Without registerId it's branch-wide: kashi saves it as the branch's
+  // settings and sends it to every register (minus per-machine fields).
+  // With registerId it goes to that one till only and the branch's saved
+  // settings are untouched -- used for per-machine fields like printers.
+  async function updateBranchSettings (branchId, payload, registerId = 0) {
     const data = await requestJSON(`${API_BASE}/branches/${branchId}/commands`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'update_settings', payload }),
+      body: JSON.stringify({ type: 'update_settings', payload, register_id: registerId }),
     })
     return data?.command ?? null
   }

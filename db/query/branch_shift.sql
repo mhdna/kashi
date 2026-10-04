@@ -20,15 +20,16 @@ INSERT INTO branch_shifts (
   variance_lbp,
   variance_visa,
   variance_whish,
-  occurred_at
+  occurred_at,
+  register_id
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
 )
 RETURNING *;
 
 -- name: GetBranchShiftByClientRef :one
 SELECT * FROM branch_shifts
-WHERE branch_id = $1 AND client_ref = $2
+WHERE register_id = $1 AND client_ref = $2
 LIMIT 1;
 
 -- name: GetBranchShift :one

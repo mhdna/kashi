@@ -258,7 +258,7 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 		}
 		limit := clampSyncLimit(req.Limit)
 		rows, err = server.store.ListBranchInvoiceHistoryForSync(ctx, db.ListBranchInvoiceHistoryForSyncParams{
-			BranchID: branchID, AfterReceivedAt: cur.updatedAt, AfterID: cur.id, RowLimit: int32(limit),
+			RegisterID: ctx.MustGet(registerIDKey).(int64), AfterReceivedAt: cur.updatedAt, AfterID: cur.id, RowLimit: int32(limit),
 		})
 		if err == nil && len(rows) == limit {
 			last := rows[len(rows)-1]
@@ -316,7 +316,6 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 			items = out
 		}
 	case "branch_shift_history":
-		branchID := ctx.MustGet(branchIDKey).(int64)
 		var rows []db.BranchShift
 		cur := syncCursor{updatedAt: since}
 		cur, err = resolveCursor(req.Cursor, cur)
@@ -326,7 +325,7 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 		}
 		limit := clampSyncLimit(req.Limit)
 		rows, err = server.store.ListBranchShiftHistoryForSync(ctx, db.ListBranchShiftHistoryForSyncParams{
-			BranchID: branchID, AfterReceivedAt: cur.updatedAt, AfterID: cur.id, RowLimit: int32(limit),
+			RegisterID: ctx.MustGet(registerIDKey).(int64), AfterReceivedAt: cur.updatedAt, AfterID: cur.id, RowLimit: int32(limit),
 		})
 		if err == nil && len(rows) == limit {
 			last := rows[len(rows)-1]
@@ -395,6 +394,10 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 			}
 			items = out
 		}
+	case "quick_access":
+		// Register-scoped and always whole (ignores `since`): this register's
+		// mode plus its branch's list -- see branch_quick_access.go.
+		items, err = server.quickAccessForRegisterSync(ctx, ctx.MustGet(branchIDKey).(int64), ctx.MustGet(registerIDKey).(int64))
 	default:
 		server.writeError(ctx, http.StatusBadRequest, errUnknownSyncEntity)
 		return
@@ -456,6 +459,7 @@ type branchReconcileRequest struct {
 // "does this barcode resolve to a central variant" is a global question.
 func (server *Server) branchReconcile(ctx *gin.Context) {
 	branchID := ctx.MustGet(branchIDKey).(int64)
+	registerID := ctx.MustGet(registerIDKey).(int64)
 
 	var req branchReconcileRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -505,8 +509,8 @@ func (server *Server) branchReconcile(ctx *gin.Context) {
 			}
 		}
 	case "clients":
-		// Refs are branch_client_id values as text; client_links keys on
-		// (branch_id, branch_client_id).
+		// Refs are branch_client_id values as text -- this register's local
+		// client ids; client_links keys on (register_id, branch_client_id).
 		ids := make([]int64, 0, len(req.Refs))
 		for _, r := range req.Refs {
 			n, convErr := strconv.ParseInt(r, 10, 64)
@@ -518,7 +522,7 @@ func (server *Server) branchReconcile(ctx *gin.Context) {
 		}
 		var found []int64
 		found, err = server.store.BranchClientLinksPresent(ctx, db.BranchClientLinksPresentParams{
-			BranchID: branchID,
+			RegisterID: registerID,
 			Column2:  ids,
 		})
 		for _, id := range found {
@@ -541,7 +545,7 @@ func (server *Server) branchReconcile(ctx *gin.Context) {
 	case "shift_closes":
 		var found []string
 		found, err = server.store.BranchShiftRefsPresent(ctx, db.BranchShiftRefsPresentParams{
-			BranchID: branchID, Column2: req.Refs,
+			RegisterID: registerID, Column2: req.Refs,
 		})
 		for _, r := range found {
 			present[r] = true
@@ -565,7 +569,7 @@ func (server *Server) branchReconcile(ctx *gin.Context) {
 	case "attendance_changes":
 		var found []string
 		found, err = server.store.BranchAttendanceChangeRefsPresent(ctx, db.BranchAttendanceChangeRefsPresentParams{
-			BranchID: branchID, Column2: req.Refs,
+			RegisterID: registerID, Column2: req.Refs,
 		})
 		for _, r := range found {
 			present[r] = true

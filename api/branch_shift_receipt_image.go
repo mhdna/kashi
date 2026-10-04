@@ -30,7 +30,7 @@ func (server *Server) shiftReceiptImageStorageDir() string {
 // (the POS keeps retrying), and a plain 200 no-op when the shift already has
 // a photo (a retried forward after the POS missed our first 200).
 func (server *Server) createBranchShiftReceiptImage(ctx *gin.Context) {
-	branchID := ctx.MustGet(branchIDKey).(int64)
+	registerID := ctx.MustGet(registerIDKey).(int64)
 
 	shiftRef := ctx.PostForm("shift_ref")
 	if shiftRef == "" {
@@ -39,8 +39,8 @@ func (server *Server) createBranchShiftReceiptImage(ctx *gin.Context) {
 	}
 
 	shift, err := server.store.GetBranchShiftByClientRef(ctx, db.GetBranchShiftByClientRefParams{
-		BranchID:  branchID,
-		ClientRef: shiftRef,
+		RegisterID: registerID,
+		ClientRef:  shiftRef,
 	})
 	if err != nil {
 		if err == sql.ErrNoRows {

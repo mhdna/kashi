@@ -20,6 +20,7 @@ var (
 	branchCodeHeaderKey = "x-branch-code"
 	branchKeyHeaderKey  = "x-branch-key"
 	branchIDKey         = "branch_id"
+	registerIDKey       = "register_id"
 )
 
 // corsMiddleware reflects back the request's Origin header so the Vite dev
@@ -90,11 +91,14 @@ func (server *Server) authMiddleware() gin.HandlerFunc {
 	}
 }
 
-// branchAuthMiddleware authenticates a kashi-pos branch install rather than a
-// human user. It's a separate header pair (not Authorization: Bearer, which
-// already means "PASETO user token" elsewhere in this codebase) so the two
-// schemes can't be confused, and a branch key never expires the way a user
-// session does — a branch must keep working after being offline for weeks.
+// branchAuthMiddleware authenticates a kashi-pos till (a branch register)
+// rather than a human user. It's a separate header pair (not Authorization:
+// Bearer, which already means "PASETO user token" elsewhere in this
+// codebase) so the two schemes can't be confused, and a register key never
+// expires the way a user session does — a till must keep working after
+// being offline for weeks. The x-branch-code header carries the register's
+// code; a branch's first register shares the branch code, which is what
+// pre-register tills already send.
 func (server *Server) branchAuthMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		code := ctx.GetHeader(branchCodeHeaderKey)
@@ -104,30 +108,39 @@ func (server *Server) branchAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		branch, err := server.store.GetBranchByCode(ctx, code)
+		register, err := server.store.GetBranchRegisterByCode(ctx, code)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				err = errors.New("unknown branch")
+				err = errors.New("unknown register")
 			}
 			server.abortError(ctx, http.StatusUnauthorized, err)
 			return
 		}
+		if !register.IsActive {
+			server.abortError(ctx, http.StatusUnauthorized, errors.New("register is disabled"))
+			return
+		}
+		if err := util.CheckPassword(key, register.ApiKeyHash); err != nil {
+			server.abortError(ctx, http.StatusUnauthorized, errors.New("invalid branch key"))
+			return
+		}
 
+		branch, err := server.store.GetBranch(ctx, register.BranchID)
+		if err != nil {
+			server.abortError(ctx, http.StatusUnauthorized, err)
+			return
+		}
 		if !branch.IsActive {
 			server.abortError(ctx, http.StatusUnauthorized, errors.New("branch is disabled"))
 			return
 		}
 
-		if err := util.CheckPassword(key, branch.ApiKeyHash); err != nil {
-			server.abortError(ctx, http.StatusUnauthorized, errors.New("invalid branch key"))
-			return
-		}
-
 		ctx.Set(branchIDKey, branch.ID)
+		ctx.Set(registerIDKey, register.ID)
 
-		// Best-effort: a branch shouldn't get a failed request just because
+		// Best-effort: a till shouldn't get a failed request just because
 		// this bookkeeping update had a hiccup.
-		_ = server.store.UpdateBranchLastSeenAt(ctx, branch.ID)
+		_ = server.store.TouchBranchRegister(ctx, register.ID)
 
 		ctx.Next()
 	}

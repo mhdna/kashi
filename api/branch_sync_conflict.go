@@ -6,7 +6,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -106,6 +105,7 @@ type resolveBranchSyncConflictRequest struct {
 	//     the till's) | "custom" (use Name)
 	//   invalid_phone: "merge" (link to ClientID) | "create" (new client
 	//     with Phone)
+	//   oversold: anything (e.g. "done") -- the stock fix happens elsewhere
 	Choice   string `json:"choice" binding:"required"`
 	Name     string `json:"name"`
 	Phone    string `json:"phone"`
@@ -275,7 +275,7 @@ func (server *Server) applyConflictResolution(ctx *gin.Context, conflict db.Bran
 		if err := json.Unmarshal(conflict.BranchPayload, &bp); err != nil {
 			return err
 		}
-		branchClientID, err := strconv.ParseInt(conflict.Ref, 10, 64)
+		registerID, branchClientID, err := parseClientConflictRef(conflict.Ref)
 		if err != nil {
 			return err
 		}
@@ -294,7 +294,7 @@ func (server *Server) applyConflictResolution(ctx *gin.Context, conflict db.Bran
 			if !validBranchPhone(phone) {
 				// Bulk "create" (and single create with no phone typed):
 				// mint the same stable placeholder putBranchClient uses.
-				phone = syntheticBranchPhone(conflict.BranchID, branchClientID)
+				phone = syntheticBranchPhone(registerID, branchClientID)
 			}
 			created, err := server.store.CreateClient(ctx, db.CreateClientParams{
 				Name:       bp.Name,
@@ -310,9 +310,16 @@ func (server *Server) applyConflictResolution(ctx *gin.Context, conflict db.Bran
 		}
 		return server.store.UpsertClientLink(ctx, db.UpsertClientLinkParams{
 			BranchID:       conflict.BranchID,
+			RegisterID:     registerID,
 			BranchClientID: branchClientID,
 			ClientID:       targetID,
 		})
+
+	case "oversold":
+		// Nothing to apply here: the stock itself is corrected the normal
+		// way (adjustment, transfer, count), each writing its own movement.
+		// Resolving just records that an admin dealt with it.
+		return nil
 
 	default:
 		return errors.New("unknown conflict kind")

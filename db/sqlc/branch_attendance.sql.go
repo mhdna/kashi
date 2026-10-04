@@ -49,11 +49,12 @@ INSERT INTO branch_attendance_changes (
   status,
   note,
   actor,
-  occurred_at
+  occurred_at,
+  register_id
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
 )
-RETURNING id, branch_id, client_ref, kind, salesperson_name, attendance_date, original_time, requested_time, requested_type, action, status, note, actor, occurred_at, received_at
+RETURNING id, branch_id, client_ref, kind, salesperson_name, attendance_date, original_time, requested_time, requested_type, action, status, note, actor, occurred_at, received_at, register_id
 `
 
 type CreateBranchAttendanceChangeParams struct {
@@ -70,6 +71,7 @@ type CreateBranchAttendanceChangeParams struct {
 	Note            string    `json:"note"`
 	Actor           string    `json:"actor"`
 	OccurredAt      time.Time `json:"occurred_at"`
+	RegisterID      int64     `json:"register_id"`
 }
 
 func (q *Queries) CreateBranchAttendanceChange(ctx context.Context, arg CreateBranchAttendanceChangeParams) (BranchAttendanceChange, error) {
@@ -87,6 +89,7 @@ func (q *Queries) CreateBranchAttendanceChange(ctx context.Context, arg CreateBr
 		arg.Note,
 		arg.Actor,
 		arg.OccurredAt,
+		arg.RegisterID,
 	)
 	var i BranchAttendanceChange
 	err := row.Scan(
@@ -105,6 +108,7 @@ func (q *Queries) CreateBranchAttendanceChange(ctx context.Context, arg CreateBr
 		&i.Actor,
 		&i.OccurredAt,
 		&i.ReceivedAt,
+		&i.RegisterID,
 	)
 	return i, err
 }
@@ -177,18 +181,18 @@ func (q *Queries) DeleteBranchAttendanceEvent(ctx context.Context, id int64) err
 }
 
 const getBranchAttendanceChangeByClientRef = `-- name: GetBranchAttendanceChangeByClientRef :one
-SELECT id, branch_id, client_ref, kind, salesperson_name, attendance_date, original_time, requested_time, requested_type, action, status, note, actor, occurred_at, received_at FROM branch_attendance_changes
-WHERE branch_id = $1 AND client_ref = $2
+SELECT id, branch_id, client_ref, kind, salesperson_name, attendance_date, original_time, requested_time, requested_type, action, status, note, actor, occurred_at, received_at, register_id FROM branch_attendance_changes
+WHERE register_id = $1 AND client_ref = $2
 LIMIT 1
 `
 
 type GetBranchAttendanceChangeByClientRefParams struct {
-	BranchID  int64  `json:"branch_id"`
-	ClientRef string `json:"client_ref"`
+	RegisterID int64  `json:"register_id"`
+	ClientRef  string `json:"client_ref"`
 }
 
 func (q *Queries) GetBranchAttendanceChangeByClientRef(ctx context.Context, arg GetBranchAttendanceChangeByClientRefParams) (BranchAttendanceChange, error) {
-	row := q.db.QueryRowContext(ctx, getBranchAttendanceChangeByClientRef, arg.BranchID, arg.ClientRef)
+	row := q.db.QueryRowContext(ctx, getBranchAttendanceChangeByClientRef, arg.RegisterID, arg.ClientRef)
 	var i BranchAttendanceChange
 	err := row.Scan(
 		&i.ID,
@@ -206,6 +210,7 @@ func (q *Queries) GetBranchAttendanceChangeByClientRef(ctx context.Context, arg 
 		&i.Actor,
 		&i.OccurredAt,
 		&i.ReceivedAt,
+		&i.RegisterID,
 	)
 	return i, err
 }
@@ -265,7 +270,7 @@ func (q *Queries) GetBranchAttendanceEventByClientRef(ctx context.Context, arg G
 }
 
 const listBranchAttendanceChanges = `-- name: ListBranchAttendanceChanges :many
-SELECT id, branch_id, client_ref, kind, salesperson_name, attendance_date, original_time, requested_time, requested_type, action, status, note, actor, occurred_at, received_at FROM branch_attendance_changes
+SELECT id, branch_id, client_ref, kind, salesperson_name, attendance_date, original_time, requested_time, requested_type, action, status, note, actor, occurred_at, received_at, register_id FROM branch_attendance_changes
 WHERE $3::bigint IS NULL OR branch_id = $3
 ORDER BY id DESC
 LIMIT $1 OFFSET $2
@@ -302,6 +307,7 @@ func (q *Queries) ListBranchAttendanceChanges(ctx context.Context, arg ListBranc
 			&i.Actor,
 			&i.OccurredAt,
 			&i.ReceivedAt,
+			&i.RegisterID,
 		); err != nil {
 			return nil, err
 		}

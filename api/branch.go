@@ -23,8 +23,6 @@ func generateBranchAPIKey() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(raw), nil
 }
 
-// branchResponse omits ApiKeyHash — a bcrypt hash isn't reversible, but
-// there's no reason to hand it to every admin-UI client that lists branches.
 type branchResponse struct {
 	ID         int64        `json:"id"`
 	Name       string       `json:"name"`
@@ -51,8 +49,9 @@ type createBranchRequest struct {
 }
 
 // createBranch is called by a human admin (authRoutes, PASETO auth), never
-// by a branch itself. The plaintext API key is only ever returned here, at
-// creation time — from then on only its bcrypt hash is stored.
+// by a branch itself. It also creates the branch's first register under the
+// branch code; that register's plaintext API key is only ever returned here
+// — from then on only its bcrypt hash is stored.
 func (server *Server) createBranch(ctx *gin.Context) {
 	var req createBranchRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -73,9 +72,9 @@ func (server *Server) createBranch(ctx *gin.Context) {
 	}
 
 	result, err := server.store.CreateBranchTx(ctx, db.CreateBranchTxParams{
-		Name:       req.Name,
-		Code:       req.Code,
-		APIKeyHash: apiKeyHash,
+		Name:               req.Name,
+		Code:               req.Code,
+		RegisterAPIKeyHash: apiKeyHash,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
@@ -83,8 +82,9 @@ func (server *Server) createBranch(ctx *gin.Context) {
 	}
 
 	server.writeJSON(ctx, http.StatusOK, envelope{
-		"branch":  newBranchResponse(result.Branch),
-		"api_key": apiKey,
+		"branch":   newBranchResponse(result.Branch),
+		"register": newBranchRegisterResponse(result.Register),
+		"api_key":  apiKey,
 	})
 }
 
@@ -117,7 +117,7 @@ func (server *Server) listConnectedBranches(ctx *gin.Context) {
 // pairing with "branch_sync_status_changed" that listConnectedBranches has
 // with "branch_connection_changed".
 func (server *Server) listSyncingBranches(ctx *gin.Context) {
-	server.writeJSON(ctx, http.StatusOK, envelope{"branch_ids": server.branchHub.syncingBranchIDs()})
+	server.writeJSON(ctx, http.StatusOK, envelope{"branch_ids": server.branchHub.syncingBranchIDs(time.Now())})
 }
 
 type branchIDRequest struct {
@@ -151,46 +151,4 @@ func (server *Server) setBranchActive(active bool) gin.HandlerFunc {
 
 		server.writeJSON(ctx, http.StatusOK, envelope{"id": req.ID, "is_active": active})
 	}
-}
-
-// rotateBranchKey invalidates a branch's current key immediately (it's a
-// straight overwrite of api_key_hash) and returns the new plaintext key
-// once, the same way createBranch does.
-func (server *Server) rotateBranchKey(ctx *gin.Context) {
-	var req branchIDRequest
-	if err := ctx.ShouldBindUri(&req); err != nil {
-		server.writeError(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	if _, err := server.store.GetBranch(ctx, req.ID); err != nil {
-		if err == sql.ErrNoRows {
-			server.writeError(ctx, http.StatusNotFound, err)
-			return
-		}
-		server.writeError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	apiKey, err := generateBranchAPIKey()
-	if err != nil {
-		server.writeError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	apiKeyHash, err := util.HashPassword(apiKey)
-	if err != nil {
-		server.writeError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	if err := server.store.UpdateBranchAPIKeyHash(ctx, db.UpdateBranchAPIKeyHashParams{
-		ID:         req.ID,
-		ApiKeyHash: apiKeyHash,
-	}); err != nil {
-		server.writeError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	server.writeJSON(ctx, http.StatusOK, envelope{"id": req.ID, "api_key": apiKey})
 }

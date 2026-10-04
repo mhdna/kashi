@@ -52,6 +52,7 @@ type branchClientBatchResult struct {
 // oversized envelope is a 400.
 func (server *Server) putBranchClients(ctx *gin.Context) {
 	branchID := ctx.MustGet(branchIDKey).(int64)
+	registerID := ctx.MustGet(registerIDKey).(int64)
 
 	var req branchClientsBatchRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -77,7 +78,7 @@ func (server *Server) putBranchClients(ctx *gin.Context) {
 			res.Status = batchClientError
 			res.Error = "request canceled"
 		default:
-			outcome, err := server.resolveBranchClient(ctx, branchID, c)
+			outcome, err := server.resolveBranchClient(ctx, branchID, registerID, c)
 			if err != nil {
 				res.Status = batchClientError
 				res.Error = err.Error()

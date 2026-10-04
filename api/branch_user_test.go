@@ -17,7 +17,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const buBranchID = int64(7)
+const (
+	buBranchID   = int64(7)
+	buRegisterID = int64(21)
+)
 
 func adminRequest(t *testing.T, server *Server, method, url string, body any) *httptest.ResponseRecorder {
 	t.Helper()
@@ -85,6 +88,9 @@ func TestCreateBranchUser_OK_EnqueuesPinCommand(t *testing.T) {
 			return db.BranchUser{ID: 5, BranchID: arg.BranchID, Username: arg.Username, Role: arg.Role, IsActive: true}, nil
 		})
 
+	store.EXPECT().
+		ListActiveBranchRegisterIDs(gomock.Any(), gomock.Eq(buBranchID)).
+		Return([]int64{buRegisterID}, nil)
 	var captured db.CreateBranchCommandParams
 	store.EXPECT().
 		CreateBranchCommand(gomock.Any(), gomock.Any()).
@@ -101,6 +107,7 @@ func TestCreateBranchUser_OK_EnqueuesPinCommand(t *testing.T) {
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.Equal(t, "set_branch_user_pin", captured.Type)
 	require.Equal(t, buBranchID, captured.BranchID)
+	require.Equal(t, buRegisterID, captured.RegisterID)
 	require.Equal(t, int64(99), captured.IssuedBy)
 
 	var payload map[string]string
@@ -174,6 +181,9 @@ func TestSetBranchUserPin_EnqueuesCommandOnly(t *testing.T) {
 		Return(db.BranchUser{ID: 5, BranchID: buBranchID, Username: "sara"}, nil)
 	store.EXPECT().UpdateBranchUser(gomock.Any(), gomock.Any()).Times(0)
 
+	store.EXPECT().
+		ListActiveBranchRegisterIDs(gomock.Any(), gomock.Eq(buBranchID)).
+		Return([]int64{buRegisterID}, nil)
 	var captured db.CreateBranchCommandParams
 	store.EXPECT().
 		CreateBranchCommand(gomock.Any(), gomock.Any()).

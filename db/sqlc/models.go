@@ -532,15 +532,15 @@ type BatchItem struct {
 }
 
 type Branch struct {
-	ID          int64         `json:"id"`
-	Name        string        `json:"name"`
-	Code        string        `json:"code"`
-	ApiKeyHash  string        `json:"api_key_hash"`
-	IsActive    bool          `json:"is_active"`
-	LastSeenAt  sql.NullTime  `json:"last_seen_at"`
-	CreatedAt   time.Time     `json:"created_at"`
-	InventoryID sql.NullInt64 `json:"inventory_id"`
-	Timezone    string        `json:"timezone"`
+	ID                       int64         `json:"id"`
+	Name                     string        `json:"name"`
+	Code                     string        `json:"code"`
+	IsActive                 bool          `json:"is_active"`
+	LastSeenAt               sql.NullTime  `json:"last_seen_at"`
+	CreatedAt                time.Time     `json:"created_at"`
+	InventoryID              sql.NullInt64 `json:"inventory_id"`
+	Timezone                 string        `json:"timezone"`
+	QuickAccessInitializedAt sql.NullTime  `json:"quick_access_initialized_at"`
 }
 
 type BranchAttendanceChange struct {
@@ -559,6 +559,7 @@ type BranchAttendanceChange struct {
 	Actor           string    `json:"actor"`
 	OccurredAt      time.Time `json:"occurred_at"`
 	ReceivedAt      time.Time `json:"received_at"`
+	RegisterID      int64     `json:"register_id"`
 }
 
 type BranchAttendanceEvent struct {
@@ -596,6 +597,7 @@ type BranchCommand struct {
 	IssuedBy    int64                 `json:"issued_by"`
 	CreatedAt   time.Time             `json:"created_at"`
 	CompletedAt sql.NullTime          `json:"completed_at"`
+	RegisterID  int64                 `json:"register_id"`
 }
 
 type BranchExpense struct {
@@ -652,6 +654,7 @@ type BranchInvoice struct {
 	SalespersonName        string         `json:"salesperson_name"`
 	Historical             bool           `json:"historical"`
 	ClientUid              uuid.NullUUID  `json:"client_uid"`
+	RegisterID             int64          `json:"register_id"`
 }
 
 type BranchInvoiceItem struct {
@@ -688,6 +691,29 @@ type BranchInvoiceSettlementPayment struct {
 	BranchInvoiceSettlementID int64  `json:"branch_invoice_settlement_id"`
 	AccountName               string `json:"account_name"`
 	Amount                    int64  `json:"amount"`
+}
+
+type BranchQuickAccessItem struct {
+	BranchID         int64  `json:"branch_id"`
+	ProductVariantID int64  `json:"product_variant_id"`
+	Position         int32  `json:"position"`
+	Color            string `json:"color"`
+	TextColor        string `json:"text_color"`
+}
+
+type BranchRegister struct {
+	ID                       int64                 `json:"id"`
+	BranchID                 int64                 `json:"branch_id"`
+	Code                     string                `json:"code"`
+	Name                     string                `json:"name"`
+	ApiKeyHash               string                `json:"api_key_hash"`
+	IsActive                 bool                  `json:"is_active"`
+	LastSeenAt               sql.NullTime          `json:"last_seen_at"`
+	ReportedSettings         pqtype.NullRawMessage `json:"reported_settings"`
+	ReportedSettingsAt       sql.NullTime          `json:"reported_settings_at"`
+	CreatedAt                time.Time             `json:"created_at"`
+	QuickAccessMode          string                `json:"quick_access_mode"`
+	QuickAccessModeChangedAt time.Time             `json:"quick_access_mode_changed_at"`
 }
 
 type BranchSetting struct {
@@ -740,6 +766,7 @@ type BranchSetting struct {
 	SplitPrimaryCurrency               string          `json:"split_primary_currency"`
 	SplitPrimaryFirst                  bool            `json:"split_primary_first"`
 	SplitPrimaryStep                   int64           `json:"split_primary_step"`
+	OversellMode                       string          `json:"oversell_mode"`
 }
 
 type BranchShift struct {
@@ -766,6 +793,7 @@ type BranchShift struct {
 	VarianceWhish     int64        `json:"variance_whish"`
 	OccurredAt        time.Time    `json:"occurred_at"`
 	ReceivedAt        time.Time    `json:"received_at"`
+	RegisterID        int64        `json:"register_id"`
 }
 
 type BranchShiftReceiptImage struct {
@@ -901,6 +929,7 @@ type ClientLink struct {
 	BranchID       int64 `json:"branch_id"`
 	BranchClientID int64 `json:"branch_client_id"`
 	ClientID       int64 `json:"client_id"`
+	RegisterID     int64 `json:"register_id"`
 }
 
 type Color struct {
@@ -1428,6 +1457,7 @@ type Transfer struct {
 	UpdatedAt       time.Time      `json:"updated_at"`
 	ConfirmedAt     sql.NullTime   `json:"confirmed_at"`
 	ConfirmedNote   string         `json:"confirmed_note"`
+	RegisterID      sql.NullInt64  `json:"register_id"`
 }
 
 // Each row references either a product or an asset. Never both.

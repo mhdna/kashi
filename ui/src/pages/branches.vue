@@ -28,13 +28,17 @@
     </v-card>
   </v-dialog>
 
-  <!-- Shown exactly once, right after creating a branch or rotating its
-       key -- the plaintext API key is never retrievable again afterward,
-       only its bcrypt hash is stored server-side. -->
+  <!-- Shown exactly once, right after creating a branch or a register, or
+       rotating a register's key -- the plaintext API key is never
+       retrievable again afterward, only its bcrypt hash is stored
+       server-side. -->
   <v-dialog v-model="keyDialog" max-width="520">
     <v-card class="px-4">
       <v-card-title>API Key</v-card-title>
       <v-card-text>
+        <p v-if="revealedCode" class="mb-3">
+          Enter code <strong>{{ revealedCode }}</strong> and this key in the till's kashi-pos settings.
+        </p>
         <v-text-field
           v-model="revealedKey"
           density="compact"
@@ -54,12 +58,111 @@
     </v-card>
   </v-dialog>
 
+  <!-- A branch can run several tills ("registers"). Each logs in with its
+       own code and key; the code is also the prefix of its invoice numbers
+       (SA/<code>/<year>/<n>), so it can't change once the till is in use. -->
+  <v-dialog v-model="registersDialog" max-width="720" scrollable>
+    <v-card>
+      <v-card-title class="d-flex align-center ga-2">
+        <v-icon icon="mdi-cash-register" />
+        <span>Registers — {{ registersBranch?.name }}</span>
+      </v-card-title>
+      <v-divider />
+      <v-card-text>
+        <v-table density="compact">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Name</th>
+              <th>Status</th>
+              <th class="text-center">Active</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="register in registers" :key="register.id">
+              <td><strong>{{ register.code }}</strong></td>
+              <td>{{ register.name || '—' }}</td>
+              <td>
+                <v-chip
+                  v-if="connectedRegisterIds.includes(register.id)"
+                  color="success"
+                  size="small"
+                  text="Online"
+                  variant="tonal"
+                />
+                <span v-else class="text-medium-emphasis">
+                  {{ register.last_seen_at?.Valid ? `Last seen ${new Date(register.last_seen_at.Time).toLocaleString()}` : 'Never connected' }}
+                </span>
+              </td>
+              <td class="text-center">
+                <v-switch
+                  class="d-inline-flex"
+                  color="primary"
+                  density="compact"
+                  :disabled="!canEdit"
+                  hide-details
+                  :model-value="register.is_active"
+                  @update:model-value="value => toggleRegisterActive(register, value)"
+                />
+              </td>
+              <td class="text-end">
+                <v-icon-btn
+                  v-if="canEdit"
+                  icon="mdi-key"
+                  size="small"
+                  variant="text"
+                  @click="openRotate(register)"
+                />
+              </td>
+            </tr>
+            <tr v-if="!registersLoading && registers.length === 0">
+              <td class="text-medium-emphasis" colspan="5">No registers yet.</td>
+            </tr>
+          </tbody>
+        </v-table>
+
+        <form v-if="canEdit" class="d-flex flex-wrap align-start ga-3 mt-4" @submit.prevent="submitRegister">
+          <v-text-field
+            v-model="registerCode"
+            class="register-code-field"
+            density="compact"
+            hint="1–8 letters/digits, e.g. CT2"
+            label="Code"
+            maxlength="8"
+            persistent-hint
+            @update:model-value="registerCode = registerCode.toUpperCase()"
+          />
+          <v-text-field
+            v-model="registerName"
+            density="compact"
+            hint="Optional, e.g. Second till"
+            label="Name"
+            persistent-hint
+          />
+          <v-btn
+            color="primary"
+            :disabled="!registerCode"
+            :loading="addingRegister"
+            prepend-icon="mdi-plus"
+            text="Add Register"
+            type="submit"
+          />
+        </form>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn text="Close" @click="registersDialog = false" />
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
   <v-dialog v-model="rotateDialog" max-width="420">
     <v-card>
       <v-card-title>Rotate API Key</v-card-title>
       <v-card-text>
-        Rotating "{{ rotateTarget?.name }}"'s key immediately invalidates its current key.
-        The branch's kashi-pos install will need the new key entered before it can sync again.
+        Rotating register {{ rotateTarget?.code }}'s key immediately invalidates its current key.
+        That till will need the new key entered before it can sync again.
       </v-card-text>
       <v-card-actions>
         <v-spacer />
@@ -480,13 +583,7 @@
           <template #item.actions="{ item }">
             <v-icon-btn icon="mdi-flag-outline" size="small" variant="text" @click="openTargets(item)" />
             <v-icon-btn icon="mdi-account-tie-outline" size="small" variant="text" @click="openSalespersons(item)" />
-            <v-icon-btn
-              v-if="canEdit"
-              icon="mdi-key"
-              size="small"
-              variant="text"
-              @click="openRotate(item)"
-            />
+            <v-icon-btn icon="mdi-cash-register" size="small" variant="text" @click="openRegisters(item)" />
           </template>
         </v-data-table>
       </div>
@@ -495,7 +592,8 @@
 </template>
 
 <script setup lang="ts">
-  import { onMounted, ref } from 'vue'
+  import { onMounted, onUnmounted, ref } from 'vue'
+  import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useBranches } from '@/composables/useBranches'
   import { useBranchSalespersons } from '@/composables/useBranchSalespersons'
   import { useBranchTargets } from '@/composables/useBranchTargets'
@@ -507,7 +605,18 @@
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
 
-  const { branches, fetchBranches, createBranch, setBranchActive, rotateBranchKey } = useBranches()
+  const {
+    branches,
+    fetchBranches,
+    createBranch,
+    setBranchActive,
+    listRegisters,
+    createRegister,
+    setRegisterActive,
+    rotateRegisterKey,
+    fetchConnectedRegisters,
+  } = useBranches()
+  const { ensureConnected, onMessage } = useAdminSocket()
   const {
     listBranchTargets,
     createBranchTarget,
@@ -562,15 +671,21 @@
 
   const keyDialog = ref(false)
   const revealedKey = ref('')
+  const revealedCode = ref('')
+
+  function revealKey (code, apiKey) {
+    revealedCode.value = code
+    revealedKey.value = apiKey
+    notify.warning('This key is shown once. Copy it into the till\'s kashi-pos settings now — it cannot be retrieved again.')
+    keyDialog.value = true
+  }
 
   async function submitCreate () {
     creating.value = true
     try {
-      const { api_key: apiKey } = await createBranch({ name: createName.value, code: createCode.value })
+      const { register, api_key: apiKey } = await createBranch({ name: createName.value, code: createCode.value })
       createDialog.value = false
-      revealedKey.value = apiKey
-      notify.warning('This key is shown once. Copy it into the branch\'s kashi-pos settings now — it cannot be retrieved again.')
-      keyDialog.value = true
+      revealKey(register.code, apiKey)
     } catch (error) {
       notify.error(error.message)
     } finally {
@@ -825,23 +940,95 @@
     }
   }
 
+  const registersDialog = ref(false)
+  const registersBranch = ref(null)
+  const registers = ref([])
+  const registersLoading = ref(false)
+  const connectedRegisterIds = ref([])
+  const registerCode = ref('')
+  const registerName = ref('')
+  const addingRegister = ref(false)
+
+  async function loadRegisters () {
+    registersLoading.value = true
+    try {
+      registers.value = await listRegisters(registersBranch.value.id)
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      registersLoading.value = false
+    }
+  }
+
+  async function openRegisters (branch) {
+    registersBranch.value = branch
+    registers.value = []
+    registerCode.value = ''
+    registerName.value = ''
+    registersDialog.value = true
+    await loadRegisters()
+    try {
+      connectedRegisterIds.value = await fetchConnectedRegisters()
+    } catch {
+      // Informational only -- the WS push keeps it current from here on.
+    }
+  }
+
+  let unsubscribe = null
+  onMounted(() => {
+    ensureConnected()
+    unsubscribe = onMessage(message => {
+      if (message.type === 'branch_connection_changed') {
+        connectedRegisterIds.value = message.register_ids ?? []
+      }
+    })
+  })
+  onUnmounted(() => {
+    unsubscribe?.()
+  })
+
+  async function submitRegister () {
+    addingRegister.value = true
+    try {
+      const { register, api_key: apiKey } = await createRegister(registersBranch.value.id, {
+        code: registerCode.value,
+        name: registerName.value,
+      })
+      registerCode.value = ''
+      registerName.value = ''
+      await loadRegisters()
+      revealKey(register.code, apiKey)
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      addingRegister.value = false
+    }
+  }
+
+  async function toggleRegisterActive (register, value) {
+    try {
+      await setRegisterActive(register.id, value)
+      register.is_active = value
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
+
   const rotateDialog = ref(false)
   const rotateTarget = ref(null)
   const rotating = ref(false)
 
-  function openRotate (item) {
-    rotateTarget.value = item
+  function openRotate (register) {
+    rotateTarget.value = register
     rotateDialog.value = true
   }
 
   async function confirmRotate () {
     rotating.value = true
     try {
-      const { api_key: apiKey } = await rotateBranchKey(rotateTarget.value.id)
+      const { api_key: apiKey } = await rotateRegisterKey(rotateTarget.value.id)
       rotateDialog.value = false
-      revealedKey.value = apiKey
-      notify.warning('This key is shown once. Copy it into the branch\'s kashi-pos settings now — it cannot be retrieved again.')
-      keyDialog.value = true
+      revealKey(rotateTarget.value.code, apiKey)
     } catch (error) {
       notify.error(error.message)
     } finally {
@@ -851,6 +1038,9 @@
 </script>
 
 <style scoped>
+.register-code-field {
+  max-width: 140px;
+}
 .page-root {
   flex: 1 1 auto;
   min-height: 0;

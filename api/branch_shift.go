@@ -51,11 +51,13 @@ func nullTimeIfSet(t time.Time) sql.NullTime {
 }
 
 // createBranchShiftClose follows the same idempotent-insert pattern as
-// createBranchExpense in branch_expense.go: look up by (branch_id,
-// client_ref) first so a retried sync_outbox entry is a no-op, and fall
+// createBranchExpense in branch_expense.go: look up by (register_id,
+// client_ref) first -- shift refs are "shift-<local id>", so they're only
+// unique per register so a retried sync_outbox entry is a no-op, and fall
 // back to the same lookup on a unique-violation race.
 func (server *Server) createBranchShiftClose(ctx *gin.Context) {
 	branchID := ctx.MustGet(branchIDKey).(int64)
+	registerID := ctx.MustGet(registerIDKey).(int64)
 
 	var req branchShiftCloseRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -64,8 +66,8 @@ func (server *Server) createBranchShiftClose(ctx *gin.Context) {
 	}
 
 	if existing, err := server.store.GetBranchShiftByClientRef(ctx, db.GetBranchShiftByClientRefParams{
-		BranchID:  branchID,
-		ClientRef: req.ShiftRef,
+		RegisterID: registerID,
+		ClientRef:  req.ShiftRef,
 	}); err == nil {
 		server.writeJSON(ctx, http.StatusOK, envelope{"shift": existing})
 		return
@@ -96,12 +98,13 @@ func (server *Server) createBranchShiftClose(ctx *gin.Context) {
 		VarianceVisa:      req.CountedVisa - req.ExpectedVisa,
 		VarianceWhish:     req.CountedWhish - req.ExpectedWhish,
 		OccurredAt:        req.OccurredAt,
+		RegisterID:        registerID,
 	})
 	if err != nil {
 		if isUniqueViolation(err) {
 			if existing, lookupErr := server.store.GetBranchShiftByClientRef(ctx, db.GetBranchShiftByClientRefParams{
-				BranchID:  branchID,
-				ClientRef: req.ShiftRef,
+				RegisterID: registerID,
+				ClientRef:  req.ShiftRef,
 			}); lookupErr == nil {
 				server.writeJSON(ctx, http.StatusOK, envelope{"shift": existing})
 				return

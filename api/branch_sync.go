@@ -17,29 +17,66 @@ var errRelatedClientRefRequired = errors.New("related_client_ref is required for
 // branchHealth lets a branch confirm its API key works and see how kashi
 // identifies it, before wiring up anything that actually moves data.
 func (server *Server) branchHealth(ctx *gin.Context) {
-	branchID := ctx.MustGet(branchIDKey).(int64)
+	identity, err := server.tillIdentity(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{
+		"branch_id":     identity.BranchID,
+		"branch_code":   identity.BranchCode,
+		"register_id":   identity.RegisterID,
+		"register_code": identity.RegisterCode,
+	})
+}
 
-	server.writeJSON(ctx, http.StatusOK, envelope{"branch_id": branchID})
+type tillIdentity struct {
+	BranchID     int64
+	BranchCode   string
+	RegisterID   int64
+	RegisterCode string
+}
+
+// tillIdentity resolves the authenticated register and its branch.
+func (server *Server) tillIdentity(ctx *gin.Context) (tillIdentity, error) {
+	branch, err := server.store.GetBranch(ctx, ctx.MustGet(branchIDKey).(int64))
+	if err != nil {
+		return tillIdentity{}, err
+	}
+	register, err := server.store.GetBranchRegister(ctx, ctx.MustGet(registerIDKey).(int64))
+	if err != nil {
+		return tillIdentity{}, err
+	}
+	return tillIdentity{
+		BranchID:     branch.ID,
+		BranchCode:   branch.Code,
+		RegisterID:   register.ID,
+		RegisterCode: register.Code,
+	}, nil
 }
 
 // branchFullSyncStart/End bracket a kashi-pos "Sync everything" run so the
 // admin UI can show that branch as syncing for as long as it actually takes,
-// rather than a spinner that vanishes after the first request. Best-effort
+// rather than a spinner that vanishes after the first request. Start grants
+// a lease (syncLeaseTTL) that kashi-pos renews by calling start again every
+// 30s; end, a closed WebSocket, or a missed renewal all end it. Best-effort
 // on kashi-pos's side (a failed start/end call shouldn't block or fail the
 // sync itself) -- see the full-list-not-delta reasoning on
 // branch_connection_changed for why this pushes syncingBranchIDs() in full
 // rather than a per-branch delta.
 func (server *Server) branchFullSyncStart(ctx *gin.Context) {
 	branchID := ctx.MustGet(branchIDKey).(int64)
-	server.branchHub.setSyncing(branchID, true)
-	server.adminHub.broadcastAll(adminWSMessage{Type: "branch_sync_status_changed", BranchIDs: server.branchHub.syncingBranchIDs()})
+	registerID := ctx.MustGet(registerIDKey).(int64)
+	server.branchHub.setSyncing(branchID, registerID, true, time.Now())
+	server.broadcastSyncingBranches()
 	ctx.Status(http.StatusOK)
 }
 
 func (server *Server) branchFullSyncEnd(ctx *gin.Context) {
 	branchID := ctx.MustGet(branchIDKey).(int64)
-	server.branchHub.setSyncing(branchID, false)
-	server.adminHub.broadcastAll(adminWSMessage{Type: "branch_sync_status_changed", BranchIDs: server.branchHub.syncingBranchIDs()})
+	registerID := ctx.MustGet(registerIDKey).(int64)
+	server.branchHub.setSyncing(branchID, registerID, false, time.Now())
+	server.broadcastSyncingBranches()
 	ctx.Status(http.StatusOK)
 }
 
@@ -133,6 +170,7 @@ type branchInvoicePaymentRequest struct {
 
 func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 	branchID := ctx.MustGet(branchIDKey).(int64)
+	registerID := ctx.MustGet(registerIDKey).(int64)
 
 	var req branchInvoiceRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -164,7 +202,7 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 		relatedRef = sql.NullString{String: req.RelatedClientRef, Valid: true}
 	}
 
-	clientUID, err := server.resolveBranchInvoiceClientUID(ctx, branchID, req)
+	clientUID, err := server.resolveBranchInvoiceClientUID(ctx, registerID, req)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
@@ -212,6 +250,7 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 			SalespersonName:        req.SalespersonName,
 			Historical:             req.Historical,
 			ClientUid:              clientUID,
+			RegisterID:             registerID,
 		},
 		Items:    items,
 		Payments: payments,
@@ -256,6 +295,14 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 		CurrencyCode: currencyCode,
 		Label:        req.BranchInvoiceCode,
 	})
+	for _, conflict := range result.Oversold {
+		server.adminHub.broadcastAll(adminWSMessage{
+			Type:     "branch_sync_conflict",
+			BranchID: branchID,
+			Kind:     conflict.Kind,
+			Label:    conflict.Entity,
+		})
+	}
 
 	server.writeJSON(ctx, http.StatusOK, envelope{"invoice": result.Invoice, "items": result.Items, "payments": result.Payments})
 }
@@ -287,9 +334,10 @@ func parseNullUUID(s string) uuid.NullUUID {
 }
 
 // resolveBranchInvoiceClientUID picks the invoice's client uid: the one the
-// till sent, else the central client its branch_client_id is linked to.
-// Walk-in sales (no client, or an unlinked id) resolve to NULL.
-func (server *Server) resolveBranchInvoiceClientUID(ctx *gin.Context, branchID int64, req branchInvoiceRequest) (uuid.NullUUID, error) {
+// till sent, else the central client its branch_client_id (a local id of
+// the sending register) is linked to. Walk-in sales (no client, or an
+// unlinked id) resolve to NULL.
+func (server *Server) resolveBranchInvoiceClientUID(ctx *gin.Context, registerID int64, req branchInvoiceRequest) (uuid.NullUUID, error) {
 	if u := parseNullUUID(req.ClientUID); u.Valid {
 		return u, nil
 	}
@@ -297,7 +345,7 @@ func (server *Server) resolveBranchInvoiceClientUID(ctx *gin.Context, branchID i
 		return uuid.NullUUID{}, nil
 	}
 	clientID, err := server.store.GetClientLink(ctx, db.GetClientLinkParams{
-		BranchID:       branchID,
+		RegisterID:     registerID,
 		BranchClientID: *req.BranchClientID,
 	})
 	if errors.Is(err, sql.ErrNoRows) {

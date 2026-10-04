@@ -14,21 +14,32 @@ import (
 )
 
 const (
-	testBranchCode = "BR01"
-	testBranchKey  = "branch-secret-key"
-	testBranchID   = int64(7)
+	testBranchCode   = "BR01"
+	testBranchKey    = "branch-secret-key"
+	testBranchID     = int64(7)
+	testRegisterID   = int64(11)
+	testRegisterCode = testBranchCode
 )
 
 // stubBranchAuth wires the mock so branchAuthMiddleware resolves
-// testBranchCode/testBranchKey to an active branch with id testBranchID.
+// testBranchCode/testBranchKey to an active register (testRegisterID) of an
+// active branch (testBranchID).
 func stubBranchAuth(store *mockdb.MockStore) {
 	hash, _ := util.HashPassword(testBranchKey)
 	store.EXPECT().
-		GetBranchByCode(gomock.Any(), gomock.Eq(testBranchCode)).
-		Return(db.Branch{ID: testBranchID, Code: testBranchCode, ApiKeyHash: hash, IsActive: true}, nil).
+		GetBranchRegisterByCode(gomock.Any(), gomock.Eq(testRegisterCode)).
+		Return(db.BranchRegister{ID: testRegisterID, BranchID: testBranchID, Code: testRegisterCode, ApiKeyHash: hash, IsActive: true}, nil).
 		AnyTimes()
 	store.EXPECT().
-		UpdateBranchLastSeenAt(gomock.Any(), gomock.Eq(testBranchID)).
+		GetBranch(gomock.Any(), gomock.Eq(testBranchID)).
+		Return(db.Branch{ID: testBranchID, Code: testBranchCode, IsActive: true}, nil).
+		AnyTimes()
+	store.EXPECT().
+		GetBranchRegister(gomock.Any(), gomock.Eq(testRegisterID)).
+		Return(db.BranchRegister{ID: testRegisterID, BranchID: testBranchID, Code: testRegisterCode, IsActive: true}, nil).
+		AnyTimes()
+	store.EXPECT().
+		TouchBranchRegister(gomock.Any(), gomock.Eq(testRegisterID)).
 		Return(nil).
 		AnyTimes()
 }

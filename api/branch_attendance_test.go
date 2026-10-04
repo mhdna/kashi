@@ -82,7 +82,7 @@ func TestCreateBranchAttendanceChange_OK(t *testing.T) {
 	stubBranchAuth(store)
 
 	store.EXPECT().
-		GetBranchAttendanceChangeByClientRef(gomock.Any(), gomock.Eq(db.GetBranchAttendanceChangeByClientRefParams{BranchID: testBranchID, ClientRef: "acr-5-complaint"})).
+		GetBranchAttendanceChangeByClientRef(gomock.Any(), gomock.Eq(db.GetBranchAttendanceChangeByClientRefParams{RegisterID: testRegisterID, ClientRef: "acr-5-complaint"})).
 		Return(db.BranchAttendanceChange{}, sql.ErrNoRows)
 	store.EXPECT().CreateBranchAttendanceChange(gomock.Any(), gomock.Any()).Times(1).
 		Return(db.BranchAttendanceChange{ID: 1, Kind: "complaint"}, nil)

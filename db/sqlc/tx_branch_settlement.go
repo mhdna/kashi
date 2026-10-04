@@ -71,7 +71,7 @@ func (store *SQLStore) ApplyBranchSettlementTx(ctx context.Context, arg ApplyBra
 		status := SettlementStatusPending
 		if saleOnCloud {
 			closed, err := q.BranchShiftIsClosed(ctx, BranchShiftIsClosedParams{
-				BranchID:      arg.BranchID,
+				RegisterID:    invoice.RegisterID,
 				BranchShiftID: invoice.BranchShiftID,
 			})
 			if err != nil {

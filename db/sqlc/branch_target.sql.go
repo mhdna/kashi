@@ -218,6 +218,56 @@ func (q *Queries) ListBranchTargetsForBranch(ctx context.Context, branchID int64
 	return items, nil
 }
 
+const listBranchTargetsProgress = `-- name: ListBranchTargetsProgress :many
+SELECT t.id,
+  (SELECT COALESCE(SUM(bi.grand_total), 0)
+     FROM branch_invoices bi
+     WHERE bi.branch_id = t.branch_id
+       AND (bi.occurred_at AT TIME ZONE 'UTC')::date BETWEEN t.date_from AND t.date_to
+  )::bigint AS achieved
+FROM branch_targets t
+WHERE t.branch_id = $1
+  AND t.is_active
+  AND t.date_to >= $2::date
+ORDER BY t.id
+`
+
+type ListBranchTargetsProgressParams struct {
+	BranchID int64     `json:"branch_id"`
+	Since    time.Time `json:"since"`
+}
+
+type ListBranchTargetsProgressRow struct {
+	ID       int64 `json:"id"`
+	Achieved int64 `json:"achieved"`
+}
+
+// Branch-wide progress for a till's target bars: what every register of
+// this branch has sold in each live target's range, as kashi has received
+// it. The till adds its own not-yet-synced sales on top.
+func (q *Queries) ListBranchTargetsProgress(ctx context.Context, arg ListBranchTargetsProgressParams) ([]ListBranchTargetsProgressRow, error) {
+	rows, err := q.db.QueryContext(ctx, listBranchTargetsProgress, arg.BranchID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListBranchTargetsProgressRow{}
+	for rows.Next() {
+		var i ListBranchTargetsProgressRow
+		if err := rows.Scan(&i.ID, &i.Achieved); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listBranchTargetsUpdatedSince = `-- name: ListBranchTargetsUpdatedSince :many
 SELECT id, branch_id, date_from, date_to, target_amount, color, created_at, updated_at, series_id, is_active FROM branch_targets
 WHERE branch_id = $1 AND updated_at > $2

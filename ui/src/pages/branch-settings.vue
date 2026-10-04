@@ -79,6 +79,7 @@
                 <v-tab class="text-none" text="Attendance" value="attendance" />
                 <v-tab class="text-none" text="Users" value="users" />
                 <v-tab class="text-none" text="Payments" value="payments" />
+                <v-tab class="text-none" text="Quick access" value="quick_access" />
                 <v-tab class="text-none" value="conflicts">
                   <span class="text-none">Conflicts</span>
                   <v-badge
@@ -330,6 +331,19 @@
                         the till otherwise; Local always uploads to the till over shop Wi-Fi;
                         Central always goes straight to the office; Off skips the photo.
                       </div>
+                      <v-select
+                        v-model="settingsForm.oversell_mode"
+                        class="mt-3"
+                        density="compact"
+                        hide-details
+                        :items="OVERSELL_MODES"
+                        label="Selling more than the till has in stock"
+                        variant="outlined"
+                      />
+                      <div class="text-caption text-medium-emphasis mt-1">
+                        Whatever the mode, kashi raises an "oversold" alert in Sync Conflicts
+                        when a sale takes a product's stock below zero.
+                      </div>
                     </section>
 
                   </div>
@@ -457,51 +471,62 @@
                       </div>
                     </section>
 
+                    <!-- Printers and the customer screen belong to one physical till, so
+                         they're edited per register and never sent branch-wide. -->
                     <section class="bs-section">
-                      <div class="bs-group-head">
-                        <div class="bs-section-title mb-0">Device identifiers</div>
-                        <v-btn-toggle
-                          v-model="deviceIdsSource"
-                          color="primary"
-                          density="compact"
-                          divided
-                          mandatory
-                          @update:model-value="v => setGroupSource('device_ids', v)"
-                        >
-                          <v-btn size="small" value="central">Centrally</v-btn>
-                          <v-btn size="small" value="local">At the branch</v-btn>
-                        </v-btn-toggle>
-                      </div>
+                      <div class="bs-section-title">Device identifiers (per register)</div>
                       <p class="text-caption text-medium-emphasis mb-3">
-                        Windows printer name and customer-screen COM port are specific to the physical
-                        till. Leave these managed at the branch unless it runs a single machine.
+                        Windows printer name and customer-screen COM port are specific to each till.
+                        Pick a register to see what it reports and send it new values.
                       </p>
-                      <div class="field-grid">
-                        <v-text-field
-                          v-model="settingsForm.printer_id"
-                          density="compact"
-                          :disabled="isLocal('device_ids')"
-                          hide-details="auto"
-                          label="Printer ID / name"
-                          variant="outlined"
-                        />
-                        <v-text-field
-                          v-model="settingsForm.receipt_printer"
-                          density="compact"
-                          :disabled="isLocal('device_ids')"
-                          hide-details="auto"
-                          label="Receipt printer"
-                          variant="outlined"
-                        />
-                        <v-text-field
-                          v-model="settingsForm.screen_port"
-                          density="compact"
-                          :disabled="isLocal('device_ids')"
-                          hide-details="auto"
-                          label="Customer screen COM port"
-                          variant="outlined"
-                        />
-                      </div>
+                      <v-select
+                        v-model="deviceRegisterId"
+                        class="mb-3"
+                        density="compact"
+                        hide-details
+                        item-title="label"
+                        item-value="id"
+                        :items="registerOptions"
+                        label="Register"
+                        no-data-text="This branch has no registers"
+                        variant="outlined"
+                      />
+                      <template v-if="deviceRegisterId != null">
+                        <div class="field-grid">
+                          <v-text-field
+                            v-model="deviceForm.printer_id"
+                            density="compact"
+                            hide-details="auto"
+                            label="Printer ID / name"
+                            variant="outlined"
+                          />
+                          <v-text-field
+                            v-model="deviceForm.receipt_printer"
+                            density="compact"
+                            hide-details="auto"
+                            label="Receipt printer"
+                            variant="outlined"
+                          />
+                          <v-text-field
+                            v-model="deviceForm.screen_port"
+                            density="compact"
+                            hide-details="auto"
+                            label="Customer screen COM port"
+                            variant="outlined"
+                          />
+                        </div>
+                        <div class="d-flex justify-end mt-3">
+                          <v-btn
+                            color="primary"
+                            :disabled="!canEdit"
+                            :loading="deviceSaving"
+                            prepend-icon="mdi-send-outline"
+                            :text="`Send to ${selectedRegister?.code ?? 'register'}`"
+                            variant="tonal"
+                            @click="saveDeviceSettings"
+                          />
+                        </div>
+                      </template>
                     </section>
 
                   </div>
@@ -606,7 +631,7 @@
                   </div>
 
                   <div
-                    v-show="canEdit && sectionTab !== 'commands' && sectionTab !== 'users' && sectionTab !== 'conflicts'"
+                    v-show="canEdit && sectionTab !== 'commands' && sectionTab !== 'users' && sectionTab !== 'conflicts' && sectionTab !== 'quick_access'"
                     class="bs-savebar d-flex justify-end"
                   >
                     <v-btn
@@ -687,6 +712,10 @@
                       </tr>
                     </tbody>
                   </v-table>
+                </div>
+
+                <div v-if="sectionTab === 'quick_access'">
+                  <BranchQuickAccess :branch-id="selectedId" :can-edit="canEdit" />
                 </div>
 
                 <div v-show="sectionTab === 'payments'">
@@ -840,7 +869,10 @@
                     <template #expanded-row="{ columns, item }">
                       <tr>
                         <td :colspan="columns.length">
-                          <div class="py-3 px-2">
+                          <div v-if="item.kind === 'oversold'" class="py-3 px-2 text-body-2">
+                            {{ oversoldSummary(item) }}
+                          </div>
+                          <div v-else class="py-3 px-2">
                             <table class="conflict-diff">
                               <tr><th /><th>Branch says</th><th>kashi has</th></tr>
                               <tr>
@@ -881,6 +913,7 @@
                     <thead>
                       <tr>
                         <th>Type</th>
+                        <th>Register</th>
                         <th>Status</th>
                         <th>Issued</th>
                         <th>Error</th>
@@ -889,6 +922,7 @@
                     <tbody>
                       <tr v-for="cmd in commandHistory" :key="cmd.id">
                         <td>{{ cmd.type }}</td>
+                        <td>{{ cmd.register_code }}</td>
                         <td>
                           <v-chip
                             :color="statusColor(cmd.status)"
@@ -901,7 +935,7 @@
                         <td>{{ cmd.error?.Valid ? cmd.error.String : '' }}</td>
                       </tr>
                       <tr v-if="commandHistory.length === 0">
-                        <td class="text-medium-emphasis py-4" colspan="4">No commands issued yet.</td>
+                        <td class="text-medium-emphasis py-4" colspan="5">No commands issued yet.</td>
                       </tr>
                     </tbody>
                   </v-table>
@@ -972,6 +1006,15 @@
               label="Phone"
               variant="outlined"
             />
+          </div>
+
+          <div v-else-if="resolveTarget.kind === 'oversold'" class="text-body-2">
+            <p class="mb-2">{{ oversoldSummary(resolveTarget) }}</p>
+            <p class="mb-0">
+              The sale stands. Correct the stock the usual way (a stock adjustment, a
+              transfer in, or a stock count), then mark this resolved. It reopens if the
+              product goes below zero again.
+            </p>
           </div>
 
           <div v-else class="text-body-2">
@@ -1091,6 +1134,7 @@
 <script setup lang="ts">
   import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
+  import BranchQuickAccess from '@/components/BranchQuickAccess.vue'
   import CurrencySelect from '@/components/CurrencySelect.vue'
   import PageSidebar from '@/components/PageSidebar.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
@@ -1113,7 +1157,7 @@
   const route = useRoute()
   const router = useRouter()
 
-  const { branches, fetchBranches } = useBranches()
+  const { branches, fetchBranches, listRegisters } = useBranches()
   const {
     getBranchSettings,
     updateBranchSettings,
@@ -1151,9 +1195,17 @@
       phone_name_mismatch: 'Name differs',
       invalid_phone: 'No usable phone',
       phone_taken: 'Phone already taken',
+      oversold: 'Oversold',
     }[kind] ?? kind
   }
+  function oversoldSummary (item) {
+    const p = branchPayload(item)
+    const register = registerCodeById(p.register_id)
+    return `Barcode ${p.barcode || '—'}: ${p.quantity_sold} sold on ${p.invoice_code || 'an invoice'}`
+      + `${register ? ` at register ${register}` : ''}, leaving ${p.on_hand} in stock.`
+  }
   function branchPayload (item) {
+    if (item.branch_payload && typeof item.branch_payload === 'object') return item.branch_payload
     try { return JSON.parse(item.branch_payload) } catch { return {} }
   }
   function diffClass (a, b) {
@@ -1209,16 +1261,26 @@
   function openResolve (item) {
     resolveTarget.value = item
     const payload = branchPayload(item)
-    if (item.kind === 'phone_name_mismatch') {
-      resolveForm.choice = 'branch'
-      resolveForm.name = payload.name || ''
-    } else if (item.kind === 'invalid_phone') {
-      resolveForm.choice = 'create'
-      resolveForm.phone = ''
-      resolveForm.clientId = null
-      fetchClients()
-    } else {
-      resolveForm.choice = 'create'
+    switch (item.kind) {
+      case 'phone_name_mismatch': {
+        resolveForm.choice = 'branch'
+        resolveForm.name = payload.name || ''
+        break
+      }
+      case 'invalid_phone': {
+        resolveForm.choice = 'create'
+        resolveForm.phone = ''
+        resolveForm.clientId = null
+        fetchClients()
+        break
+      }
+      case 'oversold': {
+        resolveForm.choice = 'done'
+        break
+      }
+      default: {
+        resolveForm.choice = 'create'
+      }
     }
     resolveDialog.value = true
   }
@@ -1326,7 +1388,6 @@
   // moment a toggle changes -- it's admin state, not a branch command.
   const managedLocally = ref([])
   const isLocal = group => managedLocally.value.includes(group)
-  const deviceIdsSource = computed(() => (isLocal('device_ids') ? 'local' : 'central'))
   const secretsSource = computed(() => (isLocal('secrets') ? 'local' : 'central'))
 
   // Keys that make up each toggleable group, for stripping the command payload.
@@ -1340,6 +1401,12 @@
     { title: 'Local only (the till, over shop Wi-Fi)', value: 3 },
     { title: 'Central only (straight to the office)', value: 1 },
     { title: 'Off (no photo)', value: 0 },
+  ]
+
+  const OVERSELL_MODES = [
+    { title: 'Allow — sell, fix stock in kashi later', value: 'allow' },
+    { title: 'Warn — cashier confirms before selling', value: 'warn' },
+    { title: 'Block — refuse the sale', value: 'block' },
   ]
 
   const BOOL_KEYS = [
@@ -1397,6 +1464,7 @@
       shift_receipt_upload_mode: d.shift_receipt_upload_mode ?? 2,
       split_primary_currency: d.split_primary_currency ?? '',
       split_primary_step: d.split_primary_step ?? 0,
+      oversell_mode: d.oversell_mode ?? 'allow',
     }
     for (const k of BOOL_KEYS) {
       if (k === 'search_button_enabled') continue
@@ -1441,6 +1509,55 @@
     loadCommandHistory()
     loadBranchUsers(id)
     loadBranchPaymentMethods(id)
+    loadBranchRegisters(id)
+  }
+
+  // ---- per-register device identifiers -----------------------------------
+  const branchRegisters = ref([])
+  const deviceRegisterId = ref(null)
+  const deviceForm = ref({ printer_id: '', receipt_printer: '', screen_port: '' })
+  const deviceSaving = ref(false)
+  const registerOptions = computed(() => branchRegisters.value.map(r => ({
+    id: r.id,
+    label: r.name ? `${r.code} — ${r.name}` : r.code,
+  })))
+  const selectedRegister = computed(() => branchRegisters.value.find(r => r.id === deviceRegisterId.value) ?? null)
+  function registerCodeById (id) {
+    return branchRegisters.value.find(r => r.id === id)?.code ?? ''
+  }
+
+  async function loadBranchRegisters (id) {
+    branchRegisters.value = []
+    deviceRegisterId.value = null
+    try {
+      branchRegisters.value = await listRegisters(id)
+      deviceRegisterId.value = branchRegisters.value[0]?.id ?? null
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
+
+  // What the till last reported is the best starting point for an edit.
+  watch(selectedRegister, register => {
+    const reported = register?.reported_settings ?? {}
+    deviceForm.value = {
+      printer_id: reported.printer_id ?? '',
+      receipt_printer: reported.receipt_printer ?? '',
+      screen_port: reported.screen_port ?? '',
+    }
+  })
+
+  async function saveDeviceSettings () {
+    deviceSaving.value = true
+    try {
+      await updateBranchSettings(selectedId.value, { ...deviceForm.value }, deviceRegisterId.value)
+      notify.success(`Command sent to ${selectedRegister.value?.code} — it applies within a few seconds if online.`)
+      await loadCommandHistory()
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      deviceSaving.value = false
+    }
   }
 
   function reloadActive () {
@@ -1654,10 +1771,8 @@
         social_handles: socialHandles,
       }
 
-      // Groups handed back to the branch are never pushed.
-      if (isLocal('device_ids')) {
-        for (const k of GROUP_KEYS.device_ids) delete payload[k]
-      }
+      // Per-register device fields are sent from their own section.
+      for (const k of GROUP_KEYS.device_ids) delete payload[k]
       if (!isLocal('secrets')) {
         // Write-only: only send a secret the admin actually typed.
         if (secretForm.value.akuvox_password) {
@@ -1672,7 +1787,7 @@
       }
 
       await updateBranchSettings(selectedId.value, payload)
-      notify.success('Command sent — the branch will apply it within a few seconds if online.')
+      notify.success('Saved — every register of this branch applies it within a few seconds if online.')
       secretForm.value = { akuvox_password: '', attendance_approver_password: '', admin_password: '' }
       await loadCommandHistory()
     } catch (error) {

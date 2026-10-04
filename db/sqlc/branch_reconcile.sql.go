@@ -14,16 +14,16 @@ import (
 
 const branchAttendanceChangeRefsPresent = `-- name: BranchAttendanceChangeRefsPresent :many
 SELECT client_ref FROM branch_attendance_changes
-WHERE branch_id = $1 AND client_ref = ANY($2::text[])
+WHERE register_id = $1 AND client_ref = ANY($2::text[])
 `
 
 type BranchAttendanceChangeRefsPresentParams struct {
-	BranchID int64    `json:"branch_id"`
-	Column2  []string `json:"column_2"`
+	RegisterID int64    `json:"register_id"`
+	Column2    []string `json:"column_2"`
 }
 
 func (q *Queries) BranchAttendanceChangeRefsPresent(ctx context.Context, arg BranchAttendanceChangeRefsPresentParams) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, branchAttendanceChangeRefsPresent, arg.BranchID, pq.Array(arg.Column2))
+	rows, err := q.db.QueryContext(ctx, branchAttendanceChangeRefsPresent, arg.RegisterID, pq.Array(arg.Column2))
 	if err != nil {
 		return nil, err
 	}
@@ -80,16 +80,16 @@ func (q *Queries) BranchAttendanceEventRefsPresent(ctx context.Context, arg Bran
 
 const branchClientLinksPresent = `-- name: BranchClientLinksPresent :many
 SELECT branch_client_id FROM client_links
-WHERE branch_id = $1 AND branch_client_id = ANY($2::bigint[])
+WHERE register_id = $1 AND branch_client_id = ANY($2::bigint[])
 `
 
 type BranchClientLinksPresentParams struct {
-	BranchID int64   `json:"branch_id"`
-	Column2  []int64 `json:"column_2"`
+	RegisterID int64   `json:"register_id"`
+	Column2    []int64 `json:"column_2"`
 }
 
 func (q *Queries) BranchClientLinksPresent(ctx context.Context, arg BranchClientLinksPresentParams) ([]int64, error) {
-	rows, err := q.db.QueryContext(ctx, branchClientLinksPresent, arg.BranchID, pq.Array(arg.Column2))
+	rows, err := q.db.QueryContext(ctx, branchClientLinksPresent, arg.RegisterID, pq.Array(arg.Column2))
 	if err != nil {
 		return nil, err
 	}
@@ -218,16 +218,16 @@ func (q *Queries) BranchLoanRefsPresent(ctx context.Context, arg BranchLoanRefsP
 
 const branchShiftRefsPresent = `-- name: BranchShiftRefsPresent :many
 SELECT client_ref FROM branch_shifts
-WHERE branch_id = $1 AND client_ref = ANY($2::text[])
+WHERE register_id = $1 AND client_ref = ANY($2::text[])
 `
 
 type BranchShiftRefsPresentParams struct {
-	BranchID int64    `json:"branch_id"`
-	Column2  []string `json:"column_2"`
+	RegisterID int64    `json:"register_id"`
+	Column2    []string `json:"column_2"`
 }
 
 func (q *Queries) BranchShiftRefsPresent(ctx context.Context, arg BranchShiftRefsPresentParams) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, branchShiftRefsPresent, arg.BranchID, pq.Array(arg.Column2))
+	rows, err := q.db.QueryContext(ctx, branchShiftRefsPresent, arg.RegisterID, pq.Array(arg.Column2))
 	if err != nil {
 		return nil, err
 	}

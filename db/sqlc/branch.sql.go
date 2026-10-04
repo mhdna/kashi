@@ -13,37 +13,35 @@ import (
 const createBranch = `-- name: CreateBranch :one
 INSERT INTO branches (
   name,
-  code,
-  api_key_hash
-) VALUES ( $1, $2, $3 )
-RETURNING id, name, code, api_key_hash, is_active, last_seen_at, created_at, inventory_id, timezone
+  code
+) VALUES ( $1, $2 )
+RETURNING id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at
 `
 
 type CreateBranchParams struct {
-	Name       string `json:"name"`
-	Code       string `json:"code"`
-	ApiKeyHash string `json:"api_key_hash"`
+	Name string `json:"name"`
+	Code string `json:"code"`
 }
 
 func (q *Queries) CreateBranch(ctx context.Context, arg CreateBranchParams) (Branch, error) {
-	row := q.db.QueryRowContext(ctx, createBranch, arg.Name, arg.Code, arg.ApiKeyHash)
+	row := q.db.QueryRowContext(ctx, createBranch, arg.Name, arg.Code)
 	var i Branch
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Code,
-		&i.ApiKeyHash,
 		&i.IsActive,
 		&i.LastSeenAt,
 		&i.CreatedAt,
 		&i.InventoryID,
 		&i.Timezone,
+		&i.QuickAccessInitializedAt,
 	)
 	return i, err
 }
 
 const getBranch = `-- name: GetBranch :one
-SELECT id, name, code, api_key_hash, is_active, last_seen_at, created_at, inventory_id, timezone FROM branches
+SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at FROM branches
 WHERE id = $1 LIMIT 1
 `
 
@@ -54,18 +52,18 @@ func (q *Queries) GetBranch(ctx context.Context, id int64) (Branch, error) {
 		&i.ID,
 		&i.Name,
 		&i.Code,
-		&i.ApiKeyHash,
 		&i.IsActive,
 		&i.LastSeenAt,
 		&i.CreatedAt,
 		&i.InventoryID,
 		&i.Timezone,
+		&i.QuickAccessInitializedAt,
 	)
 	return i, err
 }
 
 const getBranchByCode = `-- name: GetBranchByCode :one
-SELECT id, name, code, api_key_hash, is_active, last_seen_at, created_at, inventory_id, timezone FROM branches
+SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at FROM branches
 WHERE code = $1 LIMIT 1
 `
 
@@ -76,18 +74,18 @@ func (q *Queries) GetBranchByCode(ctx context.Context, code string) (Branch, err
 		&i.ID,
 		&i.Name,
 		&i.Code,
-		&i.ApiKeyHash,
 		&i.IsActive,
 		&i.LastSeenAt,
 		&i.CreatedAt,
 		&i.InventoryID,
 		&i.Timezone,
+		&i.QuickAccessInitializedAt,
 	)
 	return i, err
 }
 
 const getBranchByCodeExcluding = `-- name: GetBranchByCodeExcluding :one
-SELECT id, name, code, api_key_hash, is_active, last_seen_at, created_at, inventory_id, timezone FROM branches
+SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at FROM branches
 WHERE code = $1 AND id != $2 AND is_active LIMIT 1
 `
 
@@ -105,18 +103,18 @@ func (q *Queries) GetBranchByCodeExcluding(ctx context.Context, arg GetBranchByC
 		&i.ID,
 		&i.Name,
 		&i.Code,
-		&i.ApiKeyHash,
 		&i.IsActive,
 		&i.LastSeenAt,
 		&i.CreatedAt,
 		&i.InventoryID,
 		&i.Timezone,
+		&i.QuickAccessInitializedAt,
 	)
 	return i, err
 }
 
 const listBranches = `-- name: ListBranches :many
-SELECT id, name, code, api_key_hash, is_active, last_seen_at, created_at, inventory_id, timezone FROM branches
+SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at FROM branches
 ORDER BY name
 `
 
@@ -133,12 +131,12 @@ func (q *Queries) ListBranches(ctx context.Context) ([]Branch, error) {
 			&i.ID,
 			&i.Name,
 			&i.Code,
-			&i.ApiKeyHash,
 			&i.IsActive,
 			&i.LastSeenAt,
 			&i.CreatedAt,
 			&i.InventoryID,
 			&i.Timezone,
+			&i.QuickAccessInitializedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -227,32 +225,5 @@ type SetBranchInventoryParams struct {
 
 func (q *Queries) SetBranchInventory(ctx context.Context, arg SetBranchInventoryParams) error {
 	_, err := q.db.ExecContext(ctx, setBranchInventory, arg.ID, arg.InventoryID)
-	return err
-}
-
-const updateBranchAPIKeyHash = `-- name: UpdateBranchAPIKeyHash :exec
-UPDATE branches
-SET api_key_hash = $2
-WHERE id = $1
-`
-
-type UpdateBranchAPIKeyHashParams struct {
-	ID         int64  `json:"id"`
-	ApiKeyHash string `json:"api_key_hash"`
-}
-
-func (q *Queries) UpdateBranchAPIKeyHash(ctx context.Context, arg UpdateBranchAPIKeyHashParams) error {
-	_, err := q.db.ExecContext(ctx, updateBranchAPIKeyHash, arg.ID, arg.ApiKeyHash)
-	return err
-}
-
-const updateBranchLastSeenAt = `-- name: UpdateBranchLastSeenAt :exec
-UPDATE branches
-SET last_seen_at = now()
-WHERE id = $1
-`
-
-func (q *Queries) UpdateBranchLastSeenAt(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, updateBranchLastSeenAt, id)
 	return err
 }

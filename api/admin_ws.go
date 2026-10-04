@@ -114,6 +114,9 @@ type adminWSMessage struct {
 	// order push still leaves the client correct on the next one, same
 	// idempotency reasoning as branchWSMessage's pointer-only payloads.
 	BranchIDs []int64 `json:"branch_ids,omitempty"`
+	// RegisterIDs is the same full list at register granularity, sent
+	// alongside BranchIDs on "branch_connection_changed".
+	RegisterIDs []int64 `json:"register_ids,omitempty"`
 	// Users is the full current list of signed-in users -- only set for
 	// "admin_presence_changed". omitempty because this struct is shared by
 	// every message type; an absent field therefore means "nobody online"

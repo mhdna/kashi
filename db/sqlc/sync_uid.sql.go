@@ -126,7 +126,7 @@ const listBranchClientUIDs = `-- name: ListBranchClientUIDs :many
 SELECT cl.branch_client_id, c.uid
 FROM client_links cl
 JOIN clients c ON c.id = cl.client_id
-WHERE cl.branch_id = $1
+WHERE cl.register_id = $1
 `
 
 type ListBranchClientUIDsRow struct {
@@ -134,10 +134,10 @@ type ListBranchClientUIDsRow struct {
 	Uid            uuid.UUID `json:"uid"`
 }
 
-// Adoption: which central client each of this branch's local client ids is
-// linked to, so a till can stamp the right uid without guessing by phone.
-func (q *Queries) ListBranchClientUIDs(ctx context.Context, branchID int64) ([]ListBranchClientUIDsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listBranchClientUIDs, branchID)
+// Adoption: which central client each of this register's local client ids
+// is linked to, so a till can stamp the right uid without guessing by phone.
+func (q *Queries) ListBranchClientUIDs(ctx context.Context, registerID int64) ([]ListBranchClientUIDsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listBranchClientUIDs, registerID)
 	if err != nil {
 		return nil, err
 	}

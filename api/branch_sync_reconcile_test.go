@@ -139,7 +139,7 @@ func TestPutBranchClient_PhoneMatchDifferentName_StagesConflictAndLinks(t *testi
 	// Link is still written so invoices attribute immediately.
 	store.EXPECT().
 		UpsertClientLink(gomock.Any(), gomock.Eq(db.UpsertClientLinkParams{
-			BranchID: testBranchID, BranchClientID: 42, ClientID: 55,
+			BranchID: testBranchID, RegisterID: testRegisterID, BranchClientID: 42, ClientID: 55,
 		})).
 		Return(nil)
 	// Name is NOT overwritten.
@@ -149,7 +149,7 @@ func TestPutBranchClient_PhoneMatchDifferentName_StagesConflictAndLinks(t *testi
 		UpsertBranchSyncConflict(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(_ any, arg db.UpsertBranchSyncConflictParams) (db.BranchSyncConflict, error) {
 			require.Equal(t, "client", arg.Entity)
-			require.Equal(t, "42", arg.Ref)
+			require.Equal(t, clientConflictRef(testRegisterID, 42), arg.Ref)
 			require.Equal(t, "phone_name_mismatch", arg.Kind)
 			require.Equal(t, int64(55), arg.CentralClientID.Int64)
 			require.Contains(t, string(arg.BranchPayload), "Ali Hassan")
@@ -176,17 +176,17 @@ func TestPutBranchClient_BlankPhone_CreatesWithSyntheticKey(t *testing.T) {
 	// synthetic key so the client still syncs and its invoices attribute.
 	store.EXPECT().GetClientLink(gomock.Any(), gomock.Any()).Return(int64(0), sql.ErrNoRows)
 	store.EXPECT().
-		GetClientByPhone(gomock.Any(), gomock.Eq("nophone-7-9")).
+		GetClientByPhone(gomock.Any(), gomock.Eq(syntheticBranchPhone(testRegisterID, 9))).
 		Return(db.Client{}, sql.ErrNoRows)
 	store.EXPECT().
 		CreateClient(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(_ any, arg db.CreateClientParams) (db.Client, error) {
-			require.Equal(t, "nophone-7-9", arg.Phone)
+			require.Equal(t, syntheticBranchPhone(testRegisterID, 9), arg.Phone)
 			return db.Client{ID: 3, Name: arg.Name, Phone: arg.Phone}, nil
 		})
 	store.EXPECT().
 		UpsertClientLink(gomock.Any(), gomock.Eq(db.UpsertClientLinkParams{
-			BranchID: testBranchID, BranchClientID: 9, ClientID: 3,
+			BranchID: testBranchID, RegisterID: testRegisterID, BranchClientID: 9, ClientID: 3,
 		})).
 		Return(nil)
 	store.EXPECT().UpsertBranchSyncConflict(gomock.Any(), gomock.Any()).Times(0)

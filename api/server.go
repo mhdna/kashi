@@ -334,7 +334,17 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/branches/syncing", server.listSyncingBranches)
 	authRoutes.POST("/branches/:id/activate", server.setBranchActive(true))
 	authRoutes.POST("/branches/:id/deactivate", server.setBranchActive(false))
-	authRoutes.POST("/branches/:id/rotate_key", server.rotateBranchKey)
+	authRoutes.GET("/branches/:id/registers", server.listBranchRegisters)
+	authRoutes.POST("/branches/:id/registers", server.createBranchRegister)
+	authRoutes.GET("/branch_registers", server.listAllBranchRegisters)
+	authRoutes.GET("/branch_registers/connected", server.listConnectedRegisters)
+	authRoutes.PUT("/branch_registers/:id", server.updateBranchRegister)
+	authRoutes.POST("/branch_registers/:id/activate", server.setBranchRegisterActive(true))
+	authRoutes.POST("/branch_registers/:id/deactivate", server.setBranchRegisterActive(false))
+	authRoutes.POST("/branch_registers/:id/rotate_key", server.rotateBranchRegisterKey)
+	authRoutes.PUT("/branch_registers/:id/quick_access_mode", server.putRegisterQuickAccessMode)
+	authRoutes.GET("/branches/:id/quick_access", server.getBranchQuickAccess)
+	authRoutes.PUT("/branches/:id/quick_access", server.putBranchQuickAccess)
 
 	authRoutes.GET("/branch_expenses", server.listBranchExpenses)
 	authRoutes.POST("/branch_expenses", server.adminCreateBranchExpense)
@@ -410,8 +420,8 @@ func (server *Server) setupRoutes() {
 	// token instead.
 	router.GET("/admin/ws", server.adminWS)
 
-	// branchRoutes is authenticated with a per-branch API key rather than a
-	// PASETO user token — see branchAuthMiddleware. Kept under its own path
+	// branchRoutes is authenticated with a per-register API key rather than
+	// a PASETO user token — see branchAuthMiddleware. Kept under its own path
 	// prefix so branch-facing request/response shapes (branch_id, client_ref
 	// idempotency, etc.) never collide with the human-operator endpoints above.
 	branchRoutes := router.Group("/branch").Use(server.branchAuthMiddleware())
@@ -432,6 +442,8 @@ func (server *Server) setupRoutes() {
 	branchRoutes.POST("/sync/reconcile", server.branchReconcile)
 	branchRoutes.POST("/sync/full_sync/start", server.branchFullSyncStart)
 	branchRoutes.POST("/sync/full_sync/end", server.branchFullSyncEnd)
+	branchRoutes.POST("/quick_access/mode", server.branchSetQuickAccessMode)
+	branchRoutes.POST("/quick_access/import", server.branchImportQuickAccess)
 	branchRoutes.POST("/sync/ids", server.branchSyncIDs)
 	branchRoutes.POST("/sync/fetch", server.branchSyncFetch)
 	branchRoutes.GET("/sync/client_uids", server.branchClientUIDs)
@@ -439,6 +451,7 @@ func (server *Server) setupRoutes() {
 	branchRoutes.PUT("/settings", server.putBranchSettings)
 	branchRoutes.POST("/clients", server.putBranchClient)
 	branchRoutes.POST("/clients_batch", server.putBranchClients)
+	branchRoutes.GET("/targets/progress", server.branchTargetsProgress)
 	branchRoutes.GET("/commands/pending", server.branchPendingCommands)
 	branchRoutes.POST("/commands/:id/ack", server.ackBranchCommand)
 	branchRoutes.GET("/expenses/upload_status", server.branchExpenseUploadStatus)
@@ -472,5 +485,7 @@ func (server *Server) setupRoutes() {
 }
 
 func (server *Server) Start(address string) error {
+	go server.expireSyncLeasesLoop()
+	go server.listenForSyncChanges()
 	return server.router.Run(address)
 }

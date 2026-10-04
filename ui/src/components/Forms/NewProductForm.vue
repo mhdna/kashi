@@ -114,8 +114,47 @@
       variant="outlined"
     />
 
+    <div class="text-overline text-medium-emphasis mt-3 mb-1">Price</div>
+    <v-row density="compact">
+      <v-col cols="12" sm="6">
+        <v-select
+          v-model="priceListId.value.value"
+          density="compact"
+          hide-details="auto"
+          item-title="name"
+          item-value="id"
+          :items="priceLists"
+          label="Price list"
+          variant="outlined"
+        >
+          <template #item="{ props: itemProps, item }">
+            <v-list-item v-bind="itemProps">
+              <template #append>
+                <v-chip v-if="item.is_default" color="primary" size="x-small" text="Default" />
+                <v-chip v-else-if="!item.is_active" size="x-small" text="Inactive" />
+              </template>
+            </v-list-item>
+          </template>
+        </v-select>
+      </v-col>
+      <v-col cols="12" sm="6">
+        <v-text-field
+          v-model="price.value.value"
+          clearable
+          density="compact"
+          :disabled="!priceListId.value.value"
+          :error-messages="price.errorMessage.value"
+          :hint="variantCount > 1 ? `Applied to all ${variantCount} variants` : 'Leave empty to price it later'"
+          inputmode="decimal"
+          label="Price (optional)"
+          persistent-hint
+          variant="outlined"
+        />
+      </v-col>
+    </v-row>
+
     <div class="d-flex justify-end ga-2 mt-4">
-      <v-btn text="Clear" variant="text" @click="handleReset" />
+      <v-btn text="Clear" variant="text" @click="resetForm" />
       <v-btn
         color="primary"
         :loading="submitting"
@@ -133,8 +172,9 @@
   import { authFetch } from '@/composables/useApi'
   import { useAttributes } from '@/composables/useAttributes'
   import { useColorsAndSizes } from '@/composables/useColorsAndSizes'
-  import { API_BASE } from '@/config'
   import { useNotify } from '@/composables/useNotify'
+  import { usePriceLists } from '@/composables/usePriceLists'
+  import { API_BASE } from '@/config'
 
   const emit = defineEmits(['created'])
 
@@ -143,6 +183,9 @@
   fetchColors()
   fetchSizes()
   fetchAttributes()
+
+  const { list: priceLists, fetchLists: fetchPriceLists } = usePriceLists()
+  const defaultPriceListId = () => priceLists.value.find(l => l.is_default)?.id ?? null
 
   const { handleSubmit, handleReset } = useForm({
     validationSchema: {
@@ -164,6 +207,14 @@
       sizeIds () {
         return true
       },
+      priceListId () {
+        return true
+      },
+      price (value) {
+        if (value === null || value === undefined || String(value).trim() === '') return true
+        const n = Number(value)
+        return Number.isFinite(n) && n >= 0 ? true : 'Price must be a positive number.'
+      },
     },
   })
 
@@ -173,6 +224,18 @@
   const barcode = useField('barcode')
   const colorIds = useField('colorIds', undefined, { initialValue: [] })
   const sizeIds = useField('sizeIds', undefined, { initialValue: [] })
+  const priceListId = useField('priceListId')
+  const price = useField('price')
+
+  // Preselect the default list once the lists are in, and again after each
+  // reset so the next product starts from it too.
+  fetchPriceLists().then(() => {
+    if (!priceListId.value.value) priceListId.value.value = defaultPriceListId()
+  })
+  function resetForm () {
+    handleReset()
+    priceListId.value.value = defaultPriceListId()
+  }
 
   // One variant per colour x size; at least one either way.
   const variantCount = computed(() => {
@@ -209,6 +272,12 @@
         attributes[field.key] = values[field.key] ?? ''
       }
 
+      // Entered in currency units, stored in cents (as on the price lists page).
+      const hasPrice = values.price !== null && values.price !== undefined && String(values.price).trim() !== ''
+      const priceCents = hasPrice && values.priceListId
+        ? Math.round(Number.parseFloat(values.price) * 100)
+        : null
+
       const res = await authFetch(`${API_BASE}/products`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -220,6 +289,8 @@
           barcode: variantCount.value > 1 ? null : (values.barcode || null),
           color_ids: values.colorIds ?? [],
           size_ids: values.sizeIds ?? [],
+          price: priceCents,
+          price_list_id: priceCents === null ? null : values.priceListId,
         }),
       })
 
@@ -228,7 +299,7 @@
         throw new Error(err.error || `Request failed with status ${res.status}`)
       }
 
-      handleReset()
+      resetForm()
       emit('created')
     } catch (error) {
       notify.error(error.message)

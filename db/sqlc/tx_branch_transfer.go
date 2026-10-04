@@ -18,6 +18,7 @@ type BranchTransferItemParams struct {
 
 type CreateBranchTransferRequestTxParams struct {
 	BranchID      int64                      `json:"branch_id"`
+	RegisterID    int64                      `json:"register_id"`
 	ClientRef     string                     `json:"client_ref"`
 	ToInventoryID int64                      `json:"to_inventory_id"`
 	Note          string                     `json:"note"`
@@ -55,6 +56,7 @@ func (store *SQLStore) CreateBranchTransferRequestTx(ctx context.Context, arg Cr
 			Note:            arg.Note,
 			BranchID:        sql.NullInt64{Int64: arg.BranchID, Valid: true},
 			ClientRef:       sql.NullString{String: arg.ClientRef, Valid: true},
+			RegisterID:      sql.NullInt64{Int64: arg.RegisterID, Valid: true},
 		})
 		if err != nil {
 			return err

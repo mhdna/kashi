@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 
 	"github.com/google/uuid"
@@ -48,6 +49,22 @@ type CreateBranchInvoiceTxResult struct {
 	// a central variant (or whose branch has no linked inventory); those
 	// lines are stored but did not move central stock.
 	StockSkippedItems int `json:"stock_skipped_items"`
+	// Oversold lists the "oversold" alerts this sale opened or refreshed:
+	// lines that left central on-hand below zero.
+	Oversold []BranchSyncConflict `json:"oversold"`
+}
+
+// OversoldPayload is the branch_payload of an "oversold" stock alert.
+type OversoldPayload struct {
+	VariantID     int64  `json:"variant_id"`
+	Barcode       string `json:"barcode"`
+	OnHand        int64  `json:"on_hand"`
+	RegisterID    int64  `json:"register_id"`
+	InvoiceID     int64  `json:"invoice_id"`
+	InvoiceCode   string `json:"invoice_code"`
+	InvoiceRef    string `json:"invoice_ref"`
+	QuantitySold  int64  `json:"quantity_sold"`
+	OccurredAtUTC string `json:"occurred_at"`
 }
 
 // CreateBranchInvoiceTx inserts a branch invoice header and its line items
@@ -159,16 +176,49 @@ func (store *SQLStore) CreateBranchInvoiceTx(ctx context.Context, arg CreateBran
 				result.StockSkippedItems++
 				continue
 			}
-			if _, err := q.applyStockMovement(ctx, applyStockMovementParams{
+			movements, err := q.applyStockMovement(ctx, applyStockMovementParams{
 				InventoryID:   branch.InventoryID.Int64,
 				VariantID:     variant.ID,
 				Quantity:      -item.Quantity,
 				Reason:        reason,
 				ReferenceType: "branch_invoice",
 				ReferenceID:   invoice.ID,
-			}); err != nil {
+			})
+			if err != nil {
 				return err
 			}
+			// Sales are never refused for stock (the till already sold it);
+			// going negative is flagged for an admin to sort out instead.
+			if reason != StockMovementReasonSale || item.Quantity <= 0 || len(movements) == 0 {
+				continue
+			}
+			onHand := movements[len(movements)-1].QuantityAfter
+			if onHand >= 0 {
+				continue
+			}
+			payload, err := json.Marshal(OversoldPayload{
+				VariantID:     variant.ID,
+				Barcode:       variant.Barcode,
+				OnHand:        onHand,
+				RegisterID:    invoice.RegisterID,
+				InvoiceID:     invoice.ID,
+				InvoiceCode:   invoice.BranchInvoiceCode,
+				InvoiceRef:    invoice.ClientRef,
+				QuantitySold:  item.Quantity,
+				OccurredAtUTC: invoice.OccurredAt.UTC().Format("2006-01-02T15:04:05Z"),
+			})
+			if err != nil {
+				return err
+			}
+			conflict, err := q.UpsertOversoldConflict(ctx, UpsertOversoldConflictParams{
+				BranchID:      arg.BranchID,
+				Ref:           variant.Uid.String(),
+				BranchPayload: payload,
+			})
+			if err != nil {
+				return err
+			}
+			result.Oversold = append(result.Oversold, conflict)
 		}
 
 		result.Invoice = invoice

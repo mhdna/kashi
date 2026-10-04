@@ -121,9 +121,8 @@ func ensureBranches(ctx context.Context, store db.Store) []int64 {
 		}
 		code := fmt.Sprintf("SEED-%s", name)
 		branch, err := store.CreateBranch(ctx, db.CreateBranchParams{
-			Name:       name,
-			Code:       code,
-			ApiKeyHash: "seed-placeholder-hash",
+			Name: name,
+			Code: code,
 		})
 		if err != nil {
 			log.Printf("warning: failed to create branch %s (may already exist): %v", name, err)

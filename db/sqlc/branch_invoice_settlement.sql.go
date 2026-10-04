@@ -14,12 +14,12 @@ import (
 const branchShiftIsClosed = `-- name: BranchShiftIsClosed :one
 SELECT EXISTS (
   SELECT 1 FROM branch_shifts
-  WHERE branch_id = $1 AND branch_shift_id = $2
+  WHERE register_id = $1 AND branch_shift_id = $2
 ) AS closed
 `
 
 type BranchShiftIsClosedParams struct {
-	BranchID      int64 `json:"branch_id"`
+	RegisterID    int64 `json:"register_id"`
 	BranchShiftID int64 `json:"branch_shift_id"`
 }
 
@@ -27,7 +27,7 @@ type BranchShiftIsClosedParams struct {
 // close, so its mere presence is the "this shift is closed" signal --
 // closed_at itself can be NULL for an older till build that omitted it.
 func (q *Queries) BranchShiftIsClosed(ctx context.Context, arg BranchShiftIsClosedParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, branchShiftIsClosed, arg.BranchID, arg.BranchShiftID)
+	row := q.db.QueryRowContext(ctx, branchShiftIsClosed, arg.RegisterID, arg.BranchShiftID)
 	var closed bool
 	err := row.Scan(&closed)
 	return closed, err

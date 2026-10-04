@@ -48,7 +48,7 @@ func TestCreateBranchShiftReceiptImage_ConflictBeforeShiftClose(t *testing.T) {
 	stubBranchAuth(store)
 
 	store.EXPECT().
-		GetBranchShiftByClientRef(gomock.Any(), gomock.Eq(db.GetBranchShiftByClientRefParams{BranchID: testBranchID, ClientRef: "shift-9"})).
+		GetBranchShiftByClientRef(gomock.Any(), gomock.Eq(db.GetBranchShiftByClientRefParams{RegisterID: testRegisterID, ClientRef: "shift-9"})).
 		Return(db.BranchShift{}, sql.ErrNoRows)
 
 	server := newTestServer(t, store)

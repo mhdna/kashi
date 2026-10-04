@@ -157,16 +157,16 @@ func (q *Queries) GetClientByPhone(ctx context.Context, phone string) (Client, e
 
 const getClientLink = `-- name: GetClientLink :one
 SELECT client_id FROM client_links
-WHERE branch_id = $1 AND branch_client_id = $2
+WHERE register_id = $1 AND branch_client_id = $2
 `
 
 type GetClientLinkParams struct {
-	BranchID       int64 `json:"branch_id"`
+	RegisterID     int64 `json:"register_id"`
 	BranchClientID int64 `json:"branch_client_id"`
 }
 
 func (q *Queries) GetClientLink(ctx context.Context, arg GetClientLinkParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getClientLink, arg.BranchID, arg.BranchClientID)
+	row := q.db.QueryRowContext(ctx, getClientLink, arg.RegisterID, arg.BranchClientID)
 	var client_id int64
 	err := row.Scan(&client_id)
 	return client_id, err
@@ -193,7 +193,7 @@ WITH central AS (
     SUM(b.grand_total) FILTER (WHERE p.in_period) AS period_total,
     COUNT(DISTINCT b.id) FILTER (WHERE p.in_period) AS period_invoice_count
   FROM branch_invoices b
-  JOIN client_links cl ON cl.branch_id = b.branch_id AND cl.branch_client_id = b.branch_client_id
+  JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
   CROSS JOIN LATERAL (SELECT
     ($2::timestamptz IS NULL OR b.occurred_at >= $2::timestamptz)
     AND ($3::timestamptz IS NULL OR b.occurred_at < $3::timestamptz) AS in_period) p
@@ -374,7 +374,7 @@ WITH ranked AS (
       COUNT(DISTINCT b.id) AS branch_invoice_count,
       COALESCE(SUM(bii.quantity), 0) AS branch_item_count
     FROM branch_invoices b
-    JOIN client_links cl ON cl.branch_id = b.branch_id AND cl.branch_client_id = b.branch_client_id
+    JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
     -- Pre-aggregated per invoice for the same reason as invoice_products above.
     LEFT JOIN (
       SELECT branch_invoice_id, SUM(quantity) AS quantity
@@ -594,7 +594,7 @@ FROM clients c
 LEFT JOIN (
   SELECT cl.client_id, SUM(bi.loyalty_points_delta) AS branch_points
   FROM branch_invoices bi
-  JOIN client_links cl ON cl.branch_id = bi.branch_id AND cl.branch_client_id = bi.branch_client_id
+  JOIN client_links cl ON cl.register_id = bi.register_id AND cl.branch_client_id = bi.branch_client_id
   GROUP BY cl.client_id
 ) bl ON bl.client_id = c.id
 WHERE $3::text IS NULL OR c.client_type = $3
@@ -666,7 +666,7 @@ func (q *Queries) ListClientsWithLoyalty(ctx context.Context, arg ListClientsWit
 const sumClientLoyaltyPoints = `-- name: SumClientLoyaltyPoints :one
 SELECT COALESCE(SUM(bi.loyalty_points_delta), 0)::bigint AS total
 FROM branch_invoices bi
-JOIN client_links cl ON cl.branch_id = bi.branch_id AND cl.branch_client_id = bi.branch_client_id
+JOIN client_links cl ON cl.register_id = bi.register_id AND cl.branch_client_id = bi.branch_client_id
 WHERE cl.client_id = $1
 `
 
@@ -722,18 +722,24 @@ func (q *Queries) UpdateClient(ctx context.Context, arg UpdateClientParams) (Cli
 }
 
 const upsertClientLink = `-- name: UpsertClientLink :exec
-INSERT INTO client_links (branch_id, branch_client_id, client_id)
-VALUES ($1, $2, $3)
-ON CONFLICT (branch_id, branch_client_id) DO UPDATE SET client_id = EXCLUDED.client_id
+INSERT INTO client_links (branch_id, register_id, branch_client_id, client_id)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (register_id, branch_client_id) DO UPDATE SET client_id = EXCLUDED.client_id
 `
 
 type UpsertClientLinkParams struct {
 	BranchID       int64 `json:"branch_id"`
+	RegisterID     int64 `json:"register_id"`
 	BranchClientID int64 `json:"branch_client_id"`
 	ClientID       int64 `json:"client_id"`
 }
 
 func (q *Queries) UpsertClientLink(ctx context.Context, arg UpsertClientLinkParams) error {
-	_, err := q.db.ExecContext(ctx, upsertClientLink, arg.BranchID, arg.BranchClientID, arg.ClientID)
+	_, err := q.db.ExecContext(ctx, upsertClientLink,
+		arg.BranchID,
+		arg.RegisterID,
+		arg.BranchClientID,
+		arg.ClientID,
+	)
 	return err
 }

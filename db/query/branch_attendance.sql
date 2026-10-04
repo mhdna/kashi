@@ -62,15 +62,16 @@ INSERT INTO branch_attendance_changes (
   status,
   note,
   actor,
-  occurred_at
+  occurred_at,
+  register_id
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
 )
 RETURNING *;
 
 -- name: GetBranchAttendanceChangeByClientRef :one
 SELECT * FROM branch_attendance_changes
-WHERE branch_id = $1 AND client_ref = $2
+WHERE register_id = $1 AND client_ref = $2
 LIMIT 1;
 
 -- name: ListBranchAttendanceChanges :many

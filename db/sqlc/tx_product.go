@@ -25,6 +25,11 @@ type CreateProductTxParams struct {
 	ColorIDs []int64 `json:"color_ids"`
 	SizeIDs  []int64 `json:"size_ids"`
 	Barcode  *int64  `json:"barcode"`
+	// Price, when set, is written (in cents) to PriceListID for every
+	// variant created, so a new product can be sellable straight away.
+	// PriceListID nil means the default list.
+	Price       *int64 `json:"price"`
+	PriceListID *int64 `json:"price_list_id"`
 }
 
 type CreateProductTxResult struct {
@@ -165,6 +170,34 @@ func (store *SQLStore) CreateProductTx(ctx context.Context, arg CreateProductTxP
 					return err
 				}
 				result.Variants = append(result.Variants, variant)
+			}
+		}
+
+		if arg.Price != nil {
+			if *arg.Price < 0 {
+				return fmt.Errorf("price cannot be negative")
+			}
+			var priceListID int64
+			if arg.PriceListID != nil {
+				priceListID = *arg.PriceListID
+			} else {
+				defaultList, err := q.GetDefaultPriceList(ctx)
+				if err != nil {
+					if errors.Is(err, sql.ErrNoRows) {
+						return fmt.Errorf("no default price list to put the price on")
+					}
+					return err
+				}
+				priceListID = defaultList.ID
+			}
+			for _, v := range result.Variants {
+				if _, err := q.CreatePriceListItem(ctx, CreatePriceListItemParams{
+					PriceListID:      priceListID,
+					ProductVariantID: v.ID,
+					Price:            *arg.Price,
+				}); err != nil {
+					return err
+				}
 			}
 		}
 

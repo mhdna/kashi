@@ -53,12 +53,12 @@ SELECT * FROM clients
 WHERE client_type = 'retail' AND uid = ANY(sqlc.arg(uids)::uuid[]);
 
 -- name: ListBranchClientUIDs :many
--- Adoption: which central client each of this branch's local client ids is
--- linked to, so a till can stamp the right uid without guessing by phone.
+-- Adoption: which central client each of this register's local client ids
+-- is linked to, so a till can stamp the right uid without guessing by phone.
 SELECT cl.branch_client_id, c.uid
 FROM client_links cl
 JOIN clients c ON c.id = cl.client_id
-WHERE cl.branch_id = $1;
+WHERE cl.register_id = $1;
 
 -- name: RepointBranchInvoicesClientUID :exec
 -- A till's client turned out to be an existing central client (same phone):

@@ -27,9 +27,8 @@ func openPriceList(t *testing.T, name string, isDefault bool) PriceList {
 
 func testBranch(t *testing.T) Branch {
 	branch, err := testQueries.CreateBranch(context.Background(), CreateBranchParams{
-		Name:       util.RandomString(10),
-		Code:       util.RandomString(8),
-		ApiKeyHash: util.RandomString(20),
+		Name: util.RandomString(10),
+		Code: util.RandomString(8),
 	})
 	require.NoError(t, err)
 	return branch

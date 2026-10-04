@@ -17,7 +17,7 @@ RETURNING *;
 -- closed_at itself can be NULL for an older till build that omitted it.
 SELECT EXISTS (
   SELECT 1 FROM branch_shifts
-  WHERE branch_id = $1 AND branch_shift_id = $2
+  WHERE register_id = $1 AND branch_shift_id = $2
 ) AS closed;
 
 -- name: GetBranchInvoiceSettlementByClientRef :one

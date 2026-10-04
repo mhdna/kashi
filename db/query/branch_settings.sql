@@ -47,12 +47,13 @@ INSERT INTO branch_settings (
   split_primary_currency,
   split_primary_first,
   split_primary_step,
+  oversell_mode,
   updated_at
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
   $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27,
   $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39,
-  $40, $41, $42, $43, $44, $45, $46, $47, now()
+  $40, $41, $42, $43, $44, $45, $46, $47, $48, now()
 )
 ON CONFLICT (branch_id) DO UPDATE SET
   branch_name = EXCLUDED.branch_name,
@@ -101,6 +102,7 @@ ON CONFLICT (branch_id) DO UPDATE SET
   split_primary_currency = EXCLUDED.split_primary_currency,
   split_primary_first = EXCLUDED.split_primary_first,
   split_primary_step = EXCLUDED.split_primary_step,
+  oversell_mode = EXCLUDED.oversell_mode,
   updated_at = now()
 RETURNING *;
 

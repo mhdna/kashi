@@ -143,6 +143,7 @@ type branchAttendanceChangeRequest struct {
 // createBranchExpense.
 func (server *Server) createBranchAttendanceChange(ctx *gin.Context) {
 	branchID := ctx.MustGet(branchIDKey).(int64)
+	registerID := ctx.MustGet(registerIDKey).(int64)
 
 	var req branchAttendanceChangeRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -151,8 +152,8 @@ func (server *Server) createBranchAttendanceChange(ctx *gin.Context) {
 	}
 
 	if existing, err := server.store.GetBranchAttendanceChangeByClientRef(ctx, db.GetBranchAttendanceChangeByClientRefParams{
-		BranchID:  branchID,
-		ClientRef: req.Ref,
+		RegisterID: registerID,
+		ClientRef:  req.Ref,
 	}); err == nil {
 		server.writeJSON(ctx, http.StatusOK, envelope{"change": existing})
 		return
@@ -175,12 +176,13 @@ func (server *Server) createBranchAttendanceChange(ctx *gin.Context) {
 		Note:            req.Note,
 		Actor:           req.Actor,
 		OccurredAt:      req.OccurredAt,
+		RegisterID:      registerID,
 	})
 	if err != nil {
 		if isUniqueViolation(err) {
 			if existing, lookupErr := server.store.GetBranchAttendanceChangeByClientRef(ctx, db.GetBranchAttendanceChangeByClientRefParams{
-				BranchID:  branchID,
-				ClientRef: req.Ref,
+				RegisterID: registerID,
+				ClientRef:  req.Ref,
 			}); lookupErr == nil {
 				server.writeJSON(ctx, http.StatusOK, envelope{"change": existing})
 				return

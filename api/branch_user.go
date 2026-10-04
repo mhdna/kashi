@@ -31,17 +31,9 @@ func (server *Server) enqueueSetBranchUserPin(ctx *gin.Context, branchID int64, 
 		return err
 	}
 
-	command, err := server.store.CreateBranchCommand(ctx, db.CreateBranchCommandParams{
-		BranchID: branchID,
-		Type:     "set_branch_user_pin",
-		Payload:  payload,
-		IssuedBy: user.ID,
-	})
-	if err != nil {
-		return err
-	}
-	server.branchHub.notify(branchID, branchWSMessage{Type: "command", CommandID: command.ID})
-	return nil
+	// Users are branch-wide: every register hashes and stores the PIN.
+	_, err = server.enqueueBranchCommand(ctx, branchID, 0, "set_branch_user_pin", payload, user.ID)
+	return err
 }
 
 func (server *Server) listBranchUsers(ctx *gin.Context) {

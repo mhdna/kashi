@@ -320,7 +320,7 @@ FROM (
     b.occurred_at AS occurred_at
   FROM branch_invoices b
   LEFT JOIN client_links cl
-    ON cl.branch_id = b.branch_id AND cl.branch_client_id = b.branch_client_id
+    ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
   LEFT JOIN clients bc ON bc.id = cl.client_id
   WHERE b.kind = 'sales'
     AND sqlc.arg(scope)::text IN ('all', 'branch')

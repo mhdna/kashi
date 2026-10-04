@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -52,6 +53,10 @@ type defaultBranchSettings struct {
 	AttendanceEnabled                  bool  `json:"attendance_enabled"`
 	AttendanceDuplicateIntervalSeconds int64 `json:"attendance_duplicate_interval_seconds"`
 	AttendanceCashierHistory           bool  `json:"attendance_cashier_history"`
+
+	// Omitted until the template sets it, so an older saved template never
+	// pushes an empty (invalid) mode.
+	OversellMode string `json:"oversell_mode,omitempty" binding:"omitempty,oneof=allow warn block"`
 }
 
 // getDefaultBranchSettings returns the saved template, or an empty one
@@ -150,7 +155,14 @@ func (server *Server) applyDefaultBranchSettingsToAll(ctx *gin.Context) {
 
 	queued := 0
 	for _, branch := range branches {
-		if _, err := server.enqueueBranchCommand(ctx, branch.ID, "update_settings", payload, user.ID); err != nil {
+		// A branch none of whose registers has reported settings yet has no
+		// row to update; its registers still get the command.
+		patch, err := server.applyBranchSettingsPatch(ctx, branch.ID, payload)
+		if err != nil && !errors.Is(err, errNoBranchSettings) {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		if _, err := server.enqueueBranchCommand(ctx, branch.ID, 0, "update_settings", patch, user.ID); err != nil {
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
 		}

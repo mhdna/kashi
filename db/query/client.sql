@@ -32,7 +32,7 @@ FROM clients c
 LEFT JOIN (
   SELECT cl.client_id, SUM(bi.loyalty_points_delta) AS branch_points
   FROM branch_invoices bi
-  JOIN client_links cl ON cl.branch_id = bi.branch_id AND cl.branch_client_id = bi.branch_client_id
+  JOIN client_links cl ON cl.register_id = bi.register_id AND cl.branch_client_id = bi.branch_client_id
   GROUP BY cl.client_id
 ) bl ON bl.client_id = c.id
 WHERE sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type)
@@ -66,13 +66,13 @@ WHERE updated_at > $1 AND client_type = 'retail'
 ORDER BY updated_at;
 
 -- name: UpsertClientLink :exec
-INSERT INTO client_links (branch_id, branch_client_id, client_id)
-VALUES ($1, $2, $3)
-ON CONFLICT (branch_id, branch_client_id) DO UPDATE SET client_id = EXCLUDED.client_id;
+INSERT INTO client_links (branch_id, register_id, branch_client_id, client_id)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (register_id, branch_client_id) DO UPDATE SET client_id = EXCLUDED.client_id;
 
 -- name: GetClientLink :one
 SELECT client_id FROM client_links
-WHERE branch_id = $1 AND branch_client_id = $2;
+WHERE register_id = $1 AND branch_client_id = $2;
 
 -- name: SumClientLoyaltyPoints :one
 -- The redemption-time query: every branch's contribution to this client's
@@ -81,7 +81,7 @@ WHERE branch_id = $1 AND branch_client_id = $2;
 -- number, only sums what's already been reported.
 SELECT COALESCE(SUM(bi.loyalty_points_delta), 0)::bigint AS total
 FROM branch_invoices bi
-JOIN client_links cl ON cl.branch_id = bi.branch_id AND cl.branch_client_id = bi.branch_client_id
+JOIN client_links cl ON cl.register_id = bi.register_id AND cl.branch_client_id = bi.branch_client_id
 WHERE cl.client_id = $1;
 
 -- name: DeleteClient :exec
@@ -156,7 +156,7 @@ WITH ranked AS (
       COUNT(DISTINCT b.id) AS branch_invoice_count,
       COALESCE(SUM(bii.quantity), 0) AS branch_item_count
     FROM branch_invoices b
-    JOIN client_links cl ON cl.branch_id = b.branch_id AND cl.branch_client_id = b.branch_client_id
+    JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
     -- Pre-aggregated per invoice for the same reason as invoice_products above.
     LEFT JOIN (
       SELECT branch_invoice_id, SUM(quantity) AS quantity
@@ -230,7 +230,7 @@ WITH central AS (
     SUM(b.grand_total) FILTER (WHERE p.in_period) AS period_total,
     COUNT(DISTINCT b.id) FILTER (WHERE p.in_period) AS period_invoice_count
   FROM branch_invoices b
-  JOIN client_links cl ON cl.branch_id = b.branch_id AND cl.branch_client_id = b.branch_client_id
+  JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
   CROSS JOIN LATERAL (SELECT
     (sqlc.narg(date_from)::timestamptz IS NULL OR b.occurred_at >= sqlc.narg(date_from)::timestamptz)
     AND (sqlc.narg(date_to)::timestamptz IS NULL OR b.occurred_at < sqlc.narg(date_to)::timestamptz) AS in_period) p

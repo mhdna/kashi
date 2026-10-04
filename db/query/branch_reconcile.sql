@@ -18,7 +18,7 @@ WHERE branch_id = $1 AND client_ref = ANY($2::text[]);
 
 -- name: BranchClientLinksPresent :many
 SELECT branch_client_id FROM client_links
-WHERE branch_id = $1 AND branch_client_id = ANY($2::bigint[]);
+WHERE register_id = $1 AND branch_client_id = ANY($2::bigint[]);
 
 -- name: ProductBarcodesPresent :many
 SELECT barcode FROM product_variants
@@ -30,7 +30,7 @@ WHERE phone = ANY($1::text[]);
 
 -- name: BranchShiftRefsPresent :many
 SELECT client_ref FROM branch_shifts
-WHERE branch_id = $1 AND client_ref = ANY($2::text[]);
+WHERE register_id = $1 AND client_ref = ANY($2::text[]);
 
 -- name: BranchVisitorEventRefsPresent :many
 SELECT client_ref FROM branch_visitor_events
@@ -42,4 +42,4 @@ WHERE branch_id = $1 AND client_ref = ANY($2::text[]);
 
 -- name: BranchAttendanceChangeRefsPresent :many
 SELECT client_ref FROM branch_attendance_changes
-WHERE branch_id = $1 AND client_ref = ANY($2::text[]);
+WHERE register_id = $1 AND client_ref = ANY($2::text[]);

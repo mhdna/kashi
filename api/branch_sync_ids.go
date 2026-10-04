@@ -139,12 +139,12 @@ type branchClientUIDPair struct {
 	UID            uuid.UUID `json:"uid"`
 }
 
-// branchClientUIDs lists this branch's client_links as (local client id ->
-// central uid) pairs, so a till adopting shared identities can stamp the
+// branchClientUIDs lists this register's client_links as (local client id
+// -> central uid) pairs, so a till adopting shared identities can stamp the
 // exact client it was linked to instead of guessing by phone.
 func (server *Server) branchClientUIDs(ctx *gin.Context) {
-	branchID := ctx.MustGet(branchIDKey).(int64)
-	rows, err := server.store.ListBranchClientUIDs(ctx, branchID)
+	registerID := ctx.MustGet(registerIDKey).(int64)
+	rows, err := server.store.ListBranchClientUIDs(ctx, registerID)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
@@ -30,6 +31,7 @@ func TestCreateBranchTransferRequest_ResolvesDestinationAndCreates(t *testing.T)
 	store.EXPECT().
 		CreateBranchTransferRequestTx(gomock.Any(), db.CreateBranchTransferRequestTxParams{
 			BranchID:      testBranchID,
+			RegisterID:    testRegisterID,
 			ClientRef:     "ref-1",
 			ToInventoryID: 42,
 			Note:          "restock",
@@ -119,18 +121,23 @@ func TestApproveTransfer_MovesStockAndNotifiesBranch(t *testing.T) {
 	store := mockdb.NewMockStore(ctrl)
 
 	approved := db.Transfer{
-		ID:        3,
-		Status:    db.TransferStatusReceived,
-		BranchID:  sql.NullInt64{Int64: testBranchID, Valid: true},
-		ClientRef: sql.NullString{String: "ref-1", Valid: true},
+		ID:         3,
+		Status:     db.TransferStatusReceived,
+		BranchID:   sql.NullInt64{Int64: testBranchID, Valid: true},
+		RegisterID: sql.NullInt64{Int64: testRegisterID, Valid: true},
+		ClientRef:  sql.NullString{String: "ref-1", Valid: true},
 	}
 
 	store.EXPECT().
 		TransferApproveTx(gomock.Any(), gomock.Any()).
 		Return(db.TransferStageTxResult{Transfer: approved}, nil)
+	// The decision goes only to the register that asked.
 	store.EXPECT().
 		CreateBranchCommand(gomock.Any(), gomock.Any()).
-		Return(db.BranchCommand{ID: 1}, nil)
+		DoAndReturn(func(_ context.Context, arg db.CreateBranchCommandParams) (db.BranchCommand, error) {
+			require.Equal(t, testRegisterID, arg.RegisterID)
+			return db.BranchCommand{ID: 1}, nil
+		})
 
 	server := newTestServer(t, store)
 	rec := httptest.NewRecorder()

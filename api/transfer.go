@@ -366,17 +366,10 @@ func (server *Server) notifyBranchTransferDecision(ctx *gin.Context, transfer db
 		log.Printf("transfer %d: marshal decision payload: %v", transfer.ID, err)
 		return
 	}
-	command, err := server.store.CreateBranchCommand(ctx, db.CreateBranchCommandParams{
-		BranchID: transfer.BranchID.Int64,
-		Type:     "transfer_decision",
-		Payload:  payload,
-		IssuedBy: actorID(ctx).Int64,
-	})
-	if err != nil {
+	// Only the register that asked holds the request locally.
+	if _, err := server.enqueueBranchCommand(ctx, transfer.BranchID.Int64, transfer.RegisterID.Int64, "transfer_decision", payload, actorID(ctx).Int64); err != nil {
 		log.Printf("transfer %d: enqueue transfer_decision command: %v", transfer.ID, err)
-		return
 	}
-	server.branchHub.notify(transfer.BranchID.Int64, branchWSMessage{Type: "command", CommandID: command.ID})
 }
 
 // getTransferAttachment serves the one optional photo a transfer request

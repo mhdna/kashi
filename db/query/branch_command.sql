@@ -1,8 +1,8 @@
 -- name: CreateBranchCommand :one
 INSERT INTO branch_commands (
-  branch_id, type, payload, issued_by
+  branch_id, register_id, type, payload, issued_by
 ) VALUES (
-  $1, $2, $3, $4
+  $1, $2, $3, $4, $5
 ) RETURNING *;
 
 -- name: GetBranchCommand :one
@@ -10,7 +10,7 @@ SELECT * FROM branch_commands WHERE id = $1;
 
 -- name: ListPendingBranchCommands :many
 SELECT * FROM branch_commands
-WHERE branch_id = $1 AND status = 'pending'
+WHERE register_id = $1 AND status = 'pending'
 ORDER BY id;
 
 -- name: CompleteBranchCommand :one
@@ -20,7 +20,9 @@ WHERE id = $1
 RETURNING *;
 
 -- name: ListBranchCommands :many
-SELECT * FROM branch_commands
-WHERE branch_id = $1
-ORDER BY id DESC
+SELECT c.*, r.code AS register_code
+FROM branch_commands c
+JOIN branch_registers r ON r.id = c.register_id
+WHERE c.branch_id = $1
+ORDER BY c.id DESC
 LIMIT $2 OFFSET $3;

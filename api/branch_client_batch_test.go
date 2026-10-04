@@ -25,38 +25,38 @@ func TestPutBranchClients_MixedBatch(t *testing.T) {
 	stubBranchAuth(store)
 
 	// 1: not linked, unknown phone -> created + linked.
-	store.EXPECT().GetClientLink(gomock.Any(), db.GetClientLinkParams{BranchID: testBranchID, BranchClientID: 1}).
+	store.EXPECT().GetClientLink(gomock.Any(), db.GetClientLinkParams{RegisterID: testRegisterID, BranchClientID: 1}).
 		Return(int64(0), sql.ErrNoRows)
 	store.EXPECT().GetClientByPhone(gomock.Any(), "70123456").Return(db.Client{}, sql.ErrNoRows)
 	store.EXPECT().CreateClient(gomock.Any(), db.CreateClientParams{Name: "Ali", Phone: "70123456", ClientType: "retail"}).
 		Return(db.Client{ID: 100, Name: "Ali", Phone: "70123456"}, nil)
-	store.EXPECT().UpsertClientLink(gomock.Any(), db.UpsertClientLinkParams{BranchID: testBranchID, BranchClientID: 1, ClientID: 100}).
+	store.EXPECT().UpsertClientLink(gomock.Any(), db.UpsertClientLinkParams{BranchID: testBranchID, RegisterID: testRegisterID, BranchClientID: 1, ClientID: 100}).
 		Return(nil)
 
 	// 2: not linked, phone exists under another name -> linked + conflict.
-	store.EXPECT().GetClientLink(gomock.Any(), db.GetClientLinkParams{BranchID: testBranchID, BranchClientID: 2}).
+	store.EXPECT().GetClientLink(gomock.Any(), db.GetClientLinkParams{RegisterID: testRegisterID, BranchClientID: 2}).
 		Return(int64(0), sql.ErrNoRows)
 	store.EXPECT().GetClientByPhone(gomock.Any(), "71999999").Return(db.Client{ID: 200, Name: "Someone Else", Phone: "71999999"}, nil)
-	store.EXPECT().UpsertClientLink(gomock.Any(), db.UpsertClientLinkParams{BranchID: testBranchID, BranchClientID: 2, ClientID: 200}).
+	store.EXPECT().UpsertClientLink(gomock.Any(), db.UpsertClientLinkParams{BranchID: testBranchID, RegisterID: testRegisterID, BranchClientID: 2, ClientID: 200}).
 		Return(nil)
 	store.EXPECT().UpsertBranchSyncConflict(gomock.Any(), gomock.Any()).Return(db.BranchSyncConflict{}, nil)
 
 	// 3: blank name -> invalid, never touches the store.
 
 	// 4: server-side failure -> retryable error for this item only.
-	store.EXPECT().GetClientLink(gomock.Any(), db.GetClientLinkParams{BranchID: testBranchID, BranchClientID: 4}).
+	store.EXPECT().GetClientLink(gomock.Any(), db.GetClientLinkParams{RegisterID: testRegisterID, BranchClientID: 4}).
 		Return(int64(0), errors.New("db down"))
 
 	// 5: bad phone -> synthetic phone key.
-	store.EXPECT().GetClientLink(gomock.Any(), db.GetClientLinkParams{BranchID: testBranchID, BranchClientID: 5}).
+	store.EXPECT().GetClientLink(gomock.Any(), db.GetClientLinkParams{RegisterID: testRegisterID, BranchClientID: 5}).
 		Return(int64(0), sql.ErrNoRows)
-	store.EXPECT().GetClientByPhone(gomock.Any(), syntheticBranchPhone(testBranchID, 5)).Return(db.Client{}, sql.ErrNoRows)
+	store.EXPECT().GetClientByPhone(gomock.Any(), syntheticBranchPhone(testRegisterID, 5)).Return(db.Client{}, sql.ErrNoRows)
 	store.EXPECT().CreateClient(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(_ any, arg db.CreateClientParams) (db.Client, error) {
-			require.Equal(t, syntheticBranchPhone(testBranchID, 5), arg.Phone)
+			require.Equal(t, syntheticBranchPhone(testRegisterID, 5), arg.Phone)
 			return db.Client{ID: 500, Name: arg.Name, Phone: arg.Phone}, nil
 		})
-	store.EXPECT().UpsertClientLink(gomock.Any(), db.UpsertClientLinkParams{BranchID: testBranchID, BranchClientID: 5, ClientID: 500}).
+	store.EXPECT().UpsertClientLink(gomock.Any(), db.UpsertClientLinkParams{BranchID: testBranchID, RegisterID: testRegisterID, BranchClientID: 5, ClientID: 500}).
 		Return(nil)
 
 	server := newTestServer(t, store)

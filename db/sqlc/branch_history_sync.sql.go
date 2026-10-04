@@ -138,15 +138,15 @@ func (q *Queries) ListBranchInvoiceCouponCodesForHistory(ctx context.Context, ar
 
 const listBranchInvoiceHistoryForSync = `-- name: ListBranchInvoiceHistoryForSync :many
 
-SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid FROM branch_invoices
-WHERE branch_id = $1
+SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id FROM branch_invoices
+WHERE register_id = $1
   AND (received_at, id) > ($2::timestamptz, $3::bigint)
 ORDER BY received_at, id
 LIMIT $4
 `
 
 type ListBranchInvoiceHistoryForSyncParams struct {
-	BranchID        int64     `json:"branch_id"`
+	RegisterID      int64     `json:"register_id"`
 	AfterReceivedAt time.Time `json:"after_received_at"`
 	AfterID         int64     `json:"after_id"`
 	RowLimit        int32     `json:"row_limit"`
@@ -162,10 +162,15 @@ type ListBranchInvoiceHistoryForSyncParams struct {
 // branch (ctx.MustGet(branchIDKey)), never a request parameter, so a
 // branch can only ever pull its own data. Keyset-paginated on
 // (received_at, id), same cursor shape as ListBranchStockForSync.
+//
+// Invoices and shift closes are per register: a re-provisioned till gets
+// back only what it itself sold and closed, so its invoice numbering and
+// local shift ids carry on without colliding with its branch's other tills.
+// Expenses and loans aren't tracked per register and stay branch-wide.
 // ---------------------------------------------------------------------------
 func (q *Queries) ListBranchInvoiceHistoryForSync(ctx context.Context, arg ListBranchInvoiceHistoryForSyncParams) ([]BranchInvoice, error) {
 	rows, err := q.db.QueryContext(ctx, listBranchInvoiceHistoryForSync,
-		arg.BranchID,
+		arg.RegisterID,
 		arg.AfterReceivedAt,
 		arg.AfterID,
 		arg.RowLimit,
@@ -198,6 +203,7 @@ func (q *Queries) ListBranchInvoiceHistoryForSync(ctx context.Context, arg ListB
 			&i.SalespersonName,
 			&i.Historical,
 			&i.ClientUid,
+			&i.RegisterID,
 		); err != nil {
 			return nil, err
 		}
@@ -386,15 +392,15 @@ func (q *Queries) ListBranchLoanHistoryForSync(ctx context.Context, arg ListBran
 }
 
 const listBranchShiftHistoryForSync = `-- name: ListBranchShiftHistoryForSync :many
-SELECT id, branch_id, client_ref, branch_shift_id, opened_at, closed_at, closing_person_name, opening_float_usd, opening_float_lbp, expected_usd, expected_lbp, expected_visa, expected_whish, counted_usd, counted_lbp, counted_visa, counted_whish, variance_usd, variance_lbp, variance_visa, variance_whish, occurred_at, received_at FROM branch_shifts
-WHERE branch_id = $1
+SELECT id, branch_id, client_ref, branch_shift_id, opened_at, closed_at, closing_person_name, opening_float_usd, opening_float_lbp, expected_usd, expected_lbp, expected_visa, expected_whish, counted_usd, counted_lbp, counted_visa, counted_whish, variance_usd, variance_lbp, variance_visa, variance_whish, occurred_at, received_at, register_id FROM branch_shifts
+WHERE register_id = $1
   AND (received_at, id) > ($2::timestamptz, $3::bigint)
 ORDER BY received_at, id
 LIMIT $4
 `
 
 type ListBranchShiftHistoryForSyncParams struct {
-	BranchID        int64     `json:"branch_id"`
+	RegisterID      int64     `json:"register_id"`
 	AfterReceivedAt time.Time `json:"after_received_at"`
 	AfterID         int64     `json:"after_id"`
 	RowLimit        int32     `json:"row_limit"`
@@ -402,7 +408,7 @@ type ListBranchShiftHistoryForSyncParams struct {
 
 func (q *Queries) ListBranchShiftHistoryForSync(ctx context.Context, arg ListBranchShiftHistoryForSyncParams) ([]BranchShift, error) {
 	rows, err := q.db.QueryContext(ctx, listBranchShiftHistoryForSync,
-		arg.BranchID,
+		arg.RegisterID,
 		arg.AfterReceivedAt,
 		arg.AfterID,
 		arg.RowLimit,
@@ -438,6 +444,7 @@ func (q *Queries) ListBranchShiftHistoryForSync(ctx context.Context, arg ListBra
 			&i.VarianceWhish,
 			&i.OccurredAt,
 			&i.ReceivedAt,
+			&i.RegisterID,
 		); err != nil {
 			return nil, err
 		}

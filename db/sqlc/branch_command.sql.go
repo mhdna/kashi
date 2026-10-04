@@ -9,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"time"
 
 	"github.com/sqlc-dev/pqtype"
 )
@@ -17,7 +18,7 @@ const completeBranchCommand = `-- name: CompleteBranchCommand :one
 UPDATE branch_commands
 SET status = $2, result = $3, error = $4, completed_at = now()
 WHERE id = $1
-RETURNING id, branch_id, type, payload, status, result, error, issued_by, created_at, completed_at
+RETURNING id, branch_id, type, payload, status, result, error, issued_by, created_at, completed_at, register_id
 `
 
 type CompleteBranchCommandParams struct {
@@ -46,28 +47,31 @@ func (q *Queries) CompleteBranchCommand(ctx context.Context, arg CompleteBranchC
 		&i.IssuedBy,
 		&i.CreatedAt,
 		&i.CompletedAt,
+		&i.RegisterID,
 	)
 	return i, err
 }
 
 const createBranchCommand = `-- name: CreateBranchCommand :one
 INSERT INTO branch_commands (
-  branch_id, type, payload, issued_by
+  branch_id, register_id, type, payload, issued_by
 ) VALUES (
-  $1, $2, $3, $4
-) RETURNING id, branch_id, type, payload, status, result, error, issued_by, created_at, completed_at
+  $1, $2, $3, $4, $5
+) RETURNING id, branch_id, type, payload, status, result, error, issued_by, created_at, completed_at, register_id
 `
 
 type CreateBranchCommandParams struct {
-	BranchID int64           `json:"branch_id"`
-	Type     string          `json:"type"`
-	Payload  json.RawMessage `json:"payload"`
-	IssuedBy int64           `json:"issued_by"`
+	BranchID   int64           `json:"branch_id"`
+	RegisterID int64           `json:"register_id"`
+	Type       string          `json:"type"`
+	Payload    json.RawMessage `json:"payload"`
+	IssuedBy   int64           `json:"issued_by"`
 }
 
 func (q *Queries) CreateBranchCommand(ctx context.Context, arg CreateBranchCommandParams) (BranchCommand, error) {
 	row := q.db.QueryRowContext(ctx, createBranchCommand,
 		arg.BranchID,
+		arg.RegisterID,
 		arg.Type,
 		arg.Payload,
 		arg.IssuedBy,
@@ -84,12 +88,13 @@ func (q *Queries) CreateBranchCommand(ctx context.Context, arg CreateBranchComma
 		&i.IssuedBy,
 		&i.CreatedAt,
 		&i.CompletedAt,
+		&i.RegisterID,
 	)
 	return i, err
 }
 
 const getBranchCommand = `-- name: GetBranchCommand :one
-SELECT id, branch_id, type, payload, status, result, error, issued_by, created_at, completed_at FROM branch_commands WHERE id = $1
+SELECT id, branch_id, type, payload, status, result, error, issued_by, created_at, completed_at, register_id FROM branch_commands WHERE id = $1
 `
 
 func (q *Queries) GetBranchCommand(ctx context.Context, id int64) (BranchCommand, error) {
@@ -106,14 +111,17 @@ func (q *Queries) GetBranchCommand(ctx context.Context, id int64) (BranchCommand
 		&i.IssuedBy,
 		&i.CreatedAt,
 		&i.CompletedAt,
+		&i.RegisterID,
 	)
 	return i, err
 }
 
 const listBranchCommands = `-- name: ListBranchCommands :many
-SELECT id, branch_id, type, payload, status, result, error, issued_by, created_at, completed_at FROM branch_commands
-WHERE branch_id = $1
-ORDER BY id DESC
+SELECT c.id, c.branch_id, c.type, c.payload, c.status, c.result, c.error, c.issued_by, c.created_at, c.completed_at, c.register_id, r.code AS register_code
+FROM branch_commands c
+JOIN branch_registers r ON r.id = c.register_id
+WHERE c.branch_id = $1
+ORDER BY c.id DESC
 LIMIT $2 OFFSET $3
 `
 
@@ -123,15 +131,30 @@ type ListBranchCommandsParams struct {
 	Offset   int32 `json:"offset"`
 }
 
-func (q *Queries) ListBranchCommands(ctx context.Context, arg ListBranchCommandsParams) ([]BranchCommand, error) {
+type ListBranchCommandsRow struct {
+	ID           int64                 `json:"id"`
+	BranchID     int64                 `json:"branch_id"`
+	Type         string                `json:"type"`
+	Payload      json.RawMessage       `json:"payload"`
+	Status       string                `json:"status"`
+	Result       pqtype.NullRawMessage `json:"result"`
+	Error        sql.NullString        `json:"error"`
+	IssuedBy     int64                 `json:"issued_by"`
+	CreatedAt    time.Time             `json:"created_at"`
+	CompletedAt  sql.NullTime          `json:"completed_at"`
+	RegisterID   int64                 `json:"register_id"`
+	RegisterCode string                `json:"register_code"`
+}
+
+func (q *Queries) ListBranchCommands(ctx context.Context, arg ListBranchCommandsParams) ([]ListBranchCommandsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listBranchCommands, arg.BranchID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []BranchCommand{}
+	items := []ListBranchCommandsRow{}
 	for rows.Next() {
-		var i BranchCommand
+		var i ListBranchCommandsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.BranchID,
@@ -143,6 +166,8 @@ func (q *Queries) ListBranchCommands(ctx context.Context, arg ListBranchCommands
 			&i.IssuedBy,
 			&i.CreatedAt,
 			&i.CompletedAt,
+			&i.RegisterID,
+			&i.RegisterCode,
 		); err != nil {
 			return nil, err
 		}
@@ -158,13 +183,13 @@ func (q *Queries) ListBranchCommands(ctx context.Context, arg ListBranchCommands
 }
 
 const listPendingBranchCommands = `-- name: ListPendingBranchCommands :many
-SELECT id, branch_id, type, payload, status, result, error, issued_by, created_at, completed_at FROM branch_commands
-WHERE branch_id = $1 AND status = 'pending'
+SELECT id, branch_id, type, payload, status, result, error, issued_by, created_at, completed_at, register_id FROM branch_commands
+WHERE register_id = $1 AND status = 'pending'
 ORDER BY id
 `
 
-func (q *Queries) ListPendingBranchCommands(ctx context.Context, branchID int64) ([]BranchCommand, error) {
-	rows, err := q.db.QueryContext(ctx, listPendingBranchCommands, branchID)
+func (q *Queries) ListPendingBranchCommands(ctx context.Context, registerID int64) ([]BranchCommand, error) {
+	rows, err := q.db.QueryContext(ctx, listPendingBranchCommands, registerID)
 	if err != nil {
 		return nil, err
 	}
@@ -183,6 +208,7 @@ func (q *Queries) ListPendingBranchCommands(ctx context.Context, branchID int64)
 			&i.IssuedBy,
 			&i.CreatedAt,
 			&i.CompletedAt,
+			&i.RegisterID,
 		); err != nil {
 			return nil, err
 		}

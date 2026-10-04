@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	errUnknownCommandType    = errors.New("unknown or unsupported command type")
-	errCommandBranchMismatch = errors.New("command does not belong to this branch")
+	errUnknownCommandType      = errors.New("unknown or unsupported command type")
+	errCommandRegisterMismatch = errors.New("command does not belong to this register")
+	errRegisterBranchMismatch  = errors.New("register does not belong to this branch")
 )
 
 // allowedBranchCommandTypes gates what an admin can enqueue -- adding a new
@@ -36,15 +37,22 @@ var allowedBranchCommandTypes = map[string]bool{
 type createBranchCommandRequest struct {
 	Type    string          `json:"type" binding:"required"`
 	Payload json.RawMessage `json:"payload" binding:"required"`
+	// RegisterID addresses one register of the branch. 0 lets kashi pick:
+	// a remote return goes to the register that made the sale, anything
+	// else to every active register.
+	RegisterID int64 `json:"register_id"`
 }
 
 // createBranchCommand is how a human admin asks a branch to do something --
 // the enqueue side of the remote command channel. It never talks to
-// kashi-pos directly: it writes a pending row (the audit trail) and, if the
-// branch happens to be connected right now, nudges it over the WebSocket to
-// fetch it immediately. A disconnected or slow-to-notice branch still picks
-// it up on its next sync tick (see branchPendingCommands), so this endpoint
-// never needs to know or care whether the push actually landed.
+// kashi-pos directly: it writes pending rows (the audit trail) and nudges
+// connected registers over the WebSocket to fetch them immediately. A
+// disconnected or slow-to-notice till still picks its command up on its
+// next sync tick (see branchPendingCommands).
+//
+// A branch-wide update_settings is also applied to branch_settings here:
+// kashi is the authority for branch-wide settings, and every register
+// receives the same change.
 func (server *Server) createBranchCommand(ctx *gin.Context) {
 	var idReq branchIDRequest
 	if err := ctx.ShouldBindUri(&idReq); err != nil {
@@ -70,6 +78,50 @@ func (server *Server) createBranchCommand(ctx *gin.Context) {
 		return
 	}
 
+	registerID := req.RegisterID
+	if registerID != 0 {
+		register, err := server.store.GetBranchRegister(ctx, registerID)
+		if err != nil || register.BranchID != idReq.ID {
+			server.writeError(ctx, http.StatusBadRequest, errRegisterBranchMismatch)
+			return
+		}
+	} else if req.Type == "remote_return_invoice" {
+		var target struct {
+			ClientRef string `json:"client_ref"`
+		}
+		if err := json.Unmarshal(req.Payload, &target); err != nil || target.ClientRef == "" {
+			server.writeError(ctx, http.StatusBadRequest, errors.New("remote_return_invoice needs the sale's client_ref"))
+			return
+		}
+		invoice, err := server.store.GetBranchInvoiceByClientRef(ctx, db.GetBranchInvoiceByClientRefParams{
+			BranchID:  idReq.ID,
+			ClientRef: target.ClientRef,
+		})
+		if err != nil {
+			if err == sql.ErrNoRows {
+				server.writeError(ctx, http.StatusNotFound, err)
+				return
+			}
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		registerID = invoice.RegisterID
+	}
+
+	payload := req.Payload
+	if req.Type == "update_settings" && registerID == 0 {
+		var err error
+		payload, err = server.applyBranchSettingsPatch(ctx, idReq.ID, req.Payload)
+		if err != nil {
+			if errors.Is(err, errNoBranchSettings) {
+				server.writeError(ctx, http.StatusConflict, err)
+				return
+			}
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+	}
+
 	// The PASETO payload only carries the operator's username (see
 	// token.Payload) -- resolve it to a real user id so the audit trail
 	// (branch_commands.issued_by) is a durable FK, not a name that could
@@ -81,41 +133,56 @@ func (server *Server) createBranchCommand(ctx *gin.Context) {
 		return
 	}
 
-	command, err := server.enqueueBranchCommand(ctx, idReq.ID, req.Type, req.Payload, user.ID)
+	commands, err := server.enqueueBranchCommand(ctx, idReq.ID, registerID, req.Type, payload, user.ID)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	server.writeJSON(ctx, http.StatusOK, envelope{"command": command})
+	var first any
+	if len(commands) > 0 {
+		first = commands[0]
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"command": first, "commands": commands})
 }
 
 // enqueueBranchCommand is the shared write side of the remote command
-// channel: it writes the pending row (the audit trail) and, if the branch
-// happens to be connected right now, nudges it over the WebSocket to fetch
-// it immediately. A disconnected or slow-to-notice branch still picks it up
-// on its next sync tick (see branchPendingCommands). Used both by
-// createBranchCommand (one branch, admin-typed) and
-// applyDefaultBranchSettingsToAll (every branch, same command type fanned
-// out).
-func (server *Server) enqueueBranchCommand(ctx *gin.Context, branchID int64, cmdType string, payload json.RawMessage, issuedBy int64) (db.BranchCommand, error) {
-	command, err := server.store.CreateBranchCommand(ctx, db.CreateBranchCommandParams{
-		BranchID: branchID,
-		Type:     cmdType,
-		Payload:  payload,
-		IssuedBy: issuedBy,
-	})
-	if err != nil {
-		return db.BranchCommand{}, err
+// channel: it writes one pending row per target register (the audit trail)
+// and nudges each over the WebSocket if it's connected. registerID 0 fans
+// the command out to every active register of the branch, so each till
+// acks its own copy. A disconnected or slow-to-notice till still picks its
+// command up on its next sync tick (see branchPendingCommands).
+func (server *Server) enqueueBranchCommand(ctx *gin.Context, branchID, registerID int64, cmdType string, payload json.RawMessage, issuedBy int64) ([]db.BranchCommand, error) {
+	registerIDs := []int64{registerID}
+	if registerID == 0 {
+		var err error
+		registerIDs, err = server.store.ListActiveBranchRegisterIDs(ctx, branchID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	server.branchHub.notify(branchID, branchWSMessage{Type: "command", CommandID: command.ID})
-	return command, nil
+	commands := make([]db.BranchCommand, 0, len(registerIDs))
+	for _, id := range registerIDs {
+		command, err := server.store.CreateBranchCommand(ctx, db.CreateBranchCommandParams{
+			BranchID:   branchID,
+			RegisterID: id,
+			Type:       cmdType,
+			Payload:    payload,
+			IssuedBy:   issuedBy,
+		})
+		if err != nil {
+			return commands, err
+		}
+		commands = append(commands, command)
+		server.branchHub.notifyRegister(id, branchWSMessage{Type: "command", CommandID: command.ID})
+	}
+	return commands, nil
 }
 
 // listBranchCommands is the admin-facing audit trail for one branch --
-// every command ever issued, its payload, and its final result (or that
-// it's still pending).
+// every command ever issued to any of its registers, its payload, and its
+// final result (or that it's still pending).
 func (server *Server) listBranchCommands(ctx *gin.Context) {
 	var idReq branchIDRequest
 	if err := ctx.ShouldBindUri(&idReq); err != nil {
@@ -150,9 +217,9 @@ func (server *Server) listBranchCommands(ctx *gin.Context) {
 // branch_catchup.go). A branch that was offline when a command was issued
 // simply finds it here the next time it's back.
 func (server *Server) branchPendingCommands(ctx *gin.Context) {
-	branchID := ctx.MustGet(branchIDKey).(int64)
+	registerID := ctx.MustGet(registerIDKey).(int64)
 
-	commands, err := server.store.ListPendingBranchCommands(ctx, branchID)
+	commands, err := server.store.ListPendingBranchCommands(ctx, registerID)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
@@ -183,7 +250,7 @@ func (server *Server) ackBranchCommand(ctx *gin.Context) {
 		return
 	}
 
-	branchID := ctx.MustGet(branchIDKey).(int64)
+	registerID := ctx.MustGet(registerIDKey).(int64)
 	command, err := server.store.GetBranchCommand(ctx, req.ID)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -193,8 +260,8 @@ func (server *Server) ackBranchCommand(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if command.BranchID != branchID {
-		server.writeError(ctx, http.StatusForbidden, errCommandBranchMismatch)
+	if command.RegisterID != registerID {
+		server.writeError(ctx, http.StatusForbidden, errCommandRegisterMismatch)
 		return
 	}
 

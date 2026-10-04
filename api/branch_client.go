@@ -30,9 +30,30 @@ type branchClientRequest struct {
 // global clients.phone key: at least 6 digits after stripping the usual
 // formatting characters.
 // syntheticBranchPhone is the placeholder key used for a branch client
-// with no usable phone, unique per (branch, branch_client_id).
-func syntheticBranchPhone(branchID, branchClientID int64) string {
-	return fmt.Sprintf("nophone-%d-%d", branchID, branchClientID)
+// with no usable phone, unique per (register, branch_client_id) -- the id
+// is a register's local clients.id, so two tills both have a client 5.
+func syntheticBranchPhone(registerID, branchClientID int64) string {
+	return fmt.Sprintf("nophone-r%d-%d", registerID, branchClientID)
+}
+
+// clientConflictRef is a client conflict's ref: the reporting register and
+// its local client id, since the id alone collides across registers.
+func clientConflictRef(registerID, branchClientID int64) string {
+	return fmt.Sprintf("%d:%d", registerID, branchClientID)
+}
+
+func parseClientConflictRef(ref string) (registerID, branchClientID int64, err error) {
+	registerPart, clientPart, ok := strings.Cut(ref, ":")
+	if !ok {
+		return 0, 0, fmt.Errorf("client conflict ref %q has no register", ref)
+	}
+	if registerID, err = strconv.ParseInt(registerPart, 10, 64); err != nil {
+		return 0, 0, err
+	}
+	if branchClientID, err = strconv.ParseInt(clientPart, 10, 64); err != nil {
+		return 0, 0, err
+	}
+	return registerID, branchClientID, nil
 }
 
 func validBranchPhone(phone string) bool {
@@ -59,6 +80,7 @@ func validBranchPhone(phone string) bool {
 //  4. Not linked, no phone match -> genuinely new. Create and link.
 func (server *Server) putBranchClient(ctx *gin.Context) {
 	branchID := ctx.MustGet(branchIDKey).(int64)
+	registerID := ctx.MustGet(registerIDKey).(int64)
 
 	var req branchClientRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -66,7 +88,7 @@ func (server *Server) putBranchClient(ctx *gin.Context) {
 		return
 	}
 
-	outcome, err := server.resolveBranchClient(ctx, branchID, req)
+	outcome, err := server.resolveBranchClient(ctx, branchID, registerID, req)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
@@ -96,26 +118,26 @@ type branchClientOutcome struct {
 // (branch_client_batch.go) share it and each decides how to respond and
 // when to notify the other branches. A returned error is a server-side
 // failure (retryable); the request itself is never rejected here.
-func (server *Server) resolveBranchClient(ctx *gin.Context, branchID int64, req branchClientRequest) (branchClientOutcome, error) {
+func (server *Server) resolveBranchClient(ctx *gin.Context, branchID, registerID int64, req branchClientRequest) (branchClientOutcome, error) {
 	req.Phone = strings.TrimSpace(req.Phone)
 	payloadJSON, _ := json.Marshal(req)
-	refStr := strconv.FormatInt(req.BranchClientID, 10)
+	refStr := clientConflictRef(registerID, req.BranchClientID)
 	// A blank/garbage phone can't be the global clients.phone key and
 	// can't collide-match anything, so give it a stable synthetic value
-	// keyed to this branch client. The client still syncs and its invoices
+	// keyed to this register's client. The client still syncs and its invoices
 	// still attribute; an admin can set the real number later.
 	if !validBranchPhone(req.Phone) {
-		req.Phone = syntheticBranchPhone(branchID, req.BranchClientID)
+		req.Phone = syntheticBranchPhone(registerID, req.BranchClientID)
 	}
 
 	// A till that sent a uid already knows which central client it means:
 	// either kashi has it (edit) or it's a new client the till created.
 	if uid := parseNullUUID(req.UID); uid.Valid {
-		return server.resolveBranchClientByUID(ctx, branchID, req, uid.UUID, refStr, payloadJSON)
+		return server.resolveBranchClientByUID(ctx, branchID, registerID, req, uid.UUID, refStr, payloadJSON)
 	}
 
 	linkedClientID, err := server.store.GetClientLink(ctx, db.GetClientLinkParams{
-		BranchID:       branchID,
+		RegisterID:     registerID,
 		BranchClientID: req.BranchClientID,
 	})
 	switch {
@@ -145,6 +167,7 @@ func (server *Server) resolveBranchClient(ctx *gin.Context, branchID int64, req 
 		case phoneErr == nil:
 			if linkErr := server.store.UpsertClientLink(ctx, db.UpsertClientLinkParams{
 				BranchID:       branchID,
+				RegisterID:     registerID,
 				BranchClientID: req.BranchClientID,
 				ClientID:       existing.ID,
 			}); linkErr != nil {
@@ -180,6 +203,7 @@ func (server *Server) resolveBranchClient(ctx *gin.Context, branchID int64, req 
 			}
 			if linkErr := server.store.UpsertClientLink(ctx, db.UpsertClientLinkParams{
 				BranchID:       branchID,
+				RegisterID:     registerID,
 				BranchClientID: req.BranchClientID,
 				ClientID:       client.ID,
 			}); linkErr != nil {
@@ -205,7 +229,7 @@ func (server *Server) resolveBranchClient(ctx *gin.Context, branchID int64, req 
 //
 // client_links is still upserted every time so older reports and
 // invoice attribution keyed on branch_client_id keep working.
-func (server *Server) resolveBranchClientByUID(ctx *gin.Context, branchID int64, req branchClientRequest, uid uuid.UUID, refStr string, payloadJSON []byte) (branchClientOutcome, error) {
+func (server *Server) resolveBranchClientByUID(ctx *gin.Context, branchID, registerID int64, req branchClientRequest, uid uuid.UUID, refStr string, payloadJSON []byte) (branchClientOutcome, error) {
 	var client db.Client
 	conflictKind := ""
 
@@ -279,6 +303,7 @@ func (server *Server) resolveBranchClientByUID(ctx *gin.Context, branchID int64,
 
 	if err := server.store.UpsertClientLink(ctx, db.UpsertClientLinkParams{
 		BranchID:       branchID,
+		RegisterID:     registerID,
 		BranchClientID: req.BranchClientID,
 		ClientID:       client.ID,
 	}); err != nil {

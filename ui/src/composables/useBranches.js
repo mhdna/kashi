@@ -3,9 +3,11 @@ import { API_BASE } from '@/config'
 import { authFetch } from './useApi'
 
 // Branches don't fit the generic createResource shape (see useApiResource.js):
-// create returns { branch, api_key } instead of the bare row, there's no
-// update/delete, and activate/deactivate/rotate_key are bespoke POST actions.
-// So this composable is hand-written rather than built on createResource.
+// create returns { branch, register, api_key } instead of the bare row,
+// there's no update/delete, and activate/deactivate are bespoke POST
+// actions. So this composable is hand-written rather than built on
+// createResource. A branch's tills ("registers") each log in with their own
+// code and key; those calls live here too.
 
 async function requestJSON (url, options) {
   const res = await authFetch(url, options)
@@ -51,8 +53,39 @@ export function useBranches () {
     }
   }
 
-  async function rotateBranchKey (id) {
-    return requestJSON(`${API_BASE}/branches/${id}/rotate_key`, { method: 'POST' }) // { id, api_key }
+  async function listRegisters (branchId) {
+    const data = await requestJSON(`${API_BASE}/branches/${branchId}/registers`)
+    return data?.registers ?? []
+  }
+
+  async function createRegister (branchId, { code, name }) {
+    return requestJSON(`${API_BASE}/branches/${branchId}/registers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, name }),
+    }) // { register, api_key } -- api_key is shown once, never again
+  }
+
+  async function updateRegister (id, { name }) {
+    const data = await requestJSON(`${API_BASE}/branch_registers/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+    return data?.register
+  }
+
+  async function setRegisterActive (id, active) {
+    await requestJSON(`${API_BASE}/branch_registers/${id}/${active ? 'activate' : 'deactivate'}`, { method: 'POST' })
+  }
+
+  async function rotateRegisterKey (id) {
+    return requestJSON(`${API_BASE}/branch_registers/${id}/rotate_key`, { method: 'POST' }) // { id, api_key }
+  }
+
+  async function fetchConnectedRegisters () {
+    const data = await requestJSON(`${API_BASE}/branch_registers/connected`)
+    return data?.register_ids ?? []
   }
 
   // Initial value for "which branches are live right now" -- kept fresh
@@ -73,5 +106,18 @@ export function useBranches () {
     return data?.branch_ids ?? []
   }
 
-  return { branches, fetchBranches, createBranch, setBranchActive, rotateBranchKey, fetchConnectedBranches, fetchSyncingBranches }
+  return {
+    branches,
+    fetchBranches,
+    createBranch,
+    setBranchActive,
+    fetchConnectedBranches,
+    fetchSyncingBranches,
+    listRegisters,
+    createRegister,
+    updateRegister,
+    setRegisterActive,
+    rotateRegisterKey,
+    fetchConnectedRegisters,
+  }
 }

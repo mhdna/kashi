@@ -204,7 +204,7 @@ type branchShiftUploadStatusRequest struct {
 // "central" mode -- it can't watch its own local table because the phone
 // uploaded straight here. Mirrors branchExpenseUploadStatus.
 func (server *Server) branchShiftUploadStatus(ctx *gin.Context) {
-	branchID := ctx.MustGet(branchIDKey).(int64)
+	registerID := ctx.MustGet(registerIDKey).(int64)
 
 	var req branchShiftUploadStatusRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
@@ -213,8 +213,8 @@ func (server *Server) branchShiftUploadStatus(ctx *gin.Context) {
 	}
 
 	shift, err := server.store.GetBranchShiftByClientRef(ctx, db.GetBranchShiftByClientRefParams{
-		BranchID:  branchID,
-		ClientRef: req.ShiftRef,
+		RegisterID: registerID,
+		ClientRef:  req.ShiftRef,
 	})
 	if err != nil {
 		if err == sql.ErrNoRows {

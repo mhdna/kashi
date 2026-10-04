@@ -50,3 +50,18 @@ UPDATE branch_sync_conflicts
 SET status = $2, resolution = $3, resolved_by = $4, updated_at = now()
 WHERE id = $1
 RETURNING *;
+
+-- name: UpsertOversoldConflict :one
+-- One open "oversold" alert per (branch, variant). Unlike
+-- UpsertBranchSyncConflict, an alert an admin already resolved is reopened:
+-- going negative again after a fix is a new problem.
+INSERT INTO branch_sync_conflicts (branch_id, entity, ref, kind, branch_payload)
+VALUES ($1, 'stock', $2, 'oversold', $3)
+ON CONFLICT (branch_id, entity, ref) DO UPDATE SET
+    kind = EXCLUDED.kind,
+    branch_payload = EXCLUDED.branch_payload,
+    status = 'open',
+    resolution = NULL,
+    resolved_by = NULL,
+    updated_at = now()
+RETURNING *;

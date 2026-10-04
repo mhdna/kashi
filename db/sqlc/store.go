@@ -35,6 +35,8 @@ type Store interface {
 	CancelTransferTx(ctx context.Context, transferID int64, cancelledBy sql.NullInt64) (TransferStageTxResult, error)
 	CreateBatchTx(ctx context.Context, arg CreateBatchTxParams) (CreateBatchTxResult, error)
 	SaveRolePermissionsTx(ctx context.Context, roleID int64, perms []RolePermission) error
+	ReplaceBranchQuickAccessTx(ctx context.Context, branchID int64, items []QuickAccessItemInput) error
+	ImportBranchQuickAccessTx(ctx context.Context, branchID int64, items []QuickAccessItemInput) (bool, error)
 }
 
 // provides all the functions to execute SQL queries

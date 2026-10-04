@@ -261,3 +261,45 @@ func (q *Queries) UpsertBranchSyncConflict(ctx context.Context, arg UpsertBranch
 	)
 	return i, err
 }
+
+const upsertOversoldConflict = `-- name: UpsertOversoldConflict :one
+INSERT INTO branch_sync_conflicts (branch_id, entity, ref, kind, branch_payload)
+VALUES ($1, 'stock', $2, 'oversold', $3)
+ON CONFLICT (branch_id, entity, ref) DO UPDATE SET
+    kind = EXCLUDED.kind,
+    branch_payload = EXCLUDED.branch_payload,
+    status = 'open',
+    resolution = NULL,
+    resolved_by = NULL,
+    updated_at = now()
+RETURNING id, branch_id, entity, ref, kind, branch_payload, central_client_id, status, resolution, resolved_by, created_at, updated_at
+`
+
+type UpsertOversoldConflictParams struct {
+	BranchID      int64           `json:"branch_id"`
+	Ref           string          `json:"ref"`
+	BranchPayload json.RawMessage `json:"branch_payload"`
+}
+
+// One open "oversold" alert per (branch, variant). Unlike
+// UpsertBranchSyncConflict, an alert an admin already resolved is reopened:
+// going negative again after a fix is a new problem.
+func (q *Queries) UpsertOversoldConflict(ctx context.Context, arg UpsertOversoldConflictParams) (BranchSyncConflict, error) {
+	row := q.db.QueryRowContext(ctx, upsertOversoldConflict, arg.BranchID, arg.Ref, arg.BranchPayload)
+	var i BranchSyncConflict
+	err := row.Scan(
+		&i.ID,
+		&i.BranchID,
+		&i.Entity,
+		&i.Ref,
+		&i.Kind,
+		&i.BranchPayload,
+		&i.CentralClientID,
+		&i.Status,
+		&i.Resolution,
+		&i.ResolvedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}

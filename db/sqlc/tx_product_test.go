@@ -67,3 +67,54 @@ func TestCreateProductTxAssignsColorAndSize(t *testing.T) {
 	require.Equal(t, color.ID, result.Variant.ColorID.Int64)
 	require.False(t, result.Variant.SizeID.Valid)
 }
+
+func TestCreateProductTxPricesEveryVariantOnTheGivenList(t *testing.T) {
+	store := NewStore(testDB)
+	priceList := createRandomPriceList(t)
+
+	var colorIDs []int64
+	for i := 0; i < 2; i++ {
+		color, err := testQueries.CreateColor(context.Background(), CreateColorParams{
+			Name:     util.RandomString(10),
+			HexValue: "#" + util.RandomString(6),
+		})
+		require.NoError(t, err)
+		colorIDs = append(colorIDs, color.ID)
+	}
+
+	price := int64(1250)
+	result, err := store.CreateProductTx(context.Background(), CreateProductTxParams{
+		Code:        util.RandomString(8),
+		Name:        util.RandomString(20),
+		Description: util.RandomString(50),
+		ColorIDs:    colorIDs,
+		Price:       &price,
+		PriceListID: &priceList.ID,
+	})
+	require.NoError(t, err)
+	require.Len(t, result.Variants, 2)
+
+	for _, v := range result.Variants {
+		item, err := testQueries.GetVariantPriceFromList(context.Background(), GetVariantPriceFromListParams{
+			PriceListID:      priceList.ID,
+			ProductVariantID: v.ID,
+		})
+		require.NoError(t, err)
+		require.Equal(t, price, item.Price)
+	}
+}
+
+func TestCreateProductTxRejectsNegativePrice(t *testing.T) {
+	store := NewStore(testDB)
+	priceList := createRandomPriceList(t)
+
+	price := int64(-1)
+	_, err := store.CreateProductTx(context.Background(), CreateProductTxParams{
+		Code:        util.RandomString(8),
+		Name:        util.RandomString(20),
+		Description: util.RandomString(50),
+		Price:       &price,
+		PriceListID: &priceList.ID,
+	})
+	require.Error(t, err)
+}

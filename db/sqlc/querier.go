@@ -52,6 +52,9 @@ type Querier interface {
 	BranchShiftIsClosed(ctx context.Context, arg BranchShiftIsClosedParams) (bool, error)
 	BranchShiftRefsPresent(ctx context.Context, arg BranchShiftRefsPresentParams) ([]string, error)
 	BranchVisitorEventRefsPresent(ctx context.Context, arg BranchVisitorEventRefsPresentParams) ([]string, error)
+	// The once-only gate on a branch's list: 1 row the first time it's set up
+	// (by a till's import or an admin save), 0 ever after.
+	ClaimBranchQuickAccessInit(ctx context.Context, id int64) (int64, error)
 	ClientPhonesPresent(ctx context.Context, dollar_1 []string) ([]string, error)
 	CloseShift(ctx context.Context, id int64) error
 	CompleteBranchCommand(ctx context.Context, arg CompleteBranchCommandParams) (BranchCommand, error)
@@ -143,6 +146,7 @@ type Querier interface {
 	CreateBranchInvoiceSettlement(ctx context.Context, arg CreateBranchInvoiceSettlementParams) (BranchInvoiceSettlement, error)
 	CreateBranchInvoiceSettlementPayment(ctx context.Context, arg CreateBranchInvoiceSettlementPaymentParams) (BranchInvoiceSettlementPayment, error)
 	CreateBranchLoan(ctx context.Context, arg CreateBranchLoanParams) (Loan, error)
+	CreateBranchRegister(ctx context.Context, arg CreateBranchRegisterParams) (BranchRegister, error)
 	CreateBranchSalesperson(ctx context.Context, arg CreateBranchSalespersonParams) (Salesperson, error)
 	CreateBranchShift(ctx context.Context, arg CreateBranchShiftParams) (BranchShift, error)
 	CreateBranchShiftReceiptImage(ctx context.Context, arg CreateBranchShiftReceiptImageParams) (BranchShiftReceiptImage, error)
@@ -311,6 +315,7 @@ type Querier interface {
 	DeleteBatch(ctx context.Context, id int64) error
 	DeleteBranchAttendanceEvent(ctx context.Context, id int64) error
 	DeleteBranchInvoicePaymentsForInvoice(ctx context.Context, branchInvoiceID int64) error
+	DeleteBranchQuickAccessItems(ctx context.Context, branchID int64) error
 	DeleteBranchTargetSeries(ctx context.Context, id int64) (BranchTargetSeries, error)
 	DeleteBranchUser(ctx context.Context, id int64) error
 	DeleteCalendarEvent(ctx context.Context, id int64) error
@@ -387,6 +392,8 @@ type Querier interface {
 	GetBranchInvoiceByClientRef(ctx context.Context, arg GetBranchInvoiceByClientRefParams) (BranchInvoice, error)
 	GetBranchInvoiceSettlementByClientRef(ctx context.Context, arg GetBranchInvoiceSettlementByClientRefParams) (BranchInvoiceSettlement, error)
 	GetBranchLoanByClientRef(ctx context.Context, arg GetBranchLoanByClientRefParams) (Loan, error)
+	GetBranchRegister(ctx context.Context, id int64) (BranchRegister, error)
+	GetBranchRegisterByCode(ctx context.Context, code string) (BranchRegister, error)
 	GetBranchSettings(ctx context.Context, branchID int64) (BranchSetting, error)
 	GetBranchShift(ctx context.Context, id int64) (BranchShift, error)
 	GetBranchShiftByClientRef(ctx context.Context, arg GetBranchShiftByClientRefParams) (BranchShift, error)
@@ -569,8 +576,11 @@ type Querier interface {
 	GetWarehouseTreemapData(ctx context.Context, inventoryID sql.NullInt64) ([]GetWarehouseTreemapDataRow, error)
 	GetWhatsAppSettings(ctx context.Context) (GetWhatsAppSettingsRow, error)
 	IncrementInvoicesIndex(ctx context.Context, arg IncrementInvoicesIndexParams) (int64, error)
+	InsertBranchQuickAccessItem(ctx context.Context, arg InsertBranchQuickAccessItemParams) error
+	ListActiveBranchRegisterIDs(ctx context.Context, branchID int64) ([]int64, error)
 	ListActiveBranchTargetSeries(ctx context.Context) ([]BranchTargetSeries, error)
 	ListAllAttributeValues(ctx context.Context) ([]ListAllAttributeValuesRow, error)
+	ListAllBranchRegisters(ctx context.Context) ([]BranchRegister, error)
 	ListAllCashboxAccounts(ctx context.Context) ([]CashboxAccount, error)
 	ListAssetCategories(ctx context.Context) ([]AssetCategory, error)
 	ListAssetsPage(ctx context.Context, arg ListAssetsPageParams) ([]Asset, error)
@@ -591,10 +601,10 @@ type Querier interface {
 	ListBatches(ctx context.Context, arg ListBatchesParams) ([]ListBatchesRow, error)
 	ListBranchAttendanceChanges(ctx context.Context, arg ListBranchAttendanceChangesParams) ([]BranchAttendanceChange, error)
 	ListBranchAttendanceEvents(ctx context.Context, arg ListBranchAttendanceEventsParams) ([]BranchAttendanceEvent, error)
-	// Adoption: which central client each of this branch's local client ids is
-	// linked to, so a till can stamp the right uid without guessing by phone.
-	ListBranchClientUIDs(ctx context.Context, branchID int64) ([]ListBranchClientUIDsRow, error)
-	ListBranchCommands(ctx context.Context, arg ListBranchCommandsParams) ([]BranchCommand, error)
+	// Adoption: which central client each of this register's local client ids
+	// is linked to, so a till can stamp the right uid without guessing by phone.
+	ListBranchClientUIDs(ctx context.Context, registerID int64) ([]ListBranchClientUIDsRow, error)
+	ListBranchCommands(ctx context.Context, arg ListBranchCommandsParams) ([]ListBranchCommandsRow, error)
 	ListBranchExpenseHistoryForSync(ctx context.Context, arg ListBranchExpenseHistoryForSyncParams) ([]ListBranchExpenseHistoryForSyncRow, error)
 	// Storage-explorer feed: every uploaded image, newest first, joined with
 	// its expense and branch so the admin UI never needs a second round trip
@@ -622,6 +632,11 @@ type Querier interface {
 	// branch (ctx.MustGet(branchIDKey)), never a request parameter, so a
 	// branch can only ever pull its own data. Keyset-paginated on
 	// (received_at, id), same cursor shape as ListBranchStockForSync.
+	//
+	// Invoices and shift closes are per register: a re-provisioned till gets
+	// back only what it itself sold and closed, so its invoice numbering and
+	// local shift ids carry on without colliding with its branch's other tills.
+	// Expenses and loans aren't tracked per register and stay branch-wide.
 	// ---------------------------------------------------------------------------
 	ListBranchInvoiceHistoryForSync(ctx context.Context, arg ListBranchInvoiceHistoryForSyncParams) ([]BranchInvoice, error)
 	ListBranchInvoiceItems(ctx context.Context, branchInvoiceID int64) ([]BranchInvoiceItem, error)
@@ -667,6 +682,10 @@ type Querier interface {
 	// Same scope/filters/estimate caveat as ListBranchProductRevenue, rolled up
 	// by local calendar day -- the trend line for the kashi-pos tab.
 	ListBranchProductRevenueDaily(ctx context.Context, arg ListBranchProductRevenueDailyParams) ([]ListBranchProductRevenueDailyRow, error)
+	// A branch's central Quick Access list, in card order, with enough of each
+	// product to show it in the admin editor; tills only use uid/position/colours.
+	ListBranchQuickAccessItems(ctx context.Context, branchID int64) ([]ListBranchQuickAccessItemsRow, error)
+	ListBranchRegisters(ctx context.Context, branchID int64) ([]BranchRegister, error)
 	// Same scope/filters/estimate caveat as ListBranchProductRevenue, rolled up
 	// by branch instead of by product -- backs the "revenue by branch" chart,
 	// deliberately with no branch_id filter of its own (that would defeat the
@@ -707,6 +726,10 @@ type Querier interface {
 	ListBranchSyncConflictsPage(ctx context.Context, arg ListBranchSyncConflictsPageParams) ([]ListBranchSyncConflictsPageRow, error)
 	ListBranchTargetSeriesForBranch(ctx context.Context, branchID int64) ([]BranchTargetSeries, error)
 	ListBranchTargetsForBranch(ctx context.Context, branchID int64) ([]BranchTarget, error)
+	// Branch-wide progress for a till's target bars: what every register of
+	// this branch has sold in each live target's range, as kashi has received
+	// it. The till adds its own not-yet-synced sales on top.
+	ListBranchTargetsProgress(ctx context.Context, arg ListBranchTargetsProgressParams) ([]ListBranchTargetsProgressRow, error)
 	ListBranchTargetsUpdatedSince(ctx context.Context, arg ListBranchTargetsUpdatedSinceParams) ([]BranchTarget, error)
 	// The till's own poll: what happened to the requests it made -- see
 	// approveTransfer/rejectTransfer, which both bump updated_at.
@@ -916,7 +939,7 @@ type Querier interface {
 	// 'low_stock' (on_hand > 0, i.e. low but not yet out); NULL keeps both,
 	// matching the "at or below threshold" definition used everywhere else.
 	ListLowStockProducts(ctx context.Context, arg ListLowStockProductsParams) ([]ListLowStockProductsRow, error)
-	ListPendingBranchCommands(ctx context.Context, branchID int64) ([]BranchCommand, error)
+	ListPendingBranchCommands(ctx context.Context, registerID int64) ([]BranchCommand, error)
 	ListPriceListBranchIDs(ctx context.Context, priceListID int64) ([]int64, error)
 	ListPriceListItems(ctx context.Context, priceListID int64) ([]PriceListItem, error)
 	// Items of one list, keyed by the variant's uid -- the till's own row ids are
@@ -950,6 +973,7 @@ type Querier interface {
 	// Same scope and filters as ListProductRevenue, rolled up by local calendar
 	// day instead of by product -- the trend line for the Product Revenues page.
 	ListProductRevenueDaily(ctx context.Context, arg ListProductRevenueDailyParams) ([]ListProductRevenueDailyRow, error)
+	ListProductVariantIDsByUIDs(ctx context.Context, uids []uuid.UUID) ([]ListProductVariantIDsByUIDsRow, error)
 	ListProductVariants(ctx context.Context, arg ListProductVariantsParams) ([]ListProductVariantsRow, error)
 	ListProductVariantsByProduct(ctx context.Context, productID int64) ([]ProductVariant, error)
 	// Flattened for kashi-pos, which has no separate "product" row -- each
@@ -1066,6 +1090,12 @@ type Querier interface {
 	SetAssetCost(ctx context.Context, arg SetAssetCostParams) error
 	SetBranchActive(ctx context.Context, arg SetBranchActiveParams) error
 	SetBranchInventory(ctx context.Context, arg SetBranchInventoryParams) error
+	SetBranchRegisterActive(ctx context.Context, arg SetBranchRegisterActiveParams) error
+	// Later flip wins: a flip only applies if it's newer than the one stored, so
+	// a till's offline flip that arrives late can't undo a more recent one made
+	// in kashi (or vice versa). 0 rows = this flip was older, ignored.
+	SetBranchRegisterQuickAccessMode(ctx context.Context, arg SetBranchRegisterQuickAccessModeParams) (int64, error)
+	SetBranchRegisterReportedSettings(ctx context.Context, arg SetBranchRegisterReportedSettingsParams) error
 	// managed_locally is admin-owned, not branch-reported: a branch's settings
 	// push (UpsertBranchSettings) never touches it. Only the admin UI sets it.
 	SetBranchSettingsManagedLocally(ctx context.Context, arg SetBranchSettingsManagedLocallyParams) (BranchSetting, error)
@@ -1109,15 +1139,18 @@ type Querier interface {
 	// (loyalty_points_delta on branch_invoices) -- this never recomputes that
 	// number, only sums what's already been reported.
 	SumClientLoyaltyPoints(ctx context.Context, clientID int64) (int64, error)
+	// Bumps both the register's and its branch's last_seen_at: the branch is
+	// "seen" whenever any of its registers is.
+	TouchBranchRegister(ctx context.Context, id int64) error
 	UnsetDefaultDiscountList(ctx context.Context, id int64) error
 	UnsetDefaultPriceList(ctx context.Context, id int64) error
 	UpdateAppSettings(ctx context.Context, arg UpdateAppSettingsParams) (AppSetting, error)
 	UpdateAsset(ctx context.Context, arg UpdateAssetParams) (Asset, error)
 	UpdateAssetCategory(ctx context.Context, arg UpdateAssetCategoryParams) (AssetCategory, error)
 	UpdateAttributeValue(ctx context.Context, arg UpdateAttributeValueParams) (AttributesValue, error)
-	UpdateBranchAPIKeyHash(ctx context.Context, arg UpdateBranchAPIKeyHashParams) error
 	UpdateBranchAttendanceEvent(ctx context.Context, arg UpdateBranchAttendanceEventParams) (BranchAttendanceEvent, error)
-	UpdateBranchLastSeenAt(ctx context.Context, id int64) error
+	UpdateBranchRegister(ctx context.Context, arg UpdateBranchRegisterParams) (BranchRegister, error)
+	UpdateBranchRegisterAPIKeyHash(ctx context.Context, arg UpdateBranchRegisterAPIKeyHashParams) error
 	UpdateBranchSalespersonName(ctx context.Context, arg UpdateBranchSalespersonNameParams) (Salesperson, error)
 	UpdateBranchTarget(ctx context.Context, arg UpdateBranchTargetParams) (BranchTarget, error)
 	// Only affects future periods -- see CreateGeneratedBranchTarget's note on
@@ -1177,6 +1210,10 @@ type Querier interface {
 	// One assets row is a distinct item *type*; the same asset can sit in more
 	// than one location, each with its own counted quantity here.
 	UpsertInventoryAssetQuantity(ctx context.Context, arg UpsertInventoryAssetQuantityParams) (InventoriesAsset, error)
+	// One open "oversold" alert per (branch, variant). Unlike
+	// UpsertBranchSyncConflict, an alert an admin already resolved is reopened:
+	// going negative again after a fix is a new problem.
+	UpsertOversoldConflict(ctx context.Context, arg UpsertOversoldConflictParams) (BranchSyncConflict, error)
 	UpsertPriceListBranch(ctx context.Context, arg UpsertPriceListBranchParams) error
 	UpsertProductAttribute(ctx context.Context, arg UpsertProductAttributeParams) error
 	UpsertRolePermission(ctx context.Context, arg UpsertRolePermissionParams) error

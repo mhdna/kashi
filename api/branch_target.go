@@ -229,3 +229,21 @@ func (server *Server) deleteBranchTarget(ctx *gin.Context) {
 	server.branchHub.notify(target.BranchID, branchWSMessage{Type: "target_updated"})
 	ctx.JSON(http.StatusOK, envelope{"deleted": true})
 }
+
+// branchTargetsProgress gives a till branch-wide progress for its target
+// bars: the sales every register of the branch has synced so far in each
+// recent target's range. The till shows this plus its own not-yet-synced
+// sales, so all registers of a branch work toward the same number.
+func (server *Server) branchTargetsProgress(ctx *gin.Context) {
+	branchID := ctx.MustGet(branchIDKey).(int64)
+
+	rows, err := server.store.ListBranchTargetsProgress(ctx, db.ListBranchTargetsProgressParams{
+		BranchID: branchID,
+		Since:    time.Now().UTC().AddDate(0, -2, 0),
+	})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"progress": rows, "as_of": time.Now().UTC()})
+}

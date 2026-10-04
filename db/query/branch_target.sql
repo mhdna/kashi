@@ -84,3 +84,19 @@ SELECT COALESCE(SUM(grand_total), 0)::bigint AS total
 FROM branch_invoices
 WHERE branch_id = sqlc.arg(branch_id)
   AND (occurred_at AT TIME ZONE 'UTC')::date BETWEEN sqlc.arg(date_from) AND sqlc.arg(date_to);
+
+-- name: ListBranchTargetsProgress :many
+-- Branch-wide progress for a till's target bars: what every register of
+-- this branch has sold in each live target's range, as kashi has received
+-- it. The till adds its own not-yet-synced sales on top.
+SELECT t.id,
+  (SELECT COALESCE(SUM(bi.grand_total), 0)
+     FROM branch_invoices bi
+     WHERE bi.branch_id = t.branch_id
+       AND (bi.occurred_at AT TIME ZONE 'UTC')::date BETWEEN t.date_from AND t.date_to
+  )::bigint AS achieved
+FROM branch_targets t
+WHERE t.branch_id = sqlc.arg(branch_id)
+  AND t.is_active
+  AND t.date_to >= sqlc.arg(since)::date
+ORDER BY t.id;

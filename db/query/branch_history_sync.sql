@@ -8,11 +8,16 @@
 -- branch (ctx.MustGet(branchIDKey)), never a request parameter, so a
 -- branch can only ever pull its own data. Keyset-paginated on
 -- (received_at, id), same cursor shape as ListBranchStockForSync.
+--
+-- Invoices and shift closes are per register: a re-provisioned till gets
+-- back only what it itself sold and closed, so its invoice numbering and
+-- local shift ids carry on without colliding with its branch's other tills.
+-- Expenses and loans aren't tracked per register and stay branch-wide.
 -- ---------------------------------------------------------------------------
 
 -- name: ListBranchInvoiceHistoryForSync :many
 SELECT * FROM branch_invoices
-WHERE branch_id = sqlc.arg(branch_id)
+WHERE register_id = sqlc.arg(register_id)
   AND (received_at, id) > (sqlc.arg(after_received_at)::timestamptz, sqlc.arg(after_id)::bigint)
 ORDER BY received_at, id
 LIMIT sqlc.arg(row_limit);
@@ -71,7 +76,7 @@ LIMIT sqlc.arg(row_limit);
 
 -- name: ListBranchShiftHistoryForSync :many
 SELECT * FROM branch_shifts
-WHERE branch_id = sqlc.arg(branch_id)
+WHERE register_id = sqlc.arg(register_id)
   AND (received_at, id) > (sqlc.arg(after_received_at)::timestamptz, sqlc.arg(after_id)::bigint)
 ORDER BY received_at, id
 LIMIT sqlc.arg(row_limit);

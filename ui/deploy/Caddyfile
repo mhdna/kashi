@@ -15,9 +15,16 @@ cloud.example.com {
 		reverse_proxy 127.0.0.1:8090
 	}
 
-	# SPA: serve the built files, fall back to index.html for client routes
+	# SPA: serve the built files, fall back to index.html for client routes.
+	# Hashed asset filenames change on every rebuild, so they're safe to
+	# cache forever; index.html must always be revalidated or browsers keep
+	# serving stale hash references after a deploy, which 404s into this
+	# same fallback and comes back as text/html where the browser expected
+	# a JS module.
 	handle {
 		root * /var/www/kashi-ui
+		header Cache-Control "no-cache"
+		header /assets/* Cache-Control "public, max-age=31536000, immutable"
 		try_files {path} /index.html
 		file_server
 	}

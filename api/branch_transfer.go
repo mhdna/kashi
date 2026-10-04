@@ -86,6 +86,7 @@ func (server *Server) createBranchTransferRequest(ctx *gin.Context) {
 
 	result, err := server.store.CreateBranchTransferRequestTx(ctx, db.CreateBranchTransferRequestTxParams{
 		BranchID:      branchID,
+		RegisterID:    ctx.MustGet(registerIDKey).(int64),
 		ClientRef:     req.ClientRef,
 		ToInventoryID: toBranch.InventoryID.Int64,
 		Note:          req.Note,

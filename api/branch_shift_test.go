@@ -35,7 +35,7 @@ func TestCreateBranchShiftClose_OK_DerivesVarianceAndNotifiesOnce(t *testing.T) 
 	stubBranchAuth(store)
 
 	store.EXPECT().
-		GetBranchShiftByClientRef(gomock.Any(), gomock.Eq(db.GetBranchShiftByClientRefParams{BranchID: testBranchID, ClientRef: "shift-42"})).
+		GetBranchShiftByClientRef(gomock.Any(), gomock.Eq(db.GetBranchShiftByClientRefParams{RegisterID: testRegisterID, ClientRef: "shift-42"})).
 		Return(db.BranchShift{}, sql.ErrNoRows)
 	store.EXPECT().
 		CreateBranchShift(gomock.Any(), gomock.Any()).

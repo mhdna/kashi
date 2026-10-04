@@ -443,6 +443,21 @@ func (mr *MockStoreMockRecorder) CancelTransferTx(arg0, arg1, arg2 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelTransferTx", reflect.TypeOf((*MockStore)(nil).CancelTransferTx), arg0, arg1, arg2)
 }
 
+// ClaimBranchQuickAccessInit mocks base method.
+func (m *MockStore) ClaimBranchQuickAccessInit(arg0 context.Context, arg1 int64) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClaimBranchQuickAccessInit", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ClaimBranchQuickAccessInit indicates an expected call of ClaimBranchQuickAccessInit.
+func (mr *MockStoreMockRecorder) ClaimBranchQuickAccessInit(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClaimBranchQuickAccessInit", reflect.TypeOf((*MockStore)(nil).ClaimBranchQuickAccessInit), arg0, arg1)
+}
+
 // ClientPhonesPresent mocks base method.
 func (m *MockStore) ClientPhonesPresent(arg0 context.Context, arg1 []string) ([]string, error) {
 	m.ctrl.T.Helper()
@@ -1595,6 +1610,21 @@ func (m *MockStore) CreateBranchLoan(arg0 context.Context, arg1 db.CreateBranchL
 func (mr *MockStoreMockRecorder) CreateBranchLoan(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBranchLoan", reflect.TypeOf((*MockStore)(nil).CreateBranchLoan), arg0, arg1)
+}
+
+// CreateBranchRegister mocks base method.
+func (m *MockStore) CreateBranchRegister(arg0 context.Context, arg1 db.CreateBranchRegisterParams) (db.BranchRegister, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateBranchRegister", arg0, arg1)
+	ret0, _ := ret[0].(db.BranchRegister)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateBranchRegister indicates an expected call of CreateBranchRegister.
+func (mr *MockStoreMockRecorder) CreateBranchRegister(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBranchRegister", reflect.TypeOf((*MockStore)(nil).CreateBranchRegister), arg0, arg1)
 }
 
 // CreateBranchSalesperson mocks base method.
@@ -2998,6 +3028,20 @@ func (mr *MockStoreMockRecorder) DeleteBranchInvoicePaymentsForInvoice(arg0, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBranchInvoicePaymentsForInvoice", reflect.TypeOf((*MockStore)(nil).DeleteBranchInvoicePaymentsForInvoice), arg0, arg1)
 }
 
+// DeleteBranchQuickAccessItems mocks base method.
+func (m *MockStore) DeleteBranchQuickAccessItems(arg0 context.Context, arg1 int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteBranchQuickAccessItems", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteBranchQuickAccessItems indicates an expected call of DeleteBranchQuickAccessItems.
+func (mr *MockStoreMockRecorder) DeleteBranchQuickAccessItems(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBranchQuickAccessItems", reflect.TypeOf((*MockStore)(nil).DeleteBranchQuickAccessItems), arg0, arg1)
+}
+
 // DeleteBranchTargetSeries mocks base method.
 func (m *MockStore) DeleteBranchTargetSeries(arg0 context.Context, arg1 int64) (db.BranchTargetSeries, error) {
 	m.ctrl.T.Helper()
@@ -4041,6 +4085,36 @@ func (m *MockStore) GetBranchLoanByClientRef(arg0 context.Context, arg1 db.GetBr
 func (mr *MockStoreMockRecorder) GetBranchLoanByClientRef(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBranchLoanByClientRef", reflect.TypeOf((*MockStore)(nil).GetBranchLoanByClientRef), arg0, arg1)
+}
+
+// GetBranchRegister mocks base method.
+func (m *MockStore) GetBranchRegister(arg0 context.Context, arg1 int64) (db.BranchRegister, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBranchRegister", arg0, arg1)
+	ret0, _ := ret[0].(db.BranchRegister)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBranchRegister indicates an expected call of GetBranchRegister.
+func (mr *MockStoreMockRecorder) GetBranchRegister(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBranchRegister", reflect.TypeOf((*MockStore)(nil).GetBranchRegister), arg0, arg1)
+}
+
+// GetBranchRegisterByCode mocks base method.
+func (m *MockStore) GetBranchRegisterByCode(arg0 context.Context, arg1 string) (db.BranchRegister, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBranchRegisterByCode", arg0, arg1)
+	ret0, _ := ret[0].(db.BranchRegister)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBranchRegisterByCode indicates an expected call of GetBranchRegisterByCode.
+func (mr *MockStoreMockRecorder) GetBranchRegisterByCode(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBranchRegisterByCode", reflect.TypeOf((*MockStore)(nil).GetBranchRegisterByCode), arg0, arg1)
 }
 
 // GetBranchSettings mocks base method.
@@ -5363,6 +5437,21 @@ func (mr *MockStoreMockRecorder) GetWhatsAppSettings(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWhatsAppSettings", reflect.TypeOf((*MockStore)(nil).GetWhatsAppSettings), arg0)
 }
 
+// ImportBranchQuickAccessTx mocks base method.
+func (m *MockStore) ImportBranchQuickAccessTx(arg0 context.Context, arg1 int64, arg2 []db.QuickAccessItemInput) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ImportBranchQuickAccessTx", arg0, arg1, arg2)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ImportBranchQuickAccessTx indicates an expected call of ImportBranchQuickAccessTx.
+func (mr *MockStoreMockRecorder) ImportBranchQuickAccessTx(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportBranchQuickAccessTx", reflect.TypeOf((*MockStore)(nil).ImportBranchQuickAccessTx), arg0, arg1, arg2)
+}
+
 // IncrementInvoicesIndex mocks base method.
 func (m *MockStore) IncrementInvoicesIndex(arg0 context.Context, arg1 db.IncrementInvoicesIndexParams) (int64, error) {
 	m.ctrl.T.Helper()
@@ -5376,6 +5465,35 @@ func (m *MockStore) IncrementInvoicesIndex(arg0 context.Context, arg1 db.Increme
 func (mr *MockStoreMockRecorder) IncrementInvoicesIndex(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementInvoicesIndex", reflect.TypeOf((*MockStore)(nil).IncrementInvoicesIndex), arg0, arg1)
+}
+
+// InsertBranchQuickAccessItem mocks base method.
+func (m *MockStore) InsertBranchQuickAccessItem(arg0 context.Context, arg1 db.InsertBranchQuickAccessItemParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InsertBranchQuickAccessItem", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// InsertBranchQuickAccessItem indicates an expected call of InsertBranchQuickAccessItem.
+func (mr *MockStoreMockRecorder) InsertBranchQuickAccessItem(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertBranchQuickAccessItem", reflect.TypeOf((*MockStore)(nil).InsertBranchQuickAccessItem), arg0, arg1)
+}
+
+// ListActiveBranchRegisterIDs mocks base method.
+func (m *MockStore) ListActiveBranchRegisterIDs(arg0 context.Context, arg1 int64) ([]int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListActiveBranchRegisterIDs", arg0, arg1)
+	ret0, _ := ret[0].([]int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListActiveBranchRegisterIDs indicates an expected call of ListActiveBranchRegisterIDs.
+func (mr *MockStoreMockRecorder) ListActiveBranchRegisterIDs(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListActiveBranchRegisterIDs", reflect.TypeOf((*MockStore)(nil).ListActiveBranchRegisterIDs), arg0, arg1)
 }
 
 // ListActiveBranchTargetSeries mocks base method.
@@ -5406,6 +5524,21 @@ func (m *MockStore) ListAllAttributeValues(arg0 context.Context) ([]db.ListAllAt
 func (mr *MockStoreMockRecorder) ListAllAttributeValues(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllAttributeValues", reflect.TypeOf((*MockStore)(nil).ListAllAttributeValues), arg0)
+}
+
+// ListAllBranchRegisters mocks base method.
+func (m *MockStore) ListAllBranchRegisters(arg0 context.Context) ([]db.BranchRegister, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListAllBranchRegisters", arg0)
+	ret0, _ := ret[0].([]db.BranchRegister)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListAllBranchRegisters indicates an expected call of ListAllBranchRegisters.
+func (mr *MockStoreMockRecorder) ListAllBranchRegisters(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllBranchRegisters", reflect.TypeOf((*MockStore)(nil).ListAllBranchRegisters), arg0)
 }
 
 // ListAllCashboxAccounts mocks base method.
@@ -5589,10 +5722,10 @@ func (mr *MockStoreMockRecorder) ListBranchClientUIDs(arg0, arg1 interface{}) *g
 }
 
 // ListBranchCommands mocks base method.
-func (m *MockStore) ListBranchCommands(arg0 context.Context, arg1 db.ListBranchCommandsParams) ([]db.BranchCommand, error) {
+func (m *MockStore) ListBranchCommands(arg0 context.Context, arg1 db.ListBranchCommandsParams) ([]db.ListBranchCommandsRow, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListBranchCommands", arg0, arg1)
-	ret0, _ := ret[0].([]db.BranchCommand)
+	ret0, _ := ret[0].([]db.ListBranchCommandsRow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -5858,6 +5991,36 @@ func (mr *MockStoreMockRecorder) ListBranchProductRevenueDaily(arg0, arg1 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchProductRevenueDaily", reflect.TypeOf((*MockStore)(nil).ListBranchProductRevenueDaily), arg0, arg1)
 }
 
+// ListBranchQuickAccessItems mocks base method.
+func (m *MockStore) ListBranchQuickAccessItems(arg0 context.Context, arg1 int64) ([]db.ListBranchQuickAccessItemsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBranchQuickAccessItems", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListBranchQuickAccessItemsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBranchQuickAccessItems indicates an expected call of ListBranchQuickAccessItems.
+func (mr *MockStoreMockRecorder) ListBranchQuickAccessItems(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchQuickAccessItems", reflect.TypeOf((*MockStore)(nil).ListBranchQuickAccessItems), arg0, arg1)
+}
+
+// ListBranchRegisters mocks base method.
+func (m *MockStore) ListBranchRegisters(arg0 context.Context, arg1 int64) ([]db.BranchRegister, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBranchRegisters", arg0, arg1)
+	ret0, _ := ret[0].([]db.BranchRegister)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBranchRegisters indicates an expected call of ListBranchRegisters.
+func (mr *MockStoreMockRecorder) ListBranchRegisters(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchRegisters", reflect.TypeOf((*MockStore)(nil).ListBranchRegisters), arg0, arg1)
+}
+
 // ListBranchRevenueByBranch mocks base method.
 func (m *MockStore) ListBranchRevenueByBranch(arg0 context.Context, arg1 db.ListBranchRevenueByBranchParams) ([]db.ListBranchRevenueByBranchRow, error) {
 	m.ctrl.T.Helper()
@@ -5991,6 +6154,21 @@ func (m *MockStore) ListBranchTargetsForBranch(arg0 context.Context, arg1 int64)
 func (mr *MockStoreMockRecorder) ListBranchTargetsForBranch(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchTargetsForBranch", reflect.TypeOf((*MockStore)(nil).ListBranchTargetsForBranch), arg0, arg1)
+}
+
+// ListBranchTargetsProgress mocks base method.
+func (m *MockStore) ListBranchTargetsProgress(arg0 context.Context, arg1 db.ListBranchTargetsProgressParams) ([]db.ListBranchTargetsProgressRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBranchTargetsProgress", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListBranchTargetsProgressRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBranchTargetsProgress indicates an expected call of ListBranchTargetsProgress.
+func (mr *MockStoreMockRecorder) ListBranchTargetsProgress(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchTargetsProgress", reflect.TypeOf((*MockStore)(nil).ListBranchTargetsProgress), arg0, arg1)
 }
 
 // ListBranchTargetsUpdatedSince mocks base method.
@@ -7103,6 +7281,21 @@ func (mr *MockStoreMockRecorder) ListProductRevenueDaily(arg0, arg1 interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListProductRevenueDaily", reflect.TypeOf((*MockStore)(nil).ListProductRevenueDaily), arg0, arg1)
 }
 
+// ListProductVariantIDsByUIDs mocks base method.
+func (m *MockStore) ListProductVariantIDsByUIDs(arg0 context.Context, arg1 []uuid.UUID) ([]db.ListProductVariantIDsByUIDsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListProductVariantIDsByUIDs", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListProductVariantIDsByUIDsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListProductVariantIDsByUIDs indicates an expected call of ListProductVariantIDsByUIDs.
+func (mr *MockStoreMockRecorder) ListProductVariantIDsByUIDs(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListProductVariantIDsByUIDs", reflect.TypeOf((*MockStore)(nil).ListProductVariantIDsByUIDs), arg0, arg1)
+}
+
 // ListProductVariants mocks base method.
 func (m *MockStore) ListProductVariants(arg0 context.Context, arg1 db.ListProductVariantsParams) ([]db.ListProductVariantsRow, error) {
 	m.ctrl.T.Helper()
@@ -7699,6 +7892,20 @@ func (mr *MockStoreMockRecorder) RenameRole(arg0, arg1 interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameRole", reflect.TypeOf((*MockStore)(nil).RenameRole), arg0, arg1)
 }
 
+// ReplaceBranchQuickAccessTx mocks base method.
+func (m *MockStore) ReplaceBranchQuickAccessTx(arg0 context.Context, arg1 int64, arg2 []db.QuickAccessItemInput) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReplaceBranchQuickAccessTx", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ReplaceBranchQuickAccessTx indicates an expected call of ReplaceBranchQuickAccessTx.
+func (mr *MockStoreMockRecorder) ReplaceBranchQuickAccessTx(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReplaceBranchQuickAccessTx", reflect.TypeOf((*MockStore)(nil).ReplaceBranchQuickAccessTx), arg0, arg1, arg2)
+}
+
 // RepointBranchInvoicesClientUID mocks base method.
 func (m *MockStore) RepointBranchInvoicesClientUID(arg0 context.Context, arg1 db.RepointBranchInvoicesClientUIDParams) error {
 	m.ctrl.T.Helper()
@@ -7887,6 +8094,49 @@ func (m *MockStore) SetBranchInventory(arg0 context.Context, arg1 db.SetBranchIn
 func (mr *MockStoreMockRecorder) SetBranchInventory(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchInventory", reflect.TypeOf((*MockStore)(nil).SetBranchInventory), arg0, arg1)
+}
+
+// SetBranchRegisterActive mocks base method.
+func (m *MockStore) SetBranchRegisterActive(arg0 context.Context, arg1 db.SetBranchRegisterActiveParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetBranchRegisterActive", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetBranchRegisterActive indicates an expected call of SetBranchRegisterActive.
+func (mr *MockStoreMockRecorder) SetBranchRegisterActive(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchRegisterActive", reflect.TypeOf((*MockStore)(nil).SetBranchRegisterActive), arg0, arg1)
+}
+
+// SetBranchRegisterQuickAccessMode mocks base method.
+func (m *MockStore) SetBranchRegisterQuickAccessMode(arg0 context.Context, arg1 db.SetBranchRegisterQuickAccessModeParams) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetBranchRegisterQuickAccessMode", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetBranchRegisterQuickAccessMode indicates an expected call of SetBranchRegisterQuickAccessMode.
+func (mr *MockStoreMockRecorder) SetBranchRegisterQuickAccessMode(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchRegisterQuickAccessMode", reflect.TypeOf((*MockStore)(nil).SetBranchRegisterQuickAccessMode), arg0, arg1)
+}
+
+// SetBranchRegisterReportedSettings mocks base method.
+func (m *MockStore) SetBranchRegisterReportedSettings(arg0 context.Context, arg1 db.SetBranchRegisterReportedSettingsParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetBranchRegisterReportedSettings", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetBranchRegisterReportedSettings indicates an expected call of SetBranchRegisterReportedSettings.
+func (mr *MockStoreMockRecorder) SetBranchRegisterReportedSettings(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchRegisterReportedSettings", reflect.TypeOf((*MockStore)(nil).SetBranchRegisterReportedSettings), arg0, arg1)
 }
 
 // SetBranchSettingsManagedLocally mocks base method.
@@ -8271,6 +8521,20 @@ func (mr *MockStoreMockRecorder) SumClientLoyaltyPoints(arg0, arg1 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SumClientLoyaltyPoints", reflect.TypeOf((*MockStore)(nil).SumClientLoyaltyPoints), arg0, arg1)
 }
 
+// TouchBranchRegister mocks base method.
+func (m *MockStore) TouchBranchRegister(arg0 context.Context, arg1 int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TouchBranchRegister", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// TouchBranchRegister indicates an expected call of TouchBranchRegister.
+func (mr *MockStoreMockRecorder) TouchBranchRegister(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TouchBranchRegister", reflect.TypeOf((*MockStore)(nil).TouchBranchRegister), arg0, arg1)
+}
+
 // TransferApproveTx mocks base method.
 func (m *MockStore) TransferApproveTx(arg0 context.Context, arg1 db.TransferStageTxParams) (db.TransferStageTxResult, error) {
 	m.ctrl.T.Helper()
@@ -8404,20 +8668,6 @@ func (mr *MockStoreMockRecorder) UpdateAttributeValue(arg0, arg1 interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAttributeValue", reflect.TypeOf((*MockStore)(nil).UpdateAttributeValue), arg0, arg1)
 }
 
-// UpdateBranchAPIKeyHash mocks base method.
-func (m *MockStore) UpdateBranchAPIKeyHash(arg0 context.Context, arg1 db.UpdateBranchAPIKeyHashParams) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateBranchAPIKeyHash", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateBranchAPIKeyHash indicates an expected call of UpdateBranchAPIKeyHash.
-func (mr *MockStoreMockRecorder) UpdateBranchAPIKeyHash(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBranchAPIKeyHash", reflect.TypeOf((*MockStore)(nil).UpdateBranchAPIKeyHash), arg0, arg1)
-}
-
 // UpdateBranchAttendanceEvent mocks base method.
 func (m *MockStore) UpdateBranchAttendanceEvent(arg0 context.Context, arg1 db.UpdateBranchAttendanceEventParams) (db.BranchAttendanceEvent, error) {
 	m.ctrl.T.Helper()
@@ -8433,18 +8683,33 @@ func (mr *MockStoreMockRecorder) UpdateBranchAttendanceEvent(arg0, arg1 interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBranchAttendanceEvent", reflect.TypeOf((*MockStore)(nil).UpdateBranchAttendanceEvent), arg0, arg1)
 }
 
-// UpdateBranchLastSeenAt mocks base method.
-func (m *MockStore) UpdateBranchLastSeenAt(arg0 context.Context, arg1 int64) error {
+// UpdateBranchRegister mocks base method.
+func (m *MockStore) UpdateBranchRegister(arg0 context.Context, arg1 db.UpdateBranchRegisterParams) (db.BranchRegister, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateBranchLastSeenAt", arg0, arg1)
+	ret := m.ctrl.Call(m, "UpdateBranchRegister", arg0, arg1)
+	ret0, _ := ret[0].(db.BranchRegister)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateBranchRegister indicates an expected call of UpdateBranchRegister.
+func (mr *MockStoreMockRecorder) UpdateBranchRegister(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBranchRegister", reflect.TypeOf((*MockStore)(nil).UpdateBranchRegister), arg0, arg1)
+}
+
+// UpdateBranchRegisterAPIKeyHash mocks base method.
+func (m *MockStore) UpdateBranchRegisterAPIKeyHash(arg0 context.Context, arg1 db.UpdateBranchRegisterAPIKeyHashParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateBranchRegisterAPIKeyHash", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// UpdateBranchLastSeenAt indicates an expected call of UpdateBranchLastSeenAt.
-func (mr *MockStoreMockRecorder) UpdateBranchLastSeenAt(arg0, arg1 interface{}) *gomock.Call {
+// UpdateBranchRegisterAPIKeyHash indicates an expected call of UpdateBranchRegisterAPIKeyHash.
+func (mr *MockStoreMockRecorder) UpdateBranchRegisterAPIKeyHash(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBranchLastSeenAt", reflect.TypeOf((*MockStore)(nil).UpdateBranchLastSeenAt), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBranchRegisterAPIKeyHash", reflect.TypeOf((*MockStore)(nil).UpdateBranchRegisterAPIKeyHash), arg0, arg1)
 }
 
 // UpdateBranchSalespersonName mocks base method.
@@ -9092,6 +9357,21 @@ func (m *MockStore) UpsertInventoryAssetQuantity(arg0 context.Context, arg1 db.U
 func (mr *MockStoreMockRecorder) UpsertInventoryAssetQuantity(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpsertInventoryAssetQuantity", reflect.TypeOf((*MockStore)(nil).UpsertInventoryAssetQuantity), arg0, arg1)
+}
+
+// UpsertOversoldConflict mocks base method.
+func (m *MockStore) UpsertOversoldConflict(arg0 context.Context, arg1 db.UpsertOversoldConflictParams) (db.BranchSyncConflict, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpsertOversoldConflict", arg0, arg1)
+	ret0, _ := ret[0].(db.BranchSyncConflict)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpsertOversoldConflict indicates an expected call of UpsertOversoldConflict.
+func (mr *MockStoreMockRecorder) UpsertOversoldConflict(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpsertOversoldConflict", reflect.TypeOf((*MockStore)(nil).UpsertOversoldConflict), arg0, arg1)
 }
 
 // UpsertPriceListBranch mocks base method.
