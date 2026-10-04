@@ -1,3 +1,4 @@
+import router from '@/router'
 import { useAuthStore } from '@/stores/auth'
 
 // Thrown by authFetch when the server can't be reached at all (powered off,
@@ -48,8 +49,8 @@ export async function authFetch (url, options = {}) {
 
   if (res.status === 401) {
     authStore.logout()
-    if (window.location.pathname !== '/login') {
-      window.location.assign('/login')
+    if (router.currentRoute.value.path !== '/login') {
+      router.push('/login')
     }
   }
 

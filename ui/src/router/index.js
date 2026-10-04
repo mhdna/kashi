@@ -22,7 +22,7 @@ const routes = [
   {
     path: '/login',
     component: () => import('@/pages/Login.vue'),
-    meta: { title: 'Login', layout: 'auth' },
+    meta: { title: 'Login', layout: 'login', public: true },
   },
   {
     path: '/review',

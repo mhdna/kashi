@@ -88,7 +88,7 @@ onMounted(() => {
 
 function handleLogout() {
   auth.logout();
-  window.location.href = "/login";
+  router.push("/login");
 }
 
 const showDrawer = ref(false);
