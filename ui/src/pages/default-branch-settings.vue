@@ -42,9 +42,9 @@
       <div v-else class="dbs-detail">
         <v-tabs
           v-model="sectionTab"
-          class="dbs-section-tabs"
+          class="dbs-section-tabs rail-tabs"
           color="primary"
-          direction="vertical"
+          :direction="$vuetify.display.smAndDown ? 'horizontal' : 'vertical'"
         >
           <v-tab class="text-none" text="Pricing" value="pricing" />
           <v-tab class="text-none" text="Behaviour" value="behaviour" />

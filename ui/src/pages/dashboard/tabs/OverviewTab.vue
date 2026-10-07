@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex flex-column flex-grow-1" style="height: 100%; min-height: 0; overflow: hidden">
+  <div class="overview-root d-flex flex-column flex-grow-1" style="height: 100%; min-height: 0; overflow: hidden">
     <div class="kpi-grid mt-4 mb-3">
       <SparklineCard
         icon="mdi-currency-usd"
@@ -133,6 +133,23 @@
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
+}
+
+@media (max-width: 959.98px) {
+  /* Stacked content outgrows the viewport on phones -- scroll the tab
+     instead of clipping it. */
+  .overview-root {
+    overflow-y: auto !important;
+  }
+  .kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 599.98px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 </style>

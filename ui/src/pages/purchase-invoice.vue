@@ -52,7 +52,7 @@
       </v-card-title>
       <v-card-text>
         <v-row v-if="canEdit && itemsTarget?.status !== 'received'" align="center">
-          <v-col cols="5">
+          <v-col cols="12" sm="5">
             <v-autocomplete
               v-model="itemVariantId"
               density="compact"
@@ -67,7 +67,7 @@
               @update:search="onSkuSearch"
             />
           </v-col>
-          <v-col cols="2">
+          <v-col cols="4" sm="2">
             <v-text-field
               v-model.number="itemQuantity"
               density="compact"
@@ -76,7 +76,7 @@
               type="number"
             />
           </v-col>
-          <v-col cols="3">
+          <v-col cols="5" sm="3">
             <v-text-field
               v-model.number="itemUnitPrice"
               density="compact"
@@ -85,7 +85,7 @@
               type="number"
             />
           </v-col>
-          <v-col cols="2">
+          <v-col cols="3" sm="2">
             <v-btn :loading="itemSubmitting" text="Add" @click="addItem" />
           </v-col>
         </v-row>

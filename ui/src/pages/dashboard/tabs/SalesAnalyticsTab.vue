@@ -1,7 +1,13 @@
 <template>
   <v-container class="pa-0 fill-height mx-2 mb-4" fluid>
     <v-row class="fill-height" no-gutters>
-      <v-col v-for="panel in panels" :key="panel.key" class="d-flex flex-column" cols="6">
+      <v-col
+        v-for="panel in panels"
+        :key="panel.key"
+        class="d-flex flex-column"
+        cols="12"
+        md="6"
+      >
         <v-card border class="d-flex flex-column fill-height" flat tile>
           <v-card-title class="text-caption text-uppercase text-grey py-1 px-3">{{ panel.title }}</v-card-title>
           <v-divider />
@@ -49,5 +55,13 @@
 
 .v-col {
   height: 50%;
+}
+
+/* Stacked one per row on phones/tablets, each panel takes its natural
+   height instead of half the viewport. */
+@media (max-width: 959.98px) {
+  .v-col {
+    height: auto;
+  }
 }
 </style>

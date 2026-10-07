@@ -81,3 +81,54 @@ html.text-selection-enabled #app {
   padding: 8px 8px;
   font-weight: bold;
 }
+
+// ---- Small screens ----------------------------------------------------
+// Below md the shared PageSidebar renders as a chip strip (see
+// PageSidebar.vue), so whatever row layout hosts it stacks into a column
+// and the vertical divider beside it goes away. :has() keeps this in one
+// place instead of a media query in each of the master/detail pages.
+@media (max-width: 959.98px) {
+  :has(> .page-sidebar--compact) {
+    flex-direction: column;
+  }
+
+  .page-sidebar--compact ~ .v-divider--vertical {
+    display: none;
+  }
+
+  // Same idea for the settings-style pages whose sections are a vertical
+  // tab rail (.rail-tabs): those tabs switch to horizontal below md via
+  // their `direction` binding, and here the rail drops its fixed width and
+  // sits above the content.
+  :has(> .rail-tabs) {
+    flex-direction: column;
+  }
+
+  .rail-tabs {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  }
+
+  .rail-tabs ~ .v-divider--vertical {
+    display: none;
+  }
+}
+
+@media (max-width: 599.98px) {
+  // Page titles carry filters/buttons beside them; let those wrap under
+  // the title instead of squeezing it.
+  .page-heading {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  // Dialogs sized for desktop (width="700") keep a small gutter on phones
+  // and scroll their own content rather than the page behind them.
+  .v-dialog:not(.v-dialog--fullscreen) > .v-overlay__content {
+    max-width: calc(100% - 16px) !important;
+    margin: 8px;
+  }
+}

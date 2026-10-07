@@ -103,4 +103,17 @@
   grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 8px;
 }
+
+/* 8 across only fits a desktop; fold to 4 on tablets and 2 on phones. */
+@media (max-width: 1279.98px) {
+  .summary-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 599.98px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 </style>

@@ -49,9 +49,9 @@
       <div class="cs-layout">
         <v-tabs
           v-model="tab"
-          class="cs-tabs"
+          class="cs-tabs rail-tabs"
           color="primary"
-          direction="vertical"
+          :direction="$vuetify.display.smAndDown ? 'horizontal' : 'vertical'"
         >
           <v-tab prepend-icon="mdi-palette" text="Colors" value="colors" />
           <v-tab prepend-icon="mdi-tshirt-crew" text="Sizes" value="sizes" />

@@ -11,7 +11,77 @@
   `raw` (falling back to the item itself) is what `edit` / `delete` emit.
 -->
 <template>
-  <div class="page-sidebar d-flex flex-column" :style="{ flex: `0 0 ${width}px`, width: `${width}px` }">
+  <!-- Phones/tablets: the rail would eat most of the screen, so it folds into
+    a horizontally scrolling chip strip above the content (global.scss flips
+    the host layout to a column). Row actions move to a menu for the
+    selected item since there's no hover on touch. -->
+  <div v-if="compact" class="page-sidebar page-sidebar--compact d-flex align-center ga-1 px-2 py-1">
+    <v-progress-circular
+      v-if="loading"
+      class="mx-2"
+      color="primary"
+      indeterminate
+      size="20"
+    />
+    <v-chip-group
+      v-else
+      class="flex-grow-1 min-w-0"
+      mandatory
+      :model-value="internalSelection[0]"
+      selected-class="text-primary"
+      @update:model-value="selectCompact"
+    >
+      <v-chip
+        v-if="showAll"
+        :prepend-icon="allIcon"
+        size="small"
+        :text="allTitle"
+        :value="ALL_VALUE"
+        variant="outlined"
+      />
+      <v-chip
+        v-for="item in items"
+        :key="String(item.value)"
+        :class="{ 'text-medium-emphasis': item.inactive }"
+        :prepend-icon="item.avatarIcon || item.prependIcon"
+        size="small"
+        :text="item.title"
+        :value="item.value"
+        variant="outlined"
+      />
+    </v-chip-group>
+    <span v-if="!loading && emptyText && items.length === 0" class="text-caption text-medium-emphasis px-2">
+      {{ emptyText }}
+    </span>
+
+    <v-menu v-if="rowActions && canEdit && selectedItem">
+      <template #activator="{ props: menuProps }">
+        <v-btn
+          v-bind="menuProps"
+          aria-label="Selected item actions"
+          density="comfortable"
+          icon="mdi-dots-vertical"
+          size="small"
+          variant="text"
+        />
+      </template>
+      <v-list density="compact">
+        <v-list-item prepend-icon="mdi-pencil" title="Edit" @click="$emit('edit', selectedItem.raw ?? selectedItem)" />
+        <v-list-item prepend-icon="mdi-delete" title="Delete" @click="$emit('delete', selectedItem.raw ?? selectedItem)" />
+      </v-list>
+    </v-menu>
+    <v-btn
+      v-if="addLabel && canEdit"
+      :aria-label="addLabel"
+      density="comfortable"
+      icon="mdi-plus"
+      size="small"
+      variant="tonal"
+      @click="$emit('add')"
+    />
+  </div>
+
+  <div v-else class="page-sidebar d-flex flex-column" :style="{ flex: `0 0 ${width}px`, width: `${width}px` }">
     <div v-if="loading" class="d-flex justify-center pa-6">
       <v-progress-circular color="primary" indeterminate size="24" />
     </div>
@@ -104,6 +174,7 @@
 
 <script setup lang="ts">
   import { computed } from 'vue'
+  import { useDisplay } from 'vuetify'
   import { usePageAccess } from '@/composables/usePageAccess'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
@@ -143,6 +214,17 @@
     },
   })
 
+  const { smAndDown: compact } = useDisplay()
+
+  function selectCompact (value) {
+    if (value == null) return
+    emit('update:modelValue', value === ALL_VALUE ? null : value)
+  }
+
+  const selectedItem = computed(() =>
+    props.modelValue == null ? null : props.items.find(item => item.value === props.modelValue) ?? null,
+  )
+
   const resolvedGroups = computed(() => {
     if (props.groups.length === 0) {
       return [{ key: '__ps_flat__', label: '', items: props.items }]
@@ -159,6 +241,14 @@
 .page-sidebar {
   min-height: 0;
   overflow: hidden;
+}
+.page-sidebar--compact {
+  flex: 0 0 auto;
+  width: 100%;
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+.min-w-0 {
+  min-width: 0;
 }
 .ps-list {
   flex: 1 1 auto;

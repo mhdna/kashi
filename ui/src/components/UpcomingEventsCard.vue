@@ -19,7 +19,8 @@
           <template v-if="next">
             <span>{{ next.lead }}</span>
             <span class="ms-1">{{ next.name }}</span>
-            <span class="ms-1">· {{ next.relative }}</span>
+            <!-- "Now:" already says it's on; only future events need the when. -->
+            <span v-if="next.relative !== 'on now'" class="ms-1">· {{ next.relative }}</span>
           </template>
           <span v-else>No events in {{ pillDays }} days</span>
         </div>

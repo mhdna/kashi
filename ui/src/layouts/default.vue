@@ -6,24 +6,50 @@
       </template>
 
       <v-app-bar-title>
-        <div class="d-flex align-center">
+        <div class="d-flex align-center text-truncate">
           <!--<img class="me-1" src="/everywear.png" style="height: 35px;">-->
-          Kashi Cloud
-          <span v-if="pageTitle" class="ms-2">- {{ pageTitle }}</span>
+          <!-- Phones/tablets: the status pills need the room, so just the brand. -->
+          <template v-if="smAndDown">GB</template>
+          <template v-else>
+            Kashi Cloud
+            <span v-if="pageTitle" class="ms-2">- {{ pageTitle }}</span>
+          </template>
         </div>
       </v-app-bar-title>
       <!-- <SnackBar /> -->
       <template #append>
-        <UpcomingEventsCard />
+        <UpcomingEventsCard v-if="!xs" />
         <SyncCard />
         <ConnectedBranchesCard />
         <SyncingBranchesCard />
         <CommandPalette />
         <!-- <NotificationMenu class="me-4" /> -->
         <!-- <v-icon icon="mdi-translate" /> -->
-        <ToggleTheme />
-        <OnlineUsersStack />
-        <v-btn icon="mdi-logout" variant="text" @click="handleLogout" />
+        <template v-if="!xs">
+          <ToggleTheme />
+          <OnlineUsersStack />
+          <v-btn icon="mdi-logout" variant="text" @click="handleLogout" />
+        </template>
+        <!-- Phones: theme + logout fold into one overflow menu so the bar
+             fits a 360px screen. -->
+        <v-menu v-else location="bottom end">
+          <template #activator="{ props: menuProps }">
+            <v-btn v-bind="menuProps" aria-label="More" icon="mdi-dots-vertical" variant="text" />
+          </template>
+          <v-list density="compact" min-width="180">
+            <v-list-subheader>Theme</v-list-subheader>
+            <v-list-item
+              v-for="option in themeOptions"
+              :key="option.value"
+              :active="appStore.themePreference === option.value"
+              :prepend-icon="option.icon"
+              :title="option.title"
+              @click="appStore.setThemePreference(option.value)"
+            />
+            <v-divider class="my-1" />
+            <v-list-item prepend-icon="mdi-logout" title="Log out" @click="handleLogout" />
+          </v-list>
+        </v-menu>
       </template>
     </v-app-bar>
 
@@ -72,10 +98,19 @@ import ConnectedBranchesCard from "@/components/ConnectedBranchesCard.vue";
 import OnlineUsersStack from "@/components/OnlineUsersStack.vue";
 import SyncingBranchesCard from "@/components/SyncingBranchesCard.vue";
 // import NotificationMenu from '@/components/Menus/NotificationMenu.vue'
+import { useAppStore } from "@/stores/app";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
 
 const auth = useAuthStore();
+const appStore = useAppStore();
+
+// Same choices as ToggleTheme, for the phone overflow menu.
+const themeOptions = [
+  { value: "system", title: "System", icon: "mdi-theme-light-dark" },
+  { value: "light", title: "Light", icon: "mdi-white-balance-sunny" },
+  { value: "dark", title: "Dark", icon: "mdi-weather-night" },
+];
 const settingsStore = useSettingsStore();
 // Loads the global app settings (activity display prefs, financials high
 // season months) once per session -- BranchActivityToast/SyncCard read
@@ -93,7 +128,7 @@ function handleLogout() {
 
 const showDrawer = ref(false);
 const isRail = ref(false);
-const { mobile } = useDisplay();
+const { mobile, smAndDown, xs } = useDisplay();
 
 function toggleDrawer() {
   if (mobile.value) {
@@ -116,6 +151,11 @@ router.beforeEach((to) => {
 
 router.afterEach(() => {
   isNavigating.value = false;
+  // The mobile drawer is a temporary overlay -- close it once a link is
+  // picked instead of leaving it covering the page just opened.
+  if (mobile.value) {
+    showDrawer.value = false;
+  }
 });
 </script>
 
@@ -126,6 +166,9 @@ router.afterEach(() => {
   display: flex;
   flex-direction: column;
   height: calc(100vh - 48px);
+  /* dvh tracks mobile browsers' collapsing URL bar; 100vh alone leaves the
+     bottom of every page hidden behind it. */
+  height: calc(100dvh - 48px);
   overflow: auto;
   position: relative;
 }
@@ -137,7 +180,7 @@ router.afterEach(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white;
+  background: rgb(var(--v-theme-background));
 }
 
 .google-spinner {
@@ -151,7 +194,7 @@ router.afterEach(() => {
 .google-spinner-inner {
   position: absolute;
   inset: 4px;
-  background: white;
+  background: rgb(var(--v-theme-background));
   border-radius: 50%;
 }
 

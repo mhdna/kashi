@@ -49,9 +49,9 @@
       <div class="cp-layout">
         <v-tabs
           v-model="tab"
-          class="cp-tabs"
+          class="cp-tabs rail-tabs"
           color="primary"
-          direction="vertical"
+          :direction="$vuetify.display.smAndDown ? 'horizontal' : 'vertical'"
         >
           <v-tab prepend-icon="mdi-currency-usd" text="Currencies" value="currencies" />
           <v-tab prepend-icon="mdi-credit-card-outline" text="Payment Methods" value="methods" />

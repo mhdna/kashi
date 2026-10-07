@@ -147,9 +147,9 @@
           </v-table>
 
           <v-row class="mt-2">
-            <v-col class="text-end" cols="4">Items Total: <strong>{{ itemsTotal }}</strong></v-col>
-            <v-col class="text-end" cols="4">Sub Total: <strong>{{ subTotal }}</strong></v-col>
-            <v-col class="text-end" cols="4">Grand Total: <strong>{{ grandTotal }}</strong></v-col>
+            <v-col class="text-end" cols="12" sm="4">Items Total: <strong>{{ itemsTotal }}</strong></v-col>
+            <v-col class="text-end" cols="12" sm="4">Sub Total: <strong>{{ subTotal }}</strong></v-col>
+            <v-col class="text-end" cols="12" sm="4">Grand Total: <strong>{{ grandTotal }}</strong></v-col>
           </v-row>
 
           <v-card-actions class="px-0">
@@ -302,9 +302,9 @@
       <div class="invoices-layout">
         <v-tabs
           v-model="invoiceTab"
-          class="invoice-tabs"
+          class="invoice-tabs rail-tabs"
           color="primary"
-          direction="vertical"
+          :direction="$vuetify.display.smAndDown ? 'horizontal' : 'vertical'"
         >
           <v-tab prepend-icon="mdi-store-outline" text="Retail" value="retail" />
           <v-tab prepend-icon="mdi-cart" text="Wholesale" value="wholesale" />

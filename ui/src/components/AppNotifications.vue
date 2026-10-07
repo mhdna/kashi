@@ -71,6 +71,7 @@
 
 .app-notif-card {
   width: 360px;
+  max-width: calc(100vw - 32px);
   padding: 10px 10px 10px 14px;
   border-radius: 6px;
   pointer-events: auto;

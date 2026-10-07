@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex ga-3 h-100" style="flex: 1 1 0; min-height: 0">
+  <div class="tables-row d-flex ga-3 h-100" style="flex: 1 1 0; min-height: 0">
     <DashboardList
       ref="salesList"
       :api-url="salesUrl"
@@ -183,3 +183,18 @@
     return value ? new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '—'
   }
 </script>
+
+<style scoped>
+/* Three lists side by side only fit a desktop; below md they stack, each
+   with a fixed height so its virtual scroller still has room to scroll. */
+@media (max-width: 959.98px) {
+  .tables-row {
+    flex: 0 0 auto !important;
+    flex-direction: column;
+    height: auto !important;
+  }
+  .tables-row > * {
+    flex: 0 0 360px !important;
+  }
+}
+</style>

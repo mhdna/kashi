@@ -59,9 +59,9 @@
       <div class="coupons-layout">
         <v-tabs
           v-model="tab"
-          class="coupons-tabs"
+          class="coupons-tabs rail-tabs"
           color="primary"
-          direction="vertical"
+          :direction="$vuetify.display.smAndDown ? 'horizontal' : 'vertical'"
         >
           <v-tab prepend-icon="mdi-ticket-percent" text="Coupons" value="coupons" />
           <v-tab prepend-icon="mdi-tag-multiple" text="Types" value="types" />

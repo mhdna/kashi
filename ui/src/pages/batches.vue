@@ -531,6 +531,25 @@
   display: flex;
   flex-direction: column;
 }
+/* Phones/tablets: the batch list stacks above the details, capped so the
+   selected batch is still on screen. */
+@media (max-width: 959.98px) {
+  .batches-layout {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .batches-layout > .v-divider--vertical {
+    display: none;
+  }
+  .batches-sidebar {
+    flex: 0 0 auto;
+    max-height: 40vh;
+    border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  }
+  .batches-content {
+    overflow-y: visible;
+  }
+}
 .empty-state {
   flex: 1 1 auto;
   display: flex;

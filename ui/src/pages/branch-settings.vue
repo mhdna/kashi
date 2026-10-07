@@ -68,9 +68,9 @@
             <div v-else class="bs-detail">
               <v-tabs
                 v-model="sectionTab"
-                class="bs-section-tabs"
+                class="bs-section-tabs rail-tabs"
                 color="primary"
-                direction="vertical"
+                :direction="$vuetify.display.smAndDown ? 'horizontal' : 'vertical'"
               >
                 <v-tab class="text-none" text="General" value="general" />
                 <v-tab class="text-none" text="Behaviour" value="behaviour" />

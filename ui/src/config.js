@@ -8,7 +8,7 @@ export const API_BASE = /^https?:\/\//.test(rawApiBase)
   : window.location.origin + rawApiBase
 export const WS_BASE = API_BASE.replace(/^http/, 'ws')
 
-// Temporary device gate: blocks mobile/tablet user agents (see App.vue),
-// not narrow viewports. Set VITE_BLOCK_NON_DESKTOP=false to restore access
-// on those devices without removing the unsupported view.
-export const BLOCK_NON_DESKTOP = import.meta.env.VITE_BLOCK_NON_DESKTOP !== 'false'
+// Device gate: blocks mobile/tablet user agents (see App.vue), not narrow
+// viewports. Off by default now that the UI is responsive; set
+// VITE_BLOCK_NON_DESKTOP=true to bring the "Desktop only" screen back.
+export const BLOCK_NON_DESKTOP = import.meta.env.VITE_BLOCK_NON_DESKTOP === 'true'
