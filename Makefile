@@ -86,9 +86,19 @@ deploy-ui:
 	$(MAKE) -C ui build
 	rsync -avz --delete --chmod=D755,F644 ui/dist/ $(SSH):$(UI_ROOT)/
 
+# Post the feat/fix/perf commits shipped since the last posted one to the
+# home page's IT Management feed, as Alex (cmd/release_notes). Run it after
+# a deploy. DRY_RUN=1 prints the SQL instead of posting it.
+deploy-notes:
+	@posted=$$(ssh $(SSH) "LC_ALL=C.UTF-8 psql '$(PROD_DB)' -At -c \"SELECT route FROM admin_activities WHERE method = 'RELEASE'\"") && \
+	sql=$$(printf '%s\n' "$$posted" | go run ./cmd/release_notes) && \
+	if [ -z "$$sql" ]; then exit 0; \
+	elif [ -n "$(DRY_RUN)" ]; then printf '%s\n' "$$sql"; \
+	else printf '%s\n' "$$sql" | ssh $(SSH) "LC_ALL=C.UTF-8 psql '$(PROD_DB)' -v ON_ERROR_STOP=1 -q" && echo "Posted release notes."; fi
+
 # Run pending migrations on prod without shipping anything.
 migrate-prod:
 	rsync -avz --delete ./db/migrations/ $(SSH):$(APP_DIR)/migrations/
 	ssh $(SSH) 'migrate -path $(APP_DIR)/migrations -database "$(PROD_DB)" up'
 
-.PHONY: postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 sqlc test server dev mock proto evans seed deploy deploy-api deploy-ui migrate-prod
+.PHONY: postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 sqlc test server dev mock proto evans seed deploy deploy-api deploy-ui deploy-notes migrate-prod
