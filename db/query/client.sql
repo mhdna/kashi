@@ -163,7 +163,9 @@ WITH ranked AS (
       FROM branch_invoice_items
       GROUP BY branch_invoice_id
     ) bii ON bii.branch_invoice_id = b.id
-    WHERE sqlc.narg(branch_id)::bigint IS NULL OR b.branch_id = sqlc.narg(branch_id)
+    WHERE (sqlc.narg(branch_id)::bigint IS NULL OR b.branch_id = sqlc.narg(branch_id))
+      AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+      AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
     GROUP BY cl.client_id
   ) bi ON bi.client_id = c.id
   WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type))
@@ -234,6 +236,8 @@ WITH central AS (
   CROSS JOIN LATERAL (SELECT
     (sqlc.narg(date_from)::timestamptz IS NULL OR b.occurred_at >= sqlc.narg(date_from)::timestamptz)
     AND (sqlc.narg(date_to)::timestamptz IS NULL OR b.occurred_at < sqlc.narg(date_to)::timestamptz) AS in_period) p
+  WHERE b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+    AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   GROUP BY cl.client_id
 )
 SELECT

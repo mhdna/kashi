@@ -42,13 +42,15 @@ ORDER BY id;
 
 -- name: ListBranchInvoiceSettlements :many
 SELECT * FROM branch_invoice_settlements
-WHERE sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id)
+WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND branch_invoice_settlements.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 ORDER BY id DESC
 LIMIT $1 OFFSET $2;
 
 -- name: CountBranchInvoiceSettlements :one
 SELECT COUNT(*) FROM branch_invoice_settlements
-WHERE sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id);
+WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND branch_invoice_settlements.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports);
 
 -- name: DeleteBranchInvoicePaymentsForInvoice :exec
 DELETE FROM branch_invoice_payments

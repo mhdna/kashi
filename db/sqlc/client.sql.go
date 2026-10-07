@@ -197,6 +197,8 @@ WITH central AS (
   CROSS JOIN LATERAL (SELECT
     ($2::timestamptz IS NULL OR b.occurred_at >= $2::timestamptz)
     AND ($3::timestamptz IS NULL OR b.occurred_at < $3::timestamptz) AS in_period) p
+  WHERE b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+    AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   GROUP BY cl.client_id
 )
 SELECT
@@ -381,7 +383,9 @@ WITH ranked AS (
       FROM branch_invoice_items
       GROUP BY branch_invoice_id
     ) bii ON bii.branch_invoice_id = b.id
-    WHERE $4::bigint IS NULL OR b.branch_id = $4
+    WHERE ($4::bigint IS NULL OR b.branch_id = $4)
+      AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+      AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
     GROUP BY cl.client_id
   ) bi ON bi.client_id = c.id
   WHERE ($5::text IS NULL OR c.client_type = $5)

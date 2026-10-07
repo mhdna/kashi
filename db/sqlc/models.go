@@ -541,6 +541,7 @@ type Branch struct {
 	InventoryID              sql.NullInt64 `json:"inventory_id"`
 	Timezone                 string        `json:"timezone"`
 	QuickAccessInitializedAt sql.NullTime  `json:"quick_access_initialized_at"`
+	HiddenFromReports        bool          `json:"hidden_from_reports"`
 }
 
 type BranchAttendanceChange struct {
@@ -714,6 +715,7 @@ type BranchRegister struct {
 	CreatedAt                time.Time             `json:"created_at"`
 	QuickAccessMode          string                `json:"quick_access_mode"`
 	QuickAccessModeChangedAt time.Time             `json:"quick_access_mode_changed_at"`
+	HiddenFromReports        bool                  `json:"hidden_from_reports"`
 }
 
 type BranchSetting struct {

@@ -41,3 +41,8 @@ WHERE code = $1 AND id != $2 AND is_active LIMIT 1;
 SELECT id, name, code, is_active FROM branches
 WHERE id != $1 AND is_active
 ORDER BY name;
+
+-- name: SetBranchHiddenFromReports :exec
+UPDATE branches
+SET hidden_from_reports = $2
+WHERE id = $1;

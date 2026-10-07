@@ -30,6 +30,9 @@ type branchResponse struct {
 	IsActive   bool         `json:"is_active"`
 	LastSeenAt sql.NullTime `json:"last_seen_at"`
 	CreatedAt  time.Time    `json:"created_at"`
+	// HiddenFromReports keeps the branch's data out of every report while
+	// it keeps syncing normally -- see migration 000117.
+	HiddenFromReports bool `json:"hidden_from_reports"`
 }
 
 func newBranchResponse(branch db.Branch) branchResponse {
@@ -40,6 +43,8 @@ func newBranchResponse(branch db.Branch) branchResponse {
 		IsActive:   branch.IsActive,
 		LastSeenAt: branch.LastSeenAt,
 		CreatedAt:  branch.CreatedAt,
+
+		HiddenFromReports: branch.HiddenFromReports,
 	}
 }
 
@@ -150,5 +155,34 @@ func (server *Server) setBranchActive(active bool) gin.HandlerFunc {
 		}
 
 		server.writeJSON(ctx, http.StatusOK, envelope{"id": req.ID, "is_active": active})
+	}
+}
+
+func (server *Server) setBranchHiddenFromReports(hidden bool) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var req branchIDRequest
+		if err := ctx.ShouldBindUri(&req); err != nil {
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+
+		if _, err := server.store.GetBranch(ctx, req.ID); err != nil {
+			if err == sql.ErrNoRows {
+				server.writeError(ctx, http.StatusNotFound, err)
+				return
+			}
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
+		if err := server.store.SetBranchHiddenFromReports(ctx, db.SetBranchHiddenFromReportsParams{
+			ID:                req.ID,
+			HiddenFromReports: hidden,
+		}); err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
+		server.writeJSON(ctx, http.StatusOK, envelope{"id": req.ID, "hidden_from_reports": hidden})
 	}
 }

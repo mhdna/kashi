@@ -49,10 +49,14 @@ SELECT
     WHERE branch_shift_receipt_images.branch_shift_id = branch_shifts.id
   ) AS has_receipt_image
 FROM branch_shifts
-WHERE sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id)
+WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND branch_shifts.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND branch_shifts.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 ORDER BY id DESC
 LIMIT $1 OFFSET $2;
 
 -- name: CountBranchShifts :one
 SELECT COUNT(*) FROM branch_shifts
-WHERE sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id);
+WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND branch_shifts.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND branch_shifts.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports);

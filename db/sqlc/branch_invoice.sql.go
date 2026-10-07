@@ -15,7 +15,9 @@ import (
 
 const countBranchInvoices = `-- name: CountBranchInvoices :one
 SELECT COUNT(*) FROM branch_invoices
-WHERE $1::bigint IS NULL OR branch_id = $1
+WHERE ($1::bigint IS NULL OR branch_id = $1)
+  AND branch_invoices.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND branch_invoices.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 `
 
 func (q *Queries) CountBranchInvoices(ctx context.Context, branchID sql.NullInt64) (int64, error) {
@@ -28,6 +30,8 @@ func (q *Queries) CountBranchInvoices(ctx context.Context, branchID sql.NullInt6
 const countBranchInvoicesFiltered = `-- name: CountBranchInvoicesFiltered :one
 SELECT COUNT(*) FROM branch_invoices
 WHERE ($1::bigint IS NULL OR branch_id = $1)
+  AND branch_invoices.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND branch_invoices.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   AND (
     $2::text = ''
     OR branch_invoice_code ILIKE '%' || $2::text || '%'
@@ -362,7 +366,9 @@ func (q *Queries) ListBranchInvoicePayments(ctx context.Context, branchInvoiceID
 
 const listBranchInvoices = `-- name: ListBranchInvoices :many
 SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id FROM branch_invoices
-WHERE $3::bigint IS NULL OR branch_id = $3
+WHERE ($3::bigint IS NULL OR branch_id = $3)
+  AND branch_invoices.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND branch_invoices.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 ORDER BY id DESC
 LIMIT $1 OFFSET $2
 `
@@ -424,6 +430,8 @@ func (q *Queries) ListBranchInvoices(ctx context.Context, arg ListBranchInvoices
 const listBranchInvoicesPage = `-- name: ListBranchInvoicesPage :many
 SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id FROM branch_invoices
 WHERE ($1::bigint IS NULL OR branch_id = $1)
+  AND branch_invoices.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND branch_invoices.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   AND (
     $2::text = ''
     OR branch_invoice_code ILIKE '%' || $2::text || '%'
@@ -500,6 +508,8 @@ SELECT
 FROM branch_invoices bi
 JOIN branches b ON b.id = bi.branch_id
 WHERE bi.kind = 'sales'
+  AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   AND bi.occurred_at >= $1::date
   AND bi.occurred_at < ($2::date + 1)
   AND ($3::bigint IS NULL OR branch_id = $3)
@@ -569,6 +579,8 @@ JOIN branches b ON b.id = bi.branch_id
 WHERE bi.occurred_at >= make_date($1::int, 1, 1)
   AND bi.occurred_at < make_date($1::int + 1, 1, 1)
   AND ($2::bigint IS NULL OR bi.branch_id = $2)
+  AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 GROUP BY day
 ORDER BY day
 `

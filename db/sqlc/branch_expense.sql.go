@@ -14,6 +14,7 @@ import (
 const countBranchExpenses = `-- name: CountBranchExpenses :one
 SELECT COUNT(*) FROM branch_expenses
 WHERE ($1::bigint IS NULL OR branch_id = $1)
+  AND branch_expenses.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND ($2::text = '' OR description ILIKE '%' || $2::text || '%')
 `
 
@@ -151,6 +152,7 @@ func (q *Queries) GetBranchExpenseByClientRef(ctx context.Context, arg GetBranch
 const listBranchExpenses = `-- name: ListBranchExpenses :many
 SELECT id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id, branch_cashbox_account_name FROM branch_expenses
 WHERE ($3::bigint IS NULL OR branch_id = $3)
+  AND branch_expenses.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND ($4::text = '' OR description ILIKE '%' || $4::text || '%')
 ORDER BY id DESC
 LIMIT $1 OFFSET $2

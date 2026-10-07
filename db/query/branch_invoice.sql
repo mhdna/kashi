@@ -63,17 +63,23 @@ SELECT * FROM branch_invoices WHERE id = $1;
 -- the admin UI's branch filter works (a dropdown with an "All branches"
 -- option, not a required selection).
 SELECT * FROM branch_invoices
-WHERE sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id)
+WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND branch_invoices.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND branch_invoices.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 ORDER BY id DESC
 LIMIT $1 OFFSET $2;
 
 -- name: CountBranchInvoices :one
 SELECT COUNT(*) FROM branch_invoices
-WHERE sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id);
+WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND branch_invoices.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND branch_invoices.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports);
 
 -- name: ListBranchInvoicesPage :many
 SELECT * FROM branch_invoices
 WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND branch_invoices.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND branch_invoices.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   AND (
     sqlc.arg(search)::text = ''
     OR branch_invoice_code ILIKE '%' || sqlc.arg(search)::text || '%'
@@ -86,6 +92,8 @@ OFFSET sqlc.arg(page_offset);
 -- name: CountBranchInvoicesFiltered :one
 SELECT COUNT(*) FROM branch_invoices
 WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND branch_invoices.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND branch_invoices.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   AND (
     sqlc.arg(search)::text = ''
     OR branch_invoice_code ILIKE '%' || sqlc.arg(search)::text || '%'
@@ -112,6 +120,8 @@ JOIN branches b ON b.id = bi.branch_id
 WHERE bi.occurred_at >= make_date(sqlc.arg(year)::int, 1, 1)
   AND bi.occurred_at < make_date(sqlc.arg(year)::int + 1, 1, 1)
   AND (sqlc.narg(branch_id)::bigint IS NULL OR bi.branch_id = sqlc.narg(branch_id))
+  AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 GROUP BY day
 ORDER BY day;
 
@@ -136,6 +146,8 @@ SELECT
 FROM branch_invoices bi
 JOIN branches b ON b.id = bi.branch_id
 WHERE bi.kind = 'sales'
+  AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   AND bi.occurred_at >= sqlc.arg(from_day)::date
   AND bi.occurred_at < (sqlc.arg(to_day)::date + 1)
   AND (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))

@@ -224,6 +224,8 @@ SELECT t.id,
      FROM branch_invoices bi
      WHERE bi.branch_id = t.branch_id
        AND (bi.occurred_at AT TIME ZONE 'UTC')::date BETWEEN t.date_from AND t.date_to
+       AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+       AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   )::bigint AS achieved
 FROM branch_targets t
 WHERE t.branch_id = $1
@@ -349,8 +351,10 @@ func (q *Queries) SetBranchTargetActive(ctx context.Context, arg SetBranchTarget
 const sumBranchRevenueForRange = `-- name: SumBranchRevenueForRange :one
 SELECT COALESCE(SUM(grand_total), 0)::bigint AS total
 FROM branch_invoices
-WHERE branch_id = $1
+WHERE branch_invoices.branch_id = $1
   AND (occurred_at AT TIME ZONE 'UTC')::date BETWEEN $2 AND $3
+  AND branch_invoices.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND branch_invoices.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 `
 
 type SumBranchRevenueForRangeParams struct {

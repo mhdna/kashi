@@ -82,8 +82,10 @@ WHERE series_id = $1 AND is_active;
 -- branch_invoice.sql (returns already net out via their signed grand_total).
 SELECT COALESCE(SUM(grand_total), 0)::bigint AS total
 FROM branch_invoices
-WHERE branch_id = sqlc.arg(branch_id)
-  AND (occurred_at AT TIME ZONE 'UTC')::date BETWEEN sqlc.arg(date_from) AND sqlc.arg(date_to);
+WHERE branch_invoices.branch_id = sqlc.arg(branch_id)
+  AND (occurred_at AT TIME ZONE 'UTC')::date BETWEEN sqlc.arg(date_from) AND sqlc.arg(date_to)
+  AND branch_invoices.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND branch_invoices.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports);
 
 -- name: ListBranchTargetsProgress :many
 -- Branch-wide progress for a till's target bars: what every register of
@@ -94,6 +96,8 @@ SELECT t.id,
      FROM branch_invoices bi
      WHERE bi.branch_id = t.branch_id
        AND (bi.occurred_at AT TIME ZONE 'UTC')::date BETWEEN t.date_from AND t.date_to
+       AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+       AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   )::bigint AS achieved
 FROM branch_targets t
 WHERE t.branch_id = sqlc.arg(branch_id)

@@ -33,6 +33,8 @@ WITH activities AS (
     AND b.received_at >= sqlc.arg(date_from)::timestamptz
     AND b.received_at < sqlc.arg(date_to)::timestamptz
     AND (sqlc.narg(branch_id)::bigint IS NULL OR b.branch_id = sqlc.narg(branch_id))
+    AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+    AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 
   UNION ALL
   SELECT 'Expense', e.branch_id, br.name, e.description,
@@ -43,6 +45,7 @@ WITH activities AS (
     AND e.received_at >= sqlc.arg(date_from)::timestamptz
     AND e.received_at < sqlc.arg(date_to)::timestamptz
     AND (sqlc.narg(branch_id)::bigint IS NULL OR e.branch_id = sqlc.narg(branch_id))
+    AND e.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 
   UNION ALL
   SELECT 'Loan', l.branch_id, br.name, l.description,
@@ -54,6 +57,7 @@ WITH activities AS (
     AND l.received_at >= sqlc.arg(date_from)::timestamptz
     AND l.received_at < sqlc.arg(date_to)::timestamptz
     AND (sqlc.narg(branch_id)::bigint IS NULL OR l.branch_id = sqlc.narg(branch_id))
+    AND l.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 
   UNION ALL
   SELECT 'Shift closed', s.branch_id, br.name,
@@ -65,6 +69,8 @@ WITH activities AS (
     AND s.received_at >= sqlc.arg(date_from)::timestamptz
     AND s.received_at < sqlc.arg(date_to)::timestamptz
     AND (sqlc.narg(branch_id)::bigint IS NULL OR s.branch_id = sqlc.narg(branch_id))
+    AND s.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+    AND s.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 
   UNION ALL
   SELECT 'Settlement changed', s.branch_id, br.name,
@@ -76,6 +82,7 @@ WITH activities AS (
     AND s.received_at >= sqlc.arg(date_from)::timestamptz
     AND s.received_at < sqlc.arg(date_to)::timestamptz
     AND (sqlc.narg(branch_id)::bigint IS NULL OR s.branch_id = sqlc.narg(branch_id))
+    AND s.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 
   UNION ALL
   SELECT 'Attendance', a.branch_id, br.name,
@@ -87,6 +94,7 @@ WITH activities AS (
     AND a.received_at >= sqlc.arg(date_from)::timestamptz
     AND a.received_at < sqlc.arg(date_to)::timestamptz
     AND (sqlc.narg(branch_id)::bigint IS NULL OR a.branch_id = sqlc.narg(branch_id))
+    AND a.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 
   UNION ALL
   SELECT 'Attendance changed', a.branch_id, br.name,
@@ -98,6 +106,7 @@ WITH activities AS (
     AND a.received_at >= sqlc.arg(date_from)::timestamptz
     AND a.received_at < sqlc.arg(date_to)::timestamptz
     AND (sqlc.narg(branch_id)::bigint IS NULL OR a.branch_id = sqlc.narg(branch_id))
+    AND a.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 )
 SELECT activities.*, COUNT(*) OVER()::bigint AS total_count
 FROM activities
@@ -117,20 +126,25 @@ SELECT
       AND b2.occurred_at >= sqlc.arg(date_from)::timestamptz
       AND b2.occurred_at < sqlc.arg(date_to)::timestamptz
       AND (sqlc.narg(branch_id)::bigint IS NULL OR b2.branch_id = sqlc.narg(branch_id))
+      AND b2.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+      AND b2.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   ), 0)::bigint AS items_sold,
   COALESCE(SUM(b.grand_total), 0)::bigint AS revenue,
   COUNT(*) FILTER (WHERE b.kind = 'sales')::bigint AS invoices
 FROM branch_invoices b
 WHERE b.occurred_at >= sqlc.arg(date_from)::timestamptz
   AND b.occurred_at < sqlc.arg(date_to)::timestamptz
-  AND (sqlc.narg(branch_id)::bigint IS NULL OR b.branch_id = sqlc.narg(branch_id));
+  AND (sqlc.narg(branch_id)::bigint IS NULL OR b.branch_id = sqlc.narg(branch_id))
+  AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports);
 
 -- name: DashboardBranchExpensesTotal :one
 SELECT COALESCE(SUM(amount), 0)::bigint AS total
 FROM branch_expenses
 WHERE occurred_at >= sqlc.arg(date_from)::timestamptz
   AND occurred_at < sqlc.arg(date_to)::timestamptz
-  AND (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id));
+  AND (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND branch_expenses.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports);
 
 -- name: DashboardBranchNewClients :one
 -- Clients first seen at a branch in the range. With a branch selected,
@@ -188,7 +202,8 @@ SELECT (
     SELECT SUM(l.amount) FROM loans l
     WHERE (
       (sqlc.arg(scope)::text IN ('all', 'branch') AND l.origin = 'branch_loan'
-        AND (sqlc.narg(branch_id)::bigint IS NULL OR l.branch_id = sqlc.narg(branch_id)))
+        AND (sqlc.narg(branch_id)::bigint IS NULL OR l.branch_id = sqlc.narg(branch_id))
+        AND l.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports))
       OR (sqlc.arg(scope)::text IN ('all', 'admin') AND l.origin = 'central_loan')
     )
   ), 0)
@@ -198,7 +213,8 @@ SELECT (
     JOIN loans l ON l.id = lp.loan_id
     WHERE (
       (sqlc.arg(scope)::text IN ('all', 'branch') AND l.origin = 'branch_loan'
-        AND (sqlc.narg(branch_id)::bigint IS NULL OR l.branch_id = sqlc.narg(branch_id)))
+        AND (sqlc.narg(branch_id)::bigint IS NULL OR l.branch_id = sqlc.narg(branch_id))
+        AND l.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports))
       OR (sqlc.arg(scope)::text IN ('all', 'admin') AND l.origin = 'central_loan')
     )
   ), 0)
@@ -223,6 +239,8 @@ SELECT
     FROM branch_invoices bi
     WHERE bi.branch_id = t.branch_id
       AND (bi.occurred_at AT TIME ZONE 'UTC')::date BETWEEN t.date_from AND t.date_to
+      AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+      AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   ), 0)::bigint AS revenue
 FROM branch_targets t
 JOIN branches b ON b.id = t.branch_id
@@ -249,7 +267,8 @@ FROM loans l
 LEFT JOIN branches b ON b.id = l.branch_id
 WHERE (
     (sqlc.arg(scope)::text IN ('all', 'branch') AND l.origin = 'branch_loan'
-      AND (sqlc.narg(branch_id)::bigint IS NULL OR l.branch_id = sqlc.narg(branch_id)))
+      AND (sqlc.narg(branch_id)::bigint IS NULL OR l.branch_id = sqlc.narg(branch_id))
+      AND l.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports))
     OR (sqlc.arg(scope)::text IN ('all', 'admin') AND l.origin = 'central_loan')
   )
   AND (l.amount - COALESCE((
@@ -266,6 +285,8 @@ FROM branch_invoices
 WHERE occurred_at >= sqlc.arg(date_from)::timestamptz
   AND occurred_at < sqlc.arg(date_to)::timestamptz
   AND (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND branch_invoices.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND branch_invoices.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 GROUP BY day
 ORDER BY day;
 
@@ -277,6 +298,7 @@ FROM branch_expenses
 WHERE occurred_at >= sqlc.arg(date_from)::timestamptz
   AND occurred_at < sqlc.arg(date_to)::timestamptz
   AND (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND branch_expenses.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 GROUP BY day
 ORDER BY day;
 
@@ -327,6 +349,8 @@ FROM (
     AND b.occurred_at >= sqlc.arg(date_from)::timestamptz
     AND b.occurred_at < sqlc.arg(date_to)::timestamptz
     AND (sqlc.narg(branch_id)::bigint IS NULL OR b.branch_id = sqlc.narg(branch_id))
+    AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+    AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 
   UNION ALL
 
@@ -354,6 +378,8 @@ SELECT (
       AND b.occurred_at >= sqlc.arg(date_from)::timestamptz
       AND b.occurred_at < sqlc.arg(date_to)::timestamptz
       AND (sqlc.narg(branch_id)::bigint IS NULL OR b.branch_id = sqlc.narg(branch_id))
+      AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+      AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   )
   +
   (
@@ -452,6 +478,7 @@ FROM (
     AND be.occurred_at >= sqlc.arg(date_from)::timestamptz
     AND be.occurred_at < sqlc.arg(date_to)::timestamptz
     AND (sqlc.narg(branch_id)::bigint IS NULL OR be.branch_id = sqlc.narg(branch_id))
+    AND be.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 
   UNION ALL
 
@@ -479,6 +506,7 @@ SELECT (
       AND be.occurred_at >= sqlc.arg(date_from)::timestamptz
       AND be.occurred_at < sqlc.arg(date_to)::timestamptz
       AND (sqlc.narg(branch_id)::bigint IS NULL OR be.branch_id = sqlc.narg(branch_id))
+      AND be.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   )
   +
   (

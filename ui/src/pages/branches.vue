@@ -76,6 +76,7 @@
               <th>Name</th>
               <th>Status</th>
               <th class="text-center">Active</th>
+              <th class="text-center">In reports</th>
               <th />
             </tr>
           </thead>
@@ -106,6 +107,17 @@
                   @update:model-value="value => toggleRegisterActive(register, value)"
                 />
               </td>
+              <td class="text-center">
+                <v-switch
+                  class="d-inline-flex"
+                  color="primary"
+                  density="compact"
+                  :disabled="!canEdit"
+                  hide-details
+                  :model-value="!register.hidden_from_reports"
+                  @update:model-value="value => toggleRegisterInReports(register, value)"
+                />
+              </td>
               <td class="text-end">
                 <v-icon-btn
                   v-if="canEdit"
@@ -117,7 +129,7 @@
               </td>
             </tr>
             <tr v-if="!registersLoading && registers.length === 0">
-              <td class="text-medium-emphasis" colspan="5">No registers yet.</td>
+              <td class="text-medium-emphasis" colspan="6">No registers yet.</td>
             </tr>
           </tbody>
         </v-table>
@@ -588,6 +600,16 @@
         </v-data-table>
       </div>
     </v-card>
+          <template #item.hidden_from_reports="{ item }">
+            <v-switch
+              color="primary"
+              density="compact"
+              :disabled="!canEdit"
+              hide-details
+              :model-value="!item.hidden_from_reports"
+              @update:model-value="value => toggleInReports(item, value)"
+            />
+          </template>
   </div>
 </template>
 
@@ -621,9 +643,11 @@
     listBranchTargets,
     createBranchTarget,
     updateBranchTarget,
+    setBranchHiddenFromReports,
     deleteBranchTarget,
     listBranchTargetSeries,
     createBranchTargetSeries,
+    setRegisterHiddenFromReports,
     updateBranchTargetSeries,
     deleteBranchTargetSeries,
     setBranchTargetSeriesActive,
@@ -651,6 +675,8 @@
       await fetchBranches(true)
     } catch (error) {
       notify.error(error.message)
+    // Off keeps the branch syncing but out of every report and stat.
+    { title: 'In reports', key: 'hidden_from_reports', align: 'center', sortable: false },
     } finally {
       listLoading.value = false
     }
@@ -722,6 +748,14 @@
     targetsDialog.value = true
     await Promise.all([loadTargets(), loadSeries()])
   }
+  async function toggleInReports (item, value) {
+    try {
+      await setBranchHiddenFromReports(item.id, !value)
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
+
 
   async function loadTargets () {
     targetsLoading.value = true
@@ -1035,6 +1069,15 @@
       rotating.value = false
     }
   }
+  async function toggleRegisterInReports (register, value) {
+    try {
+      await setRegisterHiddenFromReports(register.id, !value)
+      register.hidden_from_reports = !value
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
+
 </script>
 
 <style scoped>

@@ -8217,6 +8217,20 @@ func (mr *MockStoreMockRecorder) SetBranchActive(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchActive", reflect.TypeOf((*MockStore)(nil).SetBranchActive), arg0, arg1)
 }
 
+// SetBranchHiddenFromReports mocks base method.
+func (m *MockStore) SetBranchHiddenFromReports(arg0 context.Context, arg1 db.SetBranchHiddenFromReportsParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetBranchHiddenFromReports", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetBranchHiddenFromReports indicates an expected call of SetBranchHiddenFromReports.
+func (mr *MockStoreMockRecorder) SetBranchHiddenFromReports(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchHiddenFromReports", reflect.TypeOf((*MockStore)(nil).SetBranchHiddenFromReports), arg0, arg1)
+}
+
 // SetBranchInventory mocks base method.
 func (m *MockStore) SetBranchInventory(arg0 context.Context, arg1 db.SetBranchInventoryParams) error {
 	m.ctrl.T.Helper()
@@ -8243,6 +8257,20 @@ func (m *MockStore) SetBranchRegisterActive(arg0 context.Context, arg1 db.SetBra
 func (mr *MockStoreMockRecorder) SetBranchRegisterActive(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchRegisterActive", reflect.TypeOf((*MockStore)(nil).SetBranchRegisterActive), arg0, arg1)
+}
+
+// SetBranchRegisterHiddenFromReports mocks base method.
+func (m *MockStore) SetBranchRegisterHiddenFromReports(arg0 context.Context, arg1 db.SetBranchRegisterHiddenFromReportsParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetBranchRegisterHiddenFromReports", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetBranchRegisterHiddenFromReports indicates an expected call of SetBranchRegisterHiddenFromReports.
+func (mr *MockStoreMockRecorder) SetBranchRegisterHiddenFromReports(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchRegisterHiddenFromReports", reflect.TypeOf((*MockStore)(nil).SetBranchRegisterHiddenFromReports), arg0, arg1)
 }
 
 // SetBranchRegisterQuickAccessMode mocks base method.

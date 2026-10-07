@@ -15,7 +15,7 @@ INSERT INTO branches (
   name,
   code
 ) VALUES ( $1, $2 )
-RETURNING id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at
+RETURNING id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports
 `
 
 type CreateBranchParams struct {
@@ -36,12 +36,13 @@ func (q *Queries) CreateBranch(ctx context.Context, arg CreateBranchParams) (Bra
 		&i.InventoryID,
 		&i.Timezone,
 		&i.QuickAccessInitializedAt,
+		&i.HiddenFromReports,
 	)
 	return i, err
 }
 
 const getBranch = `-- name: GetBranch :one
-SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at FROM branches
+SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports FROM branches
 WHERE id = $1 LIMIT 1
 `
 
@@ -58,12 +59,13 @@ func (q *Queries) GetBranch(ctx context.Context, id int64) (Branch, error) {
 		&i.InventoryID,
 		&i.Timezone,
 		&i.QuickAccessInitializedAt,
+		&i.HiddenFromReports,
 	)
 	return i, err
 }
 
 const getBranchByCode = `-- name: GetBranchByCode :one
-SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at FROM branches
+SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports FROM branches
 WHERE code = $1 LIMIT 1
 `
 
@@ -80,12 +82,13 @@ func (q *Queries) GetBranchByCode(ctx context.Context, code string) (Branch, err
 		&i.InventoryID,
 		&i.Timezone,
 		&i.QuickAccessInitializedAt,
+		&i.HiddenFromReports,
 	)
 	return i, err
 }
 
 const getBranchByCodeExcluding = `-- name: GetBranchByCodeExcluding :one
-SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at FROM branches
+SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports FROM branches
 WHERE code = $1 AND id != $2 AND is_active LIMIT 1
 `
 
@@ -109,12 +112,13 @@ func (q *Queries) GetBranchByCodeExcluding(ctx context.Context, arg GetBranchByC
 		&i.InventoryID,
 		&i.Timezone,
 		&i.QuickAccessInitializedAt,
+		&i.HiddenFromReports,
 	)
 	return i, err
 }
 
 const listBranches = `-- name: ListBranches :many
-SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at FROM branches
+SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports FROM branches
 ORDER BY name
 `
 
@@ -137,6 +141,7 @@ func (q *Queries) ListBranches(ctx context.Context) ([]Branch, error) {
 			&i.InventoryID,
 			&i.Timezone,
 			&i.QuickAccessInitializedAt,
+			&i.HiddenFromReports,
 		); err != nil {
 			return nil, err
 		}
@@ -209,6 +214,22 @@ type SetBranchActiveParams struct {
 
 func (q *Queries) SetBranchActive(ctx context.Context, arg SetBranchActiveParams) error {
 	_, err := q.db.ExecContext(ctx, setBranchActive, arg.ID, arg.IsActive)
+	return err
+}
+
+const setBranchHiddenFromReports = `-- name: SetBranchHiddenFromReports :exec
+UPDATE branches
+SET hidden_from_reports = $2
+WHERE id = $1
+`
+
+type SetBranchHiddenFromReportsParams struct {
+	ID                int64 `json:"id"`
+	HiddenFromReports bool  `json:"hidden_from_reports"`
+}
+
+func (q *Queries) SetBranchHiddenFromReports(ctx context.Context, arg SetBranchHiddenFromReportsParams) error {
+	_, err := q.db.ExecContext(ctx, setBranchHiddenFromReports, arg.ID, arg.HiddenFromReports)
 	return err
 }
 

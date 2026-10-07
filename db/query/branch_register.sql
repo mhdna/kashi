@@ -53,3 +53,8 @@ WHERE branches.id = (SELECT branch_id FROM r);
 UPDATE branch_registers
 SET reported_settings = $2, reported_settings_at = now()
 WHERE id = $1;
+
+-- name: SetBranchRegisterHiddenFromReports :exec
+UPDATE branch_registers
+SET hidden_from_reports = $2
+WHERE id = $1;

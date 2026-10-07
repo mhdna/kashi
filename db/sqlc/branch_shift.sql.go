@@ -13,7 +13,9 @@ import (
 
 const countBranchShifts = `-- name: CountBranchShifts :one
 SELECT COUNT(*) FROM branch_shifts
-WHERE $1::bigint IS NULL OR branch_id = $1
+WHERE ($1::bigint IS NULL OR branch_id = $1)
+  AND branch_shifts.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND branch_shifts.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 `
 
 func (q *Queries) CountBranchShifts(ctx context.Context, branchID sql.NullInt64) (int64, error) {
@@ -222,7 +224,9 @@ SELECT
     WHERE branch_shift_receipt_images.branch_shift_id = branch_shifts.id
   ) AS has_receipt_image
 FROM branch_shifts
-WHERE $3::bigint IS NULL OR branch_id = $3
+WHERE ($3::bigint IS NULL OR branch_id = $3)
+  AND branch_shifts.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND branch_shifts.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 ORDER BY id DESC
 LIMIT $1 OFFSET $2
 `

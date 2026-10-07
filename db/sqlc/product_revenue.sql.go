@@ -37,6 +37,8 @@ LEFT JOIN products_attributes brand_pa ON brand_pa.product_id = p.id AND brand_p
 LEFT JOIN attributes_values brand_val ON brand_val.id = brand_pa.attribute_value_id
 WHERE sm.reason = 'sale'
   AND sm.reference_type = 'branch_invoice'
+  AND b.id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND NOT EXISTS (SELECT 1 FROM branch_invoices hbi JOIN branch_registers hr ON hr.id = hbi.register_id WHERE hbi.id = sm.reference_id AND hr.hidden_from_reports)
   AND sm.created_at >= $1::timestamptz
   AND sm.created_at < $2::timestamptz
   AND ($3::bigint IS NULL OR b.id = $3)
@@ -144,6 +146,8 @@ LEFT JOIN products_attributes subcat_pa ON subcat_pa.product_id = p.id AND subca
 LEFT JOIN products_attributes brand_pa ON brand_pa.product_id = p.id AND brand_pa.attribute_id = 2
 WHERE sm.reason = 'sale'
   AND sm.reference_type = 'branch_invoice'
+  AND b.id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND NOT EXISTS (SELECT 1 FROM branch_invoices hbi JOIN branch_registers hr ON hr.id = hbi.register_id WHERE hbi.id = sm.reference_id AND hr.hidden_from_reports)
   AND sm.created_at >= $1::timestamptz
   AND sm.created_at < $2::timestamptz
   AND ($3::bigint IS NULL OR b.id = $3)
@@ -218,6 +222,8 @@ LEFT JOIN products_attributes subcat_pa ON subcat_pa.product_id = p.id AND subca
 LEFT JOIN products_attributes brand_pa ON brand_pa.product_id = p.id AND brand_pa.attribute_id = 2
 WHERE sm.reason = 'sale'
   AND sm.reference_type = 'branch_invoice'
+  AND b.id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND NOT EXISTS (SELECT 1 FROM branch_invoices hbi JOIN branch_registers hr ON hr.id = hbi.register_id WHERE hbi.id = sm.reference_id AND hr.hidden_from_reports)
   AND sm.created_at >= $1::timestamptz
   AND sm.created_at < $2::timestamptz
   AND ($3::bigint IS NULL OR cat_pa.attribute_value_id = $3)

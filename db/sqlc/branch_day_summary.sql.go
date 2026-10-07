@@ -28,6 +28,7 @@ WHERE be.occurred_at >= ($1::date - 1)
   AND be.occurred_at < ($1::date + 2)
   AND (be.occurred_at AT TIME ZONE b.timezone)::date = $1::date
   AND ($2::bigint IS NULL OR be.branch_id = $2)
+  AND be.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 ORDER BY be.occurred_at
 `
 
@@ -100,6 +101,8 @@ WHERE s.occurred_at >= ($1::date - 1)
   AND s.occurred_at < ($1::date + 2)
   AND (s.occurred_at AT TIME ZONE b.timezone)::date = $1::date
   AND ($2::bigint IS NULL OR s.branch_id = $2)
+  AND s.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND s.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 ORDER BY s.occurred_at
 `
 
@@ -181,6 +184,8 @@ WHERE bi.occurred_at >= ($1::date - 1)
   AND bi.occurred_at < ($1::date + 2)
   AND (bi.occurred_at AT TIME ZONE b.timezone)::date = $1::date
   AND ($2::bigint IS NULL OR bi.branch_id = $2)
+  AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 ORDER BY bi.occurred_at DESC, bi.id DESC
 LIMIT 1000
 `
@@ -251,6 +256,8 @@ WHERE bi.occurred_at >= ($1::date - 1)
   AND bi.occurred_at < ($1::date + 2)
   AND (bi.occurred_at AT TIME ZONE b.timezone)::date = $1::date
   AND ($2::bigint IS NULL OR bi.branch_id = $2)
+  AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 GROUP BY bip.account_name
 ORDER BY total DESC
 `
@@ -302,6 +309,8 @@ WITH day_invoices AS (
     AND bi.occurred_at < ($1::date + 2)
     AND (bi.occurred_at AT TIME ZONE b.timezone)::date = $1::date
     AND ($2::bigint IS NULL OR bi.branch_id = $2)
+    AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+    AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 ),
 item_qty AS (
   SELECT bii.branch_invoice_id, SUM(bii.quantity)::bigint AS qty
@@ -401,6 +410,8 @@ WHERE bi.occurred_at >= ($1::date - 1)
   AND bi.occurred_at < ($1::date + 2)
   AND (bi.occurred_at AT TIME ZONE b.timezone)::date = $1::date
   AND ($2::bigint IS NULL OR bi.branch_id = $2)
+  AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 GROUP BY hour
 ORDER BY hour
 `
@@ -452,6 +463,8 @@ WHERE bi.occurred_at >= ($1::date - 1)
   AND bi.occurred_at < ($1::date + 2)
   AND (bi.occurred_at AT TIME ZONE b.timezone)::date = $1::date
   AND ($2::bigint IS NULL OR bi.branch_id = $2)
+  AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 GROUP BY bi.salesperson_name
 ORDER BY net_total DESC
 `
@@ -507,6 +520,8 @@ WHERE bi.kind = 'sales'
   AND bi.occurred_at < ($1::date + 2)
   AND (bi.occurred_at AT TIME ZONE b.timezone)::date = $1::date
   AND ($2::bigint IS NULL OR bi.branch_id = $2)
+  AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 GROUP BY p.id, p.name, p.code
 ORDER BY revenue DESC
 LIMIT 15
@@ -566,6 +581,7 @@ FROM branch_visitor_events e
 JOIN branches b ON b.id = e.branch_id
 WHERE e.day = $1::text
   AND ($2::bigint IS NULL OR e.branch_id = $2)
+  AND e.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 GROUP BY hour
 ORDER BY hour
 `

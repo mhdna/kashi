@@ -35,7 +35,8 @@ func (q *Queries) BranchShiftIsClosed(ctx context.Context, arg BranchShiftIsClos
 
 const countBranchInvoiceSettlements = `-- name: CountBranchInvoiceSettlements :one
 SELECT COUNT(*) FROM branch_invoice_settlements
-WHERE $1::bigint IS NULL OR branch_id = $1
+WHERE ($1::bigint IS NULL OR branch_id = $1)
+  AND branch_invoice_settlements.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 `
 
 func (q *Queries) CountBranchInvoiceSettlements(ctx context.Context, branchID sql.NullInt64) (int64, error) {
@@ -193,7 +194,8 @@ func (q *Queries) ListBranchInvoiceSettlementPayments(ctx context.Context, branc
 
 const listBranchInvoiceSettlements = `-- name: ListBranchInvoiceSettlements :many
 SELECT id, branch_id, client_ref, sale_client_ref, grand_total, occurred_at, received_at, status FROM branch_invoice_settlements
-WHERE $3::bigint IS NULL OR branch_id = $3
+WHERE ($3::bigint IS NULL OR branch_id = $3)
+  AND branch_invoice_settlements.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 ORDER BY id DESC
 LIMIT $1 OFFSET $2
 `

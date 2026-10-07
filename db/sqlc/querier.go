@@ -1126,8 +1126,10 @@ type Querier interface {
 	ResolveVariantPrices(ctx context.Context, arg ResolveVariantPricesParams) ([]ResolveVariantPricesRow, error)
 	SetAssetCost(ctx context.Context, arg SetAssetCostParams) error
 	SetBranchActive(ctx context.Context, arg SetBranchActiveParams) error
+	SetBranchHiddenFromReports(ctx context.Context, arg SetBranchHiddenFromReportsParams) error
 	SetBranchInventory(ctx context.Context, arg SetBranchInventoryParams) error
 	SetBranchRegisterActive(ctx context.Context, arg SetBranchRegisterActiveParams) error
+	SetBranchRegisterHiddenFromReports(ctx context.Context, arg SetBranchRegisterHiddenFromReportsParams) error
 	// Later flip wins: a flip only applies if it's newer than the one stored, so
 	// a till's offline flip that arrives late can't undo a more recent one made
 	// in kashi (or vice versa). 0 rows = this flip was older, ignored.

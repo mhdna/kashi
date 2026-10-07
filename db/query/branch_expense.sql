@@ -30,6 +30,7 @@ LIMIT 1;
 -- ListBranchInvoices' admin-filter convention. search '' means no filter.
 SELECT * FROM branch_expenses
 WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND branch_expenses.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND (sqlc.arg(search)::text = '' OR description ILIKE '%' || sqlc.arg(search)::text || '%')
 ORDER BY id DESC
 LIMIT $1 OFFSET $2;
@@ -37,4 +38,5 @@ LIMIT $1 OFFSET $2;
 -- name: CountBranchExpenses :one
 SELECT COUNT(*) FROM branch_expenses
 WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND branch_expenses.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND (sqlc.arg(search)::text = '' OR description ILIKE '%' || sqlc.arg(search)::text || '%');

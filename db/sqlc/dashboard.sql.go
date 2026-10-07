@@ -19,6 +19,7 @@ SELECT (
       AND be.occurred_at >= $2::timestamptz
       AND be.occurred_at < $3::timestamptz
       AND ($4::bigint IS NULL OR be.branch_id = $4)
+      AND be.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   )
   +
   (
@@ -79,6 +80,8 @@ SELECT (
       AND b.occurred_at >= $2::timestamptz
       AND b.occurred_at < $3::timestamptz
       AND ($4::bigint IS NULL OR b.branch_id = $4)
+      AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+      AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   )
   +
   (
@@ -127,6 +130,8 @@ WITH activities AS (
     AND b.received_at >= $4::timestamptz
     AND b.received_at < $5::timestamptz
     AND ($6::bigint IS NULL OR b.branch_id = $6)
+    AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+    AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 
   UNION ALL
   SELECT 'Expense', e.branch_id, br.name, e.description,
@@ -137,6 +142,7 @@ WITH activities AS (
     AND e.received_at >= $4::timestamptz
     AND e.received_at < $5::timestamptz
     AND ($6::bigint IS NULL OR e.branch_id = $6)
+    AND e.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 
   UNION ALL
   SELECT 'Loan', l.branch_id, br.name, l.description,
@@ -148,6 +154,7 @@ WITH activities AS (
     AND l.received_at >= $4::timestamptz
     AND l.received_at < $5::timestamptz
     AND ($6::bigint IS NULL OR l.branch_id = $6)
+    AND l.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 
   UNION ALL
   SELECT 'Shift closed', s.branch_id, br.name,
@@ -159,6 +166,8 @@ WITH activities AS (
     AND s.received_at >= $4::timestamptz
     AND s.received_at < $5::timestamptz
     AND ($6::bigint IS NULL OR s.branch_id = $6)
+    AND s.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+    AND s.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 
   UNION ALL
   SELECT 'Settlement changed', s.branch_id, br.name,
@@ -170,6 +179,7 @@ WITH activities AS (
     AND s.received_at >= $4::timestamptz
     AND s.received_at < $5::timestamptz
     AND ($6::bigint IS NULL OR s.branch_id = $6)
+    AND s.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 
   UNION ALL
   SELECT 'Attendance', a.branch_id, br.name,
@@ -181,6 +191,7 @@ WITH activities AS (
     AND a.received_at >= $4::timestamptz
     AND a.received_at < $5::timestamptz
     AND ($6::bigint IS NULL OR a.branch_id = $6)
+    AND a.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 
   UNION ALL
   SELECT 'Attendance changed', a.branch_id, br.name,
@@ -192,6 +203,7 @@ WITH activities AS (
     AND a.received_at >= $4::timestamptz
     AND a.received_at < $5::timestamptz
     AND ($6::bigint IS NULL OR a.branch_id = $6)
+    AND a.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 )
 SELECT activities.activity, activities.branch_id, activities.branch_name, activities.details, activities.amount, activities.currency_code, activities.synced_at, COUNT(*) OVER()::bigint AS total_count
 FROM activities
@@ -447,6 +459,7 @@ FROM branch_expenses
 WHERE occurred_at >= $1::timestamptz
   AND occurred_at < $2::timestamptz
   AND ($3::bigint IS NULL OR branch_id = $3)
+  AND branch_expenses.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 GROUP BY day
 ORDER BY day
 `
@@ -491,6 +504,7 @@ FROM branch_expenses
 WHERE occurred_at >= $1::timestamptz
   AND occurred_at < $2::timestamptz
   AND ($3::bigint IS NULL OR branch_id = $3)
+  AND branch_expenses.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 `
 
 type DashboardBranchExpensesTotalParams struct {
@@ -544,6 +558,8 @@ FROM branch_invoices
 WHERE occurred_at >= $1::timestamptz
   AND occurred_at < $2::timestamptz
   AND ($3::bigint IS NULL OR branch_id = $3)
+  AND branch_invoices.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND branch_invoices.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 GROUP BY day
 ORDER BY day
 `
@@ -592,6 +608,8 @@ SELECT
       AND b2.occurred_at >= $1::timestamptz
       AND b2.occurred_at < $2::timestamptz
       AND ($3::bigint IS NULL OR b2.branch_id = $3)
+      AND b2.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+      AND b2.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   ), 0)::bigint AS items_sold,
   COALESCE(SUM(b.grand_total), 0)::bigint AS revenue,
   COUNT(*) FILTER (WHERE b.kind = 'sales')::bigint AS invoices
@@ -599,6 +617,8 @@ FROM branch_invoices b
 WHERE b.occurred_at >= $1::timestamptz
   AND b.occurred_at < $2::timestamptz
   AND ($3::bigint IS NULL OR b.branch_id = $3)
+  AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 `
 
 type DashboardBranchSummaryParams struct {
@@ -629,7 +649,8 @@ SELECT (
     SELECT SUM(l.amount) FROM loans l
     WHERE (
       ($1::text IN ('all', 'branch') AND l.origin = 'branch_loan'
-        AND ($2::bigint IS NULL OR l.branch_id = $2))
+        AND ($2::bigint IS NULL OR l.branch_id = $2)
+        AND l.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports))
       OR ($1::text IN ('all', 'admin') AND l.origin = 'central_loan')
     )
   ), 0)
@@ -639,7 +660,8 @@ SELECT (
     JOIN loans l ON l.id = lp.loan_id
     WHERE (
       ($1::text IN ('all', 'branch') AND l.origin = 'branch_loan'
-        AND ($2::bigint IS NULL OR l.branch_id = $2))
+        AND ($2::bigint IS NULL OR l.branch_id = $2)
+        AND l.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports))
       OR ($1::text IN ('all', 'admin') AND l.origin = 'central_loan')
     )
   ), 0)
@@ -691,6 +713,7 @@ FROM (
     AND be.occurred_at >= $4::timestamptz
     AND be.occurred_at < $5::timestamptz
     AND ($6::bigint IS NULL OR be.branch_id = $6)
+    AND be.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 
   UNION ALL
 
@@ -943,6 +966,8 @@ FROM (
     AND b.occurred_at >= $4::timestamptz
     AND b.occurred_at < $5::timestamptz
     AND ($6::bigint IS NULL OR b.branch_id = $6)
+    AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+    AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 
   UNION ALL
 
@@ -1033,6 +1058,8 @@ SELECT
     FROM branch_invoices bi
     WHERE bi.branch_id = t.branch_id
       AND (bi.occurred_at AT TIME ZONE 'UTC')::date BETWEEN t.date_from AND t.date_to
+      AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+      AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   ), 0)::bigint AS revenue
 FROM branch_targets t
 JOIN branches b ON b.id = t.branch_id
@@ -1110,7 +1137,8 @@ FROM loans l
 LEFT JOIN branches b ON b.id = l.branch_id
 WHERE (
     ($1::text IN ('all', 'branch') AND l.origin = 'branch_loan'
-      AND ($2::bigint IS NULL OR l.branch_id = $2))
+      AND ($2::bigint IS NULL OR l.branch_id = $2)
+      AND l.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports))
     OR ($1::text IN ('all', 'admin') AND l.origin = 'central_loan')
   )
   AND (l.amount - COALESCE((

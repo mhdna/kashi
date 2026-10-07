@@ -36,7 +36,8 @@ const countBranchVisitorDays = `-- name: CountBranchVisitorDays :one
 SELECT COUNT(*) FROM (
   SELECT 1
   FROM branch_visitor_events
-  WHERE $1::bigint IS NULL OR branch_id = $1
+  WHERE ($1::bigint IS NULL OR branch_id = $1)
+    AND branch_visitor_events.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   GROUP BY branch_id, day
 ) t
 `
@@ -123,7 +124,8 @@ SELECT
   COUNT(*) FILTER (WHERE direction = 'in')  AS in_count,
   COUNT(*) FILTER (WHERE direction = 'out') AS out_count
 FROM branch_visitor_events
-WHERE $3::bigint IS NULL OR branch_id = $3
+WHERE ($3::bigint IS NULL OR branch_id = $3)
+  AND branch_visitor_events.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 GROUP BY branch_id, day
 ORDER BY day DESC, branch_id
 LIMIT $1 OFFSET $2
@@ -183,6 +185,7 @@ FROM branch_visitor_events
 WHERE day >= $1
   AND day <= $2
   AND ($3::bigint IS NULL OR branch_id = $3)
+  AND branch_visitor_events.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 GROUP BY branch_id, day
 ORDER BY day, branch_id
 `

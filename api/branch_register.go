@@ -36,6 +36,7 @@ type branchRegisterResponse struct {
 	ReportedSettings   json.RawMessage `json:"reported_settings"`
 	ReportedSettingsAt sql.NullTime    `json:"reported_settings_at"`
 	CreatedAt          time.Time       `json:"created_at"`
+	HiddenFromReports  bool            `json:"hidden_from_reports"`
 }
 
 func newBranchRegisterResponse(register db.BranchRegister) branchRegisterResponse {
@@ -53,6 +54,7 @@ func newBranchRegisterResponse(register db.BranchRegister) branchRegisterRespons
 		ReportedSettings:   reported,
 		ReportedSettingsAt: register.ReportedSettingsAt,
 		CreatedAt:          register.CreatedAt,
+		HiddenFromReports:  register.HiddenFromReports,
 	}
 }
 
@@ -247,6 +249,32 @@ func (server *Server) setBranchRegisterActive(active bool) gin.HandlerFunc {
 			return
 		}
 		server.writeJSON(ctx, http.StatusOK, envelope{"id": uri.ID, "is_active": active})
+	}
+}
+
+func (server *Server) setBranchRegisterHiddenFromReports(hidden bool) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var uri branchRegisterIDRequest
+		if err := ctx.ShouldBindUri(&uri); err != nil {
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		if _, err := server.store.GetBranchRegister(ctx, uri.ID); err != nil {
+			if err == sql.ErrNoRows {
+				server.writeError(ctx, http.StatusNotFound, err)
+				return
+			}
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		if err := server.store.SetBranchRegisterHiddenFromReports(ctx, db.SetBranchRegisterHiddenFromReportsParams{
+			ID:                uri.ID,
+			HiddenFromReports: hidden,
+		}); err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		server.writeJSON(ctx, http.StatusOK, envelope{"id": uri.ID, "hidden_from_reports": hidden})
 	}
 }
 

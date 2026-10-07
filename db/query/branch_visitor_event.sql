@@ -25,7 +25,8 @@ SELECT
   COUNT(*) FILTER (WHERE direction = 'in')  AS in_count,
   COUNT(*) FILTER (WHERE direction = 'out') AS out_count
 FROM branch_visitor_events
-WHERE sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id)
+WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND branch_visitor_events.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 GROUP BY branch_id, day
 ORDER BY day DESC, branch_id
 LIMIT $1 OFFSET $2;
@@ -34,7 +35,8 @@ LIMIT $1 OFFSET $2;
 SELECT COUNT(*) FROM (
   SELECT 1
   FROM branch_visitor_events
-  WHERE sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id)
+  WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+    AND branch_visitor_events.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   GROUP BY branch_id, day
 ) t;
 
@@ -52,6 +54,7 @@ FROM branch_visitor_events
 WHERE day >= sqlc.arg(from_day)
   AND day <= sqlc.arg(to_day)
   AND (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND branch_visitor_events.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 GROUP BY branch_id, day
 ORDER BY day, branch_id;
 
