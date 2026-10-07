@@ -11,12 +11,12 @@
             :style="{ '--home-logo-color': logoColor, '--home-logo-image': `url(${appLogo})` }"
           />
           <AppLogo v-else class="mx-auto" />
+          <p v-if="appVersion || appCommit" class="mt-2 mb-0 text-caption text-disabled build-info">
+            {{ [appVersion, appCommit].filter(Boolean).join(' · ') }}
+          </p>
           <h1 class="mt-5 text-h5 font-weight-medium">Welcome to Kashi Cloud</h1>
           <p class="mt-2 text-body-2 text-medium-emphasis month-summary">
             {{ monthSummary || "Here's what's new." }}
-          </p>
-          <p v-if="appVersion || appCommit" class="mt-1 text-caption text-disabled build-info">
-            {{ [appVersion, appCommit].filter(Boolean).join(' · ') }}
           </p>
         </section>
 
@@ -29,8 +29,8 @@
             <v-icon class="me-2 text-medium-emphasis" icon="mdi-account-group" size="18" />
             <span class="text-body-2 font-weight-medium">IT Management</span>
             <v-spacer />
-            <span v-if="today" class="text-caption text-medium-emphasis">
-              {{ todayLabel(today.admin_activities, 'changes') }}
+            <span v-if="recentCounts" class="text-caption text-medium-emphasis">
+              {{ recentLabel(recentCounts.admin_activities, 'changes') }}
             </span>
             <v-skeleton-loader
               v-else
@@ -89,8 +89,8 @@
             <v-icon class="me-2 text-medium-emphasis" icon="mdi-history" size="18" />
             <span class="text-body-2 font-weight-medium">Recent activity</span>
             <v-spacer />
-            <span v-if="today" class="text-caption text-medium-emphasis">
-              {{ todayLabel(today.activities, 'synced') }}
+            <span v-if="recentCounts" class="text-caption text-medium-emphasis">
+              {{ recentLabel(recentCounts.activities, 'synced') }}
             </span>
             <v-skeleton-loader
               v-else
@@ -175,8 +175,8 @@
             <v-icon class="me-2 text-medium-emphasis" icon="mdi-image-multiple-outline" size="18" />
             <span class="text-body-2 font-weight-medium">Latest added</span>
             <v-spacer />
-            <span v-if="today" class="text-caption text-medium-emphasis">
-              {{ todayLabel(today.latest, 'added') }}
+            <span v-if="recentCounts" class="text-caption text-medium-emphasis">
+              {{ recentLabel(recentCounts.latest, 'added') }}
             </span>
             <v-skeleton-loader
               v-else
@@ -469,7 +469,7 @@
       kashiRefreshTimer = setTimeout(() => {
         reloadKashi()
         reloadLatest()
-        reloadToday()
+        reloadRecentCounts()
       }, 500)
       return
     }
@@ -477,30 +477,32 @@
     clearTimeout(refreshTimer)
     refreshTimer = setTimeout(() => {
       reload()
-      reloadToday()
+      reloadRecentCounts()
     }, 500)
   })
 
-  // "N today" beside each feed title (api/home_latest.go getHomeToday).
-  // Counted from the start of the viewer's local day, not the server's UTC
-  // one; a feed the user can't view comes back null. Refreshed alongside
-  // the feeds, so it also rolls over at midnight on the next refresh.
-  const today = ref(null)
+  // "N in the last 48h" beside each feed title (api/home_latest.go
+  // getHomeToday, which counts from whatever `since` it's given). A rolling
+  // window rather than "today", so the counts don't drop to zero first thing
+  // in the morning; a feed the user can't view comes back null. Refreshed
+  // alongside the feeds.
+  const RECENT_HOURS = 48
+  const recentCounts = ref(null)
 
-  async function reloadToday () {
-    const midnight = new Date()
-    midnight.setHours(0, 0, 0, 0)
+  async function reloadRecentCounts () {
+    const since = new Date(Date.now() - RECENT_HOURS * 60 * 60 * 1000)
     try {
-      const response = await authFetch(`${API_BASE}/home/today?since=${encodeURIComponent(midnight.toISOString())}`)
-      if (response.ok) today.value = await response.json()
+      const response = await authFetch(`${API_BASE}/home/today?since=${encodeURIComponent(since.toISOString())}`)
+      if (response.ok) recentCounts.value = await response.json()
     } catch {
       // Informational -- the next refresh tries again.
     }
   }
 
-  function todayLabel (count, kind) {
-    if (kind === 'changes') return `${count} change${count === 1 ? '' : 's'} today`
-    return `${count} ${kind} today`
+  function recentLabel (count, kind) {
+    const suffix = `in the last ${RECENT_HOURS}h`
+    if (kind === 'changes') return `${count} change${count === 1 ? '' : 's'} ${suffix}`
+    return `${count} ${kind} ${suffix}`
   }
 
   // "In kashi": what people changed in kashi itself -- a transfer created,
@@ -656,10 +658,10 @@
     reloadKashi()
     reloadLatest()
     loadMonthSummary()
-    reloadToday()
+    reloadRecentCounts()
     latestPoll = setInterval(() => {
       reloadLatest()
-      reloadToday()
+      reloadRecentCounts()
     }, 60_000)
   })
   onUnmounted(() => {

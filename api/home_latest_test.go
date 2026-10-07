@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"testing"
 	"time"
@@ -27,18 +28,23 @@ func TestListLatestAdditions_AdminSeesEveryKind(t *testing.T) {
 	require.Contains(t, rec.Body.String(), "Transfer T-3")
 }
 
-// An admin gets all three counts, each from the viewer's local midnight;
-// the activity count comes from the feed's own windowed total.
+// An admin gets all three counts, each from `since` up to now; the activity
+// count comes from the feed's own windowed total.
 func TestGetHomeToday_AdminGetsEveryCount(t *testing.T) {
 	since := time.Date(2026, 10, 7, 21, 0, 0, 0, time.UTC)
 	ctrl := gomock.NewController(t)
 	store := mockdb.NewMockStore(ctrl)
 	store.EXPECT().CountAdminActivitiesSince(gomock.Any(), since).Return(int64(25), nil)
+	start := time.Now()
 	store.EXPECT().
-		DashboardActivitiesList(gomock.Any(), db.DashboardActivitiesListParams{
-			Scope: "all", DateFrom: since, DateTo: since.AddDate(0, 0, 1), PageSize: 1,
-		}).
-		Return([]db.DashboardActivitiesListRow{{TotalCount: 140}}, nil)
+		DashboardActivitiesList(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, arg db.DashboardActivitiesListParams) ([]db.DashboardActivitiesListRow, error) {
+			require.Equal(t, "all", arg.Scope)
+			require.True(t, arg.DateFrom.Equal(since))
+			require.Equal(t, int32(1), arg.PageSize)
+			require.WithinRange(t, arg.DateTo, start, time.Now())
+			return []db.DashboardActivitiesListRow{{TotalCount: 140}}, nil
+		})
 	store.EXPECT().
 		CountLatestAdditionsSince(gomock.Any(), db.CountLatestAdditionsSinceParams{
 			IncludeAccounting: true, IncludeHr: true, IncludeInventory: true, Since: since,
@@ -51,7 +57,7 @@ func TestGetHomeToday_AdminGetsEveryCount(t *testing.T) {
 	require.JSONEq(t, `{"admin_activities":25,"activities":140,"latest":3}`, rec.Body.String())
 }
 
-// Without `since` there's no "today" to count from.
+// Without `since` there's no window to count from.
 func TestGetHomeToday_RequiresSince(t *testing.T) {
 	server := newTestServer(t, mockdb.NewMockStore(gomock.NewController(t)))
 	rec := adminRequest(t, server, http.MethodGet, "/home/today", nil)

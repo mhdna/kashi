@@ -35,10 +35,9 @@ func (server *Server) listLatestAdditions(ctx *gin.Context) {
 	server.writeJSON(ctx, http.StatusOK, envelope{"items": rows})
 }
 
-// getHomeToday backs the "N today" counts beside the home page's three feed
-// titles. `since` is the start of the viewer's local day (an RFC3339
-// instant) -- the server's UTC day would roll over hours off from the
-// shop's. Each count is null when the user can't view that feed, mirroring
+// getHomeToday backs the "N in the last 48h" counts beside the home page's
+// three feed titles: everything from `since` (an RFC3339 instant the client
+// picks) up to now. Each count is null when the user can't view that feed, mirroring
 // the access checks of the feed's own route.
 func (server *Server) getHomeToday(ctx *gin.Context) {
 	var req struct {
@@ -65,7 +64,7 @@ func (server *Server) getHomeToday(ctx *gin.Context) {
 	// count rides on every row, so one row is enough.
 	if access.canView("analytics") {
 		rows, err := server.store.DashboardActivitiesList(ctx, db.DashboardActivitiesListParams{
-			Scope: "all", DateFrom: req.Since, DateTo: req.Since.AddDate(0, 0, 1),
+			Scope: "all", DateFrom: req.Since, DateTo: time.Now(),
 			PageSize: 1, PageID: 0,
 		})
 		if err != nil {
