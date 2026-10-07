@@ -33,7 +33,6 @@ export const navItems = [
   },
   { title: 'Commands', icon: 'mdi-console-line', to: '/branch-commands', append: 'commands-status' },
   { title: 'Conflicts', icon: 'mdi-source-branch-sync', to: '/branch-conflicts', append: 'conflicts-status' },
-  { title: 'App Updates', icon: 'mdi-update', to: '/app-updates' },
   {
     title: 'Wholesale',
     icon: 'mdi-cart',
@@ -120,5 +119,6 @@ export const appendItems = [
   { title: 'Storage', icon: 'mdi-google-drive', to: '/storage' },
   { title: 'Dev Logs', icon: 'mdi-code-tags', to: '/logs' },
   { title: 'Audit Log', icon: 'mdi-history', to: '/audit-log' },
+  { title: 'App Updates', icon: 'mdi-update', to: '/app-updates' },
   { title: 'Settings', icon: 'mdi-cog-outline', to: '/settings' },
 ]
