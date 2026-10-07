@@ -323,8 +323,8 @@ SELECT
   b.name AS branch_name,
   COUNT(*) FILTER (WHERE di.kind = 'sales')::bigint AS sales_count,
   COALESCE(SUM(di.grand_total) FILTER (WHERE di.kind = 'sales'), 0)::bigint AS sales_total,
-  COUNT(*) FILTER (WHERE di.kind = 'return')::bigint AS return_count,
-  COALESCE(SUM(di.grand_total) FILTER (WHERE di.kind = 'return'), 0)::bigint AS return_total,
+  COUNT(*) FILTER (WHERE di.kind IN ('return', 'exchange'))::bigint AS return_count,
+  COALESCE(SUM(di.grand_total) FILTER (WHERE di.kind IN ('return', 'exchange')), 0)::bigint AS return_total,
   COALESCE(SUM(di.grand_total), 0)::bigint AS net_total,
   COALESCE(SUM(iq.qty) FILTER (WHERE di.kind = 'sales'), 0)::bigint AS items_sold,
   COUNT(DISTINCT di.client_uid) FILTER (WHERE di.kind = 'sales')::bigint AS client_count

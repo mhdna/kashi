@@ -47,8 +47,8 @@
           mandatory
           variant="outlined"
         >
-          <v-btn value="central">Central</v-btn>
           <v-btn value="branch">Branch</v-btn>
+          <v-btn value="central">Central</v-btn>
           <v-btn value="visitors">Visitors</v-btn>
         </v-btn-toggle>
         <v-btn
@@ -293,7 +293,7 @@
   const branchesLoading = ref(true)
   fetchBranches().finally(() => { branchesLoading.value = false })
 
-  const tab = ref('central')
+  const tab = ref('branch')
 
   const centralHeaders = [
     { title: 'ID', key: 'id', align: 'start', width: 80 },

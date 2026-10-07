@@ -157,9 +157,16 @@ func (server *Server) branchInvoiceHistoryRows(ctx context.Context, branchID int
 			clientUID = r.ClientUid.UUID.String()
 		}
 
+		// The till only knows sales and return (an exchange is a return
+		// row on its side) and imports anything else as a sale.
+		kind := r.Kind
+		if kind == "exchange" {
+			kind = "return"
+		}
+
 		out[i] = syncBranchInvoiceHistoryRow{
 			ClientRef:              r.ClientRef,
-			Kind:                   r.Kind,
+			Kind:                   kind,
 			BranchInvoiceCode:      r.BranchInvoiceCode,
 			RelatedClientRef:       related,
 			BranchShiftID:          r.BranchShiftID,

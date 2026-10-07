@@ -177,6 +177,13 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
 	}
+	// kashi-pos posts both pure returns and exchanges to /return_invoices
+	// (its own storage doesn't tell them apart -- see tx_exchange.go). An
+	// exchange is the one carrying replacement lines, which it sends with a
+	// positive quantity next to the negative returned lines.
+	if kind == "return" && hasReplacementLine(req.Items) {
+		kind = "exchange"
+	}
 	if (kind == "return" || kind == "exchange") && req.RelatedClientRef == "" {
 		server.writeError(ctx, http.StatusBadRequest, errRelatedClientRefRequired)
 		return
@@ -317,6 +324,15 @@ func (server *Server) createBranchReturnInvoice(ctx *gin.Context) {
 
 func (server *Server) createBranchExchangeInvoice(ctx *gin.Context) {
 	server.createBranchInvoice(ctx, "exchange")
+}
+
+func hasReplacementLine(items []branchInvoiceItemRequest) bool {
+	for _, item := range items {
+		if item.Quantity > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // parseNullUUID turns an optional uid string from a till into a NullUUID;
