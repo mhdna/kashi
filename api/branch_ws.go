@@ -108,7 +108,11 @@ func (h *branchHub) expireSyncLeases(now time.Time) bool {
 // broadcastSyncingBranches tells admin UIs which branches are mid a full
 // sync now -- see branchFullSyncStart.
 func (server *Server) broadcastSyncingBranches() {
-	server.adminHub.broadcastAll(adminWSMessage{Type: "branch_sync_status_changed", BranchIDs: server.branchHub.syncingBranchIDs(time.Now())})
+	server.adminHub.broadcastAll(server.syncingBranchesMessage())
+}
+
+func (server *Server) syncingBranchesMessage() adminWSMessage {
+	return adminWSMessage{Type: "branch_sync_status_changed", BranchIDs: server.branchHub.syncingBranchIDs(time.Now())}
 }
 
 // expireSyncLeasesLoop clears lapsed full-sync leases every 30s and, when it
@@ -246,11 +250,15 @@ func (h *branchHub) broadcastAll(message branchWSMessage) {
 // broadcastBranchConnections tells admin UIs which branches and registers
 // are live now.
 func (server *Server) broadcastBranchConnections() {
-	server.adminHub.broadcastAll(adminWSMessage{
+	server.adminHub.broadcastAll(server.branchConnectionsMessage())
+}
+
+func (server *Server) branchConnectionsMessage() adminWSMessage {
+	return adminWSMessage{
 		Type:        "branch_connection_changed",
 		BranchIDs:   server.branchHub.connectedBranchIDs(),
 		RegisterIDs: server.branchHub.connectedRegisterIDs(),
-	})
+	}
 }
 
 var wsUpgrader = websocket.Upgrader{

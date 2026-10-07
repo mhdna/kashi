@@ -175,6 +175,19 @@ func (server *Server) adminWS(ctx *gin.Context) {
 		server.adminHub.broadcastAll(adminWSMessage{Type: "admin_presence_changed", Users: server.adminHub.onlineUsers()})
 	}()
 
+	// The connected and syncing lists are only pushed when they change, so a
+	// tab whose socket was down a while (kashi restarting, a laptop asleep)
+	// would keep whatever it last heard: a till that reconnected meanwhile
+	// stays missing from the connected-branches pill until the next change.
+	// Send this connection both lists as they are now. It's already in
+	// adminHub, so every change from here on reaches it too.
+	for _, message := range []adminWSMessage{server.branchConnectionsMessage(), server.syncingBranchesMessage()} {
+		if err := wrapped.writeJSON(message); err != nil {
+			log.Printf("admin ws: send current branch state failed: %v", err)
+			return
+		}
+	}
+
 	// Browsers answer a ping control frame with a pong automatically at the
 	// protocol level -- no client-side JS needed -- so a server-side
 	// heartbeat alone is enough to detect a tab that's gone away without a
