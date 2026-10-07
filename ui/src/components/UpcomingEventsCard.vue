@@ -1,5 +1,13 @@
 <template>
-  <v-menu v-model="menu" :close-on-content-click="false" location="bottom center" :offset="8">
+  <!-- Hidden until the settings (hidden built-ins, day windows) and custom
+       events are in, so startup doesn't flash a different event first. -->
+  <v-menu
+    v-if="loaded"
+    v-model="menu"
+    :close-on-content-click="false"
+    location="bottom center"
+    :offset="8"
+  >
     <template #activator="{ props }">
       <v-card
         v-bind="props"
@@ -75,6 +83,8 @@
   // once on mount and refreshed whenever the dropdown is opened so events
   // just added on the calendar page show up without a reload.
   const customEvents = ref([])
+  const customLoaded = ref(false)
+  const loaded = computed(() => settingsStore.loaded && customLoaded.value)
 
   // Inline pill text scans this far; the dropdown scans the (longer) menu
   // window -- both are app settings.
@@ -159,6 +169,7 @@
 
   async function loadCustom () {
     customEvents.value = await listCalendarEvents().catch(() => [])
+    customLoaded.value = true
   }
 
   watch(menu, open => {

@@ -14,10 +14,13 @@ async function requestJSON (url, options) {
 // Shared across the nav drawer and the Conflicts page (see commandsStatus in
 // useBranchCommands for the same idea).
 const conflictSummary = ref([])
+const conflictSummaryLoaded = ref(false)
 
 // Red when a sale took stock below zero somewhere (oversold: stock needs a
 // fix), yellow for any other open conflict, green when none are open.
+// null until the first summary arrives (no dot rather than a guessed green).
 const conflictsStatus = computed(() => {
+  if (!conflictSummaryLoaded.value) {return null}
   if (conflictSummary.value.some(b => b.open_oversold > 0)) {return 'critical'}
   if (conflictSummary.value.some(b => b.open > 0)) {return 'warning'}
   return 'healthy'
@@ -57,6 +60,7 @@ export function useBranchSyncConflicts () {
   async function refreshConflictSummary () {
     const data = await requestJSON(`${API_BASE}/branch_sync_conflicts/summary`)
     conflictSummary.value = data?.branches ?? []
+    conflictSummaryLoaded.value = true
     return conflictSummary.value
   }
 

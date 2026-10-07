@@ -140,16 +140,17 @@
 
   // Real status backing the Stock Health nav dot -- green/orange/red for
   // healthy/warning/critical (see pages/stock-health.vue, api/stock_health.go).
+  // null (no dot) until the check comes back, or if it fails.
   const { fetchStockHealth } = useStockHealth()
-  const healthStatus = ref('healthy')
+  const healthStatus = ref(null)
 
   onMounted(async () => {
     if (!auth.canView('inventory')) {return}
     try {
       const health = await fetchStockHealth()
-      healthStatus.value = health?.status ?? 'healthy'
+      healthStatus.value = health?.status ?? null
     } catch {
-      healthStatus.value = 'healthy'
+      healthStatus.value = null
     }
   })
 

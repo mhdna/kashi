@@ -1,5 +1,13 @@
 <template>
-  <v-menu v-model="menu" :close-on-content-click="false" location="bottom center" :offset="8">
+  <!-- Hidden until the first connected-branches fetch settles, so startup
+       doesn't flash a red "0" before the real count arrives. -->
+  <v-menu
+    v-if="loaded"
+    v-model="menu"
+    :close-on-content-click="false"
+    location="bottom center"
+    :offset="8"
+  >
     <template #activator="{ props }">
       <v-card
         v-bind="props"
@@ -61,6 +69,7 @@
 
   const menu = ref(false)
   const connectedBranchIds = ref([])
+  const loaded = ref(false)
   let unsubscribe = null
 
   // Without a live socket we have no idea which branches are actually online,
@@ -81,13 +90,14 @@
   }
 
   onMounted(async () => {
-    await fetchBranches()
     try {
+      await fetchBranches()
       connectedBranchIds.value = await fetchConnectedBranches()
     } catch {
       // Informational only -- the WS push still keeps this current from
       // here on even if the initial fetch failed.
     }
+    loaded.value = true
     ensureConnected()
     unsubscribe = onMessage(message => {
       if (message.type === 'branch_connection_changed') {

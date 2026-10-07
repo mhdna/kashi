@@ -26,12 +26,15 @@ export const COMMAND_TYPE_LABELS = {
 // Shared across the nav drawer and the Commands page, so both show the same
 // queue and a cancel/retry on the page turns the nav dot at once.
 const summary = ref([])
+const summaryLoaded = ref(false)
 
 // Green when every command has been run, yellow while any is still queued
-// for a till.
-const commandsStatus = computed(() =>
-  summary.value.some(b => b.pending > 0) ? 'warning' : 'healthy',
-)
+// for a till. null until the first summary arrives, so the nav shows no dot
+// rather than a green one it hasn't checked.
+const commandsStatus = computed(() => {
+  if (!summaryLoaded.value) {return null}
+  return summary.value.some(b => b.pending > 0) ? 'warning' : 'healthy'
+})
 
 // The remote command channel: kashi queues a command, each target till
 // fetches it (instantly over its WebSocket, or on its next sync), runs it
@@ -41,6 +44,7 @@ export function useBranchCommands () {
   async function refreshCommandSummary () {
     const data = await requestJSON(`${API_BASE}/branch_commands/summary`)
     summary.value = data?.branches ?? []
+    summaryLoaded.value = true
     return summary.value
   }
 

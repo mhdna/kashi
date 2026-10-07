@@ -1,5 +1,13 @@
 <template>
-  <v-menu v-model="menu" :close-on-content-click="false" location="bottom center" :offset="8">
+  <!-- Hidden until the first refresh settles, so startup doesn't flash a
+       green cloud and "syncing..." before the real state is known. -->
+  <v-menu
+    v-if="loaded"
+    v-model="menu"
+    :close-on-content-click="false"
+    location="bottom center"
+    :offset="8"
+  >
     <template #activator="{ props }">
       <v-card
         v-bind="props"
