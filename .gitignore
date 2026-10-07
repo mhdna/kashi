@@ -29,3 +29,6 @@ hexdump_session.log
 
 # junk downloads
 *.torrent
+
+# Spreadsheets dropped in the repo root for one-off imports
+/*.xlsx
