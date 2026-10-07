@@ -31,7 +31,7 @@
           <template v-if="deltaPct != null">
             <v-icon :icon="deltaUp ? 'mdi-arrow-up' : 'mdi-arrow-down'" size="14" />
             {{ deltaText }}
-            <span class="text-medium-emphasis ms-1">vs last period</span>
+            <span class="text-medium-emphasis ms-1">{{ props.compareLabel }}</span>
           </template>
           <span v-else class="text-medium-emphasis">no prior period</span>
         </div>
@@ -75,6 +75,11 @@
     loading: {
       type: Boolean,
       default: false,
+    },
+    // What prevValue is, e.g. "vs last week" on the per-day page.
+    compareLabel: {
+      type: String,
+      default: 'vs last period',
     },
   })
 

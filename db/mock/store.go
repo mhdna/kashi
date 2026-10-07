@@ -6726,6 +6726,141 @@ func (mr *MockStoreMockRecorder) ListDailyIncome(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDailyIncome", reflect.TypeOf((*MockStore)(nil).ListDailyIncome), arg0, arg1)
 }
 
+// ListDayBranchExpenses mocks base method.
+func (m *MockStore) ListDayBranchExpenses(arg0 context.Context, arg1 db.ListDayBranchExpensesParams) ([]db.ListDayBranchExpensesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListDayBranchExpenses", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListDayBranchExpensesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListDayBranchExpenses indicates an expected call of ListDayBranchExpenses.
+func (mr *MockStoreMockRecorder) ListDayBranchExpenses(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDayBranchExpenses", reflect.TypeOf((*MockStore)(nil).ListDayBranchExpenses), arg0, arg1)
+}
+
+// ListDayBranchShifts mocks base method.
+func (m *MockStore) ListDayBranchShifts(arg0 context.Context, arg1 db.ListDayBranchShiftsParams) ([]db.ListDayBranchShiftsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListDayBranchShifts", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListDayBranchShiftsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListDayBranchShifts indicates an expected call of ListDayBranchShifts.
+func (mr *MockStoreMockRecorder) ListDayBranchShifts(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDayBranchShifts", reflect.TypeOf((*MockStore)(nil).ListDayBranchShifts), arg0, arg1)
+}
+
+// ListDayInvoices mocks base method.
+func (m *MockStore) ListDayInvoices(arg0 context.Context, arg1 db.ListDayInvoicesParams) ([]db.ListDayInvoicesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListDayInvoices", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListDayInvoicesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListDayInvoices indicates an expected call of ListDayInvoices.
+func (mr *MockStoreMockRecorder) ListDayInvoices(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDayInvoices", reflect.TypeOf((*MockStore)(nil).ListDayInvoices), arg0, arg1)
+}
+
+// ListDayPaymentsByAccount mocks base method.
+func (m *MockStore) ListDayPaymentsByAccount(arg0 context.Context, arg1 db.ListDayPaymentsByAccountParams) ([]db.ListDayPaymentsByAccountRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListDayPaymentsByAccount", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListDayPaymentsByAccountRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListDayPaymentsByAccount indicates an expected call of ListDayPaymentsByAccount.
+func (mr *MockStoreMockRecorder) ListDayPaymentsByAccount(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDayPaymentsByAccount", reflect.TypeOf((*MockStore)(nil).ListDayPaymentsByAccount), arg0, arg1)
+}
+
+// ListDaySalesByBranch mocks base method.
+func (m *MockStore) ListDaySalesByBranch(arg0 context.Context, arg1 db.ListDaySalesByBranchParams) ([]db.ListDaySalesByBranchRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListDaySalesByBranch", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListDaySalesByBranchRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListDaySalesByBranch indicates an expected call of ListDaySalesByBranch.
+func (mr *MockStoreMockRecorder) ListDaySalesByBranch(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDaySalesByBranch", reflect.TypeOf((*MockStore)(nil).ListDaySalesByBranch), arg0, arg1)
+}
+
+// ListDaySalesByHour mocks base method.
+func (m *MockStore) ListDaySalesByHour(arg0 context.Context, arg1 db.ListDaySalesByHourParams) ([]db.ListDaySalesByHourRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListDaySalesByHour", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListDaySalesByHourRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListDaySalesByHour indicates an expected call of ListDaySalesByHour.
+func (mr *MockStoreMockRecorder) ListDaySalesByHour(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDaySalesByHour", reflect.TypeOf((*MockStore)(nil).ListDaySalesByHour), arg0, arg1)
+}
+
+// ListDaySalesBySalesperson mocks base method.
+func (m *MockStore) ListDaySalesBySalesperson(arg0 context.Context, arg1 db.ListDaySalesBySalespersonParams) ([]db.ListDaySalesBySalespersonRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListDaySalesBySalesperson", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListDaySalesBySalespersonRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListDaySalesBySalesperson indicates an expected call of ListDaySalesBySalesperson.
+func (mr *MockStoreMockRecorder) ListDaySalesBySalesperson(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDaySalesBySalesperson", reflect.TypeOf((*MockStore)(nil).ListDaySalesBySalesperson), arg0, arg1)
+}
+
+// ListDayTopProducts mocks base method.
+func (m *MockStore) ListDayTopProducts(arg0 context.Context, arg1 db.ListDayTopProductsParams) ([]db.ListDayTopProductsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListDayTopProducts", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListDayTopProductsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListDayTopProducts indicates an expected call of ListDayTopProducts.
+func (mr *MockStoreMockRecorder) ListDayTopProducts(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDayTopProducts", reflect.TypeOf((*MockStore)(nil).ListDayTopProducts), arg0, arg1)
+}
+
+// ListDayVisitorsByHour mocks base method.
+func (m *MockStore) ListDayVisitorsByHour(arg0 context.Context, arg1 db.ListDayVisitorsByHourParams) ([]db.ListDayVisitorsByHourRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListDayVisitorsByHour", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListDayVisitorsByHourRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListDayVisitorsByHour indicates an expected call of ListDayVisitorsByHour.
+func (mr *MockStoreMockRecorder) ListDayVisitorsByHour(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDayVisitorsByHour", reflect.TypeOf((*MockStore)(nil).ListDayVisitorsByHour), arg0, arg1)
+}
+
 // ListDiscountListBranchIDs mocks base method.
 func (m *MockStore) ListDiscountListBranchIDs(arg0 context.Context, arg1 int64) ([]int64, error) {
 	m.ctrl.T.Helper()

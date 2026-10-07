@@ -1,6 +1,6 @@
 <template>
   <div ref="wrapRef" class="heatmap-wrap">
-    <table class="heatmap-table" @mouseleave="hoveredColumn = null">
+    <table class="heatmap-table">
       <thead>
         <tr>
           <th class="sticky-col day-col year-nav">
@@ -23,12 +23,7 @@
               @click="selectedYear++"
             />
           </th>
-          <th
-            v-for="(month, mi) in months"
-            :key="month"
-            :class="{ 'column-hover': hoveredColumn === mi }"
-            @mouseenter="hoveredColumn = mi"
-          >
+          <th v-for="month in months" :key="month">
             {{ month }}
           </th>
         </tr>
@@ -43,10 +38,10 @@
             :class="{
               'cell-flash': isHighlighted(mi, d),
               'cell-today': isToday(mi, d),
-              'column-hover': hoveredColumn === mi,
+              'cell-link': isOpenable(mi, d),
             }"
             :style="d <= daysInMonth[mi] ? cellStyle(get(mi, d)) : {}"
-            @mouseenter="hoveredColumn = mi"
+            @click="openDay(mi, d)"
           >
             {{ d <= daysInMonth[mi] ? format(get(mi, d)) : "" }}
           </td>
@@ -58,8 +53,7 @@
           <td
             v-for="(month, mi) in months"
             :key="month"
-            :class="['sticky-foot', { 'column-hover': hoveredColumn === mi }]"
-            @mouseenter="hoveredColumn = mi"
+            class="sticky-foot"
           >
             {{ format(monthTotals[mi]) }}
           </td>
@@ -71,6 +65,7 @@
 
 <script setup>
   import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+  import { useRouter } from 'vue-router'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useDailyIncome } from '@/composables/useDailyIncome'
   import { useIncomeFilters } from '@/pages/dashboard/composables/useIncomeFilters'
@@ -109,7 +104,6 @@
   // synced sale is visible without staring at the grid.
   const highlighted = ref(new Set())
   const highlightTimers = new Map()
-  const hoveredColumn = ref(null)
 
   function flashCell (mi, day) {
     const key = `${mi}-${day}`
@@ -140,6 +134,25 @@
   }
 
   const isToday = (mi, day) => selectedYear.value === currentYear && mi === todayMonthIndex && day === todayDay
+
+  // Every real, non-future day opens its own page (pages/daily-income-day.vue).
+  // The branch filter rides along so the day page shows the same slice the
+  // clicked cell summed.
+  const router = useRouter()
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+
+  function isOpenable (mi, day) {
+    return day <= daysInMonth.value[mi] && new Date(selectedYear.value, mi, day) <= todayStart
+  }
+
+  function openDay (mi, day) {
+    if (!isOpenable(mi, day)) return
+    const ymd = `${selectedYear.value}-${String(mi + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    router.push({
+      path: `/daily-income/${ymd}`,
+      query: selectedBranchId.value ? { branch_id: String(selectedBranchId.value) } : {},
+    })
+  }
 
   async function scrollToToday () {
     if (scrolledToToday) return
@@ -239,11 +252,8 @@
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-.heatmap-table .column-hover {
-  background-image: linear-gradient(
-    rgba(var(--v-theme-primary), 0.18),
-    rgba(var(--v-theme-primary), 0.18)
-  );
+.cell-link {
+  cursor: pointer;
 }
 
 .heatmap-table thead th {

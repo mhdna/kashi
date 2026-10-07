@@ -18,5 +18,24 @@ export function useDailyIncome () {
     return data?.days ?? []
   }
 
-  return { getDailyIncome }
+  // getDaySummary backs the per-day page a heatmap cell opens: sales split by
+  // branch / hour / salesperson / payment account, best sellers, footfall,
+  // expenses, closed shifts and the invoice list for one local YYYY-MM-DD
+  // day (see api/branch_day_summary.go). Money is in cents.
+  async function getDaySummary (day, branchId) {
+    const url = new URL(`${API_BASE}/branch_invoices/day_summary`, window.location.origin)
+    url.searchParams.set('day', day)
+    if (branchId) {
+      url.searchParams.set('branch_id', branchId)
+    }
+
+    const res = await authFetch(url.toString())
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.error || `Request failed with status ${res.status}`)
+    }
+    return res.json()
+  }
+
+  return { getDailyIncome, getDaySummary }
 }

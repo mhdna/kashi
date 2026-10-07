@@ -899,6 +899,43 @@ type Querier interface {
 	ListDueRecurringExpenses(ctx context.Context, nextDueAt time.Time) ([]RecurringExpense, error)
 	ListEmployees(ctx context.Context, arg ListEmployeesParams) ([]Employee, error)
 	ListEntries(ctx context.Context, arg ListEntriesParams) ([]Entry, error)
+	ListDayBranchExpenses(ctx context.Context, arg ListDayBranchExpensesParams) ([]ListDayBranchExpensesRow, error)
+	// Shifts closed on the day (a shift belongs to the day its till was
+	// counted, which is what the variance figures describe).
+	ListDayBranchShifts(ctx context.Context, arg ListDayBranchShiftsParams) ([]ListDayBranchShiftsRow, error)
+	// Every invoice of the day, newest first. Capped well above a real day's
+	// volume; the page only lists them.
+	ListDayInvoices(ctx context.Context, arg ListDayInvoicesParams) ([]ListDayInvoicesRow, error)
+	// How the day's money came in, by the branch-reported account display name
+	// (cashbox accounts aren't shared across the branch boundary -- see
+	// migration 000054).
+	ListDayPaymentsByAccount(ctx context.Context, arg ListDayPaymentsByAccountParams) ([]ListDayPaymentsByAccountRow, error)
+	// Queries backing the Daily Income heatmap's per-day drill-down page
+	// (GET /branch_invoices/day_summary). Every query scopes to one *local*
+	// calendar day: occurred_at converted to the owning branch's timezone, the
+	// same rule ListDailyIncome uses to bucket the heatmap cell that was
+	// clicked, so the page's totals always agree with that cell.
+	//
+	// The occurred_at range against day-1 .. day+2 is a coarse prefilter that
+	// keeps idx_branch_invoices_occurred_at usable (a per-row AT TIME ZONE
+	// can't use the index on its own); two days of slack on either side covers
+	// every real timezone offset, and the AT TIME ZONE equality does the exact
+	// cut.
+	// Per-branch totals for the day. net_total is the plain grand_total sum
+	// across sales and returns, same signed-return convention as
+	// ListDailyIncome, so the page's headline matches the heatmap cell.
+	ListDaySalesByBranch(ctx context.Context, arg ListDaySalesByBranchParams) ([]ListDaySalesByBranchRow, error)
+	// Local-hour buckets (0-23); hours with no invoices are absent and the
+	// frontend fills zeros.
+	ListDaySalesByHour(ctx context.Context, arg ListDaySalesByHourParams) ([]ListDaySalesByHourRow, error)
+	ListDaySalesBySalesperson(ctx context.Context, arg ListDaySalesBySalespersonParams) ([]ListDaySalesBySalespersonRow, error)
+	// Best sellers of the day by line revenue, sales invoices only. Items whose
+	// product_uid never resolved to a variant (see resolveVariantByUIDOrBarcode)
+	// fold into one "unknown" row rather than disappearing from the totals.
+	ListDayTopProducts(ctx context.Context, arg ListDayTopProductsParams) ([]ListDayTopProductsRow, error)
+	// branch_visitor_events.day is already the branch's local day (stamped by
+	// the till), so it's matched directly; only the hour needs the timezone.
+	ListDayVisitorsByHour(ctx context.Context, arg ListDayVisitorsByHourParams) ([]ListDayVisitorsByHourRow, error)
 	ListExpenseCategories(ctx context.Context, scope sql.NullString) ([]ExpenseCategory, error)
 	// Only branch-scoped categories are synced down to kashi-pos.
 	ListExpenseCategoriesUpdatedSince(ctx context.Context, updatedAt time.Time) ([]ExpenseCategory, error)
