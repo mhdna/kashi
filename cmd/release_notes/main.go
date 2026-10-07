@@ -116,8 +116,19 @@ func newCommits(posted map[string]bool, limit int) ([]commit, error) {
 	return found, nil
 }
 
+// Housekeeping tacked onto a subject ("...; fix lint") isn't news.
+var choreClauseRe = regexp.MustCompile(`(?i)^(fix(es|ed)? |run |ran )?(the )?(lint|linting|tests?|typos?|formatting|gofmt|cleanup)$`)
+
 // describe words a commit subject for "Alex <summary>".
 func describe(subject string) string {
+	var kept []string
+	for clause := range strings.SplitSeq(subject, ";") {
+		if c := strings.TrimSpace(clause); c != "" && !choreClauseRe.MatchString(c) {
+			kept = append(kept, c)
+		}
+	}
+	subject = strings.Join(kept, "; ")
+
 	first, rest, _ := strings.Cut(subject, " ")
 	if past, ok := pastTense[strings.ToLower(first)]; ok {
 		if rest == "" {
