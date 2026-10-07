@@ -129,3 +129,78 @@ func TestPermissionMiddleware(t *testing.T) {
 
 func sqlStr(s string) sql.NullString { return sql.NullString{String: s, Valid: true} }
 func sqlBool(b bool) sql.NullBool    { return sql.NullBool{Bool: b, Valid: true} }
+
+func TestResolvePermissions(t *testing.T) {
+	view := sectionLevel{View: true}
+	edit := sectionLevel{View: true, Edit: true}
+
+	t.Run("section-only role inherits onto its pages", func(t *testing.T) {
+		perms := resolvePermissions([]permissionRow{{Section: "products", Level: edit}})
+		require.True(t, perms.Sections["products"])
+		require.Equal(t, edit, perms.Pages["colors-sizes"])
+		sections, pages := perms.effective()
+		require.Equal(t, edit, sections["products"])
+		require.Equal(t, edit, pages["barcodes"])
+	})
+
+	t.Run("pages set individually; section is their max", func(t *testing.T) {
+		perms := resolvePermissions([]permissionRow{
+			{Section: "products", Level: view},
+			{Section: "products", Page: "products", Level: view},
+			{Section: "products", Page: "barcodes", Level: edit},
+			{Section: "products", Page: "attributes"},
+		})
+		sections, pages := perms.effective()
+		require.Equal(t, edit, sections["products"])
+		require.Equal(t, view, pages["products"])
+		require.Equal(t, edit, pages["barcodes"])
+		require.NotContains(t, pages, "attributes")
+		// Not stored at all once the section has page rows -> nothing.
+		require.NotContains(t, pages, "colors-sizes")
+	})
+
+	t.Run("switched-off section keeps page levels but grants nothing", func(t *testing.T) {
+		perms := resolvePermissions([]permissionRow{
+			{Section: "inventory", Page: "alerts", Level: edit},
+		})
+		require.False(t, perms.Sections["inventory"])
+		require.Equal(t, edit, perms.Pages["alerts"])
+		sections, pages := perms.effective()
+		require.NotContains(t, sections, "inventory")
+		require.NotContains(t, pages, "alerts")
+	})
+
+	t.Run("enabled section with every page none grants nothing", func(t *testing.T) {
+		rows, err := permissionRows(rolePermissions{Sections: map[string]bool{"hr": true}})
+		require.NoError(t, err)
+		stored := make([]permissionRow, len(rows))
+		for i, r := range rows {
+			stored[i] = permissionRow{Section: r.Section, Page: r.Page, Level: sectionLevel{View: r.CanView, Edit: r.CanEdit}}
+		}
+		sections, pages := resolvePermissions(stored).effective()
+		require.NotContains(t, sections, "hr")
+		require.NotContains(t, pages, "employees")
+	})
+
+	t.Run("pageless section is on or off", func(t *testing.T) {
+		sections, _ := resolvePermissions([]permissionRow{{Section: "text_selection", Level: view}}).effective()
+		require.Equal(t, view, sections["text_selection"])
+	})
+}
+
+func TestPermissionRowsRejectsUnknownKeys(t *testing.T) {
+	_, err := permissionRows(rolePermissions{Sections: map[string]bool{"nope": true}})
+	require.Error(t, err)
+	_, err = permissionRows(rolePermissions{Pages: map[string]sectionLevel{"nope": {View: true}}})
+	require.Error(t, err)
+}
+
+func TestPageKeysAreUnique(t *testing.T) {
+	seen := map[string]bool{}
+	for _, s := range accessSections {
+		for _, p := range s.Pages {
+			require.False(t, seen[p.Key], "duplicate page key %q", p.Key)
+			seen[p.Key] = true
+		}
+	}
+}

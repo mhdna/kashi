@@ -4,17 +4,18 @@ import { appendItems, navItems } from '@/data/navItems'
 import { useAuthStore } from '@/stores/auth'
 
 // The nav menus (drawer, command palette, home links) filtered to the pages
-// the signed-in user's role can open. A page's section comes from its route's
-// `meta.section` (router/index.js); pages without one are open to everyone.
+// the signed-in user's role can open. A page's section and page key come from
+// its route's `meta` (router/index.js); pages without a section are open to
+// everyone.
 export function useAllowedNav () {
   const auth = useAuthStore()
   const router = useRouter()
 
   function allowed (item) {
     if (!item.to) {return true}
-    const { section, adminOnly } = router.resolve(item.to).meta
-    if (adminOnly && !auth.isAdmin) {return false}
-    return !section || auth.canView(section)
+    const { meta } = router.resolve(item.to)
+    if (meta.adminOnly && !auth.isAdmin) {return false}
+    return auth.canViewRoute(meta)
   }
 
   // A group with no visible links disappears too.

@@ -1333,6 +1333,7 @@ type RolePermission struct {
 	Section string `json:"section"`
 	CanView bool   `json:"can_view"`
 	CanEdit bool   `json:"can_edit"`
+	Page    string `json:"page"`
 }
 
 type SalesInvoice struct {

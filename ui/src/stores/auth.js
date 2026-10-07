@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { authFetch, SERVER_DOWN_MESSAGE } from '@/composables/useApi'
+import { authFetch, connectionErrorMessage } from '@/composables/useApi'
 import { API_BASE } from '@/config'
 
 // Turn a login response status into a message the user can act on. The
@@ -30,8 +30,10 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token') || '')
   const refreshToken = ref(localStorage.getItem('refreshToken') || '')
   const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
-  // What the user's role allows: { role_name, is_admin, sections: { key: { view, edit } } }.
-  // Only for hiding UI -- the API enforces the same rules (api/access.go).
+  // What the user's role allows:
+  //   { role_name, is_admin, sections: { key: { view, edit } }, pages: { key: { view, edit } } }
+  // A section's level is the highest of its pages; the API enforces sections
+  // and the UI additionally hides pages (api/access.go).
   const access = ref(JSON.parse(localStorage.getItem('access') || 'null'))
 
   const isAuthenticated = computed(() => !!token.value)
@@ -50,6 +52,29 @@ export const useAuthStore = defineStore('auth', () => {
 
   function canEdit (section) {
     return isAdmin.value || !!access.value?.sections?.[section]?.edit
+  }
+
+  // Per page. A cached access from before per-page roles has no `pages`, so
+  // fall back to the section until refreshAccess replaces it.
+  function canViewPage (section, page) {
+    if (!access.value?.pages) {return canView(section)}
+    return isAdmin.value || !!access.value.pages[page]?.view
+  }
+
+  function canEditPage (section, page) {
+    if (!access.value?.pages) {return canEdit(section)}
+    return isAdmin.value || !!access.value.pages[page]?.edit
+  }
+
+  // A route's `meta` (router/index.js): no section means open to everyone.
+  function canViewRoute ({ section, page } = {}) {
+    if (!section) {return true}
+    return page ? canViewPage(section, page) : canView(section)
+  }
+
+  function canEditRoute ({ section, page } = {}) {
+    if (!section) {return true}
+    return page ? canEditPage(section, page) : canEdit(section)
   }
 
   // Text selection is off by default (see global.scss) and turned on per role
@@ -87,8 +112,8 @@ export const useAuthStore = defineStore('auth', () => {
     } catch {
       // fetch only rejects on network-level failures (server unreachable,
       // DNS, offline) -- never on HTTP error status. Same message authFetch
-      // uses so the "server is down" state stays consistent.
-      throw new Error(SERVER_DOWN_MESSAGE)
+      // uses so the "server is down" / "no internet" states stay consistent.
+      throw new Error(connectionErrorMessage())
     }
 
     if (!res.ok) {
@@ -146,5 +171,5 @@ export const useAuthStore = defineStore('auth', () => {
     applyTextSelection()
   }
 
-  return { token, refreshToken, user, access, isAuthenticated, isAdmin, canView, canEdit, refreshAccess, login, renew, logout }
+  return { token, refreshToken, user, access, isAuthenticated, isAdmin, canView, canEdit, canViewPage, canEditPage, canViewRoute, canEditRoute, refreshAccess, login, renew, logout }
 })

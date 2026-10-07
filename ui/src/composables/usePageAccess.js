@@ -2,8 +2,8 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
-// What the signed-in user's role allows on the current page. The section comes
-// from the route's `meta.section` (router/index.js), so a page just asks
+// What the signed-in user's role allows on the current page. The section and
+// page key come from the route's `meta` (router/index.js), so a page just asks
 // "can I edit?" and never has to know which section it belongs to:
 //
 //   const { canEdit } = usePageAccess()
@@ -16,10 +16,7 @@ export function usePageAccess () {
   const auth = useAuthStore()
   const route = useRoute()
 
-  const canEdit = computed(() => {
-    const section = route.meta.section
-    return section ? auth.canEdit(section) : true
-  })
+  const canEdit = computed(() => auth.canEditRoute(route.meta))
 
   return { canEdit, isAdmin: computed(() => auth.isAdmin) }
 }

@@ -13,6 +13,7 @@ func (store *SQLStore) SaveRolePermissionsTx(ctx context.Context, roleID int64, 
 			err := q.UpsertRolePermission(ctx, UpsertRolePermissionParams{
 				RoleID:  roleID,
 				Section: p.Section,
+				Page:    p.Page,
 				CanView: p.CanView,
 				CanEdit: p.CanEdit,
 			})

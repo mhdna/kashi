@@ -14,48 +14,141 @@ import (
 
 // Access control for admin-site users.
 //
-// Every user has one role. A role grants, per *section* (a group of related
-// pages), either nothing, view (read-only) or edit (view + add/change/delete).
-// A role flagged is_admin skips all of this and is the only kind that can
-// manage users and roles.
+// Every user has one role. A role grants, per *page*, either nothing, view
+// (read-only) or edit (view + add/change/delete). Pages are grouped into
+// *sections*, and a section can be switched off as a whole, which hides all
+// of its pages without losing their individual levels. A role flagged
+// is_admin skips all of this and is the only kind that can manage users and
+// roles.
 //
 // Enforcement is one middleware (permissionMiddleware) rather than a check in
 // every handler: it maps the matched route pattern to a section with
 // routeRules below and derives view-vs-edit from the HTTP method. A route
 // that isn't listed there is admin-only, so forgetting to classify a new
 // route fails closed.
+//
+// The API only knows sections, because most endpoints feed several pages
+// (/products backs Products, Barcodes, Inventory, ...). A role's level in a
+// section is the highest level it has on any of that section's pages, so the
+// per-page split is enforced by the UI (router guard, nav, usePageAccess) and
+// the section boundary by the API.
 
-// accessSection is one row in the role editor. Keep the keys in sync with
-// `meta.section` in ui/src/router/index.js -- that is what hides pages and
-// buttons; this file is what actually protects the data.
+// accessSection is one tab in the role editor, accessPage one row in it. Keep
+// the keys in sync with `meta.section` / `meta.page` in ui/src/router/index.js
+// -- that is what hides pages and buttons; this file is what actually
+// protects the data. Page keys are unique across sections.
 type accessSection struct {
-	Key         string `json:"key"`
-	Label       string `json:"label"`
-	Description string `json:"description"`
+	Key         string       `json:"key"`
+	Label       string       `json:"label"`
+	Description string       `json:"description"`
+	Pages       []accessPage `json:"pages"`
+}
+
+type accessPage struct {
+	Key   string `json:"key"`
+	Label string `json:"label"`
 }
 
 var accessSections = []accessSection{
-	{"analytics", "Analytics", "Dashboard, income, financials, targets, footfall, sales analysis and other reports"},
-	{"sales", "Sales", "Invoices"},
-	{"clients", "Clients", "Clients and loyalty"},
-	{"branches", "Branches", "Branches, branch settings and sync conflicts"},
-	{"pricing", "Pricing", "Price lists, discount lists and coupons"},
-	{"products", "Products", "Products, colors, sizes, attributes and barcodes"},
-	{"inventory", "Inventory", "Inventory, stock, purchases, transfers, batches and suppliers"},
-	{"accounting", "Accounting", "Expenses, loans, currencies, cashboxes and assets"},
-	{"hr", "Human resources", "Employees, attendance, shifts and salespersons"},
-	{"calendar", "Calendar", "Calendar events"},
-	{"system", "System", "App settings, WhatsApp, audit log, dev logs and storage"},
-	{"text_selection", "Text Selection", "Select and copy text anywhere in the admin interface (off by default; doesn't gate any data)"},
+	{"analytics", "Analytics", "Dashboards and reports", []accessPage{
+		{"dashboard", "Dashboard"},
+		{"daily-income", "Daily Income"},
+		{"financials", "Financials"},
+		{"targets", "Targets"},
+		{"footfall", "Footfall"},
+		{"product-revenues", "Product Revenues"},
+		{"conversion", "Conversion"},
+		{"sales-analytics", "Sales Analytics"},
+		{"sales-analysis", "Sales Analysis"},
+		{"sales-dashboard", "Sales Dashboard"},
+		{"salesperson-performance", "Salesperson Performance"},
+	}},
+	{"sales", "Sales", "Invoices", []accessPage{
+		{"invoices", "Invoices"},
+	}},
+	{"clients", "Clients", "Clients and loyalty", []accessPage{
+		{"clients", "Clients"},
+		{"loyalty", "Loyalty"},
+	}},
+	{"branches", "Branches", "Branches, branch settings and sync conflicts", []accessPage{
+		{"branches", "Branches"},
+		{"branch-settings", "Branch Settings"},
+		{"default-branch-settings", "Default Settings"},
+	}},
+	{"pricing", "Pricing", "Price lists, discount lists and coupons", []accessPage{
+		{"pricing", "Coupons"},
+		{"price-lists", "Price Lists"},
+		{"discount-lists", "Discount Lists"},
+	}},
+	{"products", "Products", "Products, colors, sizes, attributes and barcodes", []accessPage{
+		{"products", "Products"},
+		{"colors-sizes", "Colors & Sizes"},
+		{"attributes", "Attributes"},
+		{"barcodes", "Barcodes"},
+		{"barcode-printing", "Barcode Printing"},
+	}},
+	{"inventory", "Inventory", "Stock, purchases, transfers, batches and suppliers", []accessPage{
+		{"inventory", "Inventory"},
+		{"alerts", "Alerts"},
+		{"stock-health", "Stock Health"},
+		{"inventory-analysis", "Inventory Analysis"},
+		{"transfers", "Transfers"},
+		{"stock-movements", "Stock Movements"},
+		{"stock-counts", "Stock Counts"},
+		{"purchase-invoice", "Purchase Invoices"},
+		{"batches", "Batches"},
+		{"suppliers", "Suppliers"},
+	}},
+	{"accounting", "Accounting", "Expenses, loans, currencies, cashboxes and assets", []accessPage{
+		{"expenses", "Expenses"},
+		{"loans", "Loans"},
+		{"currencies", "Currencies & Payment Methods"},
+		{"assets", "Assets"},
+		{"assets-treemap", "Assets Treemap"},
+		{"warehouses-treemap", "Warehouses Treemap"},
+	}},
+	{"hr", "Human resources", "Employees, attendance, shifts and salespersons", []accessPage{
+		{"employees", "Employees"},
+		{"attendance", "Attendance"},
+		{"shifts", "Shifts"},
+	}},
+	{"calendar", "Calendar", "Calendar events", []accessPage{
+		{"calendar", "Calendar"},
+	}},
+	{"system", "System", "App settings, WhatsApp, audit log, dev logs and storage", []accessPage{
+		{"settings", "App Settings & WhatsApp"},
+		{"audit-log", "Audit Log"},
+		{"logs", "Dev Logs"},
+		{"storage", "Storage"},
+	}},
+	// No pages: switching the section on is the whole grant.
+	{"text_selection", "Text Selection", "Select and copy text anywhere in the admin interface (off by default; doesn't gate any data)", nil},
+}
+
+func findAccessSection(key string) (accessSection, bool) {
+	for _, s := range accessSections {
+		if s.Key == key {
+			return s, true
+		}
+	}
+	return accessSection{}, false
 }
 
 func isAccessSection(key string) bool {
+	_, ok := findAccessSection(key)
+	return ok
+}
+
+// sectionOfPage returns the section a page key belongs to.
+func sectionOfPage(page string) (string, bool) {
 	for _, s := range accessSections {
-		if s.Key == key {
-			return true
+		for _, p := range s.Pages {
+			if p.Key == page {
+				return s.Key, true
+			}
 		}
 	}
-	return false
+	return "", false
 }
 
 // routeRule says who may call the routes under prefix. Writes (any method
@@ -209,20 +302,109 @@ func ruleFor(fullPath string) (routeRule, bool) {
 	return best, found
 }
 
-// sectionLevel is what a role grants in one section. Edit implies view.
+// sectionLevel is what a role grants on one page (or, derived, in one
+// section). Edit implies view.
 type sectionLevel struct {
 	View bool `json:"view"`
 	Edit bool `json:"edit"`
 }
 
+func (l sectionLevel) max(o sectionLevel) sectionLevel {
+	return sectionLevel{View: l.View || o.View, Edit: l.Edit || o.Edit}
+}
+
+// permissionRow is one stored role_permissions row. Page "" is the section
+// row, whose presence means the section is switched on.
+type permissionRow struct {
+	Section string
+	Page    string
+	Level   sectionLevel
+}
+
+// rolePermissions is a role's grants as the role editor sees them: which
+// sections are on, and every page's level whether or not its section is on
+// (so switching a section off and on again keeps its pages as they were).
+type rolePermissions struct {
+	Sections map[string]bool         `json:"sections"`
+	Pages    map[string]sectionLevel `json:"pages"`
+}
+
+// resolvePermissions reads stored rows into rolePermissions. A section with
+// no page rows at all was saved before per-page access existed; its pages
+// inherit the section row's level, which is exactly what that role granted.
+// Once a section has page rows, a page without one (added to the app since
+// the role was saved) gets nothing.
+func resolvePermissions(rows []permissionRow) rolePermissions {
+	sectionRows := map[string]sectionLevel{}
+	pageRows := map[string]map[string]sectionLevel{}
+	for _, r := range rows {
+		level := sectionLevel{View: r.Level.View || r.Level.Edit, Edit: r.Level.Edit}
+		if r.Page == "" {
+			sectionRows[r.Section] = level
+			continue
+		}
+		if pageRows[r.Section] == nil {
+			pageRows[r.Section] = map[string]sectionLevel{}
+		}
+		pageRows[r.Section][r.Page] = level
+	}
+
+	perms := rolePermissions{Sections: map[string]bool{}, Pages: map[string]sectionLevel{}}
+	for _, s := range accessSections {
+		sectionLvl, on := sectionRows[s.Key]
+		if on {
+			perms.Sections[s.Key] = true
+		}
+		legacy := len(pageRows[s.Key]) == 0
+		for _, p := range s.Pages {
+			if legacy {
+				perms.Pages[p.Key] = sectionLvl
+			} else {
+				perms.Pages[p.Key] = pageRows[s.Key][p.Key]
+			}
+		}
+	}
+	return perms
+}
+
+// effective is what the role actually grants: pages of switched-off sections
+// count for nothing, and a section's level is the highest of its pages (or,
+// for a section without pages, simply whether it's on).
+func (p rolePermissions) effective() (sections, pages map[string]sectionLevel) {
+	sections = map[string]sectionLevel{}
+	pages = map[string]sectionLevel{}
+	for _, s := range accessSections {
+		if !p.Sections[s.Key] {
+			continue
+		}
+		if len(s.Pages) == 0 {
+			sections[s.Key] = sectionLevel{View: true}
+			continue
+		}
+		var level sectionLevel
+		for _, pg := range s.Pages {
+			if l := p.Pages[pg.Key]; l.View {
+				pages[pg.Key] = l
+				level = level.max(l)
+			}
+		}
+		if level.View {
+			sections[s.Key] = level
+		}
+	}
+	return sections, pages
+}
+
 // userAccess is a user's effective access, loaded from their role on each
 // request (one indexed query) so a role change or a deleted user takes effect
-// immediately instead of when their token next renews.
+// immediately instead of when their token next renews. Sections is what the
+// API enforces; Pages is what the UI hides pages and controls by.
 type userAccess struct {
 	RoleID   int64                   `json:"role_id"`
 	RoleName string                  `json:"role_name"`
 	IsAdmin  bool                    `json:"is_admin"`
 	Sections map[string]sectionLevel `json:"sections"`
+	Pages    map[string]sectionLevel `json:"pages"`
 }
 
 var errNoSuchUser = errors.New("user no longer exists")
@@ -239,15 +421,19 @@ func (server *Server) loadUserAccess(ctx *gin.Context, userID int64) (userAccess
 		RoleID:   rows[0].RoleID,
 		RoleName: rows[0].RoleName,
 		IsAdmin:  rows[0].IsAdmin,
-		Sections: map[string]sectionLevel{},
 	}
+	perms := make([]permissionRow, 0, len(rows))
 	for _, row := range rows {
 		if !row.Section.Valid {
 			continue
 		}
-		edit := row.CanEdit.Bool
-		access.Sections[row.Section.String] = sectionLevel{View: row.CanView.Bool || edit, Edit: edit}
+		perms = append(perms, permissionRow{
+			Section: row.Section.String,
+			Page:    row.Page.String,
+			Level:   sectionLevel{View: row.CanView.Bool, Edit: row.CanEdit.Bool},
+		})
 	}
+	access.Sections, access.Pages = resolvePermissions(perms).effective()
 	return access, nil
 }
 

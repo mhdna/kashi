@@ -10,16 +10,16 @@
       <div class="set-layout">
         <v-tabs
           v-model="tab"
-          class="set-tabs"
+          class="set-tabs rail-tabs"
           color="primary"
-          direction="vertical"
+          :direction="$vuetify.display.smAndDown ? 'horizontal' : 'vertical'"
         >
           <v-tab prepend-icon="mdi-cog-outline" text="General" value="general" />
           <v-tab prepend-icon="mdi-chart-line" text="Financials" value="financials" />
           <v-tab prepend-icon="mdi-barcode" text="Barcode labels" value="barcodes" />
           <v-tab v-if="auth.isAdmin" prepend-icon="mdi-account-group" text="Users" value="users" />
           <v-tab v-if="auth.isAdmin" prepend-icon="mdi-shield-account-outline" text="Roles" value="roles" />
-          <v-tab v-if="auth.canView('system')" prepend-icon="mdi-whatsapp" text="WhatsApp" value="whatsapp" />
+          <v-tab v-if="auth.canViewPage('system', 'settings')" prepend-icon="mdi-whatsapp" text="WhatsApp" value="whatsapp" />
         </v-tabs>
 
         <v-divider vertical />
@@ -543,7 +543,7 @@
   const auth = useAuthStore()
   // Saving app settings / WhatsApp needs Edit on System; without it the forms
   // render read-only. (Your own avatar colour is per-device and always yours.)
-  const canEditSystem = computed(() => auth.canEdit('system'))
+  const canEditSystem = computed(() => auth.canEditPage('system', 'settings'))
 
   const {
     initials: avatarInitials,

@@ -80,7 +80,7 @@ func (q *Queries) GetRole(ctx context.Context, id int64) (Role, error) {
 
 const getUserAccess = `-- name: GetUserAccess :many
 SELECT r.id AS role_id, r.name AS role_name, r.is_admin,
-  p.section, p.can_view, p.can_edit
+  p.section, p.page, p.can_view, p.can_edit
 FROM users u
 JOIN roles r ON r.id = u.role_id
 LEFT JOIN role_permissions p ON p.role_id = r.id
@@ -92,6 +92,7 @@ type GetUserAccessRow struct {
 	RoleName string         `json:"role_name"`
 	IsAdmin  bool           `json:"is_admin"`
 	Section  sql.NullString `json:"section"`
+	Page     sql.NullString `json:"page"`
 	CanView  sql.NullBool   `json:"can_view"`
 	CanEdit  sql.NullBool   `json:"can_edit"`
 }
@@ -113,6 +114,7 @@ func (q *Queries) GetUserAccess(ctx context.Context, id int64) ([]GetUserAccessR
 			&i.RoleName,
 			&i.IsAdmin,
 			&i.Section,
+			&i.Page,
 			&i.CanView,
 			&i.CanEdit,
 		); err != nil {
@@ -130,8 +132,8 @@ func (q *Queries) GetUserAccess(ctx context.Context, id int64) ([]GetUserAccessR
 }
 
 const listRolePermissions = `-- name: ListRolePermissions :many
-SELECT role_id, section, can_view, can_edit FROM role_permissions
-ORDER BY role_id, section
+SELECT role_id, section, can_view, can_edit, page FROM role_permissions
+ORDER BY role_id, section, page
 `
 
 func (q *Queries) ListRolePermissions(ctx context.Context) ([]RolePermission, error) {
@@ -148,6 +150,7 @@ func (q *Queries) ListRolePermissions(ctx context.Context) ([]RolePermission, er
 			&i.Section,
 			&i.CanView,
 			&i.CanEdit,
+			&i.Page,
 		); err != nil {
 			return nil, err
 		}
@@ -221,15 +224,16 @@ func (q *Queries) RenameRole(ctx context.Context, arg RenameRoleParams) error {
 }
 
 const upsertRolePermission = `-- name: UpsertRolePermission :exec
-INSERT INTO role_permissions (role_id, section, can_view, can_edit)
-VALUES ($1, $2, $3, $4)
-ON CONFLICT (role_id, section)
+INSERT INTO role_permissions (role_id, section, page, can_view, can_edit)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (role_id, section, page)
 DO UPDATE SET can_view = EXCLUDED.can_view, can_edit = EXCLUDED.can_edit
 `
 
 type UpsertRolePermissionParams struct {
 	RoleID  int64  `json:"role_id"`
 	Section string `json:"section"`
+	Page    string `json:"page"`
 	CanView bool   `json:"can_view"`
 	CanEdit bool   `json:"can_edit"`
 }
@@ -238,6 +242,7 @@ func (q *Queries) UpsertRolePermission(ctx context.Context, arg UpsertRolePermis
 	_, err := q.db.ExecContext(ctx, upsertRolePermission,
 		arg.RoleID,
 		arg.Section,
+		arg.Page,
 		arg.CanView,
 		arg.CanEdit,
 	)

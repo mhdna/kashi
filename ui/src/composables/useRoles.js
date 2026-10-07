@@ -2,8 +2,8 @@ import { ref } from 'vue'
 import { API_BASE } from '@/config'
 import { authFetch } from './useApi'
 
-// Roles and the section list they grant access to, from GET /roles (admin
-// only). Module-scope so Settings > Users (role picker) and Settings > Roles
+// Roles and the sections (each with its pages) they grant access to, from
+// GET /roles (admin only). Module-scope so Settings > Users (role picker) and Settings > Roles
 // (editor) share one copy. `sections` comes from the server so the editor
 // always lists exactly what the API enforces (api/access.go).
 const roles = ref([])
@@ -34,7 +34,7 @@ export function useRoles () {
     return roles.value
   }
 
-  // `permissions` is { [sectionKey]: { view, edit } }.
+  // `permissions` is { sections: { [sectionKey]: on }, pages: { [pageKey]: { view, edit } } }.
   async function createRole (name, permissions) {
     await requestJSON('/roles', json('POST', { name, permissions }))
     await fetchRoles()

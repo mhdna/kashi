@@ -15,11 +15,11 @@ import (
 // (access.go), so permissionMiddleware rejects everyone but an is_admin role.
 
 type roleResponse struct {
-	ID          int64                   `json:"id"`
-	Name        string                  `json:"name"`
-	IsAdmin     bool                    `json:"is_admin"`
-	UserCount   int64                   `json:"user_count"`
-	Permissions map[string]sectionLevel `json:"permissions"`
+	ID          int64           `json:"id"`
+	Name        string          `json:"name"`
+	IsAdmin     bool            `json:"is_admin"`
+	UserCount   int64           `json:"user_count"`
+	Permissions rolePermissions `json:"permissions"`
 }
 
 func (server *Server) listRoles(ctx *gin.Context) {
@@ -34,12 +34,13 @@ func (server *Server) listRoles(ctx *gin.Context) {
 		return
 	}
 
-	byRole := map[int64]map[string]sectionLevel{}
+	byRole := map[int64][]permissionRow{}
 	for _, p := range perms {
-		if byRole[p.RoleID] == nil {
-			byRole[p.RoleID] = map[string]sectionLevel{}
-		}
-		byRole[p.RoleID][p.Section] = sectionLevel{View: p.CanView || p.CanEdit, Edit: p.CanEdit}
+		byRole[p.RoleID] = append(byRole[p.RoleID], permissionRow{
+			Section: p.Section,
+			Page:    p.Page,
+			Level:   sectionLevel{View: p.CanView, Edit: p.CanEdit},
+		})
 	}
 
 	rsp := make([]roleResponse, len(roles))
@@ -49,36 +50,53 @@ func (server *Server) listRoles(ctx *gin.Context) {
 			Name:        r.Name,
 			IsAdmin:     r.IsAdmin,
 			UserCount:   r.UserCount,
-			Permissions: byRole[r.ID],
-		}
-		if rsp[i].Permissions == nil {
-			rsp[i].Permissions = map[string]sectionLevel{}
+			Permissions: resolvePermissions(byRole[r.ID]),
 		}
 	}
-	// The section list rides along so the role editor renders exactly the
-	// sections this server enforces.
+	// The section and page list rides along so the role editor renders
+	// exactly what this server knows about.
 	server.writeJSON(ctx, http.StatusOK, envelope{"roles": rsp, "sections": accessSections})
 }
 
 type saveRoleRequest struct {
-	Name        string                  `json:"name" binding:"required"`
-	Permissions map[string]sectionLevel `json:"permissions"`
+	Name        string          `json:"name" binding:"required"`
+	Permissions rolePermissions `json:"permissions"`
 }
 
-// rolePermissions validates the section keys and normalises edit => view, so
-// what's stored is always what permissionMiddleware would compute anyway.
-func rolePermissions(req saveRoleRequest) ([]db.RolePermission, error) {
-	perms := make([]db.RolePermission, 0, len(req.Permissions))
-	for section, level := range req.Permissions {
+// permissionRows turns the editor's grants into the rows to store, validating
+// the keys and normalising edit => view. Every page of every section gets a
+// row, "none" included: a section with no page rows reads back as a
+// pre-per-page role whose pages inherit the section (see
+// resolvePermissions), which is not what an editor that set them all to none
+// meant.
+func permissionRows(perms rolePermissions) ([]db.RolePermission, error) {
+	for section := range perms.Sections {
 		if !isAccessSection(section) {
 			return nil, errors.New("unknown section: " + section)
 		}
-		if !level.View && !level.Edit {
-			continue
-		}
-		perms = append(perms, db.RolePermission{Section: section, CanView: true, CanEdit: level.Edit})
 	}
-	return perms, nil
+	for page := range perms.Pages {
+		if _, ok := sectionOfPage(page); !ok {
+			return nil, errors.New("unknown page: " + page)
+		}
+	}
+
+	var rows []db.RolePermission
+	for _, s := range accessSections {
+		if perms.Sections[s.Key] {
+			rows = append(rows, db.RolePermission{Section: s.Key, CanView: true})
+		}
+		for _, p := range s.Pages {
+			level := perms.Pages[p.Key]
+			rows = append(rows, db.RolePermission{
+				Section: s.Key,
+				Page:    p.Key,
+				CanView: level.View || level.Edit,
+				CanEdit: level.Edit,
+			})
+		}
+	}
+	return rows, nil
 }
 
 func (server *Server) createRole(ctx *gin.Context) {
@@ -92,7 +110,7 @@ func (server *Server) createRole(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusBadRequest, errors.New("role name is required"))
 		return
 	}
-	perms, err := rolePermissions(req)
+	perms, err := permissionRows(req.Permissions)
 	if err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
@@ -146,7 +164,7 @@ func (server *Server) updateRole(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusConflict, errors.New("the admin role can't be changed"))
 		return
 	}
-	perms, err := rolePermissions(req)
+	perms, err := permissionRows(req.Permissions)
 	if err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
