@@ -1,4 +1,4 @@
-import { formatMoney } from '@/utils/money'
+import { displayCurrencyCode, formatMoney } from '@/utils/money'
 
 // Which admin-socket message types surface as branch activity (a toast or
 // the app-bar ticker). Mirrors the message types documented on
@@ -142,7 +142,7 @@ export function describeBranchActivity (message, branchName) {
     case 'branch_expense_created':
     case 'branch_loan_created': {
       const kind = invoiceKindWord(message)
-      const money = `${formatMoney(message.amount)} ${message.currency_code ?? ''}`.trim()
+      const money = `${formatMoney(message.amount)} ${displayCurrencyCode(message.currency_code)}`.trim()
       return {
         text: `${branch}: ${money} ${kind}`.replace(/\s+/g, ' ').trim(),
         // Kind is already carried by the icon + colour, so the reel drops it.
@@ -154,7 +154,7 @@ export function describeBranchActivity (message, branchName) {
         trendIcon: message.amount < 0 ? 'mdi-triangle-down' : 'mdi-triangle',
         icon: invoiceIcon(message),
         amount: message.amount,
-        currencyCode: message.currency_code,
+        currencyCode: displayCurrencyCode(message.currency_code),
         kindWord: kind,
         money: true,
       }
@@ -164,7 +164,7 @@ export function describeBranchActivity (message, branchName) {
       const balanced = !message.amount
       const detail = balanced
         ? 'balanced'
-        : `${formatMoney(message.amount)} ${message.currency_code ?? ''}`.trim()
+        : `${formatMoney(message.amount)} ${displayCurrencyCode(message.currency_code)}`.trim()
       const who = message.label ? ` by ${message.label}` : ''
       return {
         text: `${branch}: shift closed${who} (${detail})`,

@@ -43,7 +43,7 @@
   import { describeBranchActivity, isBranchActivityMessage } from '@/composables/useBranchActivityMessage'
   import { useBranches } from '@/composables/useBranches'
   import { useSettingsStore } from '@/stores/settings'
-  import { formatMoney } from '@/utils/money'
+  import { displayCurrencyCode, formatMoney } from '@/utils/money'
 
   const { branches, fetchBranches } = useBranches()
   const { ensureConnected, onMessage } = useAdminSocket()
@@ -82,7 +82,7 @@
       trendIcon: described.trendIcon,
       branchName: branchName(message.branch_id),
       amountText: formatMoney(message.amount),
-      currencyCode: message.currency_code,
+      currencyCode: displayCurrencyCode(message.currency_code),
       kindWord: described.kindWord,
     }
     activeItems.value.push(item)
@@ -119,6 +119,7 @@
 
 .activity-toast {
   width: 360px;
+  max-width: calc(100vw - 32px);
   padding: 10px 10px 10px 14px;
   border-radius: 6px;
   pointer-events: auto;

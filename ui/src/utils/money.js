@@ -2,6 +2,13 @@ export function formatMoney (cents) {
   return (Number(cents) / 100).toFixed(2)
 }
 
+// The default currency is stored in its smallest unit (USC, US cents -- see
+// db/migrations/000013), but formatMoney has already turned the amount into
+// dollars, so label it USD rather than USC.
+export function displayCurrencyCode (code) {
+  return code === 'USC' ? 'USD' : (code ?? '')
+}
+
 // Compact money for at-a-glance panels: $840, $12.4K, $1.2M. Negative
 // amounts keep the sign outside the symbol: -$1.2K.
 export function formatCompactMoney (cents) {
