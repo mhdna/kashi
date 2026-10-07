@@ -169,5 +169,5 @@ func (server *Server) setDefaultLowStockThreshold(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"settings": settings})
+	ctx.JSON(http.StatusOK, gin.H{"settings": withoutSecrets(settings)})
 }

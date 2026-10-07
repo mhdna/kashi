@@ -492,6 +492,8 @@ type AppSetting struct {
 	WhatsappTemplateName       string          `json:"whatsapp_template_name"`
 	WhatsappTemplateLang       string          `json:"whatsapp_template_lang"`
 	WhatsappTemplateParams     string          `json:"whatsapp_template_params"`
+	ProductAutofillEnabled     bool            `json:"product_autofill_enabled"`
+	ProductAutofillRules       json.RawMessage `json:"product_autofill_rules"`
 }
 
 type AppUpdateEvent struct {

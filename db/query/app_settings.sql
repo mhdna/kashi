@@ -11,6 +11,14 @@ SET financials_high_season_months = $1,
     upcoming_events_days = $6,
     upcoming_events_menu_days = $7,
     hidden_builtin_events = $8,
+    product_autofill_enabled = $9,
+    updated_at = now()
+WHERE id = 1
+RETURNING *;
+
+-- name: SetProductAutofillRules :one
+UPDATE app_settings
+SET product_autofill_rules = $1,
     updated_at = now()
 WHERE id = 1
 RETURNING *;

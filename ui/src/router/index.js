@@ -49,6 +49,7 @@ const routes = [
   { path: '/barcode-printing', component: () => import('@/pages/barcode-printing.vue'), meta: { title: 'Barcode Printing', section: 'products', page: 'barcode-printing' } },
   { path: '/colors-sizes', component: () => import('@/pages/Colors_Sizes.vue'), meta: { title: 'Colors & Sizes', section: 'products', page: 'colors-sizes' } },
   { path: '/attributes', component: () => import('@/pages/attributes.vue'), meta: { title: 'Attributes', section: 'products', page: 'attributes' } },
+  { path: '/autofill-rules', component: () => import('@/pages/autofill-rules.vue'), meta: { title: 'Auto-fill Rules', section: 'products', page: 'autofill-rules' } },
   { path: '/barcodes', component: () => import('@/pages/barcodes.vue'), meta: { title: 'Barcodes', section: 'products', page: 'barcodes' } },
   { path: '/assets', component: () => import('@/pages/assets.vue'), meta: { title: 'Assets', section: 'accounting', page: 'assets' } },
 

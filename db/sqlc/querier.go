@@ -1186,6 +1186,7 @@ type Querier interface {
 	SetProductCategory(ctx context.Context, arg SetProductCategoryParams) error
 	SetProductLowStockAlertsEnabled(ctx context.Context, arg SetProductLowStockAlertsEnabledParams) error
 	SetProductVariantActive(ctx context.Context, arg SetProductVariantActiveParams) error
+	SetProductAutofillRules(ctx context.Context, productAutofillRules json.RawMessage) (AppSetting, error)
 	SetPurchaseStatus(ctx context.Context, arg SetPurchaseStatusParams) (Purchase, error)
 	SetPurchaseTotals(ctx context.Context, arg SetPurchaseTotalsParams) error
 	SetRecurringExpenseActive(ctx context.Context, arg SetRecurringExpenseActiveParams) (RecurringExpense, error)

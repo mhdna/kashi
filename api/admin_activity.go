@@ -38,6 +38,7 @@ var adminActivityOverrides = map[string]string{
 	"PUT /branches/:id/payment_methods/:account_id": "changed a payment method of",
 	"POST /cashbox_accounts/balance":                "adjusted a payment method balance",
 	"PUT /app_settings":                             "updated app settings",
+	"PUT /app_settings/product_autofill_rules":      "updated product auto-fill rules",
 	"PUT /whatsapp_settings":                        "updated WhatsApp settings",
 	"POST /barcodes/assign":                         "assigned barcodes",
 	"PUT /employees/salaries":                       "updated salaries",

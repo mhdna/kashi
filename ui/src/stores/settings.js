@@ -26,6 +26,10 @@ export const useSettingsStore = defineStore('settings', {
     upcomingEventsDays: DEFAULT_UPCOMING_EVENTS_DAYS,
     upcomingEventsMenuDays: DEFAULT_UPCOMING_EVENTS_MENU_DAYS,
     hiddenBuiltinEvents: [],
+    productAutofillEnabled: true,
+    // Rules for the New Product dialog's auto-fill (utils/productAutofill.js).
+    // Saved on their own from the Auto-fill Rules page, not through persist().
+    productAutofillRules: [],
     loaded: false,
   }),
 
@@ -45,6 +49,8 @@ export const useSettingsStore = defineStore('settings', {
         this.upcomingEventsDays = settings.upcoming_events_days ?? DEFAULT_UPCOMING_EVENTS_DAYS
         this.upcomingEventsMenuDays = settings.upcoming_events_menu_days ?? DEFAULT_UPCOMING_EVENTS_MENU_DAYS
         this.hiddenBuiltinEvents = settings.hidden_builtin_events ?? []
+        this.productAutofillEnabled = settings.product_autofill_enabled ?? true
+        this.productAutofillRules = settings.product_autofill_rules ?? []
       }
       this.loaded = true
     },
@@ -60,7 +66,14 @@ export const useSettingsStore = defineStore('settings', {
         upcoming_events_days: this.upcomingEventsDays,
         upcoming_events_menu_days: this.upcomingEventsMenuDays,
         hidden_builtin_events: this.hiddenBuiltinEvents,
+        product_autofill_enabled: this.productAutofillEnabled,
       })
+    },
+
+    async saveProductAutofillRules (rules) {
+      const { updateProductAutofillRules } = useAppSettings()
+      const settings = await updateProductAutofillRules(rules)
+      this.productAutofillRules = settings?.product_autofill_rules ?? rules
     },
 
     // The Settings page edits a local draft and calls this once on Save, so a

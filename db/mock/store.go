@@ -8674,6 +8674,21 @@ func (mr *MockStoreMockRecorder) SetDefaultLowStockThreshold(arg0, arg1 interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDefaultLowStockThreshold", reflect.TypeOf((*MockStore)(nil).SetDefaultLowStockThreshold), arg0, arg1)
 }
 
+// SetProductAutofillRules mocks base method.
+func (m *MockStore) SetProductAutofillRules(arg0 context.Context, arg1 jsontext.Value) (db.AppSetting, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetProductAutofillRules", arg0, arg1)
+	ret0, _ := ret[0].(db.AppSetting)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetProductAutofillRules indicates an expected call of SetProductAutofillRules.
+func (mr *MockStoreMockRecorder) SetProductAutofillRules(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetProductAutofillRules", reflect.TypeOf((*MockStore)(nil).SetProductAutofillRules), arg0, arg1)
+}
+
 // SetProductCategory mocks base method.
 func (m *MockStore) SetProductCategory(arg0 context.Context, arg1 db.SetProductCategoryParams) error {
 	m.ctrl.T.Helper()

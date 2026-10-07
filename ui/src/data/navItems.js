@@ -71,6 +71,7 @@ export const navItems = [
       { title: 'Products', icon: 'mdi-package-variant', to: '/products' },
       { title: 'Colors & Sizes', icon: 'mdi-palette', to: '/colors-sizes' },
       { title: 'Attributes', icon: 'mdi-tag-multiple', to: '/attributes' },
+      { title: 'Auto-fill Rules', icon: 'mdi-auto-fix', to: '/autofill-rules' },
     ],
   },
   {

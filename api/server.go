@@ -167,6 +167,7 @@ func (server *Server) setupRoutes() {
 
 	authRoutes.GET("/app_settings", server.getAppSettings)
 	authRoutes.PUT("/app_settings", server.updateAppSettings)
+	authRoutes.PUT("/app_settings/product_autofill_rules", server.setProductAutofillRules)
 
 	authRoutes.GET("/whatsapp_settings", server.getWhatsAppSettings)
 	authRoutes.PUT("/whatsapp_settings", server.updateWhatsAppSettings)

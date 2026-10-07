@@ -3,11 +3,20 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/mhdna/kashi/db/sqlc"
 )
+
+// withoutSecrets blanks the WhatsApp access token. /app_settings is readable
+// by every signed-in user; the token is only served by /whatsapp_settings,
+// which needs System access.
+func withoutSecrets(settings db.AppSetting) db.AppSetting {
+	settings.WhatsappAccessToken = ""
+	return settings
+}
 
 // getAppSettings returns the single global settings row (seeded by
 // migration 000050, always present -- there is exactly one, id = 1).
@@ -18,20 +27,21 @@ func (server *Server) getAppSettings(ctx *gin.Context) {
 		return
 	}
 
-	server.writeJSON(ctx, http.StatusOK, envelope{"settings": settings})
+	server.writeJSON(ctx, http.StatusOK, envelope{"settings": withoutSecrets(settings)})
 }
 
 var validActivityDisplayModes = map[string]bool{"notification": true, "appbar": true}
 
 type updateAppSettingsRequest struct {
-	FinancialsHighSeasonMonths []int   `json:"financials_high_season_months"`
-	ActivityMessageSeconds     int16   `json:"activity_message_seconds"`
-	ActivityDisplayMode        string  `json:"activity_display_mode"`
-	BarcodeLabelWidth          float32 `json:"barcode_label_width"`
-	BarcodeLabelHeight         float32 `json:"barcode_label_height"`
+	FinancialsHighSeasonMonths []int    `json:"financials_high_season_months"`
+	ActivityMessageSeconds     int16    `json:"activity_message_seconds"`
+	ActivityDisplayMode        string   `json:"activity_display_mode"`
+	BarcodeLabelWidth          float32  `json:"barcode_label_width"`
+	BarcodeLabelHeight         float32  `json:"barcode_label_height"`
 	UpcomingEventsDays         int16    `json:"upcoming_events_days"`
 	UpcomingEventsMenuDays     int16    `json:"upcoming_events_menu_days"`
 	HiddenBuiltinEvents        []string `json:"hidden_builtin_events"`
+	ProductAutofillEnabled     bool     `json:"product_autofill_enabled"`
 }
 
 // updateAppSettings replaces the whole global settings row -- the client
@@ -95,11 +105,94 @@ func (server *Server) updateAppSettings(ctx *gin.Context) {
 		UpcomingEventsDays:         req.UpcomingEventsDays,
 		UpcomingEventsMenuDays:     req.UpcomingEventsMenuDays,
 		HiddenBuiltinEvents:        hiddenEvents,
+		ProductAutofillEnabled:     req.ProductAutofillEnabled,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	server.writeJSON(ctx, http.StatusOK, envelope{"settings": settings})
+	server.writeJSON(ctx, http.StatusOK, envelope{"settings": withoutSecrets(settings)})
+}
+
+// productAutofillRule is one row of the New Product dialog's auto-fill: when
+// the product's code or name matches, `field` is filled with `value`. The UI
+// evaluates them (ui/src/utils/productAutofill.js); this only checks shape.
+type productAutofillRule struct {
+	Source   string `json:"source"`
+	Match    string `json:"match"`
+	Position int    `json:"position"`
+	Pattern  string `json:"pattern"`
+	Field    string `json:"field"`
+	Value    string `json:"value"`
+}
+
+var (
+	validAutofillSources = map[string]bool{"code": true, "name": true}
+	validAutofillMatches = map[string]bool{
+		"char": true, "prefix": true, "suffix": true, "contains": true,
+		"word": true, "trailing_number": true, "regex": true,
+	}
+	validAutofillFields = map[string]bool{
+		"category": true, "subcategory": true, "brand": true, "kind": true, "type": true,
+		"unit": true, "year": true, "season": true, "origin": true,
+		"price": true, "description": true,
+	}
+)
+
+const maxAutofillRules = 500
+
+type setProductAutofillRulesRequest struct {
+	Rules []productAutofillRule `json:"rules"`
+}
+
+// setProductAutofillRules replaces the whole rule list (the Auto-fill Rules
+// page always sends every rule, in order -- order decides which rule wins
+// when several fill the same field).
+func (server *Server) setProductAutofillRules(ctx *gin.Context) {
+	var req setProductAutofillRulesRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	if req.Rules == nil {
+		req.Rules = []productAutofillRule{}
+	}
+	if len(req.Rules) > maxAutofillRules {
+		server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("at most %d rules", maxAutofillRules))
+		return
+	}
+	for i, r := range req.Rules {
+		n := i + 1
+		switch {
+		case !validAutofillSources[r.Source]:
+			server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("rule %d: unknown source %q", n, r.Source))
+			return
+		case !validAutofillMatches[r.Match]:
+			server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("rule %d: unknown match %q", n, r.Match))
+			return
+		case !validAutofillFields[r.Field]:
+			server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("rule %d: unknown field %q", n, r.Field))
+			return
+		case r.Match == "char" && r.Position < 1:
+			server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("rule %d: position must be 1 or more", n))
+			return
+		case r.Match != "trailing_number" && r.Pattern == "":
+			server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("rule %d: pattern is required", n))
+			return
+		}
+	}
+
+	rules, err := json.Marshal(req.Rules)
+	if err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	settings, err := server.store.SetProductAutofillRules(ctx, rules)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	server.writeJSON(ctx, http.StatusOK, envelope{"settings": withoutSecrets(settings)})
 }

@@ -31,5 +31,15 @@ export function useAppSettings () {
     return data?.settings ?? null
   }
 
-  return { getAppSettings, updateAppSettings }
+  // Replaces the whole New Product auto-fill rule list (order matters).
+  async function updateProductAutofillRules (rules) {
+    const data = await requestJSON(`${API_BASE}/app_settings/product_autofill_rules`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rules }),
+    })
+    return data?.settings ?? null
+  }
+
+  return { getAppSettings, updateAppSettings, updateProductAutofillRules }
 }

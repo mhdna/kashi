@@ -84,6 +84,7 @@ var accessSections = []accessSection{
 		{"products", "Products"},
 		{"colors-sizes", "Colors & Sizes"},
 		{"attributes", "Attributes"},
+		{"autofill-rules", "Auto-fill Rules"},
 		{"barcodes", "Barcodes"},
 		{"barcode-printing", "Barcode Printing"},
 	}},
@@ -269,6 +270,8 @@ var routeRules = []routeRule{
 	lookup("/calendar_events", "calendar"),
 	lookup("/app_settings", "system"),
 	lookup("/app_settings/default_low_stock_threshold", "inventory"),
+	// Auto-fill rules are edited from the Products section's own page.
+	lookup("/app_settings/product_autofill_rules", "products"),
 	lookup("/pos_settings", "system"),
 	rule("/whatsapp_settings", "system", "system"),
 	rule("/audit_logs", "", "system"),

@@ -1,16 +1,6 @@
 <template>
   <v-dialog v-model="dialog" max-width="560" :retain-focus="false" scrollable>
-    <v-card>
-      <v-card-title class="d-flex align-center">
-        <span class="text-h6">New Product</span>
-        <v-spacer />
-        <v-btn icon="mdi-close" size="small" variant="text" @click="dialog = false" />
-      </v-card-title>
-      <v-divider />
-      <v-card-text class="py-4">
-        <NewProductForm @created="onProductCreated" />
-      </v-card-text>
-    </v-card>
+    <NewProductForm @close="dialog = false" @created="onProductCreated" />
   </v-dialog>
 
   <v-dialog v-model="editDialog" max-width="760" :retain-focus="false" scrollable>

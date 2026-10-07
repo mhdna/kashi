@@ -17,6 +17,7 @@
           <v-tab prepend-icon="mdi-cog-outline" text="General" value="general" />
           <v-tab prepend-icon="mdi-chart-line" text="Financials" value="financials" />
           <v-tab prepend-icon="mdi-barcode" text="Barcode labels" value="barcodes" />
+          <v-tab prepend-icon="mdi-package-variant" text="Products" value="products" />
           <v-tab v-if="auth.isAdmin" prepend-icon="mdi-account-group" text="Users" value="users" />
           <v-tab v-if="auth.isAdmin" prepend-icon="mdi-shield-account-outline" text="Roles" value="roles" />
           <v-tab v-if="auth.canViewPage('system', 'settings')" prepend-icon="mdi-whatsapp" text="WhatsApp" value="whatsapp" />
@@ -186,6 +187,34 @@
               <div class="text-caption text-medium-emphasis mt-2">
                 72 pt = 1 inch. Common thermal label: 288 &times; 144 (4 &times; 2 in).
               </div>
+            </v-form>
+          </section>
+
+          <!-- ------------------------------------------------------ PRODUCTS -->
+          <section v-show="tab === 'products'" class="set-section">
+            <v-form :disabled="!canEditSystem">
+              <h3 class="text-subtitle-1 mb-1">Smart auto-fill</h3>
+              <p class="text-body-2 text-medium-emphasis mb-4">
+                Shows an Auto-fill button on the New Product dialog that fills
+                attributes and price from the product's code and name.
+              </p>
+
+              <v-switch
+                v-model="draft.productAutofillEnabled"
+                color="primary"
+                density="compact"
+                hide-details
+                inset
+                label="Enable smart auto-fill"
+              />
+              <v-btn
+                class="mt-3"
+                prepend-icon="mdi-auto-fix"
+                size="small"
+                text="Edit auto-fill rules"
+                to="/autofill-rules"
+                variant="tonal"
+              />
             </v-form>
           </section>
 
@@ -568,6 +597,7 @@
     financialsHighSeasonMonths: [...settingsStore.financialsHighSeasonMonths],
     barcodeLabelWidth: settingsStore.barcodeLabelWidth,
     barcodeLabelHeight: settingsStore.barcodeLabelHeight,
+    productAutofillEnabled: settingsStore.productAutofillEnabled,
   })
 
   function seedDraft () {
@@ -578,6 +608,7 @@
     draft.financialsHighSeasonMonths = [...settingsStore.financialsHighSeasonMonths]
     draft.barcodeLabelWidth = settingsStore.barcodeLabelWidth
     draft.barcodeLabelHeight = settingsStore.barcodeLabelHeight
+    draft.productAutofillEnabled = settingsStore.productAutofillEnabled
   }
 
   const savingSettings = ref(false)
@@ -598,6 +629,7 @@
     || Number(draft.upcomingEventsMenuDays) !== settingsStore.upcomingEventsMenuDays
     || Number(draft.barcodeLabelWidth) !== settingsStore.barcodeLabelWidth
     || Number(draft.barcodeLabelHeight) !== settingsStore.barcodeLabelHeight
+    || draft.productAutofillEnabled !== settingsStore.productAutofillEnabled
     || !sameMonths(draft.financialsHighSeasonMonths, settingsStore.financialsHighSeasonMonths),
   )
 
@@ -626,6 +658,7 @@
         financialsHighSeasonMonths: [...draft.financialsHighSeasonMonths],
         barcodeLabelWidth: Number(draft.barcodeLabelWidth),
         barcodeLabelHeight: Number(draft.barcodeLabelHeight),
+        productAutofillEnabled: draft.productAutofillEnabled,
       })
     } finally {
       savingSettings.value = false
