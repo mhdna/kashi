@@ -28,6 +28,9 @@ func newTestServer(t *testing.T, store db.Store) *Server {
 	}
 	server, err := NewServer(config, adminStore{store})
 	require.NoError(t, err)
+	// The activity feed writes from a goroutine after the response; tests
+	// that care set their own recorder.
+	server.recordActivity = func(adminActivity) {}
 	return server
 }
 

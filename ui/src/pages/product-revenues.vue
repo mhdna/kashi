@@ -1,7 +1,7 @@
 <template>
   <div class="product-revenues d-flex flex-column fill-height" style="overflow-y: auto">
     <!-- Header / controls -->
-    <div class="d-flex align-center flex-wrap ga-3 pa-4 pb-2">
+    <div class="d-flex align-center flex-wrap flex-shrink-0 ga-3 pa-4 pb-2">
       <v-icon icon="mdi-package-variant" />
       <div class="text-h6 font-weight-medium">Product Revenues</div>
       <v-spacer />
@@ -56,24 +56,13 @@
       />
     </div>
 
-    <v-tabs v-model="tab" class="px-4" color="primary">
+    <v-tabs v-model="tab" class="flex-shrink-0 px-4" color="primary">
       <v-tab value="pos">Branches</v-tab>
       <v-tab value="kashi">Wholesale</v-tab>
     </v-tabs>
     <v-divider />
 
     <v-window v-model="tab" class="flex-grow-1" style="overflow-y: auto">
-      <v-window-item value="kashi">
-        <v-container class="pa-4 pt-2" fluid>
-          <ProductRevenuePanel
-            :daily="dailyRevenue"
-            :error="error"
-            :loading="loading"
-            :products="products"
-          />
-        </v-container>
-      </v-window-item>
-
       <v-window-item value="pos">
         <v-container class="pa-4 pt-2" fluid>
           <ProductRevenuePanel
@@ -94,6 +83,17 @@
               </v-row>
             </template>
           </ProductRevenuePanel>
+        </v-container>
+      </v-window-item>
+
+      <v-window-item value="kashi">
+        <v-container class="pa-4 pt-2" fluid>
+          <ProductRevenuePanel
+            :daily="dailyRevenue"
+            :error="error"
+            :loading="loading"
+            :products="products"
+          />
         </v-container>
       </v-window-item>
     </v-window>

@@ -3,6 +3,7 @@
   SalesAnalyticsTab: label on the left, value + muted share on the right,
   optional caption under the label.
     rows: [{ key, label, sub?, value, pct? }]
+  A `row-append` slot adds something after a row's value (e.g. a button).
 -->
 <template>
   <v-card border class="d-flex flex-column fill-height" flat tile>
@@ -15,6 +16,7 @@
         <template #append>
           <span class="text-caption mr-3 text-no-wrap">{{ row.value }}</span>
           <span v-if="row.pct != null" class="list-panel__pct text-caption text-grey">{{ row.pct }}</span>
+          <slot name="row-append" :row="row" />
         </template>
       </v-list-item>
     </v-list>

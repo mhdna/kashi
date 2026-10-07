@@ -481,7 +481,8 @@
   <!-- Salespersons are admin-managed only here -- kashi-pos pulls the
        roster down read-only via the branch-sync mechanism (GET
        /branch/sync/changes), it only edits the local attendance-device
-       pairing id, never the name or active state. -->
+       pairing id, never the name, color or active state. The color is the
+       salesperson's avatar background on the till. -->
   <v-dialog v-model="salespersonsDialog" max-width="560">
     <v-card>
       <v-card-title>Salespersons -- {{ salespersonsBranch?.name }}</v-card-title>
@@ -496,10 +497,20 @@
 
           <v-table class="mb-4" density="compact">
             <thead>
-              <tr><th>Name</th><th>Active</th><th /></tr>
+              <tr><th>Color</th><th>Name</th><th>Active</th><th /></tr>
             </thead>
             <tbody>
               <tr v-for="person in salespersonsList" :key="person.id">
+                <td>
+                  <input
+                    aria-label="Avatar color"
+                    class="salesperson-color-input"
+                    :disabled="!canEdit"
+                    type="color"
+                    :value="person.color || '#546E7A'"
+                    @change="event => changeSalespersonColor(person, event.target.value)"
+                  >
+                </td>
                 <td>
                   <v-text-field
                     v-if="editingSalespersonId === person.id"
@@ -589,6 +600,16 @@
               @update:model-value="value => toggleActive(item, value)"
             />
           </template>
+          <template #item.hidden_from_reports="{ item }">
+            <v-switch
+              color="primary"
+              density="compact"
+              :disabled="!canEdit"
+              hide-details
+              :model-value="!item.hidden_from_reports"
+              @update:model-value="value => toggleInReports(item, value)"
+            />
+          </template>
           <template #item.last_seen_at="{ item }">
             {{ item.last_seen_at?.Valid ? new Date(item.last_seen_at.Time).toLocaleString() : 'Never' }}
           </template>
@@ -600,16 +621,6 @@
         </v-data-table>
       </div>
     </v-card>
-          <template #item.hidden_from_reports="{ item }">
-            <v-switch
-              color="primary"
-              density="compact"
-              :disabled="!canEdit"
-              hide-details
-              :model-value="!item.hidden_from_reports"
-              @update:model-value="value => toggleInReports(item, value)"
-            />
-          </template>
   </div>
 </template>
 
@@ -632,9 +643,11 @@
     fetchBranches,
     createBranch,
     setBranchActive,
+    setBranchHiddenFromReports,
     listRegisters,
     createRegister,
     setRegisterActive,
+    setRegisterHiddenFromReports,
     rotateRegisterKey,
     fetchConnectedRegisters,
   } = useBranches()
@@ -643,11 +656,9 @@
     listBranchTargets,
     createBranchTarget,
     updateBranchTarget,
-    setBranchHiddenFromReports,
     deleteBranchTarget,
     listBranchTargetSeries,
     createBranchTargetSeries,
-    setRegisterHiddenFromReports,
     updateBranchTargetSeries,
     deleteBranchTargetSeries,
     setBranchTargetSeriesActive,
@@ -657,12 +668,15 @@
     createBranchSalesperson,
     updateBranchSalesperson,
     setBranchSalespersonActive,
+    setBranchSalespersonColor,
   } = useBranchSalespersons()
 
   const headers = ref([
     { title: 'Name', key: 'name', align: 'start' },
     { title: 'Code', key: 'code', align: 'start' },
     { title: 'Active', key: 'is_active', align: 'center', sortable: false },
+    // Off keeps the branch syncing but out of every report and stat.
+    { title: 'In reports', key: 'hidden_from_reports', align: 'center', sortable: false },
     { title: 'Last Seen', key: 'last_seen_at', align: 'start', sortable: false },
     { title: '', key: 'actions', align: 'end', sortable: false },
   ])
@@ -675,8 +689,6 @@
       await fetchBranches(true)
     } catch (error) {
       notify.error(error.message)
-    // Off keeps the branch syncing but out of every report and stat.
-    { title: 'In reports', key: 'hidden_from_reports', align: 'center', sortable: false },
     } finally {
       listLoading.value = false
     }
@@ -736,6 +748,14 @@
     }
   }
 
+  async function toggleInReports (item, value) {
+    try {
+      await setBranchHiddenFromReports(item.id, !value)
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
+
   const targetsDialog = ref(false)
   const targetsTab = ref('targets')
   const targetsBranch = ref(null)
@@ -748,14 +768,6 @@
     targetsDialog.value = true
     await Promise.all([loadTargets(), loadSeries()])
   }
-  async function toggleInReports (item, value) {
-    try {
-      await setBranchHiddenFromReports(item.id, !value)
-    } catch (error) {
-      notify.error(error.message)
-    }
-  }
-
 
   async function loadTargets () {
     targetsLoading.value = true
@@ -965,6 +977,15 @@
     }
   }
 
+  async function changeSalespersonColor (person, color) {
+    try {
+      await setBranchSalespersonColor(person.id, color)
+      await loadSalespersons()
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
+
   async function toggleSalespersonActive (person, value) {
     try {
       await setBranchSalespersonActive(person.id, value)
@@ -1048,6 +1069,15 @@
     }
   }
 
+  async function toggleRegisterInReports (register, value) {
+    try {
+      await setRegisterHiddenFromReports(register.id, !value)
+      register.hidden_from_reports = !value
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
+
   const rotateDialog = ref(false)
   const rotateTarget = ref(null)
   const rotating = ref(false)
@@ -1069,15 +1099,6 @@
       rotating.value = false
     }
   }
-  async function toggleRegisterInReports (register, value) {
-    try {
-      await setRegisterHiddenFromReports(register.id, !value)
-      register.hidden_from_reports = !value
-    } catch (error) {
-      notify.error(error.message)
-    }
-  }
-
 </script>
 
 <style scoped>
@@ -1114,6 +1135,30 @@
 
 .field-grid > .field-full {
   grid-column: 1 / -1;
+}
+
+.salesperson-color-input {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.2);
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.salesperson-color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.salesperson-color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+
+.salesperson-color-input:disabled {
+  cursor: default;
 }
 
 .target-color-swatch {

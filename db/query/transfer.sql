@@ -133,11 +133,11 @@ WHERE transfer_items.id = $1
 -- name: ListTransferItems :many
 SELECT
   ti.*,
-  p.name AS product_name,
-  p.code AS product_code,
-  pv.barcode AS variant_barcode,
+  COALESCE(p.name, '') AS product_name,
+  COALESCE(p.code, '') AS product_code,
+  COALESCE(pv.barcode, '') AS variant_barcode,
   pv.uid AS variant_uid,
-  a.name AS asset_name
+  COALESCE(a.name, '') AS asset_name
 FROM transfer_items ti
 LEFT JOIN product_variants pv ON pv.id = ti.variant_id
 LEFT JOIN products p ON p.id = pv.product_id

@@ -31,6 +31,8 @@ export const navItems = [
     to: '/stock-health',
     append: 'status',
   },
+  { title: 'Commands', icon: 'mdi-console-line', to: '/branch-commands', append: 'commands-status' },
+  { title: 'Conflicts', icon: 'mdi-source-branch-sync', to: '/branch-conflicts', append: 'conflicts-status' },
   {
     title: 'Wholesale',
     icon: 'mdi-cart',

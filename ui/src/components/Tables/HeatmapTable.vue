@@ -1,65 +1,72 @@
 <template>
-  <div ref="wrapRef" class="heatmap-wrap">
-    <table class="heatmap-table">
-      <thead>
-        <tr>
-          <th class="sticky-col day-col year-nav">
-            <v-btn
-              aria-label="Previous year"
-              color="primary"
-              icon="mdi-chevron-left"
-              size="small"
-              variant="tonal"
-              @click="selectedYear--"
-            />
-            <span>{{ selectedYear }}</span>
-            <v-btn
-              aria-label="Next year"
-              color="primary"
-              :disabled="selectedYear >= currentYear"
-              icon="mdi-chevron-right"
-              size="small"
-              variant="tonal"
-              @click="selectedYear++"
-            />
-          </th>
-          <th v-for="month in months" :key="month">
-            {{ month }}
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="d in 31" :key="d">
-          <td class="sticky-col day-col">{{ d }}</td>
-          <td
-            v-for="(month, mi) in months"
-            :key="month"
-            :ref="el => setCellRef(mi, d, el)"
-            :class="{
-              'cell-flash': isHighlighted(mi, d),
-              'cell-today': isToday(mi, d),
-              'cell-link': isOpenable(mi, d),
-            }"
-            :style="d <= daysInMonth[mi] ? cellStyle(get(mi, d)) : {}"
-            @click="openDay(mi, d)"
-          >
-            {{ d <= daysInMonth[mi] ? format(get(mi, d)) : "" }}
-          </td>
-        </tr>
-      </tbody>
-      <tfoot>
-        <tr>
-          <td class="sticky-col day-col sticky-foot">Total</td>
-          <td
-            v-for="(month, mi) in months"
-            :key="month"
-            class="sticky-foot"
-          >
-            {{ format(monthTotals[mi]) }}
-          </td>
-        </tr>
-      </tfoot>
-    </table>
+  <!-- The spinner sits outside the scrolling grid so it stays centred in
+       view however far the grid is scrolled. -->
+  <div class="heatmap-root">
+    <div ref="wrapRef" class="heatmap-wrap" :class="{ 'is-loading': loading }">
+      <table class="heatmap-table">
+        <thead>
+          <tr>
+            <th class="sticky-col day-col year-nav">
+              <v-btn
+                aria-label="Previous year"
+                color="primary"
+                icon="mdi-chevron-left"
+                size="small"
+                variant="tonal"
+                @click="selectedYear--"
+              />
+              <span>{{ selectedYear }}</span>
+              <v-btn
+                aria-label="Next year"
+                color="primary"
+                :disabled="selectedYear >= currentYear"
+                icon="mdi-chevron-right"
+                size="small"
+                variant="tonal"
+                @click="selectedYear++"
+              />
+            </th>
+            <th v-for="month in months" :key="month">
+              {{ month }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="d in 31" :key="d">
+            <td class="sticky-col day-col">{{ d }}</td>
+            <td
+              v-for="(month, mi) in months"
+              :key="month"
+              :ref="el => setCellRef(mi, d, el)"
+              :class="{
+                'cell-flash': isHighlighted(mi, d),
+                'cell-today': isToday(mi, d),
+                'cell-link': isOpenable(mi, d),
+              }"
+              :style="d <= daysInMonth[mi] ? cellStyle(get(mi, d)) : {}"
+              @click="openDay(mi, d)"
+            >
+              {{ d <= daysInMonth[mi] && !loading ? format(get(mi, d)) : "" }}
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td class="sticky-col day-col sticky-foot">Total</td>
+            <td
+              v-for="(month, mi) in months"
+              :key="month"
+              class="sticky-foot"
+            >
+              {{ loading ? "" : format(monthTotals[mi]) }}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div v-if="loading" class="heatmap-loader">
+      <v-progress-circular color="primary" indeterminate size="40" />
+    </div>
   </div>
 </template>
 
@@ -166,12 +173,19 @@
     wrap.scrollTop = todayCellEl.offsetTop - stickyHeaderHeight - (wrap.clientHeight - stickyHeaderHeight) / 2 + todayCellEl.offsetHeight / 2
   }
 
+  // True while a whole new grid is fetched (first load, year or branch
+  // switch): the cells blank out under a spinner instead of reading $0. A
+  // live refresh keeps showing the current numbers and just updates them.
+  const loading = ref(true)
+
   // highlightChanges is false for a branch-filter switch (a whole new grid,
   // nothing to flash) and true for a live socket-triggered refresh.
   async function load (highlightChanges = false) {
     const year = selectedYear.value
+    if (!highlightChanges) loading.value = true
     const days = await getDailyIncome(year, selectedBranchId.value).catch(() => [])
     if (year !== selectedYear.value) return
+    loading.value = false
     const next = months.map((_, mi) => Array.from({ length: daysInMonth.value[mi] }, () => 0))
     for (const entry of days) {
       const d = new Date(entry.day)
@@ -229,6 +243,26 @@
 </script>
 
 <style scoped>
+.heatmap-root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+.heatmap-loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.heatmap-wrap.is-loading td {
+  background: transparent !important;
+}
 .heatmap-wrap {
   flex: 1 1 auto;
   min-height: 0;

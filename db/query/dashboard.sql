@@ -26,7 +26,8 @@ WITH activities AS (
     concat(initcap(b.kind), ' · ', b.branch_invoice_code)::text AS details,
     b.grand_total::bigint AS amount,
     ''::text AS currency_code,
-    b.received_at AS synced_at
+    b.received_at AS synced_at,
+    b.salesperson_name::text AS person
   FROM branch_invoices b
   JOIN branches br ON br.id = b.branch_id
   WHERE sqlc.arg(scope)::text <> 'admin'
@@ -38,7 +39,7 @@ WITH activities AS (
 
   UNION ALL
   SELECT 'Expense', e.branch_id, br.name, e.description,
-    -e.amount, e.currency_code, e.received_at
+    -e.amount, e.currency_code, e.received_at, ''
   FROM branch_expenses e
   JOIN branches br ON br.id = e.branch_id
   WHERE sqlc.arg(scope)::text <> 'admin'
@@ -49,7 +50,7 @@ WITH activities AS (
 
   UNION ALL
   SELECT 'Loan', l.branch_id, br.name, l.description,
-    l.amount, l.currency_code, l.received_at
+    l.amount, l.currency_code, l.received_at, ''
   FROM loans l
   JOIN branches br ON br.id = l.branch_id
   WHERE sqlc.arg(scope)::text <> 'admin'
@@ -62,7 +63,7 @@ WITH activities AS (
   UNION ALL
   SELECT 'Shift closed', s.branch_id, br.name,
     concat_ws(' · ', nullif(s.closing_person_name, ''), 'USD variance')::text,
-    s.variance_usd, 'USD', s.received_at
+    s.variance_usd, 'USD', s.received_at, s.closing_person_name
   FROM branch_shifts s
   JOIN branches br ON br.id = s.branch_id
   WHERE sqlc.arg(scope)::text <> 'admin'
@@ -75,7 +76,7 @@ WITH activities AS (
   UNION ALL
   SELECT 'Settlement changed', s.branch_id, br.name,
     concat('Invoice ', s.sale_client_ref)::text,
-    s.grand_total, '', s.received_at
+    s.grand_total, '', s.received_at, ''
   FROM branch_invoice_settlements s
   JOIN branches br ON br.id = s.branch_id
   WHERE sqlc.arg(scope)::text <> 'admin'
@@ -87,7 +88,7 @@ WITH activities AS (
   UNION ALL
   SELECT 'Attendance', a.branch_id, br.name,
     concat_ws(' · ', a.salesperson_name, a.type, a.event_date, a.event_time)::text,
-    0::bigint, '', a.received_at
+    0::bigint, '', a.received_at, a.salesperson_name
   FROM branch_attendance_events a
   JOIN branches br ON br.id = a.branch_id
   WHERE sqlc.arg(scope)::text <> 'admin'
@@ -99,7 +100,7 @@ WITH activities AS (
   UNION ALL
   SELECT 'Attendance changed', a.branch_id, br.name,
     concat_ws(' · ', a.salesperson_name, a.kind, a.status, a.note)::text,
-    0::bigint, '', a.received_at
+    0::bigint, '', a.received_at, a.salesperson_name
   FROM branch_attendance_changes a
   JOIN branches br ON br.id = a.branch_id
   WHERE sqlc.arg(scope)::text <> 'admin'
@@ -108,7 +109,18 @@ WITH activities AS (
     AND (sqlc.narg(branch_id)::bigint IS NULL OR a.branch_id = sqlc.narg(branch_id))
     AND a.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 )
-SELECT activities.*, COUNT(*) OVER()::bigint AS total_count
+-- person is who did it on the till (salesperson / closing cashier), '' when
+-- the till doesn't record one; person_color is that salesperson's own
+-- colour, '' when they have none.
+SELECT activities.*,
+  COALESCE((
+    SELECT sp.color FROM salespersons sp
+    WHERE sp.name = activities.person AND activities.person <> ''
+      AND (sp.branch_id IS NULL OR sp.branch_id = activities.branch_id)
+    ORDER BY sp.branch_id NULLS LAST
+    LIMIT 1
+  ), '')::text AS person_color,
+  COUNT(*) OVER()::bigint AS total_count
 FROM activities
 ORDER BY synced_at DESC
 LIMIT sqlc.arg(page_size) OFFSET sqlc.arg(page_id);

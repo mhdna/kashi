@@ -53,6 +53,21 @@
         </v-badge>
         <v-btn
           v-if="canEdit"
+          :loading="importing"
+          prepend-icon="mdi-file-delimited-outline"
+          text="Import CSV"
+          variant="tonal"
+          @click="fileInput?.click()"
+        />
+        <input
+          ref="fileInput"
+          accept=".csv,text/csv"
+          hidden
+          type="file"
+          @change="onFilePicked"
+        >
+        <v-btn
+          v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
           text="Add Product"
@@ -183,7 +198,9 @@
   import NewProductForm from '@/components/Forms/NewProductForm.vue'
   import ProductsTable from '@/components/ProductsTable.vue'
   import { useAttributes } from '@/composables/useAttributes'
+  import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { useProducts } from '@/composables/useProducts'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
@@ -209,6 +226,35 @@
   function onProductChanged () {
     editDialog.value = false
     productsTableRef.value?.reload()
+  }
+
+  // ---- CSV import ----------------------------------------------------------
+  // Columns: code, name, price (USD), optional description. The server
+  // rejects the whole file if any row is bad, and skips codes that exist.
+  const { importCsv } = useProducts()
+  const notify = useNotify()
+  const fileInput = ref(null)
+  const importing = ref(false)
+
+  async function onFilePicked (event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    importing.value = true
+    try {
+      const res = await importCsv(file)
+      const skipped = res?.skipped ?? []
+      let message = `Imported ${res?.created ?? 0} products.`
+      if (skipped.length > 0) {
+        message += ` Skipped ${skipped.length} that already exist: ${skipped.join(', ')}`
+      }
+      notify.success(message)
+      productsTableRef.value?.reload()
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      importing.value = false
+    }
   }
 
   // ---- filters -----------------------------------------------------------

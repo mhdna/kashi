@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/mhdna/kashi/db/sqlc"
@@ -121,6 +122,49 @@ func (server *Server) setSalespersonActive(ctx *gin.Context) {
 	salesperson, err := server.store.SetSalespersonActive(ctx, db.SetSalespersonActiveParams{
 		ID:       req.ID,
 		IsActive: req.IsActive,
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			server.writeError(ctx, http.StatusNotFound, err)
+			return
+		}
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	if salesperson.BranchID.Valid {
+		server.branchHub.notify(salesperson.BranchID.Int64, branchWSMessage{Type: "salesperson_updated"})
+	}
+	ctx.JSON(http.StatusOK, salesperson)
+}
+
+type setSalespersonColorURI struct {
+	ID int64 `uri:"id" binding:"required,min=1"`
+}
+
+// Separate from the URI struct: binding the URI validates every field, so a
+// required body field there would fail before the body is read.
+type setSalespersonColorRequest struct {
+	Color string `json:"color" binding:"required,hexcolor"`
+}
+
+// setSalespersonColor changes the avatar color kashi-pos shows for this
+// salesperson. A random one is assigned on creation (see migration 000112).
+func (server *Server) setSalespersonColor(ctx *gin.Context) {
+	var uri setSalespersonColorURI
+	if err := ctx.ShouldBindUri(&uri); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	var req setSalespersonColorRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	salesperson, err := server.store.SetSalespersonColor(ctx, db.SetSalespersonColorParams{
+		ID:    uri.ID,
+		Color: strings.ToUpper(req.Color),
 	})
 	if err != nil {
 		if err == sql.ErrNoRows {

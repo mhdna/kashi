@@ -428,7 +428,7 @@ func (server *Server) importBranchAttendanceEventsCSV(ctx *gin.Context) {
 		return
 	}
 
-	col := attendanceCSVColumns(rows[0])
+	col := csvColumns(rows[0])
 
 	inserted, skipped := 0, 0
 	for _, row := range rows[1:] {
@@ -486,19 +486,19 @@ func (server *Server) importBranchAttendanceEventsCSV(ctx *gin.Context) {
 	server.writeJSON(ctx, http.StatusOK, envelope{"inserted": inserted, "skipped": skipped})
 }
 
-// attendanceCSVColumnIndex maps a canonical column name to its position in
+// csvColumnIndex maps a canonical column name to its position in
 // the uploaded header row, so column order in the file doesn't matter.
-type attendanceCSVColumnIndex map[string]int
+type csvColumnIndex map[string]int
 
-func attendanceCSVColumns(header []string) attendanceCSVColumnIndex {
-	idx := attendanceCSVColumnIndex{}
+func csvColumns(header []string) csvColumnIndex {
+	idx := csvColumnIndex{}
 	for i, name := range header {
 		idx[strings.ToLower(strings.TrimSpace(name))] = i
 	}
 	return idx
 }
 
-func (c attendanceCSVColumnIndex) get(row []string, name string) string {
+func (c csvColumnIndex) get(row []string, name string) string {
 	i, ok := c[name]
 	if !ok || i >= len(row) {
 		return ""

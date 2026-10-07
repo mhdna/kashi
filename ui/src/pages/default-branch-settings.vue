@@ -48,9 +48,11 @@
         >
           <v-tab class="text-none" text="Pricing" value="pricing" />
           <v-tab class="text-none" text="Behaviour" value="behaviour" />
+          <v-tab class="text-none" text="Cash &amp; shifts" value="cash" />
           <v-tab class="text-none" text="Page access" value="pages" />
           <v-tab class="text-none" text="Printing" value="printing" />
           <v-tab class="text-none" text="Attendance" value="attendance" />
+          <v-tab class="text-none" text="Till display" value="display" />
         </v-tabs>
 
         <v-divider vertical />
@@ -194,6 +196,72 @@
                   label="Close-shift receipt photo"
                   variant="outlined"
                 />
+                <p class="text-caption text-medium-emphasis mt-4 mb-2">
+                  "Leave as is" keeps each branch's own value when you apply to all.
+                </p>
+                <div class="field-grid">
+                  <template v-for="f in OPTIONAL_FIELDS.behaviour" :key="f.key">
+                    <v-select
+                      v-if="f.type === 'bool'"
+                      v-model="form[f.key]"
+                      density="compact"
+                      hide-details
+                      :items="TRI_STATE"
+                      :label="f.label"
+                      variant="outlined"
+                    />
+                    <v-text-field
+                      v-else
+                      clearable
+                      density="compact"
+                      hide-details
+                      :label="f.label"
+                      min="0"
+                      :model-value="scaledValue(form[f.key], f.scale)"
+                      placeholder="Leave as is"
+                      :step="f.step"
+                      type="number"
+                      variant="outlined"
+                      @update:model-value="v => (form[f.key] = unscaledValue(v, f.scale))"
+                    />
+                  </template>
+                </div>
+              </section>
+            </div>
+
+            <div v-show="sectionTab === 'cash'">
+              <section class="dbs-section">
+                <div class="dbs-section-title">Cash &amp; shifts</div>
+                <p class="text-caption text-medium-emphasis mb-2">
+                  "Leave as is" keeps each branch's own value when you apply to all.
+                </p>
+                <div class="field-grid">
+                  <template v-for="f in OPTIONAL_FIELDS.cash" :key="f.key">
+                    <v-select
+                      v-if="f.type === 'bool'"
+                      v-model="form[f.key]"
+                      density="compact"
+                      hide-details
+                      :items="TRI_STATE"
+                      :label="f.label"
+                      variant="outlined"
+                    />
+                    <v-text-field
+                      v-else
+                      clearable
+                      density="compact"
+                      hide-details
+                      :label="f.label"
+                      min="0"
+                      :model-value="scaledValue(form[f.key], f.scale)"
+                      placeholder="Leave as is"
+                      :step="f.step"
+                      type="number"
+                      variant="outlined"
+                      @update:model-value="v => (form[f.key] = unscaledValue(v, f.scale))"
+                    />
+                  </template>
+                </div>
               </section>
             </div>
 
@@ -236,6 +304,36 @@
                     hide-details
                     label="Salespersons"
                   />
+                </div>
+                <p class="text-caption text-medium-emphasis mt-4 mb-2">
+                  "Leave as is" keeps each branch's own value when you apply to all.
+                </p>
+                <div class="field-grid">
+                  <template v-for="f in OPTIONAL_FIELDS.pages" :key="f.key">
+                    <v-select
+                      v-if="f.type === 'bool'"
+                      v-model="form[f.key]"
+                      density="compact"
+                      hide-details
+                      :items="TRI_STATE"
+                      :label="f.label"
+                      variant="outlined"
+                    />
+                    <v-text-field
+                      v-else
+                      clearable
+                      density="compact"
+                      hide-details
+                      :label="f.label"
+                      min="0"
+                      :model-value="scaledValue(form[f.key], f.scale)"
+                      placeholder="Leave as is"
+                      :step="f.step"
+                      type="number"
+                      variant="outlined"
+                      @update:model-value="v => (form[f.key] = unscaledValue(v, f.scale))"
+                    />
+                  </template>
                 </div>
               </section>
             </div>
@@ -361,6 +459,50 @@
                 </p>
               </section>
             </div>
+
+            <div v-show="sectionTab === 'display'">
+              <section class="dbs-section">
+                <div class="dbs-section-title">How the till's screen looks</div>
+                <p class="text-caption text-medium-emphasis mb-2">
+                  "Leave as is" keeps each till's own value when you apply to all.
+                </p>
+                <div class="field-grid">
+                  <template v-for="f in DISPLAY_FIELDS" :key="f.key">
+                    <v-select
+                      v-if="f.items"
+                      v-model="form.display_prefs[f.key]"
+                      density="compact"
+                      hide-details
+                      :items="f.items"
+                      :label="f.label"
+                      variant="outlined"
+                    />
+                    <v-text-field
+                      v-else
+                      clearable
+                      density="compact"
+                      hide-details
+                      :hint="f.hint"
+                      :label="f.label"
+                      :max="f.max"
+                      :min="f.min"
+                      :model-value="form.display_prefs[f.key]"
+                      placeholder="Leave as is"
+                      type="number"
+                      variant="outlined"
+                      @update:model-value="v => (form.display_prefs[f.key] = unscaledValue(v, 1))"
+                    />
+                  </template>
+                  <CurrencySelect
+                    v-model="form.display_prefs.calculator_total_currency"
+                    clearable
+                    label="Calculator shows first"
+                    placeholder="Leave as is"
+                    variant="outlined"
+                  />
+                </div>
+              </section>
+            </div>
           </v-form>
         </div>
       </div>
@@ -417,6 +559,76 @@
     { title: 'Off (no photo)', value: 0 },
   ]
 
+  // null in a select = "leave as is": the field is left out of the template.
+  const TRI_STATE = [
+    { title: 'Leave as is', value: null },
+    { title: 'On', value: true },
+    { title: 'Off', value: false },
+  ]
+
+  // Fields added after the template's first version. Each is optional, so
+  // applying the template never pushes a value the admin didn't pick (see
+  // defaultBranchSettings in api/default_branch_settings.go). Money is
+  // stored in cents and edited in dollars (scale 100).
+  const OPTIONAL_FIELDS = {
+    behaviour: [
+      { key: 'salesperson_per_invoice_required', label: 'Salesperson on every invoice', type: 'bool' },
+      { key: 'overchange_confirmation', label: 'Confirm change larger than owed', type: 'bool' },
+      { key: 'hide_payment_method_currency', label: 'Hide currency on payment buttons', type: 'bool' },
+      { key: 'auto_append_lbp_zeros', label: 'Type LBP in thousands', type: 'bool' },
+      { key: 'visitor_counter_enabled', label: 'Visitor counter buttons', type: 'bool' },
+      { key: 'non_admin_month_nav_enabled', label: "Cashiers browse other months' income", type: 'bool' },
+      { key: 'close_shift_requires_sync', label: 'Upload everything before closing a shift', type: 'bool' },
+    ],
+    cash: [
+      { key: 'opening_float_enabled', label: 'Shifts start with an opening float', type: 'bool' },
+      { key: 'count_opening_cash_on_close', label: 'Count the opening float when closing', type: 'bool' },
+      { key: 'auto_close_stale_shifts', label: "Close yesterday's open shift at startup", type: 'bool' },
+      { key: 'default_opening_float_usd', label: 'Default opening float (USD)', type: 'number', scale: 100, step: 0.01 },
+      { key: 'default_opening_float_lbp', label: 'Default opening float (LBP)', type: 'number', scale: 1, step: 1000 },
+      { key: 'max_overpayment_cents', label: 'Max overpayment (USD, 0 = no limit)', type: 'number', scale: 100, step: 0.01 },
+    ],
+    pages: [
+      { key: 'page_unlock_products', label: 'Products page', type: 'bool' },
+    ],
+  }
+  const OPTIONAL_KEYS = Object.values(OPTIONAL_FIELDS).flat().map(f => f.key)
+
+  // Till screen prefs (kashi-pos display_prefs.go), same "leave as is" rule.
+  const DISPLAY_FIELDS = [
+    { key: 'quick_access_rows', label: 'Quick access rows (0 hides)', min: 0, max: 8 },
+    { key: 'quick_access_font_scale', label: 'Quick access text size (%)', min: 70, max: 200 },
+    { key: 'quick_access_show_code', label: 'Code on quick access cards', items: TRI_STATE },
+    { key: 'quick_access_show_name', label: 'Name on quick access cards', items: TRI_STATE },
+    { key: 'quick_access_show_remove', label: 'Remove (X) on quick access cards', items: TRI_STATE },
+    { key: 'animations_enabled', label: 'Animations', items: TRI_STATE },
+    {
+      key: 'theme',
+      label: 'Theme',
+      items: [{ title: 'Leave as is', value: null }, { title: 'Light', value: 'light' }, { title: 'Dark', value: 'dark' }],
+    },
+  ]
+
+  function scaledValue (value, scale) {
+    return value == null ? '' : value / scale
+  }
+  function unscaledValue (value, scale) {
+    if (value === '' || value == null || Number.isNaN(Number(value))) return null
+    return Math.round(Number(value) * scale)
+  }
+
+  // Only the prefs actually set; an empty object means none.
+  function templatePayload () {
+    const prefs = Object.fromEntries(
+      Object.entries(form.value.display_prefs).filter(([, v]) => v != null && v !== ''),
+    )
+    return { ...form.value, display_prefs: prefs }
+  }
+
+  function formFromTemplate (data) {
+    return { ...blankForm(), ...data, display_prefs: { ...data?.display_prefs } }
+  }
+
   function blankForm () {
     return {
       tax_rate: 0,
@@ -452,6 +664,8 @@
       attendance_enabled: false,
       attendance_duplicate_interval_seconds: 0,
       attendance_cashier_history: false,
+      ...Object.fromEntries(OPTIONAL_KEYS.map(k => [k, null])),
+      display_prefs: {},
     }
   }
 
@@ -462,7 +676,7 @@
     try {
       await fetchBranches(true)
       const data = await getDefaultBranchSettings()
-      if (data) form.value = { ...blankForm(), ...data }
+      if (data) form.value = formFromTemplate(data)
     } catch (error) {
       notify.error(error.message)
     } finally {
@@ -473,8 +687,8 @@
   async function save () {
     saving.value = true
     try {
-      const saved = await updateDefaultBranchSettings(form.value)
-      if (saved) form.value = { ...blankForm(), ...saved }
+      const saved = await updateDefaultBranchSettings(templatePayload())
+      if (saved) form.value = formFromTemplate(saved)
       notify.success('Default settings saved.')
     } catch (error) {
       notify.error(error.message)

@@ -47,8 +47,17 @@ export function useBranchSalespersons () {
     })
   }
 
+  async function setBranchSalespersonColor (id, color) {
+    return requestJSON(`${API_BASE}/salespersons/${id}/color`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ color }),
+    })
+  }
+
   return {
     listBranchSalespersons,
+    setBranchSalespersonColor,
     createBranchSalesperson,
     updateBranchSalesperson,
     setBranchSalespersonActive,

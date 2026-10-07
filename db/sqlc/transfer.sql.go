@@ -366,11 +366,11 @@ func (q *Queries) ListIncomingBranchTransfersUpdatedSince(ctx context.Context, a
 const listTransferItems = `-- name: ListTransferItems :many
 SELECT
   ti.id, ti.transfer_id, ti.asset_id, ti.quantity, ti.variant_id, ti.received_quantity,
-  p.name AS product_name,
-  p.code AS product_code,
-  pv.barcode AS variant_barcode,
+  COALESCE(p.name, '') AS product_name,
+  COALESCE(p.code, '') AS product_code,
+  COALESCE(pv.barcode, '') AS variant_barcode,
   pv.uid AS variant_uid,
-  a.name AS asset_name
+  COALESCE(a.name, '') AS asset_name
 FROM transfer_items ti
 LEFT JOIN product_variants pv ON pv.id = ti.variant_id
 LEFT JOIN products p ON p.id = pv.product_id
@@ -380,17 +380,17 @@ ORDER BY ti.id
 `
 
 type ListTransferItemsRow struct {
-	ID               int64          `json:"id"`
-	TransferID       int64          `json:"transfer_id"`
-	AssetID          sql.NullInt64  `json:"asset_id"`
-	Quantity         int64          `json:"quantity"`
-	VariantID        sql.NullInt64  `json:"variant_id"`
-	ReceivedQuantity sql.NullInt64  `json:"received_quantity"`
-	ProductName      sql.NullString `json:"product_name"`
-	ProductCode      sql.NullString `json:"product_code"`
-	VariantBarcode   sql.NullString `json:"variant_barcode"`
-	VariantUid       uuid.NullUUID  `json:"variant_uid"`
-	AssetName        sql.NullString `json:"asset_name"`
+	ID               int64         `json:"id"`
+	TransferID       int64         `json:"transfer_id"`
+	AssetID          sql.NullInt64 `json:"asset_id"`
+	Quantity         int64         `json:"quantity"`
+	VariantID        sql.NullInt64 `json:"variant_id"`
+	ReceivedQuantity sql.NullInt64 `json:"received_quantity"`
+	ProductName      string        `json:"product_name"`
+	ProductCode      string        `json:"product_code"`
+	VariantBarcode   string        `json:"variant_barcode"`
+	VariantUid       uuid.NullUUID `json:"variant_uid"`
+	AssetName        string        `json:"asset_name"`
 }
 
 func (q *Queries) ListTransferItems(ctx context.Context, transferID int64) ([]ListTransferItemsRow, error) {

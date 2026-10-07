@@ -339,3 +339,14 @@ func (server *Server) currentUserID(ctx *gin.Context) sql.NullInt64 {
 	}
 	return sql.NullInt64{Int64: user.ID, Valid: true}
 }
+
+// branchSyncConflictSummary is one row per branch (open conflicts, how many
+// are oversold stock) for the Conflicts page sidebar and the nav dot.
+func (server *Server) branchSyncConflictSummary(ctx *gin.Context) {
+	rows, err := server.store.BranchSyncConflictSummary(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"branches": rows})
+}

@@ -8,6 +8,7 @@ import (
 	"mime"
 	"net/http"
 	"path/filepath"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/mhdna/kashi/db/sqlc"
@@ -105,6 +106,43 @@ type listTransfersRequest struct {
 	Status   string `form:"status" binding:"omitempty,oneof=requested draft dispatched received cancelled"`
 }
 
+// transferResponse mirrors db.ListTransfersRow but with confirmed_at
+// unwrapped to a plain *time.Time. sql.NullTime has no custom JSON
+// marshaling, so an unconfirmed transfer's {"Time":"0001-01-01T...",
+// "Valid":false} still serializes as a truthy object -- the item dialog's
+// `v-if="itemsTarget?.confirmed_at"` would then show the "Confirmed by
+// destination" chip (with an Invalid Date) on every transfer, confirmed or
+// not.
+type transferResponse struct {
+	db.ListTransfersRow
+	ConfirmedAt *time.Time `json:"confirmed_at"`
+}
+
+func newTransferResponse(row db.ListTransfersRow) transferResponse {
+	resp := transferResponse{ListTransfersRow: row}
+	if row.ConfirmedAt.Valid {
+		resp.ConfirmedAt = &row.ConfirmedAt.Time
+	}
+	return resp
+}
+
+// transferStageResponse applies the same confirmed_at unwrapping to the
+// db.Transfer a dispatch/receive/approve/cancel action hands back -- the
+// items dialog re-assigns itemsTarget from this response (see stage() in
+// transfers.vue), so it needs the same shape as listTransfers.
+type transferStageResponse struct {
+	db.Transfer
+	ConfirmedAt *time.Time `json:"confirmed_at"`
+}
+
+func newTransferStageResponse(t db.Transfer) transferStageResponse {
+	resp := transferStageResponse{Transfer: t}
+	if t.ConfirmedAt.Valid {
+		resp.ConfirmedAt = &t.ConfirmedAt.Time
+	}
+	return resp
+}
+
 func (server *Server) listTransfers(ctx *gin.Context) {
 	var req listTransfersRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
@@ -133,7 +171,12 @@ func (server *Server) listTransfers(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"transfers": transfers, "total": total})
+	resp := make([]transferResponse, len(transfers))
+	for i, t := range transfers {
+		resp[i] = newTransferResponse(t)
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"transfers": resp, "total": total})
 }
 
 type updateTransferRequest struct {
@@ -242,6 +285,16 @@ type listTransferItemsRequest struct {
 	TransferID int64 `uri:"transfer_id" binding:"required,min=1"`
 }
 
+// transferItemResponse mirrors db.ListTransferItemsRow but with
+// received_quantity unwrapped to a plain *int64 -- sql.NullInt64 has no
+// custom JSON marshaling, so left as-is it serializes as
+// {"Int64":0,"Valid":false} instead of null, which breaks the item dialog's
+// v-model.number binding and its "not yet received" (?? '—') check.
+type transferItemResponse struct {
+	db.ListTransferItemsRow
+	ReceivedQuantity *int64 `json:"received_quantity"`
+}
+
 func (server *Server) listTransferItems(ctx *gin.Context) {
 	var req listTransferItemsRequest
 	if err := ctx.ShouldBindUri(&req); err != nil {
@@ -255,7 +308,15 @@ func (server *Server) listTransferItems(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, items)
+	resp := make([]transferItemResponse, len(items))
+	for i, item := range items {
+		resp[i] = transferItemResponse{ListTransferItemsRow: item}
+		if item.ReceivedQuantity.Valid {
+			resp[i].ReceivedQuantity = &item.ReceivedQuantity.Int64
+		}
+	}
+
+	ctx.JSON(http.StatusOK, resp)
 }
 
 // dispatchTransfer removes the transfer's lines from the source inventory
@@ -276,7 +337,7 @@ func (server *Server) dispatchTransfer(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"transfer": result.Transfer, "movements": result.Movements})
+	ctx.JSON(http.StatusOK, gin.H{"transfer": newTransferStageResponse(result.Transfer), "movements": result.Movements})
 }
 
 // receiveTransfer lands the transfer's lines in the destination inventory.
@@ -296,7 +357,7 @@ func (server *Server) receiveTransfer(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"transfer": result.Transfer, "movements": result.Movements})
+	ctx.JSON(http.StatusOK, gin.H{"transfer": newTransferStageResponse(result.Transfer), "movements": result.Movements})
 }
 
 // approveTransfer is how a kashi admin accepts a branch's proposed
@@ -321,7 +382,7 @@ func (server *Server) approveTransfer(ctx *gin.Context) {
 		return
 	}
 	server.notifyBranchTransferDecision(ctx, result.Transfer)
-	ctx.JSON(http.StatusOK, gin.H{"transfer": result.Transfer, "movements": result.Movements})
+	ctx.JSON(http.StatusOK, gin.H{"transfer": newTransferStageResponse(result.Transfer), "movements": result.Movements})
 }
 
 // cancelTransfer moves a transfer to 'cancelled', unwinding whichever legs
@@ -343,7 +404,7 @@ func (server *Server) cancelTransfer(ctx *gin.Context) {
 		return
 	}
 	server.notifyBranchTransferDecision(ctx, result.Transfer)
-	ctx.JSON(http.StatusOK, gin.H{"transfer": result.Transfer, "movements": result.Movements})
+	ctx.JSON(http.StatusOK, gin.H{"transfer": newTransferStageResponse(result.Transfer), "movements": result.Movements})
 }
 
 // notifyBranchTransferDecision enqueues a transfer_decision command for the

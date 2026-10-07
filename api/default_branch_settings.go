@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mhdna/kashi/token"
@@ -57,6 +58,28 @@ type defaultBranchSettings struct {
 	// Omitted until the template sets it, so an older saved template never
 	// pushes an empty (invalid) mode.
 	OversellMode string `json:"oversell_mode,omitempty" binding:"omitempty,oneof=allow warn block"`
+
+	// Added after the template's first version, so each is optional: nil
+	// (the admin chose "leave as is", or the template predates the field)
+	// drops out of the saved JSON and so out of "Apply to all" -- a branch
+	// keeps its own value instead of getting a zero pushed over it.
+	CloseShiftRequiresSync        *bool  `json:"close_shift_requires_sync,omitempty"`
+	SalespersonPerInvoiceRequired *bool  `json:"salesperson_per_invoice_required,omitempty"`
+	NonAdminMonthNavEnabled       *bool  `json:"non_admin_month_nav_enabled,omitempty"`
+	OpeningFloatEnabled           *bool  `json:"opening_float_enabled,omitempty"`
+	CountOpeningCashOnClose       *bool  `json:"count_opening_cash_on_close,omitempty"`
+	OverchangeConfirmation        *bool  `json:"overchange_confirmation,omitempty"`
+	PageUnlockProducts            *bool  `json:"page_unlock_products,omitempty"`
+	HidePaymentMethodCurrency     *bool  `json:"hide_payment_method_currency,omitempty"`
+	AutoAppendLbpZeros            *bool  `json:"auto_append_lbp_zeros,omitempty"`
+	AutoCloseStaleShifts          *bool  `json:"auto_close_stale_shifts,omitempty"`
+	VisitorCounterEnabled         *bool  `json:"visitor_counter_enabled,omitempty"`
+	MaxOverpaymentCents           *int64 `json:"max_overpayment_cents,omitempty" binding:"omitempty,min=0"`
+	DefaultOpeningFloatUsd        *int64 `json:"default_opening_float_usd,omitempty" binding:"omitempty,min=0"`
+	DefaultOpeningFloatLbp        *int64 `json:"default_opening_float_lbp,omitempty" binding:"omitempty,min=0"`
+	// Only the screen prefs the template sets; a branch's other prefs stay
+	// (the till and applyBranchSettingsPatch both merge key by key).
+	DisplayPrefs json.RawMessage `json:"display_prefs,omitempty"`
 }
 
 // getDefaultBranchSettings returns the saved template, or an empty one
@@ -89,6 +112,10 @@ func (server *Server) putDefaultBranchSettings(ctx *gin.Context) {
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
+	}
+	// An empty prefs object means the template sets none of them.
+	if trimmed := strings.TrimSpace(string(req.DisplayPrefs)); trimmed == "null" || trimmed == "{}" {
+		req.DisplayPrefs = nil
 	}
 
 	encoded, err := json.Marshal(req)

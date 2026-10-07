@@ -14,6 +14,85 @@ import (
 	"github.com/sqlc-dev/pqtype"
 )
 
+const branchCommandSummary = `-- name: BranchCommandSummary :many
+SELECT
+  b.id AS branch_id,
+  COUNT(c.id) FILTER (WHERE c.status = 'pending')::bigint AS pending,
+  COUNT(c.id) FILTER (WHERE c.status = 'failed' AND c.completed_at > now() - interval '24 hours')::bigint AS failed_recent,
+  MIN(c.created_at) FILTER (WHERE c.status = 'pending') AS oldest_pending_at,
+  MAX(c.created_at) AS last_issued_at
+FROM branches b
+LEFT JOIN branch_commands c ON c.branch_id = b.id
+GROUP BY b.id
+ORDER BY b.id
+`
+
+type BranchCommandSummaryRow struct {
+	BranchID        int64       `json:"branch_id"`
+	Pending         int64       `json:"pending"`
+	FailedRecent    int64       `json:"failed_recent"`
+	OldestPendingAt interface{} `json:"oldest_pending_at"`
+	LastIssuedAt    interface{} `json:"last_issued_at"`
+}
+
+// One row per branch: what's still queued and what failed in the last day,
+// for the Commands page sidebar and its nav dot.
+func (q *Queries) BranchCommandSummary(ctx context.Context) ([]BranchCommandSummaryRow, error) {
+	rows, err := q.db.QueryContext(ctx, branchCommandSummary)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []BranchCommandSummaryRow{}
+	for rows.Next() {
+		var i BranchCommandSummaryRow
+		if err := rows.Scan(
+			&i.BranchID,
+			&i.Pending,
+			&i.FailedRecent,
+			&i.OldestPendingAt,
+			&i.LastIssuedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const cancelBranchCommand = `-- name: CancelBranchCommand :one
+UPDATE branch_commands
+SET status = 'cancelled', error = 'Cancelled in kashi', completed_at = now()
+WHERE id = $1 AND status = 'pending'
+RETURNING id, branch_id, type, payload, status, result, error, issued_by, created_at, completed_at, register_id
+`
+
+// Only a command no till has acked yet can be withdrawn.
+func (q *Queries) CancelBranchCommand(ctx context.Context, id int64) (BranchCommand, error) {
+	row := q.db.QueryRowContext(ctx, cancelBranchCommand, id)
+	var i BranchCommand
+	err := row.Scan(
+		&i.ID,
+		&i.BranchID,
+		&i.Type,
+		&i.Payload,
+		&i.Status,
+		&i.Result,
+		&i.Error,
+		&i.IssuedBy,
+		&i.CreatedAt,
+		&i.CompletedAt,
+		&i.RegisterID,
+	)
+	return i, err
+}
+
 const completeBranchCommand = `-- name: CompleteBranchCommand :one
 UPDATE branch_commands
 SET status = $2, result = $3, error = $4, completed_at = now()
@@ -50,6 +129,33 @@ func (q *Queries) CompleteBranchCommand(ctx context.Context, arg CompleteBranchC
 		&i.RegisterID,
 	)
 	return i, err
+}
+
+const countBranchCommands = `-- name: CountBranchCommands :one
+SELECT COUNT(*) FROM branch_commands c
+WHERE ($1::bigint = 0 OR c.branch_id = $1)
+  AND ($2::bigint = 0 OR c.register_id = $2)
+  AND ($3::text = '' OR c.status = $3)
+  AND ($4::text = '' OR c.type = $4)
+`
+
+type CountBranchCommandsParams struct {
+	BranchID   int64  `json:"branch_id"`
+	RegisterID int64  `json:"register_id"`
+	Status     string `json:"status"`
+	Type       string `json:"type"`
+}
+
+func (q *Queries) CountBranchCommands(ctx context.Context, arg CountBranchCommandsParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countBranchCommands,
+		arg.BranchID,
+		arg.RegisterID,
+		arg.Status,
+		arg.Type,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const createBranchCommand = `-- name: CreateBranchCommand :one
@@ -168,6 +274,93 @@ func (q *Queries) ListBranchCommands(ctx context.Context, arg ListBranchCommands
 			&i.CompletedAt,
 			&i.RegisterID,
 			&i.RegisterCode,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listBranchCommandsPage = `-- name: ListBranchCommandsPage :many
+SELECT c.id, c.branch_id, c.type, c.payload, c.status, c.result, c.error, c.issued_by, c.created_at, c.completed_at, c.register_id, r.code AS register_code, b.name AS branch_name, u.name AS issued_by_name
+FROM branch_commands c
+JOIN branch_registers r ON r.id = c.register_id
+JOIN branches b ON b.id = c.branch_id
+LEFT JOIN users u ON u.id = c.issued_by
+WHERE ($1::bigint = 0 OR c.branch_id = $1)
+  AND ($2::bigint = 0 OR c.register_id = $2)
+  AND ($3::text = '' OR c.status = $3)
+  AND ($4::text = '' OR c.type = $4)
+ORDER BY c.id DESC
+LIMIT $6 OFFSET $5
+`
+
+type ListBranchCommandsPageParams struct {
+	BranchID   int64  `json:"branch_id"`
+	RegisterID int64  `json:"register_id"`
+	Status     string `json:"status"`
+	Type       string `json:"type"`
+	PageOffset int32  `json:"page_offset"`
+	PageSize   int32  `json:"page_size"`
+}
+
+type ListBranchCommandsPageRow struct {
+	ID           int64                 `json:"id"`
+	BranchID     int64                 `json:"branch_id"`
+	Type         string                `json:"type"`
+	Payload      json.RawMessage       `json:"payload"`
+	Status       string                `json:"status"`
+	Result       pqtype.NullRawMessage `json:"result"`
+	Error        sql.NullString        `json:"error"`
+	IssuedBy     int64                 `json:"issued_by"`
+	CreatedAt    time.Time             `json:"created_at"`
+	CompletedAt  sql.NullTime          `json:"completed_at"`
+	RegisterID   int64                 `json:"register_id"`
+	RegisterCode string                `json:"register_code"`
+	BranchName   string                `json:"branch_name"`
+	IssuedByName sql.NullString        `json:"issued_by_name"`
+}
+
+// The Commands page: every branch (branch_id 0) or one, optionally one
+// register / status / type, newest first.
+func (q *Queries) ListBranchCommandsPage(ctx context.Context, arg ListBranchCommandsPageParams) ([]ListBranchCommandsPageRow, error) {
+	rows, err := q.db.QueryContext(ctx, listBranchCommandsPage,
+		arg.BranchID,
+		arg.RegisterID,
+		arg.Status,
+		arg.Type,
+		arg.PageOffset,
+		arg.PageSize,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListBranchCommandsPageRow{}
+	for rows.Next() {
+		var i ListBranchCommandsPageRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.BranchID,
+			&i.Type,
+			&i.Payload,
+			&i.Status,
+			&i.Result,
+			&i.Error,
+			&i.IssuedBy,
+			&i.CreatedAt,
+			&i.CompletedAt,
+			&i.RegisterID,
+			&i.RegisterCode,
+			&i.BranchName,
+			&i.IssuedByName,
 		); err != nil {
 			return nil, err
 		}

@@ -44,12 +44,48 @@
               <span class="text-caption text-medium-emphasis">
                 Last seen {{ lastSeenLabel(activeBranch) }}
               </span>
+              <v-spacer />
+              <v-btn
+                v-if="canEdit"
+                :loading="syncing"
+                prepend-icon="mdi-sync"
+                size="small"
+                text="Sync now"
+                variant="text"
+                @click="syncNow"
+              />
+              <v-btn
+                prepend-icon="mdi-console-line"
+                size="small"
+                text="Commands"
+                :to="`/branch-commands?branch=${activeBranch.id}`"
+                variant="text"
+              />
             </div>
             <p class="text-body-2 text-medium-emphasis mb-4">
               Saving enqueues a remote command &mdash; the branch applies it itself within a few
               seconds if it's online, or on its next sync otherwise. Nothing here writes to the
               branch database directly.
             </p>
+
+            <v-alert
+              v-if="!settingsLoading && settingsForm && drift.length > 0"
+              class="bs-empty-alert mb-4"
+              density="compact"
+              type="warning"
+              variant="tonal"
+            >
+              <div class="d-flex flex-wrap align-center ga-2">
+                <span>
+                  {{ drift.length }} setting{{ drift.length === 1 ? '' : 's' }} on the till
+                  differ{{ drift.length === 1 ? 's' : '' }} from kashi:
+                  {{ drift.slice(0, 6).map(d => `${d.label} (${d.registers.join(', ')})`).join(', ') }}{{ drift.length > 6 ? '…' : '' }}.
+                  Saving sends kashi's values; or take the till's values into the form first.
+                </span>
+                <v-spacer />
+                <v-btn size="small" text="Use till values" variant="text" @click="adoptTillValues" />
+              </div>
+            </v-alert>
 
             <div v-if="settingsLoading" class="d-flex justify-center pa-8">
               <v-progress-circular color="primary" indeterminate />
@@ -74,23 +110,14 @@
               >
                 <v-tab class="text-none" text="General" value="general" />
                 <v-tab class="text-none" text="Behaviour" value="behaviour" />
+                <v-tab class="text-none" text="Cash &amp; shifts" value="cash" />
                 <v-tab class="text-none" text="Page access" value="pages" />
                 <v-tab class="text-none" text="Printing" value="printing" />
                 <v-tab class="text-none" text="Attendance" value="attendance" />
                 <v-tab class="text-none" text="Users" value="users" />
                 <v-tab class="text-none" text="Payments" value="payments" />
                 <v-tab class="text-none" text="Quick access" value="quick_access" />
-                <v-tab class="text-none" value="conflicts">
-                  <span class="text-none">Conflicts</span>
-                  <v-badge
-                    v-if="conflictCount > 0"
-                    class="ms-2"
-                    color="warning"
-                    :content="conflictCount"
-                    inline
-                  />
-                </v-tab>
-                <v-tab class="text-none" text="Commands" value="commands" />
+                <v-tab class="text-none" text="Till display" value="display" />
               </v-tabs>
 
               <v-divider vertical />
@@ -198,6 +225,13 @@
                           density="compact"
                           hide-details="auto"
                           label="Market Phone"
+                          variant="outlined"
+                        />
+                        <v-text-field
+                          v-model="settingsForm.branch_phone"
+                          density="compact"
+                          hide-details="auto"
+                          label="Branch Phone"
                           variant="outlined"
                         />
                         <v-text-field
@@ -316,7 +350,138 @@
                           hide-details
                           label="Require a client on every invoice"
                         />
+                        <v-switch
+                          v-model="settingsForm.salesperson_per_invoice_required"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Require a salesperson on every invoice"
+                        />
+                        <v-switch
+                          v-model="settingsForm.overchange_confirmation"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Confirm change larger than what's owed"
+                        />
+                        <v-switch
+                          v-model="settingsForm.hide_payment_method_currency"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Hide currency on payment method buttons"
+                        />
+                        <v-switch
+                          v-model="settingsForm.auto_append_lbp_zeros"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Type LBP in thousands (50 → 50,000)"
+                        />
+                        <v-switch
+                          v-model="settingsForm.visitor_counter_enabled"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Visitor counter buttons"
+                        />
+                        <v-switch
+                          v-model="settingsForm.non_admin_month_nav_enabled"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Cashiers can browse other months' income"
+                        />
                       </div>
+                      <v-select
+                        v-model="settingsForm.oversell_mode"
+                        class="mt-3"
+                        density="compact"
+                        hide-details
+                        :items="OVERSELL_MODES"
+                        label="Selling more than the till has in stock"
+                        variant="outlined"
+                      />
+                      <div class="text-caption text-medium-emphasis mt-1">
+                        Whatever the mode, kashi raises an "oversold" alert on the Conflicts page
+                        when a sale takes a product's stock below zero.
+                      </div>
+                    </section>
+
+                  </div>
+
+                  <div v-show="sectionTab === 'cash'">
+                    <section class="bs-section">
+                      <div class="bs-section-title">Opening cash</div>
+                      <div class="bs-switch-grid">
+                        <v-switch
+                          v-model="settingsForm.opening_float_enabled"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Shifts start with an opening float"
+                        />
+                        <v-switch
+                          v-model="settingsForm.count_opening_cash_on_close"
+                          color="primary"
+                          density="compact"
+                          :disabled="!settingsForm.opening_float_enabled"
+                          hide-details
+                          label="Count the opening float when closing"
+                        />
+                      </div>
+                      <div class="field-grid mt-3">
+                        <v-text-field
+                          v-model.number="openingFloatUsd"
+                          density="compact"
+                          :disabled="!settingsForm.opening_float_enabled"
+                          hide-details="auto"
+                          label="Default opening float (USD)"
+                          min="0"
+                          step="0.01"
+                          type="number"
+                          variant="outlined"
+                        />
+                        <v-text-field
+                          v-model.number="settingsForm.default_opening_float_lbp"
+                          density="compact"
+                          :disabled="!settingsForm.opening_float_enabled"
+                          hide-details="auto"
+                          label="Default opening float (LBP)"
+                          min="0"
+                          step="1000"
+                          type="number"
+                          variant="outlined"
+                        />
+                      </div>
+                    </section>
+
+                    <section class="bs-section">
+                      <div class="bs-section-title">Payments</div>
+                      <div class="field-grid">
+                        <v-text-field
+                          v-model.number="maxOverpayment"
+                          density="compact"
+                          hint="How much a payment may go over the total, in USD. 0 = no limit."
+                          label="Max overpayment (USD)"
+                          min="0"
+                          persistent-hint
+                          step="0.01"
+                          type="number"
+                          variant="outlined"
+                        />
+                      </div>
+                    </section>
+
+                    <section class="bs-section">
+                      <div class="bs-section-title">Closing shifts</div>
+                      <v-switch
+                        v-model="settingsForm.auto_close_stale_shifts"
+                        color="primary"
+                        density="compact"
+                        hide-details
+                        label="Close yesterday's open shift automatically at startup"
+                      />
                       <v-select
                         v-model="settingsForm.shift_receipt_upload_mode"
                         class="mt-3"
@@ -331,21 +496,129 @@
                         the till otherwise; Local always uploads to the till over shop Wi-Fi;
                         Central always goes straight to the office; Off skips the photo.
                       </div>
-                      <v-select
-                        v-model="settingsForm.oversell_mode"
+                      <v-switch
+                        v-model="settingsForm.close_shift_requires_sync"
                         class="mt-3"
+                        color="primary"
                         density="compact"
                         hide-details
-                        :items="OVERSELL_MODES"
-                        label="Selling more than the till has in stock"
-                        variant="outlined"
+                        label="Upload everything before closing a shift"
                       />
                       <div class="text-caption text-medium-emphasis mt-1">
-                        Whatever the mode, kashi raises an "oversold" alert in Sync Conflicts
-                        when a sale takes a product's stock below zero.
+                        The till uploads every sale, return and expense still waiting for the
+                        office before it closes the shift and prints the close receipt, showing
+                        progress. Offline, a manager can override on the till.
+                      </div>
+                    </section>
+                  </div>
+
+                  <div v-show="sectionTab === 'display'">
+                    <section class="bs-section">
+                      <div class="bs-section-title">How the till's screen looks</div>
+                      <p class="text-caption text-medium-emphasis mb-3">
+                        Save sends these to every register. To change one till only, pick it below
+                        and send. A cashier can still change them on the till afterwards; the latest
+                        change wins.
+                      </p>
+                      <div class="text-body-2">
+                        Quick access rows:
+                        <strong>{{ displayForm.quick_access_rows === 0 ? 'Hidden' : displayForm.quick_access_rows }}</strong>
+                      </div>
+                      <v-slider
+                        v-model="displayForm.quick_access_rows"
+                        color="primary"
+                        :max="8"
+                        :min="0"
+                        hint="Rows of cards on the sale screen before it scrolls. 0 hides the panel."
+                        persistent-hint
+                        show-ticks="always"
+                        :step="1"
+                      />
+                      <div class="text-body-2 mt-4">
+                        Quick access text size: <strong>{{ displayForm.quick_access_font_scale }}%</strong>
+                      </div>
+                      <v-slider
+                        v-model="displayForm.quick_access_font_scale"
+                        color="primary"
+                        hide-details
+                        :max="200"
+                        :min="70"
+                        show-ticks="always"
+                        :step="10"
+                      />
+                      <div class="bs-switch-grid mt-3">
+                        <v-switch
+                          v-model="displayForm.quick_access_show_code"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Show code on quick access cards"
+                        />
+                        <v-switch
+                          v-model="displayForm.quick_access_show_name"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Show name on quick access cards"
+                        />
+                        <v-switch
+                          v-model="displayForm.quick_access_show_remove"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Show remove (X) on quick access cards"
+                        />
+                        <v-switch
+                          v-model="displayForm.animations_enabled"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Animations"
+                        />
+                      </div>
+                      <div class="field-grid mt-3">
+                        <v-select
+                          v-model="displayForm.theme"
+                          density="compact"
+                          hide-details
+                          :items="[{ title: 'Light', value: 'light' }, { title: 'Dark', value: 'dark' }]"
+                          label="Theme"
+                          variant="outlined"
+                        />
+                        <CurrencySelect
+                          v-model="displayForm.calculator_total_currency"
+                          label="Calculator shows first"
+                          variant="outlined"
+                        />
                       </div>
                     </section>
 
+                    <section class="bs-section">
+                      <div class="bs-section-title">One register only</div>
+                      <div class="d-flex flex-wrap align-center ga-3">
+                        <v-select
+                          v-model="displayRegisterId"
+                          density="compact"
+                          hide-details
+                          item-title="label"
+                          item-value="id"
+                          :items="registerOptions"
+                          label="Register"
+                          no-data-text="This branch has no registers"
+                          style="max-width: 280px"
+                          variant="outlined"
+                        />
+                        <v-btn
+                          color="primary"
+                          :disabled="!canEdit || displayRegisterId == null"
+                          :loading="displaySending"
+                          prepend-icon="mdi-send-outline"
+                          :text="`Send to ${registerCodeById(displayRegisterId) || 'register'}`"
+                          variant="tonal"
+                          @click="sendDisplayToRegister"
+                        />
+                      </div>
+                    </section>
                   </div>
 
                   <div v-show="sectionTab === 'pages'">
@@ -365,6 +638,13 @@
                           density="compact"
                           hide-details
                           label="Inventory"
+                        />
+                        <v-switch
+                          v-model="settingsForm.page_unlock_products"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Products"
                         />
                         <v-switch
                           v-model="settingsForm.page_unlock_transfers"
@@ -631,7 +911,7 @@
                   </div>
 
                   <div
-                    v-show="canEdit && sectionTab !== 'commands' && sectionTab !== 'users' && sectionTab !== 'conflicts' && sectionTab !== 'quick_access'"
+                    v-show="canEdit && FORM_TABS.includes(sectionTab)"
                     class="bs-savebar d-flex justify-end"
                   >
                     <v-btn
@@ -813,230 +1093,12 @@
                   </v-table>
                 </div>
 
-                <div v-show="sectionTab === 'conflicts'">
-                  <div class="d-flex align-center justify-space-between mb-2">
-                    <div class="bs-section-title mb-0">Sync conflicts</div>
-                    <div class="d-flex align-center ga-2">
-                      <v-btn
-                        v-if="canEdit && selectedConflicts.length > 0"
-                        color="primary"
-                        size="small"
-                        variant="tonal"
-                        @click="bulkTakeBranch"
-                      >
-                        Take branch spelling ({{ selectedConflicts.length }})
-                      </v-btn>
-                      <v-icon-btn
-                        icon="mdi-refresh"
-                        size="small"
-                        variant="text"
-                        @click="reloadConflicts"
-                      />
-                    </div>
-                  </div>
-
-                  <ServerSideTable
-                    v-if="selectedId != null"
-                    ref="conflictTableRef"
-                    :api-u-r-l="`${apiBase}/branch_sync_conflicts`"
-                    density="compact"
-                    expandable
-                    :headers="conflictHeaders"
-                    :query-params="conflictQuery"
-                    root-key="conflicts"
-                    :selectable="canEdit"
-                    :show-search-icon="false"
-                    @update:selected="v => (selectedConflicts = v)"
-                  >
-                    <template #item.data-table-select="{ item, internalItem, isSelected, toggleSelect }">
-                      <v-checkbox-btn
-                        :disabled="item.kind !== 'phone_name_mismatch'"
-                        :model-value="isSelected(internalItem)"
-                        @click.stop
-                        @update:model-value="toggleSelect(internalItem)"
-                      />
-                    </template>
-                    <template #item.kind="{ item }">
-                      <v-chip size="small" variant="tonal">{{ conflictKindLabel(item.kind) }}</v-chip>
-                    </template>
-                    <template #item.created_at="{ item }">
-                      {{ new Date(item.created_at).toLocaleString() }}
-                    </template>
-                    <template #item.actions="{ item }">
-                      <v-btn v-if="canEdit" size="small" variant="text" @click.stop="openResolve(item)">Resolve</v-btn>
-                      <v-btn v-if="canEdit" size="small" variant="text" @click.stop="dismiss(item)">Dismiss</v-btn>
-                    </template>
-                    <template #expanded-row="{ columns, item }">
-                      <tr>
-                        <td :colspan="columns.length">
-                          <div v-if="item.kind === 'oversold'" class="py-3 px-2 text-body-2">
-                            {{ oversoldSummary(item) }}
-                          </div>
-                          <div v-else class="py-3 px-2">
-                            <table class="conflict-diff">
-                              <tr><th /><th>Branch says</th><th>kashi has</th></tr>
-                              <tr>
-                                <td>Name</td>
-                                <td :class="diffClass(branchPayload(item).name, item.central_name)">
-                                  {{ branchPayload(item).name || '—' }}
-                                </td>
-                                <td>{{ item.central_name || '—' }}</td>
-                              </tr>
-                              <tr>
-                                <td>Phone</td>
-                                <td>{{ branchPayload(item).phone || '—' }}</td>
-                                <td>{{ item.central_phone || '—' }}</td>
-                              </tr>
-                              <tr v-if="item.entity === 'product'">
-                                <td>Barcode</td>
-                                <td colspan="2">{{ item.ref }}</td>
-                              </tr>
-                            </table>
-                          </div>
-                        </td>
-                      </tr>
-                    </template>
-                  </ServerSideTable>
-                </div>
-
-                <div v-show="sectionTab === 'commands'">
-                  <div class="d-flex align-center justify-space-between mb-2">
-                    <div class="bs-section-title mb-0">Recent Commands</div>
-                    <v-icon-btn
-                      icon="mdi-refresh"
-                      size="small"
-                      variant="text"
-                      @click="loadCommandHistory"
-                    />
-                  </div>
-                  <v-table density="compact">
-                    <thead>
-                      <tr>
-                        <th>Type</th>
-                        <th>Register</th>
-                        <th>Status</th>
-                        <th>Issued</th>
-                        <th>Error</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="cmd in commandHistory" :key="cmd.id">
-                        <td>{{ cmd.type }}</td>
-                        <td>{{ cmd.register_code }}</td>
-                        <td>
-                          <v-chip
-                            :color="statusColor(cmd.status)"
-                            size="small"
-                          >
-                            {{ cmd.status }}
-                          </v-chip>
-                        </td>
-                        <td>{{ new Date(cmd.created_at).toLocaleString() }}</td>
-                        <td>{{ cmd.error?.Valid ? cmd.error.String : '' }}</td>
-                      </tr>
-                      <tr v-if="commandHistory.length === 0">
-                        <td class="text-medium-emphasis py-4" colspan="5">No commands issued yet.</td>
-                      </tr>
-                    </tbody>
-                  </v-table>
-                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
     </v-card>
-
-    <!-- resolve a sync conflict -->
-    <v-dialog v-model="resolveDialog" max-width="480">
-      <v-card v-if="resolveTarget">
-        <v-card-title class="text-subtitle-1">
-          Resolve — {{ conflictKindLabel(resolveTarget.kind) }}
-        </v-card-title>
-        <v-card-text>
-          <div v-if="resolveTarget.kind === 'phone_name_mismatch'">
-            <div class="text-caption text-medium-emphasis mb-2">
-              Phone {{ branchPayload(resolveTarget).phone }} already belongs to a
-              kashi client under a different name.
-            </div>
-            <v-radio-group v-model="resolveForm.choice" density="compact" hide-details>
-              <v-radio
-                :label="`Keep kashi's name (${resolveTarget.central_name})`"
-                value="central"
-              />
-              <v-radio
-                :label="`Use the branch's name (${branchPayload(resolveTarget).name})`"
-                value="branch"
-              />
-              <v-radio label="Type a name" value="custom" />
-            </v-radio-group>
-            <v-text-field
-              v-if="resolveForm.choice === 'custom'"
-              v-model="resolveForm.name"
-              class="mt-2"
-              density="compact"
-              label="Name"
-              variant="outlined"
-            />
-          </div>
-
-          <div v-else-if="resolveTarget.kind === 'invalid_phone'">
-            <div class="text-caption text-medium-emphasis mb-2">
-              The branch reported "{{ branchPayload(resolveTarget).name }}" with no
-              usable phone.
-            </div>
-            <v-radio-group v-model="resolveForm.choice" density="compact" hide-details>
-              <v-radio label="Merge into an existing client" value="merge" />
-              <v-radio label="Create a new client with a phone" value="create" />
-            </v-radio-group>
-            <v-autocomplete
-              v-if="resolveForm.choice === 'merge'"
-              v-model="resolveForm.clientId"
-              class="mt-2"
-              density="compact"
-              :items="clientOptions"
-              label="Existing client"
-              variant="outlined"
-            />
-            <v-text-field
-              v-else
-              v-model="resolveForm.phone"
-              class="mt-2"
-              density="compact"
-              label="Phone"
-              variant="outlined"
-            />
-          </div>
-
-          <div v-else-if="resolveTarget.kind === 'oversold'" class="text-body-2">
-            <p class="mb-2">{{ oversoldSummary(resolveTarget) }}</p>
-            <p class="mb-0">
-              The sale stands. Correct the stock the usual way (a stock adjustment, a
-              transfer in, or a stock count), then mark this resolved. It reopens if the
-              product goes below zero again.
-            </p>
-          </div>
-
-          <div v-else class="text-body-2">
-            Adopt "{{ branchPayload(resolveTarget).name || resolveTarget.ref }}"
-            (barcode {{ resolveTarget.ref }}) into the central catalog. Colour and
-            size are created if missing; brand / season / year can be filled in
-            afterwards from the product editor.
-          </div>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="resolveDialog = false" />
-          <v-btn
-            color="primary"
-            :loading="resolveSaving"
-            text="Resolve"
-            variant="flat"
-            @click="submitResolve"
-          />
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
 
     <!-- add / edit POS user -->
     <v-dialog v-model="userDialog" max-width="440">
@@ -1137,17 +1199,13 @@
   import BranchQuickAccess from '@/components/BranchQuickAccess.vue'
   import CurrencySelect from '@/components/CurrencySelect.vue'
   import PageSidebar from '@/components/PageSidebar.vue'
-  import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
-  import { useAdminSocket } from '@/composables/useAdminSocket'
+  import { useBranchCommands } from '@/composables/useBranchCommands'
   import { useBranches } from '@/composables/useBranches'
   import { useBranchPaymentMethods } from '@/composables/useBranchPaymentMethods'
   import { useBranchSettings } from '@/composables/useBranchSettings'
-  import { useBranchSyncConflicts } from '@/composables/useBranchSyncConflicts'
   import { useBranchUsers } from '@/composables/useBranchUsers'
-  import { useClients } from '@/composables/useClients'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
-  import { API_BASE } from '@/config'
 
   const notify = useNotify()
 
@@ -1161,178 +1219,15 @@
   const {
     getBranchSettings,
     updateBranchSettings,
-    listBranchCommands,
     setBranchSettingsManagedLocally,
   } = useBranchSettings()
+  const { sendCommand } = useBranchCommands()
 
   const listLoading = ref(false)
   const selectedId = ref(null)
   // Which settings section (vertical sub-tab) is showing for the active branch.
   const sectionTab = ref('general')
 
-  const apiBase = API_BASE
-  const { resolveConflict, dismissConflict, bulkResolve, openConflictCount } = useBranchSyncConflicts()
-  const conflictTableRef = ref(null)
-  const conflictCount = ref(0)
-  const selectedConflicts = ref([])
-  const conflictHeaders = [
-    { title: '', key: 'data-table-select', sortable: false, width: '44px' },
-    { title: 'Type', key: 'kind', sortable: false },
-    { title: 'Entity', key: 'entity', sortable: false },
-    { title: 'Ref', key: 'ref', sortable: false },
-    { title: 'Reported', key: 'created_at', sortable: true },
-    { title: '', key: 'actions', sortable: false, align: 'end' },
-  ]
-  const conflictQuery = computed(() => ({
-    branch_id: selectedId.value ?? 0,
-    status: 'open',
-    sort_by: 'created_at',
-    sort_order: 'desc',
-  }))
-
-  function conflictKindLabel (kind) {
-    return {
-      phone_name_mismatch: 'Name differs',
-      invalid_phone: 'No usable phone',
-      phone_taken: 'Phone already taken',
-      oversold: 'Oversold',
-    }[kind] ?? kind
-  }
-  function oversoldSummary (item) {
-    const p = branchPayload(item)
-    const register = registerCodeById(p.register_id)
-    return `Barcode ${p.barcode || '—'}: ${p.quantity_sold} sold on ${p.invoice_code || 'an invoice'}`
-      + `${register ? ` at register ${register}` : ''}, leaving ${p.on_hand} in stock.`
-  }
-  function branchPayload (item) {
-    if (item.branch_payload && typeof item.branch_payload === 'object') return item.branch_payload
-    try { return JSON.parse(item.branch_payload) } catch { return {} }
-  }
-  function diffClass (a, b) {
-    return a && b && a !== b ? 'text-error' : ''
-  }
-  function reloadConflicts () {
-    conflictTableRef.value?.reloadFromFirstPage?.()
-    refreshConflictCount()
-  }
-  async function refreshConflictCount () {
-    if (selectedId.value == null) return
-    try { conflictCount.value = await openConflictCount(selectedId.value) } catch { /* informational */ }
-  }
-  // A single sync can push hundreds of conflict rows, and each one emits its
-  // own branch_sync_conflict WS nudge. Coalesce a burst into one refetch --
-  // fanning them straight through hammered the server (thundering herd).
-  let conflictRefreshTimer = null
-  function refreshConflictCountSoon () {
-    if (conflictRefreshTimer) return
-    conflictRefreshTimer = setTimeout(() => {
-      conflictRefreshTimer = null
-      refreshConflictCount()
-    }, 2000)
-  }
-  async function dismiss (item) {
-    try {
-      await dismissConflict(item.id)
-      notify.success('Dismissed.')
-      reloadConflicts()
-    } catch (error) {
-      notify.error(String(error.message || error))
-    }
-  }
-  async function bulkTakeBranch () {
-    try {
-      const res = await bulkResolve(selectedConflicts.value.map(c => c.id), 'branch')
-      notify.success(`Resolved ${res?.resolved ?? 0} conflict(s).`)
-      selectedConflicts.value = []
-      reloadConflicts()
-    } catch (error) {
-      notify.error(String(error.message || error))
-    }
-  }
-  const resolveDialog = ref(false)
-  const resolveTarget = ref(null)
-  const resolveSaving = ref(false)
-  const resolveForm = reactive({ choice: 'branch', name: '', phone: '', clientId: null })
-  const { clients, fetchClients } = useClients()
-  const clientOptions = computed(() =>
-    clients.value.map(c => ({ title: `${c.name} — ${c.phone}`, value: c.id })),
-  )
-
-  function openResolve (item) {
-    resolveTarget.value = item
-    const payload = branchPayload(item)
-    switch (item.kind) {
-      case 'phone_name_mismatch': {
-        resolveForm.choice = 'branch'
-        resolveForm.name = payload.name || ''
-        break
-      }
-      case 'invalid_phone': {
-        resolveForm.choice = 'create'
-        resolveForm.phone = ''
-        resolveForm.clientId = null
-        fetchClients()
-        break
-      }
-      case 'oversold': {
-        resolveForm.choice = 'done'
-        break
-      }
-      default: {
-        resolveForm.choice = 'create'
-      }
-    }
-    resolveDialog.value = true
-  }
-
-  async function submitResolve () {
-    const item = resolveTarget.value
-    if (!item) {
-      return
-    }
-    const body = { choice: resolveForm.choice }
-    if (item.kind === 'phone_name_mismatch' && resolveForm.choice === 'custom') {
-      body.name = resolveForm.name.trim()
-    }
-    if (item.kind === 'invalid_phone') {
-      if (resolveForm.choice === 'merge') {
-        body.client_id = resolveForm.clientId
-      } else {
-        body.phone = resolveForm.phone.trim()
-      }
-    }
-    resolveSaving.value = true
-    try {
-      await resolveConflict(item.id, body)
-      notify.success('Resolved.')
-      resolveDialog.value = false
-      reloadConflicts()
-    } catch (error) {
-      notify.error(String(error.message || error))
-    } finally {
-      resolveSaving.value = false
-    }
-  }
-
-  let conflictPoll = null
-  let offAdminMessage = null
-  const { onMessage: onAdminMessage, ensureConnected: ensureAdminSocket } = useAdminSocket()
-  onMounted(() => {
-    ensureAdminSocket?.()
-    conflictPoll = setInterval(refreshConflictCount, 30_000)
-    // onMessage registers into a module-level Set and returns an unsubscribe;
-    // without keeping it, every visit to this page stacks another live
-    // handler that never goes away.
-    offAdminMessage = onAdminMessage?.((msg) => {
-      if (msg?.type === 'branch_sync_conflict') refreshConflictCountSoon()
-    })
-  })
-  onUnmounted(() => {
-    if (conflictPoll) clearInterval(conflictPoll)
-    if (conflictRefreshTimer) clearTimeout(conflictRefreshTimer)
-    offAdminMessage?.()
-  })
-  watch(selectedId, () => { refreshConflictCount() })
 
   const activeBranch = computed(() => branches.value.find(b => b.id === selectedId.value) ?? null)
 
@@ -1354,10 +1249,17 @@
       : 'never'
   }
 
-  function statusColor (status) {
-    if (status === 'success') return 'success'
-    if (status === 'failed') return 'error'
-    return 'warning'
+  const syncing = ref(false)
+  async function syncNow () {
+    syncing.value = true
+    try {
+      const sent = await sendCommand(selectedId.value, 'sync_now')
+      notify.success(`Asked ${sent.length} register${sent.length === 1 ? '' : 's'} to sync now.`)
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      syncing.value = false
+    }
   }
 
   onMounted(async () => {
@@ -1382,7 +1284,55 @@
   const saving = ref(false)
   const socialPlatformsText = ref('[]')
   const socialHandlesText = ref('{}')
-  const commandHistory = ref([])
+
+  // Tabs whose fields belong to the settings form (and so show Save).
+  const FORM_TABS = ['general', 'behaviour', 'cash', 'pages', 'printing', 'attendance', 'display']
+
+  // The form as it was loaded (or last saved). Save sends only the fields
+  // that differ from it: the rest stay exactly as the tills have them, so a
+  // value kashi hasn't caught up with yet is never pushed back over the
+  // till's real one.
+  const loadedForm = ref(null)
+
+  // The till screen's look, sent as one display_prefs object. Defaults are
+  // the till's own defaults (kashi-pos lib/display.ts).
+  const DISPLAY_DEFAULTS = {
+    quick_access_rows: 3,
+    quick_access_font_scale: 100,
+    quick_access_show_code: true,
+    quick_access_show_name: true,
+    quick_access_show_remove: true,
+    animations_enabled: true,
+    calculator_total_currency: 'USD',
+    theme: 'light',
+  }
+  const displayForm = ref({ ...DISPLAY_DEFAULTS })
+  const displayRegisterId = ref(null)
+  const displaySending = ref(false)
+
+  async function sendDisplayToRegister () {
+    displaySending.value = true
+    try {
+      await updateBranchSettings(selectedId.value, { display_prefs: { ...displayForm.value } }, displayRegisterId.value)
+      notify.success(`Sent to ${registerCodeById(displayRegisterId.value)} — it applies within a few seconds if online.`)
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      displaySending.value = false
+    }
+  }
+
+  // Money fields are stored in cents; the form edits dollars.
+  function centsField (key) {
+    return computed({
+      get: () => (settingsForm.value?.[key] ?? 0) / 100,
+      set: v => {
+        settingsForm.value[key] = Math.round((Number(v) || 0) * 100)
+      },
+    })
+  }
+  const openingFloatUsd = centsField('default_opening_float_usd')
+  const maxOverpayment = centsField('max_overpayment_cents')
 
   // Which settings groups the branch owns locally. Persisted centrally the
   // moment a toggle changes -- it's admin state, not a branch command.
@@ -1427,6 +1377,17 @@
     'attendance_enabled',
     'attendance_cashier_history',
     'split_primary_first',
+    'close_shift_requires_sync',
+    'salesperson_per_invoice_required',
+    'non_admin_month_nav_enabled',
+    'opening_float_enabled',
+    'count_opening_cash_on_close',
+    'overchange_confirmation',
+    'page_unlock_products',
+    'hide_payment_method_currency',
+    'auto_append_lbp_zeros',
+    'auto_close_stale_shifts',
+    'visitor_counter_enabled',
   ]
 
   function formFromSettings (d) {
@@ -1465,6 +1426,10 @@
       split_primary_currency: d.split_primary_currency ?? '',
       split_primary_step: d.split_primary_step ?? 0,
       oversell_mode: d.oversell_mode ?? 'allow',
+      branch_phone: d.branch_phone ?? '',
+      max_overpayment_cents: d.max_overpayment_cents ?? 0,
+      default_opening_float_usd: d.default_opening_float_usd ?? 0,
+      default_opening_float_lbp: d.default_opening_float_lbp ?? 0,
     }
     for (const k of BOOL_KEYS) {
       if (k === 'search_button_enabled') continue
@@ -1492,11 +1457,12 @@
     sectionTab.value = 'general'
     settingsForm.value = null
     secretForm.value = { akuvox_password: '', attendance_approver_password: '', admin_password: '' }
-    commandHistory.value = []
+    loadedForm.value = null
     try {
       const data = await getBranchSettings(id)
       if (data) {
         settingsForm.value = formFromSettings(data)
+        displayForm.value = { ...DISPLAY_DEFAULTS, ...data.display_prefs }
         managedLocally.value = Array.isArray(data.managed_locally) ? [...data.managed_locally] : []
         socialPlatformsText.value = JSON.stringify(data.social_platforms ?? [])
         socialHandlesText.value = JSON.stringify(data.social_handles ?? {})
@@ -1506,7 +1472,7 @@
     } finally {
       settingsLoading.value = false
     }
-    loadCommandHistory()
+    snapshotLoaded()
     loadBranchUsers(id)
     loadBranchPaymentMethods(id)
     loadBranchRegisters(id)
@@ -1532,6 +1498,7 @@
     try {
       branchRegisters.value = await listRegisters(id)
       deviceRegisterId.value = branchRegisters.value[0]?.id ?? null
+      displayRegisterId.value = branchRegisters.value[0]?.id ?? null
     } catch (error) {
       notify.error(error.message)
     }
@@ -1552,7 +1519,6 @@
     try {
       await updateBranchSettings(selectedId.value, { ...deviceForm.value }, deviceRegisterId.value)
       notify.success(`Command sent to ${selectedRegister.value?.code} — it applies within a few seconds if online.`)
-      await loadCommandHistory()
     } catch (error) {
       notify.error(error.message)
     } finally {
@@ -1722,7 +1688,6 @@
     try {
       await setBranchUserPin(pinTarget.value.id, pinValue.value)
       pinDialog.value = false
-      await loadCommandHistory()
     } catch (error) {
       notify.error(error.message)
     } finally {
@@ -1744,31 +1709,106 @@
     }
   }
 
-  async function loadCommandHistory () {
-    if (selectedId.value == null) return
+  // What the form holds as the payload it would send, for diffing.
+  function formPayload () {
+    let socialPlatforms
+    let socialHandles
     try {
-      commandHistory.value = await listBranchCommands(selectedId.value)
-    } catch (error) {
-      notify.error(error.message)
+      socialPlatforms = JSON.parse(socialPlatformsText.value)
+      socialHandles = JSON.parse(socialHandlesText.value)
+    } catch {
+      throw new Error('Social Platforms/Handles must be valid JSON')
     }
+    return {
+      ...settingsForm.value,
+      social_platforms: socialPlatforms,
+      social_handles: socialHandles,
+      display_prefs: { ...displayForm.value },
+    }
+  }
+
+  function snapshotLoaded () {
+    if (!settingsForm.value) return
+    try {
+      loadedForm.value = structuredClone(formPayload())
+    } catch {
+      loadedForm.value = null
+    }
+  }
+
+  // ---- drift: what the tills report vs what kashi holds --------------------
+  // Labels for the settings worth comparing (per-machine fields excluded).
+  const DRIFT_LABELS = {
+    tax_rate: 'Tax rate',
+    rounding_mode: 'Rounding mode',
+    rounding_currency: 'Rounding currency',
+    exchange_rate: 'Exchange rate',
+    exchange_window_hours: 'Exchange window',
+    search_button_enabled: 'Search button',
+    custom_item_discounts_enabled: 'Custom discounts',
+    custom_item_prices_enabled: 'Custom prices',
+    per_unit_item_prices_enabled: 'Per-unit pricing',
+    invoice_keyboard_mode: 'Keyboard mode',
+    client_required: 'Client required',
+    salesperson_per_invoice_required: 'Salesperson required',
+    non_admin_month_nav_enabled: 'Month browsing',
+    opening_float_enabled: 'Opening float',
+    count_opening_cash_on_close: 'Count opening cash',
+    overchange_confirmation: 'Overchange confirmation',
+    close_shift_requires_sync: 'Upload before close',
+    hide_payment_method_currency: 'Hide payment currency',
+    auto_append_lbp_zeros: 'LBP thousands',
+    auto_close_stale_shifts: 'Auto-close shifts',
+    visitor_counter_enabled: 'Visitor counter',
+    shift_receipt_upload_mode: 'Receipt photo',
+    oversell_mode: 'Oversell mode',
+    max_overpayment_cents: 'Max overpayment',
+    default_opening_float_usd: 'Opening float USD',
+    default_opening_float_lbp: 'Opening float LBP',
+    page_unlock_clients: 'Clients page',
+    page_unlock_inventory: 'Inventory page',
+    page_unlock_products: 'Products page',
+    page_unlock_transfers: 'Transfers page',
+    page_unlock_attendance: 'Attendance page',
+    page_unlock_salespersons: 'Salespersons page',
+    receipt_enabled: 'Print receipt',
+    receipt_cutoff: 'Cut paper',
+    printer_size: 'Printer size',
+    branch_phone: 'Branch phone',
+  }
+
+  // Compared against what was loaded, not the live form, so editing a field
+  // doesn't make the warning come and go.
+  const drift = computed(() => {
+    if (!loadedForm.value) return []
+    const out = []
+    for (const [key, label] of Object.entries(DRIFT_LABELS)) {
+      const registers = branchRegisters.value
+        .filter(r => r.reported_settings && key in r.reported_settings
+          && JSON.stringify(r.reported_settings[key]) !== JSON.stringify(loadedForm.value[key]))
+        .map(r => r.code)
+      if (registers.length > 0) out.push({ key, label, registers })
+    }
+    return out
+  })
+
+  // Takes the first differing register's value for each drifted field into
+  // the form; nothing is sent until Save.
+  function adoptTillValues () {
+    for (const { key } of drift.value) {
+      const register = branchRegisters.value.find(r => r.reported_settings && key in r.reported_settings)
+      settingsForm.value[key] = register.reported_settings[key]
+    }
+    notify.info('Till values copied into the form. Save to keep them.')
   }
 
   async function saveSettings () {
     saving.value = true
     try {
-      let socialPlatforms
-      let socialHandles
-      try {
-        socialPlatforms = JSON.parse(socialPlatformsText.value)
-        socialHandles = JSON.parse(socialHandlesText.value)
-      } catch {
-        throw new Error('Social Platforms/Handles must be valid JSON')
-      }
-
-      const payload = {
-        ...settingsForm.value,
-        social_platforms: socialPlatforms,
-        social_handles: socialHandles,
+      const full = formPayload()
+      const payload = {}
+      for (const [key, value] of Object.entries(full)) {
+        if (JSON.stringify(value) !== JSON.stringify(loadedForm.value?.[key])) payload[key] = value
       }
 
       // Per-register device fields are sent from their own section.
@@ -1786,10 +1826,14 @@
         }
       }
 
+      if (Object.keys(payload).length === 0) {
+        notify.success('Nothing changed.')
+        return
+      }
       await updateBranchSettings(selectedId.value, payload)
       notify.success('Saved — every register of this branch applies it within a few seconds if online.')
       secretForm.value = { akuvox_password: '', attendance_approver_password: '', admin_password: '' }
-      await loadCommandHistory()
+      loadedForm.value = structuredClone(full)
     } catch (error) {
       notify.error(error.message)
     } finally {

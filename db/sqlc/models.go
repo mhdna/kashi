@@ -449,6 +449,31 @@ func (ns NullTransferType) Value() (driver.Value, error) {
 	return string(ns.TransferType), nil
 }
 
+type AdminActivity struct {
+	ID        int64         `json:"id"`
+	UserID    sql.NullInt64 `json:"user_id"`
+	Method    string        `json:"method"`
+	Route     string        `json:"route"`
+	EntityID  sql.NullInt64 `json:"entity_id"`
+	Summary   string        `json:"summary"`
+	Detail    string        `json:"detail"`
+	CreatedAt time.Time     `json:"created_at"`
+}
+
+type AppRelease struct {
+	ID         int64         `json:"id"`
+	Version    string        `json:"version"`
+	Flavor     string        `json:"flavor"`
+	FileName   string        `json:"file_name"`
+	FilePath   string        `json:"file_path"`
+	SizeBytes  int64         `json:"size_bytes"`
+	Sha256     string        `json:"sha256"`
+	Signature  string        `json:"signature"`
+	Notes      string        `json:"notes"`
+	UploadedBy sql.NullInt64 `json:"uploaded_by"`
+	CreatedAt  time.Time     `json:"created_at"`
+}
+
 type AppSetting struct {
 	ID                         int16           `json:"id"`
 	FinancialsHighSeasonMonths json.RawMessage `json:"financials_high_season_months"`
@@ -467,6 +492,16 @@ type AppSetting struct {
 	WhatsappTemplateName       string          `json:"whatsapp_template_name"`
 	WhatsappTemplateLang       string          `json:"whatsapp_template_lang"`
 	WhatsappTemplateParams     string          `json:"whatsapp_template_params"`
+}
+
+type AppUpdateEvent struct {
+	ID         int64         `json:"id"`
+	RegisterID int64         `json:"register_id"`
+	ReleaseID  sql.NullInt64 `json:"release_id"`
+	AppVersion string        `json:"app_version"`
+	State      string        `json:"state"`
+	Detail     string        `json:"detail"`
+	CreatedAt  time.Time     `json:"created_at"`
 }
 
 type Asset struct {
@@ -715,6 +750,13 @@ type BranchRegister struct {
 	CreatedAt                time.Time             `json:"created_at"`
 	QuickAccessMode          string                `json:"quick_access_mode"`
 	QuickAccessModeChangedAt time.Time             `json:"quick_access_mode_changed_at"`
+	TargetReleaseID          sql.NullInt64         `json:"target_release_id"`
+	AppVersion               string                `json:"app_version"`
+	AppFlavor                string                `json:"app_flavor"`
+	UpdateState              string                `json:"update_state"`
+	UpdateDetail             string                `json:"update_detail"`
+	UpdateProgress           int32                 `json:"update_progress"`
+	UpdateReportedAt         sql.NullTime          `json:"update_reported_at"`
 	HiddenFromReports        bool                  `json:"hidden_from_reports"`
 }
 
@@ -769,6 +811,23 @@ type BranchSetting struct {
 	SplitPrimaryFirst                  bool            `json:"split_primary_first"`
 	SplitPrimaryStep                   int64           `json:"split_primary_step"`
 	OversellMode                       string          `json:"oversell_mode"`
+	CloseShiftRequiresSync             bool            `json:"close_shift_requires_sync"`
+	SalespersonPerInvoiceRequired      bool            `json:"salesperson_per_invoice_required"`
+	NonAdminMonthNavEnabled            bool            `json:"non_admin_month_nav_enabled"`
+	OpeningFloatEnabled                bool            `json:"opening_float_enabled"`
+	CountOpeningCashOnClose            bool            `json:"count_opening_cash_on_close"`
+	OverchangeConfirmation             bool            `json:"overchange_confirmation"`
+	PageUnlockProducts                 bool            `json:"page_unlock_products"`
+	HidePaymentMethodCurrency          bool            `json:"hide_payment_method_currency"`
+	AutoAppendLbpZeros                 bool            `json:"auto_append_lbp_zeros"`
+	AutoCloseStaleShifts               bool            `json:"auto_close_stale_shifts"`
+	VisitorCounterEnabled              bool            `json:"visitor_counter_enabled"`
+	ShiftReceiptUploadMode             int64           `json:"shift_receipt_upload_mode"`
+	BranchPhone                        string          `json:"branch_phone"`
+	MaxOverpaymentCents                int64           `json:"max_overpayment_cents"`
+	DefaultOpeningFloatUsd             int64           `json:"default_opening_float_usd"`
+	DefaultOpeningFloatLbp             int64           `json:"default_opening_float_lbp"`
+	DisplayPrefs                       json.RawMessage `json:"display_prefs"`
 }
 
 type BranchShift struct {
@@ -1349,6 +1408,7 @@ type Salesperson struct {
 	BranchID  sql.NullInt64 `json:"branch_id"`
 	IsActive  bool          `json:"is_active"`
 	UpdatedAt time.Time     `json:"updated_at"`
+	Color     string        `json:"color"`
 }
 
 type Session struct {

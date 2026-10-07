@@ -17,6 +17,9 @@ type Server struct {
 	router     *gin.Engine
 	branchHub  *branchHub
 	adminHub   *adminHub
+	// recordActivity writes the home page's "In kashi" feed
+	// (admin_activity.go); tests replace it.
+	recordActivity func(adminActivity)
 }
 
 func NewServer(config util.Config, store db.Store) (*Server, error) {
@@ -33,6 +36,7 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 		adminHub:   newAdminHub(),
 	}
 
+	server.recordActivity = server.recordAdminActivity
 	server.setupRoutes()
 
 	return server, nil
@@ -54,7 +58,7 @@ func (server *Server) setupRoutes() {
 	router := gin.Default()
 	router.Use(corsMiddleware())
 
-	authRoutes := router.Group("/").Use(server.authMiddleware(), server.permissionMiddleware())
+	authRoutes := router.Group("/").Use(server.authMiddleware(), server.permissionMiddleware(), server.adminActivityMiddleware())
 
 	authRoutes.POST("/inventories", server.createInventory)
 	authRoutes.GET("/inventories/:id", server.getInventory)
@@ -66,6 +70,8 @@ func (server *Server) setupRoutes() {
 	authRoutes.POST("/inventories/:id/adjustments", server.createStockAdjustment)
 	authRoutes.GET("/stock_movements", server.listStockMovements)
 	authRoutes.GET("/audit_logs", server.listAuditLogs)
+	authRoutes.GET("/admin_activities", server.listAdminActivities)
+	authRoutes.GET("/home/latest", server.listLatestAdditions)
 	authRoutes.GET("/low_stock", server.listLowStockProducts)
 	authRoutes.GET("/low_stock/summary", server.getLowStockSummary)
 	authRoutes.GET("/low_stock/ignored", server.listIgnoredLowStockProducts)
@@ -84,6 +90,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/inventories/:id/count_sheet", server.listInventoryCountSheet)
 	authRoutes.GET("/inventories/treemap", server.getWarehouseTreemap)
 	authRoutes.POST("/products", server.createProduct)
+	authRoutes.POST("/products/import", server.importProductsCSV)
 	authRoutes.PUT("/products", server.updateProduct)
 	authRoutes.GET("/products/:id", server.getProduct)
 	authRoutes.GET("/products", server.listProducts)
@@ -334,18 +341,18 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/branches/syncing", server.listSyncingBranches)
 	authRoutes.POST("/branches/:id/activate", server.setBranchActive(true))
 	authRoutes.POST("/branches/:id/deactivate", server.setBranchActive(false))
-	authRoutes.GET("/branches/:id/registers", server.listBranchRegisters)
 	authRoutes.POST("/branches/:id/hide_from_reports", server.setBranchHiddenFromReports(true))
 	authRoutes.POST("/branches/:id/show_in_reports", server.setBranchHiddenFromReports(false))
+	authRoutes.GET("/branches/:id/registers", server.listBranchRegisters)
 	authRoutes.POST("/branches/:id/registers", server.createBranchRegister)
 	authRoutes.GET("/branch_registers", server.listAllBranchRegisters)
 	authRoutes.GET("/branch_registers/connected", server.listConnectedRegisters)
 	authRoutes.PUT("/branch_registers/:id", server.updateBranchRegister)
 	authRoutes.POST("/branch_registers/:id/activate", server.setBranchRegisterActive(true))
 	authRoutes.POST("/branch_registers/:id/deactivate", server.setBranchRegisterActive(false))
-	authRoutes.POST("/branch_registers/:id/rotate_key", server.rotateBranchRegisterKey)
 	authRoutes.POST("/branch_registers/:id/hide_from_reports", server.setBranchRegisterHiddenFromReports(true))
 	authRoutes.POST("/branch_registers/:id/show_in_reports", server.setBranchRegisterHiddenFromReports(false))
+	authRoutes.POST("/branch_registers/:id/rotate_key", server.rotateBranchRegisterKey)
 	authRoutes.PUT("/branch_registers/:id/quick_access_mode", server.putRegisterQuickAccessMode)
 	authRoutes.GET("/branches/:id/quick_access", server.getBranchQuickAccess)
 	authRoutes.PUT("/branches/:id/quick_access", server.putBranchQuickAccess)
@@ -360,13 +367,14 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/branch_shift_receipt_images/:id/file", server.getBranchShiftReceiptImageFile)
 	authRoutes.GET("/branch_invoices", server.listBranchInvoices)
 	authRoutes.GET("/branch_sync_conflicts", server.listBranchSyncConflicts)
+	authRoutes.GET("/branch_sync_conflicts/summary", server.branchSyncConflictSummary)
 	authRoutes.POST("/branch_sync_conflicts/bulk_resolve", server.bulkResolveBranchSyncConflicts)
 	authRoutes.POST("/branch_sync_conflicts/:id/resolve", server.resolveBranchSyncConflict)
 	authRoutes.POST("/branch_sync_conflicts/:id/dismiss", server.dismissBranchSyncConflict)
 	authRoutes.GET("/branch_invoices/:id/items", server.listBranchInvoiceItems)
 	authRoutes.GET("/branch_invoices/daily_income", server.dailyIncome)
-	authRoutes.GET("/branch_sales_stats", server.listBranchSalesStats)
 	authRoutes.GET("/branch_invoices/day_summary", server.branchDaySummary)
+	authRoutes.GET("/branch_sales_stats", server.listBranchSalesStats)
 	authRoutes.GET("/branch_shifts", server.listBranchShifts)
 	authRoutes.GET("/branch_visitor_events", server.listBranchVisitorDays)
 	authRoutes.GET("/branch_visitor_stats", server.listBranchVisitorStats)
@@ -386,6 +394,10 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/branches/:id/settings/managed_locally", server.putBranchSettingsManagedLocally)
 	authRoutes.POST("/branches/:id/commands", server.createBranchCommand)
 	authRoutes.GET("/branches/:id/commands", server.listBranchCommands)
+	authRoutes.GET("/branch_commands", server.listAllBranchCommands)
+	authRoutes.GET("/branch_commands/summary", server.branchCommandSummary)
+	authRoutes.POST("/branch_commands/:id/cancel", server.cancelBranchCommand)
+	authRoutes.POST("/branch_commands/:id/retry", server.retryBranchCommand)
 
 	authRoutes.GET("/branches/:id/payment_methods", server.listBranchPaymentMethods)
 	authRoutes.PUT("/branches/:id/payment_methods/:account_id", server.putBranchPaymentMethod)
@@ -405,6 +417,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.POST("/branches/:id/salespersons", server.createSalesperson)
 	authRoutes.PUT("/salespersons/:id", server.updateSalesperson)
 	authRoutes.PUT("/salespersons/:id/active", server.setSalespersonActive)
+	authRoutes.PUT("/salespersons/:id/color", server.setSalespersonColor)
 
 	authRoutes.GET("/employees", server.listEmployees)
 	authRoutes.POST("/employees", server.createEmployee)

@@ -231,6 +231,13 @@ updated_at = now()
 WHERE id = $1 AND branch_id = $3
 RETURNING *;
 
+-- name: SetSalespersonColor :one
+UPDATE salespersons
+SET color = $2,
+updated_at = now()
+WHERE id = $1
+RETURNING *;
+
 -- name: SetSalespersonActive :one
 UPDATE salespersons
 SET is_active = $2,

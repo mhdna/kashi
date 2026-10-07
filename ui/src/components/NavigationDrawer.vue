@@ -31,13 +31,13 @@
             :to="child.to"
             :value="child.to"
           >
-            <template v-if="child.append === 'status'" #append>
+            <template v-if="statusFor(child.append)" #append>
               <span
-                :aria-label="`Stock health status is ${healthStatus}`"
+                :aria-label="`${child.title} status is ${statusFor(child.append)}`"
                 class="nav-status d-flex align-center ga-2"
                 role="img"
               >
-                <span class="nav-status-dot" :class="`nav-status-dot--${healthStatus}`" />
+                <span class="nav-status-dot" :class="`nav-status-dot--${statusFor(child.append)}`" />
               </span>
             </template>
           </v-list-item>
@@ -52,13 +52,13 @@
           :to="item.to"
           :value="item.title"
         >
-          <template v-if="item.append === 'status'" #append>
+          <template v-if="statusFor(item.append)" #append>
             <span
-              :aria-label="`Stock health status is ${healthStatus}`"
+              :aria-label="`${item.title} status is ${statusFor(item.append)}`"
               class="nav-status d-flex align-center ga-2"
               role="img"
             >
-              <span class="nav-status-dot" :class="`nav-status-dot--${healthStatus}`" />
+              <span class="nav-status-dot" :class="`nav-status-dot--${statusFor(item.append)}`" />
             </span>
           </template>
           <template v-else-if="item.append === 'alert-count' && (outOfStockCount > 0 || lowStockCount > 0)" #append>
@@ -100,8 +100,11 @@
 </template>
 
 <script setup>
-  import { onMounted, ref } from 'vue'
+  import { onMounted, onUnmounted, ref } from 'vue'
+  import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useAllowedNav } from '@/composables/useAllowedNav'
+  import { useBranchCommands } from '@/composables/useBranchCommands'
+  import { useBranchSyncConflicts } from '@/composables/useBranchSyncConflicts'
   import { useLowStockAlerts } from '@/composables/useLowStockAlerts'
   import { useStockHealth } from '@/composables/useStockHealth'
   import { useAuthStore } from '@/stores/auth'
@@ -149,6 +152,48 @@
       healthStatus.value = 'healthy'
     }
   })
+
+  // Commands (green: every queued command ran, yellow: some still waiting
+  // for a till) and Conflicts (green / yellow open / red oversold) dots --
+  // see pages/branch-commands.vue and pages/branch-conflicts.vue. Polled,
+  // plus a nudge when kashi reports a new conflict.
+  const { commandsStatus, refreshCommandSummary } = useBranchCommands()
+  const { conflictsStatus, refreshConflictSummary } = useBranchSyncConflicts()
+  const { onMessage: onAdminMessage } = useAdminSocket()
+
+  function refreshBranchStatus () {
+    if (!auth.canView('branches')) {return}
+    refreshCommandSummary().catch(() => {})
+    refreshConflictSummary().catch(() => {})
+  }
+
+  let branchStatusPoll = null
+  let conflictNudge = null
+  let offAdminMessage = null
+  onMounted(() => {
+    refreshBranchStatus()
+    branchStatusPoll = setInterval(refreshBranchStatus, 30_000)
+    // A sync can stage hundreds of conflicts at once; one refetch per burst.
+    offAdminMessage = onAdminMessage((msg) => {
+      if (msg?.type !== 'branch_sync_conflict' || conflictNudge) {return}
+      conflictNudge = setTimeout(() => {
+        conflictNudge = null
+        refreshConflictSummary().catch(() => {})
+      }, 2000)
+    })
+  })
+  onUnmounted(() => {
+    clearInterval(branchStatusPoll)
+    clearTimeout(conflictNudge)
+    offAdminMessage?.()
+  })
+
+  function statusFor (append) {
+    if (append === 'status') {return healthStatus.value}
+    if (append === 'commands-status') {return commandsStatus.value}
+    if (append === 'conflicts-status') {return conflictsStatus.value}
+    return null
+  }
 </script>
 
 <style scoped>

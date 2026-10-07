@@ -228,10 +228,26 @@ import {
   mdiWifi,
   mdiWifiOff,
   mdiWrench,
+  mdiConsoleLine,
+  mdiSourceBranchSync,
+  mdiSync,
+  mdiCancel,
+  mdiReplay,
+  mdiReceiptText,
+  mdiImageMultipleOutline,
+  mdiPlusBoxOutline,
 } from '@mdi/js'
 import { h } from 'vue'
 
 const iconPaths = {
+  'mdi-image-multiple-outline': mdiImageMultipleOutline,
+  'mdi-plus-box-outline': mdiPlusBoxOutline,
+  'mdi-console-line': mdiConsoleLine,
+  'mdi-source-branch-sync': mdiSourceBranchSync,
+  'mdi-sync': mdiSync,
+  'mdi-cancel': mdiCancel,
+  'mdi-replay': mdiReplay,
+  'mdi-receipt-text': mdiReceiptText,
   'mdi-translate': mdiTranslate,
   'mdi-account': mdiAccount,
   'mdi-account-arrow-left': mdiAccountArrowLeft,

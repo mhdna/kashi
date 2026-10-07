@@ -278,6 +278,21 @@ func (mr *MockStoreMockRecorder) BranchClientLinksPresent(arg0, arg1 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BranchClientLinksPresent", reflect.TypeOf((*MockStore)(nil).BranchClientLinksPresent), arg0, arg1)
 }
 
+// BranchCommandSummary mocks base method.
+func (m *MockStore) BranchCommandSummary(arg0 context.Context) ([]db.BranchCommandSummaryRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BranchCommandSummary", arg0)
+	ret0, _ := ret[0].([]db.BranchCommandSummaryRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BranchCommandSummary indicates an expected call of BranchCommandSummary.
+func (mr *MockStoreMockRecorder) BranchCommandSummary(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BranchCommandSummary", reflect.TypeOf((*MockStore)(nil).BranchCommandSummary), arg0)
+}
+
 // BranchExpenseRefsPresent mocks base method.
 func (m *MockStore) BranchExpenseRefsPresent(arg0 context.Context, arg1 db.BranchExpenseRefsPresentParams) ([]string, error) {
 	m.ctrl.T.Helper()
@@ -383,6 +398,21 @@ func (mr *MockStoreMockRecorder) BranchShiftRefsPresent(arg0, arg1 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BranchShiftRefsPresent", reflect.TypeOf((*MockStore)(nil).BranchShiftRefsPresent), arg0, arg1)
 }
 
+// BranchSyncConflictSummary mocks base method.
+func (m *MockStore) BranchSyncConflictSummary(arg0 context.Context) ([]db.BranchSyncConflictSummaryRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BranchSyncConflictSummary", arg0)
+	ret0, _ := ret[0].([]db.BranchSyncConflictSummaryRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BranchSyncConflictSummary indicates an expected call of BranchSyncConflictSummary.
+func (mr *MockStoreMockRecorder) BranchSyncConflictSummary(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BranchSyncConflictSummary", reflect.TypeOf((*MockStore)(nil).BranchSyncConflictSummary), arg0)
+}
+
 // BranchVisitorEventRefsPresent mocks base method.
 func (m *MockStore) BranchVisitorEventRefsPresent(arg0 context.Context, arg1 db.BranchVisitorEventRefsPresentParams) ([]string, error) {
 	m.ctrl.T.Helper()
@@ -396,6 +426,21 @@ func (m *MockStore) BranchVisitorEventRefsPresent(arg0 context.Context, arg1 db.
 func (mr *MockStoreMockRecorder) BranchVisitorEventRefsPresent(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BranchVisitorEventRefsPresent", reflect.TypeOf((*MockStore)(nil).BranchVisitorEventRefsPresent), arg0, arg1)
+}
+
+// CancelBranchCommand mocks base method.
+func (m *MockStore) CancelBranchCommand(arg0 context.Context, arg1 int64) (db.BranchCommand, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CancelBranchCommand", arg0, arg1)
+	ret0, _ := ret[0].(db.BranchCommand)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CancelBranchCommand indicates an expected call of CancelBranchCommand.
+func (mr *MockStoreMockRecorder) CancelBranchCommand(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelBranchCommand", reflect.TypeOf((*MockStore)(nil).CancelBranchCommand), arg0, arg1)
 }
 
 // CancelPurchaseTx mocks base method.
@@ -605,6 +650,21 @@ func (m *MockStore) CountBranchAttendanceEvents(arg0 context.Context, arg1 sql.N
 func (mr *MockStoreMockRecorder) CountBranchAttendanceEvents(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountBranchAttendanceEvents", reflect.TypeOf((*MockStore)(nil).CountBranchAttendanceEvents), arg0, arg1)
+}
+
+// CountBranchCommands mocks base method.
+func (m *MockStore) CountBranchCommands(arg0 context.Context, arg1 db.CountBranchCommandsParams) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountBranchCommands", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountBranchCommands indicates an expected call of CountBranchCommands.
+func (mr *MockStoreMockRecorder) CountBranchCommands(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountBranchCommands", reflect.TypeOf((*MockStore)(nil).CountBranchCommands), arg0, arg1)
 }
 
 // CountBranchExpenseImages mocks base method.
@@ -1192,6 +1252,21 @@ func (mr *MockStoreMockRecorder) CountPurchasesFiltered(arg0, arg1 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountPurchasesFiltered", reflect.TypeOf((*MockStore)(nil).CountPurchasesFiltered), arg0, arg1)
 }
 
+// CountRegistersTargetingRelease mocks base method.
+func (m *MockStore) CountRegistersTargetingRelease(arg0 context.Context, arg1 sql.NullInt64) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountRegistersTargetingRelease", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountRegistersTargetingRelease indicates an expected call of CountRegistersTargetingRelease.
+func (mr *MockStoreMockRecorder) CountRegistersTargetingRelease(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountRegistersTargetingRelease", reflect.TypeOf((*MockStore)(nil).CountRegistersTargetingRelease), arg0, arg1)
+}
+
 // CountShifts mocks base method.
 func (m *MockStore) CountShifts(arg0 context.Context, arg1 db.CountShiftsParams) (int64, error) {
 	m.ctrl.T.Helper()
@@ -1325,6 +1400,50 @@ func (m *MockStore) CountVariantsForBarcodes(arg0 context.Context, arg1 string) 
 func (mr *MockStoreMockRecorder) CountVariantsForBarcodes(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountVariantsForBarcodes", reflect.TypeOf((*MockStore)(nil).CountVariantsForBarcodes), arg0, arg1)
+}
+
+// CreateAdminActivity mocks base method.
+func (m *MockStore) CreateAdminActivity(arg0 context.Context, arg1 db.CreateAdminActivityParams) (db.AdminActivity, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateAdminActivity", arg0, arg1)
+	ret0, _ := ret[0].(db.AdminActivity)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateAdminActivity indicates an expected call of CreateAdminActivity.
+func (mr *MockStoreMockRecorder) CreateAdminActivity(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAdminActivity", reflect.TypeOf((*MockStore)(nil).CreateAdminActivity), arg0, arg1)
+}
+
+// CreateAppRelease mocks base method.
+func (m *MockStore) CreateAppRelease(arg0 context.Context, arg1 db.CreateAppReleaseParams) (db.AppRelease, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateAppRelease", arg0, arg1)
+	ret0, _ := ret[0].(db.AppRelease)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateAppRelease indicates an expected call of CreateAppRelease.
+func (mr *MockStoreMockRecorder) CreateAppRelease(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAppRelease", reflect.TypeOf((*MockStore)(nil).CreateAppRelease), arg0, arg1)
+}
+
+// CreateAppUpdateEvent mocks base method.
+func (m *MockStore) CreateAppUpdateEvent(arg0 context.Context, arg1 db.CreateAppUpdateEventParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateAppUpdateEvent", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateAppUpdateEvent indicates an expected call of CreateAppUpdateEvent.
+func (mr *MockStoreMockRecorder) CreateAppUpdateEvent(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAppUpdateEvent", reflect.TypeOf((*MockStore)(nil).CreateAppUpdateEvent), arg0, arg1)
 }
 
 // CreateAsset mocks base method.
@@ -2914,6 +3033,20 @@ func (mr *MockStoreMockRecorder) DecrementInvoicesIndex(arg0, arg1 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DecrementInvoicesIndex", reflect.TypeOf((*MockStore)(nil).DecrementInvoicesIndex), arg0, arg1)
 }
 
+// DeleteAppRelease mocks base method.
+func (m *MockStore) DeleteAppRelease(arg0 context.Context, arg1 int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteAppRelease", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteAppRelease indicates an expected call of DeleteAppRelease.
+func (mr *MockStoreMockRecorder) DeleteAppRelease(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAppRelease", reflect.TypeOf((*MockStore)(nil).DeleteAppRelease), arg0, arg1)
+}
+
 // DeleteAsset mocks base method.
 func (m *MockStore) DeleteAsset(arg0 context.Context, arg1 int64) error {
 	m.ctrl.T.Helper()
@@ -3710,6 +3843,21 @@ func (m *MockStore) FireRecurringExpenseTx(arg0 context.Context, arg1 db.Recurri
 func (mr *MockStoreMockRecorder) FireRecurringExpenseTx(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FireRecurringExpenseTx", reflect.TypeOf((*MockStore)(nil).FireRecurringExpenseTx), arg0, arg1)
+}
+
+// GetAppRelease mocks base method.
+func (m *MockStore) GetAppRelease(arg0 context.Context, arg1 int64) (db.AppRelease, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAppRelease", arg0, arg1)
+	ret0, _ := ret[0].(db.AppRelease)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAppRelease indicates an expected call of GetAppRelease.
+func (mr *MockStoreMockRecorder) GetAppRelease(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAppRelease", reflect.TypeOf((*MockStore)(nil).GetAppRelease), arg0, arg1)
 }
 
 // GetAppSettings mocks base method.
@@ -5122,6 +5270,21 @@ func (mr *MockStoreMockRecorder) GetRecurringExpense(arg0, arg1 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRecurringExpense", reflect.TypeOf((*MockStore)(nil).GetRecurringExpense), arg0, arg1)
 }
 
+// GetRegisterTargetRelease mocks base method.
+func (m *MockStore) GetRegisterTargetRelease(arg0 context.Context, arg1 int64) (db.AppRelease, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRegisterTargetRelease", arg0, arg1)
+	ret0, _ := ret[0].(db.AppRelease)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRegisterTargetRelease indicates an expected call of GetRegisterTargetRelease.
+func (mr *MockStoreMockRecorder) GetRegisterTargetRelease(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRegisterTargetRelease", reflect.TypeOf((*MockStore)(nil).GetRegisterTargetRelease), arg0, arg1)
+}
+
 // GetReturnInvoice mocks base method.
 func (m *MockStore) GetReturnInvoice(arg0 context.Context, arg1 int64) (db.ReturnInvoice, error) {
 	m.ctrl.T.Helper()
@@ -5511,6 +5674,21 @@ func (mr *MockStoreMockRecorder) ListActiveBranchTargetSeries(arg0 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListActiveBranchTargetSeries", reflect.TypeOf((*MockStore)(nil).ListActiveBranchTargetSeries), arg0)
 }
 
+// ListAdminActivities mocks base method.
+func (m *MockStore) ListAdminActivities(arg0 context.Context, arg1 db.ListAdminActivitiesParams) ([]db.ListAdminActivitiesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListAdminActivities", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListAdminActivitiesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListAdminActivities indicates an expected call of ListAdminActivities.
+func (mr *MockStoreMockRecorder) ListAdminActivities(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAdminActivities", reflect.TypeOf((*MockStore)(nil).ListAdminActivities), arg0, arg1)
+}
+
 // ListAllAttributeValues mocks base method.
 func (m *MockStore) ListAllAttributeValues(arg0 context.Context) ([]db.ListAllAttributeValuesRow, error) {
 	m.ctrl.T.Helper()
@@ -5554,6 +5732,36 @@ func (m *MockStore) ListAllCashboxAccounts(arg0 context.Context) ([]db.CashboxAc
 func (mr *MockStoreMockRecorder) ListAllCashboxAccounts(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllCashboxAccounts", reflect.TypeOf((*MockStore)(nil).ListAllCashboxAccounts), arg0)
+}
+
+// ListAppReleases mocks base method.
+func (m *MockStore) ListAppReleases(arg0 context.Context) ([]db.ListAppReleasesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListAppReleases", arg0)
+	ret0, _ := ret[0].([]db.ListAppReleasesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListAppReleases indicates an expected call of ListAppReleases.
+func (mr *MockStoreMockRecorder) ListAppReleases(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAppReleases", reflect.TypeOf((*MockStore)(nil).ListAppReleases), arg0)
+}
+
+// ListAppUpdateEvents mocks base method.
+func (m *MockStore) ListAppUpdateEvents(arg0 context.Context, arg1 int32) ([]db.ListAppUpdateEventsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListAppUpdateEvents", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListAppUpdateEventsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListAppUpdateEvents indicates an expected call of ListAppUpdateEvents.
+func (mr *MockStoreMockRecorder) ListAppUpdateEvents(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAppUpdateEvents", reflect.TypeOf((*MockStore)(nil).ListAppUpdateEvents), arg0, arg1)
 }
 
 // ListAssetCategories mocks base method.
@@ -5734,6 +5942,21 @@ func (m *MockStore) ListBranchCommands(arg0 context.Context, arg1 db.ListBranchC
 func (mr *MockStoreMockRecorder) ListBranchCommands(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchCommands", reflect.TypeOf((*MockStore)(nil).ListBranchCommands), arg0, arg1)
+}
+
+// ListBranchCommandsPage mocks base method.
+func (m *MockStore) ListBranchCommandsPage(arg0 context.Context, arg1 db.ListBranchCommandsPageParams) ([]db.ListBranchCommandsPageRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBranchCommandsPage", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListBranchCommandsPageRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBranchCommandsPage indicates an expected call of ListBranchCommandsPage.
+func (mr *MockStoreMockRecorder) ListBranchCommandsPage(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchCommandsPage", reflect.TypeOf((*MockStore)(nil).ListBranchCommandsPage), arg0, arg1)
 }
 
 // ListBranchExpenseHistoryForSync mocks base method.
@@ -6019,6 +6242,21 @@ func (m *MockStore) ListBranchRegisters(arg0 context.Context, arg1 int64) ([]db.
 func (mr *MockStoreMockRecorder) ListBranchRegisters(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchRegisters", reflect.TypeOf((*MockStore)(nil).ListBranchRegisters), arg0, arg1)
+}
+
+// ListBranchRegistersByIDs mocks base method.
+func (m *MockStore) ListBranchRegistersByIDs(arg0 context.Context, arg1 []int64) ([]db.BranchRegister, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBranchRegistersByIDs", arg0, arg1)
+	ret0, _ := ret[0].([]db.BranchRegister)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBranchRegistersByIDs indicates an expected call of ListBranchRegistersByIDs.
+func (mr *MockStoreMockRecorder) ListBranchRegistersByIDs(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchRegistersByIDs", reflect.TypeOf((*MockStore)(nil).ListBranchRegistersByIDs), arg0, arg1)
 }
 
 // ListBranchRevenueByBranch mocks base method.
@@ -7176,6 +7414,21 @@ func (mr *MockStoreMockRecorder) ListInvoicesPage(arg0, arg1 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListInvoicesPage", reflect.TypeOf((*MockStore)(nil).ListInvoicesPage), arg0, arg1)
 }
 
+// ListLatestAdditions mocks base method.
+func (m *MockStore) ListLatestAdditions(arg0 context.Context, arg1 db.ListLatestAdditionsParams) ([]db.ListLatestAdditionsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListLatestAdditions", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListLatestAdditionsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListLatestAdditions indicates an expected call of ListLatestAdditions.
+func (mr *MockStoreMockRecorder) ListLatestAdditions(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListLatestAdditions", reflect.TypeOf((*MockStore)(nil).ListLatestAdditions), arg0, arg1)
+}
+
 // ListLoanCategories mocks base method.
 func (m *MockStore) ListLoanCategories(arg0 context.Context, arg1 sql.NullString) ([]db.LoanCategory, error) {
 	m.ctrl.T.Helper()
@@ -7579,6 +7832,21 @@ func (m *MockStore) ListRecurringExpenses(arg0 context.Context) ([]db.RecurringE
 func (mr *MockStoreMockRecorder) ListRecurringExpenses(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRecurringExpenses", reflect.TypeOf((*MockStore)(nil).ListRecurringExpenses), arg0)
+}
+
+// ListRegisterUpdateStatuses mocks base method.
+func (m *MockStore) ListRegisterUpdateStatuses(arg0 context.Context) ([]db.ListRegisterUpdateStatusesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListRegisterUpdateStatuses", arg0)
+	ret0, _ := ret[0].([]db.ListRegisterUpdateStatusesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListRegisterUpdateStatuses indicates an expected call of ListRegisterUpdateStatuses.
+func (mr *MockStoreMockRecorder) ListRegisterUpdateStatuses(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRegisterUpdateStatuses", reflect.TypeOf((*MockStore)(nil).ListRegisterUpdateStatuses), arg0)
 }
 
 // ListRolePermissions mocks base method.
@@ -8492,6 +8760,34 @@ func (mr *MockStoreMockRecorder) SetRecurringExpenseActive(arg0, arg1 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetRecurringExpenseActive", reflect.TypeOf((*MockStore)(nil).SetRecurringExpenseActive), arg0, arg1)
 }
 
+// SetRegisterUpdateStatus mocks base method.
+func (m *MockStore) SetRegisterUpdateStatus(arg0 context.Context, arg1 db.SetRegisterUpdateStatusParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetRegisterUpdateStatus", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetRegisterUpdateStatus indicates an expected call of SetRegisterUpdateStatus.
+func (mr *MockStoreMockRecorder) SetRegisterUpdateStatus(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetRegisterUpdateStatus", reflect.TypeOf((*MockStore)(nil).SetRegisterUpdateStatus), arg0, arg1)
+}
+
+// SetRegistersTargetRelease mocks base method.
+func (m *MockStore) SetRegistersTargetRelease(arg0 context.Context, arg1 db.SetRegistersTargetReleaseParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetRegistersTargetRelease", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetRegistersTargetRelease indicates an expected call of SetRegistersTargetRelease.
+func (mr *MockStoreMockRecorder) SetRegistersTargetRelease(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetRegistersTargetRelease", reflect.TypeOf((*MockStore)(nil).SetRegistersTargetRelease), arg0, arg1)
+}
+
 // SetSalespersonActive mocks base method.
 func (m *MockStore) SetSalespersonActive(arg0 context.Context, arg1 db.SetSalespersonActiveParams) (db.Salesperson, error) {
 	m.ctrl.T.Helper()
@@ -8505,6 +8801,21 @@ func (m *MockStore) SetSalespersonActive(arg0 context.Context, arg1 db.SetSalesp
 func (mr *MockStoreMockRecorder) SetSalespersonActive(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetSalespersonActive", reflect.TypeOf((*MockStore)(nil).SetSalespersonActive), arg0, arg1)
+}
+
+// SetSalespersonColor mocks base method.
+func (m *MockStore) SetSalespersonColor(arg0 context.Context, arg1 db.SetSalespersonColorParams) (db.Salesperson, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetSalespersonColor", arg0, arg1)
+	ret0, _ := ret[0].(db.Salesperson)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetSalespersonColor indicates an expected call of SetSalespersonColor.
+func (mr *MockStoreMockRecorder) SetSalespersonColor(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetSalespersonColor", reflect.TypeOf((*MockStore)(nil).SetSalespersonColor), arg0, arg1)
 }
 
 // SetStockCountNote mocks base method.
@@ -8769,6 +9080,21 @@ func (m *MockStore) UnsetDefaultPriceList(arg0 context.Context, arg1 int64) erro
 func (mr *MockStoreMockRecorder) UnsetDefaultPriceList(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnsetDefaultPriceList", reflect.TypeOf((*MockStore)(nil).UnsetDefaultPriceList), arg0, arg1)
+}
+
+// UpdateAppReleaseNotes mocks base method.
+func (m *MockStore) UpdateAppReleaseNotes(arg0 context.Context, arg1 db.UpdateAppReleaseNotesParams) (db.AppRelease, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateAppReleaseNotes", arg0, arg1)
+	ret0, _ := ret[0].(db.AppRelease)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateAppReleaseNotes indicates an expected call of UpdateAppReleaseNotes.
+func (mr *MockStoreMockRecorder) UpdateAppReleaseNotes(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAppReleaseNotes", reflect.TypeOf((*MockStore)(nil).UpdateAppReleaseNotes), arg0, arg1)
 }
 
 // UpdateAppSettings mocks base method.

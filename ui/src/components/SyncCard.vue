@@ -43,7 +43,7 @@
     </template>
 
     <v-card class="menu-card" max-width="400" min-width="320">
-      <v-card-title class="text-subtitle-1">Branch sync</v-card-title>
+      <v-card-title class="flex-shrink-0 text-subtitle-1">Branch sync</v-card-title>
       <v-divider />
 
       <v-card-text v-if="serverDown" class="text-medium-emphasis">
@@ -157,10 +157,14 @@
     }
   }
 
+  // How many recent invoices the dropdown lists; .menu-scroll scrolls them.
+  // The API caps page_size at 100.
+  const RECENT_INVOICE_COUNT = 30
+
   async function refresh () {
     try {
       const [invoices] = await Promise.all([
-        listRecentBranchInvoices(5),
+        listRecentBranchInvoices(RECENT_INVOICE_COUNT),
         fetchBranches(true),
       ])
       recentInvoices.value = invoices

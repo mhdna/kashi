@@ -36,6 +36,9 @@ type Querier interface {
 	BranchAttendanceChangeRefsPresent(ctx context.Context, arg BranchAttendanceChangeRefsPresentParams) ([]string, error)
 	BranchAttendanceEventRefsPresent(ctx context.Context, arg BranchAttendanceEventRefsPresentParams) ([]string, error)
 	BranchClientLinksPresent(ctx context.Context, arg BranchClientLinksPresentParams) ([]int64, error)
+	// One row per branch: what's still queued and what failed in the last day,
+	// for the Commands page sidebar and its nav dot.
+	BranchCommandSummary(ctx context.Context) ([]BranchCommandSummaryRow, error)
 	BranchExpenseRefsPresent(ctx context.Context, arg BranchExpenseRefsPresentParams) ([]string, error)
 	// Reconcile queries: given the refs a branch believes it has pushed, return
 	// the subset kashi actually holds. The branch diffs its own list against
@@ -51,7 +54,13 @@ type Querier interface {
 	// closed_at itself can be NULL for an older till build that omitted it.
 	BranchShiftIsClosed(ctx context.Context, arg BranchShiftIsClosedParams) (bool, error)
 	BranchShiftRefsPresent(ctx context.Context, arg BranchShiftRefsPresentParams) ([]string, error)
+	// One row per branch: open conflicts, and how many of those are oversold
+	// stock (the kind that needs a stock fix), for the Conflicts page sidebar
+	// and its nav dot.
+	BranchSyncConflictSummary(ctx context.Context) ([]BranchSyncConflictSummaryRow, error)
 	BranchVisitorEventRefsPresent(ctx context.Context, arg BranchVisitorEventRefsPresentParams) ([]string, error)
+	// Only a command no till has acked yet can be withdrawn.
+	CancelBranchCommand(ctx context.Context, id int64) (BranchCommand, error)
 	// The once-only gate on a branch's list: 1 row the first time it's set up
 	// (by a till's import or an admin save), 0 ever after.
 	ClaimBranchQuickAccessInit(ctx context.Context, id int64) (int64, error)
@@ -64,6 +73,7 @@ type Querier interface {
 	CountBatchesFiltered(ctx context.Context, search string) (int64, error)
 	CountBranchAttendanceChanges(ctx context.Context, branchID sql.NullInt64) (int64, error)
 	CountBranchAttendanceEvents(ctx context.Context, branchID sql.NullInt64) (int64, error)
+	CountBranchCommands(ctx context.Context, arg CountBranchCommandsParams) (int64, error)
 	CountBranchExpenseImages(ctx context.Context) (int64, error)
 	CountBranchExpenses(ctx context.Context, arg CountBranchExpensesParams) (int64, error)
 	CountBranchInvoiceSettlements(ctx context.Context, branchID sql.NullInt64) (int64, error)
@@ -120,6 +130,7 @@ type Querier interface {
 	CountPriceListsFiltered(ctx context.Context, search string) (int64, error)
 	CountProductVariants(ctx context.Context) (int64, error)
 	CountPurchasesFiltered(ctx context.Context, search string) (int64, error)
+	CountRegistersTargetingRelease(ctx context.Context, targetReleaseID sql.NullInt64) (int64, error)
 	CountShifts(ctx context.Context, arg CountShiftsParams) (int64, error)
 	CountSizes(ctx context.Context, search string) (int64, error)
 	CountSlowMovingProducts(ctx context.Context, arg CountSlowMovingProductsParams) (int64, error)
@@ -129,6 +140,9 @@ type Querier interface {
 	CountSuppliersFiltered(ctx context.Context, search string) (int64, error)
 	CountTransfers(ctx context.Context, status NullTransferStatus) (int64, error)
 	CountVariantsForBarcodes(ctx context.Context, search string) (int64, error)
+	CreateAdminActivity(ctx context.Context, arg CreateAdminActivityParams) (AdminActivity, error)
+	CreateAppRelease(ctx context.Context, arg CreateAppReleaseParams) (AppRelease, error)
+	CreateAppUpdateEvent(ctx context.Context, arg CreateAppUpdateEventParams) error
 	CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset, error)
 	CreateAssetCategory(ctx context.Context, arg CreateAssetCategoryParams) (AssetCategory, error)
 	CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) (AuditLog, error)
@@ -242,6 +256,9 @@ type Querier interface {
 	// independently per source table. received_at is used deliberately: this
 	// table answers "what synced recently", even when a branch catches up an
 	// older occurred_at record.
+	// person is who did it on the till (salesperson / closing cashier), '' when
+	// the till doesn't record one; person_color is that salesperson's own
+	// colour, '' when they have none.
 	DashboardActivitiesList(ctx context.Context, arg DashboardActivitiesListParams) ([]DashboardActivitiesListRow, error)
 	DashboardAdminExpenseSeries(ctx context.Context, arg DashboardAdminExpenseSeriesParams) ([]DashboardAdminExpenseSeriesRow, error)
 	DashboardAdminExpensesTotal(ctx context.Context, arg DashboardAdminExpensesTotalParams) (int64, error)
@@ -307,6 +324,7 @@ type Querier interface {
 	DeactivateCouponList(ctx context.Context, id int64) error
 	DeactivateCouponsForList(ctx context.Context, listID sql.NullInt64) (int64, error)
 	DecrementInvoicesIndex(ctx context.Context, arg DecrementInvoicesIndexParams) (int64, error)
+	DeleteAppRelease(ctx context.Context, id int64) error
 	DeleteAsset(ctx context.Context, id int64) error
 	DeleteAssetCategory(ctx context.Context, id int64) error
 	DeleteAssets(ctx context.Context, ids []int64) (int64, error)
@@ -364,6 +382,7 @@ type Querier interface {
 	DeleteStockCountItems(ctx context.Context, stockCountID int64) error
 	DeleteTransferItem(ctx context.Context, arg DeleteTransferItemParams) error
 	DeleteUser(ctx context.Context, id int64) error
+	GetAppRelease(ctx context.Context, id int64) (AppRelease, error)
 	GetAppSettings(ctx context.Context) (AppSetting, error)
 	GetAsset(ctx context.Context, id int64) (Asset, error)
 	GetAssetByName(ctx context.Context, name string) (Asset, error)
@@ -544,6 +563,7 @@ type Querier interface {
 	GetProductVariantByUID(ctx context.Context, uid uuid.UUID) (ProductVariant, error)
 	GetPurchase(ctx context.Context, id int64) (GetPurchaseRow, error)
 	GetRecurringExpense(ctx context.Context, id int64) (RecurringExpense, error)
+	GetRegisterTargetRelease(ctx context.Context, id int64) (AppRelease, error)
 	GetReturnInvoice(ctx context.Context, invoiceID int64) (ReturnInvoice, error)
 	GetRole(ctx context.Context, id int64) (Role, error)
 	GetSalesInvoice(ctx context.Context, invoiceID int64) (int64, error)
@@ -579,9 +599,14 @@ type Querier interface {
 	InsertBranchQuickAccessItem(ctx context.Context, arg InsertBranchQuickAccessItemParams) error
 	ListActiveBranchRegisterIDs(ctx context.Context, branchID int64) ([]int64, error)
 	ListActiveBranchTargetSeries(ctx context.Context) ([]BranchTargetSeries, error)
+	ListAdminActivities(ctx context.Context, arg ListAdminActivitiesParams) ([]ListAdminActivitiesRow, error)
 	ListAllAttributeValues(ctx context.Context) ([]ListAllAttributeValuesRow, error)
 	ListAllBranchRegisters(ctx context.Context) ([]BranchRegister, error)
 	ListAllCashboxAccounts(ctx context.Context) ([]CashboxAccount, error)
+	// Newest first, with how many active registers run each release and how
+	// many are told to.
+	ListAppReleases(ctx context.Context) ([]ListAppReleasesRow, error)
+	ListAppUpdateEvents(ctx context.Context, limit int32) ([]ListAppUpdateEventsRow, error)
 	ListAssetCategories(ctx context.Context) ([]AssetCategory, error)
 	ListAssetsPage(ctx context.Context, arg ListAssetsPageParams) ([]Asset, error)
 	ListAttributeValuesPage(ctx context.Context, arg ListAttributeValuesPageParams) ([]ListAttributeValuesPageRow, error)
@@ -600,11 +625,16 @@ type Querier interface {
 	ListBatchItemsStats(ctx context.Context, batchID int64) ([]ListBatchItemsStatsRow, error)
 	ListBatches(ctx context.Context, arg ListBatchesParams) ([]ListBatchesRow, error)
 	ListBranchAttendanceChanges(ctx context.Context, arg ListBranchAttendanceChangesParams) ([]BranchAttendanceChange, error)
+	// Newest punch first by its own local date/time, not insertion order: a
+	// backfilled import gets the newest ids but holds the oldest punches.
 	ListBranchAttendanceEvents(ctx context.Context, arg ListBranchAttendanceEventsParams) ([]BranchAttendanceEvent, error)
 	// Adoption: which central client each of this register's local client ids
 	// is linked to, so a till can stamp the right uid without guessing by phone.
 	ListBranchClientUIDs(ctx context.Context, registerID int64) ([]ListBranchClientUIDsRow, error)
 	ListBranchCommands(ctx context.Context, arg ListBranchCommandsParams) ([]ListBranchCommandsRow, error)
+	// The Commands page: every branch (branch_id 0) or one, optionally one
+	// register / status / type, newest first.
+	ListBranchCommandsPage(ctx context.Context, arg ListBranchCommandsPageParams) ([]ListBranchCommandsPageRow, error)
 	ListBranchExpenseHistoryForSync(ctx context.Context, arg ListBranchExpenseHistoryForSyncParams) ([]ListBranchExpenseHistoryForSyncRow, error)
 	// Storage-explorer feed: every uploaded image, newest first, joined with
 	// its expense and branch so the admin UI never needs a second round trip
@@ -686,6 +716,7 @@ type Querier interface {
 	// product to show it in the admin editor; tills only use uid/position/colours.
 	ListBranchQuickAccessItems(ctx context.Context, branchID int64) ([]ListBranchQuickAccessItemsRow, error)
 	ListBranchRegisters(ctx context.Context, branchID int64) ([]BranchRegister, error)
+	ListBranchRegistersByIDs(ctx context.Context, ids []int64) ([]BranchRegister, error)
 	// Same scope/filters/estimate caveat as ListBranchProductRevenue, rolled up
 	// by branch instead of by product -- backs the "revenue by branch" chart,
 	// deliberately with no branch_id filter of its own (that would defeat the
@@ -886,19 +917,6 @@ type Querier interface {
 	// plain btree index on occurred_at (idx_branch_invoices_occurred_at), while
 	// a range comparison can.
 	ListDailyIncome(ctx context.Context, arg ListDailyIncomeParams) ([]ListDailyIncomeRow, error)
-	ListDiscountListBranchIDs(ctx context.Context, discountListID int64) ([]int64, error)
-	ListDiscountListItems(ctx context.Context, discountListID int64) ([]DiscountListItem, error)
-	ListDiscountListItemsForSync(ctx context.Context, discountListID int64) ([]ListDiscountListItemsForSyncRow, error)
-	// See ListPriceListItemsWithProduct: rows are variant-level, so the label needs
-	// the barcode and color/size to be identifiable.
-	ListDiscountListItemsWithProduct(ctx context.Context, arg ListDiscountListItemsWithProductParams) ([]ListDiscountListItemsWithProductRow, error)
-	ListDiscountLists(ctx context.Context, arg ListDiscountListsParams) ([]DiscountList, error)
-	// See ListPriceListsForBranchSync -- same scoping and same reason for
-	// carrying is_active rather than filtering on it.
-	ListDiscountListsForBranchSync(ctx context.Context, arg ListDiscountListsForBranchSyncParams) ([]DiscountList, error)
-	ListDueRecurringExpenses(ctx context.Context, nextDueAt time.Time) ([]RecurringExpense, error)
-	ListEmployees(ctx context.Context, arg ListEmployeesParams) ([]Employee, error)
-	ListEntries(ctx context.Context, arg ListEntriesParams) ([]Entry, error)
 	ListDayBranchExpenses(ctx context.Context, arg ListDayBranchExpensesParams) ([]ListDayBranchExpensesRow, error)
 	// Shifts closed on the day (a shift belongs to the day its till was
 	// counted, which is what the variance figures describe).
@@ -936,6 +954,19 @@ type Querier interface {
 	// branch_visitor_events.day is already the branch's local day (stamped by
 	// the till), so it's matched directly; only the hour needs the timezone.
 	ListDayVisitorsByHour(ctx context.Context, arg ListDayVisitorsByHourParams) ([]ListDayVisitorsByHourRow, error)
+	ListDiscountListBranchIDs(ctx context.Context, discountListID int64) ([]int64, error)
+	ListDiscountListItems(ctx context.Context, discountListID int64) ([]DiscountListItem, error)
+	ListDiscountListItemsForSync(ctx context.Context, discountListID int64) ([]ListDiscountListItemsForSyncRow, error)
+	// See ListPriceListItemsWithProduct: rows are variant-level, so the label needs
+	// the barcode and color/size to be identifiable.
+	ListDiscountListItemsWithProduct(ctx context.Context, arg ListDiscountListItemsWithProductParams) ([]ListDiscountListItemsWithProductRow, error)
+	ListDiscountLists(ctx context.Context, arg ListDiscountListsParams) ([]DiscountList, error)
+	// See ListPriceListsForBranchSync -- same scoping and same reason for
+	// carrying is_active rather than filtering on it.
+	ListDiscountListsForBranchSync(ctx context.Context, arg ListDiscountListsForBranchSyncParams) ([]DiscountList, error)
+	ListDueRecurringExpenses(ctx context.Context, nextDueAt time.Time) ([]RecurringExpense, error)
+	ListEmployees(ctx context.Context, arg ListEmployeesParams) ([]Employee, error)
+	ListEntries(ctx context.Context, arg ListEntriesParams) ([]Entry, error)
 	ListExpenseCategories(ctx context.Context, scope sql.NullString) ([]ExpenseCategory, error)
 	// Only branch-scoped categories are synced down to kashi-pos.
 	ListExpenseCategoriesUpdatedSince(ctx context.Context, updatedAt time.Time) ([]ExpenseCategory, error)
@@ -954,6 +985,11 @@ type Querier interface {
 	ListInvoiceTypes(ctx context.Context) ([]InvoiceType, error)
 	ListInvoices(ctx context.Context, arg ListInvoicesParams) ([]Invoice, error)
 	ListInvoicesPage(ctx context.Context, arg ListInvoicesPageParams) ([]Invoice, error)
+	// The home page's "Latest added" feed: the newest photos (expense,
+	// close-shift receipt), transfers, central expenses and purchases, merged
+	// newest first. Each include_* flag is the caller's view access to that
+	// section, so a kind the user can't open never appears.
+	ListLatestAdditions(ctx context.Context, arg ListLatestAdditionsParams) ([]ListLatestAdditionsRow, error)
 	ListLoanCategories(ctx context.Context, scope sql.NullString) ([]LoanCategory, error)
 	// Only branch-scoped categories are synced down to kashi-pos -- central
 	// ones are managed in kashi only.
@@ -1054,6 +1090,7 @@ type Querier interface {
 	ListPurchaseItems(ctx context.Context, purchaseID sql.NullInt64) ([]ListPurchaseItemsRow, error)
 	ListPurchases(ctx context.Context, arg ListPurchasesParams) ([]ListPurchasesRow, error)
 	ListRecurringExpenses(ctx context.Context) ([]RecurringExpense, error)
+	ListRegisterUpdateStatuses(ctx context.Context) ([]ListRegisterUpdateStatusesRow, error)
 	ListRolePermissions(ctx context.Context) ([]RolePermission, error)
 	ListRoles(ctx context.Context) ([]ListRolesRow, error)
 	// Which batch(es) a specific sales-invoice line actually drew from, so a
@@ -1152,7 +1189,10 @@ type Querier interface {
 	SetPurchaseStatus(ctx context.Context, arg SetPurchaseStatusParams) (Purchase, error)
 	SetPurchaseTotals(ctx context.Context, arg SetPurchaseTotalsParams) error
 	SetRecurringExpenseActive(ctx context.Context, arg SetRecurringExpenseActiveParams) (RecurringExpense, error)
+	SetRegisterUpdateStatus(ctx context.Context, arg SetRegisterUpdateStatusParams) error
+	SetRegistersTargetRelease(ctx context.Context, arg SetRegistersTargetReleaseParams) error
 	SetSalespersonActive(ctx context.Context, arg SetSalespersonActiveParams) (Salesperson, error)
+	SetSalespersonColor(ctx context.Context, arg SetSalespersonColorParams) (Salesperson, error)
 	SetStockCountNote(ctx context.Context, arg SetStockCountNoteParams) error
 	SetStockCountStatus(ctx context.Context, arg SetStockCountStatusParams) (StockCount, error)
 	SetTransferAttachmentPath(ctx context.Context, arg SetTransferAttachmentPathParams) error
@@ -1183,6 +1223,7 @@ type Querier interface {
 	TouchBranchRegister(ctx context.Context, id int64) error
 	UnsetDefaultDiscountList(ctx context.Context, id int64) error
 	UnsetDefaultPriceList(ctx context.Context, id int64) error
+	UpdateAppReleaseNotes(ctx context.Context, arg UpdateAppReleaseNotesParams) (AppRelease, error)
 	UpdateAppSettings(ctx context.Context, arg UpdateAppSettingsParams) (AppSetting, error)
 	UpdateAsset(ctx context.Context, arg UpdateAssetParams) (Asset, error)
 	UpdateAssetCategory(ctx context.Context, arg UpdateAssetCategoryParams) (AssetCategory, error)

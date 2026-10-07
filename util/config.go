@@ -26,6 +26,10 @@ type Config struct {
 	// a branch-initiated transfer request (api/branch_transfer.go) is
 	// saved. Defaults to ./storage/transfer_attachments when unset.
 	TransferAttachmentStorageDir string `mapstructure:"TRANSFER_ATTACHMENT_STORAGE_DIR"`
+	// AppReleaseStorageDir is where till app builds published for remote
+	// update (api/app_update.go) are saved. Defaults to
+	// ./storage/app_releases when unset.
+	AppReleaseStorageDir string `mapstructure:"APP_RELEASE_STORAGE_DIR"`
 	// AppLogPath is the bounded, rotating backend log file. It defaults to
 	// logs/kashi.log when APP_LOG_PATH is not set.
 	AppLogPath string `mapstructure:"APP_LOG_PATH"`

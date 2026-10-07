@@ -39,6 +39,8 @@ const routes = [
   { path: '/branches', component: () => import('@/pages/branches.vue'), meta: { title: 'Branches', section: 'branches', page: 'branches' } },
   { path: '/branch-settings', component: () => import('@/pages/branch-settings.vue'), meta: { title: 'Branch Settings', section: 'branches', page: 'branch-settings' } },
   { path: '/default-branch-settings', component: () => import('@/pages/default-branch-settings.vue'), meta: { title: 'Default Settings', section: 'branches', page: 'default-branch-settings' } },
+  { path: '/branch-commands', component: () => import('@/pages/branch-commands.vue'), meta: { title: 'Commands', section: 'branches', page: 'branch-commands' } },
+  { path: '/branch-conflicts', component: () => import('@/pages/branch-conflicts.vue'), meta: { title: 'Conflicts', section: 'branches', page: 'branch-conflicts' } },
   { path: '/branch-invoices', redirect: '/invoices' },
   { path: '/transfers', component: () => import('@/pages/transfers.vue'), meta: { title: 'Transfers', section: 'inventory', page: 'transfers' } },
   { path: '/stock-movements', component: () => import('@/pages/stock-movements.vue'), meta: { title: 'Stock Movements', section: 'inventory', page: 'stock-movements' } },

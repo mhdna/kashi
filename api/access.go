@@ -223,6 +223,7 @@ var routeRules = []routeRule{
 	rule("/branches/:id/branch_users", "branches", "branches"),
 	rule("/branch_users", "branches", "branches"),
 	rule("/branch_sync_conflicts", "branches", "branches"),
+	rule("/branch_commands", "branches", "branches"),
 	// Targets and salespersons are managed from the Branches page, so writing
 	// them takes Branches edit; the Analytics/HR pages only read them.
 	rule("/branches/:id/targets", "branches", "branches", "analytics"),
@@ -271,6 +272,12 @@ var routeRules = []routeRule{
 	lookup("/pos_settings", "system"),
 	rule("/whatsapp_settings", "system", "system"),
 	rule("/audit_logs", "", "system"),
+	// Who did what in kashi (home page feed). Read-only; written by the
+	// activity middleware, never through this route.
+	rule("/admin_activities", "", "system"),
+	// Home page "Latest added": open to everyone signed in; the handler
+	// filters each kind by the user's own section access.
+	lookup("/home/latest", ""),
 	rule("/logs", "", "system"),
 
 	// Signed-in users may see who else is online and their own access; every

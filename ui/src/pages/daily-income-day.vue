@@ -165,7 +165,18 @@
       <v-window-item value="cash">
         <v-row no-gutters>
           <v-col cols="12" md="6">
-            <ListPanel empty-text="No shifts closed this day." :rows="shiftRows" title="Shifts Closed" />
+            <ListPanel empty-text="No shifts closed this day." :rows="shiftRows" title="Shifts Closed">
+              <template v-if="canPrintBranchShift" #row-append="{ row }">
+                <v-btn
+                  icon="mdi-printer"
+                  :loading="printingShiftId === row.key"
+                  size="x-small"
+                  title="Print this close shift on the till that closed it"
+                  variant="text"
+                  @click="printShift(row.shift)"
+                />
+              </template>
+            </ListPanel>
           </v-col>
           <v-col cols="12" md="6">
             <ListPanel empty-text="No expenses this day." :rows="expenseRows" title="Expenses" />
@@ -183,10 +194,14 @@
   import { useDisplay, useTheme } from 'vuetify'
   import ListPanel from '@/components/Cards/ListPanel.vue'
   import MetricCard from '@/components/Cards/MetricCard.vue'
+  import { useBranchCommands } from '@/composables/useBranchCommands'
   import { useBranches } from '@/composables/useBranches'
   import { useDailyIncome } from '@/composables/useDailyIncome'
+  import { useNotify } from '@/composables/useNotify'
+  import { useAuthStore } from '@/stores/auth'
 
   const route = useRoute()
+  const notify = useNotify()
   const router = useRouter()
   const theme = useTheme()
   const { smAndDown } = useDisplay()
@@ -377,7 +392,27 @@
     label: `${s.closing_person_name || 'Unknown'} · ${s.branch_name}`,
     sub: `${timeOf(s.opened_at)} – ${timeOf(s.closed_at)} · counted ${money(s.counted_usd)}`,
     value: `${signedMoney(s.variance_usd)} variance`,
+    shift: s,
   })))
+
+  // Reprints a closed shift's receipt on the till that closed it, the way
+  // the till's own month-income page can (a print_shift_report command).
+  const auth = useAuthStore()
+  const canPrintBranchShift = computed(() => auth.canEdit('branches'))
+  const { printBranchShift } = useBranchCommands()
+  const printingShiftId = ref(null)
+
+  async function printShift (shift) {
+    printingShiftId.value = shift.id
+    try {
+      await printBranchShift(shift)
+      notify.success(`Sent to ${shift.branch_name} — it prints within a few seconds if the till is online.`)
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      printingShiftId.value = null
+    }
+  }
 
   const expenseRows = computed(() => (summary.value?.expenses ?? []).map(e => ({
     key: e.id,

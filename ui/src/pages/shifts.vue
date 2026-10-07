@@ -151,6 +151,17 @@
               <v-icon v-else class="text-disabled" icon="mdi-camera-off" size="small" />
             </template>
             <template #item.received_at="{ item }">{{ formatDate(item.received_at) }}</template>
+            <template #item.print="{ item }">
+              <v-btn
+                v-if="canPrintBranchShift"
+                icon="mdi-printer"
+                :loading="printingShiftId === item.id"
+                size="small"
+                title="Print this close shift on the till that closed it"
+                variant="text"
+                @click="printShift(item)"
+              />
+            </template>
           </ServerSideTable>
         </div>
       </div>
@@ -256,6 +267,7 @@
   import PageSidebar from '@/components/PageSidebar.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
+  import { useBranchCommands } from '@/composables/useBranchCommands'
   import { useBranches } from '@/composables/useBranches'
   import { useCashboxes } from '@/composables/useCashboxes'
   import { usePageAccess } from '@/composables/usePageAccess'
@@ -263,6 +275,7 @@
   import { useShiftReceiptImages } from '@/composables/useShiftReceiptImages'
   import { useShifts } from '@/composables/useShifts'
   import { API_BASE } from '@/config'
+  import { useAuthStore } from '@/stores/auth'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
@@ -301,6 +314,7 @@
     { title: 'Variance USD', key: 'variance_usd', align: 'end', sortable: false },
     { title: 'Receipt', key: 'receipt', align: 'center', sortable: false, width: 90 },
     { title: 'Received', key: 'received_at', align: 'end', sortable: false },
+    { title: '', key: 'print', align: 'end', sortable: false, width: 56 },
   ]
 
   const visitorHeaders = [
@@ -349,6 +363,25 @@
   const receiptUrl = ref('')
   const receiptLoading = ref(false)
   const notify = useNotify()
+
+  // Reprinting a branch's close shift is a command to the till that closed
+  // it (print_shift_report), and queuing commands takes Branches edit.
+  const auth = useAuthStore()
+  const canPrintBranchShift = computed(() => auth.canEdit('branches'))
+  const { printBranchShift } = useBranchCommands()
+  const printingShiftId = ref(null)
+
+  async function printShift (item) {
+    printingShiftId.value = item.id
+    try {
+      await printBranchShift(item)
+      notify.success(`Sent to ${branchName(item.branch_id)} — it prints within a few seconds if the till is online.`)
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      printingShiftId.value = null
+    }
+  }
 
   function revokeReceiptUrl () {
     if (receiptUrl.value) {

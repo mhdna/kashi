@@ -55,7 +55,7 @@ INSERT INTO salespersons (
   branch_id
 )
 VALUES ( $1, $2 )
-RETURNING id, name, cashbox_id, branch_id, is_active, updated_at
+RETURNING id, name, cashbox_id, branch_id, is_active, updated_at, color
 `
 
 type CreateBranchSalespersonParams struct {
@@ -73,6 +73,7 @@ func (q *Queries) CreateBranchSalesperson(ctx context.Context, arg CreateBranchS
 		&i.BranchID,
 		&i.IsActive,
 		&i.UpdatedAt,
+		&i.Color,
 	)
 	return i, err
 }
@@ -150,7 +151,7 @@ INSERT INTO salespersons (
   cashbox_id
 )
 VALUES ( $1, $2 )
-RETURNING id, name, cashbox_id, branch_id, is_active, updated_at
+RETURNING id, name, cashbox_id, branch_id, is_active, updated_at, color
 `
 
 type CreateSalespersonParams struct {
@@ -168,6 +169,7 @@ func (q *Queries) CreateSalesperson(ctx context.Context, arg CreateSalespersonPa
 		&i.BranchID,
 		&i.IsActive,
 		&i.UpdatedAt,
+		&i.Color,
 	)
 	return i, err
 }
@@ -267,7 +269,7 @@ func (q *Queries) GetCashboxAccountBalance(ctx context.Context, arg GetCashboxAc
 }
 
 const getSalesperson = `-- name: GetSalesperson :one
-SELECT id, name, cashbox_id, branch_id, is_active, updated_at FROM salespersons
+SELECT id, name, cashbox_id, branch_id, is_active, updated_at, color FROM salespersons
 WHERE id = $1 LIMIT 1
 `
 
@@ -281,6 +283,7 @@ func (q *Queries) GetSalesperson(ctx context.Context, id int64) (Salesperson, er
 		&i.BranchID,
 		&i.IsActive,
 		&i.UpdatedAt,
+		&i.Color,
 	)
 	return i, err
 }
@@ -620,7 +623,7 @@ func (q *Queries) ListCashboxes(ctx context.Context, arg ListCashboxesParams) ([
 }
 
 const listSalespersons = `-- name: ListSalespersons :many
-SELECT id, name, cashbox_id, branch_id, is_active, updated_at FROM salespersons
+SELECT id, name, cashbox_id, branch_id, is_active, updated_at, color FROM salespersons
 ORDER BY id
 LIMIT $1
 OFFSET $2
@@ -647,6 +650,7 @@ func (q *Queries) ListSalespersons(ctx context.Context, arg ListSalespersonsPara
 			&i.BranchID,
 			&i.IsActive,
 			&i.UpdatedAt,
+			&i.Color,
 		); err != nil {
 			return nil, err
 		}
@@ -662,7 +666,7 @@ func (q *Queries) ListSalespersons(ctx context.Context, arg ListSalespersonsPara
 }
 
 const listSalespersonsByCashbox = `-- name: ListSalespersonsByCashbox :many
-SELECT id, name, cashbox_id, branch_id, is_active, updated_at FROM salespersons
+SELECT id, name, cashbox_id, branch_id, is_active, updated_at, color FROM salespersons
 WHERE cashbox_id = $1
 ORDER BY id
 `
@@ -683,6 +687,7 @@ func (q *Queries) ListSalespersonsByCashbox(ctx context.Context, cashboxID sql.N
 			&i.BranchID,
 			&i.IsActive,
 			&i.UpdatedAt,
+			&i.Color,
 		); err != nil {
 			return nil, err
 		}
@@ -698,7 +703,7 @@ func (q *Queries) ListSalespersonsByCashbox(ctx context.Context, cashboxID sql.N
 }
 
 const listSalespersonsForBranch = `-- name: ListSalespersonsForBranch :many
-SELECT id, name, cashbox_id, branch_id, is_active, updated_at FROM salespersons
+SELECT id, name, cashbox_id, branch_id, is_active, updated_at, color FROM salespersons
 WHERE branch_id = $1
 ORDER BY name
 `
@@ -719,6 +724,7 @@ func (q *Queries) ListSalespersonsForBranch(ctx context.Context, branchID sql.Nu
 			&i.BranchID,
 			&i.IsActive,
 			&i.UpdatedAt,
+			&i.Color,
 		); err != nil {
 			return nil, err
 		}
@@ -734,7 +740,7 @@ func (q *Queries) ListSalespersonsForBranch(ctx context.Context, branchID sql.Nu
 }
 
 const listSalespersonsUpdatedSince = `-- name: ListSalespersonsUpdatedSince :many
-SELECT id, name, cashbox_id, branch_id, is_active, updated_at FROM salespersons
+SELECT id, name, cashbox_id, branch_id, is_active, updated_at, color FROM salespersons
 WHERE branch_id = $1 AND updated_at > $2
 ORDER BY updated_at
 `
@@ -760,6 +766,7 @@ func (q *Queries) ListSalespersonsUpdatedSince(ctx context.Context, arg ListSale
 			&i.BranchID,
 			&i.IsActive,
 			&i.UpdatedAt,
+			&i.Color,
 		); err != nil {
 			return nil, err
 		}
@@ -807,7 +814,7 @@ UPDATE salespersons
 SET is_active = $2,
 updated_at = now()
 WHERE id = $1
-RETURNING id, name, cashbox_id, branch_id, is_active, updated_at
+RETURNING id, name, cashbox_id, branch_id, is_active, updated_at, color
 `
 
 type SetSalespersonActiveParams struct {
@@ -825,6 +832,35 @@ func (q *Queries) SetSalespersonActive(ctx context.Context, arg SetSalespersonAc
 		&i.BranchID,
 		&i.IsActive,
 		&i.UpdatedAt,
+		&i.Color,
+	)
+	return i, err
+}
+
+const setSalespersonColor = `-- name: SetSalespersonColor :one
+UPDATE salespersons
+SET color = $2,
+updated_at = now()
+WHERE id = $1
+RETURNING id, name, cashbox_id, branch_id, is_active, updated_at, color
+`
+
+type SetSalespersonColorParams struct {
+	ID    int64  `json:"id"`
+	Color string `json:"color"`
+}
+
+func (q *Queries) SetSalespersonColor(ctx context.Context, arg SetSalespersonColorParams) (Salesperson, error) {
+	row := q.db.QueryRowContext(ctx, setSalespersonColor, arg.ID, arg.Color)
+	var i Salesperson
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CashboxID,
+		&i.BranchID,
+		&i.IsActive,
+		&i.UpdatedAt,
+		&i.Color,
 	)
 	return i, err
 }
@@ -834,7 +870,7 @@ UPDATE salespersons
 SET name = $2,
 updated_at = now()
 WHERE id = $1 AND branch_id = $3
-RETURNING id, name, cashbox_id, branch_id, is_active, updated_at
+RETURNING id, name, cashbox_id, branch_id, is_active, updated_at, color
 `
 
 type UpdateBranchSalespersonNameParams struct {
@@ -853,6 +889,7 @@ func (q *Queries) UpdateBranchSalespersonName(ctx context.Context, arg UpdateBra
 		&i.BranchID,
 		&i.IsActive,
 		&i.UpdatedAt,
+		&i.Color,
 	)
 	return i, err
 }
@@ -936,7 +973,7 @@ UPDATE salespersons
 SET name = $2,
 cashbox_id = $3
 WHERE id = $1
-RETURNING id, name, cashbox_id, branch_id, is_active, updated_at
+RETURNING id, name, cashbox_id, branch_id, is_active, updated_at, color
 `
 
 type UpdateSalespersonParams struct {
@@ -955,6 +992,7 @@ func (q *Queries) UpdateSalesperson(ctx context.Context, arg UpdateSalespersonPa
 		&i.BranchID,
 		&i.IsActive,
 		&i.UpdatedAt,
+		&i.Color,
 	)
 	return i, err
 }

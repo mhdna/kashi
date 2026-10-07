@@ -63,7 +63,7 @@ func (server *Server) incomingTransfersForBranchSync(ctx *gin.Context, toInvento
 				continue
 			}
 			item := syncIncomingTransferItem{
-				Barcode:    r.VariantBarcode.String,
+				Barcode:    r.VariantBarcode,
 				ProductUID: r.VariantUid.UUID.String(),
 				Quantity:   r.Quantity,
 			}

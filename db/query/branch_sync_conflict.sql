@@ -65,3 +65,17 @@ ON CONFLICT (branch_id, entity, ref) DO UPDATE SET
     resolved_by = NULL,
     updated_at = now()
 RETURNING *;
+
+-- name: BranchSyncConflictSummary :many
+-- One row per branch: open conflicts, and how many of those are oversold
+-- stock (the kind that needs a stock fix), for the Conflicts page sidebar
+-- and its nav dot.
+SELECT
+  b.id AS branch_id,
+  COUNT(c.id) FILTER (WHERE c.status = 'open')::bigint AS open,
+  COUNT(c.id) FILTER (WHERE c.status = 'open' AND c.kind = 'oversold')::bigint AS open_oversold,
+  MIN(c.created_at) FILTER (WHERE c.status = 'open') AS oldest_open_at
+FROM branches b
+LEFT JOIN branch_sync_conflicts c ON c.branch_id = b.id
+GROUP BY b.id
+ORDER BY b.id;

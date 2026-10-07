@@ -14,6 +14,56 @@ import (
 	"github.com/sqlc-dev/pqtype"
 )
 
+const branchSyncConflictSummary = `-- name: BranchSyncConflictSummary :many
+SELECT
+  b.id AS branch_id,
+  COUNT(c.id) FILTER (WHERE c.status = 'open')::bigint AS open,
+  COUNT(c.id) FILTER (WHERE c.status = 'open' AND c.kind = 'oversold')::bigint AS open_oversold,
+  MIN(c.created_at) FILTER (WHERE c.status = 'open') AS oldest_open_at
+FROM branches b
+LEFT JOIN branch_sync_conflicts c ON c.branch_id = b.id
+GROUP BY b.id
+ORDER BY b.id
+`
+
+type BranchSyncConflictSummaryRow struct {
+	BranchID     int64       `json:"branch_id"`
+	Open         int64       `json:"open"`
+	OpenOversold int64       `json:"open_oversold"`
+	OldestOpenAt interface{} `json:"oldest_open_at"`
+}
+
+// One row per branch: open conflicts, and how many of those are oversold
+// stock (the kind that needs a stock fix), for the Conflicts page sidebar
+// and its nav dot.
+func (q *Queries) BranchSyncConflictSummary(ctx context.Context) ([]BranchSyncConflictSummaryRow, error) {
+	rows, err := q.db.QueryContext(ctx, branchSyncConflictSummary)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []BranchSyncConflictSummaryRow{}
+	for rows.Next() {
+		var i BranchSyncConflictSummaryRow
+		if err := rows.Scan(
+			&i.BranchID,
+			&i.Open,
+			&i.OpenOversold,
+			&i.OldestOpenAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const countBranchSyncConflicts = `-- name: CountBranchSyncConflicts :one
 SELECT COUNT(*) FROM branch_sync_conflicts
 WHERE ($1::bigint = 0 OR branch_id = $1)

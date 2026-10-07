@@ -71,8 +71,17 @@ async function deleteVariant (id) {
   return res?.message === 'deactivated' ? 'deactivated' : 'deleted'
 }
 
+// importCsv uploads a code,name,price CSV and creates one product per row.
+// Multipart: let the browser set the boundary Content-Type itself.
+async function importCsv (file) {
+  const body = new FormData()
+  body.append('file', file)
+  return requestJSON(`${API_BASE}/products/import`, { method: 'POST', body })
+}
+
 export function useProducts () {
   return {
+    importCsv,
     fetchProduct,
     updateProduct,
     deleteProduct,

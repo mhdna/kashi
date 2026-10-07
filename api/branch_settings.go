@@ -19,7 +19,8 @@ import (
 // register (for drift warnings and its per-machine fields) and only seeds
 // branch_settings when the branch has none yet.
 //
-// Still till-only, never modelled here: the register's api_key and theme.
+// Still till-only, never modelled here: the register's api_key and its
+// register name. The theme travels inside display_prefs.
 //
 // Fields added after the first version are pointers so a snapshot from an
 // older POS build that omits them leaves the stored value alone rather than
@@ -97,6 +98,32 @@ type branchSettingsRequest struct {
 	// What the till does when a sale needs more stock than it has: allow,
 	// warn or block. Nil leaves the stored value (default allow).
 	OversellMode *string `json:"oversell_mode" binding:"omitempty,oneof=allow warn block"`
+
+	// Don't close a shift (or print its receipt) until everything the till
+	// has queued has reached kashi. Nil leaves the stored value (default off).
+	CloseShiftRequiresSync *bool `json:"close_shift_requires_sync"`
+
+	// --- the rest of the till's settings (000115). Nil on first insert
+	// falls back to the till's own default for a missing value. ---
+	SalespersonPerInvoiceRequired *bool `json:"salesperson_per_invoice_required"`
+	NonAdminMonthNavEnabled       *bool `json:"non_admin_month_nav_enabled"`
+	OpeningFloatEnabled           *bool `json:"opening_float_enabled"`
+	CountOpeningCashOnClose       *bool `json:"count_opening_cash_on_close"`
+	OverchangeConfirmation        *bool `json:"overchange_confirmation"`
+	PageUnlockProducts            *bool `json:"page_unlock_products"`
+	HidePaymentMethodCurrency     *bool `json:"hide_payment_method_currency"`
+	AutoAppendLbpZeros            *bool `json:"auto_append_lbp_zeros"`
+	AutoCloseStaleShifts          *bool `json:"auto_close_stale_shifts"`
+	VisitorCounterEnabled         *bool `json:"visitor_counter_enabled"`
+	// 0=off, 1=central, 2=hybrid (default), 3=local
+	ShiftReceiptUploadMode *int64  `json:"shift_receipt_upload_mode" binding:"omitempty,min=0,max=3"`
+	BranchPhone            *string `json:"branch_phone"`
+	MaxOverpaymentCents    *int64  `json:"max_overpayment_cents"`
+	DefaultOpeningFloatUsd *int64  `json:"default_opening_float_usd"`
+	DefaultOpeningFloatLbp *int64  `json:"default_opening_float_lbp"`
+	// The till screen's look (quick access rows, theme, ...): an object the
+	// till validates key by key (kashi-pos display_prefs.go).
+	DisplayPrefs json.RawMessage `json:"display_prefs"`
 }
 
 // perRegisterSettingKeys are settings that describe one machine (its
@@ -147,6 +174,9 @@ func (server *Server) applyBranchSettingsPatch(ctx *gin.Context, branchID int64,
 	if req.OversellMode != nil && !validOversellMode(*req.OversellMode) {
 		return nil, errors.New("oversell_mode must be allow, warn or block")
 	}
+	if req.ShiftReceiptUploadMode != nil && (*req.ShiftReceiptUploadMode < 0 || *req.ShiftReceiptUploadMode > 3) {
+		return nil, errors.New("shift_receipt_upload_mode must be 0 to 3")
+	}
 	if _, err := server.upsertBranchSettings(ctx, branchID, req); err != nil {
 		return nil, err
 	}
@@ -163,11 +193,22 @@ func mergeJSONObjects(base any, patch json.RawMessage) (json.RawMessage, error) 
 	if err := json.Unmarshal(raw, &merged); err != nil {
 		return nil, err
 	}
+	if merged == nil { // base was null or absent
+		merged = map[string]json.RawMessage{}
+	}
 	var overlay map[string]json.RawMessage
 	if err := json.Unmarshal(patch, &overlay); err != nil {
 		return nil, err
 	}
 	for key, value := range overlay {
+		if key == "display_prefs" {
+			// A patch names only the prefs it changes; the rest stay.
+			prefs, err := mergeJSONObjects(merged[key], value)
+			if err != nil {
+				return nil, err
+			}
+			value = prefs
+		}
 		merged[key] = value
 	}
 	return json.Marshal(merged)
@@ -198,6 +239,13 @@ func orZero[T any](p *T) T {
 	if p == nil {
 		var zero T
 		return zero
+	}
+	return *p
+}
+
+func orDefault[T any](p *T, fallback T) T {
+	if p == nil {
+		return fallback
 	}
 	return *p
 }
@@ -275,6 +323,10 @@ func (server *Server) upsertBranchSettings(ctx *gin.Context, branchID int64, req
 	if len(socialHandles) == 0 {
 		socialHandles = json.RawMessage("{}")
 	}
+	displayPrefs := req.DisplayPrefs
+	if len(displayPrefs) == 0 || string(displayPrefs) == "null" {
+		displayPrefs = json.RawMessage("{}")
+	}
 	oversellMode := "allow"
 	if req.OversellMode != nil && validOversellMode(*req.OversellMode) {
 		oversellMode = *req.OversellMode
@@ -334,6 +386,24 @@ func (server *Server) upsertBranchSettings(ctx *gin.Context, branchID int64, req
 		SplitPrimaryFirst:                  orTrue(req.SplitPrimaryFirst),
 		SplitPrimaryStep:                   orZero(req.SplitPrimaryStep),
 		OversellMode:                       oversellMode,
+		CloseShiftRequiresSync:             orZero(req.CloseShiftRequiresSync),
+
+		SalespersonPerInvoiceRequired: orZero(req.SalespersonPerInvoiceRequired),
+		NonAdminMonthNavEnabled:       orZero(req.NonAdminMonthNavEnabled),
+		OpeningFloatEnabled:           orTrue(req.OpeningFloatEnabled),
+		CountOpeningCashOnClose:       orTrue(req.CountOpeningCashOnClose),
+		OverchangeConfirmation:        orTrue(req.OverchangeConfirmation),
+		PageUnlockProducts:            orZero(req.PageUnlockProducts),
+		HidePaymentMethodCurrency:     orZero(req.HidePaymentMethodCurrency),
+		AutoAppendLbpZeros:            orZero(req.AutoAppendLbpZeros),
+		AutoCloseStaleShifts:          orZero(req.AutoCloseStaleShifts),
+		VisitorCounterEnabled:         orZero(req.VisitorCounterEnabled),
+		ShiftReceiptUploadMode:        orDefault(req.ShiftReceiptUploadMode, 2),
+		BranchPhone:                   orZero(req.BranchPhone),
+		MaxOverpaymentCents:           orZero(req.MaxOverpaymentCents),
+		DefaultOpeningFloatUsd:        orZero(req.DefaultOpeningFloatUsd),
+		DefaultOpeningFloatLbp:        orZero(req.DefaultOpeningFloatLbp),
+		DisplayPrefs:                  displayPrefs,
 	})
 }
 

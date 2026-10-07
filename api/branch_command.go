@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -26,6 +27,9 @@ var allowedBranchCommandTypes = map[string]bool{
 	"update_settings":       true,
 	"remote_return_invoice": true,
 	"set_branch_user_pin":   true,
+	"print_shift_report":    true,
+	"reprint_invoice":       true,
+	"sync_now":              true,
 	// transfer_decision is never enqueued through createBranchCommand (the
 	// admin-typed endpoint below) -- only by notifyBranchTransferDecision
 	// in api/transfer.go, straight from an approve/cancel. Listed here
@@ -78,39 +82,13 @@ func (server *Server) createBranchCommand(ctx *gin.Context) {
 		return
 	}
 
-	registerID := req.RegisterID
-	if registerID != 0 {
-		register, err := server.store.GetBranchRegister(ctx, registerID)
-		if err != nil || register.BranchID != idReq.ID {
-			server.writeError(ctx, http.StatusBadRequest, errRegisterBranchMismatch)
-			return
-		}
-	} else if req.Type == "remote_return_invoice" {
-		var target struct {
-			ClientRef string `json:"client_ref"`
-		}
-		if err := json.Unmarshal(req.Payload, &target); err != nil || target.ClientRef == "" {
-			server.writeError(ctx, http.StatusBadRequest, errors.New("remote_return_invoice needs the sale's client_ref"))
-			return
-		}
-		invoice, err := server.store.GetBranchInvoiceByClientRef(ctx, db.GetBranchInvoiceByClientRefParams{
-			BranchID:  idReq.ID,
-			ClientRef: target.ClientRef,
-		})
-		if err != nil {
-			if err == sql.ErrNoRows {
-				server.writeError(ctx, http.StatusNotFound, err)
-				return
-			}
-			server.writeError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-		registerID = invoice.RegisterID
+	registerID, payload, status, err := server.resolveCommandTarget(ctx, idReq.ID, req)
+	if err != nil {
+		server.writeError(ctx, status, err)
+		return
 	}
 
-	payload := req.Payload
 	if req.Type == "update_settings" && registerID == 0 {
-		var err error
 		payload, err = server.applyBranchSettingsPatch(ctx, idReq.ID, req.Payload)
 		if err != nil {
 			if errors.Is(err, errNoBranchSettings) {
@@ -144,6 +122,68 @@ func (server *Server) createBranchCommand(ctx *gin.Context) {
 		first = commands[0]
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{"command": first, "commands": commands})
+}
+
+// resolveCommandTarget picks the register a command goes to and the payload
+// it carries. An explicit RegisterID must belong to the branch. Otherwise
+// commands about one sale or shift go to the till that has it (only that
+// till's database knows it), and anything else to every active register.
+func (server *Server) resolveCommandTarget(ctx *gin.Context, branchID int64, req createBranchCommandRequest) (int64, json.RawMessage, int, error) {
+	payload := req.Payload
+	switch req.Type {
+	case "remote_return_invoice", "reprint_invoice":
+		var target struct {
+			ClientRef string `json:"client_ref"`
+		}
+		if err := json.Unmarshal(req.Payload, &target); err != nil || target.ClientRef == "" {
+			return 0, nil, http.StatusBadRequest, fmt.Errorf("%s needs the sale's client_ref", req.Type)
+		}
+		invoice, err := server.store.GetBranchInvoiceByClientRef(ctx, db.GetBranchInvoiceByClientRefParams{
+			BranchID:  branchID,
+			ClientRef: target.ClientRef,
+		})
+		if err != nil {
+			return 0, nil, statusForLookup(err), err
+		}
+		return invoice.RegisterID, payload, 0, nil
+
+	case "print_shift_report":
+		// The admin names kashi's branch_shifts row; the till needs its own
+		// shift id, which that row recorded when the shift was reported.
+		var target struct {
+			ShiftID int64 `json:"shift_id"`
+		}
+		if err := json.Unmarshal(req.Payload, &target); err != nil || target.ShiftID <= 0 {
+			return 0, nil, http.StatusBadRequest, errors.New("print_shift_report needs shift_id")
+		}
+		shift, err := server.store.GetBranchShift(ctx, target.ShiftID)
+		if err != nil {
+			return 0, nil, statusForLookup(err), err
+		}
+		if shift.BranchID != branchID {
+			return 0, nil, http.StatusBadRequest, errors.New("shift does not belong to this branch")
+		}
+		payload, err = json.Marshal(map[string]any{"shift_id": shift.ID, "branch_shift_id": shift.BranchShiftID})
+		if err != nil {
+			return 0, nil, http.StatusInternalServerError, err
+		}
+		return shift.RegisterID, payload, 0, nil
+	}
+
+	if req.RegisterID != 0 {
+		register, err := server.store.GetBranchRegister(ctx, req.RegisterID)
+		if err != nil || register.BranchID != branchID {
+			return 0, nil, http.StatusBadRequest, errRegisterBranchMismatch
+		}
+	}
+	return req.RegisterID, payload, 0, nil
+}
+
+func statusForLookup(err error) int {
+	if errors.Is(err, sql.ErrNoRows) {
+		return http.StatusNotFound
+	}
+	return http.StatusInternalServerError
 }
 
 // enqueueBranchCommand is the shared write side of the remote command
@@ -286,4 +326,108 @@ func (server *Server) ackBranchCommand(ctx *gin.Context) {
 	}
 
 	server.writeJSON(ctx, http.StatusOK, envelope{"command": updated})
+}
+
+type listAllBranchCommandsRequest struct {
+	BranchID   int64  `form:"branch_id"`
+	RegisterID int64  `form:"register_id"`
+	Status     string `form:"status" binding:"omitempty,oneof=pending success failed cancelled"`
+	Type       string `form:"type"`
+	PageSize   int32  `form:"page_size,default=14" binding:"min=5,max=100"`
+	PageID     int32  `form:"page_id,default=0" binding:"min=0"`
+}
+
+// listAllBranchCommands backs the Commands page: every command across
+// branches (or one), filterable, with the total for paging.
+func (server *Server) listAllBranchCommands(ctx *gin.Context) {
+	var req listAllBranchCommandsRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	rows, err := server.store.ListBranchCommandsPage(ctx, db.ListBranchCommandsPageParams{
+		BranchID:   req.BranchID,
+		RegisterID: req.RegisterID,
+		Status:     req.Status,
+		Type:       req.Type,
+		PageSize:   req.PageSize,
+		PageOffset: req.PageID,
+	})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	total, err := server.store.CountBranchCommands(ctx, db.CountBranchCommandsParams{
+		BranchID:   req.BranchID,
+		RegisterID: req.RegisterID,
+		Status:     req.Status,
+		Type:       req.Type,
+	})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"commands": rows, "total": total})
+}
+
+// branchCommandSummary is one row per branch (queued, failed in the last
+// day) for the Commands page sidebar and the nav dot.
+func (server *Server) branchCommandSummary(ctx *gin.Context) {
+	rows, err := server.store.BranchCommandSummary(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"branches": rows})
+}
+
+// cancelBranchCommand withdraws a command no till has acked yet. A till
+// that already fetched it may still run it; its ack then overwrites the
+// cancel, so the row shows what really happened.
+func (server *Server) cancelBranchCommand(ctx *gin.Context) {
+	var req branchInvoiceIDRequest
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	command, err := server.store.CancelBranchCommand(ctx, req.ID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			server.writeError(ctx, http.StatusConflict, errors.New("only a pending command can be cancelled"))
+			return
+		}
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"command": command})
+}
+
+// retryBranchCommand queues a fresh copy of a failed or cancelled command
+// for the same register. The original row stays as it was, for the record.
+func (server *Server) retryBranchCommand(ctx *gin.Context) {
+	var req branchInvoiceIDRequest
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	original, err := server.store.GetBranchCommand(ctx, req.ID)
+	if err != nil {
+		server.writeError(ctx, statusForLookup(err), err)
+		return
+	}
+	if original.Status != "failed" && original.Status != "cancelled" {
+		server.writeError(ctx, http.StatusConflict, errors.New("only a failed or cancelled command can be retried"))
+		return
+	}
+	issuedBy := server.currentUserID(ctx)
+	if !issuedBy.Valid {
+		server.writeError(ctx, http.StatusInternalServerError, errors.New("cannot resolve the current user"))
+		return
+	}
+	commands, err := server.enqueueBranchCommand(ctx, original.BranchID, original.RegisterID, original.Type, original.Payload, issuedBy.Int64)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"command": commands[0]})
 }
