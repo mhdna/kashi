@@ -784,13 +784,30 @@
     font-weight: 700;
   }
 
-  @media (max-width: 600px) {
+  /* Below md there's no room for the feeds side by side: stack them, give
+     each card its own height (still scrolling within itself) and let the
+     page scroll instead. */
+  @media (max-width: 959.98px) {
     .home-empty-state {
-      padding-inline: 8px;
+      align-items: flex-start;
+      overflow-y: auto;
     }
 
     .home-feeds {
+      flex: 0 0 auto;
       flex-direction: column;
+      gap: 24px;
+    }
+
+    .home-activities-card {
+      flex: 0 0 auto;
+      height: min(440px, 65vh);
+    }
+  }
+
+  @media (max-width: 600px) {
+    .home-empty-state {
+      padding-inline: 8px;
     }
   }
 </style>
