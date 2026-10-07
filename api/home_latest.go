@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/mhdna/kashi/db/sqlc"
@@ -32,4 +33,65 @@ func (server *Server) listLatestAdditions(ctx *gin.Context) {
 		return
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{"items": rows})
+}
+
+// getHomeToday backs the "N today" counts beside the home page's three feed
+// titles. `since` is the start of the viewer's local day (an RFC3339
+// instant) -- the server's UTC day would roll over hours off from the
+// shop's. Each count is null when the user can't view that feed, mirroring
+// the access checks of the feed's own route.
+func (server *Server) getHomeToday(ctx *gin.Context) {
+	var req struct {
+		Since time.Time `form:"since" binding:"required" time_format:"2006-01-02T15:04:05Z07:00"`
+	}
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	access, _ := currentAccess(ctx)
+	// nil marshals to null: a feed this user can't view.
+	var adminActivities, activities *int64
+
+	if access.canView("system") {
+		n, err := server.store.CountAdminActivitiesSince(ctx, req.Since)
+		if err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		adminActivities = &n
+	}
+
+	// Same feed the home page lists from /dashboard/activities; its window
+	// count rides on every row, so one row is enough.
+	if access.canView("analytics") {
+		rows, err := server.store.DashboardActivitiesList(ctx, db.DashboardActivitiesListParams{
+			Scope: "all", DateFrom: req.Since, DateTo: req.Since.AddDate(0, 0, 1),
+			PageSize: 1, PageID: 0,
+		})
+		if err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		var n int64
+		if len(rows) > 0 {
+			n = rows[0].TotalCount
+		}
+		activities = &n
+	}
+
+	n, err := server.store.CountLatestAdditionsSince(ctx, db.CountLatestAdditionsSinceParams{
+		IncludeAccounting: access.canView("accounting"),
+		IncludeHr:         access.canView("hr"),
+		IncludeInventory:  access.canView("inventory"),
+		Since:             req.Since,
+	})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{
+		"admin_activities": adminActivities,
+		"activities":       activities,
+		"latest":           n,
+	})
 }

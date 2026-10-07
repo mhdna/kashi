@@ -29,10 +29,10 @@ const summary = ref([])
 const summaryLoaded = ref(false)
 
 // Green when every command has been run, yellow while any is still queued
-// for a till. null until the first summary arrives, so the nav shows no dot
-// rather than a green one it hasn't checked.
+// for a till. 'loading' (a grey placeholder dot in the nav) until the first
+// summary arrives, rather than a green one it hasn't checked.
 const commandsStatus = computed(() => {
-  if (!summaryLoaded.value) {return null}
+  if (!summaryLoaded.value) {return 'loading'}
   return summary.value.some(b => b.pending > 0) ? 'warning' : 'healthy'
 })
 

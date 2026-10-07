@@ -11,6 +11,19 @@ import (
 	"time"
 )
 
+const countAdminActivitiesSince = `-- name: CountAdminActivitiesSince :one
+SELECT COUNT(*)::bigint FROM admin_activities
+WHERE created_at >= $1::timestamptz
+`
+
+// The home page's "today" count next to the IT Management feed.
+func (q *Queries) CountAdminActivitiesSince(ctx context.Context, since time.Time) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countAdminActivitiesSince, since)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const createAdminActivity = `-- name: CreateAdminActivity :one
 INSERT INTO admin_activities (user_id, method, route, entity_id, summary, detail)
 VALUES ($1, $2, $3, $4, $5, $6)

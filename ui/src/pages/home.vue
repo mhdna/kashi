@@ -28,18 +28,27 @@
           <div class="home-activities-head d-flex align-center px-1 mb-2">
             <v-icon class="me-2 text-medium-emphasis" icon="mdi-account-group" size="18" />
             <span class="text-body-2 font-weight-medium">IT Management</span>
-            <v-progress-circular
-              v-if="kashiLoading && kashiActivities.length === 0"
-              class="ms-2"
-              indeterminate
-              size="14"
-              width="2"
+            <v-spacer />
+            <span v-if="today" class="text-caption text-medium-emphasis">
+              {{ todayLabel(today.admin_activities, 'changes') }}
+            </span>
+            <v-skeleton-loader
+              v-else
+              class="today-skeleton"
+              color="transparent"
+              type="text"
+              width="96"
             />
           </div>
 
           <v-card class="home-activities-card" rounded="lg" variant="outlined">
             <div class="home-activities-scroll">
-              <v-list class="py-1" density="compact" lines="two">
+              <v-skeleton-loader
+                v-if="!kashiLoaded"
+                color="transparent"
+                type="list-item-avatar-two-line@8"
+              />
+              <v-list v-else class="py-1" density="compact" lines="two">
                 <v-list-item v-for="item in kashiActivities" :key="item.id" class="px-3">
                   <template #prepend>
                     <v-avatar
@@ -66,7 +75,7 @@
               </v-list>
 
               <div
-                v-if="!kashiLoading && kashiActivities.length === 0"
+                v-if="kashiLoaded && kashiActivities.length === 0"
                 class="text-body-2 text-medium-emphasis py-4 text-center"
               >
                 Nothing changed in kashi yet.
@@ -79,18 +88,27 @@
           <div class="home-activities-head d-flex align-center px-1 mb-2">
             <v-icon class="me-2 text-medium-emphasis" icon="mdi-history" size="18" />
             <span class="text-body-2 font-weight-medium">Recent activity</span>
-            <v-progress-circular
-              v-if="loading && activities.length === 0"
-              class="ms-2"
-              indeterminate
-              size="14"
-              width="2"
+            <v-spacer />
+            <span v-if="today" class="text-caption text-medium-emphasis">
+              {{ todayLabel(today.activities, 'synced') }}
+            </span>
+            <v-skeleton-loader
+              v-else
+              class="today-skeleton"
+              color="transparent"
+              type="text"
+              width="96"
             />
           </div>
 
           <v-card class="home-activities-card" rounded="lg" variant="outlined">
             <div class="home-activities-scroll">
-              <v-list class="py-1" density="compact" lines="two">
+              <v-skeleton-loader
+                v-if="!activitiesLoaded"
+                color="transparent"
+                type="list-item-avatar-two-line@8"
+              />
+              <v-list v-else class="py-1" density="compact" lines="two">
                 <v-list-item
                   v-for="(item, index) in activities"
                   :key="index"
@@ -143,7 +161,7 @@
               </v-list>
 
               <div
-                v-if="!loading && activities.length === 0"
+                v-if="activitiesLoaded && activities.length === 0"
                 class="text-body-2 text-medium-emphasis py-4 text-center"
               >
                 No recent activity yet.
@@ -156,18 +174,27 @@
           <div class="home-activities-head d-flex align-center px-1 mb-2">
             <v-icon class="me-2 text-medium-emphasis" icon="mdi-image-multiple-outline" size="18" />
             <span class="text-body-2 font-weight-medium">Latest added</span>
-            <v-progress-circular
-              v-if="latestLoading && latestItems.length === 0"
-              class="ms-2"
-              indeterminate
-              size="14"
-              width="2"
+            <v-spacer />
+            <span v-if="today" class="text-caption text-medium-emphasis">
+              {{ todayLabel(today.latest, 'added') }}
+            </span>
+            <v-skeleton-loader
+              v-else
+              class="today-skeleton"
+              color="transparent"
+              type="text"
+              width="96"
             />
           </div>
 
           <v-card class="home-activities-card" rounded="lg" variant="outlined">
             <div class="home-activities-scroll">
-              <v-list class="py-1" density="compact" lines="two">
+              <v-skeleton-loader
+                v-if="!latestLoaded"
+                color="transparent"
+                type="list-item-avatar-two-line@8"
+              />
+              <v-list v-else class="py-1" density="compact" lines="two">
                 <v-list-item
                   v-for="item in latestItems"
                   :key="latestKey(item)"
@@ -206,7 +233,7 @@
               </v-list>
 
               <div
-                v-if="!latestLoading && latestItems.length === 0"
+                v-if="latestLoaded && latestItems.length === 0"
                 class="text-body-2 text-medium-emphasis py-4 text-center"
               >
                 Nothing added yet.
@@ -376,7 +403,7 @@
   }
 
   const activities = ref([])
-  const loading = ref(false)
+  const activitiesLoaded = ref(false)
   const notify = useNotify()
 
   const detailOpen = ref(false)
@@ -412,7 +439,6 @@
   // the dashboard is where the full, filterable history lives.
   async function reload () {
     if (!canViewActivity.value) return
-    loading.value = true
     try {
       const response = await authFetch(
         `${API_BASE}/dashboard/activities?page_size=${PAGE_SIZE}&page_id=0`,
@@ -426,7 +452,7 @@
     } catch (error_) {
       notify.error(error_.message)
     } finally {
-      loading.value = false
+      activitiesLoaded.value = true
     }
   }
 
@@ -443,13 +469,39 @@
       kashiRefreshTimer = setTimeout(() => {
         reloadKashi()
         reloadLatest()
+        reloadToday()
       }, 500)
       return
     }
     if (!BRANCH_ACTIVITY_TYPES.includes(message?.type)) return
     clearTimeout(refreshTimer)
-    refreshTimer = setTimeout(reload, 500)
+    refreshTimer = setTimeout(() => {
+      reload()
+      reloadToday()
+    }, 500)
   })
+
+  // "N today" beside each feed title (api/home_latest.go getHomeToday).
+  // Counted from the start of the viewer's local day, not the server's UTC
+  // one; a feed the user can't view comes back null. Refreshed alongside
+  // the feeds, so it also rolls over at midnight on the next refresh.
+  const today = ref(null)
+
+  async function reloadToday () {
+    const midnight = new Date()
+    midnight.setHours(0, 0, 0, 0)
+    try {
+      const response = await authFetch(`${API_BASE}/home/today?since=${encodeURIComponent(midnight.toISOString())}`)
+      if (response.ok) today.value = await response.json()
+    } catch {
+      // Informational -- the next refresh tries again.
+    }
+  }
+
+  function todayLabel (count, kind) {
+    if (kind === 'changes') return `${count} change${count === 1 ? '' : 's'} today`
+    return `${count} ${kind} today`
+  }
 
   // "In kashi": what people changed in kashi itself -- a transfer created,
   // a conflict resolved, settings sent to a branch -- recorded server-side
@@ -457,12 +509,11 @@
   // page as the branch feed, refreshed by the admin_activity push.
   const canViewKashiActivity = computed(() => auth.canView('system'))
   const kashiActivities = ref([])
-  const kashiLoading = ref(false)
+  const kashiLoaded = ref(false)
   let kashiRefreshTimer = null
 
   async function reloadKashi () {
     if (!canViewKashiActivity.value) return
-    kashiLoading.value = true
     try {
       const response = await authFetch(`${API_BASE}/admin_activities?page_size=${PAGE_SIZE}&page_id=0`)
       if (!response.ok) {
@@ -474,7 +525,7 @@
     } catch (error_) {
       notify.error(error_.message)
     } finally {
-      kashiLoading.value = false
+      kashiLoaded.value = true
     }
   }
 
@@ -491,7 +542,7 @@
   const canViewLatest = computed(() =>
     auth.canView('accounting') || auth.canView('hr') || auth.canView('inventory'))
   const latestItems = ref([])
-  const latestLoading = ref(false)
+  const latestLoaded = ref(false)
   const thumbs = ref({})
 
   const LATEST_KINDS = {
@@ -528,7 +579,6 @@
 
   async function reloadLatest () {
     if (!canViewLatest.value) return
-    latestLoading.value = true
     try {
       const response = await authFetch(`${API_BASE}/home/latest?page_size=${PAGE_SIZE}`)
       if (!response.ok) {
@@ -541,7 +591,7 @@
     } catch (error_) {
       notify.error(error_.message)
     } finally {
-      latestLoading.value = false
+      latestLoaded.value = true
     }
   }
 
@@ -606,7 +656,11 @@
     reloadKashi()
     reloadLatest()
     loadMonthSummary()
-    latestPoll = setInterval(reloadLatest, 60_000)
+    reloadToday()
+    latestPoll = setInterval(() => {
+      reloadLatest()
+      reloadToday()
+    }, 60_000)
   })
   onUnmounted(() => {
     clearTimeout(refreshTimer)
@@ -680,6 +734,10 @@
 
   .activity-sentence {
     white-space: normal;
+  }
+
+  .today-skeleton :deep(.v-skeleton-loader__text) {
+    margin: 0;
   }
 
   .home-activities-card {

@@ -67,6 +67,8 @@ type Querier interface {
 	ClientPhonesPresent(ctx context.Context, dollar_1 []string) ([]string, error)
 	CloseShift(ctx context.Context, id int64) error
 	CompleteBranchCommand(ctx context.Context, arg CompleteBranchCommandParams) (BranchCommand, error)
+	// The home page's "today" count next to the IT Management feed.
+	CountAdminActivitiesSince(ctx context.Context, since time.Time) (int64, error)
 	CountAssets(ctx context.Context, arg CountAssetsParams) (int64, error)
 	CountAttributeValues(ctx context.Context, arg CountAttributeValuesParams) (int64, error)
 	CountAuditLogs(ctx context.Context, arg CountAuditLogsParams) (int64, error)
@@ -120,6 +122,10 @@ type Querier interface {
 	CountInventoryStock(ctx context.Context, arg CountInventoryStockParams) (int64, error)
 	CountInvoices(ctx context.Context) (int64, error)
 	CountInvoicesFiltered(ctx context.Context, search string) (int64, error)
+	// The home page's "today" count next to the Latest added feed: the same
+	// kinds, access flags and timestamps as ListLatestAdditions, counted from
+	// `since` on.
+	CountLatestAdditionsSince(ctx context.Context, arg CountLatestAdditionsSinceParams) (int64, error)
 	CountLoanPayments(ctx context.Context, arg CountLoanPaymentsParams) (int64, error)
 	CountLoans(ctx context.Context, arg CountLoansParams) (int64, error)
 	CountLowStockProducts(ctx context.Context, arg CountLowStockProductsParams) (int64, error)

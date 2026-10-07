@@ -72,6 +72,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/audit_logs", server.listAuditLogs)
 	authRoutes.GET("/admin_activities", server.listAdminActivities)
 	authRoutes.GET("/home/latest", server.listLatestAdditions)
+	authRoutes.GET("/home/today", server.getHomeToday)
 	authRoutes.GET("/low_stock", server.listLowStockProducts)
 	authRoutes.GET("/low_stock/summary", server.getLowStockSummary)
 	authRoutes.GET("/low_stock/ignored", server.listIgnoredLowStockProducts)

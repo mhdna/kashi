@@ -1,6 +1,6 @@
 <template>
-  <!-- Hidden until the first refresh settles, so startup doesn't flash a
-       green cloud and "syncing..." before the real state is known. -->
+  <!-- A skeleton until the first refresh settles, so startup doesn't flash
+       a green cloud and "syncing..." before the real state is known. -->
   <v-menu
     v-if="loaded"
     v-model="menu"
@@ -74,6 +74,7 @@
       </v-card-text>
     </v-card>
   </v-menu>
+  <PillSkeleton v-else class="me-2" :width="96" />
 </template>
 
 <script setup lang="ts">

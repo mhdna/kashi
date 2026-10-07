@@ -281,6 +281,8 @@ var routeRules = []routeRule{
 	// Home page "Latest added": open to everyone signed in; the handler
 	// filters each kind by the user's own section access.
 	lookup("/home/latest", ""),
+	// The home feeds' "today" counts: same deal, filtered per feed.
+	lookup("/home/today", ""),
 	rule("/logs", "", "system"),
 
 	// Signed-in users may see who else is online and their own access; every

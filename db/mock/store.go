@@ -562,6 +562,21 @@ func (mr *MockStoreMockRecorder) ConfirmBranchTransferTx(arg0, arg1 interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfirmBranchTransferTx", reflect.TypeOf((*MockStore)(nil).ConfirmBranchTransferTx), arg0, arg1)
 }
 
+// CountAdminActivitiesSince mocks base method.
+func (m *MockStore) CountAdminActivitiesSince(arg0 context.Context, arg1 time.Time) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountAdminActivitiesSince", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountAdminActivitiesSince indicates an expected call of CountAdminActivitiesSince.
+func (mr *MockStoreMockRecorder) CountAdminActivitiesSince(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountAdminActivitiesSince", reflect.TypeOf((*MockStore)(nil).CountAdminActivitiesSince), arg0, arg1)
+}
+
 // CountAssets mocks base method.
 func (m *MockStore) CountAssets(arg0 context.Context, arg1 db.CountAssetsParams) (int64, error) {
 	m.ctrl.T.Helper()
@@ -1115,6 +1130,21 @@ func (m *MockStore) CountInvoicesFiltered(arg0 context.Context, arg1 string) (in
 func (mr *MockStoreMockRecorder) CountInvoicesFiltered(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountInvoicesFiltered", reflect.TypeOf((*MockStore)(nil).CountInvoicesFiltered), arg0, arg1)
+}
+
+// CountLatestAdditionsSince mocks base method.
+func (m *MockStore) CountLatestAdditionsSince(arg0 context.Context, arg1 db.CountLatestAdditionsSinceParams) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountLatestAdditionsSince", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountLatestAdditionsSince indicates an expected call of CountLatestAdditionsSince.
+func (mr *MockStoreMockRecorder) CountLatestAdditionsSince(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountLatestAdditionsSince", reflect.TypeOf((*MockStore)(nil).CountLatestAdditionsSince), arg0, arg1)
 }
 
 // CountLoanPayments mocks base method.

@@ -10,3 +10,8 @@ FROM admin_activities a
 LEFT JOIN users u ON u.id = a.user_id
 ORDER BY a.created_at DESC, a.id DESC
 LIMIT sqlc.arg(page_size) OFFSET sqlc.arg(page_offset);
+
+-- name: CountAdminActivitiesSince :one
+-- The home page's "today" count next to the IT Management feed.
+SELECT COUNT(*)::bigint FROM admin_activities
+WHERE created_at >= sqlc.arg(since)::timestamptz;

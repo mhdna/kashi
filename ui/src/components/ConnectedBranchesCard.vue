@@ -1,6 +1,6 @@
 <template>
-  <!-- Hidden until the first connected-branches fetch settles, so startup
-       doesn't flash a red "0" before the real count arrives. -->
+  <!-- A skeleton until the first connected-branches fetch settles, so
+       startup doesn't flash a red "0" before the real count arrives. -->
   <v-menu
     v-if="loaded"
     v-model="menu"
@@ -53,6 +53,7 @@
       </v-card-text>
     </v-card>
   </v-menu>
+  <PillSkeleton v-else :width="56" />
 </template>
 
 <script setup>

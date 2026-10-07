@@ -18,9 +18,9 @@ const conflictSummaryLoaded = ref(false)
 
 // Red when a sale took stock below zero somewhere (oversold: stock needs a
 // fix), yellow for any other open conflict, green when none are open.
-// null until the first summary arrives (no dot rather than a guessed green).
+// 'loading' until the first summary arrives, rather than a guessed green.
 const conflictsStatus = computed(() => {
-  if (!conflictSummaryLoaded.value) {return null}
+  if (!conflictSummaryLoaded.value) {return 'loading'}
   if (conflictSummary.value.some(b => b.open_oversold > 0)) {return 'critical'}
   if (conflictSummary.value.some(b => b.open > 0)) {return 'warning'}
   return 'healthy'

@@ -61,6 +61,11 @@
               <span class="nav-status-dot" :class="`nav-status-dot--${statusFor(item.append)}`" />
             </span>
           </template>
+          <template v-else-if="item.append === 'alert-count' && !alertsLoaded" #append>
+            <span aria-label="Alerts are loading" class="nav-status d-flex align-center ga-2" role="img">
+              <span class="nav-status-dot nav-status-dot--loading" />
+            </span>
+          </template>
           <template v-else-if="item.append === 'alert-count' && (outOfStockCount > 0 || lowStockCount > 0)" #append>
             <span class="d-flex align-center ga-1">
               <v-badge
@@ -125,9 +130,14 @@
   const { fetchSummary } = useLowStockAlerts()
   const outOfStockCount = ref(0)
   const lowStockCount = ref(0)
+  // Until the first summary lands the Alerts row shows a placeholder dot.
+  const alertsLoaded = ref(false)
 
   onMounted(async () => {
-    if (!auth.canView('inventory')) {return}
+    if (!auth.canView('inventory')) {
+      alertsLoaded.value = true
+      return
+    }
     try {
       const summary = await fetchSummary()
       outOfStockCount.value = summary?.out_of_stock_count ?? 0
@@ -135,17 +145,23 @@
     } catch {
       outOfStockCount.value = 0
       lowStockCount.value = 0
+    } finally {
+      alertsLoaded.value = true
     }
   })
 
   // Real status backing the Stock Health nav dot -- green/orange/red for
   // healthy/warning/critical (see pages/stock-health.vue, api/stock_health.go).
-  // null (no dot) until the check comes back, or if it fails.
+  // 'loading' (a grey placeholder dot) until the check comes back; null (no
+  // dot) if it fails.
   const { fetchStockHealth } = useStockHealth()
-  const healthStatus = ref(null)
+  const healthStatus = ref('loading')
 
   onMounted(async () => {
-    if (!auth.canView('inventory')) {return}
+    if (!auth.canView('inventory')) {
+      healthStatus.value = null
+      return
+    }
     try {
       const health = await fetchStockHealth()
       healthStatus.value = health?.status ?? null
@@ -221,6 +237,15 @@
 }
 .nav-status-dot--critical {
   background-color: rgb(var(--v-theme-error));
+}
+/* Placeholder while the first status fetch is in flight. */
+.nav-status-dot--loading {
+  background-color: rgba(var(--v-theme-on-surface), 0.12);
+  animation: nav-status-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes nav-status-pulse {
+  50% { opacity: 0.4; }
 }
 
 .nav-status {

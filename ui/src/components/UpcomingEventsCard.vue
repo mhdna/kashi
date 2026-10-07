@@ -1,6 +1,6 @@
 <template>
-  <!-- Hidden until the settings (hidden built-ins, day windows) and custom
-       events are in, so startup doesn't flash a different event first. -->
+  <!-- A skeleton until the settings (hidden built-ins, day windows) and
+       custom events are in, so startup doesn't flash a different event. -->
   <v-menu
     v-if="loaded"
     v-model="menu"
@@ -60,6 +60,7 @@
       </v-card-text>
     </v-card>
   </v-menu>
+  <PillSkeleton v-else class="me-2" :width="200" />
 </template>
 
 <script setup>

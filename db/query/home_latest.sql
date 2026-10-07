@@ -54,3 +54,20 @@ SELECT * FROM (
 ) latest
 ORDER BY added_at DESC, id DESC
 LIMIT sqlc.arg(page_size);
+
+-- name: CountLatestAdditionsSince :one
+-- The home page's "today" count next to the Latest added feed: the same
+-- kinds, access flags and timestamps as ListLatestAdditions, counted from
+-- `since` on.
+SELECT (
+  (SELECT COUNT(*) FROM branch_expense_images
+   WHERE sqlc.arg(include_accounting)::bool AND created_at >= sqlc.arg(since)::timestamptz)
+  + (SELECT COUNT(*) FROM branch_shift_receipt_images
+     WHERE sqlc.arg(include_hr)::bool AND created_at >= sqlc.arg(since)::timestamptz)
+  + (SELECT COUNT(*) FROM transfers
+     WHERE sqlc.arg(include_inventory)::bool AND created_at >= sqlc.arg(since)::timestamptz)
+  + (SELECT COUNT(*) FROM expenses
+     WHERE sqlc.arg(include_accounting)::bool AND created_at >= sqlc.arg(since)::timestamptz)
+  + (SELECT COUNT(*) FROM purchases
+     WHERE sqlc.arg(include_inventory)::bool AND purchased_at >= sqlc.arg(since)::timestamptz)
+)::bigint AS total;

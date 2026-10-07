@@ -10,6 +10,43 @@ import (
 	"time"
 )
 
+const countLatestAdditionsSince = `-- name: CountLatestAdditionsSince :one
+SELECT (
+  (SELECT COUNT(*) FROM branch_expense_images
+   WHERE $1::bool AND created_at >= $2::timestamptz)
+  + (SELECT COUNT(*) FROM branch_shift_receipt_images
+     WHERE $3::bool AND created_at >= $2::timestamptz)
+  + (SELECT COUNT(*) FROM transfers
+     WHERE $4::bool AND created_at >= $2::timestamptz)
+  + (SELECT COUNT(*) FROM expenses
+     WHERE $1::bool AND created_at >= $2::timestamptz)
+  + (SELECT COUNT(*) FROM purchases
+     WHERE $4::bool AND purchased_at >= $2::timestamptz)
+)::bigint AS total
+`
+
+type CountLatestAdditionsSinceParams struct {
+	IncludeAccounting bool      `json:"include_accounting"`
+	Since             time.Time `json:"since"`
+	IncludeHr         bool      `json:"include_hr"`
+	IncludeInventory  bool      `json:"include_inventory"`
+}
+
+// The home page's "today" count next to the Latest added feed: the same
+// kinds, access flags and timestamps as ListLatestAdditions, counted from
+// `since` on.
+func (q *Queries) CountLatestAdditionsSince(ctx context.Context, arg CountLatestAdditionsSinceParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countLatestAdditionsSince,
+		arg.IncludeAccounting,
+		arg.Since,
+		arg.IncludeHr,
+		arg.IncludeInventory,
+	)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
 const listLatestAdditions = `-- name: ListLatestAdditions :many
 SELECT kind, id, added_at, title, subtitle, amount, currency_code, has_image FROM (
   SELECT 'expense_image'::text AS kind, i.id, i.created_at AS added_at,
