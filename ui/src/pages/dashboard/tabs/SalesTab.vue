@@ -1,5 +1,5 @@
 <template>
-  <div class="sales-tab pa-4" style="min-height: 0; overflow-y: auto">
+  <div class="sales-tab pa-4 flex-shrink-0">
     <div class="summary-grid">
       <MetricCard
         icon="mdi-cart-check"
@@ -101,11 +101,11 @@
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 
-/* 8 across only fits a desktop; fold to 4 on tablets and 2 on phones. */
-@media (max-width: 1279.98px) {
+/* 8 across only fits a wide desktop; fold to 4 on tablets and 2 on phones. */
+@media (max-width: 1599.98px) {
   .summary-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }

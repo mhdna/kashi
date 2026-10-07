@@ -18,6 +18,9 @@
           <p class="mt-2 text-body-2 text-medium-emphasis month-summary">
             {{ monthSummary || "Here's what's new." }}
           </p>
+          <p class="mt-1 mb-0 text-caption text-disabled">
+            Feed counts cover the last {{ RECENT_HOURS }} hours.
+          </p>
         </section>
 
 
@@ -29,7 +32,10 @@
             <v-icon class="me-2 text-medium-emphasis" icon="mdi-account-group" size="18" />
             <span class="text-body-2 font-weight-medium">IT Management</span>
             <v-spacer />
-            <span v-if="recentCounts" class="text-caption text-medium-emphasis">
+            <span
+              v-if="recentCounts"
+              class="recent-count text-caption text-medium-emphasis"
+            >
               {{ recentLabel(recentCounts.admin_activities, 'changes') }}
             </span>
             <v-skeleton-loader
@@ -89,7 +95,10 @@
             <v-icon class="me-2 text-medium-emphasis" icon="mdi-history" size="18" />
             <span class="text-body-2 font-weight-medium">Recent activity</span>
             <v-spacer />
-            <span v-if="recentCounts" class="text-caption text-medium-emphasis">
+            <span
+              v-if="recentCounts"
+              class="recent-count text-caption text-medium-emphasis"
+            >
               {{ recentLabel(recentCounts.activities, 'synced') }}
             </span>
             <v-skeleton-loader
@@ -175,7 +184,10 @@
             <v-icon class="me-2 text-medium-emphasis" icon="mdi-image-multiple-outline" size="18" />
             <span class="text-body-2 font-weight-medium">Latest added</span>
             <v-spacer />
-            <span v-if="recentCounts" class="text-caption text-medium-emphasis">
+            <span
+              v-if="recentCounts"
+              class="recent-count text-caption text-medium-emphasis"
+            >
               {{ recentLabel(recentCounts.latest, 'added') }}
             </span>
             <v-skeleton-loader
@@ -499,10 +511,12 @@
     }
   }
 
+  // Just the count ("33,184 synced"); the 48h window is spelled out once,
+  // under the month summary.
   function recentLabel (count, kind) {
-    const suffix = `in the last ${RECENT_HOURS}h`
-    if (kind === 'changes') return `${count} change${count === 1 ? '' : 's'} ${suffix}`
-    return `${count} ${kind} ${suffix}`
+    const n = count?.toLocaleString() ?? '—'
+    if (kind === 'changes') return `${n} change${count === 1 ? '' : 's'}`
+    return `${n} ${kind}`
   }
 
   // "In kashi": what people changed in kashi itself -- a transfer created,
@@ -675,6 +689,11 @@
 </script>
 
 <style scoped>
+  .recent-count {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
   .home-empty-state {
     display: flex;
     justify-content: center;

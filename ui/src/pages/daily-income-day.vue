@@ -58,7 +58,7 @@
     </v-alert>
 
     <!-- Metric cards: same MetricCard as Sales Analytics' summary row. -->
-    <div class="summary-grid px-4 pb-4">
+    <div class="summary-grid flex-shrink-0 px-4 pb-4">
       <MetricCard
         v-for="m in metrics"
         :key="m.title"
@@ -156,6 +156,7 @@
               </v-chip>
             </template>
             <template #item.grand_total="{ item }">{{ money(item.grand_total) }}</template>
+            <template #item.salesperson_name="{ item }">{{ item.salesperson_name || '—' }}</template>
             <template #item.discount="{ item }">{{ item.discount ? `${item.discount}%` : '—' }}</template>
           </v-data-table>
         </v-card>
@@ -291,12 +292,15 @@
   onMounted(() => fetchBranches().catch(() => {}))
 
   // ---- formatting ----
+  // Sign outside the symbol (−$29.00, not $-29).
   function money (cents) {
-    return '$' + (Number(cents || 0) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })
+    const n = Number(cents || 0) / 100
+    const abs = Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    return `${n < 0 ? '−' : ''}$${abs}`
   }
   function signedMoney (cents) {
     const n = Number(cents || 0)
-    const sign = n > 0 ? '+' : (n < 0 ? '-' : '')
+    const sign = n > 0 ? '+' : (n < 0 ? '−' : '')
     return sign + money(Math.abs(n))
   }
   function currencyAmount (cents, code) {
@@ -527,8 +531,11 @@
 </script>
 
 <style scoped>
+/* The layout's page wrapper is a fixed-height flex column; without this the
+   page shrinks to fit it and squashes the tabs/window under the cards. */
 .day-page {
   min-height: 100%;
+  flex-shrink: 0;
 }
 .lh-tight {
   line-height: 1.2;
@@ -541,14 +548,14 @@
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 .chart {
   height: 300px;
   width: 100%;
 }
 
-@media (max-width: 1279.98px) {
+@media (max-width: 1599.98px) {
   .summary-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }

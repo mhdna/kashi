@@ -1,46 +1,36 @@
 <template>
-  <v-card class="metric-card pa-0" rounded="lg" variant="outlined" width="100%">
-    <v-icon
-      class="metric-card-icon"
-      color="indigo-lighten-2"
-      :icon="props.icon"
-      size="26"
-    />
-
-    <div class="metric-card-body">
-      <div class="text-body-small text-uppercase text-medium-emphasis">
+  <v-card class="metric-card" rounded="lg" variant="outlined" width="100%">
+    <div class="metric-card-head">
+      <v-icon color="indigo-lighten-2" :icon="props.icon" size="18" />
+      <span class="metric-card-title text-label-small text-uppercase text-medium-emphasis">
         {{ props.title }}
+      </span>
+    </div>
+
+    <!-- Only the very first load (no value yet) shows a spinner. Once a
+      number is on screen it stays put through every background refresh. -->
+    <v-progress-circular
+      v-if="props.loading && props.value == null"
+      class="mt-3"
+      color="indigo-lighten-2"
+      indeterminate
+      size="22"
+      width="2"
+    />
+    <template v-else>
+      <div class="metric-value text-headline-small font-weight-bold">
+        <span v-if="props.unit === '$' && display !== '—'">{{ props.unit }}</span>{{ display }}
       </div>
 
-      <!-- Only the very first load (no value yet) shows a spinner. Once a
-        number is on screen it stays put through every background refresh. -->
-      <v-progress-circular
-        v-if="props.loading && props.value == null"
-        class="mt-2"
-        color="indigo-lighten-2"
-        indeterminate
-        size="22"
-        width="2"
-      />
-      <template v-else>
-        <div class="metric-value text-headline-small font-weight-black mt-1">
-          <strong v-if="props.unit === '$' && display !== '—'">{{ props.unit }}</strong>{{ display }}
-        </div>
-
-        <div class="metric-delta text-caption mt-1" :class="deltaClass">
-          <template v-if="deltaPct != null">
-            <v-icon :icon="deltaUp ? 'mdi-arrow-up' : 'mdi-arrow-down'" size="14" />
-            {{ deltaText }}
-            <span class="text-medium-emphasis ms-1">{{ props.compareLabel }}</span>
-          </template>
-          <span v-else class="text-medium-emphasis">no prior period</span>
-        </div>
-
-        <div class="metric-prev text-caption text-medium-emphasis">
-          Prev: {{ prevDisplay }}
-        </div>
-      </template>
-    </div>
+      <div class="metric-card-foot text-body-small">
+        <span v-if="deltaPct != null" class="metric-delta" :class="deltaClass">
+          <v-icon :icon="deltaUp ? 'mdi-arrow-up' : 'mdi-arrow-down'" size="12" />{{ deltaText }}
+        </span>
+        <span class="metric-prev text-medium-emphasis">
+          {{ deltaPct != null ? props.compareLabel : 'Prev' }}: {{ prevDisplay }}
+        </span>
+      </div>
+    </template>
   </v-card>
 </template>
 
@@ -108,29 +98,62 @@
   const deltaText = computed(() => {
     if (deltaPct.value == null) return ''
     const sign = deltaPct.value >= 0 ? '+' : '−'
-    return `${sign}${Math.abs(deltaPct.value).toFixed(1)}%`
+    const abs = Math.abs(deltaPct.value)
+    // Off a tiny base (2 → 2,392) the percentage is noise; cap it.
+    if (abs >= 1000) return `${sign}999%+`
+    return `${sign}${abs.toFixed(abs >= 100 ? 0 : 1)}%`
   })
 </script>
 
 <style scoped>
   .metric-card {
-    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    min-width: 0;
   }
 
-  .metric-card-icon {
-    position: absolute;
-    left: 10px;
-    top: 10px;
+  .metric-card-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
   }
 
-  .metric-card-body {
-    padding: 12px 10px;
-    text-align: center;
+  .metric-card-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: 0.04em;
+  }
+
+  .metric-value {
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .metric-card-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 8px;
+    row-gap: 2px;
+    line-height: 1.3;
+  }
+
+  .metric-delta {
+    display: inline-flex;
+    align-items: center;
+    font-weight: 600;
   }
 
   /* Fixed-width digits so the number doesn't jitter sideways between
      filter/period selections. */
   .metric-value,
+  .metric-delta,
   .metric-prev {
     font-variant-numeric: tabular-nums;
   }
