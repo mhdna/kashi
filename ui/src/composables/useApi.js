@@ -1,3 +1,4 @@
+import { isGatewayStatus, markServerUpdating } from '@/composables/useServerStatus'
 import router from '@/router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -9,6 +10,9 @@ export const SERVER_DOWN_MESSAGE = 'Server is down, we\'ll be back soon.'
 // Same, but the device itself has no network -- telling the user the server
 // is down would send them chasing the wrong problem.
 export const NO_INTERNET_MESSAGE = 'No internet connection. Check your network and try again.'
+// The proxy answered but the API behind it didn't (502/503/504) -- in
+// practice a deploy restarting it. See useServerStatus.
+export const SERVER_UPDATING_MESSAGE = 'The server is being updated, it\'ll be back in a moment.'
 
 // The message for a fetch() that rejected outright (no HTTP response).
 export function connectionErrorMessage () {
@@ -18,7 +22,9 @@ export function connectionErrorMessage () {
 }
 
 export function isConnectionError (error) {
-  return error?.message === SERVER_DOWN_MESSAGE || error?.message === NO_INTERNET_MESSAGE
+  return error?.message === SERVER_DOWN_MESSAGE
+    || error?.message === NO_INTERNET_MESSAGE
+    || error?.message === SERVER_UPDATING_MESSAGE
 }
 
 let refreshPromise = null
@@ -51,6 +57,11 @@ export async function authFetch (url, options = {}) {
     // server can't be reached at all -- e.g. it's powered off. Surface a
     // clear, distinct message instead of the browser's raw "Failed to fetch".
     throw new Error(connectionErrorMessage())
+  }
+
+  if (isGatewayStatus(res.status)) {
+    markServerUpdating()
+    throw new Error(SERVER_UPDATING_MESSAGE)
   }
 
   if (res.status === 401 && authStore.refreshToken) {

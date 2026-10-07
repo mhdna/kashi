@@ -82,9 +82,10 @@ deploy-api:
 
 # Build the SPA (uses ui/.env.production -> VITE_API_URL=/api) and mirror it
 # into the Caddy web root. Fast path for front-end-only changes.
+# Swaps files in at the end, deletes old ones last (see ui/Makefile).
 deploy-ui:
 	$(MAKE) -C ui build
-	rsync -avz --delete --chmod=D755,F644 ui/dist/ $(SSH):$(UI_ROOT)/
+	rsync -avz --delete-after --delay-updates --chmod=D755,F644 ui/dist/ $(SSH):$(UI_ROOT)/
 
 # Post the feat/fix/perf commits shipped since the last posted one to the
 # home page's IT Management feed, as Alex (cmd/release_notes). Run it after

@@ -20,8 +20,11 @@ build: install
 
 # Build, then mirror dist/ into the Caddy web root. --delete drops files no
 # longer in a fresh build; --chmod keeps them readable by the `caddy` user.
+# --delay-updates/--delete-after swap the new files in together at the end
+# and only then remove the old ones, so open tabs never see an index.html
+# pointing at chunks that aren't there yet (or are already gone).
 deploy: build
-	rsync -avz --delete --chmod=D755,F644 $(DIST)/ $(SSH):$(UI_ROOT)/
+	rsync -avz --delete-after --delay-updates --chmod=D755,F644 $(DIST)/ $(SSH):$(UI_ROOT)/
 	@echo "Deployed -> https://cloud.example.com/"
 
 caddy-reload:
