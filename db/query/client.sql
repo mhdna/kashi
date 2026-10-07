@@ -209,16 +209,19 @@ WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_
 -- Same two sources and sign conventions as ListClientsBySpending (see the
 -- comment there); item_count and the branch_id/search filters are dropped
 -- -- nothing on the loyalty page uses them, and dropping item_count also
--- drops the two line-item joins whose row fan-out made the DISTINCTs
--- necessary (kept anyway, so a non-unique sales_invoices/client_links row
--- can't inflate a count).
+-- drops the two line-item joins whose row fan-out made DISTINCTs necessary.
+-- With those gone each joined row is exactly one invoice: sales_invoices is
+-- keyed by invoice_id and client_links by (register_id, branch_client_id),
+-- so neither join can repeat an invoice. That makes COUNT(*) exact, and
+-- unlike COUNT(DISTINCT) it lets Postgres hash-aggregate instead of sorting
+-- every invoice per client.
 WITH central AS (
   SELECT i.client_id,
     SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END) AS total,
-    COUNT(DISTINCT i.id) AS invoice_count,
+    COUNT(*) AS invoice_count,
     SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END)
       FILTER (WHERE p.in_period) AS period_total,
-    COUNT(DISTINCT i.id) FILTER (WHERE p.in_period) AS period_invoice_count
+    COUNT(*) FILTER (WHERE p.in_period) AS period_invoice_count
   FROM invoices i
   LEFT JOIN sales_invoices si ON si.invoice_id = i.id
   CROSS JOIN LATERAL (SELECT
@@ -228,9 +231,9 @@ WITH central AS (
 ), branch AS (
   SELECT cl.client_id,
     SUM(b.grand_total) AS total,
-    COUNT(DISTINCT b.id) AS invoice_count,
+    COUNT(*) AS invoice_count,
     SUM(b.grand_total) FILTER (WHERE p.in_period) AS period_total,
-    COUNT(DISTINCT b.id) FILTER (WHERE p.in_period) AS period_invoice_count
+    COUNT(*) FILTER (WHERE p.in_period) AS period_invoice_count
   FROM branch_invoices b
   JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
   CROSS JOIN LATERAL (SELECT

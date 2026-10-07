@@ -278,13 +278,13 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, ref, watch } from 'vue'
+  import { computed, onMounted, ref, shallowRef, watch } from 'vue'
   import VChart from 'vue-echarts'
   import { useTheme } from 'vuetify'
   import TierChip from '@/components/Clients/TierChip.vue'
   import { useClientTiers } from '@/composables/useClientTiers'
-  import { dedupedFetch } from '@/composables/useRequestDedup'
   import { useNotify } from '@/composables/useNotify'
+  import { dedupedFetch } from '@/composables/useRequestDedup'
   import { API_BASE } from '@/config'
   import { formatCompactMoney } from '@/utils/money'
 
@@ -385,7 +385,9 @@
     return b.from.getTime() === lastDay.getTime() ? fmt(b.from) : `${fmt(b.from)} – ${fmt(lastDay)}`
   })
 
-  const rows = ref([])
+  // shallowRef: tens of thousands of rows, only ever replaced wholesale.
+  // A deep ref would proxy every row and slow every pass over them below.
+  const rows = shallowRef([])
   const loading = ref(false)
   const notify = useNotify()
 
