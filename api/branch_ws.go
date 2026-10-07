@@ -198,7 +198,8 @@ type branchWSMessage struct {
 	// instead of polling. "sync_changed" means every change to synced data
 	// is pushed (sync_notify.go), not just the hand-wired message types;
 	// "quick_access" means the quick_access sync entity and its endpoints
-	// exist (branch_quick_access.go).
+	// exist (branch_quick_access.go); "app_updates" means the till can fetch
+	// its update from /branch/app_update (app_update.go).
 	Features []string `json:"features,omitempty"`
 }
 
@@ -286,7 +287,7 @@ func (server *Server) branchWS(ctx *gin.Context) {
 	defer conn.Close()
 
 	wrapped := newWSConn(conn)
-	if err := wrapped.writeJSON(branchWSMessage{Type: "hello", Features: []string{"sync_changed", "quick_access"}}); err != nil {
+	if err := wrapped.writeJSON(branchWSMessage{Type: "hello", Features: []string{"sync_changed", "quick_access", "app_updates"}}); err != nil {
 		log.Printf("branch %d register %d: websocket hello failed: %v", branchID, registerID, err)
 		return
 	}

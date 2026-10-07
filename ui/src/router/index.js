@@ -39,6 +39,7 @@ const routes = [
   { path: '/branches', component: () => import('@/pages/branches.vue'), meta: { title: 'Branches', section: 'branches', page: 'branches' } },
   { path: '/branch-settings', component: () => import('@/pages/branch-settings.vue'), meta: { title: 'Branch Settings', section: 'branches', page: 'branch-settings' } },
   { path: '/default-branch-settings', component: () => import('@/pages/default-branch-settings.vue'), meta: { title: 'Default Settings', section: 'branches', page: 'default-branch-settings' } },
+  { path: '/app-updates', component: () => import('@/pages/app-updates.vue'), meta: { title: 'App Updates', adminOnly: true } },
   { path: '/branch-commands', component: () => import('@/pages/branch-commands.vue'), meta: { title: 'Commands', section: 'branches', page: 'branch-commands' } },
   { path: '/branch-conflicts', component: () => import('@/pages/branch-conflicts.vue'), meta: { title: 'Conflicts', section: 'branches', page: 'branch-conflicts' } },
   { path: '/branch-invoices', redirect: '/invoices' },

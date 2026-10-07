@@ -27,6 +27,7 @@ import {
   mdiArrowUp,
   mdiAutoFix,
   mdiBackspace,
+  mdiBackupRestore,
   mdiBagPersonal,
   mdiBank,
   mdiBarcode,
@@ -183,6 +184,7 @@ import {
   mdiRepeat,
   mdiReplay,
   mdiRestore,
+  mdiRocketLaunchOutline,
   mdiSale,
   mdiScaleBalance,
   mdiSchool,
@@ -222,6 +224,7 @@ import {
   mdiTruckDelivery,
   mdiTshirtCrew,
   mdiUnfoldMoreHorizontal,
+  mdiUpdate,
   mdiViewDashboard,
   mdiViewGallery,
   mdiVolumeHigh,
@@ -241,6 +244,9 @@ import {
 import { h } from 'vue'
 
 const iconPaths = {
+  'mdi-backup-restore': mdiBackupRestore,
+  'mdi-rocket-launch-outline': mdiRocketLaunchOutline,
+  'mdi-update': mdiUpdate,
   'mdi-image-multiple-outline': mdiImageMultipleOutline,
   'mdi-plus-box-outline': mdiPlusBoxOutline,
   'mdi-console-line': mdiConsoleLine,

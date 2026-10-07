@@ -33,6 +33,7 @@ export const navItems = [
   },
   { title: 'Commands', icon: 'mdi-console-line', to: '/branch-commands', append: 'commands-status' },
   { title: 'Conflicts', icon: 'mdi-source-branch-sync', to: '/branch-conflicts', append: 'conflicts-status' },
+  { title: 'App Updates', icon: 'mdi-update', to: '/app-updates' },
   {
     title: 'Wholesale',
     icon: 'mdi-cart',

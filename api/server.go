@@ -433,6 +433,15 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/branch_users/:id/pin", server.setBranchUserPin)
 	authRoutes.DELETE("/branch_users/:id", server.deleteBranchUser)
 
+	// Till app updates -- admin-only, see api/app_update.go.
+	authRoutes.GET("/app_releases", server.listAppReleases)
+	authRoutes.POST("/app_releases", server.createAppRelease)
+	authRoutes.PUT("/app_releases/:id", server.updateAppRelease)
+	authRoutes.DELETE("/app_releases/:id", server.deleteAppRelease)
+	authRoutes.GET("/app_updates/registers", server.listAppUpdateRegisters)
+	authRoutes.PUT("/app_updates/target", server.setAppUpdateTarget)
+	authRoutes.GET("/app_updates/events", server.listAppUpdateEvents)
+
 	// adminWS can't sit under authRoutes: authMiddleware only reads the
 	// Authorization header, and a browser WebSocket handshake can't set
 	// custom headers. Auth happens inside adminWS itself via a query-param
@@ -479,6 +488,9 @@ func (server *Server) setupRoutes() {
 	branchRoutes.POST("/transfer_requests", server.createBranchTransferRequest)
 	branchRoutes.POST("/transfer_requests/:id/confirm", server.confirmBranchTransfer)
 	branchRoutes.GET("/transfer_requests/upload_status", server.branchTransferUploadStatus)
+	branchRoutes.GET("/app_update", server.branchAppUpdate)
+	branchRoutes.GET("/app_update/download/:id", server.branchAppUpdateDownload)
+	branchRoutes.POST("/app_update/status", server.branchAppUpdateStatus)
 
 	// expense_uploads is deliberately public: a phone scanning the QR code
 	// kashi-pos shows has no kashi login and shouldn't need one. Every
