@@ -100,7 +100,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
   import { computed, onMounted, ref, watch } from 'vue'
   import VChart from 'vue-echarts'
   import { useTheme } from 'vuetify'

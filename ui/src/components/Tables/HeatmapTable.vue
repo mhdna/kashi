@@ -70,7 +70,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
   import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useRouter } from 'vue-router'
   import { useAdminSocket } from '@/composables/useAdminSocket'
@@ -288,6 +288,20 @@
 
 .cell-link {
   cursor: pointer;
+}
+
+/* Hover: shade the cell and outline it like .cell-today does. The heat
+   color is an inline background, so the shade is an inset box-shadow laid
+   over it rather than a background override. The outline uses on-surface,
+   not primary, so it stays visible on the darkest (primary) heat cells.
+   Today keeps its red outline. */
+.cell-link:hover {
+  box-shadow: inset 0 0 0 999px rgba(var(--v-theme-on-surface), 0.08);
+}
+
+.cell-link:not(.cell-today):hover {
+  outline: 2px solid rgb(var(--v-theme-on-surface));
+  outline-offset: -2px;
 }
 
 .heatmap-table thead th {
