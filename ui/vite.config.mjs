@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process'
 import { fileURLToPath, URL } from 'node:url'
 import Vue from '@vitejs/plugin-vue'
 // Plugins
@@ -11,6 +12,20 @@ import { defineConfig } from 'vite'
 
 import Layouts from 'vite-plugin-vue-layouts-next'
 import Vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
+
+// Stamp the build with the latest git tag and the commit it was built from,
+// shown under the home page summary. Runs from the repo root: ui/ has a stale
+// nested .git that would otherwise answer instead of the kashi repo.
+const repoRoot = fileURLToPath(new URL('..', import.meta.url))
+function git (args) {
+  try {
+    return execSync(`git ${args}`, { cwd: repoRoot, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()
+  } catch {
+    return ''
+  }
+}
+const appVersion = git('describe --tags --abbrev=0')
+const appCommit = git('rev-parse --short HEAD')
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -93,7 +108,11 @@ export default defineConfig({
       'unplugin-vue-router/data-loaders/basic',
     ],
   },
-  define: { 'process.env': {} },
+  define: {
+    'process.env': {},
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion),
+    'import.meta.env.VITE_APP_COMMIT': JSON.stringify(appCommit),
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('src', import.meta.url)),

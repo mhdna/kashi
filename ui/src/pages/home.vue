@@ -15,6 +15,9 @@
           <p class="mt-2 text-body-2 text-medium-emphasis month-summary">
             {{ monthSummary || "Here's what's new." }}
           </p>
+          <p v-if="appVersion || appCommit" class="mt-1 text-caption text-disabled build-info">
+            {{ [appVersion, appCommit].filter(Boolean).join(' · ') }}
+          </p>
         </section>
 
 
@@ -302,6 +305,10 @@
     : 'rgba(var(--v-theme-on-surface), 0.7)')
 
   const auth = useAuthStore()
+
+  // Stamped at build time from git (see vite.config.mjs).
+  const appVersion = import.meta.env.VITE_APP_VERSION
+  const appCommit = import.meta.env.VITE_APP_COMMIT
 
 
   // Recent activity: a read-only glance at the latest branch-sync activity.
