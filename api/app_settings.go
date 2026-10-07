@@ -125,13 +125,15 @@ type productAutofillRule struct {
 	Pattern  string `json:"pattern"`
 	Field    string `json:"field"`
 	Value    string `json:"value"`
+	// Part names a code layout group, for match "part".
+	Part string `json:"part"`
 }
 
 var (
 	validAutofillSources = map[string]bool{"code": true, "name": true}
 	validAutofillMatches = map[string]bool{
 		"char": true, "prefix": true, "suffix": true, "contains": true,
-		"word": true, "trailing_number": true, "regex": true,
+		"word": true, "trailing_number": true, "regex": true, "part": true,
 	}
 	validAutofillFields = map[string]bool{
 		"category": true, "subcategory": true, "brand": true, "kind": true, "type": true,
@@ -140,15 +142,22 @@ var (
 	}
 )
 
-const maxAutofillRules = 500
+const (
+	maxAutofillRules      = 500
+	maxAutofillLayoutSize = 2000
+)
 
 type setProductAutofillRulesRequest struct {
 	Rules []productAutofillRule `json:"rules"`
+	// CodeLayout is a JS regular expression with named groups that splits a
+	// code into parts. The UI compiles it; Go's regexp lacks some of JS's
+	// syntax, so it isn't compiled here.
+	CodeLayout string `json:"code_layout"`
 }
 
-// setProductAutofillRules replaces the whole rule list (the Auto-fill Rules
-// page always sends every rule, in order -- order decides which rule wins
-// when several fill the same field).
+// setProductAutofillRules replaces the whole rule list and the code layout
+// (the Auto-fill Rules page always sends every rule, in order -- order
+// decides which rule wins when several fill the same field).
 func (server *Server) setProductAutofillRules(ctx *gin.Context) {
 	var req setProductAutofillRulesRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -160,6 +169,10 @@ func (server *Server) setProductAutofillRules(ctx *gin.Context) {
 	}
 	if len(req.Rules) > maxAutofillRules {
 		server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("at most %d rules", maxAutofillRules))
+		return
+	}
+	if len(req.CodeLayout) > maxAutofillLayoutSize {
+		server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("code layout is longer than %d characters", maxAutofillLayoutSize))
 		return
 	}
 	for i, r := range req.Rules {
@@ -177,7 +190,10 @@ func (server *Server) setProductAutofillRules(ctx *gin.Context) {
 		case r.Match == "char" && r.Position < 1:
 			server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("rule %d: position must be 1 or more", n))
 			return
-		case r.Match != "trailing_number" && r.Pattern == "":
+		case r.Match == "part" && (r.Source != "code" || r.Part == ""):
+			server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("rule %d: a code part rule needs source code and a part", n))
+			return
+		case r.Match != "trailing_number" && r.Match != "part" && r.Pattern == "":
 			server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("rule %d: pattern is required", n))
 			return
 		}
@@ -188,7 +204,10 @@ func (server *Server) setProductAutofillRules(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	settings, err := server.store.SetProductAutofillRules(ctx, rules)
+	settings, err := server.store.SetProductAutofillRules(ctx, db.SetProductAutofillRulesParams{
+		ProductAutofillRules:      rules,
+		ProductAutofillCodeLayout: req.CodeLayout,
+	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return

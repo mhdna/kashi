@@ -36,6 +36,28 @@
           with <code>|</code>, like <code>boy|boys</code>.
         </p>
 
+        <!-- Code layout: splits a code into named parts for "Code part is" rules. -->
+        <v-sheet border class="pa-3 mb-4" rounded>
+          <div class="text-overline text-medium-emphasis mb-1">Code layout</div>
+          <p class="text-body-2 text-medium-emphasis mb-3">
+            A regular expression whose named groups, written <code>(?&lt;name&gt;...)</code>,
+            split a code into parts that &ldquo;Code part is&rdquo; rules can match. The default
+            reads codes like <code>CAJUL25KBPA22</code> as origin CA, month JUL, year 25,
+            audience KB, type PA and price 22. A code the layout doesn't fit simply has no parts.
+          </p>
+          <v-text-field
+            v-model="draftLayout"
+            class="afr-mono"
+            density="compact"
+            :disabled="!canEdit"
+            :error-messages="layoutError"
+            :hint="layoutParts.length > 0 ? `Parts: ${layoutParts.join(', ')}` : ''"
+            label="Layout"
+            persistent-hint
+            variant="outlined"
+          />
+        </v-sheet>
+
         <!-- Try it: runs the unsaved rules, so edits can be checked before saving. -->
         <v-sheet border class="pa-3 mb-4" rounded>
           <div class="text-overline text-medium-emphasis mb-2">Try it</div>
@@ -61,6 +83,18 @@
               />
             </v-col>
           </v-row>
+          <div v-if="testPartList.length > 0" class="d-flex flex-wrap align-center ga-2 mt-3">
+            <span class="text-caption text-medium-emphasis">Code parts:</span>
+            <v-chip
+              v-for="p in testPartList"
+              :key="p.name"
+              class="afr-mono"
+              size="small"
+              variant="outlined"
+            >
+              {{ p.name }} <strong class="ms-1">{{ p.value }}</strong>
+            </v-chip>
+          </div>
           <div class="d-flex flex-wrap ga-2 mt-3">
             <span v-if="!testCode && !testName" class="text-caption text-medium-emphasis">
               Type a code or name to see what gets filled.
@@ -81,6 +115,17 @@
           </div>
         </v-sheet>
 
+        <v-text-field
+          v-model="filter"
+          class="afr-filter mb-2"
+          clearable
+          density="compact"
+          hide-details
+          label="Find rules"
+          placeholder="e.g. jeans, JE or origin"
+          variant="outlined"
+        />
+
         <div class="afr-table-wrap">
           <v-table class="afr-table" density="compact">
             <thead>
@@ -88,7 +133,7 @@
                 <th class="afr-num">#</th>
                 <th>Read from</th>
                 <th>When</th>
-                <th class="afr-pos">Position</th>
+                <th class="afr-pos">Position / part</th>
                 <th>Pattern</th>
                 <th>Fill</th>
                 <th>With value</th>
@@ -102,7 +147,7 @@
                 </td>
               </tr>
               <tr
-                v-for="(rule, i) in draft"
+                v-for="{ rule, i } in visibleRules"
                 :key="rule._key"
                 :class="{ 'afr-hit': winningRules.has(i) }"
               >
@@ -138,6 +183,15 @@
                     type="number"
                     variant="plain"
                   />
+                  <v-select
+                    v-else-if="rule.match === 'part'"
+                    v-model="rule.part"
+                    density="compact"
+                    :disabled="!canEdit"
+                    hide-details
+                    :items="layoutParts"
+                    variant="plain"
+                  />
                 </td>
                 <td class="afr-pattern">
                   <v-text-field
@@ -146,7 +200,7 @@
                     density="compact"
                     :disabled="!canEdit"
                     hide-details
-                    :placeholder="rule.match === 'regex' ? '^..([A-Z]+)' : 'e.g. L or boy|boys'"
+                    :placeholder="patternPlaceholder(rule.match)"
                     variant="plain"
                   />
                 </td>
@@ -172,7 +226,7 @@
                     density="compact"
                     :disabled="!canEdit"
                     hide-details
-                    :placeholder="rule.match === 'regex' ? '$1 (empty = group 1)' : ''"
+                    :placeholder="valuePlaceholder(rule.match)"
                     variant="plain"
                   />
                   <div v-if="ruleErrors[i]" class="text-caption text-error">{{ ruleErrors[i] }}</div>
@@ -223,6 +277,8 @@
     AUTOFILL_MATCHES,
     AUTOFILL_SOURCES,
     autofillRuleError,
+    codeLayoutError,
+    codeLayoutParts,
   } from '@/utils/productAutofill'
 
   const { canEdit } = usePageAccess()
@@ -233,20 +289,23 @@
   // row id for v-for only; it's stripped before saving.
   let nextKey = 0
   const draft = ref([])
+  const draftLayout = ref('')
 
   function strip (rules) {
-    return rules.map(({ source, match, position, pattern, field, value }) => ({
+    return rules.map(({ source, match, position, pattern, field, value, part }) => ({
       source,
       match,
       position: Number(position) || 1,
       pattern: pattern ?? '',
       field,
       value: value ?? '',
+      part: part ?? '',
     }))
   }
 
   function seedDraft () {
     draft.value = strip(settingsStore.productAutofillRules).map(r => ({ ...r, _key: nextKey++ }))
+    draftLayout.value = settingsStore.productAutofillCodeLayout
   }
 
   onMounted(async () => {
@@ -258,10 +317,36 @@
   })
 
   const dirty = computed(() =>
-    JSON.stringify(strip(draft.value)) !== JSON.stringify(strip(settingsStore.productAutofillRules)),
+    draftLayout.value !== settingsStore.productAutofillCodeLayout
+    || JSON.stringify(strip(draft.value)) !== JSON.stringify(strip(settingsStore.productAutofillRules)),
   )
+  const layoutParts = computed(() => codeLayoutParts(draftLayout.value))
+  const layoutError = computed(() => codeLayoutError(draftLayout.value))
   const ruleErrors = computed(() => draft.value.map(r => autofillRuleError(r)))
-  const hasErrors = computed(() => ruleErrors.value.some(Boolean))
+  const hasErrors = computed(() => Boolean(layoutError.value) || ruleErrors.value.some(Boolean))
+
+  function patternPlaceholder (match) {
+    if (match === 'regex') {return '^..([A-Z]+)'}
+    if (match === 'part') {return 'e.g. JE or SWE|SWT (empty = any)'}
+    return 'e.g. L or boy|boys'
+  }
+  function valuePlaceholder (match) {
+    if (match === 'regex') {return '$1 (empty = group 1)'}
+    if (match === 'part') {return 'empty = the part itself'}
+    return ''
+  }
+
+  // "Find rules" narrows the table; rows keep their real number, so moving
+  // and the Try it highlight still refer to the full list.
+  const filter = ref('')
+  const visibleRules = computed(() => {
+    const rows = draft.value.map((rule, i) => ({ rule, i }))
+    const q = (filter.value ?? '').trim().toLowerCase()
+    if (!q) {return rows}
+    return rows.filter(({ rule }) =>
+      [rule.pattern, rule.value, rule.field, rule.part, rule.source]
+        .some(v => String(v ?? '').toLowerCase().includes(q)))
+  })
 
   function addRule () {
     draft.value.push({
@@ -272,6 +357,7 @@
       pattern: '',
       field: 'type',
       value: '',
+      part: '',
     })
   }
 
@@ -286,7 +372,7 @@
     if (!dirty.value || hasErrors.value) return
     saving.value = true
     try {
-      await settingsStore.saveProductAutofillRules(strip(draft.value))
+      await settingsStore.saveProductAutofillRules(strip(draft.value), draftLayout.value)
       seedDraft()
       notify.success('Auto-fill rules saved.')
     } catch (error) {
@@ -300,8 +386,10 @@
   const testCode = ref('')
   const testName = ref('')
   const testResult = computed(() =>
-    applyAutofillRules(draft.value, { code: testCode.value, name: testName.value }),
+    applyAutofillRules(draft.value, { code: testCode.value, name: testName.value }, draftLayout.value),
   )
+  const testPartList = computed(() =>
+    Object.entries(testResult.value.parts).map(([name, value]) => ({ name, value })))
   const testFilled = computed(() =>
     AUTOFILL_FIELDS
       .filter(f => f.key in testResult.value.values)
@@ -354,6 +442,13 @@
 .afr-actions {
   width: 120px;
   white-space: nowrap;
+}
+.afr-mono :deep(input),
+.afr-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.afr-filter {
+  max-width: 320px;
 }
 .afr-hit {
   background: rgba(var(--v-theme-primary), 0.08);

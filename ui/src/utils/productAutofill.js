@@ -12,8 +12,17 @@
 //   trailing_number  the number at the end (25, 100, 0.5) -- that number is the value
 //   regex            a regular expression; `value` may use $1, $2 for groups,
 //                    and an empty value takes group 1 (or the whole match)
+//   part             code part `part` (see below) is `pattern`; with no
+//                    pattern, any non-empty part matches and an empty value
+//                    takes the part itself (that's how price is read)
 // Every match is case-insensitive, and `pattern` may list alternatives with
 // `|` (e.g. "boy|boys") -- except for regex, where `|` is regex syntax.
+//
+// Code parts come from the code layout (app_settings.product_autofill_code_layout):
+// a regular expression whose named groups split a code into parts, e.g.
+// CAJUL25KBPA22 -> origin CA, month JUL, year 25, audience KB, type PA,
+// price 22. A code the layout doesn't match has no parts, so part rules
+// simply don't fire for it.
 
 export const AUTOFILL_FIELDS = [
   { key: 'category', label: 'Category' },
@@ -42,7 +51,35 @@ export const AUTOFILL_MATCHES = [
   { value: 'word', title: 'Has word' },
   { value: 'trailing_number', title: 'Number at the end' },
   { value: 'regex', title: 'Regular expression' },
+  { value: 'part', title: 'Code part is' },
 ]
+
+// The part names a layout defines, in order: its named groups.
+export function codeLayoutParts (layout) {
+  return [...String(layout ?? '').matchAll(/\(\?<([A-Za-z_]\w*)>/g)].map(m => m[1])
+}
+
+// Splits `code` into its named parts, or returns {} when the layout is
+// empty, invalid or doesn't match.
+export function parseCode (layout, code) {
+  if (!layout || !code) {return {}}
+  let m
+  try {
+    m = new RegExp(layout, 'i').exec(code)
+  } catch {
+    return {}
+  }
+  const parts = {}
+  for (const [k, v] of Object.entries(m?.groups ?? {})) {
+    if (v) {parts[k] = v}
+  }
+  return parts
+}
+
+function normalizeNumber (s) {
+  const n = Number(String(s).replace(',', '.'))
+  return Number.isFinite(n) ? String(n) : null
+}
 
 const escapeRegExp = s => s.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)
 
@@ -54,7 +91,8 @@ function alternatives (pattern) {
 }
 
 // Returns the value the rule fills for `text`, or null when it doesn't match.
-function evaluate (rule, text) {
+// `parts` is the code split by the layout (only used by part rules).
+function evaluate (rule, text, parts) {
   const lower = text.toLowerCase()
   switch (rule.match) {
     case 'char': {
@@ -79,9 +117,7 @@ function evaluate (rule, text) {
     case 'trailing_number': {
       // 25, 100, 0.5, .5 and 0,5 all count; the comma is read as a decimal point.
       const m = text.match(/(\d+(?:[.,]\d+)?|[.,]\d+)$/)
-      if (!m) {return null}
-      const n = Number(m[1].replace(',', '.'))
-      return Number.isFinite(n) ? String(n) : null
+      return m ? normalizeNumber(m[1]) : null
     }
     case 'regex': {
       let re
@@ -95,36 +131,48 @@ function evaluate (rule, text) {
       if (rule.value) {return rule.value.replace(/\$(\d)/g, (_, i) => m[Number(i)] ?? '')}
       return m[1] ?? m[0]
     }
+    case 'part': {
+      const part = parts[rule.part]
+      if (!part) {return null}
+      const alts = alternatives(rule.pattern)
+      if (alts.length > 0) {return alts.includes(part.toLowerCase()) ? rule.value : null}
+      if (rule.value) {return rule.value}
+      return rule.field === 'price' ? normalizeNumber(part) : part
+    }
     default: {
       return null
     }
   }
 }
 
-// applyAutofillRules returns { values, ruleFor }: `values` maps each filled
-// field key to its value, `ruleFor` maps it to the index of the rule that
-// filled it (the rules page uses it to highlight the winners).
-export function applyAutofillRules (rules, { code = '', name = '' } = {}) {
+// applyAutofillRules returns { values, ruleFor, parts }: `values` maps each
+// filled field key to its value, `ruleFor` maps it to the index of the rule
+// that filled it (the rules page uses it to highlight the winners), and
+// `parts` is the code split by `layout`.
+export function applyAutofillRules (rules, { code = '', name = '' } = {}, layout = '') {
   const texts = { code: String(code ?? '').trim(), name: String(name ?? '').trim() }
+  const parts = parseCode(layout, texts.code)
   const values = {}
   const ruleFor = {}
   for (const [i, rule] of (rules ?? []).entries()) {
     if (rule.field in values) {continue}
     const text = texts[rule.source]
     if (!text) {continue}
-    const value = evaluate(rule, text)
+    const value = evaluate(rule, text, parts)
     if (value === null || value === undefined || value === '') {continue}
     values[rule.field] = value
     ruleFor[rule.field] = i
   }
-  return { values, ruleFor }
+  return { values, ruleFor, parts }
 }
 
 // Error message for a rule the rules page shouldn't save, or '' if it's fine.
 export function autofillRuleError (rule) {
   if (!rule.field) {return 'Pick a field'}
   if (rule.match === 'char' && !(Number(rule.position) >= 1)) {return 'Position must be 1 or more'}
-  if (rule.match !== 'trailing_number' && !String(rule.pattern ?? '').trim()) {return 'Pattern is required'}
+  if (rule.match === 'part' && rule.source !== 'code') {return 'Code parts only apply to the code'}
+  if (rule.match === 'part' && !rule.part) {return 'Pick a code part'}
+  if (rule.match !== 'trailing_number' && rule.match !== 'part' && !String(rule.pattern ?? '').trim()) {return 'Pattern is required'}
   if (rule.match === 'regex') {
     try {
       new RegExp(rule.pattern, 'i')
@@ -133,4 +181,15 @@ export function autofillRuleError (rule) {
     }
   }
   return ''
+}
+
+// Error message for a code layout the rules page shouldn't save, or ''.
+export function codeLayoutError (layout) {
+  if (!layout) {return ''}
+  try {
+    new RegExp(layout, 'i')
+  } catch {
+    return 'Invalid regular expression'
+  }
+  return codeLayoutParts(layout).length === 0 ? 'Name the parts with (?<name>...) groups' : ''
 }

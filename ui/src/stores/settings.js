@@ -30,6 +30,7 @@ export const useSettingsStore = defineStore('settings', {
     // Rules for the New Product dialog's auto-fill (utils/productAutofill.js).
     // Saved on their own from the Auto-fill Rules page, not through persist().
     productAutofillRules: [],
+    productAutofillCodeLayout: '',
     loaded: false,
   }),
 
@@ -51,6 +52,7 @@ export const useSettingsStore = defineStore('settings', {
         this.hiddenBuiltinEvents = settings.hidden_builtin_events ?? []
         this.productAutofillEnabled = settings.product_autofill_enabled ?? true
         this.productAutofillRules = settings.product_autofill_rules ?? []
+        this.productAutofillCodeLayout = settings.product_autofill_code_layout ?? ''
       }
       this.loaded = true
     },
@@ -70,10 +72,11 @@ export const useSettingsStore = defineStore('settings', {
       })
     },
 
-    async saveProductAutofillRules (rules) {
+    async saveProductAutofillRules (rules, codeLayout) {
       const { updateProductAutofillRules } = useAppSettings()
-      const settings = await updateProductAutofillRules(rules)
+      const settings = await updateProductAutofillRules(rules, codeLayout)
       this.productAutofillRules = settings?.product_autofill_rules ?? rules
+      this.productAutofillCodeLayout = settings?.product_autofill_code_layout ?? codeLayout
     },
 
     // The Settings page edits a local draft and calls this once on Save, so a

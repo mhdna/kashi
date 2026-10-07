@@ -832,9 +832,12 @@ type Querier interface {
 	// Same two sources and sign conventions as ListClientsBySpending (see the
 	// comment there); item_count and the branch_id/search filters are dropped
 	// -- nothing on the loyalty page uses them, and dropping item_count also
-	// drops the two line-item joins whose row fan-out made the DISTINCTs
-	// necessary (kept anyway, so a non-unique sales_invoices/client_links row
-	// can't inflate a count).
+	// drops the two line-item joins whose row fan-out made DISTINCTs necessary.
+	// With those gone each joined row is exactly one invoice: sales_invoices is
+	// keyed by invoice_id and client_links by (register_id, branch_client_id),
+	// so neither join can repeat an invoice. That makes COUNT(*) exact, and
+	// unlike COUNT(DISTINCT) it lets Postgres hash-aggregate instead of sorting
+	// every invoice per client.
 	ListClientSpendingSummary(ctx context.Context, arg ListClientSpendingSummaryParams) ([]ListClientSpendingSummaryRow, error)
 	// Completeness check: every retail client's uid + updated_at, keyset-paged
 	// by uid. Inactive clients are included -- a till must learn they're
@@ -1183,10 +1186,10 @@ type Querier interface {
 	SetCashboxAccountActive(ctx context.Context, arg SetCashboxAccountActiveParams) (CashboxAccount, error)
 	SetClientActive(ctx context.Context, arg SetClientActiveParams) error
 	SetDefaultLowStockThreshold(ctx context.Context, defaultLowStockThreshold int64) (AppSetting, error)
+	SetProductAutofillRules(ctx context.Context, arg SetProductAutofillRulesParams) (AppSetting, error)
 	SetProductCategory(ctx context.Context, arg SetProductCategoryParams) error
 	SetProductLowStockAlertsEnabled(ctx context.Context, arg SetProductLowStockAlertsEnabledParams) error
 	SetProductVariantActive(ctx context.Context, arg SetProductVariantActiveParams) error
-	SetProductAutofillRules(ctx context.Context, productAutofillRules json.RawMessage) (AppSetting, error)
 	SetPurchaseStatus(ctx context.Context, arg SetPurchaseStatusParams) (Purchase, error)
 	SetPurchaseTotals(ctx context.Context, arg SetPurchaseTotalsParams) error
 	SetRecurringExpenseActive(ctx context.Context, arg SetRecurringExpenseActiveParams) (RecurringExpense, error)

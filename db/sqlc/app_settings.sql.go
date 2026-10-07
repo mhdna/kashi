@@ -11,7 +11,7 @@ import (
 )
 
 const getAppSettings = `-- name: GetAppSettings :one
-SELECT id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules FROM app_settings WHERE id = 1
+SELECT id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout FROM app_settings WHERE id = 1
 `
 
 func (q *Queries) GetAppSettings(ctx context.Context) (AppSetting, error) {
@@ -37,6 +37,7 @@ func (q *Queries) GetAppSettings(ctx context.Context) (AppSetting, error) {
 		&i.WhatsappTemplateParams,
 		&i.ProductAutofillEnabled,
 		&i.ProductAutofillRules,
+		&i.ProductAutofillCodeLayout,
 	)
 	return i, err
 }
@@ -44,13 +45,19 @@ func (q *Queries) GetAppSettings(ctx context.Context) (AppSetting, error) {
 const setProductAutofillRules = `-- name: SetProductAutofillRules :one
 UPDATE app_settings
 SET product_autofill_rules = $1,
+    product_autofill_code_layout = $2,
     updated_at = now()
 WHERE id = 1
-RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules
+RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout
 `
 
-func (q *Queries) SetProductAutofillRules(ctx context.Context, productAutofillRules json.RawMessage) (AppSetting, error) {
-	row := q.db.QueryRowContext(ctx, setProductAutofillRules, productAutofillRules)
+type SetProductAutofillRulesParams struct {
+	ProductAutofillRules      json.RawMessage `json:"product_autofill_rules"`
+	ProductAutofillCodeLayout string          `json:"product_autofill_code_layout"`
+}
+
+func (q *Queries) SetProductAutofillRules(ctx context.Context, arg SetProductAutofillRulesParams) (AppSetting, error) {
+	row := q.db.QueryRowContext(ctx, setProductAutofillRules, arg.ProductAutofillRules, arg.ProductAutofillCodeLayout)
 	var i AppSetting
 	err := row.Scan(
 		&i.ID,
@@ -72,6 +79,7 @@ func (q *Queries) SetProductAutofillRules(ctx context.Context, productAutofillRu
 		&i.WhatsappTemplateParams,
 		&i.ProductAutofillEnabled,
 		&i.ProductAutofillRules,
+		&i.ProductAutofillCodeLayout,
 	)
 	return i, err
 }
@@ -89,7 +97,7 @@ SET financials_high_season_months = $1,
     product_autofill_enabled = $9,
     updated_at = now()
 WHERE id = 1
-RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules
+RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout
 `
 
 type UpdateAppSettingsParams struct {
@@ -137,6 +145,7 @@ func (q *Queries) UpdateAppSettings(ctx context.Context, arg UpdateAppSettingsPa
 		&i.WhatsappTemplateParams,
 		&i.ProductAutofillEnabled,
 		&i.ProductAutofillRules,
+		&i.ProductAutofillCodeLayout,
 	)
 	return i, err
 }

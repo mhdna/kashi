@@ -19,6 +19,7 @@ RETURNING *;
 -- name: SetProductAutofillRules :one
 UPDATE app_settings
 SET product_autofill_rules = $1,
+    product_autofill_code_layout = $2,
     updated_at = now()
 WHERE id = 1
 RETURNING *;

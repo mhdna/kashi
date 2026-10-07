@@ -303,7 +303,7 @@
     const { values } = applyAutofillRules(settingsStore.productAutofillRules, {
       code: code.value.value,
       name: name.value.value,
-    })
+    }, settingsStore.productAutofillCodeLayout)
     const filled = []
     for (const [key, value] of Object.entries(values)) {
       if (key === 'price') {

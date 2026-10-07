@@ -31,12 +31,13 @@ export function useAppSettings () {
     return data?.settings ?? null
   }
 
-  // Replaces the whole New Product auto-fill rule list (order matters).
-  async function updateProductAutofillRules (rules) {
+  // Replaces the whole New Product auto-fill rule list (order matters) and
+  // the code layout that splits codes into parts.
+  async function updateProductAutofillRules (rules, codeLayout) {
     const data = await requestJSON(`${API_BASE}/app_settings/product_autofill_rules`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rules }),
+      body: JSON.stringify({ rules, code_layout: codeLayout }),
     })
     return data?.settings ?? null
   }

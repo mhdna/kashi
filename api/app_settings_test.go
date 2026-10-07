@@ -30,13 +30,15 @@ func TestSetProductAutofillRules_SavesRulesInOrder(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	store := mockdb.NewMockStore(ctrl)
 	store.EXPECT().SetProductAutofillRules(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, rules json.RawMessage) (db.AppSetting, error) {
+		DoAndReturn(func(_ context.Context, arg db.SetProductAutofillRulesParams) (db.AppSetting, error) {
 			var saved []productAutofillRule
-			require.NoError(t, json.Unmarshal(rules, &saved))
-			require.Len(t, saved, 2)
+			require.NoError(t, json.Unmarshal(arg.ProductAutofillRules, &saved))
+			require.Len(t, saved, 3)
 			require.Equal(t, "origin", saved[0].Field)
 			require.Equal(t, "price", saved[1].Field)
-			return db.AppSetting{ID: 1, ProductAutofillRules: rules, WhatsappAccessToken: "secret-token"}, nil
+			require.Equal(t, "type", saved[2].Part)
+			require.Equal(t, `^(?<origin>[A-Z]+)(?<type>[A-Z]+)$`, arg.ProductAutofillCodeLayout)
+			return db.AppSetting{ID: 1, ProductAutofillRules: arg.ProductAutofillRules, WhatsappAccessToken: "secret-token"}, nil
 		})
 
 	server := newTestServer(t, store)
@@ -44,7 +46,9 @@ func TestSetProductAutofillRules_SavesRulesInOrder(t *testing.T) {
 		"rules": []map[string]any{
 			{"source": "code", "match": "char", "position": 1, "pattern": "L", "field": "origin", "value": "Lebanon"},
 			{"source": "code", "match": "trailing_number", "pattern": "", "field": "price", "value": ""},
+			{"source": "code", "match": "part", "part": "type", "pattern": "JE", "field": "type", "value": "Jeans"},
 		},
+		"code_layout": `^(?<origin>[A-Z]+)(?<type>[A-Z]+)$`,
 	})
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	require.NotContains(t, rec.Body.String(), "secret-token")
@@ -57,6 +61,8 @@ func TestSetProductAutofillRules_RejectsBadRules(t *testing.T) {
 		"unknown field":  {"source": "code", "match": "prefix", "pattern": "L", "field": "colour", "value": "Red"},
 		"char at 0":      {"source": "code", "match": "char", "position": 0, "pattern": "L", "field": "origin", "value": "Lebanon"},
 		"empty pattern":  {"source": "name", "match": "word", "pattern": "", "field": "type", "value": "Shirt"},
+		"part, no part":  {"source": "code", "match": "part", "pattern": "JE", "field": "type", "value": "Jeans"},
+		"part of name":   {"source": "name", "match": "part", "part": "type", "pattern": "JE", "field": "type", "value": "Jeans"},
 	}
 	for name, rule := range cases {
 		t.Run(name, func(t *testing.T) {

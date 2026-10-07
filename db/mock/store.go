@@ -8675,7 +8675,7 @@ func (mr *MockStoreMockRecorder) SetDefaultLowStockThreshold(arg0, arg1 interfac
 }
 
 // SetProductAutofillRules mocks base method.
-func (m *MockStore) SetProductAutofillRules(arg0 context.Context, arg1 jsontext.Value) (db.AppSetting, error) {
+func (m *MockStore) SetProductAutofillRules(arg0 context.Context, arg1 db.SetProductAutofillRulesParams) (db.AppSetting, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetProductAutofillRules", arg0, arg1)
 	ret0, _ := ret[0].(db.AppSetting)
