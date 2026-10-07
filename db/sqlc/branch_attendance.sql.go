@@ -325,7 +325,7 @@ func (q *Queries) ListBranchAttendanceChanges(ctx context.Context, arg ListBranc
 const listBranchAttendanceEvents = `-- name: ListBranchAttendanceEvents :many
 SELECT id, branch_id, client_ref, salesperson_name, attendance_user_id, event_date, event_time, event_at, type, status, received_at FROM branch_attendance_events
 WHERE $3::bigint IS NULL OR branch_id = $3
-ORDER BY id DESC
+ORDER BY event_date DESC, event_time DESC, id DESC
 LIMIT $1 OFFSET $2
 `
 
@@ -335,6 +335,8 @@ type ListBranchAttendanceEventsParams struct {
 	BranchID sql.NullInt64 `json:"branch_id"`
 }
 
+// Newest punch first by its own local date/time, not insertion order: a
+// backfilled import gets the newest ids but holds the oldest punches.
 func (q *Queries) ListBranchAttendanceEvents(ctx context.Context, arg ListBranchAttendanceEventsParams) ([]BranchAttendanceEvent, error) {
 	rows, err := q.db.QueryContext(ctx, listBranchAttendanceEvents, arg.Limit, arg.Offset, arg.BranchID)
 	if err != nil {

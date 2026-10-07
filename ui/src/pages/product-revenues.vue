@@ -57,8 +57,8 @@
     </div>
 
     <v-tabs v-model="tab" class="px-4" color="primary">
-      <v-tab value="kashi">Kashi Sales</v-tab>
-      <v-tab value="pos">Kashi-POS Sales</v-tab>
+      <v-tab value="pos">Branches</v-tab>
+      <v-tab value="kashi">Wholesale</v-tab>
     </v-tabs>
     <v-divider />
 
@@ -81,7 +81,7 @@
             :error="posError"
             :loading="posLoading"
             :products="posProducts"
-            revenue-note="Kashi-POS doesn't yet report the exact price charged per line item centrally, so revenue here is an ESTIMATE: quantity sold × each SKU's current catalog price, not the actual transaction total. Units sold and branch/category/brand breakdowns are real."
+            revenue-note="The branch tills don't yet report the exact price charged per line item centrally, so revenue here is an ESTIMATE: quantity sold × each SKU's current catalog price, not the actual transaction total. Units sold and branch/category/brand breakdowns are real."
           >
             <template #extra-charts>
               <v-row dense>
@@ -125,7 +125,7 @@
     splitLine: { lineStyle: { color: axisColor.value, type: 'dashed' } },
   }))
 
-  const tab = ref('kashi')
+  const tab = ref('pos')
 
   const RANGE_OPTIONS = [
     { title: 'Last 30 days', value: 30 },

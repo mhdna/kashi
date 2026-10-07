@@ -6,14 +6,13 @@
         <span>Attendance</span>
         <v-spacer />
         <v-select
-          v-model="branchId"
+          v-model="branchFilter"
           class="attendance-branch"
-          clearable
           density="compact"
           hide-details
           item-title="name"
           item-value="id"
-          :items="branches"
+          :items="branchOptions"
           label="Branch"
           variant="outlined"
         />
@@ -41,13 +40,7 @@
       </v-card-title>
       <v-divider />
 
-      <v-alert v-if="!branchId" class="notice ma-4" type="info" variant="tonal">
-        Pick a branch to review its punches, or import a CSV
-        (<code>date,time,name,type,status,user_id</code>).
-      </v-alert>
-
       <ServerSideTable
-        v-else
         ref="tableRef"
         :api-u-r-l="apiURL"
         density="comfortable"
@@ -59,6 +52,9 @@
         root-key="branch_attendance_events"
         :show-search-icon="false"
       >
+        <template #item.branch_id="{ item }">
+          {{ branchNames[item.branch_id] ?? item.branch_id }}
+        </template>
         <template #item.type="{ item }">
           <v-chip
             :color="item.type?.toLowerCase().includes('out') ? 'deep-orange' : 'green'"
@@ -119,12 +115,12 @@
 </template>
 
 <script setup lang="ts">
-  import { onMounted, reactive, ref } from 'vue'
+  import { computed, onMounted, reactive, ref } from 'vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useAttendance } from '@/composables/useAttendance'
   import { useBranches } from '@/composables/useBranches'
-  import { usePageAccess } from '@/composables/usePageAccess'
   import { useNotify } from '@/composables/useNotify'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
@@ -135,6 +131,7 @@
 
   const apiURL = `${API_BASE}/branch_attendance_events`
   const headers = [
+    { title: 'Branch', key: 'branch_id', align: 'start', sortable: false },
     { title: 'Date', key: 'event_date', align: 'start' },
     { title: 'Time', key: 'event_time' },
     { title: 'Name', key: 'salesperson_name', align: 'start' },
@@ -144,7 +141,12 @@
     { title: '', key: 'actions', align: 'end', sortable: false },
   ]
 
-  const branchId = ref(null)
+  // 'all' lists every branch's punches; importing still needs one branch.
+  const ALL_BRANCHES = 'all'
+  const branchFilter = ref(ALL_BRANCHES)
+  const branchId = computed(() => (branchFilter.value === ALL_BRANCHES ? null : branchFilter.value))
+  const branchOptions = computed(() => [{ id: ALL_BRANCHES, name: 'All branches' }, ...branches.value])
+  const branchNames = computed(() => Object.fromEntries(branches.value.map(b => [b.id, b.name])))
   const tableRef = ref(null)
   const fileInput = ref(null)
   const notify = useNotify()
@@ -162,7 +164,7 @@
     event.target.value = ''
     if (!file) return
     if (!branchId.value) {
-      notify.warning('Pick a branch before importing.')
+      notify.warning('Pick a branch (not "All branches") before importing.')
       return
     }
     try {

@@ -39,9 +39,11 @@ RETURNING *;
 DELETE FROM branch_attendance_events WHERE id = $1;
 
 -- name: ListBranchAttendanceEvents :many
+-- Newest punch first by its own local date/time, not insertion order: a
+-- backfilled import gets the newest ids but holds the oldest punches.
 SELECT * FROM branch_attendance_events
 WHERE sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id)
-ORDER BY id DESC
+ORDER BY event_date DESC, event_time DESC, id DESC
 LIMIT $1 OFFSET $2;
 
 -- name: CountBranchAttendanceEvents :one
