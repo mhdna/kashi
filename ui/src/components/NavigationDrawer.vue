@@ -88,7 +88,7 @@
 
     <template #append>
       <v-divider thickness="2" />
-      <v-list class="pa-0" density="compact" nav>
+      <v-list class="nav-append pa-0" density="compact" nav>
         <div class="pa-2">
           <v-list-item
             v-for="item in visibleAppendItems"
@@ -216,6 +216,12 @@
 <style scoped>
 .nav-drawer {
   --v-list-prepend-gap: 20px;
+}
+
+/* Grey band behind the bottom links (Calendar … Settings), set apart from
+   the main nav. Tinted from on-surface so it works in both themes. */
+.nav-append {
+  background-color: rgba(var(--v-theme-on-surface), 0.08);
 }
 
 .nav-drawer :deep(.v-list-group__items .v-list-item) {
