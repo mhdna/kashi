@@ -82,19 +82,7 @@
           loads, then the photo fits inside it. -->
         <div class="image-stage d-flex align-center justify-center">
           <v-progress-circular v-if="previewLoading" indeterminate size="32" />
-          <v-img
-            v-else-if="previewUrl"
-            class="image-stage__img"
-            contain
-            height="100%"
-            :src="previewUrl"
-          >
-            <template #placeholder>
-              <div class="d-flex align-center justify-center fill-height">
-                <v-progress-circular indeterminate size="32" />
-              </div>
-            </template>
-          </v-img>
+          <ZoomableImage v-else-if="previewUrl" height="100%" :src="previewUrl" />
           <span v-else class="text-medium-emphasis">Couldn't load this image.</span>
         </div>
         <v-card-text v-if="previewImage">
@@ -339,10 +327,6 @@
 <style scoped>
 .image-stage {
   height: min(70vh, 640px);
-  width: 100%;
-}
-
-.image-stage__img {
   width: 100%;
 }
 

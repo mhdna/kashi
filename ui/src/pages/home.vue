@@ -274,7 +274,7 @@
         </v-card-title>
         <v-divider />
         <div class="pa-2">
-          <v-img v-if="photoUrl" max-height="70vh" :src="photoUrl" />
+          <ZoomableImage v-if="photoUrl" :alt="photoItem?.title" :src="photoUrl" />
           <div v-else class="d-flex justify-center pa-8">
             <v-progress-circular indeterminate />
           </div>

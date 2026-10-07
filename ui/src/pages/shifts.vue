@@ -244,10 +244,9 @@
         <!-- Fixed-height stage so the dialog doesn't resize when the photo lands. -->
         <div class="image-stage d-flex align-center justify-center pa-2">
           <v-progress-circular v-if="receiptLoading" indeterminate />
-          <v-img
+          <ZoomableImage
             v-else-if="receiptUrl"
-            class="image-stage__img"
-            contain
+            alt="Close-shift receipt"
             height="100%"
             :src="receiptUrl"
           />
@@ -520,10 +519,6 @@
 <style scoped>
 .image-stage {
   height: min(70vh, 640px);
-  width: 100%;
-}
-
-.image-stage__img {
   width: 100%;
 }
 
