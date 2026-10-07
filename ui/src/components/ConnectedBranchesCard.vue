@@ -17,9 +17,10 @@
           size="16"
         />
         <span v-if="!mobile" class="ms-1 text-body-2">
-          <template v-if="serverDown">Server is down, we'll be back soon.</template>
+          <template v-if="!online">No internet</template>
+          <template v-else-if="serverDown">Server is down, we'll be back soon.</template>
           <template v-else>
-            {{ connectedBranchIds.length }} {{ connectedBranchIds.length === 1 ? 'device' : 'devices' }} online
+            {{ connectedBranchIds.length }}
           </template>
         </span>
       </v-card>
@@ -30,7 +31,7 @@
       <v-divider />
 
       <v-card-text v-if="serverDown" class="text-medium-emphasis">
-        Server is down, we'll be back soon.
+        {{ online ? SERVER_DOWN_MESSAGE : NO_INTERNET_MESSAGE }}
       </v-card-text>
       <v-list v-else-if="connectedBranchIds.length > 0" class="menu-scroll" density="compact">
         <v-list-item v-for="id in connectedBranchIds" :key="id" :title="branchName(id)">
@@ -50,7 +51,9 @@
   import { computed, onMounted, onUnmounted, ref } from 'vue'
   import { useDisplay } from 'vuetify'
   import { useAdminSocket } from '@/composables/useAdminSocket'
+  import { NO_INTERNET_MESSAGE, SERVER_DOWN_MESSAGE } from '@/composables/useApi'
   import { useBranches } from '@/composables/useBranches'
+  import { useNetworkStatus } from '@/composables/useNetworkStatus'
 
   const { branches, fetchBranches, fetchConnectedBranches } = useBranches()
   const { status, ensureConnected, onMessage } = useAdminSocket()
@@ -64,7 +67,10 @@
   // so the count would be stale -- surface the outage message instead of a
   // number. Only a confirmed 'closed' counts: 'connecting' is the normal
   // pre-handshake state on page load and must not flash the outage copy.
-  const serverDown = computed(() => status.value === 'closed')
+  // Offline counts too: the socket can take a while to notice the network
+  // is gone, but there's certainly no live count without it.
+  const { online } = useNetworkStatus()
+  const serverDown = computed(() => !online.value || status.value === 'closed')
   const statusColor = computed(() => {
     if (serverDown.value) return 'white'
     return connectedBranchIds.value.length > 0 ? 'success' : 'error'

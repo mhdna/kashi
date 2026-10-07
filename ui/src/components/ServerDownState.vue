@@ -1,11 +1,11 @@
 <template>
   <v-main class="server-down">
     <section class="server-down__content text-center">
-      <v-icon class="server-down__icon" icon="mdi-server-network-off" size="72" />
+      <v-icon class="server-down__icon" :icon="offline ? 'mdi-wifi-off' : 'mdi-server-network-off'" size="72" />
 
-      <h1 class="text-h4 font-weight-bold mt-6">Can't reach the server</h1>
+      <h1 class="text-h4 font-weight-bold mt-6">{{ offline ? 'No internet' : 'Can\'t reach the server' }}</h1>
       <p class="text-body-1 text-medium-emphasis mt-3 mb-0">
-        {{ message }}
+        {{ offline ? NO_INTERNET_MESSAGE : message }}
       </p>
 
       <v-btn
@@ -25,12 +25,17 @@
 
 <script setup lang="ts">
   import { ref } from 'vue'
-  import { SERVER_DOWN_MESSAGE } from '@/composables/useApi'
+  import { NO_INTERNET_MESSAGE, SERVER_DOWN_MESSAGE } from '@/composables/useApi'
 
   defineProps({
     message: {
       type: String,
       default: SERVER_DOWN_MESSAGE,
+    },
+    // The device has no network at all, as opposed to the server being down.
+    offline: {
+      type: Boolean,
+      default: false,
     },
   })
 

@@ -226,6 +226,7 @@ import {
   mdiWhatsapp,
   mdiWhiteBalanceSunny,
   mdiWifi,
+  mdiWifiOff,
   mdiWrench,
 } from '@mdi/js'
 import { h } from 'vue'
@@ -459,6 +460,7 @@ const iconPaths = {
   'mdi-truck': mdiTruck,
   'mdi-water': mdiWater,
   'mdi-wifi': mdiWifi,
+  'mdi-wifi-off': mdiWifiOff,
   'mdi-wrench': mdiWrench,
 }
 

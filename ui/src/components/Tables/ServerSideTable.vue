@@ -34,6 +34,7 @@
 </template>
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue'
+  import { isConnectionError } from '@/composables/useApi'
   import { dedupedFetch } from '@/composables/useRequestDedup'
   import { useNotify } from '@/composables/useNotify'
 
@@ -225,7 +226,7 @@
         emit('loaded', items)
       })
       .catch(error_ => {
-        notify.error(error_.message === "Server is down, we'll be back soon." ? error_.message : `Failed to load data: ${error_.message}`)
+        notify.error(isConnectionError(error_) ? error_.message : `Failed to load data: ${error_.message}`)
         serverItems.value = []
         totalItems.value = 0
       })

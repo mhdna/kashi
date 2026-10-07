@@ -1,5 +1,5 @@
 <template>
-  <ServerDownState v-if="serverDown" />
+  <ServerDownState v-if="serverDown" :offline="!online" />
   <div v-else-if="!ready" class="eb-boot" />
   <slot v-else />
 </template>
@@ -8,7 +8,8 @@
   import { onErrorCaptured, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
   import ServerDownState from '@/components/ServerDownState.vue'
-  import { authFetch, SERVER_DOWN_MESSAGE } from '@/composables/useApi'
+  import { authFetch, isConnectionError } from '@/composables/useApi'
+  import { useNetworkStatus } from '@/composables/useNetworkStatus'
   import { API_BASE } from '@/config'
   import { useAuthStore } from '@/stores/auth'
 
@@ -34,7 +35,7 @@
     try {
       await authFetch(`${API_BASE}/app_settings`, { method: 'GET' })
     } catch (error) {
-      if (error?.message === SERVER_DOWN_MESSAGE) {
+      if (isConnectionError(error)) {
         serverDown.value = true
       }
     } finally {
@@ -44,7 +45,7 @@
   probe()
 
   onErrorCaptured(error => {
-    if (error?.message === SERVER_DOWN_MESSAGE) {
+    if (isConnectionError(error)) {
       serverDown.value = true
       return false
     }
@@ -56,6 +57,13 @@
   const route = useRoute()
   watch(() => route.fullPath, () => {
     serverDown.value = false
+  })
+
+  // Coming back online is the cue to try again on its own: dropping the
+  // error state re-mounts the page, which re-issues its requests.
+  const { online } = useNetworkStatus()
+  watch(online, isOnline => {
+    if (isOnline) serverDown.value = false
   })
 </script>
 

@@ -47,7 +47,7 @@
       <v-divider />
 
       <v-card-text v-if="serverDown" class="text-medium-emphasis">
-        Can't reach the server, we'll be back soon.
+        {{ online ? 'Can\'t reach the server, we\'ll be back soon.' : NO_INTERNET_MESSAGE }}
       </v-card-text>
       <v-list v-else-if="recentInvoices.length > 0" class="menu-scroll" density="compact" lines="two">
         <v-list-item
@@ -72,9 +72,11 @@
   import { computed, onMounted, onUnmounted, ref } from 'vue'
   import { useDisplay } from 'vuetify'
   import { useAdminSocket } from '@/composables/useAdminSocket'
+  import { NO_INTERNET_MESSAGE } from '@/composables/useApi'
   import { describeBranchActivity, isBranchActivityMessage } from '@/composables/useBranchActivityMessage'
   import { useBranches } from '@/composables/useBranches'
   import { useBranchInvoices } from '@/composables/useBranchInvoices'
+  import { useNetworkStatus } from '@/composables/useNetworkStatus'
   import { useSettingsStore } from '@/stores/settings'
 
   const { branches, fetchBranches } = useBranches()
@@ -108,7 +110,8 @@
   // confirmed 'closed' counts -- 'connecting' is the normal pre-handshake
   // state right after a page load and should read as "syncing...", not an
   // outage.
-  const serverDown = computed(() => wsStatus.value === 'closed')
+  const { online } = useNetworkStatus()
+  const serverDown = computed(() => !online.value || wsStatus.value === 'closed')
   const wsIconColor = computed(() => (serverDown.value ? undefined : 'success'))
 
   // 'appbar' mode: branch activity (sales/returns/expenses) rides on the
@@ -204,6 +207,18 @@
     return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`
   }
 
+  // Compact form for the pill: "now", "5m ago", "1h ago", "2d ago". The cloud
+  // icon already says it's about syncing, so no "synced" prefix.
+  function shortTime (value) {
+    const diffSeconds = Math.max(0, Math.round((now.value - new Date(value).getTime()) / 1000))
+    if (diffSeconds < 45) return 'now'
+    const diffMinutes = Math.round(diffSeconds / 60)
+    if (diffMinutes < 60) return `${diffMinutes}m ago`
+    const diffHours = Math.round(diffMinutes / 60)
+    if (diffHours < 24) return `${diffHours}h ago`
+    return `${Math.round(diffHours / 24)}d ago`
+  }
+
   // Most recent proof of sync: newest invoice's received_at vs. the last
   // live activity ping, in ms. 0 means nothing has synced this session.
   const lastSyncMs = computed(() => {
@@ -213,10 +228,11 @@
   })
 
   const statusText = computed(() => {
+    if (!online.value) return 'offline'
     if (serverDown.value) return 'not syncing'
     if (!loaded.value) return 'syncing...'
     if (!lastSyncMs.value) return 'no sync yet'
-    return `synced ${relativeTime(lastSyncMs.value)}`
+    return shortTime(lastSyncMs.value)
   })
 
   onMounted(() => {
