@@ -1,5 +1,5 @@
 <template>
-  <!-- A fixed reel pinned to the bottom-right corner. Up to MAX_VISIBLE
+  <!-- A fixed reel pinned to the bottom-right corner. Up to maxVisible
        toasts stack vertically, newest nearest the corner; extras queue and
        slot in as older ones dismiss. Replaces v-snackbar-queue, which only
        ever showed one at a time. -->
@@ -38,7 +38,8 @@
 </template>
 
 <script setup>
-  import { onMounted, onUnmounted, ref } from 'vue'
+  import { computed, onMounted, onUnmounted, ref } from 'vue'
+  import { useDisplay } from 'vuetify'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { describeBranchActivity, isBranchActivityMessage } from '@/composables/useBranchActivityMessage'
   import { useBranches } from '@/composables/useBranches'
@@ -49,11 +50,14 @@
   const { ensureConnected, onMessage } = useAdminSocket()
   const settingsStore = useSettingsStore()
 
-  // Sliding window of the most recent MAX_VISIBLE toasts, newest nearest the
+  // Sliding window of the most recent maxVisible toasts, newest nearest the
   // corner. A fresh toast appears immediately and bumps the oldest out --
   // no queue that spaces them apart -- while each still self-dismisses after
   // activityMessageSeconds so the row drains once activity stops.
-  const MAX_VISIBLE = 3
+  // One at a time on a phone: three stacked toasts cover a third of the
+  // screen there.
+  const { mobile } = useDisplay()
+  const maxVisible = computed(() => (mobile.value ? 1 : 3))
   const activeItems = ref([]) // oldest first
   const itemTimers = new Map()
   let itemSeq = 0
@@ -87,7 +91,7 @@
     }
     activeItems.value.push(item)
     itemTimers.set(item.id, setTimeout(() => removeItem(item.id), settingsStore.activityMessageSeconds * 1000))
-    while (activeItems.value.length > MAX_VISIBLE) {
+    while (activeItems.value.length > maxVisible.value) {
       removeItem(activeItems.value[0].id)
     }
   }
