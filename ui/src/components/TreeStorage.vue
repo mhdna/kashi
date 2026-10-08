@@ -1,35 +1,29 @@
 <template>
   <div class="d-flex" style="height: 100%">
-    <v-sheet class="flex-shrink-0" width="240">
-      <v-treeview
-        v-model:activated="activated"
-        activatable
-        item-value="id"
-        :items="items"
-        open-on-click
-      >
-        <template #prepend="{ item }">
-          <v-icon :icon="item.icon" />
-        </template>
-      </v-treeview>
-    </v-sheet>
+    <!-- PageSidebar folds into a chip strip above the grid on phones. -->
+    <PageSidebar
+      v-model="selectedKind"
+      all-icon="mdi-view-gallery"
+      :items="items"
+      show-all
+      :width="240"
+    />
 
     <v-divider vertical />
 
     <div class="flex-grow-1 pa-4" style="overflow-y: auto">
       <template v-if="source">
-        <div class="d-flex align-center justify-space-between mb-4">
-          <div class="text-h6">{{ source.title }}</div>
-          <div class="d-flex align-center ga-2">
+        <div class="d-flex flex-wrap align-center justify-space-between ga-2 mb-4">
+          <div class="text-h6 text-no-wrap">{{ source.title }}</div>
+          <div class="d-flex align-center ga-2 storage-search">
             <v-text-field
               v-model="search"
               clearable
               density="compact"
               hide-details
-              placeholder="Search receipts"
+              placeholder="Search"
               prepend-inner-icon="mdi-magnify"
               variant="outlined"
-              width="280"
             />
             <v-progress-circular v-if="loading" indeterminate size="20" />
           </div>
@@ -102,13 +96,16 @@
 
 <script setup>
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+  import PageSidebar from '@/components/PageSidebar.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
-  import { useNotify } from '@/composables/useNotify'
   import { useExpenseImages } from '@/composables/useExpenseImages'
+  import { useNotify } from '@/composables/useNotify'
   import { useShiftReceiptImages } from '@/composables/useShiftReceiptImages'
+  import { useTransferAttachments } from '@/composables/useTransferAttachments'
 
   const { fetchExpenseImages, fetchExpenseImageObjectUrl } = useExpenseImages()
   const { fetchShiftReceiptImages, fetchShiftReceiptImageObjectUrl } = useShiftReceiptImages()
+  const { fetchTransferAttachments, fetchTransferAttachmentObjectUrl } = useTransferAttachments()
   const { ensureConnected, onMessage } = useAdminSocket()
   const notify = useNotify()
 
@@ -132,6 +129,14 @@
       refreshOn: 'branch_shift_receipt_uploaded',
       primaryText: image => `Shift #${image.shift_local_id} · ${image.closing_person_name || '—'}`,
     },
+    transfers: {
+      title: 'Transfer photos',
+      icon: 'mdi-truck-delivery',
+      fetchPage: fetchTransferAttachments,
+      fetchObjectUrl: (image, opts) => fetchTransferAttachmentObjectUrl(image.id, opts),
+      refreshOn: 'branch_transfer_photo_uploaded',
+      primaryText: image => `${image.code || `Transfer #${image.id}`} · ${image.from_inventory_name} → ${image.to_inventory_name}`,
+    },
   }
 
   const KIND_KEYS = Object.keys(KINDS)
@@ -147,9 +152,12 @@
     primaryText: image => KINDS[image.__kind].primaryText(image),
     fetchObjectUrl: (image, opts) => KINDS[image.__kind].fetchObjectUrl(image, opts),
     async fetchPage (pageId, pageSize) {
-      const results = await Promise.all(
+      // A kind the role can't read (e.g. transfers need Inventory) just
+      // drops out instead of failing the whole view.
+      const settled = await Promise.allSettled(
         KIND_KEYS.map(kind => KINDS[kind].fetchPage(pageId, pageSize)),
       )
+      const results = settled.map(r => (r.status === 'fulfilled' ? r.value : { images: [], total: 0 }))
       const merged = results.flatMap((data, index) =>
         data.images.map(image => ({ ...image, __kind: KIND_KEYS[index] })),
       ).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -161,13 +169,14 @@
   const SOURCES = { all: ALL, ...KINDS }
 
   const items = [
-    { id: 'all', title: 'All', icon: 'mdi-view-gallery' },
-    { id: 'expenses', title: 'Expenses', icon: 'mdi-receipt-text-check' },
-    { id: 'shiftReceipts', title: 'Shift receipts', icon: 'mdi-camera' },
+    { value: 'expenses', title: 'Expenses', prependIcon: 'mdi-receipt-text-check' },
+    { value: 'shiftReceipts', title: 'Shift receipts', prependIcon: 'mdi-camera' },
+    { value: 'transfers', title: 'Transfers', prependIcon: 'mdi-truck-delivery' },
   ]
 
-  const activated = ref(['all'])
-  const activeNode = computed(() => activated.value[0] ?? null)
+  // null is PageSidebar's "All" row.
+  const selectedKind = ref(null)
+  const activeNode = computed(() => selectedKind.value ?? 'all')
   const source = computed(() => (activeNode.value ? SOURCES[activeNode.value] : null))
 
   const images = ref([])
@@ -325,6 +334,11 @@
 </script>
 
 <style scoped>
+.storage-search {
+  flex: 1 1 200px;
+  max-width: 320px;
+}
+
 .image-stage {
   height: min(70vh, 640px);
   width: 100%;

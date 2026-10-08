@@ -465,3 +465,36 @@ func (server *Server) getTransferAttachment(ctx *gin.Context) {
 	}
 	server.serveStoredImage(ctx, transfer.AttachmentPath, contentType)
 }
+
+type listTransferAttachmentsRequest struct {
+	PageSize int32 `form:"page_size,default=20" binding:"min=5,max=100"`
+	PageID   int32 `form:"page_id,default=0" binding:"min=0"`
+}
+
+// listTransferAttachments feeds the Storage page: transfers that have a
+// photo, in the same {images, total} shape as the expense and shift-receipt
+// image lists. Each photo is fetched from getTransferAttachment.
+func (server *Server) listTransferAttachments(ctx *gin.Context) {
+	var req listTransferAttachmentsRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	images, err := server.store.ListTransferAttachments(ctx, db.ListTransferAttachmentsParams{
+		Limit:  req.PageSize,
+		Offset: req.PageID * req.PageSize,
+	})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	total, err := server.store.CountTransferAttachments(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	server.writeJSON(ctx, http.StatusOK, envelope{"images": images, "total": total})
+}

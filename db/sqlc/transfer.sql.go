@@ -13,6 +13,17 @@ import (
 	"github.com/google/uuid"
 )
 
+const countTransferAttachments = `-- name: CountTransferAttachments :one
+SELECT COUNT(*) FROM transfers WHERE attachment_path <> ''
+`
+
+func (q *Queries) CountTransferAttachments(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countTransferAttachments)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countTransfers = `-- name: CountTransfers :one
 SELECT COUNT(*) FROM transfers
 WHERE ($1::transfer_status IS NULL OR status = $1)
@@ -349,6 +360,64 @@ func (q *Queries) ListIncomingBranchTransfersUpdatedSince(ctx context.Context, a
 			&i.ConfirmedAt,
 			&i.ConfirmedNote,
 			&i.RegisterID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTransferAttachments = `-- name: ListTransferAttachments :many
+SELECT t.id, t.code, t.created_at, fi.name AS from_inventory_name,
+       ti.name AS to_inventory_name, COALESCE(b.name, '') AS branch_name
+FROM transfers t
+JOIN inventories fi ON fi.id = t.from_inventory_id
+JOIN inventories ti ON ti.id = t.to_inventory_id
+LEFT JOIN branches b ON b.id = t.branch_id
+WHERE t.attachment_path <> ''
+ORDER BY t.created_at DESC, t.id DESC
+LIMIT $1 OFFSET $2
+`
+
+type ListTransferAttachmentsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+type ListTransferAttachmentsRow struct {
+	ID                int64     `json:"id"`
+	Code              string    `json:"code"`
+	CreatedAt         time.Time `json:"created_at"`
+	FromInventoryName string    `json:"from_inventory_name"`
+	ToInventoryName   string    `json:"to_inventory_name"`
+	BranchName        string    `json:"branch_name"`
+}
+
+// Storage page feed: transfers that have a photo, newest first. The photo
+// itself is served by GET /transfers/:id/attachment.
+func (q *Queries) ListTransferAttachments(ctx context.Context, arg ListTransferAttachmentsParams) ([]ListTransferAttachmentsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listTransferAttachments, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListTransferAttachmentsRow{}
+	for rows.Next() {
+		var i ListTransferAttachmentsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Code,
+			&i.CreatedAt,
+			&i.FromInventoryName,
+			&i.ToInventoryName,
+			&i.BranchName,
 		); err != nil {
 			return nil, err
 		}

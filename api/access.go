@@ -196,6 +196,7 @@ var routeRules = []routeRule{
 	rule("/stock_counts", "inventory", "inventory"),
 	rule("/batches", "inventory", "inventory", "products"),
 	rule("/transfers", "inventory", "inventory"),
+	rule("/transfer_attachments", "inventory", "inventory"),
 	rule("/transfer_items", "inventory", "inventory"),
 	rule("/purchases", "inventory", "inventory"),
 	rule("/purchase_items", "inventory", "inventory"),

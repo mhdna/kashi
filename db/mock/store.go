@@ -1402,6 +1402,21 @@ func (mr *MockStoreMockRecorder) CountSuppliersFiltered(arg0, arg1 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountSuppliersFiltered", reflect.TypeOf((*MockStore)(nil).CountSuppliersFiltered), arg0, arg1)
 }
 
+// CountTransferAttachments mocks base method.
+func (m *MockStore) CountTransferAttachments(arg0 context.Context) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountTransferAttachments", arg0)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountTransferAttachments indicates an expected call of CountTransferAttachments.
+func (mr *MockStoreMockRecorder) CountTransferAttachments(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountTransferAttachments", reflect.TypeOf((*MockStore)(nil).CountTransferAttachments), arg0)
+}
+
 // CountTransfers mocks base method.
 func (m *MockStore) CountTransfers(arg0 context.Context, arg1 db.NullTransferStatus) (int64, error) {
 	m.ctrl.T.Helper()
@@ -8117,6 +8132,21 @@ func (m *MockStore) ListSuppliers(arg0 context.Context, arg1 db.ListSuppliersPar
 func (mr *MockStoreMockRecorder) ListSuppliers(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSuppliers", reflect.TypeOf((*MockStore)(nil).ListSuppliers), arg0, arg1)
+}
+
+// ListTransferAttachments mocks base method.
+func (m *MockStore) ListTransferAttachments(arg0 context.Context, arg1 db.ListTransferAttachmentsParams) ([]db.ListTransferAttachmentsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListTransferAttachments", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListTransferAttachmentsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListTransferAttachments indicates an expected call of ListTransferAttachments.
+func (mr *MockStoreMockRecorder) ListTransferAttachments(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTransferAttachments", reflect.TypeOf((*MockStore)(nil).ListTransferAttachments), arg0, arg1)
 }
 
 // ListTransferItems mocks base method.

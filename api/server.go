@@ -318,6 +318,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.POST("/transfers/:id/approve", server.approveTransfer)
 	authRoutes.POST("/transfers/:id/cancel", server.cancelTransfer)
 	authRoutes.GET("/transfers/:id/attachment", server.getTransferAttachment)
+	authRoutes.GET("/transfer_attachments", server.listTransferAttachments)
 	authRoutes.POST("/transfer_items", server.createTransferItem)
 	authRoutes.GET("/transfer_items/:transfer_id", server.listTransferItems)
 	authRoutes.PUT("/transfer_items/:id/received_quantity", server.setTransferItemReceivedQuantity)

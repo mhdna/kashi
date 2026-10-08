@@ -144,6 +144,7 @@ type Querier interface {
 	CountStockHealthByInventory(ctx context.Context, search string) (int64, error)
 	CountStockMovements(ctx context.Context, arg CountStockMovementsParams) (int64, error)
 	CountSuppliersFiltered(ctx context.Context, search string) (int64, error)
+	CountTransferAttachments(ctx context.Context) (int64, error)
 	CountTransfers(ctx context.Context, status NullTransferStatus) (int64, error)
 	CountVariantsForBarcodes(ctx context.Context, search string) (int64, error)
 	CreateAdminActivity(ctx context.Context, arg CreateAdminActivityParams) (AdminActivity, error)
@@ -605,8 +606,8 @@ type Querier interface {
 	InsertBranchQuickAccessItem(ctx context.Context, arg InsertBranchQuickAccessItemParams) error
 	ListActiveBranchRegisterIDs(ctx context.Context, branchID int64) ([]int64, error)
 	ListActiveBranchTargetSeries(ctx context.Context) ([]BranchTargetSeries, error)
-	ListAdminActivities(ctx context.Context, arg ListAdminActivitiesParams) ([]ListAdminActivitiesRow, error)
 	// User and role changes are admin housekeeping, kept out of the feed.
+	ListAdminActivities(ctx context.Context, arg ListAdminActivitiesParams) ([]ListAdminActivitiesRow, error)
 	ListAllAttributeValues(ctx context.Context) ([]ListAllAttributeValuesRow, error)
 	ListAllBranchRegisters(ctx context.Context) ([]BranchRegister, error)
 	ListAllCashboxAccounts(ctx context.Context) ([]CashboxAccount, error)
@@ -1130,6 +1131,9 @@ type Querier interface {
 	ListStockMovements(ctx context.Context, arg ListStockMovementsParams) ([]ListStockMovementsRow, error)
 	// TOOD: add UpdateSupplier
 	ListSuppliers(ctx context.Context, arg ListSuppliersParams) ([]Supplier, error)
+	// Storage page feed: transfers that have a photo, newest first. The photo
+	// itself is served by GET /transfers/:id/attachment.
+	ListTransferAttachments(ctx context.Context, arg ListTransferAttachmentsParams) ([]ListTransferAttachmentsRow, error)
 	ListTransferItems(ctx context.Context, transferID int64) ([]ListTransferItemsRow, error)
 	ListTransfers(ctx context.Context, arg ListTransfersParams) ([]ListTransfersRow, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)

@@ -148,3 +148,19 @@ ORDER BY ti.id;
 -- name: CountTransfers :one
 SELECT COUNT(*) FROM transfers
 WHERE (sqlc.narg(status)::transfer_status IS NULL OR status = sqlc.narg(status));
+
+-- name: ListTransferAttachments :many
+-- Storage page feed: transfers that have a photo, newest first. The photo
+-- itself is served by GET /transfers/:id/attachment.
+SELECT t.id, t.code, t.created_at, fi.name AS from_inventory_name,
+       ti.name AS to_inventory_name, COALESCE(b.name, '') AS branch_name
+FROM transfers t
+JOIN inventories fi ON fi.id = t.from_inventory_id
+JOIN inventories ti ON ti.id = t.to_inventory_id
+LEFT JOIN branches b ON b.id = t.branch_id
+WHERE t.attachment_path <> ''
+ORDER BY t.created_at DESC, t.id DESC
+LIMIT $1 OFFSET $2;
+
+-- name: CountTransferAttachments :one
+SELECT COUNT(*) FROM transfers WHERE attachment_path <> '';
