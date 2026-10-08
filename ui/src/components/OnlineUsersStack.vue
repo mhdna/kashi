@@ -1,5 +1,10 @@
 <template>
-  <div v-if="users.length > 0" class="online-stack d-flex align-center mx-2">
+  <!-- Same size and ring as a real avatar, so nothing shifts when it loads. -->
+  <div v-if="!loaded" class="online-stack d-flex align-center mx-2">
+    <v-skeleton-loader class="online-stack__avatar online-stack__skeleton" color="transparent" type="avatar" />
+  </div>
+
+  <div v-else-if="users.length > 0" class="online-stack d-flex align-center mx-2">
     <v-avatar
       v-for="u in visible"
       :key="u.id"
@@ -37,7 +42,7 @@
   import { useAuthStore } from '@/stores/auth'
 
   const auth = useAuthStore()
-  const { users, start } = useOnlineUsers()
+  const { users, loaded, start } = useOnlineUsers()
   const { color: ownColor } = useUserAvatar()
   const router = useRouter()
   const { mobile } = useDisplay()
@@ -73,6 +78,18 @@
 
   .online-stack__avatar + .online-stack__avatar {
     margin-inline-start: -10px;
+  }
+
+  .online-stack__skeleton,
+  .online-stack__skeleton :deep(.v-skeleton-loader__avatar) {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    min-height: 30px;
+    max-width: 30px;
+    max-height: 30px;
+    margin: 0;
+    border-radius: 50%;
   }
 
   .online-stack__more {
