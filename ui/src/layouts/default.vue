@@ -5,17 +5,16 @@
         <v-btn icon="mdi-menu" variant="text" @click.stop="toggleDrawer" />
       </template>
 
-      <v-app-bar-title>
+      <!-- Phones: no title at all, the status pills need the room. Tablets
+           and up get the full brand and page title (truncating if tight). -->
+      <v-app-bar-title v-if="!xs">
         <div class="d-flex align-center text-truncate">
           <!--<img class="me-1" src="/everywear.png" style="height: 35px;">-->
-          <!-- Phones/tablets: the status pills need the room, so just the brand. -->
-          <template v-if="smAndDown">GB</template>
-          <template v-else>
-            Kashi Cloud
-            <span v-if="pageTitle" class="ms-2">- {{ pageTitle }}</span>
-          </template>
+          Kashi Cloud
+          <span v-if="pageTitle" class="ms-2">- {{ pageTitle }}</span>
         </div>
       </v-app-bar-title>
+      <v-spacer v-else />
       <!-- <SnackBar /> -->
       <template #append>
         <UpcomingEventsCard v-if="!xs" />
@@ -128,7 +127,7 @@ function handleLogout() {
 
 const showDrawer = ref(false);
 const isRail = ref(false);
-const { mobile, smAndDown, xs } = useDisplay();
+const { mobile, xs } = useDisplay();
 
 function toggleDrawer() {
   if (mobile.value) {
