@@ -53,7 +53,7 @@
       </v-card-text>
     </v-card>
   </v-menu>
-  <PillSkeleton v-else :width="56" />
+  <PillSkeleton v-else :width="44" />
 </template>
 
 <script setup>
