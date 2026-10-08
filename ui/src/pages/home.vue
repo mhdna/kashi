@@ -14,7 +14,7 @@
           <p v-if="appVersion || appCommit" class="mt-2 mb-0 text-caption text-disabled build-info">
             {{ [appVersion, appCommit].filter(Boolean).join(' · ') }}
           </p>
-          <h1 class="mt-2 text-h5 font-weight-medium">Welcome to Kashi Cloud</h1>
+          <h1 class="mt-2 font-weight-medium" :class="xs ? 'text-h6' : 'text-h5'">Welcome to Kashi Cloud</h1>
           <p class="mt-2 mb-0 text-body-2 text-medium-emphasis">
             Take a look at the latest updates.
           </p>
@@ -344,7 +344,7 @@
   import { API_BASE } from '@/config'
   import { useAuthStore } from '@/stores/auth'
 
-  const { mdAndUp } = useDisplay()
+  const { mdAndUp, xs } = useDisplay()
   const theme = useTheme()
   const logoColor = computed(() => theme.global.current.value.dark
     ? 'rgb(var(--v-theme-on-surface))'
