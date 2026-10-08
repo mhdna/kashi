@@ -3,7 +3,6 @@ import { fileURLToPath, URL } from 'node:url'
 import Vue from '@vitejs/plugin-vue'
 // Plugins
 import AutoImport from 'unplugin-auto-import/vite'
-import Fonts from 'unplugin-fonts/vite'
 import Components from 'unplugin-vue-components/vite'
 import { VueRouterAutoImports } from 'unplugin-vue-router'
 import VueRouter from 'unplugin-vue-router/vite'
@@ -47,17 +46,6 @@ export default defineConfig({
       styles: true,
     }),
     Components(),
-    Fonts({
-      provider: 'none',
-      fonts: {
-        google: {
-          families: [{
-            name: 'Roboto',
-            styles: 'wght@100;300;400;500;700;900',
-          }],
-        },
-      },
-    }),
     AutoImport({
       imports: [
         'vue',
