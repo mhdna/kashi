@@ -1,5 +1,5 @@
 <template>
-  <v-card class="w-100 h-100 d-flex flex-column">
+  <v-card class="w-100 h-100 d-flex flex-column" :class="{ 'overflow-y-auto': xs }">
     <v-toolbar color="transparent" density="compact" flat>
       <v-btn icon variant="text" @click="$refs.calendar.prev()">
         <v-icon icon="mdi-chevron-left" />
@@ -15,6 +15,7 @@
       <v-spacer />
 
       <v-autocomplete
+        v-if="!xs"
         v-model="selectedEvent"
         class="me-3"
         clearable
@@ -30,37 +31,82 @@
         @update:model-value="goToEvent"
       />
 
-      <v-btn
-        class="me-2"
-        prepend-icon="mdi-calendar-plus"
-        text="Events"
-        variant="tonal"
-        @click="manageOpen = true"
-      />
-      <v-btn prepend-icon="mdi-calendar-today" text="Today" variant="tonal" @click="goToToday" />
+      <!-- Phones: icon-only buttons so the toolbar fits on one line. -->
+      <template v-if="xs">
+        <v-btn aria-label="Manage events" icon="mdi-calendar-plus" variant="text" @click="manageOpen = true" />
+        <v-btn aria-label="Today" icon="mdi-calendar-today" variant="text" @click="goToToday" />
+      </template>
+      <template v-else>
+        <v-btn
+          class="me-2"
+          prepend-icon="mdi-calendar-plus"
+          text="Events"
+          variant="tonal"
+          @click="manageOpen = true"
+        />
+        <v-btn prepend-icon="mdi-calendar-today" text="Today" variant="tonal" @click="goToToday" />
+      </template>
     </v-toolbar>
+
+    <!-- Phones: the search gets its own full-width row. -->
+    <div v-if="xs" class="px-3 pb-2">
+      <v-autocomplete
+        v-model="selectedEvent"
+        clearable
+        density="compact"
+        hide-details
+        item-title="name"
+        :items="searchEvents"
+        placeholder="Search events"
+        prepend-inner-icon="mdi-magnify"
+        return-object
+        variant="outlined"
+        @update:model-value="goToEvent"
+      />
+    </div>
 
     <v-divider />
 
-    <v-sheet class="flex-grow-1" style="min-height: 0;">
+    <!-- Phones: the grid gets a fixed share of the screen and the card
+         scrolls on to the month's event list below it. -->
+    <v-sheet :class="{ 'flex-grow-1': !xs, 'flex-shrink-0': xs }" :style="xs ? '' : 'min-height: 0;'">
       <v-calendar
         ref="calendar"
         v-model="value"
         :event-color="getEventColor"
         :events="events"
-        style="height: 100%;"
+        :style="xs ? 'height: 60vh;' : 'height: 100%;'"
         :type="type"
         :weekdays="weekday"
         @change="getEvents"
       >
         <template #event="{ event }">
-          <div class="d-flex align-center px-1" style="gap: 4px; overflow: hidden;">
+          <!-- A phone's day cell is ~50px: just the event's icon there; the
+               names are in the list below the grid. -->
+          <div class="d-flex align-center px-1" :class="{ 'justify-center': xs }" style="gap: 4px; overflow: hidden;">
             <v-icon v-if="event.icon" :icon="event.icon" size="14" />
-            <span class="text-truncate">{{ event.name }}</span>
+            <span v-if="!xs" class="text-truncate">{{ event.name }}</span>
           </div>
         </template>
       </v-calendar>
     </v-sheet>
+
+    <v-list v-if="xs" class="py-0" density="compact" lines="two">
+      <v-list-subheader>{{ title }}</v-list-subheader>
+      <v-list-item v-if="monthEvents.length === 0" class="text-medium-emphasis" title="No events this month" />
+      <v-list-item
+        v-for="event in monthEvents"
+        :key="`${event.name}-${event.start.getTime()}`"
+        :subtitle="eventDates(event)"
+        :title="event.name"
+      >
+        <template #prepend>
+          <v-avatar :color="event.color" size="32">
+            <v-icon :icon="event.icon || 'mdi-calendar-star'" size="18" />
+          </v-avatar>
+        </template>
+      </v-list-item>
+    </v-list>
 
     <!-- Manage events: add / remove custom events and hide built-ins -->
     <v-dialog v-model="manageOpen" max-width="560" scrollable>
@@ -207,6 +253,7 @@
 
 <script setup>
   import { computed, onMounted, ref, watch } from 'vue'
+  import { useDisplay } from 'vuetify'
   import { useCalendarEvents } from '@/composables/useCalendarEvents'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { getEventsForRange, retailCalendarEvents } from '@/data/retailCalendarEvents'
@@ -215,6 +262,7 @@
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
+  const { xs } = useDisplay()
 
   const settingsStore = useSettingsStore()
   const { listCalendarEvents, createCalendarEvent, deleteCalendarEvent } = useCalendarEvents()
@@ -296,6 +344,25 @@
     rangeStart.value = new Date(`${start.date}T00:00:00`)
     lastRange.value = { start, end }
     renderRange()
+  }
+
+  // Phone list under the grid: the shown month's events, by start date.
+  // events.value covers the whole visible grid (it spills into the
+  // neighbouring months), so keep only those overlapping this month.
+  const monthEvents = computed(() => {
+    if (!rangeStart.value) return []
+    const first = new Date(rangeStart.value.getFullYear(), rangeStart.value.getMonth(), 1)
+    const last = new Date(rangeStart.value.getFullYear(), rangeStart.value.getMonth() + 1, 0, 23, 59, 59)
+    return events.value
+      .filter(event => event.end >= first && event.start <= last)
+      .toSorted((a, b) => a.start - b.start)
+  })
+
+  function eventDates (event) {
+    const opts = { month: 'short', day: 'numeric' }
+    const s = event.start.toLocaleDateString(undefined, opts)
+    const e = event.end.toLocaleDateString(undefined, opts)
+    return s === e ? s : `${s} – ${e}`
   }
 
   function getEventColor (event) {
