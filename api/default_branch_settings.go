@@ -64,6 +64,7 @@ type defaultBranchSettings struct {
 	// drops out of the saved JSON and so out of "Apply to all" -- a branch
 	// keeps its own value instead of getting a zero pushed over it.
 	CloseShiftRequiresSync        *bool  `json:"close_shift_requires_sync,omitempty"`
+	ScanByCodeEnabled             *bool  `json:"scan_by_code_enabled,omitempty"`
 	SalespersonPerInvoiceRequired *bool  `json:"salesperson_per_invoice_required,omitempty"`
 	NonAdminMonthNavEnabled       *bool  `json:"non_admin_month_nav_enabled,omitempty"`
 	OpeningFloatEnabled           *bool  `json:"opening_float_enabled,omitempty"`

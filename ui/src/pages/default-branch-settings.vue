@@ -579,6 +579,7 @@
       { key: 'visitor_counter_enabled', label: 'Visitor counter buttons', type: 'bool' },
       { key: 'non_admin_month_nav_enabled', label: "Cashiers browse other months' income", type: 'bool' },
       { key: 'close_shift_requires_sync', label: 'Upload everything before closing a shift', type: 'bool' },
+      { key: 'scan_by_code_enabled', label: 'Accept a product code in the scan field', type: 'bool' },
     ],
     cash: [
       { key: 'opening_float_enabled', label: 'Shifts start with an opening float', type: 'bool' },

@@ -309,6 +309,13 @@
                           label="Product search button on sale screen"
                         />
                         <v-switch
+                          v-model="settingsForm.scan_by_code_enabled"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Accept a product code in the scan field"
+                        />
+                        <v-switch
                           v-model="settingsForm.custom_item_discounts_enabled"
                           color="primary"
                           density="compact"
@@ -1378,6 +1385,7 @@
     'attendance_cashier_history',
     'split_primary_first',
     'close_shift_requires_sync',
+    'scan_by_code_enabled',
     'salesperson_per_invoice_required',
     'non_admin_month_nav_enabled',
     'opening_float_enabled',
@@ -1434,9 +1442,10 @@
     for (const k of BOOL_KEYS) {
       if (k === 'search_button_enabled') continue
       // Like search_button_enabled: absent on a till that predates the field,
-      // and the primary currency leading is the shape every branch had when
-      // it was hardcoded -- so only an explicit false flips it.
-      if (k === 'split_primary_first') {
+      // and on is what every branch did before it existed (the primary
+      // currency leading; codes accepted in the scan field) -- so only an
+      // explicit false flips it.
+      if (k === 'split_primary_first' || k === 'scan_by_code_enabled') {
         form[k] = d[k] !== false
         continue
       }
@@ -1745,6 +1754,7 @@
     exchange_rate: 'Exchange rate',
     exchange_window_hours: 'Exchange window',
     search_button_enabled: 'Search button',
+    scan_by_code_enabled: 'Code in scan field',
     custom_item_discounts_enabled: 'Custom discounts',
     custom_item_prices_enabled: 'Custom prices',
     per_unit_item_prices_enabled: 'Per-unit pricing',

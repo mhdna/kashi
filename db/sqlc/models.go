@@ -831,6 +831,7 @@ type BranchSetting struct {
 	DefaultOpeningFloatUsd             int64           `json:"default_opening_float_usd"`
 	DefaultOpeningFloatLbp             int64           `json:"default_opening_float_lbp"`
 	DisplayPrefs                       json.RawMessage `json:"display_prefs"`
+	ScanByCodeEnabled                  bool            `json:"scan_by_code_enabled"`
 }
 
 type BranchShift struct {

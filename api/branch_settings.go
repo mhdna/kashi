@@ -103,6 +103,11 @@ type branchSettingsRequest struct {
 	// has queued has reached kashi. Nil leaves the stored value (default off).
 	CloseShiftRequiresSync *bool `json:"close_shift_requires_sync"`
 
+	// Let the scan field fall back to the product code when nothing has the
+	// entered barcode. Nil (a till that predates it) keeps it on, the
+	// till's own default.
+	ScanByCodeEnabled *bool `json:"scan_by_code_enabled"`
+
 	// --- the rest of the till's settings (000115). Nil on first insert
 	// falls back to the till's own default for a missing value. ---
 	SalespersonPerInvoiceRequired *bool `json:"salesperson_per_invoice_required"`
@@ -387,6 +392,7 @@ func (server *Server) upsertBranchSettings(ctx *gin.Context, branchID int64, req
 		SplitPrimaryStep:                   orZero(req.SplitPrimaryStep),
 		OversellMode:                       oversellMode,
 		CloseShiftRequiresSync:             orZero(req.CloseShiftRequiresSync),
+		ScanByCodeEnabled:                  orTrue(req.ScanByCodeEnabled),
 
 		SalespersonPerInvoiceRequired: orZero(req.SalespersonPerInvoiceRequired),
 		NonAdminMonthNavEnabled:       orZero(req.NonAdminMonthNavEnabled),
