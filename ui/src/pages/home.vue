@@ -52,7 +52,7 @@
             />
           </div>
 
-          <v-card v-if="mdAndUp" class="home-activities-card" rounded="lg" variant="outlined">
+          <v-card class="home-activities-card" rounded="lg" variant="outlined">
             <div class="home-activities-scroll">
               <v-skeleton-loader
                 v-if="!kashiLoaded"
@@ -60,7 +60,7 @@
                 type="list-item-avatar-two-line@8"
               />
               <v-list v-else class="py-1" density="compact" lines="two">
-                <v-list-item v-for="item in kashiActivities" :key="item.id" class="px-3">
+                <v-list-item v-for="item in shown(kashiActivities)" :key="item.id" class="px-3">
                   <template #prepend>
                     <v-avatar
                       class="me-3 text-white"
@@ -115,7 +115,7 @@
             />
           </div>
 
-          <v-card v-if="mdAndUp" class="home-activities-card" rounded="lg" variant="outlined">
+          <v-card class="home-activities-card" rounded="lg" variant="outlined">
             <div class="home-activities-scroll">
               <v-skeleton-loader
                 v-if="!activitiesLoaded"
@@ -124,7 +124,7 @@
               />
               <v-list v-else class="py-1" density="compact" lines="two">
                 <v-list-item
-                  v-for="(item, index) in activities"
+                  v-for="(item, index) in shown(activities)"
                   :key="index"
                   class="px-3 activity-row"
                   @click="openDetail(item)"
@@ -206,7 +206,7 @@
             />
           </div>
 
-          <v-card v-if="mdAndUp" class="home-activities-card" rounded="lg" variant="outlined">
+          <v-card class="home-activities-card" rounded="lg" variant="outlined">
             <div class="home-activities-scroll">
               <v-skeleton-loader
                 v-if="!latestLoaded"
@@ -215,14 +215,14 @@
               />
               <v-list v-else class="py-1" density="compact" lines="two">
                 <v-list-item
-                  v-for="item in latestItems"
+                  v-for="item in shown(latestItems)"
                   :key="latestKey(item)"
                   class="px-3 activity-row"
                   @click="openLatest(item)"
                 >
                   <template #prepend>
                     <v-avatar
-                      class="me-3"
+                      class="me-3 latest-thumb"
                       :color="latestVisual(item).color"
                       rounded="lg"
                       size="56"
@@ -651,6 +651,12 @@
     return `${month} ${day}${suffix}${year}`
   }
 
+  // Phones get a short preview of each feed rather than the whole list.
+  const PHONE_FEED_ROWS = 5
+  function shown (items) {
+    return mdAndUp.value ? items : items.slice(0, PHONE_FEED_ROWS)
+  }
+
   function money (amount, currency = '') {
     const value = Number(amount || 0) / 100
     const formatted = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(Math.abs(value))
@@ -817,23 +823,28 @@
       gap: 24px;
     }
 
+    /* Each card is just as tall as its few rows -- no inner scrolling. */
     .home-activities-card {
       flex: 0 0 auto;
-      height: min(440px, 65vh);
-    }
-  }
-
-  /* Below md the lists are hidden and only each feed's title and total show,
-     so the header rows become the content. */
-  @media (max-width: 959.98px) {
-    .home-feeds {
-      gap: 0;
     }
 
-    .home-activities-head {
-      border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-      margin-bottom: 0 !important;
-      padding-block: 14px;
+    .home-activities-scroll {
+      flex: 0 0 auto;
+      overflow: visible;
+    }
+
+    .home-activities {
+      flex: 0 0 auto;
+    }
+
+    /* One line per row; the long sentences truncate. */
+    .activity-sentence {
+      white-space: nowrap;
+    }
+
+    .latest-thumb {
+      height: 40px !important;
+      width: 40px !important;
     }
   }
 
