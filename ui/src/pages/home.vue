@@ -164,7 +164,7 @@
                         {{ money(item.amount, item.currency_code) }}
                       </div>
                       <div class="text-caption text-medium-emphasis">
-                        {{ dateTime(item.synced_at) }}
+                        {{ timeAgo(item.synced_at) }}
                       </div>
                     </div>
                   </template>
@@ -239,7 +239,7 @@
                         {{ money(item.amount, item.currency_code) }}
                       </div>
                       <div class="text-caption text-medium-emphasis">
-                        {{ shortDate(item.added_at) }}
+                        {{ timeAgo(item.added_at) }}
                       </div>
                     </div>
                   </template>
@@ -630,19 +630,15 @@
     if (to) router.push(to)
   }
 
+  // "5h ago" for the first 48 hours, then "Oct 7th" (year added when it
+  // isn't this one).
   function timeAgo (value) {
-    const seconds = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 1000))
-    if (seconds < 60) return 'just now'
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
-    if (seconds < 86_400) return `${Math.floor(seconds / 3600)}h ago`
-    return dateTime(value)
-  }
-
-  // "5h ago" within a day, else "Oct 7th" (year added when it isn't this one).
-  function shortDate (value) {
     if (!value) return '—'
     const date = new Date(value)
-    if (Date.now() - date.getTime() < 86_400_000) return timeAgo(value)
+    const seconds = Math.max(0, Math.round((Date.now() - date.getTime()) / 1000))
+    if (seconds < 60) return 'just now'
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
+    if (seconds < 172_800) return `${Math.floor(seconds / 3600)}h ago`
     const day = date.getDate()
     const suffix = day % 100 >= 11 && day % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[day % 10] ?? 'th')
     const month = date.toLocaleString([], { month: 'short' })
