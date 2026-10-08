@@ -8,9 +8,9 @@
 //
 //	echo /system_updates/d9ff21a | go run ./cmd/release_notes   # what would post after d9ff21a
 //
-// Only conventional feat/fix/perf commits are posted; chore, refactor, test
-// and docs ones aren't news. "feat(products): add X" becomes "added X" with
-// the detail "<hash> · products". It starts after the newest commit already
+// Every commit is posted, whatever its type prefix ("feat(products): add X"
+// and "chore: tidy" alike, or no prefix at all). "feat(products): add X"
+// becomes "added X" with the detail "<hash> · products". It starts after the newest commit already
 // posted that's in HEAD's history, skips any commit posted before, and with
 // nothing posted at all takes the last -limit commits.
 package main
@@ -46,7 +46,8 @@ var pastTense = map[string]string{
 // "attendance shows all branches") reads as "Alex shipped <subject>".
 const fallbackVerb = "shipped"
 
-var subjectRe = regexp.MustCompile(`^(feat|fix|perf)(?:\(([^)]*)\))?!?:\s*(.+)$`)
+// Optional "type(scope): " prefix; the type itself is ignored.
+var subjectRe = regexp.MustCompile(`^(?:[a-z]+(?:\(([^)]*)\))?!?:\s*)?(.+)$`)
 
 type commit struct {
 	hash, date, scope, summary string
@@ -83,7 +84,7 @@ func main() {
 }
 
 // newCommits walks HEAD's history newest-first until it meets a posted
-// commit, then returns the unposted feat/fix/perf ones oldest-first.
+// commit, then returns the unposted ones oldest-first.
 func newCommits(posted map[string]bool, limit int) ([]commit, error) {
 	args := []string{"log", "--no-merges", "--format=%H%x1f%cI%x1f%s"}
 	if len(posted) == 0 {
@@ -105,10 +106,7 @@ func newCommits(posted map[string]bool, limit int) ([]commit, error) {
 			break
 		}
 		m := subjectRe.FindStringSubmatch(parts[2])
-		if m == nil {
-			continue
-		}
-		found = append(found, commit{hash: hash, date: parts[1], scope: m[2], summary: describe(m[3])})
+		found = append(found, commit{hash: hash, date: parts[1], scope: m[1], summary: describe(m[2])})
 	}
 	for i, j := 0, len(found)-1; i < j; i, j = i+1, j-1 {
 		found[i], found[j] = found[j], found[i]
