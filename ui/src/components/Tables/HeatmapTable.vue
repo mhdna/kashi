@@ -350,6 +350,29 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Phones: the day column only needs room for a day number, so drop it to
+   64px and stack the year above two smaller arrows instead of ‹ 2026 ›
+   in a row, which held the whole column at 126px. */
+@media (max-width: 599.98px) {
+  .day-col {
+    width: 64px;
+    min-width: 64px;
+    max-width: 64px;
+    text-align: center;
+  }
+
+  .year-nav span {
+    display: block;
+    min-width: 0;
+    margin: 0 0 2px;
+  }
+
+  .year-nav .v-btn {
+    width: 26px;
+    height: 26px;
+  }
+}
+
 .heatmap-table tfoot td {
   font-weight: 600;
   border-bottom: none;
