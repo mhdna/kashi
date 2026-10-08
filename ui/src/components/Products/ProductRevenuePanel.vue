@@ -87,7 +87,7 @@
               :items="products"
               :items-per-page="15"
               :search="search"
-              sort-by="revenue"
+              :sort-by="[{ key: 'revenue', order: 'desc' }]"
             >
               <template #item.revenue="{ item }">{{ formatMoney(item.revenue) }}</template>
               <template #item.quantity="{ item }">{{ item.quantity.toLocaleString() }}</template>

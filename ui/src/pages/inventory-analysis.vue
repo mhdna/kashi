@@ -110,7 +110,7 @@
               :items="filteredLocations"
               :items-per-page="15"
               :search="locationSearch"
-              sort-by="inventory_value"
+              :sort-by="[{ key: 'inventory_value', order: 'desc' }]"
             >
               <template #item.type="{ item }">
                 <v-chip size="small" variant="tonal">{{ item.type }}</v-chip>
