@@ -26,13 +26,13 @@ func (server *Server) enqueueSetBranchUserPin(ctx *gin.Context, branchID int64, 
 	}
 
 	tokenPayload := ctx.MustGet(authoizationPayloadKey).(*token.Payload)
-	user, err := server.store.GetUserByUsername(ctx, tokenPayload.Username)
+	userID, err := server.callerID(ctx, tokenPayload)
 	if err != nil {
 		return err
 	}
 
 	// Users are branch-wide: every register hashes and stores the PIN.
-	_, err = server.enqueueBranchCommand(ctx, branchID, 0, "set_branch_user_pin", payload, user.ID)
+	_, err = server.enqueueBranchCommand(ctx, branchID, 0, "set_branch_user_pin", payload, userID)
 	return err
 }
 

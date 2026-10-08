@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/lib/pq"
 	mockdb "github.com/mhdna/kashi/db/mock"
 	db "github.com/mhdna/kashi/db/sqlc"
 	"github.com/mhdna/kashi/util"
@@ -21,6 +22,7 @@ import (
 func randomUser() db.User {
 	return db.User{
 		ID:           util.RandomInt(1, 1000),
+		Username:     util.RandomString(10),
 		Name:         util.RandomName(),
 		Email:        util.RandomEmail(),
 		PasswordHash: util.RandomString(32),
@@ -41,6 +43,7 @@ func TestCreateUserAPI(t *testing.T) {
 		{
 			name: "OK",
 			body: map[string]interface{}{
+				"username":  user.Username,
 				"name":      user.Name,
 				"password":  "correct-horse",
 				"activated": true,
@@ -60,6 +63,7 @@ func TestCreateUserAPI(t *testing.T) {
 		{
 			name: "InternalError",
 			body: map[string]interface{}{
+				"username":  user.Username,
 				"name":      user.Name,
 				"password":  "correct-horse",
 				"activated": true,
@@ -73,6 +77,66 @@ func TestCreateUserAPI(t *testing.T) {
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "NormalizesNames",
+			body: map[string]interface{}{
+				"username":  "  Alex.S ",
+				"name":      " alex  morgan",
+				"password":  "correct-horse",
+				"activated": true,
+				"role_id":   user.RoleID,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					CreateUser(gomock.Any(), gomock.Any()).
+					Times(1).
+					DoAndReturn(func(_ any, arg db.CreateUserParams) (db.User, error) {
+						require.Equal(t, "alex.s", arg.Username)
+						require.Equal(t, "Alex Morgan", arg.Name)
+						return db.User{ID: user.ID, Username: arg.Username, Name: arg.Name}, nil
+					})
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+			},
+		},
+		{
+			name: "InvalidUsername",
+			body: map[string]interface{}{
+				"username":  "alex morgan",
+				"name":      user.Name,
+				"password":  "correct-horse",
+				"activated": true,
+				"role_id":   user.RoleID,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					CreateUser(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "UsernameTaken",
+			body: map[string]interface{}{
+				"username":  user.Username,
+				"name":      user.Name,
+				"password":  "correct-horse",
+				"activated": true,
+				"role_id":   user.RoleID,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					CreateUser(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.User{}, &pq.Error{Code: "23505"})
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusConflict, recorder.Code)
 			},
 		},
 		{
@@ -383,6 +447,7 @@ func requiredBodyMatchUser(t *testing.T, body *bytes.Buffer, user db.User) {
 	var gotUser db.User
 	err = json.Unmarshal(data, &gotUser)
 	require.NoError(t, err)
+	require.Equal(t, user.Username, gotUser.Username)
 	require.Equal(t, user.Name, gotUser.Name)
 	require.Equal(t, user.Activated, gotUser.Activated)
 }

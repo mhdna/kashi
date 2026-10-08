@@ -174,7 +174,7 @@ func (server *Server) applyDefaultBranchSettingsToAll(ctx *gin.Context) {
 	}
 
 	tokenPayload := ctx.MustGet(authoizationPayloadKey).(*token.Payload)
-	user, err := server.store.GetUserByUsername(ctx, tokenPayload.Username)
+	userID, err := server.callerID(ctx, tokenPayload)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
@@ -189,7 +189,7 @@ func (server *Server) applyDefaultBranchSettingsToAll(ctx *gin.Context) {
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
 		}
-		if _, err := server.enqueueBranchCommand(ctx, branch.ID, 0, "update_settings", patch, user.ID); err != nil {
+		if _, err := server.enqueueBranchCommand(ctx, branch.ID, 0, "update_settings", patch, userID); err != nil {
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
 		}

@@ -5,8 +5,13 @@
 
       <div class="text-subtitle-1 text-medium-emphasis">Account</div>
 
+      <!-- Usernames match exactly, so stop phone keyboards from capitalising
+           or autocorrecting them. -->
       <v-text-field
         v-model="username"
+        autocapitalize="none"
+        autocomplete="username"
+        autocorrect="off"
         density="compact"
         placeholder="Username"
         prepend-inner-icon="mdi-account-outline"
@@ -29,6 +34,9 @@
       <v-text-field
         v-model="password"
         :append-inner-icon="visible ? 'mdi-eye-off' : 'mdi-eye'"
+        autocapitalize="none"
+        autocomplete="current-password"
+        autocorrect="off"
         density="compact"
         placeholder="Enter your password"
         prepend-inner-icon="mdi-lock-outline"
@@ -73,8 +81,8 @@
   import { ref } from 'vue'
   import { useRouter } from 'vue-router'
   import AppLogo from '@/components/AppLogo.vue'
-  import { useAuthStore } from '@/stores/auth'
   import { useNotify } from '@/composables/useNotify'
+  import { useAuthStore } from '@/stores/auth'
 
   const router = useRouter()
   const authStore = useAuthStore()
@@ -99,9 +107,9 @@
       await authStore.login(username.value.trim(), password.value)
       router.push('/')
     } catch (error_) {
-      // Only a rejected credential (400/401) counts toward the lockout
+      // Only a rejected credential (400/401/404) counts toward the lockout
       // warning, not a server/network problem the user can't act on.
-      if (error_.status === 400 || error_.status === 401) {
+      if ([400, 401, 404].includes(error_.status)) {
         failedAttempts.value += 1
       }
       notify.error(error_.message)

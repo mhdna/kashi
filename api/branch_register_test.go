@@ -85,7 +85,6 @@ func TestAckBranchCommand_RejectsAnotherRegistersCommand(t *testing.T) {
 func TestCreateBranchCommand_UpdateSettingsAppliesToBranchAndEveryRegister(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	store := mockdb.NewMockStore(ctrl)
-	stubIssuedBy(store)
 
 	store.EXPECT().GetBranch(gomock.Any(), buBranchID).Return(db.Branch{ID: buBranchID}, nil)
 	store.EXPECT().
@@ -143,7 +142,6 @@ func TestCreateBranchCommand_UpdateSettingsBeforeAnyReportIsConflict(t *testing.
 func TestCreateBranchCommand_RemoteReturnGoesToTheSellingRegister(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	store := mockdb.NewMockStore(ctrl)
-	stubIssuedBy(store)
 
 	store.EXPECT().GetBranch(gomock.Any(), buBranchID).Return(db.Branch{ID: buBranchID}, nil)
 	store.EXPECT().
@@ -224,7 +222,6 @@ func TestPutBranchSettings_FirstReportSeedsBranchSettings(t *testing.T) {
 func TestCreateBranchRegister_QueuesBranchSettingsAndReturnsKeyOnce(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	store := mockdb.NewMockStore(ctrl)
-	stubIssuedBy(store)
 
 	store.EXPECT().GetBranch(gomock.Any(), buBranchID).Return(db.Branch{ID: buBranchID}, nil)
 	store.EXPECT().

@@ -162,7 +162,7 @@ func (server *Server) createAppRelease(ctx *gin.Context) {
 		return
 	}
 
-	user, err := server.store.GetUserByUsername(ctx, ctx.MustGet(authoizationPayloadKey).(*token.Payload).Username)
+	userID, err := server.callerID(ctx, ctx.MustGet(authoizationPayloadKey).(*token.Payload))
 	if err != nil {
 		os.RemoveAll(dir)
 		server.writeError(ctx, http.StatusInternalServerError, err)
@@ -177,7 +177,7 @@ func (server *Server) createAppRelease(ctx *gin.Context) {
 		Sha256:     sum,
 		Signature:  signature,
 		Notes:      notes,
-		UploadedBy: sql.NullInt64{Int64: user.ID, Valid: true},
+		UploadedBy: sql.NullInt64{Int64: userID, Valid: true},
 	})
 	if err != nil {
 		os.RemoveAll(dir)
@@ -392,10 +392,10 @@ func (server *Server) setAppUpdateTarget(ctx *gin.Context) {
 		return
 	}
 
-	username := ctx.MustGet(authoizationPayloadKey).(*token.Payload).Username
-	state, detail := "targeted", fmt.Sprintf("Set to %s by %s", release.Version, username)
+	byName := server.displayName(ctx, ctx.MustGet(authoizationPayloadKey).(*token.Payload))
+	state, detail := "targeted", fmt.Sprintf("Set to %s by %s", release.Version, byName)
 	if !target.Valid {
-		state, detail = "target_cleared", fmt.Sprintf("Target cleared by %s", username)
+		state, detail = "target_cleared", fmt.Sprintf("Target cleared by %s", byName)
 	}
 	for _, r := range registers {
 		// History only: the target itself is already saved.

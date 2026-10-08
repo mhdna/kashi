@@ -131,7 +131,12 @@ func TestSetAppUpdateTarget_RejectsOtherFlavorAndNotifies(t *testing.T) {
 	store.EXPECT().SetRegistersTargetRelease(gomock.Any(), db.SetRegistersTargetReleaseParams{
 		ReleaseID: sql.NullInt64{Int64: 3, Valid: true}, RegisterIds: []int64{1},
 	}).Return(nil)
-	store.EXPECT().CreateAppUpdateEvent(gomock.Any(), gomock.Any()).Return(nil)
+	store.EXPECT().GetUser(gomock.Any(), gomock.Any()).Return(db.User{Username: "alex", Name: "Alex Morgan"}, nil)
+	store.EXPECT().CreateAppUpdateEvent(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ any, arg db.CreateAppUpdateEventParams) error {
+			require.Equal(t, "Set to 1.0.9 by Alex Morgan", arg.Detail)
+			return nil
+		})
 	rec = httptest.NewRecorder()
 	server.router.ServeHTTP(rec, adminJSONRequest(t, server, http.MethodPut, "/app_updates/target", map[string]any{"release_id": 3, "register_ids": []int64{1}}))
 	require.Equal(t, http.StatusOK, rec.Code)
@@ -150,7 +155,6 @@ func TestCreateAppRelease_ChecksChecksumAndStores(t *testing.T) {
 	require.Equal(t, http.StatusBadRequest, rec.Code)
 	require.Contains(t, rec.Body.String(), "checksum")
 
-	store.EXPECT().GetUserByUsername(gomock.Any(), "admin").Return(db.User{ID: 5}, nil)
 	store.EXPECT().CreateAppRelease(gomock.Any(), gomock.Any()).DoAndReturn(
 		func(_ any, arg db.CreateAppReleaseParams) (db.AppRelease, error) {
 			stored, err := os.ReadFile(filepath.Join(server.appReleaseStorageDir(), arg.FilePath))

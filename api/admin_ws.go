@@ -168,7 +168,7 @@ func (server *Server) adminWS(ctx *gin.Context) {
 	defer conn.Close()
 
 	wrapped := newWSConn(conn)
-	server.adminHub.add(wrapped, onlineUser{ID: payload.UserID, Name: payload.Username})
+	server.adminHub.add(wrapped, onlineUser{ID: payload.UserID, Name: server.displayName(ctx, payload)})
 	server.adminHub.broadcastAll(adminWSMessage{Type: "admin_presence_changed", Users: server.adminHub.onlineUsers()})
 	defer func() {
 		server.adminHub.remove(wrapped)

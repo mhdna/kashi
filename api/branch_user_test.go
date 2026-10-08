@@ -41,15 +41,6 @@ func adminRequest(t *testing.T, server *Server, method, url string, body any) *h
 	return rec
 }
 
-// stubs the token username -> user id lookup that every command-enqueuing
-// handler does for the branch_commands.issued_by FK.
-func stubIssuedBy(store *mockdb.MockStore) {
-	store.EXPECT().
-		GetUserByUsername(gomock.Any(), gomock.Eq("operator")).
-		Return(db.User{ID: 99, Name: "operator"}, nil).
-		AnyTimes()
-}
-
 func TestListBranchUsers_OK(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -75,7 +66,6 @@ func TestCreateBranchUser_OK_EnqueuesPinCommand(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	store := mockdb.NewMockStore(ctrl)
-	stubIssuedBy(store)
 
 	store.EXPECT().GetBranch(gomock.Any(), gomock.Eq(buBranchID)).Return(db.Branch{ID: buBranchID}, nil)
 	store.EXPECT().
@@ -108,7 +98,8 @@ func TestCreateBranchUser_OK_EnqueuesPinCommand(t *testing.T) {
 	require.Equal(t, "set_branch_user_pin", captured.Type)
 	require.Equal(t, buBranchID, captured.BranchID)
 	require.Equal(t, buRegisterID, captured.RegisterID)
-	require.Equal(t, int64(99), captured.IssuedBy)
+	// issued_by is the token's user id (addAuthorization signs as user 1).
+	require.Equal(t, int64(1), captured.IssuedBy)
 
 	var payload map[string]string
 	require.NoError(t, json.Unmarshal(captured.Payload, &payload))
@@ -175,7 +166,6 @@ func TestSetBranchUserPin_EnqueuesCommandOnly(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	store := mockdb.NewMockStore(ctrl)
-	stubIssuedBy(store)
 
 	store.EXPECT().GetBranchUser(gomock.Any(), gomock.Eq(int64(5))).
 		Return(db.BranchUser{ID: 5, BranchID: buBranchID, Username: "sara"}, nil)

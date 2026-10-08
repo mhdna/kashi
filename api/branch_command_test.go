@@ -19,7 +19,6 @@ import (
 func TestCreateBranchCommand_PrintShiftGoesToTheClosingRegister(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	store := mockdb.NewMockStore(ctrl)
-	stubIssuedBy(store)
 
 	store.EXPECT().GetBranch(gomock.Any(), buBranchID).Return(db.Branch{ID: buBranchID}, nil)
 	store.EXPECT().GetBranchShift(gomock.Any(), int64(40)).
@@ -76,7 +75,6 @@ func TestCancelBranchCommand_OnlyPending(t *testing.T) {
 func TestRetryBranchCommand_RequeuesFailedForSameRegister(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	store := mockdb.NewMockStore(ctrl)
-	stubIssuedBy(store)
 
 	store.EXPECT().GetBranchCommand(gomock.Any(), int64(9)).Return(db.BranchCommand{
 		ID: 9, BranchID: buBranchID, RegisterID: 23, Type: "sync_now", Payload: json.RawMessage(`{}`), Status: "failed",

@@ -105,13 +105,13 @@ func (server *Server) createBranchCommand(ctx *gin.Context) {
 	// (branch_commands.issued_by) is a durable FK, not a name that could
 	// later be renamed or reused.
 	tokenPayload := ctx.MustGet(authoizationPayloadKey).(*token.Payload)
-	user, err := server.store.GetUserByUsername(ctx, tokenPayload.Username)
+	userID, err := server.callerID(ctx, tokenPayload)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	commands, err := server.enqueueBranchCommand(ctx, idReq.ID, registerID, req.Type, payload, user.ID)
+	commands, err := server.enqueueBranchCommand(ctx, idReq.ID, registerID, req.Type, payload, userID)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return

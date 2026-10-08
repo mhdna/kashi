@@ -6,7 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/gorilla/websocket"
+	mockdb "github.com/mhdna/kashi/db/mock"
+	db "github.com/mhdna/kashi/db/sqlc"
 	"github.com/stretchr/testify/require"
 )
 
@@ -14,7 +17,10 @@ import (
 // the live branch lists straight away, not only on the next change: a till
 // that connected while the tab was offline must still show as connected.
 func TestAdminWSSendsCurrentBranchStateOnConnect(t *testing.T) {
-	server := newTestServer(t, nil)
+	store := mockdb.NewMockStore(gomock.NewController(t))
+	// The presence list shows the display name.
+	store.EXPECT().GetUser(gomock.Any(), int64(1)).Return(db.User{ID: 1, Username: "admin", Name: "Admin"}, nil)
+	server := newTestServer(t, store)
 	// Register 70 of branch 7 connected before this admin did, and is mid a
 	// full sync. Nothing writes to the till's socket here, so it can be nil.
 	server.branchHub.add(7, 70, nil)
@@ -41,4 +47,5 @@ func TestAdminWSSendsCurrentBranchStateOnConnect(t *testing.T) {
 	require.Equal(t, []int64{7}, got["branch_connection_changed"].BranchIDs)
 	require.Equal(t, []int64{70}, got["branch_connection_changed"].RegisterIDs)
 	require.Equal(t, []int64{7}, got["branch_sync_status_changed"].BranchIDs)
+	require.Equal(t, []onlineUser{{ID: 1, Name: "Admin"}}, got["admin_presence_changed"].Users)
 }

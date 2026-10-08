@@ -333,11 +333,11 @@ func (server *Server) currentUserID(ctx *gin.Context) sql.NullInt64 {
 	if !ok {
 		return sql.NullInt64{}
 	}
-	user, err := server.store.GetUserByUsername(ctx, payload.Username)
+	userID, err := server.callerID(ctx, payload)
 	if err != nil {
 		return sql.NullInt64{}
 	}
-	return sql.NullInt64{Int64: user.ID, Valid: true}
+	return sql.NullInt64{Int64: userID, Valid: true}
 }
 
 // branchSyncConflictSummary is one row per branch (open conflicts, how many

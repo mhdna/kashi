@@ -240,6 +240,7 @@
               <thead>
                 <tr>
                   <th class="text-left">Name</th>
+                  <th class="text-left">Username</th>
                   <th class="text-left">Role</th>
                   <th class="text-left">Status</th>
                   <th class="text-left">Created</th>
@@ -249,6 +250,7 @@
               <tbody>
                 <tr v-for="u in users" :key="u.id">
                   <td>{{ u.name }}</td>
+                  <td class="text-medium-emphasis">{{ u.username }}</td>
                   <td>{{ roleName(u.role_id) }}</td>
                   <td>
                     <v-chip :color="u.activated ? 'success' : 'default'" size="x-small" variant="tonal">
@@ -417,9 +419,22 @@
         <v-card-title class="text-subtitle-1">Add user</v-card-title>
         <v-card-text>
           <v-text-field
-            v-model="form.name"
+            v-model="form.username"
+            autocapitalize="none"
+            autocorrect="off"
             density="compact"
-            label="Name"
+            hint="What they sign in with"
+            label="Username"
+            persistent-hint
+            :rules="[usernameRule]"
+          />
+          <v-text-field
+            v-model="form.name"
+            autocapitalize="words"
+            density="compact"
+            hint="Shown to others; each word is capitalised"
+            label="Display name"
+            persistent-hint
             :rules="[nameRule]"
           />
           <v-text-field
@@ -469,9 +484,18 @@
         <v-card-title class="text-subtitle-1">Edit user — {{ editTarget?.name }}</v-card-title>
         <v-card-text>
           <v-text-field
-            v-model="editForm.name"
+            v-model="editForm.username"
+            autocapitalize="none"
+            autocorrect="off"
             density="compact"
-            label="Name"
+            label="Username"
+            :rules="[usernameRule]"
+          />
+          <v-text-field
+            v-model="editForm.name"
+            autocapitalize="words"
+            density="compact"
+            label="Display name"
             :rules="[nameRule]"
           />
           <v-select
@@ -494,7 +518,7 @@
           <v-btn variant="text" @click="editDialog = false">Cancel</v-btn>
           <v-btn
             color="primary"
-            :disabled="nameRule(editForm.name) !== true || !editForm.roleId"
+            :disabled="usernameRule(editForm.username) !== true || nameRule(editForm.name) !== true || !editForm.roleId"
             :loading="saving"
             variant="tonal"
             @click="submitEdit"
@@ -707,14 +731,18 @@
 
   const isPassword = v => String(v ?? '').length >= 8 && String(v).length <= 72
   const passwordRule = v => isPassword(v) || 'Password must be 8 to 72 characters'
-  const nameRule = v => /^[a-zA-Z0-9]+$/.test(String(v ?? '')) || 'Letters and numbers only'
+  // Mirrors normalizeUserNames (api/user.go): the server lowercases the
+  // username and capitalises each word of the display name.
+  const usernameRule = v => /^[a-z0-9._-]{1,32}$/.test(String(v ?? '').trim().toLowerCase()) || 'Up to 32 letters, digits, ".", "_" or "-"'
+  const nameRule = v => String(v ?? '').trim() !== '' || 'Required'
 
   // Add user
   const createDialog = ref(false)
-  const form = reactive({ name: '', password: '', activated: true, roleId: null })
-  const canSubmitCreate = computed(() => nameRule(form.name) === true && isPassword(form.password) && !!form.roleId)
+  const form = reactive({ username: '', name: '', password: '', activated: true, roleId: null })
+  const canSubmitCreate = computed(() => usernameRule(form.username) === true && nameRule(form.name) === true && isPassword(form.password) && !!form.roleId)
 
   function openCreate () {
+    form.username = ''
     form.name = ''
     form.password = ''
     form.activated = true
@@ -725,7 +753,7 @@
   async function submitCreate () {
     saving.value = true
     try {
-      await createUser({ name: form.name, password: form.password, activated: form.activated, role_id: form.roleId })
+      await createUser({ username: form.username, name: form.name, password: form.password, activated: form.activated, role_id: form.roleId })
       await fetchUsers(true)
       createDialog.value = false
     } catch (error) {
@@ -738,10 +766,11 @@
   // Edit name / role / status
   const editDialog = ref(false)
   const editTarget = ref(null)
-  const editForm = reactive({ name: '', roleId: null, activated: true })
+  const editForm = reactive({ username: '', name: '', roleId: null, activated: true })
 
   function openEdit (user) {
     editTarget.value = user
+    editForm.username = user.username
     editForm.name = user.name
     editForm.roleId = user.role_id
     editForm.activated = user.activated
@@ -753,6 +782,7 @@
     try {
       await updateUser({
         id: editTarget.value.id,
+        username: editForm.username,
         name: editForm.name,
         activated: editForm.activated,
         role_id: editForm.roleId,
@@ -782,6 +812,7 @@
     try {
       await updateUser({
         id: passwordTarget.value.id,
+        username: passwordTarget.value.username,
         name: passwordTarget.value.name,
         activated: passwordTarget.value.activated,
         role_id: passwordTarget.value.role_id,

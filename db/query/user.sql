@@ -1,11 +1,12 @@
 -- name: CreateUser :one
 INSERT INTO users (
+  username,
   name,
   email,
   password_hash,
   activated,
   role_id
-) VALUES ( $1, $2, $3, $4, $5 )
+) VALUES ( $1, $2, $3, $4, $5, $6 )
 RETURNING *;
 
 -- name: GetUser :one
@@ -14,7 +15,7 @@ WHERE id = $1 LIMIT 1;
 
 -- name: GetUserByUsername :one
 SELECT * FROM users
-WHERE name = $1 LIMIT 1;
+WHERE username = $1 LIMIT 1;
 
 -- name: ListUsers :many
 SELECT * FROM users
@@ -24,11 +25,12 @@ OFFSET $2;
 
 -- name: UpdateUser :exec
 UPDATE users
-  SET name = $2,
-  email = $3,
-  password_hash = $4,
-  activated = $5,
-  role_id = $6
+  SET username = $2,
+  name = $3,
+  email = $4,
+  password_hash = $5,
+  activated = $6,
+  role_id = $7
 WHERE id = $1;
 
 -- name: DeleteUser :exec

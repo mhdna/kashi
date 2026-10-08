@@ -590,7 +590,7 @@ type Querier interface {
 	// section for a role that has none (an admin, or a brand-new role). No rows
 	// at all means the user no longer exists.
 	GetUserAccess(ctx context.Context, id int64) ([]GetUserAccessRow, error)
-	GetUserByUsername(ctx context.Context, name string) (User, error)
+	GetUserByUsername(ctx context.Context, username string) (User, error)
 	GetVariantDiscountFromList(ctx context.Context, arg GetVariantDiscountFromListParams) (DiscountListItem, error)
 	GetVariantForLabel(ctx context.Context, id int64) (GetVariantForLabelRow, error)
 	GetVariantPriceFromList(ctx context.Context, arg GetVariantPriceFromListParams) (PriceListItem, error)

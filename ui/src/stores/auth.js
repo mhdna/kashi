@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { authFetch, connectionErrorMessage } from '@/composables/useApi'
+import { authFetch, connectionErrorMessage, SERVER_UPDATING_MESSAGE } from '@/composables/useApi'
+import { isGatewayStatus } from '@/composables/useServerStatus'
 import { API_BASE } from '@/config'
 
 // Turn a login response status into a message the user can act on. The
@@ -10,8 +11,11 @@ function loginMessage (status, bodyError) {
     case 400: {
       return 'Enter a valid username and password.'
     }
+    // 404 is an unknown username; same message so it doesn't reveal which
+    // usernames exist.
     case 401:
-    case 403: {
+    case 403:
+    case 404: {
       return 'Incorrect username or password.'
     }
     case 423: {
@@ -21,7 +25,15 @@ function loginMessage (status, bodyError) {
       return bodyError || 'Too many attempts. Please wait a while and try again.'
     }
     default: {
-      return 'Something went wrong on our end. Please try again in a moment.'
+      // Only a 5xx is actually the server's fault; anything else unexpected
+      // gets a neutral message. The status is shown so a report is traceable.
+      if (isGatewayStatus(status)) {
+        return SERVER_UPDATING_MESSAGE
+      }
+      if (status >= 500) {
+        return `The server couldn't sign you in (error ${status}). Try again; if it keeps happening, tell an administrator.`
+      }
+      return `Couldn't sign you in (error ${status}). Check your username and password and try again.`
     }
   }
 }
@@ -107,7 +119,7 @@ export const useAuthStore = defineStore('auth', () => {
       res = await fetch(`${API_BASE}/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, password }),
+        body: JSON.stringify({ username: name, password }),
       })
     } catch {
       // fetch only rejects on network-level failures (server unreachable,
