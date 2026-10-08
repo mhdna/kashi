@@ -683,7 +683,10 @@
     reloadLatest()
     loadMonthSummary()
     reloadRecentCounts()
+    // `make deploy-notes` inserts straight into the database, so no
+    // admin_activity push fires for it; the poll picks those rows up.
     latestPoll = setInterval(() => {
+      reloadKashi()
       reloadLatest()
       reloadRecentCounts()
     }, 60_000)
