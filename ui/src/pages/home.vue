@@ -124,6 +124,7 @@
                   class="px-3 activity-row"
                   @click="openDetail(item)"
                 >
+                  <!-- TEMP: left icon hidden
                   <template #prepend>
                     <v-avatar
                       class="me-3"
@@ -135,6 +136,7 @@
                       <v-icon :icon="visual(item).icon" size="18" />
                     </v-avatar>
                   </template>
+                  -->
                   <v-list-item-title class="text-body-2 font-weight-medium">
                     {{ item.activity || 'Activity' }}
                   </v-list-item-title>
