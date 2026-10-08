@@ -606,6 +606,7 @@ type Querier interface {
 	ListActiveBranchRegisterIDs(ctx context.Context, branchID int64) ([]int64, error)
 	ListActiveBranchTargetSeries(ctx context.Context) ([]BranchTargetSeries, error)
 	ListAdminActivities(ctx context.Context, arg ListAdminActivitiesParams) ([]ListAdminActivitiesRow, error)
+	// User and role changes are admin housekeeping, kept out of the feed.
 	ListAllAttributeValues(ctx context.Context) ([]ListAllAttributeValuesRow, error)
 	ListAllBranchRegisters(ctx context.Context) ([]BranchRegister, error)
 	ListAllCashboxAccounts(ctx context.Context) ([]CashboxAccount, error)

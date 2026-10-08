@@ -14,6 +14,7 @@ import (
 const countAdminActivitiesSince = `-- name: CountAdminActivitiesSince :one
 SELECT COUNT(*)::bigint FROM admin_activities
 WHERE created_at >= $1::timestamptz
+  AND route NOT LIKE '/users%' AND route NOT LIKE '/roles%'
 `
 
 // The home page's "today" count next to the IT Management feed.
@@ -67,6 +68,7 @@ SELECT a.id, a.method, a.route, a.entity_id, a.summary, a.detail, a.created_at,
        a.user_id, COALESCE(u.name, '') AS user_name
 FROM admin_activities a
 LEFT JOIN users u ON u.id = a.user_id
+WHERE a.route NOT LIKE '/users%' AND a.route NOT LIKE '/roles%'
 ORDER BY a.created_at DESC, a.id DESC
 LIMIT $2 OFFSET $1
 `
@@ -88,6 +90,7 @@ type ListAdminActivitiesRow struct {
 	UserName  string        `json:"user_name"`
 }
 
+// User and role changes are admin housekeeping, kept out of the feed.
 func (q *Queries) ListAdminActivities(ctx context.Context, arg ListAdminActivitiesParams) ([]ListAdminActivitiesRow, error) {
 	rows, err := q.db.QueryContext(ctx, listAdminActivities, arg.PageOffset, arg.PageSize)
 	if err != nil {
