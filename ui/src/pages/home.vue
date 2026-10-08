@@ -19,7 +19,7 @@
             {{ monthSummary || "Here's what's new." }}
           </p>
           <p class="mt-1 mb-0 text-caption text-disabled">
-            Feed counts cover the last {{ RECENT_HOURS }} hours.
+            Feed counts cover the last week.
           </p>
         </section>
 
@@ -179,10 +179,10 @@
           </v-card>
         </section>
 
-        <section v-if="canViewLatest" aria-label="Latest added" class="home-activities">
+        <section v-if="canViewLatest" aria-label="Latest attachments" class="home-activities">
           <div class="home-activities-head d-flex align-center px-1 mb-2">
             <v-icon class="me-2 text-medium-emphasis" icon="mdi-image-multiple-outline" size="18" />
-            <span class="text-body-2 font-weight-medium">Latest added</span>
+            <span class="text-body-2 font-weight-medium">Latest attachments</span>
             <v-spacer />
             <span
               v-if="recentCounts"
@@ -218,7 +218,7 @@
                       class="me-3"
                       :color="latestVisual(item).color"
                       rounded="lg"
-                      size="34"
+                      size="56"
                       variant="tonal"
                     >
                       <v-img v-if="thumbs[latestKey(item)]" cover :src="thumbs[latestKey(item)]" />
@@ -237,7 +237,7 @@
                         {{ money(item.amount, item.currency_code) }}
                       </div>
                       <div class="text-caption text-medium-emphasis">
-                        {{ dateTime(item.added_at) }}
+                        {{ shortDate(item.added_at) }}
                       </div>
                     </div>
                   </template>
@@ -493,16 +493,16 @@
     }, 500)
   })
 
-  // "N in the last 48h" beside each feed title (api/home_latest.go
+  // "N in the last week" beside each feed title (api/home_latest.go
   // getHomeToday, which counts from whatever `since` it's given). A rolling
   // window rather than "today", so the counts don't drop to zero first thing
   // in the morning; a feed the user can't view comes back null. Refreshed
   // alongside the feeds.
-  const RECENT_HOURS = 48
+  const RECENT_DAYS = 7
   const recentCounts = ref(null)
 
   async function reloadRecentCounts () {
-    const since = new Date(Date.now() - RECENT_HOURS * 60 * 60 * 1000)
+    const since = new Date(Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000)
     try {
       const response = await authFetch(`${API_BASE}/home/today?since=${encodeURIComponent(since.toISOString())}`)
       if (response.ok) recentCounts.value = await response.json()
@@ -511,7 +511,7 @@
     }
   }
 
-  // Just the count ("33,184 synced"); the 48h window is spelled out once,
+  // Just the count ("33,184 synced"); the one-week window is spelled out once,
   // under the month summary.
   function recentLabel (count, kind) {
     const n = count?.toLocaleString() ?? '—'
@@ -634,6 +634,18 @@
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
     if (seconds < 86_400) return `${Math.floor(seconds / 3600)}h ago`
     return dateTime(value)
+  }
+
+  // "5h ago" within a day, else "Oct 7th" (year added when it isn't this one).
+  function shortDate (value) {
+    if (!value) return '—'
+    const date = new Date(value)
+    if (Date.now() - date.getTime() < 86_400_000) return timeAgo(value)
+    const day = date.getDate()
+    const suffix = day % 100 >= 11 && day % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[day % 10] ?? 'th')
+    const month = date.toLocaleString([], { month: 'short' })
+    const year = date.getFullYear() === new Date().getFullYear() ? '' : ` ${date.getFullYear()}`
+    return `${month} ${day}${suffix}${year}`
   }
 
   function money (amount, currency = '') {

@@ -35,7 +35,7 @@ func (server *Server) listLatestAdditions(ctx *gin.Context) {
 	server.writeJSON(ctx, http.StatusOK, envelope{"items": rows})
 }
 
-// getHomeToday backs the "N in the last 48h" counts beside the home page's
+// getHomeToday backs the "N in the last week" counts beside the home page's
 // three feed titles: everything from `since` (an RFC3339 instant the client
 // picks) up to now. Each count is null when the user can't view that feed, mirroring
 // the access checks of the feed's own route.
