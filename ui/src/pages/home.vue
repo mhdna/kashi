@@ -14,13 +14,18 @@
           <p v-if="appVersion || appCommit" class="mt-2 mb-0 text-caption text-disabled build-info">
             {{ [appVersion, appCommit].filter(Boolean).join(' · ') }}
           </p>
-          <h1 class="mt-5 text-h5 font-weight-medium">Welcome to Kashi Cloud</h1>
+          <h1 class="mt-2 text-h5 font-weight-medium">Welcome to Kashi Cloud</h1>
+          <p class="mt-2 mb-0 text-body-2 text-medium-emphasis">
+            Take a look at the latest updates.
+          </p>
+          <!-- TEMP: month summary + feed-count note hidden
           <p class="mt-2 text-body-2 text-medium-emphasis month-summary">
             {{ monthSummary || "Here's what's new." }}
           </p>
           <p class="mt-1 mb-0 text-caption text-disabled">
             Feed counts cover the last week.
           </p>
+          -->
         </section>
 
 
@@ -47,7 +52,7 @@
             />
           </div>
 
-          <v-card class="home-activities-card" rounded="lg" variant="outlined">
+          <v-card v-if="mdAndUp" class="home-activities-card" rounded="lg" variant="outlined">
             <div class="home-activities-scroll">
               <v-skeleton-loader
                 v-if="!kashiLoaded"
@@ -110,7 +115,7 @@
             />
           </div>
 
-          <v-card class="home-activities-card" rounded="lg" variant="outlined">
+          <v-card v-if="mdAndUp" class="home-activities-card" rounded="lg" variant="outlined">
             <div class="home-activities-scroll">
               <v-skeleton-loader
                 v-if="!activitiesLoaded"
@@ -201,7 +206,7 @@
             />
           </div>
 
-          <v-card class="home-activities-card" rounded="lg" variant="outlined">
+          <v-card v-if="mdAndUp" class="home-activities-card" rounded="lg" variant="outlined">
             <div class="home-activities-scroll">
               <v-skeleton-loader
                 v-if="!latestLoaded"
@@ -815,6 +820,20 @@
     .home-activities-card {
       flex: 0 0 auto;
       height: min(440px, 65vh);
+    }
+  }
+
+  /* Below md the lists are hidden and only each feed's title and total show,
+     so the header rows become the content. */
+  @media (max-width: 959.98px) {
+    .home-feeds {
+      gap: 0;
+    }
+
+    .home-activities-head {
+      border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+      margin-bottom: 0 !important;
+      padding-block: 14px;
     }
   }
 
