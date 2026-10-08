@@ -190,7 +190,7 @@
 
 <script setup>
   import { computed, onMounted, ref, watch } from 'vue'
-  import VChart from 'vue-echarts'
+  import VChart from '@/components/EChart.vue'
   import { useRoute, useRouter } from 'vue-router'
   import { useDisplay, useTheme } from 'vuetify'
   import ListPanel from '@/components/Cards/ListPanel.vue'

@@ -55,7 +55,7 @@
 
 <script setup>
   import { computed, onMounted, ref } from 'vue'
-  import VChart from 'vue-echarts'
+  import VChart from '@/components/EChart.vue'
   import { useSettingsStore } from '@/stores/settings'
   import FinancialChartCard from './FinancialChartCard.vue'
   import {

@@ -118,7 +118,7 @@
 
 <script setup>
   import { computed, ref } from 'vue'
-  import VChart from 'vue-echarts'
+  import VChart from '@/components/EChart.vue'
   import { useTheme } from 'vuetify'
 
   const theme = useTheme()

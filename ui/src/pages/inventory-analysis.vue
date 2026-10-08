@@ -326,7 +326,7 @@
 
 <script setup>
   import { computed, onMounted, ref } from 'vue'
-  import VChart from 'vue-echarts'
+  import VChart from '@/components/EChart.vue'
   import { useTheme } from 'vuetify'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useLowStockAlerts } from '@/composables/useLowStockAlerts'

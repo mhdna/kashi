@@ -279,7 +279,7 @@
 
 <script setup lang="ts">
   import { computed, onMounted, ref, shallowRef, watch } from 'vue'
-  import VChart from 'vue-echarts'
+  import VChart from '@/components/EChart.vue'
   import { useTheme } from 'vuetify'
   import TierChip from '@/components/Clients/TierChip.vue'
   import { useClientTiers } from '@/composables/useClientTiers'

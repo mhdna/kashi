@@ -52,7 +52,7 @@
 
 <script setup>
   import { computed } from 'vue'
-  import VChart from 'vue-echarts'
+  import VChart from '@/components/EChart.vue'
   import { formatCompactMoney, formatMoney } from '@/utils/money'
 
   const props = defineProps({

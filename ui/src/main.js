@@ -5,7 +5,6 @@ import { registerPlugins } from '@/plugins'
 
 import App from './App.vue'
 
-import '@/plugins/echarts'
 import '@/styles/global.scss'
 import '@fontsource/roboto/400.css'
 import '@fontsource/roboto/500.css'

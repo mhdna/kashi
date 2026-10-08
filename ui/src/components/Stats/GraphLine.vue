@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-  import VChart from 'vue-echarts'
+  import VChart from '@/components/EChart.vue'
 
   const colorList = [
     '#4f81bd', '#c0504d', '#9bbb59', '#604a7b', '#948a54', '#e46c0b',

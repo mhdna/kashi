@@ -114,7 +114,7 @@
 
 <script setup>
   import { computed, ref, watch } from 'vue'
-  import VChart from 'vue-echarts'
+  import VChart from '@/components/EChart.vue'
   import { useTheme } from 'vuetify'
   import { formatMoney } from '@/utils/money'
   import { useNotify } from '@/composables/useNotify'

@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-  import VChart from 'vue-echarts'
+  import VChart from '@/components/EChart.vue'
   import { graphic } from '@/plugins/echarts'
 
   const data = []

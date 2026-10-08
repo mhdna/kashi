@@ -102,7 +102,7 @@
 
 <script setup lang="ts">
   import { computed, onMounted, ref, watch } from 'vue'
-  import VChart from 'vue-echarts'
+  import VChart from '@/components/EChart.vue'
   import { useTheme } from 'vuetify'
   import ProductRevenuePanel from '@/components/Products/ProductRevenuePanel.vue'
   import { useAttributes } from '@/composables/useAttributes'

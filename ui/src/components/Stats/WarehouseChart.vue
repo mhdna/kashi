@@ -10,7 +10,7 @@
 
 <script setup lang="ts">
   import { onMounted, ref, watch } from 'vue'
-  import VChart from 'vue-echarts'
+  import VChart from '@/components/EChart.vue'
   import { useNotify } from '@/composables/useNotify'
   import { useWarehouseTreemap } from '@/composables/useWarehouseTreemap'
 

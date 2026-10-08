@@ -8,8 +8,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, provide, watch } from 'vue'
-  import { THEME_KEY } from 'vue-echarts'
+  import { computed, watch } from 'vue'
   import { useTheme } from 'vuetify'
   import ErrorBoundary from '@/components/ErrorBoundary.vue'
   import UnsupportedDevice from '@/components/UnsupportedDevice.vue'
@@ -18,11 +17,6 @@
 
   const vuetifyTheme = useTheme()
 
-  // App-wide ECharts theme: every <VChart> that doesn't set its own `theme`
-  // prop inherits this and flips with Vuetify's light/dark mode. vue-echarts
-  // reacts to the change and calls chart.setTheme(), so no re-mount needed.
-  // Both names are registered in plugins/echarts.js.
-  provide(THEME_KEY, computed(() => (vuetifyTheme.global.current.value.dark ? 'kashi-dark' : 'kashi-light')))
   const appStore = useAppStore()
 
   // Gate on the browser's user agent, not the viewport: a narrow desktop

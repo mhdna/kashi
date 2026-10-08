@@ -50,7 +50,6 @@ declare module 'vue' {
     PageSidebar: typeof import('./src/components/PageSidebar.vue')['default']
     PercentageCircle: typeof import('./src/components/Stats/PercentageCircle.vue')['default']
     PieChart: typeof import('./src/components/Stats/PieChart.vue')['default']
-    Piechart2: typeof import('./src/components/Stats/Piechart2.vue')['default']
     PriceDiscountListManager: typeof import('./src/components/PriceDiscountListManager.vue')['default']
     PriceListsTab: typeof import('./src/components/PriceListsTab.vue')['default']
     ProductsList: typeof import('./src/components/ProductsList.vue')['default']

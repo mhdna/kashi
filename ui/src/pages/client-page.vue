@@ -1,7 +1,7 @@
 <script setup>
   import { ref, computed, onMounted } from 'vue'
   import { useRoute } from 'vue-router'
-  import VChart from 'vue-echarts'
+  import VChart from '@/components/EChart.vue'
   import ClientRankTag from '@/components/ClientRankTag.vue'
   import { API_BASE } from '@/config'
   import { authFetch } from '@/composables/useApi'

@@ -4,7 +4,7 @@
 
 <script lang="ts" setup>
   import { ref } from 'vue'
-  import VChart from 'vue-echarts'
+  import VChart from '@/components/EChart.vue'
 
   const builderJson = {
     all: 10_887,
