@@ -150,7 +150,10 @@
 
 <script>
 (function () {
-  var token = location.pathname.split('/').filter(Boolean).pop();
+  // This page's own path (/expense_uploads/<token>, or /api/expense_uploads/
+  // <token> behind the prod proxy); the status and upload calls hang off it
+  // so they reach the API whichever prefix it's mounted under.
+  var base = location.pathname.replace(/\/+$/, '');
   var card = document.getElementById('card');
   var MAX_FILES = 3;
 
@@ -260,7 +263,7 @@
           var name = payload === files[i] ? (files[i].name || 'receipt') : 'receipt-' + (i + 1) + '.jpg';
           formData.append('images', payload, name);
         });
-        return fetch('/expense_uploads/' + token + '/images', { method: 'POST', body: formData });
+        return fetch(base + '/images', { method: 'POST', body: formData });
       })
         .then(function (resp) {
           if (!resp.ok) {
@@ -279,7 +282,7 @@
     });
   }
 
-  fetch('/expense_uploads/' + token + '/status')
+  fetch(base + '/status')
     .then(function (resp) {
       if (!resp.ok) {
         return resp.json().then(function (body) {
