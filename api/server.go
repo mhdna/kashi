@@ -491,6 +491,10 @@ func (server *Server) setupRoutes() {
 	branchRoutes.GET("/expense_photos", server.branchExpensePhotos)
 	branchRoutes.GET("/expense_photos/:id/file", server.branchExpensePhotoFile)
 	branchRoutes.GET("/transfer_photo", server.branchTransferPhoto)
+	branchRoutes.GET("/loan_photos", server.branchLoanPhotos)
+	branchRoutes.GET("/loan_photos/:id/file", server.branchLoanPhotoFile)
+	branchRoutes.POST("/expenses/upload_link", server.branchExpenseUploadLink)
+	branchRoutes.POST("/loans/upload_link", server.branchLoanUploadLink)
 	branchRoutes.GET("/shift_closes/upload_status", server.branchShiftUploadStatus)
 	branchRoutes.POST("/shift_receipt_images", server.createBranchShiftReceiptImage)
 	branchRoutes.POST("/transfer_requests", server.createBranchTransferRequest)
@@ -507,6 +511,10 @@ func (server *Server) setupRoutes() {
 	router.GET("/expense_uploads/:token", server.expenseUploadPage)
 	router.GET("/expense_uploads/:token/status", server.expenseUploadStatus)
 	router.POST("/expense_uploads/:token/images", server.uploadExpenseImages)
+	// The same page and flow for a branch loan's photos (loan_upload.go).
+	router.GET("/loan_uploads/:token", server.expenseUploadPage)
+	router.GET("/loan_uploads/:token/status", server.loanUploadStatus)
+	router.POST("/loan_uploads/:token/images", server.uploadLoanImages)
 
 	// shift_uploads is the same public, token-gated flow for the one
 	// close-shift receipt photo -- see shift_upload.go.

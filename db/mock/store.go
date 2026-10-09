@@ -711,6 +711,21 @@ func (mr *MockStoreMockRecorder) CountBranchExpenseImages(arg0 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountBranchExpenseImages", reflect.TypeOf((*MockStore)(nil).CountBranchExpenseImages), arg0)
 }
 
+// CountBranchExpenseImagesForExpense mocks base method.
+func (m *MockStore) CountBranchExpenseImagesForExpense(arg0 context.Context, arg1 int64) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountBranchExpenseImagesForExpense", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountBranchExpenseImagesForExpense indicates an expected call of CountBranchExpenseImagesForExpense.
+func (mr *MockStoreMockRecorder) CountBranchExpenseImagesForExpense(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountBranchExpenseImagesForExpense", reflect.TypeOf((*MockStore)(nil).CountBranchExpenseImagesForExpense), arg0, arg1)
+}
+
 // CountBranchExpenses mocks base method.
 func (m *MockStore) CountBranchExpenses(arg0 context.Context, arg1 db.CountBranchExpensesParams) (int64, error) {
 	m.ctrl.T.Helper()
@@ -1159,6 +1174,21 @@ func (m *MockStore) CountLatestAdditionsSince(arg0 context.Context, arg1 db.Coun
 func (mr *MockStoreMockRecorder) CountLatestAdditionsSince(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountLatestAdditionsSince", reflect.TypeOf((*MockStore)(nil).CountLatestAdditionsSince), arg0, arg1)
+}
+
+// CountLoanImagesForLoan mocks base method.
+func (m *MockStore) CountLoanImagesForLoan(arg0 context.Context, arg1 int64) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountLoanImagesForLoan", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountLoanImagesForLoan indicates an expected call of CountLoanImagesForLoan.
+func (mr *MockStoreMockRecorder) CountLoanImagesForLoan(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountLoanImagesForLoan", reflect.TypeOf((*MockStore)(nil).CountLoanImagesForLoan), arg0, arg1)
 }
 
 // CountLoanPayments mocks base method.
@@ -2360,6 +2390,21 @@ func (mr *MockStoreMockRecorder) CreateLoanCategory(arg0, arg1 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLoanCategory", reflect.TypeOf((*MockStore)(nil).CreateLoanCategory), arg0, arg1)
 }
 
+// CreateLoanImage mocks base method.
+func (m *MockStore) CreateLoanImage(arg0 context.Context, arg1 db.CreateLoanImageParams) (db.LoanImage, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateLoanImage", arg0, arg1)
+	ret0, _ := ret[0].(db.LoanImage)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateLoanImage indicates an expected call of CreateLoanImage.
+func (mr *MockStoreMockRecorder) CreateLoanImage(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLoanImage", reflect.TypeOf((*MockStore)(nil).CreateLoanImage), arg0, arg1)
+}
+
 // CreateLoanPayment mocks base method.
 func (m *MockStore) CreateLoanPayment(arg0 context.Context, arg1 db.CreateLoanPaymentParams) (db.LoanPayment, error) {
 	m.ctrl.T.Helper()
@@ -2373,6 +2418,21 @@ func (m *MockStore) CreateLoanPayment(arg0 context.Context, arg1 db.CreateLoanPa
 func (mr *MockStoreMockRecorder) CreateLoanPayment(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLoanPayment", reflect.TypeOf((*MockStore)(nil).CreateLoanPayment), arg0, arg1)
+}
+
+// CreateLoanUploadToken mocks base method.
+func (m *MockStore) CreateLoanUploadToken(arg0 context.Context, arg1 db.CreateLoanUploadTokenParams) (db.LoanUploadToken, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateLoanUploadToken", arg0, arg1)
+	ret0, _ := ret[0].(db.LoanUploadToken)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateLoanUploadToken indicates an expected call of CreateLoanUploadToken.
+func (mr *MockStoreMockRecorder) CreateLoanUploadToken(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLoanUploadToken", reflect.TypeOf((*MockStore)(nil).CreateLoanUploadToken), arg0, arg1)
 }
 
 // CreatePriceList mocks base method.
@@ -5059,6 +5119,21 @@ func (mr *MockStoreMockRecorder) GetLoanCategory(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLoanCategory", reflect.TypeOf((*MockStore)(nil).GetLoanCategory), arg0, arg1)
 }
 
+// GetLoanImage mocks base method.
+func (m *MockStore) GetLoanImage(arg0 context.Context, arg1 int64) (db.LoanImage, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLoanImage", arg0, arg1)
+	ret0, _ := ret[0].(db.LoanImage)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLoanImage indicates an expected call of GetLoanImage.
+func (mr *MockStoreMockRecorder) GetLoanImage(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLoanImage", reflect.TypeOf((*MockStore)(nil).GetLoanImage), arg0, arg1)
+}
+
 // GetLoanPayment mocks base method.
 func (m *MockStore) GetLoanPayment(arg0 context.Context, arg1 int64) (db.LoanPayment, error) {
 	m.ctrl.T.Helper()
@@ -5072,6 +5147,21 @@ func (m *MockStore) GetLoanPayment(arg0 context.Context, arg1 int64) (db.LoanPay
 func (mr *MockStoreMockRecorder) GetLoanPayment(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLoanPayment", reflect.TypeOf((*MockStore)(nil).GetLoanPayment), arg0, arg1)
+}
+
+// GetLoanUploadTokenByToken mocks base method.
+func (m *MockStore) GetLoanUploadTokenByToken(arg0 context.Context, arg1 string) (db.LoanUploadToken, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLoanUploadTokenByToken", arg0, arg1)
+	ret0, _ := ret[0].(db.LoanUploadToken)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLoanUploadTokenByToken indicates an expected call of GetLoanUploadTokenByToken.
+func (mr *MockStoreMockRecorder) GetLoanUploadTokenByToken(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLoanUploadTokenByToken", reflect.TypeOf((*MockStore)(nil).GetLoanUploadTokenByToken), arg0, arg1)
 }
 
 // GetLowStockSummary mocks base method.
@@ -7562,6 +7652,21 @@ func (mr *MockStoreMockRecorder) ListLoanCategoriesUpdatedSince(arg0, arg1 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListLoanCategoriesUpdatedSince", reflect.TypeOf((*MockStore)(nil).ListLoanCategoriesUpdatedSince), arg0, arg1)
 }
 
+// ListLoanImagesForLoan mocks base method.
+func (m *MockStore) ListLoanImagesForLoan(arg0 context.Context, arg1 int64) ([]db.LoanImage, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListLoanImagesForLoan", arg0, arg1)
+	ret0, _ := ret[0].([]db.LoanImage)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListLoanImagesForLoan indicates an expected call of ListLoanImagesForLoan.
+func (mr *MockStoreMockRecorder) ListLoanImagesForLoan(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListLoanImagesForLoan", reflect.TypeOf((*MockStore)(nil).ListLoanImagesForLoan), arg0, arg1)
+}
+
 // ListLoanPayments mocks base method.
 func (m *MockStore) ListLoanPayments(arg0 context.Context, arg1 db.ListLoanPaymentsParams) ([]db.LoanPayment, error) {
 	m.ctrl.T.Helper()
@@ -8365,6 +8470,20 @@ func (m *MockStore) MarkBranchTransferUploadTokenUsed(arg0 context.Context, arg1
 func (mr *MockStoreMockRecorder) MarkBranchTransferUploadTokenUsed(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkBranchTransferUploadTokenUsed", reflect.TypeOf((*MockStore)(nil).MarkBranchTransferUploadTokenUsed), arg0, arg1)
+}
+
+// MarkLoanUploadTokenUsed mocks base method.
+func (m *MockStore) MarkLoanUploadTokenUsed(arg0 context.Context, arg1 int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkLoanUploadTokenUsed", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkLoanUploadTokenUsed indicates an expected call of MarkLoanUploadTokenUsed.
+func (mr *MockStoreMockRecorder) MarkLoanUploadTokenUsed(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkLoanUploadTokenUsed", reflect.TypeOf((*MockStore)(nil).MarkLoanUploadTokenUsed), arg0, arg1)
 }
 
 // PostStockCountTx mocks base method.

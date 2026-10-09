@@ -108,7 +108,14 @@ func (server *Server) createBranchLoan(ctx *gin.Context) {
 		Label:        req.Description,
 	})
 
-	server.writeJSON(ctx, http.StatusOK, envelope{"loan": loan})
+	// A photo link for the new loan, as createBranchExpense gives an
+	// expense; a retried sync that hit "already exists" above never mints
+	// a second one.
+	resp := envelope{"loan": loan}
+	if token := server.mintLoanUploadToken(ctx, loan.ID); token != "" {
+		resp["upload_token"] = token
+	}
+	server.writeJSON(ctx, http.StatusOK, resp)
 }
 
 // getOrCreateLoanCategoryID resolves a lender-source name reported by a

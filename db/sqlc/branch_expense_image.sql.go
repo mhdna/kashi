@@ -21,6 +21,18 @@ func (q *Queries) CountBranchExpenseImages(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const countBranchExpenseImagesForExpense = `-- name: CountBranchExpenseImagesForExpense :one
+SELECT COUNT(*) FROM branch_expense_images
+WHERE branch_expense_id = $1
+`
+
+func (q *Queries) CountBranchExpenseImagesForExpense(ctx context.Context, branchExpenseID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countBranchExpenseImagesForExpense, branchExpenseID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createBranchExpenseImage = `-- name: CreateBranchExpenseImage :one
 INSERT INTO branch_expense_images (
   branch_expense_id,

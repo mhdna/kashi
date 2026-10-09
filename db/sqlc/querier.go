@@ -80,6 +80,7 @@ type Querier interface {
 	CountBranchAttendanceEvents(ctx context.Context, branchID sql.NullInt64) (int64, error)
 	CountBranchCommands(ctx context.Context, arg CountBranchCommandsParams) (int64, error)
 	CountBranchExpenseImages(ctx context.Context) (int64, error)
+	CountBranchExpenseImagesForExpense(ctx context.Context, branchExpenseID int64) (int64, error)
 	CountBranchExpenses(ctx context.Context, arg CountBranchExpensesParams) (int64, error)
 	CountBranchInvoiceSettlements(ctx context.Context, branchID sql.NullInt64) (int64, error)
 	CountBranchInvoices(ctx context.Context, branchID sql.NullInt64) (int64, error)
@@ -129,6 +130,7 @@ type Querier interface {
 	// kinds, access flags and timestamps as ListLatestAdditions, counted from
 	// `since` on.
 	CountLatestAdditionsSince(ctx context.Context, arg CountLatestAdditionsSinceParams) (int64, error)
+	CountLoanImagesForLoan(ctx context.Context, loanID int64) (int64, error)
 	CountLoanPayments(ctx context.Context, arg CountLoanPaymentsParams) (int64, error)
 	CountLoans(ctx context.Context, arg CountLoansParams) (int64, error)
 	CountLowStockProducts(ctx context.Context, arg CountLowStockProductsParams) (int64, error)
@@ -220,7 +222,9 @@ type Querier interface {
 	// Not pre-assigned to a client -- whoever redeems it first claims it.
 	CreateListCoupon(ctx context.Context, arg CreateListCouponParams) (Coupon, error)
 	CreateLoanCategory(ctx context.Context, arg CreateLoanCategoryParams) (LoanCategory, error)
+	CreateLoanImage(ctx context.Context, arg CreateLoanImageParams) (LoanImage, error)
 	CreateLoanPayment(ctx context.Context, arg CreateLoanPaymentParams) (LoanPayment, error)
+	CreateLoanUploadToken(ctx context.Context, arg CreateLoanUploadTokenParams) (LoanUploadToken, error)
 	CreatePriceList(ctx context.Context, arg CreatePriceListParams) (PriceList, error)
 	CreatePriceListItem(ctx context.Context, arg CreatePriceListItemParams) (PriceListItem, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
@@ -478,7 +482,9 @@ type Querier interface {
 	GetInvoiceType(ctx context.Context, id int64) (InvoiceType, error)
 	GetLoan(ctx context.Context, id int64) (Loan, error)
 	GetLoanCategory(ctx context.Context, id int64) (LoanCategory, error)
+	GetLoanImage(ctx context.Context, id int64) (LoanImage, error)
 	GetLoanPayment(ctx context.Context, id int64) (LoanPayment, error)
+	GetLoanUploadTokenByToken(ctx context.Context, token string) (LoanUploadToken, error)
 	// Counts across all active, alert-enabled products, ignoring search --
 	// backs the summary cards, which should reflect the whole picture even
 	// while the table below is filtered.
@@ -1022,6 +1028,7 @@ type Querier interface {
 	// Only branch-scoped categories are synced down to kashi-pos -- central
 	// ones are managed in kashi only.
 	ListLoanCategoriesUpdatedSince(ctx context.Context, updatedAt time.Time) ([]LoanCategory, error)
+	ListLoanImagesForLoan(ctx context.Context, loanID int64) ([]LoanImage, error)
 	// sqlc.narg(loan_id) is nullable: NULL means "all loans". sqlc.narg(category_id)
 	// filters by the parent loan's lender-source category.
 	ListLoanPayments(ctx context.Context, arg ListLoanPaymentsParams) ([]LoanPayment, error)
@@ -1169,6 +1176,7 @@ type Querier interface {
 	MarkBranchInvoicesCancelled(ctx context.Context, arg MarkBranchInvoicesCancelledParams) error
 	MarkBranchShiftUploadTokenUsed(ctx context.Context, id int64) error
 	MarkBranchTransferUploadTokenUsed(ctx context.Context, id int64) error
+	MarkLoanUploadTokenUsed(ctx context.Context, id int64) error
 	ProductBarcodesPresent(ctx context.Context, dollar_1 []string) ([]string, error)
 	// Apply an inbound quantity delta and roll the per-location moving-average
 	// cost forward. When existing on-hand is <= 0 the average is just reset to

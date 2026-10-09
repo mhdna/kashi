@@ -56,3 +56,7 @@ LIMIT $1 OFFSET $2;
 
 -- name: CountBranchExpenseImages :one
 SELECT COUNT(*) FROM branch_expense_images;
+
+-- name: CountBranchExpenseImagesForExpense :one
+SELECT COUNT(*) FROM branch_expense_images
+WHERE branch_expense_id = $1;
