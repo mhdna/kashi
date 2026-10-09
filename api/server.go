@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -20,6 +21,8 @@ type Server struct {
 	// recordActivity writes the home page's "In kashi" feed
 	// (admin_activity.go); tests replace it.
 	recordActivity func(adminActivity)
+	// security counts, locates and filters every request (security.go).
+	security *securityGuard
 }
 
 func NewServer(config util.Config, store db.Store) (*Server, error) {
@@ -35,11 +38,22 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 		branchHub:  newBranchHub(),
 		adminHub:   newAdminHub(),
 	}
+	server.security = newSecurityGuard(store, newGeoIP(config.GeoIPDir))
+	server.security.notify = func() {
+		server.adminHub.broadcastAll(adminWSMessage{Type: "security_alert"})
+	}
 
 	server.recordActivity = server.recordAdminActivity
 	server.setupRoutes()
 
 	return server, nil
+}
+
+// RunSecurity keeps the request guard's settings, bans and visitor counts
+// in step with the database and the IP-location databases current, until
+// ctx ends (security.go). main starts it; tests don't.
+func (server *Server) RunSecurity(ctx context.Context) {
+	server.security.Run(ctx)
 }
 
 // BranchHub exposes the server's live-push hub so background schedulers
@@ -56,7 +70,12 @@ func (server *Server) setupRoutes() {
 	gin.DefaultWriter = log.Writer()
 	gin.DefaultErrorWriter = log.Writer()
 	router := gin.Default()
-	router.Use(corsMiddleware())
+	// Caddy, on this same machine, is the only proxy in front: trust its
+	// X-Forwarded-For and nobody else's, so a client can't claim another IP.
+	if err := router.SetTrustedProxies([]string{"127.0.0.1", "::1"}); err != nil {
+		log.Printf("trusted proxies: %v", err)
+	}
+	router.Use(corsMiddleware(), server.security.middleware())
 
 	authRoutes := router.Group("/").Use(server.authMiddleware(), server.permissionMiddleware(), server.adminActivityMiddleware())
 
@@ -462,6 +481,14 @@ func (server *Server) setupRoutes() {
 	// custom headers. Auth happens inside adminWS itself via a query-param
 	// token instead.
 	router.GET("/admin/ws", server.adminWS)
+
+	// Security page (admin-only: not in access.go's routeRules).
+	authRoutes.GET("/security/overview", server.getSecurityOverview)
+	authRoutes.GET("/security/visitors", server.listSecurityVisitors)
+	authRoutes.POST("/security/alerts/acknowledge", server.acknowledgeSecurityAlerts)
+	authRoutes.PUT("/security/settings", server.updateSecuritySettings)
+	authRoutes.POST("/security/bans", server.banIP)
+	authRoutes.DELETE("/security/bans/:ip", server.unbanIP)
 
 	// branchRoutes is authenticated with a per-register API key rather than
 	// a PASETO user token — see branchAuthMiddleware. Kept under its own path

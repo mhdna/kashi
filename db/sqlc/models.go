@@ -1233,6 +1233,14 @@ type InvoiceType struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type IpBan struct {
+	Ip        string       `json:"ip"`
+	Reason    string       `json:"reason"`
+	Until     sql.NullTime `json:"until"`
+	CreatedAt time.Time    `json:"created_at"`
+	CreatedBy string       `json:"created_by"`
+}
+
 type Loan struct {
 	ID                       int64          `json:"id"`
 	Origin                   string         `json:"origin"`
@@ -1463,6 +1471,29 @@ type Salesperson struct {
 	IsSalesperson       bool          `json:"is_salesperson"`
 }
 
+type SecurityAlert struct {
+	ID             int64        `json:"id"`
+	Kind           string       `json:"kind"`
+	Ip             string       `json:"ip"`
+	CountryCode    string       `json:"country_code"`
+	Detail         string       `json:"detail"`
+	Count          int64        `json:"count"`
+	FirstAt        time.Time    `json:"first_at"`
+	LastAt         time.Time    `json:"last_at"`
+	AcknowledgedAt sql.NullTime `json:"acknowledged_at"`
+}
+
+type SecuritySetting struct {
+	ID                   int32     `json:"id"`
+	CountryFilterEnabled bool      `json:"country_filter_enabled"`
+	AllowedCountries     []string  `json:"allowed_countries"`
+	AlwaysAllowed        []string  `json:"always_allowed"`
+	AutoBanEnabled       bool      `json:"auto_ban_enabled"`
+	AutoBanFailedLogins  int32     `json:"auto_ban_failed_logins"`
+	AutoBanMinutes       int32     `json:"auto_ban_minutes"`
+	UpdatedAt            time.Time `json:"updated_at"`
+}
+
 type Session struct {
 	ID           uuid.UUID `json:"id"`
 	Username     string    `json:"username"`
@@ -1613,4 +1644,28 @@ type VariantDefaultDiscount struct {
 type VariantDefaultPrice struct {
 	ProductVariantID int64 `json:"product_variant_id"`
 	Price            int64 `json:"price"`
+}
+
+type VisitorIp struct {
+	Ip             string    `json:"ip"`
+	FirstSeenAt    time.Time `json:"first_seen_at"`
+	LastSeenAt     time.Time `json:"last_seen_at"`
+	Requests       int64     `json:"requests"`
+	FailedLogins   int64     `json:"failed_logins"`
+	Logins         int64     `json:"logins"`
+	NotFound       int64     `json:"not_found"`
+	Blocked        int64     `json:"blocked"`
+	LastKind       string    `json:"last_kind"`
+	LastUserName   string    `json:"last_user_name"`
+	LastBranchName string    `json:"last_branch_name"`
+	LastMethod     string    `json:"last_method"`
+	LastPath       string    `json:"last_path"`
+	LastStatus     int32     `json:"last_status"`
+	UserAgent      string    `json:"user_agent"`
+	CountryCode    string    `json:"country_code"`
+	Country        string    `json:"country"`
+	Region         string    `json:"region"`
+	City           string    `json:"city"`
+	Asn            int64     `json:"asn"`
+	Network        string    `json:"network"`
 }

@@ -14,6 +14,8 @@ import (
 )
 
 type Querier interface {
+	// Marks the given alerts seen; an empty list marks every open one.
+	AcknowledgeSecurityAlerts(ctx context.Context, ids []int64) error
 	// remaining_quantity starts equal to quantity_bought -- FIFO consumption
 	// (applyStockMovement) draws it down as sales are attributed to this
 	// batch, and returns of those sales put it back.
@@ -135,6 +137,7 @@ type Querier interface {
 	CountLoans(ctx context.Context, arg CountLoansParams) (int64, error)
 	CountLowStockProducts(ctx context.Context, arg CountLowStockProductsParams) (int64, error)
 	CountOpenBranchSyncConflicts(ctx context.Context, branchID int64) (int64, error)
+	CountOpenSecurityAlerts(ctx context.Context) (int64, error)
 	// Admin users besides $1, so the last admin can't be deleted or demoted.
 	CountOtherAdmins(ctx context.Context, id int64) (int64, error)
 	CountPriceListItemsWithProduct(ctx context.Context, arg CountPriceListItemsWithProductParams) (int64, error)
@@ -152,6 +155,7 @@ type Querier interface {
 	CountTransferAttachments(ctx context.Context) (int64, error)
 	CountTransfers(ctx context.Context, status NullTransferStatus) (int64, error)
 	CountVariantsForBarcodes(ctx context.Context, search string) (int64, error)
+	CountVisitorIPs(ctx context.Context, arg CountVisitorIPsParams) (int64, error)
 	CreateAdminActivity(ctx context.Context, arg CreateAdminActivityParams) (AdminActivity, error)
 	CreateAppRelease(ctx context.Context, arg CreateAppReleaseParams) (AppRelease, error)
 	CreateAppUpdateEvent(ctx context.Context, arg CreateAppUpdateEventParams) error
@@ -372,6 +376,7 @@ type Querier interface {
 	DeleteExpense(ctx context.Context, id int64) error
 	DeleteExpenseCategory(ctx context.Context, id int64) error
 	DeleteExpenses(ctx context.Context, ids []int64) (int64, error)
+	DeleteIPBan(ctx context.Context, ip string) error
 	DeleteInventories(ctx context.Context, ids []int64) (int64, error)
 	DeleteInventory(ctx context.Context, id int64) error
 	DeleteLoan(ctx context.Context, id int64) error
@@ -587,6 +592,7 @@ type Querier interface {
 	GetSalesperson(ctx context.Context, id int64) (Salesperson, error)
 	// Another salesperson of the same branch already using this device number.
 	GetSalespersonByAttendanceID(ctx context.Context, arg GetSalespersonByAttendanceIDParams) (Salesperson, error)
+	GetSecuritySettings(ctx context.Context) (SecuritySetting, error)
 	GetSession(ctx context.Context, id uuid.UUID) (Session, error)
 	GetShift(ctx context.Context, id int64) (Shift, error)
 	GetSizeByName(ctx context.Context, name string) (Size, error)
@@ -622,6 +628,7 @@ type Querier interface {
 	InsertBranchQuickAccessItem(ctx context.Context, arg InsertBranchQuickAccessItemParams) error
 	ListActiveBranchRegisterIDs(ctx context.Context, branchID int64) ([]int64, error)
 	ListActiveBranchTargetSeries(ctx context.Context) ([]BranchTargetSeries, error)
+	ListActiveIPBans(ctx context.Context) ([]IpBan, error)
 	// User and role changes are admin housekeeping, kept out of the feed.
 	ListAdminActivities(ctx context.Context, arg ListAdminActivitiesParams) ([]ListAdminActivitiesRow, error)
 	ListAllAttributeValues(ctx context.Context) ([]ListAllAttributeValuesRow, error)
@@ -1141,6 +1148,7 @@ type Querier interface {
 	ListSalespersonsByCashbox(ctx context.Context, cashboxID sql.NullInt64) ([]Salesperson, error)
 	ListSalespersonsForBranch(ctx context.Context, branchID sql.NullInt64) ([]Salesperson, error)
 	ListSalespersonsUpdatedSince(ctx context.Context, arg ListSalespersonsUpdatedSinceParams) ([]Salesperson, error)
+	ListSecurityAlerts(ctx context.Context, arg ListSecurityAlertsParams) ([]SecurityAlert, error)
 	ListShifts(ctx context.Context, arg ListShiftsParams) ([]ListShiftsRow, error)
 	ListSizes(ctx context.Context) ([]Size, error)
 	ListSizesPage(ctx context.Context, arg ListSizesPageParams) ([]Size, error)
@@ -1167,6 +1175,9 @@ type Querier interface {
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	ListVariantSyncIDs(ctx context.Context, arg ListVariantSyncIDsParams) ([]ListVariantSyncIDsRow, error)
 	ListVariantsForBarcodes(ctx context.Context, arg ListVariantsForBarcodesParams) ([]ListVariantsForBarcodesRow, error)
+	// Most recently seen first. search matches the IP, place, network, user or
+	// branch; country narrows to one country code.
+	ListVisitorIPs(ctx context.Context, arg ListVisitorIPsParams) ([]VisitorIp, error)
 	// The original punch of an approved replace/delete on the till. Kept, not
 	// deleted, so the audit trail shows what was there and who took it away.
 	MarkBranchAttendanceEventRemoved(ctx context.Context, arg MarkBranchAttendanceEventRemovedParams) error
@@ -1182,6 +1193,9 @@ type Querier interface {
 	// cost forward. When existing on-hand is <= 0 the average is just reset to
 	// the incoming cost (no meaningful prior average to blend).
 	ReceiveInventoryStock(ctx context.Context, arg ReceiveInventoryStockParams) (InventoryStock, error)
+	// Opens an alert, or bumps the open one of the same kind for the same IP
+	// seen within the last hour.
+	RecordSecurityAlert(ctx context.Context, arg RecordSecurityAlertParams) error
 	// Idempotent: a retried invoice post that already redeemed this code just
 	// returns the row unchanged rather than erroring (matches
 	// CreateBranchInvoice's own idempotent-retry shape). Only actually moves
@@ -1389,6 +1403,7 @@ type Querier interface {
 	UpdateProductVariantAvgCost(ctx context.Context, arg UpdateProductVariantAvgCostParams) error
 	UpdateRecurringExpenseNextDue(ctx context.Context, arg UpdateRecurringExpenseNextDueParams) (RecurringExpense, error)
 	UpdateSalesperson(ctx context.Context, arg UpdateSalespersonParams) (Salesperson, error)
+	UpdateSecuritySettings(ctx context.Context, arg UpdateSecuritySettingsParams) (SecuritySetting, error)
 	UpdateSize(ctx context.Context, arg UpdateSizeParams) (Size, error)
 	UpdateTransfer(ctx context.Context, arg UpdateTransferParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) error
@@ -1402,6 +1417,7 @@ type Querier interface {
 	UpsertClientLink(ctx context.Context, arg UpsertClientLinkParams) error
 	UpsertDefaultBranchSettings(ctx context.Context, settings json.RawMessage) (DefaultBranchSetting, error)
 	UpsertDiscountListBranch(ctx context.Context, arg UpsertDiscountListBranchParams) error
+	UpsertIPBan(ctx context.Context, arg UpsertIPBanParams) error
 	// Reactivates inventories_assets (created 000012, never wired up until now):
 	// per-location unit counts for fixed assets, feeding the Assets Treemap.
 	// One assets row is a distinct item *type*; the same asset can sit in more
@@ -1414,6 +1430,12 @@ type Querier interface {
 	UpsertPriceListBranch(ctx context.Context, arg UpsertPriceListBranchParams) error
 	UpsertProductAttribute(ctx context.Context, arg UpsertProductAttributeParams) error
 	UpsertRolePermission(ctx context.Context, arg UpsertRolePermissionParams) error
+	// The Security page and its request middleware (api/security.go).
+	// Folds one flush's worth of requests from an IP into its row: counters
+	// add up, the "last" columns and the location are overwritten.
+	UpsertVisitorIP(ctx context.Context, arg UpsertVisitorIPParams) error
+	// IPs and requests per country, busiest first.
+	VisitorCountries(ctx context.Context) ([]VisitorCountriesRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

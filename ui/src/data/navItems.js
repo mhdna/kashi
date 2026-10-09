@@ -120,5 +120,6 @@ export const appendItems = [
   { title: 'Dev Logs', icon: 'mdi-code-tags', to: '/logs' },
   { title: 'Audit Log', icon: 'mdi-history', to: '/audit-log' },
   { title: 'App Updates', icon: 'mdi-update', to: '/app-updates' },
+  { title: 'Security', icon: 'mdi-shield-lock-outline', to: '/security' },
   { title: 'Settings', icon: 'mdi-cog-outline', to: '/settings' },
 ]

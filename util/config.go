@@ -30,6 +30,10 @@ type Config struct {
 	// update (api/app_update.go) are saved. Defaults to
 	// ./storage/app_releases when unset.
 	AppReleaseStorageDir string `mapstructure:"APP_RELEASE_STORAGE_DIR"`
+	// GeoIPDir holds the DB-IP lite databases the Security page locates
+	// visitors with (api/geoip.go downloads them). Defaults to
+	// ./storage/geoip when unset.
+	GeoIPDir string `mapstructure:"GEOIP_DIR"`
 	// AppLogPath is the bounded, rotating backend log file. It defaults to
 	// logs/kashi.log when APP_LOG_PATH is not set.
 	AppLogPath string `mapstructure:"APP_LOG_PATH"`

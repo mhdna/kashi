@@ -55,6 +55,7 @@ func main() {
 	go runGatewayServer(config, store)
 	go runRecurringExpenseScheduler(context.Background(), store)
 	go api.RunBranchTargetSeriesScheduler(context.Background(), store, server.BranchHub())
+	go server.RunSecurity(context.Background())
 	// runGrpcServer(config, store)
 	if err := server.Start(config.HTTPServerAddress); err != nil {
 		log.Fatal("cannot start server:", err)
