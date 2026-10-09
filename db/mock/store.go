@@ -8723,6 +8723,21 @@ func (mr *MockStoreMockRecorder) ReportDailySales(arg0, arg1 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportDailySales", reflect.TypeOf((*MockStore)(nil).ReportDailySales), arg0, arg1)
 }
 
+// ReportInventoryValue mocks base method.
+func (m *MockStore) ReportInventoryValue(arg0 context.Context) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReportInventoryValue", arg0)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReportInventoryValue indicates an expected call of ReportInventoryValue.
+func (mr *MockStoreMockRecorder) ReportInventoryValue(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportInventoryValue", reflect.TypeOf((*MockStore)(nil).ReportInventoryValue), arg0)
+}
+
 // ReportPaymentMethods mocks base method.
 func (m *MockStore) ReportPaymentMethods(arg0 context.Context, arg1 db.ReportPaymentMethodsParams) ([]db.ReportPaymentMethodsRow, error) {
 	m.ctrl.T.Helper()
@@ -8738,6 +8753,21 @@ func (mr *MockStoreMockRecorder) ReportPaymentMethods(arg0, arg1 interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportPaymentMethods", reflect.TypeOf((*MockStore)(nil).ReportPaymentMethods), arg0, arg1)
 }
 
+// ReportReceivables mocks base method.
+func (m *MockStore) ReportReceivables(arg0 context.Context) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReportReceivables", arg0)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReportReceivables indicates an expected call of ReportReceivables.
+func (mr *MockStoreMockRecorder) ReportReceivables(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportReceivables", reflect.TypeOf((*MockStore)(nil).ReportReceivables), arg0)
+}
+
 // ReportSaleYears mocks base method.
 func (m *MockStore) ReportSaleYears(arg0 context.Context) ([]int32, error) {
 	m.ctrl.T.Helper()
@@ -8751,6 +8781,21 @@ func (m *MockStore) ReportSaleYears(arg0 context.Context) ([]int32, error) {
 func (mr *MockStoreMockRecorder) ReportSaleYears(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportSaleYears", reflect.TypeOf((*MockStore)(nil).ReportSaleYears), arg0)
+}
+
+// ReportTargetsInRange mocks base method.
+func (m *MockStore) ReportTargetsInRange(arg0 context.Context, arg1 db.ReportTargetsInRangeParams) ([]db.ReportTargetsInRangeRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReportTargetsInRange", arg0, arg1)
+	ret0, _ := ret[0].([]db.ReportTargetsInRangeRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReportTargetsInRange indicates an expected call of ReportTargetsInRange.
+func (mr *MockStoreMockRecorder) ReportTargetsInRange(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportTargetsInRange", reflect.TypeOf((*MockStore)(nil).ReportTargetsInRange), arg0, arg1)
 }
 
 // ReportTopProducts mocks base method.

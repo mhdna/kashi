@@ -102,15 +102,17 @@ GROUP BY pc.name, pc.color
 ORDER BY revenue DESC;
 
 -- name: ReportBranchSales :many
--- Sales per branch; sales entered in kashi come back with an empty name.
+-- Sales per branch; sales entered in kashi come back with branch_id 0 and
+-- an empty name.
 SELECT
+  COALESCE(s.branch_id, 0)::bigint AS branch_id,
   COALESCE(br.name, '')::text AS branch_name,
   SUM(s.grand_total)::bigint AS sales
 FROM report_sale_invoices s
 LEFT JOIN branches br ON br.id = s.branch_id
 WHERE s.occurred_at >= sqlc.arg(date_from)::timestamptz
   AND s.occurred_at < sqlc.arg(date_to)::timestamptz
-GROUP BY br.name
+GROUP BY s.branch_id, br.name
 ORDER BY sales DESC;
 
 -- name: ReportPaymentMethods :many
@@ -133,3 +135,33 @@ FROM (
 ) payments
 GROUP BY name
 ORDER BY amount DESC;
+
+-- name: ReportTargetsInRange :many
+-- Active branch sales targets overlapping [date_from, date_to), for the
+-- Sales Analysis page, which spreads each one over its days to get the
+-- target for any month (api/sales_analysis.go). date_to is inclusive.
+SELECT t.branch_id, b.name AS branch_name, t.date_from, t.date_to, t.target_amount
+FROM branch_targets t
+JOIN branches b ON b.id = t.branch_id
+WHERE t.is_active
+  AND t.date_to >= sqlc.arg(date_from)::date
+  AND t.date_from < sqlc.arg(date_to)::date
+  AND NOT b.hidden_from_reports;
+
+-- name: ReportInventoryValue :one
+-- What the stock on hand cost, across every inventory: each stock row at
+-- its own average cost, or the variant's when the row has none (stock
+-- counts set only the variant's).
+SELECT COALESCE(SUM(ist.quantity * COALESCE(NULLIF(ist.avg_cost, 0), pv.avg_cost)), 0)::bigint AS value
+FROM inventory_stock ist
+JOIN product_variants pv ON pv.id = ist.variant_id
+WHERE ist.quantity > 0;
+
+-- name: ReportReceivables :one
+-- What customers still owe on till sales put "On Account". Settling a sale
+-- later rewrites its payment lines (createBranchInvoiceSettlement), so the
+-- On Account lines left are exactly what's outstanding.
+SELECT COALESCE(SUM(bip.amount), 0)::bigint AS outstanding
+FROM branch_invoice_payments bip
+JOIN report_sale_invoices s ON s.source = 'branch' AND s.invoice_id = bip.branch_invoice_id
+WHERE lower(bip.account_name) LIKE '%on account%';

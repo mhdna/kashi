@@ -13,13 +13,14 @@ import (
 
 const reportBranchSales = `-- name: ReportBranchSales :many
 SELECT
+  COALESCE(s.branch_id, 0)::bigint AS branch_id,
   COALESCE(br.name, '')::text AS branch_name,
   SUM(s.grand_total)::bigint AS sales
 FROM report_sale_invoices s
 LEFT JOIN branches br ON br.id = s.branch_id
 WHERE s.occurred_at >= $1::timestamptz
   AND s.occurred_at < $2::timestamptz
-GROUP BY br.name
+GROUP BY s.branch_id, br.name
 ORDER BY sales DESC
 `
 
@@ -29,11 +30,13 @@ type ReportBranchSalesParams struct {
 }
 
 type ReportBranchSalesRow struct {
+	BranchID   int64  `json:"branch_id"`
 	BranchName string `json:"branch_name"`
 	Sales      int64  `json:"sales"`
 }
 
-// Sales per branch; sales entered in kashi come back with an empty name.
+// Sales per branch; sales entered in kashi come back with branch_id 0 and
+// an empty name.
 func (q *Queries) ReportBranchSales(ctx context.Context, arg ReportBranchSalesParams) ([]ReportBranchSalesRow, error) {
 	rows, err := q.db.QueryContext(ctx, reportBranchSales, arg.DateFrom, arg.DateTo)
 	if err != nil {
@@ -43,7 +46,7 @@ func (q *Queries) ReportBranchSales(ctx context.Context, arg ReportBranchSalesPa
 	items := []ReportBranchSalesRow{}
 	for rows.Next() {
 		var i ReportBranchSalesRow
-		if err := rows.Scan(&i.BranchName, &i.Sales); err != nil {
+		if err := rows.Scan(&i.BranchID, &i.BranchName, &i.Sales); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -310,6 +313,23 @@ func (q *Queries) ReportDailySales(ctx context.Context, arg ReportDailySalesPara
 	return items, nil
 }
 
+const reportInventoryValue = `-- name: ReportInventoryValue :one
+SELECT COALESCE(SUM(ist.quantity * COALESCE(NULLIF(ist.avg_cost, 0), pv.avg_cost)), 0)::bigint AS value
+FROM inventory_stock ist
+JOIN product_variants pv ON pv.id = ist.variant_id
+WHERE ist.quantity > 0
+`
+
+// What the stock on hand cost, across every inventory: each stock row at
+// its own average cost, or the variant's when the row has none (stock
+// counts set only the variant's).
+func (q *Queries) ReportInventoryValue(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, reportInventoryValue)
+	var value int64
+	err := row.Scan(&value)
+	return value, err
+}
+
 const reportPaymentMethods = `-- name: ReportPaymentMethods :many
 SELECT name, SUM(amount)::bigint AS amount
 FROM (
@@ -365,6 +385,23 @@ func (q *Queries) ReportPaymentMethods(ctx context.Context, arg ReportPaymentMet
 	return items, nil
 }
 
+const reportReceivables = `-- name: ReportReceivables :one
+SELECT COALESCE(SUM(bip.amount), 0)::bigint AS outstanding
+FROM branch_invoice_payments bip
+JOIN report_sale_invoices s ON s.source = 'branch' AND s.invoice_id = bip.branch_invoice_id
+WHERE lower(bip.account_name) LIKE '%on account%'
+`
+
+// What customers still owe on till sales put "On Account". Settling a sale
+// later rewrites its payment lines (createBranchInvoiceSettlement), so the
+// On Account lines left are exactly what's outstanding.
+func (q *Queries) ReportReceivables(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, reportReceivables)
+	var outstanding int64
+	err := row.Scan(&outstanding)
+	return outstanding, err
+}
+
 const reportSaleYears = `-- name: ReportSaleYears :many
 SELECT DISTINCT EXTRACT(YEAR FROM occurred_at AT TIME ZONE 'UTC')::int AS year
 FROM report_sale_invoices
@@ -386,6 +423,61 @@ func (q *Queries) ReportSaleYears(ctx context.Context) ([]int32, error) {
 			return nil, err
 		}
 		items = append(items, year)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const reportTargetsInRange = `-- name: ReportTargetsInRange :many
+SELECT t.branch_id, b.name AS branch_name, t.date_from, t.date_to, t.target_amount
+FROM branch_targets t
+JOIN branches b ON b.id = t.branch_id
+WHERE t.is_active
+  AND t.date_to >= $1::date
+  AND t.date_from < $2::date
+  AND NOT b.hidden_from_reports
+`
+
+type ReportTargetsInRangeParams struct {
+	DateFrom time.Time `json:"date_from"`
+	DateTo   time.Time `json:"date_to"`
+}
+
+type ReportTargetsInRangeRow struct {
+	BranchID     int64     `json:"branch_id"`
+	BranchName   string    `json:"branch_name"`
+	DateFrom     time.Time `json:"date_from"`
+	DateTo       time.Time `json:"date_to"`
+	TargetAmount int64     `json:"target_amount"`
+}
+
+// Active branch sales targets overlapping [date_from, date_to), for the
+// Sales Analysis page, which spreads each one over its days to get the
+// target for any month (api/sales_analysis.go). date_to is inclusive.
+func (q *Queries) ReportTargetsInRange(ctx context.Context, arg ReportTargetsInRangeParams) ([]ReportTargetsInRangeRow, error) {
+	rows, err := q.db.QueryContext(ctx, reportTargetsInRange, arg.DateFrom, arg.DateTo)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReportTargetsInRangeRow{}
+	for rows.Next() {
+		var i ReportTargetsInRangeRow
+		if err := rows.Scan(
+			&i.BranchID,
+			&i.BranchName,
+			&i.DateFrom,
+			&i.DateTo,
+			&i.TargetAmount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

@@ -1198,7 +1198,8 @@ type Querier interface {
 	// invoices the till already sent under its own uid now point at the
 	// canonical one.
 	RepointBranchInvoicesClientUID(ctx context.Context, arg RepointBranchInvoicesClientUIDParams) error
-	// Sales per branch; sales entered in kashi come back with an empty name.
+	// Sales per branch; sales entered in kashi come back with branch_id 0 and
+	// an empty name.
 	ReportBranchSales(ctx context.Context, arg ReportBranchSalesParams) ([]ReportBranchSalesRow, error)
 	// Revenue per product category. Lines without a product or whose product
 	// has no category come back with an empty name.
@@ -1219,12 +1220,24 @@ type Querier interface {
 	ReportDailyCosted(ctx context.Context, arg ReportDailyCostedParams) ([]ReportDailyCostedRow, error)
 	// Sales (net of returns) per day.
 	ReportDailySales(ctx context.Context, arg ReportDailySalesParams) ([]ReportDailySalesRow, error)
+	// What the stock on hand cost, across every inventory: each stock row at
+	// its own average cost, or the variant's when the row has none (stock
+	// counts set only the variant's).
+	ReportInventoryValue(ctx context.Context) (int64, error)
 	// What sales were paid with: the till's payment accounts by name ("Cash
 	// $$", "Visa", ...) plus kashi's own cashbox accounts, merged by name.
 	ReportPaymentMethods(ctx context.Context, arg ReportPaymentMethodsParams) ([]ReportPaymentMethodsRow, error)
+	// What customers still owe on till sales put "On Account". Settling a sale
+	// later rewrites its payment lines (createBranchInvoiceSettlement), so the
+	// On Account lines left are exactly what's outstanding.
+	ReportReceivables(ctx context.Context) (int64, error)
 	// Every year that has a sale, newest first, for the Sales Dashboard's
 	// year picker.
 	ReportSaleYears(ctx context.Context) ([]int32, error)
+	// Active branch sales targets overlapping [date_from, date_to), for the
+	// Sales Analysis page, which spreads each one over its days to get the
+	// target for any month (api/sales_analysis.go). date_to is inclusive.
+	ReportTargetsInRange(ctx context.Context, arg ReportTargetsInRangeParams) ([]ReportTargetsInRangeRow, error)
 	// Best-selling products by revenue. Till lines whose product never
 	// resolved to a kashi variant have no product and are left out.
 	ReportTopProducts(ctx context.Context, arg ReportTopProductsParams) ([]ReportTopProductsRow, error)

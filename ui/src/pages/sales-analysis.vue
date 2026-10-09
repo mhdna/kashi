@@ -3,13 +3,23 @@
     <!-- Header -->
     <div class="d-flex align-center flex-wrap ga-3 pa-4 pb-2">
       <div class="text-h6 font-weight-medium">Sales Analysis</div>
+      <v-progress-circular v-if="loading" indeterminate size="18" width="2" />
       <v-spacer />
-      <div class="text-caption text-medium-emphasis">YTD through</div>
+      <v-select
+        v-model="selectedYear"
+        density="compact"
+        hide-details
+        :items="years"
+        label="Year"
+        style="max-width: 120px"
+        variant="outlined"
+      />
+      <div class="text-caption text-medium-emphasis">Jan through</div>
       <v-select
         v-model="selectedMonth"
         density="compact"
         hide-details
-        :items="months"
+        :items="monthItems"
         style="max-width: 130px"
         variant="outlined"
       />
@@ -41,20 +51,23 @@
                   v-else-if="kpi.delta != null"
                   :color="kpi.delta >= 0 ? 'primary' : 'error'"
                   size="small"
+                  title="vs. the same months last year"
                   variant="tonal"
                 >
                   <v-icon :icon="kpi.delta >= 0 ? 'mdi-arrow-up' : 'mdi-arrow-down'" start />
-                  {{ Math.abs(kpi.delta) }}%
+                  {{ Math.round(Math.abs(kpi.delta)) }}%
                 </v-chip>
               </div>
               <div class="text-caption text-medium-emphasis mt-1">{{ kpi.label }}</div>
+              <div v-if="kpi.hint" class="text-caption text-disabled">{{ kpi.hint }}</div>
             </v-card>
           </div>
         </v-col>
 
         <v-col cols="12" md="4">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Sales by Product / Category</div>
+            <div class="chart-card__title">Sales by Category</div>
+            <div class="chart-card__subtitle">Top five · mark is the same months last year</div>
             <v-chart autoresize class="chart" :option="productOption" />
           </v-card>
         </v-col>
@@ -72,13 +85,14 @@
       <v-row>
         <v-col cols="12" md="4">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Sales by Region</div>
+            <div class="chart-card__title">Sales by Branch</div>
+            <div class="chart-card__subtitle">Against the branch's sales targets</div>
             <v-chart autoresize class="chart" :option="regionOption" />
           </v-card>
         </v-col>
         <v-col cols="12" md="4">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Sales by Channel</div>
+            <div class="chart-card__title">Payment Methods</div>
             <v-chart autoresize class="chart" :option="channelOption" />
           </v-card>
         </v-col>
@@ -86,7 +100,7 @@
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title">Inventory Days Outstanding</div>
             <div class="chart-card__subtitle">
-              Target {{ inventoryDays.target }} · Last year {{ inventoryDays.lastYear }}
+              Stock on hand at cost {{ money(report?.inventory_value) }}, over the period's daily cost of goods sold
             </div>
             <v-chart autoresize class="chart" :option="inventoryGaugeOption" />
           </v-card>
@@ -106,7 +120,7 @@
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title">Receivable Days Outstanding</div>
             <div class="chart-card__subtitle">
-              Target {{ receivableDays.target }} · Last year {{ receivableDays.lastYear }}
+              Owed on account {{ money(report?.receivables) }}, over the period's daily sales
             </div>
             <v-chart autoresize class="chart" :option="receivableGaugeOption" />
           </v-card>
@@ -117,12 +131,20 @@
 </template>
 
 <script setup>
-  import { computed, ref } from 'vue'
-  import VChart from '@/components/EChart.vue'
+  import { computed, ref, watch } from 'vue'
   import { useTheme } from 'vuetify'
+  import VChart from '@/components/EChart.vue'
+  import { authFetch } from '@/composables/useApi'
+  import { useNotify } from '@/composables/useNotify'
+  import { API_BASE } from '@/config'
+
+  // January through a chosen month, against the branches' sales targets and
+  // the same months last year, from GET /sales_analysis
+  // (api/sales_analysis.go). Amounts arrive in cents.
 
   const theme = useTheme()
   const c = computed(() => theme.current.value.colors)
+  const notify = useNotify()
 
   // Palette — deliberately minimal: one accent (primary), a neutral grey
   // for "target" / reference marks, red only for shortfalls and declines.
@@ -133,49 +155,89 @@
   const axisColor = computed(() => (isDark.value ? '#3a3a3a' : '#e0e0e0'))
   const textColor = computed(() => (isDark.value ? '#aaa' : '#666'))
 
-  const months = ['JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC', 'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN']
-  const selectedMonth = ref('JUN')
+  const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+  const monthItems = MONTHS.map((title, i) => ({ title, value: i + 1 }))
 
-  // ---- Fake data ------------------------------------------------------------
-  const kpis = [
-    { label: 'Sales', value: '16,461', delta: 43 },
-    { label: 'Sales Target', value: '15,907' },
-    { label: 'Target Achievement', value: '', progress: 103 },
-    { label: 'Sales Last Year', value: '11,545' },
-    { label: 'Gross Profit', value: '5,868' },
-    { label: 'Gross Profit Margin', value: '36%' },
-  ]
+  // null until the first answer, which picks the latest year with sales and
+  // (for this year) the current month.
+  const selectedYear = ref(null)
+  const selectedMonth = ref(null)
+  const report = ref(null)
+  const loading = ref(false)
+  const years = computed(() => report.value?.years ?? [])
 
-  const products = [
-    { name: 'Product 1', actual: 5597, target: 5400 },
-    { name: 'Product 2', actual: 4263, target: 4100 },
-    { name: 'Product 3', actual: 3405, target: 3550 },
-    { name: 'Product 4', actual: 2379, target: 2650 },
-    { name: 'Product 5', actual: 817, target: 760 },
-  ]
+  let seq = 0
+  async function load () {
+    const mySeq = ++seq
+    loading.value = true
+    try {
+      const params = new URLSearchParams()
+      if (selectedYear.value) params.set('year', selectedYear.value)
+      if (selectedMonth.value) params.set('month', selectedMonth.value)
+      const res = await authFetch(`${API_BASE}/sales_analysis?${params}`)
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || `Failed to load the sales analysis (${res.status})`)
+      }
+      const data = await res.json()
+      if (mySeq !== seq) return
+      report.value = data
+      selectedYear.value = data.year
+      selectedMonth.value = data.month
+    } catch (error) {
+      if (mySeq === seq) notify.error(error.message)
+    } finally {
+      if (mySeq === seq) loading.value = false
+    }
+  }
+  watch([selectedYear, selectedMonth], ([year, month]) => {
+    // Filling the pickers in from an answer isn't a new request.
+    if (year === report.value?.year && month === report.value?.month) return
+    load()
+  })
+  load()
 
-  const monthlyActual = [1210, 1550, 1676, 1527, 962, 957, 1190, 1778, 1388, 1450, 1550, 1223]
-  const monthlyTarget = [1200, 1750, 1650, 1560, 1300, 1300, 1250, 1560, 1420, 1450, 1720, 1260]
+  const money = cents => '$' + Math.round((cents ?? 0) / 100).toLocaleString('en-US')
+  const dollars = cents => Math.round((cents ?? 0) / 100)
 
-  const regions = [
-    { name: 'East', actual: 5761, target: 5567 },
-    { name: 'West', actual: 4115, target: 3977 },
-    { name: 'South', actual: 4938, target: 4772 },
-    { name: 'North', actual: 1646, target: 1591 },
-  ]
+  const kpis = computed(() => {
+    const r = report.value
+    const coverage = r?.cost_coverage
+    const costHint = coverage != null && coverage < 100 ? `${Math.round(coverage)}% of sales have a known cost` : ''
+    return [
+      { label: 'Sales', value: money(r?.sales), delta: r?.sales_change_pct ?? null },
+      { label: 'Sales Target', value: r?.target == null ? '—' : money(r.target), hint: r?.target == null ? 'No branch targets set' : '' },
+      { label: 'Target Achievement', value: r?.target_pct == null ? '—' : '', progress: r?.target_pct == null ? null : Math.round(r.target_pct) },
+      { label: 'Sales Last Year', value: money(r?.sales_last_year) },
+      { label: 'Gross Profit', value: money(r?.gross_profit), hint: costHint },
+      { label: 'Gross Profit Margin', value: r?.gross_margin_pct == null ? '—' : `${Math.round(r.gross_margin_pct)}%`, hint: costHint },
+    ]
+  })
 
-  const channels = [
-    { name: 'Distributor', value: 5761 },
-    { name: 'Dealer', value: 4115 },
-    { name: 'Retail', value: 3292 },
-    { name: 'Corporate', value: 2469 },
-    { name: 'Online', value: 823 },
-  ]
+  const categories = computed(() => (report.value?.categories ?? []).map(cat => ({
+    name: cat.name || 'Uncategorised',
+    actual: dollars(cat.sales),
+    lastYear: dollars(cat.last_year),
+  })))
 
-  const growth = [5, 28, 8, -9, -37, -1, 24, 49, -22, 4, 7, -21]
+  const monthly = computed(() => report.value?.monthly ?? [])
+  const months = computed(() => monthly.value.map(m => MONTHS[m.month - 1]))
 
-  const inventoryDays = { value: 42, target: 33, lastYear: 36, max: 180 }
-  const receivableDays = { value: 32, target: 30, lastYear: 33, max: 180 }
+  const branches = computed(() => (report.value?.branches ?? []).map(b => ({
+    name: b.name || 'Entered in kashi',
+    actual: dollars(b.sales),
+    target: b.target == null ? null : dollars(b.target),
+  })))
+
+  const channels = computed(() => (report.value?.payments ?? [])
+    .filter(p => p.amount > 0)
+    .map(p => ({ name: p.name, value: dollars(p.amount) })))
+
+  // Gauges top out at twice the value (at least 90 days) so the needle
+  // sits mid-dial.
+  const gaugeOf = days => ({ value: days == null ? 0 : Math.round(days), max: Math.max(90, Math.round((days ?? 0) * 2)) })
+  const inventoryDays = computed(() => gaugeOf(report.value?.inventory_days))
+  const receivableDays = computed(() => gaugeOf(report.value?.receivable_days))
 
   // ---- Shared axis styling ------------------------------------------------
   const catAxis = computed(() => ({
@@ -198,9 +260,9 @@
       itemWidth: 10,
       itemHeight: 10,
       textStyle: { color: textColor.value, fontSize: 10 },
-      data: ['Sales', 'Target'],
+      data: ['Sales', 'Last year'],
     },
-    xAxis: { type: 'category', data: products.map(p => p.name), ...catAxis.value },
+    xAxis: { type: 'category', data: categories.value.map(p => p.name), ...catAxis.value },
     yAxis: { type: 'value', ...valAxis.value },
     series: [
       {
@@ -208,40 +270,42 @@
         type: 'bar',
         barWidth: '46%',
         label: { show: true, position: 'top', color: textColor.value, fontSize: 10 },
-        data: products.map(p => ({
+        data: categories.value.map(p => ({
           value: p.actual,
-          itemStyle: { color: p.actual >= p.target ? primary.value : muted.value },
+          itemStyle: { color: p.actual >= p.lastYear ? primary.value : muted.value },
         })),
       },
       {
-        name: 'Target',
+        name: 'Last year',
         type: 'scatter',
         symbol: 'rect',
         symbolSize: [30, 3],
         itemStyle: { color: textColor.value },
-        data: products.map(p => p.target),
+        data: categories.value.map(p => p.lastYear),
       },
     ],
   }))
 
   const actualVsTargetOption = computed(() => {
-    const barColor = i => {
-      const ratio = monthlyActual[i] / monthlyTarget[i]
+    // Without a target a month is just the accent colour.
+    const barColor = m => {
+      if (!m.target) return primary.value
+      const ratio = m.sales / m.target
       if (ratio >= 1) return primary.value
       if (ratio >= 0.9) return muted.value
       return negative.value
     }
     return {
       grid: { top: 16, right: 12, bottom: 24, left: 44 },
-      tooltip: { trigger: 'axis', appendTo: 'body' },
-      xAxis: { type: 'category', data: months, ...catAxis.value },
+      tooltip: { trigger: 'axis', appendTo: 'body', valueFormatter: v => (v == null ? '—' : '$' + v.toLocaleString('en-US')) },
+      xAxis: { type: 'category', data: months.value, ...catAxis.value },
       yAxis: { type: 'value', ...valAxis.value },
       series: [
         {
           name: 'Actual',
           type: 'bar',
           barWidth: '52%',
-          data: monthlyActual.map((v, i) => ({ value: v, itemStyle: { color: barColor(i) } })),
+          data: monthly.value.map(m => ({ value: dollars(m.sales), itemStyle: { color: barColor(m) } })),
         },
         {
           name: 'Target',
@@ -249,7 +313,7 @@
           symbol: 'rect',
           symbolSize: [22, 3],
           itemStyle: { color: textColor.value },
-          data: monthlyTarget,
+          data: monthly.value.map(m => (m.target == null ? null : dollars(m.target))),
         },
       ],
     }
@@ -267,21 +331,21 @@
       data: ['Actual', 'Target'],
     },
     xAxis: { type: 'value', ...valAxis.value },
-    yAxis: { type: 'category', data: regions.map(r => r.name), inverse: true, ...catAxis.value },
+    yAxis: { type: 'category', data: branches.value.map(r => r.name), inverse: true, ...catAxis.value },
     series: [
       {
         name: 'Actual',
         type: 'bar',
         barWidth: 10,
         itemStyle: { color: primary.value },
-        data: regions.map(r => r.actual),
+        data: branches.value.map(r => r.actual),
       },
       {
         name: 'Target',
         type: 'bar',
         barWidth: 10,
         itemStyle: { color: muted.value },
-        data: regions.map(r => r.target),
+        data: branches.value.map(r => r.target),
       },
     ],
   }))
@@ -289,7 +353,7 @@
   const channelOption = computed(() => {
     const alphas = ['ff', 'cc', '99', '66', '40']
     return {
-      tooltip: { trigger: 'item', appendTo: 'body', formatter: '{b}: {c} ({d}%)' },
+      tooltip: { trigger: 'item', appendTo: 'body', formatter: p => `${p.name}: $${p.value.toLocaleString('en-US')} (${p.percent}%)` },
       legend: {
         type: 'scroll',
         orient: 'vertical',
@@ -307,7 +371,7 @@
           avoidLabelOverlap: true,
           label: { show: false },
           labelLine: { show: false },
-          data: channels.map((ch, i) => ({
+          data: channels.value.map((ch, i) => ({
             name: ch.name,
             value: ch.value,
             itemStyle: { color: primary.value + alphas[i % alphas.length] },
@@ -319,8 +383,8 @@
 
   const growthOption = computed(() => ({
     grid: { top: 24, right: 12, bottom: 24, left: 40 },
-    tooltip: { trigger: 'axis', appendTo: 'body', valueFormatter: v => `${v}%` },
-    xAxis: { type: 'category', data: months, ...catAxis.value },
+    tooltip: { trigger: 'axis', appendTo: 'body', valueFormatter: v => (v == null ? '—' : `${v}%`) },
+    xAxis: { type: 'category', data: months.value, ...catAxis.value },
     yAxis: {
       type: 'value',
       axisLabel: { color: textColor.value, fontSize: 11, formatter: '{value}%' },
@@ -336,11 +400,15 @@
           fontSize: 10,
           formatter: p => `${p.value}%`,
         },
-        data: growth.map(v => ({
-          value: v,
-          label: { position: v >= 0 ? 'top' : 'bottom' },
-          itemStyle: { color: v >= 0 ? primary.value : negative.value },
-        })),
+        // Month over month; empty where the month before had no sales.
+        data: monthly.value.map(m => {
+          const v = m.growth_pct == null ? null : Math.round(m.growth_pct)
+          return {
+            value: v,
+            label: { position: (v ?? 0) >= 0 ? 'top' : 'bottom' },
+            itemStyle: { color: (v ?? 0) >= 0 ? primary.value : negative.value },
+          }
+        }),
       },
     ],
   }))
@@ -378,8 +446,8 @@
     }
   }
 
-  const inventoryGaugeOption = computed(() => gaugeOption(inventoryDays, primary.value))
-  const receivableGaugeOption = computed(() => gaugeOption(receivableDays, primary.value))
+  const inventoryGaugeOption = computed(() => gaugeOption(inventoryDays.value, primary.value))
+  const receivableGaugeOption = computed(() => gaugeOption(receivableDays.value, primary.value))
 </script>
 
 <style scoped>
