@@ -654,9 +654,42 @@
             {{ item.last_seen_at?.Valid ? new Date(item.last_seen_at.Time).toLocaleString() : 'Never' }}
           </template>
           <template #item.actions="{ item }">
-            <v-icon-btn icon="mdi-flag-outline" size="small" variant="text" @click="openTargets(item)" />
-            <v-icon-btn icon="mdi-account-tie-outline" size="small" variant="text" @click="openSalespersons(item)" />
-            <v-icon-btn icon="mdi-cash-register" size="small" variant="text" @click="openRegisters(item)" />
+            <v-tooltip location="top" text="Targets">
+              <template #activator="{ props: tip }">
+                <v-icon-btn
+                  v-bind="tip"
+                  aria-label="Targets"
+                  icon="mdi-flag-outline"
+                  size="small"
+                  variant="text"
+                  @click="openTargets(item)"
+                />
+              </template>
+            </v-tooltip>
+            <v-tooltip location="top" text="Staff: add salespersons and other staff">
+              <template #activator="{ props: tip }">
+                <v-icon-btn
+                  v-bind="tip"
+                  aria-label="Staff"
+                  icon="mdi-account-tie-outline"
+                  size="small"
+                  variant="text"
+                  @click="openSalespersons(item)"
+                />
+              </template>
+            </v-tooltip>
+            <v-tooltip location="top" text="Registers (tills)">
+              <template #activator="{ props: tip }">
+                <v-icon-btn
+                  v-bind="tip"
+                  aria-label="Registers"
+                  icon="mdi-cash-register"
+                  size="small"
+                  variant="text"
+                  @click="openRegisters(item)"
+                />
+              </template>
+            </v-tooltip>
           </template>
         </v-data-table>
       </div>
