@@ -8,6 +8,12 @@ import { authFetch } from './useApi'
 // file (api/photo_replace.go). Either way the server changes what it serves
 // for the photo, so afterwards the caller only re-fetches the photo (and
 // its thumbnail).
+// Fetch options for a stored photo: always revalidate. The server answers
+// with an ETag that names the photo's rotation, so a turned or replaced
+// photo comes back new -- but only if the browser asks; a copy cached under
+// the old day-long max-age would otherwise be reused without asking.
+export const PHOTO_FETCH = { cache: 'no-cache' }
+
 const PHOTO_PATHS = {
   expense_image: id => `/branch_expense_images/${id}`,
   shift_receipt: id => `/branch_shift_receipt_images/${id}`,

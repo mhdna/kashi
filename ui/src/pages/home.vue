@@ -371,7 +371,7 @@
   import { authFetch } from '@/composables/useApi'
   import { BRANCH_ACTIVITY_TYPES } from '@/composables/useBranchActivityMessage'
   import { useNotify } from '@/composables/useNotify'
-  import { usePhotoActions } from '@/composables/usePhotoActions'
+  import { PHOTO_FETCH, usePhotoActions } from '@/composables/usePhotoActions'
   import { hashColor, initialsOf, useUserAvatar } from '@/composables/useUserAvatar'
   import { API_BASE } from '@/config'
   import { useAuthStore } from '@/stores/auth'
@@ -637,7 +637,7 @@
   async function imageObjectUrl (item, width) {
     const path = latestVisual(item).file?.(item.id)
     if (!path) return null
-    const res = await authFetch(`${API_BASE}${path}${width ? `?w=${width}` : ''}`)
+    const res = await authFetch(`${API_BASE}${path}${width ? `?w=${width}` : ''}`, PHOTO_FETCH)
     if (!res.ok) return null
     return URL.createObjectURL(await res.blob())
   }

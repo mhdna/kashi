@@ -1,5 +1,6 @@
 import { API_BASE } from '@/config'
 import { authFetch } from './useApi'
+import { PHOTO_FETCH } from './usePhotoActions'
 
 // Storage explorer feed for transfer photos -- same shape and blob/object-URL
 // approach as useExpenseImages.js. A transfer has at most one photo, so the
@@ -17,7 +18,7 @@ export function useTransferAttachments () {
 
   async function fetchTransferAttachmentObjectUrl (transferId, { width } = {}) {
     const q = width ? `?w=${width}` : ''
-    const res = await authFetch(`${API_BASE}/transfers/${transferId}/attachment${q}`)
+    const res = await authFetch(`${API_BASE}/transfers/${transferId}/attachment${q}`, PHOTO_FETCH)
     if (!res.ok) {
       throw new Error(`Failed to load the photo of transfer ${transferId}`)
     }

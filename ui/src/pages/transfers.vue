@@ -242,6 +242,7 @@
   import { useInventories } from '@/composables/useInventories'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { PHOTO_FETCH } from '@/composables/usePhotoActions'
   import { useTransfers } from '@/composables/useTransfers'
   import { useVariants } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
@@ -381,7 +382,7 @@
   async function loadAttachment (transferId) {
     releaseAttachmentObjectUrl()
     try {
-      const res = await authFetch(`${API_BASE}/transfers/${transferId}/attachment`)
+      const res = await authFetch(`${API_BASE}/transfers/${transferId}/attachment`, PHOTO_FETCH)
       if (!res.ok) return
       const blob = await res.blob()
       attachmentObjectUrl.value = URL.createObjectURL(blob)

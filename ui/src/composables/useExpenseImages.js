@@ -1,5 +1,6 @@
 import { API_BASE } from '@/config'
 import { authFetch } from './useApi'
+import { PHOTO_FETCH } from './usePhotoActions'
 
 // Mirrors useBranches.js's requestJSON helper -- kept local rather than
 // shared since it's a tiny, self-contained convention, not shared state.
@@ -27,7 +28,7 @@ export function useExpenseImages () {
   // rather than a separate unauthenticated static route.
   async function fetchExpenseImageObjectUrl (imageId, { width } = {}) {
     const q = width ? `?w=${width}` : ''
-    const res = await authFetch(`${API_BASE}/branch_expense_images/${imageId}/file${q}`)
+    const res = await authFetch(`${API_BASE}/branch_expense_images/${imageId}/file${q}`, PHOTO_FETCH)
     if (!res.ok) {
       throw new Error(`Failed to load image ${imageId}`)
     }

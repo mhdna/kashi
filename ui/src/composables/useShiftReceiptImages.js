@@ -1,5 +1,6 @@
 import { API_BASE } from '@/config'
 import { authFetch } from './useApi'
+import { PHOTO_FETCH } from './usePhotoActions'
 
 // Mirrors useExpenseImages.js -- the close-shift receipt photo a cashier
 // uploads from the POS (see api/branch_shift_receipt_image.go) is fetched
@@ -41,7 +42,7 @@ export function useShiftReceiptImages () {
   // directly.
   async function fetchShiftReceiptImageObjectUrl (imageId, { width } = {}) {
     const q = width ? `?w=${width}` : ''
-    const res = await authFetch(`${API_BASE}/branch_shift_receipt_images/${imageId}/file${q}`)
+    const res = await authFetch(`${API_BASE}/branch_shift_receipt_images/${imageId}/file${q}`, PHOTO_FETCH)
     if (!res.ok) {
       throw new Error(`Failed to load image ${imageId}`)
     }
