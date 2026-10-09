@@ -2,8 +2,32 @@
   <div class="d-flex flex-column flex-grow-1" style="min-height: 0">
     <div class="d-flex align-center ga-3 px-3 pb-1">
       <YearStepper v-model="year" class="flex-shrink-0" />
-      <!-- Any number of branches; none picked means every branch. -->
+      <!-- Any number of branches; none picked means every branch. Phones get a
+           dropdown, since a row of chips wraps into several lines there. -->
+      <v-select
+        v-if="xs"
+        class="flex-grow-1"
+        clearable
+        density="compact"
+        hide-details
+        item-title="name"
+        item-value="id"
+        :items="branches"
+        :model-value="selected"
+        multiple
+        persistent-placeholder
+        placeholder="All branches"
+        style="min-width: 0"
+        variant="outlined"
+        @update:model-value="ids => (selected = ids ?? [])"
+      >
+        <template #selection="{ item, index }">
+          <span v-if="index === 0" class="text-truncate">{{ item.title }}</span>
+          <span v-else-if="index === 1" class="text-medium-emphasis ms-1">+{{ selected.length - 1 }}</span>
+        </template>
+      </v-select>
       <v-chip-group
+        v-else
         v-model="branchIds"
         class="flex-grow-1"
         column
@@ -31,6 +55,7 @@
 <script setup lang="ts">
   import { computed, onMounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
+  import { useDisplay } from 'vuetify'
   import YearStepper from '@/components/Buttons/YearStepper.vue'
   import HeatmapTable from '@/components/Tables/HeatmapTable.vue'
   import { useBranches } from '@/composables/useBranches'
@@ -41,6 +66,7 @@
   // selection rather than the Dashboard's single-branch filter.
   const ALL = 'all'
   const { branches, fetchBranches } = useBranches()
+  const { xs } = useDisplay()
   const route = useRoute()
   const router = useRouter()
 
