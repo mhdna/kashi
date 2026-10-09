@@ -64,7 +64,7 @@
                   <template #prepend>
                     <v-avatar
                       class="me-3 text-white"
-                      :color="hashColor(item.user_name || 'kashi')"
+                      :color="userColor(item)"
                       size="34"
                     >
                       <span class="text-caption font-weight-bold">{{ initialsOf(item.user_name) }}</span>
@@ -236,7 +236,7 @@
                     {{ item.title }}
                   </v-list-item-title>
                   <v-list-item-subtitle class="text-caption">
-                    {{ [latestVisual(item).label, item.subtitle].filter(Boolean).join(' · ') }}
+                    {{ [latestVisual(item).subtitleLabel === false ? '' : latestVisual(item).label, item.subtitle].filter(Boolean).join(' · ') }}
                   </v-list-item-subtitle>
                   <template #append>
                     <div class="text-right">
@@ -362,7 +362,7 @@
   import { authFetch } from '@/composables/useApi'
   import { BRANCH_ACTIVITY_TYPES } from '@/composables/useBranchActivityMessage'
   import { useNotify } from '@/composables/useNotify'
-  import { hashColor, initialsOf } from '@/composables/useUserAvatar'
+  import { hashColor, initialsOf, useUserAvatar } from '@/composables/useUserAvatar'
   import { API_BASE } from '@/config'
   import { useAuthStore } from '@/stores/auth'
 
@@ -379,6 +379,16 @@
     : 'rgba(var(--v-theme-on-surface), 0.7)')
 
   const auth = useAuthStore()
+  const { color: myAvatarColor } = useUserAvatar()
+
+  // The signed-in user's own rows wear the colour they picked in Settings,
+  // as in the top bar. That choice lives in this browser only, so everyone
+  // else keeps the colour derived from their name.
+  function userColor (item) {
+    const id = item.user_id?.Int64 ?? item.user_id
+    const mine = auth.user && ((id && id === auth.user.id) || (item.user_name && item.user_name === auth.user.name))
+    return mine ? myAvatarColor.value : hashColor(item.user_name || 'kashi')
+  }
 
   // Stamped at build time from git (see vite.config.mjs).
   const appVersion = import.meta.env.VITE_APP_VERSION
@@ -598,7 +608,9 @@
 
   const LATEST_KINDS = {
     expense_image: { label: 'Expense photo', icon: 'mdi-receipt-text', color: 'error', file: id => `/branch_expense_images/${id}/file` },
-    shift_receipt: { label: 'Shift photo', icon: 'mdi-cash-register', color: 'info', file: id => `/branch_shift_receipt_images/${id}/file` },
+    // Its title already says "Close-shift receipt", so the label stays out
+    // of the subtitle (it's still on the viewer's Open button).
+    shift_receipt: { label: 'Shift photo', subtitleLabel: false, icon: 'mdi-cash-register', color: 'info', file: id => `/branch_shift_receipt_images/${id}/file` },
     transfer: { label: 'Transfer', icon: 'mdi-transfer', color: 'primary', file: id => `/transfers/${id}/attachment`, to: '/transfers' },
     expense: { label: 'Expense', icon: 'mdi-cash-minus', color: 'error', to: '/expenses' },
     purchase: { label: 'Purchase', icon: 'mdi-truck-delivery', color: 'success', to: '/purchase-invoice' },
@@ -749,13 +761,16 @@
     return `${sign}${formatted} ${currency}`
   }
 
-  // Branch and details, minus the person's name the till also wrote into
-  // the details -- it's already shown beside their avatar.
+  // Branch and details, minus what the row already shows elsewhere: the
+  // person's name (beside their avatar) and the date and time the till wrote
+  // into an attendance punch's details (the "just now" on the right).
+  const DATE_PART = /^\d{4}-\d{2}-\d{2}(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$/
+  const TIME_PART = /^\d{1,2}:\d{2}(?::\d{2})?$/
   function activityContext (item) {
-    let details = item.details || ''
-    if (item.person) {
-      details = details.split(' · ').filter(part => part !== item.person).join(' · ')
-    }
+    const details = (item.details || '')
+      .split(' · ')
+      .filter(part => part !== item.person && !DATE_PART.test(part) && !TIME_PART.test(part))
+      .join(' · ')
     return [item.branch_name, details].filter(Boolean).join(' · ') || '—'
   }
 
