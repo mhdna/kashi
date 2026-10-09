@@ -126,11 +126,6 @@
       type: Number,
       default: 300,
     },
-    // Optional local rows for dashboard previews and empty API environments.
-    mockItems: {
-      type: Array,
-      default: null,
-    },
   })
 
   const rowHeight = 46
@@ -147,14 +142,6 @@
   async function fetchPage (reset) {
     if (loading.value) return
     if (!reset && done) return
-
-    if (props.mockItems !== null) {
-      items.value = props.mockItems
-      total.value = props.mockItems.length
-      offset = props.mockItems.length
-      done = true
-      return
-    }
 
     loading.value = true
     const mySeq = ++seq
