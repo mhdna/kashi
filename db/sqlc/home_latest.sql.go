@@ -48,12 +48,14 @@ func (q *Queries) CountLatestAdditionsSince(ctx context.Context, arg CountLatest
 }
 
 const listLatestAdditions = `-- name: ListLatestAdditions :many
-SELECT kind, id, added_at, title, subtitle, amount, currency_code, has_image FROM (
+SELECT kind, id, added_at, title, subtitle, amount, currency_code, has_image, ref_id, branch_id, ref_day FROM (
   SELECT 'expense_image'::text AS kind, i.id, i.created_at AS added_at,
          COALESCE(NULLIF(e.description, ''), 'Expense photo')::text AS title,
          b.name::text AS subtitle,
          e.amount::bigint AS amount, e.currency_code::text AS currency_code,
-         true AS has_image
+         true AS has_image,
+         e.id AS ref_id, b.id AS branch_id,
+         to_char(e.occurred_at AT TIME ZONE b.timezone, 'YYYY-MM-DD')::text AS ref_day
   FROM branch_expense_images i
   JOIN branch_expenses e ON e.id = i.branch_expense_id
   JOIN branches b ON b.id = e.branch_id
@@ -63,7 +65,9 @@ SELECT kind, id, added_at, title, subtitle, amount, currency_code, has_image FRO
   SELECT 'shift_receipt', i.id, i.created_at,
          'Close-shift receipt',
          b.name || COALESCE(' · ' || NULLIF(s.closing_person_name, ''), ''),
-         0, '', true
+         0, '', true,
+         s.id, b.id,
+         to_char(s.occurred_at AT TIME ZONE b.timezone, 'YYYY-MM-DD')
   FROM branch_shift_receipt_images i
   JOIN branch_shifts s ON s.id = i.branch_shift_id
   JOIN branches b ON b.id = s.branch_id
@@ -73,7 +77,8 @@ SELECT kind, id, added_at, title, subtitle, amount, currency_code, has_image FRO
   SELECT 'transfer', t.id, t.created_at,
          'Transfer ' || t.code,
          fi.name || ' → ' || ti.name || ' · ' || t.status::text,
-         0, '', t.attachment_path <> ''
+         0, '', t.attachment_path <> '',
+         t.id, 0::bigint, ''
   FROM transfers t
   JOIN inventories fi ON fi.id = t.from_inventory_id
   JOIN inventories ti ON ti.id = t.to_inventory_id
@@ -83,7 +88,8 @@ SELECT kind, id, added_at, title, subtitle, amount, currency_code, has_image FRO
   SELECT 'expense', x.id, x.created_at,
          COALESCE(NULLIF(x.description, ''), 'Expense'),
          COALESCE(c.name, 'Expense'),
-         x.amount, x.currency_code, false
+         x.amount, x.currency_code, false,
+         x.id, 0::bigint, ''
   FROM expenses x
   LEFT JOIN expense_categories c ON c.id = x.category_id
   WHERE $1::bool
@@ -92,7 +98,8 @@ SELECT kind, id, added_at, title, subtitle, amount, currency_code, has_image FRO
   SELECT 'purchase', p.id, p.purchased_at,
          'Purchase ' || p.code,
          su.name || ' · ' || p.status::text,
-         p.grand_total, p.currency_code, false
+         p.grand_total, p.currency_code, false,
+         p.id, 0::bigint, ''
   FROM purchases p
   JOIN suppliers su ON su.id = p.supplier_id
   WHERE $3::bool
@@ -117,12 +124,20 @@ type ListLatestAdditionsRow struct {
 	Amount       int64     `json:"amount"`
 	CurrencyCode string    `json:"currency_code"`
 	HasImage     bool      `json:"has_image"`
+	RefID        int64     `json:"ref_id"`
+	BranchID     int64     `json:"branch_id"`
+	RefDay       string    `json:"ref_day"`
 }
 
 // The home page's "Latest added" feed: the newest photos (expense,
 // close-shift receipt), transfers, central expenses and purchases, merged
 // newest first. Each include_* flag is the caller's view access to that
 // section, so a kind the user can't open never appears.
+//
+// ref_id is the record a row belongs to (the expense or shift a photo was
+// attached to, or the transfer/expense/purchase itself), and for a branch
+// photo branch_id + ref_day (the branch's local day) say which day page
+// shows it, so the feed can open "the thing it was attached to".
 func (q *Queries) ListLatestAdditions(ctx context.Context, arg ListLatestAdditionsParams) ([]ListLatestAdditionsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listLatestAdditions,
 		arg.IncludeAccounting,
@@ -146,6 +161,9 @@ func (q *Queries) ListLatestAdditions(ctx context.Context, arg ListLatestAdditio
 			&i.Amount,
 			&i.CurrencyCode,
 			&i.HasImage,
+			&i.RefID,
+			&i.BranchID,
+			&i.RefDay,
 		); err != nil {
 			return nil, err
 		}

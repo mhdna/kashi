@@ -71,7 +71,7 @@
                     </v-avatar>
                   </template>
                   <v-list-item-title class="text-body-2 activity-sentence">
-                    <span class="font-weight-medium">{{ item.user_name || 'Someone' }}</span>
+                    <span class="font-weight-medium" :title="item.user_name">{{ firstNameOf(item.user_name) || 'Someone' }}</span>
                     {{ kashiSentence(item) }}
                   </v-list-item-title>
                   <v-list-item-subtitle v-if="item.detail" class="text-caption">
@@ -154,7 +154,7 @@
                       >
                         <span class="person-initials">{{ initialsOf(item.person) }}</span>
                       </v-avatar>
-                      <span class="font-weight-medium text-high-emphasis">{{ item.person }}</span>
+                      <span class="font-weight-medium text-high-emphasis text-no-wrap" :title="item.person">{{ firstNameOf(item.person) }}</span>
                       <span>·</span>
                     </template>
                     <span class="text-truncate">{{ activityContext(item) }}</span>
@@ -215,7 +215,7 @@
               />
               <v-list v-else class="py-1" density="compact" lines="two">
                 <v-list-item
-                  v-for="item in shown(latestItems)"
+                  v-for="item in shownLatest"
                   :key="latestKey(item)"
                   class="px-3 activity-row"
                   @click="openLatest(item)"
@@ -256,6 +256,15 @@
                 class="text-body-2 text-medium-emphasis py-4 text-center"
               >
                 Nothing added yet.
+              </div>
+              <div v-else-if="latestLoaded && canShowMoreLatest" class="d-flex justify-center py-2">
+                <v-btn
+                  :loading="latestLoadingMore"
+                  size="small"
+                  text="Show more"
+                  variant="text"
+                  @click="showMoreLatest"
+                />
               </div>
             </div>
           </v-card>
@@ -325,6 +334,19 @@
             <v-progress-circular indeterminate />
           </div>
         </div>
+        <template v-if="photoItem && latestTarget(photoItem)">
+          <v-divider />
+          <v-card-actions class="px-4">
+            <span class="text-caption text-medium-emphasis">{{ photoItem.subtitle }}</span>
+            <v-spacer />
+            <v-btn
+              color="primary"
+              :text="latestTarget(photoItem).label"
+              variant="tonal"
+              @click="goToLatestTarget(photoItem)"
+            />
+          </v-card-actions>
+        </template>
       </v-card>
     </v-dialog>
   </main>
@@ -343,6 +365,12 @@
   import { hashColor, initialsOf } from '@/composables/useUserAvatar'
   import { API_BASE } from '@/config'
   import { useAuthStore } from '@/stores/auth'
+
+  // The feed row is narrow: the first name is enough beside the avatar,
+  // whose initials and hover title still carry the full name.
+  function firstNameOf (name) {
+    return String(name ?? '').trim().split(/\s+/)[0] ?? ''
+  }
 
   const { mdAndUp, xs } = useDisplay()
   const theme = useTheme()
@@ -600,10 +628,63 @@
     }
   }
 
+  // "Show more": on a phone it first expands the short preview to everything
+  // loaded, then each press fetches LATEST_STEP more, up to the API's cap.
+  const LATEST_STEP = 20
+  const LATEST_MAX = 100
+  const latestLimit = ref(PAGE_SIZE)
+  const latestExpanded = ref(false)
+  const latestLoadingMore = ref(false)
+  const shownLatest = computed(() =>
+    latestExpanded.value ? latestItems.value : shown(latestItems.value),
+  )
+  const canShowMoreLatest = computed(() =>
+    shownLatest.value.length < latestItems.value.length
+    || (latestItems.value.length >= latestLimit.value && latestLimit.value < LATEST_MAX),
+  )
+  async function showMoreLatest () {
+    if (shownLatest.value.length < latestItems.value.length) {
+      latestExpanded.value = true
+      return
+    }
+    latestExpanded.value = true
+    latestLimit.value = Math.min(latestLimit.value + LATEST_STEP, LATEST_MAX)
+    latestLoadingMore.value = true
+    try {
+      await reloadLatest()
+    } finally {
+      latestLoadingMore.value = false
+    }
+  }
+
+  // Where a feed item leads: the day page's "Shifts & Expenses" tab for the
+  // branch and local day a shift receipt or expense photo belongs to (the
+  // only place a single shift or branch expense is shown), the transfer
+  // itself, or the page an expense/purchase lives on.
+  function latestTarget (item) {
+    if ((item.kind === 'shift_receipt' || item.kind === 'expense_image') && item.ref_day && item.branch_id) {
+      return {
+        label: item.kind === 'shift_receipt' ? 'Open shift day' : 'Open expense day',
+        to: { path: `/daily-income/${item.ref_day}`, query: { branch_id: item.branch_id, tab: 'cash' } },
+      }
+    }
+    if (item.kind === 'transfer' && item.ref_id) {
+      return { label: 'Open transfer', to: { path: '/transfers', query: { open: item.ref_id } } }
+    }
+    const to = latestVisual(item).to
+    return to ? { label: 'Open', to } : null
+  }
+  function goToLatestTarget (item) {
+    const target = latestTarget(item)
+    if (!target) return
+    photoOpen.value = false
+    router.push(target.to)
+  }
+
   async function reloadLatest () {
     if (!canViewLatest.value) return
     try {
-      const response = await authFetch(`${API_BASE}/home/latest?page_size=${PAGE_SIZE}`)
+      const response = await authFetch(`${API_BASE}/home/latest?page_size=${latestLimit.value}`)
       if (!response.ok) {
         const body = await response.json().catch(() => ({}))
         throw new Error(body.error || `Failed to load latest additions (${response.status})`)
@@ -631,8 +712,8 @@
       photoUrl.value = await imageObjectUrl(item, 0).catch(() => null)
       return
     }
-    const to = latestVisual(item).to
-    if (to) router.push(to)
+    const target = latestTarget(item)
+    if (target) router.push(target.to)
   }
 
   // "5h ago" for the first 48 hours, then "Oct 7th" (year added when it

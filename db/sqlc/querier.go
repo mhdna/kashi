@@ -1012,6 +1012,11 @@ type Querier interface {
 	// close-shift receipt), transfers, central expenses and purchases, merged
 	// newest first. Each include_* flag is the caller's view access to that
 	// section, so a kind the user can't open never appears.
+	//
+	// ref_id is the record a row belongs to (the expense or shift a photo was
+	// attached to, or the transfer/expense/purchase itself), and for a branch
+	// photo branch_id + ref_day (the branch's local day) say which day page
+	// shows it, so the feed can open "the thing it was attached to".
 	ListLatestAdditions(ctx context.Context, arg ListLatestAdditionsParams) ([]ListLatestAdditionsRow, error)
 	ListLoanCategories(ctx context.Context, scope sql.NullString) ([]LoanCategory, error)
 	// Only branch-scoped categories are synced down to kashi-pos -- central

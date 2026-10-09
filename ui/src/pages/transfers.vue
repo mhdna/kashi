@@ -235,7 +235,8 @@
 
 <script setup lang="ts">
   import { useField, useForm } from 'vee-validate'
-  import { computed, onBeforeUnmount, ref } from 'vue'
+  import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+  import { useRoute } from 'vue-router'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { authFetch } from '@/composables/useApi'
   import { useInventories } from '@/composables/useInventories'
@@ -249,6 +250,7 @@
   const { canEdit } = usePageAccess()
 
   const {
+    fetchTransfer,
     createTransfer, updateTransfer, fetchTransferItems, createTransferItem,
     setTransferItemReceivedQuantity,
     dispatchTransfer, receiveTransfer, approveTransfer, cancelTransfer,
@@ -394,6 +396,20 @@
     itemsDialog.value = false
     releaseAttachmentObjectUrl()
   }
+
+  // /transfers?open=<id> (the home page's "Open transfer") opens that
+  // transfer's details straight away.
+  const route = useRoute()
+  onMounted(async () => {
+    const id = Number(route.query.open)
+    if (!id) return
+    try {
+      const data = await fetchTransfer(id)
+      if (data?.transfer) openItems(data.transfer)
+    } catch (error) {
+      notify.error(error.message)
+    }
+  })
 
   async function openItems (item) {
     itemsTarget.value = item
