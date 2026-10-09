@@ -55,7 +55,7 @@ type commit struct {
 
 func main() {
 	limit := flag.Int("limit", 20, "commits to consider when nothing has been posted yet")
-	author := flag.String("author", "Alex", "user (by name) the updates are posted as")
+	author := flag.String("author", "Alex", "user (display name or username) the updates are posted as")
 	flag.Parse()
 
 	posted := map[string]bool{}
@@ -141,16 +141,22 @@ func quote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", "''") + "'"
 }
 
+// insertSQL posts the commits as author, matched by display name or
+// username. It refuses to run (the DO block raises, and deploy-notes runs
+// psql with ON_ERROR_STOP) when no user matches, rather than posting rows
+// with no user that the home feed can only show as "Someone".
 func insertSQL(commits []commit, author string) string {
+	match := fmt.Sprintf("name ILIKE %[1]s OR username ILIKE %[1]s", quote(author))
 	var b strings.Builder
+	fmt.Fprintf(&b, "DO $$ BEGIN\n  IF NOT EXISTS (SELECT 1 FROM users WHERE %s) THEN\n    RAISE EXCEPTION 'release_notes: no user named %%', %s;\n  END IF;\nEND $$;\n", match, quote(author))
 	b.WriteString("INSERT INTO admin_activities (user_id, method, route, summary, detail, created_at)\nVALUES\n")
 	for i, c := range commits {
 		detail := c.hash
 		if c.scope != "" {
 			detail += " · " + c.scope
 		}
-		fmt.Fprintf(&b, "  ((SELECT id FROM users WHERE name ILIKE %s ORDER BY id LIMIT 1), 'RELEASE', %s, %s, %s, %s)",
-			quote(author), quote(routePrefix+c.hash), quote(c.summary), quote(detail), quote(c.date))
+		fmt.Fprintf(&b, "  ((SELECT id FROM users WHERE %s ORDER BY id LIMIT 1), 'RELEASE', %s, %s, %s, %s)",
+			match, quote(routePrefix+c.hash), quote(c.summary), quote(detail), quote(c.date))
 		if i < len(commits)-1 {
 			b.WriteString(",\n")
 		}
