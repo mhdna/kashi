@@ -11,7 +11,7 @@
       class="online-stack__avatar text-white font-weight-medium"
       :class="{ 'online-stack__avatar--me': u.id === auth.user?.id }"
       :color="colorFor(u)"
-      size="30"
+      :size="u.id === auth.user?.id ? 26 : 30"
       :style="u.id === auth.user?.id ? 'cursor: pointer' : ''"
       @click="u.id === auth.user?.id && router.push('/settings')"
     >
@@ -83,11 +83,13 @@
     margin-inline-start: -10px;
   }
 
-  /* You: a yellow ring outside the cut-out, and room before the others
-     (you're always first) so you don't overlap into them. */
+  /* You: a smaller avatar so the dark gap and a yellow ring fit in the
+     same 34px as everyone else (26 + 2 gap + 2 ring on each side), and room
+     before the others (you're always first) so you don't overlap into them. */
   .online-stack__avatar--me {
     box-shadow: 0 0 0 2px #FFC107;
-    margin-inline-end: 14px;
+    margin: 2px;
+    margin-inline-end: 12px;
   }
 
   .online-stack__skeleton,
