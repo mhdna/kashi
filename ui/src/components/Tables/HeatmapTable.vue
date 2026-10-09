@@ -296,6 +296,18 @@
   border-collapse: collapse;
   width: 100%;
   font-size: 13px;
+  /* Fill the space so the totals sit on the bottom edge: the day rows
+     share whatever height is spare. Capped (~48px a day) so a very tall
+     screen doesn't get giant rows; phones keep compact rows and scroll
+     (see the media query below). */
+  height: min(100%, 1600px);
+}
+
+/* The month header and the totals keep their natural height; only the day
+   rows stretch. */
+.heatmap-table thead tr,
+.heatmap-table tfoot tr {
+  height: 1px;
 }
 
 .heatmap-table th,
@@ -370,6 +382,10 @@
    64px and stack the year above two smaller arrows instead of ‹ 2026 ›
    in a row, which held the whole column at 126px. */
 @media (max-width: 599.98px) {
+  .heatmap-table {
+    height: auto;
+  }
+
   .day-col {
     width: 64px;
     min-width: 64px;
