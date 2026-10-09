@@ -12,9 +12,14 @@ export const AVATAR_COLORS = [
   '#FB8C00', '#FF5722', '#6D4C41', '#546E7A',
 ]
 
+// Two letters: first and last name's initials ("Lara Hawili" -> "LH"), so
+// lists that show only the first name still tell two Laras apart; a single
+// name gives its first two letters ("Lama" -> "LA").
 export function initialsOf (name) {
-  const clean = String(name || '').trim()
-  return clean ? clean.slice(0, 2).toUpperCase() : '?'
+  const words = String(name || '').trim().split(/\s+/).filter(Boolean)
+  if (words.length === 0) {return '?'}
+  if (words.length === 1) {return words[0].slice(0, 2).toUpperCase()}
+  return (words[0][0] + words.at(-1)[0]).toUpperCase()
 }
 
 // Small deterministic string hash -> palette index, so a given name always
