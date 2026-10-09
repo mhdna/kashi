@@ -738,10 +738,15 @@
     return mdAndUp.value ? items : items.slice(0, PHONE_FEED_ROWS)
   }
 
+  // Invoices carry no currency code (their totals are USD), so no code
+  // means dollars: "$28", "−$5". Any other currency keeps its code after
+  // the number: "200,000 LBP".
   function money (amount, currency = '') {
     const value = Number(amount || 0) / 100
     const formatted = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(Math.abs(value))
-    return `${amount < 0 ? '−' : ''}${formatted} ${currency}`.trim()
+    const sign = amount < 0 ? '−' : ''
+    if (!currency || currency === 'USD') return `${sign}$${formatted}`
+    return `${sign}${formatted} ${currency}`
   }
 
   // Branch and details, minus the person's name the till also wrote into
