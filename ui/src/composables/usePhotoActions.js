@@ -1,7 +1,7 @@
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { API_BASE } from '@/config'
 import { useAuthStore } from '@/stores/auth'
-import { authFetch } from './useApi'
+import { authFetch, authUpload } from './useApi'
 
 // What the admin photo viewer (ZoomableImage) can do to an uploaded photo
 // besides showing it: turn it (api/photo_rotation.go) or swap it for another
@@ -20,12 +20,15 @@ const PHOTO_PATHS = {
   transfer: id => `/transfers/${id}/attachment`,
 }
 
-async function send (url, init) {
-  const res = await authFetch(url, { method: 'PUT', ...init })
+async function check (res) {
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
     throw new Error(err.error || `Couldn't change the photo (status ${res.status})`)
   }
+}
+
+async function send (url, init) {
+  await check(await authFetch(url, { method: 'PUT', ...init }))
 }
 
 export function usePhotoActions () {
@@ -44,12 +47,26 @@ export function usePhotoActions () {
     })
   }
 
+  // How much of a replacement has been sent, 0..1, or null when none is
+  // going -- the viewer shows it over the photo. After the last byte the
+  // server still converts the photo, so it sits at 1 until that's done.
+  const uploadProgress = ref(null)
+
   // file is the picked File; the old photo is deleted on the server.
-  function replacePhoto (kind, id, file) {
+  async function replacePhoto (kind, id, file) {
     const body = new FormData()
     body.append('image', file)
-    return send(`${API_BASE}${PHOTO_PATHS[kind](id)}/replace`, { body })
+    uploadProgress.value = 0
+    try {
+      await check(await authUpload(`${API_BASE}${PHOTO_PATHS[kind](id)}/replace`, {
+        method: 'PUT',
+        body,
+        onProgress: p => (uploadProgress.value = p),
+      }))
+    } finally {
+      uploadProgress.value = null
+    }
   }
 
-  return { canRotate, canReplace, rotatePhoto, replacePhoto }
+  return { canRotate, canReplace, rotatePhoto, replacePhoto, uploadProgress }
 }

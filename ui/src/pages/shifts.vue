@@ -247,8 +247,9 @@
           <ZoomableImage
             v-else-if="receiptUrl"
             alt="Close-shift receipt"
-            height="100%"
             :busy="receiptChanging"
+            height="100%"
+            :progress="uploadProgress"
             :replaceable="canReplace"
             :rotatable="canRotate"
             :src="receiptUrl"
@@ -274,8 +275,8 @@
   import { useBranchCommands } from '@/composables/useBranchCommands'
   import { useBranches } from '@/composables/useBranches'
   import { useCashboxes } from '@/composables/useCashboxes'
-  import { usePageAccess } from '@/composables/usePageAccess'
   import { useNotify } from '@/composables/useNotify'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { usePhotoActions } from '@/composables/usePhotoActions'
   import { useShiftReceiptImages } from '@/composables/useShiftReceiptImages'
   import { useShifts } from '@/composables/useShifts'
@@ -419,7 +420,7 @@
 
   // Saves a rotation or replacement (save gets the image id), then shows the
   // photo as the server now serves it.
-  const { canRotate, canReplace, rotatePhoto, replacePhoto } = usePhotoActions()
+  const { canRotate, canReplace, rotatePhoto, replacePhoto, uploadProgress } = usePhotoActions()
   const receiptChanging = ref(false)
   async function changeReceipt (save) {
     const imageId = receiptImageId.value

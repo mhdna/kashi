@@ -19,6 +19,23 @@
       :style="{ transform: `translate(${tx}px, ${ty}px) scale(${scale})` }"
     >
 
+    <!-- A rotate or replace in flight: a percentage while a replacement
+         uploads, then a spinner while the server converts it. -->
+    <div v-if="busy" class="zoom-busy" @dblclick.stop @pointerdown.stop>
+      <v-progress-circular
+        color="primary"
+        :indeterminate="progress == null || progress >= 1"
+        :model-value="(progress ?? 0) * 100"
+        size="56"
+        width="5"
+      >
+        <span v-if="progress != null && progress < 1" class="text-caption">{{ Math.round(progress * 100) }}%</span>
+      </v-progress-circular>
+      <div class="text-caption mt-2">
+        {{ progress == null ? 'Saving…' : progress < 1 ? 'Uploading…' : 'Converting…' }}
+      </div>
+    </div>
+
     <div class="zoom-controls" @dblclick.stop @pointerdown.stop>
       <template v-if="replaceable">
         <v-btn
@@ -130,6 +147,11 @@
     busy: {
       type: Boolean,
       default: false,
+    },
+    // 0..1 of a replacement upload sent, null when none is under way.
+    progress: {
+      type: Number,
+      default: null,
     },
   })
 
@@ -258,6 +280,18 @@
   height: 100%;
   object-fit: contain;
   transform-origin: 0 0;
+}
+
+.zoom-busy {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--v-theme-surface), 0.7);
+  cursor: progress;
 }
 
 .zoom-controls {

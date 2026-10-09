@@ -93,3 +93,44 @@ export async function authFetch (url, options = {}) {
 
   return res
 }
+
+// authUpload is authFetch for a file upload that reports progress: fetch()
+// can't tell how much of a request body has been sent, XMLHttpRequest can.
+// onProgress gets 0..1 as the body goes out. Token handling matches
+// authFetch (one renew-and-retry on a 401); the result is a Response.
+export async function authUpload (url, { method = 'POST', body, onProgress } = {}) {
+  const authStore = useAuthStore()
+
+  const send = token => new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open(method, url)
+    if (token) {xhr.setRequestHeader('Authorization', `Bearer ${token}`)}
+    xhr.upload.addEventListener('progress', e => {
+      if (e.lengthComputable) {onProgress?.(e.loaded / e.total)}
+    })
+    xhr.addEventListener('load', () => {
+      resolve(new Response(xhr.responseText, { status: xhr.status }))
+    })
+    xhr.addEventListener('error', () => reject(new Error(connectionErrorMessage())))
+    xhr.send(body)
+  })
+
+  let res = await send(authStore.token)
+  if (isGatewayStatus(res.status)) {
+    markServerUpdating()
+    throw new Error(SERVER_UPDATING_MESSAGE)
+  }
+  if (res.status === 401 && authStore.refreshToken) {
+    try {
+      onProgress?.(0)
+      res = await send(await renewOnce(authStore))
+    } catch {
+      // refresh failed, fall through to the logout below
+    }
+  }
+  if (res.status === 401) {
+    authStore.logout()
+    if (router.currentRoute.value.path !== '/login') {router.push('/login')}
+  }
+  return res
+}

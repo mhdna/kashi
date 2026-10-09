@@ -333,6 +333,7 @@
             v-if="photoUrl"
             :alt="photoItem?.title"
             :busy="photoChanging"
+            :progress="uploadProgress"
             :replaceable="canReplace"
             :rotatable="canRotate"
             :src="photoUrl"
@@ -742,7 +743,7 @@
   // Saves a rotation or replacement (save gets the feed item), then
   // re-fetches the photo and its row thumbnail as the server now serves
   // them. Photo kinds here are usePhotoActions'.
-  const { canRotate, canReplace, rotatePhoto, replacePhoto } = usePhotoActions()
+  const { canRotate, canReplace, rotatePhoto, replacePhoto, uploadProgress } = usePhotoActions()
   const photoChanging = ref(false)
   async function changeLatestPhoto (save) {
     const item = photoItem.value

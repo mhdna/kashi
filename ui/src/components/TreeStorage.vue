@@ -78,8 +78,9 @@
           <v-progress-circular v-if="previewLoading" indeterminate size="32" />
           <ZoomableImage
             v-else-if="previewUrl"
-            height="100%"
             :busy="changingPhoto"
+            height="100%"
+            :progress="uploadProgress"
             :replaceable="canReplace"
             :rotatable="canRotate"
             :src="previewUrl"
@@ -117,7 +118,7 @@
   const { fetchShiftReceiptImages, fetchShiftReceiptImageObjectUrl } = useShiftReceiptImages()
   const { fetchTransferAttachments, fetchTransferAttachmentObjectUrl } = useTransferAttachments()
   const { ensureConnected, onMessage } = useAdminSocket()
-  const { canRotate, canReplace, rotatePhoto, replacePhoto } = usePhotoActions()
+  const { canRotate, canReplace, rotatePhoto, replacePhoto, uploadProgress } = usePhotoActions()
   const notify = useNotify()
 
   // One entry per real image kind. Every handler takes the whole image row
