@@ -48,5 +48,25 @@ export function useAttendance () {
     await requestJSON(`${API_BASE}/branch_attendance_events/${id}`, { method: 'DELETE' })
   }
 
-  return { listEvents, importCsv, updateEvent, deleteEvent }
+  // Change requests tills have filed that nobody has decided yet.
+  async function listPendingRequests (branchId) {
+    const url = new URL(`${API_BASE}/branch_attendance_changes/pending`)
+    if (branchId) {url.searchParams.set('branch_id', branchId)}
+    const data = await requestJSON(url.toString())
+    return data?.requests ?? []
+  }
+
+  // Queues the decision for the till that filed the request (see
+  // review_attendance_request in api/branch_command.go). It applies when that
+  // till is next online, and its decision then syncs back like a local one.
+  async function reviewRequest (branchId, changeId, approved) {
+    const data = await requestJSON(`${API_BASE}/branches/${branchId}/commands`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'review_attendance_request', payload: { change_id: changeId, approved } }),
+    })
+    return data?.command ?? null
+  }
+
+  return { listEvents, importCsv, updateEvent, deleteEvent, listPendingRequests, reviewRequest }
 }

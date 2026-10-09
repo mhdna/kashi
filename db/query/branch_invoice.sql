@@ -122,6 +122,7 @@ WHERE bi.occurred_at >= make_date(sqlc.arg(year)::int, 1, 1)
   AND (sqlc.narg(branch_id)::bigint IS NULL OR bi.branch_id = sqlc.narg(branch_id))
   AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+  AND bi.cancelled_at IS NULL
 GROUP BY day
 ORDER BY day;
 
@@ -148,8 +149,30 @@ JOIN branches b ON b.id = bi.branch_id
 WHERE bi.kind = 'sales'
   AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+  AND bi.cancelled_at IS NULL
   AND bi.occurred_at >= sqlc.arg(from_day)::date
   AND bi.occurred_at < (sqlc.arg(to_day)::date + 1)
   AND (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
 GROUP BY branch_id, day
 ORDER BY day, branch_id;
+
+-- name: MarkBranchInvoicesCancelled :exec
+-- A till's cancellation return names the sale it cancels (related_client_ref);
+-- both rows get the mark. COALESCE keeps the first stamp on a replayed push.
+UPDATE branch_invoices
+SET cancelled_at = COALESCE(cancelled_at, now())
+WHERE branch_id = sqlc.arg(branch_id)
+  AND client_ref = ANY(sqlc.arg(client_refs)::text[]);
+
+-- name: InheritBranchInvoiceCancellation :exec
+-- A sale can reach kashi after the return that cancelled it (a resync pushes
+-- whatever kashi is missing, in no guaranteed order); it picks up the mark the
+-- cancellation already left waiting for it.
+UPDATE branch_invoices s
+SET cancelled_at = r.cancelled_at
+FROM branch_invoices r
+WHERE s.id = sqlc.arg(id)
+  AND s.cancelled_at IS NULL
+  AND r.branch_id = s.branch_id
+  AND r.related_client_ref = s.client_ref
+  AND r.cancelled_at IS NOT NULL;

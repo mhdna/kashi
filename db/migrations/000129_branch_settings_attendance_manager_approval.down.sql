@@ -1,0 +1,1 @@
+ALTER TABLE branch_settings DROP COLUMN attendance_manager_approval_enabled;

@@ -39,6 +39,7 @@ WHERE sm.reason = 'sale'
   AND sm.reference_type = 'branch_invoice'
   AND b.id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND NOT EXISTS (SELECT 1 FROM branch_invoices hbi JOIN branch_registers hr ON hr.id = hbi.register_id WHERE hbi.id = sm.reference_id AND hr.hidden_from_reports)
+  AND NOT EXISTS (SELECT 1 FROM branch_invoices cbi WHERE cbi.id = sm.reference_id AND cbi.cancelled_at IS NOT NULL)
   AND sm.created_at >= $1::timestamptz
   AND sm.created_at < $2::timestamptz
   AND ($3::bigint IS NULL OR b.id = $3)
@@ -148,6 +149,7 @@ WHERE sm.reason = 'sale'
   AND sm.reference_type = 'branch_invoice'
   AND b.id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND NOT EXISTS (SELECT 1 FROM branch_invoices hbi JOIN branch_registers hr ON hr.id = hbi.register_id WHERE hbi.id = sm.reference_id AND hr.hidden_from_reports)
+  AND NOT EXISTS (SELECT 1 FROM branch_invoices cbi WHERE cbi.id = sm.reference_id AND cbi.cancelled_at IS NOT NULL)
   AND sm.created_at >= $1::timestamptz
   AND sm.created_at < $2::timestamptz
   AND ($3::bigint IS NULL OR b.id = $3)
@@ -224,6 +226,7 @@ WHERE sm.reason = 'sale'
   AND sm.reference_type = 'branch_invoice'
   AND b.id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND NOT EXISTS (SELECT 1 FROM branch_invoices hbi JOIN branch_registers hr ON hr.id = hbi.register_id WHERE hbi.id = sm.reference_id AND hr.hidden_from_reports)
+  AND NOT EXISTS (SELECT 1 FROM branch_invoices cbi WHERE cbi.id = sm.reference_id AND cbi.cancelled_at IS NOT NULL)
   AND sm.created_at >= $1::timestamptz
   AND sm.created_at < $2::timestamptz
   AND ($3::bigint IS NULL OR cat_pa.attribute_value_id = $3)

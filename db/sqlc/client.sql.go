@@ -199,6 +199,7 @@ WITH central AS (
     AND ($3::timestamptz IS NULL OR b.occurred_at < $3::timestamptz) AS in_period) p
   WHERE b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
     AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+    AND b.cancelled_at IS NULL
   GROUP BY cl.client_id
 )
 SELECT
@@ -389,6 +390,7 @@ WITH ranked AS (
     WHERE ($4::bigint IS NULL OR b.branch_id = $4)
       AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
       AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+      AND b.cancelled_at IS NULL
     GROUP BY cl.client_id
   ) bi ON bi.client_id = c.id
   WHERE ($5::text IS NULL OR c.client_type = $5)

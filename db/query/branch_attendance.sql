@@ -8,9 +8,11 @@ INSERT INTO branch_attendance_events (
   event_time,
   event_at,
   type,
-  status
+  status,
+  changed_by,
+  change_note
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 )
 RETURNING *;
 
@@ -41,14 +43,18 @@ DELETE FROM branch_attendance_events WHERE id = $1;
 -- name: ListBranchAttendanceEvents :many
 -- Newest punch first by its own local date/time, not insertion order: a
 -- backfilled import gets the newest ids but holds the oldest punches.
+-- A punch an approved change replaced or deleted (removed_at) is left out;
+-- it stays in the table for the audit trail.
 SELECT * FROM branch_attendance_events
-WHERE sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id)
+WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND removed_at IS NULL
 ORDER BY event_date DESC, event_time DESC, id DESC
 LIMIT $1 OFFSET $2;
 
 -- name: CountBranchAttendanceEvents :one
 SELECT COUNT(*) FROM branch_attendance_events
-WHERE sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id);
+WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND removed_at IS NULL;
 
 -- name: CreateBranchAttendanceChange :one
 INSERT INTO branch_attendance_changes (
@@ -85,3 +91,29 @@ LIMIT $1 OFFSET $2;
 -- name: CountBranchAttendanceChanges :one
 SELECT COUNT(*) FROM branch_attendance_changes
 WHERE sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id);
+
+-- name: GetBranchAttendanceChange :one
+SELECT * FROM branch_attendance_changes WHERE id = $1;
+
+-- name: ListPendingBranchAttendanceRequests :many
+-- Requests a till filed ("acr-<id>-complaint") that no review has answered
+-- yet ("acr-<id>-review" from the same register -- each till numbers its own
+-- requests). These are the ones an admin can approve or reject from kashi.
+SELECT c.* FROM branch_attendance_changes c
+WHERE c.kind = 'complaint'
+  AND (sqlc.narg(branch_id)::bigint IS NULL OR c.branch_id = sqlc.narg(branch_id))
+  AND NOT EXISTS (
+    SELECT 1 FROM branch_attendance_changes r
+    WHERE r.register_id = c.register_id
+      AND r.kind = 'approval'
+      AND r.client_ref = replace(c.client_ref, '-complaint', '-review')
+  )
+ORDER BY c.occurred_at DESC
+LIMIT 500;
+
+-- name: MarkBranchAttendanceEventRemoved :exec
+-- The original punch of an approved replace/delete on the till. Kept, not
+-- deleted, so the audit trail shows what was there and who took it away.
+UPDATE branch_attendance_events
+SET removed_at = COALESCE(removed_at, now()), removed_by = $3
+WHERE branch_id = $1 AND client_ref = $2;

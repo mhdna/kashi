@@ -24,6 +24,7 @@ WITH day_invoices AS (
     AND (sqlc.narg(branch_id)::bigint IS NULL OR bi.branch_id = sqlc.narg(branch_id))
     AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
     AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+    AND bi.cancelled_at IS NULL
 ),
 item_qty AS (
   SELECT bii.branch_invoice_id, SUM(bii.quantity)::bigint AS qty
@@ -62,6 +63,7 @@ WHERE bi.occurred_at >= (sqlc.arg(day)::date - 1)
   AND (sqlc.narg(branch_id)::bigint IS NULL OR bi.branch_id = sqlc.narg(branch_id))
   AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+  AND bi.cancelled_at IS NULL
 GROUP BY hour
 ORDER BY hour;
 
@@ -87,6 +89,7 @@ WHERE bi.kind = 'sales'
   AND (sqlc.narg(branch_id)::bigint IS NULL OR bi.branch_id = sqlc.narg(branch_id))
   AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+  AND bi.cancelled_at IS NULL
 GROUP BY p.id, p.name, p.code
 ORDER BY revenue DESC
 LIMIT 15;
@@ -104,6 +107,7 @@ WHERE bi.occurred_at >= (sqlc.arg(day)::date - 1)
   AND (sqlc.narg(branch_id)::bigint IS NULL OR bi.branch_id = sqlc.narg(branch_id))
   AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+  AND bi.cancelled_at IS NULL
 GROUP BY bi.salesperson_name
 ORDER BY net_total DESC;
 
@@ -140,6 +144,7 @@ SELECT
   bi.discount,
   bi.salesperson_name,
   bi.occurred_at,
+  bi.cancelled_at,
   (SELECT COALESCE(SUM(bii.quantity), 0) FROM branch_invoice_items bii WHERE bii.branch_invoice_id = bi.id)::bigint AS item_count
 FROM branch_invoices bi
 JOIN branches b ON b.id = bi.branch_id

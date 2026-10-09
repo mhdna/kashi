@@ -17,6 +17,12 @@
           variant="outlined"
         />
         <v-btn
+          prepend-icon="mdi-clipboard-check-outline"
+          :text="pendingRequests.length > 0 ? `Requests (${pendingRequests.length})` : 'Requests'"
+          variant="tonal"
+          @click="openRequests"
+        />
+        <v-btn
           prepend-icon="mdi-refresh"
           text="Sync from POS"
           variant="text"
@@ -61,6 +67,21 @@
             size="x-small"
             :text="item.type || '—'"
           />
+        </template>
+        <!-- A punch an approved change created (a missed punch added, or a
+             corrected time) says who approved it instead of passing for a
+             device punch. -->
+        <template #item.status="{ item }">
+          <v-chip
+            v-if="item.changed_by"
+            color="info"
+            size="x-small"
+            :title="item.change_note"
+            variant="tonal"
+          >
+            {{ item.change_note || 'Changed' }} · by {{ item.changed_by }}
+          </v-chip>
+          <span v-else>{{ item.status }}</span>
         </template>
         <template #item.actions="{ item }">
           <v-btn
@@ -111,6 +132,64 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Change requests cashiers filed on a till (fix, delete or add a punch)
+         that nobody has decided yet. A decision is sent to the till that
+         filed it and applies when that till is next online; the till's
+         decision then syncs back and the request leaves this list. -->
+    <v-dialog v-model="requestsDialog" max-width="760">
+      <v-card>
+        <v-card-title>Attendance requests</v-card-title>
+        <v-card-text>
+          <div v-if="requestsLoading" class="d-flex justify-center pa-4">
+            <v-progress-circular color="primary" indeterminate />
+          </div>
+          <v-alert v-else-if="pendingRequests.length === 0" type="info" variant="tonal">
+            No pending attendance requests.
+          </v-alert>
+          <v-table v-else density="compact">
+            <thead>
+              <tr><th>Branch</th><th>Date</th><th>Name</th><th>Request</th><th /></tr>
+            </thead>
+            <tbody>
+              <tr v-for="request in pendingRequests" :key="request.id">
+                <td>{{ branchNames[request.branch_id] ?? `#${request.branch_id}` }}</td>
+                <td>{{ request.attendance_date }}</td>
+                <td>{{ request.salesperson_name }}</td>
+                <td>{{ requestSummary(request) }}</td>
+                <td class="text-end text-no-wrap">
+                  <span v-if="sentRequests[request.id]" class="text-caption text-medium-emphasis">
+                    {{ sentRequests[request.id] }} -- waiting for the till
+                  </span>
+                  <template v-else-if="canEdit">
+                    <v-btn
+                      color="error"
+                      :loading="reviewingId === request.id"
+                      size="small"
+                      text="Reject"
+                      variant="text"
+                      @click="review(request, false)"
+                    />
+                    <v-btn
+                      color="primary"
+                      :loading="reviewingId === request.id"
+                      size="small"
+                      text="Approve"
+                      variant="tonal"
+                      @click="review(request, true)"
+                    />
+                  </template>
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn text="Close" @click="requestsDialog = false" />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -126,7 +205,7 @@
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
 
-  const { importCsv, updateEvent, deleteEvent } = useAttendance()
+  const { importCsv, updateEvent, deleteEvent, listPendingRequests, reviewRequest } = useAttendance()
   const { branches, fetchBranches } = useBranches()
 
   const apiURL = `${API_BASE}/branch_attendance_events`
@@ -157,7 +236,51 @@
 
   onMounted(() => {
     fetchBranches().catch(() => {})
+    loadRequests()
   })
+
+  // ---- change requests filed on the tills ------------------------------
+  const requestsDialog = ref(false)
+  const requestsLoading = ref(false)
+  const pendingRequests = ref([])
+  const reviewingId = ref(null)
+  // request id -> "Approved" / "Rejected", once the decision is queued; the
+  // row stays until the till's own decision syncs back.
+  const sentRequests = reactive({})
+
+  async function loadRequests () {
+    requestsLoading.value = true
+    try {
+      pendingRequests.value = await listPendingRequests(branchId.value)
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      requestsLoading.value = false
+    }
+  }
+
+  function openRequests () {
+    requestsDialog.value = true
+    loadRequests()
+  }
+
+  function requestSummary (request) {
+    if (request.action === 'add') return `Add ${request.requested_type} ${request.requested_time}`
+    if (request.action === 'delete') return `Delete ${request.original_time}`
+    return `Replace ${request.original_time} with ${request.requested_type} ${request.requested_time}`
+  }
+
+  async function review (request, approved) {
+    reviewingId.value = request.id
+    try {
+      await reviewRequest(request.branch_id, request.id, approved)
+      sentRequests[request.id] = approved ? 'Approved' : 'Rejected'
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      reviewingId.value = null
+    }
+  }
 
   async function onFilePicked (event) {
     const file = event.target.files?.[0]

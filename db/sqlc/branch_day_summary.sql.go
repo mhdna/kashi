@@ -177,6 +177,7 @@ SELECT
   bi.discount,
   bi.salesperson_name,
   bi.occurred_at,
+  bi.cancelled_at,
   (SELECT COALESCE(SUM(bii.quantity), 0) FROM branch_invoice_items bii WHERE bii.branch_invoice_id = bi.id)::bigint AS item_count
 FROM branch_invoices bi
 JOIN branches b ON b.id = bi.branch_id
@@ -196,16 +197,17 @@ type ListDayInvoicesParams struct {
 }
 
 type ListDayInvoicesRow struct {
-	ID                int64     `json:"id"`
-	BranchID          int64     `json:"branch_id"`
-	BranchName        string    `json:"branch_name"`
-	Kind              string    `json:"kind"`
-	BranchInvoiceCode string    `json:"branch_invoice_code"`
-	GrandTotal        int64     `json:"grand_total"`
-	Discount          int16     `json:"discount"`
-	SalespersonName   string    `json:"salesperson_name"`
-	OccurredAt        time.Time `json:"occurred_at"`
-	ItemCount         int64     `json:"item_count"`
+	ID                int64        `json:"id"`
+	BranchID          int64        `json:"branch_id"`
+	BranchName        string       `json:"branch_name"`
+	Kind              string       `json:"kind"`
+	BranchInvoiceCode string       `json:"branch_invoice_code"`
+	GrandTotal        int64        `json:"grand_total"`
+	Discount          int16        `json:"discount"`
+	SalespersonName   string       `json:"salesperson_name"`
+	OccurredAt        time.Time    `json:"occurred_at"`
+	CancelledAt       sql.NullTime `json:"cancelled_at"`
+	ItemCount         int64        `json:"item_count"`
 }
 
 // Every invoice of the day, newest first. Capped well above a real day's
@@ -229,6 +231,7 @@ func (q *Queries) ListDayInvoices(ctx context.Context, arg ListDayInvoicesParams
 			&i.Discount,
 			&i.SalespersonName,
 			&i.OccurredAt,
+			&i.CancelledAt,
 			&i.ItemCount,
 		); err != nil {
 			return nil, err
@@ -302,7 +305,7 @@ func (q *Queries) ListDayPaymentsByAccount(ctx context.Context, arg ListDayPayme
 const listDaySalesByBranch = `-- name: ListDaySalesByBranch :many
 
 WITH day_invoices AS (
-  SELECT bi.id, bi.branch_id, bi.client_ref, bi.kind, bi.branch_invoice_code, bi.branch_cashbox_account_id, bi.branch_shift_id, bi.branch_inventory_id, bi.branch_client_id, bi.related_client_ref, bi.discount, bi.subtotal, bi.discounted_total, bi.grand_total, bi.loyalty_points_delta, bi.occurred_at, bi.received_at, bi.salesperson_name, bi.historical, bi.client_uid, bi.register_id
+  SELECT bi.id, bi.branch_id, bi.client_ref, bi.kind, bi.branch_invoice_code, bi.branch_cashbox_account_id, bi.branch_shift_id, bi.branch_inventory_id, bi.branch_client_id, bi.related_client_ref, bi.discount, bi.subtotal, bi.discounted_total, bi.grand_total, bi.loyalty_points_delta, bi.occurred_at, bi.received_at, bi.salesperson_name, bi.historical, bi.client_uid, bi.register_id, bi.cancelled_at
   FROM branch_invoices bi
   JOIN branches b ON b.id = bi.branch_id
   WHERE bi.occurred_at >= ($1::date - 1)
@@ -311,6 +314,7 @@ WITH day_invoices AS (
     AND ($2::bigint IS NULL OR bi.branch_id = $2)
     AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
     AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+    AND bi.cancelled_at IS NULL
 ),
 item_qty AS (
   SELECT bii.branch_invoice_id, SUM(bii.quantity)::bigint AS qty
@@ -412,6 +416,7 @@ WHERE bi.occurred_at >= ($1::date - 1)
   AND ($2::bigint IS NULL OR bi.branch_id = $2)
   AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+  AND bi.cancelled_at IS NULL
 GROUP BY hour
 ORDER BY hour
 `
@@ -465,6 +470,7 @@ WHERE bi.occurred_at >= ($1::date - 1)
   AND ($2::bigint IS NULL OR bi.branch_id = $2)
   AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+  AND bi.cancelled_at IS NULL
 GROUP BY bi.salesperson_name
 ORDER BY net_total DESC
 `
@@ -522,6 +528,7 @@ WHERE bi.kind = 'sales'
   AND ($2::bigint IS NULL OR bi.branch_id = $2)
   AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+  AND bi.cancelled_at IS NULL
 GROUP BY p.id, p.name, p.code
 ORDER BY revenue DESC
 LIMIT 15

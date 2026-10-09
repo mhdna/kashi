@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/mhdna/kashi/db/sqlc"
@@ -107,6 +109,16 @@ type branchSettingsRequest struct {
 	// entered barcode. Nil (a till that predates it) keeps it on, the
 	// till's own default.
 	ScanByCodeEnabled *bool `json:"scan_by_code_enabled"`
+
+	// Let the till play its sounds (scan/checkout chimes, error and warning
+	// tones, keypad clicks). Nil (a till that predates it) keeps them off,
+	// the till's own default.
+	SoundsEnabled *bool `json:"sounds_enabled"`
+
+	// Let a manager decide attendance requests (and add missed punches) on
+	// the till with the manager password. Nil (a till that predates it)
+	// keeps it on, the till's own default.
+	AttendanceManagerApprovalEnabled *bool `json:"attendance_manager_approval_enabled"`
 
 	// --- the rest of the till's settings (000115). Nil on first insert
 	// falls back to the till's own default for a missing value. ---
@@ -293,6 +305,10 @@ func (server *Server) putBranchSettings(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	if err := server.adoptReportedAttendanceIDs(ctx, branchID, raw); err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
 
 	settings, err := server.store.GetBranchSettings(ctx, branchID)
 	if err == sql.ErrNoRows {
@@ -317,6 +333,35 @@ func (server *Server) putBranchSettings(ctx *gin.Context) {
 		"branch_code":   identity.BranchCode,
 		"register_code": identity.RegisterCode,
 	})
+}
+
+// adoptReportedAttendanceIDs takes the device numbers a till has typed in for
+// kashi's salespersons ("salesperson_attendance_ids": kashi salesperson id ->
+// device number, in the settings report) for every salesperson kashi hasn't
+// set one for itself, so kashi shows them without anyone retyping them. A
+// salesperson kashi has set is left alone -- the till takes kashi's value.
+func (server *Server) adoptReportedAttendanceIDs(ctx *gin.Context, branchID int64, raw []byte) error {
+	var report struct {
+		SalespersonAttendanceIDs map[string]string `json:"salesperson_attendance_ids"`
+	}
+	if err := json.Unmarshal(raw, &report); err != nil {
+		return nil // the rest of the report already parsed; this part is optional
+	}
+	for key, attendanceUserID := range report.SalespersonAttendanceIDs {
+		id, err := strconv.ParseInt(key, 10, 64)
+		attendanceUserID = strings.TrimSpace(attendanceUserID)
+		if err != nil || id <= 0 || attendanceUserID == "" {
+			continue
+		}
+		if err := server.store.AdoptSalespersonAttendanceID(ctx, db.AdoptSalespersonAttendanceIDParams{
+			ID:               id,
+			BranchID:         sql.NullInt64{Int64: branchID, Valid: true},
+			AttendanceUserID: attendanceUserID,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (server *Server) upsertBranchSettings(ctx *gin.Context, branchID int64, req branchSettingsRequest) (db.BranchSetting, error) {
@@ -393,6 +438,8 @@ func (server *Server) upsertBranchSettings(ctx *gin.Context, branchID int64, req
 		OversellMode:                       oversellMode,
 		CloseShiftRequiresSync:             orZero(req.CloseShiftRequiresSync),
 		ScanByCodeEnabled:                  orTrue(req.ScanByCodeEnabled),
+		SoundsEnabled:                      orZero(req.SoundsEnabled),
+		AttendanceManagerApprovalEnabled:   orTrue(req.AttendanceManagerApprovalEnabled),
 
 		SalespersonPerInvoiceRequired: orZero(req.SalespersonPerInvoiceRequired),
 		NonAdminMonthNavEnabled:       orZero(req.NonAdminMonthNavEnabled),

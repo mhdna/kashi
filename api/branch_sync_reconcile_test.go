@@ -105,6 +105,8 @@ func TestBranchInvoice_HistoricalFlagReachesTx(t *testing.T) {
 			return db.CreateBranchInvoiceTxResult{Invoice: db.BranchInvoice{ID: 1}}, nil
 		})
 	store.EXPECT().GetDefaultCurrency(gomock.Any()).Return(db.Currency{Code: "USD"}, nil).AnyTimes()
+	// A new sale checks for a cancellation that reached kashi before it.
+	store.EXPECT().InheritBranchInvoiceCancellation(gomock.Any(), int64(1)).Return(nil)
 
 	body := map[string]any{
 		"client_ref":                "hist-1",

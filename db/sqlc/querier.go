@@ -33,6 +33,9 @@ type Querier interface {
 	// of that sale). No floor at zero -- same "ledger stays authoritative, UI
 	// surfaces negatives" rule as inventory_stock.
 	AdjustBatchItemRemainingQuantity(ctx context.Context, arg AdjustBatchItemRemainingQuantityParams) (BatchItem, error)
+	// A till's own value, reported up, for a salesperson kashi hasn't set one
+	// for. updated_at is left alone: nothing about it needs to go back down.
+	AdoptSalespersonAttendanceID(ctx context.Context, arg AdoptSalespersonAttendanceIDParams) error
 	BranchAttendanceChangeRefsPresent(ctx context.Context, arg BranchAttendanceChangeRefsPresentParams) ([]string, error)
 	BranchAttendanceEventRefsPresent(ctx context.Context, arg BranchAttendanceEventRefsPresentParams) ([]string, error)
 	BranchClientLinksPresent(ctx context.Context, arg BranchClientLinksPresentParams) ([]int64, error)
@@ -402,6 +405,7 @@ type Querier interface {
 	GetBatch(ctx context.Context, id int64) (GetBatchRow, error)
 	GetBatchItemByBatchVariant(ctx context.Context, arg GetBatchItemByBatchVariantParams) (BatchItem, error)
 	GetBranch(ctx context.Context, id int64) (Branch, error)
+	GetBranchAttendanceChange(ctx context.Context, id int64) (BranchAttendanceChange, error)
 	GetBranchAttendanceChangeByClientRef(ctx context.Context, arg GetBranchAttendanceChangeByClientRefParams) (BranchAttendanceChange, error)
 	GetBranchAttendanceEvent(ctx context.Context, id int64) (BranchAttendanceEvent, error)
 	GetBranchAttendanceEventByClientRef(ctx context.Context, arg GetBranchAttendanceEventByClientRefParams) (BranchAttendanceEvent, error)
@@ -575,6 +579,8 @@ type Querier interface {
 	GetRole(ctx context.Context, id int64) (Role, error)
 	GetSalesInvoice(ctx context.Context, invoiceID int64) (int64, error)
 	GetSalesperson(ctx context.Context, id int64) (Salesperson, error)
+	// Another salesperson of the same branch already using this device number.
+	GetSalespersonByAttendanceID(ctx context.Context, arg GetSalespersonByAttendanceIDParams) (Salesperson, error)
 	GetSession(ctx context.Context, id uuid.UUID) (Session, error)
 	GetShift(ctx context.Context, id int64) (Shift, error)
 	GetSizeByName(ctx context.Context, name string) (Size, error)
@@ -603,6 +609,10 @@ type Querier interface {
 	GetWarehouseTreemapData(ctx context.Context, inventoryID sql.NullInt64) ([]GetWarehouseTreemapDataRow, error)
 	GetWhatsAppSettings(ctx context.Context) (GetWhatsAppSettingsRow, error)
 	IncrementInvoicesIndex(ctx context.Context, arg IncrementInvoicesIndexParams) (int64, error)
+	// A sale can reach kashi after the return that cancelled it (a resync pushes
+	// whatever kashi is missing, in no guaranteed order); it picks up the mark the
+	// cancellation already left waiting for it.
+	InheritBranchInvoiceCancellation(ctx context.Context, id int64) error
 	InsertBranchQuickAccessItem(ctx context.Context, arg InsertBranchQuickAccessItemParams) error
 	ListActiveBranchRegisterIDs(ctx context.Context, branchID int64) ([]int64, error)
 	ListActiveBranchTargetSeries(ctx context.Context) ([]BranchTargetSeries, error)
@@ -635,6 +645,8 @@ type Querier interface {
 	ListBranchAttendanceChanges(ctx context.Context, arg ListBranchAttendanceChangesParams) ([]BranchAttendanceChange, error)
 	// Newest punch first by its own local date/time, not insertion order: a
 	// backfilled import gets the newest ids but holds the oldest punches.
+	// A punch an approved change replaced or deleted (removed_at) is left out;
+	// it stays in the table for the audit trail.
 	ListBranchAttendanceEvents(ctx context.Context, arg ListBranchAttendanceEventsParams) ([]BranchAttendanceEvent, error)
 	// Adoption: which central client each of this register's local client ids
 	// is linked to, so a till can stamp the right uid without guessing by phone.
@@ -1023,6 +1035,10 @@ type Querier interface {
 	// 'low_stock' (on_hand > 0, i.e. low but not yet out); NULL keeps both,
 	// matching the "at or below threshold" definition used everywhere else.
 	ListLowStockProducts(ctx context.Context, arg ListLowStockProductsParams) ([]ListLowStockProductsRow, error)
+	// Requests a till filed ("acr-<id>-complaint") that no review has answered
+	// yet ("acr-<id>-review" from the same register -- each till numbers its own
+	// requests). These are the ones an admin can approve or reject from kashi.
+	ListPendingBranchAttendanceRequests(ctx context.Context, branchID sql.NullInt64) ([]BranchAttendanceChange, error)
 	ListPendingBranchCommands(ctx context.Context, registerID int64) ([]BranchCommand, error)
 	ListPriceListBranchIDs(ctx context.Context, priceListID int64) ([]int64, error)
 	ListPriceListItems(ctx context.Context, priceListID int64) ([]PriceListItem, error)
@@ -1139,7 +1155,13 @@ type Querier interface {
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	ListVariantSyncIDs(ctx context.Context, arg ListVariantSyncIDsParams) ([]ListVariantSyncIDsRow, error)
 	ListVariantsForBarcodes(ctx context.Context, arg ListVariantsForBarcodesParams) ([]ListVariantsForBarcodesRow, error)
+	// The original punch of an approved replace/delete on the till. Kept, not
+	// deleted, so the audit trail shows what was there and who took it away.
+	MarkBranchAttendanceEventRemoved(ctx context.Context, arg MarkBranchAttendanceEventRemovedParams) error
 	MarkBranchExpenseUploadTokenUsed(ctx context.Context, id int64) error
+	// A till's cancellation return names the sale it cancels (related_client_ref);
+	// both rows get the mark. COALESCE keeps the first stamp on a replayed push.
+	MarkBranchInvoicesCancelled(ctx context.Context, arg MarkBranchInvoicesCancelledParams) error
 	MarkBranchShiftUploadTokenUsed(ctx context.Context, id int64) error
 	MarkBranchTransferUploadTokenUsed(ctx context.Context, id int64) error
 	ProductBarcodesPresent(ctx context.Context, dollar_1 []string) ([]string, error)
@@ -1207,7 +1229,12 @@ type Querier interface {
 	SetRegisterUpdateStatus(ctx context.Context, arg SetRegisterUpdateStatusParams) error
 	SetRegistersTargetRelease(ctx context.Context, arg SetRegistersTargetReleaseParams) error
 	SetSalespersonActive(ctx context.Context, arg SetSalespersonActiveParams) (Salesperson, error)
+	// Set from kashi: from now on the till takes this value (see 000127).
+	SetSalespersonAttendanceID(ctx context.Context, arg SetSalespersonAttendanceIDParams) (Salesperson, error)
 	SetSalespersonColor(ctx context.Context, arg SetSalespersonColorParams) (Salesperson, error)
+	// Whether the till offers this person at checkout; attendance applies to
+	// everyone on the roster either way.
+	SetSalespersonIsSalesperson(ctx context.Context, arg SetSalespersonIsSalespersonParams) (Salesperson, error)
 	SetStockCountNote(ctx context.Context, arg SetStockCountNoteParams) error
 	SetStockCountStatus(ctx context.Context, arg SetStockCountStatusParams) (StockCount, error)
 	SetTransferAttachmentPath(ctx context.Context, arg SetTransferAttachmentPathParams) error

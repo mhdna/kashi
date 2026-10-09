@@ -55,6 +55,27 @@ export function useBranchInvoices () {
     return data?.command ?? null
   }
 
+  // Same command with cancel: true -- the till returns the whole sale and
+  // flags it as a cancellation, so the sale and its return both come back
+  // marked cancelled_at and drop out of sales statistics. For a sale rung up
+  // by mistake; a real customer return stays requestRemoteReturn.
+  async function requestRemoteCancel (branchId, invoice, reason) {
+    const data = await requestJSON(`${API_BASE}/branches/${branchId}/commands`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'remote_return_invoice',
+        payload: {
+          branch_invoice_id: invoice.id,
+          client_ref: invoice.client_ref,
+          reason: reason || '',
+          cancel: true,
+        },
+      }),
+    })
+    return data?.command ?? null
+  }
+
   // listSalesStats returns { branch_id, day, invoice_count, revenue } rollup
   // rows (sales only, revenue in cents) over an inclusive YYYY-MM-DD range,
   // unpaginated -- the sales-side mirror of useBranchVisitors' listVisitorStats,
@@ -70,5 +91,5 @@ export function useBranchInvoices () {
     return data?.sales_days ?? []
   }
 
-  return { listBranchInvoiceItems, listRecentBranchInvoices, requestRemoteReturn, listSalesStats }
+  return { listBranchInvoiceItems, listRecentBranchInvoices, requestRemoteCancel, requestRemoteReturn, listSalesStats }
 }

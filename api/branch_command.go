@@ -26,6 +26,9 @@ var (
 var allowedBranchCommandTypes = map[string]bool{
 	"update_settings":       true,
 	"remote_return_invoice": true,
+	// Approve or reject an attendance change request a till filed; only the
+	// till that filed it can apply it (see resolveCommandTarget).
+	"review_attendance_request": true,
 	"set_branch_user_pin":   true,
 	"print_shift_report":    true,
 	"reprint_invoice":       true,
@@ -131,9 +134,44 @@ func (server *Server) createBranchCommand(ctx *gin.Context) {
 func (server *Server) resolveCommandTarget(ctx *gin.Context, branchID int64, req createBranchCommandRequest) (int64, json.RawMessage, int, error) {
 	payload := req.Payload
 	switch req.Type {
+	case "review_attendance_request":
+		// The admin names kashi's own branch_attendance_changes row: request
+		// ids are per till, so only the row knows which register filed it and
+		// under which ref. The till gets that ref plus who decided.
+		var target struct {
+			ChangeID int64 `json:"change_id"`
+			Approved bool  `json:"approved"`
+		}
+		if err := json.Unmarshal(req.Payload, &target); err != nil || target.ChangeID <= 0 {
+			return 0, nil, http.StatusBadRequest, errors.New("review_attendance_request needs change_id")
+		}
+		change, err := server.store.GetBranchAttendanceChange(ctx, target.ChangeID)
+		if err != nil {
+			return 0, nil, statusForLookup(err), err
+		}
+		if change.BranchID != branchID || change.Kind != "complaint" {
+			return 0, nil, http.StatusBadRequest, errors.New("that isn't an attendance request of this branch")
+		}
+		actor := "kashi"
+		if p, ok := ctx.Get(authoizationPayloadKey); ok {
+			if tokenPayload, ok := p.(*token.Payload); ok && tokenPayload.Username != "" {
+				actor = "kashi: " + tokenPayload.Username
+			}
+		}
+		forwarded, err := json.Marshal(map[string]any{
+			"client_ref": change.ClientRef,
+			"approved":   target.Approved,
+			"actor":      actor,
+		})
+		if err != nil {
+			return 0, nil, http.StatusInternalServerError, err
+		}
+		return change.RegisterID, forwarded, 0, nil
+
 	case "remote_return_invoice", "reprint_invoice":
 		var target struct {
 			ClientRef string `json:"client_ref"`
+			Cancel    bool   `json:"cancel"`
 		}
 		if err := json.Unmarshal(req.Payload, &target); err != nil || target.ClientRef == "" {
 			return 0, nil, http.StatusBadRequest, fmt.Errorf("%s needs the sale's client_ref", req.Type)
@@ -144,6 +182,17 @@ func (server *Server) resolveCommandTarget(ctx *gin.Context, branchID int64, req
 		})
 		if err != nil {
 			return 0, nil, statusForLookup(err), err
+		}
+		// A cancel is a full return of a sale (see kashi-pos's CancelInvoice);
+		// the till re-checks all of this, refusing here just answers the admin
+		// at once instead of through a failed command later.
+		if req.Type == "remote_return_invoice" && target.Cancel {
+			if invoice.Kind != "sales" {
+				return 0, nil, http.StatusBadRequest, errors.New("only a sale can be cancelled")
+			}
+			if invoice.CancelledAt.Valid {
+				return 0, nil, http.StatusBadRequest, errors.New("this sale is already cancelled")
+			}
 		}
 		return invoice.RegisterID, payload, 0, nil
 

@@ -166,6 +166,7 @@ WITH ranked AS (
     WHERE (sqlc.narg(branch_id)::bigint IS NULL OR b.branch_id = sqlc.narg(branch_id))
       AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
       AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+      AND b.cancelled_at IS NULL
     GROUP BY cl.client_id
   ) bi ON bi.client_id = c.id
   WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type))
@@ -241,6 +242,7 @@ WITH central AS (
     AND (sqlc.narg(date_to)::timestamptz IS NULL OR b.occurred_at < sqlc.narg(date_to)::timestamptz) AS in_period) p
   WHERE b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
     AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+    AND b.cancelled_at IS NULL
   GROUP BY cl.client_id
 )
 SELECT

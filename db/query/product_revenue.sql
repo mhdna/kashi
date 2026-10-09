@@ -106,6 +106,7 @@ WHERE sm.reason = 'sale'
   AND sm.reference_type = 'branch_invoice'
   AND b.id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND NOT EXISTS (SELECT 1 FROM branch_invoices hbi JOIN branch_registers hr ON hr.id = hbi.register_id WHERE hbi.id = sm.reference_id AND hr.hidden_from_reports)
+  AND NOT EXISTS (SELECT 1 FROM branch_invoices cbi WHERE cbi.id = sm.reference_id AND cbi.cancelled_at IS NOT NULL)
   AND sm.created_at >= sqlc.arg(date_from)::timestamptz
   AND sm.created_at < sqlc.arg(date_to)::timestamptz
   AND (sqlc.narg(branch_id)::bigint IS NULL OR b.id = sqlc.narg(branch_id))
@@ -135,6 +136,7 @@ WHERE sm.reason = 'sale'
   AND sm.reference_type = 'branch_invoice'
   AND b.id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND NOT EXISTS (SELECT 1 FROM branch_invoices hbi JOIN branch_registers hr ON hr.id = hbi.register_id WHERE hbi.id = sm.reference_id AND hr.hidden_from_reports)
+  AND NOT EXISTS (SELECT 1 FROM branch_invoices cbi WHERE cbi.id = sm.reference_id AND cbi.cancelled_at IS NOT NULL)
   AND sm.created_at >= sqlc.arg(date_from)::timestamptz
   AND sm.created_at < sqlc.arg(date_to)::timestamptz
   AND (sqlc.narg(branch_id)::bigint IS NULL OR b.id = sqlc.narg(branch_id))
@@ -167,6 +169,7 @@ WHERE sm.reason = 'sale'
   AND sm.reference_type = 'branch_invoice'
   AND b.id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND NOT EXISTS (SELECT 1 FROM branch_invoices hbi JOIN branch_registers hr ON hr.id = hbi.register_id WHERE hbi.id = sm.reference_id AND hr.hidden_from_reports)
+  AND NOT EXISTS (SELECT 1 FROM branch_invoices cbi WHERE cbi.id = sm.reference_id AND cbi.cancelled_at IS NOT NULL)
   AND sm.created_at >= sqlc.arg(date_from)::timestamptz
   AND sm.created_at < sqlc.arg(date_to)::timestamptz
   AND (sqlc.narg(category_value_id)::bigint IS NULL OR cat_pa.attribute_value_id = sqlc.narg(category_value_id))

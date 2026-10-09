@@ -316,6 +316,13 @@
                           label="Accept a product code in the scan field"
                         />
                         <v-switch
+                          v-model="settingsForm.sounds_enabled"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Play sounds (scan, checkout, errors, keypad)"
+                        />
+                        <v-switch
                           v-model="settingsForm.custom_item_discounts_enabled"
                           color="primary"
                           density="compact"
@@ -861,6 +868,13 @@
                           hide-details
                           label="Cashiers can browse previous days"
                         />
+                        <v-switch
+                          v-model="settingsForm.attendance_manager_approval_enabled"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Manager approves requests on the till (manager password)"
+                        />
                       </div>
 
                       <div class="bs-group-head mt-4">
@@ -1383,9 +1397,11 @@
     'receipt_cutoff',
     'attendance_enabled',
     'attendance_cashier_history',
+    'attendance_manager_approval_enabled',
     'split_primary_first',
     'close_shift_requires_sync',
     'scan_by_code_enabled',
+    'sounds_enabled',
     'salesperson_per_invoice_required',
     'non_admin_month_nav_enabled',
     'opening_float_enabled',
@@ -1445,7 +1461,7 @@
       // and on is what every branch did before it existed (the primary
       // currency leading; codes accepted in the scan field) -- so only an
       // explicit false flips it.
-      if (k === 'split_primary_first' || k === 'scan_by_code_enabled') {
+      if (k === 'split_primary_first' || k === 'scan_by_code_enabled' || k === 'attendance_manager_approval_enabled') {
         form[k] = d[k] !== false
         continue
       }
@@ -1755,6 +1771,8 @@
     exchange_window_hours: 'Exchange window',
     search_button_enabled: 'Search button',
     scan_by_code_enabled: 'Code in scan field',
+    sounds_enabled: 'Sounds',
+    attendance_manager_approval_enabled: 'Manager approval on till',
     custom_item_discounts_enabled: 'Custom discounts',
     custom_item_prices_enabled: 'Custom prices',
     per_unit_item_prices_enabled: 'Per-unit pricing',

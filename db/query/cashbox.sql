@@ -219,9 +219,10 @@ WHERE id = $1;
 -- name: CreateBranchSalesperson :one
 INSERT INTO salespersons (
   name,
-  branch_id
+  branch_id,
+  is_salesperson
 )
-VALUES ( $1, $2 )
+VALUES ( $1, $2, $3 )
 RETURNING *;
 
 -- name: UpdateBranchSalespersonName :one
@@ -254,3 +255,35 @@ ORDER BY name;
 SELECT * FROM salespersons
 WHERE branch_id = $1 AND updated_at > $2
 ORDER BY updated_at;
+
+-- name: SetSalespersonAttendanceID :one
+-- Set from kashi: from now on the till takes this value (see 000127).
+UPDATE salespersons
+SET attendance_user_id = $2,
+attendance_user_id_set = true,
+updated_at = now()
+WHERE id = $1
+RETURNING *;
+
+-- name: GetSalespersonByAttendanceID :one
+-- Another salesperson of the same branch already using this device number.
+SELECT * FROM salespersons
+WHERE branch_id = $1 AND attendance_user_id = $2 AND attendance_user_id <> '' AND id <> $3
+LIMIT 1;
+
+-- name: AdoptSalespersonAttendanceID :exec
+-- A till's own value, reported up, for a salesperson kashi hasn't set one
+-- for. updated_at is left alone: nothing about it needs to go back down.
+UPDATE salespersons
+SET attendance_user_id = $3
+WHERE id = $1 AND branch_id = $2 AND NOT attendance_user_id_set
+  AND attendance_user_id <> $3;
+
+-- name: SetSalespersonIsSalesperson :one
+-- Whether the till offers this person at checkout; attendance applies to
+-- everyone on the roster either way.
+UPDATE salespersons
+SET is_salesperson = $2,
+updated_at = now()
+WHERE id = $1
+RETURNING *;

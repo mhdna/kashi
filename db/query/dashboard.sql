@@ -140,6 +140,7 @@ SELECT
       AND (sqlc.narg(branch_id)::bigint IS NULL OR b2.branch_id = sqlc.narg(branch_id))
       AND b2.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
       AND b2.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+      AND b2.cancelled_at IS NULL
   ), 0)::bigint AS items_sold,
   COALESCE(SUM(b.grand_total), 0)::bigint AS revenue,
   COUNT(*) FILTER (WHERE b.kind = 'sales')::bigint AS invoices
@@ -148,7 +149,8 @@ WHERE b.occurred_at >= sqlc.arg(date_from)::timestamptz
   AND b.occurred_at < sqlc.arg(date_to)::timestamptz
   AND (sqlc.narg(branch_id)::bigint IS NULL OR b.branch_id = sqlc.narg(branch_id))
   AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
-  AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports);
+  AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+  AND b.cancelled_at IS NULL;
 
 -- name: DashboardBranchExpensesTotal :one
 SELECT COALESCE(SUM(amount), 0)::bigint AS total
@@ -253,6 +255,7 @@ SELECT
       AND (bi.occurred_at AT TIME ZONE 'UTC')::date BETWEEN t.date_from AND t.date_to
       AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
       AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+      AND bi.cancelled_at IS NULL
   ), 0)::bigint AS revenue
 FROM branch_targets t
 JOIN branches b ON b.id = t.branch_id
@@ -299,6 +302,7 @@ WHERE occurred_at >= sqlc.arg(date_from)::timestamptz
   AND (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
   AND branch_invoices.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND branch_invoices.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+  AND branch_invoices.cancelled_at IS NULL
 GROUP BY day
 ORDER BY day;
 
@@ -363,6 +367,7 @@ FROM (
     AND (sqlc.narg(branch_id)::bigint IS NULL OR b.branch_id = sqlc.narg(branch_id))
     AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
     AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+    AND b.cancelled_at IS NULL
 
   UNION ALL
 
@@ -392,6 +397,7 @@ SELECT (
       AND (sqlc.narg(branch_id)::bigint IS NULL OR b.branch_id = sqlc.narg(branch_id))
       AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
       AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+      AND b.cancelled_at IS NULL
   )
   +
   (

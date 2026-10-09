@@ -226,6 +226,7 @@ SELECT t.id,
        AND (bi.occurred_at AT TIME ZONE 'UTC')::date BETWEEN t.date_from AND t.date_to
        AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
        AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+       AND bi.cancelled_at IS NULL
   )::bigint AS achieved
 FROM branch_targets t
 WHERE t.branch_id = $1
@@ -355,6 +356,7 @@ WHERE branch_invoices.branch_id = $1
   AND (occurred_at AT TIME ZONE 'UTC')::date BETWEEN $2 AND $3
   AND branch_invoices.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND branch_invoices.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+  AND branch_invoices.cancelled_at IS NULL
 `
 
 type SumBranchRevenueForRangeParams struct {

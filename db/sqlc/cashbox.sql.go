@@ -32,6 +32,26 @@ func (q *Queries) AddCashboxAccountBalance(ctx context.Context, arg AddCashboxAc
 	return i, err
 }
 
+const adoptSalespersonAttendanceID = `-- name: AdoptSalespersonAttendanceID :exec
+UPDATE salespersons
+SET attendance_user_id = $3
+WHERE id = $1 AND branch_id = $2 AND NOT attendance_user_id_set
+  AND attendance_user_id <> $3
+`
+
+type AdoptSalespersonAttendanceIDParams struct {
+	ID               int64         `json:"id"`
+	BranchID         sql.NullInt64 `json:"branch_id"`
+	AttendanceUserID string        `json:"attendance_user_id"`
+}
+
+// A till's own value, reported up, for a salesperson kashi hasn't set one
+// for. updated_at is left alone: nothing about it needs to go back down.
+func (q *Queries) AdoptSalespersonAttendanceID(ctx context.Context, arg AdoptSalespersonAttendanceIDParams) error {
+	_, err := q.db.ExecContext(ctx, adoptSalespersonAttendanceID, arg.ID, arg.BranchID, arg.AttendanceUserID)
+	return err
+}
+
 const countCashboxAccountOverrides = `-- name: CountCashboxAccountOverrides :one
 SELECT COUNT(*) FROM branch_cashbox_accounts
 WHERE cashbox_account_id = $1
@@ -52,19 +72,21 @@ func (q *Queries) CountCashboxAccountOverrides(ctx context.Context, cashboxAccou
 const createBranchSalesperson = `-- name: CreateBranchSalesperson :one
 INSERT INTO salespersons (
   name,
-  branch_id
+  branch_id,
+  is_salesperson
 )
-VALUES ( $1, $2 )
-RETURNING id, name, cashbox_id, branch_id, is_active, updated_at, color
+VALUES ( $1, $2, $3 )
+RETURNING id, name, cashbox_id, branch_id, is_active, updated_at, color, attendance_user_id, attendance_user_id_set, is_salesperson
 `
 
 type CreateBranchSalespersonParams struct {
-	Name     string        `json:"name"`
-	BranchID sql.NullInt64 `json:"branch_id"`
+	Name          string        `json:"name"`
+	BranchID      sql.NullInt64 `json:"branch_id"`
+	IsSalesperson bool          `json:"is_salesperson"`
 }
 
 func (q *Queries) CreateBranchSalesperson(ctx context.Context, arg CreateBranchSalespersonParams) (Salesperson, error) {
-	row := q.db.QueryRowContext(ctx, createBranchSalesperson, arg.Name, arg.BranchID)
+	row := q.db.QueryRowContext(ctx, createBranchSalesperson, arg.Name, arg.BranchID, arg.IsSalesperson)
 	var i Salesperson
 	err := row.Scan(
 		&i.ID,
@@ -74,6 +96,9 @@ func (q *Queries) CreateBranchSalesperson(ctx context.Context, arg CreateBranchS
 		&i.IsActive,
 		&i.UpdatedAt,
 		&i.Color,
+		&i.AttendanceUserID,
+		&i.AttendanceUserIDSet,
+		&i.IsSalesperson,
 	)
 	return i, err
 }
@@ -151,7 +176,7 @@ INSERT INTO salespersons (
   cashbox_id
 )
 VALUES ( $1, $2 )
-RETURNING id, name, cashbox_id, branch_id, is_active, updated_at, color
+RETURNING id, name, cashbox_id, branch_id, is_active, updated_at, color, attendance_user_id, attendance_user_id_set, is_salesperson
 `
 
 type CreateSalespersonParams struct {
@@ -170,6 +195,9 @@ func (q *Queries) CreateSalesperson(ctx context.Context, arg CreateSalespersonPa
 		&i.IsActive,
 		&i.UpdatedAt,
 		&i.Color,
+		&i.AttendanceUserID,
+		&i.AttendanceUserIDSet,
+		&i.IsSalesperson,
 	)
 	return i, err
 }
@@ -269,7 +297,7 @@ func (q *Queries) GetCashboxAccountBalance(ctx context.Context, arg GetCashboxAc
 }
 
 const getSalesperson = `-- name: GetSalesperson :one
-SELECT id, name, cashbox_id, branch_id, is_active, updated_at, color FROM salespersons
+SELECT id, name, cashbox_id, branch_id, is_active, updated_at, color, attendance_user_id, attendance_user_id_set, is_salesperson FROM salespersons
 WHERE id = $1 LIMIT 1
 `
 
@@ -284,6 +312,40 @@ func (q *Queries) GetSalesperson(ctx context.Context, id int64) (Salesperson, er
 		&i.IsActive,
 		&i.UpdatedAt,
 		&i.Color,
+		&i.AttendanceUserID,
+		&i.AttendanceUserIDSet,
+		&i.IsSalesperson,
+	)
+	return i, err
+}
+
+const getSalespersonByAttendanceID = `-- name: GetSalespersonByAttendanceID :one
+SELECT id, name, cashbox_id, branch_id, is_active, updated_at, color, attendance_user_id, attendance_user_id_set, is_salesperson FROM salespersons
+WHERE branch_id = $1 AND attendance_user_id = $2 AND attendance_user_id <> '' AND id <> $3
+LIMIT 1
+`
+
+type GetSalespersonByAttendanceIDParams struct {
+	BranchID         sql.NullInt64 `json:"branch_id"`
+	AttendanceUserID string        `json:"attendance_user_id"`
+	ID               int64         `json:"id"`
+}
+
+// Another salesperson of the same branch already using this device number.
+func (q *Queries) GetSalespersonByAttendanceID(ctx context.Context, arg GetSalespersonByAttendanceIDParams) (Salesperson, error) {
+	row := q.db.QueryRowContext(ctx, getSalespersonByAttendanceID, arg.BranchID, arg.AttendanceUserID, arg.ID)
+	var i Salesperson
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CashboxID,
+		&i.BranchID,
+		&i.IsActive,
+		&i.UpdatedAt,
+		&i.Color,
+		&i.AttendanceUserID,
+		&i.AttendanceUserIDSet,
+		&i.IsSalesperson,
 	)
 	return i, err
 }
@@ -623,7 +685,7 @@ func (q *Queries) ListCashboxes(ctx context.Context, arg ListCashboxesParams) ([
 }
 
 const listSalespersons = `-- name: ListSalespersons :many
-SELECT id, name, cashbox_id, branch_id, is_active, updated_at, color FROM salespersons
+SELECT id, name, cashbox_id, branch_id, is_active, updated_at, color, attendance_user_id, attendance_user_id_set, is_salesperson FROM salespersons
 ORDER BY id
 LIMIT $1
 OFFSET $2
@@ -651,6 +713,9 @@ func (q *Queries) ListSalespersons(ctx context.Context, arg ListSalespersonsPara
 			&i.IsActive,
 			&i.UpdatedAt,
 			&i.Color,
+			&i.AttendanceUserID,
+			&i.AttendanceUserIDSet,
+			&i.IsSalesperson,
 		); err != nil {
 			return nil, err
 		}
@@ -666,7 +731,7 @@ func (q *Queries) ListSalespersons(ctx context.Context, arg ListSalespersonsPara
 }
 
 const listSalespersonsByCashbox = `-- name: ListSalespersonsByCashbox :many
-SELECT id, name, cashbox_id, branch_id, is_active, updated_at, color FROM salespersons
+SELECT id, name, cashbox_id, branch_id, is_active, updated_at, color, attendance_user_id, attendance_user_id_set, is_salesperson FROM salespersons
 WHERE cashbox_id = $1
 ORDER BY id
 `
@@ -688,6 +753,9 @@ func (q *Queries) ListSalespersonsByCashbox(ctx context.Context, cashboxID sql.N
 			&i.IsActive,
 			&i.UpdatedAt,
 			&i.Color,
+			&i.AttendanceUserID,
+			&i.AttendanceUserIDSet,
+			&i.IsSalesperson,
 		); err != nil {
 			return nil, err
 		}
@@ -703,7 +771,7 @@ func (q *Queries) ListSalespersonsByCashbox(ctx context.Context, cashboxID sql.N
 }
 
 const listSalespersonsForBranch = `-- name: ListSalespersonsForBranch :many
-SELECT id, name, cashbox_id, branch_id, is_active, updated_at, color FROM salespersons
+SELECT id, name, cashbox_id, branch_id, is_active, updated_at, color, attendance_user_id, attendance_user_id_set, is_salesperson FROM salespersons
 WHERE branch_id = $1
 ORDER BY name
 `
@@ -725,6 +793,9 @@ func (q *Queries) ListSalespersonsForBranch(ctx context.Context, branchID sql.Nu
 			&i.IsActive,
 			&i.UpdatedAt,
 			&i.Color,
+			&i.AttendanceUserID,
+			&i.AttendanceUserIDSet,
+			&i.IsSalesperson,
 		); err != nil {
 			return nil, err
 		}
@@ -740,7 +811,7 @@ func (q *Queries) ListSalespersonsForBranch(ctx context.Context, branchID sql.Nu
 }
 
 const listSalespersonsUpdatedSince = `-- name: ListSalespersonsUpdatedSince :many
-SELECT id, name, cashbox_id, branch_id, is_active, updated_at, color FROM salespersons
+SELECT id, name, cashbox_id, branch_id, is_active, updated_at, color, attendance_user_id, attendance_user_id_set, is_salesperson FROM salespersons
 WHERE branch_id = $1 AND updated_at > $2
 ORDER BY updated_at
 `
@@ -767,6 +838,9 @@ func (q *Queries) ListSalespersonsUpdatedSince(ctx context.Context, arg ListSale
 			&i.IsActive,
 			&i.UpdatedAt,
 			&i.Color,
+			&i.AttendanceUserID,
+			&i.AttendanceUserIDSet,
+			&i.IsSalesperson,
 		); err != nil {
 			return nil, err
 		}
@@ -814,7 +888,7 @@ UPDATE salespersons
 SET is_active = $2,
 updated_at = now()
 WHERE id = $1
-RETURNING id, name, cashbox_id, branch_id, is_active, updated_at, color
+RETURNING id, name, cashbox_id, branch_id, is_active, updated_at, color, attendance_user_id, attendance_user_id_set, is_salesperson
 `
 
 type SetSalespersonActiveParams struct {
@@ -833,6 +907,42 @@ func (q *Queries) SetSalespersonActive(ctx context.Context, arg SetSalespersonAc
 		&i.IsActive,
 		&i.UpdatedAt,
 		&i.Color,
+		&i.AttendanceUserID,
+		&i.AttendanceUserIDSet,
+		&i.IsSalesperson,
+	)
+	return i, err
+}
+
+const setSalespersonAttendanceID = `-- name: SetSalespersonAttendanceID :one
+UPDATE salespersons
+SET attendance_user_id = $2,
+attendance_user_id_set = true,
+updated_at = now()
+WHERE id = $1
+RETURNING id, name, cashbox_id, branch_id, is_active, updated_at, color, attendance_user_id, attendance_user_id_set, is_salesperson
+`
+
+type SetSalespersonAttendanceIDParams struct {
+	ID               int64  `json:"id"`
+	AttendanceUserID string `json:"attendance_user_id"`
+}
+
+// Set from kashi: from now on the till takes this value (see 000127).
+func (q *Queries) SetSalespersonAttendanceID(ctx context.Context, arg SetSalespersonAttendanceIDParams) (Salesperson, error) {
+	row := q.db.QueryRowContext(ctx, setSalespersonAttendanceID, arg.ID, arg.AttendanceUserID)
+	var i Salesperson
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CashboxID,
+		&i.BranchID,
+		&i.IsActive,
+		&i.UpdatedAt,
+		&i.Color,
+		&i.AttendanceUserID,
+		&i.AttendanceUserIDSet,
+		&i.IsSalesperson,
 	)
 	return i, err
 }
@@ -842,7 +952,7 @@ UPDATE salespersons
 SET color = $2,
 updated_at = now()
 WHERE id = $1
-RETURNING id, name, cashbox_id, branch_id, is_active, updated_at, color
+RETURNING id, name, cashbox_id, branch_id, is_active, updated_at, color, attendance_user_id, attendance_user_id_set, is_salesperson
 `
 
 type SetSalespersonColorParams struct {
@@ -861,6 +971,42 @@ func (q *Queries) SetSalespersonColor(ctx context.Context, arg SetSalespersonCol
 		&i.IsActive,
 		&i.UpdatedAt,
 		&i.Color,
+		&i.AttendanceUserID,
+		&i.AttendanceUserIDSet,
+		&i.IsSalesperson,
+	)
+	return i, err
+}
+
+const setSalespersonIsSalesperson = `-- name: SetSalespersonIsSalesperson :one
+UPDATE salespersons
+SET is_salesperson = $2,
+updated_at = now()
+WHERE id = $1
+RETURNING id, name, cashbox_id, branch_id, is_active, updated_at, color, attendance_user_id, attendance_user_id_set, is_salesperson
+`
+
+type SetSalespersonIsSalespersonParams struct {
+	ID            int64 `json:"id"`
+	IsSalesperson bool  `json:"is_salesperson"`
+}
+
+// Whether the till offers this person at checkout; attendance applies to
+// everyone on the roster either way.
+func (q *Queries) SetSalespersonIsSalesperson(ctx context.Context, arg SetSalespersonIsSalespersonParams) (Salesperson, error) {
+	row := q.db.QueryRowContext(ctx, setSalespersonIsSalesperson, arg.ID, arg.IsSalesperson)
+	var i Salesperson
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CashboxID,
+		&i.BranchID,
+		&i.IsActive,
+		&i.UpdatedAt,
+		&i.Color,
+		&i.AttendanceUserID,
+		&i.AttendanceUserIDSet,
+		&i.IsSalesperson,
 	)
 	return i, err
 }
@@ -870,7 +1016,7 @@ UPDATE salespersons
 SET name = $2,
 updated_at = now()
 WHERE id = $1 AND branch_id = $3
-RETURNING id, name, cashbox_id, branch_id, is_active, updated_at, color
+RETURNING id, name, cashbox_id, branch_id, is_active, updated_at, color, attendance_user_id, attendance_user_id_set, is_salesperson
 `
 
 type UpdateBranchSalespersonNameParams struct {
@@ -890,6 +1036,9 @@ func (q *Queries) UpdateBranchSalespersonName(ctx context.Context, arg UpdateBra
 		&i.IsActive,
 		&i.UpdatedAt,
 		&i.Color,
+		&i.AttendanceUserID,
+		&i.AttendanceUserIDSet,
+		&i.IsSalesperson,
 	)
 	return i, err
 }
@@ -973,7 +1122,7 @@ UPDATE salespersons
 SET name = $2,
 cashbox_id = $3
 WHERE id = $1
-RETURNING id, name, cashbox_id, branch_id, is_active, updated_at, color
+RETURNING id, name, cashbox_id, branch_id, is_active, updated_at, color, attendance_user_id, attendance_user_id_set, is_salesperson
 `
 
 type UpdateSalespersonParams struct {
@@ -993,6 +1142,9 @@ func (q *Queries) UpdateSalesperson(ctx context.Context, arg UpdateSalespersonPa
 		&i.IsActive,
 		&i.UpdatedAt,
 		&i.Color,
+		&i.AttendanceUserID,
+		&i.AttendanceUserIDSet,
+		&i.IsSalesperson,
 	)
 	return i, err
 }

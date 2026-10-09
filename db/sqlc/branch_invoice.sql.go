@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const countBranchInvoices = `-- name: CountBranchInvoices :one
@@ -75,7 +76,7 @@ INSERT INTO branch_invoices (
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
 )
-RETURNING id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id
+RETURNING id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id, cancelled_at
 `
 
 type CreateBranchInvoiceParams struct {
@@ -145,6 +146,7 @@ func (q *Queries) CreateBranchInvoice(ctx context.Context, arg CreateBranchInvoi
 		&i.Historical,
 		&i.ClientUid,
 		&i.RegisterID,
+		&i.CancelledAt,
 	)
 	return i, err
 }
@@ -221,7 +223,7 @@ func (q *Queries) CreateBranchInvoicePayment(ctx context.Context, arg CreateBran
 }
 
 const getBranchInvoice = `-- name: GetBranchInvoice :one
-SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id FROM branch_invoices WHERE id = $1
+SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id, cancelled_at FROM branch_invoices WHERE id = $1
 `
 
 func (q *Queries) GetBranchInvoice(ctx context.Context, id int64) (BranchInvoice, error) {
@@ -249,12 +251,13 @@ func (q *Queries) GetBranchInvoice(ctx context.Context, id int64) (BranchInvoice
 		&i.Historical,
 		&i.ClientUid,
 		&i.RegisterID,
+		&i.CancelledAt,
 	)
 	return i, err
 }
 
 const getBranchInvoiceByClientRef = `-- name: GetBranchInvoiceByClientRef :one
-SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id FROM branch_invoices
+SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id, cancelled_at FROM branch_invoices
 WHERE branch_id = $1 AND client_ref = $2
 LIMIT 1
 `
@@ -289,8 +292,28 @@ func (q *Queries) GetBranchInvoiceByClientRef(ctx context.Context, arg GetBranch
 		&i.Historical,
 		&i.ClientUid,
 		&i.RegisterID,
+		&i.CancelledAt,
 	)
 	return i, err
+}
+
+const inheritBranchInvoiceCancellation = `-- name: InheritBranchInvoiceCancellation :exec
+UPDATE branch_invoices s
+SET cancelled_at = r.cancelled_at
+FROM branch_invoices r
+WHERE s.id = $1
+  AND s.cancelled_at IS NULL
+  AND r.branch_id = s.branch_id
+  AND r.related_client_ref = s.client_ref
+  AND r.cancelled_at IS NOT NULL
+`
+
+// A sale can reach kashi after the return that cancelled it (a resync pushes
+// whatever kashi is missing, in no guaranteed order); it picks up the mark the
+// cancellation already left waiting for it.
+func (q *Queries) InheritBranchInvoiceCancellation(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, inheritBranchInvoiceCancellation, id)
+	return err
 }
 
 const listBranchInvoiceItems = `-- name: ListBranchInvoiceItems :many
@@ -365,7 +388,7 @@ func (q *Queries) ListBranchInvoicePayments(ctx context.Context, branchInvoiceID
 }
 
 const listBranchInvoices = `-- name: ListBranchInvoices :many
-SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id FROM branch_invoices
+SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id, cancelled_at FROM branch_invoices
 WHERE ($3::bigint IS NULL OR branch_id = $3)
   AND branch_invoices.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND branch_invoices.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
@@ -413,6 +436,7 @@ func (q *Queries) ListBranchInvoices(ctx context.Context, arg ListBranchInvoices
 			&i.Historical,
 			&i.ClientUid,
 			&i.RegisterID,
+			&i.CancelledAt,
 		); err != nil {
 			return nil, err
 		}
@@ -428,7 +452,7 @@ func (q *Queries) ListBranchInvoices(ctx context.Context, arg ListBranchInvoices
 }
 
 const listBranchInvoicesPage = `-- name: ListBranchInvoicesPage :many
-SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id FROM branch_invoices
+SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id, cancelled_at FROM branch_invoices
 WHERE ($1::bigint IS NULL OR branch_id = $1)
   AND branch_invoices.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND branch_invoices.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
@@ -485,6 +509,7 @@ func (q *Queries) ListBranchInvoicesPage(ctx context.Context, arg ListBranchInvo
 			&i.Historical,
 			&i.ClientUid,
 			&i.RegisterID,
+			&i.CancelledAt,
 		); err != nil {
 			return nil, err
 		}
@@ -510,6 +535,7 @@ JOIN branches b ON b.id = bi.branch_id
 WHERE bi.kind = 'sales'
   AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+  AND bi.cancelled_at IS NULL
   AND bi.occurred_at >= $1::date
   AND bi.occurred_at < ($2::date + 1)
   AND ($3::bigint IS NULL OR branch_id = $3)
@@ -581,6 +607,7 @@ WHERE bi.occurred_at >= make_date($1::int, 1, 1)
   AND ($2::bigint IS NULL OR bi.branch_id = $2)
   AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+  AND bi.cancelled_at IS NULL
 GROUP BY day
 ORDER BY day
 `
@@ -627,4 +654,23 @@ func (q *Queries) ListDailyIncome(ctx context.Context, arg ListDailyIncomeParams
 		return nil, err
 	}
 	return items, nil
+}
+
+const markBranchInvoicesCancelled = `-- name: MarkBranchInvoicesCancelled :exec
+UPDATE branch_invoices
+SET cancelled_at = COALESCE(cancelled_at, now())
+WHERE branch_id = $1
+  AND client_ref = ANY($2::text[])
+`
+
+type MarkBranchInvoicesCancelledParams struct {
+	BranchID   int64    `json:"branch_id"`
+	ClientRefs []string `json:"client_refs"`
+}
+
+// A till's cancellation return names the sale it cancels (related_client_ref);
+// both rows get the mark. COALESCE keeps the first stamp on a replayed push.
+func (q *Queries) MarkBranchInvoicesCancelled(ctx context.Context, arg MarkBranchInvoicesCancelledParams) error {
+	_, err := q.db.ExecContext(ctx, markBranchInvoicesCancelled, arg.BranchID, pq.Array(arg.ClientRefs))
+	return err
 }

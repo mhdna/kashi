@@ -383,6 +383,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/branch_visitor_stats", server.listBranchVisitorStats)
 	authRoutes.GET("/branch_invoice_settlements", server.listBranchInvoiceSettlements)
 	authRoutes.GET("/branch_attendance_changes", server.listBranchAttendanceChanges)
+	authRoutes.GET("/branch_attendance_changes/pending", server.listPendingBranchAttendanceRequests)
 	authRoutes.GET("/branch_attendance_events", server.listBranchAttendanceEvents)
 	authRoutes.POST("/branch_attendance_events/import", server.importBranchAttendanceEventsCSV)
 	authRoutes.PUT("/branch_attendance_events/:id", server.updateBranchAttendanceEvent)
@@ -421,6 +422,8 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/salespersons/:id", server.updateSalesperson)
 	authRoutes.PUT("/salespersons/:id/active", server.setSalespersonActive)
 	authRoutes.PUT("/salespersons/:id/color", server.setSalespersonColor)
+	authRoutes.PUT("/salespersons/:id/attendance_id", server.setSalespersonAttendanceID)
+	authRoutes.PUT("/salespersons/:id/is_salesperson", server.setSalespersonIsSalesperson)
 
 	authRoutes.GET("/employees", server.listEmployees)
 	authRoutes.POST("/employees", server.createEmployee)

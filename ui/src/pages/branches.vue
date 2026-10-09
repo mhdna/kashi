@@ -478,26 +478,28 @@
     </v-card>
   </v-dialog>
 
-  <!-- Salespersons are admin-managed only here -- kashi-pos pulls the
-       roster down read-only via the branch-sync mechanism (GET
-       /branch/sync/changes), it only edits the local attendance-device
-       pairing id, never the name, color or active state. The color is the
-       salesperson's avatar background on the till. -->
-  <v-dialog v-model="salespersonsDialog" max-width="560">
+  <!-- The branch's staff roster is admin-managed only here -- kashi-pos pulls
+       it down read-only via the branch-sync mechanism (GET
+       /branch/sync/changes). The attendance ID is the person's number on the
+       branch's fingerprint device: set here it wins on the till, left empty
+       here the till's own value shows. "Sells" puts them in the till's
+       checkout picker; off is for staff who only punch attendance. The color
+       is the avatar background on the till. -->
+  <v-dialog v-model="salespersonsDialog" max-width="720">
     <v-card>
-      <v-card-title>Salespersons -- {{ salespersonsBranch?.name }}</v-card-title>
+      <v-card-title>Staff -- {{ salespersonsBranch?.name }}</v-card-title>
       <v-card-text>
         <div v-if="salespersonsLoading" class="d-flex justify-center pa-4">
           <v-progress-circular color="primary" indeterminate />
         </div>
         <template v-else>
           <v-alert v-if="salespersonsList.length === 0" class="mb-4" type="info" variant="tonal">
-            No salespersons for this branch yet.
+            No staff for this branch yet.
           </v-alert>
 
           <v-table class="mb-4" density="compact">
             <thead>
-              <tr><th>Color</th><th>Name</th><th>Active</th><th /></tr>
+              <tr><th>Color</th><th>Name</th><th title="User number on the branch's fingerprint device">Attendance ID</th><th title="Offered as a salesperson at checkout">Sells</th><th>Active</th><th /></tr>
             </thead>
             <tbody>
               <tr v-for="person in salespersonsList" :key="person.id">
@@ -521,6 +523,29 @@
                     @keyup.enter="submitEditSalesperson(person)"
                   />
                   <template v-else>{{ person.name }}</template>
+                </td>
+                <td>
+                  <v-text-field
+                    v-if="editingSalespersonId === person.id"
+                    v-model="editingSalespersonAttendanceId"
+                    density="compact"
+                    hide-details
+                    placeholder="e.g. 15"
+                    style="max-width: 110px"
+                    variant="outlined"
+                    @keyup.enter="submitEditSalesperson(person)"
+                  />
+                  <span v-else :class="{ 'text-medium-emphasis': !person.attendance_user_id }">
+                    {{ person.attendance_user_id || '—' }}
+                  </span>
+                </td>
+                <td>
+                  <v-checkbox-btn
+                    density="compact"
+                    :disabled="!canEdit"
+                    :model-value="person.is_salesperson"
+                    @update:model-value="value => toggleSalespersonSells(person, value)"
+                  />
                 </td>
                 <td>
                   <v-switch
@@ -559,6 +584,21 @@
               hide-details
               label="Full name"
               variant="outlined"
+            />
+            <v-text-field
+              v-model="newSalespersonAttendanceId"
+              density="compact"
+              hide-details
+              label="Attendance ID"
+              style="max-width: 140px"
+              variant="outlined"
+            />
+            <v-checkbox
+              v-model="newSalespersonSells"
+              density="compact"
+              hide-details
+              label="Sells"
+              title="Offered as a salesperson at checkout"
             />
             <v-btn color="primary" :loading="salespersonSaving" text="Add" type="submit" />
           </form>
@@ -666,6 +706,8 @@
   const {
     listBranchSalespersons,
     createBranchSalesperson,
+    setBranchSalespersonAttendanceId,
+    setBranchSalespersonIsSalesperson,
     updateBranchSalesperson,
     setBranchSalespersonActive,
     setBranchSalespersonColor,
@@ -925,8 +967,11 @@
   const salespersonsLoading = ref(false)
   const salespersonSaving = ref(false)
   const newSalespersonName = ref('')
+  const newSalespersonAttendanceId = ref('')
+  const newSalespersonSells = ref(true)
   const editingSalespersonId = ref(null)
   const editingSalespersonName = ref('')
+  const editingSalespersonAttendanceId = ref('')
 
   async function openSalespersons (item) {
     salespersonsBranch.value = item
@@ -951,8 +996,10 @@
     if (!newSalespersonName.value.trim()) return
     salespersonSaving.value = true
     try {
-      await createBranchSalesperson(salespersonsBranch.value.id, newSalespersonName.value.trim())
+      await createBranchSalesperson(salespersonsBranch.value.id, newSalespersonName.value.trim(), newSalespersonAttendanceId.value.trim(), newSalespersonSells.value)
       newSalespersonName.value = ''
+      newSalespersonAttendanceId.value = ''
+      newSalespersonSells.value = true
       await loadSalespersons()
     } catch (error) {
       notify.error(error.message)
@@ -964,12 +1011,18 @@
   function openEditSalesperson (person) {
     editingSalespersonId.value = person.id
     editingSalespersonName.value = person.name
+    editingSalespersonAttendanceId.value = person.attendance_user_id || ''
   }
 
   async function submitEditSalesperson (person) {
-    if (!editingSalespersonName.value.trim()) return
+    const name = editingSalespersonName.value.trim()
+    const attendanceId = editingSalespersonAttendanceId.value.trim()
+    if (!name) return
     try {
-      await updateBranchSalesperson(person.id, editingSalespersonName.value.trim())
+      if (name !== person.name) await updateBranchSalesperson(person.id, name)
+      if (attendanceId !== (person.attendance_user_id || '')) {
+        await setBranchSalespersonAttendanceId(person.id, attendanceId)
+      }
       editingSalespersonId.value = null
       await loadSalespersons()
     } catch (error) {
@@ -980,6 +1033,15 @@
   async function changeSalespersonColor (person, color) {
     try {
       await setBranchSalespersonColor(person.id, color)
+      await loadSalespersons()
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
+
+  async function toggleSalespersonSells (person, value) {
+    try {
+      await setBranchSalespersonIsSalesperson(person.id, value)
       await loadSalespersons()
     } catch (error) {
       notify.error(error.message)

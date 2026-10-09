@@ -82,6 +82,7 @@ SELECT (
       AND ($4::bigint IS NULL OR b.branch_id = $4)
       AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
       AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+      AND b.cancelled_at IS NULL
   )
   +
   (
@@ -576,6 +577,7 @@ WHERE occurred_at >= $1::timestamptz
   AND ($3::bigint IS NULL OR branch_id = $3)
   AND branch_invoices.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND branch_invoices.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+  AND branch_invoices.cancelled_at IS NULL
 GROUP BY day
 ORDER BY day
 `
@@ -626,6 +628,7 @@ SELECT
       AND ($3::bigint IS NULL OR b2.branch_id = $3)
       AND b2.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
       AND b2.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+      AND b2.cancelled_at IS NULL
   ), 0)::bigint AS items_sold,
   COALESCE(SUM(b.grand_total), 0)::bigint AS revenue,
   COUNT(*) FILTER (WHERE b.kind = 'sales')::bigint AS invoices
@@ -635,6 +638,7 @@ WHERE b.occurred_at >= $1::timestamptz
   AND ($3::bigint IS NULL OR b.branch_id = $3)
   AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+  AND b.cancelled_at IS NULL
 `
 
 type DashboardBranchSummaryParams struct {
@@ -984,6 +988,7 @@ FROM (
     AND ($6::bigint IS NULL OR b.branch_id = $6)
     AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
     AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+    AND b.cancelled_at IS NULL
 
   UNION ALL
 
@@ -1076,6 +1081,7 @@ SELECT
       AND (bi.occurred_at AT TIME ZONE 'UTC')::date BETWEEN t.date_from AND t.date_to
       AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
       AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+      AND bi.cancelled_at IS NULL
   ), 0)::bigint AS revenue
 FROM branch_targets t
 JOIN branches b ON b.id = t.branch_id

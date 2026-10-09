@@ -25,7 +25,8 @@ func (q *Queries) CountBranchAttendanceChanges(ctx context.Context, branchID sql
 
 const countBranchAttendanceEvents = `-- name: CountBranchAttendanceEvents :one
 SELECT COUNT(*) FROM branch_attendance_events
-WHERE $1::bigint IS NULL OR branch_id = $1
+WHERE ($1::bigint IS NULL OR branch_id = $1)
+  AND removed_at IS NULL
 `
 
 func (q *Queries) CountBranchAttendanceEvents(ctx context.Context, branchID sql.NullInt64) (int64, error) {
@@ -123,11 +124,13 @@ INSERT INTO branch_attendance_events (
   event_time,
   event_at,
   type,
-  status
+  status,
+  changed_by,
+  change_note
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 )
-RETURNING id, branch_id, client_ref, salesperson_name, attendance_user_id, event_date, event_time, event_at, type, status, received_at
+RETURNING id, branch_id, client_ref, salesperson_name, attendance_user_id, event_date, event_time, event_at, type, status, received_at, changed_by, change_note, removed_at, removed_by
 `
 
 type CreateBranchAttendanceEventParams struct {
@@ -140,6 +143,8 @@ type CreateBranchAttendanceEventParams struct {
 	EventAt          string `json:"event_at"`
 	Type             string `json:"type"`
 	Status           string `json:"status"`
+	ChangedBy        string `json:"changed_by"`
+	ChangeNote       string `json:"change_note"`
 }
 
 func (q *Queries) CreateBranchAttendanceEvent(ctx context.Context, arg CreateBranchAttendanceEventParams) (BranchAttendanceEvent, error) {
@@ -153,6 +158,8 @@ func (q *Queries) CreateBranchAttendanceEvent(ctx context.Context, arg CreateBra
 		arg.EventAt,
 		arg.Type,
 		arg.Status,
+		arg.ChangedBy,
+		arg.ChangeNote,
 	)
 	var i BranchAttendanceEvent
 	err := row.Scan(
@@ -167,6 +174,10 @@ func (q *Queries) CreateBranchAttendanceEvent(ctx context.Context, arg CreateBra
 		&i.Type,
 		&i.Status,
 		&i.ReceivedAt,
+		&i.ChangedBy,
+		&i.ChangeNote,
+		&i.RemovedAt,
+		&i.RemovedBy,
 	)
 	return i, err
 }
@@ -178,6 +189,34 @@ DELETE FROM branch_attendance_events WHERE id = $1
 func (q *Queries) DeleteBranchAttendanceEvent(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, deleteBranchAttendanceEvent, id)
 	return err
+}
+
+const getBranchAttendanceChange = `-- name: GetBranchAttendanceChange :one
+SELECT id, branch_id, client_ref, kind, salesperson_name, attendance_date, original_time, requested_time, requested_type, action, status, note, actor, occurred_at, received_at, register_id FROM branch_attendance_changes WHERE id = $1
+`
+
+func (q *Queries) GetBranchAttendanceChange(ctx context.Context, id int64) (BranchAttendanceChange, error) {
+	row := q.db.QueryRowContext(ctx, getBranchAttendanceChange, id)
+	var i BranchAttendanceChange
+	err := row.Scan(
+		&i.ID,
+		&i.BranchID,
+		&i.ClientRef,
+		&i.Kind,
+		&i.SalespersonName,
+		&i.AttendanceDate,
+		&i.OriginalTime,
+		&i.RequestedTime,
+		&i.RequestedType,
+		&i.Action,
+		&i.Status,
+		&i.Note,
+		&i.Actor,
+		&i.OccurredAt,
+		&i.ReceivedAt,
+		&i.RegisterID,
+	)
+	return i, err
 }
 
 const getBranchAttendanceChangeByClientRef = `-- name: GetBranchAttendanceChangeByClientRef :one
@@ -216,7 +255,7 @@ func (q *Queries) GetBranchAttendanceChangeByClientRef(ctx context.Context, arg 
 }
 
 const getBranchAttendanceEvent = `-- name: GetBranchAttendanceEvent :one
-SELECT id, branch_id, client_ref, salesperson_name, attendance_user_id, event_date, event_time, event_at, type, status, received_at FROM branch_attendance_events
+SELECT id, branch_id, client_ref, salesperson_name, attendance_user_id, event_date, event_time, event_at, type, status, received_at, changed_by, change_note, removed_at, removed_by FROM branch_attendance_events
 WHERE id = $1 LIMIT 1
 `
 
@@ -235,12 +274,16 @@ func (q *Queries) GetBranchAttendanceEvent(ctx context.Context, id int64) (Branc
 		&i.Type,
 		&i.Status,
 		&i.ReceivedAt,
+		&i.ChangedBy,
+		&i.ChangeNote,
+		&i.RemovedAt,
+		&i.RemovedBy,
 	)
 	return i, err
 }
 
 const getBranchAttendanceEventByClientRef = `-- name: GetBranchAttendanceEventByClientRef :one
-SELECT id, branch_id, client_ref, salesperson_name, attendance_user_id, event_date, event_time, event_at, type, status, received_at FROM branch_attendance_events
+SELECT id, branch_id, client_ref, salesperson_name, attendance_user_id, event_date, event_time, event_at, type, status, received_at, changed_by, change_note, removed_at, removed_by FROM branch_attendance_events
 WHERE branch_id = $1 AND client_ref = $2
 LIMIT 1
 `
@@ -265,6 +308,10 @@ func (q *Queries) GetBranchAttendanceEventByClientRef(ctx context.Context, arg G
 		&i.Type,
 		&i.Status,
 		&i.ReceivedAt,
+		&i.ChangedBy,
+		&i.ChangeNote,
+		&i.RemovedAt,
+		&i.RemovedBy,
 	)
 	return i, err
 }
@@ -323,8 +370,9 @@ func (q *Queries) ListBranchAttendanceChanges(ctx context.Context, arg ListBranc
 }
 
 const listBranchAttendanceEvents = `-- name: ListBranchAttendanceEvents :many
-SELECT id, branch_id, client_ref, salesperson_name, attendance_user_id, event_date, event_time, event_at, type, status, received_at FROM branch_attendance_events
-WHERE $3::bigint IS NULL OR branch_id = $3
+SELECT id, branch_id, client_ref, salesperson_name, attendance_user_id, event_date, event_time, event_at, type, status, received_at, changed_by, change_note, removed_at, removed_by FROM branch_attendance_events
+WHERE ($3::bigint IS NULL OR branch_id = $3)
+  AND removed_at IS NULL
 ORDER BY event_date DESC, event_time DESC, id DESC
 LIMIT $1 OFFSET $2
 `
@@ -337,6 +385,8 @@ type ListBranchAttendanceEventsParams struct {
 
 // Newest punch first by its own local date/time, not insertion order: a
 // backfilled import gets the newest ids but holds the oldest punches.
+// A punch an approved change replaced or deleted (removed_at) is left out;
+// it stays in the table for the audit trail.
 func (q *Queries) ListBranchAttendanceEvents(ctx context.Context, arg ListBranchAttendanceEventsParams) ([]BranchAttendanceEvent, error) {
 	rows, err := q.db.QueryContext(ctx, listBranchAttendanceEvents, arg.Limit, arg.Offset, arg.BranchID)
 	if err != nil {
@@ -358,6 +408,10 @@ func (q *Queries) ListBranchAttendanceEvents(ctx context.Context, arg ListBranch
 			&i.Type,
 			&i.Status,
 			&i.ReceivedAt,
+			&i.ChangedBy,
+			&i.ChangeNote,
+			&i.RemovedAt,
+			&i.RemovedBy,
 		); err != nil {
 			return nil, err
 		}
@@ -372,6 +426,82 @@ func (q *Queries) ListBranchAttendanceEvents(ctx context.Context, arg ListBranch
 	return items, nil
 }
 
+const listPendingBranchAttendanceRequests = `-- name: ListPendingBranchAttendanceRequests :many
+SELECT c.id, c.branch_id, c.client_ref, c.kind, c.salesperson_name, c.attendance_date, c.original_time, c.requested_time, c.requested_type, c.action, c.status, c.note, c.actor, c.occurred_at, c.received_at, c.register_id FROM branch_attendance_changes c
+WHERE c.kind = 'complaint'
+  AND ($1::bigint IS NULL OR c.branch_id = $1)
+  AND NOT EXISTS (
+    SELECT 1 FROM branch_attendance_changes r
+    WHERE r.register_id = c.register_id
+      AND r.kind = 'approval'
+      AND r.client_ref = replace(c.client_ref, '-complaint', '-review')
+  )
+ORDER BY c.occurred_at DESC
+LIMIT 500
+`
+
+// Requests a till filed ("acr-<id>-complaint") that no review has answered
+// yet ("acr-<id>-review" from the same register -- each till numbers its own
+// requests). These are the ones an admin can approve or reject from kashi.
+func (q *Queries) ListPendingBranchAttendanceRequests(ctx context.Context, branchID sql.NullInt64) ([]BranchAttendanceChange, error) {
+	rows, err := q.db.QueryContext(ctx, listPendingBranchAttendanceRequests, branchID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []BranchAttendanceChange{}
+	for rows.Next() {
+		var i BranchAttendanceChange
+		if err := rows.Scan(
+			&i.ID,
+			&i.BranchID,
+			&i.ClientRef,
+			&i.Kind,
+			&i.SalespersonName,
+			&i.AttendanceDate,
+			&i.OriginalTime,
+			&i.RequestedTime,
+			&i.RequestedType,
+			&i.Action,
+			&i.Status,
+			&i.Note,
+			&i.Actor,
+			&i.OccurredAt,
+			&i.ReceivedAt,
+			&i.RegisterID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const markBranchAttendanceEventRemoved = `-- name: MarkBranchAttendanceEventRemoved :exec
+UPDATE branch_attendance_events
+SET removed_at = COALESCE(removed_at, now()), removed_by = $3
+WHERE branch_id = $1 AND client_ref = $2
+`
+
+type MarkBranchAttendanceEventRemovedParams struct {
+	BranchID  int64  `json:"branch_id"`
+	ClientRef string `json:"client_ref"`
+	RemovedBy string `json:"removed_by"`
+}
+
+// The original punch of an approved replace/delete on the till. Kept, not
+// deleted, so the audit trail shows what was there and who took it away.
+func (q *Queries) MarkBranchAttendanceEventRemoved(ctx context.Context, arg MarkBranchAttendanceEventRemovedParams) error {
+	_, err := q.db.ExecContext(ctx, markBranchAttendanceEventRemoved, arg.BranchID, arg.ClientRef, arg.RemovedBy)
+	return err
+}
+
 const updateBranchAttendanceEvent = `-- name: UpdateBranchAttendanceEvent :one
 UPDATE branch_attendance_events
 SET salesperson_name = $2,
@@ -382,7 +512,7 @@ SET salesperson_name = $2,
     type = $7,
     status = $8
 WHERE id = $1
-RETURNING id, branch_id, client_ref, salesperson_name, attendance_user_id, event_date, event_time, event_at, type, status, received_at
+RETURNING id, branch_id, client_ref, salesperson_name, attendance_user_id, event_date, event_time, event_at, type, status, received_at, changed_by, change_note, removed_at, removed_by
 `
 
 type UpdateBranchAttendanceEventParams struct {
@@ -420,6 +550,10 @@ func (q *Queries) UpdateBranchAttendanceEvent(ctx context.Context, arg UpdateBra
 		&i.Type,
 		&i.Status,
 		&i.ReceivedAt,
+		&i.ChangedBy,
+		&i.ChangeNote,
+		&i.RemovedAt,
+		&i.RemovedBy,
 	)
 	return i, err
 }

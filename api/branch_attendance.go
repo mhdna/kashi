@@ -35,6 +35,11 @@ type branchAttendanceEventRequest struct {
 	EventAt          string `json:"event_at"`
 	Type             string `json:"type"`
 	Status           string `json:"status"`
+	// Set on a punch that came out of an approved attendance change: who
+	// approved it, and what it was ("Added (missed punch)", "Changed from
+	// 09:20"). Empty on a device punch.
+	ChangedBy  string `json:"changed_by"`
+	ChangeNote string `json:"change_note"`
 }
 
 type branchAttendanceEventsRequest struct {
@@ -76,6 +81,8 @@ func (server *Server) createBranchAttendanceEvents(ctx *gin.Context) {
 			EventAt:          event.EventAt,
 			Type:             event.Type,
 			Status:           event.Status,
+			ChangedBy:        event.ChangedBy,
+			ChangeNote:       event.ChangeNote,
 		}); err != nil {
 			if isUniqueViolation(err) {
 				continue
@@ -137,6 +144,9 @@ type branchAttendanceChangeRequest struct {
 	Note            string    `json:"note"`
 	Actor           string    `json:"actor"`
 	OccurredAt      time.Time `json:"occurred_at" binding:"required"`
+	// On an approved replace/delete: the ref of the punch it took away on
+	// the till ("<device_id>|<event_id>"), so kashi's copy goes too.
+	OriginalEventRef string `json:"original_event_ref"`
 }
 
 // createBranchAttendanceChange follows the same idempotent-insert pattern as
@@ -149,6 +159,22 @@ func (server *Server) createBranchAttendanceChange(ctx *gin.Context) {
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
+	}
+
+	// An approved replace/delete took a punch away on the till: mark kashi's
+	// copy removed (kept for the audit trail, left out of the punch list).
+	// Idempotent, so it runs on a replayed push as well as a new one.
+	if req.Kind == "approval" && req.Status == "approved" && req.OriginalEventRef != "" {
+		removedBy := req.Actor
+		if removedBy == "" {
+			removedBy = "manager approval"
+		}
+		if err := server.store.MarkBranchAttendanceEventRemoved(ctx, db.MarkBranchAttendanceEventRemovedParams{
+			BranchID: branchID, ClientRef: req.OriginalEventRef, RemovedBy: removedBy,
+		}); err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
 	}
 
 	if existing, err := server.store.GetBranchAttendanceChangeByClientRef(ctx, db.GetBranchAttendanceChangeByClientRefParams{
@@ -264,6 +290,31 @@ func (server *Server) listBranchAttendanceChanges(ctx *gin.Context) {
 	}
 
 	server.writeJSON(ctx, http.StatusOK, envelope{"branch_attendance_changes": changes, "total": total})
+}
+
+type listPendingAttendanceRequestsRequest struct {
+	BranchID int64 `form:"branch_id"`
+}
+
+// listPendingBranchAttendanceRequests returns the change requests tills have
+// filed that nobody has approved or rejected yet -- the queue an admin works
+// through from kashi (see the review_attendance_request command).
+func (server *Server) listPendingBranchAttendanceRequests(ctx *gin.Context) {
+	var req listPendingAttendanceRequestsRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	var branchID sql.NullInt64
+	if req.BranchID > 0 {
+		branchID = sql.NullInt64{Int64: req.BranchID, Valid: true}
+	}
+	requests, err := server.store.ListPendingBranchAttendanceRequests(ctx, branchID)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"requests": requests})
 }
 
 func (server *Server) listBranchAttendanceEvents(ctx *gin.Context) {

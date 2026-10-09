@@ -18,22 +18,22 @@ import (
 // one branch/machine and must never be bulk-pushed by "Apply to all" (see
 // applyDefaultBranchSettingsToAll).
 type defaultBranchSettings struct {
-	TaxRate                      float64 `json:"tax_rate"`
-	RoundingMode                 string  `json:"rounding_mode"`
-	RoundingCurrency             string  `json:"rounding_currency"`
-	ExchangeRate                 int64   `json:"exchange_rate"`
-	ExchangeWindowHours          int64   `json:"exchange_window_hours"`
-	SplitPrimaryCurrency         string  `json:"split_primary_currency"`
-	SplitPrimaryFirst            bool    `json:"split_primary_first"`
-	SplitPrimaryStep             int64   `json:"split_primary_step"`
-	SearchButtonEnabled          bool    `json:"search_button_enabled"`
-	CustomItemDiscountsEnabled   bool    `json:"custom_item_discounts_enabled"`
-	CustomItemPricesEnabled      bool    `json:"custom_item_prices_enabled"`
-	PerUnitItemPricesEnabled     bool    `json:"per_unit_item_prices_enabled"`
-	PriceChangeManualOverrideMode bool   `json:"price_change_manual_override_mode"`
-	InvoiceKeyboardMode          bool    `json:"invoice_keyboard_mode"`
-	ClientRequired                bool   `json:"client_required"`
-	ShiftReceiptUploadMode        int64  `json:"shift_receipt_upload_mode"`
+	TaxRate                       float64 `json:"tax_rate"`
+	RoundingMode                  string  `json:"rounding_mode"`
+	RoundingCurrency              string  `json:"rounding_currency"`
+	ExchangeRate                  int64   `json:"exchange_rate"`
+	ExchangeWindowHours           int64   `json:"exchange_window_hours"`
+	SplitPrimaryCurrency          string  `json:"split_primary_currency"`
+	SplitPrimaryFirst             bool    `json:"split_primary_first"`
+	SplitPrimaryStep              int64   `json:"split_primary_step"`
+	SearchButtonEnabled           bool    `json:"search_button_enabled"`
+	CustomItemDiscountsEnabled    bool    `json:"custom_item_discounts_enabled"`
+	CustomItemPricesEnabled       bool    `json:"custom_item_prices_enabled"`
+	PerUnitItemPricesEnabled      bool    `json:"per_unit_item_prices_enabled"`
+	PriceChangeManualOverrideMode bool    `json:"price_change_manual_override_mode"`
+	InvoiceKeyboardMode           bool    `json:"invoice_keyboard_mode"`
+	ClientRequired                bool    `json:"client_required"`
+	ShiftReceiptUploadMode        int64   `json:"shift_receipt_upload_mode"`
 
 	PageUnlockClients      bool `json:"page_unlock_clients"`
 	PageUnlockInventory    bool `json:"page_unlock_inventory"`
@@ -63,21 +63,23 @@ type defaultBranchSettings struct {
 	// (the admin chose "leave as is", or the template predates the field)
 	// drops out of the saved JSON and so out of "Apply to all" -- a branch
 	// keeps its own value instead of getting a zero pushed over it.
-	CloseShiftRequiresSync        *bool  `json:"close_shift_requires_sync,omitempty"`
-	ScanByCodeEnabled             *bool  `json:"scan_by_code_enabled,omitempty"`
-	SalespersonPerInvoiceRequired *bool  `json:"salesperson_per_invoice_required,omitempty"`
-	NonAdminMonthNavEnabled       *bool  `json:"non_admin_month_nav_enabled,omitempty"`
-	OpeningFloatEnabled           *bool  `json:"opening_float_enabled,omitempty"`
-	CountOpeningCashOnClose       *bool  `json:"count_opening_cash_on_close,omitempty"`
-	OverchangeConfirmation        *bool  `json:"overchange_confirmation,omitempty"`
-	PageUnlockProducts            *bool  `json:"page_unlock_products,omitempty"`
-	HidePaymentMethodCurrency     *bool  `json:"hide_payment_method_currency,omitempty"`
-	AutoAppendLbpZeros            *bool  `json:"auto_append_lbp_zeros,omitempty"`
-	AutoCloseStaleShifts          *bool  `json:"auto_close_stale_shifts,omitempty"`
-	VisitorCounterEnabled         *bool  `json:"visitor_counter_enabled,omitempty"`
-	MaxOverpaymentCents           *int64 `json:"max_overpayment_cents,omitempty" binding:"omitempty,min=0"`
-	DefaultOpeningFloatUsd        *int64 `json:"default_opening_float_usd,omitempty" binding:"omitempty,min=0"`
-	DefaultOpeningFloatLbp        *int64 `json:"default_opening_float_lbp,omitempty" binding:"omitempty,min=0"`
+	CloseShiftRequiresSync           *bool  `json:"close_shift_requires_sync,omitempty"`
+	ScanByCodeEnabled                *bool  `json:"scan_by_code_enabled,omitempty"`
+	SoundsEnabled                    *bool  `json:"sounds_enabled,omitempty"`
+	AttendanceManagerApprovalEnabled *bool  `json:"attendance_manager_approval_enabled,omitempty"`
+	SalespersonPerInvoiceRequired    *bool  `json:"salesperson_per_invoice_required,omitempty"`
+	NonAdminMonthNavEnabled          *bool  `json:"non_admin_month_nav_enabled,omitempty"`
+	OpeningFloatEnabled              *bool  `json:"opening_float_enabled,omitempty"`
+	CountOpeningCashOnClose          *bool  `json:"count_opening_cash_on_close,omitempty"`
+	OverchangeConfirmation           *bool  `json:"overchange_confirmation,omitempty"`
+	PageUnlockProducts               *bool  `json:"page_unlock_products,omitempty"`
+	HidePaymentMethodCurrency        *bool  `json:"hide_payment_method_currency,omitempty"`
+	AutoAppendLbpZeros               *bool  `json:"auto_append_lbp_zeros,omitempty"`
+	AutoCloseStaleShifts             *bool  `json:"auto_close_stale_shifts,omitempty"`
+	VisitorCounterEnabled            *bool  `json:"visitor_counter_enabled,omitempty"`
+	MaxOverpaymentCents              *int64 `json:"max_overpayment_cents,omitempty" binding:"omitempty,min=0"`
+	DefaultOpeningFloatUsd           *int64 `json:"default_opening_float_usd,omitempty" binding:"omitempty,min=0"`
+	DefaultOpeningFloatLbp           *int64 `json:"default_opening_float_lbp,omitempty" binding:"omitempty,min=0"`
 	// Only the screen prefs the template sets; a branch's other prefs stay
 	// (the till and applyBranchSettingsPatch both merge key by key).
 	DisplayPrefs json.RawMessage `json:"display_prefs,omitempty"`

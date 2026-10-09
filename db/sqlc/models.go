@@ -602,17 +602,21 @@ type BranchAttendanceChange struct {
 }
 
 type BranchAttendanceEvent struct {
-	ID               int64     `json:"id"`
-	BranchID         int64     `json:"branch_id"`
-	ClientRef        string    `json:"client_ref"`
-	SalespersonName  string    `json:"salesperson_name"`
-	AttendanceUserID string    `json:"attendance_user_id"`
-	EventDate        string    `json:"event_date"`
-	EventTime        string    `json:"event_time"`
-	EventAt          string    `json:"event_at"`
-	Type             string    `json:"type"`
-	Status           string    `json:"status"`
-	ReceivedAt       time.Time `json:"received_at"`
+	ID               int64        `json:"id"`
+	BranchID         int64        `json:"branch_id"`
+	ClientRef        string       `json:"client_ref"`
+	SalespersonName  string       `json:"salesperson_name"`
+	AttendanceUserID string       `json:"attendance_user_id"`
+	EventDate        string       `json:"event_date"`
+	EventTime        string       `json:"event_time"`
+	EventAt          string       `json:"event_at"`
+	Type             string       `json:"type"`
+	Status           string       `json:"status"`
+	ReceivedAt       time.Time    `json:"received_at"`
+	ChangedBy        string       `json:"changed_by"`
+	ChangeNote       string       `json:"change_note"`
+	RemovedAt        sql.NullTime `json:"removed_at"`
+	RemovedBy        string       `json:"removed_by"`
 }
 
 type BranchCashboxAccount struct {
@@ -694,6 +698,7 @@ type BranchInvoice struct {
 	Historical             bool           `json:"historical"`
 	ClientUid              uuid.NullUUID  `json:"client_uid"`
 	RegisterID             int64          `json:"register_id"`
+	CancelledAt            sql.NullTime   `json:"cancelled_at"`
 }
 
 type BranchInvoiceItem struct {
@@ -832,6 +837,8 @@ type BranchSetting struct {
 	DefaultOpeningFloatLbp             int64           `json:"default_opening_float_lbp"`
 	DisplayPrefs                       json.RawMessage `json:"display_prefs"`
 	ScanByCodeEnabled                  bool            `json:"scan_by_code_enabled"`
+	SoundsEnabled                      bool            `json:"sounds_enabled"`
+	AttendanceManagerApprovalEnabled   bool            `json:"attendance_manager_approval_enabled"`
 }
 
 type BranchShift struct {
@@ -1406,13 +1413,16 @@ type SalesInvoice struct {
 }
 
 type Salesperson struct {
-	ID        int64         `json:"id"`
-	Name      string        `json:"name"`
-	CashboxID sql.NullInt64 `json:"cashbox_id"`
-	BranchID  sql.NullInt64 `json:"branch_id"`
-	IsActive  bool          `json:"is_active"`
-	UpdatedAt time.Time     `json:"updated_at"`
-	Color     string        `json:"color"`
+	ID                  int64         `json:"id"`
+	Name                string        `json:"name"`
+	CashboxID           sql.NullInt64 `json:"cashbox_id"`
+	BranchID            sql.NullInt64 `json:"branch_id"`
+	IsActive            bool          `json:"is_active"`
+	UpdatedAt           time.Time     `json:"updated_at"`
+	Color               string        `json:"color"`
+	AttendanceUserID    string        `json:"attendance_user_id"`
+	AttendanceUserIDSet bool          `json:"attendance_user_id_set"`
+	IsSalesperson       bool          `json:"is_salesperson"`
 }
 
 type Session struct {

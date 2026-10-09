@@ -157,6 +157,28 @@ type branchInvoiceRequest struct {
 	// full but moves no central stock (see CreateBranchInvoiceTx). Absent /
 	// false on every live checkout.
 	Historical bool `json:"historical"`
+
+	// Cancellation marks a return that cancels its sale outright (a sale rung
+	// up by mistake): both get cancelled_at, so sales statistics skip them --
+	// see applyBranchInvoiceCancellation. Only meaningful on a return.
+	Cancellation bool `json:"cancellation"`
+}
+
+// applyBranchInvoiceCancellation sets cancelled_at for a cancellation return
+// and the sale it names, or, for a sale, inherits a cancellation that arrived
+// before it did. Both updates are idempotent, so it runs on a replayed push as
+// well as a new one: a till retrying after a failure here still converges.
+func (server *Server) applyBranchInvoiceCancellation(ctx *gin.Context, branchID int64, kind string, invoiceID int64, req branchInvoiceRequest) error {
+	switch {
+	case req.Cancellation && kind == "return":
+		return server.store.MarkBranchInvoicesCancelled(ctx, db.MarkBranchInvoicesCancelledParams{
+			BranchID:   branchID,
+			ClientRefs: []string{req.ClientRef, req.RelatedClientRef},
+		})
+	case kind == "sales":
+		return server.store.InheritBranchInvoiceCancellation(ctx, invoiceID)
+	}
+	return nil
 }
 
 type branchInvoicePaymentRequest struct {
@@ -193,6 +215,10 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 		BranchID:  branchID,
 		ClientRef: req.ClientRef,
 	}); err == nil {
+		if err := server.applyBranchInvoiceCancellation(ctx, branchID, existing.Kind, existing.ID, req); err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
 		server.writeJSON(ctx, http.StatusOK, envelope{"invoice": existing})
 		return
 	} else if err != sql.ErrNoRows {
@@ -268,10 +294,18 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 				BranchID:  branchID,
 				ClientRef: req.ClientRef,
 			}); lookupErr == nil {
+				if err := server.applyBranchInvoiceCancellation(ctx, branchID, existing.Kind, existing.ID, req); err != nil {
+					server.writeError(ctx, http.StatusInternalServerError, err)
+					return
+				}
 				server.writeJSON(ctx, http.StatusOK, envelope{"invoice": existing})
 				return
 			}
 		}
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if err := server.applyBranchInvoiceCancellation(ctx, branchID, kind, result.Invoice.ID, req); err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}

@@ -23,11 +23,31 @@ export function useBranchSalespersons () {
     return data?.salespersons ?? []
   }
 
-  async function createBranchSalesperson (branchId, name) {
+  async function createBranchSalesperson (branchId, name, attendanceUserId = '', isSalesperson = true) {
     return requestJSON(`${API_BASE}/branches/${branchId}/salespersons`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, attendance_user_id: attendanceUserId, is_salesperson: isSalesperson }),
+    })
+  }
+
+  // Whether the branch's tills offer this person at checkout. Off for staff
+  // who only punch attendance.
+  async function setBranchSalespersonIsSalesperson (id, isSalesperson) {
+    return requestJSON(`${API_BASE}/salespersons/${id}/is_salesperson`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_salesperson: isSalesperson }),
+    })
+  }
+
+  // The salesperson's user number on the branch's fingerprint device. Once
+  // set here kashi decides it, and the branch's tills take this value.
+  async function setBranchSalespersonAttendanceId (id, attendanceUserId) {
+    return requestJSON(`${API_BASE}/salespersons/${id}/attendance_id`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ attendance_user_id: attendanceUserId }),
     })
   }
 
@@ -59,6 +79,8 @@ export function useBranchSalespersons () {
     listBranchSalespersons,
     setBranchSalespersonColor,
     createBranchSalesperson,
+    setBranchSalespersonAttendanceId,
+    setBranchSalespersonIsSalesperson,
     updateBranchSalesperson,
     setBranchSalespersonActive,
   }

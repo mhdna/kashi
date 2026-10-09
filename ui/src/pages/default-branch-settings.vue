@@ -452,6 +452,13 @@
                     hide-details
                     label="Cashiers can browse previous days"
                   />
+                  <v-switch
+                    v-model="form.attendance_manager_approval_enabled"
+                    color="primary"
+                    density="compact"
+                    hide-details
+                    label="Manager approves requests on the till (manager password)"
+                  />
                 </div>
                 <p class="text-caption text-medium-emphasis mt-3">
                   The Akuvox device IP/username and its device password are per-machine and
@@ -580,6 +587,7 @@
       { key: 'non_admin_month_nav_enabled', label: "Cashiers browse other months' income", type: 'bool' },
       { key: 'close_shift_requires_sync', label: 'Upload everything before closing a shift', type: 'bool' },
       { key: 'scan_by_code_enabled', label: 'Accept a product code in the scan field', type: 'bool' },
+      { key: 'sounds_enabled', label: 'Play sounds (scan, checkout, errors, keypad)', type: 'bool' },
     ],
     cash: [
       { key: 'opening_float_enabled', label: 'Shifts start with an opening float', type: 'bool' },
@@ -665,6 +673,7 @@
       attendance_enabled: false,
       attendance_duplicate_interval_seconds: 0,
       attendance_cashier_history: false,
+      attendance_manager_approval_enabled: true,
       ...Object.fromEntries(OPTIONAL_KEYS.map(k => [k, null])),
       display_prefs: {},
     }

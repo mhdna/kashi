@@ -91,7 +91,14 @@
       <v-card-actions class="px-6 py-4">
         <v-spacer />
         <v-btn
-          v-if="itemsTarget?.kind === 'sales'"
+          v-if="itemsTarget?.kind === 'sales' && !isCancelled(itemsTarget)"
+          color="error"
+          text="Cancel invoice"
+          variant="text"
+          @click="cancelViewedInvoice"
+        />
+        <v-btn
+          v-if="itemsTarget?.kind === 'sales' && !isCancelled(itemsTarget)"
           color="primary"
           text="Return"
           variant="tonal"
@@ -121,6 +128,13 @@
     </template>
     <template #item.kind="{ item }">
       <v-chip :color="kindColor(item.kind)" size="small">{{ item.kind }}</v-chip>
+      <v-chip
+        v-if="isCancelled(item)"
+        class="ml-1"
+        color="error"
+        size="small"
+        variant="tonal"
+      >Cancelled</v-chip>
     </template>
     <template #item.grand_total="{ item }">
       {{ formatMoney(item.grand_total) }}
@@ -135,9 +149,21 @@
 
   <v-dialog v-model="remoteReturnDialog" max-width="560">
     <v-card>
-      <v-card-title>Return remotely -- {{ remoteReturnTarget?.branch_invoice_code }}</v-card-title>
+      <v-card-title>
+        {{ remoteMode === 'cancel' ? 'Cancel invoice' : 'Return remotely' }} -- {{ remoteReturnTarget?.branch_invoice_code }}
+      </v-card-title>
       <v-card-text>
-        <template v-if="remoteReturnPhase === 'items'">
+        <template v-if="remoteReturnPhase === 'items' && remoteMode === 'cancel'">
+          <v-alert class="mb-4" type="warning" variant="tonal">
+            For a sale rung up by mistake. {{ branchName(remoteReturnTarget?.branch_id) }} returns the
+            whole sale ({{ formatMoney(remoteReturnTarget?.grand_total) }}) to its payment account,
+            and both the sale and the return are marked Cancelled: they stay listed here but no
+            longer count in sales, targets or salesperson stats. It runs the next time the branch
+            is online.
+          </v-alert>
+          <v-textarea v-model="remoteReturnReason" label="Reason (optional)" rows="2" />
+        </template>
+        <template v-else-if="remoteReturnPhase === 'items'">
           <v-alert class="mb-4" type="info" variant="tonal">
             This queues a command for {{ branchName(remoteReturnTarget?.branch_id) }} to process
             the return itself. It isn't executed instantly -- the branch picks it up next time
@@ -186,14 +212,15 @@
         <div v-else-if="remoteReturnPhase === 'polling'" class="d-flex flex-column align-center pa-6">
           <v-progress-circular class="mb-4" color="primary" indeterminate />
           <div class="text-body-2 text-center">
-            Waiting for {{ branchName(remoteReturnTarget?.branch_id) }} to process the return...
+            Waiting for {{ branchName(remoteReturnTarget?.branch_id) }} to process the
+            {{ remoteMode === 'cancel' ? 'cancellation' : 'return' }}...
           </div>
         </div>
 
         <template v-else-if="remoteReturnPhase === 'result'">
           <v-alert
             :text="remoteReturnResult.status === 'success'
-              ? 'Return processed successfully.'
+              ? (remoteMode === 'cancel' ? 'Invoice cancelled.' : 'Return processed successfully.')
               : remoteReturnResult.status === 'failed'
                 ? remoteReturnResult.error || 'The branch reported a failure with no error message.'
                 : 'Still pending -- the branch may be offline right now. It will process the next time it\'s online, and this list will update live once it does.'"
@@ -210,7 +237,14 @@
           @click="closeRemoteReturn"
         />
         <v-btn
-          v-if="remoteReturnPhase === 'items'"
+          v-if="remoteReturnPhase === 'items' && remoteMode === 'cancel'"
+          color="error"
+          :loading="remoteReturnLoading"
+          text="Cancel invoice"
+          @click="submitRemoteCancel"
+        />
+        <v-btn
+          v-else-if="remoteReturnPhase === 'items'"
           color="primary"
           :disabled="!hasSelectedReturnItems"
           :loading="remoteReturnLoading"
@@ -240,7 +274,7 @@
     searchDebounce: { type: Number, default: 100 },
   })
 
-  const { listBranchInvoiceItems, requestRemoteReturn } = useBranchInvoices()
+  const { listBranchInvoiceItems, requestRemoteCancel, requestRemoteReturn } = useBranchInvoices()
   const { listBranchCommands } = useBranchSettings()
   const { getBranchInvoiceDetails } = useInvoiceDetails()
   const notify = useNotify()
@@ -273,6 +307,14 @@
 
   function formatMoney (cents) {
     return (Number(cents) / 100).toFixed(2)
+  }
+
+  // cancelled_at is a Go sql.NullTime: { Time, Valid } on the wire.
+  function isCancelled (invoice) {
+    const value = invoice?.cancelled_at
+    if (!value) return false
+    if (typeof value === 'object') return Boolean(value.Valid ?? value.valid)
+    return true
   }
 
   function nullableString (value) {
@@ -323,7 +365,33 @@
     openRemoteReturn(invoice)
   }
 
+  function cancelViewedInvoice () {
+    const invoice = itemsTarget.value
+    itemsDialog.value = false
+    remoteMode.value = 'cancel'
+    remoteReturnTarget.value = invoice
+    remoteReturnReason.value = ''
+    remoteReturnPhase.value = 'items'
+    remoteReturnDialog.value = true
+  }
+
+  async function submitRemoteCancel () {
+    remoteReturnLoading.value = true
+    try {
+      const command = await requestRemoteCancel(remoteReturnTarget.value.branch_id, remoteReturnTarget.value, remoteReturnReason.value)
+      remoteReturnPhase.value = 'polling'
+      pollRemoteReturnCommand(remoteReturnTarget.value.branch_id, command?.id)
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      remoteReturnLoading.value = false
+    }
+  }
+
   const remoteReturnDialog = ref(false)
+  // 'return' (pick lines to take back) or 'cancel' (the whole sale, flagged
+  // as a cancellation) -- the same remote command and wait either way.
+  const remoteMode = ref('return')
   const remoteReturnTarget = ref(null)
   const remoteReturnReason = ref('')
   const remoteReturnLoading = ref(false)
@@ -338,6 +406,7 @@
   const hasSelectedReturnItems = computed(() => remoteReturnRows.value.some(row => row.selected))
 
   async function openRemoteReturn (invoice) {
+    remoteMode.value = 'return'
     remoteReturnTarget.value = invoice
     remoteReturnReason.value = ''
     remoteReturnRows.value = []
