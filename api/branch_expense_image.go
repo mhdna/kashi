@@ -83,7 +83,7 @@ func (server *Server) getBranchExpenseImageFile(ctx *gin.Context) {
 		return
 	}
 
-	server.serveStoredImage(ctx, image.FilePath, image.ContentType)
+	server.serveStoredImage(ctx, image.FilePath, image.ContentType, image.Rotation)
 }
 
 type branchExpenseUploadStatusRequest struct {

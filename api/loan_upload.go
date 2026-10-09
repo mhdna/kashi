@@ -300,7 +300,7 @@ func (server *Server) branchLoanPhotoFile(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusNotFound, errors.New("no such photo for this branch"))
 		return
 	}
-	server.serveStoredImage(ctx, image.FilePath, image.ContentType)
+	server.serveStoredImage(ctx, image.FilePath, image.ContentType, 0)
 }
 
 // mintLoanUploadToken is createBranchLoan's call: a failure only costs the

@@ -2,10 +2,12 @@ package api
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 
+	"github.com/disintegration/imaging"
 	"github.com/gin-gonic/gin"
 	"github.com/mhdna/kashi/util/imageopt"
 )
@@ -14,12 +16,12 @@ const (
 	thumbMinDim             = 64
 	thumbMaxDim             = 1600
 	thumbWebPQuality        = 70
-	storedImageCacheControl = "private, max-age=86400"
+	rotatedWebPQuality      = 90
+	storedImageCacheControl = "private, no-cache"
 )
 
-// serveStoredImage streams an on-disk upload under the admin Bearer gate,
-// with browser caching turned on (ctx.File adds Last-Modified / range
-// support on top).
+// serveStoredImage streams an on-disk upload under the admin Bearer gate
+// (ctx.File adds Last-Modified / range support on top).
 //
 // With ?w=<px> it serves a cached, long-edge-capped WebP thumbnail instead
 // of the multi-MB original -- the Storage grid requests one per tile so it
@@ -27,28 +29,45 @@ const (
 // 120px squares; the full-size preview omits ?w. Anything the shared imageopt
 // decoders (JPEG/PNG/WebP) can't read (e.g. HEIC) transparently falls back to
 // the original bytes.
-func (server *Server) serveStoredImage(ctx *gin.Context, filePath, contentType string) {
-	ctx.Header("Cache-Control", storedImageCacheControl)
-
+//
+// rotation is the photo's saved clockwise turn (0/90/180/270). A turned
+// photo, thumbnail or full size, is served from its own cached WebP; the
+// upload itself is never rewritten. Because rotating changes what this same
+// URL returns, the browser must revalidate on every use (no-cache) and the
+// ETag names the rotation, so a stale cached copy is never shown.
+func (server *Server) serveStoredImage(ctx *gin.Context, filePath, contentType string, rotation int16) {
 	w := parseThumbWidth(ctx.Query("w"))
-	if w == 0 {
+	etag := fmt.Sprintf(`"%s-w%d-r%d"`, filepath.Base(filePath), w, rotation)
+	ctx.Header("Cache-Control", storedImageCacheControl)
+	ctx.Header("ETag", etag)
+	if ctx.GetHeader("If-None-Match") == etag {
+		ctx.Status(http.StatusNotModified)
+		return
+	}
+
+	if w == 0 && rotation == 0 {
 		ctx.Header("Content-Type", contentType)
 		ctx.File(filePath)
 		return
 	}
 
-	thumbPath := thumbCachePath(filePath, w)
-	if _, err := os.Stat(thumbPath); err != nil {
-		if genErr := generateThumbnail(filePath, thumbPath, w); genErr != nil {
+	maxDim, quality := w, thumbWebPQuality
+	if w == 0 {
+		// A turned full-size photo: re-encoded once, close to the original.
+		maxDim, quality = imageopt.MaxDim, rotatedWebPQuality
+	}
+	cachedPath := thumbCachePath(filePath, w, rotation)
+	if _, err := os.Stat(cachedPath); err != nil {
+		if genErr := generateThumbnail(filePath, cachedPath, maxDim, quality, rotation); genErr != nil {
 			// Undecodable (HEIC) or a transient FS error -- the original is
-			// always a correct answer.
+			// always a correct answer, just not turned.
 			ctx.Header("Content-Type", contentType)
 			ctx.File(filePath)
 			return
 		}
 	}
 	ctx.Header("Content-Type", imageopt.ContentType)
-	ctx.File(thumbPath)
+	ctx.File(cachedPath)
 }
 
 // parseThumbWidth returns 0 ("serve the original") for a missing or
@@ -71,14 +90,23 @@ func parseThumbWidth(raw string) int {
 	return n
 }
 
-// thumbCachePath keeps generated thumbnails in a .thumb/ subdir beside the
-// original, keyed by cap width. Uploads are immutable (uuid filenames, one
-// photo per parent row), so a cached thumbnail never goes stale.
-func thumbCachePath(filePath string, w int) string {
-	return filepath.Join(filepath.Dir(filePath), ".thumb", strconv.Itoa(w)+"_"+filepath.Base(filePath)+".webp")
+// thumbCachePath keeps generated thumbnails and turned copies in a .thumb/
+// subdir beside the original, keyed by cap width (0 = full size) and
+// rotation. Uploads are immutable (uuid filenames, one photo per parent row)
+// and a rotation picks a different file, so a cached copy never goes stale.
+// An unturned thumbnail keeps the name it had before rotations existed.
+func thumbCachePath(filePath string, w int, rotation int16) string {
+	name := strconv.Itoa(w) + "_" + filepath.Base(filePath) + ".webp"
+	if w == 0 {
+		name = "full_" + filepath.Base(filePath) + ".webp"
+	}
+	if rotation != 0 {
+		name = "r" + strconv.Itoa(int(rotation)) + "_" + name
+	}
+	return filepath.Join(filepath.Dir(filePath), ".thumb", name)
 }
 
-func generateThumbnail(srcPath, dstPath string, maxDim int) error {
+func generateThumbnail(srcPath, dstPath string, maxDim, quality int, rotation int16) error {
 	data, err := os.ReadFile(srcPath)
 	if err != nil {
 		return err
@@ -93,7 +121,17 @@ func generateThumbnail(srcPath, dstPath string, maxDim int) error {
 		return fmt.Errorf("thumbnail: empty source image")
 	}
 
-	encoded, err := imageopt.EncodeWebP(img, thumbWebPQuality)
+	// imaging rotates counter-clockwise; rotation is clockwise.
+	switch rotation {
+	case 90:
+		img = imaging.Rotate270(img)
+	case 180:
+		img = imaging.Rotate180(img)
+	case 270:
+		img = imaging.Rotate90(img)
+	}
+
+	encoded, err := imageopt.EncodeWebP(img, quality)
 	if err != nil {
 		return err
 	}

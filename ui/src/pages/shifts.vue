@@ -248,7 +248,12 @@
             v-else-if="receiptUrl"
             alt="Close-shift receipt"
             height="100%"
+            :busy="receiptChanging"
+            :replaceable="canReplace"
+            :rotatable="canRotate"
             :src="receiptUrl"
+            @replace="file => changeReceipt(id => replacePhoto('shift_receipt', id, file))"
+            @rotate="delta => changeReceipt(id => rotatePhoto('shift_receipt', id, delta))"
           />
         </div>
         <v-card-actions>
@@ -271,6 +276,7 @@
   import { useCashboxes } from '@/composables/useCashboxes'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { useNotify } from '@/composables/useNotify'
+  import { usePhotoActions } from '@/composables/usePhotoActions'
   import { useShiftReceiptImages } from '@/composables/useShiftReceiptImages'
   import { useShifts } from '@/composables/useShifts'
   import { API_BASE } from '@/config'
@@ -361,6 +367,7 @@
   const receiptShift = ref(null)
   const receiptUrl = ref('')
   const receiptLoading = ref(false)
+  const receiptImageId = ref(null)
   const notify = useNotify()
 
   // Reprinting a branch's close shift is a command to the till that closed
@@ -391,6 +398,7 @@
 
   async function openReceipt (item) {
     receiptShift.value = item
+    receiptImageId.value = null
     revokeReceiptUrl()
     receiptDialog.value = true
     receiptLoading.value = true
@@ -400,11 +408,35 @@
         notify.warning('No receipt photo for this shift yet.')
         return
       }
+      receiptImageId.value = image.id
       receiptUrl.value = await fetchShiftReceiptImageObjectUrl(image.id)
     } catch (error) {
       notify.error(error.message)
     } finally {
       receiptLoading.value = false
+    }
+  }
+
+  // Saves a rotation or replacement (save gets the image id), then shows the
+  // photo as the server now serves it.
+  const { canRotate, canReplace, rotatePhoto, replacePhoto } = usePhotoActions()
+  const receiptChanging = ref(false)
+  async function changeReceipt (save) {
+    const imageId = receiptImageId.value
+    receiptChanging.value = true
+    try {
+      await save(imageId)
+      const url = await fetchShiftReceiptImageObjectUrl(imageId)
+      if (receiptImageId.value !== imageId) {
+        URL.revokeObjectURL(url)
+        return
+      }
+      revokeReceiptUrl()
+      receiptUrl.value = url
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      receiptChanging.value = false
     }
   }
 

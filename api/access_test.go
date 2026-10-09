@@ -67,6 +67,15 @@ func TestPermissionMiddleware(t *testing.T) {
 		Section: sqlStr("products"), CanView: sqlBool(true), CanEdit: sqlBool(true),
 	}}
 	noPerms := []db.GetUserAccessRow{{RoleID: 3, RoleName: "Nobody"}}
+	accountingEdit := []db.GetUserAccessRow{{
+		RoleID: 4, RoleName: "Accountant",
+		Section: sqlStr("accounting"), CanView: sqlBool(true), CanEdit: sqlBool(true),
+	}}
+	// A page-less section is stored as its section row alone.
+	photoRotation := []db.GetUserAccessRow{{
+		RoleID: 5, RoleName: "Rotator",
+		Section: sqlStr("photo_rotation"), CanView: sqlBool(true), CanEdit: sqlBool(false),
+	}}
 
 	cases := []struct {
 		name   string
@@ -85,6 +94,11 @@ func TestPermissionMiddleware(t *testing.T) {
 		{"non-admin can't touch roles", productsEdit, http.MethodGet, "/roles", http.StatusForbidden},
 		{"non-admin reads own profile", productsView, http.MethodGet, "/users/me", http.StatusOK},
 		{"readonly POST allowed for viewer", productsView, http.MethodPost, "/barcodes/print", http.StatusOK},
+		{"section editor can't rotate its photos", accountingEdit, http.MethodPut, "/branch_expense_images/1/rotation", http.StatusForbidden},
+		{"rotate photos permission rotates", photoRotation, http.MethodPut, "/branch_expense_images/1/rotation", http.StatusOK},
+		{"rotate photos permission rotates transfers", photoRotation, http.MethodPut, "/transfers/1/attachment/rotation", http.StatusOK},
+		{"rotate photos permission can't replace", photoRotation, http.MethodPut, "/branch_expense_images/1/replace", http.StatusForbidden},
+		{"section editor can't replace its photos", accountingEdit, http.MethodPut, "/branch_expense_images/1/replace", http.StatusForbidden},
 	}
 
 	for _, c := range cases {
@@ -115,6 +129,9 @@ func TestPermissionMiddleware(t *testing.T) {
 			guarded.GET("/roles", ok)
 			guarded.GET("/users/me", ok)
 			guarded.POST("/barcodes/print", ok)
+			guarded.PUT("/branch_expense_images/:id/rotation", ok)
+			guarded.PUT("/transfers/:id/attachment/rotation", ok)
+			guarded.PUT("/branch_expense_images/:id/replace", ok)
 			server.router = router
 
 			recorder := httptest.NewRecorder()
@@ -184,7 +201,8 @@ func TestResolvePermissions(t *testing.T) {
 
 	t.Run("pageless section is on or off", func(t *testing.T) {
 		sections, _ := resolvePermissions([]permissionRow{{Section: "text_selection", Level: view}}).effective()
-		require.Equal(t, view, sections["text_selection"])
+		require.Equal(t, sectionLevel{View: true, Edit: true}, sections["text_selection"])
+		require.NotContains(t, sections, "photo_rotation")
 	})
 }
 

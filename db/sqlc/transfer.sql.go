@@ -46,7 +46,7 @@ INSERT INTO transfers (
   client_ref,
   register_id
 ) VALUES ( $1, $2, $3, $4, $5, $6, $7 )
-RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id
+RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id, attachment_rotation
 `
 
 type CreateBranchTransferRequestParams struct {
@@ -91,6 +91,7 @@ func (q *Queries) CreateBranchTransferRequest(ctx context.Context, arg CreateBra
 		&i.ConfirmedAt,
 		&i.ConfirmedNote,
 		&i.RegisterID,
+		&i.AttachmentRotation,
 	)
 	return i, err
 }
@@ -103,7 +104,7 @@ INSERT INTO transfers (
   code,
   note
 ) VALUES ( $1, $2, $3, $4, $5 )
-RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id
+RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id, attachment_rotation
 `
 
 type CreateTransferParams struct {
@@ -141,6 +142,7 @@ func (q *Queries) CreateTransfer(ctx context.Context, arg CreateTransferParams) 
 		&i.ConfirmedAt,
 		&i.ConfirmedNote,
 		&i.RegisterID,
+		&i.AttachmentRotation,
 	)
 	return i, err
 }
@@ -201,7 +203,7 @@ func (q *Queries) DeleteTransferItem(ctx context.Context, arg DeleteTransferItem
 }
 
 const getBranchTransferByClientRef = `-- name: GetBranchTransferByClientRef :one
-SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id FROM transfers
+SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id, attachment_rotation FROM transfers
 WHERE branch_id = $1 AND client_ref = $2 LIMIT 1
 `
 
@@ -231,12 +233,13 @@ func (q *Queries) GetBranchTransferByClientRef(ctx context.Context, arg GetBranc
 		&i.ConfirmedAt,
 		&i.ConfirmedNote,
 		&i.RegisterID,
+		&i.AttachmentRotation,
 	)
 	return i, err
 }
 
 const getTransfer = `-- name: GetTransfer :one
-SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id FROM transfers
+SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id, attachment_rotation FROM transfers
 WHERE id = $1 LIMIT 1
 `
 
@@ -261,12 +264,13 @@ func (q *Queries) GetTransfer(ctx context.Context, id int64) (Transfer, error) {
 		&i.ConfirmedAt,
 		&i.ConfirmedNote,
 		&i.RegisterID,
+		&i.AttachmentRotation,
 	)
 	return i, err
 }
 
 const listBranchTransfersUpdatedSince = `-- name: ListBranchTransfersUpdatedSince :many
-SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id FROM transfers
+SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id, attachment_rotation FROM transfers
 WHERE branch_id = $1 AND updated_at > $2
 ORDER BY updated_at
 `
@@ -305,6 +309,7 @@ func (q *Queries) ListBranchTransfersUpdatedSince(ctx context.Context, arg ListB
 			&i.ConfirmedAt,
 			&i.ConfirmedNote,
 			&i.RegisterID,
+			&i.AttachmentRotation,
 		); err != nil {
 			return nil, err
 		}
@@ -320,7 +325,7 @@ func (q *Queries) ListBranchTransfersUpdatedSince(ctx context.Context, arg ListB
 }
 
 const listIncomingBranchTransfersUpdatedSince = `-- name: ListIncomingBranchTransfersUpdatedSince :many
-SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id FROM transfers
+SELECT id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id, attachment_rotation FROM transfers
 WHERE to_inventory_id = $1 AND updated_at > $2
 ORDER BY updated_at
 `
@@ -360,6 +365,7 @@ func (q *Queries) ListIncomingBranchTransfersUpdatedSince(ctx context.Context, a
 			&i.ConfirmedAt,
 			&i.ConfirmedNote,
 			&i.RegisterID,
+			&i.AttachmentRotation,
 		); err != nil {
 			return nil, err
 		}
@@ -499,7 +505,7 @@ func (q *Queries) ListTransferItems(ctx context.Context, transferID int64) ([]Li
 
 const listTransfers = `-- name: ListTransfers :many
 SELECT
-  t.id, t.from_inventory_id, t.to_inventory_id, t.type, t.created_at, t.code, t.status, t.dispatched_at, t.received_at, t.note, t.branch_id, t.client_ref, t.attachment_path, t.updated_at, t.confirmed_at, t.confirmed_note, t.register_id,
+  t.id, t.from_inventory_id, t.to_inventory_id, t.type, t.created_at, t.code, t.status, t.dispatched_at, t.received_at, t.note, t.branch_id, t.client_ref, t.attachment_path, t.updated_at, t.confirmed_at, t.confirmed_note, t.register_id, t.attachment_rotation,
   fi.name AS from_inventory_name,
   ti.name AS to_inventory_name,
   COALESCE(b.name, '') AS branch_name,
@@ -521,27 +527,28 @@ type ListTransfersParams struct {
 }
 
 type ListTransfersRow struct {
-	ID                int64          `json:"id"`
-	FromInventoryID   int64          `json:"from_inventory_id"`
-	ToInventoryID     int64          `json:"to_inventory_id"`
-	Type              TransferType   `json:"type"`
-	CreatedAt         time.Time      `json:"created_at"`
-	Code              string         `json:"code"`
-	Status            TransferStatus `json:"status"`
-	DispatchedAt      sql.NullTime   `json:"dispatched_at"`
-	ReceivedAt        sql.NullTime   `json:"received_at"`
-	Note              string         `json:"note"`
-	BranchID          sql.NullInt64  `json:"branch_id"`
-	ClientRef         sql.NullString `json:"client_ref"`
-	AttachmentPath    string         `json:"attachment_path"`
-	UpdatedAt         time.Time      `json:"updated_at"`
-	ConfirmedAt       sql.NullTime   `json:"confirmed_at"`
-	ConfirmedNote     string         `json:"confirmed_note"`
-	RegisterID        sql.NullInt64  `json:"register_id"`
-	FromInventoryName string         `json:"from_inventory_name"`
-	ToInventoryName   string         `json:"to_inventory_name"`
-	BranchName        string         `json:"branch_name"`
-	ItemCount         int64          `json:"item_count"`
+	ID                 int64          `json:"id"`
+	FromInventoryID    int64          `json:"from_inventory_id"`
+	ToInventoryID      int64          `json:"to_inventory_id"`
+	Type               TransferType   `json:"type"`
+	CreatedAt          time.Time      `json:"created_at"`
+	Code               string         `json:"code"`
+	Status             TransferStatus `json:"status"`
+	DispatchedAt       sql.NullTime   `json:"dispatched_at"`
+	ReceivedAt         sql.NullTime   `json:"received_at"`
+	Note               string         `json:"note"`
+	BranchID           sql.NullInt64  `json:"branch_id"`
+	ClientRef          sql.NullString `json:"client_ref"`
+	AttachmentPath     string         `json:"attachment_path"`
+	UpdatedAt          time.Time      `json:"updated_at"`
+	ConfirmedAt        sql.NullTime   `json:"confirmed_at"`
+	ConfirmedNote      string         `json:"confirmed_note"`
+	RegisterID         sql.NullInt64  `json:"register_id"`
+	AttachmentRotation int16          `json:"attachment_rotation"`
+	FromInventoryName  string         `json:"from_inventory_name"`
+	ToInventoryName    string         `json:"to_inventory_name"`
+	BranchName         string         `json:"branch_name"`
+	ItemCount          int64          `json:"item_count"`
 }
 
 func (q *Queries) ListTransfers(ctx context.Context, arg ListTransfersParams) ([]ListTransfersRow, error) {
@@ -571,6 +578,7 @@ func (q *Queries) ListTransfers(ctx context.Context, arg ListTransfersParams) ([
 			&i.ConfirmedAt,
 			&i.ConfirmedNote,
 			&i.RegisterID,
+			&i.AttachmentRotation,
 			&i.FromInventoryName,
 			&i.ToInventoryName,
 			&i.BranchName,
@@ -589,9 +597,32 @@ func (q *Queries) ListTransfers(ctx context.Context, arg ListTransfersParams) ([
 	return items, nil
 }
 
+const rotateTransferAttachment = `-- name: RotateTransferAttachment :one
+UPDATE transfers
+SET attachment_rotation = ((attachment_rotation + $1::int) % 360 + 360) % 360
+WHERE id = $2 AND attachment_path <> ''
+RETURNING attachment_rotation
+`
+
+type RotateTransferAttachmentParams struct {
+	Delta int32 `json:"delta"`
+	ID    int64 `json:"id"`
+}
+
+// Turns the photo by delta degrees (a multiple of 90, either sign) on top
+// of its saved rotation. Not a change to the transfer itself, so
+// updated_at is left alone.
+func (q *Queries) RotateTransferAttachment(ctx context.Context, arg RotateTransferAttachmentParams) (int16, error) {
+	row := q.db.QueryRowContext(ctx, rotateTransferAttachment, arg.Delta, arg.ID)
+	var attachment_rotation int16
+	err := row.Scan(&attachment_rotation)
+	return attachment_rotation, err
+}
+
 const setTransferAttachmentPath = `-- name: SetTransferAttachmentPath :exec
 UPDATE transfers
 SET attachment_path = $2,
+    attachment_rotation = 0,
     updated_at = now()
 WHERE id = $1
 `
@@ -601,6 +632,7 @@ type SetTransferAttachmentPathParams struct {
 	AttachmentPath string `json:"attachment_path"`
 }
 
+// A new photo starts upright, whatever the previous one was turned to.
 func (q *Queries) SetTransferAttachmentPath(ctx context.Context, arg SetTransferAttachmentPathParams) error {
 	_, err := q.db.ExecContext(ctx, setTransferAttachmentPath, arg.ID, arg.AttachmentPath)
 	return err
@@ -612,7 +644,7 @@ SET confirmed_at = now(),
     confirmed_note = $1,
     updated_at = now()
 WHERE id = $2
-RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id
+RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id, attachment_rotation
 `
 
 type SetTransferConfirmedParams struct {
@@ -641,6 +673,7 @@ func (q *Queries) SetTransferConfirmed(ctx context.Context, arg SetTransferConfi
 		&i.ConfirmedAt,
 		&i.ConfirmedNote,
 		&i.RegisterID,
+		&i.AttachmentRotation,
 	)
 	return i, err
 }
@@ -706,7 +739,7 @@ SET status = $1,
     received_at = COALESCE($3, received_at),
     updated_at = now()
 WHERE id = $4
-RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id
+RETURNING id, from_inventory_id, to_inventory_id, type, created_at, code, status, dispatched_at, received_at, note, branch_id, client_ref, attachment_path, updated_at, confirmed_at, confirmed_note, register_id, attachment_rotation
 `
 
 type SetTransferStatusParams struct {
@@ -742,6 +775,7 @@ func (q *Queries) SetTransferStatus(ctx context.Context, arg SetTransferStatusPa
 		&i.ConfirmedAt,
 		&i.ConfirmedNote,
 		&i.RegisterID,
+		&i.AttachmentRotation,
 	)
 	return i, err
 }

@@ -329,7 +329,16 @@
         </v-card-title>
         <v-divider />
         <div class="pa-2">
-          <ZoomableImage v-if="photoUrl" :alt="photoItem?.title" :src="photoUrl" />
+          <ZoomableImage
+            v-if="photoUrl"
+            :alt="photoItem?.title"
+            :busy="photoChanging"
+            :replaceable="canReplace"
+            :rotatable="canRotate"
+            :src="photoUrl"
+            @replace="file => changeLatestPhoto(item => replacePhoto(item.kind, item.id, file))"
+            @rotate="delta => changeLatestPhoto(item => rotatePhoto(item.kind, item.id, delta))"
+          />
           <div v-else class="d-flex justify-center pa-8">
             <v-progress-circular indeterminate />
           </div>
@@ -362,6 +371,7 @@
   import { authFetch } from '@/composables/useApi'
   import { BRANCH_ACTIVITY_TYPES } from '@/composables/useBranchActivityMessage'
   import { useNotify } from '@/composables/useNotify'
+  import { usePhotoActions } from '@/composables/usePhotoActions'
   import { hashColor, initialsOf, useUserAvatar } from '@/composables/useUserAvatar'
   import { API_BASE } from '@/config'
   import { useAuthStore } from '@/stores/auth'
@@ -727,6 +737,41 @@
     }
     const target = latestTarget(item)
     if (target) router.push(target.to)
+  }
+
+  // Saves a rotation or replacement (save gets the feed item), then
+  // re-fetches the photo and its row thumbnail as the server now serves
+  // them. Photo kinds here are usePhotoActions'.
+  const { canRotate, canReplace, rotatePhoto, replacePhoto } = usePhotoActions()
+  const photoChanging = ref(false)
+  async function changeLatestPhoto (save) {
+    const item = photoItem.value
+    if (!item) return
+    photoChanging.value = true
+    try {
+      await save(item)
+      const [url, thumb] = await Promise.all([
+        imageObjectUrl(item, 0),
+        imageObjectUrl(item, 96).catch(() => null),
+      ])
+      const key = latestKey(item)
+      if (thumb) {
+        if (thumbs.value[key]) URL.revokeObjectURL(thumbs.value[key])
+        thumbs.value = { ...thumbs.value, [key]: thumb }
+      }
+      if (photoItem.value !== item) {
+        if (url) URL.revokeObjectURL(url)
+        return
+      }
+      if (url) {
+        if (photoUrl.value) URL.revokeObjectURL(photoUrl.value)
+        photoUrl.value = url
+      }
+    } catch (error_) {
+      notify.error(error_.message)
+    } finally {
+      photoChanging.value = false
+    }
   }
 
   // "5h ago" for the first 48 hours, then "Oct 7th" (year added when it

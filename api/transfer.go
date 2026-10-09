@@ -463,7 +463,7 @@ func (server *Server) getTransferAttachment(ctx *gin.Context) {
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
-	server.serveStoredImage(ctx, transfer.AttachmentPath, contentType)
+	server.serveStoredImage(ctx, transfer.AttachmentPath, contentType, transfer.AttachmentRotation)
 }
 
 type listTransferAttachmentsRequest struct {

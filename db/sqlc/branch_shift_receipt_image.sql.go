@@ -31,7 +31,7 @@ INSERT INTO branch_shift_receipt_images (
 ) VALUES (
   $1, $2, $3, $4
 )
-RETURNING id, branch_shift_id, file_path, content_type, size_bytes, created_at
+RETURNING id, branch_shift_id, file_path, content_type, size_bytes, created_at, rotation
 `
 
 type CreateBranchShiftReceiptImageParams struct {
@@ -56,12 +56,13 @@ func (q *Queries) CreateBranchShiftReceiptImage(ctx context.Context, arg CreateB
 		&i.ContentType,
 		&i.SizeBytes,
 		&i.CreatedAt,
+		&i.Rotation,
 	)
 	return i, err
 }
 
 const getBranchShiftReceiptImage = `-- name: GetBranchShiftReceiptImage :one
-SELECT id, branch_shift_id, file_path, content_type, size_bytes, created_at FROM branch_shift_receipt_images
+SELECT id, branch_shift_id, file_path, content_type, size_bytes, created_at, rotation FROM branch_shift_receipt_images
 WHERE id = $1
 LIMIT 1
 `
@@ -76,12 +77,13 @@ func (q *Queries) GetBranchShiftReceiptImage(ctx context.Context, id int64) (Bra
 		&i.ContentType,
 		&i.SizeBytes,
 		&i.CreatedAt,
+		&i.Rotation,
 	)
 	return i, err
 }
 
 const getBranchShiftReceiptImageForShift = `-- name: GetBranchShiftReceiptImageForShift :one
-SELECT id, branch_shift_id, file_path, content_type, size_bytes, created_at FROM branch_shift_receipt_images
+SELECT id, branch_shift_id, file_path, content_type, size_bytes, created_at, rotation FROM branch_shift_receipt_images
 WHERE branch_shift_id = $1
 LIMIT 1
 `
@@ -96,13 +98,14 @@ func (q *Queries) GetBranchShiftReceiptImageForShift(ctx context.Context, branch
 		&i.ContentType,
 		&i.SizeBytes,
 		&i.CreatedAt,
+		&i.Rotation,
 	)
 	return i, err
 }
 
 const listBranchShiftReceiptImages = `-- name: ListBranchShiftReceiptImages :many
 SELECT
-  branch_shift_receipt_images.id, branch_shift_receipt_images.branch_shift_id, branch_shift_receipt_images.file_path, branch_shift_receipt_images.content_type, branch_shift_receipt_images.size_bytes, branch_shift_receipt_images.created_at,
+  branch_shift_receipt_images.id, branch_shift_receipt_images.branch_shift_id, branch_shift_receipt_images.file_path, branch_shift_receipt_images.content_type, branch_shift_receipt_images.size_bytes, branch_shift_receipt_images.created_at, branch_shift_receipt_images.rotation,
   branch_shifts.branch_shift_id AS shift_local_id,
   branch_shifts.closing_person_name AS closing_person_name,
   branch_shifts.closed_at AS shift_closed_at,
@@ -127,6 +130,7 @@ type ListBranchShiftReceiptImagesRow struct {
 	ContentType       string       `json:"content_type"`
 	SizeBytes         int64        `json:"size_bytes"`
 	CreatedAt         time.Time    `json:"created_at"`
+	Rotation          int16        `json:"rotation"`
 	ShiftLocalID      int64        `json:"shift_local_id"`
 	ClosingPersonName string       `json:"closing_person_name"`
 	ShiftClosedAt     sql.NullTime `json:"shift_closed_at"`
@@ -153,6 +157,7 @@ func (q *Queries) ListBranchShiftReceiptImages(ctx context.Context, arg ListBran
 			&i.ContentType,
 			&i.SizeBytes,
 			&i.CreatedAt,
+			&i.Rotation,
 			&i.ShiftLocalID,
 			&i.ClosingPersonName,
 			&i.ShiftClosedAt,
@@ -170,4 +175,62 @@ func (q *Queries) ListBranchShiftReceiptImages(ctx context.Context, arg ListBran
 		return nil, err
 	}
 	return items, nil
+}
+
+const replaceBranchShiftReceiptImageFile = `-- name: ReplaceBranchShiftReceiptImageFile :one
+UPDATE branch_shift_receipt_images
+SET file_path = $2,
+    content_type = $3,
+    size_bytes = $4,
+    rotation = 0
+WHERE id = $1
+RETURNING id, branch_shift_id, file_path, content_type, size_bytes, created_at, rotation
+`
+
+type ReplaceBranchShiftReceiptImageFileParams struct {
+	ID          int64  `json:"id"`
+	FilePath    string `json:"file_path"`
+	ContentType string `json:"content_type"`
+	SizeBytes   int64  `json:"size_bytes"`
+}
+
+// Same as ReplaceBranchExpenseImageFile.
+func (q *Queries) ReplaceBranchShiftReceiptImageFile(ctx context.Context, arg ReplaceBranchShiftReceiptImageFileParams) (BranchShiftReceiptImage, error) {
+	row := q.db.QueryRowContext(ctx, replaceBranchShiftReceiptImageFile,
+		arg.ID,
+		arg.FilePath,
+		arg.ContentType,
+		arg.SizeBytes,
+	)
+	var i BranchShiftReceiptImage
+	err := row.Scan(
+		&i.ID,
+		&i.BranchShiftID,
+		&i.FilePath,
+		&i.ContentType,
+		&i.SizeBytes,
+		&i.CreatedAt,
+		&i.Rotation,
+	)
+	return i, err
+}
+
+const rotateBranchShiftReceiptImage = `-- name: RotateBranchShiftReceiptImage :one
+UPDATE branch_shift_receipt_images
+SET rotation = ((rotation + $1::int) % 360 + 360) % 360
+WHERE id = $2
+RETURNING rotation
+`
+
+type RotateBranchShiftReceiptImageParams struct {
+	Delta int32 `json:"delta"`
+	ID    int64 `json:"id"`
+}
+
+// Same as RotateBranchExpenseImage.
+func (q *Queries) RotateBranchShiftReceiptImage(ctx context.Context, arg RotateBranchShiftReceiptImageParams) (int16, error) {
+	row := q.db.QueryRowContext(ctx, rotateBranchShiftReceiptImage, arg.Delta, arg.ID)
+	var rotation int16
+	err := row.Scan(&rotation)
+	return rotation, err
 }

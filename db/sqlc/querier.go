@@ -1189,6 +1189,11 @@ type Querier interface {
 	// left alone so a stale retry never resurrects it.
 	RedeemCoupon(ctx context.Context, arg RedeemCouponParams) (Coupon, error)
 	RenameRole(ctx context.Context, arg RenameRoleParams) error
+	// Points the row at a replacement photo (api/photo_replace.go); the new
+	// photo starts upright.
+	ReplaceBranchExpenseImageFile(ctx context.Context, arg ReplaceBranchExpenseImageFileParams) (BranchExpenseImage, error)
+	// Same as ReplaceBranchExpenseImageFile.
+	ReplaceBranchShiftReceiptImageFile(ctx context.Context, arg ReplaceBranchShiftReceiptImageFileParams) (BranchShiftReceiptImage, error)
 	// A till's client turned out to be an existing central client (same phone):
 	// invoices the till already sent under its own uid now point at the
 	// canonical one.
@@ -1210,6 +1215,15 @@ type Querier interface {
 	// so pricing N variants costs one query rather than N. DISTINCT ON keeps the
 	// branch list's row ahead of the default list's for the same variant.
 	ResolveVariantPrices(ctx context.Context, arg ResolveVariantPricesParams) ([]ResolveVariantPricesRow, error)
+	// Turns the photo by delta degrees (a multiple of 90, either sign) on top
+	// of its saved rotation.
+	RotateBranchExpenseImage(ctx context.Context, arg RotateBranchExpenseImageParams) (int16, error)
+	// Same as RotateBranchExpenseImage.
+	RotateBranchShiftReceiptImage(ctx context.Context, arg RotateBranchShiftReceiptImageParams) (int16, error)
+	// Turns the photo by delta degrees (a multiple of 90, either sign) on top
+	// of its saved rotation. Not a change to the transfer itself, so
+	// updated_at is left alone.
+	RotateTransferAttachment(ctx context.Context, arg RotateTransferAttachmentParams) (int16, error)
 	SetAssetCost(ctx context.Context, arg SetAssetCostParams) error
 	SetBranchActive(ctx context.Context, arg SetBranchActiveParams) error
 	SetBranchHiddenFromReports(ctx context.Context, arg SetBranchHiddenFromReportsParams) error
@@ -1250,6 +1264,7 @@ type Querier interface {
 	SetSalespersonIsSalesperson(ctx context.Context, arg SetSalespersonIsSalespersonParams) (Salesperson, error)
 	SetStockCountNote(ctx context.Context, arg SetStockCountNoteParams) error
 	SetStockCountStatus(ctx context.Context, arg SetStockCountStatusParams) (StockCount, error)
+	// A new photo starts upright, whatever the previous one was turned to.
 	SetTransferAttachmentPath(ctx context.Context, arg SetTransferAttachmentPathParams) error
 	SetTransferConfirmed(ctx context.Context, arg SetTransferConfirmedParams) (Transfer, error)
 	// The admin's own edit, keyed by transfer_item id directly (unlike the

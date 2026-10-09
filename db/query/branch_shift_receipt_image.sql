@@ -38,3 +38,20 @@ LIMIT $1 OFFSET $2;
 
 -- name: CountBranchShiftReceiptImages :one
 SELECT COUNT(*) FROM branch_shift_receipt_images;
+
+-- Same as RotateBranchExpenseImage.
+-- name: RotateBranchShiftReceiptImage :one
+UPDATE branch_shift_receipt_images
+SET rotation = ((rotation + sqlc.arg(delta)::int) % 360 + 360) % 360
+WHERE id = sqlc.arg(id)
+RETURNING rotation;
+
+-- Same as ReplaceBranchExpenseImageFile.
+-- name: ReplaceBranchShiftReceiptImageFile :one
+UPDATE branch_shift_receipt_images
+SET file_path = $2,
+    content_type = $3,
+    size_bytes = $4,
+    rotation = 0
+WHERE id = $1
+RETURNING *;

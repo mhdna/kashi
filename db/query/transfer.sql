@@ -98,11 +98,22 @@ SET from_inventory_id = $2,
     updated_at = now()
 WHERE id = $1 AND status IN ('draft', 'requested');
 
+-- A new photo starts upright, whatever the previous one was turned to.
 -- name: SetTransferAttachmentPath :exec
 UPDATE transfers
 SET attachment_path = $2,
+    attachment_rotation = 0,
     updated_at = now()
 WHERE id = $1;
+
+-- Turns the photo by delta degrees (a multiple of 90, either sign) on top
+-- of its saved rotation. Not a change to the transfer itself, so
+-- updated_at is left alone.
+-- name: RotateTransferAttachment :one
+UPDATE transfers
+SET attachment_rotation = ((attachment_rotation + sqlc.arg(delta)::int) % 360 + 360) % 360
+WHERE id = sqlc.arg(id) AND attachment_path <> ''
+RETURNING attachment_rotation;
 
 -- name: SetTransferStatus :one
 UPDATE transfers

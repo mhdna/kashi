@@ -73,7 +73,7 @@ func (server *Server) branchExpensePhotoFile(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusNotFound, errors.New("no such photo for this branch"))
 		return
 	}
-	server.serveStoredImage(ctx, image.FilePath, image.ContentType)
+	server.serveStoredImage(ctx, image.FilePath, image.ContentType, image.Rotation)
 }
 
 type branchTransferPhotoRequest struct {
@@ -122,7 +122,7 @@ func (server *Server) branchTransferPhoto(ctx *gin.Context) {
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
-	server.serveStoredImage(ctx, transfer.AttachmentPath, contentType)
+	server.serveStoredImage(ctx, transfer.AttachmentPath, contentType, transfer.AttachmentRotation)
 }
 
 // transferTouchesBranch is true for a transfer the branch filed, or one

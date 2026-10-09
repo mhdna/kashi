@@ -8575,6 +8575,21 @@ func (mr *MockStoreMockRecorder) RenameRole(arg0, arg1 interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameRole", reflect.TypeOf((*MockStore)(nil).RenameRole), arg0, arg1)
 }
 
+// ReplaceBranchExpenseImageFile mocks base method.
+func (m *MockStore) ReplaceBranchExpenseImageFile(arg0 context.Context, arg1 db.ReplaceBranchExpenseImageFileParams) (db.BranchExpenseImage, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReplaceBranchExpenseImageFile", arg0, arg1)
+	ret0, _ := ret[0].(db.BranchExpenseImage)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReplaceBranchExpenseImageFile indicates an expected call of ReplaceBranchExpenseImageFile.
+func (mr *MockStoreMockRecorder) ReplaceBranchExpenseImageFile(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReplaceBranchExpenseImageFile", reflect.TypeOf((*MockStore)(nil).ReplaceBranchExpenseImageFile), arg0, arg1)
+}
+
 // ReplaceBranchQuickAccessTx mocks base method.
 func (m *MockStore) ReplaceBranchQuickAccessTx(arg0 context.Context, arg1 int64, arg2 []db.QuickAccessItemInput) error {
 	m.ctrl.T.Helper()
@@ -8587,6 +8602,21 @@ func (m *MockStore) ReplaceBranchQuickAccessTx(arg0 context.Context, arg1 int64,
 func (mr *MockStoreMockRecorder) ReplaceBranchQuickAccessTx(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReplaceBranchQuickAccessTx", reflect.TypeOf((*MockStore)(nil).ReplaceBranchQuickAccessTx), arg0, arg1, arg2)
+}
+
+// ReplaceBranchShiftReceiptImageFile mocks base method.
+func (m *MockStore) ReplaceBranchShiftReceiptImageFile(arg0 context.Context, arg1 db.ReplaceBranchShiftReceiptImageFileParams) (db.BranchShiftReceiptImage, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReplaceBranchShiftReceiptImageFile", arg0, arg1)
+	ret0, _ := ret[0].(db.BranchShiftReceiptImage)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReplaceBranchShiftReceiptImageFile indicates an expected call of ReplaceBranchShiftReceiptImageFile.
+func (mr *MockStoreMockRecorder) ReplaceBranchShiftReceiptImageFile(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReplaceBranchShiftReceiptImageFile", reflect.TypeOf((*MockStore)(nil).ReplaceBranchShiftReceiptImageFile), arg0, arg1)
 }
 
 // RepointBranchInvoicesClientUID mocks base method.
@@ -8691,6 +8721,51 @@ func (m *MockStore) ReturnInvoiceTx(arg0 context.Context, arg1 db.ReturnInvoiceT
 func (mr *MockStoreMockRecorder) ReturnInvoiceTx(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReturnInvoiceTx", reflect.TypeOf((*MockStore)(nil).ReturnInvoiceTx), arg0, arg1)
+}
+
+// RotateBranchExpenseImage mocks base method.
+func (m *MockStore) RotateBranchExpenseImage(arg0 context.Context, arg1 db.RotateBranchExpenseImageParams) (int16, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RotateBranchExpenseImage", arg0, arg1)
+	ret0, _ := ret[0].(int16)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RotateBranchExpenseImage indicates an expected call of RotateBranchExpenseImage.
+func (mr *MockStoreMockRecorder) RotateBranchExpenseImage(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RotateBranchExpenseImage", reflect.TypeOf((*MockStore)(nil).RotateBranchExpenseImage), arg0, arg1)
+}
+
+// RotateBranchShiftReceiptImage mocks base method.
+func (m *MockStore) RotateBranchShiftReceiptImage(arg0 context.Context, arg1 db.RotateBranchShiftReceiptImageParams) (int16, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RotateBranchShiftReceiptImage", arg0, arg1)
+	ret0, _ := ret[0].(int16)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RotateBranchShiftReceiptImage indicates an expected call of RotateBranchShiftReceiptImage.
+func (mr *MockStoreMockRecorder) RotateBranchShiftReceiptImage(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RotateBranchShiftReceiptImage", reflect.TypeOf((*MockStore)(nil).RotateBranchShiftReceiptImage), arg0, arg1)
+}
+
+// RotateTransferAttachment mocks base method.
+func (m *MockStore) RotateTransferAttachment(arg0 context.Context, arg1 db.RotateTransferAttachmentParams) (int16, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RotateTransferAttachment", arg0, arg1)
+	ret0, _ := ret[0].(int16)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RotateTransferAttachment indicates an expected call of RotateTransferAttachment.
+func (mr *MockStoreMockRecorder) RotateTransferAttachment(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RotateTransferAttachment", reflect.TypeOf((*MockStore)(nil).RotateTransferAttachment), arg0, arg1)
 }
 
 // SalesInvoiceTx mocks base method.

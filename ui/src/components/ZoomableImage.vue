@@ -20,6 +20,47 @@
     >
 
     <div class="zoom-controls" @dblclick.stop @pointerdown.stop>
+      <template v-if="replaceable">
+        <v-btn
+          aria-label="Replace photo"
+          density="comfortable"
+          :disabled="busy"
+          icon="mdi-image-edit-outline"
+          size="small"
+          title="Replace photo"
+          variant="text"
+          @click="fileInput?.click()"
+        />
+        <input
+          ref="fileInput"
+          accept="image/jpeg,image/png,image/webp,image/heic"
+          hidden
+          type="file"
+          @change="onFilePicked"
+        >
+        <v-divider v-if="!rotatable" class="mx-1" vertical />
+      </template>
+      <template v-if="rotatable">
+        <v-btn
+          aria-label="Rotate left"
+          density="comfortable"
+          :disabled="busy"
+          icon="mdi-rotate-left"
+          size="small"
+          variant="text"
+          @click="emit('rotate', -90)"
+        />
+        <v-btn
+          aria-label="Rotate right"
+          density="comfortable"
+          :disabled="busy"
+          icon="mdi-rotate-right"
+          size="small"
+          variant="text"
+          @click="emit('rotate', 90)"
+        />
+        <v-divider class="mx-1" vertical />
+      </template>
       <v-btn
         aria-label="Zoom out"
         density="comfortable"
@@ -59,6 +100,12 @@
   // fixed-height stage, and can be zoomed with the mouse wheel (towards the
   // cursor), the +/- buttons (towards the centre) or a double-click, then
   // dragged around while zoomed in.
+  //
+  // With `rotatable` it also offers rotate left/right buttons, and with
+  // `replaceable` a button to pick another file. It changes nothing itself:
+  // it emits `rotate` (-90 or 90) or `replace` (the picked File), the parent
+  // saves that (usePhotoActions) and passes the re-fetched photo back as a
+  // new `src`, holding `busy` while that's in flight.
   const props = defineProps({
     src: {
       type: String,
@@ -72,7 +119,29 @@
       type: String,
       default: 'min(70vh, 640px)',
     },
+    rotatable: {
+      type: Boolean,
+      default: false,
+    },
+    replaceable: {
+      type: Boolean,
+      default: false,
+    },
+    busy: {
+      type: Boolean,
+      default: false,
+    },
   })
+
+  const emit = defineEmits<{ rotate: [delta: number], replace: [file: File] }>()
+
+  const fileInput = ref<HTMLInputElement | null>(null)
+  function onFilePicked () {
+    const file = fileInput.value?.files?.[0]
+    // Cleared so picking the same file again still fires change.
+    if (fileInput.value) fileInput.value.value = ''
+    if (file) emit('replace', file)
+  }
 
   const MIN_SCALE = 1
   const MAX_SCALE = 8

@@ -123,6 +123,8 @@ var accessSections = []accessSection{
 		{"storage", "Storage"},
 	}},
 	// No pages: switching the section on is the whole grant.
+	{"photo_rotation", "Rotate Photos", "Turn expense, shift-receipt and transfer photos; the turn is saved for everyone (off by default)", nil},
+	{"photo_replace", "Replace Photos", "Swap an expense, shift-receipt or transfer photo for another one; the old photo is deleted (off by default)", nil},
 	{"text_selection", "Text Selection", "Select and copy text anywhere in the admin interface (off by default; doesn't gate any data)", nil},
 }
 
@@ -197,6 +199,8 @@ var routeRules = []routeRule{
 	rule("/batches", "inventory", "inventory", "products"),
 	rule("/transfers", "inventory", "inventory"),
 	rule("/transfer_attachments", "inventory", "inventory"),
+	rule("/transfers/:id/attachment/rotation", "photo_rotation"),
+	rule("/transfers/:id/attachment/replace", "photo_replace"),
 	rule("/transfer_items", "inventory", "inventory"),
 	rule("/purchases", "inventory", "inventory"),
 	rule("/purchase_items", "inventory", "inventory"),
@@ -249,6 +253,8 @@ var routeRules = []routeRule{
 	rule("/recurring_expenses", "accounting", "accounting"),
 	rule("/branch_expenses", "accounting", "accounting", "analytics"),
 	rule("/branch_expense_images", "accounting", "accounting", "analytics"),
+	rule("/branch_expense_images/:id/rotation", "photo_rotation"),
+	rule("/branch_expense_images/:id/replace", "photo_replace"),
 	rule("/loans", "accounting", "accounting", "analytics"),
 	rule("/loan_categories", "accounting", "accounting", "analytics"),
 	rule("/loan_payments", "accounting", "accounting", "analytics"),
@@ -266,6 +272,8 @@ var routeRules = []routeRule{
 	rule("/shifts", "hr", "hr", "analytics", "accounting"),
 	rule("/branch_shifts", "hr", "hr", "analytics", "accounting"),
 	rule("/branch_shift_receipt_images", "hr", "hr", "analytics", "accounting"),
+	rule("/branch_shift_receipt_images/:id/rotation", "photo_rotation"),
+	rule("/branch_shift_receipt_images/:id/replace", "photo_replace"),
 
 	// Calendar, system
 	lookup("/calendar_events", "calendar"),
@@ -382,7 +390,7 @@ func resolvePermissions(rows []permissionRow) rolePermissions {
 
 // effective is what the role actually grants: pages of switched-off sections
 // count for nothing, and a section's level is the highest of its pages (or,
-// for a section without pages, simply whether it's on).
+// for a section without pages, view and edit both, simply by being on).
 func (p rolePermissions) effective() (sections, pages map[string]sectionLevel) {
 	sections = map[string]sectionLevel{}
 	pages = map[string]sectionLevel{}
@@ -391,7 +399,7 @@ func (p rolePermissions) effective() (sections, pages map[string]sectionLevel) {
 			continue
 		}
 		if len(s.Pages) == 0 {
-			sections[s.Key] = sectionLevel{View: true}
+			sections[s.Key] = sectionLevel{View: true, Edit: true}
 			continue
 		}
 		var level sectionLevel

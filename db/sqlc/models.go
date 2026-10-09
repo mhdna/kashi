@@ -665,6 +665,7 @@ type BranchExpenseImage struct {
 	ContentType     string    `json:"content_type"`
 	SizeBytes       int64     `json:"size_bytes"`
 	CreatedAt       time.Time `json:"created_at"`
+	Rotation        int16     `json:"rotation"`
 }
 
 type BranchExpenseUploadToken struct {
@@ -875,6 +876,7 @@ type BranchShiftReceiptImage struct {
 	ContentType   string    `json:"content_type"`
 	SizeBytes     int64     `json:"size_bytes"`
 	CreatedAt     time.Time `json:"created_at"`
+	Rotation      int16     `json:"rotation"`
 }
 
 type BranchShiftUploadToken struct {
@@ -1536,23 +1538,24 @@ type Token struct {
 }
 
 type Transfer struct {
-	ID              int64          `json:"id"`
-	FromInventoryID int64          `json:"from_inventory_id"`
-	ToInventoryID   int64          `json:"to_inventory_id"`
-	Type            TransferType   `json:"type"`
-	CreatedAt       time.Time      `json:"created_at"`
-	Code            string         `json:"code"`
-	Status          TransferStatus `json:"status"`
-	DispatchedAt    sql.NullTime   `json:"dispatched_at"`
-	ReceivedAt      sql.NullTime   `json:"received_at"`
-	Note            string         `json:"note"`
-	BranchID        sql.NullInt64  `json:"branch_id"`
-	ClientRef       sql.NullString `json:"client_ref"`
-	AttachmentPath  string         `json:"attachment_path"`
-	UpdatedAt       time.Time      `json:"updated_at"`
-	ConfirmedAt     sql.NullTime   `json:"confirmed_at"`
-	ConfirmedNote   string         `json:"confirmed_note"`
-	RegisterID      sql.NullInt64  `json:"register_id"`
+	ID                 int64          `json:"id"`
+	FromInventoryID    int64          `json:"from_inventory_id"`
+	ToInventoryID      int64          `json:"to_inventory_id"`
+	Type               TransferType   `json:"type"`
+	CreatedAt          time.Time      `json:"created_at"`
+	Code               string         `json:"code"`
+	Status             TransferStatus `json:"status"`
+	DispatchedAt       sql.NullTime   `json:"dispatched_at"`
+	ReceivedAt         sql.NullTime   `json:"received_at"`
+	Note               string         `json:"note"`
+	BranchID           sql.NullInt64  `json:"branch_id"`
+	ClientRef          sql.NullString `json:"client_ref"`
+	AttachmentPath     string         `json:"attachment_path"`
+	UpdatedAt          time.Time      `json:"updated_at"`
+	ConfirmedAt        sql.NullTime   `json:"confirmed_at"`
+	ConfirmedNote      string         `json:"confirmed_note"`
+	RegisterID         sql.NullInt64  `json:"register_id"`
+	AttachmentRotation int16          `json:"attachment_rotation"`
 }
 
 // Each row references either a product or an asset. Never both.

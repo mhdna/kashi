@@ -60,3 +60,22 @@ SELECT COUNT(*) FROM branch_expense_images;
 -- name: CountBranchExpenseImagesForExpense :one
 SELECT COUNT(*) FROM branch_expense_images
 WHERE branch_expense_id = $1;
+
+-- Turns the photo by delta degrees (a multiple of 90, either sign) on top
+-- of its saved rotation.
+-- name: RotateBranchExpenseImage :one
+UPDATE branch_expense_images
+SET rotation = ((rotation + sqlc.arg(delta)::int) % 360 + 360) % 360
+WHERE id = sqlc.arg(id)
+RETURNING rotation;
+
+-- Points the row at a replacement photo (api/photo_replace.go); the new
+-- photo starts upright.
+-- name: ReplaceBranchExpenseImageFile :one
+UPDATE branch_expense_images
+SET file_path = $2,
+    content_type = $3,
+    size_bytes = $4,
+    rotation = 0
+WHERE id = $1
+RETURNING *;

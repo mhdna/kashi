@@ -76,7 +76,16 @@
           loads, then the photo fits inside it. -->
         <div class="image-stage d-flex align-center justify-center">
           <v-progress-circular v-if="previewLoading" indeterminate size="32" />
-          <ZoomableImage v-else-if="previewUrl" height="100%" :src="previewUrl" />
+          <ZoomableImage
+            v-else-if="previewUrl"
+            height="100%"
+            :busy="changingPhoto"
+            :replaceable="canReplace"
+            :rotatable="canRotate"
+            :src="previewUrl"
+            @replace="file => changePreview((kind, id) => replacePhoto(kind, id, file))"
+            @rotate="delta => changePreview((kind, id) => rotatePhoto(kind, id, delta))"
+          />
           <span v-else class="text-medium-emphasis">Couldn't load this image.</span>
         </div>
         <v-card-text v-if="previewImage">
@@ -100,6 +109,7 @@
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useExpenseImages } from '@/composables/useExpenseImages'
   import { useNotify } from '@/composables/useNotify'
+  import { usePhotoActions } from '@/composables/usePhotoActions'
   import { useShiftReceiptImages } from '@/composables/useShiftReceiptImages'
   import { useTransferAttachments } from '@/composables/useTransferAttachments'
 
@@ -107,11 +117,13 @@
   const { fetchShiftReceiptImages, fetchShiftReceiptImageObjectUrl } = useShiftReceiptImages()
   const { fetchTransferAttachments, fetchTransferAttachmentObjectUrl } = useTransferAttachments()
   const { ensureConnected, onMessage } = useAdminSocket()
+  const { canRotate, canReplace, rotatePhoto, replacePhoto } = usePhotoActions()
   const notify = useNotify()
 
   // One entry per real image kind. Every handler takes the whole image row
   // so the generic panel -- and the "All" source below -- can stay kind
   // agnostic. Adding a storage kind is a new entry here plus its composable.
+  // photoKind is the kind usePhotoActions rotates or replaces it as.
   const KINDS = {
     expenses: {
       title: 'Expense receipts',
@@ -119,6 +131,7 @@
       fetchPage: fetchExpenseImages,
       fetchObjectUrl: (image, opts) => fetchExpenseImageObjectUrl(image.id, opts),
       refreshOn: 'branch_expense_images_uploaded',
+      photoKind: 'expense_image',
       primaryText: image => image.expense_description,
     },
     shiftReceipts: {
@@ -127,6 +140,7 @@
       fetchPage: fetchShiftReceiptImages,
       fetchObjectUrl: (image, opts) => fetchShiftReceiptImageObjectUrl(image.id, opts),
       refreshOn: 'branch_shift_receipt_uploaded',
+      photoKind: 'shift_receipt',
       primaryText: image => `Shift #${image.shift_local_id} · ${image.closing_person_name || '—'}`,
     },
     transfers: {
@@ -135,6 +149,7 @@
       fetchPage: fetchTransferAttachments,
       fetchObjectUrl: (image, opts) => fetchTransferAttachmentObjectUrl(image.id, opts),
       refreshOn: 'branch_transfer_photo_uploaded',
+      photoKind: 'transfer',
       primaryText: image => `${image.code || `Transfer #${image.id}`} · ${image.from_inventory_name} → ${image.to_inventory_name}`,
     },
   }
@@ -290,6 +305,39 @@
       }
     } finally {
       if (previewImage.value === image) previewLoading.value = false
+    }
+  }
+
+  // Saves a rotation or replacement (save gets the photo's kind and id),
+  // then re-fetches the photo and its grid thumbnail as the server now
+  // serves them.
+  const changingPhoto = ref(false)
+  async function changePreview (save) {
+    const image = previewImage.value
+    if (!image) return
+    const kind = image.__kind ? KINDS[image.__kind] : source.value
+    changingPhoto.value = true
+    try {
+      await save(kind.photoKind, image.id)
+      const [url, thumb] = await Promise.all([
+        source.value.fetchObjectUrl(image),
+        source.value.fetchObjectUrl(image, { width: THUMB_WIDTH }).catch(() => null),
+      ])
+      const key = imageKey(image)
+      if (thumb) {
+        if (thumbnailUrls.value[key]) URL.revokeObjectURL(thumbnailUrls.value[key])
+        thumbnailUrls.value[key] = thumb
+      }
+      if (previewImage.value !== image) {
+        URL.revokeObjectURL(url)
+        return
+      }
+      revokePreviewUrl()
+      previewUrl.value = url
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      changingPhoto.value = false
     }
   }
 

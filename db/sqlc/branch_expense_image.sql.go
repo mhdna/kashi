@@ -42,7 +42,7 @@ INSERT INTO branch_expense_images (
 ) VALUES (
   $1, $2, $3, $4
 )
-RETURNING id, branch_expense_id, file_path, content_type, size_bytes, created_at
+RETURNING id, branch_expense_id, file_path, content_type, size_bytes, created_at, rotation
 `
 
 type CreateBranchExpenseImageParams struct {
@@ -67,6 +67,7 @@ func (q *Queries) CreateBranchExpenseImage(ctx context.Context, arg CreateBranch
 		&i.ContentType,
 		&i.SizeBytes,
 		&i.CreatedAt,
+		&i.Rotation,
 	)
 	return i, err
 }
@@ -103,7 +104,7 @@ func (q *Queries) CreateBranchExpenseUploadToken(ctx context.Context, arg Create
 }
 
 const getBranchExpenseImage = `-- name: GetBranchExpenseImage :one
-SELECT id, branch_expense_id, file_path, content_type, size_bytes, created_at FROM branch_expense_images
+SELECT id, branch_expense_id, file_path, content_type, size_bytes, created_at, rotation FROM branch_expense_images
 WHERE id = $1
 LIMIT 1
 `
@@ -118,6 +119,7 @@ func (q *Queries) GetBranchExpenseImage(ctx context.Context, id int64) (BranchEx
 		&i.ContentType,
 		&i.SizeBytes,
 		&i.CreatedAt,
+		&i.Rotation,
 	)
 	return i, err
 }
@@ -144,7 +146,7 @@ func (q *Queries) GetBranchExpenseUploadTokenByToken(ctx context.Context, token 
 
 const listBranchExpenseImages = `-- name: ListBranchExpenseImages :many
 SELECT
-  branch_expense_images.id, branch_expense_images.branch_expense_id, branch_expense_images.file_path, branch_expense_images.content_type, branch_expense_images.size_bytes, branch_expense_images.created_at,
+  branch_expense_images.id, branch_expense_images.branch_expense_id, branch_expense_images.file_path, branch_expense_images.content_type, branch_expense_images.size_bytes, branch_expense_images.created_at, branch_expense_images.rotation,
   branch_expenses.description AS expense_description,
   branch_expenses.branch_id AS expense_branch_id,
   branches.name AS branch_name
@@ -167,6 +169,7 @@ type ListBranchExpenseImagesRow struct {
 	ContentType        string    `json:"content_type"`
 	SizeBytes          int64     `json:"size_bytes"`
 	CreatedAt          time.Time `json:"created_at"`
+	Rotation           int16     `json:"rotation"`
 	ExpenseDescription string    `json:"expense_description"`
 	ExpenseBranchID    int64     `json:"expense_branch_id"`
 	BranchName         string    `json:"branch_name"`
@@ -191,6 +194,7 @@ func (q *Queries) ListBranchExpenseImages(ctx context.Context, arg ListBranchExp
 			&i.ContentType,
 			&i.SizeBytes,
 			&i.CreatedAt,
+			&i.Rotation,
 			&i.ExpenseDescription,
 			&i.ExpenseBranchID,
 			&i.BranchName,
@@ -209,7 +213,7 @@ func (q *Queries) ListBranchExpenseImages(ctx context.Context, arg ListBranchExp
 }
 
 const listBranchExpenseImagesForExpense = `-- name: ListBranchExpenseImagesForExpense :many
-SELECT id, branch_expense_id, file_path, content_type, size_bytes, created_at FROM branch_expense_images
+SELECT id, branch_expense_id, file_path, content_type, size_bytes, created_at, rotation FROM branch_expense_images
 WHERE branch_expense_id = $1
 ORDER BY id DESC
 `
@@ -230,6 +234,7 @@ func (q *Queries) ListBranchExpenseImagesForExpense(ctx context.Context, branchE
 			&i.ContentType,
 			&i.SizeBytes,
 			&i.CreatedAt,
+			&i.Rotation,
 		); err != nil {
 			return nil, err
 		}
@@ -253,4 +258,64 @@ WHERE id = $1
 func (q *Queries) MarkBranchExpenseUploadTokenUsed(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, markBranchExpenseUploadTokenUsed, id)
 	return err
+}
+
+const replaceBranchExpenseImageFile = `-- name: ReplaceBranchExpenseImageFile :one
+UPDATE branch_expense_images
+SET file_path = $2,
+    content_type = $3,
+    size_bytes = $4,
+    rotation = 0
+WHERE id = $1
+RETURNING id, branch_expense_id, file_path, content_type, size_bytes, created_at, rotation
+`
+
+type ReplaceBranchExpenseImageFileParams struct {
+	ID          int64  `json:"id"`
+	FilePath    string `json:"file_path"`
+	ContentType string `json:"content_type"`
+	SizeBytes   int64  `json:"size_bytes"`
+}
+
+// Points the row at a replacement photo (api/photo_replace.go); the new
+// photo starts upright.
+func (q *Queries) ReplaceBranchExpenseImageFile(ctx context.Context, arg ReplaceBranchExpenseImageFileParams) (BranchExpenseImage, error) {
+	row := q.db.QueryRowContext(ctx, replaceBranchExpenseImageFile,
+		arg.ID,
+		arg.FilePath,
+		arg.ContentType,
+		arg.SizeBytes,
+	)
+	var i BranchExpenseImage
+	err := row.Scan(
+		&i.ID,
+		&i.BranchExpenseID,
+		&i.FilePath,
+		&i.ContentType,
+		&i.SizeBytes,
+		&i.CreatedAt,
+		&i.Rotation,
+	)
+	return i, err
+}
+
+const rotateBranchExpenseImage = `-- name: RotateBranchExpenseImage :one
+UPDATE branch_expense_images
+SET rotation = ((rotation + $1::int) % 360 + 360) % 360
+WHERE id = $2
+RETURNING rotation
+`
+
+type RotateBranchExpenseImageParams struct {
+	Delta int32 `json:"delta"`
+	ID    int64 `json:"id"`
+}
+
+// Turns the photo by delta degrees (a multiple of 90, either sign) on top
+// of its saved rotation.
+func (q *Queries) RotateBranchExpenseImage(ctx context.Context, arg RotateBranchExpenseImageParams) (int16, error) {
+	row := q.db.QueryRowContext(ctx, rotateBranchExpenseImage, arg.Delta, arg.ID)
+	var rotation int16
+	err := row.Scan(&rotation)
+	return rotation, err
 }
