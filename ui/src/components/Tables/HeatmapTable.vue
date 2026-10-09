@@ -1,30 +1,13 @@
 <template>
   <!-- The spinner sits outside the scrolling grid so it stays centred in
        view however far the grid is scrolled. -->
-  <div class="heatmap-root">
+  <div class="heatmap-root" :class="{ 'heatmap-root--narrow-days': !props.yearNav }">
     <div ref="wrapRef" class="heatmap-wrap" :class="{ 'is-loading': loading }">
       <table class="heatmap-table">
         <thead>
           <tr>
-            <th class="sticky-col day-col year-nav">
-              <v-btn
-                aria-label="Previous year"
-                color="primary"
-                icon="mdi-chevron-left"
-                size="small"
-                variant="tonal"
-                @click="selectedYear--"
-              />
-              <span>{{ selectedYear }}</span>
-              <v-btn
-                aria-label="Next year"
-                color="primary"
-                :disabled="selectedYear >= currentYear"
-                icon="mdi-chevron-right"
-                size="small"
-                variant="tonal"
-                @click="selectedYear++"
-              />
+            <th class="sticky-col day-col" :class="{ 'year-nav': props.yearNav }">
+              <YearStepper v-if="props.yearNav" v-model="selectedYear" />
             </th>
             <th v-for="month in months" :key="month">
               {{ month }}
@@ -73,6 +56,7 @@
 <script setup lang="ts">
   import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useRouter } from 'vue-router'
+  import YearStepper from '@/components/Buttons/YearStepper.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useDailyIncome } from '@/composables/useDailyIncome'
   import { useIncomeFilters } from '@/pages/dashboard/composables/useIncomeFilters'
@@ -92,7 +76,9 @@
     'Dec',
   ]
   const currentYear = new Date().getFullYear()
-  const selectedYear = ref(currentYear)
+  // v-model:year, so a page can show the year picker outside the grid (with
+  // yearNav off); otherwise the grid keeps its own, in the corner cell.
+  const selectedYear = defineModel<number>('year', { default: new Date().getFullYear() })
   const daysInMonth = computed(() => {
     const year = selectedYear.value
     const isLeapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
@@ -102,7 +88,12 @@
   // branchIds narrows the grid to several branches (Daily Income's chips);
   // without it the grid follows the shared single-branch filter, as on the
   // Footfall page.
-  const props = defineProps<{ branchIds?: number[] | null }>()
+  // yearNav puts the year picker in the grid's corner cell, which holds the
+  // day column wide; turn it off when the page shows the year elsewhere.
+  const props = withDefaults(defineProps<{ branchIds?: number[] | null, yearNav?: boolean }>(), {
+    branchIds: null,
+    yearNav: true,
+  })
 
   const { getDailyIncome } = useDailyIncome()
   const { selectedBranchId } = useIncomeFilters()
@@ -366,17 +357,13 @@
   text-align: center !important;
 }
 
-.year-nav > * {
-  vertical-align: middle;
-}
-
-.year-nav span {
-  display: inline-block;
-  min-width: 46px;
-  margin: 0 2px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+/* With the year picked outside the grid, the day column only holds a day
+   number and "Total". */
+.heatmap-root--narrow-days .day-col {
+  width: 56px;
+  min-width: 56px;
+  max-width: 56px;
+  text-align: center;
 }
 
 /* Phones: the day column only needs room for a day number, so drop it to
@@ -390,13 +377,11 @@
     text-align: center;
   }
 
-  .year-nav span {
-    display: block;
-    min-width: 0;
-    margin: 0 0 2px;
+  .year-nav :deep(.year-stepper) {
+    flex-direction: column;
   }
 
-  .year-nav .v-btn {
+  .year-nav :deep(.v-btn) {
     width: 26px;
     height: 26px;
   }

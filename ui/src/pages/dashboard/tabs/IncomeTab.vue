@@ -1,8 +1,15 @@
 <template>
   <div class="d-flex flex-column flex-grow-1" style="min-height: 0">
-    <div class="d-flex align-center flex-wrap ga-2 px-3 pb-1">
+    <div class="d-flex align-center ga-3 px-3 pb-1">
+      <YearStepper v-model="year" class="flex-shrink-0" />
       <!-- Any number of branches; none picked means every branch. -->
-      <v-chip-group v-model="branchIds" column multiple selected-class="text-primary">
+      <v-chip-group
+        v-model="branchIds"
+        class="flex-grow-1"
+        column
+        multiple
+        selected-class="text-primary"
+      >
         <v-chip filter :value="ALL" variant="outlined">
           All branches
         </v-chip>
@@ -17,13 +24,14 @@
         </v-chip>
       </v-chip-group>
     </div>
-    <HeatmapTable :branch-ids="selected" />
+    <HeatmapTable v-model:year="year" :branch-ids="selected" :year-nav="false" />
   </div>
 </template>
 
 <script setup lang="ts">
   import { computed, onMounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
+  import YearStepper from '@/components/Buttons/YearStepper.vue'
   import HeatmapTable from '@/components/Tables/HeatmapTable.vue'
   import { useBranches } from '@/composables/useBranches'
 
@@ -42,6 +50,9 @@
   }
 
   const selected = ref<number[]>(idsFromUrl())
+  // Picked here, next to the branches, rather than in the grid's corner, so
+  // the day column can stay narrow.
+  const year = ref(new Date().getFullYear())
 
   // The chip group also carries the "All branches" chip, shown as picked
   // exactly when nothing else is. Picking it clears the branches; picking a
