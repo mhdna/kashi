@@ -75,6 +75,7 @@ type dashboardSeriesPoint struct {
 	Day       string `json:"day"`
 	Revenue   int64  `json:"revenue"`
 	Expenses  int64  `json:"expenses"`
+	Cogs      int64  `json:"cogs"`
 	Purchases int64  `json:"purchases"`
 }
 
@@ -242,6 +243,28 @@ func (server *Server) getDashboardSummary(ctx *gin.Context) {
 		}
 	}
 
+	// Cost of goods sold over the same scope, from the products' costs
+	// (report_sale_lines). Lines with no known cost are left out, so
+	// costed_revenue says how much of revenue that cost covers.
+	cogsArgs := db.ReportCostOfGoodsParams{
+		DateFrom: from, DateTo: to,
+		WantBranch: req.wantsBranch(), BranchID: branch, WantAdmin: req.wantsAdmin(),
+	}
+	cogs, err := server.store.ReportCostOfGoods(ctx, cogsArgs)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	cogsSeries, err := server.store.ReportCostOfGoodsSeries(ctx, db.ReportCostOfGoodsSeriesParams(cogsArgs))
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	cogsByDay := map[string]int64{}
+	for _, row := range cogsSeries {
+		cogsByDay[row.Day.Format("2006-01-02")] += row.Cogs
+	}
+
 	series := make([]dashboardSeriesPoint, 0)
 	for day := from; day.Before(to); day = day.AddDate(0, 0, 1) {
 		key := day.Format("2006-01-02")
@@ -250,6 +273,7 @@ func (server *Server) getDashboardSummary(ctx *gin.Context) {
 			Revenue:   revByDay[key],
 			Expenses:  expByDay[key],
 			Purchases: purchByDay[key],
+			Cogs:      cogsByDay[key],
 		})
 	}
 
@@ -321,17 +345,19 @@ func (server *Server) getDashboardSummary(ctx *gin.Context) {
 	}
 
 	server.writeJSON(ctx, http.StatusOK, envelope{
-		"items_sold":    itemsSold,
-		"new_clients":   newClients,
-		"revenue":       revenue,
-		"expenses":      expenses,
-		"purchases":     purchases,
-		"invoices":      invoices,
-		"due_loans":     dueLoans,
-		"due_loans_top": dueLoansTop,
-		"targets_pct":   targetsPct,
-		"targets":       targets,
-		"series":        series,
+		"items_sold":     itemsSold,
+		"new_clients":    newClients,
+		"revenue":        revenue,
+		"expenses":       expenses,
+		"purchases":      purchases,
+		"cogs":           cogs.Cogs,
+		"costed_revenue": cogs.CostedRevenue,
+		"invoices":       invoices,
+		"due_loans":      dueLoans,
+		"due_loans_top":  dueLoansTop,
+		"targets_pct":    targetsPct,
+		"targets":        targets,
+		"series":         series,
 	})
 }
 

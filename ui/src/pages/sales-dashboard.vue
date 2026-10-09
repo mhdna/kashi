@@ -3,6 +3,7 @@
     <!-- Header -->
     <div class="d-flex align-center flex-wrap ga-3 pa-4 pb-2">
       <div class="text-h6 font-weight-medium">Sales Dashboard</div>
+      <v-progress-circular v-if="loading" indeterminate size="18" width="2" />
       <v-spacer />
       <v-select
         v-model="selectedYear"
@@ -17,7 +18,7 @@
         v-model="selectedMonth"
         density="compact"
         hide-details
-        :items="['All', ...months]"
+        :items="monthItems"
         label="Month"
         style="max-width: 130px"
         variant="outlined"
@@ -38,6 +39,7 @@
             <div>
               <div class="text-caption text-uppercase text-medium-emphasis">{{ kpi.label }}</div>
               <div class="text-h4 font-weight-medium mt-1">{{ kpi.value }}</div>
+              <div v-if="kpi.hint" class="text-caption text-medium-emphasis mt-1">{{ kpi.hint }}</div>
             </div>
             <v-icon color="primary" :icon="kpi.icon" size="40" />
           </v-card>
@@ -57,6 +59,7 @@
             <v-card class="pa-4 flex-grow-1 d-flex flex-column justify-center" variant="flat">
               <div class="chart-card__title">Top Product</div>
               <div class="text-h5 font-weight-medium mt-2">{{ topProduct.name }}</div>
+              <div v-if="topProduct.code" class="text-caption text-medium-emphasis">{{ topProduct.code }}</div>
               <div class="d-flex ga-6 mt-2">
                 <div>
                   <div class="text-caption text-medium-emphasis">Quantity</div>
@@ -90,8 +93,8 @@
         </v-col>
         <v-col cols="12" md="4">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Sales Type</div>
-            <v-chart autoresize class="chart chart--tall" :option="salesTypeOption" />
+            <div class="chart-card__title">Sales by Branch</div>
+            <v-chart autoresize class="chart chart--tall" :option="branchOption" />
           </v-card>
         </v-col>
         <v-col cols="12" md="4">
@@ -122,12 +125,20 @@
 </template>
 
 <script setup>
-  import { computed, ref } from 'vue'
-  import VChart from '@/components/EChart.vue'
+  import { computed, ref, watch } from 'vue'
   import { useTheme } from 'vuetify'
+  import VChart from '@/components/EChart.vue'
+  import { authFetch } from '@/composables/useApi'
+  import { useNotify } from '@/composables/useNotify'
+  import { API_BASE } from '@/config'
+
+  // Every sale kashi knows of -- till sales and sales entered in kashi --
+  // for a year or one month of it, from GET /sales_dashboard
+  // (api/sales_dashboard.go). Amounts arrive in cents.
 
   const theme = useTheme()
   const c = computed(() => theme.current.value.colors)
+  const notify = useNotify()
 
   // Minimal palette: one accent (primary), a lighter tint for the
   // secondary series, neutral grey for structure. No decorative colour.
@@ -138,63 +149,89 @@
   const textColor = computed(() => (isDark.value ? '#aaa' : '#666'))
 
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  const years = ['2021', '2022']
-  const selectedYear = ref('2022')
-  const selectedMonth = ref('All')
+  const monthItems = [{ title: 'All', value: 0 }, ...months.map((title, i) => ({ title, value: i + 1 }))]
 
-  const money = v => '$' + Math.round(v).toLocaleString('en-US')
+  // null until the first answer: the server then picks the latest year
+  // that has sales.
+  const selectedYear = ref(null)
+  const selectedMonth = ref(0)
+  const report = ref(null)
+  const loading = ref(false)
 
-  // ---- Fake data ---------------------------------------------------------
-  const kpis = [
-    { label: 'Total Sales', value: '$401,412', icon: 'mdi-cash-multiple' },
-    { label: 'Total Profit', value: '$68,908', icon: 'mdi-chart-box-outline' },
-    { label: 'Profit %', value: '21%', icon: 'mdi-percent-outline' },
-  ]
+  const years = computed(() => report.value?.years ?? [])
 
-  const topProduct = { name: 'Product 41', qty: '132 Ft', value: 22_952 }
-  const topCategory = { name: 'Category 04', value: 95_269 }
+  let seq = 0
+  async function load () {
+    const mySeq = ++seq
+    loading.value = true
+    try {
+      const params = new URLSearchParams()
+      if (selectedYear.value) params.set('year', selectedYear.value)
+      if (selectedMonth.value) params.set('month', selectedMonth.value)
+      const res = await authFetch(`${API_BASE}/sales_dashboard?${params}`)
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || `Failed to load the sales dashboard (${res.status})`)
+      }
+      const data = await res.json()
+      if (mySeq !== seq) return
+      report.value = data
+      selectedYear.value = data.year
+    } catch (error) {
+      if (mySeq === seq) notify.error(error.message)
+    } finally {
+      if (mySeq === seq) loading.value = false
+    }
+  }
+  watch([selectedYear, selectedMonth], ([year], [prevYear]) => {
+    // The first answer fills in the year; that alone isn't a new request.
+    if (prevYear === null && year === report.value?.year) return
+    load()
+  })
+  load()
 
-  const monthlySales = [38_000, 42_000, 31_000, 28_000, 33_000, 30_000, 34_000, 37_000, 45_000, 40_000, 44_000, 38_000]
-  const profitPct = [21, 22, 22, 25, 17, 23, 18, 19, 23, 20, 23, 19]
-  const monthlyProfit = monthlySales.map((s, i) => Math.round((s * profitPct[i]) / 100))
+  const money = cents => '$' + Math.round((cents ?? 0) / 100).toLocaleString('en-US')
+  const pct = v => (v == null ? '—' : `${Math.round(v)}%`)
 
-  const products = [
-    { name: 'Product 11', value: 5856 },
-    { name: 'Product 12', value: 11_583 },
-    { name: 'Product 13', value: 8424 },
-    { name: 'Product 14', value: 12_765 },
-    { name: 'Product 15', value: 1839 },
-    { name: 'Product 16', value: 1997 },
-    { name: 'Product 17', value: 9877 },
-    { name: 'Product 18', value: 4035 },
-    { name: 'Product 19', value: 20_160 },
-    { name: 'Product 20', value: 8006 },
-  ]
+  const kpis = computed(() => {
+    const r = report.value
+    // Profit only counts items with a known cost; say how much that is.
+    const coverage = r?.cost_coverage
+    const hint = coverage != null && coverage < 100 ? `Based on ${Math.round(coverage)}% of sales with a known cost` : ''
+    return [
+      { label: 'Total Sales', value: money(r?.sales), icon: 'mdi-cash-multiple' },
+      { label: 'Gross Profit', value: money(r?.profit), icon: 'mdi-chart-box-outline', hint },
+      { label: 'Profit %', value: pct(r?.profit_pct), icon: 'mdi-percent-outline', hint },
+    ]
+  })
 
-  const salesType = [
-    { name: 'Direct Sales', value: 52 },
-    { name: 'Online', value: 33 },
-    { name: 'Wholesaler', value: 15 },
-  ]
+  const products = computed(() => (report.value?.top_products ?? []).map(p => ({
+    name: p.product_name,
+    code: p.product_code,
+    qty: p.quantity,
+    value: p.revenue,
+  })))
+  const topProduct = computed(() => products.value[0] ?? { name: '—', code: '', qty: '—', value: 0 })
 
-  const paymentMode = [
-    { name: 'Cash', value: 50 },
-    { name: 'Online', value: 50 },
-  ]
+  const categories = computed(() => (report.value?.categories ?? [])
+    .filter(cat => cat.revenue > 0)
+    .map(cat => ({ name: cat.category || 'Uncategorised', value: cat.revenue })))
+  const topCategory = computed(() => categories.value.find(cat => cat.name !== 'Uncategorised') ?? { name: '—', value: 0 })
 
-  const daily = [
-    8200, 15_400, 6100, 11_800, 9300, 18_600, 7400, 21_200, 12_900, 5600,
-    16_700, 10_300, 8800, 22_400, 14_100, 6900, 19_800, 11_200, 9600, 24_100,
-    13_300, 7700, 17_900, 10_800, 8100, 20_600, 12_400, 6300, 15_900, 11_500, 9100,
-  ]
+  const branches = computed(() => (report.value?.branches ?? [])
+    .filter(b => b.sales > 0)
+    .map(b => ({ name: b.branch_name || 'Entered in kashi', value: b.sales })))
+  const paymentMode = computed(() => (report.value?.payments ?? [])
+    .filter(p => p.amount > 0)
+    .map(p => ({ name: p.name, value: p.amount })))
 
-  const categories = [
-    { name: 'Category 04', value: 95_269 },
-    { name: 'Category 02', value: 92_964 },
-    { name: 'Category 05', value: 91_617 },
-    { name: 'Category 01', value: 69_262 },
-    { name: 'Category 03', value: 52_300 },
-  ]
+  const monthly = computed(() => report.value?.monthly ?? [])
+  const daily = computed(() => report.value?.daily ?? [])
+  // A single month labels days 1..31; a whole year labels "Oct 5".
+  const dailyLabels = computed(() => daily.value.map(d => {
+    const [, m, day] = d.day.split('-').map(Number)
+    return selectedMonth.value ? String(day) : `${months[m - 1]} ${day}`
+  }))
 
   // ---- Shared axis styling ---------------------------------------------
   const catAxis = computed(() => ({
@@ -220,12 +257,12 @@
     },
     xAxis: { type: 'category', data: months, ...catAxis.value },
     yAxis: [
-      { type: 'value', axisLabel: { color: textColor.value, fontSize: 11, formatter: v => '$' + v / 1000 + 'k' }, splitLine: { lineStyle: { color: axisColor.value, type: 'dashed' } } },
-      { type: 'value', max: 40, axisLabel: { color: textColor.value, fontSize: 11, formatter: '{value}%' }, splitLine: { show: false } },
+      { type: 'value', axisLabel: { color: textColor.value, fontSize: 11, formatter: v => '$' + Math.round(v / 100_000) + 'k' }, splitLine: { lineStyle: { color: axisColor.value, type: 'dashed' } } },
+      { type: 'value', axisLabel: { color: textColor.value, fontSize: 11, formatter: '{value}%' }, splitLine: { show: false } },
     ],
     series: [
-      { name: 'Sales', type: 'bar', barWidth: '32%', itemStyle: { color: primary.value }, data: monthlySales },
-      { name: 'Profit', type: 'bar', barWidth: '32%', itemStyle: { color: tint.value }, data: monthlyProfit },
+      { name: 'Sales', type: 'bar', barWidth: '32%', itemStyle: { color: primary.value }, tooltip: { valueFormatter: money }, data: monthly.value.map(m => m.sales) },
+      { name: 'Profit', type: 'bar', barWidth: '32%', itemStyle: { color: tint.value }, tooltip: { valueFormatter: money }, data: monthly.value.map(m => m.profit) },
       {
         name: 'Profit %',
         type: 'line',
@@ -235,13 +272,14 @@
         symbolSize: 5,
         lineStyle: { width: 2, color: textColor.value },
         itemStyle: { color: textColor.value },
-        data: profitPct,
+        tooltip: { valueFormatter: pct },
+        data: monthly.value.map(m => m.profit_pct),
       },
     ],
   }))
 
   const productOption = computed(() => {
-    const sorted = products.toSorted((a, b) => a.value - b.value)
+    const sorted = products.value.toSorted((a, b) => a.value - b.value)
     return {
       grid: { top: 8, right: 56, bottom: 8, left: 72 },
       tooltip: { trigger: 'axis', appendTo: 'body', valueFormatter: money },
@@ -261,7 +299,7 @@
 
   function donut (data, center = ['50%', '52%']) {
     return {
-      tooltip: { trigger: 'item', appendTo: 'body', formatter: '{b}: {d}%' },
+      tooltip: { trigger: 'item', appendTo: 'body', formatter: p => `${p.name}: ${money(p.value)} (${p.percent}%)` },
       legend: { bottom: 0, itemWidth: 10, itemHeight: 10, textStyle: { color: textColor.value, fontSize: 10 } },
       series: [
         {
@@ -281,14 +319,14 @@
     }
   }
 
-  const salesTypeOption = computed(() => donut(salesType))
-  const paymentOption = computed(() => donut(paymentMode))
+  const branchOption = computed(() => donut(branches.value))
+  const paymentOption = computed(() => donut(paymentMode.value))
 
   const dailyOption = computed(() => ({
     grid: { top: 16, right: 16, bottom: 28, left: 56 },
     tooltip: { trigger: 'axis', appendTo: 'body', valueFormatter: money },
-    xAxis: { type: 'category', boundaryGap: false, data: daily.map((_, i) => i + 1), ...catAxis.value },
-    yAxis: { type: 'value', axisLabel: { color: textColor.value, fontSize: 11, formatter: v => '$' + v / 1000 + 'k' }, splitLine: { lineStyle: { color: axisColor.value, type: 'dashed' } } },
+    xAxis: { type: 'category', boundaryGap: false, data: dailyLabels.value, ...catAxis.value },
+    yAxis: { type: 'value', axisLabel: { color: textColor.value, fontSize: 11, formatter: v => '$' + Math.round(v / 100_000) + 'k' }, splitLine: { lineStyle: { color: axisColor.value, type: 'dashed' } } },
     series: [
       {
         type: 'line',
@@ -296,7 +334,7 @@
         symbol: 'none',
         lineStyle: { width: 2, color: primary.value },
         areaStyle: { color: tint.value, opacity: 0.5 },
-        data: daily,
+        data: daily.value.map(d => d.sales),
       },
     ],
   }))
@@ -310,8 +348,8 @@
         nodeClick: false,
         breadcrumb: { show: false },
         itemStyle: { borderColor: isDark.value ? '#000' : '#fff', borderWidth: 2, gapWidth: 2 },
-        label: { formatter: p => `${p.name}\n${p.value.toLocaleString('en-US')}`, fontSize: 11, color: '#fff' },
-        data: categories.map((cat, i) => ({
+        label: { formatter: p => `${p.name}\n${money(p.value)}`, fontSize: 11, color: '#fff' },
+        data: categories.value.map((cat, i) => ({
           name: cat.name,
           value: cat.value,
           itemStyle: { color: primary.value + ['ff', 'd0', 'a8', '80', '58'][i % 5] },

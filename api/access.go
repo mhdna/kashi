@@ -241,6 +241,7 @@ var routeRules = []routeRule{
 
 	// Analytics
 	rule("/dashboard", "", "analytics"),
+	rule("/sales_dashboard", "", "analytics"),
 	rule("/branch_sales_stats", "", "analytics", "sales"),
 	rule("/branch_product_revenue", "", "analytics", "inventory"),
 	rule("/product_revenue", "", "analytics", "inventory"),

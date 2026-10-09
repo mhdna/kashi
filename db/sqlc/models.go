@@ -1408,6 +1408,24 @@ type RecurringExpense struct {
 	CategoryID    sql.NullInt64 `json:"category_id"`
 }
 
+type ReportSaleInvoice struct {
+	Source     string    `json:"source"`
+	InvoiceID  int64     `json:"invoice_id"`
+	BranchID   int64     `json:"branch_id"`
+	OccurredAt time.Time `json:"occurred_at"`
+	GrandTotal int64     `json:"grand_total"`
+}
+
+type ReportSaleLine struct {
+	Source     string    `json:"source"`
+	BranchID   int64     `json:"branch_id"`
+	OccurredAt time.Time `json:"occurred_at"`
+	ProductID  int64     `json:"product_id"`
+	Quantity   int64     `json:"quantity"`
+	LineTotal  int64     `json:"line_total"`
+	UnitCost   int64     `json:"unit_cost"`
+}
+
 type ReturnInvoice struct {
 	InvoiceID      int64 `json:"invoice_id"`
 	SalesInvoiceID int64 `json:"sales_invoice_id"`

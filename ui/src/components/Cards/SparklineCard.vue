@@ -36,6 +36,7 @@
           {{ deltaText }}
         </v-chip>
       </div>
+      <div v-if="props.hint" class="text-caption text-medium-emphasis mt-1">{{ props.hint }}</div>
     </div>
 
     <VChart
@@ -88,6 +89,11 @@
     loading: {
       type: Boolean,
       default: false,
+    },
+    // A short caption under the value, e.g. what the figure is based on.
+    hint: {
+      type: String,
+      default: '',
     },
   })
 

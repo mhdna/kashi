@@ -1198,6 +1198,36 @@ type Querier interface {
 	// invoices the till already sent under its own uid now point at the
 	// canonical one.
 	RepointBranchInvoicesClientUID(ctx context.Context, arg RepointBranchInvoicesClientUIDParams) error
+	// Sales per branch; sales entered in kashi come back with an empty name.
+	ReportBranchSales(ctx context.Context, arg ReportBranchSalesParams) ([]ReportBranchSalesRow, error)
+	// Revenue per product category. Lines without a product or whose product
+	// has no category come back with an empty name.
+	ReportCategorySales(ctx context.Context, arg ReportCategorySalesParams) ([]ReportCategorySalesRow, error)
+	// Sales reports over report_sale_invoices / report_sale_lines (migration
+	// 000134): the Dashboard's cost of goods and the Sales Dashboard
+	// (api/sales_dashboard.go). Ranges are half-open [date_from, date_to), days
+	// are UTC calendar days like the rest of the dashboard.
+	// Cost of goods sold for the Dashboard, scoped like its other figures:
+	// till sales (optionally one branch) and/or sales entered in kashi. Only
+	// lines with a known cost count; costed_revenue is what those lines sold
+	// for, so the caller can say how much of revenue the cost covers.
+	ReportCostOfGoods(ctx context.Context, arg ReportCostOfGoodsParams) (ReportCostOfGoodsRow, error)
+	// ReportCostOfGoods per day.
+	ReportCostOfGoodsSeries(ctx context.Context, arg ReportCostOfGoodsSeriesParams) ([]ReportCostOfGoodsSeriesRow, error)
+	// Per day, what lines with a known cost sold for and what they cost --
+	// the Sales Dashboard's profit is the difference.
+	ReportDailyCosted(ctx context.Context, arg ReportDailyCostedParams) ([]ReportDailyCostedRow, error)
+	// Sales (net of returns) per day.
+	ReportDailySales(ctx context.Context, arg ReportDailySalesParams) ([]ReportDailySalesRow, error)
+	// What sales were paid with: the till's payment accounts by name ("Cash
+	// $$", "Visa", ...) plus kashi's own cashbox accounts, merged by name.
+	ReportPaymentMethods(ctx context.Context, arg ReportPaymentMethodsParams) ([]ReportPaymentMethodsRow, error)
+	// Every year that has a sale, newest first, for the Sales Dashboard's
+	// year picker.
+	ReportSaleYears(ctx context.Context) ([]int32, error)
+	// Best-selling products by revenue. Till lines whose product never
+	// resolved to a kashi variant have no product and are left out.
+	ReportTopProducts(ctx context.Context, arg ReportTopProductsParams) ([]ReportTopProductsRow, error)
 	ResolveBranchSyncConflict(ctx context.Context, arg ResolveBranchSyncConflictParams) (BranchSyncConflict, error)
 	// Mirrors ResolveVariantPrice: a branch assigned a discount list is discounted
 	// from it, everyone else from the default list. Unlike price, no row here means

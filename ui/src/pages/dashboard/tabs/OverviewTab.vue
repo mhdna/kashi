@@ -22,6 +22,7 @@
         :value="metric('expenses')"
       />
       <SparklineCard
+        :hint="profitHint"
         icon="mdi-trending-up"
         :loading="loading"
         :prev-value="prevProfit"
@@ -77,16 +78,24 @@
     return typeof v === 'number' ? v : null
   }
 
-  const profit = computed(() => {
-    const r = metric('revenue')
-    const e = metric('expenses')
-    return r == null || e == null ? null : r - e
-  })
+  // Profit = revenue - cost of the goods sold - expenses. The cost comes
+  // from the products' costs (api/dashboard.go, ReportCostOfGoods) and only
+  // covers items with a known cost -- profitHint says how much of revenue
+  // that is, since an item with no cost makes profit look higher.
+  function profitOf (m) {
+    const r = m('revenue')
+    const e = m('expenses')
+    return r == null || e == null ? null : r - (m('cogs') ?? 0) - e
+  }
+  const profit = computed(() => profitOf(metric))
+  const prevProfit = computed(() => profitOf(prevMetric))
 
-  const prevProfit = computed(() => {
-    const r = prevMetric('revenue')
-    const e = prevMetric('expenses')
-    return r == null || e == null ? null : r - e
+  const profitHint = computed(() => {
+    const revenue = metric('revenue')
+    const costed = metric('costed_revenue')
+    if (!revenue || revenue <= 0 || costed == null) return ''
+    const pct = Math.min(100, Math.round((costed / revenue) * 100))
+    return pct >= 100 ? '' : `Cost known for ${pct}% of sales`
   })
 
   // Profit as a percentage of revenue, rounded to one decimal.
@@ -112,10 +121,11 @@
   const daily = computed(() => summary.value?.series ?? [])
   const revenueSeries = computed(() => daily.value.map(d => d.revenue ?? 0))
   const expensesSeries = computed(() => daily.value.map(d => d.expenses ?? 0))
-  const profitSeries = computed(() => daily.value.map(d => (d.revenue ?? 0) - (d.expenses ?? 0)))
+  const dayProfit = d => (d.revenue ?? 0) - (d.cogs ?? 0) - (d.expenses ?? 0)
+  const profitSeries = computed(() => daily.value.map(d => dayProfit(d)))
   const marginSeries = computed(() => daily.value.map(d => {
     const rev = d.revenue ?? 0
-    return rev === 0 ? 0 : Math.round((((d.revenue ?? 0) - (d.expenses ?? 0)) / rev) * 1000) / 10
+    return rev === 0 ? 0 : Math.round((dayProfit(d) / rev) * 1000) / 10
   }))
   // Running total of daily net, so the tile shows the trajectory.
   const finPositionSeries = computed(() => {
