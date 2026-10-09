@@ -203,11 +203,12 @@
 }
 
 /* Keep the dropdown from growing past a comfortable height -- the list
-   scrolls inside instead. */
+   scrolls inside instead. 480px fits the header and seven events (about
+   56px each) without cutting the last one. */
 .menu-card {
   display: flex;
   flex-direction: column;
-  max-height: min(60vh, 420px);
+  max-height: min(80vh, 480px);
 }
 
 .menu-scroll {
