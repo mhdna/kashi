@@ -21,7 +21,7 @@
           <v-list-item-title>All Branches</v-list-item-title>
         </v-list-item>
         <v-list-item
-          v-for="branch in branches"
+          v-for="branch in reportBranches"
           :key="branch.id"
           :active="selectedBranchId === branch.id"
           @click="selectedBranchId = branch.id"
@@ -40,6 +40,9 @@
 
   const { branches, fetchBranches } = useBranches()
   const { selectedBranchId } = useIncomeFilters()
+  // Branches switched out of reports (Branches > "In reports") have no sales
+  // in any report, so they aren't offered.
+  const reportBranches = computed(() => branches.value.filter(b => !b.hidden_from_reports))
 
   onMounted(() => fetchBranches())
 

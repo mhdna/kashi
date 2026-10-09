@@ -12,7 +12,7 @@
         hide-details
         item-title="name"
         item-value="id"
-        :items="branches"
+        :items="reportBranches"
         :model-value="selected"
         multiple
         persistent-placeholder
@@ -44,7 +44,7 @@
           All branches
         </v-chip>
         <v-chip
-          v-for="branch in branches"
+          v-for="branch in reportBranches"
           :key="branch.id"
           :color="isPicked(branch.id) ? 'primary' : undefined"
           filter
@@ -73,6 +73,9 @@
   // selection rather than the Dashboard's single-branch filter.
   const ALL = 'all'
   const { branches, fetchBranches } = useBranches()
+  // Branches switched out of reports (Branches > "In reports") have no sales
+  // in the grid, so they aren't offered.
+  const reportBranches = computed(() => branches.value.filter(b => !b.hidden_from_reports))
   const { xs } = useDisplay()
   const route = useRoute()
   const router = useRouter()
