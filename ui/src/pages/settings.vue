@@ -414,7 +414,7 @@
     </v-card>
 
     <!-- Add user -->
-    <v-dialog v-model="createDialog" max-width="420">
+    <v-dialog v-model="createDialog" max-width="420" persistent>
       <v-card>
         <v-card-title class="text-subtitle-1">Add user</v-card-title>
         <v-card-text>
@@ -479,7 +479,7 @@
     </v-dialog>
 
     <!-- Edit user -->
-    <v-dialog v-model="editDialog" max-width="420">
+    <v-dialog v-model="editDialog" max-width="420" persistent>
       <v-card>
         <v-card-title class="text-subtitle-1">Edit user — {{ editTarget?.name }}</v-card-title>
         <v-card-text>
@@ -530,7 +530,7 @@
     </v-dialog>
 
     <!-- Change password -->
-    <v-dialog v-model="passwordDialog" max-width="420">
+    <v-dialog v-model="passwordDialog" max-width="420" persistent>
       <v-card>
         <v-card-title class="text-subtitle-1">Change password — {{ passwordTarget?.name }}</v-card-title>
         <v-card-text>
