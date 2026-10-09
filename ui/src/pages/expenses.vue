@@ -216,11 +216,6 @@
         <v-icon icon="mdi-cash-minus" />
         <span>Expenses</span>
         <v-spacer />
-        <v-tabs v-model="tab" class="expense-tabs" color="primary" density="compact">
-          <v-tab value="own">Mine</v-tab>
-          <v-tab value="recurring">Recurring</v-tab>
-          <v-tab value="branch">Branches</v-tab>
-        </v-tabs>
         <v-text-field
           v-model="search"
           class="expense-search"
@@ -231,6 +226,18 @@
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
         />
+        <!-- Same switcher as the Loans page. -->
+        <v-btn-toggle
+          v-model="tab"
+          color="primary"
+          density="comfortable"
+          mandatory
+          variant="outlined"
+        >
+          <v-btn value="own">Central</v-btn>
+          <v-btn value="recurring">Recurring</v-btn>
+          <v-btn value="branch">Branch</v-btn>
+        </v-btn-toggle>
         <div class="d-flex ga-2">
           <v-btn
             v-if="canEdit && tab === 'recurring'"
@@ -464,9 +471,9 @@
   const search = ref('')
   const selectedCategory = ref(null)
 
-  // Central and branch expenses keep separate categories: the Branches tab
-  // lists and adds the 'branch' ones (the only ones tills receive), Mine and
-  // Recurring the central ones. Rows still resolve their category from the
+  // Central and branch expenses keep separate categories: the Branch tab
+  // lists and adds the 'branch' ones (the only ones tills receive), Central
+  // and Recurring the central ones. Rows still resolve their category from the
   // full list.
   const tabScope = computed(() => tab.value === 'branch' ? 'branch' : 'central')
   const tabCategories = computed(() => expenseCategories.value.filter(c => (c.scope === 'branch') === (tabScope.value === 'branch')))
