@@ -21,6 +21,17 @@ export function connectionErrorMessage () {
     : SERVER_DOWN_MESSAGE
 }
 
+// The API's 403 for a request the user's role doesn't allow, worded by
+// permissionMiddleware in api/access.go ("your role (Viewer) can't view
+// Sales") -- keep the two in sync. The UI already hides what a role can't
+// use; whatever still trips this (a shared widget loading data from another
+// section, say) is dropped silently rather than shown to the user.
+const PERMISSION_DENIED = /your role \(.*\) can't (view|change) /
+
+export function isPermissionDenied (message) {
+  return PERMISSION_DENIED.test(String(message ?? ''))
+}
+
 export function isConnectionError (error) {
   return error?.message === SERVER_DOWN_MESSAGE
     || error?.message === NO_INTERNET_MESSAGE

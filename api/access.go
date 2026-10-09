@@ -515,6 +515,8 @@ func (server *Server) permissionMiddleware() gin.HandlerFunc {
 		if found {
 			what = r.describe(write)
 		}
+		// The admin UI recognises this wording to keep it out of its error
+		// toasts (isPermissionDenied in ui/src/composables/useApi.js).
 		server.abortError(ctx, http.StatusForbidden, fmt.Errorf("your role (%s) can't %s %s", access.RoleName, verb, what))
 	}
 }
