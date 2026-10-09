@@ -32,17 +32,24 @@
         class="flex-grow-1"
         column
         multiple
-        selected-class="text-primary"
       >
-        <v-chip filter :value="ALL" variant="outlined">
+        <!-- A picked chip is filled in the primary colour; the rest stay
+             outlined. -->
+        <v-chip
+          :color="isPicked(ALL) ? 'primary' : undefined"
+          filter
+          :value="ALL"
+          :variant="isPicked(ALL) ? 'flat' : 'outlined'"
+        >
           All branches
         </v-chip>
         <v-chip
           v-for="branch in branches"
           :key="branch.id"
+          :color="isPicked(branch.id) ? 'primary' : undefined"
           filter
           :value="branch.id"
-          variant="outlined"
+          :variant="isPicked(branch.id) ? 'flat' : 'outlined'"
         >
           {{ branch.name }}
         </v-chip>
@@ -90,6 +97,8 @@
       selected.value = pickedAll ? [] : value.filter((v): v is number => typeof v === 'number')
     },
   })
+
+  const isPicked = (value: number | string) => branchIds.value.includes(value)
 
   onMounted(() => fetchBranches())
 
