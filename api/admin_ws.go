@@ -36,8 +36,9 @@ type adminHub struct {
 // It doubles as the wire shape for presence, so the UI can render an avatar
 // without a second lookup.
 type onlineUser struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	AvatarColor string `json:"avatar_color"`
 }
 
 func newAdminHub() *adminHub {
@@ -48,6 +49,19 @@ func (h *adminHub) add(conn *wsConn, user onlineUser) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.conns[conn] = user
+}
+
+// setAvatarColor updates every live connection of a user to a new colour,
+// so the next presence push carries it.
+func (h *adminHub) setAvatarColor(userID int64, color string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for conn, u := range h.conns {
+		if u.ID == userID {
+			u.AvatarColor = color
+			h.conns[conn] = u
+		}
+	}
 }
 
 func (h *adminHub) remove(conn *wsConn) {
@@ -168,7 +182,7 @@ func (server *Server) adminWS(ctx *gin.Context) {
 	defer conn.Close()
 
 	wrapped := newWSConn(conn)
-	server.adminHub.add(wrapped, onlineUser{ID: payload.UserID, Name: server.displayName(ctx, payload)})
+	server.adminHub.add(wrapped, server.onlineUserFor(ctx, payload))
 	server.adminHub.broadcastAll(adminWSMessage{Type: "admin_presence_changed", Users: server.adminHub.onlineUsers()})
 	defer func() {
 		server.adminHub.remove(wrapped)

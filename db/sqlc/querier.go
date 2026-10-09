@@ -1263,6 +1263,7 @@ type Querier interface {
 	// CreateBranchTransferRequestTx resolves an outgoing line.
 	SetTransferItemReceivedQuantityByVariant(ctx context.Context, arg SetTransferItemReceivedQuantityByVariantParams) (int64, error)
 	SetTransferStatus(ctx context.Context, arg SetTransferStatusParams) (Transfer, error)
+	SetUserAvatarColor(ctx context.Context, arg SetUserAvatarColorParams) error
 	SetVariantBarcode(ctx context.Context, arg SetVariantBarcodeParams) (ProductVariant, error)
 	SetWhatsAppSettings(ctx context.Context, arg SetWhatsAppSettingsParams) error
 	// Net sales revenue: same grand_total-sum convention as ListDailyIncome in

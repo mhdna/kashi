@@ -5,7 +5,8 @@ RETURNING *;
 
 -- name: ListAdminActivities :many
 SELECT a.id, a.method, a.route, a.entity_id, a.summary, a.detail, a.created_at,
-       a.user_id, COALESCE(u.name, '') AS user_name
+       a.user_id, COALESCE(u.name, '') AS user_name,
+       COALESCE(u.avatar_color, '') AS user_avatar_color
 FROM admin_activities a
 LEFT JOIN users u ON u.id = a.user_id
 -- User and role changes are admin housekeeping, kept out of the feed.

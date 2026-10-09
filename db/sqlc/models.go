@@ -1576,6 +1576,7 @@ type User struct {
 	CreatedAt         time.Time `json:"created_at"`
 	RoleID            int64     `json:"role_id"`
 	Username          string    `json:"username"`
+	AvatarColor       string    `json:"avatar_color"`
 }
 
 type UsersPermission struct {

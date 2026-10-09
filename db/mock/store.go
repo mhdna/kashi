@@ -9246,6 +9246,20 @@ func (mr *MockStoreMockRecorder) SetTransferStatus(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetTransferStatus", reflect.TypeOf((*MockStore)(nil).SetTransferStatus), arg0, arg1)
 }
 
+// SetUserAvatarColor mocks base method.
+func (m *MockStore) SetUserAvatarColor(arg0 context.Context, arg1 db.SetUserAvatarColorParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetUserAvatarColor", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetUserAvatarColor indicates an expected call of SetUserAvatarColor.
+func (mr *MockStoreMockRecorder) SetUserAvatarColor(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUserAvatarColor", reflect.TypeOf((*MockStore)(nil).SetUserAvatarColor), arg0, arg1)
+}
+
 // SetVariantBarcode mocks base method.
 func (m *MockStore) SetVariantBarcode(arg0 context.Context, arg1 db.SetVariantBarcodeParams) (db.ProductVariant, error) {
 	m.ctrl.T.Helper()

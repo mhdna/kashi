@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { WS_BASE } from '@/config'
 import { useAuthStore } from '@/stores/auth'
 
@@ -83,8 +83,43 @@ function connect () {
   })
 }
 
+// The socket is opened as whoever is signed in, and kashi lists that user as
+// online for as long as it stays open. So when the user changes -- logging
+// out, or signing in as someone else in the same tab -- the old socket is
+// closed (without the reconnect loop) and, if someone is signed in, a new one
+// opens with their token. A plain token refresh keeps the same user and the
+// same socket.
+let identityWatched = false
+function watchIdentity () {
+  if (identityWatched) {
+    return
+  }
+  identityWatched = true
+  const authStore = useAuthStore()
+  watch(() => authStore.user?.id ?? null, (id, previous) => {
+    if (id === previous) {
+      return
+    }
+    clearTimeout(reconnectTimer)
+    if (ws) {
+      const old = ws
+      ws = null
+      old.removeEventListener('close', handleClose)
+      old.close()
+    }
+    retryDelay = RETRY_MIN_MS
+    if (authStore.token) {
+      status.value = 'connecting'
+      connect()
+    } else {
+      status.value = 'closed'
+    }
+  })
+}
+
 export function useAdminSocket () {
   function ensureConnected () {
+    watchIdentity()
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
       return
     }

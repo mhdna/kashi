@@ -18,7 +18,7 @@ INSERT INTO users (
   activated,
   role_id
 ) VALUES ( $1, $2, $3, $4, $5, $6 )
-RETURNING id, name, email, password_hash, password_changed_at, activated, version, created_at, role_id, username
+RETURNING id, name, email, password_hash, password_changed_at, activated, version, created_at, role_id, username, avatar_color
 `
 
 type CreateUserParams struct {
@@ -51,6 +51,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.CreatedAt,
 		&i.RoleID,
 		&i.Username,
+		&i.AvatarColor,
 	)
 	return i, err
 }
@@ -66,7 +67,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, name, email, password_hash, password_changed_at, activated, version, created_at, role_id, username FROM users
+SELECT id, name, email, password_hash, password_changed_at, activated, version, created_at, role_id, username, avatar_color FROM users
 WHERE id = $1 LIMIT 1
 `
 
@@ -84,12 +85,13 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 		&i.CreatedAt,
 		&i.RoleID,
 		&i.Username,
+		&i.AvatarColor,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, name, email, password_hash, password_changed_at, activated, version, created_at, role_id, username FROM users
+SELECT id, name, email, password_hash, password_changed_at, activated, version, created_at, role_id, username, avatar_color FROM users
 WHERE username = $1 LIMIT 1
 `
 
@@ -107,12 +109,13 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.CreatedAt,
 		&i.RoleID,
 		&i.Username,
+		&i.AvatarColor,
 	)
 	return i, err
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, name, email, password_hash, password_changed_at, activated, version, created_at, role_id, username FROM users
+SELECT id, name, email, password_hash, password_changed_at, activated, version, created_at, role_id, username, avatar_color FROM users
 ORDER BY id
 LIMIT $1
 OFFSET $2
@@ -143,6 +146,7 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 			&i.CreatedAt,
 			&i.RoleID,
 			&i.Username,
+			&i.AvatarColor,
 		); err != nil {
 			return nil, err
 		}
@@ -155,6 +159,20 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 		return nil, err
 	}
 	return items, nil
+}
+
+const setUserAvatarColor = `-- name: SetUserAvatarColor :exec
+UPDATE users SET avatar_color = $2 WHERE id = $1
+`
+
+type SetUserAvatarColorParams struct {
+	ID          int64  `json:"id"`
+	AvatarColor string `json:"avatar_color"`
+}
+
+func (q *Queries) SetUserAvatarColor(ctx context.Context, arg SetUserAvatarColorParams) error {
+	_, err := q.db.ExecContext(ctx, setUserAvatarColor, arg.ID, arg.AvatarColor)
+	return err
 }
 
 const updateUser = `-- name: UpdateUser :exec

@@ -36,3 +36,6 @@ WHERE id = $1;
 -- name: DeleteUser :exec
 DELETE FROM users
 WHERE id = $1;
+
+-- name: SetUserAvatarColor :exec
+UPDATE users SET avatar_color = $2 WHERE id = $1;

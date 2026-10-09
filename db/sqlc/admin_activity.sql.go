@@ -65,7 +65,8 @@ func (q *Queries) CreateAdminActivity(ctx context.Context, arg CreateAdminActivi
 
 const listAdminActivities = `-- name: ListAdminActivities :many
 SELECT a.id, a.method, a.route, a.entity_id, a.summary, a.detail, a.created_at,
-       a.user_id, COALESCE(u.name, '') AS user_name
+       a.user_id, COALESCE(u.name, '') AS user_name,
+       COALESCE(u.avatar_color, '') AS user_avatar_color
 FROM admin_activities a
 LEFT JOIN users u ON u.id = a.user_id
 WHERE a.route NOT LIKE '/users%' AND a.route NOT LIKE '/roles%'
@@ -79,15 +80,16 @@ type ListAdminActivitiesParams struct {
 }
 
 type ListAdminActivitiesRow struct {
-	ID        int64         `json:"id"`
-	Method    string        `json:"method"`
-	Route     string        `json:"route"`
-	EntityID  sql.NullInt64 `json:"entity_id"`
-	Summary   string        `json:"summary"`
-	Detail    string        `json:"detail"`
-	CreatedAt time.Time     `json:"created_at"`
-	UserID    sql.NullInt64 `json:"user_id"`
-	UserName  string        `json:"user_name"`
+	ID              int64         `json:"id"`
+	Method          string        `json:"method"`
+	Route           string        `json:"route"`
+	EntityID        sql.NullInt64 `json:"entity_id"`
+	Summary         string        `json:"summary"`
+	Detail          string        `json:"detail"`
+	CreatedAt       time.Time     `json:"created_at"`
+	UserID          sql.NullInt64 `json:"user_id"`
+	UserName        string        `json:"user_name"`
+	UserAvatarColor string        `json:"user_avatar_color"`
 }
 
 // User and role changes are admin housekeeping, kept out of the feed.
@@ -110,6 +112,7 @@ func (q *Queries) ListAdminActivities(ctx context.Context, arg ListAdminActiviti
 			&i.CreatedAt,
 			&i.UserID,
 			&i.UserName,
+			&i.UserAvatarColor,
 		); err != nil {
 			return nil, err
 		}

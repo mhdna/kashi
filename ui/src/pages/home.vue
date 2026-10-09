@@ -381,13 +381,14 @@
   const auth = useAuthStore()
   const { color: myAvatarColor } = useUserAvatar()
 
-  // The signed-in user's own rows wear the colour they picked in Settings,
-  // as in the top bar. That choice lives in this browser only, so everyone
-  // else keeps the colour derived from their name.
+  // Each row in the colour its user picked in Settings (avatar_color comes
+  // with the row), else the one from their name. The signed-in user's own
+  // rows follow their user, so a new pick shows before the feed reloads.
   function userColor (item) {
     const id = item.user_id?.Int64 ?? item.user_id
     const mine = auth.user && ((id && id === auth.user.id) || (item.user_name && item.user_name === auth.user.name))
-    return mine ? myAvatarColor.value : hashColor(item.user_name || 'kashi')
+    if (mine) {return myAvatarColor.value}
+    return item.user_avatar_color || hashColor(item.user_name || 'kashi')
   }
 
   // Stamped at build time from git (see vite.config.mjs).

@@ -238,6 +238,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.POST("/users", server.createUser)
 	authRoutes.GET("/users/online", server.listOnlineUsers)
 	authRoutes.GET("/users/me", server.getMe)
+	authRoutes.PUT("/users/me/avatar_color", server.setMyAvatarColor)
 	authRoutes.GET("/users/:id", server.getUser)
 	authRoutes.GET("/users", server.listUsers)
 	authRoutes.PUT("/users", server.updateUser)

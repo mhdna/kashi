@@ -75,6 +75,9 @@ type userResponse struct {
 	RoleID            int64     `json:"role_id"`
 	PasswordChangedAt time.Time `json:"password_changed_at"`
 	CreatedAt         time.Time `json:"created_at"`
+	// AvatarColor is the colour picked in Settings; '' derives it from the
+	// name, as the UI always has.
+	AvatarColor string `json:"avatar_color"`
 }
 
 func newUserResponse(user db.User) userResponse {
@@ -86,6 +89,7 @@ func newUserResponse(user db.User) userResponse {
 		RoleID:            user.RoleID,
 		PasswordChangedAt: user.PasswordChangedAt,
 		CreatedAt:         user.CreatedAt,
+		AvatarColor:       user.AvatarColor,
 	}
 }
 
@@ -125,6 +129,50 @@ func (server *Server) displayName(ctx context.Context, payload *token.Payload) s
 		return user.Name
 	}
 	return payload.Username
+}
+
+type setAvatarColorRequest struct {
+	// '' goes back to the colour derived from the name.
+	Color string `json:"color"`
+}
+
+var avatarColorPattern = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
+
+// setMyAvatarColor saves the signed-in user's avatar colour, so every
+// browser shows it, and pushes presence again so open top bars repaint.
+func (server *Server) setMyAvatarColor(ctx *gin.Context) {
+	payload := ctx.MustGet(authoizationPayloadKey).(*token.Payload)
+	var req setAvatarColorRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	if req.Color != "" && !avatarColorPattern.MatchString(req.Color) {
+		server.writeError(ctx, http.StatusBadRequest, errors.New("colour must look like #3F51B5"))
+		return
+	}
+	id, err := server.callerID(ctx, payload)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if err := server.store.SetUserAvatarColor(ctx, db.SetUserAvatarColorParams{ID: id, AvatarColor: req.Color}); err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.adminHub.setAvatarColor(id, req.Color)
+	server.adminHub.broadcastAll(adminWSMessage{Type: "admin_presence_changed", Users: server.adminHub.onlineUsers()})
+	server.writeJSON(ctx, http.StatusOK, envelope{"avatar_color": req.Color})
+}
+
+// onlineUserFor is who an admin connection belongs to, with the name and
+// colour others see. The token only carries the username, so both come
+// from the user row when it can be read.
+func (server *Server) onlineUserFor(ctx context.Context, payload *token.Payload) onlineUser {
+	if user, err := server.store.GetUser(ctx, payload.UserID); err == nil {
+		return onlineUser{ID: payload.UserID, Name: user.Name, AvatarColor: user.AvatarColor}
+	}
+	return onlineUser{ID: payload.UserID, Name: payload.Username}
 }
 
 // listOnlineUsers gives the admin UI an initial value for "who is signed in

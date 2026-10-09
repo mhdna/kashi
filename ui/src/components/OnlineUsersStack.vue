@@ -9,6 +9,7 @@
       v-for="u in visible"
       :key="u.id"
       class="online-stack__avatar text-white font-weight-medium"
+      :class="{ 'online-stack__avatar--me': u.id === auth.user?.id }"
       :color="colorFor(u)"
       size="30"
       :style="u.id === auth.user?.id ? 'cursor: pointer' : ''"
@@ -38,7 +39,7 @@
   import { useRouter } from 'vue-router'
   import { useDisplay } from 'vuetify'
   import { useOnlineUsers } from '@/composables/useOnlineUsers'
-  import { hashColor, initialsOf, useUserAvatar } from '@/composables/useUserAvatar'
+  import { colorForUser, initialsOf, useUserAvatar } from '@/composables/useUserAvatar'
   import { useAuthStore } from '@/stores/auth'
 
   const auth = useAuthStore()
@@ -62,9 +63,11 @@
   const visible = computed(() => ordered.value.slice(0, maxVisible.value))
   const overflow = computed(() => ordered.value.slice(maxVisible.value))
 
-  // The current user's avatar honours the per-device colour override.
+  // Everyone in the colour they picked in Settings (sent with presence);
+  // the signed-in user's own comes from their user, so a change shows here
+  // before the next presence push.
   function colorFor (u) {
-    return u.id === auth.user?.id ? ownColor.value : hashColor(u.name)
+    return u.id === auth.user?.id ? ownColor.value : colorForUser(u)
   }
 </script>
 
@@ -78,6 +81,13 @@
 
   .online-stack__avatar + .online-stack__avatar {
     margin-inline-start: -10px;
+  }
+
+  /* You: a yellow ring outside the cut-out, and room before the others
+     (you're always first) so you don't overlap into them. */
+  .online-stack__avatar--me {
+    box-shadow: 0 0 0 2px #FFC107;
+    margin-inline-end: 14px;
   }
 
   .online-stack__skeleton,

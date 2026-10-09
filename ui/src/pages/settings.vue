@@ -105,7 +105,7 @@
             <h3 class="text-subtitle-1 mb-1 mt-6">Your avatar</h3>
             <p class="text-body-2 text-medium-emphasis mb-3">
               The initials badge in the top bar — your name's first two letters.
-              The colour is saved on this device and applies right away.
+              Everyone sees you in this colour, on every device.
             </p>
 
             <div class="d-flex align-center ga-4 mb-2">
@@ -120,7 +120,7 @@
                   :class="{ 'swatch--active': c === avatarColor }"
                   :style="{ background: c }"
                   type="button"
-                  @click="setAvatarColor(c)"
+                  @click="pickAvatarColor(c)"
                 />
               </div>
             </div>
@@ -129,7 +129,7 @@
               class="px-1"
               size="small"
               variant="text"
-              @click="resetAvatarColor"
+              @click="pickAvatarColor('')"
             >
               Reset to default colour
             </v-btn>
@@ -606,6 +606,14 @@
     setColor: setAvatarColor,
     resetColor: resetAvatarColor,
   } = useUserAvatar()
+
+  async function pickAvatarColor (value) {
+    try {
+      await (value ? setAvatarColor(value) : resetAvatarColor())
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
 
   const settingsStore = useSettingsStore()
 
