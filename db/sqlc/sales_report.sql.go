@@ -313,6 +313,62 @@ func (q *Queries) ReportDailySales(ctx context.Context, arg ReportDailySalesPara
 	return items, nil
 }
 
+const reportHourlySales = `-- name: ReportHourlySales :many
+SELECT
+  EXTRACT(DOW FROM s.occurred_at AT TIME ZONE COALESCE(NULLIF(br.timezone, ''), 'Asia/Beirut'))::int AS dow,
+  EXTRACT(HOUR FROM s.occurred_at AT TIME ZONE COALESCE(NULLIF(br.timezone, ''), 'Asia/Beirut'))::int AS hour,
+  COUNT(*)::bigint AS invoices,
+  COALESCE(SUM(s.grand_total), 0)::bigint AS sales
+FROM report_sale_invoices s
+LEFT JOIN branches br ON br.id = s.branch_id
+WHERE s.occurred_at >= $1::timestamptz
+  AND s.occurred_at < $2::timestamptz
+GROUP BY dow, hour
+ORDER BY dow, hour
+`
+
+type ReportHourlySalesParams struct {
+	DateFrom time.Time `json:"date_from"`
+	DateTo   time.Time `json:"date_to"`
+}
+
+type ReportHourlySalesRow struct {
+	Dow      int32 `json:"dow"`
+	Hour     int32 `json:"hour"`
+	Invoices int64 `json:"invoices"`
+	Sales    int64 `json:"sales"`
+}
+
+// Sales by day of week (0 = Sunday) and hour, in each branch's own time
+// zone (Beirut for sales entered in kashi), for the Financials heatmap.
+func (q *Queries) ReportHourlySales(ctx context.Context, arg ReportHourlySalesParams) ([]ReportHourlySalesRow, error) {
+	rows, err := q.db.QueryContext(ctx, reportHourlySales, arg.DateFrom, arg.DateTo)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReportHourlySalesRow{}
+	for rows.Next() {
+		var i ReportHourlySalesRow
+		if err := rows.Scan(
+			&i.Dow,
+			&i.Hour,
+			&i.Invoices,
+			&i.Sales,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const reportInventoryValue = `-- name: ReportInventoryValue :one
 SELECT COALESCE(SUM(ist.quantity * COALESCE(NULLIF(ist.avg_cost, 0), pv.avg_cost)), 0)::bigint AS value
 FROM inventory_stock ist

@@ -403,6 +403,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/dashboard/activities", server.listDashboardActivities)
 	authRoutes.GET("/sales_dashboard", server.getSalesDashboard)
 	authRoutes.GET("/sales_analysis", server.getSalesAnalysis)
+	authRoutes.GET("/financials", server.getFinancials)
 	authRoutes.GET("/branches/:id/settings", server.getBranchSettings)
 	authRoutes.PUT("/branches/:id/settings/managed_locally", server.putBranchSettingsManagedLocally)
 	authRoutes.POST("/branches/:id/commands", server.createBranchCommand)

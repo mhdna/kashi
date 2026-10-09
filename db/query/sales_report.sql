@@ -165,3 +165,18 @@ SELECT COALESCE(SUM(bip.amount), 0)::bigint AS outstanding
 FROM branch_invoice_payments bip
 JOIN report_sale_invoices s ON s.source = 'branch' AND s.invoice_id = bip.branch_invoice_id
 WHERE lower(bip.account_name) LIKE '%on account%';
+
+-- name: ReportHourlySales :many
+-- Sales by day of week (0 = Sunday) and hour, in each branch's own time
+-- zone (Beirut for sales entered in kashi), for the Financials heatmap.
+SELECT
+  EXTRACT(DOW FROM s.occurred_at AT TIME ZONE COALESCE(NULLIF(br.timezone, ''), 'Asia/Beirut'))::int AS dow,
+  EXTRACT(HOUR FROM s.occurred_at AT TIME ZONE COALESCE(NULLIF(br.timezone, ''), 'Asia/Beirut'))::int AS hour,
+  COUNT(*)::bigint AS invoices,
+  COALESCE(SUM(s.grand_total), 0)::bigint AS sales
+FROM report_sale_invoices s
+LEFT JOIN branches br ON br.id = s.branch_id
+WHERE s.occurred_at >= sqlc.arg(date_from)::timestamptz
+  AND s.occurred_at < sqlc.arg(date_to)::timestamptz
+GROUP BY dow, hour
+ORDER BY dow, hour;

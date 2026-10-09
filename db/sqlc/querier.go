@@ -1220,6 +1220,9 @@ type Querier interface {
 	ReportDailyCosted(ctx context.Context, arg ReportDailyCostedParams) ([]ReportDailyCostedRow, error)
 	// Sales (net of returns) per day.
 	ReportDailySales(ctx context.Context, arg ReportDailySalesParams) ([]ReportDailySalesRow, error)
+	// Sales by day of week (0 = Sunday) and hour, in each branch's own time
+	// zone (Beirut for sales entered in kashi), for the Financials heatmap.
+	ReportHourlySales(ctx context.Context, arg ReportHourlySalesParams) ([]ReportHourlySalesRow, error)
 	// What the stock on hand cost, across every inventory: each stock row at
 	// its own average cost, or the variant's when the row has none (stock
 	// counts set only the variant's).

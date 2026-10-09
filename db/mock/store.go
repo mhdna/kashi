@@ -8723,6 +8723,21 @@ func (mr *MockStoreMockRecorder) ReportDailySales(arg0, arg1 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportDailySales", reflect.TypeOf((*MockStore)(nil).ReportDailySales), arg0, arg1)
 }
 
+// ReportHourlySales mocks base method.
+func (m *MockStore) ReportHourlySales(arg0 context.Context, arg1 db.ReportHourlySalesParams) ([]db.ReportHourlySalesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReportHourlySales", arg0, arg1)
+	ret0, _ := ret[0].([]db.ReportHourlySalesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReportHourlySales indicates an expected call of ReportHourlySales.
+func (mr *MockStoreMockRecorder) ReportHourlySales(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportHourlySales", reflect.TypeOf((*MockStore)(nil).ReportHourlySales), arg0, arg1)
+}
+
 // ReportInventoryValue mocks base method.
 func (m *MockStore) ReportInventoryValue(arg0 context.Context) (int64, error) {
 	m.ctrl.T.Helper()
