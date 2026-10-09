@@ -1,11 +1,11 @@
 export const navItems = [
   { title: 'Home', icon: 'mdi-home', to: '/' },
+  { title: 'Daily Income', icon: 'mdi-chart-bar', to: '/daily-income' },
   {
     title: 'Analysis',
     icon: 'mdi-chart-bar',
     children: [
       { title: 'Dashboard', icon: 'mdi-view-dashboard', to: '/dashboard' },
-      { title: 'Daily Income', icon: 'mdi-chart-bar', to: '/daily-income' },
       { title: 'Financials', icon: 'mdi-currency-usd', to: '/financials' },
       { title: 'Targets', icon: 'mdi-target', to: '/targets' },
       { title: 'Footfall', icon: 'mdi-walk', to: '/footfall' },
