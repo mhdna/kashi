@@ -1838,6 +1838,11 @@
       for (const [key, value] of Object.entries(full)) {
         if (JSON.stringify(value) !== JSON.stringify(loadedForm.value?.[key])) payload[key] = value
       }
+      // A drifted field is one the till holds differently from kashi; send
+      // kashi's value even if the admin didn't touch it, as the banner says.
+      for (const { key } of drift.value) {
+        if (key in full) payload[key] = full[key]
+      }
 
       // Per-register device fields are sent from their own section.
       for (const k of GROUP_KEYS.device_ids) delete payload[k]
