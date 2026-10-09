@@ -99,8 +99,14 @@
     return [31, isLeapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
   })
 
+  // branchIds narrows the grid to several branches (Daily Income's chips);
+  // without it the grid follows the shared single-branch filter, as on the
+  // Footfall page.
+  const props = defineProps<{ branchIds?: number[] | null }>()
+
   const { getDailyIncome } = useDailyIncome()
   const { selectedBranchId } = useIncomeFilters()
+  const branchFilter = computed(() => props.branchIds ?? (selectedBranchId.value ? [selectedBranchId.value] : []))
   const { ensureConnected, onMessage } = useAdminSocket()
 
   // data[monthIndex][day] = number, cents from the API converted to whole
@@ -143,8 +149,8 @@
   const isToday = (mi, day) => selectedYear.value === currentYear && mi === todayMonthIndex && day === todayDay
 
   // Every real, non-future day opens its own page (pages/daily-income-day.vue).
-  // The branch filter rides along so the day page shows the same slice the
-  // clicked cell summed.
+  // A single-branch filter rides along so the day page shows the same slice
+  // the clicked cell summed; the day page covers one branch or all of them.
   const router = useRouter()
   const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
 
@@ -157,8 +163,17 @@
     const ymd = `${selectedYear.value}-${String(mi + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
     router.push({
       path: `/daily-income/${ymd}`,
-      query: selectedBranchId.value ? { branch_id: String(selectedBranchId.value) } : {},
+      query: branchFilter.value.length === 1 ? { branch_id: String(branchFilter.value[0]) } : {},
     })
+  }
+
+  function centerOnToday () {
+    if (!wrapRef.value || !todayCellEl) return
+    const wrap = wrapRef.value
+    const stickyColWidth = wrap.querySelector('.day-col')?.offsetWidth ?? 0
+    const stickyHeaderHeight = wrap.querySelector('thead')?.offsetHeight ?? 0
+    wrap.scrollLeft = todayCellEl.offsetLeft - stickyColWidth - (wrap.clientWidth - stickyColWidth) / 2 + todayCellEl.offsetWidth / 2
+    wrap.scrollTop = todayCellEl.offsetTop - stickyHeaderHeight - (wrap.clientHeight - stickyHeaderHeight) / 2 + todayCellEl.offsetHeight / 2
   }
 
   async function scrollToToday () {
@@ -166,12 +181,24 @@
     await nextTick()
     if (!wrapRef.value || !todayCellEl) return
     scrolledToToday = true
-    const wrap = wrapRef.value
-    const stickyColWidth = wrap.querySelector('.day-col')?.offsetWidth ?? 0
-    const stickyHeaderHeight = wrap.querySelector('thead')?.offsetHeight ?? 0
-    wrap.scrollLeft = todayCellEl.offsetLeft - stickyColWidth - (wrap.clientWidth - stickyColWidth) / 2 + todayCellEl.offsetWidth / 2
-    wrap.scrollTop = todayCellEl.offsetTop - stickyHeaderHeight - (wrap.clientHeight - stickyHeaderHeight) / 2 + todayCellEl.offsetHeight / 2
+    centerOnToday()
   }
+
+  // A resize (window, sidebar, phone rotation) changes the cell sizes, and
+  // the browser keeps the old scroll offset, which then points somewhere
+  // else -- so bring today back to the middle each time.
+  let resizeObserver = null
+  let resizeFrame = 0
+  watch(wrapRef, el => {
+    resizeObserver?.disconnect()
+    if (!el) return
+    resizeObserver = new ResizeObserver(() => {
+      if (!scrolledToToday) return
+      cancelAnimationFrame(resizeFrame)
+      resizeFrame = requestAnimationFrame(centerOnToday)
+    })
+    resizeObserver.observe(el)
+  })
 
   // True while a whole new grid is fetched (first load, year or branch
   // switch): the cells blank out under a spinner instead of reading $0. A
@@ -183,7 +210,7 @@
   async function load (highlightChanges = false) {
     const year = selectedYear.value
     if (!highlightChanges) loading.value = true
-    const days = await getDailyIncome(year, selectedBranchId.value).catch(() => [])
+    const days = await getDailyIncome(year, branchFilter.value).catch(() => [])
     if (year !== selectedYear.value) return
     loading.value = false
     const next = months.map((_, mi) => Array.from({ length: daysInMonth.value[mi] }, () => 0))
@@ -203,7 +230,7 @@
     scrollToToday()
   }
 
-  watch([selectedBranchId, selectedYear], () => load(false), { immediate: true })
+  watch([() => branchFilter.value.join(','), selectedYear], () => load(false), { immediate: true })
 
   // Branch sync pushes new invoices over the admin socket -- without this,
   // today's cell only updates on the next full page load. SyncCard listens
@@ -219,6 +246,8 @@
   })
   onUnmounted(() => {
     unsubscribe?.()
+    resizeObserver?.disconnect()
+    cancelAnimationFrame(resizeFrame)
     for (const timer of highlightTimers.values()) clearTimeout(timer)
   })
 

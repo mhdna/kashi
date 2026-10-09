@@ -605,6 +605,8 @@ JOIN branches b ON b.id = bi.branch_id
 WHERE bi.occurred_at >= make_date($1::int, 1, 1)
   AND bi.occurred_at < make_date($1::int + 1, 1, 1)
   AND ($2::bigint IS NULL OR bi.branch_id = $2)
+  -- Several branches at once (the Daily Income page's chips); empty = all.
+  AND (COALESCE(cardinality($3::bigint[]), 0) = 0 OR bi.branch_id = ANY($3::bigint[]))
   AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   AND bi.cancelled_at IS NULL
@@ -613,8 +615,9 @@ ORDER BY day
 `
 
 type ListDailyIncomeParams struct {
-	Year     int32         `json:"year"`
-	BranchID sql.NullInt64 `json:"branch_id"`
+	Year      int32         `json:"year"`
+	BranchID  sql.NullInt64 `json:"branch_id"`
+	BranchIds []int64       `json:"branch_ids"`
 }
 
 type ListDailyIncomeRow struct {
@@ -634,7 +637,7 @@ type ListDailyIncomeRow struct {
 // plain btree index on occurred_at (idx_branch_invoices_occurred_at), while
 // a range comparison can.
 func (q *Queries) ListDailyIncome(ctx context.Context, arg ListDailyIncomeParams) ([]ListDailyIncomeRow, error) {
-	rows, err := q.db.QueryContext(ctx, listDailyIncome, arg.Year, arg.BranchID)
+	rows, err := q.db.QueryContext(ctx, listDailyIncome, arg.Year, arg.BranchID, pq.Array(arg.BranchIds))
 	if err != nil {
 		return nil, err
 	}

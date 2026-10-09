@@ -2,11 +2,14 @@ import { API_BASE } from '@/config'
 import { authFetch } from './useApi'
 
 export function useDailyIncome () {
-  async function getDailyIncome (year, branchId) {
+  // branch is one branch id, or an array of them (empty = every branch).
+  async function getDailyIncome (year, branch) {
     const url = new URL(`${API_BASE}/branch_invoices/daily_income`, window.location.origin)
     url.searchParams.set('year', year)
-    if (branchId) {
-      url.searchParams.set('branch_id', branchId)
+    if (Array.isArray(branch)) {
+      if (branch.length > 0) {url.searchParams.set('branch_ids', branch.join(','))}
+    } else if (branch) {
+      url.searchParams.set('branch_id', branch)
     }
 
     const res = await authFetch(url.toString())

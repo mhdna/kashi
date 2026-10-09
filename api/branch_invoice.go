@@ -3,7 +3,10 @@ package api
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -132,6 +135,8 @@ func (server *Server) getBranchInvoiceDetails(ctx *gin.Context) {
 type dailyIncomeRequest struct {
 	Year     int32 `form:"year"`
 	BranchID int64 `form:"branch_id"`
+	// Comma-separated ids, for several branches at once.
+	BranchIDs string `form:"branch_ids"`
 }
 
 type dailyIncomeEntry struct {
@@ -140,7 +145,7 @@ type dailyIncomeEntry struct {
 }
 
 // dailyIncome backs the dashboard's "Branches Daily Income" heatmap --
-// grand_total per day for a year, optionally scoped to one branch.
+// grand_total per day for a year, optionally scoped to one branch or a few.
 // Empty days simply don't appear in the result; the frontend fills zeros.
 func (server *Server) dailyIncome(ctx *gin.Context) {
 	var req dailyIncomeRequest
@@ -157,9 +162,23 @@ func (server *Server) dailyIncome(ctx *gin.Context) {
 		branchID = sql.NullInt64{Int64: req.BranchID, Valid: true}
 	}
 
+	branchIDs := []int64{}
+	for _, part := range strings.Split(req.BranchIDs, ",") {
+		if part = strings.TrimSpace(part); part == "" {
+			continue
+		}
+		id, err := strconv.ParseInt(part, 10, 64)
+		if err != nil || id <= 0 {
+			server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("bad branch id %q", part))
+			return
+		}
+		branchIDs = append(branchIDs, id)
+	}
+
 	rows, err := server.store.ListDailyIncome(ctx, db.ListDailyIncomeParams{
-		Year:     req.Year,
-		BranchID: branchID,
+		Year:      req.Year,
+		BranchID:  branchID,
+		BranchIds: branchIDs,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)

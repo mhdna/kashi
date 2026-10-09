@@ -120,6 +120,8 @@ JOIN branches b ON b.id = bi.branch_id
 WHERE bi.occurred_at >= make_date(sqlc.arg(year)::int, 1, 1)
   AND bi.occurred_at < make_date(sqlc.arg(year)::int + 1, 1, 1)
   AND (sqlc.narg(branch_id)::bigint IS NULL OR bi.branch_id = sqlc.narg(branch_id))
+  -- Several branches at once (the Daily Income page's chips); empty = all.
+  AND (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 OR bi.branch_id = ANY(sqlc.arg(branch_ids)::bigint[]))
   AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   AND bi.cancelled_at IS NULL
