@@ -46,6 +46,51 @@ const (
 	foreignVisitAlertAgain = 24 * time.Hour
 )
 
+// cloudflareNets are Cloudflare's published edge ranges
+// (https://www.cloudflare.com/ips/). The site sits behind Cloudflare, so a
+// visitor's request reaches Caddy from one of these, and the visitor's own
+// address is in CF-Connecting-IP. Only a request that really came from
+// Cloudflare gets that header believed -- anyone can send it straight to
+// the server. Cloudflare rarely changes the list; a missing range just
+// shows that edge's address instead of the visitor's.
+var cloudflareNets = func() []*net.IPNet {
+	var nets []*net.IPNet
+	for _, cidr := range []string{
+		"173.245.48.0/20", "103.21.244.0/22", "103.22.200.0/22", "103.31.4.0/22",
+		"141.101.64.0/18", "108.162.192.0/18", "190.93.240.0/20", "188.114.96.0/20",
+		"197.234.240.0/22", "198.41.128.0/17", "162.158.0.0/15", "104.16.0.0/13",
+		"104.24.0.0/14", "172.64.0.0/13", "131.0.72.0/22",
+		"2400:cb00::/32", "2606:4700::/32", "2803:f800::/32", "2405:b500::/32",
+		"2405:8100::/32", "2a06:98c0::/29", "2c0f:f248::/32",
+	} {
+		_, n, _ := net.ParseCIDR(cidr)
+		nets = append(nets, n)
+	}
+	return nets
+}()
+
+func fromCloudflare(ip net.IP) bool {
+	for _, n := range cloudflareNets {
+		if n.Contains(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+// visitorIP is the address of whoever is on the other end: gin's ClientIP
+// (Caddy's X-Forwarded-For, see setupRoutes) unless that's a Cloudflare
+// edge, in which case the visitor Cloudflare is relaying for.
+func visitorIP(ctx *gin.Context) string {
+	ip := ctx.ClientIP()
+	if parsed := net.ParseIP(ip); parsed != nil && fromCloudflare(parsed) {
+		if real := net.ParseIP(strings.TrimSpace(ctx.GetHeader("CF-Connecting-IP"))); real != nil {
+			return real.String()
+		}
+	}
+	return ip
+}
+
 // probePath matches requests for things this API never serves but scanners
 // look for everywhere: PHP and WordPress files, dotfiles, admin panels,
 // path traversal.
@@ -173,7 +218,7 @@ func (g *securityGuard) banned(ip string) bool {
 
 func (g *securityGuard) middleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		ipText := ctx.ClientIP()
+		ipText := visitorIP(ctx)
 		ip := net.ParseIP(ipText)
 		internal := internalIP(ip)
 		path := ctx.Request.URL.Path
@@ -488,14 +533,49 @@ func (server *Server) getSecurityOverview(ctx *gin.Context) {
 
 	server.writeJSON(ctx, http.StatusOK, envelope{
 		"settings":    settings,
-		"alerts":      alerts,
+		"alerts":      alertResponses(alerts),
 		"open_alerts": openAlerts,
-		"bans":        bans,
+		"bans":        banResponses(bans),
 		"countries":   countries,
 		"geo_ready":   geoReady,
-		"my_ip":       ctx.ClientIP(),
-		"my_location": g.locate(ctx.ClientIP()),
+		"my_ip":       visitorIP(ctx),
+		"my_location": g.locate(visitorIP(ctx)),
 	})
+}
+
+// The alert and ban rows carry sql.NullTime, which encodes as
+// {"Time":..., "Valid":...}; the page wants a time or null.
+type securityAlertResponse struct {
+	db.SecurityAlert
+	AcknowledgedAt *time.Time `json:"acknowledged_at"`
+}
+
+type ipBanResponse struct {
+	db.IpBan
+	Until *time.Time `json:"until"`
+}
+
+func nullTimePtr(t sql.NullTime) *time.Time {
+	if !t.Valid {
+		return nil
+	}
+	return &t.Time
+}
+
+func alertResponses(rows []db.SecurityAlert) []securityAlertResponse {
+	out := make([]securityAlertResponse, len(rows))
+	for i, r := range rows {
+		out[i] = securityAlertResponse{SecurityAlert: r, AcknowledgedAt: nullTimePtr(r.AcknowledgedAt)}
+	}
+	return out
+}
+
+func banResponses(rows []db.IpBan) []ipBanResponse {
+	out := make([]ipBanResponse, len(rows))
+	for i, r := range rows {
+		out[i] = ipBanResponse{IpBan: r, Until: nullTimePtr(r.Until)}
+	}
+	return out
 }
 
 type listVisitorsRequest struct {
@@ -594,7 +674,7 @@ func (server *Server) updateSecuritySettings(ctx *gin.Context) {
 	candidate := parseSecurityConfig(db.SecuritySetting{
 		CountryFilterEnabled: req.CountryFilterEnabled, AllowedCountries: countries, AlwaysAllowed: always,
 	})
-	myIP := ctx.ClientIP()
+	myIP := visitorIP(ctx)
 	if parsed := net.ParseIP(myIP); !internalIP(parsed) {
 		if loc := server.security.geo.lookup(myIP); candidate.countryRefused(parsed, loc.CountryCode) {
 			server.writeError(ctx, http.StatusBadRequest, fmt.Errorf(
@@ -640,7 +720,7 @@ func (server *Server) banIP(ctx *gin.Context) {
 	case internalIP(parsed):
 		server.writeError(ctx, http.StatusBadRequest, errors.New("the server's own and private-network addresses can't be banned"))
 		return
-	case ip == ctx.ClientIP():
+	case ip == visitorIP(ctx):
 		server.writeError(ctx, http.StatusBadRequest, errors.New("that's your own IP"))
 		return
 	}

@@ -517,7 +517,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		Username:     user.Username,
 		RefreshToken: refreshToken,
 		UserAgent:    ctx.Request.UserAgent(),
-		ClientIp:     ctx.ClientIP(),
+		ClientIp:     visitorIP(ctx),
 		IsBlocked:    false,
 		ExpiresAt:    refreshPayload.ExpiredAt,
 	})

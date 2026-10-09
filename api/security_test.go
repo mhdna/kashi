@@ -1,6 +1,8 @@
 package api
 
 import (
+	"database/sql"
+	"encoding/json"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -112,4 +114,34 @@ func TestGuardBansAfterRepeatedFailedLogins(t *testing.T) {
 		t.Fatal("the ban was never saved")
 	}
 	time.Sleep(50 * time.Millisecond) // let the alert goroutines finish
+}
+
+func TestVisitorIPBelievesCloudflareOnly(t *testing.T) {
+	ipFor := func(remote, cfHeader string) string {
+		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+		ctx.Request = httptest.NewRequest("GET", "/", nil)
+		ctx.Request.RemoteAddr = net.JoinHostPort(remote, "443")
+		if cfHeader != "" {
+			ctx.Request.Header.Set("CF-Connecting-IP", cfHeader)
+		}
+		return visitorIP(ctx)
+	}
+
+	require.Equal(t, "198.51.100.7", ipFor("172.68.10.20", "198.51.100.7"), "relayed by a Cloudflare edge")
+	require.Equal(t, "2a02:2788::1", ipFor("2a06:98c1::5", "2a02:2788::1"), "IPv6 edge")
+	require.Equal(t, "203.0.113.5", ipFor("203.0.113.5", "198.51.100.7"), "a forged header sent straight to the server is ignored")
+	require.Equal(t, "172.68.10.20", ipFor("172.68.10.20", "not-an-ip"), "a garbled header falls back to the edge")
+}
+
+func TestSecurityTimesEncodeAsTimeOrNull(t *testing.T) {
+	seen := time.Date(2026, 10, 9, 12, 0, 0, 0, time.UTC)
+	out, err := json.Marshal(alertResponses([]db.SecurityAlert{
+		{ID: 1},
+		{ID: 2, AcknowledgedAt: sql.NullTime{Time: seen, Valid: true}},
+	}))
+	require.NoError(t, err)
+	require.Contains(t, string(out), `"id":1,`)
+	require.Contains(t, string(out), `"acknowledged_at":null`)
+	require.Contains(t, string(out), `"acknowledged_at":"2026-10-09T12:00:00Z"`)
+	require.NotContains(t, string(out), `"Valid"`)
 }
