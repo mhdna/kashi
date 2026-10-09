@@ -503,6 +503,15 @@ func (server *Server) branchAppUpdateDownload(ctx *gin.Context) {
 	defer file.Close()
 	ctx.Header("Content-Type", "application/octet-stream")
 	ctx.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%q", release.FileName))
+	// A request without a Range is served as "bytes=0-", i.e. 206 with the
+	// whole file. kashi-pos builds up to 1.0.9.1 open their .part file
+	// append-only and, on a plain 200, truncate it first -- which Windows
+	// refuses for an append-only handle ("Access is denied"), so their first
+	// download always failed. On a 206 they just write from byte 0. Builds
+	// after that handle a 200 too; this keeps the older ones updatable.
+	if ctx.Request.Header.Get("Range") == "" {
+		ctx.Request.Header.Set("Range", "bytes=0-")
+	}
 	http.ServeContent(ctx.Writer, ctx.Request, release.FileName, release.CreatedAt, file)
 }
 
