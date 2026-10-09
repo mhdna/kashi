@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"errors"
 	"encoding/json"
 	"io"
 	"log"
@@ -312,8 +313,22 @@ func (server *Server) recordAdminActivity(a adminActivity) {
 		entityID = sql.NullInt64{}
 	}
 
+	// The same change again, straight after itself and within the hour,
+	// counts up the feed's newest entry instead of adding another.
+	user := sql.NullInt64{Int64: userID, Valid: userID > 0}
+	_, err := server.store.BumpAdminActivity(ctx, db.BumpAdminActivityParams{
+		UserID: user, Method: method, Route: route, EntityID: entityID, Summary: summary, Detail: detail,
+	})
+	if err == nil {
+		server.adminHub.broadcastAll(adminWSMessage{Type: "admin_activity"})
+		return
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		log.Printf("bump admin activity (%s %s): %v", method, route, err)
+	}
+
 	if _, err := server.store.CreateAdminActivity(ctx, db.CreateAdminActivityParams{
-		UserID:   sql.NullInt64{Int64: userID, Valid: userID > 0},
+		UserID:   user,
 		Method:   method,
 		Route:    route,
 		EntityID: entityID,

@@ -73,6 +73,18 @@
                   <v-list-item-title class="text-body-2 activity-sentence">
                     <span class="font-weight-medium" :title="item.user_name">{{ firstNameOf(item.user_name) || 'Someone' }}</span>
                     {{ kashiSentence(item) }}
+                    <!-- The same change made again straight after (within the
+                         hour) is counted on one entry, not listed again. -->
+                    <v-chip
+                      v-if="item.repeat_count > 1"
+                      class="ms-1"
+                      label
+                      size="x-small"
+                      :title="`${item.repeat_count} times in a row`"
+                      variant="tonal"
+                    >
+                      ×{{ item.repeat_count }}
+                    </v-chip>
                   </v-list-item-title>
                   <v-list-item-subtitle v-if="item.detail" class="text-caption">
                     {{ item.detail }}

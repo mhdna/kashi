@@ -11,6 +11,52 @@ import (
 	"time"
 )
 
+const bumpAdminActivity = `-- name: BumpAdminActivity :one
+UPDATE admin_activities AS act
+SET repeat_count = act.repeat_count + 1, created_at = now()
+WHERE act.id = (
+    SELECT latest.id FROM admin_activities AS latest
+    WHERE latest.route NOT LIKE '/users%' AND latest.route NOT LIKE '/roles%'
+    ORDER BY latest.created_at DESC, latest.id DESC
+    LIMIT 1
+  )
+  AND act.user_id IS NOT DISTINCT FROM $1
+  AND act.method = $2
+  AND act.route = $3
+  AND act.entity_id IS NOT DISTINCT FROM $4
+  AND act.summary = $5
+  AND act.detail = $6
+  AND act.created_at > now() - interval '1 hour'
+RETURNING act.id
+`
+
+type BumpAdminActivityParams struct {
+	UserID   sql.NullInt64 `json:"user_id"`
+	Method   string        `json:"method"`
+	Route    string        `json:"route"`
+	EntityID sql.NullInt64 `json:"entity_id"`
+	Summary  string        `json:"summary"`
+	Detail   string        `json:"detail"`
+}
+
+// Folds a repeat into the feed's newest entry when it's the same change by
+// the same person, made less than an hour after it: the count goes up and
+// the time moves to now. No row back (sql.ErrNoRows) means it wasn't a
+// repeat, and the caller adds a new entry.
+func (q *Queries) BumpAdminActivity(ctx context.Context, arg BumpAdminActivityParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, bumpAdminActivity,
+		arg.UserID,
+		arg.Method,
+		arg.Route,
+		arg.EntityID,
+		arg.Summary,
+		arg.Detail,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const countAdminActivitiesSince = `-- name: CountAdminActivitiesSince :one
 SELECT COUNT(*)::bigint FROM admin_activities
 WHERE created_at >= $1::timestamptz
@@ -28,7 +74,7 @@ func (q *Queries) CountAdminActivitiesSince(ctx context.Context, since time.Time
 const createAdminActivity = `-- name: CreateAdminActivity :one
 INSERT INTO admin_activities (user_id, method, route, entity_id, summary, detail)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, user_id, method, route, entity_id, summary, detail, created_at
+RETURNING id, user_id, method, route, entity_id, summary, detail, created_at, repeat_count
 `
 
 type CreateAdminActivityParams struct {
@@ -59,12 +105,13 @@ func (q *Queries) CreateAdminActivity(ctx context.Context, arg CreateAdminActivi
 		&i.Summary,
 		&i.Detail,
 		&i.CreatedAt,
+		&i.RepeatCount,
 	)
 	return i, err
 }
 
 const listAdminActivities = `-- name: ListAdminActivities :many
-SELECT a.id, a.method, a.route, a.entity_id, a.summary, a.detail, a.created_at,
+SELECT a.id, a.method, a.route, a.entity_id, a.summary, a.detail, a.created_at, a.repeat_count,
        a.user_id, COALESCE(u.name, '') AS user_name,
        COALESCE(u.avatar_color, '') AS user_avatar_color
 FROM admin_activities a
@@ -87,6 +134,7 @@ type ListAdminActivitiesRow struct {
 	Summary         string        `json:"summary"`
 	Detail          string        `json:"detail"`
 	CreatedAt       time.Time     `json:"created_at"`
+	RepeatCount     int32         `json:"repeat_count"`
 	UserID          sql.NullInt64 `json:"user_id"`
 	UserName        string        `json:"user_name"`
 	UserAvatarColor string        `json:"user_avatar_color"`
@@ -110,6 +158,7 @@ func (q *Queries) ListAdminActivities(ctx context.Context, arg ListAdminActiviti
 			&i.Summary,
 			&i.Detail,
 			&i.CreatedAt,
+			&i.RepeatCount,
 			&i.UserID,
 			&i.UserName,
 			&i.UserAvatarColor,

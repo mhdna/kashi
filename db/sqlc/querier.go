@@ -64,6 +64,11 @@ type Querier interface {
 	// and its nav dot.
 	BranchSyncConflictSummary(ctx context.Context) ([]BranchSyncConflictSummaryRow, error)
 	BranchVisitorEventRefsPresent(ctx context.Context, arg BranchVisitorEventRefsPresentParams) ([]string, error)
+	// Folds a repeat into the feed's newest entry when it's the same change by
+	// the same person, made less than an hour after it: the count goes up and
+	// the time moves to now. No row back (sql.ErrNoRows) means it wasn't a
+	// repeat, and the caller adds a new entry.
+	BumpAdminActivity(ctx context.Context, arg BumpAdminActivityParams) (int64, error)
 	// Only a command no till has acked yet can be withdrawn.
 	CancelBranchCommand(ctx context.Context, id int64) (BranchCommand, error)
 	// The once-only gate on a branch's list: 1 row the first time it's set up

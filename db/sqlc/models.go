@@ -450,14 +450,15 @@ func (ns NullTransferType) Value() (driver.Value, error) {
 }
 
 type AdminActivity struct {
-	ID        int64         `json:"id"`
-	UserID    sql.NullInt64 `json:"user_id"`
-	Method    string        `json:"method"`
-	Route     string        `json:"route"`
-	EntityID  sql.NullInt64 `json:"entity_id"`
-	Summary   string        `json:"summary"`
-	Detail    string        `json:"detail"`
-	CreatedAt time.Time     `json:"created_at"`
+	ID          int64         `json:"id"`
+	UserID      sql.NullInt64 `json:"user_id"`
+	Method      string        `json:"method"`
+	Route       string        `json:"route"`
+	EntityID    sql.NullInt64 `json:"entity_id"`
+	Summary     string        `json:"summary"`
+	Detail      string        `json:"detail"`
+	CreatedAt   time.Time     `json:"created_at"`
+	RepeatCount int32         `json:"repeat_count"`
 }
 
 type AppRelease struct {
