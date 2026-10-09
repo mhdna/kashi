@@ -170,7 +170,7 @@
             density="compact"
             item-title="name"
             item-value="id"
-            :items="activeExpenseCategories"
+            :items="activeBranchCategories"
             label="Category"
           >
             <template #item="{ props: itemProps, item }">
@@ -260,7 +260,7 @@
       <div class="expenses-layout">
         <CategorySidebar
           v-model="selectedCategory"
-          :categories="expenseCategories"
+          :categories="tabCategories"
           @add="openCreateCategory"
           @delete="removeCategory"
           @edit="openEditCategory"
@@ -418,6 +418,7 @@
       :category="editingCategory"
       name-hint="e.g. Utilities, Rent, Payroll"
       :on-submit="submitCategory"
+      :scope="tabScope"
     />
   </div>
 </template>
@@ -433,8 +434,8 @@
   import { useBranches } from '@/composables/useBranches'
   import { useBulkDelete } from '@/composables/useBulkDelete'
   import { useExpenseCategories } from '@/composables/useExpenseCategories'
-  import { usePageAccess } from '@/composables/usePageAccess'
   import { useNotify } from '@/composables/useNotify'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
   import { categoryIcon } from '@/data/expenseCategoryIcons'
 
@@ -463,7 +464,14 @@
   const search = ref('')
   const selectedCategory = ref(null)
 
-  const activeExpenseCategories = computed(() => expenseCategories.value.filter(c => c.is_active))
+  // Central and branch expenses keep separate categories: the Branches tab
+  // lists and adds the 'branch' ones (the only ones tills receive), Mine and
+  // Recurring the central ones. Rows still resolve their category from the
+  // full list.
+  const tabScope = computed(() => tab.value === 'branch' ? 'branch' : 'central')
+  const tabCategories = computed(() => expenseCategories.value.filter(c => (c.scope === 'branch') === (tabScope.value === 'branch')))
+  const activeExpenseCategories = computed(() => expenseCategories.value.filter(c => c.is_active && c.scope !== 'branch'))
+  const activeBranchCategories = computed(() => expenseCategories.value.filter(c => c.is_active && c.scope === 'branch'))
 
   // Narrow any list to the category picked in the sidebar ("All" == null).
   function matchesCategory (item) {
@@ -834,6 +842,7 @@
   }
 
   watch(tab, value => {
+    if (selectedCategory.value && !tabCategories.value.some(c => c.id === selectedCategory.value)) selectedCategory.value = null
     if (value === 'branch' && !branchLoaded) fetchBranchExpenses()
     if (value === 'recurring' && recurringExpenses.value.length === 0) fetchRecurringExpenses()
     nextTick(setupInfiniteScroll)

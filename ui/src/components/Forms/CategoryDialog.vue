@@ -19,7 +19,7 @@
             />
           </div>
 
-          <template v-if="showScope">
+          <template v-if="showScope && !scope">
             <div class="text-caption text-medium-emphasis mb-1">Scope</div>
             <v-btn-toggle
               v-model="form.scope"
@@ -106,6 +106,9 @@
     // Show the Central / Branch scope toggle. Off for taxonomies with no
     // scope concept (e.g. asset categories).
     showScope: { type: Boolean, default: true },
+    // Fixes a new category's scope ('central' or 'branch') and hides the
+    // toggle: the page's Central / Branch tab already says which it is.
+    scope: { type: String, default: '' },
     // Called with the { name, is_active, icon, color, scope } payload; should
     // throw on failure so the dialog can surface the message.
     onSubmit: { type: Function, required: true },
@@ -137,7 +140,7 @@
       form.is_active = props.category.is_active
     } else {
       form.name = ''
-      form.scope = 'central'
+      form.scope = props.scope === 'branch' ? 'branch' : 'central'
       form.icon = DEFAULT_EXPENSE_CATEGORY_ICON
       form.color = DEFAULT_EXPENSE_CATEGORY_COLOR
       form.is_active = true

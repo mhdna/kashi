@@ -49,7 +49,7 @@
       <div class="loans-layout">
         <CategorySidebar
           v-model="selectedCategory"
-          :categories="loanCategories"
+          :categories="tabCategories"
           @add="openCreateCategory"
           @delete="removeCategory"
           @edit="openEditCategory"
@@ -304,6 +304,7 @@
       :category="editingCategory"
       name-hint="Lender source, e.g. Owner, External"
       :on-submit="submitCategory"
+      :scope="tabScope"
     />
   </div>
 </template>
@@ -319,8 +320,8 @@
   import { useBranches } from '@/composables/useBranches'
   import { useBulkDelete } from '@/composables/useBulkDelete'
   import { useLoanCategories } from '@/composables/useLoanCategories'
-  import { usePageAccess } from '@/composables/usePageAccess'
   import { useNotify } from '@/composables/useNotify'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
@@ -367,7 +368,12 @@
     } catch { /* error shown in the bar */ }
   }
 
-  const activeCategories = computed(() => loanCategories.value.filter(c => c.is_active))
+  // Central and branch loans keep separate categories: the Branch tab lists
+  // and adds the 'branch' ones (the only ones tills receive), Central the
+  // rest. Loans themselves still resolve their category from the full list.
+  const tabScope = computed(() => tab.value === 'branch' ? 'branch' : 'central')
+  const tabCategories = computed(() => loanCategories.value.filter(c => (c.scope === 'branch') === (tabScope.value === 'branch')))
+  const activeCategories = computed(() => tabCategories.value.filter(c => c.is_active))
 
   function categoryFor (id) {
     return loanCategories.value.find(c => c.id === id) ?? null
@@ -474,6 +480,7 @@
   }
 
   watch(tab, () => {
+    if (selectedCategory.value && !tabCategories.value.some(c => c.id === selectedCategory.value)) selectedCategory.value = null
     resetLoanSel()
     tableRef.value?.clearSelection()
   })
