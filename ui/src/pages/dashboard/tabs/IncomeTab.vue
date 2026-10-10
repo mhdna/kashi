@@ -2,8 +2,8 @@
   <div class="d-flex flex-column flex-grow-1" style="min-height: 0">
     <div class="d-flex align-center ga-3 px-3 pb-1">
       <YearStepper v-model="year" class="flex-shrink-0" />
-      <!-- Any number of branches; none picked means every branch. Phones get a
-           dropdown, since a row of chips wraps into several lines there. -->
+      <!-- One branch at a time, or every branch. Phones get a dropdown, since
+           a row of chips wraps into several lines there. -->
       <v-select
         v-if="xs"
         class="flex-grow-1"
@@ -13,25 +13,19 @@
         item-title="name"
         item-value="id"
         :items="reportBranches"
-        :model-value="selected"
-        multiple
+        :model-value="selected[0] ?? null"
         persistent-placeholder
         placeholder="All branches"
         style="min-width: 0"
         variant="outlined"
-        @update:model-value="ids => (selected = ids ?? [])"
-      >
-        <template #selection="{ item, index }">
-          <span v-if="index === 0" class="text-truncate">{{ item.title }}</span>
-          <span v-else-if="index === 1" class="text-medium-emphasis ms-1">+{{ selected.length - 1 }}</span>
-        </template>
-      </v-select>
+        @update:model-value="id => (selected = id ? [id] : [])"
+      />
       <v-chip-group
         v-else
-        v-model="branchIds"
+        v-model="branchId"
         class="flex-grow-1"
         column
-        multiple
+        mandatory
       >
         <!-- A picked chip is filled in the primary colour; the rest stay
              outlined. -->
@@ -67,9 +61,10 @@
   import HeatmapTable from '@/components/Tables/HeatmapTable.vue'
   import { useBranches } from '@/composables/useBranches'
 
-  // Which branches the grid sums, picked as chips. It lives in the URL
-  // (?branch_ids=1,2), so a refresh, a bookmark or coming back from a day
-  // keeps it; an old ?branch_id= link still works. This page keeps its own
+  // Which branch the grid shows (or every branch), picked as chips. It lives
+  // in the URL (?branch_ids=1), so a refresh, a bookmark or coming back from a
+  // day keeps it; an old ?branch_id= link still works, and a link from when
+  // several could be picked opens on its first. This page keeps its own
   // selection rather than the Dashboard's single-branch filter.
   const ALL = 'all'
   const { branches, fetchBranches } = useBranches()
@@ -82,7 +77,7 @@
 
   function idsFromUrl (): number[] {
     const raw = String(route.query.branch_ids ?? route.query.branch_id ?? '')
-    return raw.split(',').map(Number).filter(id => id > 0)
+    return raw.split(',').map(Number).filter(id => id > 0).slice(0, 1)
   }
 
   const selected = ref<number[]>(idsFromUrl())
@@ -90,18 +85,16 @@
   // the day column can stay narrow.
   const year = ref(new Date().getFullYear())
 
-  // The chip group also carries the "All branches" chip, shown as picked
-  // exactly when nothing else is. Picking it clears the branches; picking a
-  // branch while it's on just starts a selection.
-  const branchIds = computed<(number | string)[]>({
-    get: () => (selected.value.length === 0 ? [ALL] : selected.value),
+  // Exactly one chip is picked: "All branches" or a single branch. Clicking
+  // another switches to it.
+  const branchId = computed<number | string>({
+    get: () => selected.value[0] ?? ALL,
     set: value => {
-      const pickedAll = value.includes(ALL) && selected.value.length > 0
-      selected.value = pickedAll ? [] : value.filter((v): v is number => typeof v === 'number')
+      selected.value = typeof value === 'number' ? [value] : []
     },
   })
 
-  const isPicked = (value: number | string) => branchIds.value.includes(value)
+  const isPicked = (value: number | string) => branchId.value === value
 
   onMounted(() => fetchBranches())
 
