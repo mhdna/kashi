@@ -11,17 +11,20 @@ import (
 
 const getWhatsAppSettings = `-- name: GetWhatsAppSettings :one
 SELECT whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token,
-       whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params
+       whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params,
+       whatsapp_webhook_verify_token, whatsapp_app_secret
 FROM app_settings WHERE id = 1
 `
 
 type GetWhatsAppSettingsRow struct {
-	WhatsappEnabled        bool   `json:"whatsapp_enabled"`
-	WhatsappPhoneNumberID  string `json:"whatsapp_phone_number_id"`
-	WhatsappAccessToken    string `json:"whatsapp_access_token"`
-	WhatsappTemplateName   string `json:"whatsapp_template_name"`
-	WhatsappTemplateLang   string `json:"whatsapp_template_lang"`
-	WhatsappTemplateParams string `json:"whatsapp_template_params"`
+	WhatsappEnabled            bool   `json:"whatsapp_enabled"`
+	WhatsappPhoneNumberID      string `json:"whatsapp_phone_number_id"`
+	WhatsappAccessToken        string `json:"whatsapp_access_token"`
+	WhatsappTemplateName       string `json:"whatsapp_template_name"`
+	WhatsappTemplateLang       string `json:"whatsapp_template_lang"`
+	WhatsappTemplateParams     string `json:"whatsapp_template_params"`
+	WhatsappWebhookVerifyToken string `json:"whatsapp_webhook_verify_token"`
+	WhatsappAppSecret          string `json:"whatsapp_app_secret"`
 }
 
 func (q *Queries) GetWhatsAppSettings(ctx context.Context) (GetWhatsAppSettingsRow, error) {
@@ -34,6 +37,8 @@ func (q *Queries) GetWhatsAppSettings(ctx context.Context) (GetWhatsAppSettingsR
 		&i.WhatsappTemplateName,
 		&i.WhatsappTemplateLang,
 		&i.WhatsappTemplateParams,
+		&i.WhatsappWebhookVerifyToken,
+		&i.WhatsappAppSecret,
 	)
 	return i, err
 }
@@ -46,17 +51,21 @@ UPDATE app_settings SET
     whatsapp_template_name = $4,
     whatsapp_template_lang = $5,
     whatsapp_template_params = $6,
+    whatsapp_webhook_verify_token = $7,
+    whatsapp_app_secret = $8,
     updated_at = now()
 WHERE id = 1
 `
 
 type SetWhatsAppSettingsParams struct {
-	WhatsappEnabled        bool   `json:"whatsapp_enabled"`
-	WhatsappPhoneNumberID  string `json:"whatsapp_phone_number_id"`
-	WhatsappAccessToken    string `json:"whatsapp_access_token"`
-	WhatsappTemplateName   string `json:"whatsapp_template_name"`
-	WhatsappTemplateLang   string `json:"whatsapp_template_lang"`
-	WhatsappTemplateParams string `json:"whatsapp_template_params"`
+	WhatsappEnabled            bool   `json:"whatsapp_enabled"`
+	WhatsappPhoneNumberID      string `json:"whatsapp_phone_number_id"`
+	WhatsappAccessToken        string `json:"whatsapp_access_token"`
+	WhatsappTemplateName       string `json:"whatsapp_template_name"`
+	WhatsappTemplateLang       string `json:"whatsapp_template_lang"`
+	WhatsappTemplateParams     string `json:"whatsapp_template_params"`
+	WhatsappWebhookVerifyToken string `json:"whatsapp_webhook_verify_token"`
+	WhatsappAppSecret          string `json:"whatsapp_app_secret"`
 }
 
 func (q *Queries) SetWhatsAppSettings(ctx context.Context, arg SetWhatsAppSettingsParams) error {
@@ -67,6 +76,8 @@ func (q *Queries) SetWhatsAppSettings(ctx context.Context, arg SetWhatsAppSettin
 		arg.WhatsappTemplateName,
 		arg.WhatsappTemplateLang,
 		arg.WhatsappTemplateParams,
+		arg.WhatsappWebhookVerifyToken,
+		arg.WhatsappAppSecret,
 	)
 	return err
 }

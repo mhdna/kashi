@@ -58,6 +58,7 @@
     <v-tabs v-model="tab" class="flex-shrink-0 px-4" color="primary" density="compact">
       <v-tab prepend-icon="mdi-chart-bar" text="Overview" value="overview" />
       <v-tab prepend-icon="mdi-format-list-bulleted" text="Messages" value="messages" />
+      <v-tab prepend-icon="mdi-reply" text="Replies" value="replies" />
       <v-tab prepend-icon="mdi-filter-variant" text="Rules" value="rules" />
     </v-tabs>
     <v-divider class="flex-shrink-0" />
@@ -70,11 +71,19 @@
         :refresh-key="refreshKey"
         :to="range.to"
         @show-messages="showMessages"
+        @show-replies="tab = 'replies'"
       />
       <WhatsAppMessages
         v-else-if="tab === 'messages'"
         v-model:search="messageSearch"
         v-model:status="messageStatus"
+        :branch-id="branchId"
+        :from="range.from"
+        :refresh-key="refreshKey"
+        :to="range.to"
+      />
+      <WhatsAppReplies
+        v-else-if="tab === 'replies'"
         :branch-id="branchId"
         :from="range.from"
         :refresh-key="refreshKey"
@@ -93,6 +102,7 @@
   import { computed, onMounted, onUnmounted, ref } from 'vue'
   import WhatsAppMessages from '@/components/WhatsApp/WhatsAppMessages.vue'
   import WhatsAppOverview from '@/components/WhatsApp/WhatsAppOverview.vue'
+  import WhatsAppReplies from '@/components/WhatsApp/WhatsAppReplies.vue'
   import WhatsAppRules from '@/components/WhatsApp/WhatsAppRules.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useBranches } from '@/composables/useBranches'

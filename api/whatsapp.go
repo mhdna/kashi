@@ -319,6 +319,9 @@ type updateWhatsAppSettingsRequest struct {
 	TemplateName   string `json:"whatsapp_template_name"`
 	TemplateLang   string `json:"whatsapp_template_lang"`
 	TemplateParams string `json:"whatsapp_template_params"`
+	// Meta's webhook (whatsapp_webhook.go).
+	WebhookVerifyToken string `json:"whatsapp_webhook_verify_token"`
+	AppSecret          string `json:"whatsapp_app_secret"`
 }
 
 func (server *Server) updateWhatsAppSettings(ctx *gin.Context) {
@@ -334,12 +337,14 @@ func (server *Server) updateWhatsAppSettings(ctx *gin.Context) {
 	}
 
 	if err := server.store.SetWhatsAppSettings(ctx, db.SetWhatsAppSettingsParams{
-		WhatsappEnabled:        req.Enabled,
-		WhatsappPhoneNumberID:  req.PhoneNumberID,
-		WhatsappAccessToken:    req.AccessToken,
-		WhatsappTemplateName:   req.TemplateName,
-		WhatsappTemplateLang:   templateLang,
-		WhatsappTemplateParams: req.TemplateParams,
+		WhatsappEnabled:            req.Enabled,
+		WhatsappPhoneNumberID:      req.PhoneNumberID,
+		WhatsappAccessToken:        req.AccessToken,
+		WhatsappTemplateName:       req.TemplateName,
+		WhatsappTemplateLang:       templateLang,
+		WhatsappTemplateParams:     req.TemplateParams,
+		WhatsappWebhookVerifyToken: strings.TrimSpace(req.WebhookVerifyToken),
+		WhatsappAppSecret:          strings.TrimSpace(req.AppSecret),
 	}); err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return

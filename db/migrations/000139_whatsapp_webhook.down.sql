@@ -1,0 +1,10 @@
+ALTER TABLE app_settings DROP COLUMN whatsapp_app_secret;
+ALTER TABLE app_settings DROP COLUMN whatsapp_webhook_verify_token;
+DROP TABLE whatsapp_replies;
+DROP INDEX whatsapp_messages_wamid_idx;
+ALTER TABLE whatsapp_messages DROP COLUMN pricing_category;
+ALTER TABLE whatsapp_messages DROP COLUMN billable;
+ALTER TABLE whatsapp_messages DROP COLUMN delivery_error;
+ALTER TABLE whatsapp_messages DROP COLUMN read_at;
+ALTER TABLE whatsapp_messages DROP COLUMN delivered_at;
+ALTER TABLE whatsapp_messages DROP COLUMN delivery_status;

@@ -48,3 +48,18 @@ export function formatPhone (digits) {
   if (!digits) {return ''}
   return digits.length >= 10 && !digits.startsWith('0') ? `+${digits}` : digits
 }
+
+// What happened after Meta accepted a sent message, from its webhook
+// (whatsapp_messages.delivery_status). '' = no word from Meta yet.
+export const DELIVERY = {
+  '': { label: 'Sent', color: 'success', icon: 'mdi-check' },
+  sent: { label: 'Sent', color: 'success', icon: 'mdi-check' },
+  delivered: { label: 'Delivered', color: 'success', icon: 'mdi-check-all' },
+  read: { label: 'Read', color: 'info', icon: 'mdi-check-all' },
+  failed: { label: 'Not delivered', color: 'error', icon: 'mdi-alert-circle-outline' },
+}
+
+// sqlc serves nullable timestamps as { Time, Valid }.
+export function nullTime (v) {
+  return v?.Valid ? v.Time : null
+}

@@ -204,7 +204,12 @@
     branchId: { type: Number, default: 0 },
     refreshKey: { type: Number, default: 0 },
   })
-  const emit = defineEmits(['show-messages'])
+  const emit = defineEmits(['show-messages', 'show-replies'])
+
+  function openKpi (kpi) {
+    if (kpi.status) emit('show-messages', { status: kpi.status })
+    else if (kpi.tab === 'replies') emit('show-replies')
+  }
 
   const notify = useNotify()
   const { canEdit } = usePageAccess()
@@ -235,28 +240,40 @@
     const t = stats.value?.totals
     return Boolean(t && (t.sent || t.skipped || t.failed))
   })
+  function pct (n, of) {
+    return of ? `${Math.round((n / of) * 100)}% of sent` : ''
+  }
   const kpis = computed(() => {
     const t = stats.value.totals
     const p = stats.value.previous
+    // Delivered/read/replies come from Meta's webhook; without it they stay 0.
+    const noWebhook = t.sent > 0 && !t.delivered && !t.read && !t.undelivered && !stats.value.replies
+    const webhookHint = noWebhook ? 'needs the webhook (Settings)' : ''
     return [
-      { label: 'Messages sent', value: t.sent.toLocaleString(), delta: delta(t.sent, p.sent), status: 'sent' },
-      { label: 'Clients reached', value: t.recipients.toLocaleString(), delta: delta(t.recipients, p.recipients) },
+      {
+        label: 'Messages sent',
+        value: t.sent.toLocaleString(),
+        delta: delta(t.sent, p.sent),
+        status: 'sent',
+        hint: `to ${t.recipients.toLocaleString()} client${t.recipients === 1 ? '' : 's'}`,
+      },
+      { label: 'Delivered', value: t.delivered.toLocaleString(), hint: webhookHint || pct(t.delivered, t.sent) },
+      { label: 'Read', value: t.read.toLocaleString(), hint: webhookHint || pct(t.read, t.sent) },
+      { label: 'Replies', value: stats.value.replies.toLocaleString(), hint: webhookHint, tab: 'replies' },
       {
         label: 'Spent',
         value: formatCost(t.cost_micros),
         delta: delta(t.cost_micros, p.cost_micros),
         hint: t.sent ? `${formatCost(t.cost_micros / t.sent)} per message` : '',
       },
-      {
-        label: 'Sales that got a message',
-        value: formatDollars(t.sent_sales_cents),
-      },
+      { label: 'Sales that got a message', value: formatDollars(t.sent_sales_cents) },
       { label: 'Skipped by rules', value: t.skipped.toLocaleString(), status: 'skipped' },
       {
         label: 'Failed',
-        value: t.failed.toLocaleString(),
+        value: (t.failed + t.undelivered).toLocaleString(),
         status: 'failed',
-        color: t.failed ? 'error' : undefined,
+        color: t.failed + t.undelivered ? 'error' : undefined,
+        hint: t.undelivered ? `${t.undelivered} not delivered by Meta` : '',
       },
     ]
   })

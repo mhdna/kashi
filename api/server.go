@@ -198,6 +198,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/whatsapp/stats", server.getWhatsAppStats)
 	authRoutes.GET("/whatsapp/messages", server.listWhatsAppMessages)
 	authRoutes.GET("/whatsapp/clients", server.listWhatsAppClients)
+	authRoutes.GET("/whatsapp/replies", server.listWhatsAppReplies)
 
 	authRoutes.GET("/calendar_events", server.listCalendarEvents)
 	authRoutes.POST("/calendar_events", server.createCalendarEvent)
@@ -260,6 +261,9 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/discount_lists/:id/branches", server.setDiscountListBranches)
 
 	router.POST("/users/login", server.loginUser)
+	// Meta's WhatsApp webhook: no login, every POST is signed (whatsapp_webhook.go).
+	router.GET(whatsAppWebhookPath, server.verifyWhatsAppWebhook)
+	router.POST(whatsAppWebhookPath, server.receiveWhatsAppWebhook)
 	router.POST("/tokens/renew_access", server.renewAccessToken)
 	authRoutes.POST("/users", server.createUser)
 	authRoutes.GET("/users/online", server.listOnlineUsers)

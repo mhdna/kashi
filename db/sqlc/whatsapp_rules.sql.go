@@ -57,7 +57,7 @@ INSERT INTO whatsapp_messages (
   $5, $6, $7, $8,
   $9, $10, $11, $12, $13
 )
-RETURNING id, created_at, branch_id, invoice_code, client_name, client_phone, grand_total_cents, item_count, rule_id, rule_name, template_name, status, reason, wamid, cost_micros
+RETURNING id, created_at, branch_id, invoice_code, client_name, client_phone, grand_total_cents, item_count, rule_id, rule_name, template_name, status, reason, wamid, cost_micros, delivery_status, delivered_at, read_at, delivery_error, billable, pricing_category
 `
 
 type CreateWhatsAppMessageParams struct {
@@ -109,6 +109,12 @@ func (q *Queries) CreateWhatsAppMessage(ctx context.Context, arg CreateWhatsAppM
 		&i.Reason,
 		&i.Wamid,
 		&i.CostMicros,
+		&i.DeliveryStatus,
+		&i.DeliveredAt,
+		&i.ReadAt,
+		&i.DeliveryError,
+		&i.Billable,
+		&i.PricingCategory,
 	)
 	return i, err
 }
@@ -199,7 +205,7 @@ func (q *Queries) LastWhatsAppSentAt(ctx context.Context, clientPhone string) (t
 }
 
 const listWhatsAppMessages = `-- name: ListWhatsAppMessages :many
-SELECT m.id, m.created_at, m.branch_id, m.invoice_code, m.client_name, m.client_phone, m.grand_total_cents, m.item_count, m.rule_id, m.rule_name, m.template_name, m.status, m.reason, m.wamid, m.cost_micros, COALESCE(b.name, '')::text AS branch_name
+SELECT m.id, m.created_at, m.branch_id, m.invoice_code, m.client_name, m.client_phone, m.grand_total_cents, m.item_count, m.rule_id, m.rule_name, m.template_name, m.status, m.reason, m.wamid, m.cost_micros, m.delivery_status, m.delivered_at, m.read_at, m.delivery_error, m.billable, m.pricing_category, COALESCE(b.name, '')::text AS branch_name
 FROM whatsapp_messages m
 LEFT JOIN branches b ON b.id = m.branch_id
 WHERE m.created_at >= $1 AND m.created_at < $2
@@ -240,6 +246,12 @@ type ListWhatsAppMessagesRow struct {
 	Reason          string        `json:"reason"`
 	Wamid           string        `json:"wamid"`
 	CostMicros      int64         `json:"cost_micros"`
+	DeliveryStatus  string        `json:"delivery_status"`
+	DeliveredAt     sql.NullTime  `json:"delivered_at"`
+	ReadAt          sql.NullTime  `json:"read_at"`
+	DeliveryError   string        `json:"delivery_error"`
+	Billable        sql.NullBool  `json:"billable"`
+	PricingCategory string        `json:"pricing_category"`
 	BranchName      string        `json:"branch_name"`
 }
 
@@ -278,6 +290,12 @@ func (q *Queries) ListWhatsAppMessages(ctx context.Context, arg ListWhatsAppMess
 			&i.Reason,
 			&i.Wamid,
 			&i.CostMicros,
+			&i.DeliveryStatus,
+			&i.DeliveredAt,
+			&i.ReadAt,
+			&i.DeliveryError,
+			&i.Billable,
+			&i.PricingCategory,
 			&i.BranchName,
 		); err != nil {
 			return nil, err
@@ -428,9 +446,11 @@ func (q *Queries) WhatsAppClientsByPhoneTail(ctx context.Context, tails []string
 }
 
 const whatsAppFailureReasons = `-- name: WhatsAppFailureReasons :many
-SELECT reason, count(*)::bigint AS messages
+SELECT
+  CASE WHEN status = 'failed' THEN reason ELSE delivery_error END::text AS reason,
+  count(*)::bigint AS messages
 FROM whatsapp_messages
-WHERE status = 'failed'
+WHERE (status = 'failed' OR delivery_status = 'failed')
   AND created_at >= $1 AND created_at < $2
   AND ($3::bigint = 0 OR branch_id = $3)
 GROUP BY 1
@@ -449,6 +469,8 @@ type WhatsAppFailureReasonsRow struct {
 	Messages int64  `json:"messages"`
 }
 
+// Both kashi's failures (Meta refused the send) and Meta's own (accepted,
+// then couldn't deliver).
 func (q *Queries) WhatsAppFailureReasons(ctx context.Context, arg WhatsAppFailureReasonsParams) ([]WhatsAppFailureReasonsRow, error) {
 	rows, err := q.db.QueryContext(ctx, whatsAppFailureReasons, arg.FromAt, arg.ToAt, arg.BranchID)
 	if err != nil {
@@ -477,6 +499,9 @@ SELECT
   count(*) FILTER (WHERE status = 'sent')::bigint AS sent,
   count(*) FILTER (WHERE status = 'skipped')::bigint AS skipped,
   count(*) FILTER (WHERE status = 'failed')::bigint AS failed,
+  count(*) FILTER (WHERE delivery_status IN ('delivered', 'read'))::bigint AS delivered,
+  count(*) FILTER (WHERE delivery_status = 'read')::bigint AS read,
+  count(*) FILTER (WHERE status = 'sent' AND delivery_status = 'failed')::bigint AS undelivered,
   COALESCE(sum(cost_micros), 0)::bigint AS cost_micros,
   count(DISTINCT client_phone) FILTER (WHERE status = 'sent')::bigint AS recipients,
   COALESCE(sum(grand_total_cents) FILTER (WHERE status = 'sent'), 0)::bigint AS sent_sales_cents
@@ -495,11 +520,15 @@ type WhatsAppMessageTotalsRow struct {
 	Sent           int64 `json:"sent"`
 	Skipped        int64 `json:"skipped"`
 	Failed         int64 `json:"failed"`
+	Delivered      int64 `json:"delivered"`
+	Read           int64 `json:"read"`
+	Undelivered    int64 `json:"undelivered"`
 	CostMicros     int64 `json:"cost_micros"`
 	Recipients     int64 `json:"recipients"`
 	SentSalesCents int64 `json:"sent_sales_cents"`
 }
 
+// delivered/read/undelivered come from Meta's webhook (delivery_status).
 func (q *Queries) WhatsAppMessageTotals(ctx context.Context, arg WhatsAppMessageTotalsParams) (WhatsAppMessageTotalsRow, error) {
 	row := q.db.QueryRowContext(ctx, whatsAppMessageTotals, arg.FromAt, arg.ToAt, arg.BranchID)
 	var i WhatsAppMessageTotalsRow
@@ -507,6 +536,9 @@ func (q *Queries) WhatsAppMessageTotals(ctx context.Context, arg WhatsAppMessage
 		&i.Sent,
 		&i.Skipped,
 		&i.Failed,
+		&i.Delivered,
+		&i.Read,
+		&i.Undelivered,
 		&i.CostMicros,
 		&i.Recipients,
 		&i.SentSalesCents,

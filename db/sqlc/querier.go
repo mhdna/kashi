@@ -38,6 +38,11 @@ type Querier interface {
 	// A till's own value, reported up, for a salesperson kashi hasn't set one
 	// for. updated_at is left alone: nothing about it needs to go back down.
 	AdoptSalespersonAttendanceID(ctx context.Context, arg AdoptSalespersonAttendanceIDParams) error
+	// Meta's WhatsApp webhook (api/whatsapp_webhook.go).
+	// Delivery only moves forward (sent -> delivered -> read), so an update that
+	// arrives late doesn't undo a newer one; 'failed' always wins. A message Meta
+	// couldn't deliver, or says it doesn't charge for, costs nothing.
+	ApplyWhatsAppDeliveryStatus(ctx context.Context, arg ApplyWhatsAppDeliveryStatusParams) ([]int64, error)
 	BranchAttendanceChangeRefsPresent(ctx context.Context, arg BranchAttendanceChangeRefsPresentParams) ([]string, error)
 	BranchAttendanceEventRefsPresent(ctx context.Context, arg BranchAttendanceEventRefsPresentParams) ([]string, error)
 	BranchClientLinksPresent(ctx context.Context, arg BranchClientLinksPresentParams) ([]int64, error)
@@ -162,6 +167,7 @@ type Querier interface {
 	CountVariantsForBarcodes(ctx context.Context, search string) (int64, error)
 	CountVisitorIPs(ctx context.Context, arg CountVisitorIPsParams) (int64, error)
 	CountWhatsAppMessages(ctx context.Context, arg CountWhatsAppMessagesParams) (int64, error)
+	CountWhatsAppReplies(ctx context.Context, arg CountWhatsAppRepliesParams) (int64, error)
 	CreateAdminActivity(ctx context.Context, arg CreateAdminActivityParams) (AdminActivity, error)
 	CreateAppRelease(ctx context.Context, arg CreateAppReleaseParams) (AppRelease, error)
 	CreateAppUpdateEvent(ctx context.Context, arg CreateAppUpdateEventParams) error
@@ -263,6 +269,10 @@ type Querier interface {
 	CreateTransferItem(ctx context.Context, arg CreateTransferItemParams) (TransferItem, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateWhatsAppMessage(ctx context.Context, arg CreateWhatsAppMessageParams) (WhatsappMessage, error)
+	// Linked to the message it answers: the one the client replied to, else the
+	// last one sent to that number in the week before. Meta can deliver the same
+	// webhook twice; the wamid keeps it to one row.
+	CreateWhatsAppReply(ctx context.Context, arg CreateWhatsAppReplyParams) error
 	CreateWhatsAppRule(ctx context.Context, arg CreateWhatsAppRuleParams) (WhatsappRule, error)
 	// Queries behind the home dashboard's Overview tab: the summary cards, the
 	// revenue/expense trend charts, and the aggregated Sales / Purchases /
@@ -1193,6 +1203,9 @@ type Querier interface {
 	// Newest first. branch_id 0 = every branch, status '' = any; search matches
 	// the client's name or phone, the invoice code or the rule.
 	ListWhatsAppMessages(ctx context.Context, arg ListWhatsAppMessagesParams) ([]ListWhatsAppMessagesRow, error)
+	// Newest first. A reply not linked to one of our messages only shows under
+	// every branch.
+	ListWhatsAppReplies(ctx context.Context, arg ListWhatsAppRepliesParams) ([]ListWhatsAppRepliesRow, error)
 	// The WhatsApp page: post-sale message rules and the message log
 	// (api/whatsapp_rules.go).
 	ListWhatsAppRules(ctx context.Context) ([]WhatsappRule, error)
@@ -1459,7 +1472,10 @@ type Querier interface {
 	VisitorCountries(ctx context.Context) ([]VisitorCountriesRow, error)
 	// Names for a rule's phones, matched on their last 8 digits (whatsAppSamePhone).
 	WhatsAppClientsByPhoneTail(ctx context.Context, tails []string) ([]WhatsAppClientsByPhoneTailRow, error)
+	// Both kashi's failures (Meta refused the send) and Meta's own (accepted,
+	// then couldn't deliver).
 	WhatsAppFailureReasons(ctx context.Context, arg WhatsAppFailureReasonsParams) ([]WhatsAppFailureReasonsRow, error)
+	// delivered/read/undelivered come from Meta's webhook (delivery_status).
 	WhatsAppMessageTotals(ctx context.Context, arg WhatsAppMessageTotalsParams) (WhatsAppMessageTotalsRow, error)
 	WhatsAppMessagesByBranch(ctx context.Context, arg WhatsAppMessagesByBranchParams) ([]WhatsAppMessagesByBranchRow, error)
 	// Days are Beirut calendar days, like the rest of the business.

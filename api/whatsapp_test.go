@@ -1,6 +1,10 @@
 package api
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -155,5 +159,51 @@ func TestParseWhatsAppSendResponse(t *testing.T) {
 	_, err = parseWhatsAppSendResponse(502, strings.NewReader(`<html>`))
 	if err == nil || err.Error() != "HTTP 502" {
 		t.Errorf("non-JSON error: got %v", err)
+	}
+}
+
+func TestValidMetaSignature(t *testing.T) {
+	body := []byte(`{"object":"whatsapp_business_account"}`)
+	// echo -n '<body>' | openssl dgst -sha256 -hmac secret
+	mac := hmac.New(sha256.New, []byte("secret"))
+	mac.Write(body)
+	good := "sha256=" + hex.EncodeToString(mac.Sum(nil))
+	if !validMetaSignature("secret", body, good) {
+		t.Error("good signature refused")
+	}
+	for _, bad := range []string{"", "sha256=", "sha256=zz", good[:len(good)-2] + "00", strings.TrimPrefix(good, "sha256=")} {
+		if validMetaSignature("secret", body, bad) {
+			t.Errorf("bad signature %q accepted", bad)
+		}
+	}
+	if validMetaSignature("", body, good) {
+		t.Error("accepted with no secret configured")
+	}
+}
+
+func TestWhatsAppWebhookParsing(t *testing.T) {
+	raw := `{"entry":[{"changes":[{"field":"messages","value":{
+		"contacts":[{"wa_id":"96170111111","profile":{"name":"Sara"}}],
+		"messages":[{"id":"wamid.R1","from":"96170111111","timestamp":"1760100000","type":"button","button":{"text":"Rate us"},"context":{"id":"wamid.S1"}}],
+		"statuses":[{"id":"wamid.S1","status":"failed","timestamp":"1760100000",
+			"pricing":{"billable":false,"category":"marketing"},
+			"errors":[{"code":131026,"title":"Message undeliverable","message":"Message undeliverable","error_data":{"details":"Receiver is incapable of receiving this message"}}]}]}}]}]}`
+	var body whatsAppWebhookBody
+	if err := json.Unmarshal([]byte(raw), &body); err != nil {
+		t.Fatal(err)
+	}
+	v := body.Entry[0].Changes[0].Value
+	if got := v.Messages[0].body(); got != "Rate us" {
+		t.Errorf("button body: %q", got)
+	}
+	st := v.Statuses[0]
+	if *st.Pricing.Billable || st.Pricing.Category != "marketing" {
+		t.Errorf("pricing: %+v", st.Pricing)
+	}
+	if got := st.Errors[0].String(); got != "Message undeliverable: Receiver is incapable of receiving this message (code 131026)" {
+		t.Errorf("error text: %q", got)
+	}
+	if got := unixTime("1760100000"); got.Unix() != 1760100000 {
+		t.Errorf("timestamp: %v", got)
 	}
 }

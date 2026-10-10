@@ -58,12 +58,13 @@
       </template>
       <template #item.status="{ item }">
         <v-chip
-          :color="STATUS[item.status]?.color"
-          :prepend-icon="STATUS[item.status]?.icon"
+          :color="outcome(item).color"
+          :prepend-icon="outcome(item).icon"
           size="x-small"
+          :title="deliveryTimes(item)"
           variant="tonal"
         >
-          {{ STATUS[item.status]?.label ?? item.status }}
+          {{ outcome(item).label }}
         </v-chip>
       </template>
       <template #item.rule="{ item }">
@@ -72,7 +73,8 @@
       </template>
       <template #item.reason="{ item }">
         <!-- A skip's reason is just its rule, already in the column before. -->
-        <span v-if="item.status !== 'skipped'" class="text-caption" :class="{ 'text-error': item.status === 'failed' }">
+        <span v-if="item.delivery_status === 'failed'" class="text-caption text-error">{{ item.delivery_error }}</span>
+        <span v-else-if="item.status !== 'skipped'" class="text-caption" :class="{ 'text-error': item.status === 'failed' }">
           {{ item.reason }}
         </span>
       </template>
@@ -87,7 +89,7 @@
   import { computed, onUnmounted, ref, watch } from 'vue'
   import { useNotify } from '@/composables/useNotify'
   import { useWhatsApp } from '@/composables/useWhatsApp'
-  import { formatCost, formatDollars, formatPhone, STATUS } from '@/utils/whatsapp'
+  import { DELIVERY, formatCost, formatDollars, formatPhone, nullTime, STATUS } from '@/utils/whatsapp'
 
   const props = defineProps({
     from: { type: String, required: true },
@@ -144,6 +146,22 @@
     } finally {
       loading.value = false
     }
+  }
+
+  // A sent message shows how far it got (Meta's webhook); otherwise kashi's
+  // own outcome.
+  function outcome (item) {
+    if (item.status === 'sent') return DELIVERY[item.delivery_status] ?? DELIVERY['']
+    return STATUS[item.status] ?? { label: item.status }
+  }
+  function deliveryTimes (item) {
+    const parts = []
+    const delivered = nullTime(item.delivered_at)
+    const read = nullTime(item.read_at)
+    if (delivered) parts.push(`Delivered ${new Date(delivered).toLocaleString()}`)
+    if (read) parts.push(`Read ${new Date(read).toLocaleString()}`)
+    if (item.pricing_category) parts.push(`Billed as ${item.pricing_category}`)
+    return parts.join(' · ') || undefined
   }
 
   function when (value) {

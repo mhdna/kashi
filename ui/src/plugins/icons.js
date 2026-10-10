@@ -191,6 +191,7 @@ import {
   mdiRefresh,
   mdiRepeat,
   mdiReplay,
+  mdiReply,
   mdiRestore,
   mdiRocketLaunchOutline,
   mdiRotateLeft,
@@ -257,6 +258,7 @@ import {
 import { h } from 'vue'
 
 const iconPaths = {
+  'mdi-reply': mdiReply,
   'mdi-shield-lock-outline': mdiShieldLockOutline,
   'mdi-shield-alert-outline': mdiShieldAlertOutline,
   'mdi-lock-open-variant-outline': mdiLockOpenVariantOutline,

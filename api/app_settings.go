@@ -10,11 +10,13 @@ import (
 	db "github.com/mhdna/kashi/db/sqlc"
 )
 
-// withoutSecrets blanks the WhatsApp access token. /app_settings is readable
-// by every signed-in user; the token is only served by /whatsapp_settings,
-// which needs System access.
+// withoutSecrets blanks the WhatsApp access token, app secret and webhook
+// verify token. /app_settings is readable by every signed-in user; these are
+// only served by /whatsapp_settings, which needs System access.
 func withoutSecrets(settings db.AppSetting) db.AppSetting {
 	settings.WhatsappAccessToken = ""
+	settings.WhatsappAppSecret = ""
+	settings.WhatsappWebhookVerifyToken = ""
 	return settings
 }
 

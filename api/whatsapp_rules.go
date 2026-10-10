@@ -549,6 +549,11 @@ func (server *Server) getWhatsAppStats(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	replies, err := server.store.CountWhatsAppReplies(ctx, db.CountWhatsAppRepliesParams{FromAt: fromAt, ToAt: toAt, BranchID: req.BranchID})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
 
 	type dayRow struct {
 		Day        string `json:"day"`
@@ -572,6 +577,7 @@ func (server *Server) getWhatsAppStats(ctx *gin.Context) {
 		"failures":            failures,
 		"recipients":          recipients,
 		"message_cost_micros": cost,
+		"replies":             replies,
 	})
 }
 
@@ -664,4 +670,44 @@ func (server *Server) listWhatsAppClients(ctx *gin.Context) {
 		}
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{"clients": out})
+}
+
+// ---- replies -------------------------------------------------------------------
+
+type listWhatsAppRepliesRequest struct {
+	whatsAppRangeRequest
+	Search   string `form:"search"`
+	PageSize int32  `form:"page_size,default=50" binding:"min=5,max=500"`
+	PageID   int32  `form:"page_id,default=0" binding:"min=0"`
+}
+
+// listWhatsAppReplies: what clients wrote back (whatsapp_webhook.go).
+func (server *Server) listWhatsAppReplies(ctx *gin.Context) {
+	var req listWhatsAppRepliesRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	fromAt, toAt, err := req.bounds()
+	if err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	search := strings.TrimSpace(req.Search)
+	replies, err := server.store.ListWhatsAppReplies(ctx, db.ListWhatsAppRepliesParams{
+		FromAt: fromAt, ToAt: toAt, BranchID: req.BranchID, Search: search,
+		PageSize: req.PageSize, PageOffset: req.PageID,
+	})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	total, err := server.store.CountWhatsAppReplies(ctx, db.CountWhatsAppRepliesParams{
+		FromAt: fromAt, ToAt: toAt, BranchID: req.BranchID, Search: search,
+	})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"replies": replies, "total": total})
 }

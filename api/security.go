@@ -222,6 +222,9 @@ func (g *securityGuard) middleware() gin.HandlerFunc {
 		ip := net.ParseIP(ipText)
 		internal := internalIP(ip)
 		path := ctx.Request.URL.Path
+		// Meta calls the WhatsApp webhook from its own servers abroad; the
+		// handler checks Meta's signature instead (whatsapp_webhook.go).
+		metaWebhook := path == whatsAppWebhookPath
 		var loc geoLocation
 		if !internal {
 			loc = g.geo.lookup(ipText)
@@ -233,7 +236,7 @@ func (g *securityGuard) middleware() gin.HandlerFunc {
 			switch {
 			case g.banned(ipText):
 				refusal = "banned"
-			case !strings.HasPrefix(path, "/branch/") && cfg.countryRefused(ip, loc.CountryCode):
+			case !strings.HasPrefix(path, "/branch/") && !metaWebhook && cfg.countryRefused(ip, loc.CountryCode):
 				refusal = "country"
 			}
 			if refusal != "" {
@@ -279,7 +282,7 @@ func (g *securityGuard) middleware() gin.HandlerFunc {
 		if probePath.MatchString(path) {
 			g.alert("probe", ipText, loc, fmt.Sprintf("%s %s → %d", ctx.Request.Method, path, status))
 		}
-		if loc.CountryCode != "" && !cfg.allowed[loc.CountryCode] {
+		if loc.CountryCode != "" && !cfg.allowed[loc.CountryCode] && !metaWebhook {
 			if d.logins > 0 {
 				g.alert("login_abroad", ipText, loc, fmt.Sprintf("Signed in from %s", placeName(loc)))
 			} else if g.firstForeignVisitToday(ipText) {

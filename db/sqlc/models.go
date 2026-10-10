@@ -497,6 +497,8 @@ type AppSetting struct {
 	ProductAutofillRules       json.RawMessage `json:"product_autofill_rules"`
 	ProductAutofillCodeLayout  string          `json:"product_autofill_code_layout"`
 	WhatsappMessageCostMicros  int64           `json:"whatsapp_message_cost_micros"`
+	WhatsappWebhookVerifyToken string          `json:"whatsapp_webhook_verify_token"`
+	WhatsappAppSecret          string          `json:"whatsapp_app_secret"`
 }
 
 type AppUpdateEvent struct {
@@ -1688,6 +1690,23 @@ type WhatsappMessage struct {
 	Reason          string        `json:"reason"`
 	Wamid           string        `json:"wamid"`
 	CostMicros      int64         `json:"cost_micros"`
+	DeliveryStatus  string        `json:"delivery_status"`
+	DeliveredAt     sql.NullTime  `json:"delivered_at"`
+	ReadAt          sql.NullTime  `json:"read_at"`
+	DeliveryError   string        `json:"delivery_error"`
+	Billable        sql.NullBool  `json:"billable"`
+	PricingCategory string        `json:"pricing_category"`
+}
+
+type WhatsappReply struct {
+	ID          int64         `json:"id"`
+	Wamid       string        `json:"wamid"`
+	ReceivedAt  time.Time     `json:"received_at"`
+	ClientPhone string        `json:"client_phone"`
+	ClientName  string        `json:"client_name"`
+	Kind        string        `json:"kind"`
+	Body        string        `json:"body"`
+	MessageID   sql.NullInt64 `json:"message_id"`
 }
 
 type WhatsappRule struct {

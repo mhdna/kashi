@@ -71,10 +71,14 @@ WHERE m.created_at >= sqlc.arg(from_at) AND m.created_at < sqlc.arg(to_at)
        OR m.rule_name ILIKE '%' || sqlc.arg(search) || '%');
 
 -- name: WhatsAppMessageTotals :one
+-- delivered/read/undelivered come from Meta's webhook (delivery_status).
 SELECT
   count(*) FILTER (WHERE status = 'sent')::bigint AS sent,
   count(*) FILTER (WHERE status = 'skipped')::bigint AS skipped,
   count(*) FILTER (WHERE status = 'failed')::bigint AS failed,
+  count(*) FILTER (WHERE delivery_status IN ('delivered', 'read'))::bigint AS delivered,
+  count(*) FILTER (WHERE delivery_status = 'read')::bigint AS read,
+  count(*) FILTER (WHERE status = 'sent' AND delivery_status = 'failed')::bigint AS undelivered,
   COALESCE(sum(cost_micros), 0)::bigint AS cost_micros,
   count(DISTINCT client_phone) FILTER (WHERE status = 'sent')::bigint AS recipients,
   COALESCE(sum(grand_total_cents) FILTER (WHERE status = 'sent'), 0)::bigint AS sent_sales_cents
@@ -135,9 +139,13 @@ GROUP BY 1, 2, 3
 ORDER BY messages DESC;
 
 -- name: WhatsAppFailureReasons :many
-SELECT reason, count(*)::bigint AS messages
+-- Both kashi's failures (Meta refused the send) and Meta's own (accepted,
+-- then couldn't deliver).
+SELECT
+  CASE WHEN status = 'failed' THEN reason ELSE delivery_error END::text AS reason,
+  count(*)::bigint AS messages
 FROM whatsapp_messages
-WHERE status = 'failed'
+WHERE (status = 'failed' OR delivery_status = 'failed')
   AND created_at >= sqlc.arg(from_at) AND created_at < sqlc.arg(to_at)
   AND (sqlc.arg(branch_id)::bigint = 0 OR branch_id = sqlc.arg(branch_id))
 GROUP BY 1

@@ -363,6 +363,48 @@
                 variant="outlined"
               />
 
+              <h3 class="text-subtitle-1 mt-8 mb-1">Webhook: delivery, reads and replies</h3>
+              <p class="text-body-2 text-medium-emphasis mb-4">
+                Lets Meta tell kashi when a message is delivered or read, when it couldn't be
+                delivered, and when a client writes back. In the Meta app, open
+                <strong>WhatsApp &gt; Configuration</strong>, enter this callback URL and verify
+                token, then subscribe to the <code>messages</code> field. The app secret is under
+                <strong>App settings &gt; Basic</strong>; kashi uses it to make sure each call
+                really comes from Meta.
+              </p>
+              <v-text-field
+                append-inner-icon="mdi-content-copy"
+                class="field-md mb-4"
+                density="compact"
+                hide-details
+                label="Callback URL"
+                :model-value="webhookUrl"
+                readonly
+                variant="outlined"
+                @click:append-inner="copyText(webhookUrl)"
+              />
+              <v-text-field
+                v-model="whatsappDraft.webhookVerifyToken"
+                append-inner-icon="mdi-content-copy"
+                class="field-md mb-4"
+                density="compact"
+                hide-details
+                label="Verify token"
+                variant="outlined"
+                @click:append-inner="copyText(whatsappDraft.webhookVerifyToken)"
+              />
+              <v-text-field
+                v-model="whatsappDraft.appSecret"
+                :append-inner-icon="showAppSecret ? 'mdi-eye-off' : 'mdi-eye'"
+                class="field-md"
+                density="compact"
+                hide-details
+                label="App secret"
+                :type="showAppSecret ? 'text' : 'password'"
+                variant="outlined"
+                @click:append-inner="showAppSecret = !showAppSecret"
+              />
+
               <div class="d-flex align-center ga-3 mt-6">
                 <span class="text-caption text-medium-emphasis">
                   {{ whatsappDirty ? 'Unsaved changes' : 'All changes saved' }}
@@ -618,6 +660,7 @@
   import { hashColor, initialsOf, useUserAvatar } from '@/composables/useUserAvatar'
   import { useUsers } from '@/composables/useUsers'
   import { useWhatsAppSettings } from '@/composables/useWhatsAppSettings'
+  import { API_BASE } from '@/config'
   import { useAuthStore } from '@/stores/auth'
   import { useSettingsStore } from '@/stores/settings'
 
@@ -910,7 +953,18 @@
 
   const savingWhatsApp = ref(false)
   const showToken = ref(false)
+  const showAppSecret = ref(false)
   const whatsappLoaded = ref(false)
+  // Where Meta calls kashi (api/whatsapp_webhook.go), as the world sees it.
+  const webhookUrl = `${API_BASE}/whatsapp/webhook`
+  async function copyText (text: string) {
+    try {
+      await navigator.clipboard.writeText(text)
+      notify.success('Copied.')
+    } catch {
+      notify.error('Could not copy; select the text instead.')
+    }
+  }
 
   const whatsappSaved = reactive({
     enabled: false,
@@ -919,6 +973,8 @@
     templateName: '',
     templateLang: 'en_US',
     templateParams: 'name,invoice,total',
+    webhookVerifyToken: '',
+    appSecret: '',
   })
   const whatsappDraft = reactive({ ...whatsappSaved })
 
@@ -932,7 +988,9 @@
     || whatsappDraft.accessToken !== whatsappSaved.accessToken
     || whatsappDraft.templateName !== whatsappSaved.templateName
     || whatsappDraft.templateLang !== whatsappSaved.templateLang
-    || whatsappDraft.templateParams !== whatsappSaved.templateParams,
+    || whatsappDraft.templateParams !== whatsappSaved.templateParams
+    || whatsappDraft.webhookVerifyToken !== whatsappSaved.webhookVerifyToken
+    || whatsappDraft.appSecret !== whatsappSaved.appSecret,
   )
 
   onMounted(async () => {
@@ -946,6 +1004,8 @@
           templateName: settings.whatsapp_template_name ?? '',
           templateLang: settings.whatsapp_template_lang ?? 'en_US',
           templateParams: settings.whatsapp_template_params ?? 'name,invoice,total',
+          webhookVerifyToken: settings.whatsapp_webhook_verify_token ?? '',
+          appSecret: settings.whatsapp_app_secret ?? '',
         })
         seedWhatsAppDraft()
       }
@@ -969,6 +1029,8 @@
         whatsapp_template_name: whatsappDraft.templateName,
         whatsapp_template_lang: whatsappDraft.templateLang,
         whatsapp_template_params: whatsappDraft.templateParams,
+        whatsapp_webhook_verify_token: whatsappDraft.webhookVerifyToken,
+        whatsapp_app_secret: whatsappDraft.appSecret,
       })
       Object.assign(whatsappSaved, whatsappDraft)
     } catch (error) {
