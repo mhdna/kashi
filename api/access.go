@@ -137,6 +137,9 @@ var accessSections = []accessSection{
 	// No pages: switching the section on is the whole grant.
 	{"photo_rotation", "Rotate Photos", "Turn expense, shift-receipt and transfer photos; the turn is saved for everyone (off by default)", nil},
 	{"photo_replace", "Replace Photos", "Swap an expense, shift-receipt or transfer photo for another one; the old photo is deleted (off by default)", nil},
+	// Checked by createBranchCommand (replace_shift_balance with
+	// allow_negative), not by a route rule.
+	{"shift_negative_balance", "Negative Balance Transfers", "Move a till's shift balance out of a payment method even when that takes it below zero, e.g. LBP change that was really settled by Whish (off by default)", nil},
 	{"text_selection", "Text Selection", "Select and copy text anywhere in the admin interface (off by default; doesn't gate any data)", nil},
 }
 

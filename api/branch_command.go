@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/mhdna/kashi/db/sqlc"
@@ -29,10 +30,13 @@ var allowedBranchCommandTypes = map[string]bool{
 	// Approve or reject an attendance change request a till filed; only the
 	// till that filed it can apply it (see resolveCommandTarget).
 	"review_attendance_request": true,
-	"set_branch_user_pin":   true,
-	"print_shift_report":    true,
-	"reprint_invoice":       true,
-	"sync_now":              true,
+	"set_branch_user_pin":       true,
+	"print_shift_report":        true,
+	"reprint_invoice":           true,
+	"sync_now":                  true,
+	// Swap or transfer a balance in a till's open shift. allow_negative
+	// (taking the source below zero) needs shift_negative_balance.
+	"replace_shift_balance": true,
 	// transfer_decision is never enqueued through createBranchCommand (the
 	// admin-typed endpoint below) -- only by notifyBranchTransferDecision
 	// in api/transfer.go, straight from an approve/cancel. Listed here
@@ -217,6 +221,9 @@ func (server *Server) resolveCommandTarget(ctx *gin.Context, branchID int64, req
 			return 0, nil, http.StatusInternalServerError, err
 		}
 		return shift.RegisterID, payload, 0, nil
+
+	case "replace_shift_balance":
+		return server.resolveReplaceShiftBalanceTarget(ctx, branchID, req)
 	}
 
 	if req.RegisterID != 0 {
@@ -226,6 +233,65 @@ func (server *Server) resolveCommandTarget(ctx *gin.Context, branchID int64, req
 		}
 	}
 	return req.RegisterID, payload, 0, nil
+}
+
+var errNegativeBalanceNotAllowed = errors.New("taking a balance below zero needs the Negative Balance Transfers permission")
+
+// replaceShiftBalancePayload is what the till's replace_shift_balance
+// executor reads (commands.go in kashi-pos). Payment methods go by name:
+// that's how the till matches the cashbox accounts kashi syncs to it.
+type replaceShiftBalancePayload struct {
+	FromAccount   string `json:"from_account"`
+	ToAccount     string `json:"to_account"`
+	AmountCents   int64  `json:"amount_cents"`
+	AllowNegative bool   `json:"allow_negative"`
+}
+
+// resolveReplaceShiftBalanceTarget validates a balance swap and picks the
+// one register whose open shift it changes: unlike sync_now, fanning it out
+// would apply the same swap once per till.
+func (server *Server) resolveReplaceShiftBalanceTarget(ctx *gin.Context, branchID int64, req createBranchCommandRequest) (int64, json.RawMessage, int, error) {
+	var p replaceShiftBalancePayload
+	if err := json.Unmarshal(req.Payload, &p); err != nil {
+		return 0, nil, http.StatusBadRequest, errors.New("replace_shift_balance needs from_account, to_account and amount_cents")
+	}
+	p.FromAccount = strings.TrimSpace(p.FromAccount)
+	p.ToAccount = strings.TrimSpace(p.ToAccount)
+	if p.FromAccount == "" || p.ToAccount == "" || strings.EqualFold(p.FromAccount, p.ToAccount) {
+		return 0, nil, http.StatusBadRequest, errors.New("choose two different payment methods")
+	}
+	if p.AmountCents <= 0 {
+		return 0, nil, http.StatusBadRequest, errors.New("enter a positive amount")
+	}
+	if p.AllowNegative {
+		access, ok := currentAccess(ctx)
+		if !ok || !access.canEdit("shift_negative_balance") {
+			return 0, nil, http.StatusForbidden, errNegativeBalanceNotAllowed
+		}
+	}
+
+	registerID := req.RegisterID
+	if registerID != 0 {
+		register, err := server.store.GetBranchRegister(ctx, registerID)
+		if err != nil || register.BranchID != branchID {
+			return 0, nil, http.StatusBadRequest, errRegisterBranchMismatch
+		}
+	} else {
+		ids, err := server.store.ListActiveBranchRegisterIDs(ctx, branchID)
+		if err != nil {
+			return 0, nil, http.StatusInternalServerError, err
+		}
+		if len(ids) != 1 {
+			return 0, nil, http.StatusBadRequest, errors.New("choose the register whose shift to change")
+		}
+		registerID = ids[0]
+	}
+
+	payload, err := json.Marshal(p)
+	if err != nil {
+		return 0, nil, http.StatusInternalServerError, err
+	}
+	return registerID, payload, 0, nil
 }
 
 func statusForLookup(err error) int {
