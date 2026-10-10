@@ -704,6 +704,7 @@ type BranchInvoice struct {
 	ClientUid              uuid.NullUUID  `json:"client_uid"`
 	RegisterID             int64          `json:"register_id"`
 	CancelledAt            sql.NullTime   `json:"cancelled_at"`
+	SalespersonID          sql.NullInt64  `json:"salesperson_id"`
 }
 
 type BranchInvoiceItem struct {

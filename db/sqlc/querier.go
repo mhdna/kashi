@@ -59,6 +59,7 @@ type Querier interface {
 	BranchInvoicesReferenceClient(ctx context.Context, id int64) (bool, error)
 	BranchInvoicesReferenceVariant(ctx context.Context, id int64) (bool, error)
 	BranchLoanRefsPresent(ctx context.Context, arg BranchLoanRefsPresentParams) ([]sql.NullString, error)
+	BranchSalespersonExists(ctx context.Context, arg BranchSalespersonExistsParams) (bool, error)
 	// A branch_shifts row exists only once kashi-pos has reported that shift's
 	// close, so its mere presence is the "this shift is closed" signal --
 	// closed_at itself can be NULL for an older till build that omitted it.
@@ -1315,12 +1316,20 @@ type Querier interface {
 	// of its saved rotation. Not a change to the transfer itself, so
 	// updated_at is left alone.
 	RotateTransferAttachment(ctx context.Context, arg RotateTransferAttachmentParams) (int16, error)
+	// Sales in [from_at, to_at), not cancelled. A linked invoice shows its
+	// salesperson's current name, so a renamed salesperson stays one person.
+	SalespersonPerformanceInvoices(ctx context.Context, arg SalespersonPerformanceInvoicesParams) ([]SalespersonPerformanceInvoicesRow, error)
+	SalespersonPerformanceItems(ctx context.Context, arg SalespersonPerformanceItemsParams) ([]BranchInvoiceItem, error)
 	// Clients with a phone, for picking in a rule.
 	SearchWhatsAppClients(ctx context.Context, search string) ([]SearchWhatsAppClientsRow, error)
 	SetAssetCost(ctx context.Context, arg SetAssetCostParams) error
 	SetBranchActive(ctx context.Context, arg SetBranchActiveParams) error
 	SetBranchHiddenFromReports(ctx context.Context, arg SetBranchHiddenFromReportsParams) error
 	SetBranchInventory(ctx context.Context, arg SetBranchInventoryParams) error
+	// Salesperson Performance (api/salesperson_performance.go) and the tills'
+	// one-time report of who made their past sales.
+	// Only a salesperson of the invoice's own branch is accepted.
+	SetBranchInvoiceSalesperson(ctx context.Context, arg SetBranchInvoiceSalespersonParams) (int64, error)
 	SetBranchRegisterActive(ctx context.Context, arg SetBranchRegisterActiveParams) error
 	SetBranchRegisterHiddenFromReports(ctx context.Context, arg SetBranchRegisterHiddenFromReportsParams) error
 	// Later flip wins: a flip only applies if it's newer than the one stored, so

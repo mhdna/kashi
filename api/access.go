@@ -255,6 +255,7 @@ var routeRules = []routeRule{
 	rule("/dashboard", "", "analytics"),
 	rule("/sales_dashboard", "", "analytics"),
 	rule("/sales_analysis", "", "analytics"),
+	rule("/salesperson_performance", "", "analytics"),
 	rule("/financials", "", "analytics"),
 	rule("/branch_sales_stats", "", "analytics", "sales"),
 	rule("/branch_product_revenue", "", "analytics", "inventory"),

@@ -411,6 +411,21 @@ func (mr *MockStoreMockRecorder) BranchLoanRefsPresent(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BranchLoanRefsPresent", reflect.TypeOf((*MockStore)(nil).BranchLoanRefsPresent), arg0, arg1)
 }
 
+// BranchSalespersonExists mocks base method.
+func (m *MockStore) BranchSalespersonExists(arg0 context.Context, arg1 db.BranchSalespersonExistsParams) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BranchSalespersonExists", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BranchSalespersonExists indicates an expected call of BranchSalespersonExists.
+func (mr *MockStoreMockRecorder) BranchSalespersonExists(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BranchSalespersonExists", reflect.TypeOf((*MockStore)(nil).BranchSalespersonExists), arg0, arg1)
+}
+
 // BranchShiftIsClosed mocks base method.
 func (m *MockStore) BranchShiftIsClosed(arg0 context.Context, arg1 db.BranchShiftIsClosedParams) (bool, error) {
 	m.ctrl.T.Helper()
@@ -9318,6 +9333,36 @@ func (mr *MockStoreMockRecorder) SalesInvoiceTx(arg0, arg1 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SalesInvoiceTx", reflect.TypeOf((*MockStore)(nil).SalesInvoiceTx), arg0, arg1)
 }
 
+// SalespersonPerformanceInvoices mocks base method.
+func (m *MockStore) SalespersonPerformanceInvoices(arg0 context.Context, arg1 db.SalespersonPerformanceInvoicesParams) ([]db.SalespersonPerformanceInvoicesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SalespersonPerformanceInvoices", arg0, arg1)
+	ret0, _ := ret[0].([]db.SalespersonPerformanceInvoicesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SalespersonPerformanceInvoices indicates an expected call of SalespersonPerformanceInvoices.
+func (mr *MockStoreMockRecorder) SalespersonPerformanceInvoices(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SalespersonPerformanceInvoices", reflect.TypeOf((*MockStore)(nil).SalespersonPerformanceInvoices), arg0, arg1)
+}
+
+// SalespersonPerformanceItems mocks base method.
+func (m *MockStore) SalespersonPerformanceItems(arg0 context.Context, arg1 db.SalespersonPerformanceItemsParams) ([]db.BranchInvoiceItem, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SalespersonPerformanceItems", arg0, arg1)
+	ret0, _ := ret[0].([]db.BranchInvoiceItem)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SalespersonPerformanceItems indicates an expected call of SalespersonPerformanceItems.
+func (mr *MockStoreMockRecorder) SalespersonPerformanceItems(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SalespersonPerformanceItems", reflect.TypeOf((*MockStore)(nil).SalespersonPerformanceItems), arg0, arg1)
+}
+
 // SaveRolePermissionsTx mocks base method.
 func (m *MockStore) SaveRolePermissionsTx(arg0 context.Context, arg1 int64, arg2 []db.RolePermission) error {
 	m.ctrl.T.Helper()
@@ -9416,6 +9461,21 @@ func (m *MockStore) SetBranchInventory(arg0 context.Context, arg1 db.SetBranchIn
 func (mr *MockStoreMockRecorder) SetBranchInventory(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchInventory", reflect.TypeOf((*MockStore)(nil).SetBranchInventory), arg0, arg1)
+}
+
+// SetBranchInvoiceSalesperson mocks base method.
+func (m *MockStore) SetBranchInvoiceSalesperson(arg0 context.Context, arg1 db.SetBranchInvoiceSalespersonParams) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetBranchInvoiceSalesperson", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetBranchInvoiceSalesperson indicates an expected call of SetBranchInvoiceSalesperson.
+func (mr *MockStoreMockRecorder) SetBranchInvoiceSalesperson(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchInvoiceSalesperson", reflect.TypeOf((*MockStore)(nil).SetBranchInvoiceSalesperson), arg0, arg1)
 }
 
 // SetBranchRegisterActive mocks base method.

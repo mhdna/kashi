@@ -197,6 +197,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/whatsapp/cost", server.setWhatsAppCost)
 	authRoutes.GET("/whatsapp/stats", server.getWhatsAppStats)
 	authRoutes.GET("/whatsapp/messages", server.listWhatsAppMessages)
+	authRoutes.GET("/salesperson_performance", server.getSalespersonPerformance)
 	authRoutes.GET("/whatsapp/clients", server.listWhatsAppClients)
 	authRoutes.GET("/whatsapp/replies", server.listWhatsAppReplies)
 
@@ -508,6 +509,7 @@ func (server *Server) setupRoutes() {
 	branchRoutes := router.Group("/branch").Use(server.branchAuthMiddleware())
 	branchRoutes.GET("/health", server.branchHealth)
 	branchRoutes.POST("/sales_invoices", server.createBranchSalesInvoice)
+	branchRoutes.POST("/invoice_salespersons", server.setBranchInvoiceSalespersons)
 	branchRoutes.POST("/return_invoices", server.createBranchReturnInvoice)
 	branchRoutes.POST("/exchange_invoices", server.createBranchExchangeInvoice)
 	branchRoutes.POST("/expenses", server.createBranchExpense)

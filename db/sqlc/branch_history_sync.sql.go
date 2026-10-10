@@ -138,7 +138,7 @@ func (q *Queries) ListBranchInvoiceCouponCodesForHistory(ctx context.Context, ar
 
 const listBranchInvoiceHistoryForSync = `-- name: ListBranchInvoiceHistoryForSync :many
 
-SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id, cancelled_at FROM branch_invoices
+SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id, cancelled_at, salesperson_id FROM branch_invoices
 WHERE register_id = $1
   AND (received_at, id) > ($2::timestamptz, $3::bigint)
 ORDER BY received_at, id
@@ -205,6 +205,7 @@ func (q *Queries) ListBranchInvoiceHistoryForSync(ctx context.Context, arg ListB
 			&i.ClientUid,
 			&i.RegisterID,
 			&i.CancelledAt,
+			&i.SalespersonID,
 		); err != nil {
 			return nil, err
 		}

@@ -150,8 +150,12 @@ type branchInvoiceRequest struct {
 	// matching comment on branchInvoicePaymentPayload in kashi-pos's
 	// sync_outbox.go. Neither is required: an older kashi-pos build that
 	// hasn't been updated yet simply omits them.
-	SalespersonName string                        `json:"salesperson_name"`
-	Payments        []branchInvoicePaymentRequest `json:"payments"`
+	SalespersonName string `json:"salesperson_name"`
+	// kashi's id for the salesperson (the till's salespersons.remote_id), so
+	// a renamed salesperson stays one person on reports. 0 from older tills
+	// or when the till's salesperson isn't one of kashi's.
+	SalespersonID int64                         `json:"salesperson_id"`
+	Payments      []branchInvoicePaymentRequest `json:"payments"`
 
 	// Historical marks a one-time backfill of a pre-sync sale: it records in
 	// full but moves no central stock (see CreateBranchInvoiceTx). Absent /
@@ -263,6 +267,15 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 		})
 	}
 
+	salespersonID := sql.NullInt64{}
+	if req.SalespersonID > 0 {
+		if ok, err := server.store.BranchSalespersonExists(ctx, db.BranchSalespersonExistsParams{
+			ID: req.SalespersonID, BranchID: sql.NullInt64{Int64: branchID, Valid: true},
+		}); err == nil && ok {
+			salespersonID = sql.NullInt64{Int64: req.SalespersonID, Valid: true}
+		}
+	}
+
 	result, err := server.store.CreateBranchInvoiceTx(ctx, db.CreateBranchInvoiceTxParams{
 		CreateBranchInvoiceParams: db.CreateBranchInvoiceParams{
 			BranchID:               branchID,
@@ -284,6 +297,7 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 			Historical:             req.Historical,
 			ClientUid:              clientUID,
 			RegisterID:             registerID,
+			SalespersonID:          salespersonID,
 		},
 		Items:    items,
 		Payments: payments,

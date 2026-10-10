@@ -282,12 +282,10 @@
   import { computed, onMounted, ref, watch } from 'vue'
   import { authFetch } from '@/composables/useApi'
   import { useBranches } from '@/composables/useBranches'
-  import { useBranchInvoices } from '@/composables/useBranchInvoices'
   import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
 
   const { branches, fetchBranches } = useBranches()
-  const { listBranchInvoiceItems } = useBranchInvoices()
   const invoices = ref([])
   const loading = ref(false)
   const notify = useNotify()
@@ -348,26 +346,12 @@
     return `${format(selectedRange.value[0])} – ${format(selectedRange.value.at(-1))}`
   })
 
-  function invoiceDate (invoice) {
-    return new Date(invoice.occurred_at || invoice.created_at || invoice.received_at)
-  }
-
-  function inSelectedPeriod (invoice) {
-    const date = invoiceDate(invoice)
-    if (Number.isNaN(date.getTime())) return period.value === 'all'
-    if (period.value === 'month') return date.toISOString().slice(0, 7) === month.value
-    if (period.value === 'range') {
-      const day = date.toISOString().slice(0, 10)
-      const from = selectedRange.value[0]
-      const to = selectedRange.value.at(-1)
-      return (!from || day >= from) && (!to || day <= to)
-    }
-    return true
-  }
-
+  // One person per salesperson id, so a renamed salesperson isn't counted
+  // twice; an invoice not linked to one (an old till, or a name kashi never
+  // had) still groups by name.
   function personKey (invoice) {
-    const id = invoice.salesperson_id ?? invoice.salesperson?.id
-    return id == null ? `name:${invoice.salesperson_name || invoice.salesperson?.name || 'Unassigned'}` : String(id)
+    const id = Number(invoice.salesperson_id) || 0
+    return id > 0 ? `id:${id}` : `name:${invoice.salesperson_name || 'Unassigned'}`
   }
 
   function goodsCount (invoice) {
@@ -444,7 +428,6 @@
     for (const invoice of invoices.value) {
       if (invoice.kind && invoice.kind !== 'sale' && invoice.kind !== 'sales') continue
       if (branchId.value != null && String(invoice.branch_id) !== String(branchId.value)) continue
-      if (!inSelectedPeriod(invoice)) continue
       const key = personKey(invoice)
       const row = result.get(key) || {
         key,
@@ -527,26 +510,31 @@
     dateRange.value = []
   }
 
+  // The selected period as inclusive days for the API; none = all time.
+  const periodBounds = computed(() => {
+    if (period.value === 'month') {
+      const [year, monthNumber] = month.value.split('-').map(Number)
+      const lastDay = new Date(year, monthNumber, 0).getDate()
+      return { from: `${month.value}-01`, to: `${month.value}-${String(lastDay).padStart(2, '0')}` }
+    }
+    if (period.value === 'range' && selectedRange.value.length > 0) {
+      return { from: selectedRange.value[0], to: selectedRange.value.at(-1) }
+    }
+    return {}
+  })
+
+  // Every sale of the period with its lines, in one request (see
+  // api/salesperson_performance.go).
   async function loadData () {
     loading.value = true
     try {
       const [, response] = await Promise.all([
         fetchBranches(),
-        authFetch(`${API_BASE}/branch_invoices?page_size=100&page_id=0`),
+        authFetch(`${API_BASE}/salesperson_performance?${new URLSearchParams(periodBounds.value)}`),
       ])
       if (!response.ok) throw new Error(`Failed to load sales activity (${response.status})`)
       const data = await response.json()
-      const loadedInvoices = Array.isArray(data) ? data : (data?.branch_invoices ?? [])
-      const itemResults = await Promise.allSettled(loadedInvoices.map(invoice => {
-        if (invoice.total_goods != null || invoice.items_count != null || invoice.items || invoice.invoice_items) {
-          return Promise.resolve(invoice.items || invoice.invoice_items || [])
-        }
-        return listBranchInvoiceItems(invoice.id)
-      }))
-      invoices.value = loadedInvoices.map((invoice, index) => ({
-        ...invoice,
-        items: itemResults[index].status === 'fulfilled' ? itemResults[index].value : [],
-      }))
+      invoices.value = data?.invoices ?? []
     } catch (loadError) {
       notify.error(loadError.message || 'Failed to load salesperson performance.')
       invoices.value = []
@@ -558,6 +546,7 @@
   watch(branchId, () => {
     salespersonId.value = null
   })
+  watch(() => JSON.stringify(periodBounds.value), loadData)
   watch(monthMenu, isOpen => {
     if (!isOpen) return
     const [year, selectedMonth] = month.value.split('-').map(Number)
