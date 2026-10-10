@@ -516,6 +516,32 @@
             hide-details
             label="Active"
           />
+          <div class="text-body-2 text-medium-emphasis mt-2 mb-2">Avatar colour</div>
+          <div class="d-flex align-center ga-3">
+            <v-avatar class="text-white font-weight-medium" :color="editAvatarColor" size="36">
+              <span class="text-caption">{{ initialsOf(editForm.name) }}</span>
+            </v-avatar>
+            <div class="d-flex flex-wrap ga-2">
+              <button
+                v-for="c in avatarColors"
+                :key="c"
+                class="swatch"
+                :class="{ 'swatch--active': c === editAvatarColor }"
+                :style="{ background: c }"
+                type="button"
+                @click="editForm.avatarColor = c"
+              />
+            </div>
+          </div>
+          <v-btn
+            v-if="editForm.avatarColor"
+            class="px-1 mt-1"
+            size="small"
+            variant="text"
+            @click="editForm.avatarColor = ''"
+          >
+            Reset to default colour
+          </v-btn>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -589,7 +615,7 @@
   import RolesManager from '@/components/RolesManager.vue'
   import { useNotify } from '@/composables/useNotify'
   import { useRoles } from '@/composables/useRoles'
-  import { useUserAvatar } from '@/composables/useUserAvatar'
+  import { hashColor, initialsOf, useUserAvatar } from '@/composables/useUserAvatar'
   import { useUsers } from '@/composables/useUsers'
   import { useWhatsAppSettings } from '@/composables/useWhatsAppSettings'
   import { useAuthStore } from '@/stores/auth'
@@ -781,7 +807,9 @@
   // Edit name / role / status
   const editDialog = ref(false)
   const editTarget = ref(null)
-  const editForm = reactive({ username: '', name: '', roleId: null, activated: true })
+  const editForm = reactive({ username: '', name: '', roleId: null, activated: true, avatarColor: '' })
+  // '' means "derived from the name", same as everywhere else.
+  const editAvatarColor = computed(() => editForm.avatarColor || hashColor(editForm.name))
 
   function openEdit (user) {
     editTarget.value = user
@@ -789,6 +817,7 @@
     editForm.name = user.name
     editForm.roleId = user.role_id
     editForm.activated = user.activated
+    editForm.avatarColor = user.avatar_color ?? ''
     editDialog.value = true
   }
 
@@ -801,7 +830,15 @@
         name: editForm.name,
         activated: editForm.activated,
         role_id: editForm.roleId,
+        avatar_color: editForm.avatarColor,
       })
+      // Your own colour also lives on the signed-in user (top bar, presence).
+      if (editTarget.value.id === auth.user?.id) {
+        auth.user = { ...auth.user, avatar_color: editForm.avatarColor }
+        try {
+          localStorage.setItem('user', JSON.stringify(auth.user))
+        } catch { /* the in-memory user is updated either way */ }
+      }
       await Promise.all([fetchUsers(true), fetchRoles()])
       editDialog.value = false
     } catch (error) {

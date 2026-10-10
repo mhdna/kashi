@@ -2,7 +2,7 @@
   <!-- Fixed height so the dialog doesn't jump as fields fill in; only the
        body scrolls, the title and actions stay put (the parent v-dialog is
        `scrollable`). -->
-  <v-card class="new-product-card" tag="form" @submit.prevent="submit">
+  <v-card class="new-product-card" tag="form" @submit.prevent="submitAndClose">
     <v-card-title class="d-flex align-center ga-2">
       <span class="text-h6">New Product</span>
       <v-spacer />
@@ -28,6 +28,7 @@
       <v-row density="compact">
         <v-col cols="12" sm="6">
           <v-text-field
+            ref="codeInput"
             v-model="code.value.value"
             density="compact"
             :error-messages="code.errorMessage.value"
@@ -186,7 +187,16 @@
       <v-btn text="Clear" variant="text" @click="resetForm" />
       <v-btn
         color="primary"
-        :loading="submitting"
+        :disabled="submitting && !addingAnother"
+        :loading="submitting && addingAnother"
+        text="Save & Add Another"
+        variant="tonal"
+        @click="submitAndAddAnother"
+      />
+      <v-btn
+        color="primary"
+        :disabled="submitting && addingAnother"
+        :loading="submitting && !addingAnother"
         text="Add Product"
         type="submit"
         variant="flat"
@@ -197,7 +207,7 @@
 
 <script setup>
   import { useField, useForm } from 'vee-validate'
-  import { computed, ref } from 'vue'
+  import { computed, nextTick, ref } from 'vue'
   import { authFetch } from '@/composables/useApi'
   import { useAttributes } from '@/composables/useAttributes'
   import { useColorsAndSizes } from '@/composables/useColorsAndSizes'
@@ -326,6 +336,10 @@
   }
 
   const submitting = ref(false)
+  // "Save & Add Another": same save, but the dialog stays open on an emptied
+  // form, ready for the next product.
+  const addingAnother = ref(false)
+  const codeInput = ref(null)
 
   const submit = handleSubmit(async values => {
     submitting.value = true
@@ -363,13 +377,33 @@
       }
 
       resetForm()
-      emit('created')
+      if (addingAnother.value) {
+        notify.success(`Added ${values.code}.`)
+        await nextTick()
+        codeInput.value?.focus()
+      }
+      emit('created', { keepOpen: addingAnother.value })
     } catch (error) {
       notify.error(error.message)
     } finally {
       submitting.value = false
     }
   })
+
+  async function submitAndAddAnother () {
+    addingAnother.value = true
+    try {
+      await submit()
+    } finally {
+      addingAnother.value = false
+    }
+  }
+
+  // The plain submit button and Enter always mean "add and close".
+  function submitAndClose () {
+    addingAnother.value = false
+    return submit()
+  }
 </script>
 
 <style scoped>

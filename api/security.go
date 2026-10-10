@@ -485,7 +485,7 @@ func (g *securityGuard) Run(ctx context.Context) {
 	}
 }
 
-// ---- Admin endpoints (admin-only: not listed in access.go's routeRules) ----
+// ---- Admin endpoints (Security section, see access.go's routeRules) ----
 
 type securityLocation struct {
 	CountryCode string `json:"country_code"`

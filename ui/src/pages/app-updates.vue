@@ -47,6 +47,7 @@
           <div class="au-section-title">Tills</div>
           <v-spacer />
           <v-btn
+            v-if="canEdit"
             :disabled="selectedRegisterIds.length === 0"
             prepend-icon="mdi-rocket-launch-outline"
             :text="selectedRegisterIds.length > 0 ? `Set version for ${selectedRegisterIds.length}` : 'Set version'"
@@ -64,7 +65,7 @@
           :items-per-page="-1"
           :loading="loading"
           no-data-text="No registers yet."
-          show-select
+          :show-select="canEdit"
         >
           <template #item.register="{ item }">
             <div class="d-flex align-center">
@@ -102,7 +103,7 @@
               </div>
             </div>
           </template>
-          <template #item.actions="{ item }">
+          <template v-if="canEdit" #item.actions="{ item }">
             <v-btn size="small" text="Set version" variant="text" @click="openTargetDialog([item.id])" />
             <v-btn
               v-if="previousReleaseFor(item)"
@@ -140,7 +141,7 @@
           <template #item.usage="{ item }">
             {{ item.running_count }} running · {{ item.target_count }} set
           </template>
-          <template #item.actions="{ item }">
+          <template v-if="canEdit" #item.actions="{ item }">
             <v-btn
               prepend-icon="mdi-rocket-launch-outline"
               size="small"
@@ -300,8 +301,10 @@
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useAppUpdates } from '@/composables/useAppUpdates'
   import { useNotify } from '@/composables/useNotify'
+  import { usePageAccess } from '@/composables/usePageAccess'
 
   const notify = useNotify()
+  const { canEdit } = usePageAccess()
   const api = useAppUpdates()
   const socket = useAdminSocket()
 

@@ -84,12 +84,15 @@
   }
 
   /* You: a smaller avatar so the dark gap and a yellow ring fit in the
-     same 34px as everyone else (26 + 2 gap + 2 ring on each side), and room
-     before the others (you're always first) so you don't overlap into them. */
+     same 34px as everyone else (26 + 2 gap + 2 ring on each side). You're
+     always first and overlap into the others like any neighbour, but drawn
+     on top of them so your ring stays whole. */
   .online-stack__avatar--me {
+    position: relative;
+    z-index: 1;
     box-shadow: 0 0 0 2px #FFC107;
     margin: 2px;
-    margin-inline-end: 12px;
+    margin-inline-end: 0;
   }
 
   .online-stack__skeleton,

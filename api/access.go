@@ -74,6 +74,8 @@ var accessSections = []accessSection{
 		{"branches", "Branches"},
 		{"branch-settings", "Branch Settings"},
 		{"default-branch-settings", "Default Settings"},
+		{"branch-commands", "Commands"},
+		{"branch-conflicts", "Conflicts"},
 	}},
 	{"pricing", "Pricing", "Price lists, discount lists and coupons", []accessPage{
 		{"pricing", "Coupons"},
@@ -122,6 +124,15 @@ var accessSections = []accessSection{
 		{"audit-log", "Audit Log"},
 		{"logs", "Dev Logs"},
 		{"storage", "Storage"},
+	}},
+	// Own sections rather than pages under System: the API enforces sections,
+	// so editing App Settings must not also let a role push releases to the
+	// tills or ban IPs.
+	{"updates", "App Updates", "Upload till releases and roll them out to branches", []accessPage{
+		{"app-updates", "App Updates"},
+	}},
+	{"security", "Security", "Visitors, alerts and IP bans", []accessPage{
+		{"security", "Security"},
 	}},
 	// No pages: switching the section on is the whole grant.
 	{"photo_rotation", "Rotate Photos", "Turn expense, shift-receipt and transfer photos; the turn is saved for everyone (off by default)", nil},
@@ -299,6 +310,9 @@ var routeRules = []routeRule{
 	// The home feeds' "today" counts: same deal, filtered per feed.
 	lookup("/home/today", ""),
 	rule("/logs", "", "system"),
+	rule("/app_releases", "updates", "updates"),
+	rule("/app_updates", "updates", "updates"),
+	rule("/security", "security", "security"),
 
 	// Signed-in users may see who else is online and their own access; every
 	// other /users route (and all of /roles) is admin-only by omission.

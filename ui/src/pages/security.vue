@@ -37,7 +37,7 @@
           </v-chip>
           <v-spacer />
           <v-btn
-            v-if="overview?.open_alerts"
+            v-if="canEdit && overview?.open_alerts"
             prepend-icon="mdi-check-all"
             size="small"
             variant="text"
@@ -70,7 +70,7 @@
             <v-list-item-subtitle class="text-caption">
               {{ flag(a.country_code) }} {{ a.ip }} · {{ ago(a.last_at) }}
             </v-list-item-subtitle>
-            <template #append>
+            <template v-if="canEdit" #append>
               <v-btn
                 v-if="!isBanned(a.ip)"
                 color="error"
@@ -187,7 +187,7 @@
         <template #item.last_seen_at="{ item }">
           <span :title="new Date(item.last_seen_at).toLocaleString()">{{ ago(item.last_seen_at) }}</span>
         </template>
-        <template #item.actions="{ item }">
+        <template v-if="canEdit" #item.actions="{ item }">
           <v-btn
             v-if="isBanned(item.ip)"
             size="x-small"
@@ -230,6 +230,7 @@
           v-model="draft.country_filter_enabled"
           color="primary"
           density="compact"
+          :disabled="!canEdit"
           hide-details
           inset
           label="Only allow these countries"
@@ -244,6 +245,7 @@
           class="mb-3"
           closable-chips
           density="compact"
+          :disabled="!canEdit"
           hide-details
           :item-title="c => `${flag(c)} ${countryName(c)}`"
           :item-value="c => c"
@@ -258,6 +260,7 @@
           class="mb-1"
           closable-chips
           density="compact"
+          :disabled="!canEdit"
           hide-details
           label="Always allow these IPs or ranges"
           multiple
@@ -266,7 +269,7 @@
         />
         <div class="text-caption text-medium-emphasis mb-3">
           For someone who must get in from abroad. Type an address and press Enter.
-          <a v-if="overview && !draft.always_allowed.includes(overview.my_ip)" href="#" @click.prevent="draft.always_allowed.push(overview.my_ip)">
+          <a v-if="canEdit && overview && !draft.always_allowed.includes(overview.my_ip)" href="#" @click.prevent="draft.always_allowed.push(overview.my_ip)">
             Add my IP
           </a>
         </div>
@@ -275,6 +278,7 @@
           v-model="draft.auto_ban_enabled"
           color="primary"
           density="compact"
+          :disabled="!canEdit"
           hide-details
           inset
           label="Ban an IP after repeated failed sign-ins"
@@ -283,7 +287,7 @@
           <v-text-field
             v-model.number="draft.auto_ban_failed_logins"
             density="compact"
-            :disabled="!draft.auto_ban_enabled"
+            :disabled="!canEdit || !draft.auto_ban_enabled"
             hide-details
             label="Failed sign-ins (15 min)"
             min="3"
@@ -293,7 +297,7 @@
           <v-text-field
             v-model.number="draft.auto_ban_minutes"
             density="compact"
-            :disabled="!draft.auto_ban_enabled"
+            :disabled="!canEdit || !draft.auto_ban_enabled"
             hide-details
             label="Ban for (minutes)"
             min="1"
@@ -301,7 +305,7 @@
             variant="outlined"
           />
         </div>
-        <div class="d-flex">
+        <div v-if="canEdit" class="d-flex">
           <v-spacer />
           <v-btn color="primary" :disabled="!settingsDirty" :loading="saving" @click="saveSettings">Save</v-btn>
         </div>
@@ -313,7 +317,7 @@
           <v-icon icon="mdi-cancel" size="20" />
           <div class="section__title">Banned IPs</div>
           <v-spacer />
-          <v-btn size="small" variant="text" @click="openBan('')">Ban an IP</v-btn>
+          <v-btn v-if="canEdit" size="small" variant="text" @click="openBan('')">Ban an IP</v-btn>
         </div>
         <div v-if="bans.length === 0" class="text-body-2 text-medium-emphasis py-6 text-center">No one is banned.</div>
         <v-list v-else class="pa-0" density="compact">
@@ -323,7 +327,7 @@
               {{ b.until ? `until ${new Date(b.until).toLocaleString()}` : 'until lifted' }}
               · by {{ b.created_by || '—' }}
             </v-list-item-subtitle>
-            <template #append>
+            <template v-if="canEdit" #append>
               <v-btn
                 prepend-icon="mdi-lock-open-variant-outline"
                 size="x-small"
@@ -386,12 +390,15 @@
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { authFetch } from '@/composables/useApi'
   import { useNotify } from '@/composables/useNotify'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
 
   // Who reaches the API, from where, and what to do about it -- see
-  // api/security.go. Admin-only.
+  // api/security.go. Needs the Security section; editing it to ban, unban
+  // or change protection.
 
   const notify = useNotify()
+  const { canEdit } = usePageAccess()
 
   const ALERT_KINDS = {
     failed_logins: { label: 'Failed sign-ins', icon: 'mdi-account-outline', color: 'warning' },

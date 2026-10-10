@@ -60,41 +60,45 @@
                 type="list-item-avatar-two-line@8"
               />
               <v-list v-else class="py-1" density="compact" lines="two">
-                <v-list-item v-for="item in shown(kashiActivities)" :key="item.id" class="px-3">
-                  <template #prepend>
-                    <v-avatar
-                      class="me-3 text-white"
-                      :color="userColor(item)"
-                      size="34"
-                    >
-                      <span class="text-caption font-weight-bold">{{ initialsOf(item.user_name) }}</span>
-                    </v-avatar>
-                  </template>
-                  <v-list-item-title class="text-body-2 activity-sentence">
-                    <span class="font-weight-medium" :title="item.user_name">{{ firstNameOf(item.user_name) || 'Someone' }}</span>
-                    {{ kashiSentence(item) }}
-                    <!-- The same change made again straight after (within the
+                <v-virtual-scroll :item-height="71" :items="shown(kashiActivities)" renderless>
+                  <template #default="{ item, itemRef }">
+                    <v-list-item :ref="itemRef" class="px-3">
+                      <template #prepend>
+                        <v-avatar
+                          class="me-3 text-white"
+                          :color="userColor(item)"
+                          size="34"
+                        >
+                          <span class="text-caption font-weight-bold">{{ initialsOf(item.user_name) }}</span>
+                        </v-avatar>
+                      </template>
+                      <v-list-item-title class="text-body-2 activity-sentence">
+                        <span class="font-weight-medium" :title="item.user_name">{{ firstNameOf(item.user_name) || 'Someone' }}</span>
+                        {{ kashiSentence(item) }}
+                        <!-- The same change made again straight after (within the
                          hour) is counted on one entry, not listed again. -->
-                    <v-chip
-                      v-if="item.repeat_count > 1"
-                      class="ms-1"
-                      label
-                      size="x-small"
-                      :title="`${item.repeat_count} times in a row`"
-                      variant="tonal"
-                    >
-                      ×{{ item.repeat_count }}
-                    </v-chip>
-                  </v-list-item-title>
-                  <v-list-item-subtitle v-if="item.detail" class="text-caption">
-                    {{ item.detail }}
-                  </v-list-item-subtitle>
-                  <template #append>
-                    <div class="text-caption text-medium-emphasis text-no-wrap ms-2" :title="dateTime(item.created_at)">
-                      {{ timeAgo(item.created_at) }}
-                    </div>
+                        <v-chip
+                          v-if="item.repeat_count > 1"
+                          class="ms-1"
+                          label
+                          size="x-small"
+                          :title="`${item.repeat_count} times in a row`"
+                          variant="tonal"
+                        >
+                          ×{{ item.repeat_count }}
+                        </v-chip>
+                      </v-list-item-title>
+                      <v-list-item-subtitle v-if="item.detail" class="text-caption">
+                        {{ item.detail }}
+                      </v-list-item-subtitle>
+                      <template #append>
+                        <div class="text-caption text-medium-emphasis text-no-wrap ms-2" :title="dateTime(item.created_at)">
+                          {{ timeAgo(item.created_at) }}
+                        </div>
+                      </template>
+                    </v-list-item>
                   </template>
-                </v-list-item>
+                </v-virtual-scroll>
               </v-list>
 
               <div
@@ -135,13 +139,14 @@
                 type="list-item-avatar-two-line@8"
               />
               <v-list v-else class="py-1" density="compact" lines="two">
-                <v-list-item
-                  v-for="(item, index) in shown(activities)"
-                  :key="index"
-                  class="px-3 activity-row"
-                  @click="openDetail(item)"
-                >
-                  <!-- TEMP: left icon hidden
+                <v-virtual-scroll :item-height="71" :items="shown(activities)" renderless>
+                  <template #default="{ item, itemRef }">
+                    <v-list-item
+                      :ref="itemRef"
+                      class="px-3 activity-row"
+                      @click="openDetail(item)"
+                    >
+                      <!-- TEMP: left icon hidden
                   <template #prepend>
                     <v-avatar
                       class="me-3"
@@ -154,38 +159,40 @@
                     </v-avatar>
                   </template>
                   -->
-                  <v-list-item-title class="text-body-2 font-weight-medium">
-                    {{ item.activity || 'Activity' }}
-                  </v-list-item-title>
-                  <v-list-item-subtitle class="text-caption d-flex align-center ga-1">
-                    <template v-if="item.person">
-                      <v-avatar
-                        class="text-white flex-shrink-0"
-                        :color="item.person_color || hashColor(item.person)"
-                        size="18"
-                      >
-                        <span class="person-initials">{{ initialsOf(item.person) }}</span>
-                      </v-avatar>
-                      <span class="font-weight-medium text-high-emphasis text-no-wrap" :title="item.person">{{ firstNameOf(item.person) }}</span>
-                      <span>·</span>
-                    </template>
-                    <span class="text-truncate">{{ activityContext(item) }}</span>
-                  </v-list-item-subtitle>
-                  <template #append>
-                    <div class="text-right">
-                      <div
-                        v-if="hasAmount(item)"
-                        class="text-body-2 font-weight-medium"
-                        :class="amountClass(item.amount)"
-                      >
-                        {{ money(item.amount, item.currency_code) }}
-                      </div>
-                      <div class="text-caption text-medium-emphasis">
-                        {{ timeAgo(item.synced_at) }}
-                      </div>
-                    </div>
+                      <v-list-item-title class="text-body-2 font-weight-medium">
+                        {{ item.activity || 'Activity' }}
+                      </v-list-item-title>
+                      <v-list-item-subtitle class="text-caption d-flex align-center ga-1">
+                        <template v-if="item.person">
+                          <v-avatar
+                            class="text-white flex-shrink-0"
+                            :color="item.person_color || hashColor(item.person)"
+                            size="18"
+                          >
+                            <span class="person-initials">{{ initialsOf(item.person) }}</span>
+                          </v-avatar>
+                          <span class="font-weight-medium text-high-emphasis text-no-wrap" :title="item.person">{{ firstNameOf(item.person) }}</span>
+                          <span>·</span>
+                        </template>
+                        <span class="text-truncate">{{ activityContext(item) }}</span>
+                      </v-list-item-subtitle>
+                      <template #append>
+                        <div class="text-right">
+                          <div
+                            v-if="hasAmount(item)"
+                            class="text-body-2 font-weight-medium"
+                            :class="amountClass(item.amount)"
+                          >
+                            {{ money(item.amount, item.currency_code) }}
+                          </div>
+                          <div class="text-caption text-medium-emphasis">
+                            {{ timeAgo(item.synced_at) }}
+                          </div>
+                        </div>
+                      </template>
+                    </v-list-item>
                   </template>
-                </v-list-item>
+                </v-virtual-scroll>
               </v-list>
 
               <div
@@ -226,41 +233,46 @@
                 type="list-item-avatar-two-line@8"
               />
               <v-list v-else class="py-1" density="compact" lines="two">
-                <v-list-item
-                  v-for="item in shownLatest"
-                  :key="latestKey(item)"
-                  class="px-3 activity-row"
-                  @click="openLatest(item)"
-                >
-                  <template #prepend>
-                    <v-avatar
-                      class="me-3 latest-thumb"
-                      :color="latestVisual(item).color"
-                      rounded="lg"
-                      size="56"
-                      variant="tonal"
+                <v-virtual-scroll :item-height="81" :items="shownLatest" renderless>
+                  <template #default="{ item, itemRef }">
+                    <v-list-item
+                      :ref="itemRef"
+                      class="px-3 activity-row"
+                      @click="openLatest(item)"
                     >
-                      <v-img v-if="thumbs[latestKey(item)]" cover :src="thumbs[latestKey(item)]" />
-                      <v-icon v-else :icon="latestVisual(item).icon" size="18" />
-                    </v-avatar>
+                      <template #prepend>
+                        <!-- Thumbnails load as rows scroll into view, not all 500 up front. -->
+                        <v-avatar
+                          class="me-3 latest-thumb"
+                          :color="latestVisual(item).color"
+                          rounded="lg"
+                          size="56"
+                          variant="tonal"
+                          @vue:mounted="ensureThumb(item)"
+                        >
+                          <v-img v-if="thumbs[latestKey(item)]" cover :src="thumbs[latestKey(item)]" />
+                          <v-icon v-else :icon="latestVisual(item).icon" size="18" />
+                        </v-avatar>
+                      </template>
+                      <v-list-item-title class="text-body-2 font-weight-medium">
+                        {{ item.title }}
+                      </v-list-item-title>
+                      <v-list-item-subtitle class="text-caption">
+                        {{ [latestVisual(item).subtitleLabel === false ? '' : latestVisual(item).label, item.subtitle].filter(Boolean).join(' · ') }}
+                      </v-list-item-subtitle>
+                      <template #append>
+                        <div class="text-right">
+                          <div v-if="item.amount" class="text-body-2 font-weight-medium">
+                            {{ money(item.amount, item.currency_code) }}
+                          </div>
+                          <div class="text-caption text-medium-emphasis">
+                            {{ timeAgo(item.added_at) }}
+                          </div>
+                        </div>
+                      </template>
+                    </v-list-item>
                   </template>
-                  <v-list-item-title class="text-body-2 font-weight-medium">
-                    {{ item.title }}
-                  </v-list-item-title>
-                  <v-list-item-subtitle class="text-caption">
-                    {{ [latestVisual(item).subtitleLabel === false ? '' : latestVisual(item).label, item.subtitle].filter(Boolean).join(' · ') }}
-                  </v-list-item-subtitle>
-                  <template #append>
-                    <div class="text-right">
-                      <div v-if="item.amount" class="text-body-2 font-weight-medium">
-                        {{ money(item.amount, item.currency_code) }}
-                      </div>
-                      <div class="text-caption text-medium-emphasis">
-                        {{ timeAgo(item.added_at) }}
-                      </div>
-                    </div>
-                  </template>
-                </v-list-item>
+                </v-virtual-scroll>
               </v-list>
 
               <div
@@ -271,11 +283,10 @@
               </div>
               <div v-else-if="latestLoaded && canShowMoreLatest" class="d-flex justify-center py-2">
                 <v-btn
-                  :loading="latestLoadingMore"
                   size="small"
                   text="Show more"
                   variant="text"
-                  @click="showMoreLatest"
+                  @click="latestExpanded = true"
                 />
               </div>
             </div>
@@ -428,7 +439,9 @@
   // row opens a details dialog. It refreshes itself off the shared admin
   // websocket (the same push stream the dashboard listens to), so there's no
   // manual refresh button.
-  const PAGE_SIZE = 20
+  // Each feed loads its newest FEED_SIZE rows at once and renders them in a
+  // virtual scroller, so only the rows in view are in the DOM.
+  const FEED_SIZE = 500
 
   // The feed comes from the dashboard endpoints, which need Analytics access.
   const canViewActivity = computed(() => auth.canView('analytics'))
@@ -522,7 +535,7 @@
     if (!canViewActivity.value) return
     try {
       const response = await authFetch(
-        `${API_BASE}/dashboard/activities?page_size=${PAGE_SIZE}&page_id=0`,
+        `${API_BASE}/dashboard/activities?page_size=${FEED_SIZE}&page_id=0`,
       )
       if (!response.ok) {
         const body = await response.json().catch(() => ({}))
@@ -600,7 +613,7 @@
   async function reloadKashi () {
     if (!canViewKashiActivity.value) return
     try {
-      const response = await authFetch(`${API_BASE}/admin_activities?page_size=${PAGE_SIZE}&page_id=0`)
+      const response = await authFetch(`${API_BASE}/admin_activities?page_size=${FEED_SIZE}&page_id=0`)
       if (!response.ok) {
         const body = await response.json().catch(() => ({}))
         throw new Error(body.error || `Failed to load kashi activity (${response.status})`)
@@ -655,43 +668,27 @@
     return URL.createObjectURL(await res.blob())
   }
 
-  async function loadThumbs () {
-    for (const item of latestItems.value) {
-      const key = latestKey(item)
-      if (!item.has_image || thumbs.value[key]) continue
+  // Called as each row mounts -- the virtual scroller only mounts the rows
+  // in view -- so a thumbnail is fetched once, when it's first seen.
+  const thumbsPending = new Set()
+  async function ensureThumb (item) {
+    const key = latestKey(item)
+    if (!item.has_image || thumbs.value[key] || thumbsPending.has(key)) return
+    thumbsPending.add(key)
+    try {
       const url = await imageObjectUrl(item, 96).catch(() => null)
       if (url) thumbs.value = { ...thumbs.value, [key]: url }
+    } finally {
+      thumbsPending.delete(key)
     }
   }
 
-  // "Show more": on a phone it first expands the short preview to everything
-  // loaded, then each press fetches LATEST_STEP more, up to the API's cap.
-  const LATEST_STEP = 20
-  const LATEST_MAX = 100
-  const latestLimit = ref(PAGE_SIZE)
+  // "Show more" (phones only): expands the short preview to everything loaded.
   const latestExpanded = ref(false)
-  const latestLoadingMore = ref(false)
   const shownLatest = computed(() =>
     latestExpanded.value ? latestItems.value : shown(latestItems.value),
   )
-  const canShowMoreLatest = computed(() =>
-    shownLatest.value.length < latestItems.value.length
-    || (latestItems.value.length >= latestLimit.value && latestLimit.value < LATEST_MAX),
-  )
-  async function showMoreLatest () {
-    if (shownLatest.value.length < latestItems.value.length) {
-      latestExpanded.value = true
-      return
-    }
-    latestExpanded.value = true
-    latestLimit.value = Math.min(latestLimit.value + LATEST_STEP, LATEST_MAX)
-    latestLoadingMore.value = true
-    try {
-      await reloadLatest()
-    } finally {
-      latestLoadingMore.value = false
-    }
-  }
+  const canShowMoreLatest = computed(() => shownLatest.value.length < latestItems.value.length)
 
   // Where a feed item leads: the day page's "Shifts & Expenses" tab for the
   // branch and local day a shift receipt or expense photo belongs to (the
@@ -720,14 +717,13 @@
   async function reloadLatest () {
     if (!canViewLatest.value) return
     try {
-      const response = await authFetch(`${API_BASE}/home/latest?page_size=${latestLimit.value}`)
+      const response = await authFetch(`${API_BASE}/home/latest?page_size=${FEED_SIZE}`)
       if (!response.ok) {
         const body = await response.json().catch(() => ({}))
         throw new Error(body.error || `Failed to load latest additions (${response.status})`)
       }
       const data = await response.json()
       latestItems.value = data.items ?? []
-      loadThumbs()
     } catch (error_) {
       notify.error(error_.message)
     } finally {

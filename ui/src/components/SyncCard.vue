@@ -86,12 +86,14 @@
   import { useBranches } from '@/composables/useBranches'
   import { useBranchInvoices } from '@/composables/useBranchInvoices'
   import { useNetworkStatus } from '@/composables/useNetworkStatus'
+  import { useAuthStore } from '@/stores/auth'
   import { useSettingsStore } from '@/stores/settings'
 
   const { branches, fetchBranches } = useBranches()
   const { listRecentBranchInvoices } = useBranchInvoices()
   const { status: wsStatus, ensureConnected, onMessage } = useAdminSocket()
   const settingsStore = useSettingsStore()
+  const auth = useAuthStore()
   const { mobile } = useDisplay()
 
   const menu = ref(false)
@@ -265,6 +267,9 @@
         lastActivityAt.value = Date.now()
         now.value = Date.now()
       }
+      // Sync conflicts are only actionable by admins, so only they see them
+      // ride on the card.
+      if (message.type === 'branch_sync_conflict' && !auth.isAdmin) {return}
       if (settingsStore.activityDisplayMode === 'appbar' && isBranchActivityMessage(message)) {
         pushActivity(message)
       }

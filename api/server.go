@@ -474,7 +474,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/branch_users/:id/pin", server.setBranchUserPin)
 	authRoutes.DELETE("/branch_users/:id", server.deleteBranchUser)
 
-	// Till app updates -- admin-only, see api/app_update.go.
+	// Till app updates -- App Updates section, see api/app_update.go.
 	authRoutes.GET("/app_releases", server.listAppReleases)
 	authRoutes.POST("/app_releases", server.createAppRelease)
 	authRoutes.PUT("/app_releases/:id", server.updateAppRelease)

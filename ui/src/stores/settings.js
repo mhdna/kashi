@@ -100,8 +100,14 @@ export const useSettingsStore = defineStore('settings', {
       } else {
         hidden.add(name)
       }
+      const previous = this.hiddenBuiltinEvents
       this.hiddenBuiltinEvents = [...hidden]
-      await this.persist()
+      try {
+        await this.persist()
+      } catch (error) {
+        this.hiddenBuiltinEvents = previous
+        throw error
+      }
     },
   },
 })

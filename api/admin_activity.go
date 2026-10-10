@@ -346,7 +346,7 @@ func (server *Server) recordAdminActivity(a adminActivity) {
 // listAdminActivities backs the home page's "In kashi" feed, newest first.
 func (server *Server) listAdminActivities(ctx *gin.Context) {
 	var req struct {
-		PageSize int32 `form:"page_size,default=20" binding:"min=1,max=100"`
+		PageSize int32 `form:"page_size,default=20" binding:"min=1,max=500"`
 		PageID   int32 `form:"page_id,default=0" binding:"min=0"`
 	}
 	if err := ctx.ShouldBindQuery(&req); err != nil {

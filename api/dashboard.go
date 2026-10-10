@@ -24,7 +24,7 @@ type dashboardFilter struct {
 
 type dashboardListFilter struct {
 	dashboardFilter
-	PageSize int32 `form:"page_size,default=10" binding:"min=5,max=100"`
+	PageSize int32 `form:"page_size,default=10" binding:"min=5,max=500"`
 	// ServerSideTable.vue sends page_id already multiplied out to a row
 	// offset ((page-1)*itemsPerPage), so it's used as OFFSET directly --
 	// same as listBranchInvoices.

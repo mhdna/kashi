@@ -14,7 +14,7 @@ import (
 // the section it belongs to, so nobody sees rows from a page they can't open.
 func (server *Server) listLatestAdditions(ctx *gin.Context) {
 	var req struct {
-		PageSize int32 `form:"page_size,default=20" binding:"min=1,max=100"`
+		PageSize int32 `form:"page_size,default=20" binding:"min=1,max=500"`
 	}
 	if err := ctx.ShouldBindQuery(&req); err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)

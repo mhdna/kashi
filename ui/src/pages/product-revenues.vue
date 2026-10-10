@@ -65,12 +65,14 @@
     <v-window v-model="tab" class="flex-grow-1" style="overflow-y: auto">
       <v-window-item value="pos">
         <v-container class="pa-4 pt-2" fluid>
+          <!-- Revenue-estimate notice hidden temporarily. To bring it back, pass
+               this as revenue-note on the panel below:
+               "The branch tills don't yet report the exact price charged per line item centrally, so revenue here is an ESTIMATE: quantity sold × each SKU's current catalog price, not the actual transaction total. Units sold and branch/category/brand breakdowns are real." -->
           <ProductRevenuePanel
             :daily="posDailyRevenue"
             :error="posError"
             :loading="posLoading"
             :products="posProducts"
-            revenue-note="The branch tills don't yet report the exact price charged per line item centrally, so revenue here is an ESTIMATE: quantity sold × each SKU's current catalog price, not the actual transaction total. Units sold and branch/category/brand breakdowns are real."
           >
             <template #extra-charts>
               <v-row dense>

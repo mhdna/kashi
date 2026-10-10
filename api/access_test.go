@@ -4,6 +4,9 @@ import (
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -30,6 +33,10 @@ func TestRuleFor(t *testing.T) {
 		{"/branches/:id/activate", true, "branches", true},
 		{"/products/:id/low_stock_threshold", true, "inventory", true},
 		{"/app_settings/default_low_stock_threshold", true, "inventory", true},
+		{"/app_releases/:id", false, "updates", true},
+		{"/app_updates/target", false, "updates", true},
+		{"/security/bans/:ip", false, "security", true},
+		{"/branch_commands/:id/cancel", false, "branches", true},
 		// A prefix must match whole segments.
 		{"/productsfoo", false, "", false},
 		// Unlisted -> admin-only.
@@ -220,5 +227,43 @@ func TestPageKeysAreUnique(t *testing.T) {
 			require.False(t, seen[p.Key], "duplicate page key %q", p.Key)
 			seen[p.Key] = true
 		}
+	}
+}
+
+// Every page in the admin UI must be grantable to a role: a route whose
+// `meta.page` isn't in accessSections (or that is admin-only) is a page no
+// one but an admin can ever open. Users stays admin-only on purpose -- whoever
+// can edit users can make themselves an admin.
+func TestEveryRoutePageIsGrantable(t *testing.T) {
+	src, err := os.ReadFile("../ui/src/router/index.js")
+	require.NoError(t, err)
+
+	pages := map[string]string{}
+	for _, s := range accessSections {
+		for _, p := range s.Pages {
+			pages[p.Key] = s.Key
+		}
+	}
+
+	metaRe := regexp.MustCompile(`path: '([^']+)'[^\n]*meta: \{([^}]*)\}`)
+	sectionRe := regexp.MustCompile(`section: '([^']+)'`)
+	pageRe := regexp.MustCompile(`page: '([^']+)'`)
+	adminOnlyByDesign := map[string]bool{"/users": true}
+
+	matches := metaRe.FindAllStringSubmatch(string(src), -1)
+	require.NotEmpty(t, matches, "found no routes in router/index.js")
+	for _, m := range matches {
+		path, meta := m[1], m[2]
+		if strings.Contains(meta, "adminOnly: true") {
+			require.True(t, adminOnlyByDesign[path], "%s is admin-only; give it a section and page in access.go instead", path)
+			continue
+		}
+		page := pageRe.FindStringSubmatch(meta)
+		if page == nil {
+			continue // no section: open to every signed-in user
+		}
+		section := sectionRe.FindStringSubmatch(meta)
+		require.NotNil(t, section, "%s has a page but no section", path)
+		require.Equal(t, section[1], pages[page[1]], "%s: page %q must be listed under section %q in accessSections", path, page[1], section[1])
 	}
 }

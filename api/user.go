@@ -299,6 +299,9 @@ type updateUserRequest struct {
 	Password  string `json:"password"` // optional -- blank keeps the current password
 	Activated bool   `json:"activated"`
 	RoleID    int64  `json:"role_id" binding:"required,min=1"`
+	// AvatarColor is optional: absent keeps the current colour, '' goes back
+	// to the one derived from the name.
+	AvatarColor *string `json:"avatar_color"`
 }
 
 func (server *Server) updateUser(ctx *gin.Context) {
@@ -311,6 +314,10 @@ func (server *Server) updateUser(ctx *gin.Context) {
 	username, name, err := normalizeUserNames(req.Username, req.Name)
 	if err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	if req.AvatarColor != nil && *req.AvatarColor != "" && !avatarColorPattern.MatchString(*req.AvatarColor) {
+		server.writeError(ctx, http.StatusBadRequest, errors.New("colour must look like #3F51B5"))
 		return
 	}
 
@@ -371,12 +378,24 @@ func (server *Server) updateUser(ctx *gin.Context) {
 		return
 	}
 
+	avatarColor := current.AvatarColor
+	if req.AvatarColor != nil && *req.AvatarColor != current.AvatarColor {
+		avatarColor = *req.AvatarColor
+		if err := server.store.SetUserAvatarColor(ctx, db.SetUserAvatarColorParams{ID: req.ID, AvatarColor: avatarColor}); err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		server.adminHub.setAvatarColor(req.ID, avatarColor)
+		server.adminHub.broadcastAll(adminWSMessage{Type: "admin_presence_changed", Users: server.adminHub.onlineUsers()})
+	}
+
 	ctx.JSON(http.StatusOK, userResponse{
 		ID:                req.ID,
 		Username:          username,
 		Name:              name,
 		Activated:         req.Activated,
 		RoleID:            req.RoleID,
+		AvatarColor:       avatarColor,
 		PasswordChangedAt: current.PasswordChangedAt,
 		CreatedAt:         current.CreatedAt,
 	})

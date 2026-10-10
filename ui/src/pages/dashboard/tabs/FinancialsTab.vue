@@ -71,7 +71,8 @@
       </v-card>
     </div>
 
-    <v-card class="chart-card" variant="flat">
+    <!-- Hidden temporarily -- drop the v-if="false" to bring it back. -->
+    <v-card v-if="false" class="chart-card" variant="flat">
       <div class="chart-card__title">When Sales Happen</div>
       <div class="chart-card__subtitle">Sales per weekday and hour, last {{ report?.hourly_since_days ?? 90 }} days, in each branch's time</div>
       <VChart autoresize class="chart chart--heat" :option="hourlyOption" />

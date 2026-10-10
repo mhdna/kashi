@@ -1,19 +1,42 @@
 export const navItems = [
   { title: 'Home', icon: 'mdi-home', to: '/' },
   { title: 'Daily Income', icon: 'mdi-chart-bar', to: '/daily-income' },
+  { title: 'Invoices', icon: 'mdi-format-list-bulleted-square', to: '/invoices' },
+  { title: 'WhatsApp', icon: 'mdi-whatsapp', to: '/whatsapp' },
   {
     title: 'Analysis',
     icon: 'mdi-chart-bar',
     children: [
       { title: 'Dashboard', icon: 'mdi-view-dashboard', to: '/dashboard' },
-      { title: 'Financials', icon: 'mdi-currency-usd', to: '/financials' },
       { title: 'Targets', icon: 'mdi-target', to: '/targets' },
       { title: 'Footfall', icon: 'mdi-walk', to: '/footfall' },
       { title: 'Product Revenues', icon: 'mdi-package-variant', to: '/product-revenues' },
       { title: 'Conversion', icon: 'mdi-percent-outline', to: '/conversion' },
       { title: 'Sales Analytics', icon: 'mdi-chart-line', to: '/sales-analytics' },
       { title: 'Sales Analysis', icon: 'mdi-chart-box-outline', to: '/sales-analysis' },
+      { title: 'Financials', icon: 'mdi-currency-usd', to: '/financials' },
       { title: 'Sales Dashboard', icon: 'mdi-view-dashboard', to: '/sales-dashboard' },
+    ],
+  },
+  {
+    title: 'Customers',
+    icon: 'mdi-cart',
+    children: [
+      { title: 'Clients', icon: 'mdi-account', to: '/clients' },
+      { title: 'Loyalty', icon: 'mdi-trophy', to: '/loyalty' },
+    ],
+  },
+  {
+    title: 'Human Resources',
+    icon: 'mdi-account-group',
+    children: [
+      { title: 'Employees', icon: 'mdi-account-group', to: '/employees' },
+      {
+        title: 'Attendance',
+        icon: 'mdi-account-multiple-check-outline',
+        to: '/attendance',
+      },
+      { title: 'Shifts', icon: 'mdi-clock-outline', to: '/shifts' },
       { title: 'Salesperson Performance', icon: 'mdi-account-cash', to: '/salesperson-performance' },
     ],
   },
@@ -33,19 +56,6 @@ export const navItems = [
   },
   { title: 'Commands', icon: 'mdi-console-line', to: '/branch-commands', append: 'commands-status' },
   { title: 'Conflicts', icon: 'mdi-source-branch-sync', to: '/branch-conflicts', append: 'conflicts-status' },
-  {
-    title: 'Wholesale',
-    icon: 'mdi-cart',
-    children: [
-      { title: 'Clients', icon: 'mdi-account', to: '/clients' },
-      { title: 'Loyalty', icon: 'mdi-trophy', to: '/loyalty' },
-      {
-        title: 'Invoices',
-        icon: 'mdi-format-list-bulleted-square',
-        to: '/invoices',
-      },
-    ],
-  },
   {
     title: 'Branches',
     icon: 'mdi-store-outline',
@@ -81,20 +91,6 @@ export const navItems = [
       { title: 'Expenses', icon: 'mdi-currency-usd-off', to: '/expenses' },
       { title: 'Loans', icon: 'mdi-hand-coin', to: '/loans' },
       { title: 'Currencies & Payments', icon: 'mdi-cash-multiple', to: '/currencies' },
-      { title: 'Assets', icon: 'mdi-hammer-wrench', to: '/assets' },
-    ],
-  },
-  {
-    title: 'Human Resources',
-    icon: 'mdi-account-group',
-    children: [
-      { title: 'Employees', icon: 'mdi-account-group', to: '/employees' },
-      {
-        title: 'Attendance',
-        icon: 'mdi-account-multiple-check-outline',
-        to: '/attendance',
-      },
-      { title: 'Shifts', icon: 'mdi-clock-outline', to: '/shifts' },
     ],
   },
   {
@@ -103,13 +99,20 @@ export const navItems = [
     children: [
       { title: 'Inventory', icon: 'mdi-warehouse', to: '/inventory' },
       { title: 'Inventory Analysis', icon: 'mdi-chart-box-outline', to: '/inventory-analysis' },
-      { title: 'Purchase Invoices', icon: 'mdi-invoice', to: '/purchase-invoice' },
       { title: 'Batches', icon: 'mdi-package-variant-closed', to: '/batches' },
       { title: 'Transfers', icon: 'mdi-transfer', to: '/transfers' },
       { title: 'Stock Counts', icon: 'mdi-clipboard-list-outline', to: '/stock-counts' },
       { title: 'Stock Movements', icon: 'mdi-swap-vertical', to: '/stock-movements' },
-      { title: 'Suppliers', icon: 'mdi-truck-delivery', to: '/suppliers' },
       { title: 'Barcodes', icon: 'mdi-barcode', to: '/barcodes' },
+      { title: 'Assets', icon: 'mdi-hammer-wrench', to: '/assets' },
+    ],
+  },
+  {
+    title: 'Purchasing',
+    icon: 'mdi-truck-delivery',
+    children: [
+      { title: 'Suppliers', icon: 'mdi-truck-delivery', to: '/suppliers' },
+      { title: 'Purchase Invoices', icon: 'mdi-invoice', to: '/purchase-invoice' },
     ],
   },
 ]
@@ -121,6 +124,5 @@ export const appendItems = [
   { title: 'Audit Log', icon: 'mdi-history', to: '/audit-log' },
   { title: 'App Updates', icon: 'mdi-update', to: '/app-updates' },
   { title: 'Security', icon: 'mdi-shield-lock-outline', to: '/security' },
-  { title: 'WhatsApp', icon: 'mdi-whatsapp', to: '/whatsapp' },
   { title: 'Settings', icon: 'mdi-cog-outline', to: '/settings' },
 ]

@@ -32,9 +32,10 @@ import (
 // a safe moment and reports every step (branchAppUpdateStatus). Rolling back
 // is the same thing with an older release as the target.
 //
-// None of the admin routes here is listed in access.go's routeRules, so all
-// of them are admin-only: putting a program on every till is about the most
-// powerful thing kashi can do.
+// The admin routes need the App Updates section (access.go), a section of its
+// own rather than a page under System: putting a program on every till is
+// about the most powerful thing kashi can do, so it is granted on purpose,
+// never as a side effect of editing settings.
 
 const (
 	defaultAppReleaseStorageDir = "./storage/app_releases"

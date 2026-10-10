@@ -208,8 +208,8 @@
     editDialog.value = true
   }
 
-  function onProductCreated () {
-    dialog.value = false
+  function onProductCreated ({ keepOpen = false } = {}) {
+    if (!keepOpen) dialog.value = false
     productsTableRef.value?.reload()
   }
 

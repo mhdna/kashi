@@ -142,44 +142,6 @@
           </v-card>
         </v-col>
       </v-row>
-
-      <!-- Month x branch table -->
-      <v-row dense>
-        <v-col cols="12">
-          <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Customers in — month × branch</div>
-            <div class="table-scroll">
-              <v-table density="compact">
-                <thead>
-                  <tr>
-                    <th class="text-left">Month</th>
-                    <th v-for="b in tableBranches" :key="b.id" class="text-right">{{ b.name }}</th>
-                    <th class="text-right font-weight-bold">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="m in months" :key="m">
-                    <td>{{ monthLabel(m) }}</td>
-                    <td v-for="b in tableBranches" :key="b.id" class="text-right">
-                      {{ (matrix[m]?.[b.id] ?? 0).toLocaleString() }}
-                    </td>
-                    <td class="text-right font-weight-medium">{{ (monthTotals[m] ?? 0).toLocaleString() }}</td>
-                  </tr>
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td class="font-weight-bold">Total</td>
-                    <td v-for="b in tableBranches" :key="b.id" class="text-right font-weight-bold">
-                      {{ (branchTotals[b.id] ?? 0).toLocaleString() }}
-                    </td>
-                    <td class="text-right font-weight-bold">{{ grandTotalIn.toLocaleString() }}</td>
-                  </tr>
-                </tfoot>
-              </v-table>
-            </div>
-          </v-card>
-        </v-col>
-      </v-row>
     </v-container>
   </div>
 </template>
@@ -594,37 +556,6 @@
       }],
     }
   })
-
-  // --- month x branch table -------------------------------------------
-  const tableBranches = computed(() =>
-    activeBranchIds.value
-      .map(id => ({ id, name: branchName(id) }))
-      .toSorted((a, b) => a.name.localeCompare(b.name)),
-  )
-  const matrix = computed(() => {
-    const out = {}
-    for (const r of rows.value) {
-      const mk = monthKey(r.day)
-      out[mk] ??= {}
-      out[mk][r.branch_id] = (out[mk][r.branch_id] ?? 0) + r.in_count
-    }
-    return out
-  })
-  const monthTotals = computed(() => {
-    const out = {}
-    for (const m of months.value) {
-      out[m] = tableBranches.value.reduce((t, b) => t + (matrix.value[m]?.[b.id] ?? 0), 0)
-    }
-    return out
-  })
-  const branchTotals = computed(() => {
-    const out = {}
-    for (const b of tableBranches.value) {
-      out[b.id] = rows.value.filter(r => r.branch_id === b.id).reduce((t, r) => t + r.in_count, 0)
-    }
-    return out
-  })
-  const grandTotalIn = computed(() => totalIn.value)
 </script>
 
 <style scoped>
@@ -658,11 +589,6 @@
   height: 280px;
   width: 100%;
 }
-.table-scroll {
-  overflow-x: auto;
-  padding-bottom: 8px;
-}
-
 /* Daily footfall heatmap -- month x day grid, orange heat, sticky day
    column + header so the grid scrolls under them (mirrors HeatmapTable). */
 .ff-heat-wrap {

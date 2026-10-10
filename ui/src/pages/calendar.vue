@@ -238,9 +238,10 @@
                 <v-switch
                   color="primary"
                   density="compact"
+                  :disabled="!canEditSettings"
                   hide-details
                   :model-value="!hiddenSet.has(ev.name)"
-                  @update:model-value="settingsStore.toggleBuiltinEventHidden(ev.name)"
+                  @update:model-value="toggleBuiltinEvent(ev.name)"
                 />
               </template>
             </v-list-item>
@@ -258,10 +259,15 @@
   import { usePageAccess } from '@/composables/usePageAccess'
   import { getEventsForRange, retailCalendarEvents } from '@/data/retailCalendarEvents'
   import { useNotify } from '@/composables/useNotify'
+  import { useAuthStore } from '@/stores/auth'
   import { useSettingsStore } from '@/stores/settings'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
+  // The built-in event toggles write the global app settings, which the API
+  // gates on the System section, not Calendar.
+  const auth = useAuthStore()
+  const canEditSettings = computed(() => auth.canEdit('system'))
   const { xs } = useDisplay()
 
   const settingsStore = useSettingsStore()
@@ -409,6 +415,14 @@
     try {
       await deleteCalendarEvent(id)
       await loadCustom()
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
+
+  async function toggleBuiltinEvent (name) {
+    try {
+      await settingsStore.toggleBuiltinEventHidden(name)
     } catch (error) {
       notify.error(error.message)
     }
