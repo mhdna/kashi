@@ -12,7 +12,9 @@
         variant="tonal"
       />
       <v-spacer />
-      <template v-if="tab !== 'rules'">
+      <!-- Hidden, not removed, on Rules: the header keeps its height so the
+           tabs don't jump when switching. -->
+      <div class="d-flex align-center flex-wrap ga-3" :class="{ 'wa__filters--hidden': tab === 'rules' }">
         <v-select
           v-model="preset"
           density="compact"
@@ -50,7 +52,7 @@
           variant="outlined"
         />
         <v-btn icon="mdi-refresh" title="Refresh" variant="text" @click="refreshKey++" />
-      </template>
+      </div>
     </div>
 
     <v-tabs v-model="tab" class="flex-shrink-0 px-4" color="primary" density="compact">
@@ -195,6 +197,9 @@
 <style scoped>
 .wa {
   min-height: 0;
+}
+.wa__filters--hidden {
+  visibility: hidden;
 }
 .wa__body {
   flex: 1 1 auto;

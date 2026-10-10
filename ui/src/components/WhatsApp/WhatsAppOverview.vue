@@ -345,9 +345,11 @@
         center: ['50%', '45%'],
         avoidLabelOverlap: true,
         label: { show: false },
-        data: STATUSES.map(s => ({
+        // Zero slices left out: with nothing at all, ECharts would draw
+        // three equal ones.
+        data: STATUSES.filter(s => (t[s] ?? 0) > 0).map(s => ({
           name: STATUS[s].label,
-          value: t[s] ?? 0,
+          value: t[s],
           status: s,
           itemStyle: { color: colors.value[s] },
         })),
