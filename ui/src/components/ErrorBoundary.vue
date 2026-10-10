@@ -5,15 +5,16 @@
     <slot />
     <!-- Laid over the page rather than replacing it, so the page (and any
       half-filled form) is still there, untouched, once the API is back. -->
-    <ServerDownState v-if="updating" overlay updating />
+    <ServerDownState v-if="updating || reloadingForNewVersion" overlay updating />
   </template>
 </template>
 
 <script setup lang="ts">
   import { onErrorCaptured, ref, watch } from 'vue'
-  import { useRoute } from 'vue-router'
+  import { useRoute, useRouter } from 'vue-router'
   import ServerDownState from '@/components/ServerDownState.vue'
   import { authFetch, isConnectionError, SERVER_UPDATING_MESSAGE } from '@/composables/useApi'
+  import { checkForNewVersion, startVersionWatch, useAppVersion } from '@/composables/useAppVersion'
   import { useNetworkStatus } from '@/composables/useNetworkStatus'
   import { useServerStatus, waitForServer } from '@/composables/useServerStatus'
   import { API_BASE } from '@/config'
@@ -82,7 +83,43 @@
   // re-mounted so it re-issues its requests.
   const { updating } = useServerStatus()
   watch(updating, isUpdating => {
-    if (!isUpdating) serverDown.value = false
+    if (!isUpdating) {
+      serverDown.value = false
+      // A full deploy ships the UI right after the API; look for it now
+      // rather than at the next minute's check.
+      checkForNewVersion()
+    }
+  })
+
+  // A new frontend was deployed (useAppVersion): show the same "Updating"
+  // screen and reload into it. Navigating loads the new build directly; on a
+  // page that's being typed into, or with a dialog open, the reload waits
+  // until that's done so nothing half-filled is lost.
+  startVersionWatch()
+  const { newVersion } = useAppVersion()
+  const reloadingForNewVersion = ref(false)
+  const router = useRouter()
+  router.beforeEach(to => {
+    if (!newVersion.value) return true
+    window.location.assign(to.fullPath)
+    return false
+  })
+  function busy () {
+    if (document.visibilityState === 'hidden') return false
+    const el = document.activeElement as HTMLElement | null
+    const typing = el != null && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
+    return typing || document.querySelector('.v-dialog.v-overlay--active') != null
+  }
+  function reloadWhenIdle () {
+    if (busy()) {
+      setTimeout(reloadWhenIdle, 3000)
+      return
+    }
+    reloadingForNewVersion.value = true
+    setTimeout(() => window.location.reload(), 1200)
+  }
+  watch(newVersion, isNew => {
+    if (isNew) reloadWhenIdle()
   })
 
   // A plain connection failure recovers the same way: keep checking in the

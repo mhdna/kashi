@@ -25,10 +25,29 @@ function git (args) {
 }
 const appVersion = git('describe --tags --abbrev=0')
 const appCommit = git('rev-parse --short HEAD')
+// Unique per build, even two builds of one commit. Written to version.json
+// next to index.html; open tabs compare it with their own to notice a new
+// frontend was deployed (composables/useAppVersion.js).
+const appBuild = `${appCommit || 'dev'}-${Date.now().toString(36)}`
+
+function versionFile () {
+  return {
+    name: 'kashi-version-file',
+    apply: 'build',
+    generateBundle () {
+      this.emitFile({
+        type: 'asset',
+        fileName: 'version.json',
+        source: JSON.stringify({ build: appBuild, version: appVersion, commit: appCommit }),
+      })
+    },
+  }
+}
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
+    versionFile(),
     VueRouter(),
     Layouts(),
     Vue({
@@ -97,6 +116,7 @@ export default defineConfig({
     'process.env': {},
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion),
     'import.meta.env.VITE_APP_COMMIT': JSON.stringify(appCommit),
+    'import.meta.env.VITE_APP_BUILD': JSON.stringify(appBuild),
   },
   resolve: {
     alias: {

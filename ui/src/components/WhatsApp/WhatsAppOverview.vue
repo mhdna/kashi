@@ -128,7 +128,7 @@
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title mb-2">Why messages failed</div>
             <div v-if="stats.failures.length === 0" class="text-body-2 text-medium-emphasis py-6 text-center">
-              Nothing failed. 👍
+              Nothing failed.
             </div>
             <v-list v-else class="pa-0" density="compact">
               <v-list-item
