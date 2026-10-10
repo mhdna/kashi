@@ -191,6 +191,13 @@ func (server *Server) setupRoutes() {
 
 	authRoutes.GET("/whatsapp_settings", server.getWhatsAppSettings)
 	authRoutes.PUT("/whatsapp_settings", server.updateWhatsAppSettings)
+	authRoutes.GET("/whatsapp/rules", server.listWhatsAppRules)
+	authRoutes.PUT("/whatsapp/rules", server.replaceWhatsAppRules)
+	authRoutes.POST("/whatsapp/rules/test", server.testWhatsAppRules)
+	authRoutes.PUT("/whatsapp/cost", server.setWhatsAppCost)
+	authRoutes.GET("/whatsapp/stats", server.getWhatsAppStats)
+	authRoutes.GET("/whatsapp/messages", server.listWhatsAppMessages)
+	authRoutes.GET("/whatsapp/clients", server.listWhatsAppClients)
 
 	authRoutes.GET("/calendar_events", server.listCalendarEvents)
 	authRoutes.POST("/calendar_events", server.createCalendarEvent)

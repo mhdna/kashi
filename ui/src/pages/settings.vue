@@ -305,6 +305,10 @@
                 template for business-initiated messages, so this configures which one to use and
                 how to fill it -- not free-form text.
               </p>
+              <p v-if="auth.canViewPage('system', 'whatsapp')" class="text-body-2 text-medium-emphasis mb-4">
+                Rules for which sales get a message, and what was sent, to whom and what it cost,
+                are on the <router-link to="/whatsapp">WhatsApp page</router-link>.
+              </p>
 
               <v-switch
                 v-model="whatsappDraft.enabled"
@@ -581,6 +585,7 @@
 
 <script setup lang="ts">
   import { computed, onMounted, reactive, ref, watch } from 'vue'
+  import { useRoute } from 'vue-router'
   import RolesManager from '@/components/RolesManager.vue'
   import { useNotify } from '@/composables/useNotify'
   import { useRoles } from '@/composables/useRoles'
@@ -592,7 +597,9 @@
 
   const notify = useNotify()
 
-  const tab = ref('general')
+  // ?tab=whatsapp opens a tab directly (the WhatsApp page links here).
+  const route = useRoute()
+  const tab = ref(typeof route.query.tab === 'string' ? route.query.tab : 'general')
   const auth = useAuthStore()
   // Saving app settings / WhatsApp needs Edit on System; without it the forms
   // render read-only. (Your own avatar colour is per-device and always yours.)

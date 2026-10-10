@@ -496,6 +496,7 @@ type AppSetting struct {
 	ProductAutofillEnabled     bool            `json:"product_autofill_enabled"`
 	ProductAutofillRules       json.RawMessage `json:"product_autofill_rules"`
 	ProductAutofillCodeLayout  string          `json:"product_autofill_code_layout"`
+	WhatsappMessageCostMicros  int64           `json:"whatsapp_message_cost_micros"`
 }
 
 type AppUpdateEvent struct {
@@ -1669,4 +1670,36 @@ type VisitorIp struct {
 	City           string    `json:"city"`
 	Asn            int64     `json:"asn"`
 	Network        string    `json:"network"`
+}
+
+type WhatsappMessage struct {
+	ID              int64         `json:"id"`
+	CreatedAt       time.Time     `json:"created_at"`
+	BranchID        sql.NullInt64 `json:"branch_id"`
+	InvoiceCode     string        `json:"invoice_code"`
+	ClientName      string        `json:"client_name"`
+	ClientPhone     string        `json:"client_phone"`
+	GrandTotalCents int64         `json:"grand_total_cents"`
+	ItemCount       int32         `json:"item_count"`
+	RuleID          sql.NullInt64 `json:"rule_id"`
+	RuleName        string        `json:"rule_name"`
+	TemplateName    string        `json:"template_name"`
+	Status          string        `json:"status"`
+	Reason          string        `json:"reason"`
+	Wamid           string        `json:"wamid"`
+	CostMicros      int64         `json:"cost_micros"`
+}
+
+type WhatsappRule struct {
+	ID             int64           `json:"id"`
+	Position       int32           `json:"position"`
+	Name           string          `json:"name"`
+	Enabled        bool            `json:"enabled"`
+	Action         string          `json:"action"`
+	Conditions     json.RawMessage `json:"conditions"`
+	TemplateName   string          `json:"template_name"`
+	TemplateLang   string          `json:"template_lang"`
+	TemplateParams string          `json:"template_params"`
+	CreatedAt      time.Time       `json:"created_at"`
+	UpdatedAt      time.Time       `json:"updated_at"`
 }

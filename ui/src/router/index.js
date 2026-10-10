@@ -82,6 +82,7 @@ const routes = [
 
   { path: '/users', component: () => import('@/pages/users.vue'), meta: { title: 'Users', adminOnly: true } },
   { path: '/settings', component: () => import('@/pages/settings.vue'), meta: { title: 'Settings' } },
+  { path: '/whatsapp', component: () => import('@/pages/whatsapp.vue'), meta: { title: 'WhatsApp', section: 'system', page: 'whatsapp' } },
   { path: '/logs', component: () => import('@/pages/logs.vue'), meta: { title: 'Dev Logs', section: 'system', page: 'logs' } },
 ]
 

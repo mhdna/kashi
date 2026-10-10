@@ -118,6 +118,7 @@ var accessSections = []accessSection{
 	}},
 	{"system", "System", "App settings, WhatsApp, audit log, dev logs and storage", []accessPage{
 		{"settings", "App Settings & WhatsApp"},
+		{"whatsapp", "WhatsApp"},
 		{"audit-log", "Audit Log"},
 		{"logs", "Dev Logs"},
 		{"storage", "Storage"},
@@ -286,6 +287,8 @@ var routeRules = []routeRule{
 	lookup("/app_settings/product_autofill_rules", "products"),
 	lookup("/pos_settings", "system"),
 	rule("/whatsapp_settings", "system", "system"),
+	// The WhatsApp page: rules, message log and stats.
+	rule("/whatsapp", "system", "system"),
 	rule("/audit_logs", "", "system"),
 	// Who did what in kashi (home page feed). Read-only; written by the
 	// activity middleware, never through this route.
@@ -306,7 +309,8 @@ var routeRules = []routeRule{
 // POST routes that only read (they use POST for a request body), so a
 // read-only user still gets them.
 var readOnlyPosts = map[string]bool{
-	"/barcodes/print": true,
+	"/barcodes/print":      true,
+	"/whatsapp/rules/test": true,
 }
 
 // ruleFor returns the most specific rule for a gin route pattern such as

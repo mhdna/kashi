@@ -41,6 +41,8 @@ var adminActivityOverrides = map[string]string{
 	"PUT /app_settings":                             "updated app settings",
 	"PUT /app_settings/product_autofill_rules":      "updated product auto-fill rules",
 	"PUT /whatsapp_settings":                        "updated WhatsApp settings",
+	"PUT /whatsapp/rules":                           "updated WhatsApp rules",
+	"PUT /whatsapp/cost":                            "updated the WhatsApp message price",
 	"POST /barcodes/assign":                         "assigned barcodes",
 	"PUT /employees/salaries":                       "updated salaries",
 	"POST /branch_sync_conflicts/bulk_resolve":      "resolved several conflicts",

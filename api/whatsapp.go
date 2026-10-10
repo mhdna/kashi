@@ -3,8 +3,11 @@ package api
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -25,6 +28,9 @@ var whatsAppHeaderImages = []string{
 	"https://images.unsplash.com/photo-1519681393784-d120267933ba",
 }
 
+// whatsAppGraphBase is Meta's Graph API; tests point it at a fake.
+var whatsAppGraphBase = "https://graph.facebook.com"
+
 // whatsAppImageHeaderTemplates lists approved templates whose header is an
 // IMAGE (as opposed to TEXT or none), so the send only attaches an image
 // header parameter when the configured template actually expects one.
@@ -36,19 +42,22 @@ var whatsAppImageHeaderTemplates = map[string]bool{
 // named client with a phone number. kashi (not the branch) owns the Meta
 // WhatsApp Business Platform credentials -- see app_settings.whatsapp_* /
 // db/query/whatsapp_settings.sql -- so the branch only reports the sale's
-// details and kashi does the actual Cloud API call.
+// details and kashi does the actual Cloud API call. Items let rules match
+// on what was sold; a till too old to send them just never matches those.
 type branchWhatsAppThankYouRequest struct {
-	ClientName      string `json:"client_name"`
-	ClientPhone     string `json:"client_phone" binding:"required"`
-	InvoiceCode     string `json:"invoice_code" binding:"required"`
-	GrandTotalCents int64  `json:"grand_total_cents"`
+	ClientName      string             `json:"client_name"`
+	ClientPhone     string             `json:"client_phone" binding:"required"`
+	InvoiceCode     string             `json:"invoice_code" binding:"required"`
+	GrandTotalCents int64              `json:"grand_total_cents"`
+	Items           []whatsAppSaleItem `json:"items"`
 }
 
 // sendBranchWhatsAppThankYou is best-effort: config disabled/incomplete,
-// bad phone, or a Cloud API failure are all reported back as `{"sent":
-// false}` with a reason, not an HTTP error, since kashi-pos fires this
-// off the checkout path and doesn't want a WhatsApp hiccup to look like a
-// sync failure worth retrying.
+// bad phone, a rule saying skip, or a Cloud API failure are all reported
+// back as `{"sent": false}` with a reason, not an HTTP error, since
+// kashi-pos fires this off the checkout path and doesn't want a WhatsApp
+// hiccup to look like a sync failure worth retrying. Once WhatsApp is on,
+// every outcome is logged to whatsapp_messages for the WhatsApp page.
 func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 	branchID := ctx.MustGet(branchIDKey).(int64)
 
@@ -68,17 +77,59 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 		return
 	}
 
-	phoneNumberID := strings.TrimSpace(settings.WhatsappPhoneNumberID)
-	token := strings.TrimSpace(settings.WhatsappAccessToken)
-	templateName := strings.TrimSpace(settings.WhatsappTemplateName)
-	if phoneNumberID == "" || token == "" || templateName == "" {
-		server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": "whatsapp not fully configured"})
+	to := whatsAppDigits(req.ClientPhone)
+	entry := db.CreateWhatsAppMessageParams{
+		BranchID:        sql.NullInt64{Int64: branchID, Valid: true},
+		InvoiceCode:     req.InvoiceCode,
+		ClientName:      strings.TrimSpace(req.ClientName),
+		ClientPhone:     to,
+		GrandTotalCents: req.GrandTotalCents,
+		ItemCount:       int32(len(req.Items)),
+	}
+	if to == "" {
+		entry.ClientPhone = onlyDigits(req.ClientPhone)
+		server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, "unusable phone number")
 		return
 	}
 
-	to := whatsAppDigits(req.ClientPhone)
-	if to == "" {
-		server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": "unusable phone number"})
+	if already, err := server.store.WhatsAppSentForInvoice(ctx, db.WhatsAppSentForInvoiceParams{
+		BranchID: sql.NullInt64{Int64: branchID, Valid: true}, InvoiceCode: req.InvoiceCode,
+	}); err == nil && already {
+		server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": "already sent for this invoice"})
+		return
+	}
+
+	rules, err := server.loadWhatsAppRules(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	sale := whatsAppSale{
+		BranchID:   branchID,
+		Phone:      to,
+		TotalCents: req.GrandTotalCents,
+		Items:      req.Items,
+		Now:        time.Now(),
+	}
+	if sale.LastSentAt, err = server.lastWhatsAppSentAt(ctx, to); err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	decision := decideWhatsApp(rules, sale, settings)
+	entry.RuleName = decision.RuleName
+	if decision.RuleIndex >= 0 {
+		entry.RuleID = sql.NullInt64{Int64: decision.RuleID, Valid: true}
+	}
+	if decision.Action == whatsAppActionSkip {
+		server.logWhatsAppMessage(ctx, entry, whatsAppStatusSkipped, "rule: "+decision.RuleName)
+		return
+	}
+	entry.TemplateName = decision.TemplateName
+
+	phoneNumberID := strings.TrimSpace(settings.WhatsappPhoneNumberID)
+	token := strings.TrimSpace(settings.WhatsappAccessToken)
+	if phoneNumberID == "" || token == "" || decision.TemplateName == "" {
+		server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, "whatsapp not fully configured")
 		return
 	}
 
@@ -87,15 +138,10 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 		branchName = branch.Name
 	}
 
-	templateLang := strings.TrimSpace(settings.WhatsappTemplateLang)
-	if templateLang == "" {
-		templateLang = "en_US"
-	}
-
-	params := whatsAppTemplateParams(settings.WhatsappTemplateParams, req.ClientName, branchName, req.InvoiceCode, req.GrandTotalCents)
+	params := whatsAppTemplateParams(decision.TemplateParams, req.ClientName, branchName, req.InvoiceCode, req.GrandTotalCents)
 
 	components := []map[string]any{{"type": "body", "parameters": params}}
-	if whatsAppImageHeaderTemplates[templateName] {
+	if whatsAppImageHeaderTemplates[decision.TemplateName] {
 		headerImage := whatsAppHeaderImages[rand.Intn(len(whatsAppHeaderImages))]
 		components = append([]map[string]any{{
 			"type": "header",
@@ -105,22 +151,43 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 		}}, components...)
 	}
 
-	if err := whatsAppSendTemplate(phoneNumberID, token, to, templateName, templateLang, components); err != nil {
+	wamid, err := whatsAppSendTemplate(phoneNumberID, token, to, decision.TemplateName, decision.TemplateLang, components)
+	if err != nil {
 		log.Printf("whatsapp thank-you: send failed for invoice %s: %v", req.InvoiceCode, err)
-		server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": err.Error()})
+		server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, err.Error())
 		return
 	}
 
-	server.writeJSON(ctx, http.StatusOK, envelope{"sent": true})
+	entry.Wamid = wamid
+	if entry.CostMicros, err = server.store.GetWhatsAppMessageCost(ctx); err != nil {
+		log.Printf("whatsapp thank-you: message cost: %v", err)
+	}
+	server.logWhatsAppMessage(ctx, entry, whatsAppStatusSent, "")
+}
+
+// logWhatsAppMessage records one outcome, tells open WhatsApp pages, and
+// answers the till.
+func (server *Server) logWhatsAppMessage(ctx *gin.Context, entry db.CreateWhatsAppMessageParams, status, reason string) {
+	entry.Status, entry.Reason = status, reason
+	if _, err := server.store.CreateWhatsAppMessage(ctx, entry); err != nil {
+		log.Printf("whatsapp: log message for invoice %s: %v", entry.InvoiceCode, err)
+	} else {
+		server.adminHub.broadcastAll(adminWSMessage{Type: "whatsapp_message", BranchID: entry.BranchID.Int64})
+	}
+	if status == whatsAppStatusSent {
+		server.writeJSON(ctx, http.StatusOK, envelope{"sent": true})
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": reason})
 }
 
 // whatsAppSendTemplate POSTs a template message via Meta's WhatsApp Business
-// Platform (Cloud API):
+// Platform (Cloud API) and returns the message id Meta assigned:
 //
 //	POST https://graph.facebook.com/v22.0/{phone_number_id}/messages
 //	Authorization: Bearer {access_token}
-func whatsAppSendTemplate(phoneNumberID, token, to, templateName, templateLang string, components []map[string]any) error {
-	endpoint := fmt.Sprintf("https://graph.facebook.com/v22.0/%s/messages", phoneNumberID)
+func whatsAppSendTemplate(phoneNumberID, token, to, templateName, templateLang string, components []map[string]any) (string, error) {
+	endpoint := fmt.Sprintf("%s/v22.0/%s/messages", whatsAppGraphBase, phoneNumberID)
 	body := map[string]any{
 		"messaging_product": "whatsapp",
 		"to":                to,
@@ -134,27 +201,61 @@ func whatsAppSendTemplate(phoneNumberID, token, to, templateName, templateLang s
 
 	payload, err := json.Marshal(body)
 	if err != nil {
-		return fmt.Errorf("encode payload: %w", err)
+		return "", fmt.Errorf("encode payload: %w", err)
 	}
 
 	reqCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, endpoint, bytes.NewReader(payload))
 	if err != nil {
-		return fmt.Errorf("build request: %w", err)
+		return "", fmt.Errorf("build request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("POST %s: %w", endpoint, err)
+		return "", fmt.Errorf("POST %s: %w", endpoint, err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("%s -> HTTP %d", endpoint, resp.StatusCode)
+	return parseWhatsAppSendResponse(resp.StatusCode, resp.Body)
+}
+
+// parseWhatsAppSendResponse reads Meta's reply: the message id on success,
+// else Meta's own error message (e.g. "Template name does not exist in the
+// translation") so the WhatsApp page shows why, not just a status code.
+func parseWhatsAppSendResponse(status int, body io.Reader) (string, error) {
+	var out struct {
+		Messages []struct {
+			ID string `json:"id"`
+		} `json:"messages"`
+		Error struct {
+			Message string `json:"message"`
+			Code    int    `json:"code"`
+			Details struct {
+				Details string `json:"details"`
+			} `json:"error_data"`
+		} `json:"error"`
 	}
-	return nil
+	decodeErr := json.NewDecoder(io.LimitReader(body, 1<<20)).Decode(&out)
+	if status < 200 || status >= 300 {
+		msg := strings.TrimSpace(out.Error.Message)
+		if detail := strings.TrimSpace(out.Error.Details.Details); detail != "" && detail != msg {
+			msg = strings.TrimSpace(msg + ": " + detail)
+		}
+		if msg == "" {
+			return "", fmt.Errorf("HTTP %d", status)
+		}
+		if out.Error.Code != 0 {
+			return "", fmt.Errorf("%s (code %d)", msg, out.Error.Code)
+		}
+		return "", errors.New(msg)
+	}
+	if decodeErr != nil || len(out.Messages) == 0 {
+		// Accepted, just without an id we could read.
+		return "", nil
+	}
+	return out.Messages[0].ID, nil
 }
 
 // whatsAppTemplateParams builds the template's body parameters in the order
@@ -189,13 +290,7 @@ func whatsAppTemplateParams(paramNames, clientName, branchName, invoiceCode stri
 // form the Cloud API expects ("96170123456"). Returns "" when nothing
 // dial-able is left.
 func whatsAppDigits(phone string) string {
-	var b strings.Builder
-	for _, r := range phone {
-		if r >= '0' && r <= '9' {
-			b.WriteRune(r)
-		}
-	}
-	digits := b.String()
+	digits := onlyDigits(phone)
 	if len(digits) < 8 {
 		return ""
 	}

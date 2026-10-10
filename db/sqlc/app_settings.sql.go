@@ -11,7 +11,7 @@ import (
 )
 
 const getAppSettings = `-- name: GetAppSettings :one
-SELECT id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout FROM app_settings WHERE id = 1
+SELECT id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros FROM app_settings WHERE id = 1
 `
 
 func (q *Queries) GetAppSettings(ctx context.Context) (AppSetting, error) {
@@ -38,6 +38,7 @@ func (q *Queries) GetAppSettings(ctx context.Context) (AppSetting, error) {
 		&i.ProductAutofillEnabled,
 		&i.ProductAutofillRules,
 		&i.ProductAutofillCodeLayout,
+		&i.WhatsappMessageCostMicros,
 	)
 	return i, err
 }
@@ -48,7 +49,7 @@ SET product_autofill_rules = $1,
     product_autofill_code_layout = $2,
     updated_at = now()
 WHERE id = 1
-RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout
+RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros
 `
 
 type SetProductAutofillRulesParams struct {
@@ -80,6 +81,7 @@ func (q *Queries) SetProductAutofillRules(ctx context.Context, arg SetProductAut
 		&i.ProductAutofillEnabled,
 		&i.ProductAutofillRules,
 		&i.ProductAutofillCodeLayout,
+		&i.WhatsappMessageCostMicros,
 	)
 	return i, err
 }
@@ -97,7 +99,7 @@ SET financials_high_season_months = $1,
     product_autofill_enabled = $9,
     updated_at = now()
 WHERE id = 1
-RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout
+RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros
 `
 
 type UpdateAppSettingsParams struct {
@@ -146,6 +148,7 @@ func (q *Queries) UpdateAppSettings(ctx context.Context, arg UpdateAppSettingsPa
 		&i.ProductAutofillEnabled,
 		&i.ProductAutofillRules,
 		&i.ProductAutofillCodeLayout,
+		&i.WhatsappMessageCostMicros,
 	)
 	return i, err
 }

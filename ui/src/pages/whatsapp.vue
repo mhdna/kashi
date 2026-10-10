@@ -1,0 +1,204 @@
+<template>
+  <div class="wa d-flex flex-column fill-height">
+    <div class="d-flex align-center flex-wrap flex-shrink-0 ga-3 pa-4 pb-2">
+      <v-icon color="success" icon="mdi-whatsapp" />
+      <div class="text-h6 font-weight-medium">WhatsApp</div>
+      <v-chip
+        v-if="settings"
+        :color="settings.whatsapp_enabled ? 'success' : undefined"
+        size="small"
+        :text="settings.whatsapp_enabled ? 'Sending after sales' : 'Off in Settings'"
+        to="/settings?tab=whatsapp"
+        variant="tonal"
+      />
+      <v-spacer />
+      <template v-if="tab !== 'rules'">
+        <v-select
+          v-model="preset"
+          density="compact"
+          hide-details
+          :items="PRESETS"
+          style="max-width: 170px"
+          variant="outlined"
+        />
+        <template v-if="preset === 'custom'">
+          <v-text-field
+            v-model="customFrom"
+            density="compact"
+            hide-details
+            label="From"
+            style="max-width: 160px"
+            type="date"
+            variant="outlined"
+          />
+          <v-text-field
+            v-model="customTo"
+            density="compact"
+            hide-details
+            label="To"
+            style="max-width: 160px"
+            type="date"
+            variant="outlined"
+          />
+        </template>
+        <v-select
+          v-model="branchId"
+          density="compact"
+          hide-details
+          :items="branchOptions"
+          style="min-width: 170px; max-width: 240px"
+          variant="outlined"
+        />
+        <v-btn icon="mdi-refresh" title="Refresh" variant="text" @click="refreshKey++" />
+      </template>
+    </div>
+
+    <v-tabs v-model="tab" class="flex-shrink-0 px-4" color="primary" density="compact">
+      <v-tab prepend-icon="mdi-chart-bar" text="Overview" value="overview" />
+      <v-tab prepend-icon="mdi-format-list-bulleted" text="Messages" value="messages" />
+      <v-tab prepend-icon="mdi-filter-variant" text="Rules" value="rules" />
+    </v-tabs>
+    <v-divider class="flex-shrink-0" />
+
+    <div class="wa__body">
+      <WhatsAppOverview
+        v-if="tab === 'overview'"
+        :branch-id="branchId"
+        :from="range.from"
+        :refresh-key="refreshKey"
+        :to="range.to"
+        @show-messages="showMessages"
+      />
+      <WhatsAppMessages
+        v-else-if="tab === 'messages'"
+        v-model:search="messageSearch"
+        v-model:status="messageStatus"
+        :branch-id="branchId"
+        :from="range.from"
+        :refresh-key="refreshKey"
+        :to="range.to"
+      />
+      <WhatsAppRules
+        v-else
+        :branches="branches"
+        :settings="settings"
+      />
+    </div>
+  </div>
+</template>
+
+<script setup>
+  import { computed, onMounted, onUnmounted, ref } from 'vue'
+  import WhatsAppMessages from '@/components/WhatsApp/WhatsAppMessages.vue'
+  import WhatsAppOverview from '@/components/WhatsApp/WhatsAppOverview.vue'
+  import WhatsAppRules from '@/components/WhatsApp/WhatsAppRules.vue'
+  import { useAdminSocket } from '@/composables/useAdminSocket'
+  import { useBranches } from '@/composables/useBranches'
+  import { useWhatsAppSettings } from '@/composables/useWhatsAppSettings'
+  import { addDays, ymd } from '@/utils/whatsapp'
+
+  // Post-sale WhatsApp messages: what went out, to whom and what it cost
+  // (Overview, Messages), and the rules deciding it (Rules). The Cloud API
+  // credentials and default template stay on Settings > WhatsApp.
+
+  const tab = ref('overview')
+
+  const PRESETS = [
+    { title: 'Today', value: 'today' },
+    { title: 'Last 7 days', value: '7' },
+    { title: 'Last 30 days', value: '30' },
+    { title: 'Last 90 days', value: '90' },
+    { title: 'This month', value: 'month' },
+    { title: 'Last month', value: 'last-month' },
+    { title: 'This year', value: 'year' },
+    { title: 'Custom', value: 'custom' },
+  ]
+  const preset = ref('30')
+  const customFrom = ref(ymd(addDays(new Date(), -29)))
+  const customTo = ref(ymd(new Date()))
+
+  const range = computed(() => {
+    const today = new Date()
+    switch (preset.value) {
+      case 'today': {
+        return { from: ymd(today), to: ymd(today) }
+      }
+      case 'month': {
+        return { from: ymd(new Date(today.getFullYear(), today.getMonth(), 1)), to: ymd(today) }
+      }
+      case 'last-month': {
+        return {
+          from: ymd(new Date(today.getFullYear(), today.getMonth() - 1, 1)),
+          to: ymd(new Date(today.getFullYear(), today.getMonth(), 0)),
+        }
+      }
+      case 'year': {
+        return { from: ymd(new Date(today.getFullYear(), 0, 1)), to: ymd(today) }
+      }
+      case 'custom': {
+        const from = customFrom.value || ymd(today)
+        const to = customTo.value || from
+        return from <= to ? { from, to } : { from: to, to: from }
+      }
+      default: {
+        return { from: ymd(addDays(today, -(Number(preset.value) - 1))), to: ymd(today) }
+      }
+    }
+  })
+
+  const { branches, fetchBranches } = useBranches()
+  const branchId = ref(0)
+  const branchOptions = computed(() => [
+    { title: 'All branches', value: 0 },
+    ...branches.value.map(b => ({ title: b.name, value: b.id })),
+  ])
+
+  const settings = ref(null)
+  const { getWhatsAppSettings } = useWhatsAppSettings()
+
+  // Bumped to make the open tab reload: Refresh, or a message logged live.
+  const refreshKey = ref(0)
+
+  const messageStatus = ref('')
+  const messageSearch = ref('')
+  function showMessages ({ status = '', search = '' } = {}) {
+    messageStatus.value = status
+    messageSearch.value = search
+    tab.value = 'messages'
+  }
+
+  // Every message kashi decides on is pushed as whatsapp_message; a burst
+  // after a busy minute reloads once.
+  const { ensureConnected, onMessage } = useAdminSocket()
+  let unsubscribe = null
+  let liveTimer = 0
+  onMounted(async () => {
+    ensureConnected()
+    unsubscribe = onMessage(message => {
+      if (message.type !== 'whatsapp_message') return
+      clearTimeout(liveTimer)
+      liveTimer = setTimeout(() => refreshKey.value++, 1500)
+    })
+    try {
+      await fetchBranches()
+    } catch { /* the branch filter just stays at "All branches" */ }
+    try {
+      settings.value = await getWhatsAppSettings()
+    } catch { /* no status chip */ }
+  })
+  onUnmounted(() => {
+    unsubscribe?.()
+    clearTimeout(liveTimer)
+  })
+</script>
+
+<style scoped>
+.wa {
+  min-height: 0;
+}
+.wa__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+</style>

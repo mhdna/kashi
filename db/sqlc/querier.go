@@ -161,6 +161,7 @@ type Querier interface {
 	CountTransfers(ctx context.Context, status NullTransferStatus) (int64, error)
 	CountVariantsForBarcodes(ctx context.Context, search string) (int64, error)
 	CountVisitorIPs(ctx context.Context, arg CountVisitorIPsParams) (int64, error)
+	CountWhatsAppMessages(ctx context.Context, arg CountWhatsAppMessagesParams) (int64, error)
 	CreateAdminActivity(ctx context.Context, arg CreateAdminActivityParams) (AdminActivity, error)
 	CreateAppRelease(ctx context.Context, arg CreateAppReleaseParams) (AppRelease, error)
 	CreateAppUpdateEvent(ctx context.Context, arg CreateAppUpdateEventParams) error
@@ -261,6 +262,8 @@ type Querier interface {
 	CreateTransfer(ctx context.Context, arg CreateTransferParams) (Transfer, error)
 	CreateTransferItem(ctx context.Context, arg CreateTransferItemParams) (TransferItem, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	CreateWhatsAppMessage(ctx context.Context, arg CreateWhatsAppMessageParams) (WhatsappMessage, error)
+	CreateWhatsAppRule(ctx context.Context, arg CreateWhatsAppRuleParams) (WhatsappRule, error)
 	// Queries behind the home dashboard's Overview tab: the summary cards, the
 	// revenue/expense trend charts, and the aggregated Sales / Purchases /
 	// Recent Expenses tables. Every query takes a half-open [date_from,
@@ -347,6 +350,7 @@ type Querier interface {
 	DeactivateCouponList(ctx context.Context, id int64) error
 	DeactivateCouponsForList(ctx context.Context, listID sql.NullInt64) (int64, error)
 	DecrementInvoicesIndex(ctx context.Context, arg DecrementInvoicesIndexParams) (int64, error)
+	DeleteAllWhatsAppRules(ctx context.Context) error
 	DeleteAppRelease(ctx context.Context, id int64) error
 	DeleteAsset(ctx context.Context, id int64) error
 	DeleteAssetCategory(ctx context.Context, id int64) error
@@ -624,6 +628,7 @@ type Querier interface {
 	// means only products we've explicitly categorized show up here -- ordinary
 	// POS-sellable products with no category_id are never pulled into this view.
 	GetWarehouseTreemapData(ctx context.Context, inventoryID sql.NullInt64) ([]GetWarehouseTreemapDataRow, error)
+	GetWhatsAppMessageCost(ctx context.Context) (int64, error)
 	GetWhatsAppSettings(ctx context.Context) (GetWhatsAppSettingsRow, error)
 	IncrementInvoicesIndex(ctx context.Context, arg IncrementInvoicesIndexParams) (int64, error)
 	// A sale can reach kashi after the return that cancelled it (a resync pushes
@@ -631,6 +636,8 @@ type Querier interface {
 	// cancellation already left waiting for it.
 	InheritBranchInvoiceCancellation(ctx context.Context, id int64) error
 	InsertBranchQuickAccessItem(ctx context.Context, arg InsertBranchQuickAccessItemParams) error
+	// When this phone was last actually messaged; no rows when never.
+	LastWhatsAppSentAt(ctx context.Context, clientPhone string) (time.Time, error)
 	ListActiveBranchRegisterIDs(ctx context.Context, branchID int64) ([]int64, error)
 	ListActiveBranchTargetSeries(ctx context.Context) ([]BranchTargetSeries, error)
 	ListActiveIPBans(ctx context.Context) ([]IpBan, error)
@@ -1183,6 +1190,12 @@ type Querier interface {
 	// Most recently seen first. search matches the IP, place, network, user or
 	// branch; country narrows to one country code.
 	ListVisitorIPs(ctx context.Context, arg ListVisitorIPsParams) ([]VisitorIp, error)
+	// Newest first. branch_id 0 = every branch, status '' = any; search matches
+	// the client's name or phone, the invoice code or the rule.
+	ListWhatsAppMessages(ctx context.Context, arg ListWhatsAppMessagesParams) ([]ListWhatsAppMessagesRow, error)
+	// The WhatsApp page: post-sale message rules and the message log
+	// (api/whatsapp_rules.go).
+	ListWhatsAppRules(ctx context.Context) ([]WhatsappRule, error)
 	// The original punch of an approved replace/delete on the till. Kept, not
 	// deleted, so the audit trail shows what was there and who took it away.
 	MarkBranchAttendanceEventRemoved(ctx context.Context, arg MarkBranchAttendanceEventRemovedParams) error
@@ -1289,6 +1302,8 @@ type Querier interface {
 	// of its saved rotation. Not a change to the transfer itself, so
 	// updated_at is left alone.
 	RotateTransferAttachment(ctx context.Context, arg RotateTransferAttachmentParams) (int16, error)
+	// Clients with a phone, for picking in a rule.
+	SearchWhatsAppClients(ctx context.Context, search string) ([]SearchWhatsAppClientsRow, error)
 	SetAssetCost(ctx context.Context, arg SetAssetCostParams) error
 	SetBranchActive(ctx context.Context, arg SetBranchActiveParams) error
 	SetBranchHiddenFromReports(ctx context.Context, arg SetBranchHiddenFromReportsParams) error
@@ -1345,6 +1360,7 @@ type Querier interface {
 	SetTransferStatus(ctx context.Context, arg SetTransferStatusParams) (Transfer, error)
 	SetUserAvatarColor(ctx context.Context, arg SetUserAvatarColorParams) error
 	SetVariantBarcode(ctx context.Context, arg SetVariantBarcodeParams) (ProductVariant, error)
+	SetWhatsAppMessageCost(ctx context.Context, costMicros int64) error
 	SetWhatsAppSettings(ctx context.Context, arg SetWhatsAppSettingsParams) error
 	// Net sales revenue: same grand_total-sum convention as ListDailyIncome in
 	// branch_invoice.sql (returns already net out via their signed grand_total).
@@ -1441,6 +1457,19 @@ type Querier interface {
 	UpsertVisitorIP(ctx context.Context, arg UpsertVisitorIPParams) error
 	// IPs and requests per country, busiest first.
 	VisitorCountries(ctx context.Context) ([]VisitorCountriesRow, error)
+	// Names for a rule's phones, matched on their last 8 digits (whatsAppSamePhone).
+	WhatsAppClientsByPhoneTail(ctx context.Context, tails []string) ([]WhatsAppClientsByPhoneTailRow, error)
+	WhatsAppFailureReasons(ctx context.Context, arg WhatsAppFailureReasonsParams) ([]WhatsAppFailureReasonsRow, error)
+	WhatsAppMessageTotals(ctx context.Context, arg WhatsAppMessageTotalsParams) (WhatsAppMessageTotalsRow, error)
+	WhatsAppMessagesByBranch(ctx context.Context, arg WhatsAppMessagesByBranchParams) ([]WhatsAppMessagesByBranchRow, error)
+	// Days are Beirut calendar days, like the rest of the business.
+	WhatsAppMessagesByDay(ctx context.Context, arg WhatsAppMessagesByDayParams) ([]WhatsAppMessagesByDayRow, error)
+	WhatsAppMessagesByHour(ctx context.Context, arg WhatsAppMessagesByHourParams) ([]WhatsAppMessagesByHourRow, error)
+	// '' rule_name is "no rule matched" (the default template).
+	WhatsAppMessagesByRule(ctx context.Context, arg WhatsAppMessagesByRuleParams) ([]WhatsAppMessagesByRuleRow, error)
+	// A till that reports the same sale twice doesn't message the client twice.
+	WhatsAppSentForInvoice(ctx context.Context, arg WhatsAppSentForInvoiceParams) (bool, error)
+	WhatsAppTopRecipients(ctx context.Context, arg WhatsAppTopRecipientsParams) ([]WhatsAppTopRecipientsRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

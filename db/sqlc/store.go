@@ -37,6 +37,7 @@ type Store interface {
 	SaveRolePermissionsTx(ctx context.Context, roleID int64, perms []RolePermission) error
 	ReplaceBranchQuickAccessTx(ctx context.Context, branchID int64, items []QuickAccessItemInput) error
 	ImportBranchQuickAccessTx(ctx context.Context, branchID int64, items []QuickAccessItemInput) (bool, error)
+	ReplaceWhatsAppRulesTx(ctx context.Context, rules []CreateWhatsAppRuleParams) ([]WhatsappRule, error)
 }
 
 // provides all the functions to execute SQL queries
