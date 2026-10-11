@@ -1487,6 +1487,7 @@ type SecurityAlert struct {
 	FirstAt        time.Time    `json:"first_at"`
 	LastAt         time.Time    `json:"last_at"`
 	AcknowledgedAt sql.NullTime `json:"acknowledged_at"`
+	AcknowledgedBy string       `json:"acknowledged_by"`
 }
 
 type SecuritySetting struct {

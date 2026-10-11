@@ -509,7 +509,7 @@ func (server *Server) getSecurityOverview(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	alerts, err := server.store.ListSecurityAlerts(ctx, db.ListSecurityAlertsParams{OpenOnly: false, PageSize: 200})
+	alerts, err := server.store.ListSecurityAlerts(ctx, db.ListSecurityAlertsParams{OpenOnly: false, PinnedKinds: criticalAlertKinds, PageSize: 200})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
@@ -546,11 +546,44 @@ func (server *Server) getSecurityOverview(ctx *gin.Context) {
 	})
 }
 
+// How serious each alert kind is. A sign-in from abroad may be a stolen
+// password that worked, so it's the one critical kind: it stays pinned at
+// the top of the Security page until someone resolves it by itself ("Mark
+// all seen" leaves it). An unknown kind counts as medium.
+var alertSeverities = map[string]string{
+	"login_abroad":    "critical",
+	"failed_logins":   "high",
+	"auto_ban":        "high",
+	"probe":           "medium",
+	"foreign_visit":   "low",
+	"blocked_country": "low",
+}
+
+var criticalAlertKinds = func() []string {
+	var kinds []string
+	for kind, severity := range alertSeverities {
+		if severity == "critical" {
+			kinds = append(kinds, kind)
+		}
+	}
+	return kinds
+}()
+
+func alertSeverity(kind string) string {
+	if s, ok := alertSeverities[kind]; ok {
+		return s
+	}
+	return "medium"
+}
+
 // The alert and ban rows carry sql.NullTime, which encodes as
 // {"Time":..., "Valid":...}; the page wants a time or null.
 type securityAlertResponse struct {
 	db.SecurityAlert
 	AcknowledgedAt *time.Time `json:"acknowledged_at"`
+	Severity       string     `json:"severity"`
+	// Pinned: a critical alert nobody has resolved yet.
+	Pinned bool `json:"pinned"`
 }
 
 type ipBanResponse struct {
@@ -568,7 +601,13 @@ func nullTimePtr(t sql.NullTime) *time.Time {
 func alertResponses(rows []db.SecurityAlert) []securityAlertResponse {
 	out := make([]securityAlertResponse, len(rows))
 	for i, r := range rows {
-		out[i] = securityAlertResponse{SecurityAlert: r, AcknowledgedAt: nullTimePtr(r.AcknowledgedAt)}
+		severity := alertSeverity(r.Kind)
+		out[i] = securityAlertResponse{
+			SecurityAlert:  r,
+			AcknowledgedAt: nullTimePtr(r.AcknowledgedAt),
+			Severity:       severity,
+			Pinned:         severity == "critical" && !r.AcknowledgedAt.Valid,
+		}
 	}
 	return out
 }
@@ -611,8 +650,19 @@ func (server *Server) listSecurityVisitors(ctx *gin.Context) {
 	server.writeJSON(ctx, http.StatusOK, envelope{"visitors": visitors, "total": total})
 }
 
+// countOpenSecurityAlerts backs the Security nav badge: just the number of
+// alerts nobody has acknowledged, without the overview's lists.
+func (server *Server) countOpenSecurityAlerts(ctx *gin.Context) {
+	open, err := server.store.CountOpenSecurityAlerts(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"open_alerts": open})
+}
+
 type acknowledgeAlertsRequest struct {
-	IDs []int64 `json:"ids"` // empty = every open alert
+	IDs []int64 `json:"ids"` // empty = every open alert but the critical ones
 }
 
 func (server *Server) acknowledgeSecurityAlerts(ctx *gin.Context) {
@@ -624,7 +674,15 @@ func (server *Server) acknowledgeSecurityAlerts(ctx *gin.Context) {
 	if req.IDs == nil {
 		req.IDs = []int64{}
 	}
-	if err := server.store.AcknowledgeSecurityAlerts(ctx, req.IDs); err != nil {
+	by := ""
+	if payload, ok := ctx.Get(authoizationPayloadKey); ok {
+		if p, ok := payload.(*token.Payload); ok {
+			by = p.Username
+		}
+	}
+	if err := server.store.AcknowledgeSecurityAlerts(ctx, db.AcknowledgeSecurityAlertsParams{
+		AcknowledgedBy: by, Ids: req.IDs, KeptKinds: criticalAlertKinds,
+	}); err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}

@@ -497,6 +497,7 @@ func (server *Server) setupRoutes() {
 
 	// Security page (admin-only: not in access.go's routeRules).
 	authRoutes.GET("/security/overview", server.getSecurityOverview)
+	authRoutes.GET("/security/alerts/open_count", server.countOpenSecurityAlerts)
 	authRoutes.GET("/security/visitors", server.listSecurityVisitors)
 	authRoutes.POST("/security/alerts/acknowledge", server.acknowledgeSecurityAlerts)
 	authRoutes.PUT("/security/settings", server.updateSecuritySettings)

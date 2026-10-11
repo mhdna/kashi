@@ -14,8 +14,9 @@ import (
 )
 
 type Querier interface {
-	// Marks the given alerts seen; an empty list marks every open one.
-	AcknowledgeSecurityAlerts(ctx context.Context, ids []int64) error
+	// Marks the given alerts seen; an empty list marks every open one except
+	// those of kept_kinds (critical ones, resolved only one by one).
+	AcknowledgeSecurityAlerts(ctx context.Context, arg AcknowledgeSecurityAlertsParams) error
 	// remaining_quantity starts equal to quantity_bought -- FIFO consumption
 	// (applyStockMovement) draws it down as sales are attributed to this
 	// batch, and returns of those sales put it back.
@@ -1189,6 +1190,8 @@ type Querier interface {
 	ListSalespersonsByCashbox(ctx context.Context, cashboxID sql.NullInt64) ([]Salesperson, error)
 	ListSalespersonsForBranch(ctx context.Context, branchID sql.NullInt64) ([]Salesperson, error)
 	ListSalespersonsUpdatedSince(ctx context.Context, arg ListSalespersonsUpdatedSinceParams) ([]Salesperson, error)
+	// Open alerts of the pinned (critical) kinds come first, so the page limit
+	// never pushes one off the list before someone resolves it.
 	ListSecurityAlerts(ctx context.Context, arg ListSecurityAlertsParams) ([]SecurityAlert, error)
 	ListShifts(ctx context.Context, arg ListShiftsParams) ([]ListShiftsRow, error)
 	ListSizes(ctx context.Context) ([]Size, error)

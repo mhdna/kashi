@@ -40,7 +40,7 @@ func (m *MockStore) EXPECT() *MockStoreMockRecorder {
 }
 
 // AcknowledgeSecurityAlerts mocks base method.
-func (m *MockStore) AcknowledgeSecurityAlerts(arg0 context.Context, arg1 []int64) error {
+func (m *MockStore) AcknowledgeSecurityAlerts(arg0 context.Context, arg1 db.AcknowledgeSecurityAlertsParams) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AcknowledgeSecurityAlerts", arg0, arg1)
 	ret0, _ := ret[0].(error)
