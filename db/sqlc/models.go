@@ -845,6 +845,7 @@ type BranchSetting struct {
 	ScanByCodeEnabled                  bool            `json:"scan_by_code_enabled"`
 	SoundsEnabled                      bool            `json:"sounds_enabled"`
 	AttendanceManagerApprovalEnabled   bool            `json:"attendance_manager_approval_enabled"`
+	ShiftReportSignatures              bool            `json:"shift_report_signatures"`
 }
 
 type BranchShift struct {

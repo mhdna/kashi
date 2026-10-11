@@ -72,6 +72,9 @@ type branchSettingsRequest struct {
 	ReceiptTitleSize *float64 `json:"receipt_title_size"`
 	ReceiptBodySize  *float64 `json:"receipt_body_size"`
 	ReceiptCutoff    *bool    `json:"receipt_cutoff"`
+	// The cashier/manager sign-off lines on the end-of-shift receipt. Nil
+	// (a till that predates it) keeps them on, the till's own default.
+	ShiftReportSignatures *bool `json:"shift_report_signatures"`
 
 	// --- per-machine device identifiers (reported for display; the admin
 	// UI defaults these to "managed at the branch") ---
@@ -422,6 +425,8 @@ func (server *Server) upsertBranchSettings(ctx *gin.Context, branchID int64, req
 		ReceiptTitleSize: orZero(req.ReceiptTitleSize),
 		ReceiptBodySize:  orZero(req.ReceiptBodySize),
 		ReceiptCutoff:    orZero(req.ReceiptCutoff),
+
+		ShiftReportSignatures: orTrue(req.ShiftReportSignatures),
 
 		PrinterID:      orZero(req.PrinterID),
 		ReceiptPrinter: orZero(req.ReceiptPrinter),

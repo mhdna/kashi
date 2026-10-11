@@ -762,6 +762,13 @@
                           hide-details
                           label="Cut paper after printing"
                         />
+                        <v-switch
+                          v-model="settingsForm.shift_report_signatures"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Cashier and manager signature lines on end-of-shift receipt"
+                        />
                       </div>
                     </section>
 
@@ -1395,6 +1402,7 @@
     'page_unlock_salespersons',
     'receipt_enabled',
     'receipt_cutoff',
+    'shift_report_signatures',
     'attendance_enabled',
     'attendance_cashier_history',
     'attendance_manager_approval_enabled',
@@ -1461,7 +1469,7 @@
       // and on is what every branch did before it existed (the primary
       // currency leading; codes accepted in the scan field) -- so only an
       // explicit false flips it.
-      if (k === 'split_primary_first' || k === 'scan_by_code_enabled' || k === 'attendance_manager_approval_enabled') {
+      if (k === 'split_primary_first' || k === 'scan_by_code_enabled' || k === 'attendance_manager_approval_enabled' || k === 'shift_report_signatures') {
         form[k] = d[k] !== false
         continue
       }
@@ -1801,6 +1809,7 @@
     page_unlock_salespersons: 'Salespersons page',
     receipt_enabled: 'Print receipt',
     receipt_cutoff: 'Cut paper',
+    shift_report_signatures: 'Shift receipt signatures',
     printer_size: 'Printer size',
     branch_phone: 'Branch phone',
   }

@@ -415,6 +415,18 @@
                     label="Cut paper after printing"
                   />
                 </div>
+                <div class="field-grid mt-3">
+                  <v-select
+                    v-for="f in OPTIONAL_FIELDS.printing"
+                    :key="f.key"
+                    v-model="form[f.key]"
+                    density="compact"
+                    hide-details
+                    :items="TRI_STATE"
+                    :label="f.label"
+                    variant="outlined"
+                  />
+                </div>
                 <p class="text-caption text-medium-emphasis mt-3">
                   Physical device identifiers (printer name, receipt printer, customer-screen
                   COM port) are specific to one till and are never part of this template &mdash;
@@ -599,6 +611,9 @@
     ],
     pages: [
       { key: 'page_unlock_products', label: 'Products page', type: 'bool' },
+    ],
+    printing: [
+      { key: 'shift_report_signatures', label: 'Signature lines on end-of-shift receipt', type: 'bool' },
     ],
   }
   const OPTIONAL_KEYS = Object.values(OPTIONAL_FIELDS).flat().map(f => f.key)
