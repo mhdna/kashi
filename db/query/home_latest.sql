@@ -197,3 +197,57 @@ SELECT (
   + (SELECT COUNT(*) FROM branch_attendance_changes a JOIN branches br ON br.id = a.branch_id
      WHERE a.received_at >= sqlc.arg(since)::timestamptz AND NOT br.hidden_from_reports)
 )::bigint AS total;
+
+-- name: ListUnresolvedUrgentHomeActivities :many
+-- The urgent Recent activity rows nobody has resolved yet, pinned above the
+-- feed: a shift closed short (negative USD variance) -- the rows the feed
+-- tints red. Same columns as HomeActivityFeed, so the feed draws them with
+-- the same row, newest received first, like the feed.
+WITH urgent AS (
+  SELECT 'Shift closed'::text AS activity, s.id, s.branch_id, br.name AS branch_name,
+    concat_ws(' · ', nullif(s.closing_person_name, ''), 'USD variance')::text AS details,
+    s.variance_usd AS amount, 'USD'::text AS currency_code, s.received_at AS synced_at,
+    s.closing_person_name::text AS person
+  FROM branch_shifts s
+  JOIN branches br ON br.id = s.branch_id
+  WHERE s.variance_usd < 0
+    AND NOT br.hidden_from_reports
+    AND s.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+)
+SELECT urgent.*,
+  COALESCE((
+    SELECT sp.color FROM salespersons sp
+    WHERE sp.name = urgent.person AND urgent.person <> ''
+      AND (sp.branch_id IS NULL OR sp.branch_id = urgent.branch_id)
+    ORDER BY sp.branch_id NULLS LAST
+    LIMIT 1
+  ), '')::text AS person_color
+FROM urgent
+WHERE NOT EXISTS (
+  SELECT 1 FROM home_activity_resolutions r
+  WHERE r.activity = urgent.activity AND r.source_id = urgent.id
+)
+ORDER BY synced_at DESC, activity DESC, id DESC
+LIMIT 200;
+
+-- name: ResolveHomeActivity :exec
+-- Idempotent: resolving a row twice keeps who resolved it first.
+INSERT INTO home_activity_resolutions (activity, source_id, resolved_by)
+VALUES ($1, $2, $3)
+ON CONFLICT (activity, source_id) DO NOTHING;
+
+-- name: ListBranchInvoiceItemsNamed :many
+-- An invoice's lines with the product each one sold, for the Recent
+-- activity details dialog. A line whose product_uid never resolved to a
+-- variant keeps an empty name.
+SELECT bii.id, bii.quantity, bii.unit_price, bii.line_total, bii.discount,
+  COALESCE(p.name, '')::text AS product_name,
+  COALESCE(p.code, '')::text AS product_code
+FROM branch_invoice_items bii
+LEFT JOIN product_variants pv ON pv.uid = bii.product_uid
+LEFT JOIN products p ON p.id = pv.product_id
+WHERE bii.branch_invoice_id = $1
+ORDER BY bii.id;
+
+-- name: GetBranchInvoiceSettlement :one
+SELECT * FROM branch_invoice_settlements WHERE id = $1;

@@ -140,6 +140,8 @@ var accessSections = []accessSection{
 	// Checked by createBranchCommand (replace_shift_balance with
 	// allow_negative), not by a route rule.
 	{"shift_negative_balance", "Negative Balance Transfers", "Move a till's shift balance out of a payment method even when that takes it below zero, e.g. LBP change that was really settled by Whish (off by default)", nil},
+	// Checked by the /home/activities/resolve route rule.
+	{"resolve_urgent_activity", "Resolve Urgent Activity", "Mark an urgent Recent activity row on Home (a shift closed short) as resolved, which unpins it for everyone (off by default)", nil},
 	{"text_selection", "Text Selection", "Select and copy text anywhere in the admin interface (off by default; doesn't gate any data)", nil},
 }
 
@@ -316,6 +318,8 @@ var routeRules = []routeRule{
 	// The home page's Recent activity feed: branch sync, same access as the
 	// dashboard it was split out of.
 	rule("/home/activities", "", "analytics"),
+	// Unpinning an urgent row is its own permission, not an analytics edit.
+	rule("/home/activities/resolve", "resolve_urgent_activity", "analytics"),
 	rule("/logs", "", "system"),
 	rule("/app_releases", "updates", "updates"),
 	rule("/app_updates", "updates", "updates"),

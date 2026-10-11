@@ -459,6 +459,7 @@ type AdminActivity struct {
 	Detail      string        `json:"detail"`
 	CreatedAt   time.Time     `json:"created_at"`
 	RepeatCount int32         `json:"repeat_count"`
+	ReleaseType string        `json:"release_type"`
 }
 
 type AppRelease struct {
@@ -1158,6 +1159,13 @@ type ExpenseCategory struct {
 	Color     string    `json:"color"`
 	Scope     string    `json:"scope"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type HomeActivityResolution struct {
+	Activity   string    `json:"activity"`
+	SourceID   int64     `json:"source_id"`
+	ResolvedBy string    `json:"resolved_by"`
+	ResolvedAt time.Time `json:"resolved_at"`
 }
 
 type InventoriesAsset struct {

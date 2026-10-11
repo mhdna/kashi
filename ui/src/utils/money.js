@@ -23,3 +23,15 @@ export function formatCompactMoney (cents) {
   }
   return `${sign}$${abs.toFixed(0)}`
 }
+
+// An amount for reading, with its sign outside the symbol: "$28", "−$5".
+// Invoices carry no currency code (their totals are USD), so no code means
+// dollars; any other currency keeps its code after the number:
+// "200,000 LBP".
+export function formatAmount (amount, currency = '') {
+  const value = Number(amount || 0) / 100
+  const formatted = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(Math.abs(value))
+  const sign = amount < 0 ? '−' : ''
+  if (!currency || currency === 'USD') {return `${sign}$${formatted}`}
+  return `${sign}${formatted} ${currency}`
+}

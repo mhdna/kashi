@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	db "github.com/mhdna/kashi/db/sqlc"
+	"github.com/mhdna/kashi/token"
 )
 
 // feedCursor is where the next page of a home feed starts: the sort key of
@@ -61,6 +62,54 @@ func (server *Server) listHomeActivities(ctx *gin.Context) {
 		return
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{"activities": rows})
+}
+
+// urgentHomeActivities are the Recent activity rows that stay pinned above
+// the feed until someone resolves them (ListUnresolvedUrgentHomeActivities
+// decides which rows of these kinds are urgent).
+var urgentHomeActivities = map[string]bool{
+	"Shift closed": true,
+}
+
+// listUrgentHomeActivities backs the pinned top of the Recent activity feed:
+// every urgent row nobody has resolved, newest first.
+func (server *Server) listUrgentHomeActivities(ctx *gin.Context) {
+	rows, err := server.store.ListUnresolvedUrgentHomeActivities(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"activities": rows})
+}
+
+type resolveHomeActivityRequest struct {
+	Activity string `json:"activity" binding:"required"`
+	ID       int64  `json:"id" binding:"required,min=1"`
+}
+
+// resolveHomeActivity unpins an urgent row. The route needs the
+// resolve_urgent_activity permission (see routeRules).
+func (server *Server) resolveHomeActivity(ctx *gin.Context) {
+	var req resolveHomeActivityRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	if !urgentHomeActivities[req.Activity] {
+		server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("%q is not an urgent activity", req.Activity))
+		return
+	}
+	by := ""
+	if payload, ok := ctx.MustGet(authoizationPayloadKey).(*token.Payload); ok {
+		by = payload.Username
+	}
+	if err := server.store.ResolveHomeActivity(ctx, db.ResolveHomeActivityParams{
+		Activity: req.Activity, SourceID: req.ID, ResolvedBy: by,
+	}); err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"resolved": true})
 }
 
 // listLatestAdditions backs the home page's "Latest added" feed: newest

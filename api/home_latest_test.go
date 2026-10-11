@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"net/http"
 	"testing"
 	"time"
@@ -95,5 +96,85 @@ func TestListHomeActivities_BadCursor(t *testing.T) {
 
 	server := newTestServer(t, store)
 	rec := adminRequest(t, server, http.MethodGet, "/home/activities?before_at=yesterday", nil)
+	require.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
+}
+
+// Resolving an urgent row needs the resolve_urgent_activity permission;
+// viewing analytics (the feed itself) isn't enough.
+func TestResolveHomeActivity_NeedsPermission(t *testing.T) {
+	analytics := db.GetUserAccessRow{
+		RoleID: 2, RoleName: "Manager",
+		Section: sqlStr("analytics"), CanView: sqlBool(true), CanEdit: sqlBool(true),
+	}
+	resolve := db.GetUserAccessRow{
+		RoleID: 2, RoleName: "Manager",
+		Section: sqlStr("resolve_urgent_activity"), CanView: sqlBool(true), CanEdit: sqlBool(true),
+	}
+	cases := []struct {
+		name string
+		rows []db.GetUserAccessRow
+		want int
+	}{
+		{"analytics alone", []db.GetUserAccessRow{analytics}, http.StatusForbidden},
+		{"with the permission", []db.GetUserAccessRow{analytics, resolve}, http.StatusOK},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			store := mockdb.NewMockStore(ctrl)
+			store.EXPECT().GetUserByUsername(gomock.Any(), gomock.Any()).Return(db.User{ID: 1}, nil).AnyTimes()
+			calls := 0
+			if c.want == http.StatusOK {
+				calls = 1
+			}
+			store.EXPECT().ResolveHomeActivity(gomock.Any(), db.ResolveHomeActivityParams{
+				Activity: "Shift closed", SourceID: 9, ResolvedBy: "operator",
+			}).Return(nil).Times(calls)
+
+			server := roleTestServer(t, store, c.rows)
+			rec := adminRequest(t, server, http.MethodPost, "/home/activities/resolve", map[string]any{"activity": "Shift closed", "id": 9})
+			require.Equal(t, c.want, rec.Code, rec.Body.String())
+		})
+	}
+}
+
+// Only the kinds that get pinned can be resolved.
+func TestResolveHomeActivity_RejectsOtherKinds(t *testing.T) {
+	store := mockdb.NewMockStore(gomock.NewController(t))
+	store.EXPECT().ResolveHomeActivity(gomock.Any(), gomock.Any()).Times(0)
+	server := newTestServer(t, store)
+	rec := adminRequest(t, server, http.MethodPost, "/home/activities/resolve", map[string]any{"activity": "Settlement changed", "id": 9})
+	require.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
+}
+
+func TestListUrgentHomeActivities(t *testing.T) {
+	store := mockdb.NewMockStore(gomock.NewController(t))
+	store.EXPECT().ListUnresolvedUrgentHomeActivities(gomock.Any()).
+		Return([]db.ListUnresolvedUrgentHomeActivitiesRow{{Activity: "Shift closed", ID: 4, Amount: -1200}}, nil)
+	server := newTestServer(t, store)
+	rec := adminRequest(t, server, http.MethodGet, "/home/activities/urgent", nil)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	require.Contains(t, rec.Body.String(), `"activity":"Shift closed"`)
+}
+
+// A shift's details carry its receipt photo id, or null when the till sent
+// none.
+func TestGetHomeActivityDetail_Shift(t *testing.T) {
+	store := mockdb.NewMockStore(gomock.NewController(t))
+	store.EXPECT().GetBranchShift(gomock.Any(), int64(4)).Return(db.BranchShift{ID: 4, RegisterID: 2, VarianceUsd: -36}, nil)
+	store.EXPECT().GetBranchShiftReceiptImageForShift(gomock.Any(), int64(4)).Return(db.BranchShiftReceiptImage{}, sql.ErrNoRows)
+	store.EXPECT().GetBranchRegister(gomock.Any(), int64(2)).Return(db.BranchRegister{ID: 2, Name: "CT1", ApiKeyHash: "secret"}, nil)
+
+	server := newTestServer(t, store)
+	rec := adminRequest(t, server, http.MethodGet, "/home/activities/detail?activity=Shift+closed&id=4", nil)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	require.Contains(t, rec.Body.String(), `"receipt_image_id":null`)
+	require.Contains(t, rec.Body.String(), `"register":"CT1"`)
+	require.NotContains(t, rec.Body.String(), "secret")
+}
+
+func TestGetHomeActivityDetail_UnknownActivity(t *testing.T) {
+	server := newTestServer(t, mockdb.NewMockStore(gomock.NewController(t)))
+	rec := adminRequest(t, server, http.MethodGet, "/home/activities/detail?activity=Nope&id=4", nil)
 	require.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
 }

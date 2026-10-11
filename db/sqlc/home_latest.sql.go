@@ -80,6 +80,26 @@ func (q *Queries) CountLatestAdditionsSince(ctx context.Context, arg CountLatest
 	return total, err
 }
 
+const getBranchInvoiceSettlement = `-- name: GetBranchInvoiceSettlement :one
+SELECT id, branch_id, client_ref, sale_client_ref, grand_total, occurred_at, received_at, status FROM branch_invoice_settlements WHERE id = $1
+`
+
+func (q *Queries) GetBranchInvoiceSettlement(ctx context.Context, id int64) (BranchInvoiceSettlement, error) {
+	row := q.db.QueryRowContext(ctx, getBranchInvoiceSettlement, id)
+	var i BranchInvoiceSettlement
+	err := row.Scan(
+		&i.ID,
+		&i.BranchID,
+		&i.ClientRef,
+		&i.SaleClientRef,
+		&i.GrandTotal,
+		&i.OccurredAt,
+		&i.ReceivedAt,
+		&i.Status,
+	)
+	return i, err
+}
+
 const homeActivityFeed = `-- name: HomeActivityFeed :many
 WITH activities AS (
   SELECT 'Invoice'::text AS activity, b.id, b.branch_id, br.name AS branch_name,
@@ -211,6 +231,61 @@ func (q *Queries) HomeActivityFeed(ctx context.Context, arg HomeActivityFeedPara
 			&i.SyncedAt,
 			&i.Person,
 			&i.PersonColor,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listBranchInvoiceItemsNamed = `-- name: ListBranchInvoiceItemsNamed :many
+SELECT bii.id, bii.quantity, bii.unit_price, bii.line_total, bii.discount,
+  COALESCE(p.name, '')::text AS product_name,
+  COALESCE(p.code, '')::text AS product_code
+FROM branch_invoice_items bii
+LEFT JOIN product_variants pv ON pv.uid = bii.product_uid
+LEFT JOIN products p ON p.id = pv.product_id
+WHERE bii.branch_invoice_id = $1
+ORDER BY bii.id
+`
+
+type ListBranchInvoiceItemsNamedRow struct {
+	ID          int64  `json:"id"`
+	Quantity    int64  `json:"quantity"`
+	UnitPrice   int64  `json:"unit_price"`
+	LineTotal   int64  `json:"line_total"`
+	Discount    int16  `json:"discount"`
+	ProductName string `json:"product_name"`
+	ProductCode string `json:"product_code"`
+}
+
+// An invoice's lines with the product each one sold, for the Recent
+// activity details dialog. A line whose product_uid never resolved to a
+// variant keeps an empty name.
+func (q *Queries) ListBranchInvoiceItemsNamed(ctx context.Context, branchInvoiceID int64) ([]ListBranchInvoiceItemsNamedRow, error) {
+	rows, err := q.db.QueryContext(ctx, listBranchInvoiceItemsNamed, branchInvoiceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListBranchInvoiceItemsNamedRow{}
+	for rows.Next() {
+		var i ListBranchInvoiceItemsNamedRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Quantity,
+			&i.UnitPrice,
+			&i.LineTotal,
+			&i.Discount,
+			&i.ProductName,
+			&i.ProductCode,
 		); err != nil {
 			return nil, err
 		}
@@ -365,4 +440,102 @@ func (q *Queries) ListLatestAdditions(ctx context.Context, arg ListLatestAdditio
 		return nil, err
 	}
 	return items, nil
+}
+
+const listUnresolvedUrgentHomeActivities = `-- name: ListUnresolvedUrgentHomeActivities :many
+WITH urgent AS (
+  SELECT 'Shift closed'::text AS activity, s.id, s.branch_id, br.name AS branch_name,
+    concat_ws(' · ', nullif(s.closing_person_name, ''), 'USD variance')::text AS details,
+    s.variance_usd AS amount, 'USD'::text AS currency_code, s.received_at AS synced_at,
+    s.closing_person_name::text AS person
+  FROM branch_shifts s
+  JOIN branches br ON br.id = s.branch_id
+  WHERE s.variance_usd < 0
+    AND NOT br.hidden_from_reports
+    AND s.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+)
+SELECT urgent.activity, urgent.id, urgent.branch_id, urgent.branch_name, urgent.details, urgent.amount, urgent.currency_code, urgent.synced_at, urgent.person,
+  COALESCE((
+    SELECT sp.color FROM salespersons sp
+    WHERE sp.name = urgent.person AND urgent.person <> ''
+      AND (sp.branch_id IS NULL OR sp.branch_id = urgent.branch_id)
+    ORDER BY sp.branch_id NULLS LAST
+    LIMIT 1
+  ), '')::text AS person_color
+FROM urgent
+WHERE NOT EXISTS (
+  SELECT 1 FROM home_activity_resolutions r
+  WHERE r.activity = urgent.activity AND r.source_id = urgent.id
+)
+ORDER BY synced_at DESC, activity DESC, id DESC
+LIMIT 200
+`
+
+type ListUnresolvedUrgentHomeActivitiesRow struct {
+	Activity     string    `json:"activity"`
+	ID           int64     `json:"id"`
+	BranchID     int64     `json:"branch_id"`
+	BranchName   string    `json:"branch_name"`
+	Details      string    `json:"details"`
+	Amount       int64     `json:"amount"`
+	CurrencyCode string    `json:"currency_code"`
+	SyncedAt     time.Time `json:"synced_at"`
+	Person       string    `json:"person"`
+	PersonColor  string    `json:"person_color"`
+}
+
+// The urgent Recent activity rows nobody has resolved yet, pinned above the
+// feed: a shift closed short (negative USD variance) -- the rows the feed
+// tints red. Same columns as HomeActivityFeed, so the feed draws them with
+// the same row, newest received first, like the feed.
+func (q *Queries) ListUnresolvedUrgentHomeActivities(ctx context.Context) ([]ListUnresolvedUrgentHomeActivitiesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listUnresolvedUrgentHomeActivities)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListUnresolvedUrgentHomeActivitiesRow{}
+	for rows.Next() {
+		var i ListUnresolvedUrgentHomeActivitiesRow
+		if err := rows.Scan(
+			&i.Activity,
+			&i.ID,
+			&i.BranchID,
+			&i.BranchName,
+			&i.Details,
+			&i.Amount,
+			&i.CurrencyCode,
+			&i.SyncedAt,
+			&i.Person,
+			&i.PersonColor,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const resolveHomeActivity = `-- name: ResolveHomeActivity :exec
+INSERT INTO home_activity_resolutions (activity, source_id, resolved_by)
+VALUES ($1, $2, $3)
+ON CONFLICT (activity, source_id) DO NOTHING
+`
+
+type ResolveHomeActivityParams struct {
+	Activity   string `json:"activity"`
+	SourceID   int64  `json:"source_id"`
+	ResolvedBy string `json:"resolved_by"`
+}
+
+// Idempotent: resolving a row twice keeps who resolved it first.
+func (q *Queries) ResolveHomeActivity(ctx context.Context, arg ResolveHomeActivityParams) error {
+	_, err := q.db.ExecContext(ctx, resolveHomeActivity, arg.Activity, arg.SourceID, arg.ResolvedBy)
+	return err
 }

@@ -26,7 +26,7 @@ VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: ListAdminActivities :many
-SELECT a.id, a.method, a.route, a.entity_id, a.summary, a.detail, a.created_at, a.repeat_count,
+SELECT a.id, a.method, a.route, a.entity_id, a.summary, a.detail, a.created_at, a.repeat_count, a.release_type,
        a.user_id, COALESCE(u.name, '') AS user_name,
        COALESCE(u.avatar_color, '') AS user_avatar_color
 FROM admin_activities a

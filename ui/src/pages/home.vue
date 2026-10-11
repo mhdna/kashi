@@ -62,7 +62,7 @@
               <v-list v-else class="py-1" density="compact" lines="two">
                 <v-virtual-scroll :item-height="71" :items="shown(kashiActivities)" renderless>
                   <template #default="{ item, itemRef }">
-                    <v-list-item :ref="itemRef" class="px-3">
+                    <v-list-item :ref="itemRef" class="px-3" @click="openKashiDetail(item)">
                       <template #prepend>
                         <v-avatar
                           class="me-3 text-white"
@@ -88,8 +88,16 @@
                           ×{{ item.repeat_count }}
                         </v-chip>
                       </v-list-item-title>
-                      <v-list-item-subtitle v-if="item.detail" class="text-caption">
-                        {{ item.detail }}
+                      <v-list-item-subtitle class="text-caption d-flex align-center ga-1">
+                        <v-chip
+                          class="flex-shrink-0 font-weight-medium"
+                          :color="kashiTag(item).color"
+                          label
+                          size="x-small"
+                          :text="kashiTag(item).label"
+                          variant="flat"
+                        />
+                        <span v-if="item.detail" class="text-truncate">{{ item.detail }}</span>
                       </v-list-item-subtitle>
                       <template #append>
                         <div class="text-caption text-medium-emphasis text-no-wrap ms-2" :title="dateTime(item.created_at)">
@@ -142,7 +150,7 @@
                 type="list-item-avatar-two-line@8"
               />
               <v-list v-else class="py-0" density="compact" lines="two">
-                <v-virtual-scroll :item-height="71" :items="shown(activities)" renderless>
+                <v-virtual-scroll :item-height="71" :items="shown(feedRows)" renderless>
                   <template #default="{ item, itemRef }">
                     <v-list-item
                       :ref="itemRef"
@@ -163,8 +171,15 @@
                     </v-avatar>
                   </template>
                   -->
-                      <v-list-item-title class="text-body-2 font-weight-medium">
-                        {{ item.activity || 'Activity' }}
+                      <v-list-item-title class="text-body-2 font-weight-medium d-flex align-center ga-1">
+                        <v-icon
+                          v-if="item.pinned"
+                          color="error"
+                          icon="mdi-pin"
+                          size="14"
+                          title="Pinned until someone resolves it"
+                        />
+                        {{ activityTitle(item) }}
                       </v-list-item-title>
                       <v-list-item-subtitle class="text-caption d-flex align-center ga-1">
                         <template v-if="item.person">
@@ -193,6 +208,19 @@
                             {{ timeAgo(item.synced_at) }}
                           </div>
                         </div>
+                        <!-- Last in the row, so the buttons line up down the
+                             pinned rows whatever the amount's width. -->
+                        <v-btn
+                          v-if="item.pinned && canResolveUrgent"
+                          class="ms-1 me-n2"
+                          color="error"
+                          icon="mdi-check-circle-outline"
+                          :loading="resolvingKey === activityKey(item)"
+                          size="small"
+                          title="Mark resolved"
+                          variant="text"
+                          @click.stop="resolveUrgent(item)"
+                        />
                       </template>
                     </v-list-item>
                   </template>
@@ -200,7 +228,7 @@
               </v-list>
 
               <div
-                v-if="activitiesLoaded && activities.length === 0"
+                v-if="activitiesLoaded && feedRows.length === 0"
                 class="text-body-2 text-medium-emphasis py-4 text-center"
               >
                 No recent activity yet.
@@ -305,45 +333,93 @@
       </div>
     </div>
 
-    <v-dialog v-model="detailOpen" max-width="460">
-      <v-card v-if="detail" rounded="lg">
+    <ActivityDetailDialog
+      v-model="detailOpen"
+      :can-resolve="canResolveUrgent"
+      :item="detail"
+      :resolving="!!detail && resolvingKey === activityKey(detail)"
+      :severity="detail ? rowSeverity(detail) : null"
+      :title="detail ? activityTitle(detail) : ''"
+      @open-photo="openLatest"
+      @resolve="resolveFromDetail"
+    />
+
+    <!-- One IT Management change in full: who, when, through what, and for
+         a shipped release its commit. -->
+    <v-dialog v-model="kashiDetailOpen" max-width="480">
+      <v-card v-if="kashiDetail" rounded="lg">
         <v-card-title class="d-flex align-center ga-3 px-4 py-3">
-          <v-avatar :color="visual(detail).color" rounded="lg" size="38" variant="tonal">
-            <v-icon :icon="visual(detail).icon" size="20" />
+          <v-avatar class="text-white" :color="userColor(kashiDetail)" size="38">
+            <span class="text-caption font-weight-bold">{{ initialsOf(kashiDetail.user_name) }}</span>
           </v-avatar>
-          <span class="text-subtitle-1 font-weight-medium">{{ detail.activity || 'Activity' }}</span>
+          <div class="kashi-detail-title">
+            <div class="text-subtitle-1 font-weight-medium">
+              {{ kashiDetail.user_name || 'Someone' }} {{ kashiSentence(kashiDetail) }}
+            </div>
+            <v-chip
+              class="mt-1"
+              :color="kashiTag(kashiDetail).color"
+              label
+              size="small"
+              :text="kashiTag(kashiDetail).label"
+              variant="flat"
+            />
+          </div>
           <v-spacer />
           <v-btn
             aria-label="Close"
             icon="mdi-close"
             size="small"
             variant="text"
-            @click="detailOpen = false"
+            @click="kashiDetailOpen = false"
           />
         </v-card-title>
         <v-divider />
         <v-list class="py-2" density="compact">
-          <v-list-item>
-            <v-list-item-subtitle class="text-caption">Branch</v-list-item-subtitle>
-            <v-list-item-title class="text-body-2">{{ detail.branch_name || '—' }}</v-list-item-title>
+          <template v-if="kashiDetail.method === 'RELEASE'">
+            <v-list-item>
+              <v-list-item-subtitle class="text-caption">Commit</v-list-item-subtitle>
+              <v-list-item-title class="text-body-2">{{ releaseCommit(kashiDetail).hash }}</v-list-item-title>
+            </v-list-item>
+            <v-list-item v-if="releaseCommit(kashiDetail).scope">
+              <v-list-item-subtitle class="text-caption">Area</v-list-item-subtitle>
+              <v-list-item-title class="text-body-2">{{ releaseCommit(kashiDetail).scope }}</v-list-item-title>
+            </v-list-item>
+          </template>
+          <v-list-item v-else-if="kashiDetail.detail">
+            <v-list-item-subtitle class="text-caption">Detail</v-list-item-subtitle>
+            <v-list-item-title class="text-body-2" style="white-space: normal">{{ kashiDetail.detail }}</v-list-item-title>
           </v-list-item>
           <v-list-item>
-            <v-list-item-subtitle class="text-caption">Details</v-list-item-subtitle>
-            <v-list-item-title class="text-body-2" style="white-space: normal">
-              {{ detail.details || '—' }}
+            <v-list-item-subtitle class="text-caption">
+              {{ kashiDetail.repeat_count > 1 ? 'Last done' : 'When' }}
+            </v-list-item-subtitle>
+            <v-list-item-title class="text-body-2">{{ dateTime(kashiDetail.created_at) }}</v-list-item-title>
+          </v-list-item>
+          <v-list-item v-if="kashiDetail.repeat_count > 1">
+            <v-list-item-subtitle class="text-caption">Times in a row</v-list-item-subtitle>
+            <v-list-item-title class="text-body-2">{{ kashiDetail.repeat_count }}, each within an hour of the last</v-list-item-title>
+          </v-list-item>
+          <v-list-item v-if="kashiDetail.method !== 'RELEASE'">
+            <v-list-item-subtitle class="text-caption">Made through</v-list-item-subtitle>
+            <v-list-item-title class="text-body-2 text-medium-emphasis">
+              {{ kashiDetail.method }} {{ kashiDetail.route }}<template v-if="kashiDetail.entity_id?.Valid"> · #{{ kashiDetail.entity_id.Int64 }}</template>
             </v-list-item-title>
-          </v-list-item>
-          <v-list-item v-if="hasAmount(detail)">
-            <v-list-item-subtitle class="text-caption">Amount</v-list-item-subtitle>
-            <v-list-item-title class="text-body-2" :class="amountClass(detail.amount)">
-              {{ money(detail.amount, detail.currency_code) }}
-            </v-list-item-title>
-          </v-list-item>
-          <v-list-item>
-            <v-list-item-subtitle class="text-caption">Synced at</v-list-item-subtitle>
-            <v-list-item-title class="text-body-2">{{ dateTime(detail.synced_at) }}</v-list-item-title>
           </v-list-item>
         </v-list>
+        <template v-if="kashiPage(kashiDetail)">
+          <v-divider />
+          <v-card-actions class="px-4">
+            <v-spacer />
+            <v-btn
+              append-icon="mdi-arrow-right"
+              color="primary"
+              :text="`Open ${kashiPage(kashiDetail).label}`"
+              variant="tonal"
+              @click="openKashiPage(kashiDetail)"
+            />
+          </v-card-actions>
+        </template>
       </v-card>
     </v-dialog>
 
@@ -400,6 +476,7 @@
   import { useRouter } from 'vue-router'
   import { useDisplay, useTheme } from 'vuetify'
   import appLogo from '@/assets/app-logo.png'
+  import ActivityDetailDialog from '@/components/ActivityDetailDialog.vue'
   import AppLogo from '@/components/AppLogo.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { authFetch } from '@/composables/useApi'
@@ -410,6 +487,7 @@
   import { hashColor, initialsOf, useUserAvatar } from '@/composables/useUserAvatar'
   import { API_BASE } from '@/config'
   import { useAuthStore } from '@/stores/auth'
+  import { formatAmount } from '@/utils/money'
 
   // The feed row is narrow: the first name is enough beside the avatar,
   // whose initials and hover title still carry the full name.
@@ -527,12 +605,72 @@
       const data = await fetchFeedPage('/home/activities', cursor, 'recent activity')
       return data.activities ?? []
     },
-    keyOf: item => `${item.activity}-${item.id}`,
+    keyOf: activityKey,
     onError: error_ => notify.error(error_.message),
   })
 
+  function activityKey (item) {
+    return `${item.activity}-${item.id}`
+  }
+
+  // Urgent rows (the red ones: a shift closed short)
+  // stay pinned at the top of the feed until someone with the "Resolve
+  // Urgent Activity" permission marks them resolved, however far the feed
+  // has moved on. A pinned row is left out of the feed below so it isn't
+  // listed twice.
+  const urgentActivities = ref([])
+  const canResolveUrgent = computed(() => auth.canEdit('resolve_urgent_activity'))
+  const resolvingKey = ref(null)
+
+  const feedRows = computed(() => {
+    const pinned = new Set(urgentActivities.value.map(item => activityKey(item)))
+    return [
+      ...urgentActivities.value.map(item => ({ ...item, pinned: true })),
+      ...activities.value.filter(item => !pinned.has(activityKey(item))),
+    ]
+  })
+
+  async function loadUrgentActivities () {
+    try {
+      const response = await authFetch(`${API_BASE}/home/activities/urgent`)
+      if (!response.ok) throw new Error(`Failed to load urgent activity (${response.status})`)
+      urgentActivities.value = (await response.json()).activities ?? []
+    } catch (error_) {
+      notify.error(error_.message)
+    }
+  }
+
+  async function resolveUrgent (item) {
+    resolvingKey.value = activityKey(item)
+    try {
+      const response = await authFetch(`${API_BASE}/home/activities/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activity: item.activity, id: item.id }),
+      })
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}))
+        throw new Error(body.error || `Failed to resolve (${response.status})`)
+      }
+      urgentActivities.value = urgentActivities.value.filter(row => activityKey(row) !== activityKey(item))
+    } catch (error_) {
+      notify.error(error_.message)
+    } finally {
+      resolvingKey.value = null
+    }
+  }
+
+  async function resolveFromDetail (item) {
+    await resolveUrgent(item)
+    if (!urgentActivities.value.some(row => activityKey(row) === activityKey(item))) {
+      detailOpen.value = false
+    }
+  }
+
   function reload () {
-    if (canViewActivity.value) refreshActivities()
+    if (!canViewActivity.value) return
+    refreshActivities()
+    loadUrgentActivities()
   }
 
   // Fetch the next page once a feed is scrolled near its bottom.
@@ -571,9 +709,9 @@
 
   // Abnormal activity gets a tinted row, graded by how much it should worry
   // whoever is watching -- routine punches and sales stay untinted:
-  //   high    red     money moved after the fact: a settlement edited, or a
-  //                   shift closed short (negative USD variance)
-  //   medium  orange  an approved attendance edit, an exchange invoice
+  //   high    red     a shift closed short (negative USD variance)
+  //   medium  orange  a settlement edited after the sale, an approved
+  //                   attendance edit, an exchange invoice
   //   low     amber   an attendance complaint filed or rejected -- nothing
   //                   changed yet
   // Exchanges and the attendance status only live in the details string,
@@ -582,7 +720,7 @@
     const parts = String(item.details || '').split(' · ')
     switch (item.activity) {
       case 'Settlement changed': {
-        return 'high'
+        return 'medium'
       }
       case 'Shift closed': {
         return item.amount < 0 ? 'high' : null
@@ -597,6 +735,14 @@
         return null
       }
     }
+  }
+
+  // A shift that closed off its expected cash says so in its title, short
+  // or over, rather than reading like every other close.
+  function activityTitle (item) {
+    if (item.activity === 'Shift closed' && item.amount < 0) return 'Shift closed short'
+    if (item.activity === 'Shift closed' && item.amount > 0) return 'Shift closed over'
+    return item.activity || 'Activity'
   }
 
   function rowTone (item) {
@@ -680,6 +826,75 @@
 
   function reloadKashi () {
     if (canViewKashiActivity.value) refreshKashi()
+  }
+
+  // The tag on each IT Management row: what kind of change it was. A
+  // shipped release is tagged by its commit type (release_type, recorded by
+  // cmd/release_notes); every other row by the route it was made through,
+  // and failing that by whether it added, changed or deleted something.
+  const RELEASE_TAGS = {
+    feat: { label: 'Feature', color: 'success' },
+    fix: { label: 'Fix', color: 'error' },
+    style: { label: 'Style', color: 'deep-purple' },
+    perf: { label: 'Performance', color: 'orange' },
+    refactor: { label: 'Refactor', color: 'blue-grey' },
+    docs: { label: 'Docs', color: 'grey' },
+  }
+  const ROUTE_TAGS = [
+    { match: /^\/branches\/:id\/commands/, label: 'Command', color: 'indigo' },
+    { match: /^\/app_(releases|updates)/, label: 'App release', color: 'teal' },
+    { match: /^\/security/, label: 'Security', color: 'error' },
+    { match: /^\/home\/activities\/resolve/, label: 'Resolved', color: 'success' },
+    { match: /settings|^\/whatsapp|quick_access/, label: 'Settings', color: 'blue-grey' },
+  ]
+  const METHOD_TAGS = {
+    POST: { label: 'Added', color: 'primary' },
+    PUT: { label: 'Edited', color: 'info' },
+    PATCH: { label: 'Edited', color: 'info' },
+    DELETE: { label: 'Deleted', color: 'error' },
+  }
+
+  function kashiTag (item) {
+    if (item.method === 'RELEASE') {
+      return RELEASE_TAGS[item.release_type] ?? { label: 'Update', color: 'cyan' }
+    }
+    const route = ROUTE_TAGS.find(tag => tag.match.test(item.route ?? ''))
+    if (route) return route
+    return METHOD_TAGS[item.method] ?? { label: 'Change', color: 'grey' }
+  }
+
+  // IT Management row details. A release's detail line is "<hash> · <scope>"
+  // (cmd/release_notes).
+  const kashiDetailOpen = ref(false)
+  const kashiDetail = ref(null)
+  function openKashiDetail (item) {
+    kashiDetail.value = item
+    kashiDetailOpen.value = true
+  }
+  function releaseCommit (item) {
+    const [hash, scope] = String(item.detail || '').split(' · ')
+    return { hash, scope }
+  }
+
+  // The page a change was made on, for the dialog's Open button.
+  const KASHI_PAGES = [
+    { match: /^\/branches\/:id\/commands/, label: 'Commands', to: '/branch-commands' },
+    { match: /^\/app_(releases|updates)/, label: 'App updates', to: '/app-updates' },
+    { match: /^\/security/, label: 'Security', to: '/security' },
+    { match: /^\/default_branch_settings/, label: 'Default settings', to: '/default-branch-settings' },
+    { match: /^\/branches\/:id\/settings/, label: 'Branch settings', to: '/branch-settings' },
+    { match: /^\/branch_attendance/, label: 'Attendance', to: '/attendance' },
+    { match: /^\/transfers/, label: 'Transfers', to: '/transfers' },
+    { match: /^\/whatsapp/, label: 'WhatsApp', to: '/whatsapp' },
+  ]
+  function kashiPage (item) {
+    return KASHI_PAGES.find(page => page.match.test(item.route ?? '')) ?? null
+  }
+  function openKashiPage (item) {
+    const page = kashiPage(item)
+    if (!page) return
+    kashiDetailOpen.value = false
+    router.push(page.to)
   }
 
   function kashiSentence (item) {
@@ -871,15 +1086,9 @@
     return mdAndUp.value ? items : items.slice(0, PHONE_FEED_ROWS)
   }
 
-  // Invoices carry no currency code (their totals are USD), so no code
-  // means dollars: "$28", "−$5". Any other currency keeps its code after
-  // the number: "200,000 LBP".
+  // See formatAmount: "$28", "−$5", "200,000 LBP".
   function money (amount, currency = '') {
-    const value = Number(amount || 0) / 100
-    const formatted = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(Math.abs(value))
-    const sign = amount < 0 ? '−' : ''
-    if (!currency || currency === 'USD') return `${sign}$${formatted}`
-    return `${sign}${formatted} ${currency}`
+    return formatAmount(amount, currency)
   }
 
   // Branch and details, minus what the row already shows elsewhere: the
@@ -1031,6 +1240,11 @@
 
   .activity-row {
     cursor: pointer;
+  }
+
+  .kashi-detail-title {
+    min-width: 0;
+    white-space: normal;
   }
 
   .activity-row--high {

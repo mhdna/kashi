@@ -50,6 +50,7 @@ var adminActivityOverrides = map[string]string{
 	"POST /branch_attendance_events/import":         "imported attendance",
 	"POST /products/import":                         "imported products",
 	"PUT /branch_users/:id/pin":                     "set the PIN of POS user",
+	"POST /home/activities/resolve":                 "resolved an urgent activity",
 	// {branch} is replaced by the branch's name (recordAdminActivity).
 	"POST /branches/:id/hide_from_reports":         "hid {branch} from reports",
 	"POST /branches/:id/show_in_reports":           "showed {branch} in reports again",

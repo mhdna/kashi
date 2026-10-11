@@ -455,6 +455,7 @@ type Querier interface {
 	GetBranchExpenseUploadTokenByToken(ctx context.Context, token string) (BranchExpenseUploadToken, error)
 	GetBranchInvoice(ctx context.Context, id int64) (BranchInvoice, error)
 	GetBranchInvoiceByClientRef(ctx context.Context, arg GetBranchInvoiceByClientRefParams) (BranchInvoice, error)
+	GetBranchInvoiceSettlement(ctx context.Context, id int64) (BranchInvoiceSettlement, error)
 	GetBranchInvoiceSettlementByClientRef(ctx context.Context, arg GetBranchInvoiceSettlementByClientRefParams) (BranchInvoiceSettlement, error)
 	GetBranchLoanByClientRef(ctx context.Context, arg GetBranchLoanByClientRefParams) (Loan, error)
 	GetBranchRegister(ctx context.Context, id int64) (BranchRegister, error)
@@ -755,6 +756,10 @@ type Querier interface {
 	// push time either, has neither -- see resolveVariantByUIDOrBarcode in
 	// tx_branch_invoice.go).
 	ListBranchInvoiceItemsForHistory(ctx context.Context, branchInvoiceIds []int64) ([]ListBranchInvoiceItemsForHistoryRow, error)
+	// An invoice's lines with the product each one sold, for the Recent
+	// activity details dialog. A line whose product_uid never resolved to a
+	// variant keeps an empty name.
+	ListBranchInvoiceItemsNamed(ctx context.Context, branchInvoiceID int64) ([]ListBranchInvoiceItemsNamedRow, error)
 	ListBranchInvoicePayments(ctx context.Context, branchInvoiceID int64) ([]BranchInvoicePayment, error)
 	ListBranchInvoicePaymentsForHistory(ctx context.Context, branchInvoiceIds []int64) ([]BranchInvoicePayment, error)
 	ListBranchInvoiceSettlementPayments(ctx context.Context, branchInvoiceSettlementID int64) ([]BranchInvoiceSettlementPayment, error)
@@ -1221,6 +1226,11 @@ type Querier interface {
 	ListTransferAttachments(ctx context.Context, arg ListTransferAttachmentsParams) ([]ListTransferAttachmentsRow, error)
 	ListTransferItems(ctx context.Context, transferID int64) ([]ListTransferItemsRow, error)
 	ListTransfers(ctx context.Context, arg ListTransfersParams) ([]ListTransfersRow, error)
+	// The urgent Recent activity rows nobody has resolved yet, pinned above the
+	// feed: a shift closed short (negative USD variance) -- the rows the feed
+	// tints red. Same columns as HomeActivityFeed, so the feed draws them with
+	// the same row, newest received first, like the feed.
+	ListUnresolvedUrgentHomeActivities(ctx context.Context) ([]ListUnresolvedUrgentHomeActivitiesRow, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	ListVariantSyncIDs(ctx context.Context, arg ListVariantSyncIDsParams) ([]ListVariantSyncIDsRow, error)
 	ListVariantsForBarcodes(ctx context.Context, arg ListVariantsForBarcodesParams) ([]ListVariantsForBarcodesRow, error)
@@ -1317,6 +1327,8 @@ type Querier interface {
 	// resolved to a kashi variant have no product and are left out.
 	ReportTopProducts(ctx context.Context, arg ReportTopProductsParams) ([]ReportTopProductsRow, error)
 	ResolveBranchSyncConflict(ctx context.Context, arg ResolveBranchSyncConflictParams) (BranchSyncConflict, error)
+	// Idempotent: resolving a row twice keeps who resolved it first.
+	ResolveHomeActivity(ctx context.Context, arg ResolveHomeActivityParams) error
 	// Mirrors ResolveVariantPrice: a branch assigned a discount list is discounted
 	// from it, everyone else from the default list. Unlike price, no row here means
 	// no discount (i.e. zero), not "unsellable" -- a product with no discount is a

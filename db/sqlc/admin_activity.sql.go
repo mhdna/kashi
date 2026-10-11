@@ -74,7 +74,7 @@ func (q *Queries) CountAdminActivitiesSince(ctx context.Context, since time.Time
 const createAdminActivity = `-- name: CreateAdminActivity :one
 INSERT INTO admin_activities (user_id, method, route, entity_id, summary, detail)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, user_id, method, route, entity_id, summary, detail, created_at, repeat_count
+RETURNING id, user_id, method, route, entity_id, summary, detail, created_at, repeat_count, release_type
 `
 
 type CreateAdminActivityParams struct {
@@ -106,12 +106,13 @@ func (q *Queries) CreateAdminActivity(ctx context.Context, arg CreateAdminActivi
 		&i.Detail,
 		&i.CreatedAt,
 		&i.RepeatCount,
+		&i.ReleaseType,
 	)
 	return i, err
 }
 
 const listAdminActivities = `-- name: ListAdminActivities :many
-SELECT a.id, a.method, a.route, a.entity_id, a.summary, a.detail, a.created_at, a.repeat_count,
+SELECT a.id, a.method, a.route, a.entity_id, a.summary, a.detail, a.created_at, a.repeat_count, a.release_type,
        a.user_id, COALESCE(u.name, '') AS user_name,
        COALESCE(u.avatar_color, '') AS user_avatar_color
 FROM admin_activities a
@@ -140,6 +141,7 @@ type ListAdminActivitiesRow struct {
 	Detail          string        `json:"detail"`
 	CreatedAt       time.Time     `json:"created_at"`
 	RepeatCount     int32         `json:"repeat_count"`
+	ReleaseType     string        `json:"release_type"`
 	UserID          sql.NullInt64 `json:"user_id"`
 	UserName        string        `json:"user_name"`
 	UserAvatarColor string        `json:"user_avatar_color"`
@@ -164,6 +166,7 @@ func (q *Queries) ListAdminActivities(ctx context.Context, arg ListAdminActiviti
 			&i.Detail,
 			&i.CreatedAt,
 			&i.RepeatCount,
+			&i.ReleaseType,
 			&i.UserID,
 			&i.UserName,
 			&i.UserAvatarColor,

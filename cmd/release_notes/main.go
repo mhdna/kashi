@@ -10,7 +10,8 @@
 //
 // Every commit is posted, whatever its type prefix ("feat(products): add X"
 // and "chore: tidy" alike, or no prefix at all). "feat(products): add X"
-// becomes "added X" with the detail "<hash> · products". It starts after the newest commit already
+// becomes "added X" with the detail "<hash> · products", and its type
+// ("feat") goes in release_type, which the feed tags the row by. It starts after the newest commit already
 // posted that's in HEAD's history, skips any commit posted before, and with
 // nothing posted at all takes the last -limit commits.
 package main
@@ -46,11 +47,11 @@ var pastTense = map[string]string{
 // "attendance shows all branches") reads as "Alex shipped <subject>".
 const fallbackVerb = "shipped"
 
-// Optional "type(scope): " prefix; the type itself is ignored.
-var subjectRe = regexp.MustCompile(`^(?:[a-z]+(?:\(([^)]*)\))?!?:\s*)?(.+)$`)
+// Optional "type(scope): " prefix.
+var subjectRe = regexp.MustCompile(`^(?:([a-z]+)(?:\(([^)]*)\))?!?:\s*)?(.+)$`)
 
 type commit struct {
-	hash, date, scope, summary string
+	hash, date, kind, scope, summary string
 }
 
 func main() {
@@ -106,7 +107,7 @@ func newCommits(posted map[string]bool, limit int) ([]commit, error) {
 			break
 		}
 		m := subjectRe.FindStringSubmatch(parts[2])
-		found = append(found, commit{hash: hash, date: parts[1], scope: m[1], summary: describe(m[2])})
+		found = append(found, commit{hash: hash, date: parts[1], kind: m[1], scope: m[2], summary: describe(m[3])})
 	}
 	for i, j := 0, len(found)-1; i < j; i, j = i+1, j-1 {
 		found[i], found[j] = found[j], found[i]
@@ -149,14 +150,14 @@ func insertSQL(commits []commit, author string) string {
 	match := fmt.Sprintf("name ILIKE %[1]s OR username ILIKE %[1]s", quote(author))
 	var b strings.Builder
 	fmt.Fprintf(&b, "DO $$ BEGIN\n  IF NOT EXISTS (SELECT 1 FROM users WHERE %s) THEN\n    RAISE EXCEPTION 'release_notes: no user named %%', %s;\n  END IF;\nEND $$;\n", match, quote(author))
-	b.WriteString("INSERT INTO admin_activities (user_id, method, route, summary, detail, created_at)\nVALUES\n")
+	b.WriteString("INSERT INTO admin_activities (user_id, method, route, summary, detail, release_type, created_at)\nVALUES\n")
 	for i, c := range commits {
 		detail := c.hash
 		if c.scope != "" {
 			detail += " · " + c.scope
 		}
-		fmt.Fprintf(&b, "  ((SELECT id FROM users WHERE %s ORDER BY id LIMIT 1), 'RELEASE', %s, %s, %s, %s)",
-			match, quote(routePrefix+c.hash), quote(c.summary), quote(detail), quote(c.date))
+		fmt.Fprintf(&b, "  ((SELECT id FROM users WHERE %s ORDER BY id LIMIT 1), 'RELEASE', %s, %s, %s, %s, %s)",
+			match, quote(routePrefix+c.hash), quote(c.summary), quote(detail), quote(c.kind), quote(c.date))
 		if i < len(commits)-1 {
 			b.WriteString(",\n")
 		}

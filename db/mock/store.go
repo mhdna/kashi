@@ -4545,6 +4545,21 @@ func (mr *MockStoreMockRecorder) GetBranchInvoiceByClientRef(arg0, arg1 interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBranchInvoiceByClientRef", reflect.TypeOf((*MockStore)(nil).GetBranchInvoiceByClientRef), arg0, arg1)
 }
 
+// GetBranchInvoiceSettlement mocks base method.
+func (m *MockStore) GetBranchInvoiceSettlement(arg0 context.Context, arg1 int64) (db.BranchInvoiceSettlement, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBranchInvoiceSettlement", arg0, arg1)
+	ret0, _ := ret[0].(db.BranchInvoiceSettlement)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBranchInvoiceSettlement indicates an expected call of GetBranchInvoiceSettlement.
+func (mr *MockStoreMockRecorder) GetBranchInvoiceSettlement(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBranchInvoiceSettlement", reflect.TypeOf((*MockStore)(nil).GetBranchInvoiceSettlement), arg0, arg1)
+}
+
 // GetBranchInvoiceSettlementByClientRef mocks base method.
 func (m *MockStore) GetBranchInvoiceSettlementByClientRef(arg0 context.Context, arg1 db.GetBranchInvoiceSettlementByClientRefParams) (db.BranchInvoiceSettlement, error) {
 	m.ctrl.T.Helper()
@@ -6566,6 +6581,21 @@ func (m *MockStore) ListBranchInvoiceItemsForHistory(arg0 context.Context, arg1 
 func (mr *MockStoreMockRecorder) ListBranchInvoiceItemsForHistory(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchInvoiceItemsForHistory", reflect.TypeOf((*MockStore)(nil).ListBranchInvoiceItemsForHistory), arg0, arg1)
+}
+
+// ListBranchInvoiceItemsNamed mocks base method.
+func (m *MockStore) ListBranchInvoiceItemsNamed(arg0 context.Context, arg1 int64) ([]db.ListBranchInvoiceItemsNamedRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBranchInvoiceItemsNamed", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListBranchInvoiceItemsNamedRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBranchInvoiceItemsNamed indicates an expected call of ListBranchInvoiceItemsNamed.
+func (mr *MockStoreMockRecorder) ListBranchInvoiceItemsNamed(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchInvoiceItemsNamed", reflect.TypeOf((*MockStore)(nil).ListBranchInvoiceItemsNamed), arg0, arg1)
 }
 
 // ListBranchInvoicePayments mocks base method.
@@ -8668,6 +8698,21 @@ func (mr *MockStoreMockRecorder) ListTransfers(arg0, arg1 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTransfers", reflect.TypeOf((*MockStore)(nil).ListTransfers), arg0, arg1)
 }
 
+// ListUnresolvedUrgentHomeActivities mocks base method.
+func (m *MockStore) ListUnresolvedUrgentHomeActivities(arg0 context.Context) ([]db.ListUnresolvedUrgentHomeActivitiesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListUnresolvedUrgentHomeActivities", arg0)
+	ret0, _ := ret[0].([]db.ListUnresolvedUrgentHomeActivitiesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListUnresolvedUrgentHomeActivities indicates an expected call of ListUnresolvedUrgentHomeActivities.
+func (mr *MockStoreMockRecorder) ListUnresolvedUrgentHomeActivities(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUnresolvedUrgentHomeActivities", reflect.TypeOf((*MockStore)(nil).ListUnresolvedUrgentHomeActivities), arg0)
+}
+
 // ListUsers mocks base method.
 func (m *MockStore) ListUsers(arg0 context.Context, arg1 db.ListUsersParams) ([]db.User, error) {
 	m.ctrl.T.Helper()
@@ -9241,6 +9286,20 @@ func (m *MockStore) ResolveBranchSyncConflict(arg0 context.Context, arg1 db.Reso
 func (mr *MockStoreMockRecorder) ResolveBranchSyncConflict(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveBranchSyncConflict", reflect.TypeOf((*MockStore)(nil).ResolveBranchSyncConflict), arg0, arg1)
+}
+
+// ResolveHomeActivity mocks base method.
+func (m *MockStore) ResolveHomeActivity(arg0 context.Context, arg1 db.ResolveHomeActivityParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResolveHomeActivity", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ResolveHomeActivity indicates an expected call of ResolveHomeActivity.
+func (mr *MockStoreMockRecorder) ResolveHomeActivity(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveHomeActivity", reflect.TypeOf((*MockStore)(nil).ResolveHomeActivity), arg0, arg1)
 }
 
 // ResolveVariantDiscount mocks base method.
