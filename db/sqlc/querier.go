@@ -700,6 +700,11 @@ type Querier interface {
 	// A punch an approved change replaced or deleted (removed_at) is left out;
 	// it stays in the table for the audit trail.
 	ListBranchAttendanceEvents(ctx context.Context, arg ListBranchAttendanceEventsParams) ([]BranchAttendanceEvent, error)
+	// Every live punch between two dates (inclusive) for the timesheet views,
+	// which pair each person's IN/OUT punches per day. event_date is the
+	// device's own YYYY-MM-DD text, so a plain text comparison orders it.
+	// Capped as a guard against an all-branches, all-time request.
+	ListBranchAttendanceEventsInRange(ctx context.Context, arg ListBranchAttendanceEventsInRangeParams) ([]BranchAttendanceEvent, error)
 	// Adoption: which central client each of this register's local client ids
 	// is linked to, so a till can stamp the right uid without guessing by phone.
 	ListBranchClientUIDs(ctx context.Context, registerID int64) ([]ListBranchClientUIDsRow, error)

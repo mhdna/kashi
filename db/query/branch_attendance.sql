@@ -117,3 +117,16 @@ LIMIT 500;
 UPDATE branch_attendance_events
 SET removed_at = COALESCE(removed_at, now()), removed_by = $3
 WHERE branch_id = $1 AND client_ref = $2;
+
+-- name: ListBranchAttendanceEventsInRange :many
+-- Every live punch between two dates (inclusive) for the timesheet views,
+-- which pair each person's IN/OUT punches per day. event_date is the
+-- device's own YYYY-MM-DD text, so a plain text comparison orders it.
+-- Capped as a guard against an all-branches, all-time request.
+SELECT * FROM branch_attendance_events
+WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND removed_at IS NULL
+  AND event_date >= sqlc.arg(from_date)::text
+  AND event_date <= sqlc.arg(to_date)::text
+ORDER BY event_date, event_time, id
+LIMIT 20000;

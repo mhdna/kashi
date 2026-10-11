@@ -426,6 +426,65 @@ func (q *Queries) ListBranchAttendanceEvents(ctx context.Context, arg ListBranch
 	return items, nil
 }
 
+const listBranchAttendanceEventsInRange = `-- name: ListBranchAttendanceEventsInRange :many
+SELECT id, branch_id, client_ref, salesperson_name, attendance_user_id, event_date, event_time, event_at, type, status, received_at, changed_by, change_note, removed_at, removed_by FROM branch_attendance_events
+WHERE ($1::bigint IS NULL OR branch_id = $1)
+  AND removed_at IS NULL
+  AND event_date >= $2::text
+  AND event_date <= $3::text
+ORDER BY event_date, event_time, id
+LIMIT 20000
+`
+
+type ListBranchAttendanceEventsInRangeParams struct {
+	BranchID sql.NullInt64 `json:"branch_id"`
+	FromDate string        `json:"from_date"`
+	ToDate   string        `json:"to_date"`
+}
+
+// Every live punch between two dates (inclusive) for the timesheet views,
+// which pair each person's IN/OUT punches per day. event_date is the
+// device's own YYYY-MM-DD text, so a plain text comparison orders it.
+// Capped as a guard against an all-branches, all-time request.
+func (q *Queries) ListBranchAttendanceEventsInRange(ctx context.Context, arg ListBranchAttendanceEventsInRangeParams) ([]BranchAttendanceEvent, error) {
+	rows, err := q.db.QueryContext(ctx, listBranchAttendanceEventsInRange, arg.BranchID, arg.FromDate, arg.ToDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []BranchAttendanceEvent{}
+	for rows.Next() {
+		var i BranchAttendanceEvent
+		if err := rows.Scan(
+			&i.ID,
+			&i.BranchID,
+			&i.ClientRef,
+			&i.SalespersonName,
+			&i.AttendanceUserID,
+			&i.EventDate,
+			&i.EventTime,
+			&i.EventAt,
+			&i.Type,
+			&i.Status,
+			&i.ReceivedAt,
+			&i.ChangedBy,
+			&i.ChangeNote,
+			&i.RemovedAt,
+			&i.RemovedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPendingBranchAttendanceRequests = `-- name: ListPendingBranchAttendanceRequests :many
 SELECT c.id, c.branch_id, c.client_ref, c.kind, c.salesperson_name, c.attendance_date, c.original_time, c.requested_time, c.requested_type, c.action, c.status, c.note, c.actor, c.occurred_at, c.received_at, c.register_id FROM branch_attendance_changes c
 WHERE c.kind = 'complaint'

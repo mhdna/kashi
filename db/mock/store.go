@@ -6388,6 +6388,21 @@ func (mr *MockStoreMockRecorder) ListBranchAttendanceEvents(arg0, arg1 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchAttendanceEvents", reflect.TypeOf((*MockStore)(nil).ListBranchAttendanceEvents), arg0, arg1)
 }
 
+// ListBranchAttendanceEventsInRange mocks base method.
+func (m *MockStore) ListBranchAttendanceEventsInRange(arg0 context.Context, arg1 db.ListBranchAttendanceEventsInRangeParams) ([]db.BranchAttendanceEvent, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBranchAttendanceEventsInRange", arg0, arg1)
+	ret0, _ := ret[0].([]db.BranchAttendanceEvent)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBranchAttendanceEventsInRange indicates an expected call of ListBranchAttendanceEventsInRange.
+func (mr *MockStoreMockRecorder) ListBranchAttendanceEventsInRange(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchAttendanceEventsInRange", reflect.TypeOf((*MockStore)(nil).ListBranchAttendanceEventsInRange), arg0, arg1)
+}
+
 // ListBranchClientUIDs mocks base method.
 func (m *MockStore) ListBranchClientUIDs(arg0 context.Context, arg1 int64) ([]db.ListBranchClientUIDsRow, error) {
 	m.ctrl.T.Helper()

@@ -44,9 +44,28 @@
           @change="onFilePicked"
         >
       </v-card-title>
+      <v-tabs v-model="tab" class="px-4" color="primary" density="compact">
+        <v-tab prepend-icon="mdi-chart-timeline" text="Timeline" value="timeline" />
+        <v-tab prepend-icon="mdi-table-clock" text="In / out pairs" value="pairs" />
+        <v-tab prepend-icon="mdi-calendar" text="Monthly grid" value="grid" />
+        <v-tab prepend-icon="mdi-format-list-bulleted" text="Punches" value="punches" />
+      </v-tabs>
       <v-divider />
 
+      <!-- Timeline, pairs and grid are three views of the same timesheet,
+           which pairs each person's IN/OUT punches per day so breaks show as
+           gaps between spans. One component keeps its date range and loaded
+           punches while switching between them. -->
+      <AttendanceTimesheet
+        v-if="tab !== 'punches'"
+        ref="timesheetRef"
+        :branch-id="branchId"
+        :branch-names="branchNames"
+        :view="tab"
+      />
+
       <ServerSideTable
+        v-else
         ref="tableRef"
         :api-u-r-l="apiURL"
         density="comfortable"
@@ -195,6 +214,7 @@
 
 <script setup lang="ts">
   import { computed, onMounted, reactive, ref } from 'vue'
+  import AttendanceTimesheet from '@/components/AttendanceTimesheet.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useAttendance } from '@/composables/useAttendance'
   import { useBranches } from '@/composables/useBranches'
@@ -226,12 +246,15 @@
   const branchId = computed(() => (branchFilter.value === ALL_BRANCHES ? null : branchFilter.value))
   const branchOptions = computed(() => [{ id: ALL_BRANCHES, name: 'All branches' }, ...branches.value])
   const branchNames = computed(() => Object.fromEntries(branches.value.map(b => [b.id, b.name])))
+  const tab = ref('timeline')
   const tableRef = ref(null)
+  const timesheetRef = ref(null)
   const fileInput = ref(null)
   const notify = useNotify()
 
   function reload () {
     tableRef.value?.reload()
+    timesheetRef.value?.reload()
   }
 
   onMounted(() => {
