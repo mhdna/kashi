@@ -10,11 +10,11 @@
             role="img"
             :style="{ '--home-logo-color': logoColor, '--home-logo-image': `url(${appLogo})` }"
           />
-          <AppLogo v-else class="mx-auto" />
-          <p v-if="appVersion || appCommit" class="mt-2 mb-0 text-caption text-disabled build-info">
+          <AppLogo v-else class="mx-auto home-phone-logo" />
+          <p v-if="appVersion || appCommit" class="mt-0 mb-0 text-caption text-disabled build-info">
             {{ [appVersion, appCommit].filter(Boolean).join(' · ') }}
           </p>
-          <h1 class="mt-2 font-weight-medium" :class="xs ? 'text-h6' : 'text-h5'">Welcome to Kashi Cloud</h1>
+          <h1 class="mt-1 font-weight-medium" :class="xs ? 'text-h6' : 'text-h5'">Welcome to Kashi Cloud</h1>
           <p class="mt-2 mb-0 text-body-2 text-medium-emphasis">
             Take a look at the latest updates.
           </p>
@@ -972,12 +972,20 @@
     line-height: 1.6;
   }
 
+  /* The logo image is square but "K" fills only its middle -- the bottom
+     quarter is empty -- so each logo pulls the version line up into that
+     space (a fifth of the logo's width) to sit just under the letters. */
   .home-desktop-logo {
     width: clamp(72px, 9vw, 132px);
+    margin-bottom: calc(clamp(72px, 9vw, 132px) * -0.2);
     aspect-ratio: 1;
     background-color: var(--home-logo-color);
     mask: var(--home-logo-image) center / contain no-repeat;
     -webkit-mask: var(--home-logo-image) center / contain no-repeat;
+  }
+
+  .home-phone-logo {
+    margin-bottom: calc(clamp(100px, 13vw, 180px) * -0.2);
   }
 
   /* The two feeds share the bottom third of the page, side by side. */
