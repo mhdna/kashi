@@ -343,19 +343,26 @@ func (server *Server) recordAdminActivity(a adminActivity) {
 	server.adminHub.broadcastAll(adminWSMessage{Type: "admin_activity"})
 }
 
-// listAdminActivities backs the home page's "In kashi" feed, newest first.
+// listAdminActivities backs the home page's "In kashi" feed, newest first,
+// page_size rows after the cursor.
 func (server *Server) listAdminActivities(ctx *gin.Context) {
 	var req struct {
+		feedCursor
 		PageSize int32 `form:"page_size,default=20" binding:"min=1,max=500"`
-		PageID   int32 `form:"page_id,default=0" binding:"min=0"`
 	}
 	if err := ctx.ShouldBindQuery(&req); err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
 	}
+	at, _, id, err := req.args()
+	if err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
 	rows, err := server.store.ListAdminActivities(ctx, db.ListAdminActivitiesParams{
-		PageSize:   req.PageSize,
-		PageOffset: req.PageID,
+		BeforeAt: at,
+		BeforeID: id,
+		PageSize: req.PageSize,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)

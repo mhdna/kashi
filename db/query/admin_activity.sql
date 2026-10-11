@@ -33,8 +33,12 @@ FROM admin_activities a
 LEFT JOIN users u ON u.id = a.user_id
 -- User and role changes are admin housekeeping, kept out of the feed.
 WHERE a.route NOT LIKE '/users%' AND a.route NOT LIKE '/roles%'
+  -- Keyset paging: the next page starts after the last row the feed has
+  -- (before_at/before_id), so new entries landing on top don't shift it.
+  AND (sqlc.narg(before_at)::timestamptz IS NULL
+       OR (a.created_at, a.id) < (sqlc.narg(before_at)::timestamptz, sqlc.narg(before_id)::bigint))
 ORDER BY a.created_at DESC, a.id DESC
-LIMIT sqlc.arg(page_size) OFFSET sqlc.arg(page_offset);
+LIMIT sqlc.arg(page_size);
 
 -- name: CountAdminActivitiesSince :one
 -- The home page's "today" count next to the IT Management feed.

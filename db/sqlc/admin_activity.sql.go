@@ -117,13 +117,18 @@ SELECT a.id, a.method, a.route, a.entity_id, a.summary, a.detail, a.created_at, 
 FROM admin_activities a
 LEFT JOIN users u ON u.id = a.user_id
 WHERE a.route NOT LIKE '/users%' AND a.route NOT LIKE '/roles%'
+  -- Keyset paging: the next page starts after the last row the feed has
+  -- (before_at/before_id), so new entries landing on top don't shift it.
+  AND ($1::timestamptz IS NULL
+       OR (a.created_at, a.id) < ($1::timestamptz, $2::bigint))
 ORDER BY a.created_at DESC, a.id DESC
-LIMIT $2 OFFSET $1
+LIMIT $3
 `
 
 type ListAdminActivitiesParams struct {
-	PageOffset int32 `json:"page_offset"`
-	PageSize   int32 `json:"page_size"`
+	BeforeAt sql.NullTime  `json:"before_at"`
+	BeforeID sql.NullInt64 `json:"before_id"`
+	PageSize int32         `json:"page_size"`
 }
 
 type ListAdminActivitiesRow struct {
@@ -142,7 +147,7 @@ type ListAdminActivitiesRow struct {
 
 // User and role changes are admin housekeeping, kept out of the feed.
 func (q *Queries) ListAdminActivities(ctx context.Context, arg ListAdminActivitiesParams) ([]ListAdminActivitiesRow, error) {
-	rows, err := q.db.QueryContext(ctx, listAdminActivities, arg.PageOffset, arg.PageSize)
+	rows, err := q.db.QueryContext(ctx, listAdminActivities, arg.BeforeAt, arg.BeforeID, arg.PageSize)
 	if err != nil {
 		return nil, err
 	}

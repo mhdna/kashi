@@ -7,8 +7,41 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 )
+
+const countHomeActivitiesSince = `-- name: CountHomeActivitiesSince :one
+SELECT (
+  (SELECT COUNT(*) FROM branch_invoices b JOIN branches br ON br.id = b.branch_id
+   WHERE b.received_at >= $1::timestamptz AND NOT br.hidden_from_reports
+     AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports))
+  + (SELECT COUNT(*) FROM branch_expenses e JOIN branches br ON br.id = e.branch_id
+     WHERE e.received_at >= $1::timestamptz AND NOT br.hidden_from_reports)
+  + (SELECT COUNT(*) FROM loans l JOIN branches br ON br.id = l.branch_id
+     WHERE l.received_at >= $1::timestamptz AND l.origin = 'branch_loan' AND NOT br.hidden_from_reports)
+  + (SELECT COUNT(*) FROM branch_shifts s JOIN branches br ON br.id = s.branch_id
+     WHERE s.received_at >= $1::timestamptz AND NOT br.hidden_from_reports
+       AND s.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports))
+  + (SELECT COUNT(*) FROM branch_invoice_settlements s JOIN branches br ON br.id = s.branch_id
+     WHERE s.received_at >= $1::timestamptz AND NOT br.hidden_from_reports)
+  + (SELECT COUNT(*) FROM branch_attendance_events a JOIN branches br ON br.id = a.branch_id
+     WHERE a.received_at >= $1::timestamptz AND NOT br.hidden_from_reports)
+  + (SELECT COUNT(*) FROM branch_attendance_changes a JOIN branches br ON br.id = a.branch_id
+     WHERE a.received_at >= $1::timestamptz AND NOT br.hidden_from_reports)
+)::bigint AS total
+`
+
+// The "N synced" count beside the Recent activity feed: the same rows as
+// HomeActivityFeed received from `since` on. A plain count per table rides
+// the received_at indexes; it used to come from the feed query's windowed
+// total, which built (and coloured) every row of the week to count them.
+func (q *Queries) CountHomeActivitiesSince(ctx context.Context, since time.Time) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countHomeActivitiesSince, since)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
 
 const countLatestAdditionsSince = `-- name: CountLatestAdditionsSince :one
 SELECT (
@@ -45,6 +78,151 @@ func (q *Queries) CountLatestAdditionsSince(ctx context.Context, arg CountLatest
 	var total int64
 	err := row.Scan(&total)
 	return total, err
+}
+
+const homeActivityFeed = `-- name: HomeActivityFeed :many
+WITH activities AS (
+  SELECT 'Invoice'::text AS activity, b.id, b.branch_id, br.name AS branch_name,
+    concat(initcap(b.kind), ' · ', b.branch_invoice_code)::text AS details,
+    b.grand_total::bigint AS amount, ''::text AS currency_code,
+    b.received_at AS synced_at, b.salesperson_name::text AS person
+  FROM branch_invoices b
+  JOIN branches br ON br.id = b.branch_id
+  WHERE NOT br.hidden_from_reports
+    AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+
+  UNION ALL
+  SELECT 'Expense', e.id, e.branch_id, br.name, e.description,
+    -e.amount, e.currency_code, e.received_at, ''
+  FROM branch_expenses e
+  JOIN branches br ON br.id = e.branch_id
+  WHERE NOT br.hidden_from_reports
+
+  UNION ALL
+  SELECT 'Loan', l.id, l.branch_id, br.name, l.description,
+    l.amount, l.currency_code, l.received_at, ''
+  FROM loans l
+  JOIN branches br ON br.id = l.branch_id
+  WHERE l.origin = 'branch_loan' AND NOT br.hidden_from_reports
+
+  UNION ALL
+  SELECT 'Shift closed', s.id, s.branch_id, br.name,
+    concat_ws(' · ', nullif(s.closing_person_name, ''), 'USD variance')::text,
+    s.variance_usd, 'USD', s.received_at, s.closing_person_name
+  FROM branch_shifts s
+  JOIN branches br ON br.id = s.branch_id
+  WHERE NOT br.hidden_from_reports
+    AND s.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+
+  UNION ALL
+  SELECT 'Settlement changed', s.id, s.branch_id, br.name,
+    concat('Invoice ', s.sale_client_ref)::text,
+    s.grand_total, '', s.received_at, ''
+  FROM branch_invoice_settlements s
+  JOIN branches br ON br.id = s.branch_id
+  WHERE NOT br.hidden_from_reports
+
+  UNION ALL
+  SELECT 'Attendance', a.id, a.branch_id, br.name,
+    concat_ws(' · ', a.salesperson_name, a.type, a.event_date, a.event_time)::text,
+    0::bigint, '', a.received_at, a.salesperson_name
+  FROM branch_attendance_events a
+  JOIN branches br ON br.id = a.branch_id
+  WHERE NOT br.hidden_from_reports
+
+  UNION ALL
+  SELECT 'Attendance changed', a.id, a.branch_id, br.name,
+    concat_ws(' · ', a.salesperson_name, a.kind, a.status, a.note)::text,
+    0::bigint, '', a.received_at, a.salesperson_name
+  FROM branch_attendance_changes a
+  JOIN branches br ON br.id = a.branch_id
+  WHERE NOT br.hidden_from_reports
+),
+page AS (
+  SELECT activity, id, branch_id, branch_name, details, amount, currency_code, synced_at, person FROM activities
+  WHERE $1::timestamptz IS NULL
+     OR (synced_at, activity, id) < ($1::timestamptz, $2::text, $3::bigint)
+  ORDER BY synced_at DESC, activity DESC, id DESC
+  LIMIT $4
+)
+SELECT page.activity, page.id, page.branch_id, page.branch_name, page.details, page.amount, page.currency_code, page.synced_at, page.person,
+  COALESCE((
+    SELECT sp.color FROM salespersons sp
+    WHERE sp.name = page.person AND page.person <> ''
+      AND (sp.branch_id IS NULL OR sp.branch_id = page.branch_id)
+    ORDER BY sp.branch_id NULLS LAST
+    LIMIT 1
+  ), '')::text AS person_color
+FROM page
+ORDER BY synced_at DESC, activity DESC, id DESC
+`
+
+type HomeActivityFeedParams struct {
+	BeforeAt       sql.NullTime   `json:"before_at"`
+	BeforeActivity sql.NullString `json:"before_activity"`
+	BeforeID       sql.NullInt64  `json:"before_id"`
+	PageSize       int32          `json:"page_size"`
+}
+
+type HomeActivityFeedRow struct {
+	Activity     string    `json:"activity"`
+	ID           int64     `json:"id"`
+	BranchID     int64     `json:"branch_id"`
+	BranchName   string    `json:"branch_name"`
+	Details      string    `json:"details"`
+	Amount       int64     `json:"amount"`
+	CurrencyCode string    `json:"currency_code"`
+	SyncedAt     time.Time `json:"synced_at"`
+	Person       string    `json:"person"`
+	PersonColor  string    `json:"person_color"`
+}
+
+// The home page's "Recent activity" feed: the same rows as
+// DashboardActivitiesList (every kind of branch sync, newest received
+// first, hidden branches and registers left out), but paged by a keyset
+// cursor instead of a date window and an offset, and without the windowed
+// total. Each page is the next page_size rows after (before_at,
+// before_activity, before_id) -- the last row the feed already has -- so
+// the per-table received_at indexes do the work and a page costs the same
+// however far down the feed is scrolled. The salesperson colour is looked
+// up for the page's rows only.
+func (q *Queries) HomeActivityFeed(ctx context.Context, arg HomeActivityFeedParams) ([]HomeActivityFeedRow, error) {
+	rows, err := q.db.QueryContext(ctx, homeActivityFeed,
+		arg.BeforeAt,
+		arg.BeforeActivity,
+		arg.BeforeID,
+		arg.PageSize,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []HomeActivityFeedRow{}
+	for rows.Next() {
+		var i HomeActivityFeedRow
+		if err := rows.Scan(
+			&i.Activity,
+			&i.ID,
+			&i.BranchID,
+			&i.BranchName,
+			&i.Details,
+			&i.Amount,
+			&i.CurrencyCode,
+			&i.SyncedAt,
+			&i.Person,
+			&i.PersonColor,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listLatestAdditions = `-- name: ListLatestAdditions :many
@@ -104,15 +282,20 @@ SELECT kind, id, added_at, title, subtitle, amount, currency_code, has_image, re
   JOIN suppliers su ON su.id = p.supplier_id
   WHERE $3::bool
 ) latest
-ORDER BY added_at DESC, id DESC
-LIMIT $4
+WHERE $4::timestamptz IS NULL
+   OR (added_at, kind, id) < ($4::timestamptz, $5::text, $6::bigint)
+ORDER BY added_at DESC, kind DESC, id DESC
+LIMIT $7
 `
 
 type ListLatestAdditionsParams struct {
-	IncludeAccounting bool  `json:"include_accounting"`
-	IncludeHr         bool  `json:"include_hr"`
-	IncludeInventory  bool  `json:"include_inventory"`
-	PageSize          int32 `json:"page_size"`
+	IncludeAccounting bool           `json:"include_accounting"`
+	IncludeHr         bool           `json:"include_hr"`
+	IncludeInventory  bool           `json:"include_inventory"`
+	BeforeAt          sql.NullTime   `json:"before_at"`
+	BeforeKind        sql.NullString `json:"before_kind"`
+	BeforeID          sql.NullInt64  `json:"before_id"`
+	PageSize          int32          `json:"page_size"`
 }
 
 type ListLatestAdditionsRow struct {
@@ -138,11 +321,17 @@ type ListLatestAdditionsRow struct {
 // attached to, or the transfer/expense/purchase itself), and for a branch
 // photo branch_id + ref_day (the branch's local day) say which day page
 // shows it, so the feed can open "the thing it was attached to".
+// Keyset paging: the next page starts after the last row the feed has. ids
+// come from five tables, so kind breaks a tie between two rows added at the
+// same instant with the same id.
 func (q *Queries) ListLatestAdditions(ctx context.Context, arg ListLatestAdditionsParams) ([]ListLatestAdditionsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listLatestAdditions,
 		arg.IncludeAccounting,
 		arg.IncludeHr,
 		arg.IncludeInventory,
+		arg.BeforeAt,
+		arg.BeforeKind,
+		arg.BeforeID,
 		arg.PageSize,
 	)
 	if err != nil {

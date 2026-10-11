@@ -134,6 +134,11 @@ type Querier interface {
 	CountDiscountLists(ctx context.Context) (int64, error)
 	CountEmployees(ctx context.Context, arg CountEmployeesParams) (int64, error)
 	CountExpenses(ctx context.Context, arg CountExpensesParams) (int64, error)
+	// The "N synced" count beside the Recent activity feed: the same rows as
+	// HomeActivityFeed received from `since` on. A plain count per table rides
+	// the received_at indexes; it used to come from the feed query's windowed
+	// total, which built (and coloured) every row of the week to count them.
+	CountHomeActivitiesSince(ctx context.Context, since time.Time) (int64, error)
 	CountIgnoredLowStockProducts(ctx context.Context, search string) (int64, error)
 	CountInventories(ctx context.Context) (int64, error)
 	CountInventoryStock(ctx context.Context, arg CountInventoryStockParams) (int64, error)
@@ -641,6 +646,16 @@ type Querier interface {
 	GetWarehouseTreemapData(ctx context.Context, inventoryID sql.NullInt64) ([]GetWarehouseTreemapDataRow, error)
 	GetWhatsAppMessageCost(ctx context.Context) (int64, error)
 	GetWhatsAppSettings(ctx context.Context) (GetWhatsAppSettingsRow, error)
+	// The home page's "Recent activity" feed: the same rows as
+	// DashboardActivitiesList (every kind of branch sync, newest received
+	// first, hidden branches and registers left out), but paged by a keyset
+	// cursor instead of a date window and an offset, and without the windowed
+	// total. Each page is the next page_size rows after (before_at,
+	// before_activity, before_id) -- the last row the feed already has -- so
+	// the per-table received_at indexes do the work and a page costs the same
+	// however far down the feed is scrolled. The salesperson colour is looked
+	// up for the page's rows only.
+	HomeActivityFeed(ctx context.Context, arg HomeActivityFeedParams) ([]HomeActivityFeedRow, error)
 	IncrementInvoicesIndex(ctx context.Context, arg IncrementInvoicesIndexParams) (int64, error)
 	// A sale can reach kashi after the return that cancelled it (a resync pushes
 	// whatever kashi is missing, in no guaranteed order); it picks up the mark the
@@ -1053,6 +1068,9 @@ type Querier interface {
 	// attached to, or the transfer/expense/purchase itself), and for a branch
 	// photo branch_id + ref_day (the branch's local day) say which day page
 	// shows it, so the feed can open "the thing it was attached to".
+	// Keyset paging: the next page starts after the last row the feed has. ids
+	// come from five tables, so kind breaks a tie between two rows added at the
+	// same instant with the same id.
 	ListLatestAdditions(ctx context.Context, arg ListLatestAdditionsParams) ([]ListLatestAdditionsRow, error)
 	ListLoanCategories(ctx context.Context, scope sql.NullString) ([]LoanCategory, error)
 	// Only branch-scoped categories are synced down to kashi-pos -- central

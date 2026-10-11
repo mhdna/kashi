@@ -53,7 +53,7 @@
           </div>
 
           <v-card class="home-activities-card" rounded="lg" variant="outlined">
-            <div class="home-activities-scroll">
+            <div class="home-activities-scroll" @scroll.passive="onFeedScroll($event, loadMoreKashi)">
               <v-skeleton-loader
                 v-if="!kashiLoaded"
                 color="transparent"
@@ -107,6 +107,9 @@
               >
                 Nothing changed in kashi yet.
               </div>
+              <div v-if="kashiLoading" class="d-flex justify-center py-2">
+                <v-progress-circular indeterminate size="18" width="2" />
+              </div>
             </div>
           </v-card>
         </section>
@@ -132,18 +135,19 @@
           </div>
 
           <v-card class="home-activities-card" rounded="lg" variant="outlined">
-            <div class="home-activities-scroll">
+            <div class="home-activities-scroll" @scroll.passive="onFeedScroll($event, loadMoreActivities)">
               <v-skeleton-loader
                 v-if="!activitiesLoaded"
                 color="transparent"
                 type="list-item-avatar-two-line@8"
               />
-              <v-list v-else class="py-1" density="compact" lines="two">
+              <v-list v-else class="py-0" density="compact" lines="two">
                 <v-virtual-scroll :item-height="71" :items="shown(activities)" renderless>
                   <template #default="{ item, itemRef }">
                     <v-list-item
                       :ref="itemRef"
                       class="px-3 activity-row"
+                      :class="rowTone(item)"
                       @click="openDetail(item)"
                     >
                       <!-- TEMP: left icon hidden
@@ -201,6 +205,9 @@
               >
                 No recent activity yet.
               </div>
+              <div v-if="activitiesLoading" class="d-flex justify-center py-2">
+                <v-progress-circular indeterminate size="18" width="2" />
+              </div>
             </div>
           </v-card>
         </section>
@@ -226,7 +233,7 @@
           </div>
 
           <v-card class="home-activities-card" rounded="lg" variant="outlined">
-            <div class="home-activities-scroll">
+            <div class="home-activities-scroll" @scroll.passive="onFeedScroll($event, loadMoreLatest)">
               <v-skeleton-loader
                 v-if="!latestLoaded"
                 color="transparent"
@@ -281,12 +288,15 @@
               >
                 Nothing added yet.
               </div>
-              <div v-else-if="latestLoaded && canShowMoreLatest" class="d-flex justify-center py-2">
+              <div v-else-if="latestLoading" class="d-flex justify-center py-2">
+                <v-progress-circular indeterminate size="18" width="2" />
+              </div>
+              <div v-else-if="latestLoaded && canShowMoreLatest && !mdAndUp" class="d-flex justify-center py-2">
                 <v-btn
                   size="small"
                   text="Show more"
                   variant="text"
-                  @click="latestExpanded = true"
+                  @click="showMoreLatest"
                 />
               </div>
             </div>
@@ -394,6 +404,7 @@
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { authFetch } from '@/composables/useApi'
   import { BRANCH_ACTIVITY_TYPES } from '@/composables/useBranchActivityMessage'
+  import { feedQuery, nearFeedEnd, useKeysetFeed } from '@/composables/useKeysetFeed'
   import { useNotify } from '@/composables/useNotify'
   import { PHOTO_FETCH, usePhotoActions } from '@/composables/usePhotoActions'
   import { hashColor, initialsOf, useUserAvatar } from '@/composables/useUserAvatar'
@@ -430,18 +441,15 @@
   const appCommit = import.meta.env.VITE_APP_COMMIT
 
 
-  // Recent activity: a read-only glance at the latest branch-sync activity.
-  // Reuses the dashboard's /activities endpoint, which defaults to the
-  // current month ordered newest-first when no filters are passed. This is a
-  // fixed, short feed -- just the newest page -- not a paginated log: the
-  // full history lives on the dashboard. The panel fills the bottom third of
-  // the (non-scrolling) home page and scrolls internally, and a click on any
-  // row opens a details dialog. It refreshes itself off the shared admin
+  // Recent activity: a read-only glance at the latest branch-sync activity
+  // (/home/activities, newest received first). The panel fills the bottom
+  // of the (non-scrolling) home page and scrolls internally, and a click on
+  // any row opens a details dialog. It refreshes itself off the shared admin
   // websocket (the same push stream the dashboard listens to), so there's no
   // manual refresh button.
-  // Each feed loads its newest FEED_SIZE rows at once and renders them in a
-  // virtual scroller, so only the rows in view are in the DOM.
-  const FEED_SIZE = 500
+  // Each feed loads 30 rows at a time as it's scrolled (useKeysetFeed) and
+  // renders them in a virtual scroller, so only the rows in view are in the
+  // DOM.
 
   // The feed comes from the dashboard endpoints, which need Analytics access.
   const canViewActivity = computed(() => auth.canView('analytics'))
@@ -496,9 +504,41 @@
     }
   }
 
-  const activities = ref([])
-  const activitiesLoaded = ref(false)
   const notify = useNotify()
+
+  async function fetchFeedPage (path, cursor, what) {
+    const response = await authFetch(`${API_BASE}${path}?${feedQuery(cursor)}`)
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}))
+      throw new Error(body.error || `Failed to load ${what} (${response.status})`)
+    }
+    return response.json()
+  }
+
+  const {
+    items: activities,
+    loaded: activitiesLoaded,
+    loading: activitiesLoading,
+    loadMore: loadMoreActivities,
+    refresh: refreshActivities,
+  } = useKeysetFeed({
+    fetchPage: async last => {
+      const cursor = last && { at: last.synced_at, kind: last.activity, id: last.id }
+      const data = await fetchFeedPage('/home/activities', cursor, 'recent activity')
+      return data.activities ?? []
+    },
+    keyOf: item => `${item.activity}-${item.id}`,
+    onError: error_ => notify.error(error_.message),
+  })
+
+  function reload () {
+    if (canViewActivity.value) refreshActivities()
+  }
+
+  // Fetch the next page once a feed is scrolled near its bottom.
+  function onFeedScroll (event, loadMore) {
+    if (nearFeedEnd(event.target)) loadMore()
+  }
 
   const detailOpen = ref(false)
   const detail = ref(null)
@@ -529,25 +569,39 @@
     return base
   }
 
-  // Fetch the newest page and replace the list. There's no "load more" --
-  // the dashboard is where the full, filterable history lives.
-  async function reload () {
-    if (!canViewActivity.value) return
-    try {
-      const response = await authFetch(
-        `${API_BASE}/dashboard/activities?page_size=${FEED_SIZE}&page_id=0`,
-      )
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}))
-        throw new Error(body.error || `Failed to load recent activity (${response.status})`)
+  // Abnormal activity gets a tinted row, graded by how much it should worry
+  // whoever is watching -- routine punches and sales stay untinted:
+  //   high    red     money moved after the fact: a settlement edited, or a
+  //                   shift closed short (negative USD variance)
+  //   medium  orange  an approved attendance edit, an exchange invoice
+  //   low     amber   an attendance complaint filed or rejected -- nothing
+  //                   changed yet
+  // Exchanges and the attendance status only live in the details string,
+  // which the feed builds with ' · ' separators (see DashboardActivitiesList).
+  function rowSeverity (item) {
+    const parts = String(item.details || '').split(' · ')
+    switch (item.activity) {
+      case 'Settlement changed': {
+        return 'high'
       }
-      const data = await response.json()
-      activities.value = data.activities ?? []
-    } catch (error_) {
-      notify.error(error_.message)
-    } finally {
-      activitiesLoaded.value = true
+      case 'Shift closed': {
+        return item.amount < 0 ? 'high' : null
+      }
+      case 'Attendance changed': {
+        return parts.includes('approved') ? 'medium' : 'low'
+      }
+      case 'Invoice': {
+        return parts[0] === 'Exchange' ? 'medium' : null
+      }
+      default: {
+        return null
+      }
     }
+  }
+
+  function rowTone (item) {
+    const severity = rowSeverity(item)
+    return severity ? `activity-row--${severity}` : null
   }
 
   // A branch catch-up can fire a burst of pushes; debounce so the feed
@@ -603,28 +657,29 @@
 
   // "In kashi": what people changed in kashi itself -- a transfer created,
   // a conflict resolved, settings sent to a branch -- recorded server-side
-  // for every successful change (api/admin_activity.go). Same fixed newest
-  // page as the branch feed, refreshed by the admin_activity push.
+  // for every successful change (api/admin_activity.go). Paged like the
+  // branch feed, refreshed by the admin_activity push.
   const canViewKashiActivity = computed(() => auth.canView('system'))
-  const kashiActivities = ref([])
-  const kashiLoaded = ref(false)
   let kashiRefreshTimer = null
 
-  async function reloadKashi () {
-    if (!canViewKashiActivity.value) return
-    try {
-      const response = await authFetch(`${API_BASE}/admin_activities?page_size=${FEED_SIZE}&page_id=0`)
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}))
-        throw new Error(body.error || `Failed to load kashi activity (${response.status})`)
-      }
-      const data = await response.json()
-      kashiActivities.value = data.activities ?? []
-    } catch (error_) {
-      notify.error(error_.message)
-    } finally {
-      kashiLoaded.value = true
-    }
+  const {
+    items: kashiActivities,
+    loaded: kashiLoaded,
+    loading: kashiLoading,
+    loadMore: loadMoreKashi,
+    refresh: refreshKashi,
+  } = useKeysetFeed({
+    fetchPage: async last => {
+      const cursor = last && { at: last.created_at, id: last.id }
+      const data = await fetchFeedPage('/admin_activities', cursor, 'kashi activity')
+      return data.activities ?? []
+    },
+    keyOf: item => item.id,
+    onError: error_ => notify.error(error_.message),
+  })
+
+  function reloadKashi () {
+    if (canViewKashiActivity.value) refreshKashi()
   }
 
   function kashiSentence (item) {
@@ -639,8 +694,6 @@
   const router = useRouter()
   const canViewLatest = computed(() =>
     auth.canView('accounting') || auth.canView('hr') || auth.canView('inventory'))
-  const latestItems = ref([])
-  const latestLoaded = ref(false)
   const thumbs = ref({})
 
   const LATEST_KINDS = {
@@ -683,12 +736,21 @@
     }
   }
 
-  // "Show more" (phones only): expands the short preview to everything loaded.
+  // "Show more" (phones only): first expands the short preview to the rows
+  // loaded, then fetches the next page each time -- the card doesn't scroll
+  // on a phone, so there's no scrolling to the end to trigger it.
   const latestExpanded = ref(false)
   const shownLatest = computed(() =>
     latestExpanded.value ? latestItems.value : shown(latestItems.value),
   )
-  const canShowMoreLatest = computed(() => shownLatest.value.length < latestItems.value.length)
+  const canShowMoreLatest = computed(() => latestExpanded.value
+    ? !latestDone.value
+    : shownLatest.value.length < latestItems.value.length)
+
+  function showMoreLatest () {
+    if (latestExpanded.value) loadMoreLatest()
+    else latestExpanded.value = true
+  }
 
   // Where a feed item leads: the day page's "Shifts & Expenses" tab for the
   // branch and local day a shift receipt or expense photo belongs to (the
@@ -714,21 +776,25 @@
     router.push(target.to)
   }
 
-  async function reloadLatest () {
-    if (!canViewLatest.value) return
-    try {
-      const response = await authFetch(`${API_BASE}/home/latest?page_size=${FEED_SIZE}`)
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}))
-        throw new Error(body.error || `Failed to load latest additions (${response.status})`)
-      }
-      const data = await response.json()
-      latestItems.value = data.items ?? []
-    } catch (error_) {
-      notify.error(error_.message)
-    } finally {
-      latestLoaded.value = true
-    }
+  const {
+    items: latestItems,
+    loaded: latestLoaded,
+    loading: latestLoading,
+    done: latestDone,
+    loadMore: loadMoreLatest,
+    refresh: refreshLatest,
+  } = useKeysetFeed({
+    fetchPage: async last => {
+      const cursor = last && { at: last.added_at, kind: last.kind, id: last.id }
+      const data = await fetchFeedPage('/home/latest', cursor, 'latest additions')
+      return data.items ?? []
+    },
+    keyOf: latestKey,
+    onError: error_ => notify.error(error_.message),
+  })
+
+  function reloadLatest () {
+    if (canViewLatest.value) refreshLatest()
   }
 
   const photoOpen = ref(false)
@@ -957,6 +1023,18 @@
 
   .activity-row {
     cursor: pointer;
+  }
+
+  .activity-row--high {
+    background-color: rgba(var(--v-theme-error), 0.24);
+  }
+
+  .activity-row--medium {
+    background-color: rgba(255, 109, 0, 0.2);
+  }
+
+  .activity-row--low {
+    background-color: rgba(255, 193, 7, 0.12);
   }
 
   .person-initials {

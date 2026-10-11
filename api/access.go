@@ -313,6 +313,9 @@ var routeRules = []routeRule{
 	lookup("/home/latest", ""),
 	// The home feeds' "today" counts: same deal, filtered per feed.
 	lookup("/home/today", ""),
+	// The home page's Recent activity feed: branch sync, same access as the
+	// dashboard it was split out of.
+	rule("/home/activities", "", "analytics"),
 	rule("/logs", "", "system"),
 	rule("/app_releases", "updates", "updates"),
 	rule("/app_updates", "updates", "updates"),

@@ -1145,6 +1145,21 @@ func (mr *MockStoreMockRecorder) CountExpenses(arg0, arg1 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountExpenses", reflect.TypeOf((*MockStore)(nil).CountExpenses), arg0, arg1)
 }
 
+// CountHomeActivitiesSince mocks base method.
+func (m *MockStore) CountHomeActivitiesSince(arg0 context.Context, arg1 time.Time) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountHomeActivitiesSince", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountHomeActivitiesSince indicates an expected call of CountHomeActivitiesSince.
+func (mr *MockStoreMockRecorder) CountHomeActivitiesSince(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountHomeActivitiesSince", reflect.TypeOf((*MockStore)(nil).CountHomeActivitiesSince), arg0, arg1)
+}
+
 // CountIgnoredLowStockProducts mocks base method.
 func (m *MockStore) CountIgnoredLowStockProducts(arg0 context.Context, arg1 string) (int64, error) {
 	m.ctrl.T.Helper()
@@ -5998,6 +6013,21 @@ func (m *MockStore) GetWhatsAppSettings(arg0 context.Context) (db.GetWhatsAppSet
 func (mr *MockStoreMockRecorder) GetWhatsAppSettings(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWhatsAppSettings", reflect.TypeOf((*MockStore)(nil).GetWhatsAppSettings), arg0)
+}
+
+// HomeActivityFeed mocks base method.
+func (m *MockStore) HomeActivityFeed(arg0 context.Context, arg1 db.HomeActivityFeedParams) ([]db.HomeActivityFeedRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HomeActivityFeed", arg0, arg1)
+	ret0, _ := ret[0].([]db.HomeActivityFeedRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// HomeActivityFeed indicates an expected call of HomeActivityFeed.
+func (mr *MockStoreMockRecorder) HomeActivityFeed(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HomeActivityFeed", reflect.TypeOf((*MockStore)(nil).HomeActivityFeed), arg0, arg1)
 }
 
 // ImportBranchQuickAccessTx mocks base method.
