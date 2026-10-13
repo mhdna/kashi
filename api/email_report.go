@@ -557,8 +557,9 @@ type sendEmailReportRequest struct {
 }
 
 // sendEmailReport builds the report, sends it through Resend and logs the
-// attempt either way. A Resend failure is a 502 with Resend's message, and
-// still lands on the Emails page as a failed row.
+// attempt either way. A Resend failure is a 424 with Resend's message, and
+// still lands on the Emails page as a failed row. Never 502/503: the UI
+// reads those as "the server is being updated" and takes over the page.
 func (server *Server) sendEmailReport(ctx *gin.Context) {
 	var req sendEmailReportRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -580,7 +581,7 @@ func (server *Server) sendEmailReport(ctx *gin.Context) {
 		return
 	}
 	if apiKey == "" {
-		server.writeError(ctx, http.StatusServiceUnavailable, errors.New("email isn't set up: add the Resend API key on Settings > Email"))
+		server.writeError(ctx, http.StatusConflict, errors.New("email isn't set up: add the Resend API key on Settings > Email"))
 		return
 	}
 	report, ok := server.bindEmailReport(ctx, req.emailReportRequest)
@@ -639,7 +640,7 @@ func (server *Server) sendEmailReport(ctx *gin.Context) {
 	}
 	logged, logErr := server.store.CreateEmailReport(ctx, entry)
 	if sendErr != nil {
-		server.writeError(ctx, http.StatusBadGateway, fmt.Errorf("send failed: %w", sendErr))
+		server.writeError(ctx, http.StatusFailedDependency, fmt.Errorf("send failed: %w", sendErr))
 		return
 	}
 	if logErr != nil {

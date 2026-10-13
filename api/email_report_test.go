@@ -131,5 +131,5 @@ func TestSendEmailReportNotConfigured(t *testing.T) {
 	addAuthorization(t, request, server.tokenMaker, authorizationTypeBearer, "admin", time.Minute)
 	recorder := httptest.NewRecorder()
 	server.router.ServeHTTP(recorder, request)
-	require.Equal(t, http.StatusServiceUnavailable, recorder.Code)
+	require.Equal(t, http.StatusConflict, recorder.Code)
 }
