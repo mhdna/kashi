@@ -199,6 +199,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.POST("/email_reports", server.sendEmailReport)
 	authRoutes.GET("/email_reports/preview", server.previewEmailReport)
 	authRoutes.GET("/email_reports/shifts", server.listEmailReportShifts)
+	authRoutes.GET("/email_reports/recipients", server.listEmailReportRecipients)
 	authRoutes.GET("/whatsapp_settings", server.getWhatsAppSettings)
 	authRoutes.PUT("/whatsapp_settings", server.updateWhatsAppSettings)
 	authRoutes.GET("/whatsapp/rules", server.listWhatsAppRules)

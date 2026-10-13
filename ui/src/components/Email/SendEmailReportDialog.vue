@@ -60,7 +60,10 @@
           />
         </div>
 
+        <!-- Same rows in every mode so the dialog keeps its height: a shift
+             already names its branch, so Shift takes Branch's place. -->
         <v-select
+          v-if="scope !== 'shift'"
           v-model="selectedBranchId"
           class="mb-4"
           density="compact"
@@ -69,9 +72,8 @@
           label="Branch"
           variant="outlined"
         />
-
         <v-select
-          v-if="scope === 'shift'"
+          v-else
           v-model="shiftId"
           class="mb-4"
           density="compact"
@@ -83,22 +85,30 @@
           variant="outlined"
         />
 
-        <v-text-field
+        <!-- Type an address and press Enter (or comma) for each person;
+             past recipients are suggested. -->
+        <v-combobox
           v-model="recipients"
+          chips
+          closable-chips
+          :delimiters="[',', ';', ' ']"
           density="compact"
-          hint="Comma-separated for several people"
+          :hint="invalidRecipients.length > 0 ? `Not an email address: ${invalidRecipients.join(', ')}` : 'Press Enter after each address'"
+          :items="pastRecipients"
           label="Send to"
+          multiple
+          :no-data-text="'No one emailed yet'"
           persistent-hint
           variant="outlined"
         />
 
         <div class="preview mt-4 text-body-2">
           <template v-if="previewError">
-            <span class="text-error">{{ previewError }}</span>
+            <div class="text-error text-truncate" :title="previewError">{{ previewError }}</div>
           </template>
           <template v-else-if="preview">
-            <div class="font-weight-medium">{{ preview.subject }}</div>
-            <div class="text-medium-emphasis">
+            <div class="font-weight-medium text-truncate" :title="preview.subject">{{ preview.subject }}</div>
+            <div class="text-medium-emphasis text-truncate">
               {{ preview.invoice_count.toLocaleString() }} invoice{{ preview.invoice_count === 1 ? '' : 's' }}
               · net {{ money(preview.total_cents) }} · {{ preview.filename }}
             </div>
@@ -149,7 +159,13 @@
   const notify = useNotify()
   const auth = useAuthStore()
   const { branches, fetchBranches } = useBranches()
-  const { getEmailSettings, previewEmailReport, sendEmailReport, listEmailReportShifts } = useEmailReports()
+  const {
+    getEmailSettings,
+    previewEmailReport,
+    sendEmailReport,
+    listEmailReportShifts,
+    listEmailReportRecipients,
+  } = useEmailReports()
 
   function ymd (date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -161,7 +177,13 @@
   const to = ref(today)
   const selectedBranchId = ref(null)
   const shiftId = ref(null)
-  const recipients = ref('')
+  const recipients = ref([])
+  const pastRecipients = ref([])
+  const EMAIL_RE = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/
+  const invalidRecipients = computed(() => recipients.value.filter(r => !EMAIL_RE.test(String(r).trim())))
+  function splitRecipients (text) {
+    return String(text || '').split(/[,;\n]/).map(r => r.trim()).filter(Boolean)
+  }
   const configured = ref(null)
   const canSeeHistory = computed(() => auth.canViewPage('system', 'emails'))
 
@@ -180,9 +202,15 @@
     shiftId.value = null
     fetchBranches().catch(() => {})
     try {
-      const data = await getEmailSettings()
+      const [data, past] = await Promise.all([
+        getEmailSettings(),
+        listEmailReportRecipients().catch(() => ({ recipients: [], last: [] })),
+      ])
       configured.value = Boolean(data?.configured)
-      recipients.value = data?.settings?.email_default_recipients ?? ''
+      pastRecipients.value = past.recipients
+      // Settings' default recipients, else whoever got the last report.
+      const defaults = splitRecipients(data?.settings?.email_default_recipients)
+      recipients.value = defaults.length > 0 ? defaults : [...past.last]
     } catch (error) {
       notify.error(error.message)
     }
@@ -200,11 +228,11 @@
       .join(' · '),
     value: s.id,
   })))
-  watch([open, scope, from, selectedBranchId], async () => {
+  watch([open, scope, from], async () => {
     if (!open.value || scope.value !== 'shift' || !from.value) return
     loadingShifts.value = true
     try {
-      shifts.value = await listEmailReportShifts(from.value, from.value, selectedBranchId.value)
+      shifts.value = await listEmailReportShifts(from.value, from.value, null)
       if (!shifts.value.some(s => s.id === shiftId.value)) {
         shiftId.value = shifts.value[0]?.id ?? null
       }
@@ -251,14 +279,15 @@
   const sending = ref(false)
   const canSend = computed(() =>
     configured.value !== false
-    && recipients.value.trim() !== ''
+    && recipients.value.length > 0
+    && invalidRecipients.value.length === 0
     && preview.value?.invoice_count > 0,
   )
   async function send () {
     sending.value = true
     try {
-      const report = await sendEmailReport(params.value, recipients.value)
-      notify.success(`Sent to ${report?.recipients || recipients.value}.`)
+      const report = await sendEmailReport(params.value, recipients.value.map(r => String(r).trim()).join(', '))
+      notify.success(`Sent to ${report?.recipients}.`)
       emit('sent', report)
       open.value = false
     } catch (error) {
@@ -277,6 +306,7 @@
 
 <style scoped>
 .preview {
-  min-height: 2.6em;
+  /* Always two lines tall, so a longer label or an error never resizes. */
+  height: 3em;
 }
 </style>

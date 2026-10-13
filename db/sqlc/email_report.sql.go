@@ -253,6 +253,45 @@ func (q *Queries) ListEmailReportInvoices(ctx context.Context, arg ListEmailRepo
 	return items, nil
 }
 
+const listEmailReportRecipients = `-- name: ListEmailReportRecipients :many
+SELECT addr::text AS address, MAX(r.created_at)::timestamptz AS last_sent_at
+FROM email_reports r, unnest(string_to_array(r.recipients, ', ')) AS addr
+WHERE r.status = 'sent' AND addr <> ''
+GROUP BY addr
+ORDER BY last_sent_at DESC
+LIMIT 50
+`
+
+type ListEmailReportRecipientsRow struct {
+	Address    string    `json:"address"`
+	LastSentAt time.Time `json:"last_sent_at"`
+}
+
+// Everyone a report went out to, most recently used first, for the send
+// dialog's suggestions.
+func (q *Queries) ListEmailReportRecipients(ctx context.Context) ([]ListEmailReportRecipientsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listEmailReportRecipients)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListEmailReportRecipientsRow{}
+	for rows.Next() {
+		var i ListEmailReportRecipientsRow
+		if err := rows.Scan(&i.Address, &i.LastSentAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listEmailReportShifts = `-- name: ListEmailReportShifts :many
 SELECT
   s.id,

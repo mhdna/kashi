@@ -7798,6 +7798,21 @@ func (mr *MockStoreMockRecorder) ListEmailReportInvoices(arg0, arg1 interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEmailReportInvoices", reflect.TypeOf((*MockStore)(nil).ListEmailReportInvoices), arg0, arg1)
 }
 
+// ListEmailReportRecipients mocks base method.
+func (m *MockStore) ListEmailReportRecipients(arg0 context.Context) ([]db.ListEmailReportRecipientsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListEmailReportRecipients", arg0)
+	ret0, _ := ret[0].([]db.ListEmailReportRecipientsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListEmailReportRecipients indicates an expected call of ListEmailReportRecipients.
+func (mr *MockStoreMockRecorder) ListEmailReportRecipients(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEmailReportRecipients", reflect.TypeOf((*MockStore)(nil).ListEmailReportRecipients), arg0)
+}
+
 // ListEmailReportShifts mocks base method.
 func (m *MockStore) ListEmailReportShifts(arg0 context.Context, arg1 db.ListEmailReportShiftsParams) ([]db.ListEmailReportShiftsRow, error) {
 	m.ctrl.T.Helper()

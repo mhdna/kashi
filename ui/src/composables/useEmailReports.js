@@ -57,6 +57,12 @@ export function useEmailReports () {
     return data?.shifts ?? []
   }
 
+  // { recipients: every address sent to, newest first, last: the last send's }
+  async function listEmailReportRecipients () {
+    const data = await requestJSON(`${API_BASE}/email_reports/recipients`)
+    return { recipients: data?.recipients ?? [], last: data?.last ?? [] }
+  }
+
   // page_id is an offset, like the WhatsApp message list's.
   async function listEmailReports ({ status, pageSize, offset }) {
     const data = await requestJSON(`${API_BASE}/email_reports?${reportQuery({ status, page_size: pageSize, page_id: offset })}`)
@@ -69,6 +75,7 @@ export function useEmailReports () {
     previewEmailReport,
     sendEmailReport,
     listEmailReportShifts,
+    listEmailReportRecipients,
     listEmailReports,
   }
 }

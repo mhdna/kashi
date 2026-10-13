@@ -1062,6 +1062,9 @@ type Querier interface {
 	// branch. Carries more than the default CSV needs so extra columns picked
 	// in Settings need no new query.
 	ListEmailReportInvoices(ctx context.Context, arg ListEmailReportInvoicesParams) ([]ListEmailReportInvoicesRow, error)
+	// Everyone a report went out to, most recently used first, for the send
+	// dialog's suggestions.
+	ListEmailReportRecipients(ctx context.Context) ([]ListEmailReportRecipientsRow, error)
 	// Closed shifts to pick from in the send dialog: those counted on local
 	// days from_day..to_day, optionally one branch, newest first.
 	ListEmailReportShifts(ctx context.Context, arg ListEmailReportShiftsParams) ([]ListEmailReportShiftsRow, error)

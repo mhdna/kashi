@@ -111,3 +111,13 @@ LIMIT sqlc.arg(page_size) OFFSET sqlc.arg(page_offset);
 -- name: CountEmailReports :one
 SELECT COUNT(*) FROM email_reports
 WHERE (sqlc.narg(status)::text IS NULL OR status = sqlc.narg(status));
+
+-- name: ListEmailReportRecipients :many
+-- Everyone a report went out to, most recently used first, for the send
+-- dialog's suggestions.
+SELECT addr::text AS address, MAX(r.created_at)::timestamptz AS last_sent_at
+FROM email_reports r, unnest(string_to_array(r.recipients, ', ')) AS addr
+WHERE r.status = 'sent' AND addr <> ''
+GROUP BY addr
+ORDER BY last_sent_at DESC
+LIMIT 50;

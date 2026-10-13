@@ -726,6 +726,33 @@ func resendSendEmail(apiKey string, email resendEmail) (string, error) {
 
 // ---- history -------------------------------------------------------------------
 
+// listEmailReportRecipients is everyone a report was sent to, most recent
+// first: the send dialog suggests them, and pre-fills the last send's list
+// when Settings has no default recipients.
+func (server *Server) listEmailReportRecipients(ctx *gin.Context) {
+	rows, err := server.store.ListEmailReportRecipients(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	addresses := make([]string, len(rows))
+	for i, row := range rows {
+		addresses[i] = row.Address
+	}
+	last := []string{}
+	reports, err := server.store.ListEmailReports(ctx, db.ListEmailReportsParams{
+		Status: sql.NullString{String: "sent", Valid: true}, PageSize: 1,
+	})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(reports) > 0 {
+		last, _ = parseEmailRecipients(reports[0].Recipients)
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"recipients": addresses, "last": last})
+}
+
 type listEmailReportsRequest struct {
 	Status   string `form:"status" binding:"omitempty,oneof=sent failed"`
 	PageSize int32  `form:"page_size,default=50" binding:"min=5,max=500"`
