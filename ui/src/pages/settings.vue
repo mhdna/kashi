@@ -21,6 +21,7 @@
           <v-tab v-if="auth.isAdmin" prepend-icon="mdi-account-group" text="Users" value="users" />
           <v-tab v-if="auth.isAdmin" prepend-icon="mdi-shield-account-outline" text="Roles" value="roles" />
           <v-tab v-if="auth.canViewPage('system', 'settings')" prepend-icon="mdi-whatsapp" text="WhatsApp" value="whatsapp" />
+          <v-tab v-if="auth.canViewPage('system', 'settings')" prepend-icon="mdi-email-outline" text="Email" value="email" />
         </v-tabs>
 
         <v-divider vertical />
@@ -429,10 +430,169 @@
               </div>
             </v-form>
           </section>
+
+          <!-- --------------------------------------------------------- EMAIL -->
+          <section v-show="tab === 'email'" class="set-section">
+            <v-form :disabled="!canEditSystem">
+              <h3 class="text-subtitle-1 mb-1">Invoice report emails</h3>
+              <p class="text-body-2 text-medium-emphasis mb-4">
+                A day's, a date range's or a shift's invoices as a CSV, sent with the
+                <strong>Email</strong> button on a Daily Income day. Mail goes out through
+                Resend from any address on a domain verified there (example.com).
+                <template v-if="auth.canViewPage('system', 'emails')">
+                  Everything sent is on the <router-link to="/emails">Emails page</router-link>.
+                </template>
+              </p>
+              <v-alert
+                v-if="emailConfigured === false"
+                class="mb-4"
+                density="compact"
+                type="warning"
+                variant="tonal"
+              >
+                Sending is off: paste a Resend API key below.
+              </v-alert>
+
+              <v-text-field
+                v-model="emailDraft.apiKey"
+                :append-inner-icon="showEmailKey ? 'mdi-eye-off' : 'mdi-eye'"
+                autocomplete="off"
+                class="field-md mb-4"
+                density="compact"
+                :hint="emailKeyHint"
+                label="Resend API key"
+                persistent-hint
+                :placeholder="emailKeyLast4 ? `re_••••${emailKeyLast4}` : 're_…'"
+                :type="showEmailKey ? 'text' : 'password'"
+                variant="outlined"
+                @click:append-inner="showEmailKey = !showEmailKey"
+              />
+
+              <v-text-field
+                v-model="emailDraft.senderName"
+                class="field-md mb-4"
+                density="compact"
+                hide-details
+                label="Sender name"
+                variant="outlined"
+              />
+              <v-text-field
+                v-model="emailDraft.senderAddress"
+                class="field-md mb-4"
+                density="compact"
+                hint="Must be on the verified domain, e.g. reports@example.com"
+                label="Sender address"
+                persistent-hint
+                variant="outlined"
+              />
+              <v-text-field
+                v-model="emailDraft.replyTo"
+                class="field-md mb-4"
+                density="compact"
+                hint="Where replies go; example.com has no inbox of its own"
+                label="Reply-to"
+                persistent-hint
+                variant="outlined"
+              />
+              <v-text-field
+                v-model="emailDraft.defaultRecipients"
+                class="field-md mb-4"
+                density="compact"
+                hint="Pre-filled when sending; comma-separated"
+                label="Default recipients"
+                persistent-hint
+                variant="outlined"
+              />
+              <v-text-field
+                v-model="emailDraft.businessName"
+                class="field-md"
+                density="compact"
+                hint="In the subject (“Demo Store Sales Report — …”) and the file name"
+                label="Business name"
+                persistent-hint
+                variant="outlined"
+              />
+
+              <h3 class="text-subtitle-1 mt-8 mb-1">CSV columns</h3>
+              <p class="text-body-2 text-medium-emphasis mb-3">
+                In order, one row per invoice. The default is the old kashi-admin report.
+              </p>
+              <v-list class="email-columns mb-3" density="compact">
+                <v-list-item
+                  v-for="(key, index) in emailDraft.csvColumns"
+                  :key="key"
+                  :title="columnHeader(key)"
+                >
+                  <template #append>
+                    <v-btn
+                      :disabled="index === 0"
+                      icon="mdi-arrow-up"
+                      size="x-small"
+                      variant="text"
+                      @click="moveColumn(index, -1)"
+                    />
+                    <v-btn
+                      :disabled="index === emailDraft.csvColumns.length - 1"
+                      icon="mdi-arrow-down"
+                      size="x-small"
+                      variant="text"
+                      @click="moveColumn(index, 1)"
+                    />
+                    <v-btn
+                      :disabled="emailDraft.csvColumns.length === 1"
+                      icon="mdi-close"
+                      size="x-small"
+                      variant="text"
+                      @click="emailDraft.csvColumns.splice(index, 1)"
+                    />
+                  </template>
+                </v-list-item>
+              </v-list>
+              <div class="d-flex align-center ga-3">
+                <v-select
+                  class="field-md"
+                  density="compact"
+                  :disabled="unusedColumns.length === 0"
+                  hide-details
+                  item-title="header"
+                  item-value="key"
+                  :items="unusedColumns"
+                  label="Add a column"
+                  :model-value="null"
+                  variant="outlined"
+                  @update:model-value="key => key && emailDraft.csvColumns.push(key)"
+                />
+                <v-btn size="small" text="Reset to default" variant="text" @click="emailDraft.csvColumns = [...DEFAULT_EMAIL_COLUMNS]" />
+              </div>
+
+              <div class="d-flex align-center ga-3 mt-6">
+                <span class="text-caption text-medium-emphasis">
+                  {{ emailDirty ? 'Unsaved changes' : 'All changes saved' }}
+                </span>
+                <v-spacer />
+                <v-btn
+                  :disabled="!emailDirty || savingEmail"
+                  size="small"
+                  text="Discard"
+                  variant="text"
+                  @click="seedEmailDraft"
+                />
+                <v-btn
+                  color="primary"
+                  :disabled="!emailDirty || !canEditSystem"
+                  :loading="savingEmail"
+                  size="small"
+                  text="Save"
+                  variant="flat"
+                  @click="saveEmailSettings"
+                />
+              </div>
+            </v-form>
+          </section>
         </div>
       </div>
 
-      <template v-if="tab !== 'users' && tab !== 'roles' && tab !== 'whatsapp'">
+      <template v-if="tab !== 'users' && tab !== 'roles' && tab !== 'whatsapp' && tab !== 'email'">
         <v-divider />
         <div class="set-actions px-5 py-3 d-flex align-center ga-3">
           <span class="text-caption text-medium-emphasis">
@@ -655,6 +815,7 @@
   import { computed, onMounted, reactive, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
   import RolesManager from '@/components/RolesManager.vue'
+  import { useEmailReports } from '@/composables/useEmailReports'
   import { useNotify } from '@/composables/useNotify'
   import { useRoles } from '@/composables/useRoles'
   import { hashColor, initialsOf, useUserAvatar } from '@/composables/useUserAvatar'
@@ -1039,6 +1200,111 @@
       savingWhatsApp.value = false
     }
   }
+
+  // ---- Email (invoice reports via Resend) ----
+  // Same shape as WhatsApp above: its own app_settings columns and endpoint
+  // (GET/PUT /email_settings). The Resend key itself stays in app.env.
+  const { getEmailSettings, updateEmailSettings } = useEmailReports()
+  const DEFAULT_EMAIL_COLUMNS = ['invoice_no', 'type', 'date', 'net_usd', 'net_lbp']
+
+  const savingEmail = ref(false)
+  const showEmailKey = ref(false)
+  const emailConfigured = ref(null)
+  // The saved key never comes back from the API, only where it's from and
+  // its last 4 characters; the field stays empty unless replacing it.
+  const emailKeySource = ref('')
+  const emailKeyLast4 = ref('')
+  const emailKeyHint = computed(() => {
+    if (emailKeySource.value === 'settings') return `Saved, ending in ${emailKeyLast4.value}. Paste a new one to replace it.`
+    if (emailKeySource.value === 'env') return `Using RESEND_API_KEY from the server's app.env (ending in ${emailKeyLast4.value}).`
+    return 'From resend.com > API Keys, with sending access to example.com'
+  })
+  const emailColumns = ref([])
+  const emailSaved = reactive({
+    senderName: '',
+    senderAddress: '',
+    replyTo: '',
+    defaultRecipients: '',
+    businessName: '',
+    csvColumns: [...DEFAULT_EMAIL_COLUMNS],
+    apiKey: '',
+  })
+  const emailDraft = reactive({ ...emailSaved, csvColumns: [...emailSaved.csvColumns] })
+
+  function seedEmailDraft () {
+    Object.assign(emailDraft, emailSaved, { csvColumns: [...emailSaved.csvColumns] })
+  }
+
+  const emailDirty = computed(() =>
+    emailDraft.senderName !== emailSaved.senderName
+    || emailDraft.senderAddress !== emailSaved.senderAddress
+    || emailDraft.replyTo !== emailSaved.replyTo
+    || emailDraft.defaultRecipients !== emailSaved.defaultRecipients
+    || emailDraft.businessName !== emailSaved.businessName
+    || emailDraft.csvColumns.join(',') !== emailSaved.csvColumns.join(',')
+    || emailDraft.apiKey.trim() !== '',
+  )
+
+  const unusedColumns = computed(() => emailColumns.value.filter(c => !emailDraft.csvColumns.includes(c.key)))
+  function columnHeader (key) {
+    return emailColumns.value.find(c => c.key === key)?.header ?? key
+  }
+  function moveColumn (index, by) {
+    const columns = emailDraft.csvColumns
+    ;[columns[index], columns[index + by]] = [columns[index + by], columns[index]]
+  }
+
+  function applyEmailSettings (data) {
+    if (!data?.settings) return
+    emailConfigured.value = Boolean(data.configured)
+    emailKeySource.value = data.api_key_source ?? ''
+    emailKeyLast4.value = data.api_key_hint ?? ''
+    emailColumns.value = data.columns ?? []
+    const settings = data.settings
+    Object.assign(emailSaved, {
+      senderName: settings.email_sender_name ?? '',
+      senderAddress: settings.email_sender_address ?? '',
+      replyTo: settings.email_reply_to ?? '',
+      defaultRecipients: settings.email_default_recipients ?? '',
+      businessName: settings.email_business_name ?? '',
+      csvColumns: Array.isArray(settings.email_csv_columns) && settings.email_csv_columns.length > 0
+        ? [...settings.email_csv_columns]
+        : [...DEFAULT_EMAIL_COLUMNS],
+      apiKey: '',
+    })
+    seedEmailDraft()
+  }
+
+  onMounted(async () => {
+    try {
+      applyEmailSettings(await getEmailSettings())
+    } catch (error) {
+      notify.error(error.message)
+    }
+  })
+
+  async function saveEmailSettings () {
+    if (!emailDirty.value) {
+      return
+    }
+    savingEmail.value = true
+    try {
+      applyEmailSettings(await updateEmailSettings({
+        email_sender_name: emailDraft.senderName,
+        email_sender_address: emailDraft.senderAddress,
+        email_reply_to: emailDraft.replyTo,
+        email_default_recipients: emailDraft.defaultRecipients,
+        email_business_name: emailDraft.businessName,
+        email_csv_columns: emailDraft.csvColumns,
+        // Only sent when replacing the key; absent keeps the saved one.
+        ...(emailDraft.apiKey.trim() ? { email_resend_api_key: emailDraft.apiKey.trim() } : {}),
+      }))
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      savingEmail.value = false
+    }
+  }
 </script>
 
 <style scoped>
@@ -1079,6 +1345,11 @@
 }
 .field-md {
   max-width: 420px;
+}
+.email-columns {
+  max-width: 420px;
+  border: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 4px;
 }
 .swatch {
   width: 26px;

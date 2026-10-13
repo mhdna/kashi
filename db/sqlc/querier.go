@@ -133,6 +133,7 @@ type Querier interface {
 	CountDashboardSales(ctx context.Context, arg CountDashboardSalesParams) (int64, error)
 	CountDiscountListItemsWithProduct(ctx context.Context, arg CountDiscountListItemsWithProductParams) (int64, error)
 	CountDiscountLists(ctx context.Context) (int64, error)
+	CountEmailReports(ctx context.Context, status sql.NullString) (int64, error)
 	CountEmployees(ctx context.Context, arg CountEmployeesParams) (int64, error)
 	CountExpenses(ctx context.Context, arg CountExpensesParams) (int64, error)
 	// The "N synced" count beside the Recent activity feed: the same rows as
@@ -226,6 +227,7 @@ type Querier interface {
 	CreateCurrency(ctx context.Context, arg CreateCurrencyParams) (Currency, error)
 	CreateDiscountList(ctx context.Context, arg CreateDiscountListParams) (DiscountList, error)
 	CreateDiscountListItem(ctx context.Context, arg CreateDiscountListItemParams) (DiscountListItem, error)
+	CreateEmailReport(ctx context.Context, arg CreateEmailReportParams) (EmailReport, error)
 	CreateEmployee(ctx context.Context, arg CreateEmployeeParams) (Employee, error)
 	CreateEntryItem(ctx context.Context, arg CreateEntryItemParams) (Entry, error)
 	CreateExpense(ctx context.Context, arg CreateExpenseParams) (Expense, error)
@@ -500,6 +502,8 @@ type Querier interface {
 	GetDiscountList(ctx context.Context, id int64) (DiscountList, error)
 	GetDiscountListBranch(ctx context.Context, branchID int64) (DiscountListBranch, error)
 	GetDiscountListByUID(ctx context.Context, uid uuid.UUID) (DiscountList, error)
+	GetEmailResendAPIKey(ctx context.Context) (string, error)
+	GetEmailSettings(ctx context.Context) (GetEmailSettingsRow, error)
 	GetEmployee(ctx context.Context, id int64) (Employee, error)
 	GetEntry(ctx context.Context, id int64) (Entry, error)
 	GetExpense(ctx context.Context, id int64) (Expense, error)
@@ -1050,6 +1054,18 @@ type Querier interface {
 	// carrying is_active rather than filtering on it.
 	ListDiscountListsForBranchSync(ctx context.Context, arg ListDiscountListsForBranchSyncParams) ([]DiscountList, error)
 	ListDueRecurringExpenses(ctx context.Context, nextDueAt time.Time) ([]RecurringExpense, error)
+	// Every non-cancelled invoice an emailed report covers, newest first (the
+	// order kashi-admin's CSV used). Either a shift (shift_id set: that closed
+	// shift's invoices, matched the way settlements match a till's shift --
+	// register plus the till's own shift id) or local days from_day..to_day,
+	// cut per branch timezone exactly like ListDayInvoices, optionally one
+	// branch. Carries more than the default CSV needs so extra columns picked
+	// in Settings need no new query.
+	ListEmailReportInvoices(ctx context.Context, arg ListEmailReportInvoicesParams) ([]ListEmailReportInvoicesRow, error)
+	// Closed shifts to pick from in the send dialog: those counted on local
+	// days from_day..to_day, optionally one branch, newest first.
+	ListEmailReportShifts(ctx context.Context, arg ListEmailReportShiftsParams) ([]ListEmailReportShiftsRow, error)
+	ListEmailReports(ctx context.Context, arg ListEmailReportsParams) ([]EmailReport, error)
 	ListEmployees(ctx context.Context, arg ListEmployeesParams) ([]Employee, error)
 	ListEntries(ctx context.Context, arg ListEntriesParams) ([]Entry, error)
 	ListExpenseCategories(ctx context.Context, scope sql.NullString) ([]ExpenseCategory, error)
@@ -1386,6 +1402,8 @@ type Querier interface {
 	SetCashboxAccountActive(ctx context.Context, arg SetCashboxAccountActiveParams) (CashboxAccount, error)
 	SetClientActive(ctx context.Context, arg SetClientActiveParams) error
 	SetDefaultLowStockThreshold(ctx context.Context, defaultLowStockThreshold int64) (AppSetting, error)
+	SetEmailResendAPIKey(ctx context.Context, emailResendApiKey string) error
+	SetEmailSettings(ctx context.Context, arg SetEmailSettingsParams) error
 	SetProductAutofillRules(ctx context.Context, arg SetProductAutofillRulesParams) (AppSetting, error)
 	SetProductCategory(ctx context.Context, arg SetProductCategoryParams) error
 	SetProductLowStockAlertsEnabled(ctx context.Context, arg SetProductLowStockAlertsEnabledParams) error

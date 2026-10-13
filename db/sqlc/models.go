@@ -500,6 +500,13 @@ type AppSetting struct {
 	WhatsappMessageCostMicros  int64           `json:"whatsapp_message_cost_micros"`
 	WhatsappWebhookVerifyToken string          `json:"whatsapp_webhook_verify_token"`
 	WhatsappAppSecret          string          `json:"whatsapp_app_secret"`
+	EmailResendApiKey          string          `json:"email_resend_api_key"`
+	EmailSenderName            string          `json:"email_sender_name"`
+	EmailSenderAddress         string          `json:"email_sender_address"`
+	EmailReplyTo               string          `json:"email_reply_to"`
+	EmailDefaultRecipients     string          `json:"email_default_recipients"`
+	EmailBusinessName          string          `json:"email_business_name"`
+	EmailCsvColumns            json.RawMessage `json:"email_csv_columns"`
 }
 
 type AppUpdateEvent struct {
@@ -1112,6 +1119,26 @@ type DiscountListItem struct {
 	DiscountListID   int64 `json:"discount_list_id"`
 	Discount         int16 `json:"discount"`
 	ProductVariantID int64 `json:"product_variant_id"`
+}
+
+type EmailReport struct {
+	ID            int64         `json:"id"`
+	CreatedAt     time.Time     `json:"created_at"`
+	SentBy        string        `json:"sent_by"`
+	Scope         string        `json:"scope"`
+	FromDay       sql.NullTime  `json:"from_day"`
+	ToDay         sql.NullTime  `json:"to_day"`
+	BranchID      sql.NullInt64 `json:"branch_id"`
+	BranchShiftID sql.NullInt64 `json:"branch_shift_id"`
+	Label         string        `json:"label"`
+	Recipients    string        `json:"recipients"`
+	Subject       string        `json:"subject"`
+	Filename      string        `json:"filename"`
+	InvoiceCount  int32         `json:"invoice_count"`
+	TotalCents    int64         `json:"total_cents"`
+	Status        string        `json:"status"`
+	Error         string        `json:"error"`
+	ProviderID    string        `json:"provider_id"`
 }
 
 type Employee struct {

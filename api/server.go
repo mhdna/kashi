@@ -193,6 +193,12 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/app_settings", server.updateAppSettings)
 	authRoutes.PUT("/app_settings/product_autofill_rules", server.setProductAutofillRules)
 
+	authRoutes.GET("/email_settings", server.getEmailSettings)
+	authRoutes.PUT("/email_settings", server.updateEmailSettings)
+	authRoutes.GET("/email_reports", server.listEmailReports)
+	authRoutes.POST("/email_reports", server.sendEmailReport)
+	authRoutes.GET("/email_reports/preview", server.previewEmailReport)
+	authRoutes.GET("/email_reports/shifts", server.listEmailReportShifts)
 	authRoutes.GET("/whatsapp_settings", server.getWhatsAppSettings)
 	authRoutes.PUT("/whatsapp_settings", server.updateWhatsAppSettings)
 	authRoutes.GET("/whatsapp/rules", server.listWhatsAppRules)
