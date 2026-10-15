@@ -3,6 +3,7 @@ package api
 import (
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -28,16 +29,23 @@ func (server *Server) writeJSON(ctx *gin.Context, status int, data envelope) {
 // records that anywhere today.
 func (server *Server) writeError(ctx *gin.Context, status int, err error) {
 	if status >= http.StatusInternalServerError {
-		log.Printf("error: %v %v: %v", ctx.Request.Method, ctx.Request.URL.Path, err)
+		log.Printf("error: %v %v: %v", ctx.Request.Method, logSafe(ctx.Request.URL.Path), err)
 	}
 	server.writeJSON(ctx, status, envelope{"error": err.Error()})
+}
+
+// logSafe escapes line breaks in request-derived text so it can't forge
+// extra log lines.
+func logSafe(s string) string {
+	s = strings.ReplaceAll(s, "\n", `\n`)
+	return strings.ReplaceAll(s, "\r", `\r`)
 }
 
 // abortError is writeError for middleware: it also stops the handler chain,
 // the same way ctx.AbortWithStatusJSON does.
 func (server *Server) abortError(ctx *gin.Context, status int, err error) {
 	if status >= http.StatusInternalServerError {
-		log.Printf("error: %v %v: %v", ctx.Request.Method, ctx.Request.URL.Path, err)
+		log.Printf("error: %v %v: %v", ctx.Request.Method, logSafe(ctx.Request.URL.Path), err)
 	}
 	ctx.AbortWithStatusJSON(status, envelope{"error": err.Error()})
 }

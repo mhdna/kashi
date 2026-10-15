@@ -153,7 +153,7 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 
 	wamid, err := whatsAppSendTemplate(phoneNumberID, token, to, decision.TemplateName, decision.TemplateLang, components)
 	if err != nil {
-		log.Printf("whatsapp thank-you: send failed for invoice %s: %v", req.InvoiceCode, err)
+		log.Printf("whatsapp thank-you: send failed for invoice %s: %v", logSafe(req.InvoiceCode), err)
 		server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, err.Error())
 		return
 	}
@@ -170,7 +170,7 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 func (server *Server) logWhatsAppMessage(ctx *gin.Context, entry db.CreateWhatsAppMessageParams, status, reason string) {
 	entry.Status, entry.Reason = status, reason
 	if _, err := server.store.CreateWhatsAppMessage(ctx, entry); err != nil {
-		log.Printf("whatsapp: log message for invoice %s: %v", entry.InvoiceCode, err)
+		log.Printf("whatsapp: log message for invoice %s: %v", logSafe(entry.InvoiceCode), err)
 	} else {
 		server.adminHub.broadcastAll(adminWSMessage{Type: "whatsapp_message", BranchID: entry.BranchID.Int64})
 	}

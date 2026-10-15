@@ -39,7 +39,7 @@ func (server *Server) stageBranchSyncConflict(ctx *gin.Context, branchID int64, 
 		return false
 	}
 	if err != nil {
-		log.Printf("stage branch sync conflict (branch %d, %s %s): %v", branchID, entity, ref, err)
+		log.Printf("stage branch sync conflict (branch %d, %s %s): %v", branchID, logSafe(entity), logSafe(ref), err)
 		return false
 	}
 	server.adminHub.broadcastAll(adminWSMessage{

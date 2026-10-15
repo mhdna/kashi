@@ -145,13 +145,23 @@ func (server *Server) createAppRelease(ctx *gin.Context) {
 	// A directory of its own per upload, so a rejected duplicate never
 	// overwrites the file of the release it duplicates.
 	relDir := filepath.Join(flavor, version, uuid.NewString())
-	dir := filepath.Join(server.appReleaseStorageDir(), relDir)
+	dir, err := pathWithin(server.appReleaseStorageDir(), relDir)
+	if err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	fileName := appReleaseFileName(fileHeader.Filename)
-	sum, err := saveUploadedFile(fileHeader, filepath.Join(dir, fileName))
+	dest, err := pathWithin(dir, fileName)
+	if err != nil {
+		os.RemoveAll(dir)
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	sum, err := saveUploadedFile(fileHeader, dest)
 	if err != nil {
 		os.RemoveAll(dir)
 		server.writeError(ctx, http.StatusInternalServerError, err)
@@ -209,6 +219,18 @@ func appReleaseFileName(name string) string {
 		return "Kashi-Cloud.exe"
 	}
 	return clean
+}
+
+// pathWithin joins rel onto base and refuses any result that escapes base.
+// The callers already validate every part, but the upload path is built
+// from request data, so check the final path too.
+func pathWithin(base, rel string) (string, error) {
+	base = filepath.Clean(base)
+	joined := filepath.Clean(filepath.Join(base, rel))
+	if !strings.HasPrefix(joined, base+string(filepath.Separator)) {
+		return "", fmt.Errorf("invalid path %q", rel)
+	}
+	return joined, nil
 }
 
 // saveUploadedFile copies the upload to dest and returns its hex SHA-256.
