@@ -78,10 +78,10 @@ live at `cloud.example.com`.
 
 ```
  Branch tills (kashi-pos, offline-first)          Staff browsers
-        │  HTTPS + WebSocket, per-register key            │
-        ▼                                                  ▼
+        │  HTTPS + WebSocket, per-register key           │
+        ▼                                                ▼
  ┌──────────────────────────── Caddy (cloud.example.com) ─────────────────┐
- │  /api/*  → Go API on :8090          /*  → built Vue app (ui/dist)       │
+ │  /api/*  → Go API on :8090          /*  → built Vue app (ui/dist)      │
  └────────────────────────────────────────────────────────────────────────┘
         │
         ▼
