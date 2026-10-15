@@ -29,7 +29,7 @@ func (server *Server) writeJSON(ctx *gin.Context, status int, data envelope) {
 // records that anywhere today.
 func (server *Server) writeError(ctx *gin.Context, status int, err error) {
 	if status >= http.StatusInternalServerError {
-		log.Printf("error: %v %v: %v", ctx.Request.Method, logSafe(ctx.Request.URL.Path), err)
+		log.Printf("error: %v %v: %v", logSafe(ctx.Request.Method), logSafe(ctx.Request.URL.Path), logSafe(err.Error()))
 	}
 	server.writeJSON(ctx, status, envelope{"error": err.Error()})
 }
@@ -45,7 +45,7 @@ func logSafe(s string) string {
 // the same way ctx.AbortWithStatusJSON does.
 func (server *Server) abortError(ctx *gin.Context, status int, err error) {
 	if status >= http.StatusInternalServerError {
-		log.Printf("error: %v %v: %v", ctx.Request.Method, logSafe(ctx.Request.URL.Path), err)
+		log.Printf("error: %v %v: %v", logSafe(ctx.Request.Method), logSafe(ctx.Request.URL.Path), logSafe(err.Error()))
 	}
 	ctx.AbortWithStatusJSON(status, envelope{"error": err.Error()})
 }

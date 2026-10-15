@@ -143,25 +143,18 @@ func (server *Server) createAppRelease(ctx *gin.Context) {
 	}
 
 	// A directory of its own per upload, so a rejected duplicate never
-	// overwrites the file of the release it duplicates.
-	relDir := filepath.Join(flavor, version, uuid.NewString())
-	dir, err := pathWithin(server.appReleaseStorageDir(), relDir)
-	if err != nil {
-		server.writeError(ctx, http.StatusBadRequest, err)
-		return
-	}
+	// overwrites the file of the release it duplicates. Nothing from the
+	// request goes into the path: the till's download is named after
+	// FileName, not the file on disk.
+	relDir := uuid.NewString()
+	relPath := filepath.Join(relDir, appReleaseStoredName)
+	dir := filepath.Join(server.appReleaseStorageDir(), relDir)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	fileName := appReleaseFileName(fileHeader.Filename)
-	dest, err := pathWithin(dir, fileName)
-	if err != nil {
-		os.RemoveAll(dir)
-		server.writeError(ctx, http.StatusBadRequest, err)
-		return
-	}
-	sum, err := saveUploadedFile(fileHeader, dest)
+	sum, err := saveUploadedFile(fileHeader, filepath.Join(server.appReleaseStorageDir(), relPath))
 	if err != nil {
 		os.RemoveAll(dir)
 		server.writeError(ctx, http.StatusInternalServerError, err)
@@ -183,7 +176,7 @@ func (server *Server) createAppRelease(ctx *gin.Context) {
 		Version:    version,
 		Flavor:     flavor,
 		FileName:   fileName,
-		FilePath:   filepath.Join(relDir, fileName),
+		FilePath:   relPath,
 		SizeBytes:  fileHeader.Size,
 		Sha256:     sum,
 		Signature:  signature,
@@ -204,6 +197,10 @@ func (server *Server) createAppRelease(ctx *gin.Context) {
 	server.writeJSON(ctx, http.StatusCreated, envelope{"release": newAppReleaseResponse(release)})
 }
 
+// appReleaseStoredName is what every release file is called on disk, in a
+// directory of its own.
+const appReleaseStoredName = "release"
+
 // appReleaseFileName keeps the uploaded name (it's what a till's download
 // is called) but only its base name, with anything unusual replaced.
 func appReleaseFileName(name string) string {
@@ -219,18 +216,6 @@ func appReleaseFileName(name string) string {
 		return "Kashi-Cloud.exe"
 	}
 	return clean
-}
-
-// pathWithin joins rel onto base and refuses any result that escapes base.
-// The callers already validate every part, but the upload path is built
-// from request data, so check the final path too.
-func pathWithin(base, rel string) (string, error) {
-	base = filepath.Clean(base)
-	joined := filepath.Clean(filepath.Join(base, rel))
-	if !strings.HasPrefix(joined, base+string(filepath.Separator)) {
-		return "", fmt.Errorf("invalid path %q", rel)
-	}
-	return joined, nil
 }
 
 // saveUploadedFile copies the upload to dest and returns its hex SHA-256.
