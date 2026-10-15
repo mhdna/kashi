@@ -35,11 +35,15 @@ jobs:
         # db/mock pulls in encoding/json/jsontext, on by default from 1.27
         go-version: '1.27.x'
 
-    - name: Install migrate
-      run: go install -tags postgres github.com/golang-migrate/migrate/v4/cmd/migrate@v4.20.1
-
+    # The up migrations, in order, straight through psql (preinstalled on the
+    # runner); the tests only need the schema, not migrate's bookkeeping.
     - name: Run migrations
-      run: migrate -path ./db/migrations -database "postgresql://root:secret@localhost:5433/kashi?sslmode=disable" up
+      env:
+        PGPASSWORD: secret
+      run: |
+        for f in db/migrations/*.up.sql; do
+          psql -v ON_ERROR_STOP=1 -q -h localhost -p 5433 -U root -d kashi -f "$f"
+        done
 
     # app.env is gitignored; the example has the CI database settings.
     - name: Config
