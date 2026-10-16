@@ -54,8 +54,8 @@ const (
 // *bold* is WhatsApp's own formatting; a line whose placeholder has nothing
 // to fill ({instagram} not set) is left out.
 const (
-	defaultWhatsAppPollMessage = "Hi {name},\n\nThank you for shopping with us today 🤍\n\nHere are the details of your purchase:\n🧾 Receipt number: *{invoice}*\n📅 Date: {date}\n💳 Total paid: *{total}*\n\nPlease keep this message: you'll need the receipt number for any exchange or return.\n\n📸 See our new arrivals on Instagram: {instagram}"
-	defaultWhatsAppLinkMessage = "Hi {name},\n\nThank you for shopping with us today 🤍\n\nHere are the details of your purchase:\n🧾 Receipt number: *{invoice}*\n📅 Date: {date}\n💳 Total paid: *{total}*\n\nPlease keep this message: you'll need the receipt number for any exchange or return.\n\nWe'd love to hear about your visit. It only takes a moment on Google:\n{review}\n\n📸 See our new arrivals on Instagram: {instagram}"
+	defaultWhatsAppPollMessage = "Hi {name},\n\nThank you for shopping with us today 🤍\n\nHere are the details of your purchase:\n🧾 Receipt number:\n*{invoice}*\n📅 Date: {date}\n💳 Total paid: *{total}*\n\nPlease keep this message: you'll need the receipt number for any exchange or return.\n\n📸 See our new arrivals on Instagram: {instagram}"
+	defaultWhatsAppLinkMessage = "Hi {name},\n\nThank you for shopping with us today 🤍\n\nHere are the details of your purchase:\n🧾 Receipt number:\n*{invoice}*\n📅 Date: {date}\n💳 Total paid: *{total}*\n\nPlease keep this message: you'll need the receipt number for any exchange or return.\n\nWe'd love to hear about your visit. It only takes a moment on Google:\n{review}\n\n📸 See our new arrivals on Instagram: {instagram}"
 )
 
 // whatsAppBridgeMessageFor is the message for the feedback mode: the saved
