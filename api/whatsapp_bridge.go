@@ -49,11 +49,11 @@ const (
 )
 
 // The messages used until the WhatsApp page's Sending tab sets them, one per
-// feedback mode. The poll's message ends pointing at the poll that follows.
+// feedback mode. In poll mode the poll's question follows the message.
 // *bold* is WhatsApp's own formatting; a line whose placeholder has nothing
 // to fill ({instagram} not set) is left out.
 const (
-	defaultWhatsAppPollMessage = "Hi {name},\n\nThank you for shopping with us 🤍\n\n🧾 {invoice} · {date}\n*Total: {total}*\n\n📸 New arrivals on Instagram: {instagram}\n\nHow was your visit? Just tap a rating below 👇"
+	defaultWhatsAppPollMessage = "Hi {name},\n\nThank you for shopping with us 🤍\n\n🧾 {invoice} · {date}\n*Total: {total}*\n\n📸 New arrivals on Instagram: {instagram}"
 	defaultWhatsAppLinkMessage = "Hi {name},\n\nThank you for shopping with us 🤍\n\n🧾 {invoice} · {date}\n*Total: {total}*\n\nWe'd love to hear your feedback on Google:\n{review}\n\n📸 New arrivals on Instagram: {instagram}"
 )
 
@@ -391,15 +391,15 @@ func (server *Server) updateWhatsAppSender(ctx *gin.Context) {
 			return
 		}
 	}
-	// The poll's options: exactly five, best first, or none for the defaults.
+	// The poll's options: 3 to 5, best first, or none for the defaults.
 	var lines []string
 	for _, line := range strings.Split(req.PollOptions, "\n") {
 		if line = strings.TrimSpace(line); line != "" {
 			lines = append(lines, line)
 		}
 	}
-	if len(lines) != 0 && len(lines) != 5 {
-		server.writeError(ctx, http.StatusBadRequest, errors.New("the poll needs exactly 5 options, one per line, best first"))
+	if len(lines) != 0 && (len(lines) < 3 || len(lines) > 5) {
+		server.writeError(ctx, http.StatusBadRequest, errors.New("the poll needs 3 to 5 options, one per line, best first"))
 		return
 	}
 	pollOptions := strings.Join(lines, "\n")

@@ -24,11 +24,11 @@ func TestWhatsAppBridgeText(t *testing.T) {
 	require.Equal(t, "Hi Sara,\n\nThank you for shopping with us 🤍\n\n🧾 SA/CT/2026/00482 · 16/10/2026\n*Total: $156.25*\n\nWe'd love to hear your feedback on Google:\nhttps://grandbz.com/review/abcdEFGH",
 		whatsAppBridgeText(defaultWhatsAppLinkMessage, values))
 
-	// Poll mode: no review link, the Instagram line stays, the poll's lead-in ends it.
+	// Poll mode: no review link, the Instagram line stays and ends it.
 	values["review"], values["instagram"] = "", "https://instagram.com/grandbazaar"
 	got := whatsAppBridgeText(defaultWhatsAppPollMessage, values)
 	require.Contains(t, got, "📸 New arrivals on Instagram: https://instagram.com/grandbazaar")
-	require.True(t, strings.HasSuffix(got, "Just tap a rating below 👇"))
+	require.True(t, strings.HasSuffix(got, "📸 New arrivals on Instagram: https://instagram.com/grandbazaar"))
 	require.NotContains(t, got, "{")
 
 	// A placeholder kashi doesn't know stays as typed.

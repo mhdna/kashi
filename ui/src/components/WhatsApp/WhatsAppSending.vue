@@ -55,6 +55,7 @@
               <v-btn
                 v-if="canEdit"
                 color="primary"
+                :disabled="!hasSavedKey"
                 prepend-icon="mdi-plus"
                 size="small"
                 text="Add number"
@@ -63,7 +64,17 @@
               />
             </div>
             <v-alert
-              v-if="bridgeError"
+              v-if="!hasSavedKey"
+              class="my-2"
+              density="compact"
+              type="info"
+              variant="tonal"
+            >
+              First paste the bridge's API key under <strong>Bridge</strong> at the bottom of this tab and
+              <strong>Save</strong>; then numbers can be added.
+            </v-alert>
+            <v-alert
+              v-else-if="bridgeError"
               class="my-2"
               density="compact"
               type="warning"
@@ -212,11 +223,11 @@
                     auto-grow
                     density="compact"
                     :disabled="!canEdit"
-                    hint="Five lines, best first: the first counts as 5 stars, the last as 1"
+                    hint="3 to 5 lines, best first: the first counts as 5 stars, the last as 1"
                     label="Poll options"
                     persistent-hint
                     :placeholder="defaultPollOptions"
-                    rows="5"
+                    rows="3"
                     variant="outlined"
                   />
                 </v-col>
@@ -336,6 +347,15 @@
             variant="outlined"
             @keyup.enter="add"
           />
+          <v-alert
+            v-if="addError"
+            class="mt-3"
+            density="compact"
+            type="error"
+            variant="tonal"
+          >
+            {{ addError }}
+          </v-alert>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -420,6 +440,8 @@
   const showKey = ref(false)
   const saving = ref(false)
 
+  // Numbers live on the bridge, which only answers with its key.
+  const hasSavedKey = computed(() => Boolean(saved.value?.whatsapp_bridge_key?.trim()))
   const settingsOff = computed(() => props.settings && !props.settings.whatsapp_enabled)
   const dirty = computed(() => JSON.stringify(draft.value) !== JSON.stringify(saved.value))
   const numberOptions = computed(() => [
@@ -500,7 +522,7 @@
   const pollQuestion = computed(() => draft.value?.whatsapp_poll_question?.trim() || defaultPollQuestion.value)
   const pollOptions = computed(() => {
     const lines = (draft.value?.whatsapp_poll_options || '').split('\n').map(l => l.trim()).filter(Boolean)
-    return lines.length === 5 ? lines : defaultPollOptions.value.split('\n')
+    return lines.length >= 3 && lines.length <= 5 ? lines : defaultPollOptions.value.split('\n')
   })
   const previewHTML = computed(() => {
     const message = pollMode.value
@@ -518,17 +540,20 @@
   const adding = ref(false)
   function openAdd () {
     addLabel.value = ''
+    addError.value = ''
     addOpen.value = true
   }
+  const addError = ref('')
   async function add () {
     adding.value = true
+    addError.value = ''
     try {
       const { number, qr } = await addNumber(addLabel.value.trim())
       addOpen.value = false
       await reloadNumbers()
       showQR(number, qr)
     } catch (error) {
-      notify.error(error.message)
+      addError.value = error.message
     } finally {
       adding.value = false
     }

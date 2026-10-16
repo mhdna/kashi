@@ -73,16 +73,16 @@
                   />
                 </div>
                 <div class="flex-grow-1">
-                  <div v-for="n in [5, 4, 3, 2, 1]" :key="n" class="d-flex align-center ga-2">
-                    <span class="text-caption" style="width: 14px">{{ n }}</span>
+                  <div v-for="o in ratingOptions" :key="o.label" class="d-flex align-center ga-2">
+                    <span class="text-caption text-no-wrap" style="min-width: 96px">{{ o.label }}</span>
                     <v-progress-linear
-                      :color="n >= 4 ? 'success' : n === 3 ? 'amber' : 'error'"
+                      :color="o.stars >= 4 ? 'success' : o.stars === 3 ? 'amber' : 'error'"
                       height="8"
                       :max="ratings.totals.answers || 1"
-                      :model-value="ratings.totals[`stars${n}`]"
+                      :model-value="ratings.totals[`stars${o.stars}`]"
                       rounded
                     />
-                    <span class="text-caption text-end" style="width: 28px">{{ ratings.totals[`stars${n}`] }}</span>
+                    <span class="text-caption text-end" style="width: 28px">{{ ratings.totals[`stars${o.stars}`] }}</span>
                   </div>
                 </div>
               </div>
@@ -100,7 +100,7 @@
           <v-col cols="12" md="6">
             <v-card class="chart-card" variant="flat">
               <div class="chart-card__title">To call back</div>
-              <div class="chart-card__subtitle">Clients who answered 1 or 2 stars.</div>
+              <div class="chart-card__subtitle">Clients who gave the lowest answers.</div>
               <div v-if="ratings.low.length === 0" class="text-body-2 text-medium-emphasis py-6 text-center">
                 Nobody rated their visit 1 or 2 stars in this range.
               </div>
@@ -111,7 +111,7 @@
                       <div>{{ r.client_name || '—' }}</div>
                       <div class="text-caption text-medium-emphasis">+{{ r.client_phone }}</div>
                     </td>
-                    <td class="text-error text-no-wrap">{{ '★'.repeat(r.poll_rating?.Int16 ?? r.poll_rating) }}</td>
+                    <td class="text-error text-no-wrap">{{ r.poll_answer || '★'.repeat(r.poll_rating?.Int16 ?? r.poll_rating) }}</td>
                     <td>
                       <div class="text-caption">{{ r.invoice_code }}</div>
                       <div class="text-caption text-medium-emphasis">{{ r.branch_name }}</div>
@@ -405,6 +405,10 @@
   }
 
   const ratings = computed(() => stats.value?.ratings ?? null)
+  // The poll's answers as bars, best first; stars as a fallback.
+  const ratingOptions = computed(() => ratings.value?.options?.length
+    ? ratings.value.options
+    : [5, 4, 3, 2, 1].map(n => ({ label: '★'.repeat(n), stars: n })))
 
   // ---- KPIs ----------------------------------------------------------------
   const kpis = computed(() => {

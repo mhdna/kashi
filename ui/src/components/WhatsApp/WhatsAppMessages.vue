@@ -82,10 +82,10 @@
           class="ms-1"
           :color="item.poll_rating.Int16 >= 4 ? 'success' : item.poll_rating.Int16 === 3 ? 'amber-darken-2' : 'error'"
           size="x-small"
-          :title="item.poll_answer"
+          :title="`${item.poll_rating.Int16} of 5`"
           variant="tonal"
         >
-          {{ '★'.repeat(item.poll_rating.Int16) }}
+          {{ item.poll_answer || '★'.repeat(item.poll_rating.Int16) }}
         </v-chip>
       </template>
       <template #item.rule="{ item }">
