@@ -17,6 +17,7 @@
 
 <script setup>
   import { computed } from 'vue'
+  import { ymd } from '@/utils/dates'
 
   const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -39,7 +40,7 @@
     for (const t = new Date(start); t < end; t.setDate(t.getDate() + 1)) {
       if (t > start && mondayIndex(t) === 0) week++
       rows.push({
-        date: t.toISOString().slice(0, 10),
+        date: ymd(t),
         weekday: weekdays[mondayIndex(t)],
         week,
         value: Math.floor(Math.random() * 10_000),

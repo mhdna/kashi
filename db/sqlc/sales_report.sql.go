@@ -141,7 +141,8 @@ type ReportCostOfGoodsRow struct {
 // Sales reports over report_sale_invoices / report_sale_lines (migration
 // 000134): the Dashboard's cost of goods and the Sales Dashboard
 // (api/sales_dashboard.go). Ranges are half-open [date_from, date_to), days
-// are UTC calendar days like the rest of the dashboard.
+// are Beirut calendar days (businessZone in api/business_zone.go) like the
+// rest of the dashboard.
 // Cost of goods sold for the Dashboard, scoped like its other figures:
 // till sales (optionally one branch) and/or sales entered in kashi. Only
 // lines with a known cost count; costed_revenue is what those lines sold
@@ -161,7 +162,7 @@ func (q *Queries) ReportCostOfGoods(ctx context.Context, arg ReportCostOfGoodsPa
 
 const reportCostOfGoodsSeries = `-- name: ReportCostOfGoodsSeries :many
 SELECT
-  (occurred_at AT TIME ZONE 'UTC')::date AS day,
+  (occurred_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   COALESCE(SUM(quantity * unit_cost), 0)::bigint AS cogs
 FROM report_sale_lines
 WHERE occurred_at >= $1::timestamptz
@@ -221,7 +222,7 @@ func (q *Queries) ReportCostOfGoodsSeries(ctx context.Context, arg ReportCostOfG
 
 const reportDailyCosted = `-- name: ReportDailyCosted :many
 SELECT
-  (occurred_at AT TIME ZONE 'UTC')::date AS day,
+  (occurred_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   COALESCE(SUM(line_total), 0)::bigint AS costed_revenue,
   COALESCE(SUM(quantity * unit_cost), 0)::bigint AS cogs
 FROM report_sale_lines
@@ -270,7 +271,7 @@ func (q *Queries) ReportDailyCosted(ctx context.Context, arg ReportDailyCostedPa
 
 const reportDailySales = `-- name: ReportDailySales :many
 SELECT
-  (occurred_at AT TIME ZONE 'UTC')::date AS day,
+  (occurred_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   COALESCE(SUM(grand_total), 0)::bigint AS sales
 FROM report_sale_invoices
 WHERE occurred_at >= $1::timestamptz
@@ -459,7 +460,7 @@ func (q *Queries) ReportReceivables(ctx context.Context) (int64, error) {
 }
 
 const reportSaleYears = `-- name: ReportSaleYears :many
-SELECT DISTINCT EXTRACT(YEAR FROM occurred_at AT TIME ZONE 'UTC')::int AS year
+SELECT DISTINCT EXTRACT(YEAR FROM occurred_at AT TIME ZONE 'Asia/Beirut')::int AS year
 FROM report_sale_invoices
 ORDER BY year DESC
 `

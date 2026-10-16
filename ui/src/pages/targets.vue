@@ -138,6 +138,7 @@
   import { useBranches } from '@/composables/useBranches'
   import { useBranchTargets } from '@/composables/useBranchTargets'
   import { useNotify } from '@/composables/useNotify'
+  import { ymd } from '@/utils/dates'
 
   const { branches, fetchBranches } = useBranches()
   const { listBranchTargets } = useBranchTargets()
@@ -159,7 +160,7 @@
     in_progress: { label: 'In progress', color: 'info' },
   }
 
-  const todayKey = new Date().toISOString().slice(0, 10)
+  const todayKey = ymd(new Date())
 
   function monthKey (value) {
     return value.slice(0, 7)

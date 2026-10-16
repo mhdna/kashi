@@ -133,7 +133,7 @@ func (q *Queries) ListBranchProductRevenue(ctx context.Context, arg ListBranchPr
 
 const listBranchProductRevenueDaily = `-- name: ListBranchProductRevenueDaily :many
 SELECT
-  (sm.created_at AT TIME ZONE 'UTC')::date AS day,
+  (sm.created_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   SUM(-sm.quantity * COALESCE(vdp.price, 0))::bigint AS revenue,
   SUM(-sm.quantity)::bigint AS quantity
 FROM stock_movements sm
@@ -389,7 +389,7 @@ func (q *Queries) ListProductRevenue(ctx context.Context, arg ListProductRevenue
 
 const listProductRevenueDaily = `-- name: ListProductRevenueDaily :many
 SELECT
-  (i.created_at AT TIME ZONE 'UTC')::date AS day,
+  (i.created_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   SUM(ip.line_total)::bigint AS revenue,
   SUM(ip.quantity)::bigint AS quantity
 FROM invoice_products ip

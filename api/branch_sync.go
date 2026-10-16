@@ -15,7 +15,9 @@ import (
 var errRelatedClientRefRequired = errors.New("related_client_ref is required for a return or exchange invoice")
 
 // branchHealth lets a branch confirm its API key works and see how kashi
-// identifies it, before wiring up anything that actually moves data.
+// identifies it, before wiring up anything that actually moves data. It also
+// carries kashi's clock and the branch's timezone: the till keeps its days
+// in that zone and warns when the PC's own clock is off (kashi-pos clock.go).
 func (server *Server) branchHealth(ctx *gin.Context) {
 	identity, err := server.tillIdentity(ctx)
 	if err != nil {
@@ -27,6 +29,8 @@ func (server *Server) branchHealth(ctx *gin.Context) {
 		"branch_code":   identity.BranchCode,
 		"register_id":   identity.RegisterID,
 		"register_code": identity.RegisterCode,
+		"timezone":      identity.Timezone,
+		"server_time":   time.Now().UTC(),
 	})
 }
 
@@ -35,6 +39,7 @@ type tillIdentity struct {
 	BranchCode   string
 	RegisterID   int64
 	RegisterCode string
+	Timezone     string
 }
 
 // tillIdentity resolves the authenticated register and its branch.
@@ -52,6 +57,7 @@ func (server *Server) tillIdentity(ctx *gin.Context) (tillIdentity, error) {
 		BranchCode:   branch.Code,
 		RegisterID:   register.ID,
 		RegisterCode: register.Code,
+		Timezone:     branch.Timezone,
 	}, nil
 }
 
@@ -166,6 +172,10 @@ type branchInvoiceRequest struct {
 	// up by mistake): both get cancelled_at, so sales statistics skip them --
 	// see applyBranchInvoiceCancellation. Only meaningful on a return.
 	Cancellation bool `json:"cancellation"`
+	// LbpTotal/LbpRate are the LBP total the till printed and the LBP per
+	// USD it used, stamped at checkout. Older kashi-pos builds omit them.
+	LbpTotal *int64 `json:"lbp_total"`
+	LbpRate  *int64 `json:"lbp_rate"`
 }
 
 // applyBranchInvoiceCancellation sets cancelled_at for a cancellation return
@@ -298,6 +308,8 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 			ClientUid:              clientUID,
 			RegisterID:             registerID,
 			SalespersonID:          salespersonID,
+			LbpTotal:               nullInt64Ptr(req.LbpTotal),
+			LbpRate:                nullInt64Ptr(req.LbpRate),
 		},
 		Items:    items,
 		Payments: payments,
@@ -443,4 +455,13 @@ func isUniqueViolation(err error) bool {
 func isForeignKeyViolation(err error) bool {
 	pqErr, ok := err.(*pq.Error)
 	return ok && pqErr.Code.Name() == "foreign_key_violation"
+}
+
+// nullInt64Ptr is an optional JSON number as a nullable column: nil (the
+// field was omitted) is NULL.
+func nullInt64Ptr(value *int64) sql.NullInt64 {
+	if value == nil {
+		return sql.NullInt64{}
+	}
+	return sql.NullInt64{Int64: *value, Valid: true}
 }

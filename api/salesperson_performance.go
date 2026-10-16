@@ -31,14 +31,14 @@ func (r salespersonPerformanceRequest) bounds() (time.Time, time.Time, error) {
 	from := time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
 	to := time.Now().AddDate(1, 0, 0)
 	if r.From != "" {
-		t, err := time.ParseInLocation(time.DateOnly, r.From, whatsAppDayZone)
+		t, err := time.ParseInLocation(time.DateOnly, r.From, businessZone)
 		if err != nil {
 			return from, to, errors.New("from must be YYYY-MM-DD")
 		}
 		from = t
 	}
 	if r.To != "" {
-		t, err := time.ParseInLocation(time.DateOnly, r.To, whatsAppDayZone)
+		t, err := time.ParseInLocation(time.DateOnly, r.To, businessZone)
 		if err != nil {
 			return from, to, errors.New("to must be YYYY-MM-DD")
 		}

@@ -284,6 +284,7 @@
   import { useBranches } from '@/composables/useBranches'
   import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
+  import { ymd } from '@/utils/dates'
 
   const { branches, fetchBranches } = useBranches()
   const invoices = ref([])
@@ -331,7 +332,7 @@
 
   function dateKey (value) {
     const date = new Date(value)
-    return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10)
+    return Number.isNaN(date.getTime()) ? '' : ymd(date)
   }
 
   const formattedMonth = computed(() => new Date(`${month.value}-01T00:00:00`).toLocaleDateString(undefined, {

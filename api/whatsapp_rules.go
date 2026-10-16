@@ -459,15 +459,6 @@ func (server *Server) setWhatsAppCost(ctx *gin.Context) {
 
 // ---- log & stats ---------------------------------------------------------------
 
-// whatsAppDayZone is where the page's days start and end.
-var whatsAppDayZone = func() *time.Location {
-	loc, err := time.LoadLocation("Asia/Beirut")
-	if err != nil {
-		return time.UTC
-	}
-	return loc
-}()
-
 type whatsAppRangeRequest struct {
 	From     string `form:"from" binding:"required"`
 	To       string `form:"to" binding:"required"`
@@ -476,11 +467,11 @@ type whatsAppRangeRequest struct {
 
 // bounds turns the inclusive From..To days into [fromAt, toAt).
 func (r whatsAppRangeRequest) bounds() (time.Time, time.Time, error) {
-	from, err := time.ParseInLocation(time.DateOnly, r.From, whatsAppDayZone)
+	from, err := time.ParseInLocation(time.DateOnly, r.From, businessZone)
 	if err != nil {
 		return time.Time{}, time.Time{}, fmt.Errorf("from: %w", err)
 	}
-	to, err := time.ParseInLocation(time.DateOnly, r.To, whatsAppDayZone)
+	to, err := time.ParseInLocation(time.DateOnly, r.To, businessZone)
 	if err != nil {
 		return time.Time{}, time.Time{}, fmt.Errorf("to: %w", err)
 	}

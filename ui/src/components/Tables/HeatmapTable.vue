@@ -25,11 +25,13 @@
                 'cell-flash': isHighlighted(mi, d),
                 'cell-today': isToday(mi, d),
                 'cell-link': isOpenable(mi, d),
+                'cell-empty': isOpenable(mi, d) && !get(mi, d),
               }"
-              :style="d <= daysInMonth[mi] ? cellStyle(get(mi, d)) : {}"
+              :style="isOpenable(mi, d) && get(mi, d) ? cellStyle(get(mi, d)) : {}"
+              :title="isOpenable(mi, d) && !loading ? exact(get(mi, d)) : undefined"
               @click="openDay(mi, d)"
             >
-              {{ d <= daysInMonth[mi] && !loading ? format(get(mi, d)) : "" }}
+              {{ cellText(mi, d) }}
             </td>
           </tr>
         </tbody>
@@ -40,6 +42,7 @@
               v-for="(month, mi) in months"
               :key="month"
               class="sticky-foot"
+              :title="loading ? undefined : exact(monthTotals[mi])"
             >
               {{ loading ? "" : format(monthTotals[mi]) }}
             </td>
@@ -250,7 +253,18 @@
   const min = computed(() => Math.min(...allValues.value))
   const max = computed(() => Math.max(...allValues.value))
 
-  const format = v => '$' + v.toLocaleString()
+  // Whole dollars in the grid so every column lines up; the exact amount is
+  // the cell's tooltip.
+  const format = v => '$' + Math.round(v).toLocaleString()
+  const exact = v => '$' + v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+  // Days that haven't happened (or don't exist) stay blank; a past day
+  // without sales is a faint dash rather than "$0".
+  function cellText (mi, day) {
+    if (loading.value || !isOpenable(mi, day)) return ''
+    const v = get(mi, day)
+    return v ? format(v) : '–'
+  }
 
   function cellStyle (v) {
     const t = (v - min.value) / (max.value - min.value || 1)
@@ -289,13 +303,18 @@
   width: 100%;
   height: 100%;
   overflow: auto;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
 
+/* Separate (zero-spaced) borders, not collapsed: a collapsed border isn't
+   painted with its sticky cell, so the scrolled heat colours showed through
+   the pinned day column's row lines. */
 .heatmap-table {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   width: 100%;
   font-size: 13px;
+  font-variant-numeric: tabular-nums;
   /* Fill the space so the totals sit on the bottom edge: the day rows
      share whatever height is spare. Capped (~48px a day) so a very tall
      screen doesn't get giant rows; phones keep compact rows and scroll
@@ -315,7 +334,11 @@
   padding: 6px 12px;
   text-align: right;
   white-space: nowrap;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: thin solid rgba(var(--v-border-color), calc(var(--v-border-opacity) * 0.6));
+}
+
+.cell-empty {
+  color: rgba(var(--v-theme-on-surface), 0.3);
 }
 
 .cell-link {
@@ -350,6 +373,8 @@
   left: 0;
   text-align: left;
   background: rgb(var(--v-theme-surface));
+  /* A clean edge for the pinned column over whatever scrolls under it. */
+  box-shadow: inset -1px 0 0 rgba(var(--v-border-color), var(--v-border-opacity));
   z-index: 1;
 }
 
@@ -406,7 +431,7 @@
 .heatmap-table tfoot td {
   font-weight: 600;
   border-bottom: none;
-  border-top: 2px solid rgba(0, 0, 0, 0.12);
+  border-top: 2px solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
 
 .sticky-foot {

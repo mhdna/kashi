@@ -83,7 +83,8 @@ WHERE series_id = $1 AND is_active;
 SELECT COALESCE(SUM(grand_total), 0)::bigint AS total
 FROM branch_invoices
 WHERE branch_invoices.branch_id = sqlc.arg(branch_id)
-  AND (occurred_at AT TIME ZONE 'UTC')::date BETWEEN sqlc.arg(date_from) AND sqlc.arg(date_to)
+  AND (occurred_at AT TIME ZONE (SELECT tz.timezone FROM branches tz WHERE tz.id = branch_invoices.branch_id))::date
+      BETWEEN sqlc.arg(date_from)::date AND sqlc.arg(date_to)::date
   AND branch_invoices.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND branch_invoices.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   AND branch_invoices.cancelled_at IS NULL;
@@ -96,7 +97,8 @@ SELECT t.id,
   (SELECT COALESCE(SUM(bi.grand_total), 0)
      FROM branch_invoices bi
      WHERE bi.branch_id = t.branch_id
-       AND (bi.occurred_at AT TIME ZONE 'UTC')::date BETWEEN t.date_from AND t.date_to
+       AND (bi.occurred_at AT TIME ZONE (SELECT tz.timezone FROM branches tz WHERE tz.id = t.branch_id))::date
+           BETWEEN t.date_from AND t.date_to
        AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
        AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
        AND bi.cancelled_at IS NULL

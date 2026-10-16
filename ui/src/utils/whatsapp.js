@@ -1,8 +1,8 @@
 // Shared bits of the WhatsApp page (pages/whatsapp.vue, components/WhatsApp).
 
-export function ymd (d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
+import { ymd } from './dates'
+
+export { ymd } from './dates'
 
 export function addDays (d, n) {
   const out = new Date(d)

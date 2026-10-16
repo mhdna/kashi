@@ -2,42 +2,22 @@
   <div class="d-flex flex-column flex-grow-1" style="min-height: 0">
     <div class="d-flex align-center ga-3 px-3 pb-1">
       <YearStepper v-model="year" class="flex-shrink-0" />
-      <!-- Any number of branches; none picked means every branch. Phones get a
-           dropdown, since a row of chips wraps into several lines there. -->
-      <v-select
-        v-if="xs"
-        class="flex-grow-1"
-        clearable
-        density="compact"
-        hide-details
-        item-title="name"
-        item-value="id"
-        :items="reportBranches"
-        :model-value="selected"
-        multiple
-        persistent-placeholder
-        placeholder="All branches"
-        style="min-width: 0"
-        variant="outlined"
-        @update:model-value="ids => (selected = ids ?? [])"
-      >
-        <template #selection="{ item, index }">
-          <span v-if="index === 0" class="text-truncate">{{ item.title }}</span>
-          <span v-else-if="index === 1" class="text-medium-emphasis ms-1">+{{ selected.length - 1 }}</span>
-        </template>
-      </v-select>
+      <!-- Any number of branches; none picked means every branch. Phones get
+           the same chips on one line that scrolls sideways, rather than
+           wrapping into several. -->
       <v-chip-group
-        v-else
         v-model="branchIds"
-        class="flex-grow-1"
-        column
+        class="branch-chips flex-grow-1"
+        :column="!xs"
         multiple
+        :show-arrows="false"
       >
         <!-- A picked chip is filled in the primary colour; the rest stay
              outlined. -->
         <v-chip
           :color="isPicked(ALL) ? 'primary' : undefined"
           filter
+          :size="xs ? 'small' : undefined"
           :value="ALL"
           :variant="isPicked(ALL) ? 'flat' : 'outlined'"
         >
@@ -48,6 +28,7 @@
           :key="branch.id"
           :color="isPicked(branch.id) ? 'primary' : undefined"
           filter
+          :size="xs ? 'small' : undefined"
           :value="branch.id"
           :variant="isPicked(branch.id) ? 'flat' : 'outlined'"
         >
@@ -113,3 +94,11 @@
     router.replace({ query })
   })
 </script>
+
+<style scoped>
+/* Phones: one row of chips scrolled sideways, so the slide group needs to be
+   allowed to shrink next to the year stepper. */
+.branch-chips {
+  min-width: 0;
+}
+</style>

@@ -307,7 +307,7 @@ func (q *Queries) DashboardActivitiesList(ctx context.Context, arg DashboardActi
 
 const dashboardAdminExpenseSeries = `-- name: DashboardAdminExpenseSeries :many
 SELECT
-  (created_at AT TIME ZONE 'UTC')::date AS day,
+  (created_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   COALESCE(SUM(amount), 0)::bigint AS total
 FROM expenses
 WHERE created_at >= $1::timestamptz
@@ -389,7 +389,7 @@ func (q *Queries) DashboardAdminNewClients(ctx context.Context, arg DashboardAdm
 
 const dashboardAdminRevenueSeries = `-- name: DashboardAdminRevenueSeries :many
 SELECT
-  (i.created_at AT TIME ZONE 'UTC')::date AS day,
+  (i.created_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   COALESCE(SUM(i.grand_total), 0)::bigint AS total
 FROM invoices i
 JOIN sales_invoices si ON si.invoice_id = i.id
@@ -470,7 +470,7 @@ func (q *Queries) DashboardAdminSummary(ctx context.Context, arg DashboardAdminS
 
 const dashboardBranchExpenseSeries = `-- name: DashboardBranchExpenseSeries :many
 SELECT
-  (occurred_at AT TIME ZONE 'UTC')::date AS day,
+  (occurred_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   COALESCE(SUM(amount), 0)::bigint AS total
 FROM branch_expenses
 WHERE occurred_at >= $1::timestamptz
@@ -569,7 +569,7 @@ func (q *Queries) DashboardBranchNewClients(ctx context.Context, arg DashboardBr
 
 const dashboardBranchRevenueSeries = `-- name: DashboardBranchRevenueSeries :many
 SELECT
-  (occurred_at AT TIME ZONE 'UTC')::date AS day,
+  (occurred_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   COALESCE(SUM(grand_total), 0)::bigint AS total
 FROM branch_invoices
 WHERE occurred_at >= $1::timestamptz
@@ -816,7 +816,7 @@ func (q *Queries) DashboardExpensesList(ctx context.Context, arg DashboardExpens
 
 const dashboardPurchaseSeries = `-- name: DashboardPurchaseSeries :many
 SELECT
-  (p.purchased_at AT TIME ZONE 'UTC')::date AS day,
+  (p.purchased_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   COALESCE(SUM(pi.quantity * pi.unit_price), 0)::bigint AS total
 FROM purchases p
 JOIN purchase_items pi ON pi.purchase_id = p.id
@@ -1078,7 +1078,7 @@ SELECT
     SELECT SUM(bi.grand_total)
     FROM branch_invoices bi
     WHERE bi.branch_id = t.branch_id
-      AND (bi.occurred_at AT TIME ZONE 'UTC')::date BETWEEN t.date_from AND t.date_to
+      AND (bi.occurred_at AT TIME ZONE b.timezone)::date BETWEEN t.date_from AND t.date_to
       AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
       AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
       AND bi.cancelled_at IS NULL
