@@ -38,7 +38,11 @@ export function useBranchInvoices () {
   // product id -- kashi never reinterprets it). Omitted/empty returns
   // every line on the invoice at full quantity, same as before item-level
   // selection existed.
-  async function requestRemoteReturn (branchId, invoice, reason, items = []) {
+  //
+  // `replacements` makes it an exchange: { variant_id, quantity } lines from
+  // kashi's catalogue, which kashi rewrites into the till's own product keys
+  // before queueing (see withTillReplacements in api/branch_command.go).
+  async function requestRemoteReturn (branchId, invoice, reason, items = [], replacements = []) {
     const data = await requestJSON(`${API_BASE}/branches/${branchId}/commands`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -49,6 +53,7 @@ export function useBranchInvoices () {
           client_ref: invoice.client_ref,
           reason: reason || '',
           items,
+          replacements,
         },
       }),
     })

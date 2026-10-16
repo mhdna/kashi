@@ -50,8 +50,18 @@
           variant="outlined"
           @update:model-value="setBranch"
         />
+        <v-btn
+          v-if="auth.canEditPage('analytics', 'daily-income')"
+          prepend-icon="mdi-email-outline"
+          size="small"
+          text="Email"
+          variant="tonal"
+          @click="emailOpen = true"
+        />
       </div>
     </div>
+
+    <SendEmailReportDialog v-model="emailOpen" :branch-id="branchId" :day="day" />
 
     <v-alert v-if="error" class="mx-4 mb-2 flex-grow-0" type="error" variant="tonal">
       {{ error }}
@@ -195,6 +205,7 @@
   import { useDisplay, useTheme } from 'vuetify'
   import ListPanel from '@/components/Cards/ListPanel.vue'
   import MetricCard from '@/components/Cards/MetricCard.vue'
+  import SendEmailReportDialog from '@/components/Email/SendEmailReportDialog.vue'
   import { useBranchCommands } from '@/composables/useBranchCommands'
   import { useBranches } from '@/composables/useBranches'
   import { useDailyIncome } from '@/composables/useDailyIncome'
@@ -220,6 +231,7 @@
 
   const summary = ref(null)
   const lastWeek = ref(null)
+  const emailOpen = ref(false)
   const loading = ref(false)
   const error = ref('')
 

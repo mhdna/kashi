@@ -118,9 +118,10 @@ var accessSections = []accessSection{
 	{"calendar", "Calendar", "Calendar events", []accessPage{
 		{"calendar", "Calendar"},
 	}},
-	{"system", "System", "App settings, WhatsApp, audit log, dev logs and storage", []accessPage{
+	{"system", "System", "App settings, WhatsApp, emails, audit log, dev logs and storage", []accessPage{
 		{"settings", "App Settings & WhatsApp"},
 		{"whatsapp", "WhatsApp"},
+		{"emails", "Emails"},
 		{"audit-log", "Audit Log"},
 		{"logs", "Dev Logs"},
 		{"storage", "Storage"},
@@ -306,6 +307,12 @@ var routeRules = []routeRule{
 	rule("/whatsapp_settings", "system", "system"),
 	// The WhatsApp page: rules, message log and stats.
 	rule("/whatsapp", "system", "system"),
+	rule("/email_settings", "system", "system", "analytics"),
+	// Sending an invoice report is done from the Daily Income pages; its
+	// history is the Emails page under System.
+	rule("/email_reports", "analytics", "analytics", "system"),
+	// Scheduled reports send as whoever set them up could; same rights.
+	rule("/email_schedules", "analytics", "analytics", "system"),
 	rule("/audit_logs", "", "system"),
 	// Who did what in kashi (home page feed). Read-only; written by the
 	// activity middleware, never through this route.

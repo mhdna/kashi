@@ -2,7 +2,9 @@ export const navItems = [
   { title: 'Home', icon: 'mdi-home', to: '/' },
   { title: 'Daily Income', icon: 'mdi-chart-bar', to: '/daily-income' },
   { title: 'Invoices', icon: 'mdi-format-list-bulleted-square', to: '/invoices' },
+  { title: 'Shifts', icon: 'mdi-clock-outline', to: '/shifts' },
   { title: 'WhatsApp', icon: 'mdi-whatsapp', to: '/whatsapp' },
+  { title: 'Emails', icon: 'mdi-email-outline', to: '/emails' },
   {
     title: 'Analysis',
     icon: 'mdi-chart-bar',
@@ -36,7 +38,6 @@ export const navItems = [
         icon: 'mdi-account-multiple-check-outline',
         to: '/attendance',
       },
-      { title: 'Shifts', icon: 'mdi-clock-outline', to: '/shifts' },
       { title: 'Salesperson Performance', icon: 'mdi-account-cash', to: '/salesperson-performance' },
     ],
   },
