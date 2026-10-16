@@ -21,14 +21,16 @@ func TestWhatsAppBridgeText(t *testing.T) {
 		"review": "https://grandbz.com/review/abcdEFGH", "instagram": "",
 	}
 	// No Instagram link: its line, and the blank line it leaves, go.
-	require.Equal(t, "Hi Sara,\n\nThank you for shopping with us 🤍\n\n🧾 SA/CT/2026/00482 · 16/10/2026\n*Total: $156.25*\n\nWe'd love to hear your feedback on Google:\nhttps://grandbz.com/review/abcdEFGH",
-		whatsAppBridgeText(defaultWhatsAppLinkMessage, values))
+	got := whatsAppBridgeText(defaultWhatsAppLinkMessage, values)
+	require.Contains(t, got, "🧾 Receipt number: *SA/CT/2026/00482*\n📅 Date: 16/10/2026\n💳 Total paid: *$156.25*")
+	require.True(t, strings.HasSuffix(got, "on Google:\nhttps://grandbz.com/review/abcdEFGH"), got)
+	require.NotContains(t, got, "Instagram")
 
 	// Poll mode: no review link, the Instagram line stays and ends it.
 	values["review"], values["instagram"] = "", "https://instagram.com/grandbazaar"
-	got := whatsAppBridgeText(defaultWhatsAppPollMessage, values)
-	require.Contains(t, got, "📸 New arrivals on Instagram: https://instagram.com/grandbazaar")
-	require.True(t, strings.HasSuffix(got, "📸 New arrivals on Instagram: https://instagram.com/grandbazaar"))
+	got = whatsAppBridgeText(defaultWhatsAppPollMessage, values)
+	require.NotContains(t, got, "Google")
+	require.True(t, strings.HasSuffix(got, "📸 See our new arrivals on Instagram: https://instagram.com/grandbazaar"))
 	require.NotContains(t, got, "{")
 
 	// A placeholder kashi doesn't know stays as typed.
@@ -104,7 +106,7 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 		require.Equal(t, true, (*got)["linkPreview"])
 		text := (*got)["text"].(string)
 		require.Contains(t, text, "Hi Sara,")
-		require.Contains(t, text, "*Total: $156.25*")
+		require.Contains(t, text, "💳 Total paid: *$156.25*")
 		require.Regexp(t, `https://grandbz\.com/review/[2-9a-zA-Z]{8}$`, text)
 	})
 
