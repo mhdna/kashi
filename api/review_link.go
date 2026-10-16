@@ -35,6 +35,12 @@ var reviewBannerJPG []byte
 
 const reviewBannerPath = "/review-assets/banner.jpg"
 
+// isReviewLinkPath: the public review link routes, which the country
+// filter lets through (security.go).
+func isReviewLinkPath(path string) bool {
+	return path == "/review" || strings.HasPrefix(path, "/review/") || path == reviewBannerPath
+}
+
 // googleReviewURL opens a place's "write a review" box.
 func googleReviewURL(placeID string) string {
 	return "https://search.google.com/local/writereview?placeid=" + url.QueryEscape(placeID)
