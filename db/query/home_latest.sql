@@ -236,6 +236,15 @@ INSERT INTO home_activity_resolutions (activity, source_id, resolved_by)
 VALUES ($1, $2, $3)
 ON CONFLICT (activity, source_id) DO NOTHING;
 
+-- name: UnresolveHomeActivity :exec
+-- Reopens a resolved urgent row, pinning it on Home again.
+DELETE FROM home_activity_resolutions WHERE activity = $1 AND source_id = $2;
+
+-- name: ListHomeActivityResolutions :many
+-- Which of a page's rows of one kind are resolved, and by whom.
+SELECT source_id, resolved_by, resolved_at FROM home_activity_resolutions
+WHERE activity = sqlc.arg(activity) AND source_id = ANY(sqlc.arg(source_ids)::bigint[]);
+
 -- name: ListBranchInvoiceItemsNamed :many
 -- An invoice's lines with the product each one sold, for the Recent
 -- activity details dialog. A line whose product_uid never resolved to a

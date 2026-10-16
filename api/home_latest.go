@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -61,7 +62,49 @@ func (server *Server) listHomeActivities(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	server.writeJSON(ctx, http.StatusOK, envelope{"activities": rows})
+	activities, err := server.markResolvedHomeActivities(ctx, rows)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"activities": activities})
+}
+
+// homeActivity is a feed row plus, for an urgent kind, whether someone
+// resolved it -- so a resolved row can show its check (and be reopened).
+type homeActivity struct {
+	db.HomeActivityFeedRow
+	Resolved   bool       `json:"resolved"`
+	ResolvedBy string     `json:"resolved_by,omitempty"`
+	ResolvedAt *time.Time `json:"resolved_at,omitempty"`
+}
+
+func (server *Server) markResolvedHomeActivities(ctx context.Context, rows []db.HomeActivityFeedRow) ([]homeActivity, error) {
+	out := make([]homeActivity, len(rows))
+	ids := map[string][]int64{}
+	for i, row := range rows {
+		out[i] = homeActivity{HomeActivityFeedRow: row}
+		if urgentHomeActivities[row.Activity] {
+			ids[row.Activity] = append(ids[row.Activity], row.ID)
+		}
+	}
+	for activity, sourceIDs := range ids {
+		resolutions, err := server.store.ListHomeActivityResolutions(ctx, db.ListHomeActivityResolutionsParams{
+			Activity: activity, SourceIds: sourceIDs,
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, r := range resolutions {
+			for i := range out {
+				if out[i].Activity == activity && out[i].ID == r.SourceID {
+					at := r.ResolvedAt
+					out[i].Resolved, out[i].ResolvedBy, out[i].ResolvedAt = true, r.ResolvedBy, &at
+				}
+			}
+		}
+	}
+	return out, nil
 }
 
 // urgentHomeActivities are the Recent activity rows that stay pinned above
@@ -110,6 +153,28 @@ func (server *Server) resolveHomeActivity(ctx *gin.Context) {
 		return
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{"resolved": true})
+}
+
+// unresolveHomeActivity reopens a resolved urgent row, pinning it again --
+// for a resolve clicked by mistake. Same route rule (and permission) as
+// resolving: DELETE on the same path.
+func (server *Server) unresolveHomeActivity(ctx *gin.Context) {
+	var req resolveHomeActivityRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	if !urgentHomeActivities[req.Activity] {
+		server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("%q is not an urgent activity", req.Activity))
+		return
+	}
+	if err := server.store.UnresolveHomeActivity(ctx, db.UnresolveHomeActivityParams{
+		Activity: req.Activity, SourceID: req.ID,
+	}); err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"resolved": false})
 }
 
 // listLatestAdditions backs the home page's "Latest added" feed: newest
