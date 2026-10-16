@@ -15,7 +15,7 @@ INSERT INTO branches (
   name,
   code
 ) VALUES ( $1, $2 )
-RETURNING id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports
+RETURNING id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports, google_place_id
 `
 
 type CreateBranchParams struct {
@@ -37,12 +37,13 @@ func (q *Queries) CreateBranch(ctx context.Context, arg CreateBranchParams) (Bra
 		&i.Timezone,
 		&i.QuickAccessInitializedAt,
 		&i.HiddenFromReports,
+		&i.GooglePlaceID,
 	)
 	return i, err
 }
 
 const getBranch = `-- name: GetBranch :one
-SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports FROM branches
+SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports, google_place_id FROM branches
 WHERE id = $1 LIMIT 1
 `
 
@@ -60,12 +61,13 @@ func (q *Queries) GetBranch(ctx context.Context, id int64) (Branch, error) {
 		&i.Timezone,
 		&i.QuickAccessInitializedAt,
 		&i.HiddenFromReports,
+		&i.GooglePlaceID,
 	)
 	return i, err
 }
 
 const getBranchByCode = `-- name: GetBranchByCode :one
-SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports FROM branches
+SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports, google_place_id FROM branches
 WHERE code = $1 LIMIT 1
 `
 
@@ -83,12 +85,13 @@ func (q *Queries) GetBranchByCode(ctx context.Context, code string) (Branch, err
 		&i.Timezone,
 		&i.QuickAccessInitializedAt,
 		&i.HiddenFromReports,
+		&i.GooglePlaceID,
 	)
 	return i, err
 }
 
 const getBranchByCodeExcluding = `-- name: GetBranchByCodeExcluding :one
-SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports FROM branches
+SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports, google_place_id FROM branches
 WHERE code = $1 AND id != $2 AND is_active LIMIT 1
 `
 
@@ -113,12 +116,13 @@ func (q *Queries) GetBranchByCodeExcluding(ctx context.Context, arg GetBranchByC
 		&i.Timezone,
 		&i.QuickAccessInitializedAt,
 		&i.HiddenFromReports,
+		&i.GooglePlaceID,
 	)
 	return i, err
 }
 
 const listBranches = `-- name: ListBranches :many
-SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports FROM branches
+SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports, google_place_id FROM branches
 ORDER BY name
 `
 
@@ -142,6 +146,7 @@ func (q *Queries) ListBranches(ctx context.Context) ([]Branch, error) {
 			&i.Timezone,
 			&i.QuickAccessInitializedAt,
 			&i.HiddenFromReports,
+			&i.GooglePlaceID,
 		); err != nil {
 			return nil, err
 		}

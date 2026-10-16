@@ -510,6 +510,11 @@ type AppSetting struct {
 	EmailAttachmentFormat      string          `json:"email_attachment_format"`
 	EmailGroupByRegister       bool            `json:"email_group_by_register"`
 	EmailOldestFirst           bool            `json:"email_oldest_first"`
+	ReviewPlaceID              string          `json:"review_place_id"`
+	ReviewBaseUrl              string          `json:"review_base_url"`
+	ReviewTitle                string          `json:"review_title"`
+	ReviewDescription          string          `json:"review_description"`
+	GooglePlacesApiKey         string          `json:"google_places_api_key"`
 }
 
 type AppUpdateEvent struct {
@@ -595,6 +600,7 @@ type Branch struct {
 	Timezone                 string        `json:"timezone"`
 	QuickAccessInitializedAt sql.NullTime  `json:"quick_access_initialized_at"`
 	HiddenFromReports        bool          `json:"hidden_from_reports"`
+	GooglePlaceID            string        `json:"google_place_id"`
 }
 
 type BranchAttendanceChange struct {
@@ -1218,6 +1224,26 @@ type ExpenseCategory struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+type GooglePlaceSnapshot struct {
+	ID          int64     `json:"id"`
+	PlaceID     string    `json:"place_id"`
+	TakenAt     time.Time `json:"taken_at"`
+	Name        string    `json:"name"`
+	Rating      float64   `json:"rating"`
+	ReviewCount int32     `json:"review_count"`
+}
+
+type GoogleReview struct {
+	PlaceID     string       `json:"place_id"`
+	ReviewName  string       `json:"review_name"`
+	Author      string       `json:"author"`
+	AuthorPhoto string       `json:"author_photo"`
+	Rating      int32        `json:"rating"`
+	Body        string       `json:"body"`
+	PublishedAt sql.NullTime `json:"published_at"`
+	FetchedAt   time.Time    `json:"fetched_at"`
+}
+
 type HomeActivityResolution struct {
 	Activity   string    `json:"activity"`
 	SourceID   int64     `json:"source_id"`
@@ -1510,6 +1536,15 @@ type ReturnInvoice struct {
 	SalesInvoiceID int64 `json:"sales_invoice_id"`
 }
 
+type ReviewLinkClick struct {
+	ID        int64         `json:"id"`
+	ClickedAt time.Time     `json:"clicked_at"`
+	MessageID sql.NullInt64 `json:"message_id"`
+	BranchID  sql.NullInt64 `json:"branch_id"`
+	PlaceID   string        `json:"place_id"`
+	UserAgent string        `json:"user_agent"`
+}
+
 type Role struct {
 	ID        int64     `json:"id"`
 	Name      string    `json:"name"`
@@ -1764,6 +1799,8 @@ type WhatsappMessage struct {
 	DeliveryError   string        `json:"delivery_error"`
 	Billable        sql.NullBool  `json:"billable"`
 	PricingCategory string        `json:"pricing_category"`
+	ReviewCode      string        `json:"review_code"`
+	ReviewClickedAt sql.NullTime  `json:"review_clicked_at"`
 }
 
 type WhatsappReply struct {

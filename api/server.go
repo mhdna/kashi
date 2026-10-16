@@ -218,6 +218,10 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/salesperson_performance", server.getSalespersonPerformance)
 	authRoutes.GET("/whatsapp/clients", server.listWhatsAppClients)
 	authRoutes.GET("/whatsapp/replies", server.listWhatsAppReplies)
+	authRoutes.GET("/whatsapp/reviews", server.getWhatsAppReviews)
+	authRoutes.POST("/whatsapp/reviews/refresh", server.refreshWhatsAppReviews)
+	authRoutes.GET("/whatsapp/review_settings", server.getReviewSettings)
+	authRoutes.PUT("/whatsapp/review_settings", server.updateReviewSettings)
 
 	authRoutes.GET("/calendar_events", server.listCalendarEvents)
 	authRoutes.POST("/calendar_events", server.createCalendarEvent)
@@ -283,6 +287,11 @@ func (server *Server) setupRoutes() {
 	// Meta's WhatsApp webhook: no login, every POST is signed (whatsapp_webhook.go).
 	router.GET(whatsAppWebhookPath, server.verifyWhatsAppWebhook)
 	router.POST(whatsAppWebhookPath, server.receiveWhatsAppWebhook)
+	// Review links in the WhatsApp message (review_link.go): public, reached
+	// through grandbz.com/review*.
+	router.GET("/review", server.openReviewLink)
+	router.GET("/review/:code", server.openReviewLink)
+	router.GET(reviewBannerPath, server.reviewBanner)
 	router.POST("/tokens/renew_access", server.renewAccessToken)
 	authRoutes.POST("/users", server.createUser)
 	authRoutes.GET("/users/online", server.listOnlineUsers)

@@ -38,6 +38,7 @@ type Store interface {
 	ReplaceBranchQuickAccessTx(ctx context.Context, branchID int64, items []QuickAccessItemInput) error
 	ImportBranchQuickAccessTx(ctx context.Context, branchID int64, items []QuickAccessItemInput) (bool, error)
 	ReplaceWhatsAppRulesTx(ctx context.Context, rules []CreateWhatsAppRuleParams) ([]WhatsappRule, error)
+	SaveReviewSettingsTx(ctx context.Context, settings SetReviewSettingsParams, branches []SetBranchPlaceIDParams) error
 }
 
 // provides all the functions to execute SQL queries

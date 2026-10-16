@@ -51,13 +51,14 @@ func (q *Queries) CountWhatsAppMessages(ctx context.Context, arg CountWhatsAppMe
 const createWhatsAppMessage = `-- name: CreateWhatsAppMessage :one
 INSERT INTO whatsapp_messages (
   branch_id, invoice_code, client_name, client_phone, grand_total_cents, item_count,
-  rule_id, rule_name, template_name, status, reason, wamid, cost_micros
+  rule_id, rule_name, template_name, status, reason, wamid, cost_micros, review_code
 ) VALUES (
   $1, $2, $3, $4,
   $5, $6, $7, $8,
-  $9, $10, $11, $12, $13
+  $9, $10, $11, $12, $13,
+  $14
 )
-RETURNING id, created_at, branch_id, invoice_code, client_name, client_phone, grand_total_cents, item_count, rule_id, rule_name, template_name, status, reason, wamid, cost_micros, delivery_status, delivered_at, read_at, delivery_error, billable, pricing_category
+RETURNING id, created_at, branch_id, invoice_code, client_name, client_phone, grand_total_cents, item_count, rule_id, rule_name, template_name, status, reason, wamid, cost_micros, delivery_status, delivered_at, read_at, delivery_error, billable, pricing_category, review_code, review_clicked_at
 `
 
 type CreateWhatsAppMessageParams struct {
@@ -74,6 +75,7 @@ type CreateWhatsAppMessageParams struct {
 	Reason          string        `json:"reason"`
 	Wamid           string        `json:"wamid"`
 	CostMicros      int64         `json:"cost_micros"`
+	ReviewCode      string        `json:"review_code"`
 }
 
 func (q *Queries) CreateWhatsAppMessage(ctx context.Context, arg CreateWhatsAppMessageParams) (WhatsappMessage, error) {
@@ -91,6 +93,7 @@ func (q *Queries) CreateWhatsAppMessage(ctx context.Context, arg CreateWhatsAppM
 		arg.Reason,
 		arg.Wamid,
 		arg.CostMicros,
+		arg.ReviewCode,
 	)
 	var i WhatsappMessage
 	err := row.Scan(
@@ -115,6 +118,8 @@ func (q *Queries) CreateWhatsAppMessage(ctx context.Context, arg CreateWhatsAppM
 		&i.DeliveryError,
 		&i.Billable,
 		&i.PricingCategory,
+		&i.ReviewCode,
+		&i.ReviewClickedAt,
 	)
 	return i, err
 }
@@ -205,7 +210,7 @@ func (q *Queries) LastWhatsAppSentAt(ctx context.Context, clientPhone string) (t
 }
 
 const listWhatsAppMessages = `-- name: ListWhatsAppMessages :many
-SELECT m.id, m.created_at, m.branch_id, m.invoice_code, m.client_name, m.client_phone, m.grand_total_cents, m.item_count, m.rule_id, m.rule_name, m.template_name, m.status, m.reason, m.wamid, m.cost_micros, m.delivery_status, m.delivered_at, m.read_at, m.delivery_error, m.billable, m.pricing_category, COALESCE(b.name, '')::text AS branch_name
+SELECT m.id, m.created_at, m.branch_id, m.invoice_code, m.client_name, m.client_phone, m.grand_total_cents, m.item_count, m.rule_id, m.rule_name, m.template_name, m.status, m.reason, m.wamid, m.cost_micros, m.delivery_status, m.delivered_at, m.read_at, m.delivery_error, m.billable, m.pricing_category, m.review_code, m.review_clicked_at, COALESCE(b.name, '')::text AS branch_name
 FROM whatsapp_messages m
 LEFT JOIN branches b ON b.id = m.branch_id
 WHERE m.created_at >= $1 AND m.created_at < $2
@@ -252,6 +257,8 @@ type ListWhatsAppMessagesRow struct {
 	DeliveryError   string        `json:"delivery_error"`
 	Billable        sql.NullBool  `json:"billable"`
 	PricingCategory string        `json:"pricing_category"`
+	ReviewCode      string        `json:"review_code"`
+	ReviewClickedAt sql.NullTime  `json:"review_clicked_at"`
 	BranchName      string        `json:"branch_name"`
 }
 
@@ -296,6 +303,8 @@ func (q *Queries) ListWhatsAppMessages(ctx context.Context, arg ListWhatsAppMess
 			&i.DeliveryError,
 			&i.Billable,
 			&i.PricingCategory,
+			&i.ReviewCode,
+			&i.ReviewClickedAt,
 			&i.BranchName,
 		); err != nil {
 			return nil, err

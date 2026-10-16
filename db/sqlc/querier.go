@@ -243,6 +243,7 @@ type Querier interface {
 	// FireRecurringExpenseTx snapshotting its template's amount into the
 	// created expense row.
 	CreateGeneratedBranchTarget(ctx context.Context, arg CreateGeneratedBranchTargetParams) (BranchTarget, error)
+	CreateGooglePlaceSnapshot(ctx context.Context, arg CreateGooglePlaceSnapshotParams) error
 	CreateInventory(ctx context.Context, arg CreateInventoryParams) (Inventory, error)
 	CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (Invoice, error)
 	CreateInvoicePayment(ctx context.Context, arg CreateInvoicePaymentParams) (InvoicePayment, error)
@@ -266,6 +267,7 @@ type Querier interface {
 	CreatePurchase(ctx context.Context, arg CreatePurchaseParams) (Purchase, error)
 	CreateRecurringExpense(ctx context.Context, arg CreateRecurringExpenseParams) (RecurringExpense, error)
 	CreateReturnInvoice(ctx context.Context, arg CreateReturnInvoiceParams) (ReturnInvoice, error)
+	CreateReviewLinkClick(ctx context.Context, arg CreateReviewLinkClickParams) error
 	CreateRole(ctx context.Context, name string) (Role, error)
 	CreateSalesInvoice(ctx context.Context, invoiceID int64) (int64, error)
 	CreateSalesperson(ctx context.Context, arg CreateSalespersonParams) (Salesperson, error)
@@ -624,6 +626,9 @@ type Querier interface {
 	GetRecurringExpense(ctx context.Context, id int64) (RecurringExpense, error)
 	GetRegisterTargetRelease(ctx context.Context, id int64) (AppRelease, error)
 	GetReturnInvoice(ctx context.Context, invoiceID int64) (ReturnInvoice, error)
+	// Review links in the post-sale WhatsApp message and the Google data behind
+	// the WhatsApp page's Reviews tab (api/review_link.go, api/google_places.go).
+	GetReviewSettings(ctx context.Context) (GetReviewSettingsRow, error)
 	GetRole(ctx context.Context, id int64) (Role, error)
 	GetSalesInvoice(ctx context.Context, invoiceID int64) (int64, error)
 	GetSalesperson(ctx context.Context, id int64) (Salesperson, error)
@@ -656,8 +661,11 @@ type Querier interface {
 	// means only products we've explicitly categorized show up here -- ordinary
 	// POS-sellable products with no category_id are never pulled into this view.
 	GetWarehouseTreemapData(ctx context.Context, inventoryID sql.NullInt64) ([]GetWarehouseTreemapDataRow, error)
+	GetWhatsAppMessageByReviewCode(ctx context.Context, reviewCode string) (GetWhatsAppMessageByReviewCodeRow, error)
 	GetWhatsAppMessageCost(ctx context.Context) (int64, error)
 	GetWhatsAppSettings(ctx context.Context) (GetWhatsAppSettingsRow, error)
+	// The place as it stood at `at`: its last snapshot taken before then.
+	GooglePlaceSnapshotBefore(ctx context.Context, arg GooglePlaceSnapshotBeforeParams) (GooglePlaceSnapshot, error)
 	// The home page's "Recent activity" feed: the same rows as
 	// DashboardActivitiesList (every kind of branch sync, newest received
 	// first, hidden branches and registers left out), but paged by a keyset
@@ -676,6 +684,7 @@ type Querier interface {
 	InsertBranchQuickAccessItem(ctx context.Context, arg InsertBranchQuickAccessItemParams) error
 	// When this phone was last actually messaged; no rows when never.
 	LastWhatsAppSentAt(ctx context.Context, clientPhone string) (time.Time, error)
+	LatestGooglePlaceSnapshot(ctx context.Context, placeID string) (GooglePlaceSnapshot, error)
 	ListActiveBranchRegisterIDs(ctx context.Context, branchID int64) ([]int64, error)
 	ListActiveBranchTargetSeries(ctx context.Context) ([]BranchTargetSeries, error)
 	ListActiveIPBans(ctx context.Context) ([]IpBan, error)
@@ -784,6 +793,7 @@ type Querier interface {
 	ListBranchInvoices(ctx context.Context, arg ListBranchInvoicesParams) ([]BranchInvoice, error)
 	ListBranchInvoicesPage(ctx context.Context, arg ListBranchInvoicesPageParams) ([]BranchInvoice, error)
 	ListBranchLoanHistoryForSync(ctx context.Context, arg ListBranchLoanHistoryForSyncParams) ([]ListBranchLoanHistoryForSyncRow, error)
+	ListBranchPlaceIDs(ctx context.Context) ([]ListBranchPlaceIDsRow, error)
 	// ---------------------------------------------------------------------------
 	// Branch (kashi-pos) sales. branch_invoice_items itself carries no product
 	// link (branch_product_id is a branch-local id, not an FK -- see
@@ -1096,6 +1106,9 @@ type Querier interface {
 	// Only branch-scoped categories are synced down to kashi-pos.
 	ListExpenseCategoriesUpdatedSince(ctx context.Context, updatedAt time.Time) ([]ExpenseCategory, error)
 	ListExpenses(ctx context.Context, arg ListExpensesParams) ([]Expense, error)
+	ListGooglePlaceSnapshots(ctx context.Context, arg ListGooglePlaceSnapshotsParams) ([]GooglePlaceSnapshot, error)
+	// Newest first, for the given places.
+	ListGoogleReviews(ctx context.Context, arg ListGoogleReviewsParams) ([]GoogleReview, error)
 	// Which of a page's rows of one kind are resolved, and by whom.
 	ListHomeActivityResolutions(ctx context.Context, arg ListHomeActivityResolutionsParams) ([]ListHomeActivityResolutionsRow, error)
 	// Products that have opted out of low-stock alerting entirely, regardless
@@ -1298,6 +1311,7 @@ type Querier interface {
 	MarkBranchShiftUploadTokenUsed(ctx context.Context, id int64) error
 	MarkBranchTransferUploadTokenUsed(ctx context.Context, id int64) error
 	MarkLoanUploadTokenUsed(ctx context.Context, id int64) error
+	MarkWhatsAppReviewClicked(ctx context.Context, id int64) error
 	ProductBarcodesPresent(ctx context.Context, dollar_1 []string) ([]string, error)
 	// Apply an inbound quantity delta and roll the per-location moving-average
 	// cost forward. When existing on-hand is <= 0 the average is just reset to
@@ -1389,6 +1403,14 @@ type Querier interface {
 	// so pricing N variants costs one query rather than N. DISTINCT ON keeps the
 	// branch list's row ahead of the default list's for the same variant.
 	ResolveVariantPrices(ctx context.Context, arg ResolveVariantPricesParams) ([]ResolveVariantPricesRow, error)
+	// Every open of a review link in the range, the plain link included.
+	ReviewClicksTotal(ctx context.Context, arg ReviewClicksTotalParams) (int64, error)
+	// Messages sent in the range and how far they got: delivered/read come from
+	// Meta's webhook, clicked from the review link.
+	ReviewFunnel(ctx context.Context, arg ReviewFunnelParams) (ReviewFunnelRow, error)
+	ReviewFunnelByBranch(ctx context.Context, arg ReviewFunnelByBranchParams) ([]ReviewFunnelByBranchRow, error)
+	// Per Beirut day: messages sent with a link, and link opens.
+	ReviewFunnelByDay(ctx context.Context, arg ReviewFunnelByDayParams) ([]ReviewFunnelByDayRow, error)
 	// Turns the photo by delta degrees (a multiple of 90, either sign) on top
 	// of its saved rotation.
 	RotateBranchExpenseImage(ctx context.Context, arg RotateBranchExpenseImageParams) (int16, error)
@@ -1412,6 +1434,7 @@ type Querier interface {
 	// one-time report of who made their past sales.
 	// Only a salesperson of the invoice's own branch is accepted.
 	SetBranchInvoiceSalesperson(ctx context.Context, arg SetBranchInvoiceSalespersonParams) (int64, error)
+	SetBranchPlaceID(ctx context.Context, arg SetBranchPlaceIDParams) error
 	SetBranchRegisterActive(ctx context.Context, arg SetBranchRegisterActiveParams) error
 	SetBranchRegisterHiddenFromReports(ctx context.Context, arg SetBranchRegisterHiddenFromReportsParams) error
 	// Later flip wins: a flip only applies if it's newer than the one stored, so
@@ -1441,6 +1464,7 @@ type Querier interface {
 	SetRecurringExpenseActive(ctx context.Context, arg SetRecurringExpenseActiveParams) (RecurringExpense, error)
 	SetRegisterUpdateStatus(ctx context.Context, arg SetRegisterUpdateStatusParams) error
 	SetRegistersTargetRelease(ctx context.Context, arg SetRegistersTargetReleaseParams) error
+	SetReviewSettings(ctx context.Context, arg SetReviewSettingsParams) error
 	SetSalespersonActive(ctx context.Context, arg SetSalespersonActiveParams) (Salesperson, error)
 	// Set from kashi: from now on the till takes this value (see 000127).
 	SetSalespersonAttendanceID(ctx context.Context, arg SetSalespersonAttendanceIDParams) (Salesperson, error)
@@ -1547,6 +1571,7 @@ type Querier interface {
 	UpsertClientLink(ctx context.Context, arg UpsertClientLinkParams) error
 	UpsertDefaultBranchSettings(ctx context.Context, settings json.RawMessage) (DefaultBranchSetting, error)
 	UpsertDiscountListBranch(ctx context.Context, arg UpsertDiscountListBranchParams) error
+	UpsertGoogleReview(ctx context.Context, arg UpsertGoogleReviewParams) error
 	UpsertIPBan(ctx context.Context, arg UpsertIPBanParams) error
 	// Reactivates inventories_assets (created 000012, never wired up until now):
 	// per-location unit counts for fixed assets, feeding the Assets Treemap.

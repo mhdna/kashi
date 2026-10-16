@@ -59,6 +59,7 @@
       <v-tab prepend-icon="mdi-chart-bar" text="Overview" value="overview" />
       <v-tab prepend-icon="mdi-format-list-bulleted" text="Messages" value="messages" />
       <v-tab prepend-icon="mdi-reply" text="Replies" value="replies" />
+      <v-tab prepend-icon="mdi-star-outline" text="Reviews" value="reviews" />
       <v-tab prepend-icon="mdi-filter-variant" text="Rules" value="rules" />
     </v-tabs>
     <v-divider class="flex-shrink-0" />
@@ -89,6 +90,13 @@
         :refresh-key="refreshKey"
         :to="range.to"
       />
+      <WhatsAppReviews
+        v-else-if="tab === 'reviews'"
+        :branch-id="branchId"
+        :from="range.from"
+        :refresh-key="refreshKey"
+        :to="range.to"
+      />
       <WhatsAppRules
         v-else
         :branches="branches"
@@ -103,6 +111,7 @@
   import WhatsAppMessages from '@/components/WhatsApp/WhatsAppMessages.vue'
   import WhatsAppOverview from '@/components/WhatsApp/WhatsAppOverview.vue'
   import WhatsAppReplies from '@/components/WhatsApp/WhatsAppReplies.vue'
+  import WhatsAppReviews from '@/components/WhatsApp/WhatsAppReviews.vue'
   import WhatsAppRules from '@/components/WhatsApp/WhatsAppRules.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useBranches } from '@/composables/useBranches'
@@ -179,15 +188,17 @@
     tab.value = 'messages'
   }
 
-  // Every message kashi decides on is pushed as whatsapp_message; a burst
-  // after a busy minute reloads once.
+  // Every message kashi decides on is pushed as whatsapp_message, every
+  // review link opened as review_click and every Google change as
+  // google_reviews; a burst after a busy minute reloads once.
+  const LIVE_TYPES = new Set(['whatsapp_message', 'review_click', 'google_reviews'])
   const { ensureConnected, onMessage } = useAdminSocket()
   let unsubscribe = null
   let liveTimer = 0
   onMounted(async () => {
     ensureConnected()
     unsubscribe = onMessage(message => {
-      if (message.type !== 'whatsapp_message') return
+      if (!LIVE_TYPES.has(message.type)) return
       clearTimeout(liveTimer)
       liveTimer = setTimeout(() => refreshKey.value++, 1500)
     })

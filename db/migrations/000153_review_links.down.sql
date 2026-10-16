@@ -1,0 +1,12 @@
+DROP TABLE IF EXISTS google_reviews;
+DROP TABLE IF EXISTS google_place_snapshots;
+DROP TABLE IF EXISTS review_link_clicks;
+DROP INDEX IF EXISTS whatsapp_messages_review_code_idx;
+ALTER TABLE whatsapp_messages DROP COLUMN IF EXISTS review_clicked_at;
+ALTER TABLE whatsapp_messages DROP COLUMN IF EXISTS review_code;
+ALTER TABLE branches DROP COLUMN IF EXISTS google_place_id;
+ALTER TABLE app_settings DROP COLUMN IF EXISTS google_places_api_key;
+ALTER TABLE app_settings DROP COLUMN IF EXISTS review_description;
+ALTER TABLE app_settings DROP COLUMN IF EXISTS review_title;
+ALTER TABLE app_settings DROP COLUMN IF EXISTS review_base_url;
+ALTER TABLE app_settings DROP COLUMN IF EXISTS review_place_id;
