@@ -254,11 +254,12 @@
 
 <script setup>
   import { computed, onMounted, ref, watch } from 'vue'
+  import { useRoute } from 'vue-router'
   import { useDisplay } from 'vuetify'
   import { useCalendarEvents } from '@/composables/useCalendarEvents'
+  import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { getEventsForRange, retailCalendarEvents } from '@/data/retailCalendarEvents'
-  import { useNotify } from '@/composables/useNotify'
   import { useAuthStore } from '@/stores/auth'
   import { useSettingsStore } from '@/stores/settings'
 
@@ -432,6 +433,21 @@
   watch(() => settingsStore.hiddenBuiltinEvents, renderRange, { deep: true })
 
   onMounted(loadCustom)
+
+  // ?date=YYYY-MM-DD&event=Name (the Upcoming events menu): show that month
+  // with the event picked in the search. Watched, as the menu can be used
+  // while already on this page.
+  const route = useRoute()
+  function openFromQuery () {
+    const date = typeof route.query.date === 'string' ? route.query.date : ''
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return
+    value.value = date
+    const name = typeof route.query.event === 'string' ? route.query.event : ''
+    const start = new Date(`${date}T00:00:00`).getTime()
+    selectedEvent.value = searchEvents.value.find(e => e.name === name && e.start.getTime() === start)
+      ?? (name ? { name, start: new Date(start) } : null)
+  }
+  watch(() => [route.query.date, route.query.event], openFromQuery, { immediate: true })
 
   function goToToday () {
     const today = new Date()

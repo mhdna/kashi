@@ -49,6 +49,8 @@
           :key="`${event.name}-${event.start.getTime()}`"
           :subtitle="`${event.dateLabel} · ${event.relative}`"
           :title="event.name"
+          :to="canOpenCalendar ? calendarLink(event) : undefined"
+          @click="menu = false"
         >
           <template #prepend>
             <v-icon :color="event.color" :icon="event.icon" />
@@ -68,10 +70,20 @@
   import { useDisplay } from 'vuetify'
   import { useCalendarEvents } from '@/composables/useCalendarEvents'
   import { getEventsForRange } from '@/data/retailCalendarEvents'
+  import { useAuthStore } from '@/stores/auth'
   import { useSettingsStore } from '@/stores/settings'
 
   const settingsStore = useSettingsStore()
+  const auth = useAuthStore()
   const { listCalendarEvents } = useCalendarEvents()
+
+  // An event opens the Calendar on its date, with it picked in the search.
+  const canOpenCalendar = computed(() => auth.canViewPage('calendar', 'calendar'))
+  function calendarLink (event) {
+    const d = event.start
+    const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    return { path: '/calendar', query: { date, event: event.name } }
+  }
   const { mobile } = useDisplay()
 
   const menu = ref(false)
