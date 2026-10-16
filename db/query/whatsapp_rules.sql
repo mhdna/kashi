@@ -26,12 +26,12 @@ UPDATE app_settings SET whatsapp_message_cost_micros = sqlc.arg(cost_micros), up
 INSERT INTO whatsapp_messages (
   branch_id, invoice_code, client_name, client_phone, grand_total_cents, item_count,
   rule_id, rule_name, template_name, status, reason, wamid, cost_micros, review_code,
-  sender, whatsapp_number_id
+  sender, whatsapp_number_id, poll_ref
 ) VALUES (
   sqlc.narg(branch_id), sqlc.arg(invoice_code), sqlc.arg(client_name), sqlc.arg(client_phone),
   sqlc.arg(grand_total_cents), sqlc.arg(item_count), sqlc.narg(rule_id), sqlc.arg(rule_name),
   sqlc.arg(template_name), sqlc.arg(status), sqlc.arg(reason), sqlc.arg(wamid), sqlc.arg(cost_micros),
-  sqlc.arg(review_code), sqlc.arg(sender), sqlc.narg(whatsapp_number_id)
+  sqlc.arg(review_code), sqlc.arg(sender), sqlc.narg(whatsapp_number_id), sqlc.arg(poll_ref)
 )
 RETURNING *;
 

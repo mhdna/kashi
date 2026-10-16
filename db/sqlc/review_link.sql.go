@@ -271,6 +271,70 @@ func (q *Queries) ListGoogleReviews(ctx context.Context, arg ListGoogleReviewsPa
 	return items, nil
 }
 
+const lowPollRatings = `-- name: LowPollRatings :many
+SELECT m.id, m.poll_voted_at, m.poll_rating, m.poll_answer, m.client_name, m.client_phone,
+       m.invoice_code, m.grand_total_cents, COALESCE(b.name, '')::text AS branch_name
+FROM whatsapp_messages m
+LEFT JOIN branches b ON b.id = m.branch_id
+WHERE m.poll_rating <= 2
+  AND m.created_at >= $1 AND m.created_at < $2
+  AND ($3::bigint = 0 OR m.branch_id = $3)
+ORDER BY m.poll_voted_at DESC
+LIMIT 20
+`
+
+type LowPollRatingsParams struct {
+	FromAt   time.Time `json:"from_at"`
+	ToAt     time.Time `json:"to_at"`
+	BranchID int64     `json:"branch_id"`
+}
+
+type LowPollRatingsRow struct {
+	ID              int64         `json:"id"`
+	PollVotedAt     sql.NullTime  `json:"poll_voted_at"`
+	PollRating      sql.NullInt16 `json:"poll_rating"`
+	PollAnswer      string        `json:"poll_answer"`
+	ClientName      string        `json:"client_name"`
+	ClientPhone     string        `json:"client_phone"`
+	InvoiceCode     string        `json:"invoice_code"`
+	GrandTotalCents int64         `json:"grand_total_cents"`
+	BranchName      string        `json:"branch_name"`
+}
+
+// Clients who answered 1 or 2 stars, newest first: the ones to call back.
+func (q *Queries) LowPollRatings(ctx context.Context, arg LowPollRatingsParams) ([]LowPollRatingsRow, error) {
+	rows, err := q.db.QueryContext(ctx, lowPollRatings, arg.FromAt, arg.ToAt, arg.BranchID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []LowPollRatingsRow{}
+	for rows.Next() {
+		var i LowPollRatingsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.PollVotedAt,
+			&i.PollRating,
+			&i.PollAnswer,
+			&i.ClientName,
+			&i.ClientPhone,
+			&i.InvoiceCode,
+			&i.GrandTotalCents,
+			&i.BranchName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const markWhatsAppReviewClicked = `-- name: MarkWhatsAppReviewClicked :exec
 UPDATE whatsapp_messages SET review_clicked_at = now()
 WHERE id = $1 AND review_clicked_at IS NULL
@@ -279,6 +343,160 @@ WHERE id = $1 AND review_clicked_at IS NULL
 func (q *Queries) MarkWhatsAppReviewClicked(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, markWhatsAppReviewClicked, id)
 	return err
+}
+
+const pollRatingTotals = `-- name: PollRatingTotals :one
+SELECT
+  count(*) FILTER (WHERE poll_ref <> '')::bigint AS polls,
+  count(poll_rating)::bigint AS answers,
+  COALESCE(avg(poll_rating), 0)::double precision AS average,
+  count(*) FILTER (WHERE poll_rating = 5)::bigint AS stars5,
+  count(*) FILTER (WHERE poll_rating = 4)::bigint AS stars4,
+  count(*) FILTER (WHERE poll_rating = 3)::bigint AS stars3,
+  count(*) FILTER (WHERE poll_rating = 2)::bigint AS stars2,
+  count(*) FILTER (WHERE poll_rating = 1)::bigint AS stars1
+FROM whatsapp_messages
+WHERE created_at >= $1 AND created_at < $2
+  AND ($3::bigint = 0 OR branch_id = $3)
+`
+
+type PollRatingTotalsParams struct {
+	FromAt   time.Time `json:"from_at"`
+	ToAt     time.Time `json:"to_at"`
+	BranchID int64     `json:"branch_id"`
+}
+
+type PollRatingTotalsRow struct {
+	Polls   int64   `json:"polls"`
+	Answers int64   `json:"answers"`
+	Average float64 `json:"average"`
+	Stars5  int64   `json:"stars5"`
+	Stars4  int64   `json:"stars4"`
+	Stars3  int64   `json:"stars3"`
+	Stars2  int64   `json:"stars2"`
+	Stars1  int64   `json:"stars1"`
+}
+
+// The WhatsApp rating poll over the range: polls sent, answers, and how many
+// of each star.
+func (q *Queries) PollRatingTotals(ctx context.Context, arg PollRatingTotalsParams) (PollRatingTotalsRow, error) {
+	row := q.db.QueryRowContext(ctx, pollRatingTotals, arg.FromAt, arg.ToAt, arg.BranchID)
+	var i PollRatingTotalsRow
+	err := row.Scan(
+		&i.Polls,
+		&i.Answers,
+		&i.Average,
+		&i.Stars5,
+		&i.Stars4,
+		&i.Stars3,
+		&i.Stars2,
+		&i.Stars1,
+	)
+	return i, err
+}
+
+const pollRatingsByBranch = `-- name: PollRatingsByBranch :many
+SELECT
+  COALESCE(m.branch_id, 0)::bigint AS branch_id,
+  COALESCE(b.name, '')::text AS branch_name,
+  count(m.poll_rating)::bigint AS answers,
+  COALESCE(avg(m.poll_rating), 0)::double precision AS average
+FROM whatsapp_messages m
+LEFT JOIN branches b ON b.id = m.branch_id
+WHERE m.created_at >= $1 AND m.created_at < $2
+  AND ($3::bigint = 0 OR m.branch_id = $3)
+  AND m.poll_rating IS NOT NULL
+GROUP BY 1, 2
+ORDER BY average, 2
+`
+
+type PollRatingsByBranchParams struct {
+	FromAt   time.Time `json:"from_at"`
+	ToAt     time.Time `json:"to_at"`
+	BranchID int64     `json:"branch_id"`
+}
+
+type PollRatingsByBranchRow struct {
+	BranchID   int64   `json:"branch_id"`
+	BranchName string  `json:"branch_name"`
+	Answers    int64   `json:"answers"`
+	Average    float64 `json:"average"`
+}
+
+func (q *Queries) PollRatingsByBranch(ctx context.Context, arg PollRatingsByBranchParams) ([]PollRatingsByBranchRow, error) {
+	rows, err := q.db.QueryContext(ctx, pollRatingsByBranch, arg.FromAt, arg.ToAt, arg.BranchID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PollRatingsByBranchRow{}
+	for rows.Next() {
+		var i PollRatingsByBranchRow
+		if err := rows.Scan(
+			&i.BranchID,
+			&i.BranchName,
+			&i.Answers,
+			&i.Average,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const pollRatingsByDay = `-- name: PollRatingsByDay :many
+SELECT
+  (poll_voted_at AT TIME ZONE 'Asia/Beirut')::date AS day,
+  count(*)::bigint AS answers,
+  avg(poll_rating)::double precision AS average
+FROM whatsapp_messages
+WHERE poll_rating IS NOT NULL
+  AND created_at >= $1 AND created_at < $2
+  AND ($3::bigint = 0 OR branch_id = $3)
+GROUP BY 1
+ORDER BY 1
+`
+
+type PollRatingsByDayParams struct {
+	FromAt   time.Time `json:"from_at"`
+	ToAt     time.Time `json:"to_at"`
+	BranchID int64     `json:"branch_id"`
+}
+
+type PollRatingsByDayRow struct {
+	Day     time.Time `json:"day"`
+	Answers int64     `json:"answers"`
+	Average float64   `json:"average"`
+}
+
+func (q *Queries) PollRatingsByDay(ctx context.Context, arg PollRatingsByDayParams) ([]PollRatingsByDayRow, error) {
+	rows, err := q.db.QueryContext(ctx, pollRatingsByDay, arg.FromAt, arg.ToAt, arg.BranchID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PollRatingsByDayRow{}
+	for rows.Next() {
+		var i PollRatingsByDayRow
+		if err := rows.Scan(&i.Day, &i.Answers, &i.Average); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const reviewClicksTotal = `-- name: ReviewClicksTotal :one

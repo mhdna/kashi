@@ -2,7 +2,8 @@
 -- bridge (api/whatsapp_bridge.go).
 
 -- name: GetWhatsAppSenderSettings :one
-SELECT whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message
+SELECT whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message,
+       whatsapp_poll_enabled, whatsapp_poll_question, whatsapp_poll_options
 FROM app_settings WHERE id = 1;
 
 -- name: SetWhatsAppSenderSettings :exec
@@ -11,6 +12,9 @@ UPDATE app_settings SET
     whatsapp_bridge_url = sqlc.arg(whatsapp_bridge_url),
     whatsapp_bridge_key = sqlc.arg(whatsapp_bridge_key),
     whatsapp_bridge_message = sqlc.arg(whatsapp_bridge_message),
+    whatsapp_poll_enabled = sqlc.arg(whatsapp_poll_enabled),
+    whatsapp_poll_question = sqlc.arg(whatsapp_poll_question),
+    whatsapp_poll_options = sqlc.arg(whatsapp_poll_options),
     updated_at = now()
 WHERE id = 1;
 
@@ -56,3 +60,12 @@ WHERE n.id = (SELECT b.whatsapp_number_id FROM branches b WHERE b.id = sqlc.arg(
          SELECT 1 FROM branches b WHERE b.id = sqlc.arg(branch_id) AND b.whatsapp_number_id IS NOT NULL))
 ORDER BY n.is_default
 LIMIT 1;
+
+-- name: RecordWhatsAppPollVote :one
+-- A client's answer to the rating poll; a NULL rating is a vote taken back.
+UPDATE whatsapp_messages SET
+    poll_rating = sqlc.narg(poll_rating),
+    poll_answer = sqlc.arg(poll_answer),
+    poll_voted_at = now()
+WHERE poll_ref = sqlc.arg(poll_ref)
+RETURNING id, branch_id;

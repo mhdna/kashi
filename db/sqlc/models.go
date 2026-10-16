@@ -519,6 +519,9 @@ type AppSetting struct {
 	WhatsappBridgeUrl          string          `json:"whatsapp_bridge_url"`
 	WhatsappBridgeKey          string          `json:"whatsapp_bridge_key"`
 	WhatsappBridgeMessage      string          `json:"whatsapp_bridge_message"`
+	WhatsappPollEnabled        bool            `json:"whatsapp_poll_enabled"`
+	WhatsappPollQuestion       string          `json:"whatsapp_poll_question"`
+	WhatsappPollOptions        string          `json:"whatsapp_poll_options"`
 }
 
 type AppUpdateEvent struct {
@@ -1808,6 +1811,10 @@ type WhatsappMessage struct {
 	ReviewClickedAt  sql.NullTime  `json:"review_clicked_at"`
 	Sender           string        `json:"sender"`
 	WhatsappNumberID sql.NullInt64 `json:"whatsapp_number_id"`
+	PollRef          string        `json:"poll_ref"`
+	PollRating       sql.NullInt16 `json:"poll_rating"`
+	PollAnswer       string        `json:"poll_answer"`
+	PollVotedAt      sql.NullTime  `json:"poll_voted_at"`
 }
 
 type WhatsappNumber struct {

@@ -74,7 +74,8 @@ func (q *Queries) GetWhatsAppNumber(ctx context.Context, id int64) (WhatsappNumb
 
 const getWhatsAppSenderSettings = `-- name: GetWhatsAppSenderSettings :one
 
-SELECT whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message
+SELECT whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message,
+       whatsapp_poll_enabled, whatsapp_poll_question, whatsapp_poll_options
 FROM app_settings WHERE id = 1
 `
 
@@ -83,6 +84,9 @@ type GetWhatsAppSenderSettingsRow struct {
 	WhatsappBridgeUrl     string `json:"whatsapp_bridge_url"`
 	WhatsappBridgeKey     string `json:"whatsapp_bridge_key"`
 	WhatsappBridgeMessage string `json:"whatsapp_bridge_message"`
+	WhatsappPollEnabled   bool   `json:"whatsapp_poll_enabled"`
+	WhatsappPollQuestion  string `json:"whatsapp_poll_question"`
+	WhatsappPollOptions   string `json:"whatsapp_poll_options"`
 }
 
 // Sending post-sale messages from our own numbers through the WhatsApp
@@ -95,6 +99,9 @@ func (q *Queries) GetWhatsAppSenderSettings(ctx context.Context) (GetWhatsAppSen
 		&i.WhatsappBridgeUrl,
 		&i.WhatsappBridgeKey,
 		&i.WhatsappBridgeMessage,
+		&i.WhatsappPollEnabled,
+		&i.WhatsappPollQuestion,
+		&i.WhatsappPollOptions,
 	)
 	return i, err
 }
@@ -166,6 +173,34 @@ func (q *Queries) ListWhatsAppNumbers(ctx context.Context) ([]WhatsappNumber, er
 	return items, nil
 }
 
+const recordWhatsAppPollVote = `-- name: RecordWhatsAppPollVote :one
+UPDATE whatsapp_messages SET
+    poll_rating = $1,
+    poll_answer = $2,
+    poll_voted_at = now()
+WHERE poll_ref = $3
+RETURNING id, branch_id
+`
+
+type RecordWhatsAppPollVoteParams struct {
+	PollRating sql.NullInt16 `json:"poll_rating"`
+	PollAnswer string        `json:"poll_answer"`
+	PollRef    string        `json:"poll_ref"`
+}
+
+type RecordWhatsAppPollVoteRow struct {
+	ID       int64         `json:"id"`
+	BranchID sql.NullInt64 `json:"branch_id"`
+}
+
+// A client's answer to the rating poll; a NULL rating is a vote taken back.
+func (q *Queries) RecordWhatsAppPollVote(ctx context.Context, arg RecordWhatsAppPollVoteParams) (RecordWhatsAppPollVoteRow, error) {
+	row := q.db.QueryRowContext(ctx, recordWhatsAppPollVote, arg.PollRating, arg.PollAnswer, arg.PollRef)
+	var i RecordWhatsAppPollVoteRow
+	err := row.Scan(&i.ID, &i.BranchID)
+	return i, err
+}
+
 const setBranchWhatsAppNumber = `-- name: SetBranchWhatsAppNumber :exec
 UPDATE branches SET whatsapp_number_id = $1 WHERE id = $2
 `
@@ -209,6 +244,9 @@ UPDATE app_settings SET
     whatsapp_bridge_url = $2,
     whatsapp_bridge_key = $3,
     whatsapp_bridge_message = $4,
+    whatsapp_poll_enabled = $5,
+    whatsapp_poll_question = $6,
+    whatsapp_poll_options = $7,
     updated_at = now()
 WHERE id = 1
 `
@@ -218,6 +256,9 @@ type SetWhatsAppSenderSettingsParams struct {
 	WhatsappBridgeUrl     string `json:"whatsapp_bridge_url"`
 	WhatsappBridgeKey     string `json:"whatsapp_bridge_key"`
 	WhatsappBridgeMessage string `json:"whatsapp_bridge_message"`
+	WhatsappPollEnabled   bool   `json:"whatsapp_poll_enabled"`
+	WhatsappPollQuestion  string `json:"whatsapp_poll_question"`
+	WhatsappPollOptions   string `json:"whatsapp_poll_options"`
 }
 
 func (q *Queries) SetWhatsAppSenderSettings(ctx context.Context, arg SetWhatsAppSenderSettingsParams) error {
@@ -226,6 +267,9 @@ func (q *Queries) SetWhatsAppSenderSettings(ctx context.Context, arg SetWhatsApp
 		arg.WhatsappBridgeUrl,
 		arg.WhatsappBridgeKey,
 		arg.WhatsappBridgeMessage,
+		arg.WhatsappPollEnabled,
+		arg.WhatsappPollQuestion,
+		arg.WhatsappPollOptions,
 	)
 	return err
 }

@@ -9308,6 +9308,21 @@ func (mr *MockStoreMockRecorder) ListWhatsAppRules(arg0 interface{}) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListWhatsAppRules", reflect.TypeOf((*MockStore)(nil).ListWhatsAppRules), arg0)
 }
 
+// LowPollRatings mocks base method.
+func (m *MockStore) LowPollRatings(arg0 context.Context, arg1 db.LowPollRatingsParams) ([]db.LowPollRatingsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LowPollRatings", arg0, arg1)
+	ret0, _ := ret[0].([]db.LowPollRatingsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LowPollRatings indicates an expected call of LowPollRatings.
+func (mr *MockStoreMockRecorder) LowPollRatings(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LowPollRatings", reflect.TypeOf((*MockStore)(nil).LowPollRatings), arg0, arg1)
+}
+
 // MarkBranchAttendanceEventRemoved mocks base method.
 func (m *MockStore) MarkBranchAttendanceEventRemoved(arg0 context.Context, arg1 db.MarkBranchAttendanceEventRemovedParams) error {
 	m.ctrl.T.Helper()
@@ -9406,6 +9421,51 @@ func (mr *MockStoreMockRecorder) MarkWhatsAppReviewClicked(arg0, arg1 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkWhatsAppReviewClicked", reflect.TypeOf((*MockStore)(nil).MarkWhatsAppReviewClicked), arg0, arg1)
 }
 
+// PollRatingTotals mocks base method.
+func (m *MockStore) PollRatingTotals(arg0 context.Context, arg1 db.PollRatingTotalsParams) (db.PollRatingTotalsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PollRatingTotals", arg0, arg1)
+	ret0, _ := ret[0].(db.PollRatingTotalsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PollRatingTotals indicates an expected call of PollRatingTotals.
+func (mr *MockStoreMockRecorder) PollRatingTotals(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PollRatingTotals", reflect.TypeOf((*MockStore)(nil).PollRatingTotals), arg0, arg1)
+}
+
+// PollRatingsByBranch mocks base method.
+func (m *MockStore) PollRatingsByBranch(arg0 context.Context, arg1 db.PollRatingsByBranchParams) ([]db.PollRatingsByBranchRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PollRatingsByBranch", arg0, arg1)
+	ret0, _ := ret[0].([]db.PollRatingsByBranchRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PollRatingsByBranch indicates an expected call of PollRatingsByBranch.
+func (mr *MockStoreMockRecorder) PollRatingsByBranch(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PollRatingsByBranch", reflect.TypeOf((*MockStore)(nil).PollRatingsByBranch), arg0, arg1)
+}
+
+// PollRatingsByDay mocks base method.
+func (m *MockStore) PollRatingsByDay(arg0 context.Context, arg1 db.PollRatingsByDayParams) ([]db.PollRatingsByDayRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PollRatingsByDay", arg0, arg1)
+	ret0, _ := ret[0].([]db.PollRatingsByDayRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PollRatingsByDay indicates an expected call of PollRatingsByDay.
+func (mr *MockStoreMockRecorder) PollRatingsByDay(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PollRatingsByDay", reflect.TypeOf((*MockStore)(nil).PollRatingsByDay), arg0, arg1)
+}
+
 // PostStockCountTx mocks base method.
 func (m *MockStore) PostStockCountTx(arg0 context.Context, arg1 int64, arg2 sql.NullInt64) (db.PostStockCountTxResult, error) {
 	m.ctrl.T.Helper()
@@ -9492,6 +9552,21 @@ func (m *MockStore) RecordSecurityAlert(arg0 context.Context, arg1 db.RecordSecu
 func (mr *MockStoreMockRecorder) RecordSecurityAlert(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecordSecurityAlert", reflect.TypeOf((*MockStore)(nil).RecordSecurityAlert), arg0, arg1)
+}
+
+// RecordWhatsAppPollVote mocks base method.
+func (m *MockStore) RecordWhatsAppPollVote(arg0 context.Context, arg1 db.RecordWhatsAppPollVoteParams) (db.RecordWhatsAppPollVoteRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RecordWhatsAppPollVote", arg0, arg1)
+	ret0, _ := ret[0].(db.RecordWhatsAppPollVoteRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RecordWhatsAppPollVote indicates an expected call of RecordWhatsAppPollVote.
+func (mr *MockStoreMockRecorder) RecordWhatsAppPollVote(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecordWhatsAppPollVote", reflect.TypeOf((*MockStore)(nil).RecordWhatsAppPollVote), arg0, arg1)
 }
 
 // RedeemCoupon mocks base method.
