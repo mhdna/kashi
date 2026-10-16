@@ -221,6 +221,7 @@ func (server *Server) setupRoutes() {
 	// Sending from our own numbers through the bridge (whatsapp_bridge.go).
 	authRoutes.GET("/whatsapp/sender", server.getWhatsAppSender)
 	authRoutes.PUT("/whatsapp/sender", server.updateWhatsAppSender)
+	authRoutes.POST("/whatsapp/sender/test", server.sendWhatsAppTest)
 	authRoutes.POST("/whatsapp/numbers", server.createWhatsAppNumber)
 	authRoutes.GET("/whatsapp/numbers/:id/qr", server.whatsAppNumberQR)
 	authRoutes.PUT("/whatsapp/numbers/:id", server.updateWhatsAppNumber)

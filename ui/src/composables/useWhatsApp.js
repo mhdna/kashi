@@ -31,6 +31,7 @@ export function useWhatsApp () {
     // Sending from our own numbers through the bridge (api/whatsapp_bridge.go).
     getSender: () => requestJSON('/whatsapp/sender'),
     saveSender: settings => sendJSON('PUT', '/whatsapp/sender', settings),
+    sendTest: payload => sendJSON('POST', '/whatsapp/sender/test', payload),
     addNumber: label => sendJSON('POST', '/whatsapp/numbers', { label }),
     numberQR: id => requestJSON(`/whatsapp/numbers/${id}/qr`),
     updateNumber: (id, payload) => sendJSON('PUT', `/whatsapp/numbers/${id}`, payload),

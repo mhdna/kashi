@@ -76,7 +76,7 @@ const getWhatsAppSenderSettings = `-- name: GetWhatsAppSenderSettings :one
 
 SELECT whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message,
        whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_instagram_url,
-       whatsapp_poll_question, whatsapp_poll_options
+       whatsapp_poll_question, whatsapp_poll_options, whatsapp_message_logo
 FROM app_settings WHERE id = 1
 `
 
@@ -90,6 +90,7 @@ type GetWhatsAppSenderSettingsRow struct {
 	WhatsappInstagramUrl      string `json:"whatsapp_instagram_url"`
 	WhatsappPollQuestion      string `json:"whatsapp_poll_question"`
 	WhatsappPollOptions       string `json:"whatsapp_poll_options"`
+	WhatsappMessageLogo       bool   `json:"whatsapp_message_logo"`
 }
 
 // Sending post-sale messages from our own numbers through the WhatsApp
@@ -107,6 +108,7 @@ func (q *Queries) GetWhatsAppSenderSettings(ctx context.Context) (GetWhatsAppSen
 		&i.WhatsappInstagramUrl,
 		&i.WhatsappPollQuestion,
 		&i.WhatsappPollOptions,
+		&i.WhatsappMessageLogo,
 	)
 	return i, err
 }
@@ -252,8 +254,9 @@ UPDATE app_settings SET
     whatsapp_feedback_mode = $5,
     whatsapp_bridge_link_message = $6,
     whatsapp_instagram_url = $7,
-    whatsapp_poll_question = $8,
-    whatsapp_poll_options = $9,
+    whatsapp_message_logo = $8,
+    whatsapp_poll_question = $9,
+    whatsapp_poll_options = $10,
     updated_at = now()
 WHERE id = 1
 `
@@ -266,6 +269,7 @@ type SetWhatsAppSenderSettingsParams struct {
 	WhatsappFeedbackMode      string `json:"whatsapp_feedback_mode"`
 	WhatsappBridgeLinkMessage string `json:"whatsapp_bridge_link_message"`
 	WhatsappInstagramUrl      string `json:"whatsapp_instagram_url"`
+	WhatsappMessageLogo       bool   `json:"whatsapp_message_logo"`
 	WhatsappPollQuestion      string `json:"whatsapp_poll_question"`
 	WhatsappPollOptions       string `json:"whatsapp_poll_options"`
 }
@@ -279,6 +283,7 @@ func (q *Queries) SetWhatsAppSenderSettings(ctx context.Context, arg SetWhatsApp
 		arg.WhatsappFeedbackMode,
 		arg.WhatsappBridgeLinkMessage,
 		arg.WhatsappInstagramUrl,
+		arg.WhatsappMessageLogo,
 		arg.WhatsappPollQuestion,
 		arg.WhatsappPollOptions,
 	)

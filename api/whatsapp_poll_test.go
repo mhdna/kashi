@@ -110,13 +110,15 @@ func TestSendWhatsAppViaBridgeWithPoll(t *testing.T) {
 		db.CreateWhatsAppMessageParams{BranchID: sql.NullInt64{Int64: 2, Valid: true}, ClientPhone: "96170123456"},
 		db.GetWhatsAppSenderSettingsRow{
 			WhatsappSender: "bridge", WhatsappBridgeUrl: bridge.URL, WhatsappBridgeKey: "secret-key",
-			WhatsappBridgeMessage: "Thanks {name}\n\nReview: {review}",
+			WhatsappBridgeMessage: "Thanks {name}\n\nReview: {review}", WhatsappMessageLogo: true,
 		},
 		"Centro", branchWhatsAppThankYouRequest{ClientName: "Sara", InvoiceCode: "SA/CT/2026/00001"})
 
 	require.Len(t, bodies, 2, "the message, then the poll")
 	require.Contains(t, bodies[0], `"text":"Thanks Sara"`, "no review line in poll mode")
 	require.Contains(t, bodies[0], `"linkPreview":false`)
+	require.Contains(t, bodies[0], `"image":"/9j/`, "the banner (a JPEG) with the message as its caption")
+	require.NotContains(t, bodies[1], `"image"`)
 	require.Contains(t, bodies[1], `"text":"How was your visit?"`)
 	require.Contains(t, bodies[1], `"callback":"http://127.0.0.1:8090/whatsapp/bridge/votes"`)
 	require.Contains(t, bodies[1], `"poll":["😍 Loved it","🙂 It was okay","😕 Not great"]`)

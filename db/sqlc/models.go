@@ -524,6 +524,7 @@ type AppSetting struct {
 	WhatsappFeedbackMode       string          `json:"whatsapp_feedback_mode"`
 	WhatsappBridgeLinkMessage  string          `json:"whatsapp_bridge_link_message"`
 	WhatsappInstagramUrl       string          `json:"whatsapp_instagram_url"`
+	WhatsappMessageLogo        bool            `json:"whatsapp_message_logo"`
 }
 
 type AppUpdateEvent struct {
