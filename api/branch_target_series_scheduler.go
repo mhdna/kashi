@@ -38,7 +38,7 @@ func fireDueBranchTargetSeries(ctx context.Context, store db.Store, hub *branchH
 		return
 	}
 
-	now := time.Now().UTC()
+	now := businessToday()
 	for _, s := range series {
 		start, end := currentPeriod(s, now)
 		seriesID := sql.NullInt64{Int64: s.ID, Valid: true}

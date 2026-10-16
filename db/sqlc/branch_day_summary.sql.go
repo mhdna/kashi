@@ -305,7 +305,7 @@ func (q *Queries) ListDayPaymentsByAccount(ctx context.Context, arg ListDayPayme
 const listDaySalesByBranch = `-- name: ListDaySalesByBranch :many
 
 WITH day_invoices AS (
-  SELECT bi.id, bi.branch_id, bi.client_ref, bi.kind, bi.branch_invoice_code, bi.branch_cashbox_account_id, bi.branch_shift_id, bi.branch_inventory_id, bi.branch_client_id, bi.related_client_ref, bi.discount, bi.subtotal, bi.discounted_total, bi.grand_total, bi.loyalty_points_delta, bi.occurred_at, bi.received_at, bi.salesperson_name, bi.historical, bi.client_uid, bi.register_id, bi.cancelled_at, bi.salesperson_id
+  SELECT bi.id, bi.branch_id, bi.client_ref, bi.kind, bi.branch_invoice_code, bi.branch_cashbox_account_id, bi.branch_shift_id, bi.branch_inventory_id, bi.branch_client_id, bi.related_client_ref, bi.discount, bi.subtotal, bi.discounted_total, bi.grand_total, bi.loyalty_points_delta, bi.occurred_at, bi.received_at, bi.salesperson_name, bi.historical, bi.client_uid, bi.register_id, bi.cancelled_at, bi.salesperson_id, bi.lbp_total, bi.lbp_rate
   FROM branch_invoices bi
   JOIN branches b ON b.id = bi.branch_id
   WHERE bi.occurred_at >= ($1::date - 1)

@@ -3,7 +3,6 @@ package api
 import (
 	"math"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/mhdna/kashi/db/sqlc"
@@ -47,7 +46,7 @@ type financialsEvent struct {
 }
 
 func (server *Server) getFinancials(ctx *gin.Context) {
-	today := time.Now().UTC().Truncate(24 * time.Hour)
+	today := businessToday()
 	tomorrow := today.AddDate(0, 0, 1)
 	from := today.AddDate(0, 0, -financialsHistoryDays)
 	to := today.AddDate(0, 0, financialsForecastDays)
@@ -55,22 +54,22 @@ func (server *Server) getFinancials(ctx *gin.Context) {
 	// own 12-week window before that.
 	historyFrom := from.AddDate(-1, 0, -forecastWeekdayDays)
 
-	sales, err := server.store.ReportDailySales(ctx, db.ReportDailySalesParams{DateFrom: historyFrom, DateTo: tomorrow})
+	sales, err := server.store.ReportDailySales(ctx, db.ReportDailySalesParams{DateFrom: dayStart(historyFrom), DateTo: dayStart(tomorrow)})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	costed, err := server.store.ReportDailyCosted(ctx, db.ReportDailyCostedParams{DateFrom: from, DateTo: tomorrow})
+	costed, err := server.store.ReportDailyCosted(ctx, db.ReportDailyCostedParams{DateFrom: dayStart(from), DateTo: dayStart(tomorrow)})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	branchExpenses, err := server.store.DashboardBranchExpenseSeries(ctx, db.DashboardBranchExpenseSeriesParams{DateFrom: from, DateTo: tomorrow})
+	branchExpenses, err := server.store.DashboardBranchExpenseSeries(ctx, db.DashboardBranchExpenseSeriesParams{DateFrom: dayStart(from), DateTo: dayStart(tomorrow)})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	adminExpenses, err := server.store.DashboardAdminExpenseSeries(ctx, db.DashboardAdminExpenseSeriesParams{DateFrom: from, DateTo: tomorrow})
+	adminExpenses, err := server.store.DashboardAdminExpenseSeries(ctx, db.DashboardAdminExpenseSeriesParams{DateFrom: dayStart(from), DateTo: dayStart(tomorrow)})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
