@@ -3,8 +3,12 @@
 -- see api/whatsapp_bridge.go), as well as through Meta's Cloud API.
 
 -- Which way messages go out: 'bridge' (our numbers, the default) or 'meta'.
+-- A business already sending through Meta keeps doing so until it switches
+-- on the WhatsApp page (the bridge has no numbers yet).
 ALTER TABLE app_settings ADD COLUMN whatsapp_sender text NOT NULL DEFAULT 'bridge'
     CHECK (whatsapp_sender IN ('bridge', 'meta'));
+UPDATE app_settings SET whatsapp_sender = 'meta'
+WHERE whatsapp_enabled AND whatsapp_phone_number_id <> '' AND whatsapp_access_token <> '';
 -- Where the bridge listens and its API key.
 ALTER TABLE app_settings ADD COLUMN whatsapp_bridge_url text NOT NULL DEFAULT '';
 ALTER TABLE app_settings ADD COLUMN whatsapp_bridge_key text NOT NULL DEFAULT '';
