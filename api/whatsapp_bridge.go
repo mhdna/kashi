@@ -41,9 +41,36 @@ const (
 // defaultWhatsAppBridgeURL: the bridge runs on the same server.
 const defaultWhatsAppBridgeURL = "http://127.0.0.1:8099"
 
-// defaultWhatsAppBridgeMessage is used until the WhatsApp page's Sending tab
-// sets one. *bold* is WhatsApp's own formatting.
-const defaultWhatsAppBridgeMessage = "Hi {name},\n\nThank you for shopping with us 🤍\n\n🧾 {invoice} · {date}\n*Total: {total}*\n\nWe'd love to hear your feedback:\n{review}"
+// How the message asks for feedback (app_settings.whatsapp_feedback_mode):
+// a star-rating poll right after it, or the Google review link inside it.
+const (
+	whatsAppFeedbackPoll = "poll"
+	whatsAppFeedbackLink = "link"
+)
+
+// The messages used until the WhatsApp page's Sending tab sets them, one per
+// feedback mode. The poll's message ends pointing at the poll that follows.
+// *bold* is WhatsApp's own formatting; a line whose placeholder has nothing
+// to fill ({instagram} not set) is left out.
+const (
+	defaultWhatsAppPollMessage = "Hi {name},\n\nThank you for shopping with us 🤍\n\n🧾 {invoice} · {date}\n*Total: {total}*\n\n📸 New arrivals on Instagram: {instagram}\n\nHow was your visit? Just tap a rating below 👇"
+	defaultWhatsAppLinkMessage = "Hi {name},\n\nThank you for shopping with us 🤍\n\n🧾 {invoice} · {date}\n*Total: {total}*\n\nWe'd love to hear your feedback on Google:\n{review}\n\n📸 New arrivals on Instagram: {instagram}"
+)
+
+// whatsAppBridgeMessageFor is the message for the feedback mode: the saved
+// one, else the default.
+func whatsAppBridgeMessageFor(sender db.GetWhatsAppSenderSettingsRow) string {
+	if sender.WhatsappFeedbackMode == whatsAppFeedbackLink {
+		if m := strings.TrimSpace(sender.WhatsappBridgeLinkMessage); m != "" {
+			return m
+		}
+		return defaultWhatsAppLinkMessage
+	}
+	if m := strings.TrimSpace(sender.WhatsappBridgeMessage); m != "" {
+		return m
+	}
+	return defaultWhatsAppPollMessage
+}
 
 // whatsAppBridgeGap spaces a number's messages out like a person sending
 // them (the bridge queues them); a burst of identical-looking messages is
@@ -57,13 +84,40 @@ func whatsAppBridgeGap() int64 {
 }
 
 // whatsAppBridgeText fills the message's {placeholders}: name, branch,
-// invoice, total, date and review (the review link).
+// invoice, total, date, review (the review link) and instagram. A line with
+// a placeholder that has no value is dropped, and so are the blank lines
+// that would leave behind.
 func whatsAppBridgeText(message string, values map[string]string) string {
 	pairs := make([]string, 0, len(values)*2)
 	for k, v := range values {
 		pairs = append(pairs, "{"+k+"}", v)
 	}
-	return strings.TrimSpace(strings.NewReplacer(pairs...).Replace(message))
+	fill := strings.NewReplacer(pairs...)
+	var lines []string
+	for _, line := range strings.Split(message, "\n") {
+		if whatsAppEmptyPlaceholder(line, values) {
+			continue
+		}
+		line = fill.Replace(line)
+		if strings.TrimSpace(line) == "" && len(lines) > 0 && strings.TrimSpace(lines[len(lines)-1]) == "" {
+			continue // two blank lines in a row
+		}
+		lines = append(lines, line)
+	}
+	return strings.TrimSpace(strings.Join(lines, "\n"))
+}
+
+var whatsAppPlaceholderPattern = regexp.MustCompile(`\{(\w+)\}`)
+
+func whatsAppEmptyPlaceholder(line string, values map[string]string) bool {
+	for _, m := range whatsAppPlaceholderPattern.FindAllStringSubmatch(line, -1) {
+		if v, known := values[m[1]]; !known || v == "" {
+			if m[1] == "review" || m[1] == "instagram" || known {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWhatsAppMessageParams, sender db.GetWhatsAppSenderSettingsRow, branchName string, req branchWhatsAppThankYouRequest) {
@@ -83,22 +137,23 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 	}
 	entry.WhatsappNumberID = sql.NullInt64{Int64: number.ID, Valid: true}
 
-	message := sender.WhatsappBridgeMessage
-	if strings.TrimSpace(message) == "" {
-		message = defaultWhatsAppBridgeMessage
-	}
+	pollMode := sender.WhatsappFeedbackMode != whatsAppFeedbackLink
+	message := whatsAppBridgeMessageFor(sender)
 	name := strings.TrimSpace(req.ClientName)
 	if name == "" {
 		name = "there"
 	}
 	values := map[string]string{
-		"name":    name,
-		"branch":  branchName,
-		"invoice": req.InvoiceCode,
-		"total":   fmt.Sprintf("$%.2f", float64(req.GrandTotalCents)/100),
-		"date":    time.Now().In(businessZone).Format("02/01/2006"),
+		"name":      name,
+		"branch":    branchName,
+		"invoice":   req.InvoiceCode,
+		"total":     fmt.Sprintf("$%.2f", float64(req.GrandTotalCents)/100),
+		"date":      time.Now().In(businessZone).Format("02/01/2006"),
+		"instagram": strings.TrimSpace(sender.WhatsappInstagramUrl),
+		"review":    "",
 	}
-	if strings.Contains(message, "{review}") {
+	// The review link only in link mode; in poll mode the poll asks instead.
+	if !pollMode && strings.Contains(message, "{review}") {
 		code, link, reason, err := server.newReviewLink(ctx, entry.BranchID.Int64)
 		if err != nil {
 			server.writeError(ctx, http.StatusInternalServerError, err)
@@ -122,13 +177,16 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 		// de-duplication would drop a client's second sale of the day.
 		"force": true,
 		"gap":   whatsAppBridgeGap(),
+		// The link card is the review link's own (our banner); in poll mode
+		// the only link may be Instagram's, whose card is its login page.
+		"linkPreview": !pollMode,
 	}, &out)
 	if err != nil {
 		log.Printf("whatsapp thank-you: bridge send failed for invoice %s: %v", req.InvoiceCode, err)
 		server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, err.Error())
 		return
 	}
-	if sender.WhatsappPollEnabled {
+	if pollMode {
 		entry.PollRef = server.sendWhatsAppPoll(ctx, sender, url.PathEscape(number.Instance), entry.ClientPhone)
 	}
 	server.logWhatsAppMessage(ctx, entry, whatsAppStatusSent, "")
@@ -213,7 +271,9 @@ type whatsAppSenderBody struct {
 	URL          string                 `json:"whatsapp_bridge_url"`
 	Key          string                 `json:"whatsapp_bridge_key"`
 	Message      string                 `json:"whatsapp_bridge_message"`
-	PollEnabled  bool                   `json:"whatsapp_poll_enabled"`
+	FeedbackMode string                 `json:"whatsapp_feedback_mode"`
+	LinkMessage  string                 `json:"whatsapp_bridge_link_message"`
+	Instagram    string                 `json:"whatsapp_instagram_url"`
 	PollQuestion string                 `json:"whatsapp_poll_question"`
 	PollOptions  string                 `json:"whatsapp_poll_options"`
 	Branches     []whatsAppBranchNumber `json:"branches"`
@@ -249,12 +309,15 @@ func (server *Server) getWhatsAppSender(ctx *gin.Context) {
 			URL:          sender.WhatsappBridgeUrl,
 			Key:          sender.WhatsappBridgeKey,
 			Message:      sender.WhatsappBridgeMessage,
-			PollEnabled:  sender.WhatsappPollEnabled,
+			FeedbackMode: sender.WhatsappFeedbackMode,
+			LinkMessage:  sender.WhatsappBridgeLinkMessage,
+			Instagram:    sender.WhatsappInstagramUrl,
 			PollQuestion: sender.WhatsappPollQuestion,
 			PollOptions:  sender.WhatsappPollOptions,
 			Branches:     branches,
 		},
-		"default_message":       defaultWhatsAppBridgeMessage,
+		"default_message":       defaultWhatsAppPollMessage,
+		"default_link_message":  defaultWhatsAppLinkMessage,
 		"default_poll_question": defaultWhatsAppPollQuestion,
 		"default_poll_options":  strings.Join(defaultWhatsAppPollOptions, "\n"),
 		"numbers":               numbers,
@@ -311,6 +374,17 @@ func (server *Server) updateWhatsAppSender(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusBadRequest, errors.New("whatsapp_sender must be bridge or meta"))
 		return
 	}
+	if req.FeedbackMode == "" {
+		req.FeedbackMode = whatsAppFeedbackPoll
+	}
+	if req.FeedbackMode != whatsAppFeedbackPoll && req.FeedbackMode != whatsAppFeedbackLink {
+		server.writeError(ctx, http.StatusBadRequest, errors.New("whatsapp_feedback_mode must be poll or link"))
+		return
+	}
+	if ig := strings.TrimSpace(req.Instagram); ig != "" && !strings.HasPrefix(ig, "https://") {
+		server.writeError(ctx, http.StatusBadRequest, errors.New("the Instagram link must start with https://"))
+		return
+	}
 	if u := strings.TrimSpace(req.URL); u != "" {
 		if parsed, err := url.Parse(u); err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
 			server.writeError(ctx, http.StatusBadRequest, errors.New("the bridge address must start with http:// or https://"))
@@ -338,13 +412,15 @@ func (server *Server) updateWhatsAppSender(ctx *gin.Context) {
 		}
 	}
 	if err := server.store.SaveWhatsAppSenderTx(ctx, db.SetWhatsAppSenderSettingsParams{
-		WhatsappSender:        req.Sender,
-		WhatsappBridgeUrl:     strings.TrimRight(strings.TrimSpace(req.URL), "/"),
-		WhatsappBridgeKey:     strings.TrimSpace(req.Key),
-		WhatsappBridgeMessage: strings.TrimSpace(req.Message),
-		WhatsappPollEnabled:   req.PollEnabled,
-		WhatsappPollQuestion:  strings.TrimSpace(req.PollQuestion),
-		WhatsappPollOptions:   pollOptions,
+		WhatsappSender:            req.Sender,
+		WhatsappBridgeUrl:         strings.TrimRight(strings.TrimSpace(req.URL), "/"),
+		WhatsappBridgeKey:         strings.TrimSpace(req.Key),
+		WhatsappBridgeMessage:     strings.TrimSpace(req.Message),
+		WhatsappFeedbackMode:      req.FeedbackMode,
+		WhatsappBridgeLinkMessage: strings.TrimSpace(req.LinkMessage),
+		WhatsappInstagramUrl:      strings.TrimSpace(req.Instagram),
+		WhatsappPollQuestion:      strings.TrimSpace(req.PollQuestion),
+		WhatsappPollOptions:       pollOptions,
 	}, branches); err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return

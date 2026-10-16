@@ -75,18 +75,21 @@ func (q *Queries) GetWhatsAppNumber(ctx context.Context, id int64) (WhatsappNumb
 const getWhatsAppSenderSettings = `-- name: GetWhatsAppSenderSettings :one
 
 SELECT whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message,
-       whatsapp_poll_enabled, whatsapp_poll_question, whatsapp_poll_options
+       whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_instagram_url,
+       whatsapp_poll_question, whatsapp_poll_options
 FROM app_settings WHERE id = 1
 `
 
 type GetWhatsAppSenderSettingsRow struct {
-	WhatsappSender        string `json:"whatsapp_sender"`
-	WhatsappBridgeUrl     string `json:"whatsapp_bridge_url"`
-	WhatsappBridgeKey     string `json:"whatsapp_bridge_key"`
-	WhatsappBridgeMessage string `json:"whatsapp_bridge_message"`
-	WhatsappPollEnabled   bool   `json:"whatsapp_poll_enabled"`
-	WhatsappPollQuestion  string `json:"whatsapp_poll_question"`
-	WhatsappPollOptions   string `json:"whatsapp_poll_options"`
+	WhatsappSender            string `json:"whatsapp_sender"`
+	WhatsappBridgeUrl         string `json:"whatsapp_bridge_url"`
+	WhatsappBridgeKey         string `json:"whatsapp_bridge_key"`
+	WhatsappBridgeMessage     string `json:"whatsapp_bridge_message"`
+	WhatsappFeedbackMode      string `json:"whatsapp_feedback_mode"`
+	WhatsappBridgeLinkMessage string `json:"whatsapp_bridge_link_message"`
+	WhatsappInstagramUrl      string `json:"whatsapp_instagram_url"`
+	WhatsappPollQuestion      string `json:"whatsapp_poll_question"`
+	WhatsappPollOptions       string `json:"whatsapp_poll_options"`
 }
 
 // Sending post-sale messages from our own numbers through the WhatsApp
@@ -99,7 +102,9 @@ func (q *Queries) GetWhatsAppSenderSettings(ctx context.Context) (GetWhatsAppSen
 		&i.WhatsappBridgeUrl,
 		&i.WhatsappBridgeKey,
 		&i.WhatsappBridgeMessage,
-		&i.WhatsappPollEnabled,
+		&i.WhatsappFeedbackMode,
+		&i.WhatsappBridgeLinkMessage,
+		&i.WhatsappInstagramUrl,
 		&i.WhatsappPollQuestion,
 		&i.WhatsappPollOptions,
 	)
@@ -244,21 +249,25 @@ UPDATE app_settings SET
     whatsapp_bridge_url = $2,
     whatsapp_bridge_key = $3,
     whatsapp_bridge_message = $4,
-    whatsapp_poll_enabled = $5,
-    whatsapp_poll_question = $6,
-    whatsapp_poll_options = $7,
+    whatsapp_feedback_mode = $5,
+    whatsapp_bridge_link_message = $6,
+    whatsapp_instagram_url = $7,
+    whatsapp_poll_question = $8,
+    whatsapp_poll_options = $9,
     updated_at = now()
 WHERE id = 1
 `
 
 type SetWhatsAppSenderSettingsParams struct {
-	WhatsappSender        string `json:"whatsapp_sender"`
-	WhatsappBridgeUrl     string `json:"whatsapp_bridge_url"`
-	WhatsappBridgeKey     string `json:"whatsapp_bridge_key"`
-	WhatsappBridgeMessage string `json:"whatsapp_bridge_message"`
-	WhatsappPollEnabled   bool   `json:"whatsapp_poll_enabled"`
-	WhatsappPollQuestion  string `json:"whatsapp_poll_question"`
-	WhatsappPollOptions   string `json:"whatsapp_poll_options"`
+	WhatsappSender            string `json:"whatsapp_sender"`
+	WhatsappBridgeUrl         string `json:"whatsapp_bridge_url"`
+	WhatsappBridgeKey         string `json:"whatsapp_bridge_key"`
+	WhatsappBridgeMessage     string `json:"whatsapp_bridge_message"`
+	WhatsappFeedbackMode      string `json:"whatsapp_feedback_mode"`
+	WhatsappBridgeLinkMessage string `json:"whatsapp_bridge_link_message"`
+	WhatsappInstagramUrl      string `json:"whatsapp_instagram_url"`
+	WhatsappPollQuestion      string `json:"whatsapp_poll_question"`
+	WhatsappPollOptions       string `json:"whatsapp_poll_options"`
 }
 
 func (q *Queries) SetWhatsAppSenderSettings(ctx context.Context, arg SetWhatsAppSenderSettingsParams) error {
@@ -267,7 +276,9 @@ func (q *Queries) SetWhatsAppSenderSettings(ctx context.Context, arg SetWhatsApp
 		arg.WhatsappBridgeUrl,
 		arg.WhatsappBridgeKey,
 		arg.WhatsappBridgeMessage,
-		arg.WhatsappPollEnabled,
+		arg.WhatsappFeedbackMode,
+		arg.WhatsappBridgeLinkMessage,
+		arg.WhatsappInstagramUrl,
 		arg.WhatsappPollQuestion,
 		arg.WhatsappPollOptions,
 	)
