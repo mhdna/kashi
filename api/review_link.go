@@ -160,6 +160,11 @@ func (server *Server) openReviewLink(ctx *gin.Context) {
 			title = "Leave us a review"
 		}
 		base := strings.TrimRight(strings.TrimSpace(settings.ReviewBaseUrl), "/")
+		if base == "" {
+			// Not set yet: the address the link was opened on (Caddy passes
+			// the public host through), so the card's image still loads.
+			base = "https://" + ctx.Request.Host + "/review"
+		}
 		origin := strings.TrimSuffix(base, "/review")
 		ctx.Header("Content-Type", "text/html; charset=utf-8")
 		ctx.Status(http.StatusOK)
