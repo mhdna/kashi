@@ -400,7 +400,12 @@ SELECT
   COALESCE(m.branch_id, 0)::bigint AS branch_id,
   COALESCE(b.name, '')::text AS branch_name,
   count(m.poll_rating)::bigint AS answers,
-  COALESCE(avg(m.poll_rating), 0)::double precision AS average
+  COALESCE(avg(m.poll_rating), 0)::double precision AS average,
+  count(*) FILTER (WHERE m.poll_rating = 5)::bigint AS stars5,
+  count(*) FILTER (WHERE m.poll_rating = 4)::bigint AS stars4,
+  count(*) FILTER (WHERE m.poll_rating = 3)::bigint AS stars3,
+  count(*) FILTER (WHERE m.poll_rating = 2)::bigint AS stars2,
+  count(*) FILTER (WHERE m.poll_rating = 1)::bigint AS stars1
 FROM whatsapp_messages m
 LEFT JOIN branches b ON b.id = m.branch_id
 WHERE m.created_at >= $1 AND m.created_at < $2
@@ -421,6 +426,11 @@ type PollRatingsByBranchRow struct {
 	BranchName string  `json:"branch_name"`
 	Answers    int64   `json:"answers"`
 	Average    float64 `json:"average"`
+	Stars5     int64   `json:"stars5"`
+	Stars4     int64   `json:"stars4"`
+	Stars3     int64   `json:"stars3"`
+	Stars2     int64   `json:"stars2"`
+	Stars1     int64   `json:"stars1"`
 }
 
 func (q *Queries) PollRatingsByBranch(ctx context.Context, arg PollRatingsByBranchParams) ([]PollRatingsByBranchRow, error) {
@@ -437,6 +447,11 @@ func (q *Queries) PollRatingsByBranch(ctx context.Context, arg PollRatingsByBran
 			&i.BranchName,
 			&i.Answers,
 			&i.Average,
+			&i.Stars5,
+			&i.Stars4,
+			&i.Stars3,
+			&i.Stars2,
+			&i.Stars1,
 		); err != nil {
 			return nil, err
 		}
@@ -455,7 +470,12 @@ const pollRatingsByDay = `-- name: PollRatingsByDay :many
 SELECT
   (poll_voted_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   count(*)::bigint AS answers,
-  avg(poll_rating)::double precision AS average
+  avg(poll_rating)::double precision AS average,
+  count(*) FILTER (WHERE poll_rating = 5)::bigint AS stars5,
+  count(*) FILTER (WHERE poll_rating = 4)::bigint AS stars4,
+  count(*) FILTER (WHERE poll_rating = 3)::bigint AS stars3,
+  count(*) FILTER (WHERE poll_rating = 2)::bigint AS stars2,
+  count(*) FILTER (WHERE poll_rating = 1)::bigint AS stars1
 FROM whatsapp_messages
 WHERE poll_rating IS NOT NULL
   AND created_at >= $1 AND created_at < $2
@@ -474,6 +494,11 @@ type PollRatingsByDayRow struct {
 	Day     time.Time `json:"day"`
 	Answers int64     `json:"answers"`
 	Average float64   `json:"average"`
+	Stars5  int64     `json:"stars5"`
+	Stars4  int64     `json:"stars4"`
+	Stars3  int64     `json:"stars3"`
+	Stars2  int64     `json:"stars2"`
+	Stars1  int64     `json:"stars1"`
 }
 
 func (q *Queries) PollRatingsByDay(ctx context.Context, arg PollRatingsByDayParams) ([]PollRatingsByDayRow, error) {
@@ -485,7 +510,16 @@ func (q *Queries) PollRatingsByDay(ctx context.Context, arg PollRatingsByDayPara
 	items := []PollRatingsByDayRow{}
 	for rows.Next() {
 		var i PollRatingsByDayRow
-		if err := rows.Scan(&i.Day, &i.Answers, &i.Average); err != nil {
+		if err := rows.Scan(
+			&i.Day,
+			&i.Answers,
+			&i.Average,
+			&i.Stars5,
+			&i.Stars4,
+			&i.Stars3,
+			&i.Stars2,
+			&i.Stars1,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

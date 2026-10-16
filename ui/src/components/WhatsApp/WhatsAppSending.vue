@@ -27,7 +27,7 @@
                   <div>Meta's WhatsApp Cloud API</div>
                   <div class="text-caption text-medium-emphasis">
                     Official, paid per message, sends the approved template set in
-                    <router-link to="/settings?tab=whatsapp">Settings › WhatsApp</router-link>.
+                    the Meta Cloud API section above.
                   </div>
                 </div>
               </template>
@@ -40,7 +40,7 @@
             type="warning"
             variant="tonal"
           >
-            Sending after sales is off. Turn it on in <router-link to="/settings?tab=whatsapp">Settings › WhatsApp</router-link>.
+            Sending after sales is off: switch it on at the top of this page.
           </v-alert>
         </v-card>
       </v-col>
@@ -187,8 +187,8 @@
                 <router-link to="/reviews">Reviews</router-link> page by branch, with the low ones to call back.
               </template>
               <template v-else>
-                Each client gets their own link to your Google review box (set up on the
-                <router-link to="/reviews">Reviews</router-link> page), with your banner card.
+                Each client gets their own link to your Google review box (set up in
+                <router-link to="/settings?tab=reviews">Settings › Reviews</router-link>), with your banner card.
               </template>
             </p>
             <v-row class="mt-2" density="compact">

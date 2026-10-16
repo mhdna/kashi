@@ -12,7 +12,8 @@
         type="info"
         variant="tonal"
       >
-        Set the Google place and the link address under <strong>Review link</strong> below. Then add
+        Set the Google place and the link address in
+        <router-link to="/settings?tab=reviews">Settings › Reviews</router-link>. Then add
         <code>review</code> (the link) or <code>review_button</code> (a "visit website" button ending
         in <code>{{ '{' }}{{ '{' }}1}}</code>) to the template's placeholders, and every message gets its own
         link.
@@ -53,6 +54,40 @@
 
         <!-- The WhatsApp rating poll -->
         <template v-if="ratings && ratings.totals.polls > 0">
+          <!-- One card per answer: how many clients gave it -->
+          <v-col
+            v-for="o in ratingOptions"
+            :key="`answer-${o.label}`"
+            cols="12"
+            :md="12 / Math.min(ratingOptions.length, 4) > 3 ? 12 / Math.min(ratingOptions.length, 4) : 3"
+          >
+            <v-card class="pa-4 fill-height" :color="answerColor(o.stars)" variant="tonal">
+              <div class="d-flex align-center justify-space-between">
+                <div class="text-h6">{{ o.label }}</div>
+                <div class="text-h4 font-weight-medium">{{ ratings.totals[`stars${o.stars}`] }}</div>
+              </div>
+              <div class="text-caption text-medium-emphasis mt-1">
+                {{ percent(ratings.totals[`stars${o.stars}`], ratings.totals.answers) }} of the
+                {{ ratings.totals.answers }} answers
+              </div>
+            </v-card>
+          </v-col>
+
+          <v-col cols="12" md="8">
+            <v-card class="chart-card" variant="flat">
+              <div class="chart-card__title">Answers per day</div>
+              <div class="chart-card__subtitle">How clients answered the poll, by the day they answered.</div>
+              <v-chart autoresize class="chart" :option="answersByDayOption" />
+            </v-card>
+          </v-col>
+          <v-col cols="12" md="4">
+            <v-card class="chart-card" variant="flat">
+              <div class="chart-card__title">Answers by branch</div>
+              <div class="chart-card__subtitle">Each branch's share of each answer.</div>
+              <v-chart autoresize class="chart" :option="answersByBranchOption" />
+            </v-card>
+          </v-col>
+
           <v-col cols="12" md="6">
             <v-card class="chart-card pb-3" variant="flat">
               <div class="chart-card__title">Star ratings in WhatsApp</div>
@@ -150,7 +185,7 @@
               />
             </div>
             <div v-if="!place.checked" class="text-body-2 text-medium-emphasis py-6 text-center">
-              {{ stats.has_api_key ? 'Not read from Google yet.' : 'Add a Places API key below to see the rating and reviews.' }}
+              {{ stats.has_api_key ? 'Not read from Google yet.' : 'Add a Places API key in Settings › Reviews to see the rating and reviews.' }}
             </div>
             <template v-else>
               <div class="d-flex align-center flex-wrap ga-4 mb-2">
@@ -218,7 +253,7 @@
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title mb-2">Latest Google reviews</div>
             <div v-if="stats.reviews.length === 0" class="text-body-2 text-medium-emphasis py-6 text-center">
-              {{ stats.has_api_key ? 'No reviews read yet.' : 'Add a Places API key below to see reviews here.' }}
+              {{ stats.has_api_key ? 'No reviews read yet.' : 'Add a Places API key in Settings › Reviews to see reviews here.' }}
             </div>
             <div v-for="r in stats.reviews" :key="r.review_name" class="review py-2">
               <div class="d-flex align-center ga-2">
@@ -242,128 +277,16 @@
           </v-card>
         </v-col>
 
-        <!-- Settings -->
-        <v-col cols="12">
-          <v-card class="chart-card pb-3" variant="flat">
-            <div class="d-flex align-center">
-              <div class="chart-card__title">Review link</div>
-              <v-spacer />
-              <v-btn
-                v-if="canEdit && stats.has_api_key"
-                :loading="checking"
-                prepend-icon="mdi-refresh"
-                size="small"
-                text="Check Google now"
-                variant="text"
-                @click="checkNow"
-              />
-            </div>
-            <p class="text-caption text-medium-emphasis mb-3">
-              Each message's link opens the Google "write a review" box of the branch that made the sale:
-              its own place when set, else the main one. Paste a place id, or a whole review link.
-              WhatsApp shows the title and line below on the link's card.
-            </p>
-            <v-form v-if="draft" :disabled="!canEdit" @submit.prevent="save">
-              <v-row density="compact">
-                <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="draft.review_place_id"
-                    density="compact"
-                    hint="Google place id, e.g. ChIJ…"
-                    label="Main Google place"
-                    persistent-hint
-                    variant="outlined"
-                  />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="draft.review_base_url"
-                    density="compact"
-                    hint="Where the links live; each message adds its own code"
-                    label="Link address"
-                    persistent-hint
-                    placeholder="https://grandbz.com/review"
-                    variant="outlined"
-                  />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="draft.review_title"
-                    density="compact"
-                    hide-details
-                    label="Card title"
-                    placeholder="Grand Bazaar Feedback"
-                    variant="outlined"
-                  />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="draft.review_description"
-                    density="compact"
-                    hide-details
-                    label="Card line (optional)"
-                    variant="outlined"
-                  />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="draft.google_places_api_key"
-                    :append-inner-icon="showKey ? 'mdi-eye-off' : 'mdi-eye'"
-                    autocomplete="off"
-                    density="compact"
-                    hint="Google Cloud > Places API (New). Read every 3 hours."
-                    label="Places API key"
-                    persistent-hint
-                    :type="showKey ? 'text' : 'password'"
-                    variant="outlined"
-                    @click:append-inner="showKey = !showKey"
-                  />
-                </v-col>
-              </v-row>
-
-              <div class="text-body-2 font-weight-medium mt-4 mb-1">Branches with their own Google place</div>
-              <v-row density="compact">
-                <v-col
-                  v-for="b in draft.branches"
-                  :key="b.branch_id"
-                  cols="12"
-                  md="6"
-                >
-                  <v-text-field
-                    v-model="b.place_id"
-                    density="compact"
-                    hide-details
-                    :label="b.branch_name"
-                    placeholder="Uses the main place"
-                    variant="outlined"
-                  />
-                </v-col>
-              </v-row>
-
-              <div v-if="canEdit" class="d-flex justify-end mt-3">
-                <v-btn
-                  color="primary"
-                  :disabled="!dirty"
-                  :loading="saving"
-                  text="Save"
-                  type="submit"
-                  variant="flat"
-                />
-              </div>
-            </v-form>
-          </v-card>
-        </v-col>
       </v-row>
     </template>
   </div>
 </template>
 
 <script setup>
-  import { computed, onMounted, ref, watch } from 'vue'
+  import { computed, ref, watch } from 'vue'
   import { useTheme } from 'vuetify'
   import VChart from '@/components/EChart.vue'
   import { useNotify } from '@/composables/useNotify'
-  import { usePageAccess } from '@/composables/usePageAccess'
   import { useReviews } from '@/composables/useReviews'
   import { daysBetween } from '@/utils/whatsapp'
 
@@ -379,8 +302,7 @@
   })
 
   const notify = useNotify()
-  const { canEdit } = usePageAccess()
-  const { getReviews, refreshReviews, getReviewSettings, saveReviewSettings } = useReviews()
+  const { getReviews } = useReviews()
 
   const stats = ref(null)
   const loading = ref(false)
@@ -435,6 +357,13 @@
       { label: 'New Google reviews', value: known ? `+${newReviews}` : '—', hint: known ? 'in this range' : 'counted from the first check' },
     ]
   })
+
+  // ---- poll answers ----------------------------------------------------------
+  function answerColor (stars) {
+    if (stars >= 4) return 'success'
+    return stars === 3 ? 'amber-darken-2' : 'error'
+  }
+  const ANSWER_HEX = { success: '#43a047', 'amber-darken-2': '#ffa000', error: '#e53935' }
 
   // ---- charts --------------------------------------------------------------
   const theme = useTheme()
@@ -516,6 +445,44 @@
     }
   })
 
+  const answersByDayOption = computed(() => {
+    const byDay = Object.fromEntries((ratings.value?.days ?? []).map(d => [d.day, d]))
+    const days = daysBetween(props.from, props.to)
+    return {
+      grid: { top: 28, right: 12, bottom: 24, left: 36 },
+      legend: legend.value,
+      tooltip: { trigger: 'axis', appendTo: 'body' },
+      xAxis: { type: 'category', data: days.map(d => dayLabel(d)), ...catAxis.value },
+      yAxis: { type: 'value', minInterval: 1, ...valAxis.value },
+      series: ratingOptions.value.map(o => ({
+        name: o.label,
+        type: 'bar',
+        stack: 'answers',
+        itemStyle: { color: ANSWER_HEX[answerColor(o.stars)] },
+        data: days.map(d => byDay[d]?.[`stars${o.stars}`] ?? 0),
+      })),
+    }
+  })
+
+  const answersByBranchOption = computed(() => {
+    const rows = (ratings.value?.branches ?? []).toSorted((a, b) => a.answers - b.answers)
+    return {
+      grid: { top: 28, right: 16, bottom: 8, left: 8, containLabel: true },
+      legend: legend.value,
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, appendTo: 'body' },
+      xAxis: { type: 'value', minInterval: 1, ...valAxis.value },
+      yAxis: { type: 'category', data: rows.map(r => r.branch_name || 'No branch'), ...catAxis.value },
+      series: ratingOptions.value.map(o => ({
+        name: o.label,
+        type: 'bar',
+        stack: 'answers',
+        barMaxWidth: 22,
+        itemStyle: { color: ANSWER_HEX[answerColor(o.stars)] },
+        data: rows.map(r => r[`stars${o.stars}`] ?? 0),
+      })),
+    }
+  })
+
   function placeOption (place) {
     const points = place.snapshots.map(s => [new Date(s.at).getTime(), s.review_count])
     return {
@@ -535,50 +502,6 @@
     }
   }
 
-  // ---- settings ------------------------------------------------------------
-  const saved = ref(null)
-  const draft = ref(null)
-  const saving = ref(false)
-  const checking = ref(false)
-  const showKey = ref(false)
-  const dirty = computed(() => JSON.stringify(draft.value) !== JSON.stringify(saved.value))
-
-  function seed (settings) {
-    saved.value = settings
-    draft.value = structuredClone(settings)
-  }
-  async function loadSettings () {
-    try {
-      seed(await getReviewSettings())
-    } catch (error) {
-      notify.error(error.message)
-    }
-  }
-  async function save () {
-    saving.value = true
-    try {
-      seed(await saveReviewSettings(draft.value))
-      notify.success('Review link saved.')
-      load()
-    } catch (error) {
-      notify.error(error.message)
-    } finally {
-      saving.value = false
-    }
-  }
-  async function checkNow () {
-    checking.value = true
-    try {
-      await refreshReviews()
-      await load()
-    } catch (error) {
-      notify.error(`Google: ${error.message}`)
-    } finally {
-      checking.value = false
-    }
-  }
-
-  onMounted(loadSettings)
   // Last, so everything load() touches exists before its first run.
   watch(() => [props.from, props.to, props.branchId, props.refreshKey], load, { immediate: true })
 </script>

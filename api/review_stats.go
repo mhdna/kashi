@@ -72,10 +72,15 @@ func (server *Server) getReviews(ctx *gin.Context) {
 		Day     string  `json:"day"`
 		Answers int64   `json:"answers"`
 		Average float64 `json:"average"`
+		Stars5  int64   `json:"stars5"`
+		Stars4  int64   `json:"stars4"`
+		Stars3  int64   `json:"stars3"`
+		Stars2  int64   `json:"stars2"`
+		Stars1  int64   `json:"stars1"`
 	}
 	pollDayRows := make([]pollDayRow, len(pollDays))
 	for i, d := range pollDays {
-		pollDayRows[i] = pollDayRow{d.Day.Format(time.DateOnly), d.Answers, d.Average}
+		pollDayRows[i] = pollDayRow{d.Day.Format(time.DateOnly), d.Answers, d.Average, d.Stars5, d.Stars4, d.Stars3, d.Stars2, d.Stars1}
 	}
 
 	// The poll's current options and what each counts as, for the bars.

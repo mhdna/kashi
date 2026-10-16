@@ -21,6 +21,7 @@
           <v-tab v-if="auth.isAdmin" prepend-icon="mdi-account-group" text="Users" value="users" />
           <v-tab v-if="auth.isAdmin" prepend-icon="mdi-shield-account-outline" text="Roles" value="roles" />
           <v-tab v-if="auth.canViewPage('system', 'settings')" prepend-icon="mdi-whatsapp" text="WhatsApp" value="whatsapp" />
+          <v-tab v-if="auth.canViewPage('system', 'settings')" prepend-icon="mdi-star-outline" text="Reviews" value="reviews" />
           <v-tab v-if="auth.canViewPage('system', 'settings')" prepend-icon="mdi-email-outline" text="Email" value="email" />
         </v-tabs>
 
@@ -287,14 +288,12 @@
           </section>
 
           <!-- ------------------------------------------------------ WHATSAPP -->
-          <section v-show="tab === 'whatsapp'" class="set-section">
+          <section v-show="tab === 'whatsapp'" class="set-section set-section--wide">
             <v-form :disabled="!canEditSystem">
               <h3 class="text-subtitle-1 mb-1">Post-sale thank-you message</h3>
               <p class="text-body-2 text-medium-emphasis mb-4">
-                Sent via Meta's <strong>WhatsApp Business Platform (Cloud API)</strong> after a sale
-                to a named client with a phone number. Cloud API only allows a pre-approved message
-                template for business-initiated messages, so this configures which one to use and
-                how to fill it -- not free-form text.
+                Sent after a sale to a client with a phone number: from your own WhatsApp numbers, or
+                through Meta's Cloud API — chosen under <strong>Send with</strong> below.
               </p>
               <p v-if="auth.canViewPage('system', 'whatsapp')" class="text-body-2 text-medium-emphasis mb-4">
                 Rules for which sales get a message, and what was sent, to whom and what it cost,
@@ -308,6 +307,13 @@
                 hide-details
                 label="Send a thank-you WhatsApp after each sale"
               />
+
+              <h4 class="text-subtitle-2 mt-4 mb-1">Meta Cloud API</h4>
+              <p class="text-body-2 text-medium-emphasis mb-4">
+                Only used when sending with Meta. Cloud API only allows a pre-approved message
+                template for business-initiated messages, so this sets which one to use and how
+                to fill it — not free-form text.
+              </p>
 
               <v-text-field
                 v-model="whatsappDraft.phoneNumberId"
@@ -419,6 +425,15 @@
                 />
               </div>
             </v-form>
+
+            <v-divider class="my-6" />
+            <h3 class="text-subtitle-1 mb-1">Your numbers and the message</h3>
+            <WhatsAppSending v-if="tab === 'whatsapp'" :settings="{ whatsapp_enabled: whatsappSaved.enabled }" />
+          </section>
+
+          <!-- ------------------------------------------------------- REVIEWS -->
+          <section v-if="tab === 'reviews'" class="set-section set-section--wide">
+            <ReviewSettings />
           </section>
 
           <!-- --------------------------------------------------------- EMAIL -->
@@ -614,7 +629,7 @@
         </div>
       </div>
 
-      <template v-if="tab !== 'users' && tab !== 'roles' && tab !== 'whatsapp' && tab !== 'email'">
+      <template v-if="tab !== 'users' && tab !== 'roles' && tab !== 'whatsapp' && tab !== 'email' && tab !== 'reviews'">
         <v-divider />
         <div class="set-actions px-5 py-3 d-flex align-center ga-3">
           <span class="text-caption text-medium-emphasis">
@@ -836,7 +851,9 @@
 <script setup lang="ts">
   import { computed, onMounted, reactive, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
+  import ReviewSettings from '@/components/Reviews/ReviewSettings.vue'
   import RolesManager from '@/components/RolesManager.vue'
+  import WhatsAppSending from '@/components/WhatsApp/WhatsAppSending.vue'
   import { useEmailReports } from '@/composables/useEmailReports'
   import { useNotify } from '@/composables/useNotify'
   import { useRoles } from '@/composables/useRoles'
@@ -1372,6 +1389,10 @@
 }
 .set-section {
   max-width: 640px;
+}
+/* WhatsApp's numbers and message preview, and Reviews' two-column form. */
+.set-section--wide {
+  max-width: 1100px;
 }
 /* Save / Discard bar pinned under the tab content. */
 .set-actions {

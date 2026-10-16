@@ -4,6 +4,7 @@ export const navItems = [
   { title: 'Invoices', icon: 'mdi-format-list-bulleted-square', to: '/invoices' },
   { title: 'Shifts', icon: 'mdi-clock-outline', to: '/shifts' },
   { title: 'WhatsApp', icon: 'mdi-whatsapp', to: '/whatsapp' },
+  { title: 'Reviews', icon: 'mdi-star-outline', to: '/reviews' },
   { title: 'Emails', icon: 'mdi-email-outline', to: '/emails' },
   {
     title: 'Analysis',
@@ -26,7 +27,6 @@ export const navItems = [
     children: [
       { title: 'Clients', icon: 'mdi-account', to: '/clients' },
       { title: 'Loyalty', icon: 'mdi-trophy', to: '/loyalty' },
-      { title: 'Reviews', icon: 'mdi-star-outline', to: '/reviews' },
     ],
   },
   {
