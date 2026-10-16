@@ -78,6 +78,19 @@ func (server *Server) getReviews(ctx *gin.Context) {
 		pollDayRows[i] = pollDayRow{d.Day.Format(time.DateOnly), d.Answers, d.Average}
 	}
 
+	// The poll's current options and what each counts as, for the bars.
+	type pollOptionRow struct {
+		Label string `json:"label"`
+		Stars int16  `json:"stars"`
+	}
+	var pollOptionRows []pollOptionRow
+	if sender, err := server.store.GetWhatsAppSenderSettings(ctx); err == nil {
+		options := whatsAppPollOptions(sender.WhatsappPollOptions)
+		for i, stars := range whatsAppPollStars(options) {
+			pollOptionRows = append(pollOptionRows, pollOptionRow{options[i], stars})
+		}
+	}
+
 	settings, err := server.store.GetReviewSettings(ctx)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
@@ -189,6 +202,7 @@ func (server *Server) getReviews(ctx *gin.Context) {
 
 	server.writeJSON(ctx, http.StatusOK, envelope{
 		"ratings": envelope{
+			"options":  pollOptionRows,
 			"totals":   pollTotals,
 			"branches": pollBranches,
 			"days":     pollDayRows,

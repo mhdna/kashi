@@ -17,16 +17,19 @@ import (
 
 func TestWhatsAppPollRating(t *testing.T) {
 	opts := whatsAppPollOptions("")
-	require.Equal(t, defaultWhatsAppPollOptions, opts)
-	for i, o := range opts {
-		got, answer := whatsAppPollRating(opts, []string{o})
-		require.Equal(t, int16(5-i), got)
-		require.Equal(t, o, answer)
+	require.Equal(t, []string{"😍 Loved it", "🙂 It was okay", "😕 Not great"}, opts)
+	for i, want := range []int16{5, 3, 1} {
+		got, answer := whatsAppPollRating(opts, []string{opts[i]})
+		require.Equal(t, want, got)
+		require.Equal(t, opts[i], answer)
 	}
 	got, _ := whatsAppPollRating(opts, nil)
 	require.Zero(t, got, "a vote taken back")
 
-	// Saved options only count when there are exactly five.
+	require.Equal(t, []int16{5, 4, 2, 1}, whatsAppPollStars(make([]string, 4)))
+	require.Equal(t, []int16{5, 4, 3, 2, 1}, whatsAppPollStars(make([]string, 5)))
+
+	// Saved options only count when there are 3 to 5.
 	require.Equal(t, defaultWhatsAppPollOptions, whatsAppPollOptions("Great\nBad"))
 	custom := whatsAppPollOptions("A\n\nB\nC\nD\nE\n")
 	require.Equal(t, []string{"A", "B", "C", "D", "E"}, custom)
@@ -52,9 +55,9 @@ func TestReceiveWhatsAppPollVote(t *testing.T) {
 		server := newTestServer(t, store)
 		store.EXPECT().GetWhatsAppSenderSettings(gomock.Any()).Return(sender, nil)
 		store.EXPECT().RecordWhatsAppPollVote(gomock.Any(), db.RecordWhatsAppPollVoteParams{
-			PollRef: "abcdEFGH", PollRating: sql.NullInt16{Int16: 4, Valid: true}, PollAnswer: "⭐⭐⭐⭐",
+			PollRef: "abcdEFGH", PollRating: sql.NullInt16{Int16: 3, Valid: true}, PollAnswer: "🙂 It was okay",
 		}).Return(db.RecordWhatsAppPollVoteRow{ID: 9}, nil)
-		rec := post(server, "secret-key", `{"ref":"abcdEFGH","selected":["⭐⭐⭐⭐"]}`)
+		rec := post(server, "secret-key", `{"ref":"abcdEFGH","selected":["🙂 It was okay"]}`)
 		require.Equal(t, http.StatusOK, rec.Code)
 		require.JSONEq(t, `{"ok":true}`, rec.Body.String())
 	})
@@ -114,7 +117,7 @@ func TestSendWhatsAppViaBridgeWithPoll(t *testing.T) {
 	require.Len(t, bodies, 2, "the message, then the poll")
 	require.Contains(t, bodies[0], `"text":"Thanks Sara"`, "no review line in poll mode")
 	require.Contains(t, bodies[0], `"linkPreview":false`)
-	require.Contains(t, bodies[1], `"text":"Rate your visit"`)
+	require.Contains(t, bodies[1], `"text":"How was your visit?"`)
 	require.Contains(t, bodies[1], `"callback":"http://127.0.0.1:8090/whatsapp/bridge/votes"`)
-	require.Contains(t, bodies[1], `"poll":["⭐⭐⭐⭐⭐","⭐⭐⭐⭐","⭐⭐⭐","⭐⭐","⭐"]`)
+	require.Contains(t, bodies[1], `"poll":["😍 Loved it","🙂 It was okay","😕 Not great"]`)
 }

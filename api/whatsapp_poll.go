@@ -20,14 +20,14 @@ import (
 // sender) and POSTs it to /whatsapp/bridge/votes with the poll's ref, which
 // kashi stored on the message. The Reviews page shows the ratings.
 
-const defaultWhatsAppPollQuestion = "Rate your visit"
+const defaultWhatsAppPollQuestion = "How was your visit?"
 
-// Stars alone: the poll is as tall as its five rows either way, but reads
-// at a glance.
-var defaultWhatsAppPollOptions = []string{"⭐⭐⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐", "⭐⭐", "⭐"}
+// Three answers in words: a short poll (WhatsApp gives each option its own
+// row) that reads at a glance. They count as 5, 3 and 1 stars.
+var defaultWhatsAppPollOptions = []string{"😍 Loved it", "🙂 It was okay", "😕 Not great"}
 
-// whatsAppPollOptions is the poll's five options, best first: the saved
-// ones, else the defaults.
+// whatsAppPollOptions is the poll's options, best first: the saved ones
+// (3 to 5 lines), else the defaults.
 func whatsAppPollOptions(saved string) []string {
 	var options []string
 	for _, line := range strings.Split(saved, "\n") {
@@ -35,10 +35,20 @@ func whatsAppPollOptions(saved string) []string {
 			options = append(options, line)
 		}
 	}
-	if len(options) != 5 {
+	if len(options) < 3 || len(options) > 5 {
 		return defaultWhatsAppPollOptions
 	}
 	return options
+}
+
+// whatsAppPollStars is what each option counts as on the 1-5 scale, spread
+// evenly: the first 5, the last 1 (3 options: 5, 3, 1).
+func whatsAppPollStars(options []string) []int16 {
+	stars := make([]int16, len(options))
+	for i := range options {
+		stars[i] = int16(5 - (i*4+(len(options)-1)/2)/(len(options)-1))
+	}
+	return stars
 }
 
 func whatsAppPollQuestion(saved string) string {
@@ -48,15 +58,16 @@ func whatsAppPollQuestion(saved string) string {
 	return defaultWhatsAppPollQuestion
 }
 
-// whatsAppPollRating turns the chosen option back into stars: the first
-// option is 5, the last 1. 0 when it's none of them (a vote taken back).
+// whatsAppPollRating turns the chosen option back into stars (see
+// whatsAppPollStars). 0 when it's none of them (a vote taken back).
 func whatsAppPollRating(options []string, selected []string) (int16, string) {
 	if len(selected) == 0 {
 		return 0, ""
 	}
+	stars := whatsAppPollStars(options)
 	for i, o := range options {
 		if o == selected[0] {
-			return int16(5 - i), o
+			return stars[i], o
 		}
 	}
 	return 0, selected[0]
