@@ -14,21 +14,17 @@ import (
 	db "github.com/mhdna/kashi/db/sqlc"
 )
 
-// The star-rating poll: from our own numbers, the post-sale message can be
-// followed by a one-tap WhatsApp poll ("How was your visit?", 5 to 1 stars).
+// The star-rating poll: in poll mode (the default), the post-sale message from
+// our own numbers is followed by a one-tap WhatsApp poll (5 to 1 stars).
 // The bridge keeps the poll, reads each vote (votes are encrypted for the
 // sender) and POSTs it to /whatsapp/bridge/votes with the poll's ref, which
 // kashi stored on the message. The Reviews page shows the ratings.
 
-const defaultWhatsAppPollQuestion = "How was your visit today?"
+const defaultWhatsAppPollQuestion = "Rate your visit"
 
-var defaultWhatsAppPollOptions = []string{
-	"⭐⭐⭐⭐⭐ Excellent",
-	"⭐⭐⭐⭐ Good",
-	"⭐⭐⭐ Okay",
-	"⭐⭐ Poor",
-	"⭐ Bad",
-}
+// Stars alone: the poll is as tall as its five rows either way, but reads
+// at a glance.
+var defaultWhatsAppPollOptions = []string{"⭐⭐⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐", "⭐⭐", "⭐"}
 
 // whatsAppPollOptions is the poll's five options, best first: the saved
 // ones, else the defaults.

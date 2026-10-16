@@ -16,11 +16,29 @@ import (
 )
 
 func TestWhatsAppBridgeText(t *testing.T) {
-	got := whatsAppBridgeText(defaultWhatsAppBridgeMessage, map[string]string{
+	values := map[string]string{
 		"name": "Sara", "invoice": "SA/CT/2026/00482", "date": "16/10/2026", "total": "$156.25",
-		"review": "https://grandbz.com/review/abcdEFGH",
-	})
-	require.Equal(t, "Hi Sara,\n\nThank you for shopping with us 🤍\n\n🧾 SA/CT/2026/00482 · 16/10/2026\n*Total: $156.25*\n\nWe'd love to hear your feedback:\nhttps://grandbz.com/review/abcdEFGH", got)
+		"review": "https://grandbz.com/review/abcdEFGH", "instagram": "",
+	}
+	// No Instagram link: its line, and the blank line it leaves, go.
+	require.Equal(t, "Hi Sara,\n\nThank you for shopping with us 🤍\n\n🧾 SA/CT/2026/00482 · 16/10/2026\n*Total: $156.25*\n\nWe'd love to hear your feedback on Google:\nhttps://grandbz.com/review/abcdEFGH",
+		whatsAppBridgeText(defaultWhatsAppLinkMessage, values))
+
+	// Poll mode: no review link, the Instagram line stays, the poll's lead-in ends it.
+	values["review"], values["instagram"] = "", "https://instagram.com/grandbazaar"
+	got := whatsAppBridgeText(defaultWhatsAppPollMessage, values)
+	require.Contains(t, got, "📸 New arrivals on Instagram: https://instagram.com/grandbazaar")
+	require.True(t, strings.HasSuffix(got, "Just tap a rating below 👇"))
+	require.NotContains(t, got, "{")
+
+	// A placeholder kashi doesn't know stays as typed.
+	require.Equal(t, "Hi {nmae}", whatsAppBridgeText("Hi {nmae}", values))
+}
+
+func TestWhatsAppBridgeMessageFor(t *testing.T) {
+	require.Equal(t, defaultWhatsAppPollMessage, whatsAppBridgeMessageFor(db.GetWhatsAppSenderSettingsRow{}))
+	require.Equal(t, defaultWhatsAppLinkMessage, whatsAppBridgeMessageFor(db.GetWhatsAppSenderSettingsRow{WhatsappFeedbackMode: "link"}))
+	require.Equal(t, "Mine", whatsAppBridgeMessageFor(db.GetWhatsAppSenderSettingsRow{WhatsappFeedbackMode: "link", WhatsappBridgeLinkMessage: "Mine", WhatsappBridgeMessage: "Poll one"}))
 }
 
 func TestWhatsAppInstanceName(t *testing.T) {
@@ -59,7 +77,7 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 		return rec
 	}
 
-	t.Run("sends from the branch's number with the review link", func(t *testing.T) {
+	t.Run("link mode: sends from the branch's number with the review link and its card", func(t *testing.T) {
 		bridge, got, path := fakeBridge(t, http.StatusCreated, `{"status":"QUEUED","queued":1}`)
 		ctrl := gomock.NewController(t)
 		store := mockdb.NewMockStore(ctrl)
@@ -77,12 +95,13 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 				return db.WhatsappMessage{}, nil
 			})
 
-		rec := run(server, db.GetWhatsAppSenderSettingsRow{WhatsappSender: "bridge", WhatsappBridgeUrl: bridge.URL, WhatsappBridgeKey: "secret-key"})
+		rec := run(server, db.GetWhatsAppSenderSettingsRow{WhatsappSender: "bridge", WhatsappFeedbackMode: "link", WhatsappBridgeUrl: bridge.URL, WhatsappBridgeKey: "secret-key"})
 		require.Equal(t, http.StatusOK, rec.Code)
 		require.JSONEq(t, `{"sent":true}`, rec.Body.String())
 		require.Equal(t, "/message/sendText/kashi-centro-ab12", *path)
 		require.Equal(t, "96170123456", (*got)["number"])
 		require.Equal(t, true, (*got)["force"])
+		require.Equal(t, true, (*got)["linkPreview"])
 		text := (*got)["text"].(string)
 		require.Contains(t, text, "Hi Sara,")
 		require.Contains(t, text, "*Total: $156.25*")

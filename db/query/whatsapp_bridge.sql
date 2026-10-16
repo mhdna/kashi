@@ -3,7 +3,8 @@
 
 -- name: GetWhatsAppSenderSettings :one
 SELECT whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message,
-       whatsapp_poll_enabled, whatsapp_poll_question, whatsapp_poll_options
+       whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_instagram_url,
+       whatsapp_poll_question, whatsapp_poll_options
 FROM app_settings WHERE id = 1;
 
 -- name: SetWhatsAppSenderSettings :exec
@@ -12,7 +13,9 @@ UPDATE app_settings SET
     whatsapp_bridge_url = sqlc.arg(whatsapp_bridge_url),
     whatsapp_bridge_key = sqlc.arg(whatsapp_bridge_key),
     whatsapp_bridge_message = sqlc.arg(whatsapp_bridge_message),
-    whatsapp_poll_enabled = sqlc.arg(whatsapp_poll_enabled),
+    whatsapp_feedback_mode = sqlc.arg(whatsapp_feedback_mode),
+    whatsapp_bridge_link_message = sqlc.arg(whatsapp_bridge_link_message),
+    whatsapp_instagram_url = sqlc.arg(whatsapp_instagram_url),
     whatsapp_poll_question = sqlc.arg(whatsapp_poll_question),
     whatsapp_poll_options = sqlc.arg(whatsapp_poll_options),
     updated_at = now()

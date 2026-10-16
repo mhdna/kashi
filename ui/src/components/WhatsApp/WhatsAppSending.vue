@@ -156,16 +156,85 @@
           </v-card>
         </v-col>
 
+        <!-- How the message asks for feedback -->
+        <v-col cols="12">
+          <v-card class="card" variant="flat">
+            <div class="card__title">Ask for feedback with</div>
+            <v-radio-group
+              v-model="draft.whatsapp_feedback_mode"
+              class="mt-1"
+              :disabled="!canEdit"
+              hide-details
+              inline
+            >
+              <v-radio label="A star-rating poll after the message" value="poll" />
+              <v-radio class="ms-4" label="The Google review link in the message" value="link" />
+            </v-radio-group>
+            <p class="text-caption text-medium-emphasis mt-2 mb-0">
+              <template v-if="pollMode">
+                One tap in the chat, no link or sign-in. Answers show on the
+                <router-link to="/reviews">Reviews</router-link> page by branch, with the low ones to call back.
+              </template>
+              <template v-else>
+                Each client gets their own link to your Google review box (set up on the
+                <router-link to="/reviews">Reviews</router-link> page), with your banner card.
+              </template>
+            </p>
+            <v-row class="mt-2" density="compact">
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model="draft.whatsapp_instagram_url"
+                  density="compact"
+                  :disabled="!canEdit"
+                  hint="For {instagram} in the message; left empty, that line is left out"
+                  label="Instagram page"
+                  persistent-hint
+                  placeholder="https://instagram.com/yourshop"
+                  variant="outlined"
+                />
+              </v-col>
+              <template v-if="pollMode">
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model="draft.whatsapp_poll_question"
+                    density="compact"
+                    :disabled="!canEdit"
+                    hint="Shown in bold on top of the poll"
+                    label="Poll question"
+                    persistent-hint
+                    :placeholder="defaultPollQuestion"
+                    variant="outlined"
+                  />
+                </v-col>
+                <v-col cols="12" md="6">
+                  <v-textarea
+                    v-model="draft.whatsapp_poll_options"
+                    auto-grow
+                    density="compact"
+                    :disabled="!canEdit"
+                    hint="Five lines, best first: the first counts as 5 stars, the last as 1"
+                    label="Poll options"
+                    persistent-hint
+                    :placeholder="defaultPollOptions"
+                    rows="5"
+                    variant="outlined"
+                  />
+                </v-col>
+              </template>
+            </v-row>
+          </v-card>
+        </v-col>
+
         <!-- The message -->
         <v-col cols="12" md="7">
           <v-card class="card" variant="flat">
-            <div class="card__title">Message</div>
+            <div class="card__title">Message {{ pollMode ? '(with the poll)' : '(with the review link)' }}</div>
             <p class="text-caption text-medium-emphasis mb-2">
-              Filled in per sale: <code v-for="p in PLACEHOLDERS" :key="p" class="me-1">{{ placeholder(p) }}</code>.
-              <code>{review}</code> is the client's own Google review link (set up on the
-              <router-link to="/reviews">Reviews</router-link> page). *bold* works as in WhatsApp.
+              Filled in per sale: <code v-for="p in placeholders" :key="p" class="me-1">{{ placeholder(p) }}</code>.
+              A line whose placeholder has nothing to fill is left out. *bold* works as in WhatsApp.
             </p>
             <v-textarea
+              v-if="pollMode"
               v-model="draft.whatsapp_bridge_message"
               auto-grow
               density="compact"
@@ -175,64 +244,30 @@
               rows="8"
               variant="outlined"
             />
+            <v-textarea
+              v-else
+              v-model="draft.whatsapp_bridge_link_message"
+              auto-grow
+              density="compact"
+              :disabled="!canEdit"
+              hide-details
+              :placeholder="defaultLinkMessage"
+              rows="8"
+              variant="outlined"
+            />
           </v-card>
         </v-col>
         <v-col cols="12" md="5">
           <v-card class="card" variant="flat">
             <div class="card__title mb-2">Preview</div>
             <div class="bubble" v-html="previewHTML" />
-            <div v-if="draft.whatsapp_poll_enabled" class="bubble poll mt-2">
+            <div v-if="pollMode" class="bubble poll mt-1">
               <div class="font-weight-medium mb-1">{{ pollQuestion }}</div>
               <div class="text-caption poll__hint mb-1">Select one</div>
               <div v-for="o in pollOptions" :key="o" class="poll__option">
                 <span class="poll__radio" />{{ o }}
               </div>
             </div>
-          </v-card>
-        </v-col>
-
-        <!-- The rating poll -->
-        <v-col cols="12">
-          <v-card class="card" variant="flat">
-            <v-switch
-              v-model="draft.whatsapp_poll_enabled"
-              color="primary"
-              density="compact"
-              :disabled="!canEdit"
-              hide-details
-              label="Follow the message with a star-rating poll"
-            />
-            <p class="text-caption text-medium-emphasis mb-3">
-              One tap in the chat, no link or sign-in. Answers show on the
-              <router-link to="/reviews">Reviews</router-link> page by branch, with the low ones to call back.
-            </p>
-            <v-row v-if="draft.whatsapp_poll_enabled" density="compact">
-              <v-col cols="12" md="5">
-                <v-text-field
-                  v-model="draft.whatsapp_poll_question"
-                  density="compact"
-                  :disabled="!canEdit"
-                  hide-details
-                  label="Question"
-                  :placeholder="defaultPollQuestion"
-                  variant="outlined"
-                />
-              </v-col>
-              <v-col cols="12" md="7">
-                <v-textarea
-                  v-model="draft.whatsapp_poll_options"
-                  auto-grow
-                  density="compact"
-                  :disabled="!canEdit"
-                  hint="Five lines, best first: the first counts as 5 stars, the last as 1"
-                  label="Options"
-                  persistent-hint
-                  :placeholder="defaultPollOptions"
-                  rows="5"
-                  variant="outlined"
-                />
-              </v-col>
-            </v-row>
           </v-card>
         </v-col>
 
@@ -364,7 +399,7 @@
   const { canEdit } = usePageAccess()
   const { getSender, saveSender, addNumber, numberQR, updateNumber, deleteNumber } = useWhatsApp()
 
-  const PLACEHOLDERS = ['name', 'invoice', 'total', 'date', 'branch', 'review']
+  const PLACEHOLDERS = ['name', 'invoice', 'total', 'date', 'branch', 'review', 'instagram']
   const placeholder = p => '{' + p + '}'
   const STATE = {
     open: { label: 'Linked', color: 'success' },
@@ -379,6 +414,7 @@
   const numbers = ref([])
   const bridgeError = ref('')
   const defaultMessage = ref('')
+  const defaultLinkMessage = ref('')
   const defaultPollQuestion = ref('')
   const defaultPollOptions = ref('')
   const showKey = ref(false)
@@ -397,6 +433,7 @@
     numbers.value = body.numbers ?? []
     bridgeError.value = body.bridge_error || ''
     defaultMessage.value = body.default_message || ''
+    defaultLinkMessage.value = body.default_link_message || ''
     defaultPollQuestion.value = body.default_poll_question || ''
     defaultPollOptions.value = body.default_poll_options || ''
   }
@@ -429,6 +466,8 @@
   }
 
   // ---- preview ---------------------------------------------------------------
+  const pollMode = computed(() => draft.value?.whatsapp_feedback_mode !== 'link')
+  const placeholders = computed(() => PLACEHOLDERS.filter(p => p !== 'review' || !pollMode.value))
   const SAMPLE = {
     name: 'Sara',
     invoice: 'SA/CT/2026/00482',
@@ -436,6 +475,24 @@
     date: new Date().toLocaleDateString('en-GB'),
     branch: 'Centro',
     review: 'https://grandbz.com/review/k7Pq2xWm',
+  }
+  // Like the server's whatsAppBridgeText: lines whose placeholder is empty go,
+  // and so does a blank line doubled by that.
+  function fillMessage (message) {
+    const values = {
+      ...SAMPLE,
+      review: pollMode.value ? '' : SAMPLE.review,
+      instagram: draft.value?.whatsapp_instagram_url?.trim() || '',
+    }
+    const out = []
+    for (const line of message.split('\n')) {
+      const keys = [...line.matchAll(/\{(\w+)\}/g)].map(m => m[1])
+      if (keys.some(k => k in values && !values[k])) continue
+      const filled = line.replaceAll(/\{(\w+)\}/g, (m, key) => values[key] ?? m)
+      if (!filled.trim() && out.length > 0 && !out.at(-1).trim()) continue
+      out.push(filled)
+    }
+    return out.join('\n').trim()
   }
   function escapeHTML (s) {
     return s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
@@ -446,9 +503,10 @@
     return lines.length === 5 ? lines : defaultPollOptions.value.split('\n')
   })
   const previewHTML = computed(() => {
-    const text = (draft.value?.whatsapp_bridge_message || defaultMessage.value)
-      .replaceAll(/\{(\w+)\}/g, (m, key) => SAMPLE[key] ?? m)
-    return escapeHTML(text.trim())
+    const message = pollMode.value
+      ? (draft.value?.whatsapp_bridge_message || defaultMessage.value)
+      : (draft.value?.whatsapp_bridge_link_message || defaultLinkMessage.value)
+    return escapeHTML(fillMessage(message))
       .replaceAll(/\*([^*\n]+)\*/g, '<strong>$1</strong>')
       .replaceAll(/_([^_\n]+)_/g, '<em>$1</em>')
       .replaceAll(/(https?:\/\/\S+)/g, '<span class="bubble__link">$1</span>')

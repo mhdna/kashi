@@ -519,9 +519,11 @@ type AppSetting struct {
 	WhatsappBridgeUrl          string          `json:"whatsapp_bridge_url"`
 	WhatsappBridgeKey          string          `json:"whatsapp_bridge_key"`
 	WhatsappBridgeMessage      string          `json:"whatsapp_bridge_message"`
-	WhatsappPollEnabled        bool            `json:"whatsapp_poll_enabled"`
 	WhatsappPollQuestion       string          `json:"whatsapp_poll_question"`
 	WhatsappPollOptions        string          `json:"whatsapp_poll_options"`
+	WhatsappFeedbackMode       string          `json:"whatsapp_feedback_mode"`
+	WhatsappBridgeLinkMessage  string          `json:"whatsapp_bridge_link_message"`
+	WhatsappInstagramUrl       string          `json:"whatsapp_instagram_url"`
 }
 
 type AppUpdateEvent struct {
