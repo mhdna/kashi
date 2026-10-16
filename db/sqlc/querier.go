@@ -81,6 +81,9 @@ type Querier interface {
 	// The once-only gate on a branch's list: 1 row the first time it's set up
 	// (by a till's import or an admin save), 0 ever after.
 	ClaimBranchQuickAccessInit(ctx context.Context, id int64) (int64, error)
+	// Moves a due schedule on to its next run before it sends, and only if no
+	// one else already did -- so a run is never sent twice.
+	ClaimEmailScheduleRun(ctx context.Context, arg ClaimEmailScheduleRunParams) (int64, error)
 	ClientPhonesPresent(ctx context.Context, dollar_1 []string) ([]string, error)
 	CloseShift(ctx context.Context, id int64) error
 	CompleteBranchCommand(ctx context.Context, arg CompleteBranchCommandParams) (BranchCommand, error)
@@ -133,6 +136,7 @@ type Querier interface {
 	CountDashboardSales(ctx context.Context, arg CountDashboardSalesParams) (int64, error)
 	CountDiscountListItemsWithProduct(ctx context.Context, arg CountDiscountListItemsWithProductParams) (int64, error)
 	CountDiscountLists(ctx context.Context) (int64, error)
+	CountEmailReports(ctx context.Context, status sql.NullString) (int64, error)
 	CountEmployees(ctx context.Context, arg CountEmployeesParams) (int64, error)
 	CountExpenses(ctx context.Context, arg CountExpensesParams) (int64, error)
 	// The "N synced" count beside the Recent activity feed: the same rows as
@@ -226,6 +230,8 @@ type Querier interface {
 	CreateCurrency(ctx context.Context, arg CreateCurrencyParams) (Currency, error)
 	CreateDiscountList(ctx context.Context, arg CreateDiscountListParams) (DiscountList, error)
 	CreateDiscountListItem(ctx context.Context, arg CreateDiscountListItemParams) (DiscountListItem, error)
+	CreateEmailReport(ctx context.Context, arg CreateEmailReportParams) (EmailReport, error)
+	CreateEmailSchedule(ctx context.Context, arg CreateEmailScheduleParams) (EmailSchedule, error)
 	CreateEmployee(ctx context.Context, arg CreateEmployeeParams) (Employee, error)
 	CreateEntryItem(ctx context.Context, arg CreateEntryItemParams) (Entry, error)
 	CreateExpense(ctx context.Context, arg CreateExpenseParams) (Expense, error)
@@ -398,6 +404,7 @@ type Querier interface {
 	DeleteDiscountListBranchesForList(ctx context.Context, discountListID int64) error
 	DeleteDiscountListItem(ctx context.Context, arg DeleteDiscountListItemParams) error
 	DeleteDiscountListItems(ctx context.Context, arg DeleteDiscountListItemsParams) (int64, error)
+	DeleteEmailSchedule(ctx context.Context, id int64) error
 	DeleteEmployee(ctx context.Context, id int64) error
 	DeleteExpense(ctx context.Context, id int64) error
 	DeleteExpenseCategory(ctx context.Context, id int64) error
@@ -500,6 +507,9 @@ type Querier interface {
 	GetDiscountList(ctx context.Context, id int64) (DiscountList, error)
 	GetDiscountListBranch(ctx context.Context, branchID int64) (DiscountListBranch, error)
 	GetDiscountListByUID(ctx context.Context, uid uuid.UUID) (DiscountList, error)
+	GetEmailResendAPIKey(ctx context.Context) (string, error)
+	GetEmailSchedule(ctx context.Context, id int64) (EmailSchedule, error)
+	GetEmailSettings(ctx context.Context) (GetEmailSettingsRow, error)
 	GetEmployee(ctx context.Context, id int64) (Employee, error)
 	GetEntry(ctx context.Context, id int64) (Entry, error)
 	GetExpense(ctx context.Context, id int64) (Expense, error)
@@ -747,7 +757,11 @@ type Querier interface {
 	// Expenses and loans aren't tracked per register and stay branch-wide.
 	// ---------------------------------------------------------------------------
 	ListBranchInvoiceHistoryForSync(ctx context.Context, arg ListBranchInvoiceHistoryForSyncParams) ([]BranchInvoice, error)
-	ListBranchInvoiceItems(ctx context.Context, branchInvoiceID int64) ([]BranchInvoiceItem, error)
+	// With the product each line is, for the admin views: the till only sends
+	// its own local product id, which means nothing here, so the name comes
+	// from the variant product_uid resolves to (blank for an old line that
+	// never resolved -- see resolveVariantByUIDOrBarcode).
+	ListBranchInvoiceItems(ctx context.Context, branchInvoiceID int64) ([]ListBranchInvoiceItemsRow, error)
 	// Items for a whole page of invoices at once, batched by id -- distinct
 	// from ListBranchInvoiceItems (branch_invoice.sql), which is the
 	// single-invoice admin detail view. resolved_barcode comes from
@@ -1049,13 +1063,41 @@ type Querier interface {
 	// See ListPriceListsForBranchSync -- same scoping and same reason for
 	// carrying is_active rather than filtering on it.
 	ListDiscountListsForBranchSync(ctx context.Context, arg ListDiscountListsForBranchSyncParams) ([]DiscountList, error)
+	ListDueEmailSchedules(ctx context.Context) ([]EmailSchedule, error)
 	ListDueRecurringExpenses(ctx context.Context, nextDueAt time.Time) ([]RecurringExpense, error)
+	// Every non-cancelled invoice on local days from_day..to_day, newest first
+	// (the order kashi-admin's CSV used), optionally one branch. Days are cut
+	// per branch timezone exactly like ListDayInvoices; the occurred_at range
+	// with a day of slack each side keeps idx_branch_invoices_occurred_at
+	// usable. Carries more than the default CSV needs so extra columns picked
+	// in Settings need no new query. ListEmailReportShiftInvoices returns the
+	// same columns for one shift.
+	// One grouped pass over the picked invoices' items and payments rather than
+	// a subquery per invoice.
+	ListEmailReportInvoices(ctx context.Context, arg ListEmailReportInvoicesParams) ([]ListEmailReportInvoicesRow, error)
+	// Everyone a report went out to, most recently used first, for the send
+	// dialog's suggestions.
+	ListEmailReportRecipients(ctx context.Context) ([]ListEmailReportRecipientsRow, error)
+	// The registers the send dialog can pick, by branch.
+	ListEmailReportRegisters(ctx context.Context) ([]ListEmailReportRegistersRow, error)
+	// A closed shift's invoices, matched the way settlements match a till's
+	// shift: register plus the till's own shift id.
+	// One grouped pass over the picked invoices' items and payments rather than
+	// a subquery per invoice.
+	ListEmailReportShiftInvoices(ctx context.Context, shiftID int64) ([]ListEmailReportShiftInvoicesRow, error)
+	// Closed shifts to pick from in the send dialog: those counted on local
+	// days from_day..to_day, optionally one branch, newest first.
+	ListEmailReportShifts(ctx context.Context, arg ListEmailReportShiftsParams) ([]ListEmailReportShiftsRow, error)
+	ListEmailReports(ctx context.Context, arg ListEmailReportsParams) ([]EmailReport, error)
+	ListEmailSchedules(ctx context.Context) ([]EmailSchedule, error)
 	ListEmployees(ctx context.Context, arg ListEmployeesParams) ([]Employee, error)
 	ListEntries(ctx context.Context, arg ListEntriesParams) ([]Entry, error)
 	ListExpenseCategories(ctx context.Context, scope sql.NullString) ([]ExpenseCategory, error)
 	// Only branch-scoped categories are synced down to kashi-pos.
 	ListExpenseCategoriesUpdatedSince(ctx context.Context, updatedAt time.Time) ([]ExpenseCategory, error)
 	ListExpenses(ctx context.Context, arg ListExpensesParams) ([]Expense, error)
+	// Which of a page's rows of one kind are resolved, and by whom.
+	ListHomeActivityResolutions(ctx context.Context, arg ListHomeActivityResolutionsParams) ([]ListHomeActivityResolutionsRow, error)
 	// Products that have opted out of low-stock alerting entirely, regardless
 	// of on-hand or threshold -- lets the muted list be reviewed and reversed.
 	ListIgnoredLowStockProducts(ctx context.Context, arg ListIgnoredLowStockProductsParams) ([]ListIgnoredLowStockProductsRow, error)
@@ -1261,6 +1303,7 @@ type Querier interface {
 	// cost forward. When existing on-hand is <= 0 the average is just reset to
 	// the incoming cost (no meaningful prior average to blend).
 	ReceiveInventoryStock(ctx context.Context, arg ReceiveInventoryStockParams) (InventoryStock, error)
+	RecordEmailScheduleRun(ctx context.Context, arg RecordEmailScheduleRunParams) error
 	// Opens an alert, or bumps the open one of the same kind for the same IP
 	// seen within the last hour.
 	RecordSecurityAlert(ctx context.Context, arg RecordSecurityAlertParams) error
@@ -1289,7 +1332,8 @@ type Querier interface {
 	// Sales reports over report_sale_invoices / report_sale_lines (migration
 	// 000134): the Dashboard's cost of goods and the Sales Dashboard
 	// (api/sales_dashboard.go). Ranges are half-open [date_from, date_to), days
-	// are UTC calendar days like the rest of the dashboard.
+	// are Beirut calendar days (businessZone in api/business_zone.go) like the
+	// rest of the dashboard.
 	// Cost of goods sold for the Dashboard, scoped like its other figures:
 	// till sales (optionally one branch) and/or sales entered in kashi. Only
 	// lines with a known cost count; costed_revenue is what those lines sold
@@ -1386,6 +1430,8 @@ type Querier interface {
 	SetCashboxAccountActive(ctx context.Context, arg SetCashboxAccountActiveParams) (CashboxAccount, error)
 	SetClientActive(ctx context.Context, arg SetClientActiveParams) error
 	SetDefaultLowStockThreshold(ctx context.Context, defaultLowStockThreshold int64) (AppSetting, error)
+	SetEmailResendAPIKey(ctx context.Context, emailResendApiKey string) error
+	SetEmailSettings(ctx context.Context, arg SetEmailSettingsParams) error
 	SetProductAutofillRules(ctx context.Context, arg SetProductAutofillRulesParams) (AppSetting, error)
 	SetProductCategory(ctx context.Context, arg SetProductCategoryParams) error
 	SetProductLowStockAlertsEnabled(ctx context.Context, arg SetProductLowStockAlertsEnabledParams) error
@@ -1433,6 +1479,8 @@ type Querier interface {
 	// Bumps both the register's and its branch's last_seen_at: the branch is
 	// "seen" whenever any of its registers is.
 	TouchBranchRegister(ctx context.Context, id int64) error
+	// Reopens a resolved urgent row, pinning it on Home again.
+	UnresolveHomeActivity(ctx context.Context, arg UnresolveHomeActivityParams) error
 	UnsetDefaultDiscountList(ctx context.Context, id int64) error
 	UnsetDefaultPriceList(ctx context.Context, id int64) error
 	UpdateAppReleaseNotes(ctx context.Context, arg UpdateAppReleaseNotesParams) (AppRelease, error)
@@ -1459,6 +1507,7 @@ type Querier interface {
 	UpdateCurrency(ctx context.Context, arg UpdateCurrencyParams) (Currency, error)
 	UpdateDiscountList(ctx context.Context, arg UpdateDiscountListParams) error
 	UpdateDiscountListItem(ctx context.Context, arg UpdateDiscountListItemParams) error
+	UpdateEmailSchedule(ctx context.Context, arg UpdateEmailScheduleParams) (EmailSchedule, error)
 	UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) (Employee, error)
 	UpdateEmployeeSalary(ctx context.Context, arg UpdateEmployeeSalaryParams) (Employee, error)
 	UpdateExpense(ctx context.Context, arg UpdateExpenseParams) (Expense, error)

@@ -35,3 +35,11 @@ export function formatAmount (amount, currency = '') {
   if (!currency || currency === 'USD') {return `${sign}$${formatted}`}
   return `${sign}${formatted} ${currency}`
 }
+
+// A whole-LBP amount, as the tills report shift floats and counts (no
+// hundredths, unlike formatAmount's input): "7,900,000 LBP", "−2,400,000 LBP".
+export function formatLBP (units) {
+  const n = Number(units || 0)
+  const sign = n < 0 ? '−' : ''
+  return `${sign}${new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(Math.abs(n))} LBP`
+}

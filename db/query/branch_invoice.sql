@@ -19,9 +19,11 @@ INSERT INTO branch_invoices (
   historical,
   client_uid,
   register_id,
-  salesperson_id
+  salesperson_id,
+  lbp_total,
+  lbp_rate
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
 )
 RETURNING *;
 
@@ -53,8 +55,24 @@ INSERT INTO branch_invoice_items (
 RETURNING *;
 
 -- name: ListBranchInvoiceItems :many
-SELECT * FROM branch_invoice_items
-WHERE branch_invoice_id = $1;
+-- With the product each line is, for the admin views: the till only sends
+-- its own local product id, which means nothing here, so the name comes
+-- from the variant product_uid resolves to (blank for an old line that
+-- never resolved -- see resolveVariantByUIDOrBarcode).
+SELECT
+  bii.*,
+  COALESCE(p.name, '')::text AS product_name,
+  COALESCE(p.code, '')::text AS product_code,
+  COALESCE(pv.barcode, '')::text AS barcode,
+  COALESCE(c.name, '')::text AS color_name,
+  COALESCE(s.name, '')::text AS size_name
+FROM branch_invoice_items bii
+LEFT JOIN product_variants pv ON pv.uid = bii.product_uid
+LEFT JOIN products p ON p.id = pv.product_id
+LEFT JOIN colors c ON c.id = pv.color_id
+LEFT JOIN sizes s ON s.id = pv.size_id
+WHERE bii.branch_invoice_id = $1
+ORDER BY bii.id;
 
 -- name: GetBranchInvoice :one
 SELECT * FROM branch_invoices WHERE id = $1;

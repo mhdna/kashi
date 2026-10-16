@@ -500,6 +500,16 @@ type AppSetting struct {
 	WhatsappMessageCostMicros  int64           `json:"whatsapp_message_cost_micros"`
 	WhatsappWebhookVerifyToken string          `json:"whatsapp_webhook_verify_token"`
 	WhatsappAppSecret          string          `json:"whatsapp_app_secret"`
+	EmailResendApiKey          string          `json:"email_resend_api_key"`
+	EmailSenderName            string          `json:"email_sender_name"`
+	EmailSenderAddress         string          `json:"email_sender_address"`
+	EmailReplyTo               string          `json:"email_reply_to"`
+	EmailDefaultRecipients     string          `json:"email_default_recipients"`
+	EmailBusinessName          string          `json:"email_business_name"`
+	EmailCsvColumns            json.RawMessage `json:"email_csv_columns"`
+	EmailAttachmentFormat      string          `json:"email_attachment_format"`
+	EmailGroupByRegister       bool            `json:"email_group_by_register"`
+	EmailOldestFirst           bool            `json:"email_oldest_first"`
 }
 
 type AppUpdateEvent struct {
@@ -706,6 +716,8 @@ type BranchInvoice struct {
 	RegisterID             int64          `json:"register_id"`
 	CancelledAt            sql.NullTime   `json:"cancelled_at"`
 	SalespersonID          sql.NullInt64  `json:"salesperson_id"`
+	LbpTotal               sql.NullInt64  `json:"lbp_total"`
+	LbpRate                sql.NullInt64  `json:"lbp_rate"`
 }
 
 type BranchInvoiceItem struct {
@@ -1112,6 +1124,51 @@ type DiscountListItem struct {
 	DiscountListID   int64 `json:"discount_list_id"`
 	Discount         int16 `json:"discount"`
 	ProductVariantID int64 `json:"product_variant_id"`
+}
+
+type EmailReport struct {
+	ID            int64         `json:"id"`
+	CreatedAt     time.Time     `json:"created_at"`
+	SentBy        string        `json:"sent_by"`
+	Scope         string        `json:"scope"`
+	FromDay       sql.NullTime  `json:"from_day"`
+	ToDay         sql.NullTime  `json:"to_day"`
+	BranchID      sql.NullInt64 `json:"branch_id"`
+	BranchShiftID sql.NullInt64 `json:"branch_shift_id"`
+	Label         string        `json:"label"`
+	Recipients    string        `json:"recipients"`
+	Subject       string        `json:"subject"`
+	Filename      string        `json:"filename"`
+	InvoiceCount  int32         `json:"invoice_count"`
+	TotalCents    int64         `json:"total_cents"`
+	Status        string        `json:"status"`
+	Error         string        `json:"error"`
+	ProviderID    string        `json:"provider_id"`
+	Note          string        `json:"note"`
+	ScheduleID    sql.NullInt64 `json:"schedule_id"`
+}
+
+type EmailSchedule struct {
+	ID          int64        `json:"id"`
+	Name        string       `json:"name"`
+	Enabled     bool         `json:"enabled"`
+	Period      string       `json:"period"`
+	RegisterIds []int64      `json:"register_ids"`
+	Recipients  string       `json:"recipients"`
+	Format      string       `json:"format"`
+	Note        string       `json:"note"`
+	SkipEmpty   bool         `json:"skip_empty"`
+	Frequency   string       `json:"frequency"`
+	AtMinute    int32        `json:"at_minute"`
+	Weekdays    []int32      `json:"weekdays"`
+	MonthDay    int32        `json:"month_day"`
+	NextRunAt   sql.NullTime `json:"next_run_at"`
+	LastRunAt   sql.NullTime `json:"last_run_at"`
+	LastStatus  string       `json:"last_status"`
+	LastError   string       `json:"last_error"`
+	CreatedBy   string       `json:"created_by"`
+	CreatedAt   time.Time    `json:"created_at"`
+	UpdatedAt   time.Time    `json:"updated_at"`
 }
 
 type Employee struct {
