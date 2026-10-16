@@ -77,6 +77,16 @@
         >
           Review link
         </v-chip>
+        <v-chip
+          v-if="item.poll_rating?.Valid"
+          class="ms-1"
+          :color="item.poll_rating.Int16 >= 4 ? 'success' : item.poll_rating.Int16 === 3 ? 'amber-darken-2' : 'error'"
+          size="x-small"
+          :title="item.poll_answer"
+          variant="tonal"
+        >
+          {{ '★'.repeat(item.poll_rating.Int16) }}
+        </v-chip>
       </template>
       <template #item.rule="{ item }">
         <div>{{ item.rule_name || 'Default' }}</div>

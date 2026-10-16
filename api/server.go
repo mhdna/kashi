@@ -300,6 +300,9 @@ func (server *Server) setupRoutes() {
 	router.GET("/review", server.openReviewLink)
 	router.GET("/review/:code", server.openReviewLink)
 	router.GET(reviewBannerPath, server.reviewBanner)
+	// Votes on the rating poll, from the WhatsApp bridge on this server
+	// (whatsapp_poll.go); it signs with its API key.
+	router.POST(whatsAppPollVotesPath, server.receiveWhatsAppPollVote)
 	router.POST("/tokens/renew_access", server.renewAccessToken)
 	authRoutes.POST("/users", server.createUser)
 	authRoutes.GET("/users/online", server.listOnlineUsers)

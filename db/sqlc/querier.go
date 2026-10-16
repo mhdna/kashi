@@ -1311,6 +1311,8 @@ type Querier interface {
 	// The WhatsApp page: post-sale message rules and the message log
 	// (api/whatsapp_rules.go).
 	ListWhatsAppRules(ctx context.Context) ([]WhatsappRule, error)
+	// Clients who answered 1 or 2 stars, newest first: the ones to call back.
+	LowPollRatings(ctx context.Context, arg LowPollRatingsParams) ([]LowPollRatingsRow, error)
 	// The original punch of an approved replace/delete on the till. Kept, not
 	// deleted, so the audit trail shows what was there and who took it away.
 	MarkBranchAttendanceEventRemoved(ctx context.Context, arg MarkBranchAttendanceEventRemovedParams) error
@@ -1322,6 +1324,11 @@ type Querier interface {
 	MarkBranchTransferUploadTokenUsed(ctx context.Context, id int64) error
 	MarkLoanUploadTokenUsed(ctx context.Context, id int64) error
 	MarkWhatsAppReviewClicked(ctx context.Context, id int64) error
+	// The WhatsApp rating poll over the range: polls sent, answers, and how many
+	// of each star.
+	PollRatingTotals(ctx context.Context, arg PollRatingTotalsParams) (PollRatingTotalsRow, error)
+	PollRatingsByBranch(ctx context.Context, arg PollRatingsByBranchParams) ([]PollRatingsByBranchRow, error)
+	PollRatingsByDay(ctx context.Context, arg PollRatingsByDayParams) ([]PollRatingsByDayRow, error)
 	ProductBarcodesPresent(ctx context.Context, dollar_1 []string) ([]string, error)
 	// Apply an inbound quantity delta and roll the per-location moving-average
 	// cost forward. When existing on-hand is <= 0 the average is just reset to
@@ -1331,6 +1338,8 @@ type Querier interface {
 	// Opens an alert, or bumps the open one of the same kind for the same IP
 	// seen within the last hour.
 	RecordSecurityAlert(ctx context.Context, arg RecordSecurityAlertParams) error
+	// A client's answer to the rating poll; a NULL rating is a vote taken back.
+	RecordWhatsAppPollVote(ctx context.Context, arg RecordWhatsAppPollVoteParams) (RecordWhatsAppPollVoteRow, error)
 	// Idempotent: a retried invoice post that already redeemed this code just
 	// returns the row unchanged rather than erroring (matches
 	// CreateBranchInvoice's own idempotent-retry shape). Only actually moves

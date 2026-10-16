@@ -51,6 +51,79 @@
           </v-card>
         </v-col>
 
+        <!-- The WhatsApp rating poll -->
+        <template v-if="ratings && ratings.totals.polls > 0">
+          <v-col cols="12" md="6">
+            <v-card class="chart-card pb-3" variant="flat">
+              <div class="chart-card__title">Star ratings in WhatsApp</div>
+              <div class="chart-card__subtitle">
+                {{ ratings.totals.answers }} of {{ ratings.totals.polls }} clients answered the poll
+                ({{ percent(ratings.totals.answers, ratings.totals.polls) }}).
+              </div>
+              <div class="d-flex align-center ga-4 mt-2">
+                <div class="text-center">
+                  <div class="text-h4 font-weight-medium">{{ ratings.totals.answers ? ratings.totals.average.toFixed(1) : '—' }}</div>
+                  <v-rating
+                    color="amber"
+                    density="compact"
+                    half-increments
+                    :model-value="ratings.totals.average"
+                    readonly
+                    size="x-small"
+                  />
+                </div>
+                <div class="flex-grow-1">
+                  <div v-for="n in [5, 4, 3, 2, 1]" :key="n" class="d-flex align-center ga-2">
+                    <span class="text-caption" style="width: 14px">{{ n }}</span>
+                    <v-progress-linear
+                      :color="n >= 4 ? 'success' : n === 3 ? 'amber' : 'error'"
+                      height="8"
+                      :max="ratings.totals.answers || 1"
+                      :model-value="ratings.totals[`stars${n}`]"
+                      rounded
+                    />
+                    <span class="text-caption text-end" style="width: 28px">{{ ratings.totals[`stars${n}`] }}</span>
+                  </div>
+                </div>
+              </div>
+              <v-table v-if="!branchId && ratings.branches.length > 1" class="mt-3" density="compact">
+                <tbody>
+                  <tr v-for="b in ratings.branches" :key="b.branch_id">
+                    <td>{{ b.branch_name || 'No branch' }}</td>
+                    <td class="text-end">{{ b.average.toFixed(1) }} ★</td>
+                    <td class="text-end text-medium-emphasis">{{ b.answers }} answers</td>
+                  </tr>
+                </tbody>
+              </v-table>
+            </v-card>
+          </v-col>
+          <v-col cols="12" md="6">
+            <v-card class="chart-card" variant="flat">
+              <div class="chart-card__title">To call back</div>
+              <div class="chart-card__subtitle">Clients who answered 1 or 2 stars.</div>
+              <div v-if="ratings.low.length === 0" class="text-body-2 text-medium-emphasis py-6 text-center">
+                Nobody rated their visit 1 or 2 stars in this range.
+              </div>
+              <v-table v-else density="compact">
+                <tbody>
+                  <tr v-for="r in ratings.low" :key="r.id">
+                    <td>
+                      <div>{{ r.client_name || '—' }}</div>
+                      <div class="text-caption text-medium-emphasis">+{{ r.client_phone }}</div>
+                    </td>
+                    <td class="text-error text-no-wrap">{{ '★'.repeat(r.poll_rating?.Int16 ?? r.poll_rating) }}</td>
+                    <td>
+                      <div class="text-caption">{{ r.invoice_code }}</div>
+                      <div class="text-caption text-medium-emphasis">{{ r.branch_name }}</div>
+                    </td>
+                    <td class="text-caption text-disabled text-no-wrap">{{ formatWhen(r.poll_voted_at?.Time ?? r.poll_voted_at) }}</td>
+                  </tr>
+                </tbody>
+              </v-table>
+            </v-card>
+          </v-col>
+        </template>
+
         <!-- Google, per place -->
         <v-col
           v-for="place in stats.places"
@@ -330,6 +403,8 @@
     if (!at) return ''
     return new Date(at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
   }
+
+  const ratings = computed(() => stats.value?.ratings ?? null)
 
   // ---- KPIs ----------------------------------------------------------------
   const kpis = computed(() => {

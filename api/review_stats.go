@@ -47,6 +47,37 @@ func (server *Server) getReviews(ctx *gin.Context) {
 		return
 	}
 
+	// The WhatsApp rating poll (whatsapp_poll.go).
+	pollTotals, err := server.store.PollRatingTotals(ctx, db.PollRatingTotalsParams{FromAt: fromAt, ToAt: toAt, BranchID: req.BranchID})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	pollBranches, err := server.store.PollRatingsByBranch(ctx, db.PollRatingsByBranchParams{FromAt: fromAt, ToAt: toAt, BranchID: req.BranchID})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	pollDays, err := server.store.PollRatingsByDay(ctx, db.PollRatingsByDayParams{FromAt: fromAt, ToAt: toAt, BranchID: req.BranchID})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	lowRatings, err := server.store.LowPollRatings(ctx, db.LowPollRatingsParams{FromAt: fromAt, ToAt: toAt, BranchID: req.BranchID})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	type pollDayRow struct {
+		Day     string  `json:"day"`
+		Answers int64   `json:"answers"`
+		Average float64 `json:"average"`
+	}
+	pollDayRows := make([]pollDayRow, len(pollDays))
+	for i, d := range pollDays {
+		pollDayRows[i] = pollDayRow{d.Day.Format(time.DateOnly), d.Answers, d.Average}
+	}
+
 	settings, err := server.store.GetReviewSettings(ctx)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
@@ -157,6 +188,12 @@ func (server *Server) getReviews(ctx *gin.Context) {
 	}
 
 	server.writeJSON(ctx, http.StatusOK, envelope{
+		"ratings": envelope{
+			"totals":   pollTotals,
+			"branches": pollBranches,
+			"days":     pollDayRows,
+			"low":      lowRatings,
+		},
 		"funnel":       funnel,
 		"clicks":       clicks,
 		"days":         dayRows,

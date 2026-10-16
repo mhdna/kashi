@@ -181,6 +181,58 @@
           <v-card class="card" variant="flat">
             <div class="card__title mb-2">Preview</div>
             <div class="bubble" v-html="previewHTML" />
+            <div v-if="draft.whatsapp_poll_enabled" class="bubble poll mt-2">
+              <div class="font-weight-medium mb-1">{{ pollQuestion }}</div>
+              <div class="text-caption poll__hint mb-1">Select one</div>
+              <div v-for="o in pollOptions" :key="o" class="poll__option">
+                <span class="poll__radio" />{{ o }}
+              </div>
+            </div>
+          </v-card>
+        </v-col>
+
+        <!-- The rating poll -->
+        <v-col cols="12">
+          <v-card class="card" variant="flat">
+            <v-switch
+              v-model="draft.whatsapp_poll_enabled"
+              color="primary"
+              density="compact"
+              :disabled="!canEdit"
+              hide-details
+              label="Follow the message with a star-rating poll"
+            />
+            <p class="text-caption text-medium-emphasis mb-3">
+              One tap in the chat, no link or sign-in. Answers show on the
+              <router-link to="/reviews">Reviews</router-link> page by branch, with the low ones to call back.
+            </p>
+            <v-row v-if="draft.whatsapp_poll_enabled" density="compact">
+              <v-col cols="12" md="5">
+                <v-text-field
+                  v-model="draft.whatsapp_poll_question"
+                  density="compact"
+                  :disabled="!canEdit"
+                  hide-details
+                  label="Question"
+                  :placeholder="defaultPollQuestion"
+                  variant="outlined"
+                />
+              </v-col>
+              <v-col cols="12" md="7">
+                <v-textarea
+                  v-model="draft.whatsapp_poll_options"
+                  auto-grow
+                  density="compact"
+                  :disabled="!canEdit"
+                  hint="Five lines, best first: the first counts as 5 stars, the last as 1"
+                  label="Options"
+                  persistent-hint
+                  :placeholder="defaultPollOptions"
+                  rows="5"
+                  variant="outlined"
+                />
+              </v-col>
+            </v-row>
           </v-card>
         </v-col>
 
@@ -327,6 +379,8 @@
   const numbers = ref([])
   const bridgeError = ref('')
   const defaultMessage = ref('')
+  const defaultPollQuestion = ref('')
+  const defaultPollOptions = ref('')
   const showKey = ref(false)
   const saving = ref(false)
 
@@ -343,6 +397,8 @@
     numbers.value = body.numbers ?? []
     bridgeError.value = body.bridge_error || ''
     defaultMessage.value = body.default_message || ''
+    defaultPollQuestion.value = body.default_poll_question || ''
+    defaultPollOptions.value = body.default_poll_options || ''
   }
   async function load () {
     try {
@@ -384,6 +440,11 @@
   function escapeHTML (s) {
     return s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
   }
+  const pollQuestion = computed(() => draft.value?.whatsapp_poll_question?.trim() || defaultPollQuestion.value)
+  const pollOptions = computed(() => {
+    const lines = (draft.value?.whatsapp_poll_options || '').split('\n').map(l => l.trim()).filter(Boolean)
+    return lines.length === 5 ? lines : defaultPollOptions.value.split('\n')
+  })
   const previewHTML = computed(() => {
     const text = (draft.value?.whatsapp_bridge_message || defaultMessage.value)
       .replaceAll(/\{(\w+)\}/g, (m, key) => SAMPLE[key] ?? m)
@@ -503,6 +564,22 @@
   white-space: pre-line;
   font-size: 0.9rem;
   max-width: 340px;
+}
+.poll__hint {
+  color: #667781;
+}
+.poll__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.poll__radio {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #8696a0;
+  border-radius: 50%;
+  flex: none;
 }
 :deep(.bubble__link) {
   color: #027eb5;

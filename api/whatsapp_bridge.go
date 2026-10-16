@@ -128,6 +128,9 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 		server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, err.Error())
 		return
 	}
+	if sender.WhatsappPollEnabled {
+		entry.PollRef = server.sendWhatsAppPoll(ctx, sender, url.PathEscape(number.Instance), entry.ClientPhone)
+	}
 	server.logWhatsAppMessage(ctx, entry, whatsAppStatusSent, "")
 }
 
@@ -206,11 +209,14 @@ type whatsAppBranchNumber struct {
 }
 
 type whatsAppSenderBody struct {
-	Sender   string                 `json:"whatsapp_sender"`
-	URL      string                 `json:"whatsapp_bridge_url"`
-	Key      string                 `json:"whatsapp_bridge_key"`
-	Message  string                 `json:"whatsapp_bridge_message"`
-	Branches []whatsAppBranchNumber `json:"branches"`
+	Sender       string                 `json:"whatsapp_sender"`
+	URL          string                 `json:"whatsapp_bridge_url"`
+	Key          string                 `json:"whatsapp_bridge_key"`
+	Message      string                 `json:"whatsapp_bridge_message"`
+	PollEnabled  bool                   `json:"whatsapp_poll_enabled"`
+	PollQuestion string                 `json:"whatsapp_poll_question"`
+	PollOptions  string                 `json:"whatsapp_poll_options"`
+	Branches     []whatsAppBranchNumber `json:"branches"`
 }
 
 func (server *Server) getWhatsAppSender(ctx *gin.Context) {
@@ -239,15 +245,20 @@ func (server *Server) getWhatsAppSender(ctx *gin.Context) {
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{
 		"settings": whatsAppSenderBody{
-			Sender:   sender.WhatsappSender,
-			URL:      sender.WhatsappBridgeUrl,
-			Key:      sender.WhatsappBridgeKey,
-			Message:  sender.WhatsappBridgeMessage,
-			Branches: branches,
+			Sender:       sender.WhatsappSender,
+			URL:          sender.WhatsappBridgeUrl,
+			Key:          sender.WhatsappBridgeKey,
+			Message:      sender.WhatsappBridgeMessage,
+			PollEnabled:  sender.WhatsappPollEnabled,
+			PollQuestion: sender.WhatsappPollQuestion,
+			PollOptions:  sender.WhatsappPollOptions,
+			Branches:     branches,
 		},
-		"default_message": defaultWhatsAppBridgeMessage,
-		"numbers":         numbers,
-		"bridge_error":    bridgeErr,
+		"default_message":       defaultWhatsAppBridgeMessage,
+		"default_poll_question": defaultWhatsAppPollQuestion,
+		"default_poll_options":  strings.Join(defaultWhatsAppPollOptions, "\n"),
+		"numbers":               numbers,
+		"bridge_error":          bridgeErr,
 	})
 }
 
@@ -306,6 +317,19 @@ func (server *Server) updateWhatsAppSender(ctx *gin.Context) {
 			return
 		}
 	}
+	// The poll's options: exactly five, best first, or none for the defaults.
+	var lines []string
+	for _, line := range strings.Split(req.PollOptions, "\n") {
+		if line = strings.TrimSpace(line); line != "" {
+			lines = append(lines, line)
+		}
+	}
+	if len(lines) != 0 && len(lines) != 5 {
+		server.writeError(ctx, http.StatusBadRequest, errors.New("the poll needs exactly 5 options, one per line, best first"))
+		return
+	}
+	pollOptions := strings.Join(lines, "\n")
+
 	branches := make([]db.SetBranchWhatsAppNumberParams, len(req.Branches))
 	for i, b := range req.Branches {
 		branches[i] = db.SetBranchWhatsAppNumberParams{ID: b.BranchID}
@@ -318,6 +342,9 @@ func (server *Server) updateWhatsAppSender(ctx *gin.Context) {
 		WhatsappBridgeUrl:     strings.TrimRight(strings.TrimSpace(req.URL), "/"),
 		WhatsappBridgeKey:     strings.TrimSpace(req.Key),
 		WhatsappBridgeMessage: strings.TrimSpace(req.Message),
+		WhatsappPollEnabled:   req.PollEnabled,
+		WhatsappPollQuestion:  strings.TrimSpace(req.PollQuestion),
+		WhatsappPollOptions:   pollOptions,
 	}, branches); err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
