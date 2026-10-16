@@ -148,7 +148,7 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 			return
 		}
 		if strings.TrimSpace(reviewSettings.ReviewBaseUrl) == "" || server.branchReviewPlace(ctx, reviewSettings, branchID) == "" {
-			server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, "review link not set up (WhatsApp > Reviews)")
+			server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, "review link not set up (Reviews page)")
 			return
 		}
 		entry.ReviewCode = newReviewCode()

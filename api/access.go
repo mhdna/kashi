@@ -66,9 +66,10 @@ var accessSections = []accessSection{
 	{"sales", "Sales", "Invoices", []accessPage{
 		{"invoices", "Invoices"},
 	}},
-	{"clients", "Clients", "Clients and loyalty", []accessPage{
+	{"clients", "Clients", "Clients, loyalty and reviews", []accessPage{
 		{"clients", "Clients"},
 		{"loyalty", "Loyalty"},
+		{"reviews", "Reviews"},
 	}},
 	{"branches", "Branches", "Branches, branch settings and sync conflicts", []accessPage{
 		{"branches", "Branches"},
@@ -307,6 +308,10 @@ var routeRules = []routeRule{
 	rule("/whatsapp_settings", "system", "system"),
 	// The WhatsApp page: rules, message log and stats.
 	rule("/whatsapp", "system", "system"),
+	// The Reviews page; its settings hold the Places API key, so changing
+	// them is System's.
+	rule("/reviews", "clients", "clients"),
+	rule("/reviews/settings", "system", "clients", "system"),
 	rule("/email_settings", "system", "system", "analytics"),
 	// Sending an invoice report is done from the Daily Income pages; its
 	// history is the Emails page under System.

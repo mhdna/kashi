@@ -1,5 +1,5 @@
 -- Review links in the post-sale WhatsApp message and the Google data behind
--- the WhatsApp page's Reviews tab (api/review_link.go, api/google_places.go).
+-- the Reviews page (api/review_link.go, api/google_places.go).
 
 -- name: GetReviewSettings :one
 SELECT review_place_id, review_base_url, review_title, review_description, google_places_api_key

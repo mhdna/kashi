@@ -218,10 +218,11 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/salesperson_performance", server.getSalespersonPerformance)
 	authRoutes.GET("/whatsapp/clients", server.listWhatsAppClients)
 	authRoutes.GET("/whatsapp/replies", server.listWhatsAppReplies)
-	authRoutes.GET("/whatsapp/reviews", server.getWhatsAppReviews)
-	authRoutes.POST("/whatsapp/reviews/refresh", server.refreshWhatsAppReviews)
-	authRoutes.GET("/whatsapp/review_settings", server.getReviewSettings)
-	authRoutes.PUT("/whatsapp/review_settings", server.updateReviewSettings)
+	// The Reviews page (review_stats.go, review_link.go).
+	authRoutes.GET("/reviews", server.getReviews)
+	authRoutes.POST("/reviews/refresh", server.refreshReviews)
+	authRoutes.GET("/reviews/settings", server.getReviewSettings)
+	authRoutes.PUT("/reviews/settings", server.updateReviewSettings)
 
 	authRoutes.GET("/calendar_events", server.listCalendarEvents)
 	authRoutes.POST("/calendar_events", server.createCalendarEvent)

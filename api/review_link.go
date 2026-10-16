@@ -22,7 +22,7 @@ import (
 // code, and <review_base_url>/<code> sends whoever opens it to the Google
 // "write a review" box of the branch that made the sale -- the branch's own
 // place when it has one, else the business's. Opening it records a click for
-// the WhatsApp page's Reviews tab.
+// the Reviews page.
 //
 // The links are served by kashi but live on the public site: Caddy proxies
 // grandbz.com/review* here. A person is redirected straight to Google; a
@@ -199,7 +199,7 @@ func (server *Server) reviewBanner(ctx *gin.Context) {
 	ctx.Data(http.StatusOK, "image/jpeg", reviewBannerJPG)
 }
 
-// ---- settings (the Reviews tab) ---------------------------------------------
+// ---- settings (the Reviews page) ---------------------------------------------
 
 type reviewBranchPlace struct {
 	BranchID   int64  `json:"branch_id"`
