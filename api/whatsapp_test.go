@@ -28,7 +28,7 @@ func TestWhatsAppDigits(t *testing.T) {
 }
 
 func TestWhatsAppTemplateParams(t *testing.T) {
-	got := whatsAppTemplateParams("name,branch,invoice,total", "Sara", "Hamra", "INV-42", 1550)
+	got := whatsAppTemplateParams("name,branch,invoice,total", "Sara", "Hamra", "INV-42", 1550, "", "")
 	want := []string{"Sara", "Hamra", "INV-42", "$15.50"}
 	if len(got) != len(want) {
 		t.Fatalf("got %d params, want %d: %v", len(got), len(want), got)
@@ -40,13 +40,13 @@ func TestWhatsAppTemplateParams(t *testing.T) {
 	}
 
 	// Missing client name falls back to "there".
-	got = whatsAppTemplateParams("name", "", "", "INV-1", 100)
+	got = whatsAppTemplateParams("name", "", "", "INV-1", 100, "", "")
 	if got[0]["text"] != "there" {
 		t.Errorf("name fallback: got %v", got[0])
 	}
 
 	// Unknown placeholder names are skipped.
-	got = whatsAppTemplateParams("name,bogus,total", "Sara", "", "INV-1", 100)
+	got = whatsAppTemplateParams("name,bogus,total", "Sara", "", "INV-1", 100, "", "")
 	if len(got) != 2 {
 		t.Errorf("expected unknown placeholder to be skipped, got %v", got)
 	}

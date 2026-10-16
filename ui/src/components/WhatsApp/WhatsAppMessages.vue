@@ -66,6 +66,17 @@
         >
           {{ outcome(item).label }}
         </v-chip>
+        <v-chip
+          v-if="nullTime(item.review_clicked_at)"
+          class="ms-1"
+          color="amber-darken-2"
+          prepend-icon="mdi-star"
+          size="x-small"
+          :title="`Opened the review link ${new Date(nullTime(item.review_clicked_at)).toLocaleString()}`"
+          variant="tonal"
+        >
+          Review link
+        </v-chip>
       </template>
       <template #item.rule="{ item }">
         <div>{{ item.rule_name || 'Default' }}</div>

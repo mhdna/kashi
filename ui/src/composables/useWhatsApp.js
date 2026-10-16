@@ -28,6 +28,10 @@ export function useWhatsApp () {
     getStats: params => requestJSON(`/whatsapp/stats?${new URLSearchParams(params)}`),
     listMessages: params => requestJSON(`/whatsapp/messages?${new URLSearchParams(params)}`),
     listReplies: params => requestJSON(`/whatsapp/replies?${new URLSearchParams(params)}`),
+    getReviews: params => requestJSON(`/whatsapp/reviews?${new URLSearchParams(params)}`),
+    refreshReviews: () => sendJSON('POST', '/whatsapp/reviews/refresh', {}),
+    getReviewSettings: async () => (await requestJSON('/whatsapp/review_settings')).settings,
+    saveReviewSettings: async settings => (await sendJSON('PUT', '/whatsapp/review_settings', settings)).settings,
     searchClients: async search =>
       (await requestJSON(`/whatsapp/clients?${new URLSearchParams({ search })}`)).clients ?? [],
     clientsByPhones: async phones =>

@@ -11,7 +11,7 @@ import (
 )
 
 const getAppSettings = `-- name: GetAppSettings :one
-SELECT id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first FROM app_settings WHERE id = 1
+SELECT id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first, review_place_id, review_base_url, review_title, review_description, google_places_api_key FROM app_settings WHERE id = 1
 `
 
 func (q *Queries) GetAppSettings(ctx context.Context) (AppSetting, error) {
@@ -51,6 +51,11 @@ func (q *Queries) GetAppSettings(ctx context.Context) (AppSetting, error) {
 		&i.EmailAttachmentFormat,
 		&i.EmailGroupByRegister,
 		&i.EmailOldestFirst,
+		&i.ReviewPlaceID,
+		&i.ReviewBaseUrl,
+		&i.ReviewTitle,
+		&i.ReviewDescription,
+		&i.GooglePlacesApiKey,
 	)
 	return i, err
 }
@@ -61,7 +66,7 @@ SET product_autofill_rules = $1,
     product_autofill_code_layout = $2,
     updated_at = now()
 WHERE id = 1
-RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first
+RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first, review_place_id, review_base_url, review_title, review_description, google_places_api_key
 `
 
 type SetProductAutofillRulesParams struct {
@@ -106,6 +111,11 @@ func (q *Queries) SetProductAutofillRules(ctx context.Context, arg SetProductAut
 		&i.EmailAttachmentFormat,
 		&i.EmailGroupByRegister,
 		&i.EmailOldestFirst,
+		&i.ReviewPlaceID,
+		&i.ReviewBaseUrl,
+		&i.ReviewTitle,
+		&i.ReviewDescription,
+		&i.GooglePlacesApiKey,
 	)
 	return i, err
 }
@@ -123,7 +133,7 @@ SET financials_high_season_months = $1,
     product_autofill_enabled = $9,
     updated_at = now()
 WHERE id = 1
-RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first
+RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first, review_place_id, review_base_url, review_title, review_description, google_places_api_key
 `
 
 type UpdateAppSettingsParams struct {
@@ -185,6 +195,11 @@ func (q *Queries) UpdateAppSettings(ctx context.Context, arg UpdateAppSettingsPa
 		&i.EmailAttachmentFormat,
 		&i.EmailGroupByRegister,
 		&i.EmailOldestFirst,
+		&i.ReviewPlaceID,
+		&i.ReviewBaseUrl,
+		&i.ReviewTitle,
+		&i.ReviewDescription,
+		&i.GooglePlacesApiKey,
 	)
 	return i, err
 }

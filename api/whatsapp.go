@@ -138,9 +138,33 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 		branchName = branch.Name
 	}
 
-	params := whatsAppTemplateParams(decision.TemplateParams, req.ClientName, branchName, req.InvoiceCode, req.GrandTotalCents)
+	// The review link (review_link.go): its own code per message, when the
+	// template has a place for it.
+	var reviewURL string
+	if whatsAppHasParam(decision.TemplateParams, "review", "review_code", "review_button") {
+		reviewSettings, err := server.store.GetReviewSettings(ctx)
+		if err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		if strings.TrimSpace(reviewSettings.ReviewBaseUrl) == "" || server.branchReviewPlace(ctx, reviewSettings, branchID) == "" {
+			server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, "review link not set up (WhatsApp > Reviews)")
+			return
+		}
+		entry.ReviewCode = newReviewCode()
+		reviewURL = reviewLinkURL(reviewSettings.ReviewBaseUrl, entry.ReviewCode)
+	}
+
+	params := whatsAppTemplateParams(decision.TemplateParams, req.ClientName, branchName, req.InvoiceCode, req.GrandTotalCents, reviewURL, entry.ReviewCode)
 
 	components := []map[string]any{{"type": "body", "parameters": params}}
+	if whatsAppHasParam(decision.TemplateParams, "review_button") {
+		// A "visit website" button whose URL ends in {{1}}: the code fills it.
+		components = append(components, map[string]any{
+			"type": "button", "sub_type": "url", "index": "0",
+			"parameters": []map[string]any{{"type": "text", "text": entry.ReviewCode}},
+		})
+	}
 	if whatsAppImageHeaderTemplates[decision.TemplateName] {
 		headerImage := whatsAppHeaderImages[rand.Intn(len(whatsAppHeaderImages))]
 		components = append([]map[string]any{{
@@ -260,8 +284,10 @@ func parseWhatsAppSendResponse(status int, body io.Reader) (string, error) {
 
 // whatsAppTemplateParams builds the template's body parameters in the order
 // given by paramNames (comma-separated placeholder names: name, market,
-// branch, invoice, total). Unknown placeholder names are skipped.
-func whatsAppTemplateParams(paramNames, clientName, branchName, invoiceCode string, grandTotalCents int64) []map[string]any {
+// branch, invoice, total, review = the review link, review_code = just its
+// code). Unknown placeholder names are skipped, as is review_button, which
+// fills the template's URL button rather than its body.
+func whatsAppTemplateParams(paramNames, clientName, branchName, invoiceCode string, grandTotalCents int64, reviewURL, reviewCode string) []map[string]any {
 	name := strings.TrimSpace(clientName)
 	if name == "" {
 		name = "there"
@@ -272,6 +298,10 @@ func whatsAppTemplateParams(paramNames, clientName, branchName, invoiceCode stri
 		"branch":  strings.TrimSpace(branchName),
 		"invoice": invoiceCode,
 		"total":   fmt.Sprintf("$%.2f", float64(grandTotalCents)/100),
+	}
+	if reviewURL != "" {
+		values["review"] = reviewURL
+		values["review_code"] = reviewCode
 	}
 
 	var params []map[string]any
@@ -284,6 +314,20 @@ func whatsAppTemplateParams(paramNames, clientName, branchName, invoiceCode stri
 		params = append(params, map[string]any{"type": "text", "text": v})
 	}
 	return params
+}
+
+// whatsAppHasParam reports whether the comma-separated placeholder list
+// names any of names.
+func whatsAppHasParam(paramNames string, names ...string) bool {
+	for _, key := range strings.Split(paramNames, ",") {
+		key = strings.TrimSpace(key)
+		for _, n := range names {
+			if key == n {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // whatsAppDigits turns an E.164 phone ("+96170123456") into the digits-only
