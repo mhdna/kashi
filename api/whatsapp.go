@@ -124,8 +124,23 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 		server.logWhatsAppMessage(ctx, entry, whatsAppStatusSkipped, "rule: "+decision.RuleName)
 		return
 	}
-	entry.TemplateName = decision.TemplateName
+	branchName := ""
+	if branch, err := server.store.GetBranch(ctx, branchID); err == nil {
+		branchName = branch.Name
+	}
 
+	sender, err := server.store.GetWhatsAppSenderSettings(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if sender.WhatsappSender != whatsAppSenderMeta {
+		server.sendWhatsAppViaBridge(ctx, entry, sender, branchName, req)
+		return
+	}
+
+	entry.Sender = whatsAppSenderMeta
+	entry.TemplateName = decision.TemplateName
 	phoneNumberID := strings.TrimSpace(settings.WhatsappPhoneNumberID)
 	token := strings.TrimSpace(settings.WhatsappAccessToken)
 	if phoneNumberID == "" || token == "" || decision.TemplateName == "" {
@@ -133,26 +148,20 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 		return
 	}
 
-	branchName := ""
-	if branch, err := server.store.GetBranch(ctx, branchID); err == nil {
-		branchName = branch.Name
-	}
-
 	// The review link (review_link.go): its own code per message, when the
 	// template has a place for it.
 	var reviewURL string
 	if whatsAppHasParam(decision.TemplateParams, "review", "review_code", "review_button") {
-		reviewSettings, err := server.store.GetReviewSettings(ctx)
+		code, link, reason, err := server.newReviewLink(ctx, branchID)
 		if err != nil {
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
 		}
-		if strings.TrimSpace(reviewSettings.ReviewBaseUrl) == "" || server.branchReviewPlace(ctx, reviewSettings, branchID) == "" {
-			server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, "review link not set up (Reviews page)")
+		if reason != "" {
+			server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, reason)
 			return
 		}
-		entry.ReviewCode = newReviewCode()
-		reviewURL = reviewLinkURL(reviewSettings.ReviewBaseUrl, entry.ReviewCode)
+		entry.ReviewCode, reviewURL = code, link
 	}
 
 	params := whatsAppTemplateParams(decision.TemplateParams, req.ClientName, branchName, req.InvoiceCode, req.GrandTotalCents, reviewURL, entry.ReviewCode)

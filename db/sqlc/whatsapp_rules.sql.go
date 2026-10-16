@@ -51,31 +51,34 @@ func (q *Queries) CountWhatsAppMessages(ctx context.Context, arg CountWhatsAppMe
 const createWhatsAppMessage = `-- name: CreateWhatsAppMessage :one
 INSERT INTO whatsapp_messages (
   branch_id, invoice_code, client_name, client_phone, grand_total_cents, item_count,
-  rule_id, rule_name, template_name, status, reason, wamid, cost_micros, review_code
+  rule_id, rule_name, template_name, status, reason, wamid, cost_micros, review_code,
+  sender, whatsapp_number_id
 ) VALUES (
   $1, $2, $3, $4,
   $5, $6, $7, $8,
   $9, $10, $11, $12, $13,
-  $14
+  $14, $15, $16
 )
-RETURNING id, created_at, branch_id, invoice_code, client_name, client_phone, grand_total_cents, item_count, rule_id, rule_name, template_name, status, reason, wamid, cost_micros, delivery_status, delivered_at, read_at, delivery_error, billable, pricing_category, review_code, review_clicked_at
+RETURNING id, created_at, branch_id, invoice_code, client_name, client_phone, grand_total_cents, item_count, rule_id, rule_name, template_name, status, reason, wamid, cost_micros, delivery_status, delivered_at, read_at, delivery_error, billable, pricing_category, review_code, review_clicked_at, sender, whatsapp_number_id
 `
 
 type CreateWhatsAppMessageParams struct {
-	BranchID        sql.NullInt64 `json:"branch_id"`
-	InvoiceCode     string        `json:"invoice_code"`
-	ClientName      string        `json:"client_name"`
-	ClientPhone     string        `json:"client_phone"`
-	GrandTotalCents int64         `json:"grand_total_cents"`
-	ItemCount       int32         `json:"item_count"`
-	RuleID          sql.NullInt64 `json:"rule_id"`
-	RuleName        string        `json:"rule_name"`
-	TemplateName    string        `json:"template_name"`
-	Status          string        `json:"status"`
-	Reason          string        `json:"reason"`
-	Wamid           string        `json:"wamid"`
-	CostMicros      int64         `json:"cost_micros"`
-	ReviewCode      string        `json:"review_code"`
+	BranchID         sql.NullInt64 `json:"branch_id"`
+	InvoiceCode      string        `json:"invoice_code"`
+	ClientName       string        `json:"client_name"`
+	ClientPhone      string        `json:"client_phone"`
+	GrandTotalCents  int64         `json:"grand_total_cents"`
+	ItemCount        int32         `json:"item_count"`
+	RuleID           sql.NullInt64 `json:"rule_id"`
+	RuleName         string        `json:"rule_name"`
+	TemplateName     string        `json:"template_name"`
+	Status           string        `json:"status"`
+	Reason           string        `json:"reason"`
+	Wamid            string        `json:"wamid"`
+	CostMicros       int64         `json:"cost_micros"`
+	ReviewCode       string        `json:"review_code"`
+	Sender           string        `json:"sender"`
+	WhatsappNumberID sql.NullInt64 `json:"whatsapp_number_id"`
 }
 
 func (q *Queries) CreateWhatsAppMessage(ctx context.Context, arg CreateWhatsAppMessageParams) (WhatsappMessage, error) {
@@ -94,6 +97,8 @@ func (q *Queries) CreateWhatsAppMessage(ctx context.Context, arg CreateWhatsAppM
 		arg.Wamid,
 		arg.CostMicros,
 		arg.ReviewCode,
+		arg.Sender,
+		arg.WhatsappNumberID,
 	)
 	var i WhatsappMessage
 	err := row.Scan(
@@ -120,6 +125,8 @@ func (q *Queries) CreateWhatsAppMessage(ctx context.Context, arg CreateWhatsAppM
 		&i.PricingCategory,
 		&i.ReviewCode,
 		&i.ReviewClickedAt,
+		&i.Sender,
+		&i.WhatsappNumberID,
 	)
 	return i, err
 }
@@ -210,7 +217,7 @@ func (q *Queries) LastWhatsAppSentAt(ctx context.Context, clientPhone string) (t
 }
 
 const listWhatsAppMessages = `-- name: ListWhatsAppMessages :many
-SELECT m.id, m.created_at, m.branch_id, m.invoice_code, m.client_name, m.client_phone, m.grand_total_cents, m.item_count, m.rule_id, m.rule_name, m.template_name, m.status, m.reason, m.wamid, m.cost_micros, m.delivery_status, m.delivered_at, m.read_at, m.delivery_error, m.billable, m.pricing_category, m.review_code, m.review_clicked_at, COALESCE(b.name, '')::text AS branch_name
+SELECT m.id, m.created_at, m.branch_id, m.invoice_code, m.client_name, m.client_phone, m.grand_total_cents, m.item_count, m.rule_id, m.rule_name, m.template_name, m.status, m.reason, m.wamid, m.cost_micros, m.delivery_status, m.delivered_at, m.read_at, m.delivery_error, m.billable, m.pricing_category, m.review_code, m.review_clicked_at, m.sender, m.whatsapp_number_id, COALESCE(b.name, '')::text AS branch_name
 FROM whatsapp_messages m
 LEFT JOIN branches b ON b.id = m.branch_id
 WHERE m.created_at >= $1 AND m.created_at < $2
@@ -236,30 +243,32 @@ type ListWhatsAppMessagesParams struct {
 }
 
 type ListWhatsAppMessagesRow struct {
-	ID              int64         `json:"id"`
-	CreatedAt       time.Time     `json:"created_at"`
-	BranchID        sql.NullInt64 `json:"branch_id"`
-	InvoiceCode     string        `json:"invoice_code"`
-	ClientName      string        `json:"client_name"`
-	ClientPhone     string        `json:"client_phone"`
-	GrandTotalCents int64         `json:"grand_total_cents"`
-	ItemCount       int32         `json:"item_count"`
-	RuleID          sql.NullInt64 `json:"rule_id"`
-	RuleName        string        `json:"rule_name"`
-	TemplateName    string        `json:"template_name"`
-	Status          string        `json:"status"`
-	Reason          string        `json:"reason"`
-	Wamid           string        `json:"wamid"`
-	CostMicros      int64         `json:"cost_micros"`
-	DeliveryStatus  string        `json:"delivery_status"`
-	DeliveredAt     sql.NullTime  `json:"delivered_at"`
-	ReadAt          sql.NullTime  `json:"read_at"`
-	DeliveryError   string        `json:"delivery_error"`
-	Billable        sql.NullBool  `json:"billable"`
-	PricingCategory string        `json:"pricing_category"`
-	ReviewCode      string        `json:"review_code"`
-	ReviewClickedAt sql.NullTime  `json:"review_clicked_at"`
-	BranchName      string        `json:"branch_name"`
+	ID               int64         `json:"id"`
+	CreatedAt        time.Time     `json:"created_at"`
+	BranchID         sql.NullInt64 `json:"branch_id"`
+	InvoiceCode      string        `json:"invoice_code"`
+	ClientName       string        `json:"client_name"`
+	ClientPhone      string        `json:"client_phone"`
+	GrandTotalCents  int64         `json:"grand_total_cents"`
+	ItemCount        int32         `json:"item_count"`
+	RuleID           sql.NullInt64 `json:"rule_id"`
+	RuleName         string        `json:"rule_name"`
+	TemplateName     string        `json:"template_name"`
+	Status           string        `json:"status"`
+	Reason           string        `json:"reason"`
+	Wamid            string        `json:"wamid"`
+	CostMicros       int64         `json:"cost_micros"`
+	DeliveryStatus   string        `json:"delivery_status"`
+	DeliveredAt      sql.NullTime  `json:"delivered_at"`
+	ReadAt           sql.NullTime  `json:"read_at"`
+	DeliveryError    string        `json:"delivery_error"`
+	Billable         sql.NullBool  `json:"billable"`
+	PricingCategory  string        `json:"pricing_category"`
+	ReviewCode       string        `json:"review_code"`
+	ReviewClickedAt  sql.NullTime  `json:"review_clicked_at"`
+	Sender           string        `json:"sender"`
+	WhatsappNumberID sql.NullInt64 `json:"whatsapp_number_id"`
+	BranchName       string        `json:"branch_name"`
 }
 
 // Newest first. branch_id 0 = every branch, status ” = any; search matches
@@ -305,6 +314,8 @@ func (q *Queries) ListWhatsAppMessages(ctx context.Context, arg ListWhatsAppMess
 			&i.PricingCategory,
 			&i.ReviewCode,
 			&i.ReviewClickedAt,
+			&i.Sender,
+			&i.WhatsappNumberID,
 			&i.BranchName,
 		); err != nil {
 			return nil, err

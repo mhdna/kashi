@@ -28,6 +28,13 @@ export function useWhatsApp () {
     getStats: params => requestJSON(`/whatsapp/stats?${new URLSearchParams(params)}`),
     listMessages: params => requestJSON(`/whatsapp/messages?${new URLSearchParams(params)}`),
     listReplies: params => requestJSON(`/whatsapp/replies?${new URLSearchParams(params)}`),
+    // Sending from our own numbers through the bridge (api/whatsapp_bridge.go).
+    getSender: () => requestJSON('/whatsapp/sender'),
+    saveSender: settings => sendJSON('PUT', '/whatsapp/sender', settings),
+    addNumber: label => sendJSON('POST', '/whatsapp/numbers', { label }),
+    numberQR: id => requestJSON(`/whatsapp/numbers/${id}/qr`),
+    updateNumber: (id, payload) => sendJSON('PUT', `/whatsapp/numbers/${id}`, payload),
+    deleteNumber: id => requestJSON(`/whatsapp/numbers/${id}`, { method: 'DELETE' }),
     searchClients: async search =>
       (await requestJSON(`/whatsapp/clients?${new URLSearchParams({ search })}`)).clients ?? [],
     clientsByPhones: async phones =>
