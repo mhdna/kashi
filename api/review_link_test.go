@@ -111,6 +111,20 @@ func TestOpenReviewLink(t *testing.T) {
 		require.Contains(t, body, `content="https://grandbz.com/review/abcdEFGH"`)
 	})
 
+	t.Run("without a link address the card uses the host it was opened on", func(t *testing.T) {
+		settings := reviewSettingsRow()
+		settings.ReviewBaseUrl = ""
+		store.EXPECT().GetReviewSettings(gomock.Any()).Return(settings, nil)
+
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/review", nil)
+		req.Host = "grandbz.com"
+		req.Header.Set("User-Agent", whatsappUA)
+		server.router.ServeHTTP(rec, req)
+		require.Contains(t, rec.Body.String(), `content="https://grandbz.com/review-assets/banner.jpg"`)
+		require.Contains(t, rec.Body.String(), `content="https://grandbz.com/review"`)
+	})
+
 	t.Run("the plain link uses the business's place", func(t *testing.T) {
 		store.EXPECT().GetReviewSettings(gomock.Any()).Return(reviewSettingsRow(), nil)
 		store.EXPECT().CreateReviewLinkClick(gomock.Any(), gomock.Any()).Return(nil)
