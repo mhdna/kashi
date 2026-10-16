@@ -591,6 +591,20 @@ func (mr *MockStoreMockRecorder) ClaimEmailScheduleRun(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClaimEmailScheduleRun", reflect.TypeOf((*MockStore)(nil).ClaimEmailScheduleRun), arg0, arg1)
 }
 
+// ClearDefaultWhatsAppNumber mocks base method.
+func (m *MockStore) ClearDefaultWhatsAppNumber(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClearDefaultWhatsAppNumber", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ClearDefaultWhatsAppNumber indicates an expected call of ClearDefaultWhatsAppNumber.
+func (mr *MockStoreMockRecorder) ClearDefaultWhatsAppNumber(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearDefaultWhatsAppNumber", reflect.TypeOf((*MockStore)(nil).ClearDefaultWhatsAppNumber), arg0)
+}
+
 // ClientPhonesPresent mocks base method.
 func (m *MockStore) ClientPhonesPresent(arg0 context.Context, arg1 []string) ([]string, error) {
 	m.ctrl.T.Helper()
@@ -3032,6 +3046,21 @@ func (mr *MockStoreMockRecorder) CreateWhatsAppMessage(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateWhatsAppMessage", reflect.TypeOf((*MockStore)(nil).CreateWhatsAppMessage), arg0, arg1)
 }
 
+// CreateWhatsAppNumber mocks base method.
+func (m *MockStore) CreateWhatsAppNumber(arg0 context.Context, arg1 db.CreateWhatsAppNumberParams) (db.WhatsappNumber, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateWhatsAppNumber", arg0, arg1)
+	ret0, _ := ret[0].(db.WhatsappNumber)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateWhatsAppNumber indicates an expected call of CreateWhatsAppNumber.
+func (mr *MockStoreMockRecorder) CreateWhatsAppNumber(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateWhatsAppNumber", reflect.TypeOf((*MockStore)(nil).CreateWhatsAppNumber), arg0, arg1)
+}
+
 // CreateWhatsAppReply mocks base method.
 func (m *MockStore) CreateWhatsAppReply(arg0 context.Context, arg1 db.CreateWhatsAppReplyParams) error {
 	m.ctrl.T.Helper()
@@ -4255,6 +4284,20 @@ func (m *MockStore) DeleteUser(arg0 context.Context, arg1 int64) error {
 func (mr *MockStoreMockRecorder) DeleteUser(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockStore)(nil).DeleteUser), arg0, arg1)
+}
+
+// DeleteWhatsAppNumber mocks base method.
+func (m *MockStore) DeleteWhatsAppNumber(arg0 context.Context, arg1 int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteWhatsAppNumber", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteWhatsAppNumber indicates an expected call of DeleteWhatsAppNumber.
+func (mr *MockStoreMockRecorder) DeleteWhatsAppNumber(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteWhatsAppNumber", reflect.TypeOf((*MockStore)(nil).DeleteWhatsAppNumber), arg0, arg1)
 }
 
 // FireRecurringExpenseTx mocks base method.
@@ -6192,6 +6235,36 @@ func (mr *MockStoreMockRecorder) GetWhatsAppMessageCost(arg0 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWhatsAppMessageCost", reflect.TypeOf((*MockStore)(nil).GetWhatsAppMessageCost), arg0)
 }
 
+// GetWhatsAppNumber mocks base method.
+func (m *MockStore) GetWhatsAppNumber(arg0 context.Context, arg1 int64) (db.WhatsappNumber, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetWhatsAppNumber", arg0, arg1)
+	ret0, _ := ret[0].(db.WhatsappNumber)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetWhatsAppNumber indicates an expected call of GetWhatsAppNumber.
+func (mr *MockStoreMockRecorder) GetWhatsAppNumber(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWhatsAppNumber", reflect.TypeOf((*MockStore)(nil).GetWhatsAppNumber), arg0, arg1)
+}
+
+// GetWhatsAppSenderSettings mocks base method.
+func (m *MockStore) GetWhatsAppSenderSettings(arg0 context.Context) (db.GetWhatsAppSenderSettingsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetWhatsAppSenderSettings", arg0)
+	ret0, _ := ret[0].(db.GetWhatsAppSenderSettingsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetWhatsAppSenderSettings indicates an expected call of GetWhatsAppSenderSettings.
+func (mr *MockStoreMockRecorder) GetWhatsAppSenderSettings(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWhatsAppSenderSettings", reflect.TypeOf((*MockStore)(nil).GetWhatsAppSenderSettings), arg0)
+}
+
 // GetWhatsAppSettings mocks base method.
 func (m *MockStore) GetWhatsAppSettings(arg0 context.Context) (db.GetWhatsAppSettingsRow, error) {
 	m.ctrl.T.Helper()
@@ -7238,6 +7311,21 @@ func (m *MockStore) ListBranchVisitorDaysRange(arg0 context.Context, arg1 db.Lis
 func (mr *MockStoreMockRecorder) ListBranchVisitorDaysRange(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchVisitorDaysRange", reflect.TypeOf((*MockStore)(nil).ListBranchVisitorDaysRange), arg0, arg1)
+}
+
+// ListBranchWhatsAppNumbers mocks base method.
+func (m *MockStore) ListBranchWhatsAppNumbers(arg0 context.Context) ([]db.ListBranchWhatsAppNumbersRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBranchWhatsAppNumbers", arg0)
+	ret0, _ := ret[0].([]db.ListBranchWhatsAppNumbersRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBranchWhatsAppNumbers indicates an expected call of ListBranchWhatsAppNumbers.
+func (mr *MockStoreMockRecorder) ListBranchWhatsAppNumbers(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchWhatsAppNumbers", reflect.TypeOf((*MockStore)(nil).ListBranchWhatsAppNumbers), arg0)
 }
 
 // ListBranches mocks base method.
@@ -9175,6 +9263,21 @@ func (mr *MockStoreMockRecorder) ListWhatsAppMessages(arg0, arg1 interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListWhatsAppMessages", reflect.TypeOf((*MockStore)(nil).ListWhatsAppMessages), arg0, arg1)
 }
 
+// ListWhatsAppNumbers mocks base method.
+func (m *MockStore) ListWhatsAppNumbers(arg0 context.Context) ([]db.WhatsappNumber, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListWhatsAppNumbers", arg0)
+	ret0, _ := ret[0].([]db.WhatsappNumber)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListWhatsAppNumbers indicates an expected call of ListWhatsAppNumbers.
+func (mr *MockStoreMockRecorder) ListWhatsAppNumbers(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListWhatsAppNumbers", reflect.TypeOf((*MockStore)(nil).ListWhatsAppNumbers), arg0)
+}
+
 // ListWhatsAppReplies mocks base method.
 func (m *MockStore) ListWhatsAppReplies(arg0 context.Context, arg1 db.ListWhatsAppRepliesParams) ([]db.ListWhatsAppRepliesRow, error) {
 	m.ctrl.T.Helper()
@@ -9985,6 +10088,20 @@ func (mr *MockStoreMockRecorder) SaveStockCountTx(arg0, arg1 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveStockCountTx", reflect.TypeOf((*MockStore)(nil).SaveStockCountTx), arg0, arg1)
 }
 
+// SaveWhatsAppSenderTx mocks base method.
+func (m *MockStore) SaveWhatsAppSenderTx(arg0 context.Context, arg1 db.SetWhatsAppSenderSettingsParams, arg2 []db.SetBranchWhatsAppNumberParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SaveWhatsAppSenderTx", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SaveWhatsAppSenderTx indicates an expected call of SaveWhatsAppSenderTx.
+func (mr *MockStoreMockRecorder) SaveWhatsAppSenderTx(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveWhatsAppSenderTx", reflect.TypeOf((*MockStore)(nil).SaveWhatsAppSenderTx), arg0, arg1, arg2)
+}
+
 // SearchWhatsAppClients mocks base method.
 func (m *MockStore) SearchWhatsAppClients(arg0 context.Context, arg1 string) ([]db.SearchWhatsAppClientsRow, error) {
 	m.ctrl.T.Helper()
@@ -10202,6 +10319,20 @@ func (mr *MockStoreMockRecorder) SetBranchUserActive(arg0, arg1 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchUserActive", reflect.TypeOf((*MockStore)(nil).SetBranchUserActive), arg0, arg1)
 }
 
+// SetBranchWhatsAppNumber mocks base method.
+func (m *MockStore) SetBranchWhatsAppNumber(arg0 context.Context, arg1 db.SetBranchWhatsAppNumberParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetBranchWhatsAppNumber", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetBranchWhatsAppNumber indicates an expected call of SetBranchWhatsAppNumber.
+func (mr *MockStoreMockRecorder) SetBranchWhatsAppNumber(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchWhatsAppNumber", reflect.TypeOf((*MockStore)(nil).SetBranchWhatsAppNumber), arg0, arg1)
+}
+
 // SetCashboxAccountActive mocks base method.
 func (m *MockStore) SetCashboxAccountActive(arg0 context.Context, arg1 db.SetCashboxAccountActiveParams) (db.CashboxAccount, error) {
 	m.ctrl.T.Helper()
@@ -10244,6 +10375,20 @@ func (m *MockStore) SetDefaultLowStockThreshold(arg0 context.Context, arg1 int64
 func (mr *MockStoreMockRecorder) SetDefaultLowStockThreshold(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDefaultLowStockThreshold", reflect.TypeOf((*MockStore)(nil).SetDefaultLowStockThreshold), arg0, arg1)
+}
+
+// SetDefaultWhatsAppNumber mocks base method.
+func (m *MockStore) SetDefaultWhatsAppNumber(arg0 context.Context, arg1 int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetDefaultWhatsAppNumber", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetDefaultWhatsAppNumber indicates an expected call of SetDefaultWhatsAppNumber.
+func (mr *MockStoreMockRecorder) SetDefaultWhatsAppNumber(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDefaultWhatsAppNumber", reflect.TypeOf((*MockStore)(nil).SetDefaultWhatsAppNumber), arg0, arg1)
 }
 
 // SetEmailResendAPIKey mocks base method.
@@ -10621,6 +10766,34 @@ func (m *MockStore) SetWhatsAppMessageCost(arg0 context.Context, arg1 int64) err
 func (mr *MockStoreMockRecorder) SetWhatsAppMessageCost(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetWhatsAppMessageCost", reflect.TypeOf((*MockStore)(nil).SetWhatsAppMessageCost), arg0, arg1)
+}
+
+// SetWhatsAppNumberPhone mocks base method.
+func (m *MockStore) SetWhatsAppNumberPhone(arg0 context.Context, arg1 db.SetWhatsAppNumberPhoneParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetWhatsAppNumberPhone", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetWhatsAppNumberPhone indicates an expected call of SetWhatsAppNumberPhone.
+func (mr *MockStoreMockRecorder) SetWhatsAppNumberPhone(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetWhatsAppNumberPhone", reflect.TypeOf((*MockStore)(nil).SetWhatsAppNumberPhone), arg0, arg1)
+}
+
+// SetWhatsAppSenderSettings mocks base method.
+func (m *MockStore) SetWhatsAppSenderSettings(arg0 context.Context, arg1 db.SetWhatsAppSenderSettingsParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetWhatsAppSenderSettings", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetWhatsAppSenderSettings indicates an expected call of SetWhatsAppSenderSettings.
+func (mr *MockStoreMockRecorder) SetWhatsAppSenderSettings(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetWhatsAppSenderSettings", reflect.TypeOf((*MockStore)(nil).SetWhatsAppSenderSettings), arg0, arg1)
 }
 
 // SetWhatsAppSettings mocks base method.
@@ -11461,6 +11634,36 @@ func (mr *MockStoreMockRecorder) UpdateUser(arg0, arg1 interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockStore)(nil).UpdateUser), arg0, arg1)
 }
 
+// UpdateWhatsAppNumberLabel mocks base method.
+func (m *MockStore) UpdateWhatsAppNumberLabel(arg0 context.Context, arg1 db.UpdateWhatsAppNumberLabelParams) (db.WhatsappNumber, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateWhatsAppNumberLabel", arg0, arg1)
+	ret0, _ := ret[0].(db.WhatsappNumber)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateWhatsAppNumberLabel indicates an expected call of UpdateWhatsAppNumberLabel.
+func (mr *MockStoreMockRecorder) UpdateWhatsAppNumberLabel(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateWhatsAppNumberLabel", reflect.TypeOf((*MockStore)(nil).UpdateWhatsAppNumberLabel), arg0, arg1)
+}
+
+// UpdateWhatsAppNumberTx mocks base method.
+func (m *MockStore) UpdateWhatsAppNumberTx(arg0 context.Context, arg1 int64, arg2 string, arg3 bool) (db.WhatsappNumber, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateWhatsAppNumberTx", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(db.WhatsappNumber)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateWhatsAppNumberTx indicates an expected call of UpdateWhatsAppNumberTx.
+func (mr *MockStoreMockRecorder) UpdateWhatsAppNumberTx(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateWhatsAppNumberTx", reflect.TypeOf((*MockStore)(nil).UpdateWhatsAppNumberTx), arg0, arg1, arg2, arg3)
+}
+
 // UpsertAttributeValue mocks base method.
 func (m *MockStore) UpsertAttributeValue(arg0 context.Context, arg1 db.UpsertAttributeValueParams) (db.AttributesValue, error) {
 	m.ctrl.T.Helper()
@@ -11796,6 +11999,21 @@ func (m *MockStore) WhatsAppMessagesByRule(arg0 context.Context, arg1 db.WhatsAp
 func (mr *MockStoreMockRecorder) WhatsAppMessagesByRule(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WhatsAppMessagesByRule", reflect.TypeOf((*MockStore)(nil).WhatsAppMessagesByRule), arg0, arg1)
+}
+
+// WhatsAppNumberForBranch mocks base method.
+func (m *MockStore) WhatsAppNumberForBranch(arg0 context.Context, arg1 int64) (db.WhatsappNumber, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WhatsAppNumberForBranch", arg0, arg1)
+	ret0, _ := ret[0].(db.WhatsappNumber)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// WhatsAppNumberForBranch indicates an expected call of WhatsAppNumberForBranch.
+func (mr *MockStoreMockRecorder) WhatsAppNumberForBranch(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WhatsAppNumberForBranch", reflect.TypeOf((*MockStore)(nil).WhatsAppNumberForBranch), arg0, arg1)
 }
 
 // WhatsAppSentForInvoice mocks base method.

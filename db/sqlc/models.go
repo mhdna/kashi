@@ -515,6 +515,10 @@ type AppSetting struct {
 	ReviewTitle                string          `json:"review_title"`
 	ReviewDescription          string          `json:"review_description"`
 	GooglePlacesApiKey         string          `json:"google_places_api_key"`
+	WhatsappSender             string          `json:"whatsapp_sender"`
+	WhatsappBridgeUrl          string          `json:"whatsapp_bridge_url"`
+	WhatsappBridgeKey          string          `json:"whatsapp_bridge_key"`
+	WhatsappBridgeMessage      string          `json:"whatsapp_bridge_message"`
 }
 
 type AppUpdateEvent struct {
@@ -601,6 +605,7 @@ type Branch struct {
 	QuickAccessInitializedAt sql.NullTime  `json:"quick_access_initialized_at"`
 	HiddenFromReports        bool          `json:"hidden_from_reports"`
 	GooglePlaceID            string        `json:"google_place_id"`
+	WhatsappNumberID         sql.NullInt64 `json:"whatsapp_number_id"`
 }
 
 type BranchAttendanceChange struct {
@@ -1778,29 +1783,40 @@ type VisitorIp struct {
 }
 
 type WhatsappMessage struct {
-	ID              int64         `json:"id"`
-	CreatedAt       time.Time     `json:"created_at"`
-	BranchID        sql.NullInt64 `json:"branch_id"`
-	InvoiceCode     string        `json:"invoice_code"`
-	ClientName      string        `json:"client_name"`
-	ClientPhone     string        `json:"client_phone"`
-	GrandTotalCents int64         `json:"grand_total_cents"`
-	ItemCount       int32         `json:"item_count"`
-	RuleID          sql.NullInt64 `json:"rule_id"`
-	RuleName        string        `json:"rule_name"`
-	TemplateName    string        `json:"template_name"`
-	Status          string        `json:"status"`
-	Reason          string        `json:"reason"`
-	Wamid           string        `json:"wamid"`
-	CostMicros      int64         `json:"cost_micros"`
-	DeliveryStatus  string        `json:"delivery_status"`
-	DeliveredAt     sql.NullTime  `json:"delivered_at"`
-	ReadAt          sql.NullTime  `json:"read_at"`
-	DeliveryError   string        `json:"delivery_error"`
-	Billable        sql.NullBool  `json:"billable"`
-	PricingCategory string        `json:"pricing_category"`
-	ReviewCode      string        `json:"review_code"`
-	ReviewClickedAt sql.NullTime  `json:"review_clicked_at"`
+	ID               int64         `json:"id"`
+	CreatedAt        time.Time     `json:"created_at"`
+	BranchID         sql.NullInt64 `json:"branch_id"`
+	InvoiceCode      string        `json:"invoice_code"`
+	ClientName       string        `json:"client_name"`
+	ClientPhone      string        `json:"client_phone"`
+	GrandTotalCents  int64         `json:"grand_total_cents"`
+	ItemCount        int32         `json:"item_count"`
+	RuleID           sql.NullInt64 `json:"rule_id"`
+	RuleName         string        `json:"rule_name"`
+	TemplateName     string        `json:"template_name"`
+	Status           string        `json:"status"`
+	Reason           string        `json:"reason"`
+	Wamid            string        `json:"wamid"`
+	CostMicros       int64         `json:"cost_micros"`
+	DeliveryStatus   string        `json:"delivery_status"`
+	DeliveredAt      sql.NullTime  `json:"delivered_at"`
+	ReadAt           sql.NullTime  `json:"read_at"`
+	DeliveryError    string        `json:"delivery_error"`
+	Billable         sql.NullBool  `json:"billable"`
+	PricingCategory  string        `json:"pricing_category"`
+	ReviewCode       string        `json:"review_code"`
+	ReviewClickedAt  sql.NullTime  `json:"review_clicked_at"`
+	Sender           string        `json:"sender"`
+	WhatsappNumberID sql.NullInt64 `json:"whatsapp_number_id"`
+}
+
+type WhatsappNumber struct {
+	ID        int64     `json:"id"`
+	Instance  string    `json:"instance"`
+	Label     string    `json:"label"`
+	Phone     string    `json:"phone"`
+	IsDefault bool      `json:"is_default"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type WhatsappReply struct {

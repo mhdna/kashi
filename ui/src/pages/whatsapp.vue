@@ -12,9 +12,9 @@
         variant="tonal"
       />
       <v-spacer />
-      <!-- Hidden, not removed, on Rules: the header keeps its height so the
-           tabs don't jump when switching. -->
-      <div class="d-flex align-center flex-wrap ga-3" :class="{ 'wa__filters--hidden': tab === 'rules' }">
+      <!-- Hidden, not removed, on Rules and Sending: the header keeps its
+           height so the tabs don't jump when switching. -->
+      <div class="d-flex align-center flex-wrap ga-3" :class="{ 'wa__filters--hidden': tab === 'rules' || tab === 'sending' }">
         <v-select
           v-model="preset"
           density="compact"
@@ -60,6 +60,7 @@
       <v-tab prepend-icon="mdi-format-list-bulleted" text="Messages" value="messages" />
       <v-tab prepend-icon="mdi-reply" text="Replies" value="replies" />
       <v-tab prepend-icon="mdi-filter-variant" text="Rules" value="rules" />
+      <v-tab prepend-icon="mdi-send-outline" text="Sending" value="sending" />
     </v-tabs>
     <v-divider class="flex-shrink-0" />
 
@@ -89,6 +90,10 @@
         :refresh-key="refreshKey"
         :to="range.to"
       />
+      <WhatsAppSending
+        v-else-if="tab === 'sending'"
+        :settings="settings"
+      />
       <WhatsAppRules
         v-else
         :branches="branches"
@@ -104,6 +109,7 @@
   import WhatsAppOverview from '@/components/WhatsApp/WhatsAppOverview.vue'
   import WhatsAppReplies from '@/components/WhatsApp/WhatsAppReplies.vue'
   import WhatsAppRules from '@/components/WhatsApp/WhatsAppRules.vue'
+  import WhatsAppSending from '@/components/WhatsApp/WhatsAppSending.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useBranches } from '@/composables/useBranches'
   import { useWhatsAppSettings } from '@/composables/useWhatsAppSettings'

@@ -84,6 +84,7 @@ type Querier interface {
 	// Moves a due schedule on to its next run before it sends, and only if no
 	// one else already did -- so a run is never sent twice.
 	ClaimEmailScheduleRun(ctx context.Context, arg ClaimEmailScheduleRunParams) (int64, error)
+	ClearDefaultWhatsAppNumber(ctx context.Context) error
 	ClientPhonesPresent(ctx context.Context, dollar_1 []string) ([]string, error)
 	CloseShift(ctx context.Context, id int64) error
 	CompleteBranchCommand(ctx context.Context, arg CompleteBranchCommandParams) (BranchCommand, error)
@@ -284,6 +285,8 @@ type Querier interface {
 	CreateTransferItem(ctx context.Context, arg CreateTransferItemParams) (TransferItem, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateWhatsAppMessage(ctx context.Context, arg CreateWhatsAppMessageParams) (WhatsappMessage, error)
+	// The first number becomes the default.
+	CreateWhatsAppNumber(ctx context.Context, arg CreateWhatsAppNumberParams) (WhatsappNumber, error)
 	// Linked to the message it answers: the one the client replied to, else the
 	// last one sent to that number in the week before. Meta can deliver the same
 	// webhook twice; the wamid keeps it to one row.
@@ -436,6 +439,7 @@ type Querier interface {
 	DeleteStockCountItems(ctx context.Context, stockCountID int64) error
 	DeleteTransferItem(ctx context.Context, arg DeleteTransferItemParams) error
 	DeleteUser(ctx context.Context, id int64) error
+	DeleteWhatsAppNumber(ctx context.Context, id int64) error
 	GetAppRelease(ctx context.Context, id int64) (AppRelease, error)
 	GetAppSettings(ctx context.Context) (AppSetting, error)
 	GetAsset(ctx context.Context, id int64) (Asset, error)
@@ -627,7 +631,7 @@ type Querier interface {
 	GetRegisterTargetRelease(ctx context.Context, id int64) (AppRelease, error)
 	GetReturnInvoice(ctx context.Context, invoiceID int64) (ReturnInvoice, error)
 	// Review links in the post-sale WhatsApp message and the Google data behind
-	// the WhatsApp page's Reviews tab (api/review_link.go, api/google_places.go).
+	// the Reviews page (api/review_link.go, api/google_places.go).
 	GetReviewSettings(ctx context.Context) (GetReviewSettingsRow, error)
 	GetRole(ctx context.Context, id int64) (Role, error)
 	GetSalesInvoice(ctx context.Context, invoiceID int64) (int64, error)
@@ -663,6 +667,10 @@ type Querier interface {
 	GetWarehouseTreemapData(ctx context.Context, inventoryID sql.NullInt64) ([]GetWarehouseTreemapDataRow, error)
 	GetWhatsAppMessageByReviewCode(ctx context.Context, reviewCode string) (GetWhatsAppMessageByReviewCodeRow, error)
 	GetWhatsAppMessageCost(ctx context.Context) (int64, error)
+	GetWhatsAppNumber(ctx context.Context, id int64) (WhatsappNumber, error)
+	// Sending post-sale messages from our own numbers through the WhatsApp
+	// bridge (api/whatsapp_bridge.go).
+	GetWhatsAppSenderSettings(ctx context.Context) (GetWhatsAppSenderSettingsRow, error)
 	GetWhatsAppSettings(ctx context.Context) (GetWhatsAppSettingsRow, error)
 	// The place as it stood at `at`: its last snapshot taken before then.
 	GooglePlaceSnapshotBefore(ctx context.Context, arg GooglePlaceSnapshotBeforeParams) (GooglePlaceSnapshot, error)
@@ -883,6 +891,7 @@ type Querier interface {
 	// so even a year across every branch is a small result the Footfall page
 	// slices into months / branch comparisons / weekday profiles client-side.
 	ListBranchVisitorDaysRange(ctx context.Context, arg ListBranchVisitorDaysRangeParams) ([]ListBranchVisitorDaysRangeRow, error)
+	ListBranchWhatsAppNumbers(ctx context.Context) ([]ListBranchWhatsAppNumbersRow, error)
 	ListBranches(ctx context.Context) ([]Branch, error)
 	ListBranchesForDiscountList(ctx context.Context, discountListID int64) ([]ListBranchesForDiscountListRow, error)
 	ListBranchesForPriceList(ctx context.Context, priceListID int64) ([]ListBranchesForPriceListRow, error)
@@ -1295,6 +1304,7 @@ type Querier interface {
 	// Newest first. branch_id 0 = every branch, status '' = any; search matches
 	// the client's name or phone, the invoice code or the rule.
 	ListWhatsAppMessages(ctx context.Context, arg ListWhatsAppMessagesParams) ([]ListWhatsAppMessagesRow, error)
+	ListWhatsAppNumbers(ctx context.Context) ([]WhatsappNumber, error)
 	// Newest first. A reply not linked to one of our messages only shows under
 	// every branch.
 	ListWhatsAppReplies(ctx context.Context, arg ListWhatsAppRepliesParams) ([]ListWhatsAppRepliesRow, error)
@@ -1450,9 +1460,11 @@ type Querier interface {
 	SetBranchTargetActive(ctx context.Context, arg SetBranchTargetActiveParams) (BranchTarget, error)
 	SetBranchTargetSeriesActive(ctx context.Context, arg SetBranchTargetSeriesActiveParams) (BranchTargetSeries, error)
 	SetBranchUserActive(ctx context.Context, arg SetBranchUserActiveParams) (BranchUser, error)
+	SetBranchWhatsAppNumber(ctx context.Context, arg SetBranchWhatsAppNumberParams) error
 	SetCashboxAccountActive(ctx context.Context, arg SetCashboxAccountActiveParams) (CashboxAccount, error)
 	SetClientActive(ctx context.Context, arg SetClientActiveParams) error
 	SetDefaultLowStockThreshold(ctx context.Context, defaultLowStockThreshold int64) (AppSetting, error)
+	SetDefaultWhatsAppNumber(ctx context.Context, id int64) error
 	SetEmailResendAPIKey(ctx context.Context, emailResendApiKey string) error
 	SetEmailSettings(ctx context.Context, arg SetEmailSettingsParams) error
 	SetProductAutofillRules(ctx context.Context, arg SetProductAutofillRulesParams) (AppSetting, error)
@@ -1491,6 +1503,8 @@ type Querier interface {
 	SetUserAvatarColor(ctx context.Context, arg SetUserAvatarColorParams) error
 	SetVariantBarcode(ctx context.Context, arg SetVariantBarcodeParams) (ProductVariant, error)
 	SetWhatsAppMessageCost(ctx context.Context, costMicros int64) error
+	SetWhatsAppNumberPhone(ctx context.Context, arg SetWhatsAppNumberPhoneParams) error
+	SetWhatsAppSenderSettings(ctx context.Context, arg SetWhatsAppSenderSettingsParams) error
 	SetWhatsAppSettings(ctx context.Context, arg SetWhatsAppSettingsParams) error
 	// Net sales revenue: same grand_total-sum convention as ListDailyIncome in
 	// branch_invoice.sql (returns already net out via their signed grand_total).
@@ -1561,6 +1575,7 @@ type Querier interface {
 	UpdateSize(ctx context.Context, arg UpdateSizeParams) (Size, error)
 	UpdateTransfer(ctx context.Context, arg UpdateTransferParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) error
+	UpdateWhatsAppNumberLabel(ctx context.Context, arg UpdateWhatsAppNumberLabelParams) (WhatsappNumber, error)
 	UpsertAttributeValue(ctx context.Context, arg UpsertAttributeValueParams) (AttributesValue, error)
 	UpsertBranchSettings(ctx context.Context, arg UpsertBranchSettingsParams) (BranchSetting, error)
 	// Idempotent on (branch_id, entity, ref): a retried outbox push re-reports
@@ -1604,6 +1619,8 @@ type Querier interface {
 	WhatsAppMessagesByHour(ctx context.Context, arg WhatsAppMessagesByHourParams) ([]WhatsAppMessagesByHourRow, error)
 	// '' rule_name is "no rule matched" (the default template).
 	WhatsAppMessagesByRule(ctx context.Context, arg WhatsAppMessagesByRuleParams) ([]WhatsAppMessagesByRuleRow, error)
+	// The number a branch's messages go out from: its own, else the default.
+	WhatsAppNumberForBranch(ctx context.Context, branchID int64) (WhatsappNumber, error)
 	// A till that reports the same sale twice doesn't message the client twice.
 	WhatsAppSentForInvoice(ctx context.Context, arg WhatsAppSentForInvoiceParams) (bool, error)
 	WhatsAppTopRecipients(ctx context.Context, arg WhatsAppTopRecipientsParams) ([]WhatsAppTopRecipientsRow, error)

@@ -199,6 +199,20 @@ func (server *Server) reviewBanner(ctx *gin.Context) {
 	ctx.Data(http.StatusOK, "image/jpeg", reviewBannerJPG)
 }
 
+// newReviewLink makes a message's review link: a fresh code and the URL
+// carrying it. reason says why there can't be one (not set up) instead.
+func (server *Server) newReviewLink(ctx *gin.Context, branchID int64) (code, link, reason string, err error) {
+	settings, err := server.store.GetReviewSettings(ctx)
+	if err != nil {
+		return "", "", "", err
+	}
+	if strings.TrimSpace(settings.ReviewBaseUrl) == "" || server.branchReviewPlace(ctx, settings, branchID) == "" {
+		return "", "", "review link not set up (Reviews page)", nil
+	}
+	code = newReviewCode()
+	return code, reviewLinkURL(settings.ReviewBaseUrl, code), "", nil
+}
+
 // ---- settings (the Reviews page) ---------------------------------------------
 
 type reviewBranchPlace struct {

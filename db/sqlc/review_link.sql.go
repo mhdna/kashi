@@ -72,7 +72,7 @@ type GetReviewSettingsRow struct {
 }
 
 // Review links in the post-sale WhatsApp message and the Google data behind
-// the WhatsApp page's Reviews tab (api/review_link.go, api/google_places.go).
+// the Reviews page (api/review_link.go, api/google_places.go).
 func (q *Queries) GetReviewSettings(ctx context.Context) (GetReviewSettingsRow, error) {
 	row := q.db.QueryRowContext(ctx, getReviewSettings)
 	var i GetReviewSettingsRow

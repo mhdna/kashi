@@ -218,6 +218,13 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/salesperson_performance", server.getSalespersonPerformance)
 	authRoutes.GET("/whatsapp/clients", server.listWhatsAppClients)
 	authRoutes.GET("/whatsapp/replies", server.listWhatsAppReplies)
+	// Sending from our own numbers through the bridge (whatsapp_bridge.go).
+	authRoutes.GET("/whatsapp/sender", server.getWhatsAppSender)
+	authRoutes.PUT("/whatsapp/sender", server.updateWhatsAppSender)
+	authRoutes.POST("/whatsapp/numbers", server.createWhatsAppNumber)
+	authRoutes.GET("/whatsapp/numbers/:id/qr", server.whatsAppNumberQR)
+	authRoutes.PUT("/whatsapp/numbers/:id", server.updateWhatsAppNumber)
+	authRoutes.DELETE("/whatsapp/numbers/:id", server.deleteWhatsAppNumber)
 	// The Reviews page (review_stats.go, review_link.go).
 	authRoutes.GET("/reviews", server.getReviews)
 	authRoutes.POST("/reviews/refresh", server.refreshReviews)

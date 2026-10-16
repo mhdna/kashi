@@ -39,6 +39,8 @@ type Store interface {
 	ImportBranchQuickAccessTx(ctx context.Context, branchID int64, items []QuickAccessItemInput) (bool, error)
 	ReplaceWhatsAppRulesTx(ctx context.Context, rules []CreateWhatsAppRuleParams) ([]WhatsappRule, error)
 	SaveReviewSettingsTx(ctx context.Context, settings SetReviewSettingsParams, branches []SetBranchPlaceIDParams) error
+	SaveWhatsAppSenderTx(ctx context.Context, settings SetWhatsAppSenderSettingsParams, branches []SetBranchWhatsAppNumberParams) error
+	UpdateWhatsAppNumberTx(ctx context.Context, id int64, label string, makeDefault bool) (WhatsappNumber, error)
 }
 
 // provides all the functions to execute SQL queries
