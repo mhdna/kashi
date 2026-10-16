@@ -224,7 +224,9 @@ func (g *securityGuard) middleware() gin.HandlerFunc {
 		path := ctx.Request.URL.Path
 		// Meta calls the WhatsApp webhook from its own servers abroad; the
 		// handler checks Meta's signature instead (whatsapp_webhook.go).
-		metaWebhook := path == whatsAppWebhookPath
+		// Review links are opened from anywhere: link preview fetchers
+		// (WhatsApp, Meta, the bridge) and clients abroad (review_link.go).
+		metaWebhook := path == whatsAppWebhookPath || isReviewLinkPath(path)
 		var loc geoLocation
 		if !internal {
 			loc = g.geo.lookup(ipText)

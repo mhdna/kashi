@@ -33,6 +33,15 @@ func TestIsPreviewFetcher(t *testing.T) {
 	}
 }
 
+func TestIsReviewLinkPath(t *testing.T) {
+	for path, want := range map[string]bool{
+		"/review": true, "/review/abcdEFGH": true, "/review-assets/banner.jpg": true,
+		"/reviews": false, "/reviews/settings": false, "/review-assets/other.js": false,
+	} {
+		require.Equal(t, want, isReviewLinkPath(path), path)
+	}
+}
+
 func TestCleanPlaceID(t *testing.T) {
 	require.Equal(t, "ChIJ1Q8f", cleanPlaceID(" ChIJ1Q8f "))
 	require.Equal(t, "ChIJ1Q8f", cleanPlaceID("https://search.google.com/local/writereview?placeid=ChIJ1Q8f&hl=en"))
