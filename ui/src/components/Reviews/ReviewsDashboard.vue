@@ -291,11 +291,12 @@
   import VChart from '@/components/EChart.vue'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
-  import { useWhatsApp } from '@/composables/useWhatsApp'
+  import { useReviews } from '@/composables/useReviews'
   import { daysBetween } from '@/utils/whatsapp'
 
-  // Review links in the post-sale message (api/review_link.go) and what Google
-  // shows for each place they go to (api/google_places.go).
+  // The Reviews page's body: review links in the post-sale WhatsApp message
+  // (api/review_link.go) and what Google shows for each place they go to
+  // (api/google_places.go).
 
   const props = defineProps({
     from: { type: String, required: true },
@@ -306,7 +307,7 @@
 
   const notify = useNotify()
   const { canEdit } = usePageAccess()
-  const { getReviews, refreshReviews, getReviewSettings, saveReviewSettings } = useWhatsApp()
+  const { getReviews, refreshReviews, getReviewSettings, saveReviewSettings } = useReviews()
 
   const stats = ref(null)
   const loading = ref(false)

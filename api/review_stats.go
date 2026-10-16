@@ -11,10 +11,10 @@ import (
 	db "github.com/mhdna/kashi/db/sqlc"
 )
 
-// getWhatsAppReviews is the WhatsApp page's Reviews tab: how far the review
-// links got (sent -> delivered -> read -> opened) and what Google shows for
-// each place the links go to, over the page's range and branch.
-func (server *Server) getWhatsAppReviews(ctx *gin.Context) {
+// getReviews is the Reviews page: how far the review links in the post-sale
+// WhatsApp messages got (sent -> delivered -> read -> opened) and what Google
+// shows for each place the links go to, over the page's range and branch.
+func (server *Server) getReviews(ctx *gin.Context) {
 	var req whatsAppRangeRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
@@ -178,9 +178,9 @@ func hasBranchPlace(branches []db.ListBranchPlaceIDsRow) bool {
 	return false
 }
 
-// refreshWhatsAppReviews reads Google now instead of waiting for the next
-// scheduled check.
-func (server *Server) refreshWhatsAppReviews(ctx *gin.Context) {
+// refreshReviews reads Google now instead of waiting for the next scheduled
+// check.
+func (server *Server) refreshReviews(ctx *gin.Context) {
 	if err := server.refreshGooglePlaces(ctx); err != nil {
 		server.writeError(ctx, http.StatusBadGateway, err)
 		return

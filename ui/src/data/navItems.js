@@ -26,6 +26,7 @@ export const navItems = [
     children: [
       { title: 'Clients', icon: 'mdi-account', to: '/clients' },
       { title: 'Loyalty', icon: 'mdi-trophy', to: '/loyalty' },
+      { title: 'Reviews', icon: 'mdi-star-outline', to: '/reviews' },
     ],
   },
   {

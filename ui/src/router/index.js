@@ -73,6 +73,7 @@ const routes = [
   { path: '/clients', component: () => import('@/pages/clients.vue'), meta: { title: 'Clients', section: 'clients', page: 'clients' } },
   { path: '/clients/:id', component: () => import('@/pages/client-page.vue'), meta: { title: 'Client', section: 'clients', page: 'clients' } },
   { path: '/loyalty', component: () => import('@/pages/loyalty.vue'), meta: { title: 'Loyalty', section: 'clients', page: 'loyalty' } },
+  { path: '/reviews', component: () => import('@/pages/reviews.vue'), meta: { title: 'Reviews', section: 'clients', page: 'reviews' } },
   { path: '/suppliers', component: () => import('@/pages/suppliers.vue'), meta: { title: 'Suppliers', section: 'inventory', page: 'suppliers' } },
 
   { path: '/employees', component: () => import('@/pages/employees.vue'), meta: { title: 'Employees', section: 'hr', page: 'employees' } },

@@ -17,12 +17,12 @@ import (
 	db "github.com/mhdna/kashi/db/sqlc"
 )
 
-// Google ratings and reviews for the Reviews tab, read with the Places API
+// Google ratings and reviews for the Reviews page, read with the Places API
 // (New) by place id -- public data, so no access to the business's Google
-// profile is needed, only an API key (Reviews tab > settings). A place's
+// profile is needed, only an API key (Reviews page > Review link). A place's
 // details come back with its rating, total review count and up to five
 // reviews (Google's "most relevant"); kashi keeps a snapshot whenever the
-// rating or count moves, so the tab can tell how many reviews came in over
+// rating or count moves, so the page can tell how many reviews came in over
 // a range.
 
 // googlePlacesBase is the Places API; tests point it at a fake.
