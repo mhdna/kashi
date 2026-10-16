@@ -205,6 +205,16 @@
                 />
               </v-col>
               <template v-if="pollMode">
+                <v-col class="d-flex align-center" cols="12" md="6">
+                  <v-switch
+                    v-model="draft.whatsapp_message_logo"
+                    color="primary"
+                    density="compact"
+                    :disabled="!canEdit"
+                    hide-details
+                    label="Banner on top of the message (not a link)"
+                  />
+                </v-col>
                 <v-col cols="12" md="6">
                   <v-text-field
                     v-model="draft.whatsapp_poll_question"
@@ -271,13 +281,65 @@
         <v-col cols="12" md="5">
           <v-card class="card" variant="flat">
             <div class="card__title mb-2">Preview</div>
-            <div class="bubble" v-html="previewHTML" />
+            <div class="bubble">
+              <img
+                v-if="pollMode && draft.whatsapp_message_logo"
+                alt=""
+                class="bubble__banner"
+                :src="bannerURL"
+              >
+              <div v-html="previewHTML" />
+            </div>
             <div v-if="pollMode" class="bubble poll mt-1">
               <div class="font-weight-medium mb-1">{{ pollQuestion }}</div>
               <div class="text-caption poll__hint mb-1">Select one</div>
               <div v-for="o in pollOptions" :key="o" class="poll__option">
                 <span class="poll__radio" />{{ o }}
               </div>
+            </div>
+          </v-card>
+        </v-col>
+
+        <!-- Try it -->
+        <v-col cols="12">
+          <v-card class="card" variant="flat">
+            <div class="card__title">Send a test</div>
+            <p class="text-caption text-medium-emphasis mb-3">
+              Sends the saved message{{ pollMode ? ' and poll' : '' }} to a phone as if a sale had just been
+              made at the branch, from that branch's number. It's listed on the Messages tab with a TEST
+              invoice{{ pollMode ? ', and the answer shows on the Reviews page' : '' }}. Save your changes first.
+            </p>
+            <div class="d-flex flex-wrap align-center ga-3">
+              <v-text-field
+                v-model="testPhone"
+                density="compact"
+                hide-details
+                label="Phone"
+                placeholder="+961 70 123456"
+                style="max-width: 220px"
+                variant="outlined"
+              />
+              <v-select
+                v-model="testBranch"
+                density="compact"
+                hide-details
+                :items="testBranchOptions"
+                label="As if sold at"
+                style="max-width: 240px"
+                variant="outlined"
+              />
+              <v-btn
+                color="primary"
+                :disabled="!testPhone.trim() || dirty"
+                :loading="testing"
+                prepend-icon="mdi-send-outline"
+                text="Send test"
+                variant="tonal"
+                @click="sendTestMessage"
+              />
+              <span v-if="testResult" class="text-body-2" :class="testResult.ok ? 'text-success' : 'text-error'">
+                {{ testResult.text }}
+              </span>
             </div>
           </v-card>
         </v-col>
@@ -407,6 +469,7 @@
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { useWhatsApp } from '@/composables/useWhatsApp'
+  import { API_BASE } from '@/config'
 
   // How post-sale messages go out: our own numbers through the WhatsApp bridge
   // (api/whatsapp_bridge.go), or Meta's Cloud API.
@@ -417,7 +480,7 @@
 
   const notify = useNotify()
   const { canEdit } = usePageAccess()
-  const { getSender, saveSender, addNumber, numberQR, updateNumber, deleteNumber } = useWhatsApp()
+  const { getSender, saveSender, sendTest, addNumber, numberQR, updateNumber, deleteNumber } = useWhatsApp()
 
   const PLACEHOLDERS = ['name', 'invoice', 'total', 'date', 'branch', 'review', 'instagram']
   const placeholder = p => '{' + p + '}'
@@ -533,6 +596,34 @@
       .replaceAll(/_([^_\n]+)_/g, '<em>$1</em>')
       .replaceAll(/(https?:\/\/\S+)/g, '<span class="bubble__link">$1</span>')
   })
+
+  // The banner kashi sends on top of the message (api/review_link.go).
+  const bannerURL = `${API_BASE}/review-assets/banner.jpg`
+
+  // ---- test ------------------------------------------------------------------
+  const testPhone = ref('')
+  const testBranch = ref(0)
+  const testing = ref(false)
+  const testResult = ref(null)
+  const testBranchOptions = computed(() => [
+    { title: 'No branch (default number)', value: 0 },
+    ...(draft.value?.branches ?? []).map(b => ({ title: b.branch_name, value: b.branch_id })),
+  ])
+  async function sendTestMessage () {
+    testing.value = true
+    testResult.value = null
+    try {
+      const res = await sendTest({ phone: testPhone.value.trim(), branch_id: testBranch.value })
+      testResult.value = res.sent
+        ? { ok: true, text: 'Queued — it arrives in about 20–45 seconds.' }
+        : { ok: false, text: res.reason || 'Not sent.' }
+      await reloadNumbers()
+    } catch (error) {
+      testResult.value = { ok: false, text: error.message }
+    } finally {
+      testing.value = false
+    }
+  }
 
   // ---- numbers ---------------------------------------------------------------
   const addOpen = ref(false)
@@ -663,6 +754,12 @@
   border: 2px solid #8696a0;
   border-radius: 50%;
   flex: none;
+}
+.bubble__banner {
+  display: block;
+  width: calc(100% + 12px);
+  margin: -5px -6px 8px;
+  border-radius: 6px;
 }
 :deep(.bubble__link) {
   color: #027eb5;

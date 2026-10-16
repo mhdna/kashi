@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -169,7 +170,7 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 	var out struct {
 		Status string `json:"status"`
 	}
-	err = whatsAppBridgeCall(ctx, sender, http.MethodPost, "/message/sendText/"+url.PathEscape(number.Instance), map[string]any{
+	body := map[string]any{
 		"number": entry.ClientPhone,
 		"text":   whatsAppBridgeText(message, values),
 		"source": "kashi",
@@ -180,7 +181,12 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 		// The link card is the review link's own (our banner); in poll mode
 		// the only link may be Instagram's, whose card is its login page.
 		"linkPreview": !pollMode,
-	}, &out)
+	}
+	if pollMode && sender.WhatsappMessageLogo {
+		// The banner on top, the message as its caption: no link to tap.
+		body["image"] = base64.StdEncoding.EncodeToString(reviewBannerJPG)
+	}
+	err = whatsAppBridgeCall(ctx, sender, http.MethodPost, "/message/sendText/"+url.PathEscape(number.Instance), body, &out)
 	if err != nil {
 		log.Printf("whatsapp thank-you: bridge send failed for invoice %s: %v", req.InvoiceCode, err)
 		server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, err.Error())
@@ -274,6 +280,7 @@ type whatsAppSenderBody struct {
 	FeedbackMode string                 `json:"whatsapp_feedback_mode"`
 	LinkMessage  string                 `json:"whatsapp_bridge_link_message"`
 	Instagram    string                 `json:"whatsapp_instagram_url"`
+	Logo         bool                   `json:"whatsapp_message_logo"`
 	PollQuestion string                 `json:"whatsapp_poll_question"`
 	PollOptions  string                 `json:"whatsapp_poll_options"`
 	Branches     []whatsAppBranchNumber `json:"branches"`
@@ -312,6 +319,7 @@ func (server *Server) getWhatsAppSender(ctx *gin.Context) {
 			FeedbackMode: sender.WhatsappFeedbackMode,
 			LinkMessage:  sender.WhatsappBridgeLinkMessage,
 			Instagram:    sender.WhatsappInstagramUrl,
+			Logo:         sender.WhatsappMessageLogo,
 			PollQuestion: sender.WhatsappPollQuestion,
 			PollOptions:  sender.WhatsappPollOptions,
 			Branches:     branches,
@@ -419,6 +427,7 @@ func (server *Server) updateWhatsAppSender(ctx *gin.Context) {
 		WhatsappFeedbackMode:      req.FeedbackMode,
 		WhatsappBridgeLinkMessage: strings.TrimSpace(req.LinkMessage),
 		WhatsappInstagramUrl:      strings.TrimSpace(req.Instagram),
+		WhatsappMessageLogo:       req.Logo,
 		WhatsappPollQuestion:      strings.TrimSpace(req.PollQuestion),
 		WhatsappPollOptions:       pollOptions,
 	}, branches); err != nil {
@@ -563,4 +572,53 @@ func (server *Server) deleteWhatsAppNumber(ctx *gin.Context) {
 		return
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{"ok": true})
+}
+
+// sendWhatsAppTest sends the post-sale message (and poll) to a phone as if
+// a sale had just been made at the branch, so the whole path -- the number,
+// the message, the poll and its vote -- can be tried. It's logged like any
+// message, with a TEST invoice.
+func (server *Server) sendWhatsAppTest(ctx *gin.Context) {
+	var req struct {
+		Phone    string `json:"phone" binding:"required"`
+		BranchID int64  `json:"branch_id"`
+	}
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	to := whatsAppDigits(req.Phone)
+	if to == "" {
+		server.writeError(ctx, http.StatusBadRequest, errors.New("enter the phone with its country code, e.g. +961 70 123456"))
+		return
+	}
+	sender, err := server.store.GetWhatsAppSenderSettings(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	branchName := ""
+	if req.BranchID != 0 {
+		branch, err := server.store.GetBranch(ctx, req.BranchID)
+		if err != nil {
+			server.writeError(ctx, http.StatusBadRequest, errors.New("unknown branch"))
+			return
+		}
+		branchName = branch.Name
+	}
+	sale := branchWhatsAppThankYouRequest{
+		ClientName:      "Test",
+		ClientPhone:     to,
+		InvoiceCode:     "TEST-" + time.Now().In(businessZone).Format("150405"),
+		GrandTotalCents: 15625,
+	}
+	entry := db.CreateWhatsAppMessageParams{
+		BranchID:        sql.NullInt64{Int64: req.BranchID, Valid: req.BranchID != 0},
+		InvoiceCode:     sale.InvoiceCode,
+		ClientName:      sale.ClientName,
+		ClientPhone:     to,
+		GrandTotalCents: sale.GrandTotalCents,
+		RuleName:        "Test",
+	}
+	server.sendWhatsAppViaBridge(ctx, entry, sender, branchName, sale)
 }
