@@ -22,7 +22,7 @@ func TestWhatsAppBridgeText(t *testing.T) {
 	}
 	// No Instagram link: its line, and the blank line it leaves, go.
 	got := whatsAppBridgeText(defaultWhatsAppLinkMessage, values)
-	require.Contains(t, got, "🧾 Receipt number: *SA/CT/2026/00482*\n📅 Date: 16/10/2026\n💳 Total paid: *$156.25*")
+	require.Contains(t, got, "🧾 Receipt number:\n*SA/CT/2026/00482*\n📅 Date: 16/10/2026\n💳 Total paid: *$156.25*")
 	require.True(t, strings.HasSuffix(got, "on Google:\nhttps://grandbz.com/review/abcdEFGH"), got)
 	require.NotContains(t, got, "Instagram")
 
