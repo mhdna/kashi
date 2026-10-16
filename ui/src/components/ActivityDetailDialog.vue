@@ -44,7 +44,7 @@
               <Fact label="Closed by" :value="data.shift.closing_person_name" />
               <Fact label="Opened" :value="dateTime(nullTime(data.shift.opened_at))" />
               <Fact label="Closed" :value="dateTime(nullTime(data.shift.closed_at))" />
-              <Fact label="Opening float" :value="`${formatAmount(data.shift.opening_float_usd)} · ${formatAmount(data.shift.opening_float_lbp, 'LBP')}`" />
+              <Fact label="Opening float" :value="`${formatAmount(data.shift.opening_float_usd)} · ${formatLBP(data.shift.opening_float_lbp)}`" />
             </div>
             <v-table class="mt-3" density="compact">
               <thead>
@@ -58,10 +58,10 @@
               <tbody>
                 <tr v-for="method in shiftMethods" :key="method.key">
                   <td>{{ method.label }}</td>
-                  <td class="text-end">{{ formatAmount(data.shift[`expected_${method.key}`], method.currency) }}</td>
-                  <td class="text-end">{{ formatAmount(data.shift[`counted_${method.key}`], method.currency) }}</td>
+                  <td class="text-end">{{ method.format(data.shift[`expected_${method.key}`]) }}</td>
+                  <td class="text-end">{{ method.format(data.shift[`counted_${method.key}`]) }}</td>
                   <td class="text-end font-weight-medium" :class="amountClass(data.shift[`variance_${method.key}`])">
-                    {{ data.shift[`variance_${method.key}`] ? formatAmount(data.shift[`variance_${method.key}`], method.currency) : '—' }}
+                    {{ data.shift[`variance_${method.key}`] ? method.format(data.shift[`variance_${method.key}`]) : '—' }}
                   </td>
                 </tr>
               </tbody>
@@ -174,19 +174,34 @@
         <div class="text-caption text-medium-emphasis mt-4">Synced {{ dateTime(item.synced_at) }}</div>
       </v-card-text>
 
-      <template v-if="item.pinned && canResolve">
+      <template v-if="canResolve && (item.pinned || item.resolved)">
         <v-divider />
         <v-card-actions class="px-4">
-          <span class="text-caption text-medium-emphasis">Pinned on Home until resolved.</span>
-          <v-spacer />
-          <v-btn
-            color="error"
-            :loading="resolving"
-            prepend-icon="mdi-check-circle-outline"
-            text="Mark resolved"
-            variant="tonal"
-            @click="emit('resolve', item)"
-          />
+          <template v-if="item.resolved">
+            <v-icon color="success" icon="mdi-check-circle" size="18" />
+            <span class="text-caption text-medium-emphasis">
+              Resolved{{ item.resolved_by ? ` by ${item.resolved_by}` : '' }}.
+            </span>
+            <v-spacer />
+            <v-btn
+              :loading="resolving"
+              text="Mark unresolved"
+              variant="text"
+              @click="emit('unresolve', item)"
+            />
+          </template>
+          <template v-else>
+            <span class="text-caption text-medium-emphasis">Pinned on Home until resolved.</span>
+            <v-spacer />
+            <v-btn
+              color="error"
+              :loading="resolving"
+              prepend-icon="mdi-check-circle-outline"
+              text="Mark resolved"
+              variant="tonal"
+              @click="emit('resolve', item)"
+            />
+          </template>
         </v-card-actions>
       </template>
     </v-card>
@@ -198,7 +213,7 @@
   import { authFetch } from '@/composables/useApi'
   import { PHOTO_FETCH } from '@/composables/usePhotoActions'
   import { API_BASE } from '@/config'
-  import { formatAmount } from '@/utils/money'
+  import { formatAmount, formatLBP } from '@/utils/money'
 
   // Everything about one Recent activity row, from /home/activities/detail.
   const props = defineProps({
@@ -211,7 +226,7 @@
     canResolve: { type: Boolean, default: false },
     resolving: { type: Boolean, default: false },
   })
-  const emit = defineEmits(['update:modelValue', 'open-photo', 'resolve'])
+  const emit = defineEmits(['update:modelValue', 'open-photo', 'resolve', 'unresolve'])
 
   const loading = ref(false)
   const error = ref('')
@@ -222,11 +237,13 @@
   const hasAmount = computed(() =>
     props.item?.amount != null && props.item.amount !== 0 && !String(props.item.activity).startsWith('Attendance'))
 
+  // The tills report the dollar drawers in cents but LBP in whole pounds,
+  // as printed on the close-shift receipt.
   const shiftMethods = [
-    { key: 'usd', label: 'USD', currency: '' },
-    { key: 'lbp', label: 'LBP', currency: 'LBP' },
-    { key: 'visa', label: 'Visa', currency: '' },
-    { key: 'whish', label: 'Whish', currency: '' },
+    { key: 'usd', label: 'USD', format: cents => formatAmount(cents) },
+    { key: 'lbp', label: 'LBP', format: formatLBP },
+    { key: 'visa', label: 'Visa', format: cents => formatAmount(cents) },
+    { key: 'whish', label: 'Whish', format: cents => formatAmount(cents) },
   ]
 
   // The photo endpoints, by the kind name the home page's photo viewer uses.

@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 const countHomeActivitiesSince = `-- name: CountHomeActivitiesSince :one
@@ -300,6 +302,46 @@ func (q *Queries) ListBranchInvoiceItemsNamed(ctx context.Context, branchInvoice
 	return items, nil
 }
 
+const listHomeActivityResolutions = `-- name: ListHomeActivityResolutions :many
+SELECT source_id, resolved_by, resolved_at FROM home_activity_resolutions
+WHERE activity = $1 AND source_id = ANY($2::bigint[])
+`
+
+type ListHomeActivityResolutionsParams struct {
+	Activity  string  `json:"activity"`
+	SourceIds []int64 `json:"source_ids"`
+}
+
+type ListHomeActivityResolutionsRow struct {
+	SourceID   int64     `json:"source_id"`
+	ResolvedBy string    `json:"resolved_by"`
+	ResolvedAt time.Time `json:"resolved_at"`
+}
+
+// Which of a page's rows of one kind are resolved, and by whom.
+func (q *Queries) ListHomeActivityResolutions(ctx context.Context, arg ListHomeActivityResolutionsParams) ([]ListHomeActivityResolutionsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listHomeActivityResolutions, arg.Activity, pq.Array(arg.SourceIds))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListHomeActivityResolutionsRow{}
+	for rows.Next() {
+		var i ListHomeActivityResolutionsRow
+		if err := rows.Scan(&i.SourceID, &i.ResolvedBy, &i.ResolvedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listLatestAdditions = `-- name: ListLatestAdditions :many
 SELECT kind, id, added_at, title, subtitle, amount, currency_code, has_image, ref_id, branch_id, ref_day FROM (
   SELECT 'expense_image'::text AS kind, i.id, i.created_at AS added_at,
@@ -537,5 +579,20 @@ type ResolveHomeActivityParams struct {
 // Idempotent: resolving a row twice keeps who resolved it first.
 func (q *Queries) ResolveHomeActivity(ctx context.Context, arg ResolveHomeActivityParams) error {
 	_, err := q.db.ExecContext(ctx, resolveHomeActivity, arg.Activity, arg.SourceID, arg.ResolvedBy)
+	return err
+}
+
+const unresolveHomeActivity = `-- name: UnresolveHomeActivity :exec
+DELETE FROM home_activity_resolutions WHERE activity = $1 AND source_id = $2
+`
+
+type UnresolveHomeActivityParams struct {
+	Activity string `json:"activity"`
+	SourceID int64  `json:"source_id"`
+}
+
+// Reopens a resolved urgent row, pinning it on Home again.
+func (q *Queries) UnresolveHomeActivity(ctx context.Context, arg UnresolveHomeActivityParams) error {
+	_, err := q.db.ExecContext(ctx, unresolveHomeActivity, arg.Activity, arg.SourceID)
 	return err
 }

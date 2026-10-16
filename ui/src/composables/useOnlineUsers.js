@@ -6,9 +6,6 @@ import { authFetch } from './useApi'
 // Module-scope so the top bar and any other consumer share one list instead
 // of each fetching and subscribing on its own.
 const users = ref([])
-// False until the first list arrives (fetch or push), so the top bar can
-// hold the avatar's place with a skeleton instead of popping it in.
-const loaded = ref(false)
 let started = false
 
 // Who is signed in right now: an initial fetch, then kept current by the
@@ -24,7 +21,6 @@ export function useOnlineUsers () {
     onMessage(message => {
       if (message.type === 'admin_presence_changed') {
         users.value = message.users ?? []
-        loaded.value = true
       }
     })
     ensureConnected()
@@ -35,11 +31,8 @@ export function useOnlineUsers () {
       }
     } catch {
       // Informational only -- the push still fills the list in.
-    } finally {
-      // Even on failure: a skeleton that never resolves is worse than none.
-      loaded.value = true
     }
   }
 
-  return { users, loaded, start }
+  return { users, start }
 }

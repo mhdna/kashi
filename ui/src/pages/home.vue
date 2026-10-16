@@ -52,74 +52,85 @@
             />
           </div>
 
-          <v-card class="home-activities-card" rounded="lg" variant="outlined">
-            <div class="home-activities-scroll" @scroll.passive="onFeedScroll($event, loadMoreKashi)">
-              <v-skeleton-loader
-                v-if="!kashiLoaded"
-                color="transparent"
-                type="list-item-avatar-two-line@8"
-              />
-              <v-list v-else class="py-1" density="compact" lines="two">
-                <v-virtual-scroll :item-height="71" :items="shown(kashiActivities)" renderless>
-                  <template #default="{ item, itemRef }">
-                    <v-list-item :ref="itemRef" class="px-3" @click="openKashiDetail(item)">
-                      <template #prepend>
-                        <v-avatar
-                          class="me-3 text-white"
-                          :color="userColor(item)"
-                          size="34"
-                        >
-                          <span class="text-caption font-weight-bold">{{ initialsOf(item.user_name) }}</span>
-                        </v-avatar>
-                      </template>
-                      <v-list-item-title class="text-body-2 activity-sentence">
-                        <span class="font-weight-medium" :title="item.user_name">{{ firstNameOf(item.user_name) || 'Someone' }}</span>
-                        {{ kashiSentence(item) }}
-                        <!-- The same change made again straight after (within the
-                         hour) is counted on one entry, not listed again. -->
-                        <v-chip
-                          v-if="item.repeat_count > 1"
-                          class="ms-1"
-                          label
-                          size="x-small"
-                          :title="`${item.repeat_count} times in a row`"
-                          variant="tonal"
-                        >
-                          ×{{ item.repeat_count }}
-                        </v-chip>
-                      </v-list-item-title>
-                      <v-list-item-subtitle class="text-caption d-flex align-center ga-1">
-                        <v-chip
-                          class="flex-shrink-0 font-weight-medium"
-                          :color="kashiTag(item).color"
-                          label
-                          size="x-small"
-                          :text="kashiTag(item).label"
-                          variant="flat"
-                        />
-                        <span v-if="item.detail" class="text-truncate">{{ item.detail }}</span>
-                      </v-list-item-subtitle>
-                      <template #append>
-                        <div class="text-caption text-medium-emphasis text-no-wrap ms-2" :title="dateTime(item.created_at)">
-                          {{ timeAgo(item.created_at) }}
-                        </div>
-                      </template>
-                    </v-list-item>
-                  </template>
-                </v-virtual-scroll>
-              </v-list>
-
-              <div
-                v-if="kashiLoaded && kashiActivities.length === 0"
-                class="text-body-2 text-medium-emphasis py-4 text-center"
-              >
-                Nothing changed in kashi yet.
+          <!-- One card per kind of change, stacked: commands, reports and
+               emails, then everything else. Split client-side from the one
+               paged feed, so scrolling any card loads the next page. -->
+          <div class="kashi-groups">
+            <v-card
+              v-for="group in kashiGroups"
+              :key="group.key"
+              class="home-activities-card kashi-group"
+              :class="`kashi-group--${group.key}`"
+              rounded="lg"
+              :style="{ '--group-accent': group.accent }"
+              variant="outlined"
+            >
+              <div class="kashi-group__head d-flex align-center ga-2 px-3 py-2">
+                <span class="kashi-group__dot" />
+                <span class="text-body-2 font-weight-medium">{{ group.title }}</span>
+                <v-spacer />
+                <span v-if="kashiLoaded" class="text-caption text-medium-emphasis">{{ group.items.length.toLocaleString() }}</span>
               </div>
-              <div v-if="kashiLoading" class="d-flex justify-center py-2">
-                <v-progress-circular indeterminate size="18" width="2" />
+              <v-divider />
+              <div class="home-activities-scroll" @scroll.passive="onFeedScroll($event, loadMoreKashi)">
+                <v-skeleton-loader
+                  v-if="!kashiLoaded"
+                  color="transparent"
+                  :type="group.key === 'other' ? 'list-item-avatar-two-line@6' : 'list-item-avatar-two-line'"
+                />
+                <v-list v-else-if="group.items.length > 0" class="py-1" density="compact" lines="two">
+                  <v-virtual-scroll :item-height="71" :items="shown(group.items)" renderless>
+                    <template #default="{ item, itemRef }">
+                      <v-list-item :ref="itemRef" class="px-3" @click="openKashiDetail(item)">
+                        <template #prepend>
+                          <v-avatar
+                            class="me-3 text-white"
+                            :color="userColor(item)"
+                            size="34"
+                          >
+                            <span class="text-caption font-weight-bold">{{ initialsOf(item.user_name) }}</span>
+                          </v-avatar>
+                        </template>
+                        <v-list-item-title class="text-body-2 activity-sentence">
+                          <span class="font-weight-medium" :title="item.user_name">{{ firstNameOf(item.user_name) || 'Someone' }}</span>
+                          {{ kashiSentence(item) }}
+                        </v-list-item-title>
+                        <v-list-item-subtitle class="text-caption d-flex align-center ga-2">
+                          <v-chip
+                            class="activity-tag flex-shrink-0 font-weight-medium"
+                            :color="kashiTag(item).color"
+                            label
+                            size="x-small"
+                            :text="kashiTag(item).label"
+                            variant="tonal"
+                          />
+                          <!-- The same change made again straight after (within the
+                           hour) is counted on one entry, not listed again. -->
+                          <span
+                            v-if="item.repeat_count > 1"
+                            class="flex-shrink-0 font-weight-medium"
+                            :title="`${item.repeat_count} times in a row`"
+                          >×{{ item.repeat_count }}</span>
+                          <span v-if="item.detail" class="text-truncate">{{ item.detail }}</span>
+                        </v-list-item-subtitle>
+                        <template #append>
+                          <div class="text-caption text-medium-emphasis text-no-wrap ms-2" :title="dateTime(item.created_at)">
+                            {{ timeAgo(item.created_at) }}
+                          </div>
+                        </template>
+                      </v-list-item>
+                    </template>
+                  </v-virtual-scroll>
+                </v-list>
+                <div v-else class="text-caption text-medium-emphasis px-4 py-3">
+                  {{ group.empty }}
+                </div>
+                <div v-if="kashiLoading && group.key === 'other'" class="d-flex justify-center py-2">
+                  <v-progress-circular indeterminate size="18" width="2" />
+                </div>
               </div>
-            </div>
-          </v-card>
+            </v-card>
+          </div>
         </section>
 
         <section v-if="canViewActivity" aria-label="Recent activity" class="home-activities">
@@ -208,18 +219,21 @@
                             {{ timeAgo(item.synced_at) }}
                           </div>
                         </div>
-                        <!-- Last in the row, so the buttons line up down the
-                             pinned rows whatever the amount's width. -->
+                        <!-- Last in the row, so the checks line up down the
+                             urgent rows whatever the amount's width. Only for
+                             whoever may resolve; everyone else just sees the
+                             row tinted. An open row's outline check resolves
+                             it, a resolved row's filled one reopens it. -->
                         <v-btn
-                          v-if="item.pinned && canResolveUrgent"
+                          v-if="canResolveUrgent && (item.pinned || item.resolved)"
                           class="ms-1 me-n2"
-                          color="error"
-                          icon="mdi-check-circle-outline"
+                          :color="item.resolved ? 'success' : 'error'"
+                          :icon="item.resolved ? 'mdi-check-circle' : 'mdi-check-circle-outline'"
                           :loading="resolvingKey === activityKey(item)"
                           size="small"
-                          title="Mark resolved"
+                          :title="item.resolved ? resolvedTitle(item) : 'Mark resolved'"
                           variant="text"
-                          @click.stop="resolveUrgent(item)"
+                          @click.stop="item.resolved ? unresolveUrgent(item) : resolveUrgent(item)"
                         />
                       </template>
                     </v-list-item>
@@ -342,6 +356,7 @@
       :title="detail ? activityTitle(detail) : ''"
       @open-photo="openLatest"
       @resolve="resolveFromDetail"
+      @unresolve="unresolveFromDetail"
     />
 
     <!-- One IT Management change in full: who, when, through what, and for
@@ -653,6 +668,8 @@
         throw new Error(body.error || `Failed to resolve (${response.status})`)
       }
       urgentActivities.value = urgentActivities.value.filter(row => activityKey(row) !== activityKey(item))
+      // It drops back into the feed in its own place, now with a filled check.
+      markResolved(item, { resolved: true, resolved_by: auth.user?.username ?? '' })
     } catch (error_) {
       notify.error(error_.message)
     } finally {
@@ -660,11 +677,47 @@
     }
   }
 
+  // Reopens a resolved row: pinned on top again for everyone.
+  async function unresolveUrgent (item) {
+    resolvingKey.value = activityKey(item)
+    try {
+      const response = await authFetch(`${API_BASE}/home/activities/resolve`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activity: item.activity, id: item.id }),
+      })
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}))
+        throw new Error(body.error || `Failed to reopen (${response.status})`)
+      }
+      markResolved(item, { resolved: false, resolved_by: '' })
+      await loadUrgentActivities()
+    } catch (error_) {
+      notify.error(error_.message)
+    } finally {
+      resolvingKey.value = null
+    }
+  }
+
+  function markResolved (item, state) {
+    for (const row of activities.value) {
+      if (activityKey(row) === activityKey(item)) Object.assign(row, state)
+    }
+    if (detail.value && activityKey(detail.value) === activityKey(item)) {
+      detail.value = { ...detail.value, ...state, pinned: !state.resolved }
+    }
+  }
+
+  function resolvedTitle (item) {
+    return item.resolved_by ? `Resolved by ${item.resolved_by} · click to reopen` : 'Resolved · click to reopen'
+  }
+
   async function resolveFromDetail (item) {
     await resolveUrgent(item)
-    if (!urgentActivities.value.some(row => activityKey(row) === activityKey(item))) {
-      detailOpen.value = false
-    }
+  }
+
+  async function unresolveFromDetail (item) {
+    await unresolveUrgent(item)
   }
 
   function reload () {
@@ -835,16 +888,17 @@
   const RELEASE_TAGS = {
     feat: { label: 'Feature', color: 'success' },
     fix: { label: 'Fix', color: 'error' },
-    style: { label: 'Style', color: 'deep-purple' },
-    perf: { label: 'Performance', color: 'orange' },
+    style: { label: 'Style', color: 'purple' },
+    perf: { label: 'Performance', color: 'warning' },
     refactor: { label: 'Refactor', color: 'blue-grey' },
     docs: { label: 'Docs', color: 'grey' },
   }
   const ROUTE_TAGS = [
-    { match: /^\/branches\/:id\/commands/, label: 'Command', color: 'indigo' },
+    { match: /^\/branches\/:id\/commands/, label: 'Command', color: 'primary' },
     { match: /^\/app_(releases|updates)/, label: 'App release', color: 'teal' },
     { match: /^\/security/, label: 'Security', color: 'error' },
     { match: /^\/home\/activities\/resolve/, label: 'Resolved', color: 'success' },
+    { match: /^\/email_reports/, label: 'Email', color: 'success' },
     { match: /settings|^\/whatsapp|quick_access/, label: 'Settings', color: 'blue-grey' },
   ]
   const METHOD_TAGS = {
@@ -856,7 +910,7 @@
 
   function kashiTag (item) {
     if (item.method === 'RELEASE') {
-      return RELEASE_TAGS[item.release_type] ?? { label: 'Update', color: 'cyan' }
+      return RELEASE_TAGS[item.release_type] ?? { label: 'Update', color: 'info' }
     }
     const route = ROUTE_TAGS.find(tag => tag.match.test(item.route ?? ''))
     if (route) return route
@@ -896,6 +950,40 @@
     kashiDetailOpen.value = false
     router.push(page.to)
   }
+
+  // The IT Management cards, top to bottom; a change lands in the first
+  // whose match accepts its route. accent is an "r,g,b" for the dot by the
+  // card's title.
+  const KASHI_GROUPS = [
+    {
+      key: 'commands',
+      title: 'Commands',
+      accent: 'var(--v-theme-primary)',
+      empty: 'No commands sent to branches yet.',
+      match: item => /^\/branches\/:id\/commands/.test(item.route ?? ''),
+    },
+    {
+      key: 'reports',
+      title: 'Reports & emails',
+      accent: 'var(--v-theme-success)',
+      empty: 'No reports emailed yet.',
+      match: item => /^\/email_reports/.test(item.route ?? ''),
+    },
+    {
+      key: 'other',
+      title: 'Other changes',
+      accent: 'var(--v-theme-on-surface)',
+      empty: 'Nothing changed in kashi yet.',
+      match: () => true,
+    },
+  ]
+  const kashiGroups = computed(() => {
+    const groups = KASHI_GROUPS.map(group => ({ ...group, items: [] }))
+    for (const item of kashiActivities.value) {
+      groups.find(group => group.match(item)).items.push(item)
+    }
+    return groups
+  })
 
   function kashiSentence (item) {
     return item.entity_id?.Valid ? `${item.summary} #${item.entity_id.Int64}` : item.summary
@@ -1216,8 +1304,52 @@
     min-width: 0;
   }
 
+  /* Vuetify hyphenates list titles ("re-solved"); wrap whole words. */
   .activity-sentence {
     white-space: normal;
+    hyphens: none;
+    line-height: 1.35;
+  }
+
+  /* IT Management: compact Commands and Reports cards on top, Other
+     changes takes the rest. */
+  .kashi-groups {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
+  }
+
+  /* Doubled class: .home-activities-card (declared later) sets flex too.
+     Their list sizes to its rows (up to the cap) instead of the flex-basis-0
+     the Other card's list uses. */
+  .kashi-group.kashi-group--commands,
+  .kashi-group.kashi-group--reports {
+    flex: 0 1 auto;
+    max-height: 250px;
+  }
+
+  .kashi-group--commands .home-activities-scroll,
+  .kashi-group--reports .home-activities-scroll {
+    flex: 0 1 auto;
+  }
+
+  /* The colour is just this dot; the card itself stays plain. */
+  .kashi-group__dot {
+    background: rgb(var(--group-accent));
+    border-radius: 50%;
+    flex: 0 0 auto;
+    height: 8px;
+    width: 8px;
+  }
+
+  .kashi-group--other .kashi-group__dot {
+    background: rgba(var(--group-accent), 0.35);
+  }
+
+  .activity-tag {
+    letter-spacing: 0.02em;
   }
 
   .today-skeleton :deep(.v-skeleton-loader__text) {
@@ -1280,7 +1412,8 @@
     }
 
     /* Each card is just as tall as its few rows -- no inner scrolling. */
-    .home-activities-card {
+    .home-activities-card,
+    .kashi-groups {
       flex: 0 0 auto;
     }
 

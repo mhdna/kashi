@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"encoding/json"
 	"net/http"
 	"testing"
 	"time"
@@ -177,4 +178,61 @@ func TestGetHomeActivityDetail_UnknownActivity(t *testing.T) {
 	server := newTestServer(t, mockdb.NewMockStore(gomock.NewController(t)))
 	rec := adminRequest(t, server, http.MethodGet, "/home/activities/detail?activity=Nope&id=4", nil)
 	require.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
+}
+
+// A resolved urgent row says so, with who resolved it, so Home can show its
+// check and reopen it.
+func TestListHomeActivities_MarksResolved(t *testing.T) {
+	store := mockdb.NewMockStore(gomock.NewController(t))
+	store.EXPECT().HomeActivityFeed(gomock.Any(), gomock.Any()).
+		Return([]db.HomeActivityFeedRow{{Activity: "Shift closed", ID: 4}, {Activity: "Shift closed", ID: 5}, {Activity: "Invoice", ID: 4}}, nil)
+	store.EXPECT().ListHomeActivityResolutions(gomock.Any(), db.ListHomeActivityResolutionsParams{
+		Activity: "Shift closed", SourceIds: []int64{4, 5},
+	}).Return([]db.ListHomeActivityResolutionsRow{{SourceID: 4, ResolvedBy: "mahdi", ResolvedAt: time.Now()}}, nil)
+
+	server := newTestServer(t, store)
+	rec := adminRequest(t, server, http.MethodGet, "/home/activities", nil)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	var body struct {
+		Activities []homeActivity `json:"activities"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	require.True(t, body.Activities[0].Resolved)
+	require.Equal(t, "mahdi", body.Activities[0].ResolvedBy)
+	require.False(t, body.Activities[1].Resolved)
+	require.False(t, body.Activities[2].Resolved) // an invoice #4 isn't shift #4
+}
+
+// Reopening takes the same permission as resolving.
+func TestUnresolveHomeActivity_NeedsPermission(t *testing.T) {
+	analytics := db.GetUserAccessRow{
+		RoleID: 2, RoleName: "Manager",
+		Section: sqlStr("analytics"), CanView: sqlBool(true), CanEdit: sqlBool(true),
+	}
+	resolve := db.GetUserAccessRow{
+		RoleID: 2, RoleName: "Manager",
+		Section: sqlStr("resolve_urgent_activity"), CanView: sqlBool(true), CanEdit: sqlBool(true),
+	}
+	for name, c := range map[string]struct {
+		rows []db.GetUserAccessRow
+		want int
+	}{
+		"analytics alone":     {[]db.GetUserAccessRow{analytics}, http.StatusForbidden},
+		"with the permission": {[]db.GetUserAccessRow{analytics, resolve}, http.StatusOK},
+	} {
+		t.Run(name, func(t *testing.T) {
+			store := mockdb.NewMockStore(gomock.NewController(t))
+			store.EXPECT().GetUserByUsername(gomock.Any(), gomock.Any()).Return(db.User{ID: 1}, nil).AnyTimes()
+			calls := 0
+			if c.want == http.StatusOK {
+				calls = 1
+			}
+			store.EXPECT().UnresolveHomeActivity(gomock.Any(), db.UnresolveHomeActivityParams{
+				Activity: "Shift closed", SourceID: 9,
+			}).Return(nil).Times(calls)
+			server := roleTestServer(t, store, c.rows)
+			rec := adminRequest(t, server, http.MethodDelete, "/home/activities/resolve", map[string]any{"activity": "Shift closed", "id": 9})
+			require.Equal(t, c.want, rec.Code, rec.Body.String())
+		})
+	}
 }

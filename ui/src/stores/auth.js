@@ -48,6 +48,23 @@ export const useAuthStore = defineStore('auth', () => {
   // and the UI additionally hides pages (api/access.go).
   const access = ref(JSON.parse(localStorage.getItem('access') || 'null'))
 
+  // Tabs share the sign-in through localStorage but each keeps its own copy
+  // in memory, and its own admin socket -- which is what puts a user in the
+  // app bar's online list. So when another tab logs out, or signs in as
+  // someone else, this tab follows by reloading into that state rather than
+  // staying signed in (and online) as the old user. A token refresh keeps
+  // the same user, so it's left alone.
+  window.addEventListener('storage', event => {
+    if (event.key !== 'user' && event.key !== 'token' && event.key !== null) {
+      return
+    }
+    const stored = JSON.parse(localStorage.getItem('user') || 'null')
+    const signedIn = Boolean(localStorage.getItem('token'))
+    if ((stored?.id ?? null) !== (user.value?.id ?? null) || signedIn !== Boolean(token.value)) {
+      window.location.reload()
+    }
+  })
+
   const isAuthenticated = computed(() => !!token.value)
   const isAdmin = computed(() => !!access.value?.is_admin)
 
