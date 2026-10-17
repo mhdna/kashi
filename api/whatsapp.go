@@ -339,12 +339,19 @@ func whatsAppHasParam(paramNames string, names ...string) bool {
 	return false
 }
 
-// whatsAppDigits turns an E.164 phone ("+96170123456") into the digits-only
-// form the Cloud API expects ("96170123456"). Returns "" when nothing
-// dial-able is left.
+// whatsAppDigits turns a phone into the digits-with-country-code form
+// WhatsApp expects ("96170123456"). A number without a country code is
+// Lebanese, as clients' numbers are typed at the till: "70 123 456",
+// "03 123 456" or "3 123 456". Returns "" when nothing dial-able is left.
 func whatsAppDigits(phone string) string {
-	digits := onlyDigits(phone)
-	if len(digits) < 8 {
+	digits := strings.TrimPrefix(onlyDigits(phone), "00")
+	if strings.HasPrefix(digits, "0") {
+		digits = "961" + strings.TrimPrefix(digits, "0")
+	}
+	if len(digits) == 7 || len(digits) == 8 {
+		digits = "961" + digits
+	}
+	if len(digits) < 10 {
 		return ""
 	}
 	return digits
