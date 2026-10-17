@@ -119,7 +119,7 @@ func TestSendWhatsAppViaBridgeWithPoll(t *testing.T) {
 	require.Contains(t, bodies[0], `"linkPreview":false`)
 	require.Contains(t, bodies[0], `"image":"/9j/`, "the banner (a JPEG) with the message as its caption")
 	require.NotContains(t, bodies[1], `"image"`)
-	require.Contains(t, bodies[1], `"text":"How was your visit?"`)
+	require.Contains(t, bodies[1], `"text":"How was your visit today?"`)
 	require.Contains(t, bodies[1], `"callback":"http://127.0.0.1:8090/whatsapp/bridge/votes"`)
 	require.Contains(t, bodies[1], `"poll":["😍 Loved it","🙂 It was okay","😕 Not great"]`)
 }

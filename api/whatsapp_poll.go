@@ -20,7 +20,7 @@ import (
 // sender) and POSTs it to /whatsapp/bridge/votes with the poll's ref, which
 // kashi stored on the message. The Reviews page shows the ratings.
 
-const defaultWhatsAppPollQuestion = "How was your visit?"
+const defaultWhatsAppPollQuestion = "How was your visit today?"
 
 // Three answers in words: a short poll (WhatsApp gives each option its own
 // row) that reads at a glance. They count as 5, 3 and 1 stars.
