@@ -523,7 +523,7 @@ type AppSetting struct {
 	WhatsappPollOptions        string          `json:"whatsapp_poll_options"`
 	WhatsappFeedbackMode       string          `json:"whatsapp_feedback_mode"`
 	WhatsappBridgeLinkMessage  string          `json:"whatsapp_bridge_link_message"`
-	WhatsappInstagramUrl       string          `json:"whatsapp_instagram_url"`
+	WhatsappChannelUrl         string          `json:"whatsapp_channel_url"`
 	WhatsappMessageLogo        bool            `json:"whatsapp_message_logo"`
 }
 
