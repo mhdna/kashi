@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
@@ -122,4 +123,94 @@ func TestSendWhatsAppViaBridgeWithPoll(t *testing.T) {
 	require.Contains(t, bodies[1], `"text":"How was your visit today?"`)
 	require.Contains(t, bodies[1], `"callback":"http://127.0.0.1:8090/whatsapp/bridge/votes"`)
 	require.Contains(t, bodies[1], `"poll":["😍 Loved it","🙂 It was okay","😕 Not great"]`)
+}
+
+func TestWhatsAppPollFollowup(t *testing.T) {
+	sender := db.GetWhatsAppSenderSettingsRow{}
+	require.Equal(t, defaultWhatsAppFollowupGood, whatsAppPollFollowup(sender, 5))
+	require.Equal(t, defaultWhatsAppFollowupGood, whatsAppPollFollowup(sender, 4))
+	require.Equal(t, defaultWhatsAppFollowupOkay, whatsAppPollFollowup(sender, 3))
+	require.Equal(t, defaultWhatsAppFollowupBad, whatsAppPollFollowup(sender, 2))
+	require.Equal(t, defaultWhatsAppFollowupBad, whatsAppPollFollowup(sender, 1))
+	sender.WhatsappFollowupBad = " Sorry! "
+	require.Equal(t, "Sorry!", whatsAppPollFollowup(sender, 1))
+}
+
+func TestWhatsAppPollVoteFollowupAndReply(t *testing.T) {
+	var bodies []string
+	bridge := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var buf bytes.Buffer
+		_, _ = buf.ReadFrom(r.Body)
+		bodies = append(bodies, r.URL.Path+" "+buf.String())
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"status":"QUEUED"}`))
+	}))
+	t.Cleanup(bridge.Close)
+	sender := db.GetWhatsAppSenderSettingsRow{WhatsappBridgeKey: "secret-key", WhatsappBridgeUrl: bridge.URL, WhatsappFollowup: true}
+
+	post := func(server *Server, body string) *httptest.ResponseRecorder {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, whatsAppPollVotesPath, strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("apikey", "secret-key")
+		server.router.ServeHTTP(rec, req)
+		return rec
+	}
+
+	t.Run("a first answer gets the follow-up for it, a changed one doesn't", func(t *testing.T) {
+		bodies = nil
+		ctrl := gomock.NewController(t)
+		store := mockdb.NewMockStore(ctrl)
+		server := newTestServer(t, store)
+		store.EXPECT().GetWhatsAppSenderSettings(gomock.Any()).Return(sender, nil).Times(2)
+		store.EXPECT().RecordWhatsAppPollVote(gomock.Any(), gomock.Any()).Return(db.RecordWhatsAppPollVoteRow{ID: 9}, nil).Times(2)
+		gomock.InOrder(
+			store.EXPECT().ClaimWhatsAppPollFollowup(gomock.Any(), int64(9)).
+				Return(db.ClaimWhatsAppPollFollowupRow{ClientPhone: "96170123456", Instance: "kashi-centro-ab12"}, nil),
+			store.EXPECT().ClaimWhatsAppPollFollowup(gomock.Any(), int64(9)).Return(db.ClaimWhatsAppPollFollowupRow{}, sql.ErrNoRows),
+		)
+		require.Equal(t, http.StatusOK, post(server, `{"ref":"abcdEFGH","selected":["😕 Not great"]}`).Code)
+		require.Equal(t, http.StatusOK, post(server, `{"ref":"abcdEFGH","selected":["😍 Loved it"]}`).Code)
+		require.Len(t, bodies, 1)
+		require.Contains(t, bodies[0], "/message/sendText/kashi-centro-ab12 ")
+		require.Contains(t, bodies[0], `"number":"96170123456"`)
+		require.Contains(t, bodies[0], "What went wrong?")
+	})
+
+	t.Run("no follow-up when it's off or the vote was taken back", func(t *testing.T) {
+		bodies = nil
+		ctrl := gomock.NewController(t)
+		store := mockdb.NewMockStore(ctrl)
+		server := newTestServer(t, store)
+		off := sender
+		off.WhatsappFollowup = false
+		gomock.InOrder(
+			store.EXPECT().GetWhatsAppSenderSettings(gomock.Any()).Return(off, nil),
+			store.EXPECT().GetWhatsAppSenderSettings(gomock.Any()).Return(sender, nil),
+		)
+		store.EXPECT().RecordWhatsAppPollVote(gomock.Any(), gomock.Any()).Return(db.RecordWhatsAppPollVoteRow{ID: 9}, nil).Times(2)
+		require.Equal(t, http.StatusOK, post(server, `{"ref":"abcdEFGH","selected":["😕 Not great"]}`).Code)
+		require.Equal(t, http.StatusOK, post(server, `{"ref":"abcdEFGH","selected":[]}`).Code)
+		require.Empty(t, bodies)
+	})
+
+	t.Run("a reply is saved, once", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		store := mockdb.NewMockStore(ctrl)
+		server := newTestServer(t, store)
+		store.EXPECT().GetWhatsAppSenderSettings(gomock.Any()).Return(sender, nil).Times(2)
+		want := db.AddWhatsAppPollReplyParams{
+			PollRef: "abcdEFGH", WaID: "3EB0ABC", Body: "No size 42 in the black jeans", Kind: "text",
+			ReceivedAt: time.Date(2026, 10, 17, 9, 30, 0, 0, time.UTC),
+		}
+		gomock.InOrder(
+			store.EXPECT().AddWhatsAppPollReply(gomock.Any(), want).Return(int64(1), nil),
+			store.EXPECT().AddWhatsAppPollReply(gomock.Any(), want).Return(int64(0), sql.ErrNoRows),
+		)
+		body := `{"ref":"abcdEFGH","reply":{"id":"3EB0ABC","text":" No size 42 in the black jeans ","kind":"text","at":"2026-10-17T09:30:00Z"}}`
+		rec := post(server, body)
+		require.JSONEq(t, `{"ok":true}`, rec.Body.String())
+		rec = post(server, body)
+		require.JSONEq(t, `{"ok":false}`, rec.Body.String())
+	})
 }

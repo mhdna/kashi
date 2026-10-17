@@ -145,6 +145,7 @@
                     <td>
                       <div>{{ r.client_name || '—' }}</div>
                       <div class="text-caption text-medium-emphasis">+{{ r.client_phone }}</div>
+                      <div v-if="r.replies" class="reply text-caption mt-1">{{ r.replies }}</div>
                     </td>
                     <td class="text-error text-no-wrap">{{ r.poll_answer || '★'.repeat(r.poll_rating?.Int16 ?? r.poll_rating) }}</td>
                     <td>
@@ -152,6 +153,48 @@
                       <div class="text-caption text-medium-emphasis">{{ r.branch_name }}</div>
                     </td>
                     <td class="text-caption text-disabled text-no-wrap">{{ formatWhen(r.poll_voted_at?.Time ?? r.poll_voted_at) }}</td>
+                  </tr>
+                </tbody>
+              </v-table>
+            </v-card>
+          </v-col>
+          <v-col cols="12">
+            <v-card class="chart-card" variant="flat">
+              <div class="chart-card__title">What clients wrote</div>
+              <div class="chart-card__subtitle">
+                Their replies after answering the poll: what went wrong, and what they looked for and didn't find.
+              </div>
+              <div v-if="ratings.replies.length === 0" class="text-body-2 text-medium-emphasis py-6 text-center">
+                No replies in this range.
+              </div>
+              <v-table v-else density="compact">
+                <tbody>
+                  <tr v-for="r in ratings.replies" :key="r.id">
+                    <td class="py-2" style="width: 100%">
+                      <div class="reply">{{ r.body || KIND_LABELS[r.kind] || 'A message' }}</div>
+                      <div v-if="r.body && KIND_LABELS[r.kind]" class="text-caption text-medium-emphasis">
+                        {{ KIND_LABELS[r.kind] }}
+                      </div>
+                    </td>
+                    <td class="text-no-wrap">
+                      <v-chip
+                        v-if="r.poll_answer"
+                        :color="answerColor(r.poll_rating?.Int16 ?? r.poll_rating)"
+                        size="small"
+                        variant="tonal"
+                      >
+                        {{ r.poll_answer }}
+                      </v-chip>
+                    </td>
+                    <td class="text-no-wrap">
+                      <div>{{ r.client_name || '—' }}</div>
+                      <div class="text-caption text-medium-emphasis">+{{ r.client_phone }}</div>
+                    </td>
+                    <td class="text-no-wrap">
+                      <div class="text-caption">{{ r.invoice_code }}</div>
+                      <div class="text-caption text-medium-emphasis">{{ r.branch_name }}</div>
+                    </td>
+                    <td class="text-caption text-disabled text-no-wrap">{{ formatWhen(r.received_at) }}</td>
                   </tr>
                 </tbody>
               </v-table>
@@ -327,6 +370,15 @@
   }
 
   const ratings = computed(() => stats.value?.ratings ?? null)
+  // A reply that isn't text (or a photo's, a video's caption under it).
+  const KIND_LABELS = {
+    image: '📷 Photo',
+    video: '🎥 Video',
+    audio: '🎤 Voice note: listen on the phone',
+    sticker: 'A sticker',
+    document: '📄 A file',
+    other: 'A contact or location',
+  }
   // The poll's answers as bars, best first; stars as a fallback.
   const ratingOptions = computed(() => ratings.value?.options?.length
     ? ratings.value.options
@@ -507,6 +559,10 @@
 </script>
 
 <style scoped>
+.reply {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
 .chart-card {
   padding: 12px 14px 4px;
   border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));

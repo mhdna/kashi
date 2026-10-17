@@ -68,6 +68,11 @@ func (server *Server) getReviews(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	replies, err := server.store.PollReplies(ctx, db.PollRepliesParams{FromAt: fromAt, ToAt: toAt, BranchID: req.BranchID})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
 	type pollDayRow struct {
 		Day     string  `json:"day"`
 		Answers int64   `json:"answers"`
@@ -212,6 +217,7 @@ func (server *Server) getReviews(ctx *gin.Context) {
 			"branches": pollBranches,
 			"days":     pollDayRows,
 			"low":      lowRatings,
+			"replies":  replies,
 		},
 		"funnel":       funnel,
 		"clicks":       clicks,

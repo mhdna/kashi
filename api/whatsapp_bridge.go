@@ -146,13 +146,13 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 		name = "there"
 	}
 	values := map[string]string{
-		"name":      name,
-		"branch":    branchName,
-		"invoice":   req.InvoiceCode,
-		"total":     fmt.Sprintf("$%.2f", float64(req.GrandTotalCents)/100),
-		"date":      time.Now().In(businessZone).Format("02/01/2006"),
-		"channel":   strings.TrimSpace(sender.WhatsappChannelUrl),
-		"review":    "",
+		"name":    name,
+		"branch":  branchName,
+		"invoice": req.InvoiceCode,
+		"total":   fmt.Sprintf("$%.2f", float64(req.GrandTotalCents)/100),
+		"date":    time.Now().In(businessZone).Format("02/01/2006"),
+		"channel": strings.TrimSpace(sender.WhatsappChannelUrl),
+		"review":  "",
 	}
 	// The review link only in link mode; in poll mode the poll asks instead.
 	if !pollMode && strings.Contains(message, "{review}") {
@@ -284,6 +284,10 @@ type whatsAppSenderBody struct {
 	Logo         bool                   `json:"whatsapp_message_logo"`
 	PollQuestion string                 `json:"whatsapp_poll_question"`
 	PollOptions  string                 `json:"whatsapp_poll_options"`
+	Followup     bool                   `json:"whatsapp_followup"`
+	FollowupGood string                 `json:"whatsapp_followup_good"`
+	FollowupOkay string                 `json:"whatsapp_followup_okay"`
+	FollowupBad  string                 `json:"whatsapp_followup_bad"`
 	Branches     []whatsAppBranchNumber `json:"branches"`
 }
 
@@ -323,14 +327,23 @@ func (server *Server) getWhatsAppSender(ctx *gin.Context) {
 			Logo:         sender.WhatsappMessageLogo,
 			PollQuestion: sender.WhatsappPollQuestion,
 			PollOptions:  sender.WhatsappPollOptions,
+			Followup:     sender.WhatsappFollowup,
+			FollowupGood: sender.WhatsappFollowupGood,
+			FollowupOkay: sender.WhatsappFollowupOkay,
+			FollowupBad:  sender.WhatsappFollowupBad,
 			Branches:     branches,
 		},
 		"default_message":       defaultWhatsAppPollMessage,
 		"default_link_message":  defaultWhatsAppLinkMessage,
 		"default_poll_question": defaultWhatsAppPollQuestion,
 		"default_poll_options":  strings.Join(defaultWhatsAppPollOptions, "\n"),
-		"numbers":               numbers,
-		"bridge_error":          bridgeErr,
+		"default_followups": envelope{
+			"good": defaultWhatsAppFollowupGood,
+			"okay": defaultWhatsAppFollowupOkay,
+			"bad":  defaultWhatsAppFollowupBad,
+		},
+		"numbers":      numbers,
+		"bridge_error": bridgeErr,
 	})
 }
 
@@ -431,6 +444,10 @@ func (server *Server) updateWhatsAppSender(ctx *gin.Context) {
 		WhatsappMessageLogo:       req.Logo,
 		WhatsappPollQuestion:      strings.TrimSpace(req.PollQuestion),
 		WhatsappPollOptions:       pollOptions,
+		WhatsappFollowup:          req.Followup,
+		WhatsappFollowupGood:      strings.TrimSpace(req.FollowupGood),
+		WhatsappFollowupOkay:      strings.TrimSpace(req.FollowupOkay),
+		WhatsappFollowupBad:       strings.TrimSpace(req.FollowupBad),
 	}, branches); err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return

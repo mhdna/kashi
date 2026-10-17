@@ -8,7 +8,61 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 )
+
+const addWhatsAppPollReply = `-- name: AddWhatsAppPollReply :one
+INSERT INTO whatsapp_poll_replies (whatsapp_message_id, wa_id, body, kind, received_at)
+SELECT m.id, $1, $2, $3, $4
+FROM whatsapp_messages m
+WHERE m.poll_ref = $5
+ON CONFLICT (wa_id) DO NOTHING
+RETURNING id
+`
+
+type AddWhatsAppPollReplyParams struct {
+	WaID       string    `json:"wa_id"`
+	Body       string    `json:"body"`
+	Kind       string    `json:"kind"`
+	ReceivedAt time.Time `json:"received_at"`
+	PollRef    string    `json:"poll_ref"`
+}
+
+// A client's message after the poll, reported by the bridge. No rows when the
+// poll is unknown or the bridge already reported this message.
+func (q *Queries) AddWhatsAppPollReply(ctx context.Context, arg AddWhatsAppPollReplyParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, addWhatsAppPollReply,
+		arg.WaID,
+		arg.Body,
+		arg.Kind,
+		arg.ReceivedAt,
+		arg.PollRef,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
+const claimWhatsAppPollFollowup = `-- name: ClaimWhatsAppPollFollowup :one
+UPDATE whatsapp_messages m SET poll_followup_at = now()
+FROM whatsapp_numbers n
+WHERE m.id = $1 AND m.poll_followup_at IS NULL AND n.id = m.whatsapp_number_id
+RETURNING m.client_phone, n.instance
+`
+
+type ClaimWhatsAppPollFollowupRow struct {
+	ClientPhone string `json:"client_phone"`
+	Instance    string `json:"instance"`
+}
+
+// Marks the poll's follow-up as sent and says where to send it; no rows when
+// it already went (a changed vote) or the number is gone.
+func (q *Queries) ClaimWhatsAppPollFollowup(ctx context.Context, id int64) (ClaimWhatsAppPollFollowupRow, error) {
+	row := q.db.QueryRowContext(ctx, claimWhatsAppPollFollowup, id)
+	var i ClaimWhatsAppPollFollowupRow
+	err := row.Scan(&i.ClientPhone, &i.Instance)
+	return i, err
+}
 
 const clearDefaultWhatsAppNumber = `-- name: ClearDefaultWhatsAppNumber :exec
 UPDATE whatsapp_numbers SET is_default = false WHERE is_default
@@ -76,7 +130,8 @@ const getWhatsAppSenderSettings = `-- name: GetWhatsAppSenderSettings :one
 
 SELECT whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message,
        whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url,
-       whatsapp_poll_question, whatsapp_poll_options, whatsapp_message_logo
+       whatsapp_poll_question, whatsapp_poll_options, whatsapp_message_logo,
+       whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad
 FROM app_settings WHERE id = 1
 `
 
@@ -91,6 +146,10 @@ type GetWhatsAppSenderSettingsRow struct {
 	WhatsappPollQuestion      string `json:"whatsapp_poll_question"`
 	WhatsappPollOptions       string `json:"whatsapp_poll_options"`
 	WhatsappMessageLogo       bool   `json:"whatsapp_message_logo"`
+	WhatsappFollowup          bool   `json:"whatsapp_followup"`
+	WhatsappFollowupGood      string `json:"whatsapp_followup_good"`
+	WhatsappFollowupOkay      string `json:"whatsapp_followup_okay"`
+	WhatsappFollowupBad       string `json:"whatsapp_followup_bad"`
 }
 
 // Sending post-sale messages from our own numbers through the WhatsApp
@@ -109,6 +168,10 @@ func (q *Queries) GetWhatsAppSenderSettings(ctx context.Context) (GetWhatsAppSen
 		&i.WhatsappPollQuestion,
 		&i.WhatsappPollOptions,
 		&i.WhatsappMessageLogo,
+		&i.WhatsappFollowup,
+		&i.WhatsappFollowupGood,
+		&i.WhatsappFollowupOkay,
+		&i.WhatsappFollowupBad,
 	)
 	return i, err
 }
@@ -257,6 +320,10 @@ UPDATE app_settings SET
     whatsapp_message_logo = $8,
     whatsapp_poll_question = $9,
     whatsapp_poll_options = $10,
+    whatsapp_followup = $11,
+    whatsapp_followup_good = $12,
+    whatsapp_followup_okay = $13,
+    whatsapp_followup_bad = $14,
     updated_at = now()
 WHERE id = 1
 `
@@ -272,6 +339,10 @@ type SetWhatsAppSenderSettingsParams struct {
 	WhatsappMessageLogo       bool   `json:"whatsapp_message_logo"`
 	WhatsappPollQuestion      string `json:"whatsapp_poll_question"`
 	WhatsappPollOptions       string `json:"whatsapp_poll_options"`
+	WhatsappFollowup          bool   `json:"whatsapp_followup"`
+	WhatsappFollowupGood      string `json:"whatsapp_followup_good"`
+	WhatsappFollowupOkay      string `json:"whatsapp_followup_okay"`
+	WhatsappFollowupBad       string `json:"whatsapp_followup_bad"`
 }
 
 func (q *Queries) SetWhatsAppSenderSettings(ctx context.Context, arg SetWhatsAppSenderSettingsParams) error {
@@ -286,6 +357,10 @@ func (q *Queries) SetWhatsAppSenderSettings(ctx context.Context, arg SetWhatsApp
 		arg.WhatsappMessageLogo,
 		arg.WhatsappPollQuestion,
 		arg.WhatsappPollOptions,
+		arg.WhatsappFollowup,
+		arg.WhatsappFollowupGood,
+		arg.WhatsappFollowupOkay,
+		arg.WhatsappFollowupBad,
 	)
 	return err
 }

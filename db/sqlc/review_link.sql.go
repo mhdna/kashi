@@ -273,7 +273,10 @@ func (q *Queries) ListGoogleReviews(ctx context.Context, arg ListGoogleReviewsPa
 
 const lowPollRatings = `-- name: LowPollRatings :many
 SELECT m.id, m.poll_voted_at, m.poll_rating, m.poll_answer, m.client_name, m.client_phone,
-       m.invoice_code, m.grand_total_cents, COALESCE(b.name, '')::text AS branch_name
+       m.invoice_code, m.grand_total_cents, COALESCE(b.name, '')::text AS branch_name,
+       -- What they wrote back after the poll, oldest first.
+       COALESCE((SELECT string_agg(NULLIF(r.body, ''), E'\n' ORDER BY r.received_at)
+                 FROM whatsapp_poll_replies r WHERE r.whatsapp_message_id = m.id), '')::text AS replies
 FROM whatsapp_messages m
 LEFT JOIN branches b ON b.id = m.branch_id
 WHERE m.poll_rating <= 2
@@ -299,6 +302,7 @@ type LowPollRatingsRow struct {
 	InvoiceCode     string        `json:"invoice_code"`
 	GrandTotalCents int64         `json:"grand_total_cents"`
 	BranchName      string        `json:"branch_name"`
+	Replies         string        `json:"replies"`
 }
 
 // Clients who answered 1 or 2 stars, newest first: the ones to call back.
@@ -321,6 +325,7 @@ func (q *Queries) LowPollRatings(ctx context.Context, arg LowPollRatingsParams) 
 			&i.InvoiceCode,
 			&i.GrandTotalCents,
 			&i.BranchName,
+			&i.Replies,
 		); err != nil {
 			return nil, err
 		}
@@ -519,6 +524,73 @@ func (q *Queries) PollRatingsByDay(ctx context.Context, arg PollRatingsByDayPara
 			&i.Stars3,
 			&i.Stars2,
 			&i.Stars1,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const pollReplies = `-- name: PollReplies :many
+SELECT r.id, r.body, r.kind, r.received_at, m.poll_rating, m.poll_answer,
+       m.client_name, m.client_phone, m.invoice_code, COALESCE(b.name, '')::text AS branch_name
+FROM whatsapp_poll_replies r
+JOIN whatsapp_messages m ON m.id = r.whatsapp_message_id
+LEFT JOIN branches b ON b.id = m.branch_id
+WHERE r.received_at >= $1 AND r.received_at < $2
+  AND ($3::bigint = 0 OR m.branch_id = $3)
+ORDER BY r.received_at DESC
+LIMIT 100
+`
+
+type PollRepliesParams struct {
+	FromAt   time.Time `json:"from_at"`
+	ToAt     time.Time `json:"to_at"`
+	BranchID int64     `json:"branch_id"`
+}
+
+type PollRepliesRow struct {
+	ID          int64         `json:"id"`
+	Body        string        `json:"body"`
+	Kind        string        `json:"kind"`
+	ReceivedAt  time.Time     `json:"received_at"`
+	PollRating  sql.NullInt16 `json:"poll_rating"`
+	PollAnswer  string        `json:"poll_answer"`
+	ClientName  string        `json:"client_name"`
+	ClientPhone string        `json:"client_phone"`
+	InvoiceCode string        `json:"invoice_code"`
+	BranchName  string        `json:"branch_name"`
+}
+
+// What clients wrote back after the rating poll, newest first, with their
+// answer: why it wasn't great, and what they looked for and didn't find.
+func (q *Queries) PollReplies(ctx context.Context, arg PollRepliesParams) ([]PollRepliesRow, error) {
+	rows, err := q.db.QueryContext(ctx, pollReplies, arg.FromAt, arg.ToAt, arg.BranchID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PollRepliesRow{}
+	for rows.Next() {
+		var i PollRepliesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Body,
+			&i.Kind,
+			&i.ReceivedAt,
+			&i.PollRating,
+			&i.PollAnswer,
+			&i.ClientName,
+			&i.ClientPhone,
+			&i.InvoiceCode,
+			&i.BranchName,
 		); err != nil {
 			return nil, err
 		}

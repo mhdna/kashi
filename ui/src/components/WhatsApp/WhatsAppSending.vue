@@ -300,6 +300,42 @@
           </v-card>
         </v-col>
 
+        <!-- After they answer the poll -->
+        <v-col v-if="pollMode" cols="12">
+          <v-card class="card" variant="flat">
+            <div class="card__title">After they answer</div>
+            <p class="text-caption text-medium-emphasis mb-2">
+              A client's first answer to the poll gets one message back, asking them to reply. Only one per
+              poll, and only to clients who answered, so it doesn't add unprompted messages. What they write
+              in the next 3 days shows on the Reviews page; you answer them from the phone as usual.
+            </p>
+            <v-switch
+              v-model="draft.whatsapp_followup"
+              color="primary"
+              density="compact"
+              :disabled="!canEdit"
+              hide-details
+              label="Send a message after they answer"
+            />
+            <v-row v-if="draft.whatsapp_followup" class="mt-1" density="compact">
+              <v-col v-for="f in FOLLOWUPS" :key="f.key" cols="12" md="4">
+                <v-textarea
+                  v-model="draft[`whatsapp_followup_${f.key}`]"
+                  auto-grow
+                  density="compact"
+                  :disabled="!canEdit"
+                  :hint="f.hint"
+                  :label="f.label"
+                  persistent-hint
+                  :placeholder="defaultFollowups[f.key]"
+                  rows="4"
+                  variant="outlined"
+                />
+              </v-col>
+            </v-row>
+          </v-card>
+        </v-col>
+
         <!-- Try it -->
         <v-col cols="12">
           <v-card class="card" variant="flat">
@@ -500,6 +536,13 @@
   const defaultLinkMessage = ref('')
   const defaultPollQuestion = ref('')
   const defaultPollOptions = ref('')
+  const defaultFollowups = ref({})
+  // The follow-up for each kind of answer, by what it counts as.
+  const FOLLOWUPS = [
+    { key: 'good', label: 'After a top answer', hint: '4 or 5 stars, like 😍 Loved it' },
+    { key: 'okay', label: 'After a middle answer', hint: '3 stars, like 🙂 It was okay' },
+    { key: 'bad', label: 'After a low answer', hint: '1 or 2 stars, like 😕 Not great: they go on the call-back list' },
+  ]
   const showKey = ref(false)
   const saving = ref(false)
 
@@ -521,6 +564,7 @@
     defaultLinkMessage.value = body.default_link_message || ''
     defaultPollQuestion.value = body.default_poll_question || ''
     defaultPollOptions.value = body.default_poll_options || ''
+    defaultFollowups.value = body.default_followups || {}
   }
   async function load () {
     try {
