@@ -1637,7 +1637,8 @@ type Querier interface {
 	WhatsAppMessagesByHour(ctx context.Context, arg WhatsAppMessagesByHourParams) ([]WhatsAppMessagesByHourRow, error)
 	// '' rule_name is "no rule matched" (the default template).
 	WhatsAppMessagesByRule(ctx context.Context, arg WhatsAppMessagesByRuleParams) ([]WhatsAppMessagesByRuleRow, error)
-	// The number a branch's messages go out from: its own, else the default.
+	// The number a branch's messages go out from: its own, else the default,
+	// else (no default, as when the first number was removed) the oldest one.
 	WhatsAppNumberForBranch(ctx context.Context, branchID int64) (WhatsappNumber, error)
 	// A till that reports the same sale twice doesn't message the client twice.
 	WhatsAppSentForInvoice(ctx context.Context, arg WhatsAppSentForInvoiceParams) (bool, error)

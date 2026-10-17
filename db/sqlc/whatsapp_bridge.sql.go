@@ -391,14 +391,16 @@ func (q *Queries) UpdateWhatsAppNumberLabel(ctx context.Context, arg UpdateWhats
 const whatsAppNumberForBranch = `-- name: WhatsAppNumberForBranch :one
 SELECT n.id, n.instance, n.label, n.phone, n.is_default, n.created_at
 FROM whatsapp_numbers n
-WHERE n.id = (SELECT b.whatsapp_number_id FROM branches b WHERE b.id = $1)
-   OR (n.is_default AND NOT EXISTS (
-         SELECT 1 FROM branches b WHERE b.id = $1 AND b.whatsapp_number_id IS NOT NULL))
-ORDER BY n.is_default
+LEFT JOIN branches b ON b.id = $1
+WHERE n.id = b.whatsapp_number_id
+   OR (b.whatsapp_number_id IS NULL
+       AND (n.is_default OR NOT EXISTS (SELECT 1 FROM whatsapp_numbers d WHERE d.is_default)))
+ORDER BY n.is_default DESC, n.id
 LIMIT 1
 `
 
-// The number a branch's messages go out from: its own, else the default.
+// The number a branch's messages go out from: its own, else the default,
+// else (no default, as when the first number was removed) the oldest one.
 func (q *Queries) WhatsAppNumberForBranch(ctx context.Context, branchID int64) (WhatsappNumber, error) {
 	row := q.db.QueryRowContext(ctx, whatsAppNumberForBranch, branchID)
 	var i WhatsappNumber
