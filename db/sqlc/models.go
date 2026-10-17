@@ -529,6 +529,7 @@ type AppSetting struct {
 	WhatsappFollowupGood       string          `json:"whatsapp_followup_good"`
 	WhatsappFollowupOkay       string          `json:"whatsapp_followup_okay"`
 	WhatsappFollowupBad        string          `json:"whatsapp_followup_bad"`
+	GoogleReviewsEnabled       bool            `json:"google_reviews_enabled"`
 }
 
 type AppUpdateEvent struct {

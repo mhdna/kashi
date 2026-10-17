@@ -59,16 +59,18 @@ func (q *Queries) CreateReviewLinkClick(ctx context.Context, arg CreateReviewLin
 
 const getReviewSettings = `-- name: GetReviewSettings :one
 
-SELECT review_place_id, review_base_url, review_title, review_description, google_places_api_key
+SELECT review_place_id, review_base_url, review_title, review_description, google_places_api_key,
+       google_reviews_enabled
 FROM app_settings WHERE id = 1
 `
 
 type GetReviewSettingsRow struct {
-	ReviewPlaceID      string `json:"review_place_id"`
-	ReviewBaseUrl      string `json:"review_base_url"`
-	ReviewTitle        string `json:"review_title"`
-	ReviewDescription  string `json:"review_description"`
-	GooglePlacesApiKey string `json:"google_places_api_key"`
+	ReviewPlaceID        string `json:"review_place_id"`
+	ReviewBaseUrl        string `json:"review_base_url"`
+	ReviewTitle          string `json:"review_title"`
+	ReviewDescription    string `json:"review_description"`
+	GooglePlacesApiKey   string `json:"google_places_api_key"`
+	GoogleReviewsEnabled bool   `json:"google_reviews_enabled"`
 }
 
 // Review links in the post-sale WhatsApp message and the Google data behind
@@ -82,6 +84,7 @@ func (q *Queries) GetReviewSettings(ctx context.Context) (GetReviewSettingsRow, 
 		&i.ReviewTitle,
 		&i.ReviewDescription,
 		&i.GooglePlacesApiKey,
+		&i.GoogleReviewsEnabled,
 	)
 	return i, err
 }
@@ -805,16 +808,18 @@ UPDATE app_settings SET
     review_title = $3,
     review_description = $4,
     google_places_api_key = $5,
+    google_reviews_enabled = $6,
     updated_at = now()
 WHERE id = 1
 `
 
 type SetReviewSettingsParams struct {
-	ReviewPlaceID      string `json:"review_place_id"`
-	ReviewBaseUrl      string `json:"review_base_url"`
-	ReviewTitle        string `json:"review_title"`
-	ReviewDescription  string `json:"review_description"`
-	GooglePlacesApiKey string `json:"google_places_api_key"`
+	ReviewPlaceID        string `json:"review_place_id"`
+	ReviewBaseUrl        string `json:"review_base_url"`
+	ReviewTitle          string `json:"review_title"`
+	ReviewDescription    string `json:"review_description"`
+	GooglePlacesApiKey   string `json:"google_places_api_key"`
+	GoogleReviewsEnabled bool   `json:"google_reviews_enabled"`
 }
 
 func (q *Queries) SetReviewSettings(ctx context.Context, arg SetReviewSettingsParams) error {
@@ -824,6 +829,7 @@ func (q *Queries) SetReviewSettings(ctx context.Context, arg SetReviewSettingsPa
 		arg.ReviewTitle,
 		arg.ReviewDescription,
 		arg.GooglePlacesApiKey,
+		arg.GoogleReviewsEnabled,
 	)
 	return err
 }

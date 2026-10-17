@@ -238,6 +238,7 @@ type reviewSettingsBody struct {
 	Title        string              `json:"review_title"`
 	Description  string              `json:"review_description"`
 	PlacesAPIKey string              `json:"google_places_api_key"`
+	Google       bool                `json:"google_reviews_enabled"`
 	Branches     []reviewBranchPlace `json:"branches"`
 }
 
@@ -256,6 +257,7 @@ func (server *Server) loadReviewSettings(ctx *gin.Context) (reviewSettingsBody, 
 		Title:        s.ReviewTitle,
 		Description:  s.ReviewDescription,
 		PlacesAPIKey: s.GooglePlacesApiKey,
+		Google:       s.GoogleReviewsEnabled,
 		Branches:     make([]reviewBranchPlace, len(rows)),
 	}
 	for i, r := range rows {
@@ -291,11 +293,12 @@ func (server *Server) updateReviewSettings(ctx *gin.Context) {
 		branches[i] = db.SetBranchPlaceIDParams{ID: b.BranchID, GooglePlaceID: cleanPlaceID(b.PlaceID)}
 	}
 	err := server.store.SaveReviewSettingsTx(ctx, db.SetReviewSettingsParams{
-		ReviewPlaceID:      cleanPlaceID(req.PlaceID),
-		ReviewBaseUrl:      base,
-		ReviewTitle:        strings.TrimSpace(req.Title),
-		ReviewDescription:  strings.TrimSpace(req.Description),
-		GooglePlacesApiKey: strings.TrimSpace(req.PlacesAPIKey),
+		ReviewPlaceID:        cleanPlaceID(req.PlaceID),
+		ReviewBaseUrl:        base,
+		ReviewTitle:          strings.TrimSpace(req.Title),
+		ReviewDescription:    strings.TrimSpace(req.Description),
+		GooglePlacesApiKey:   strings.TrimSpace(req.PlacesAPIKey),
+		GoogleReviewsEnabled: req.Google,
 	}, branches)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
