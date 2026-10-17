@@ -315,6 +315,52 @@ func (q *Queries) GetBranchInvoiceByClientRef(ctx context.Context, arg GetBranch
 	return i, err
 }
 
+const getBranchInvoiceByCode = `-- name: GetBranchInvoiceByCode :one
+SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id, cancelled_at, salesperson_id, lbp_total, lbp_rate FROM branch_invoices
+WHERE branch_id = $1 AND branch_invoice_code = $2
+ORDER BY id
+LIMIT 1
+`
+
+type GetBranchInvoiceByCodeParams struct {
+	BranchID int64  `json:"branch_id"`
+	Code     string `json:"code"`
+}
+
+// The sale a WhatsApp message was about (whatsapp_conversation.go).
+func (q *Queries) GetBranchInvoiceByCode(ctx context.Context, arg GetBranchInvoiceByCodeParams) (BranchInvoice, error) {
+	row := q.db.QueryRowContext(ctx, getBranchInvoiceByCode, arg.BranchID, arg.Code)
+	var i BranchInvoice
+	err := row.Scan(
+		&i.ID,
+		&i.BranchID,
+		&i.ClientRef,
+		&i.Kind,
+		&i.BranchInvoiceCode,
+		&i.BranchCashboxAccountID,
+		&i.BranchShiftID,
+		&i.BranchInventoryID,
+		&i.BranchClientID,
+		&i.RelatedClientRef,
+		&i.Discount,
+		&i.Subtotal,
+		&i.DiscountedTotal,
+		&i.GrandTotal,
+		&i.LoyaltyPointsDelta,
+		&i.OccurredAt,
+		&i.ReceivedAt,
+		&i.SalespersonName,
+		&i.Historical,
+		&i.ClientUid,
+		&i.RegisterID,
+		&i.CancelledAt,
+		&i.SalespersonID,
+		&i.LbpTotal,
+		&i.LbpRate,
+	)
+	return i, err
+}
+
 const inheritBranchInvoiceCancellation = `-- name: InheritBranchInvoiceCancellation :exec
 UPDATE branch_invoices s
 SET cancelled_at = r.cancelled_at

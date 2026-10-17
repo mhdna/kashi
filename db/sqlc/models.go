@@ -530,6 +530,8 @@ type AppSetting struct {
 	WhatsappFollowupOkay       string          `json:"whatsapp_followup_okay"`
 	WhatsappFollowupBad        string          `json:"whatsapp_followup_bad"`
 	GoogleReviewsEnabled       bool            `json:"google_reviews_enabled"`
+	WhatsappHiddenFields       string          `json:"whatsapp_hidden_fields"`
+	WhatsappChannelFirst       bool            `json:"whatsapp_channel_first"`
 }
 
 type AppUpdateEvent struct {
@@ -605,18 +607,20 @@ type BatchItem struct {
 }
 
 type Branch struct {
-	ID                       int64         `json:"id"`
-	Name                     string        `json:"name"`
-	Code                     string        `json:"code"`
-	IsActive                 bool          `json:"is_active"`
-	LastSeenAt               sql.NullTime  `json:"last_seen_at"`
-	CreatedAt                time.Time     `json:"created_at"`
-	InventoryID              sql.NullInt64 `json:"inventory_id"`
-	Timezone                 string        `json:"timezone"`
-	QuickAccessInitializedAt sql.NullTime  `json:"quick_access_initialized_at"`
-	HiddenFromReports        bool          `json:"hidden_from_reports"`
-	GooglePlaceID            string        `json:"google_place_id"`
-	WhatsappNumberID         sql.NullInt64 `json:"whatsapp_number_id"`
+	ID                       int64          `json:"id"`
+	Name                     string         `json:"name"`
+	Code                     string         `json:"code"`
+	IsActive                 bool           `json:"is_active"`
+	LastSeenAt               sql.NullTime   `json:"last_seen_at"`
+	CreatedAt                time.Time      `json:"created_at"`
+	InventoryID              sql.NullInt64  `json:"inventory_id"`
+	Timezone                 string         `json:"timezone"`
+	QuickAccessInitializedAt sql.NullTime   `json:"quick_access_initialized_at"`
+	HiddenFromReports        bool           `json:"hidden_from_reports"`
+	GooglePlaceID            string         `json:"google_place_id"`
+	WhatsappNumberID         sql.NullInt64  `json:"whatsapp_number_id"`
+	WhatsappEnabled          bool           `json:"whatsapp_enabled"`
+	WhatsappHiddenFields     sql.NullString `json:"whatsapp_hidden_fields"`
 }
 
 type BranchAttendanceChange struct {
@@ -807,11 +811,11 @@ type BranchRegister struct {
 	UpdateProgress           int32                 `json:"update_progress"`
 	UpdateReportedAt         sql.NullTime          `json:"update_reported_at"`
 	HiddenFromReports        bool                  `json:"hidden_from_reports"`
+	TargetForce              bool                  `json:"target_force"`
 }
 
 type BranchSetting struct {
 	BranchID                           int64           `json:"branch_id"`
-	TargetForce              bool                  `json:"target_force"`
 	BranchName                         string          `json:"branch_name"`
 	TaxRate                            float64         `json:"tax_rate"`
 	RoundingMode                       string          `json:"rounding_mode"`
@@ -1825,6 +1829,12 @@ type WhatsappMessage struct {
 	PollAnswer       string        `json:"poll_answer"`
 	PollVotedAt      sql.NullTime  `json:"poll_voted_at"`
 	PollFollowupAt   sql.NullTime  `json:"poll_followup_at"`
+	BridgeRef        string        `json:"bridge_ref"`
+	IsTest           bool          `json:"is_test"`
+	Body             string        `json:"body"`
+	PollQuestion     string        `json:"poll_question"`
+	PollOptions      string        `json:"poll_options"`
+	FollowupBody     string        `json:"followup_body"`
 }
 
 type WhatsappNumber struct {
@@ -1843,6 +1853,7 @@ type WhatsappPollReply struct {
 	Body              string    `json:"body"`
 	Kind              string    `json:"kind"`
 	ReceivedAt        time.Time `json:"received_at"`
+	MediaType         string    `json:"media_type"`
 }
 
 type WhatsappReply struct {

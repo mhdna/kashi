@@ -84,7 +84,7 @@ const countWhatsAppReplies = `-- name: CountWhatsAppReplies :one
 SELECT count(*)
 FROM whatsapp_replies r
 LEFT JOIN whatsapp_messages m ON m.id = r.message_id
-WHERE r.received_at >= $1 AND r.received_at < $2
+WHERE (m.id IS NULL OR (NOT m.is_test AND COALESCE(m.branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports))) AND r.received_at >= $1 AND r.received_at < $2
   AND ($3::bigint = 0 OR m.branch_id = $3)
   AND ($4::text = ''
        OR r.client_name ILIKE '%' || $4 || '%'
@@ -167,7 +167,7 @@ SELECT r.id, r.wamid, r.received_at, r.client_phone, r.client_name, r.kind, r.bo
 FROM whatsapp_replies r
 LEFT JOIN whatsapp_messages m ON m.id = r.message_id
 LEFT JOIN branches b ON b.id = m.branch_id
-WHERE r.received_at >= $1 AND r.received_at < $2
+WHERE (m.id IS NULL OR (NOT m.is_test AND COALESCE(m.branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports))) AND r.received_at >= $1 AND r.received_at < $2
   AND ($3::bigint = 0 OR m.branch_id = $3)
   AND ($4::text = ''
        OR r.client_name ILIKE '%' || $4 || '%'

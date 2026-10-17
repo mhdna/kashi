@@ -34,6 +34,7 @@
     <v-data-table-server
       v-model:items-per-page="pageSize"
       v-model:page="page"
+      class="wm-table"
       density="compact"
       :headers="headers"
       item-value="id"
@@ -42,6 +43,7 @@
       :items-per-page-options="[25, 50, 100, 250]"
       :loading="loading"
       no-data-text="No messages match."
+      @click:row="(_, { item }) => (openId = item.id)"
     >
       <template #item.created_at="{ item }">
         <span :title="new Date(item.created_at).toLocaleString()">{{ when(item.created_at) }}</span>
@@ -90,7 +92,7 @@
       </template>
       <template #item.rule="{ item }">
         <div>{{ item.rule_name || 'Default' }}</div>
-        <div v-if="item.template_name" class="text-caption text-medium-emphasis">{{ item.template_name }}</div>
+        <div v-if="meta && item.template_name" class="text-caption text-medium-emphasis">{{ item.template_name }}</div>
       </template>
       <template #item.reason="{ item }">
         <!-- A skip's reason is just its rule, already in the column before. -->
@@ -103,11 +105,13 @@
         {{ item.cost_micros ? formatCost(item.cost_micros) : '' }}
       </template>
     </v-data-table-server>
+    <WhatsAppConversation :message-id="openId" :refresh-key="refreshKey" @close="openId = 0" />
   </div>
 </template>
 
 <script setup>
   import { computed, onUnmounted, ref, watch } from 'vue'
+  import WhatsAppConversation from '@/components/WhatsApp/WhatsAppConversation.vue'
   import { useNotify } from '@/composables/useNotify'
   import { useWhatsApp } from '@/composables/useWhatsApp'
   import { DELIVERY, formatCost, formatDollars, formatPhone, nullTime, STATUS } from '@/utils/whatsapp'
@@ -119,7 +123,12 @@
     refreshKey: { type: Number, default: 0 },
     status: { type: String, default: '' },
     search: { type: String, default: '' },
+    // Sending through Meta's API: its template and cost columns show.
+    meta: { type: Boolean, default: false },
   })
+
+  // The row whose conversation is open (WhatsAppConversation); 0 when none.
+  const openId = ref(0)
   const emit = defineEmits(['update:status', 'update:search'])
 
   const notify = useNotify()
@@ -130,17 +139,17 @@
   const statusModel = computed({ get: () => props.status, set: v => emit('update:status', v ?? '') })
   const searchModel = computed({ get: () => props.search, set: v => emit('update:search', v ?? '') })
 
-  const headers = [
+  const headers = computed(() => [
     { title: 'When', key: 'created_at', sortable: false },
     { title: 'Client', key: 'client', sortable: false },
     { title: 'Branch', key: 'branch_name', sortable: false },
     { title: 'Invoice', key: 'invoice_code', sortable: false },
     { title: 'Total', key: 'grand_total_cents', sortable: false, align: 'end' },
     { title: 'Outcome', key: 'status', sortable: false },
-    { title: 'Rule / template', key: 'rule', sortable: false },
+    { title: props.meta ? 'Rule / template' : 'Rule', key: 'rule', sortable: false },
     { title: 'Why', key: 'reason', sortable: false },
-    { title: 'Cost', key: 'cost_micros', sortable: false, align: 'end' },
-  ]
+    ...(props.meta ? [{ title: 'Cost', key: 'cost_micros', sortable: false, align: 'end' }] : []),
+  ])
 
   const messages = ref([])
   const total = ref(0)
@@ -169,14 +178,28 @@
     }
   }
 
-  // A sent message shows how far it got (Meta's webhook); otherwise kashi's
-  // own outcome.
+  // A message stuck on one tick this long was probably blocked (or the
+  // phone is off).
+  const ONE_TICK_DAYS = 3
+
+  // A sent message shows how far it got (Meta's webhook, or the bridge's
+  // ticks); otherwise kashi's own outcome.
   function outcome (item) {
-    if (item.status === 'sent') return DELIVERY[item.delivery_status] ?? DELIVERY['']
-    return STATUS[item.status] ?? { label: item.status }
+    if (item.status !== 'sent') return STATUS[item.status] ?? { label: item.status }
+    if (item.bridge_ref) {
+      const age = Date.now() - new Date(item.created_at).getTime()
+      // The bridge reports "sent" within seconds of sending; after 10 minutes
+      // with no report it went out unreported (a bridge before 2.4.0).
+      if (!item.delivery_status && age < 10 * 60_000) return { label: 'Queued', color: 'grey', icon: 'mdi-clock-outline' }
+      if (item.delivery_status === 'sent' && age > ONE_TICK_DAYS * 864e5) {
+        return { label: 'One tick', color: 'warning', icon: 'mdi-account-cancel-outline' }
+      }
+    }
+    return DELIVERY[item.delivery_status] ?? DELIVERY['']
   }
   function deliveryTimes (item) {
     const parts = []
+    if (outcome(item).label === 'One tick') parts.push(`Not delivered after ${ONE_TICK_DAYS} days: they may have blocked the number, or their phone is off`)
     const delivered = nullTime(item.delivered_at)
     const read = nullTime(item.read_at)
     if (delivered) parts.push(`Delivered ${new Date(delivered).toLocaleString()}`)
@@ -208,3 +231,9 @@
   watch([page, pageSize, () => props.refreshKey], load, { immediate: true })
   onUnmounted(() => clearTimeout(searchTimer))
 </script>
+
+<style scoped>
+.wm-table :deep(tbody tr) {
+  cursor: pointer;
+}
+</style>

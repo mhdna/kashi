@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -54,8 +55,8 @@ const (
 // *bold* is WhatsApp's own formatting; a line whose placeholder has nothing
 // to fill ({channel} not set) is left out.
 const (
-	defaultWhatsAppPollMessage = "Hi {name},\n\nThank you for shopping with us today 🤍\n\nHere are the details of your purchase:\n🧾 Receipt number:\n*{invoice}*\n📅 Date: {date}\n💳 Total paid: *{total}*\n\n📢 Follow our WhatsApp channel for new arrivals and offers: {channel}"
-	defaultWhatsAppLinkMessage = "Hi {name},\n\nThank you for shopping with us today 🤍\n\nHere are the details of your purchase:\n🧾 Receipt number:\n*{invoice}*\n📅 Date: {date}\n💳 Total paid: *{total}*\n\nWe'd love to hear about your visit. It only takes a moment on Google:\n{review}\n\n📢 Follow our WhatsApp channel for new arrivals and offers: {channel}"
+	defaultWhatsAppPollMessage = "Hi {name},\n\nThank you for shopping at *Grand Bazaar* today 🤍\n\nHere are the details of your purchase:\n🧾 Receipt code:\n*{invoice}*\n📅 Date: {date}\n💳 Total paid: *{total}*\n\n📢 Follow our WhatsApp channel for new arrivals and offers: {channel}"
+	defaultWhatsAppLinkMessage = "Hi {name},\n\nThank you for shopping at *Grand Bazaar* today 🤍\n\nHere are the details of your purchase:\n🧾 Receipt code:\n*{invoice}*\n📅 Date: {date}\n💳 Total paid: *{total}*\n\nWe'd love to hear about your visit. It only takes a moment on Google:\n{review}\n\n📢 Follow our WhatsApp channel for new arrivals and offers: {channel}"
 )
 
 // whatsAppBridgeMessageFor is the message for the feedback mode: the saved
@@ -84,6 +85,64 @@ func whatsAppBridgeGap() int64 {
 	return 20000 + n.Int64()
 }
 
+// whatsAppMessageValues fills in a sale's placeholders, minus the details
+// switched off (hidden, see whatsAppBranchHiddenFields); review is left for
+// the caller. The conversation view rebuilds a sent message with it
+// (whatsapp_conversation.go).
+func whatsAppMessageValues(sender db.GetWhatsAppSenderSettingsRow, hidden []string, clientName, branchName, invoice string, totalCents int64, at time.Time) map[string]string {
+	name := whatsAppFirstName(clientName)
+	if name == "" {
+		name = "there"
+	}
+	values := map[string]string{
+		"name":    name,
+		"branch":  branchName,
+		"invoice": invoice,
+		"total":   fmt.Sprintf("$%.2f", float64(totalCents)/100),
+		"date":    at.In(businessZone).Format("02/01/2006"),
+		"channel": strings.TrimSpace(sender.WhatsappChannelUrl),
+		"review":  "",
+	}
+	for _, field := range hidden {
+		values[field] = ""
+	}
+	return values
+}
+
+// whatsAppReceiptFields are the receipt details a first message leaves out
+// when it invites to the channel instead (whatsapp_channel_first).
+var whatsAppReceiptFields = []string{"invoice", "date", "total"}
+
+// whatsAppFirstOrReturning adjusts what's left out for "channel first": a
+// client's first message gets the channel link and no receipt details, any
+// later one the receipt details and no channel link.
+func whatsAppFirstOrReturning(hidden []string, first bool) []string {
+	out := []string{}
+	for _, f := range hidden {
+		if f != "channel" && !slices.Contains(whatsAppReceiptFields, f) {
+			out = append(out, f)
+		}
+	}
+	if first {
+		return append(out, whatsAppReceiptFields...)
+	}
+	for _, f := range hidden {
+		if slices.Contains(whatsAppReceiptFields, f) {
+			out = append(out, f) // receipt details switched off stay off
+		}
+	}
+	return append(out, "channel")
+}
+
+// whatsAppBranchHiddenFields is what a branch leaves out of its message: its
+// own choice when it made one, else the default from Settings.
+func whatsAppBranchHiddenFields(sender db.GetWhatsAppSenderSettingsRow, branch sql.NullString) []string {
+	if branch.Valid {
+		return whatsAppHiddenFields(branch.String)
+	}
+	return whatsAppHiddenFields(sender.WhatsappHiddenFields)
+}
+
 // whatsAppBridgeText fills the message's {placeholders}: name, branch,
 // invoice, total, date, review (the review link) and channel (the
 // shop's WhatsApp channel). A line with
@@ -95,9 +154,20 @@ func whatsAppBridgeText(message string, values map[string]string) string {
 		pairs = append(pairs, "{"+k+"}", v)
 	}
 	fill := strings.NewReplacer(pairs...)
+	src := strings.Split(message, "\n")
+	dropped := make([]bool, len(src))
+	for i, line := range src {
+		dropped[i] = whatsAppEmptyPlaceholder(line, values)
+	}
+	// Bottom up, so a heading sees the labels under it already gone.
+	for i := len(src) - 1; i >= 0; i-- {
+		if !dropped[i] && whatsAppOrphanLabel(src, dropped, i) {
+			dropped[i] = true
+		}
+	}
 	var lines []string
-	for _, line := range strings.Split(message, "\n") {
-		if whatsAppEmptyPlaceholder(line, values) {
+	for i, line := range src {
+		if dropped[i] {
 			continue
 		}
 		line = fill.Replace(line)
@@ -111,6 +181,45 @@ func whatsAppBridgeText(message string, values map[string]string) string {
 
 var whatsAppPlaceholderPattern = regexp.MustCompile(`\{(\w+)\}`)
 
+// whatsAppMessageFields are the details that can be switched off in
+// Settings > WhatsApp; a switched-off one fills in as nothing, so its line
+// is left out like an empty one.
+var whatsAppMessageFields = []string{"invoice", "date", "total", "branch", "channel"}
+
+// whatsAppHiddenFields reads the saved list, keeping only known fields.
+func whatsAppHiddenFields(saved string) []string {
+	hidden := []string{}
+	for _, f := range strings.Split(saved, ",") {
+		if f = strings.TrimSpace(f); slices.Contains(whatsAppMessageFields, f) && !slices.Contains(hidden, f) {
+			hidden = append(hidden, f)
+		}
+	}
+	return hidden
+}
+
+// whatsAppOrphanLabel is a label line ("🧾 Receipt code:", no placeholder,
+// ends in a colon) with nothing left to label: its value was alone on the
+// next line ("*{invoice}*") and went, or it heads a paragraph whose lines
+// all went ("Here are the details of your purchase:").
+func whatsAppOrphanLabel(lines []string, dropped []bool, i int) bool {
+	label := strings.TrimSpace(lines[i])
+	if !strings.HasSuffix(label, ":") || whatsAppPlaceholderPattern.MatchString(label) {
+		return false
+	}
+	if i+1 >= len(lines) || strings.TrimSpace(lines[i+1]) == "" {
+		return false
+	}
+	if dropped[i+1] && strings.Trim(whatsAppPlaceholderPattern.ReplaceAllString(lines[i+1], ""), " *_~") == "" {
+		return true
+	}
+	for j := i + 1; j < len(lines) && strings.TrimSpace(lines[j]) != ""; j++ {
+		if !dropped[j] {
+			return false
+		}
+	}
+	return true
+}
+
 func whatsAppEmptyPlaceholder(line string, values map[string]string) bool {
 	for _, m := range whatsAppPlaceholderPattern.FindAllStringSubmatch(line, -1) {
 		if v, known := values[m[1]]; !known || v == "" {
@@ -122,7 +231,7 @@ func whatsAppEmptyPlaceholder(line string, values map[string]string) bool {
 	return false
 }
 
-func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWhatsAppMessageParams, sender db.GetWhatsAppSenderSettingsRow, branchName string, req branchWhatsAppThankYouRequest) {
+func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWhatsAppMessageParams, sender db.GetWhatsAppSenderSettingsRow, branchName string, hidden []string, req branchWhatsAppThankYouRequest) {
 	entry.Sender = whatsAppSenderBridge
 	if strings.TrimSpace(sender.WhatsappBridgeKey) == "" {
 		server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, "WhatsApp bridge not set up (Settings > WhatsApp)")
@@ -138,22 +247,19 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 		return
 	}
 	entry.WhatsappNumberID = sql.NullInt64{Int64: number.ID, Valid: true}
+	entry.BridgeRef = newReviewCode()
 
 	pollMode := sender.WhatsappFeedbackMode != whatsAppFeedbackLink
 	message := whatsAppBridgeMessageFor(sender)
-	name := strings.TrimSpace(req.ClientName)
-	if name == "" {
-		name = "there"
+	if sender.WhatsappChannelFirst {
+		_, err := server.store.LastWhatsAppSentAt(ctx, entry.ClientPhone)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		hidden = whatsAppFirstOrReturning(hidden, errors.Is(err, sql.ErrNoRows))
 	}
-	values := map[string]string{
-		"name":    name,
-		"branch":  branchName,
-		"invoice": req.InvoiceCode,
-		"total":   fmt.Sprintf("$%.2f", float64(req.GrandTotalCents)/100),
-		"date":    time.Now().In(businessZone).Format("02/01/2006"),
-		"channel": strings.TrimSpace(sender.WhatsappChannelUrl),
-		"review":  "",
-	}
+	values := whatsAppMessageValues(sender, hidden, req.ClientName, branchName, req.InvoiceCode, req.GrandTotalCents, time.Now())
 	// The review link only in link mode; in poll mode the poll asks instead.
 	if !pollMode && strings.Contains(message, "{review}") {
 		code, link, reason, err := server.newReviewLink(ctx, entry.BranchID.Int64)
@@ -168,20 +274,27 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 		entry.ReviewCode, values["review"] = code, link
 	}
 
+	entry.Body = whatsAppBridgeText(message, values) // kept for the chat view
+
 	var out struct {
 		Status string `json:"status"`
 	}
 	body := map[string]any{
 		"number": entry.ClientPhone,
-		"text":   whatsAppBridgeText(message, values),
+		"text":   entry.Body,
 		"source": "kashi",
 		// kashi already sends once per invoice; the bridge's own news
 		// de-duplication would drop a client's second sale of the day.
 		"force": true,
 		"gap":   whatsAppBridgeGap(),
-		// The link card is the review link's own (our banner); in poll mode
-		// no card: the banner, when on, is the message's only picture.
-		"linkPreview": !pollMode,
+		// The link card is the review link's own (our banner). In poll mode
+		// the banner, when on, is the message's only picture; without it the
+		// channel link gets its card, with WhatsApp's "View channel" button.
+		"linkPreview": !pollMode || (!sender.WhatsappMessageLogo && values["channel"] != ""),
+		// The bridge reports the message's ticks back with this ref (see
+		// receiveWhatsAppBridgeTick).
+		"ref":      entry.BridgeRef,
+		"callback": server.whatsAppPollCallback(),
 	}
 	if pollMode && sender.WhatsappMessageLogo {
 		// The banner on top, the message as its caption: no link to tap.
@@ -195,6 +308,10 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 	}
 	if pollMode {
 		entry.PollRef = server.sendWhatsAppPoll(ctx, sender, url.PathEscape(number.Instance), entry.ClientPhone)
+		if entry.PollRef != "" {
+			entry.PollQuestion = whatsAppPollQuestion(sender.WhatsappPollQuestion)
+			entry.PollOptions = strings.Join(whatsAppPollOptions(sender.WhatsappPollOptions), "\n")
+		}
 	}
 	server.logWhatsAppMessage(ctx, entry, whatsAppStatusSent, "")
 }
@@ -257,6 +374,8 @@ type whatsAppBridgeInstance struct {
 	State        string `json:"state"`
 	Number       string `json:"number"`
 	Queued       int    `json:"queued"`
+	// Nil from a bridge before 2.4.0.
+	Health *whatsAppBridgeHealth `json:"health"`
 }
 
 type whatsAppNumberRow struct {
@@ -265,29 +384,39 @@ type whatsAppNumberRow struct {
 	// or missing (the bridge doesn't have it).
 	State  string `json:"state"`
 	Queued int    `json:"queued"`
+	// The bridge's warning signs (whatsapp_health.go); nil when it can't say.
+	Health *whatsAppNumberHealth `json:"health"`
 }
 
 type whatsAppBranchNumber struct {
 	BranchID   int64  `json:"branch_id"`
 	BranchName string `json:"branch_name"`
 	NumberID   *int64 `json:"number_id"`
+	// Off: the branch sends no post-sale messages. Missing counts as on.
+	Enabled *bool `json:"enabled"`
+	// The branch's own details to leave out; null follows the default.
+	HiddenFields *[]string `json:"hidden_fields"`
 }
 
 type whatsAppSenderBody struct {
-	Sender       string                 `json:"whatsapp_sender"`
-	URL          string                 `json:"whatsapp_bridge_url"`
-	Key          string                 `json:"whatsapp_bridge_key"`
-	Message      string                 `json:"whatsapp_bridge_message"`
-	FeedbackMode string                 `json:"whatsapp_feedback_mode"`
-	LinkMessage  string                 `json:"whatsapp_bridge_link_message"`
-	Channel      string                 `json:"whatsapp_channel_url"`
-	Logo         bool                   `json:"whatsapp_message_logo"`
-	PollQuestion string                 `json:"whatsapp_poll_question"`
-	PollOptions  string                 `json:"whatsapp_poll_options"`
-	Followup     bool                   `json:"whatsapp_followup"`
-	FollowupGood string                 `json:"whatsapp_followup_good"`
-	FollowupOkay string                 `json:"whatsapp_followup_okay"`
-	FollowupBad  string                 `json:"whatsapp_followup_bad"`
+	Sender       string `json:"whatsapp_sender"`
+	URL          string `json:"whatsapp_bridge_url"`
+	Key          string `json:"whatsapp_bridge_key"`
+	Message      string `json:"whatsapp_bridge_message"`
+	FeedbackMode string `json:"whatsapp_feedback_mode"`
+	LinkMessage  string `json:"whatsapp_bridge_link_message"`
+	Channel      string `json:"whatsapp_channel_url"`
+	Logo         bool   `json:"whatsapp_message_logo"`
+	PollQuestion string `json:"whatsapp_poll_question"`
+	PollOptions  string `json:"whatsapp_poll_options"`
+	Followup     bool   `json:"whatsapp_followup"`
+	FollowupGood string `json:"whatsapp_followup_good"`
+	FollowupOkay string `json:"whatsapp_followup_okay"`
+	FollowupBad  string `json:"whatsapp_followup_bad"`
+	// Details left out of the message (see whatsAppMessageFields).
+	HiddenFields []string `json:"whatsapp_hidden_fields"`
+	// First message: the channel link; later ones: the receipt details.
+	ChannelFirst bool                   `json:"whatsapp_channel_first"`
 	Branches     []whatsAppBranchNumber `json:"branches"`
 }
 
@@ -309,7 +438,12 @@ func (server *Server) getWhatsAppSender(ctx *gin.Context) {
 	}
 	branches := make([]whatsAppBranchNumber, len(rows))
 	for i, r := range rows {
-		branches[i] = whatsAppBranchNumber{BranchID: r.ID, BranchName: r.Name}
+		enabled := r.WhatsappEnabled
+		branches[i] = whatsAppBranchNumber{BranchID: r.ID, BranchName: r.Name, Enabled: &enabled}
+		if r.WhatsappHiddenFields.Valid {
+			hidden := whatsAppHiddenFields(r.WhatsappHiddenFields.String)
+			branches[i].HiddenFields = &hidden
+		}
 		if r.WhatsappNumberID.Valid {
 			id := r.WhatsappNumberID.Int64
 			branches[i].NumberID = &id
@@ -328,6 +462,8 @@ func (server *Server) getWhatsAppSender(ctx *gin.Context) {
 			PollQuestion: sender.WhatsappPollQuestion,
 			PollOptions:  sender.WhatsappPollOptions,
 			Followup:     sender.WhatsappFollowup,
+			HiddenFields: whatsAppHiddenFields(sender.WhatsappHiddenFields),
+			ChannelFirst: sender.WhatsappChannelFirst,
 			FollowupGood: sender.WhatsappFollowupGood,
 			FollowupOkay: sender.WhatsappFollowupOkay,
 			FollowupBad:  sender.WhatsappFollowupBad,
@@ -373,6 +509,7 @@ func (server *Server) whatsAppNumbersWithState(ctx *gin.Context, sender db.GetWh
 		rows[i] = whatsAppNumberRow{WhatsappNumber: n, State: "missing"}
 		if in, ok := byName[n.Instance]; ok {
 			rows[i].State, rows[i].Queued = in.State, in.Queued
+			rows[i].Health = in.Health.forUI()
 			if in.Number != "" && in.Number != n.Phone {
 				rows[i].Phone = in.Number
 				if err := server.store.SetWhatsAppNumberPhone(ctx, db.SetWhatsAppNumberPhoneParams{ID: n.ID, Phone: in.Number}); err != nil {
@@ -428,7 +565,10 @@ func (server *Server) updateWhatsAppSender(ctx *gin.Context) {
 
 	branches := make([]db.SetBranchWhatsAppNumberParams, len(req.Branches))
 	for i, b := range req.Branches {
-		branches[i] = db.SetBranchWhatsAppNumberParams{ID: b.BranchID}
+		branches[i] = db.SetBranchWhatsAppNumberParams{ID: b.BranchID, WhatsappEnabled: b.Enabled == nil || *b.Enabled}
+		if b.HiddenFields != nil {
+			branches[i].WhatsappHiddenFields = sql.NullString{String: strings.Join(whatsAppHiddenFields(strings.Join(*b.HiddenFields, ",")), ","), Valid: true}
+		}
 		if b.NumberID != nil {
 			branches[i].WhatsappNumberID = sql.NullInt64{Int64: *b.NumberID, Valid: true}
 		}
@@ -448,6 +588,8 @@ func (server *Server) updateWhatsAppSender(ctx *gin.Context) {
 		WhatsappFollowupGood:      strings.TrimSpace(req.FollowupGood),
 		WhatsappFollowupOkay:      strings.TrimSpace(req.FollowupOkay),
 		WhatsappFollowupBad:       strings.TrimSpace(req.FollowupBad),
+		WhatsappHiddenFields:      strings.Join(whatsAppHiddenFields(strings.Join(req.HiddenFields, ",")), ","),
+		WhatsappChannelFirst:      req.ChannelFirst,
 	}, branches); err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
@@ -615,14 +757,14 @@ func (server *Server) sendWhatsAppTest(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	branchName := ""
+	branchName, branchHidden := "", sql.NullString{}
 	if req.BranchID != 0 {
 		branch, err := server.store.GetBranch(ctx, req.BranchID)
 		if err != nil {
 			server.writeError(ctx, http.StatusBadRequest, errors.New("unknown branch"))
 			return
 		}
-		branchName = branch.Name
+		branchName, branchHidden = branch.Name, branch.WhatsappHiddenFields
 	}
 	sale := branchWhatsAppThankYouRequest{
 		ClientName:      "Test",
@@ -637,6 +779,7 @@ func (server *Server) sendWhatsAppTest(ctx *gin.Context) {
 		ClientPhone:     to,
 		GrandTotalCents: sale.GrandTotalCents,
 		RuleName:        "Test",
+		IsTest:          true, // kept out of the stats
 	}
-	server.sendWhatsAppViaBridge(ctx, entry, sender, branchName, sale)
+	server.sendWhatsAppViaBridge(ctx, entry, sender, branchName, whatsAppBranchHiddenFields(sender, branchHidden), sale)
 }

@@ -113,7 +113,7 @@ func TestSendWhatsAppViaBridgeWithPoll(t *testing.T) {
 			WhatsappSender: "bridge", WhatsappBridgeUrl: bridge.URL, WhatsappBridgeKey: "secret-key",
 			WhatsappBridgeMessage: "Thanks {name}\n\nReview: {review}", WhatsappMessageLogo: true,
 		},
-		"Centro", branchWhatsAppThankYouRequest{ClientName: "Sara", InvoiceCode: "SA/CT/2026/00001"})
+		"Centro", nil, branchWhatsAppThankYouRequest{ClientName: "Sara", InvoiceCode: "SA/CT/2026/00001"})
 
 	require.Len(t, bodies, 2, "the message, then the poll")
 	require.Contains(t, bodies[0], `"text":"Thanks Sara"`, "no review line in poll mode")
@@ -165,9 +165,13 @@ func TestWhatsAppPollVoteFollowupAndReply(t *testing.T) {
 		store.EXPECT().GetWhatsAppSenderSettings(gomock.Any()).Return(sender, nil).Times(2)
 		store.EXPECT().RecordWhatsAppPollVote(gomock.Any(), gomock.Any()).Return(db.RecordWhatsAppPollVoteRow{ID: 9}, nil).Times(2)
 		gomock.InOrder(
-			store.EXPECT().ClaimWhatsAppPollFollowup(gomock.Any(), int64(9)).
-				Return(db.ClaimWhatsAppPollFollowupRow{ClientPhone: "96170123456", Instance: "kashi-centro-ab12"}, nil),
-			store.EXPECT().ClaimWhatsAppPollFollowup(gomock.Any(), int64(9)).Return(db.ClaimWhatsAppPollFollowupRow{}, sql.ErrNoRows),
+			store.EXPECT().ClaimWhatsAppPollFollowup(gomock.Any(), gomock.Any()).DoAndReturn(
+				func(_ any, arg db.ClaimWhatsAppPollFollowupParams) (db.ClaimWhatsAppPollFollowupRow, error) {
+					require.Equal(t, int64(9), arg.ID)
+					require.Contains(t, arg.FollowupBody, "What went wrong?") // kept as sent
+					return db.ClaimWhatsAppPollFollowupRow{ClientPhone: "96170123456", Instance: "kashi-centro-ab12"}, nil
+				}),
+			store.EXPECT().ClaimWhatsAppPollFollowup(gomock.Any(), gomock.Any()).Return(db.ClaimWhatsAppPollFollowupRow{}, sql.ErrNoRows),
 		)
 		require.Equal(t, http.StatusOK, post(server, `{"ref":"abcdEFGH","selected":["😕 Not great"]}`).Code)
 		require.Equal(t, http.StatusOK, post(server, `{"ref":"abcdEFGH","selected":["😍 Loved it"]}`).Code)
@@ -192,6 +196,28 @@ func TestWhatsAppPollVoteFollowupAndReply(t *testing.T) {
 		require.Equal(t, http.StatusOK, post(server, `{"ref":"abcdEFGH","selected":["😕 Not great"]}`).Code)
 		require.Equal(t, http.StatusOK, post(server, `{"ref":"abcdEFGH","selected":[]}`).Code)
 		require.Empty(t, bodies)
+	})
+
+	t.Run("a tick on the message itself is saved by its bridge ref", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		store := mockdb.NewMockStore(ctrl)
+		server := newTestServer(t, store)
+		store.EXPECT().GetWhatsAppSenderSettings(gomock.Any()).Return(sender, nil).Times(3)
+		store.EXPECT().ApplyWhatsAppBridgeTick(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ any, arg db.ApplyWhatsAppBridgeTickParams) (db.ApplyWhatsAppBridgeTickRow, error) {
+				require.Equal(t, "msgREF12", arg.BridgeRef)
+				require.Equal(t, "delivered", arg.DeliveryStatus)
+				return db.ApplyWhatsAppBridgeTickRow{ID: 9}, nil
+			})
+		rec := post(server, `{"ref":"msgREF12","receipt":{"status":"delivered","id":"3EB0","at":"2026-10-17T09:00:00Z"}}`)
+		require.Equal(t, http.StatusOK, rec.Code)
+		require.JSONEq(t, `{"ok":true}`, rec.Body.String())
+
+		store.EXPECT().ApplyWhatsAppBridgeTick(gomock.Any(), gomock.Any()).Return(db.ApplyWhatsAppBridgeTickRow{}, sql.ErrNoRows)
+		rec = post(server, `{"ref":"unknown1","receipt":{"status":"read"}}`)
+		require.JSONEq(t, `{"ok":false}`, rec.Body.String())
+
+		require.Equal(t, http.StatusBadRequest, post(server, `{"ref":"msgREF12","receipt":{"status":"played"}}`).Code)
 	})
 
 	t.Run("a reply is saved, once", func(t *testing.T) {
