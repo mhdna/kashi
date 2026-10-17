@@ -323,7 +323,8 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, onUnmounted, ref } from 'vue'
+  import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+  import { useRoute } from 'vue-router'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useBranchInvoices } from '@/composables/useBranchInvoices'
@@ -422,6 +423,27 @@
   const itemsTarget = ref(null)
   const itemsDetails = ref(null)
   const itemsLoading = ref(false)
+
+  // ?open=<id> (a sale clicked in the app bar's Branch sync list): its
+  // details, fetched by id since it may not be on the page that's loaded.
+  const route = useRoute()
+  watch(() => route.query.open, async open => {
+    const id = Number(open)
+    if (!id) return
+    itemsTarget.value = null
+    itemsDialog.value = true
+    itemsLoading.value = true
+    itemsDetails.value = null
+    try {
+      itemsDetails.value = await getBranchInvoiceDetails(id)
+      itemsTarget.value = itemsDetails.value?.invoice ?? null
+    } catch (error) {
+      notify.error(error.message)
+      itemsDialog.value = false
+    } finally {
+      itemsLoading.value = false
+    }
+  }, { immediate: true })
 
   async function openItems (invoice) {
     itemsTarget.value = invoice
