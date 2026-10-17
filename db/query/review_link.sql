@@ -2,7 +2,8 @@
 -- the Reviews page (api/review_link.go, api/google_places.go).
 
 -- name: GetReviewSettings :one
-SELECT review_place_id, review_base_url, review_title, review_description, google_places_api_key
+SELECT review_place_id, review_base_url, review_title, review_description, google_places_api_key,
+       google_reviews_enabled
 FROM app_settings WHERE id = 1;
 
 -- name: SetReviewSettings :exec
@@ -12,6 +13,7 @@ UPDATE app_settings SET
     review_title = sqlc.arg(review_title),
     review_description = sqlc.arg(review_description),
     google_places_api_key = sqlc.arg(google_places_api_key),
+    google_reviews_enabled = sqlc.arg(google_reviews_enabled),
     updated_at = now()
 WHERE id = 1;
 

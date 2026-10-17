@@ -225,6 +225,7 @@ func (server *Server) getReviews(ctx *gin.Context) {
 		"branches":     byBranch,
 		"places":       places,
 		"reviews":      reviews,
+		"google":       settings.GoogleReviewsEnabled,
 		"configured":   strings.TrimSpace(settings.ReviewPlaceID) != "" || hasBranchPlace(branches),
 		"has_api_key":  strings.TrimSpace(settings.GooglePlacesApiKey) != "",
 		"has_base_url": strings.TrimSpace(settings.ReviewBaseUrl) != "",

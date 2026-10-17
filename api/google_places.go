@@ -104,7 +104,8 @@ func reviewPlaceIDs(settings db.GetReviewSettingsRow, branches []db.ListBranchPl
 
 var googlePlacesMu sync.Mutex
 
-// refreshGooglePlaces reads every place once. No key means nothing to do.
+// refreshGooglePlaces reads every place once. Nothing to do while Google is
+// off (Settings > Reviews) or there's no key.
 func (server *Server) refreshGooglePlaces(ctx context.Context) error {
 	googlePlacesMu.Lock()
 	defer googlePlacesMu.Unlock()
@@ -114,7 +115,7 @@ func (server *Server) refreshGooglePlaces(ctx context.Context) error {
 		return err
 	}
 	apiKey := strings.TrimSpace(settings.GooglePlacesApiKey)
-	if apiKey == "" {
+	if apiKey == "" || !settings.GoogleReviewsEnabled {
 		return nil
 	}
 	branches, err := server.store.ListBranchPlaceIDs(ctx)

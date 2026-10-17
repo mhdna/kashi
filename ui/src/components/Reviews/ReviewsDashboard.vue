@@ -1,326 +1,300 @@
 <template>
-  <div class="pa-4 pt-3">
+  <div class="dashboard">
     <div v-if="loading && !stats" class="d-flex justify-center pa-12">
       <v-progress-circular color="primary" indeterminate />
     </div>
 
     <template v-else-if="stats">
-      <v-alert
-        v-if="!stats.configured || !stats.has_base_url"
-        class="mb-3"
-        density="compact"
-        type="info"
-        variant="tonal"
-      >
-        Set the Google place and the link address in
-        <router-link to="/settings?tab=reviews">Settings › Reviews</router-link>. Then add
-        <code>review</code> (the link) or <code>review_button</code> (a "visit website" button ending
-        in <code>{{ '{' }}{{ '{' }}1}}</code>) to the template's placeholders, and every message gets its own
-        link.
-      </v-alert>
+      <v-tabs v-if="stats.google" v-model="tab" class="mb-6" color="primary">
+        <v-tab value="poll">WhatsApp poll</v-tab>
+        <v-tab value="google">Google &amp; review links</v-tab>
+      </v-tabs>
 
-      <!-- KPIs -->
-      <v-row density="compact">
-        <v-col
-          v-for="kpi in kpis"
-          :key="kpi.label"
-          cols="6"
-          lg="2"
-          md="4"
+      <!-- The poll after each sale (api/whatsapp_poll.go) -->
+      <template v-if="tab === 'poll' || !stats.google">
+        <div v-if="!ratings || ratings.totals.polls === 0" class="empty">
+          No poll was sent in this range. Clients get it after a sale when Settings › WhatsApp sends a poll.
+        </div>
+        <template v-else>
+          <!-- The answers at a glance -->
+          <v-row>
+            <v-col cols="12" md="3" sm="6">
+              <v-card class="summary fill-height" variant="flat">
+                <div class="summary__value">{{ ratings.totals.answers ? ratings.totals.average.toFixed(1) : '—' }}</div>
+                <v-rating
+                  color="amber"
+                  density="compact"
+                  half-increments
+                  :model-value="ratings.totals.average"
+                  readonly
+                  size="small"
+                />
+                <div class="text-body-2 text-medium-emphasis mt-2">
+                  {{ ratings.totals.answers }} of {{ ratings.totals.polls }} clients answered
+                  ({{ percent(ratings.totals.answers, ratings.totals.polls) }})
+                </div>
+              </v-card>
+            </v-col>
+            <v-col
+              v-for="o in ratingOptions"
+              :key="`answer-${o.label}`"
+              cols="12"
+              :md="answerCols"
+              sm="6"
+            >
+              <v-card class="summary fill-height" :color="answerColor(o.stars)" variant="tonal">
+                <div class="text-subtitle-1">{{ o.label }}</div>
+                <div class="summary__value">{{ ratings.totals[`stars${o.stars}`] }}</div>
+                <div class="text-body-2 text-medium-emphasis">
+                  {{ percent(ratings.totals[`stars${o.stars}`], ratings.totals.answers) }} of answers
+                </div>
+              </v-card>
+            </v-col>
+          </v-row>
+
+          <!-- What they said, and who to call -->
+          <v-row>
+            <v-col cols="12" md="7">
+              <v-card class="chart-card" variant="flat">
+                <div class="chart-card__title">What clients wrote</div>
+                <div class="chart-card__subtitle">Their replies after the poll: what went wrong, what they looked for and didn't find.</div>
+                <div v-if="ratings.replies.length === 0" class="empty">No replies in this range.</div>
+                <div v-for="r in ratings.replies" :key="r.id" class="entry">
+                  <div class="d-flex align-start ga-3">
+                    <div class="reply text-body-1 flex-grow-1">{{ r.body || KIND_LABELS[r.kind] || 'A message' }}</div>
+                    <v-chip
+                      v-if="r.poll_answer"
+                      :color="answerColor(r.poll_rating?.Int16 ?? r.poll_rating)"
+                      size="small"
+                      variant="tonal"
+                    >
+                      {{ r.poll_answer }}
+                    </v-chip>
+                  </div>
+                  <div v-if="r.body && KIND_LABELS[r.kind]" class="text-caption text-medium-emphasis">{{ KIND_LABELS[r.kind] }}</div>
+                  <div class="text-caption text-medium-emphasis mt-1">
+                    {{ [r.client_name || '+' + r.client_phone, r.branch_name, r.invoice_code, formatWhen(r.received_at)].filter(Boolean).join(' · ') }}
+                  </div>
+                </div>
+              </v-card>
+            </v-col>
+            <v-col cols="12" md="5">
+              <v-card class="chart-card" variant="flat">
+                <div class="chart-card__title">To call back</div>
+                <div class="chart-card__subtitle">Clients who gave the lowest answer.</div>
+                <div v-if="ratings.low.length === 0" class="empty">Nobody gave the lowest answer in this range.</div>
+                <div v-for="r in ratings.low" :key="r.id" class="entry">
+                  <div class="d-flex align-center ga-3">
+                    <div class="flex-grow-1">
+                      <div class="text-body-1">{{ r.client_name || 'No name' }}</div>
+                      <a class="text-body-2" :href="`tel:+${r.client_phone}`">+{{ r.client_phone }}</a>
+                    </div>
+                    <div class="text-caption text-medium-emphasis text-end">
+                      <div>{{ r.branch_name }} · {{ r.invoice_code }}</div>
+                      <div>{{ formatWhen(r.poll_voted_at?.Time ?? r.poll_voted_at) }}</div>
+                    </div>
+                  </div>
+                  <div v-if="r.replies" class="reply text-body-2 mt-1">“{{ r.replies }}”</div>
+                </div>
+              </v-card>
+            </v-col>
+          </v-row>
+
+          <!-- Over time, and by branch -->
+          <v-row>
+            <v-col cols="12" :md="showBranchAnswers ? 8 : 12">
+              <v-card class="chart-card" variant="flat">
+                <div class="chart-card__title">Answers per day</div>
+                <div class="chart-card__subtitle">How clients answered, by the day they answered.</div>
+                <v-chart autoresize class="chart" :option="answersByDayOption" />
+              </v-card>
+            </v-col>
+            <v-col v-if="showBranchAnswers" cols="12" md="4">
+              <v-card class="chart-card" variant="flat">
+                <div class="chart-card__title">Answers by branch</div>
+                <div class="chart-card__subtitle">Each branch's share of each answer.</div>
+                <v-chart autoresize class="chart" :option="answersByBranchOption" />
+              </v-card>
+            </v-col>
+          </v-row>
+        </template>
+      </template>
+
+      <!-- Review links in the message, and Google itself -->
+      <template v-else>
+        <v-alert
+          v-if="!stats.configured || !stats.has_base_url"
+          class="mb-6"
+          density="compact"
+          type="info"
+          variant="tonal"
         >
-          <v-card class="pa-3 d-flex flex-column justify-center fill-height" :color="kpi.color" variant="tonal">
-            <div class="text-h6 font-weight-medium">{{ kpi.value }}</div>
-            <div class="text-caption text-medium-emphasis mt-1">{{ kpi.label }}</div>
-            <div v-if="kpi.hint" class="text-caption text-disabled">{{ kpi.hint }}</div>
-          </v-card>
-        </v-col>
-      </v-row>
+          Set the Google place and the link address in
+          <router-link to="/settings?tab=reviews">Settings › Reviews</router-link>. Then add
+          <code>review</code> (the link) or <code>review_button</code> (a "visit website" button ending
+          in <code>{{ '{' }}{{ '{' }}1}}</code>) to the template's placeholders, and every message gets its own
+          link.
+        </v-alert>
 
-      <v-row class="mt-1" density="compact">
-        <v-col cols="12" md="8">
-          <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Review links per day</div>
-            <div class="chart-card__subtitle">Messages sent with a link, and how often a link was opened.</div>
-            <v-chart autoresize class="chart" :option="dailyOption" />
-          </v-card>
-        </v-col>
-        <v-col cols="12" md="4">
-          <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">How far they got</div>
-            <div class="chart-card__subtitle">Of the messages sent with a review link.</div>
-            <v-chart autoresize class="chart" :option="funnelOption" />
-          </v-card>
-        </v-col>
-
-        <!-- The WhatsApp rating poll -->
-        <template v-if="ratings && ratings.totals.polls > 0">
-          <!-- One card per answer: how many clients gave it -->
+        <!-- KPIs -->
+        <v-row>
           <v-col
-            v-for="o in ratingOptions"
-            :key="`answer-${o.label}`"
-            cols="12"
-            :md="12 / Math.min(ratingOptions.length, 4) > 3 ? 12 / Math.min(ratingOptions.length, 4) : 3"
+            v-for="kpi in kpis"
+            :key="kpi.label"
+            cols="6"
+            lg="2"
+            md="4"
           >
-            <v-card class="pa-4 fill-height" :color="answerColor(o.stars)" variant="tonal">
-              <div class="d-flex align-center justify-space-between">
-                <div class="text-h6">{{ o.label }}</div>
-                <div class="text-h4 font-weight-medium">{{ ratings.totals[`stars${o.stars}`] }}</div>
-              </div>
-              <div class="text-caption text-medium-emphasis mt-1">
-                {{ percent(ratings.totals[`stars${o.stars}`], ratings.totals.answers) }} of the
-                {{ ratings.totals.answers }} answers
-              </div>
+            <v-card class="pa-3 d-flex flex-column justify-center fill-height" :color="kpi.color" variant="tonal">
+              <div class="text-h6 font-weight-medium">{{ kpi.value }}</div>
+              <div class="text-caption text-medium-emphasis mt-1">{{ kpi.label }}</div>
+              <div v-if="kpi.hint" class="text-caption text-disabled">{{ kpi.hint }}</div>
             </v-card>
           </v-col>
+        </v-row>
 
+        <v-row>
           <v-col cols="12" md="8">
             <v-card class="chart-card" variant="flat">
-              <div class="chart-card__title">Answers per day</div>
-              <div class="chart-card__subtitle">How clients answered the poll, by the day they answered.</div>
-              <v-chart autoresize class="chart" :option="answersByDayOption" />
+              <div class="chart-card__title">Review links per day</div>
+              <div class="chart-card__subtitle">Messages sent with a link, and how often a link was opened.</div>
+              <v-chart autoresize class="chart" :option="dailyOption" />
             </v-card>
           </v-col>
           <v-col cols="12" md="4">
             <v-card class="chart-card" variant="flat">
-              <div class="chart-card__title">Answers by branch</div>
-              <div class="chart-card__subtitle">Each branch's share of each answer.</div>
-              <v-chart autoresize class="chart" :option="answersByBranchOption" />
+              <div class="chart-card__title">How far they got</div>
+              <div class="chart-card__subtitle">Of the messages sent with a review link.</div>
+              <v-chart autoresize class="chart" :option="funnelOption" />
             </v-card>
           </v-col>
 
-          <v-col cols="12" md="6">
-            <v-card class="chart-card pb-3" variant="flat">
-              <div class="chart-card__title">Star ratings in WhatsApp</div>
-              <div class="chart-card__subtitle">
-                {{ ratings.totals.answers }} of {{ ratings.totals.polls }} clients answered the poll
-                ({{ percent(ratings.totals.answers, ratings.totals.polls) }}).
+          <!-- Google, per place -->
+          <v-col v-if="!stats.has_api_key" cols="12">
+            <v-alert density="compact" type="info" variant="tonal">
+              Add a Places API key in <router-link to="/settings?tab=reviews">Settings › Reviews</router-link>
+              to see each place's Google rating and its latest reviews here.
+            </v-alert>
+          </v-col>
+          <v-col
+            v-for="place in (stats.has_api_key ? stats.places : [])"
+            :key="place.place_id"
+            cols="12"
+            :md="stats.places.length > 1 ? 6 : 12"
+          >
+            <v-card class="chart-card" variant="flat">
+              <div class="d-flex align-start ga-2">
+                <div class="flex-grow-1">
+                  <div class="chart-card__title">{{ place.name || 'Google reviews' }}</div>
+                  <div class="chart-card__subtitle">
+                    {{ place.branches.length > 0 ? place.branches.join(', ') : 'Every branch without its own place' }}
+                  </div>
+                </div>
+                <v-btn
+                  :href="place.review_url"
+                  icon="mdi-open-in-new"
+                  rel="noopener"
+                  size="small"
+                  target="_blank"
+                  title="Open the review page"
+                  variant="text"
+                />
               </div>
-              <div class="d-flex align-center ga-4 mt-2">
-                <div class="text-center">
-                  <div class="text-h4 font-weight-medium">{{ ratings.totals.answers ? ratings.totals.average.toFixed(1) : '—' }}</div>
+              <div v-if="!place.checked" class="text-body-2 text-medium-emphasis py-6 text-center">
+                {{ stats.has_api_key ? 'Not read from Google yet.' : 'Add a Places API key in Settings › Reviews to see the rating and reviews.' }}
+              </div>
+              <template v-else>
+                <div class="d-flex align-center flex-wrap ga-4 mb-2">
+                  <div class="d-flex align-center ga-2">
+                    <span class="text-h5 font-weight-medium">{{ place.rating.toFixed(1) }}</span>
+                    <v-rating
+                      color="amber"
+                      density="compact"
+                      half-increments
+                      :model-value="place.rating"
+                      readonly
+                      size="small"
+                    />
+                  </div>
+                  <div class="text-body-2">
+                    <strong>{{ place.review_count.toLocaleString() }}</strong> reviews
+                  </div>
+                  <v-chip
+                    v-if="place.new_reviews != null"
+                    :color="place.new_reviews > 0 ? 'success' : undefined"
+                    size="small"
+                    variant="tonal"
+                  >
+                    {{ place.new_reviews >= 0 ? '+' : '' }}{{ place.new_reviews }} in this range
+                  </v-chip>
+                  <span class="text-caption text-disabled">checked {{ formatWhen(place.checked_at) }}</span>
+                </div>
+                <v-chart
+                  v-if="place.snapshots.length > 1"
+                  autoresize
+                  class="chart chart--small"
+                  :option="placeOption(place)"
+                />
+              </template>
+            </v-card>
+          </v-col>
+
+          <v-col v-if="!branchId && stats.branches.length > 0" cols="12" md="6">
+            <v-card class="chart-card" variant="flat">
+              <div class="chart-card__title mb-2">By branch</div>
+              <v-table density="compact">
+                <thead>
+                  <tr>
+                    <th>Branch</th>
+                    <th class="text-end">Sent</th>
+                    <th class="text-end">Read</th>
+                    <th class="text-end">Opened</th>
+                    <th class="text-end">Rate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="b in stats.branches" :key="b.branch_id">
+                    <td>{{ b.branch_name || 'No branch' }}</td>
+                    <td class="text-end">{{ b.sent }}</td>
+                    <td class="text-end">{{ b.read }}</td>
+                    <td class="text-end">{{ b.clicked }}</td>
+                    <td class="text-end">{{ percent(b.clicked, b.sent) }}</td>
+                  </tr>
+                </tbody>
+              </v-table>
+            </v-card>
+          </v-col>
+
+          <v-col v-if="stats.has_api_key" cols="12" :md="!branchId && stats.branches.length > 0 ? 6 : 12">
+            <v-card class="chart-card" variant="flat">
+              <div class="chart-card__title mb-2">Latest Google reviews</div>
+              <div v-if="stats.reviews.length === 0" class="text-body-2 text-medium-emphasis py-6 text-center">
+                {{ stats.has_api_key ? 'No reviews read yet.' : 'Add a Places API key in Settings › Reviews to see reviews here.' }}
+              </div>
+              <div v-for="r in stats.reviews" :key="r.review_name" class="review py-2">
+                <div class="d-flex align-center ga-2">
+                  <v-avatar v-if="r.author_photo" :image="r.author_photo" size="24" />
+                  <span class="text-body-2 font-weight-medium">{{ r.author || 'Google user' }}</span>
                   <v-rating
                     color="amber"
                     density="compact"
-                    half-increments
-                    :model-value="ratings.totals.average"
+                    :model-value="r.rating"
                     readonly
                     size="x-small"
                   />
+                  <v-spacer />
+                  <span class="text-caption text-disabled">{{ formatWhen(r.published_at) }}</span>
                 </div>
-                <div class="flex-grow-1">
-                  <div v-for="o in ratingOptions" :key="o.label" class="d-flex align-center ga-2">
-                    <span class="text-caption text-no-wrap" style="min-width: 96px">{{ o.label }}</span>
-                    <v-progress-linear
-                      :color="o.stars >= 4 ? 'success' : o.stars === 3 ? 'amber' : 'error'"
-                      height="8"
-                      :max="ratings.totals.answers || 1"
-                      :model-value="ratings.totals[`stars${o.stars}`]"
-                      rounded
-                    />
-                    <span class="text-caption text-end" style="width: 28px">{{ ratings.totals[`stars${o.stars}`] }}</span>
-                  </div>
-                </div>
+                <div v-if="r.body" class="text-body-2 mt-1 review__body">{{ r.body }}</div>
               </div>
-              <v-table v-if="!branchId && ratings.branches.length > 1" class="mt-3" density="compact">
-                <tbody>
-                  <tr v-for="b in ratings.branches" :key="b.branch_id">
-                    <td>{{ b.branch_name || 'No branch' }}</td>
-                    <td class="text-end">{{ b.average.toFixed(1) }} ★</td>
-                    <td class="text-end text-medium-emphasis">{{ b.answers }} answers</td>
-                  </tr>
-                </tbody>
-              </v-table>
+              <div v-if="stats.reviews.length > 0" class="text-caption text-disabled mt-1">
+                Google shares up to five reviews per place at a time; kashi keeps every one it has seen.
+              </div>
             </v-card>
           </v-col>
-          <v-col cols="12" md="6">
-            <v-card class="chart-card" variant="flat">
-              <div class="chart-card__title">To call back</div>
-              <div class="chart-card__subtitle">Clients who gave the lowest answers.</div>
-              <div v-if="ratings.low.length === 0" class="text-body-2 text-medium-emphasis py-6 text-center">
-                Nobody rated their visit 1 or 2 stars in this range.
-              </div>
-              <v-table v-else density="compact">
-                <tbody>
-                  <tr v-for="r in ratings.low" :key="r.id">
-                    <td>
-                      <div>{{ r.client_name || '—' }}</div>
-                      <div class="text-caption text-medium-emphasis">+{{ r.client_phone }}</div>
-                      <div v-if="r.replies" class="reply text-caption mt-1">{{ r.replies }}</div>
-                    </td>
-                    <td class="text-error text-no-wrap">{{ r.poll_answer || '★'.repeat(r.poll_rating?.Int16 ?? r.poll_rating) }}</td>
-                    <td>
-                      <div class="text-caption">{{ r.invoice_code }}</div>
-                      <div class="text-caption text-medium-emphasis">{{ r.branch_name }}</div>
-                    </td>
-                    <td class="text-caption text-disabled text-no-wrap">{{ formatWhen(r.poll_voted_at?.Time ?? r.poll_voted_at) }}</td>
-                  </tr>
-                </tbody>
-              </v-table>
-            </v-card>
-          </v-col>
-          <v-col cols="12">
-            <v-card class="chart-card" variant="flat">
-              <div class="chart-card__title">What clients wrote</div>
-              <div class="chart-card__subtitle">
-                Their replies after answering the poll: what went wrong, and what they looked for and didn't find.
-              </div>
-              <div v-if="ratings.replies.length === 0" class="text-body-2 text-medium-emphasis py-6 text-center">
-                No replies in this range.
-              </div>
-              <v-table v-else density="compact">
-                <tbody>
-                  <tr v-for="r in ratings.replies" :key="r.id">
-                    <td class="py-2" style="width: 100%">
-                      <div class="reply">{{ r.body || KIND_LABELS[r.kind] || 'A message' }}</div>
-                      <div v-if="r.body && KIND_LABELS[r.kind]" class="text-caption text-medium-emphasis">
-                        {{ KIND_LABELS[r.kind] }}
-                      </div>
-                    </td>
-                    <td class="text-no-wrap">
-                      <v-chip
-                        v-if="r.poll_answer"
-                        :color="answerColor(r.poll_rating?.Int16 ?? r.poll_rating)"
-                        size="small"
-                        variant="tonal"
-                      >
-                        {{ r.poll_answer }}
-                      </v-chip>
-                    </td>
-                    <td class="text-no-wrap">
-                      <div>{{ r.client_name || '—' }}</div>
-                      <div class="text-caption text-medium-emphasis">+{{ r.client_phone }}</div>
-                    </td>
-                    <td class="text-no-wrap">
-                      <div class="text-caption">{{ r.invoice_code }}</div>
-                      <div class="text-caption text-medium-emphasis">{{ r.branch_name }}</div>
-                    </td>
-                    <td class="text-caption text-disabled text-no-wrap">{{ formatWhen(r.received_at) }}</td>
-                  </tr>
-                </tbody>
-              </v-table>
-            </v-card>
-          </v-col>
-        </template>
 
-        <!-- Google, per place -->
-        <v-col
-          v-for="place in stats.places"
-          :key="place.place_id"
-          cols="12"
-          :md="stats.places.length > 1 ? 6 : 12"
-        >
-          <v-card class="chart-card" variant="flat">
-            <div class="d-flex align-start ga-2">
-              <div class="flex-grow-1">
-                <div class="chart-card__title">{{ place.name || 'Google reviews' }}</div>
-                <div class="chart-card__subtitle">
-                  {{ place.branches.length > 0 ? place.branches.join(', ') : 'Every branch without its own place' }}
-                </div>
-              </div>
-              <v-btn
-                :href="place.review_url"
-                icon="mdi-open-in-new"
-                rel="noopener"
-                size="small"
-                target="_blank"
-                title="Open the review page"
-                variant="text"
-              />
-            </div>
-            <div v-if="!place.checked" class="text-body-2 text-medium-emphasis py-6 text-center">
-              {{ stats.has_api_key ? 'Not read from Google yet.' : 'Add a Places API key in Settings › Reviews to see the rating and reviews.' }}
-            </div>
-            <template v-else>
-              <div class="d-flex align-center flex-wrap ga-4 mb-2">
-                <div class="d-flex align-center ga-2">
-                  <span class="text-h5 font-weight-medium">{{ place.rating.toFixed(1) }}</span>
-                  <v-rating
-                    color="amber"
-                    density="compact"
-                    half-increments
-                    :model-value="place.rating"
-                    readonly
-                    size="small"
-                  />
-                </div>
-                <div class="text-body-2">
-                  <strong>{{ place.review_count.toLocaleString() }}</strong> reviews
-                </div>
-                <v-chip
-                  v-if="place.new_reviews != null"
-                  :color="place.new_reviews > 0 ? 'success' : undefined"
-                  size="small"
-                  variant="tonal"
-                >
-                  {{ place.new_reviews >= 0 ? '+' : '' }}{{ place.new_reviews }} in this range
-                </v-chip>
-                <span class="text-caption text-disabled">checked {{ formatWhen(place.checked_at) }}</span>
-              </div>
-              <v-chart
-                v-if="place.snapshots.length > 1"
-                autoresize
-                class="chart chart--small"
-                :option="placeOption(place)"
-              />
-            </template>
-          </v-card>
-        </v-col>
-
-        <v-col v-if="!branchId && stats.branches.length > 0" cols="12" md="6">
-          <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title mb-2">By branch</div>
-            <v-table density="compact">
-              <thead>
-                <tr>
-                  <th>Branch</th>
-                  <th class="text-end">Sent</th>
-                  <th class="text-end">Read</th>
-                  <th class="text-end">Opened</th>
-                  <th class="text-end">Rate</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="b in stats.branches" :key="b.branch_id">
-                  <td>{{ b.branch_name || 'No branch' }}</td>
-                  <td class="text-end">{{ b.sent }}</td>
-                  <td class="text-end">{{ b.read }}</td>
-                  <td class="text-end">{{ b.clicked }}</td>
-                  <td class="text-end">{{ percent(b.clicked, b.sent) }}</td>
-                </tr>
-              </tbody>
-            </v-table>
-          </v-card>
-        </v-col>
-
-        <v-col cols="12" :md="!branchId && stats.branches.length > 0 ? 6 : 12">
-          <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title mb-2">Latest Google reviews</div>
-            <div v-if="stats.reviews.length === 0" class="text-body-2 text-medium-emphasis py-6 text-center">
-              {{ stats.has_api_key ? 'No reviews read yet.' : 'Add a Places API key in Settings › Reviews to see reviews here.' }}
-            </div>
-            <div v-for="r in stats.reviews" :key="r.review_name" class="review py-2">
-              <div class="d-flex align-center ga-2">
-                <v-avatar v-if="r.author_photo" :image="r.author_photo" size="24" />
-                <span class="text-body-2 font-weight-medium">{{ r.author || 'Google user' }}</span>
-                <v-rating
-                  color="amber"
-                  density="compact"
-                  :model-value="r.rating"
-                  readonly
-                  size="x-small"
-                />
-                <v-spacer />
-                <span class="text-caption text-disabled">{{ formatWhen(r.published_at) }}</span>
-              </div>
-              <div v-if="r.body" class="text-body-2 mt-1 review__body">{{ r.body }}</div>
-            </div>
-            <div v-if="stats.reviews.length > 0" class="text-caption text-disabled mt-1">
-              Google shares up to five reviews per place at a time; kashi keeps every one it has seen.
-            </div>
-          </v-card>
-        </v-col>
-
-      </v-row>
+        </v-row>
+      </template>
     </template>
   </div>
 </template>
@@ -370,6 +344,15 @@
   }
 
   const ratings = computed(() => stats.value?.ratings ?? null)
+  // The poll first, unless none was sent in the range (link mode).
+  const tab = ref(null)
+  watch(stats, value => {
+    if (value && !tab.value) tab.value = value.ratings?.totals?.polls > 0 ? 'poll' : 'google'
+  })
+  // The answer cards share a row with the average.
+  const answerCols = computed(() => Math.max(Math.floor(9 / ratingOptions.value.length), 2))
+  // With a single branch, the by-branch chart says nothing new.
+  const showBranchAnswers = computed(() => !props.branchId && (ratings.value?.branches?.length ?? 0) > 1)
   // A reply that isn't text (or a photo's, a video's caption under it).
   const KIND_LABELS = {
     image: '📷 Photo',
@@ -563,21 +546,51 @@
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
+.dashboard {
+  padding: 24px;
+}
+@media (max-width: 600px) {
+  .dashboard {
+    padding: 16px;
+  }
+}
+.empty {
+  padding: 32px 0;
+  text-align: center;
+  color: rgba(var(--v-theme-on-surface), 0.6);
+}
+.summary {
+  padding: 20px;
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 10px;
+}
+.summary__value {
+  font-size: 2.25rem;
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 4px 0;
+}
+.entry {
+  padding: 14px 0;
+}
+.entry + .entry {
+  border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
 .chart-card {
-  padding: 12px 14px 4px;
+  padding: 18px 20px 8px;
   border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
   border-radius: 10px;
   height: 100%;
 }
 .chart-card__title {
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 600;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 .chart-card__subtitle {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: rgba(var(--v-theme-on-surface), 0.6);
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 .chart {
   height: 280px;
