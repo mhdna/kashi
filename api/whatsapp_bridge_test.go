@@ -18,19 +18,20 @@ import (
 func TestWhatsAppBridgeText(t *testing.T) {
 	values := map[string]string{
 		"name": "Sara", "invoice": "SA/CT/2026/00482", "date": "16/10/2026", "total": "$156.25",
-		"review": "https://grandbz.com/review/abcdEFGH", "instagram": "",
+		"review": "https://grandbz.com/review/abcdEFGH", "channel": "",
 	}
-	// No Instagram link: its line, and the blank line it leaves, go.
+	// No channel link: its line, and the blank line it leaves, go.
 	got := whatsAppBridgeText(defaultWhatsAppLinkMessage, values)
-	require.Contains(t, got, "🧾 Receipt number:\n*SA/CT/2026/00482*\n📅 Date: 16/10/2026\n💳 Total paid: *$156.25*")
+	require.Contains(t, got, "🧾 Receipt number:\n*SA/CT/2026/00482*\n📅 Date: 16/10/2026\n💳 Total paid: *$156.25*\n\nWe'd love")
 	require.True(t, strings.HasSuffix(got, "on Google:\nhttps://grandbz.com/review/abcdEFGH"), got)
-	require.NotContains(t, got, "Instagram")
+	require.NotContains(t, got, "channel")
+	require.NotContains(t, got, "keep this message")
 
-	// Poll mode: no review link, the Instagram line stays and ends it.
-	values["review"], values["instagram"] = "", "https://instagram.com/grandbazaar"
+	// Poll mode: no review link, the channel line stays and ends it.
+	values["review"], values["channel"] = "", "https://whatsapp.com/channel/0029VaAbCd"
 	got = whatsAppBridgeText(defaultWhatsAppPollMessage, values)
 	require.NotContains(t, got, "Google")
-	require.True(t, strings.HasSuffix(got, "📸 See our new arrivals on Instagram: https://instagram.com/grandbazaar"))
+	require.True(t, strings.HasSuffix(got, "📢 Follow our WhatsApp channel for new arrivals and offers: https://whatsapp.com/channel/0029VaAbCd"))
 	require.NotContains(t, got, "{")
 
 	// A placeholder kashi doesn't know stays as typed.

@@ -52,10 +52,10 @@ const (
 // The messages used until the WhatsApp page's Sending tab sets them, one per
 // feedback mode. In poll mode the poll's question follows the message.
 // *bold* is WhatsApp's own formatting; a line whose placeholder has nothing
-// to fill ({instagram} not set) is left out.
+// to fill ({channel} not set) is left out.
 const (
-	defaultWhatsAppPollMessage = "Hi {name},\n\nThank you for shopping with us today 🤍\n\nHere are the details of your purchase:\n🧾 Receipt number:\n*{invoice}*\n📅 Date: {date}\n💳 Total paid: *{total}*\n\nPlease keep this message: you'll need the receipt number for any exchange or return.\n\n📸 See our new arrivals on Instagram: {instagram}"
-	defaultWhatsAppLinkMessage = "Hi {name},\n\nThank you for shopping with us today 🤍\n\nHere are the details of your purchase:\n🧾 Receipt number:\n*{invoice}*\n📅 Date: {date}\n💳 Total paid: *{total}*\n\nPlease keep this message: you'll need the receipt number for any exchange or return.\n\nWe'd love to hear about your visit. It only takes a moment on Google:\n{review}\n\n📸 See our new arrivals on Instagram: {instagram}"
+	defaultWhatsAppPollMessage = "Hi {name},\n\nThank you for shopping with us today 🤍\n\nHere are the details of your purchase:\n🧾 Receipt number:\n*{invoice}*\n📅 Date: {date}\n💳 Total paid: *{total}*\n\n📢 Follow our WhatsApp channel for new arrivals and offers: {channel}"
+	defaultWhatsAppLinkMessage = "Hi {name},\n\nThank you for shopping with us today 🤍\n\nHere are the details of your purchase:\n🧾 Receipt number:\n*{invoice}*\n📅 Date: {date}\n💳 Total paid: *{total}*\n\nWe'd love to hear about your visit. It only takes a moment on Google:\n{review}\n\n📢 Follow our WhatsApp channel for new arrivals and offers: {channel}"
 )
 
 // whatsAppBridgeMessageFor is the message for the feedback mode: the saved
@@ -85,7 +85,8 @@ func whatsAppBridgeGap() int64 {
 }
 
 // whatsAppBridgeText fills the message's {placeholders}: name, branch,
-// invoice, total, date, review (the review link) and instagram. A line with
+// invoice, total, date, review (the review link) and channel (the
+// shop's WhatsApp channel). A line with
 // a placeholder that has no value is dropped, and so are the blank lines
 // that would leave behind.
 func whatsAppBridgeText(message string, values map[string]string) string {
@@ -113,7 +114,7 @@ var whatsAppPlaceholderPattern = regexp.MustCompile(`\{(\w+)\}`)
 func whatsAppEmptyPlaceholder(line string, values map[string]string) bool {
 	for _, m := range whatsAppPlaceholderPattern.FindAllStringSubmatch(line, -1) {
 		if v, known := values[m[1]]; !known || v == "" {
-			if m[1] == "review" || m[1] == "instagram" || known {
+			if m[1] == "review" || m[1] == "channel" || known {
 				return true
 			}
 		}
@@ -150,7 +151,7 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 		"invoice":   req.InvoiceCode,
 		"total":     fmt.Sprintf("$%.2f", float64(req.GrandTotalCents)/100),
 		"date":      time.Now().In(businessZone).Format("02/01/2006"),
-		"instagram": strings.TrimSpace(sender.WhatsappInstagramUrl),
+		"channel":   strings.TrimSpace(sender.WhatsappChannelUrl),
 		"review":    "",
 	}
 	// The review link only in link mode; in poll mode the poll asks instead.
@@ -179,7 +180,7 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 		"force": true,
 		"gap":   whatsAppBridgeGap(),
 		// The link card is the review link's own (our banner); in poll mode
-		// the only link may be Instagram's, whose card is its login page.
+		// no card: the banner, when on, is the message's only picture.
 		"linkPreview": !pollMode,
 	}
 	if pollMode && sender.WhatsappMessageLogo {
@@ -279,7 +280,7 @@ type whatsAppSenderBody struct {
 	Message      string                 `json:"whatsapp_bridge_message"`
 	FeedbackMode string                 `json:"whatsapp_feedback_mode"`
 	LinkMessage  string                 `json:"whatsapp_bridge_link_message"`
-	Instagram    string                 `json:"whatsapp_instagram_url"`
+	Channel      string                 `json:"whatsapp_channel_url"`
 	Logo         bool                   `json:"whatsapp_message_logo"`
 	PollQuestion string                 `json:"whatsapp_poll_question"`
 	PollOptions  string                 `json:"whatsapp_poll_options"`
@@ -318,7 +319,7 @@ func (server *Server) getWhatsAppSender(ctx *gin.Context) {
 			Message:      sender.WhatsappBridgeMessage,
 			FeedbackMode: sender.WhatsappFeedbackMode,
 			LinkMessage:  sender.WhatsappBridgeLinkMessage,
-			Instagram:    sender.WhatsappInstagramUrl,
+			Channel:      sender.WhatsappChannelUrl,
 			Logo:         sender.WhatsappMessageLogo,
 			PollQuestion: sender.WhatsappPollQuestion,
 			PollOptions:  sender.WhatsappPollOptions,
@@ -389,8 +390,8 @@ func (server *Server) updateWhatsAppSender(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusBadRequest, errors.New("whatsapp_feedback_mode must be poll or link"))
 		return
 	}
-	if ig := strings.TrimSpace(req.Instagram); ig != "" && !strings.HasPrefix(ig, "https://") {
-		server.writeError(ctx, http.StatusBadRequest, errors.New("the Instagram link must start with https://"))
+	if ch := strings.TrimSpace(req.Channel); ch != "" && !strings.HasPrefix(ch, "https://") {
+		server.writeError(ctx, http.StatusBadRequest, errors.New("the channel link must start with https://"))
 		return
 	}
 	if u := strings.TrimSpace(req.URL); u != "" {
@@ -426,7 +427,7 @@ func (server *Server) updateWhatsAppSender(ctx *gin.Context) {
 		WhatsappBridgeMessage:     strings.TrimSpace(req.Message),
 		WhatsappFeedbackMode:      req.FeedbackMode,
 		WhatsappBridgeLinkMessage: strings.TrimSpace(req.LinkMessage),
-		WhatsappInstagramUrl:      strings.TrimSpace(req.Instagram),
+		WhatsappChannelUrl:        strings.TrimSpace(req.Channel),
 		WhatsappMessageLogo:       req.Logo,
 		WhatsappPollQuestion:      strings.TrimSpace(req.PollQuestion),
 		WhatsappPollOptions:       pollOptions,

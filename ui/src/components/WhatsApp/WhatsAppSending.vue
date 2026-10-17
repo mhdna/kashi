@@ -194,13 +194,13 @@
             <v-row class="mt-2" density="compact">
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="draft.whatsapp_instagram_url"
+                  v-model="draft.whatsapp_channel_url"
                   density="compact"
                   :disabled="!canEdit"
-                  hint="For {instagram} in the message; left empty, that line is left out"
-                  label="Instagram page"
+                  hint="For {channel} in the message; left empty, that line is left out"
+                  label="WhatsApp channel link"
                   persistent-hint
-                  placeholder="https://instagram.com/yourshop"
+                  placeholder="https://whatsapp.com/channel/…"
                   variant="outlined"
                 />
               </v-col>
@@ -482,7 +482,7 @@
   const { canEdit } = usePageAccess()
   const { getSender, saveSender, sendTest, addNumber, numberQR, updateNumber, deleteNumber } = useWhatsApp()
 
-  const PLACEHOLDERS = ['name', 'invoice', 'total', 'date', 'branch', 'review', 'instagram']
+  const PLACEHOLDERS = ['name', 'invoice', 'total', 'date', 'branch', 'review', 'channel']
   const placeholder = p => '{' + p + '}'
   const STATE = {
     open: { label: 'Linked', color: 'success' },
@@ -567,7 +567,7 @@
     const values = {
       ...SAMPLE,
       review: pollMode.value ? '' : SAMPLE.review,
-      instagram: draft.value?.whatsapp_instagram_url?.trim() || '',
+      channel: draft.value?.whatsapp_channel_url?.trim() || '',
     }
     const out = []
     for (const line of message.split('\n')) {
