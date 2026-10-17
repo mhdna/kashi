@@ -614,6 +614,8 @@
     ],
     printing: [
       { key: 'shift_report_signatures', label: 'Signature lines on end-of-shift receipt', type: 'bool' },
+      { key: 'shift_report_uppercase_header', label: 'Store and branch name in capitals on end-of-shift receipt', type: 'bool' },
+      { key: 'auto_cover_negative_lbp', label: 'At close shift, cover a negative Cash LL balance from Cash $$', type: 'bool' },
     ],
   }
   const OPTIONAL_KEYS = Object.values(OPTIONAL_FIELDS).flat().map(f => f.key)

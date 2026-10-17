@@ -769,6 +769,20 @@
                           hide-details
                           label="Cashier and manager signature lines on end-of-shift receipt"
                         />
+                        <v-switch
+                          v-model="settingsForm.shift_report_uppercase_header"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Store and branch name in capitals on end-of-shift receipt"
+                        />
+                        <v-switch
+                          v-model="settingsForm.auto_cover_negative_lbp"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="At close shift, cover a negative Cash LL balance from Cash $$"
+                        />
                       </div>
                     </section>
 
@@ -1403,6 +1417,8 @@
     'receipt_enabled',
     'receipt_cutoff',
     'shift_report_signatures',
+    'shift_report_uppercase_header',
+    'auto_cover_negative_lbp',
     'attendance_enabled',
     'attendance_cashier_history',
     'attendance_manager_approval_enabled',
@@ -1810,6 +1826,8 @@
     receipt_enabled: 'Print receipt',
     receipt_cutoff: 'Cut paper',
     shift_report_signatures: 'Shift receipt signatures',
+    shift_report_uppercase_header: 'Shift receipt capitals',
+    auto_cover_negative_lbp: 'Cover negative LBP at close',
     printer_size: 'Printer size',
     branch_phone: 'Branch phone',
   }

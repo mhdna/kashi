@@ -68,6 +68,8 @@ type defaultBranchSettings struct {
 	SoundsEnabled                    *bool  `json:"sounds_enabled,omitempty"`
 	AttendanceManagerApprovalEnabled *bool  `json:"attendance_manager_approval_enabled,omitempty"`
 	ShiftReportSignatures            *bool  `json:"shift_report_signatures,omitempty"`
+	ShiftReportUppercaseHeader       *bool  `json:"shift_report_uppercase_header,omitempty"`
+	AutoCoverNegativeLBP             *bool  `json:"auto_cover_negative_lbp,omitempty"`
 	SalespersonPerInvoiceRequired    *bool  `json:"salesperson_per_invoice_required,omitempty"`
 	NonAdminMonthNavEnabled          *bool  `json:"non_admin_month_nav_enabled,omitempty"`
 	OpeningFloatEnabled              *bool  `json:"opening_float_enabled,omitempty"`
