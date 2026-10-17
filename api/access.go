@@ -56,6 +56,7 @@ var accessSections = []accessSection{
 		{"financials", "Financials"},
 		{"targets", "Targets"},
 		{"footfall", "Footfall"},
+		{"busy-hours", "Busy Hours"},
 		{"product-revenues", "Product Revenues"},
 		{"conversion", "Conversion"},
 		{"sales-analytics", "Sales Analytics"},
@@ -261,6 +262,7 @@ var routeRules = []routeRule{
 	// Analytics
 	rule("/dashboard", "", "analytics"),
 	rule("/sales_dashboard", "", "analytics"),
+	rule("/busy_hours", "", "analytics"),
 	rule("/sales_analysis", "", "analytics"),
 	rule("/salesperson_performance", "", "analytics"),
 	rule("/financials", "", "analytics"),

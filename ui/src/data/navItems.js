@@ -12,6 +12,7 @@ export const navItems = [
     children: [
       { title: 'Dashboard', icon: 'mdi-view-dashboard', to: '/dashboard' },
       { title: 'Targets', icon: 'mdi-target', to: '/targets' },
+      { title: 'Busy Hours', icon: 'mdi-clock-time-four-outline', to: '/busy-hours' },
       { title: 'Footfall', icon: 'mdi-walk', to: '/footfall' },
       { title: 'Product Revenues', icon: 'mdi-package-variant', to: '/product-revenues' },
       { title: 'Conversion', icon: 'mdi-percent-outline', to: '/conversion' },

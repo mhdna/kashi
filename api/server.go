@@ -462,6 +462,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/branch_attendance_changes", server.listBranchAttendanceChanges)
 	authRoutes.GET("/branch_attendance_changes/pending", server.listPendingBranchAttendanceRequests)
 	authRoutes.GET("/branch_attendance_events", server.listBranchAttendanceEvents)
+	authRoutes.GET("/busy_hours", server.getBusyHours)
 	authRoutes.GET("/branch_attendance_events/range", server.listBranchAttendanceEventsInRange)
 	authRoutes.POST("/branch_attendance_events/import", server.importBranchAttendanceEventsCSV)
 	authRoutes.PUT("/branch_attendance_events/:id", server.updateBranchAttendanceEvent)

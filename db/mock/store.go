@@ -531,6 +531,36 @@ func (mr *MockStoreMockRecorder) CancelBranchCommand(arg0, arg1 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelBranchCommand", reflect.TypeOf((*MockStore)(nil).CancelBranchCommand), arg0, arg1)
 }
 
+// BusyHoursSales mocks base method.
+func (m *MockStore) BusyHoursSales(arg0 context.Context, arg1 db.BusyHoursSalesParams) ([]db.BusyHoursSalesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BusyHoursSales", arg0, arg1)
+	ret0, _ := ret[0].([]db.BusyHoursSalesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BusyHoursSales indicates an expected call of BusyHoursSales.
+func (mr *MockStoreMockRecorder) BusyHoursSales(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BusyHoursSales", reflect.TypeOf((*MockStore)(nil).BusyHoursSales), arg0, arg1)
+}
+
+// BusyHoursVisitors mocks base method.
+func (m *MockStore) BusyHoursVisitors(arg0 context.Context, arg1 db.BusyHoursVisitorsParams) ([]db.BusyHoursVisitorsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BusyHoursVisitors", arg0, arg1)
+	ret0, _ := ret[0].([]db.BusyHoursVisitorsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BusyHoursVisitors indicates an expected call of BusyHoursVisitors.
+func (mr *MockStoreMockRecorder) BusyHoursVisitors(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BusyHoursVisitors", reflect.TypeOf((*MockStore)(nil).BusyHoursVisitors), arg0, arg1)
+}
+
 // CancelPurchaseTx mocks base method.
 func (m *MockStore) CancelPurchaseTx(arg0 context.Context, arg1 int64, arg2 sql.NullInt64) (db.PurchaseReceiveTxResult, error) {
 	m.ctrl.T.Helper()
