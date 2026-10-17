@@ -125,12 +125,12 @@ func whatsAppEmptyPlaceholder(line string, values map[string]string) bool {
 func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWhatsAppMessageParams, sender db.GetWhatsAppSenderSettingsRow, branchName string, req branchWhatsAppThankYouRequest) {
 	entry.Sender = whatsAppSenderBridge
 	if strings.TrimSpace(sender.WhatsappBridgeKey) == "" {
-		server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, "WhatsApp bridge not set up (WhatsApp > Sending)")
+		server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, "WhatsApp bridge not set up (Settings > WhatsApp)")
 		return
 	}
 	number, err := server.store.WhatsAppNumberForBranch(ctx, entry.BranchID.Int64)
 	if errors.Is(err, sql.ErrNoRows) {
-		server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, "no WhatsApp number for this branch (WhatsApp > Sending)")
+		server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, "no WhatsApp number for this branch (Settings > WhatsApp)")
 		return
 	}
 	if err != nil {

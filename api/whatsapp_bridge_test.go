@@ -123,7 +123,7 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 				return db.WhatsappMessage{}, nil
 			})
 		rec := run(server, db.GetWhatsAppSenderSettingsRow{WhatsappSender: "bridge", WhatsappBridgeKey: "secret-key"})
-		require.JSONEq(t, `{"sent":false,"reason":"no WhatsApp number for this branch (WhatsApp > Sending)"}`, rec.Body.String())
+		require.JSONEq(t, `{"sent":false,"reason":"no WhatsApp number for this branch (Settings > WhatsApp)"}`, rec.Body.String())
 	})
 
 	t.Run("a number that isn't linked reports the bridge's reason", func(t *testing.T) {

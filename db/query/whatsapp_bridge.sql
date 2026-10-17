@@ -61,13 +61,15 @@ SELECT id, name, whatsapp_number_id FROM branches ORDER BY id;
 UPDATE branches SET whatsapp_number_id = sqlc.narg(whatsapp_number_id) WHERE id = sqlc.arg(id);
 
 -- name: WhatsAppNumberForBranch :one
--- The number a branch's messages go out from: its own, else the default.
+-- The number a branch's messages go out from: its own, else the default,
+-- else (no default, as when the first number was removed) the oldest one.
 SELECT n.*
 FROM whatsapp_numbers n
-WHERE n.id = (SELECT b.whatsapp_number_id FROM branches b WHERE b.id = sqlc.arg(branch_id))
-   OR (n.is_default AND NOT EXISTS (
-         SELECT 1 FROM branches b WHERE b.id = sqlc.arg(branch_id) AND b.whatsapp_number_id IS NOT NULL))
-ORDER BY n.is_default
+LEFT JOIN branches b ON b.id = sqlc.arg(branch_id)
+WHERE n.id = b.whatsapp_number_id
+   OR (b.whatsapp_number_id IS NULL
+       AND (n.is_default OR NOT EXISTS (SELECT 1 FROM whatsapp_numbers d WHERE d.is_default)))
+ORDER BY n.is_default DESC, n.id
 LIMIT 1;
 
 -- name: RecordWhatsAppPollVote :one
