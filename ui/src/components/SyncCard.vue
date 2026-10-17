@@ -64,6 +64,7 @@
           :prepend-icon="invoiceIcon(invoice)"
           :subtitle="`${branchName(invoice.branch_id)} — ${relativeTime(invoice.received_at)}`"
           :title="invoiceTitle(invoice)"
+          @click="openInvoice(invoice)"
         />
       </v-list>
       <v-card-text v-else-if="loaded" class="text-medium-emphasis">
@@ -79,6 +80,7 @@
 
 <script setup lang="ts">
   import { computed, onMounted, onUnmounted, ref } from 'vue'
+  import { useRouter } from 'vue-router'
   import { useDisplay } from 'vuetify'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { NO_INTERNET_MESSAGE } from '@/composables/useApi'
@@ -190,6 +192,14 @@
 
   function branchName (branchId) {
     return branches.value.find(b => b.id === branchId)?.name ?? `Branch #${branchId}`
+  }
+
+  // A sale in the list opens on the Invoices page, searched and with its
+  // details showing.
+  const router = useRouter()
+  function openInvoice (invoice) {
+    menu.value = false
+    router.push({ path: '/invoices', query: { search: invoice.branch_invoice_code, open: invoice.id } })
   }
 
   function invoiceIcon (invoice) {
