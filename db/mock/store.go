@@ -10370,6 +10370,21 @@ func (mr *MockStoreMockRecorder) SetBranchActive(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchActive", reflect.TypeOf((*MockStore)(nil).SetBranchActive), arg0, arg1)
 }
 
+// SetBranchExpenseCategory mocks base method.
+func (m *MockStore) SetBranchExpenseCategory(arg0 context.Context, arg1 db.SetBranchExpenseCategoryParams) (db.BranchExpense, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetBranchExpenseCategory", arg0, arg1)
+	ret0, _ := ret[0].(db.BranchExpense)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetBranchExpenseCategory indicates an expected call of SetBranchExpenseCategory.
+func (mr *MockStoreMockRecorder) SetBranchExpenseCategory(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchExpenseCategory", reflect.TypeOf((*MockStore)(nil).SetBranchExpenseCategory), arg0, arg1)
+}
+
 // SetBranchHiddenFromReports mocks base method.
 func (m *MockStore) SetBranchHiddenFromReports(arg0 context.Context, arg1 db.SetBranchHiddenFromReportsParams) error {
 	m.ctrl.T.Helper()
@@ -10411,6 +10426,21 @@ func (m *MockStore) SetBranchInvoiceSalesperson(arg0 context.Context, arg1 db.Se
 func (mr *MockStoreMockRecorder) SetBranchInvoiceSalesperson(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchInvoiceSalesperson", reflect.TypeOf((*MockStore)(nil).SetBranchInvoiceSalesperson), arg0, arg1)
+}
+
+// SetBranchLoanCategory mocks base method.
+func (m *MockStore) SetBranchLoanCategory(arg0 context.Context, arg1 db.SetBranchLoanCategoryParams) (db.Loan, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetBranchLoanCategory", arg0, arg1)
+	ret0, _ := ret[0].(db.Loan)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetBranchLoanCategory indicates an expected call of SetBranchLoanCategory.
+func (mr *MockStoreMockRecorder) SetBranchLoanCategory(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchLoanCategory", reflect.TypeOf((*MockStore)(nil).SetBranchLoanCategory), arg0, arg1)
 }
 
 // SetBranchPlaceID mocks base method.

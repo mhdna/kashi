@@ -591,6 +591,8 @@ func (server *Server) setupRoutes() {
 	branchRoutes.GET("/loan_photos/:id/file", server.branchLoanPhotoFile)
 	branchRoutes.POST("/expenses/upload_link", server.branchExpenseUploadLink)
 	branchRoutes.POST("/loans/upload_link", server.branchLoanUploadLink)
+	branchRoutes.POST("/expenses/category", server.setBranchExpenseCategory)
+	branchRoutes.POST("/loans/category", server.setBranchLoanCategory)
 	branchRoutes.GET("/shift_closes/upload_status", server.branchShiftUploadStatus)
 	branchRoutes.POST("/shift_receipt_images", server.createBranchShiftReceiptImage)
 	branchRoutes.POST("/transfer_requests", server.createBranchTransferRequest)
