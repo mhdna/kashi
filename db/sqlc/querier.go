@@ -82,6 +82,14 @@ type Querier interface {
 	// Only a command no till has acked yet can be withdrawn.
 	CancelBranchCommand(ctx context.Context, id int64) (BranchCommand, error)
 	// The once-only gate on a branch's list: 1 row the first time it's set up
+	// Sales (not returns or exchanges): how many, and what they came to.
+	BusyHoursSales(ctx context.Context, arg BusyHoursSalesParams) ([]BusyHoursSalesRow, error)
+	// The Busy Hours page (api/busy_hours.go): when people come in and buy, by
+	// weekday (ISO: 1 Monday .. 7 Sunday) and hour, in each branch's own time
+	// zone. Hidden branches/registers and cancelled sales are left out, like the
+	// other reports. Empty branch_ids = every branch.
+	// Presses of the till's people counter (customers in).
+	BusyHoursVisitors(ctx context.Context, arg BusyHoursVisitorsParams) ([]BusyHoursVisitorsRow, error)
 	// (by a till's import or an admin save), 0 ever after.
 	ClaimBranchQuickAccessInit(ctx context.Context, id int64) (int64, error)
 	// Moves a due schedule on to its next run before it sends, and only if no
