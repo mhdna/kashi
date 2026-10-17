@@ -40,3 +40,11 @@ SELECT COUNT(*) FROM branch_expenses
 WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
   AND branch_expenses.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND (sqlc.arg(search)::text = '' OR description ILIKE '%' || sqlc.arg(search)::text || '%');
+
+-- name: SetBranchExpenseCategory :one
+-- A till re-categorising one of its own expenses (kashi-pos expense
+-- detail). NULL category_id is "no category".
+UPDATE branch_expenses
+SET category_id = sqlc.narg(category_id)
+WHERE branch_id = $1 AND client_ref = $2
+RETURNING *;

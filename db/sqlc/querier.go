@@ -1476,12 +1476,18 @@ type Querier interface {
 	SearchWhatsAppClients(ctx context.Context, search string) ([]SearchWhatsAppClientsRow, error)
 	SetAssetCost(ctx context.Context, arg SetAssetCostParams) error
 	SetBranchActive(ctx context.Context, arg SetBranchActiveParams) error
+	// A till re-categorising one of its own expenses (kashi-pos expense
+	// detail). NULL category_id is "no category".
+	SetBranchExpenseCategory(ctx context.Context, arg SetBranchExpenseCategoryParams) (BranchExpense, error)
 	SetBranchHiddenFromReports(ctx context.Context, arg SetBranchHiddenFromReportsParams) error
 	SetBranchInventory(ctx context.Context, arg SetBranchInventoryParams) error
 	// Salesperson Performance (api/salesperson_performance.go) and the tills'
 	// one-time report of who made their past sales.
 	// Only a salesperson of the invoice's own branch is accepted.
 	SetBranchInvoiceSalesperson(ctx context.Context, arg SetBranchInvoiceSalespersonParams) (int64, error)
+	// A till re-categorising one of its own loans (kashi-pos loan detail).
+	// Only the category: the rest of a branch loan stays as reported.
+	SetBranchLoanCategory(ctx context.Context, arg SetBranchLoanCategoryParams) (Loan, error)
 	SetBranchPlaceID(ctx context.Context, arg SetBranchPlaceIDParams) error
 	SetBranchRegisterActive(ctx context.Context, arg SetBranchRegisterActiveParams) error
 	SetBranchRegisterHiddenFromReports(ctx context.Context, arg SetBranchRegisterHiddenFromReportsParams) error

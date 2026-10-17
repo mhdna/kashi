@@ -108,3 +108,11 @@ WHERE (sqlc.narg(branch_id)::bigint IS NULL OR loans.branch_id = sqlc.narg(branc
     WHEN COALESCE(pay.paid_amount, 0) > 0 THEN 'partial'
     ELSE 'unpaid'
   END));
+
+-- name: SetBranchLoanCategory :one
+-- A till re-categorising one of its own loans (kashi-pos loan detail).
+-- Only the category: the rest of a branch loan stays as reported.
+UPDATE loans
+SET category_id = $3
+WHERE branch_id = $1 AND client_ref = $2
+RETURNING *;

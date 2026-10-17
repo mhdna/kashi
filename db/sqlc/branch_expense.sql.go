@@ -207,3 +207,38 @@ func (q *Queries) ListBranchExpenses(ctx context.Context, arg ListBranchExpenses
 	}
 	return items, nil
 }
+
+const setBranchExpenseCategory = `-- name: SetBranchExpenseCategory :one
+UPDATE branch_expenses
+SET category_id = $3
+WHERE branch_id = $1 AND client_ref = $2
+RETURNING id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id, branch_cashbox_account_name
+`
+
+type SetBranchExpenseCategoryParams struct {
+	BranchID   int64         `json:"branch_id"`
+	ClientRef  string        `json:"client_ref"`
+	CategoryID sql.NullInt64 `json:"category_id"`
+}
+
+// A till re-categorising one of its own expenses (kashi-pos expense
+// detail). NULL category_id is "no category".
+func (q *Queries) SetBranchExpenseCategory(ctx context.Context, arg SetBranchExpenseCategoryParams) (BranchExpense, error) {
+	row := q.db.QueryRowContext(ctx, setBranchExpenseCategory, arg.BranchID, arg.ClientRef, arg.CategoryID)
+	var i BranchExpense
+	err := row.Scan(
+		&i.ID,
+		&i.BranchID,
+		&i.ClientRef,
+		&i.Description,
+		&i.Amount,
+		&i.CurrencyCode,
+		&i.BranchCashboxAccountID,
+		&i.BranchShiftID,
+		&i.OccurredAt,
+		&i.ReceivedAt,
+		&i.CategoryID,
+		&i.BranchCashboxAccountName,
+	)
+	return i, err
+}

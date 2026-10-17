@@ -354,6 +354,42 @@ func (q *Queries) ListLoans(ctx context.Context, arg ListLoansParams) ([]ListLoa
 	return items, nil
 }
 
+const setBranchLoanCategory = `-- name: SetBranchLoanCategory :one
+UPDATE loans
+SET category_id = $3
+WHERE branch_id = $1 AND client_ref = $2
+RETURNING id, origin, description, category_id, amount, currency_code, branch_id, client_ref, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, branch_cashbox_account_name
+`
+
+type SetBranchLoanCategoryParams struct {
+	BranchID   sql.NullInt64  `json:"branch_id"`
+	ClientRef  sql.NullString `json:"client_ref"`
+	CategoryID int64          `json:"category_id"`
+}
+
+// A till re-categorising one of its own loans (kashi-pos loan detail).
+// Only the category: the rest of a branch loan stays as reported.
+func (q *Queries) SetBranchLoanCategory(ctx context.Context, arg SetBranchLoanCategoryParams) (Loan, error) {
+	row := q.db.QueryRowContext(ctx, setBranchLoanCategory, arg.BranchID, arg.ClientRef, arg.CategoryID)
+	var i Loan
+	err := row.Scan(
+		&i.ID,
+		&i.Origin,
+		&i.Description,
+		&i.CategoryID,
+		&i.Amount,
+		&i.CurrencyCode,
+		&i.BranchID,
+		&i.ClientRef,
+		&i.BranchCashboxAccountID,
+		&i.BranchShiftID,
+		&i.OccurredAt,
+		&i.ReceivedAt,
+		&i.BranchCashboxAccountName,
+	)
+	return i, err
+}
+
 const updateLoan = `-- name: UpdateLoan :one
 UPDATE loans
 SET description = $2,
