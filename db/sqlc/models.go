@@ -525,6 +525,10 @@ type AppSetting struct {
 	WhatsappBridgeLinkMessage  string          `json:"whatsapp_bridge_link_message"`
 	WhatsappChannelUrl         string          `json:"whatsapp_channel_url"`
 	WhatsappMessageLogo        bool            `json:"whatsapp_message_logo"`
+	WhatsappFollowup           bool            `json:"whatsapp_followup"`
+	WhatsappFollowupGood       string          `json:"whatsapp_followup_good"`
+	WhatsappFollowupOkay       string          `json:"whatsapp_followup_okay"`
+	WhatsappFollowupBad        string          `json:"whatsapp_followup_bad"`
 }
 
 type AppUpdateEvent struct {
@@ -1818,6 +1822,7 @@ type WhatsappMessage struct {
 	PollRating       sql.NullInt16 `json:"poll_rating"`
 	PollAnswer       string        `json:"poll_answer"`
 	PollVotedAt      sql.NullTime  `json:"poll_voted_at"`
+	PollFollowupAt   sql.NullTime  `json:"poll_followup_at"`
 }
 
 type WhatsappNumber struct {
@@ -1827,6 +1832,15 @@ type WhatsappNumber struct {
 	Phone     string    `json:"phone"`
 	IsDefault bool      `json:"is_default"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+type WhatsappPollReply struct {
+	ID                int64     `json:"id"`
+	WhatsappMessageID int64     `json:"whatsapp_message_id"`
+	WaID              string    `json:"wa_id"`
+	Body              string    `json:"body"`
+	Kind              string    `json:"kind"`
+	ReceivedAt        time.Time `json:"received_at"`
 }
 
 type WhatsappReply struct {

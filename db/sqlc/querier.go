@@ -32,6 +32,9 @@ type Querier interface {
 	AddPurchasedProduct(ctx context.Context, arg AddPurchasedProductParams) (ProductSupplier, error)
 	AddPurchasedProductCost(ctx context.Context, arg AddPurchasedProductCostParams) (ProductSupplierCost, error)
 	AddStockCountItem(ctx context.Context, arg AddStockCountItemParams) (StockCountItem, error)
+	// A client's message after the poll, reported by the bridge. No rows when the
+	// poll is unknown or the bridge already reported this message.
+	AddWhatsAppPollReply(ctx context.Context, arg AddWhatsAppPollReplyParams) (int64, error)
 	// Signed delta: negative consumes (a sale), positive replenishes (a return
 	// of that sale). No floor at zero -- same "ledger stays authoritative, UI
 	// surfaces negatives" rule as inventory_stock.
@@ -84,6 +87,9 @@ type Querier interface {
 	// Moves a due schedule on to its next run before it sends, and only if no
 	// one else already did -- so a run is never sent twice.
 	ClaimEmailScheduleRun(ctx context.Context, arg ClaimEmailScheduleRunParams) (int64, error)
+	// Marks the poll's follow-up as sent and says where to send it; no rows when
+	// it already went (a changed vote) or the number is gone.
+	ClaimWhatsAppPollFollowup(ctx context.Context, id int64) (ClaimWhatsAppPollFollowupRow, error)
 	ClearDefaultWhatsAppNumber(ctx context.Context) error
 	ClientPhonesPresent(ctx context.Context, dollar_1 []string) ([]string, error)
 	CloseShift(ctx context.Context, id int64) error
@@ -1329,6 +1335,9 @@ type Querier interface {
 	PollRatingTotals(ctx context.Context, arg PollRatingTotalsParams) (PollRatingTotalsRow, error)
 	PollRatingsByBranch(ctx context.Context, arg PollRatingsByBranchParams) ([]PollRatingsByBranchRow, error)
 	PollRatingsByDay(ctx context.Context, arg PollRatingsByDayParams) ([]PollRatingsByDayRow, error)
+	// What clients wrote back after the rating poll, newest first, with their
+	// answer: why it wasn't great, and what they looked for and didn't find.
+	PollReplies(ctx context.Context, arg PollRepliesParams) ([]PollRepliesRow, error)
 	ProductBarcodesPresent(ctx context.Context, dollar_1 []string) ([]string, error)
 	// Apply an inbound quantity delta and roll the per-location moving-average
 	// cost forward. When existing on-hand is <= 0 the average is just reset to

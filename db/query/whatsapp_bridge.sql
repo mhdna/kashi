@@ -4,7 +4,8 @@
 -- name: GetWhatsAppSenderSettings :one
 SELECT whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message,
        whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url,
-       whatsapp_poll_question, whatsapp_poll_options, whatsapp_message_logo
+       whatsapp_poll_question, whatsapp_poll_options, whatsapp_message_logo,
+       whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad
 FROM app_settings WHERE id = 1;
 
 -- name: SetWhatsAppSenderSettings :exec
@@ -19,6 +20,10 @@ UPDATE app_settings SET
     whatsapp_message_logo = sqlc.arg(whatsapp_message_logo),
     whatsapp_poll_question = sqlc.arg(whatsapp_poll_question),
     whatsapp_poll_options = sqlc.arg(whatsapp_poll_options),
+    whatsapp_followup = sqlc.arg(whatsapp_followup),
+    whatsapp_followup_good = sqlc.arg(whatsapp_followup_good),
+    whatsapp_followup_okay = sqlc.arg(whatsapp_followup_okay),
+    whatsapp_followup_bad = sqlc.arg(whatsapp_followup_bad),
     updated_at = now()
 WHERE id = 1;
 
@@ -73,3 +78,21 @@ UPDATE whatsapp_messages SET
     poll_voted_at = now()
 WHERE poll_ref = sqlc.arg(poll_ref)
 RETURNING id, branch_id;
+
+-- name: ClaimWhatsAppPollFollowup :one
+-- Marks the poll's follow-up as sent and says where to send it; no rows when
+-- it already went (a changed vote) or the number is gone.
+UPDATE whatsapp_messages m SET poll_followup_at = now()
+FROM whatsapp_numbers n
+WHERE m.id = sqlc.arg(id) AND m.poll_followup_at IS NULL AND n.id = m.whatsapp_number_id
+RETURNING m.client_phone, n.instance;
+
+-- name: AddWhatsAppPollReply :one
+-- A client's message after the poll, reported by the bridge. No rows when the
+-- poll is unknown or the bridge already reported this message.
+INSERT INTO whatsapp_poll_replies (whatsapp_message_id, wa_id, body, kind, received_at)
+SELECT m.id, sqlc.arg(wa_id), sqlc.arg(body), sqlc.arg(kind), sqlc.arg(received_at)
+FROM whatsapp_messages m
+WHERE m.poll_ref = sqlc.arg(poll_ref)
+ON CONFLICT (wa_id) DO NOTHING
+RETURNING id;

@@ -202,6 +202,21 @@ func (mr *MockStoreMockRecorder) AddVariantTx(arg0, arg1 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddVariantTx", reflect.TypeOf((*MockStore)(nil).AddVariantTx), arg0, arg1)
 }
 
+// AddWhatsAppPollReply mocks base method.
+func (m *MockStore) AddWhatsAppPollReply(arg0 context.Context, arg1 db.AddWhatsAppPollReplyParams) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddWhatsAppPollReply", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AddWhatsAppPollReply indicates an expected call of AddWhatsAppPollReply.
+func (mr *MockStoreMockRecorder) AddWhatsAppPollReply(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddWhatsAppPollReply", reflect.TypeOf((*MockStore)(nil).AddWhatsAppPollReply), arg0, arg1)
+}
+
 // AdjustBatchItemRemainingQuantity mocks base method.
 func (m *MockStore) AdjustBatchItemRemainingQuantity(arg0 context.Context, arg1 db.AdjustBatchItemRemainingQuantityParams) (db.BatchItem, error) {
 	m.ctrl.T.Helper()
@@ -589,6 +604,21 @@ func (m *MockStore) ClaimEmailScheduleRun(arg0 context.Context, arg1 db.ClaimEma
 func (mr *MockStoreMockRecorder) ClaimEmailScheduleRun(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClaimEmailScheduleRun", reflect.TypeOf((*MockStore)(nil).ClaimEmailScheduleRun), arg0, arg1)
+}
+
+// ClaimWhatsAppPollFollowup mocks base method.
+func (m *MockStore) ClaimWhatsAppPollFollowup(arg0 context.Context, arg1 int64) (db.ClaimWhatsAppPollFollowupRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClaimWhatsAppPollFollowup", arg0, arg1)
+	ret0, _ := ret[0].(db.ClaimWhatsAppPollFollowupRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ClaimWhatsAppPollFollowup indicates an expected call of ClaimWhatsAppPollFollowup.
+func (mr *MockStoreMockRecorder) ClaimWhatsAppPollFollowup(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClaimWhatsAppPollFollowup", reflect.TypeOf((*MockStore)(nil).ClaimWhatsAppPollFollowup), arg0, arg1)
 }
 
 // ClearDefaultWhatsAppNumber mocks base method.
@@ -9464,6 +9494,21 @@ func (m *MockStore) PollRatingsByDay(arg0 context.Context, arg1 db.PollRatingsBy
 func (mr *MockStoreMockRecorder) PollRatingsByDay(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PollRatingsByDay", reflect.TypeOf((*MockStore)(nil).PollRatingsByDay), arg0, arg1)
+}
+
+// PollReplies mocks base method.
+func (m *MockStore) PollReplies(arg0 context.Context, arg1 db.PollRepliesParams) ([]db.PollRepliesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PollReplies", arg0, arg1)
+	ret0, _ := ret[0].([]db.PollRepliesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PollReplies indicates an expected call of PollReplies.
+func (mr *MockStoreMockRecorder) PollReplies(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PollReplies", reflect.TypeOf((*MockStore)(nil).PollReplies), arg0, arg1)
 }
 
 // PostStockCountTx mocks base method.

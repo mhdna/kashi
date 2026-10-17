@@ -186,7 +186,10 @@ ORDER BY 1;
 -- name: LowPollRatings :many
 -- Clients who answered 1 or 2 stars, newest first: the ones to call back.
 SELECT m.id, m.poll_voted_at, m.poll_rating, m.poll_answer, m.client_name, m.client_phone,
-       m.invoice_code, m.grand_total_cents, COALESCE(b.name, '')::text AS branch_name
+       m.invoice_code, m.grand_total_cents, COALESCE(b.name, '')::text AS branch_name,
+       -- What they wrote back after the poll, oldest first.
+       COALESCE((SELECT string_agg(NULLIF(r.body, ''), E'\n' ORDER BY r.received_at)
+                 FROM whatsapp_poll_replies r WHERE r.whatsapp_message_id = m.id), '')::text AS replies
 FROM whatsapp_messages m
 LEFT JOIN branches b ON b.id = m.branch_id
 WHERE m.poll_rating <= 2
@@ -194,3 +197,16 @@ WHERE m.poll_rating <= 2
   AND (sqlc.arg(branch_id)::bigint = 0 OR m.branch_id = sqlc.arg(branch_id))
 ORDER BY m.poll_voted_at DESC
 LIMIT 20;
+
+-- name: PollReplies :many
+-- What clients wrote back after the rating poll, newest first, with their
+-- answer: why it wasn't great, and what they looked for and didn't find.
+SELECT r.id, r.body, r.kind, r.received_at, m.poll_rating, m.poll_answer,
+       m.client_name, m.client_phone, m.invoice_code, COALESCE(b.name, '')::text AS branch_name
+FROM whatsapp_poll_replies r
+JOIN whatsapp_messages m ON m.id = r.whatsapp_message_id
+LEFT JOIN branches b ON b.id = m.branch_id
+WHERE r.received_at >= sqlc.arg(from_at) AND r.received_at < sqlc.arg(to_at)
+  AND (sqlc.arg(branch_id)::bigint = 0 OR m.branch_id = sqlc.arg(branch_id))
+ORDER BY r.received_at DESC
+LIMIT 100;

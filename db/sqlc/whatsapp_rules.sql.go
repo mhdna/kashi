@@ -59,7 +59,7 @@ INSERT INTO whatsapp_messages (
   $9, $10, $11, $12, $13,
   $14, $15, $16, $17
 )
-RETURNING id, created_at, branch_id, invoice_code, client_name, client_phone, grand_total_cents, item_count, rule_id, rule_name, template_name, status, reason, wamid, cost_micros, delivery_status, delivered_at, read_at, delivery_error, billable, pricing_category, review_code, review_clicked_at, sender, whatsapp_number_id, poll_ref, poll_rating, poll_answer, poll_voted_at
+RETURNING id, created_at, branch_id, invoice_code, client_name, client_phone, grand_total_cents, item_count, rule_id, rule_name, template_name, status, reason, wamid, cost_micros, delivery_status, delivered_at, read_at, delivery_error, billable, pricing_category, review_code, review_clicked_at, sender, whatsapp_number_id, poll_ref, poll_rating, poll_answer, poll_voted_at, poll_followup_at
 `
 
 type CreateWhatsAppMessageParams struct {
@@ -133,6 +133,7 @@ func (q *Queries) CreateWhatsAppMessage(ctx context.Context, arg CreateWhatsAppM
 		&i.PollRating,
 		&i.PollAnswer,
 		&i.PollVotedAt,
+		&i.PollFollowupAt,
 	)
 	return i, err
 }
@@ -223,7 +224,7 @@ func (q *Queries) LastWhatsAppSentAt(ctx context.Context, clientPhone string) (t
 }
 
 const listWhatsAppMessages = `-- name: ListWhatsAppMessages :many
-SELECT m.id, m.created_at, m.branch_id, m.invoice_code, m.client_name, m.client_phone, m.grand_total_cents, m.item_count, m.rule_id, m.rule_name, m.template_name, m.status, m.reason, m.wamid, m.cost_micros, m.delivery_status, m.delivered_at, m.read_at, m.delivery_error, m.billable, m.pricing_category, m.review_code, m.review_clicked_at, m.sender, m.whatsapp_number_id, m.poll_ref, m.poll_rating, m.poll_answer, m.poll_voted_at, COALESCE(b.name, '')::text AS branch_name
+SELECT m.id, m.created_at, m.branch_id, m.invoice_code, m.client_name, m.client_phone, m.grand_total_cents, m.item_count, m.rule_id, m.rule_name, m.template_name, m.status, m.reason, m.wamid, m.cost_micros, m.delivery_status, m.delivered_at, m.read_at, m.delivery_error, m.billable, m.pricing_category, m.review_code, m.review_clicked_at, m.sender, m.whatsapp_number_id, m.poll_ref, m.poll_rating, m.poll_answer, m.poll_voted_at, m.poll_followup_at, COALESCE(b.name, '')::text AS branch_name
 FROM whatsapp_messages m
 LEFT JOIN branches b ON b.id = m.branch_id
 WHERE m.created_at >= $1 AND m.created_at < $2
@@ -278,6 +279,7 @@ type ListWhatsAppMessagesRow struct {
 	PollRating       sql.NullInt16 `json:"poll_rating"`
 	PollAnswer       string        `json:"poll_answer"`
 	PollVotedAt      sql.NullTime  `json:"poll_voted_at"`
+	PollFollowupAt   sql.NullTime  `json:"poll_followup_at"`
 	BranchName       string        `json:"branch_name"`
 }
 
@@ -330,6 +332,7 @@ func (q *Queries) ListWhatsAppMessages(ctx context.Context, arg ListWhatsAppMess
 			&i.PollRating,
 			&i.PollAnswer,
 			&i.PollVotedAt,
+			&i.PollFollowupAt,
 			&i.BranchName,
 		); err != nil {
 			return nil, err
