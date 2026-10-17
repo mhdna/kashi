@@ -62,9 +62,9 @@ func whatsAppPollStars(options []string) []int16 {
 
 // The follow-ups used until Settings > WhatsApp sets them, by answer.
 const (
-	defaultWhatsAppFollowupGood = "Thank you 🤍 Was there anything you looked for and didn't find? Reply here and tell us.\n\nشكراً لك 🤍 هل بحثت عن شيء ولم تجده لدينا؟ ردّ هنا وأخبرنا."
-	defaultWhatsAppFollowupOkay = "Thank you! What could we do better? Reply here and tell us.\n\nشكراً لك! ما الذي يمكننا تحسينه؟ ردّ هنا وأخبرنا."
-	defaultWhatsAppFollowupBad  = "Sorry to hear that 😕 What went wrong? Reply here, we'd like to make it right.\n\nنأسف لذلك 😕 ما الذي حدث؟ ردّ هنا، ونودّ أن نصلح الأمر."
+	defaultWhatsAppFollowupGood = "Thank you 🤍 Was there anything you looked for and didn't find? Reply here and tell us.\n\nشكراً كتير 🤍 في شي كنت عم تدوّر عليه وما لقيته عنّا؟ خبّرنا هون."
+	defaultWhatsAppFollowupOkay = "Thank you! What could we do better? Reply here and tell us.\n\nشكراً إلك! شو فينا نعمل أحسن؟ خبّرنا هون."
+	defaultWhatsAppFollowupBad  = "Sorry to hear that 😕 What went wrong? Reply here, we'd like to make it right.\n\nزعلنا كتير 😕 شو اللي صار؟ احكيلنا هون، ويهمّنا نصلّح الموضوع."
 )
 
 // whatsAppPollFollowup is the follow-up for an answer worth these stars: a
