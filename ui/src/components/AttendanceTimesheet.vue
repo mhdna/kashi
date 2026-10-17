@@ -72,7 +72,9 @@
                 </template>
               </td>
             </template>
-            <td class="text-end text-no-wrap font-weight-medium">{{ formatDuration(row.worked) }}</td>
+            <td class="text-end text-no-wrap font-weight-medium">
+              {{ formatDuration(workedNow(row)) }}<span v-if="stillIn(row)" class="text-caption text-medium-emphasis"> so far</span>
+            </td>
             <td class="text-end text-no-wrap text-medium-emphasis">
               {{ row.breaks.length > 0 ? `${formatDuration(row.breakTotal)} (${row.breaks.length})` : '' }}
             </td>
@@ -140,7 +142,8 @@
             </template>
           </div>
           <div class="timeline-total text-body-2 text-end">
-            {{ formatDuration(row.worked) }}
+            {{ formatDuration(workedNow(row)) }}
+            <div v-if="stillIn(row)" class="text-caption text-medium-emphasis">so far</div>
             <div v-if="row.breakTotal" class="text-caption text-medium-emphasis">
               {{ formatDuration(row.breakTotal) }} break
             </div>
@@ -175,7 +178,7 @@
               :class="{ 'text-error': person.days[date]?.incomplete && !person.days[date]?.open }"
               :title="person.days[date] ? dayTitle(person.days[date]) : ''"
             >
-              {{ person.days[date] ? hours(person.days[date].worked) : '' }}
+              {{ person.days[date] ? hours(workedNow(person.days[date])) : '' }}
             </td>
             <td class="text-end font-weight-medium text-no-wrap">{{ formatDuration(person.total) }}</td>
             <td class="text-end">{{ person.dayCount }}</td>
@@ -259,6 +262,13 @@
     const s = row.sessions[index]
     return row.date === today && index === row.sessions.length - 1 && s.in !== null && s.out === null
   }
+  // Worked time with someone still at work counted up to now (row.worked
+  // only adds spans that have an OUT).
+  function workedNow (row) {
+    const last = row.sessions.length - 1
+    return last >= 0 && isStillIn(row, last) ? row.worked + Math.max(0, nowMinutes - row.sessions[last].in) : row.worked
+  }
+  const stillIn = row => row.sessions.length > 0 && isStillIn(row, row.sessions.length - 1)
 
   // ---- pairs -------------------------------------------------------------
   const maxSessions = computed(() => Math.max(1, ...rows.value.map(r => r.sessions.length)))
@@ -318,7 +328,7 @@
         people.set(row.personKey, person)
       }
       person.days[row.date] = row
-      person.total += row.worked
+      person.total += workedNow(row)
       person.dayCount++
     }
     return [...people.values()].toSorted((a, b) => a.name.localeCompare(b.name))
