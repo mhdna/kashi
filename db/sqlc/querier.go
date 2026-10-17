@@ -634,7 +634,7 @@ type Querier interface {
 	GetProductVariantByUID(ctx context.Context, uid uuid.UUID) (ProductVariant, error)
 	GetPurchase(ctx context.Context, id int64) (GetPurchaseRow, error)
 	GetRecurringExpense(ctx context.Context, id int64) (RecurringExpense, error)
-	GetRegisterTargetRelease(ctx context.Context, id int64) (AppRelease, error)
+	GetRegisterTargetRelease(ctx context.Context, id int64) (GetRegisterTargetReleaseRow, error)
 	GetReturnInvoice(ctx context.Context, invoiceID int64) (ReturnInvoice, error)
 	// Review links in the post-sale WhatsApp message and the Google data behind
 	// the Reviews page (api/review_link.go, api/google_places.go).

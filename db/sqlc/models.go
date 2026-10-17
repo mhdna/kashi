@@ -811,6 +811,7 @@ type BranchRegister struct {
 
 type BranchSetting struct {
 	BranchID                           int64           `json:"branch_id"`
+	TargetForce              bool                  `json:"target_force"`
 	BranchName                         string          `json:"branch_name"`
 	TaxRate                            float64         `json:"tax_rate"`
 	RoundingMode                       string          `json:"rounding_mode"`

@@ -128,14 +128,29 @@ func (q *Queries) GetAppRelease(ctx context.Context, id int64) (AppRelease, erro
 }
 
 const getRegisterTargetRelease = `-- name: GetRegisterTargetRelease :one
-SELECT a.id, a.version, a.flavor, a.file_name, a.file_path, a.size_bytes, a.sha256, a.signature, a.notes, a.uploaded_by, a.created_at FROM app_releases a
+SELECT a.id, a.version, a.flavor, a.file_name, a.file_path, a.size_bytes, a.sha256, a.signature, a.notes, a.uploaded_by, a.created_at, r.target_force FROM app_releases a
 JOIN branch_registers r ON r.target_release_id = a.id
 WHERE r.id = $1
 `
 
-func (q *Queries) GetRegisterTargetRelease(ctx context.Context, id int64) (AppRelease, error) {
+type GetRegisterTargetReleaseRow struct {
+	ID          int64         `json:"id"`
+	Version     string        `json:"version"`
+	Flavor      string        `json:"flavor"`
+	FileName    string        `json:"file_name"`
+	FilePath    string        `json:"file_path"`
+	SizeBytes   int64         `json:"size_bytes"`
+	Sha256      string        `json:"sha256"`
+	Signature   string        `json:"signature"`
+	Notes       string        `json:"notes"`
+	UploadedBy  sql.NullInt64 `json:"uploaded_by"`
+	CreatedAt   time.Time     `json:"created_at"`
+	TargetForce bool          `json:"target_force"`
+}
+
+func (q *Queries) GetRegisterTargetRelease(ctx context.Context, id int64) (GetRegisterTargetReleaseRow, error) {
 	row := q.db.QueryRowContext(ctx, getRegisterTargetRelease, id)
-	var i AppRelease
+	var i GetRegisterTargetReleaseRow
 	err := row.Scan(
 		&i.ID,
 		&i.Version,
@@ -148,6 +163,7 @@ func (q *Queries) GetRegisterTargetRelease(ctx context.Context, id int64) (AppRe
 		&i.Notes,
 		&i.UploadedBy,
 		&i.CreatedAt,
+		&i.TargetForce,
 	)
 	return i, err
 }
@@ -279,7 +295,7 @@ func (q *Queries) ListAppUpdateEvents(ctx context.Context, limit int32) ([]ListA
 }
 
 const listBranchRegistersByIDs = `-- name: ListBranchRegistersByIDs :many
-SELECT id, branch_id, code, name, api_key_hash, is_active, last_seen_at, reported_settings, reported_settings_at, created_at, quick_access_mode, quick_access_mode_changed_at, target_release_id, app_version, app_flavor, update_state, update_detail, update_progress, update_reported_at, hidden_from_reports FROM branch_registers
+SELECT id, branch_id, code, name, api_key_hash, is_active, last_seen_at, reported_settings, reported_settings_at, created_at, quick_access_mode, quick_access_mode_changed_at, target_release_id, app_version, app_flavor, update_state, update_detail, update_progress, update_reported_at, hidden_from_reports, target_force FROM branch_registers
 WHERE id = ANY($1::bigint[])
 `
 
@@ -313,6 +329,7 @@ func (q *Queries) ListBranchRegistersByIDs(ctx context.Context, ids []int64) ([]
 			&i.UpdateProgress,
 			&i.UpdateReportedAt,
 			&i.HiddenFromReports,
+			&i.TargetForce,
 		); err != nil {
 			return nil, err
 		}
@@ -427,17 +444,18 @@ func (q *Queries) SetRegisterUpdateStatus(ctx context.Context, arg SetRegisterUp
 }
 
 const setRegistersTargetRelease = `-- name: SetRegistersTargetRelease :exec
-UPDATE branch_registers SET target_release_id = $1
-WHERE id = ANY($2::bigint[])
+UPDATE branch_registers SET target_release_id = $1, target_force = $2
+WHERE id = ANY($3::bigint[])
 `
 
 type SetRegistersTargetReleaseParams struct {
 	ReleaseID   sql.NullInt64 `json:"release_id"`
+	Force       bool          `json:"force"`
 	RegisterIds []int64       `json:"register_ids"`
 }
 
 func (q *Queries) SetRegistersTargetRelease(ctx context.Context, arg SetRegistersTargetReleaseParams) error {
-	_, err := q.db.ExecContext(ctx, setRegistersTargetRelease, arg.ReleaseID, pq.Array(arg.RegisterIds))
+	_, err := q.db.ExecContext(ctx, setRegistersTargetRelease, arg.ReleaseID, arg.Force, pq.Array(arg.RegisterIds))
 	return err
 }
 

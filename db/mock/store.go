@@ -5876,10 +5876,10 @@ func (mr *MockStoreMockRecorder) GetRecurringExpense(arg0, arg1 interface{}) *go
 }
 
 // GetRegisterTargetRelease mocks base method.
-func (m *MockStore) GetRegisterTargetRelease(arg0 context.Context, arg1 int64) (db.AppRelease, error) {
+func (m *MockStore) GetRegisterTargetRelease(arg0 context.Context, arg1 int64) (db.GetRegisterTargetReleaseRow, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRegisterTargetRelease", arg0, arg1)
-	ret0, _ := ret[0].(db.AppRelease)
+	ret0, _ := ret[0].(db.GetRegisterTargetReleaseRow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

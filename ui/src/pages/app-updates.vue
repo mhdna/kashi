@@ -208,6 +208,17 @@
             label="Version"
             variant="outlined"
           />
+          <v-checkbox
+            v-model="forceInstall"
+            color="error"
+            density="compact"
+            :disabled="!targetReleaseId"
+            hide-details
+            label="Install now, even during a shift"
+          />
+          <p v-if="forceInstall" class="text-caption text-error mb-2">
+            The cashier gets a one-minute countdown to finish the sale, then the till closes and updates.
+          </p>
           <p class="text-body-2 text-medium-emphasis">
             Each till downloads it right away (or when it's next online) and installs it at a safe
             moment. "Keep what it runs" stops any update that hasn't installed yet.
@@ -243,6 +254,17 @@
           />
           <p v-if="deployCandidates.length === 0" class="text-body-2">
             No till runs the {{ deployRelease.flavor }} build.
+          </p>
+          <v-checkbox
+            v-model="forceInstall"
+            class="mt-2"
+            color="error"
+            density="compact"
+            hide-details
+            label="Install now, even during a shift"
+          />
+          <p v-if="forceInstall" class="text-caption text-error mb-2">
+            The cashier gets a one-minute countdown to finish the sale, then the till closes and updates.
           </p>
         </v-card-text>
         <v-card-actions>
@@ -413,6 +435,8 @@
 
   // ---- set version ---------------------------------------------------------
   const targetDialog = ref(false)
+  // "Install now, even during a shift" in either dialog; off each time one opens.
+  const forceInstall = ref(false)
   const targetRegisterIds = ref([])
   const targetReleaseId = ref(null)
   const targetOptions = computed(() => {
@@ -429,17 +453,18 @@
     targetRegisterIds.value = [...ids]
     const first = registers.value.find(r => r.id === ids[0])
     targetReleaseId.value = first?.target_release_id?.Valid ? first.target_release_id.Int64 : null
+    forceInstall.value = false
     targetDialog.value = true
   }
   async function submitTarget () {
-    await saveTarget(targetReleaseId.value, targetRegisterIds.value)
+    await saveTarget(targetReleaseId.value, targetRegisterIds.value, forceInstall.value)
     targetDialog.value = false
     selectedRegisterIds.value = []
   }
-  async function saveTarget (releaseId, registerIds) {
+  async function saveTarget (releaseId, registerIds, force = false) {
     saving.value = true
     try {
-      await api.setTarget(releaseId, registerIds)
+      await api.setTarget(releaseId, registerIds, force && !!releaseId)
       notify.success(releaseId ? 'Saved. The tills are fetching it now.' : 'Saved.')
       await reloadAll()
     } catch (error) {
@@ -464,6 +489,7 @@
   function openDeployDialog (release) {
     deployRelease.value = release
     deployRegisterIds.value = deployCandidates.value.map(r => r.id)
+    forceInstall.value = false
     deployDialog.value = true
   }
   function toggleAllDeploy () {
@@ -472,7 +498,7 @@
       : deployCandidates.value.map(r => r.id)
   }
   async function submitDeploy () {
-    await saveTarget(deployRelease.value.id, deployRegisterIds.value)
+    await saveTarget(deployRelease.value.id, deployRegisterIds.value, forceInstall.value)
     deployDialog.value = false
   }
 
