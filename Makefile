@@ -72,7 +72,9 @@ deploy: deploy-api deploy-ui
 # Cross-compile the API, ship it with the current migrations, run any
 # pending ones on the prod DB (idempotent), restart the service.
 deploy-api:
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o /tmp/kashi-api-linux .
+	# -s -w drops the debug tables (57 MB -> 41 MB, ~17 MB as rsync sends it):
+	# the upload is most of a deploy. Panics still name their functions.
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o /tmp/kashi-api-linux .
 	rsync -avz /tmp/kashi-api-linux $(SSH):$(APP_DIR)/api-linux
 	rsync -avz --delete ./db/migrations/ $(SSH):$(APP_DIR)/migrations/
 	ssh $(SSH) 'chown -R kashi:kashi $(APP_DIR)/api-linux $(APP_DIR)/migrations && \
