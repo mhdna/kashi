@@ -150,20 +150,31 @@
           <v-card class="card" variant="flat">
             <div class="card__title">Each branch sends from</div>
             <p class="text-caption text-medium-emphasis mb-3">
-              A branch left on "Default number" uses the number marked Default.
+              A branch left on "Default number" uses the number marked Default. Switch a branch off and it
+              sends no messages.
             </p>
-            <v-select
-              v-for="b in draft.branches"
-              :key="b.branch_id"
-              v-model="b.number_id"
-              class="mb-2"
-              density="compact"
-              :disabled="!canEdit"
-              hide-details
-              :items="numberOptions"
-              :label="b.branch_name"
-              variant="outlined"
-            />
+            <div v-for="b in draft.branches" :key="b.branch_id" class="d-flex align-center ga-3 mb-2">
+              <v-select
+                v-model="b.number_id"
+                density="compact"
+                :disabled="!canEdit || b.enabled === false"
+                hide-details
+                :items="numberOptions"
+                :label="b.branch_name"
+                variant="outlined"
+              />
+              <v-switch
+                class="flex-grow-0"
+                color="primary"
+                density="compact"
+                :disabled="!canEdit"
+                hide-details
+                inset
+                :model-value="b.enabled !== false"
+                :title="b.enabled === false ? 'Off: sends no messages' : 'On'"
+                @update:model-value="b.enabled = !!$event"
+              />
+            </div>
           </v-card>
         </v-col>
 
@@ -254,28 +265,100 @@
               Filled in per sale: <code v-for="p in placeholders" :key="p" class="me-1">{{ placeholder(p) }}</code>.
               A line whose placeholder has nothing to fill is left out. *bold* works as in WhatsApp.
             </p>
-            <v-textarea
-              v-if="pollMode"
-              v-model="draft.whatsapp_bridge_message"
-              auto-grow
+            <!-- New clients: the channel; returning ones: their receipt. -->
+            <v-switch
+              v-model="draft.whatsapp_channel_first"
+              class="mb-1"
+              color="primary"
               density="compact"
               :disabled="!canEdit"
               hide-details
-              :placeholder="defaultMessage"
-              rows="8"
-              variant="outlined"
+              inset
+              label="Channel link for a client's first message, receipt details after that"
             />
-            <v-textarea
-              v-else
-              v-model="draft.whatsapp_bridge_link_message"
-              auto-grow
-              density="compact"
-              :disabled="!canEdit"
-              hide-details
-              :placeholder="defaultLinkMessage"
-              rows="8"
-              variant="outlined"
-            />
+            <div v-if="draft.whatsapp_channel_first" class="d-flex align-center ga-2 mb-2">
+              <span class="text-caption text-medium-emphasis">Preview as</span>
+              <v-btn-toggle v-model="previewFirst" density="compact" mandatory variant="outlined">
+                <v-btn size="small" text="New client" :value="true" />
+                <v-btn size="small" text="Returning client" :value="false" />
+              </v-btn-toggle>
+            </div>
+            <!-- Details to include; off ones are left out (saved with Save). -->
+            <div class="d-flex align-center flex-wrap ga-3 mt-1">
+              <span class="text-caption text-medium-emphasis">Include in the message for</span>
+              <v-select
+                v-model="fieldsBranch"
+                density="compact"
+                hide-details
+                :items="fieldsBranchOptions"
+                style="max-width: 240px"
+                variant="outlined"
+              />
+              <template v-if="fieldsBranchRow">
+                <span v-if="fieldsBranchRow.hidden_fields" class="text-caption">
+                  Its own choice ·
+                  <a class="text-primary cursor-pointer" @click="fieldsBranchRow.hidden_fields = null">use the default</a>
+                </span>
+                <span v-else class="text-caption text-medium-emphasis">Follows the default until you change one</span>
+              </template>
+            </div>
+            <!-- The message part by part: each line its own box, a detail's
+                 switch beside it (whatsappMessageParts.js). Hand-written text
+                 that isn't made of these parts is edited as one. -->
+            <template v-if="!showAsText">
+              <div v-for="part in visibleParts" :key="part.key" class="d-flex align-center ga-2 mb-2">
+                <v-switch
+                  v-if="SWITCHED_FIELDS.has(part.field)"
+                  class="flex-grow-0"
+                  color="primary"
+                  density="compact"
+                  :disabled="!canEdit"
+                  hide-details
+                  inset
+                  :model-value="fieldOn(part.field)"
+                  :title="fieldOn(part.field) ? 'In the message' : 'Left out'"
+                  @update:model-value="togglePart(part)"
+                />
+                <div v-else class="wm-switch-gap" />
+                <v-text-field
+                  :class="{ 'wm-part--off': SWITCHED_FIELDS.has(part.field) && !fieldOn(part.field) }"
+                  density="compact"
+                  :disabled="!canEdit"
+                  :hint="partHint(part)"
+                  :label="part.title"
+                  :model-value="messageParts[part.key]"
+                  persistent-hint
+                  :placeholder="part.hint"
+                  :suffix="PART_SUFFIX[part.key]"
+                  variant="outlined"
+                  @update:model-value="setPart(part.key, $event)"
+                />
+              </div>
+              <a class="text-caption text-primary cursor-pointer" @click="textMode = true">Edit as one text</a>
+            </template>
+            <template v-else>
+              <v-alert
+                v-if="!messageParts"
+                class="mb-2"
+                density="compact"
+                type="info"
+                variant="tonal"
+              >
+                This message was written by hand, so it's edited as one text.
+                <a class="text-primary cursor-pointer" @click="resetToParts">Start over from parts</a>
+              </v-alert>
+              <v-textarea
+                v-model="draft[messageKey]"
+                auto-grow
+                density="compact"
+                :disabled="!canEdit"
+                hide-details
+                :placeholder="pollMode ? defaultMessage : defaultLinkMessage"
+                rows="8"
+                variant="outlined"
+              />
+              <a v-if="messageParts" class="text-caption text-primary cursor-pointer" @click="textMode = false">Edit by parts</a>
+            </template>
           </v-card>
         </v-col>
         <v-col cols="12" md="5">
@@ -506,6 +589,7 @@
   import { usePageAccess } from '@/composables/usePageAccess'
   import { useWhatsApp } from '@/composables/useWhatsApp'
   import { API_BASE } from '@/config'
+  import { composeMessage, MESSAGE_PARTS, parseMessage } from '@/utils/whatsappMessageParts'
 
   // How post-sale messages go out: our own numbers through the WhatsApp bridge
   // (api/whatsapp_bridge.go), or Meta's Cloud API.
@@ -605,18 +689,103 @@
     branch: 'Centro',
     review: 'https://grandbz.com/review/k7Pq2xWm',
   }
-  // Like the server's whatsAppBridgeText: lines whose placeholder is empty go,
-  // and so does a blank line doubled by that.
+  // ---- the message, part by part -------------------------------------------
+  const messageKey = computed(() => (pollMode.value ? 'whatsapp_bridge_message' : 'whatsapp_bridge_link_message'))
+  const currentTemplate = computed(() =>
+    draft.value?.[messageKey.value] || (pollMode.value ? defaultMessage.value : defaultLinkMessage.value))
+  // null: hand-written text the parts can't make, edited as one.
+  const messageParts = computed(() => parseMessage(currentTemplate.value, !pollMode.value))
+  const textMode = ref(false)
+  const showAsText = computed(() => textMode.value || !messageParts.value)
+  const visibleParts = computed(() => MESSAGE_PARTS.filter(p => !p.linkOnly || !pollMode.value))
+  const SWITCHED_FIELDS = new Set(['invoice', 'date', 'total', 'branch', 'channel'])
+  // What the server puts after a part's text.
+  const PART_SUFFIX = { greeting: '{name},', invoice: '↵ {invoice}', date: '{date}', total: '{total}', branch: '{branch}', review: '↵ {review}', channel: '{channel}' }
+  function setPart (key, value) {
+    draft.value[messageKey.value] = composeMessage({ ...messageParts.value, [key]: value ?? '' }, !pollMode.value)
+  }
+  // Switching a detail on with nothing written for it starts it off with the
+  // usual wording, so it shows up.
+  function togglePart (part) {
+    const turningOn = !fieldOn(part.field)
+    toggleField(part.field)
+    if (turningOn && !messageParts.value[part.key]?.trim()) setPart(part.key, part.hint)
+  }
+  function partHint (part) {
+    if (SWITCHED_FIELDS.has(part.field) && fieldOn(part.field) && !messageParts.value[part.key]?.trim()) {
+      return 'Empty: not in the message'
+    }
+    return ''
+  }
+  function resetToParts () {
+    draft.value[messageKey.value] = ''
+    textMode.value = false
+  }
+
+  // The details that can be switched off (the server's whatsAppMessageFields).
+  const MESSAGE_FIELDS = [
+    { key: 'invoice', label: 'Receipt code' },
+    { key: 'date', label: 'Date' },
+    { key: 'total', label: 'Total' },
+    { key: 'branch', label: 'Branch' },
+    { key: 'channel', label: 'Channel link' },
+  ]
+  // Whose switches are shown: 0 the default, else a branch, which follows the
+  // default (hidden_fields null) until one of its switches is changed.
+  const fieldsBranch = ref(0)
+  const fieldsBranchOptions = computed(() => [
+    { title: 'All branches (default)', value: 0 },
+    ...(draft.value?.branches ?? []).map(b => ({
+      title: b.hidden_fields ? `${b.branch_name} · own choice` : b.branch_name,
+      value: b.branch_id,
+    })),
+  ])
+  const fieldsBranchRow = computed(() => (draft.value?.branches ?? []).find(b => b.branch_id === fieldsBranch.value))
+  // Like the server's whatsAppFirstOrReturning: a first message swaps the
+  // receipt details for the channel link, a later one the other way round.
+  const RECEIPT_FIELDS = ['invoice', 'date', 'total']
+  const previewFirst = ref(true)
+  function firstOrReturning (hidden, first) {
+    const rest = hidden.filter(f => f !== 'channel' && !RECEIPT_FIELDS.includes(f))
+    return first
+      ? [...rest, ...RECEIPT_FIELDS]
+      : [...rest, ...hidden.filter(f => RECEIPT_FIELDS.includes(f)), 'channel']
+  }
+  const hiddenFields = computed(() => fieldsBranchRow.value?.hidden_fields ?? draft.value?.whatsapp_hidden_fields ?? [])
+  const fieldOn = key => !hiddenFields.value.includes(key)
+  function toggleField (key) {
+    const hidden = hiddenFields.value
+    const next = hidden.includes(key) ? hidden.filter(k => k !== key) : [...hidden, key]
+    if (fieldsBranchRow.value) fieldsBranchRow.value.hidden_fields = next
+    else draft.value.whatsapp_hidden_fields = next
+  }
+
+  // Like the server's whatsAppBridgeText: lines whose placeholder is empty
+  // (or switched off) go, then labels left with nothing to label, and a
+  // blank line doubled by that.
   function fillMessage (message) {
     const values = {
       ...SAMPLE,
       review: pollMode.value ? '' : SAMPLE.review,
       channel: draft.value?.whatsapp_channel_url?.trim() || '',
     }
+    if (fieldsBranchRow.value) values.branch = fieldsBranchRow.value.branch_name
+    let hidden = hiddenFields.value
+    if (draft.value?.whatsapp_channel_first) hidden = firstOrReturning(hidden, previewFirst.value)
+    for (const key of hidden) values[key] = ''
+    const lines = message.split('\n')
+    const dropped = lines.map(line => [...line.matchAll(/\{(\w+)\}/g)].some(m => m[1] in values && !values[m[1]]))
+    const isLabel = line => line.trim().endsWith(':') && !/\{\w+\}/.test(line)
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (dropped[i] || !isLabel(lines[i]) || !lines[i + 1]?.trim()) continue
+      const valueOnly = lines[i + 1].replaceAll(/\{\w+\}/g, '').replaceAll(/[\s*_~]/g, '') === ''
+      let rest = true
+      for (let j = i + 1; j < lines.length && lines[j].trim(); j++) rest &&= dropped[j]
+      dropped[i] = (dropped[i + 1] && valueOnly) || rest
+    }
     const out = []
-    for (const line of message.split('\n')) {
-      const keys = [...line.matchAll(/\{(\w+)\}/g)].map(m => m[1])
-      if (keys.some(k => k in values && !values[k])) continue
+    for (const [i, line] of lines.entries()) {
+      if (dropped[i]) continue
       const filled = line.replaceAll(/\{(\w+)\}/g, (m, key) => values[key] ?? m)
       if (!filled.trim() && out.length > 0 && !out.at(-1).trim()) continue
       out.push(filled)
@@ -769,6 +938,13 @@
   border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
   border-radius: 10px;
   height: 100%;
+}
+.wm-switch-gap {
+  width: 52px;
+  flex: none;
+}
+.wm-part--off {
+  opacity: 0.5;
 }
 .card__title {
   font-size: 0.9rem;

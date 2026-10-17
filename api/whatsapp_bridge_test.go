@@ -22,7 +22,7 @@ func TestWhatsAppBridgeText(t *testing.T) {
 	}
 	// No channel link: its line, and the blank line it leaves, go.
 	got := whatsAppBridgeText(defaultWhatsAppLinkMessage, values)
-	require.Contains(t, got, "🧾 Receipt number:\n*SA/CT/2026/00482*\n📅 Date: 16/10/2026\n💳 Total paid: *$156.25*\n\nWe'd love")
+	require.Contains(t, got, "🧾 Receipt code:\n*SA/CT/2026/00482*\n📅 Date: 16/10/2026\n💳 Total paid: *$156.25*\n\nWe'd love")
 	require.True(t, strings.HasSuffix(got, "on Google:\nhttps://grandbz.com/review/abcdEFGH"), got)
 	require.NotContains(t, got, "channel")
 	require.NotContains(t, got, "keep this message")
@@ -34,8 +34,45 @@ func TestWhatsAppBridgeText(t *testing.T) {
 	require.True(t, strings.HasSuffix(got, "📢 Follow our WhatsApp channel for new arrivals and offers: https://whatsapp.com/channel/0029VaAbCd"))
 	require.NotContains(t, got, "{")
 
+	// Receipt code switched off: its label goes with its value, the rest stays.
+	values["invoice"] = ""
+	got = whatsAppBridgeText(defaultWhatsAppPollMessage, values)
+	require.Contains(t, got, "Here are the details of your purchase:\n📅 Date: 16/10/2026\n💳 Total paid: *$156.25*\n\n📢")
+	require.NotContains(t, got, "Receipt")
+
+	// Every detail off: the heading goes too, and only one blank line is left.
+	values["date"], values["total"] = "", ""
+	got = whatsAppBridgeText(defaultWhatsAppPollMessage, values)
+	require.Equal(t, "Hi Sara,\n\nThank you for shopping at *Grand Bazaar* today 🤍\n\n📢 Follow our WhatsApp channel for new arrivals and offers: https://whatsapp.com/channel/0029VaAbCd", got)
+
+	// A label with its value on the same line, or at the end, stays.
+	require.Equal(t, "Note:", whatsAppBridgeText("Note:", values))
+	values["invoice"] = "SA/CT/2026/00482"
+
 	// A placeholder kashi doesn't know stays as typed.
 	require.Equal(t, "Hi {nmae}", whatsAppBridgeText("Hi {nmae}", values))
+}
+
+func TestWhatsAppHiddenFields(t *testing.T) {
+	require.Equal(t, []string{}, whatsAppHiddenFields(""))
+	require.Equal(t, []string{"invoice", "total"}, whatsAppHiddenFields(" invoice,total,invoice,name,bogus"))
+}
+
+func TestWhatsAppBranchHiddenFields(t *testing.T) {
+	sender := db.GetWhatsAppSenderSettingsRow{WhatsappHiddenFields: "total"}
+	// No choice of its own: the default.
+	require.Equal(t, []string{"total"}, whatsAppBranchHiddenFields(sender, sql.NullString{}))
+	// Its own, even "show everything".
+	require.Equal(t, []string{"invoice", "date"}, whatsAppBranchHiddenFields(sender, sql.NullString{String: "invoice,date", Valid: true}))
+	require.Equal(t, []string{}, whatsAppBranchHiddenFields(sender, sql.NullString{String: "", Valid: true}))
+}
+
+func TestWhatsAppFirstOrReturning(t *testing.T) {
+	// First message: the channel, no receipt details.
+	require.Equal(t, []string{"branch", "invoice", "date", "total"}, whatsAppFirstOrReturning([]string{"branch", "channel"}, true))
+	// Later ones: the receipt details (minus any switched off), no channel.
+	require.Equal(t, []string{"total", "channel"}, whatsAppFirstOrReturning([]string{"total"}, false))
+	require.Equal(t, []string{"channel"}, whatsAppFirstOrReturning([]string{}, false))
 }
 
 func TestWhatsAppBridgeMessageFor(t *testing.T) {
@@ -76,7 +113,7 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 		rec := httptest.NewRecorder()
 		ctx, _ := gin.CreateTestContext(rec)
 		ctx.Request = httptest.NewRequest(http.MethodPost, "/", nil)
-		server.sendWhatsAppViaBridge(ctx, entry, sender, "Centro", sale)
+		server.sendWhatsAppViaBridge(ctx, entry, sender, "Centro", nil, sale)
 		return rec
 	}
 
@@ -95,6 +132,8 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 				require.Equal(t, whatsAppSenderBridge, arg.Sender)
 				require.Equal(t, sql.NullInt64{Int64: 5, Valid: true}, arg.WhatsappNumberID)
 				require.Regexp(t, reviewCodePattern, arg.ReviewCode)
+				require.Regexp(t, reviewCodePattern, arg.BridgeRef)
+				require.Contains(t, arg.Body, "Hi Sara,") // the text as sent, for the chat view
 				return db.WhatsappMessage{}, nil
 			})
 
@@ -105,6 +144,8 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 		require.Equal(t, "96170123456", (*got)["number"])
 		require.Equal(t, true, (*got)["force"])
 		require.Equal(t, true, (*got)["linkPreview"])
+		require.Regexp(t, reviewCodePattern, (*got)["ref"]) // ticks come back by it
+		require.Contains(t, (*got)["callback"], whatsAppPollVotesPath)
 		text := (*got)["text"].(string)
 		require.Contains(t, text, "Hi Sara,")
 		require.Contains(t, text, "💳 Total paid: *$156.25*")

@@ -12,10 +12,10 @@ import (
 )
 
 const addWhatsAppPollReply = `-- name: AddWhatsAppPollReply :one
-INSERT INTO whatsapp_poll_replies (whatsapp_message_id, wa_id, body, kind, received_at)
-SELECT m.id, $1, $2, $3, $4
+INSERT INTO whatsapp_poll_replies (whatsapp_message_id, wa_id, body, kind, received_at, media_type)
+SELECT m.id, $1, $2, $3, $4, $5
 FROM whatsapp_messages m
-WHERE m.poll_ref = $5
+WHERE m.poll_ref = $6
 ON CONFLICT (wa_id) DO NOTHING
 RETURNING id
 `
@@ -25,6 +25,7 @@ type AddWhatsAppPollReplyParams struct {
 	Body       string    `json:"body"`
 	Kind       string    `json:"kind"`
 	ReceivedAt time.Time `json:"received_at"`
+	MediaType  string    `json:"media_type"`
 	PollRef    string    `json:"poll_ref"`
 }
 
@@ -36,6 +37,7 @@ func (q *Queries) AddWhatsAppPollReply(ctx context.Context, arg AddWhatsAppPollR
 		arg.Body,
 		arg.Kind,
 		arg.ReceivedAt,
+		arg.MediaType,
 		arg.PollRef,
 	)
 	var id int64
@@ -43,12 +45,53 @@ func (q *Queries) AddWhatsAppPollReply(ctx context.Context, arg AddWhatsAppPollR
 	return id, err
 }
 
+const applyWhatsAppBridgeTick = `-- name: ApplyWhatsAppBridgeTick :one
+UPDATE whatsapp_messages SET
+  delivery_status = CASE
+    WHEN array_position(ARRAY['', 'sent', 'delivered', 'read'], $1::text)
+       > array_position(ARRAY['', 'sent', 'delivered', 'read'], delivery_status)
+      THEN $1::text
+    ELSE delivery_status
+  END,
+  delivered_at = CASE WHEN $1::text IN ('delivered', 'read')
+    THEN COALESCE(delivered_at, $2::timestamptz) ELSE delivered_at END,
+  read_at = CASE WHEN $1::text = 'read'
+    THEN COALESCE(read_at, $2::timestamptz) ELSE read_at END
+WHERE bridge_ref = $3 AND $3::text <> ''
+RETURNING id, branch_id
+`
+
+type ApplyWhatsAppBridgeTickParams struct {
+	DeliveryStatus string    `json:"delivery_status"`
+	At             time.Time `json:"at"`
+	BridgeRef      string    `json:"bridge_ref"`
+}
+
+type ApplyWhatsAppBridgeTickRow struct {
+	ID       int64         `json:"id"`
+	BranchID sql.NullInt64 `json:"branch_id"`
+}
+
+// A tick the bridge saw on one of our own messages. Like Meta's statuses it
+// only moves forward (sent -> delivered -> read), so a late one changes nothing.
+func (q *Queries) ApplyWhatsAppBridgeTick(ctx context.Context, arg ApplyWhatsAppBridgeTickParams) (ApplyWhatsAppBridgeTickRow, error) {
+	row := q.db.QueryRowContext(ctx, applyWhatsAppBridgeTick, arg.DeliveryStatus, arg.At, arg.BridgeRef)
+	var i ApplyWhatsAppBridgeTickRow
+	err := row.Scan(&i.ID, &i.BranchID)
+	return i, err
+}
+
 const claimWhatsAppPollFollowup = `-- name: ClaimWhatsAppPollFollowup :one
-UPDATE whatsapp_messages m SET poll_followup_at = now()
+UPDATE whatsapp_messages m SET poll_followup_at = now(), followup_body = $1
 FROM whatsapp_numbers n
-WHERE m.id = $1 AND m.poll_followup_at IS NULL AND n.id = m.whatsapp_number_id
+WHERE m.id = $2 AND m.poll_followup_at IS NULL AND n.id = m.whatsapp_number_id
 RETURNING m.client_phone, n.instance
 `
+
+type ClaimWhatsAppPollFollowupParams struct {
+	FollowupBody string `json:"followup_body"`
+	ID           int64  `json:"id"`
+}
 
 type ClaimWhatsAppPollFollowupRow struct {
 	ClientPhone string `json:"client_phone"`
@@ -57,8 +100,8 @@ type ClaimWhatsAppPollFollowupRow struct {
 
 // Marks the poll's follow-up as sent and says where to send it; no rows when
 // it already went (a changed vote) or the number is gone.
-func (q *Queries) ClaimWhatsAppPollFollowup(ctx context.Context, id int64) (ClaimWhatsAppPollFollowupRow, error) {
-	row := q.db.QueryRowContext(ctx, claimWhatsAppPollFollowup, id)
+func (q *Queries) ClaimWhatsAppPollFollowup(ctx context.Context, arg ClaimWhatsAppPollFollowupParams) (ClaimWhatsAppPollFollowupRow, error) {
+	row := q.db.QueryRowContext(ctx, claimWhatsAppPollFollowup, arg.FollowupBody, arg.ID)
 	var i ClaimWhatsAppPollFollowupRow
 	err := row.Scan(&i.ClientPhone, &i.Instance)
 	return i, err
@@ -126,12 +169,35 @@ func (q *Queries) GetWhatsAppNumber(ctx context.Context, id int64) (WhatsappNumb
 	return i, err
 }
 
+const getWhatsAppPollReplyMedia = `-- name: GetWhatsAppPollReplyMedia :one
+SELECT r.wa_id, r.media_type, n.instance
+FROM whatsapp_poll_replies r
+JOIN whatsapp_messages m ON m.id = r.whatsapp_message_id
+JOIN whatsapp_numbers n ON n.id = m.whatsapp_number_id
+WHERE r.id = $1 AND r.media_type <> ''
+`
+
+type GetWhatsAppPollReplyMediaRow struct {
+	WaID      string `json:"wa_id"`
+	MediaType string `json:"media_type"`
+	Instance  string `json:"instance"`
+}
+
+// Where a reply's media is kept: the bridge number that got it, and its id.
+func (q *Queries) GetWhatsAppPollReplyMedia(ctx context.Context, id int64) (GetWhatsAppPollReplyMediaRow, error) {
+	row := q.db.QueryRowContext(ctx, getWhatsAppPollReplyMedia, id)
+	var i GetWhatsAppPollReplyMediaRow
+	err := row.Scan(&i.WaID, &i.MediaType, &i.Instance)
+	return i, err
+}
+
 const getWhatsAppSenderSettings = `-- name: GetWhatsAppSenderSettings :one
 
 SELECT whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message,
        whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url,
        whatsapp_poll_question, whatsapp_poll_options, whatsapp_message_logo,
-       whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad
+       whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad,
+       whatsapp_hidden_fields, whatsapp_channel_first
 FROM app_settings WHERE id = 1
 `
 
@@ -150,6 +216,8 @@ type GetWhatsAppSenderSettingsRow struct {
 	WhatsappFollowupGood      string `json:"whatsapp_followup_good"`
 	WhatsappFollowupOkay      string `json:"whatsapp_followup_okay"`
 	WhatsappFollowupBad       string `json:"whatsapp_followup_bad"`
+	WhatsappHiddenFields      string `json:"whatsapp_hidden_fields"`
+	WhatsappChannelFirst      bool   `json:"whatsapp_channel_first"`
 }
 
 // Sending post-sale messages from our own numbers through the WhatsApp
@@ -172,18 +240,22 @@ func (q *Queries) GetWhatsAppSenderSettings(ctx context.Context) (GetWhatsAppSen
 		&i.WhatsappFollowupGood,
 		&i.WhatsappFollowupOkay,
 		&i.WhatsappFollowupBad,
+		&i.WhatsappHiddenFields,
+		&i.WhatsappChannelFirst,
 	)
 	return i, err
 }
 
 const listBranchWhatsAppNumbers = `-- name: ListBranchWhatsAppNumbers :many
-SELECT id, name, whatsapp_number_id FROM branches ORDER BY id
+SELECT id, name, whatsapp_number_id, whatsapp_enabled, whatsapp_hidden_fields FROM branches ORDER BY id
 `
 
 type ListBranchWhatsAppNumbersRow struct {
-	ID               int64         `json:"id"`
-	Name             string        `json:"name"`
-	WhatsappNumberID sql.NullInt64 `json:"whatsapp_number_id"`
+	ID                   int64          `json:"id"`
+	Name                 string         `json:"name"`
+	WhatsappNumberID     sql.NullInt64  `json:"whatsapp_number_id"`
+	WhatsappEnabled      bool           `json:"whatsapp_enabled"`
+	WhatsappHiddenFields sql.NullString `json:"whatsapp_hidden_fields"`
 }
 
 func (q *Queries) ListBranchWhatsAppNumbers(ctx context.Context) ([]ListBranchWhatsAppNumbersRow, error) {
@@ -195,7 +267,13 @@ func (q *Queries) ListBranchWhatsAppNumbers(ctx context.Context) ([]ListBranchWh
 	items := []ListBranchWhatsAppNumbersRow{}
 	for rows.Next() {
 		var i ListBranchWhatsAppNumbersRow
-		if err := rows.Scan(&i.ID, &i.Name, &i.WhatsappNumberID); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.WhatsappNumberID,
+			&i.WhatsappEnabled,
+			&i.WhatsappHiddenFields,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -249,7 +327,7 @@ UPDATE whatsapp_messages SET
     poll_answer = $2,
     poll_voted_at = now()
 WHERE poll_ref = $3
-RETURNING id, branch_id
+RETURNING id, branch_id, client_name
 `
 
 type RecordWhatsAppPollVoteParams struct {
@@ -259,29 +337,41 @@ type RecordWhatsAppPollVoteParams struct {
 }
 
 type RecordWhatsAppPollVoteRow struct {
-	ID       int64         `json:"id"`
-	BranchID sql.NullInt64 `json:"branch_id"`
+	ID         int64         `json:"id"`
+	BranchID   sql.NullInt64 `json:"branch_id"`
+	ClientName string        `json:"client_name"`
 }
 
 // A client's answer to the rating poll; a NULL rating is a vote taken back.
 func (q *Queries) RecordWhatsAppPollVote(ctx context.Context, arg RecordWhatsAppPollVoteParams) (RecordWhatsAppPollVoteRow, error) {
 	row := q.db.QueryRowContext(ctx, recordWhatsAppPollVote, arg.PollRating, arg.PollAnswer, arg.PollRef)
 	var i RecordWhatsAppPollVoteRow
-	err := row.Scan(&i.ID, &i.BranchID)
+	err := row.Scan(&i.ID, &i.BranchID, &i.ClientName)
 	return i, err
 }
 
 const setBranchWhatsAppNumber = `-- name: SetBranchWhatsAppNumber :exec
-UPDATE branches SET whatsapp_number_id = $1 WHERE id = $2
+UPDATE branches SET
+    whatsapp_number_id = $1,
+    whatsapp_enabled = $2,
+    whatsapp_hidden_fields = $3
+WHERE id = $4
 `
 
 type SetBranchWhatsAppNumberParams struct {
-	WhatsappNumberID sql.NullInt64 `json:"whatsapp_number_id"`
-	ID               int64         `json:"id"`
+	WhatsappNumberID     sql.NullInt64  `json:"whatsapp_number_id"`
+	WhatsappEnabled      bool           `json:"whatsapp_enabled"`
+	WhatsappHiddenFields sql.NullString `json:"whatsapp_hidden_fields"`
+	ID                   int64          `json:"id"`
 }
 
 func (q *Queries) SetBranchWhatsAppNumber(ctx context.Context, arg SetBranchWhatsAppNumberParams) error {
-	_, err := q.db.ExecContext(ctx, setBranchWhatsAppNumber, arg.WhatsappNumberID, arg.ID)
+	_, err := q.db.ExecContext(ctx, setBranchWhatsAppNumber,
+		arg.WhatsappNumberID,
+		arg.WhatsappEnabled,
+		arg.WhatsappHiddenFields,
+		arg.ID,
+	)
 	return err
 }
 
@@ -324,6 +414,8 @@ UPDATE app_settings SET
     whatsapp_followup_good = $12,
     whatsapp_followup_okay = $13,
     whatsapp_followup_bad = $14,
+    whatsapp_hidden_fields = $15,
+    whatsapp_channel_first = $16,
     updated_at = now()
 WHERE id = 1
 `
@@ -343,6 +435,8 @@ type SetWhatsAppSenderSettingsParams struct {
 	WhatsappFollowupGood      string `json:"whatsapp_followup_good"`
 	WhatsappFollowupOkay      string `json:"whatsapp_followup_okay"`
 	WhatsappFollowupBad       string `json:"whatsapp_followup_bad"`
+	WhatsappHiddenFields      string `json:"whatsapp_hidden_fields"`
+	WhatsappChannelFirst      bool   `json:"whatsapp_channel_first"`
 }
 
 func (q *Queries) SetWhatsAppSenderSettings(ctx context.Context, arg SetWhatsAppSenderSettingsParams) error {
@@ -361,6 +455,8 @@ func (q *Queries) SetWhatsAppSenderSettings(ctx context.Context, arg SetWhatsApp
 		arg.WhatsappFollowupGood,
 		arg.WhatsappFollowupOkay,
 		arg.WhatsappFollowupBad,
+		arg.WhatsappHiddenFields,
+		arg.WhatsappChannelFirst,
 	)
 	return err
 }

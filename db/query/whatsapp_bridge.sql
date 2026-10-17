@@ -5,7 +5,8 @@
 SELECT whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message,
        whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url,
        whatsapp_poll_question, whatsapp_poll_options, whatsapp_message_logo,
-       whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad
+       whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad,
+       whatsapp_hidden_fields, whatsapp_channel_first
 FROM app_settings WHERE id = 1;
 
 -- name: SetWhatsAppSenderSettings :exec
@@ -24,6 +25,8 @@ UPDATE app_settings SET
     whatsapp_followup_good = sqlc.arg(whatsapp_followup_good),
     whatsapp_followup_okay = sqlc.arg(whatsapp_followup_okay),
     whatsapp_followup_bad = sqlc.arg(whatsapp_followup_bad),
+    whatsapp_hidden_fields = sqlc.arg(whatsapp_hidden_fields),
+    whatsapp_channel_first = sqlc.arg(whatsapp_channel_first),
     updated_at = now()
 WHERE id = 1;
 
@@ -55,10 +58,14 @@ UPDATE whatsapp_numbers SET is_default = true WHERE id = sqlc.arg(id);
 DELETE FROM whatsapp_numbers WHERE id = sqlc.arg(id);
 
 -- name: ListBranchWhatsAppNumbers :many
-SELECT id, name, whatsapp_number_id FROM branches ORDER BY id;
+SELECT id, name, whatsapp_number_id, whatsapp_enabled, whatsapp_hidden_fields FROM branches ORDER BY id;
 
 -- name: SetBranchWhatsAppNumber :exec
-UPDATE branches SET whatsapp_number_id = sqlc.narg(whatsapp_number_id) WHERE id = sqlc.arg(id);
+UPDATE branches SET
+    whatsapp_number_id = sqlc.narg(whatsapp_number_id),
+    whatsapp_enabled = sqlc.arg(whatsapp_enabled),
+    whatsapp_hidden_fields = sqlc.narg(whatsapp_hidden_fields)
+WHERE id = sqlc.arg(id);
 
 -- name: WhatsAppNumberForBranch :one
 -- The number a branch's messages go out from: its own, else the default,
@@ -79,12 +86,12 @@ UPDATE whatsapp_messages SET
     poll_answer = sqlc.arg(poll_answer),
     poll_voted_at = now()
 WHERE poll_ref = sqlc.arg(poll_ref)
-RETURNING id, branch_id;
+RETURNING id, branch_id, client_name;
 
 -- name: ClaimWhatsAppPollFollowup :one
 -- Marks the poll's follow-up as sent and says where to send it; no rows when
 -- it already went (a changed vote) or the number is gone.
-UPDATE whatsapp_messages m SET poll_followup_at = now()
+UPDATE whatsapp_messages m SET poll_followup_at = now(), followup_body = sqlc.arg(followup_body)
 FROM whatsapp_numbers n
 WHERE m.id = sqlc.arg(id) AND m.poll_followup_at IS NULL AND n.id = m.whatsapp_number_id
 RETURNING m.client_phone, n.instance;
@@ -92,9 +99,34 @@ RETURNING m.client_phone, n.instance;
 -- name: AddWhatsAppPollReply :one
 -- A client's message after the poll, reported by the bridge. No rows when the
 -- poll is unknown or the bridge already reported this message.
-INSERT INTO whatsapp_poll_replies (whatsapp_message_id, wa_id, body, kind, received_at)
-SELECT m.id, sqlc.arg(wa_id), sqlc.arg(body), sqlc.arg(kind), sqlc.arg(received_at)
+INSERT INTO whatsapp_poll_replies (whatsapp_message_id, wa_id, body, kind, received_at, media_type)
+SELECT m.id, sqlc.arg(wa_id), sqlc.arg(body), sqlc.arg(kind), sqlc.arg(received_at), sqlc.arg(media_type)
 FROM whatsapp_messages m
 WHERE m.poll_ref = sqlc.arg(poll_ref)
 ON CONFLICT (wa_id) DO NOTHING
 RETURNING id;
+
+-- name: ApplyWhatsAppBridgeTick :one
+-- A tick the bridge saw on one of our own messages. Like Meta's statuses it
+-- only moves forward (sent -> delivered -> read), so a late one changes nothing.
+UPDATE whatsapp_messages SET
+  delivery_status = CASE
+    WHEN array_position(ARRAY['', 'sent', 'delivered', 'read'], sqlc.arg(delivery_status)::text)
+       > array_position(ARRAY['', 'sent', 'delivered', 'read'], delivery_status)
+      THEN sqlc.arg(delivery_status)::text
+    ELSE delivery_status
+  END,
+  delivered_at = CASE WHEN sqlc.arg(delivery_status)::text IN ('delivered', 'read')
+    THEN COALESCE(delivered_at, sqlc.arg(at)::timestamptz) ELSE delivered_at END,
+  read_at = CASE WHEN sqlc.arg(delivery_status)::text = 'read'
+    THEN COALESCE(read_at, sqlc.arg(at)::timestamptz) ELSE read_at END
+WHERE bridge_ref = sqlc.arg(bridge_ref) AND sqlc.arg(bridge_ref)::text <> ''
+RETURNING id, branch_id;
+
+-- name: GetWhatsAppPollReplyMedia :one
+-- Where a reply's media is kept: the bridge number that got it, and its id.
+SELECT r.wa_id, r.media_type, n.instance
+FROM whatsapp_poll_replies r
+JOIN whatsapp_messages m ON m.id = r.whatsapp_message_id
+JOIN whatsapp_numbers n ON n.id = m.whatsapp_number_id
+WHERE r.id = sqlc.arg(id) AND r.media_type <> '';

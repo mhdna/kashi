@@ -1,11 +1,13 @@
 package api
 
 import (
+	"crypto/rand"
 	"crypto/subtle"
 	"database/sql"
 	"errors"
 	"fmt"
 	"log"
+	"math/big"
 	"net"
 	"net/http"
 	"net/url"
@@ -117,6 +119,16 @@ func (server *Server) whatsAppPollCallback() string {
 
 const whatsAppPollVotesPath = "/whatsapp/bridge/votes"
 
+// whatsAppPollGap puts the poll 1-2.5s behind the message: close enough to
+// arrive with it, varied so it isn't a fixed machine rhythm.
+func whatsAppPollGap() int64 {
+	n, err := rand.Int(rand.Reader, big.NewInt(1500))
+	if err != nil {
+		return 1500
+	}
+	return 1000 + n.Int64()
+}
+
 // sendWhatsAppPoll queues the rating poll right after the message. It
 // returns the poll's ref, or "" when it couldn't be queued (the message
 // itself still went).
@@ -130,7 +142,7 @@ func (server *Server) sendWhatsAppPoll(ctx *gin.Context, sender db.GetWhatsAppSe
 		"callback": server.whatsAppPollCallback(),
 		"source":   "kashi-poll",
 		"force":    true,
-		"gap":      3000,
+		"gap":      whatsAppPollGap(),
 	}, nil)
 	if err != nil {
 		log.Printf("whatsapp poll: queue for %s: %v", phone, err)
@@ -149,7 +161,16 @@ type whatsAppPollReport struct {
 		Text string    `json:"text"`
 		Kind string    `json:"kind"`
 		At   time.Time `json:"at"`
+		// Kept by the bridge (a voice note, photo...): GET /media there.
+		Media *struct {
+			Mimetype string `json:"mimetype"`
+		} `json:"media"`
 	} `json:"reply"`
+	// A tick on the thank-you message itself (its ref is bridge_ref).
+	Receipt *struct {
+		Status string    `json:"status" binding:"required"`
+		At     time.Time `json:"at"`
+	} `json:"receipt"`
 }
 
 // receiveWhatsAppPollVote is the bridge reporting a vote or a reply. It signs
@@ -175,6 +196,10 @@ func (server *Server) receiveWhatsAppPollVote(ctx *gin.Context) {
 		server.receiveWhatsAppPollReply(ctx, vote)
 		return
 	}
+	if vote.Receipt != nil {
+		server.receiveWhatsAppBridgeTick(ctx, vote)
+		return
+	}
 	rating, answer := whatsAppPollRating(whatsAppPollOptions(sender.WhatsappPollOptions), vote.Selected)
 	row, err := server.store.RecordWhatsAppPollVote(ctx, db.RecordWhatsAppPollVoteParams{
 		PollRef:    vote.Ref,
@@ -193,6 +218,12 @@ func (server *Server) receiveWhatsAppPollVote(ctx *gin.Context) {
 	if rating > 0 && sender.WhatsappFollowup {
 		server.sendWhatsAppPollFollowup(ctx, sender, row.ID, rating)
 	}
+	if rating > 0 && row.BranchID.Valid {
+		server.branchHub.notify(row.BranchID.Int64, branchWSMessage{Type: "review", Review: &branchReview{
+			ClientName: strings.TrimSpace(row.ClientName),
+			Rating:     rating,
+		}})
+	}
 	server.adminHub.broadcastAll(adminWSMessage{Type: "review_click", BranchID: row.BranchID.Int64})
 	server.writeJSON(ctx, http.StatusOK, envelope{"ok": true})
 }
@@ -200,7 +231,8 @@ func (server *Server) receiveWhatsAppPollVote(ctx *gin.Context) {
 // sendWhatsAppPollFollowup queues the follow-up for the client's answer, from
 // the number that sent the poll, unless one already went for this poll.
 func (server *Server) sendWhatsAppPollFollowup(ctx *gin.Context, sender db.GetWhatsAppSenderSettingsRow, messageID int64, rating int16) {
-	to, err := server.store.ClaimWhatsAppPollFollowup(ctx, messageID)
+	text := whatsAppPollFollowup(sender, rating)
+	to, err := server.store.ClaimWhatsAppPollFollowup(ctx, db.ClaimWhatsAppPollFollowupParams{ID: messageID, FollowupBody: text})
 	if errors.Is(err, sql.ErrNoRows) {
 		return
 	}
@@ -210,7 +242,7 @@ func (server *Server) sendWhatsAppPollFollowup(ctx *gin.Context, sender db.GetWh
 	}
 	err = whatsAppBridgeCall(ctx, sender, http.MethodPost, "/message/sendText/"+url.PathEscape(to.Instance), map[string]any{
 		"number":      to.ClientPhone,
-		"text":        whatsAppPollFollowup(sender, rating),
+		"text":        text,
 		"source":      "kashi-followup",
 		"force":       true, // the same text to a returning client isn't a duplicate
 		"gap":         3000,
@@ -237,6 +269,7 @@ func (server *Server) receiveWhatsAppPollReply(ctx *gin.Context, report whatsApp
 		Body:       strings.TrimSpace(report.Reply.Text),
 		Kind:       kind,
 		ReceivedAt: at,
+		MediaType:  whatsAppReplyMediaType(report),
 	})
 	if errors.Is(err, sql.ErrNoRows) {
 		// An unknown poll, or a message the bridge already reported.
@@ -249,4 +282,44 @@ func (server *Server) receiveWhatsAppPollReply(ctx *gin.Context, report whatsApp
 	}
 	server.adminHub.broadcastAll(adminWSMessage{Type: "review_click"})
 	server.writeJSON(ctx, http.StatusOK, envelope{"ok": true})
+}
+
+// receiveWhatsAppBridgeTick records how far a message from our own numbers
+// got: sent (one tick), delivered (two) or read (blue). One that stays on one
+// tick for days was blocked, or went to a phone that's off.
+func (server *Server) receiveWhatsAppBridgeTick(ctx *gin.Context, report whatsAppPollReport) {
+	status := report.Receipt.Status
+	if status != "sent" && status != "delivered" && status != "read" {
+		server.writeError(ctx, http.StatusBadRequest, errors.New("receipt status must be sent, delivered or read"))
+		return
+	}
+	at := report.Receipt.At
+	if at.IsZero() {
+		at = time.Now()
+	}
+	row, err := server.store.ApplyWhatsAppBridgeTick(ctx, db.ApplyWhatsAppBridgeTickParams{
+		DeliveryStatus: status,
+		At:             at,
+		BridgeRef:      report.Ref,
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		server.writeJSON(ctx, http.StatusOK, envelope{"ok": false}) // a message kashi doesn't know
+		return
+	}
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.adminHub.broadcastAll(adminWSMessage{Type: "whatsapp_message", BranchID: row.BranchID.Int64})
+	server.writeJSON(ctx, http.StatusOK, envelope{"ok": true})
+}
+
+func whatsAppReplyMediaType(report whatsAppPollReport) string {
+	if report.Reply.Media == nil {
+		return ""
+	}
+	if m := strings.TrimSpace(report.Reply.Media.Mimetype); m != "" {
+		return m
+	}
+	return "application/octet-stream"
 }

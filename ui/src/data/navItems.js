@@ -3,8 +3,7 @@ export const navItems = [
   { title: 'Daily Income', icon: 'mdi-chart-bar', to: '/daily-income' },
   { title: 'Invoices', icon: 'mdi-format-list-bulleted-square', to: '/invoices' },
   { title: 'Shifts', icon: 'mdi-clock-outline', to: '/shifts' },
-  { title: 'WhatsApp', icon: 'mdi-whatsapp', to: '/whatsapp' },
-  { title: 'Reviews', icon: 'mdi-star-outline', to: '/reviews' },
+  { title: 'WhatsApp & Reviews', icon: 'mdi-whatsapp', to: '/whatsapp' },
   { title: 'Emails', icon: 'mdi-email-outline', to: '/emails' },
   {
     title: 'Analysis',
@@ -12,8 +11,8 @@ export const navItems = [
     children: [
       { title: 'Dashboard', icon: 'mdi-view-dashboard', to: '/dashboard' },
       { title: 'Targets', icon: 'mdi-target', to: '/targets' },
-      { title: 'Busy Hours', icon: 'mdi-clock-time-four-outline', to: '/busy-hours' },
       { title: 'Footfall', icon: 'mdi-walk', to: '/footfall' },
+      { title: 'Busy Hours', icon: 'mdi-clock-time-four-outline', to: '/busy-hours' },
       { title: 'Product Revenues', icon: 'mdi-package-variant', to: '/product-revenues' },
       { title: 'Conversion', icon: 'mdi-percent-outline', to: '/conversion' },
       { title: 'Sales Analytics', icon: 'mdi-chart-line', to: '/sales-analytics' },

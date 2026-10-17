@@ -74,7 +74,8 @@ const routes = [
   { path: '/clients', component: () => import('@/pages/clients.vue'), meta: { title: 'Clients', section: 'clients', page: 'clients' } },
   { path: '/clients/:id', component: () => import('@/pages/client-page.vue'), meta: { title: 'Client', section: 'clients', page: 'clients' } },
   { path: '/loyalty', component: () => import('@/pages/loyalty.vue'), meta: { title: 'Loyalty', section: 'clients', page: 'loyalty' } },
-  { path: '/reviews', component: () => import('@/pages/reviews.vue'), meta: { title: 'Reviews', section: 'clients', page: 'reviews' } },
+  // Reviews moved into the WhatsApp page.
+  { path: '/reviews', redirect: '/whatsapp?tab=reviews' },
   { path: '/suppliers', component: () => import('@/pages/suppliers.vue'), meta: { title: 'Suppliers', section: 'inventory', page: 'suppliers' } },
 
   { path: '/employees', component: () => import('@/pages/employees.vue'), meta: { title: 'Employees', section: 'hr', page: 'employees' } },
@@ -84,7 +85,7 @@ const routes = [
 
   { path: '/users', component: () => import('@/pages/users.vue'), meta: { title: 'Users', adminOnly: true } },
   { path: '/settings', component: () => import('@/pages/settings.vue'), meta: { title: 'Settings' } },
-  { path: '/whatsapp', component: () => import('@/pages/whatsapp.vue'), meta: { title: 'WhatsApp', section: 'system', page: 'whatsapp' } },
+  { path: '/whatsapp', component: () => import('@/pages/whatsapp.vue'), meta: { title: 'WhatsApp & Reviews', section: 'system', page: 'whatsapp' } },
   { path: '/emails', component: () => import('@/pages/emails.vue'), meta: { title: 'Emails', section: 'system', page: 'emails' } },
   { path: '/logs', component: () => import('@/pages/logs.vue'), meta: { title: 'Dev Logs', section: 'system', page: 'logs' } },
 ]

@@ -197,3 +197,10 @@ WHERE s.id = sqlc.arg(id)
   AND r.branch_id = s.branch_id
   AND r.related_client_ref = s.client_ref
   AND r.cancelled_at IS NOT NULL;
+
+-- name: GetBranchInvoiceByCode :one
+-- The sale a WhatsApp message was about (whatsapp_conversation.go).
+SELECT * FROM branch_invoices
+WHERE branch_id = sqlc.arg(branch_id) AND branch_invoice_code = sqlc.arg(code)
+ORDER BY id
+LIMIT 1;

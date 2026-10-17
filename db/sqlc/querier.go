@@ -42,6 +42,9 @@ type Querier interface {
 	// A till's own value, reported up, for a salesperson kashi hasn't set one
 	// for. updated_at is left alone: nothing about it needs to go back down.
 	AdoptSalespersonAttendanceID(ctx context.Context, arg AdoptSalespersonAttendanceIDParams) error
+	// A tick the bridge saw on one of our own messages. Like Meta's statuses it
+	// only moves forward (sent -> delivered -> read), so a late one changes nothing.
+	ApplyWhatsAppBridgeTick(ctx context.Context, arg ApplyWhatsAppBridgeTickParams) (ApplyWhatsAppBridgeTickRow, error)
 	// Meta's WhatsApp webhook (api/whatsapp_webhook.go).
 	// Delivery only moves forward (sent -> delivered -> read), so an update that
 	// arrives late doesn't undo a newer one; 'failed' always wins. A message Meta
@@ -79,9 +82,6 @@ type Querier interface {
 	// the time moves to now. No row back (sql.ErrNoRows) means it wasn't a
 	// repeat, and the caller adds a new entry.
 	BumpAdminActivity(ctx context.Context, arg BumpAdminActivityParams) (int64, error)
-	// Only a command no till has acked yet can be withdrawn.
-	CancelBranchCommand(ctx context.Context, id int64) (BranchCommand, error)
-	// The once-only gate on a branch's list: 1 row the first time it's set up
 	// Sales (not returns or exchanges): how many, and what they came to.
 	BusyHoursSales(ctx context.Context, arg BusyHoursSalesParams) ([]BusyHoursSalesRow, error)
 	// The Busy Hours page (api/busy_hours.go): when people come in and buy, by
@@ -90,6 +90,9 @@ type Querier interface {
 	// other reports. Empty branch_ids = every branch.
 	// Presses of the till's people counter (customers in).
 	BusyHoursVisitors(ctx context.Context, arg BusyHoursVisitorsParams) ([]BusyHoursVisitorsRow, error)
+	// Only a command no till has acked yet can be withdrawn.
+	CancelBranchCommand(ctx context.Context, id int64) (BranchCommand, error)
+	// The once-only gate on a branch's list: 1 row the first time it's set up
 	// (by a till's import or an admin save), 0 ever after.
 	ClaimBranchQuickAccessInit(ctx context.Context, id int64) (int64, error)
 	// Moves a due schedule on to its next run before it sends, and only if no
@@ -97,7 +100,7 @@ type Querier interface {
 	ClaimEmailScheduleRun(ctx context.Context, arg ClaimEmailScheduleRunParams) (int64, error)
 	// Marks the poll's follow-up as sent and says where to send it; no rows when
 	// it already went (a changed vote) or the number is gone.
-	ClaimWhatsAppPollFollowup(ctx context.Context, id int64) (ClaimWhatsAppPollFollowupRow, error)
+	ClaimWhatsAppPollFollowup(ctx context.Context, arg ClaimWhatsAppPollFollowupParams) (ClaimWhatsAppPollFollowupRow, error)
 	ClearDefaultWhatsAppNumber(ctx context.Context) error
 	ClientPhonesPresent(ctx context.Context, dollar_1 []string) ([]string, error)
 	CloseShift(ctx context.Context, id int64) error
@@ -482,6 +485,8 @@ type Querier interface {
 	GetBranchExpenseUploadTokenByToken(ctx context.Context, token string) (BranchExpenseUploadToken, error)
 	GetBranchInvoice(ctx context.Context, id int64) (BranchInvoice, error)
 	GetBranchInvoiceByClientRef(ctx context.Context, arg GetBranchInvoiceByClientRefParams) (BranchInvoice, error)
+	// The sale a WhatsApp message was about (whatsapp_conversation.go).
+	GetBranchInvoiceByCode(ctx context.Context, arg GetBranchInvoiceByCodeParams) (BranchInvoice, error)
 	GetBranchInvoiceSettlement(ctx context.Context, id int64) (BranchInvoiceSettlement, error)
 	GetBranchInvoiceSettlementByClientRef(ctx context.Context, arg GetBranchInvoiceSettlementByClientRefParams) (BranchInvoiceSettlement, error)
 	GetBranchLoanByClientRef(ctx context.Context, arg GetBranchLoanByClientRefParams) (Loan, error)
@@ -681,7 +686,10 @@ type Querier interface {
 	GetWarehouseTreemapData(ctx context.Context, inventoryID sql.NullInt64) ([]GetWarehouseTreemapDataRow, error)
 	GetWhatsAppMessageByReviewCode(ctx context.Context, reviewCode string) (GetWhatsAppMessageByReviewCodeRow, error)
 	GetWhatsAppMessageCost(ctx context.Context) (int64, error)
+	GetWhatsAppMessageWithBranch(ctx context.Context, id int64) (GetWhatsAppMessageWithBranchRow, error)
 	GetWhatsAppNumber(ctx context.Context, id int64) (WhatsappNumber, error)
+	// Where a reply's media is kept: the bridge number that got it, and its id.
+	GetWhatsAppPollReplyMedia(ctx context.Context, id int64) (GetWhatsAppPollReplyMediaRow, error)
 	// Sending post-sale messages from our own numbers through the WhatsApp
 	// bridge (api/whatsapp_bridge.go).
 	GetWhatsAppSenderSettings(ctx context.Context) (GetWhatsAppSenderSettingsRow, error)
@@ -1315,6 +1323,10 @@ type Querier interface {
 	// Most recently seen first. search matches the IP, place, network, user or
 	// branch; country narrows to one country code.
 	ListVisitorIPs(ctx context.Context, arg ListVisitorIPsParams) ([]VisitorIp, error)
+	// What the client sent back to one message: after its poll (the bridge) or
+	// answering it (Meta's webhook), oldest first.
+	// id and media_type: a bridge reply's media (GET /whatsapp/poll_replies/:id/media).
+	ListWhatsAppMessageReplies(ctx context.Context, id int64) ([]ListWhatsAppMessageRepliesRow, error)
 	// Newest first. branch_id 0 = every branch, status '' = any; search matches
 	// the client's name or phone, the invoice code or the rule.
 	ListWhatsAppMessages(ctx context.Context, arg ListWhatsAppMessagesParams) ([]ListWhatsAppMessagesRow, error)

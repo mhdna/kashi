@@ -76,6 +76,15 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 		server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": "whatsapp disabled"})
 		return
 	}
+	branch, err := server.store.GetBranch(ctx, branchID)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if err == nil && !branch.WhatsappEnabled {
+		server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": "whatsapp off for this branch"})
+		return
+	}
 
 	to := whatsAppDigits(req.ClientPhone)
 	entry := db.CreateWhatsAppMessageParams{
@@ -124,10 +133,7 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 		server.logWhatsAppMessage(ctx, entry, whatsAppStatusSkipped, "rule: "+decision.RuleName)
 		return
 	}
-	branchName := ""
-	if branch, err := server.store.GetBranch(ctx, branchID); err == nil {
-		branchName = branch.Name
-	}
+	branchName := branch.Name
 
 	sender, err := server.store.GetWhatsAppSenderSettings(ctx)
 	if err != nil {
@@ -135,7 +141,7 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 		return
 	}
 	if sender.WhatsappSender != whatsAppSenderMeta {
-		server.sendWhatsAppViaBridge(ctx, entry, sender, branchName, req)
+		server.sendWhatsAppViaBridge(ctx, entry, sender, branchName, whatsAppBranchHiddenFields(sender, branch.WhatsappHiddenFields), req)
 		return
 	}
 
@@ -296,8 +302,17 @@ func parseWhatsAppSendResponse(status int, body io.Reader) (string, error) {
 // branch, invoice, total, review = the review link, review_code = just its
 // code). Unknown placeholder names are skipped, as is review_button, which
 // fills the template's URL button rather than its body.
+// whatsAppFirstName is how a message greets the client: "Rana" for
+// "Rana Haddad".
+func whatsAppFirstName(fullName string) string {
+	if parts := strings.Fields(fullName); len(parts) > 0 {
+		return parts[0]
+	}
+	return ""
+}
+
 func whatsAppTemplateParams(paramNames, clientName, branchName, invoiceCode string, grandTotalCents int64, reviewURL, reviewCode string) []map[string]any {
-	name := strings.TrimSpace(clientName)
+	name := whatsAppFirstName(clientName)
 	if name == "" {
 		name = "there"
 	}

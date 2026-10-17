@@ -17,7 +17,7 @@ import (
 const countWhatsAppMessages = `-- name: CountWhatsAppMessages :one
 SELECT count(*)
 FROM whatsapp_messages m
-WHERE m.created_at >= $1 AND m.created_at < $2
+WHERE NOT m.is_test AND COALESCE(m.branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND m.created_at >= $1 AND m.created_at < $2
   AND ($3::bigint = 0 OR m.branch_id = $3)
   AND ($4::text = '' OR m.status = $4)
   AND ($5::text = ''
@@ -52,14 +52,15 @@ const createWhatsAppMessage = `-- name: CreateWhatsAppMessage :one
 INSERT INTO whatsapp_messages (
   branch_id, invoice_code, client_name, client_phone, grand_total_cents, item_count,
   rule_id, rule_name, template_name, status, reason, wamid, cost_micros, review_code,
-  sender, whatsapp_number_id, poll_ref
+  sender, whatsapp_number_id, poll_ref, bridge_ref, is_test, body, poll_question, poll_options
 ) VALUES (
   $1, $2, $3, $4,
   $5, $6, $7, $8,
   $9, $10, $11, $12, $13,
-  $14, $15, $16, $17
+  $14, $15, $16, $17,
+  $18, $19, $20, $21, $22
 )
-RETURNING id, created_at, branch_id, invoice_code, client_name, client_phone, grand_total_cents, item_count, rule_id, rule_name, template_name, status, reason, wamid, cost_micros, delivery_status, delivered_at, read_at, delivery_error, billable, pricing_category, review_code, review_clicked_at, sender, whatsapp_number_id, poll_ref, poll_rating, poll_answer, poll_voted_at, poll_followup_at
+RETURNING id, created_at, branch_id, invoice_code, client_name, client_phone, grand_total_cents, item_count, rule_id, rule_name, template_name, status, reason, wamid, cost_micros, delivery_status, delivered_at, read_at, delivery_error, billable, pricing_category, review_code, review_clicked_at, sender, whatsapp_number_id, poll_ref, poll_rating, poll_answer, poll_voted_at, poll_followup_at, bridge_ref, is_test, body, poll_question, poll_options, followup_body
 `
 
 type CreateWhatsAppMessageParams struct {
@@ -80,6 +81,11 @@ type CreateWhatsAppMessageParams struct {
 	Sender           string        `json:"sender"`
 	WhatsappNumberID sql.NullInt64 `json:"whatsapp_number_id"`
 	PollRef          string        `json:"poll_ref"`
+	BridgeRef        string        `json:"bridge_ref"`
+	IsTest           bool          `json:"is_test"`
+	Body             string        `json:"body"`
+	PollQuestion     string        `json:"poll_question"`
+	PollOptions      string        `json:"poll_options"`
 }
 
 func (q *Queries) CreateWhatsAppMessage(ctx context.Context, arg CreateWhatsAppMessageParams) (WhatsappMessage, error) {
@@ -101,6 +107,11 @@ func (q *Queries) CreateWhatsAppMessage(ctx context.Context, arg CreateWhatsAppM
 		arg.Sender,
 		arg.WhatsappNumberID,
 		arg.PollRef,
+		arg.BridgeRef,
+		arg.IsTest,
+		arg.Body,
+		arg.PollQuestion,
+		arg.PollOptions,
 	)
 	var i WhatsappMessage
 	err := row.Scan(
@@ -134,6 +145,12 @@ func (q *Queries) CreateWhatsAppMessage(ctx context.Context, arg CreateWhatsAppM
 		&i.PollAnswer,
 		&i.PollVotedAt,
 		&i.PollFollowupAt,
+		&i.BridgeRef,
+		&i.IsTest,
+		&i.Body,
+		&i.PollQuestion,
+		&i.PollOptions,
+		&i.FollowupBody,
 	)
 	return i, err
 }
@@ -207,10 +224,104 @@ func (q *Queries) GetWhatsAppMessageCost(ctx context.Context) (int64, error) {
 	return whatsapp_message_cost_micros, err
 }
 
+const getWhatsAppMessageWithBranch = `-- name: GetWhatsAppMessageWithBranch :one
+SELECT m.id, m.created_at, m.branch_id, m.invoice_code, m.client_name, m.client_phone, m.grand_total_cents, m.item_count, m.rule_id, m.rule_name, m.template_name, m.status, m.reason, m.wamid, m.cost_micros, m.delivery_status, m.delivered_at, m.read_at, m.delivery_error, m.billable, m.pricing_category, m.review_code, m.review_clicked_at, m.sender, m.whatsapp_number_id, m.poll_ref, m.poll_rating, m.poll_answer, m.poll_voted_at, m.poll_followup_at, m.bridge_ref, m.is_test, m.body, m.poll_question, m.poll_options, m.followup_body, COALESCE(b.name, '')::text AS branch_name, b.whatsapp_hidden_fields AS branch_hidden_fields
+FROM whatsapp_messages m
+LEFT JOIN branches b ON b.id = m.branch_id
+WHERE m.id = $1
+`
+
+type GetWhatsAppMessageWithBranchRow struct {
+	ID                 int64          `json:"id"`
+	CreatedAt          time.Time      `json:"created_at"`
+	BranchID           sql.NullInt64  `json:"branch_id"`
+	InvoiceCode        string         `json:"invoice_code"`
+	ClientName         string         `json:"client_name"`
+	ClientPhone        string         `json:"client_phone"`
+	GrandTotalCents    int64          `json:"grand_total_cents"`
+	ItemCount          int32          `json:"item_count"`
+	RuleID             sql.NullInt64  `json:"rule_id"`
+	RuleName           string         `json:"rule_name"`
+	TemplateName       string         `json:"template_name"`
+	Status             string         `json:"status"`
+	Reason             string         `json:"reason"`
+	Wamid              string         `json:"wamid"`
+	CostMicros         int64          `json:"cost_micros"`
+	DeliveryStatus     string         `json:"delivery_status"`
+	DeliveredAt        sql.NullTime   `json:"delivered_at"`
+	ReadAt             sql.NullTime   `json:"read_at"`
+	DeliveryError      string         `json:"delivery_error"`
+	Billable           sql.NullBool   `json:"billable"`
+	PricingCategory    string         `json:"pricing_category"`
+	ReviewCode         string         `json:"review_code"`
+	ReviewClickedAt    sql.NullTime   `json:"review_clicked_at"`
+	Sender             string         `json:"sender"`
+	WhatsappNumberID   sql.NullInt64  `json:"whatsapp_number_id"`
+	PollRef            string         `json:"poll_ref"`
+	PollRating         sql.NullInt16  `json:"poll_rating"`
+	PollAnswer         string         `json:"poll_answer"`
+	PollVotedAt        sql.NullTime   `json:"poll_voted_at"`
+	PollFollowupAt     sql.NullTime   `json:"poll_followup_at"`
+	BridgeRef          string         `json:"bridge_ref"`
+	IsTest             bool           `json:"is_test"`
+	Body               string         `json:"body"`
+	PollQuestion       string         `json:"poll_question"`
+	PollOptions        string         `json:"poll_options"`
+	FollowupBody       string         `json:"followup_body"`
+	BranchName         string         `json:"branch_name"`
+	BranchHiddenFields sql.NullString `json:"branch_hidden_fields"`
+}
+
+func (q *Queries) GetWhatsAppMessageWithBranch(ctx context.Context, id int64) (GetWhatsAppMessageWithBranchRow, error) {
+	row := q.db.QueryRowContext(ctx, getWhatsAppMessageWithBranch, id)
+	var i GetWhatsAppMessageWithBranchRow
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.BranchID,
+		&i.InvoiceCode,
+		&i.ClientName,
+		&i.ClientPhone,
+		&i.GrandTotalCents,
+		&i.ItemCount,
+		&i.RuleID,
+		&i.RuleName,
+		&i.TemplateName,
+		&i.Status,
+		&i.Reason,
+		&i.Wamid,
+		&i.CostMicros,
+		&i.DeliveryStatus,
+		&i.DeliveredAt,
+		&i.ReadAt,
+		&i.DeliveryError,
+		&i.Billable,
+		&i.PricingCategory,
+		&i.ReviewCode,
+		&i.ReviewClickedAt,
+		&i.Sender,
+		&i.WhatsappNumberID,
+		&i.PollRef,
+		&i.PollRating,
+		&i.PollAnswer,
+		&i.PollVotedAt,
+		&i.PollFollowupAt,
+		&i.BridgeRef,
+		&i.IsTest,
+		&i.Body,
+		&i.PollQuestion,
+		&i.PollOptions,
+		&i.FollowupBody,
+		&i.BranchName,
+		&i.BranchHiddenFields,
+	)
+	return i, err
+}
+
 const lastWhatsAppSentAt = `-- name: LastWhatsAppSentAt :one
 SELECT created_at
 FROM whatsapp_messages
-WHERE client_phone = $1 AND status = 'sent'
+WHERE client_phone = $1 AND status = 'sent' AND NOT is_test
 ORDER BY created_at DESC
 LIMIT 1
 `
@@ -223,11 +334,58 @@ func (q *Queries) LastWhatsAppSentAt(ctx context.Context, clientPhone string) (t
 	return created_at, err
 }
 
+const listWhatsAppMessageReplies = `-- name: ListWhatsAppMessageReplies :many
+SELECT id, body, kind, received_at, media_type FROM whatsapp_poll_replies WHERE whatsapp_message_id = $1
+UNION ALL
+SELECT 0::bigint, body, kind, received_at, ''::text FROM whatsapp_replies WHERE message_id = $1
+ORDER BY received_at
+`
+
+type ListWhatsAppMessageRepliesRow struct {
+	ID         int64     `json:"id"`
+	Body       string    `json:"body"`
+	Kind       string    `json:"kind"`
+	ReceivedAt time.Time `json:"received_at"`
+	MediaType  string    `json:"media_type"`
+}
+
+// What the client sent back to one message: after its poll (the bridge) or
+// answering it (Meta's webhook), oldest first.
+// id and media_type: a bridge reply's media (GET /whatsapp/poll_replies/:id/media).
+func (q *Queries) ListWhatsAppMessageReplies(ctx context.Context, id int64) ([]ListWhatsAppMessageRepliesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listWhatsAppMessageReplies, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListWhatsAppMessageRepliesRow{}
+	for rows.Next() {
+		var i ListWhatsAppMessageRepliesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Body,
+			&i.Kind,
+			&i.ReceivedAt,
+			&i.MediaType,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listWhatsAppMessages = `-- name: ListWhatsAppMessages :many
-SELECT m.id, m.created_at, m.branch_id, m.invoice_code, m.client_name, m.client_phone, m.grand_total_cents, m.item_count, m.rule_id, m.rule_name, m.template_name, m.status, m.reason, m.wamid, m.cost_micros, m.delivery_status, m.delivered_at, m.read_at, m.delivery_error, m.billable, m.pricing_category, m.review_code, m.review_clicked_at, m.sender, m.whatsapp_number_id, m.poll_ref, m.poll_rating, m.poll_answer, m.poll_voted_at, m.poll_followup_at, COALESCE(b.name, '')::text AS branch_name
+SELECT m.id, m.created_at, m.branch_id, m.invoice_code, m.client_name, m.client_phone, m.grand_total_cents, m.item_count, m.rule_id, m.rule_name, m.template_name, m.status, m.reason, m.wamid, m.cost_micros, m.delivery_status, m.delivered_at, m.read_at, m.delivery_error, m.billable, m.pricing_category, m.review_code, m.review_clicked_at, m.sender, m.whatsapp_number_id, m.poll_ref, m.poll_rating, m.poll_answer, m.poll_voted_at, m.poll_followup_at, m.bridge_ref, m.is_test, m.body, m.poll_question, m.poll_options, m.followup_body, COALESCE(b.name, '')::text AS branch_name
 FROM whatsapp_messages m
 LEFT JOIN branches b ON b.id = m.branch_id
-WHERE m.created_at >= $1 AND m.created_at < $2
+WHERE NOT m.is_test AND COALESCE(m.branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND m.created_at >= $1 AND m.created_at < $2
   AND ($3::bigint = 0 OR m.branch_id = $3)
   AND ($4::text = '' OR m.status = $4)
   AND ($5::text = ''
@@ -280,6 +438,12 @@ type ListWhatsAppMessagesRow struct {
 	PollAnswer       string        `json:"poll_answer"`
 	PollVotedAt      sql.NullTime  `json:"poll_voted_at"`
 	PollFollowupAt   sql.NullTime  `json:"poll_followup_at"`
+	BridgeRef        string        `json:"bridge_ref"`
+	IsTest           bool          `json:"is_test"`
+	Body             string        `json:"body"`
+	PollQuestion     string        `json:"poll_question"`
+	PollOptions      string        `json:"poll_options"`
+	FollowupBody     string        `json:"followup_body"`
 	BranchName       string        `json:"branch_name"`
 }
 
@@ -333,6 +497,12 @@ func (q *Queries) ListWhatsAppMessages(ctx context.Context, arg ListWhatsAppMess
 			&i.PollAnswer,
 			&i.PollVotedAt,
 			&i.PollFollowupAt,
+			&i.BridgeRef,
+			&i.IsTest,
+			&i.Body,
+			&i.PollQuestion,
+			&i.PollOptions,
+			&i.FollowupBody,
 			&i.BranchName,
 		); err != nil {
 			return nil, err
@@ -487,8 +657,8 @@ SELECT
   CASE WHEN status = 'failed' THEN reason ELSE delivery_error END::text AS reason,
   count(*)::bigint AS messages
 FROM whatsapp_messages
-WHERE (status = 'failed' OR delivery_status = 'failed')
-  AND created_at >= $1 AND created_at < $2
+WHERE NOT is_test AND COALESCE(branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND (status = 'failed' OR delivery_status = 'failed')
+  AND whatsapp_messages.created_at >= $1 AND whatsapp_messages.created_at < $2
   AND ($3::bigint = 0 OR branch_id = $3)
 GROUP BY 1
 ORDER BY messages DESC
@@ -543,7 +713,7 @@ SELECT
   count(DISTINCT client_phone) FILTER (WHERE status = 'sent')::bigint AS recipients,
   COALESCE(sum(grand_total_cents) FILTER (WHERE status = 'sent'), 0)::bigint AS sent_sales_cents
 FROM whatsapp_messages
-WHERE created_at >= $1 AND created_at < $2
+WHERE NOT is_test AND COALESCE(branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND whatsapp_messages.created_at >= $1 AND whatsapp_messages.created_at < $2
   AND ($3::bigint = 0 OR branch_id = $3)
 `
 
@@ -593,7 +763,7 @@ SELECT
   COALESCE(sum(m.cost_micros), 0)::bigint AS cost_micros
 FROM whatsapp_messages m
 LEFT JOIN branches b ON b.id = m.branch_id
-WHERE m.created_at >= $1 AND m.created_at < $2
+WHERE NOT m.is_test AND COALESCE(m.branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND m.created_at >= $1 AND m.created_at < $2
   AND ($3::bigint = 0 OR m.branch_id = $3)
 GROUP BY 1, 2
 ORDER BY sent DESC, 2
@@ -646,13 +816,13 @@ func (q *Queries) WhatsAppMessagesByBranch(ctx context.Context, arg WhatsAppMess
 
 const whatsAppMessagesByDay = `-- name: WhatsAppMessagesByDay :many
 SELECT
-  (created_at AT TIME ZONE 'Asia/Beirut')::date AS day,
+  (whatsapp_messages.created_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   count(*) FILTER (WHERE status = 'sent')::bigint AS sent,
   count(*) FILTER (WHERE status = 'skipped')::bigint AS skipped,
   count(*) FILTER (WHERE status = 'failed')::bigint AS failed,
   COALESCE(sum(cost_micros), 0)::bigint AS cost_micros
 FROM whatsapp_messages
-WHERE created_at >= $1 AND created_at < $2
+WHERE NOT is_test AND COALESCE(branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND whatsapp_messages.created_at >= $1 AND whatsapp_messages.created_at < $2
   AND ($3::bigint = 0 OR branch_id = $3)
 GROUP BY 1
 ORDER BY 1
@@ -704,10 +874,10 @@ func (q *Queries) WhatsAppMessagesByDay(ctx context.Context, arg WhatsAppMessage
 
 const whatsAppMessagesByHour = `-- name: WhatsAppMessagesByHour :many
 SELECT
-  EXTRACT(HOUR FROM created_at AT TIME ZONE 'Asia/Beirut')::int AS hour,
+  EXTRACT(HOUR FROM whatsapp_messages.created_at AT TIME ZONE 'Asia/Beirut')::int AS hour,
   count(*) FILTER (WHERE status = 'sent')::bigint AS sent
 FROM whatsapp_messages
-WHERE created_at >= $1 AND created_at < $2
+WHERE NOT is_test AND COALESCE(branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND whatsapp_messages.created_at >= $1 AND whatsapp_messages.created_at < $2
   AND ($3::bigint = 0 OR branch_id = $3)
 GROUP BY 1
 ORDER BY 1
@@ -754,7 +924,7 @@ SELECT
   template_name,
   count(*)::bigint AS messages
 FROM whatsapp_messages
-WHERE created_at >= $1 AND created_at < $2
+WHERE NOT is_test AND COALESCE(branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND whatsapp_messages.created_at >= $1 AND whatsapp_messages.created_at < $2
   AND ($3::bigint = 0 OR branch_id = $3)
 GROUP BY 1, 2, 3
 ORDER BY messages DESC
@@ -825,14 +995,14 @@ func (q *Queries) WhatsAppSentForInvoice(ctx context.Context, arg WhatsAppSentFo
 const whatsAppTopRecipients = `-- name: WhatsAppTopRecipients :many
 SELECT
   client_phone,
-  (array_agg(client_name ORDER BY created_at DESC))[1]::text AS client_name,
+  (array_agg(client_name ORDER BY whatsapp_messages.created_at DESC))[1]::text AS client_name,
   count(*)::bigint AS messages,
   COALESCE(sum(cost_micros), 0)::bigint AS cost_micros,
   COALESCE(sum(grand_total_cents), 0)::bigint AS sales_cents,
-  max(created_at)::timestamptz AS last_sent_at
+  max(whatsapp_messages.created_at)::timestamptz AS last_sent_at
 FROM whatsapp_messages
-WHERE status = 'sent'
-  AND created_at >= $1 AND created_at < $2
+WHERE NOT is_test AND COALESCE(branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND status = 'sent'
+  AND whatsapp_messages.created_at >= $1 AND whatsapp_messages.created_at < $2
   AND ($3::bigint = 0 OR branch_id = $3)
 GROUP BY 1
 ORDER BY messages DESC, sales_cents DESC

@@ -54,7 +54,7 @@
         <v-col cols="12" md="8">
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title">Messages per day</div>
-            <div class="chart-card__subtitle">Bars count messages by outcome; the line is what was spent.</div>
+            <div class="chart-card__subtitle">Bars count messages by outcome<template v-if="meta">; the line is what was spent</template>.</div>
             <v-chart autoresize class="chart" :option="dailyOption" />
           </v-card>
         </v-col>
@@ -99,7 +99,7 @@
                   <th>Client</th>
                   <th class="text-end">Messages</th>
                   <th class="text-end">Their sales</th>
-                  <th class="text-end">Cost</th>
+                  <th v-if="meta" class="text-end">Cost</th>
                   <th>Last</th>
                 </tr>
               </thead>
@@ -116,7 +116,7 @@
                   </td>
                   <td class="text-end">{{ r.messages }}</td>
                   <td class="text-end">{{ formatDollars(r.sales_cents) }}</td>
-                  <td class="text-end">{{ formatCost(r.cost_micros) }}</td>
+                  <td v-if="meta" class="text-end">{{ formatCost(r.cost_micros) }}</td>
                   <td class="text-caption">{{ new Date(r.last_sent_at).toLocaleDateString() }}</td>
                 </tr>
               </tbody>
@@ -149,7 +149,7 @@
           </v-card>
         </v-col>
 
-        <v-col cols="12" md="6">
+        <v-col v-if="meta" cols="12" md="6">
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title mb-1">Price per message</div>
             <p class="text-caption text-medium-emphasis mb-3">
@@ -199,6 +199,8 @@
   import { daysBetween, formatCost, formatDollars, formatPhone, STATUS } from '@/utils/whatsapp'
 
   const props = defineProps({
+    // Sending through Meta's API: its costs and webhook-only stats show.
+    meta: { type: Boolean, default: false },
     from: { type: String, required: true },
     to: { type: String, required: true },
     branchId: { type: Number, default: 0 },
@@ -246,8 +248,9 @@
   const kpis = computed(() => {
     const t = stats.value.totals
     const p = stats.value.previous
-    // Delivered/read/replies come from Meta's webhook; without it they stay 0.
-    const noWebhook = t.sent > 0 && !t.delivered && !t.read && !t.undelivered && !stats.value.replies
+    // With Meta, delivered/read/replies come from its webhook; without it they
+    // stay 0. Our own numbers report them through the bridge.
+    const noWebhook = props.meta && t.sent > 0 && !t.delivered && !t.read && !t.undelivered && !stats.value.replies
     const webhookHint = noWebhook ? 'needs the webhook (Settings)' : ''
     return [
       {
@@ -260,7 +263,7 @@
       { label: 'Delivered', value: t.delivered.toLocaleString(), hint: webhookHint || pct(t.delivered, t.sent) },
       { label: 'Read', value: t.read.toLocaleString(), hint: webhookHint || pct(t.read, t.sent) },
       { label: 'Replies', value: stats.value.replies.toLocaleString(), hint: webhookHint, tab: 'replies' },
-      {
+      props.meta && {
         label: 'Spent',
         value: formatCost(t.cost_micros),
         delta: delta(t.cost_micros, p.cost_micros),
@@ -275,7 +278,7 @@
         color: t.failed + t.undelivered ? 'error' : undefined,
         hint: t.undelivered ? `${t.undelivered} not delivered by Meta` : '',
       },
-    ]
+    ].filter(Boolean)
   })
 
   // ---- charts --------------------------------------------------------------
@@ -322,12 +325,14 @@
       xAxis: { type: 'category', data: days.map(d => label(d)), ...catAxis.value },
       yAxis: [
         { type: 'value', minInterval: 1, ...valAxis.value },
-        {
-          type: 'value',
-          ...valAxis.value,
-          splitLine: { show: false },
-          axisLabel: { ...valAxis.value.axisLabel, formatter: v => `$${v}` },
-        },
+        ...(props.meta
+          ? [{
+            type: 'value',
+            ...valAxis.value,
+            splitLine: { show: false },
+            axisLabel: { ...valAxis.value.axisLabel, formatter: v => `$${v}` },
+          }]
+          : []),
       ],
       series: [
         ...STATUSES.map(s => ({
@@ -338,7 +343,7 @@
           itemStyle: { color: colors.value[s] },
           data: days.map(d => byDay[d]?.[s] ?? 0),
         })),
-        {
+        props.meta && {
           name: 'Spent',
           type: 'line',
           yAxisIndex: 1,
@@ -347,7 +352,7 @@
           itemStyle: { color: colors.value.cost },
           data: days.map(d => (byDay[d]?.cost_micros ?? 0) / 1e6),
         },
-      ],
+      ].filter(Boolean),
     }
   })
 

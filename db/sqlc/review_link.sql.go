@@ -282,7 +282,7 @@ SELECT m.id, m.poll_voted_at, m.poll_rating, m.poll_answer, m.client_name, m.cli
                  FROM whatsapp_poll_replies r WHERE r.whatsapp_message_id = m.id), '')::text AS replies
 FROM whatsapp_messages m
 LEFT JOIN branches b ON b.id = m.branch_id
-WHERE m.poll_rating <= 2
+WHERE NOT m.is_test AND COALESCE(m.branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND m.poll_rating <= 2
   AND m.created_at >= $1 AND m.created_at < $2
   AND ($3::bigint = 0 OR m.branch_id = $3)
 ORDER BY m.poll_voted_at DESC
@@ -364,7 +364,7 @@ SELECT
   count(*) FILTER (WHERE poll_rating = 2)::bigint AS stars2,
   count(*) FILTER (WHERE poll_rating = 1)::bigint AS stars1
 FROM whatsapp_messages
-WHERE created_at >= $1 AND created_at < $2
+WHERE NOT is_test AND COALESCE(branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND whatsapp_messages.created_at >= $1 AND whatsapp_messages.created_at < $2
   AND ($3::bigint = 0 OR branch_id = $3)
 `
 
@@ -416,7 +416,7 @@ SELECT
   count(*) FILTER (WHERE m.poll_rating = 1)::bigint AS stars1
 FROM whatsapp_messages m
 LEFT JOIN branches b ON b.id = m.branch_id
-WHERE m.created_at >= $1 AND m.created_at < $2
+WHERE NOT m.is_test AND COALESCE(m.branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND m.created_at >= $1 AND m.created_at < $2
   AND ($3::bigint = 0 OR m.branch_id = $3)
   AND m.poll_rating IS NOT NULL
 GROUP BY 1, 2
@@ -485,8 +485,8 @@ SELECT
   count(*) FILTER (WHERE poll_rating = 2)::bigint AS stars2,
   count(*) FILTER (WHERE poll_rating = 1)::bigint AS stars1
 FROM whatsapp_messages
-WHERE poll_rating IS NOT NULL
-  AND created_at >= $1 AND created_at < $2
+WHERE NOT is_test AND COALESCE(branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND poll_rating IS NOT NULL
+  AND whatsapp_messages.created_at >= $1 AND whatsapp_messages.created_at < $2
   AND ($3::bigint = 0 OR branch_id = $3)
 GROUP BY 1
 ORDER BY 1
@@ -547,7 +547,7 @@ SELECT r.id, r.body, r.kind, r.received_at, m.poll_rating, m.poll_answer,
 FROM whatsapp_poll_replies r
 JOIN whatsapp_messages m ON m.id = r.whatsapp_message_id
 LEFT JOIN branches b ON b.id = m.branch_id
-WHERE r.received_at >= $1 AND r.received_at < $2
+WHERE NOT m.is_test AND COALESCE(m.branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND r.received_at >= $1 AND r.received_at < $2
   AND ($3::bigint = 0 OR m.branch_id = $3)
 ORDER BY r.received_at DESC
 LIMIT 100
@@ -637,7 +637,7 @@ SELECT
   count(*) FILTER (WHERE delivery_status = 'read')::bigint AS read,
   count(*) FILTER (WHERE review_clicked_at IS NOT NULL)::bigint AS clicked
 FROM whatsapp_messages
-WHERE created_at >= $1 AND created_at < $2
+WHERE NOT is_test AND COALESCE(branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND whatsapp_messages.created_at >= $1 AND whatsapp_messages.created_at < $2
   AND ($3::bigint = 0 OR branch_id = $3)
 `
 
@@ -679,7 +679,7 @@ SELECT
   count(*) FILTER (WHERE m.review_clicked_at IS NOT NULL)::bigint AS clicked
 FROM whatsapp_messages m
 LEFT JOIN branches b ON b.id = m.branch_id
-WHERE m.created_at >= $1 AND m.created_at < $2
+WHERE NOT m.is_test AND COALESCE(m.branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND m.created_at >= $1 AND m.created_at < $2
   AND ($3::bigint = 0 OR m.branch_id = $3)
 GROUP BY 1, 2
 HAVING count(*) FILTER (WHERE m.status = 'sent' AND m.review_code <> '') > 0
@@ -731,10 +731,10 @@ func (q *Queries) ReviewFunnelByBranch(ctx context.Context, arg ReviewFunnelByBr
 
 const reviewFunnelByDay = `-- name: ReviewFunnelByDay :many
 WITH sent AS (
-  SELECT (created_at AT TIME ZONE 'Asia/Beirut')::date AS day, count(*)::bigint AS n
+  SELECT (whatsapp_messages.created_at AT TIME ZONE 'Asia/Beirut')::date AS day, count(*)::bigint AS n
   FROM whatsapp_messages
-  WHERE status = 'sent' AND review_code <> ''
-    AND created_at >= $1 AND created_at < $2
+  WHERE NOT is_test AND COALESCE(branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND status = 'sent' AND review_code <> ''
+    AND whatsapp_messages.created_at >= $1 AND whatsapp_messages.created_at < $2
     AND ($3::bigint = 0 OR branch_id = $3)
   GROUP BY 1
 ), clicks AS (
