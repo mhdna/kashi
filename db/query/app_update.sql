@@ -43,11 +43,11 @@ SELECT * FROM branch_registers
 WHERE id = ANY(sqlc.arg(ids)::bigint[]);
 
 -- name: SetRegistersTargetRelease :exec
-UPDATE branch_registers SET target_release_id = sqlc.narg(release_id)
+UPDATE branch_registers SET target_release_id = sqlc.narg(release_id), target_force = sqlc.arg(force)
 WHERE id = ANY(sqlc.arg(register_ids)::bigint[]);
 
 -- name: GetRegisterTargetRelease :one
-SELECT a.* FROM app_releases a
+SELECT a.*, r.target_force FROM app_releases a
 JOIN branch_registers r ON r.target_release_id = a.id
 WHERE r.id = $1;
 

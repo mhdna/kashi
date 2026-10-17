@@ -14,7 +14,7 @@ import (
 const createBranchRegister = `-- name: CreateBranchRegister :one
 INSERT INTO branch_registers (branch_id, code, name, api_key_hash)
 VALUES ($1, $2, $3, $4)
-RETURNING id, branch_id, code, name, api_key_hash, is_active, last_seen_at, reported_settings, reported_settings_at, created_at, quick_access_mode, quick_access_mode_changed_at, target_release_id, app_version, app_flavor, update_state, update_detail, update_progress, update_reported_at, hidden_from_reports
+RETURNING id, branch_id, code, name, api_key_hash, is_active, last_seen_at, reported_settings, reported_settings_at, created_at, quick_access_mode, quick_access_mode_changed_at, target_release_id, app_version, app_flavor, update_state, update_detail, update_progress, update_reported_at, hidden_from_reports, target_force
 `
 
 type CreateBranchRegisterParams struct {
@@ -53,12 +53,13 @@ func (q *Queries) CreateBranchRegister(ctx context.Context, arg CreateBranchRegi
 		&i.UpdateProgress,
 		&i.UpdateReportedAt,
 		&i.HiddenFromReports,
+		&i.TargetForce,
 	)
 	return i, err
 }
 
 const getBranchRegister = `-- name: GetBranchRegister :one
-SELECT id, branch_id, code, name, api_key_hash, is_active, last_seen_at, reported_settings, reported_settings_at, created_at, quick_access_mode, quick_access_mode_changed_at, target_release_id, app_version, app_flavor, update_state, update_detail, update_progress, update_reported_at, hidden_from_reports FROM branch_registers WHERE id = $1
+SELECT id, branch_id, code, name, api_key_hash, is_active, last_seen_at, reported_settings, reported_settings_at, created_at, quick_access_mode, quick_access_mode_changed_at, target_release_id, app_version, app_flavor, update_state, update_detail, update_progress, update_reported_at, hidden_from_reports, target_force FROM branch_registers WHERE id = $1
 `
 
 func (q *Queries) GetBranchRegister(ctx context.Context, id int64) (BranchRegister, error) {
@@ -85,12 +86,13 @@ func (q *Queries) GetBranchRegister(ctx context.Context, id int64) (BranchRegist
 		&i.UpdateProgress,
 		&i.UpdateReportedAt,
 		&i.HiddenFromReports,
+		&i.TargetForce,
 	)
 	return i, err
 }
 
 const getBranchRegisterByCode = `-- name: GetBranchRegisterByCode :one
-SELECT id, branch_id, code, name, api_key_hash, is_active, last_seen_at, reported_settings, reported_settings_at, created_at, quick_access_mode, quick_access_mode_changed_at, target_release_id, app_version, app_flavor, update_state, update_detail, update_progress, update_reported_at, hidden_from_reports FROM branch_registers WHERE code = $1
+SELECT id, branch_id, code, name, api_key_hash, is_active, last_seen_at, reported_settings, reported_settings_at, created_at, quick_access_mode, quick_access_mode_changed_at, target_release_id, app_version, app_flavor, update_state, update_detail, update_progress, update_reported_at, hidden_from_reports, target_force FROM branch_registers WHERE code = $1
 `
 
 func (q *Queries) GetBranchRegisterByCode(ctx context.Context, code string) (BranchRegister, error) {
@@ -117,6 +119,7 @@ func (q *Queries) GetBranchRegisterByCode(ctx context.Context, code string) (Bra
 		&i.UpdateProgress,
 		&i.UpdateReportedAt,
 		&i.HiddenFromReports,
+		&i.TargetForce,
 	)
 	return i, err
 }
@@ -151,7 +154,7 @@ func (q *Queries) ListActiveBranchRegisterIDs(ctx context.Context, branchID int6
 }
 
 const listAllBranchRegisters = `-- name: ListAllBranchRegisters :many
-SELECT id, branch_id, code, name, api_key_hash, is_active, last_seen_at, reported_settings, reported_settings_at, created_at, quick_access_mode, quick_access_mode_changed_at, target_release_id, app_version, app_flavor, update_state, update_detail, update_progress, update_reported_at, hidden_from_reports FROM branch_registers
+SELECT id, branch_id, code, name, api_key_hash, is_active, last_seen_at, reported_settings, reported_settings_at, created_at, quick_access_mode, quick_access_mode_changed_at, target_release_id, app_version, app_flavor, update_state, update_detail, update_progress, update_reported_at, hidden_from_reports, target_force FROM branch_registers
 ORDER BY branch_id, code
 `
 
@@ -185,6 +188,7 @@ func (q *Queries) ListAllBranchRegisters(ctx context.Context) ([]BranchRegister,
 			&i.UpdateProgress,
 			&i.UpdateReportedAt,
 			&i.HiddenFromReports,
+			&i.TargetForce,
 		); err != nil {
 			return nil, err
 		}
@@ -200,7 +204,7 @@ func (q *Queries) ListAllBranchRegisters(ctx context.Context) ([]BranchRegister,
 }
 
 const listBranchRegisters = `-- name: ListBranchRegisters :many
-SELECT id, branch_id, code, name, api_key_hash, is_active, last_seen_at, reported_settings, reported_settings_at, created_at, quick_access_mode, quick_access_mode_changed_at, target_release_id, app_version, app_flavor, update_state, update_detail, update_progress, update_reported_at, hidden_from_reports FROM branch_registers
+SELECT id, branch_id, code, name, api_key_hash, is_active, last_seen_at, reported_settings, reported_settings_at, created_at, quick_access_mode, quick_access_mode_changed_at, target_release_id, app_version, app_flavor, update_state, update_detail, update_progress, update_reported_at, hidden_from_reports, target_force FROM branch_registers
 WHERE branch_id = $1
 ORDER BY code
 `
@@ -235,6 +239,7 @@ func (q *Queries) ListBranchRegisters(ctx context.Context, branchID int64) ([]Br
 			&i.UpdateProgress,
 			&i.UpdateReportedAt,
 			&i.HiddenFromReports,
+			&i.TargetForce,
 		); err != nil {
 			return nil, err
 		}
@@ -317,7 +322,7 @@ const updateBranchRegister = `-- name: UpdateBranchRegister :one
 UPDATE branch_registers
 SET name = $2
 WHERE id = $1
-RETURNING id, branch_id, code, name, api_key_hash, is_active, last_seen_at, reported_settings, reported_settings_at, created_at, quick_access_mode, quick_access_mode_changed_at, target_release_id, app_version, app_flavor, update_state, update_detail, update_progress, update_reported_at, hidden_from_reports
+RETURNING id, branch_id, code, name, api_key_hash, is_active, last_seen_at, reported_settings, reported_settings_at, created_at, quick_access_mode, quick_access_mode_changed_at, target_release_id, app_version, app_flavor, update_state, update_detail, update_progress, update_reported_at, hidden_from_reports, target_force
 `
 
 type UpdateBranchRegisterParams struct {
@@ -349,6 +354,7 @@ func (q *Queries) UpdateBranchRegister(ctx context.Context, arg UpdateBranchRegi
 		&i.UpdateProgress,
 		&i.UpdateReportedAt,
 		&i.HiddenFromReports,
+		&i.TargetForce,
 	)
 	return i, err
 }
