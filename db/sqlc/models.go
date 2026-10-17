@@ -886,6 +886,8 @@ type BranchSetting struct {
 	SoundsEnabled                      bool            `json:"sounds_enabled"`
 	AttendanceManagerApprovalEnabled   bool            `json:"attendance_manager_approval_enabled"`
 	ShiftReportSignatures              bool            `json:"shift_report_signatures"`
+	ShiftReportUppercaseHeader         bool            `json:"shift_report_uppercase_header"`
+	AutoCoverNegativeLbp               bool            `json:"auto_cover_negative_lbp"`
 }
 
 type BranchShift struct {

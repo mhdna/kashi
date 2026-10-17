@@ -75,6 +75,12 @@ type branchSettingsRequest struct {
 	// The cashier/manager sign-off lines on the end-of-shift receipt. Nil
 	// (a till that predates it) keeps them on, the till's own default.
 	ShiftReportSignatures *bool `json:"shift_report_signatures"`
+	// Store and branch name in capitals on the end-of-shift receipt. Nil
+	// keeps them as typed, the till's own default.
+	ShiftReportUppercaseHeader *bool `json:"shift_report_uppercase_header"`
+	// At close shift, swap a negative Cash LL balance into Cash $$. Nil
+	// leaves it off, the till's own default.
+	AutoCoverNegativeLBP *bool `json:"auto_cover_negative_lbp"`
 
 	// --- per-machine device identifiers (reported for display; the admin
 	// UI defaults these to "managed at the branch") ---
@@ -426,7 +432,9 @@ func (server *Server) upsertBranchSettings(ctx *gin.Context, branchID int64, req
 		ReceiptBodySize:  orZero(req.ReceiptBodySize),
 		ReceiptCutoff:    orZero(req.ReceiptCutoff),
 
-		ShiftReportSignatures: orTrue(req.ShiftReportSignatures),
+		ShiftReportSignatures:      orTrue(req.ShiftReportSignatures),
+		ShiftReportUppercaseHeader: orZero(req.ShiftReportUppercaseHeader),
+		AutoCoverNegativeLbp:       orZero(req.AutoCoverNegativeLBP),
 
 		PrinterID:      orZero(req.PrinterID),
 		ReceiptPrinter: orZero(req.ReceiptPrinter),
