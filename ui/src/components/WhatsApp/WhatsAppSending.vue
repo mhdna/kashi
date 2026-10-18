@@ -265,6 +265,27 @@
               Filled in per sale: <code v-for="p in placeholders" :key="p" class="me-1">{{ placeholder(p) }}</code>.
               A line whose placeholder has nothing to fill is left out. *bold* works as in WhatsApp.
             </p>
+            <v-switch
+              v-model="draft.whatsapp_delete_for_me"
+              class="mb-1"
+              color="primary"
+              density="compact"
+              :disabled="!canEdit"
+              hide-details
+              inset
+              label="Delete sent messages from the number's own chat (the client keeps them; votes still reach kashi)"
+            />
+            <v-switch
+              v-if="pollMode"
+              v-model="draft.whatsapp_delete_poll_for_me"
+              class="mb-1"
+              color="primary"
+              density="compact"
+              :disabled="!canEdit || !draft.whatsapp_delete_for_me"
+              hide-details
+              inset
+              label="Also delete the rating poll (turn off if votes stop arriving)"
+            />
             <!-- New clients: the channel; returning ones: their receipt. -->
             <v-switch
               v-model="draft.whatsapp_channel_first"

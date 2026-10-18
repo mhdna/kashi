@@ -135,14 +135,15 @@ func whatsAppPollGap() int64 {
 func (server *Server) sendWhatsAppPoll(ctx *gin.Context, sender db.GetWhatsAppSenderSettingsRow, instance, phone string) string {
 	ref := newReviewCode()
 	err := whatsAppBridgeCall(ctx, sender, http.MethodPost, "/message/sendText/"+instance, map[string]any{
-		"number":   phone,
-		"text":     whatsAppPollQuestion(sender.WhatsappPollQuestion),
-		"poll":     whatsAppPollOptions(sender.WhatsappPollOptions),
-		"ref":      ref,
-		"callback": server.whatsAppPollCallback(),
-		"source":   "kashi-poll",
-		"force":    true,
-		"gap":      whatsAppPollGap(),
+		"number":      phone,
+		"text":        whatsAppPollQuestion(sender.WhatsappPollQuestion),
+		"poll":        whatsAppPollOptions(sender.WhatsappPollOptions),
+		"ref":         ref,
+		"callback":    server.whatsAppPollCallback(),
+		"source":      "kashi-poll",
+		"deleteForMe": sender.WhatsappDeletePollForMe,
+		"force":       true,
+		"gap":         whatsAppPollGap(),
 	}, nil)
 	if err != nil {
 		log.Printf("whatsapp poll: queue for %s: %v", phone, err)
@@ -244,6 +245,7 @@ func (server *Server) sendWhatsAppPollFollowup(ctx *gin.Context, sender db.GetWh
 		"number":      to.ClientPhone,
 		"text":        text,
 		"source":      "kashi-followup",
+		"deleteForMe": sender.WhatsappDeleteForMe,
 		"force":       true, // the same text to a returning client isn't a duplicate
 		"gap":         3000,
 		"linkPreview": false,

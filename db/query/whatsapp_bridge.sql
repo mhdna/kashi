@@ -6,7 +6,8 @@ SELECT whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridg
        whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url,
        whatsapp_poll_question, whatsapp_poll_options, whatsapp_message_logo,
        whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad,
-       whatsapp_hidden_fields, whatsapp_channel_first
+       whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_delete_for_me,
+       whatsapp_delete_poll_for_me
 FROM app_settings WHERE id = 1;
 
 -- name: SetWhatsAppSenderSettings :exec
@@ -27,6 +28,8 @@ UPDATE app_settings SET
     whatsapp_followup_bad = sqlc.arg(whatsapp_followup_bad),
     whatsapp_hidden_fields = sqlc.arg(whatsapp_hidden_fields),
     whatsapp_channel_first = sqlc.arg(whatsapp_channel_first),
+    whatsapp_delete_for_me = sqlc.arg(whatsapp_delete_for_me),
+    whatsapp_delete_poll_for_me = sqlc.arg(whatsapp_delete_poll_for_me),
     updated_at = now()
 WHERE id = 1;
 

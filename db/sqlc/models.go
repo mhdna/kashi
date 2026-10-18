@@ -532,6 +532,8 @@ type AppSetting struct {
 	GoogleReviewsEnabled       bool            `json:"google_reviews_enabled"`
 	WhatsappHiddenFields       string          `json:"whatsapp_hidden_fields"`
 	WhatsappChannelFirst       bool            `json:"whatsapp_channel_first"`
+	WhatsappDeleteForMe        bool            `json:"whatsapp_delete_for_me"`
+	WhatsappDeletePollForMe    bool            `json:"whatsapp_delete_poll_for_me"`
 }
 
 type AppUpdateEvent struct {
