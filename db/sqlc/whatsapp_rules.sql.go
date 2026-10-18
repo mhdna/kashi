@@ -213,6 +213,24 @@ func (q *Queries) DeleteAllWhatsAppRules(ctx context.Context) error {
 	return err
 }
 
+const deleteFailedWhatsAppMessagesForInvoice = `-- name: DeleteFailedWhatsAppMessagesForInvoice :exec
+DELETE FROM whatsapp_messages
+WHERE branch_id = $1 AND invoice_code = $2
+  AND status = 'failed' AND NOT is_test
+`
+
+type DeleteFailedWhatsAppMessagesForInvoiceParams struct {
+	BranchID    sql.NullInt64 `json:"branch_id"`
+	InvoiceCode string        `json:"invoice_code"`
+}
+
+// A till retrying a thank-you after a temporary failure: its earlier failed
+// rows go, so the log keeps one row per sale showing how it ended.
+func (q *Queries) DeleteFailedWhatsAppMessagesForInvoice(ctx context.Context, arg DeleteFailedWhatsAppMessagesForInvoiceParams) error {
+	_, err := q.db.ExecContext(ctx, deleteFailedWhatsAppMessagesForInvoice, arg.BranchID, arg.InvoiceCode)
+	return err
+}
+
 const getWhatsAppMessageCost = `-- name: GetWhatsAppMessageCost :one
 SELECT whatsapp_message_cost_micros FROM app_settings WHERE id = 1
 `
@@ -699,6 +717,38 @@ func (q *Queries) WhatsAppFailureReasons(ctx context.Context, arg WhatsAppFailur
 		return nil, err
 	}
 	return items, nil
+}
+
+const whatsAppFailureWatch = `-- name: WhatsAppFailureWatch :one
+SELECT
+  count(*) FILTER (WHERE created_at > now() - interval '1 hour')::int AS failed_1h,
+  count(*)::int AS failed_24h,
+  COALESCE((array_agg(reason ORDER BY created_at DESC))[1], '')::text AS last_reason,
+  COALESCE(max(created_at), '1970-01-01'::timestamptz)::timestamptz AS last_failed_at
+FROM whatsapp_messages
+WHERE status = 'failed' AND NOT is_test AND created_at > now() - interval '24 hours'
+`
+
+type WhatsAppFailureWatchRow struct {
+	Failed1h     int32     `json:"failed_1h"`
+	Failed24h    int32     `json:"failed_24h"`
+	LastReason   string    `json:"last_reason"`
+	LastFailedAt time.Time `json:"last_failed_at"`
+}
+
+// Sale messages that failed lately (a retried one that then went out is no
+// longer counted, see DeleteFailedWhatsAppMessagesForInvoice), and the
+// latest failure's reason.
+func (q *Queries) WhatsAppFailureWatch(ctx context.Context) (WhatsAppFailureWatchRow, error) {
+	row := q.db.QueryRowContext(ctx, whatsAppFailureWatch)
+	var i WhatsAppFailureWatchRow
+	err := row.Scan(
+		&i.Failed1h,
+		&i.Failed24h,
+		&i.LastReason,
+		&i.LastFailedAt,
+	)
+	return i, err
 }
 
 const whatsAppMessageTotals = `-- name: WhatsAppMessageTotals :one

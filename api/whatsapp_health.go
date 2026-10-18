@@ -128,3 +128,36 @@ func (server *Server) resumeWhatsAppNumber(ctx *gin.Context) {
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{"ok": true})
 }
+
+// whatsAppFailureCritical is how many sale messages failing within an hour
+// turns the WhatsApp menu dot red: a number or the bridge is likely down.
+const whatsAppFailureCritical = 3
+
+// getWhatsAppFailures is the failure watch behind the WhatsApp menu dot and
+// the overview's banner. A failure the till retried successfully no longer
+// counts (one row per sale), so these are messages still not sent.
+func (server *Server) getWhatsAppFailures(ctx *gin.Context) {
+	row, err := server.store.WhatsAppFailureWatch(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	status := "healthy"
+	switch {
+	case row.Failed1h >= whatsAppFailureCritical:
+		status = "critical"
+	case row.Failed24h > 0:
+		status = "warning"
+	}
+	var lastAt *time.Time
+	if row.Failed24h > 0 {
+		lastAt = &row.LastFailedAt
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{
+		"status":         status,
+		"failed_1h":      row.Failed1h,
+		"failed_24h":     row.Failed24h,
+		"last_reason":    row.LastReason,
+		"last_failed_at": lastAt,
+	})
+}

@@ -209,3 +209,22 @@ SELECT id, body, kind, received_at, media_type FROM whatsapp_poll_replies WHERE 
 UNION ALL
 SELECT 0::bigint, body, kind, received_at, ''::text FROM whatsapp_replies WHERE message_id = sqlc.arg(id)
 ORDER BY received_at;
+
+-- name: DeleteFailedWhatsAppMessagesForInvoice :exec
+-- A till retrying a thank-you after a temporary failure: its earlier failed
+-- rows go, so the log keeps one row per sale showing how it ended.
+DELETE FROM whatsapp_messages
+WHERE branch_id = sqlc.arg(branch_id) AND invoice_code = sqlc.arg(invoice_code)
+  AND status = 'failed' AND NOT is_test;
+
+-- name: WhatsAppFailureWatch :one
+-- Sale messages that failed lately (a retried one that then went out is no
+-- longer counted, see DeleteFailedWhatsAppMessagesForInvoice), and the
+-- latest failure's reason.
+SELECT
+  count(*) FILTER (WHERE created_at > now() - interval '1 hour')::int AS failed_1h,
+  count(*)::int AS failed_24h,
+  COALESCE((array_agg(reason ORDER BY created_at DESC))[1], '')::text AS last_reason,
+  COALESCE(max(created_at), '1970-01-01'::timestamptz)::timestamptz AS last_failed_at
+FROM whatsapp_messages
+WHERE status = 'failed' AND NOT is_test AND created_at > now() - interval '24 hours';

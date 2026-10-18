@@ -431,6 +431,9 @@ type Querier interface {
 	DeleteExpense(ctx context.Context, id int64) error
 	DeleteExpenseCategory(ctx context.Context, id int64) error
 	DeleteExpenses(ctx context.Context, ids []int64) (int64, error)
+	// A till retrying a thank-you after a temporary failure: its earlier failed
+	// rows go, so the log keeps one row per sale showing how it ended.
+	DeleteFailedWhatsAppMessagesForInvoice(ctx context.Context, arg DeleteFailedWhatsAppMessagesForInvoiceParams) error
 	DeleteIPBan(ctx context.Context, ip string) error
 	DeleteInventories(ctx context.Context, ids []int64) (int64, error)
 	DeleteInventory(ctx context.Context, id int64) error
@@ -1655,6 +1658,10 @@ type Querier interface {
 	// Both kashi's failures (Meta refused the send) and Meta's own (accepted,
 	// then couldn't deliver).
 	WhatsAppFailureReasons(ctx context.Context, arg WhatsAppFailureReasonsParams) ([]WhatsAppFailureReasonsRow, error)
+	// Sale messages that failed lately (a retried one that then went out is no
+	// longer counted, see DeleteFailedWhatsAppMessagesForInvoice), and the
+	// latest failure's reason.
+	WhatsAppFailureWatch(ctx context.Context) (WhatsAppFailureWatchRow, error)
 	// delivered/read/undelivered come from Meta's webhook (delivery_status).
 	WhatsAppMessageTotals(ctx context.Context, arg WhatsAppMessageTotalsParams) (WhatsAppMessageTotalsRow, error)
 	WhatsAppMessagesByBranch(ctx context.Context, arg WhatsAppMessagesByBranchParams) ([]WhatsAppMessagesByBranchRow, error)

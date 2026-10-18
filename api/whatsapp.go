@@ -45,11 +45,23 @@ var whatsAppImageHeaderTemplates = map[string]bool{
 // details and kashi does the actual Cloud API call. Items let rules match
 // on what was sold; a till too old to send them just never matches those.
 type branchWhatsAppThankYouRequest struct {
-	ClientName      string             `json:"client_name"`
-	ClientPhone     string             `json:"client_phone" binding:"required"`
-	InvoiceCode     string             `json:"invoice_code" binding:"required"`
-	GrandTotalCents int64              `json:"grand_total_cents"`
-	Items           []whatsAppSaleItem `json:"items"`
+	ClientName      string `json:"client_name"`
+	ClientPhone     string `json:"client_phone" binding:"required"`
+	InvoiceCode     string `json:"invoice_code" binding:"required"`
+	GrandTotalCents int64  `json:"grand_total_cents"`
+	// PaidCents is what the client paid now, without any part put on
+	// account; "Total paid" shows it, and is left out when it's 0. Nil from
+	// tills before 1.1.11: the total is used.
+	PaidCents *int64             `json:"paid_cents"`
+	Items     []whatsAppSaleItem `json:"items"`
+}
+
+// paidCents is the amount a message shows as paid.
+func (req branchWhatsAppThankYouRequest) paidCents() int64 {
+	if req.PaidCents != nil {
+		return *req.PaidCents
+	}
+	return req.GrandTotalCents
 }
 
 // sendBranchWhatsAppThankYou is best-effort: config disabled/incomplete,
@@ -170,7 +182,7 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 		entry.ReviewCode, reviewURL = code, link
 	}
 
-	params := whatsAppTemplateParams(decision.TemplateParams, req.ClientName, branchName, req.InvoiceCode, req.GrandTotalCents, reviewURL, entry.ReviewCode)
+	params := whatsAppTemplateParams(decision.TemplateParams, req.ClientName, branchName, req.InvoiceCode, req.paidCents(), reviewURL, entry.ReviewCode)
 
 	components := []map[string]any{{"type": "body", "parameters": params}}
 	if whatsAppHasParam(decision.TemplateParams, "review_button") {
@@ -193,7 +205,7 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 	wamid, err := whatsAppSendTemplate(phoneNumberID, token, to, decision.TemplateName, decision.TemplateLang, components)
 	if err != nil {
 		log.Printf("whatsapp thank-you: send failed for invoice %s: %v", req.InvoiceCode, err)
-		server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, err.Error())
+		server.logWhatsAppSendError(ctx, entry, err)
 		return
 	}
 
@@ -207,7 +219,27 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 // logWhatsAppMessage records one outcome, tells open WhatsApp pages, and
 // answers the till.
 func (server *Server) logWhatsAppMessage(ctx *gin.Context, entry db.CreateWhatsAppMessageParams, status, reason string) {
+	server.recordWhatsAppOutcome(ctx, entry, status, reason, false)
+}
+
+// logWhatsAppSendError records a send that failed. A temporary failure (the
+// bridge or Meta unreachable or overloaded) tells the till to retry; it keeps
+// the sale pending and asks again later.
+func (server *Server) logWhatsAppSendError(ctx *gin.Context, entry db.CreateWhatsAppMessageParams, err error) {
+	server.recordWhatsAppOutcome(ctx, entry, whatsAppStatusFailed, err.Error(), isWhatsAppTemporary(err))
+}
+
+func (server *Server) recordWhatsAppOutcome(ctx *gin.Context, entry db.CreateWhatsAppMessageParams, status, reason string, retry bool) {
 	entry.Status, entry.Reason = status, reason
+	// One row per sale: an earlier failed try of this invoice gives way to
+	// how this one went.
+	if entry.BranchID.Valid && entry.InvoiceCode != "" {
+		if err := server.store.DeleteFailedWhatsAppMessagesForInvoice(ctx, db.DeleteFailedWhatsAppMessagesForInvoiceParams{
+			BranchID: entry.BranchID, InvoiceCode: entry.InvoiceCode,
+		}); err != nil {
+			log.Printf("whatsapp: clear earlier failures for invoice %s: %v", entry.InvoiceCode, err)
+		}
+	}
 	if _, err := server.store.CreateWhatsAppMessage(ctx, entry); err != nil {
 		log.Printf("whatsapp: log message for invoice %s: %v", entry.InvoiceCode, err)
 	} else {
@@ -217,7 +249,33 @@ func (server *Server) logWhatsAppMessage(ctx *gin.Context, entry db.CreateWhatsA
 		server.writeJSON(ctx, http.StatusOK, envelope{"sent": true})
 		return
 	}
-	server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": reason})
+	server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": reason, "retry": retry})
+}
+
+// whatsAppTemporaryError marks a failed send that may work if tried again
+// later: the bridge or Meta was unreachable, overloaded or rate-limiting.
+type whatsAppTemporaryError struct{ err error }
+
+func (e whatsAppTemporaryError) Error() string { return e.err.Error() }
+func (e whatsAppTemporaryError) Unwrap() error { return e.err }
+
+func whatsAppTemporary(err error) error { return whatsAppTemporaryError{err} }
+
+func isWhatsAppTemporary(err error) bool {
+	var t whatsAppTemporaryError
+	return errors.As(err, &t)
+}
+
+// whatsAppTemporaryStatus: HTTP answers worth retrying.
+func whatsAppTemporaryStatus(status int) bool {
+	return status >= 500 || status == http.StatusTooManyRequests || status == http.StatusRequestTimeout
+}
+
+// Meta error codes that are about load or throttling, not the message:
+// https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes
+var whatsAppMetaTemporaryCodes = map[int]bool{
+	1: true, 2: true, 4: true, 17: true, 341: true, 80007: true,
+	130429: true, 131000: true, 131016: true, 133004: true,
 }
 
 // whatsAppSendTemplate POSTs a template message via Meta's WhatsApp Business
@@ -254,7 +312,7 @@ func whatsAppSendTemplate(phoneNumberID, token, to, templateName, templateLang s
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("POST %s: %w", endpoint, err)
+		return "", whatsAppTemporary(fmt.Errorf("POST %s: %w", endpoint, err))
 	}
 	defer resp.Body.Close()
 	return parseWhatsAppSendResponse(resp.StatusCode, resp.Body)
@@ -282,13 +340,19 @@ func parseWhatsAppSendResponse(status int, body io.Reader) (string, error) {
 		if detail := strings.TrimSpace(out.Error.Details.Details); detail != "" && detail != msg {
 			msg = strings.TrimSpace(msg + ": " + detail)
 		}
-		if msg == "" {
-			return "", fmt.Errorf("HTTP %d", status)
+		var err error
+		switch {
+		case msg == "":
+			err = fmt.Errorf("HTTP %d", status)
+		case out.Error.Code != 0:
+			err = fmt.Errorf("%s (code %d)", msg, out.Error.Code)
+		default:
+			err = errors.New(msg)
 		}
-		if out.Error.Code != 0 {
-			return "", fmt.Errorf("%s (code %d)", msg, out.Error.Code)
+		if whatsAppTemporaryStatus(status) || whatsAppMetaTemporaryCodes[out.Error.Code] {
+			err = whatsAppTemporary(err)
 		}
-		return "", errors.New(msg)
+		return "", err
 	}
 	if decodeErr != nil || len(out.Messages) == 0 {
 		// Accepted, just without an id we could read.

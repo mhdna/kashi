@@ -230,6 +230,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.DELETE("/whatsapp/numbers/:id", server.deleteWhatsAppNumber)
 	authRoutes.POST("/whatsapp/numbers/:id/resume", server.resumeWhatsAppNumber)
 	authRoutes.GET("/whatsapp/health", server.getWhatsAppHealth)
+	authRoutes.GET("/whatsapp/failures", server.getWhatsAppFailures)
 	// The Reviews page (review_stats.go, review_link.go).
 	authRoutes.GET("/reviews", server.getReviews)
 	authRoutes.POST("/reviews/refresh", server.refreshReviews)
