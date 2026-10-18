@@ -4021,6 +4021,20 @@ func (mr *MockStoreMockRecorder) DeleteExpenses(arg0, arg1 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteExpenses", reflect.TypeOf((*MockStore)(nil).DeleteExpenses), arg0, arg1)
 }
 
+// DeleteFailedWhatsAppMessagesForInvoice mocks base method.
+func (m *MockStore) DeleteFailedWhatsAppMessagesForInvoice(arg0 context.Context, arg1 db.DeleteFailedWhatsAppMessagesForInvoiceParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteFailedWhatsAppMessagesForInvoice", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteFailedWhatsAppMessagesForInvoice indicates an expected call of DeleteFailedWhatsAppMessagesForInvoice.
+func (mr *MockStoreMockRecorder) DeleteFailedWhatsAppMessagesForInvoice(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFailedWhatsAppMessagesForInvoice", reflect.TypeOf((*MockStore)(nil).DeleteFailedWhatsAppMessagesForInvoice), arg0, arg1)
+}
+
 // DeleteIPBan mocks base method.
 func (m *MockStore) DeleteIPBan(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
@@ -12179,6 +12193,21 @@ func (m *MockStore) WhatsAppFailureReasons(arg0 context.Context, arg1 db.WhatsAp
 func (mr *MockStoreMockRecorder) WhatsAppFailureReasons(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WhatsAppFailureReasons", reflect.TypeOf((*MockStore)(nil).WhatsAppFailureReasons), arg0, arg1)
+}
+
+// WhatsAppFailureWatch mocks base method.
+func (m *MockStore) WhatsAppFailureWatch(arg0 context.Context) (db.WhatsAppFailureWatchRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WhatsAppFailureWatch", arg0)
+	ret0, _ := ret[0].(db.WhatsAppFailureWatchRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// WhatsAppFailureWatch indicates an expected call of WhatsAppFailureWatch.
+func (mr *MockStoreMockRecorder) WhatsAppFailureWatch(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WhatsAppFailureWatch", reflect.TypeOf((*MockStore)(nil).WhatsAppFailureWatch), arg0)
 }
 
 // WhatsAppMessageTotals mocks base method.

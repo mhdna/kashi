@@ -5,6 +5,28 @@
     </div>
 
     <template v-else-if="stats">
+      <!-- Sale messages still not sent after the till's retries (the same
+           watch as the WhatsApp menu dot). -->
+      <v-alert
+        v-if="failures?.failed_24h"
+        class="mb-3"
+        density="compact"
+        :type="failures.status === 'critical' ? 'error' : 'warning'"
+        variant="tonal"
+      >
+        <div class="font-weight-medium">
+          {{ failures.failed_24h }} sale {{ failures.failed_24h === 1 ? 'message' : 'messages' }} failed in the last 24 hours<template v-if="failures.failed_1h">, {{ failures.failed_1h }} in the last hour</template>.
+        </div>
+        <div v-if="failures.last_reason" class="text-body-2">Latest: {{ failures.last_reason }}</div>
+        <v-btn
+          class="mt-1 px-0"
+          size="small"
+          variant="text"
+          @click="emit('show-messages', { status: 'failed', search: '' })"
+        >
+          See failed messages
+        </v-btn>
+      </v-alert>
       <!-- KPIs -->
       <v-row density="compact">
         <v-col
@@ -196,6 +218,7 @@
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { useWhatsApp } from '@/composables/useWhatsApp'
+  import { useWhatsAppFailures } from '@/composables/useWhatsAppFailures'
   import { daysBetween, formatCost, formatDollars, formatPhone, STATUS } from '@/utils/whatsapp'
 
   const props = defineProps({
@@ -219,9 +242,11 @@
 
   const stats = ref(null)
   const loading = ref(false)
+  const { failures, refreshWhatsAppFailures } = useWhatsAppFailures()
 
   async function load () {
     loading.value = true
+    refreshWhatsAppFailures().catch(() => {})
     try {
       const keepPrice = priceDirty.value
       stats.value = await getStats({ from: props.from, to: props.to, branch_id: props.branchId })

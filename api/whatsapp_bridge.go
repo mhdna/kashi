@@ -259,7 +259,10 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 		}
 		hidden = whatsAppFirstOrReturning(hidden, errors.Is(err, sql.ErrNoRows))
 	}
-	values := whatsAppMessageValues(sender, hidden, req.ClientName, branchName, req.InvoiceCode, req.GrandTotalCents, time.Now())
+	values := whatsAppMessageValues(sender, hidden, req.ClientName, branchName, req.InvoiceCode, req.paidCents(), time.Now())
+	if req.paidCents() <= 0 {
+		values["total"] = "" // nothing paid now (on account): no "Total paid" line
+	}
 	// The review link only in link mode; in poll mode the poll asks instead.
 	if !pollMode && strings.Contains(message, "{review}") {
 		code, link, reason, err := server.newReviewLink(ctx, entry.BranchID.Int64)
@@ -303,7 +306,7 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 	err = whatsAppBridgeCall(ctx, sender, http.MethodPost, "/message/sendText/"+url.PathEscape(number.Instance), body, &out)
 	if err != nil {
 		log.Printf("whatsapp thank-you: bridge send failed for invoice %s: %v", req.InvoiceCode, err)
-		server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, err.Error())
+		server.logWhatsAppSendError(ctx, entry, err)
 		return
 	}
 	if pollMode {
@@ -343,7 +346,7 @@ func whatsAppBridgeCall(ctx context.Context, sender db.GetWhatsAppSenderSettings
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("WhatsApp bridge unreachable: %w", err)
+		return whatsAppTemporary(fmt.Errorf("WhatsApp bridge unreachable: %w", err))
 	}
 	defer resp.Body.Close()
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
@@ -356,15 +359,34 @@ func whatsAppBridgeCall(ctx context.Context, sender db.GetWhatsAppSenderSettings
 				Message []string `json:"message"`
 			} `json:"response"`
 		}
+		err := fmt.Errorf("WhatsApp bridge: HTTP %d", resp.StatusCode)
+		detail := ""
 		if json.Unmarshal(raw, &e) == nil && len(e.Response.Message) > 0 {
-			return fmt.Errorf("WhatsApp bridge: %s", strings.Join(e.Response.Message, "; "))
+			detail = strings.Join(e.Response.Message, "; ")
+			err = fmt.Errorf("WhatsApp bridge: %s", detail)
 		}
-		return fmt.Errorf("WhatsApp bridge: HTTP %d", resp.StatusCode)
+		if whatsAppTemporaryStatus(resp.StatusCode) || whatsAppBridgeDisconnected(detail) {
+			err = whatsAppTemporary(err)
+		}
+		return err
 	}
 	if out != nil {
 		return json.Unmarshal(raw, out)
 	}
 	return nil
+}
+
+// whatsAppBridgeDisconnected: the bridge refused because the number's
+// WhatsApp session is down (logged out, reconnecting), which clears up once
+// it's linked again -- worth retrying, unlike a bad number.
+func whatsAppBridgeDisconnected(detail string) bool {
+	d := strings.ToLower(detail)
+	for _, sign := range []string{"not connected", "connection closed", "disconnected", "connecting", "not open", "logged out"} {
+		if strings.Contains(d, sign) {
+			return true
+		}
+	}
+	return false
 }
 
 // ---- the WhatsApp page's Sending tab --------------------------------------

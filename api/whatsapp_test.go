@@ -5,11 +5,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
 
 	db "github.com/mhdna/kashi/db/sqlc"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWhatsAppDigits(t *testing.T) {
@@ -210,4 +212,15 @@ func TestWhatsAppWebhookParsing(t *testing.T) {
 	if got := unixTime("1760100000"); got.Unix() != 1760100000 {
 		t.Errorf("timestamp: %v", got)
 	}
+}
+
+// Meta throttling or outages are retried; a problem with the message isn't.
+func TestParseWhatsAppSendResponseTemporary(t *testing.T) {
+	_, err := parseWhatsAppSendResponse(http.StatusTooManyRequests, strings.NewReader(`{"error":{"message":"Rate limit hit","code":130429}}`))
+	require.True(t, isWhatsAppTemporary(err))
+	_, err = parseWhatsAppSendResponse(http.StatusInternalServerError, strings.NewReader(`{}`))
+	require.True(t, isWhatsAppTemporary(err))
+	_, err = parseWhatsAppSendResponse(http.StatusBadRequest, strings.NewReader(`{"error":{"message":"Template name does not exist in the translation","code":132001}}`))
+	require.Error(t, err)
+	require.False(t, isWhatsAppTemporary(err))
 }
