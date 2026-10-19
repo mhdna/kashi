@@ -73,7 +73,7 @@ INSERT INTO clients (
   client_type
 ) VALUES (
     $1, $2, $3
-) RETURNING id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active
+) RETURNING id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id
 `
 
 type CreateClientParams struct {
@@ -96,6 +96,7 @@ func (q *Queries) CreateClient(ctx context.Context, arg CreateClientParams) (Cli
 		&i.ClientType,
 		&i.Uid,
 		&i.IsActive,
+		&i.BranchID,
 	)
 	return i, err
 }
@@ -111,7 +112,7 @@ func (q *Queries) DeleteClient(ctx context.Context, id int64) error {
 }
 
 const getClient = `-- name: GetClient :one
-SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active FROM clients
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id FROM clients
 WHERE id = $1 LIMIT 1
 `
 
@@ -129,12 +130,13 @@ func (q *Queries) GetClient(ctx context.Context, id int64) (Client, error) {
 		&i.ClientType,
 		&i.Uid,
 		&i.IsActive,
+		&i.BranchID,
 	)
 	return i, err
 }
 
 const getClientByPhone = `-- name: GetClientByPhone :one
-SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active FROM clients
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id FROM clients
 WHERE phone = $1 LIMIT 1
 `
 
@@ -152,6 +154,7 @@ func (q *Queries) GetClientByPhone(ctx context.Context, phone string) (Client, e
 		&i.ClientType,
 		&i.Uid,
 		&i.IsActive,
+		&i.BranchID,
 	)
 	return i, err
 }
@@ -291,7 +294,7 @@ func (q *Queries) ListClientSpendingSummary(ctx context.Context, arg ListClientS
 }
 
 const listClients = `-- name: ListClients :many
-SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active FROM clients
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id FROM clients
 WHERE $3::text IS NULL OR client_type = $3
 ORDER BY name
 LIMIT $1
@@ -327,6 +330,7 @@ func (q *Queries) ListClients(ctx context.Context, arg ListClientsParams) ([]Cli
 			&i.ClientType,
 			&i.Uid,
 			&i.IsActive,
+			&i.BranchID,
 		); err != nil {
 			return nil, err
 		}
@@ -344,7 +348,7 @@ func (q *Queries) ListClients(ctx context.Context, arg ListClientsParams) ([]Cli
 const listClientsBySpending = `-- name: ListClientsBySpending :many
 WITH ranked AS (
   SELECT
-    c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type, c.uid, c.is_active,
+    c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type, c.uid, c.is_active, c.branch_id,
     (
       CASE WHEN COALESCE(cardinality($4::bigint[]), 0) = 0 THEN COALESCE(ci.central_total, 0) ELSE 0 END
       + COALESCE(bi.branch_total, 0)
@@ -397,7 +401,7 @@ WITH ranked AS (
   WHERE ($5::text IS NULL OR c.client_type = $5)
     AND ($6::text IS NULL OR c.name ILIKE '%' || $6::text || '%' OR c.phone ILIKE '%' || $6::text || '%')
 )
-SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, total_spent, invoice_count, item_count
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, total_spent, invoice_count, item_count
 FROM ranked
 ORDER BY
   (CASE $3::text
@@ -420,19 +424,20 @@ type ListClientsBySpendingParams struct {
 }
 
 type ListClientsBySpendingRow struct {
-	ID                 int64     `json:"id"`
-	Name               string    `json:"name"`
-	Phone              string    `json:"phone"`
-	TotalLoyaltyPoints int64     `json:"total_loyalty_points"`
-	ValidLoyaltyPoints int64     `json:"valid_loyalty_points"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedAt          time.Time `json:"updated_at"`
-	ClientType         string    `json:"client_type"`
-	Uid                uuid.UUID `json:"uid"`
-	IsActive           bool      `json:"is_active"`
-	TotalSpent         int64     `json:"total_spent"`
-	InvoiceCount       int64     `json:"invoice_count"`
-	ItemCount          int64     `json:"item_count"`
+	ID                 int64         `json:"id"`
+	Name               string        `json:"name"`
+	Phone              string        `json:"phone"`
+	TotalLoyaltyPoints int64         `json:"total_loyalty_points"`
+	ValidLoyaltyPoints int64         `json:"valid_loyalty_points"`
+	CreatedAt          time.Time     `json:"created_at"`
+	UpdatedAt          time.Time     `json:"updated_at"`
+	ClientType         string        `json:"client_type"`
+	Uid                uuid.UUID     `json:"uid"`
+	IsActive           bool          `json:"is_active"`
+	BranchID           sql.NullInt64 `json:"branch_id"`
+	TotalSpent         int64         `json:"total_spent"`
+	InvoiceCount       int64         `json:"invoice_count"`
+	ItemCount          int64         `json:"item_count"`
 }
 
 // Powers the clients "loyalty pyramid" + rest-of-clients table: every
@@ -482,6 +487,7 @@ func (q *Queries) ListClientsBySpending(ctx context.Context, arg ListClientsBySp
 			&i.ClientType,
 			&i.Uid,
 			&i.IsActive,
+			&i.BranchID,
 			&i.TotalSpent,
 			&i.InvoiceCount,
 			&i.ItemCount,
@@ -561,6 +567,17 @@ WHERE COALESCE(cardinality($1::bigint[]), 0) = 0
   AND $3::timestamptz IS NULL
   AND ($5::text IS NULL OR c.client_type = $5)
   AND NOT EXISTS (SELECT 1 FROM agg WHERE agg.client_id = c.id)
+UNION ALL
+SELECT c.id, c.name, c.phone, c.client_type, c.is_active, c.created_at, c.valid_loyalty_points,
+  c.branch_id, 0::bigint, 0::bigint,
+  'epoch'::timestamptz
+FROM clients c
+WHERE c.branch_id = ANY($1::bigint[])
+  AND $2::timestamptz IS NULL
+  AND $3::timestamptz IS NULL
+  AND ($4::bool OR c.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports))
+  AND ($5::text IS NULL OR c.client_type = $5)
+  AND NOT EXISTS (SELECT 1 FROM agg WHERE agg.client_id = c.id AND agg.branch_id = c.branch_id)
 ORDER BY name ASC, id ASC
 `
 
@@ -598,9 +615,17 @@ type ListClientsForExportRow struct {
 // lifetime. Central admin invoices have no branch (branch_id 0) and are only
 // included when no branch is selected, the same rule as
 // ListClientsBySpending. With no branch and no date set, clients who never
-// bought anything are listed too (branch_id 0, zero spend). Cancelled and
+// bought anything are listed too (branch_id 0, zero spend). A client is
+// listed under every branch they bought from, not only their home branch
+// (clients.branch_id, the first one); the home branch adds a zero-spend row
+// when they have no purchases there. Cancelled and
 // hidden-from-reports branch invoices are skipped as everywhere else, unless
 // include_excluded is set.
+// Home branch (clients.branch_id): a client is also listed under it when
+// they haven't bought there in this scope, e.g. one imported with a branch
+// and no sales yet. Only for an explicit branch pick and no dates, since
+// zero spend can't match a date window; the same hidden-branch rule as
+// purchases applies.
 func (q *Queries) ListClientsForExport(ctx context.Context, arg ListClientsForExportParams) ([]ListClientsForExportRow, error) {
 	rows, err := q.db.QueryContext(ctx, listClientsForExport,
 		pq.Array(arg.BranchIds),
@@ -643,7 +668,7 @@ func (q *Queries) ListClientsForExport(ctx context.Context, arg ListClientsForEx
 }
 
 const listClientsUpdatedSince = `-- name: ListClientsUpdatedSince :many
-SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active FROM clients
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id FROM clients
 WHERE updated_at > $1 AND client_type = 'retail'
 ORDER BY updated_at
 `
@@ -675,6 +700,7 @@ func (q *Queries) ListClientsUpdatedSince(ctx context.Context, updatedAt time.Ti
 			&i.ClientType,
 			&i.Uid,
 			&i.IsActive,
+			&i.BranchID,
 		); err != nil {
 			return nil, err
 		}
@@ -690,7 +716,7 @@ func (q *Queries) ListClientsUpdatedSince(ctx context.Context, updatedAt time.Ti
 }
 
 const listClientsUpdatedSincePaged = `-- name: ListClientsUpdatedSincePaged :many
-SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active FROM clients
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id FROM clients
 WHERE client_type = 'retail'
   AND (updated_at, id) > ($1::timestamptz, $2::bigint)
 ORDER BY updated_at, id
@@ -728,6 +754,7 @@ func (q *Queries) ListClientsUpdatedSincePaged(ctx context.Context, arg ListClie
 			&i.ClientType,
 			&i.Uid,
 			&i.IsActive,
+			&i.BranchID,
 		); err != nil {
 			return nil, err
 		}
@@ -743,7 +770,7 @@ func (q *Queries) ListClientsUpdatedSincePaged(ctx context.Context, arg ListClie
 }
 
 const listClientsWithLoyalty = `-- name: ListClientsWithLoyalty :many
-SELECT c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type, c.uid, c.is_active, COALESCE(bl.branch_points, 0)::bigint AS branch_loyalty_points
+SELECT c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type, c.uid, c.is_active, c.branch_id, COALESCE(bl.branch_points, 0)::bigint AS branch_loyalty_points
 FROM clients c
 LEFT JOIN (
   SELECT cl.client_id, SUM(bi.loyalty_points_delta) AS branch_points
@@ -764,17 +791,18 @@ type ListClientsWithLoyaltyParams struct {
 }
 
 type ListClientsWithLoyaltyRow struct {
-	ID                  int64     `json:"id"`
-	Name                string    `json:"name"`
-	Phone               string    `json:"phone"`
-	TotalLoyaltyPoints  int64     `json:"total_loyalty_points"`
-	ValidLoyaltyPoints  int64     `json:"valid_loyalty_points"`
-	CreatedAt           time.Time `json:"created_at"`
-	UpdatedAt           time.Time `json:"updated_at"`
-	ClientType          string    `json:"client_type"`
-	Uid                 uuid.UUID `json:"uid"`
-	IsActive            bool      `json:"is_active"`
-	BranchLoyaltyPoints int64     `json:"branch_loyalty_points"`
+	ID                  int64         `json:"id"`
+	Name                string        `json:"name"`
+	Phone               string        `json:"phone"`
+	TotalLoyaltyPoints  int64         `json:"total_loyalty_points"`
+	ValidLoyaltyPoints  int64         `json:"valid_loyalty_points"`
+	CreatedAt           time.Time     `json:"created_at"`
+	UpdatedAt           time.Time     `json:"updated_at"`
+	ClientType          string        `json:"client_type"`
+	Uid                 uuid.UUID     `json:"uid"`
+	IsActive            bool          `json:"is_active"`
+	BranchID            sql.NullInt64 `json:"branch_id"`
+	BranchLoyaltyPoints int64         `json:"branch_loyalty_points"`
 }
 
 // Same rows as ListClients, but with each branch's reported loyalty points
@@ -802,6 +830,7 @@ func (q *Queries) ListClientsWithLoyalty(ctx context.Context, arg ListClientsWit
 			&i.ClientType,
 			&i.Uid,
 			&i.IsActive,
+			&i.BranchID,
 			&i.BranchLoyaltyPoints,
 		); err != nil {
 			return nil, err
@@ -815,6 +844,38 @@ func (q *Queries) ListClientsWithLoyalty(ctx context.Context, arg ListClientsWit
 		return nil, err
 	}
 	return items, nil
+}
+
+const setClientBranchIfNull = `-- name: SetClientBranchIfNull :exec
+UPDATE clients SET branch_id = $1
+WHERE branch_id IS NULL
+  AND id = COALESCE(
+    (SELECT cu.id FROM clients cu WHERE cu.uid = $2),
+    (SELECT cl.client_id FROM client_links cl
+      WHERE cl.register_id = $3 AND cl.branch_client_id = $4)
+  )
+`
+
+type SetClientBranchIfNullParams struct {
+	BranchID       sql.NullInt64 `json:"branch_id"`
+	ClientUid      uuid.NullUUID `json:"client_uid"`
+	RegisterID     int64         `json:"register_id"`
+	BranchClientID sql.NullInt64 `json:"branch_client_id"`
+}
+
+// A client's home branch is the first branch they bought from, so a branch
+// invoice only sets it when none is set yet. The client is resolved by
+// either identity a till has used (client_uid, else the register's local
+// client id), as in ListClientsForExport. updated_at is left alone: the
+// column isn't synced to tills, so this mustn't make them re-pull the client.
+func (q *Queries) SetClientBranchIfNull(ctx context.Context, arg SetClientBranchIfNullParams) error {
+	_, err := q.db.ExecContext(ctx, setClientBranchIfNull,
+		arg.BranchID,
+		arg.ClientUid,
+		arg.RegisterID,
+		arg.BranchClientID,
+	)
+	return err
 }
 
 const sumClientLoyaltyPoints = `-- name: SumClientLoyaltyPoints :one
@@ -842,7 +903,7 @@ UPDATE clients
   client_type = $4,
   updated_at = now()
 WHERE id = $1
-RETURNING id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active
+RETURNING id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id
 `
 
 type UpdateClientParams struct {
@@ -871,6 +932,7 @@ func (q *Queries) UpdateClient(ctx context.Context, arg UpdateClientParams) (Cli
 		&i.ClientType,
 		&i.Uid,
 		&i.IsActive,
+		&i.BranchID,
 	)
 	return i, err
 }

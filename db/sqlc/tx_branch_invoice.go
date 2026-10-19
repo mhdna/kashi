@@ -80,6 +80,15 @@ func (store *SQLStore) CreateBranchInvoiceTx(ctx context.Context, arg CreateBran
 			return err
 		}
 
+		if err := q.SetClientBranchIfNull(ctx, SetClientBranchIfNullParams{
+			BranchID:       sql.NullInt64{Int64: arg.BranchID, Valid: true},
+			ClientUid:      arg.ClientUid,
+			RegisterID:     arg.RegisterID,
+			BranchClientID: arg.BranchClientID,
+		}); err != nil {
+			return err
+		}
+
 		// Resolve each line to its central variant once: by uid when the till
 		// sent one, else by barcode. nil means "doesn't resolve" -- the line
 		// is still recorded, it just can't move central stock.

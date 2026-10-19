@@ -1040,16 +1040,17 @@ type CashboxAccount struct {
 }
 
 type Client struct {
-	ID                 int64     `json:"id"`
-	Name               string    `json:"name"`
-	Phone              string    `json:"phone"`
-	TotalLoyaltyPoints int64     `json:"total_loyalty_points"`
-	ValidLoyaltyPoints int64     `json:"valid_loyalty_points"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedAt          time.Time `json:"updated_at"`
-	ClientType         string    `json:"client_type"`
-	Uid                uuid.UUID `json:"uid"`
-	IsActive           bool      `json:"is_active"`
+	ID                 int64         `json:"id"`
+	Name               string        `json:"name"`
+	Phone              string        `json:"phone"`
+	TotalLoyaltyPoints int64         `json:"total_loyalty_points"`
+	ValidLoyaltyPoints int64         `json:"valid_loyalty_points"`
+	CreatedAt          time.Time     `json:"created_at"`
+	UpdatedAt          time.Time     `json:"updated_at"`
+	ClientType         string        `json:"client_type"`
+	Uid                uuid.UUID     `json:"uid"`
+	IsActive           bool          `json:"is_active"`
+	BranchID           sql.NullInt64 `json:"branch_id"`
 }
 
 type ClientLink struct {

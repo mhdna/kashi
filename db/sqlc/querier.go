@@ -1021,9 +1021,17 @@ type Querier interface {
 	// lifetime. Central admin invoices have no branch (branch_id 0) and are only
 	// included when no branch is selected, the same rule as
 	// ListClientsBySpending. With no branch and no date set, clients who never
-	// bought anything are listed too (branch_id 0, zero spend). Cancelled and
+	// bought anything are listed too (branch_id 0, zero spend). A client is
+	// listed under every branch they bought from, not only their home branch
+	// (clients.branch_id, the first one); the home branch adds a zero-spend row
+	// when they have no purchases there. Cancelled and
 	// hidden-from-reports branch invoices are skipped as everywhere else, unless
 	// include_excluded is set.
+	// Home branch (clients.branch_id): a client is also listed under it when
+	// they haven't bought there in this scope, e.g. one imported with a branch
+	// and no sales yet. Only for an explicit branch pick and no dates, since
+	// zero spend can't match a date window; the same hidden-branch rule as
+	// purchases applies.
 	ListClientsForExport(ctx context.Context, arg ListClientsForExportParams) ([]ListClientsForExportRow, error)
 	// Feeds the branch catch-up endpoint (see branch_catchup.go), same pattern
 	// as currencies/cashbox_accounts/products. Wholesale clients never appear
@@ -1527,6 +1535,12 @@ type Querier interface {
 	SetBranchWhatsAppNumber(ctx context.Context, arg SetBranchWhatsAppNumberParams) error
 	SetCashboxAccountActive(ctx context.Context, arg SetCashboxAccountActiveParams) (CashboxAccount, error)
 	SetClientActive(ctx context.Context, arg SetClientActiveParams) error
+	// A client's home branch is the first branch they bought from, so a branch
+	// invoice only sets it when none is set yet. The client is resolved by
+	// either identity a till has used (client_uid, else the register's local
+	// client id), as in ListClientsForExport. updated_at is left alone: the
+	// column isn't synced to tills, so this mustn't make them re-pull the client.
+	SetClientBranchIfNull(ctx context.Context, arg SetClientBranchIfNullParams) error
 	SetDefaultLowStockThreshold(ctx context.Context, defaultLowStockThreshold int64) (AppSetting, error)
 	SetDefaultWhatsAppNumber(ctx context.Context, id int64) error
 	SetEmailResendAPIKey(ctx context.Context, emailResendApiKey string) error
