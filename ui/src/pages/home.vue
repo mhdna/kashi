@@ -1239,7 +1239,7 @@
         authFetch(`${API_BASE}/unknown_items?page_size=1`).then(res => res.ok ? res.json() : null),
         authFetch(`${API_BASE}/unknown_items/waiting`).then(res => res.ok ? res.json() : null),
       ])
-      unknownItems.value = { pending: list?.pending ?? 0, waiting: waiting?.items?.length ?? 0 }
+      unknownItems.value = { pending: list?.pending ?? 0, waiting: (waiting?.items ?? []).filter(unit => !unit.image_id && !unit.waived_at).length }
     } catch {
       // Leave the card as it was; the next poll tries again.
     }

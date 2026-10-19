@@ -1372,8 +1372,9 @@ type Querier interface {
 	// Most recently seen first. search matches the IP, place, network, user or
 	// branch; country narrows to one country code.
 	ListVisitorIPs(ctx context.Context, arg ListVisitorIPsParams) ([]VisitorIp, error)
-	// Units of checkouts still in progress that have neither a picture nor a
-	// manager's pass, for the "Waiting" tab. Cashiers who asked for help first.
+	// Every unit of the checkouts still in progress that are missing at least one
+	// picture or pass, for the "Waiting" tab: pictured units come along so the
+	// manager sees what has already been taken. Cashiers who asked for help first.
 	ListWaitingUnknownItems(ctx context.Context) ([]ListWaitingUnknownItemsRow, error)
 	// What the client sent back to one message: after its poll (the bridge) or
 	// answering it (Meta's webhook), oldest first.

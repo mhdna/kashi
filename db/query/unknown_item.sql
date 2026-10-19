@@ -132,8 +132,9 @@ UPDATE unknown_item_sessions SET help_requested_at = COALESCE(help_requested_at,
 WHERE branch_id = $1 AND client_ref = $2;
 
 -- name: ListWaitingUnknownItems :many
--- Units of checkouts still in progress that have neither a picture nor a
--- manager's pass, for the "Waiting" tab. Cashiers who asked for help first.
+-- Every unit of the checkouts still in progress that are missing at least one
+-- picture or pass, for the "Waiting" tab: pictured units come along so the
+-- manager sees what has already been taken. Cashiers who asked for help first.
 SELECT
   s.id,
   s.slot_ref,
@@ -141,6 +142,8 @@ SELECT
   s.label,
   s.unit_price,
   s.discount,
+  s.image_id,
+  s.waived_at,
   sess.id AS session_id,
   sess.branch_id,
   b.name AS branch_name,
@@ -151,8 +154,10 @@ JOIN unknown_item_sessions sess ON sess.id = s.session_id
 JOIN branches b ON b.id = sess.branch_id
 WHERE sess.branch_invoice_id IS NULL
   AND sess.expires_at > now()
-  AND s.image_id IS NULL
-  AND s.waived_at IS NULL
+  AND EXISTS (
+    SELECT 1 FROM unknown_item_slots missing
+    WHERE missing.session_id = sess.id AND missing.image_id IS NULL AND missing.waived_at IS NULL
+  )
 ORDER BY (sess.help_requested_at IS NULL), sess.created_at DESC, s.position;
 
 -- name: WaiveUnknownItemSlots :execrows

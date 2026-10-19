@@ -496,6 +496,8 @@ SELECT
   s.label,
   s.unit_price,
   s.discount,
+  s.image_id,
+  s.waived_at,
   sess.id AS session_id,
   sess.branch_id,
   b.name AS branch_name,
@@ -506,27 +508,32 @@ JOIN unknown_item_sessions sess ON sess.id = s.session_id
 JOIN branches b ON b.id = sess.branch_id
 WHERE sess.branch_invoice_id IS NULL
   AND sess.expires_at > now()
-  AND s.image_id IS NULL
-  AND s.waived_at IS NULL
+  AND EXISTS (
+    SELECT 1 FROM unknown_item_slots missing
+    WHERE missing.session_id = sess.id AND missing.image_id IS NULL AND missing.waived_at IS NULL
+  )
 ORDER BY (sess.help_requested_at IS NULL), sess.created_at DESC, s.position
 `
 
 type ListWaitingUnknownItemsRow struct {
-	ID              int64        `json:"id"`
-	SlotRef         string       `json:"slot_ref"`
-	Position        int32        `json:"position"`
-	Label           string       `json:"label"`
-	UnitPrice       int64        `json:"unit_price"`
-	Discount        int16        `json:"discount"`
-	SessionID       int64        `json:"session_id"`
-	BranchID        int64        `json:"branch_id"`
-	BranchName      string       `json:"branch_name"`
-	HelpRequestedAt sql.NullTime `json:"help_requested_at"`
-	CreatedAt       time.Time    `json:"created_at"`
+	ID              int64         `json:"id"`
+	SlotRef         string        `json:"slot_ref"`
+	Position        int32         `json:"position"`
+	Label           string        `json:"label"`
+	UnitPrice       int64         `json:"unit_price"`
+	Discount        int16         `json:"discount"`
+	ImageID         sql.NullInt64 `json:"image_id"`
+	WaivedAt        sql.NullTime  `json:"waived_at"`
+	SessionID       int64         `json:"session_id"`
+	BranchID        int64         `json:"branch_id"`
+	BranchName      string        `json:"branch_name"`
+	HelpRequestedAt sql.NullTime  `json:"help_requested_at"`
+	CreatedAt       time.Time     `json:"created_at"`
 }
 
-// Units of checkouts still in progress that have neither a picture nor a
-// manager's pass, for the "Waiting" tab. Cashiers who asked for help first.
+// Every unit of the checkouts still in progress that are missing at least one
+// picture or pass, for the "Waiting" tab: pictured units come along so the
+// manager sees what has already been taken. Cashiers who asked for help first.
 func (q *Queries) ListWaitingUnknownItems(ctx context.Context) ([]ListWaitingUnknownItemsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listWaitingUnknownItems)
 	if err != nil {
@@ -543,6 +550,8 @@ func (q *Queries) ListWaitingUnknownItems(ctx context.Context) ([]ListWaitingUnk
 			&i.Label,
 			&i.UnitPrice,
 			&i.Discount,
+			&i.ImageID,
+			&i.WaivedAt,
 			&i.SessionID,
 			&i.BranchID,
 			&i.BranchName,
