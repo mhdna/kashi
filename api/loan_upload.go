@@ -285,6 +285,34 @@ func (server *Server) branchLoanPhotos(ctx *gin.Context) {
 	server.writeJSON(ctx, http.StatusOK, envelope{"images": images})
 }
 
+// branchLoanPhotoFirst is branchExpensePhotoFirst for a loan.
+func (server *Server) branchLoanPhotoFirst(ctx *gin.Context) {
+	branchID := ctx.MustGet(branchIDKey).(int64)
+	var req branchExpensePhotosRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	loan, err := server.store.GetBranchLoanByClientRef(ctx, db.GetBranchLoanByClientRefParams{
+		BranchID:  sql.NullInt64{Int64: branchID, Valid: true},
+		ClientRef: sql.NullString{String: req.ClientRef, Valid: true},
+	})
+	if err != nil {
+		server.writeError(ctx, statusForLookup(err), err)
+		return
+	}
+	images, err := server.store.ListLoanImagesForLoan(ctx, loan.ID)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(images) == 0 {
+		server.writeError(ctx, http.StatusNotFound, errors.New("no photo"))
+		return
+	}
+	server.serveStoredImage(ctx, images[0].FilePath, images[0].ContentType, 0)
+}
+
 // branchLoanPhotoFile serves one loan photo, if its loan is this branch's.
 func (server *Server) branchLoanPhotoFile(ctx *gin.Context) {
 	branchID := ctx.MustGet(branchIDKey).(int64)
