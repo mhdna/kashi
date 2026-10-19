@@ -19,13 +19,36 @@
       <v-divider />
 
       <div class="guide-layout">
-        <PageSidebar
-          v-model="selectedId"
-          empty-text="Nothing matches your search."
-          :groups="groupDefs"
-          :items="items"
-          :width="240"
-        />
+        <div class="guide-tree">
+          <v-list
+            v-if="tree.length > 0"
+            v-model:opened="opened"
+            class="py-1"
+            density="compact"
+            nav
+          >
+            <v-list-group v-for="group in tree" :key="group.name" :value="group.name">
+              <template #activator="{ props: activatorProps }">
+                <v-list-item
+                  v-bind="activatorProps"
+                  class="gt-group"
+                  :prepend-icon="group.icon"
+                  :title="group.name"
+                />
+              </template>
+              <v-list-item
+                v-for="section in group.sections"
+                :key="section.id"
+                :active="section.id === selectedId"
+                class="gt-item"
+                :prepend-icon="section.icon"
+                :title="section.title"
+                @click="selectedId = section.id"
+              />
+            </v-list-group>
+          </v-list>
+          <div v-else class="text-medium-emphasis text-caption pa-4">Nothing matches your search.</div>
+        </div>
 
         <v-divider vertical />
 
@@ -83,8 +106,7 @@
 <script setup>
   import { computed, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
-  import PageSidebar from '@/components/PageSidebar.vue'
-  import { guideGroups, guideSections } from '@/data/userGuide'
+  import { guideGroupIcons, guideGroups, guideIcons, guideSections } from '@/data/userGuide'
 
   const route = useRoute()
   const router = useRouter()
@@ -105,8 +127,16 @@
     return q ? guideSections.filter(s => textOf(s).includes(q)) : guideSections
   })
 
-  const groupDefs = guideGroups.map(name => ({ key: name, label: name }))
-  const items = computed(() => visible.value.map(s => ({ value: s.id, title: s.title, group: s.group })))
+  // The contents tree: a group per area, its pages underneath.
+  const tree = computed(() => guideGroups
+    .map(name => ({
+      name,
+      icon: guideGroupIcons[name],
+      sections: visible.value
+        .filter(s => s.group === name)
+        .map(s => ({ ...s, icon: guideIcons[s.id] })),
+    }))
+    .filter(g => g.sections.length > 0))
 
   // The open page lives in the address (?page=), so a link or a reload opens it.
   const selectedId = computed({
@@ -123,6 +153,16 @@
   const current = computed(() => visible.value[index.value] ?? null)
   const previous = computed(() => visible.value[index.value - 1] ?? null)
   const next = computed(() => visible.value[index.value + 1] ?? null)
+
+  // Which groups are expanded. The open page's group is always expanded, and
+  // searching expands every group that has a match.
+  const opened = ref([])
+  watch([selectedId, search], () => {
+    const groups = search.value
+      ? tree.value.map(g => g.name)
+      : [current.value?.group].filter(Boolean)
+    opened.value = [...new Set([...opened.value, ...groups])]
+  }, { immediate: true })
 
   // Each page opens at the top.
   watch(selectedId, () => {
@@ -151,6 +191,40 @@
   overflow: hidden;
 }
 
+.guide-tree {
+  flex: 0 0 260px;
+  width: 260px;
+  overflow-y: auto;
+}
+
+/* Same look as the other pickers: primary text on the open page, with a
+   stripe on its inline-end edge. */
+.guide-tree :deep(.v-list-item) {
+  border-radius: 0;
+}
+
+.guide-tree :deep(.gt-group .v-list-item-title) {
+  font-weight: 600;
+}
+
+.guide-tree :deep(.gt-item) {
+  padding-inline-start: 28px !important;
+}
+
+.guide-tree :deep(.v-list-item--active) {
+  color: rgb(var(--v-theme-primary));
+}
+
+.guide-tree :deep(.gt-item.v-list-item--active)::after {
+  content: '';
+  position: absolute;
+  inset-block: 4px;
+  inset-inline-end: 0;
+  width: 3px;
+  border-radius: 3px 0 0 3px;
+  background: currentColor;
+}
+
 .guide-content {
   flex: 1 1 auto;
   min-width: 0;
@@ -170,6 +244,12 @@
 @media (max-width: 960px) {
   .guide-layout {
     flex-direction: column;
+  }
+
+  .guide-tree {
+    flex: 0 0 auto;
+    width: 100%;
+    max-height: 40vh;
   }
 }
 </style>
