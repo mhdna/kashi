@@ -25,6 +25,17 @@
               prepend-inner-icon="mdi-magnify"
               variant="outlined"
             />
+            <v-btn
+              v-if="canDelete"
+              color="error"
+              :disabled="selectedIds.length === 0"
+              prepend-icon="mdi-delete"
+              size="small"
+              variant="tonal"
+              @click="confirmDelete = true"
+            >
+              Delete{{ selectedIds.length > 0 ? ` (${selectedIds.length})` : '' }}
+            </v-btn>
             <v-progress-circular v-if="loading" indeterminate size="20" />
           </div>
         </div>
@@ -45,6 +56,13 @@
             hover
             @click="openPreview(image)"
           >
+            <v-checkbox-btn
+              v-if="canDelete"
+              class="image-select"
+              density="compact"
+              :model-value="selectedIds.includes(image.id)"
+              @click.stop="toggleSelected(image.id)"
+            />
             <v-img aspect-ratio="1" cover :src="thumbnailUrls[imageKey(image)]">
               <template #placeholder>
                 <div class="d-flex align-center justify-center fill-height">
@@ -69,6 +87,21 @@
         <div class="text-medium-emphasis">Select a folder on the left.</div>
       </template>
     </div>
+
+    <v-dialog v-model="confirmDelete" max-width="420">
+      <v-card>
+        <v-card-title>Delete {{ selectedIds.length }} picture(s)?</v-card-title>
+        <v-card-text>
+          The pictures are removed for good. Pictures of items still waiting to be matched are kept.
+          Items already matched keep their match.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="confirmDelete = false">Cancel</v-btn>
+          <v-btn color="error" :loading="deleting" variant="flat" @click="deleteSelected">Delete</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <v-dialog v-model="previewDialog" max-width="720">
       <v-card>
@@ -118,7 +151,7 @@
   const { fetchExpenseImages, fetchExpenseImageObjectUrl } = useExpenseImages()
   const { fetchShiftReceiptImages, fetchShiftReceiptImageObjectUrl } = useShiftReceiptImages()
   const { fetchTransferAttachments, fetchTransferAttachmentObjectUrl } = useTransferAttachments()
-  const { fetchUnknownItemImages, fetchImageObjectUrl: fetchUnknownItemImageObjectUrl } = useUnknownItems()
+  const { fetchUnknownItemImages, deleteUnknownItemImages, fetchImageObjectUrl: fetchUnknownItemImageObjectUrl } = useUnknownItems()
   const { ensureConnected, onMessage } = useAdminSocket()
   const { canRotate, canReplace, rotatePhoto, replacePhoto, uploadProgress } = usePhotoActions()
   const notify = useNotify()
@@ -163,6 +196,7 @@
       fetchObjectUrl: (image, opts) => fetchUnknownItemImageObjectUrl(image.id, opts),
       refreshOn: 'unknown_item_uploaded',
       photoKind: null,
+      deletable: true,
       primaryText: image => `Unknown item · $${(image.unit_price / 100).toFixed(2)}${image.branch_invoice_code ? ` · ${image.branch_invoice_code}` : ''}`,
     },
   }
@@ -239,6 +273,36 @@
       formatDate(image.created_at),
     ].some(value => String(value ?? '').toLowerCase().includes(query)))
   })
+
+  // Delete is offered on the kinds that support it (unknown items), to
+  // whoever may replace photos.
+  const canDelete = computed(() => canReplace.value && !!source.value?.deletable)
+  const selectedIds = ref([])
+  const confirmDelete = ref(false)
+  const deleting = ref(false)
+
+  function toggleSelected (id) {
+    selectedIds.value = selectedIds.value.includes(id)
+      ? selectedIds.value.filter(selected => selected !== id)
+      : [...selectedIds.value, id]
+  }
+
+  async function deleteSelected () {
+    deleting.value = true
+    try {
+      const { deleted, kept } = await deleteUnknownItemImages(selectedIds.value)
+      notify.success(kept
+        ? `${deleted} deleted, ${kept} kept (still waiting to be matched)`
+        : `${deleted} deleted`)
+      confirmDelete.value = false
+      selectedIds.value = []
+      resetAndLoad()
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      deleting.value = false
+    }
+  }
 
   const previewDialog = ref(false)
   const previewImage = ref(null)
@@ -364,6 +428,7 @@
 
   function resetAndLoad () {
     search.value = ''
+    selectedIds.value = []
     images.value = []
     total.value = 0
     pageId.value = 0
@@ -421,5 +486,15 @@
 
 .image-card {
   cursor: pointer;
+  position: relative;
+}
+
+.image-select {
+  background: rgba(var(--v-theme-surface), 0.85);
+  border-radius: 8px;
+  left: 6px;
+  position: absolute;
+  top: 6px;
+  z-index: 1;
 }
 </style>

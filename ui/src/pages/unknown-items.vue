@@ -105,7 +105,8 @@
             <div class="unknown-photo">
               <img v-if="thumbs[item.image_id]" alt="" :src="thumbs[item.image_id]" @click.stop="preview = item.image_id">
               <div v-else-if="!item.image_id" class="text-caption text-medium-emphasis text-center px-2">
-                No picture<br>allowed by {{ item.waived_by || 'a manager' }}
+                <template v-if="item.waived_at">No picture<br>allowed by {{ item.waived_by || 'a manager' }}</template>
+                <template v-else>Picture deleted</template>
               </div>
               <div
                 v-else-if="thumbFailed[item.image_id]"
