@@ -252,17 +252,17 @@
     document.getElementById('done').classList.toggle('on', !!slots.length && doneCount === slots.length);
   }
 
-  // Shrinks a phone photo to ~1280px JPEG before sending: a few hundred KB
+  // Shrinks a phone photo to ~900px JPEG before sending: tens of KB
   // instead of several MB, which is what makes the upload near-instant.
   function shrink(file) {
     if (!window.createImageBitmap) return Promise.resolve(file);
     return createImageBitmap(file, { imageOrientation: 'from-image' }).then(function (bmp) {
-      var k = Math.min(1, 1280 / Math.max(bmp.width, bmp.height));
+      var k = Math.min(1, 900 / Math.max(bmp.width, bmp.height));
       var c = document.createElement('canvas');
       c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
       c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
       return new Promise(function (res, rej) {
-        c.toBlob(function (b) { b ? res(b) : rej(new Error('encode')); }, 'image/jpeg', 0.75);
+        c.toBlob(function (b) { b ? res(b) : rej(new Error('encode')); }, 'image/jpeg', 0.65);
       });
     }, function () { return file; });
   }
@@ -284,8 +284,7 @@
       return fetch(base + '/slots/' + encodeURIComponent(slot.slot_ref) + '/image', { method: 'POST', body: fd });
     }).then(function (r) {
       if (!r.ok) throw new Error('Upload failed');
-      slot.has_image = true; delete busy[slot.slot_ref]; render();
-      return refresh();
+      return r.json().then(function (data) { slots = data.slots || slots; });
     }).catch(function () {
       errors[slot.slot_ref] = 'Failed \u2014 tap Retake';
       delete local[slot.slot_ref];
@@ -299,7 +298,7 @@
       body: JSON.stringify({ from_slot_ref: source.slot_ref })
     }).then(function (r) {
       if (!r.ok) throw new Error('copy');
-      return refresh();
+      return r.json().then(function (data) { slots = data.slots || slots; });
     }).catch(function () { errors[slot.slot_ref] = 'Failed \u2014 try again'; })
       .then(function () { delete busy[slot.slot_ref]; render(); });
   }
