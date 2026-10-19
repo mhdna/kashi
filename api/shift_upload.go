@@ -24,6 +24,8 @@ const shiftUploadTokenTTL = 2 * time.Hour
 //go:embed shift_upload_assets/upload.html
 var shiftUploadPageHTML []byte
 
+var shiftUploadPage = newPhoneUploadPage(shiftUploadPageHTML)
+
 // createBranchShiftUploadToken mints a one-time, expiring token for a
 // freshly-created branch shift close. Called from createBranchShiftClose
 // (branch_shift.go) only on the genuinely-new-insert path.
@@ -49,7 +51,7 @@ func (server *Server) createBranchShiftUploadToken(ctx *gin.Context, branchShift
 // asset to the one kashi-pos's local server embeds), all validity checking
 // happens client-side against the status / images endpoints below.
 func (server *Server) shiftUploadPage(ctx *gin.Context) {
-	ctx.Data(http.StatusOK, "text/html; charset=utf-8", shiftUploadPageHTML)
+	server.servePhoneUploadPage(ctx, shiftUploadPage)
 }
 
 func (server *Server) lookupValidShiftUploadToken(ctx *gin.Context, token string) (db.BranchShiftUploadToken, error) {

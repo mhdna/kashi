@@ -27,6 +27,7 @@ export const useSettingsStore = defineStore('settings', {
     upcomingEventsMenuDays: DEFAULT_UPCOMING_EVENTS_MENU_DAYS,
     hiddenBuiltinEvents: [],
     productAutofillEnabled: true,
+    uploadPagesFollowSystem: false,
     // Rules for the New Product dialog's auto-fill (utils/productAutofill.js).
     // Saved on their own from the Auto-fill Rules page, not through persist().
     productAutofillRules: [],
@@ -51,6 +52,7 @@ export const useSettingsStore = defineStore('settings', {
         this.upcomingEventsMenuDays = settings.upcoming_events_menu_days ?? DEFAULT_UPCOMING_EVENTS_MENU_DAYS
         this.hiddenBuiltinEvents = settings.hidden_builtin_events ?? []
         this.productAutofillEnabled = settings.product_autofill_enabled ?? true
+        this.uploadPagesFollowSystem = settings.upload_pages_follow_system ?? false
         this.productAutofillRules = settings.product_autofill_rules ?? []
         this.productAutofillCodeLayout = settings.product_autofill_code_layout ?? ''
       }
@@ -69,6 +71,7 @@ export const useSettingsStore = defineStore('settings', {
         upcoming_events_menu_days: this.upcomingEventsMenuDays,
         hidden_builtin_events: this.hiddenBuiltinEvents,
         product_autofill_enabled: this.productAutofillEnabled,
+        upload_pages_follow_system: this.uploadPagesFollowSystem,
       })
     },
 
