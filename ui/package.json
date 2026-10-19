@@ -5,6 +5,8 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
+    "check:icons": "node scripts/check-icons.mjs",
+    "prebuild": "node scripts/check-icons.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --fix"
