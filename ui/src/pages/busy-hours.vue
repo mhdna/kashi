@@ -54,14 +54,14 @@
         <v-col cols="12" lg="6">
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title">When customers come in</div>
-            <div class="chart-card__subtitle">Average customers in per day, by weekday and hour (the tills' people counters).</div>
+            <div class="chart-card__subtitle">Average visitors per day, from the people counters.</div>
             <v-chart autoresize class="chart chart--heat" :option="heatOption('visitors')" />
           </v-card>
         </v-col>
         <v-col cols="12" lg="6">
           <v-card class="chart-card" variant="flat">
             <div class="chart-card__title">When they buy</div>
-            <div class="chart-card__subtitle">Average sales per day, by weekday and hour.</div>
+            <div class="chart-card__subtitle">Average sales per day.</div>
             <v-chart autoresize class="chart chart--heat" :option="heatOption('invoices')" />
           </v-card>
         </v-col>
