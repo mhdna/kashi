@@ -420,7 +420,7 @@ WHERE img.id = ANY($1::bigint[])
   AND NOT EXISTS (
     SELECT 1 FROM unknown_item_slots s
     WHERE s.image_id = img.id AND s.resolved_at IS NULL
-      AND (sess.branch_invoice_id IS NOT NULL OR sess.expires_at > now())
+      AND sess.branch_invoice_id IS NOT NULL
   )
 `
 
@@ -430,7 +430,8 @@ type ListDeletableUnknownItemImagesRow struct {
 }
 
 // Of the given pictures, the ones that can go: not the picture of a unit still
-// waiting to be matched on a sale (or on a checkout that is still open).
+// waiting to be matched on a sale that has arrived. A checkout whose sale never
+// came (the till or kashi was down) is not waiting on anyone, so it can go.
 func (q *Queries) ListDeletableUnknownItemImages(ctx context.Context, ids []int64) ([]ListDeletableUnknownItemImagesRow, error) {
 	rows, err := q.db.QueryContext(ctx, listDeletableUnknownItemImages, pq.Array(ids))
 	if err != nil {

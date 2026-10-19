@@ -56,7 +56,7 @@ type deleteUnknownItemImagesRequest struct {
 }
 
 // deleteUnknownItemImages is the Attachments page's Delete. Pictures that
-// still matter (a unit waiting to be matched) are kept and counted.
+// still matter (a unit of an arrived sale waiting to be matched) are kept and counted.
 func (server *Server) deleteUnknownItemImages(ctx *gin.Context) {
 	var req deleteUnknownItemImagesRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {

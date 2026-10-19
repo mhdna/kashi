@@ -92,7 +92,7 @@
       <v-card>
         <v-card-title>Delete {{ selectedIds.length }} picture(s)?</v-card-title>
         <v-card-text>
-          The pictures are removed for good. Pictures of items still waiting to be matched are kept.
+          The pictures are removed for good. Pictures of items from a sale that are still waiting to be matched are kept.
           Items already matched keep their match.
         </v-card-text>
         <v-card-actions>
@@ -292,7 +292,7 @@
     try {
       const { deleted, kept } = await deleteUnknownItemImages(selectedIds.value)
       notify.success(kept
-        ? `${deleted} deleted, ${kept} kept (still waiting to be matched)`
+        ? `${deleted} deleted, ${kept} kept (their sale is still waiting to be matched)`
         : `${deleted} deleted`)
       confirmDelete.value = false
       selectedIds.value = []
