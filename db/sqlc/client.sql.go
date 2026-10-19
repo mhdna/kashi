@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const addClientLoyaltyPoints = `-- name: AddClientLoyaltyPoints :exec
@@ -345,15 +346,15 @@ WITH ranked AS (
   SELECT
     c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type, c.uid, c.is_active,
     (
-      CASE WHEN $4::bigint IS NULL THEN COALESCE(ci.central_total, 0) ELSE 0 END
+      CASE WHEN COALESCE(cardinality($4::bigint[]), 0) = 0 THEN COALESCE(ci.central_total, 0) ELSE 0 END
       + COALESCE(bi.branch_total, 0)
     )::bigint AS total_spent,
     (
-      CASE WHEN $4::bigint IS NULL THEN COALESCE(ci.central_invoice_count, 0) ELSE 0 END
+      CASE WHEN COALESCE(cardinality($4::bigint[]), 0) = 0 THEN COALESCE(ci.central_invoice_count, 0) ELSE 0 END
       + COALESCE(bi.branch_invoice_count, 0)
     )::bigint AS invoice_count,
     (
-      CASE WHEN $4::bigint IS NULL THEN COALESCE(ci.central_item_count, 0) ELSE 0 END
+      CASE WHEN COALESCE(cardinality($4::bigint[]), 0) = 0 THEN COALESCE(ci.central_item_count, 0) ELSE 0 END
       + COALESCE(bi.branch_item_count, 0)
     )::bigint AS item_count
   FROM clients c
@@ -387,7 +388,7 @@ WITH ranked AS (
       FROM branch_invoice_items
       GROUP BY branch_invoice_id
     ) bii ON bii.branch_invoice_id = b.id
-    WHERE ($4::bigint IS NULL OR b.branch_id = $4)
+    WHERE (COALESCE(cardinality($4::bigint[]), 0) = 0 OR b.branch_id = ANY($4::bigint[]))
       AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
       AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
       AND b.cancelled_at IS NULL
@@ -413,7 +414,7 @@ type ListClientsBySpendingParams struct {
 	Limit      int32          `json:"limit"`
 	Offset     int32          `json:"offset"`
 	SortBy     string         `json:"sort_by"`
-	BranchID   sql.NullInt64  `json:"branch_id"`
+	BranchIds  []int64        `json:"branch_ids"`
 	ClientType sql.NullString `json:"client_type"`
 	Search     sql.NullString `json:"search"`
 }
@@ -441,11 +442,12 @@ type ListClientsBySpendingRow struct {
 // invoices.grand_total is always stored as a positive magnitude regardless
 // of kind, see ReturnInvoiceTx) and branch-reported sales
 // (branch_invoices.grand_total, which already carries the correct net sign
-// -- see ListDailyIncome). sqlc.narg(branch_id) scopes to one branch's
-// till; central admin invoices aren't attributed to any branch, so they're
-// excluded entirely once a single branch is selected (an "All Branches"
+// -- see ListDailyIncome). sqlc.arg(branch_ids) scopes to one branch's
+// till (or several, via the branch_ids array; empty means every branch);
+// central admin invoices aren't attributed to any branch, so they're
+// excluded entirely once any branch is selected (an "All Branches"
 // view is the only one where they belong). invoice_count/item_count follow
-// the same all-or-one-branch rule for consistency with total_spent.
+// the same all-or-selected-branches rule for consistency with total_spent.
 // invoice_count/item_count are computed in the `ranked` CTE rather than as
 // plain SELECT-list aliases so the ORDER BY's CASE expression can actually
 // reference them: Postgres only resolves an output alias in ORDER BY when
@@ -458,7 +460,7 @@ func (q *Queries) ListClientsBySpending(ctx context.Context, arg ListClientsBySp
 		arg.Limit,
 		arg.Offset,
 		arg.SortBy,
-		arg.BranchID,
+		pq.Array(arg.BranchIds),
 		arg.ClientType,
 		arg.Search,
 	)
@@ -483,6 +485,126 @@ func (q *Queries) ListClientsBySpending(ctx context.Context, arg ListClientsBySp
 			&i.TotalSpent,
 			&i.InvoiceCount,
 			&i.ItemCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listClientsForExport = `-- name: ListClientsForExport :many
+WITH central AS (
+  SELECT i.client_id,
+    SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END) AS total,
+    COUNT(*) AS invoice_count,
+    MAX(i.created_at) AS last_visit
+  FROM invoices i
+  LEFT JOIN sales_invoices si ON si.invoice_id = i.id
+  WHERE COALESCE(cardinality($2::bigint[]), 0) = 0
+    AND ($3::timestamptz IS NULL OR i.created_at >= $3::timestamptz)
+    AND ($4::timestamptz IS NULL OR i.created_at < $4::timestamptz)
+  GROUP BY i.client_id
+), branch AS (
+  SELECT cl.client_id,
+    SUM(b.grand_total) AS total,
+    COUNT(*) AS invoice_count,
+    MAX(b.occurred_at) AS last_visit
+  FROM branch_invoices b
+  JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
+  WHERE (COALESCE(cardinality($2::bigint[]), 0) = 0 OR b.branch_id = ANY($2::bigint[]))
+    AND ($3::timestamptz IS NULL OR b.occurred_at >= $3::timestamptz)
+    AND ($4::timestamptz IS NULL OR b.occurred_at < $4::timestamptz)
+    AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+    AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+    AND b.cancelled_at IS NULL
+  GROUP BY cl.client_id
+)
+SELECT
+  c.id,
+  c.name,
+  c.phone,
+  c.client_type,
+  c.is_active,
+  c.created_at,
+  c.valid_loyalty_points,
+  (COALESCE(ce.total, 0) + COALESCE(br.total, 0))::bigint AS total_spent,
+  (COALESCE(ce.invoice_count, 0) + COALESCE(br.invoice_count, 0))::bigint AS invoice_count,
+  -- Epoch stands in for "never" so the column stays non-null.
+  COALESCE(GREATEST(ce.last_visit, br.last_visit), 'epoch'::timestamptz)::timestamptz AS last_visit
+FROM clients c
+LEFT JOIN central ce ON ce.client_id = c.id
+LEFT JOIN branch br ON br.client_id = c.id
+WHERE ($1::text IS NULL OR c.client_type = $1)
+  AND (
+    (COALESCE(cardinality($2::bigint[]), 0) = 0
+      AND $3::timestamptz IS NULL
+      AND $4::timestamptz IS NULL)
+    OR COALESCE(ce.invoice_count, 0) + COALESCE(br.invoice_count, 0) > 0
+  )
+ORDER BY c.name ASC, c.id ASC
+`
+
+type ListClientsForExportParams struct {
+	ClientType sql.NullString `json:"client_type"`
+	BranchIds  []int64        `json:"branch_ids"`
+	DateFrom   sql.NullTime   `json:"date_from"`
+	DateTo     sql.NullTime   `json:"date_to"`
+}
+
+type ListClientsForExportRow struct {
+	ID                 int64     `json:"id"`
+	Name               string    `json:"name"`
+	Phone              string    `json:"phone"`
+	ClientType         string    `json:"client_type"`
+	IsActive           bool      `json:"is_active"`
+	CreatedAt          time.Time `json:"created_at"`
+	ValidLoyaltyPoints int64     `json:"valid_loyalty_points"`
+	TotalSpent         int64     `json:"total_spent"`
+	InvoiceCount       int64     `json:"invoice_count"`
+	LastVisit          time.Time `json:"last_visit"`
+}
+
+// Feeds the clients CSV export. branch_ids (empty = every branch) and the
+// [date_from, date_to) window (either bound optional) both narrow which
+// invoices count, and once either is set only clients with at least one
+// such invoice are returned -- "the clients who came to these branches in
+// this period". With neither set it is every client, spend or not. The
+// spend/invoice figures are for that same scope, not lifetime. Central
+// admin invoices have no branch, so selecting a branch leaves them out,
+// the same rule as ListClientsBySpending. Cancelled and hidden-from-reports
+// branch invoices are skipped as everywhere else.
+func (q *Queries) ListClientsForExport(ctx context.Context, arg ListClientsForExportParams) ([]ListClientsForExportRow, error) {
+	rows, err := q.db.QueryContext(ctx, listClientsForExport,
+		arg.ClientType,
+		pq.Array(arg.BranchIds),
+		arg.DateFrom,
+		arg.DateTo,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListClientsForExportRow{}
+	for rows.Next() {
+		var i ListClientsForExportRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Phone,
+			&i.ClientType,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.ValidLoyaltyPoints,
+			&i.TotalSpent,
+			&i.InvoiceCount,
+			&i.LastVisit,
 		); err != nil {
 			return nil, err
 		}

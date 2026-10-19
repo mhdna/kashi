@@ -294,7 +294,8 @@
   const notify = useNotify()
 
   const props = defineProps({
-    branchId: { type: [Number, String, null], default: null },
+    // Empty means every branch.
+    branchIds: { type: Array, default: () => [] },
     clientType: { type: String, required: true },
   })
   defineEmits(['edit', 'delete', 'reactivate'])
@@ -356,7 +357,7 @@
     const params = new URLSearchParams()
     params.set('client_type', props.clientType)
     params.set('sort_by', sortBy.value)
-    if (props.branchId) params.set('branch_id', props.branchId)
+    for (const id of props.branchIds) params.append('branch_ids', id)
     return params
   }
 
@@ -465,7 +466,7 @@
     fetchPyramid()
     resetRestList()
   })
-  watch(() => [props.clientType, props.branchId, pyramidCount.value, sortBy.value], reload)
+  watch(() => [props.clientType, props.branchIds.join(','), pyramidCount.value, sortBy.value], reload)
 
   let searchTimeout = null
   watch(search, () => {

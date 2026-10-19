@@ -7702,6 +7702,21 @@ func (mr *MockStoreMockRecorder) ListClientsByUIDs(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClientsByUIDs", reflect.TypeOf((*MockStore)(nil).ListClientsByUIDs), arg0, arg1)
 }
 
+// ListClientsForExport mocks base method.
+func (m *MockStore) ListClientsForExport(arg0 context.Context, arg1 db.ListClientsForExportParams) ([]db.ListClientsForExportRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListClientsForExport", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListClientsForExportRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListClientsForExport indicates an expected call of ListClientsForExport.
+func (mr *MockStoreMockRecorder) ListClientsForExport(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClientsForExport", reflect.TypeOf((*MockStore)(nil).ListClientsForExport), arg0, arg1)
+}
+
 // ListClientsUpdatedSince mocks base method.
 func (m *MockStore) ListClientsUpdatedSince(arg0 context.Context, arg1 time.Time) ([]db.Client, error) {
 	m.ctrl.T.Helper()

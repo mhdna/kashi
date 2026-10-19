@@ -2,7 +2,11 @@ package api
 
 import (
 	"database/sql"
+	"encoding/csv"
+	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -155,8 +159,9 @@ type listClientsBySpendingRequest struct {
 	PageSize   int32  `form:"page_size,default=20" binding:"min=1,max=100"`
 	PageID     int32  `form:"page_id,default=0" binding:"min=0"`
 	ClientType string `form:"client_type" binding:"omitempty,oneof=retail wholesale"`
-	BranchID   int64  `form:"branch_id"`
-	Search     string `form:"search"`
+	// Repeat the param to scope to several branches; omitted means all.
+	BranchIDs []int64 `form:"branch_ids"`
+	Search    string  `form:"search"`
 	// What to rank clients by; see the ORDER BY in ListClientsBySpending.
 	SortBy string `form:"sort_by,default=spending" binding:"omitempty,oneof=spending invoices items"`
 }
@@ -174,15 +179,10 @@ func (server *Server) listClientsBySpending(ctx *gin.Context) {
 
 	clientType := sql.NullString{String: req.ClientType, Valid: req.ClientType != ""}
 	search := sql.NullString{String: req.Search, Valid: req.Search != ""}
-	var branchID sql.NullInt64
-	if req.BranchID > 0 {
-		branchID = sql.NullInt64{Int64: req.BranchID, Valid: true}
-	}
-
 	clients, err := server.store.ListClientsBySpending(ctx, db.ListClientsBySpendingParams{
 		Limit:      req.PageSize,
 		Offset:     req.PageID,
-		BranchID:   branchID,
+		BranchIds:  req.BranchIDs,
 		ClientType: clientType,
 		Search:     search,
 		SortBy:     req.SortBy,
@@ -202,6 +202,104 @@ func (server *Server) listClientsBySpending(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"clients": clients, "total": total})
+}
+
+type exportClientsRequest struct {
+	ClientType string `form:"client_type" binding:"omitempty,oneof=retail wholesale"`
+	// Repeat the param to scope to several branches; omitted means all.
+	BranchIDs []int64 `form:"branch_ids"`
+	// Only clients with an invoice in [from, to) are exported; either bound
+	// may be omitted. RFC 3339.
+	From time.Time `form:"from" time_format:"2006-01-02T15:04:05Z07:00"`
+	To   time.Time `form:"to" time_format:"2006-01-02T15:04:05Z07:00"`
+	// Comma-separated column keys, in output order; see clientExportColumns.
+	Fields string `form:"fields" binding:"required"`
+}
+
+// clientExportColumns are the CSV columns the export can include, keyed by
+// the names the UI sends in `fields`.
+var clientExportColumns = map[string]struct {
+	header string
+	value  func(r db.ListClientsForExportRow) string
+}{
+	"name":        {"Name", func(r db.ListClientsForExportRow) string { return r.Name }},
+	"phone":       {"Phone", func(r db.ListClientsForExportRow) string { return r.Phone }},
+	"client_type": {"Type", func(r db.ListClientsForExportRow) string { return r.ClientType }},
+	"status": {"Status", func(r db.ListClientsForExportRow) string {
+		if r.IsActive {
+			return "Active"
+		}
+		return "Inactive"
+	}},
+	"created_at":  {"Member since", func(r db.ListClientsForExportRow) string { return r.CreatedAt.Format("2006-01-02") }},
+	"loyalty":     {"Loyalty points", func(r db.ListClientsForExportRow) string { return strconv.FormatInt(r.ValidLoyaltyPoints, 10) }},
+	"total_spent": {"Total spent", func(r db.ListClientsForExportRow) string { return strconv.FormatInt(r.TotalSpent, 10) }},
+	"invoices":    {"Invoices", func(r db.ListClientsForExportRow) string { return strconv.FormatInt(r.InvoiceCount, 10) }},
+	"last_visit": {"Last visit", func(r db.ListClientsForExportRow) string {
+		if r.LastVisit.Year() <= 1970 {
+			return ""
+		}
+		return r.LastVisit.Format("2006-01-02")
+	}},
+}
+
+// exportClients streams the clients CSV: the chosen columns, for clients
+// who came to the chosen branches within the chosen dates (see
+// ListClientsForExport).
+func (server *Server) exportClients(ctx *gin.Context) {
+	var req exportClientsRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	keys := strings.Split(req.Fields, ",")
+	header := make([]string, len(keys))
+	for i, key := range keys {
+		col, ok := clientExportColumns[key]
+		if !ok {
+			server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("unknown field %q", key))
+			return
+		}
+		header[i] = col.header
+	}
+
+	rows, err := server.store.ListClientsForExport(ctx, db.ListClientsForExportParams{
+		ClientType: sql.NullString{String: req.ClientType, Valid: req.ClientType != ""},
+		BranchIds:  req.BranchIDs,
+		DateFrom:   sql.NullTime{Time: req.From, Valid: !req.From.IsZero()},
+		DateTo:     sql.NullTime{Time: req.To, Valid: !req.To.IsZero()},
+	})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.Header("Content-Type", "text/csv; charset=utf-8")
+	ctx.Header("Content-Disposition", `attachment; filename="clients.csv"`)
+	ctx.Status(http.StatusOK)
+	// UTF-8 BOM so Excel reads Arabic names correctly.
+	_, _ = ctx.Writer.WriteString("\ufeff")
+
+	w := csv.NewWriter(ctx.Writer)
+	_ = w.Write(header)
+	record := make([]string, len(keys))
+	for _, row := range rows {
+		for i, key := range keys {
+			record[i] = csvSafe(clientExportColumns[key].value(row))
+		}
+		_ = w.Write(record)
+	}
+	w.Flush()
+}
+
+// csvSafe defuses spreadsheet formula injection: a client name or phone
+// starting with = + - @ would otherwise run as a formula when opened in Excel.
+func csvSafe(v string) string {
+	if v != "" && strings.ContainsRune("=+-@\t\r", rune(v[0])) {
+		return "'" + v
+	}
+	return v
 }
 
 type updateClientRequest struct {

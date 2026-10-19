@@ -164,6 +164,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/clients/", server.listClients)
 	authRoutes.GET("/clients/by_spending", server.listClientsBySpending)
 	authRoutes.GET("/clients/spending_summary", server.listClientSpendingSummary)
+	authRoutes.GET("/clients/export", server.exportClients)
 	authRoutes.DELETE("/clients/:id", server.deleteClient)
 	authRoutes.PUT("/clients/:id/active", server.setClientActive)
 	authRoutes.POST("/currencies", server.createCurrency)

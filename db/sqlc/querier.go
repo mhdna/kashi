@@ -994,11 +994,12 @@ type Querier interface {
 	// invoices.grand_total is always stored as a positive magnitude regardless
 	// of kind, see ReturnInvoiceTx) and branch-reported sales
 	// (branch_invoices.grand_total, which already carries the correct net sign
-	// -- see ListDailyIncome). sqlc.narg(branch_id) scopes to one branch's
-	// till; central admin invoices aren't attributed to any branch, so they're
-	// excluded entirely once a single branch is selected (an "All Branches"
+	// -- see ListDailyIncome). sqlc.arg(branch_ids) scopes to one branch's
+	// till (or several, via the branch_ids array; empty means every branch);
+	// central admin invoices aren't attributed to any branch, so they're
+	// excluded entirely once any branch is selected (an "All Branches"
 	// view is the only one where they belong). invoice_count/item_count follow
-	// the same all-or-one-branch rule for consistency with total_spent.
+	// the same all-or-selected-branches rule for consistency with total_spent.
 	// invoice_count/item_count are computed in the `ranked` CTE rather than as
 	// plain SELECT-list aliases so the ORDER BY's CASE expression can actually
 	// reference them: Postgres only resolves an output alias in ORDER BY when
@@ -1008,6 +1009,16 @@ type Querier interface {
 	// columns of the derived table, so the CASE inside ORDER BY resolves fine.
 	ListClientsBySpending(ctx context.Context, arg ListClientsBySpendingParams) ([]ListClientsBySpendingRow, error)
 	ListClientsByUIDs(ctx context.Context, uids []uuid.UUID) ([]Client, error)
+	// Feeds the clients CSV export. branch_ids (empty = every branch) and the
+	// [date_from, date_to) window (either bound optional) both narrow which
+	// invoices count, and once either is set only clients with at least one
+	// such invoice are returned -- "the clients who came to these branches in
+	// this period". With neither set it is every client, spend or not. The
+	// spend/invoice figures are for that same scope, not lifetime. Central
+	// admin invoices have no branch, so selecting a branch leaves them out,
+	// the same rule as ListClientsBySpending. Cancelled and hidden-from-reports
+	// branch invoices are skipped as everywhere else.
+	ListClientsForExport(ctx context.Context, arg ListClientsForExportParams) ([]ListClientsForExportRow, error)
 	// Feeds the branch catch-up endpoint (see branch_catchup.go), same pattern
 	// as currencies/cashbox_accounts/products. Wholesale clients never appear
 	// here -- they're a central-office concept, not something a branch till
