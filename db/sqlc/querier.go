@@ -1152,7 +1152,8 @@ type Querier interface {
 	// the till), so it's matched directly; only the hour needs the timezone.
 	ListDayVisitorsByHour(ctx context.Context, arg ListDayVisitorsByHourParams) ([]ListDayVisitorsByHourRow, error)
 	// Of the given pictures, the ones that can go: not the picture of a unit still
-	// waiting to be matched on a sale (or on a checkout that is still open).
+	// waiting to be matched on a sale that has arrived. A checkout whose sale never
+	// came (the till or kashi was down) is not waiting on anyone, so it can go.
 	ListDeletableUnknownItemImages(ctx context.Context, ids []int64) ([]ListDeletableUnknownItemImagesRow, error)
 	ListDiscountListBranchIDs(ctx context.Context, discountListID int64) ([]int64, error)
 	ListDiscountListItems(ctx context.Context, discountListID int64) ([]DiscountListItem, error)
