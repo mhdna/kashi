@@ -84,10 +84,20 @@
             variant="outlined"
           />
         </div>
+        <v-checkbox
+          v-model="exportNoDuplicates"
+          density="compact"
+          hide-details
+          label="No duplicates"
+        />
         <div class="text-caption text-medium-emphasis mt-2">
-          With branches or dates set, only {{ tab }} clients with an invoice there in that
-          period are exported, and Total spent / Invoices count just that period. Leave both
-          empty to export every {{ tab }} client.
+          A client belongs to a branch if they bought something there. Each selected branch gets
+          its own file (a zip when there are several); with none selected you get one file of
+          every {{ tab }} client. Dates keep only those who bought in that period, and Total
+          spent / Invoices count just that scope.
+          <b>No duplicates</b> removes anyone with the same phone in more than one file from all
+          of them, and keeps one row per phone inside a file. <b>Phone check</b> adds a column
+          marking numbers that aren't valid Lebanese numbers as Invalid.
         </div>
       </v-card-text>
       <v-card-actions>
@@ -225,6 +235,7 @@
   const exportFieldOptions = [
     { title: 'Name', value: 'name' },
     { title: 'Phone', value: 'phone' },
+    { title: 'Phone check (Lebanese)', value: 'phone_check' },
     { title: 'Type', value: 'client_type' },
     { title: 'Status', value: 'status' },
     { title: 'Member since', value: 'created_at' },
@@ -237,6 +248,7 @@
   const exporting = ref(false)
   const exportFields = ref(['name', 'phone'])
   const exportBranchIds = ref([])
+  const exportNoDuplicates = ref(false)
   const exportFrom = ref('')
   const exportTo = ref('')
 
@@ -254,6 +266,7 @@
       // Keep the checkbox order stable rather than click order.
       params.set('fields', exportFieldOptions.map(f => f.value).filter(v => exportFields.value.includes(v)).join(','))
       for (const id of exportBranchIds.value) params.append('branch_ids', id)
+      if (exportNoDuplicates.value) params.set('no_duplicates', true)
       // Local-midnight bounds, [from, day after to): "until" is inclusive.
       if (exportFrom.value) params.set('from', new Date(`${exportFrom.value}T00:00:00`).toISOString())
       if (exportTo.value) {
@@ -267,10 +280,12 @@
         const body = await res.json().catch(() => ({}))
         throw new Error(body.error || `Export failed with status ${res.status}`)
       }
-      const url = URL.createObjectURL(await res.blob())
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `clients-${tab.value}.csv`
+      // One file comes back as a .csv, several branches as a .zip.
+      link.download = res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ?? (blob.type === 'application/zip' ? 'clients.zip' : 'clients.csv')
       link.click()
       URL.revokeObjectURL(url)
       exportDialog.value = false

@@ -1009,15 +1009,20 @@ type Querier interface {
 	// columns of the derived table, so the CASE inside ORDER BY resolves fine.
 	ListClientsBySpending(ctx context.Context, arg ListClientsBySpendingParams) ([]ListClientsBySpendingRow, error)
 	ListClientsByUIDs(ctx context.Context, uids []uuid.UUID) ([]Client, error)
-	// Feeds the clients CSV export. branch_ids (empty = every branch) and the
-	// [date_from, date_to) window (either bound optional) both narrow which
-	// invoices count, and once either is set only clients with at least one
-	// such invoice are returned -- "the clients who came to these branches in
-	// this period". With neither set it is every client, spend or not. The
-	// spend/invoice figures are for that same scope, not lifetime. Central
-	// admin invoices have no branch, so selecting a branch leaves them out,
-	// the same rule as ListClientsBySpending. Cancelled and hidden-from-reports
-	// branch invoices are skipped as everywhere else.
+	// Feeds the clients CSV export: one row per (client, branch) for every
+	// client who bought something, so the caller can write a file per branch.
+	// A client "belongs" to a branch because a non-cancelled invoice there is
+	// theirs. The invoice's client is resolved by either identity a till has
+	// used: the shared client_uid (current), or the older (register,
+	// branch_client_id) client_links entry -- an invoice carrying only one of
+	// them still counts. branch_ids (empty = every branch) and the
+	// [date_from, date_to) window (either bound optional) narrow which
+	// invoices count; spend/invoice figures are for that same scope, not
+	// lifetime. Central admin invoices have no branch (branch_id 0) and are only
+	// included when no branch is selected, the same rule as
+	// ListClientsBySpending. With no branch and no date set, clients who never
+	// bought anything are listed too (branch_id 0, zero spend). Cancelled and
+	// hidden-from-reports branch invoices are skipped as everywhere else.
 	ListClientsForExport(ctx context.Context, arg ListClientsForExportParams) ([]ListClientsForExportRow, error)
 	// Feeds the branch catch-up endpoint (see branch_catchup.go), same pattern
 	// as currencies/cashbox_accounts/products. Wholesale clients never appear
