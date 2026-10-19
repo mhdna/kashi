@@ -59,7 +59,9 @@ func (server *Server) lookupValidShiftUploadToken(ctx *gin.Context, token string
 	if err != nil {
 		return db.BranchShiftUploadToken{}, err
 	}
-	if time.Now().UTC().After(row.ExpiresAt) {
+	// A link stops working the moment its upload is done, not only when it
+	// expires: reopening it, or posting again, finds nothing.
+	if row.UsedAt.Valid || time.Now().UTC().After(row.ExpiresAt) {
 		return db.BranchShiftUploadToken{}, sql.ErrNoRows
 	}
 	return row, nil

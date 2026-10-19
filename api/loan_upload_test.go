@@ -51,6 +51,12 @@ func TestBranchExpenseUploadLink(t *testing.T) {
 	rec = httptest.NewRecorder()
 	server.router.ServeHTTP(rec, newBranchRequest(t, http.MethodPost, "/branch/expenses/upload_link", map[string]string{"client_ref": "exp-1"}))
 	require.Equal(t, http.StatusNotFound, rec.Code)
+
+	store.EXPECT().GetLoanUploadTokenByToken(gomock.Any(), "done").
+		Return(db.LoanUploadToken{ID: 3, LoanID: 9, ExpiresAt: time.Now().Add(time.Minute), UsedAt: sql.NullTime{Time: time.Now(), Valid: true}}, nil)
+	rec = httptest.NewRecorder()
+	server.router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/loan_uploads/done/status", nil))
+	require.Equal(t, http.StatusNotFound, rec.Code, "an already used link is gone")
 }
 
 // The same for a loan, looked up within the calling branch.

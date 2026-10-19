@@ -71,7 +71,9 @@ func (server *Server) lookupValidTransferUploadToken(ctx *gin.Context, token str
 	if err != nil {
 		return db.BranchTransferUploadToken{}, err
 	}
-	if time.Now().UTC().After(row.ExpiresAt) {
+	// A link stops working the moment its upload is done, not only when it
+	// expires: reopening it, or posting again, finds nothing.
+	if row.UsedAt.Valid || time.Now().UTC().After(row.ExpiresAt) {
 		return db.BranchTransferUploadToken{}, sql.ErrNoRows
 	}
 	return row, nil
