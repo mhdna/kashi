@@ -54,6 +54,10 @@ type branchWhatsAppThankYouRequest struct {
 	// tills before 1.1.11: the total is used.
 	PaidCents *int64             `json:"paid_cents"`
 	Items     []whatsAppSaleItem `json:"items"`
+
+	// welcome marks the message sent before checkout (see
+	// sendBranchWhatsAppWelcome): no rating poll or review link, no invoice.
+	welcome bool
 }
 
 // paidCents is the amount a message shows as paid.
@@ -117,6 +121,19 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 		BranchID: sql.NullInt64{Int64: branchID, Valid: true}, InvoiceCode: req.InvoiceCode,
 	}); err == nil && already {
 		server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": "already sent for this invoice"})
+		return
+	}
+
+	// A welcome already went out when the till got this client's number: the
+	// sale takes it over (it gets the invoice) and the client isn't messaged again.
+	if _, err := server.store.ClaimWhatsAppWelcome(ctx, db.ClaimWhatsAppWelcomeParams{
+		Invoice: req.InvoiceCode, TotalCents: req.GrandTotalCents, Items: int32(len(req.Items)),
+		Phone: to, Branch: sql.NullInt64{Int64: branchID, Valid: true},
+	}); err == nil {
+		server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": "welcome already sent before checkout"})
+		return
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -214,6 +231,100 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 		log.Printf("whatsapp thank-you: message cost: %v", err)
 	}
 	server.logWhatsAppMessage(ctx, entry, whatsAppStatusSent, "")
+}
+
+// branchWhatsAppWelcomeRequest is what kashi-pos POSTs as soon as a sale has a
+// named client with a phone number, before checkout.
+type branchWhatsAppWelcomeRequest struct {
+	ClientName  string `json:"client_name"`
+	ClientPhone string `json:"client_phone" binding:"required"`
+}
+
+// sendBranchWhatsAppWelcome sends a new client's first message (the channel
+// invite, see whatsAppFirstOrReturning) before their sale is paid, when
+// Settings > WhatsApp turns that on. Anything else -- the setting off, a
+// client messaged before, a rule saying skip -- answers `{"sent": false}`
+// with a reason, and a returning client's message waits for checkout, where
+// the invoice details exist. The sale's checkout then finds this message
+// (ClaimWhatsAppWelcome) and sends nothing more. Only through the bridge: a
+// Meta template can't leave out its receipt parameters.
+func (server *Server) sendBranchWhatsAppWelcome(ctx *gin.Context) {
+	branchID := ctx.MustGet(branchIDKey).(int64)
+
+	var req branchWhatsAppWelcomeRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	notSent := func(reason string) {
+		server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": reason})
+	}
+
+	settings, err := server.store.GetWhatsAppSettings(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	sender, err := server.store.GetWhatsAppSenderSettings(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	switch {
+	case !settings.WhatsappEnabled:
+		notSent("whatsapp disabled")
+		return
+	case sender.WhatsappSender != whatsAppSenderBridge:
+		notSent("welcome before checkout needs the WhatsApp bridge")
+		return
+	case !sender.WhatsappChannelFirst || !sender.WhatsappWelcomeEarly:
+		notSent("welcome is sent after checkout")
+		return
+	}
+	branch, err := server.store.GetBranch(ctx, branchID)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if err == nil && !branch.WhatsappEnabled {
+		notSent("whatsapp off for this branch")
+		return
+	}
+	to := whatsAppDigits(req.ClientPhone)
+	if to == "" {
+		notSent("unusable phone number")
+		return
+	}
+	if _, err := server.store.LastWhatsAppSentAt(ctx, to); err == nil {
+		notSent("returning client: messaged at checkout")
+		return
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	rules, err := server.loadWhatsAppRules(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	// Nothing is sold yet, so only the rules that don't look at the sale apply.
+	decision := decideWhatsApp(rules, whatsAppSale{BranchID: branchID, Phone: to, Now: time.Now()}, settings)
+	entry := db.CreateWhatsAppMessageParams{
+		BranchID:    sql.NullInt64{Int64: branchID, Valid: true},
+		ClientName:  strings.TrimSpace(req.ClientName),
+		ClientPhone: to,
+		RuleName:    decision.RuleName,
+	}
+	if decision.RuleIndex >= 0 {
+		entry.RuleID = sql.NullInt64{Int64: decision.RuleID, Valid: true}
+	}
+	if decision.Action == whatsAppActionSkip {
+		server.logWhatsAppMessage(ctx, entry, whatsAppStatusSkipped, "rule: "+decision.RuleName)
+		return
+	}
+	server.sendWhatsAppViaBridge(ctx, entry, sender, branch.Name, whatsAppBranchHiddenFields(sender, branch.WhatsappHiddenFields),
+		branchWhatsAppThankYouRequest{ClientName: req.ClientName, ClientPhone: req.ClientPhone, welcome: true})
 }
 
 // logWhatsAppMessage records one outcome, tells open WhatsApp pages, and

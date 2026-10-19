@@ -696,6 +696,21 @@ func (mr *MockStoreMockRecorder) ClaimWhatsAppPollFollowup(arg0, arg1 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClaimWhatsAppPollFollowup", reflect.TypeOf((*MockStore)(nil).ClaimWhatsAppPollFollowup), arg0, arg1)
 }
 
+// ClaimWhatsAppWelcome mocks base method.
+func (m *MockStore) ClaimWhatsAppWelcome(arg0 context.Context, arg1 db.ClaimWhatsAppWelcomeParams) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClaimWhatsAppWelcome", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ClaimWhatsAppWelcome indicates an expected call of ClaimWhatsAppWelcome.
+func (mr *MockStoreMockRecorder) ClaimWhatsAppWelcome(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClaimWhatsAppWelcome", reflect.TypeOf((*MockStore)(nil).ClaimWhatsAppWelcome), arg0, arg1)
+}
+
 // ClearDefaultWhatsAppNumber mocks base method.
 func (m *MockStore) ClearDefaultWhatsAppNumber(arg0 context.Context) error {
 	m.ctrl.T.Helper()

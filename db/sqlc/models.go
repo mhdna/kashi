@@ -537,6 +537,7 @@ type AppSetting struct {
 	UploadPagesFollowSystem    bool            `json:"upload_pages_follow_system"`
 	UnknownImagesAutoDelete    bool            `json:"unknown_images_auto_delete"`
 	TablePageSize              int16           `json:"table_page_size"`
+	WhatsappWelcomeEarly       bool            `json:"whatsapp_welcome_early"`
 }
 
 type AppUpdateEvent struct {

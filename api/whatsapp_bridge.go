@@ -264,7 +264,11 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 		values["total"] = "" // nothing paid now (on account): no "Total paid" line
 	}
 	// The review link only in link mode; in poll mode the poll asks instead.
-	if !pollMode && strings.Contains(message, "{review}") {
+	// A welcome sent before checkout asks for no feedback: nothing was bought yet.
+	if req.welcome {
+		values["review"] = ""
+	}
+	if !pollMode && !req.welcome && strings.Contains(message, "{review}") {
 		code, link, reason, err := server.newReviewLink(ctx, entry.BranchID.Int64)
 		if err != nil {
 			server.writeError(ctx, http.StatusInternalServerError, err)
@@ -293,14 +297,14 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 		// The link card is the review link's own (our banner). In poll mode
 		// the banner, when on, is the message's only picture; without it the
 		// channel link gets its card, with WhatsApp's "View channel" button.
-		"linkPreview": !pollMode || (!sender.WhatsappMessageLogo && values["channel"] != ""),
+		"linkPreview": !pollMode || req.welcome || (!sender.WhatsappMessageLogo && values["channel"] != ""),
 		// The bridge reports the message's ticks back with this ref (see
 		// receiveWhatsAppBridgeTick).
 		"ref":         entry.BridgeRef,
 		"deleteForMe": sender.WhatsappDeleteForMe,
 		"callback":    server.whatsAppPollCallback(),
 	}
-	if pollMode && sender.WhatsappMessageLogo {
+	if pollMode && !req.welcome && sender.WhatsappMessageLogo {
 		// The banner on top, the message as its caption: no link to tap.
 		body["image"] = base64.StdEncoding.EncodeToString(reviewBannerJPG)
 	}
@@ -310,7 +314,7 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 		server.logWhatsAppSendError(ctx, entry, err)
 		return
 	}
-	if pollMode {
+	if pollMode && !req.welcome {
 		entry.PollRef = server.sendWhatsAppPoll(ctx, sender, url.PathEscape(number.Instance), entry.ClientPhone)
 		if entry.PollRef != "" {
 			entry.PollQuestion = whatsAppPollQuestion(sender.WhatsappPollQuestion)
@@ -440,6 +444,9 @@ type whatsAppSenderBody struct {
 	HiddenFields []string `json:"whatsapp_hidden_fields"`
 	// First message: the channel link; later ones: the receipt details.
 	ChannelFirst bool `json:"whatsapp_channel_first"`
+	// With ChannelFirst: a new client's message goes out as soon as the till
+	// has their name and number, not after checkout (sendBranchWhatsAppWelcome).
+	WelcomeEarly bool `json:"whatsapp_welcome_early"`
 	// Sent messages are removed from our own number's chats ("delete for me").
 	DeleteForMe bool `json:"whatsapp_delete_for_me"`
 	// The same for the rating poll, separately: votes on a deleted poll may not arrive.
@@ -491,6 +498,7 @@ func (server *Server) getWhatsAppSender(ctx *gin.Context) {
 			Followup:        sender.WhatsappFollowup,
 			HiddenFields:    whatsAppHiddenFields(sender.WhatsappHiddenFields),
 			ChannelFirst:    sender.WhatsappChannelFirst,
+			WelcomeEarly:    sender.WhatsappWelcomeEarly,
 			DeleteForMe:     sender.WhatsappDeleteForMe,
 			DeletePollForMe: sender.WhatsappDeletePollForMe,
 			FollowupGood:    sender.WhatsappFollowupGood,
@@ -619,6 +627,7 @@ func (server *Server) updateWhatsAppSender(ctx *gin.Context) {
 		WhatsappFollowupBad:       strings.TrimSpace(req.FollowupBad),
 		WhatsappHiddenFields:      strings.Join(whatsAppHiddenFields(strings.Join(req.HiddenFields, ",")), ","),
 		WhatsappChannelFirst:      req.ChannelFirst,
+		WhatsappWelcomeEarly:      req.WelcomeEarly,
 		WhatsappDeleteForMe:       req.DeleteForMe,
 		WhatsappDeletePollForMe:   req.DeletePollForMe,
 	}, branches); err != nil {

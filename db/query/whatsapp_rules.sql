@@ -44,6 +44,23 @@ WHERE client_phone = sqlc.arg(client_phone) AND status = 'sent' AND NOT is_test
 ORDER BY created_at DESC
 LIMIT 1;
 
+-- name: ClaimWhatsAppWelcome :one
+-- A sale's checkout finds the welcome sent to its client earlier (no invoice
+-- yet, within the last 12 hours) and takes it over, so it isn't messaged twice.
+UPDATE whatsapp_messages SET
+  invoice_code = sqlc.arg(invoice),
+  grand_total_cents = sqlc.arg(total_cents),
+  item_count = sqlc.arg(items)
+WHERE id = (
+  SELECT w.id FROM whatsapp_messages w
+  WHERE w.client_phone = sqlc.arg(phone) AND w.branch_id = sqlc.arg(branch)
+    AND w.invoice_code = '' AND w.status = 'sent' AND NOT w.is_test
+    AND w.created_at > now() - interval '12 hours'
+  ORDER BY w.created_at DESC
+  LIMIT 1
+)
+RETURNING id;
+
 -- name: ListWhatsAppMessages :many
 -- Newest first. branch_id 0 = every branch, status '' = any; search matches
 -- the client's name or phone, the invoice code or the rule.

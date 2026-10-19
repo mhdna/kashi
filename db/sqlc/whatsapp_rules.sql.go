@@ -14,6 +14,45 @@ import (
 	"github.com/lib/pq"
 )
 
+const claimWhatsAppWelcome = `-- name: ClaimWhatsAppWelcome :one
+UPDATE whatsapp_messages SET
+  invoice_code = $1,
+  grand_total_cents = $2,
+  item_count = $3
+WHERE id = (
+  SELECT w.id FROM whatsapp_messages w
+  WHERE w.client_phone = $4 AND w.branch_id = $5
+    AND w.invoice_code = '' AND w.status = 'sent' AND NOT w.is_test
+    AND w.created_at > now() - interval '12 hours'
+  ORDER BY w.created_at DESC
+  LIMIT 1
+)
+RETURNING id
+`
+
+type ClaimWhatsAppWelcomeParams struct {
+	Invoice    string        `json:"invoice"`
+	TotalCents int64         `json:"total_cents"`
+	Items      int32         `json:"items"`
+	Phone      string        `json:"phone"`
+	Branch     sql.NullInt64 `json:"branch"`
+}
+
+// A sale's checkout finds the welcome sent to its client earlier (no invoice
+// yet, within the last 12 hours) and takes it over, so it isn't messaged twice.
+func (q *Queries) ClaimWhatsAppWelcome(ctx context.Context, arg ClaimWhatsAppWelcomeParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, claimWhatsAppWelcome,
+		arg.Invoice,
+		arg.TotalCents,
+		arg.Items,
+		arg.Phone,
+		arg.Branch,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const countWhatsAppMessages = `-- name: CountWhatsAppMessages :one
 SELECT count(*)
 FROM whatsapp_messages m
