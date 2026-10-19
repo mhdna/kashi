@@ -895,6 +895,7 @@ type BranchSetting struct {
 	PriceEditRestricted                bool            `json:"price_edit_restricted"`
 	PriceEditCodes                     string          `json:"price_edit_codes"`
 	UnknownProductBarcode              string          `json:"unknown_product_barcode"`
+	ProductSearchHiddenFields          string          `json:"product_search_hidden_fields"`
 }
 
 type BranchShift struct {
