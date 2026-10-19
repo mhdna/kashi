@@ -1366,6 +1366,9 @@ type Querier interface {
 	// Most recently seen first. search matches the IP, place, network, user or
 	// branch; country narrows to one country code.
 	ListVisitorIPs(ctx context.Context, arg ListVisitorIPsParams) ([]VisitorIp, error)
+	// Units of checkouts still in progress that have neither a picture nor a
+	// manager's pass, for the "Waiting" tab. Cashiers who asked for help first.
+	ListWaitingUnknownItems(ctx context.Context) ([]ListWaitingUnknownItemsRow, error)
 	// What the client sent back to one message: after its poll (the bridge) or
 	// answering it (Meta's webhook), oldest first.
 	// id and media_type: a bridge reply's media (GET /whatsapp/poll_replies/:id/media).
@@ -1476,6 +1479,7 @@ type Querier interface {
 	// Best-selling products by revenue. Till lines whose product never
 	// resolved to a kashi variant have no product and are left out.
 	ReportTopProducts(ctx context.Context, arg ReportTopProductsParams) ([]ReportTopProductsRow, error)
+	RequestUnknownItemHelp(ctx context.Context, arg RequestUnknownItemHelpParams) error
 	ResolveBranchSyncConflict(ctx context.Context, arg ResolveBranchSyncConflictParams) (BranchSyncConflict, error)
 	// Idempotent: resolving a row twice keeps who resolved it first.
 	ResolveHomeActivity(ctx context.Context, arg ResolveHomeActivityParams) error
@@ -1516,6 +1520,9 @@ type Querier interface {
 	// salesperson's current name, so a renamed salesperson stays one person.
 	SalespersonPerformanceInvoices(ctx context.Context, arg SalespersonPerformanceInvoicesParams) ([]SalespersonPerformanceInvoicesRow, error)
 	SalespersonPerformanceItems(ctx context.Context, arg SalespersonPerformanceItemsParams) ([]BranchInvoiceItem, error)
+	// The picker an admin matches a pictured item with: active variants whose
+	// product name, code or barcode contains the text.
+	SearchVariantsForUnknownItems(ctx context.Context, search string) ([]SearchVariantsForUnknownItemsRow, error)
 	// Clients with a phone, for picking in a rule.
 	SearchWhatsAppClients(ctx context.Context, search string) ([]SearchWhatsAppClientsRow, error)
 	SetAssetCost(ctx context.Context, arg SetAssetCostParams) error
@@ -1704,6 +1711,8 @@ type Querier interface {
 	UpsertVisitorIP(ctx context.Context, arg UpsertVisitorIPParams) error
 	// IPs and requests per country, busiest first.
 	VisitorCountries(ctx context.Context) ([]VisitorCountriesRow, error)
+	// Lets units through with no picture. A unit that already has one is left alone.
+	WaiveUnknownItemSlots(ctx context.Context, arg WaiveUnknownItemSlotsParams) (int64, error)
 	// Names for a rule's phones, matched on their last 8 digits (whatsAppSamePhone).
 	WhatsAppClientsByPhoneTail(ctx context.Context, tails []string) ([]WhatsAppClientsByPhoneTailRow, error)
 	// Both kashi's failures (Meta refused the send) and Meta's own (accepted,

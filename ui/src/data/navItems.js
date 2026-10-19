@@ -2,6 +2,7 @@ export const navItems = [
   { title: 'Home', icon: 'mdi-home', to: '/' },
   { title: 'Daily Income', icon: 'mdi-chart-bar', to: '/daily-income' },
   { title: 'Invoices', icon: 'mdi-format-list-bulleted-square', to: '/invoices' },
+  { title: 'Unknown Items', icon: 'mdi-help-box-outline', to: '/unknown-items' },
   { title: 'Shifts', icon: 'mdi-clock-outline', to: '/shifts' },
   { title: 'WhatsApp & Reviews', icon: 'mdi-whatsapp', to: '/whatsapp', append: 'whatsapp-status' },
   { title: 'Emails', icon: 'mdi-email-outline', to: '/emails' },

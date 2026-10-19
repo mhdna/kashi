@@ -31,6 +31,27 @@
 
       </div>
 
+      <v-card
+        v-if="unknownItems.waiting + unknownItems.pending > 0"
+        class="unknown-items-card mx-auto mb-4"
+        :color="unknownItems.waiting > 0 ? 'warning' : undefined"
+        rounded="lg"
+        :variant="unknownItems.waiting > 0 ? 'tonal' : 'outlined'"
+        @click="router.push('/unknown-items')"
+      >
+        <v-card-text class="d-flex align-center ga-3">
+          <v-icon icon="mdi-help-box-outline" />
+          <div class="flex-grow-1">
+            <div class="font-weight-medium">Unknown items to resolve</div>
+            <div class="text-caption">
+              <template v-if="unknownItems.waiting > 0">{{ unknownItems.waiting }} waiting for a picture right now · </template>
+              {{ unknownItems.pending }} to match with a product
+            </div>
+          </div>
+          <v-btn size="small" variant="text">Open</v-btn>
+        </v-card-text>
+      </v-card>
+
       <div v-if="canViewKashiActivity || canViewActivity || canViewLatest" class="home-feeds">
         <section v-if="canViewKashiActivity" aria-label="IT Management" class="home-activities">
           <div class="home-activities-head d-flex align-center px-1 mb-2">
@@ -1208,8 +1229,25 @@
     return value ? new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '—'
   }
 
+  // Unknown items (tills selling something with no code): a card shows up
+  // while any wait for a picture or a product match. Polled with the rest.
+  const unknownItems = ref({ waiting: 0, pending: 0 })
+  async function reloadUnknownItems () {
+    if (!auth.canView('sales')) return
+    try {
+      const [list, waiting] = await Promise.all([
+        authFetch(`${API_BASE}/unknown_items?page_size=1`).then(res => res.ok ? res.json() : null),
+        authFetch(`${API_BASE}/unknown_items/waiting`).then(res => res.ok ? res.json() : null),
+      ])
+      unknownItems.value = { pending: list?.pending ?? 0, waiting: waiting?.items?.length ?? 0 }
+    } catch {
+      // Leave the card as it was; the next poll tries again.
+    }
+  }
+
   let latestPoll = null
   onMounted(() => {
+    reloadUnknownItems()
     reload()
     reloadKashi()
     reloadLatest()
@@ -1221,6 +1259,7 @@
       reloadKashi()
       reloadLatest()
       reloadRecentCounts()
+      reloadUnknownItems()
     }, 60_000)
   })
   onUnmounted(() => {

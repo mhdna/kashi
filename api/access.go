@@ -146,6 +146,8 @@ var accessSections = []accessSection{
 	{"shift_negative_balance", "Negative Balance Transfers", "Move a till's shift balance out of a payment method even when that takes it below zero, e.g. LBP change that was really settled by Whish (off by default)", nil},
 	// Checked by the /home/activities/resolve route rule.
 	{"resolve_urgent_activity", "Resolve Urgent Activity", "Mark an urgent Recent activity row on Home (a shift closed short) as resolved, which unpins it for everyone (off by default)", nil},
+	// Checked by the /unknown_items/waive route rule.
+	{"unknown_item_waive", "Allow Unknown Items Without Picture", "Let a till sell an unknown item with no picture taken (the Waiting tab on Unknown items), e.g. the cashier sent it privately (off by default)", nil},
 	{"text_selection", "Text Selection", "Select and copy text anywhere in the admin interface (off by default; doesn't gate any data)", nil},
 }
 
@@ -279,6 +281,7 @@ var routeRules = []routeRule{
 	rule("/recurring_expenses", "accounting", "accounting"),
 	rule("/branch_expenses", "accounting", "accounting", "analytics"),
 	rule("/unknown_items", "sales", "sales", "analytics"),
+	rule("/unknown_items/waive", "unknown_item_waive"),
 	rule("/branch_expense_images", "accounting", "accounting", "analytics"),
 	rule("/branch_expense_images/:id/rotation", "photo_rotation"),
 	rule("/branch_expense_images/:id/replace", "photo_replace"),

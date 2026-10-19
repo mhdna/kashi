@@ -11,11 +11,13 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	db "github.com/mhdna/kashi/db/sqlc"
+	"github.com/mhdna/kashi/token"
 )
 
 // "Unknown item" sales. A till sells a product it has no code for after a
@@ -54,6 +56,8 @@ type unknownSlotView struct {
 	Discount  int16  `json:"discount"`
 	ImageID   int64  `json:"image_id,omitempty"`
 	HasImage  bool   `json:"has_image"`
+	// Waived: a manager let this unit through with no picture.
+	Waived bool `json:"waived"`
 }
 
 func unknownSlotViews(slots []db.UnknownItemSlot) []unknownSlotView {
@@ -63,6 +67,7 @@ func unknownSlotViews(slots []db.UnknownItemSlot) []unknownSlotView {
 			SlotRef: slot.SlotRef, Position: slot.Position, Label: slot.Label,
 			UnitPrice: slot.UnitPrice, Discount: slot.Discount,
 			HasImage: slot.ImageID.Valid,
+			Waived:   slot.WaivedAt.Valid,
 		}
 		if slot.ImageID.Valid {
 			view.ImageID = slot.ImageID.Int64
@@ -72,9 +77,10 @@ func unknownSlotViews(slots []db.UnknownItemSlot) []unknownSlotView {
 	return views
 }
 
+// allUnknownSlotsPictured: every unit has a picture or a manager's pass.
 func allUnknownSlotsPictured(slots []db.UnknownItemSlot) bool {
 	for _, slot := range slots {
-		if !slot.ImageID.Valid {
+		if !slot.ImageID.Valid && !slot.WaivedAt.Valid {
 			return false
 		}
 	}
@@ -396,4 +402,78 @@ func (server *Server) resolveUnknownItems(ctx *gin.Context) {
 		return
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{"resolved": len(req.SlotIDs)})
+}
+
+// searchUnknownItemVariants feeds the product picker on the Unknown items page.
+func (server *Server) searchUnknownItemVariants(ctx *gin.Context) {
+	search := strings.TrimSpace(ctx.Query("search"))
+	if search == "" {
+		server.writeJSON(ctx, http.StatusOK, envelope{"variants": []db.SearchVariantsForUnknownItemsRow{}})
+		return
+	}
+	variants, err := server.store.SearchVariantsForUnknownItems(ctx, search)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"variants": variants})
+}
+
+type unknownHelpRequest struct {
+	ClientRef string `json:"client_ref" binding:"required"`
+}
+
+// requestUnknownSessionHelp is the cashier's "ask a manager" button: the
+// session moves to the top of the Waiting tab.
+func (server *Server) requestUnknownSessionHelp(ctx *gin.Context) {
+	branchID := ctx.MustGet(branchIDKey).(int64)
+	var req unknownHelpRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	if err := server.store.RequestUnknownItemHelp(ctx, db.RequestUnknownItemHelpParams{
+		BranchID: branchID, ClientRef: req.ClientRef,
+	}); err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.adminHub.broadcastAll(adminWSMessage{Type: "unknown_item_help_requested", BranchID: branchID})
+	server.writeJSON(ctx, http.StatusOK, envelope{"requested": true})
+}
+
+func (server *Server) listWaitingUnknownItems(ctx *gin.Context) {
+	items, err := server.store.ListWaitingUnknownItems(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"items": items})
+}
+
+type waiveUnknownItemsRequest struct {
+	SlotIDs []int64 `json:"slot_ids" binding:"required,min=1,dive,min=1"`
+}
+
+// waiveUnknownItems lets units through with no picture, on the spot, so the
+// till can take payment. It is its own permission (unknown_item_waive) and the
+// unit still lands in "To resolve" afterwards, marked with who allowed it.
+func (server *Server) waiveUnknownItems(ctx *gin.Context) {
+	var req waiveUnknownItemsRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	by := ""
+	if payload, ok := ctx.MustGet(authoizationPayloadKey).(*token.Payload); ok {
+		by = payload.Username
+	}
+	waived, err := server.store.WaiveUnknownItemSlots(ctx, db.WaiveUnknownItemSlotsParams{
+		Column1: req.SlotIDs, WaivedBy: by,
+	})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"waived": waived})
 }

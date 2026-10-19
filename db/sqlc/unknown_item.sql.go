@@ -11,13 +11,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const countUnknownItems = `-- name: CountUnknownItems :one
 SELECT COUNT(*) FROM unknown_item_slots s
 JOIN unknown_item_sessions sess ON sess.id = s.session_id
 WHERE sess.branch_invoice_id IS NOT NULL
-  AND s.image_id IS NOT NULL
+  AND (s.image_id IS NOT NULL OR s.waived_at IS NOT NULL)
   AND (s.resolved_at IS NOT NULL) = $1::boolean
 `
 
@@ -92,7 +93,7 @@ const createUnknownItemSession = `-- name: CreateUnknownItemSession :one
 INSERT INTO unknown_item_sessions (branch_id, register_id, client_ref, token, expires_at)
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (branch_id, client_ref) DO UPDATE SET expires_at = EXCLUDED.expires_at
-RETURNING id, branch_id, register_id, client_ref, token, expires_at, branch_invoice_id, created_at
+RETURNING id, branch_id, register_id, client_ref, token, expires_at, branch_invoice_id, help_requested_at, created_at
 `
 
 type CreateUnknownItemSessionParams struct {
@@ -120,6 +121,7 @@ func (q *Queries) CreateUnknownItemSession(ctx context.Context, arg CreateUnknow
 		&i.Token,
 		&i.ExpiresAt,
 		&i.BranchInvoiceID,
+		&i.HelpRequestedAt,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -203,7 +205,7 @@ func (q *Queries) GetUnknownItemImage(ctx context.Context, id int64) (UnknownIte
 }
 
 const getUnknownItemSessionByRef = `-- name: GetUnknownItemSessionByRef :one
-SELECT id, branch_id, register_id, client_ref, token, expires_at, branch_invoice_id, created_at FROM unknown_item_sessions WHERE branch_id = $1 AND client_ref = $2
+SELECT id, branch_id, register_id, client_ref, token, expires_at, branch_invoice_id, help_requested_at, created_at FROM unknown_item_sessions WHERE branch_id = $1 AND client_ref = $2
 `
 
 type GetUnknownItemSessionByRefParams struct {
@@ -222,13 +224,14 @@ func (q *Queries) GetUnknownItemSessionByRef(ctx context.Context, arg GetUnknown
 		&i.Token,
 		&i.ExpiresAt,
 		&i.BranchInvoiceID,
+		&i.HelpRequestedAt,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getUnknownItemSessionByToken = `-- name: GetUnknownItemSessionByToken :one
-SELECT id, branch_id, register_id, client_ref, token, expires_at, branch_invoice_id, created_at FROM unknown_item_sessions WHERE token = $1
+SELECT id, branch_id, register_id, client_ref, token, expires_at, branch_invoice_id, help_requested_at, created_at FROM unknown_item_sessions WHERE token = $1
 `
 
 func (q *Queries) GetUnknownItemSessionByToken(ctx context.Context, token string) (UnknownItemSession, error) {
@@ -242,13 +245,14 @@ func (q *Queries) GetUnknownItemSessionByToken(ctx context.Context, token string
 		&i.Token,
 		&i.ExpiresAt,
 		&i.BranchInvoiceID,
+		&i.HelpRequestedAt,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getUnknownItemSlotByRef = `-- name: GetUnknownItemSlotByRef :one
-SELECT id, session_id, slot_ref, position, label, unit_price, discount, image_id, resolved_variant_id, resolved_at FROM unknown_item_slots WHERE session_id = $1 AND slot_ref = $2
+SELECT id, session_id, slot_ref, position, label, unit_price, discount, image_id, resolved_variant_id, resolved_at, waived_at, waived_by FROM unknown_item_slots WHERE session_id = $1 AND slot_ref = $2
 `
 
 type GetUnknownItemSlotByRefParams struct {
@@ -270,12 +274,14 @@ func (q *Queries) GetUnknownItemSlotByRef(ctx context.Context, arg GetUnknownIte
 		&i.ImageID,
 		&i.ResolvedVariantID,
 		&i.ResolvedAt,
+		&i.WaivedAt,
+		&i.WaivedBy,
 	)
 	return i, err
 }
 
 const getUnknownItemSlotForResolve = `-- name: GetUnknownItemSlotForResolve :one
-SELECT s.id, s.session_id, s.slot_ref, s.position, s.label, s.unit_price, s.discount, s.image_id, s.resolved_variant_id, s.resolved_at, sess.branch_id, sess.branch_invoice_id
+SELECT s.id, s.session_id, s.slot_ref, s.position, s.label, s.unit_price, s.discount, s.image_id, s.resolved_variant_id, s.resolved_at, s.waived_at, s.waived_by, sess.branch_id, sess.branch_invoice_id
 FROM unknown_item_slots s
 JOIN unknown_item_sessions sess ON sess.id = s.session_id
 WHERE s.id = $1
@@ -293,6 +299,8 @@ type GetUnknownItemSlotForResolveRow struct {
 	ImageID           sql.NullInt64 `json:"image_id"`
 	ResolvedVariantID sql.NullInt64 `json:"resolved_variant_id"`
 	ResolvedAt        sql.NullTime  `json:"resolved_at"`
+	WaivedAt          sql.NullTime  `json:"waived_at"`
+	WaivedBy          string        `json:"waived_by"`
 	BranchID          int64         `json:"branch_id"`
 	BranchInvoiceID   sql.NullInt64 `json:"branch_invoice_id"`
 }
@@ -311,6 +319,8 @@ func (q *Queries) GetUnknownItemSlotForResolve(ctx context.Context, id int64) (G
 		&i.ImageID,
 		&i.ResolvedVariantID,
 		&i.ResolvedAt,
+		&i.WaivedAt,
+		&i.WaivedBy,
 		&i.BranchID,
 		&i.BranchInvoiceID,
 	)
@@ -334,7 +344,7 @@ func (q *Queries) LinkUnknownItemSession(ctx context.Context, arg LinkUnknownIte
 }
 
 const listUnknownItemSlotsForSession = `-- name: ListUnknownItemSlotsForSession :many
-SELECT id, session_id, slot_ref, position, label, unit_price, discount, image_id, resolved_variant_id, resolved_at FROM unknown_item_slots WHERE session_id = $1 ORDER BY position
+SELECT id, session_id, slot_ref, position, label, unit_price, discount, image_id, resolved_variant_id, resolved_at, waived_at, waived_by FROM unknown_item_slots WHERE session_id = $1 ORDER BY position
 `
 
 func (q *Queries) ListUnknownItemSlotsForSession(ctx context.Context, sessionID int64) ([]UnknownItemSlot, error) {
@@ -357,6 +367,8 @@ func (q *Queries) ListUnknownItemSlotsForSession(ctx context.Context, sessionID 
 			&i.ImageID,
 			&i.ResolvedVariantID,
 			&i.ResolvedAt,
+			&i.WaivedAt,
+			&i.WaivedBy,
 		); err != nil {
 			return nil, err
 		}
@@ -382,6 +394,8 @@ SELECT
   s.image_id,
   s.resolved_variant_id,
   s.resolved_at,
+  s.waived_at,
+  s.waived_by,
   sess.id AS session_id,
   sess.branch_id,
   b.name AS branch_name,
@@ -396,7 +410,7 @@ JOIN branches b ON b.id = sess.branch_id
 JOIN branch_invoices i ON i.id = sess.branch_invoice_id
 LEFT JOIN product_variants pv ON pv.id = s.resolved_variant_id
 LEFT JOIN products p ON p.id = pv.product_id
-WHERE s.image_id IS NOT NULL
+WHERE (s.image_id IS NOT NULL OR s.waived_at IS NOT NULL)
   AND (s.resolved_at IS NOT NULL) = $3::boolean
 ORDER BY i.occurred_at DESC, s.session_id, s.position
 LIMIT $1 OFFSET $2
@@ -418,6 +432,8 @@ type ListUnknownItemsRow struct {
 	ImageID           sql.NullInt64 `json:"image_id"`
 	ResolvedVariantID sql.NullInt64 `json:"resolved_variant_id"`
 	ResolvedAt        sql.NullTime  `json:"resolved_at"`
+	WaivedAt          sql.NullTime  `json:"waived_at"`
+	WaivedBy          string        `json:"waived_by"`
 	SessionID         int64         `json:"session_id"`
 	BranchID          int64         `json:"branch_id"`
 	BranchName        string        `json:"branch_name"`
@@ -448,6 +464,8 @@ func (q *Queries) ListUnknownItems(ctx context.Context, arg ListUnknownItemsPara
 			&i.ImageID,
 			&i.ResolvedVariantID,
 			&i.ResolvedAt,
+			&i.WaivedAt,
+			&i.WaivedBy,
 			&i.SessionID,
 			&i.BranchID,
 			&i.BranchName,
@@ -456,6 +474,80 @@ func (q *Queries) ListUnknownItems(ctx context.Context, arg ListUnknownItemsPara
 			&i.OccurredAt,
 			&i.ResolvedName,
 			&i.ResolvedBarcode,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listWaitingUnknownItems = `-- name: ListWaitingUnknownItems :many
+SELECT
+  s.id,
+  s.slot_ref,
+  s.position,
+  s.label,
+  s.unit_price,
+  s.discount,
+  sess.id AS session_id,
+  sess.branch_id,
+  b.name AS branch_name,
+  sess.help_requested_at,
+  sess.created_at
+FROM unknown_item_slots s
+JOIN unknown_item_sessions sess ON sess.id = s.session_id
+JOIN branches b ON b.id = sess.branch_id
+WHERE sess.branch_invoice_id IS NULL
+  AND sess.expires_at > now()
+  AND s.image_id IS NULL
+  AND s.waived_at IS NULL
+ORDER BY (sess.help_requested_at IS NULL), sess.created_at DESC, s.position
+`
+
+type ListWaitingUnknownItemsRow struct {
+	ID              int64        `json:"id"`
+	SlotRef         string       `json:"slot_ref"`
+	Position        int32        `json:"position"`
+	Label           string       `json:"label"`
+	UnitPrice       int64        `json:"unit_price"`
+	Discount        int16        `json:"discount"`
+	SessionID       int64        `json:"session_id"`
+	BranchID        int64        `json:"branch_id"`
+	BranchName      string       `json:"branch_name"`
+	HelpRequestedAt sql.NullTime `json:"help_requested_at"`
+	CreatedAt       time.Time    `json:"created_at"`
+}
+
+// Units of checkouts still in progress that have neither a picture nor a
+// manager's pass, for the "Waiting" tab. Cashiers who asked for help first.
+func (q *Queries) ListWaitingUnknownItems(ctx context.Context) ([]ListWaitingUnknownItemsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listWaitingUnknownItems)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListWaitingUnknownItemsRow{}
+	for rows.Next() {
+		var i ListWaitingUnknownItemsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.SlotRef,
+			&i.Position,
+			&i.Label,
+			&i.UnitPrice,
+			&i.Discount,
+			&i.SessionID,
+			&i.BranchID,
+			&i.BranchName,
+			&i.HelpRequestedAt,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -482,6 +574,82 @@ type MarkUnknownItemSlotResolvedParams struct {
 func (q *Queries) MarkUnknownItemSlotResolved(ctx context.Context, arg MarkUnknownItemSlotResolvedParams) error {
 	_, err := q.db.ExecContext(ctx, markUnknownItemSlotResolved, arg.ID, arg.ResolvedVariantID)
 	return err
+}
+
+const requestUnknownItemHelp = `-- name: RequestUnknownItemHelp :exec
+UPDATE unknown_item_sessions SET help_requested_at = COALESCE(help_requested_at, now())
+WHERE branch_id = $1 AND client_ref = $2
+`
+
+type RequestUnknownItemHelpParams struct {
+	BranchID  int64  `json:"branch_id"`
+	ClientRef string `json:"client_ref"`
+}
+
+func (q *Queries) RequestUnknownItemHelp(ctx context.Context, arg RequestUnknownItemHelpParams) error {
+	_, err := q.db.ExecContext(ctx, requestUnknownItemHelp, arg.BranchID, arg.ClientRef)
+	return err
+}
+
+const searchVariantsForUnknownItems = `-- name: SearchVariantsForUnknownItems :many
+SELECT
+  pv.id,
+  pv.barcode,
+  p.name AS product_name,
+  p.code AS product_code,
+  COALESCE(c.name, '')::text AS color_name,
+  COALESCE(s.name, '')::text AS size_name
+FROM product_variants pv
+JOIN products p ON p.id = pv.product_id
+LEFT JOIN colors c ON c.id = pv.color_id
+LEFT JOIN sizes s ON s.id = pv.size_id
+WHERE pv.is_active AND p.is_active
+  AND (p.name ILIKE '%' || $1::text || '%'
+    OR p.code ILIKE '%' || $1::text || '%'
+    OR pv.barcode ILIKE '%' || $1::text || '%')
+ORDER BY p.name, c.name, s.name
+LIMIT 20
+`
+
+type SearchVariantsForUnknownItemsRow struct {
+	ID          int64  `json:"id"`
+	Barcode     string `json:"barcode"`
+	ProductName string `json:"product_name"`
+	ProductCode string `json:"product_code"`
+	ColorName   string `json:"color_name"`
+	SizeName    string `json:"size_name"`
+}
+
+// The picker an admin matches a pictured item with: active variants whose
+// product name, code or barcode contains the text.
+func (q *Queries) SearchVariantsForUnknownItems(ctx context.Context, search string) ([]SearchVariantsForUnknownItemsRow, error) {
+	rows, err := q.db.QueryContext(ctx, searchVariantsForUnknownItems, search)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SearchVariantsForUnknownItemsRow{}
+	for rows.Next() {
+		var i SearchVariantsForUnknownItemsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Barcode,
+			&i.ProductName,
+			&i.ProductCode,
+			&i.ColorName,
+			&i.SizeName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const setBranchInvoiceItemResolved = `-- name: SetBranchInvoiceItemResolved :exec
@@ -527,4 +695,23 @@ type SplitUnknownInvoiceItemParams struct {
 func (q *Queries) SplitUnknownInvoiceItem(ctx context.Context, arg SplitUnknownInvoiceItemParams) error {
 	_, err := q.db.ExecContext(ctx, splitUnknownInvoiceItem, arg.ID, arg.LineTotal)
 	return err
+}
+
+const waiveUnknownItemSlots = `-- name: WaiveUnknownItemSlots :execrows
+UPDATE unknown_item_slots SET waived_at = now(), waived_by = $2
+WHERE id = ANY($1::bigint[]) AND image_id IS NULL AND waived_at IS NULL
+`
+
+type WaiveUnknownItemSlotsParams struct {
+	Column1  []int64 `json:"column_1"`
+	WaivedBy string  `json:"waived_by"`
+}
+
+// Lets units through with no picture. A unit that already has one is left alone.
+func (q *Queries) WaiveUnknownItemSlots(ctx context.Context, arg WaiveUnknownItemSlotsParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, waiveUnknownItemSlots, pq.Array(arg.Column1), arg.WaivedBy)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

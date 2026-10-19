@@ -58,6 +58,7 @@ const routes = [
 
   { path: '/invoices', component: () => import('@/pages/sales-invoices.vue'), meta: { title: 'Invoices', section: 'sales', page: 'invoices' } },
   { path: '/sales-invoices', redirect: '/invoices' },
+  { path: '/unknown-items', component: () => import('@/pages/unknown-items.vue'), meta: { title: 'Unknown Items', section: 'sales', page: 'unknown-items' } },
   { path: '/purchase-invoice', component: () => import('@/pages/purchase-invoice.vue'), meta: { title: 'Purchase Invoices', section: 'inventory', page: 'purchase-invoice' } },
   { path: '/batches', component: () => import('@/pages/batches.vue'), meta: { title: 'Batches', section: 'inventory', page: 'batches' } },
   { path: '/expenses', component: () => import('@/pages/expenses.vue'), meta: { title: 'Expenses', section: 'accounting', page: 'expenses' } },

@@ -69,6 +69,7 @@
   var busy = {};
   var errors = {};
 
+  function isDone(s) { return s.has_image || s.waived; }
   function money(cents) { return '$' + (cents / 100).toFixed(2); }
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -88,7 +89,7 @@
     list.textContent = '';
     var pictured = slots.filter(function (s) { return s.has_image; });
     slots.forEach(function (slot, i) {
-      var card = el('div', 'card' + (slot.has_image ? ' done' : ''));
+      var card = el('div', 'card' + (isDone(slot) ? ' done' : ''));
       var head = el('div', 'head');
       head.appendChild(el('span', 'name', '#' + (i + 1) + ' · ' + (slot.label || 'Unknown item')));
       head.appendChild(el('span', 'price', money(slot.unit_price)));
@@ -102,6 +103,7 @@
       if (busy[slot.slot_ref]) status.textContent = 'Sending…';
       else if (errors[slot.slot_ref]) { status.textContent = errors[slot.slot_ref]; status.className += ' err'; }
       else if (slot.has_image) { status.textContent = 'Sent ✓'; status.className += ' ok'; }
+      else if (slot.waived) { status.textContent = 'Allowed without a picture ✓'; status.className += ' ok'; }
       else status.textContent = 'Needs a picture';
       row.appendChild(status);
 
@@ -117,7 +119,7 @@
       var others = pictured.filter(function (o) { return o.slot_ref !== slot.slot_ref && o.image_id !== slot.image_id; });
       var seen = {};
       others = others.filter(function (o) { if (seen[o.image_id]) return false; seen[o.image_id] = 1; return true; });
-      if (others.length && !slot.has_image) {
+      if (others.length && !isDone(slot)) {
         var copies = el('div', 'row');
         copies.appendChild(el('span', 'state', 'Same as'));
         others.forEach(function (o) {
@@ -132,8 +134,9 @@
       list.appendChild(card);
     });
 
-    var done = slots.length > 0 && slots.every(function (s) { return s.has_image; });
-    document.getElementById('bar').style.width = slots.length ? (100 * pictured.length / slots.length) + '%' : '0';
+    var doneCount = slots.filter(isDone).length;
+    var done = slots.length > 0 && doneCount === slots.length;
+    document.getElementById('bar').style.width = slots.length ? (100 * doneCount / slots.length) + '%' : '0';
     document.getElementById('done').hidden = !done;
   }
 
