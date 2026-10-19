@@ -59,12 +59,31 @@ WHERE ($1::text IS NULL OR c.client_type = $1)
         AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
         AND b.cancelled_at IS NULL
     ))
+  AND (($4::timestamptz IS NULL AND $5::timestamptz IS NULL)
+    OR c.id IN (
+      SELECT cl.client_id
+      FROM branch_invoices b
+      JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
+      WHERE (COALESCE(cardinality($3::bigint[]), 0) = 0 OR b.branch_id = ANY($3::bigint[]))
+        AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+        AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+        AND b.cancelled_at IS NULL
+        AND ($4::timestamptz IS NULL OR b.occurred_at >= $4::timestamptz)
+        AND ($5::timestamptz IS NULL OR b.occurred_at < $5::timestamptz)
+    )
+    OR (COALESCE(cardinality($3::bigint[]), 0) = 0 AND c.id IN (
+      SELECT i.client_id FROM invoices i
+      WHERE ($4::timestamptz IS NULL OR i.created_at >= $4::timestamptz)
+        AND ($5::timestamptz IS NULL OR i.created_at < $5::timestamptz)
+    )))
 `
 
 type CountClientsBySpendingParams struct {
 	ClientType sql.NullString `json:"client_type"`
 	Search     sql.NullString `json:"search"`
 	BranchIds  []int64        `json:"branch_ids"`
+	DateFrom   sql.NullTime   `json:"date_from"`
+	DateTo     sql.NullTime   `json:"date_to"`
 }
 
 // Same filters as ListClientsBySpending, minus the spend computation --
@@ -72,7 +91,13 @@ type CountClientsBySpendingParams struct {
 // picked it counts that branch's clients: home branch, or a branch invoice
 // there (same cancelled/hidden rules as the list).
 func (q *Queries) CountClientsBySpending(ctx context.Context, arg CountClientsBySpendingParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countClientsBySpending, arg.ClientType, arg.Search, pq.Array(arg.BranchIds))
+	row := q.db.QueryRowContext(ctx, countClientsBySpending,
+		arg.ClientType,
+		arg.Search,
+		pq.Array(arg.BranchIds),
+		arg.DateFrom,
+		arg.DateTo,
+	)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -389,6 +414,8 @@ WITH ranked AS (
       FROM invoice_products
       GROUP BY invoice_id
     ) ip ON ip.invoice_id = i.id
+    WHERE ($5::timestamptz IS NULL OR i.created_at >= $5::timestamptz)
+      AND ($6::timestamptz IS NULL OR i.created_at < $6::timestamptz)
     GROUP BY i.client_id
   ) ci ON ci.client_id = c.id
   LEFT JOIN (
@@ -408,14 +435,22 @@ WITH ranked AS (
       AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
       AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
       AND b.cancelled_at IS NULL
+      AND ($5::timestamptz IS NULL OR b.occurred_at >= $5::timestamptz)
+      AND ($6::timestamptz IS NULL OR b.occurred_at < $6::timestamptz)
     GROUP BY cl.client_id
   ) bi ON bi.client_id = c.id
-  WHERE ($5::text IS NULL OR c.client_type = $5)
-    AND ($6::text IS NULL OR c.name ILIKE '%' || $6::text || '%' OR c.phone ILIKE '%' || $6::text || '%')
+  WHERE ($7::text IS NULL OR c.client_type = $7)
+    AND ($8::text IS NULL OR c.name ILIKE '%' || $8::text || '%' OR c.phone ILIKE '%' || $8::text || '%')
     -- With a branch picked, only its clients: home branch or bought there.
     AND (COALESCE(cardinality($4::bigint[]), 0) = 0
       OR c.branch_id = ANY($4::bigint[])
       OR bi.client_id IS NOT NULL)
+    -- With dates picked, only clients who bought in the window (spend and
+    -- counts above are for that window too); central invoices only count
+    -- when no branch is picked, as in the totals.
+    AND (($5::timestamptz IS NULL AND $6::timestamptz IS NULL)
+      OR bi.client_id IS NOT NULL
+      OR (COALESCE(cardinality($4::bigint[]), 0) = 0 AND ci.client_id IS NOT NULL))
 )
 SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, total_spent, invoice_count, item_count
 FROM ranked
@@ -435,6 +470,8 @@ type ListClientsBySpendingParams struct {
 	Offset     int32          `json:"offset"`
 	SortBy     string         `json:"sort_by"`
 	BranchIds  []int64        `json:"branch_ids"`
+	DateFrom   sql.NullTime   `json:"date_from"`
+	DateTo     sql.NullTime   `json:"date_to"`
 	ClientType sql.NullString `json:"client_type"`
 	Search     sql.NullString `json:"search"`
 }
@@ -482,6 +519,8 @@ func (q *Queries) ListClientsBySpending(ctx context.Context, arg ListClientsBySp
 		arg.Offset,
 		arg.SortBy,
 		pq.Array(arg.BranchIds),
+		arg.DateFrom,
+		arg.DateTo,
 		arg.ClientType,
 		arg.Search,
 	)

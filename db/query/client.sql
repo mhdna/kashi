@@ -149,6 +149,8 @@ WITH ranked AS (
       FROM invoice_products
       GROUP BY invoice_id
     ) ip ON ip.invoice_id = i.id
+    WHERE (sqlc.narg(date_from)::timestamptz IS NULL OR i.created_at >= sqlc.narg(date_from)::timestamptz)
+      AND (sqlc.narg(date_to)::timestamptz IS NULL OR i.created_at < sqlc.narg(date_to)::timestamptz)
     GROUP BY i.client_id
   ) ci ON ci.client_id = c.id
   LEFT JOIN (
@@ -168,6 +170,8 @@ WITH ranked AS (
       AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
       AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
       AND b.cancelled_at IS NULL
+      AND (sqlc.narg(date_from)::timestamptz IS NULL OR b.occurred_at >= sqlc.narg(date_from)::timestamptz)
+      AND (sqlc.narg(date_to)::timestamptz IS NULL OR b.occurred_at < sqlc.narg(date_to)::timestamptz)
     GROUP BY cl.client_id
   ) bi ON bi.client_id = c.id
   WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type))
@@ -176,6 +180,12 @@ WITH ranked AS (
     AND (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0
       OR c.branch_id = ANY(sqlc.arg(branch_ids)::bigint[])
       OR bi.client_id IS NOT NULL)
+    -- With dates picked, only clients who bought in the window (spend and
+    -- counts above are for that window too); central invoices only count
+    -- when no branch is picked, as in the totals.
+    AND ((sqlc.narg(date_from)::timestamptz IS NULL AND sqlc.narg(date_to)::timestamptz IS NULL)
+      OR bi.client_id IS NOT NULL
+      OR (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 AND ci.client_id IS NOT NULL))
 )
 SELECT *
 FROM ranked
@@ -207,7 +217,24 @@ WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_
         AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
         AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
         AND b.cancelled_at IS NULL
-    ));
+    ))
+  AND ((sqlc.narg(date_from)::timestamptz IS NULL AND sqlc.narg(date_to)::timestamptz IS NULL)
+    OR c.id IN (
+      SELECT cl.client_id
+      FROM branch_invoices b
+      JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
+      WHERE (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 OR b.branch_id = ANY(sqlc.arg(branch_ids)::bigint[]))
+        AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+        AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+        AND b.cancelled_at IS NULL
+        AND (sqlc.narg(date_from)::timestamptz IS NULL OR b.occurred_at >= sqlc.narg(date_from)::timestamptz)
+        AND (sqlc.narg(date_to)::timestamptz IS NULL OR b.occurred_at < sqlc.narg(date_to)::timestamptz)
+    )
+    OR (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 AND c.id IN (
+      SELECT i.client_id FROM invoices i
+      WHERE (sqlc.narg(date_from)::timestamptz IS NULL OR i.created_at >= sqlc.narg(date_from)::timestamptz)
+        AND (sqlc.narg(date_to)::timestamptz IS NULL OR i.created_at < sqlc.narg(date_to)::timestamptz)
+    )));
 
 -- name: ListClientSpendingSummary :many
 -- Whole-population feed for the loyalty page, which buckets every client
