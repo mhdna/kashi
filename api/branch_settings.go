@@ -119,6 +119,14 @@ type branchSettingsRequest struct {
 	// till's own default.
 	ScanByCodeEnabled *bool `json:"scan_by_code_enabled"`
 
+	// Product search matches codes only and hides names. Nil (a till that
+	// predates it) leaves it off, the till's own default.
+	ProductSearchCodeOnly *bool `json:"product_search_code_only"`
+	// Manual price and discount edits only on the codes in PriceEditCodes
+	// (comma-separated). Nil leaves them off/empty, the till's own default.
+	PriceEditRestricted *bool   `json:"price_edit_restricted"`
+	PriceEditCodes      *string `json:"price_edit_codes"`
+
 	// Let the till play its sounds (scan/checkout chimes, error and warning
 	// tones, keypad clicks). Nil (a till that predates it) keeps them off,
 	// the till's own default.
@@ -451,6 +459,9 @@ func (server *Server) upsertBranchSettings(ctx *gin.Context, branchID int64, req
 		OversellMode:                       oversellMode,
 		CloseShiftRequiresSync:             orZero(req.CloseShiftRequiresSync),
 		ScanByCodeEnabled:                  orTrue(req.ScanByCodeEnabled),
+		ProductSearchCodeOnly:              orZero(req.ProductSearchCodeOnly),
+		PriceEditRestricted:                orZero(req.PriceEditRestricted),
+		PriceEditCodes:                     orZero(req.PriceEditCodes),
 		SoundsEnabled:                      orZero(req.SoundsEnabled),
 		AttendanceManagerApprovalEnabled:   orTrue(req.AttendanceManagerApprovalEnabled),
 
