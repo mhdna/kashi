@@ -15,8 +15,11 @@
     --error: #b3261e;
     --success: #2e7d32;
   }
+  /* light unless the server marks the page follow-system (an app setting) */
+  :root { color-scheme: light; }
+  :root.follow-system { color-scheme: light dark; }
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root.follow-system {
       --bg: #000000;
       --surface: #000000;
       --text: #f2f2f2;

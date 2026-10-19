@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync/atomic"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/mhdna/kashi/db/sqlc"
@@ -23,6 +24,10 @@ type Server struct {
 	recordActivity func(adminActivity)
 	// security counts, locates and filters every request (security.go).
 	security *securityGuard
+	// uploadFollowSystem caches app_settings.upload_pages_follow_system
+	// (phone_upload_page.go); uploadThemeLoaded says it has been read.
+	uploadFollowSystem atomic.Bool
+	uploadThemeLoaded  atomic.Bool
 }
 
 func NewServer(config util.Config, store db.Store) (*Server, error) {

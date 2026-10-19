@@ -36,6 +36,8 @@ const (
 //go:embed unknown_upload_assets/upload.html
 var unknownUploadPageHTML []byte
 
+var unknownUploadPage = newPhoneUploadPage(unknownUploadPageHTML)
+
 type unknownSlotRequest struct {
 	SlotRef   string `json:"slot_ref" binding:"required"`
 	Label     string `json:"label"`
@@ -215,7 +217,7 @@ func (server *Server) linkUnknownSession(ctx *gin.Context, branchID, invoiceID i
 // --- the phone, reached by the QR link (public, token-gated) ---
 
 func (server *Server) unknownUploadPage(ctx *gin.Context) {
-	ctx.Data(http.StatusOK, "text/html; charset=utf-8", unknownUploadPageHTML)
+	server.servePhoneUploadPage(ctx, unknownUploadPage)
 }
 
 func (server *Server) lookupUnknownSession(ctx *gin.Context) (db.UnknownItemSession, bool) {

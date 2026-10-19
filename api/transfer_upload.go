@@ -35,6 +35,8 @@ func (server *Server) transferAttachmentStorageDir() string {
 //go:embed transfer_upload_assets/upload.html
 var transferUploadPageHTML []byte
 
+var transferUploadPage = newPhoneUploadPage(transferUploadPageHTML)
+
 // createBranchTransferUploadToken mints a one-time, expiring token for a
 // freshly-created branch transfer request. Called from
 // createBranchTransferRequest (branch_transfer.go) only on the
@@ -61,7 +63,7 @@ func (server *Server) createBranchTransferUploadToken(ctx *gin.Context, transfer
 // validity checking happens client-side against the status/images
 // endpoints below.
 func (server *Server) transferUploadPage(ctx *gin.Context) {
-	ctx.Data(http.StatusOK, "text/html; charset=utf-8", transferUploadPageHTML)
+	server.servePhoneUploadPage(ctx, transferUploadPage)
 }
 
 func (server *Server) lookupValidTransferUploadToken(ctx *gin.Context, token string) (db.BranchTransferUploadToken, error) {

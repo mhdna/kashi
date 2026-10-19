@@ -44,6 +44,8 @@ type updateAppSettingsRequest struct {
 	UpcomingEventsMenuDays     int16    `json:"upcoming_events_menu_days"`
 	HiddenBuiltinEvents        []string `json:"hidden_builtin_events"`
 	ProductAutofillEnabled     bool     `json:"product_autofill_enabled"`
+	// UploadPagesFollowSystem: phone upload pages follow dark mode (else always light).
+	UploadPagesFollowSystem bool `json:"upload_pages_follow_system"`
 }
 
 // updateAppSettings replaces the whole global settings row -- the client
@@ -108,11 +110,14 @@ func (server *Server) updateAppSettings(ctx *gin.Context) {
 		UpcomingEventsMenuDays:     req.UpcomingEventsMenuDays,
 		HiddenBuiltinEvents:        hiddenEvents,
 		ProductAutofillEnabled:     req.ProductAutofillEnabled,
+		UploadPagesFollowSystem:    req.UploadPagesFollowSystem,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	server.uploadFollowSystem.Store(settings.UploadPagesFollowSystem)
+	server.uploadThemeLoaded.Store(true)
 
 	server.writeJSON(ctx, http.StatusOK, envelope{"settings": withoutSecrets(settings)})
 }

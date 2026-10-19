@@ -125,6 +125,20 @@
             >
               Reset to default colour
             </v-btn>
+
+            <h3 class="text-subtitle-1 mt-8 mb-1">Phone upload pages</h3>
+            <p class="text-body-2 text-medium-emphasis mb-2">
+              The pages a phone opens from a QR code (receipts, transfers, unknown items) are always light.
+              Turn this on to let them follow the phone's dark mode.
+            </p>
+            <v-switch
+              v-model="draft.uploadPagesFollowSystem"
+              color="primary"
+              density="compact"
+              hide-details
+              inset
+              label="Follow the phone's dark mode"
+            />
           </section>
 
           <!-- ---------------------------------------------------- FINANCIALS -->
@@ -906,6 +920,7 @@
     barcodeLabelWidth: settingsStore.barcodeLabelWidth,
     barcodeLabelHeight: settingsStore.barcodeLabelHeight,
     productAutofillEnabled: settingsStore.productAutofillEnabled,
+    uploadPagesFollowSystem: settingsStore.uploadPagesFollowSystem,
   })
 
   function seedDraft () {
@@ -917,6 +932,7 @@
     draft.barcodeLabelWidth = settingsStore.barcodeLabelWidth
     draft.barcodeLabelHeight = settingsStore.barcodeLabelHeight
     draft.productAutofillEnabled = settingsStore.productAutofillEnabled
+    draft.uploadPagesFollowSystem = settingsStore.uploadPagesFollowSystem
   }
 
   const savingSettings = ref(false)
@@ -938,6 +954,7 @@
     || Number(draft.barcodeLabelWidth) !== settingsStore.barcodeLabelWidth
     || Number(draft.barcodeLabelHeight) !== settingsStore.barcodeLabelHeight
     || draft.productAutofillEnabled !== settingsStore.productAutofillEnabled
+    || draft.uploadPagesFollowSystem !== settingsStore.uploadPagesFollowSystem
     || !sameMonths(draft.financialsHighSeasonMonths, settingsStore.financialsHighSeasonMonths),
   )
 
@@ -967,6 +984,7 @@
         barcodeLabelWidth: Number(draft.barcodeLabelWidth),
         barcodeLabelHeight: Number(draft.barcodeLabelHeight),
         productAutofillEnabled: draft.productAutofillEnabled,
+        uploadPagesFollowSystem: draft.uploadPagesFollowSystem,
       })
     } finally {
       savingSettings.value = false
