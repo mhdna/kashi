@@ -441,6 +441,9 @@ func (server *Server) setupRoutes() {
 
 	authRoutes.GET("/branch_expenses", server.listBranchExpenses)
 	authRoutes.POST("/branch_expenses", server.adminCreateBranchExpense)
+	authRoutes.GET("/unknown_items", server.listUnknownItems)
+	authRoutes.GET("/unknown_items/images/:id/file", server.getUnknownItemImageFile)
+	authRoutes.POST("/unknown_items/resolve", server.resolveUnknownItems)
 	authRoutes.GET("/branch_expense_images", server.listBranchExpenseImages)
 	authRoutes.GET("/branch_expenses/:id/images", server.listBranchExpenseImagesForExpense)
 	authRoutes.GET("/branch_expense_images/:id/file", server.getBranchExpenseImageFile)
@@ -593,6 +596,8 @@ func (server *Server) setupRoutes() {
 	branchRoutes.GET("/loan_photos/:id/file", server.branchLoanPhotoFile)
 	branchRoutes.POST("/expenses/upload_link", server.branchExpenseUploadLink)
 	branchRoutes.POST("/loans/upload_link", server.branchLoanUploadLink)
+	branchRoutes.POST("/unknown_sessions", server.createUnknownSession)
+	branchRoutes.GET("/unknown_sessions/status", server.branchUnknownSessionStatus)
 	branchRoutes.POST("/expenses/category", server.setBranchExpenseCategory)
 	branchRoutes.POST("/loans/category", server.setBranchLoanCategory)
 	branchRoutes.GET("/shift_closes/upload_status", server.branchShiftUploadStatus)
@@ -608,6 +613,13 @@ func (server *Server) setupRoutes() {
 	// kashi-pos shows has no kashi login and shouldn't need one. Every
 	// handler here re-validates its own one-time token instead of relying
 	// on any auth middleware -- see expense_upload.go.
+	// unknown_uploads is public the same way: the phone that scanned a till's
+	// QR code has no login, and every route checks the session token.
+	router.GET("/unknown_uploads/:token", server.unknownUploadPage)
+	router.GET("/unknown_uploads/:token/status", server.unknownUploadStatus)
+	router.GET("/unknown_uploads/:token/images/:image_id", server.unknownUploadImageFile)
+	router.POST("/unknown_uploads/:token/slots/:slot_ref/image", server.uploadUnknownSlotImage)
+	router.POST("/unknown_uploads/:token/slots/:slot_ref/copy", server.copyUnknownSlotImage)
 	router.GET("/expense_uploads/:token", server.expenseUploadPage)
 	router.GET("/expense_uploads/:token/status", server.expenseUploadStatus)
 	router.POST("/expense_uploads/:token/images", server.uploadExpenseImages)

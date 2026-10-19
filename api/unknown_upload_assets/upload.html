@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Unknown items</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #fff; --text: #14181f; --muted: #667085; --line: #e3e6ec;
+    --accent: #1565c0; --accent-text: #fff; --ok: #2e7d32; --err: #c62828;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #11151b; --card: #1a2029; --text: #eef1f5; --muted: #9aa4b2; --line: #2a323d;
+      --accent: #64a8f5; --accent-text: #0b1118; --ok: #66bb6a; --err: #ef7a7a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 16px 16px max(16px, env(safe-area-inset-bottom)); }
+  main { max-width: 520px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  .sub { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
+  .bar { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; margin: 8px 0 16px; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--ok); transition: width .25s; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 12px; margin-bottom: 12px; }
+  .card.done { border-color: var(--ok); }
+  .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .name { font-weight: 600; }
+  .price { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .row { display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+  .thumb { width: 72px; height: 72px; border-radius: 10px; object-fit: cover; background: var(--line); flex: none; }
+  button, .btn { appearance: none; border: 0; border-radius: 12px; padding: 14px 16px; font: inherit;
+    font-weight: 600; background: var(--accent); color: var(--accent-text); min-height: 48px; cursor: pointer; }
+  button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line); }
+  button.small { padding: 8px 12px; min-height: 40px; font-size: 14px; }
+  .grow { flex: 1; }
+  .state { font-size: 14px; color: var(--muted); }
+  .state.ok { color: var(--ok); }
+  .state.err { color: var(--err); }
+  .banner { text-align: center; padding: 28px 12px; }
+  .banner b { display: block; font-size: 22px; color: var(--ok); margin-bottom: 4px; }
+  input[type=file] { display: none; }
+  .hint { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+  [dir=rtl] { text-align: right; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Unknown items <span dir="rtl" lang="ar" style="color:var(--muted);font-weight:400">· منتجات غير معروفة</span></h1>
+  <p class="sub">Take a picture of each item. Same item twice? Tap “Same as”.<br>
+    <span dir="rtl" lang="ar">التقط صورة لكل قطعة. نفس القطعة؟ اضغط «نفس».</span></p>
+  <div class="bar"><i id="bar"></i></div>
+  <div id="list"></div>
+  <div id="done" class="banner" hidden>
+    <b>All pictures sent ✓</b>
+    You can close this page. <span dir="rtl" lang="ar">يمكنك إغلاق هذه الصفحة.</span>
+  </div>
+  <p id="fatal" class="state err" hidden></p>
+</main>
+<script>
+(function () {
+  var token = location.pathname.split('/').filter(Boolean).pop();
+  var base = '/unknown_uploads/' + token;
+  var slots = [];
+  // Local previews, so a taken picture shows at once, before the server
+  // confirms it. Keyed by slot_ref.
+  var local = {};
+  var busy = {};
+  var errors = {};
+
+  function money(cents) { return '$' + (cents / 100).toFixed(2); }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function thumbSrc(slot) {
+    if (local[slot.slot_ref]) return local[slot.slot_ref];
+    if (slot.has_image) return base + '/images/' + slot.image_id + '?w=160';
+    return '';
+  }
+
+  function render() {
+    var list = document.getElementById('list');
+    list.textContent = '';
+    var pictured = slots.filter(function (s) { return s.has_image; });
+    slots.forEach(function (slot, i) {
+      var card = el('div', 'card' + (slot.has_image ? ' done' : ''));
+      var head = el('div', 'head');
+      head.appendChild(el('span', 'name', '#' + (i + 1) + ' · ' + (slot.label || 'Unknown item')));
+      head.appendChild(el('span', 'price', money(slot.unit_price)));
+      card.appendChild(head);
+
+      var row = el('div', 'row');
+      var src = thumbSrc(slot);
+      if (src) { var img = el('img', 'thumb'); img.src = src; img.alt = ''; row.appendChild(img); }
+
+      var status = el('span', 'state grow');
+      if (busy[slot.slot_ref]) status.textContent = 'Sending…';
+      else if (errors[slot.slot_ref]) { status.textContent = errors[slot.slot_ref]; status.className += ' err'; }
+      else if (slot.has_image) { status.textContent = 'Sent ✓'; status.className += ' ok'; }
+      else status.textContent = 'Needs a picture';
+      row.appendChild(status);
+
+      var label = el('label', 'btn small' + (slot.has_image ? ' ghost' : ''), slot.has_image ? 'Retake' : 'Take picture');
+      label.style.display = 'inline-flex'; label.style.alignItems = 'center';
+      var input = el('input'); input.type = 'file'; input.accept = 'image/*'; input.setAttribute('capture', 'environment');
+      input.addEventListener('change', function () { if (input.files[0]) upload(slot, input.files[0]); });
+      label.appendChild(input);
+      row.appendChild(label);
+      card.appendChild(row);
+
+      // "Same as #N": reuse another unit's picture instead of taking a new one.
+      var others = pictured.filter(function (o) { return o.slot_ref !== slot.slot_ref && o.image_id !== slot.image_id; });
+      var seen = {};
+      others = others.filter(function (o) { if (seen[o.image_id]) return false; seen[o.image_id] = 1; return true; });
+      if (others.length && !slot.has_image) {
+        var copies = el('div', 'row');
+        copies.appendChild(el('span', 'state', 'Same as'));
+        others.forEach(function (o) {
+          var n = slots.indexOf(o) + 1;
+          var b = el('button', 'ghost small', '#' + n);
+          b.type = 'button';
+          b.addEventListener('click', function () { copyFrom(slot, o); });
+          copies.appendChild(b);
+        });
+        card.appendChild(copies);
+      }
+      list.appendChild(card);
+    });
+
+    var done = slots.length > 0 && slots.every(function (s) { return s.has_image; });
+    document.getElementById('bar').style.width = slots.length ? (100 * pictured.length / slots.length) + '%' : '0';
+    document.getElementById('done').hidden = !done;
+  }
+
+  // Shrinks a phone photo to ~1280px JPEG before sending: a few hundred KB
+  // instead of several MB, which is what makes the upload near-instant.
+  function shrink(file) {
+    function fromBitmap(bmp) {
+      var max = 1280, w = bmp.width, h = bmp.height, k = Math.min(1, max / Math.max(w, h));
+      var c = document.createElement('canvas');
+      c.width = Math.round(w * k); c.height = Math.round(h * k);
+      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+      return new Promise(function (res, rej) {
+        c.toBlob(function (b) { b ? res(b) : rej(new Error('encode')); }, 'image/jpeg', 0.75);
+      });
+    }
+    if (window.createImageBitmap) {
+      return createImageBitmap(file, { imageOrientation: 'from-image' }).then(fromBitmap, function () { return file; });
+    }
+    return Promise.resolve(file);
+  }
+
+  function refresh() {
+    return fetch(base + '/status').then(function (r) {
+      if (!r.ok) throw new Error(r.status === 404 ? 'This link is no longer valid.' : 'Could not load.');
+      return r.json();
+    }).then(function (data) { slots = data.slots || []; render(); });
+  }
+
+  function upload(slot, file) {
+    busy[slot.slot_ref] = true; delete errors[slot.slot_ref];
+    local[slot.slot_ref] = URL.createObjectURL(file);
+    render();
+    shrink(file).then(function (blob) {
+      var fd = new FormData();
+      fd.append('image', blob, 'item.jpg');
+      return fetch(base + '/slots/' + encodeURIComponent(slot.slot_ref) + '/image', { method: 'POST', body: fd });
+    }).then(function (r) {
+      if (!r.ok) throw new Error('Upload failed');
+      return refresh();
+    }).catch(function () {
+      errors[slot.slot_ref] = 'Failed — tap Retake to try again';
+      delete local[slot.slot_ref];
+    }).then(function () { delete busy[slot.slot_ref]; render(); });
+  }
+
+  function copyFrom(slot, source) {
+    busy[slot.slot_ref] = true; render();
+    fetch(base + '/slots/' + encodeURIComponent(slot.slot_ref) + '/copy', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from_slot_ref: source.slot_ref })
+    }).then(function (r) {
+      if (!r.ok) throw new Error('copy');
+      return refresh();
+    }).catch(function () { errors[slot.slot_ref] = 'Failed — try again'; })
+      .then(function () { delete busy[slot.slot_ref]; render(); });
+  }
+
+  refresh().catch(function (e) {
+    var f = document.getElementById('fatal'); f.hidden = false; f.textContent = e.message;
+  });
+  setInterval(function () { if (!Object.keys(busy).length) refresh().catch(function () {}); }, 4000);
+})();
+</script>
+</body>
+</html>

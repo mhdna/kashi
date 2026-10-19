@@ -66,6 +66,7 @@ var accessSections = []accessSection{
 	}},
 	{"sales", "Sales", "Invoices", []accessPage{
 		{"invoices", "Invoices"},
+		{"unknown-items", "Unknown Items"},
 	}},
 	{"clients", "Clients", "Clients, loyalty and reviews", []accessPage{
 		{"clients", "Clients"},
@@ -277,6 +278,7 @@ var routeRules = []routeRule{
 	rule("/expense_categories", "accounting", "accounting", "analytics"),
 	rule("/recurring_expenses", "accounting", "accounting"),
 	rule("/branch_expenses", "accounting", "accounting", "analytics"),
+	rule("/unknown_items", "sales", "sales", "analytics"),
 	rule("/branch_expense_images", "accounting", "accounting", "analytics"),
 	rule("/branch_expense_images/:id/rotation", "photo_rotation"),
 	rule("/branch_expense_images/:id/replace", "photo_replace"),
