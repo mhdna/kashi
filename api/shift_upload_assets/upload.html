@@ -89,6 +89,16 @@
     border: 2px solid var(--error); border-radius: 50%;
     width: 56px; height: 56px; line-height: 52px; margin: 0 auto 12px;
   }
+
+  /* one plain look: centered, high on the screen, black/white only (red for errors) */
+  :root { --primary: var(--text); --success: var(--text); }
+  body { justify-content: flex-start; padding-top: 7vh; }
+  .app-icon { width: 128px; height: 128px; margin-bottom: 4px; }
+  .card { border: 0; text-align: center; }
+  button, .btn { color: var(--bg); }
+  .btn.ghost, button.ghost { color: var(--text); }
+  .previews { justify-content: center; }
+  input[type="file"], input[type=file] { text-align: center; }
 </style>
 </head>
 <body>
