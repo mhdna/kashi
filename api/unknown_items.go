@@ -330,6 +330,7 @@ func (server *Server) uploadUnknownSlotImage(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	server.adminHub.broadcastAll(adminWSMessage{Type: "unknown_item_uploaded", BranchID: session.BranchID})
 	// The phone gets the new state back, so it needs no status call after.
 	slots, err := server.store.ListUnknownItemSlotsForSession(ctx, session.ID)
 	if err != nil {
@@ -419,6 +420,34 @@ func (server *Server) listUnknownItems(ctx *gin.Context) {
 		return
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{"items": items, "total": total, "pending": pending})
+}
+
+type listUnknownItemImagesRequest struct {
+	PageSize int32 `form:"page_size,default=24" binding:"min=1,max=100"`
+	PageID   int32 `form:"page_id,default=0" binding:"min=0"`
+}
+
+// listUnknownItemImages feeds the Attachments page: the stored pictures
+// themselves, not the units (several units can share one).
+func (server *Server) listUnknownItemImages(ctx *gin.Context) {
+	var req listUnknownItemImagesRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	images, err := server.store.ListUnknownItemImages(ctx, db.ListUnknownItemImagesParams{
+		Limit: req.PageSize, Offset: req.PageID * req.PageSize,
+	})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	total, err := server.store.CountUnknownItemImages(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"images": images, "total": total})
 }
 
 // getUnknownItemImageFile streams a picture to the admin site (fetched as a

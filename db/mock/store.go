@@ -1699,6 +1699,21 @@ func (mr *MockStoreMockRecorder) CountTransfers(arg0, arg1 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountTransfers", reflect.TypeOf((*MockStore)(nil).CountTransfers), arg0, arg1)
 }
 
+// CountUnknownItemImages mocks base method.
+func (m *MockStore) CountUnknownItemImages(arg0 context.Context) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountUnknownItemImages", arg0)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountUnknownItemImages indicates an expected call of CountUnknownItemImages.
+func (mr *MockStoreMockRecorder) CountUnknownItemImages(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountUnknownItemImages", reflect.TypeOf((*MockStore)(nil).CountUnknownItemImages), arg0)
+}
+
 // CountUnknownItems mocks base method.
 func (m *MockStore) CountUnknownItems(arg0 context.Context, arg1 bool) (int64, error) {
 	m.ctrl.T.Helper()
@@ -9512,6 +9527,21 @@ func (m *MockStore) ListTransfers(arg0 context.Context, arg1 db.ListTransfersPar
 func (mr *MockStoreMockRecorder) ListTransfers(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTransfers", reflect.TypeOf((*MockStore)(nil).ListTransfers), arg0, arg1)
+}
+
+// ListUnknownItemImages mocks base method.
+func (m *MockStore) ListUnknownItemImages(arg0 context.Context, arg1 db.ListUnknownItemImagesParams) ([]db.ListUnknownItemImagesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListUnknownItemImages", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListUnknownItemImagesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListUnknownItemImages indicates an expected call of ListUnknownItemImages.
+func (mr *MockStoreMockRecorder) ListUnknownItemImages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUnknownItemImages", reflect.TypeOf((*MockStore)(nil).ListUnknownItemImages), arg0, arg1)
 }
 
 // ListUnknownItemSlotsForSession mocks base method.

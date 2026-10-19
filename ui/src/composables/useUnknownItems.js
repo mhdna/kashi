@@ -21,6 +21,12 @@ export function useUnknownItems () {
     return { items: data?.items ?? [], total: data?.total ?? 0, pending: data?.pending ?? 0 }
   }
 
+  // Every stored picture, for the Attachments page.
+  async function fetchUnknownItemImages (pageId = 0, pageSize = 24) {
+    const data = await requestJSON(`${API_BASE}/unknown_items/images?page_id=${pageId}&page_size=${pageSize}`)
+    return { images: data?.images ?? [], total: data?.total ?? 0 }
+  }
+
   async function fetchWaiting () {
     const data = await requestJSON(`${API_BASE}/unknown_items/waiting`)
     return data?.items ?? []
@@ -57,5 +63,5 @@ export function useUnknownItems () {
     return URL.createObjectURL(await res.blob())
   }
 
-  return { fetchUnknownItems, fetchWaiting, waiveUnknownItems, searchVariants, resolveUnknownItems, fetchImageObjectUrl }
+  return { fetchUnknownItems, fetchUnknownItemImages, fetchWaiting, waiveUnknownItems, searchVariants, resolveUnknownItems, fetchImageObjectUrl }
 }

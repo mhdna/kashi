@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/textproto"
+	"strconv"
 	"testing"
 	"time"
 
@@ -131,6 +132,13 @@ func TestUnknownItemsFlow(t *testing.T) {
 	complete, slots := status()
 	require.False(t, complete, "unit 3 still has no picture")
 	require.Equal(t, slots[0].ImageID, slots[1].ImageID, "'same as' shares the picture")
+
+	// Both the original and a thumbnail of the picture can be fetched back.
+	for _, query := range []string{"", "?w=480", "?w=160"} {
+		pic := do(httptest.NewRequest(http.MethodGet, base+"/images/"+strconv.FormatInt(slots[0].ImageID, 10)+query, nil))
+		require.Equal(t, http.StatusOK, pic.Code, "picture %q: %s", query, pic.Body.String())
+		require.NotZero(t, pic.Body.Len(), "picture %q", query)
+	}
 
 	// 3. The cashier asks for help; a manager's pass covers unit 3.
 	decode(do(tillRequest(http.MethodPost, "/branch/unknown_sessions/help", map[string]string{"client_ref": sessionRef})), &struct{}{})

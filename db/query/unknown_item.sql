@@ -167,3 +167,24 @@ ORDER BY (sess.help_requested_at IS NULL), sess.created_at DESC, s.position;
 -- Lets units through with no picture. A unit that already has one is left alone.
 UPDATE unknown_item_slots SET waived_at = now(), waived_by = $2
 WHERE id = ANY($1::bigint[]) AND image_id IS NULL AND waived_at IS NULL;
+
+-- name: ListUnknownItemImages :many
+-- Every stored unknown-item picture, newest first, for the Attachments page.
+SELECT
+  img.id,
+  img.created_at,
+  b.name AS branch_name,
+  COALESCE(i.branch_invoice_code, '')::text AS branch_invoice_code,
+  COUNT(s.id)::int AS units,
+  COALESCE(MIN(s.unit_price), 0)::bigint AS unit_price
+FROM unknown_item_images img
+JOIN unknown_item_sessions sess ON sess.id = img.session_id
+JOIN branches b ON b.id = sess.branch_id
+LEFT JOIN branch_invoices i ON i.id = sess.branch_invoice_id
+LEFT JOIN unknown_item_slots s ON s.image_id = img.id
+GROUP BY img.id, b.name, i.branch_invoice_code
+ORDER BY img.created_at DESC, img.id DESC
+LIMIT $1 OFFSET $2;
+
+-- name: CountUnknownItemImages :one
+SELECT COUNT(*) FROM unknown_item_images;
