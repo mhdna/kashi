@@ -26,3 +26,10 @@ SET product_autofill_rules = $1,
     updated_at = now()
 WHERE id = 1
 RETURNING *;
+
+-- name: SetBarcodeLabelDesign :one
+UPDATE app_settings
+SET barcode_label_design = $1,
+    updated_at = now()
+WHERE id = 1
+RETURNING *;

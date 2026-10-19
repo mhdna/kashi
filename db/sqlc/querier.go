@@ -1556,6 +1556,7 @@ type Querier interface {
 	// Clients with a phone, for picking in a rule.
 	SearchWhatsAppClients(ctx context.Context, search string) ([]SearchWhatsAppClientsRow, error)
 	SetAssetCost(ctx context.Context, arg SetAssetCostParams) error
+	SetBarcodeLabelDesign(ctx context.Context, barcodeLabelDesign json.RawMessage) (AppSetting, error)
 	SetBranchActive(ctx context.Context, arg SetBranchActiveParams) error
 	// A till re-categorising one of its own expenses (kashi-pos expense
 	// detail). NULL category_id is "no category".
