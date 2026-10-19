@@ -286,7 +286,10 @@ LIMIT sqlc.arg(row_limit);
 -- lifetime. Central admin invoices have no branch (branch_id 0) and are only
 -- included when no branch is selected, the same rule as
 -- ListClientsBySpending. With no branch and no date set, clients who never
--- bought anything are listed too (branch_id 0, zero spend). Cancelled and
+-- bought anything are listed too (branch_id 0, zero spend). A client is
+-- listed under every branch they bought from, not only their home branch
+-- (clients.branch_id, the first one); the home branch adds a zero-spend row
+-- when they have no purchases there. Cancelled and
 -- hidden-from-reports branch invoices are skipped as everywhere else, unless
 -- include_excluded is set.
 WITH purchases AS (
@@ -350,4 +353,34 @@ WHERE COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0
   AND sqlc.narg(date_to)::timestamptz IS NULL
   AND (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type))
   AND NOT EXISTS (SELECT 1 FROM agg WHERE agg.client_id = c.id)
+UNION ALL
+-- Home branch (clients.branch_id): a client is also listed under it when
+-- they haven't bought there in this scope, e.g. one imported with a branch
+-- and no sales yet. Only for an explicit branch pick and no dates, since
+-- zero spend can't match a date window; the same hidden-branch rule as
+-- purchases applies.
+SELECT c.id, c.name, c.phone, c.client_type, c.is_active, c.created_at, c.valid_loyalty_points,
+  c.branch_id, 0::bigint, 0::bigint,
+  'epoch'::timestamptz
+FROM clients c
+WHERE c.branch_id = ANY(sqlc.arg(branch_ids)::bigint[])
+  AND sqlc.narg(date_from)::timestamptz IS NULL
+  AND sqlc.narg(date_to)::timestamptz IS NULL
+  AND (sqlc.arg(include_excluded)::bool OR c.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports))
+  AND (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type))
+  AND NOT EXISTS (SELECT 1 FROM agg WHERE agg.client_id = c.id AND agg.branch_id = c.branch_id)
 ORDER BY name ASC, id ASC;
+
+-- name: SetClientBranchIfNull :exec
+-- A client's home branch is the first branch they bought from, so a branch
+-- invoice only sets it when none is set yet. The client is resolved by
+-- either identity a till has used (client_uid, else the register's local
+-- client id), as in ListClientsForExport. updated_at is left alone: the
+-- column isn't synced to tills, so this mustn't make them re-pull the client.
+UPDATE clients SET branch_id = sqlc.arg(branch_id)
+WHERE branch_id IS NULL
+  AND id = COALESCE(
+    (SELECT cu.id FROM clients cu WHERE cu.uid = sqlc.narg(client_uid)),
+    (SELECT cl.client_id FROM client_links cl
+      WHERE cl.register_id = sqlc.arg(register_id) AND cl.branch_client_id = sqlc.narg(branch_client_id))
+  );

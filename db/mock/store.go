@@ -10646,6 +10646,20 @@ func (mr *MockStoreMockRecorder) SetClientActive(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetClientActive", reflect.TypeOf((*MockStore)(nil).SetClientActive), arg0, arg1)
 }
 
+// SetClientBranchIfNull mocks base method.
+func (m *MockStore) SetClientBranchIfNull(arg0 context.Context, arg1 db.SetClientBranchIfNullParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetClientBranchIfNull", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetClientBranchIfNull indicates an expected call of SetClientBranchIfNull.
+func (mr *MockStoreMockRecorder) SetClientBranchIfNull(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetClientBranchIfNull", reflect.TypeOf((*MockStore)(nil).SetClientBranchIfNull), arg0, arg1)
+}
+
 // SetDefaultLowStockThreshold mocks base method.
 func (m *MockStore) SetDefaultLowStockThreshold(arg0 context.Context, arg1 int64) (db.AppSetting, error) {
 	m.ctrl.T.Helper()
