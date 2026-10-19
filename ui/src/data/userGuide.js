@@ -5,88 +5,434 @@
 //
 // Text is rendered with v-html so <b> and <code> work; never put user data here.
 
-// An entry: `what` is one or two sentences, `can` a short list, `tip` optional.
-function entry (id, group, title, what, can = [], tip = '') {
+// Block builders for the longer entries.
+const h = text => ({ kind: 'heading', text })
+const steps = items => ({ kind: 'steps', items })
+const bullets = items => ({ kind: 'list', items })
+
+// An entry: `what` is one or two sentences, `can` a short list, `more` extra
+// blocks (a heading, steps, a list) after it, and `tip` an optional note.
+function entry (id, group, title, what, can = [], tip = '', more = []) {
   const blocks = [{ kind: 'p', text: what }]
   if (can.length > 0) {blocks.push({ kind: 'list', items: can })}
+  blocks.push(...more)
   if (tip) {blocks.push({ kind: 'tip', text: tip })}
   return { id, group, title, blocks }
 }
 
 export const guideSections = [
   // ---------------------------------------------------------------- Basics
-  entry('how-kashi-works', 'Basics', 'How Kashi works',
-    'Kashi Cloud is the office side of your shops. Each branch has one or more <b>tills</b> (registers). Sales, shifts, expenses and new clients flow from the tills to the Cloud on their own, and prices, products and settings flow back.',
+  entry('how-kashi-works', 'Start here', 'How Kashi works',
+    'Kashi Cloud is the office side of your shops. Each branch has one or more <b>tills</b> (registers) running the POS app. The two sides keep each other up to date.',
     [
-      'Pages update live when a branch sends something new.',
-      'Your <b>role</b> decides which pages you see. Some roles can look but not change anything.',
-      'Most lists have a search box and a branch filter at the top.',
+      '<b>Tills to Cloud:</b> sales, shifts, expenses, door-counter visits and new clients.',
+      '<b>Cloud to tills:</b> products, prices, clients, settings and app updates.',
+      'Pages refresh live when a branch sends something new.',
     ],
-    'If a number looks wrong, check the branch filter and the date range first.'),
-
-  entry('home', 'Basics', 'Home',
-    'A quick look at what is happening right now.',
+    'If a till is offline, nothing is lost. It sends everything when it is back online.',
     [
-      '<b>Recent activity</b> lists what the branches just did, newest first. Click a row to see the details.',
-      'Items marked <b>pinned</b> stay at the top until someone marks them resolved.',
-      '<b>Latest attachments</b> shows the newest photos, like receipts.',
+      h('Who sees what'),
+      bullets([
+        'Your <b>role</b> decides which pages you see. A page can be hidden, <b>view only</b>, or <b>editable</b>.',
+        'With view only you can look and search, but there are no Add, Edit or Delete buttons.',
+        'Admins also see Users and Roles in Settings.',
+      ]),
+      h('Tips for every page'),
+      bullets([
+        'Most lists have a <b>search box</b> and a <b>branch filter</b> at the top. If a number looks wrong, check these first.',
+        'Money is in dollars unless a currency is shown next to it.',
+        'Branches switched off under <b>In reports</b> are left out of every report.',
+      ]),
     ]),
+
+  entry('glossary', 'Start here', 'Words used in Kashi',
+    'A short list of the words you will see on many pages.',
+    [],
+    '',
+    [
+      bullets([
+        '<b>Branch:</b> a shop. It can have several tills.',
+        '<b>Till / register:</b> one POS computer. Each has a short code like CT or CT2.',
+        '<b>Cashbox:</b> the drawer and money accounts a till uses.',
+        '<b>Shift:</b> the time between a cashier opening and closing the till. Closing it counts the cash.',
+        '<b>Inventory:</b> a place that holds stock, such as a shop or a warehouse.',
+        '<b>Product and variant:</b> a product comes in variants, one per color and size. Each variant has its own barcode and stock. Also called an <b>SKU</b>.',
+        '<b>Invoice kinds:</b> a <b>sale</b>, a <b>return</b> (customer gives goods back) or an <b>exchange</b>.',
+        '<b>Client tier:</b> a level (like Silver or Gold) based on how much a client has spent in total.',
+        '<b>Target:</b> a sales goal for a branch and a period.',
+        '<b>Command:</b> an instruction sent from the office to a till.',
+        '<b>Conflict:</b> something from a branch that does not match the Cloud and needs your decision.',
+      ]),
+    ]),
+
+  // ------------------------------------------------------------- Workflows
+  entry('wf-new-product', 'Workflows', 'Add a product and put it on sale',
+    'From a new item to something a cashier can sell.',
+    [],
+    'Tills pick up new products and prices by themselves. You do not need to send anything.',
+    [
+      steps([
+        'Make sure its <b>colors</b> and <b>sizes</b> exist in <b>Colors &amp; Sizes</b>, and its brand or similar details in <b>Attributes</b>.',
+        'Open <b>Products</b> and click <b>Add Product</b>.',
+        'Enter the <b>code</b> and <b>name</b>. Choose the colors and sizes: you get one variant for every color and size combination.',
+        'Add a <b>barcode</b> (optional) and a <b>price</b>. The price goes into the price list you choose, usually the default one.',
+        'Click <b>Add Product</b>, or <b>Save &amp; Add Another</b> to keep going.',
+        'Bring in stock with a <b>Purchase Invoice</b> (see the next workflow).',
+        'Print labels from <b>Barcodes</b> if you need them.',
+      ]),
+      h('Many products at once'),
+      bullets([
+        'Use <b>Import CSV</b> on the Products page: columns <code>code</code>, <code>name</code>, <code>price</code> and an optional description.',
+        'If one row is wrong, nothing is imported. Codes that already exist are skipped.',
+      ]),
+    ]),
+
+  entry('wf-buy-stock', 'Workflows', 'Buy stock from a supplier',
+    'Record what you bought and add it to your stock.',
+    [],
+    'Receiving also updates each item\'s average cost, which feeds profit numbers.',
+    [
+      steps([
+        'Add the company in <b>Suppliers</b> if it is new.',
+        'Open <b>Purchase Invoices</b> and click <b>Add Purchase</b>.',
+        'Choose the <b>supplier</b>, the <b>inventory</b> the goods go to, and the date.',
+        'Add each item: search by SKU or barcode, then enter the <b>quantity</b> and <b>unit cost</b>.',
+        'Click <b>Receive</b>. The stock now shows in that inventory.',
+        'Optional: in <b>Batches</b>, add a batch from this purchase to track what it earns.',
+      ]),
+      bullets(['A purchase stays a <b>draft</b> until you click Receive, so you can fix it before then.']),
+    ]),
+
+  entry('wf-transfer', 'Workflows', 'Move stock between places',
+    'Send stock from one inventory to another, for example warehouse to branch.',
+    [],
+    '',
+    [
+      h('From the office'),
+      steps([
+        'Open <b>Transfers</b> and click <b>Add Transfer</b>.',
+        'Choose <b>From inventory</b> and <b>To inventory</b>, and add the items and quantities.',
+        'Click <b>Dispatch</b> when the goods leave. The stock is taken from the source and is "in transit".',
+        'Click <b>Receive</b> when they arrive. The stock lands in the destination.',
+      ]),
+      h('When a branch asks for stock'),
+      bullets([
+        'A branch can propose a transfer from its till. It shows as <b>Requested</b>.',
+        '<b>Approve</b> does the dispatch and the receive in one step. <b>Reject</b> turns it down.',
+      ]),
+    ]),
+
+  entry('wf-count', 'Workflows', 'Count your stock',
+    'Compare what is on the shelf with what the system says, and fix the difference.',
+    [],
+    'Count when the shop is quiet, so sales do not change the numbers while you count.',
+    [
+      steps([
+        'Open <b>Inventory</b> and click <b>Start Count</b> on the place you will count. Or use <b>Stock Counts</b> and <b>New Count</b>.',
+        'The sheet starts with the system quantity for every item.',
+        'Change the <b>counted</b> quantity wherever the shelf is different.',
+        'Click <b>Save Draft</b> to stop and continue later.',
+        'Click <b>Post</b> when done. Every difference becomes a stock movement you can see in <b>Stock Movements</b>.',
+      ]),
+    ]),
+
+  entry('wf-new-till', 'Workflows', 'Connect a new till',
+    'Link a POS computer to Kashi Cloud.',
+    [],
+    'The code is also the start of that till\'s invoice numbers, so it cannot be changed once the till is in use.',
+    [
+      steps([
+        'Open <b>Branches</b>. For a new shop click <b>Add Branch</b>. For another till in an existing shop open its <b>Registers</b> and click <b>Add Register</b>.',
+        'Give the till a short <b>code</b> of 1 to 8 letters or digits, like CT2, and optionally a name.',
+        'Kashi shows the <b>API key</b> <b>once</b>. Copy it now.',
+        'On the till, open the kashi-pos settings and enter the <b>code</b> and the <b>key</b>.',
+        'Back on the Registers list, the till shows <b>Online</b> when it connects.',
+        'Check its behaviour in <b>Branch Settings</b>, and its app version in <b>App Updates</b>.',
+      ]),
+      bullets(['Lost the key? Use <b>Rotate Key</b> to make a new one. The old key stops working.']),
+    ]),
+
+  entry('wf-day-end', 'Workflows', 'Check the day',
+    'A simple end-of-day routine.',
+    [],
+    '',
+    [
+      steps([
+        'Open <b>Shifts</b> and check that every shift that should be closed is closed.',
+        'Open <b>Daily Income</b> and click the day. Look at the totals against last week, the payments and the hour-by-hour chart.',
+        'Check <b>Expenses</b> for the day.',
+        'Click <b>Email</b> to send the day\'s report to the people who need it. You can also set a <b>Schedule</b> in Emails to do this by itself.',
+        'Look at <b>Conflicts</b> and <b>Commands</b> for anything waiting or failed.',
+      ]),
+    ]),
+
+  entry('wf-return', 'Workflows', 'Return or exchange a sale from the office',
+    'Take goods back, or swap them, for a sale made at a till.',
+    [],
+    'If nothing happens, check <b>Commands</b>. The till may be offline, and the command runs when it is back.',
+    [
+      steps([
+        'Open <b>Invoices</b> and find the sale. Search or filter by branch.',
+        'Open it and click <b>Return</b> or <b>Exchange</b>.',
+        'Choose the lines and quantities coming back. For an exchange, add the items you give instead.',
+        'Add a reason if you like, then queue it.',
+        'The request is sent to the till. The return or exchange shows in Invoices once the branch has processed it.',
+      ]),
+      bullets(['To cancel a sale completely, use <b>Cancel invoice</b> in the same dialog.']),
+    ]),
+
+  entry('wf-campaign', 'Workflows', 'Make a customer list for a campaign',
+    'Get phone numbers of the people who bought at a branch.',
+    [],
+    'Send each file from its own channel. Because of No duplicates, nobody is in two files.',
+    [
+      steps([
+        'Open <b>Clients</b> and choose the <b>Retail</b> or <b>Wholesale</b> tab.',
+        'Click <b>Export CSV</b>.',
+        'Tick <b>Name</b>, <b>Phone</b> and <b>Phone check (Lebanese)</b>.',
+        'Choose the branches, and a date range if you only want recent buyers.',
+        'Tick <b>No duplicates</b> if the same person should not get two messages.',
+        'Click <b>Export</b>. Open the file and remove the rows marked <b>Invalid</b>.',
+      ]),
+    ]),
+
+  entry('wf-loyalty-coupon', 'Workflows', 'Reward customers with tiers and coupons',
+    'Two ways to keep customers coming back.',
+    [],
+    '',
+    [
+      h('Tiers (automatic)'),
+      bullets([
+        'A client\'s tier depends on how much they have spent in total.',
+        'Change the tier names and limits with the cog on the <b>Clients</b> page.',
+        'See how many people are in each tier on <b>Loyalty</b>.',
+      ]),
+      h('Coupons'),
+      steps([
+        'Open <b>Coupons</b>, then the <b>Types</b> tab, and add a type: its value, its currency, and whether it applies by itself or needs the code typed.',
+        'Go to the <b>Coupons</b> tab and click <b>Add Coupon</b>. Choose the code, the type, and optionally one client and an end date.',
+        'For many codes at once, use <b>Generate List</b>.',
+        'Click <b>Deactivate</b> to stop a coupon.',
+      ]),
+    ]),
+
+  entry('wf-targets', 'Workflows', 'Set a sales target',
+    'Give a branch a goal and watch it.',
+    [],
+    '',
+    [
+      steps([
+        'Open <b>Branches</b> and the <b>Targets</b> of the branch.',
+        'For a single goal click <b>Add Target</b>: choose <b>From</b>, <b>To</b> and the amount in dollars.',
+        'For a goal that repeats, use <b>Add Recurring Target</b>: the day each period starts, and repeat every 1 month, 3 months for a quarter, and so on.',
+        'Watch progress on the <b>Targets</b> page.',
+      ]),
+      bullets(['You can pause a recurring target. Targets it already made are kept.']),
+    ]),
+
+  entry('wf-settings', 'Workflows', 'Change a till setting',
+    'Settings live in two places.',
+    [],
+    'Money settings here are in dollars.',
+    [
+      h('One branch'),
+      steps([
+        'Open <b>Branch Settings</b> and choose the branch.',
+        'Pick the section, change the values, and click <b>Save</b>. Only what you changed is sent.',
+      ]),
+      h('Every branch'),
+      steps([
+        'Open <b>Default Settings</b>.',
+        'Set only the values you want to push. Leave the others on <b>Leave as is</b>.',
+        'Click <b>Apply to all branches</b>.',
+      ]),
+    ]),
+
+  entry('wf-money', 'Workflows', 'Record an expense or a loan payment',
+    'Keep the money going out in one place.',
+    [],
+    'Pick the right tab first. A branch expense is one the till can see, and a central one stays in the office.',
+    [
+      h('Expense'),
+      steps([
+        'Open <b>Expenses</b> and choose <b>Central</b> or <b>Branch</b>.',
+        'Make sure the category exists in the left list. Use <b>Add Category</b> if not.',
+        'Click <b>Add Expense</b> and fill in the description, category and amount.',
+        'For rent or salaries that repeat, use <b>Add Recurring</b> with the first due date and how often.',
+      ]),
+      h('Loan payment'),
+      steps([
+        'Open <b>Loans</b> and find the loan.',
+        'Open its payments and click <b>Add Payment</b>.',
+        'The loan shows what is still remaining.',
+      ]),
+    ]),
+
+  entry('wf-user', 'Workflows', 'Add a user and limit what they can see',
+    'Admins only.',
+    [],
+    'A new role starts with nothing switched on, so turn on what the person needs.',
+    [
+      steps([
+        'Open <b>Settings</b> and the <b>Roles</b> tab. Click <b>Add role</b>.',
+        'Turn each section <b>On</b> or <b>Off</b>. Inside a section, set each page to <b>None</b>, <b>View</b> or <b>Edit</b>.',
+        'Save the role.',
+        'Open the <b>Users</b> tab, add the person, and choose the role.',
+      ]),
+      bullets([
+        'You can change a person\'s role, name or password later, or switch them off.',
+        'A role that still has users cannot be deleted. Move its users first.',
+      ]),
+    ]),
+
+  entry('wf-attendance', 'Workflows', 'Fix attendance',
+    'Get a branch\'s clock-in times right.',
+    [],
+    '',
+    [
+      steps([
+        'Open <b>Attendance</b> and choose the branch.',
+        'Click <b>Sync from POS</b> to pull the latest punches. For a branch with no clock-in device, use <b>Import CSV</b> instead.',
+        'Open <b>Requests</b> and approve or reject changes asked for on the till.',
+        'Fix a wrong punch with <b>Edit</b>, or delete it.',
+        'Check the <b>Monthly grid</b> to see the result.',
+      ]),
+      bullets(['Staff are set up per branch in <b>Branches</b> under <b>Staff</b>, with their attendance ID from the clock-in device.']),
+    ]),
+
+  entry('wf-conflicts', 'Workflows', 'Resolve a conflict',
+    'Deal with things from the branches that need a decision.',
+    [],
+    '',
+    [
+      h('A client name or phone does not match'),
+      steps([
+        'Open <b>Conflicts</b>.',
+        'Look at what the branch says and what Kashi has.',
+        'Choose: keep Kashi\'s name, use the branch\'s name, <b>merge</b> into an existing client, or <b>create a new client</b> with a phone number.',
+        'Click <b>Resolve</b>, or <b>Dismiss</b> if it does not matter.',
+      ]),
+      h('Oversold stock'),
+      bullets([
+        'A till sold more than the system had. Correct it with a stock adjustment, a transfer or a stock count.',
+      ]),
+    ]),
+
+  entry('home', 'Start here', 'Home',
+    'A quick look at what is happening right now. Open it first thing in the day.',
+    [
+      '<b>Recent activity</b> lists what the branches just did, newest first: sales, shifts closed, new clients and more. Click a row to see the details.',
+      'Items marked <b>pinned</b> stay at the top until someone clicks <b>Mark resolved</b>.',
+      '<b>Latest attachments</b> shows the newest photos, like receipts. <b>Show more</b> loads older ones.',
+    ],
+    'The counts on this page cover the last week.'),
 
   // ----------------------------------------------------------------- Sales
   entry('daily-income', 'Sales', 'Daily Income',
-    'A grid of every day\'s income, branch by branch.',
+    'A grid of every day\'s income, branch by branch. It is the quickest way to see how a day or a month went.',
     [
-      'Pick one or more branches with the chips at the top, or <b>All branches</b>.',
-      'Click a day to open it: totals compared to last week, payments, best sellers, salespeople, hour-by-hour chart, invoices, closed shifts and expenses.',
-      '<b>Email</b> sends that day\'s report. The arrows move to the previous or next day.',
+      'Pick one or more branches with the chips at the top, or <b>All branches</b>. Your choice stays in the address, so you can bookmark it.',
+      'Click a day to open it.',
+    ],
+    'Branches switched off under <b>In reports</b> do not appear here.',
+    [
+      h('Inside a day'),
+      bullets([
+        'Totals compared with the same weekday last week.',
+        '<b>Payments</b>: how much came in by each payment method.',
+        '<b>Best sellers</b> and <b>salespeople</b> for the day.',
+        'An hour-by-hour chart of net income and customers.',
+        'Tabs for <b>Invoices</b> and for <b>Shifts &amp; Expenses</b>. A closed shift can be reprinted on the till that closed it.',
+        '<b>Email</b> sends this day\'s report. The arrows move to the previous or next day.',
+      ]),
     ]),
 
   entry('invoices', 'Sales', 'Invoices',
     'All sales, in two tabs: <b>Retail</b> and <b>Wholesale</b>. Sales made at the tills show here with their branch.',
     [
-      'Search, and filter by branch.',
-      '<b>Add Invoice</b> makes a sale from the office: choose the cashbox, shift, inventory, client and the items.',
-      'Open an invoice to see its items and how it was paid.',
-      'You can <b>cancel</b> a till invoice, or start a <b>return</b> or <b>exchange</b>. Returns and exchanges are sent to the till and show up once the branch processes them.',
+      'Search by number or name, and filter by branch.',
+      'Open an invoice to see its items, discounts, loyalty points and how it was paid.',
+    ],
+    'To return or exchange a sale, see the workflow <b>Return or exchange a sale from the office</b>.',
+    [
+      h('Add a sale from the office'),
+      steps([
+        'Click <b>Add Invoice</b>.',
+        'Choose the <b>cashbox</b>, the <b>shift</b>, the <b>inventory</b> the goods come from and the <b>client</b>. A salesperson and a price list are optional.',
+        'Click <b>Add Line</b> and search by SKU or barcode. Set quantity, price and any discount.',
+        'Add an invoice discount if needed, check the totals, and click <b>Create Invoice</b>.',
+      ]),
+      h('Good to know'),
+      bullets([
+        'A cancelled till invoice is marked <b>Cancelled</b> and no longer counts in reports.',
+        'A return shows its <b>Original Sale</b>, so you can trace it back.',
+      ]),
     ]),
 
   entry('shifts', 'Sales', 'Shifts',
-    'Every cashier shift, open or closed.',
+    'Every cashier shift. A shift starts when a cashier opens the till and ends when they close it and count the cash.',
     [
-      'Filter by status, cashbox or branch.',
-      '<b>Open Shift</b> and <b>Close</b> work for office shifts. Branch shifts are opened and closed on the till.',
-      'A closed branch shift can show a photo of its close-shift receipt, and you can ask the till to reprint it.',
-      'The <b>Visitors</b> tab shows how many people the door counters counted each day.',
+      'Filter by status, cashbox or branch, or search a cashbox name or shift number.',
+      'Branch shifts are opened and closed on the till. The page shows what each one reported.',
+      '<b>Open Shift</b> and <b>Close</b> are for shifts in the office.',
+    ],
+    '',
+    [
+      h('Close-shift receipt'),
+      bullets([
+        'A closed branch shift can have a <b>photo of its receipt</b>. You can rotate or replace it.',
+        'Click the print button to ask the till that closed it to <b>reprint</b> the report.',
+      ]),
+      h('Visitors tab'),
+      bullets(['Shows how many people the door counter counted each day, per branch. It updates live.']),
     ]),
 
   entry('whatsapp', 'Sales', 'WhatsApp & Reviews',
-    'Kashi can send a thank-you message on WhatsApp after a sale. This page shows what was sent and how it went.',
+    'Kashi can send a thank-you message on WhatsApp after a sale. This page shows what was sent, what it cost and how it went.',
     [
-      '<b>Dashboard</b> and <b>Messages</b>: what went out, to whom, and what it cost.',
+      '<b>Dashboard</b>: totals, cost and review results.',
+      '<b>Messages</b>: each message, who got it and its status. Open one to see the chat.',
       '<b>Replies</b>: what customers answered.',
       '<b>Rules</b>: decide who gets which message.',
-      '<b>Health</b>: warns you when a sending number is at risk or paused.',
+      '<b>Health</b>: warns you when a sending number is at risk or paused. A red dot on the tab means look here.',
     ],
-    'The account details and the default message are in <b>Settings &gt; WhatsApp</b>.'),
+    'The account details and the default message are in <b>Settings &gt; WhatsApp</b>. Costs only show when you send through Meta.',
+    [
+      h('Good to know'),
+      bullets([
+        'The top of the page shows whether sending is <b>on</b>.',
+        'If a till fails to send, it is told to retry temporary failures.',
+        'Use the <b>From / To</b> dates and <b>Refresh</b> to look at a period.',
+      ]),
+    ]),
 
   entry('emails', 'Sales', 'Emails',
     'Invoice reports sent by email.',
     [
-      '<b>Send report</b>: pick a day, a date range or a shift, choose CSV or Excel, add the people to send to.',
-      '<b>Schedules</b>: reports sent by themselves at a set time (Beirut time).',
+      '<b>Send report</b>: choose a day, a date range or a shift, choose <b>CSV</b> or <b>Excel</b>, pick the registers, add who to send to and an optional note.',
+      '<b>Schedules</b>: reports sent by themselves at a set time (Beirut time). Use <b>New schedule</b>, <b>Send now</b> or <b>Edit</b>.',
       '<b>History</b>: everything sent, and whether it worked.',
     ],
-    'Email needs its key set once in <b>Settings &gt; Email</b>.'),
+    'Email needs its key set once in <b>Settings &gt; Email</b>. Until then the page says it is not set up.'),
 
   // -------------------------------------------------------------- Analysis
   entry('dashboard', 'Analysis', 'Dashboard',
-    'The big picture for <b>this month</b>, <b>last month</b> or <b>this year</b>, in tabs.',
+    'The big picture for <b>this month</b>, <b>last month</b> or <b>this year</b>, with a branch filter.',
     [
-      '<b>Overview</b>: revenue, expenses, profit, profit margin and financial position.',
-      '<b>Sales</b>: items sold, new clients, invoices, due loans, purchases, targets, average invoice.',
-      '<b>Financials</b>, <b>Demand</b> (slow movers and reorder suggestions), <b>Alerts</b> and <b>Health</b> (stock turnover).',
+      '<b>Overview</b>: revenue, expenses, profit, profit margin and your financial position.',
+      '<b>Sales</b>: items sold, new clients, invoices, due loans, purchases, targets, average invoice and revenue per client.',
+      '<b>Financials</b>: sales with a forecast, by branch and by payment method.',
+      '<b>Demand</b>: slow movers and reordering suggestions.',
+      '<b>Alerts</b> and <b>Health</b>: low and out-of-stock products, overstock, and how fast stock turns over.',
     ],
-    'Profit only counts items that have a cost. Items without a cost make profit look higher.'),
+    'Profit only counts items that have a cost. Items without a cost make profit look higher. The page tells you how much is covered.',
+    [
+      h('How the main numbers work'),
+      bullets([
+        '<b>Profit</b> = revenue minus the cost of goods sold minus expenses.',
+        '<b>Financial position</b> = revenue minus expenses minus purchases. Purchases are office-only, so under a single branch they count as zero.',
+      ]),
+    ]),
 
   entry('targets', 'Analysis', 'Targets',
     'A scoreboard of the sales targets set for each branch.',
@@ -150,11 +496,23 @@ export const guideSections = [
   entry('clients', 'Customers', 'Clients',
     'Your customers, in two tabs: <b>Retail</b> and <b>Wholesale</b>.',
     [
-      '<b>Top Spenders</b> shows your best clients as a pyramid. Sort by most spent, most invoices or most items. Click anyone to open their details.',
-      '<b>All Clients</b> lists the rest. Search by name or phone.',
-      'The branch filter lets you pick <b>several branches</b> at once.',
-      '<b>Add Client</b>, edit, or delete. A client who already has invoices or points is <b>deactivated</b> instead, and you can reactivate them later.',
-      'The cog changes the spend <b>tiers</b>.',
+      '<b>Top Spenders</b> shows your best clients as a pyramid. Sort by <b>most spent</b>, <b>most invoices</b> or <b>most items</b>, and show the top 15, 50 or 100.',
+      '<b>All Clients</b> lists everyone else. Search by name or phone.',
+      'The branch button lets you pick <b>several branches</b>. The numbers then add up across those branches.',
+    ],
+    'The circle colour is the client\'s tier. Change tier names and limits with the cog.',
+    [
+      h('Client details'),
+      bullets([
+        'Click anyone, in the pyramid or in the list, to open a side panel: total spent, invoices, items, phone, type, loyalty points and member since.',
+        '<b>Open full profile</b> shows the whole history.',
+        '<b>Edit</b> changes the name, phone or type. <b>Delete</b> removes the client.',
+      ]),
+      h('Add or delete'),
+      bullets([
+        '<b>Add Client</b> needs a name and a phone of at least 7 digits. It starts on the tab you are on.',
+        'A client who already has invoices, points or a branch link is not erased. They are <b>deactivated</b> instead and tills stop offering them. Open them and click <b>Reactivate</b> to bring them back.',
+      ]),
     ]),
 
   entry('clients-export', 'Customers', 'Exporting clients',
@@ -191,10 +549,17 @@ export const guideSections = [
   entry('attendance', 'People', 'Attendance',
     'When staff clocked in and out.',
     [
+      'Choose a branch, or <b>All</b>. Importing a CSV needs one branch.',
       '<b>Sync from POS</b> pulls punches from the tills. <b>Import CSV</b> is for a branch with no clock-in device.',
       'Four views: <b>Timeline</b>, <b>In / out pairs</b>, <b>Monthly grid</b> and <b>Punches</b>.',
-      'Edit or delete a wrong punch.',
-      '<b>Requests</b>: changes asked for on a till. Approve or reject them.',
+    ],
+    'See the workflow <b>Fix attendance</b>.',
+    [
+      h('Requests'),
+      bullets([
+        'A cashier can ask for a change on the till. It shows under <b>Requests</b>.',
+        '<b>Approve</b> or <b>Reject</b>. It stays in the list until the till has received your answer.',
+      ]),
     ]),
 
   entry('salesperson-performance', 'People', 'Salesperson Performance',
@@ -207,11 +572,20 @@ export const guideSections = [
 
   // ----------------------------------------------------------------- Stock
   entry('alerts', 'Stock', 'Alerts',
-    'Products that need attention.',
+    'Products that need attention. A red number on the menu shows how many.',
     [
-      '<b>Out of stock</b> and <b>Low stock</b>.',
-      'Set a default low-stock limit, or a different limit for one product.',
-      '<b>Mute alerts</b> for a product you do not care about. It moves to <b>Ignored</b>, and you can resume it.',
+      '<b>Out of stock</b>: nothing left.',
+      '<b>Low stock</b>: at or below its limit.',
+      '<b>Ignored</b>: products you muted.',
+    ],
+    '',
+    [
+      h('Set limits'),
+      bullets([
+        'The <b>default low-stock limit</b> applies to every product without its own.',
+        'Click a product to give it its own <b>threshold</b>, or <b>Reset to default</b>.',
+        '<b>Mute alerts</b> hides a product from the lists. <b>Resume alerts</b> brings it back.',
+      ]),
     ]),
 
   entry('stock-health', 'Stock', 'Stock Health',
@@ -224,9 +598,17 @@ export const guideSections = [
   entry('inventory', 'Stock', 'Inventory',
     'The places that hold stock, like shops and warehouses.',
     [
-      '<b>Add Inventory</b> with a name, type and code.',
-      'Open one to see each product\'s quantity on hand and average cost.',
-      '<b>Adjust</b> sets a counted quantity. <b>Start Count</b> opens a full stock count.',
+      '<b>Add Inventory</b> with a name, a type and a code. A location (latitude and longitude) is optional.',
+      'Click one to see each item\'s <b>barcode</b>, quantity <b>on hand</b> and <b>average cost</b>. Search by SKU or barcode.',
+      '<b>Start Count</b> opens a stock count for that place.',
+    ],
+    '',
+    [
+      h('Quick adjust'),
+      steps([
+        'Find the item and type the real quantity in <b>set count</b>.',
+        'Click <b>Set</b> to update the quantity.',
+      ]),
     ]),
 
   entry('inventory-analysis', 'Stock', 'Inventory Analysis',
@@ -258,10 +640,21 @@ export const guideSections = [
 
   entry('transfers', 'Stock', 'Transfers',
     'Moving stock from one inventory to another.',
+    [],
+    'Steps in the workflow <b>Move stock between places</b>.',
     [
-      'Steps: <b>Draft</b>, <b>Requested</b>, <b>Dispatched</b>, <b>Received</b>.',
-      '<b>Approve</b> a request from a branch, <b>Dispatch</b> when it leaves, <b>Receive</b> when it arrives.',
-      'Cancel or reject a transfer that should not happen.',
+      h('Statuses'),
+      bullets([
+        '<b>Draft</b>: being prepared. You can still edit the items.',
+        '<b>Requested</b>: a branch asked for it. <b>Approve</b> or <b>Reject</b>.',
+        '<b>Dispatched</b>: left the source. Stock is in transit.',
+        '<b>Received</b>: arrived. Stock is in the destination.',
+      ]),
+      h('Good to know'),
+      bullets([
+        'A transfer can have a photo attached.',
+        'Use <b>Cancel Transfer</b> for one that should not happen.',
+      ]),
     ]),
 
   entry('stock-counts', 'Stock', 'Stock Counts',
@@ -273,7 +666,12 @@ export const guideSections = [
     ]),
 
   entry('stock-movements', 'Stock', 'Stock Movements',
-    'A read-only history of every stock change: the reason, the document, the quantity before and after, and who did it.'),
+    'A read-only history of every stock change. Use it to find out why a quantity is what it is.',
+    [
+      'Filter by inventory and by reason.',
+      'Each row shows the <b>reason</b>, the <b>document</b> behind it (a sale, a purchase, a transfer or a count), the quantity <b>before</b> and <b>after</b>, and who did it.',
+      'Click a row for more details.',
+    ]),
 
   entry('barcodes', 'Stock', 'Barcodes',
     'Print barcode labels.',
@@ -290,21 +688,45 @@ export const guideSections = [
 
   // ---------------------------------------------------------------- Branches
   entry('branches', 'Branches & tills', 'Branches',
-    'Your shops and their tills.',
+    'Your shops, their tills, their staff and their targets.',
     [
-      '<b>Add Branch</b> with a name and a short code.',
-      '<b>Add Register</b> to give a branch another till (for example CT2).',
-      '<b>Rotate Key</b> makes a new key to connect a till. Online tills are marked.',
+      '<b>Add Branch</b> with a name and a short code. Its API key is shown once.',
+      'Each branch row opens <b>Registers</b>, <b>Staff</b> and <b>Targets</b>.',
       'The <b>In reports</b> switch keeps a branch syncing but removes it from every report.',
-      'Add sales <b>targets</b>, one-off or repeating every few months.',
+    ],
+    '',
+    [
+      h('Registers (tills)'),
+      bullets([
+        'Each till has a <b>code</b>, a name, a status (<b>Online</b> or when it was last seen), and two switches: <b>Active</b> and <b>In reports</b>.',
+        '<b>Rotate Key</b> makes a new key for a till. See <b>Connect a new till</b>.',
+      ]),
+      h('Staff'),
+      bullets([
+        'The people who work at the branch: name, <b>attendance ID</b> (their number on the clock-in device), a colour, and <b>Sells</b>.',
+        'Turn on <b>Sells</b> for people who should appear as a salesperson at checkout.',
+      ]),
+      h('Targets'),
+      bullets(['One-off or repeating sales goals. See <b>Set a sales target</b>.']),
     ]),
 
   entry('branch-settings', 'Branches & tills', 'Branch Settings',
-    'Change how the till of one branch behaves, from the office.',
+    'Change how one branch\'s till behaves, without going there.',
     [
-      'Sections: General, Behaviour, Cash &amp; shifts, Page access, Printing, Attendance, Users, Payments, Quick access and Till display.',
-      '<b>Save</b> sends only what you changed.',
-      '<b>Sync now</b> asks the till to send its latest data.',
+      'Choose the branch, then a section: <b>General</b>, <b>Behaviour</b>, <b>Cash &amp; shifts</b>, <b>Page access</b>, <b>Printing</b>, <b>Attendance</b>, <b>Users</b>, <b>Payments</b>, <b>Quick access</b> and <b>Till display</b>.',
+      '<b>Save</b> sends only what you changed. Everything else stays as the till has it.',
+      '<b>Sync now</b> asks the till to send its latest data. <b>Commands</b> opens the Commands page.',
+    ],
+    'To change many branches the same way, use <b>Default Settings</b> instead.',
+    [
+      h('Examples of what you can set'),
+      bullets([
+        'The branch name, phone and website printed on receipts.',
+        'The tax rate, how totals are rounded, and the exchange rate.',
+        'Whether cashiers can give custom discounts or set custom prices, and whether every invoice needs a client.',
+        'Whether closing a shift asks for a photo of the receipt.',
+        'What each till user can open.',
+      ]),
     ]),
 
   entry('default-branch-settings', 'Branches & tills', 'Default Settings',
@@ -317,9 +739,19 @@ export const guideSections = [
   entry('commands', 'Branches & tills', 'Commands',
     'Send an instruction to a till and follow it.',
     [
-      'Examples: <b>Sync now</b>, <b>Print close shift</b>, <b>Reprint invoice</b>, <b>Return invoice</b>, <b>Swap shift balance</b>, <b>Set PIN</b>, <b>Update settings</b>.',
-      'Each command is <b>Queued</b>, <b>Done</b>, <b>Failed</b> or <b>Cancelled</b>. Retry a failed one, or cancel a queued one.',
-      'A command runs when the till is online.',
+      '<b>Send command</b>, then choose the branch, the till and the type.',
+      'Types: <b>Sync now</b>, <b>Print close shift</b>, <b>Reprint invoice</b>, <b>Return invoice</b>, <b>Swap shift balance</b>, <b>Set PIN</b>, <b>Update settings</b> and <b>Transfer decision</b>.',
+      'Cards at the top show how many are <b>Queued</b>, how many <b>Failed</b> in the last 24 hours, and how many tills are online.',
+    ],
+    'A command runs when the till is online. If it is not, it waits in the queue.',
+    [
+      h('Statuses'),
+      bullets([
+        '<b>Queued</b>: waiting for the till. You can <b>Cancel</b> it.',
+        '<b>Done</b>: the till did it.',
+        '<b>Failed</b>: it did not work. Check the message, then <b>Retry</b>.',
+        '<b>Cancelled</b>: you stopped it.',
+      ]),
     ]),
 
   entry('conflicts', 'Branches & tills', 'Conflicts',
@@ -330,36 +762,77 @@ export const guideSections = [
     ]),
 
   entry('app-updates', 'Branches & tills', 'App Updates',
-    'Choose which version of the till app each till runs.',
+    'Choose which version of the till app each till runs. You publish a build from the kashi-pos project, then decide who gets it here.',
     [
-      'Tills download updates by themselves and install when it is safe, or when the cashier taps <b>Install now</b>.',
-      '<b>Set version</b> or <b>Deploy</b> a release to chosen tills. <b>Roll back</b> goes to the previous release.',
-      'The status shows which tills are up to date or still updating.',
+      'Tills download an update in the background and install it when it is safe: when the cashier taps <b>Install now</b>, or by itself while no shift is open.',
+      'If a new version does not start, the till goes back to the old one by itself.',
+      'The top cards show the <b>latest release</b>, how many tills are <b>on their target</b>, and how many are updating.',
+    ],
+    '',
+    [
+      h('Common jobs'),
+      bullets([
+        '<b>Deploy</b> a release to chosen tills.',
+        '<b>Set version</b> on one till. Choosing an older release is how you <b>roll back</b>.',
+        'Tick <b>Install now, even during a shift</b> only when it cannot wait.',
+        '<b>Edit notes</b> for what cashiers see after an update. You cannot delete a release tills are still set to.',
+      ]),
     ]),
 
   // ---------------------------------------------------- Pricing & products
   entry('price-lists', 'Pricing & products', 'Price Lists & Discount Lists',
-    'A list gives certain products a different price or discount.',
+    'A list gives certain products a different price, or a discount in percent. Price Lists and Discount Lists work the same way.',
     [
-      '<b>Add</b> a list, then add products with their price or discount.',
-      'Set <b>Valid from / to</b>, and switch the list <b>Active</b> or not.',
-      'See which <b>branches</b> use a list. One list can be the <b>Default</b>.',
+      'Pick a list on the left, or <b>Add</b> a new one.',
+      '<b>Default</b> marks the list used when nothing else applies.',
+      'Set <b>Valid from / to</b> dates and switch the list <b>Active</b> or not.',
+    ],
+    'A branch only uses a list if it is assigned to it.',
+    [
+      h('Fill a list'),
+      steps([
+        'Open the list.',
+        'Search for a product variant and click <b>Add</b>.',
+        'Enter its price (or discount %).',
+        'To remove products, select them and delete. Delete the whole list to remove it and its entries.',
+      ]),
+      h('Branches'),
+      bullets(['Click <b>Branches</b> on a list to see and choose which branches use it.']),
     ]),
 
   entry('coupons', 'Pricing & products', 'Coupons',
-    'Codes that give a customer a value. Three tabs: <b>Coupons</b>, <b>Types</b>, <b>Lists</b>.',
+    'Codes that give a customer a value. Three tabs: <b>Coupons</b>, <b>Types</b> and <b>Lists</b>.',
     [
-      '<b>Types</b> define the value and currency, and whether it applies automatically or needs the code typed.',
-      '<b>Add Coupon</b>: a code, a type, optionally a client and an end date.',
-      '<b>Generate List</b> makes many codes at once. <b>Deactivate</b> stops a coupon.',
+      '<b>Types</b> say what a coupon is worth: a value and a currency.',
+      'A type can <b>apply automatically</b> at checkout, or need its <b>code typed</b>. It can also be <b>reference only</b>, with no money taken off.',
+      'A <b>coupon</b> has a code, a type, a category, optionally one client, a status and an end date.',
+    ],
+    'See the workflow <b>Reward customers with tiers and coupons</b>.',
+    [
+      h('Bulk'),
+      bullets([
+        '<b>Generate List</b> makes many codes at once and lets you copy them.',
+        'Select several coupons to delete them together.',
+      ]),
     ]),
 
   entry('products', 'Pricing & products', 'Products',
-    'Your product catalog.',
+    'Your product catalog. Every product has one or more <b>variants</b>, one for each color and size.',
     [
-      'Search and filter by status, attributes, dates or whether it has variants.',
-      '<b>Add Product</b>, or <b>Import CSV</b> with the columns code, name, price and an optional description.',
-      'If any row in the CSV is wrong, nothing is imported. Codes that already exist are skipped.',
+      'Search by name or code.',
+      '<b>Filters</b>: status (active or not), attributes, created between two dates, and whether it has variants.',
+      '<b>Add Product</b> opens the form. <b>Import CSV</b> adds many at once.',
+    ],
+    'New products and price changes reach the tills by themselves.',
+    [
+      h('The Add Product form'),
+      bullets([
+        '<b>Code</b>, <b>name</b> and an optional description.',
+        '<b>Colors</b> and <b>sizes</b>: pick several of each. You get one variant for each combination.',
+        '<b>Barcode</b> (optional) and <b>Price</b>. Choose which price list the price goes into.',
+        '<b>Auto-fill</b> fills attributes and price from the code and name, using your Auto-fill Rules.',
+        '<b>Save &amp; Add Another</b> keeps the form open for the next product.',
+      ]),
     ]),
 
   entry('colors-sizes', 'Pricing & products', 'Colors & Sizes',
@@ -380,27 +853,45 @@ export const guideSections = [
   entry('expenses', 'Accounting', 'Expenses',
     'Money spent. Three tabs: <b>Central</b>, <b>Branch</b> and <b>Recurring</b>.',
     [
-      'Add an expense with a description, category and amount.',
-      'Branch expenses are the ones tills can see. Central ones are only in the office.',
-      '<b>Recurring</b> repeats every few days, weeks or months, starting at the first due date.',
-      'Pick a category on the left to narrow the list.',
+      '<b>Central</b> expenses are only in the office. <b>Branch</b> expenses are the ones tills can see and add.',
+      '<b>Recurring</b> repeats by itself. Choose how often (days, weeks or months) and the first due date.',
+      'The list on the left is the <b>categories</b>. Click one to narrow the list. Add, rename or delete categories there.',
+    ],
+    'Central and branch expenses have their own categories.',
+    [
+      h('Add an expense'),
+      steps([
+        'Choose the tab, then click <b>Add Expense</b> (or <b>Add Branch Expense</b>).',
+        'Enter the description, category and amount. For a branch expense, choose the branch and the date.',
+        'Save. Select several rows to delete them together.',
+      ]),
     ]),
 
   entry('loans', 'Accounting', 'Loans',
     'Money borrowed, in <b>Central</b> and <b>Branch</b> tabs.',
     [
-      '<b>Add Loan</b> with a lender, amount and category.',
-      'Open a loan to add payments. It shows what is still <b>remaining</b>.',
-      'Filter by status or branch.',
+      '<b>Add Loan</b> with a lender (like Owner or External), amount, currency and category.',
+      'Open a loan to see its <b>Payments</b> and what is still <b>remaining</b>.',
+      'Filter by status or branch, or search.',
+    ],
+    'Kashi will not accept a payment bigger than what is left when it is in the loan\'s own currency.',
+    [
+      h('Add a payment'),
+      steps([
+        'Expand the loan.',
+        'Enter the amount, the date and an optional note.',
+        'Click <b>Add Payment</b>. The remaining amount updates.',
+      ]),
     ]),
 
   entry('currencies', 'Accounting', 'Currencies & Payments',
-    'The money you accept and how customers pay.',
+    'The money you accept and the ways customers pay. Two tabs.',
     [
-      '<b>Currencies</b>: the rate (how many units per 1 USD) and the cash rounding step, for example to the nearest 5,000 LL.',
-      '<b>Payment Methods</b>: cash, card, transfer and so on, with an order and a color.',
-      'Methods marked <b>System</b> cannot be edited.',
-    ]),
+      '<b>Currencies</b>: a code (like USD), name and symbol, the <b>rate</b> as units per 1 USD, and a <b>cash rounding unit</b>. For example, 90,000 for LL means 90,000 LL to the dollar.',
+      'The <b>cash rounding unit</b> rounds cash in that currency to the nearest multiple. 1 means no rounding.',
+      '<b>Payment Methods</b>: cash, card, transfer and so on, each with an order and an optional color.',
+    ],
+    'Methods marked <b>System</b> (like On Account and On Coupon) are built into the till and cannot be edited. The default currency cannot be deleted.'),
 
   // ----------------------------------------------------------------- System
   entry('calendar', 'System', 'Calendar',
@@ -429,12 +920,23 @@ export const guideSections = [
     'Technical messages for whoever maintains the system. You normally do not need this page.'),
 
   entry('settings', 'System', 'Settings',
-    'App-wide options, in tabs.',
+    'App-wide options, in tabs. Save and Discard light up only when you change something.',
     [
-      '<b>General</b>, <b>Financials</b>, <b>Barcode labels</b> and <b>Products</b>.',
-      '<b>Users</b> and <b>Roles</b> (admins only): add people, change their role or password, and choose what each role can see and edit.',
-      '<b>WhatsApp</b>, <b>Reviews</b> and <b>Email</b>: the accounts and messages Kashi sends with.',
-      'Save and Discard light up only when you change something.',
+      '<b>General</b>: how long messages show, how many days ahead the calendar cards look, and which months are the high season.',
+      '<b>Financials</b> and <b>Products</b>: money options, and turning on smart auto-fill.',
+      '<b>Barcode labels</b>: the default label width and height.',
+      '<b>Users</b> and <b>Roles</b> (admins only). See <b>Add a user and limit what they can see</b>.',
+    ],
+    '',
+    [
+      h('The accounts Kashi sends with'),
+      bullets([
+        '<b>WhatsApp</b>: the phone number ID, access token and message template, and whether to send a thank-you after each sale.',
+        '<b>Reviews</b>: the review request settings.',
+        '<b>Email</b>: the API key, sender and reply-to, and default recipients.',
+      ]),
+      h('Your own look'),
+      bullets(['Your avatar color is saved on this device, and is always yours to change.']),
     ]),
 ]
 

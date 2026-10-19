@@ -34,7 +34,13 @@
             <div class="text-overline text-medium-emphasis">{{ current.group }}</div>
             <h1 class="text-h5 mb-3">{{ current.title }}</h1>
             <template v-for="(block, i) in current.blocks" :key="i">
-              <p v-if="block.kind === 'p'" class="text-body-1 mb-3" v-html="block.text" />
+              <h2 v-if="block.kind === 'heading'" class="text-subtitle-1 font-weight-bold mt-5 mb-2">
+                {{ block.text }}
+              </h2>
+              <p v-else-if="block.kind === 'p'" class="text-body-1 mb-3" v-html="block.text" />
+              <ol v-else-if="block.kind === 'steps'" class="guide-steps text-body-1 mb-3 ps-5">
+                <li v-for="(item, j) in block.items" :key="j" class="mb-2" v-html="item" />
+              </ol>
               <ul v-else-if="block.kind === 'list'" class="text-body-1 mb-3 ps-5">
                 <li v-for="(item, j) in block.items" :key="j" class="mb-2" v-html="item" />
               </ul>
@@ -154,6 +160,11 @@
 
 .guide-page {
   max-width: 720px;
+}
+
+.guide-steps li::marker {
+  color: rgb(var(--v-theme-primary));
+  font-weight: 700;
 }
 
 @media (max-width: 960px) {
