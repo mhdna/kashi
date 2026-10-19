@@ -682,6 +682,13 @@ export const guideSections = [
       'Label size is set in the dialog (72 points = 1 inch).',
     ]),
 
+  entry('receipt-designer', 'Branches & tills', 'Receipt Designer',
+    'Choose how the printed invoice looks.',
+    [
+      'Pick a <b>theme</b> and one of its <b>layouts</b>; the picture is a sample receipt.',
+      '<b>Apply to</b> one branch or all of them, then <b>Save</b>. Each register changes within a few seconds if online.',
+    ]),
+
   entry('barcode-designer', 'Stock', 'Barcode Designer',
     'Choose how the barcode labels look.',
     [
@@ -1021,6 +1028,7 @@ export const guideIcons = {
   'stock-movements': 'mdi-swap-vertical',
   'barcodes': 'mdi-barcode',
   'barcode-designer': 'mdi-palette',
+  'receipt-designer': 'mdi-receipt-text',
   'assets': 'mdi-hammer-wrench',
   'treemaps': 'mdi-view-gallery',
   'branches': 'mdi-store-outline',

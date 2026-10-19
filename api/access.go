@@ -77,6 +77,7 @@ var accessSections = []accessSection{
 		{"branches", "Branches"},
 		{"branch-settings", "Branch Settings"},
 		{"default-branch-settings", "Default Settings"},
+		{"receipt-designer", "Receipt Designer"},
 		{"branch-commands", "Commands"},
 		{"branch-conflicts", "Conflicts"},
 	}},
