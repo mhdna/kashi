@@ -516,6 +516,21 @@ func (mr *MockStoreMockRecorder) BranchVisitorEventRefsPresent(arg0, arg1 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BranchVisitorEventRefsPresent", reflect.TypeOf((*MockStore)(nil).BranchVisitorEventRefsPresent), arg0, arg1)
 }
 
+// BulkSetDiscountListItems mocks base method.
+func (m *MockStore) BulkSetDiscountListItems(arg0 context.Context, arg1 db.BulkSetDiscountListItemsParams) ([]int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BulkSetDiscountListItems", arg0, arg1)
+	ret0, _ := ret[0].([]int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BulkSetDiscountListItems indicates an expected call of BulkSetDiscountListItems.
+func (mr *MockStoreMockRecorder) BulkSetDiscountListItems(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BulkSetDiscountListItems", reflect.TypeOf((*MockStore)(nil).BulkSetDiscountListItems), arg0, arg1)
+}
+
 // BumpAdminActivity mocks base method.
 func (m *MockStore) BumpAdminActivity(arg0 context.Context, arg1 db.BumpAdminActivityParams) (int64, error) {
 	m.ctrl.T.Helper()
@@ -9527,6 +9542,21 @@ func (m *MockStore) ListUnknownItems(arg0 context.Context, arg1 db.ListUnknownIt
 func (mr *MockStoreMockRecorder) ListUnknownItems(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUnknownItems", reflect.TypeOf((*MockStore)(nil).ListUnknownItems), arg0, arg1)
+}
+
+// ListUnmatchedDiscountEntries mocks base method.
+func (m *MockStore) ListUnmatchedDiscountEntries(arg0 context.Context, arg1 []string) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListUnmatchedDiscountEntries", arg0, arg1)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListUnmatchedDiscountEntries indicates an expected call of ListUnmatchedDiscountEntries.
+func (mr *MockStoreMockRecorder) ListUnmatchedDiscountEntries(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUnmatchedDiscountEntries", reflect.TypeOf((*MockStore)(nil).ListUnmatchedDiscountEntries), arg0, arg1)
 }
 
 // ListUnresolvedUrgentHomeActivities mocks base method.

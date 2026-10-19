@@ -152,3 +152,25 @@ FROM discount_list_items dli
 JOIN product_variants pv ON pv.id = dli.product_variant_id
 WHERE dli.discount_list_id = $1
 ORDER BY pv.uid;
+
+-- name: BulkSetDiscountListItems :many
+-- Puts every variant whose barcode, or whose product's code, is in entries on
+-- the list at one discount (adding it or changing it). A code names all of its
+-- product's variants. Returns the variant ids it set.
+WITH matched AS (
+  SELECT DISTINCT pv.id AS variant_id
+  FROM unnest(sqlc.arg(entries)::text[]) AS e(entry)
+  JOIN product_variants pv ON pv.barcode = e.entry
+    OR pv.product_id IN (SELECT p.id FROM products p WHERE lower(p.code) = lower(e.entry))
+)
+INSERT INTO discount_list_items (discount_list_id, product_variant_id, discount)
+SELECT sqlc.arg(discount_list_id), variant_id, sqlc.arg(discount) FROM matched
+ON CONFLICT (discount_list_id, product_variant_id) DO UPDATE SET discount = EXCLUDED.discount
+RETURNING product_variant_id;
+
+-- name: ListUnmatchedDiscountEntries :many
+-- The entries that name no variant barcode and no product code.
+SELECT e.entry::text AS entry
+FROM unnest(sqlc.arg(entries)::text[]) AS e(entry)
+WHERE NOT EXISTS (SELECT 1 FROM product_variants pv WHERE pv.barcode = e.entry)
+  AND NOT EXISTS (SELECT 1 FROM products p WHERE lower(p.code) = lower(e.entry));

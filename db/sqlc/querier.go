@@ -77,6 +77,10 @@ type Querier interface {
 	// and its nav dot.
 	BranchSyncConflictSummary(ctx context.Context) ([]BranchSyncConflictSummaryRow, error)
 	BranchVisitorEventRefsPresent(ctx context.Context, arg BranchVisitorEventRefsPresentParams) ([]string, error)
+	// Puts every variant whose barcode, or whose product's code, is in entries on
+	// the list at one discount (adding it or changing it). A code names all of its
+	// product's variants. Returns the variant ids it set.
+	BulkSetDiscountListItems(ctx context.Context, arg BulkSetDiscountListItemsParams) ([]int64, error)
 	// Folds a repeat into the feed's newest entry when it's the same change by
 	// the same person, made less than an hour after it: the count goes up and
 	// the time moves to now. No row back (sql.ErrNoRows) means it wasn't a
@@ -1355,6 +1359,8 @@ type Querier interface {
 	ListUnknownItemSlotsForSession(ctx context.Context, sessionID int64) ([]UnknownItemSlot, error)
 	// Pictured units of sold invoices, pending or resolved, newest first.
 	ListUnknownItems(ctx context.Context, arg ListUnknownItemsParams) ([]ListUnknownItemsRow, error)
+	// The entries that name no variant barcode and no product code.
+	ListUnmatchedDiscountEntries(ctx context.Context, entries []string) ([]string, error)
 	// The urgent Recent activity rows nobody has resolved yet, pinned above the
 	// feed: a shift closed short (negative USD variance) -- the rows the feed
 	// tints red. Same columns as HomeActivityFeed, so the feed draws them with

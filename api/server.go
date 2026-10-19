@@ -292,6 +292,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/discount_lists", server.updateDiscountList)
 	authRoutes.DELETE("/discount_lists/:id", server.deleteDiscountList)
 	authRoutes.POST("/discount_lists/items", server.createDiscountListItem)
+	authRoutes.POST("/discount_lists/items/bulk", server.bulkSetDiscountListItems)
 	authRoutes.GET("/discount_lists/:id/items", server.listDiscountListItems)
 	authRoutes.DELETE("/discount_lists/:id/items/:product_variant_id", server.deleteDiscountListItem)
 	authRoutes.POST("/discount_lists/:id/items/bulk_delete", server.bulkDeleteDiscountListItems)
