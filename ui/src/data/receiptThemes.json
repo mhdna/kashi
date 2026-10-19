@@ -1,0 +1,138 @@
+{
+  "default_layout": "A",
+  "default_theme": "classic",
+  "themes": [
+    {
+      "id": "classic",
+      "name": "Classic",
+      "description": "The original look: dotted dividers, boxed total, your own font choices.",
+      "best_for": "Any shop",
+      "layouts": [
+        {
+          "id": "A",
+          "name": "Columns",
+          "description": "Item, quantity, discount and total on one line each.",
+          "preview": "classic-A.png"
+        },
+        {
+          "id": "B",
+          "name": "Price columns",
+          "description": "Item, quantity, unit price and total; discounts on their own line.",
+          "preview": "classic-B.png"
+        },
+        {
+          "id": "C",
+          "name": "Detailed",
+          "description": "Name and total, then code and quantity lines. The longest.",
+          "preview": "classic-C.png"
+        }
+      ]
+    },
+    {
+      "id": "supermarket",
+      "name": "Supermarket",
+      "description": "Dense monospaced register tape in capitals, with item count and savings.",
+      "best_for": "Supermarkets, groceries, pharmacies: many items per sale",
+      "layouts": [
+        {
+          "id": "A",
+          "name": "Register",
+          "description": "Name and amount; quantity and savings only when they matter.",
+          "preview": "supermarket-A.png"
+        },
+        {
+          "id": "B",
+          "name": "Quantity first",
+          "description": "A quantity column on the left, like a till tape.",
+          "preview": "supermarket-B.png"
+        },
+        {
+          "id": "C",
+          "name": "With codes",
+          "description": "Each item followed by its code and unit price.",
+          "preview": "supermarket-C.png"
+        }
+      ]
+    },
+    {
+      "id": "boutique",
+      "name": "Boutique",
+      "description": "Elegant serif with size and colour shown, and room to breathe.",
+      "best_for": "Clothing, shoes, jewellery, gifts",
+      "layouts": [
+        {
+          "id": "A",
+          "name": "Centered",
+          "description": "Each item centered with its size, colour and price beneath.",
+          "preview": "boutique-A.png"
+        },
+        {
+          "id": "B",
+          "name": "Ledger",
+          "description": "Name and total on the left and right, details beneath.",
+          "preview": "boutique-B.png"
+        }
+      ]
+    },
+    {
+      "id": "modern",
+      "name": "Modern",
+      "description": "Clean geometric sans with a solid total bar.",
+      "best_for": "Cafés, electronics, cosmetics, any contemporary shop",
+      "layouts": [
+        {
+          "id": "A",
+          "name": "Clean",
+          "description": "Name and total, quantity and savings on a quiet second line.",
+          "preview": "modern-A.png"
+        },
+        {
+          "id": "B",
+          "name": "Table",
+          "description": "A table with a dark header bar.",
+          "preview": "modern-B.png"
+        }
+      ]
+    },
+    {
+      "id": "bistro",
+      "name": "Bistro",
+      "description": "Menu style with dot leaders and a double-ruled total.",
+      "best_for": "Restaurants, bakeries, delis, florists",
+      "layouts": [
+        {
+          "id": "A",
+          "name": "Menu",
+          "description": "Name, dot leader, price; quantity beneath when more than one.",
+          "preview": "bistro-A.png"
+        },
+        {
+          "id": "B",
+          "name": "Quantity first",
+          "description": "2 x Name ...... price.",
+          "preview": "bistro-B.png"
+        }
+      ]
+    },
+    {
+      "id": "typewriter",
+      "name": "Typewriter",
+      "description": "Courier tape in capitals with dashed dividers.",
+      "best_for": "Bookshops, hardware, vintage and craft shops",
+      "layouts": [
+        {
+          "id": "A",
+          "name": "Tape",
+          "description": "Fixed columns: quantity, item, price, total.",
+          "preview": "typewriter-A.png"
+        },
+        {
+          "id": "B",
+          "name": "Itemized",
+          "description": "Item, then quantity at price, then any discount.",
+          "preview": "typewriter-B.png"
+        }
+      ]
+    }
+  ]
+}

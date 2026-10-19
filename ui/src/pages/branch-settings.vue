@@ -663,6 +663,19 @@
                   </div>
 
                   <div v-show="sectionTab === 'printing'">
+                    <section class="bs-section bs-section--wide">
+                      <div class="bs-section-title">Receipt look</div>
+                      <ReceiptLookPicker
+                        v-model:layout="settingsForm.receipt_layout"
+                        v-model:theme="settingsForm.receipt_theme"
+                        :saved-theme="loadedForm?.receipt_theme ?? ''"
+                      />
+                      <div class="text-caption text-medium-emphasis mt-2">
+                        The theme and layout of the printed invoice. Title and body fonts below apply to the
+                        Classic theme; the other themes bring their own. Previews show sample items.
+                      </div>
+                    </section>
+
                     <section class="bs-section">
                       <div class="bs-section-title">Receipt</div>
                       <div class="field-grid">
@@ -1373,6 +1386,7 @@
   import BranchQuickAccess from '@/components/BranchQuickAccess.vue'
   import CurrencySelect from '@/components/CurrencySelect.vue'
   import PageSidebar from '@/components/PageSidebar.vue'
+  import ReceiptLookPicker from '@/components/ReceiptLookPicker.vue'
   import { useBranchCommands } from '@/composables/useBranchCommands'
   import { useBranches } from '@/composables/useBranches'
   import { useBranchPaymentMethods } from '@/composables/useBranchPaymentMethods'
@@ -1601,6 +1615,8 @@
       // treat only an explicit false as "off".
       search_button_enabled: d.search_button_enabled !== false,
       printer_size: d.printer_size ?? '',
+      receipt_theme: d.receipt_theme || 'classic',
+      receipt_layout: d.receipt_layout || 'A',
       receipt_width: d.receipt_width ?? 0,
       receipt_height: d.receipt_height ?? 0,
       receipt_font: d.receipt_font ?? '',
@@ -1948,6 +1964,8 @@
     price_edit_codes: 'Codes allowed for price edits',
     unknown_product_barcode: 'Unknown item product',
     product_search_hidden_fields: 'Product search hidden columns',
+    receipt_theme: 'Receipt theme',
+    receipt_layout: 'Receipt layout',
     sounds_enabled: 'Sounds',
     attendance_manager_approval_enabled: 'Manager approval on till',
     custom_item_discounts_enabled: 'Custom discounts',
@@ -2145,6 +2163,9 @@
 .bs-section {
   max-width: 720px;
   margin-bottom: 24px;
+}
+.bs-section--wide {
+  max-width: 880px;
 }
 .bs-section-title {
   font-size: 0.8rem;
