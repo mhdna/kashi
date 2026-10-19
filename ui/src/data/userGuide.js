@@ -161,7 +161,7 @@ export const guideSections = [
     'On the Clients page, <b>Export CSV</b> downloads the clients of the tab you are on.',
     [
       'Tick the <b>fields</b> you want as columns.',
-      'A client belongs to a branch if they <b>bought something there</b>. Each branch you pick gets its own file. Several branches come as one zip.',
+      'A client belongs to a branch if they <b>bought something there</b>, so someone who shopped at two branches is in both files. Each client also has a <b>home branch</b>: the first one they bought from (or the one they were imported with). They are in that branch\'s file even if they have no purchase there yet. Each branch you pick gets its own file. Several branches come as one zip.',
       'No branch picked: one file with every client.',
       '<b>Came from / until</b> keeps only people who bought in that period. Total spent and Invoices then count only that period.',
       '<b>No duplicates</b>: anyone with the same phone in more than one file is removed from all of them. Inside one file, only one row per phone is kept.',
