@@ -28,6 +28,7 @@ export const useSettingsStore = defineStore('settings', {
     hiddenBuiltinEvents: [],
     productAutofillEnabled: true,
     uploadPagesFollowSystem: false,
+    unknownImagesAutoDelete: false,
     // Rules for the New Product dialog's auto-fill (utils/productAutofill.js).
     // Saved on their own from the Auto-fill Rules page, not through persist().
     productAutofillRules: [],
@@ -53,6 +54,7 @@ export const useSettingsStore = defineStore('settings', {
         this.hiddenBuiltinEvents = settings.hidden_builtin_events ?? []
         this.productAutofillEnabled = settings.product_autofill_enabled ?? true
         this.uploadPagesFollowSystem = settings.upload_pages_follow_system ?? false
+        this.unknownImagesAutoDelete = settings.unknown_images_auto_delete ?? false
         this.productAutofillRules = settings.product_autofill_rules ?? []
         this.productAutofillCodeLayout = settings.product_autofill_code_layout ?? ''
       }
@@ -72,6 +74,7 @@ export const useSettingsStore = defineStore('settings', {
         hidden_builtin_events: this.hiddenBuiltinEvents,
         product_autofill_enabled: this.productAutofillEnabled,
         upload_pages_follow_system: this.uploadPagesFollowSystem,
+        unknown_images_auto_delete: this.unknownImagesAutoDelete,
       })
     },
 

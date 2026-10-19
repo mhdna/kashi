@@ -27,6 +27,17 @@ export function useUnknownItems () {
     return { images: data?.images ?? [], total: data?.total ?? 0 }
   }
 
+  // Pictures that still matter (a unit waiting to be matched) are kept; the
+  // answer says how many went and how many stayed.
+  async function deleteUnknownItemImages (ids) {
+    const data = await requestJSON(`${API_BASE}/unknown_items/images/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    })
+    return { deleted: data?.deleted ?? 0, kept: data?.kept ?? 0 }
+  }
+
   async function fetchWaiting () {
     const data = await requestJSON(`${API_BASE}/unknown_items/waiting`)
     return data?.items ?? []
@@ -63,5 +74,5 @@ export function useUnknownItems () {
     return URL.createObjectURL(await res.blob())
   }
 
-  return { fetchUnknownItems, fetchUnknownItemImages, fetchWaiting, waiveUnknownItems, searchVariants, resolveUnknownItems, fetchImageObjectUrl }
+  return { fetchUnknownItems, fetchUnknownItemImages, deleteUnknownItemImages, fetchWaiting, waiveUnknownItems, searchVariants, resolveUnknownItems, fetchImageObjectUrl }
 }

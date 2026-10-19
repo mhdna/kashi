@@ -139,6 +139,22 @@
               inset
               label="Follow the phone's dark mode"
             />
+
+            <h3 class="text-subtitle-1 mt-8 mb-1">Unknown item pictures</h3>
+            <p class="text-body-2 text-medium-emphasis mb-2">
+              Delete old pictures automatically, once a day: a picture 30 days after all its items were
+              matched to a product, and the pictures of a checkout that never became a sale 2 days after
+              its link expired. A picture still waiting to be matched is never deleted. Off by default;
+              you can always delete pictures by hand under Attachments.
+            </p>
+            <v-switch
+              v-model="draft.unknownImagesAutoDelete"
+              color="primary"
+              density="compact"
+              hide-details
+              inset
+              label="Delete old unknown item pictures automatically"
+            />
           </section>
 
           <!-- ---------------------------------------------------- FINANCIALS -->
@@ -921,6 +937,7 @@
     barcodeLabelHeight: settingsStore.barcodeLabelHeight,
     productAutofillEnabled: settingsStore.productAutofillEnabled,
     uploadPagesFollowSystem: settingsStore.uploadPagesFollowSystem,
+    unknownImagesAutoDelete: settingsStore.unknownImagesAutoDelete,
   })
 
   function seedDraft () {
@@ -933,6 +950,7 @@
     draft.barcodeLabelHeight = settingsStore.barcodeLabelHeight
     draft.productAutofillEnabled = settingsStore.productAutofillEnabled
     draft.uploadPagesFollowSystem = settingsStore.uploadPagesFollowSystem
+    draft.unknownImagesAutoDelete = settingsStore.unknownImagesAutoDelete
   }
 
   const savingSettings = ref(false)
@@ -955,6 +973,7 @@
     || Number(draft.barcodeLabelHeight) !== settingsStore.barcodeLabelHeight
     || draft.productAutofillEnabled !== settingsStore.productAutofillEnabled
     || draft.uploadPagesFollowSystem !== settingsStore.uploadPagesFollowSystem
+    || draft.unknownImagesAutoDelete !== settingsStore.unknownImagesAutoDelete
     || !sameMonths(draft.financialsHighSeasonMonths, settingsStore.financialsHighSeasonMonths),
   )
 
@@ -985,6 +1004,7 @@
         barcodeLabelHeight: Number(draft.barcodeLabelHeight),
         productAutofillEnabled: draft.productAutofillEnabled,
         uploadPagesFollowSystem: draft.uploadPagesFollowSystem,
+        unknownImagesAutoDelete: draft.unknownImagesAutoDelete,
       })
     } finally {
       savingSettings.value = false
