@@ -31,27 +31,6 @@
 
       </div>
 
-      <v-card
-        v-if="unknownItems.waiting + unknownItems.pending > 0"
-        class="unknown-items-card mx-auto mb-4"
-        :color="unknownItems.waiting > 0 ? 'warning' : undefined"
-        rounded="lg"
-        :variant="unknownItems.waiting > 0 ? 'tonal' : 'outlined'"
-        @click="router.push('/unknown-items')"
-      >
-        <v-card-text class="d-flex align-center ga-3">
-          <v-icon icon="mdi-help-box-outline" />
-          <div class="flex-grow-1">
-            <div class="font-weight-medium">Unknown items to resolve</div>
-            <div class="text-caption">
-              <template v-if="unknownItems.waiting > 0">{{ unknownItems.waiting }} waiting for a picture right now · </template>
-              {{ unknownItems.pending }} to match with a product
-            </div>
-          </div>
-          <v-btn size="small" variant="text">Open</v-btn>
-        </v-card-text>
-      </v-card>
-
       <div v-if="canViewKashiActivity || canViewActivity || canViewLatest" class="home-feeds">
         <section v-if="canViewKashiActivity" aria-label="IT Management" class="home-activities">
           <div class="home-activities-head d-flex align-center px-1 mb-2">
@@ -73,8 +52,8 @@
             />
           </div>
 
-          <!-- One card per kind of change, stacked: commands, reports and
-               emails, then everything else. Split client-side from the one
+          <!-- One card per kind of change, stacked: commands, unknown
+               items, then everything else (reports and emails included). Split client-side from the one
                paged feed, so scrolling any card loads the next page. -->
           <div class="kashi-groups">
             <v-card
@@ -93,6 +72,23 @@
                 <span v-if="kashiLoaded" class="text-caption text-medium-emphasis">{{ group.items.length.toLocaleString() }}</span>
               </div>
               <v-divider />
+              <!-- What still needs doing on unknown items, ahead of the
+                   changes made to them. -->
+              <div
+                v-if="group.key === 'unknown' && unknownItems.waiting + unknownItems.pending > 0"
+                class="unknown-items-status d-flex align-center ga-3 px-3 py-2"
+              >
+                <v-icon icon="mdi-help-box-outline" size="20" />
+                <div class="flex-grow-1 text-body-2">
+                  <div class="font-weight-medium">Unknown items to resolve</div>
+                  <div class="text-caption text-medium-emphasis">
+                    <template v-if="unknownItems.waiting > 0">{{ unknownItems.waiting }} waiting for a picture right now · </template>
+                    {{ unknownItems.pending }} to match with a product
+                  </div>
+                </div>
+                <v-btn size="small" variant="text" @click="router.push('/unknown-items')">Open</v-btn>
+              </div>
+              <v-divider v-if="group.key === 'unknown' && unknownItems.waiting + unknownItems.pending > 0" />
               <div class="home-activities-scroll" @scroll.passive="onFeedScroll($event, loadMoreKashi)">
                 <v-skeleton-loader
                   v-if="!kashiLoaded"
@@ -963,6 +959,7 @@
     { match: /^\/branch_attendance/, label: 'Attendance', to: '/attendance' },
     { match: /^\/transfers/, label: 'Transfers', to: '/transfers' },
     { match: /^\/whatsapp/, label: 'WhatsApp', to: '/whatsapp' },
+    { match: /^\/unknown_items/, label: 'Unknown items', to: '/unknown-items' },
   ]
   function kashiPage (item) {
     return KASHI_PAGES.find(page => page.match.test(item.route ?? '')) ?? null
@@ -986,11 +983,11 @@
       match: item => /^\/branches\/:id\/commands/.test(item.route ?? ''),
     },
     {
-      key: 'reports',
-      title: 'Reports & emails',
-      accent: 'var(--v-theme-success)',
-      empty: 'No reports emailed yet.',
-      match: item => /^\/email_reports/.test(item.route ?? ''),
+      key: 'unknown',
+      title: 'Unknown items',
+      accent: 'var(--v-theme-warning)',
+      empty: 'No unknown items matched or allowed yet.',
+      match: item => /^\/unknown_items/.test(item.route ?? ''),
     },
     {
       key: 'other',
@@ -1352,7 +1349,7 @@
     line-height: 1.35;
   }
 
-  /* IT Management: compact Commands and Reports cards on top, Other
+  /* IT Management: compact Commands and Unknown items cards on top, Other
      changes takes the rest. */
   .kashi-groups {
     display: flex;
@@ -1366,13 +1363,13 @@
      Their list sizes to its rows (up to the cap) instead of the flex-basis-0
      the Other card's list uses. */
   .kashi-group.kashi-group--commands,
-  .kashi-group.kashi-group--reports {
+  .kashi-group.kashi-group--unknown {
     flex: 0 1 auto;
     max-height: 250px;
   }
 
   .kashi-group--commands .home-activities-scroll,
-  .kashi-group--reports .home-activities-scroll {
+  .kashi-group--unknown .home-activities-scroll {
     flex: 0 1 auto;
   }
 
