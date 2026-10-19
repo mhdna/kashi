@@ -397,6 +397,85 @@ type listUnknownItemsRequest struct {
 	PageID   int32 `form:"page_id,default=0" binding:"min=0"`
 }
 
+func nullIDValue(n sql.NullInt64) *int64 {
+	if !n.Valid {
+		return nil
+	}
+	return &n.Int64
+}
+
+// unknownItemView is a unit on the admin pages. The generated rows carry
+// sql.Null* values, which marshal as {"Int64":1,"Valid":true}; the pages want
+// a number or a time, or null.
+type unknownItemView struct {
+	ID                int64      `json:"id"`
+	SlotRef           string     `json:"slot_ref"`
+	Position          int32      `json:"position"`
+	Label             string     `json:"label"`
+	UnitPrice         int64      `json:"unit_price"`
+	Discount          int16      `json:"discount"`
+	ImageID           *int64     `json:"image_id"`
+	ResolvedVariantID *int64     `json:"resolved_variant_id"`
+	ResolvedAt        *time.Time `json:"resolved_at"`
+	WaivedAt          *time.Time `json:"waived_at"`
+	WaivedBy          string     `json:"waived_by"`
+	SessionID         int64      `json:"session_id"`
+	BranchID          int64      `json:"branch_id"`
+	BranchName        string     `json:"branch_name"`
+	BranchInvoiceID   *int64     `json:"branch_invoice_id"`
+	BranchInvoiceCode string     `json:"branch_invoice_code"`
+	OccurredAt        time.Time  `json:"occurred_at"`
+	ResolvedName      string     `json:"resolved_name"`
+	ResolvedBarcode   string     `json:"resolved_barcode"`
+}
+
+func unknownItemViews(rows []db.ListUnknownItemsRow) []unknownItemView {
+	views := make([]unknownItemView, 0, len(rows))
+	for _, r := range rows {
+		views = append(views, unknownItemView{
+			ID: r.ID, SlotRef: r.SlotRef, Position: r.Position, Label: r.Label,
+			UnitPrice: r.UnitPrice, Discount: r.Discount,
+			ImageID: nullIDValue(r.ImageID), ResolvedVariantID: nullIDValue(r.ResolvedVariantID),
+			ResolvedAt: nullTimePtr(r.ResolvedAt), WaivedAt: nullTimePtr(r.WaivedAt), WaivedBy: r.WaivedBy,
+			SessionID: r.SessionID, BranchID: r.BranchID, BranchName: r.BranchName,
+			BranchInvoiceID: nullIDValue(r.BranchInvoiceID), BranchInvoiceCode: r.BranchInvoiceCode,
+			OccurredAt: r.OccurredAt, ResolvedName: r.ResolvedName, ResolvedBarcode: r.ResolvedBarcode,
+		})
+	}
+	return views
+}
+
+// waitingUnknownItemView is a unit of a checkout still in progress.
+type waitingUnknownItemView struct {
+	ID              int64      `json:"id"`
+	SlotRef         string     `json:"slot_ref"`
+	Position        int32      `json:"position"`
+	Label           string     `json:"label"`
+	UnitPrice       int64      `json:"unit_price"`
+	Discount        int16      `json:"discount"`
+	ImageID         *int64     `json:"image_id"`
+	WaivedAt        *time.Time `json:"waived_at"`
+	SessionID       int64      `json:"session_id"`
+	BranchID        int64      `json:"branch_id"`
+	BranchName      string     `json:"branch_name"`
+	HelpRequestedAt *time.Time `json:"help_requested_at"`
+	CreatedAt       time.Time  `json:"created_at"`
+}
+
+func waitingUnknownItemViews(rows []db.ListWaitingUnknownItemsRow) []waitingUnknownItemView {
+	views := make([]waitingUnknownItemView, 0, len(rows))
+	for _, r := range rows {
+		views = append(views, waitingUnknownItemView{
+			ID: r.ID, SlotRef: r.SlotRef, Position: r.Position, Label: r.Label,
+			UnitPrice: r.UnitPrice, Discount: r.Discount,
+			ImageID: nullIDValue(r.ImageID), WaivedAt: nullTimePtr(r.WaivedAt),
+			SessionID: r.SessionID, BranchID: r.BranchID, BranchName: r.BranchName,
+			HelpRequestedAt: nullTimePtr(r.HelpRequestedAt), CreatedAt: r.CreatedAt,
+		})
+	}
+	return views
+}
+
 func (server *Server) listUnknownItems(ctx *gin.Context) {
 	var req listUnknownItemsRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
@@ -420,7 +499,7 @@ func (server *Server) listUnknownItems(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	server.writeJSON(ctx, http.StatusOK, envelope{"items": items, "total": total, "pending": pending})
+	server.writeJSON(ctx, http.StatusOK, envelope{"items": unknownItemViews(items), "total": total, "pending": pending})
 }
 
 type listUnknownItemImagesRequest struct {
@@ -533,7 +612,7 @@ func (server *Server) listWaitingUnknownItems(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	server.writeJSON(ctx, http.StatusOK, envelope{"items": items})
+	server.writeJSON(ctx, http.StatusOK, envelope{"items": waitingUnknownItemViews(items)})
 }
 
 type waiveUnknownItemsRequest struct {
