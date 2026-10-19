@@ -45,7 +45,28 @@ func (q *Queries) CountClients(ctx context.Context, clientType sql.NullString) (
 }
 
 const countClientsBySpending = `-- name: CountClientsBySpending :one
+WITH firsts AS (
+  -- When each client first bought, within the picked branches (all sources
+  -- when none), ignoring the date window: what separates a first-timer in
+  -- the window from a returning client.
+  SELECT x.client_id, MIN(x.at) AS first_at
+  FROM (
+    SELECT i.client_id, i.created_at AS at
+    FROM invoices i
+    WHERE COALESCE(cardinality($3::bigint[]), 0) = 0
+    UNION ALL
+    SELECT cl.client_id, b.occurred_at AS at
+    FROM branch_invoices b
+    JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
+    WHERE (COALESCE(cardinality($3::bigint[]), 0) = 0 OR b.branch_id = ANY($3::bigint[]))
+      AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+      AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+      AND b.cancelled_at IS NULL
+  ) x
+  GROUP BY x.client_id
+)
 SELECT COUNT(*) FROM clients c
+LEFT JOIN firsts f ON f.client_id = c.id
 WHERE ($1::text IS NULL OR c.client_type = $1)
   AND ($2::text IS NULL OR c.name ILIKE '%' || $2::text || '%' OR c.phone ILIKE '%' || $2::text || '%')
   AND (COALESCE(cardinality($3::bigint[]), 0) = 0
@@ -76,6 +97,11 @@ WHERE ($1::text IS NULL OR c.client_type = $1)
       WHERE ($4::timestamptz IS NULL OR i.created_at >= $4::timestamptz)
         AND ($5::timestamptz IS NULL OR i.created_at < $5::timestamptz)
     )))
+  -- visit 'first' / 'returning' (needs date_from): first bought inside the
+  -- window vs before it.
+  AND ($6::text = '' OR $4::timestamptz IS NULL
+    OR ($6::text = 'first' AND f.first_at >= $4::timestamptz)
+    OR ($6::text = 'returning' AND f.first_at < $4::timestamptz))
 `
 
 type CountClientsBySpendingParams struct {
@@ -84,6 +110,7 @@ type CountClientsBySpendingParams struct {
 	BranchIds  []int64        `json:"branch_ids"`
 	DateFrom   sql.NullTime   `json:"date_from"`
 	DateTo     sql.NullTime   `json:"date_to"`
+	Visit      string         `json:"visit"`
 }
 
 // Same filters as ListClientsBySpending, minus the spend computation --
@@ -97,6 +124,7 @@ func (q *Queries) CountClientsBySpending(ctx context.Context, arg CountClientsBy
 		pq.Array(arg.BranchIds),
 		arg.DateFrom,
 		arg.DateTo,
+		arg.Visit,
 	)
 	var count int64
 	err := row.Scan(&count)
@@ -383,7 +411,26 @@ func (q *Queries) ListClients(ctx context.Context, arg ListClientsParams) ([]Cli
 }
 
 const listClientsBySpending = `-- name: ListClientsBySpending :many
-WITH ranked AS (
+WITH firsts AS (
+  -- When each client first bought, within the picked branches (all sources
+  -- when none), ignoring the date window: what separates a first-timer in
+  -- the window from a returning client.
+  SELECT x.client_id, MIN(x.at) AS first_at
+  FROM (
+    SELECT i.client_id, i.created_at AS at
+    FROM invoices i
+    WHERE COALESCE(cardinality($4::bigint[]), 0) = 0
+    UNION ALL
+    SELECT cl.client_id, b.occurred_at AS at
+    FROM branch_invoices b
+    JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
+    WHERE (COALESCE(cardinality($4::bigint[]), 0) = 0 OR b.branch_id = ANY($4::bigint[]))
+      AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+      AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+      AND b.cancelled_at IS NULL
+  ) x
+  GROUP BY x.client_id
+), ranked AS (
   SELECT
     c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type, c.uid, c.is_active, c.branch_id,
     (
@@ -399,6 +446,7 @@ WITH ranked AS (
       + COALESCE(bi.branch_item_count, 0)
     )::bigint AS item_count
   FROM clients c
+  LEFT JOIN firsts f ON f.client_id = c.id
   LEFT JOIN (
     SELECT i.client_id,
       SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END) AS central_total,
@@ -451,6 +499,11 @@ WITH ranked AS (
     AND (($5::timestamptz IS NULL AND $6::timestamptz IS NULL)
       OR bi.client_id IS NOT NULL
       OR (COALESCE(cardinality($4::bigint[]), 0) = 0 AND ci.client_id IS NOT NULL))
+    -- visit 'first' / 'returning' (needs date_from): first bought inside the
+    -- window vs before it.
+    AND ($9::text = '' OR $5::timestamptz IS NULL
+      OR ($9::text = 'first' AND f.first_at >= $5::timestamptz)
+      OR ($9::text = 'returning' AND f.first_at < $5::timestamptz))
 )
 SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, total_spent, invoice_count, item_count
 FROM ranked
@@ -474,6 +527,7 @@ type ListClientsBySpendingParams struct {
 	DateTo     sql.NullTime   `json:"date_to"`
 	ClientType sql.NullString `json:"client_type"`
 	Search     sql.NullString `json:"search"`
+	Visit      string         `json:"visit"`
 }
 
 type ListClientsBySpendingRow struct {
@@ -523,6 +577,7 @@ func (q *Queries) ListClientsBySpending(ctx context.Context, arg ListClientsBySp
 		arg.DateTo,
 		arg.ClientType,
 		arg.Search,
+		arg.Visit,
 	)
 	if err != nil {
 		return nil, err

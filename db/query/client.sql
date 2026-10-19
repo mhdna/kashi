@@ -118,7 +118,26 @@ WHERE sqlc.narg(client_type)::text IS NULL OR client_type = sqlc.narg(client_typ
 -- looked up as an ordinary column instead, which fails since it isn't one
 -- of the FROM clause's columns). Wrapping in a CTE turns them into real
 -- columns of the derived table, so the CASE inside ORDER BY resolves fine.
-WITH ranked AS (
+WITH firsts AS (
+  -- When each client first bought, within the picked branches (all sources
+  -- when none), ignoring the date window: what separates a first-timer in
+  -- the window from a returning client.
+  SELECT x.client_id, MIN(x.at) AS first_at
+  FROM (
+    SELECT i.client_id, i.created_at AS at
+    FROM invoices i
+    WHERE COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0
+    UNION ALL
+    SELECT cl.client_id, b.occurred_at AS at
+    FROM branch_invoices b
+    JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
+    WHERE (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 OR b.branch_id = ANY(sqlc.arg(branch_ids)::bigint[]))
+      AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+      AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+      AND b.cancelled_at IS NULL
+  ) x
+  GROUP BY x.client_id
+), ranked AS (
   SELECT
     c.*,
     (
@@ -134,6 +153,7 @@ WITH ranked AS (
       + COALESCE(bi.branch_item_count, 0)
     )::bigint AS item_count
   FROM clients c
+  LEFT JOIN firsts f ON f.client_id = c.id
   LEFT JOIN (
     SELECT i.client_id,
       SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END) AS central_total,
@@ -186,6 +206,11 @@ WITH ranked AS (
     AND ((sqlc.narg(date_from)::timestamptz IS NULL AND sqlc.narg(date_to)::timestamptz IS NULL)
       OR bi.client_id IS NOT NULL
       OR (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 AND ci.client_id IS NOT NULL))
+    -- visit 'first' / 'returning' (needs date_from): first bought inside the
+    -- window vs before it.
+    AND (sqlc.arg(visit)::text = '' OR sqlc.narg(date_from)::timestamptz IS NULL
+      OR (sqlc.arg(visit)::text = 'first' AND f.first_at >= sqlc.narg(date_from)::timestamptz)
+      OR (sqlc.arg(visit)::text = 'returning' AND f.first_at < sqlc.narg(date_from)::timestamptz))
 )
 SELECT *
 FROM ranked
@@ -204,7 +229,28 @@ OFFSET $2;
 -- used for the rest-of-clients table's pagination total. With a branch
 -- picked it counts that branch's clients: home branch, or a branch invoice
 -- there (same cancelled/hidden rules as the list).
+WITH firsts AS (
+  -- When each client first bought, within the picked branches (all sources
+  -- when none), ignoring the date window: what separates a first-timer in
+  -- the window from a returning client.
+  SELECT x.client_id, MIN(x.at) AS first_at
+  FROM (
+    SELECT i.client_id, i.created_at AS at
+    FROM invoices i
+    WHERE COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0
+    UNION ALL
+    SELECT cl.client_id, b.occurred_at AS at
+    FROM branch_invoices b
+    JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
+    WHERE (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 OR b.branch_id = ANY(sqlc.arg(branch_ids)::bigint[]))
+      AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+      AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+      AND b.cancelled_at IS NULL
+  ) x
+  GROUP BY x.client_id
+)
 SELECT COUNT(*) FROM clients c
+LEFT JOIN firsts f ON f.client_id = c.id
 WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type))
   AND (sqlc.narg(search)::text IS NULL OR c.name ILIKE '%' || sqlc.narg(search)::text || '%' OR c.phone ILIKE '%' || sqlc.narg(search)::text || '%')
   AND (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0
@@ -234,7 +280,12 @@ WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_
       SELECT i.client_id FROM invoices i
       WHERE (sqlc.narg(date_from)::timestamptz IS NULL OR i.created_at >= sqlc.narg(date_from)::timestamptz)
         AND (sqlc.narg(date_to)::timestamptz IS NULL OR i.created_at < sqlc.narg(date_to)::timestamptz)
-    )));
+    )))
+  -- visit 'first' / 'returning' (needs date_from): first bought inside the
+  -- window vs before it.
+  AND (sqlc.arg(visit)::text = '' OR sqlc.narg(date_from)::timestamptz IS NULL
+    OR (sqlc.arg(visit)::text = 'first' AND f.first_at >= sqlc.narg(date_from)::timestamptz)
+    OR (sqlc.arg(visit)::text = 'returning' AND f.first_at < sqlc.narg(date_from)::timestamptz));
 
 -- name: ListClientSpendingSummary :many
 -- Whole-population feed for the loyalty page, which buckets every client

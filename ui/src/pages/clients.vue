@@ -159,6 +159,19 @@
         </v-list>
       </v-menu>
       <DateRangePicker v-model="dateRange" clearable />
+      <v-btn-toggle
+        v-if="dateRange.length > 0"
+        v-model="visit"
+        density="comfortable"
+        divided
+        mandatory
+        rounded="lg"
+        variant="outlined"
+      >
+        <v-btn text="All" value="" />
+        <v-btn text="First-timers" value="first" />
+        <v-btn text="Returning" value="returning" />
+      </v-btn-toggle>
       <v-btn
         prepend-icon="mdi-file-delimited-outline"
         rounded="lg"
@@ -183,6 +196,7 @@
     :branch-ids="selectedBranchIds"
     :client-type="tab"
     :date-range="dateRange"
+    :visit="dateRange.length > 0 ? visit : ''"
     @delete="openDelete"
     @edit="openEdit"
     @reactivate="reactivate"
@@ -228,6 +242,9 @@
 
   // Clients who bought in this window (and their spend in it); [] = any time.
   const dateRange = ref([])
+  // Within that window: '' everyone, 'first' bought for the first time in it,
+  // 'returning' bought before it too.
+  const visit = ref('')
 
   // ---- CSV export ----------------------------------------------------------
   const exportFieldOptions = [

@@ -172,6 +172,9 @@ type listClientsBySpendingRequest struct {
 	// and counts for that window.
 	From time.Time `form:"from" time_format:"2006-01-02T15:04:05Z07:00"`
 	To   time.Time `form:"to" time_format:"2006-01-02T15:04:05Z07:00"`
+	// With a from date: "first" = first bought inside the window, "returning"
+	// = bought before it too. Empty = both.
+	Visit string `form:"visit" binding:"omitempty,oneof=first returning"`
 }
 
 // listClientsBySpending is the clients loyalty-pyramid page's data source:
@@ -196,6 +199,7 @@ func (server *Server) listClientsBySpending(ctx *gin.Context) {
 		SortBy:     req.SortBy,
 		DateFrom:   sql.NullTime{Time: req.From, Valid: !req.From.IsZero()},
 		DateTo:     sql.NullTime{Time: req.To, Valid: !req.To.IsZero()},
+		Visit:      req.Visit,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
@@ -208,6 +212,7 @@ func (server *Server) listClientsBySpending(ctx *gin.Context) {
 		Search:     search,
 		DateFrom:   sql.NullTime{Time: req.From, Valid: !req.From.IsZero()},
 		DateTo:     sql.NullTime{Time: req.To, Valid: !req.To.IsZero()},
+		Visit:      req.Visit,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)

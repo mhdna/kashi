@@ -304,6 +304,8 @@
     branchIds: { type: Array, default: () => [] },
     // [] or ['YYYY-MM-DD', 'YYYY-MM-DD']: only clients who bought in it.
     dateRange: { type: Array, default: () => [] },
+    // With a date range: 'first' (first purchase inside it), 'returning', or ''.
+    visit: { type: String, default: '' },
     clientType: { type: String, required: true },
   })
   defineEmits(['edit', 'delete', 'reactivate'])
@@ -369,6 +371,7 @@
     const { from, to } = rangeBounds(props.dateRange)
     if (from) params.set('from', from)
     if (to) params.set('to', to)
+    if (props.visit) params.set('visit', props.visit)
     return params
   }
 
@@ -477,7 +480,7 @@
     fetchPyramid()
     resetRestList()
   })
-  watch(() => [props.clientType, props.branchIds.join(','), props.dateRange.join(','), pyramidCount.value, sortBy.value], reload)
+  watch(() => [props.clientType, props.branchIds.join(','), props.dateRange.join(','), props.visit, pyramidCount.value, sortBy.value], reload)
 
   let searchTimeout = null
   watch(search, () => {

@@ -500,6 +500,7 @@ export const guideSections = [
       '<b>All Clients</b> lists everyone else. Search by name or phone.',
       'The branch button lets you pick <b>several branches</b>. The numbers then add up across those branches. With a branch picked you see the clients who bought there, plus those whose <b>home branch</b> it is.',
       'The <b>date range</b> button keeps only clients who bought in that period, and the numbers count that period only. Click <b>Clear</b> for any time.',
+      'With a date range picked, <b>First-timers</b> shows clients whose first purchase was inside the period, and <b>Returning</b> those who had already bought before it. With a branch picked, "first purchase" means at those branches.',
     ],
     'The circle colour is the client\'s tier. Change tier names and limits with the cog.',
     [
