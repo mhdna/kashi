@@ -188,7 +188,7 @@
         item-value="ip"
         :items="visitors"
         :items-length="visitorTotal"
-        :items-per-page-options="[25, 50, 100, 250]"
+        :items-per-page-options="tablePageSizeOptions(pageSize)"
         :loading="visitorsLoading"
         show-expand
       >
@@ -427,6 +427,7 @@
   import { usePageAccess } from '@/composables/usePageAccess'
   import { useSecurityAlerts } from '@/composables/useSecurityAlerts'
   import { API_BASE } from '@/config'
+  import { tablePageSizeOptions, useSettingsStore } from '@/stores/settings'
 
   // Who reaches the API, from where, and what to do about it -- see
   // api/security.go. Needs the Security section; editing it to ban, unban
@@ -638,7 +639,7 @@
   const visitorTotal = ref(0)
   const visitorsLoading = ref(false)
   const page = ref(1)
-  const pageSize = ref(50)
+  const pageSize = ref(useSettingsStore().tablePageSize)
   const search = ref('')
   const countryFilter = ref('')
 

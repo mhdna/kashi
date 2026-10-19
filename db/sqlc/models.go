@@ -536,6 +536,7 @@ type AppSetting struct {
 	WhatsappDeletePollForMe    bool            `json:"whatsapp_delete_poll_for_me"`
 	UploadPagesFollowSystem    bool            `json:"upload_pages_follow_system"`
 	UnknownImagesAutoDelete    bool            `json:"unknown_images_auto_delete"`
+	TablePageSize              int16           `json:"table_page_size"`
 }
 
 type AppUpdateEvent struct {

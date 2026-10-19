@@ -156,7 +156,6 @@
             density="compact"
             :headers="invoiceHeaders"
             :items="summary.invoices"
-            :items-per-page="25"
             :mobile="smAndDown"
           >
             <template #item.occurred_at="{ item }">{{ timeOf(item.occurred_at) }}</template>

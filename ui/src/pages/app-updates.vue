@@ -173,7 +173,6 @@
           density="compact"
           :headers="eventHeaders"
           :items="events"
-          :items-per-page="25"
           :loading="loading"
           no-data-text="No update activity yet."
         >

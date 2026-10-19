@@ -40,7 +40,7 @@
       item-value="id"
       :items="messages"
       :items-length="total"
-      :items-per-page-options="[25, 50, 100, 250]"
+      :items-per-page-options="tablePageSizeOptions(pageSize)"
       :loading="loading"
       no-data-text="No messages match."
       @click:row="(_, { item }) => (openId = item.id)"
@@ -115,6 +115,7 @@
   import { useNotify } from '@/composables/useNotify'
   import { useWhatsApp } from '@/composables/useWhatsApp'
   import { DELIVERY, formatCost, formatDollars, formatPhone, nullTime, STATUS } from '@/utils/whatsapp'
+  import { tablePageSizeOptions, useSettingsStore } from '@/stores/settings'
 
   const props = defineProps({
     from: { type: String, required: true },
@@ -155,7 +156,7 @@
   const total = ref(0)
   const loading = ref(false)
   const page = ref(1)
-  const pageSize = ref(50)
+  const pageSize = ref(useSettingsStore().tablePageSize)
 
   async function load () {
     loading.value = true
