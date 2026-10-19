@@ -282,7 +282,9 @@
                 type="list-item-avatar-two-line@8"
               />
               <v-list v-else class="py-1" density="compact" lines="two">
-                <v-virtual-scroll :item-height="81" :items="shownLatest" renderless>
+                <!-- Keyed per item, not by position: a row the poll adds on top then
+                  mounts fresh and fetches its thumbnail (ensureThumb). -->
+                <v-virtual-scroll :item-height="81" :item-key="latestKey" :items="shownLatest" renderless>
                   <template #default="{ item, itemRef }">
                     <v-list-item
                       :ref="itemRef"
