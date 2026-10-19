@@ -222,7 +222,8 @@ func (server *Server) unknownUploadPage(ctx *gin.Context) {
 
 func (server *Server) lookupUnknownSession(ctx *gin.Context) (db.UnknownItemSession, bool) {
 	session, err := server.store.GetUnknownItemSessionByToken(ctx, ctx.Param("token"))
-	if errors.Is(err, sql.ErrNoRows) || (err == nil && time.Now().UTC().After(session.ExpiresAt)) {
+	// Dead once expired, or once the sale it belongs to has landed.
+	if errors.Is(err, sql.ErrNoRows) || (err == nil && (session.BranchInvoiceID.Valid || time.Now().UTC().After(session.ExpiresAt))) {
 		server.writeError(ctx, http.StatusNotFound, errors.New("this link is no longer valid"))
 		return db.UnknownItemSession{}, false
 	}

@@ -172,6 +172,9 @@ func TestUnknownItemsFlow(t *testing.T) {
 	}
 	decode(do(tillRequest(http.MethodPost, "/branch/sales_invoices", sale)), &struct{}{})
 
+	// The phone's link is dead once the sale has landed.
+	require.Equal(t, http.StatusNotFound, do(httptest.NewRequest(http.MethodGet, base+"/status", nil)).Code)
+
 	// 5. Two pictured units and one allowed unit now wait to be matched.
 	items, err := store.ListUnknownItems(ctx, db.ListUnknownItemsParams{Resolved: false, Limit: 50})
 	require.NoError(t, err)
