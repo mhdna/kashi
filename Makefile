@@ -108,7 +108,7 @@ BRIDGE_DIR ?= /home/wabridge/app
 deploy-whatsapp:
 	rsync -avz $(BRIDGE_SRC)/server.mjs $(BRIDGE_SRC)/report.mjs $(BRIDGE_SRC)/package.json $(BRIDGE_SRC)/package-lock.json $(SSH):$(BRIDGE_DIR)/
 	ssh $(SSH) 'cd $(BRIDGE_DIR) && chown wabridge:wabridge server.mjs report.mjs package.json package-lock.json && \
-		(grep -q "^CHAT_LOG_URL=" bridge.env || echo "CHAT_LOG_URL=http://127.0.0.1:$$(sed -n 's/^HTTP_SERVER_ADDRESS=.*://p' $(APP_DIR)/app.env)/whatsapp/bridge/chat" >> bridge.env) && \
+		(grep -q "^CHAT_LOG_URL=" bridge.env || echo "CHAT_LOG_URL=http://127.0.0.1:$$(sed -n "s/^HTTP_SERVER_ADDRESS=.*://p" $(APP_DIR)/app.env)/whatsapp/bridge/chat" >> bridge.env) && \
 		sudo -u wabridge env HOME=/home/wabridge npm ci --omit=dev && \
 		systemctl restart whatsapp-bridge && sleep 3 && systemctl is-active whatsapp-bridge'
 
