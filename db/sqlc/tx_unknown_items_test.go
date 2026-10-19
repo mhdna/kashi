@@ -133,3 +133,29 @@ func TestWaiveUnknownItemSlots_OnlyUnpicturedUnits(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1), n, "a pictured unit is never waived")
 }
+
+func TestCreateBranchInvoiceTx_NamedUnknownProductMovesNoStock(t *testing.T) {
+	ctx := context.Background()
+	branch := createTestBranchWithRegister(t)
+	variant := createRandomVariant(t)
+	_, err := testQueries.AddInventoryStockQuantity(ctx, AddInventoryStockQuantityParams{
+		InventoryID: branch.Inventory.ID, VariantID: variant.ID, Quantity: 5,
+	})
+	require.NoError(t, err)
+
+	// The branch named a real product (variant.Barcode) as its unknown item.
+	sale, err := testStore.CreateBranchInvoiceTx(ctx, CreateBranchInvoiceTxParams{
+		CreateBranchInvoiceParams: CreateBranchInvoiceParams{
+			BranchID: branch.Branch.ID, RegisterID: branch.Register.ID, ClientRef: uuid.NewString(),
+			Kind: "sales", BranchInvoiceCode: "SA/N/2026/00001", GrandTotal: 700, OccurredAt: time.Now(),
+		},
+		Items: []BranchInvoiceItemParams{{Barcode: variant.Barcode, Unknown: true, Quantity: 1, UnitPrice: 700, LineTotal: 700}},
+	})
+	require.NoError(t, err)
+	require.True(t, sale.Items[0].Unknown)
+	require.False(t, sale.Items[0].ProductUid.Valid)
+
+	stock, err := testQueries.GetInventoryStock(ctx, GetInventoryStockParams{InventoryID: branch.Inventory.ID, VariantID: variant.ID})
+	require.NoError(t, err)
+	require.Equal(t, int64(5), stock.Quantity, "an unknown line doesn't touch the named product's stock")
+}

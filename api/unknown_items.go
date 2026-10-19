@@ -477,3 +477,14 @@ func (server *Server) waiveUnknownItems(ctx *gin.Context) {
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{"waived": waived})
 }
+
+// branchUnknownBarcode is the barcode this branch named for its "Unknown item"
+// product ("" when it uses the till's built-in placeholder, which kashi
+// recognises on its own).
+func (server *Server) branchUnknownBarcode(ctx *gin.Context, branchID int64) string {
+	settings, err := server.store.GetBranchSettings(ctx, branchID)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(settings.UnknownProductBarcode)
+}
