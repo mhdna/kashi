@@ -46,6 +46,8 @@ type updateAppSettingsRequest struct {
 	ProductAutofillEnabled     bool     `json:"product_autofill_enabled"`
 	// UploadPagesFollowSystem: phone upload pages follow dark mode (else always light).
 	UploadPagesFollowSystem bool `json:"upload_pages_follow_system"`
+	// UnknownImagesAutoDelete turns on the daily clean-up of unknown-item pictures.
+	UnknownImagesAutoDelete bool `json:"unknown_images_auto_delete"`
 }
 
 // updateAppSettings replaces the whole global settings row -- the client
@@ -111,6 +113,7 @@ func (server *Server) updateAppSettings(ctx *gin.Context) {
 		HiddenBuiltinEvents:        hiddenEvents,
 		ProductAutofillEnabled:     req.ProductAutofillEnabled,
 		UploadPagesFollowSystem:    req.UploadPagesFollowSystem,
+		UnknownImagesAutoDelete:    req.UnknownImagesAutoDelete,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)

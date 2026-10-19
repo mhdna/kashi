@@ -468,6 +468,7 @@ type Querier interface {
 	DeleteSizes(ctx context.Context, ids []int64) (int64, error)
 	DeleteStockCountItems(ctx context.Context, stockCountID int64) error
 	DeleteTransferItem(ctx context.Context, arg DeleteTransferItemParams) error
+	DeleteUnknownItemImages(ctx context.Context, dollar_1 []int64) error
 	DeleteUser(ctx context.Context, id int64) error
 	DeleteWhatsAppNumber(ctx context.Context, id int64) error
 	FindUnknownInvoiceItem(ctx context.Context, arg FindUnknownInvoiceItemParams) (BranchInvoiceItem, error)
@@ -752,6 +753,10 @@ type Querier interface {
 	ListAttributeValuesPage(ctx context.Context, arg ListAttributeValuesPageParams) ([]ListAttributeValuesPageRow, error)
 	ListAttributes(ctx context.Context) ([]Attribute, error)
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]ListAuditLogsRow, error)
+	// What the daily clean-up removes: pictures whose units were all matched
+	// before resolved_before, and pictures of checkouts that never became a sale
+	// and whose link expired before abandoned_before.
+	ListAutoDeletableUnknownItemImages(ctx context.Context, arg ListAutoDeletableUnknownItemImagesParams) ([]ListAutoDeletableUnknownItemImagesRow, error)
 	// FIFO order: oldest batch (by receipt/creation date) first. Walked by
 	// applyStockMovement to decide which batch(es) a sold unit debits.
 	// FOR UPDATE so two sales racing on the same variant can't both allocate
@@ -1139,6 +1144,9 @@ type Querier interface {
 	// branch_visitor_events.day is already the branch's local day (stamped by
 	// the till), so it's matched directly; only the hour needs the timezone.
 	ListDayVisitorsByHour(ctx context.Context, arg ListDayVisitorsByHourParams) ([]ListDayVisitorsByHourRow, error)
+	// Of the given pictures, the ones that can go: not the picture of a unit still
+	// waiting to be matched on a sale (or on a checkout that is still open).
+	ListDeletableUnknownItemImages(ctx context.Context, ids []int64) ([]ListDeletableUnknownItemImagesRow, error)
 	ListDiscountListBranchIDs(ctx context.Context, discountListID int64) ([]int64, error)
 	ListDiscountListItems(ctx context.Context, discountListID int64) ([]DiscountListItem, error)
 	ListDiscountListItemsForSync(ctx context.Context, discountListID int64) ([]ListDiscountListItemsForSyncRow, error)

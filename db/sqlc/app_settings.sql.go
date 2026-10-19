@@ -11,7 +11,7 @@ import (
 )
 
 const getAppSettings = `-- name: GetAppSettings :one
-SELECT id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first, review_place_id, review_base_url, review_title, review_description, google_places_api_key, whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message, whatsapp_poll_question, whatsapp_poll_options, whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url, whatsapp_message_logo, whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad, google_reviews_enabled, whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_delete_for_me, whatsapp_delete_poll_for_me, upload_pages_follow_system FROM app_settings WHERE id = 1
+SELECT id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first, review_place_id, review_base_url, review_title, review_description, google_places_api_key, whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message, whatsapp_poll_question, whatsapp_poll_options, whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url, whatsapp_message_logo, whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad, google_reviews_enabled, whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_delete_for_me, whatsapp_delete_poll_for_me, upload_pages_follow_system, unknown_images_auto_delete FROM app_settings WHERE id = 1
 `
 
 func (q *Queries) GetAppSettings(ctx context.Context) (AppSetting, error) {
@@ -76,6 +76,7 @@ func (q *Queries) GetAppSettings(ctx context.Context) (AppSetting, error) {
 		&i.WhatsappDeleteForMe,
 		&i.WhatsappDeletePollForMe,
 		&i.UploadPagesFollowSystem,
+		&i.UnknownImagesAutoDelete,
 	)
 	return i, err
 }
@@ -86,7 +87,7 @@ SET product_autofill_rules = $1,
     product_autofill_code_layout = $2,
     updated_at = now()
 WHERE id = 1
-RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first, review_place_id, review_base_url, review_title, review_description, google_places_api_key, whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message, whatsapp_poll_question, whatsapp_poll_options, whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url, whatsapp_message_logo, whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad, google_reviews_enabled, whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_delete_for_me, whatsapp_delete_poll_for_me, upload_pages_follow_system
+RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first, review_place_id, review_base_url, review_title, review_description, google_places_api_key, whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message, whatsapp_poll_question, whatsapp_poll_options, whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url, whatsapp_message_logo, whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad, google_reviews_enabled, whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_delete_for_me, whatsapp_delete_poll_for_me, upload_pages_follow_system, unknown_images_auto_delete
 `
 
 type SetProductAutofillRulesParams struct {
@@ -156,6 +157,7 @@ func (q *Queries) SetProductAutofillRules(ctx context.Context, arg SetProductAut
 		&i.WhatsappDeleteForMe,
 		&i.WhatsappDeletePollForMe,
 		&i.UploadPagesFollowSystem,
+		&i.UnknownImagesAutoDelete,
 	)
 	return i, err
 }
@@ -172,9 +174,10 @@ SET financials_high_season_months = $1,
     hidden_builtin_events = $8,
     product_autofill_enabled = $9,
     upload_pages_follow_system = $10,
+    unknown_images_auto_delete = $11,
     updated_at = now()
 WHERE id = 1
-RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first, review_place_id, review_base_url, review_title, review_description, google_places_api_key, whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message, whatsapp_poll_question, whatsapp_poll_options, whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url, whatsapp_message_logo, whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad, google_reviews_enabled, whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_delete_for_me, whatsapp_delete_poll_for_me, upload_pages_follow_system
+RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first, review_place_id, review_base_url, review_title, review_description, google_places_api_key, whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message, whatsapp_poll_question, whatsapp_poll_options, whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url, whatsapp_message_logo, whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad, google_reviews_enabled, whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_delete_for_me, whatsapp_delete_poll_for_me, upload_pages_follow_system, unknown_images_auto_delete
 `
 
 type UpdateAppSettingsParams struct {
@@ -188,6 +191,7 @@ type UpdateAppSettingsParams struct {
 	HiddenBuiltinEvents        json.RawMessage `json:"hidden_builtin_events"`
 	ProductAutofillEnabled     bool            `json:"product_autofill_enabled"`
 	UploadPagesFollowSystem    bool            `json:"upload_pages_follow_system"`
+	UnknownImagesAutoDelete    bool            `json:"unknown_images_auto_delete"`
 }
 
 func (q *Queries) UpdateAppSettings(ctx context.Context, arg UpdateAppSettingsParams) (AppSetting, error) {
@@ -202,6 +206,7 @@ func (q *Queries) UpdateAppSettings(ctx context.Context, arg UpdateAppSettingsPa
 		arg.HiddenBuiltinEvents,
 		arg.ProductAutofillEnabled,
 		arg.UploadPagesFollowSystem,
+		arg.UnknownImagesAutoDelete,
 	)
 	var i AppSetting
 	err := row.Scan(
@@ -263,6 +268,7 @@ func (q *Queries) UpdateAppSettings(ctx context.Context, arg UpdateAppSettingsPa
 		&i.WhatsappDeleteForMe,
 		&i.WhatsappDeletePollForMe,
 		&i.UploadPagesFollowSystem,
+		&i.UnknownImagesAutoDelete,
 	)
 	return i, err
 }

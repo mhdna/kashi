@@ -450,6 +450,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/unknown_items", server.listUnknownItems)
 	authRoutes.GET("/unknown_items/images", server.listUnknownItemImages)
 	authRoutes.GET("/unknown_items/images/:id/file", server.getUnknownItemImageFile)
+	authRoutes.POST("/unknown_items/images/delete", server.deleteUnknownItemImages)
 	authRoutes.GET("/unknown_items/waiting", server.listWaitingUnknownItems)
 	authRoutes.POST("/unknown_items/waive", server.waiveUnknownItems)
 	authRoutes.GET("/unknown_items/variants", server.searchUnknownItemVariants)
