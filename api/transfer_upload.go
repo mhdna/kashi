@@ -168,6 +168,7 @@ func (server *Server) uploadTransferAttachment(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	warmThumbnails(destPath)
 
 	if err := server.store.SetTransferAttachmentPath(ctx, db.SetTransferAttachmentPathParams{
 		ID:             transfer.ID,
