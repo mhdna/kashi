@@ -448,6 +448,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/branch_expenses", server.listBranchExpenses)
 	authRoutes.POST("/branch_expenses", server.adminCreateBranchExpense)
 	authRoutes.GET("/unknown_items", server.listUnknownItems)
+	authRoutes.GET("/unknown_items/images", server.listUnknownItemImages)
 	authRoutes.GET("/unknown_items/images/:id/file", server.getUnknownItemImageFile)
 	authRoutes.GET("/unknown_items/waiting", server.listWaitingUnknownItems)
 	authRoutes.POST("/unknown_items/waive", server.waiveUnknownItems)

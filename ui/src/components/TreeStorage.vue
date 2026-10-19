@@ -81,8 +81,8 @@
             :busy="changingPhoto"
             height="100%"
             :progress="uploadProgress"
-            :replaceable="canReplace"
-            :rotatable="canRotate"
+            :replaceable="canReplace && !!previewPhotoKind"
+            :rotatable="canRotate && !!previewPhotoKind"
             :src="previewUrl"
             @replace="file => changePreview((kind, id) => replacePhoto(kind, id, file))"
             @rotate="delta => changePreview((kind, id) => rotatePhoto(kind, id, delta))"
@@ -113,10 +113,12 @@
   import { usePhotoActions } from '@/composables/usePhotoActions'
   import { useShiftReceiptImages } from '@/composables/useShiftReceiptImages'
   import { useTransferAttachments } from '@/composables/useTransferAttachments'
+  import { useUnknownItems } from '@/composables/useUnknownItems'
 
   const { fetchExpenseImages, fetchExpenseImageObjectUrl } = useExpenseImages()
   const { fetchShiftReceiptImages, fetchShiftReceiptImageObjectUrl } = useShiftReceiptImages()
   const { fetchTransferAttachments, fetchTransferAttachmentObjectUrl } = useTransferAttachments()
+  const { fetchUnknownItemImages, fetchImageObjectUrl: fetchUnknownItemImageObjectUrl } = useUnknownItems()
   const { ensureConnected, onMessage } = useAdminSocket()
   const { canRotate, canReplace, rotatePhoto, replacePhoto, uploadProgress } = usePhotoActions()
   const notify = useNotify()
@@ -124,7 +126,8 @@
   // One entry per real image kind. Every handler takes the whole image row
   // so the generic panel -- and the "All" source below -- can stay kind
   // agnostic. Adding a storage kind is a new entry here plus its composable.
-  // photoKind is the kind usePhotoActions rotates or replaces it as.
+  // photoKind is the kind usePhotoActions rotates or replaces it as; none
+  // means the photo can't be turned or swapped.
   const KINDS = {
     expenses: {
       title: 'Expense receipts',
@@ -152,6 +155,15 @@
       refreshOn: 'branch_transfer_photo_uploaded',
       photoKind: 'transfer',
       primaryText: image => `${image.code || `Transfer #${image.id}`} · ${image.from_inventory_name} → ${image.to_inventory_name}`,
+    },
+    unknownItems: {
+      title: 'Unknown item photos',
+      icon: 'mdi-help-box-outline',
+      fetchPage: fetchUnknownItemImages,
+      fetchObjectUrl: (image, opts) => fetchUnknownItemImageObjectUrl(image.id, opts),
+      refreshOn: 'unknown_item_uploaded',
+      photoKind: null,
+      primaryText: image => `Unknown item · $${(image.unit_price / 100).toFixed(2)}${image.branch_invoice_code ? ` · ${image.branch_invoice_code}` : ''}`,
     },
   }
 
@@ -188,6 +200,7 @@
     { value: 'expenses', title: 'Expenses', prependIcon: 'mdi-receipt-text-check' },
     { value: 'shiftReceipts', title: 'Shift receipts', prependIcon: 'mdi-camera' },
     { value: 'transfers', title: 'Transfers', prependIcon: 'mdi-truck-delivery' },
+    { value: 'unknownItems', title: 'Unknown items', prependIcon: 'mdi-help-box-outline' },
   ]
 
   // null is PageSidebar's "All" row.
@@ -229,6 +242,13 @@
 
   const previewDialog = ref(false)
   const previewImage = ref(null)
+  // The photo kind the open preview can be turned or replaced as (none for
+  // kinds that can't be).
+  const previewPhotoKind = computed(() => {
+    const image = previewImage.value
+    if (!image) return null
+    return (image.__kind ? KINDS[image.__kind] : source.value)?.photoKind ?? null
+  })
   let unsubscribe = null
 
   function formatDate (value) {
