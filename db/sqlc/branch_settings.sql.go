@@ -13,7 +13,7 @@ import (
 )
 
 const getBranchSettings = `-- name: GetBranchSettings :one
-SELECT branch_id, branch_name, tax_rate, rounding_mode, rounding_currency, exchange_rate, exchange_window_hours, market_name, market_phone, market_description, return_policy, website, instagram, social_platforms, social_handles, updated_at, search_button_enabled, custom_item_discounts_enabled, custom_item_prices_enabled, per_unit_item_prices_enabled, price_change_manual_override_mode, invoice_keyboard_mode, client_required, page_unlock_clients, page_unlock_inventory, page_unlock_transfers, page_unlock_attendance, page_unlock_salespersons, printer_size, receipt_width, receipt_height, receipt_enabled, receipt_font, receipt_body_font, receipt_title_size, receipt_body_size, receipt_cutoff, printer_id, receipt_printer, screen_port, akuvox_ip, akuvox_username, attendance_enabled, attendance_duplicate_interval_seconds, attendance_cashier_history, managed_locally, split_primary_currency, split_primary_first, split_primary_step, oversell_mode, close_shift_requires_sync, salesperson_per_invoice_required, non_admin_month_nav_enabled, opening_float_enabled, count_opening_cash_on_close, overchange_confirmation, page_unlock_products, hide_payment_method_currency, auto_append_lbp_zeros, auto_close_stale_shifts, visitor_counter_enabled, shift_receipt_upload_mode, branch_phone, max_overpayment_cents, default_opening_float_usd, default_opening_float_lbp, display_prefs, scan_by_code_enabled, sounds_enabled, attendance_manager_approval_enabled, shift_report_signatures, shift_report_uppercase_header, auto_cover_negative_lbp, product_search_code_only, price_edit_restricted, price_edit_codes, unknown_product_barcode, product_search_hidden_fields FROM branch_settings WHERE branch_id = $1
+SELECT branch_id, branch_name, tax_rate, rounding_mode, rounding_currency, exchange_rate, exchange_window_hours, market_name, market_phone, market_description, return_policy, website, instagram, social_platforms, social_handles, updated_at, search_button_enabled, custom_item_discounts_enabled, custom_item_prices_enabled, per_unit_item_prices_enabled, price_change_manual_override_mode, invoice_keyboard_mode, client_required, page_unlock_clients, page_unlock_inventory, page_unlock_transfers, page_unlock_attendance, page_unlock_salespersons, printer_size, receipt_width, receipt_height, receipt_enabled, receipt_font, receipt_body_font, receipt_title_size, receipt_body_size, receipt_cutoff, printer_id, receipt_printer, screen_port, akuvox_ip, akuvox_username, attendance_enabled, attendance_duplicate_interval_seconds, attendance_cashier_history, managed_locally, split_primary_currency, split_primary_first, split_primary_step, oversell_mode, close_shift_requires_sync, salesperson_per_invoice_required, non_admin_month_nav_enabled, opening_float_enabled, count_opening_cash_on_close, overchange_confirmation, page_unlock_products, hide_payment_method_currency, auto_append_lbp_zeros, auto_close_stale_shifts, visitor_counter_enabled, shift_receipt_upload_mode, branch_phone, max_overpayment_cents, default_opening_float_usd, default_opening_float_lbp, display_prefs, scan_by_code_enabled, sounds_enabled, attendance_manager_approval_enabled, shift_report_signatures, shift_report_uppercase_header, auto_cover_negative_lbp, product_search_code_only, price_edit_restricted, price_edit_codes, unknown_product_barcode, product_search_hidden_fields, receipt_theme, receipt_layout FROM branch_settings WHERE branch_id = $1
 `
 
 func (q *Queries) GetBranchSettings(ctx context.Context, branchID int64) (BranchSetting, error) {
@@ -98,6 +98,8 @@ func (q *Queries) GetBranchSettings(ctx context.Context, branchID int64) (Branch
 		&i.PriceEditCodes,
 		&i.UnknownProductBarcode,
 		&i.ProductSearchHiddenFields,
+		&i.ReceiptTheme,
+		&i.ReceiptLayout,
 	)
 	return i, err
 }
@@ -106,7 +108,7 @@ const setBranchSettingsManagedLocally = `-- name: SetBranchSettingsManagedLocall
 UPDATE branch_settings
 SET managed_locally = $2
 WHERE branch_id = $1
-RETURNING branch_id, branch_name, tax_rate, rounding_mode, rounding_currency, exchange_rate, exchange_window_hours, market_name, market_phone, market_description, return_policy, website, instagram, social_platforms, social_handles, updated_at, search_button_enabled, custom_item_discounts_enabled, custom_item_prices_enabled, per_unit_item_prices_enabled, price_change_manual_override_mode, invoice_keyboard_mode, client_required, page_unlock_clients, page_unlock_inventory, page_unlock_transfers, page_unlock_attendance, page_unlock_salespersons, printer_size, receipt_width, receipt_height, receipt_enabled, receipt_font, receipt_body_font, receipt_title_size, receipt_body_size, receipt_cutoff, printer_id, receipt_printer, screen_port, akuvox_ip, akuvox_username, attendance_enabled, attendance_duplicate_interval_seconds, attendance_cashier_history, managed_locally, split_primary_currency, split_primary_first, split_primary_step, oversell_mode, close_shift_requires_sync, salesperson_per_invoice_required, non_admin_month_nav_enabled, opening_float_enabled, count_opening_cash_on_close, overchange_confirmation, page_unlock_products, hide_payment_method_currency, auto_append_lbp_zeros, auto_close_stale_shifts, visitor_counter_enabled, shift_receipt_upload_mode, branch_phone, max_overpayment_cents, default_opening_float_usd, default_opening_float_lbp, display_prefs, scan_by_code_enabled, sounds_enabled, attendance_manager_approval_enabled, shift_report_signatures, shift_report_uppercase_header, auto_cover_negative_lbp, product_search_code_only, price_edit_restricted, price_edit_codes, unknown_product_barcode, product_search_hidden_fields
+RETURNING branch_id, branch_name, tax_rate, rounding_mode, rounding_currency, exchange_rate, exchange_window_hours, market_name, market_phone, market_description, return_policy, website, instagram, social_platforms, social_handles, updated_at, search_button_enabled, custom_item_discounts_enabled, custom_item_prices_enabled, per_unit_item_prices_enabled, price_change_manual_override_mode, invoice_keyboard_mode, client_required, page_unlock_clients, page_unlock_inventory, page_unlock_transfers, page_unlock_attendance, page_unlock_salespersons, printer_size, receipt_width, receipt_height, receipt_enabled, receipt_font, receipt_body_font, receipt_title_size, receipt_body_size, receipt_cutoff, printer_id, receipt_printer, screen_port, akuvox_ip, akuvox_username, attendance_enabled, attendance_duplicate_interval_seconds, attendance_cashier_history, managed_locally, split_primary_currency, split_primary_first, split_primary_step, oversell_mode, close_shift_requires_sync, salesperson_per_invoice_required, non_admin_month_nav_enabled, opening_float_enabled, count_opening_cash_on_close, overchange_confirmation, page_unlock_products, hide_payment_method_currency, auto_append_lbp_zeros, auto_close_stale_shifts, visitor_counter_enabled, shift_receipt_upload_mode, branch_phone, max_overpayment_cents, default_opening_float_usd, default_opening_float_lbp, display_prefs, scan_by_code_enabled, sounds_enabled, attendance_manager_approval_enabled, shift_report_signatures, shift_report_uppercase_header, auto_cover_negative_lbp, product_search_code_only, price_edit_restricted, price_edit_codes, unknown_product_barcode, product_search_hidden_fields, receipt_theme, receipt_layout
 `
 
 type SetBranchSettingsManagedLocallyParams struct {
@@ -198,6 +200,8 @@ func (q *Queries) SetBranchSettingsManagedLocally(ctx context.Context, arg SetBr
 		&i.PriceEditCodes,
 		&i.UnknownProductBarcode,
 		&i.ProductSearchHiddenFields,
+		&i.ReceiptTheme,
+		&i.ReceiptLayout,
 	)
 	return i, err
 }
@@ -280,13 +284,15 @@ INSERT INTO branch_settings (
   price_edit_codes,
   unknown_product_barcode,
   product_search_hidden_fields,
+  receipt_theme,
+  receipt_layout,
   updated_at
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
   $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27,
   $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39,
   $40, $41, $42, $43, $44, $45, $46, $47, $48, $49,
-  $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, now()
+  $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, now()
 )
 ON CONFLICT (branch_id) DO UPDATE SET
   branch_name = EXCLUDED.branch_name,
@@ -364,8 +370,10 @@ ON CONFLICT (branch_id) DO UPDATE SET
   price_edit_codes = EXCLUDED.price_edit_codes,
   unknown_product_barcode = EXCLUDED.unknown_product_barcode,
   product_search_hidden_fields = EXCLUDED.product_search_hidden_fields,
+  receipt_theme = EXCLUDED.receipt_theme,
+  receipt_layout = EXCLUDED.receipt_layout,
   updated_at = now()
-RETURNING branch_id, branch_name, tax_rate, rounding_mode, rounding_currency, exchange_rate, exchange_window_hours, market_name, market_phone, market_description, return_policy, website, instagram, social_platforms, social_handles, updated_at, search_button_enabled, custom_item_discounts_enabled, custom_item_prices_enabled, per_unit_item_prices_enabled, price_change_manual_override_mode, invoice_keyboard_mode, client_required, page_unlock_clients, page_unlock_inventory, page_unlock_transfers, page_unlock_attendance, page_unlock_salespersons, printer_size, receipt_width, receipt_height, receipt_enabled, receipt_font, receipt_body_font, receipt_title_size, receipt_body_size, receipt_cutoff, printer_id, receipt_printer, screen_port, akuvox_ip, akuvox_username, attendance_enabled, attendance_duplicate_interval_seconds, attendance_cashier_history, managed_locally, split_primary_currency, split_primary_first, split_primary_step, oversell_mode, close_shift_requires_sync, salesperson_per_invoice_required, non_admin_month_nav_enabled, opening_float_enabled, count_opening_cash_on_close, overchange_confirmation, page_unlock_products, hide_payment_method_currency, auto_append_lbp_zeros, auto_close_stale_shifts, visitor_counter_enabled, shift_receipt_upload_mode, branch_phone, max_overpayment_cents, default_opening_float_usd, default_opening_float_lbp, display_prefs, scan_by_code_enabled, sounds_enabled, attendance_manager_approval_enabled, shift_report_signatures, shift_report_uppercase_header, auto_cover_negative_lbp, product_search_code_only, price_edit_restricted, price_edit_codes, unknown_product_barcode, product_search_hidden_fields
+RETURNING branch_id, branch_name, tax_rate, rounding_mode, rounding_currency, exchange_rate, exchange_window_hours, market_name, market_phone, market_description, return_policy, website, instagram, social_platforms, social_handles, updated_at, search_button_enabled, custom_item_discounts_enabled, custom_item_prices_enabled, per_unit_item_prices_enabled, price_change_manual_override_mode, invoice_keyboard_mode, client_required, page_unlock_clients, page_unlock_inventory, page_unlock_transfers, page_unlock_attendance, page_unlock_salespersons, printer_size, receipt_width, receipt_height, receipt_enabled, receipt_font, receipt_body_font, receipt_title_size, receipt_body_size, receipt_cutoff, printer_id, receipt_printer, screen_port, akuvox_ip, akuvox_username, attendance_enabled, attendance_duplicate_interval_seconds, attendance_cashier_history, managed_locally, split_primary_currency, split_primary_first, split_primary_step, oversell_mode, close_shift_requires_sync, salesperson_per_invoice_required, non_admin_month_nav_enabled, opening_float_enabled, count_opening_cash_on_close, overchange_confirmation, page_unlock_products, hide_payment_method_currency, auto_append_lbp_zeros, auto_close_stale_shifts, visitor_counter_enabled, shift_receipt_upload_mode, branch_phone, max_overpayment_cents, default_opening_float_usd, default_opening_float_lbp, display_prefs, scan_by_code_enabled, sounds_enabled, attendance_manager_approval_enabled, shift_report_signatures, shift_report_uppercase_header, auto_cover_negative_lbp, product_search_code_only, price_edit_restricted, price_edit_codes, unknown_product_barcode, product_search_hidden_fields, receipt_theme, receipt_layout
 `
 
 type UpsertBranchSettingsParams struct {
@@ -445,6 +453,8 @@ type UpsertBranchSettingsParams struct {
 	PriceEditCodes                     string          `json:"price_edit_codes"`
 	UnknownProductBarcode              string          `json:"unknown_product_barcode"`
 	ProductSearchHiddenFields          string          `json:"product_search_hidden_fields"`
+	ReceiptTheme                       string          `json:"receipt_theme"`
+	ReceiptLayout                      string          `json:"receipt_layout"`
 }
 
 func (q *Queries) UpsertBranchSettings(ctx context.Context, arg UpsertBranchSettingsParams) (BranchSetting, error) {
@@ -525,6 +535,8 @@ func (q *Queries) UpsertBranchSettings(ctx context.Context, arg UpsertBranchSett
 		arg.PriceEditCodes,
 		arg.UnknownProductBarcode,
 		arg.ProductSearchHiddenFields,
+		arg.ReceiptTheme,
+		arg.ReceiptLayout,
 	)
 	var i BranchSetting
 	err := row.Scan(
@@ -606,6 +618,8 @@ func (q *Queries) UpsertBranchSettings(ctx context.Context, arg UpsertBranchSett
 		&i.PriceEditCodes,
 		&i.UnknownProductBarcode,
 		&i.ProductSearchHiddenFields,
+		&i.ReceiptTheme,
+		&i.ReceiptLayout,
 	)
 	return i, err
 }

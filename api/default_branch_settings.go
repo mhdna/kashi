@@ -50,6 +50,10 @@ type defaultBranchSettings struct {
 	ReceiptTitleSize float64 `json:"receipt_title_size"`
 	ReceiptBodySize  float64 `json:"receipt_body_size"`
 	ReceiptCutoff    bool    `json:"receipt_cutoff"`
+	// The printed invoice's look. Empty (a template saved before this
+	// existed) leaves each branch's own look alone when applied to all.
+	ReceiptTheme  string `json:"receipt_theme,omitempty"`
+	ReceiptLayout string `json:"receipt_layout,omitempty"`
 
 	AttendanceEnabled                  bool  `json:"attendance_enabled"`
 	AttendanceDuplicateIntervalSeconds int64 `json:"attendance_duplicate_interval_seconds"`
