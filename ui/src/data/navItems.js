@@ -5,6 +5,8 @@ export const navItems = [
   { title: 'Unknown Items', icon: 'mdi-help-box-outline', to: '/unknown-items' },
   { title: 'Shifts', icon: 'mdi-clock-outline', to: '/shifts' },
   { title: 'WhatsApp & Reviews', icon: 'mdi-whatsapp', to: '/whatsapp', append: 'whatsapp-status' },
+  { title: 'Clients', icon: 'mdi-account', to: '/clients' },
+  { title: 'Loyalty', icon: 'mdi-trophy', to: '/loyalty' },
   { title: 'Emails', icon: 'mdi-email-outline', to: '/emails' },
   {
     title: 'Analysis',
@@ -20,14 +22,6 @@ export const navItems = [
       { title: 'Sales Analysis', icon: 'mdi-chart-box-outline', to: '/sales-analysis' },
       { title: 'Financials', icon: 'mdi-currency-usd', to: '/financials' },
       { title: 'Sales Dashboard', icon: 'mdi-view-dashboard', to: '/sales-dashboard' },
-    ],
-  },
-  {
-    title: 'Customers',
-    icon: 'mdi-cart',
-    children: [
-      { title: 'Clients', icon: 'mdi-account', to: '/clients' },
-      { title: 'Loyalty', icon: 'mdi-trophy', to: '/loyalty' },
     ],
   },
   {
