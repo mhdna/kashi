@@ -401,6 +401,6 @@
   width: 100%;
 }
 .chart--heat {
-  height: 300px;
+  height: 200px;
 }
 </style>
