@@ -105,11 +105,12 @@ WHERE sqlc.narg(client_type)::text IS NULL OR client_type = sqlc.narg(client_typ
 -- invoices.grand_total is always stored as a positive magnitude regardless
 -- of kind, see ReturnInvoiceTx) and branch-reported sales
 -- (branch_invoices.grand_total, which already carries the correct net sign
--- -- see ListDailyIncome). sqlc.narg(branch_id) scopes to one branch's
--- till; central admin invoices aren't attributed to any branch, so they're
--- excluded entirely once a single branch is selected (an "All Branches"
+-- -- see ListDailyIncome). sqlc.arg(branch_ids) scopes to one branch's
+-- till (or several, via the branch_ids array; empty means every branch);
+-- central admin invoices aren't attributed to any branch, so they're
+-- excluded entirely once any branch is selected (an "All Branches"
 -- view is the only one where they belong). invoice_count/item_count follow
--- the same all-or-one-branch rule for consistency with total_spent.
+-- the same all-or-selected-branches rule for consistency with total_spent.
 -- invoice_count/item_count are computed in the `ranked` CTE rather than as
 -- plain SELECT-list aliases so the ORDER BY's CASE expression can actually
 -- reference them: Postgres only resolves an output alias in ORDER BY when
@@ -121,15 +122,15 @@ WITH ranked AS (
   SELECT
     c.*,
     (
-      CASE WHEN sqlc.narg(branch_id)::bigint IS NULL THEN COALESCE(ci.central_total, 0) ELSE 0 END
+      CASE WHEN COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 THEN COALESCE(ci.central_total, 0) ELSE 0 END
       + COALESCE(bi.branch_total, 0)
     )::bigint AS total_spent,
     (
-      CASE WHEN sqlc.narg(branch_id)::bigint IS NULL THEN COALESCE(ci.central_invoice_count, 0) ELSE 0 END
+      CASE WHEN COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 THEN COALESCE(ci.central_invoice_count, 0) ELSE 0 END
       + COALESCE(bi.branch_invoice_count, 0)
     )::bigint AS invoice_count,
     (
-      CASE WHEN sqlc.narg(branch_id)::bigint IS NULL THEN COALESCE(ci.central_item_count, 0) ELSE 0 END
+      CASE WHEN COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 THEN COALESCE(ci.central_item_count, 0) ELSE 0 END
       + COALESCE(bi.branch_item_count, 0)
     )::bigint AS item_count
   FROM clients c
@@ -163,7 +164,7 @@ WITH ranked AS (
       FROM branch_invoice_items
       GROUP BY branch_invoice_id
     ) bii ON bii.branch_invoice_id = b.id
-    WHERE (sqlc.narg(branch_id)::bigint IS NULL OR b.branch_id = sqlc.narg(branch_id))
+    WHERE (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 OR b.branch_id = ANY(sqlc.arg(branch_ids)::bigint[]))
       AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
       AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
       AND b.cancelled_at IS NULL
@@ -271,3 +272,63 @@ WHERE client_type = 'retail'
   AND (updated_at, id) > (sqlc.arg(after_updated_at)::timestamptz, sqlc.arg(after_id)::bigint)
 ORDER BY updated_at, id
 LIMIT sqlc.arg(row_limit);
+
+-- name: ListClientsForExport :many
+-- Feeds the clients CSV export. branch_ids (empty = every branch) and the
+-- [date_from, date_to) window (either bound optional) both narrow which
+-- invoices count, and once either is set only clients with at least one
+-- such invoice are returned -- "the clients who came to these branches in
+-- this period". With neither set it is every client, spend or not. The
+-- spend/invoice figures are for that same scope, not lifetime. Central
+-- admin invoices have no branch, so selecting a branch leaves them out,
+-- the same rule as ListClientsBySpending. Cancelled and hidden-from-reports
+-- branch invoices are skipped as everywhere else.
+WITH central AS (
+  SELECT i.client_id,
+    SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END) AS total,
+    COUNT(*) AS invoice_count,
+    MAX(i.created_at) AS last_visit
+  FROM invoices i
+  LEFT JOIN sales_invoices si ON si.invoice_id = i.id
+  WHERE COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0
+    AND (sqlc.narg(date_from)::timestamptz IS NULL OR i.created_at >= sqlc.narg(date_from)::timestamptz)
+    AND (sqlc.narg(date_to)::timestamptz IS NULL OR i.created_at < sqlc.narg(date_to)::timestamptz)
+  GROUP BY i.client_id
+), branch AS (
+  SELECT cl.client_id,
+    SUM(b.grand_total) AS total,
+    COUNT(*) AS invoice_count,
+    MAX(b.occurred_at) AS last_visit
+  FROM branch_invoices b
+  JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
+  WHERE (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 OR b.branch_id = ANY(sqlc.arg(branch_ids)::bigint[]))
+    AND (sqlc.narg(date_from)::timestamptz IS NULL OR b.occurred_at >= sqlc.narg(date_from)::timestamptz)
+    AND (sqlc.narg(date_to)::timestamptz IS NULL OR b.occurred_at < sqlc.narg(date_to)::timestamptz)
+    AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+    AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+    AND b.cancelled_at IS NULL
+  GROUP BY cl.client_id
+)
+SELECT
+  c.id,
+  c.name,
+  c.phone,
+  c.client_type,
+  c.is_active,
+  c.created_at,
+  c.valid_loyalty_points,
+  (COALESCE(ce.total, 0) + COALESCE(br.total, 0))::bigint AS total_spent,
+  (COALESCE(ce.invoice_count, 0) + COALESCE(br.invoice_count, 0))::bigint AS invoice_count,
+  -- Epoch stands in for "never" so the column stays non-null.
+  COALESCE(GREATEST(ce.last_visit, br.last_visit), 'epoch'::timestamptz)::timestamptz AS last_visit
+FROM clients c
+LEFT JOIN central ce ON ce.client_id = c.id
+LEFT JOIN branch br ON br.client_id = c.id
+WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type))
+  AND (
+    (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0
+      AND sqlc.narg(date_from)::timestamptz IS NULL
+      AND sqlc.narg(date_to)::timestamptz IS NULL)
+    OR COALESCE(ce.invoice_count, 0) + COALESCE(br.invoice_count, 0) > 0
+  )
+ORDER BY c.name ASC, c.id ASC;

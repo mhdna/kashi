@@ -33,6 +33,77 @@
     </v-card>
   </v-dialog>
 
+  <v-dialog v-model="exportDialog" max-width="520">
+    <v-card>
+      <v-card-title>Export Clients to CSV</v-card-title>
+      <v-card-text>
+        <div class="text-caption text-medium-emphasis mb-1">Fields</div>
+        <div class="d-flex flex-wrap mb-2">
+          <v-checkbox
+            v-for="field in exportFieldOptions"
+            :key="field.value"
+            v-model="exportFields"
+            density="compact"
+            hide-details
+            :label="field.title"
+            style="flex: 0 0 50%"
+            :value="field.value"
+          />
+        </div>
+
+        <v-select
+          v-model="exportBranchIds"
+          chips
+          clearable
+          closable-chips
+          density="compact"
+          hide-details
+          item-title="name"
+          item-value="id"
+          :items="branches"
+          label="Branches (empty = all)"
+          multiple
+          variant="outlined"
+        />
+
+        <div class="d-flex ga-2 mt-3">
+          <v-text-field
+            v-model="exportFrom"
+            density="compact"
+            hide-details
+            label="Came from"
+            type="date"
+            variant="outlined"
+          />
+          <v-text-field
+            v-model="exportTo"
+            density="compact"
+            hide-details
+            label="Came until"
+            type="date"
+            variant="outlined"
+          />
+        </div>
+        <div class="text-caption text-medium-emphasis mt-2">
+          With branches or dates set, only {{ tab }} clients with an invoice there in that
+          period are exported, and Total spent / Invoices count just that period. Leave both
+          empty to export every {{ tab }} client.
+        </div>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn text="Cancel" @click="exportDialog = false" />
+        <v-btn
+          color="primary"
+          :disabled="exportFields.length === 0"
+          :loading="exporting"
+          text="Export"
+          @click="exportCsv"
+        />
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
   <v-dialog v-model="deleteDialog" max-width="420">
     <v-card>
       <v-card-title>Delete Client</v-card-title>
@@ -69,19 +140,30 @@
           </v-btn>
         </template>
         <v-list>
-          <v-list-item :active="selectedBranchId === null" @click="selectedBranchId = null">
+          <v-list-item :active="selectedBranchIds.length === 0" @click="selectedBranchIds = []">
             <v-list-item-title>All Branches</v-list-item-title>
           </v-list-item>
           <v-list-item
             v-for="branch in branches"
             :key="branch.id"
-            :active="selectedBranchId === branch.id"
-            @click="selectedBranchId = branch.id"
+            :active="selectedBranchIds.includes(branch.id)"
+            @click="toggleBranch(branch.id)"
           >
+            <template #prepend>
+              <v-icon v-if="selectedBranchIds.includes(branch.id)" icon="mdi-check" size="small" />
+            </template>
             <v-list-item-title>{{ branch.name }}</v-list-item-title>
           </v-list-item>
         </v-list>
       </v-menu>
+      <v-btn
+        prepend-icon="mdi-file-delimited-outline"
+        rounded="lg"
+        style="border-color: rgb(var(--v-theme-surface-light));"
+        text="Export CSV"
+        variant="outlined"
+        @click="openExport"
+      />
       <v-btn
         v-if="canEdit"
         color="primary"
@@ -95,7 +177,7 @@
   <ClientLoyaltyBoard
     :key="tab"
     ref="boardRef"
-    :branch-id="selectedBranchId"
+    :branch-ids="selectedBranchIds"
     :client-type="tab"
     @delete="openDelete"
     @edit="openEdit"
@@ -108,10 +190,12 @@
   import { useField, useForm } from 'vee-validate'
   import { computed, onMounted, ref } from 'vue'
   import ClientLoyaltyBoard from '@/components/Clients/ClientLoyaltyBoard.vue'
+  import { authFetch } from '@/composables/useApi'
   import { useBranches } from '@/composables/useBranches'
   import { useClients } from '@/composables/useClients'
-  import { usePageAccess } from '@/composables/usePageAccess'
   import { useNotify } from '@/composables/useNotify'
+  import { usePageAccess } from '@/composables/usePageAccess'
+  import { API_BASE } from '@/config'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
@@ -122,11 +206,80 @@
 
   onMounted(() => fetchBranches())
 
-  const selectedBranchId = ref(null)
+  const selectedBranchIds = ref([])
   const selectedBranchLabel = computed(() => {
-    if (selectedBranchId.value === null) return 'All Branches'
-    return branches.value.find(b => b.id === selectedBranchId.value)?.name ?? 'All Branches'
+    if (selectedBranchIds.value.length === 0) return 'All Branches'
+    if (selectedBranchIds.value.length === 1) {
+      return branches.value.find(b => b.id === selectedBranchIds.value[0])?.name ?? 'All Branches'
+    }
+    return `${selectedBranchIds.value.length} Branches`
   })
+
+  function toggleBranch (id) {
+    selectedBranchIds.value = selectedBranchIds.value.includes(id)
+      ? selectedBranchIds.value.filter(b => b !== id)
+      : [...selectedBranchIds.value, id]
+  }
+
+  // ---- CSV export ----------------------------------------------------------
+  const exportFieldOptions = [
+    { title: 'Name', value: 'name' },
+    { title: 'Phone', value: 'phone' },
+    { title: 'Type', value: 'client_type' },
+    { title: 'Status', value: 'status' },
+    { title: 'Member since', value: 'created_at' },
+    { title: 'Loyalty points', value: 'loyalty' },
+    { title: 'Total spent', value: 'total_spent' },
+    { title: 'Invoices', value: 'invoices' },
+    { title: 'Last visit', value: 'last_visit' },
+  ]
+  const exportDialog = ref(false)
+  const exporting = ref(false)
+  const exportFields = ref(['name', 'phone'])
+  const exportBranchIds = ref([])
+  const exportFrom = ref('')
+  const exportTo = ref('')
+
+  function openExport () {
+    // Start from the branches already filtered on the page.
+    exportBranchIds.value = [...selectedBranchIds.value]
+    exportDialog.value = true
+  }
+
+  async function exportCsv () {
+    exporting.value = true
+    try {
+      const params = new URLSearchParams()
+      params.set('client_type', tab.value)
+      // Keep the checkbox order stable rather than click order.
+      params.set('fields', exportFieldOptions.map(f => f.value).filter(v => exportFields.value.includes(v)).join(','))
+      for (const id of exportBranchIds.value) params.append('branch_ids', id)
+      // Local-midnight bounds, [from, day after to): "until" is inclusive.
+      if (exportFrom.value) params.set('from', new Date(`${exportFrom.value}T00:00:00`).toISOString())
+      if (exportTo.value) {
+        const end = new Date(`${exportTo.value}T00:00:00`)
+        end.setDate(end.getDate() + 1)
+        params.set('to', end.toISOString())
+      }
+
+      const res = await authFetch(`${API_BASE}/clients/export?${params}`)
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error || `Export failed with status ${res.status}`)
+      }
+      const url = URL.createObjectURL(await res.blob())
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `clients-${tab.value}.csv`
+      link.click()
+      URL.revokeObjectURL(url)
+      exportDialog.value = false
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      exporting.value = false
+    }
+  }
 
   const tab = ref('retail')
   const boardRef = ref(null)
