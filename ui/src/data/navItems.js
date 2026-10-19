@@ -101,6 +101,7 @@ export const navItems = [
       { title: 'Stock Counts', icon: 'mdi-clipboard-list-outline', to: '/stock-counts' },
       { title: 'Stock Movements', icon: 'mdi-swap-vertical', to: '/stock-movements' },
       { title: 'Barcodes', icon: 'mdi-barcode', to: '/barcodes' },
+      { title: 'Barcode Designer', icon: 'mdi-palette', to: '/barcode-designer' },
       { title: 'Assets', icon: 'mdi-hammer-wrench', to: '/assets' },
     ],
   },

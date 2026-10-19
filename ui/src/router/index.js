@@ -54,6 +54,7 @@ const routes = [
   { path: '/attributes', component: () => import('@/pages/attributes.vue'), meta: { title: 'Attributes', section: 'products', page: 'attributes' } },
   { path: '/autofill-rules', component: () => import('@/pages/autofill-rules.vue'), meta: { title: 'Auto-fill Rules', section: 'products', page: 'autofill-rules' } },
   { path: '/barcodes', component: () => import('@/pages/barcodes.vue'), meta: { title: 'Barcodes', section: 'products', page: 'barcodes' } },
+  { path: '/barcode-designer', component: () => import('@/pages/barcode-designer.vue'), meta: { title: 'Barcode Designer', section: 'products', page: 'barcode-designer' } },
   { path: '/assets', component: () => import('@/pages/assets.vue'), meta: { title: 'Assets', section: 'accounting', page: 'assets' } },
 
   { path: '/invoices', component: () => import('@/pages/sales-invoices.vue'), meta: { title: 'Invoices', section: 'sales', page: 'invoices' } },

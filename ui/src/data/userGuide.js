@@ -682,6 +682,14 @@ export const guideSections = [
       'Label size is set in the dialog (72 points = 1 inch).',
     ]),
 
+  entry('barcode-designer', 'Stock', 'Barcode Designer',
+    'Choose how the barcode labels look.',
+    [
+      'Pick a <b>theme</b>, then change anything by hand: which parts show, their size and position, the font and the alignment.',
+      'The picture beside the controls is the real label. <b>Save</b> to use the design on every label you print from Barcodes.',
+      '<b>Reset to theme</b> goes back to the theme you started from. The Classic theme is the original label.',
+    ]),
+
   entry('assets', 'Stock', 'Assets',
     'Things the business owns, like vehicles, equipment and furniture. Each has a name, code, category and purchase date.'),
 
@@ -1012,6 +1020,7 @@ export const guideIcons = {
   'stock-counts': 'mdi-clipboard-list-outline',
   'stock-movements': 'mdi-swap-vertical',
   'barcodes': 'mdi-barcode',
+  'barcode-designer': 'mdi-palette',
   'assets': 'mdi-hammer-wrench',
   'treemaps': 'mdi-view-gallery',
   'branches': 'mdi-store-outline',
