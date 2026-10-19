@@ -304,6 +304,18 @@
                 <v-btn size="small" text="Returning client" :value="false" />
               </v-btn-toggle>
             </div>
+            <!-- The till sends a new client's first message once it has their number. -->
+            <v-switch
+              v-if="draft.whatsapp_channel_first"
+              v-model="draft.whatsapp_welcome_early"
+              class="mb-1"
+              color="primary"
+              density="compact"
+              :disabled="!canEdit"
+              hide-details
+              inset
+              label="Send a new client's first message when the till gets their number, not after checkout"
+            />
             <!-- Details to include; off ones are left out (saved with Save). -->
             <div class="d-flex align-center flex-wrap ga-3 mt-1">
               <span class="text-caption text-medium-emphasis">Include in the message for</span>

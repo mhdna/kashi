@@ -108,6 +108,9 @@ type Querier interface {
 	// Marks the poll's follow-up as sent and says where to send it; no rows when
 	// it already went (a changed vote) or the number is gone.
 	ClaimWhatsAppPollFollowup(ctx context.Context, arg ClaimWhatsAppPollFollowupParams) (ClaimWhatsAppPollFollowupRow, error)
+	// A sale's checkout finds the welcome sent to its client earlier (no invoice
+	// yet, within the last 12 hours) and takes it over, so it isn't messaged twice.
+	ClaimWhatsAppWelcome(ctx context.Context, arg ClaimWhatsAppWelcomeParams) (int64, error)
 	ClearDefaultWhatsAppNumber(ctx context.Context) error
 	ClientPhonesPresent(ctx context.Context, dollar_1 []string) ([]string, error)
 	CloseShift(ctx context.Context, id int64) error

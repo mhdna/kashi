@@ -197,7 +197,7 @@ SELECT whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridg
        whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url,
        whatsapp_poll_question, whatsapp_poll_options, whatsapp_message_logo,
        whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad,
-       whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_delete_for_me,
+       whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_welcome_early, whatsapp_delete_for_me,
        whatsapp_delete_poll_for_me
 FROM app_settings WHERE id = 1
 `
@@ -219,6 +219,7 @@ type GetWhatsAppSenderSettingsRow struct {
 	WhatsappFollowupBad       string `json:"whatsapp_followup_bad"`
 	WhatsappHiddenFields      string `json:"whatsapp_hidden_fields"`
 	WhatsappChannelFirst      bool   `json:"whatsapp_channel_first"`
+	WhatsappWelcomeEarly      bool   `json:"whatsapp_welcome_early"`
 	WhatsappDeleteForMe       bool   `json:"whatsapp_delete_for_me"`
 	WhatsappDeletePollForMe   bool   `json:"whatsapp_delete_poll_for_me"`
 }
@@ -245,6 +246,7 @@ func (q *Queries) GetWhatsAppSenderSettings(ctx context.Context) (GetWhatsAppSen
 		&i.WhatsappFollowupBad,
 		&i.WhatsappHiddenFields,
 		&i.WhatsappChannelFirst,
+		&i.WhatsappWelcomeEarly,
 		&i.WhatsappDeleteForMe,
 		&i.WhatsappDeletePollForMe,
 	)
@@ -421,8 +423,9 @@ UPDATE app_settings SET
     whatsapp_followup_bad = $14,
     whatsapp_hidden_fields = $15,
     whatsapp_channel_first = $16,
-    whatsapp_delete_for_me = $17,
-    whatsapp_delete_poll_for_me = $18,
+    whatsapp_welcome_early = $17,
+    whatsapp_delete_for_me = $18,
+    whatsapp_delete_poll_for_me = $19,
     updated_at = now()
 WHERE id = 1
 `
@@ -444,6 +447,7 @@ type SetWhatsAppSenderSettingsParams struct {
 	WhatsappFollowupBad       string `json:"whatsapp_followup_bad"`
 	WhatsappHiddenFields      string `json:"whatsapp_hidden_fields"`
 	WhatsappChannelFirst      bool   `json:"whatsapp_channel_first"`
+	WhatsappWelcomeEarly      bool   `json:"whatsapp_welcome_early"`
 	WhatsappDeleteForMe       bool   `json:"whatsapp_delete_for_me"`
 	WhatsappDeletePollForMe   bool   `json:"whatsapp_delete_poll_for_me"`
 }
@@ -466,6 +470,7 @@ func (q *Queries) SetWhatsAppSenderSettings(ctx context.Context, arg SetWhatsApp
 		arg.WhatsappFollowupBad,
 		arg.WhatsappHiddenFields,
 		arg.WhatsappChannelFirst,
+		arg.WhatsappWelcomeEarly,
 		arg.WhatsappDeleteForMe,
 		arg.WhatsappDeletePollForMe,
 	)

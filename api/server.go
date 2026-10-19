@@ -583,6 +583,7 @@ func (server *Server) setupRoutes() {
 	branchRoutes.POST("/loans", server.createBranchLoan)
 	branchRoutes.POST("/shift_closes", server.createBranchShiftClose)
 	branchRoutes.POST("/whatsapp/thank_you", server.sendBranchWhatsAppThankYou)
+	branchRoutes.POST("/whatsapp/welcome", server.sendBranchWhatsAppWelcome)
 	branchRoutes.POST("/visitor_events", server.createBranchVisitorEvent)
 	branchRoutes.POST("/visitor_events_batch", server.createBranchVisitorEvents)
 	branchRoutes.POST("/invoice_settlements", server.createBranchInvoiceSettlement)
