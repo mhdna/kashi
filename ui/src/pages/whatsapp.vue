@@ -14,7 +14,7 @@
       <v-spacer />
       <!-- Hidden, not removed, on Rules: the header keeps its height so the
            tabs don't jump when switching. -->
-      <div class="d-flex align-center flex-wrap ga-3" :class="{ 'wa__filters--hidden': tab === 'rules' || tab === 'health' }">
+      <div class="d-flex align-center flex-wrap ga-3" :class="{ 'wa__filters--hidden': tab === 'rules' || tab === 'health' || tab === 'inbox' }">
         <v-select
           v-model="preset"
           density="compact"
@@ -41,6 +41,7 @@
     <v-tabs v-model="tab" class="flex-shrink-0 px-4" color="primary" density="compact">
       <v-tab prepend-icon="mdi-view-dashboard" text="Dashboard" value="overview" />
       <v-tab prepend-icon="mdi-format-list-bulleted" text="Messages" value="messages" />
+      <v-tab prepend-icon="mdi-forum" text="Inbox" value="inbox" />
       <v-tab prepend-icon="mdi-reply" text="Replies" value="replies" />
       <v-tab prepend-icon="mdi-filter-variant" text="Rules" value="rules" />
       <v-tab prepend-icon="mdi-heart-pulse" value="health">
@@ -86,6 +87,10 @@
         :refresh-key="refreshKey"
         :to="range.to"
       />
+      <WhatsAppInbox
+        v-else-if="tab === 'inbox'"
+        :refresh-key="refreshKey"
+      />
       <WhatsAppReplies
         v-else-if="tab === 'replies'"
         :branch-id="branchId"
@@ -112,6 +117,7 @@
   import { useRoute, useRouter } from 'vue-router'
   import ReviewsDashboard from '@/components/Reviews/ReviewsDashboard.vue'
   import WhatsAppHealth from '@/components/WhatsApp/WhatsAppHealth.vue'
+  import WhatsAppInbox from '@/components/WhatsApp/WhatsAppInbox.vue'
   import WhatsAppMessages from '@/components/WhatsApp/WhatsAppMessages.vue'
   import WhatsAppOverview from '@/components/WhatsApp/WhatsAppOverview.vue'
   import WhatsAppReplies from '@/components/WhatsApp/WhatsAppReplies.vue'
@@ -128,7 +134,7 @@
 
   // The open tab, kept in the address (?tab=) so a link or a reload opens it;
   // the old Reviews page lands on ?tab=reviews.
-  const TABS = ['overview', 'messages', 'replies', 'rules', 'health']
+  const TABS = ['overview', 'messages', 'inbox', 'replies', 'rules', 'health']
   const route = useRoute()
   const router = useRouter()
   // Reviews are part of the dashboard now; an old ?tab=reviews link lands there.
@@ -209,7 +215,7 @@
   // after a busy minute reloads once.
   const { ensureConnected, onMessage } = useAdminSocket()
   let unsubscribe = null
-  const LIVE_TYPES = new Set(['whatsapp_message', 'review_click', 'google_reviews'])
+  const LIVE_TYPES = new Set(['whatsapp_message', 'whatsapp_chat', 'review_click', 'google_reviews'])
   let liveTimer = 0
   let pollTimer = 0
   onMounted(async () => {

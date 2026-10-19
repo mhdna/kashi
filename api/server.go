@@ -223,6 +223,10 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/whatsapp/messages", server.listWhatsAppMessages)
 	authRoutes.GET("/whatsapp/messages/:id/conversation", server.getWhatsAppConversation)
 	authRoutes.GET("/whatsapp/poll_replies/:id/media", server.getWhatsAppReplyMedia)
+	// The Inbox: every message on our own numbers (whatsapp_chat.go).
+	authRoutes.GET("/whatsapp/chats", server.listWhatsAppChats)
+	authRoutes.GET("/whatsapp/chats/:phone", server.getWhatsAppChat)
+	authRoutes.GET("/whatsapp/chat_messages/:id/media", server.getWhatsAppChatMedia)
 	authRoutes.GET("/salesperson_performance", server.getSalespersonPerformance)
 	authRoutes.GET("/whatsapp/clients", server.listWhatsAppClients)
 	authRoutes.GET("/whatsapp/replies", server.listWhatsAppReplies)
@@ -316,6 +320,7 @@ func (server *Server) setupRoutes() {
 	// Votes on the rating poll, from the WhatsApp bridge on this server
 	// (whatsapp_poll.go); it signs with its API key.
 	router.POST(whatsAppPollVotesPath, server.receiveWhatsAppPollVote)
+	router.POST(whatsAppChatPath, server.receiveWhatsAppChatMessage)
 	router.POST("/tokens/renew_access", server.renewAccessToken)
 	authRoutes.POST("/users", server.createUser)
 	authRoutes.GET("/users/online", server.listOnlineUsers)
