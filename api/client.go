@@ -197,6 +197,7 @@ func (server *Server) listClientsBySpending(ctx *gin.Context) {
 	}
 
 	total, err := server.store.CountClientsBySpending(ctx, db.CountClientsBySpendingParams{
+		BranchIds:  req.BranchIDs,
 		ClientType: clientType,
 		Search:     search,
 	})

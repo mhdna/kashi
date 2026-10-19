@@ -172,6 +172,10 @@ WITH ranked AS (
   ) bi ON bi.client_id = c.id
   WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type))
     AND (sqlc.narg(search)::text IS NULL OR c.name ILIKE '%' || sqlc.narg(search)::text || '%' OR c.phone ILIKE '%' || sqlc.narg(search)::text || '%')
+    -- With a branch picked, only its clients: home branch or bought there.
+    AND (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0
+      OR c.branch_id = ANY(sqlc.arg(branch_ids)::bigint[])
+      OR bi.client_id IS NOT NULL)
 )
 SELECT *
 FROM ranked
@@ -187,12 +191,23 @@ OFFSET $2;
 
 -- name: CountClientsBySpending :one
 -- Same filters as ListClientsBySpending, minus the spend computation --
--- used for the rest-of-clients table's pagination total. Deliberately
--- ignores branch_id: the count of matching clients doesn't change with
--- which branch's sales are being summed, only who qualifies by type/search.
+-- used for the rest-of-clients table's pagination total. With a branch
+-- picked it counts that branch's clients: home branch, or a branch invoice
+-- there (same cancelled/hidden rules as the list).
 SELECT COUNT(*) FROM clients c
 WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type))
-  AND (sqlc.narg(search)::text IS NULL OR c.name ILIKE '%' || sqlc.narg(search)::text || '%' OR c.phone ILIKE '%' || sqlc.narg(search)::text || '%');
+  AND (sqlc.narg(search)::text IS NULL OR c.name ILIKE '%' || sqlc.narg(search)::text || '%' OR c.phone ILIKE '%' || sqlc.narg(search)::text || '%')
+  AND (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0
+    OR c.branch_id = ANY(sqlc.arg(branch_ids)::bigint[])
+    OR c.id IN (
+      SELECT cl.client_id
+      FROM branch_invoices b
+      JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
+      WHERE b.branch_id = ANY(sqlc.arg(branch_ids)::bigint[])
+        AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+        AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+        AND b.cancelled_at IS NULL
+    ));
 
 -- name: ListClientSpendingSummary :many
 -- Whole-population feed for the loyalty page, which buckets every client
