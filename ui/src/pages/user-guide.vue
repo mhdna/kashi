@@ -154,14 +154,14 @@
   const previous = computed(() => visible.value[index.value - 1] ?? null)
   const next = computed(() => visible.value[index.value + 1] ?? null)
 
-  // Which groups are expanded. The open page's group is always expanded, and
-  // searching expands every group that has a match.
+  // Which groups are expanded. Like the side menu, going to a page in another
+  // group folds the others shut and opens that one (a group can still be
+  // opened or closed by hand); searching expands every group with a match.
   const opened = ref([])
   watch([selectedId, search], () => {
-    const groups = search.value
+    opened.value = search.value
       ? tree.value.map(g => g.name)
       : [current.value?.group].filter(Boolean)
-    opened.value = [...new Set([...opened.value, ...groups])]
   }, { immediate: true })
 
   // Each page opens at the top.
