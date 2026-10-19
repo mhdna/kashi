@@ -121,13 +121,17 @@ func TestWaiveUnknownItemSlots_OnlyUnpicturedUnits(t *testing.T) {
 
 	waiting, err := testQueries.ListWaitingUnknownItems(ctx)
 	require.NoError(t, err)
-	var waitingIDs []int64
+	var shownIDs, missingIDs []int64
 	for _, w := range waiting {
 		if w.SessionID == session.ID {
-			waitingIDs = append(waitingIDs, w.ID)
+			shownIDs = append(shownIDs, w.ID)
+			if !w.ImageID.Valid && !w.WaivedAt.Valid {
+				missingIDs = append(missingIDs, w.ID)
+			}
 		}
 	}
-	require.Equal(t, []int64{slots[1].ID}, waitingIDs, "only the unit with no picture waits")
+	require.Equal(t, []int64{slots[0].ID, slots[1].ID}, shownIDs, "the pictured unit is shown next to the one still missing")
+	require.Equal(t, []int64{slots[1].ID}, missingIDs, "only the unit with no picture is missing")
 
 	n, err := testQueries.WaiveUnknownItemSlots(ctx, WaiveUnknownItemSlotsParams{Column1: []int64{slots[0].ID, slots[1].ID}, WaivedBy: "boss"})
 	require.NoError(t, err)

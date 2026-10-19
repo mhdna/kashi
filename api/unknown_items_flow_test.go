@@ -138,7 +138,7 @@ func TestUnknownItemsFlow(t *testing.T) {
 	require.NoError(t, err)
 	var third int64
 	for _, w := range waiting {
-		if w.BranchID == branch.Branch.ID {
+		if w.BranchID == branch.Branch.ID && !w.ImageID.Valid && !w.WaivedAt.Valid {
 			third = w.ID
 			require.True(t, w.HelpRequestedAt.Valid)
 		}

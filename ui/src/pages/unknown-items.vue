@@ -32,7 +32,7 @@
       <v-divider />
 
       <v-card-text>
-        <p class="text-body-2 text-medium-emphasis mb-4">
+        <p v-if="view !== 'waiting'" class="text-body-2 text-medium-emphasis mb-4">
           Items a till sold without a code, with the picture its cashier took. Select the units that are the
           same product, pick the product, and the sold lines are relabelled and the stock is taken.
         </p>
@@ -49,8 +49,19 @@
               :key="unit.id"
               @click="toggleWaiting(unit)"
             >
-              <template v-if="canWaive" #prepend>
-                <v-checkbox-btn density="compact" :model-value="selectedWaiting.includes(unit.id)" @click.stop="toggleWaiting(unit)" />
+              <template #prepend>
+                <v-checkbox-btn
+                  v-if="canWaive && isMissing(unit)"
+                  density="compact"
+                  :model-value="selectedWaiting.includes(unit.id)"
+                  @click.stop="toggleWaiting(unit)"
+                />
+                <v-avatar class="ms-1 me-3" color="surface-variant" rounded="lg" size="56">
+                  <img v-if="unit.image_id && thumbs[unit.image_id]" alt="" :src="thumbs[unit.image_id]" @click.stop="preview = unit.image_id">
+                  <v-icon v-else-if="isMissing(unit)" icon="mdi-timer-sand" />
+                  <v-icon v-else-if="unit.waived_at" icon="mdi-check" />
+                  <v-progress-circular v-else indeterminate size="20" width="2" />
+                </v-avatar>
               </template>
               <v-list-item-title>
                 {{ unit.branch_name }} · {{ unit.label || 'Unknown item' }}
@@ -62,7 +73,10 @@
                   variant="flat"
                 >asked for help</v-chip>
               </v-list-item-title>
-              <v-list-item-subtitle>{{ formatAmount(unit.unit_price) }} · {{ formatWhen(unit.created_at) }}</v-list-item-subtitle>
+              <v-list-item-subtitle>
+                {{ formatAmount(unit.unit_price) }} · {{ formatWhen(unit.created_at) }} ·
+                {{ unit.image_id ? 'picture taken' : unit.waived_at ? 'allowed without a picture' : 'no picture yet' }}
+              </v-list-item-subtitle>
             </v-list-item>
           </v-list>
         </template>
@@ -223,8 +237,14 @@
       : [...selected.value, item.id]
   }
 
+  // A unit still needs a picture or a pass (pictured and allowed ones are
+  // listed too, for context).
+  function isMissing (unit) {
+    return !unit.image_id && !unit.waived_at
+  }
+
   function toggleWaiting (unit) {
-    if (!canWaive.value) return
+    if (!canWaive.value || !isMissing(unit)) return
     selectedWaiting.value = selectedWaiting.value.includes(unit.id)
       ? selectedWaiting.value.filter(id => id !== unit.id)
       : [...selectedWaiting.value, unit.id]
@@ -233,7 +253,8 @@
   async function loadWaiting () {
     try {
       waiting.value = await fetchWaiting()
-      waitingCount.value = waiting.value.length
+      waitingCount.value = waiting.value.filter(unit => isMissing(unit)).length
+      loadThumbs(waiting.value)
       selectedWaiting.value = selectedWaiting.value.filter(id => waiting.value.some(u => u.id === id))
     } catch {
       // The next poll tries again.
@@ -264,18 +285,22 @@
       total.value = data.total
       pending.value = data.pending
       selected.value = []
-      for (const item of data.items) {
-        if (!item.image_id || thumbs.value[item.image_id]) continue
-        // Units sharing one picture share one download.
-        thumbs.value[item.image_id] = ''
-        fetchImageObjectUrl(item.image_id, { width: 480 })
-          .then(url => { thumbs.value = { ...thumbs.value, [item.image_id]: url } })
-          .catch(() => { thumbs.value[item.image_id] = '' })
-      }
+      loadThumbs(data.items)
     } catch (error) {
       notify.error(error.message)
     } finally {
       loading.value = false
+    }
+  }
+
+  // Units sharing one picture share one download.
+  function loadThumbs (list) {
+    for (const item of list) {
+      if (!item.image_id || item.image_id in thumbs.value) continue
+      thumbs.value[item.image_id] = ''
+      fetchImageObjectUrl(item.image_id, { width: 480 })
+        .then(url => { thumbs.value = { ...thumbs.value, [item.image_id]: url } })
+        .catch(() => { thumbs.value[item.image_id] = '' })
     }
   }
 
