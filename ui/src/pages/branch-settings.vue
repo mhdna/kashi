@@ -329,6 +329,20 @@
                           hide-details
                           label="Manual price and discount edits only for selected codes"
                         />
+                        <v-select
+                          chips
+                          closable-chips
+                          density="compact"
+                          hide-details="auto"
+                          hint="Columns the product search list on the till leaves out"
+                          :items="SEARCH_FIELD_OPTIONS"
+                          label="Hide in product search"
+                          multiple
+                          :model-value="hiddenSearchFields"
+                          persistent-hint
+                          variant="outlined"
+                          @update:model-value="settingsForm.product_search_hidden_fields = $event.join(',')"
+                        />
                         <v-text-field
                           v-model="settingsForm.unknown_product_barcode"
                           density="compact"
@@ -1356,6 +1370,8 @@
 
   // ---- per-branch settings ------------------------------------------------
   const settingsForm = ref(null)
+  const hiddenSearchFields = computed(() =>
+    (settingsForm.value?.product_search_hidden_fields ?? '').split(',').filter(Boolean))
   const secretForm = ref({ akuvox_password: '', attendance_approver_password: '', admin_password: '' })
   const settingsLoading = ref(false)
   const saving = ref(false)
@@ -1428,6 +1444,15 @@
     { title: 'Local only (the till, over shop Wi-Fi)', value: 3 },
     { title: 'Central only (straight to the office)', value: 1 },
     { title: 'Off (no photo)', value: 0 },
+  ]
+
+  const SEARCH_FIELD_OPTIONS = [
+    { title: 'Code', value: 'code' },
+    { title: 'Name', value: 'name' },
+    { title: 'Brand', value: 'brand' },
+    { title: 'Color', value: 'color' },
+    { title: 'Size', value: 'size' },
+    { title: 'Price', value: 'price' },
   ]
 
   const OVERSELL_MODES = [
@@ -1514,6 +1539,7 @@
       branch_phone: d.branch_phone ?? '',
       price_edit_codes: d.price_edit_codes ?? '',
       unknown_product_barcode: d.unknown_product_barcode ?? '',
+      product_search_hidden_fields: d.product_search_hidden_fields ?? '',
       max_overpayment_cents: d.max_overpayment_cents ?? 0,
       default_opening_float_usd: d.default_opening_float_usd ?? 0,
       default_opening_float_lbp: d.default_opening_float_lbp ?? 0,
@@ -1838,6 +1864,7 @@
     price_edit_restricted: 'Price edits by code',
     price_edit_codes: 'Codes allowed for price edits',
     unknown_product_barcode: 'Unknown item product',
+    product_search_hidden_fields: 'Product search hidden columns',
     sounds_enabled: 'Sounds',
     attendance_manager_approval_enabled: 'Manager approval on till',
     custom_item_discounts_enabled: 'Custom discounts',

@@ -129,6 +129,9 @@ type branchSettingsRequest struct {
 	// Barcode of the product the till's "Unknown item" button adds. Nil or
 	// empty: the till's built-in placeholder.
 	UnknownProductBarcode *string `json:"unknown_product_barcode"`
+	// Product search columns the till leaves out (comma-separated names from
+	// code, name, brand, color, size, price). Nil or empty: all shown.
+	ProductSearchHiddenFields *string `json:"product_search_hidden_fields"`
 
 	// Let the till play its sounds (scan/checkout chimes, error and warning
 	// tones, keypad clicks). Nil (a till that predates it) keeps them off,
@@ -466,6 +469,7 @@ func (server *Server) upsertBranchSettings(ctx *gin.Context, branchID int64, req
 		PriceEditRestricted:                orZero(req.PriceEditRestricted),
 		PriceEditCodes:                     orZero(req.PriceEditCodes),
 		UnknownProductBarcode:              strings.TrimSpace(orZero(req.UnknownProductBarcode)),
+		ProductSearchHiddenFields:          orZero(req.ProductSearchHiddenFields),
 		SoundsEnabled:                      orZero(req.SoundsEnabled),
 		AttendanceManagerApprovalEnabled:   orTrue(req.AttendanceManagerApprovalEnabled),
 
