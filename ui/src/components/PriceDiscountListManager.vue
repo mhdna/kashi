@@ -130,6 +130,13 @@
                 variant="flat"
                 @click="addItem"
               />
+              <v-btn
+                v-if="kind === 'discount'"
+                prepend-icon="mdi-playlist-plus"
+                text="Paste codes"
+                variant="tonal"
+                @click="bulkDialog = true"
+              />
             </div>
 
             <v-text-field
@@ -245,6 +252,60 @@
     </v-dialog>
 
     <!-- edit item value -->
+    <v-dialog v-model="bulkDialog" max-width="520">
+      <v-card>
+        <v-card-title>Add many products to this list</v-card-title>
+        <v-card-text>
+          <p class="text-body-2 text-medium-emphasis mb-3">
+            Paste product codes or barcodes, one per line or separated by commas. A product code
+            covers all of its colours and sizes. Tills pick the change up within seconds.
+          </p>
+          <v-textarea
+            v-model="bulkEntries"
+            auto-grow
+            autofocus
+            density="compact"
+            hide-details
+            label="Codes or barcodes"
+            rows="5"
+            variant="outlined"
+          />
+          <v-text-field
+            v-model="bulkValue"
+            class="mt-3"
+            density="compact"
+            hide-details
+            label="Discount"
+            style="max-width: 160px;"
+            suffix="%"
+            type="number"
+            variant="outlined"
+          />
+          <v-alert
+            v-if="bulkUnmatched.length > 0"
+            class="mt-3"
+            density="compact"
+            type="warning"
+            variant="tonal"
+          >
+            Not found: {{ bulkUnmatched.join(', ') }}
+          </v-alert>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn text="Close" variant="text" @click="bulkDialog = false" />
+          <v-btn
+            color="primary"
+            :disabled="!bulkEntries.trim() || bulkValue === ''"
+            :loading="bulkSaving"
+            text="Apply"
+            variant="flat"
+            @click="applyBulk"
+          />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-dialog v-model="editItemDialog" max-width="420">
       <v-card>
         <v-card-title>
@@ -325,12 +386,14 @@
   import PageSidebar from '@/components/PageSidebar.vue'
   import BulkDeleteBar from '@/components/Tables/BulkDeleteBar.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
+  import { authFetch } from '@/composables/useApi'
   import { useBulkDelete } from '@/composables/useBulkDelete'
   import { useDiscountLists } from '@/composables/useDiscountLists'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { usePriceLists } from '@/composables/usePriceLists'
   import { useVariants } from '@/composables/useVariants'
+  import { API_BASE } from '@/config'
   import { formatMoney } from '@/utils/money'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
@@ -473,6 +536,46 @@
       notify.error(error.message)
     } finally {
       addingItem.value = false
+    }
+  }
+
+  // ---- paste many codes onto a discount list ---------------------------------
+  const bulkDialog = ref(false)
+  const bulkEntries = ref('')
+  const bulkValue = ref('')
+  const bulkSaving = ref(false)
+  const bulkUnmatched = ref([])
+
+  async function applyBulk () {
+    const discount = Number(bulkValue.value)
+    if (!Number.isInteger(discount) || discount < 0 || discount > 100) {
+      notify.error('Enter a discount from 0 to 100.')
+      return
+    }
+    bulkSaving.value = true
+    try {
+      const res = await authFetch(`${API_BASE}/discount_lists/items/bulk`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          discount_list_id: selectedList.value.id,
+          entries: bulkEntries.value.split(/[\s,;]+/).filter(Boolean),
+          discount,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || `Request failed with status ${res.status}`)
+      bulkUnmatched.value = data.unmatched ?? []
+      notify.success(`${data.set} product(s) set to ${discount}%.`)
+      if (bulkUnmatched.value.length === 0) {
+        bulkDialog.value = false
+        bulkEntries.value = ''
+      }
+      reloadItems()
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      bulkSaving.value = false
     }
   }
 

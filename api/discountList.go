@@ -2,8 +2,10 @@ package api
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -311,4 +313,55 @@ func (server *Server) setDiscountListBranches(ctx *gin.Context) {
 		}
 	}
 	ctx.JSON(http.StatusOK, gin.H{"branch_ids": req.BranchIDs})
+}
+
+type bulkSetDiscountListItemsRequest struct {
+	DiscountListID int64 `json:"discount_list_id" binding:"required"`
+	// Product codes and/or variant barcodes, as typed or pasted.
+	Entries  []string `json:"entries" binding:"required,min=1,max=2000"`
+	Discount int16    `json:"discount" binding:"min=0,max=100"`
+}
+
+// bulkSetDiscountListItems is the quick way onto a discount list: paste the
+// codes (or barcodes) and give one discount. It reports what it set and which
+// entries matched nothing, so a typo is visible rather than silently skipped.
+// Tills pick the change up through the usual sync push.
+func (server *Server) bulkSetDiscountListItems(ctx *gin.Context) {
+	var req bulkSetDiscountListItemsRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	seen := make(map[string]bool, len(req.Entries))
+	entries := make([]string, 0, len(req.Entries))
+	for _, entry := range req.Entries {
+		if entry = strings.TrimSpace(entry); entry != "" && !seen[entry] {
+			seen[entry] = true
+			entries = append(entries, entry)
+		}
+	}
+	if len(entries) == 0 {
+		server.writeError(ctx, http.StatusBadRequest, errors.New("no codes given"))
+		return
+	}
+	if _, err := server.store.GetDiscountList(ctx, req.DiscountListID); err != nil {
+		server.writeError(ctx, statusForLookup(err), err)
+		return
+	}
+	set, err := server.store.BulkSetDiscountListItems(ctx, db.BulkSetDiscountListItemsParams{
+		DiscountListID: req.DiscountListID, Entries: entries, Discount: req.Discount,
+	})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	unmatched, err := server.store.ListUnmatchedDiscountEntries(ctx, entries)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if unmatched == nil {
+		unmatched = []string{}
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"set": len(set), "unmatched": unmatched})
 }
