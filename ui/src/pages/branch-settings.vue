@@ -329,6 +329,15 @@
                           hide-details
                           label="Manual price and discount edits only for selected codes"
                         />
+                        <v-text-field
+                          v-model="settingsForm.unknown_product_barcode"
+                          density="compact"
+                          hide-details="auto"
+                          hint="Barcode of a product that is already on the till. Leave empty to use the built-in Unknown item."
+                          label="Unknown item product barcode"
+                          persistent-hint
+                          variant="outlined"
+                        />
                         <v-textarea
                           v-if="settingsForm.price_edit_restricted"
                           v-model="settingsForm.price_edit_codes"
@@ -1504,6 +1513,7 @@
       oversell_mode: d.oversell_mode ?? 'allow',
       branch_phone: d.branch_phone ?? '',
       price_edit_codes: d.price_edit_codes ?? '',
+      unknown_product_barcode: d.unknown_product_barcode ?? '',
       max_overpayment_cents: d.max_overpayment_cents ?? 0,
       default_opening_float_usd: d.default_opening_float_usd ?? 0,
       default_opening_float_lbp: d.default_opening_float_lbp ?? 0,
@@ -1827,6 +1837,7 @@
     product_search_code_only: 'Code-only product search',
     price_edit_restricted: 'Price edits by code',
     price_edit_codes: 'Codes allowed for price edits',
+    unknown_product_barcode: 'Unknown item product',
     sounds_enabled: 'Sounds',
     attendance_manager_approval_enabled: 'Manager approval on till',
     custom_item_discounts_enabled: 'Custom discounts',

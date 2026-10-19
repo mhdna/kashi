@@ -22,6 +22,10 @@ type BranchInvoiceItemParams struct {
 	ProductUID uuid.NullUUID `json:"product_uid"`
 	UnitPrice  int64         `json:"unit_price"`
 	LineTotal  int64         `json:"line_total"`
+	// Unknown: the till rang this up as an "Unknown item" (its placeholder
+	// barcode, or the product the branch named for it). Such a line is stored
+	// unresolved and moves no stock until it is matched to a real product.
+	Unknown bool `json:"unknown"`
 	Discount   int16         `json:"discount"`
 	Quantity   int64         `json:"quantity"`
 }
@@ -94,6 +98,9 @@ func (store *SQLStore) CreateBranchInvoiceTx(ctx context.Context, arg CreateBran
 		// is still recorded, it just can't move central stock.
 		variants := make([]*ProductVariant, len(arg.Items))
 		for i, item := range arg.Items {
+			if item.Unknown || item.Barcode == UnknownItemBarcode {
+				continue
+			}
 			v, err := resolveBranchLineVariant(ctx, q, item)
 			if err != nil {
 				return err
@@ -117,7 +124,7 @@ func (store *SQLStore) CreateBranchInvoiceTx(ctx context.Context, arg CreateBran
 				Discount:        item.Discount,
 				Quantity:        item.Quantity,
 				ProductUid:      productUID,
-				Unknown:         item.Barcode == UnknownItemBarcode,
+				Unknown:         item.Unknown || item.Barcode == UnknownItemBarcode,
 			})
 			if err != nil {
 				return err

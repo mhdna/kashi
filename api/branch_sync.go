@@ -260,9 +260,11 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 		return
 	}
 
+	unknownBarcode := server.branchUnknownBarcode(ctx, branchID)
 	items := make([]db.BranchInvoiceItemParams, 0, len(req.Items))
 	for _, item := range req.Items {
 		items = append(items, db.BranchInvoiceItemParams{
+			Unknown:         unknownBarcode != "" && item.Barcode == unknownBarcode,
 			BranchProductID: item.BranchProductID,
 			Barcode:         item.Barcode,
 			ProductUID:      parseNullUUID(item.ProductUID),
