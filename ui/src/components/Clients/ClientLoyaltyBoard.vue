@@ -42,7 +42,12 @@
         </div>
         <div v-else class="pyramid">
           <div v-for="(row, ri) in pyramidRows" :key="ri" class="pyramid-row">
-            <div v-for="client in row" :key="client.id" class="pyramid-item">
+            <div
+              v-for="client in row"
+              :key="client.id"
+              class="pyramid-item"
+              @click="openDetail(client)"
+            >
               <v-avatar class="pyramid-avatar mb-1" :color="tierFor(client.total_spent)?.color" :size="avatarSize(ri)">
                 <span class="text-white font-weight-bold" :style="{ fontSize: `${avatarSize(ri) / 2.6}px` }">
                   {{ initials(client.name) }}
@@ -556,6 +561,7 @@
 }
 
 .pyramid-item {
+  cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
