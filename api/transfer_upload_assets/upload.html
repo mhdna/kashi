@@ -212,7 +212,7 @@
       submitBtn.disabled = true;
       submitBtn.textContent = 'Uploading…';
 
-      downscale(file, 1600, 0.85).then(function (payload) {
+      downscale(file, 1280, 0.7).then(function (payload) {
         var formData = new FormData();
         var name = payload === file ? (file.name || 'transfer') : 'transfer.jpg';
         formData.append('image', payload, name);

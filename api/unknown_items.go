@@ -28,6 +28,7 @@ import (
 
 const (
 	unknownSessionTTL      = 6 * time.Hour
+	unknownStatusWait      = 6 * time.Second // under the till's 10s call timeout
 	maxUnknownSessionSlots = 60
 	maxUnknownImageBytes   = 10 << 20 // 10MB; the phone sends far less
 )
@@ -75,6 +76,16 @@ func unknownSlotViews(slots []db.UnknownItemSlot) []unknownSlotView {
 		views = append(views, view)
 	}
 	return views
+}
+
+func countDoneUnknownSlots(slots []db.UnknownItemSlot) int {
+	done := 0
+	for _, slot := range slots {
+		if slot.ImageID.Valid || slot.WaivedAt.Valid {
+			done++
+		}
+	}
+	return done
 }
 
 // allUnknownSlotsPictured: every unit has a picture or a manager's pass.
@@ -158,6 +169,29 @@ func (server *Server) branchUnknownSessionStatus(ctx *gin.Context) {
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
+	}
+	// Long poll: a till that already knows `known` finished units is held
+	// here until that number changes (or a few seconds pass), so a picture
+	// reaches the till the moment it lands instead of on its next tick.
+	if known, err := strconv.Atoi(ctx.Query("known")); err == nil {
+		deadline := time.NewTimer(unknownStatusWait)
+		defer deadline.Stop()
+		tick := time.NewTicker(250 * time.Millisecond)
+		defer tick.Stop()
+		for countDoneUnknownSlots(slots) == known {
+			select {
+			case <-ctx.Request.Context().Done():
+				return
+			case <-deadline.C:
+			case <-tick.C:
+				if slots, err = server.store.ListUnknownItemSlotsForSession(ctx, session.ID); err != nil {
+					server.writeError(ctx, http.StatusInternalServerError, err)
+					return
+				}
+				continue
+			}
+			break
+		}
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{
 		"slots":    unknownSlotViews(slots),
@@ -294,7 +328,17 @@ func (server *Server) uploadUnknownSlotImage(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	server.writeJSON(ctx, http.StatusOK, envelope{"image_id": image.ID})
+	// The phone gets the new state back, so it needs no status call after.
+	slots, err := server.store.ListUnknownItemSlotsForSession(ctx, session.ID)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{
+		"image_id": image.ID,
+		"slots":    unknownSlotViews(slots),
+		"complete": allUnknownSlotsPictured(slots),
+	})
 }
 
 type copyUnknownSlotRequest struct {
@@ -329,7 +373,16 @@ func (server *Server) copyUnknownSlotImage(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	server.writeJSON(ctx, http.StatusOK, envelope{"image_id": source.ImageID.Int64})
+	slots, err := server.store.ListUnknownItemSlotsForSession(ctx, session.ID)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{
+		"image_id": source.ImageID.Int64,
+		"slots":    unknownSlotViews(slots),
+		"complete": allUnknownSlotsPictured(slots),
+	})
 }
 
 // --- the admin ---
