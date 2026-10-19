@@ -572,6 +572,18 @@
                         office before it closes the shift and prints the close receipt, showing
                         progress. Offline, a manager can override on the till.
                       </div>
+                      <v-switch
+                        v-model="settingsForm.auto_cover_negative_lbp"
+                        class="mt-3"
+                        color="primary"
+                        density="compact"
+                        hide-details
+                        label="At close shift, cover a negative Cash LL balance from Cash $$"
+                      />
+                      <div class="text-caption text-medium-emphasis mt-1">
+                        When more LBP went out as change than came in, the shortfall is swapped
+                        into Cash $$ as the close-shift screen opens, so LBP closes at 0.
+                      </div>
                     </section>
                   </div>
 
@@ -824,13 +836,6 @@
                           density="compact"
                           hide-details
                           label="Store and branch name in capitals on end-of-shift receipt"
-                        />
-                        <v-switch
-                          v-model="settingsForm.auto_cover_negative_lbp"
-                          color="primary"
-                          density="compact"
-                          hide-details
-                          label="At close shift, cover a negative Cash LL balance from Cash $$"
                         />
                       </div>
                     </section>
