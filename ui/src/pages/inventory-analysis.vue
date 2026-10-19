@@ -274,24 +274,7 @@
                 style="max-width: 170px"
                 variant="outlined"
               />
-              <v-text-field
-                v-model="movementFromDate"
-                density="compact"
-                hide-details
-                label="From"
-                style="max-width: 160px"
-                type="date"
-                variant="outlined"
-              />
-              <v-text-field
-                v-model="movementToDate"
-                density="compact"
-                hide-details
-                label="To"
-                style="max-width: 160px"
-                type="date"
-                variant="outlined"
-              />
+              <DateRangePicker v-model:from="movementFromDate" v-model:to="movementToDate" clearable />
             </div>
             <ServerSideTable
               :api-u-r-l="movementsApiURL"
@@ -326,13 +309,13 @@
 
 <script setup>
   import { computed, onMounted, ref } from 'vue'
-  import VChart from '@/components/EChart.vue'
   import { useTheme } from 'vuetify'
+  import VChart from '@/components/EChart.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useLowStockAlerts } from '@/composables/useLowStockAlerts'
+  import { useNotify } from '@/composables/useNotify'
   import { useStockHealth } from '@/composables/useStockHealth'
   import { STOCK_MOVEMENT_REASONS } from '@/composables/useStockMovements'
-  import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
   import { formatMoney } from '@/utils/money'
 

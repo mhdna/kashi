@@ -287,11 +287,12 @@
 <script setup>
   import { computed, onMounted, ref, watch } from 'vue'
   import TierChip from '@/components/Clients/TierChip.vue'
-  import { useNotify } from '@/composables/useNotify'
   import { useClientTiers } from '@/composables/useClientTiers'
+  import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { dedupedFetch } from '@/composables/useRequestDedup'
   import { API_BASE } from '@/config'
+  import { rangeBounds } from '@/utils/dateRange'
   import { formatMoney } from '@/utils/money'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
@@ -301,6 +302,8 @@
   const props = defineProps({
     // Empty means every branch.
     branchIds: { type: Array, default: () => [] },
+    // [] or ['YYYY-MM-DD', 'YYYY-MM-DD']: only clients who bought in it.
+    dateRange: { type: Array, default: () => [] },
     clientType: { type: String, required: true },
   })
   defineEmits(['edit', 'delete', 'reactivate'])
@@ -363,6 +366,9 @@
     params.set('client_type', props.clientType)
     params.set('sort_by', sortBy.value)
     for (const id of props.branchIds) params.append('branch_ids', id)
+    const { from, to } = rangeBounds(props.dateRange)
+    if (from) params.set('from', from)
+    if (to) params.set('to', to)
     return params
   }
 
@@ -471,7 +477,7 @@
     fetchPyramid()
     resetRestList()
   })
-  watch(() => [props.clientType, props.branchIds.join(','), pyramidCount.value, sortBy.value], reload)
+  watch(() => [props.clientType, props.branchIds.join(','), props.dateRange.join(','), pyramidCount.value, sortBy.value], reload)
 
   let searchTimeout = null
   watch(search, () => {

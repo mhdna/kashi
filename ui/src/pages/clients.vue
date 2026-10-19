@@ -66,23 +66,8 @@
           variant="outlined"
         />
 
-        <div class="d-flex ga-2 mt-3">
-          <v-text-field
-            v-model="exportFrom"
-            density="compact"
-            hide-details
-            label="Came from"
-            type="date"
-            variant="outlined"
-          />
-          <v-text-field
-            v-model="exportTo"
-            density="compact"
-            hide-details
-            label="Came until"
-            type="date"
-            variant="outlined"
-          />
+        <div class="mt-3">
+          <DateRangePicker v-model="exportRange" clearable empty-label="Came any time" />
         </div>
         <v-checkbox
           v-model="exportNoDuplicates"
@@ -173,6 +158,7 @@
           </v-list-item>
         </v-list>
       </v-menu>
+      <DateRangePicker v-model="dateRange" clearable />
       <v-btn
         prepend-icon="mdi-file-delimited-outline"
         rounded="lg"
@@ -196,6 +182,7 @@
     ref="boardRef"
     :branch-ids="selectedBranchIds"
     :client-type="tab"
+    :date-range="dateRange"
     @delete="openDelete"
     @edit="openEdit"
     @reactivate="reactivate"
@@ -213,6 +200,7 @@
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
+  import { rangeBounds } from '@/utils/dateRange'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
@@ -238,6 +226,9 @@
       : [...selectedBranchIds.value, id]
   }
 
+  // Clients who bought in this window (and their spend in it); [] = any time.
+  const dateRange = ref([])
+
   // ---- CSV export ----------------------------------------------------------
   const exportFieldOptions = [
     { title: 'Name', value: 'name' },
@@ -257,12 +248,12 @@
   const exportBranchIds = ref([])
   const exportNoDuplicates = ref(false)
   const exportIncludeExcluded = ref(false)
-  const exportFrom = ref('')
-  const exportTo = ref('')
+  const exportRange = ref([])
 
   function openExport () {
     // Start from the branches already filtered on the page.
     exportBranchIds.value = [...selectedBranchIds.value]
+    exportRange.value = [...dateRange.value]
     exportDialog.value = true
   }
 
@@ -276,13 +267,9 @@
       for (const id of exportBranchIds.value) params.append('branch_ids', id)
       if (exportNoDuplicates.value) params.set('no_duplicates', true)
       if (exportIncludeExcluded.value) params.set('include_excluded', true)
-      // Local-midnight bounds, [from, day after to): "until" is inclusive.
-      if (exportFrom.value) params.set('from', new Date(`${exportFrom.value}T00:00:00`).toISOString())
-      if (exportTo.value) {
-        const end = new Date(`${exportTo.value}T00:00:00`)
-        end.setDate(end.getDate() + 1)
-        params.set('to', end.toISOString())
-      }
+      const { from, to } = rangeBounds(exportRange.value)
+      if (from) params.set('from', from)
+      if (to) params.set('to', to)
 
       const res = await authFetch(`${API_BASE}/clients/export?${params}`)
       if (!res.ok) {

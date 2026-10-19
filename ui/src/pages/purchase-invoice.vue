@@ -26,12 +26,11 @@
             v-model="currencyCode.value.value"
             :error-messages="currencyCode.errorMessage.value"
           />
-          <v-text-field
+          <DateField
             v-model="purchasedAt.value.value"
             density="compact"
             :error-messages="purchasedAt.errorMessage.value"
             label="Purchased At"
-            type="date"
           />
 
           <v-card-actions class="px-0">
@@ -185,8 +184,8 @@
   import { ref } from 'vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useInventories } from '@/composables/useInventories'
-  import { usePageAccess } from '@/composables/usePageAccess'
   import { useNotify } from '@/composables/useNotify'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { usePurchases } from '@/composables/usePurchases'
   import { useSuppliers } from '@/composables/useSuppliers'
   import { useVariants } from '@/composables/useVariants'

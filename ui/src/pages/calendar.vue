@@ -131,25 +131,8 @@
                   variant="outlined"
                 />
               </v-col>
-              <v-col cols="6" sm="3">
-                <v-text-field
-                  v-model="form.start_date"
-                  density="compact"
-                  hide-details
-                  label="Start"
-                  type="date"
-                  variant="outlined"
-                />
-              </v-col>
-              <v-col cols="6" sm="3">
-                <v-text-field
-                  v-model="form.end_date"
-                  density="compact"
-                  hide-details
-                  label="End"
-                  type="date"
-                  variant="outlined"
-                />
+              <v-col cols="12" sm="6">
+                <DateRangePicker v-model:from="form.start_date" v-model:to="form.end_date" />
               </v-col>
               <v-col cols="6" sm="6">
                 <v-select

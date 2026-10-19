@@ -255,11 +255,10 @@
               :items="['active', 'inactive']"
               label="Status"
             />
-            <v-text-field
+            <DateField
               v-model="form.validUntil"
               density="compact"
               label="Valid Until (optional)"
-              type="date"
             />
 
             <v-card-actions class="px-0">
@@ -396,11 +395,10 @@
                 min="1"
                 type="number"
               />
-              <v-text-field
+              <DateField
                 v-model="listForm.validUntil"
                 density="compact"
                 label="Valid Until (optional)"
-                type="date"
               />
 
               <v-card-actions class="px-0">

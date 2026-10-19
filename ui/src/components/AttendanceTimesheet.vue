@@ -1,24 +1,7 @@
 <template>
   <div class="timesheet">
     <div class="timesheet-toolbar d-flex flex-wrap align-center ga-3 px-4 py-3">
-      <v-text-field
-        v-model="from"
-        class="timesheet-date"
-        density="compact"
-        hide-details
-        label="From"
-        type="date"
-        variant="outlined"
-      />
-      <v-text-field
-        v-model="to"
-        class="timesheet-date"
-        density="compact"
-        hide-details
-        label="To"
-        type="date"
-        variant="outlined"
-      />
+      <DateRangePicker v-model:from="from" v-model:to="to" class="timesheet-date" />
       <v-progress-circular
         v-if="loading"
         color="primary"

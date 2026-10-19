@@ -129,7 +129,7 @@
           <v-text-field v-model="form.salesperson_name" density="compact" label="Name" />
           <v-row dense>
             <v-col cols="6">
-              <v-text-field v-model="form.event_date" density="compact" label="Date" type="date" />
+              <DateField v-model="form.event_date" density="compact" label="Date" />
             </v-col>
             <v-col cols="6">
               <v-text-field v-model="form.event_time" density="compact" label="Time" type="time" />

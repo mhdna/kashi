@@ -125,12 +125,11 @@
               />
             </v-col>
           </v-row>
-          <v-text-field
+          <DateField
             v-model="rNextDueAt.value.value"
             density="compact"
             :error-messages="rNextDueAt.errorMessage.value"
             label="First Due Date"
-            type="date"
           />
 
           <v-card-actions class="px-0">
@@ -191,13 +190,12 @@
               <CurrencySelect v-model="bxForm.currencyCode" :error-messages="bxErrors.currencyCode" />
             </v-col>
           </v-row>
-          <v-text-field
+          <DateField
             v-model="bxForm.occurredAt"
             density="compact"
             hint="Defaults to now"
             label="Date"
             persistent-hint
-            type="date"
           />
 
           <v-card-actions class="px-0">
