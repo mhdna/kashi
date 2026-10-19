@@ -237,7 +237,6 @@
             <v-data-table
               :headers="adjustmentHeaders"
               :items="selectedAdjustments"
-              :items-per-page="14"
               :search="adjustmentSearch"
             >
               <template #item.type="{ item }">

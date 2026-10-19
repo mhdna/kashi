@@ -148,7 +148,6 @@
               density="comfortable"
               :headers="typeHeaders"
               :items="couponTypes"
-              :items-per-page="25"
               @click:row="(e, { item }) => openEditType(item)"
             >
               <template #item.value_cents="{ item }">
@@ -182,7 +181,6 @@
               density="comfortable"
               :headers="listHeaders"
               :items="couponLists"
-              :items-per-page="25"
             >
               <template #item.coupon_type_name="{ item }">{{ item.coupon_type_name }}</template>
               <template #item.coupon_count="{ item }">

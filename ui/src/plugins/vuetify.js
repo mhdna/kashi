@@ -60,9 +60,11 @@ export default createVuetify({
   // Kill native browser autofill/autocomplete app-wide. Vuetify's "suppress"
   // emits autocomplete="off" *and* randomises the input name on focus, which
   // is what actually stops Chrome/Brave from re-filling fields.
+  // itemsPerPage here is only the fallback: layouts/default.vue overrides it
+  // with Settings > General > Rows per table once the settings load.
   defaults: {
-    VDataTable: { disableSort: true, itemsPerPage: 14 },
-    VDataTableServer: { disableSort: true, itemsPerPage: 14 },
+    VDataTable: { disableSort: true, itemsPerPage: 15 },
+    VDataTableServer: { disableSort: true, itemsPerPage: 15 },
     VDataTableVirtual: { disableSort: true },
     VTextField: { autocomplete: 'suppress' },
     VTextarea: { autocomplete: 'suppress' },

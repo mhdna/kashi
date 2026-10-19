@@ -27,7 +27,7 @@
       item-value="id"
       :items="replies"
       :items-length="total"
-      :items-per-page-options="[25, 50, 100, 250]"
+      :items-per-page-options="tablePageSizeOptions(pageSize)"
       :loading="loading"
       no-data-text="No replies in this range."
     >
@@ -58,6 +58,7 @@
   import { useNotify } from '@/composables/useNotify'
   import { useWhatsApp } from '@/composables/useWhatsApp'
   import { formatPhone } from '@/utils/whatsapp'
+  import { tablePageSizeOptions, useSettingsStore } from '@/stores/settings'
 
   const props = defineProps({
     from: { type: String, required: true },
@@ -80,7 +81,7 @@
   const total = ref(0)
   const loading = ref(false)
   const page = ref(1)
-  const pageSize = ref(50)
+  const pageSize = ref(useSettingsStore().tablePageSize)
   const search = ref('')
 
   async function load () {

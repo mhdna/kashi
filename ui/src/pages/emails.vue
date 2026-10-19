@@ -64,7 +64,7 @@
         item-value="id"
         :items="reports"
         :items-length="total"
-        :items-per-page-options="[25, 50, 100, 250]"
+        :items-per-page-options="tablePageSizeOptions(pageSize)"
         :loading="loading"
         no-data-text="No emails sent yet."
       >
@@ -108,6 +108,7 @@
   import { useEmailReports } from '@/composables/useEmailReports'
   import { useNotify } from '@/composables/useNotify'
   import { useAuthStore } from '@/stores/auth'
+  import { tablePageSizeOptions, useSettingsStore } from '@/stores/settings'
 
   // Every invoice report emailed from kashi (api/email_report.go), sent or
   // failed, newest first. Sender, reply-to and CSV columns are on
@@ -135,7 +136,7 @@
   const total = ref(0)
   const loading = ref(false)
   const page = ref(1)
-  const pageSize = ref(50)
+  const pageSize = ref(useSettingsStore().tablePageSize)
   const status = ref('')
   const dialogOpen = ref(false)
   const tab = ref('history')

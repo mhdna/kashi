@@ -443,12 +443,13 @@
   import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
   import { categoryIcon } from '@/data/expenseCategoryIcons'
+  import { useSettingsStore } from '@/stores/settings'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
   const notify = useNotify()
 
-  const PAGE_SIZE = 25
+  const PAGE_SIZE = useSettingsStore().tablePageSize
 
   const { branches, fetchBranches } = useBranches()
   const {

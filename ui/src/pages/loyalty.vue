@@ -210,7 +210,6 @@
               density="compact"
               :headers="risingHeaders"
               :items="risingClients"
-              :items-per-page="10"
               :search="risingSearch"
               :sort-by="[{ key: 'gapCents', order: 'asc' }]"
             >

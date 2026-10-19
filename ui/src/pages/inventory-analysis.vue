@@ -108,7 +108,6 @@
               class="ia-table"
               :headers="locationHeaders"
               :items="filteredLocations"
-              :items-per-page="15"
               :search="locationSearch"
               :sort-by="[{ key: 'inventory_value', order: 'desc' }]"
             >

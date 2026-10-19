@@ -31,6 +31,25 @@
           <!-- ------------------------------------------------------- GENERAL -->
           <section v-show="tab === 'general'" class="set-section">
             <v-form :disabled="!canEditSystem">
+              <h3 class="text-subtitle-1 mb-1">Tables</h3>
+              <p class="text-body-2 text-medium-emphasis mb-4">
+                How many rows every table loads at a time. Fewer rows load faster; you can still page
+                through the rest.
+              </p>
+
+              <v-text-field
+                v-model.number="draft.tablePageSize"
+                class="field-md mb-6"
+                density="compact"
+                :hint="`Between ${MIN_TABLE_PAGE_SIZE} and ${MAX_TABLE_PAGE_SIZE}, ${DEFAULT_TABLE_PAGE_SIZE} by default`"
+                label="Rows per table"
+                :max="MAX_TABLE_PAGE_SIZE"
+                :min="MIN_TABLE_PAGE_SIZE"
+                persistent-hint
+                type="number"
+                variant="outlined"
+              />
+
               <h3 class="text-subtitle-1 mb-1">Branch activity</h3>
               <p class="text-body-2 text-medium-emphasis mb-4">
                 How live branch sales / returns / expenses are shown in the appbar.
@@ -892,7 +911,7 @@
   import { useWhatsAppSettings } from '@/composables/useWhatsAppSettings'
   import { API_BASE } from '@/config'
   import { useAuthStore } from '@/stores/auth'
-  import { useSettingsStore } from '@/stores/settings'
+  import { DEFAULT_TABLE_PAGE_SIZE, MAX_TABLE_PAGE_SIZE, MIN_TABLE_PAGE_SIZE, useSettingsStore } from '@/stores/settings'
 
   const notify = useNotify()
 
@@ -938,6 +957,7 @@
     productAutofillEnabled: settingsStore.productAutofillEnabled,
     uploadPagesFollowSystem: settingsStore.uploadPagesFollowSystem,
     unknownImagesAutoDelete: settingsStore.unknownImagesAutoDelete,
+    tablePageSize: settingsStore.tablePageSize,
   })
 
   function seedDraft () {
@@ -951,6 +971,7 @@
     draft.productAutofillEnabled = settingsStore.productAutofillEnabled
     draft.uploadPagesFollowSystem = settingsStore.uploadPagesFollowSystem
     draft.unknownImagesAutoDelete = settingsStore.unknownImagesAutoDelete
+    draft.tablePageSize = settingsStore.tablePageSize
   }
 
   const savingSettings = ref(false)
@@ -974,6 +995,7 @@
     || draft.productAutofillEnabled !== settingsStore.productAutofillEnabled
     || draft.uploadPagesFollowSystem !== settingsStore.uploadPagesFollowSystem
     || draft.unknownImagesAutoDelete !== settingsStore.unknownImagesAutoDelete
+    || Number(draft.tablePageSize) !== settingsStore.tablePageSize
     || !sameMonths(draft.financialsHighSeasonMonths, settingsStore.financialsHighSeasonMonths),
   )
 
@@ -983,6 +1005,8 @@
   const draftValid = computed(() =>
     inRange(draft.activityMessageSeconds, 1, Number.POSITIVE_INFINITY)
     && inRange(draft.upcomingEventsDays, 1, 365)
+    && Number.isInteger(Number(draft.tablePageSize))
+    && inRange(draft.tablePageSize, MIN_TABLE_PAGE_SIZE, MAX_TABLE_PAGE_SIZE)
     && inRange(draft.upcomingEventsMenuDays, 1, 730)
     && Number(draft.barcodeLabelWidth) > 0
     && Number(draft.barcodeLabelHeight) > 0,
@@ -1005,6 +1029,7 @@
         productAutofillEnabled: draft.productAutofillEnabled,
         uploadPagesFollowSystem: draft.uploadPagesFollowSystem,
         unknownImagesAutoDelete: draft.unknownImagesAutoDelete,
+        tablePageSize: Number(draft.tablePageSize),
       })
     } finally {
       savingSettings.value = false

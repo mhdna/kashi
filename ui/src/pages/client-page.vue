@@ -238,7 +238,6 @@
               density="compact"
               :headers="purchaseHeaders"
               :items="purchases"
-              :items-per-page="8"
             >
               <template #item.payment="{ value }">
                 <v-chip
