@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>Upload transfer photo</title>
+<title>GB</title>
 <style>
   :root {
     --bg: #ffffff;
@@ -102,6 +102,7 @@
   .btn.ghost, button.ghost { color: var(--text); }
   .previews { justify-content: center; }
   input[type="file"], input[type=file] { text-align: center; }
+  .code { font-size: 3rem; font-weight: 700; line-height: 1; margin: 8px 0 12px; }
 </style>
 </head>
 <body>
@@ -127,12 +128,11 @@
     return div.innerHTML;
   }
 
-  function renderInvalid (message) {
+  function renderInvalid () {
     card.innerHTML =
       '<div class="center">' +
-      '<div class="alert-icon">!</div>' +
-      '<h1>Link not available</h1>' +
-      '<p class="meta">' + escapeHtml(message) + '</p>' +
+      '<div class="code">404</div>' +
+      '<p class="meta">Link unreachable<br><span dir="rtl" lang="ar">الرابط غير متاح</span></p>' +
       '</div>';
   }
 
