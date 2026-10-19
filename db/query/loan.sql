@@ -79,7 +79,8 @@ LEFT JOIN (
   FROM loan_payments
   GROUP BY loan_id
 ) pay ON pay.loan_id = loans.id
-WHERE (sqlc.narg(branch_id)::bigint IS NULL OR loans.branch_id = sqlc.narg(branch_id))
+WHERE (loans.branch_id IS NULL OR loans.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports))
+  AND (sqlc.narg(branch_id)::bigint IS NULL OR loans.branch_id = sqlc.narg(branch_id))
   AND (sqlc.narg(origin)::text IS NULL OR loans.origin = sqlc.narg(origin))
   AND (sqlc.narg(category_id)::bigint IS NULL OR loans.category_id = sqlc.narg(category_id))
   AND (sqlc.narg(search)::text IS NULL OR loans.description ILIKE '%' || sqlc.narg(search) || '%')
@@ -99,7 +100,8 @@ LEFT JOIN (
   FROM loan_payments
   GROUP BY loan_id
 ) pay ON pay.loan_id = loans.id
-WHERE (sqlc.narg(branch_id)::bigint IS NULL OR loans.branch_id = sqlc.narg(branch_id))
+WHERE (loans.branch_id IS NULL OR loans.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports))
+  AND (sqlc.narg(branch_id)::bigint IS NULL OR loans.branch_id = sqlc.narg(branch_id))
   AND (sqlc.narg(origin)::text IS NULL OR loans.origin = sqlc.narg(origin))
   AND (sqlc.narg(category_id)::bigint IS NULL OR loans.category_id = sqlc.narg(category_id))
   AND (sqlc.narg(search)::text IS NULL OR loans.description ILIKE '%' || sqlc.narg(search) || '%')

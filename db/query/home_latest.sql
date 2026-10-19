@@ -19,7 +19,7 @@ SELECT * FROM (
   FROM branch_expense_images i
   JOIN branch_expenses e ON e.id = i.branch_expense_id
   JOIN branches b ON b.id = e.branch_id
-  WHERE sqlc.arg(include_accounting)::bool
+  WHERE sqlc.arg(include_accounting)::bool AND NOT b.hidden_from_reports
 
   UNION ALL
   SELECT 'shift_receipt', i.id, i.created_at,
@@ -31,7 +31,8 @@ SELECT * FROM (
   FROM branch_shift_receipt_images i
   JOIN branch_shifts s ON s.id = i.branch_shift_id
   JOIN branches b ON b.id = s.branch_id
-  WHERE sqlc.arg(include_hr)::bool
+  WHERE sqlc.arg(include_hr)::bool AND NOT b.hidden_from_reports
+    AND s.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 
   UNION ALL
   SELECT 'transfer', t.id, t.created_at,
@@ -77,10 +78,17 @@ LIMIT sqlc.arg(page_size);
 -- kinds, access flags and timestamps as ListLatestAdditions, counted from
 -- `since` on.
 SELECT (
-  (SELECT COUNT(*) FROM branch_expense_images
-   WHERE sqlc.arg(include_accounting)::bool AND created_at >= sqlc.arg(since)::timestamptz)
-  + (SELECT COUNT(*) FROM branch_shift_receipt_images
-     WHERE sqlc.arg(include_hr)::bool AND created_at >= sqlc.arg(since)::timestamptz)
+  (SELECT COUNT(*) FROM branch_expense_images i
+   JOIN branch_expenses e ON e.id = i.branch_expense_id
+   JOIN branches b ON b.id = e.branch_id
+   WHERE sqlc.arg(include_accounting)::bool AND i.created_at >= sqlc.arg(since)::timestamptz
+     AND NOT b.hidden_from_reports)
+  + (SELECT COUNT(*) FROM branch_shift_receipt_images i
+     JOIN branch_shifts s ON s.id = i.branch_shift_id
+     JOIN branches b ON b.id = s.branch_id
+     WHERE sqlc.arg(include_hr)::bool AND i.created_at >= sqlc.arg(since)::timestamptz
+       AND NOT b.hidden_from_reports
+       AND s.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports))
   + (SELECT COUNT(*) FROM transfers
      WHERE sqlc.arg(include_inventory)::bool AND created_at >= sqlc.arg(since)::timestamptz)
   + (SELECT COUNT(*) FROM expenses

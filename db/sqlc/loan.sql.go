@@ -21,7 +21,8 @@ LEFT JOIN (
   FROM loan_payments
   GROUP BY loan_id
 ) pay ON pay.loan_id = loans.id
-WHERE ($1::bigint IS NULL OR loans.branch_id = $1)
+WHERE (loans.branch_id IS NULL OR loans.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports))
+  AND ($1::bigint IS NULL OR loans.branch_id = $1)
   AND ($2::text IS NULL OR loans.origin = $2)
   AND ($3::bigint IS NULL OR loans.category_id = $3)
   AND ($4::text IS NULL OR loans.description ILIKE '%' || $4 || '%')
@@ -260,7 +261,8 @@ LEFT JOIN (
   FROM loan_payments
   GROUP BY loan_id
 ) pay ON pay.loan_id = loans.id
-WHERE ($3::bigint IS NULL OR loans.branch_id = $3)
+WHERE (loans.branch_id IS NULL OR loans.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports))
+  AND ($3::bigint IS NULL OR loans.branch_id = $3)
   AND ($4::text IS NULL OR loans.origin = $4)
   AND ($5::bigint IS NULL OR loans.category_id = $5)
   AND ($6::text IS NULL OR loans.description ILIKE '%' || $6 || '%')

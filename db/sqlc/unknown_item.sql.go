@@ -18,6 +18,7 @@ const countUnknownItems = `-- name: CountUnknownItems :one
 SELECT COUNT(*) FROM unknown_item_slots s
 JOIN unknown_item_sessions sess ON sess.id = s.session_id
 WHERE sess.branch_invoice_id IS NOT NULL
+  AND sess.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND (s.image_id IS NOT NULL OR s.waived_at IS NOT NULL)
   AND (s.resolved_at IS NOT NULL) = $1::boolean
 `
@@ -411,6 +412,7 @@ JOIN branch_invoices i ON i.id = sess.branch_invoice_id
 LEFT JOIN product_variants pv ON pv.id = s.resolved_variant_id
 LEFT JOIN products p ON p.id = pv.product_id
 WHERE (s.image_id IS NOT NULL OR s.waived_at IS NOT NULL)
+  AND NOT b.hidden_from_reports
   AND (s.resolved_at IS NOT NULL) = $3::boolean
 ORDER BY i.occurred_at DESC, s.session_id, s.position
 LIMIT $1 OFFSET $2
@@ -507,6 +509,7 @@ FROM unknown_item_slots s
 JOIN unknown_item_sessions sess ON sess.id = s.session_id
 JOIN branches b ON b.id = sess.branch_id
 WHERE sess.branch_invoice_id IS NULL
+  AND NOT b.hidden_from_reports
   AND sess.expires_at > now()
   AND EXISTS (
     SELECT 1 FROM unknown_item_slots missing

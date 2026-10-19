@@ -47,10 +47,17 @@ func (q *Queries) CountHomeActivitiesSince(ctx context.Context, since time.Time)
 
 const countLatestAdditionsSince = `-- name: CountLatestAdditionsSince :one
 SELECT (
-  (SELECT COUNT(*) FROM branch_expense_images
-   WHERE $1::bool AND created_at >= $2::timestamptz)
-  + (SELECT COUNT(*) FROM branch_shift_receipt_images
-     WHERE $3::bool AND created_at >= $2::timestamptz)
+  (SELECT COUNT(*) FROM branch_expense_images i
+   JOIN branch_expenses e ON e.id = i.branch_expense_id
+   JOIN branches b ON b.id = e.branch_id
+   WHERE $1::bool AND i.created_at >= $2::timestamptz
+     AND NOT b.hidden_from_reports)
+  + (SELECT COUNT(*) FROM branch_shift_receipt_images i
+     JOIN branch_shifts s ON s.id = i.branch_shift_id
+     JOIN branches b ON b.id = s.branch_id
+     WHERE $3::bool AND i.created_at >= $2::timestamptz
+       AND NOT b.hidden_from_reports
+       AND s.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports))
   + (SELECT COUNT(*) FROM transfers
      WHERE $4::bool AND created_at >= $2::timestamptz)
   + (SELECT COUNT(*) FROM expenses
@@ -354,7 +361,7 @@ SELECT kind, id, added_at, title, subtitle, amount, currency_code, has_image, re
   FROM branch_expense_images i
   JOIN branch_expenses e ON e.id = i.branch_expense_id
   JOIN branches b ON b.id = e.branch_id
-  WHERE $1::bool
+  WHERE $1::bool AND NOT b.hidden_from_reports
 
   UNION ALL
   SELECT 'shift_receipt', i.id, i.created_at,
@@ -366,7 +373,8 @@ SELECT kind, id, added_at, title, subtitle, amount, currency_code, has_image, re
   FROM branch_shift_receipt_images i
   JOIN branch_shifts s ON s.id = i.branch_shift_id
   JOIN branches b ON b.id = s.branch_id
-  WHERE $2::bool
+  WHERE $2::bool AND NOT b.hidden_from_reports
+    AND s.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 
   UNION ALL
   SELECT 'transfer', t.id, t.created_at,

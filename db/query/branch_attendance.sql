@@ -47,6 +47,7 @@ DELETE FROM branch_attendance_events WHERE id = $1;
 -- it stays in the table for the audit trail.
 SELECT * FROM branch_attendance_events
 WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND removed_at IS NULL
 ORDER BY event_date DESC, event_time DESC, id DESC
 LIMIT $1 OFFSET $2;
@@ -54,6 +55,7 @@ LIMIT $1 OFFSET $2;
 -- name: CountBranchAttendanceEvents :one
 SELECT COUNT(*) FROM branch_attendance_events
 WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND removed_at IS NULL;
 
 -- name: CreateBranchAttendanceChange :one
@@ -84,13 +86,15 @@ LIMIT 1;
 
 -- name: ListBranchAttendanceChanges :many
 SELECT * FROM branch_attendance_changes
-WHERE sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id)
+WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 ORDER BY id DESC
 LIMIT $1 OFFSET $2;
 
 -- name: CountBranchAttendanceChanges :one
 SELECT COUNT(*) FROM branch_attendance_changes
-WHERE sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id);
+WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports);
 
 -- name: GetBranchAttendanceChange :one
 SELECT * FROM branch_attendance_changes WHERE id = $1;
@@ -125,6 +129,7 @@ WHERE branch_id = $1 AND client_ref = $2;
 -- Capped as a guard against an all-branches, all-time request.
 SELECT * FROM branch_attendance_events
 WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+  AND branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND removed_at IS NULL
   AND event_date >= sqlc.arg(from_date)::text
   AND event_date <= sqlc.arg(to_date)::text
