@@ -599,6 +599,8 @@
       { key: 'non_admin_month_nav_enabled', label: "Cashiers browse other months' income", type: 'bool' },
       { key: 'close_shift_requires_sync', label: 'Upload everything before closing a shift', type: 'bool' },
       { key: 'scan_by_code_enabled', label: 'Accept a product code in the scan field', type: 'bool' },
+      { key: 'product_search_code_only', label: 'Product search by code only (hide names)', type: 'bool' },
+      { key: 'price_edit_restricted', label: 'Manual price/discount edits only for selected codes', type: 'bool' },
       { key: 'sounds_enabled', label: 'Play sounds (scan, checkout, errors, keypad)', type: 'bool' },
     ],
     cash: [

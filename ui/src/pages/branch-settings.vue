@@ -316,6 +316,32 @@
                           label="Accept a product code in the scan field"
                         />
                         <v-switch
+                          v-model="settingsForm.product_search_code_only"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Product search by code only (hide product names)"
+                        />
+                        <v-switch
+                          v-model="settingsForm.price_edit_restricted"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Manual price and discount edits only for selected codes"
+                        />
+                        <v-textarea
+                          v-if="settingsForm.price_edit_restricted"
+                          v-model="settingsForm.price_edit_codes"
+                          auto-grow
+                          density="compact"
+                          hide-details="auto"
+                          hint="One code per line, or separated by commas"
+                          label="Codes allowed for manual price and discount edits"
+                          persistent-hint
+                          rows="3"
+                          variant="outlined"
+                        />
+                        <v-switch
                           v-model="settingsForm.sounds_enabled"
                           color="primary"
                           density="compact"
@@ -1425,6 +1451,8 @@
     'split_primary_first',
     'close_shift_requires_sync',
     'scan_by_code_enabled',
+    'product_search_code_only',
+    'price_edit_restricted',
     'sounds_enabled',
     'salesperson_per_invoice_required',
     'non_admin_month_nav_enabled',
@@ -1475,6 +1503,7 @@
       split_primary_step: d.split_primary_step ?? 0,
       oversell_mode: d.oversell_mode ?? 'allow',
       branch_phone: d.branch_phone ?? '',
+      price_edit_codes: d.price_edit_codes ?? '',
       max_overpayment_cents: d.max_overpayment_cents ?? 0,
       default_opening_float_usd: d.default_opening_float_usd ?? 0,
       default_opening_float_lbp: d.default_opening_float_lbp ?? 0,
@@ -1795,6 +1824,9 @@
     exchange_window_hours: 'Exchange window',
     search_button_enabled: 'Search button',
     scan_by_code_enabled: 'Code in scan field',
+    product_search_code_only: 'Code-only product search',
+    price_edit_restricted: 'Price edits by code',
+    price_edit_codes: 'Codes allowed for price edits',
     sounds_enabled: 'Sounds',
     attendance_manager_approval_enabled: 'Manager approval on till',
     custom_item_discounts_enabled: 'Custom discounts',

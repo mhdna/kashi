@@ -65,6 +65,8 @@ type defaultBranchSettings struct {
 	// keeps its own value instead of getting a zero pushed over it.
 	CloseShiftRequiresSync           *bool  `json:"close_shift_requires_sync,omitempty"`
 	ScanByCodeEnabled                *bool  `json:"scan_by_code_enabled,omitempty"`
+	ProductSearchCodeOnly            *bool  `json:"product_search_code_only,omitempty"`
+	PriceEditRestricted              *bool  `json:"price_edit_restricted,omitempty"`
 	SoundsEnabled                    *bool  `json:"sounds_enabled,omitempty"`
 	AttendanceManagerApprovalEnabled *bool  `json:"attendance_manager_approval_enabled,omitempty"`
 	ShiftReportSignatures            *bool  `json:"shift_report_signatures,omitempty"`
