@@ -84,6 +84,7 @@ const routes = [
   { path: '/calendar', component: () => import('@/pages/calendar.vue'), meta: { title: 'Calendar', section: 'calendar', page: 'calendar' } },
 
   { path: '/users', component: () => import('@/pages/users.vue'), meta: { title: 'Users', adminOnly: true } },
+  { path: '/user-guide', component: () => import('@/pages/user-guide.vue'), meta: { title: 'User Guide' } },
   { path: '/settings', component: () => import('@/pages/settings.vue'), meta: { title: 'Settings' } },
   { path: '/whatsapp', component: () => import('@/pages/whatsapp.vue'), meta: { title: 'WhatsApp & Reviews', section: 'system', page: 'whatsapp' } },
   { path: '/emails', component: () => import('@/pages/emails.vue'), meta: { title: 'Emails', section: 'system', page: 'emails' } },
