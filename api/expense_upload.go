@@ -177,6 +177,7 @@ func (server *Server) uploadExpenseImages(ctx *gin.Context) {
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
 		}
+		warmThumbnails(destPath)
 
 		if _, err := server.store.CreateBranchExpenseImage(ctx, db.CreateBranchExpenseImageParams{
 			BranchExpenseID: expense.ID,

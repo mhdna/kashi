@@ -147,6 +147,7 @@ func (server *Server) uploadLoanImages(ctx *gin.Context) {
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
 		}
+		warmThumbnails(destPath)
 		if _, err := server.store.CreateLoanImage(ctx, db.CreateLoanImageParams{
 			LoanID:      loan.ID,
 			FilePath:    destPath,
