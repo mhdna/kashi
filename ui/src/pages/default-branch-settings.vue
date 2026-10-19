@@ -597,6 +597,26 @@
 
             <div v-show="sectionTab === 'printing'">
               <section class="dbs-section">
+                <div class="dbs-section-title">Receipt look</div>
+                <v-switch
+                  color="primary"
+                  density="compact"
+                  hide-details
+                  label="Set the receipt look in this template"
+                  :model-value="lookInTemplate"
+                  @update:model-value="setLookInTemplate"
+                />
+                <p class="text-caption text-medium-emphasis mt-1 mb-3">
+                  Off keeps each branch's own look when you apply to all.
+                </p>
+                <ReceiptLookPicker
+                  v-if="lookInTemplate"
+                  v-model:layout="form.receipt_layout"
+                  v-model:theme="form.receipt_theme"
+                />
+              </section>
+
+              <section class="dbs-section">
                 <div class="dbs-section-title">Receipt</div>
                 <div class="field-grid">
                   <v-select
@@ -864,8 +884,9 @@
 </template>
 
 <script setup>
-  import { onMounted, ref } from 'vue'
+  import { computed, onMounted, ref } from 'vue'
   import CurrencySelect from '@/components/CurrencySelect.vue'
+  import ReceiptLookPicker from '@/components/ReceiptLookPicker.vue'
   import { useBranches } from '@/composables/useBranches'
   import { useDefaultBranchSettings } from '@/composables/useDefaultBranchSettings'
   import { useNotify } from '@/composables/useNotify'
@@ -974,6 +995,13 @@
   }
 
   // Only the prefs actually set; an empty object means none.
+  const lookInTemplate = computed(() => Boolean(form.value.receipt_theme))
+
+  function setLookInTemplate (on) {
+    form.value.receipt_theme = on ? 'classic' : ''
+    form.value.receipt_layout = on ? 'A' : ''
+  }
+
   function templatePayload () {
     const prefs = Object.fromEntries(
       Object.entries(form.value.display_prefs).filter(([, v]) => v != null && v !== ''),
@@ -1017,6 +1045,9 @@
       receipt_title_size: 0,
       receipt_body_size: 0,
       receipt_cutoff: true,
+      // Empty: the template leaves each branch's look alone.
+      receipt_theme: '',
+      receipt_layout: '',
       attendance_enabled: false,
       attendance_duplicate_interval_seconds: 0,
       attendance_cashier_history: false,
