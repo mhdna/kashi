@@ -117,6 +117,7 @@ func (store *SQLStore) CreateBranchInvoiceTx(ctx context.Context, arg CreateBran
 				Discount:        item.Discount,
 				Quantity:        item.Quantity,
 				ProductUid:      productUID,
+				Unknown:         item.Barcode == UnknownItemBarcode,
 			})
 			if err != nil {
 				return err

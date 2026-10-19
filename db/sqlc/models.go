@@ -757,6 +757,7 @@ type BranchInvoiceItem struct {
 	Discount        int16         `json:"discount"`
 	Quantity        int64         `json:"quantity"`
 	ProductUid      uuid.NullUUID `json:"product_uid"`
+	Unknown         bool          `json:"unknown"`
 }
 
 type BranchInvoicePayment struct {
@@ -1751,6 +1752,40 @@ type TransferItem struct {
 	Quantity         int64         `json:"quantity"`
 	VariantID        sql.NullInt64 `json:"variant_id"`
 	ReceivedQuantity sql.NullInt64 `json:"received_quantity"`
+}
+
+type UnknownItemImage struct {
+	ID          int64     `json:"id"`
+	SessionID   int64     `json:"session_id"`
+	FilePath    string    `json:"file_path"`
+	ContentType string    `json:"content_type"`
+	SizeBytes   int64     `json:"size_bytes"`
+	Rotation    int16     `json:"rotation"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type UnknownItemSession struct {
+	ID              int64         `json:"id"`
+	BranchID        int64         `json:"branch_id"`
+	RegisterID      int64         `json:"register_id"`
+	ClientRef       string        `json:"client_ref"`
+	Token           string        `json:"token"`
+	ExpiresAt       time.Time     `json:"expires_at"`
+	BranchInvoiceID sql.NullInt64 `json:"branch_invoice_id"`
+	CreatedAt       time.Time     `json:"created_at"`
+}
+
+type UnknownItemSlot struct {
+	ID                int64         `json:"id"`
+	SessionID         int64         `json:"session_id"`
+	SlotRef           string        `json:"slot_ref"`
+	Position          int32         `json:"position"`
+	Label             string        `json:"label"`
+	UnitPrice         int64         `json:"unit_price"`
+	Discount          int16         `json:"discount"`
+	ImageID           sql.NullInt64 `json:"image_id"`
+	ResolvedVariantID sql.NullInt64 `json:"resolved_variant_id"`
+	ResolvedAt        sql.NullTime  `json:"resolved_at"`
 }
 
 type User struct {
