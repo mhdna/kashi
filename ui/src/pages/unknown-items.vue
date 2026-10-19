@@ -60,6 +60,13 @@
                   <img v-if="unit.image_id && thumbs[unit.image_id]" alt="" :src="thumbs[unit.image_id]" @click.stop="preview = unit.image_id">
                   <v-icon v-else-if="isMissing(unit)" icon="mdi-timer-sand" />
                   <v-icon v-else-if="unit.waived_at" icon="mdi-check" />
+                  <v-icon
+                    v-else-if="unit.image_id && thumbFailed[unit.image_id]"
+                    color="warning"
+                    icon="mdi-alert-circle-outline"
+                    :title="`${thumbFailed[unit.image_id]} — tap to retry`"
+                    @click.stop="retryThumb(unit.image_id)"
+                  />
                   <v-progress-circular v-else indeterminate size="20" width="2" />
                 </v-avatar>
               </template>
@@ -99,6 +106,14 @@
               <img v-if="thumbs[item.image_id]" alt="" :src="thumbs[item.image_id]" @click.stop="preview = item.image_id">
               <div v-else-if="!item.image_id" class="text-caption text-medium-emphasis text-center px-2">
                 No picture<br>allowed by {{ item.waived_by || 'a manager' }}
+              </div>
+              <div
+                v-else-if="thumbFailed[item.image_id]"
+                class="text-caption text-center px-2"
+                @click.stop="retryThumb(item.image_id)"
+              >
+                <v-icon color="warning" icon="mdi-alert-circle-outline" /><br>
+                {{ thumbFailed[item.image_id] }}<br>tap to retry
               </div>
               <v-progress-circular v-else indeterminate size="24" width="2" />
               <v-checkbox-btn
@@ -212,6 +227,9 @@
   const loading = ref(false)
   const selected = ref([])
   const thumbs = ref({})
+  // Pictures that wouldn't load (by image id), so a failure shows instead of
+  // an endless spinner; tapping one tries again.
+  const thumbFailed = ref({})
   const full = ref({})
   const preview = ref(null)
 
@@ -300,8 +318,15 @@
       thumbs.value[item.image_id] = ''
       fetchImageObjectUrl(item.image_id, { width: 480 })
         .then(url => { thumbs.value = { ...thumbs.value, [item.image_id]: url } })
-        .catch(() => { thumbs.value[item.image_id] = '' })
+        .catch(error => { thumbFailed.value = { ...thumbFailed.value, [item.image_id]: error.message } })
     }
+  }
+
+  function retryThumb (imageId) {
+    const { [imageId]: _failed, ...rest } = thumbFailed.value
+    thumbFailed.value = rest
+    delete thumbs.value[imageId]
+    loadThumbs([{ image_id: imageId }])
   }
 
   function reload () {
