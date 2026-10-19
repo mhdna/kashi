@@ -135,9 +135,9 @@ type Querier interface {
 	CountCashboxAccountOverrides(ctx context.Context, cashboxAccountID int64) (int64, error)
 	CountClients(ctx context.Context, clientType sql.NullString) (int64, error)
 	// Same filters as ListClientsBySpending, minus the spend computation --
-	// used for the rest-of-clients table's pagination total. Deliberately
-	// ignores branch_id: the count of matching clients doesn't change with
-	// which branch's sales are being summed, only who qualifies by type/search.
+	// used for the rest-of-clients table's pagination total. With a branch
+	// picked it counts that branch's clients: home branch, or a branch invoice
+	// there (same cancelled/hidden rules as the list).
 	CountClientsBySpending(ctx context.Context, arg CountClientsBySpendingParams) (int64, error)
 	CountColors(ctx context.Context, search string) (int64, error)
 	CountCoupons(ctx context.Context, arg CountCouponsParams) (int64, error)
