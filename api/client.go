@@ -168,6 +168,10 @@ type listClientsBySpendingRequest struct {
 	Search    string  `form:"search"`
 	// What to rank clients by; see the ORDER BY in ListClientsBySpending.
 	SortBy string `form:"sort_by,default=spending" binding:"omitempty,oneof=spending invoices items"`
+	// Optional [from, to) window: only clients who bought in it, with spend
+	// and counts for that window.
+	From time.Time `form:"from" time_format:"2006-01-02T15:04:05Z07:00"`
+	To   time.Time `form:"to" time_format:"2006-01-02T15:04:05Z07:00"`
 }
 
 // listClientsBySpending is the clients loyalty-pyramid page's data source:
@@ -190,6 +194,8 @@ func (server *Server) listClientsBySpending(ctx *gin.Context) {
 		ClientType: clientType,
 		Search:     search,
 		SortBy:     req.SortBy,
+		DateFrom:   sql.NullTime{Time: req.From, Valid: !req.From.IsZero()},
+		DateTo:     sql.NullTime{Time: req.To, Valid: !req.To.IsZero()},
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
@@ -200,6 +206,8 @@ func (server *Server) listClientsBySpending(ctx *gin.Context) {
 		BranchIds:  req.BranchIDs,
 		ClientType: clientType,
 		Search:     search,
+		DateFrom:   sql.NullTime{Time: req.From, Valid: !req.From.IsZero()},
+		DateTo:     sql.NullTime{Time: req.To, Valid: !req.To.IsZero()},
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
