@@ -191,7 +191,7 @@
   // This page's own path (/unknown_uploads/<token>, or /api/unknown_uploads/
   // <token> behind the prod proxy); every call hangs off it.
   var base = location.pathname.replace(/\/+$/, '');
-  var slots = [], local = {}, busy = {}, errors = {};
+  var slots = [], local = {}, busy = {}, errors = {}, wasDone = null;
 
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -252,7 +252,12 @@
     });
     var doneCount = slots.filter(isDone).length;
     document.getElementById('bar').style.width = slots.length ? (100 * doneCount / slots.length) + '%' : '0';
-    document.getElementById('done').classList.toggle('on', !!slots.length && doneCount === slots.length);
+    var allDone = !!slots.length && doneCount === slots.length;
+    document.getElementById('done').classList.toggle('on', allDone);
+    // Closes the tab once the last picture lands, when the browser lets this
+    // page do so (only a tab a script opened can be closed).
+    if (allDone && wasDone === false) setTimeout(function () { try { window.close(); } catch (e) {} }, 2500);
+    wasDone = allDone;
   }
 
   // Shrinks a phone photo to ~900px JPEG before sending: tens of KB
