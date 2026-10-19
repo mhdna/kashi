@@ -76,7 +76,7 @@
         { kind: 'heading', text: 'Which clients belong to a branch' },
         {
           kind: 'p',
-          text: 'A client belongs to a branch if they <b>bought something there</b>. Being in a till\'s client list is not enough. Cancelled invoices don\'t count, and neither do branches or registers hidden from reports.',
+          text: 'A client belongs to a branch if they <b>bought something there</b>. Being in a till\'s client list is not enough. Cancelled invoices don\'t count, and neither do branches or registers hidden from reports, unless you tick <b>Include cancelled invoices and hidden branches</b> in the export. Cancelled invoices then add to Total spent and Invoices like any other.',
         },
         {
           kind: 'list',
@@ -130,7 +130,7 @@
           items: [
             'Its older sales were <b>imported from the old system</b> without client details. Those invoices have no client, so nobody can be attributed from them.',
             'Cashiers sold <b>without choosing a client</b>.',
-            'The branch is <b>hidden from reports</b>, or the invoices are <b>cancelled</b>.',
+            'The branch is <b>hidden from reports</b>, or the invoices are <b>cancelled</b> (tick <b>Include cancelled invoices and hidden branches</b> to count them).',
             'A <b>date range</b> is set and the client last bought before it.',
           ],
         },

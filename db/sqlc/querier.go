@@ -1022,7 +1022,8 @@ type Querier interface {
 	// included when no branch is selected, the same rule as
 	// ListClientsBySpending. With no branch and no date set, clients who never
 	// bought anything are listed too (branch_id 0, zero spend). Cancelled and
-	// hidden-from-reports branch invoices are skipped as everywhere else.
+	// hidden-from-reports branch invoices are skipped as everywhere else, unless
+	// include_excluded is set.
 	ListClientsForExport(ctx context.Context, arg ListClientsForExportParams) ([]ListClientsForExportRow, error)
 	// Feeds the branch catch-up endpoint (see branch_catchup.go), same pattern
 	// as currencies/cashbox_accounts/products. Wholesale clients never appear
