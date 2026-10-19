@@ -173,7 +173,14 @@
       '</div>';
   }
 
+  // Closes the tab when a browser lets this page do so (only a tab a script
+  // opened can be closed; otherwise the "you can close this page" text stays).
+  function closeSoon () {
+    setTimeout(function () { try { window.close(); } catch (e) {} }, 1500);
+  }
+
   function renderSuccess () {
+    closeSoon();
     card.innerHTML =
       '<div class="center">' +
       '<div class="checkmark">&#10003;</div>' +
