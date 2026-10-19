@@ -101,7 +101,6 @@ export const navItems = [
       { title: 'Stock Counts', icon: 'mdi-clipboard-list-outline', to: '/stock-counts' },
       { title: 'Stock Movements', icon: 'mdi-swap-vertical', to: '/stock-movements' },
       { title: 'Barcodes', icon: 'mdi-barcode', to: '/barcodes' },
-      { title: 'Barcode Designer', icon: 'mdi-palette', to: '/barcode-designer' },
       { title: 'Assets', icon: 'mdi-hammer-wrench', to: '/assets' },
     ],
   },
@@ -123,5 +122,7 @@ export const appendItems = [
   { title: 'App Updates', icon: 'mdi-update', to: '/app-updates' },
   { title: 'Security', icon: 'mdi-shield-lock-outline', to: '/security' },
   { title: 'User Guide', icon: 'mdi-book-open-variant', to: '/user-guide' },
+  { title: 'Receipt Designer', icon: 'mdi-receipt-text', to: '/receipt-designer' },
+  { title: 'Barcode Designer', icon: 'mdi-barcode', to: '/barcode-designer' },
   { title: 'Settings', icon: 'mdi-cog-outline', to: '/settings' },
 ]
