@@ -156,11 +156,11 @@ func generateThumbnail(srcPath, dstPath string, maxDim, quality int, rotation in
 	return os.Rename(tmpName, dstPath)
 }
 
-// The long edges the till asks for: list rows (96) and its detail view
-// (detailPhotoWidth, see kashi-pos). Baking both at upload time means the
+// The long edges asked for: the till's list rows (96) and detail view
+// (detailPhotoWidth, see kashi-pos), and the admin site's grid tiles (480). Baking both at upload time means the
 // first view of a photo reads a small cached file instead of decoding the
 // original on the request.
-var warmThumbWidths = []int{96, 1280}
+var warmThumbWidths = []int{96, 480, 1280}
 
 // warmThumbnails generates the common thumbnails for a freshly stored photo
 // in the background. Failures are ignored: serveStoredImage generates the same

@@ -77,7 +77,7 @@ SELECT COUNT(*) FROM unknown_item_slots s
 JOIN unknown_item_sessions sess ON sess.id = s.session_id
 WHERE sess.branch_invoice_id IS NOT NULL
   AND sess.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
-  AND (s.image_id IS NOT NULL OR s.waived_at IS NOT NULL)
+  AND (s.image_id IS NOT NULL OR s.waived_at IS NOT NULL OR s.resolved_at IS NOT NULL)
   AND (s.resolved_at IS NOT NULL) = sqlc.arg(resolved)::boolean;
 
 -- name: GetUnknownItemSlotForResolve :one
@@ -188,3 +188,33 @@ LIMIT $1 OFFSET $2;
 
 -- name: CountUnknownItemImages :one
 SELECT COUNT(*) FROM unknown_item_images;
+
+-- name: ListDeletableUnknownItemImages :many
+-- Of the given pictures, the ones that can go: not the picture of a unit still
+-- waiting to be matched on a sale (or on a checkout that is still open).
+SELECT img.id, img.file_path
+FROM unknown_item_images img
+JOIN unknown_item_sessions sess ON sess.id = img.session_id
+WHERE img.id = ANY(sqlc.arg(ids)::bigint[])
+  AND NOT EXISTS (
+    SELECT 1 FROM unknown_item_slots s
+    WHERE s.image_id = img.id AND s.resolved_at IS NULL
+      AND (sess.branch_invoice_id IS NOT NULL OR sess.expires_at > now())
+  );
+
+-- name: ListAutoDeletableUnknownItemImages :many
+-- What the daily clean-up removes: pictures whose units were all matched
+-- before resolved_before, and pictures of checkouts that never became a sale
+-- and whose link expired before abandoned_before.
+SELECT img.id, img.file_path
+FROM unknown_item_images img
+JOIN unknown_item_sessions sess ON sess.id = img.session_id
+WHERE (
+    EXISTS (SELECT 1 FROM unknown_item_slots s WHERE s.image_id = img.id)
+    AND NOT EXISTS (SELECT 1 FROM unknown_item_slots s WHERE s.image_id = img.id AND s.resolved_at IS NULL)
+    AND (SELECT MAX(s.resolved_at) FROM unknown_item_slots s WHERE s.image_id = img.id) < sqlc.arg(resolved_before)::timestamptz
+  )
+  OR (sess.branch_invoice_id IS NULL AND sess.expires_at < sqlc.arg(abandoned_before)::timestamptz);
+
+-- name: DeleteUnknownItemImages :exec
+DELETE FROM unknown_item_images WHERE id = ANY($1::bigint[]);

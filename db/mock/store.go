@@ -4464,6 +4464,20 @@ func (mr *MockStoreMockRecorder) DeleteTransferItem(arg0, arg1 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTransferItem", reflect.TypeOf((*MockStore)(nil).DeleteTransferItem), arg0, arg1)
 }
 
+// DeleteUnknownItemImages mocks base method.
+func (m *MockStore) DeleteUnknownItemImages(arg0 context.Context, arg1 []int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteUnknownItemImages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteUnknownItemImages indicates an expected call of DeleteUnknownItemImages.
+func (mr *MockStoreMockRecorder) DeleteUnknownItemImages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUnknownItemImages", reflect.TypeOf((*MockStore)(nil).DeleteUnknownItemImages), arg0, arg1)
+}
+
 // DeleteUser mocks base method.
 func (m *MockStore) DeleteUser(arg0 context.Context, arg1 int64) error {
 	m.ctrl.T.Helper()
@@ -6949,6 +6963,21 @@ func (mr *MockStoreMockRecorder) ListAuditLogs(arg0, arg1 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAuditLogs", reflect.TypeOf((*MockStore)(nil).ListAuditLogs), arg0, arg1)
 }
 
+// ListAutoDeletableUnknownItemImages mocks base method.
+func (m *MockStore) ListAutoDeletableUnknownItemImages(arg0 context.Context, arg1 db.ListAutoDeletableUnknownItemImagesParams) ([]db.ListAutoDeletableUnknownItemImagesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListAutoDeletableUnknownItemImages", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListAutoDeletableUnknownItemImagesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListAutoDeletableUnknownItemImages indicates an expected call of ListAutoDeletableUnknownItemImages.
+func (mr *MockStoreMockRecorder) ListAutoDeletableUnknownItemImages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAutoDeletableUnknownItemImages", reflect.TypeOf((*MockStore)(nil).ListAutoDeletableUnknownItemImages), arg0, arg1)
+}
+
 // ListAvailableBatchItemsForVariant mocks base method.
 func (m *MockStore) ListAvailableBatchItemsForVariant(arg0 context.Context, arg1 int64) ([]db.BatchItem, error) {
 	m.ctrl.T.Helper()
@@ -8282,6 +8311,21 @@ func (m *MockStore) ListDayVisitorsByHour(arg0 context.Context, arg1 db.ListDayV
 func (mr *MockStoreMockRecorder) ListDayVisitorsByHour(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDayVisitorsByHour", reflect.TypeOf((*MockStore)(nil).ListDayVisitorsByHour), arg0, arg1)
+}
+
+// ListDeletableUnknownItemImages mocks base method.
+func (m *MockStore) ListDeletableUnknownItemImages(arg0 context.Context, arg1 []int64) ([]db.ListDeletableUnknownItemImagesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListDeletableUnknownItemImages", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListDeletableUnknownItemImagesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListDeletableUnknownItemImages indicates an expected call of ListDeletableUnknownItemImages.
+func (mr *MockStoreMockRecorder) ListDeletableUnknownItemImages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDeletableUnknownItemImages", reflect.TypeOf((*MockStore)(nil).ListDeletableUnknownItemImages), arg0, arg1)
 }
 
 // ListDiscountListBranchIDs mocks base method.

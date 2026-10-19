@@ -30,7 +30,7 @@ SELECT COUNT(*) FROM unknown_item_slots s
 JOIN unknown_item_sessions sess ON sess.id = s.session_id
 WHERE sess.branch_invoice_id IS NOT NULL
   AND sess.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
-  AND (s.image_id IS NOT NULL OR s.waived_at IS NOT NULL)
+  AND (s.image_id IS NOT NULL OR s.waived_at IS NOT NULL OR s.resolved_at IS NOT NULL)
   AND (s.resolved_at IS NOT NULL) = $1::boolean
 `
 
@@ -163,6 +163,15 @@ func (q *Queries) CreateUnknownItemSlot(ctx context.Context, arg CreateUnknownIt
 		arg.UnitPrice,
 		arg.Discount,
 	)
+	return err
+}
+
+const deleteUnknownItemImages = `-- name: DeleteUnknownItemImages :exec
+DELETE FROM unknown_item_images WHERE id = ANY($1::bigint[])
+`
+
+func (q *Queries) DeleteUnknownItemImages(ctx context.Context, dollar_1 []int64) error {
+	_, err := q.db.ExecContext(ctx, deleteUnknownItemImages, pq.Array(dollar_1))
 	return err
 }
 
@@ -353,6 +362,96 @@ type LinkUnknownItemSessionParams struct {
 func (q *Queries) LinkUnknownItemSession(ctx context.Context, arg LinkUnknownItemSessionParams) error {
 	_, err := q.db.ExecContext(ctx, linkUnknownItemSession, arg.BranchID, arg.ClientRef, arg.BranchInvoiceID)
 	return err
+}
+
+const listAutoDeletableUnknownItemImages = `-- name: ListAutoDeletableUnknownItemImages :many
+SELECT img.id, img.file_path
+FROM unknown_item_images img
+JOIN unknown_item_sessions sess ON sess.id = img.session_id
+WHERE (
+    EXISTS (SELECT 1 FROM unknown_item_slots s WHERE s.image_id = img.id)
+    AND NOT EXISTS (SELECT 1 FROM unknown_item_slots s WHERE s.image_id = img.id AND s.resolved_at IS NULL)
+    AND (SELECT MAX(s.resolved_at) FROM unknown_item_slots s WHERE s.image_id = img.id) < $1::timestamptz
+  )
+  OR (sess.branch_invoice_id IS NULL AND sess.expires_at < $2::timestamptz)
+`
+
+type ListAutoDeletableUnknownItemImagesParams struct {
+	ResolvedBefore  time.Time `json:"resolved_before"`
+	AbandonedBefore time.Time `json:"abandoned_before"`
+}
+
+type ListAutoDeletableUnknownItemImagesRow struct {
+	ID       int64  `json:"id"`
+	FilePath string `json:"file_path"`
+}
+
+// What the daily clean-up removes: pictures whose units were all matched
+// before resolved_before, and pictures of checkouts that never became a sale
+// and whose link expired before abandoned_before.
+func (q *Queries) ListAutoDeletableUnknownItemImages(ctx context.Context, arg ListAutoDeletableUnknownItemImagesParams) ([]ListAutoDeletableUnknownItemImagesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listAutoDeletableUnknownItemImages, arg.ResolvedBefore, arg.AbandonedBefore)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListAutoDeletableUnknownItemImagesRow{}
+	for rows.Next() {
+		var i ListAutoDeletableUnknownItemImagesRow
+		if err := rows.Scan(&i.ID, &i.FilePath); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listDeletableUnknownItemImages = `-- name: ListDeletableUnknownItemImages :many
+SELECT img.id, img.file_path
+FROM unknown_item_images img
+JOIN unknown_item_sessions sess ON sess.id = img.session_id
+WHERE img.id = ANY($1::bigint[])
+  AND NOT EXISTS (
+    SELECT 1 FROM unknown_item_slots s
+    WHERE s.image_id = img.id AND s.resolved_at IS NULL
+      AND (sess.branch_invoice_id IS NOT NULL OR sess.expires_at > now())
+  )
+`
+
+type ListDeletableUnknownItemImagesRow struct {
+	ID       int64  `json:"id"`
+	FilePath string `json:"file_path"`
+}
+
+// Of the given pictures, the ones that can go: not the picture of a unit still
+// waiting to be matched on a sale (or on a checkout that is still open).
+func (q *Queries) ListDeletableUnknownItemImages(ctx context.Context, ids []int64) ([]ListDeletableUnknownItemImagesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listDeletableUnknownItemImages, pq.Array(ids))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListDeletableUnknownItemImagesRow{}
+	for rows.Next() {
+		var i ListDeletableUnknownItemImagesRow
+		if err := rows.Scan(&i.ID, &i.FilePath); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listUnknownItemImages = `-- name: ListUnknownItemImages :many

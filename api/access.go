@@ -282,6 +282,7 @@ var routeRules = []routeRule{
 	rule("/branch_expenses", "accounting", "accounting", "analytics"),
 	rule("/unknown_items", "sales", "sales", "analytics"),
 	rule("/unknown_items/waive", "unknown_item_waive"),
+	rule("/unknown_items/images/delete", "photo_replace"),
 	rule("/branch_expense_images", "accounting", "accounting", "analytics"),
 	rule("/branch_expense_images/:id/rotation", "photo_rotation"),
 	rule("/branch_expense_images/:id/replace", "photo_replace"),

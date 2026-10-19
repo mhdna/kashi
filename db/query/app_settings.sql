@@ -13,6 +13,7 @@ SET financials_high_season_months = $1,
     hidden_builtin_events = $8,
     product_autofill_enabled = $9,
     upload_pages_follow_system = $10,
+    unknown_images_auto_delete = $11,
     updated_at = now()
 WHERE id = 1
 RETURNING *;
