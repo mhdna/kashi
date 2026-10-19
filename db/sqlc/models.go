@@ -1772,6 +1772,7 @@ type UnknownItemSession struct {
 	Token           string        `json:"token"`
 	ExpiresAt       time.Time     `json:"expires_at"`
 	BranchInvoiceID sql.NullInt64 `json:"branch_invoice_id"`
+	HelpRequestedAt sql.NullTime  `json:"help_requested_at"`
 	CreatedAt       time.Time     `json:"created_at"`
 }
 
@@ -1786,6 +1787,8 @@ type UnknownItemSlot struct {
 	ImageID           sql.NullInt64 `json:"image_id"`
 	ResolvedVariantID sql.NullInt64 `json:"resolved_variant_id"`
 	ResolvedAt        sql.NullTime  `json:"resolved_at"`
+	WaivedAt          sql.NullTime  `json:"waived_at"`
+	WaivedBy          string        `json:"waived_by"`
 }
 
 type User struct {

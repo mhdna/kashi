@@ -9604,6 +9604,21 @@ func (mr *MockStoreMockRecorder) ListVisitorIPs(arg0, arg1 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListVisitorIPs", reflect.TypeOf((*MockStore)(nil).ListVisitorIPs), arg0, arg1)
 }
 
+// ListWaitingUnknownItems mocks base method.
+func (m *MockStore) ListWaitingUnknownItems(arg0 context.Context) ([]db.ListWaitingUnknownItemsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListWaitingUnknownItems", arg0)
+	ret0, _ := ret[0].([]db.ListWaitingUnknownItemsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListWaitingUnknownItems indicates an expected call of ListWaitingUnknownItems.
+func (mr *MockStoreMockRecorder) ListWaitingUnknownItems(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListWaitingUnknownItems", reflect.TypeOf((*MockStore)(nil).ListWaitingUnknownItems), arg0)
+}
+
 // ListWhatsAppMessageReplies mocks base method.
 func (m *MockStore) ListWhatsAppMessageReplies(arg0 context.Context, arg1 int64) ([]db.ListWhatsAppMessageRepliesRow, error) {
 	m.ctrl.T.Helper()
@@ -10266,6 +10281,20 @@ func (mr *MockStoreMockRecorder) ReportTopProducts(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportTopProducts", reflect.TypeOf((*MockStore)(nil).ReportTopProducts), arg0, arg1)
 }
 
+// RequestUnknownItemHelp mocks base method.
+func (m *MockStore) RequestUnknownItemHelp(arg0 context.Context, arg1 db.RequestUnknownItemHelpParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RequestUnknownItemHelp", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RequestUnknownItemHelp indicates an expected call of RequestUnknownItemHelp.
+func (mr *MockStoreMockRecorder) RequestUnknownItemHelp(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RequestUnknownItemHelp", reflect.TypeOf((*MockStore)(nil).RequestUnknownItemHelp), arg0, arg1)
+}
+
 // ResolveBranchSyncConflict mocks base method.
 func (m *MockStore) ResolveBranchSyncConflict(arg0 context.Context, arg1 db.ResolveBranchSyncConflictParams) (db.BranchSyncConflict, error) {
 	m.ctrl.T.Helper()
@@ -10589,6 +10618,21 @@ func (m *MockStore) SaveWhatsAppSenderTx(arg0 context.Context, arg1 db.SetWhatsA
 func (mr *MockStoreMockRecorder) SaveWhatsAppSenderTx(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveWhatsAppSenderTx", reflect.TypeOf((*MockStore)(nil).SaveWhatsAppSenderTx), arg0, arg1, arg2)
+}
+
+// SearchVariantsForUnknownItems mocks base method.
+func (m *MockStore) SearchVariantsForUnknownItems(arg0 context.Context, arg1 string) ([]db.SearchVariantsForUnknownItemsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SearchVariantsForUnknownItems", arg0, arg1)
+	ret0, _ := ret[0].([]db.SearchVariantsForUnknownItemsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SearchVariantsForUnknownItems indicates an expected call of SearchVariantsForUnknownItems.
+func (mr *MockStoreMockRecorder) SearchVariantsForUnknownItems(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchVariantsForUnknownItems", reflect.TypeOf((*MockStore)(nil).SearchVariantsForUnknownItems), arg0, arg1)
 }
 
 // SearchWhatsAppClients mocks base method.
@@ -12469,6 +12513,21 @@ func (m *MockStore) VisitorCountries(arg0 context.Context) ([]db.VisitorCountrie
 func (mr *MockStoreMockRecorder) VisitorCountries(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VisitorCountries", reflect.TypeOf((*MockStore)(nil).VisitorCountries), arg0)
+}
+
+// WaiveUnknownItemSlots mocks base method.
+func (m *MockStore) WaiveUnknownItemSlots(arg0 context.Context, arg1 db.WaiveUnknownItemSlotsParams) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WaiveUnknownItemSlots", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// WaiveUnknownItemSlots indicates an expected call of WaiveUnknownItemSlots.
+func (mr *MockStoreMockRecorder) WaiveUnknownItemSlots(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaiveUnknownItemSlots", reflect.TypeOf((*MockStore)(nil).WaiveUnknownItemSlots), arg0, arg1)
 }
 
 // WhatsAppClientsByPhoneTail mocks base method.

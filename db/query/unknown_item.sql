@@ -50,6 +50,8 @@ SELECT
   s.image_id,
   s.resolved_variant_id,
   s.resolved_at,
+  s.waived_at,
+  s.waived_by,
   sess.id AS session_id,
   sess.branch_id,
   b.name AS branch_name,
@@ -64,7 +66,7 @@ JOIN branches b ON b.id = sess.branch_id
 JOIN branch_invoices i ON i.id = sess.branch_invoice_id
 LEFT JOIN product_variants pv ON pv.id = s.resolved_variant_id
 LEFT JOIN products p ON p.id = pv.product_id
-WHERE s.image_id IS NOT NULL
+WHERE (s.image_id IS NOT NULL OR s.waived_at IS NOT NULL)
   AND (s.resolved_at IS NOT NULL) = sqlc.arg(resolved)::boolean
 ORDER BY i.occurred_at DESC, s.session_id, s.position
 LIMIT $1 OFFSET $2;
@@ -73,7 +75,7 @@ LIMIT $1 OFFSET $2;
 SELECT COUNT(*) FROM unknown_item_slots s
 JOIN unknown_item_sessions sess ON sess.id = s.session_id
 WHERE sess.branch_invoice_id IS NOT NULL
-  AND s.image_id IS NOT NULL
+  AND (s.image_id IS NOT NULL OR s.waived_at IS NOT NULL)
   AND (s.resolved_at IS NOT NULL) = sqlc.arg(resolved)::boolean;
 
 -- name: GetUnknownItemSlotForResolve :one
@@ -103,3 +105,57 @@ INSERT INTO branch_invoice_items (
 
 -- name: MarkUnknownItemSlotResolved :exec
 UPDATE unknown_item_slots SET resolved_variant_id = $2, resolved_at = now() WHERE id = $1;
+
+-- name: SearchVariantsForUnknownItems :many
+-- The picker an admin matches a pictured item with: active variants whose
+-- product name, code or barcode contains the text.
+SELECT
+  pv.id,
+  pv.barcode,
+  p.name AS product_name,
+  p.code AS product_code,
+  COALESCE(c.name, '')::text AS color_name,
+  COALESCE(s.name, '')::text AS size_name
+FROM product_variants pv
+JOIN products p ON p.id = pv.product_id
+LEFT JOIN colors c ON c.id = pv.color_id
+LEFT JOIN sizes s ON s.id = pv.size_id
+WHERE pv.is_active AND p.is_active
+  AND (p.name ILIKE '%' || sqlc.arg(search)::text || '%'
+    OR p.code ILIKE '%' || sqlc.arg(search)::text || '%'
+    OR pv.barcode ILIKE '%' || sqlc.arg(search)::text || '%')
+ORDER BY p.name, c.name, s.name
+LIMIT 20;
+
+-- name: RequestUnknownItemHelp :exec
+UPDATE unknown_item_sessions SET help_requested_at = COALESCE(help_requested_at, now())
+WHERE branch_id = $1 AND client_ref = $2;
+
+-- name: ListWaitingUnknownItems :many
+-- Units of checkouts still in progress that have neither a picture nor a
+-- manager's pass, for the "Waiting" tab. Cashiers who asked for help first.
+SELECT
+  s.id,
+  s.slot_ref,
+  s.position,
+  s.label,
+  s.unit_price,
+  s.discount,
+  sess.id AS session_id,
+  sess.branch_id,
+  b.name AS branch_name,
+  sess.help_requested_at,
+  sess.created_at
+FROM unknown_item_slots s
+JOIN unknown_item_sessions sess ON sess.id = s.session_id
+JOIN branches b ON b.id = sess.branch_id
+WHERE sess.branch_invoice_id IS NULL
+  AND sess.expires_at > now()
+  AND s.image_id IS NULL
+  AND s.waived_at IS NULL
+ORDER BY (sess.help_requested_at IS NULL), sess.created_at DESC, s.position;
+
+-- name: WaiveUnknownItemSlots :execrows
+-- Lets units through with no picture. A unit that already has one is left alone.
+UPDATE unknown_item_slots SET waived_at = now(), waived_by = $2
+WHERE id = ANY($1::bigint[]) AND image_id IS NULL AND waived_at IS NULL;

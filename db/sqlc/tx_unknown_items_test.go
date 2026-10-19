@@ -95,3 +95,41 @@ func TestResolveUnknownItemsTx_SplitsTheLineAndMovesStock(t *testing.T) {
 	// Resolving a unit twice is refused.
 	require.ErrorIs(t, testStore.ResolveUnknownItemsTx(ctx, []int64{slots[0].ID}, variant.ID), ErrUnknownItemNotResolvable)
 }
+
+func TestWaiveUnknownItemSlots_OnlyUnpicturedUnits(t *testing.T) {
+	ctx := context.Background()
+	branch := createTestBranchWithRegister(t)
+	session, err := testQueries.CreateUnknownItemSession(ctx, CreateUnknownItemSessionParams{
+		BranchID: branch.Branch.ID, RegisterID: branch.Register.ID, ClientRef: uuid.NewString(),
+		Token: util.RandomString(24), ExpiresAt: time.Now().Add(time.Hour),
+	})
+	require.NoError(t, err)
+	for i, ref := range []string{"a", "b"} {
+		require.NoError(t, testQueries.CreateUnknownItemSlot(ctx, CreateUnknownItemSlotParams{
+			SessionID: session.ID, SlotRef: ref, Position: int32(i), UnitPrice: 500,
+		}))
+	}
+	image, err := testQueries.CreateUnknownItemImage(ctx, CreateUnknownItemImageParams{
+		SessionID: session.ID, FilePath: "y.webp", ContentType: "image/webp", SizeBytes: 1,
+	})
+	require.NoError(t, err)
+	require.NoError(t, testQueries.SetUnknownItemSlotImage(ctx, SetUnknownItemSlotImageParams{
+		SessionID: session.ID, SlotRef: "a", ImageID: sql.NullInt64{Int64: image.ID, Valid: true},
+	}))
+	slots, err := testQueries.ListUnknownItemSlotsForSession(ctx, session.ID)
+	require.NoError(t, err)
+
+	waiting, err := testQueries.ListWaitingUnknownItems(ctx)
+	require.NoError(t, err)
+	var waitingIDs []int64
+	for _, w := range waiting {
+		if w.SessionID == session.ID {
+			waitingIDs = append(waitingIDs, w.ID)
+		}
+	}
+	require.Equal(t, []int64{slots[1].ID}, waitingIDs, "only the unit with no picture waits")
+
+	n, err := testQueries.WaiveUnknownItemSlots(ctx, WaiveUnknownItemSlotsParams{Column1: []int64{slots[0].ID, slots[1].ID}, WaivedBy: "boss"})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), n, "a pictured unit is never waived")
+}

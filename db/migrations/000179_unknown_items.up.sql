@@ -11,6 +11,8 @@ CREATE TABLE unknown_item_sessions (
   token text NOT NULL UNIQUE,
   expires_at timestamptz NOT NULL,
   branch_invoice_id bigint REFERENCES branch_invoices (id) ON DELETE SET NULL,
+  -- The cashier asked a manager to let the sale through without pictures.
+  help_requested_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (branch_id, client_ref)
 );
@@ -36,6 +38,10 @@ CREATE TABLE unknown_item_slots (
   image_id bigint REFERENCES unknown_item_images (id) ON DELETE SET NULL,
   resolved_variant_id bigint REFERENCES product_variants (id) ON DELETE SET NULL,
   resolved_at timestamptz,
+  -- A manager let this unit through with no picture (the cashier may have sent
+  -- it privately); it still has to be resolved like any other.
+  waived_at timestamptz,
+  waived_by text NOT NULL DEFAULT '',
   UNIQUE (session_id, slot_ref)
 );
 
