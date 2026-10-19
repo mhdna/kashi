@@ -33,7 +33,7 @@
           </v-avatar>
           <div class="flex-grow-1 min-w-0">
             <div class="d-flex ga-2">
-              <span class="font-weight-medium text-truncate flex-grow-1">{{ title(c) }}</span>
+              <span class="font-weight-medium text-truncate flex-grow-1 wi__title">{{ title(c) }}</span>
               <span class="text-caption text-medium-emphasis flex-shrink-0">{{ when(c.last_at) }}</span>
             </div>
             <div class="text-body-2 text-medium-emphasis text-truncate wi__preview">
@@ -359,13 +359,19 @@
   overflow-y: auto;
 }
 .wi__chat {
+  /* A <button>: drop the browser's grey fill, border and font. */
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(var(--v-border-color), 0.06);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
   padding: 10px 12px;
   text-align: start;
-  border-bottom: 1px solid rgba(var(--v-border-color), 0.06);
 }
 .wi__chat:hover {
   background: rgba(var(--v-theme-on-surface), 0.04);
@@ -373,8 +379,12 @@
 .wi__chat--open {
   background: rgba(var(--v-theme-primary), 0.1);
 }
+.wi__title,
 .wi__preview {
-  unicode-bidi: plaintext;
+  /* Arabic runs read right to left inside, but the line stays left-aligned
+     under the avatar instead of jumping to the right edge. */
+  text-align: left;
+  unicode-bidi: isolate;
 }
 .wi__thread {
   flex: 1;
