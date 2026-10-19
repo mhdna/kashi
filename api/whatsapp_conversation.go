@@ -231,6 +231,13 @@ func (server *Server) getWhatsAppReplyMedia(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	server.serveWhatsAppBridgeMedia(ctx, media.Instance, media.WaID, media.MediaType)
+}
+
+// serveWhatsAppBridgeMedia streams a file the bridge kept for a message
+// (GET /media/{instance}/{message id} there), with the session's token
+// standing in for the bridge key the browser doesn't have.
+func (server *Server) serveWhatsAppBridgeMedia(ctx *gin.Context, instance, waID, mediaType string) {
 	sender, err := server.store.GetWhatsAppSenderSettings(ctx)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
@@ -240,7 +247,7 @@ func (server *Server) getWhatsAppReplyMedia(ctx *gin.Context) {
 	if base == "" {
 		base = defaultWhatsAppBridgeURL
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+"/media/"+url.PathEscape(media.Instance)+"/"+url.PathEscape(media.WaID), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+"/media/"+url.PathEscape(instance)+"/"+url.PathEscape(waID), nil)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
@@ -257,5 +264,5 @@ func (server *Server) getWhatsAppReplyMedia(ctx *gin.Context) {
 		return
 	}
 	ctx.Header("Cache-Control", "private, max-age=86400")
-	ctx.DataFromReader(http.StatusOK, resp.ContentLength, media.MediaType, io.LimitReader(resp.Body, 32<<20), nil)
+	ctx.DataFromReader(http.StatusOK, resp.ContentLength, mediaType, io.LimitReader(resp.Body, 32<<20), nil)
 }

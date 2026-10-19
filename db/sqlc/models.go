@@ -1848,6 +1848,22 @@ type VisitorIp struct {
 	Network        string    `json:"network"`
 }
 
+type WhatsappChatMessage struct {
+	ID               int64         `json:"id"`
+	Instance         string        `json:"instance"`
+	WhatsappNumberID sql.NullInt64 `json:"whatsapp_number_id"`
+	WaID             string        `json:"wa_id"`
+	ChatJid          string        `json:"chat_jid"`
+	ChatPhone        string        `json:"chat_phone"`
+	ContactName      string        `json:"contact_name"`
+	FromMe           bool          `json:"from_me"`
+	Kind             string        `json:"kind"`
+	Body             string        `json:"body"`
+	MediaType        string        `json:"media_type"`
+	SentAt           time.Time     `json:"sent_at"`
+	CreatedAt        time.Time     `json:"created_at"`
+}
+
 type WhatsappMessage struct {
 	ID               int64         `json:"id"`
 	CreatedAt        time.Time     `json:"created_at"`

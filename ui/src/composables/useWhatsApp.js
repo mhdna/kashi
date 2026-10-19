@@ -29,6 +29,9 @@ export function useWhatsApp () {
     listMessages: params => requestJSON(`/whatsapp/messages?${new URLSearchParams(params)}`),
     listReplies: params => requestJSON(`/whatsapp/replies?${new URLSearchParams(params)}`),
     getConversation: id => requestJSON(`/whatsapp/messages/${id}/conversation`),
+    // The Inbox: every message on our own numbers, a thread per customer (api/whatsapp_chat.go).
+    listChats: params => requestJSON(`/whatsapp/chats?${new URLSearchParams(params)}`),
+    getChat: (phone, params) => requestJSON(`/whatsapp/chats/${phone}?${new URLSearchParams(params)}`),
     // Sending from our own numbers through the bridge (api/whatsapp_bridge.go).
     getSender: () => requestJSON('/whatsapp/sender'),
     saveSender: settings => sendJSON('PUT', '/whatsapp/sender', settings),

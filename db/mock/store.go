@@ -202,6 +202,21 @@ func (mr *MockStoreMockRecorder) AddVariantTx(arg0, arg1 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddVariantTx", reflect.TypeOf((*MockStore)(nil).AddVariantTx), arg0, arg1)
 }
 
+// AddWhatsAppChatMessage mocks base method.
+func (m *MockStore) AddWhatsAppChatMessage(arg0 context.Context, arg1 db.AddWhatsAppChatMessageParams) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddWhatsAppChatMessage", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AddWhatsAppChatMessage indicates an expected call of AddWhatsAppChatMessage.
+func (mr *MockStoreMockRecorder) AddWhatsAppChatMessage(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddWhatsAppChatMessage", reflect.TypeOf((*MockStore)(nil).AddWhatsAppChatMessage), arg0, arg1)
+}
+
 // AddWhatsAppPollReply mocks base method.
 func (m *MockStore) AddWhatsAppPollReply(arg0 context.Context, arg1 db.AddWhatsAppPollReplyParams) (int64, error) {
 	m.ctrl.T.Helper()
@@ -6516,6 +6531,21 @@ func (mr *MockStoreMockRecorder) GetWarehouseTreemapData(arg0, arg1 interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWarehouseTreemapData", reflect.TypeOf((*MockStore)(nil).GetWarehouseTreemapData), arg0, arg1)
 }
 
+// GetWhatsAppChatMessageMedia mocks base method.
+func (m *MockStore) GetWhatsAppChatMessageMedia(arg0 context.Context, arg1 int64) (db.GetWhatsAppChatMessageMediaRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetWhatsAppChatMessageMedia", arg0, arg1)
+	ret0, _ := ret[0].(db.GetWhatsAppChatMessageMediaRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetWhatsAppChatMessageMedia indicates an expected call of GetWhatsAppChatMessageMedia.
+func (mr *MockStoreMockRecorder) GetWhatsAppChatMessageMedia(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWhatsAppChatMessageMedia", reflect.TypeOf((*MockStore)(nil).GetWhatsAppChatMessageMedia), arg0, arg1)
+}
+
 // GetWhatsAppMessageByReviewCode mocks base method.
 func (m *MockStore) GetWhatsAppMessageByReviewCode(arg0 context.Context, arg1 string) (db.GetWhatsAppMessageByReviewCodeRow, error) {
 	m.ctrl.T.Helper()
@@ -9721,6 +9751,36 @@ func (m *MockStore) ListWaitingUnknownItems(arg0 context.Context) ([]db.ListWait
 func (mr *MockStoreMockRecorder) ListWaitingUnknownItems(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListWaitingUnknownItems", reflect.TypeOf((*MockStore)(nil).ListWaitingUnknownItems), arg0)
+}
+
+// ListWhatsAppChatMessages mocks base method.
+func (m *MockStore) ListWhatsAppChatMessages(arg0 context.Context, arg1 db.ListWhatsAppChatMessagesParams) ([]db.ListWhatsAppChatMessagesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListWhatsAppChatMessages", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListWhatsAppChatMessagesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListWhatsAppChatMessages indicates an expected call of ListWhatsAppChatMessages.
+func (mr *MockStoreMockRecorder) ListWhatsAppChatMessages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListWhatsAppChatMessages", reflect.TypeOf((*MockStore)(nil).ListWhatsAppChatMessages), arg0, arg1)
+}
+
+// ListWhatsAppChats mocks base method.
+func (m *MockStore) ListWhatsAppChats(arg0 context.Context, arg1 db.ListWhatsAppChatsParams) ([]db.ListWhatsAppChatsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListWhatsAppChats", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListWhatsAppChatsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListWhatsAppChats indicates an expected call of ListWhatsAppChats.
+func (mr *MockStoreMockRecorder) ListWhatsAppChats(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListWhatsAppChats", reflect.TypeOf((*MockStore)(nil).ListWhatsAppChats), arg0, arg1)
 }
 
 // ListWhatsAppMessageReplies mocks base method.

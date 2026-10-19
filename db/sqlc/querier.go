@@ -32,6 +32,9 @@ type Querier interface {
 	AddPurchasedProduct(ctx context.Context, arg AddPurchasedProductParams) (ProductSupplier, error)
 	AddPurchasedProductCost(ctx context.Context, arg AddPurchasedProductCostParams) (ProductSupplierCost, error)
 	AddStockCountItem(ctx context.Context, arg AddStockCountItemParams) (StockCountItem, error)
+	// The Inbox tab: every message on our own WhatsApp numbers (api/whatsapp_chat.go).
+	// ErrNoRows when the bridge already reported this message.
+	AddWhatsAppChatMessage(ctx context.Context, arg AddWhatsAppChatMessageParams) (int64, error)
 	// A client's message after the poll, reported by the bridge. No rows when the
 	// poll is unknown or the bridge already reported this message.
 	AddWhatsAppPollReply(ctx context.Context, arg AddWhatsAppPollReplyParams) (int64, error)
@@ -704,6 +707,7 @@ type Querier interface {
 	// means only products we've explicitly categorized show up here -- ordinary
 	// POS-sellable products with no category_id are never pulled into this view.
 	GetWarehouseTreemapData(ctx context.Context, inventoryID sql.NullInt64) ([]GetWarehouseTreemapDataRow, error)
+	GetWhatsAppChatMessageMedia(ctx context.Context, id int64) (GetWhatsAppChatMessageMediaRow, error)
 	GetWhatsAppMessageByReviewCode(ctx context.Context, reviewCode string) (GetWhatsAppMessageByReviewCodeRow, error)
 	GetWhatsAppMessageCost(ctx context.Context) (int64, error)
 	GetWhatsAppMessageWithBranch(ctx context.Context, id int64) (GetWhatsAppMessageWithBranchRow, error)
@@ -1387,6 +1391,10 @@ type Querier interface {
 	// picture or pass, for the "Waiting" tab: pictured units come along so the
 	// manager sees what has already been taken. Cashiers who asked for help first.
 	ListWaitingUnknownItems(ctx context.Context) ([]ListWaitingUnknownItemsRow, error)
+	// Newest first, a page at a time: before_id 0 is the latest page.
+	ListWhatsAppChatMessages(ctx context.Context, arg ListWhatsAppChatMessagesParams) ([]ListWhatsAppChatMessagesRow, error)
+	// One row per customer phone, the most recently active first.
+	ListWhatsAppChats(ctx context.Context, arg ListWhatsAppChatsParams) ([]ListWhatsAppChatsRow, error)
 	// What the client sent back to one message: after its poll (the bridge) or
 	// answering it (Meta's webhook), oldest first.
 	// id and media_type: a bridge reply's media (GET /whatsapp/poll_replies/:id/media).
