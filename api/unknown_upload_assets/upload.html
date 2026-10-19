@@ -60,8 +60,9 @@
 </main>
 <script>
 (function () {
-  var token = location.pathname.split('/').filter(Boolean).pop();
-  var base = '/unknown_uploads/' + token;
+  // This page's own path (/unknown_uploads/<token>, or /api/unknown_uploads/
+  // <token> behind the prod proxy); every call hangs off it.
+  var base = location.pathname.replace(/\/+$/, '');
   var slots = [];
   // Local previews, so a taken picture shows at once, before the server
   // confirms it. Keyed by slot_ref.
