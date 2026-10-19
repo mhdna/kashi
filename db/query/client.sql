@@ -287,7 +287,8 @@ LIMIT sqlc.arg(row_limit);
 -- included when no branch is selected, the same rule as
 -- ListClientsBySpending. With no branch and no date set, clients who never
 -- bought anything are listed too (branch_id 0, zero spend). Cancelled and
--- hidden-from-reports branch invoices are skipped as everywhere else.
+-- hidden-from-reports branch invoices are skipped as everywhere else, unless
+-- include_excluded is set.
 WITH purchases AS (
   SELECT i.client_id,
     0::bigint AS branch_id,
@@ -310,9 +311,11 @@ WITH purchases AS (
     AND (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 OR b.branch_id = ANY(sqlc.arg(branch_ids)::bigint[]))
     AND (sqlc.narg(date_from)::timestamptz IS NULL OR b.occurred_at >= sqlc.narg(date_from)::timestamptz)
     AND (sqlc.narg(date_to)::timestamptz IS NULL OR b.occurred_at < sqlc.narg(date_to)::timestamptz)
-    AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
-    AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
-    AND b.cancelled_at IS NULL
+    AND (sqlc.arg(include_excluded)::bool OR (
+      b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+      AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+      AND b.cancelled_at IS NULL
+    ))
 ), agg AS (
   SELECT client_id, branch_id,
     SUM(total)::bigint AS total_spent,

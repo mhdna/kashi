@@ -223,6 +223,9 @@ type exportClientsRequest struct {
 	// files they are removed from all of them, within one file only the
 	// biggest spender is kept.
 	NoDuplicates bool `form:"no_duplicates"`
+	// Also counts cancelled invoices and those of branches/registers hidden
+	// from reports, which the export skips by default.
+	IncludeExcluded bool `form:"include_excluded"`
 }
 
 // clientExportRow is one client in one export file: the query row, with
@@ -386,6 +389,8 @@ func (server *Server) exportClients(ctx *gin.Context) {
 		BranchIds:  req.BranchIDs,
 		DateFrom:   sql.NullTime{Time: req.From, Valid: !req.From.IsZero()},
 		DateTo:     sql.NullTime{Time: req.To, Valid: !req.To.IsZero()},
+
+		IncludeExcluded: req.IncludeExcluded,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)

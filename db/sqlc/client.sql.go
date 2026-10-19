@@ -522,9 +522,11 @@ WITH purchases AS (
     AND (COALESCE(cardinality($1::bigint[]), 0) = 0 OR b.branch_id = ANY($1::bigint[]))
     AND ($2::timestamptz IS NULL OR b.occurred_at >= $2::timestamptz)
     AND ($3::timestamptz IS NULL OR b.occurred_at < $3::timestamptz)
-    AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
-    AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
-    AND b.cancelled_at IS NULL
+    AND ($4::bool OR (
+      b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+      AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+      AND b.cancelled_at IS NULL
+    ))
 ), agg AS (
   SELECT client_id, branch_id,
     SUM(total)::bigint AS total_spent,
@@ -547,7 +549,7 @@ SELECT
   a.last_visit::timestamptz AS last_visit
 FROM agg a
 JOIN clients c ON c.id = a.client_id
-WHERE $4::text IS NULL OR c.client_type = $4
+WHERE $5::text IS NULL OR c.client_type = $5
 UNION ALL
 SELECT c.id, c.name, c.phone, c.client_type, c.is_active, c.created_at, c.valid_loyalty_points,
   0::bigint, 0::bigint, 0::bigint,
@@ -557,16 +559,17 @@ FROM clients c
 WHERE COALESCE(cardinality($1::bigint[]), 0) = 0
   AND $2::timestamptz IS NULL
   AND $3::timestamptz IS NULL
-  AND ($4::text IS NULL OR c.client_type = $4)
+  AND ($5::text IS NULL OR c.client_type = $5)
   AND NOT EXISTS (SELECT 1 FROM agg WHERE agg.client_id = c.id)
 ORDER BY name ASC, id ASC
 `
 
 type ListClientsForExportParams struct {
-	BranchIds  []int64        `json:"branch_ids"`
-	DateFrom   sql.NullTime   `json:"date_from"`
-	DateTo     sql.NullTime   `json:"date_to"`
-	ClientType sql.NullString `json:"client_type"`
+	BranchIds       []int64        `json:"branch_ids"`
+	DateFrom        sql.NullTime   `json:"date_from"`
+	DateTo          sql.NullTime   `json:"date_to"`
+	IncludeExcluded bool           `json:"include_excluded"`
+	ClientType      sql.NullString `json:"client_type"`
 }
 
 type ListClientsForExportRow struct {
@@ -596,12 +599,14 @@ type ListClientsForExportRow struct {
 // included when no branch is selected, the same rule as
 // ListClientsBySpending. With no branch and no date set, clients who never
 // bought anything are listed too (branch_id 0, zero spend). Cancelled and
-// hidden-from-reports branch invoices are skipped as everywhere else.
+// hidden-from-reports branch invoices are skipped as everywhere else, unless
+// include_excluded is set.
 func (q *Queries) ListClientsForExport(ctx context.Context, arg ListClientsForExportParams) ([]ListClientsForExportRow, error) {
 	rows, err := q.db.QueryContext(ctx, listClientsForExport,
 		pq.Array(arg.BranchIds),
 		arg.DateFrom,
 		arg.DateTo,
+		arg.IncludeExcluded,
 		arg.ClientType,
 	)
 	if err != nil {

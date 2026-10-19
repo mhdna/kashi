@@ -90,8 +90,15 @@
           hide-details
           label="No duplicates"
         />
+        <v-checkbox
+          v-model="exportIncludeExcluded"
+          density="compact"
+          hide-details
+          label="Include cancelled invoices and hidden branches"
+        />
         <div class="text-caption text-medium-emphasis mt-2">
-          A client belongs to a branch if they bought something there. Each selected branch gets
+          A client belongs to a branch if they bought something there (cancelled invoices and
+          branches hidden from reports are skipped unless you include them). Each selected branch gets
           its own file (a zip when there are several); with none selected you get one file of
           every {{ tab }} client. Dates keep only those who bought in that period, and Total
           spent / Invoices count just that scope.
@@ -249,6 +256,7 @@
   const exportFields = ref(['name', 'phone'])
   const exportBranchIds = ref([])
   const exportNoDuplicates = ref(false)
+  const exportIncludeExcluded = ref(false)
   const exportFrom = ref('')
   const exportTo = ref('')
 
@@ -267,6 +275,7 @@
       params.set('fields', exportFieldOptions.map(f => f.value).filter(v => exportFields.value.includes(v)).join(','))
       for (const id of exportBranchIds.value) params.append('branch_ids', id)
       if (exportNoDuplicates.value) params.set('no_duplicates', true)
+      if (exportIncludeExcluded.value) params.set('include_excluded', true)
       // Local-midnight bounds, [from, day after to): "until" is inclusive.
       if (exportFrom.value) params.set('from', new Date(`${exportFrom.value}T00:00:00`).toISOString())
       if (exportTo.value) {
