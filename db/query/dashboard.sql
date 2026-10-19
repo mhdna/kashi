@@ -427,7 +427,7 @@ SELECT
     FROM purchase_items pi
     WHERE pi.purchase_id = p.id
   ), 0)::bigint AS items,
-  (SELECT code FROM currencies WHERE is_default LIMIT 1)::text AS currency,
+  p.currency_code::text AS currency,
   p.purchased_at AS purchased_at
 FROM purchases p
 JOIN suppliers s ON s.id = p.supplier_id
@@ -471,7 +471,7 @@ SELECT
   description::text AS description,
   category::text AS category,
   amount::bigint AS amount,
-  (SELECT code FROM currencies WHERE is_default LIMIT 1)::text AS currency,
+  currency::text AS currency,
   occurred_at::timestamptz AS occurred_at,
   image_id::bigint AS image_id
 -- image_id is 0, not NULL, when an expense has no receipt photo (admin
@@ -483,6 +483,7 @@ FROM (
     be.description AS description,
     COALESCE(ec.name, '')::text AS category,
     be.amount AS amount,
+    be.currency_code AS currency,
     be.occurred_at AS occurred_at,
     COALESCE((
       SELECT bei.id FROM branch_expense_images bei
@@ -505,6 +506,7 @@ FROM (
     e.description AS description,
     COALESCE(ec.name, '')::text AS category,
     e.amount AS amount,
+    e.currency_code AS currency,
     e.created_at AS occurred_at,
     0::bigint AS image_id
   FROM expenses e
