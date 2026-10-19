@@ -52,23 +52,19 @@
         </div>
 
         <div class="d-flex ga-3 mb-4">
-          <v-text-field
+          <DateRangePicker
+            v-if="scope === 'range'"
+            v-model:from="from"
+            v-model:to="to"
+            :max="today"
+          />
+          <DateField
+            v-else
             v-model="from"
             density="compact"
             hide-details
-            :label="scope === 'range' ? 'From' : 'Day'"
+            label="Day"
             :max="today"
-            type="date"
-            variant="outlined"
-          />
-          <v-text-field
-            v-if="scope === 'range'"
-            v-model="to"
-            density="compact"
-            hide-details
-            label="To"
-            :max="today"
-            type="date"
             variant="outlined"
           />
         </div>

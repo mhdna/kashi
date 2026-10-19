@@ -5,39 +5,7 @@
       <v-icon icon="mdi-trophy" />
       <div class="text-h6 font-weight-medium">Loyalty</div>
       <v-spacer />
-      <v-menu v-model="rangeMenu" :close-on-content-click="false">
-        <template #activator="{ props }">
-          <v-text-field
-            v-bind="props"
-            class="range-field"
-            density="compact"
-            hide-details
-            label="Period"
-            :model-value="rangeLabel"
-            prepend-inner-icon="mdi-calendar"
-            readonly
-            variant="outlined"
-          />
-        </template>
-        <v-card>
-          <div class="d-flex flex-wrap ga-2 pa-3 pb-0">
-            <v-chip
-              v-for="p in rangePresets"
-              :key="p.key"
-              :color="activePreset === p.key ? 'primary' : undefined"
-              size="small"
-              @click="applyPreset(p)"
-            >
-              {{ p.title }}
-            </v-chip>
-          </div>
-          <v-date-picker v-model="dateRange" :max="todayIso" multiple="range" />
-          <v-card-actions>
-            <v-spacer />
-            <v-btn color="primary" text="Done" variant="text" @click="rangeMenu = false" />
-          </v-card-actions>
-        </v-card>
-      </v-menu>
+      <DateRangePicker v-model="dateRange" clearable empty-label="All time" :max="todayIso" />
       <v-btn-toggle
         v-model="clientType"
         density="compact"
@@ -279,13 +247,14 @@
 
 <script setup lang="ts">
   import { computed, onMounted, ref, shallowRef, watch } from 'vue'
-  import VChart from '@/components/EChart.vue'
   import { useTheme } from 'vuetify'
   import TierChip from '@/components/Clients/TierChip.vue'
+  import VChart from '@/components/EChart.vue'
   import { useClientTiers } from '@/composables/useClientTiers'
   import { useNotify } from '@/composables/useNotify'
   import { dedupedFetch } from '@/composables/useRequestDedup'
   import { API_BASE } from '@/config'
+  import { ymd } from '@/utils/dates'
   import { formatCompactMoney } from '@/utils/money'
 
   // --- echarts chrome (same helpers as footfall.vue / conversion.vue) -------
@@ -329,50 +298,14 @@
   // and "close to leveling up" stay lifetime -- a tier is earned over a
   // client's whole history, so bucketing by one month's spend would put
   // nearly everyone in the entry tier.
-  const rangeMenu = ref(false)
   const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate())
-  const todayIso = (() => {
-    const t = startOfDay(new Date())
-    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`
-  })()
-  function monthRange (offset = 0) {
-    const now = new Date()
-    const first = new Date(now.getFullYear(), now.getMonth() + offset, 1)
-    const last = offset === 0 ? startOfDay(now) : new Date(now.getFullYear(), now.getMonth() + offset + 1, 0)
-    return [first, last]
-  }
-  const rangePresets = [
-    { key: 'month', title: 'This month', range: () => monthRange(0) },
-    { key: 'last-month', title: 'Last month', range: () => monthRange(-1) },
-    {
-      key: '90d',
-      title: 'Last 90 days',
-      range: () => {
-        const now = startOfDay(new Date())
-        return [new Date(now.getFullYear(), now.getMonth(), now.getDate() - 89), now]
-      },
-    },
-    { key: 'all', title: 'All time', range: () => [] },
-  ]
-  const dateRange = ref(monthRange(0))
-  const activePreset = ref('month')
-  function applyPreset (p) {
-    activePreset.value = p.key
-    dateRange.value = p.range()
-  }
-  watch(dateRange, () => {
-    // The picker fired, not a preset: only clear the highlight when the
-    // selection no longer matches the active preset.
-    const p = rangePresets.find(x => x.key === activePreset.value)
-    const want = p ? p.range() : []
-    const same = want.length === dateRange.value.length
-      && want.every((d, i) => startOfDay(new Date(d)).getTime() === startOfDay(new Date(dateRange.value[i])).getTime())
-    if (!same) activePreset.value = ''
-  })
+  const todayIso = ymd(new Date())
+  // 'YYYY-MM-DD' strings, or [] for all time; starts on this month.
+  const dateRange = ref([ymd(new Date(new Date().getFullYear(), new Date().getMonth(), 1)), todayIso])
 
   // [from, to) in local time; to is the first instant after the last picked day.
   const bounds = computed(() => {
-    const days = dateRange.value.map(d => startOfDay(new Date(d))).toSorted((a, b) => a - b)
+    const days = dateRange.value.map(d => new Date(`${d}T00:00:00`)).toSorted((a, b) => a - b)
     if (days.length === 0) return null
     const last = days.at(-1)
     return { from: days[0], to: new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1) }
@@ -412,14 +345,7 @@
 
   onMounted(load)
   watch(clientType, load)
-  // bounds changes while the picker is open (one per day clicked); wait for
-  // the menu to close so dragging across a range doesn't reload per click.
-  watch(bounds, () => {
-    if (!rangeMenu.value) load()
-  })
-  watch(rangeMenu, isOpen => {
-    if (!isOpen) load()
-  })
+  watch(bounds, load)
 
   // --- aggregation ------------------------------------------------------------
   function money (cents) {
@@ -710,11 +636,6 @@
 
 .rising-search {
   max-width: 220px;
-}
-
-.range-field {
-  min-width: 240px;
-  max-width: 280px;
 }
 
 .client-link {

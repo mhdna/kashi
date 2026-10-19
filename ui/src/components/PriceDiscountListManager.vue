@@ -186,20 +186,18 @@
           <v-text-field v-model="listForm.name" density="compact" label="Name" variant="outlined" />
           <v-row>
             <v-col cols="6">
-              <v-text-field
+              <DateField
                 v-model="listForm.validFrom"
                 density="compact"
                 label="Valid From"
-                type="date"
                 variant="outlined"
               />
             </v-col>
             <v-col cols="6">
-              <v-text-field
+              <DateField
                 v-model="listForm.validTo"
                 density="compact"
                 label="Valid To"
-                type="date"
                 variant="outlined"
               />
             </v-col>
@@ -324,12 +322,12 @@
 <script setup lang="ts">
   import { computed, onMounted, reactive, ref, watch } from 'vue'
   import BranchAssignDialog from '@/components/BranchAssignDialog.vue'
-  import { useNotify } from '@/composables/useNotify'
   import PageSidebar from '@/components/PageSidebar.vue'
   import BulkDeleteBar from '@/components/Tables/BulkDeleteBar.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useBulkDelete } from '@/composables/useBulkDelete'
   import { useDiscountLists } from '@/composables/useDiscountLists'
+  import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { usePriceLists } from '@/composables/usePriceLists'
   import { useVariants } from '@/composables/useVariants'

@@ -112,26 +112,7 @@
 
             <div class="text-caption text-medium-emphasis mb-1">Created between</div>
             <div class="d-flex flex-wrap ga-3 mb-5">
-              <v-text-field
-                v-model="createdFrom"
-                class="date-field"
-                clearable
-                density="compact"
-                hide-details
-                label="From"
-                type="date"
-                variant="outlined"
-              />
-              <v-text-field
-                v-model="createdTo"
-                class="date-field"
-                clearable
-                density="compact"
-                hide-details
-                label="To"
-                type="date"
-                variant="outlined"
-              />
+              <DateRangePicker v-model:from="createdFrom" v-model:to="createdTo" clearable empty-label="Any time" />
             </div>
 
             <template v-if="attributeTypes.length > 0">

@@ -498,7 +498,8 @@ export const guideSections = [
     [
       '<b>Top Spenders</b> shows your best clients as a pyramid. Sort by <b>most spent</b>, <b>most invoices</b> or <b>most items</b>, and show the top 15, 50 or 100.',
       '<b>All Clients</b> lists everyone else. Search by name or phone.',
-      'The branch button lets you pick <b>several branches</b>. The numbers then add up across those branches.',
+      'The branch button lets you pick <b>several branches</b>. The numbers then add up across those branches. With a branch picked you see the clients who bought there, plus those whose <b>home branch</b> it is.',
+      'The <b>date range</b> button keeps only clients who bought in that period, and the numbers count that period only. Click <b>Clear</b> for any time.',
     ],
     'The circle colour is the client\'s tier. Change tier names and limits with the cog.',
     [

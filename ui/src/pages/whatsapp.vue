@@ -24,24 +24,7 @@
           variant="outlined"
         />
         <template v-if="preset === 'custom'">
-          <v-text-field
-            v-model="customFrom"
-            density="compact"
-            hide-details
-            label="From"
-            style="max-width: 160px"
-            type="date"
-            variant="outlined"
-          />
-          <v-text-field
-            v-model="customTo"
-            density="compact"
-            hide-details
-            label="To"
-            style="max-width: 160px"
-            type="date"
-            variant="outlined"
-          />
+          <DateRangePicker v-model:from="customFrom" v-model:to="customTo" />
         </template>
         <v-select
           v-model="branchId"
