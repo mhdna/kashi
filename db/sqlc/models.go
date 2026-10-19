@@ -900,6 +900,8 @@ type BranchSetting struct {
 	PriceEditCodes                     string          `json:"price_edit_codes"`
 	UnknownProductBarcode              string          `json:"unknown_product_barcode"`
 	ProductSearchHiddenFields          string          `json:"product_search_hidden_fields"`
+	ReceiptTheme                       string          `json:"receipt_theme"`
+	ReceiptLayout                      string          `json:"receipt_layout"`
 }
 
 type BranchShift struct {
