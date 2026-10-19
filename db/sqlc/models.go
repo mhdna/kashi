@@ -538,6 +538,7 @@ type AppSetting struct {
 	UnknownImagesAutoDelete    bool            `json:"unknown_images_auto_delete"`
 	TablePageSize              int16           `json:"table_page_size"`
 	WhatsappWelcomeEarly       bool            `json:"whatsapp_welcome_early"`
+	BarcodeLabelDesign         json.RawMessage `json:"barcode_label_design"`
 }
 
 type AppUpdateEvent struct {

@@ -10843,6 +10843,21 @@ func (mr *MockStoreMockRecorder) SetAssetCost(arg0, arg1 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetAssetCost", reflect.TypeOf((*MockStore)(nil).SetAssetCost), arg0, arg1)
 }
 
+// SetBarcodeLabelDesign mocks base method.
+func (m *MockStore) SetBarcodeLabelDesign(arg0 context.Context, arg1 jsontext.Value) (db.AppSetting, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetBarcodeLabelDesign", arg0, arg1)
+	ret0, _ := ret[0].(db.AppSetting)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetBarcodeLabelDesign indicates an expected call of SetBarcodeLabelDesign.
+func (mr *MockStoreMockRecorder) SetBarcodeLabelDesign(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBarcodeLabelDesign", reflect.TypeOf((*MockStore)(nil).SetBarcodeLabelDesign), arg0, arg1)
+}
+
 // SetBranchActive mocks base method.
 func (m *MockStore) SetBranchActive(arg0 context.Context, arg1 db.SetBranchActiveParams) error {
 	m.ctrl.T.Helper()

@@ -136,14 +136,17 @@ type labelOptions struct {
 	Height    float64 // page height in points
 	Separator bool    // prepend a header page before each item + draw side borders
 	Fields    map[string]bool
+	// Design is how the label is drawn (barcode_label.go). The zero value is
+	// the default design.
+	Design labelDesign
 }
 
 // pdfDoc accumulates PDF objects and pages.
 type pdfDoc struct {
-	buf     bytes.Buffer
-	offsets []int
+	buf      bytes.Buffer
+	offsets  []int
 	pageRefs []int // object numbers of page objects
-	nextObj int
+	nextObj  int
 }
 
 func newPDFDoc() *pdfDoc {
@@ -178,11 +181,13 @@ func (d *pdfDoc) fill(n int, body string) {
 	fmt.Fprintf(&d.buf, "%d 0 obj\n%s\nendobj\n", n, body)
 }
 
-func (d *pdfDoc) addPage(w, h float64, fontReg, fontBold int, content string) {
+// addPage adds a page whose resources are the given font entries, e.g.
+// "/F1 5 0 R /FB 6 0 R".
+func (d *pdfDoc) addPage(w, h float64, fonts string, content string) {
 	contentObj := d.obj(fmt.Sprintf("<< /Length %d >>\nstream\n%s\nendstream", len(content), content))
 	pageObj := d.obj(fmt.Sprintf(
-		"<< /Type /Page /Parent %%PAGES%% /MediaBox [0 0 %.2f %.2f] /Resources << /Font << /F1 %d 0 R /FB %d 0 R >> >> /Contents %d 0 R >>",
-		w, h, fontReg, fontBold, contentObj))
+		"<< /Type /Page /Parent %%PAGES%% /MediaBox [0 0 %.2f %.2f] /Resources << /Font << %s >> >> /Contents %d 0 R >>",
+		w, h, fonts, contentObj))
 	d.pageRefs = append(d.pageRefs, pageObj)
 }
 
@@ -266,11 +271,25 @@ func buildLabelsPDF(items []labelItem, opts labelOptions) ([]byte, error) {
 	}
 	yOffset := (opts.Height - designH*scale) / 2
 
+	design := opts.Design
+	if design.Font == "" {
+		design = defaultLabelDesign()
+	}
+	design.normalize()
+
 	doc := newPDFDoc()
 	fontReg := doc.obj("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
 	fontBold := doc.obj("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>")
+	fonts := fmt.Sprintf("/F1 %d 0 R /FB %d 0 R", fontReg, fontBold)
+	// A design in another family adds that family under /FL and /FLB; the
+	// separator pages keep Helvetica.
+	if base, bold := labelPDFBaseFonts(design.Font); base != "Helvetica" {
+		fl := doc.obj(fmt.Sprintf("<< /Type /Font /Subtype /Type1 /BaseFont /%s >>", base))
+		flb := doc.obj(fmt.Sprintf("<< /Type /Font /Subtype /Type1 /BaseFont /%s >>", bold))
+		fonts += fmt.Sprintf(" /FL %d 0 R /FLB %d 0 R", fl, flb)
+	}
 
-	sideBarW := 14.0 // border strip width on the design canvas
+	sideBarW := labelSideBarW
 
 	for _, it := range items {
 		bars, ok := ean13Bars(it.Barcode)
@@ -283,17 +302,28 @@ func buildLabelsPDF(items []labelItem, opts labelOptions) ([]byte, error) {
 		}
 
 		if opts.Separator {
-			doc.addPage(opts.Width, opts.Height, fontReg, fontBold,
+			doc.addPage(opts.Width, opts.Height, fonts,
 				separatorContent(it, qty, opts, scale, yOffset, designW, designH, sideBarW))
 		}
 
-		label := labelContent(it, bars, opts.Separator, scale, yOffset, designW, sideBarW)
+		label := labelPDFContent(layoutLabel(it, bars, design, opts.Separator), design.Font, scale, yOffset)
 		for i := 0; i < qty; i++ {
-			doc.addPage(opts.Width, opts.Height, fontReg, fontBold, label)
+			doc.addPage(opts.Width, opts.Height, fonts, label)
 		}
 	}
 
 	return doc.finish(), nil
+}
+
+// labelPDFBaseFonts names the regular and bold base-14 fonts of a family.
+func labelPDFBaseFonts(font string) (string, string) {
+	switch font {
+	case "times":
+		return "Times-Roman", "Times-Bold"
+	case "courier":
+		return "Courier", "Courier-Bold"
+	}
+	return "Helvetica", "Helvetica-Bold"
 }
 
 func separatorContent(it labelItem, qty int, opts labelOptions, scale, yOffset, designW, designH, sideBarW float64) string {
@@ -338,73 +368,6 @@ func separatorContent(it labelItem, qty int, opts labelOptions, scale, yOffset, 
 		baseline := firstBaseline - float64(i)*spacing
 		fmt.Fprintf(&c, "BT %s %.2f Tf %.2f %.2f Td (%s) Tj ET\n", font, fontSize, x, baseline, pdfEscape(line))
 	}
-	c.WriteString("Q\n")
-	return c.String()
-}
-
-func labelContent(it labelItem, bars string, borders bool, scale, yOffset, designW, sideBarW float64) string {
-	var c bytes.Buffer
-	fmt.Fprintf(&c, "q\n%.4f 0 0 %.4f 0 %.2f cm\n0 0 0 rg\n0 0 0 RG\n", scale, scale, yOffset)
-
-	if borders {
-		fmt.Fprintf(&c, "%.2f %.2f %.2f %.2f re f\n", 0.0, 0.0, sideBarW, 144.0)
-		fmt.Fprintf(&c, "%.2f %.2f %.2f %.2f re f\n", designW-sideBarW, 0.0, sideBarW, 144.0)
-	}
-
-	priceText := it.Price
-	if priceText != "" {
-		priceText += " $"
-	}
-	priceSize, nameSize, codeSize, digitsSize := 24.0, 17.0, 14.0, 14.0
-
-	if priceText != "" {
-		priceW := pdfTextWidth(priceText, priceSize)
-		fmt.Fprintf(&c, "BT /FB %.2f Tf %.2f %.2f Td (%s) Tj ET\n", priceSize, (designW-priceW)/2, 118.0, pdfEscape(priceText))
-		lineW := priceW * 1.8
-		if lineW > designW-2*sideBarW-8 {
-			lineW = designW - 2*sideBarW - 8
-		}
-		fmt.Fprintf(&c, "%.2f w %.2f %.2f m %.2f %.2f l S\n", 1.0, (designW-lineW)/2, 112.0, (designW+lineW)/2, 112.0)
-	}
-
-	name := it.Name
-	if it.Color != "" {
-		name += " / " + it.Color
-	}
-	if it.Size != "" {
-		name += " / " + it.Size
-	}
-	fmt.Fprintf(&c, "BT /F1 %.2f Tf %.2f %.2f Td (%s) Tj ET\n", nameSize, (designW-pdfTextWidth(name, nameSize))/2, 92.0, pdfEscape(name))
-	fmt.Fprintf(&c, "BT /F1 %.2f Tf %.2f %.2f Td (%s) Tj ET\n", codeSize, (designW-pdfTextWidth(it.Code, codeSize))/2, 72.0, pdfEscape(it.Code))
-
-	moduleW := 1.7
-	barW := moduleW * 0.82
-	barcodeW := float64(len(bars)) * moduleW
-	barcodeX := (designW - barcodeW) / 2
-	barcodeY, barcodeH := 38.0, 26.0
-	guardExtra := 8.0
-	guardY, guardH := barcodeY-guardExtra, barcodeH+guardExtra
-	const startGuardLen, digitBlockLen, centerGuardLen = 3, 42, 5
-	leftDigitsEnd := startGuardLen + digitBlockLen
-	centerGuardEnd := leftDigitsEnd + centerGuardLen
-	rightDigitsEnd := centerGuardEnd + digitBlockLen
-	isGuard := func(i int) bool {
-		return i < startGuardLen || (i >= leftDigitsEnd && i < centerGuardEnd) || i >= rightDigitsEnd
-	}
-	x := barcodeX
-	for j, bit := range bars {
-		if bit == '1' {
-			if isGuard(j) {
-				fmt.Fprintf(&c, "%.3f %.2f %.3f %.2f re f\n", x+(moduleW-barW)/2, guardY, barW, guardH)
-			} else {
-				fmt.Fprintf(&c, "%.3f %.2f %.3f %.2f re f\n", x+(moduleW-barW)/2, barcodeY, barW, barcodeH)
-			}
-		}
-		x += moduleW
-	}
-	digitsW := pdfTextWidth(it.Barcode, digitsSize)
-	fmt.Fprintf(&c, "BT /F1 %.2f Tf %.2f %.2f Td (%s) Tj ET\n", digitsSize, barcodeX+(barcodeW-digitsW)/2, guardY-12.0, pdfEscape(it.Barcode))
-
 	c.WriteString("Q\n")
 	return c.String()
 }

@@ -92,6 +92,7 @@ var accessSections = []accessSection{
 		{"autofill-rules", "Auto-fill Rules"},
 		{"barcodes", "Barcodes"},
 		{"barcode-printing", "Barcode Printing"},
+		{"barcode-designer", "Barcode Designer"},
 	}},
 	{"inventory", "Inventory", "Stock, purchases, transfers, batches and suppliers", []accessPage{
 		{"inventory", "Inventory"},
@@ -354,8 +355,9 @@ var routeRules = []routeRule{
 // POST routes that only read (they use POST for a request body), so a
 // read-only user still gets them.
 var readOnlyPosts = map[string]bool{
-	"/barcodes/print":      true,
-	"/whatsapp/rules/test": true,
+	"/barcodes/print":          true,
+	"/barcodes/design/preview": true,
+	"/whatsapp/rules/test":     true,
 }
 
 // ruleFor returns the most specific rule for a gin route pattern such as
