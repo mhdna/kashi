@@ -26,7 +26,7 @@ export const navItems = [
   },
   {
     title: 'Human Resources',
-    icon: 'mdi-account-group',
+    icon: 'mdi-account-tie-outline',
     children: [
       { title: 'Employees', icon: 'mdi-account-group', to: '/employees' },
       {
@@ -55,7 +55,7 @@ export const navItems = [
   { title: 'Conflicts', icon: 'mdi-source-branch-sync', to: '/branch-conflicts', append: 'conflicts-status' },
   {
     title: 'Branches',
-    icon: 'mdi-store-outline',
+    icon: 'mdi-domain',
     children: [
       { title: 'Branches', icon: 'mdi-store-outline', to: '/branches' },
       { title: 'Branch Settings', icon: 'mdi-store-cog-outline', to: '/branch-settings' },
@@ -64,7 +64,7 @@ export const navItems = [
   },
   {
     title: 'Pricing',
-    icon: 'mdi-sale',
+    icon: 'mdi-tag-outline',
     children: [
       { title: 'Price Lists', icon: 'mdi-format-list-bulleted', to: '/price-lists' },
       { title: 'Discount Lists', icon: 'mdi-sale', to: '/discount-lists' },
@@ -73,7 +73,7 @@ export const navItems = [
   },
   {
     title: 'Products',
-    icon: 'mdi-package-variant',
+    icon: 'mdi-cart',
     children: [
       { title: 'Products', icon: 'mdi-package-variant', to: '/products' },
       { title: 'Colors & Sizes', icon: 'mdi-palette', to: '/colors-sizes' },
@@ -92,7 +92,7 @@ export const navItems = [
   },
   {
     title: 'Inventory',
-    icon: 'mdi-warehouse',
+    icon: 'mdi-folder-network',
     children: [
       { title: 'Inventory', icon: 'mdi-warehouse', to: '/inventory' },
       { title: 'Inventory Analysis', icon: 'mdi-chart-box-outline', to: '/inventory-analysis' },
@@ -106,7 +106,7 @@ export const navItems = [
   },
   {
     title: 'Purchasing',
-    icon: 'mdi-truck-delivery',
+    icon: 'mdi-truck',
     children: [
       { title: 'Suppliers', icon: 'mdi-truck-delivery', to: '/suppliers' },
       { title: 'Purchase Invoices', icon: 'mdi-invoice', to: '/purchase-invoice' },
