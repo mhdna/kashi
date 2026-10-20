@@ -32,8 +32,8 @@
           mandatory
           variant="outlined"
         >
-          <v-btn value="own">Central</v-btn>
           <v-btn value="branch">Branch</v-btn>
+          <v-btn value="own">Central</v-btn>
         </v-btn-toggle>
         <v-btn
           v-if="canEdit && tab === 'own'"
@@ -389,7 +389,9 @@
     return loanCategories.value.find(c => c.id === id) ?? null
   }
 
-  function branchName (id) {
+  // branch_id is a nullable column, so the API sends it as {Int64, Valid}.
+  function branchName (value) {
+    const id = value?.Valid === false ? null : (value?.Int64 ?? value)
     return branches.value.find(b => b.id === id)?.name ?? (id ? `Branch #${id}` : '—')
   }
 
@@ -448,7 +450,7 @@
     ]
   })
 
-  const tab = ref('own')
+  const tab = ref('branch')
   const search = ref('')
   const statusFilter = ref(null)
   const selectedCategory = ref(null)
