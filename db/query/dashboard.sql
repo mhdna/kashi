@@ -158,7 +158,8 @@ FROM branch_expenses
 WHERE occurred_at >= sqlc.arg(date_from)::timestamptz
   AND occurred_at < sqlc.arg(date_to)::timestamptz
   AND (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
-  AND branch_expenses.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports);
+  AND branch_expenses.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND branch_expenses.cancelled_at IS NULL;
 
 -- name: DashboardBranchNewClients :one
 -- Clients first seen at a branch in the range. With a branch selected,
@@ -214,7 +215,7 @@ WHERE created_at >= sqlc.arg(date_from)::timestamptz
 SELECT (
   COALESCE((
     SELECT SUM(l.amount) FROM loans l
-    WHERE (
+    WHERE l.cancelled_at IS NULL AND (
       (sqlc.arg(scope)::text IN ('all', 'branch') AND l.origin = 'branch_loan'
         AND (sqlc.narg(branch_id)::bigint IS NULL OR l.branch_id = sqlc.narg(branch_id))
         AND l.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports))
@@ -225,7 +226,7 @@ SELECT (
   COALESCE((
     SELECT SUM(lp.amount) FROM loan_payments lp
     JOIN loans l ON l.id = lp.loan_id
-    WHERE (
+    WHERE l.cancelled_at IS NULL AND (
       (sqlc.arg(scope)::text IN ('all', 'branch') AND l.origin = 'branch_loan'
         AND (sqlc.narg(branch_id)::bigint IS NULL OR l.branch_id = sqlc.narg(branch_id))
         AND l.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports))
@@ -280,7 +281,7 @@ SELECT
   ), 0))::bigint AS outstanding
 FROM loans l
 LEFT JOIN branches b ON b.id = l.branch_id
-WHERE (
+WHERE l.cancelled_at IS NULL AND (
     (sqlc.arg(scope)::text IN ('all', 'branch') AND l.origin = 'branch_loan'
       AND (sqlc.narg(branch_id)::bigint IS NULL OR l.branch_id = sqlc.narg(branch_id))
       AND l.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports))
@@ -315,6 +316,7 @@ WHERE occurred_at >= sqlc.arg(date_from)::timestamptz
   AND occurred_at < sqlc.arg(date_to)::timestamptz
   AND (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
   AND branch_expenses.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND branch_expenses.cancelled_at IS NULL
 GROUP BY day
 ORDER BY day;
 
@@ -498,6 +500,7 @@ FROM (
     AND be.occurred_at < sqlc.arg(date_to)::timestamptz
     AND (sqlc.narg(branch_id)::bigint IS NULL OR be.branch_id = sqlc.narg(branch_id))
     AND be.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+    AND be.cancelled_at IS NULL
 
   UNION ALL
 
@@ -527,6 +530,7 @@ SELECT (
       AND be.occurred_at < sqlc.arg(date_to)::timestamptz
       AND (sqlc.narg(branch_id)::bigint IS NULL OR be.branch_id = sqlc.narg(branch_id))
       AND be.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+      AND be.cancelled_at IS NULL
   )
   +
   (

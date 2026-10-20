@@ -367,6 +367,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.DELETE("/loan_categories/:id", server.deleteLoanCategory)
 
 	authRoutes.POST("/loans", server.createLoan)
+	authRoutes.POST("/loans/:id/cancel", server.cancelBranchLoanRecord)
 	authRoutes.GET("/loans/:id", server.getLoan)
 	authRoutes.GET("/loans", server.listLoans)
 	authRoutes.PUT("/loans", server.updateLoan)
@@ -455,6 +456,7 @@ func (server *Server) setupRoutes() {
 
 	authRoutes.GET("/branch_expenses", server.listBranchExpenses)
 	authRoutes.POST("/branch_expenses", server.adminCreateBranchExpense)
+	authRoutes.POST("/branch_expenses/:id/cancel", server.cancelBranchExpense)
 	authRoutes.GET("/unknown_items", server.listUnknownItems)
 	authRoutes.GET("/unknown_items/images", server.listUnknownItemImages)
 	authRoutes.GET("/unknown_items/images/:id/file", server.getUnknownItemImageFile)
@@ -584,6 +586,8 @@ func (server *Server) setupRoutes() {
 	branchRoutes.POST("/exchange_invoices", server.createBranchExchangeInvoice)
 	branchRoutes.POST("/expenses", server.createBranchExpense)
 	branchRoutes.POST("/loans", server.createBranchLoan)
+	branchRoutes.POST("/loans/cancel", server.branchCancelLoan)
+	branchRoutes.POST("/expenses/cancel", server.branchCancelExpense)
 	branchRoutes.POST("/shift_closes", server.createBranchShiftClose)
 	branchRoutes.POST("/whatsapp/thank_you", server.sendBranchWhatsAppThankYou)
 	branchRoutes.POST("/whatsapp/welcome", server.sendBranchWhatsAppWelcome)

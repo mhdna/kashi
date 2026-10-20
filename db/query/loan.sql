@@ -64,11 +64,12 @@ WHERE id = ANY(sqlc.arg(ids)::bigint[]) AND origin = 'central_loan';
 -- paid_amount is the running total of loan_payments against the loan;
 -- status is derived from it (never stored) -- 'paid' once payments cover
 -- the loan amount, 'partial' while some but not all is covered, else
--- 'unpaid'. sqlc.narg(status) filters on that same derived value.
+-- 'unpaid' -- or 'cancelled' once cancelled_at is stamped. sqlc.narg(status) filters on that same derived value.
 SELECT
   loans.*,
   COALESCE(pay.paid_amount, 0)::bigint AS paid_amount,
   (CASE
+    WHEN loans.cancelled_at IS NOT NULL THEN 'cancelled'
     WHEN COALESCE(pay.paid_amount, 0) >= loans.amount THEN 'paid'
     WHEN COALESCE(pay.paid_amount, 0) > 0 THEN 'partial'
     ELSE 'unpaid'
@@ -85,6 +86,7 @@ WHERE (loans.branch_id IS NULL OR loans.branch_id NOT IN (SELECT id FROM branche
   AND (sqlc.narg(category_id)::bigint IS NULL OR loans.category_id = sqlc.narg(category_id))
   AND (sqlc.narg(search)::text IS NULL OR loans.description ILIKE '%' || sqlc.narg(search) || '%')
   AND (sqlc.narg(status)::text IS NULL OR sqlc.narg(status) = (CASE
+    WHEN loans.cancelled_at IS NOT NULL THEN 'cancelled'
     WHEN COALESCE(pay.paid_amount, 0) >= loans.amount THEN 'paid'
     WHEN COALESCE(pay.paid_amount, 0) > 0 THEN 'partial'
     ELSE 'unpaid'
@@ -106,6 +108,7 @@ WHERE (loans.branch_id IS NULL OR loans.branch_id NOT IN (SELECT id FROM branche
   AND (sqlc.narg(category_id)::bigint IS NULL OR loans.category_id = sqlc.narg(category_id))
   AND (sqlc.narg(search)::text IS NULL OR loans.description ILIKE '%' || sqlc.narg(search) || '%')
   AND (sqlc.narg(status)::text IS NULL OR sqlc.narg(status) = (CASE
+    WHEN loans.cancelled_at IS NOT NULL THEN 'cancelled'
     WHEN COALESCE(pay.paid_amount, 0) >= loans.amount THEN 'paid'
     WHEN COALESCE(pay.paid_amount, 0) > 0 THEN 'partial'
     ELSE 'unpaid'
@@ -117,4 +120,12 @@ WHERE (loans.branch_id IS NULL OR loans.branch_id NOT IN (SELECT id FROM branche
 UPDATE loans
 SET category_id = $3
 WHERE branch_id = $1 AND client_ref = $2
+RETURNING *;
+
+-- name: CancelBranchLoan :one
+-- Branch-reported loans only: a central loan is deleted, there's no till to
+-- tell. Stamps cancelled_at once, like CancelBranchExpense.
+UPDATE loans
+SET cancelled_at = now()
+WHERE id = $1 AND origin = 'branch_loan' AND cancelled_at IS NULL
 RETURNING *;
