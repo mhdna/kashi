@@ -48,3 +48,11 @@ UPDATE branch_expenses
 SET category_id = sqlc.narg(category_id)
 WHERE branch_id = $1 AND client_ref = $2
 RETURNING *;
+
+-- name: CancelBranchExpense :one
+-- Stamps cancelled_at once; a second cancel matches no row (the handler
+-- reads the row first, so that's an idempotent no-op, not an error).
+UPDATE branch_expenses
+SET cancelled_at = now()
+WHERE id = $1 AND cancelled_at IS NULL
+RETURNING *;

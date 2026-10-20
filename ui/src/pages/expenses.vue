@@ -395,12 +395,33 @@
                         <v-icon :color="expenseColor(item)" :icon="expenseIcon(item)" size="22" />
                       </v-avatar>
                     </template>
-                    <v-list-item-title class="font-weight-medium">{{ item.description }}</v-list-item-title>
+                    <v-list-item-title class="font-weight-medium" :class="{ 'text-decoration-line-through': item.cancelled_at }">{{ item.description }}</v-list-item-title>
                     <v-list-item-subtitle>
                       {{ prettyDate(item.occurred_at) }} · {{ branchName(item.branch_id) }} · {{ categoryLabel(item.category_id) }}
                     </v-list-item-subtitle>
                     <template #append>
-                      <span class="text-error font-weight-medium">−{{ money(item.amount) }} {{ item.currency_code }}</span>
+                      <v-chip
+                        v-if="item.cancelled_at"
+                        class="me-2"
+                        color="error"
+                        size="small"
+                        variant="tonal"
+                      >
+                        Cancelled
+                      </v-chip>
+                      <span
+                        class="font-weight-medium"
+                        :class="item.cancelled_at ? 'text-medium-emphasis text-decoration-line-through' : 'text-error'"
+                      >−{{ money(item.amount) }} {{ item.currency_code }}</span>
+                      <v-icon-btn
+                        v-if="canEdit && !item.cancelled_at"
+                        class="ms-1"
+                        icon="mdi-cancel"
+                        size="small"
+                        title="Cancel expense"
+                        variant="text"
+                        @click.stop="cancelBranchExpense(item)"
+                      />
                     </template>
                   </v-list-item>
                   <v-divider v-if="i < filteredBranchExpenses.length - 1" />
@@ -697,6 +718,18 @@
     try {
       await apiJSON(`${API_BASE}/expenses/${item.id}`, { method: 'DELETE' })
       fetchExpenses()
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
+
+  // A branch expense can't be deleted -- the till keeps it, marked
+  // cancelled, and every total skips it.
+  async function cancelBranchExpense (item) {
+    if (!confirm(`Cancel expense "${item.description}"? The branch will show it as cancelled.`)) return
+    try {
+      await apiJSON(`${API_BASE}/branch_expenses/${item.id}/cancel`, { method: 'POST' })
+      fetchBranchExpenses(false)
     } catch (error) {
       notify.error(error.message)
     }

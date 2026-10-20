@@ -606,6 +606,36 @@ func (mr *MockStoreMockRecorder) CancelBranchCommand(arg0, arg1 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelBranchCommand", reflect.TypeOf((*MockStore)(nil).CancelBranchCommand), arg0, arg1)
 }
 
+// CancelBranchExpense mocks base method.
+func (m *MockStore) CancelBranchExpense(arg0 context.Context, arg1 int64) (db.BranchExpense, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CancelBranchExpense", arg0, arg1)
+	ret0, _ := ret[0].(db.BranchExpense)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CancelBranchExpense indicates an expected call of CancelBranchExpense.
+func (mr *MockStoreMockRecorder) CancelBranchExpense(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelBranchExpense", reflect.TypeOf((*MockStore)(nil).CancelBranchExpense), arg0, arg1)
+}
+
+// CancelBranchLoan mocks base method.
+func (m *MockStore) CancelBranchLoan(arg0 context.Context, arg1 int64) (db.Loan, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CancelBranchLoan", arg0, arg1)
+	ret0, _ := ret[0].(db.Loan)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CancelBranchLoan indicates an expected call of CancelBranchLoan.
+func (mr *MockStoreMockRecorder) CancelBranchLoan(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelBranchLoan", reflect.TypeOf((*MockStore)(nil).CancelBranchLoan), arg0, arg1)
+}
+
 // CancelPurchaseTx mocks base method.
 func (m *MockStore) CancelPurchaseTx(arg0 context.Context, arg1 int64, arg2 sql.NullInt64) (db.PurchaseReceiveTxResult, error) {
 	m.ctrl.T.Helper()

@@ -43,6 +43,9 @@ var allowedBranchCommandTypes = map[string]bool{
 	// anyway so this map stays the single place documenting every command
 	// type kashi-pos's executor needs to know.
 	"transfer_decision": true,
+	// cancel_record is likewise only enqueued by cancelBranchExpense /
+	// cancelBranchLoan, never typed in by an admin.
+	"cancel_record": true,
 }
 
 type createBranchCommandRequest struct {
