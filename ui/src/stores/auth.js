@@ -172,13 +172,35 @@ export const useAuthStore = defineStore('auth', () => {
       throw new Error('No refresh token')
     }
 
-    const res = await fetch(`${API_BASE}/tokens/renew_access`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refreshToken.value }),
-    })
+    let res
+    try {
+      res = await fetch(`${API_BASE}/tokens/renew_access`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken.value }),
+      })
+    } catch {
+      // The server couldn't be reached at all -- e.g. mid-restart during a
+      // deploy. That says nothing about whether the refresh token is still
+      // good, so this must never be read as "session expired": useApi's
+      // authFetch only logs the user out for transientRefreshFailure=false
+      // (or no flag), so this flag keeps a deploy-restart blip from ending
+      // a perfectly valid session.
+      const err = new Error(connectionErrorMessage())
+      err.transientRefreshFailure = true
+      throw err
+    }
+
+    if (isGatewayStatus(res.status)) {
+      const err = new Error(SERVER_UPDATING_MESSAGE)
+      err.transientRefreshFailure = true
+      throw err
+    }
 
     if (!res.ok) {
+      // A real answer from the server saying the refresh token itself is
+      // no good (expired, revoked, or just wrong) -- this one really does
+      // mean the session is over.
       throw new Error('Session expired')
     }
 
