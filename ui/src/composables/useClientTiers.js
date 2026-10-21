@@ -5,14 +5,17 @@ import { ref, watch } from 'vue'
 // from, so one set of thresholds/colors is edited once and applies
 // everywhere. Persisted to localStorage since there's no backend concept
 // of "tiers" (they're a display-only bucketing over total_spent).
-const STORAGE_KEY = 'kashi.clientTiers.v2'
+// v3: silver -> bronze (brownish, matching the metal rather than a grey
+// that reads as "disabled"). Bumped so this lands for everyone automatically
+// instead of only new browsers with no saved tiers yet.
+const STORAGE_KEY = 'kashi.clientTiers.v3'
 
 // minAmount is in whole currency units (dollars), not cents -- total_spent
 // from the API is in cents and gets divided by 100 before comparing.
 const defaultTiers = [
   { id: 'diamond', label: 'Diamond', color: '#7C4DFF', minAmount: 2000 },
   { id: 'gold', label: 'Gold', color: '#FFC107', minAmount: 800 },
-  { id: 'silver', label: 'Silver', color: '#9E9E9E', minAmount: 300 },
+  { id: 'bronze', label: 'Bronze', color: '#8D5B3A', minAmount: 300 },
 ]
 
 function loadTiers () {
