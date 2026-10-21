@@ -15,7 +15,7 @@ import (
 )
 
 const listBranchExpenseHistoryForSync = `-- name: ListBranchExpenseHistoryForSync :many
-SELECT be.id, be.branch_id, be.client_ref, be.description, be.amount, be.currency_code, be.branch_cashbox_account_id, be.branch_shift_id, be.occurred_at, be.received_at, be.category_id, be.branch_cashbox_account_name, be.cancelled_at, COALESCE(ec.name, '') AS category_name
+SELECT be.id, be.branch_id, be.client_ref, be.description, be.amount, be.currency_code, be.branch_cashbox_account_id, be.branch_shift_id, be.occurred_at, be.received_at, be.category_id, be.branch_cashbox_account_name, be.cancelled_at, be.from_central, COALESCE(ec.name, '') AS category_name
 FROM branch_expenses be
 LEFT JOIN expense_categories ec ON ec.id = be.category_id
 WHERE be.branch_id = $1
@@ -45,6 +45,7 @@ type ListBranchExpenseHistoryForSyncRow struct {
 	CategoryID               sql.NullInt64  `json:"category_id"`
 	BranchCashboxAccountName sql.NullString `json:"branch_cashbox_account_name"`
 	CancelledAt              sql.NullTime   `json:"cancelled_at"`
+	FromCentral              bool           `json:"from_central"`
 	CategoryName             string         `json:"category_name"`
 }
 
@@ -76,6 +77,7 @@ func (q *Queries) ListBranchExpenseHistoryForSync(ctx context.Context, arg ListB
 			&i.CategoryID,
 			&i.BranchCashboxAccountName,
 			&i.CancelledAt,
+			&i.FromCentral,
 			&i.CategoryName,
 		); err != nil {
 			return nil, err

@@ -42,6 +42,8 @@ type branchExpenseRequest struct {
 	// BranchCashboxAccountID.
 	BranchShiftID *int64    `json:"branch_shift_id"`
 	OccurredAt    time.Time `json:"occurred_at" binding:"required"`
+	// FromCentral: central paid it, not the till (older builds omit it).
+	FromCentral bool `json:"from_central"`
 }
 
 // createBranchExpense follows the same idempotent-insert pattern as
@@ -94,6 +96,7 @@ func (server *Server) createBranchExpense(ctx *gin.Context) {
 		BranchCashboxAccountName: sql.NullString{String: req.AccountName, Valid: req.AccountName != ""},
 		BranchShiftID:            branchShiftID,
 		OccurredAt:               req.OccurredAt,
+		FromCentral:              req.FromCentral,
 	})
 	if err != nil {
 		if isUniqueViolation(err) {

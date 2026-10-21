@@ -9,9 +9,10 @@ INSERT INTO branch_expenses (
   branch_cashbox_account_id,
   branch_cashbox_account_name,
   branch_shift_id,
-  occurred_at
+  occurred_at,
+  from_central
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 )
 RETURNING *;
 
@@ -47,6 +48,20 @@ WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
 UPDATE branch_expenses
 SET category_id = sqlc.narg(category_id)
 WHERE branch_id = $1 AND client_ref = $2
+RETURNING *;
+
+-- name: SetBranchExpenseFromCentral :one
+-- A till marking one of its own expenses as paid by central, or not.
+UPDATE branch_expenses
+SET from_central = $3
+WHERE branch_id = $1 AND client_ref = $2
+RETURNING *;
+
+-- name: SetBranchExpenseFromCentralByID :one
+-- The same, from kashi's expenses page.
+UPDATE branch_expenses
+SET from_central = $2
+WHERE id = $1
 RETURNING *;
 
 -- name: CancelBranchExpense :one

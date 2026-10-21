@@ -11006,6 +11006,36 @@ func (mr *MockStoreMockRecorder) SetBranchExpenseCategory(arg0, arg1 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchExpenseCategory", reflect.TypeOf((*MockStore)(nil).SetBranchExpenseCategory), arg0, arg1)
 }
 
+// SetBranchExpenseFromCentral mocks base method.
+func (m *MockStore) SetBranchExpenseFromCentral(arg0 context.Context, arg1 db.SetBranchExpenseFromCentralParams) (db.BranchExpense, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetBranchExpenseFromCentral", arg0, arg1)
+	ret0, _ := ret[0].(db.BranchExpense)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetBranchExpenseFromCentral indicates an expected call of SetBranchExpenseFromCentral.
+func (mr *MockStoreMockRecorder) SetBranchExpenseFromCentral(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchExpenseFromCentral", reflect.TypeOf((*MockStore)(nil).SetBranchExpenseFromCentral), arg0, arg1)
+}
+
+// SetBranchExpenseFromCentralByID mocks base method.
+func (m *MockStore) SetBranchExpenseFromCentralByID(arg0 context.Context, arg1 db.SetBranchExpenseFromCentralByIDParams) (db.BranchExpense, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetBranchExpenseFromCentralByID", arg0, arg1)
+	ret0, _ := ret[0].(db.BranchExpense)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetBranchExpenseFromCentralByID indicates an expected call of SetBranchExpenseFromCentralByID.
+func (mr *MockStoreMockRecorder) SetBranchExpenseFromCentralByID(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchExpenseFromCentralByID", reflect.TypeOf((*MockStore)(nil).SetBranchExpenseFromCentralByID), arg0, arg1)
+}
+
 // SetBranchHiddenFromReports mocks base method.
 func (m *MockStore) SetBranchHiddenFromReports(arg0 context.Context, arg1 db.SetBranchHiddenFromReportsParams) error {
 	m.ctrl.T.Helper()
