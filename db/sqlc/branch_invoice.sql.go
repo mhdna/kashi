@@ -238,6 +238,22 @@ func (q *Queries) CreateBranchInvoicePayment(ctx context.Context, arg CreateBran
 	return i, err
 }
 
+const deleteHistoricalBranchInvoice = `-- name: DeleteHistoricalBranchInvoice :execrows
+DELETE FROM branch_invoices WHERE id = $1 AND historical = true
+`
+
+// Deletes a historical backfill invoice (and, via ON DELETE CASCADE, its
+// items and payments) so it can be re-imported with corrected data. The
+// historical=true guard means this can never remove a real till's sale,
+// even given a wrong id -- see deleteBranchInvoice in api/branch_invoice.go.
+func (q *Queries) DeleteHistoricalBranchInvoice(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteHistoricalBranchInvoice, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const getBranchInvoice = `-- name: GetBranchInvoice :one
 SELECT id, branch_id, client_ref, kind, branch_invoice_code, branch_cashbox_account_id, branch_shift_id, branch_inventory_id, branch_client_id, related_client_ref, discount, subtotal, discounted_total, grand_total, loyalty_points_delta, occurred_at, received_at, salesperson_name, historical, client_uid, register_id, cancelled_at, salesperson_id, lbp_total, lbp_rate FROM branch_invoices WHERE id = $1
 `
@@ -720,6 +736,13 @@ WHERE bi.occurred_at >= make_date($1::int, 1, 1)
   AND ($2::bigint IS NULL OR bi.branch_id = $2)
   -- Several branches at once (the Daily Income page's chips); empty = all.
   AND (COALESCE(cardinality($3::bigint[]), 0) = 0 OR bi.branch_id = ANY($3::bigint[]))
+  -- Picked tills narrow only the branch they belong to; a branch with none
+  -- picked still counts in full. Empty = no narrowing at all.
+  AND (
+    COALESCE(cardinality($4::bigint[]), 0) = 0
+    OR bi.register_id = ANY($4::bigint[])
+    OR bi.branch_id NOT IN (SELECT branch_id FROM branch_registers WHERE id = ANY($4::bigint[]))
+  )
   AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   AND bi.cancelled_at IS NULL
@@ -728,9 +751,10 @@ ORDER BY day
 `
 
 type ListDailyIncomeParams struct {
-	Year      int32         `json:"year"`
-	BranchID  sql.NullInt64 `json:"branch_id"`
-	BranchIds []int64       `json:"branch_ids"`
+	Year        int32         `json:"year"`
+	BranchID    sql.NullInt64 `json:"branch_id"`
+	BranchIds   []int64       `json:"branch_ids"`
+	RegisterIds []int64       `json:"register_ids"`
 }
 
 type ListDailyIncomeRow struct {
@@ -750,7 +774,12 @@ type ListDailyIncomeRow struct {
 // plain btree index on occurred_at (idx_branch_invoices_occurred_at), while
 // a range comparison can.
 func (q *Queries) ListDailyIncome(ctx context.Context, arg ListDailyIncomeParams) ([]ListDailyIncomeRow, error) {
-	rows, err := q.db.QueryContext(ctx, listDailyIncome, arg.Year, arg.BranchID, pq.Array(arg.BranchIds))
+	rows, err := q.db.QueryContext(ctx, listDailyIncome,
+		arg.Year,
+		arg.BranchID,
+		pq.Array(arg.BranchIds),
+		pq.Array(arg.RegisterIds),
+	)
 	if err != nil {
 		return nil, err
 	}

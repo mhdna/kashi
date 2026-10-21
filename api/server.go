@@ -2,9 +2,14 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
+	"os/signal"
 	"sync/atomic"
+	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/mhdna/kashi/db/sqlc"
@@ -121,6 +126,9 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/inventories/treemap", server.getWarehouseTreemap)
 	authRoutes.POST("/products", server.createProduct)
 	authRoutes.POST("/products/import", server.importProductsCSV)
+	authRoutes.POST("/products/import_costs", server.importProductCosts)
+	authRoutes.GET("/products/barcodes_by_code", server.lookupBarcodesByCode)
+	authRoutes.POST("/products/create_missing", server.createMissingProducts)
 	authRoutes.PUT("/products", server.updateProduct)
 	authRoutes.GET("/products/:id", server.getProduct)
 	authRoutes.GET("/products", server.listProducts)
@@ -166,6 +174,9 @@ func (server *Server) setupRoutes() {
 	authRoutes.DELETE("/product_categories/:id", server.deleteProductCategory)
 	authRoutes.POST("/clients", server.createClient)
 	authRoutes.PUT("/clients", server.updateClient)
+	authRoutes.GET("/clients/by_phone", server.getClientByPhone)
+	authRoutes.POST("/clients/normalize_phones", server.normalizeClientPhones)
+	authRoutes.GET("/clients/phone_countries", server.listClientPhoneCountries)
 	authRoutes.GET("/clients/:id", server.getClient)
 	authRoutes.GET("/clients/:id/loyalty_total", server.getClientLoyaltyTotal)
 	authRoutes.GET("/clients/:id/profile", server.getClientProfile)
@@ -476,6 +487,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/branch_shift_receipt_images/:id/rotation", server.rotateBranchShiftReceiptImage)
 	authRoutes.PUT("/branch_shift_receipt_images/:id/replace", server.replaceBranchShiftReceiptImage)
 	authRoutes.GET("/branch_invoices", server.listBranchInvoices)
+	authRoutes.DELETE("/branch_invoices/:id", server.deleteBranchInvoice)
 	authRoutes.GET("/branch_sync_conflicts", server.listBranchSyncConflicts)
 	authRoutes.GET("/branch_sync_conflicts/summary", server.branchSyncConflictSummary)
 	authRoutes.POST("/branch_sync_conflicts/bulk_resolve", server.bulkResolveBranchSyncConflicts)
@@ -670,8 +682,46 @@ func (server *Server) setupRoutes() {
 	server.router = router
 }
 
+// shutdownGracePeriod bounds how long Start waits, after SIGTERM/SIGINT,
+// for in-flight requests to finish before forcing the listener closed. A
+// deploy's `systemctl restart` sends SIGTERM and otherwise (gin's plain
+// router.Run, which this replaces, never caught it at all) kills whatever
+// request a branch till or the admin UI happened to have in flight at that
+// exact instant -- not data-damaging on its own (createBranchInvoice's
+// client_ref is upsert-idempotent, a retried request just finds its own
+// row already there), but still a request someone was waiting on that
+// failed for no reason. This keeps the listener open long enough for that
+// request to complete normally instead.
+const shutdownGracePeriod = 20 * time.Second
+
 func (server *Server) Start(address string) error {
 	go server.expireSyncLeasesLoop()
 	go server.listenForSyncChanges()
-	return server.router.Run(address)
+
+	httpServer := &http.Server{Addr: address, Handler: server.router}
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	serveErr := make(chan error, 1)
+	go func() {
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serveErr <- err
+		}
+		close(serveErr)
+	}()
+
+	select {
+	case err := <-serveErr:
+		return err
+	case <-ctx.Done():
+		stop() // restore default signal handling in case shutdown itself hangs
+		log.Printf("shutting down: waiting up to %s for in-flight requests", shutdownGracePeriod)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownGracePeriod)
+		defer cancel()
+		if err := httpServer.Shutdown(shutdownCtx); err != nil {
+			return err
+		}
+		return nil
+	}
 }

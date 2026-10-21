@@ -137,6 +137,8 @@ type dailyIncomeRequest struct {
 	BranchID int64 `form:"branch_id"`
 	// Comma-separated ids, for several branches at once.
 	BranchIDs string `form:"branch_ids"`
+	// Comma-separated register ids; each narrows only its own branch.
+	RegisterIDs string `form:"register_ids"`
 }
 
 type dailyIncomeEntry struct {
@@ -162,23 +164,22 @@ func (server *Server) dailyIncome(ctx *gin.Context) {
 		branchID = sql.NullInt64{Int64: req.BranchID, Valid: true}
 	}
 
-	branchIDs := []int64{}
-	for _, part := range strings.Split(req.BranchIDs, ",") {
-		if part = strings.TrimSpace(part); part == "" {
-			continue
-		}
-		id, err := strconv.ParseInt(part, 10, 64)
-		if err != nil || id <= 0 {
-			server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("bad branch id %q", part))
-			return
-		}
-		branchIDs = append(branchIDs, id)
+	branchIDs, err := parseIDList(req.BranchIDs, "branch")
+	if err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	registerIDs, err := parseIDList(req.RegisterIDs, "register")
+	if err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
 	}
 
 	rows, err := server.store.ListDailyIncome(ctx, db.ListDailyIncomeParams{
-		Year:      req.Year,
-		BranchID:  branchID,
-		BranchIds: branchIDs,
+		Year:        req.Year,
+		BranchID:    branchID,
+		BranchIds:   branchIDs,
+		RegisterIds: registerIDs,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
@@ -251,4 +252,51 @@ func (server *Server) listBranchSalesStats(ctx *gin.Context) {
 	}
 
 	server.writeJSON(ctx, http.StatusOK, envelope{"sales_days": entries})
+}
+
+type deleteHistoricalBranchInvoiceRequest struct {
+	ID int64 `uri:"id" binding:"required,min=1"`
+}
+
+// deleteBranchInvoice removes a historical backfill invoice (and, via
+// ON DELETE CASCADE, its items and payments) so it can be re-imported with
+// corrected data -- e.g. a batch that went in with blank line items before
+// the real product codes were available. The DB query itself only ever
+// matches a row with historical=true, so this can never remove a real
+// till's sale no matter what id is passed: a live sale's delete simply
+// affects 0 rows rather than succeeding on the wrong invoice.
+func (server *Server) deleteBranchInvoice(ctx *gin.Context) {
+	var req deleteHistoricalBranchInvoiceRequest
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	rows, err := server.store.DeleteHistoricalBranchInvoice(ctx, req.ID)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if rows == 0 {
+		server.writeError(ctx, http.StatusNotFound, errors.New("no historical invoice with that id"))
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
+// parseIDList reads a comma-separated list of positive ids; blank is empty.
+func parseIDList(raw, what string) ([]int64, error) {
+	ids := []int64{}
+	for _, part := range strings.Split(raw, ",") {
+		if part = strings.TrimSpace(part); part == "" {
+			continue
+		}
+		id, err := strconv.ParseInt(part, 10, 64)
+		if err != nil || id <= 0 {
+			return nil, fmt.Errorf("bad %s id %q", what, part)
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
 }
