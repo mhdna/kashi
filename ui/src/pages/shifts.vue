@@ -133,16 +133,23 @@
             <template #item.opened_at="{ item }">{{ formatDate(item.opened_at) }}</template>
             <template #item.closed_at="{ item }">{{ formatDate(item.closed_at) }}</template>
             <template #item.expected_usd="{ item }">
+              <div class="font-weight-medium">{{ shiftTotal(item, 'expected') }} USD</div>
               <div v-for="line in methodLines(item, 'expected')" :key="line.label" class="method-line">
                 <span class="method-label">{{ line.label }}</span>{{ line.text }}
               </div>
             </template>
             <template #item.counted_usd="{ item }">
+              <div class="font-weight-medium">{{ shiftTotal(item, 'counted') }} USD</div>
               <div v-for="line in methodLines(item, 'counted')" :key="line.label" class="method-line">
                 <span class="method-label">{{ line.label }}</span>{{ line.text }}
               </div>
             </template>
             <template #item.variance_usd="{ item }">
+              <div class="font-weight-medium">
+                <v-chip :color="varianceColor(shiftTotalCents(item, 'variance'))" size="small" variant="tonal">
+                  {{ signed(shiftTotalCents(item, 'variance')) }} USD
+                </v-chip>
+              </div>
               <div v-for="line in methodLines(item, 'variance')" :key="line.label" class="method-line">
                 <span class="method-label">{{ line.label }}</span>
                 <v-chip :color="varianceColor(line.value)" size="small" variant="tonal">{{ line.text }}</v-chip>
@@ -498,6 +505,23 @@
     { key: 'whish', label: 'Whish', format: money },
   ]
 
+  // A shift's amounts as one USD figure in cents: the LBP drawer is priced at
+  // the rate the till closed at (kashi fills 90000 for shifts from before the
+  // rate was reported).
+  function shiftTotalCents (shift, kind) {
+    const rate = Number(shift.lbp_rate) || 90_000
+    const lbpCents = Math.round((Number(shift[`${kind}_lbp`]) || 0) / rate * 100)
+    return ['usd', 'visa', 'whish'].reduce((sum, key) => sum + (Number(shift[`${kind}_${key}`]) || 0), lbpCents)
+  }
+
+  function shiftTotal (shift, kind) {
+    return money(shiftTotalCents(shift, kind))
+  }
+
+  function signed (cents) {
+    return cents > 0 ? `+${money(cents)}` : money(cents)
+  }
+
   // One line per payment method for an expected / counted / variance column:
   // USD always, the others only when the shift moved money through them.
   function methodLines (shift, kind) {
@@ -576,6 +600,8 @@
 <style scoped>
 .method-line {
   white-space: nowrap;
+  font-size: 0.8125rem;
+  opacity: 0.75;
 }
 .method-label {
   margin-inline-end: 8px;
