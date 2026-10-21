@@ -12,7 +12,7 @@
       <v-card
         v-bind="props"
         class="d-flex align-center me-2"
-        :class="mobile ? 'icon-pill' : 'justify-center py-1 px-2'"
+        :class="mobile ? 'icon-pill' : 'py-1 px-2'"
         rounded="xl"
         style="cursor: pointer"
         variant="tonal"
@@ -28,7 +28,7 @@
           :icon="currentActivity ? currentActivity.icon : 'mdi-cloud'"
           :size="mobile ? 20 : undefined"
         />
-        <div v-if="!mobile" class="text-body-2 ticker">
+        <div v-if="!mobile" class="text-body-2 ticker" :class="{ 'ticker--active': activeItems.length > 0 }">
           <TransitionGroup class="d-flex align-center reel" name="ticker" tag="div">
             <span
               v-for="item in activeItems"
@@ -315,9 +315,10 @@
 }
 
 /* The reel and the status line are stacked in a single grid cell so they
-   can crossfade in place. The width is fixed so the pill never resizes with
-   its text: the reel is split into MAX_VISIBLE equal slots and anything
-   longer than its slot is ellipsized. */
+   can crossfade in place. Idle, the pill hugs its status text. While
+   messages show, the width is fixed so it never resizes with their text: the
+   reel is split into MAX_VISIBLE equal slots and anything longer than its
+   slot is ellipsized. */
 .ticker {
   display: grid;
   grid-template: 1fr / 1fr;
@@ -325,6 +326,10 @@
   min-height: 24px;
   overflow: hidden;
   white-space: nowrap;
+  max-width: min(44vw, 520px);
+}
+
+.ticker--active {
   width: min(44vw, 520px);
 }
 
