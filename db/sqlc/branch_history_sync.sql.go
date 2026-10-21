@@ -402,7 +402,7 @@ func (q *Queries) ListBranchLoanHistoryForSync(ctx context.Context, arg ListBran
 }
 
 const listBranchShiftHistoryForSync = `-- name: ListBranchShiftHistoryForSync :many
-SELECT id, branch_id, client_ref, branch_shift_id, opened_at, closed_at, closing_person_name, opening_float_usd, opening_float_lbp, expected_usd, expected_lbp, expected_visa, expected_whish, counted_usd, counted_lbp, counted_visa, counted_whish, variance_usd, variance_lbp, variance_visa, variance_whish, occurred_at, received_at, register_id FROM branch_shifts
+SELECT id, branch_id, client_ref, branch_shift_id, opened_at, closed_at, closing_person_name, opening_float_usd, opening_float_lbp, expected_usd, expected_lbp, expected_visa, expected_whish, counted_usd, counted_lbp, counted_visa, counted_whish, variance_usd, variance_lbp, variance_visa, variance_whish, occurred_at, received_at, register_id, lbp_rate FROM branch_shifts
 WHERE register_id = $1
   AND (received_at, id) > ($2::timestamptz, $3::bigint)
 ORDER BY received_at, id
@@ -455,6 +455,7 @@ func (q *Queries) ListBranchShiftHistoryForSync(ctx context.Context, arg ListBra
 			&i.OccurredAt,
 			&i.ReceivedAt,
 			&i.RegisterID,
+			&i.LbpRate,
 		); err != nil {
 			return nil, err
 		}
