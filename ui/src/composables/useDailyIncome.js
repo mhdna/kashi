@@ -3,7 +3,8 @@ import { authFetch } from './useApi'
 
 export function useDailyIncome () {
   // branch is one branch id, or an array of them (empty = every branch).
-  async function getDailyIncome (year, branch) {
+  // registerIds narrows each register's own branch to just those tills.
+  async function getDailyIncome (year, branch, registerIds = []) {
     const url = new URL(`${API_BASE}/branch_invoices/daily_income`, window.location.origin)
     url.searchParams.set('year', year)
     if (Array.isArray(branch)) {
@@ -11,6 +12,8 @@ export function useDailyIncome () {
     } else if (branch) {
       url.searchParams.set('branch_id', branch)
     }
+
+    if (registerIds.length > 0) {url.searchParams.set('register_ids', registerIds.join(','))}
 
     const res = await authFetch(url.toString())
     if (!res.ok) {
