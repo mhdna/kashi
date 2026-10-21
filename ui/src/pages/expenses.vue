@@ -395,7 +395,7 @@
                         <v-icon :color="expenseColor(item)" :icon="expenseIcon(item)" size="22" />
                       </v-avatar>
                     </template>
-                    <v-list-item-title class="font-weight-medium" :class="{ 'text-decoration-line-through': item.cancelled_at }">{{ item.description }}</v-list-item-title>
+                    <v-list-item-title class="font-weight-medium" :class="{ 'text-decoration-line-through': isCancelled(item) }">{{ item.description }}</v-list-item-title>
                     <v-list-item-subtitle>
                       {{ prettyDate(item.occurred_at) }} · {{ branchName(item.branch_id) }} · {{ categoryLabel(item.category_id) }}
                     </v-list-item-subtitle>
@@ -411,7 +411,7 @@
                         From central · من المركزي
                       </v-chip>
                       <v-chip
-                        v-if="item.cancelled_at"
+                        v-if="isCancelled(item)"
                         class="me-2"
                         color="error"
                         size="small"
@@ -421,11 +421,11 @@
                       </v-chip>
                       <span
                         class="font-weight-medium"
-                        :class="item.cancelled_at ? 'text-medium-emphasis text-decoration-line-through' : 'text-error'"
+                        :class="isCancelled(item) ? 'text-medium-emphasis text-decoration-line-through' : 'text-error'"
                       >−{{ money(item.amount) }} {{ item.currency_code }}</span>
                       <!-- Only a till's own expense: one entered here has no shift to keep it out of. -->
                       <v-icon-btn
-                        v-if="canEdit && !item.cancelled_at && item.branch_cashbox_account_id !== 0"
+                        v-if="canEdit && !isCancelled(item) && item.branch_cashbox_account_id !== 0"
                         class="ms-1"
                         :color="item.from_central ? 'primary' : undefined"
                         icon="mdi-domain"
@@ -435,7 +435,7 @@
                         @click.stop="toggleFromCentral(item)"
                       />
                       <v-icon-btn
-                        v-if="canEdit && !item.cancelled_at"
+                        v-if="canEdit && !isCancelled(item)"
                         class="ms-1"
                         icon="mdi-cancel"
                         size="small"
@@ -742,6 +742,12 @@
     } catch (error) {
       notify.error(error.message)
     }
+  }
+
+  // cancelled_at is a Go sql.NullTime: { Time, Valid } on the wire, an
+  // object (so truthy) even when the expense was never cancelled.
+  function isCancelled (item) {
+    return Boolean(item.cancelled_at?.Valid)
   }
 
   // A branch expense can't be deleted -- the till keeps it, marked
