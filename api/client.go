@@ -34,10 +34,21 @@ func (server *Server) createClient(ctx *gin.Context) {
 		req.ClientType = "retail"
 	}
 
+	phoneE164, region, _ := parseAnyPhone(req.Phone)
+	// Keep the input as typed if it doesn't parse: phone_valid=false is
+	// how that's surfaced on the clients page rather than silently storing
+	// something other than what was entered.
+	phoneToStore := req.Phone
+	if phoneE164 != "" {
+		phoneToStore = phoneE164
+	}
+
 	arg := db.CreateClientParams{
-		Name:       req.Name,
-		Phone:      req.Phone,
-		ClientType: req.ClientType,
+		Name:         req.Name,
+		Phone:        phoneToStore,
+		ClientType:   req.ClientType,
+		PhoneValid:   phoneE164 != "",
+		PhoneCountry: region,
 	}
 
 	client, err := server.store.CreateClient(ctx, arg)
@@ -61,6 +72,36 @@ func (server *Server) getClient(ctx *gin.Context) {
 	}
 
 	client, err := server.store.GetClient(ctx, req.ID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			server.writeError(ctx, http.StatusNotFound, err)
+			return
+		}
+
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, client)
+}
+
+type getClientByPhoneRequest struct {
+	Phone string `form:"phone" binding:"required"`
+}
+
+// getClientByPhone is a thin admin lookup over the same by-phone query the
+// branch-sync code already uses internally (GetClientByPhone) -- phone is
+// the global identity key (clients.phone is unique), so this is the fast
+// path to a client's id/uid when all you have is a phone number, instead
+// of paging through the full /clients/ listing.
+func (server *Server) getClientByPhone(ctx *gin.Context) {
+	var req getClientByPhoneRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	client, err := server.store.GetClientByPhone(ctx, req.Phone)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			server.writeError(ctx, http.StatusNotFound, err)
@@ -175,6 +216,12 @@ type listClientsBySpendingRequest struct {
 	// With a from date: "first" = first bought inside the window, "returning"
 	// = bought before it too. Empty = both.
 	Visit string `form:"visit" binding:"omitempty,oneof=first returning"`
+	// Optional: only clients whose phone is valid/invalid (see
+	// client_phone_cleanup.go), or whose phone's country matches exactly
+	// (the ISO 3166-1 alpha-2 code, e.g. "LB" -- see
+	// ListClientPhoneCountries for the set actually present).
+	PhoneValid   *bool  `form:"phone_valid"`
+	PhoneCountry string `form:"phone_country"`
 }
 
 // listClientsBySpending is the clients loyalty-pyramid page's data source:
@@ -190,16 +237,23 @@ func (server *Server) listClientsBySpending(ctx *gin.Context) {
 
 	clientType := sql.NullString{String: req.ClientType, Valid: req.ClientType != ""}
 	search := sql.NullString{String: req.Search, Valid: req.Search != ""}
+	phoneValid := sql.NullBool{}
+	if req.PhoneValid != nil {
+		phoneValid = sql.NullBool{Bool: *req.PhoneValid, Valid: true}
+	}
+	phoneCountry := sql.NullString{String: req.PhoneCountry, Valid: req.PhoneCountry != ""}
 	clients, err := server.store.ListClientsBySpending(ctx, db.ListClientsBySpendingParams{
-		Limit:      req.PageSize,
-		Offset:     req.PageID,
-		BranchIds:  req.BranchIDs,
-		ClientType: clientType,
-		Search:     search,
-		SortBy:     req.SortBy,
-		DateFrom:   sql.NullTime{Time: req.From, Valid: !req.From.IsZero()},
-		DateTo:     sql.NullTime{Time: req.To, Valid: !req.To.IsZero()},
-		Visit:      req.Visit,
+		Limit:        req.PageSize,
+		Offset:       req.PageID,
+		BranchIds:    req.BranchIDs,
+		ClientType:   clientType,
+		Search:       search,
+		SortBy:       req.SortBy,
+		DateFrom:     sql.NullTime{Time: req.From, Valid: !req.From.IsZero()},
+		DateTo:       sql.NullTime{Time: req.To, Valid: !req.To.IsZero()},
+		Visit:        req.Visit,
+		PhoneValid:   phoneValid,
+		PhoneCountry: phoneCountry,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
@@ -207,12 +261,14 @@ func (server *Server) listClientsBySpending(ctx *gin.Context) {
 	}
 
 	total, err := server.store.CountClientsBySpending(ctx, db.CountClientsBySpendingParams{
-		BranchIds:  req.BranchIDs,
-		ClientType: clientType,
-		Search:     search,
-		DateFrom:   sql.NullTime{Time: req.From, Valid: !req.From.IsZero()},
-		DateTo:     sql.NullTime{Time: req.To, Valid: !req.To.IsZero()},
-		Visit:      req.Visit,
+		BranchIds:    req.BranchIDs,
+		ClientType:   clientType,
+		Search:       search,
+		DateFrom:     sql.NullTime{Time: req.From, Valid: !req.From.IsZero()},
+		DateTo:       sql.NullTime{Time: req.To, Valid: !req.To.IsZero()},
+		Visit:        req.Visit,
+		PhoneValid:   phoneValid,
+		PhoneCountry: phoneCountry,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
@@ -516,11 +572,19 @@ func (server *Server) updateClient(ctx *gin.Context) {
 		clientType = existing.ClientType
 	}
 
+	phoneE164, region, _ := parseAnyPhone(req.Phone)
+	phoneToStore := req.Phone
+	if phoneE164 != "" {
+		phoneToStore = phoneE164
+	}
+
 	arg := db.UpdateClientParams{
-		ID:         req.ID,
-		Name:       req.Name,
-		Phone:      req.Phone,
-		ClientType: clientType,
+		ID:           req.ID,
+		Name:         req.Name,
+		Phone:        phoneToStore,
+		ClientType:   clientType,
+		PhoneValid:   phoneE164 != "",
+		PhoneCountry: region,
 	}
 	client, err := server.store.UpdateClient(ctx, arg)
 	if err != nil {

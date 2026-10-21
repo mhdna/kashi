@@ -53,6 +53,14 @@ type Querier interface {
 	// arrives late doesn't undo a newer one; 'failed' always wins. A message Meta
 	// couldn't deliver, or says it doesn't charge for, costs nothing.
 	ApplyWhatsAppDeliveryStatus(ctx context.Context, arg ApplyWhatsAppDeliveryStatusParams) ([]int64, error)
+	// Bulk counterpart to UpdateClientPhone for normalizeClientPhones: one
+	// round trip for a whole chunk instead of one per row, which is what made
+	// the first version of this job time out at Cloudflare's gateway on 60k+
+	// individual updates. Also backfills phone_valid/phone_country for every
+	// row the job passes (even one whose phone text didn't change), since
+	// those columns start out at their just-migrated-in defaults until this
+	// runs once.
+	BatchUpdateClientPhones(ctx context.Context, arg BatchUpdateClientPhonesParams) error
 	BranchAttendanceChangeRefsPresent(ctx context.Context, arg BranchAttendanceChangeRefsPresentParams) ([]string, error)
 	BranchAttendanceEventRefsPresent(ctx context.Context, arg BranchAttendanceEventRefsPresentParams) ([]string, error)
 	BranchClientLinksPresent(ctx context.Context, arg BranchClientLinksPresentParams) ([]int64, error)
@@ -456,6 +464,11 @@ type Querier interface {
 	// A till retrying a thank-you after a temporary failure: its earlier failed
 	// rows go, so the log keeps one row per sale showing how it ended.
 	DeleteFailedWhatsAppMessagesForInvoice(ctx context.Context, arg DeleteFailedWhatsAppMessagesForInvoiceParams) error
+	// Deletes a historical backfill invoice (and, via ON DELETE CASCADE, its
+	// items and payments) so it can be re-imported with corrected data. The
+	// historical=true guard means this can never remove a real till's sale,
+	// even given a wrong id -- see deleteBranchInvoice in api/branch_invoice.go.
+	DeleteHistoricalBranchInvoice(ctx context.Context, id int64) (int64, error)
 	DeleteIPBan(ctx context.Context, ip string) error
 	DeleteInventories(ctx context.Context, ids []int64) (int64, error)
 	DeleteInventory(ctx context.Context, id int64) error
@@ -566,6 +579,14 @@ type Querier interface {
 	GetEntry(ctx context.Context, id int64) (Entry, error)
 	GetExpense(ctx context.Context, id int64) (Expense, error)
 	GetExpenseCategory(ctx context.Context, id int64) (ExpenseCategory, error)
+	// One representative barcode per product code, for linking an external
+	// sales import's line (which only ever has the product code, not a
+	// specific color/size) to a real product_variants row -- see
+	// api/product_cost_import.go's sibling, the invoice line-linking script.
+	// Picks the lowest-id active variant; which exact variant doesn't matter
+	// for revenue/cost attribution, only that the line resolves to the right
+	// product instead of staying an unlinked placeholder.
+	GetFirstActiveVariantBarcodeByCode(ctx context.Context, code string) (GetFirstActiveVariantBarcodeByCodeRow, error)
 	GetInventory(ctx context.Context, id int64) (Inventory, error)
 	GetInventoryByName(ctx context.Context, name string) (Inventory, error)
 	// ---------------------------------------------------------------------------
@@ -757,6 +778,10 @@ type Querier interface {
 	ListAllAttributeValues(ctx context.Context) ([]ListAllAttributeValuesRow, error)
 	ListAllBranchRegisters(ctx context.Context) ([]BranchRegister, error)
 	ListAllCashboxAccounts(ctx context.Context) ([]CashboxAccount, error)
+	// Every client's raw stored phone, for the one-off admin normalize job
+	// (api/client_phone_cleanup.go) -- unlike ListClients this is never paged,
+	// since the job needs every row in one pass to detect collisions.
+	ListAllClientPhones(ctx context.Context) ([]ListAllClientPhonesRow, error)
 	// Newest first, with how many active registers run each release and how
 	// many are told to.
 	ListAppReleases(ctx context.Context) ([]ListAppReleasesRow, error)
@@ -991,6 +1016,11 @@ type Querier interface {
 	ListCashboxAccountsForSync(ctx context.Context) ([]CashboxAccount, error)
 	ListCashboxAccountsUpdatedSince(ctx context.Context, updatedAt time.Time) ([]CashboxAccount, error)
 	ListCashboxes(ctx context.Context, arg ListCashboxesParams) ([]Cashbox, error)
+	// Distinct countries actually present among clients' phones, for the
+	// clients page's country filter dropdown -- so it only ever offers a
+	// country that would return at least one result, instead of the full
+	// ~240-country ISO list.
+	ListClientPhoneCountries(ctx context.Context) ([]ListClientPhoneCountriesRow, error)
 	// Whole-population feed for the loyalty page, which buckets every client
 	// into a front-end tier by total_spent and so needs all of them, not a
 	// page. ListClientsBySpending can't serve that: its aggregation scans all
@@ -1561,6 +1591,12 @@ type Querier interface {
 	SearchVariantsForUnknownItems(ctx context.Context, search string) ([]SearchVariantsForUnknownItemsRow, error)
 	// Clients with a phone, for picking in a rule.
 	SearchWhatsAppClients(ctx context.Context, search string) ([]SearchWhatsAppClientsRow, error)
+	// Fills in avg_cost for every variant of one product, but only where it is
+	// still at the 0 default -- i.e. never seeded by an actual stock receipt
+	// (UpdateProductVariantAvgCost above). Used to backfill a starting cost
+	// basis from an external cost list (cmd/import_costs-style one-off); it
+	// never overwrites a real moving-average cost built from real receipts.
+	SeedProductVariantsCostByCode(ctx context.Context, arg SeedProductVariantsCostByCodeParams) (int64, error)
 	SetAssetCost(ctx context.Context, arg SetAssetCostParams) error
 	SetBarcodeLabelDesign(ctx context.Context, barcodeLabelDesign json.RawMessage) (AppSetting, error)
 	SetBranchActive(ctx context.Context, arg SetBranchActiveParams) error
@@ -1680,6 +1716,7 @@ type Querier interface {
 	UpdateCashbox(ctx context.Context, arg UpdateCashboxParams) (Cashbox, error)
 	UpdateCashboxAccount(ctx context.Context, arg UpdateCashboxAccountParams) (CashboxAccount, error)
 	UpdateClient(ctx context.Context, arg UpdateClientParams) (Client, error)
+	UpdateClientPhone(ctx context.Context, arg UpdateClientPhoneParams) error
 	UpdateColor(ctx context.Context, arg UpdateColorParams) (Color, error)
 	UpdateCoupon(ctx context.Context, arg UpdateCouponParams) (Coupon, error)
 	UpdateCouponCategory(ctx context.Context, arg UpdateCouponCategoryParams) (CouponCategory, error)
