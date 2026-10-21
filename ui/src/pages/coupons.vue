@@ -111,10 +111,10 @@
                   @update:selected="v => (selectedCoupons = v)"
                 >
                   <template #item.category_id="{ item }">
-                    <CategoryChip :category="categoryFor(item.category_id)" />
+                    <CategoryChip :category="categoryFor(nullValue(item.category_id))" />
                   </template>
                   <template #item.type_name="{ item }">
-                    {{ item.type_name || '—' }}
+                    {{ nullValue(item.type_name) || '—' }}
                   </template>
                   <template #item.status="{ item }">
                     <v-chip :color="statusColor(item.status)" size="small">
@@ -125,7 +125,7 @@
                     {{ formatCents(item.value_cents) }}
                   </template>
                   <template #item.valid_until="{ item }">
-                    {{ formatDate(item.valid_until) }}
+                    {{ formatDate(nullValue(item.valid_until)) }}
                   </template>
                   <template #item.actions="{ item }">
                     <v-btn
@@ -515,6 +515,14 @@
 
   const activeCategories = computed(() => couponCategories.value.filter(c => c.is_active))
 
+  // The coupon list sends its database rows as they are, so a nullable column
+  // is Go's sql.Null* on the wire: { String|Int64|Time, Valid }. null when unset.
+  function nullValue (v) {
+    if (v == null || typeof v !== 'object') return v ?? null
+    if (!v.Valid) return null
+    return v.String ?? v.Int64 ?? v.Time ?? null
+  }
+
   function categoryFor (id) {
     return couponCategories.value.find(c => c.id === id) ?? null
   }
@@ -598,11 +606,11 @@
     resetForm()
     Object.assign(form, {
       code: item.code,
-      typeId: item.type_id ?? null,
-      categoryId: item.category_id ?? null,
-      clientId: item.client_id ?? null,
+      typeId: nullValue(item.type_id),
+      categoryId: nullValue(item.category_id),
+      clientId: nullValue(item.client_id),
       status: item.status,
-      validUntil: item.valid_until?.slice(0, 10) ?? '',
+      validUntil: nullValue(item.valid_until)?.slice(0, 10) ?? '',
     })
     dialog.value = true
   }
@@ -713,7 +721,7 @@
       name: item.name,
       valueAmount: (item.value_cents ?? 0) / 100,
       currencyCode: item.currency_code,
-      categoryId: item.category_id ?? null,
+      categoryId: nullValue(item.category_id),
       isActive: item.is_active,
       referenceOnly: item.reference_only,
       calculateOnCheckout: item.calculate_on_checkout,
