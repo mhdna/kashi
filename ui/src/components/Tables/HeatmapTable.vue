@@ -93,8 +93,9 @@
   // Footfall page.
   // yearNav puts the year picker in the grid's corner cell, which holds the
   // day column wide; turn it off when the page shows the year elsewhere.
-  const props = withDefaults(defineProps<{ branchIds?: number[] | null, yearNav?: boolean }>(), {
+  const props = withDefaults(defineProps<{ branchIds?: number[] | null, registerIds?: number[], yearNav?: boolean }>(), {
     branchIds: null,
+    registerIds: () => [],
     yearNav: true,
   })
 
@@ -201,11 +202,29 @@
 
   // highlightChanges is false for a branch-filter switch (a whole new grid,
   // nothing to flash) and true for a live socket-triggered refresh.
+  //
+  // loadGeneration guards against two load() calls racing: a year/branch
+  // switch (highlightChanges=false) can overlap with a socket-triggered
+  // refresh (highlightChanges=true, firing once per synced invoice -- rapid
+  // during a bulk historical import) for what is now the *same* selected
+  // year. Without this, a highlightChanges=true call that resolves after a
+  // newer one already replaced data.value diffs "next" against a
+  // "previous" snapshot that's actually stale -- e.g. still the old year's
+  // numbers -- so nearly every cell reads as changed and flashes at once,
+  // even though only the handful a real sync touched actually did. Only
+  // the most recently *started* call is allowed to write data.value or
+  // flash anything; every earlier one that resolves late is simply
+  // discarded once a newer one has begun. (The older `year !==
+  // selectedYear.value` check this replaces only caught the sub-case where
+  // the year had changed again by the time the fetch resolved, not two
+  // in-flight calls for the same year.)
+  let loadGeneration = 0
   async function load (highlightChanges = false) {
     const year = selectedYear.value
+    const generation = ++loadGeneration
     if (!highlightChanges) loading.value = true
-    const days = await getDailyIncome(year, branchFilter.value).catch(() => [])
-    if (year !== selectedYear.value) return
+    const days = await getDailyIncome(year, branchFilter.value, props.registerIds).catch(() => [])
+    if (generation !== loadGeneration) return
     loading.value = false
     const next = months.map((_, mi) => Array.from({ length: daysInMonth.value[mi] }, () => 0))
     for (const entry of days) {
@@ -224,7 +243,7 @@
     scrollToToday()
   }
 
-  watch([() => branchFilter.value.join(','), selectedYear], () => load(false), { immediate: true })
+  watch([() => branchFilter.value.join(','), () => props.registerIds.join(','), selectedYear], () => load(false), { immediate: true })
 
   // Branch sync pushes new invoices over the admin socket -- without this,
   // today's cell only updates on the next full page load. SyncCard listens
@@ -248,6 +267,13 @@
   const get = (mi, day) => data.value[mi][day - 1] ?? 0
 
   const monthTotals = computed(() => data.value.map(month => month.reduce((sum, v) => sum + v, 0)))
+
+  // The whole year's sum, for the page to show beside the picker (null
+  // while a fresh grid is loading).
+  const emit = defineEmits<{ total: [value: number | null] }>()
+  watch([monthTotals, loading], () => {
+    emit('total', loading.value ? null : monthTotals.value.reduce((sum, v) => sum + v, 0))
+  }, { immediate: true })
 
   const allValues = computed(() => data.value.flat())
   const min = computed(() => Math.min(...allValues.value))
