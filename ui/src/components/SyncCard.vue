@@ -358,6 +358,7 @@
   align-items: center;
   /* one of three equal slots (two 6px gaps) */
   flex: 0 0 calc((100% - 12px) / 3);
+  justify-content: center;
   min-width: 0;
 }
 
