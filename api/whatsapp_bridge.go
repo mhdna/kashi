@@ -440,6 +440,8 @@ type whatsAppSenderBody struct {
 	FollowupGood string `json:"whatsapp_followup_good"`
 	FollowupOkay string `json:"whatsapp_followup_okay"`
 	FollowupBad  string `json:"whatsapp_followup_bad"`
+	// The follow-up only to a client who never got one (see sendWhatsAppPollFollowup).
+	FollowupFirstOnly bool `json:"whatsapp_followup_first_only"`
 	// Details left out of the message (see whatsAppMessageFields).
 	HiddenFields []string `json:"whatsapp_hidden_fields"`
 	// First message: the channel link; later ones: the receipt details.
@@ -485,26 +487,27 @@ func (server *Server) getWhatsAppSender(ctx *gin.Context) {
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{
 		"settings": whatsAppSenderBody{
-			Sender:          sender.WhatsappSender,
-			URL:             sender.WhatsappBridgeUrl,
-			Key:             sender.WhatsappBridgeKey,
-			Message:         sender.WhatsappBridgeMessage,
-			FeedbackMode:    sender.WhatsappFeedbackMode,
-			LinkMessage:     sender.WhatsappBridgeLinkMessage,
-			Channel:         sender.WhatsappChannelUrl,
-			Logo:            sender.WhatsappMessageLogo,
-			PollQuestion:    sender.WhatsappPollQuestion,
-			PollOptions:     sender.WhatsappPollOptions,
-			Followup:        sender.WhatsappFollowup,
-			HiddenFields:    whatsAppHiddenFields(sender.WhatsappHiddenFields),
-			ChannelFirst:    sender.WhatsappChannelFirst,
-			WelcomeEarly:    sender.WhatsappWelcomeEarly,
-			DeleteForMe:     sender.WhatsappDeleteForMe,
-			DeletePollForMe: sender.WhatsappDeletePollForMe,
-			FollowupGood:    sender.WhatsappFollowupGood,
-			FollowupOkay:    sender.WhatsappFollowupOkay,
-			FollowupBad:     sender.WhatsappFollowupBad,
-			Branches:        branches,
+			Sender:            sender.WhatsappSender,
+			URL:               sender.WhatsappBridgeUrl,
+			Key:               sender.WhatsappBridgeKey,
+			Message:           sender.WhatsappBridgeMessage,
+			FeedbackMode:      sender.WhatsappFeedbackMode,
+			LinkMessage:       sender.WhatsappBridgeLinkMessage,
+			Channel:           sender.WhatsappChannelUrl,
+			Logo:              sender.WhatsappMessageLogo,
+			PollQuestion:      sender.WhatsappPollQuestion,
+			PollOptions:       sender.WhatsappPollOptions,
+			Followup:          sender.WhatsappFollowup,
+			HiddenFields:      whatsAppHiddenFields(sender.WhatsappHiddenFields),
+			ChannelFirst:      sender.WhatsappChannelFirst,
+			WelcomeEarly:      sender.WhatsappWelcomeEarly,
+			DeleteForMe:       sender.WhatsappDeleteForMe,
+			DeletePollForMe:   sender.WhatsappDeletePollForMe,
+			FollowupGood:      sender.WhatsappFollowupGood,
+			FollowupOkay:      sender.WhatsappFollowupOkay,
+			FollowupBad:       sender.WhatsappFollowupBad,
+			FollowupFirstOnly: sender.WhatsappFollowupFirstOnly,
+			Branches:          branches,
 		},
 		"default_message":       defaultWhatsAppPollMessage,
 		"default_link_message":  defaultWhatsAppLinkMessage,
@@ -630,6 +633,7 @@ func (server *Server) updateWhatsAppSender(ctx *gin.Context) {
 		WhatsappWelcomeEarly:      req.WelcomeEarly,
 		WhatsappDeleteForMe:       req.DeleteForMe,
 		WhatsappDeletePollForMe:   req.DeletePollForMe,
+		WhatsappFollowupFirstOnly: req.FollowupFirstOnly,
 	}, branches); err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
