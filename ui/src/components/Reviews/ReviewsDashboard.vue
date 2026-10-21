@@ -339,6 +339,8 @@
     return of ? `${Math.round((n / of) * 100)}%` : '—'
   }
   function formatWhen (at) {
+    // published_at is a Go sql.NullTime: { Time, Valid } on the wire.
+    if (at && typeof at === 'object') at = at.Valid ? at.Time : null
     if (!at) return ''
     return new Date(at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
   }
