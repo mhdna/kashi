@@ -357,6 +357,14 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 	if currency, err := server.store.GetDefaultCurrency(ctx); err == nil {
 		currencyCode = currency.Code
 	}
+	// A backfill or a till catching up on its offline queue pushes sales that
+	// happened long ago; announcing each as live activity floods every open
+	// admin tab with stale toasts, so only a recent, non-historical sale
+	// notifies.
+	if req.Historical || time.Since(req.OccurredAt) > liveInvoiceNotifyWindow {
+		server.writeJSON(ctx, http.StatusOK, envelope{"invoice": result.Invoice, "items": result.Items, "payments": result.Payments})
+		return
+	}
 	// GrandTotal is already the net signed cash effect the branch reported
 	// (positive for sales, negative for a refund return, and for an
 	// exchange whatever kashi-pos's own netDifference computed -- positive,
@@ -382,6 +390,10 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 
 	server.writeJSON(ctx, http.StatusOK, envelope{"invoice": result.Invoice, "items": result.Items, "payments": result.Payments})
 }
+
+// liveInvoiceNotifyWindow is how recent an invoice's occurred_at must be for
+// its arrival to be broadcast to admin clients as live activity.
+const liveInvoiceNotifyWindow = 10 * time.Minute
 
 func (server *Server) createBranchSalesInvoice(ctx *gin.Context) {
 	server.createBranchInvoice(ctx, "sales")
