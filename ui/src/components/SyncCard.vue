@@ -12,7 +12,7 @@
       <v-card
         v-bind="props"
         class="d-flex align-center me-2"
-        :class="mobile ? 'icon-pill' : 'py-1 px-2'"
+        :class="mobile ? 'icon-pill' : 'justify-center py-1 px-2'"
         rounded="xl"
         style="cursor: pointer"
         variant="tonal"
