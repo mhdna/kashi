@@ -46,6 +46,9 @@ var allowedBranchCommandTypes = map[string]bool{
 	// cancel_record is likewise only enqueued by cancelBranchExpense /
 	// cancelBranchLoan, never typed in by an admin.
 	"cancel_record": true,
+	// set_expense_from_central: only enqueued by
+	// adminSetBranchExpenseFromCentral.
+	"set_expense_from_central": true,
 }
 
 type createBranchCommandRequest struct {

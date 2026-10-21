@@ -705,6 +705,7 @@ type BranchExpense struct {
 	CategoryID               sql.NullInt64  `json:"category_id"`
 	BranchCashboxAccountName sql.NullString `json:"branch_cashbox_account_name"`
 	CancelledAt              sql.NullTime   `json:"cancelled_at"`
+	FromCentral              bool           `json:"from_central"`
 }
 
 type BranchExpenseImage struct {

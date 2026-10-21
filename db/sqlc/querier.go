@@ -1603,6 +1603,10 @@ type Querier interface {
 	// A till re-categorising one of its own expenses (kashi-pos expense
 	// detail). NULL category_id is "no category".
 	SetBranchExpenseCategory(ctx context.Context, arg SetBranchExpenseCategoryParams) (BranchExpense, error)
+	// A till marking one of its own expenses as paid by central, or not.
+	SetBranchExpenseFromCentral(ctx context.Context, arg SetBranchExpenseFromCentralParams) (BranchExpense, error)
+	// The same, from kashi's expenses page.
+	SetBranchExpenseFromCentralByID(ctx context.Context, arg SetBranchExpenseFromCentralByIDParams) (BranchExpense, error)
 	SetBranchHiddenFromReports(ctx context.Context, arg SetBranchHiddenFromReportsParams) error
 	SetBranchInventory(ctx context.Context, arg SetBranchInventoryParams) error
 	SetBranchInvoiceItemResolved(ctx context.Context, arg SetBranchInvoiceItemResolvedParams) error

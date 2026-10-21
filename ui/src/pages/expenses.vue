@@ -401,6 +401,16 @@
                     </v-list-item-subtitle>
                     <template #append>
                       <v-chip
+                        v-if="item.from_central"
+                        class="me-2"
+                        color="primary"
+                        prepend-icon="mdi-domain"
+                        size="small"
+                        variant="tonal"
+                      >
+                        From central · من المركزي
+                      </v-chip>
+                      <v-chip
                         v-if="item.cancelled_at"
                         class="me-2"
                         color="error"
@@ -413,6 +423,17 @@
                         class="font-weight-medium"
                         :class="item.cancelled_at ? 'text-medium-emphasis text-decoration-line-through' : 'text-error'"
                       >−{{ money(item.amount) }} {{ item.currency_code }}</span>
+                      <!-- Only a till's own expense: one entered here has no shift to keep it out of. -->
+                      <v-icon-btn
+                        v-if="canEdit && !item.cancelled_at && item.branch_cashbox_account_id !== 0"
+                        class="ms-1"
+                        :color="item.from_central ? 'primary' : undefined"
+                        icon="mdi-domain"
+                        size="small"
+                        :title="item.from_central ? 'Paid from the till after all' : 'Paid by central (من المركزي)'"
+                        variant="text"
+                        @click.stop="toggleFromCentral(item)"
+                      />
                       <v-icon-btn
                         v-if="canEdit && !item.cancelled_at"
                         class="ms-1"
@@ -730,6 +751,21 @@
     try {
       await apiJSON(`${API_BASE}/branch_expenses/${item.id}/cancel`, { method: 'POST' })
       fetchBranchExpenses(false)
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
+
+  // From central: central paid it, so the till's shift doesn't take it off
+  // the drawer. It's still the branch's expense; the till hears of the change.
+  async function toggleFromCentral (item) {
+    try {
+      const data = await apiJSON(`${API_BASE}/branch_expenses/${item.id}/from_central`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from_central: !item.from_central }),
+      })
+      item.from_central = data.branch_expense.from_central
     } catch (error) {
       notify.error(error.message)
     }

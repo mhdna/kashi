@@ -15,7 +15,7 @@ const cancelBranchExpense = `-- name: CancelBranchExpense :one
 UPDATE branch_expenses
 SET cancelled_at = now()
 WHERE id = $1 AND cancelled_at IS NULL
-RETURNING id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id, branch_cashbox_account_name, cancelled_at
+RETURNING id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id, branch_cashbox_account_name, cancelled_at, from_central
 `
 
 // Stamps cancelled_at once; a second cancel matches no row (the handler
@@ -37,6 +37,7 @@ func (q *Queries) CancelBranchExpense(ctx context.Context, id int64) (BranchExpe
 		&i.CategoryID,
 		&i.BranchCashboxAccountName,
 		&i.CancelledAt,
+		&i.FromCentral,
 	)
 	return i, err
 }
@@ -71,11 +72,12 @@ INSERT INTO branch_expenses (
   branch_cashbox_account_id,
   branch_cashbox_account_name,
   branch_shift_id,
-  occurred_at
+  occurred_at,
+  from_central
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 )
-RETURNING id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id, branch_cashbox_account_name, cancelled_at
+RETURNING id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id, branch_cashbox_account_name, cancelled_at, from_central
 `
 
 type CreateBranchExpenseParams struct {
@@ -89,6 +91,7 @@ type CreateBranchExpenseParams struct {
 	BranchCashboxAccountName sql.NullString `json:"branch_cashbox_account_name"`
 	BranchShiftID            sql.NullInt64  `json:"branch_shift_id"`
 	OccurredAt               time.Time      `json:"occurred_at"`
+	FromCentral              bool           `json:"from_central"`
 }
 
 func (q *Queries) CreateBranchExpense(ctx context.Context, arg CreateBranchExpenseParams) (BranchExpense, error) {
@@ -103,6 +106,7 @@ func (q *Queries) CreateBranchExpense(ctx context.Context, arg CreateBranchExpen
 		arg.BranchCashboxAccountName,
 		arg.BranchShiftID,
 		arg.OccurredAt,
+		arg.FromCentral,
 	)
 	var i BranchExpense
 	err := row.Scan(
@@ -119,12 +123,13 @@ func (q *Queries) CreateBranchExpense(ctx context.Context, arg CreateBranchExpen
 		&i.CategoryID,
 		&i.BranchCashboxAccountName,
 		&i.CancelledAt,
+		&i.FromCentral,
 	)
 	return i, err
 }
 
 const getBranchExpense = `-- name: GetBranchExpense :one
-SELECT id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id, branch_cashbox_account_name, cancelled_at FROM branch_expenses
+SELECT id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id, branch_cashbox_account_name, cancelled_at, from_central FROM branch_expenses
 WHERE id = $1
 LIMIT 1
 `
@@ -146,12 +151,13 @@ func (q *Queries) GetBranchExpense(ctx context.Context, id int64) (BranchExpense
 		&i.CategoryID,
 		&i.BranchCashboxAccountName,
 		&i.CancelledAt,
+		&i.FromCentral,
 	)
 	return i, err
 }
 
 const getBranchExpenseByClientRef = `-- name: GetBranchExpenseByClientRef :one
-SELECT id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id, branch_cashbox_account_name, cancelled_at FROM branch_expenses
+SELECT id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id, branch_cashbox_account_name, cancelled_at, from_central FROM branch_expenses
 WHERE branch_id = $1 AND client_ref = $2
 LIMIT 1
 `
@@ -178,12 +184,13 @@ func (q *Queries) GetBranchExpenseByClientRef(ctx context.Context, arg GetBranch
 		&i.CategoryID,
 		&i.BranchCashboxAccountName,
 		&i.CancelledAt,
+		&i.FromCentral,
 	)
 	return i, err
 }
 
 const listBranchExpenses = `-- name: ListBranchExpenses :many
-SELECT id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id, branch_cashbox_account_name, cancelled_at FROM branch_expenses
+SELECT id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id, branch_cashbox_account_name, cancelled_at, from_central FROM branch_expenses
 WHERE ($3::bigint IS NULL OR branch_id = $3)
   AND branch_expenses.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND ($4::text = '' OR description ILIKE '%' || $4::text || '%')
@@ -228,6 +235,7 @@ func (q *Queries) ListBranchExpenses(ctx context.Context, arg ListBranchExpenses
 			&i.CategoryID,
 			&i.BranchCashboxAccountName,
 			&i.CancelledAt,
+			&i.FromCentral,
 		); err != nil {
 			return nil, err
 		}
@@ -246,7 +254,7 @@ const setBranchExpenseCategory = `-- name: SetBranchExpenseCategory :one
 UPDATE branch_expenses
 SET category_id = $3
 WHERE branch_id = $1 AND client_ref = $2
-RETURNING id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id, branch_cashbox_account_name, cancelled_at
+RETURNING id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id, branch_cashbox_account_name, cancelled_at, from_central
 `
 
 type SetBranchExpenseCategoryParams struct {
@@ -274,6 +282,78 @@ func (q *Queries) SetBranchExpenseCategory(ctx context.Context, arg SetBranchExp
 		&i.CategoryID,
 		&i.BranchCashboxAccountName,
 		&i.CancelledAt,
+		&i.FromCentral,
+	)
+	return i, err
+}
+
+const setBranchExpenseFromCentral = `-- name: SetBranchExpenseFromCentral :one
+UPDATE branch_expenses
+SET from_central = $3
+WHERE branch_id = $1 AND client_ref = $2
+RETURNING id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id, branch_cashbox_account_name, cancelled_at, from_central
+`
+
+type SetBranchExpenseFromCentralParams struct {
+	BranchID    int64  `json:"branch_id"`
+	ClientRef   string `json:"client_ref"`
+	FromCentral bool   `json:"from_central"`
+}
+
+// A till marking one of its own expenses as paid by central, or not.
+func (q *Queries) SetBranchExpenseFromCentral(ctx context.Context, arg SetBranchExpenseFromCentralParams) (BranchExpense, error) {
+	row := q.db.QueryRowContext(ctx, setBranchExpenseFromCentral, arg.BranchID, arg.ClientRef, arg.FromCentral)
+	var i BranchExpense
+	err := row.Scan(
+		&i.ID,
+		&i.BranchID,
+		&i.ClientRef,
+		&i.Description,
+		&i.Amount,
+		&i.CurrencyCode,
+		&i.BranchCashboxAccountID,
+		&i.BranchShiftID,
+		&i.OccurredAt,
+		&i.ReceivedAt,
+		&i.CategoryID,
+		&i.BranchCashboxAccountName,
+		&i.CancelledAt,
+		&i.FromCentral,
+	)
+	return i, err
+}
+
+const setBranchExpenseFromCentralByID = `-- name: SetBranchExpenseFromCentralByID :one
+UPDATE branch_expenses
+SET from_central = $2
+WHERE id = $1
+RETURNING id, branch_id, client_ref, description, amount, currency_code, branch_cashbox_account_id, branch_shift_id, occurred_at, received_at, category_id, branch_cashbox_account_name, cancelled_at, from_central
+`
+
+type SetBranchExpenseFromCentralByIDParams struct {
+	ID          int64 `json:"id"`
+	FromCentral bool  `json:"from_central"`
+}
+
+// The same, from kashi's expenses page.
+func (q *Queries) SetBranchExpenseFromCentralByID(ctx context.Context, arg SetBranchExpenseFromCentralByIDParams) (BranchExpense, error) {
+	row := q.db.QueryRowContext(ctx, setBranchExpenseFromCentralByID, arg.ID, arg.FromCentral)
+	var i BranchExpense
+	err := row.Scan(
+		&i.ID,
+		&i.BranchID,
+		&i.ClientRef,
+		&i.Description,
+		&i.Amount,
+		&i.CurrencyCode,
+		&i.BranchCashboxAccountID,
+		&i.BranchShiftID,
+		&i.OccurredAt,
+		&i.ReceivedAt,
+		&i.CategoryID,
+		&i.BranchCashboxAccountName,
+		&i.CancelledAt,
+		&i.FromCentral,
 	)
 	return i, err
 }
