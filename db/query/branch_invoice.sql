@@ -142,6 +142,13 @@ WHERE bi.occurred_at >= make_date(sqlc.arg(year)::int, 1, 1)
   AND (sqlc.narg(branch_id)::bigint IS NULL OR bi.branch_id = sqlc.narg(branch_id))
   -- Several branches at once (the Daily Income page's chips); empty = all.
   AND (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 OR bi.branch_id = ANY(sqlc.arg(branch_ids)::bigint[]))
+  -- Picked tills narrow only the branch they belong to; a branch with none
+  -- picked still counts in full. Empty = no narrowing at all.
+  AND (
+    COALESCE(cardinality(sqlc.arg(register_ids)::bigint[]), 0) = 0
+    OR bi.register_id = ANY(sqlc.arg(register_ids)::bigint[])
+    OR bi.branch_id NOT IN (SELECT branch_id FROM branch_registers WHERE id = ANY(sqlc.arg(register_ids)::bigint[]))
+  )
   AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   AND bi.cancelled_at IS NULL
@@ -205,3 +212,10 @@ SELECT * FROM branch_invoices
 WHERE branch_id = sqlc.arg(branch_id) AND branch_invoice_code = sqlc.arg(code)
 ORDER BY id
 LIMIT 1;
+
+-- name: DeleteHistoricalBranchInvoice :execrows
+-- Deletes a historical backfill invoice (and, via ON DELETE CASCADE, its
+-- items and payments) so it can be re-imported with corrected data. The
+-- historical=true guard means this can never remove a real till's sale,
+-- even given a wrong id -- see deleteBranchInvoice in api/branch_invoice.go.
+DELETE FROM branch_invoices WHERE id = sqlc.arg(id) AND historical = true;
