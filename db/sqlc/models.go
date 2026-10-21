@@ -931,6 +931,7 @@ type BranchShift struct {
 	OccurredAt        time.Time    `json:"occurred_at"`
 	ReceivedAt        time.Time    `json:"received_at"`
 	RegisterID        int64        `json:"register_id"`
+	LbpRate           int64        `json:"lbp_rate"`
 }
 
 type BranchShiftReceiptImage struct {
