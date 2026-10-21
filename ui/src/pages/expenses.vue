@@ -232,9 +232,9 @@
           mandatory
           variant="outlined"
         >
+          <v-btn value="branch">Branch</v-btn>
           <v-btn value="own">Central</v-btn>
           <v-btn value="recurring">Recurring</v-btn>
-          <v-btn value="branch">Branch</v-btn>
         </v-btn-toggle>
         <div class="d-flex ga-2">
           <v-btn
@@ -508,7 +508,7 @@
     fetchExpenses()
   })
 
-  const tab = ref('own')
+  const tab = ref('branch')
   const search = ref('')
   const selectedCategory = ref(null)
 
@@ -927,7 +927,7 @@
     if (value === 'branch' && !branchLoaded) fetchBranchExpenses()
     if (value === 'recurring' && recurringExpenses.value.length === 0) fetchRecurringExpenses()
     nextTick(setupInfiniteScroll)
-  })
+  }, { immediate: true })
 
   // -- Recurring expenses --
 
