@@ -3,6 +3,8 @@ package api
 import (
 	"regexp"
 	"strings"
+
+	"github.com/nyaruka/phonenumbers"
 )
 
 // Lebanese numbers are 7 or 8 digits once the trunk "0" / country code 961
@@ -67,4 +69,33 @@ func phoneIdentity(raw string) string {
 		}
 	}
 	return digits.String()
+}
+
+// parseAnyPhone is the admin-facing counterpart to parseLebanesePhone: it
+// uses the same real libphonenumber parser kashi-pos's normalizeClientPhone
+// already relies on (clients.go), defaulting to Lebanon the same way, so a
+// number with no country code is read as Lebanese -- but unlike
+// parseLebanesePhone it correctly recognizes any country's number instead
+// of calling every non-Lebanese number invalid. Used by
+// client_phone_cleanup.go and the admin clients list (phone_valid/
+// phone_country in client.go) -- not by the live branch-sync matching code
+// in branch_client.go, which keeps using phoneIdentity/parseLebanesePhone
+// unchanged so this never touches how a real till's reported client gets
+// matched.
+//
+// Returns the number in E164 ("+961..."), its ISO 3166-1 alpha-2 region
+// (for a flag icon; "" if undetermined), and whether it's a real, valid
+// number of any kind (mobile or otherwise -- the mobile-only restriction in
+// kashi-pos's normalizeClientPhone is a checkout-time policy about who can
+// receive an SMS receipt, not a fact about whether a number is valid).
+func parseAnyPhone(raw string) (e164 string, region string, valid bool) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", "", false
+	}
+	parsed, err := phonenumbers.Parse(raw, "LB")
+	if err != nil || !phonenumbers.IsValidNumber(parsed) {
+		return "", "", false
+	}
+	return phonenumbers.Format(parsed, phonenumbers.E164), phonenumbers.GetRegionCodeForNumber(parsed), true
 }

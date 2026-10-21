@@ -2,9 +2,11 @@
 INSERT INTO clients (
   name,
   phone,
-  client_type
+  client_type,
+  phone_valid,
+  phone_country
 ) VALUES (
-    $1, $2, $3
+    $1, $2, $3, $4, $5
 ) RETURNING *;
 
 -- name: GetClient :one
@@ -45,6 +47,8 @@ UPDATE clients
   SET name = $2,
   phone = $3,
   client_type = $4,
+  phone_valid = $5,
+  phone_country = $6,
   updated_at = now()
 WHERE id = $1
 RETURNING *;
@@ -175,7 +179,11 @@ WITH firsts AS (
   ) ci ON ci.client_id = c.id
   LEFT JOIN (
     SELECT cl.client_id,
-      SUM(b.grand_total) AS branch_total,
+      -- grand_total minus whatever of it was paid "On Account" (not yet
+      -- actually collected -- isReservedCashboxAccountName in
+      -- api/cashbox_account.go): Top Spenders ranks real, received money,
+      -- not an unpaid balance still outstanding.
+      SUM(b.grand_total - COALESCE(onacct.amount, 0)) AS branch_total,
       COUNT(DISTINCT b.id) AS branch_invoice_count,
       COALESCE(SUM(bii.quantity), 0) AS branch_item_count
     FROM branch_invoices b
@@ -186,6 +194,12 @@ WITH firsts AS (
       FROM branch_invoice_items
       GROUP BY branch_invoice_id
     ) bii ON bii.branch_invoice_id = b.id
+    LEFT JOIN (
+      SELECT branch_invoice_id, SUM(amount) AS amount
+      FROM branch_invoice_payments
+      WHERE lower(trim(account_name)) = 'on account'
+      GROUP BY branch_invoice_id
+    ) onacct ON onacct.branch_invoice_id = b.id
     WHERE (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 OR b.branch_id = ANY(sqlc.arg(branch_ids)::bigint[]))
       AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
       AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
@@ -196,6 +210,8 @@ WITH firsts AS (
   ) bi ON bi.client_id = c.id
   WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type))
     AND (sqlc.narg(search)::text IS NULL OR c.name ILIKE '%' || sqlc.narg(search)::text || '%' OR c.phone ILIKE '%' || sqlc.narg(search)::text || '%')
+    AND (sqlc.narg(phone_valid)::boolean IS NULL OR c.phone_valid = sqlc.narg(phone_valid)::boolean)
+    AND (sqlc.narg(phone_country)::text IS NULL OR c.phone_country = sqlc.narg(phone_country)::text)
     -- With a branch picked, only its clients: home branch or bought there.
     AND (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0
       OR c.branch_id = ANY(sqlc.arg(branch_ids)::bigint[])
@@ -253,6 +269,8 @@ SELECT COUNT(*) FROM clients c
 LEFT JOIN firsts f ON f.client_id = c.id
 WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type))
   AND (sqlc.narg(search)::text IS NULL OR c.name ILIKE '%' || sqlc.narg(search)::text || '%' OR c.phone ILIKE '%' || sqlc.narg(search)::text || '%')
+  AND (sqlc.narg(phone_valid)::boolean IS NULL OR c.phone_valid = sqlc.narg(phone_valid)::boolean)
+  AND (sqlc.narg(phone_country)::text IS NULL OR c.phone_country = sqlc.narg(phone_country)::text)
   AND (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0
     OR c.branch_id = ANY(sqlc.arg(branch_ids)::bigint[])
     OR c.id IN (
@@ -477,3 +495,39 @@ WHERE branch_id IS NULL
     (SELECT cl.client_id FROM client_links cl
       WHERE cl.register_id = sqlc.arg(register_id) AND cl.branch_client_id = sqlc.narg(branch_client_id))
   );
+
+-- name: ListAllClientPhones :many
+-- Every client's raw stored phone, for the one-off admin normalize job
+-- (api/client_phone_cleanup.go) -- unlike ListClients this is never paged,
+-- since the job needs every row in one pass to detect collisions.
+SELECT id, phone FROM clients ORDER BY id;
+
+-- name: UpdateClientPhone :exec
+UPDATE clients SET phone = $2, updated_at = now() WHERE id = $1;
+
+-- name: BatchUpdateClientPhones :exec
+-- Bulk counterpart to UpdateClientPhone for normalizeClientPhones: one
+-- round trip for a whole chunk instead of one per row, which is what made
+-- the first version of this job time out at Cloudflare's gateway on 60k+
+-- individual updates. Also backfills phone_valid/phone_country for every
+-- row the job passes (even one whose phone text didn't change), since
+-- those columns start out at their just-migrated-in defaults until this
+-- runs once.
+UPDATE clients AS c
+SET phone = u.phone, phone_valid = u.phone_valid, phone_country = u.phone_country, updated_at = now()
+FROM (
+  SELECT unnest(@ids::bigint[]) AS id, unnest(@phones::text[]) AS phone,
+         unnest(@phone_valids::boolean[]) AS phone_valid, unnest(@phone_countries::text[]) AS phone_country
+) AS u
+WHERE c.id = u.id;
+
+-- name: ListClientPhoneCountries :many
+-- Distinct countries actually present among clients' phones, for the
+-- clients page's country filter dropdown -- so it only ever offers a
+-- country that would return at least one result, instead of the full
+-- ~240-country ISO list.
+SELECT phone_country, COUNT(*) AS client_count
+FROM clients
+WHERE phone_country <> ''
+GROUP BY phone_country
+ORDER BY client_count DESC;

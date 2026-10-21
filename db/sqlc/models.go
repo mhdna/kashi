@@ -1063,6 +1063,8 @@ type Client struct {
 	Uid                uuid.UUID     `json:"uid"`
 	IsActive           bool          `json:"is_active"`
 	BranchID           sql.NullInt64 `json:"branch_id"`
+	PhoneValid         bool          `json:"phone_valid"`
+	PhoneCountry       string        `json:"phone_country"`
 }
 
 type ClientLink struct {
