@@ -120,7 +120,8 @@ type Querier interface {
 	// one else already did -- so a run is never sent twice.
 	ClaimEmailScheduleRun(ctx context.Context, arg ClaimEmailScheduleRunParams) (int64, error)
 	// Marks the poll's follow-up as sent and says where to send it; no rows when
-	// it already went (a changed vote) or the number is gone.
+	// it already went (a changed vote) or the number is gone. With first_only, also
+	// none when this client got a follow-up on an earlier message.
 	ClaimWhatsAppPollFollowup(ctx context.Context, arg ClaimWhatsAppPollFollowupParams) (ClaimWhatsAppPollFollowupRow, error)
 	// A sale's checkout finds the welcome sent to its client earlier (no invoice
 	// yet, within the last 12 hours) and takes it over, so it isn't messaged twice.

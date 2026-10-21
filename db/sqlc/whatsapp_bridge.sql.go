@@ -85,12 +85,17 @@ const claimWhatsAppPollFollowup = `-- name: ClaimWhatsAppPollFollowup :one
 UPDATE whatsapp_messages m SET poll_followup_at = now(), followup_body = $1
 FROM whatsapp_numbers n
 WHERE m.id = $2 AND m.poll_followup_at IS NULL AND n.id = m.whatsapp_number_id
+  AND (NOT $3::boolean OR NOT EXISTS (
+    SELECT 1 FROM whatsapp_messages p
+    WHERE p.client_phone = m.client_phone AND p.id <> m.id AND p.poll_followup_at IS NOT NULL
+  ))
 RETURNING m.client_phone, n.instance
 `
 
 type ClaimWhatsAppPollFollowupParams struct {
 	FollowupBody string `json:"followup_body"`
 	ID           int64  `json:"id"`
+	FirstOnly    bool   `json:"first_only"`
 }
 
 type ClaimWhatsAppPollFollowupRow struct {
@@ -99,9 +104,10 @@ type ClaimWhatsAppPollFollowupRow struct {
 }
 
 // Marks the poll's follow-up as sent and says where to send it; no rows when
-// it already went (a changed vote) or the number is gone.
+// it already went (a changed vote) or the number is gone. With first_only, also
+// none when this client got a follow-up on an earlier message.
 func (q *Queries) ClaimWhatsAppPollFollowup(ctx context.Context, arg ClaimWhatsAppPollFollowupParams) (ClaimWhatsAppPollFollowupRow, error) {
-	row := q.db.QueryRowContext(ctx, claimWhatsAppPollFollowup, arg.FollowupBody, arg.ID)
+	row := q.db.QueryRowContext(ctx, claimWhatsAppPollFollowup, arg.FollowupBody, arg.ID, arg.FirstOnly)
 	var i ClaimWhatsAppPollFollowupRow
 	err := row.Scan(&i.ClientPhone, &i.Instance)
 	return i, err
@@ -198,7 +204,7 @@ SELECT whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridg
        whatsapp_poll_question, whatsapp_poll_options, whatsapp_message_logo,
        whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad,
        whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_welcome_early, whatsapp_delete_for_me,
-       whatsapp_delete_poll_for_me
+       whatsapp_delete_poll_for_me, whatsapp_followup_first_only
 FROM app_settings WHERE id = 1
 `
 
@@ -222,6 +228,7 @@ type GetWhatsAppSenderSettingsRow struct {
 	WhatsappWelcomeEarly      bool   `json:"whatsapp_welcome_early"`
 	WhatsappDeleteForMe       bool   `json:"whatsapp_delete_for_me"`
 	WhatsappDeletePollForMe   bool   `json:"whatsapp_delete_poll_for_me"`
+	WhatsappFollowupFirstOnly bool   `json:"whatsapp_followup_first_only"`
 }
 
 // Sending post-sale messages from our own numbers through the WhatsApp
@@ -249,6 +256,7 @@ func (q *Queries) GetWhatsAppSenderSettings(ctx context.Context) (GetWhatsAppSen
 		&i.WhatsappWelcomeEarly,
 		&i.WhatsappDeleteForMe,
 		&i.WhatsappDeletePollForMe,
+		&i.WhatsappFollowupFirstOnly,
 	)
 	return i, err
 }
@@ -426,6 +434,7 @@ UPDATE app_settings SET
     whatsapp_welcome_early = $17,
     whatsapp_delete_for_me = $18,
     whatsapp_delete_poll_for_me = $19,
+    whatsapp_followup_first_only = $20,
     updated_at = now()
 WHERE id = 1
 `
@@ -450,6 +459,7 @@ type SetWhatsAppSenderSettingsParams struct {
 	WhatsappWelcomeEarly      bool   `json:"whatsapp_welcome_early"`
 	WhatsappDeleteForMe       bool   `json:"whatsapp_delete_for_me"`
 	WhatsappDeletePollForMe   bool   `json:"whatsapp_delete_poll_for_me"`
+	WhatsappFollowupFirstOnly bool   `json:"whatsapp_followup_first_only"`
 }
 
 func (q *Queries) SetWhatsAppSenderSettings(ctx context.Context, arg SetWhatsAppSenderSettingsParams) error {
@@ -473,6 +483,7 @@ func (q *Queries) SetWhatsAppSenderSettings(ctx context.Context, arg SetWhatsApp
 		arg.WhatsappWelcomeEarly,
 		arg.WhatsappDeleteForMe,
 		arg.WhatsappDeletePollForMe,
+		arg.WhatsappFollowupFirstOnly,
 	)
 	return err
 }

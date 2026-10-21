@@ -230,10 +230,13 @@ func (server *Server) receiveWhatsAppPollVote(ctx *gin.Context) {
 }
 
 // sendWhatsAppPollFollowup queues the follow-up for the client's answer, from
-// the number that sent the poll, unless one already went for this poll.
+// the number that sent the poll, unless one already went for this poll -- or,
+// with "first time only" on, to this client on an earlier visit.
 func (server *Server) sendWhatsAppPollFollowup(ctx *gin.Context, sender db.GetWhatsAppSenderSettingsRow, messageID int64, rating int16) {
 	text := whatsAppPollFollowup(sender, rating)
-	to, err := server.store.ClaimWhatsAppPollFollowup(ctx, db.ClaimWhatsAppPollFollowupParams{ID: messageID, FollowupBody: text})
+	to, err := server.store.ClaimWhatsAppPollFollowup(ctx, db.ClaimWhatsAppPollFollowupParams{
+		ID: messageID, FollowupBody: text, FirstOnly: sender.WhatsappFollowupFirstOnly,
+	})
 	if errors.Is(err, sql.ErrNoRows) {
 		return
 	}

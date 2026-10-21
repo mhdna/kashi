@@ -433,6 +433,16 @@
               hide-details
               label="Send a message after they answer"
             />
+            <v-switch
+              v-if="draft.whatsapp_followup"
+              v-model="draft.whatsapp_followup_first_only"
+              color="primary"
+              density="compact"
+              :disabled="!canEdit"
+              hint="A client who already got this message on an earlier visit isn't sent it again."
+              label="Only the first time per client"
+              persistent-hint
+            />
             <v-row v-if="draft.whatsapp_followup" class="mt-1" density="compact">
               <v-col v-for="f in FOLLOWUPS" :key="f.key" cols="12" md="4">
                 <v-textarea

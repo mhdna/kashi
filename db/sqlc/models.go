@@ -539,6 +539,7 @@ type AppSetting struct {
 	TablePageSize              int16           `json:"table_page_size"`
 	WhatsappWelcomeEarly       bool            `json:"whatsapp_welcome_early"`
 	BarcodeLabelDesign         json.RawMessage `json:"barcode_label_design"`
+	WhatsappFollowupFirstOnly  bool            `json:"whatsapp_followup_first_only"`
 }
 
 type AppUpdateEvent struct {
