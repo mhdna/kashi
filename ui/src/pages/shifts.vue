@@ -132,12 +132,21 @@
             <template #item.branch_id="{ item }">{{ branchName(item.branch_id) }}</template>
             <template #item.opened_at="{ item }">{{ formatDate(item.opened_at) }}</template>
             <template #item.closed_at="{ item }">{{ formatDate(item.closed_at) }}</template>
-            <template #item.expected_usd="{ item }">{{ money(item.expected_usd) }}</template>
-            <template #item.counted_usd="{ item }">{{ money(item.counted_usd) }}</template>
+            <template #item.expected_usd="{ item }">
+              <div v-for="line in methodLines(item, 'expected')" :key="line.label" class="method-line">
+                <span class="method-label">{{ line.label }}</span>{{ line.text }}
+              </div>
+            </template>
+            <template #item.counted_usd="{ item }">
+              <div v-for="line in methodLines(item, 'counted')" :key="line.label" class="method-line">
+                <span class="method-label">{{ line.label }}</span>{{ line.text }}
+              </div>
+            </template>
             <template #item.variance_usd="{ item }">
-              <v-chip :color="varianceColor(item.variance_usd)" size="small" variant="tonal">
-                {{ signedMoney(item.variance_usd) }}
-              </v-chip>
+              <div v-for="line in methodLines(item, 'variance')" :key="line.label" class="method-line">
+                <span class="method-label">{{ line.label }}</span>
+                <v-chip :color="varianceColor(line.value)" size="small" variant="tonal">{{ line.text }}</v-chip>
+              </div>
             </template>
             <template #item.receipt="{ item }">
               <v-btn
@@ -315,9 +324,9 @@
     { title: 'Closed By', key: 'closing_person_name', align: 'start', sortable: false },
     { title: 'Opened', key: 'opened_at', align: 'start', sortable: false },
     { title: 'Closed', key: 'closed_at', align: 'start', sortable: false },
-    { title: 'Expected USD', key: 'expected_usd', align: 'end', sortable: false },
-    { title: 'Counted USD', key: 'counted_usd', align: 'end', sortable: false },
-    { title: 'Variance USD', key: 'variance_usd', align: 'end', sortable: false },
+    { title: 'Expected', key: 'expected_usd', align: 'end', sortable: false },
+    { title: 'Counted', key: 'counted_usd', align: 'end', sortable: false },
+    { title: 'Variance', key: 'variance_usd', align: 'end', sortable: false },
     { title: 'Receipt', key: 'receipt', align: 'center', sortable: false, width: 90 },
     { title: 'Received', key: 'received_at', align: 'end', sortable: false },
     { title: '', key: 'print', align: 'end', sortable: false, width: 56 },
@@ -481,9 +490,24 @@
     })
   }
 
-  function signedMoney (cents) {
-    const value = money(cents)
-    return Number(cents) > 0 ? `+${value}` : value
+  // The tills report the dollar drawers in cents but LBP in whole pounds.
+  const SHIFT_METHODS = [
+    { key: 'usd', label: 'USD', format: money },
+    { key: 'lbp', label: 'LBP', format: units => Number(units).toLocaleString(undefined, { maximumFractionDigits: 0 }) },
+    { key: 'visa', label: 'Visa', format: money },
+    { key: 'whish', label: 'Whish', format: money },
+  ]
+
+  // One line per payment method for an expected / counted / variance column:
+  // USD always, the others only when the shift moved money through them.
+  function methodLines (shift, kind) {
+    return SHIFT_METHODS
+      .filter(m => m.key === 'usd' || shift[`expected_${m.key}`] || shift[`counted_${m.key}`])
+      .map(m => {
+        const value = Number(shift[`${kind}_${m.key}`]) || 0
+        const text = m.format(value)
+        return { label: m.label, value, text: kind === 'variance' && value > 0 ? `+${text}` : text }
+      })
   }
 
   function varianceColor (cents) {
@@ -550,6 +574,15 @@
 </script>
 
 <style scoped>
+.method-line {
+  white-space: nowrap;
+}
+.method-label {
+  margin-inline-end: 8px;
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
 .image-stage {
   height: min(70vh, 640px);
   width: 100%;
