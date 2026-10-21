@@ -133,15 +133,15 @@
             <template #item.opened_at="{ item }">{{ formatDate(item.opened_at) }}</template>
             <template #item.closed_at="{ item }">{{ formatDate(item.closed_at) }}</template>
             <template #item.expected_usd="{ item }">
-              <div class="font-weight-medium">{{ shiftTotal(item, 'expected') }} USD</div>
+              <div class="font-weight-medium">{{ shiftTotal(item, 'expected') }}</div>
             </template>
             <template #item.counted_usd="{ item }">
-              <div class="font-weight-medium">{{ shiftTotal(item, 'counted') }} USD</div>
+              <div class="font-weight-medium">{{ shiftTotal(item, 'counted') }}</div>
             </template>
             <template #item.variance_usd="{ item }">
               <div class="font-weight-medium">
                 <v-chip :color="varianceColor(shiftTotalCents(item, 'variance'))" size="small" variant="tonal">
-                  {{ signed(shiftTotalCents(item, 'variance')) }} USD
+                  {{ signed(shiftTotalCents(item, 'variance')) }}
                 </v-chip>
               </div>
             </template>
@@ -496,12 +496,17 @@
     return ['usd', 'visa', 'whish'].reduce((sum, key) => sum + (Number(shift[`${kind}_${key}`]) || 0), lbpCents)
   }
 
+  // Shift totals are in the default currency, dollars: "$180.00", "-$5.00".
+  function dollars (cents) {
+    return `${cents < 0 ? '-' : ''}$${money(Math.abs(cents))}`
+  }
+
   function shiftTotal (shift, kind) {
-    return money(shiftTotalCents(shift, kind))
+    return dollars(shiftTotalCents(shift, kind))
   }
 
   function signed (cents) {
-    return cents > 0 ? `+${money(cents)}` : money(cents)
+    return cents > 0 ? `+${dollars(cents)}` : dollars(cents)
   }
 
   function varianceColor (cents) {
