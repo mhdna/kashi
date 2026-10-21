@@ -158,6 +158,47 @@
           </v-list-item>
         </v-list>
       </v-menu>
+      <v-menu>
+        <template #activator="{ props: menuProps }">
+          <v-btn
+            prepend-icon="mdi-earth"
+            rounded="lg"
+            style="border-color: rgb(var(--v-theme-surface-light));"
+            v-bind="menuProps"
+            variant="outlined"
+          >
+            {{ selectedCountryLabel }}
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item :active="selectedCountry === ''" @click="selectedCountry = ''">
+            <v-list-item-title>All Countries</v-list-item-title>
+          </v-list-item>
+          <v-list-item
+            v-for="c in phoneCountries"
+            :key="c.phone_country"
+            :active="selectedCountry === c.phone_country"
+            @click="selectedCountry = c.phone_country"
+          >
+            <template #prepend>
+              <span class="me-1">{{ countryFlag(c.phone_country) }}</span>
+            </template>
+            <v-list-item-title>{{ c.phone_country }} ({{ c.client_count }})</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
+      <v-btn-toggle
+        v-model="phoneValidFilter"
+        density="comfortable"
+        divided
+        mandatory
+        rounded="lg"
+        variant="outlined"
+      >
+        <v-btn text="Any Phone" value="any" />
+        <v-btn text="Valid" value="valid" />
+        <v-btn text="Invalid" value="invalid" />
+      </v-btn-toggle>
       <DateRangePicker v-model="dateRange" clearable />
       <v-btn-toggle
         v-if="dateRange.length > 0"
@@ -196,6 +237,8 @@
     :branch-ids="selectedBranchIds"
     :client-type="tab"
     :date-range="dateRange"
+    :phone-country="selectedCountry"
+    :phone-valid="phoneValidFilter === 'valid' ? true : phoneValidFilter === 'invalid' ? false : null"
     :visit="dateRange.length > 0 ? visit : ''"
     @delete="openDelete"
     @edit="openEdit"
@@ -239,6 +282,32 @@
       ? selectedBranchIds.value.filter(b => b !== id)
       : [...selectedBranchIds.value, id]
   }
+
+  // Country filter: only countries actually present among clients' phones
+  // (see listClientPhoneCountries in api/client_phone_cleanup.go), so this
+  // never offers a country that would return zero results.
+  const phoneCountries = ref([])
+  onMounted(async () => {
+    const res = await authFetch(`${API_BASE}/clients/phone_countries`)
+    const data = await res.json()
+    phoneCountries.value = data?.countries ?? []
+  })
+  const selectedCountry = ref('')
+  const selectedCountryLabel = computed(() => {
+    if (!selectedCountry.value) return 'All Countries'
+    const c = phoneCountries.value.find(x => x.phone_country === selectedCountry.value)
+    return `${countryFlag(selectedCountry.value)} ${c?.phone_country ?? selectedCountry.value}`
+  })
+  // Same emoji-from-ISO2-code trick as ClientLoyaltyBoard's countryFlag --
+  // no icon assets needed, each letter maps to a Unicode regional
+  // indicator symbol and the pair renders as that country's flag.
+  function countryFlag (iso2) {
+    if (!iso2 || iso2.length !== 2) return ''
+    return String.fromCodePoint(...[...iso2.toUpperCase()].map(c => 0x1f1e6 + c.charCodeAt(0) - 65))
+  }
+
+  // 'any' | 'valid' | 'invalid' -- see phone_valid in client_phone_cleanup.go.
+  const phoneValidFilter = ref('any')
 
   // Clients who bought in this window (and their spend in it); [] = any time.
   const dateRange = ref([])

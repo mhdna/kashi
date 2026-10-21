@@ -96,6 +96,7 @@
         <template #default="{ item }">
           <div
             class="client-row d-flex align-center ga-3 px-4"
+            :class="{ 'client-row-bad-phone': item.phone && !item.phone_valid }"
             :style="{ height: `${REST_ROW_HEIGHT}px` }"
             @click="openDetail(item)"
           >
@@ -108,7 +109,15 @@
                 <span class="text-body-2 font-weight-medium text-truncate">{{ item.name }}</span>
                 <v-chip v-if="item.is_active === false" size="x-small" variant="tonal">Inactive</v-chip>
               </div>
-              <div class="text-caption text-medium-emphasis text-truncate">
+              <div class="text-caption text-medium-emphasis text-truncate d-flex align-center ga-1">
+                <v-icon
+                  v-if="item.phone && !item.phone_valid"
+                  color="error"
+                  icon="mdi-phone-alert"
+                  size="14"
+                  title="Not a recognizable phone number"
+                />
+                <span v-else-if="countryFlag(item.phone_country)">{{ countryFlag(item.phone_country) }}</span>
                 {{ item.phone || '—' }}
               </div>
             </div>
@@ -146,13 +155,8 @@
       </div>
     </div>
 
-    <v-navigation-drawer
-      v-model="detailOpen"
-      location="right"
-      temporary
-      width="380"
-    >
-      <template v-if="detailClient">
+    <v-dialog v-model="detailOpen" max-width="420">
+      <v-card v-if="detailClient">
         <div class="pa-4 d-flex align-center ga-3">
           <v-avatar :color="tierFor(detailClient.total_spent)?.color" size="48">
             <span class="text-subtitle-2 font-weight-bold text-white">{{ initials(detailClient.name) }}</span>
@@ -187,7 +191,19 @@
 
           <v-list class="pa-0" density="compact">
             <v-list-item class="px-0" title="Phone">
-              <template #append><span class="text-body-2">{{ detailClient.phone || '—' }}</span></template>
+              <template #append>
+                <span class="text-body-2 d-flex align-center ga-1">
+                  <v-icon
+                    v-if="detailClient.phone && !detailClient.phone_valid"
+                    color="error"
+                    icon="mdi-phone-alert"
+                    size="14"
+                    title="Not a recognizable phone number"
+                  />
+                  <span v-else-if="countryFlag(detailClient.phone_country)">{{ countryFlag(detailClient.phone_country) }}</span>
+                  {{ detailClient.phone || '—' }}
+                </span>
+              </template>
             </v-list-item>
             <v-list-item class="px-0" title="Type">
               <template #append><span class="text-body-2 text-capitalize">{{ detailClient.client_type }}</span></template>
@@ -238,8 +254,8 @@
             </v-btn>
           </div>
         </div>
-      </template>
-    </v-navigation-drawer>
+      </v-card>
+    </v-dialog>
 
     <v-dialog v-model="tiersDialog" max-width="600">
       <v-card>
@@ -307,6 +323,10 @@
     // With a date range: 'first' (first purchase inside it), 'returning', or ''.
     visit: { type: String, default: '' },
     clientType: { type: String, required: true },
+    // null = any, true = only valid phones, false = only invalid ones.
+    phoneValid: { type: Boolean, default: null },
+    // '' = any country; else an ISO 3166-1 alpha-2 code from phone_country.
+    phoneCountry: { type: String, default: '' },
   })
   defineEmits(['edit', 'delete', 'reactivate'])
 
@@ -324,6 +344,15 @@
 
   function firstName (name) {
     return (name ?? '').trim().split(/\s+/)[0] ?? ''
+  }
+
+  // Two-letter ISO region -> its flag emoji: each letter maps to a Unicode
+  // "regional indicator symbol" in the same A-Z order, and a pair of them
+  // renders as that country's flag on every platform -- no icon assets
+  // needed. '' (phone_country unset/undetermined) renders nothing.
+  function countryFlag (iso2) {
+    if (!iso2 || iso2.length !== 2) return ''
+    return String.fromCodePoint(...[...iso2.toUpperCase()].map(c => 0x1f1e6 + c.charCodeAt(0) - 65))
   }
 
   function avatarSize (rowIndex) {
@@ -372,6 +401,8 @@
     if (from) params.set('from', from)
     if (to) params.set('to', to)
     if (props.visit) params.set('visit', props.visit)
+    if (props.phoneValid !== null) params.set('phone_valid', props.phoneValid)
+    if (props.phoneCountry) params.set('phone_country', props.phoneCountry)
     return params
   }
 
@@ -480,7 +511,7 @@
     fetchPyramid()
     resetRestList()
   })
-  watch(() => [props.clientType, props.branchIds.join(','), props.dateRange.join(','), props.visit, pyramidCount.value, sortBy.value], reload)
+  watch(() => [props.clientType, props.branchIds.join(','), props.dateRange.join(','), props.visit, props.phoneValid, props.phoneCountry, pyramidCount.value, sortBy.value], reload)
 
   let searchTimeout = null
   watch(search, () => {
@@ -534,6 +565,17 @@
 
 .client-row:hover {
   background-color: rgba(var(--v-theme-on-surface), 0.04);
+}
+
+/* A phone that isn't a real number even after cleanup (see
+   client_phone_cleanup.go's phone_valid) -- not a foreign number, which is
+   valid and just gets its flag instead. */
+.client-row-bad-phone {
+  background-color: rgba(var(--v-theme-error), 0.08);
+}
+
+.client-row-bad-phone:hover {
+  background-color: rgba(var(--v-theme-error), 0.14);
 }
 
 .client-row-main {
