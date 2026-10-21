@@ -361,24 +361,22 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 	// happened long ago; announcing each as live activity floods every open
 	// admin tab with stale toasts, so only a recent, non-historical sale
 	// notifies.
-	if req.Historical || time.Since(req.OccurredAt) > liveInvoiceNotifyWindow {
-		server.writeJSON(ctx, http.StatusOK, envelope{"invoice": result.Invoice, "items": result.Items, "payments": result.Payments})
-		return
+	if !req.Historical && time.Since(req.OccurredAt) <= liveInvoiceNotifyWindow {
+		// GrandTotal is already the net signed cash effect the branch reported
+		// (positive for sales, negative for a refund return, and for an
+		// exchange whatever kashi-pos's own netDifference computed -- positive,
+		// negative, or zero) -- see the ListDailyIncome comment in
+		// db/query/branch_invoice.sql. Forcing a second negation here for
+		// "return" used to double-flip it back to positive.
+		server.adminHub.broadcastAll(adminWSMessage{
+			Type:         "branch_invoice_created",
+			BranchID:     branchID,
+			Kind:         kind,
+			Amount:       req.GrandTotal,
+			CurrencyCode: currencyCode,
+			Label:        req.BranchInvoiceCode,
+		})
 	}
-	// GrandTotal is already the net signed cash effect the branch reported
-	// (positive for sales, negative for a refund return, and for an
-	// exchange whatever kashi-pos's own netDifference computed -- positive,
-	// negative, or zero) -- see the ListDailyIncome comment in
-	// db/query/branch_invoice.sql. Forcing a second negation here for
-	// "return" used to double-flip it back to positive.
-	server.adminHub.broadcastAll(adminWSMessage{
-		Type:         "branch_invoice_created",
-		BranchID:     branchID,
-		Kind:         kind,
-		Amount:       req.GrandTotal,
-		CurrencyCode: currencyCode,
-		Label:        req.BranchInvoiceCode,
-	})
 	for _, conflict := range result.Oversold {
 		server.adminHub.broadcastAll(adminWSMessage{
 			Type:     "branch_sync_conflict",
