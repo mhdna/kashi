@@ -764,15 +764,23 @@
 
   // From central: central paid it, so the till's shift doesn't take it off
   // the drawer. It's still the branch's expense; the till hears of the change.
+  // Shown flipped as soon as it's confirmed; put back if kashi refuses.
   async function toggleFromCentral (item) {
+    const next = !item.from_central
+    const question = next
+      ? `Mark "${item.description}" as paid by central (من المركزي)? The branch's shift will stop taking it out of the drawer.`
+      : `Mark "${item.description}" as paid from the till? The branch's shift will take it out of the drawer again.`
+    if (!confirm(question)) return
+    item.from_central = next
     try {
       const data = await apiJSON(`${API_BASE}/branch_expenses/${item.id}/from_central`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from_central: !item.from_central }),
+        body: JSON.stringify({ from_central: next }),
       })
       item.from_central = data.branch_expense.from_central
     } catch (error) {
+      item.from_central = !next
       notify.error(error.message)
     }
   }
