@@ -398,25 +398,25 @@
     return params
   }
 
-  // The pyramid and the first page of the list below it are one contiguous
-  // slice of the same ranking, and each request recomputes every client's
-  // spend, so fetch them together and split the result.
+  // The pyramid is the top of the ranking and the list below it starts from
+  // the top as well, so one request covers both: the pyramid takes its count
+  // from the front and the list takes its first page.
   async function fetchTop () {
     pyramidLoading.value = true
     restLoading.value = true
     const mySeq = ++restSeq
     try {
       const params = baseParams()
-      params.set('page_size', pyramidCount.value + REST_PAGE_SIZE)
+      params.set('page_size', Math.max(pyramidCount.value, REST_PAGE_SIZE))
       params.set('page_id', 0)
       const data = await dedupedFetch(`${API_BASE}/clients/by_spending?${params}`)
       if (mySeq !== restSeq) return
       const all = data?.clients ?? []
       const total = data?.total ?? 0
       pyramidClients.value = all.slice(0, pyramidCount.value)
-      restItems.value = all.slice(pyramidCount.value)
-      restTotal.value = Math.max(total - pyramidCount.value, 0)
-      restDone = all.length < pyramidCount.value + REST_PAGE_SIZE || restItems.value.length >= restTotal.value
+      restItems.value = all.slice(0, REST_PAGE_SIZE)
+      restTotal.value = total
+      restDone = restItems.value.length >= restTotal.value
     } catch (error) {
       if (mySeq !== restSeq) return
       pyramidClients.value = []
@@ -474,11 +474,10 @@
     if (!reset && restDone) return
 
     const searchActive = !!search.value
-    // Not searching: the list picks up where the "Top Spenders" pyramid
-    // leaves off, so the same clients aren't shown twice. Searching: the
-    // admin wants one specific client regardless of rank, so show all.
-    const base = searchActive ? 0 : pyramidCount.value
-    const from = reset ? base : base + restItems.value.length
+    // Every client matching the filters, ranked, including the ones the
+    // "Top Spenders" pyramid already shows: a filter that leaves a handful of
+    // clients would otherwise leave this list empty.
+    const from = reset ? 0 : restItems.value.length
 
     restLoading.value = true
     const mySeq = ++restSeq
@@ -493,7 +492,7 @@
 
       const batch = data?.clients ?? []
       const total = data?.total ?? 0
-      restTotal.value = searchActive ? total : Math.max(total - pyramidCount.value, 0)
+      restTotal.value = total
       restItems.value = reset ? batch : [...restItems.value, ...batch]
       restDone = batch.length < REST_PAGE_SIZE || restItems.value.length >= restTotal.value
     } catch (error) {
