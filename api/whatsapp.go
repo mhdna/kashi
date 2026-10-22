@@ -280,6 +280,9 @@ func (server *Server) sendBranchWhatsAppWelcome(ctx *gin.Context) {
 	case !sender.WhatsappChannelFirst || !sender.WhatsappWelcomeEarly:
 		notSent("welcome is sent after checkout")
 		return
+	case !sender.WhatsappMessageNew:
+		notSent("message is off for new clients")
+		return
 	}
 	branch, err := server.store.GetBranch(ctx, branchID)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
