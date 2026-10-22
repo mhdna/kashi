@@ -109,6 +109,17 @@ func (server *Server) receiveWhatsAppChatMessage(ctx *gin.Context) {
 
 // The bridge reports a poll as text: "📊 Question" then one "• option" per
 // line. The chat shows it as the poll bubble, like the Messages tab does.
+//
+// Careful: this matches the bridge's wording, and that code isn't in this
+// repo to check. The Makefile's BRIDGE_SRC (../bnc/whatsapp-bridge) has no
+// CHAT_LOG_URL reporting in it, so the format above was read off a live
+// inbox. If the bridge changes how it words a poll, this stops matching and
+// polls show as plain text again.
+//
+// Also unchecked: the Messages tab (whatsapp_conversation.go) showed no
+// thank-you text for a row whose inbox thread had one. If that still happens
+// after the poll-only fix, the thank-you was a separate send and isn't
+// logged on that row.
 func whatsAppPollFromText(body string) (question string, options []string, ok bool) {
 	lines := strings.Split(strings.TrimSpace(body), "\n")
 	question, found := strings.CutPrefix(lines[0], "📊 ")
