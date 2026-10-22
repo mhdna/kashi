@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -166,29 +167,38 @@ func (server *Server) listClients(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"clients": clients, "total": total})
 }
 
-type listClientSpendingSummaryRequest struct {
+type loyaltyOverviewRequest struct {
 	ClientType string `form:"client_type" binding:"omitempty,oneof=retail wholesale"`
-	// Activity window for period_spent/period_invoice_count, [from, to).
-	// Either bound may be omitted; RFC 3339.
+	// Activity window for revenue/active members, [from, to). Either bound
+	// may be omitted; RFC 3339.
 	From time.Time `form:"from" time_format:"2006-01-02T15:04:05Z07:00"`
 	To   time.Time `form:"to" time_format:"2006-01-02T15:04:05Z07:00"`
+	// Each tier's minimum spend in whole dollars; the order doesn't matter.
+	// The page keeps tiers in the browser, so it sends them along.
+	TierMins []int64 `form:"tier_mins" binding:"required,min=1,max=20,dive,min=0"`
 }
 
-// listClientSpendingSummary is the loyalty page's data source: every client
-// with just the columns that page buckets by (spend, invoices, points, join
-// date), ranked by spend, in one pass. The page tiers the whole population
-// client-side, so it needs all rows -- paging it through
-// listClientsBySpending re-ran that endpoint's full invoice aggregation once
-// per page.
-func (server *Server) listClientSpendingSummary(ctx *gin.Context) {
-	var req listClientSpendingSummaryRequest
+// loyaltyOverview is the loyalty page's data source: the per-tier figures, the
+// monthly sign-ups and the clients about to level up, all computed here. The
+// page used to download every client and tier them in the browser, which at
+// tens of thousands of clients meant megabytes per load.
+func (server *Server) loyaltyOverview(ctx *gin.Context) {
+	var req loyaltyOverviewRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
-	clients, err := server.store.ListClientSpendingSummary(ctx, db.ListClientSpendingSummaryParams{
-		ClientType: sql.NullString{String: req.ClientType, Valid: req.ClientType != ""},
+	mins := make([]int64, len(req.TierMins))
+	for i, dollars := range req.TierMins {
+		mins[i] = dollars * 100
+	}
+	slices.Sort(mins)
+	clientType := sql.NullString{String: req.ClientType, Valid: req.ClientType != ""}
+
+	tiers, err := server.store.LoyaltyTierStats(ctx, db.LoyaltyTierStatsParams{
+		TierMins:   mins,
+		ClientType: clientType,
 		DateFrom:   sql.NullTime{Time: req.From, Valid: !req.From.IsZero()},
 		DateTo:     sql.NullTime{Time: req.To, Valid: !req.To.IsZero()},
 	})
@@ -196,8 +206,21 @@ func (server *Server) listClientSpendingSummary(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	joins, err := server.store.LoyaltyMonthlyJoins(ctx, clientType)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	rising, err := server.store.LoyaltyRisingClients(ctx, db.LoyaltyRisingClientsParams{
+		TierMins:   mins,
+		ClientType: clientType,
+	})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
 
-	ctx.JSON(http.StatusOK, gin.H{"clients": clients, "total": len(clients)})
+	ctx.JSON(http.StatusOK, gin.H{"tiers": tiers, "joins": joins, "rising": rising})
 }
 
 type listClientsBySpendingRequest struct {
@@ -245,15 +268,25 @@ func (server *Server) listClientsBySpending(ctx *gin.Context) {
 	// No branch, dates or first/returning: the ranking is lifetime and comes
 	// from the client_spend cache instead of aggregating every invoice.
 	if len(req.BranchIDs) == 0 && req.From.IsZero() && req.To.IsZero() && req.Visit == "" {
-		clients, err := server.store.ListClientsBySpendingCached(ctx, db.ListClientsBySpendingCachedParams{
-			Limit:        req.PageSize,
-			Offset:       req.PageID,
-			ClientType:   clientType,
-			Search:       search,
-			SortBy:       req.SortBy,
-			PhoneValid:   phoneValid,
-			PhoneCountry: phoneCountry,
-		})
+		var clients any
+		var err error
+		switch req.SortBy {
+		case "invoices":
+			clients, err = server.store.ListClientsByInvoiceCountCached(ctx, db.ListClientsByInvoiceCountCachedParams{
+				Limit: req.PageSize, Offset: req.PageID, ClientType: clientType, Search: search,
+				PhoneValid: phoneValid, PhoneCountry: phoneCountry,
+			})
+		case "items":
+			clients, err = server.store.ListClientsByItemCountCached(ctx, db.ListClientsByItemCountCachedParams{
+				Limit: req.PageSize, Offset: req.PageID, ClientType: clientType, Search: search,
+				PhoneValid: phoneValid, PhoneCountry: phoneCountry,
+			})
+		default:
+			clients, err = server.store.ListClientsBySpendingCached(ctx, db.ListClientsBySpendingCachedParams{
+				Limit: req.PageSize, Offset: req.PageID, ClientType: clientType, Search: search,
+				PhoneValid: phoneValid, PhoneCountry: phoneCountry,
+			})
+		}
 		if err != nil {
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return

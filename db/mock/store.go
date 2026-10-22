@@ -8027,21 +8027,6 @@ func (mr *MockStoreMockRecorder) ListClientPhoneCountries(arg0 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClientPhoneCountries", reflect.TypeOf((*MockStore)(nil).ListClientPhoneCountries), arg0)
 }
 
-// ListClientSpendingSummary mocks base method.
-func (m *MockStore) ListClientSpendingSummary(arg0 context.Context, arg1 db.ListClientSpendingSummaryParams) ([]db.ListClientSpendingSummaryRow, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListClientSpendingSummary", arg0, arg1)
-	ret0, _ := ret[0].([]db.ListClientSpendingSummaryRow)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListClientSpendingSummary indicates an expected call of ListClientSpendingSummary.
-func (mr *MockStoreMockRecorder) ListClientSpendingSummary(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClientSpendingSummary", reflect.TypeOf((*MockStore)(nil).ListClientSpendingSummary), arg0, arg1)
-}
-
 // ListClientSyncIDs mocks base method.
 func (m *MockStore) ListClientSyncIDs(arg0 context.Context, arg1 db.ListClientSyncIDsParams) ([]db.ListClientSyncIDsRow, error) {
 	m.ctrl.T.Helper()
@@ -8070,6 +8055,36 @@ func (m *MockStore) ListClients(arg0 context.Context, arg1 db.ListClientsParams)
 func (mr *MockStoreMockRecorder) ListClients(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClients", reflect.TypeOf((*MockStore)(nil).ListClients), arg0, arg1)
+}
+
+// ListClientsByInvoiceCountCached mocks base method.
+func (m *MockStore) ListClientsByInvoiceCountCached(arg0 context.Context, arg1 db.ListClientsByInvoiceCountCachedParams) ([]db.ListClientsByInvoiceCountCachedRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListClientsByInvoiceCountCached", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListClientsByInvoiceCountCachedRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListClientsByInvoiceCountCached indicates an expected call of ListClientsByInvoiceCountCached.
+func (mr *MockStoreMockRecorder) ListClientsByInvoiceCountCached(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClientsByInvoiceCountCached", reflect.TypeOf((*MockStore)(nil).ListClientsByInvoiceCountCached), arg0, arg1)
+}
+
+// ListClientsByItemCountCached mocks base method.
+func (m *MockStore) ListClientsByItemCountCached(arg0 context.Context, arg1 db.ListClientsByItemCountCachedParams) ([]db.ListClientsByItemCountCachedRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListClientsByItemCountCached", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListClientsByItemCountCachedRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListClientsByItemCountCached indicates an expected call of ListClientsByItemCountCached.
+func (mr *MockStoreMockRecorder) ListClientsByItemCountCached(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClientsByItemCountCached", reflect.TypeOf((*MockStore)(nil).ListClientsByItemCountCached), arg0, arg1)
 }
 
 // ListClientsBySpending mocks base method.
@@ -10020,6 +10035,51 @@ func (m *MockStore) LowPollRatings(arg0 context.Context, arg1 db.LowPollRatingsP
 func (mr *MockStoreMockRecorder) LowPollRatings(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LowPollRatings", reflect.TypeOf((*MockStore)(nil).LowPollRatings), arg0, arg1)
+}
+
+// LoyaltyMonthlyJoins mocks base method.
+func (m *MockStore) LoyaltyMonthlyJoins(arg0 context.Context, arg1 sql.NullString) ([]db.LoyaltyMonthlyJoinsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LoyaltyMonthlyJoins", arg0, arg1)
+	ret0, _ := ret[0].([]db.LoyaltyMonthlyJoinsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LoyaltyMonthlyJoins indicates an expected call of LoyaltyMonthlyJoins.
+func (mr *MockStoreMockRecorder) LoyaltyMonthlyJoins(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoyaltyMonthlyJoins", reflect.TypeOf((*MockStore)(nil).LoyaltyMonthlyJoins), arg0, arg1)
+}
+
+// LoyaltyRisingClients mocks base method.
+func (m *MockStore) LoyaltyRisingClients(arg0 context.Context, arg1 db.LoyaltyRisingClientsParams) ([]db.LoyaltyRisingClientsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LoyaltyRisingClients", arg0, arg1)
+	ret0, _ := ret[0].([]db.LoyaltyRisingClientsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LoyaltyRisingClients indicates an expected call of LoyaltyRisingClients.
+func (mr *MockStoreMockRecorder) LoyaltyRisingClients(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoyaltyRisingClients", reflect.TypeOf((*MockStore)(nil).LoyaltyRisingClients), arg0, arg1)
+}
+
+// LoyaltyTierStats mocks base method.
+func (m *MockStore) LoyaltyTierStats(arg0 context.Context, arg1 db.LoyaltyTierStatsParams) ([]db.LoyaltyTierStatsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LoyaltyTierStats", arg0, arg1)
+	ret0, _ := ret[0].([]db.LoyaltyTierStatsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LoyaltyTierStats indicates an expected call of LoyaltyTierStats.
+func (mr *MockStoreMockRecorder) LoyaltyTierStats(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoyaltyTierStats", reflect.TypeOf((*MockStore)(nil).LoyaltyTierStats), arg0, arg1)
 }
 
 // MarkBranchAttendanceEventRemoved mocks base method.
