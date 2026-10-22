@@ -165,6 +165,8 @@ type Querier interface {
 	// picked it counts that branch's clients: home branch, or a branch invoice
 	// there (same cancelled/hidden rules as the list).
 	CountClientsBySpending(ctx context.Context, arg CountClientsBySpendingParams) (int64, error)
+	// Count for ListClientsBySpendingCached.
+	CountClientsBySpendingCached(ctx context.Context, arg CountClientsBySpendingCachedParams) (int64, error)
 	CountColors(ctx context.Context, search string) (int64, error)
 	CountCoupons(ctx context.Context, arg CountCouponsParams) (int64, error)
 	CountCouponsByTypeID(ctx context.Context, typeID sql.NullInt64) (int64, error)
@@ -1025,26 +1027,17 @@ type Querier interface {
 	ListClientPhoneCountries(ctx context.Context) ([]ListClientPhoneCountriesRow, error)
 	// Whole-population feed for the loyalty page, which buckets every client
 	// into a front-end tier by total_spent and so needs all of them, not a
-	// page. ListClientsBySpending can't serve that: its aggregation scans all
-	// invoices/branch_invoices on every call, so paging 25k clients through it
-	// re-runs that scan once per page. This runs it once and returns only the
-	// handful of columns the loyalty page reads, so the payload stays small even
-	// at tens of thousands of rows.
+	// page. Lifetime figures (total_spent, invoice_count, which drive the tier
+	// bucketing) come from the client_spend cache; only the period figures
+	// (period_spent/period_invoice_count, for [date_from, date_to), either bound
+	// optional) are computed live, from just the invoices inside the window.
+	// With no bound the period is all time, so the cached figures are used as is.
+	// total_spent here is gross_spent: before the On Account deduction, as this
+	// page always reported it.
 	//
-	// total_spent/invoice_count are lifetime (they drive the tier bucketing);
-	// period_spent/period_invoice_count cover [date_from, date_to) only, either
-	// bound optional. Half-open so the caller can pass the first instant of the
-	// day after the last selected day.
-	//
-	// Same two sources and sign conventions as ListClientsBySpending (see the
-	// comment there); item_count and the branch_id/search filters are dropped
-	// -- nothing on the loyalty page uses them, and dropping item_count also
-	// drops the two line-item joins whose row fan-out made DISTINCTs necessary.
-	// With those gone each joined row is exactly one invoice: sales_invoices is
-	// keyed by invoice_id and client_links by (register_id, branch_client_id),
-	// so neither join can repeat an invoice. That makes COUNT(*) exact, and
-	// unlike COUNT(DISTINCT) it lets Postgres hash-aggregate instead of sorting
-	// every invoice per client.
+	// Same two sources and sign conventions as RefreshClientSpend: central
+	// invoices (sales positive, returns negative) plus non-cancelled branch
+	// invoices of reported-on branches/registers.
 	ListClientSpendingSummary(ctx context.Context, arg ListClientSpendingSummaryParams) ([]ListClientSpendingSummaryRow, error)
 	// Completeness check: every retail client's uid + updated_at, keyset-paged
 	// by uid. Inactive clients are included -- a till must learn they're
@@ -1075,6 +1068,11 @@ type Querier interface {
 	// of the FROM clause's columns). Wrapping in a CTE turns them into real
 	// columns of the derived table, so the CASE inside ORDER BY resolves fine.
 	ListClientsBySpending(ctx context.Context, arg ListClientsBySpendingParams) ([]ListClientsBySpendingRow, error)
+	// ListClientsBySpending for the unfiltered case (no branch, no dates, no
+	// first/returning): reads the client_spend cache instead of aggregating every
+	// invoice, so a page costs an index scan. Same ordering and the other filters
+	// (type, search, phone) as the live query.
+	ListClientsBySpendingCached(ctx context.Context, arg ListClientsBySpendingCachedParams) ([]ListClientsBySpendingCachedRow, error)
 	ListClientsByUIDs(ctx context.Context, uids []uuid.UUID) ([]Client, error)
 	// Feeds the clients CSV export: one row per (client, branch) for every
 	// client who bought something, so the caller can write a file per branch.
@@ -1490,6 +1488,14 @@ type Querier interface {
 	// an 'active' coupon to 'redeemed' -- an inactive/already-redeemed code is
 	// left alone so a stale retry never resurrects it.
 	RedeemCoupon(ctx context.Context, arg RedeemCouponParams) (Coupon, error)
+	// Rebuilds client_spend for every client from all invoices. Same two sources
+	// and sign conventions as ListClientsBySpending (see the comment there):
+	// central invoices (sales positive, returns negative; grand_total is always
+	// a positive magnitude) and non-cancelled branch invoices of reported-on
+	// branches/registers, whose grand_total already carries its sign. total_spent
+	// drops what was paid "On Account"; gross_spent keeps it. Line items are
+	// pre-aggregated per invoice so they can't multiply grand_total.
+	RefreshClientSpend(ctx context.Context) error
 	RenameRole(ctx context.Context, arg RenameRoleParams) error
 	// Points the row at a replacement photo (api/photo_replace.go); the new
 	// photo starts upright.

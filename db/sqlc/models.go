@@ -1080,6 +1080,15 @@ type ClientLink struct {
 	RegisterID     int64 `json:"register_id"`
 }
 
+type ClientSpend struct {
+	ClientID     int64     `json:"client_id"`
+	TotalSpent   int64     `json:"total_spent"`
+	GrossSpent   int64     `json:"gross_spent"`
+	InvoiceCount int64     `json:"invoice_count"`
+	ItemCount    int64     `json:"item_count"`
+	RefreshedAt  time.Time `json:"refreshed_at"`
+}
+
 type Color struct {
 	ID        int64     `json:"id"`
 	Name      string    `json:"name"`
