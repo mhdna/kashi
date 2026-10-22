@@ -305,16 +305,16 @@ WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_
     OR (sqlc.arg(visit)::text = 'first' AND f.first_at >= sqlc.narg(date_from)::timestamptz)
     OR (sqlc.arg(visit)::text = 'returning' AND f.first_at < sqlc.narg(date_from)::timestamptz));
 
--- name: ListClientSpendingSummary :many
--- Whole-population feed for the loyalty page, which buckets every client
--- into a front-end tier by total_spent and so needs all of them, not a
--- page. Lifetime figures (total_spent, invoice_count, which drive the tier
--- bucketing) come from the client_spend cache; only the period figures
--- (period_spent/period_invoice_count, for [date_from, date_to), either bound
--- optional) are computed live, from just the invoices inside the window.
--- With no bound the period is all time, so the cached figures are used as is.
--- total_spent here is gross_spent: before the On Account deduction, as this
--- page always reported it.
+-- name: LoyaltyTierStats :many
+-- Loyalty page: one row per tier that has members. tier_mins is the tiers'
+-- minimum spends in cents, ascending; a client's tier index is the highest
+-- minimum their lifetime spend clears (the lowest tier if none), counted from
+-- 0 at the entry tier -- the same rule as the page's tierFor. Lifetime spend
+-- (gross_spent, before the On Account deduction) and points come from the
+-- client_spend cache; the period figures (revenue, active members) cover
+-- [date_from, date_to), either bound optional, and are computed live from just
+-- the invoices inside the window. With no bound the period is all time, so the
+-- cached figures are used as is.
 --
 -- Same two sources and sign conventions as RefreshClientSpend: central
 -- invoices (sales positive, returns negative) plus non-cancelled branch
@@ -342,26 +342,59 @@ WITH central AS (
     AND (sqlc.narg(date_from)::timestamptz IS NULL OR b.occurred_at >= sqlc.narg(date_from)::timestamptz)
     AND (sqlc.narg(date_to)::timestamptz IS NULL OR b.occurred_at < sqlc.narg(date_to)::timestamptz)
   GROUP BY cl.client_id
+), per_client AS (
+  SELECT
+    COALESCE(cs.gross_spent, 0) AS spent,
+    c.valid_loyalty_points AS points,
+    CASE WHEN sqlc.narg(date_from)::timestamptz IS NULL AND sqlc.narg(date_to)::timestamptz IS NULL
+      THEN COALESCE(cs.gross_spent, 0)
+      ELSE COALESCE(ce.total, 0) + COALESCE(br.total, 0) END AS period_spent,
+    CASE WHEN sqlc.narg(date_from)::timestamptz IS NULL AND sqlc.narg(date_to)::timestamptz IS NULL
+      THEN COALESCE(cs.invoice_count, 0)
+      ELSE COALESCE(ce.invoice_count, 0) + COALESCE(br.invoice_count, 0) END AS period_invoices
+  FROM clients c
+  LEFT JOIN client_spend cs ON cs.client_id = c.id
+  LEFT JOIN central ce ON ce.client_id = c.id
+  LEFT JOIN branch br ON br.client_id = c.id
+  WHERE sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type)
 )
 SELECT
-  c.id,
-  c.name,
-  c.created_at,
-  c.valid_loyalty_points,
-  COALESCE(cs.gross_spent, 0)::bigint AS total_spent,
-  COALESCE(cs.invoice_count, 0)::bigint AS invoice_count,
-  (CASE WHEN sqlc.narg(date_from)::timestamptz IS NULL AND sqlc.narg(date_to)::timestamptz IS NULL
-    THEN COALESCE(cs.gross_spent, 0)
-    ELSE COALESCE(ce.total, 0) + COALESCE(br.total, 0) END)::bigint AS period_spent,
-  (CASE WHEN sqlc.narg(date_from)::timestamptz IS NULL AND sqlc.narg(date_to)::timestamptz IS NULL
-    THEN COALESCE(cs.invoice_count, 0)
-    ELSE COALESCE(ce.invoice_count, 0) + COALESCE(br.invoice_count, 0) END)::bigint AS period_invoice_count
+  GREATEST((SELECT COUNT(*) FROM unnest(sqlc.arg(tier_mins)::bigint[]) m WHERE m <= pc.spent) - 1, 0)::int AS tier_index,
+  COUNT(*)::bigint AS members,
+  COUNT(*) FILTER (WHERE pc.period_invoices > 0)::bigint AS active,
+  COALESCE(SUM(pc.period_spent), 0)::bigint AS revenue,
+  COALESCE(SUM(pc.points), 0)::bigint AS points
+FROM per_client pc
+GROUP BY 1
+ORDER BY 1;
+
+-- name: LoyaltyMonthlyJoins :many
+-- Loyalty page: new clients per calendar month (UTC) over the last 12 months.
+SELECT to_char(c.created_at AT TIME ZONE 'UTC', 'YYYY-MM') AS month, COUNT(*)::bigint AS joined
 FROM clients c
-LEFT JOIN client_spend cs ON cs.client_id = c.id
-LEFT JOIN central ce ON ce.client_id = c.id
-LEFT JOIN branch br ON br.client_id = c.id
-WHERE sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type)
-ORDER BY total_spent DESC, c.name ASC;
+WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type))
+  AND c.created_at >= date_trunc('month', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' - interval '11 months'
+GROUP BY 1
+ORDER BY 1;
+
+-- name: LoyaltyRisingClients :many
+-- Loyalty page, "close to leveling up": the clients (up to 25) within 30% of
+-- the next tier's minimum, closest first. tier_mins as in LoyaltyTierStats.
+WITH t AS (
+  SELECT c.id, c.name, cs.gross_spent AS spent,
+    GREATEST((SELECT COUNT(*) FROM unnest(sqlc.arg(tier_mins)::bigint[]) m WHERE m <= cs.gross_spent) - 1, 0)::int AS tier_index
+  FROM clients c
+  JOIN client_spend cs ON cs.client_id = c.id
+  WHERE sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type)
+)
+SELECT t.id, t.name, t.spent::bigint AS spent, t.tier_index,
+  (sqlc.arg(tier_mins)::bigint[])[t.tier_index + 2]::bigint AS next_min
+FROM t
+WHERE t.tier_index + 2 <= cardinality(sqlc.arg(tier_mins)::bigint[])
+  AND t.spent < (sqlc.arg(tier_mins)::bigint[])[t.tier_index + 2]
+  AND t.spent * 10 >= (sqlc.arg(tier_mins)::bigint[])[t.tier_index + 2] * 7
+ORDER BY (sqlc.arg(tier_mins)::bigint[])[t.tier_index + 2] - t.spent ASC, t.id ASC
+LIMIT 25;
 
 -- name: RefreshClientSpend :exec
 -- Rebuilds client_spend for every client from all invoices. Same two sources
@@ -429,21 +462,43 @@ ON CONFLICT (client_id) DO UPDATE SET
 -- ListClientsBySpending for the unfiltered case (no branch, no dates, no
 -- first/returning): reads the client_spend cache instead of aggregating every
 -- invoice, so a page costs an index scan. Same ordering and the other filters
--- (type, search, phone) as the live query.
-SELECT c.*, COALESCE(cs.total_spent, 0)::bigint AS total_spent, COALESCE(cs.invoice_count, 0)::bigint AS invoice_count, COALESCE(cs.item_count, 0)::bigint AS item_count
+-- (type, search, phone) as the live query. One query per sort, rather than a
+-- CASE in ORDER BY, so Postgres can read the top rows straight off that
+-- column's index. Every client has a client_spend row (see migration 197).
+SELECT c.*, cs.total_spent, cs.invoice_count, cs.item_count
 FROM clients c
-LEFT JOIN client_spend cs ON cs.client_id = c.id
+JOIN client_spend cs ON cs.client_id = c.id
 WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type))
   AND (sqlc.narg(search)::text IS NULL OR c.name ILIKE '%' || sqlc.narg(search)::text || '%' OR c.phone ILIKE '%' || sqlc.narg(search)::text || '%')
   AND (sqlc.narg(phone_valid)::boolean IS NULL OR c.phone_valid = sqlc.narg(phone_valid)::boolean)
   AND (sqlc.narg(phone_country)::text IS NULL OR c.phone_country = sqlc.narg(phone_country)::text)
-ORDER BY
-  (CASE sqlc.arg(sort_by)::text
-    WHEN 'invoices' THEN COALESCE(cs.invoice_count, 0)
-    WHEN 'items' THEN COALESCE(cs.item_count, 0)
-    ELSE COALESCE(cs.total_spent, 0)
-  END) DESC,
-  c.name ASC
+ORDER BY cs.total_spent DESC, c.name ASC
+LIMIT $1
+OFFSET $2;
+
+-- name: ListClientsByInvoiceCountCached :many
+-- ListClientsBySpendingCached, ranked by invoice count.
+SELECT c.*, cs.total_spent, cs.invoice_count, cs.item_count
+FROM clients c
+JOIN client_spend cs ON cs.client_id = c.id
+WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type))
+  AND (sqlc.narg(search)::text IS NULL OR c.name ILIKE '%' || sqlc.narg(search)::text || '%' OR c.phone ILIKE '%' || sqlc.narg(search)::text || '%')
+  AND (sqlc.narg(phone_valid)::boolean IS NULL OR c.phone_valid = sqlc.narg(phone_valid)::boolean)
+  AND (sqlc.narg(phone_country)::text IS NULL OR c.phone_country = sqlc.narg(phone_country)::text)
+ORDER BY cs.invoice_count DESC, c.name ASC
+LIMIT $1
+OFFSET $2;
+
+-- name: ListClientsByItemCountCached :many
+-- ListClientsBySpendingCached, ranked by item count.
+SELECT c.*, cs.total_spent, cs.invoice_count, cs.item_count
+FROM clients c
+JOIN client_spend cs ON cs.client_id = c.id
+WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type))
+  AND (sqlc.narg(search)::text IS NULL OR c.name ILIKE '%' || sqlc.narg(search)::text || '%' OR c.phone ILIKE '%' || sqlc.narg(search)::text || '%')
+  AND (sqlc.narg(phone_valid)::boolean IS NULL OR c.phone_valid = sqlc.narg(phone_valid)::boolean)
+  AND (sqlc.narg(phone_country)::text IS NULL OR c.phone_country = sqlc.narg(phone_country)::text)
+ORDER BY cs.item_count DESC, c.name ASC
 LIMIT $1
 OFFSET $2;
 

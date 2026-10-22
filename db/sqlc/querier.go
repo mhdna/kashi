@@ -1025,20 +1025,6 @@ type Querier interface {
 	// country that would return at least one result, instead of the full
 	// ~240-country ISO list.
 	ListClientPhoneCountries(ctx context.Context) ([]ListClientPhoneCountriesRow, error)
-	// Whole-population feed for the loyalty page, which buckets every client
-	// into a front-end tier by total_spent and so needs all of them, not a
-	// page. Lifetime figures (total_spent, invoice_count, which drive the tier
-	// bucketing) come from the client_spend cache; only the period figures
-	// (period_spent/period_invoice_count, for [date_from, date_to), either bound
-	// optional) are computed live, from just the invoices inside the window.
-	// With no bound the period is all time, so the cached figures are used as is.
-	// total_spent here is gross_spent: before the On Account deduction, as this
-	// page always reported it.
-	//
-	// Same two sources and sign conventions as RefreshClientSpend: central
-	// invoices (sales positive, returns negative) plus non-cancelled branch
-	// invoices of reported-on branches/registers.
-	ListClientSpendingSummary(ctx context.Context, arg ListClientSpendingSummaryParams) ([]ListClientSpendingSummaryRow, error)
 	// Completeness check: every retail client's uid + updated_at, keyset-paged
 	// by uid. Inactive clients are included -- a till must learn they're
 	// inactive, not just stop hearing about them.
@@ -1047,6 +1033,10 @@ type Querier interface {
 	// clients page passes it when a Retail/Wholesale tab is selected, and
 	// omits it for a combined view if one is ever added.
 	ListClients(ctx context.Context, arg ListClientsParams) ([]Client, error)
+	// ListClientsBySpendingCached, ranked by invoice count.
+	ListClientsByInvoiceCountCached(ctx context.Context, arg ListClientsByInvoiceCountCachedParams) ([]ListClientsByInvoiceCountCachedRow, error)
+	// ListClientsBySpendingCached, ranked by item count.
+	ListClientsByItemCountCached(ctx context.Context, arg ListClientsByItemCountCachedParams) ([]ListClientsByItemCountCachedRow, error)
 	// Powers the clients "loyalty pyramid" + rest-of-clients table: every
 	// client ranked by total_spent, invoice_count, or item_count (chosen via
 	// sort_by -- see the ORDER BY at the bottom). Two sources feed each metric:
@@ -1071,7 +1061,9 @@ type Querier interface {
 	// ListClientsBySpending for the unfiltered case (no branch, no dates, no
 	// first/returning): reads the client_spend cache instead of aggregating every
 	// invoice, so a page costs an index scan. Same ordering and the other filters
-	// (type, search, phone) as the live query.
+	// (type, search, phone) as the live query. One query per sort, rather than a
+	// CASE in ORDER BY, so Postgres can read the top rows straight off that
+	// column's index. Every client has a client_spend row (see migration 197).
 	ListClientsBySpendingCached(ctx context.Context, arg ListClientsBySpendingCachedParams) ([]ListClientsBySpendingCachedRow, error)
 	ListClientsByUIDs(ctx context.Context, uids []uuid.UUID) ([]Client, error)
 	// Feeds the clients CSV export: one row per (client, branch) for every
@@ -1451,6 +1443,25 @@ type Querier interface {
 	ListWhatsAppRules(ctx context.Context) ([]WhatsappRule, error)
 	// Clients who answered 1 or 2 stars, newest first: the ones to call back.
 	LowPollRatings(ctx context.Context, arg LowPollRatingsParams) ([]LowPollRatingsRow, error)
+	// Loyalty page: new clients per calendar month (UTC) over the last 12 months.
+	LoyaltyMonthlyJoins(ctx context.Context, clientType sql.NullString) ([]LoyaltyMonthlyJoinsRow, error)
+	// Loyalty page, "close to leveling up": the clients (up to 25) within 30% of
+	// the next tier's minimum, closest first. tier_mins as in LoyaltyTierStats.
+	LoyaltyRisingClients(ctx context.Context, arg LoyaltyRisingClientsParams) ([]LoyaltyRisingClientsRow, error)
+	// Loyalty page: one row per tier that has members. tier_mins is the tiers'
+	// minimum spends in cents, ascending; a client's tier index is the highest
+	// minimum their lifetime spend clears (the lowest tier if none), counted from
+	// 0 at the entry tier -- the same rule as the page's tierFor. Lifetime spend
+	// (gross_spent, before the On Account deduction) and points come from the
+	// client_spend cache; the period figures (revenue, active members) cover
+	// [date_from, date_to), either bound optional, and are computed live from just
+	// the invoices inside the window. With no bound the period is all time, so the
+	// cached figures are used as is.
+	//
+	// Same two sources and sign conventions as RefreshClientSpend: central
+	// invoices (sales positive, returns negative) plus non-cancelled branch
+	// invoices of reported-on branches/registers.
+	LoyaltyTierStats(ctx context.Context, arg LoyaltyTierStatsParams) ([]LoyaltyTierStatsRow, error)
 	// The original punch of an approved replace/delete on the till. Kept, not
 	// deleted, so the audit trail shows what was there and who took it away.
 	MarkBranchAttendanceEventRemoved(ctx context.Context, arg MarkBranchAttendanceEventRemovedParams) error
