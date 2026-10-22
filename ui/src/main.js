@@ -1,3 +1,4 @@
+import { polyfillCountryFlagEmojis } from 'country-flag-emoji-polyfill'
 import { createApp } from 'vue'
 
 import { installClientLogger } from '@/composables/useClientLogs'
@@ -11,6 +12,10 @@ import '@fontsource/roboto/500.css'
 import '@fontsource/roboto/700.css'
 
 installClientLogger()
+
+// Windows browsers draw flag emoji as bare letters ("LB"); this loads a flag
+// font only when the platform can't render them.
+polyfillCountryFlagEmojis()
 
 // After a deploy, an open tab's index.html still points at the previous
 // build's hashed chunks, which are gone from the server, so the next lazy
