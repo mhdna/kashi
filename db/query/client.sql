@@ -308,53 +308,39 @@ WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_
 -- name: ListClientSpendingSummary :many
 -- Whole-population feed for the loyalty page, which buckets every client
 -- into a front-end tier by total_spent and so needs all of them, not a
--- page. ListClientsBySpending can't serve that: its aggregation scans all
--- invoices/branch_invoices on every call, so paging 25k clients through it
--- re-runs that scan once per page. This runs it once and returns only the
--- handful of columns the loyalty page reads, so the payload stays small even
--- at tens of thousands of rows.
+-- page. Lifetime figures (total_spent, invoice_count, which drive the tier
+-- bucketing) come from the client_spend cache; only the period figures
+-- (period_spent/period_invoice_count, for [date_from, date_to), either bound
+-- optional) are computed live, from just the invoices inside the window.
+-- With no bound the period is all time, so the cached figures are used as is.
+-- total_spent here is gross_spent: before the On Account deduction, as this
+-- page always reported it.
 --
--- total_spent/invoice_count are lifetime (they drive the tier bucketing);
--- period_spent/period_invoice_count cover [date_from, date_to) only, either
--- bound optional. Half-open so the caller can pass the first instant of the
--- day after the last selected day.
---
--- Same two sources and sign conventions as ListClientsBySpending (see the
--- comment there); item_count and the branch_id/search filters are dropped
--- -- nothing on the loyalty page uses them, and dropping item_count also
--- drops the two line-item joins whose row fan-out made DISTINCTs necessary.
--- With those gone each joined row is exactly one invoice: sales_invoices is
--- keyed by invoice_id and client_links by (register_id, branch_client_id),
--- so neither join can repeat an invoice. That makes COUNT(*) exact, and
--- unlike COUNT(DISTINCT) it lets Postgres hash-aggregate instead of sorting
--- every invoice per client.
+-- Same two sources and sign conventions as RefreshClientSpend: central
+-- invoices (sales positive, returns negative) plus non-cancelled branch
+-- invoices of reported-on branches/registers.
 WITH central AS (
   SELECT i.client_id,
     SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END) AS total,
-    COUNT(*) AS invoice_count,
-    SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END)
-      FILTER (WHERE p.in_period) AS period_total,
-    COUNT(*) FILTER (WHERE p.in_period) AS period_invoice_count
+    COUNT(*) AS invoice_count
   FROM invoices i
   LEFT JOIN sales_invoices si ON si.invoice_id = i.id
-  CROSS JOIN LATERAL (SELECT
-    (sqlc.narg(date_from)::timestamptz IS NULL OR i.created_at >= sqlc.narg(date_from)::timestamptz)
-    AND (sqlc.narg(date_to)::timestamptz IS NULL OR i.created_at < sqlc.narg(date_to)::timestamptz) AS in_period) p
+  WHERE (sqlc.narg(date_from)::timestamptz IS NOT NULL OR sqlc.narg(date_to)::timestamptz IS NOT NULL)
+    AND (sqlc.narg(date_from)::timestamptz IS NULL OR i.created_at >= sqlc.narg(date_from)::timestamptz)
+    AND (sqlc.narg(date_to)::timestamptz IS NULL OR i.created_at < sqlc.narg(date_to)::timestamptz)
   GROUP BY i.client_id
 ), branch AS (
   SELECT cl.client_id,
     SUM(b.grand_total) AS total,
-    COUNT(*) AS invoice_count,
-    SUM(b.grand_total) FILTER (WHERE p.in_period) AS period_total,
-    COUNT(*) FILTER (WHERE p.in_period) AS period_invoice_count
+    COUNT(*) AS invoice_count
   FROM branch_invoices b
   JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
-  CROSS JOIN LATERAL (SELECT
-    (sqlc.narg(date_from)::timestamptz IS NULL OR b.occurred_at >= sqlc.narg(date_from)::timestamptz)
-    AND (sqlc.narg(date_to)::timestamptz IS NULL OR b.occurred_at < sqlc.narg(date_to)::timestamptz) AS in_period) p
-  WHERE b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  WHERE (sqlc.narg(date_from)::timestamptz IS NOT NULL OR sqlc.narg(date_to)::timestamptz IS NOT NULL)
+    AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
     AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
     AND b.cancelled_at IS NULL
+    AND (sqlc.narg(date_from)::timestamptz IS NULL OR b.occurred_at >= sqlc.narg(date_from)::timestamptz)
+    AND (sqlc.narg(date_to)::timestamptz IS NULL OR b.occurred_at < sqlc.narg(date_to)::timestamptz)
   GROUP BY cl.client_id
 )
 SELECT
@@ -362,15 +348,113 @@ SELECT
   c.name,
   c.created_at,
   c.valid_loyalty_points,
-  (COALESCE(ce.total, 0) + COALESCE(br.total, 0))::bigint AS total_spent,
-  (COALESCE(ce.invoice_count, 0) + COALESCE(br.invoice_count, 0))::bigint AS invoice_count,
-  (COALESCE(ce.period_total, 0) + COALESCE(br.period_total, 0))::bigint AS period_spent,
-  (COALESCE(ce.period_invoice_count, 0) + COALESCE(br.period_invoice_count, 0))::bigint AS period_invoice_count
+  COALESCE(cs.gross_spent, 0)::bigint AS total_spent,
+  COALESCE(cs.invoice_count, 0)::bigint AS invoice_count,
+  (CASE WHEN sqlc.narg(date_from)::timestamptz IS NULL AND sqlc.narg(date_to)::timestamptz IS NULL
+    THEN COALESCE(cs.gross_spent, 0)
+    ELSE COALESCE(ce.total, 0) + COALESCE(br.total, 0) END)::bigint AS period_spent,
+  (CASE WHEN sqlc.narg(date_from)::timestamptz IS NULL AND sqlc.narg(date_to)::timestamptz IS NULL
+    THEN COALESCE(cs.invoice_count, 0)
+    ELSE COALESCE(ce.invoice_count, 0) + COALESCE(br.invoice_count, 0) END)::bigint AS period_invoice_count
 FROM clients c
+LEFT JOIN client_spend cs ON cs.client_id = c.id
 LEFT JOIN central ce ON ce.client_id = c.id
 LEFT JOIN branch br ON br.client_id = c.id
 WHERE sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type)
 ORDER BY total_spent DESC, c.name ASC;
+
+-- name: RefreshClientSpend :exec
+-- Rebuilds client_spend for every client from all invoices. Same two sources
+-- and sign conventions as ListClientsBySpending (see the comment there):
+-- central invoices (sales positive, returns negative; grand_total is always
+-- a positive magnitude) and non-cancelled branch invoices of reported-on
+-- branches/registers, whose grand_total already carries its sign. total_spent
+-- drops what was paid "On Account"; gross_spent keeps it. Line items are
+-- pre-aggregated per invoice so they can't multiply grand_total.
+WITH central AS (
+  SELECT i.client_id,
+    SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END) AS total,
+    COUNT(*) AS invoice_count,
+    COALESCE(SUM(ip.quantity), 0) AS item_count
+  FROM invoices i
+  LEFT JOIN sales_invoices si ON si.invoice_id = i.id
+  LEFT JOIN (
+    SELECT invoice_id, SUM(quantity) AS quantity
+    FROM invoice_products
+    GROUP BY invoice_id
+  ) ip ON ip.invoice_id = i.id
+  GROUP BY i.client_id
+), branch AS (
+  SELECT cl.client_id,
+    SUM(b.grand_total) AS gross,
+    SUM(b.grand_total - COALESCE(onacct.amount, 0)) AS net,
+    COUNT(*) AS invoice_count,
+    COALESCE(SUM(bii.quantity), 0) AS item_count
+  FROM branch_invoices b
+  JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
+  LEFT JOIN (
+    SELECT branch_invoice_id, SUM(quantity) AS quantity
+    FROM branch_invoice_items
+    GROUP BY branch_invoice_id
+  ) bii ON bii.branch_invoice_id = b.id
+  LEFT JOIN (
+    SELECT branch_invoice_id, SUM(amount) AS amount
+    FROM branch_invoice_payments
+    WHERE lower(trim(account_name)) = 'on account'
+    GROUP BY branch_invoice_id
+  ) onacct ON onacct.branch_invoice_id = b.id
+  WHERE b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+    AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+    AND b.cancelled_at IS NULL
+  GROUP BY cl.client_id
+)
+INSERT INTO client_spend (client_id, total_spent, gross_spent, invoice_count, item_count, refreshed_at)
+SELECT c.id,
+  (COALESCE(ce.total, 0) + COALESCE(br.net, 0))::bigint,
+  (COALESCE(ce.total, 0) + COALESCE(br.gross, 0))::bigint,
+  (COALESCE(ce.invoice_count, 0) + COALESCE(br.invoice_count, 0))::bigint,
+  (COALESCE(ce.item_count, 0) + COALESCE(br.item_count, 0))::bigint,
+  now()
+FROM clients c
+LEFT JOIN central ce ON ce.client_id = c.id
+LEFT JOIN branch br ON br.client_id = c.id
+ON CONFLICT (client_id) DO UPDATE SET
+  total_spent = EXCLUDED.total_spent,
+  gross_spent = EXCLUDED.gross_spent,
+  invoice_count = EXCLUDED.invoice_count,
+  item_count = EXCLUDED.item_count,
+  refreshed_at = EXCLUDED.refreshed_at;
+
+-- name: ListClientsBySpendingCached :many
+-- ListClientsBySpending for the unfiltered case (no branch, no dates, no
+-- first/returning): reads the client_spend cache instead of aggregating every
+-- invoice, so a page costs an index scan. Same ordering and the other filters
+-- (type, search, phone) as the live query.
+SELECT c.*, COALESCE(cs.total_spent, 0)::bigint AS total_spent, COALESCE(cs.invoice_count, 0)::bigint AS invoice_count, COALESCE(cs.item_count, 0)::bigint AS item_count
+FROM clients c
+LEFT JOIN client_spend cs ON cs.client_id = c.id
+WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type))
+  AND (sqlc.narg(search)::text IS NULL OR c.name ILIKE '%' || sqlc.narg(search)::text || '%' OR c.phone ILIKE '%' || sqlc.narg(search)::text || '%')
+  AND (sqlc.narg(phone_valid)::boolean IS NULL OR c.phone_valid = sqlc.narg(phone_valid)::boolean)
+  AND (sqlc.narg(phone_country)::text IS NULL OR c.phone_country = sqlc.narg(phone_country)::text)
+ORDER BY
+  (CASE sqlc.arg(sort_by)::text
+    WHEN 'invoices' THEN COALESCE(cs.invoice_count, 0)
+    WHEN 'items' THEN COALESCE(cs.item_count, 0)
+    ELSE COALESCE(cs.total_spent, 0)
+  END) DESC,
+  c.name ASC
+LIMIT $1
+OFFSET $2;
+
+-- name: CountClientsBySpendingCached :one
+-- Count for ListClientsBySpendingCached.
+SELECT COUNT(*)
+FROM clients c
+WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type))
+  AND (sqlc.narg(search)::text IS NULL OR c.name ILIKE '%' || sqlc.narg(search)::text || '%' OR c.phone ILIKE '%' || sqlc.narg(search)::text || '%')
+  AND (sqlc.narg(phone_valid)::boolean IS NULL OR c.phone_valid = sqlc.narg(phone_valid)::boolean)
+  AND (sqlc.narg(phone_country)::text IS NULL OR c.phone_country = sqlc.narg(phone_country)::text);
 
 -- name: ListClientsUpdatedSincePaged :many
 -- Keyset-paginated form of ListClientsUpdatedSince for a branch doing a

@@ -1158,6 +1158,21 @@ func (mr *MockStoreMockRecorder) CountClientsBySpending(arg0, arg1 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountClientsBySpending", reflect.TypeOf((*MockStore)(nil).CountClientsBySpending), arg0, arg1)
 }
 
+// CountClientsBySpendingCached mocks base method.
+func (m *MockStore) CountClientsBySpendingCached(arg0 context.Context, arg1 db.CountClientsBySpendingCachedParams) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountClientsBySpendingCached", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountClientsBySpendingCached indicates an expected call of CountClientsBySpendingCached.
+func (mr *MockStoreMockRecorder) CountClientsBySpendingCached(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountClientsBySpendingCached", reflect.TypeOf((*MockStore)(nil).CountClientsBySpendingCached), arg0, arg1)
+}
+
 // CountColors mocks base method.
 func (m *MockStore) CountColors(arg0 context.Context, arg1 string) (int64, error) {
 	m.ctrl.T.Helper()
@@ -8072,6 +8087,21 @@ func (mr *MockStoreMockRecorder) ListClientsBySpending(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClientsBySpending", reflect.TypeOf((*MockStore)(nil).ListClientsBySpending), arg0, arg1)
 }
 
+// ListClientsBySpendingCached mocks base method.
+func (m *MockStore) ListClientsBySpendingCached(arg0 context.Context, arg1 db.ListClientsBySpendingCachedParams) ([]db.ListClientsBySpendingCachedRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListClientsBySpendingCached", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListClientsBySpendingCachedRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListClientsBySpendingCached indicates an expected call of ListClientsBySpendingCached.
+func (mr *MockStoreMockRecorder) ListClientsBySpendingCached(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClientsBySpendingCached", reflect.TypeOf((*MockStore)(nil).ListClientsBySpendingCached), arg0, arg1)
+}
+
 // ListClientsByUIDs mocks base method.
 func (m *MockStore) ListClientsByUIDs(arg0 context.Context, arg1 []uuid.UUID) ([]db.Client, error) {
 	m.ctrl.T.Helper()
@@ -10280,6 +10310,20 @@ func (m *MockStore) RedeemCoupon(arg0 context.Context, arg1 db.RedeemCouponParam
 func (mr *MockStoreMockRecorder) RedeemCoupon(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RedeemCoupon", reflect.TypeOf((*MockStore)(nil).RedeemCoupon), arg0, arg1)
+}
+
+// RefreshClientSpend mocks base method.
+func (m *MockStore) RefreshClientSpend(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshClientSpend", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RefreshClientSpend indicates an expected call of RefreshClientSpend.
+func (mr *MockStoreMockRecorder) RefreshClientSpend(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshClientSpend", reflect.TypeOf((*MockStore)(nil).RefreshClientSpend), arg0)
 }
 
 // RenameRole mocks base method.

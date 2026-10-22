@@ -242,6 +242,36 @@ func (server *Server) listClientsBySpending(ctx *gin.Context) {
 		phoneValid = sql.NullBool{Bool: *req.PhoneValid, Valid: true}
 	}
 	phoneCountry := sql.NullString{String: req.PhoneCountry, Valid: req.PhoneCountry != ""}
+	// No branch, dates or first/returning: the ranking is lifetime and comes
+	// from the client_spend cache instead of aggregating every invoice.
+	if len(req.BranchIDs) == 0 && req.From.IsZero() && req.To.IsZero() && req.Visit == "" {
+		clients, err := server.store.ListClientsBySpendingCached(ctx, db.ListClientsBySpendingCachedParams{
+			Limit:        req.PageSize,
+			Offset:       req.PageID,
+			ClientType:   clientType,
+			Search:       search,
+			SortBy:       req.SortBy,
+			PhoneValid:   phoneValid,
+			PhoneCountry: phoneCountry,
+		})
+		if err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		total, err := server.store.CountClientsBySpendingCached(ctx, db.CountClientsBySpendingCachedParams{
+			ClientType:   clientType,
+			Search:       search,
+			PhoneValid:   phoneValid,
+			PhoneCountry: phoneCountry,
+		})
+		if err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		ctx.JSON(http.StatusOK, gin.H{"clients": clients, "total": total})
+		return
+	}
+
 	clients, err := server.store.ListClientsBySpending(ctx, db.ListClientsBySpendingParams{
 		Limit:        req.PageSize,
 		Offset:       req.PageID,
