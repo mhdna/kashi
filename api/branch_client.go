@@ -32,6 +32,25 @@ type branchClientRequest struct {
 // syntheticBranchPhone is the placeholder key used for a branch client
 // with no usable phone, unique per (register, branch_client_id) -- the id
 // is a register's local clients.id, so two tills both have a client 5.
+// syncedPhoneValid and syncedPhoneCountry fill the clients page's phone_valid
+// and phone_country for a client a till reported, which the admin form and
+// the cleanup job otherwise set: without them every till-made client had no
+// flag. The stored phone text stays exactly as reported (branch matching keys
+// on it). A "nophone-..." placeholder isn't a typed number, so it isn't marked
+// invalid and has no country.
+func syncedPhoneValid(phone string) bool {
+	if strings.HasPrefix(phone, "nophone-") {
+		return true
+	}
+	_, _, valid := parseAnyPhone(phone)
+	return valid
+}
+
+func syncedPhoneCountry(phone string) string {
+	_, region, _ := parseAnyPhone(phone)
+	return region
+}
+
 func syntheticBranchPhone(registerID, branchClientID int64) string {
 	return fmt.Sprintf("nophone-r%d-%d", registerID, branchClientID)
 }
@@ -150,10 +169,12 @@ func (server *Server) resolveBranchClient(ctx *gin.Context, branchID, registerID
 			return branchClientOutcome{}, getErr
 		}
 		client, updErr := server.store.UpdateClient(ctx, db.UpdateClientParams{
-			ID:         linkedClientID,
-			Name:       req.Name,
-			Phone:      req.Phone,
-			ClientType: linked.ClientType,
+			ID:           linkedClientID,
+			Name:         req.Name,
+			Phone:        req.Phone,
+			ClientType:   linked.ClientType,
+			PhoneValid:   syncedPhoneValid(req.Phone),
+			PhoneCountry: syncedPhoneCountry(req.Phone),
 		})
 		if updErr != nil {
 			return branchClientOutcome{}, updErr
@@ -182,9 +203,11 @@ func (server *Server) resolveBranchClient(ctx *gin.Context, branchID, registerID
 
 		case phoneErr == sql.ErrNoRows:
 			created, createErr := server.store.CreateClient(ctx, db.CreateClientParams{
-				Name:       req.Name,
-				Phone:      req.Phone,
-				ClientType: "retail",
+				Name:         req.Name,
+				Phone:        req.Phone,
+				ClientType:   "retail",
+				PhoneValid:   syncedPhoneValid(req.Phone),
+				PhoneCountry: syncedPhoneCountry(req.Phone),
 			})
 			var client db.Client
 			switch {
@@ -247,10 +270,12 @@ func (server *Server) resolveBranchClientByUID(ctx *gin.Context, branchID, regis
 				sql.NullInt64{Int64: other.ID, Valid: true})
 		}
 		client, err = server.store.UpdateClient(ctx, db.UpdateClientParams{
-			ID:         existing.ID,
-			Name:       req.Name,
-			Phone:      phone,
-			ClientType: existing.ClientType,
+			ID:           existing.ID,
+			Name:         req.Name,
+			Phone:        phone,
+			ClientType:   existing.ClientType,
+			PhoneValid:   syncedPhoneValid(phone),
+			PhoneCountry: syncedPhoneCountry(phone),
 		})
 		if err != nil {
 			return branchClientOutcome{}, err

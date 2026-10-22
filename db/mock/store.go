@@ -306,6 +306,20 @@ func (mr *MockStoreMockRecorder) ApplyWhatsAppDeliveryStatus(arg0, arg1 interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyWhatsAppDeliveryStatus", reflect.TypeOf((*MockStore)(nil).ApplyWhatsAppDeliveryStatus), arg0, arg1)
 }
 
+// BatchSetClientPhoneFlags mocks base method.
+func (m *MockStore) BatchSetClientPhoneFlags(arg0 context.Context, arg1 db.BatchSetClientPhoneFlagsParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchSetClientPhoneFlags", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BatchSetClientPhoneFlags indicates an expected call of BatchSetClientPhoneFlags.
+func (mr *MockStoreMockRecorder) BatchSetClientPhoneFlags(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchSetClientPhoneFlags", reflect.TypeOf((*MockStore)(nil).BatchSetClientPhoneFlags), arg0, arg1)
+}
+
 // BatchSetEmployeeSalaries mocks base method.
 func (m *MockStore) BatchSetEmployeeSalaries(arg0 context.Context, arg1 []db.UpdateEmployeeSalaryParams) ([]db.Employee, error) {
 	m.ctrl.T.Helper()
@@ -8145,6 +8159,21 @@ func (m *MockStore) ListClientsForExport(arg0 context.Context, arg1 db.ListClien
 func (mr *MockStoreMockRecorder) ListClientsForExport(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClientsForExport", reflect.TypeOf((*MockStore)(nil).ListClientsForExport), arg0, arg1)
+}
+
+// ListClientsMissingPhoneCountry mocks base method.
+func (m *MockStore) ListClientsMissingPhoneCountry(arg0 context.Context) ([]db.ListClientsMissingPhoneCountryRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListClientsMissingPhoneCountry", arg0)
+	ret0, _ := ret[0].([]db.ListClientsMissingPhoneCountryRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListClientsMissingPhoneCountry indicates an expected call of ListClientsMissingPhoneCountry.
+func (mr *MockStoreMockRecorder) ListClientsMissingPhoneCountry(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClientsMissingPhoneCountry", reflect.TypeOf((*MockStore)(nil).ListClientsMissingPhoneCountry), arg0)
 }
 
 // ListClientsUpdatedSince mocks base method.

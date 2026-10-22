@@ -36,7 +36,7 @@ func TestBranchClientUID_KnownUIDIsUpdated(t *testing.T) {
 
 	store.EXPECT().GetClientByUID(gomock.Any(), uid).Return(db.Client{ID: 7, Uid: uid, Phone: "70000001", ClientType: "retail"}, nil)
 	store.EXPECT().GetClientByPhone(gomock.Any(), "70123456").Return(db.Client{}, sql.ErrNoRows)
-	store.EXPECT().UpdateClient(gomock.Any(), db.UpdateClientParams{ID: 7, Name: "Ali", Phone: "70123456", ClientType: "retail"}).
+	store.EXPECT().UpdateClient(gomock.Any(), db.UpdateClientParams{ID: 7, Name: "Ali", Phone: "70123456", ClientType: "retail", PhoneValid: true, PhoneCountry: "LB"}).
 		Return(db.Client{ID: 7, Uid: uid}, nil)
 	store.EXPECT().UpsertClientLink(gomock.Any(), db.UpsertClientLinkParams{BranchID: testBranchID, RegisterID: testRegisterID, BranchClientID: 1, ClientID: 7}).Return(nil)
 

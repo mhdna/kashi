@@ -308,6 +308,7 @@
   import { usePageAccess } from '@/composables/usePageAccess'
   import { dedupedFetch } from '@/composables/useRequestDedup'
   import { API_BASE } from '@/config'
+  import { countryFlag } from '@/utils/countryFlag'
   import { rangeBounds } from '@/utils/dateRange'
   import { formatMoney } from '@/utils/money'
 
@@ -344,15 +345,6 @@
 
   function firstName (name) {
     return (name ?? '').trim().split(/\s+/)[0] ?? ''
-  }
-
-  // Two-letter ISO region -> its flag emoji: each letter maps to a Unicode
-  // "regional indicator symbol" in the same A-Z order, and a pair of them
-  // renders as that country's flag on every platform -- no icon assets
-  // needed. '' (phone_country unset/undetermined) renders nothing.
-  function countryFlag (iso2) {
-    if (!iso2 || iso2.length !== 2) return ''
-    return String.fromCodePoint(...[...iso2.toUpperCase()].map(c => 0x1f1e6 + c.charCodeAt(0) - 65))
   }
 
   function avatarSize (rowIndex) {

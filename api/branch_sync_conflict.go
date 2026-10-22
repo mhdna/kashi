@@ -263,10 +263,12 @@ func (server *Server) applyConflictResolution(ctx *gin.Context, conflict db.Bran
 			return err
 		}
 		_, err = server.store.UpdateClient(ctx, db.UpdateClientParams{
-			ID:         current.ID,
-			Name:       name,
-			Phone:      current.Phone,
-			ClientType: current.ClientType,
+			ID:           current.ID,
+			Name:         name,
+			Phone:        current.Phone,
+			ClientType:   current.ClientType,
+			PhoneValid:   current.PhoneValid,
+			PhoneCountry: current.PhoneCountry,
 		})
 		return err
 
@@ -297,9 +299,11 @@ func (server *Server) applyConflictResolution(ctx *gin.Context, conflict db.Bran
 				phone = syntheticBranchPhone(registerID, branchClientID)
 			}
 			created, err := server.store.CreateClient(ctx, db.CreateClientParams{
-				Name:       bp.Name,
-				Phone:      phone,
-				ClientType: "retail",
+				Name:         bp.Name,
+				Phone:        phone,
+				ClientType:   "retail",
+				PhoneValid:   syncedPhoneValid(phone),
+				PhoneCountry: syncedPhoneCountry(phone),
 			})
 			if err != nil {
 				return err
