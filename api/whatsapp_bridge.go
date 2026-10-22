@@ -353,7 +353,17 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 		entry.Body = whatsAppPollQuestion(sender.WhatsappPollQuestion) // only the poll goes: the chat view shows it
 	}
 	if sendPoll {
-		entry.PollRef = server.sendWhatsAppPoll(ctx, sender, url.PathEscape(number.Instance), entry.ClientPhone)
+		var pollErr error
+		entry.PollRef, pollErr = server.sendWhatsAppPoll(ctx, sender, url.PathEscape(number.Instance), entry.ClientPhone)
+		if pollErr != nil {
+			// The thank-you went; say in the log that the poll didn't.
+			if !sendMessage {
+				server.logWhatsAppSendError(ctx, entry, fmt.Errorf("poll not sent: %w", pollErr))
+				return
+			}
+			server.logWhatsAppMessage(ctx, entry, whatsAppStatusSent, "poll not sent: "+pollErr.Error())
+			return
+		}
 		if entry.PollRef != "" {
 			entry.PollQuestion = whatsAppPollQuestion(sender.WhatsappPollQuestion)
 			entry.PollOptions = strings.Join(whatsAppPollOptions(sender.WhatsappPollOptions), "\n")
