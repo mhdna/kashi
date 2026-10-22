@@ -6,17 +6,17 @@ SELECT * FROM email_schedules WHERE id = $1;
 
 -- name: CreateEmailSchedule :one
 INSERT INTO email_schedules (
-  name, enabled, period, register_ids, recipients, format, note, skip_empty,
+  name, enabled, period, register_ids, recipients, bcc, format, note, skip_empty,
   frequency, at_minute, weekdays, month_day, next_run_at, created_by
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
 ) RETURNING *;
 
 -- name: UpdateEmailSchedule :one
 UPDATE email_schedules SET
   name = $2, enabled = $3, period = $4, register_ids = $5, recipients = $6,
-  format = $7, note = $8, skip_empty = $9, frequency = $10, at_minute = $11,
-  weekdays = $12, month_day = $13, next_run_at = $14, updated_at = now()
+  bcc = $7, format = $8, note = $9, skip_empty = $10, frequency = $11, at_minute = $12,
+  weekdays = $13, month_day = $14, next_run_at = $15, updated_at = now()
 WHERE id = $1
 RETURNING *;
 

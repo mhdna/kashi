@@ -823,6 +823,8 @@ func buildEmailReportAttachment(report emailReport) ([]byte, error) {
 type sendEmailReportRequest struct {
 	emailReportRequest
 	Recipients string `json:"recipients" binding:"required"`
+	// Hidden recipients (Bcc); optional.
+	Bcc string `json:"bcc"`
 	// Optional message shown above the report's summary.
 	Note string `json:"note" binding:"max=2000"`
 }
@@ -841,6 +843,8 @@ type errEmailSend struct{ error }
 type emailDelivery struct {
 	request    emailReportRequest
 	recipients []string
+	// bcc is sent hidden: no one sees these, nor that they were included.
+	bcc        []string
 	note       string
 	sentBy     string
 	scheduleID sql.NullInt64
@@ -882,6 +886,7 @@ func (server *Server) deliverEmailReport(ctx context.Context, d emailDelivery) (
 	providerID, sendErr := resendSendEmail(apiKey, resendEmail{
 		From:    from,
 		To:      d.recipients,
+		Bcc:     d.bcc,
 		ReplyTo: report.settings.EmailReplyTo,
 		Subject: report.subject,
 		HTML:    emailReportHTML(report),
@@ -901,6 +906,7 @@ func (server *Server) deliverEmailReport(ctx context.Context, d emailDelivery) (
 		BranchShiftID: report.shiftID,
 		Label:         report.label,
 		Recipients:    strings.Join(d.recipients, ", "),
+		Bcc:           strings.Join(d.bcc, ", "),
 		Subject:       report.subject,
 		Filename:      report.filename,
 		InvoiceCount:  int32(len(report.rows)),
@@ -958,12 +964,17 @@ func (server *Server) sendEmailReport(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
 	}
+	bcc, err := parseEmailRecipients(req.Bcc)
+	if err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
 	sentBy := ""
 	if payload, ok := ctx.MustGet(authoizationPayloadKey).(*token.Payload); ok {
 		sentBy = payload.Username
 	}
 	report, err := server.deliverEmailReport(ctx, emailDelivery{
-		request: req.emailReportRequest, recipients: recipients, note: req.Note, sentBy: sentBy,
+		request: req.emailReportRequest, recipients: recipients, bcc: bcc, note: req.Note, sentBy: sentBy,
 	})
 	if err != nil {
 		server.writeEmailDeliveryError(ctx, err)
@@ -1011,6 +1022,7 @@ type resendAttachment struct {
 type resendEmail struct {
 	From        string             `json:"from"`
 	To          []string           `json:"to"`
+	Bcc         []string           `json:"bcc,omitempty"`
 	ReplyTo     string             `json:"reply_to,omitempty"`
 	Subject     string             `json:"subject"`
 	HTML        string             `json:"html"`

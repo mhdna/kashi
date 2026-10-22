@@ -43,11 +43,11 @@ export function useEmailReports () {
     return requestJSON(`${API_BASE}/email_reports/preview?${reportQuery(params)}`)
   }
 
-  async function sendEmailReport (params, recipients, note = '') {
+  async function sendEmailReport (params, recipients, note = '', bcc = '') {
     const data = await requestJSON(`${API_BASE}/email_reports`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...params, recipients, note }),
+      body: JSON.stringify({ ...params, recipients, bcc, note }),
     })
     return data?.report ?? null
   }
