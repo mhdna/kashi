@@ -152,10 +152,15 @@ func whatsAppConversation(m db.GetWhatsAppMessageWithBranchRow, sender db.GetWha
 			}
 			text = whatsAppBridgeText(whatsAppBridgeMessageFor(asSent), values)
 		}
-		bubbles = append(bubbles, whatsAppBubble{
-			From: "us", Kind: "text", Text: text,
-			At: m.CreatedAt, Ticks: whatsAppTicks(m), Banner: pollMode && sender.WhatsappMessageLogo,
-		})
+		// Only the poll went (the question is kept as the body): the poll
+		// bubble below is the whole message, not a text above it.
+		pollOnly := m.PollRef != "" && m.Body != "" && m.Body == m.PollQuestion
+		if !pollOnly {
+			bubbles = append(bubbles, whatsAppBubble{
+				From: "us", Kind: "text", Text: text,
+				At: m.CreatedAt, Ticks: whatsAppTicks(m), Banner: pollMode && sender.WhatsappMessageLogo,
+			})
+		}
 		if m.PollRef != "" {
 			question, options := m.PollQuestion, strings.Split(m.PollOptions, "\n")
 			if question == "" || m.PollOptions == "" {

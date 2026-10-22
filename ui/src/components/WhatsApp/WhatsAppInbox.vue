@@ -100,11 +100,19 @@
                     <v-icon :icon="KIND_ICON[m.kind] ?? 'mdi-paperclip'" size="16" /> {{ mediaError[m.media_url] || KIND_LABEL[m.kind] || 'File' }}
                   </div>
                 </template>
+                <template v-else-if="m.kind === 'poll'">
+                  <div class="font-weight-bold mb-1">{{ m.text }}</div>
+                  <div class="wi__poll-hint">Select one</div>
+                  <div v-for="o in m.options" :key="o" class="wi__option">
+                    <v-icon color="grey" icon="mdi-checkbox-blank-circle-outline" size="20" />
+                    <span>{{ o }}</span>
+                  </div>
+                </template>
                 <div v-else-if="!m.text" class="wi__text text-medium-emphasis">
                   <v-icon :icon="KIND_ICON[m.kind] ?? 'mdi-paperclip'" size="16" /> {{ KIND_LABEL[m.kind] ?? m.kind }}
                 </div>
                 <!-- eslint-disable-next-line vue/no-v-html -- escaped in format() -->
-                <div v-if="m.text" class="wi__text" :class="{ 'mt-1': m.media_url }" v-html="format(m.text)" />
+                <div v-if="m.text && m.kind !== 'poll'" class="wi__text" :class="{ 'mt-1': m.media_url }" v-html="format(m.text)" />
                 <div class="wi__meta">{{ time(m.at) }}</div>
               </div>
             </div>
@@ -434,6 +442,18 @@
 .wi__bubble--client {
   background: #fff;
   border-top-left-radius: 0;
+}
+.wi__poll-hint {
+  font-size: 0.75rem;
+  opacity: 0.65;
+  margin-bottom: 4px;
+}
+.wi__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  min-width: 240px;
 }
 .wi__text {
   white-space: pre-wrap;
