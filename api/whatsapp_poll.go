@@ -216,7 +216,7 @@ func (server *Server) receiveWhatsAppPollVote(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if rating > 0 && sender.WhatsappFollowup {
+	if rating > 0 && (sender.WhatsappFollowup || sender.WhatsappFollowupReturning) {
 		server.sendWhatsAppPollFollowup(ctx, sender, row.ID, rating)
 	}
 	if rating > 0 && row.BranchID.Valid {
@@ -230,12 +230,12 @@ func (server *Server) receiveWhatsAppPollVote(ctx *gin.Context) {
 }
 
 // sendWhatsAppPollFollowup queues the follow-up for the client's answer, from
-// the number that sent the poll, unless one already went for this poll -- or,
-// with "first time only" on, to this client on an earlier visit.
+// the number that sent the poll, unless one already went for this poll or it's
+// switched off for this kind of client (new or returning).
 func (server *Server) sendWhatsAppPollFollowup(ctx *gin.Context, sender db.GetWhatsAppSenderSettingsRow, messageID int64, rating int16) {
 	text := whatsAppPollFollowup(sender, rating)
 	to, err := server.store.ClaimWhatsAppPollFollowup(ctx, db.ClaimWhatsAppPollFollowupParams{
-		ID: messageID, FollowupBody: text, FirstOnly: sender.WhatsappFollowupFirstOnly,
+		ID: messageID, FollowupBody: text, ForNew: sender.WhatsappFollowup, ForReturning: sender.WhatsappFollowupReturning,
 	})
 	if errors.Is(err, sql.ErrNoRows) {
 		return

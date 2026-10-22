@@ -7,7 +7,8 @@ SELECT whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridg
        whatsapp_poll_question, whatsapp_poll_options, whatsapp_message_logo,
        whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad,
        whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_welcome_early, whatsapp_delete_for_me,
-       whatsapp_delete_poll_for_me, whatsapp_followup_first_only
+       whatsapp_delete_poll_for_me, whatsapp_followup_returning,
+       whatsapp_message_new, whatsapp_message_returning, whatsapp_poll_new, whatsapp_poll_returning
 FROM app_settings WHERE id = 1;
 
 -- name: SetWhatsAppSenderSettings :exec
@@ -31,7 +32,11 @@ UPDATE app_settings SET
     whatsapp_welcome_early = sqlc.arg(whatsapp_welcome_early),
     whatsapp_delete_for_me = sqlc.arg(whatsapp_delete_for_me),
     whatsapp_delete_poll_for_me = sqlc.arg(whatsapp_delete_poll_for_me),
-    whatsapp_followup_first_only = sqlc.arg(whatsapp_followup_first_only),
+    whatsapp_followup_returning = sqlc.arg(whatsapp_followup_returning),
+    whatsapp_message_new = sqlc.arg(whatsapp_message_new),
+    whatsapp_message_returning = sqlc.arg(whatsapp_message_returning),
+    whatsapp_poll_new = sqlc.arg(whatsapp_poll_new),
+    whatsapp_poll_returning = sqlc.arg(whatsapp_poll_returning),
     updated_at = now()
 WHERE id = 1;
 
@@ -95,15 +100,17 @@ RETURNING id, branch_id, client_name;
 
 -- name: ClaimWhatsAppPollFollowup :one
 -- Marks the poll's follow-up as sent and says where to send it; no rows when
--- it already went (a changed vote) or the number is gone. With first_only, also
--- none when this client got a follow-up on an earlier message.
+-- it already went (a changed vote) or the number is gone. Also none when the
+-- follow-up is off for this client: for_new / for_returning, a returning client
+-- being one messaged before this message.
 UPDATE whatsapp_messages m SET poll_followup_at = now(), followup_body = sqlc.arg(followup_body)
 FROM whatsapp_numbers n
 WHERE m.id = sqlc.arg(id) AND m.poll_followup_at IS NULL AND n.id = m.whatsapp_number_id
-  AND (NOT sqlc.arg(first_only)::boolean OR NOT EXISTS (
+  AND CASE WHEN EXISTS (
     SELECT 1 FROM whatsapp_messages p
-    WHERE p.client_phone = m.client_phone AND p.id <> m.id AND p.poll_followup_at IS NOT NULL
-  ))
+    WHERE p.client_phone = m.client_phone AND p.id <> m.id AND p.status = 'sent' AND NOT p.is_test
+      AND p.created_at < m.created_at
+  ) THEN sqlc.arg(for_returning)::boolean ELSE sqlc.arg(for_new)::boolean END
 RETURNING m.client_phone, n.instance;
 
 -- name: AddWhatsAppPollReply :one

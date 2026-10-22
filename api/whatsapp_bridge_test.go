@@ -1,12 +1,14 @@
 package api
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
@@ -138,7 +140,7 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 				return db.WhatsappMessage{}, nil
 			})
 
-		rec := run(server, db.GetWhatsAppSenderSettingsRow{WhatsappSender: "bridge", WhatsappFeedbackMode: "link", WhatsappBridgeUrl: bridge.URL, WhatsappBridgeKey: "secret-key"})
+		rec := run(server, db.GetWhatsAppSenderSettingsRow{WhatsappMessageNew: true, WhatsappMessageReturning: true, WhatsappPollNew: true, WhatsappPollReturning: true, WhatsappSender: "bridge", WhatsappFeedbackMode: "link", WhatsappBridgeUrl: bridge.URL, WhatsappBridgeKey: "secret-key"})
 		require.Equal(t, http.StatusOK, rec.Code)
 		require.JSONEq(t, `{"sent":true}`, rec.Body.String())
 		require.Equal(t, "/message/sendText/kashi-centro-ab12", *path)
@@ -165,7 +167,7 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 				require.Contains(t, arg.Reason, "no WhatsApp number")
 				return db.WhatsappMessage{}, nil
 			})
-		rec := run(server, db.GetWhatsAppSenderSettingsRow{WhatsappSender: "bridge", WhatsappBridgeKey: "secret-key"})
+		rec := run(server, db.GetWhatsAppSenderSettingsRow{WhatsappMessageNew: true, WhatsappMessageReturning: true, WhatsappPollNew: true, WhatsappPollReturning: true, WhatsappSender: "bridge", WhatsappBridgeKey: "secret-key"})
 		require.JSONEq(t, `{"sent":false,"reason":"no WhatsApp number for this branch (Settings > WhatsApp)","retry":false}`, rec.Body.String())
 	})
 
@@ -182,7 +184,7 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 				require.Equal(t, "WhatsApp bridge: WhatsApp is not connected", arg.Reason)
 				return db.WhatsappMessage{}, nil
 			})
-		rec := run(server, db.GetWhatsAppSenderSettingsRow{
+		rec := run(server, db.GetWhatsAppSenderSettingsRow{WhatsappMessageNew: true, WhatsappMessageReturning: true, WhatsappPollNew: true, WhatsappPollReturning: true,
 			WhatsappSender: "bridge", WhatsappBridgeUrl: bridge.URL, WhatsappBridgeKey: "secret-key",
 			WhatsappBridgeMessage: "Thanks {name} for {invoice}",
 		})
@@ -197,7 +199,7 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), int64(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
 		store.EXPECT().DeleteFailedWhatsAppMessagesForInvoice(gomock.Any(), gomock.Any()).Return(nil)
 		store.EXPECT().CreateWhatsAppMessage(gomock.Any(), gomock.Any()).Return(db.WhatsappMessage{}, nil)
-		rec := run(server, db.GetWhatsAppSenderSettingsRow{
+		rec := run(server, db.GetWhatsAppSenderSettingsRow{WhatsappMessageNew: true, WhatsappMessageReturning: true, WhatsappPollNew: true, WhatsappPollReturning: true,
 			WhatsappSender: "bridge", WhatsappBridgeUrl: "http://127.0.0.1:1", WhatsappBridgeKey: "secret-key",
 		})
 		require.Contains(t, rec.Body.String(), `"retry":true`)
@@ -211,7 +213,7 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), int64(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
 		store.EXPECT().DeleteFailedWhatsAppMessagesForInvoice(gomock.Any(), gomock.Any()).Return(nil)
 		store.EXPECT().CreateWhatsAppMessage(gomock.Any(), gomock.Any()).Return(db.WhatsappMessage{}, nil)
-		rec := run(server, db.GetWhatsAppSenderSettingsRow{
+		rec := run(server, db.GetWhatsAppSenderSettingsRow{WhatsappMessageNew: true, WhatsappMessageReturning: true, WhatsappPollNew: true, WhatsappPollReturning: true,
 			WhatsappSender: "bridge", WhatsappBridgeUrl: bridge.URL, WhatsappBridgeKey: "secret-key",
 		})
 		require.Contains(t, rec.Body.String(), `"retry":false`)
@@ -241,10 +243,67 @@ func TestSendWhatsAppViaBridgeOnAccountLeavesOutTotalPaid(t *testing.T) {
 	rec := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(rec)
 	ctx.Request = httptest.NewRequest(http.MethodPost, "/", nil)
-	server.sendWhatsAppViaBridge(ctx, entry, db.GetWhatsAppSenderSettingsRow{
+	server.sendWhatsAppViaBridge(ctx, entry, db.GetWhatsAppSenderSettingsRow{WhatsappMessageNew: true, WhatsappMessageReturning: true, WhatsappPollNew: true, WhatsappPollReturning: true,
 		WhatsappSender: "bridge", WhatsappFeedbackMode: "poll", WhatsappBridgeUrl: bridge.URL, WhatsappBridgeKey: "secret-key",
 	}, "Centro", nil, sale)
 
 	require.Contains(t, text, "SA/CT/2026/00490")
 	require.NotContains(t, text, "Total paid")
+}
+
+func TestSendWhatsAppViaBridgePerAudienceSwitches(t *testing.T) {
+	sale := branchWhatsAppThankYouRequest{ClientName: "Sara", ClientPhone: "+961 70 123456", InvoiceCode: "SA/CT/2026/00482", GrandTotalCents: 15625}
+	entry := db.CreateWhatsAppMessageParams{
+		BranchID: sql.NullInt64{Int64: 2, Valid: true}, InvoiceCode: sale.InvoiceCode, ClientName: "Sara", ClientPhone: "96170123456",
+	}
+	run := func(t *testing.T, store *mockdb.MockStore, sender db.GetWhatsAppSenderSettingsRow) {
+		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+		ctx.Request = httptest.NewRequest(http.MethodPost, "/", nil)
+		newTestServer(t, store).sendWhatsAppViaBridge(ctx, entry, sender, "Centro", nil, sale)
+	}
+
+	t.Run("a returning client with the message off still gets the poll", func(t *testing.T) {
+		var bodies []string
+		bridge := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var buf bytes.Buffer
+			_, _ = buf.ReadFrom(r.Body)
+			bodies = append(bodies, buf.String())
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"status":"QUEUED"}`))
+		}))
+		t.Cleanup(bridge.Close)
+		store := mockdb.NewMockStore(gomock.NewController(t))
+		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), int64(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
+		store.EXPECT().LastWhatsAppSentAt(gomock.Any(), "96170123456").Return(time.Now().Add(-48*time.Hour), nil)
+		store.EXPECT().DeleteFailedWhatsAppMessagesForInvoice(gomock.Any(), gomock.Any()).Return(nil)
+		store.EXPECT().CreateWhatsAppMessage(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ any, arg db.CreateWhatsAppMessageParams) (db.WhatsappMessage, error) {
+				require.Equal(t, whatsAppStatusSent, arg.Status)
+				require.NotEmpty(t, arg.PollRef)
+				return db.WhatsappMessage{}, nil
+			})
+		run(t, store, db.GetWhatsAppSenderSettingsRow{
+			WhatsappSender: "bridge", WhatsappBridgeKey: "secret-key", WhatsappBridgeUrl: bridge.URL,
+			WhatsappMessageNew: true, WhatsappPollNew: true, WhatsappPollReturning: true,
+		})
+		require.Len(t, bodies, 1) // the poll alone
+		require.Contains(t, bodies[0], `"poll"`)
+	})
+
+	t.Run("a new client with both off is skipped", func(t *testing.T) {
+		store := mockdb.NewMockStore(gomock.NewController(t))
+		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), int64(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
+		store.EXPECT().LastWhatsAppSentAt(gomock.Any(), "96170123456").Return(time.Time{}, sql.ErrNoRows)
+		store.EXPECT().DeleteFailedWhatsAppMessagesForInvoice(gomock.Any(), gomock.Any()).Return(nil)
+		store.EXPECT().CreateWhatsAppMessage(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ any, arg db.CreateWhatsAppMessageParams) (db.WhatsappMessage, error) {
+				require.Equal(t, whatsAppStatusSkipped, arg.Status)
+				require.Contains(t, arg.Reason, "new clients")
+				return db.WhatsappMessage{}, nil
+			})
+		run(t, store, db.GetWhatsAppSenderSettingsRow{
+			WhatsappSender: "bridge", WhatsappBridgeKey: "secret-key",
+			WhatsappMessageReturning: true, WhatsappPollReturning: true,
+		})
+	})
 }

@@ -231,6 +231,27 @@ func whatsAppEmptyPlaceholder(line string, values map[string]string) bool {
 	return false
 }
 
+// whatsAppAudienceOn picks a message's switch for a client messaged for the
+// first time (first) or a returning one.
+func whatsAppAudienceOn(first, forNew, forReturning bool) bool {
+	if first {
+		return forNew
+	}
+	return forReturning
+}
+
+func whatsAppAllAudiencesOn(sender db.GetWhatsAppSenderSettingsRow) bool {
+	return sender.WhatsappMessageNew && sender.WhatsappMessageReturning &&
+		sender.WhatsappPollNew && sender.WhatsappPollReturning
+}
+
+func whatsAppAudienceName(first bool) string {
+	if first {
+		return "new"
+	}
+	return "returning"
+}
+
 func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWhatsAppMessageParams, sender db.GetWhatsAppSenderSettingsRow, branchName string, hidden []string, req branchWhatsAppThankYouRequest) {
 	entry.Sender = whatsAppSenderBridge
 	if strings.TrimSpace(sender.WhatsappBridgeKey) == "" {
@@ -251,13 +272,26 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 
 	pollMode := sender.WhatsappFeedbackMode != whatsAppFeedbackLink
 	message := whatsAppBridgeMessageFor(sender)
-	if sender.WhatsappChannelFirst {
-		_, err := server.store.LastWhatsAppSentAt(ctx, entry.ClientPhone)
+	// Whether the client was messaged before only matters to "channel first"
+	// and to a switch that's off for one of the two kinds of client.
+	first := false
+	if sender.WhatsappChannelFirst || !whatsAppAllAudiencesOn(sender) {
+		_, err = server.store.LastWhatsAppSentAt(ctx, entry.ClientPhone)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
 		}
-		hidden = whatsAppFirstOrReturning(hidden, errors.Is(err, sql.ErrNoRows))
+		first = errors.Is(err, sql.ErrNoRows)
+	}
+	if sender.WhatsappChannelFirst {
+		hidden = whatsAppFirstOrReturning(hidden, first)
+	}
+	// Each of the message and the poll can be off for new or for returning clients.
+	sendMessage := whatsAppAudienceOn(first, sender.WhatsappMessageNew, sender.WhatsappMessageReturning)
+	sendPoll := pollMode && !req.welcome && whatsAppAudienceOn(first, sender.WhatsappPollNew, sender.WhatsappPollReturning)
+	if !sendMessage && !sendPoll {
+		server.logWhatsAppMessage(ctx, entry, whatsAppStatusSkipped, "switched off for "+whatsAppAudienceName(first)+" clients (Settings > WhatsApp)")
+		return
 	}
 	values := whatsAppMessageValues(sender, hidden, req.ClientName, branchName, req.InvoiceCode, req.paidCents(), time.Now())
 	if req.paidCents() <= 0 {
@@ -308,13 +342,17 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 		// The banner on top, the message as its caption: no link to tap.
 		body["image"] = base64.StdEncoding.EncodeToString(reviewBannerJPG)
 	}
-	err = whatsAppBridgeCall(ctx, sender, http.MethodPost, "/message/sendText/"+url.PathEscape(number.Instance), body, &out)
-	if err != nil {
-		log.Printf("whatsapp thank-you: bridge send failed for invoice %s: %v", req.InvoiceCode, err)
-		server.logWhatsAppSendError(ctx, entry, err)
-		return
+	if sendMessage {
+		err = whatsAppBridgeCall(ctx, sender, http.MethodPost, "/message/sendText/"+url.PathEscape(number.Instance), body, &out)
+		if err != nil {
+			log.Printf("whatsapp thank-you: bridge send failed for invoice %s: %v", req.InvoiceCode, err)
+			server.logWhatsAppSendError(ctx, entry, err)
+			return
+		}
+	} else {
+		entry.Body = whatsAppPollQuestion(sender.WhatsappPollQuestion) // only the poll goes: the chat view shows it
 	}
-	if pollMode && !req.welcome {
+	if sendPoll {
 		entry.PollRef = server.sendWhatsAppPoll(ctx, sender, url.PathEscape(number.Instance), entry.ClientPhone)
 		if entry.PollRef != "" {
 			entry.PollQuestion = whatsAppPollQuestion(sender.WhatsappPollQuestion)
@@ -440,8 +478,14 @@ type whatsAppSenderBody struct {
 	FollowupGood string `json:"whatsapp_followup_good"`
 	FollowupOkay string `json:"whatsapp_followup_okay"`
 	FollowupBad  string `json:"whatsapp_followup_bad"`
-	// The follow-up only to a client who never got one (see sendWhatsAppPollFollowup).
-	FollowupFirstOnly bool `json:"whatsapp_followup_first_only"`
+	// Each message on or off for a client messaged for the first time and for a
+	// returning one (see whatsAppAudienceOn). Followup above is the new-client
+	// switch of the follow-up.
+	MessageNew        bool `json:"whatsapp_message_new"`
+	MessageReturning  bool `json:"whatsapp_message_returning"`
+	PollNew           bool `json:"whatsapp_poll_new"`
+	PollReturning     bool `json:"whatsapp_poll_returning"`
+	FollowupReturning bool `json:"whatsapp_followup_returning"`
 	// Details left out of the message (see whatsAppMessageFields).
 	HiddenFields []string `json:"whatsapp_hidden_fields"`
 	// First message: the channel link; later ones: the receipt details.
@@ -506,7 +550,11 @@ func (server *Server) getWhatsAppSender(ctx *gin.Context) {
 			FollowupGood:      sender.WhatsappFollowupGood,
 			FollowupOkay:      sender.WhatsappFollowupOkay,
 			FollowupBad:       sender.WhatsappFollowupBad,
-			FollowupFirstOnly: sender.WhatsappFollowupFirstOnly,
+			MessageNew:        sender.WhatsappMessageNew,
+			MessageReturning:  sender.WhatsappMessageReturning,
+			PollNew:           sender.WhatsappPollNew,
+			PollReturning:     sender.WhatsappPollReturning,
+			FollowupReturning: sender.WhatsappFollowupReturning,
 			Branches:          branches,
 		},
 		"default_message":       defaultWhatsAppPollMessage,
@@ -633,7 +681,11 @@ func (server *Server) updateWhatsAppSender(ctx *gin.Context) {
 		WhatsappWelcomeEarly:      req.WelcomeEarly,
 		WhatsappDeleteForMe:       req.DeleteForMe,
 		WhatsappDeletePollForMe:   req.DeletePollForMe,
-		WhatsappFollowupFirstOnly: req.FollowupFirstOnly,
+		WhatsappMessageNew:        req.MessageNew,
+		WhatsappMessageReturning:  req.MessageReturning,
+		WhatsappPollNew:           req.PollNew,
+		WhatsappPollReturning:     req.PollReturning,
+		WhatsappFollowupReturning: req.FollowupReturning,
 	}, branches); err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return

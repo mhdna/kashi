@@ -109,7 +109,7 @@ func TestSendWhatsAppViaBridgeWithPoll(t *testing.T) {
 	ctx.Request = httptest.NewRequest(http.MethodPost, "/", nil)
 	server.sendWhatsAppViaBridge(ctx,
 		db.CreateWhatsAppMessageParams{BranchID: sql.NullInt64{Int64: 2, Valid: true}, ClientPhone: "96170123456"},
-		db.GetWhatsAppSenderSettingsRow{
+		db.GetWhatsAppSenderSettingsRow{WhatsappMessageNew: true, WhatsappMessageReturning: true, WhatsappPollNew: true, WhatsappPollReturning: true,
 			WhatsappSender: "bridge", WhatsappBridgeUrl: bridge.URL, WhatsappBridgeKey: "secret-key",
 			WhatsappBridgeMessage: "Thanks {name}\n\nReview: {review}", WhatsappMessageLogo: true,
 		},

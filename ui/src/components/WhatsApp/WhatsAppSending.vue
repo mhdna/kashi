@@ -416,34 +416,52 @@
           </v-card>
         </v-col>
 
+        <!-- Which message goes to which kind of client -->
+        <v-col cols="12">
+          <v-card class="card" variant="flat">
+            <div class="card__title">Who gets what</div>
+            <p class="text-caption text-medium-emphasis mb-2">
+              Each message can be switched on or off separately for a client messaged for the first time and
+              for a returning one (messaged before).
+            </p>
+            <v-table density="compact">
+              <thead>
+                <tr>
+                  <th />
+                  <th class="text-center">New clients</th>
+                  <th class="text-center">Returning clients</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="r in audienceRows" :key="r.label">
+                  <td>{{ r.label }}</td>
+                  <td v-for="k in r.keys" :key="k" class="text-center">
+                    <v-switch
+                      v-model="draft[k]"
+                      class="d-inline-flex"
+                      color="primary"
+                      density="compact"
+                      :disabled="!canEdit"
+                      hide-details
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </v-card>
+        </v-col>
+
         <!-- After they answer the poll -->
         <v-col v-if="pollMode" cols="12">
           <v-card class="card" variant="flat">
             <div class="card__title">After they answer</div>
             <p class="text-caption text-medium-emphasis mb-2">
-              A client's first answer to the poll gets one message back, asking them to reply. Only one per
-              poll, and only to clients who answered, so it doesn't add unprompted messages. What they write
-              in the next 3 days shows on the Reviews page; you answer them from the phone as usual.
+              A client's first answer to the poll gets one message back, asking them to reply (switch it on
+              under "Who gets what"). Only one per poll, and only to clients who answered, so it doesn't add
+              unprompted messages. What they write in the next 3 days shows on the Reviews page; you answer
+              them from the phone as usual.
             </p>
-            <v-switch
-              v-model="draft.whatsapp_followup"
-              color="primary"
-              density="compact"
-              :disabled="!canEdit"
-              hide-details
-              label="Send a message after they answer"
-            />
-            <v-switch
-              v-if="draft.whatsapp_followup"
-              v-model="draft.whatsapp_followup_first_only"
-              color="primary"
-              density="compact"
-              :disabled="!canEdit"
-              hint="A client who already got this message on an earlier visit isn't sent it again."
-              label="Only the first time per client"
-              persistent-hint
-            />
-            <v-row v-if="draft.whatsapp_followup" class="mt-1" density="compact">
+            <v-row v-if="draft.whatsapp_followup || draft.whatsapp_followup_returning" class="mt-1" density="compact">
               <v-col v-for="f in FOLLOWUPS" :key="f.key" cols="12" md="4">
                 <v-textarea
                   v-model="draft[`whatsapp_followup_${f.key}`]"
@@ -665,6 +683,13 @@
   const defaultPollOptions = ref('')
   const defaultFollowups = ref({})
   // The follow-up for each kind of answer, by what it counts as.
+  // One row per message: its switch for a new client, then for a returning one.
+  const audienceRows = computed(() => [
+    { label: pollMode.value ? 'Message' : 'Message with the review link', keys: ['whatsapp_message_new', 'whatsapp_message_returning'] },
+    ...(pollMode.value ? [{ label: 'Rating poll', keys: ['whatsapp_poll_new', 'whatsapp_poll_returning'] }] : []),
+    ...(pollMode.value ? [{ label: 'Message after they answer', keys: ['whatsapp_followup', 'whatsapp_followup_returning'] }] : []),
+  ])
+
   const FOLLOWUPS = [
     { key: 'good', label: 'After a top answer', hint: '4 or 5 stars, like 😍 Loved it' },
     { key: 'okay', label: 'After a middle answer', hint: '3 stars, like 🙂 It was okay' },
