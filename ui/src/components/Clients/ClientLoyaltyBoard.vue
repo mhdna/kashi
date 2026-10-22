@@ -406,7 +406,42 @@
     return params
   }
 
-  async function fetchPyramid () {
+  // The pyramid and the first page of the list below it are one contiguous
+  // slice of the same ranking, and each request recomputes every client's
+  // spend, so fetch them together and split the result.
+  async function fetchTop () {
+    pyramidLoading.value = true
+    restLoading.value = true
+    const mySeq = ++restSeq
+    try {
+      const params = baseParams()
+      params.set('page_size', pyramidCount.value + REST_PAGE_SIZE)
+      params.set('page_id', 0)
+      const data = await dedupedFetch(`${API_BASE}/clients/by_spending?${params}`)
+      if (mySeq !== restSeq) return
+      const all = data?.clients ?? []
+      const total = data?.total ?? 0
+      pyramidClients.value = all.slice(0, pyramidCount.value)
+      restItems.value = all.slice(pyramidCount.value)
+      restTotal.value = Math.max(total - pyramidCount.value, 0)
+      restDone = all.length < pyramidCount.value + REST_PAGE_SIZE || restItems.value.length >= restTotal.value
+    } catch (error) {
+      if (mySeq !== restSeq) return
+      pyramidClients.value = []
+      restItems.value = []
+      restTotal.value = 0
+      notify.error(error.message)
+    } finally {
+      if (mySeq === restSeq) {
+        pyramidLoading.value = false
+        restLoading.value = false
+      }
+    }
+  }
+
+  // While searching, the list ignores the ranking, so only the pyramid needs
+  // refreshing when a filter changes.
+  async function fetchPyramidOnly () {
     pyramidLoading.value = true
     try {
       const params = baseParams()
@@ -490,7 +525,8 @@
     restDone = false
     const el = restScroller.value?.$el
     if (el) el.scrollTop = 0
-    loadRestPage(true)
+    if (search.value) loadRestPage(true)
+    else fetchTop()
   }
 
   const detailOpen = ref(false)
@@ -501,16 +537,13 @@
   }
 
   function reload () {
-    fetchPyramid()
+    if (search.value) fetchPyramidOnly()
     resetRestList()
   }
 
   defineExpose({ reload })
 
-  onMounted(() => {
-    fetchPyramid()
-    resetRestList()
-  })
+  onMounted(resetRestList)
   watch(() => [props.clientType, props.branchIds.join(','), props.dateRange.join(','), props.visit, props.phoneValid, props.phoneCountry, pyramidCount.value, sortBy.value], reload)
 
   let searchTimeout = null
