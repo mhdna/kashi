@@ -1081,12 +1081,13 @@ type ClientLink struct {
 }
 
 type ClientSpend struct {
-	ClientID     int64     `json:"client_id"`
-	TotalSpent   int64     `json:"total_spent"`
-	GrossSpent   int64     `json:"gross_spent"`
-	InvoiceCount int64     `json:"invoice_count"`
-	ItemCount    int64     `json:"item_count"`
-	RefreshedAt  time.Time `json:"refreshed_at"`
+	ClientID        int64        `json:"client_id"`
+	TotalSpent      int64        `json:"total_spent"`
+	GrossSpent      int64        `json:"gross_spent"`
+	InvoiceCount    int64        `json:"invoice_count"`
+	ItemCount       int64        `json:"item_count"`
+	RefreshedAt     time.Time    `json:"refreshed_at"`
+	FirstPurchaseAt sql.NullTime `json:"first_purchase_at"`
 }
 
 type Color struct {

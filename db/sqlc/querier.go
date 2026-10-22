@@ -53,6 +53,10 @@ type Querier interface {
 	// arrives late doesn't undo a newer one; 'failed' always wins. A message Meta
 	// couldn't deliver, or says it doesn't charge for, costs nothing.
 	ApplyWhatsAppDeliveryStatus(ctx context.Context, arg ApplyWhatsAppDeliveryStatusParams) ([]int64, error)
+	// Sets only phone_valid/phone_country, leaving the phone text and updated_at
+	// alone: bumping updated_at would make every till re-download the client on
+	// its next catch-up.
+	BatchSetClientPhoneFlags(ctx context.Context, arg BatchSetClientPhoneFlagsParams) error
 	// Bulk counterpart to UpdateClientPhone for normalizeClientPhones: one
 	// round trip for a whole chunk instead of one per row, which is what made
 	// the first version of this job time out at Cloudflare's gateway on 60k+
@@ -1090,6 +1094,10 @@ type Querier interface {
 	// zero spend can't match a date window; the same hidden-branch rule as
 	// purchases applies.
 	ListClientsForExport(ctx context.Context, arg ListClientsForExportParams) ([]ListClientsForExportRow, error)
+	// Clients with no phone_country yet: ones a till created or edited before the
+	// sync path started filling it in. "nophone-..." placeholders aren't phone
+	// numbers, so they're left alone.
+	ListClientsMissingPhoneCountry(ctx context.Context) ([]ListClientsMissingPhoneCountryRow, error)
 	// Feeds the branch catch-up endpoint (see branch_catchup.go), same pattern
 	// as currencies/cashbox_accounts/products. Wholesale clients never appear
 	// here -- they're a central-office concept, not something a branch till

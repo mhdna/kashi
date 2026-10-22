@@ -2,6 +2,7 @@
   import { ref, computed, onMounted } from 'vue'
   import { useRoute } from 'vue-router'
   import VChart from '@/components/EChart.vue'
+  import { countryFlag } from '@/utils/countryFlag'
   import ClientRankTag from '@/components/ClientRankTag.vue'
   import { API_BASE } from '@/config'
   import { authFetch } from '@/composables/useApi'
@@ -69,7 +70,7 @@
     if (!profile.value) return []
     return [
       { label: 'Client ID',     value: client.value?.uid    ?? '—' },
-      { label: 'Phone',         value: client.value?.phone  ?? '—' },
+      { label: 'Phone',         value: client.value?.phone ? `${countryFlag(client.value.phone_country)} ${client.value.phone}`.trim() : '—' },
       { label: 'Home branch',   value: profile.value.homeBranch  || '—' },
       { label: 'First purchase', value: formatDate(profile.value.firstPurchaseAt) || '—' },
     ]

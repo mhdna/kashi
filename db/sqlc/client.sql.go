@@ -32,6 +32,30 @@ func (q *Queries) AddClientLoyaltyPoints(ctx context.Context, arg AddClientLoyal
 	return err
 }
 
+const batchSetClientPhoneFlags = `-- name: BatchSetClientPhoneFlags :exec
+UPDATE clients AS c
+SET phone_valid = u.phone_valid, phone_country = u.phone_country
+FROM (
+  SELECT unnest($1::bigint[]) AS id, unnest($2::boolean[]) AS phone_valid,
+         unnest($3::text[]) AS phone_country
+) AS u
+WHERE c.id = u.id
+`
+
+type BatchSetClientPhoneFlagsParams struct {
+	Ids            []int64  `json:"ids"`
+	PhoneValids    []bool   `json:"phone_valids"`
+	PhoneCountries []string `json:"phone_countries"`
+}
+
+// Sets only phone_valid/phone_country, leaving the phone text and updated_at
+// alone: bumping updated_at would make every till re-download the client on
+// its next catch-up.
+func (q *Queries) BatchSetClientPhoneFlags(ctx context.Context, arg BatchSetClientPhoneFlagsParams) error {
+	_, err := q.db.ExecContext(ctx, batchSetClientPhoneFlags, pq.Array(arg.Ids), pq.Array(arg.PhoneValids), pq.Array(arg.PhoneCountries))
+	return err
+}
+
 const batchUpdateClientPhones = `-- name: BatchUpdateClientPhones :exec
 UPDATE clients AS c
 SET phone = u.phone, phone_valid = u.phone_valid, phone_country = u.phone_country, updated_at = now()
@@ -80,19 +104,18 @@ func (q *Queries) CountClients(ctx context.Context, clientType sql.NullString) (
 
 const countClientsBySpending = `-- name: CountClientsBySpending :one
 WITH firsts AS (
-  -- When each client first bought, within the picked branches (all sources
-  -- when none), ignoring the date window: what separates a first-timer in
-  -- the window from a returning client.
+  -- When each client first bought within the picked branches, ignoring the
+  -- date window: what separates a first-timer in the window from a returning
+  -- client. Only built for a first/returning filter with a branch picked; with
+  -- no branch the cached client_spend.first_purchase_at answers it.
   SELECT x.client_id, MIN(x.at) AS first_at
   FROM (
-    SELECT i.client_id, i.created_at AS at
-    FROM invoices i
-    WHERE COALESCE(cardinality($5::bigint[]), 0) = 0
-    UNION ALL
     SELECT cl.client_id, b.occurred_at AS at
     FROM branch_invoices b
     JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
-    WHERE (COALESCE(cardinality($5::bigint[]), 0) = 0 OR b.branch_id = ANY($5::bigint[]))
+    WHERE $8::text <> ''
+      AND COALESCE(cardinality($5::bigint[]), 0) > 0
+      AND b.branch_id = ANY($5::bigint[])
       AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
       AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
       AND b.cancelled_at IS NULL
@@ -101,6 +124,7 @@ WITH firsts AS (
 )
 SELECT COUNT(*) FROM clients c
 LEFT JOIN firsts f ON f.client_id = c.id
+LEFT JOIN client_spend fcs ON fcs.client_id = c.id
 WHERE ($1::text IS NULL OR c.client_type = $1)
   AND ($2::text IS NULL OR c.name ILIKE '%' || $2::text || '%' OR c.phone ILIKE '%' || $2::text || '%')
   AND ($3::boolean IS NULL OR c.phone_valid = $3::boolean)
@@ -136,8 +160,8 @@ WHERE ($1::text IS NULL OR c.client_type = $1)
   -- visit 'first' / 'returning' (needs date_from): first bought inside the
   -- window vs before it.
   AND ($8::text = '' OR $6::timestamptz IS NULL
-    OR ($8::text = 'first' AND f.first_at >= $6::timestamptz)
-    OR ($8::text = 'returning' AND f.first_at < $6::timestamptz))
+    OR ($8::text = 'first' AND (CASE WHEN COALESCE(cardinality($5::bigint[]), 0) = 0 THEN fcs.first_purchase_at ELSE f.first_at END) >= $6::timestamptz)
+    OR ($8::text = 'returning' AND (CASE WHEN COALESCE(cardinality($5::bigint[]), 0) = 0 THEN fcs.first_purchase_at ELSE f.first_at END) < $6::timestamptz))
 `
 
 type CountClientsBySpendingParams struct {
@@ -635,19 +659,18 @@ func (q *Queries) ListClientsByItemCountCached(ctx context.Context, arg ListClie
 
 const listClientsBySpending = `-- name: ListClientsBySpending :many
 WITH firsts AS (
-  -- When each client first bought, within the picked branches (all sources
-  -- when none), ignoring the date window: what separates a first-timer in
-  -- the window from a returning client.
+  -- When each client first bought within the picked branches, ignoring the
+  -- date window: what separates a first-timer in the window from a returning
+  -- client. Only built for a first/returning filter with a branch picked; with
+  -- no branch the cached client_spend.first_purchase_at answers it.
   SELECT x.client_id, MIN(x.at) AS first_at
   FROM (
-    SELECT i.client_id, i.created_at AS at
-    FROM invoices i
-    WHERE COALESCE(cardinality($4::bigint[]), 0) = 0
-    UNION ALL
     SELECT cl.client_id, b.occurred_at AS at
     FROM branch_invoices b
     JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
-    WHERE (COALESCE(cardinality($4::bigint[]), 0) = 0 OR b.branch_id = ANY($4::bigint[]))
+    WHERE $4::text <> ''
+      AND COALESCE(cardinality($5::bigint[]), 0) > 0
+      AND b.branch_id = ANY($5::bigint[])
       AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
       AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
       AND b.cancelled_at IS NULL
@@ -657,19 +680,20 @@ WITH firsts AS (
   SELECT
     c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type, c.uid, c.is_active, c.branch_id, c.phone_valid, c.phone_country,
     (
-      CASE WHEN COALESCE(cardinality($4::bigint[]), 0) = 0 THEN COALESCE(ci.central_total, 0) ELSE 0 END
+      CASE WHEN COALESCE(cardinality($5::bigint[]), 0) = 0 THEN COALESCE(ci.central_total, 0) ELSE 0 END
       + COALESCE(bi.branch_total, 0)
     )::bigint AS total_spent,
     (
-      CASE WHEN COALESCE(cardinality($4::bigint[]), 0) = 0 THEN COALESCE(ci.central_invoice_count, 0) ELSE 0 END
+      CASE WHEN COALESCE(cardinality($5::bigint[]), 0) = 0 THEN COALESCE(ci.central_invoice_count, 0) ELSE 0 END
       + COALESCE(bi.branch_invoice_count, 0)
     )::bigint AS invoice_count,
     (
-      CASE WHEN COALESCE(cardinality($4::bigint[]), 0) = 0 THEN COALESCE(ci.central_item_count, 0) ELSE 0 END
+      CASE WHEN COALESCE(cardinality($5::bigint[]), 0) = 0 THEN COALESCE(ci.central_item_count, 0) ELSE 0 END
       + COALESCE(bi.branch_item_count, 0)
     )::bigint AS item_count
   FROM clients c
   LEFT JOIN firsts f ON f.client_id = c.id
+  LEFT JOIN client_spend fcs ON fcs.client_id = c.id
   LEFT JOIN (
     SELECT i.client_id,
       SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END) AS central_total,
@@ -683,10 +707,18 @@ WITH firsts AS (
     LEFT JOIN (
       SELECT invoice_id, SUM(quantity) AS quantity
       FROM invoice_products
+      WHERE invoice_id IN (
+        SELECT id FROM invoices
+        WHERE ($6::timestamptz IS NULL OR created_at >= $6::timestamptz)
+          AND ($7::timestamptz IS NULL OR created_at < $7::timestamptz)
+      )
       GROUP BY invoice_id
     ) ip ON ip.invoice_id = i.id
-    WHERE ($5::timestamptz IS NULL OR i.created_at >= $5::timestamptz)
-      AND ($6::timestamptz IS NULL OR i.created_at < $6::timestamptz)
+    -- Central invoices only count with no branch picked, so skip them
+    -- entirely otherwise.
+    WHERE COALESCE(cardinality($5::bigint[]), 0) = 0
+      AND ($6::timestamptz IS NULL OR i.created_at >= $6::timestamptz)
+      AND ($7::timestamptz IS NULL OR i.created_at < $7::timestamptz)
     GROUP BY i.client_id
   ) ci ON ci.client_id = c.id
   LEFT JOIN (
@@ -704,41 +736,53 @@ WITH firsts AS (
     LEFT JOIN (
       SELECT branch_invoice_id, SUM(quantity) AS quantity
       FROM branch_invoice_items
+      WHERE branch_invoice_id IN (
+        SELECT b2.id FROM branch_invoices b2
+        WHERE (COALESCE(cardinality($5::bigint[]), 0) = 0 OR b2.branch_id = ANY($5::bigint[]))
+          AND ($6::timestamptz IS NULL OR b2.occurred_at >= $6::timestamptz)
+          AND ($7::timestamptz IS NULL OR b2.occurred_at < $7::timestamptz)
+      )
       GROUP BY branch_invoice_id
     ) bii ON bii.branch_invoice_id = b.id
     LEFT JOIN (
       SELECT branch_invoice_id, SUM(amount) AS amount
       FROM branch_invoice_payments
       WHERE lower(trim(account_name)) = 'on account'
+        AND branch_invoice_id IN (
+        SELECT b2.id FROM branch_invoices b2
+        WHERE (COALESCE(cardinality($5::bigint[]), 0) = 0 OR b2.branch_id = ANY($5::bigint[]))
+          AND ($6::timestamptz IS NULL OR b2.occurred_at >= $6::timestamptz)
+          AND ($7::timestamptz IS NULL OR b2.occurred_at < $7::timestamptz)
+      )
       GROUP BY branch_invoice_id
     ) onacct ON onacct.branch_invoice_id = b.id
-    WHERE (COALESCE(cardinality($4::bigint[]), 0) = 0 OR b.branch_id = ANY($4::bigint[]))
+    WHERE (COALESCE(cardinality($5::bigint[]), 0) = 0 OR b.branch_id = ANY($5::bigint[]))
       AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
       AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
       AND b.cancelled_at IS NULL
-      AND ($5::timestamptz IS NULL OR b.occurred_at >= $5::timestamptz)
-      AND ($6::timestamptz IS NULL OR b.occurred_at < $6::timestamptz)
+      AND ($6::timestamptz IS NULL OR b.occurred_at >= $6::timestamptz)
+      AND ($7::timestamptz IS NULL OR b.occurred_at < $7::timestamptz)
     GROUP BY cl.client_id
   ) bi ON bi.client_id = c.id
-  WHERE ($7::text IS NULL OR c.client_type = $7)
-    AND ($8::text IS NULL OR c.name ILIKE '%' || $8::text || '%' OR c.phone ILIKE '%' || $8::text || '%')
-    AND ($9::boolean IS NULL OR c.phone_valid = $9::boolean)
-    AND ($10::text IS NULL OR c.phone_country = $10::text)
+  WHERE ($8::text IS NULL OR c.client_type = $8)
+    AND ($9::text IS NULL OR c.name ILIKE '%' || $9::text || '%' OR c.phone ILIKE '%' || $9::text || '%')
+    AND ($10::boolean IS NULL OR c.phone_valid = $10::boolean)
+    AND ($11::text IS NULL OR c.phone_country = $11::text)
     -- With a branch picked, only its clients: home branch or bought there.
-    AND (COALESCE(cardinality($4::bigint[]), 0) = 0
-      OR c.branch_id = ANY($4::bigint[])
+    AND (COALESCE(cardinality($5::bigint[]), 0) = 0
+      OR c.branch_id = ANY($5::bigint[])
       OR bi.client_id IS NOT NULL)
     -- With dates picked, only clients who bought in the window (spend and
     -- counts above are for that window too); central invoices only count
     -- when no branch is picked, as in the totals.
-    AND (($5::timestamptz IS NULL AND $6::timestamptz IS NULL)
+    AND (($6::timestamptz IS NULL AND $7::timestamptz IS NULL)
       OR bi.client_id IS NOT NULL
-      OR (COALESCE(cardinality($4::bigint[]), 0) = 0 AND ci.client_id IS NOT NULL))
+      OR (COALESCE(cardinality($5::bigint[]), 0) = 0 AND ci.client_id IS NOT NULL))
     -- visit 'first' / 'returning' (needs date_from): first bought inside the
     -- window vs before it.
-    AND ($11::text = '' OR $5::timestamptz IS NULL
-      OR ($11::text = 'first' AND f.first_at >= $5::timestamptz)
-      OR ($11::text = 'returning' AND f.first_at < $5::timestamptz))
+    AND ($4::text = '' OR $6::timestamptz IS NULL
+      OR ($4::text = 'first' AND (CASE WHEN COALESCE(cardinality($5::bigint[]), 0) = 0 THEN fcs.first_purchase_at ELSE f.first_at END) >= $6::timestamptz)
+      OR ($4::text = 'returning' AND (CASE WHEN COALESCE(cardinality($5::bigint[]), 0) = 0 THEN fcs.first_purchase_at ELSE f.first_at END) < $6::timestamptz))
 )
 SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, total_spent, invoice_count, item_count
 FROM ranked
@@ -757,6 +801,7 @@ type ListClientsBySpendingParams struct {
 	Limit        int32          `json:"limit"`
 	Offset       int32          `json:"offset"`
 	SortBy       string         `json:"sort_by"`
+	Visit        string         `json:"visit"`
 	BranchIds    []int64        `json:"branch_ids"`
 	DateFrom     sql.NullTime   `json:"date_from"`
 	DateTo       sql.NullTime   `json:"date_to"`
@@ -764,7 +809,6 @@ type ListClientsBySpendingParams struct {
 	Search       sql.NullString `json:"search"`
 	PhoneValid   sql.NullBool   `json:"phone_valid"`
 	PhoneCountry sql.NullString `json:"phone_country"`
-	Visit        string         `json:"visit"`
 }
 
 type ListClientsBySpendingRow struct {
@@ -811,6 +855,7 @@ func (q *Queries) ListClientsBySpending(ctx context.Context, arg ListClientsBySp
 		arg.Limit,
 		arg.Offset,
 		arg.SortBy,
+		arg.Visit,
 		pq.Array(arg.BranchIds),
 		arg.DateFrom,
 		arg.DateTo,
@@ -818,7 +863,6 @@ func (q *Queries) ListClientsBySpending(ctx context.Context, arg ListClientsBySp
 		arg.Search,
 		arg.PhoneValid,
 		arg.PhoneCountry,
-		arg.Visit,
 	)
 	if err != nil {
 		return nil, err
@@ -1101,6 +1145,44 @@ func (q *Queries) ListClientsForExport(ctx context.Context, arg ListClientsForEx
 			&i.InvoiceCount,
 			&i.LastVisit,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listClientsMissingPhoneCountry = `-- name: ListClientsMissingPhoneCountry :many
+SELECT id, phone, phone_valid FROM clients
+WHERE phone_country = '' AND phone NOT LIKE 'nophone-%'
+ORDER BY id
+`
+
+type ListClientsMissingPhoneCountryRow struct {
+	ID         int64  `json:"id"`
+	Phone      string `json:"phone"`
+	PhoneValid bool   `json:"phone_valid"`
+}
+
+// Clients with no phone_country yet: ones a till created or edited before the
+// sync path started filling it in. "nophone-..." placeholders aren't phone
+// numbers, so they're left alone.
+func (q *Queries) ListClientsMissingPhoneCountry(ctx context.Context) ([]ListClientsMissingPhoneCountryRow, error) {
+	rows, err := q.db.QueryContext(ctx, listClientsMissingPhoneCountry)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListClientsMissingPhoneCountryRow{}
+	for rows.Next() {
+		var i ListClientsMissingPhoneCountryRow
+		if err := rows.Scan(&i.ID, &i.Phone, &i.PhoneValid); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -1519,7 +1601,8 @@ WITH central AS (
   SELECT i.client_id,
     SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END) AS total,
     COUNT(*) AS invoice_count,
-    COALESCE(SUM(ip.quantity), 0) AS item_count
+    COALESCE(SUM(ip.quantity), 0) AS item_count,
+    MIN(i.created_at) AS first_at
   FROM invoices i
   LEFT JOIN sales_invoices si ON si.invoice_id = i.id
   LEFT JOIN (
@@ -1533,7 +1616,8 @@ WITH central AS (
     SUM(b.grand_total) AS gross,
     SUM(b.grand_total - COALESCE(onacct.amount, 0)) AS net,
     COUNT(*) AS invoice_count,
-    COALESCE(SUM(bii.quantity), 0) AS item_count
+    COALESCE(SUM(bii.quantity), 0) AS item_count,
+    MIN(b.occurred_at) AS first_at
   FROM branch_invoices b
   JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
   LEFT JOIN (
@@ -1552,12 +1636,13 @@ WITH central AS (
     AND b.cancelled_at IS NULL
   GROUP BY cl.client_id
 )
-INSERT INTO client_spend (client_id, total_spent, gross_spent, invoice_count, item_count, refreshed_at)
+INSERT INTO client_spend (client_id, total_spent, gross_spent, invoice_count, item_count, first_purchase_at, refreshed_at)
 SELECT c.id,
   (COALESCE(ce.total, 0) + COALESCE(br.net, 0))::bigint,
   (COALESCE(ce.total, 0) + COALESCE(br.gross, 0))::bigint,
   (COALESCE(ce.invoice_count, 0) + COALESCE(br.invoice_count, 0))::bigint,
   (COALESCE(ce.item_count, 0) + COALESCE(br.item_count, 0))::bigint,
+  LEAST(ce.first_at, br.first_at),
   now()
 FROM clients c
 LEFT JOIN central ce ON ce.client_id = c.id
@@ -1567,6 +1652,7 @@ ON CONFLICT (client_id) DO UPDATE SET
   gross_spent = EXCLUDED.gross_spent,
   invoice_count = EXCLUDED.invoice_count,
   item_count = EXCLUDED.item_count,
+  first_purchase_at = EXCLUDED.first_purchase_at,
   refreshed_at = EXCLUDED.refreshed_at
 `
 

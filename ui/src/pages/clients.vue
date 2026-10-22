@@ -257,6 +257,7 @@
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
+  import { countryFlag } from '@/utils/countryFlag'
   import { rangeBounds } from '@/utils/dateRange'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
@@ -298,14 +299,6 @@
     const c = phoneCountries.value.find(x => x.phone_country === selectedCountry.value)
     return `${countryFlag(selectedCountry.value)} ${c?.phone_country ?? selectedCountry.value}`
   })
-  // Same emoji-from-ISO2-code trick as ClientLoyaltyBoard's countryFlag --
-  // no icon assets needed, each letter maps to a Unicode regional
-  // indicator symbol and the pair renders as that country's flag.
-  function countryFlag (iso2) {
-    if (!iso2 || iso2.length !== 2) return ''
-    return String.fromCodePoint(...[...iso2.toUpperCase()].map(c => 0x1f1e6 + c.charCodeAt(0) - 65))
-  }
-
   // 'any' | 'valid' | 'invalid' -- see phone_valid in client_phone_cleanup.go.
   const phoneValidFilter = ref('any')
 

@@ -123,19 +123,18 @@ WHERE sqlc.narg(client_type)::text IS NULL OR client_type = sqlc.narg(client_typ
 -- of the FROM clause's columns). Wrapping in a CTE turns them into real
 -- columns of the derived table, so the CASE inside ORDER BY resolves fine.
 WITH firsts AS (
-  -- When each client first bought, within the picked branches (all sources
-  -- when none), ignoring the date window: what separates a first-timer in
-  -- the window from a returning client.
+  -- When each client first bought within the picked branches, ignoring the
+  -- date window: what separates a first-timer in the window from a returning
+  -- client. Only built for a first/returning filter with a branch picked; with
+  -- no branch the cached client_spend.first_purchase_at answers it.
   SELECT x.client_id, MIN(x.at) AS first_at
   FROM (
-    SELECT i.client_id, i.created_at AS at
-    FROM invoices i
-    WHERE COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0
-    UNION ALL
     SELECT cl.client_id, b.occurred_at AS at
     FROM branch_invoices b
     JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
-    WHERE (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 OR b.branch_id = ANY(sqlc.arg(branch_ids)::bigint[]))
+    WHERE sqlc.arg(visit)::text <> ''
+      AND COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) > 0
+      AND b.branch_id = ANY(sqlc.arg(branch_ids)::bigint[])
       AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
       AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
       AND b.cancelled_at IS NULL
@@ -158,6 +157,7 @@ WITH firsts AS (
     )::bigint AS item_count
   FROM clients c
   LEFT JOIN firsts f ON f.client_id = c.id
+  LEFT JOIN client_spend fcs ON fcs.client_id = c.id
   LEFT JOIN (
     SELECT i.client_id,
       SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END) AS central_total,
@@ -171,9 +171,17 @@ WITH firsts AS (
     LEFT JOIN (
       SELECT invoice_id, SUM(quantity) AS quantity
       FROM invoice_products
+      WHERE invoice_id IN (
+        SELECT id FROM invoices
+        WHERE (sqlc.narg(date_from)::timestamptz IS NULL OR created_at >= sqlc.narg(date_from)::timestamptz)
+          AND (sqlc.narg(date_to)::timestamptz IS NULL OR created_at < sqlc.narg(date_to)::timestamptz)
+      )
       GROUP BY invoice_id
     ) ip ON ip.invoice_id = i.id
-    WHERE (sqlc.narg(date_from)::timestamptz IS NULL OR i.created_at >= sqlc.narg(date_from)::timestamptz)
+    -- Central invoices only count with no branch picked, so skip them
+    -- entirely otherwise.
+    WHERE COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0
+      AND (sqlc.narg(date_from)::timestamptz IS NULL OR i.created_at >= sqlc.narg(date_from)::timestamptz)
       AND (sqlc.narg(date_to)::timestamptz IS NULL OR i.created_at < sqlc.narg(date_to)::timestamptz)
     GROUP BY i.client_id
   ) ci ON ci.client_id = c.id
@@ -192,12 +200,24 @@ WITH firsts AS (
     LEFT JOIN (
       SELECT branch_invoice_id, SUM(quantity) AS quantity
       FROM branch_invoice_items
+      WHERE branch_invoice_id IN (
+        SELECT b2.id FROM branch_invoices b2
+        WHERE (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 OR b2.branch_id = ANY(sqlc.arg(branch_ids)::bigint[]))
+          AND (sqlc.narg(date_from)::timestamptz IS NULL OR b2.occurred_at >= sqlc.narg(date_from)::timestamptz)
+          AND (sqlc.narg(date_to)::timestamptz IS NULL OR b2.occurred_at < sqlc.narg(date_to)::timestamptz)
+      )
       GROUP BY branch_invoice_id
     ) bii ON bii.branch_invoice_id = b.id
     LEFT JOIN (
       SELECT branch_invoice_id, SUM(amount) AS amount
       FROM branch_invoice_payments
       WHERE lower(trim(account_name)) = 'on account'
+        AND branch_invoice_id IN (
+        SELECT b2.id FROM branch_invoices b2
+        WHERE (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 OR b2.branch_id = ANY(sqlc.arg(branch_ids)::bigint[]))
+          AND (sqlc.narg(date_from)::timestamptz IS NULL OR b2.occurred_at >= sqlc.narg(date_from)::timestamptz)
+          AND (sqlc.narg(date_to)::timestamptz IS NULL OR b2.occurred_at < sqlc.narg(date_to)::timestamptz)
+      )
       GROUP BY branch_invoice_id
     ) onacct ON onacct.branch_invoice_id = b.id
     WHERE (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 OR b.branch_id = ANY(sqlc.arg(branch_ids)::bigint[]))
@@ -225,8 +245,8 @@ WITH firsts AS (
     -- visit 'first' / 'returning' (needs date_from): first bought inside the
     -- window vs before it.
     AND (sqlc.arg(visit)::text = '' OR sqlc.narg(date_from)::timestamptz IS NULL
-      OR (sqlc.arg(visit)::text = 'first' AND f.first_at >= sqlc.narg(date_from)::timestamptz)
-      OR (sqlc.arg(visit)::text = 'returning' AND f.first_at < sqlc.narg(date_from)::timestamptz))
+      OR (sqlc.arg(visit)::text = 'first' AND (CASE WHEN COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 THEN fcs.first_purchase_at ELSE f.first_at END) >= sqlc.narg(date_from)::timestamptz)
+      OR (sqlc.arg(visit)::text = 'returning' AND (CASE WHEN COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 THEN fcs.first_purchase_at ELSE f.first_at END) < sqlc.narg(date_from)::timestamptz))
 )
 SELECT *
 FROM ranked
@@ -246,19 +266,18 @@ OFFSET $2;
 -- picked it counts that branch's clients: home branch, or a branch invoice
 -- there (same cancelled/hidden rules as the list).
 WITH firsts AS (
-  -- When each client first bought, within the picked branches (all sources
-  -- when none), ignoring the date window: what separates a first-timer in
-  -- the window from a returning client.
+  -- When each client first bought within the picked branches, ignoring the
+  -- date window: what separates a first-timer in the window from a returning
+  -- client. Only built for a first/returning filter with a branch picked; with
+  -- no branch the cached client_spend.first_purchase_at answers it.
   SELECT x.client_id, MIN(x.at) AS first_at
   FROM (
-    SELECT i.client_id, i.created_at AS at
-    FROM invoices i
-    WHERE COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0
-    UNION ALL
     SELECT cl.client_id, b.occurred_at AS at
     FROM branch_invoices b
     JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
-    WHERE (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 OR b.branch_id = ANY(sqlc.arg(branch_ids)::bigint[]))
+    WHERE sqlc.arg(visit)::text <> ''
+      AND COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) > 0
+      AND b.branch_id = ANY(sqlc.arg(branch_ids)::bigint[])
       AND b.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
       AND b.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
       AND b.cancelled_at IS NULL
@@ -267,6 +286,7 @@ WITH firsts AS (
 )
 SELECT COUNT(*) FROM clients c
 LEFT JOIN firsts f ON f.client_id = c.id
+LEFT JOIN client_spend fcs ON fcs.client_id = c.id
 WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type))
   AND (sqlc.narg(search)::text IS NULL OR c.name ILIKE '%' || sqlc.narg(search)::text || '%' OR c.phone ILIKE '%' || sqlc.narg(search)::text || '%')
   AND (sqlc.narg(phone_valid)::boolean IS NULL OR c.phone_valid = sqlc.narg(phone_valid)::boolean)
@@ -302,8 +322,8 @@ WHERE (sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_
   -- visit 'first' / 'returning' (needs date_from): first bought inside the
   -- window vs before it.
   AND (sqlc.arg(visit)::text = '' OR sqlc.narg(date_from)::timestamptz IS NULL
-    OR (sqlc.arg(visit)::text = 'first' AND f.first_at >= sqlc.narg(date_from)::timestamptz)
-    OR (sqlc.arg(visit)::text = 'returning' AND f.first_at < sqlc.narg(date_from)::timestamptz));
+    OR (sqlc.arg(visit)::text = 'first' AND (CASE WHEN COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 THEN fcs.first_purchase_at ELSE f.first_at END) >= sqlc.narg(date_from)::timestamptz)
+    OR (sqlc.arg(visit)::text = 'returning' AND (CASE WHEN COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 THEN fcs.first_purchase_at ELSE f.first_at END) < sqlc.narg(date_from)::timestamptz));
 
 -- name: LoyaltyTierStats :many
 -- Loyalty page: one row per tier that has members. tier_mins is the tiers'
@@ -408,7 +428,8 @@ WITH central AS (
   SELECT i.client_id,
     SUM(CASE WHEN si.invoice_id IS NOT NULL THEN i.grand_total ELSE -i.grand_total END) AS total,
     COUNT(*) AS invoice_count,
-    COALESCE(SUM(ip.quantity), 0) AS item_count
+    COALESCE(SUM(ip.quantity), 0) AS item_count,
+    MIN(i.created_at) AS first_at
   FROM invoices i
   LEFT JOIN sales_invoices si ON si.invoice_id = i.id
   LEFT JOIN (
@@ -422,7 +443,8 @@ WITH central AS (
     SUM(b.grand_total) AS gross,
     SUM(b.grand_total - COALESCE(onacct.amount, 0)) AS net,
     COUNT(*) AS invoice_count,
-    COALESCE(SUM(bii.quantity), 0) AS item_count
+    COALESCE(SUM(bii.quantity), 0) AS item_count,
+    MIN(b.occurred_at) AS first_at
   FROM branch_invoices b
   JOIN client_links cl ON cl.register_id = b.register_id AND cl.branch_client_id = b.branch_client_id
   LEFT JOIN (
@@ -441,12 +463,13 @@ WITH central AS (
     AND b.cancelled_at IS NULL
   GROUP BY cl.client_id
 )
-INSERT INTO client_spend (client_id, total_spent, gross_spent, invoice_count, item_count, refreshed_at)
+INSERT INTO client_spend (client_id, total_spent, gross_spent, invoice_count, item_count, first_purchase_at, refreshed_at)
 SELECT c.id,
   (COALESCE(ce.total, 0) + COALESCE(br.net, 0))::bigint,
   (COALESCE(ce.total, 0) + COALESCE(br.gross, 0))::bigint,
   (COALESCE(ce.invoice_count, 0) + COALESCE(br.invoice_count, 0))::bigint,
   (COALESCE(ce.item_count, 0) + COALESCE(br.item_count, 0))::bigint,
+  LEAST(ce.first_at, br.first_at),
   now()
 FROM clients c
 LEFT JOIN central ce ON ce.client_id = c.id
@@ -456,6 +479,7 @@ ON CONFLICT (client_id) DO UPDATE SET
   gross_spent = EXCLUDED.gross_spent,
   invoice_count = EXCLUDED.invoice_count,
   item_count = EXCLUDED.item_count,
+  first_purchase_at = EXCLUDED.first_purchase_at,
   refreshed_at = EXCLUDED.refreshed_at;
 
 -- name: ListClientsBySpendingCached :many
@@ -657,6 +681,26 @@ SET phone = u.phone, phone_valid = u.phone_valid, phone_country = u.phone_countr
 FROM (
   SELECT unnest(@ids::bigint[]) AS id, unnest(@phones::text[]) AS phone,
          unnest(@phone_valids::boolean[]) AS phone_valid, unnest(@phone_countries::text[]) AS phone_country
+) AS u
+WHERE c.id = u.id;
+
+-- name: ListClientsMissingPhoneCountry :many
+-- Clients with no phone_country yet: ones a till created or edited before the
+-- sync path started filling it in. "nophone-..." placeholders aren't phone
+-- numbers, so they're left alone.
+SELECT id, phone, phone_valid FROM clients
+WHERE phone_country = '' AND phone NOT LIKE 'nophone-%'
+ORDER BY id;
+
+-- name: BatchSetClientPhoneFlags :exec
+-- Sets only phone_valid/phone_country, leaving the phone text and updated_at
+-- alone: bumping updated_at would make every till re-download the client on
+-- its next catch-up.
+UPDATE clients AS c
+SET phone_valid = u.phone_valid, phone_country = u.phone_country
+FROM (
+  SELECT unnest(@ids::bigint[]) AS id, unnest(@phone_valids::boolean[]) AS phone_valid,
+         unnest(@phone_countries::text[]) AS phone_country
 ) AS u
 WHERE c.id = u.id;
 
