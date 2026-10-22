@@ -275,7 +275,9 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 	// Whether the client was messaged before only matters to "channel first"
 	// and to a switch that's off for one of the two kinds of client.
 	first := false
-	if sender.WhatsappChannelFirst || !whatsAppAllAudiencesOn(sender) {
+	if req.pollOnly {
+		first = true
+	} else if sender.WhatsappChannelFirst || !whatsAppAllAudiencesOn(sender) {
 		_, err = server.store.LastWhatsAppSentAt(ctx, entry.ClientPhone)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			server.writeError(ctx, http.StatusInternalServerError, err)
@@ -287,7 +289,7 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 		hidden = whatsAppFirstOrReturning(hidden, first)
 	}
 	// Each of the message and the poll can be off for new or for returning clients.
-	sendMessage := whatsAppAudienceOn(first, sender.WhatsappMessageNew, sender.WhatsappMessageReturning)
+	sendMessage := !req.pollOnly && whatsAppAudienceOn(first, sender.WhatsappMessageNew, sender.WhatsappMessageReturning)
 	sendPoll := pollMode && !req.welcome && whatsAppAudienceOn(first, sender.WhatsappPollNew, sender.WhatsappPollReturning)
 	if !sendMessage && !sendPoll {
 		server.logWhatsAppMessage(ctx, entry, whatsAppStatusSkipped, "switched off for "+whatsAppAudienceName(first)+" clients (Settings > WhatsApp)")

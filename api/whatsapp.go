@@ -58,6 +58,10 @@ type branchWhatsAppThankYouRequest struct {
 	// welcome marks the message sent before checkout (see
 	// sendBranchWhatsAppWelcome): no rating poll or review link, no invoice.
 	welcome bool
+	// pollOnly marks the checkout of a client whose welcome already went out:
+	// only the rating poll is still due, for a new client (that welcome was
+	// their first message).
+	pollOnly bool
 }
 
 // paidCents is the amount a message shows as paid.
@@ -130,6 +134,17 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 		Invoice: req.InvoiceCode, TotalCents: req.GrandTotalCents, Items: int32(len(req.Items)),
 		Phone: to, Branch: sql.NullInt64{Int64: branchID, Valid: true},
 	}); err == nil {
+		// The welcome carried no poll (nothing was bought yet): it goes now.
+		sender, err := server.store.GetWhatsAppSenderSettings(ctx)
+		if err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		if sender.WhatsappSender == whatsAppSenderBridge && sender.WhatsappFeedbackMode != whatsAppFeedbackLink && sender.WhatsappPollNew {
+			req.pollOnly = true
+			server.sendWhatsAppViaBridge(ctx, entry, sender, branch.Name, whatsAppBranchHiddenFields(sender, branch.WhatsappHiddenFields), req)
+			return
+		}
 		server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": "welcome already sent before checkout"})
 		return
 	} else if !errors.Is(err, sql.ErrNoRows) {
