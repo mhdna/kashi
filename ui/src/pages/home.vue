@@ -12,7 +12,7 @@
           />
           <AppLogo v-else class="mx-auto home-phone-logo" />
           <p v-if="appVersion || appCommit" class="mt-0 mb-0 text-caption text-disabled build-info">
-            {{ [appVersion, appCommit].filter(Boolean).join(' · ') }}
+            {{ [appVersion, appCommit && `commit: ${appCommit}`].filter(Boolean).join(' · ') }}
           </p>
           <h1 class="mt-1 font-weight-medium" :class="xs ? 'text-h6' : 'text-h5'">Welcome to Kashi Cloud</h1>
           <p class="mt-2 mb-0 text-body-2 text-medium-emphasis">
