@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -621,38 +622,50 @@ func (server *Server) updateClient(ctx *gin.Context) {
 		return
 	}
 
-	clientType := req.ClientType
-	if clientType == "" {
-		existing, err := server.store.GetClient(ctx, req.ID)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				server.writeError(ctx, http.StatusBadRequest, err)
-				return
-			}
-			server.writeError(ctx, http.StatusInternalServerError, err)
+	existing, err := server.store.GetClient(ctx, req.ID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			server.writeError(ctx, http.StatusBadRequest, err)
 			return
 		}
-		clientType = existing.ClientType
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
 	}
-
-	phoneE164, region, _ := parseAnyPhone(req.Phone)
-	phoneToStore := req.Phone
-	if phoneE164 != "" {
-		phoneToStore = phoneE164
+	clientType := req.ClientType
+	if clientType == "" {
+		clientType = existing.ClientType
 	}
 
 	arg := db.UpdateClientParams{
 		ID:           req.ID,
 		Name:         req.Name,
-		Phone:        phoneToStore,
+		Phone:        existing.Phone,
 		ClientType:   clientType,
-		PhoneValid:   phoneE164 != "",
-		PhoneCountry: region,
+		PhoneValid:   existing.PhoneValid,
+		PhoneCountry: existing.PhoneCountry,
+	}
+	// Only a phone that was actually edited is normalised again: renaming a
+	// client must not move their stored phone onto another client's number.
+	if strings.TrimSpace(req.Phone) != existing.Phone {
+		phoneE164, region, _ := parseAnyPhone(req.Phone)
+		arg.Phone = req.Phone
+		if phoneE164 != "" {
+			arg.Phone = phoneE164
+		}
+		arg.PhoneValid, arg.PhoneCountry = phoneE164 != "", region
 	}
 	client, err := server.store.UpdateClient(ctx, arg)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		if isUniqueViolation(err) {
+			msg := "another client already has this phone number"
+			if other, getErr := server.store.GetClientByPhone(ctx, arg.Phone); getErr == nil {
+				msg += ": " + other.Name
+			}
+			server.writeError(ctx, http.StatusConflict, errors.New(msg))
 			return
 		}
 		server.writeError(ctx, http.StatusInternalServerError, err)
