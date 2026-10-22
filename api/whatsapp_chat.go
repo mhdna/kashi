@@ -107,6 +107,32 @@ func (server *Server) receiveWhatsAppChatMessage(ctx *gin.Context) {
 	server.writeJSON(ctx, http.StatusOK, envelope{"ok": true})
 }
 
+// The bridge reports a poll as text: "📊 Question" then one "• option" per
+// line. The chat shows it as the poll bubble, like the Messages tab does.
+func whatsAppPollFromText(body string) (question string, options []string, ok bool) {
+	lines := strings.Split(strings.TrimSpace(body), "\n")
+	question, found := strings.CutPrefix(lines[0], "📊 ")
+	if !found || len(lines) < 2 {
+		return "", nil, false
+	}
+	for _, line := range lines[1:] {
+		option, found := strings.CutPrefix(strings.TrimSpace(line), "• ")
+		if !found {
+			return "", nil, false
+		}
+		options = append(options, option)
+	}
+	return strings.TrimSpace(question), options, true
+}
+
+// The last line of a chat in the list: a poll is its question.
+func whatsAppChatPreview(body string) string {
+	if question, _, ok := whatsAppPollFromText(body); ok {
+		return "📊 " + question
+	}
+	return body
+}
+
 type whatsAppChat struct {
 	Phone       string    `json:"phone"`
 	Name        string    `json:"name"` // what the customer calls themselves
@@ -153,7 +179,7 @@ func (server *Server) listWhatsAppChats(ctx *gin.Context) {
 			NumberLabel: r.NumberLabel,
 			LastFromMe:  r.FromMe,
 			LastKind:    r.Kind,
-			LastBody:    r.Body,
+			LastBody:    whatsAppChatPreview(r.Body),
 			LastAt:      r.SentAt,
 			Total:       r.Total,
 		})
@@ -166,6 +192,7 @@ type whatsAppChatMessage struct {
 	FromMe      bool      `json:"from_me"`
 	Kind        string    `json:"kind"`
 	Text        string    `json:"text"`
+	Options     []string  `json:"options,omitempty"` // a poll's choices; Text is its question
 	At          time.Time `json:"at"`
 	NumberLabel string    `json:"number_label"`
 	MediaURL    string    `json:"media_url,omitempty"`
@@ -208,6 +235,9 @@ func (server *Server) getWhatsAppChat(ctx *gin.Context) {
 		m := whatsAppChatMessage{
 			ID: r.ID, FromMe: r.FromMe, Kind: r.Kind, Text: r.Body, At: r.SentAt,
 			NumberLabel: r.NumberLabel, MediaType: r.MediaType,
+		}
+		if question, options, ok := whatsAppPollFromText(r.Body); ok && r.FromMe {
+			m.Kind, m.Text, m.Options = "poll", question, options
 		}
 		if r.MediaType != "" {
 			m.MediaURL = "/whatsapp/chat_messages/" + strconv.FormatInt(r.ID, 10) + "/media"
