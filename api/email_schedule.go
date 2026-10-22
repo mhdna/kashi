@@ -101,6 +101,7 @@ func emailScheduleRequest(s db.EmailSchedule, runAt time.Time) emailDelivery {
 		ids[i] = strconv.FormatInt(id, 10)
 	}
 	recipients, _ := parseEmailRecipients(s.Recipients)
+	bcc, _ := parseEmailRecipients(s.Bcc)
 	name := s.Name
 	if name == "" {
 		name = fmt.Sprintf("#%d", s.ID)
@@ -114,6 +115,7 @@ func emailScheduleRequest(s db.EmailSchedule, runAt time.Time) emailDelivery {
 			Format:      s.Format,
 		},
 		recipients: recipients,
+		bcc:        bcc,
 		note:       s.Note,
 		sentBy:     "schedule: " + name,
 		scheduleID: sql.NullInt64{Int64: s.ID, Valid: true},
@@ -224,6 +226,7 @@ type emailScheduleRequestBody struct {
 	Period      string  `json:"period" binding:"required"`
 	RegisterIDs []int64 `json:"register_ids"`
 	Recipients  string  `json:"recipients" binding:"required"`
+	Bcc         string  `json:"bcc"`
 	Format      string  `json:"format" binding:"omitempty,oneof=csv xlsx"`
 	Note        string  `json:"note" binding:"max=2000"`
 	SkipEmpty   bool    `json:"skip_empty"`
@@ -247,6 +250,10 @@ func cleanEmailSchedule(req emailScheduleRequestBody) (db.EmailSchedule, error) 
 	if len(recipients) == 0 {
 		return db.EmailSchedule{}, errors.New("add a recipient")
 	}
+	bcc, err := parseEmailRecipients(req.Bcc)
+	if err != nil {
+		return db.EmailSchedule{}, err
+	}
 	at, err := time.Parse("15:04", strings.TrimSpace(req.Time))
 	if err != nil {
 		return db.EmailSchedule{}, errors.New("time must be HH:MM")
@@ -257,6 +264,7 @@ func cleanEmailSchedule(req emailScheduleRequestBody) (db.EmailSchedule, error) 
 		Period:      req.Period,
 		RegisterIds: req.RegisterIDs,
 		Recipients:  strings.Join(recipients, ", "),
+		Bcc:         strings.Join(bcc, ", "),
 		Format:      req.Format,
 		Note:        strings.TrimSpace(req.Note),
 		SkipEmpty:   req.SkipEmpty,
@@ -313,7 +321,7 @@ func (server *Server) createEmailSchedule(ctx *gin.Context) {
 	}
 	created, err := server.store.CreateEmailSchedule(ctx, db.CreateEmailScheduleParams{
 		Name: s.Name, Enabled: s.Enabled, Period: s.Period, RegisterIds: s.RegisterIds,
-		Recipients: s.Recipients, Format: s.Format, Note: s.Note, SkipEmpty: s.SkipEmpty,
+		Recipients: s.Recipients, Bcc: s.Bcc, Format: s.Format, Note: s.Note, SkipEmpty: s.SkipEmpty,
 		Frequency: s.Frequency, AtMinute: s.AtMinute, Weekdays: s.Weekdays, MonthDay: s.MonthDay,
 		NextRunAt: s.NextRunAt, CreatedBy: createdBy,
 	})
@@ -346,7 +354,7 @@ func (server *Server) updateEmailSchedule(ctx *gin.Context) {
 	}
 	updated, err := server.store.UpdateEmailSchedule(ctx, db.UpdateEmailScheduleParams{
 		ID: uri.ID, Name: s.Name, Enabled: s.Enabled, Period: s.Period, RegisterIds: s.RegisterIds,
-		Recipients: s.Recipients, Format: s.Format, Note: s.Note, SkipEmpty: s.SkipEmpty,
+		Recipients: s.Recipients, Bcc: s.Bcc, Format: s.Format, Note: s.Note, SkipEmpty: s.SkipEmpty,
 		Frequency: s.Frequency, AtMinute: s.AtMinute, Weekdays: s.Weekdays, MonthDay: s.MonthDay,
 		NextRunAt: s.NextRunAt,
 	})

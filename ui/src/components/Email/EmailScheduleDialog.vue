@@ -137,6 +137,20 @@
           persistent-hint
           variant="outlined"
         />
+        <v-combobox
+          v-model="form.bcc"
+          chips
+          class="mb-4"
+          closable-chips
+          :delimiters="[',', ';', ' ']"
+          density="compact"
+          :hint="invalidBcc.length > 0 ? `Not an email address: ${invalidBcc.join(', ')}` : 'Hidden from everyone else'"
+          :items="pastRecipients"
+          label="Bcc"
+          multiple
+          persistent-hint
+          variant="outlined"
+        />
         <v-textarea
           v-model="form.note"
           counter="2000"
@@ -216,6 +230,7 @@
     weekdays: [],
     monthDay: 1,
     recipients: [],
+    bcc: [],
     note: '',
     skipEmpty: true,
     enabled: true,
@@ -247,6 +262,7 @@
         weekdays: [...(s.weekdays ?? [])],
         monthDay: s.month_day || 1,
         recipients: s.recipients.split(',').map(r => r.trim()).filter(Boolean),
+        bcc: (s.bcc || '').split(',').map(r => r.trim()).filter(Boolean),
         note: s.note,
         skipEmpty: s.skip_empty,
         enabled: s.enabled,
@@ -261,6 +277,7 @@
         weekdays: [1, 2, 3, 4, 5, 6],
         monthDay: 1,
         recipients: [],
+        bcc: [],
         note: '',
         skipEmpty: true,
         enabled: true,
@@ -285,6 +302,8 @@
 
   const invalidRecipients = computed(() => form.recipients.filter(r => !EMAIL_RE.test(String(r).trim())))
 
+  const invalidBcc = computed(() => form.bcc.filter(r => !EMAIL_RE.test(String(r).trim())))
+
   const whenSummary = computed(() => {
     const at = form.time || '--:--'
     if (form.frequency === 'weekly') {
@@ -300,6 +319,7 @@
   const canSave = computed(() =>
     form.recipients.length > 0
     && invalidRecipients.value.length === 0
+    && invalidBcc.value.length === 0
     && /^\d{2}:\d{2}$/.test(form.time)
     && (form.frequency !== 'weekly' || form.weekdays.length > 0),
   )
@@ -314,6 +334,7 @@
         period: form.period,
         register_ids: form.registerIds,
         recipients: form.recipients.map(r => String(r).trim()).join(', '),
+        bcc: form.bcc.map(r => String(r).trim()).join(', '),
         format: form.format,
         note: form.note,
         skip_empty: form.skipEmpty,

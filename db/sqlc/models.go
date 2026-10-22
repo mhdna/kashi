@@ -1210,6 +1210,7 @@ type EmailReport struct {
 	ProviderID    string        `json:"provider_id"`
 	Note          string        `json:"note"`
 	ScheduleID    sql.NullInt64 `json:"schedule_id"`
+	Bcc           string        `json:"bcc"`
 }
 
 type EmailSchedule struct {
@@ -1233,6 +1234,7 @@ type EmailSchedule struct {
 	CreatedBy   string       `json:"created_by"`
 	CreatedAt   time.Time    `json:"created_at"`
 	UpdatedAt   time.Time    `json:"updated_at"`
+	Bcc         string       `json:"bcc"`
 }
 
 type Employee struct {

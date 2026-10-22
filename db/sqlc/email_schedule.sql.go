@@ -35,11 +35,11 @@ func (q *Queries) ClaimEmailScheduleRun(ctx context.Context, arg ClaimEmailSched
 
 const createEmailSchedule = `-- name: CreateEmailSchedule :one
 INSERT INTO email_schedules (
-  name, enabled, period, register_ids, recipients, format, note, skip_empty,
+  name, enabled, period, register_ids, recipients, bcc, format, note, skip_empty,
   frequency, at_minute, weekdays, month_day, next_run_at, created_by
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
-) RETURNING id, name, enabled, period, register_ids, recipients, format, note, skip_empty, frequency, at_minute, weekdays, month_day, next_run_at, last_run_at, last_status, last_error, created_by, created_at, updated_at
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+) RETURNING id, name, enabled, period, register_ids, recipients, format, note, skip_empty, frequency, at_minute, weekdays, month_day, next_run_at, last_run_at, last_status, last_error, created_by, created_at, updated_at, bcc
 `
 
 type CreateEmailScheduleParams struct {
@@ -48,6 +48,7 @@ type CreateEmailScheduleParams struct {
 	Period      string       `json:"period"`
 	RegisterIds []int64      `json:"register_ids"`
 	Recipients  string       `json:"recipients"`
+	Bcc         string       `json:"bcc"`
 	Format      string       `json:"format"`
 	Note        string       `json:"note"`
 	SkipEmpty   bool         `json:"skip_empty"`
@@ -66,6 +67,7 @@ func (q *Queries) CreateEmailSchedule(ctx context.Context, arg CreateEmailSchedu
 		arg.Period,
 		pq.Array(arg.RegisterIds),
 		arg.Recipients,
+		arg.Bcc,
 		arg.Format,
 		arg.Note,
 		arg.SkipEmpty,
@@ -98,6 +100,7 @@ func (q *Queries) CreateEmailSchedule(ctx context.Context, arg CreateEmailSchedu
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Bcc,
 	)
 	return i, err
 }
@@ -112,7 +115,7 @@ func (q *Queries) DeleteEmailSchedule(ctx context.Context, id int64) error {
 }
 
 const getEmailSchedule = `-- name: GetEmailSchedule :one
-SELECT id, name, enabled, period, register_ids, recipients, format, note, skip_empty, frequency, at_minute, weekdays, month_day, next_run_at, last_run_at, last_status, last_error, created_by, created_at, updated_at FROM email_schedules WHERE id = $1
+SELECT id, name, enabled, period, register_ids, recipients, format, note, skip_empty, frequency, at_minute, weekdays, month_day, next_run_at, last_run_at, last_status, last_error, created_by, created_at, updated_at, bcc FROM email_schedules WHERE id = $1
 `
 
 func (q *Queries) GetEmailSchedule(ctx context.Context, id int64) (EmailSchedule, error) {
@@ -139,12 +142,13 @@ func (q *Queries) GetEmailSchedule(ctx context.Context, id int64) (EmailSchedule
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Bcc,
 	)
 	return i, err
 }
 
 const listDueEmailSchedules = `-- name: ListDueEmailSchedules :many
-SELECT id, name, enabled, period, register_ids, recipients, format, note, skip_empty, frequency, at_minute, weekdays, month_day, next_run_at, last_run_at, last_status, last_error, created_by, created_at, updated_at FROM email_schedules
+SELECT id, name, enabled, period, register_ids, recipients, format, note, skip_empty, frequency, at_minute, weekdays, month_day, next_run_at, last_run_at, last_status, last_error, created_by, created_at, updated_at, bcc FROM email_schedules
 WHERE enabled AND next_run_at IS NOT NULL AND next_run_at <= now()
 ORDER BY next_run_at
 `
@@ -179,6 +183,7 @@ func (q *Queries) ListDueEmailSchedules(ctx context.Context) ([]EmailSchedule, e
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Bcc,
 		); err != nil {
 			return nil, err
 		}
@@ -194,7 +199,7 @@ func (q *Queries) ListDueEmailSchedules(ctx context.Context) ([]EmailSchedule, e
 }
 
 const listEmailSchedules = `-- name: ListEmailSchedules :many
-SELECT id, name, enabled, period, register_ids, recipients, format, note, skip_empty, frequency, at_minute, weekdays, month_day, next_run_at, last_run_at, last_status, last_error, created_by, created_at, updated_at FROM email_schedules ORDER BY name, id
+SELECT id, name, enabled, period, register_ids, recipients, format, note, skip_empty, frequency, at_minute, weekdays, month_day, next_run_at, last_run_at, last_status, last_error, created_by, created_at, updated_at, bcc FROM email_schedules ORDER BY name, id
 `
 
 func (q *Queries) ListEmailSchedules(ctx context.Context) ([]EmailSchedule, error) {
@@ -227,6 +232,7 @@ func (q *Queries) ListEmailSchedules(ctx context.Context) ([]EmailSchedule, erro
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Bcc,
 		); err != nil {
 			return nil, err
 		}
@@ -261,10 +267,10 @@ func (q *Queries) RecordEmailScheduleRun(ctx context.Context, arg RecordEmailSch
 const updateEmailSchedule = `-- name: UpdateEmailSchedule :one
 UPDATE email_schedules SET
   name = $2, enabled = $3, period = $4, register_ids = $5, recipients = $6,
-  format = $7, note = $8, skip_empty = $9, frequency = $10, at_minute = $11,
-  weekdays = $12, month_day = $13, next_run_at = $14, updated_at = now()
+  bcc = $7, format = $8, note = $9, skip_empty = $10, frequency = $11, at_minute = $12,
+  weekdays = $13, month_day = $14, next_run_at = $15, updated_at = now()
 WHERE id = $1
-RETURNING id, name, enabled, period, register_ids, recipients, format, note, skip_empty, frequency, at_minute, weekdays, month_day, next_run_at, last_run_at, last_status, last_error, created_by, created_at, updated_at
+RETURNING id, name, enabled, period, register_ids, recipients, format, note, skip_empty, frequency, at_minute, weekdays, month_day, next_run_at, last_run_at, last_status, last_error, created_by, created_at, updated_at, bcc
 `
 
 type UpdateEmailScheduleParams struct {
@@ -274,6 +280,7 @@ type UpdateEmailScheduleParams struct {
 	Period      string       `json:"period"`
 	RegisterIds []int64      `json:"register_ids"`
 	Recipients  string       `json:"recipients"`
+	Bcc         string       `json:"bcc"`
 	Format      string       `json:"format"`
 	Note        string       `json:"note"`
 	SkipEmpty   bool         `json:"skip_empty"`
@@ -292,6 +299,7 @@ func (q *Queries) UpdateEmailSchedule(ctx context.Context, arg UpdateEmailSchedu
 		arg.Period,
 		pq.Array(arg.RegisterIds),
 		arg.Recipients,
+		arg.Bcc,
 		arg.Format,
 		arg.Note,
 		arg.SkipEmpty,
@@ -323,6 +331,7 @@ func (q *Queries) UpdateEmailSchedule(ctx context.Context, arg UpdateEmailSchedu
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Bcc,
 	)
 	return i, err
 }

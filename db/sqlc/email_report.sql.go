@@ -29,10 +29,10 @@ func (q *Queries) CountEmailReports(ctx context.Context, status sql.NullString) 
 const createEmailReport = `-- name: CreateEmailReport :one
 INSERT INTO email_reports (
   sent_by, scope, from_day, to_day, branch_id, branch_shift_id, label,
-  recipients, subject, filename, invoice_count, total_cents, status, error, provider_id, note, schedule_id
+  recipients, bcc, subject, filename, invoice_count, total_cents, status, error, provider_id, note, schedule_id
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
-) RETURNING id, created_at, sent_by, scope, from_day, to_day, branch_id, branch_shift_id, label, recipients, subject, filename, invoice_count, total_cents, status, error, provider_id, note, schedule_id
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
+) RETURNING id, created_at, sent_by, scope, from_day, to_day, branch_id, branch_shift_id, label, recipients, subject, filename, invoice_count, total_cents, status, error, provider_id, note, schedule_id, bcc
 `
 
 type CreateEmailReportParams struct {
@@ -44,6 +44,7 @@ type CreateEmailReportParams struct {
 	BranchShiftID sql.NullInt64 `json:"branch_shift_id"`
 	Label         string        `json:"label"`
 	Recipients    string        `json:"recipients"`
+	Bcc           string        `json:"bcc"`
 	Subject       string        `json:"subject"`
 	Filename      string        `json:"filename"`
 	InvoiceCount  int32         `json:"invoice_count"`
@@ -65,6 +66,7 @@ func (q *Queries) CreateEmailReport(ctx context.Context, arg CreateEmailReportPa
 		arg.BranchShiftID,
 		arg.Label,
 		arg.Recipients,
+		arg.Bcc,
 		arg.Subject,
 		arg.Filename,
 		arg.InvoiceCount,
@@ -96,6 +98,7 @@ func (q *Queries) CreateEmailReport(ctx context.Context, arg CreateEmailReportPa
 		&i.ProviderID,
 		&i.Note,
 		&i.ScheduleID,
+		&i.Bcc,
 	)
 	return i, err
 }
@@ -590,7 +593,7 @@ func (q *Queries) ListEmailReportShifts(ctx context.Context, arg ListEmailReport
 }
 
 const listEmailReports = `-- name: ListEmailReports :many
-SELECT id, created_at, sent_by, scope, from_day, to_day, branch_id, branch_shift_id, label, recipients, subject, filename, invoice_count, total_cents, status, error, provider_id, note, schedule_id FROM email_reports
+SELECT id, created_at, sent_by, scope, from_day, to_day, branch_id, branch_shift_id, label, recipients, subject, filename, invoice_count, total_cents, status, error, provider_id, note, schedule_id, bcc FROM email_reports
 WHERE ($1::text IS NULL OR status = $1)
 ORDER BY created_at DESC, id DESC
 LIMIT $3 OFFSET $2
@@ -631,6 +634,7 @@ func (q *Queries) ListEmailReports(ctx context.Context, arg ListEmailReportsPara
 			&i.ProviderID,
 			&i.Note,
 			&i.ScheduleID,
+			&i.Bcc,
 		); err != nil {
 			return nil, err
 		}

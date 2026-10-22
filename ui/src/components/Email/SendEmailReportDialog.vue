@@ -124,6 +124,23 @@
           variant="outlined"
         />
 
+        <!-- Hidden: the "Send to" people never see these addresses. -->
+        <v-combobox
+          v-model="bcc"
+          chips
+          class="mt-4"
+          closable-chips
+          :delimiters="[',', ';', ' ']"
+          density="compact"
+          :hint="invalidBcc.length > 0 ? `Not an email address: ${invalidBcc.join(', ')}` : 'Hidden from everyone else'"
+          :items="pastRecipients"
+          label="Bcc"
+          multiple
+          :no-data-text="'No one emailed yet'"
+          persistent-hint
+          variant="outlined"
+        />
+
         <v-textarea
           v-model="note"
           class="mt-4"
@@ -212,11 +229,13 @@
   const to = ref(today)
   const shiftId = ref(null)
   const recipients = ref([])
+  const bcc = ref([])
   const note = ref('')
   const format = ref('csv')
   const pastRecipients = ref([])
   const EMAIL_RE = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/
   const invalidRecipients = computed(() => recipients.value.filter(r => !EMAIL_RE.test(String(r).trim())))
+  const invalidBcc = computed(() => bcc.value.filter(r => !EMAIL_RE.test(String(r).trim())))
   function splitRecipients (text) {
     return String(text || '').split(/[,;\n]/).map(r => r.trim()).filter(Boolean)
   }
@@ -239,6 +258,7 @@
     registerIds.value = []
     shiftId.value = null
     note.value = ''
+    bcc.value = []
     try {
       const [data, past, list] = await Promise.all([
         getEmailSettings(),
@@ -332,7 +352,7 @@
   async function send () {
     sending.value = true
     try {
-      const report = await sendEmailReport(params.value, recipients.value.map(r => String(r).trim()).join(', '), note.value)
+      const report = await sendEmailReport(params.value, recipients.value.map(r => String(r).trim()).join(', '), note.value, bcc.value.map(r => String(r).trim()).join(', '))
       notify.success(`Sent to ${report?.recipients}.`)
       emit('sent', report)
       open.value = false

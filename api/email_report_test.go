@@ -105,7 +105,7 @@ func TestSendEmailReport(t *testing.T) {
 	server := newTestServer(t, store)
 	server.config.ResendAPIKey = "re_from_env_unused"
 	body, _ := json.Marshal(map[string]any{
-		"scope": "range", "from": "2026-10-07", "to": "2026-10-04", "recipients": "a@x.com, b@x.com",
+		"scope": "range", "from": "2026-10-07", "to": "2026-10-04", "recipients": "a@x.com, b@x.com", "bcc": "Hidden <c@x.com>; d@x.com",
 		"note": "  Week's totals\n<b>before</b> the audit  ",
 	})
 	request := httptest.NewRequest(http.MethodPost, "/email_reports", bytes.NewReader(body))
@@ -116,6 +116,7 @@ func TestSendEmailReport(t *testing.T) {
 
 	require.Equal(t, `"Kashi Reports" <reports@grandbz.com>`, sent.From)
 	require.Equal(t, []string{"a@x.com", "b@x.com"}, sent.To)
+	require.Equal(t, []string{"c@x.com", "d@x.com"}, sent.Bcc)
 	require.Equal(t, "mhdna0@gmail.com", sent.ReplyTo)
 	require.Equal(t, "Grand Bazaar Sales Report — 2026-10-04 to 2026-10-07", sent.Subject)
 	require.Contains(t, sent.HTML, "Week&#39;s totals<br>&lt;b&gt;before&lt;/b&gt; the audit")

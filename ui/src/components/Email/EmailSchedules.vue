@@ -54,6 +54,7 @@
       </template>
       <template #item.recipients="{ item }">
         <span class="text-caption">{{ item.recipients }}</span>
+        <div v-if="item.bcc" class="text-caption text-medium-emphasis">Bcc: {{ item.bcc }}</div>
       </template>
       <template #item.last="{ item }">
         <template v-if="item.last_run_at">
@@ -199,6 +200,7 @@
       period: item.period,
       register_ids: item.register_ids ?? [],
       recipients: item.recipients,
+      bcc: item.bcc,
       format: item.format,
       note: item.note,
       skip_empty: item.skip_empty,

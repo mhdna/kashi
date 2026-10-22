@@ -194,9 +194,9 @@ ORDER BY s.occurred_at DESC;
 -- name: CreateEmailReport :one
 INSERT INTO email_reports (
   sent_by, scope, from_day, to_day, branch_id, branch_shift_id, label,
-  recipients, subject, filename, invoice_count, total_cents, status, error, provider_id, note, schedule_id
+  recipients, bcc, subject, filename, invoice_count, total_cents, status, error, provider_id, note, schedule_id
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
 ) RETURNING *;
 
 -- name: ListEmailReports :many
