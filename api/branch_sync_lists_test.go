@@ -124,7 +124,7 @@ func TestBranchSyncChanges_DiscountLists_SendsItemsInline(t *testing.T) {
 	store := mockdb.NewMockStore(ctrl)
 	stubBranchAuth(store)
 
-	variantUID := uuid.New()
+	variantUID, dealVariantUID, dealUID := uuid.New(), uuid.New(), uuid.New()
 
 	store.EXPECT().
 		ListDiscountListsForBranchSync(gomock.Any(), gomock.Any()).
@@ -137,6 +137,13 @@ func TestBranchSyncChanges_DiscountLists_SendsItemsInline(t *testing.T) {
 		ListDiscountListItemsForSync(gomock.Any(), gomock.Eq(int64(3))).
 		Return([]db.ListDiscountListItemsForSyncRow{
 			{ProductVariantUid: variantUID, Discount: 20},
+			{ProductVariantUid: dealVariantUID, DealUid: uuid.NullUUID{UUID: dealUID, Valid: true}},
+		}, nil)
+
+	store.EXPECT().
+		ListDealsForDiscountListSync(gomock.Any(), gomock.Eq(int64(3))).
+		Return([]db.Deal{
+			{ID: 4, Uid: dealUID, Name: "Buy 2 get 1", Kind: dealBuyGet, BuyQty: 2, GetQty: 1, Percent: 100},
 		}, nil)
 
 	store.EXPECT().
@@ -156,8 +163,14 @@ func TestBranchSyncChanges_DiscountLists_SendsItemsInline(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
 	require.Len(t, body.Items, 1)
-	require.Len(t, body.Items[0].Items, 1)
+	require.Len(t, body.Items[0].Items, 2)
 	require.Equal(t, int16(20), body.Items[0].Items[0].Discount)
+	require.Nil(t, body.Items[0].Items[0].DealUID)
+	// A deal row names its deal, and the deal's terms come with the list.
+	require.Equal(t, dealUID, *body.Items[0].Items[1].DealUID)
+	require.Equal(t, []syncDeal{
+		{UID: dealUID, Name: "Buy 2 get 1", Kind: dealBuyGet, BuyQty: 2, GetQty: 1, Percent: 100},
+	}, body.Items[0].Deals)
 	// Option rows ride beside the plain items, never among them.
 	require.Equal(t, []syncDiscountListOptionItem{
 		{ProductVariantUID: variantUID, SaleOption: "Summer", Discount: 50},

@@ -27,12 +27,12 @@ DELETE FROM discount_list_rules WHERE discount_list_id = $1;
 INSERT INTO discount_list_rules (
   discount_list_id, position, name,
   code_prefixes, except_code_prefixes, kinds, categories, sub_categories, origins, brands,
-  discount
+  discount, deal_id
 ) VALUES (
   sqlc.arg(discount_list_id), sqlc.arg(position), sqlc.arg(name),
   sqlc.arg(code_prefixes)::text[], sqlc.arg(except_code_prefixes)::text[], sqlc.arg(kinds)::text[],
   sqlc.arg(categories)::text[], sqlc.arg(sub_categories)::text[], sqlc.arg(origins)::text[],
-  sqlc.arg(brands)::text[], sqlc.arg(discount)
+  sqlc.arg(brands)::text[], sqlc.arg(discount), sqlc.narg(deal_id)::bigint
 ) RETURNING *;
 
 -- name: CreateDiscountListRuleOption :exec

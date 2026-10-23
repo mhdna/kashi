@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -48,27 +49,35 @@ func (q *Queries) ActiveDiscountListForBranch(ctx context.Context, branchID int6
 const bulkSetDiscountListItems = `-- name: BulkSetDiscountListItems :many
 WITH matched AS (
   SELECT DISTINCT pv.id AS variant_id
-  FROM unnest($3::text[]) AS e(entry)
+  FROM unnest($4::text[]) AS e(entry)
   JOIN product_variants pv ON pv.barcode = e.entry
     OR pv.product_id IN (SELECT p.id FROM products p WHERE lower(p.code) = lower(e.entry))
 )
-INSERT INTO discount_list_items (discount_list_id, product_variant_id, discount)
-SELECT $1, variant_id, $2 FROM matched
-ON CONFLICT (discount_list_id, product_variant_id) DO UPDATE SET discount = EXCLUDED.discount, rule_id = NULL
+INSERT INTO discount_list_items (discount_list_id, product_variant_id, discount, deal_id)
+SELECT $1, variant_id, $2, $3::bigint FROM matched
+ON CONFLICT (discount_list_id, product_variant_id)
+DO UPDATE SET discount = EXCLUDED.discount, deal_id = EXCLUDED.deal_id, rule_id = NULL
 RETURNING product_variant_id
 `
 
 type BulkSetDiscountListItemsParams struct {
-	DiscountListID int64    `json:"discount_list_id"`
-	Discount       int16    `json:"discount"`
-	Entries        []string `json:"entries"`
+	DiscountListID int64         `json:"discount_list_id"`
+	Discount       int16         `json:"discount"`
+	DealID         sql.NullInt64 `json:"deal_id"`
+	Entries        []string      `json:"entries"`
 }
 
 // Puts every variant whose barcode, or whose product's code, is in entries on
 // the list at one discount (adding it or changing it). A code names all of its
-// product's variants. Returns the variant ids it set.
+// product's variants. deal_id, when set, puts them on that deal instead
+// (discount 0). Returns the variant ids it set.
 func (q *Queries) BulkSetDiscountListItems(ctx context.Context, arg BulkSetDiscountListItemsParams) ([]int64, error) {
-	rows, err := q.db.QueryContext(ctx, bulkSetDiscountListItems, arg.DiscountListID, arg.Discount, pq.Array(arg.Entries))
+	rows, err := q.db.QueryContext(ctx, bulkSetDiscountListItems,
+		arg.DiscountListID,
+		arg.Discount,
+		arg.DealID,
+		pq.Array(arg.Entries),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -190,29 +199,37 @@ func (q *Queries) CreateDiscountList(ctx context.Context, arg CreateDiscountList
 }
 
 const createDiscountListItem = `-- name: CreateDiscountListItem :one
-INSERT INTO discount_list_items (discount_list_id, product_variant_id, discount)
-VALUES ($1, $2, $3)
+INSERT INTO discount_list_items (discount_list_id, product_variant_id, discount, deal_id)
+VALUES ($1, $2, $3, $4)
 ON CONFLICT (discount_list_id, product_variant_id)
-DO UPDATE SET discount = $3, rule_id = NULL
-RETURNING discount_list_id, discount, product_variant_id, rule_id
+DO UPDATE SET discount = $3, deal_id = $4, rule_id = NULL
+RETURNING discount_list_id, discount, product_variant_id, rule_id, deal_id
 `
 
 type CreateDiscountListItemParams struct {
-	DiscountListID   int64 `json:"discount_list_id"`
-	ProductVariantID int64 `json:"product_variant_id"`
-	Discount         int16 `json:"discount"`
+	DiscountListID   int64         `json:"discount_list_id"`
+	ProductVariantID int64         `json:"product_variant_id"`
+	Discount         int16         `json:"discount"`
+	DealID           sql.NullInt64 `json:"deal_id"`
 }
 
 // A row written here is set by hand: it takes the row over from the rules
-// (000200), which then leave the variant alone.
+// (000200), which then leave the variant alone. deal_id puts the variant on a
+// deal (000201) instead of a discount.
 func (q *Queries) CreateDiscountListItem(ctx context.Context, arg CreateDiscountListItemParams) (DiscountListItem, error) {
-	row := q.db.QueryRowContext(ctx, createDiscountListItem, arg.DiscountListID, arg.ProductVariantID, arg.Discount)
+	row := q.db.QueryRowContext(ctx, createDiscountListItem,
+		arg.DiscountListID,
+		arg.ProductVariantID,
+		arg.Discount,
+		arg.DealID,
+	)
 	var i DiscountListItem
 	err := row.Scan(
 		&i.DiscountListID,
 		&i.Discount,
 		&i.ProductVariantID,
 		&i.RuleID,
+		&i.DealID,
 	)
 	return i, err
 }
@@ -343,7 +360,7 @@ func (q *Queries) GetDiscountListByUID(ctx context.Context, uid uuid.UUID) (Disc
 }
 
 const getVariantDiscountFromList = `-- name: GetVariantDiscountFromList :one
-SELECT discount_list_id, discount, product_variant_id, rule_id FROM discount_list_items
+SELECT discount_list_id, discount, product_variant_id, rule_id, deal_id FROM discount_list_items
 WHERE discount_list_id = $1 AND product_variant_id = $2
 `
 
@@ -360,12 +377,13 @@ func (q *Queries) GetVariantDiscountFromList(ctx context.Context, arg GetVariant
 		&i.Discount,
 		&i.ProductVariantID,
 		&i.RuleID,
+		&i.DealID,
 	)
 	return i, err
 }
 
 const listDiscountListItems = `-- name: ListDiscountListItems :many
-SELECT discount_list_id, discount, product_variant_id, rule_id FROM discount_list_items
+SELECT discount_list_id, discount, product_variant_id, rule_id, deal_id FROM discount_list_items
 WHERE discount_list_id = $1
 ORDER BY product_variant_id
 `
@@ -384,6 +402,7 @@ func (q *Queries) ListDiscountListItems(ctx context.Context, discountListID int6
 			&i.Discount,
 			&i.ProductVariantID,
 			&i.RuleID,
+			&i.DealID,
 		); err != nil {
 			return nil, err
 		}
@@ -399,16 +418,18 @@ func (q *Queries) ListDiscountListItems(ctx context.Context, discountListID int6
 }
 
 const listDiscountListItemsForSync = `-- name: ListDiscountListItemsForSync :many
-SELECT pv.uid AS product_variant_uid, dli.discount
+SELECT pv.uid AS product_variant_uid, dli.discount, deals.uid AS deal_uid
 FROM discount_list_items dli
 JOIN product_variants pv ON pv.id = dli.product_variant_id
+LEFT JOIN deals ON deals.id = dli.deal_id
 WHERE dli.discount_list_id = $1
 ORDER BY pv.uid
 `
 
 type ListDiscountListItemsForSyncRow struct {
-	ProductVariantUid uuid.UUID `json:"product_variant_uid"`
-	Discount          int16     `json:"discount"`
+	ProductVariantUid uuid.UUID     `json:"product_variant_uid"`
+	Discount          int16         `json:"discount"`
+	DealUid           uuid.NullUUID `json:"deal_uid"`
 }
 
 func (q *Queries) ListDiscountListItemsForSync(ctx context.Context, discountListID int64) ([]ListDiscountListItemsForSyncRow, error) {
@@ -420,7 +441,7 @@ func (q *Queries) ListDiscountListItemsForSync(ctx context.Context, discountList
 	items := []ListDiscountListItemsForSyncRow{}
 	for rows.Next() {
 		var i ListDiscountListItemsForSyncRow
-		if err := rows.Scan(&i.ProductVariantUid, &i.Discount); err != nil {
+		if err := rows.Scan(&i.ProductVariantUid, &i.Discount, &i.DealUid); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -437,12 +458,13 @@ func (q *Queries) ListDiscountListItemsForSync(ctx context.Context, discountList
 const listDiscountListItemsWithProduct = `-- name: ListDiscountListItemsWithProduct :many
 WITH rows AS (
   SELECT dli.discount_list_id, dli.product_variant_id, dli.discount,
-         0::bigint AS sale_option_id, ''::text AS sale_option, 0 AS sale_option_order, dli.rule_id
+         0::bigint AS sale_option_id, ''::text AS sale_option, 0 AS sale_option_order, dli.rule_id,
+         dli.deal_id
   FROM discount_list_items dli
   WHERE dli.discount_list_id = $4
   UNION ALL
   SELECT dloi.discount_list_id, dloi.product_variant_id, dloi.discount,
-         so.id, so.name, so.sort_order, dloi.rule_id
+         so.id, so.name, so.sort_order, dloi.rule_id, NULL::bigint
   FROM discount_list_option_items dloi
   JOIN sale_options so ON so.id = dloi.sale_option_id
   WHERE dloi.discount_list_id = $4
@@ -459,13 +481,16 @@ SELECT r.discount_list_id, r.product_variant_id, r.discount,
        COALESCE(sizes.name, '')::text AS size_name,
        -- The rule that wrote the row (000200); '' when it was set by hand.
        COALESCE(dlr.name, '')::text AS rule_name,
-       (r.rule_id IS NOT NULL)::bool AS from_rule
+       (r.rule_id IS NOT NULL)::bool AS from_rule,
+       COALESCE(r.deal_id, 0)::bigint AS deal_id,
+       COALESCE(deals.name, '')::text AS deal_name
 FROM rows r
 JOIN product_variants pv ON pv.id = r.product_variant_id
 JOIN products p ON p.id = pv.product_id
 LEFT JOIN colors ON colors.id = pv.color_id
 LEFT JOIN sizes ON sizes.id = pv.size_id
 LEFT JOIN discount_list_rules dlr ON dlr.id = r.rule_id
+LEFT JOIN deals ON deals.id = r.deal_id
 WHERE ($1::text = ''
        OR p.name ILIKE '%' || $1::text || '%'
        OR p.code ILIKE '%' || $1::text || '%'
@@ -497,12 +522,14 @@ type ListDiscountListItemsWithProductRow struct {
 	SizeName          string    `json:"size_name"`
 	RuleName          string    `json:"rule_name"`
 	FromRule          bool      `json:"from_rule"`
+	DealID            int64     `json:"deal_id"`
+	DealName          string    `json:"deal_name"`
 }
 
 // See ListPriceListItemsWithProduct: rows are variant-level, so the label needs
 // the barcode and color/size to be identifiable. Option rows (000199) are
 // listed alongside the plain ones; sale_option_id 0 / sale_option ” marks a
-// plain row.
+// plain row. Only a plain row can name a deal (000201).
 func (q *Queries) ListDiscountListItemsWithProduct(ctx context.Context, arg ListDiscountListItemsWithProductParams) ([]ListDiscountListItemsWithProductRow, error) {
 	rows, err := q.db.QueryContext(ctx, listDiscountListItemsWithProduct,
 		arg.Search,
@@ -532,6 +559,8 @@ func (q *Queries) ListDiscountListItemsWithProduct(ctx context.Context, arg List
 			&i.SizeName,
 			&i.RuleName,
 			&i.FromRule,
+			&i.DealID,
+			&i.DealName,
 		); err != nil {
 			return nil, err
 		}
@@ -846,7 +875,7 @@ func (q *Queries) UpdateDiscountList(ctx context.Context, arg UpdateDiscountList
 
 const updateDiscountListItem = `-- name: UpdateDiscountListItem :exec
 UPDATE discount_list_items
-SET discount = $3, rule_id = NULL
+SET discount = $3, deal_id = NULL, rule_id = NULL
 WHERE discount_list_id = $1 AND product_variant_id = $2
 `
 
