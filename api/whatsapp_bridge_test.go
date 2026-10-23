@@ -307,3 +307,48 @@ func TestSendWhatsAppViaBridgePerAudienceSwitches(t *testing.T) {
 		})
 	})
 }
+
+// After an early welcome, checkout sends only the poll, and records it on the
+// welcome's row instead of logging a second row for the same client (whose
+// bridge_ref would never get a tick: only the poll goes out).
+func TestSendWhatsAppViaBridgePollAfterWelcomeJoinsItsRow(t *testing.T) {
+	var bodies []string
+	bridge := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var buf bytes.Buffer
+		_, _ = buf.ReadFrom(r.Body)
+		bodies = append(bodies, buf.String())
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"status":"QUEUED"}`))
+	}))
+	t.Cleanup(bridge.Close)
+
+	sale := branchWhatsAppThankYouRequest{
+		ClientName: "Mhmd", ClientPhone: "+961 3 953570", InvoiceCode: "SA/CT/2026/02632", GrandTotalCents: 1522,
+		pollOnly: true, welcomeID: 77,
+	}
+	entry := db.CreateWhatsAppMessageParams{
+		BranchID: sql.NullInt64{Int64: 1, Valid: true}, InvoiceCode: sale.InvoiceCode, ClientName: "Mhmd", ClientPhone: "9613953570",
+	}
+	store := mockdb.NewMockStore(gomock.NewController(t))
+	store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), int64(1)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
+	store.EXPECT().AttachWhatsAppPoll(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ any, arg db.AttachWhatsAppPollParams) error {
+			require.Equal(t, int64(77), arg.ID)
+			require.NotEmpty(t, arg.PollRef)
+			require.NotEmpty(t, arg.PollQuestion)
+			return nil
+		})
+	// No CreateWhatsAppMessage: the mock fails the test if a second row is logged.
+
+	rec := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(rec)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/", nil)
+	newTestServer(t, store).sendWhatsAppViaBridge(ctx, entry, db.GetWhatsAppSenderSettingsRow{
+		WhatsappSender: "bridge", WhatsappBridgeKey: "secret-key", WhatsappBridgeUrl: bridge.URL,
+		WhatsappMessageNew: true, WhatsappPollNew: true, WhatsappChannelFirst: true, WhatsappWelcomeEarly: true,
+	}, "Centro", nil, sale)
+
+	require.Len(t, bodies, 1)
+	require.Contains(t, bodies[0], `"poll"`)
+	require.Contains(t, rec.Body.String(), `"sent":true`)
+}

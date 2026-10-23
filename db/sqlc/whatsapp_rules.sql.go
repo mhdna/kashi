@@ -14,6 +14,34 @@ import (
 	"github.com/lib/pq"
 )
 
+const attachWhatsAppPoll = `-- name: AttachWhatsAppPoll :exec
+UPDATE whatsapp_messages SET
+  poll_ref = $1,
+  poll_question = $2,
+  poll_options = $3
+WHERE id = $4
+`
+
+type AttachWhatsAppPollParams struct {
+	PollRef      string `json:"poll_ref"`
+	PollQuestion string `json:"poll_question"`
+	PollOptions  string `json:"poll_options"`
+	ID           int64  `json:"id"`
+}
+
+// The rating poll a new client gets at checkout, recorded on the welcome row
+// that checkout claimed, so one client's welcome and poll are one row (its
+// ticks are the welcome's; votes find it by poll_ref).
+func (q *Queries) AttachWhatsAppPoll(ctx context.Context, arg AttachWhatsAppPollParams) error {
+	_, err := q.db.ExecContext(ctx, attachWhatsAppPoll,
+		arg.PollRef,
+		arg.PollQuestion,
+		arg.PollOptions,
+		arg.ID,
+	)
+	return err
+}
+
 const claimWhatsAppWelcome = `-- name: ClaimWhatsAppWelcome :one
 UPDATE whatsapp_messages SET
   invoice_code = $1,

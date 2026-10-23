@@ -370,6 +370,21 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 			entry.PollQuestion = whatsAppPollQuestion(sender.WhatsappPollQuestion)
 			entry.PollOptions = strings.Join(whatsAppPollOptions(sender.WhatsappPollOptions), "\n")
 		}
+		// After an early welcome the poll joins the welcome's row: one row per
+		// client, showing the welcome's ticks. A row of its own would never get
+		// any, as its bridge_ref was never sent (only the poll, under poll_ref).
+		if req.pollOnly && req.welcomeID != 0 {
+			if err := server.store.AttachWhatsAppPoll(ctx, db.AttachWhatsAppPollParams{
+				ID: req.welcomeID, PollRef: entry.PollRef,
+				PollQuestion: entry.PollQuestion, PollOptions: entry.PollOptions,
+			}); err != nil {
+				server.writeError(ctx, http.StatusInternalServerError, err)
+				return
+			}
+			server.adminHub.broadcastAll(adminWSMessage{Type: "whatsapp_message", BranchID: entry.BranchID.Int64})
+			server.writeJSON(ctx, http.StatusOK, envelope{"sent": true})
+			return
+		}
 	}
 	server.logWhatsAppMessage(ctx, entry, whatsAppStatusSent, "")
 }
