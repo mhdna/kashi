@@ -171,7 +171,13 @@ SELECT
   subcategory_val.value AS sub_category,
   kind_val.value AS kind,
   season_val.value AS season,
-  year_val.value AS year
+  year_val.value AS year,
+  -- The options the till asks for when this product is sold (000199), by
+  -- name; empty for an ordinary product.
+  COALESCE((SELECT array_agg(so.name ORDER BY so.sort_order, so.name)
+            FROM product_sale_options pso
+            JOIN sale_options so ON so.id = pso.sale_option_id
+            WHERE pso.product_id = products.id), '{}')::text[] AS sale_options
 FROM product_variants
 JOIN products ON products.id = product_variants.product_id
 LEFT JOIN colors ON colors.id = product_variants.color_id
@@ -208,7 +214,13 @@ SELECT
   subcategory_val.value AS sub_category,
   kind_val.value AS kind,
   season_val.value AS season,
-  year_val.value AS year
+  year_val.value AS year,
+  -- The options the till asks for when this product is sold (000199), by
+  -- name; empty for an ordinary product.
+  COALESCE((SELECT array_agg(so.name ORDER BY so.sort_order, so.name)
+            FROM product_sale_options pso
+            JOIN sale_options so ON so.id = pso.sale_option_id
+            WHERE pso.product_id = products.id), '{}')::text[] AS sale_options
 FROM product_variants
 JOIN products ON products.id = product_variants.product_id
 LEFT JOIN colors ON colors.id = product_variants.color_id
@@ -245,7 +257,13 @@ SELECT
   subcategory_val.value AS sub_category,
   kind_val.value AS kind,
   season_val.value AS season,
-  year_val.value AS year
+  year_val.value AS year,
+  -- The options the till asks for when this product is sold (000199), by
+  -- name; empty for an ordinary product.
+  COALESCE((SELECT array_agg(so.name ORDER BY so.sort_order, so.name)
+            FROM product_sale_options pso
+            JOIN sale_options so ON so.id = pso.sale_option_id
+            WHERE pso.product_id = products.id), '{}')::text[] AS sale_options
 FROM product_variants
 JOIN products ON products.id = product_variants.product_id
 LEFT JOIN colors ON colors.id = product_variants.color_id
