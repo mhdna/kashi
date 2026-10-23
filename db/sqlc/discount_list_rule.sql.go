@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/lib/pq"
@@ -16,27 +17,28 @@ const createDiscountListRule = `-- name: CreateDiscountListRule :one
 INSERT INTO discount_list_rules (
   discount_list_id, position, name,
   code_prefixes, except_code_prefixes, kinds, categories, sub_categories, origins, brands,
-  discount
+  discount, deal_id
 ) VALUES (
   $1, $2, $3,
   $4::text[], $5::text[], $6::text[],
   $7::text[], $8::text[], $9::text[],
-  $10::text[], $11
-) RETURNING id, discount_list_id, position, name, code_prefixes, except_code_prefixes, kinds, categories, sub_categories, origins, brands, discount, created_at
+  $10::text[], $11, $12::bigint
+) RETURNING id, discount_list_id, position, name, code_prefixes, except_code_prefixes, kinds, categories, sub_categories, origins, brands, discount, created_at, deal_id
 `
 
 type CreateDiscountListRuleParams struct {
-	DiscountListID     int64    `json:"discount_list_id"`
-	Position           int32    `json:"position"`
-	Name               string   `json:"name"`
-	CodePrefixes       []string `json:"code_prefixes"`
-	ExceptCodePrefixes []string `json:"except_code_prefixes"`
-	Kinds              []string `json:"kinds"`
-	Categories         []string `json:"categories"`
-	SubCategories      []string `json:"sub_categories"`
-	Origins            []string `json:"origins"`
-	Brands             []string `json:"brands"`
-	Discount           int16    `json:"discount"`
+	DiscountListID     int64         `json:"discount_list_id"`
+	Position           int32         `json:"position"`
+	Name               string        `json:"name"`
+	CodePrefixes       []string      `json:"code_prefixes"`
+	ExceptCodePrefixes []string      `json:"except_code_prefixes"`
+	Kinds              []string      `json:"kinds"`
+	Categories         []string      `json:"categories"`
+	SubCategories      []string      `json:"sub_categories"`
+	Origins            []string      `json:"origins"`
+	Brands             []string      `json:"brands"`
+	Discount           int16         `json:"discount"`
+	DealID             sql.NullInt64 `json:"deal_id"`
 }
 
 func (q *Queries) CreateDiscountListRule(ctx context.Context, arg CreateDiscountListRuleParams) (DiscountListRule, error) {
@@ -52,6 +54,7 @@ func (q *Queries) CreateDiscountListRule(ctx context.Context, arg CreateDiscount
 		pq.Array(arg.Origins),
 		pq.Array(arg.Brands),
 		arg.Discount,
+		arg.DealID,
 	)
 	var i DiscountListRule
 	err := row.Scan(
@@ -68,6 +71,7 @@ func (q *Queries) CreateDiscountListRule(ctx context.Context, arg CreateDiscount
 		pq.Array(&i.Brands),
 		&i.Discount,
 		&i.CreatedAt,
+		&i.DealID,
 	)
 	return i, err
 }
@@ -143,7 +147,7 @@ func (q *Queries) ListDiscountListRuleOptions(ctx context.Context, discountListI
 }
 
 const listDiscountListRules = `-- name: ListDiscountListRules :many
-SELECT r.id, r.discount_list_id, r.position, r.name, r.code_prefixes, r.except_code_prefixes, r.kinds, r.categories, r.sub_categories, r.origins, r.brands, r.discount, r.created_at,
+SELECT r.id, r.discount_list_id, r.position, r.name, r.code_prefixes, r.except_code_prefixes, r.kinds, r.categories, r.sub_categories, r.origins, r.brands, r.discount, r.created_at, r.deal_id,
        (SELECT COUNT(DISTINCT x.product_variant_id) FROM (
           SELECT product_variant_id FROM discount_list_items WHERE rule_id = r.id
           UNION ALL
@@ -155,20 +159,21 @@ ORDER BY r.position, r.id
 `
 
 type ListDiscountListRulesRow struct {
-	ID                 int64     `json:"id"`
-	DiscountListID     int64     `json:"discount_list_id"`
-	Position           int32     `json:"position"`
-	Name               string    `json:"name"`
-	CodePrefixes       []string  `json:"code_prefixes"`
-	ExceptCodePrefixes []string  `json:"except_code_prefixes"`
-	Kinds              []string  `json:"kinds"`
-	Categories         []string  `json:"categories"`
-	SubCategories      []string  `json:"sub_categories"`
-	Origins            []string  `json:"origins"`
-	Brands             []string  `json:"brands"`
-	Discount           int16     `json:"discount"`
-	CreatedAt          time.Time `json:"created_at"`
-	Variants           int64     `json:"variants"`
+	ID                 int64         `json:"id"`
+	DiscountListID     int64         `json:"discount_list_id"`
+	Position           int32         `json:"position"`
+	Name               string        `json:"name"`
+	CodePrefixes       []string      `json:"code_prefixes"`
+	ExceptCodePrefixes []string      `json:"except_code_prefixes"`
+	Kinds              []string      `json:"kinds"`
+	Categories         []string      `json:"categories"`
+	SubCategories      []string      `json:"sub_categories"`
+	Origins            []string      `json:"origins"`
+	Brands             []string      `json:"brands"`
+	Discount           int16         `json:"discount"`
+	CreatedAt          time.Time     `json:"created_at"`
+	DealID             sql.NullInt64 `json:"deal_id"`
+	Variants           int64         `json:"variants"`
 }
 
 // A list's rules in the order they run, with how many variants each one
@@ -196,6 +201,7 @@ func (q *Queries) ListDiscountListRules(ctx context.Context, discountListID int6
 			pq.Array(&i.Brands),
 			&i.Discount,
 			&i.CreatedAt,
+			&i.DealID,
 			&i.Variants,
 		); err != nil {
 			return nil, err
