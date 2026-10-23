@@ -33,10 +33,12 @@ SET is_default = false, updated_at = now()
 WHERE is_default = true AND id != $1;
 
 -- name: CreateDiscountListItem :one
+-- A row written here is set by hand: it takes the row over from the rules
+-- (000200), which then leave the variant alone.
 INSERT INTO discount_list_items (discount_list_id, product_variant_id, discount)
 VALUES ($1, $2, $3)
 ON CONFLICT (discount_list_id, product_variant_id)
-DO UPDATE SET discount = $3
+DO UPDATE SET discount = $3, rule_id = NULL
 RETURNING *;
 
 -- name: GetVariantDiscountFromList :one
@@ -78,7 +80,7 @@ WHERE product_variant_id = $1;
 
 -- name: UpdateDiscountListItem :exec
 UPDATE discount_list_items
-SET discount = $3
+SET discount = $3, rule_id = NULL
 WHERE discount_list_id = $1 AND product_variant_id = $2;
 
 -- name: DeleteDiscountListItem :exec
@@ -102,12 +104,12 @@ ORDER BY product_variant_id;
 -- plain row.
 WITH rows AS (
   SELECT dli.discount_list_id, dli.product_variant_id, dli.discount,
-         0::bigint AS sale_option_id, ''::text AS sale_option, 0 AS sale_option_order
+         0::bigint AS sale_option_id, ''::text AS sale_option, 0 AS sale_option_order, dli.rule_id
   FROM discount_list_items dli
   WHERE dli.discount_list_id = sqlc.arg(discount_list_id)
   UNION ALL
   SELECT dloi.discount_list_id, dloi.product_variant_id, dloi.discount,
-         so.id, so.name, so.sort_order
+         so.id, so.name, so.sort_order, dloi.rule_id
   FROM discount_list_option_items dloi
   JOIN sale_options so ON so.id = dloi.sale_option_id
   WHERE dloi.discount_list_id = sqlc.arg(discount_list_id)
@@ -121,12 +123,16 @@ SELECT r.discount_list_id, r.product_variant_id, r.discount,
        p.code AS product_code, p.name AS product_name,
        -- See ListPriceListItemsWithProduct for why these coalesce.
        COALESCE(colors.name, '')::text AS color_name,
-       COALESCE(sizes.name, '')::text AS size_name
+       COALESCE(sizes.name, '')::text AS size_name,
+       -- The rule that wrote the row (000200); '' when it was set by hand.
+       COALESCE(dlr.name, '')::text AS rule_name,
+       (r.rule_id IS NOT NULL)::bool AS from_rule
 FROM rows r
 JOIN product_variants pv ON pv.id = r.product_variant_id
 JOIN products p ON p.id = pv.product_id
 LEFT JOIN colors ON colors.id = pv.color_id
 LEFT JOIN sizes ON sizes.id = pv.size_id
+LEFT JOIN discount_list_rules dlr ON dlr.id = r.rule_id
 WHERE (sqlc.arg(search)::text = ''
        OR p.name ILIKE '%' || sqlc.arg(search)::text || '%'
        OR p.code ILIKE '%' || sqlc.arg(search)::text || '%'
@@ -188,7 +194,7 @@ WITH matched AS (
 )
 INSERT INTO discount_list_items (discount_list_id, product_variant_id, discount)
 SELECT sqlc.arg(discount_list_id), variant_id, sqlc.arg(discount) FROM matched
-ON CONFLICT (discount_list_id, product_variant_id) DO UPDATE SET discount = EXCLUDED.discount
+ON CONFLICT (discount_list_id, product_variant_id) DO UPDATE SET discount = EXCLUDED.discount, rule_id = NULL
 RETURNING product_variant_id;
 
 -- name: ListUnmatchedDiscountEntries :many

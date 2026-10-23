@@ -321,6 +321,8 @@ func (server *Server) setupRoutes() {
 	authRoutes.POST("/discount_lists/:id/items/bulk_delete", server.bulkDeleteDiscountListItems)
 	authRoutes.GET("/discount_lists/:id/branches", server.listDiscountListBranches)
 	authRoutes.PUT("/discount_lists/:id/branches", server.setDiscountListBranches)
+	authRoutes.GET("/discount_lists/:id/rules", server.listDiscountListRules)
+	authRoutes.PUT("/discount_lists/:id/rules", server.setDiscountListRules)
 	authRoutes.GET("/discount_lists/branch/:branch_id", server.getBranchDiscount)
 	authRoutes.PUT("/discount_lists/branch/:branch_id", server.setBranchDiscount)
 	authRoutes.GET("/sale_options", server.listSaleOptions)

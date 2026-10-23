@@ -94,6 +94,16 @@
 
             <v-divider />
 
+            <template v-if="kind === 'discount'">
+              <DiscountListRules
+                :can-edit="canEdit"
+                :list-id="selectedList.id"
+                :sale-options="saleOptions"
+                @saved="reloadItems"
+              />
+              <v-divider class="mt-2" />
+            </template>
+
             <div v-if="canEdit" class="d-flex align-end ga-3 pa-4">
               <v-autocomplete
                 v-model="addVariantId"
@@ -196,6 +206,10 @@
               <template #item.sale_option="{ item }">
                 <v-chip v-if="item.sale_option" size="small" :text="item.sale_option" />
                 <span v-else class="text-medium-emphasis">Any</span>
+              </template>
+              <template #item.rule_name="{ item }">
+                <span v-if="item.from_rule" class="text-medium-emphasis">{{ item.rule_name || 'Rule' }}</span>
+                <span v-else>By hand</span>
               </template>
               <template #[`item.${cfg.valueKey}`]="{ item }">
                 {{ cfg.display(item[cfg.valueKey]) }}
@@ -476,6 +490,7 @@
 <script setup lang="ts">
   import { computed, onMounted, reactive, ref, watch } from 'vue'
   import BranchAssignDialog from '@/components/BranchAssignDialog.vue'
+  import DiscountListRules from '@/components/DiscountListRules.vue'
   import PageSidebar from '@/components/PageSidebar.vue'
   import BulkDeleteBar from '@/components/Tables/BulkDeleteBar.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
@@ -542,7 +557,10 @@
     { title: 'Variant', key: 'variant', align: 'start', width: 160, sortable: false },
     { title: 'Barcode', key: 'barcode', align: 'start', width: 150 },
     ...(props.kind === 'discount'
-      ? [{ title: 'Sold as', key: 'sale_option', align: 'start', width: 110, sortable: false }]
+      ? [
+        { title: 'Sold as', key: 'sale_option', align: 'start', width: 110, sortable: false },
+        { title: 'From', key: 'rule_name', align: 'start', width: 130, sortable: false },
+      ]
       : []),
     { title: cfg.value.valueLabel, key: cfg.value.valueKey, align: 'end', width: 140 },
   ])
