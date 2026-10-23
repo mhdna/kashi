@@ -53,6 +53,10 @@ type Querier interface {
 	// arrives late doesn't undo a newer one; 'failed' always wins. A message Meta
 	// couldn't deliver, or says it doesn't charge for, costs nothing.
 	ApplyWhatsAppDeliveryStatus(ctx context.Context, arg ApplyWhatsAppDeliveryStatusParams) ([]int64, error)
+	// The rating poll a new client gets at checkout, recorded on the welcome row
+	// that checkout claimed, so one client's welcome and poll are one row (its
+	// ticks are the welcome's; votes find it by poll_ref).
+	AttachWhatsAppPoll(ctx context.Context, arg AttachWhatsAppPollParams) error
 	// Sets only phone_valid/phone_country, leaving the phone text and updated_at
 	// alone: bumping updated_at would make every till re-download the client on
 	// its next catch-up.

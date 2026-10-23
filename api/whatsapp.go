@@ -62,6 +62,9 @@ type branchWhatsAppThankYouRequest struct {
 	// only the rating poll is still due, for a new client (that welcome was
 	// their first message).
 	pollOnly bool
+	// welcomeID is that welcome's whatsapp_messages row: the poll is
+	// recorded on it rather than as a row of its own.
+	welcomeID int64
 }
 
 // paidCents is the amount a message shows as paid.
@@ -130,7 +133,7 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 
 	// A welcome already went out when the till got this client's number: the
 	// sale takes it over (it gets the invoice) and the client isn't messaged again.
-	if _, err := server.store.ClaimWhatsAppWelcome(ctx, db.ClaimWhatsAppWelcomeParams{
+	if welcomeID, err := server.store.ClaimWhatsAppWelcome(ctx, db.ClaimWhatsAppWelcomeParams{
 		Invoice: req.InvoiceCode, TotalCents: req.GrandTotalCents, Items: int32(len(req.Items)),
 		Phone: to, Branch: sql.NullInt64{Int64: branchID, Valid: true},
 	}); err == nil {
@@ -141,7 +144,7 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 			return
 		}
 		if sender.WhatsappSender == whatsAppSenderBridge && sender.WhatsappFeedbackMode != whatsAppFeedbackLink && sender.WhatsappPollNew {
-			req.pollOnly = true
+			req.pollOnly, req.welcomeID = true, welcomeID
 			server.sendWhatsAppViaBridge(ctx, entry, sender, branch.Name, whatsAppBranchHiddenFields(sender, branch.WhatsappHiddenFields), req)
 			return
 		}

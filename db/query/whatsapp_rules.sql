@@ -61,6 +61,16 @@ WHERE id = (
 )
 RETURNING id;
 
+-- name: AttachWhatsAppPoll :exec
+-- The rating poll a new client gets at checkout, recorded on the welcome row
+-- that checkout claimed, so one client's welcome and poll are one row (its
+-- ticks are the welcome's; votes find it by poll_ref).
+UPDATE whatsapp_messages SET
+  poll_ref = sqlc.arg(poll_ref),
+  poll_question = sqlc.arg(poll_question),
+  poll_options = sqlc.arg(poll_options)
+WHERE id = sqlc.arg(id);
+
 -- name: ListWhatsAppMessages :many
 -- Newest first. branch_id 0 = every branch, status '' = any; search matches
 -- the client's name or phone, the invoice code or the rule.
