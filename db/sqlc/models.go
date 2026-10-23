@@ -1186,16 +1186,55 @@ type DiscountListBranch struct {
 }
 
 type DiscountListItem struct {
-	DiscountListID   int64 `json:"discount_list_id"`
-	Discount         int16 `json:"discount"`
-	ProductVariantID int64 `json:"product_variant_id"`
+	DiscountListID   int64         `json:"discount_list_id"`
+	Discount         int16         `json:"discount"`
+	ProductVariantID int64         `json:"product_variant_id"`
+	RuleID           sql.NullInt64 `json:"rule_id"`
 }
 
 type DiscountListOptionItem struct {
-	DiscountListID   int64 `json:"discount_list_id"`
-	ProductVariantID int64 `json:"product_variant_id"`
-	SaleOptionID     int64 `json:"sale_option_id"`
-	Discount         int16 `json:"discount"`
+	DiscountListID   int64         `json:"discount_list_id"`
+	ProductVariantID int64         `json:"product_variant_id"`
+	SaleOptionID     int64         `json:"sale_option_id"`
+	Discount         int16         `json:"discount"`
+	RuleID           sql.NullInt64 `json:"rule_id"`
+}
+
+type DiscountListRule struct {
+	ID                 int64     `json:"id"`
+	DiscountListID     int64     `json:"discount_list_id"`
+	Position           int32     `json:"position"`
+	Name               string    `json:"name"`
+	CodePrefixes       []string  `json:"code_prefixes"`
+	ExceptCodePrefixes []string  `json:"except_code_prefixes"`
+	Kinds              []string  `json:"kinds"`
+	Categories         []string  `json:"categories"`
+	SubCategories      []string  `json:"sub_categories"`
+	Origins            []string  `json:"origins"`
+	Brands             []string  `json:"brands"`
+	Discount           int16     `json:"discount"`
+	CreatedAt          time.Time `json:"created_at"`
+}
+
+type DiscountListRuleOption struct {
+	RuleID       int64 `json:"rule_id"`
+	SaleOptionID int64 `json:"sale_option_id"`
+	Discount     int16 `json:"discount"`
+}
+
+type DiscountRuleFact struct {
+	ProductVariantID int64       `json:"product_variant_id"`
+	ProductID        int64       `json:"product_id"`
+	Code             interface{} `json:"code"`
+	Kind             string      `json:"kind"`
+	Category         string      `json:"category"`
+	SubCategory      string      `json:"sub_category"`
+	Origin           string      `json:"origin"`
+	Brand            string      `json:"brand"`
+}
+
+type DiscountRulesDirty struct {
+	ProductID int64 `json:"product_id"`
 }
 
 type EmailReport struct {
