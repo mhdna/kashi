@@ -1796,6 +1796,15 @@ type UnknownItemImage struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
+type UnknownItemPairing struct {
+	BranchID         int64         `json:"branch_id"`
+	RegisterID       int64         `json:"register_id"`
+	Token            string        `json:"token"`
+	CurrentSessionID sql.NullInt64 `json:"current_session_id"`
+	PhoneSeenAt      sql.NullTime  `json:"phone_seen_at"`
+	CreatedAt        time.Time     `json:"created_at"`
+}
+
 type UnknownItemSession struct {
 	ID              int64         `json:"id"`
 	BranchID        int64         `json:"branch_id"`
@@ -1806,6 +1815,7 @@ type UnknownItemSession struct {
 	BranchInvoiceID sql.NullInt64 `json:"branch_invoice_id"`
 	HelpRequestedAt sql.NullTime  `json:"help_requested_at"`
 	CreatedAt       time.Time     `json:"created_at"`
+	CheckoutAt      sql.NullTime  `json:"checkout_at"`
 }
 
 type UnknownItemSlot struct {

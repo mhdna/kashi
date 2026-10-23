@@ -638,6 +638,10 @@ func (server *Server) setupRoutes() {
 	branchRoutes.POST("/unknown_sessions", server.createUnknownSession)
 	branchRoutes.GET("/unknown_sessions/status", server.branchUnknownSessionStatus)
 	branchRoutes.POST("/unknown_sessions/help", server.requestUnknownSessionHelp)
+	branchRoutes.POST("/unknown_sessions/checkout", server.markUnknownSessionCheckout)
+	branchRoutes.GET("/unknown_pairing", server.branchUnknownPairing)
+	branchRoutes.POST("/unknown_pairing/reset", server.resetUnknownPairing)
+	branchRoutes.POST("/unknown_pairing/idle", server.idleUnknownPairing)
 	branchRoutes.POST("/expenses/category", server.setBranchExpenseCategory)
 	branchRoutes.POST("/expenses/from_central", server.setBranchExpenseFromCentral)
 	branchRoutes.POST("/loans/category", server.setBranchLoanCategory)
@@ -661,6 +665,10 @@ func (server *Server) setupRoutes() {
 	router.GET("/unknown_uploads/:token/images/:image_id", server.unknownUploadImageFile)
 	router.POST("/unknown_uploads/:token/slots/:slot_ref/image", server.uploadUnknownSlotImage)
 	router.POST("/unknown_uploads/:token/slots/:slot_ref/copy", server.copyUnknownSlotImage)
+	// unknown_pairs is the phone paired with a till: its token only shows the
+	// till's current cart, whose pictures then go through unknown_uploads.
+	router.GET("/unknown_pairs/:token", server.unknownPairedPage)
+	router.GET("/unknown_pairs/:token/status", server.unknownPairStatus)
 	router.GET("/expense_uploads/:token", server.expenseUploadPage)
 	router.GET("/expense_uploads/:token/status", server.expenseUploadStatus)
 	router.POST("/expense_uploads/:token/images", server.uploadExpenseImages)

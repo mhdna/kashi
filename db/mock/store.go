@@ -4610,6 +4610,20 @@ func (mr *MockStoreMockRecorder) DeleteUnknownItemImages(arg0, arg1 interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUnknownItemImages", reflect.TypeOf((*MockStore)(nil).DeleteUnknownItemImages), arg0, arg1)
 }
 
+// DeleteUnknownItemSlotsExcept mocks base method.
+func (m *MockStore) DeleteUnknownItemSlotsExcept(arg0 context.Context, arg1 db.DeleteUnknownItemSlotsExceptParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteUnknownItemSlotsExcept", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteUnknownItemSlotsExcept indicates an expected call of DeleteUnknownItemSlotsExcept.
+func (mr *MockStoreMockRecorder) DeleteUnknownItemSlotsExcept(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUnknownItemSlotsExcept", reflect.TypeOf((*MockStore)(nil).DeleteUnknownItemSlotsExcept), arg0, arg1)
+}
+
 // DeleteUser mocks base method.
 func (m *MockStore) DeleteUser(arg0 context.Context, arg1 int64) error {
 	m.ctrl.T.Helper()
@@ -4636,6 +4650,21 @@ func (m *MockStore) DeleteWhatsAppNumber(arg0 context.Context, arg1 int64) error
 func (mr *MockStoreMockRecorder) DeleteWhatsAppNumber(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteWhatsAppNumber", reflect.TypeOf((*MockStore)(nil).DeleteWhatsAppNumber), arg0, arg1)
+}
+
+// EnsureUnknownItemPairing mocks base method.
+func (m *MockStore) EnsureUnknownItemPairing(arg0 context.Context, arg1 db.EnsureUnknownItemPairingParams) (db.UnknownItemPairing, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureUnknownItemPairing", arg0, arg1)
+	ret0, _ := ret[0].(db.UnknownItemPairing)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EnsureUnknownItemPairing indicates an expected call of EnsureUnknownItemPairing.
+func (mr *MockStoreMockRecorder) EnsureUnknownItemPairing(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureUnknownItemPairing", reflect.TypeOf((*MockStore)(nil).EnsureUnknownItemPairing), arg0, arg1)
 }
 
 // FindUnknownInvoiceItem mocks base method.
@@ -6481,6 +6510,51 @@ func (m *MockStore) GetUnknownItemImage(arg0 context.Context, arg1 int64) (db.Un
 func (mr *MockStoreMockRecorder) GetUnknownItemImage(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnknownItemImage", reflect.TypeOf((*MockStore)(nil).GetUnknownItemImage), arg0, arg1)
+}
+
+// GetUnknownItemPairing mocks base method.
+func (m *MockStore) GetUnknownItemPairing(arg0 context.Context, arg1 db.GetUnknownItemPairingParams) (db.UnknownItemPairing, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUnknownItemPairing", arg0, arg1)
+	ret0, _ := ret[0].(db.UnknownItemPairing)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUnknownItemPairing indicates an expected call of GetUnknownItemPairing.
+func (mr *MockStoreMockRecorder) GetUnknownItemPairing(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnknownItemPairing", reflect.TypeOf((*MockStore)(nil).GetUnknownItemPairing), arg0, arg1)
+}
+
+// GetUnknownItemPairingByToken mocks base method.
+func (m *MockStore) GetUnknownItemPairingByToken(arg0 context.Context, arg1 string) (db.UnknownItemPairing, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUnknownItemPairingByToken", arg0, arg1)
+	ret0, _ := ret[0].(db.UnknownItemPairing)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUnknownItemPairingByToken indicates an expected call of GetUnknownItemPairingByToken.
+func (mr *MockStoreMockRecorder) GetUnknownItemPairingByToken(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnknownItemPairingByToken", reflect.TypeOf((*MockStore)(nil).GetUnknownItemPairingByToken), arg0, arg1)
+}
+
+// GetUnknownItemSession mocks base method.
+func (m *MockStore) GetUnknownItemSession(arg0 context.Context, arg1 int64) (db.UnknownItemSession, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUnknownItemSession", arg0, arg1)
+	ret0, _ := ret[0].(db.UnknownItemSession)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUnknownItemSession indicates an expected call of GetUnknownItemSession.
+func (mr *MockStoreMockRecorder) GetUnknownItemSession(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnknownItemSession", reflect.TypeOf((*MockStore)(nil).GetUnknownItemSession), arg0, arg1)
 }
 
 // GetUnknownItemSessionByRef mocks base method.
@@ -10209,6 +10283,20 @@ func (mr *MockStoreMockRecorder) MarkLoanUploadTokenUsed(arg0, arg1 interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkLoanUploadTokenUsed", reflect.TypeOf((*MockStore)(nil).MarkLoanUploadTokenUsed), arg0, arg1)
 }
 
+// MarkUnknownItemSessionCheckout mocks base method.
+func (m *MockStore) MarkUnknownItemSessionCheckout(arg0 context.Context, arg1 db.MarkUnknownItemSessionCheckoutParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkUnknownItemSessionCheckout", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkUnknownItemSessionCheckout indicates an expected call of MarkUnknownItemSessionCheckout.
+func (mr *MockStoreMockRecorder) MarkUnknownItemSessionCheckout(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkUnknownItemSessionCheckout", reflect.TypeOf((*MockStore)(nil).MarkUnknownItemSessionCheckout), arg0, arg1)
+}
+
 // MarkUnknownItemSlotResolved mocks base method.
 func (m *MockStore) MarkUnknownItemSlotResolved(arg0 context.Context, arg1 db.MarkUnknownItemSlotResolvedParams) error {
 	m.ctrl.T.Helper()
@@ -10723,6 +10811,21 @@ func (m *MockStore) RequestUnknownItemHelp(arg0 context.Context, arg1 db.Request
 func (mr *MockStoreMockRecorder) RequestUnknownItemHelp(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RequestUnknownItemHelp", reflect.TypeOf((*MockStore)(nil).RequestUnknownItemHelp), arg0, arg1)
+}
+
+// ResetUnknownItemPairing mocks base method.
+func (m *MockStore) ResetUnknownItemPairing(arg0 context.Context, arg1 db.ResetUnknownItemPairingParams) (db.UnknownItemPairing, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResetUnknownItemPairing", arg0, arg1)
+	ret0, _ := ret[0].(db.UnknownItemPairing)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ResetUnknownItemPairing indicates an expected call of ResetUnknownItemPairing.
+func (mr *MockStoreMockRecorder) ResetUnknownItemPairing(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetUnknownItemPairing", reflect.TypeOf((*MockStore)(nil).ResetUnknownItemPairing), arg0, arg1)
 }
 
 // ResolveBranchSyncConflict mocks base method.
@@ -11806,6 +11909,20 @@ func (mr *MockStoreMockRecorder) SetTransferStatus(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetTransferStatus", reflect.TypeOf((*MockStore)(nil).SetTransferStatus), arg0, arg1)
 }
 
+// SetUnknownItemPairingSession mocks base method.
+func (m *MockStore) SetUnknownItemPairingSession(arg0 context.Context, arg1 db.SetUnknownItemPairingSessionParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetUnknownItemPairingSession", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetUnknownItemPairingSession indicates an expected call of SetUnknownItemPairingSession.
+func (mr *MockStoreMockRecorder) SetUnknownItemPairingSession(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUnknownItemPairingSession", reflect.TypeOf((*MockStore)(nil).SetUnknownItemPairingSession), arg0, arg1)
+}
+
 // SetUnknownItemSlotImage mocks base method.
 func (m *MockStore) SetUnknownItemSlotImage(arg0 context.Context, arg1 db.SetUnknownItemSlotImageParams) error {
 	m.ctrl.T.Helper()
@@ -11976,6 +12093,20 @@ func (m *MockStore) TouchBranchRegister(arg0 context.Context, arg1 int64) error 
 func (mr *MockStoreMockRecorder) TouchBranchRegister(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TouchBranchRegister", reflect.TypeOf((*MockStore)(nil).TouchBranchRegister), arg0, arg1)
+}
+
+// TouchUnknownItemPairing mocks base method.
+func (m *MockStore) TouchUnknownItemPairing(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TouchUnknownItemPairing", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// TouchUnknownItemPairing indicates an expected call of TouchUnknownItemPairing.
+func (mr *MockStoreMockRecorder) TouchUnknownItemPairing(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TouchUnknownItemPairing", reflect.TypeOf((*MockStore)(nil).TouchUnknownItemPairing), arg0, arg1)
 }
 
 // TransferApproveTx mocks base method.

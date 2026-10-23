@@ -1,19 +1,40 @@
 -- name: CreateUnknownItemSession :one
-INSERT INTO unknown_item_sessions (branch_id, register_id, client_ref, token, expires_at)
-VALUES ($1, $2, $3, $4, $5)
-ON CONFLICT (branch_id, client_ref) DO UPDATE SET expires_at = EXCLUDED.expires_at
+INSERT INTO unknown_item_sessions (branch_id, register_id, client_ref, token, expires_at, checkout_at)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (branch_id, client_ref) DO UPDATE SET
+  expires_at = EXCLUDED.expires_at,
+  checkout_at = COALESCE(unknown_item_sessions.checkout_at, EXCLUDED.checkout_at)
 RETURNING *;
+
+-- name: MarkUnknownItemSessionCheckout :exec
+-- The cashier is at the payment: the session joins the Waiting tab.
+UPDATE unknown_item_sessions SET checkout_at = COALESCE(checkout_at, now())
+WHERE branch_id = $1 AND client_ref = $2;
 
 -- name: GetUnknownItemSessionByRef :one
 SELECT * FROM unknown_item_sessions WHERE branch_id = $1 AND client_ref = $2;
+
+-- name: GetUnknownItemSession :one
+SELECT * FROM unknown_item_sessions WHERE id = $1;
 
 -- name: GetUnknownItemSessionByToken :one
 SELECT * FROM unknown_item_sessions WHERE token = $1;
 
 -- name: CreateUnknownItemSlot :exec
+-- A unit already there keeps its picture; its price may have been changed.
 INSERT INTO unknown_item_slots (session_id, slot_ref, position, label, unit_price, discount)
 VALUES ($1, $2, $3, $4, $5, $6)
-ON CONFLICT (session_id, slot_ref) DO NOTHING;
+ON CONFLICT (session_id, slot_ref) DO UPDATE SET
+  position = EXCLUDED.position,
+  label = EXCLUDED.label,
+  unit_price = EXCLUDED.unit_price,
+  discount = EXCLUDED.discount
+WHERE unknown_item_slots.resolved_at IS NULL;
+
+-- name: DeleteUnknownItemSlotsExcept :exec
+-- The units the cashier took back out of the cart.
+DELETE FROM unknown_item_slots
+WHERE session_id = $1 AND resolved_at IS NULL AND NOT (slot_ref = ANY(sqlc.arg(keep)::text[]));
 
 -- name: ListUnknownItemSlotsForSession :many
 SELECT * FROM unknown_item_slots WHERE session_id = $1 ORDER BY position;
@@ -155,6 +176,7 @@ FROM unknown_item_slots s
 JOIN unknown_item_sessions sess ON sess.id = s.session_id
 JOIN branches b ON b.id = sess.branch_id
 WHERE sess.branch_invoice_id IS NULL
+  AND sess.checkout_at IS NOT NULL
   AND NOT b.hidden_from_reports
   AND sess.expires_at > now()
   AND EXISTS (
@@ -205,8 +227,9 @@ WHERE img.id = ANY(sqlc.arg(ids)::bigint[])
 
 -- name: ListAutoDeletableUnknownItemImages :many
 -- What the daily clean-up removes: pictures whose units were all matched
--- before resolved_before, and pictures of checkouts that never became a sale
--- and whose link expired before abandoned_before.
+-- before resolved_before, pictures of checkouts that never became a sale and
+-- whose link expired before abandoned_before, and pictures of units taken
+-- back out of the cart (no unit left) taken before abandoned_before.
 SELECT img.id, img.file_path
 FROM unknown_item_images img
 JOIN unknown_item_sessions sess ON sess.id = img.session_id
@@ -215,7 +238,38 @@ WHERE (
     AND NOT EXISTS (SELECT 1 FROM unknown_item_slots s WHERE s.image_id = img.id AND s.resolved_at IS NULL)
     AND (SELECT MAX(s.resolved_at) FROM unknown_item_slots s WHERE s.image_id = img.id) < sqlc.arg(resolved_before)::timestamptz
   )
-  OR (sess.branch_invoice_id IS NULL AND sess.expires_at < sqlc.arg(abandoned_before)::timestamptz);
+  OR (sess.branch_invoice_id IS NULL AND sess.expires_at < sqlc.arg(abandoned_before)::timestamptz)
+  OR (
+    NOT EXISTS (SELECT 1 FROM unknown_item_slots s WHERE s.image_id = img.id)
+    AND img.created_at < sqlc.arg(abandoned_before)::timestamptz
+  );
 
 -- name: DeleteUnknownItemImages :exec
 DELETE FROM unknown_item_images WHERE id = ANY($1::bigint[]);
+
+-- name: EnsureUnknownItemPairing :one
+-- The till's pairing, made on first use with the given token.
+INSERT INTO unknown_item_pairings (branch_id, register_id, token)
+VALUES ($1, $2, $3)
+ON CONFLICT (branch_id, register_id) DO UPDATE SET branch_id = EXCLUDED.branch_id
+RETURNING *;
+
+-- name: ResetUnknownItemPairing :one
+-- "Pair another phone": a new token, so the old phone's page stops working.
+INSERT INTO unknown_item_pairings (branch_id, register_id, token)
+VALUES ($1, $2, $3)
+ON CONFLICT (branch_id, register_id) DO UPDATE SET token = EXCLUDED.token, phone_seen_at = NULL
+RETURNING *;
+
+-- name: GetUnknownItemPairing :one
+SELECT * FROM unknown_item_pairings WHERE branch_id = $1 AND register_id = $2;
+
+-- name: GetUnknownItemPairingByToken :one
+SELECT * FROM unknown_item_pairings WHERE token = $1;
+
+-- name: SetUnknownItemPairingSession :exec
+UPDATE unknown_item_pairings SET current_session_id = $3
+WHERE branch_id = $1 AND register_id = $2;
+
+-- name: TouchUnknownItemPairing :exec
+UPDATE unknown_item_pairings SET phone_seen_at = now() WHERE token = $1;

@@ -341,6 +341,7 @@ type Querier interface {
 	CreateTransferItem(ctx context.Context, arg CreateTransferItemParams) (TransferItem, error)
 	CreateUnknownItemImage(ctx context.Context, arg CreateUnknownItemImageParams) (UnknownItemImage, error)
 	CreateUnknownItemSession(ctx context.Context, arg CreateUnknownItemSessionParams) (UnknownItemSession, error)
+	// A unit already there keeps its picture; its price may have been changed.
 	CreateUnknownItemSlot(ctx context.Context, arg CreateUnknownItemSlotParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateWhatsAppMessage(ctx context.Context, arg CreateWhatsAppMessageParams) (WhatsappMessage, error)
@@ -506,8 +507,12 @@ type Querier interface {
 	DeleteStockCountItems(ctx context.Context, stockCountID int64) error
 	DeleteTransferItem(ctx context.Context, arg DeleteTransferItemParams) error
 	DeleteUnknownItemImages(ctx context.Context, dollar_1 []int64) error
+	// The units the cashier took back out of the cart.
+	DeleteUnknownItemSlotsExcept(ctx context.Context, arg DeleteUnknownItemSlotsExceptParams) error
 	DeleteUser(ctx context.Context, id int64) error
 	DeleteWhatsAppNumber(ctx context.Context, id int64) error
+	// The till's pairing, made on first use with the given token.
+	EnsureUnknownItemPairing(ctx context.Context, arg EnsureUnknownItemPairingParams) (UnknownItemPairing, error)
 	FindUnknownInvoiceItem(ctx context.Context, arg FindUnknownInvoiceItemParams) (BranchInvoiceItem, error)
 	GetAppRelease(ctx context.Context, id int64) (AppRelease, error)
 	GetAppSettings(ctx context.Context) (AppSetting, error)
@@ -730,6 +735,9 @@ type Querier interface {
 	GetSupplier(ctx context.Context, id int64) (Supplier, error)
 	GetTransfer(ctx context.Context, id int64) (Transfer, error)
 	GetUnknownItemImage(ctx context.Context, id int64) (UnknownItemImage, error)
+	GetUnknownItemPairing(ctx context.Context, arg GetUnknownItemPairingParams) (UnknownItemPairing, error)
+	GetUnknownItemPairingByToken(ctx context.Context, token string) (UnknownItemPairing, error)
+	GetUnknownItemSession(ctx context.Context, id int64) (UnknownItemSession, error)
 	GetUnknownItemSessionByRef(ctx context.Context, arg GetUnknownItemSessionByRefParams) (UnknownItemSession, error)
 	GetUnknownItemSessionByToken(ctx context.Context, token string) (UnknownItemSession, error)
 	GetUnknownItemSlotByRef(ctx context.Context, arg GetUnknownItemSlotByRefParams) (UnknownItemSlot, error)
@@ -804,8 +812,9 @@ type Querier interface {
 	ListAttributes(ctx context.Context) ([]Attribute, error)
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]ListAuditLogsRow, error)
 	// What the daily clean-up removes: pictures whose units were all matched
-	// before resolved_before, and pictures of checkouts that never became a sale
-	// and whose link expired before abandoned_before.
+	// before resolved_before, pictures of checkouts that never became a sale and
+	// whose link expired before abandoned_before, and pictures of units taken
+	// back out of the cart (no unit left) taken before abandoned_before.
 	ListAutoDeletableUnknownItemImages(ctx context.Context, arg ListAutoDeletableUnknownItemImagesParams) ([]ListAutoDeletableUnknownItemImagesRow, error)
 	// FIFO order: oldest batch (by receipt/creation date) first. Walked by
 	// applyStockMovement to decide which batch(es) a sold unit debits.
@@ -1484,6 +1493,8 @@ type Querier interface {
 	MarkBranchShiftUploadTokenUsed(ctx context.Context, id int64) error
 	MarkBranchTransferUploadTokenUsed(ctx context.Context, id int64) error
 	MarkLoanUploadTokenUsed(ctx context.Context, id int64) error
+	// The cashier is at the payment: the session joins the Waiting tab.
+	MarkUnknownItemSessionCheckout(ctx context.Context, arg MarkUnknownItemSessionCheckoutParams) error
 	MarkUnknownItemSlotResolved(ctx context.Context, arg MarkUnknownItemSlotResolvedParams) error
 	MarkWhatsAppReviewClicked(ctx context.Context, id int64) error
 	// The WhatsApp rating poll over the range: polls sent, answers, and how many
@@ -1577,6 +1588,8 @@ type Querier interface {
 	// resolved to a kashi variant have no product and are left out.
 	ReportTopProducts(ctx context.Context, arg ReportTopProductsParams) ([]ReportTopProductsRow, error)
 	RequestUnknownItemHelp(ctx context.Context, arg RequestUnknownItemHelpParams) error
+	// "Pair another phone": a new token, so the old phone's page stops working.
+	ResetUnknownItemPairing(ctx context.Context, arg ResetUnknownItemPairingParams) (UnknownItemPairing, error)
 	ResolveBranchSyncConflict(ctx context.Context, arg ResolveBranchSyncConflictParams) (BranchSyncConflict, error)
 	// Idempotent: resolving a row twice keeps who resolved it first.
 	ResolveHomeActivity(ctx context.Context, arg ResolveHomeActivityParams) error
@@ -1710,6 +1723,7 @@ type Querier interface {
 	// CreateBranchTransferRequestTx resolves an outgoing line.
 	SetTransferItemReceivedQuantityByVariant(ctx context.Context, arg SetTransferItemReceivedQuantityByVariantParams) (int64, error)
 	SetTransferStatus(ctx context.Context, arg SetTransferStatusParams) (Transfer, error)
+	SetUnknownItemPairingSession(ctx context.Context, arg SetUnknownItemPairingSessionParams) error
 	// A slot already matched to a product keeps the picture it was matched with.
 	SetUnknownItemSlotImage(ctx context.Context, arg SetUnknownItemSlotImageParams) error
 	SetUserAvatarColor(ctx context.Context, arg SetUserAvatarColorParams) error
@@ -1730,6 +1744,7 @@ type Querier interface {
 	// Bumps both the register's and its branch's last_seen_at: the branch is
 	// "seen" whenever any of its registers is.
 	TouchBranchRegister(ctx context.Context, id int64) error
+	TouchUnknownItemPairing(ctx context.Context, token string) error
 	// Reopens a resolved urgent row, pinning it on Home again.
 	UnresolveHomeActivity(ctx context.Context, arg UnresolveHomeActivityParams) error
 	UnsetDefaultDiscountList(ctx context.Context, id int64) error
