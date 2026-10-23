@@ -18,8 +18,32 @@ from the product name.
 
 ## Discount list: Centro
 
-Created on production **inactive**, assigned to the Centro branch (its own
-list, so the default list is untouched). Activated only when the owner says.
+Created on production 2026-10-23, **inactive**, assigned to Centro: an
+inactive list is skipped, so Centro stays on Default until it is switched on
+(Discount Lists page → edit → Active). It is written as rules (000200), not
+codes, so new products that match get the discount on their own:
+
+| # | Rule | Matches | Discount |
+|---|---|---|---|
+| 1 | Accessories | category Accessories | none |
+| 2 | Home | category Home | none |
+| 3 | Outlet beauty & toys | codes CA/EOC5/EF6 + category Beauty or Toys | none |
+| 4 | Old stock | codes TOC, TKS, THP21, THO21 | none |
+| 5 | Outlet CA | codes CA (not CA22CS cosmetics) | 20%; Summer 50%, Winter 20% |
+| 6 | Outlet EOC5/EF6 lady | codes EOC5, EF6 + kind Lady | 20%; Summer 50%, Winter 20% |
+| 7 | Outlet EOC5/EF6 men jeans | codes EOC5, EF6 + Men + Jeans | 20%; Summer 50%, Winter 20% |
+| 8 | Outlet EOC5/EF6 others | codes EOC5, EF6 | Summer 50% only |
+| 9 | Baby Turkey | kind Baby + origin Turkey | 20% |
+| 10 | Lady Turkey | kind Lady + origin Turkey | 30% |
+| 11 | Favori and FNV | codes FDC, FNV | 30% |
+| 12 | Men jeans | kind Men + sub-category Jeans | 20% |
+
+The plain discount on outlet rules is what a till gives when it doesn't ask
+(an older app version). The 5,226 outlet clothes (CA, EOC5, EF6, not
+cosmetics, accessories, home or toys) ask Summer/Winter at the till; that is
+a product setting and applies in every branch.
+
+The group table below is how these rules were agreed.
 
 | # | Group | Asks Summer/Winter? | Winter | Summer |
 |---|---|---|---|---|
