@@ -53,6 +53,21 @@ func (mr *MockStoreMockRecorder) AcknowledgeSecurityAlerts(arg0, arg1 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AcknowledgeSecurityAlerts", reflect.TypeOf((*MockStore)(nil).AcknowledgeSecurityAlerts), arg0, arg1)
 }
 
+// ActiveDiscountListForBranch mocks base method.
+func (m *MockStore) ActiveDiscountListForBranch(arg0 context.Context, arg1 int64) (db.DiscountList, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ActiveDiscountListForBranch", arg0, arg1)
+	ret0, _ := ret[0].(db.DiscountList)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ActiveDiscountListForBranch indicates an expected call of ActiveDiscountListForBranch.
+func (mr *MockStoreMockRecorder) ActiveDiscountListForBranch(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActiveDiscountListForBranch", reflect.TypeOf((*MockStore)(nil).ActiveDiscountListForBranch), arg0, arg1)
+}
+
 // AddBatchItem mocks base method.
 func (m *MockStore) AddBatchItem(arg0 context.Context, arg1 db.AddBatchItemParams) (db.BatchItem, error) {
 	m.ctrl.T.Helper()
@@ -1139,6 +1154,21 @@ func (m *MockStore) CountBranchVisitorDays(arg0 context.Context, arg1 sql.NullIn
 func (mr *MockStoreMockRecorder) CountBranchVisitorDays(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountBranchVisitorDays", reflect.TypeOf((*MockStore)(nil).CountBranchVisitorDays), arg0, arg1)
+}
+
+// CountBranchesOnDefaultDiscountList mocks base method.
+func (m *MockStore) CountBranchesOnDefaultDiscountList(arg0 context.Context) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountBranchesOnDefaultDiscountList", arg0)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountBranchesOnDefaultDiscountList indicates an expected call of CountBranchesOnDefaultDiscountList.
+func (mr *MockStoreMockRecorder) CountBranchesOnDefaultDiscountList(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountBranchesOnDefaultDiscountList", reflect.TypeOf((*MockStore)(nil).CountBranchesOnDefaultDiscountList), arg0)
 }
 
 // CountCashboxAccountOverrides mocks base method.
@@ -9928,6 +9958,21 @@ func (m *MockStore) ListVariantsForBarcodes(arg0 context.Context, arg1 db.ListVa
 func (mr *MockStoreMockRecorder) ListVariantsForBarcodes(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListVariantsForBarcodes", reflect.TypeOf((*MockStore)(nil).ListVariantsForBarcodes), arg0, arg1)
+}
+
+// ListVariantsForDiscountEntry mocks base method.
+func (m *MockStore) ListVariantsForDiscountEntry(arg0 context.Context, arg1 string) ([]db.ListVariantsForDiscountEntryRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListVariantsForDiscountEntry", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListVariantsForDiscountEntryRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListVariantsForDiscountEntry indicates an expected call of ListVariantsForDiscountEntry.
+func (mr *MockStoreMockRecorder) ListVariantsForDiscountEntry(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListVariantsForDiscountEntry", reflect.TypeOf((*MockStore)(nil).ListVariantsForDiscountEntry), arg0, arg1)
 }
 
 // ListVisitorIPs mocks base method.

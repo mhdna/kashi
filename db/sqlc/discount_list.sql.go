@@ -13,6 +13,38 @@ import (
 	"github.com/lib/pq"
 )
 
+const activeDiscountListForBranch = `-- name: ActiveDiscountListForBranch :one
+SELECT dl.id, dl.name, dl.is_active, dl.is_default, dl.valid_from, dl.valid_to, dl.created_at, dl.uid, dl.updated_at, dl.is_special FROM discount_lists dl
+LEFT JOIN discount_list_branches dlb
+  ON dlb.discount_list_id = dl.id AND dlb.branch_id = $1
+WHERE dl.is_active = true
+  AND now() >= dl.valid_from AND now() <= dl.valid_to
+  AND (dlb.branch_id IS NOT NULL OR dl.is_default = true)
+ORDER BY (dlb.branch_id IS NOT NULL) DESC
+LIMIT 1
+`
+
+// The list a branch is discounted from: its own assigned list when that one
+// is active and in date, otherwise the default -- the same choice
+// ResolveVariantDiscount makes, and the till makes from what it's sent.
+func (q *Queries) ActiveDiscountListForBranch(ctx context.Context, branchID int64) (DiscountList, error) {
+	row := q.db.QueryRowContext(ctx, activeDiscountListForBranch, branchID)
+	var i DiscountList
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.IsActive,
+		&i.IsDefault,
+		&i.ValidFrom,
+		&i.ValidTo,
+		&i.CreatedAt,
+		&i.Uid,
+		&i.UpdatedAt,
+		&i.IsSpecial,
+	)
+	return i, err
+}
+
 const bulkSetDiscountListItems = `-- name: BulkSetDiscountListItems :many
 WITH matched AS (
   SELECT DISTINCT pv.id AS variant_id
@@ -56,6 +88,24 @@ func (q *Queries) BulkSetDiscountListItems(ctx context.Context, arg BulkSetDisco
 		return nil, err
 	}
 	return items, nil
+}
+
+const countBranchesOnDefaultDiscountList = `-- name: CountBranchesOnDefaultDiscountList :one
+SELECT COUNT(*) FROM branches b
+WHERE NOT EXISTS (
+  SELECT 1 FROM discount_list_branches dlb
+  JOIN discount_lists dl ON dl.id = dlb.discount_list_id
+  WHERE dlb.branch_id = b.id AND dl.is_active = true
+    AND now() >= dl.valid_from AND now() <= dl.valid_to
+)
+`
+
+// Branches with no active list of their own, i.e. discounted from the default.
+func (q *Queries) CountBranchesOnDefaultDiscountList(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countBranchesOnDefaultDiscountList)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const countDiscountListItemsWithProduct = `-- name: CountDiscountListItemsWithProduct :one
@@ -559,6 +609,60 @@ func (q *Queries) ListUnmatchedDiscountEntries(ctx context.Context, entries []st
 			return nil, err
 		}
 		items = append(items, entry)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listVariantsForDiscountEntry = `-- name: ListVariantsForDiscountEntry :many
+SELECT pv.id, pv.barcode, p.code AS product_code, p.name AS product_name,
+       COALESCE(colors.name, '')::text AS color_name,
+       COALESCE(sizes.name, '')::text AS size_name
+FROM product_variants pv
+JOIN products p ON p.id = pv.product_id
+LEFT JOIN colors ON colors.id = pv.color_id
+LEFT JOIN sizes ON sizes.id = pv.size_id
+WHERE pv.barcode = $1::text OR lower(p.code) = lower($1::text)
+ORDER BY pv.id
+`
+
+type ListVariantsForDiscountEntryRow struct {
+	ID          int64  `json:"id"`
+	Barcode     string `json:"barcode"`
+	ProductCode string `json:"product_code"`
+	ProductName string `json:"product_name"`
+	ColorName   string `json:"color_name"`
+	SizeName    string `json:"size_name"`
+}
+
+// What one typed or scanned entry names, matched like
+// BulkSetDiscountListItems: a barcode names its variant, a code all of its
+// product's variants.
+func (q *Queries) ListVariantsForDiscountEntry(ctx context.Context, entry string) ([]ListVariantsForDiscountEntryRow, error) {
+	rows, err := q.db.QueryContext(ctx, listVariantsForDiscountEntry, entry)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListVariantsForDiscountEntryRow{}
+	for rows.Next() {
+		var i ListVariantsForDiscountEntryRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Barcode,
+			&i.ProductCode,
+			&i.ProductName,
+			&i.ColorName,
+			&i.SizeName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
