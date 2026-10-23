@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -27,6 +29,16 @@ func attributeValues(a Attributes) []db.AttributesValue {
 		{AttributeID: 7, Value: a.Season},
 		{AttributeID: 8, Value: a.Origin},
 	}
+}
+
+// withDefaultYear fills in the year a new product was added when none was
+// given, so a product created today lands in this year's stock instead of
+// having no year at all.
+func withDefaultYear(a Attributes, now time.Time) Attributes {
+	if strings.TrimSpace(a.Year) == "" {
+		a.Year = strconv.Itoa(now.Year())
+	}
+	return a
 }
 
 type Attributes struct {
@@ -71,7 +83,7 @@ func (server *Server) createProduct(ctx *gin.Context) {
 		Name:            req.Name,
 		Description:     req.Description,
 		Discount:        req.Discount,
-		AttributeValues: attributeValues(req.Attributes),
+		AttributeValues: attributeValues(withDefaultYear(req.Attributes, time.Now())),
 		Barcode:         req.Barcode,
 		ColorID:         req.ColorID,
 		SizeID:          req.SizeID,

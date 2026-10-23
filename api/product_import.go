@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/mhdna/kashi/db/sqlc"
@@ -23,7 +24,8 @@ type productImportRow struct {
 // importProductsCSV creates one product per row of an uploaded CSV with the
 // columns code, name, price (USD, e.g. 6.70) and an optional description.
 // Each product gets a single variant with a generated barcode, priced on the
-// default list -- the same thing "Add Product" does with no colours/sizes.
+// default list and given this year -- the same thing "Add Product" does with
+// no colours/sizes.
 //
 // Every row is validated before anything is written, so a typo in row 20
 // doesn't leave rows 1-19 half-imported. A code that already exists is
@@ -81,7 +83,7 @@ func (server *Server) importProductsCSV(ctx *gin.Context) {
 			Code:            row.code,
 			Name:            row.name,
 			Description:     row.description,
-			AttributeValues: attributeValues(Attributes{}),
+			AttributeValues: attributeValues(withDefaultYear(Attributes{}, time.Now())),
 			Price:           &price,
 		})
 		if err != nil {
