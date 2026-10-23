@@ -97,3 +97,55 @@ put October 2026 on all of them.
 | year / season | from the code | 2021…2026 / Summer, Winter |
 
 Only empty fields are filled; nothing the owner set by hand is overwritten.
+
+Kind comes from the name's first word: Lady, Men/Man, Kids, Baby; Junior →
+Kids, Mixed/Mix → Unisex.
+
+## Categories
+
+Read from words in the product name, first match wins, top to bottom. Home
+prefixes (see Kind of stock) are always Home whatever the name says. BZ is
+left out (deactivated). Coverage on the 2026-10-17 snapshot: 13,173 of
+13,755 products (96%).
+
+| Category | Sub-category | Name words |
+|---|---|---|
+| Home | Home | cup, glass, plate, bowl, towel, blanket, table cover, carpet, cutting board, mat, pot, tray, container, mug, sheet, pillow, comforter, curtain |
+| Beauty | Perfume & Care | body milk, body lotion, perfume, for him/her, shampoo, conditioner, lotion, cream, sanitizer, shower gel, spray |
+| Accessories | Bag | bag, sack, wallet, purse, backpack |
+| | Hat & Cap | hat, cap, beanie |
+| | Gloves | glove |
+| | Scarf & Shawl | scarf, shawl, neck cover, hijab |
+| | Socks & Tights | sock, collant, tights |
+| | Belt | belt |
+| | Watch & Jewelry | watch, bracelet, ring, necklace, earring, key holder |
+| | Other | accessor, sunglasses, umbrella, lunch box, water bottle |
+| Shoes | Shoes | shoe, sneaker, boot, slipper, sandal, trainer |
+| Swimwear | Swimwear | mayo, swim, bikini, burkini |
+| Underwear & Night | Pyjama | pyjama, night |
+| | Underwear | boxer, slip, bra, underwear, bretel, brief, camisole |
+| | Robe | rob, robe |
+| Sets | Overall & Romper | overall, romper, barboteuse, jumpsuit, onesie, salopette |
+| | Set | set, suit, tracksuit, "N pcs" |
+| Dresses | Dress | dress, abaya, tunic, kaftan |
+| Outerwear | Coat | coat, parka, trench, fur, vizon |
+| | Jacket | jacket, anorak, blazer, bomber, windbreaker, ski |
+| | Vest & Gilet | vest, gilet |
+| Tops | Hoodie | hood |
+| | Sweatshirt | sweatshirt |
+| | Sweater | sweater, pullover, cardigan, knit, wool, jumper, bolero |
+| | Polo | polo |
+| | T-Shirt | t-shirt, tee, top, tank, sleeveless, carre |
+| | Blouse | blouse, blouze |
+| | Shirt | shirt |
+| | Body | body |
+| Bottoms | Jeans | jean, denim |
+| | Shorts | short, bermuda |
+| | Skirt | skirt |
+| | Leggings | legging |
+| | Pants | pant, trouser, jogging, cargo, chino |
+| Toys | Toys | toy, football, basketball, rc, game, ball, doll, puzzle, lego, bike, scooter… |
+
+Left without a category (582): names that say nothing about the garment —
+"Baby Item" (131), "Unidentified", "tmp", "Mixed Items", "Sports articles".
+Their kind is still filled from the name.
