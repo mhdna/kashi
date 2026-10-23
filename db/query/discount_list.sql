@@ -114,6 +114,9 @@ WITH rows AS (
 )
 SELECT r.discount_list_id, r.product_variant_id, r.discount,
        r.sale_option_id, r.sale_option,
+       -- A variant can have a plain row and option rows, so the page needs
+       -- something unique to key and select a row by.
+       (r.product_variant_id::text || ':' || r.sale_option_id::text)::text AS row_key,
        pv.uid AS product_variant_uid, pv.barcode,
        p.code AS product_code, p.name AS product_name,
        -- See ListPriceListItemsWithProduct for why these coalesce.
