@@ -142,6 +142,21 @@ func (mr *MockStoreMockRecorder) AddInvoiceProduct(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddInvoiceProduct", reflect.TypeOf((*MockStore)(nil).AddInvoiceProduct), arg0, arg1)
 }
 
+// AddProductSaleOptionsForEntries mocks base method.
+func (m *MockStore) AddProductSaleOptionsForEntries(arg0 context.Context, arg1 db.AddProductSaleOptionsForEntriesParams) ([]int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddProductSaleOptionsForEntries", arg0, arg1)
+	ret0, _ := ret[0].([]int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AddProductSaleOptionsForEntries indicates an expected call of AddProductSaleOptionsForEntries.
+func (mr *MockStoreMockRecorder) AddProductSaleOptionsForEntries(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddProductSaleOptionsForEntries", reflect.TypeOf((*MockStore)(nil).AddProductSaleOptionsForEntries), arg0, arg1)
+}
+
 // AddPurchaseItem mocks base method.
 func (m *MockStore) AddPurchaseItem(arg0 context.Context, arg1 db.AddPurchaseItemParams) (db.PurchaseItem, error) {
 	m.ctrl.T.Helper()
@@ -603,6 +618,21 @@ func (mr *MockStoreMockRecorder) BulkSetDiscountListItems(arg0, arg1 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BulkSetDiscountListItems", reflect.TypeOf((*MockStore)(nil).BulkSetDiscountListItems), arg0, arg1)
 }
 
+// BulkSetDiscountListOptionItems mocks base method.
+func (m *MockStore) BulkSetDiscountListOptionItems(arg0 context.Context, arg1 db.BulkSetDiscountListOptionItemsParams) ([]int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BulkSetDiscountListOptionItems", arg0, arg1)
+	ret0, _ := ret[0].([]int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BulkSetDiscountListOptionItems indicates an expected call of BulkSetDiscountListOptionItems.
+func (mr *MockStoreMockRecorder) BulkSetDiscountListOptionItems(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BulkSetDiscountListOptionItems", reflect.TypeOf((*MockStore)(nil).BulkSetDiscountListOptionItems), arg0, arg1)
+}
+
 // BumpAdminActivity mocks base method.
 func (m *MockStore) BumpAdminActivity(arg0 context.Context, arg1 db.BumpAdminActivityParams) (int64, error) {
 	m.ctrl.T.Helper()
@@ -810,6 +840,20 @@ func (m *MockStore) ClearDefaultWhatsAppNumber(arg0 context.Context) error {
 func (mr *MockStoreMockRecorder) ClearDefaultWhatsAppNumber(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearDefaultWhatsAppNumber", reflect.TypeOf((*MockStore)(nil).ClearDefaultWhatsAppNumber), arg0)
+}
+
+// ClearProductSaleOptionsForEntries mocks base method.
+func (m *MockStore) ClearProductSaleOptionsForEntries(arg0 context.Context, arg1 []string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClearProductSaleOptionsForEntries", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ClearProductSaleOptionsForEntries indicates an expected call of ClearProductSaleOptionsForEntries.
+func (mr *MockStoreMockRecorder) ClearProductSaleOptionsForEntries(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearProductSaleOptionsForEntries", reflect.TypeOf((*MockStore)(nil).ClearProductSaleOptionsForEntries), arg0, arg1)
 }
 
 // ClientPhonesPresent mocks base method.
@@ -3132,6 +3176,21 @@ func (mr *MockStoreMockRecorder) CreateRole(arg0, arg1 interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRole", reflect.TypeOf((*MockStore)(nil).CreateRole), arg0, arg1)
 }
 
+// CreateSaleOption mocks base method.
+func (m *MockStore) CreateSaleOption(arg0 context.Context, arg1 db.CreateSaleOptionParams) (db.SaleOption, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSaleOption", arg0, arg1)
+	ret0, _ := ret[0].(db.SaleOption)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateSaleOption indicates an expected call of CreateSaleOption.
+func (mr *MockStoreMockRecorder) CreateSaleOption(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSaleOption", reflect.TypeOf((*MockStore)(nil).CreateSaleOption), arg0, arg1)
+}
+
 // CreateSalesInvoice mocks base method.
 func (m *MockStore) CreateSalesInvoice(arg0 context.Context, arg1 int64) (int64, error) {
 	m.ctrl.T.Helper()
@@ -4198,6 +4257,35 @@ func (m *MockStore) DeleteDiscountListItems(arg0 context.Context, arg1 db.Delete
 func (mr *MockStoreMockRecorder) DeleteDiscountListItems(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteDiscountListItems", reflect.TypeOf((*MockStore)(nil).DeleteDiscountListItems), arg0, arg1)
+}
+
+// DeleteDiscountListOptionItem mocks base method.
+func (m *MockStore) DeleteDiscountListOptionItem(arg0 context.Context, arg1 db.DeleteDiscountListOptionItemParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteDiscountListOptionItem", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteDiscountListOptionItem indicates an expected call of DeleteDiscountListOptionItem.
+func (mr *MockStoreMockRecorder) DeleteDiscountListOptionItem(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteDiscountListOptionItem", reflect.TypeOf((*MockStore)(nil).DeleteDiscountListOptionItem), arg0, arg1)
+}
+
+// DeleteDiscountListOptionItems mocks base method.
+func (m *MockStore) DeleteDiscountListOptionItems(arg0 context.Context, arg1 db.DeleteDiscountListOptionItemsParams) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteDiscountListOptionItems", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteDiscountListOptionItems indicates an expected call of DeleteDiscountListOptionItems.
+func (mr *MockStoreMockRecorder) DeleteDiscountListOptionItems(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteDiscountListOptionItems", reflect.TypeOf((*MockStore)(nil).DeleteDiscountListOptionItems), arg0, arg1)
 }
 
 // DeleteEmailSchedule mocks base method.
@@ -6316,6 +6404,21 @@ func (m *MockStore) GetRole(arg0 context.Context, arg1 int64) (db.Role, error) {
 func (mr *MockStoreMockRecorder) GetRole(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRole", reflect.TypeOf((*MockStore)(nil).GetRole), arg0, arg1)
+}
+
+// GetSaleOption mocks base method.
+func (m *MockStore) GetSaleOption(arg0 context.Context, arg1 int64) (db.SaleOption, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSaleOption", arg0, arg1)
+	ret0, _ := ret[0].(db.SaleOption)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSaleOption indicates an expected call of GetSaleOption.
+func (mr *MockStoreMockRecorder) GetSaleOption(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSaleOption", reflect.TypeOf((*MockStore)(nil).GetSaleOption), arg0, arg1)
 }
 
 // GetSalesInvoice mocks base method.
@@ -8655,6 +8758,21 @@ func (mr *MockStoreMockRecorder) ListDiscountListItemsWithProduct(arg0, arg1 int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDiscountListItemsWithProduct", reflect.TypeOf((*MockStore)(nil).ListDiscountListItemsWithProduct), arg0, arg1)
 }
 
+// ListDiscountListOptionItemsForSync mocks base method.
+func (m *MockStore) ListDiscountListOptionItemsForSync(arg0 context.Context, arg1 int64) ([]db.ListDiscountListOptionItemsForSyncRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListDiscountListOptionItemsForSync", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListDiscountListOptionItemsForSyncRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListDiscountListOptionItemsForSync indicates an expected call of ListDiscountListOptionItemsForSync.
+func (mr *MockStoreMockRecorder) ListDiscountListOptionItemsForSync(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDiscountListOptionItemsForSync", reflect.TypeOf((*MockStore)(nil).ListDiscountListOptionItemsForSync), arg0, arg1)
+}
+
 // ListDiscountLists mocks base method.
 func (m *MockStore) ListDiscountLists(arg0 context.Context, arg1 db.ListDiscountListsParams) ([]db.DiscountList, error) {
 	m.ctrl.T.Helper()
@@ -9360,6 +9478,21 @@ func (mr *MockStoreMockRecorder) ListProductRevenueDaily(arg0, arg1 interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListProductRevenueDaily", reflect.TypeOf((*MockStore)(nil).ListProductRevenueDaily), arg0, arg1)
 }
 
+// ListProductSaleOptionNames mocks base method.
+func (m *MockStore) ListProductSaleOptionNames(arg0 context.Context, arg1 int64) ([]db.ListProductSaleOptionNamesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListProductSaleOptionNames", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListProductSaleOptionNamesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListProductSaleOptionNames indicates an expected call of ListProductSaleOptionNames.
+func (mr *MockStoreMockRecorder) ListProductSaleOptionNames(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListProductSaleOptionNames", reflect.TypeOf((*MockStore)(nil).ListProductSaleOptionNames), arg0, arg1)
+}
+
 // ListProductVariantIDsByUIDs mocks base method.
 func (m *MockStore) ListProductVariantIDsByUIDs(arg0 context.Context, arg1 []uuid.UUID) ([]db.ListProductVariantIDsByUIDsRow, error) {
 	m.ctrl.T.Helper()
@@ -9583,6 +9716,21 @@ func (m *MockStore) ListSaleMovementsForInvoiceVariant(arg0 context.Context, arg
 func (mr *MockStoreMockRecorder) ListSaleMovementsForInvoiceVariant(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSaleMovementsForInvoiceVariant", reflect.TypeOf((*MockStore)(nil).ListSaleMovementsForInvoiceVariant), arg0, arg1)
+}
+
+// ListSaleOptions mocks base method.
+func (m *MockStore) ListSaleOptions(arg0 context.Context) ([]db.SaleOption, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListSaleOptions", arg0)
+	ret0, _ := ret[0].([]db.SaleOption)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListSaleOptions indicates an expected call of ListSaleOptions.
+func (mr *MockStoreMockRecorder) ListSaleOptions(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSaleOptions", reflect.TypeOf((*MockStore)(nil).ListSaleOptions), arg0)
 }
 
 // ListSalespersons mocks base method.
@@ -11588,6 +11736,21 @@ func (mr *MockStoreMockRecorder) SetProductLowStockAlertsEnabled(arg0, arg1 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetProductLowStockAlertsEnabled", reflect.TypeOf((*MockStore)(nil).SetProductLowStockAlertsEnabled), arg0, arg1)
 }
 
+// SetProductSaleOptionsTx mocks base method.
+func (m *MockStore) SetProductSaleOptionsTx(arg0 context.Context, arg1 []string, arg2 []int64) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetProductSaleOptionsTx", arg0, arg1, arg2)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetProductSaleOptionsTx indicates an expected call of SetProductSaleOptionsTx.
+func (mr *MockStoreMockRecorder) SetProductSaleOptionsTx(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetProductSaleOptionsTx", reflect.TypeOf((*MockStore)(nil).SetProductSaleOptionsTx), arg0, arg1, arg2)
+}
+
 // SetProductVariantActive mocks base method.
 func (m *MockStore) SetProductVariantActive(arg0 context.Context, arg1 db.SetProductVariantActiveParams) error {
 	m.ctrl.T.Helper()
@@ -12933,6 +13096,20 @@ func (m *MockStore) UpsertDiscountListBranch(arg0 context.Context, arg1 db.Upser
 func (mr *MockStoreMockRecorder) UpsertDiscountListBranch(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpsertDiscountListBranch", reflect.TypeOf((*MockStore)(nil).UpsertDiscountListBranch), arg0, arg1)
+}
+
+// UpsertDiscountListOptionItem mocks base method.
+func (m *MockStore) UpsertDiscountListOptionItem(arg0 context.Context, arg1 db.UpsertDiscountListOptionItemParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpsertDiscountListOptionItem", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpsertDiscountListOptionItem indicates an expected call of UpsertDiscountListOptionItem.
+func (mr *MockStoreMockRecorder) UpsertDiscountListOptionItem(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpsertDiscountListOptionItem", reflect.TypeOf((*MockStore)(nil).UpsertDiscountListOptionItem), arg0, arg1)
 }
 
 // UpsertGoogleReview mocks base method.

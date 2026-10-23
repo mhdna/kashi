@@ -32,6 +32,9 @@ type Querier interface {
 	// untouched (used for sales, returns, transfers, adjustments).
 	AddInventoryStockQuantity(ctx context.Context, arg AddInventoryStockQuantityParams) (InventoryStock, error)
 	AddInvoiceProduct(ctx context.Context, arg AddInvoiceProductParams) (InvoiceProduct, error)
+	// Gives every product named by entries each of the options; returns the
+	// product ids it matched.
+	AddProductSaleOptionsForEntries(ctx context.Context, arg AddProductSaleOptionsForEntriesParams) ([]int64, error)
 	AddPurchaseItem(ctx context.Context, arg AddPurchaseItemParams) (PurchaseItem, error)
 	AddPurchasedProduct(ctx context.Context, arg AddPurchasedProductParams) (ProductSupplier, error)
 	AddPurchasedProductCost(ctx context.Context, arg AddPurchasedProductCostParams) (ProductSupplierCost, error)
@@ -104,6 +107,9 @@ type Querier interface {
 	// the list at one discount (adding it or changing it). A code names all of its
 	// product's variants. Returns the variant ids it set.
 	BulkSetDiscountListItems(ctx context.Context, arg BulkSetDiscountListItemsParams) ([]int64, error)
+	// BulkSetDiscountListItems for one option: the discount applies to the
+	// matched variants only when they are sold as that option.
+	BulkSetDiscountListOptionItems(ctx context.Context, arg BulkSetDiscountListOptionItemsParams) ([]int64, error)
 	// Folds a repeat into the feed's newest entry when it's the same change by
 	// the same person, made less than an hour after it: the count goes up and
 	// the time moves to now. No row back (sql.ErrNoRows) means it wasn't a
@@ -140,6 +146,9 @@ type Querier interface {
 	// yet, within the last 12 hours) and takes it over, so it isn't messaged twice.
 	ClaimWhatsAppWelcome(ctx context.Context, arg ClaimWhatsAppWelcomeParams) (int64, error)
 	ClearDefaultWhatsAppNumber(ctx context.Context) error
+	// Entries are matched the way BulkSetDiscountListItems matches them: a
+	// variant barcode names its product, a code names the product directly.
+	ClearProductSaleOptionsForEntries(ctx context.Context, entries []string) error
 	ClientPhonesPresent(ctx context.Context, dollar_1 []string) ([]string, error)
 	CloseShift(ctx context.Context, id int64) error
 	CompleteBranchCommand(ctx context.Context, arg CompleteBranchCommandParams) (BranchCommand, error)
@@ -332,6 +341,7 @@ type Querier interface {
 	CreateReturnInvoice(ctx context.Context, arg CreateReturnInvoiceParams) (ReturnInvoice, error)
 	CreateReviewLinkClick(ctx context.Context, arg CreateReviewLinkClickParams) error
 	CreateRole(ctx context.Context, name string) (Role, error)
+	CreateSaleOption(ctx context.Context, arg CreateSaleOptionParams) (SaleOption, error)
 	CreateSalesInvoice(ctx context.Context, invoiceID int64) (int64, error)
 	CreateSalesperson(ctx context.Context, arg CreateSalespersonParams) (Salesperson, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
@@ -474,6 +484,10 @@ type Querier interface {
 	DeleteDiscountListBranchesForList(ctx context.Context, discountListID int64) error
 	DeleteDiscountListItem(ctx context.Context, arg DeleteDiscountListItemParams) error
 	DeleteDiscountListItems(ctx context.Context, arg DeleteDiscountListItemsParams) (int64, error)
+	DeleteDiscountListOptionItem(ctx context.Context, arg DeleteDiscountListOptionItemParams) error
+	// Rows are named by (variant, option) pairs, given as two parallel arrays;
+	// two unnests in one select list zip them pairwise.
+	DeleteDiscountListOptionItems(ctx context.Context, arg DeleteDiscountListOptionItemsParams) (int64, error)
 	DeleteEmailSchedule(ctx context.Context, id int64) error
 	DeleteEmployee(ctx context.Context, id int64) error
 	DeleteExpense(ctx context.Context, id int64) error
@@ -719,6 +733,7 @@ type Querier interface {
 	// the Reviews page (api/review_link.go, api/google_places.go).
 	GetReviewSettings(ctx context.Context) (GetReviewSettingsRow, error)
 	GetRole(ctx context.Context, id int64) (Role, error)
+	GetSaleOption(ctx context.Context, id int64) (SaleOption, error)
 	GetSalesInvoice(ctx context.Context, invoiceID int64) (int64, error)
 	GetSalesperson(ctx context.Context, id int64) (Salesperson, error)
 	// Another salesperson of the same branch already using this device number.
@@ -1205,8 +1220,13 @@ type Querier interface {
 	ListDiscountListItems(ctx context.Context, discountListID int64) ([]DiscountListItem, error)
 	ListDiscountListItemsForSync(ctx context.Context, discountListID int64) ([]ListDiscountListItemsForSyncRow, error)
 	// See ListPriceListItemsWithProduct: rows are variant-level, so the label needs
-	// the barcode and color/size to be identifiable.
+	// the barcode and color/size to be identifiable. Option rows (000199) are
+	// listed alongside the plain ones; sale_option_id 0 / sale_option '' marks a
+	// plain row.
 	ListDiscountListItemsWithProduct(ctx context.Context, arg ListDiscountListItemsWithProductParams) ([]ListDiscountListItemsWithProductRow, error)
+	// Options travel by name, like colors and attributes: a till has no copy of
+	// kashi's sale_options ids.
+	ListDiscountListOptionItemsForSync(ctx context.Context, discountListID int64) ([]ListDiscountListOptionItemsForSyncRow, error)
 	ListDiscountLists(ctx context.Context, arg ListDiscountListsParams) ([]DiscountList, error)
 	// See ListPriceListsForBranchSync -- same scoping and same reason for
 	// carrying is_active rather than filtering on it.
@@ -1337,6 +1357,7 @@ type Querier interface {
 	// Same scope and filters as ListProductRevenue, rolled up by local calendar
 	// day instead of by product -- the trend line for the Product Revenues page.
 	ListProductRevenueDaily(ctx context.Context, arg ListProductRevenueDailyParams) ([]ListProductRevenueDailyRow, error)
+	ListProductSaleOptionNames(ctx context.Context, productID int64) ([]ListProductSaleOptionNamesRow, error)
 	ListProductVariantIDsByUIDs(ctx context.Context, uids []uuid.UUID) ([]ListProductVariantIDsByUIDsRow, error)
 	ListProductVariants(ctx context.Context, arg ListProductVariantsParams) ([]ListProductVariantsRow, error)
 	ListProductVariantsByProduct(ctx context.Context, productID int64) ([]ProductVariant, error)
@@ -1389,6 +1410,7 @@ type Querier interface {
 	// untracked. quantity is negative (sale); batch_id is null for the
 	// unattributed remainder, if the sale outran every tracked batch.
 	ListSaleMovementsForInvoiceVariant(ctx context.Context, arg ListSaleMovementsForInvoiceVariantParams) ([]ListSaleMovementsForInvoiceVariantRow, error)
+	ListSaleOptions(ctx context.Context) ([]SaleOption, error)
 	ListSalespersons(ctx context.Context, arg ListSalespersonsParams) ([]Salesperson, error)
 	ListSalespersonsByCashbox(ctx context.Context, cashboxID sql.NullInt64) ([]Salesperson, error)
 	ListSalespersonsForBranch(ctx context.Context, branchID sql.NullInt64) ([]Salesperson, error)
@@ -1810,6 +1832,7 @@ type Querier interface {
 	UpsertClientLink(ctx context.Context, arg UpsertClientLinkParams) error
 	UpsertDefaultBranchSettings(ctx context.Context, settings json.RawMessage) (DefaultBranchSetting, error)
 	UpsertDiscountListBranch(ctx context.Context, arg UpsertDiscountListBranchParams) error
+	UpsertDiscountListOptionItem(ctx context.Context, arg UpsertDiscountListOptionItemParams) error
 	UpsertGoogleReview(ctx context.Context, arg UpsertGoogleReviewParams) error
 	UpsertIPBan(ctx context.Context, arg UpsertIPBanParams) error
 	// Reactivates inventories_assets (created 000012, never wired up until now):

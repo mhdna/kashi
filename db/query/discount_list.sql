@@ -97,34 +97,57 @@ ORDER BY product_variant_id;
 
 -- name: ListDiscountListItemsWithProduct :many
 -- See ListPriceListItemsWithProduct: rows are variant-level, so the label needs
--- the barcode and color/size to be identifiable.
-SELECT dli.discount_list_id, dli.product_variant_id, dli.discount,
+-- the barcode and color/size to be identifiable. Option rows (000199) are
+-- listed alongside the plain ones; sale_option_id 0 / sale_option '' marks a
+-- plain row.
+WITH rows AS (
+  SELECT dli.discount_list_id, dli.product_variant_id, dli.discount,
+         0::bigint AS sale_option_id, ''::text AS sale_option, 0 AS sale_option_order
+  FROM discount_list_items dli
+  WHERE dli.discount_list_id = sqlc.arg(discount_list_id)
+  UNION ALL
+  SELECT dloi.discount_list_id, dloi.product_variant_id, dloi.discount,
+         so.id, so.name, so.sort_order
+  FROM discount_list_option_items dloi
+  JOIN sale_options so ON so.id = dloi.sale_option_id
+  WHERE dloi.discount_list_id = sqlc.arg(discount_list_id)
+)
+SELECT r.discount_list_id, r.product_variant_id, r.discount,
+       r.sale_option_id, r.sale_option,
+       -- A variant can have a plain row and option rows, so the page needs
+       -- something unique to key and select a row by.
+       (r.product_variant_id::text || ':' || r.sale_option_id::text)::text AS row_key,
        pv.uid AS product_variant_uid, pv.barcode,
        p.code AS product_code, p.name AS product_name,
        -- See ListPriceListItemsWithProduct for why these coalesce.
        COALESCE(colors.name, '')::text AS color_name,
        COALESCE(sizes.name, '')::text AS size_name
-FROM discount_list_items dli
-JOIN product_variants pv ON pv.id = dli.product_variant_id
+FROM rows r
+JOIN product_variants pv ON pv.id = r.product_variant_id
 JOIN products p ON p.id = pv.product_id
 LEFT JOIN colors ON colors.id = pv.color_id
 LEFT JOIN sizes ON sizes.id = pv.size_id
-WHERE dli.discount_list_id = $1
-  AND (sqlc.arg(search)::text = ''
+WHERE (sqlc.arg(search)::text = ''
        OR p.name ILIKE '%' || sqlc.arg(search)::text || '%'
        OR p.code ILIKE '%' || sqlc.arg(search)::text || '%'
        OR pv.barcode ILIKE '%' || sqlc.arg(search)::text || '%')
-ORDER BY p.name, dli.product_variant_id
+ORDER BY p.name, r.product_variant_id, r.sale_option_order
 LIMIT sqlc.arg(page_size)
 OFFSET sqlc.arg(page_offset);
 
 -- name: CountDiscountListItemsWithProduct :one
+WITH rows AS (
+  SELECT dli.product_variant_id FROM discount_list_items dli
+  WHERE dli.discount_list_id = sqlc.arg(discount_list_id)
+  UNION ALL
+  SELECT dloi.product_variant_id FROM discount_list_option_items dloi
+  WHERE dloi.discount_list_id = sqlc.arg(discount_list_id)
+)
 SELECT COUNT(*)
-FROM discount_list_items dli
-JOIN product_variants pv ON pv.id = dli.product_variant_id
+FROM rows r
+JOIN product_variants pv ON pv.id = r.product_variant_id
 JOIN products p ON p.id = pv.product_id
-WHERE dli.discount_list_id = $1
-  AND (sqlc.arg(search)::text = ''
+WHERE (sqlc.arg(search)::text = ''
        OR p.name ILIKE '%' || sqlc.arg(search)::text || '%'
        OR p.code ILIKE '%' || sqlc.arg(search)::text || '%'
        OR pv.barcode ILIKE '%' || sqlc.arg(search)::text || '%');

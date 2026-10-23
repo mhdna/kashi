@@ -68,16 +68,22 @@ export function useValueListStore ({ base, rootKey, listIdKey, valueKey }) {
   const itemsURL = id => `${API_BASE}${base}/${id}/items`
 
   // Upsert — POST does INSERT ... ON CONFLICT DO UPDATE, so it adds or edits.
-  async function saveItem (listId, variantId, value) {
+  // saleOptionId (discount lists only) names a per-option row; 0 is the plain one.
+  async function saveItem (listId, variantId, value, saleOptionId = 0) {
+    const body = { [listIdKey]: listId, product_variant_id: variantId, [valueKey]: value }
+    if (saleOptionId) {
+      body.sale_option_id = saleOptionId
+    }
     return requestJSON(`${API_BASE}${base}/items`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ [listIdKey]: listId, product_variant_id: variantId, [valueKey]: value }),
+      body: JSON.stringify(body),
     })
   }
 
-  async function deleteItem (listId, variantId) {
-    await requestJSON(`${API_BASE}${base}/${listId}/items/${variantId}`, { method: 'DELETE' })
+  async function deleteItem (listId, variantId, saleOptionId = 0) {
+    const query = saleOptionId ? `?sale_option_id=${saleOptionId}` : ''
+    await requestJSON(`${API_BASE}${base}/${listId}/items/${variantId}${query}`, { method: 'DELETE' })
   }
 
   async function fetchBranchIds (listId) {
