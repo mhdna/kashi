@@ -1,8 +1,14 @@
 # Product rules: discounts, origins, stock kinds
 
 What the owner agreed on 2026-10-23 for filling product fields and for the
-Centro discount list. Nothing here is applied on production yet: each change
-goes through a dry-run report the owner checks, then a backup, then the run.
+Centro discount list.
+
+Applied on production 2026-10-23 (backup first:
+`/root/backups/kashi-before-attr-backfill-2026-10-23.dump`): origin, brand,
+year, kind, category, sub-category and season filled where empty (54,157
+fields on 13,650 products), and the 114 BZ products and their variants made
+inactive. Skipped: names with "kg" (wholesale, 211) and TEST codes. The
+Centro discount list is not created yet.
 Counts are from the Centro till snapshot of 2026-10-17 and are re-counted
 against production before anything is written.
 
@@ -70,7 +76,7 @@ Men summer 50%"):
 | Black Friday lots | OF, OFNV, OFN | Mixed origin |
 | Mixed summer | SU | Mixed origin, fixed season Summer |
 | Outlet "super cream" | GOJ | Kept sellable until the owner says what "not for sale" means |
-| Wholesale by weight | C20, C21, C23, BC2, CB2, L12, L22 "(40 kg)" | Out of scope: retail only |
+| Wholesale by weight | any name with "kg" (mostly L12, C22, L22, BC21) | Out of scope: retail only, never filled |
 
 ## Deactivate
 
@@ -79,6 +85,12 @@ BZX/BZXII), the bazaar lots. The till stops selling them and they leave
 search; their sales history stays, and they can be switched back on in kashi.
 
 ## Year
+
+A year is read only where the digits after the prefix are one: two digits
+20–26 (CA21, X24, N22, GO22) or one digit 5/6 for the families that write the
+year as one digit (COC5, EOC5, EF6, BOC5, TOC5, TNV5…, TJ6, TM6, LSEP6).
+Model numbers are left alone (TW01, TP10495, TKS001, AD001, LTB29, home
+codes like P2000).
 
 From the code for existing products (CA21 → 2021, X24 → 2024, EOC5 → 2025,
 EF6 → 2026, TM6 → 2026…). A product created with no year gets the year it was
