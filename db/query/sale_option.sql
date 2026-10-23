@@ -58,13 +58,13 @@ WITH matched AS (
 )
 INSERT INTO discount_list_option_items (discount_list_id, product_variant_id, sale_option_id, discount)
 SELECT sqlc.arg(discount_list_id), variant_id, sqlc.arg(sale_option_id), sqlc.arg(discount) FROM matched
-ON CONFLICT (discount_list_id, product_variant_id, sale_option_id) DO UPDATE SET discount = EXCLUDED.discount
+ON CONFLICT (discount_list_id, product_variant_id, sale_option_id) DO UPDATE SET discount = EXCLUDED.discount, rule_id = NULL
 RETURNING product_variant_id;
 
 -- name: UpsertDiscountListOptionItem :exec
 INSERT INTO discount_list_option_items (discount_list_id, product_variant_id, sale_option_id, discount)
 VALUES ($1, $2, $3, $4)
-ON CONFLICT (discount_list_id, product_variant_id, sale_option_id) DO UPDATE SET discount = EXCLUDED.discount;
+ON CONFLICT (discount_list_id, product_variant_id, sale_option_id) DO UPDATE SET discount = EXCLUDED.discount, rule_id = NULL;
 
 -- name: DeleteDiscountListOptionItem :exec
 DELETE FROM discount_list_option_items

@@ -300,7 +300,11 @@ type Querier interface {
 	CreateCouponType(ctx context.Context, arg CreateCouponTypeParams) (CouponType, error)
 	CreateCurrency(ctx context.Context, arg CreateCurrencyParams) (Currency, error)
 	CreateDiscountList(ctx context.Context, arg CreateDiscountListParams) (DiscountList, error)
+	// A row written here is set by hand: it takes the row over from the rules
+	// (000200), which then leave the variant alone.
 	CreateDiscountListItem(ctx context.Context, arg CreateDiscountListItemParams) (DiscountListItem, error)
+	CreateDiscountListRule(ctx context.Context, arg CreateDiscountListRuleParams) (DiscountListRule, error)
+	CreateDiscountListRuleOption(ctx context.Context, arg CreateDiscountListRuleOptionParams) error
 	CreateEmailReport(ctx context.Context, arg CreateEmailReportParams) (EmailReport, error)
 	CreateEmailSchedule(ctx context.Context, arg CreateEmailScheduleParams) (EmailSchedule, error)
 	CreateEmployee(ctx context.Context, arg CreateEmployeeParams) (Employee, error)
@@ -488,6 +492,7 @@ type Querier interface {
 	// Rows are named by (variant, option) pairs, given as two parallel arrays;
 	// two unnests in one select list zip them pairwise.
 	DeleteDiscountListOptionItems(ctx context.Context, arg DeleteDiscountListOptionItemsParams) (int64, error)
+	DeleteDiscountListRules(ctx context.Context, discountListID int64) error
 	DeleteEmailSchedule(ctx context.Context, id int64) error
 	DeleteEmployee(ctx context.Context, id int64) error
 	DeleteExpense(ctx context.Context, id int64) error
@@ -1227,6 +1232,11 @@ type Querier interface {
 	// Options travel by name, like colors and attributes: a till has no copy of
 	// kashi's sale_options ids.
 	ListDiscountListOptionItemsForSync(ctx context.Context, discountListID int64) ([]ListDiscountListOptionItemsForSyncRow, error)
+	// Option discounts of a list's rules; options travel by name, as on the tills.
+	ListDiscountListRuleOptions(ctx context.Context, discountListID int64) ([]ListDiscountListRuleOptionsRow, error)
+	// A list's rules in the order they run, with how many variants each one
+	// decides now (counted from the rows it wrote: a rule giving 0 writes none).
+	ListDiscountListRules(ctx context.Context, discountListID int64) ([]ListDiscountListRulesRow, error)
 	ListDiscountLists(ctx context.Context, arg ListDiscountListsParams) ([]DiscountList, error)
 	// See ListPriceListsForBranchSync -- same scoping and same reason for
 	// carrying is_active rather than filtering on it.
