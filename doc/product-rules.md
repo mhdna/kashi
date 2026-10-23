@@ -64,6 +64,10 @@ Men summer 50%"):
 |---|---|
 | Favori | FDC |
 | Everywear | R clothing codes: RDC, RJ6, RNV (not RUG, not RS1) |
+| From the name | Adidas, Nike, PUMA, Skechers, Lacoste, Jordan, Louis Vuitton (also "LV"), ARMANI, BOSS, CK, D&G (also "Dolce & Gabbana"), Tommy Hilfiger ("Tommy"), Michael Kors ("MK"), Chanel, Gucci, Crocs… — filled 2026-10-23 on 118 products. Existing spellings (ARMANI, BOSS, PUMA) kept. Cartoon characters (Pokemon, Frozen, Spiderman) are not brands |
+
+A country is never a brand: three LSEP shoes had "Lebanon" typed as their
+brand; it was cleared (they already had origin Lebanon).
 
 ## Kind of stock
 
