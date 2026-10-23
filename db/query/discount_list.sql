@@ -174,3 +174,40 @@ SELECT e.entry::text AS entry
 FROM unnest(sqlc.arg(entries)::text[]) AS e(entry)
 WHERE NOT EXISTS (SELECT 1 FROM product_variants pv WHERE pv.barcode = e.entry)
   AND NOT EXISTS (SELECT 1 FROM products p WHERE lower(p.code) = lower(e.entry));
+
+-- name: ActiveDiscountListForBranch :one
+-- The list a branch is discounted from: its own assigned list when that one
+-- is active and in date, otherwise the default -- the same choice
+-- ResolveVariantDiscount makes, and the till makes from what it's sent.
+SELECT dl.* FROM discount_lists dl
+LEFT JOIN discount_list_branches dlb
+  ON dlb.discount_list_id = dl.id AND dlb.branch_id = sqlc.arg(branch_id)
+WHERE dl.is_active = true
+  AND now() >= dl.valid_from AND now() <= dl.valid_to
+  AND (dlb.branch_id IS NOT NULL OR dl.is_default = true)
+ORDER BY (dlb.branch_id IS NOT NULL) DESC
+LIMIT 1;
+
+-- name: CountBranchesOnDefaultDiscountList :one
+-- Branches with no active list of their own, i.e. discounted from the default.
+SELECT COUNT(*) FROM branches b
+WHERE NOT EXISTS (
+  SELECT 1 FROM discount_list_branches dlb
+  JOIN discount_lists dl ON dl.id = dlb.discount_list_id
+  WHERE dlb.branch_id = b.id AND dl.is_active = true
+    AND now() >= dl.valid_from AND now() <= dl.valid_to
+);
+
+-- name: ListVariantsForDiscountEntry :many
+-- What one typed or scanned entry names, matched like
+-- BulkSetDiscountListItems: a barcode names its variant, a code all of its
+-- product's variants.
+SELECT pv.id, pv.barcode, p.code AS product_code, p.name AS product_name,
+       COALESCE(colors.name, '')::text AS color_name,
+       COALESCE(sizes.name, '')::text AS size_name
+FROM product_variants pv
+JOIN products p ON p.id = pv.product_id
+LEFT JOIN colors ON colors.id = pv.color_id
+LEFT JOIN sizes ON sizes.id = pv.size_id
+WHERE pv.barcode = sqlc.arg(entry)::text OR lower(p.code) = lower(sqlc.arg(entry)::text)
+ORDER BY pv.id;
