@@ -1,10 +1,8 @@
 package api
 
 import (
-	"crypto/rand"
 	"database/sql"
 	_ "embed"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -46,8 +44,15 @@ type unknownSlotRequest struct {
 }
 
 type createUnknownSessionRequest struct {
-	ClientRef string               `json:"client_ref" binding:"required"`
-	Slots     []unknownSlotRequest `json:"slots" binding:"required,min=1,dive"`
+	ClientRef string `json:"client_ref" binding:"required"`
+	// Slots is every unit the cart holds now: a unit no longer listed was
+	// taken back out and is dropped, picture and all.
+	Slots []unknownSlotRequest `json:"slots" binding:"dive"`
+	// Background: the till keeps the session in step with its cart while it
+	// is still being rung up, for its paired phone, and says when it reaches
+	// the payment (markUnknownSessionCheckout). A till without it opens the
+	// session at the payment.
+	Background bool `json:"background"`
 }
 
 // unknownSlotView is one unit as the phone page and the till see it.
@@ -100,8 +105,9 @@ func allUnknownSlotsPictured(slots []db.UnknownItemSlot) bool {
 	return len(slots) > 0
 }
 
-// createUnknownSession opens (or reopens, for a retried call) the picture
-// session of one checkout and returns the token the phone's QR link carries.
+// createUnknownSession opens the picture session of one cart, or brings it up
+// to date with the cart's units, and returns the token the phone's QR link
+// carries. A background session becomes what the till's paired phone shows.
 func (server *Server) createUnknownSession(ctx *gin.Context) {
 	branchID := ctx.MustGet(branchIDKey).(int64)
 	registerID := ctx.MustGet(registerIDKey).(int64)
@@ -116,27 +122,46 @@ func (server *Server) createUnknownSession(ctx *gin.Context) {
 		return
 	}
 
-	raw := make([]byte, 24)
-	if _, err := rand.Read(raw); err != nil {
+	token, err := newUnknownToken()
+	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	checkoutAt := sql.NullTime{Time: time.Now().UTC(), Valid: !req.Background}
 	session, err := server.store.CreateUnknownItemSession(ctx, db.CreateUnknownItemSessionParams{
 		BranchID:   branchID,
 		RegisterID: registerID,
 		ClientRef:  req.ClientRef,
-		Token:      hex.EncodeToString(raw),
+		Token:      token,
 		ExpiresAt:  time.Now().UTC().Add(unknownSessionTTL),
+		CheckoutAt: checkoutAt,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	for i, slot := range req.Slots {
-		if err := server.store.CreateUnknownItemSlot(ctx, db.CreateUnknownItemSlotParams{
-			SessionID: session.ID, SlotRef: slot.SlotRef, Position: int32(i),
-			Label: slot.Label, UnitPrice: slot.UnitPrice, Discount: slot.Discount,
+	// A sold cart's units are what was sold: nothing changes them now.
+	if !session.BranchInvoiceID.Valid {
+		keep := make([]string, 0, len(req.Slots))
+		for i, slot := range req.Slots {
+			if err := server.store.CreateUnknownItemSlot(ctx, db.CreateUnknownItemSlotParams{
+				SessionID: session.ID, SlotRef: slot.SlotRef, Position: int32(i),
+				Label: slot.Label, UnitPrice: slot.UnitPrice, Discount: slot.Discount,
+			}); err != nil {
+				server.writeError(ctx, http.StatusInternalServerError, err)
+				return
+			}
+			keep = append(keep, slot.SlotRef)
+		}
+		if err := server.store.DeleteUnknownItemSlotsExcept(ctx, db.DeleteUnknownItemSlotsExceptParams{
+			SessionID: session.ID, Keep: keep,
 		}); err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+	}
+	if req.Background {
+		if err := server.setUnknownPairingSession(ctx, branchID, registerID, sql.NullInt64{Int64: session.ID, Valid: true}); err != nil {
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
 		}
@@ -150,7 +175,26 @@ func (server *Server) createUnknownSession(ctx *gin.Context) {
 		"upload_token": session.Token,
 		"slots":        unknownSlotViews(slots),
 		"complete":     allUnknownSlotsPictured(slots),
+		"phone_online": server.unknownPhoneOnline(ctx, branchID, registerID),
 	})
+}
+
+// markUnknownSessionCheckout: a background session's cashier reached the
+// payment with units still missing a picture, so a manager may be needed.
+func (server *Server) markUnknownSessionCheckout(ctx *gin.Context) {
+	branchID := ctx.MustGet(branchIDKey).(int64)
+	var req unknownHelpRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	if err := server.store.MarkUnknownItemSessionCheckout(ctx, db.MarkUnknownItemSessionCheckoutParams{
+		BranchID: branchID, ClientRef: req.ClientRef,
+	}); err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"marked": true})
 }
 
 // branchUnknownSessionStatus is the till's poll: which units have a picture.
@@ -196,8 +240,9 @@ func (server *Server) branchUnknownSessionStatus(ctx *gin.Context) {
 		}
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{
-		"slots":    unknownSlotViews(slots),
-		"complete": allUnknownSlotsPictured(slots),
+		"slots":        unknownSlotViews(slots),
+		"complete":     allUnknownSlotsPictured(slots),
+		"phone_online": server.unknownPhoneOnline(ctx, branchID, ctx.MustGet(registerIDKey).(int64)),
 	})
 }
 

@@ -102,18 +102,21 @@ func (q *Queries) CreateUnknownItemImage(ctx context.Context, arg CreateUnknownI
 }
 
 const createUnknownItemSession = `-- name: CreateUnknownItemSession :one
-INSERT INTO unknown_item_sessions (branch_id, register_id, client_ref, token, expires_at)
-VALUES ($1, $2, $3, $4, $5)
-ON CONFLICT (branch_id, client_ref) DO UPDATE SET expires_at = EXCLUDED.expires_at
-RETURNING id, branch_id, register_id, client_ref, token, expires_at, branch_invoice_id, help_requested_at, created_at
+INSERT INTO unknown_item_sessions (branch_id, register_id, client_ref, token, expires_at, checkout_at)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (branch_id, client_ref) DO UPDATE SET
+  expires_at = EXCLUDED.expires_at,
+  checkout_at = COALESCE(unknown_item_sessions.checkout_at, EXCLUDED.checkout_at)
+RETURNING id, branch_id, register_id, client_ref, token, expires_at, branch_invoice_id, help_requested_at, created_at, checkout_at
 `
 
 type CreateUnknownItemSessionParams struct {
-	BranchID   int64     `json:"branch_id"`
-	RegisterID int64     `json:"register_id"`
-	ClientRef  string    `json:"client_ref"`
-	Token      string    `json:"token"`
-	ExpiresAt  time.Time `json:"expires_at"`
+	BranchID   int64        `json:"branch_id"`
+	RegisterID int64        `json:"register_id"`
+	ClientRef  string       `json:"client_ref"`
+	Token      string       `json:"token"`
+	ExpiresAt  time.Time    `json:"expires_at"`
+	CheckoutAt sql.NullTime `json:"checkout_at"`
 }
 
 func (q *Queries) CreateUnknownItemSession(ctx context.Context, arg CreateUnknownItemSessionParams) (UnknownItemSession, error) {
@@ -123,6 +126,7 @@ func (q *Queries) CreateUnknownItemSession(ctx context.Context, arg CreateUnknow
 		arg.ClientRef,
 		arg.Token,
 		arg.ExpiresAt,
+		arg.CheckoutAt,
 	)
 	var i UnknownItemSession
 	err := row.Scan(
@@ -135,6 +139,7 @@ func (q *Queries) CreateUnknownItemSession(ctx context.Context, arg CreateUnknow
 		&i.BranchInvoiceID,
 		&i.HelpRequestedAt,
 		&i.CreatedAt,
+		&i.CheckoutAt,
 	)
 	return i, err
 }
@@ -142,7 +147,12 @@ func (q *Queries) CreateUnknownItemSession(ctx context.Context, arg CreateUnknow
 const createUnknownItemSlot = `-- name: CreateUnknownItemSlot :exec
 INSERT INTO unknown_item_slots (session_id, slot_ref, position, label, unit_price, discount)
 VALUES ($1, $2, $3, $4, $5, $6)
-ON CONFLICT (session_id, slot_ref) DO NOTHING
+ON CONFLICT (session_id, slot_ref) DO UPDATE SET
+  position = EXCLUDED.position,
+  label = EXCLUDED.label,
+  unit_price = EXCLUDED.unit_price,
+  discount = EXCLUDED.discount
+WHERE unknown_item_slots.resolved_at IS NULL
 `
 
 type CreateUnknownItemSlotParams struct {
@@ -154,6 +164,7 @@ type CreateUnknownItemSlotParams struct {
 	Discount  int16  `json:"discount"`
 }
 
+// A unit already there keeps its picture; its price may have been changed.
 func (q *Queries) CreateUnknownItemSlot(ctx context.Context, arg CreateUnknownItemSlotParams) error {
 	_, err := q.db.ExecContext(ctx, createUnknownItemSlot,
 		arg.SessionID,
@@ -173,6 +184,50 @@ DELETE FROM unknown_item_images WHERE id = ANY($1::bigint[])
 func (q *Queries) DeleteUnknownItemImages(ctx context.Context, dollar_1 []int64) error {
 	_, err := q.db.ExecContext(ctx, deleteUnknownItemImages, pq.Array(dollar_1))
 	return err
+}
+
+const deleteUnknownItemSlotsExcept = `-- name: DeleteUnknownItemSlotsExcept :exec
+DELETE FROM unknown_item_slots
+WHERE session_id = $1 AND resolved_at IS NULL AND NOT (slot_ref = ANY($2::text[]))
+`
+
+type DeleteUnknownItemSlotsExceptParams struct {
+	SessionID int64    `json:"session_id"`
+	Keep      []string `json:"keep"`
+}
+
+// The units the cashier took back out of the cart.
+func (q *Queries) DeleteUnknownItemSlotsExcept(ctx context.Context, arg DeleteUnknownItemSlotsExceptParams) error {
+	_, err := q.db.ExecContext(ctx, deleteUnknownItemSlotsExcept, arg.SessionID, pq.Array(arg.Keep))
+	return err
+}
+
+const ensureUnknownItemPairing = `-- name: EnsureUnknownItemPairing :one
+INSERT INTO unknown_item_pairings (branch_id, register_id, token)
+VALUES ($1, $2, $3)
+ON CONFLICT (branch_id, register_id) DO UPDATE SET branch_id = EXCLUDED.branch_id
+RETURNING branch_id, register_id, token, current_session_id, phone_seen_at, created_at
+`
+
+type EnsureUnknownItemPairingParams struct {
+	BranchID   int64  `json:"branch_id"`
+	RegisterID int64  `json:"register_id"`
+	Token      string `json:"token"`
+}
+
+// The till's pairing, made on first use with the given token.
+func (q *Queries) EnsureUnknownItemPairing(ctx context.Context, arg EnsureUnknownItemPairingParams) (UnknownItemPairing, error) {
+	row := q.db.QueryRowContext(ctx, ensureUnknownItemPairing, arg.BranchID, arg.RegisterID, arg.Token)
+	var i UnknownItemPairing
+	err := row.Scan(
+		&i.BranchID,
+		&i.RegisterID,
+		&i.Token,
+		&i.CurrentSessionID,
+		&i.PhoneSeenAt,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const findUnknownInvoiceItem = `-- name: FindUnknownInvoiceItem :one
@@ -225,8 +280,71 @@ func (q *Queries) GetUnknownItemImage(ctx context.Context, id int64) (UnknownIte
 	return i, err
 }
 
+const getUnknownItemPairing = `-- name: GetUnknownItemPairing :one
+SELECT branch_id, register_id, token, current_session_id, phone_seen_at, created_at FROM unknown_item_pairings WHERE branch_id = $1 AND register_id = $2
+`
+
+type GetUnknownItemPairingParams struct {
+	BranchID   int64 `json:"branch_id"`
+	RegisterID int64 `json:"register_id"`
+}
+
+func (q *Queries) GetUnknownItemPairing(ctx context.Context, arg GetUnknownItemPairingParams) (UnknownItemPairing, error) {
+	row := q.db.QueryRowContext(ctx, getUnknownItemPairing, arg.BranchID, arg.RegisterID)
+	var i UnknownItemPairing
+	err := row.Scan(
+		&i.BranchID,
+		&i.RegisterID,
+		&i.Token,
+		&i.CurrentSessionID,
+		&i.PhoneSeenAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getUnknownItemPairingByToken = `-- name: GetUnknownItemPairingByToken :one
+SELECT branch_id, register_id, token, current_session_id, phone_seen_at, created_at FROM unknown_item_pairings WHERE token = $1
+`
+
+func (q *Queries) GetUnknownItemPairingByToken(ctx context.Context, token string) (UnknownItemPairing, error) {
+	row := q.db.QueryRowContext(ctx, getUnknownItemPairingByToken, token)
+	var i UnknownItemPairing
+	err := row.Scan(
+		&i.BranchID,
+		&i.RegisterID,
+		&i.Token,
+		&i.CurrentSessionID,
+		&i.PhoneSeenAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getUnknownItemSession = `-- name: GetUnknownItemSession :one
+SELECT id, branch_id, register_id, client_ref, token, expires_at, branch_invoice_id, help_requested_at, created_at, checkout_at FROM unknown_item_sessions WHERE id = $1
+`
+
+func (q *Queries) GetUnknownItemSession(ctx context.Context, id int64) (UnknownItemSession, error) {
+	row := q.db.QueryRowContext(ctx, getUnknownItemSession, id)
+	var i UnknownItemSession
+	err := row.Scan(
+		&i.ID,
+		&i.BranchID,
+		&i.RegisterID,
+		&i.ClientRef,
+		&i.Token,
+		&i.ExpiresAt,
+		&i.BranchInvoiceID,
+		&i.HelpRequestedAt,
+		&i.CreatedAt,
+		&i.CheckoutAt,
+	)
+	return i, err
+}
+
 const getUnknownItemSessionByRef = `-- name: GetUnknownItemSessionByRef :one
-SELECT id, branch_id, register_id, client_ref, token, expires_at, branch_invoice_id, help_requested_at, created_at FROM unknown_item_sessions WHERE branch_id = $1 AND client_ref = $2
+SELECT id, branch_id, register_id, client_ref, token, expires_at, branch_invoice_id, help_requested_at, created_at, checkout_at FROM unknown_item_sessions WHERE branch_id = $1 AND client_ref = $2
 `
 
 type GetUnknownItemSessionByRefParams struct {
@@ -247,12 +365,13 @@ func (q *Queries) GetUnknownItemSessionByRef(ctx context.Context, arg GetUnknown
 		&i.BranchInvoiceID,
 		&i.HelpRequestedAt,
 		&i.CreatedAt,
+		&i.CheckoutAt,
 	)
 	return i, err
 }
 
 const getUnknownItemSessionByToken = `-- name: GetUnknownItemSessionByToken :one
-SELECT id, branch_id, register_id, client_ref, token, expires_at, branch_invoice_id, help_requested_at, created_at FROM unknown_item_sessions WHERE token = $1
+SELECT id, branch_id, register_id, client_ref, token, expires_at, branch_invoice_id, help_requested_at, created_at, checkout_at FROM unknown_item_sessions WHERE token = $1
 `
 
 func (q *Queries) GetUnknownItemSessionByToken(ctx context.Context, token string) (UnknownItemSession, error) {
@@ -268,6 +387,7 @@ func (q *Queries) GetUnknownItemSessionByToken(ctx context.Context, token string
 		&i.BranchInvoiceID,
 		&i.HelpRequestedAt,
 		&i.CreatedAt,
+		&i.CheckoutAt,
 	)
 	return i, err
 }
@@ -374,6 +494,10 @@ WHERE (
     AND (SELECT MAX(s.resolved_at) FROM unknown_item_slots s WHERE s.image_id = img.id) < $1::timestamptz
   )
   OR (sess.branch_invoice_id IS NULL AND sess.expires_at < $2::timestamptz)
+  OR (
+    NOT EXISTS (SELECT 1 FROM unknown_item_slots s WHERE s.image_id = img.id)
+    AND img.created_at < $2::timestamptz
+  )
 `
 
 type ListAutoDeletableUnknownItemImagesParams struct {
@@ -387,8 +511,9 @@ type ListAutoDeletableUnknownItemImagesRow struct {
 }
 
 // What the daily clean-up removes: pictures whose units were all matched
-// before resolved_before, and pictures of checkouts that never became a sale
-// and whose link expired before abandoned_before.
+// before resolved_before, pictures of checkouts that never became a sale and
+// whose link expired before abandoned_before, and pictures of units taken
+// back out of the cart (no unit left) taken before abandoned_before.
 func (q *Queries) ListAutoDeletableUnknownItemImages(ctx context.Context, arg ListAutoDeletableUnknownItemImagesParams) ([]ListAutoDeletableUnknownItemImagesRow, error) {
 	rows, err := q.db.QueryContext(ctx, listAutoDeletableUnknownItemImages, arg.ResolvedBefore, arg.AbandonedBefore)
 	if err != nil {
@@ -683,6 +808,7 @@ FROM unknown_item_slots s
 JOIN unknown_item_sessions sess ON sess.id = s.session_id
 JOIN branches b ON b.id = sess.branch_id
 WHERE sess.branch_invoice_id IS NULL
+  AND sess.checkout_at IS NOT NULL
   AND NOT b.hidden_from_reports
   AND sess.expires_at > now()
   AND EXISTS (
@@ -748,6 +874,22 @@ func (q *Queries) ListWaitingUnknownItems(ctx context.Context) ([]ListWaitingUnk
 	return items, nil
 }
 
+const markUnknownItemSessionCheckout = `-- name: MarkUnknownItemSessionCheckout :exec
+UPDATE unknown_item_sessions SET checkout_at = COALESCE(checkout_at, now())
+WHERE branch_id = $1 AND client_ref = $2
+`
+
+type MarkUnknownItemSessionCheckoutParams struct {
+	BranchID  int64  `json:"branch_id"`
+	ClientRef string `json:"client_ref"`
+}
+
+// The cashier is at the payment: the session joins the Waiting tab.
+func (q *Queries) MarkUnknownItemSessionCheckout(ctx context.Context, arg MarkUnknownItemSessionCheckoutParams) error {
+	_, err := q.db.ExecContext(ctx, markUnknownItemSessionCheckout, arg.BranchID, arg.ClientRef)
+	return err
+}
+
 const markUnknownItemSlotResolved = `-- name: MarkUnknownItemSlotResolved :exec
 UPDATE unknown_item_slots SET resolved_variant_id = $2, resolved_at = now() WHERE id = $1
 `
@@ -775,6 +917,34 @@ type RequestUnknownItemHelpParams struct {
 func (q *Queries) RequestUnknownItemHelp(ctx context.Context, arg RequestUnknownItemHelpParams) error {
 	_, err := q.db.ExecContext(ctx, requestUnknownItemHelp, arg.BranchID, arg.ClientRef)
 	return err
+}
+
+const resetUnknownItemPairing = `-- name: ResetUnknownItemPairing :one
+INSERT INTO unknown_item_pairings (branch_id, register_id, token)
+VALUES ($1, $2, $3)
+ON CONFLICT (branch_id, register_id) DO UPDATE SET token = EXCLUDED.token, phone_seen_at = NULL
+RETURNING branch_id, register_id, token, current_session_id, phone_seen_at, created_at
+`
+
+type ResetUnknownItemPairingParams struct {
+	BranchID   int64  `json:"branch_id"`
+	RegisterID int64  `json:"register_id"`
+	Token      string `json:"token"`
+}
+
+// "Pair another phone": a new token, so the old phone's page stops working.
+func (q *Queries) ResetUnknownItemPairing(ctx context.Context, arg ResetUnknownItemPairingParams) (UnknownItemPairing, error) {
+	row := q.db.QueryRowContext(ctx, resetUnknownItemPairing, arg.BranchID, arg.RegisterID, arg.Token)
+	var i UnknownItemPairing
+	err := row.Scan(
+		&i.BranchID,
+		&i.RegisterID,
+		&i.Token,
+		&i.CurrentSessionID,
+		&i.PhoneSeenAt,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const searchVariantsForUnknownItems = `-- name: SearchVariantsForUnknownItems :many
@@ -852,6 +1022,22 @@ func (q *Queries) SetBranchInvoiceItemResolved(ctx context.Context, arg SetBranc
 	return err
 }
 
+const setUnknownItemPairingSession = `-- name: SetUnknownItemPairingSession :exec
+UPDATE unknown_item_pairings SET current_session_id = $3
+WHERE branch_id = $1 AND register_id = $2
+`
+
+type SetUnknownItemPairingSessionParams struct {
+	BranchID         int64         `json:"branch_id"`
+	RegisterID       int64         `json:"register_id"`
+	CurrentSessionID sql.NullInt64 `json:"current_session_id"`
+}
+
+func (q *Queries) SetUnknownItemPairingSession(ctx context.Context, arg SetUnknownItemPairingSessionParams) error {
+	_, err := q.db.ExecContext(ctx, setUnknownItemPairingSession, arg.BranchID, arg.RegisterID, arg.CurrentSessionID)
+	return err
+}
+
 const setUnknownItemSlotImage = `-- name: SetUnknownItemSlotImage :exec
 UPDATE unknown_item_slots SET image_id = $3
 WHERE session_id = $1 AND slot_ref = $2 AND resolved_at IS NULL
@@ -880,6 +1066,15 @@ type SplitUnknownInvoiceItemParams struct {
 
 func (q *Queries) SplitUnknownInvoiceItem(ctx context.Context, arg SplitUnknownInvoiceItemParams) error {
 	_, err := q.db.ExecContext(ctx, splitUnknownInvoiceItem, arg.ID, arg.LineTotal)
+	return err
+}
+
+const touchUnknownItemPairing = `-- name: TouchUnknownItemPairing :exec
+UPDATE unknown_item_pairings SET phone_seen_at = now() WHERE token = $1
+`
+
+func (q *Queries) TouchUnknownItemPairing(ctx context.Context, token string) error {
+	_, err := q.db.ExecContext(ctx, touchUnknownItemPairing, token)
 	return err
 }
 

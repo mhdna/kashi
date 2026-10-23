@@ -99,9 +99,11 @@ func TestResolveUnknownItemsTx_SplitsTheLineAndMovesStock(t *testing.T) {
 func TestWaiveUnknownItemSlots_OnlyUnpicturedUnits(t *testing.T) {
 	ctx := context.Background()
 	branch := createTestBranchWithRegister(t)
+	// Opened at the payment: only then is a session on the Waiting tab.
 	session, err := testQueries.CreateUnknownItemSession(ctx, CreateUnknownItemSessionParams{
 		BranchID: branch.Branch.ID, RegisterID: branch.Register.ID, ClientRef: uuid.NewString(),
 		Token: util.RandomString(24), ExpiresAt: time.Now().Add(time.Hour),
+		CheckoutAt: sql.NullTime{Time: time.Now(), Valid: true},
 	})
 	require.NoError(t, err)
 	for i, ref := range []string{"a", "b"} {
