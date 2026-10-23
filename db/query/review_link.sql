@@ -153,6 +153,7 @@ WHERE NOT is_test AND COALESCE(branch_id, 0) NOT IN (SELECT hb.id FROM branches 
 SELECT
   COALESCE(m.branch_id, 0)::bigint AS branch_id,
   COALESCE(b.name, '')::text AS branch_name,
+  count(*) FILTER (WHERE m.poll_ref <> '')::bigint AS polls,
   count(m.poll_rating)::bigint AS answers,
   COALESCE(avg(m.poll_rating), 0)::double precision AS average,
   count(*) FILTER (WHERE m.poll_rating = 5)::bigint AS stars5,

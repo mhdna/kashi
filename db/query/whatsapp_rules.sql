@@ -147,6 +147,8 @@ SELECT
   count(*) FILTER (WHERE m.status = 'sent')::bigint AS sent,
   count(*) FILTER (WHERE m.status = 'skipped')::bigint AS skipped,
   count(*) FILTER (WHERE m.status = 'failed')::bigint AS failed,
+  count(*) FILTER (WHERE m.delivery_status IN ('delivered', 'read'))::bigint AS delivered,
+  count(*) FILTER (WHERE m.delivery_status = 'read')::bigint AS read,
   COALESCE(sum(m.cost_micros), 0)::bigint AS cost_micros
 FROM whatsapp_messages m
 LEFT JOIN branches b ON b.id = m.branch_id

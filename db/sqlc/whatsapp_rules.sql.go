@@ -877,6 +877,8 @@ SELECT
   count(*) FILTER (WHERE m.status = 'sent')::bigint AS sent,
   count(*) FILTER (WHERE m.status = 'skipped')::bigint AS skipped,
   count(*) FILTER (WHERE m.status = 'failed')::bigint AS failed,
+  count(*) FILTER (WHERE m.delivery_status IN ('delivered', 'read'))::bigint AS delivered,
+  count(*) FILTER (WHERE m.delivery_status = 'read')::bigint AS read,
   COALESCE(sum(m.cost_micros), 0)::bigint AS cost_micros
 FROM whatsapp_messages m
 LEFT JOIN branches b ON b.id = m.branch_id
@@ -898,6 +900,8 @@ type WhatsAppMessagesByBranchRow struct {
 	Sent       int64  `json:"sent"`
 	Skipped    int64  `json:"skipped"`
 	Failed     int64  `json:"failed"`
+	Delivered  int64  `json:"delivered"`
+	Read       int64  `json:"read"`
 	CostMicros int64  `json:"cost_micros"`
 }
 
@@ -916,6 +920,8 @@ func (q *Queries) WhatsAppMessagesByBranch(ctx context.Context, arg WhatsAppMess
 			&i.Sent,
 			&i.Skipped,
 			&i.Failed,
+			&i.Delivered,
+			&i.Read,
 			&i.CostMicros,
 		); err != nil {
 			return nil, err
