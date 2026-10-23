@@ -407,6 +407,7 @@ const pollRatingsByBranch = `-- name: PollRatingsByBranch :many
 SELECT
   COALESCE(m.branch_id, 0)::bigint AS branch_id,
   COALESCE(b.name, '')::text AS branch_name,
+  count(*) FILTER (WHERE m.poll_ref <> '')::bigint AS polls,
   count(m.poll_rating)::bigint AS answers,
   COALESCE(avg(m.poll_rating), 0)::double precision AS average,
   count(*) FILTER (WHERE m.poll_rating = 5)::bigint AS stars5,
@@ -432,6 +433,7 @@ type PollRatingsByBranchParams struct {
 type PollRatingsByBranchRow struct {
 	BranchID   int64   `json:"branch_id"`
 	BranchName string  `json:"branch_name"`
+	Polls      int64   `json:"polls"`
 	Answers    int64   `json:"answers"`
 	Average    float64 `json:"average"`
 	Stars5     int64   `json:"stars5"`
@@ -453,6 +455,7 @@ func (q *Queries) PollRatingsByBranch(ctx context.Context, arg PollRatingsByBran
 		if err := rows.Scan(
 			&i.BranchID,
 			&i.BranchName,
+			&i.Polls,
 			&i.Answers,
 			&i.Average,
 			&i.Stars5,

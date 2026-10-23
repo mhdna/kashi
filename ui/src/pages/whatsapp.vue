@@ -58,25 +58,17 @@
     <v-divider class="flex-shrink-0" />
 
     <div class="wa__body">
-      <!-- One dashboard: the messages, then what clients thought of the visit. -->
-      <div v-if="tab === 'overview'">
-        <WhatsAppOverview
-          :branch-id="branchId"
-          :from="range.from"
-          :meta="sender === 'meta'"
-          :refresh-key="refreshKey"
-          :to="range.to"
-          @show-messages="showMessages"
-          @show-replies="tab = 'replies'"
-        />
-        <div class="wa__section-title px-4 pt-2">Reviews</div>
-        <ReviewsDashboard
-          :branch-id="branchId"
-          :from="range.from"
-          :refresh-key="refreshKey"
-          :to="range.to"
-        />
-      </div>
+      <!-- One dashboard: the messages and what clients answered. -->
+      <WhatsAppDashboard
+        v-if="tab === 'overview'"
+        :branch-id="branchId"
+        :from="range.from"
+        :meta="sender === 'meta'"
+        :refresh-key="refreshKey"
+        :to="range.to"
+        @show-messages="showMessages"
+        @show-replies="tab = 'replies'"
+      />
       <WhatsAppMessages
         v-else-if="tab === 'messages'"
         v-model:search="messageSearch"
@@ -115,11 +107,10 @@
 <script setup>
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
-  import ReviewsDashboard from '@/components/Reviews/ReviewsDashboard.vue'
+  import WhatsAppDashboard from '@/components/WhatsApp/WhatsAppDashboard.vue'
   import WhatsAppHealth from '@/components/WhatsApp/WhatsAppHealth.vue'
   import WhatsAppInbox from '@/components/WhatsApp/WhatsAppInbox.vue'
   import WhatsAppMessages from '@/components/WhatsApp/WhatsAppMessages.vue'
-  import WhatsAppOverview from '@/components/WhatsApp/WhatsAppOverview.vue'
   import WhatsAppReplies from '@/components/WhatsApp/WhatsAppReplies.vue'
   import WhatsAppRules from '@/components/WhatsApp/WhatsAppRules.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
@@ -257,10 +248,6 @@
 <style scoped>
 .wa {
   min-height: 0;
-}
-.wa__section-title {
-  font-size: 1rem;
-  font-weight: 600;
 }
 .wa__filters--hidden {
   visibility: hidden;
