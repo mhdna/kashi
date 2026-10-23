@@ -1191,6 +1191,13 @@ type DiscountListItem struct {
 	ProductVariantID int64 `json:"product_variant_id"`
 }
 
+type DiscountListOptionItem struct {
+	DiscountListID   int64 `json:"discount_list_id"`
+	ProductVariantID int64 `json:"product_variant_id"`
+	SaleOptionID     int64 `json:"sale_option_id"`
+	Discount         int16 `json:"discount"`
+}
+
 type EmailReport struct {
 	ID            int64         `json:"id"`
 	CreatedAt     time.Time     `json:"created_at"`
@@ -1505,6 +1512,11 @@ type ProductCategory struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type ProductSaleOption struct {
+	ProductID    int64 `json:"product_id"`
+	SaleOptionID int64 `json:"sale_option_id"`
+}
+
 type ProductSupplier struct {
 	ID         int64 `json:"id"`
 	ProductID  int64 `json:"product_id"`
@@ -1620,6 +1632,13 @@ type RolePermission struct {
 	CanView bool   `json:"can_view"`
 	CanEdit bool   `json:"can_edit"`
 	Page    string `json:"page"`
+}
+
+type SaleOption struct {
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	SortOrder int32     `json:"sort_order"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type SalesInvoice struct {

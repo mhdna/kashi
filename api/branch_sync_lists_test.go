@@ -139,6 +139,12 @@ func TestBranchSyncChanges_DiscountLists_SendsItemsInline(t *testing.T) {
 			{ProductVariantUid: variantUID, Discount: 20},
 		}, nil)
 
+	store.EXPECT().
+		ListDiscountListOptionItemsForSync(gomock.Any(), gomock.Eq(int64(3))).
+		Return([]db.ListDiscountListOptionItemsForSyncRow{
+			{ProductVariantUid: variantUID, SaleOption: "Summer", Discount: 50},
+		}, nil)
+
 	server := newTestServer(t, store)
 	rec := httptest.NewRecorder()
 	server.router.ServeHTTP(rec, newBranchRequest(t, http.MethodGet,
@@ -152,4 +158,8 @@ func TestBranchSyncChanges_DiscountLists_SendsItemsInline(t *testing.T) {
 	require.Len(t, body.Items, 1)
 	require.Len(t, body.Items[0].Items, 1)
 	require.Equal(t, int16(20), body.Items[0].Items[0].Discount)
+	// Option rows ride beside the plain items, never among them.
+	require.Equal(t, []syncDiscountListOptionItem{
+		{ProductVariantUID: variantUID, SaleOption: "Summer", Discount: 50},
+	}, body.Items[0].OptionItems)
 }

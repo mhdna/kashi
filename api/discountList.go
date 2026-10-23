@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -162,12 +161,28 @@ type createDiscountListItemRequest struct {
 	ProductVariantID int64 `json:"product_variant_id" binding:"required"`
 	// 0 is a legitimate value, so no "required" here -- it's validated by range.
 	Discount int16 `json:"discount" binding:"min=0,max=100"`
+	// See bulkSetDiscountListItemsRequest.SaleOptionID.
+	SaleOptionID int64 `json:"sale_option_id" binding:"min=0"`
 }
 
 func (server *Server) createDiscountListItem(ctx *gin.Context) {
 	var req createDiscountListItemRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	if req.SaleOptionID > 0 {
+		err := server.store.UpsertDiscountListOptionItem(ctx, db.UpsertDiscountListOptionItemParams{
+			DiscountListID:   req.DiscountListID,
+			ProductVariantID: req.ProductVariantID,
+			SaleOptionID:     req.SaleOptionID,
+			Discount:         req.Discount,
+		})
+		if err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		ctx.JSON(http.StatusOK, req)
 		return
 	}
 
@@ -223,17 +238,37 @@ type deleteDiscountListItemRequest struct {
 	ProductVariantID int64 `uri:"product_variant_id" binding:"required,min=1"`
 }
 
+type deleteDiscountListItemQuery struct {
+	// Names an option row instead of the plain one; see
+	// bulkSetDiscountListItemsRequest.SaleOptionID.
+	SaleOptionID int64 `form:"sale_option_id" binding:"min=0"`
+}
+
 func (server *Server) deleteDiscountListItem(ctx *gin.Context) {
 	var req deleteDiscountListItemRequest
 	if err := ctx.ShouldBindUri(&req); err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
 	}
+	var query deleteDiscountListItemQuery
+	if err := ctx.ShouldBindQuery(&query); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
 
-	err := server.store.DeleteDiscountListItem(ctx, db.DeleteDiscountListItemParams{
-		DiscountListID:   req.DiscountListID,
-		ProductVariantID: req.ProductVariantID,
-	})
+	var err error
+	if query.SaleOptionID > 0 {
+		err = server.store.DeleteDiscountListOptionItem(ctx, db.DeleteDiscountListOptionItemParams{
+			DiscountListID:   req.DiscountListID,
+			ProductVariantID: req.ProductVariantID,
+			SaleOptionID:     query.SaleOptionID,
+		})
+	} else {
+		err = server.store.DeleteDiscountListItem(ctx, db.DeleteDiscountListItemParams{
+			DiscountListID:   req.DiscountListID,
+			ProductVariantID: req.ProductVariantID,
+		})
+	}
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
@@ -320,6 +355,9 @@ type bulkSetDiscountListItemsRequest struct {
 	// Product codes and/or variant barcodes, as typed or pasted.
 	Entries  []string `json:"entries" binding:"required,min=1,max=2000"`
 	Discount int16    `json:"discount" binding:"min=0,max=100"`
+	// Set, the discount applies only when the variant is sold as this sale
+	// option (discount_list_option_items); 0 sets the plain discount.
+	SaleOptionID int64 `json:"sale_option_id" binding:"min=0"`
 }
 
 // bulkSetDiscountListItems is the quick way onto a discount list: paste the
@@ -332,14 +370,7 @@ func (server *Server) bulkSetDiscountListItems(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	seen := make(map[string]bool, len(req.Entries))
-	entries := make([]string, 0, len(req.Entries))
-	for _, entry := range req.Entries {
-		if entry = strings.TrimSpace(entry); entry != "" && !seen[entry] {
-			seen[entry] = true
-			entries = append(entries, entry)
-		}
-	}
+	entries := cleanEntries(req.Entries)
 	if len(entries) == 0 {
 		server.writeError(ctx, http.StatusBadRequest, errors.New("no codes given"))
 		return
@@ -348,9 +379,22 @@ func (server *Server) bulkSetDiscountListItems(ctx *gin.Context) {
 		server.writeError(ctx, statusForLookup(err), err)
 		return
 	}
-	set, err := server.store.BulkSetDiscountListItems(ctx, db.BulkSetDiscountListItemsParams{
-		DiscountListID: req.DiscountListID, Entries: entries, Discount: req.Discount,
-	})
+	var set []int64
+	var err error
+	if req.SaleOptionID > 0 {
+		if _, err := server.store.GetSaleOption(ctx, req.SaleOptionID); err != nil {
+			server.writeError(ctx, statusForLookup(err), err)
+			return
+		}
+		set, err = server.store.BulkSetDiscountListOptionItems(ctx, db.BulkSetDiscountListOptionItemsParams{
+			DiscountListID: req.DiscountListID, Entries: entries,
+			SaleOptionID: req.SaleOptionID, Discount: req.Discount,
+		})
+	} else {
+		set, err = server.store.BulkSetDiscountListItems(ctx, db.BulkSetDiscountListItemsParams{
+			DiscountListID: req.DiscountListID, Entries: entries, Discount: req.Discount,
+		})
+	}
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return

@@ -132,20 +132,57 @@ func (server *Server) bulkDeletePriceListItems(ctx *gin.Context) {
 	server.bulkRespond(ctx, rows, err)
 }
 
+type discountOptionItemKey struct {
+	ProductVariantID int64 `json:"product_variant_id" binding:"min=1"`
+	SaleOptionID     int64 `json:"sale_option_id" binding:"min=1"`
+}
+
+// A discount list's rows are either plain (named by variant) or per sale
+// option (named by variant and option), so a selection can hold both.
+type bulkDeleteDiscountListItemsRequest struct {
+	ProductVariantIDs []int64                 `json:"product_variant_ids" binding:"max=1000,dive,min=1"`
+	OptionItems       []discountOptionItemKey `json:"option_items" binding:"max=1000,dive"`
+}
+
 func (server *Server) bulkDeleteDiscountListItems(ctx *gin.Context) {
 	var uri bulkDeleteListItemsURI
 	if err := ctx.ShouldBindUri(&uri); err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	var req bulkDeleteListItemsRequest
+	var req bulkDeleteDiscountListItemsRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	rows, err := server.store.DeleteDiscountListItems(ctx, db.DeleteDiscountListItemsParams{
-		DiscountListID:    uri.ID,
-		ProductVariantIds: req.ProductVariantIDs,
-	})
-	server.bulkRespond(ctx, rows, err)
+	if len(req.ProductVariantIDs) == 0 && len(req.OptionItems) == 0 {
+		server.writeError(ctx, http.StatusBadRequest, errors.New("nothing to delete"))
+		return
+	}
+	var rows int64
+	if len(req.ProductVariantIDs) > 0 {
+		n, err := server.store.DeleteDiscountListItems(ctx, db.DeleteDiscountListItemsParams{
+			DiscountListID:    uri.ID,
+			ProductVariantIds: req.ProductVariantIDs,
+		})
+		if err != nil {
+			server.bulkRespond(ctx, 0, err)
+			return
+		}
+		rows += n
+	}
+	if len(req.OptionItems) > 0 {
+		arg := db.DeleteDiscountListOptionItemsParams{DiscountListID: uri.ID}
+		for _, k := range req.OptionItems {
+			arg.ProductVariantIds = append(arg.ProductVariantIds, k.ProductVariantID)
+			arg.SaleOptionIds = append(arg.SaleOptionIds, k.SaleOptionID)
+		}
+		n, err := server.store.DeleteDiscountListOptionItems(ctx, arg)
+		if err != nil {
+			server.bulkRespond(ctx, 0, err)
+			return
+		}
+		rows += n
+	}
+	server.bulkRespond(ctx, rows, nil)
 }

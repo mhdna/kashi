@@ -59,24 +59,30 @@ func (q *Queries) BulkSetDiscountListItems(ctx context.Context, arg BulkSetDisco
 }
 
 const countDiscountListItemsWithProduct = `-- name: CountDiscountListItemsWithProduct :one
+WITH rows AS (
+  SELECT dli.product_variant_id FROM discount_list_items dli
+  WHERE dli.discount_list_id = $2
+  UNION ALL
+  SELECT dloi.product_variant_id FROM discount_list_option_items dloi
+  WHERE dloi.discount_list_id = $2
+)
 SELECT COUNT(*)
-FROM discount_list_items dli
-JOIN product_variants pv ON pv.id = dli.product_variant_id
+FROM rows r
+JOIN product_variants pv ON pv.id = r.product_variant_id
 JOIN products p ON p.id = pv.product_id
-WHERE dli.discount_list_id = $1
-  AND ($2::text = ''
-       OR p.name ILIKE '%' || $2::text || '%'
-       OR p.code ILIKE '%' || $2::text || '%'
-       OR pv.barcode ILIKE '%' || $2::text || '%')
+WHERE ($1::text = ''
+       OR p.name ILIKE '%' || $1::text || '%'
+       OR p.code ILIKE '%' || $1::text || '%'
+       OR pv.barcode ILIKE '%' || $1::text || '%')
 `
 
 type CountDiscountListItemsWithProductParams struct {
-	DiscountListID int64  `json:"discount_list_id"`
 	Search         string `json:"search"`
+	DiscountListID int64  `json:"discount_list_id"`
 }
 
 func (q *Queries) CountDiscountListItemsWithProduct(ctx context.Context, arg CountDiscountListItemsWithProductParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countDiscountListItemsWithProduct, arg.DiscountListID, arg.Search)
+	row := q.db.QueryRowContext(ctx, countDiscountListItemsWithProduct, arg.Search, arg.DiscountListID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -362,38 +368,52 @@ func (q *Queries) ListDiscountListItemsForSync(ctx context.Context, discountList
 }
 
 const listDiscountListItemsWithProduct = `-- name: ListDiscountListItemsWithProduct :many
-SELECT dli.discount_list_id, dli.product_variant_id, dli.discount,
+WITH rows AS (
+  SELECT dli.discount_list_id, dli.product_variant_id, dli.discount,
+         0::bigint AS sale_option_id, ''::text AS sale_option, 0 AS sale_option_order
+  FROM discount_list_items dli
+  WHERE dli.discount_list_id = $4
+  UNION ALL
+  SELECT dloi.discount_list_id, dloi.product_variant_id, dloi.discount,
+         so.id, so.name, so.sort_order
+  FROM discount_list_option_items dloi
+  JOIN sale_options so ON so.id = dloi.sale_option_id
+  WHERE dloi.discount_list_id = $4
+)
+SELECT r.discount_list_id, r.product_variant_id, r.discount,
+       r.sale_option_id, r.sale_option,
        pv.uid AS product_variant_uid, pv.barcode,
        p.code AS product_code, p.name AS product_name,
        -- See ListPriceListItemsWithProduct for why these coalesce.
        COALESCE(colors.name, '')::text AS color_name,
        COALESCE(sizes.name, '')::text AS size_name
-FROM discount_list_items dli
-JOIN product_variants pv ON pv.id = dli.product_variant_id
+FROM rows r
+JOIN product_variants pv ON pv.id = r.product_variant_id
 JOIN products p ON p.id = pv.product_id
 LEFT JOIN colors ON colors.id = pv.color_id
 LEFT JOIN sizes ON sizes.id = pv.size_id
-WHERE dli.discount_list_id = $1
-  AND ($2::text = ''
-       OR p.name ILIKE '%' || $2::text || '%'
-       OR p.code ILIKE '%' || $2::text || '%'
-       OR pv.barcode ILIKE '%' || $2::text || '%')
-ORDER BY p.name, dli.product_variant_id
-LIMIT $4
-OFFSET $3
+WHERE ($1::text = ''
+       OR p.name ILIKE '%' || $1::text || '%'
+       OR p.code ILIKE '%' || $1::text || '%'
+       OR pv.barcode ILIKE '%' || $1::text || '%')
+ORDER BY p.name, r.product_variant_id, r.sale_option_order
+LIMIT $3
+OFFSET $2
 `
 
 type ListDiscountListItemsWithProductParams struct {
-	DiscountListID int64  `json:"discount_list_id"`
 	Search         string `json:"search"`
 	PageOffset     int32  `json:"page_offset"`
 	PageSize       int32  `json:"page_size"`
+	DiscountListID int64  `json:"discount_list_id"`
 }
 
 type ListDiscountListItemsWithProductRow struct {
 	DiscountListID    int64     `json:"discount_list_id"`
 	ProductVariantID  int64     `json:"product_variant_id"`
 	Discount          int16     `json:"discount"`
+	SaleOptionID      int64     `json:"sale_option_id"`
+	SaleOption        string    `json:"sale_option"`
 	ProductVariantUid uuid.UUID `json:"product_variant_uid"`
 	Barcode           string    `json:"barcode"`
 	ProductCode       string    `json:"product_code"`
@@ -403,13 +423,15 @@ type ListDiscountListItemsWithProductRow struct {
 }
 
 // See ListPriceListItemsWithProduct: rows are variant-level, so the label needs
-// the barcode and color/size to be identifiable.
+// the barcode and color/size to be identifiable. Option rows (000199) are
+// listed alongside the plain ones; sale_option_id 0 / sale_option ” marks a
+// plain row.
 func (q *Queries) ListDiscountListItemsWithProduct(ctx context.Context, arg ListDiscountListItemsWithProductParams) ([]ListDiscountListItemsWithProductRow, error) {
 	rows, err := q.db.QueryContext(ctx, listDiscountListItemsWithProduct,
-		arg.DiscountListID,
 		arg.Search,
 		arg.PageOffset,
 		arg.PageSize,
+		arg.DiscountListID,
 	)
 	if err != nil {
 		return nil, err
@@ -422,6 +444,8 @@ func (q *Queries) ListDiscountListItemsWithProduct(ctx context.Context, arg List
 			&i.DiscountListID,
 			&i.ProductVariantID,
 			&i.Discount,
+			&i.SaleOptionID,
+			&i.SaleOption,
 			&i.ProductVariantUid,
 			&i.Barcode,
 			&i.ProductCode,
