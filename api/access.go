@@ -243,6 +243,7 @@ var routeRules = []routeRule{
 	// Pricing
 	rule("/price_lists", "pricing", "pricing", "products", "sales"),
 	rule("/discount_lists", "pricing", "pricing", "products", "sales"),
+	rule("/sale_options", "pricing", "pricing", "products", "sales"),
 	rule("/coupons", "pricing", "pricing", "clients"),
 	rule("/coupon_categories", "pricing", "pricing", "clients"),
 

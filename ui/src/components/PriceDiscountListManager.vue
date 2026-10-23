@@ -110,6 +110,16 @@
                 variant="outlined"
                 @update:search="onVariantSearch"
               />
+              <v-select
+                v-if="kind === 'discount'"
+                v-model="addSaleOptionId"
+                density="compact"
+                hide-details
+                :items="saleOptionChoices"
+                label="Sold as"
+                style="max-width: 150px;"
+                variant="outlined"
+              />
               <v-text-field
                 v-model="addValue"
                 density="compact"
@@ -136,6 +146,13 @@
                 text="Paste codes"
                 variant="tonal"
                 @click="bulkDialog = true"
+              />
+              <v-btn
+                v-if="kind === 'discount'"
+                prepend-icon="mdi-tag-multiple"
+                text="Ask at the till"
+                variant="tonal"
+                @click="optionsDialog = true"
               />
             </div>
 
@@ -166,7 +183,7 @@
               :external-search="itemSearch ?? ''"
               flush
               :headers="itemHeaders"
-              item-value="product_variant_id"
+              :item-value="kind === 'discount' ? 'row_key' : 'product_variant_id'"
               root-key="items"
               :selectable="canEdit"
               :show-search-icon="false"
@@ -175,6 +192,10 @@
             >
               <template #item.variant="{ item }">
                 {{ variantText(item) }}
+              </template>
+              <template #item.sale_option="{ item }">
+                <v-chip v-if="item.sale_option" size="small" :text="item.sale_option" />
+                <span v-else class="text-medium-emphasis">Any</span>
               </template>
               <template #[`item.${cfg.valueKey}`]="{ item }">
                 {{ cfg.display(item[cfg.valueKey]) }}
@@ -270,17 +291,31 @@
             rows="5"
             variant="outlined"
           />
-          <v-text-field
-            v-model="bulkValue"
-            class="mt-3"
-            density="compact"
-            hide-details
-            label="Discount"
-            style="max-width: 160px;"
-            suffix="%"
-            type="number"
-            variant="outlined"
-          />
+          <div class="d-flex ga-3 mt-3">
+            <v-text-field
+              v-model="bulkValue"
+              density="compact"
+              hide-details
+              label="Discount"
+              style="max-width: 160px;"
+              suffix="%"
+              type="number"
+              variant="outlined"
+            />
+            <v-select
+              v-model="bulkSaleOptionId"
+              density="compact"
+              hide-details
+              :items="saleOptionChoices"
+              label="Only when sold as"
+              style="max-width: 200px;"
+              variant="outlined"
+            />
+          </div>
+          <p v-if="bulkSaleOptionId" class="text-caption text-medium-emphasis mt-1">
+            Applies only when the till sells the product as this option, and wins over the
+            product's plain discount then. The products must also ask for it at the till.
+          </p>
           <v-alert
             v-if="bulkUnmatched.length > 0"
             class="mt-3"
@@ -312,6 +347,7 @@
           {{ editItemTarget?.product_code }} — {{ editItemTarget?.product_name }}
           <div class="text-caption text-medium-emphasis">
             {{ variantText(editItemTarget) }} · {{ editItemTarget?.barcode }}
+            <template v-if="editItemTarget?.sale_option"> · sold as {{ editItemTarget.sale_option }}</template>
           </div>
         </v-card-title>
         <v-card-text>
@@ -344,6 +380,63 @@
             text="Save"
             variant="flat"
             @click="saveEditItem"
+          />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- which products the till asks a sale option for -->
+    <v-dialog v-model="optionsDialog" max-width="520">
+      <v-card>
+        <v-card-title>Ask at the till</v-card-title>
+        <v-card-text>
+          <p class="text-body-2 text-medium-emphasis mb-3">
+            When one of these products is scanned, the till asks which option is being sold
+            (e.g. Summer or Winter) and shows each option's discount. This belongs to the
+            product, not this list: it applies in every branch. Choosing no option stops the
+            till asking.
+          </p>
+          <v-textarea
+            v-model="optionsEntries"
+            auto-grow
+            autofocus
+            density="compact"
+            hide-details
+            label="Codes or barcodes"
+            rows="5"
+            variant="outlined"
+          />
+          <v-select
+            v-model="optionsSelected"
+            chips
+            class="mt-3"
+            density="compact"
+            hide-details
+            :items="saleOptionChoices.filter(o => o.value)"
+            label="Options to ask"
+            multiple
+            variant="outlined"
+          />
+          <v-alert
+            v-if="optionsUnmatched.length > 0"
+            class="mt-3"
+            density="compact"
+            type="warning"
+            variant="tonal"
+          >
+            Not found: {{ optionsUnmatched.join(', ') }}
+          </v-alert>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn text="Close" variant="text" @click="optionsDialog = false" />
+          <v-btn
+            color="primary"
+            :disabled="!optionsEntries.trim()"
+            :loading="optionsSaving"
+            text="Apply"
+            variant="flat"
+            @click="applyOptions"
           />
         </v-card-actions>
       </v-card>
@@ -448,8 +541,65 @@
     { title: 'Product', key: 'product_name', align: 'start' },
     { title: 'Variant', key: 'variant', align: 'start', width: 160, sortable: false },
     { title: 'Barcode', key: 'barcode', align: 'start', width: 150 },
+    ...(props.kind === 'discount'
+      ? [{ title: 'Sold as', key: 'sale_option', align: 'start', width: 110, sortable: false }]
+      : []),
     { title: cfg.value.valueLabel, key: cfg.value.valueKey, align: 'end', width: 140 },
   ])
+
+  // ---- sale options (discount lists) -------------------------------------
+  // A discount row can apply only when the till sells the variant as one of
+  // these (Summer/Winter); 0 is the plain row that applies otherwise.
+  const saleOptions = ref([])
+  const saleOptionChoices = computed(() => [
+    { title: 'Any', value: 0 },
+    ...saleOptions.value.map(o => ({ title: o.name, value: o.id })),
+  ])
+
+  async function fetchSaleOptions () {
+    const res = await authFetch(`${API_BASE}/sale_options`)
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || `Request failed with status ${res.status}`)
+    saleOptions.value = data.sale_options ?? []
+  }
+
+  onMounted(() => {
+    if (props.kind === 'discount') fetchSaleOptions().catch(error => notify.error(error.message))
+  })
+
+  const optionsDialog = ref(false)
+  const optionsEntries = ref('')
+  const optionsSelected = ref([])
+  const optionsSaving = ref(false)
+  const optionsUnmatched = ref([])
+
+  async function applyOptions () {
+    optionsSaving.value = true
+    try {
+      const res = await authFetch(`${API_BASE}/sale_options/products`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entries: optionsEntries.value.split(/[\s,;]+/).filter(Boolean),
+          sale_option_ids: optionsSelected.value,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || `Request failed with status ${res.status}`)
+      optionsUnmatched.value = data.unmatched ?? []
+      notify.success(optionsSelected.value.length > 0
+        ? `${data.set} product(s) will ask at the till.`
+        : 'Those products no longer ask at the till.')
+      if (optionsUnmatched.value.length === 0) {
+        optionsDialog.value = false
+        optionsEntries.value = ''
+      }
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      optionsSaving.value = false
+    }
+  }
 
   // color_name/size_name arrive as nullable strings from the join.
   function variantText (item) {
@@ -478,12 +628,25 @@
   async function bulkDeleteItems () {
     if (!selectedList.value) return
     try {
-      await runItemBulk(`/${props.kind === 'price' ? 'price_lists' : 'discount_lists'}/${selectedList.value.id}/items/bulk_delete`, {
-        product_variant_ids: selectedItems.value,
-      })
+      const payload = props.kind === 'price'
+        ? { product_variant_ids: selectedItems.value }
+        : discountDeletePayload(selectedItems.value)
+      await runItemBulk(`/${props.kind === 'price' ? 'price_lists' : 'discount_lists'}/${selectedList.value.id}/items/bulk_delete`, payload)
       resetItemSel()
       reloadItems()
     } catch { /* error shown in the bar */ }
+  }
+
+  // Discount rows are selected by row_key ("variant:option", see
+  // ListDiscountListItemsWithProduct); option 0 is a plain row.
+  function discountDeletePayload (keys) {
+    const payload = { product_variant_ids: [], option_items: [] }
+    for (const key of keys) {
+      const [variantId, optionId] = String(key).split(':').map(Number)
+      if (optionId) payload.option_items.push({ product_variant_id: variantId, sale_option_id: optionId })
+      else payload.product_variant_ids.push(variantId)
+    }
+    return payload
   }
 
   watch(selectedListId, () => {
@@ -509,6 +672,7 @@
   const { variants: variantOptions, loading: variantSearchLoading, searchVariants } = useVariants()
   const addVariantId = ref(null)
   const addValue = ref('')
+  const addSaleOptionId = ref(0)
   const addingItem = ref(false)
   let variantSearchTimer
 
@@ -528,7 +692,7 @@
     }
     addingItem.value = true
     try {
-      await saveItem(selectedList.value.id, addVariantId.value, parsed)
+      await saveItem(selectedList.value.id, addVariantId.value, parsed, addSaleOptionId.value)
       addVariantId.value = null
       addValue.value = ''
       reloadItems()
@@ -543,6 +707,7 @@
   const bulkDialog = ref(false)
   const bulkEntries = ref('')
   const bulkValue = ref('')
+  const bulkSaleOptionId = ref(0)
   const bulkSaving = ref(false)
   const bulkUnmatched = ref([])
 
@@ -561,6 +726,7 @@
           discount_list_id: selectedList.value.id,
           entries: bulkEntries.value.split(/[\s,;]+/).filter(Boolean),
           discount,
+          sale_option_id: bulkSaleOptionId.value,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -603,7 +769,7 @@
     if (!Number.isFinite(parsed) || parsed < 0) return
     savingItem.value = true
     try {
-      await saveItem(selectedList.value.id, editItemTarget.value.product_variant_id, parsed)
+      await saveItem(selectedList.value.id, editItemTarget.value.product_variant_id, parsed, editItemTarget.value.sale_option_id ?? 0)
       editItemDialog.value = false
       reloadItems()
     } catch (error) {
@@ -615,7 +781,7 @@
 
   async function removeItem (item) {
     try {
-      await deleteItem(selectedList.value.id, item.product_variant_id)
+      await deleteItem(selectedList.value.id, item.product_variant_id, item.sale_option_id ?? 0)
       reloadItems()
     } catch (error) {
       notify.error(error.message)

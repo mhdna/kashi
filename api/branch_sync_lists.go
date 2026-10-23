@@ -46,6 +46,15 @@ type syncDiscountListItem struct {
 	Discount          int16     `json:"discount"`
 }
 
+// A discount that applies only when the cashier sells the variant as the
+// named sale option (000199). The option travels by name: a till has no copy
+// of kashi's sale_options ids.
+type syncDiscountListOptionItem struct {
+	ProductVariantUID uuid.UUID `json:"product_variant_uid"`
+	SaleOption        string    `json:"sale_option"`
+	Discount          int16     `json:"discount"`
+}
+
 type syncDiscountList struct {
 	UID       uuid.UUID              `json:"uid"`
 	Name      string                 `json:"name"`
@@ -56,6 +65,9 @@ type syncDiscountList struct {
 	ValidTo   time.Time              `json:"valid_to"`
 	UpdatedAt time.Time              `json:"updated_at"`
 	Items     []syncDiscountListItem `json:"items"`
+	// A separate field rather than more Items so a till that predates sale
+	// options ignores them instead of reading them as plain discounts.
+	OptionItems []syncDiscountListOptionItem `json:"option_items"`
 }
 
 // An inactive list is sent with an empty Items set: the till is being told to
@@ -112,15 +124,16 @@ func (server *Server) discountListsForBranchSync(ctx *gin.Context, branchID int6
 	out := make([]syncDiscountList, 0, len(lists))
 	for _, l := range lists {
 		entry := syncDiscountList{
-			UID:       l.Uid,
-			Name:      l.Name,
-			IsActive:  l.IsActive,
-			IsDefault: l.IsDefault,
-			IsSpecial: l.IsSpecial,
-			ValidFrom: l.ValidFrom,
-			ValidTo:   l.ValidTo,
-			UpdatedAt: l.UpdatedAt,
-			Items:     []syncDiscountListItem{},
+			UID:         l.Uid,
+			Name:        l.Name,
+			IsActive:    l.IsActive,
+			IsDefault:   l.IsDefault,
+			IsSpecial:   l.IsSpecial,
+			ValidFrom:   l.ValidFrom,
+			ValidTo:     l.ValidTo,
+			UpdatedAt:   l.UpdatedAt,
+			Items:       []syncDiscountListItem{},
+			OptionItems: []syncDiscountListOptionItem{},
 		}
 		if l.IsActive {
 			rows, err := server.store.ListDiscountListItemsForSync(ctx, l.ID)
@@ -130,6 +143,17 @@ func (server *Server) discountListsForBranchSync(ctx *gin.Context, branchID int6
 			for _, r := range rows {
 				entry.Items = append(entry.Items, syncDiscountListItem{
 					ProductVariantUID: r.ProductVariantUid,
+					Discount:          r.Discount,
+				})
+			}
+			optionRows, err := server.store.ListDiscountListOptionItemsForSync(ctx, l.ID)
+			if err != nil {
+				return nil, err
+			}
+			for _, r := range optionRows {
+				entry.OptionItems = append(entry.OptionItems, syncDiscountListOptionItem{
+					ProductVariantUID: r.ProductVariantUid,
+					SaleOption:        r.SaleOption,
 					Discount:          r.Discount,
 				})
 			}
