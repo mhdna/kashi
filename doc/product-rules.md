@@ -162,6 +162,12 @@ left out (deactivated). Coverage on the 2026-10-17 snapshot: 13,173 of
 | | Pants | pant, trouser, jogging, cargo, chino |
 | Toys | Toys | toy, football, basketball, rc, game, ball, doll, puzzle, lego, bike, scooter… |
 
+Second pass on production (2026-10-23): COC5THD/COC5TTHD and THD codes are
+all Toys, C22PF all perfume (Beauty); tables, cabinets, duvets, bed sets and
+decoration are Home; "hoddie", "collon", "ballerina", "Lady String" typos and
+words caught. Kind is also read from the code's letter after the year when
+the name has none: L → Lady, M → Men, K/KB/KG/JB/JG → Kids, BB/BG → Baby.
+
 Left without a category (582): names that say nothing about the garment —
 "Baby Item" (131), "Unidentified", "tmp", "Mixed Items", "Sports articles".
 Their kind is still filled from the name.
