@@ -382,6 +382,9 @@ WITH rows AS (
 )
 SELECT r.discount_list_id, r.product_variant_id, r.discount,
        r.sale_option_id, r.sale_option,
+       -- A variant can have a plain row and option rows, so the page needs
+       -- something unique to key and select a row by.
+       (r.product_variant_id::text || ':' || r.sale_option_id::text)::text AS row_key,
        pv.uid AS product_variant_uid, pv.barcode,
        p.code AS product_code, p.name AS product_name,
        -- See ListPriceListItemsWithProduct for why these coalesce.
@@ -414,6 +417,7 @@ type ListDiscountListItemsWithProductRow struct {
 	Discount          int16     `json:"discount"`
 	SaleOptionID      int64     `json:"sale_option_id"`
 	SaleOption        string    `json:"sale_option"`
+	RowKey            string    `json:"row_key"`
 	ProductVariantUid uuid.UUID `json:"product_variant_uid"`
 	Barcode           string    `json:"barcode"`
 	ProductCode       string    `json:"product_code"`
@@ -446,6 +450,7 @@ func (q *Queries) ListDiscountListItemsWithProduct(ctx context.Context, arg List
 			&i.Discount,
 			&i.SaleOptionID,
 			&i.SaleOption,
+			&i.RowKey,
 			&i.ProductVariantUid,
 			&i.Barcode,
 			&i.ProductCode,
