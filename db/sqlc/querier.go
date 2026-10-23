@@ -17,6 +17,10 @@ type Querier interface {
 	// Marks the given alerts seen; an empty list marks every open one except
 	// those of kept_kinds (critical ones, resolved only one by one).
 	AcknowledgeSecurityAlerts(ctx context.Context, arg AcknowledgeSecurityAlertsParams) error
+	// The list a branch is discounted from: its own assigned list when that one
+	// is active and in date, otherwise the default -- the same choice
+	// ResolveVariantDiscount makes, and the till makes from what it's sent.
+	ActiveDiscountListForBranch(ctx context.Context, branchID int64) (DiscountList, error)
 	// remaining_quantity starts equal to quantity_bought -- FIFO consumption
 	// (applyStockMovement) draws it down as sales are attributed to this
 	// batch, and returns of those sales put it back.
@@ -161,6 +165,8 @@ type Querier interface {
 	// to tell the admin toast "customer in -- 42 in today".
 	CountBranchVisitorDayByDirection(ctx context.Context, arg CountBranchVisitorDayByDirectionParams) (int64, error)
 	CountBranchVisitorDays(ctx context.Context, branchID sql.NullInt64) (int64, error)
+	// Branches with no active list of their own, i.e. discounted from the default.
+	CountBranchesOnDefaultDiscountList(ctx context.Context) (int64, error)
 	// How many branches reference this method, either via an explicit override
 	// row or by inheriting it as-is. A payment method that any branch still
 	// overrides can't be hard-deleted without leaving that override dangling
@@ -1428,6 +1434,10 @@ type Querier interface {
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	ListVariantSyncIDs(ctx context.Context, arg ListVariantSyncIDsParams) ([]ListVariantSyncIDsRow, error)
 	ListVariantsForBarcodes(ctx context.Context, arg ListVariantsForBarcodesParams) ([]ListVariantsForBarcodesRow, error)
+	// What one typed or scanned entry names, matched like
+	// BulkSetDiscountListItems: a barcode names its variant, a code all of its
+	// product's variants.
+	ListVariantsForDiscountEntry(ctx context.Context, entry string) ([]ListVariantsForDiscountEntryRow, error)
 	// Most recently seen first. search matches the IP, place, network, user or
 	// branch; country narrows to one country code.
 	ListVisitorIPs(ctx context.Context, arg ListVisitorIPsParams) ([]VisitorIp, error)
