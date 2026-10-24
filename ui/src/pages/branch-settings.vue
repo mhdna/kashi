@@ -377,7 +377,7 @@
                           color="primary"
                           density="compact"
                           hide-details
-                          label="Salespersons can turn a line's discount or deal off and on (not change it)"
+                          label="Salespersons can turn a line's discount (30%) off and on (not change it)"
                         />
                         <v-switch
                           v-if="settingsForm.discount_toggle"
@@ -386,6 +386,13 @@
                           density="compact"
                           hide-details
                           label="Discounts start off on each new line"
+                        />
+                        <v-switch
+                          v-model="settingsForm.deal_toggle"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Salespersons can turn a line's deal (B2G1) off and on"
                         />
                       </div>
                     </section>
@@ -1601,6 +1608,7 @@
     'price_edit_restricted',
     'discount_toggle',
     'discount_toggle_default_off',
+    'deal_toggle',
     'sounds_enabled',
     'salesperson_per_invoice_required',
     'non_admin_month_nav_enabled',
@@ -1981,6 +1989,7 @@
     price_edit_codes: 'Codes allowed for price edits',
     discount_toggle: 'Turn discounts off at the till',
     discount_toggle_default_off: 'Discounts start off',
+    deal_toggle: 'Turn deals off at the till',
     unknown_product_barcode: 'Unknown item product',
     product_search_hidden_fields: 'Product search hidden columns',
     receipt_theme: 'Receipt theme',
