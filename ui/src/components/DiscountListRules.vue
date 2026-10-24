@@ -604,7 +604,7 @@
       options.push({ sale_option_id: o.id, sale_option: o.name, discount: d })
     }
     const old = editing.rule >= 0 ? groups.value[editing.group].rules[editing.rule] : null
-    const rule = { name: form.name.trim(), discount, options, deal_id: dealId, enabled: old?.enabled ?? true, variants: 0 }
+    const rule = { id: old?.id ?? 0, name: form.name.trim(), discount, options, deal_id: dealId, enabled: old?.enabled ?? true, variants: 0 }
     for (const c of CONDITIONS) {
       rule[c.key] = form.allProducts ? [] : form[c.key].map(v => String(v).trim()).filter(Boolean)
     }
@@ -632,7 +632,10 @@
       // A rule with no conditions was made "every product" on purpose (the
       // only way to make one here), so it says so to the API.
       groups.value = await request('PUT', {
+        // Ids go back with what was loaded, so the saved groups and rules
+        // are updated in place (a new one has none).
         groups: groups.value.map(group => ({
+          id: group.id ?? 0,
           name: group.name,
           enabled: group.enabled,
           rules: group.rules.map(r => ({ ...r, all_products: !hasConditions(r) })),

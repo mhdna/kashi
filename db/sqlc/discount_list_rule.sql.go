@@ -141,12 +141,51 @@ func (q *Queries) DeleteDiscountListRuleGroups(ctx context.Context, discountList
 	return err
 }
 
+const deleteDiscountListRuleGroupsExcept = `-- name: DeleteDiscountListRuleGroupsExcept :exec
+DELETE FROM discount_list_rule_groups
+WHERE discount_list_id = $1 AND NOT (id = ANY($2::bigint[]))
+`
+
+type DeleteDiscountListRuleGroupsExceptParams struct {
+	DiscountListID int64   `json:"discount_list_id"`
+	Keep           []int64 `json:"keep"`
+}
+
+func (q *Queries) DeleteDiscountListRuleGroupsExcept(ctx context.Context, arg DeleteDiscountListRuleGroupsExceptParams) error {
+	_, err := q.db.ExecContext(ctx, deleteDiscountListRuleGroupsExcept, arg.DiscountListID, pq.Array(arg.Keep))
+	return err
+}
+
+const deleteDiscountListRuleOptions = `-- name: DeleteDiscountListRuleOptions :exec
+DELETE FROM discount_list_rule_options WHERE rule_id = $1
+`
+
+func (q *Queries) DeleteDiscountListRuleOptions(ctx context.Context, ruleID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteDiscountListRuleOptions, ruleID)
+	return err
+}
+
 const deleteDiscountListRules = `-- name: DeleteDiscountListRules :exec
 DELETE FROM discount_list_rules WHERE discount_list_id = $1
 `
 
 func (q *Queries) DeleteDiscountListRules(ctx context.Context, discountListID int64) error {
 	_, err := q.db.ExecContext(ctx, deleteDiscountListRules, discountListID)
+	return err
+}
+
+const deleteDiscountListRulesExcept = `-- name: DeleteDiscountListRulesExcept :exec
+DELETE FROM discount_list_rules
+WHERE discount_list_id = $1 AND NOT (id = ANY($2::bigint[]))
+`
+
+type DeleteDiscountListRulesExceptParams struct {
+	DiscountListID int64   `json:"discount_list_id"`
+	Keep           []int64 `json:"keep"`
+}
+
+func (q *Queries) DeleteDiscountListRulesExcept(ctx context.Context, arg DeleteDiscountListRulesExceptParams) error {
+	_, err := q.db.ExecContext(ctx, deleteDiscountListRulesExcept, arg.DiscountListID, pq.Array(arg.Keep))
 	return err
 }
 
@@ -305,4 +344,88 @@ func (q *Queries) ListDiscountListRules(ctx context.Context, discountListID int6
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateDiscountListRule = `-- name: UpdateDiscountListRule :execrows
+UPDATE discount_list_rules
+SET position = $1, name = $2,
+    code_prefixes = $3::text[], except_code_prefixes = $4::text[],
+    kinds = $5::text[], categories = $6::text[],
+    sub_categories = $7::text[], origins = $8::text[],
+    brands = $9::text[], discount = $10, deal_id = $11::bigint,
+    group_id = $12, is_enabled = $13
+WHERE id = $14 AND discount_list_id = $15
+`
+
+type UpdateDiscountListRuleParams struct {
+	Position           int32         `json:"position"`
+	Name               string        `json:"name"`
+	CodePrefixes       []string      `json:"code_prefixes"`
+	ExceptCodePrefixes []string      `json:"except_code_prefixes"`
+	Kinds              []string      `json:"kinds"`
+	Categories         []string      `json:"categories"`
+	SubCategories      []string      `json:"sub_categories"`
+	Origins            []string      `json:"origins"`
+	Brands             []string      `json:"brands"`
+	Discount           int16         `json:"discount"`
+	DealID             sql.NullInt64 `json:"deal_id"`
+	GroupID            int64         `json:"group_id"`
+	IsEnabled          bool          `json:"is_enabled"`
+	ID                 int64         `json:"id"`
+	DiscountListID     int64         `json:"discount_list_id"`
+}
+
+// Saved in place: the rows a rule wrote carry its id (rule_id), so a rule
+// re-created with a new id would have every one of them rewritten.
+func (q *Queries) UpdateDiscountListRule(ctx context.Context, arg UpdateDiscountListRuleParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateDiscountListRule,
+		arg.Position,
+		arg.Name,
+		pq.Array(arg.CodePrefixes),
+		pq.Array(arg.ExceptCodePrefixes),
+		pq.Array(arg.Kinds),
+		pq.Array(arg.Categories),
+		pq.Array(arg.SubCategories),
+		pq.Array(arg.Origins),
+		pq.Array(arg.Brands),
+		arg.Discount,
+		arg.DealID,
+		arg.GroupID,
+		arg.IsEnabled,
+		arg.ID,
+		arg.DiscountListID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateDiscountListRuleGroup = `-- name: UpdateDiscountListRuleGroup :execrows
+UPDATE discount_list_rule_groups
+SET position = $3, name = $4, is_enabled = $5
+WHERE id = $1 AND discount_list_id = $2
+`
+
+type UpdateDiscountListRuleGroupParams struct {
+	ID             int64  `json:"id"`
+	DiscountListID int64  `json:"discount_list_id"`
+	Position       int32  `json:"position"`
+	Name           string `json:"name"`
+	IsEnabled      bool   `json:"is_enabled"`
+}
+
+// Saved in place, so a group (and its rules) keeps its id.
+func (q *Queries) UpdateDiscountListRuleGroup(ctx context.Context, arg UpdateDiscountListRuleGroupParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateDiscountListRuleGroup,
+		arg.ID,
+		arg.DiscountListID,
+		arg.Position,
+		arg.Name,
+		arg.IsEnabled,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

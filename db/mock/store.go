@@ -4375,6 +4375,34 @@ func (mr *MockStoreMockRecorder) DeleteDiscountListRuleGroups(arg0, arg1 interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteDiscountListRuleGroups", reflect.TypeOf((*MockStore)(nil).DeleteDiscountListRuleGroups), arg0, arg1)
 }
 
+// DeleteDiscountListRuleGroupsExcept mocks base method.
+func (m *MockStore) DeleteDiscountListRuleGroupsExcept(arg0 context.Context, arg1 db.DeleteDiscountListRuleGroupsExceptParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteDiscountListRuleGroupsExcept", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteDiscountListRuleGroupsExcept indicates an expected call of DeleteDiscountListRuleGroupsExcept.
+func (mr *MockStoreMockRecorder) DeleteDiscountListRuleGroupsExcept(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteDiscountListRuleGroupsExcept", reflect.TypeOf((*MockStore)(nil).DeleteDiscountListRuleGroupsExcept), arg0, arg1)
+}
+
+// DeleteDiscountListRuleOptions mocks base method.
+func (m *MockStore) DeleteDiscountListRuleOptions(arg0 context.Context, arg1 int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteDiscountListRuleOptions", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteDiscountListRuleOptions indicates an expected call of DeleteDiscountListRuleOptions.
+func (mr *MockStoreMockRecorder) DeleteDiscountListRuleOptions(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteDiscountListRuleOptions", reflect.TypeOf((*MockStore)(nil).DeleteDiscountListRuleOptions), arg0, arg1)
+}
+
 // DeleteDiscountListRules mocks base method.
 func (m *MockStore) DeleteDiscountListRules(arg0 context.Context, arg1 int64) error {
 	m.ctrl.T.Helper()
@@ -4387,6 +4415,20 @@ func (m *MockStore) DeleteDiscountListRules(arg0 context.Context, arg1 int64) er
 func (mr *MockStoreMockRecorder) DeleteDiscountListRules(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteDiscountListRules", reflect.TypeOf((*MockStore)(nil).DeleteDiscountListRules), arg0, arg1)
+}
+
+// DeleteDiscountListRulesExcept mocks base method.
+func (m *MockStore) DeleteDiscountListRulesExcept(arg0 context.Context, arg1 db.DeleteDiscountListRulesExceptParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteDiscountListRulesExcept", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteDiscountListRulesExcept indicates an expected call of DeleteDiscountListRulesExcept.
+func (mr *MockStoreMockRecorder) DeleteDiscountListRulesExcept(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteDiscountListRulesExcept", reflect.TypeOf((*MockStore)(nil).DeleteDiscountListRulesExcept), arg0, arg1)
 }
 
 // DeleteEmailSchedule mocks base method.
@@ -12846,6 +12888,36 @@ func (m *MockStore) UpdateDiscountListItem(arg0 context.Context, arg1 db.UpdateD
 func (mr *MockStoreMockRecorder) UpdateDiscountListItem(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDiscountListItem", reflect.TypeOf((*MockStore)(nil).UpdateDiscountListItem), arg0, arg1)
+}
+
+// UpdateDiscountListRule mocks base method.
+func (m *MockStore) UpdateDiscountListRule(arg0 context.Context, arg1 db.UpdateDiscountListRuleParams) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateDiscountListRule", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateDiscountListRule indicates an expected call of UpdateDiscountListRule.
+func (mr *MockStoreMockRecorder) UpdateDiscountListRule(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDiscountListRule", reflect.TypeOf((*MockStore)(nil).UpdateDiscountListRule), arg0, arg1)
+}
+
+// UpdateDiscountListRuleGroup mocks base method.
+func (m *MockStore) UpdateDiscountListRuleGroup(arg0 context.Context, arg1 db.UpdateDiscountListRuleGroupParams) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateDiscountListRuleGroup", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateDiscountListRuleGroup indicates an expected call of UpdateDiscountListRuleGroup.
+func (mr *MockStoreMockRecorder) UpdateDiscountListRuleGroup(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDiscountListRuleGroup", reflect.TypeOf((*MockStore)(nil).UpdateDiscountListRuleGroup), arg0, arg1)
 }
 
 // UpdateEmailSchedule mocks base method.
