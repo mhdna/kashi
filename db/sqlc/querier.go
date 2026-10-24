@@ -1265,6 +1265,10 @@ type Querier interface {
 	// See ListPriceListsForBranchSync -- same scoping and same reason for
 	// carrying is_active rather than filtering on it.
 	ListDiscountListsForBranchSync(ctx context.Context, arg ListDiscountListsForBranchSyncParams) ([]DiscountList, error)
+	// Lists the branch was taken off since the till's cursor (000206), which it
+	// is sent as inactive so it drops its copy. Not the default list, which
+	// every branch keeps, nor one the branch is back on.
+	ListDiscountListsRemovedFromBranch(ctx context.Context, arg ListDiscountListsRemovedFromBranchParams) ([]ListDiscountListsRemovedFromBranchRow, error)
 	ListDueEmailSchedules(ctx context.Context) ([]EmailSchedule, error)
 	ListDueRecurringExpenses(ctx context.Context, nextDueAt time.Time) ([]RecurringExpense, error)
 	// Every non-cancelled invoice on local days from_day..to_day, newest first
@@ -1376,6 +1380,8 @@ type Querier interface {
 	// is exactly the event the till needs in order to drop its local copy; filter
 	// it out here and the till would keep pricing from a list kashi has retired.
 	ListPriceListsForBranchSync(ctx context.Context, arg ListPriceListsForBranchSyncParams) ([]PriceList, error)
+	// See ListDiscountListsRemovedFromBranch.
+	ListPriceListsRemovedFromBranch(ctx context.Context, arg ListPriceListsRemovedFromBranchParams) ([]ListPriceListsRemovedFromBranchRow, error)
 	ListProductAttributes(ctx context.Context, arg ListProductAttributesParams) ([]ProductsAttribute, error)
 	ListProductCategories(ctx context.Context) ([]ProductCategory, error)
 	// Revenue per product from kashi's own admin sales invoices (invoice_products
