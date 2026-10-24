@@ -10,6 +10,7 @@ const routes = [
   { path: '/financials', component: () => import('@/pages/financials.vue'), meta: { title: 'Financials', section: 'analytics', page: 'financials' } },
   { path: '/targets', component: () => import('@/pages/targets.vue'), meta: { title: 'Targets', section: 'analytics', page: 'targets' } },
   { path: '/footfall', component: () => import('@/pages/footfall.vue'), meta: { title: 'Footfall', section: 'analytics', page: 'footfall' } },
+  { path: '/busy-hours', component: () => import('@/pages/busy-hours.vue'), meta: { title: 'Busy Hours', section: 'analytics', page: 'busy-hours' } },
   { path: '/product-revenues', component: () => import('@/pages/product-revenues.vue'), meta: { title: 'Product Revenues', section: 'analytics', page: 'product-revenues' } },
   { path: '/conversion', component: () => import('@/pages/conversion.vue'), meta: { title: 'Conversion', section: 'analytics', page: 'conversion' } },
   { path: '/alerts', component: () => import('@/pages/alerts.vue'), meta: { title: 'Alerts', section: 'inventory', page: 'alerts' } },
@@ -53,10 +54,13 @@ const routes = [
   { path: '/attributes', component: () => import('@/pages/attributes.vue'), meta: { title: 'Attributes', section: 'products', page: 'attributes' } },
   { path: '/autofill-rules', component: () => import('@/pages/autofill-rules.vue'), meta: { title: 'Auto-fill Rules', section: 'products', page: 'autofill-rules' } },
   { path: '/barcodes', component: () => import('@/pages/barcodes.vue'), meta: { title: 'Barcodes', section: 'products', page: 'barcodes' } },
+  { path: '/receipt-designer', component: () => import('@/pages/receipt-designer.vue'), meta: { title: 'Receipt Designer', section: 'branches', page: 'receipt-designer' } },
+  { path: '/barcode-designer', component: () => import('@/pages/barcode-designer.vue'), meta: { title: 'Barcode Designer', section: 'products', page: 'barcode-designer' } },
   { path: '/assets', component: () => import('@/pages/assets.vue'), meta: { title: 'Assets', section: 'accounting', page: 'assets' } },
 
   { path: '/invoices', component: () => import('@/pages/sales-invoices.vue'), meta: { title: 'Invoices', section: 'sales', page: 'invoices' } },
   { path: '/sales-invoices', redirect: '/invoices' },
+  { path: '/unknown-items', component: () => import('@/pages/unknown-items.vue'), meta: { title: 'Unknown Items', section: 'sales', page: 'unknown-items' } },
   { path: '/purchase-invoice', component: () => import('@/pages/purchase-invoice.vue'), meta: { title: 'Purchase Invoices', section: 'inventory', page: 'purchase-invoice' } },
   { path: '/batches', component: () => import('@/pages/batches.vue'), meta: { title: 'Batches', section: 'inventory', page: 'batches' } },
   { path: '/expenses', component: () => import('@/pages/expenses.vue'), meta: { title: 'Expenses', section: 'accounting', page: 'expenses' } },
@@ -73,6 +77,8 @@ const routes = [
   { path: '/clients', component: () => import('@/pages/clients.vue'), meta: { title: 'Clients', section: 'clients', page: 'clients' } },
   { path: '/clients/:id', component: () => import('@/pages/client-page.vue'), meta: { title: 'Client', section: 'clients', page: 'clients' } },
   { path: '/loyalty', component: () => import('@/pages/loyalty.vue'), meta: { title: 'Loyalty', section: 'clients', page: 'loyalty' } },
+  // Reviews moved into the WhatsApp page.
+  { path: '/reviews', redirect: '/whatsapp?tab=reviews' },
   { path: '/suppliers', component: () => import('@/pages/suppliers.vue'), meta: { title: 'Suppliers', section: 'inventory', page: 'suppliers' } },
 
   { path: '/employees', component: () => import('@/pages/employees.vue'), meta: { title: 'Employees', section: 'hr', page: 'employees' } },
@@ -81,8 +87,10 @@ const routes = [
   { path: '/calendar', component: () => import('@/pages/calendar.vue'), meta: { title: 'Calendar', section: 'calendar', page: 'calendar' } },
 
   { path: '/users', component: () => import('@/pages/users.vue'), meta: { title: 'Users', adminOnly: true } },
+  { path: '/user-guide', component: () => import('@/pages/user-guide.vue'), meta: { title: 'User Guide' } },
   { path: '/settings', component: () => import('@/pages/settings.vue'), meta: { title: 'Settings' } },
-  { path: '/whatsapp', component: () => import('@/pages/whatsapp.vue'), meta: { title: 'WhatsApp', section: 'system', page: 'whatsapp' } },
+  { path: '/whatsapp', component: () => import('@/pages/whatsapp.vue'), meta: { title: 'WhatsApp & Reviews', section: 'system', page: 'whatsapp' } },
+  { path: '/emails', component: () => import('@/pages/emails.vue'), meta: { title: 'Emails', section: 'system', page: 'emails' } },
   { path: '/logs', component: () => import('@/pages/logs.vue'), meta: { title: 'Dev Logs', section: 'system', page: 'logs' } },
 ]
 

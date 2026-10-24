@@ -1,0 +1,21 @@
+DROP TRIGGER IF EXISTS discount_rules_dirty ON products;
+DROP TRIGGER IF EXISTS discount_rules_dirty ON product_variants;
+DROP TRIGGER IF EXISTS discount_rules_dirty ON products_attributes;
+DROP TRIGGER IF EXISTS discount_rules_dirty ON discount_list_items;
+DROP TRIGGER IF EXISTS discount_rules_dirty ON discount_list_option_items;
+DROP TRIGGER IF EXISTS discount_rules_dirty ON discount_list_rules;
+DROP TRIGGER IF EXISTS discount_rules_dirty ON discount_list_rule_options;
+DROP TABLE IF EXISTS discount_rules_dirty;
+DROP FUNCTION IF EXISTS run_dirty_discount_rules();
+DROP FUNCTION IF EXISTS mark_discount_rules_dirty();
+DROP FUNCTION IF EXISTS mark_discount_rules_all_dirty();
+DROP FUNCTION IF EXISTS refresh_discount_rules(bigint[], bigint[]);
+DROP FUNCTION IF EXISTS discount_rule_matches(discount_list_rules, discount_rule_facts);
+DROP VIEW IF EXISTS discount_rule_facts;
+-- Rows the rules wrote go with them; hand-set rows stay.
+DELETE FROM discount_list_items WHERE rule_id IS NOT NULL;
+DELETE FROM discount_list_option_items WHERE rule_id IS NOT NULL;
+ALTER TABLE discount_list_items DROP COLUMN rule_id;
+ALTER TABLE discount_list_option_items DROP COLUMN rule_id;
+DROP TABLE IF EXISTS discount_list_rule_options;
+DROP TABLE IF EXISTS discount_list_rules;

@@ -190,6 +190,7 @@ WHERE be.occurred_at >= (sqlc.arg(day)::date - 1)
   AND (be.occurred_at AT TIME ZONE b.timezone)::date = sqlc.arg(day)::date
   AND (sqlc.narg(branch_id)::bigint IS NULL OR be.branch_id = sqlc.narg(branch_id))
   AND be.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND be.cancelled_at IS NULL
 ORDER BY be.occurred_at;
 
 -- name: ListDayBranchShifts :many

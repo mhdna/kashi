@@ -459,6 +459,7 @@ type AdminActivity struct {
 	Detail      string        `json:"detail"`
 	CreatedAt   time.Time     `json:"created_at"`
 	RepeatCount int32         `json:"repeat_count"`
+	ReleaseType string        `json:"release_type"`
 }
 
 type AppRelease struct {
@@ -499,6 +500,50 @@ type AppSetting struct {
 	WhatsappMessageCostMicros  int64           `json:"whatsapp_message_cost_micros"`
 	WhatsappWebhookVerifyToken string          `json:"whatsapp_webhook_verify_token"`
 	WhatsappAppSecret          string          `json:"whatsapp_app_secret"`
+	EmailResendApiKey          string          `json:"email_resend_api_key"`
+	EmailSenderName            string          `json:"email_sender_name"`
+	EmailSenderAddress         string          `json:"email_sender_address"`
+	EmailReplyTo               string          `json:"email_reply_to"`
+	EmailDefaultRecipients     string          `json:"email_default_recipients"`
+	EmailBusinessName          string          `json:"email_business_name"`
+	EmailCsvColumns            json.RawMessage `json:"email_csv_columns"`
+	EmailAttachmentFormat      string          `json:"email_attachment_format"`
+	EmailGroupByRegister       bool            `json:"email_group_by_register"`
+	EmailOldestFirst           bool            `json:"email_oldest_first"`
+	ReviewPlaceID              string          `json:"review_place_id"`
+	ReviewBaseUrl              string          `json:"review_base_url"`
+	ReviewTitle                string          `json:"review_title"`
+	ReviewDescription          string          `json:"review_description"`
+	GooglePlacesApiKey         string          `json:"google_places_api_key"`
+	WhatsappSender             string          `json:"whatsapp_sender"`
+	WhatsappBridgeUrl          string          `json:"whatsapp_bridge_url"`
+	WhatsappBridgeKey          string          `json:"whatsapp_bridge_key"`
+	WhatsappBridgeMessage      string          `json:"whatsapp_bridge_message"`
+	WhatsappPollQuestion       string          `json:"whatsapp_poll_question"`
+	WhatsappPollOptions        string          `json:"whatsapp_poll_options"`
+	WhatsappFeedbackMode       string          `json:"whatsapp_feedback_mode"`
+	WhatsappBridgeLinkMessage  string          `json:"whatsapp_bridge_link_message"`
+	WhatsappChannelUrl         string          `json:"whatsapp_channel_url"`
+	WhatsappMessageLogo        bool            `json:"whatsapp_message_logo"`
+	WhatsappFollowup           bool            `json:"whatsapp_followup"`
+	WhatsappFollowupGood       string          `json:"whatsapp_followup_good"`
+	WhatsappFollowupOkay       string          `json:"whatsapp_followup_okay"`
+	WhatsappFollowupBad        string          `json:"whatsapp_followup_bad"`
+	GoogleReviewsEnabled       bool            `json:"google_reviews_enabled"`
+	WhatsappHiddenFields       string          `json:"whatsapp_hidden_fields"`
+	WhatsappChannelFirst       bool            `json:"whatsapp_channel_first"`
+	WhatsappDeleteForMe        bool            `json:"whatsapp_delete_for_me"`
+	WhatsappDeletePollForMe    bool            `json:"whatsapp_delete_poll_for_me"`
+	UploadPagesFollowSystem    bool            `json:"upload_pages_follow_system"`
+	UnknownImagesAutoDelete    bool            `json:"unknown_images_auto_delete"`
+	TablePageSize              int16           `json:"table_page_size"`
+	WhatsappWelcomeEarly       bool            `json:"whatsapp_welcome_early"`
+	BarcodeLabelDesign         json.RawMessage `json:"barcode_label_design"`
+	WhatsappMessageNew         bool            `json:"whatsapp_message_new"`
+	WhatsappMessageReturning   bool            `json:"whatsapp_message_returning"`
+	WhatsappPollNew            bool            `json:"whatsapp_poll_new"`
+	WhatsappPollReturning      bool            `json:"whatsapp_poll_returning"`
+	WhatsappFollowupReturning  bool            `json:"whatsapp_followup_returning"`
 }
 
 type AppUpdateEvent struct {
@@ -574,16 +619,20 @@ type BatchItem struct {
 }
 
 type Branch struct {
-	ID                       int64         `json:"id"`
-	Name                     string        `json:"name"`
-	Code                     string        `json:"code"`
-	IsActive                 bool          `json:"is_active"`
-	LastSeenAt               sql.NullTime  `json:"last_seen_at"`
-	CreatedAt                time.Time     `json:"created_at"`
-	InventoryID              sql.NullInt64 `json:"inventory_id"`
-	Timezone                 string        `json:"timezone"`
-	QuickAccessInitializedAt sql.NullTime  `json:"quick_access_initialized_at"`
-	HiddenFromReports        bool          `json:"hidden_from_reports"`
+	ID                       int64          `json:"id"`
+	Name                     string         `json:"name"`
+	Code                     string         `json:"code"`
+	IsActive                 bool           `json:"is_active"`
+	LastSeenAt               sql.NullTime   `json:"last_seen_at"`
+	CreatedAt                time.Time      `json:"created_at"`
+	InventoryID              sql.NullInt64  `json:"inventory_id"`
+	Timezone                 string         `json:"timezone"`
+	QuickAccessInitializedAt sql.NullTime   `json:"quick_access_initialized_at"`
+	HiddenFromReports        bool           `json:"hidden_from_reports"`
+	GooglePlaceID            string         `json:"google_place_id"`
+	WhatsappNumberID         sql.NullInt64  `json:"whatsapp_number_id"`
+	WhatsappEnabled          bool           `json:"whatsapp_enabled"`
+	WhatsappHiddenFields     sql.NullString `json:"whatsapp_hidden_fields"`
 }
 
 type BranchAttendanceChange struct {
@@ -660,6 +709,8 @@ type BranchExpense struct {
 	ReceivedAt               time.Time      `json:"received_at"`
 	CategoryID               sql.NullInt64  `json:"category_id"`
 	BranchCashboxAccountName sql.NullString `json:"branch_cashbox_account_name"`
+	CancelledAt              sql.NullTime   `json:"cancelled_at"`
+	FromCentral              bool           `json:"from_central"`
 }
 
 type BranchExpenseImage struct {
@@ -705,6 +756,8 @@ type BranchInvoice struct {
 	RegisterID             int64          `json:"register_id"`
 	CancelledAt            sql.NullTime   `json:"cancelled_at"`
 	SalespersonID          sql.NullInt64  `json:"salesperson_id"`
+	LbpTotal               sql.NullInt64  `json:"lbp_total"`
+	LbpRate                sql.NullInt64  `json:"lbp_rate"`
 }
 
 type BranchInvoiceItem struct {
@@ -716,6 +769,9 @@ type BranchInvoiceItem struct {
 	Discount        int16         `json:"discount"`
 	Quantity        int64         `json:"quantity"`
 	ProductUid      uuid.NullUUID `json:"product_uid"`
+	Unknown         bool          `json:"unknown"`
+	Deal            string        `json:"deal"`
+	DealDiscount    int64         `json:"deal_discount"`
 }
 
 type BranchInvoicePayment struct {
@@ -772,6 +828,7 @@ type BranchRegister struct {
 	UpdateProgress           int32                 `json:"update_progress"`
 	UpdateReportedAt         sql.NullTime          `json:"update_reported_at"`
 	HiddenFromReports        bool                  `json:"hidden_from_reports"`
+	TargetForce              bool                  `json:"target_force"`
 }
 
 type BranchSetting struct {
@@ -845,6 +902,19 @@ type BranchSetting struct {
 	ScanByCodeEnabled                  bool            `json:"scan_by_code_enabled"`
 	SoundsEnabled                      bool            `json:"sounds_enabled"`
 	AttendanceManagerApprovalEnabled   bool            `json:"attendance_manager_approval_enabled"`
+	ShiftReportSignatures              bool            `json:"shift_report_signatures"`
+	ShiftReportUppercaseHeader         bool            `json:"shift_report_uppercase_header"`
+	AutoCoverNegativeLbp               bool            `json:"auto_cover_negative_lbp"`
+	ProductSearchCodeOnly              bool            `json:"product_search_code_only"`
+	PriceEditRestricted                bool            `json:"price_edit_restricted"`
+	PriceEditCodes                     string          `json:"price_edit_codes"`
+	UnknownProductBarcode              string          `json:"unknown_product_barcode"`
+	ProductSearchHiddenFields          string          `json:"product_search_hidden_fields"`
+	ReceiptTheme                       string          `json:"receipt_theme"`
+	ReceiptLayout                      string          `json:"receipt_layout"`
+	DiscountToggle                     bool            `json:"discount_toggle"`
+	DiscountToggleDefaultOff           bool            `json:"discount_toggle_default_off"`
+	DealToggle                         bool            `json:"deal_toggle"`
 }
 
 type BranchShift struct {
@@ -872,6 +942,7 @@ type BranchShift struct {
 	OccurredAt        time.Time    `json:"occurred_at"`
 	ReceivedAt        time.Time    `json:"received_at"`
 	RegisterID        int64        `json:"register_id"`
+	LbpRate           int64        `json:"lbp_rate"`
 }
 
 type BranchShiftReceiptImage struct {
@@ -992,16 +1063,19 @@ type CashboxAccount struct {
 }
 
 type Client struct {
-	ID                 int64     `json:"id"`
-	Name               string    `json:"name"`
-	Phone              string    `json:"phone"`
-	TotalLoyaltyPoints int64     `json:"total_loyalty_points"`
-	ValidLoyaltyPoints int64     `json:"valid_loyalty_points"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedAt          time.Time `json:"updated_at"`
-	ClientType         string    `json:"client_type"`
-	Uid                uuid.UUID `json:"uid"`
-	IsActive           bool      `json:"is_active"`
+	ID                 int64         `json:"id"`
+	Name               string        `json:"name"`
+	Phone              string        `json:"phone"`
+	TotalLoyaltyPoints int64         `json:"total_loyalty_points"`
+	ValidLoyaltyPoints int64         `json:"valid_loyalty_points"`
+	CreatedAt          time.Time     `json:"created_at"`
+	UpdatedAt          time.Time     `json:"updated_at"`
+	ClientType         string        `json:"client_type"`
+	Uid                uuid.UUID     `json:"uid"`
+	IsActive           bool          `json:"is_active"`
+	BranchID           sql.NullInt64 `json:"branch_id"`
+	PhoneValid         bool          `json:"phone_valid"`
+	PhoneCountry       string        `json:"phone_country"`
 }
 
 type ClientLink struct {
@@ -1009,6 +1083,16 @@ type ClientLink struct {
 	BranchClientID int64 `json:"branch_client_id"`
 	ClientID       int64 `json:"client_id"`
 	RegisterID     int64 `json:"register_id"`
+}
+
+type ClientSpend struct {
+	ClientID        int64        `json:"client_id"`
+	TotalSpent      int64        `json:"total_spent"`
+	GrossSpent      int64        `json:"gross_spent"`
+	InvoiceCount    int64        `json:"invoice_count"`
+	ItemCount       int64        `json:"item_count"`
+	RefreshedAt     time.Time    `json:"refreshed_at"`
+	FirstPurchaseAt sql.NullTime `json:"first_purchase_at"`
 }
 
 type Color struct {
@@ -1081,6 +1165,21 @@ type Currency struct {
 	UpdatedAt              time.Time `json:"updated_at"`
 }
 
+type Deal struct {
+	ID                     int64     `json:"id"`
+	Uid                    uuid.UUID `json:"uid"`
+	Name                   string    `json:"name"`
+	Kind                   string    `json:"kind"`
+	BuyQty                 int32     `json:"buy_qty"`
+	GetQty                 int32     `json:"get_qty"`
+	Percent                int16     `json:"percent"`
+	BundlePrice            int64     `json:"bundle_price"`
+	CreatedAt              time.Time `json:"created_at"`
+	UpdatedAt              time.Time `json:"updated_at"`
+	FallbackPercent        int16     `json:"fallback_percent"`
+	FallbackOnlyWithoutSet bool      `json:"fallback_only_without_set"`
+}
+
 type DefaultBranchSetting struct {
 	ID        int16           `json:"id"`
 	Settings  json.RawMessage `json:"settings"`
@@ -1106,10 +1205,123 @@ type DiscountListBranch struct {
 	CreatedAt      time.Time `json:"created_at"`
 }
 
+type DiscountListBranchRemoval struct {
+	BranchID       int64     `json:"branch_id"`
+	DiscountListID int64     `json:"discount_list_id"`
+	RemovedAt      time.Time `json:"removed_at"`
+}
+
 type DiscountListItem struct {
-	DiscountListID   int64 `json:"discount_list_id"`
-	Discount         int16 `json:"discount"`
-	ProductVariantID int64 `json:"product_variant_id"`
+	DiscountListID   int64         `json:"discount_list_id"`
+	Discount         int16         `json:"discount"`
+	ProductVariantID int64         `json:"product_variant_id"`
+	RuleID           sql.NullInt64 `json:"rule_id"`
+	DealID           sql.NullInt64 `json:"deal_id"`
+}
+
+type DiscountListOptionItem struct {
+	DiscountListID   int64         `json:"discount_list_id"`
+	ProductVariantID int64         `json:"product_variant_id"`
+	SaleOptionID     int64         `json:"sale_option_id"`
+	Discount         int16         `json:"discount"`
+	RuleID           sql.NullInt64 `json:"rule_id"`
+}
+
+type DiscountListRule struct {
+	ID                 int64         `json:"id"`
+	DiscountListID     int64         `json:"discount_list_id"`
+	Position           int32         `json:"position"`
+	Name               string        `json:"name"`
+	CodePrefixes       []string      `json:"code_prefixes"`
+	ExceptCodePrefixes []string      `json:"except_code_prefixes"`
+	Kinds              []string      `json:"kinds"`
+	Categories         []string      `json:"categories"`
+	SubCategories      []string      `json:"sub_categories"`
+	Origins            []string      `json:"origins"`
+	Brands             []string      `json:"brands"`
+	Discount           int16         `json:"discount"`
+	CreatedAt          time.Time     `json:"created_at"`
+	DealID             sql.NullInt64 `json:"deal_id"`
+	IsEnabled          bool          `json:"is_enabled"`
+	GroupID            int64         `json:"group_id"`
+	MaxPrice           sql.NullInt64 `json:"max_price"`
+}
+
+type DiscountListRuleGroup struct {
+	ID             int64     `json:"id"`
+	DiscountListID int64     `json:"discount_list_id"`
+	Position       int32     `json:"position"`
+	Name           string    `json:"name"`
+	IsEnabled      bool      `json:"is_enabled"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+type DiscountListRuleOption struct {
+	RuleID       int64 `json:"rule_id"`
+	SaleOptionID int64 `json:"sale_option_id"`
+	Discount     int16 `json:"discount"`
+}
+
+type DiscountRuleFact struct {
+	ProductVariantID int64       `json:"product_variant_id"`
+	ProductID        int64       `json:"product_id"`
+	Code             interface{} `json:"code"`
+	Kind             string      `json:"kind"`
+	Category         string      `json:"category"`
+	SubCategory      string      `json:"sub_category"`
+	Origin           string      `json:"origin"`
+	Brand            string      `json:"brand"`
+}
+
+type DiscountRulesDirty struct {
+	ProductID int64 `json:"product_id"`
+}
+
+type EmailReport struct {
+	ID            int64         `json:"id"`
+	CreatedAt     time.Time     `json:"created_at"`
+	SentBy        string        `json:"sent_by"`
+	Scope         string        `json:"scope"`
+	FromDay       sql.NullTime  `json:"from_day"`
+	ToDay         sql.NullTime  `json:"to_day"`
+	BranchID      sql.NullInt64 `json:"branch_id"`
+	BranchShiftID sql.NullInt64 `json:"branch_shift_id"`
+	Label         string        `json:"label"`
+	Recipients    string        `json:"recipients"`
+	Subject       string        `json:"subject"`
+	Filename      string        `json:"filename"`
+	InvoiceCount  int32         `json:"invoice_count"`
+	TotalCents    int64         `json:"total_cents"`
+	Status        string        `json:"status"`
+	Error         string        `json:"error"`
+	ProviderID    string        `json:"provider_id"`
+	Note          string        `json:"note"`
+	ScheduleID    sql.NullInt64 `json:"schedule_id"`
+	Bcc           string        `json:"bcc"`
+}
+
+type EmailSchedule struct {
+	ID          int64        `json:"id"`
+	Name        string       `json:"name"`
+	Enabled     bool         `json:"enabled"`
+	Period      string       `json:"period"`
+	RegisterIds []int64      `json:"register_ids"`
+	Recipients  string       `json:"recipients"`
+	Format      string       `json:"format"`
+	Note        string       `json:"note"`
+	SkipEmpty   bool         `json:"skip_empty"`
+	Frequency   string       `json:"frequency"`
+	AtMinute    int32        `json:"at_minute"`
+	Weekdays    []int32      `json:"weekdays"`
+	MonthDay    int32        `json:"month_day"`
+	NextRunAt   sql.NullTime `json:"next_run_at"`
+	LastRunAt   sql.NullTime `json:"last_run_at"`
+	LastStatus  string       `json:"last_status"`
+	LastError   string       `json:"last_error"`
+	CreatedBy   string       `json:"created_by"`
+	CreatedAt   time.Time    `json:"created_at"`
+	UpdatedAt   time.Time    `json:"updated_at"`
+	Bcc         string       `json:"bcc"`
 }
 
 type Employee struct {
@@ -1157,6 +1369,33 @@ type ExpenseCategory struct {
 	Color     string    `json:"color"`
 	Scope     string    `json:"scope"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type GooglePlaceSnapshot struct {
+	ID          int64     `json:"id"`
+	PlaceID     string    `json:"place_id"`
+	TakenAt     time.Time `json:"taken_at"`
+	Name        string    `json:"name"`
+	Rating      float64   `json:"rating"`
+	ReviewCount int32     `json:"review_count"`
+}
+
+type GoogleReview struct {
+	PlaceID     string       `json:"place_id"`
+	ReviewName  string       `json:"review_name"`
+	Author      string       `json:"author"`
+	AuthorPhoto string       `json:"author_photo"`
+	Rating      int32        `json:"rating"`
+	Body        string       `json:"body"`
+	PublishedAt sql.NullTime `json:"published_at"`
+	FetchedAt   time.Time    `json:"fetched_at"`
+}
+
+type HomeActivityResolution struct {
+	Activity   string    `json:"activity"`
+	SourceID   int64     `json:"source_id"`
+	ResolvedBy string    `json:"resolved_by"`
+	ResolvedAt time.Time `json:"resolved_at"`
 }
 
 type InventoriesAsset struct {
@@ -1260,6 +1499,7 @@ type Loan struct {
 	OccurredAt               time.Time      `json:"occurred_at"`
 	ReceivedAt               time.Time      `json:"received_at"`
 	BranchCashboxAccountName sql.NullString `json:"branch_cashbox_account_name"`
+	CancelledAt              sql.NullTime   `json:"cancelled_at"`
 }
 
 type LoanCategory struct {
@@ -1324,6 +1564,12 @@ type PriceListBranch struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
+type PriceListBranchRemoval struct {
+	BranchID    int64     `json:"branch_id"`
+	PriceListID int64     `json:"price_list_id"`
+	RemovedAt   time.Time `json:"removed_at"`
+}
+
 type PriceListItem struct {
 	PriceListID      int64 `json:"price_list_id"`
 	Price            int64 `json:"price"`
@@ -1349,6 +1595,11 @@ type ProductCategory struct {
 	Icon      string    `json:"icon"`
 	Color     string    `json:"color"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+type ProductSaleOption struct {
+	ProductID    int64 `json:"product_id"`
+	SaleOptionID int64 `json:"sale_option_id"`
 }
 
 type ProductSupplier struct {
@@ -1444,6 +1695,15 @@ type ReturnInvoice struct {
 	SalesInvoiceID int64 `json:"sales_invoice_id"`
 }
 
+type ReviewLinkClick struct {
+	ID        int64         `json:"id"`
+	ClickedAt time.Time     `json:"clicked_at"`
+	MessageID sql.NullInt64 `json:"message_id"`
+	BranchID  sql.NullInt64 `json:"branch_id"`
+	PlaceID   string        `json:"place_id"`
+	UserAgent string        `json:"user_agent"`
+}
+
 type Role struct {
 	ID        int64     `json:"id"`
 	Name      string    `json:"name"`
@@ -1457,6 +1717,13 @@ type RolePermission struct {
 	CanView bool   `json:"can_view"`
 	CanEdit bool   `json:"can_edit"`
 	Page    string `json:"page"`
+}
+
+type SaleOption struct {
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	SortOrder int32     `json:"sort_order"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type SalesInvoice struct {
@@ -1486,6 +1753,7 @@ type SecurityAlert struct {
 	FirstAt        time.Time    `json:"first_at"`
 	LastAt         time.Time    `json:"last_at"`
 	AcknowledgedAt sql.NullTime `json:"acknowledged_at"`
+	AcknowledgedBy string       `json:"acknowledged_by"`
 }
 
 type SecuritySetting struct {
@@ -1622,6 +1890,43 @@ type TransferItem struct {
 	ReceivedQuantity sql.NullInt64 `json:"received_quantity"`
 }
 
+type UnknownItemImage struct {
+	ID          int64     `json:"id"`
+	SessionID   int64     `json:"session_id"`
+	FilePath    string    `json:"file_path"`
+	ContentType string    `json:"content_type"`
+	SizeBytes   int64     `json:"size_bytes"`
+	Rotation    int16     `json:"rotation"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type UnknownItemSession struct {
+	ID              int64         `json:"id"`
+	BranchID        int64         `json:"branch_id"`
+	RegisterID      int64         `json:"register_id"`
+	ClientRef       string        `json:"client_ref"`
+	Token           string        `json:"token"`
+	ExpiresAt       time.Time     `json:"expires_at"`
+	BranchInvoiceID sql.NullInt64 `json:"branch_invoice_id"`
+	HelpRequestedAt sql.NullTime  `json:"help_requested_at"`
+	CreatedAt       time.Time     `json:"created_at"`
+}
+
+type UnknownItemSlot struct {
+	ID                int64         `json:"id"`
+	SessionID         int64         `json:"session_id"`
+	SlotRef           string        `json:"slot_ref"`
+	Position          int32         `json:"position"`
+	Label             string        `json:"label"`
+	UnitPrice         int64         `json:"unit_price"`
+	Discount          int16         `json:"discount"`
+	ImageID           sql.NullInt64 `json:"image_id"`
+	ResolvedVariantID sql.NullInt64 `json:"resolved_variant_id"`
+	ResolvedAt        sql.NullTime  `json:"resolved_at"`
+	WaivedAt          sql.NullTime  `json:"waived_at"`
+	WaivedBy          string        `json:"waived_by"`
+}
+
 type User struct {
 	ID                int64     `json:"id"`
 	Name              string    `json:"name"`
@@ -1675,28 +1980,78 @@ type VisitorIp struct {
 	Network        string    `json:"network"`
 }
 
+type WhatsappChatMessage struct {
+	ID               int64         `json:"id"`
+	Instance         string        `json:"instance"`
+	WhatsappNumberID sql.NullInt64 `json:"whatsapp_number_id"`
+	WaID             string        `json:"wa_id"`
+	ChatJid          string        `json:"chat_jid"`
+	ChatPhone        string        `json:"chat_phone"`
+	ContactName      string        `json:"contact_name"`
+	FromMe           bool          `json:"from_me"`
+	Kind             string        `json:"kind"`
+	Body             string        `json:"body"`
+	MediaType        string        `json:"media_type"`
+	SentAt           time.Time     `json:"sent_at"`
+	CreatedAt        time.Time     `json:"created_at"`
+}
+
 type WhatsappMessage struct {
-	ID              int64         `json:"id"`
-	CreatedAt       time.Time     `json:"created_at"`
-	BranchID        sql.NullInt64 `json:"branch_id"`
-	InvoiceCode     string        `json:"invoice_code"`
-	ClientName      string        `json:"client_name"`
-	ClientPhone     string        `json:"client_phone"`
-	GrandTotalCents int64         `json:"grand_total_cents"`
-	ItemCount       int32         `json:"item_count"`
-	RuleID          sql.NullInt64 `json:"rule_id"`
-	RuleName        string        `json:"rule_name"`
-	TemplateName    string        `json:"template_name"`
-	Status          string        `json:"status"`
-	Reason          string        `json:"reason"`
-	Wamid           string        `json:"wamid"`
-	CostMicros      int64         `json:"cost_micros"`
-	DeliveryStatus  string        `json:"delivery_status"`
-	DeliveredAt     sql.NullTime  `json:"delivered_at"`
-	ReadAt          sql.NullTime  `json:"read_at"`
-	DeliveryError   string        `json:"delivery_error"`
-	Billable        sql.NullBool  `json:"billable"`
-	PricingCategory string        `json:"pricing_category"`
+	ID               int64         `json:"id"`
+	CreatedAt        time.Time     `json:"created_at"`
+	BranchID         sql.NullInt64 `json:"branch_id"`
+	InvoiceCode      string        `json:"invoice_code"`
+	ClientName       string        `json:"client_name"`
+	ClientPhone      string        `json:"client_phone"`
+	GrandTotalCents  int64         `json:"grand_total_cents"`
+	ItemCount        int32         `json:"item_count"`
+	RuleID           sql.NullInt64 `json:"rule_id"`
+	RuleName         string        `json:"rule_name"`
+	TemplateName     string        `json:"template_name"`
+	Status           string        `json:"status"`
+	Reason           string        `json:"reason"`
+	Wamid            string        `json:"wamid"`
+	CostMicros       int64         `json:"cost_micros"`
+	DeliveryStatus   string        `json:"delivery_status"`
+	DeliveredAt      sql.NullTime  `json:"delivered_at"`
+	ReadAt           sql.NullTime  `json:"read_at"`
+	DeliveryError    string        `json:"delivery_error"`
+	Billable         sql.NullBool  `json:"billable"`
+	PricingCategory  string        `json:"pricing_category"`
+	ReviewCode       string        `json:"review_code"`
+	ReviewClickedAt  sql.NullTime  `json:"review_clicked_at"`
+	Sender           string        `json:"sender"`
+	WhatsappNumberID sql.NullInt64 `json:"whatsapp_number_id"`
+	PollRef          string        `json:"poll_ref"`
+	PollRating       sql.NullInt16 `json:"poll_rating"`
+	PollAnswer       string        `json:"poll_answer"`
+	PollVotedAt      sql.NullTime  `json:"poll_voted_at"`
+	PollFollowupAt   sql.NullTime  `json:"poll_followup_at"`
+	BridgeRef        string        `json:"bridge_ref"`
+	IsTest           bool          `json:"is_test"`
+	Body             string        `json:"body"`
+	PollQuestion     string        `json:"poll_question"`
+	PollOptions      string        `json:"poll_options"`
+	FollowupBody     string        `json:"followup_body"`
+}
+
+type WhatsappNumber struct {
+	ID        int64     `json:"id"`
+	Instance  string    `json:"instance"`
+	Label     string    `json:"label"`
+	Phone     string    `json:"phone"`
+	IsDefault bool      `json:"is_default"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type WhatsappPollReply struct {
+	ID                int64     `json:"id"`
+	WhatsappMessageID int64     `json:"whatsapp_message_id"`
+	WaID              string    `json:"wa_id"`
+	Body              string    `json:"body"`
+	Kind              string    `json:"kind"`
+	ReceivedAt        time.Time `json:"received_at"`
+	MediaType         string    `json:"media_type"`
 }
 
 type WhatsappReply struct {

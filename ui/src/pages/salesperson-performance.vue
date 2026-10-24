@@ -91,28 +91,7 @@
             </v-menu>
           </v-col>
           <v-col v-if="period === 'range'" cols="12" lg="4" sm="6">
-            <v-menu v-model="rangeMenu" :close-on-content-click="false">
-              <template #activator="{ props }">
-                <v-text-field
-                  v-bind="props"
-                  density="comfortable"
-                  hide-details
-                  label="Date range"
-                  :model-value="formattedDateRange"
-                  prepend-inner-icon="mdi-calendar"
-                  readonly
-                  variant="outlined"
-                />
-              </template>
-              <v-card>
-                <v-date-picker v-model="dateRange" multiple="range" />
-                <v-card-actions>
-                  <v-spacer />
-                  <v-btn text="Clear" variant="text" @click="dateRange = []" />
-                  <v-btn color="primary" text="Done" variant="text" @click="rangeMenu = false" />
-                </v-card-actions>
-              </v-card>
-            </v-menu>
+            <DateRangePicker v-model="dateRange" clearable empty-label="All time" />
           </v-col>
         </v-row>
       </v-card-text>
@@ -258,7 +237,6 @@
             <v-data-table
               :headers="adjustmentHeaders"
               :items="selectedAdjustments"
-              :items-per-page="14"
               :search="adjustmentSearch"
             >
               <template #item.type="{ item }">
@@ -284,6 +262,7 @@
   import { useBranches } from '@/composables/useBranches'
   import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
+  import { ymd } from '@/utils/dates'
 
   const { branches, fetchBranches } = useBranches()
   const invoices = ref([])
@@ -298,7 +277,6 @@
   const monthPickerMonth = ref(now.getMonth())
   const monthPickerYear = ref(now.getFullYear())
   const dateRange = ref([])
-  const rangeMenu = ref(false)
   const adjustmentsDialog = ref(false)
   const selectedEmployee = ref(null)
   const adjustmentSearch = ref('')
@@ -330,8 +308,9 @@
   ]
 
   function dateKey (value) {
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value
     const date = new Date(value)
-    return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10)
+    return Number.isNaN(date.getTime()) ? '' : ymd(date)
   }
 
   const formattedMonth = computed(() => new Date(`${month.value}-01T00:00:00`).toLocaleDateString(undefined, {
@@ -339,13 +318,6 @@
     year: 'numeric',
   }))
   const selectedRange = computed(() => dateRange.value.map(value => dateKey(value)).filter(Boolean).toSorted())
-  const formattedDateRange = computed(() => {
-    if (selectedRange.value.length === 0) return ''
-    const format = value => new Date(`${value}T00:00:00`).toLocaleDateString()
-    if (selectedRange.value.length === 1) return format(selectedRange.value[0])
-    return `${format(selectedRange.value[0])} – ${format(selectedRange.value.at(-1))}`
-  })
-
   // One person per salesperson id, so a renamed salesperson isn't counted
   // twice; an invoice not linked to one (an old till, or a name kashi never
   // had) still groups by name.

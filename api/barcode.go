@@ -152,13 +152,13 @@ func (server *Server) printBarcodes(ctx *gin.Context) {
 		return
 	}
 
+	settings, err := server.store.GetAppSettings(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
 	width, height := req.Label.Width, req.Label.Height
 	if width <= 0 || height <= 0 {
-		settings, err := server.store.GetAppSettings(ctx)
-		if err != nil {
-			server.writeError(ctx, http.StatusInternalServerError, err)
-			return
-		}
 		width, height = float64(settings.BarcodeLabelWidth), float64(settings.BarcodeLabelHeight)
 	}
 
@@ -204,6 +204,7 @@ func (server *Server) printBarcodes(ctx *gin.Context) {
 		Height:    height,
 		Separator: req.Separator.Enabled,
 		Fields:    fields,
+		Design:    parseSavedLabelDesign(settings.BarcodeLabelDesign).Design,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)

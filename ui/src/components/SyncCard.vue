@@ -28,7 +28,7 @@
           :icon="currentActivity ? currentActivity.icon : 'mdi-cloud'"
           :size="mobile ? 20 : undefined"
         />
-        <div v-if="!mobile" class="text-body-2 ticker">
+        <div v-if="!mobile" class="text-body-2 ticker" :class="{ 'ticker--active': activeItems.length > 0 }">
           <TransitionGroup class="d-flex align-center reel" name="ticker" tag="div">
             <span
               v-for="item in activeItems"
@@ -64,6 +64,7 @@
           :prepend-icon="invoiceIcon(invoice)"
           :subtitle="`${branchName(invoice.branch_id)} — ${relativeTime(invoice.received_at)}`"
           :title="invoiceTitle(invoice)"
+          @click="openInvoice(invoice)"
         />
       </v-list>
       <v-card-text v-else-if="loaded" class="text-medium-emphasis">
@@ -79,6 +80,7 @@
 
 <script setup lang="ts">
   import { computed, onMounted, onUnmounted, ref } from 'vue'
+  import { useRouter } from 'vue-router'
   import { useDisplay } from 'vuetify'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { NO_INTERNET_MESSAGE } from '@/composables/useApi'
@@ -190,6 +192,14 @@
 
   function branchName (branchId) {
     return branches.value.find(b => b.id === branchId)?.name ?? `Branch #${branchId}`
+  }
+
+  // A sale in the list opens on the Invoices page, searched and with its
+  // details showing.
+  const router = useRouter()
+  function openInvoice (invoice) {
+    menu.value = false
+    router.push({ path: '/invoices', query: { search: invoice.branch_invoice_code, open: invoice.id } })
   }
 
   function invoiceIcon (invoice) {
@@ -305,9 +315,10 @@
 }
 
 /* The reel and the status line are stacked in a single grid cell so they
-   can crossfade in place, while the cell -- and therefore the pill --
-   sizes itself to whichever one is currently wider. No fixed width: the
-   card grows and shrinks with its content, capped by max-width. */
+   can crossfade in place. Idle, the pill hugs its status text. While
+   messages show, the width is fixed so it never resizes with their text: the
+   reel is split into MAX_VISIBLE equal slots and anything longer than its
+   slot is ellipsized. */
 .ticker {
   display: grid;
   grid-template: 1fr / 1fr;
@@ -318,6 +329,10 @@
   max-width: min(44vw, 520px);
 }
 
+.ticker--active {
+  width: min(44vw, 520px);
+}
+
 .ticker > * {
   grid-area: 1 / 1;
 }
@@ -325,6 +340,8 @@
 .reel {
   position: relative; /* contains the absolutely-positioned leaving pill */
   gap: 6px;
+  width: 100%;
+  justify-content: center;
 }
 
 /* Fades out when messages are showing and fades back in as the last pill
@@ -344,10 +361,14 @@
 .activity-item {
   display: inline-flex;
   align-items: center;
-  max-width: 220px;
+  /* one of three equal slots (two 6px gaps) */
+  flex: 0 0 calc((100% - 12px) / 3);
+  justify-content: center;
+  min-width: 0;
 }
 
 .activity-item__text {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }

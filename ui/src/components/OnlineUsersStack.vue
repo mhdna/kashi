@@ -1,10 +1,5 @@
 <template>
-  <!-- Same size and ring as a real avatar, so nothing shifts when it loads. -->
-  <div v-if="!loaded" class="online-stack d-flex align-center mx-2">
-    <v-skeleton-loader class="online-stack__avatar online-stack__skeleton" color="transparent" type="avatar" />
-  </div>
-
-  <div v-else-if="users.length > 0" class="online-stack d-flex align-center mx-2">
+  <div v-if="ordered.length > 0" class="online-stack d-flex align-center mx-2">
     <v-avatar
       v-for="u in visible"
       :key="u.id"
@@ -43,7 +38,7 @@
   import { useAuthStore } from '@/stores/auth'
 
   const auth = useAuthStore()
-  const { users, loaded, start } = useOnlineUsers()
+  const { users, start } = useOnlineUsers()
   const { color: ownColor } = useUserAvatar()
   const router = useRouter()
   const { mobile } = useDisplay()
@@ -55,10 +50,14 @@
   const maxVisible = computed(() => (mobile.value ? 2 : 4))
 
   // Show the signed-in user first so "you" is always in the same spot, then
-  // everyone else in the server's stable (ID) order.
+  // everyone else in the server's stable (ID) order. You come from the auth
+  // store rather than the server's list: you only appear there once this
+  // tab's admin socket has connected, which the first fetch usually beats,
+  // so waiting on it left the stack empty until the next presence push.
   const ordered = computed(() => {
-    const meId = auth.user?.id
-    return users.value.toSorted((a, b) => (b.id === meId) - (a.id === meId))
+    const me = auth.user
+    const others = users.value.filter(u => u.id !== me?.id)
+    return me?.id ? [me, ...others] : others
   })
   const visible = computed(() => ordered.value.slice(0, maxVisible.value))
   const overflow = computed(() => ordered.value.slice(maxVisible.value))
@@ -93,18 +92,6 @@
     box-shadow: 0 0 0 2px #FFC107;
     margin: 2px;
     margin-inline-end: 0;
-  }
-
-  .online-stack__skeleton,
-  .online-stack__skeleton :deep(.v-skeleton-loader__avatar) {
-    width: 30px;
-    height: 30px;
-    min-width: 30px;
-    min-height: 30px;
-    max-width: 30px;
-    max-height: 30px;
-    margin: 0;
-    border-radius: 50%;
   }
 
   .online-stack__more {

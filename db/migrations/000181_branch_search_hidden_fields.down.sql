@@ -1,0 +1,1 @@
+ALTER TABLE branch_settings DROP COLUMN product_search_hidden_fields;

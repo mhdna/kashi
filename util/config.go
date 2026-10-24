@@ -37,6 +37,9 @@ type Config struct {
 	// AppLogPath is the bounded, rotating backend log file. It defaults to
 	// logs/kashi.log when APP_LOG_PATH is not set.
 	AppLogPath string `mapstructure:"APP_LOG_PATH"`
+	// ResendAPIKey sends emailed invoice reports (api/email_report.go)
+	// through Resend. Unset means email is off on this server.
+	ResendAPIKey string `mapstructure:"RESEND_API_KEY"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

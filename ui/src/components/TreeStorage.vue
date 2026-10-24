@@ -25,6 +25,17 @@
               prepend-inner-icon="mdi-magnify"
               variant="outlined"
             />
+            <v-btn
+              v-if="canDelete"
+              color="error"
+              :disabled="selectedIds.length === 0"
+              prepend-icon="mdi-delete"
+              size="small"
+              variant="tonal"
+              @click="confirmDelete = true"
+            >
+              Delete{{ selectedIds.length > 0 ? ` (${selectedIds.length})` : '' }}
+            </v-btn>
             <v-progress-circular v-if="loading" indeterminate size="20" />
           </div>
         </div>
@@ -45,6 +56,13 @@
             hover
             @click="openPreview(image)"
           >
+            <v-checkbox-btn
+              v-if="canDelete"
+              class="image-select"
+              density="compact"
+              :model-value="selectedIds.includes(image.id)"
+              @click.stop="toggleSelected(image.id)"
+            />
             <v-img aspect-ratio="1" cover :src="thumbnailUrls[imageKey(image)]">
               <template #placeholder>
                 <div class="d-flex align-center justify-center fill-height">
@@ -70,6 +88,21 @@
       </template>
     </div>
 
+    <v-dialog v-model="confirmDelete" max-width="420">
+      <v-card>
+        <v-card-title>Delete {{ selectedIds.length }} picture(s)?</v-card-title>
+        <v-card-text>
+          The pictures are removed for good. Pictures of items from a sale that are still waiting to be matched are kept.
+          Items already matched keep their match.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="confirmDelete = false">Cancel</v-btn>
+          <v-btn color="error" :loading="deleting" variant="flat" @click="deleteSelected">Delete</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-dialog v-model="previewDialog" max-width="720">
       <v-card>
         <!-- Fixed-height stage: the dialog keeps its size while the photo
@@ -81,8 +114,8 @@
             :busy="changingPhoto"
             height="100%"
             :progress="uploadProgress"
-            :replaceable="canReplace"
-            :rotatable="canRotate"
+            :replaceable="canReplace && !!previewPhotoKind"
+            :rotatable="canRotate && !!previewPhotoKind"
             :src="previewUrl"
             @replace="file => changePreview((kind, id) => replacePhoto(kind, id, file))"
             @rotate="delta => changePreview((kind, id) => rotatePhoto(kind, id, delta))"
@@ -113,10 +146,12 @@
   import { usePhotoActions } from '@/composables/usePhotoActions'
   import { useShiftReceiptImages } from '@/composables/useShiftReceiptImages'
   import { useTransferAttachments } from '@/composables/useTransferAttachments'
+  import { useUnknownItems } from '@/composables/useUnknownItems'
 
   const { fetchExpenseImages, fetchExpenseImageObjectUrl } = useExpenseImages()
   const { fetchShiftReceiptImages, fetchShiftReceiptImageObjectUrl } = useShiftReceiptImages()
   const { fetchTransferAttachments, fetchTransferAttachmentObjectUrl } = useTransferAttachments()
+  const { fetchUnknownItemImages, deleteUnknownItemImages, fetchImageObjectUrl: fetchUnknownItemImageObjectUrl } = useUnknownItems()
   const { ensureConnected, onMessage } = useAdminSocket()
   const { canRotate, canReplace, rotatePhoto, replacePhoto, uploadProgress } = usePhotoActions()
   const notify = useNotify()
@@ -124,7 +159,8 @@
   // One entry per real image kind. Every handler takes the whole image row
   // so the generic panel -- and the "All" source below -- can stay kind
   // agnostic. Adding a storage kind is a new entry here plus its composable.
-  // photoKind is the kind usePhotoActions rotates or replaces it as.
+  // photoKind is the kind usePhotoActions rotates or replaces it as; none
+  // means the photo can't be turned or swapped.
   const KINDS = {
     expenses: {
       title: 'Expense receipts',
@@ -152,6 +188,16 @@
       refreshOn: 'branch_transfer_photo_uploaded',
       photoKind: 'transfer',
       primaryText: image => `${image.code || `Transfer #${image.id}`} · ${image.from_inventory_name} → ${image.to_inventory_name}`,
+    },
+    unknownItems: {
+      title: 'Unknown item photos',
+      icon: 'mdi-help-box-outline',
+      fetchPage: fetchUnknownItemImages,
+      fetchObjectUrl: (image, opts) => fetchUnknownItemImageObjectUrl(image.id, opts),
+      refreshOn: 'unknown_item_uploaded',
+      photoKind: null,
+      deletable: true,
+      primaryText: image => `Unknown item · $${(image.unit_price / 100).toFixed(2)}${image.branch_invoice_code ? ` · ${image.branch_invoice_code}` : ''}`,
     },
   }
 
@@ -188,6 +234,7 @@
     { value: 'expenses', title: 'Expenses', prependIcon: 'mdi-receipt-text-check' },
     { value: 'shiftReceipts', title: 'Shift receipts', prependIcon: 'mdi-camera' },
     { value: 'transfers', title: 'Transfers', prependIcon: 'mdi-truck-delivery' },
+    { value: 'unknownItems', title: 'Unknown items', prependIcon: 'mdi-help-box-outline' },
   ]
 
   // null is PageSidebar's "All" row.
@@ -227,8 +274,45 @@
     ].some(value => String(value ?? '').toLowerCase().includes(query)))
   })
 
+  // Delete is offered on the kinds that support it (unknown items), to
+  // whoever may replace photos.
+  const canDelete = computed(() => canReplace.value && !!source.value?.deletable)
+  const selectedIds = ref([])
+  const confirmDelete = ref(false)
+  const deleting = ref(false)
+
+  function toggleSelected (id) {
+    selectedIds.value = selectedIds.value.includes(id)
+      ? selectedIds.value.filter(selected => selected !== id)
+      : [...selectedIds.value, id]
+  }
+
+  async function deleteSelected () {
+    deleting.value = true
+    try {
+      const { deleted, kept } = await deleteUnknownItemImages(selectedIds.value)
+      notify.success(kept
+        ? `${deleted} deleted, ${kept} kept (their sale is still waiting to be matched)`
+        : `${deleted} deleted`)
+      confirmDelete.value = false
+      selectedIds.value = []
+      resetAndLoad()
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      deleting.value = false
+    }
+  }
+
   const previewDialog = ref(false)
   const previewImage = ref(null)
+  // The photo kind the open preview can be turned or replaced as (none for
+  // kinds that can't be).
+  const previewPhotoKind = computed(() => {
+    const image = previewImage.value
+    if (!image) return null
+    return (image.__kind ? KINDS[image.__kind] : source.value)?.photoKind ?? null
+  })
   let unsubscribe = null
 
   function formatDate (value) {
@@ -344,6 +428,7 @@
 
   function resetAndLoad () {
     search.value = ''
+    selectedIds.value = []
     images.value = []
     total.value = 0
     pageId.value = 0
@@ -401,5 +486,15 @@
 
 .image-card {
   cursor: pointer;
+  position: relative;
+}
+
+.image-select {
+  background: rgba(var(--v-theme-surface), 0.85);
+  border-radius: 8px;
+  left: 6px;
+  position: absolute;
+  top: 6px;
+  z-index: 1;
 }
 </style>

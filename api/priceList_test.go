@@ -148,6 +148,8 @@ func TestSetPriceListBranchesAPI(t *testing.T) {
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().GetPriceListBranch(gomock.Any(), gomock.Eq(int64(10))).
 					Return(db.PriceListBranch{BranchID: 10, PriceListID: 2}, nil)
+				store.EXPECT().GetPriceList(gomock.Any(), gomock.Eq(int64(2))).
+					Return(db.PriceList{ID: 2, Name: "Centro", IsActive: true, ValidFrom: time.Now().Add(-time.Hour), ValidTo: time.Now().Add(time.Hour)}, nil)
 				store.EXPECT().DeletePriceListBranchesForList(gomock.Any(), gomock.Any()).Times(0)
 				store.EXPECT().UpsertPriceListBranch(gomock.Any(), gomock.Any()).Times(0)
 			},

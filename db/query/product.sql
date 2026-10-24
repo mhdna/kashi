@@ -155,3 +155,18 @@ WHERE id = $1;
 
 -- name: GetProductByCode :one
 SELECT * FROM products WHERE code = $1 LIMIT 1;
+
+-- name: GetFirstActiveVariantBarcodeByCode :one
+-- One representative barcode per product code, for linking an external
+-- sales import's line (which only ever has the product code, not a
+-- specific color/size) to a real product_variants row -- see
+-- api/product_cost_import.go's sibling, the invoice line-linking script.
+-- Picks the lowest-id active variant; which exact variant doesn't matter
+-- for revenue/cost attribution, only that the line resolves to the right
+-- product instead of staying an unlinked placeholder.
+SELECT pv.barcode, p.id AS product_id
+FROM products p
+JOIN product_variants pv ON pv.product_id = p.id AND pv.is_active
+WHERE p.code = $1
+ORDER BY pv.id
+LIMIT 1;

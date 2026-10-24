@@ -20,6 +20,7 @@ export const COMMAND_TYPE_LABELS = {
   print_shift_report: 'Print close shift',
   reprint_invoice: 'Reprint invoice',
   sync_now: 'Sync now',
+  replace_shift_balance: 'Swap shift balance',
   transfer_decision: 'Transfer decision',
 }
 

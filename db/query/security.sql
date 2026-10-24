@@ -91,19 +91,25 @@ SELECT sqlc.arg(kind), sqlc.arg(ip), sqlc.arg(country_code), sqlc.arg(detail)
 WHERE NOT EXISTS (SELECT 1 FROM bumped);
 
 -- name: ListSecurityAlerts :many
+-- Open alerts of the pinned (critical) kinds come first, so the page limit
+-- never pushes one off the list before someone resolves it.
 SELECT * FROM security_alerts
 WHERE (NOT sqlc.arg(open_only)::bool OR acknowledged_at IS NULL)
-ORDER BY last_at DESC
+ORDER BY (acknowledged_at IS NULL AND kind = ANY(sqlc.arg(pinned_kinds)::text[])) DESC, last_at DESC
 LIMIT sqlc.arg(page_size);
 
 -- name: CountOpenSecurityAlerts :one
 SELECT COUNT(*) FROM security_alerts WHERE acknowledged_at IS NULL;
 
 -- name: AcknowledgeSecurityAlerts :exec
--- Marks the given alerts seen; an empty list marks every open one.
-UPDATE security_alerts SET acknowledged_at = now()
+-- Marks the given alerts seen; an empty list marks every open one except
+-- those of kept_kinds (critical ones, resolved only one by one).
+UPDATE security_alerts SET acknowledged_at = now(), acknowledged_by = sqlc.arg(acknowledged_by)
 WHERE acknowledged_at IS NULL
-  AND (COALESCE(cardinality(sqlc.arg(ids)::bigint[]), 0) = 0 OR id = ANY(sqlc.arg(ids)::bigint[]));
+  AND CASE WHEN COALESCE(cardinality(sqlc.arg(ids)::bigint[]), 0) = 0
+        THEN kind <> ALL(sqlc.arg(kept_kinds)::text[])
+        ELSE id = ANY(sqlc.arg(ids)::bigint[])
+      END;
 
 -- name: ListActiveIPBans :many
 SELECT * FROM ip_bans

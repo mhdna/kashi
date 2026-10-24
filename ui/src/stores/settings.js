@@ -9,6 +9,18 @@ const DEFAULT_BARCODE_LABEL_WIDTH = 288
 const DEFAULT_BARCODE_LABEL_HEIGHT = 144
 const DEFAULT_UPCOMING_EVENTS_DAYS = 15
 const DEFAULT_UPCOMING_EVENTS_MENU_DAYS = 180
+// Rows a table loads at a time; the API's page_size accepts up to 100.
+export const DEFAULT_TABLE_PAGE_SIZE = 15
+export const MIN_TABLE_PAGE_SIZE = 5
+export const MAX_TABLE_PAGE_SIZE = 100
+
+// The footer's rows-per-page choices: the setting first among a few round
+// numbers, never past what the API accepts.
+export function tablePageSizeOptions (size = DEFAULT_TABLE_PAGE_SIZE) {
+  return [...new Set([size, DEFAULT_TABLE_PAGE_SIZE, 25, 50, 100])]
+    .filter(n => n >= MIN_TABLE_PAGE_SIZE && n <= MAX_TABLE_PAGE_SIZE)
+    .toSorted((a, b) => a - b)
+}
 
 // All app settings live in the single global app_settings DB row (see
 // db/migrations/000050_create_app_settings + 000051_add_activity_settings)
@@ -27,6 +39,9 @@ export const useSettingsStore = defineStore('settings', {
     upcomingEventsMenuDays: DEFAULT_UPCOMING_EVENTS_MENU_DAYS,
     hiddenBuiltinEvents: [],
     productAutofillEnabled: true,
+    uploadPagesFollowSystem: false,
+    unknownImagesAutoDelete: false,
+    tablePageSize: DEFAULT_TABLE_PAGE_SIZE,
     // Rules for the New Product dialog's auto-fill (utils/productAutofill.js).
     // Saved on their own from the Auto-fill Rules page, not through persist().
     productAutofillRules: [],
@@ -51,6 +66,9 @@ export const useSettingsStore = defineStore('settings', {
         this.upcomingEventsMenuDays = settings.upcoming_events_menu_days ?? DEFAULT_UPCOMING_EVENTS_MENU_DAYS
         this.hiddenBuiltinEvents = settings.hidden_builtin_events ?? []
         this.productAutofillEnabled = settings.product_autofill_enabled ?? true
+        this.uploadPagesFollowSystem = settings.upload_pages_follow_system ?? false
+        this.unknownImagesAutoDelete = settings.unknown_images_auto_delete ?? false
+        this.tablePageSize = settings.table_page_size ?? DEFAULT_TABLE_PAGE_SIZE
         this.productAutofillRules = settings.product_autofill_rules ?? []
         this.productAutofillCodeLayout = settings.product_autofill_code_layout ?? ''
       }
@@ -69,6 +87,9 @@ export const useSettingsStore = defineStore('settings', {
         upcoming_events_menu_days: this.upcomingEventsMenuDays,
         hidden_builtin_events: this.hiddenBuiltinEvents,
         product_autofill_enabled: this.productAutofillEnabled,
+        upload_pages_follow_system: this.uploadPagesFollowSystem,
+        unknown_images_auto_delete: this.unknownImagesAutoDelete,
+        table_page_size: this.tablePageSize,
       })
     },
 

@@ -49,7 +49,7 @@
           <v-table class="details-table" density="comfortable">
             <thead>
               <tr>
-                <th>Branch Product ID</th>
+                <th>Product</th>
                 <th class="text-end">Qty</th>
                 <th class="text-end">Unit Price</th>
                 <th class="text-end">Discount</th>
@@ -58,10 +58,29 @@
             </thead>
             <tbody>
               <tr v-for="item in itemsDetails.items" :key="item.id">
-                <td>{{ item.branch_product_id }}</td>
+                <td>
+                  <div>
+                    {{ productName(item) }}
+                    <!-- A line the till priced with a deal (000202). -->
+                    <v-chip
+                      v-if="item.deal && item.deal_discount"
+                      class="ms-1"
+                      :color="isFreeLine(item) ? 'success' : 'deep-purple'"
+                      label
+                      prepend-icon="mdi-gift-outline"
+                      size="x-small"
+                      :text="isFreeLine(item) ? `FREE · ${item.deal}` : item.deal"
+                      variant="flat"
+                    />
+                  </div>
+                  <div class="text-caption text-medium-emphasis">{{ productDetail(item) }}</div>
+                </td>
                 <td class="text-end">{{ item.quantity }}</td>
                 <td class="text-end">{{ formatMoney(item.unit_price) }}</td>
-                <td class="text-end">{{ item.discount }}%</td>
+                <td class="text-end">
+                  <template v-if="item.deal_discount">-{{ formatMoney(Math.abs(item.deal_discount)) }}</template>
+                  <template v-else>{{ item.discount }}%</template>
+                </td>
                 <td class="text-end">{{ formatMoney(item.line_total) }}</td>
               </tr>
             </tbody>
@@ -96,6 +115,13 @@
           text="Cancel invoice"
           variant="text"
           @click="cancelViewedInvoice"
+        />
+        <v-btn
+          v-if="itemsTarget?.kind === 'sales' && !isCancelled(itemsTarget)"
+          color="primary"
+          text="Exchange"
+          variant="text"
+          @click="exchangeViewedInvoice"
         />
         <v-btn
           v-if="itemsTarget?.kind === 'sales' && !isCancelled(itemsTarget)"
@@ -150,7 +176,7 @@
   <v-dialog v-model="remoteReturnDialog" max-width="560">
     <v-card>
       <v-card-title>
-        {{ remoteMode === 'cancel' ? 'Cancel invoice' : 'Return remotely' }} -- {{ remoteReturnTarget?.branch_invoice_code }}
+        {{ remoteTitles[remoteMode] }} -- {{ remoteReturnTarget?.branch_invoice_code }}
       </v-card-title>
       <v-card-text>
         <template v-if="remoteReturnPhase === 'items' && remoteMode === 'cancel'">
@@ -166,20 +192,24 @@
         <template v-else-if="remoteReturnPhase === 'items'">
           <v-alert class="mb-4" type="info" variant="tonal">
             This queues a command for {{ branchName(remoteReturnTarget?.branch_id) }} to process
-            the return itself. It isn't executed instantly -- the branch picks it up next time
-            it's online.
+            the {{ remoteMode }} itself. It isn't executed instantly -- the branch picks it up next
+            time it's online.
+            <template v-if="remoteMode === 'exchange'">
+              The branch prices the new items from its own lists, and the difference goes on the
+              sale's payment account.
+            </template>
           </v-alert>
 
           <div v-if="remoteReturnItemsLoading" class="d-flex justify-center pa-4">
             <v-progress-circular color="primary" indeterminate />
           </div>
           <template v-else>
-            <div class="text-body-2 mb-2">Items to return</div>
+            <div class="text-body-2 mb-2">{{ remoteMode === 'exchange' ? 'Items to take back' : 'Items to return' }}</div>
             <v-table density="compact">
               <thead>
                 <tr>
                   <th />
-                  <th>Branch Product ID</th>
+                  <th>Product</th>
                   <th class="text-end">Qty</th>
                 </tr>
               </thead>
@@ -188,7 +218,10 @@
                   <td>
                     <v-checkbox-btn v-model="row.selected" density="compact" />
                   </td>
-                  <td>{{ row.branch_product_id }}</td>
+                  <td>
+                    <div>{{ productName(row.item) }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ productDetail(row.item) }}</div>
+                  </td>
                   <td class="text-end">
                     <v-text-field
                       v-model.number="row.quantity"
@@ -204,6 +237,54 @@
                 </tr>
               </tbody>
             </v-table>
+
+            <template v-if="remoteMode === 'exchange'">
+              <div class="text-body-2 mt-6 mb-2">Give in exchange</div>
+              <div class="d-flex align-center ga-2">
+                <v-autocomplete
+                  v-model="replacementPick"
+                  density="compact"
+                  hide-details
+                  hide-no-data
+                  :item-title="v => v.label"
+                  :item-value="v => v.id"
+                  :items="skuOptions"
+                  :loading="skuLoading"
+                  no-filter
+                  placeholder="Search SKU / barcode"
+                  return-object
+                  @update:search="onSkuSearch"
+                />
+                <v-text-field
+                  v-model.number="replacementQuantity"
+                  density="compact"
+                  hide-details
+                  label="Qty"
+                  min="1"
+                  style="max-width: 90px"
+                  type="number"
+                />
+                <v-btn :disabled="!replacementPick" text="Add" @click="addReplacement" />
+              </div>
+              <v-table v-if="replacements.length > 0" class="mt-2" density="compact">
+                <tbody>
+                  <tr v-for="(row, index) in replacements" :key="row.variant.id">
+                    <td>{{ row.variant.label }}</td>
+                    <td class="text-end">{{ row.quantity }}</td>
+                    <td class="text-end" style="width: 48px">
+                      <v-btn
+                        aria-label="Remove"
+                        density="comfortable"
+                        icon="mdi-close"
+                        size="small"
+                        variant="text"
+                        @click="replacements.splice(index, 1)"
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </v-table>
+            </template>
           </template>
 
           <v-textarea v-model="remoteReturnReason" class="mt-4" label="Reason (optional)" rows="2" />
@@ -213,14 +294,14 @@
           <v-progress-circular class="mb-4" color="primary" indeterminate />
           <div class="text-body-2 text-center">
             Waiting for {{ branchName(remoteReturnTarget?.branch_id) }} to process the
-            {{ remoteMode === 'cancel' ? 'cancellation' : 'return' }}...
+            {{ remoteMode === 'cancel' ? 'cancellation' : remoteMode }}...
           </div>
         </div>
 
         <template v-else-if="remoteReturnPhase === 'result'">
           <v-alert
             :text="remoteReturnResult.status === 'success'
-              ? (remoteMode === 'cancel' ? 'Invoice cancelled.' : 'Return processed successfully.')
+              ? remoteDoneText[remoteMode]
               : remoteReturnResult.status === 'failed'
                 ? remoteReturnResult.error || 'The branch reported a failure with no error message.'
                 : 'Still pending -- the branch may be offline right now. It will process the next time it\'s online, and this list will update live once it does.'"
@@ -246,9 +327,9 @@
         <v-btn
           v-else-if="remoteReturnPhase === 'items'"
           color="primary"
-          :disabled="!hasSelectedReturnItems"
+          :disabled="!hasSelectedReturnItems || (remoteMode === 'exchange' && replacements.length === 0)"
           :loading="remoteReturnLoading"
-          text="Queue return"
+          :text="remoteMode === 'exchange' ? 'Queue exchange' : 'Queue return'"
           @click="submitRemoteReturn"
         />
         <v-btn v-else text="Close" @click="closeRemoteReturn" />
@@ -258,13 +339,15 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, onUnmounted, ref } from 'vue'
+  import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+  import { useRoute } from 'vue-router'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useBranchInvoices } from '@/composables/useBranchInvoices'
   import { useBranchSettings } from '@/composables/useBranchSettings'
   import { useInvoiceDetails } from '@/composables/useInvoiceDetails'
   import { useNotify } from '@/composables/useNotify'
+  import { useVariants } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
 
   const props = defineProps({
@@ -303,6 +386,25 @@
     if (kind === 'return') return 'warning'
     if (kind === 'exchange') return 'info'
     return 'primary'
+  }
+
+  // Lines carry the till's own product id, meaningless here; the name comes
+  // from the variant kashi matched it to (blank when it never matched).
+  function productName (item) {
+    return item?.product_name || `Unknown product (#${item?.branch_product_id})`
+  }
+
+  // Free: the deal took each unit's whole price. deal_discount is signed like
+  // the quantity on a returned line.
+  function isFreeLine (item) {
+    return Math.abs(item.deal_discount) === item.unit_price * Math.abs(item.quantity)
+  }
+
+
+  function productDetail (item) {
+    return [item?.product_code, [item?.color_name, item?.size_name].filter(Boolean).join(' / '), item?.barcode]
+      .filter(Boolean)
+      .join(' · ')
   }
 
   function formatMoney (cents) {
@@ -345,6 +447,27 @@
   const itemsDetails = ref(null)
   const itemsLoading = ref(false)
 
+  // ?open=<id> (a sale clicked in the app bar's Branch sync list): its
+  // details, fetched by id since it may not be on the page that's loaded.
+  const route = useRoute()
+  watch(() => route.query.open, async open => {
+    const id = Number(open)
+    if (!id) return
+    itemsTarget.value = null
+    itemsDialog.value = true
+    itemsLoading.value = true
+    itemsDetails.value = null
+    try {
+      itemsDetails.value = await getBranchInvoiceDetails(id)
+      itemsTarget.value = itemsDetails.value?.invoice ?? null
+    } catch (error) {
+      notify.error(error.message)
+      itemsDialog.value = false
+    } finally {
+      itemsLoading.value = false
+    }
+  }, { immediate: true })
+
   async function openItems (invoice) {
     itemsTarget.value = invoice
     itemsDialog.value = true
@@ -363,6 +486,12 @@
     const invoice = itemsTarget.value
     itemsDialog.value = false
     openRemoteReturn(invoice)
+  }
+
+  function exchangeViewedInvoice () {
+    const invoice = itemsTarget.value
+    itemsDialog.value = false
+    openRemoteReturn(invoice, 'exchange')
   }
 
   function cancelViewedInvoice () {
@@ -389,9 +518,41 @@
   }
 
   const remoteReturnDialog = ref(false)
-  // 'return' (pick lines to take back) or 'cancel' (the whole sale, flagged
-  // as a cancellation) -- the same remote command and wait either way.
+  // 'return' (pick lines to take back), 'exchange' (the same, plus new items
+  // to hand out) or 'cancel' (the whole sale, flagged as a cancellation) --
+  // the same remote command and wait every way.
   const remoteMode = ref('return')
+  const remoteTitles = { return: 'Return remotely', exchange: 'Exchange remotely', cancel: 'Cancel invoice' }
+  const remoteDoneText = {
+    return: 'Return processed successfully.',
+    exchange: 'Exchange processed successfully.',
+    cancel: 'Invoice cancelled.',
+  }
+
+  // Replacement lines for an exchange, picked from kashi's catalogue; kashi
+  // turns each into the till's own product keys (see withTillReplacements).
+  const { variants: skuOptions, loading: skuLoading, searchVariants } = useVariants()
+  const replacements = ref([])
+  const replacementPick = ref(null)
+  const replacementQuantity = ref(1)
+  let skuSearchTimer = null
+  function onSkuSearch (q) {
+    clearTimeout(skuSearchTimer)
+    skuSearchTimer = setTimeout(() => searchVariants(q || ''), 250)
+  }
+
+  function addReplacement () {
+    const variant = replacementPick.value
+    const quantity = Math.max(1, Math.trunc(Number(replacementQuantity.value) || 1))
+    const existing = replacements.value.find(row => row.variant.id === variant.id)
+    if (existing) {
+      existing.quantity += quantity
+    } else {
+      replacements.value.push({ variant, quantity })
+    }
+    replacementPick.value = null
+    replacementQuantity.value = 1
+  }
   const remoteReturnTarget = ref(null)
   const remoteReturnReason = ref('')
   const remoteReturnLoading = ref(false)
@@ -405,11 +566,17 @@
 
   const hasSelectedReturnItems = computed(() => remoteReturnRows.value.some(row => row.selected))
 
-  async function openRemoteReturn (invoice) {
-    remoteMode.value = 'return'
+  async function openRemoteReturn (invoice, mode = 'return') {
+    remoteMode.value = mode
     remoteReturnTarget.value = invoice
     remoteReturnReason.value = ''
     remoteReturnRows.value = []
+    replacements.value = []
+    replacementPick.value = null
+    replacementQuantity.value = 1
+    if (mode === 'exchange') {
+      searchVariants('')
+    }
     remoteReturnPhase.value = 'items'
     remoteReturnDialog.value = true
     remoteReturnItemsLoading.value = true
@@ -418,6 +585,7 @@
       // Every line starts selected at its full quantity, so leaving
       // everything checked reproduces today's whole-invoice return.
       remoteReturnRows.value = invoiceItems.map(item => ({
+        item,
         branch_product_id: item.branch_product_id,
         maxQuantity: item.quantity,
         quantity: item.quantity,
@@ -439,7 +607,10 @@
           branch_product_id: row.branch_product_id,
           quantity: Math.min(Math.max(1, Number(row.quantity) || 1), row.maxQuantity),
         }))
-      const command = await requestRemoteReturn(remoteReturnTarget.value.branch_id, remoteReturnTarget.value, remoteReturnReason.value, items)
+      const replacementLines = remoteMode.value === 'exchange'
+        ? replacements.value.map(row => ({ variant_id: row.variant.id, quantity: row.quantity }))
+        : []
+      const command = await requestRemoteReturn(remoteReturnTarget.value.branch_id, remoteReturnTarget.value, remoteReturnReason.value, items, replacementLines)
       remoteReturnPhase.value = 'polling'
       pollRemoteReturnCommand(remoteReturnTarget.value.branch_id, command?.id)
     } catch (error) {

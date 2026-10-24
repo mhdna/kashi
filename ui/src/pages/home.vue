@@ -10,11 +10,11 @@
             role="img"
             :style="{ '--home-logo-color': logoColor, '--home-logo-image': `url(${appLogo})` }"
           />
-          <AppLogo v-else class="mx-auto" />
-          <p v-if="appVersion || appCommit" class="mt-2 mb-0 text-caption text-disabled build-info">
-            {{ [appVersion, appCommit].filter(Boolean).join(' · ') }}
+          <AppLogo v-else class="mx-auto home-phone-logo" />
+          <p v-if="appVersion || appCommit" class="mt-0 mb-0 text-caption text-disabled build-info">
+            {{ [appVersion, appCommit && `commit: ${appCommit}`].filter(Boolean).join(' · ') }}
           </p>
-          <h1 class="mt-2 font-weight-medium" :class="xs ? 'text-h6' : 'text-h5'">Welcome to Kashi Cloud</h1>
+          <h1 class="mt-1 font-weight-medium" :class="xs ? 'text-h6' : 'text-h5'">Welcome to Kashi Cloud</h1>
           <p class="mt-2 mb-0 text-body-2 text-medium-emphasis">
             Take a look at the latest updates.
           </p>
@@ -52,63 +52,102 @@
             />
           </div>
 
-          <v-card class="home-activities-card" rounded="lg" variant="outlined">
-            <div class="home-activities-scroll">
-              <v-skeleton-loader
-                v-if="!kashiLoaded"
-                color="transparent"
-                type="list-item-avatar-two-line@8"
-              />
-              <v-list v-else class="py-1" density="compact" lines="two">
-                <v-virtual-scroll :item-height="71" :items="shown(kashiActivities)" renderless>
-                  <template #default="{ item, itemRef }">
-                    <v-list-item :ref="itemRef" class="px-3">
-                      <template #prepend>
-                        <v-avatar
-                          class="me-3 text-white"
-                          :color="userColor(item)"
-                          size="34"
-                        >
-                          <span class="text-caption font-weight-bold">{{ initialsOf(item.user_name) }}</span>
-                        </v-avatar>
-                      </template>
-                      <v-list-item-title class="text-body-2 activity-sentence">
-                        <span class="font-weight-medium" :title="item.user_name">{{ firstNameOf(item.user_name) || 'Someone' }}</span>
-                        {{ kashiSentence(item) }}
-                        <!-- The same change made again straight after (within the
-                         hour) is counted on one entry, not listed again. -->
-                        <v-chip
-                          v-if="item.repeat_count > 1"
-                          class="ms-1"
-                          label
-                          size="x-small"
-                          :title="`${item.repeat_count} times in a row`"
-                          variant="tonal"
-                        >
-                          ×{{ item.repeat_count }}
-                        </v-chip>
-                      </v-list-item-title>
-                      <v-list-item-subtitle v-if="item.detail" class="text-caption">
-                        {{ item.detail }}
-                      </v-list-item-subtitle>
-                      <template #append>
-                        <div class="text-caption text-medium-emphasis text-no-wrap ms-2" :title="dateTime(item.created_at)">
-                          {{ timeAgo(item.created_at) }}
-                        </div>
-                      </template>
-                    </v-list-item>
-                  </template>
-                </v-virtual-scroll>
-              </v-list>
-
-              <div
-                v-if="kashiLoaded && kashiActivities.length === 0"
-                class="text-body-2 text-medium-emphasis py-4 text-center"
-              >
-                Nothing changed in kashi yet.
+          <!-- One card per kind of change, stacked: commands, unknown
+               items, then everything else (reports and emails included). Split client-side from the one
+               paged feed, so scrolling any card loads the next page. -->
+          <div class="kashi-groups">
+            <v-card
+              v-for="group in kashiGroups"
+              :key="group.key"
+              class="home-activities-card kashi-group"
+              :class="`kashi-group--${group.key}`"
+              rounded="lg"
+              :style="{ '--group-accent': group.accent }"
+              variant="outlined"
+            >
+              <div class="kashi-group__head d-flex align-center ga-2 px-3 py-2">
+                <span class="kashi-group__dot" />
+                <span class="text-body-2 font-weight-medium">{{ group.title }}</span>
+                <v-spacer />
+                <span v-if="kashiLoaded" class="text-caption text-medium-emphasis">{{ group.items.length.toLocaleString() }}</span>
               </div>
-            </div>
-          </v-card>
+              <v-divider />
+              <!-- What still needs doing on unknown items, ahead of the
+                   changes made to them. -->
+              <div
+                v-if="group.key === 'unknown' && unknownItems.waiting + unknownItems.pending > 0"
+                class="unknown-items-status d-flex align-center ga-3 px-3 py-2"
+              >
+                <v-icon icon="mdi-help-box-outline" size="20" />
+                <div class="flex-grow-1 text-body-2">
+                  <div class="font-weight-medium">Unknown items to resolve</div>
+                  <div class="text-caption text-medium-emphasis">
+                    <template v-if="unknownItems.waiting > 0">{{ unknownItems.waiting }} waiting for a picture right now · </template>
+                    {{ unknownItems.pending }} to match with a product
+                  </div>
+                </div>
+                <v-btn size="small" variant="text" @click="router.push('/unknown-items')">Open</v-btn>
+              </div>
+              <v-divider v-if="group.key === 'unknown' && unknownItems.waiting + unknownItems.pending > 0" />
+              <div class="home-activities-scroll" @scroll.passive="onFeedScroll($event, loadMoreKashi)">
+                <v-skeleton-loader
+                  v-if="!kashiLoaded"
+                  color="transparent"
+                  :type="group.key === 'other' ? 'list-item-avatar-two-line@6' : 'list-item-avatar-two-line'"
+                />
+                <v-list v-else-if="group.items.length > 0" class="py-1" density="compact" lines="two">
+                  <v-virtual-scroll :item-height="71" :items="shown(group.items)" renderless>
+                    <template #default="{ item, itemRef }">
+                      <v-list-item :ref="itemRef" class="px-3" @click="openKashiDetail(item)">
+                        <template #prepend>
+                          <v-avatar
+                            class="me-3 text-white"
+                            :color="userColor(item)"
+                            size="34"
+                          >
+                            <span class="text-caption font-weight-bold">{{ initialsOf(item.user_name) }}</span>
+                          </v-avatar>
+                        </template>
+                        <v-list-item-title class="text-body-2 activity-sentence">
+                          <span class="font-weight-medium" :title="item.user_name">{{ firstNameOf(item.user_name) || 'Someone' }}</span>
+                          {{ kashiSentence(item) }}
+                        </v-list-item-title>
+                        <v-list-item-subtitle class="text-caption d-flex align-center ga-2">
+                          <v-chip
+                            class="activity-tag flex-shrink-0 font-weight-medium"
+                            :color="kashiTag(item).color"
+                            label
+                            size="x-small"
+                            :text="kashiTag(item).label"
+                            variant="tonal"
+                          />
+                          <!-- The same change made again straight after (within the
+                           hour) is counted on one entry, not listed again. -->
+                          <span
+                            v-if="item.repeat_count > 1"
+                            class="flex-shrink-0 font-weight-medium"
+                            :title="`${item.repeat_count} times in a row`"
+                          >×{{ item.repeat_count }}</span>
+                          <span v-if="item.detail" class="text-truncate">{{ item.detail }}</span>
+                        </v-list-item-subtitle>
+                        <template #append>
+                          <div class="text-caption text-medium-emphasis text-no-wrap ms-2" :title="dateTime(item.created_at)">
+                            {{ timeAgo(item.created_at) }}
+                          </div>
+                        </template>
+                      </v-list-item>
+                    </template>
+                  </v-virtual-scroll>
+                </v-list>
+                <div v-else class="text-caption text-medium-emphasis px-4 py-3">
+                  {{ group.empty }}
+                </div>
+                <div v-if="kashiLoading && group.key === 'other'" class="d-flex justify-center py-2">
+                  <v-progress-circular indeterminate size="18" width="2" />
+                </div>
+              </div>
+            </v-card>
+          </div>
         </section>
 
         <section v-if="canViewActivity" aria-label="Recent activity" class="home-activities">
@@ -132,18 +171,19 @@
           </div>
 
           <v-card class="home-activities-card" rounded="lg" variant="outlined">
-            <div class="home-activities-scroll">
+            <div class="home-activities-scroll" @scroll.passive="onFeedScroll($event, loadMoreActivities)">
               <v-skeleton-loader
                 v-if="!activitiesLoaded"
                 color="transparent"
                 type="list-item-avatar-two-line@8"
               />
-              <v-list v-else class="py-1" density="compact" lines="two">
-                <v-virtual-scroll :item-height="71" :items="shown(activities)" renderless>
+              <v-list v-else class="py-0" density="compact" lines="two">
+                <v-virtual-scroll :item-height="71" :items="shown(feedRows)" renderless>
                   <template #default="{ item, itemRef }">
                     <v-list-item
                       :ref="itemRef"
                       class="px-3 activity-row"
+                      :class="rowTone(item)"
                       @click="openDetail(item)"
                     >
                       <!-- TEMP: left icon hidden
@@ -159,8 +199,15 @@
                     </v-avatar>
                   </template>
                   -->
-                      <v-list-item-title class="text-body-2 font-weight-medium">
-                        {{ item.activity || 'Activity' }}
+                      <v-list-item-title class="text-body-2 font-weight-medium d-flex align-center ga-1">
+                        <v-icon
+                          v-if="item.pinned"
+                          color="error"
+                          icon="mdi-pin"
+                          size="14"
+                          title="Pinned until someone resolves it"
+                        />
+                        {{ activityTitle(item) }}
                       </v-list-item-title>
                       <v-list-item-subtitle class="text-caption d-flex align-center ga-1">
                         <template v-if="item.person">
@@ -189,6 +236,22 @@
                             {{ timeAgo(item.synced_at) }}
                           </div>
                         </div>
+                        <!-- Last in the row, so the checks line up down the
+                             urgent rows whatever the amount's width. Only for
+                             whoever may resolve; everyone else just sees the
+                             row tinted. An open row's outline check resolves
+                             it, a resolved row's filled one reopens it. -->
+                        <v-btn
+                          v-if="canResolveUrgent && (item.pinned || item.resolved)"
+                          class="ms-1 me-n2"
+                          :color="item.resolved ? 'success' : 'error'"
+                          :icon="item.resolved ? 'mdi-check-circle' : 'mdi-check-circle-outline'"
+                          :loading="resolvingKey === activityKey(item)"
+                          size="small"
+                          :title="item.resolved ? resolvedTitle(item) : 'Mark resolved'"
+                          variant="text"
+                          @click.stop="item.resolved ? unresolveUrgent(item) : resolveUrgent(item)"
+                        />
                       </template>
                     </v-list-item>
                   </template>
@@ -196,10 +259,13 @@
               </v-list>
 
               <div
-                v-if="activitiesLoaded && activities.length === 0"
+                v-if="activitiesLoaded && feedRows.length === 0"
                 class="text-body-2 text-medium-emphasis py-4 text-center"
               >
                 No recent activity yet.
+              </div>
+              <div v-if="activitiesLoading" class="d-flex justify-center py-2">
+                <v-progress-circular indeterminate size="18" width="2" />
               </div>
             </div>
           </v-card>
@@ -226,14 +292,16 @@
           </div>
 
           <v-card class="home-activities-card" rounded="lg" variant="outlined">
-            <div class="home-activities-scroll">
+            <div class="home-activities-scroll" @scroll.passive="onFeedScroll($event, loadMoreLatest)">
               <v-skeleton-loader
                 v-if="!latestLoaded"
                 color="transparent"
                 type="list-item-avatar-two-line@8"
               />
               <v-list v-else class="py-1" density="compact" lines="two">
-                <v-virtual-scroll :item-height="81" :items="shownLatest" renderless>
+                <!-- Keyed per item, not by position: a row the poll adds on top then
+                  mounts fresh and fetches its thumbnail (ensureThumb). -->
+                <v-virtual-scroll :item-height="81" :item-key="latestKey" :items="shownLatest" renderless>
                   <template #default="{ item, itemRef }">
                     <v-list-item
                       :ref="itemRef"
@@ -281,12 +349,15 @@
               >
                 Nothing added yet.
               </div>
-              <div v-else-if="latestLoaded && canShowMoreLatest" class="d-flex justify-center py-2">
+              <div v-else-if="latestLoading" class="d-flex justify-center py-2">
+                <v-progress-circular indeterminate size="18" width="2" />
+              </div>
+              <div v-else-if="latestLoaded && canShowMoreLatest && !mdAndUp" class="d-flex justify-center py-2">
                 <v-btn
                   size="small"
                   text="Show more"
                   variant="text"
-                  @click="latestExpanded = true"
+                  @click="showMoreLatest"
                 />
               </div>
             </div>
@@ -295,45 +366,94 @@
       </div>
     </div>
 
-    <v-dialog v-model="detailOpen" max-width="460">
-      <v-card v-if="detail" rounded="lg">
+    <ActivityDetailDialog
+      v-model="detailOpen"
+      :can-resolve="canResolveUrgent"
+      :item="detail"
+      :resolving="!!detail && resolvingKey === activityKey(detail)"
+      :severity="detail ? rowSeverity(detail) : null"
+      :title="detail ? activityTitle(detail) : ''"
+      @open-photo="openLatest"
+      @resolve="resolveFromDetail"
+      @unresolve="unresolveFromDetail"
+    />
+
+    <!-- One IT Management change in full: who, when, through what, and for
+         a shipped release its commit. -->
+    <v-dialog v-model="kashiDetailOpen" max-width="480">
+      <v-card v-if="kashiDetail" rounded="lg">
         <v-card-title class="d-flex align-center ga-3 px-4 py-3">
-          <v-avatar :color="visual(detail).color" rounded="lg" size="38" variant="tonal">
-            <v-icon :icon="visual(detail).icon" size="20" />
+          <v-avatar class="text-white" :color="userColor(kashiDetail)" size="38">
+            <span class="text-caption font-weight-bold">{{ initialsOf(kashiDetail.user_name) }}</span>
           </v-avatar>
-          <span class="text-subtitle-1 font-weight-medium">{{ detail.activity || 'Activity' }}</span>
+          <div class="kashi-detail-title">
+            <div class="text-subtitle-1 font-weight-medium">
+              {{ kashiDetail.user_name || 'Someone' }} {{ kashiSentence(kashiDetail) }}
+            </div>
+            <v-chip
+              class="mt-1"
+              :color="kashiTag(kashiDetail).color"
+              label
+              size="small"
+              :text="kashiTag(kashiDetail).label"
+              variant="flat"
+            />
+          </div>
           <v-spacer />
           <v-btn
             aria-label="Close"
             icon="mdi-close"
             size="small"
             variant="text"
-            @click="detailOpen = false"
+            @click="kashiDetailOpen = false"
           />
         </v-card-title>
         <v-divider />
         <v-list class="py-2" density="compact">
-          <v-list-item>
-            <v-list-item-subtitle class="text-caption">Branch</v-list-item-subtitle>
-            <v-list-item-title class="text-body-2">{{ detail.branch_name || '—' }}</v-list-item-title>
+          <template v-if="kashiDetail.method === 'RELEASE'">
+            <v-list-item>
+              <v-list-item-subtitle class="text-caption">Commit</v-list-item-subtitle>
+              <v-list-item-title class="text-body-2">{{ releaseCommit(kashiDetail).hash }}</v-list-item-title>
+            </v-list-item>
+            <v-list-item v-if="releaseCommit(kashiDetail).scope">
+              <v-list-item-subtitle class="text-caption">Area</v-list-item-subtitle>
+              <v-list-item-title class="text-body-2">{{ releaseCommit(kashiDetail).scope }}</v-list-item-title>
+            </v-list-item>
+          </template>
+          <v-list-item v-else-if="kashiDetail.detail">
+            <v-list-item-subtitle class="text-caption">Detail</v-list-item-subtitle>
+            <v-list-item-title class="text-body-2" style="white-space: normal">{{ kashiDetail.detail }}</v-list-item-title>
           </v-list-item>
           <v-list-item>
-            <v-list-item-subtitle class="text-caption">Details</v-list-item-subtitle>
-            <v-list-item-title class="text-body-2" style="white-space: normal">
-              {{ detail.details || '—' }}
+            <v-list-item-subtitle class="text-caption">
+              {{ kashiDetail.repeat_count > 1 ? 'Last done' : 'When' }}
+            </v-list-item-subtitle>
+            <v-list-item-title class="text-body-2">{{ dateTime(kashiDetail.created_at) }}</v-list-item-title>
+          </v-list-item>
+          <v-list-item v-if="kashiDetail.repeat_count > 1">
+            <v-list-item-subtitle class="text-caption">Times in a row</v-list-item-subtitle>
+            <v-list-item-title class="text-body-2">{{ kashiDetail.repeat_count }}, each within an hour of the last</v-list-item-title>
+          </v-list-item>
+          <v-list-item v-if="kashiDetail.method !== 'RELEASE'">
+            <v-list-item-subtitle class="text-caption">Made through</v-list-item-subtitle>
+            <v-list-item-title class="text-body-2 text-medium-emphasis">
+              {{ kashiDetail.method }} {{ kashiDetail.route }}<template v-if="kashiDetail.entity_id?.Valid"> · #{{ kashiDetail.entity_id.Int64 }}</template>
             </v-list-item-title>
-          </v-list-item>
-          <v-list-item v-if="hasAmount(detail)">
-            <v-list-item-subtitle class="text-caption">Amount</v-list-item-subtitle>
-            <v-list-item-title class="text-body-2" :class="amountClass(detail.amount)">
-              {{ money(detail.amount, detail.currency_code) }}
-            </v-list-item-title>
-          </v-list-item>
-          <v-list-item>
-            <v-list-item-subtitle class="text-caption">Synced at</v-list-item-subtitle>
-            <v-list-item-title class="text-body-2">{{ dateTime(detail.synced_at) }}</v-list-item-title>
           </v-list-item>
         </v-list>
+        <template v-if="kashiPage(kashiDetail)">
+          <v-divider />
+          <v-card-actions class="px-4">
+            <v-spacer />
+            <v-btn
+              append-icon="mdi-arrow-right"
+              color="primary"
+              :text="`Open ${kashiPage(kashiDetail).label}`"
+              variant="tonal"
+              @click="openKashiPage(kashiDetail)"
+            />
+          </v-card-actions>
+        </template>
       </v-card>
     </v-dialog>
 
@@ -390,15 +510,18 @@
   import { useRouter } from 'vue-router'
   import { useDisplay, useTheme } from 'vuetify'
   import appLogo from '@/assets/app-logo.png'
+  import ActivityDetailDialog from '@/components/ActivityDetailDialog.vue'
   import AppLogo from '@/components/AppLogo.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { authFetch } from '@/composables/useApi'
   import { BRANCH_ACTIVITY_TYPES } from '@/composables/useBranchActivityMessage'
+  import { feedQuery, nearFeedEnd, useKeysetFeed } from '@/composables/useKeysetFeed'
   import { useNotify } from '@/composables/useNotify'
   import { PHOTO_FETCH, usePhotoActions } from '@/composables/usePhotoActions'
   import { hashColor, initialsOf, useUserAvatar } from '@/composables/useUserAvatar'
   import { API_BASE } from '@/config'
   import { useAuthStore } from '@/stores/auth'
+  import { formatAmount } from '@/utils/money'
 
   // The feed row is narrow: the first name is enough beside the avatar,
   // whose initials and hover title still carry the full name.
@@ -430,18 +553,15 @@
   const appCommit = import.meta.env.VITE_APP_COMMIT
 
 
-  // Recent activity: a read-only glance at the latest branch-sync activity.
-  // Reuses the dashboard's /activities endpoint, which defaults to the
-  // current month ordered newest-first when no filters are passed. This is a
-  // fixed, short feed -- just the newest page -- not a paginated log: the
-  // full history lives on the dashboard. The panel fills the bottom third of
-  // the (non-scrolling) home page and scrolls internally, and a click on any
-  // row opens a details dialog. It refreshes itself off the shared admin
+  // Recent activity: a read-only glance at the latest branch-sync activity
+  // (/home/activities, newest received first). The panel fills the bottom
+  // of the (non-scrolling) home page and scrolls internally, and a click on
+  // any row opens a details dialog. It refreshes itself off the shared admin
   // websocket (the same push stream the dashboard listens to), so there's no
   // manual refresh button.
-  // Each feed loads its newest FEED_SIZE rows at once and renders them in a
-  // virtual scroller, so only the rows in view are in the DOM.
-  const FEED_SIZE = 500
+  // Each feed loads 30 rows at a time as it's scrolled (useKeysetFeed) and
+  // renders them in a virtual scroller, so only the rows in view are in the
+  // DOM.
 
   // The feed comes from the dashboard endpoints, which need Analytics access.
   const canViewActivity = computed(() => auth.canView('analytics'))
@@ -496,9 +616,139 @@
     }
   }
 
-  const activities = ref([])
-  const activitiesLoaded = ref(false)
   const notify = useNotify()
+
+  async function fetchFeedPage (path, cursor, what) {
+    const response = await authFetch(`${API_BASE}${path}?${feedQuery(cursor)}`)
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}))
+      throw new Error(body.error || `Failed to load ${what} (${response.status})`)
+    }
+    return response.json()
+  }
+
+  const {
+    items: activities,
+    loaded: activitiesLoaded,
+    loading: activitiesLoading,
+    loadMore: loadMoreActivities,
+    refresh: refreshActivities,
+  } = useKeysetFeed({
+    fetchPage: async last => {
+      const cursor = last && { at: last.synced_at, kind: last.activity, id: last.id }
+      const data = await fetchFeedPage('/home/activities', cursor, 'recent activity')
+      return data.activities ?? []
+    },
+    keyOf: activityKey,
+    onError: error_ => notify.error(error_.message),
+  })
+
+  function activityKey (item) {
+    return `${item.activity}-${item.id}`
+  }
+
+  // Urgent rows (the red ones: a shift closed short)
+  // stay pinned at the top of the feed until someone with the "Resolve
+  // Urgent Activity" permission marks them resolved, however far the feed
+  // has moved on. A pinned row is left out of the feed below so it isn't
+  // listed twice.
+  const urgentActivities = ref([])
+  const canResolveUrgent = computed(() => auth.canEdit('resolve_urgent_activity'))
+  const resolvingKey = ref(null)
+
+  const feedRows = computed(() => {
+    const pinned = new Set(urgentActivities.value.map(item => activityKey(item)))
+    return [
+      ...urgentActivities.value.map(item => ({ ...item, pinned: true })),
+      ...activities.value.filter(item => !pinned.has(activityKey(item))),
+    ]
+  })
+
+  async function loadUrgentActivities () {
+    try {
+      const response = await authFetch(`${API_BASE}/home/activities/urgent`)
+      if (!response.ok) throw new Error(`Failed to load urgent activity (${response.status})`)
+      urgentActivities.value = (await response.json()).activities ?? []
+    } catch (error_) {
+      notify.error(error_.message)
+    }
+  }
+
+  async function resolveUrgent (item) {
+    resolvingKey.value = activityKey(item)
+    try {
+      const response = await authFetch(`${API_BASE}/home/activities/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activity: item.activity, id: item.id }),
+      })
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}))
+        throw new Error(body.error || `Failed to resolve (${response.status})`)
+      }
+      urgentActivities.value = urgentActivities.value.filter(row => activityKey(row) !== activityKey(item))
+      // It drops back into the feed in its own place, now with a filled check.
+      markResolved(item, { resolved: true, resolved_by: auth.user?.username ?? '' })
+    } catch (error_) {
+      notify.error(error_.message)
+    } finally {
+      resolvingKey.value = null
+    }
+  }
+
+  // Reopens a resolved row: pinned on top again for everyone.
+  async function unresolveUrgent (item) {
+    resolvingKey.value = activityKey(item)
+    try {
+      const response = await authFetch(`${API_BASE}/home/activities/resolve`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activity: item.activity, id: item.id }),
+      })
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}))
+        throw new Error(body.error || `Failed to reopen (${response.status})`)
+      }
+      markResolved(item, { resolved: false, resolved_by: '' })
+      await loadUrgentActivities()
+    } catch (error_) {
+      notify.error(error_.message)
+    } finally {
+      resolvingKey.value = null
+    }
+  }
+
+  function markResolved (item, state) {
+    for (const row of activities.value) {
+      if (activityKey(row) === activityKey(item)) Object.assign(row, state)
+    }
+    if (detail.value && activityKey(detail.value) === activityKey(item)) {
+      detail.value = { ...detail.value, ...state, pinned: !state.resolved }
+    }
+  }
+
+  function resolvedTitle (item) {
+    return item.resolved_by ? `Resolved by ${item.resolved_by} · click to reopen` : 'Resolved · click to reopen'
+  }
+
+  async function resolveFromDetail (item) {
+    await resolveUrgent(item)
+  }
+
+  async function unresolveFromDetail (item) {
+    await unresolveUrgent(item)
+  }
+
+  function reload () {
+    if (!canViewActivity.value) return
+    refreshActivities()
+    loadUrgentActivities()
+  }
+
+  // Fetch the next page once a feed is scrolled near its bottom.
+  function onFeedScroll (event, loadMore) {
+    if (nearFeedEnd(event.target)) loadMore()
+  }
 
   const detailOpen = ref(false)
   const detail = ref(null)
@@ -529,25 +779,47 @@
     return base
   }
 
-  // Fetch the newest page and replace the list. There's no "load more" --
-  // the dashboard is where the full, filterable history lives.
-  async function reload () {
-    if (!canViewActivity.value) return
-    try {
-      const response = await authFetch(
-        `${API_BASE}/dashboard/activities?page_size=${FEED_SIZE}&page_id=0`,
-      )
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}))
-        throw new Error(body.error || `Failed to load recent activity (${response.status})`)
+  // Abnormal activity gets a tinted row, graded by how much it should worry
+  // whoever is watching -- routine punches and sales stay untinted:
+  //   high    red     a shift closed short (negative USD variance)
+  //   medium  orange  a settlement edited after the sale, an approved
+  //                   attendance edit, an exchange invoice
+  //   low     amber   an attendance complaint filed or rejected -- nothing
+  //                   changed yet
+  // Exchanges and the attendance status only live in the details string,
+  // which the feed builds with ' · ' separators (see DashboardActivitiesList).
+  function rowSeverity (item) {
+    const parts = String(item.details || '').split(' · ')
+    switch (item.activity) {
+      case 'Settlement changed': {
+        return 'medium'
       }
-      const data = await response.json()
-      activities.value = data.activities ?? []
-    } catch (error_) {
-      notify.error(error_.message)
-    } finally {
-      activitiesLoaded.value = true
+      case 'Shift closed': {
+        return item.amount < 0 ? 'high' : null
+      }
+      case 'Attendance changed': {
+        return parts.includes('approved') ? 'medium' : 'low'
+      }
+      case 'Invoice': {
+        return parts[0] === 'Exchange' ? 'medium' : null
+      }
+      default: {
+        return null
+      }
     }
+  }
+
+  // A shift that closed off its expected cash says so in its title, short
+  // or over, rather than reading like every other close.
+  function activityTitle (item) {
+    if (item.activity === 'Shift closed' && item.amount < 0) return 'Shift closed short'
+    if (item.activity === 'Shift closed' && item.amount > 0) return 'Shift closed over'
+    return item.activity || 'Activity'
+  }
+
+  function rowTone (item) {
+    const severity = rowSeverity(item)
+    return severity ? `activity-row--${severity}` : null
   }
 
   // A branch catch-up can fire a burst of pushes; debounce so the feed
@@ -603,29 +875,135 @@
 
   // "In kashi": what people changed in kashi itself -- a transfer created,
   // a conflict resolved, settings sent to a branch -- recorded server-side
-  // for every successful change (api/admin_activity.go). Same fixed newest
-  // page as the branch feed, refreshed by the admin_activity push.
+  // for every successful change (api/admin_activity.go). Paged like the
+  // branch feed, refreshed by the admin_activity push.
   const canViewKashiActivity = computed(() => auth.canView('system'))
-  const kashiActivities = ref([])
-  const kashiLoaded = ref(false)
   let kashiRefreshTimer = null
 
-  async function reloadKashi () {
-    if (!canViewKashiActivity.value) return
-    try {
-      const response = await authFetch(`${API_BASE}/admin_activities?page_size=${FEED_SIZE}&page_id=0`)
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}))
-        throw new Error(body.error || `Failed to load kashi activity (${response.status})`)
-      }
-      const data = await response.json()
-      kashiActivities.value = data.activities ?? []
-    } catch (error_) {
-      notify.error(error_.message)
-    } finally {
-      kashiLoaded.value = true
-    }
+  const {
+    items: kashiActivities,
+    loaded: kashiLoaded,
+    loading: kashiLoading,
+    loadMore: loadMoreKashi,
+    refresh: refreshKashi,
+  } = useKeysetFeed({
+    fetchPage: async last => {
+      const cursor = last && { at: last.created_at, id: last.id }
+      const data = await fetchFeedPage('/admin_activities', cursor, 'kashi activity')
+      return data.activities ?? []
+    },
+    keyOf: item => item.id,
+    onError: error_ => notify.error(error_.message),
+  })
+
+  function reloadKashi () {
+    if (canViewKashiActivity.value) refreshKashi()
   }
+
+  // The tag on each IT Management row: what kind of change it was. A
+  // shipped release is tagged by its commit type (release_type, recorded by
+  // cmd/release_notes); every other row by the route it was made through,
+  // and failing that by whether it added, changed or deleted something.
+  const RELEASE_TAGS = {
+    feat: { label: 'Feature', color: 'success' },
+    fix: { label: 'Fix', color: 'error' },
+    style: { label: 'Style', color: 'purple' },
+    perf: { label: 'Performance', color: 'warning' },
+    refactor: { label: 'Refactor', color: 'blue-grey' },
+    docs: { label: 'Docs', color: 'grey' },
+  }
+  const ROUTE_TAGS = [
+    { match: /^\/branches\/:id\/commands/, label: 'Command', color: 'primary' },
+    { match: /^\/app_(releases|updates)/, label: 'App release', color: 'teal' },
+    { match: /^\/security/, label: 'Security', color: 'error' },
+    { match: /^\/home\/activities\/resolve/, label: 'Resolved', color: 'success' },
+    { match: /^\/email_reports/, label: 'Email', color: 'success' },
+    { match: /settings|^\/whatsapp|quick_access/, label: 'Settings', color: 'blue-grey' },
+  ]
+  const METHOD_TAGS = {
+    POST: { label: 'Added', color: 'primary' },
+    PUT: { label: 'Edited', color: 'info' },
+    PATCH: { label: 'Edited', color: 'info' },
+    DELETE: { label: 'Deleted', color: 'error' },
+  }
+
+  function kashiTag (item) {
+    if (item.method === 'RELEASE') {
+      return RELEASE_TAGS[item.release_type] ?? { label: 'Update', color: 'info' }
+    }
+    const route = ROUTE_TAGS.find(tag => tag.match.test(item.route ?? ''))
+    if (route) return route
+    return METHOD_TAGS[item.method] ?? { label: 'Change', color: 'grey' }
+  }
+
+  // IT Management row details. A release's detail line is "<hash> · <scope>"
+  // (cmd/release_notes).
+  const kashiDetailOpen = ref(false)
+  const kashiDetail = ref(null)
+  function openKashiDetail (item) {
+    kashiDetail.value = item
+    kashiDetailOpen.value = true
+  }
+  function releaseCommit (item) {
+    const [hash, scope] = String(item.detail || '').split(' · ')
+    return { hash, scope }
+  }
+
+  // The page a change was made on, for the dialog's Open button.
+  const KASHI_PAGES = [
+    { match: /^\/branches\/:id\/commands/, label: 'Commands', to: '/branch-commands' },
+    { match: /^\/app_(releases|updates)/, label: 'App updates', to: '/app-updates' },
+    { match: /^\/security/, label: 'Security', to: '/security' },
+    { match: /^\/default_branch_settings/, label: 'Default settings', to: '/default-branch-settings' },
+    { match: /^\/branches\/:id\/settings/, label: 'Branch settings', to: '/branch-settings' },
+    { match: /^\/branch_attendance/, label: 'Attendance', to: '/attendance' },
+    { match: /^\/transfers/, label: 'Transfers', to: '/transfers' },
+    { match: /^\/whatsapp/, label: 'WhatsApp', to: '/whatsapp' },
+    { match: /^\/unknown_items/, label: 'Unknown items', to: '/unknown-items' },
+  ]
+  function kashiPage (item) {
+    return KASHI_PAGES.find(page => page.match.test(item.route ?? '')) ?? null
+  }
+  function openKashiPage (item) {
+    const page = kashiPage(item)
+    if (!page) return
+    kashiDetailOpen.value = false
+    router.push(page.to)
+  }
+
+  // The IT Management cards, top to bottom; a change lands in the first
+  // whose match accepts its route. accent is an "r,g,b" for the dot by the
+  // card's title.
+  const KASHI_GROUPS = [
+    {
+      key: 'commands',
+      title: 'Commands',
+      accent: 'var(--v-theme-primary)',
+      empty: 'No commands sent to branches yet.',
+      match: item => /^\/branches\/:id\/commands/.test(item.route ?? ''),
+    },
+    {
+      key: 'unknown',
+      title: 'Unknown items',
+      accent: 'var(--v-theme-warning)',
+      empty: 'No unknown items matched or allowed yet.',
+      match: item => /^\/unknown_items/.test(item.route ?? ''),
+    },
+    {
+      key: 'other',
+      title: 'Other changes',
+      accent: 'var(--v-theme-on-surface)',
+      empty: 'Nothing changed in kashi yet.',
+      match: () => true,
+    },
+  ]
+  const kashiGroups = computed(() => {
+    const groups = KASHI_GROUPS.map(group => ({ ...group, items: [] }))
+    for (const item of kashiActivities.value) {
+      groups.find(group => group.match(item)).items.push(item)
+    }
+    return groups
+  })
 
   function kashiSentence (item) {
     return item.entity_id?.Valid ? `${item.summary} #${item.entity_id.Int64}` : item.summary
@@ -639,8 +1017,6 @@
   const router = useRouter()
   const canViewLatest = computed(() =>
     auth.canView('accounting') || auth.canView('hr') || auth.canView('inventory'))
-  const latestItems = ref([])
-  const latestLoaded = ref(false)
   const thumbs = ref({})
 
   const LATEST_KINDS = {
@@ -683,12 +1059,21 @@
     }
   }
 
-  // "Show more" (phones only): expands the short preview to everything loaded.
+  // "Show more" (phones only): first expands the short preview to the rows
+  // loaded, then fetches the next page each time -- the card doesn't scroll
+  // on a phone, so there's no scrolling to the end to trigger it.
   const latestExpanded = ref(false)
   const shownLatest = computed(() =>
     latestExpanded.value ? latestItems.value : shown(latestItems.value),
   )
-  const canShowMoreLatest = computed(() => shownLatest.value.length < latestItems.value.length)
+  const canShowMoreLatest = computed(() => latestExpanded.value
+    ? !latestDone.value
+    : shownLatest.value.length < latestItems.value.length)
+
+  function showMoreLatest () {
+    if (latestExpanded.value) loadMoreLatest()
+    else latestExpanded.value = true
+  }
 
   // Where a feed item leads: the day page's "Shifts & Expenses" tab for the
   // branch and local day a shift receipt or expense photo belongs to (the
@@ -714,21 +1099,25 @@
     router.push(target.to)
   }
 
-  async function reloadLatest () {
-    if (!canViewLatest.value) return
-    try {
-      const response = await authFetch(`${API_BASE}/home/latest?page_size=${FEED_SIZE}`)
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}))
-        throw new Error(body.error || `Failed to load latest additions (${response.status})`)
-      }
-      const data = await response.json()
-      latestItems.value = data.items ?? []
-    } catch (error_) {
-      notify.error(error_.message)
-    } finally {
-      latestLoaded.value = true
-    }
+  const {
+    items: latestItems,
+    loaded: latestLoaded,
+    loading: latestLoading,
+    done: latestDone,
+    loadMore: loadMoreLatest,
+    refresh: refreshLatest,
+  } = useKeysetFeed({
+    fetchPage: async last => {
+      const cursor = last && { at: last.added_at, kind: last.kind, id: last.id }
+      const data = await fetchFeedPage('/home/latest', cursor, 'latest additions')
+      return data.items ?? []
+    },
+    keyOf: latestKey,
+    onError: error_ => notify.error(error_.message),
+  })
+
+  function reloadLatest () {
+    if (canViewLatest.value) refreshLatest()
   }
 
   const photoOpen = ref(false)
@@ -805,15 +1194,9 @@
     return mdAndUp.value ? items : items.slice(0, PHONE_FEED_ROWS)
   }
 
-  // Invoices carry no currency code (their totals are USD), so no code
-  // means dollars: "$28", "−$5". Any other currency keeps its code after
-  // the number: "200,000 LBP".
+  // See formatAmount: "$28", "−$5", "200,000 LBP".
   function money (amount, currency = '') {
-    const value = Number(amount || 0) / 100
-    const formatted = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(Math.abs(value))
-    const sign = amount < 0 ? '−' : ''
-    if (!currency || currency === 'USD') return `${sign}$${formatted}`
-    return `${sign}${formatted} ${currency}`
+    return formatAmount(amount, currency)
   }
 
   // Branch and details, minus what the row already shows elsewhere: the
@@ -843,8 +1226,25 @@
     return value ? new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '—'
   }
 
+  // Unknown items (tills selling something with no code): a card shows up
+  // while any wait for a picture or a product match. Polled with the rest.
+  const unknownItems = ref({ waiting: 0, pending: 0 })
+  async function reloadUnknownItems () {
+    if (!auth.canView('sales')) return
+    try {
+      const [list, waiting] = await Promise.all([
+        authFetch(`${API_BASE}/unknown_items?page_size=1`).then(res => res.ok ? res.json() : null),
+        authFetch(`${API_BASE}/unknown_items/waiting`).then(res => res.ok ? res.json() : null),
+      ])
+      unknownItems.value = { pending: list?.pending ?? 0, waiting: (waiting?.items ?? []).filter(unit => !unit.image_id && !unit.waived_at).length }
+    } catch {
+      // Leave the card as it was; the next poll tries again.
+    }
+  }
+
   let latestPoll = null
   onMounted(() => {
+    reloadUnknownItems()
     reload()
     reloadKashi()
     reloadLatest()
@@ -856,6 +1256,7 @@
       reloadKashi()
       reloadLatest()
       reloadRecentCounts()
+      reloadUnknownItems()
     }, 60_000)
   })
   onUnmounted(() => {
@@ -906,12 +1307,20 @@
     line-height: 1.6;
   }
 
+  /* The logo image is square but "K" fills only its middle -- the bottom
+     quarter is empty -- so each logo pulls the version line up into that
+     space (a fifth of the logo's width) to sit just under the letters. */
   .home-desktop-logo {
     width: clamp(72px, 9vw, 132px);
+    margin-bottom: calc(clamp(72px, 9vw, 132px) * -0.2);
     aspect-ratio: 1;
     background-color: var(--home-logo-color);
     mask: var(--home-logo-image) center / contain no-repeat;
     -webkit-mask: var(--home-logo-image) center / contain no-repeat;
+  }
+
+  .home-phone-logo {
+    margin-bottom: calc(clamp(100px, 13vw, 180px) * -0.2);
   }
 
   /* The two feeds share the bottom third of the page, side by side. */
@@ -933,8 +1342,52 @@
     min-width: 0;
   }
 
+  /* Vuetify hyphenates list titles ("re-solved"); wrap whole words. */
   .activity-sentence {
     white-space: normal;
+    hyphens: none;
+    line-height: 1.35;
+  }
+
+  /* IT Management: compact Commands and Unknown items cards on top, Other
+     changes takes the rest. */
+  .kashi-groups {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
+  }
+
+  /* Doubled class: .home-activities-card (declared later) sets flex too.
+     Their list sizes to its rows (up to the cap) instead of the flex-basis-0
+     the Other card's list uses. */
+  .kashi-group.kashi-group--commands,
+  .kashi-group.kashi-group--unknown {
+    flex: 0 1 auto;
+    max-height: 250px;
+  }
+
+  .kashi-group--commands .home-activities-scroll,
+  .kashi-group--unknown .home-activities-scroll {
+    flex: 0 1 auto;
+  }
+
+  /* The colour is just this dot; the card itself stays plain. */
+  .kashi-group__dot {
+    background: rgb(var(--group-accent));
+    border-radius: 50%;
+    flex: 0 0 auto;
+    height: 8px;
+    width: 8px;
+  }
+
+  .kashi-group--other .kashi-group__dot {
+    background: rgba(var(--group-accent), 0.35);
+  }
+
+  .activity-tag {
+    letter-spacing: 0.02em;
   }
 
   .today-skeleton :deep(.v-skeleton-loader__text) {
@@ -959,6 +1412,23 @@
     cursor: pointer;
   }
 
+  .kashi-detail-title {
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .activity-row--high {
+    background-color: rgba(var(--v-theme-error), 0.24);
+  }
+
+  .activity-row--medium {
+    background-color: rgba(255, 109, 0, 0.2);
+  }
+
+  .activity-row--low {
+    background-color: rgba(255, 193, 7, 0.12);
+  }
+
   .person-initials {
     font-size: 0.55rem;
     font-weight: 700;
@@ -980,7 +1450,8 @@
     }
 
     /* Each card is just as tall as its few rows -- no inner scrolling. */
-    .home-activities-card {
+    .home-activities-card,
+    .kashi-groups {
       flex: 0 0 auto;
     }
 

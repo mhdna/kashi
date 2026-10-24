@@ -21,9 +21,9 @@ const (
 	// stays scannable -- long enough to walk over and scan it, short
 	// enough to keep an unauthenticated upload endpoint's exposure window
 	// small.
-	expenseUploadTokenTTL       = 30 * time.Minute
-	maxExpenseUploadImages      = 3
-	maxExpenseUploadImageBytes  = 10 << 20 // 10MB
+	expenseUploadTokenTTL      = 30 * time.Minute
+	maxExpenseUploadImages     = 3
+	maxExpenseUploadImageBytes = 10 << 20 // 10MB
 )
 
 var allowedExpenseImageContentTypes = map[string]string{
@@ -35,6 +35,8 @@ var allowedExpenseImageContentTypes = map[string]string{
 
 //go:embed expense_upload_assets/upload.html
 var expenseUploadPageHTML []byte
+
+var expenseUploadPage = newPhoneUploadPage(expenseUploadPageHTML)
 
 // createBranchExpenseUploadToken mints a one-time, expiring token for a
 // freshly-created branch expense. Called from createBranchExpense
@@ -62,7 +64,7 @@ func (server *Server) createBranchExpenseUploadToken(ctx *gin.Context, branchExp
 // checking happens client-side against expenseUploadStatus/
 // uploadExpenseImages, so this handler itself never touches the database.
 func (server *Server) expenseUploadPage(ctx *gin.Context) {
-	ctx.Data(http.StatusOK, "text/html; charset=utf-8", expenseUploadPageHTML)
+	server.servePhoneUploadPage(ctx, expenseUploadPage)
 }
 
 // lookupValidUploadToken resolves a token to its (unexpired) row, treating
@@ -73,7 +75,9 @@ func (server *Server) lookupValidUploadToken(ctx *gin.Context, token string) (db
 	if err != nil {
 		return db.BranchExpenseUploadToken{}, err
 	}
-	if time.Now().UTC().After(row.ExpiresAt) {
+	// A link stops working the moment its upload is done, not only when it
+	// expires: reopening it, or posting again, finds nothing.
+	if row.UsedAt.Valid || time.Now().UTC().After(row.ExpiresAt) {
 		return db.BranchExpenseUploadToken{}, sql.ErrNoRows
 	}
 	return row, nil
@@ -177,6 +181,7 @@ func (server *Server) uploadExpenseImages(ctx *gin.Context) {
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
 		}
+		warmThumbnails(destPath)
 
 		if _, err := server.store.CreateBranchExpenseImage(ctx, db.CreateBranchExpenseImageParams{
 			BranchExpenseID: expense.ID,

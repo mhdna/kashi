@@ -5,20 +5,26 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
 
 	db "github.com/mhdna/kashi/db/sqlc"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWhatsAppDigits(t *testing.T) {
 	cases := map[string]string{
-		"+96170123456":    "96170123456",
-		"+961 70 123 456": "96170123456",
-		"0096170123456":   "0096170123456",
-		"123":             "",
-		"":                "",
+		"+96170123456":      "96170123456",
+		"+961 70 123 456":   "96170123456",
+		"0096170123456":     "96170123456",
+		"78 928 747":        "96178928747",
+		"03 123 456":        "9613123456",
+		"3123456":           "9613123456",
+		"+33 6 12 34 56 78": "33612345678",
+		"123":               "",
+		"":                  "",
 	}
 	for in, want := range cases {
 		if got := whatsAppDigits(in); got != want {
@@ -28,7 +34,7 @@ func TestWhatsAppDigits(t *testing.T) {
 }
 
 func TestWhatsAppTemplateParams(t *testing.T) {
-	got := whatsAppTemplateParams("name,branch,invoice,total", "Sara", "Hamra", "INV-42", 1550)
+	got := whatsAppTemplateParams("name,branch,invoice,total", "Sara", "Hamra", "INV-42", 1550, "", "")
 	want := []string{"Sara", "Hamra", "INV-42", "$15.50"}
 	if len(got) != len(want) {
 		t.Fatalf("got %d params, want %d: %v", len(got), len(want), got)
@@ -40,13 +46,13 @@ func TestWhatsAppTemplateParams(t *testing.T) {
 	}
 
 	// Missing client name falls back to "there".
-	got = whatsAppTemplateParams("name", "", "", "INV-1", 100)
+	got = whatsAppTemplateParams("name", "", "", "INV-1", 100, "", "")
 	if got[0]["text"] != "there" {
 		t.Errorf("name fallback: got %v", got[0])
 	}
 
 	// Unknown placeholder names are skipped.
-	got = whatsAppTemplateParams("name,bogus,total", "Sara", "", "INV-1", 100)
+	got = whatsAppTemplateParams("name,bogus,total", "Sara", "", "INV-1", 100, "", "")
 	if len(got) != 2 {
 		t.Errorf("expected unknown placeholder to be skipped, got %v", got)
 	}
@@ -206,4 +212,15 @@ func TestWhatsAppWebhookParsing(t *testing.T) {
 	if got := unixTime("1760100000"); got.Unix() != 1760100000 {
 		t.Errorf("timestamp: %v", got)
 	}
+}
+
+// Meta throttling or outages are retried; a problem with the message isn't.
+func TestParseWhatsAppSendResponseTemporary(t *testing.T) {
+	_, err := parseWhatsAppSendResponse(http.StatusTooManyRequests, strings.NewReader(`{"error":{"message":"Rate limit hit","code":130429}}`))
+	require.True(t, isWhatsAppTemporary(err))
+	_, err = parseWhatsAppSendResponse(http.StatusInternalServerError, strings.NewReader(`{}`))
+	require.True(t, isWhatsAppTemporary(err))
+	_, err = parseWhatsAppSendResponse(http.StatusBadRequest, strings.NewReader(`{"error":{"message":"Template name does not exist in the translation","code":132001}}`))
+	require.Error(t, err)
+	require.False(t, isWhatsAppTemporary(err))
 }

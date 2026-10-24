@@ -119,12 +119,11 @@
               </v-list-item>
             </template>
           </v-select>
-          <v-text-field
+          <DateField
             v-model="form.boughtAt"
             density="compact"
             hide-details="auto"
             label="Bought At"
-            type="date"
             variant="outlined"
           />
         </v-card-text>
@@ -191,8 +190,8 @@
   import { useAssetCategories } from '@/composables/useAssetCategories'
   import { useAssets } from '@/composables/useAssets'
   import { useBulkDelete } from '@/composables/useBulkDelete'
-  import { usePageAccess } from '@/composables/usePageAccess'
   import { useNotify } from '@/composables/useNotify'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
   import { categoryColor, categoryIcon } from '@/data/expenseCategoryIcons'
 

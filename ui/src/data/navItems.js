@@ -2,7 +2,12 @@ export const navItems = [
   { title: 'Home', icon: 'mdi-home', to: '/' },
   { title: 'Daily Income', icon: 'mdi-chart-bar', to: '/daily-income' },
   { title: 'Invoices', icon: 'mdi-format-list-bulleted-square', to: '/invoices' },
-  { title: 'WhatsApp', icon: 'mdi-whatsapp', to: '/whatsapp' },
+  { title: 'Unknown Items', icon: 'mdi-help-box-outline', to: '/unknown-items' },
+  { title: 'Shifts', icon: 'mdi-clock-outline', to: '/shifts' },
+  { title: 'WhatsApp & Reviews', icon: 'mdi-whatsapp', to: '/whatsapp', append: 'whatsapp-status' },
+  { title: 'Clients', icon: 'mdi-account', to: '/clients' },
+  { title: 'Loyalty', icon: 'mdi-trophy', to: '/loyalty' },
+  { title: 'Emails', icon: 'mdi-email-outline', to: '/emails' },
   {
     title: 'Analysis',
     icon: 'mdi-chart-bar',
@@ -10,6 +15,7 @@ export const navItems = [
       { title: 'Dashboard', icon: 'mdi-view-dashboard', to: '/dashboard' },
       { title: 'Targets', icon: 'mdi-target', to: '/targets' },
       { title: 'Footfall', icon: 'mdi-walk', to: '/footfall' },
+      { title: 'Busy Hours', icon: 'mdi-clock-time-four-outline', to: '/busy-hours' },
       { title: 'Product Revenues', icon: 'mdi-package-variant', to: '/product-revenues' },
       { title: 'Conversion', icon: 'mdi-percent-outline', to: '/conversion' },
       { title: 'Sales Analytics', icon: 'mdi-chart-line', to: '/sales-analytics' },
@@ -19,16 +25,8 @@ export const navItems = [
     ],
   },
   {
-    title: 'Customers',
-    icon: 'mdi-cart',
-    children: [
-      { title: 'Clients', icon: 'mdi-account', to: '/clients' },
-      { title: 'Loyalty', icon: 'mdi-trophy', to: '/loyalty' },
-    ],
-  },
-  {
     title: 'Human Resources',
-    icon: 'mdi-account-group',
+    icon: 'mdi-account-tie-outline',
     children: [
       { title: 'Employees', icon: 'mdi-account-group', to: '/employees' },
       {
@@ -36,7 +34,6 @@ export const navItems = [
         icon: 'mdi-account-multiple-check-outline',
         to: '/attendance',
       },
-      { title: 'Shifts', icon: 'mdi-clock-outline', to: '/shifts' },
       { title: 'Salesperson Performance', icon: 'mdi-account-cash', to: '/salesperson-performance' },
     ],
   },
@@ -58,7 +55,7 @@ export const navItems = [
   { title: 'Conflicts', icon: 'mdi-source-branch-sync', to: '/branch-conflicts', append: 'conflicts-status' },
   {
     title: 'Branches',
-    icon: 'mdi-store-outline',
+    icon: 'mdi-domain',
     children: [
       { title: 'Branches', icon: 'mdi-store-outline', to: '/branches' },
       { title: 'Branch Settings', icon: 'mdi-store-cog-outline', to: '/branch-settings' },
@@ -67,7 +64,7 @@ export const navItems = [
   },
   {
     title: 'Pricing',
-    icon: 'mdi-sale',
+    icon: 'mdi-tag-outline',
     children: [
       { title: 'Price Lists', icon: 'mdi-format-list-bulleted', to: '/price-lists' },
       { title: 'Discount Lists', icon: 'mdi-sale', to: '/discount-lists' },
@@ -76,7 +73,7 @@ export const navItems = [
   },
   {
     title: 'Products',
-    icon: 'mdi-package-variant',
+    icon: 'mdi-cart',
     children: [
       { title: 'Products', icon: 'mdi-package-variant', to: '/products' },
       { title: 'Colors & Sizes', icon: 'mdi-palette', to: '/colors-sizes' },
@@ -95,7 +92,7 @@ export const navItems = [
   },
   {
     title: 'Inventory',
-    icon: 'mdi-warehouse',
+    icon: 'mdi-folder-network',
     children: [
       { title: 'Inventory', icon: 'mdi-warehouse', to: '/inventory' },
       { title: 'Inventory Analysis', icon: 'mdi-chart-box-outline', to: '/inventory-analysis' },
@@ -109,7 +106,7 @@ export const navItems = [
   },
   {
     title: 'Purchasing',
-    icon: 'mdi-truck-delivery',
+    icon: 'mdi-truck',
     children: [
       { title: 'Suppliers', icon: 'mdi-truck-delivery', to: '/suppliers' },
       { title: 'Purchase Invoices', icon: 'mdi-invoice', to: '/purchase-invoice' },
@@ -124,5 +121,8 @@ export const appendItems = [
   { title: 'Audit Log', icon: 'mdi-history', to: '/audit-log' },
   { title: 'App Updates', icon: 'mdi-update', to: '/app-updates' },
   { title: 'Security', icon: 'mdi-shield-lock-outline', to: '/security' },
+  { title: 'User Guide', icon: 'mdi-book-open-variant', to: '/user-guide' },
+  { title: 'Receipt Designer', icon: 'mdi-receipt-text', to: '/receipt-designer' },
+  { title: 'Barcode Designer', icon: 'mdi-barcode', to: '/barcode-designer' },
   { title: 'Settings', icon: 'mdi-cog-outline', to: '/settings' },
 ]

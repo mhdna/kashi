@@ -328,20 +328,7 @@
       <v-card-title>{{ editingTargetId ? "Edit Target" : "Add Target" }}</v-card-title>
       <v-card-text>
         <form class="field-grid" @submit.prevent="submitTarget">
-          <v-text-field
-            v-model="targetForm.dateFrom"
-            density="compact"
-            label="From"
-            type="date"
-            variant="outlined"
-          />
-          <v-text-field
-            v-model="targetForm.dateTo"
-            density="compact"
-            label="To"
-            type="date"
-            variant="outlined"
-          />
+          <DateRangePicker v-model:from="targetForm.dateFrom" v-model:to="targetForm.dateTo" class="field-full" />
           <v-text-field
             v-model.number="targetForm.targetAmount"
             class="field-full"

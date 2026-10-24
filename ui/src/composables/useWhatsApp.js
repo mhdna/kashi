@@ -28,6 +28,21 @@ export function useWhatsApp () {
     getStats: params => requestJSON(`/whatsapp/stats?${new URLSearchParams(params)}`),
     listMessages: params => requestJSON(`/whatsapp/messages?${new URLSearchParams(params)}`),
     listReplies: params => requestJSON(`/whatsapp/replies?${new URLSearchParams(params)}`),
+    getConversation: id => requestJSON(`/whatsapp/messages/${id}/conversation`),
+    // The Inbox: every message on our own numbers, a thread per customer (api/whatsapp_chat.go).
+    listChats: params => requestJSON(`/whatsapp/chats?${new URLSearchParams(params)}`),
+    getChat: (phone, params) => requestJSON(`/whatsapp/chats/${phone}?${new URLSearchParams(params)}`),
+    // Sending from our own numbers through the bridge (api/whatsapp_bridge.go).
+    getSender: () => requestJSON('/whatsapp/sender'),
+    saveSender: settings => sendJSON('PUT', '/whatsapp/sender', settings),
+    sendTest: payload => sendJSON('POST', '/whatsapp/sender/test', payload),
+    addNumber: label => sendJSON('POST', '/whatsapp/numbers', { label }),
+    numberQR: id => requestJSON(`/whatsapp/numbers/${id}/qr`),
+    updateNumber: (id, payload) => sendJSON('PUT', `/whatsapp/numbers/${id}`, payload),
+    deleteNumber: id => requestJSON(`/whatsapp/numbers/${id}`, { method: 'DELETE' }),
+    // Warning signs before a ban, and resuming a number that paused itself (api/whatsapp_health.go).
+    getHealth: () => requestJSON('/whatsapp/health'),
+    resumeNumber: id => sendJSON('POST', `/whatsapp/numbers/${id}/resume`, {}),
     searchClients: async search =>
       (await requestJSON(`/whatsapp/clients?${new URLSearchParams({ search })}`)).clients ?? [],
     clientsByPhones: async phones =>

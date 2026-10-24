@@ -217,11 +217,10 @@
               />
             </v-col>
             <v-col cols="6">
-              <v-text-field
+              <DateField
                 v-model="form.hiredOn"
                 density="compact"
                 label="Hired on"
-                type="date"
               />
             </v-col>
           </v-row>
@@ -251,8 +250,8 @@
 <script setup lang="ts">
   import { computed, onMounted, reactive, ref } from 'vue'
   import { useBranches } from '@/composables/useBranches'
-  import { useNotify } from '@/composables/useNotify'
   import { useEmployees } from '@/composables/useEmployees'
+  import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).

@@ -53,7 +53,9 @@ func (server *Server) lookupValidLoanUploadToken(ctx *gin.Context, token string)
 	if err != nil {
 		return db.LoanUploadToken{}, err
 	}
-	if time.Now().UTC().After(row.ExpiresAt) {
+	// A link stops working the moment its upload is done, not only when it
+	// expires: reopening it, or posting again, finds nothing.
+	if row.UsedAt.Valid || time.Now().UTC().After(row.ExpiresAt) {
 		return db.LoanUploadToken{}, sql.ErrNoRows
 	}
 	return row, nil
@@ -147,6 +149,7 @@ func (server *Server) uploadLoanImages(ctx *gin.Context) {
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
 		}
+		warmThumbnails(destPath)
 		if _, err := server.store.CreateLoanImage(ctx, db.CreateLoanImageParams{
 			LoanID:      loan.ID,
 			FilePath:    destPath,
@@ -280,6 +283,34 @@ func (server *Server) branchLoanPhotos(ctx *gin.Context) {
 		return
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{"images": images})
+}
+
+// branchLoanPhotoFirst is branchExpensePhotoFirst for a loan.
+func (server *Server) branchLoanPhotoFirst(ctx *gin.Context) {
+	branchID := ctx.MustGet(branchIDKey).(int64)
+	var req branchExpensePhotosRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	loan, err := server.store.GetBranchLoanByClientRef(ctx, db.GetBranchLoanByClientRefParams{
+		BranchID:  sql.NullInt64{Int64: branchID, Valid: true},
+		ClientRef: sql.NullString{String: req.ClientRef, Valid: true},
+	})
+	if err != nil {
+		server.writeError(ctx, statusForLookup(err), err)
+		return
+	}
+	images, err := server.store.ListLoanImagesForLoan(ctx, loan.ID)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(images) == 0 {
+		server.writeError(ctx, http.StatusNotFound, errors.New("no photo"))
+		return
+	}
+	server.serveStoredImage(ctx, images[0].FilePath, images[0].ContentType, 0)
 }
 
 // branchLoanPhotoFile serves one loan photo, if its loan is this branch's.

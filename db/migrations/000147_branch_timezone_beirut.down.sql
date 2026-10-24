@@ -1,0 +1,1 @@
+ALTER TABLE branches ALTER COLUMN timezone SET DEFAULT 'UTC';

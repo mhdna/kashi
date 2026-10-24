@@ -58,7 +58,7 @@ func (server *Server) getSalesDashboard(ctx *gin.Context) {
 	}
 	year := req.Year
 	if year == 0 {
-		year = time.Now().UTC().Year()
+		year = businessToday().Year()
 		if len(years) > 0 {
 			year = int(years[0])
 		}
@@ -74,12 +74,12 @@ func (server *Server) getSalesDashboard(ctx *gin.Context) {
 
 	// The monthly chart always shows the whole year, so the daily figures
 	// are read for the year and the selected range is picked out of them.
-	dailySales, err := server.store.ReportDailySales(ctx, db.ReportDailySalesParams{DateFrom: yearFrom, DateTo: yearTo})
+	dailySales, err := server.store.ReportDailySales(ctx, db.ReportDailySalesParams{DateFrom: dayStart(yearFrom), DateTo: dayStart(yearTo)})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	dailyCosted, err := server.store.ReportDailyCosted(ctx, db.ReportDailyCostedParams{DateFrom: yearFrom, DateTo: yearTo})
+	dailyCosted, err := server.store.ReportDailyCosted(ctx, db.ReportDailyCostedParams{DateFrom: dayStart(yearFrom), DateTo: dayStart(yearTo)})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
@@ -116,7 +116,7 @@ func (server *Server) getSalesDashboard(ctx *gin.Context) {
 	// Every day of the range, zero-filled, but not past today.
 	daily := make([]salesDashboardDay, 0)
 	end := to
-	if tomorrow := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, 1); tomorrow.Before(end) {
+	if tomorrow := businessToday().AddDate(0, 0, 1); tomorrow.Before(end) {
 		end = tomorrow
 	}
 	for day := from; day.Before(end); day = day.AddDate(0, 0, 1) {
@@ -124,22 +124,22 @@ func (server *Server) getSalesDashboard(ctx *gin.Context) {
 		daily = append(daily, salesDashboardDay{Day: key, Sales: salesByDay[key]})
 	}
 
-	topProducts, err := server.store.ReportTopProducts(ctx, db.ReportTopProductsParams{DateFrom: from, DateTo: to, TopN: 10})
+	topProducts, err := server.store.ReportTopProducts(ctx, db.ReportTopProductsParams{DateFrom: dayStart(from), DateTo: dayStart(to), TopN: 10})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	categories, err := server.store.ReportCategorySales(ctx, db.ReportCategorySalesParams{DateFrom: from, DateTo: to})
+	categories, err := server.store.ReportCategorySales(ctx, db.ReportCategorySalesParams{DateFrom: dayStart(from), DateTo: dayStart(to)})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	branches, err := server.store.ReportBranchSales(ctx, db.ReportBranchSalesParams{DateFrom: from, DateTo: to})
+	branches, err := server.store.ReportBranchSales(ctx, db.ReportBranchSalesParams{DateFrom: dayStart(from), DateTo: dayStart(to)})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	payments, err := server.store.ReportPaymentMethods(ctx, db.ReportPaymentMethodsParams{DateFrom: from, DateTo: to})
+	payments, err := server.store.ReportPaymentMethods(ctx, db.ReportPaymentMethodsParams{DateFrom: dayStart(from), DateTo: dayStart(to)})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return

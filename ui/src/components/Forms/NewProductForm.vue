@@ -65,8 +65,10 @@
             clearable
             density="compact"
             hide-details="auto"
+            :hint="field.hint"
             :items="optionsFor(field.attribute)"
             :label="field.label"
+            :persistent-hint="!!field.hint"
             variant="outlined"
           />
         </v-col>
@@ -287,6 +289,7 @@
   })
 
   // key -> payload key sent to the API; attribute -> seeded attribute type name.
+  // An empty year is filled in by the server with the year the product is added.
   const attributeFields = [
     { key: 'category', attribute: 'category', label: 'Category', model: useField('category') },
     { key: 'subcategory', attribute: 'sub-category', label: 'Sub-Category', model: useField('subcategory') },
@@ -294,7 +297,7 @@
     { key: 'kind', attribute: 'kind', label: 'Kind', model: useField('kind') },
     { key: 'type', attribute: 'type', label: 'Type', model: useField('type') },
     { key: 'unit', attribute: 'unit', label: 'Unit', model: useField('unit') },
-    { key: 'year', attribute: 'year', label: 'Year', model: useField('year') },
+    { key: 'year', attribute: 'year', label: 'Year', model: useField('year'), hint: `Leave empty for ${new Date().getFullYear()}` },
     { key: 'season', attribute: 'season', label: 'Season', model: useField('season') },
     { key: 'origin', attribute: 'origin', label: 'Origin', model: useField('origin') },
   ]

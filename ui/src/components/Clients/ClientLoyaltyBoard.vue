@@ -42,7 +42,12 @@
         </div>
         <div v-else class="pyramid">
           <div v-for="(row, ri) in pyramidRows" :key="ri" class="pyramid-row">
-            <div v-for="client in row" :key="client.id" class="pyramid-item">
+            <div
+              v-for="client in row"
+              :key="client.id"
+              class="pyramid-item"
+              @click="openDetail(client)"
+            >
               <v-avatar class="pyramid-avatar mb-1" :color="tierFor(client.total_spent)?.color" :size="avatarSize(ri)">
                 <span class="text-white font-weight-bold" :style="{ fontSize: `${avatarSize(ri) / 2.6}px` }">
                   {{ initials(client.name) }}
@@ -91,6 +96,7 @@
         <template #default="{ item }">
           <div
             class="client-row d-flex align-center ga-3 px-4"
+            :class="{ 'client-row-bad-phone': item.phone && !item.phone_valid }"
             :style="{ height: `${REST_ROW_HEIGHT}px` }"
             @click="openDetail(item)"
           >
@@ -103,7 +109,15 @@
                 <span class="text-body-2 font-weight-medium text-truncate">{{ item.name }}</span>
                 <v-chip v-if="item.is_active === false" size="x-small" variant="tonal">Inactive</v-chip>
               </div>
-              <div class="text-caption text-medium-emphasis text-truncate">
+              <div class="text-caption text-medium-emphasis text-truncate d-flex align-center ga-1">
+                <v-icon
+                  v-if="item.phone && !item.phone_valid"
+                  color="error"
+                  icon="mdi-phone-alert"
+                  size="14"
+                  title="Not a recognizable phone number"
+                />
+                <span v-else-if="countryFlag(item.phone_country)">{{ countryFlag(item.phone_country) }}</span>
                 {{ item.phone || '—' }}
               </div>
             </div>
@@ -141,13 +155,8 @@
       </div>
     </div>
 
-    <v-navigation-drawer
-      v-model="detailOpen"
-      location="right"
-      temporary
-      width="380"
-    >
-      <template v-if="detailClient">
+    <v-dialog v-model="detailOpen" max-width="420">
+      <v-card v-if="detailClient">
         <div class="pa-4 d-flex align-center ga-3">
           <v-avatar :color="tierFor(detailClient.total_spent)?.color" size="48">
             <span class="text-subtitle-2 font-weight-bold text-white">{{ initials(detailClient.name) }}</span>
@@ -182,7 +191,19 @@
 
           <v-list class="pa-0" density="compact">
             <v-list-item class="px-0" title="Phone">
-              <template #append><span class="text-body-2">{{ detailClient.phone || '—' }}</span></template>
+              <template #append>
+                <span class="text-body-2 d-flex align-center ga-1">
+                  <v-icon
+                    v-if="detailClient.phone && !detailClient.phone_valid"
+                    color="error"
+                    icon="mdi-phone-alert"
+                    size="14"
+                    title="Not a recognizable phone number"
+                  />
+                  <span v-else-if="countryFlag(detailClient.phone_country)">{{ countryFlag(detailClient.phone_country) }}</span>
+                  {{ detailClient.phone || '—' }}
+                </span>
+              </template>
             </v-list-item>
             <v-list-item class="px-0" title="Type">
               <template #append><span class="text-body-2 text-capitalize">{{ detailClient.client_type }}</span></template>
@@ -233,8 +254,8 @@
             </v-btn>
           </div>
         </div>
-      </template>
-    </v-navigation-drawer>
+      </v-card>
+    </v-dialog>
 
     <v-dialog v-model="tiersDialog" max-width="600">
       <v-card>
@@ -282,11 +303,13 @@
 <script setup>
   import { computed, onMounted, ref, watch } from 'vue'
   import TierChip from '@/components/Clients/TierChip.vue'
-  import { useNotify } from '@/composables/useNotify'
   import { useClientTiers } from '@/composables/useClientTiers'
+  import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { dedupedFetch } from '@/composables/useRequestDedup'
   import { API_BASE } from '@/config'
+  import { countryFlag } from '@/utils/countryFlag'
+  import { rangeBounds } from '@/utils/dateRange'
   import { formatMoney } from '@/utils/money'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
@@ -294,8 +317,17 @@
   const notify = useNotify()
 
   const props = defineProps({
-    branchId: { type: [Number, String, null], default: null },
+    // Empty means every branch.
+    branchIds: { type: Array, default: () => [] },
+    // [] or ['YYYY-MM-DD', 'YYYY-MM-DD']: only clients who bought in it.
+    dateRange: { type: Array, default: () => [] },
+    // With a date range: 'first' (first purchase inside it), 'returning', or ''.
+    visit: { type: String, default: '' },
     clientType: { type: String, required: true },
+    // null = any, true = only valid phones, false = only invalid ones.
+    phoneValid: { type: Boolean, default: null },
+    // '' = any country; else an ISO 3166-1 alpha-2 code from phone_country.
+    phoneCountry: { type: String, default: '' },
   })
   defineEmits(['edit', 'delete', 'reactivate'])
 
@@ -356,11 +388,52 @@
     const params = new URLSearchParams()
     params.set('client_type', props.clientType)
     params.set('sort_by', sortBy.value)
-    if (props.branchId) params.set('branch_id', props.branchId)
+    for (const id of props.branchIds) params.append('branch_ids', id)
+    const { from, to } = rangeBounds(props.dateRange)
+    if (from) params.set('from', from)
+    if (to) params.set('to', to)
+    if (props.visit) params.set('visit', props.visit)
+    if (props.phoneValid !== null) params.set('phone_valid', props.phoneValid)
+    if (props.phoneCountry) params.set('phone_country', props.phoneCountry)
     return params
   }
 
-  async function fetchPyramid () {
+  // The pyramid is the top of the ranking and the list below it starts from
+  // the top as well, so one request covers both: the pyramid takes its count
+  // from the front and the list takes its first page.
+  async function fetchTop () {
+    pyramidLoading.value = true
+    restLoading.value = true
+    const mySeq = ++restSeq
+    try {
+      const params = baseParams()
+      params.set('page_size', Math.max(pyramidCount.value, REST_PAGE_SIZE))
+      params.set('page_id', 0)
+      const data = await dedupedFetch(`${API_BASE}/clients/by_spending?${params}`)
+      if (mySeq !== restSeq) return
+      const all = data?.clients ?? []
+      const total = data?.total ?? 0
+      pyramidClients.value = all.slice(0, pyramidCount.value)
+      restItems.value = all.slice(0, REST_PAGE_SIZE)
+      restTotal.value = total
+      restDone = restItems.value.length >= restTotal.value
+    } catch (error) {
+      if (mySeq !== restSeq) return
+      pyramidClients.value = []
+      restItems.value = []
+      restTotal.value = 0
+      notify.error(error.message)
+    } finally {
+      if (mySeq === restSeq) {
+        pyramidLoading.value = false
+        restLoading.value = false
+      }
+    }
+  }
+
+  // While searching, the list ignores the ranking, so only the pyramid needs
+  // refreshing when a filter changes.
+  async function fetchPyramidOnly () {
     pyramidLoading.value = true
     try {
       const params = baseParams()
@@ -401,11 +474,10 @@
     if (!reset && restDone) return
 
     const searchActive = !!search.value
-    // Not searching: the list picks up where the "Top Spenders" pyramid
-    // leaves off, so the same clients aren't shown twice. Searching: the
-    // admin wants one specific client regardless of rank, so show all.
-    const base = searchActive ? 0 : pyramidCount.value
-    const from = reset ? base : base + restItems.value.length
+    // Every client matching the filters, ranked, including the ones the
+    // "Top Spenders" pyramid already shows: a filter that leaves a handful of
+    // clients would otherwise leave this list empty.
+    const from = reset ? 0 : restItems.value.length
 
     restLoading.value = true
     const mySeq = ++restSeq
@@ -420,7 +492,7 @@
 
       const batch = data?.clients ?? []
       const total = data?.total ?? 0
-      restTotal.value = searchActive ? total : Math.max(total - pyramidCount.value, 0)
+      restTotal.value = total
       restItems.value = reset ? batch : [...restItems.value, ...batch]
       restDone = batch.length < REST_PAGE_SIZE || restItems.value.length >= restTotal.value
     } catch (error) {
@@ -444,7 +516,8 @@
     restDone = false
     const el = restScroller.value?.$el
     if (el) el.scrollTop = 0
-    loadRestPage(true)
+    if (search.value) loadRestPage(true)
+    else fetchTop()
   }
 
   const detailOpen = ref(false)
@@ -455,17 +528,14 @@
   }
 
   function reload () {
-    fetchPyramid()
+    if (search.value) fetchPyramidOnly()
     resetRestList()
   }
 
   defineExpose({ reload })
 
-  onMounted(() => {
-    fetchPyramid()
-    resetRestList()
-  })
-  watch(() => [props.clientType, props.branchId, pyramidCount.value, sortBy.value], reload)
+  onMounted(resetRestList)
+  watch(() => [props.clientType, props.branchIds.join(','), props.dateRange.join(','), props.visit, props.phoneValid, props.phoneCountry, pyramidCount.value, sortBy.value], reload)
 
   let searchTimeout = null
   watch(search, () => {
@@ -521,6 +591,17 @@
   background-color: rgba(var(--v-theme-on-surface), 0.04);
 }
 
+/* A phone that isn't a real number even after cleanup (see
+   client_phone_cleanup.go's phone_valid) -- not a foreign number, which is
+   valid and just gets its flag instead. */
+.client-row-bad-phone {
+  background-color: rgba(var(--v-theme-error), 0.08);
+}
+
+.client-row-bad-phone:hover {
+  background-color: rgba(var(--v-theme-error), 0.14);
+}
+
 .client-row-main {
   flex: 1 1 auto;
   min-width: 0;
@@ -555,6 +636,7 @@
 }
 
 .pyramid-item {
+  cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;

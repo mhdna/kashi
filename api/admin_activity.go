@@ -50,6 +50,7 @@ var adminActivityOverrides = map[string]string{
 	"POST /branch_attendance_events/import":         "imported attendance",
 	"POST /products/import":                         "imported products",
 	"PUT /branch_users/:id/pin":                     "set the PIN of POS user",
+	"POST /home/activities/resolve":                 "resolved an urgent activity",
 	// {branch} is replaced by the branch's name (recordAdminActivity).
 	"POST /branches/:id/hide_from_reports":         "hid {branch} from reports",
 	"POST /branches/:id/show_in_reports":           "showed {branch} in reports again",
@@ -88,6 +89,7 @@ var adminResourceNames = map[string]string{
 	"stock_counts":              "stock count",
 	"price_lists":               "price list",
 	"discount_lists":            "discount list",
+	"deals":                     "deal",
 	"coupon_lists":              "coupon list",
 	"coupon_types":              "coupon type",
 	"invoice_types":             "invoice type",
@@ -343,19 +345,26 @@ func (server *Server) recordAdminActivity(a adminActivity) {
 	server.adminHub.broadcastAll(adminWSMessage{Type: "admin_activity"})
 }
 
-// listAdminActivities backs the home page's "In kashi" feed, newest first.
+// listAdminActivities backs the home page's "In kashi" feed, newest first,
+// page_size rows after the cursor.
 func (server *Server) listAdminActivities(ctx *gin.Context) {
 	var req struct {
+		feedCursor
 		PageSize int32 `form:"page_size,default=20" binding:"min=1,max=500"`
-		PageID   int32 `form:"page_id,default=0" binding:"min=0"`
 	}
 	if err := ctx.ShouldBindQuery(&req); err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
 	}
+	at, _, id, err := req.args()
+	if err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
 	rows, err := server.store.ListAdminActivities(ctx, db.ListAdminActivitiesParams{
-		PageSize:   req.PageSize,
-		PageOffset: req.PageID,
+		BeforeAt: at,
+		BeforeID: id,
+		PageSize: req.PageSize,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)

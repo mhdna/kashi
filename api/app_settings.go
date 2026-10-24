@@ -44,7 +44,15 @@ type updateAppSettingsRequest struct {
 	UpcomingEventsMenuDays     int16    `json:"upcoming_events_menu_days"`
 	HiddenBuiltinEvents        []string `json:"hidden_builtin_events"`
 	ProductAutofillEnabled     bool     `json:"product_autofill_enabled"`
+	// UploadPagesFollowSystem: phone upload pages follow dark mode (else always light).
+	UploadPagesFollowSystem bool `json:"upload_pages_follow_system"`
+	// UnknownImagesAutoDelete turns on the daily clean-up of unknown-item pictures.
+	UnknownImagesAutoDelete bool `json:"unknown_images_auto_delete"`
+	// TablePageSize is how many rows every table loads at a time.
+	TablePageSize int16 `json:"table_page_size"`
 }
+
+const maxTablePageSize = 100 // what the API's page_size accepts
 
 // updateAppSettings replaces the whole global settings row -- the client
 // always sends the full object (see ui/src/stores/settings.js), so this is
@@ -83,6 +91,11 @@ func (server *Server) updateAppSettings(ctx *gin.Context) {
 		return
 	}
 
+	if req.TablePageSize < 5 || req.TablePageSize > maxTablePageSize {
+		server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("table_page_size must be between 5 and %d", maxTablePageSize))
+		return
+	}
+
 	months, err := json.Marshal(req.FinancialsHighSeasonMonths)
 	if err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
@@ -108,11 +121,16 @@ func (server *Server) updateAppSettings(ctx *gin.Context) {
 		UpcomingEventsMenuDays:     req.UpcomingEventsMenuDays,
 		HiddenBuiltinEvents:        hiddenEvents,
 		ProductAutofillEnabled:     req.ProductAutofillEnabled,
+		UploadPagesFollowSystem:    req.UploadPagesFollowSystem,
+		UnknownImagesAutoDelete:    req.UnknownImagesAutoDelete,
+		TablePageSize:              req.TablePageSize,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	server.uploadFollowSystem.Store(settings.UploadPagesFollowSystem)
+	server.uploadThemeLoaded.Store(true)
 
 	server.writeJSON(ctx, http.StatusOK, envelope{"settings": withoutSecrets(settings)})
 }

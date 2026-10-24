@@ -126,3 +126,44 @@ func TestCreateBranchAttendanceChange_RejectsUnknownKind(t *testing.T) {
 
 	require.Equal(t, http.StatusBadRequest, recorder.Code)
 }
+
+func TestListBranchAttendanceEventsInRange(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	store.EXPECT().ListBranchAttendanceEventsInRange(gomock.Any(), db.ListBranchAttendanceEventsInRangeParams{
+		BranchID: sql.NullInt64{Int64: 4, Valid: true},
+		FromDate: "2026-10-01",
+		ToDate:   "2026-10-11",
+	}).Return([]db.BranchAttendanceEvent{{ID: 7, SalespersonName: "Ava", EventDate: "2026-10-02", EventTime: "09:00:00", Type: "IN"}}, nil)
+
+	server := newTestServer(t, store)
+	recorder := httptest.NewRecorder()
+	request, err := http.NewRequest(http.MethodGet, "/branch_attendance_events/range?branch_id=4&from=2026-10-01&to=2026-10-11", nil)
+	require.NoError(t, err)
+	addAuthorization(t, request, server.tokenMaker, authorizationTypeBearer, "user", time.Minute)
+	server.router.ServeHTTP(recorder, request)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	var out struct {
+		Events []db.BranchAttendanceEvent `json:"branch_attendance_events"`
+	}
+	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &out))
+	require.Len(t, out.Events, 1)
+	require.Equal(t, int64(7), out.Events[0].ID)
+}
+
+func TestListBranchAttendanceEventsInRange_RejectsBadRange(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	store.EXPECT().ListBranchAttendanceEventsInRange(gomock.Any(), gomock.Any()).Times(0)
+	server := newTestServer(t, store)
+
+	for _, query := range []string{"from=2026-10-11&to=2026-10-01", "from=2026-10-01", "from=10/01/2026&to=2026-10-11"} {
+		recorder := httptest.NewRecorder()
+		request, err := http.NewRequest(http.MethodGet, "/branch_attendance_events/range?"+query, nil)
+		require.NoError(t, err)
+		addAuthorization(t, request, server.tokenMaker, authorizationTypeBearer, "user", time.Minute)
+		server.router.ServeHTTP(recorder, request)
+		require.Equal(t, http.StatusBadRequest, recorder.Code, query)
+	}
+}

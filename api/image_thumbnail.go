@@ -155,3 +155,24 @@ func generateThumbnail(srcPath, dstPath string, maxDim, quality int, rotation in
 	}
 	return os.Rename(tmpName, dstPath)
 }
+
+// The long edges asked for: the till's list rows (96) and detail view
+// (detailPhotoWidth, see kashi-pos), and the admin site's grid tiles (480). Baking both at upload time means the
+// first view of a photo reads a small cached file instead of decoding the
+// original on the request.
+var warmThumbWidths = []int{96, 480, 1280}
+
+// warmThumbnails generates the common thumbnails for a freshly stored photo
+// in the background. Failures are ignored: serveStoredImage generates the same
+// file on demand, and falls back to the original if it can't be decoded.
+func warmThumbnails(filePath string) {
+	go func() {
+		for _, w := range warmThumbWidths {
+			dst := thumbCachePath(filePath, w, 0)
+			if _, err := os.Stat(dst); err == nil {
+				continue
+			}
+			_ = generateThumbnail(filePath, dst, w, thumbWebPQuality, 0)
+		}
+	}()
+}

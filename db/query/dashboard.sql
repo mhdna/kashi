@@ -158,7 +158,8 @@ FROM branch_expenses
 WHERE occurred_at >= sqlc.arg(date_from)::timestamptz
   AND occurred_at < sqlc.arg(date_to)::timestamptz
   AND (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
-  AND branch_expenses.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports);
+  AND branch_expenses.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND branch_expenses.cancelled_at IS NULL;
 
 -- name: DashboardBranchNewClients :one
 -- Clients first seen at a branch in the range. With a branch selected,
@@ -214,7 +215,7 @@ WHERE created_at >= sqlc.arg(date_from)::timestamptz
 SELECT (
   COALESCE((
     SELECT SUM(l.amount) FROM loans l
-    WHERE (
+    WHERE l.cancelled_at IS NULL AND (
       (sqlc.arg(scope)::text IN ('all', 'branch') AND l.origin = 'branch_loan'
         AND (sqlc.narg(branch_id)::bigint IS NULL OR l.branch_id = sqlc.narg(branch_id))
         AND l.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports))
@@ -225,7 +226,7 @@ SELECT (
   COALESCE((
     SELECT SUM(lp.amount) FROM loan_payments lp
     JOIN loans l ON l.id = lp.loan_id
-    WHERE (
+    WHERE l.cancelled_at IS NULL AND (
       (sqlc.arg(scope)::text IN ('all', 'branch') AND l.origin = 'branch_loan'
         AND (sqlc.narg(branch_id)::bigint IS NULL OR l.branch_id = sqlc.narg(branch_id))
         AND l.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports))
@@ -252,7 +253,7 @@ SELECT
     SELECT SUM(bi.grand_total)
     FROM branch_invoices bi
     WHERE bi.branch_id = t.branch_id
-      AND (bi.occurred_at AT TIME ZONE 'UTC')::date BETWEEN t.date_from AND t.date_to
+      AND (bi.occurred_at AT TIME ZONE b.timezone)::date BETWEEN t.date_from AND t.date_to
       AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
       AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
       AND bi.cancelled_at IS NULL
@@ -280,7 +281,7 @@ SELECT
   ), 0))::bigint AS outstanding
 FROM loans l
 LEFT JOIN branches b ON b.id = l.branch_id
-WHERE (
+WHERE l.cancelled_at IS NULL AND (
     (sqlc.arg(scope)::text IN ('all', 'branch') AND l.origin = 'branch_loan'
       AND (sqlc.narg(branch_id)::bigint IS NULL OR l.branch_id = sqlc.narg(branch_id))
       AND l.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports))
@@ -294,7 +295,7 @@ LIMIT sqlc.arg(top_n)::int;
 
 -- name: DashboardBranchRevenueSeries :many
 SELECT
-  (occurred_at AT TIME ZONE 'UTC')::date AS day,
+  (occurred_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   COALESCE(SUM(grand_total), 0)::bigint AS total
 FROM branch_invoices
 WHERE occurred_at >= sqlc.arg(date_from)::timestamptz
@@ -308,19 +309,20 @@ ORDER BY day;
 
 -- name: DashboardBranchExpenseSeries :many
 SELECT
-  (occurred_at AT TIME ZONE 'UTC')::date AS day,
+  (occurred_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   COALESCE(SUM(amount), 0)::bigint AS total
 FROM branch_expenses
 WHERE occurred_at >= sqlc.arg(date_from)::timestamptz
   AND occurred_at < sqlc.arg(date_to)::timestamptz
   AND (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
   AND branch_expenses.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND branch_expenses.cancelled_at IS NULL
 GROUP BY day
 ORDER BY day;
 
 -- name: DashboardAdminRevenueSeries :many
 SELECT
-  (i.created_at AT TIME ZONE 'UTC')::date AS day,
+  (i.created_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   COALESCE(SUM(i.grand_total), 0)::bigint AS total
 FROM invoices i
 JOIN sales_invoices si ON si.invoice_id = i.id
@@ -331,7 +333,7 @@ ORDER BY day;
 
 -- name: DashboardAdminExpenseSeries :many
 SELECT
-  (created_at AT TIME ZONE 'UTC')::date AS day,
+  (created_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   COALESCE(SUM(amount), 0)::bigint AS total
 FROM expenses
 WHERE created_at >= sqlc.arg(date_from)::timestamptz
@@ -427,7 +429,7 @@ SELECT
     FROM purchase_items pi
     WHERE pi.purchase_id = p.id
   ), 0)::bigint AS items,
-  (SELECT code FROM currencies WHERE is_default LIMIT 1)::text AS currency,
+  p.currency_code::text AS currency,
   p.purchased_at AS purchased_at
 FROM purchases p
 JOIN suppliers s ON s.id = p.supplier_id
@@ -456,7 +458,7 @@ WHERE p.purchased_at >= sqlc.arg(date_from)::timestamptz
 
 -- name: DashboardPurchaseSeries :many
 SELECT
-  (p.purchased_at AT TIME ZONE 'UTC')::date AS day,
+  (p.purchased_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   COALESCE(SUM(pi.quantity * pi.unit_price), 0)::bigint AS total
 FROM purchases p
 JOIN purchase_items pi ON pi.purchase_id = p.id
@@ -471,7 +473,7 @@ SELECT
   description::text AS description,
   category::text AS category,
   amount::bigint AS amount,
-  (SELECT code FROM currencies WHERE is_default LIMIT 1)::text AS currency,
+  currency::text AS currency,
   occurred_at::timestamptz AS occurred_at,
   image_id::bigint AS image_id
 -- image_id is 0, not NULL, when an expense has no receipt photo (admin
@@ -483,6 +485,7 @@ FROM (
     be.description AS description,
     COALESCE(ec.name, '')::text AS category,
     be.amount AS amount,
+    be.currency_code AS currency,
     be.occurred_at AS occurred_at,
     COALESCE((
       SELECT bei.id FROM branch_expense_images bei
@@ -497,6 +500,7 @@ FROM (
     AND be.occurred_at < sqlc.arg(date_to)::timestamptz
     AND (sqlc.narg(branch_id)::bigint IS NULL OR be.branch_id = sqlc.narg(branch_id))
     AND be.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+    AND be.cancelled_at IS NULL
 
   UNION ALL
 
@@ -505,6 +509,7 @@ FROM (
     e.description AS description,
     COALESCE(ec.name, '')::text AS category,
     e.amount AS amount,
+    e.currency_code AS currency,
     e.created_at AS occurred_at,
     0::bigint AS image_id
   FROM expenses e
@@ -525,6 +530,7 @@ SELECT (
       AND be.occurred_at < sqlc.arg(date_to)::timestamptz
       AND (sqlc.narg(branch_id)::bigint IS NULL OR be.branch_id = sqlc.narg(branch_id))
       AND be.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+      AND be.cancelled_at IS NULL
   )
   +
   (

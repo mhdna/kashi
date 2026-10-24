@@ -25,11 +25,14 @@ UPDATE app_settings SET whatsapp_message_cost_micros = sqlc.arg(cost_micros), up
 -- name: CreateWhatsAppMessage :one
 INSERT INTO whatsapp_messages (
   branch_id, invoice_code, client_name, client_phone, grand_total_cents, item_count,
-  rule_id, rule_name, template_name, status, reason, wamid, cost_micros
+  rule_id, rule_name, template_name, status, reason, wamid, cost_micros, review_code,
+  sender, whatsapp_number_id, poll_ref, bridge_ref, is_test, body, poll_question, poll_options
 ) VALUES (
   sqlc.narg(branch_id), sqlc.arg(invoice_code), sqlc.arg(client_name), sqlc.arg(client_phone),
   sqlc.arg(grand_total_cents), sqlc.arg(item_count), sqlc.narg(rule_id), sqlc.arg(rule_name),
-  sqlc.arg(template_name), sqlc.arg(status), sqlc.arg(reason), sqlc.arg(wamid), sqlc.arg(cost_micros)
+  sqlc.arg(template_name), sqlc.arg(status), sqlc.arg(reason), sqlc.arg(wamid), sqlc.arg(cost_micros),
+  sqlc.arg(review_code), sqlc.arg(sender), sqlc.narg(whatsapp_number_id), sqlc.arg(poll_ref),
+  sqlc.arg(bridge_ref), sqlc.arg(is_test), sqlc.arg(body), sqlc.arg(poll_question), sqlc.arg(poll_options)
 )
 RETURNING *;
 
@@ -37,9 +40,36 @@ RETURNING *;
 -- When this phone was last actually messaged; no rows when never.
 SELECT created_at
 FROM whatsapp_messages
-WHERE client_phone = sqlc.arg(client_phone) AND status = 'sent'
+WHERE client_phone = sqlc.arg(client_phone) AND status = 'sent' AND NOT is_test
 ORDER BY created_at DESC
 LIMIT 1;
+
+-- name: ClaimWhatsAppWelcome :one
+-- A sale's checkout finds the welcome sent to its client earlier (no invoice
+-- yet, within the last 12 hours) and takes it over, so it isn't messaged twice.
+UPDATE whatsapp_messages SET
+  invoice_code = sqlc.arg(invoice),
+  grand_total_cents = sqlc.arg(total_cents),
+  item_count = sqlc.arg(items)
+WHERE id = (
+  SELECT w.id FROM whatsapp_messages w
+  WHERE w.client_phone = sqlc.arg(phone) AND w.branch_id = sqlc.arg(branch)
+    AND w.invoice_code = '' AND w.status = 'sent' AND NOT w.is_test
+    AND w.created_at > now() - interval '12 hours'
+  ORDER BY w.created_at DESC
+  LIMIT 1
+)
+RETURNING id;
+
+-- name: AttachWhatsAppPoll :exec
+-- The rating poll a new client gets at checkout, recorded on the welcome row
+-- that checkout claimed, so one client's welcome and poll are one row (its
+-- ticks are the welcome's; votes find it by poll_ref).
+UPDATE whatsapp_messages SET
+  poll_ref = sqlc.arg(poll_ref),
+  poll_question = sqlc.arg(poll_question),
+  poll_options = sqlc.arg(poll_options)
+WHERE id = sqlc.arg(id);
 
 -- name: ListWhatsAppMessages :many
 -- Newest first. branch_id 0 = every branch, status '' = any; search matches
@@ -47,7 +77,7 @@ LIMIT 1;
 SELECT m.*, COALESCE(b.name, '')::text AS branch_name
 FROM whatsapp_messages m
 LEFT JOIN branches b ON b.id = m.branch_id
-WHERE m.created_at >= sqlc.arg(from_at) AND m.created_at < sqlc.arg(to_at)
+WHERE NOT m.is_test AND COALESCE(m.branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND m.created_at >= sqlc.arg(from_at) AND m.created_at < sqlc.arg(to_at)
   AND (sqlc.arg(branch_id)::bigint = 0 OR m.branch_id = sqlc.arg(branch_id))
   AND (sqlc.arg(status)::text = '' OR m.status = sqlc.arg(status))
   AND (sqlc.arg(search)::text = ''
@@ -61,7 +91,7 @@ LIMIT sqlc.arg(page_size) OFFSET sqlc.arg(page_offset);
 -- name: CountWhatsAppMessages :one
 SELECT count(*)
 FROM whatsapp_messages m
-WHERE m.created_at >= sqlc.arg(from_at) AND m.created_at < sqlc.arg(to_at)
+WHERE NOT m.is_test AND COALESCE(m.branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND m.created_at >= sqlc.arg(from_at) AND m.created_at < sqlc.arg(to_at)
   AND (sqlc.arg(branch_id)::bigint = 0 OR m.branch_id = sqlc.arg(branch_id))
   AND (sqlc.arg(status)::text = '' OR m.status = sqlc.arg(status))
   AND (sqlc.arg(search)::text = ''
@@ -83,29 +113,29 @@ SELECT
   count(DISTINCT client_phone) FILTER (WHERE status = 'sent')::bigint AS recipients,
   COALESCE(sum(grand_total_cents) FILTER (WHERE status = 'sent'), 0)::bigint AS sent_sales_cents
 FROM whatsapp_messages
-WHERE created_at >= sqlc.arg(from_at) AND created_at < sqlc.arg(to_at)
+WHERE NOT is_test AND COALESCE(branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND whatsapp_messages.created_at >= sqlc.arg(from_at) AND whatsapp_messages.created_at < sqlc.arg(to_at)
   AND (sqlc.arg(branch_id)::bigint = 0 OR branch_id = sqlc.arg(branch_id));
 
 -- name: WhatsAppMessagesByDay :many
 -- Days are Beirut calendar days, like the rest of the business.
 SELECT
-  (created_at AT TIME ZONE 'Asia/Beirut')::date AS day,
+  (whatsapp_messages.created_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   count(*) FILTER (WHERE status = 'sent')::bigint AS sent,
   count(*) FILTER (WHERE status = 'skipped')::bigint AS skipped,
   count(*) FILTER (WHERE status = 'failed')::bigint AS failed,
   COALESCE(sum(cost_micros), 0)::bigint AS cost_micros
 FROM whatsapp_messages
-WHERE created_at >= sqlc.arg(from_at) AND created_at < sqlc.arg(to_at)
+WHERE NOT is_test AND COALESCE(branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND whatsapp_messages.created_at >= sqlc.arg(from_at) AND whatsapp_messages.created_at < sqlc.arg(to_at)
   AND (sqlc.arg(branch_id)::bigint = 0 OR branch_id = sqlc.arg(branch_id))
 GROUP BY 1
 ORDER BY 1;
 
 -- name: WhatsAppMessagesByHour :many
 SELECT
-  EXTRACT(HOUR FROM created_at AT TIME ZONE 'Asia/Beirut')::int AS hour,
+  EXTRACT(HOUR FROM whatsapp_messages.created_at AT TIME ZONE 'Asia/Beirut')::int AS hour,
   count(*) FILTER (WHERE status = 'sent')::bigint AS sent
 FROM whatsapp_messages
-WHERE created_at >= sqlc.arg(from_at) AND created_at < sqlc.arg(to_at)
+WHERE NOT is_test AND COALESCE(branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND whatsapp_messages.created_at >= sqlc.arg(from_at) AND whatsapp_messages.created_at < sqlc.arg(to_at)
   AND (sqlc.arg(branch_id)::bigint = 0 OR branch_id = sqlc.arg(branch_id))
 GROUP BY 1
 ORDER BY 1;
@@ -117,10 +147,12 @@ SELECT
   count(*) FILTER (WHERE m.status = 'sent')::bigint AS sent,
   count(*) FILTER (WHERE m.status = 'skipped')::bigint AS skipped,
   count(*) FILTER (WHERE m.status = 'failed')::bigint AS failed,
+  count(*) FILTER (WHERE m.delivery_status IN ('delivered', 'read'))::bigint AS delivered,
+  count(*) FILTER (WHERE m.delivery_status = 'read')::bigint AS read,
   COALESCE(sum(m.cost_micros), 0)::bigint AS cost_micros
 FROM whatsapp_messages m
 LEFT JOIN branches b ON b.id = m.branch_id
-WHERE m.created_at >= sqlc.arg(from_at) AND m.created_at < sqlc.arg(to_at)
+WHERE NOT m.is_test AND COALESCE(m.branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND m.created_at >= sqlc.arg(from_at) AND m.created_at < sqlc.arg(to_at)
   AND (sqlc.arg(branch_id)::bigint = 0 OR m.branch_id = sqlc.arg(branch_id))
 GROUP BY 1, 2
 ORDER BY sent DESC, 2;
@@ -133,7 +165,7 @@ SELECT
   template_name,
   count(*)::bigint AS messages
 FROM whatsapp_messages
-WHERE created_at >= sqlc.arg(from_at) AND created_at < sqlc.arg(to_at)
+WHERE NOT is_test AND COALESCE(branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND whatsapp_messages.created_at >= sqlc.arg(from_at) AND whatsapp_messages.created_at < sqlc.arg(to_at)
   AND (sqlc.arg(branch_id)::bigint = 0 OR branch_id = sqlc.arg(branch_id))
 GROUP BY 1, 2, 3
 ORDER BY messages DESC;
@@ -145,8 +177,8 @@ SELECT
   CASE WHEN status = 'failed' THEN reason ELSE delivery_error END::text AS reason,
   count(*)::bigint AS messages
 FROM whatsapp_messages
-WHERE (status = 'failed' OR delivery_status = 'failed')
-  AND created_at >= sqlc.arg(from_at) AND created_at < sqlc.arg(to_at)
+WHERE NOT is_test AND COALESCE(branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND (status = 'failed' OR delivery_status = 'failed')
+  AND whatsapp_messages.created_at >= sqlc.arg(from_at) AND whatsapp_messages.created_at < sqlc.arg(to_at)
   AND (sqlc.arg(branch_id)::bigint = 0 OR branch_id = sqlc.arg(branch_id))
 GROUP BY 1
 ORDER BY messages DESC
@@ -155,14 +187,14 @@ LIMIT 10;
 -- name: WhatsAppTopRecipients :many
 SELECT
   client_phone,
-  (array_agg(client_name ORDER BY created_at DESC))[1]::text AS client_name,
+  (array_agg(client_name ORDER BY whatsapp_messages.created_at DESC))[1]::text AS client_name,
   count(*)::bigint AS messages,
   COALESCE(sum(cost_micros), 0)::bigint AS cost_micros,
   COALESCE(sum(grand_total_cents), 0)::bigint AS sales_cents,
-  max(created_at)::timestamptz AS last_sent_at
+  max(whatsapp_messages.created_at)::timestamptz AS last_sent_at
 FROM whatsapp_messages
-WHERE status = 'sent'
-  AND created_at >= sqlc.arg(from_at) AND created_at < sqlc.arg(to_at)
+WHERE NOT is_test AND COALESCE(branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND status = 'sent'
+  AND whatsapp_messages.created_at >= sqlc.arg(from_at) AND whatsapp_messages.created_at < sqlc.arg(to_at)
   AND (sqlc.arg(branch_id)::bigint = 0 OR branch_id = sqlc.arg(branch_id))
 GROUP BY 1
 ORDER BY messages DESC, sales_cents DESC
@@ -191,3 +223,37 @@ LIMIT 20;
 SELECT id, name, phone, right(regexp_replace(phone, '\D', '', 'g'), 8)::text AS tail
 FROM clients
 WHERE phone <> '' AND right(regexp_replace(phone, '\D', '', 'g'), 8) = ANY(sqlc.arg(tails)::text[]);
+
+-- name: GetWhatsAppMessageWithBranch :one
+SELECT m.*, COALESCE(b.name, '')::text AS branch_name, b.whatsapp_hidden_fields AS branch_hidden_fields
+FROM whatsapp_messages m
+LEFT JOIN branches b ON b.id = m.branch_id
+WHERE m.id = sqlc.arg(id);
+
+-- name: ListWhatsAppMessageReplies :many
+-- What the client sent back to one message: after its poll (the bridge) or
+-- answering it (Meta's webhook), oldest first.
+-- id and media_type: a bridge reply's media (GET /whatsapp/poll_replies/:id/media).
+SELECT id, body, kind, received_at, media_type FROM whatsapp_poll_replies WHERE whatsapp_message_id = sqlc.arg(id)
+UNION ALL
+SELECT 0::bigint, body, kind, received_at, ''::text FROM whatsapp_replies WHERE message_id = sqlc.arg(id)
+ORDER BY received_at;
+
+-- name: DeleteFailedWhatsAppMessagesForInvoice :exec
+-- A till retrying a thank-you after a temporary failure: its earlier failed
+-- rows go, so the log keeps one row per sale showing how it ended.
+DELETE FROM whatsapp_messages
+WHERE branch_id = sqlc.arg(branch_id) AND invoice_code = sqlc.arg(invoice_code)
+  AND status = 'failed' AND NOT is_test;
+
+-- name: WhatsAppFailureWatch :one
+-- Sale messages that failed lately (a retried one that then went out is no
+-- longer counted, see DeleteFailedWhatsAppMessagesForInvoice), and the
+-- latest failure's reason.
+SELECT
+  count(*) FILTER (WHERE created_at > now() - interval '1 hour')::int AS failed_1h,
+  count(*)::int AS failed_24h,
+  COALESCE((array_agg(reason ORDER BY created_at DESC))[1], '')::text AS last_reason,
+  COALESCE(max(created_at), '1970-01-01'::timestamptz)::timestamptz AS last_failed_at
+FROM whatsapp_messages
+WHERE status = 'failed' AND NOT is_test AND created_at > now() - interval '24 hours';

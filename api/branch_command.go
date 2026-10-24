@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/mhdna/kashi/db/sqlc"
@@ -29,16 +30,25 @@ var allowedBranchCommandTypes = map[string]bool{
 	// Approve or reject an attendance change request a till filed; only the
 	// till that filed it can apply it (see resolveCommandTarget).
 	"review_attendance_request": true,
-	"set_branch_user_pin":   true,
-	"print_shift_report":    true,
-	"reprint_invoice":       true,
-	"sync_now":              true,
+	"set_branch_user_pin":       true,
+	"print_shift_report":        true,
+	"reprint_invoice":           true,
+	"sync_now":                  true,
+	// Swap or transfer a balance in a till's open shift. allow_negative
+	// (taking the source below zero) needs shift_negative_balance.
+	"replace_shift_balance": true,
 	// transfer_decision is never enqueued through createBranchCommand (the
 	// admin-typed endpoint below) -- only by notifyBranchTransferDecision
 	// in api/transfer.go, straight from an approve/cancel. Listed here
 	// anyway so this map stays the single place documenting every command
 	// type kashi-pos's executor needs to know.
 	"transfer_decision": true,
+	// cancel_record is likewise only enqueued by cancelBranchExpense /
+	// cancelBranchLoan, never typed in by an admin.
+	"cancel_record": true,
+	// set_expense_from_central: only enqueued by
+	// adminSetBranchExpenseFromCentral.
+	"set_expense_from_central": true,
 }
 
 type createBranchCommandRequest struct {
@@ -170,8 +180,9 @@ func (server *Server) resolveCommandTarget(ctx *gin.Context, branchID int64, req
 
 	case "remote_return_invoice", "reprint_invoice":
 		var target struct {
-			ClientRef string `json:"client_ref"`
-			Cancel    bool   `json:"cancel"`
+			ClientRef    string                   `json:"client_ref"`
+			Cancel       bool                     `json:"cancel"`
+			Replacements []remoteReplacementInput `json:"replacements"`
 		}
 		if err := json.Unmarshal(req.Payload, &target); err != nil || target.ClientRef == "" {
 			return 0, nil, http.StatusBadRequest, fmt.Errorf("%s needs the sale's client_ref", req.Type)
@@ -192,6 +203,15 @@ func (server *Server) resolveCommandTarget(ctx *gin.Context, branchID int64, req
 			}
 			if invoice.CancelledAt.Valid {
 				return 0, nil, http.StatusBadRequest, errors.New("this sale is already cancelled")
+			}
+		}
+		if req.Type == "remote_return_invoice" && len(target.Replacements) > 0 {
+			if target.Cancel {
+				return 0, nil, http.StatusBadRequest, errors.New("a cancel can't take replacement items")
+			}
+			payload, err = server.withTillReplacements(ctx, req.Payload, target.Replacements)
+			if err != nil {
+				return 0, nil, http.StatusBadRequest, err
 			}
 		}
 		return invoice.RegisterID, payload, 0, nil
@@ -217,6 +237,9 @@ func (server *Server) resolveCommandTarget(ctx *gin.Context, branchID int64, req
 			return 0, nil, http.StatusInternalServerError, err
 		}
 		return shift.RegisterID, payload, 0, nil
+
+	case "replace_shift_balance":
+		return server.resolveReplaceShiftBalanceTarget(ctx, branchID, req)
 	}
 
 	if req.RegisterID != 0 {
@@ -226,6 +249,116 @@ func (server *Server) resolveCommandTarget(ctx *gin.Context, branchID int64, req
 		}
 	}
 	return req.RegisterID, payload, 0, nil
+}
+
+// remoteReplacementInput is one product the admin picked to give the
+// customer in exchange, as kashi knows it.
+type remoteReplacementInput struct {
+	VariantID int64 `json:"variant_id"`
+	Quantity  int64 `json:"quantity"`
+}
+
+// remoteReplacementPayload is the same line as the till knows it: kashi's
+// variant ids mean nothing there, so it gets the variant's uid (what the
+// product sync stamps on its local product) and barcode as a fallback for
+// a product that hasn't synced its uid yet. See commands.go in kashi-pos.
+type remoteReplacementPayload struct {
+	ProductUID string `json:"product_uid"`
+	Barcode    string `json:"barcode"`
+	Quantity   int64  `json:"quantity"`
+}
+
+// withTillReplacements turns an exchange's replacement lines into the till's
+// identifiers and puts them back in the payload, leaving every other field
+// as the admin sent it. The till still prices them from its own lists.
+func (server *Server) withTillReplacements(ctx *gin.Context, raw json.RawMessage, inputs []remoteReplacementInput) (json.RawMessage, error) {
+	lines := make([]remoteReplacementPayload, 0, len(inputs))
+	for _, in := range inputs {
+		if in.VariantID <= 0 || in.Quantity <= 0 {
+			return nil, errors.New("each replacement needs a product and a positive quantity")
+		}
+		variant, err := server.store.GetProductVariant(ctx, in.VariantID)
+		if err != nil {
+			return nil, fmt.Errorf("replacement product %d not found", in.VariantID)
+		}
+		if !variant.IsActive {
+			return nil, fmt.Errorf("replacement %s is inactive", variant.Barcode)
+		}
+		lines = append(lines, remoteReplacementPayload{
+			ProductUID: variant.Uid.String(),
+			Barcode:    variant.Barcode,
+			Quantity:   in.Quantity,
+		})
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return nil, err
+	}
+	encoded, err := json.Marshal(lines)
+	if err != nil {
+		return nil, err
+	}
+	fields["replacements"] = encoded
+	return json.Marshal(fields)
+}
+
+var errNegativeBalanceNotAllowed = errors.New("taking a balance below zero needs the Negative Balance Transfers permission")
+
+// replaceShiftBalancePayload is what the till's replace_shift_balance
+// executor reads (commands.go in kashi-pos). Payment methods go by name:
+// that's how the till matches the cashbox accounts kashi syncs to it.
+type replaceShiftBalancePayload struct {
+	FromAccount   string `json:"from_account"`
+	ToAccount     string `json:"to_account"`
+	AmountCents   int64  `json:"amount_cents"`
+	AllowNegative bool   `json:"allow_negative"`
+}
+
+// resolveReplaceShiftBalanceTarget validates a balance swap and picks the
+// one register whose open shift it changes: unlike sync_now, fanning it out
+// would apply the same swap once per till.
+func (server *Server) resolveReplaceShiftBalanceTarget(ctx *gin.Context, branchID int64, req createBranchCommandRequest) (int64, json.RawMessage, int, error) {
+	var p replaceShiftBalancePayload
+	if err := json.Unmarshal(req.Payload, &p); err != nil {
+		return 0, nil, http.StatusBadRequest, errors.New("replace_shift_balance needs from_account, to_account and amount_cents")
+	}
+	p.FromAccount = strings.TrimSpace(p.FromAccount)
+	p.ToAccount = strings.TrimSpace(p.ToAccount)
+	if p.FromAccount == "" || p.ToAccount == "" || strings.EqualFold(p.FromAccount, p.ToAccount) {
+		return 0, nil, http.StatusBadRequest, errors.New("choose two different payment methods")
+	}
+	if p.AmountCents <= 0 {
+		return 0, nil, http.StatusBadRequest, errors.New("enter a positive amount")
+	}
+	if p.AllowNegative {
+		access, ok := currentAccess(ctx)
+		if !ok || !access.canEdit("shift_negative_balance") {
+			return 0, nil, http.StatusForbidden, errNegativeBalanceNotAllowed
+		}
+	}
+
+	registerID := req.RegisterID
+	if registerID != 0 {
+		register, err := server.store.GetBranchRegister(ctx, registerID)
+		if err != nil || register.BranchID != branchID {
+			return 0, nil, http.StatusBadRequest, errRegisterBranchMismatch
+		}
+	} else {
+		ids, err := server.store.ListActiveBranchRegisterIDs(ctx, branchID)
+		if err != nil {
+			return 0, nil, http.StatusInternalServerError, err
+		}
+		if len(ids) != 1 {
+			return 0, nil, http.StatusBadRequest, errors.New("choose the register whose shift to change")
+		}
+		registerID = ids[0]
+	}
+
+	payload, err := json.Marshal(p)
+	if err != nil {
+		return 0, nil, http.StatusInternalServerError, err
+	}
+	return registerID, payload, 0, nil
 }
 
 func statusForLookup(err error) int {

@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -144,4 +145,63 @@ func TestSecurityTimesEncodeAsTimeOrNull(t *testing.T) {
 	require.Contains(t, string(out), `"acknowledged_at":null`)
 	require.Contains(t, string(out), `"acknowledged_at":"2026-10-09T12:00:00Z"`)
 	require.NotContains(t, string(out), `"Valid"`)
+}
+
+func TestCountOpenSecurityAlerts(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	store.EXPECT().CountOpenSecurityAlerts(gomock.Any()).Return(int64(3), nil)
+
+	server := newTestServer(t, store)
+	recorder := httptest.NewRecorder()
+	request, err := http.NewRequest(http.MethodGet, "/security/alerts/open_count", nil)
+	require.NoError(t, err)
+	addAuthorization(t, request, server.tokenMaker, authorizationTypeBearer, "admin", time.Minute)
+	server.router.ServeHTTP(recorder, request)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	var body struct {
+		OpenAlerts int64 `json:"open_alerts"`
+	}
+	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &body))
+	require.Equal(t, int64(3), body.OpenAlerts)
+}
+
+func TestAlertResponsesSeverityAndPin(t *testing.T) {
+	seen := sql.NullTime{Time: time.Now(), Valid: true}
+	out := alertResponses([]db.SecurityAlert{
+		{ID: 1, Kind: "login_abroad"},
+		{ID: 2, Kind: "login_abroad", AcknowledgedAt: seen},
+		{ID: 3, Kind: "failed_logins"},
+		{ID: 4, Kind: "something_new"},
+	})
+	require.Equal(t, "critical", out[0].Severity)
+	require.True(t, out[0].Pinned, "open critical alert is pinned")
+	require.False(t, out[1].Pinned, "resolved critical alert is not pinned")
+	require.Equal(t, "high", out[2].Severity)
+	require.False(t, out[2].Pinned)
+	require.Equal(t, "medium", out[3].Severity)
+}
+
+// "Mark all seen" (no ids) leaves critical alerts open and records who
+// acknowledged.
+func TestAcknowledgeAllKeepsCriticalAlerts(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	store.EXPECT().AcknowledgeSecurityAlerts(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ any, arg db.AcknowledgeSecurityAlertsParams) error {
+			require.Empty(t, arg.Ids)
+			require.Equal(t, []string{"login_abroad"}, arg.KeptKinds)
+			require.Equal(t, "admin", arg.AcknowledgedBy)
+			return nil
+		})
+
+	server := newTestServer(t, store)
+	recorder := httptest.NewRecorder()
+	request, err := http.NewRequest(http.MethodPost, "/security/alerts/acknowledge", strings.NewReader(`{"ids":[]}`))
+	require.NoError(t, err)
+	request.Header.Set("Content-Type", "application/json")
+	addAuthorization(t, request, server.tokenMaker, authorizationTypeBearer, "admin", time.Minute)
+	server.router.ServeHTTP(recorder, request)
+	require.Equal(t, http.StatusOK, recorder.Code, recorder.Body.String())
 }

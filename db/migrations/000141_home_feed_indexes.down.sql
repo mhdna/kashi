@@ -1,0 +1,12 @@
+DROP INDEX IF EXISTS branch_invoices_received_at_idx;
+DROP INDEX IF EXISTS branch_expenses_received_at_idx;
+DROP INDEX IF EXISTS loans_received_at_idx;
+DROP INDEX IF EXISTS branch_shifts_received_at_idx;
+DROP INDEX IF EXISTS branch_invoice_settlements_received_at_idx;
+DROP INDEX IF EXISTS branch_attendance_events_received_at_idx;
+DROP INDEX IF EXISTS branch_attendance_changes_received_at_idx;
+DROP INDEX IF EXISTS branch_expense_images_created_at_idx;
+DROP INDEX IF EXISTS branch_shift_receipt_images_created_at_idx;
+DROP INDEX IF EXISTS transfers_created_at_idx;
+DROP INDEX IF EXISTS expenses_created_at_idx;
+DROP INDEX IF EXISTS purchases_purchased_at_idx;

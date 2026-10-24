@@ -13,7 +13,8 @@ import (
 
 const countBranchAttendanceChanges = `-- name: CountBranchAttendanceChanges :one
 SELECT COUNT(*) FROM branch_attendance_changes
-WHERE $1::bigint IS NULL OR branch_id = $1
+WHERE ($1::bigint IS NULL OR branch_id = $1)
+  AND branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 `
 
 func (q *Queries) CountBranchAttendanceChanges(ctx context.Context, branchID sql.NullInt64) (int64, error) {
@@ -26,6 +27,7 @@ func (q *Queries) CountBranchAttendanceChanges(ctx context.Context, branchID sql
 const countBranchAttendanceEvents = `-- name: CountBranchAttendanceEvents :one
 SELECT COUNT(*) FROM branch_attendance_events
 WHERE ($1::bigint IS NULL OR branch_id = $1)
+  AND branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND removed_at IS NULL
 `
 
@@ -318,7 +320,8 @@ func (q *Queries) GetBranchAttendanceEventByClientRef(ctx context.Context, arg G
 
 const listBranchAttendanceChanges = `-- name: ListBranchAttendanceChanges :many
 SELECT id, branch_id, client_ref, kind, salesperson_name, attendance_date, original_time, requested_time, requested_type, action, status, note, actor, occurred_at, received_at, register_id FROM branch_attendance_changes
-WHERE $3::bigint IS NULL OR branch_id = $3
+WHERE ($3::bigint IS NULL OR branch_id = $3)
+  AND branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
 ORDER BY id DESC
 LIMIT $1 OFFSET $2
 `
@@ -372,6 +375,7 @@ func (q *Queries) ListBranchAttendanceChanges(ctx context.Context, arg ListBranc
 const listBranchAttendanceEvents = `-- name: ListBranchAttendanceEvents :many
 SELECT id, branch_id, client_ref, salesperson_name, attendance_user_id, event_date, event_time, event_at, type, status, received_at, changed_by, change_note, removed_at, removed_by FROM branch_attendance_events
 WHERE ($3::bigint IS NULL OR branch_id = $3)
+  AND branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND removed_at IS NULL
 ORDER BY event_date DESC, event_time DESC, id DESC
 LIMIT $1 OFFSET $2
@@ -389,6 +393,66 @@ type ListBranchAttendanceEventsParams struct {
 // it stays in the table for the audit trail.
 func (q *Queries) ListBranchAttendanceEvents(ctx context.Context, arg ListBranchAttendanceEventsParams) ([]BranchAttendanceEvent, error) {
 	rows, err := q.db.QueryContext(ctx, listBranchAttendanceEvents, arg.Limit, arg.Offset, arg.BranchID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []BranchAttendanceEvent{}
+	for rows.Next() {
+		var i BranchAttendanceEvent
+		if err := rows.Scan(
+			&i.ID,
+			&i.BranchID,
+			&i.ClientRef,
+			&i.SalespersonName,
+			&i.AttendanceUserID,
+			&i.EventDate,
+			&i.EventTime,
+			&i.EventAt,
+			&i.Type,
+			&i.Status,
+			&i.ReceivedAt,
+			&i.ChangedBy,
+			&i.ChangeNote,
+			&i.RemovedAt,
+			&i.RemovedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listBranchAttendanceEventsInRange = `-- name: ListBranchAttendanceEventsInRange :many
+SELECT id, branch_id, client_ref, salesperson_name, attendance_user_id, event_date, event_time, event_at, type, status, received_at, changed_by, change_note, removed_at, removed_by FROM branch_attendance_events
+WHERE ($1::bigint IS NULL OR branch_id = $1)
+  AND branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND removed_at IS NULL
+  AND event_date >= $2::text
+  AND event_date <= $3::text
+ORDER BY event_date, event_time, id
+LIMIT 20000
+`
+
+type ListBranchAttendanceEventsInRangeParams struct {
+	BranchID sql.NullInt64 `json:"branch_id"`
+	FromDate string        `json:"from_date"`
+	ToDate   string        `json:"to_date"`
+}
+
+// Every live punch between two dates (inclusive) for the timesheet views,
+// which pair each person's IN/OUT punches per day. event_date is the
+// device's own YYYY-MM-DD text, so a plain text comparison orders it.
+// Capped as a guard against an all-branches, all-time request.
+func (q *Queries) ListBranchAttendanceEventsInRange(ctx context.Context, arg ListBranchAttendanceEventsInRangeParams) ([]BranchAttendanceEvent, error) {
+	rows, err := q.db.QueryContext(ctx, listBranchAttendanceEventsInRange, arg.BranchID, arg.FromDate, arg.ToDate)
 	if err != nil {
 		return nil, err
 	}

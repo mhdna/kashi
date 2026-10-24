@@ -68,6 +68,11 @@ export function useBranches () {
     return data?.registers ?? []
   }
 
+  async function listAllRegisters () {
+    const data = await requestJSON(`${API_BASE}/branch_registers`)
+    return data?.registers ?? []
+  }
+
   async function createRegister (branchId, { code, name }) {
     return requestJSON(`${API_BASE}/branches/${branchId}/registers`, {
       method: 'POST',
@@ -129,6 +134,7 @@ export function useBranches () {
     fetchConnectedBranches,
     fetchSyncingBranches,
     listRegisters,
+    listAllRegisters,
     createRegister,
     updateRegister,
     setRegisterActive,

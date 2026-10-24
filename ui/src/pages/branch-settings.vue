@@ -109,15 +109,16 @@
                 :direction="$vuetify.display.smAndDown ? 'horizontal' : 'vertical'"
               >
                 <v-tab class="text-none" text="General" value="general" />
+                <v-tab class="text-none" text="Money" value="money" />
+                <v-tab class="text-none" text="Payments" value="payments" />
                 <v-tab class="text-none" text="Behaviour" value="behaviour" />
+                <v-tab class="text-none" text="Till display" value="display" />
+                <v-tab class="text-none" text="Quick access" value="quick_access" />
                 <v-tab class="text-none" text="Cash &amp; shifts" value="cash" />
-                <v-tab class="text-none" text="Page access" value="pages" />
                 <v-tab class="text-none" text="Printing" value="printing" />
                 <v-tab class="text-none" text="Attendance" value="attendance" />
                 <v-tab class="text-none" text="Users" value="users" />
-                <v-tab class="text-none" text="Payments" value="payments" />
-                <v-tab class="text-none" text="Quick access" value="quick_access" />
-                <v-tab class="text-none" text="Till display" value="display" />
+                <v-tab class="text-none" text="Page access" value="pages" />
               </v-tabs>
 
               <v-divider vertical />
@@ -126,7 +127,7 @@
                 <v-form :disabled="!canEdit" @submit.prevent="saveSettings">
                   <div v-show="sectionTab === 'general'">
                     <section class="bs-section">
-                      <div class="bs-section-title">General</div>
+                      <div class="bs-section-title">Branch</div>
                       <div class="field-grid">
                         <v-text-field
                           v-model="settingsForm.branch_name"
@@ -138,8 +139,11 @@
                       </div>
                     </section>
 
+                  </div>
+
+                  <div v-show="sectionTab === 'money'">
                     <section class="bs-section">
-                      <div class="bs-section-title">Pricing &amp; Exchange</div>
+                      <div class="bs-section-title">Rates &amp; rounding</div>
                       <div class="field-grid">
                         <v-text-field
                           v-model.number="settingsForm.tax_rate"
@@ -199,6 +203,12 @@
                           type="number"
                           variant="outlined"
                         />
+                      </div>
+                    </section>
+
+                    <section class="bs-section">
+                      <div class="bs-section-title">Returns &amp; exchange</div>
+                      <div class="field-grid">
                         <v-text-field
                           v-model.number="settingsForm.exchange_window_hours"
                           density="compact"
@@ -210,87 +220,45 @@
                       </div>
                     </section>
 
+                  </div>
+
+                  <div v-show="sectionTab === 'payments'">
                     <section class="bs-section">
-                      <div class="bs-section-title">Storefront</div>
+                      <div class="bs-section-title">At the till</div>
                       <div class="field-grid">
                         <v-text-field
-                          v-model="settingsForm.market_name"
+                          v-model.number="maxOverpayment"
                           density="compact"
-                          hide-details="auto"
-                          label="Market Name"
-                          variant="outlined"
-                        />
-                        <v-text-field
-                          v-model="settingsForm.market_phone"
-                          density="compact"
-                          hide-details="auto"
-                          label="Market Phone"
-                          variant="outlined"
-                        />
-                        <v-text-field
-                          v-model="settingsForm.branch_phone"
-                          density="compact"
-                          hide-details="auto"
-                          label="Branch Phone"
-                          variant="outlined"
-                        />
-                        <v-text-field
-                          v-model="settingsForm.website"
-                          density="compact"
-                          hide-details="auto"
-                          label="Website"
-                          variant="outlined"
-                        />
-                        <v-text-field
-                          v-model="settingsForm.instagram"
-                          density="compact"
-                          hide-details="auto"
-                          label="Instagram"
-                          variant="outlined"
-                        />
-                        <v-textarea
-                          v-model="settingsForm.market_description"
-                          class="field-full"
-                          density="compact"
-                          hide-details="auto"
-                          label="Market Description"
-                          rows="2"
-                          variant="outlined"
-                        />
-                        <v-textarea
-                          v-model="settingsForm.return_policy"
-                          class="field-full"
-                          density="compact"
-                          hide-details="auto"
-                          label="Return Policy"
-                          rows="2"
+                          hint="How much a payment may go over the total, in USD. 0 = no limit."
+                          label="Max overpayment (USD)"
+                          min="0"
+                          persistent-hint
+                          step="0.01"
+                          type="number"
                           variant="outlined"
                         />
                       </div>
-                    </section>
-
-                    <section class="bs-section">
-                      <div class="bs-section-title">Social</div>
-                      <div class="field-grid">
-                        <v-textarea
-                          v-model="socialPlatformsText"
-                          class="field-full"
+                      <div class="bs-switch-grid mt-3">
+                        <v-switch
+                          v-model="settingsForm.overchange_confirmation"
+                          color="primary"
                           density="compact"
-                          hint="JSON array, e.g. [&quot;facebook&quot;, &quot;instagram&quot;]"
-                          label="Social Platforms"
-                          persistent-hint
-                          rows="2"
-                          variant="outlined"
+                          hide-details
+                          label="Confirm change larger than what's owed"
                         />
-                        <v-textarea
-                          v-model="socialHandlesText"
-                          class="field-full"
+                        <v-switch
+                          v-model="settingsForm.hide_payment_method_currency"
+                          color="primary"
                           density="compact"
-                          hint="JSON object, e.g. {&quot;instagram&quot;: &quot;@handle&quot;}"
-                          label="Social Handles"
-                          persistent-hint
-                          rows="2"
-                          variant="outlined"
+                          hide-details
+                          label="Hide currency on payment method buttons"
+                        />
+                        <v-switch
+                          v-model="settingsForm.auto_append_lbp_zeros"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Type LBP in thousands (50 → 50,000)"
                         />
                       </div>
                     </section>
@@ -299,7 +267,7 @@
 
                   <div v-show="sectionTab === 'behaviour'">
                     <section class="bs-section">
-                      <div class="bs-section-title">Behaviour</div>
+                      <div class="bs-section-title">Product search</div>
                       <div class="bs-switch-grid">
                         <v-switch
                           v-model="settingsForm.search_button_enabled"
@@ -309,19 +277,54 @@
                           label="Product search button on sale screen"
                         />
                         <v-switch
+                          v-model="settingsForm.product_search_code_only"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Product search by code only (hide product names)"
+                        />
+                        <v-select
+                          chips
+                          closable-chips
+                          density="compact"
+                          hide-details="auto"
+                          hint="Columns the product search list on the till leaves out"
+                          :items="SEARCH_FIELD_OPTIONS"
+                          label="Hide in product search"
+                          :model-value="hiddenSearchFields"
+                          multiple
+                          persistent-hint
+                          variant="outlined"
+                          @update:model-value="settingsForm.product_search_hidden_fields = $event.join(',')"
+                        />
+                      </div>
+                    </section>
+
+                    <section class="bs-section">
+                      <div class="bs-section-title">Scanning</div>
+                      <div class="bs-switch-grid">
+                        <v-switch
                           v-model="settingsForm.scan_by_code_enabled"
                           color="primary"
                           density="compact"
                           hide-details
                           label="Accept a product code in the scan field"
                         />
-                        <v-switch
-                          v-model="settingsForm.sounds_enabled"
-                          color="primary"
+                        <v-text-field
+                          v-model="settingsForm.unknown_product_barcode"
                           density="compact"
-                          hide-details
-                          label="Play sounds (scan, checkout, errors, keypad)"
+                          hide-details="auto"
+                          hint="Barcode of a product that is already on the till. Leave empty to use the built-in Unknown item."
+                          label="Unknown item product barcode"
+                          persistent-hint
+                          variant="outlined"
                         />
+                      </div>
+                    </section>
+
+                    <section class="bs-section">
+                      <div class="bs-section-title">Pricing &amp; discounts</div>
+                      <div class="bs-switch-grid">
                         <v-switch
                           v-model="settingsForm.custom_item_discounts_enabled"
                           color="primary"
@@ -351,12 +354,52 @@
                           label="Price-change manual override mode"
                         />
                         <v-switch
-                          v-model="settingsForm.invoice_keyboard_mode"
+                          v-model="settingsForm.price_edit_restricted"
                           color="primary"
                           density="compact"
                           hide-details
-                          label="Invoice keyboard (number-pad) mode"
+                          label="Manual price and discount edits only for selected codes"
                         />
+                        <v-textarea
+                          v-if="settingsForm.price_edit_restricted"
+                          v-model="settingsForm.price_edit_codes"
+                          auto-grow
+                          density="compact"
+                          hide-details="auto"
+                          hint="One code per line, or separated by commas"
+                          label="Codes allowed for manual price and discount edits"
+                          persistent-hint
+                          rows="3"
+                          variant="outlined"
+                        />
+                        <v-switch
+                          v-model="settingsForm.discount_toggle"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Salespersons can turn a line's discount (30%) off and on (not change it)"
+                        />
+                        <v-switch
+                          v-if="settingsForm.discount_toggle"
+                          v-model="settingsForm.discount_toggle_default_off"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Discounts start off on each new line"
+                        />
+                        <v-switch
+                          v-model="settingsForm.deal_toggle"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Salespersons can turn a line's deal (B2G1) off and on"
+                        />
+                      </div>
+                    </section>
+
+                    <section class="bs-section">
+                      <div class="bs-section-title">Invoice rules</div>
+                      <div class="bs-switch-grid">
                         <v-switch
                           v-model="settingsForm.client_required"
                           color="primary"
@@ -371,27 +414,29 @@
                           hide-details
                           label="Require a salesperson on every invoice"
                         />
-                        <v-switch
-                          v-model="settingsForm.overchange_confirmation"
-                          color="primary"
-                          density="compact"
-                          hide-details
-                          label="Confirm change larger than what's owed"
-                        />
-                        <v-switch
-                          v-model="settingsForm.hide_payment_method_currency"
-                          color="primary"
-                          density="compact"
-                          hide-details
-                          label="Hide currency on payment method buttons"
-                        />
-                        <v-switch
-                          v-model="settingsForm.auto_append_lbp_zeros"
-                          color="primary"
-                          density="compact"
-                          hide-details
-                          label="Type LBP in thousands (50 → 50,000)"
-                        />
+                      </div>
+                    </section>
+
+                    <section class="bs-section">
+                      <div class="bs-section-title">Stock</div>
+                      <v-select
+                        v-model="settingsForm.oversell_mode"
+                        class="mt-3"
+                        density="compact"
+                        hide-details
+                        :items="OVERSELL_MODES"
+                        label="Selling more than the till has in stock"
+                        variant="outlined"
+                      />
+                      <div class="text-caption text-medium-emphasis mt-1">
+                        Whatever the mode, kashi raises an "oversold" alert on the Conflicts page
+                        when a sale takes a product's stock below zero.
+                      </div>
+                    </section>
+
+                    <section class="bs-section">
+                      <div class="bs-section-title">Counters &amp; charts</div>
+                      <div class="bs-switch-grid">
                         <v-switch
                           v-model="settingsForm.visitor_counter_enabled"
                           color="primary"
@@ -407,18 +452,135 @@
                           label="Cashiers can browse other months' income"
                         />
                       </div>
-                      <v-select
-                        v-model="settingsForm.oversell_mode"
-                        class="mt-3"
-                        density="compact"
-                        hide-details
-                        :items="OVERSELL_MODES"
-                        label="Selling more than the till has in stock"
-                        variant="outlined"
+                    </section>
+
+                  </div>
+
+                  <div v-show="sectionTab === 'display'">
+                    <section class="bs-section">
+                      <div class="bs-section-title">Look &amp; feel</div>
+                      <p class="text-caption text-medium-emphasis mb-3">
+                        Save sends these to every register. To change one till only, pick it below
+                        and send. A cashier can still change them on the till afterwards; the latest
+                        change wins.
+                      </p>
+                      <div class="field-grid">
+                        <v-select
+                          v-model="displayForm.theme"
+                          density="compact"
+                          hide-details
+                          :items="[{ title: 'Light', value: 'light' }, { title: 'Dark', value: 'dark' }]"
+                          label="Theme"
+                          variant="outlined"
+                        />
+                        <CurrencySelect
+                          v-model="displayForm.calculator_total_currency"
+                          label="Calculator shows first"
+                          variant="outlined"
+                        />
+                      </div>
+                      <div class="bs-switch-grid mt-3">
+                        <v-switch
+                          v-model="displayForm.animations_enabled"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Animations"
+                        />
+                        <v-switch
+                          v-model="settingsForm.sounds_enabled"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Play sounds (scan, checkout, errors, keypad)"
+                        />
+                        <v-switch
+                          v-model="settingsForm.invoice_keyboard_mode"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Invoice keyboard (number-pad) mode"
+                        />
+                      </div>
+                    </section>
+
+                    <section class="bs-section">
+                      <div class="bs-section-title">Quick access cards</div>
+                      <div class="text-body-2">
+                        Quick access rows:
+                        <strong>{{ displayForm.quick_access_rows === 0 ? 'Hidden' : displayForm.quick_access_rows }}</strong>
+                      </div>
+                      <v-slider
+                        v-model="displayForm.quick_access_rows"
+                        color="primary"
+                        hint="Rows of cards on the sale screen before it scrolls. 0 hides the panel."
+                        :max="8"
+                        :min="0"
+                        persistent-hint
+                        show-ticks="always"
+                        :step="1"
                       />
-                      <div class="text-caption text-medium-emphasis mt-1">
-                        Whatever the mode, kashi raises an "oversold" alert on the Conflicts page
-                        when a sale takes a product's stock below zero.
+                      <div class="text-body-2 mt-4">
+                        Quick access text size: <strong>{{ displayForm.quick_access_font_scale }}%</strong>
+                      </div>
+                      <v-slider
+                        v-model="displayForm.quick_access_font_scale"
+                        color="primary"
+                        hide-details
+                        :max="200"
+                        :min="70"
+                        show-ticks="always"
+                        :step="10"
+                      />
+                      <div class="bs-switch-grid mt-3">
+                        <v-switch
+                          v-model="displayForm.quick_access_show_code"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Show code on quick access cards"
+                        />
+                        <v-switch
+                          v-model="displayForm.quick_access_show_name"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Show name on quick access cards"
+                        />
+                        <v-switch
+                          v-model="displayForm.quick_access_show_remove"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Show remove (X) on quick access cards"
+                        />
+                      </div>
+                    </section>
+
+                    <section class="bs-section">
+                      <div class="bs-section-title">One register only</div>
+                      <div class="d-flex flex-wrap align-center ga-3">
+                        <v-select
+                          v-model="displayRegisterId"
+                          density="compact"
+                          hide-details
+                          item-title="label"
+                          item-value="id"
+                          :items="registerOptions"
+                          label="Register"
+                          no-data-text="This branch has no registers"
+                          style="max-width: 280px"
+                          variant="outlined"
+                        />
+                        <v-btn
+                          color="primary"
+                          :disabled="!canEdit || displayRegisterId == null"
+                          :loading="displaySending"
+                          prepend-icon="mdi-send-outline"
+                          :text="`Send to ${registerCodeById(displayRegisterId) || 'register'}`"
+                          variant="tonal"
+                          @click="sendDisplayToRegister"
+                        />
                       </div>
                     </section>
 
@@ -471,23 +633,6 @@
                     </section>
 
                     <section class="bs-section">
-                      <div class="bs-section-title">Payments</div>
-                      <div class="field-grid">
-                        <v-text-field
-                          v-model.number="maxOverpayment"
-                          density="compact"
-                          hint="How much a payment may go over the total, in USD. 0 = no limit."
-                          label="Max overpayment (USD)"
-                          min="0"
-                          persistent-hint
-                          step="0.01"
-                          type="number"
-                          variant="outlined"
-                        />
-                      </div>
-                    </section>
-
-                    <section class="bs-section">
                       <div class="bs-section-title">Closing shifts</div>
                       <v-switch
                         v-model="settingsForm.auto_close_stale_shifts"
@@ -523,172 +668,38 @@
                         office before it closes the shift and prints the close receipt, showing
                         progress. Offline, a manager can override on the till.
                       </div>
-                    </section>
-                  </div>
-
-                  <div v-show="sectionTab === 'display'">
-                    <section class="bs-section">
-                      <div class="bs-section-title">How the till's screen looks</div>
-                      <p class="text-caption text-medium-emphasis mb-3">
-                        Save sends these to every register. To change one till only, pick it below
-                        and send. A cashier can still change them on the till afterwards; the latest
-                        change wins.
-                      </p>
-                      <div class="text-body-2">
-                        Quick access rows:
-                        <strong>{{ displayForm.quick_access_rows === 0 ? 'Hidden' : displayForm.quick_access_rows }}</strong>
-                      </div>
-                      <v-slider
-                        v-model="displayForm.quick_access_rows"
+                      <v-switch
+                        v-model="settingsForm.auto_cover_negative_lbp"
+                        class="mt-3"
                         color="primary"
-                        :max="8"
-                        :min="0"
-                        hint="Rows of cards on the sale screen before it scrolls. 0 hides the panel."
-                        persistent-hint
-                        show-ticks="always"
-                        :step="1"
-                      />
-                      <div class="text-body-2 mt-4">
-                        Quick access text size: <strong>{{ displayForm.quick_access_font_scale }}%</strong>
-                      </div>
-                      <v-slider
-                        v-model="displayForm.quick_access_font_scale"
-                        color="primary"
+                        density="compact"
                         hide-details
-                        :max="200"
-                        :min="70"
-                        show-ticks="always"
-                        :step="10"
+                        label="At close shift, cover a negative Cash LL balance from Cash $$"
                       />
-                      <div class="bs-switch-grid mt-3">
-                        <v-switch
-                          v-model="displayForm.quick_access_show_code"
-                          color="primary"
-                          density="compact"
-                          hide-details
-                          label="Show code on quick access cards"
-                        />
-                        <v-switch
-                          v-model="displayForm.quick_access_show_name"
-                          color="primary"
-                          density="compact"
-                          hide-details
-                          label="Show name on quick access cards"
-                        />
-                        <v-switch
-                          v-model="displayForm.quick_access_show_remove"
-                          color="primary"
-                          density="compact"
-                          hide-details
-                          label="Show remove (X) on quick access cards"
-                        />
-                        <v-switch
-                          v-model="displayForm.animations_enabled"
-                          color="primary"
-                          density="compact"
-                          hide-details
-                          label="Animations"
-                        />
-                      </div>
-                      <div class="field-grid mt-3">
-                        <v-select
-                          v-model="displayForm.theme"
-                          density="compact"
-                          hide-details
-                          :items="[{ title: 'Light', value: 'light' }, { title: 'Dark', value: 'dark' }]"
-                          label="Theme"
-                          variant="outlined"
-                        />
-                        <CurrencySelect
-                          v-model="displayForm.calculator_total_currency"
-                          label="Calculator shows first"
-                          variant="outlined"
-                        />
-                      </div>
-                    </section>
-
-                    <section class="bs-section">
-                      <div class="bs-section-title">One register only</div>
-                      <div class="d-flex flex-wrap align-center ga-3">
-                        <v-select
-                          v-model="displayRegisterId"
-                          density="compact"
-                          hide-details
-                          item-title="label"
-                          item-value="id"
-                          :items="registerOptions"
-                          label="Register"
-                          no-data-text="This branch has no registers"
-                          style="max-width: 280px"
-                          variant="outlined"
-                        />
-                        <v-btn
-                          color="primary"
-                          :disabled="!canEdit || displayRegisterId == null"
-                          :loading="displaySending"
-                          prepend-icon="mdi-send-outline"
-                          :text="`Send to ${registerCodeById(displayRegisterId) || 'register'}`"
-                          variant="tonal"
-                          @click="sendDisplayToRegister"
-                        />
-                      </div>
-                    </section>
-                  </div>
-
-                  <div v-show="sectionTab === 'pages'">
-                    <section class="bs-section">
-                      <div class="bs-section-title">Page access (non-admin users)</div>
-                      <div class="bs-switch-grid">
-                        <v-switch
-                          v-model="settingsForm.page_unlock_clients"
-                          color="primary"
-                          density="compact"
-                          hide-details
-                          label="Clients"
-                        />
-                        <v-switch
-                          v-model="settingsForm.page_unlock_inventory"
-                          color="primary"
-                          density="compact"
-                          hide-details
-                          label="Inventory"
-                        />
-                        <v-switch
-                          v-model="settingsForm.page_unlock_products"
-                          color="primary"
-                          density="compact"
-                          hide-details
-                          label="Products"
-                        />
-                        <v-switch
-                          v-model="settingsForm.page_unlock_transfers"
-                          color="primary"
-                          density="compact"
-                          hide-details
-                          label="Transfers"
-                        />
-                        <v-switch
-                          v-model="settingsForm.page_unlock_attendance"
-                          color="primary"
-                          density="compact"
-                          hide-details
-                          label="Attendance"
-                        />
-                        <v-switch
-                          v-model="settingsForm.page_unlock_salespersons"
-                          color="primary"
-                          density="compact"
-                          hide-details
-                          label="Salespersons"
-                        />
+                      <div class="text-caption text-medium-emphasis mt-1">
+                        When more LBP went out as change than came in, the shortfall is swapped
+                        into Cash $$ as the close-shift screen opens, so LBP closes at 0.
                       </div>
                     </section>
 
                   </div>
 
                   <div v-show="sectionTab === 'printing'">
+                    <section class="bs-section bs-section--wide">
+                      <div class="bs-section-title">Receipt look</div>
+                      <ReceiptLookPicker
+                        v-model:layout="settingsForm.receipt_layout"
+                        v-model:theme="settingsForm.receipt_theme"
+                        :saved-theme="loadedForm?.receipt_theme ?? ''"
+                      />
+                      <div class="text-caption text-medium-emphasis mt-2">
+                        The theme and layout of the printed invoice. Title and body fonts below apply to the
+                        Classic theme; the other themes bring their own. Previews show sample items.
+                      </div>
+                    </section>
+
                     <section class="bs-section">
-                      <div class="bs-section-title">Printing</div>
+                      <div class="bs-section-title">Receipt</div>
                       <div class="field-grid">
                         <v-select
                           v-model="settingsForm.printer_size"
@@ -765,8 +776,105 @@
                       </div>
                     </section>
 
-                    <!-- Printers and the customer screen belong to one physical till, so
-                         they're edited per register and never sent branch-wide. -->
+                    <section class="bs-section">
+                      <div class="bs-section-title">End-of-shift receipt</div>
+                      <div class="bs-switch-grid">
+                        <v-switch
+                          v-model="settingsForm.shift_report_signatures"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Cashier and manager signature lines on end-of-shift receipt"
+                        />
+                        <v-switch
+                          v-model="settingsForm.shift_report_uppercase_header"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Store and branch name in capitals on end-of-shift receipt"
+                        />
+                      </div>
+                    </section>
+
+                    <section class="bs-section">
+                      <div class="bs-section-title">Receipt header &amp; footer</div>
+                      <div class="field-grid">
+                        <v-text-field
+                          v-model="settingsForm.market_name"
+                          density="compact"
+                          hide-details="auto"
+                          label="Market Name"
+                          variant="outlined"
+                        />
+                        <v-text-field
+                          v-model="settingsForm.market_phone"
+                          density="compact"
+                          hide-details="auto"
+                          label="Market Phone"
+                          variant="outlined"
+                        />
+                        <v-text-field
+                          v-model="settingsForm.branch_phone"
+                          density="compact"
+                          hide-details="auto"
+                          label="Branch Phone"
+                          variant="outlined"
+                        />
+                        <v-text-field
+                          v-model="settingsForm.website"
+                          density="compact"
+                          hide-details="auto"
+                          label="Website"
+                          variant="outlined"
+                        />
+                        <v-text-field
+                          v-model="settingsForm.instagram"
+                          density="compact"
+                          hide-details="auto"
+                          label="Instagram"
+                          variant="outlined"
+                        />
+                        <v-textarea
+                          v-model="settingsForm.market_description"
+                          class="field-full"
+                          density="compact"
+                          hide-details="auto"
+                          label="Market Description"
+                          rows="2"
+                          variant="outlined"
+                        />
+                        <v-textarea
+                          v-model="settingsForm.return_policy"
+                          class="field-full"
+                          density="compact"
+                          hide-details="auto"
+                          label="Return Policy"
+                          rows="2"
+                          variant="outlined"
+                        />
+                        <v-textarea
+                          v-model="socialPlatformsText"
+                          class="field-full"
+                          density="compact"
+                          hint="JSON array, e.g. [&quot;facebook&quot;, &quot;instagram&quot;]"
+                          label="Social Platforms"
+                          persistent-hint
+                          rows="2"
+                          variant="outlined"
+                        />
+                        <v-textarea
+                          v-model="socialHandlesText"
+                          class="field-full"
+                          density="compact"
+                          hint="JSON object, e.g. {&quot;instagram&quot;: &quot;@handle&quot;}"
+                          label="Social Handles"
+                          persistent-hint
+                          rows="2"
+                          variant="outlined"
+                        />
+                      </div>
+                    </section>
+
                     <section class="bs-section">
                       <div class="bs-section-title">Device identifiers (per register)</div>
                       <p class="text-caption text-medium-emphasis mb-3">
@@ -827,7 +935,7 @@
 
                   <div v-show="sectionTab === 'attendance'">
                     <section class="bs-section">
-                      <div class="bs-section-title">Attendance</div>
+                      <div class="bs-section-title">Attendance machine</div>
                       <div class="field-grid">
                         <v-text-field
                           v-model="settingsForm.akuvox_ip"
@@ -876,8 +984,10 @@
                           label="Manager approves requests on the till (manager password)"
                         />
                       </div>
+                    </section>
 
-                      <div class="bs-group-head mt-4">
+                    <section class="bs-section">
+                      <div class="bs-group-head">
                         <div class="bs-section-title mb-0">Secrets</div>
                         <v-btn-toggle
                           v-model="secretsSource"
@@ -916,6 +1026,32 @@
                           type="password"
                           variant="outlined"
                         />
+                      </div>
+                    </section>
+
+                  </div>
+
+                  <div v-show="sectionTab === 'users'">
+                    <section class="bs-section">
+                      <div class="bs-group-head">
+                        <div class="bs-section-title mb-0">Admin password</div>
+                        <v-btn-toggle
+                          v-model="secretsSource"
+                          color="primary"
+                          density="compact"
+                          divided
+                          mandatory
+                          @update:model-value="v => setGroupSource('secrets', v)"
+                        >
+                          <v-btn size="small" value="central">Centrally</v-btn>
+                          <v-btn size="small" value="local">At the branch</v-btn>
+                        </v-btn-toggle>
+                      </div>
+                      <p class="text-caption text-medium-emphasis mb-3">
+                        Write-only &mdash; kashi never displays it back. Leave blank to keep the
+                        branch's current login; type a new one to push it.
+                      </p>
+                      <div class="field-grid">
                         <v-text-field
                           v-model="secretForm.admin_password"
                           autocomplete="new-password"
@@ -929,6 +1065,58 @@
                         />
                       </div>
                     </section>
+
+                  </div>
+
+                  <div v-show="sectionTab === 'pages'">
+                    <section class="bs-section">
+                      <div class="bs-section-title">Page access (non-admin users)</div>
+                      <div class="bs-switch-grid">
+                        <v-switch
+                          v-model="settingsForm.page_unlock_clients"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Clients"
+                        />
+                        <v-switch
+                          v-model="settingsForm.page_unlock_inventory"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Inventory"
+                        />
+                        <v-switch
+                          v-model="settingsForm.page_unlock_products"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Products"
+                        />
+                        <v-switch
+                          v-model="settingsForm.page_unlock_transfers"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Transfers"
+                        />
+                        <v-switch
+                          v-model="settingsForm.page_unlock_attendance"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Attendance"
+                        />
+                        <v-switch
+                          v-model="settingsForm.page_unlock_salespersons"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Salespersons"
+                        />
+                      </div>
+                    </section>
+
                   </div>
 
                   <div
@@ -1220,6 +1408,7 @@
   import BranchQuickAccess from '@/components/BranchQuickAccess.vue'
   import CurrencySelect from '@/components/CurrencySelect.vue'
   import PageSidebar from '@/components/PageSidebar.vue'
+  import ReceiptLookPicker from '@/components/ReceiptLookPicker.vue'
   import { useBranchCommands } from '@/composables/useBranchCommands'
   import { useBranches } from '@/composables/useBranches'
   import { useBranchPaymentMethods } from '@/composables/useBranchPaymentMethods'
@@ -1300,6 +1489,8 @@
 
   // ---- per-branch settings ------------------------------------------------
   const settingsForm = ref(null)
+  const hiddenSearchFields = computed(() =>
+    (settingsForm.value?.product_search_hidden_fields ?? '').split(',').filter(Boolean))
   const secretForm = ref({ akuvox_password: '', attendance_approver_password: '', admin_password: '' })
   const settingsLoading = ref(false)
   const saving = ref(false)
@@ -1307,7 +1498,7 @@
   const socialHandlesText = ref('{}')
 
   // Tabs whose fields belong to the settings form (and so show Save).
-  const FORM_TABS = ['general', 'behaviour', 'cash', 'pages', 'printing', 'attendance', 'display']
+  const FORM_TABS = ['general', 'money', 'payments', 'behaviour', 'display', 'cash', 'printing', 'attendance', 'users', 'pages']
 
   // The form as it was loaded (or last saved). Save sends only the fields
   // that differ from it: the rest stay exactly as the tills have them, so a
@@ -1374,6 +1565,15 @@
     { title: 'Off (no photo)', value: 0 },
   ]
 
+  const SEARCH_FIELD_OPTIONS = [
+    { title: 'Code', value: 'code' },
+    { title: 'Name', value: 'name' },
+    { title: 'Brand', value: 'brand' },
+    { title: 'Color', value: 'color' },
+    { title: 'Size', value: 'size' },
+    { title: 'Price', value: 'price' },
+  ]
+
   const OVERSELL_MODES = [
     { title: 'Allow — sell, fix stock in kashi later', value: 'allow' },
     { title: 'Warn — cashier confirms before selling', value: 'warn' },
@@ -1395,12 +1595,20 @@
     'page_unlock_salespersons',
     'receipt_enabled',
     'receipt_cutoff',
+    'shift_report_signatures',
+    'shift_report_uppercase_header',
+    'auto_cover_negative_lbp',
     'attendance_enabled',
     'attendance_cashier_history',
     'attendance_manager_approval_enabled',
     'split_primary_first',
     'close_shift_requires_sync',
     'scan_by_code_enabled',
+    'product_search_code_only',
+    'price_edit_restricted',
+    'discount_toggle',
+    'discount_toggle_default_off',
+    'deal_toggle',
     'sounds_enabled',
     'salesperson_per_invoice_required',
     'non_admin_month_nav_enabled',
@@ -1432,6 +1640,8 @@
       // treat only an explicit false as "off".
       search_button_enabled: d.search_button_enabled !== false,
       printer_size: d.printer_size ?? '',
+      receipt_theme: d.receipt_theme || 'classic',
+      receipt_layout: d.receipt_layout || 'A',
       receipt_width: d.receipt_width ?? 0,
       receipt_height: d.receipt_height ?? 0,
       receipt_font: d.receipt_font ?? '',
@@ -1451,6 +1661,9 @@
       split_primary_step: d.split_primary_step ?? 0,
       oversell_mode: d.oversell_mode ?? 'allow',
       branch_phone: d.branch_phone ?? '',
+      price_edit_codes: d.price_edit_codes ?? '',
+      unknown_product_barcode: d.unknown_product_barcode ?? '',
+      product_search_hidden_fields: d.product_search_hidden_fields ?? '',
       max_overpayment_cents: d.max_overpayment_cents ?? 0,
       default_opening_float_usd: d.default_opening_float_usd ?? 0,
       default_opening_float_lbp: d.default_opening_float_lbp ?? 0,
@@ -1461,7 +1674,7 @@
       // and on is what every branch did before it existed (the primary
       // currency leading; codes accepted in the scan field) -- so only an
       // explicit false flips it.
-      if (k === 'split_primary_first' || k === 'scan_by_code_enabled' || k === 'attendance_manager_approval_enabled') {
+      if (k === 'split_primary_first' || k === 'scan_by_code_enabled' || k === 'attendance_manager_approval_enabled' || k === 'shift_report_signatures') {
         form[k] = d[k] !== false
         continue
       }
@@ -1771,6 +1984,16 @@
     exchange_window_hours: 'Exchange window',
     search_button_enabled: 'Search button',
     scan_by_code_enabled: 'Code in scan field',
+    product_search_code_only: 'Code-only product search',
+    price_edit_restricted: 'Price edits by code',
+    price_edit_codes: 'Codes allowed for price edits',
+    discount_toggle: 'Turn discounts off at the till',
+    discount_toggle_default_off: 'Discounts start off',
+    deal_toggle: 'Turn deals off at the till',
+    unknown_product_barcode: 'Unknown item product',
+    product_search_hidden_fields: 'Product search hidden columns',
+    receipt_theme: 'Receipt theme',
+    receipt_layout: 'Receipt layout',
     sounds_enabled: 'Sounds',
     attendance_manager_approval_enabled: 'Manager approval on till',
     custom_item_discounts_enabled: 'Custom discounts',
@@ -1801,6 +2024,9 @@
     page_unlock_salespersons: 'Salespersons page',
     receipt_enabled: 'Print receipt',
     receipt_cutoff: 'Cut paper',
+    shift_report_signatures: 'Shift receipt signatures',
+    shift_report_uppercase_header: 'Shift receipt capitals',
+    auto_cover_negative_lbp: 'Cover negative LBP at close',
     printer_size: 'Printer size',
     branch_phone: 'Branch phone',
   }
@@ -1965,6 +2191,9 @@
 .bs-section {
   max-width: 720px;
   margin-bottom: 24px;
+}
+.bs-section--wide {
+  max-width: 880px;
 }
 .bs-section-title {
   font-size: 0.8rem;

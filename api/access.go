@@ -56,6 +56,7 @@ var accessSections = []accessSection{
 		{"financials", "Financials"},
 		{"targets", "Targets"},
 		{"footfall", "Footfall"},
+		{"busy-hours", "Busy Hours"},
 		{"product-revenues", "Product Revenues"},
 		{"conversion", "Conversion"},
 		{"sales-analytics", "Sales Analytics"},
@@ -65,15 +66,18 @@ var accessSections = []accessSection{
 	}},
 	{"sales", "Sales", "Invoices", []accessPage{
 		{"invoices", "Invoices"},
+		{"unknown-items", "Unknown Items"},
 	}},
-	{"clients", "Clients", "Clients and loyalty", []accessPage{
+	{"clients", "Clients", "Clients, loyalty and reviews", []accessPage{
 		{"clients", "Clients"},
 		{"loyalty", "Loyalty"},
+		{"reviews", "Reviews"},
 	}},
 	{"branches", "Branches", "Branches, branch settings and sync conflicts", []accessPage{
 		{"branches", "Branches"},
 		{"branch-settings", "Branch Settings"},
 		{"default-branch-settings", "Default Settings"},
+		{"receipt-designer", "Receipt Designer"},
 		{"branch-commands", "Commands"},
 		{"branch-conflicts", "Conflicts"},
 	}},
@@ -89,6 +93,7 @@ var accessSections = []accessSection{
 		{"autofill-rules", "Auto-fill Rules"},
 		{"barcodes", "Barcodes"},
 		{"barcode-printing", "Barcode Printing"},
+		{"barcode-designer", "Barcode Designer"},
 	}},
 	{"inventory", "Inventory", "Stock, purchases, transfers, batches and suppliers", []accessPage{
 		{"inventory", "Inventory"},
@@ -118,9 +123,10 @@ var accessSections = []accessSection{
 	{"calendar", "Calendar", "Calendar events", []accessPage{
 		{"calendar", "Calendar"},
 	}},
-	{"system", "System", "App settings, WhatsApp, audit log, dev logs and storage", []accessPage{
+	{"system", "System", "App settings, WhatsApp, emails, audit log, dev logs and storage", []accessPage{
 		{"settings", "App Settings & WhatsApp"},
 		{"whatsapp", "WhatsApp"},
+		{"emails", "Emails"},
 		{"audit-log", "Audit Log"},
 		{"logs", "Dev Logs"},
 		{"storage", "Storage"},
@@ -137,6 +143,13 @@ var accessSections = []accessSection{
 	// No pages: switching the section on is the whole grant.
 	{"photo_rotation", "Rotate Photos", "Turn expense, shift-receipt and transfer photos; the turn is saved for everyone (off by default)", nil},
 	{"photo_replace", "Replace Photos", "Swap an expense, shift-receipt or transfer photo for another one; the old photo is deleted (off by default)", nil},
+	// Checked by createBranchCommand (replace_shift_balance with
+	// allow_negative), not by a route rule.
+	{"shift_negative_balance", "Negative Balance Transfers", "Move a till's shift balance out of a payment method even when that takes it below zero, e.g. LBP change that was really settled by Whish (off by default)", nil},
+	// Checked by the /home/activities/resolve route rule.
+	{"resolve_urgent_activity", "Resolve Urgent Activity", "Mark an urgent Recent activity row on Home (a shift closed short) as resolved, which unpins it for everyone (off by default)", nil},
+	// Checked by the /unknown_items/waive route rule.
+	{"unknown_item_waive", "Allow Unknown Items Without Picture", "Let a till sell an unknown item with no picture taken (the Waiting tab on Unknown items), e.g. the cashier sent it privately (off by default)", nil},
 	{"text_selection", "Text Selection", "Select and copy text anywhere in the admin interface (off by default; doesn't gate any data)", nil},
 }
 
@@ -230,6 +243,8 @@ var routeRules = []routeRule{
 	// Pricing
 	rule("/price_lists", "pricing", "pricing", "products", "sales"),
 	rule("/discount_lists", "pricing", "pricing", "products", "sales"),
+	rule("/sale_options", "pricing", "pricing", "products", "sales"),
+	rule("/deals", "pricing", "pricing", "products", "sales"),
 	rule("/coupons", "pricing", "pricing", "clients"),
 	rule("/coupon_categories", "pricing", "pricing", "clients"),
 
@@ -254,6 +269,7 @@ var routeRules = []routeRule{
 	// Analytics
 	rule("/dashboard", "", "analytics"),
 	rule("/sales_dashboard", "", "analytics"),
+	rule("/busy_hours", "", "analytics"),
 	rule("/sales_analysis", "", "analytics"),
 	rule("/salesperson_performance", "", "analytics"),
 	rule("/financials", "", "analytics"),
@@ -268,6 +284,9 @@ var routeRules = []routeRule{
 	rule("/expense_categories", "accounting", "accounting", "analytics"),
 	rule("/recurring_expenses", "accounting", "accounting"),
 	rule("/branch_expenses", "accounting", "accounting", "analytics"),
+	rule("/unknown_items", "sales", "sales", "analytics"),
+	rule("/unknown_items/waive", "unknown_item_waive"),
+	rule("/unknown_items/images/delete", "photo_replace"),
 	rule("/branch_expense_images", "accounting", "accounting", "analytics"),
 	rule("/branch_expense_images/:id/rotation", "photo_rotation"),
 	rule("/branch_expense_images/:id/replace", "photo_replace"),
@@ -301,6 +320,16 @@ var routeRules = []routeRule{
 	rule("/whatsapp_settings", "system", "system"),
 	// The WhatsApp page: rules, message log and stats.
 	rule("/whatsapp", "system", "system"),
+	// The Reviews page; its settings hold the Places API key, so changing
+	// them is System's.
+	rule("/reviews", "clients", "clients"),
+	rule("/reviews/settings", "system", "clients", "system"),
+	rule("/email_settings", "system", "system", "analytics"),
+	// Sending an invoice report is done from the Daily Income pages; its
+	// history is the Emails page under System.
+	rule("/email_reports", "analytics", "analytics", "system"),
+	// Scheduled reports send as whoever set them up could; same rights.
+	rule("/email_schedules", "analytics", "analytics", "system"),
 	rule("/audit_logs", "", "system"),
 	// Who did what in kashi (home page feed). Read-only; written by the
 	// activity middleware, never through this route.
@@ -310,6 +339,11 @@ var routeRules = []routeRule{
 	lookup("/home/latest", ""),
 	// The home feeds' "today" counts: same deal, filtered per feed.
 	lookup("/home/today", ""),
+	// The home page's Recent activity feed: branch sync, same access as the
+	// dashboard it was split out of.
+	rule("/home/activities", "", "analytics"),
+	// Unpinning an urgent row is its own permission, not an analytics edit.
+	rule("/home/activities/resolve", "resolve_urgent_activity", "analytics"),
 	rule("/logs", "", "system"),
 	rule("/app_releases", "updates", "updates"),
 	rule("/app_updates", "updates", "updates"),
@@ -324,8 +358,9 @@ var routeRules = []routeRule{
 // POST routes that only read (they use POST for a request body), so a
 // read-only user still gets them.
 var readOnlyPosts = map[string]bool{
-	"/barcodes/print":      true,
-	"/whatsapp/rules/test": true,
+	"/barcodes/print":          true,
+	"/barcodes/design/preview": true,
+	"/whatsapp/rules/test":     true,
 }
 
 // ruleFor returns the most specific rule for a gin route pattern such as

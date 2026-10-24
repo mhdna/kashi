@@ -2,42 +2,22 @@
   <div class="d-flex flex-column flex-grow-1" style="min-height: 0">
     <div class="d-flex align-center ga-3 px-3 pb-1">
       <YearStepper v-model="year" class="flex-shrink-0" />
-      <!-- Any number of branches; none picked means every branch. Phones get a
-           dropdown, since a row of chips wraps into several lines there. -->
-      <v-select
-        v-if="xs"
-        class="flex-grow-1"
-        clearable
-        density="compact"
-        hide-details
-        item-title="name"
-        item-value="id"
-        :items="reportBranches"
-        :model-value="selected"
-        multiple
-        persistent-placeholder
-        placeholder="All branches"
-        style="min-width: 0"
-        variant="outlined"
-        @update:model-value="ids => (selected = ids ?? [])"
-      >
-        <template #selection="{ item, index }">
-          <span v-if="index === 0" class="text-truncate">{{ item.title }}</span>
-          <span v-else-if="index === 1" class="text-medium-emphasis ms-1">+{{ selected.length - 1 }}</span>
-        </template>
-      </v-select>
+      <!-- Any number of branches; none picked means every branch. Phones get
+           the same chips on one line that scrolls sideways, rather than
+           wrapping into several. -->
       <v-chip-group
-        v-else
         v-model="branchIds"
-        class="flex-grow-1"
-        column
+        class="branch-chips flex-grow-1"
+        :column="!xs"
         multiple
+        :show-arrows="false"
       >
         <!-- A picked chip is filled in the primary colour; the rest stay
              outlined. -->
         <v-chip
           :color="isPicked(ALL) ? 'primary' : undefined"
           filter
+          :size="xs ? 'small' : undefined"
           :value="ALL"
           :variant="isPicked(ALL) ? 'flat' : 'outlined'"
         >
@@ -48,14 +28,53 @@
           :key="branch.id"
           :color="isPicked(branch.id) ? 'primary' : undefined"
           filter
+          :size="xs ? 'small' : undefined"
           :value="branch.id"
           :variant="isPicked(branch.id) ? 'flat' : 'outlined'"
         >
           {{ branch.name }}
         </v-chip>
       </v-chip-group>
+      <div class="year-total flex-shrink-0">
+        <span class="year-total__label">{{ year }} total</span>
+        <span class="year-total__value">{{ yearTotal === null ? '…' : money(yearTotal) }}</span>
+      </div>
     </div>
-    <HeatmapTable v-model:year="year" :branch-ids="selected" :year-nav="false" />
+    <!-- A branch with several tills can be narrowed to some of them; none
+         picked means all of its tills. -->
+    <div
+      v-for="branch in branchesWithRegisters"
+      :key="branch.id"
+      class="d-flex align-center ga-3 px-3 pb-1"
+    >
+      <span class="text-body-2 text-medium-emphasis register-label">{{ branch.name }}</span>
+      <v-chip-group
+        class="branch-chips flex-grow-1"
+        :model-value="registerIdsOf(branch.id)"
+        multiple
+        :show-arrows="false"
+        @update:model-value="ids => setRegisterIds(branch.id, ids)"
+      >
+        <v-chip
+          v-for="register in registersOf(branch.id)"
+          :key="register.id"
+          :color="registerIdsOf(branch.id).includes(register.id) ? 'primary' : undefined"
+          filter
+          size="small"
+          :value="register.id"
+          :variant="registerIdsOf(branch.id).includes(register.id) ? 'flat' : 'outlined'"
+        >
+          {{ register.name || register.code }}
+        </v-chip>
+      </v-chip-group>
+    </div>
+    <HeatmapTable
+      v-model:year="year"
+      :branch-ids="selected"
+      :register-ids="registerIds"
+      :year-nav="false"
+      @total="yearTotal = $event"
+    />
   </div>
 </template>
 
@@ -72,7 +91,7 @@
   // keeps it; an old ?branch_id= link still works. This page keeps its own
   // selection rather than the Dashboard's single-branch filter.
   const ALL = 'all'
-  const { branches, fetchBranches } = useBranches()
+  const { branches, fetchBranches, listAllRegisters } = useBranches()
   // Branches switched out of reports (Branches > "In reports") have no sales
   // in the grid, so they aren't offered.
   const reportBranches = computed(() => branches.value.filter(b => !b.hidden_from_reports))
@@ -103,7 +122,29 @@
 
   const isPicked = (value: number | string) => branchIds.value.includes(value)
 
-  onMounted(() => fetchBranches())
+  // Tills picked per branch live in one flat list (the API takes register ids
+  // and narrows only each one's own branch). Hidden-from-reports tills have no
+  // sales in the grid, so they aren't offered.
+  const registers = ref<{ id: number, branch_id: number, code: string, name: string, hidden_from_reports: boolean }[]>([])
+  const registerIds = ref<number[]>([])
+  const registersOf = (branchId: number) => registers.value.filter(r => r.branch_id === branchId && !r.hidden_from_reports)
+  const registerIdsOf = (branchId: number) => registerIds.value.filter(id => registersOf(branchId).some(r => r.id === id))
+  // Only a picked branch that really has a choice to make gets a row.
+  const branchesWithRegisters = computed(() =>
+    reportBranches.value.filter(b => selected.value.includes(b.id) && registersOf(b.id).length > 1),
+  )
+  function setRegisterIds (branchId: number, ids: number[]) {
+    registerIds.value = [...registerIds.value.filter(id => !registersOf(branchId).some(r => r.id === id)), ...ids]
+  }
+
+  // The year's sum, reported by the grid.
+  const yearTotal = ref<number | null>(null)
+  const money = (v: number) => '$' + Math.round(v).toLocaleString()
+
+  onMounted(async () => {
+    fetchBranches()
+    registers.value = await listAllRegisters().catch(() => [])
+  })
 
   watch(selected, ids => {
     const query = { ...route.query }
@@ -113,3 +154,40 @@
     router.replace({ query })
   })
 </script>
+
+<style scoped>
+.register-label {
+  min-width: 110px;
+}
+
+/* The year's sum, top right: a tinted card in the primary colour. */
+.year-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 4px 14px;
+  border-radius: 10px;
+  background: rgba(var(--v-theme-primary), 0.14);
+  color: rgb(var(--v-theme-primary));
+  line-height: 1.2;
+}
+
+.year-total__label {
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.year-total__value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Phones: one row of chips scrolled sideways, so the slide group needs to be
+   allowed to shrink next to the year stepper. */
+.branch-chips {
+  min-width: 0;
+}
+</style>

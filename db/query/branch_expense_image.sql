@@ -51,11 +51,15 @@ SELECT
 FROM branch_expense_images
 JOIN branch_expenses ON branch_expenses.id = branch_expense_images.branch_expense_id
 JOIN branches ON branches.id = branch_expenses.branch_id
+WHERE NOT branches.hidden_from_reports
 ORDER BY branch_expense_images.id DESC
 LIMIT $1 OFFSET $2;
 
 -- name: CountBranchExpenseImages :one
-SELECT COUNT(*) FROM branch_expense_images;
+SELECT COUNT(*) FROM branch_expense_images
+JOIN branch_expenses ON branch_expenses.id = branch_expense_images.branch_expense_id
+JOIN branches ON branches.id = branch_expenses.branch_id
+WHERE NOT branches.hidden_from_reports;
 
 -- name: CountBranchExpenseImagesForExpense :one
 SELECT COUNT(*) FROM branch_expense_images

@@ -32,21 +32,21 @@ type dashboardListFilter struct {
 }
 
 // resolveRange turns the optional YYYY-MM-DD strings into a half-open
-// [from, to) instant pair: `to` is the start of the day *after* date_to so
-// the whole of that last day is included. Defaults to the current calendar
-// month when either bound is missing/unparseable.
+// [from, to) instant pair in businessZone: `to` is the start of the day
+// *after* date_to so the whole of that last day is included. Defaults to
+// the current calendar month when either bound is missing/unparseable.
 func (f dashboardFilter) resolveRange() (from, to time.Time) {
-	now := time.Now().UTC()
-	from = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
-	to = from.AddDate(0, 1, 0)
+	today := businessToday()
+	fromDay := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, time.UTC)
+	toDay := fromDay.AddDate(0, 1, 0)
 
 	if parsed, err := time.Parse("2006-01-02", f.DateFrom); err == nil {
-		from = parsed.UTC()
+		fromDay = parsed
 	}
 	if parsed, err := time.Parse("2006-01-02", f.DateTo); err == nil {
-		to = parsed.UTC().AddDate(0, 0, 1)
+		toDay = parsed.AddDate(0, 0, 1)
 	}
-	return from, to
+	return dayStart(fromDay), dayStart(toDay)
 }
 
 func (f dashboardFilter) branchArg() sql.NullInt64 {
@@ -315,7 +315,7 @@ func (server *Server) getDashboardSummary(ctx *gin.Context) {
 	targets := make([]dashboardTargetRow, 0)
 	if req.wantsBranch() {
 		rows, err := server.store.DashboardTargetList(ctx, db.DashboardTargetListParams{
-			AsOf:     time.Now().UTC(),
+			AsOf:     businessToday(),
 			BranchID: branch,
 		})
 		if err != nil {

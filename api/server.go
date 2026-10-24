@@ -2,8 +2,14 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
+	"os/signal"
+	"sync/atomic"
+	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/mhdna/kashi/db/sqlc"
@@ -23,6 +29,10 @@ type Server struct {
 	recordActivity func(adminActivity)
 	// security counts, locates and filters every request (security.go).
 	security *securityGuard
+	// uploadFollowSystem caches app_settings.upload_pages_follow_system
+	// (phone_upload_page.go); uploadThemeLoaded says it has been read.
+	uploadFollowSystem atomic.Bool
+	uploadThemeLoaded  atomic.Bool
 }
 
 func NewServer(config util.Config, store db.Store) (*Server, error) {
@@ -91,6 +101,11 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/audit_logs", server.listAuditLogs)
 	authRoutes.GET("/admin_activities", server.listAdminActivities)
 	authRoutes.GET("/home/latest", server.listLatestAdditions)
+	authRoutes.GET("/home/activities", server.listHomeActivities)
+	authRoutes.GET("/home/activities/urgent", server.listUrgentHomeActivities)
+	authRoutes.GET("/home/activities/detail", server.getHomeActivityDetail)
+	authRoutes.POST("/home/activities/resolve", server.resolveHomeActivity)
+	authRoutes.DELETE("/home/activities/resolve", server.unresolveHomeActivity)
 	authRoutes.GET("/home/today", server.getHomeToday)
 	authRoutes.GET("/low_stock", server.listLowStockProducts)
 	authRoutes.GET("/low_stock/summary", server.getLowStockSummary)
@@ -111,6 +126,9 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/inventories/treemap", server.getWarehouseTreemap)
 	authRoutes.POST("/products", server.createProduct)
 	authRoutes.POST("/products/import", server.importProductsCSV)
+	authRoutes.POST("/products/import_costs", server.importProductCosts)
+	authRoutes.GET("/products/barcodes_by_code", server.lookupBarcodesByCode)
+	authRoutes.POST("/products/create_missing", server.createMissingProducts)
 	authRoutes.PUT("/products", server.updateProduct)
 	authRoutes.GET("/products/:id", server.getProduct)
 	authRoutes.GET("/products", server.listProducts)
@@ -125,6 +143,9 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/barcodes", server.listBarcodes)
 	authRoutes.POST("/barcodes/assign", server.assignBarcodes)
 	authRoutes.POST("/barcodes/print", server.printBarcodes)
+	authRoutes.GET("/barcodes/design", server.getBarcodeDesign)
+	authRoutes.PUT("/barcodes/design", server.saveBarcodeDesign)
+	authRoutes.POST("/barcodes/design/preview", server.previewBarcodeDesign)
 	authRoutes.DELETE("/products/:id", server.deleteProduct)
 	authRoutes.POST("/attributes/batch", server.createAttributeValues)
 	authRoutes.POST("/attributes", server.createAttributeValue)
@@ -153,12 +174,16 @@ func (server *Server) setupRoutes() {
 	authRoutes.DELETE("/product_categories/:id", server.deleteProductCategory)
 	authRoutes.POST("/clients", server.createClient)
 	authRoutes.PUT("/clients", server.updateClient)
+	authRoutes.GET("/clients/by_phone", server.getClientByPhone)
+	authRoutes.POST("/clients/normalize_phones", server.normalizeClientPhones)
+	authRoutes.GET("/clients/phone_countries", server.listClientPhoneCountries)
 	authRoutes.GET("/clients/:id", server.getClient)
 	authRoutes.GET("/clients/:id/loyalty_total", server.getClientLoyaltyTotal)
 	authRoutes.GET("/clients/:id/profile", server.getClientProfile)
 	authRoutes.GET("/clients/", server.listClients)
 	authRoutes.GET("/clients/by_spending", server.listClientsBySpending)
-	authRoutes.GET("/clients/spending_summary", server.listClientSpendingSummary)
+	authRoutes.GET("/clients/loyalty_overview", server.loyaltyOverview)
+	authRoutes.GET("/clients/export", server.exportClients)
 	authRoutes.DELETE("/clients/:id", server.deleteClient)
 	authRoutes.PUT("/clients/:id/active", server.setClientActive)
 	authRoutes.POST("/currencies", server.createCurrency)
@@ -189,6 +214,19 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/app_settings", server.updateAppSettings)
 	authRoutes.PUT("/app_settings/product_autofill_rules", server.setProductAutofillRules)
 
+	authRoutes.GET("/email_settings", server.getEmailSettings)
+	authRoutes.PUT("/email_settings", server.updateEmailSettings)
+	authRoutes.GET("/email_reports", server.listEmailReports)
+	authRoutes.POST("/email_reports", server.sendEmailReport)
+	authRoutes.GET("/email_reports/preview", server.previewEmailReport)
+	authRoutes.GET("/email_reports/shifts", server.listEmailReportShifts)
+	authRoutes.GET("/email_reports/recipients", server.listEmailReportRecipients)
+	authRoutes.GET("/email_reports/registers", server.listEmailReportRegisters)
+	authRoutes.GET("/email_schedules", server.listEmailSchedules)
+	authRoutes.POST("/email_schedules", server.createEmailSchedule)
+	authRoutes.PUT("/email_schedules/:id", server.updateEmailSchedule)
+	authRoutes.DELETE("/email_schedules/:id", server.deleteEmailSchedule)
+	authRoutes.POST("/email_schedules/:id/run", server.runEmailScheduleNow)
 	authRoutes.GET("/whatsapp_settings", server.getWhatsAppSettings)
 	authRoutes.PUT("/whatsapp_settings", server.updateWhatsAppSettings)
 	authRoutes.GET("/whatsapp/rules", server.listWhatsAppRules)
@@ -197,9 +235,31 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/whatsapp/cost", server.setWhatsAppCost)
 	authRoutes.GET("/whatsapp/stats", server.getWhatsAppStats)
 	authRoutes.GET("/whatsapp/messages", server.listWhatsAppMessages)
+	authRoutes.GET("/whatsapp/messages/:id/conversation", server.getWhatsAppConversation)
+	authRoutes.GET("/whatsapp/poll_replies/:id/media", server.getWhatsAppReplyMedia)
+	// The Inbox: every message on our own numbers (whatsapp_chat.go).
+	authRoutes.GET("/whatsapp/chats", server.listWhatsAppChats)
+	authRoutes.GET("/whatsapp/chats/:phone", server.getWhatsAppChat)
+	authRoutes.GET("/whatsapp/chat_messages/:id/media", server.getWhatsAppChatMedia)
 	authRoutes.GET("/salesperson_performance", server.getSalespersonPerformance)
 	authRoutes.GET("/whatsapp/clients", server.listWhatsAppClients)
 	authRoutes.GET("/whatsapp/replies", server.listWhatsAppReplies)
+	// Sending from our own numbers through the bridge (whatsapp_bridge.go).
+	authRoutes.GET("/whatsapp/sender", server.getWhatsAppSender)
+	authRoutes.PUT("/whatsapp/sender", server.updateWhatsAppSender)
+	authRoutes.POST("/whatsapp/sender/test", server.sendWhatsAppTest)
+	authRoutes.POST("/whatsapp/numbers", server.createWhatsAppNumber)
+	authRoutes.GET("/whatsapp/numbers/:id/qr", server.whatsAppNumberQR)
+	authRoutes.PUT("/whatsapp/numbers/:id", server.updateWhatsAppNumber)
+	authRoutes.DELETE("/whatsapp/numbers/:id", server.deleteWhatsAppNumber)
+	authRoutes.POST("/whatsapp/numbers/:id/resume", server.resumeWhatsAppNumber)
+	authRoutes.GET("/whatsapp/health", server.getWhatsAppHealth)
+	authRoutes.GET("/whatsapp/failures", server.getWhatsAppFailures)
+	// The Reviews page (review_stats.go, review_link.go).
+	authRoutes.GET("/reviews", server.getReviews)
+	authRoutes.POST("/reviews/refresh", server.refreshReviews)
+	authRoutes.GET("/reviews/settings", server.getReviewSettings)
+	authRoutes.PUT("/reviews/settings", server.updateReviewSettings)
 
 	authRoutes.GET("/calendar_events", server.listCalendarEvents)
 	authRoutes.POST("/calendar_events", server.createCalendarEvent)
@@ -255,16 +315,37 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/discount_lists", server.updateDiscountList)
 	authRoutes.DELETE("/discount_lists/:id", server.deleteDiscountList)
 	authRoutes.POST("/discount_lists/items", server.createDiscountListItem)
+	authRoutes.POST("/discount_lists/items/bulk", server.bulkSetDiscountListItems)
 	authRoutes.GET("/discount_lists/:id/items", server.listDiscountListItems)
 	authRoutes.DELETE("/discount_lists/:id/items/:product_variant_id", server.deleteDiscountListItem)
 	authRoutes.POST("/discount_lists/:id/items/bulk_delete", server.bulkDeleteDiscountListItems)
 	authRoutes.GET("/discount_lists/:id/branches", server.listDiscountListBranches)
 	authRoutes.PUT("/discount_lists/:id/branches", server.setDiscountListBranches)
+	authRoutes.GET("/discount_lists/:id/rules", server.listDiscountListRules)
+	authRoutes.PUT("/discount_lists/:id/rules", server.setDiscountListRules)
+	authRoutes.GET("/discount_lists/branch/:branch_id", server.getBranchDiscount)
+	authRoutes.GET("/deals", server.listDeals)
+	authRoutes.POST("/deals", server.createDeal)
+	authRoutes.PUT("/deals/:id", server.updateDeal)
+	authRoutes.DELETE("/deals/:id", server.deleteDeal)
+	authRoutes.PUT("/discount_lists/branch/:branch_id", server.setBranchDiscount)
+	authRoutes.GET("/sale_options", server.listSaleOptions)
+	authRoutes.POST("/sale_options", server.createSaleOption)
+	authRoutes.POST("/sale_options/products", server.setProductSaleOptions)
 
 	router.POST("/users/login", server.loginUser)
 	// Meta's WhatsApp webhook: no login, every POST is signed (whatsapp_webhook.go).
 	router.GET(whatsAppWebhookPath, server.verifyWhatsAppWebhook)
 	router.POST(whatsAppWebhookPath, server.receiveWhatsAppWebhook)
+	// Review links in the WhatsApp message (review_link.go): public, reached
+	// through grandbz.com/review*.
+	router.GET("/review", server.openReviewLink)
+	router.GET("/review/:code", server.openReviewLink)
+	router.GET(reviewBannerPath, server.reviewBanner)
+	// Votes on the rating poll, from the WhatsApp bridge on this server
+	// (whatsapp_poll.go); it signs with its API key.
+	router.POST(whatsAppPollVotesPath, server.receiveWhatsAppPollVote)
+	router.POST(whatsAppChatPath, server.receiveWhatsAppChatMessage)
 	router.POST("/tokens/renew_access", server.renewAccessToken)
 	authRoutes.POST("/users", server.createUser)
 	authRoutes.GET("/users/online", server.listOnlineUsers)
@@ -308,6 +389,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.DELETE("/loan_categories/:id", server.deleteLoanCategory)
 
 	authRoutes.POST("/loans", server.createLoan)
+	authRoutes.POST("/loans/:id/cancel", server.cancelBranchLoanRecord)
 	authRoutes.GET("/loans/:id", server.getLoan)
 	authRoutes.GET("/loans", server.listLoans)
 	authRoutes.PUT("/loans", server.updateLoan)
@@ -396,6 +478,16 @@ func (server *Server) setupRoutes() {
 
 	authRoutes.GET("/branch_expenses", server.listBranchExpenses)
 	authRoutes.POST("/branch_expenses", server.adminCreateBranchExpense)
+	authRoutes.POST("/branch_expenses/:id/cancel", server.cancelBranchExpense)
+	authRoutes.PUT("/branch_expenses/:id/from_central", server.adminSetBranchExpenseFromCentral)
+	authRoutes.GET("/unknown_items", server.listUnknownItems)
+	authRoutes.GET("/unknown_items/images", server.listUnknownItemImages)
+	authRoutes.GET("/unknown_items/images/:id/file", server.getUnknownItemImageFile)
+	authRoutes.POST("/unknown_items/images/delete", server.deleteUnknownItemImages)
+	authRoutes.GET("/unknown_items/waiting", server.listWaitingUnknownItems)
+	authRoutes.POST("/unknown_items/waive", server.waiveUnknownItems)
+	authRoutes.GET("/unknown_items/variants", server.searchUnknownItemVariants)
+	authRoutes.POST("/unknown_items/resolve", server.resolveUnknownItems)
 	authRoutes.GET("/branch_expense_images", server.listBranchExpenseImages)
 	authRoutes.GET("/branch_expenses/:id/images", server.listBranchExpenseImagesForExpense)
 	authRoutes.GET("/branch_expense_images/:id/file", server.getBranchExpenseImageFile)
@@ -407,6 +499,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/branch_shift_receipt_images/:id/rotation", server.rotateBranchShiftReceiptImage)
 	authRoutes.PUT("/branch_shift_receipt_images/:id/replace", server.replaceBranchShiftReceiptImage)
 	authRoutes.GET("/branch_invoices", server.listBranchInvoices)
+	authRoutes.DELETE("/branch_invoices/:id", server.deleteBranchInvoice)
 	authRoutes.GET("/branch_sync_conflicts", server.listBranchSyncConflicts)
 	authRoutes.GET("/branch_sync_conflicts/summary", server.branchSyncConflictSummary)
 	authRoutes.POST("/branch_sync_conflicts/bulk_resolve", server.bulkResolveBranchSyncConflicts)
@@ -419,10 +512,12 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/branch_shifts", server.listBranchShifts)
 	authRoutes.GET("/branch_visitor_events", server.listBranchVisitorDays)
 	authRoutes.GET("/branch_visitor_stats", server.listBranchVisitorStats)
+	authRoutes.GET("/busy_hours", server.getBusyHours)
 	authRoutes.GET("/branch_invoice_settlements", server.listBranchInvoiceSettlements)
 	authRoutes.GET("/branch_attendance_changes", server.listBranchAttendanceChanges)
 	authRoutes.GET("/branch_attendance_changes/pending", server.listPendingBranchAttendanceRequests)
 	authRoutes.GET("/branch_attendance_events", server.listBranchAttendanceEvents)
+	authRoutes.GET("/branch_attendance_events/range", server.listBranchAttendanceEventsInRange)
 	authRoutes.POST("/branch_attendance_events/import", server.importBranchAttendanceEventsCSV)
 	authRoutes.PUT("/branch_attendance_events/:id", server.updateBranchAttendanceEvent)
 	authRoutes.DELETE("/branch_attendance_events/:id", server.deleteBranchAttendanceEvent)
@@ -496,6 +591,7 @@ func (server *Server) setupRoutes() {
 
 	// Security page (admin-only: not in access.go's routeRules).
 	authRoutes.GET("/security/overview", server.getSecurityOverview)
+	authRoutes.GET("/security/alerts/open_count", server.countOpenSecurityAlerts)
 	authRoutes.GET("/security/visitors", server.listSecurityVisitors)
 	authRoutes.POST("/security/alerts/acknowledge", server.acknowledgeSecurityAlerts)
 	authRoutes.PUT("/security/settings", server.updateSecuritySettings)
@@ -514,8 +610,11 @@ func (server *Server) setupRoutes() {
 	branchRoutes.POST("/exchange_invoices", server.createBranchExchangeInvoice)
 	branchRoutes.POST("/expenses", server.createBranchExpense)
 	branchRoutes.POST("/loans", server.createBranchLoan)
+	branchRoutes.POST("/loans/cancel", server.branchCancelLoan)
+	branchRoutes.POST("/expenses/cancel", server.branchCancelExpense)
 	branchRoutes.POST("/shift_closes", server.createBranchShiftClose)
 	branchRoutes.POST("/whatsapp/thank_you", server.sendBranchWhatsAppThankYou)
+	branchRoutes.POST("/whatsapp/welcome", server.sendBranchWhatsAppWelcome)
 	branchRoutes.POST("/visitor_events", server.createBranchVisitorEvent)
 	branchRoutes.POST("/visitor_events_batch", server.createBranchVisitorEvents)
 	branchRoutes.POST("/invoice_settlements", server.createBranchInvoiceSettlement)
@@ -539,12 +638,20 @@ func (server *Server) setupRoutes() {
 	branchRoutes.POST("/commands/:id/ack", server.ackBranchCommand)
 	branchRoutes.GET("/expenses/upload_status", server.branchExpenseUploadStatus)
 	branchRoutes.GET("/expense_photos", server.branchExpensePhotos)
+	branchRoutes.GET("/expense_photos/first", server.branchExpensePhotoFirst)
 	branchRoutes.GET("/expense_photos/:id/file", server.branchExpensePhotoFile)
 	branchRoutes.GET("/transfer_photo", server.branchTransferPhoto)
 	branchRoutes.GET("/loan_photos", server.branchLoanPhotos)
+	branchRoutes.GET("/loan_photos/first", server.branchLoanPhotoFirst)
 	branchRoutes.GET("/loan_photos/:id/file", server.branchLoanPhotoFile)
 	branchRoutes.POST("/expenses/upload_link", server.branchExpenseUploadLink)
 	branchRoutes.POST("/loans/upload_link", server.branchLoanUploadLink)
+	branchRoutes.POST("/unknown_sessions", server.createUnknownSession)
+	branchRoutes.GET("/unknown_sessions/status", server.branchUnknownSessionStatus)
+	branchRoutes.POST("/unknown_sessions/help", server.requestUnknownSessionHelp)
+	branchRoutes.POST("/expenses/category", server.setBranchExpenseCategory)
+	branchRoutes.POST("/expenses/from_central", server.setBranchExpenseFromCentral)
+	branchRoutes.POST("/loans/category", server.setBranchLoanCategory)
 	branchRoutes.GET("/shift_closes/upload_status", server.branchShiftUploadStatus)
 	branchRoutes.POST("/shift_receipt_images", server.createBranchShiftReceiptImage)
 	branchRoutes.POST("/transfer_requests", server.createBranchTransferRequest)
@@ -558,6 +665,13 @@ func (server *Server) setupRoutes() {
 	// kashi-pos shows has no kashi login and shouldn't need one. Every
 	// handler here re-validates its own one-time token instead of relying
 	// on any auth middleware -- see expense_upload.go.
+	// unknown_uploads is public the same way: the phone that scanned a till's
+	// QR code has no login, and every route checks the session token.
+	router.GET("/unknown_uploads/:token", server.unknownUploadPage)
+	router.GET("/unknown_uploads/:token/status", server.unknownUploadStatus)
+	router.GET("/unknown_uploads/:token/images/:image_id", server.unknownUploadImageFile)
+	router.POST("/unknown_uploads/:token/slots/:slot_ref/image", server.uploadUnknownSlotImage)
+	router.POST("/unknown_uploads/:token/slots/:slot_ref/copy", server.copyUnknownSlotImage)
 	router.GET("/expense_uploads/:token", server.expenseUploadPage)
 	router.GET("/expense_uploads/:token/status", server.expenseUploadStatus)
 	router.POST("/expense_uploads/:token/images", server.uploadExpenseImages)
@@ -581,8 +695,46 @@ func (server *Server) setupRoutes() {
 	server.router = router
 }
 
+// shutdownGracePeriod bounds how long Start waits, after SIGTERM/SIGINT,
+// for in-flight requests to finish before forcing the listener closed. A
+// deploy's `systemctl restart` sends SIGTERM and otherwise (gin's plain
+// router.Run, which this replaces, never caught it at all) kills whatever
+// request a branch till or the admin UI happened to have in flight at that
+// exact instant -- not data-damaging on its own (createBranchInvoice's
+// client_ref is upsert-idempotent, a retried request just finds its own
+// row already there), but still a request someone was waiting on that
+// failed for no reason. This keeps the listener open long enough for that
+// request to complete normally instead.
+const shutdownGracePeriod = 20 * time.Second
+
 func (server *Server) Start(address string) error {
 	go server.expireSyncLeasesLoop()
 	go server.listenForSyncChanges()
-	return server.router.Run(address)
+
+	httpServer := &http.Server{Addr: address, Handler: server.router}
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	serveErr := make(chan error, 1)
+	go func() {
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serveErr <- err
+		}
+		close(serveErr)
+	}()
+
+	select {
+	case err := <-serveErr:
+		return err
+	case <-ctx.Done():
+		stop() // restore default signal handling in case shutdown itself hangs
+		log.Printf("shutting down: waiting up to %s for in-flight requests", shutdownGracePeriod)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownGracePeriod)
+		defer cancel()
+		if err := httpServer.Shutdown(shutdownCtx); err != nil {
+			return err
+		}
+		return nil
+	}
 }

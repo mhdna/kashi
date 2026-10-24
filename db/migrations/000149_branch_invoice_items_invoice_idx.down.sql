@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS idx_branch_invoice_items_branch_invoice_id;

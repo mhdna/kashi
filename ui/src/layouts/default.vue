@@ -10,8 +10,10 @@
       <v-app-bar-title v-if="!xs">
         <div class="d-flex align-center text-truncate">
           <!--<img class="me-1" src="/everywear.png" style="height: 35px;">-->
-          Kashi Cloud
-          <span v-if="pageTitle" class="ms-2">- {{ pageTitle }}</span>
+          <router-link to="/" class="title-link">Kashi Cloud</router-link>
+          <span v-if="pageTitle" class="ms-2">
+            - <router-link :to="route.path" class="title-link">{{ pageTitle }}</router-link>
+          </span>
         </div>
       </v-app-bar-title>
       <v-spacer v-else />
@@ -21,6 +23,7 @@
         <SyncCard />
         <ConnectedBranchesCard />
         <SyncingBranchesCard />
+        <BranchDiscountButton />
         <CommandPalette />
         <!-- <NotificationMenu class="me-4" /> -->
         <!-- <v-icon icon="mdi-translate" /> -->
@@ -66,19 +69,28 @@
         </div>
       </div>
 
-      <Suspense>
-        <template #default>
-          <router-view />
-        </template>
+      <!-- Pages wait for the settings: a table reads its rows-per-page when it
+           mounts, so it has to know the setting by then. -->
+      <v-defaults-provider v-if="settingsStore.loaded" :defaults="tableDefaults">
+        <Suspense>
+          <template #default>
+            <router-view />
+          </template>
 
-        <template #fallback>
-          <v-container class="fill-height">
-            <v-row align="center" justify="center">
-              <v-progress-circular color="primary" indeterminate size="64" />
-            </v-row>
-          </v-container>
-        </template>
-      </Suspense>
+          <template #fallback>
+            <v-container class="fill-height">
+              <v-row align="center" justify="center">
+                <v-progress-circular color="primary" indeterminate size="64" />
+              </v-row>
+            </v-container>
+          </template>
+        </Suspense>
+      </v-defaults-provider>
+      <v-container v-else class="fill-height">
+        <v-row align="center" justify="center">
+          <v-progress-circular color="primary" indeterminate size="64" />
+        </v-row>
+      </v-container>
     </div>
   </v-main>
   <!-- <AppFooter /> -->
@@ -86,12 +98,13 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useDisplay } from "vuetify";
 import AppNotifications from "@/components/AppNotifications.vue";
 import BranchActivityToast from "@/components/BranchActivityToast.vue";
 import ToggleTheme from "@/components/Buttons/ToggleTheme.vue";
+import BranchDiscountButton from "@/components/BranchDiscountButton.vue";
 import CommandPalette from "@/components/CommandPalette.vue";
 import ConnectedBranchesCard from "@/components/ConnectedBranchesCard.vue";
 import OnlineUsersStack from "@/components/OnlineUsersStack.vue";
@@ -111,6 +124,11 @@ const themeOptions = [
   { value: "dark", title: "Dark", icon: "mdi-weather-night" },
 ];
 const settingsStore = useSettingsStore();
+// Every table starts at the Rows per table setting (Settings > General).
+const tableDefaults = computed(() => ({
+  VDataTable: { itemsPerPage: settingsStore.tablePageSize },
+  VDataTableServer: { itemsPerPage: settingsStore.tablePageSize },
+}));
 // Loads the global app settings (activity display prefs, financials high
 // season months) once per session -- BranchActivityToast/SyncCard read
 // settingsStore's activity fields reactively, so this can resolve after
@@ -159,6 +177,14 @@ router.afterEach(() => {
 </script>
 
 <style scoped>
+.title-link {
+  color: inherit;
+  text-decoration: none;
+}
+.title-link:hover {
+  text-decoration: underline;
+}
+
 /*@import url("https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap");*/
 
 .page-wrapper {

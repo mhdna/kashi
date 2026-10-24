@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>GB</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --text: #1a1a1a;
+    --text-muted: #6b6b6b;
+    --border: #e0e0e0;
+    --primary: #1565c0;
+    --error: #b3261e;
+    --success: #2e7d32;
+  }
+  /* light unless the server marks the page follow-system (an app setting) */
+  :root { color-scheme: light; }
+  :root.follow-system { color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) {
+    :root.follow-system {
+      --bg: #000000;
+      --surface: #000000;
+      --text: #f2f2f2;
+      --text-muted: #9a9a9a;
+      --border: #2a2a2a;
+      --primary: #42a5f5;
+      --error: #f2b8b5;
+      --success: #6fbf73;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .app-icon {
+    width: 96px;
+    height: 96px;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+  .card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 24px 20px;
+  }
+  h1 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0 0 2px;
+  }
+  .meta {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin: 0 0 20px;
+  }
+  .bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin: 0 0 16px;
+  }
+  .bar i {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--success);
+    transition: width 0.2s;
+  }
+  .item {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  .item.done { border-color: var(--success); }
+  .head {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+  .price { color: var(--text-muted); font-weight: 400; }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .thumb {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .state {
+    flex: 1;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+  .state.ok { color: var(--success); }
+  .state.err { color: var(--error); }
+  button, .btn {
+    display: inline-block;
+    padding: 9px 14px;
+    border: none;
+    border-radius: 6px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .btn.ghost, button.ghost {
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid var(--border);
+  }
+  input[type="file"] { display: none; }
+  .center { text-align: center; }
+  .checkmark {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 2px solid var(--success);
+    color: var(--success);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    margin: 4px auto 16px;
+  }
+  .error { color: var(--error); font-size: 0.82rem; }
+
+  /* one plain look: centered, high on the screen, black/white only (red for errors) */
+  :root { --primary: var(--text); --success: var(--text); }
+  body { justify-content: flex-start; padding-top: 7vh; }
+  .app-icon { width: 128px; height: 128px; margin-bottom: 4px; }
+  .card { border: 0; text-align: center; }
+  button, .btn { color: var(--bg); }
+  .btn.ghost, button.ghost { color: var(--text); }
+  .previews { justify-content: center; }
+  input[type="file"], input[type=file] { text-align: center; }
+  .item { text-align: center; }
+  .item.done { border-color: var(--border); }
+  .head { justify-content: center; }
+  .row { justify-content: center; }
+  .state { flex: 0 1 auto; }
+  .state.ok { color: var(--text-muted); }
+  .notice { min-height: 3.4rem; margin: 0 0 12px; visibility: hidden; }
+  .notice.on { visibility: visible; }
+  .notice b { display: block; font-size: 1.05rem; }
+  .notice span { font-size: 0.85rem; color: var(--text-muted); }
+  .code { font-size: 3rem; font-weight: 700; line-height: 1; margin: 8px 0 12px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+  <svg class="app-icon" role="img" aria-label="GB" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 336 336"><path fill="currentColor" transform="matrix(1 0 0 -1 0 336)" d="M89 245 c-84 -23 -67 -156 20 -156 43 0 70 28 70 72 l0 16 -36 0 -35 0 0 -13 1 -13 17 -1 17 0 0 -3 c0 -30 -46 -35 -64 -7 -29 46 27 103 62 62 4 -6 2 -7 16 7 l10 12 -7 7 c-17 16 -47 23 -71 17zM195 244 c-1 0 -1 -34 -1 -76 l0 -76 34 0 c38 0 43 1 53 6 31 17 27 67 -6 74 -5 0 -5 1 0 5 26 18 15 58 -16 66 -6 1 -63 3 -64 1z m52 -29 c16 -8 8 -29 -11 -30 l-7 0 0 16 0 17 7 0 c3 -1 9 -2 11 -3z m3 -61 c10 -2 14 -7 15 -15 3 -13 -6 -20 -26 -20 l-9 0 -1 18 0 18 7 0 c4 0 10 -1 14 -1z"/></svg>
+  <div class="card">
+    <div id="content" hidden>
+      <h1>Unknown items</h1>
+      <p class="meta">Take a picture of each item.<br>
+        <span dir="rtl" lang="ar">التقط صورة لكل قطعة غير معروف كودها طبقا للسعر</span></p>
+      <div class="notice" id="done"><b>✓ All pictures sent</b>
+        <span>You can close this page. <span dir="rtl" lang="ar">يمكنك إغلاق هذه الصفحة.</span></span></div>
+      <div class="bar"><i id="bar"></i></div>
+      <div id="list"></div>
+    </div>
+    <div id="invalid" class="center" hidden>
+      <div class="code">404</div>
+      <p class="meta">Link unreachable<br><span dir="rtl" lang="ar">الرابط غير متاح</span></p>
+    </div>
+    <p id="fatal" class="error" hidden></p>
+  </div>
+<script>
+(function () {
+  // This page's own path (/unknown_uploads/<token>, or /api/unknown_uploads/
+  // <token> behind the prod proxy); every call hangs off it.
+  var base = location.pathname.replace(/\/+$/, '');
+  var slots = [], local = {}, busy = {}, errors = {}, wasDone = null;
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function isDone(s) { return s.has_image || s.waived; }
+
+  function render() {
+    var list = document.getElementById('list');
+    list.textContent = '';
+    var pictured = slots.filter(function (s) { return s.has_image; });
+    slots.forEach(function (slot, i) {
+      var card = el('div', 'item' + (isDone(slot) ? ' done' : ''));
+      var head = el('div', 'head');
+      head.appendChild(el('span', '', '#' + (i + 1) + ' \u00b7 ' + (slot.label || 'Unknown item')));
+      head.appendChild(el('span', 'price', '$' + (slot.unit_price / 100).toFixed(2)));
+      card.appendChild(head);
+
+      var row = el('div', 'row');
+      var src = local[slot.slot_ref] || (slot.has_image ? base + '/images/' + slot.image_id + '?w=160' : '');
+      if (src) { var img = el('img', 'thumb'); img.src = src; img.alt = ''; row.appendChild(img); }
+      var status = el('span', 'state');
+      if (busy[slot.slot_ref]) status.textContent = 'Sending\u2026';
+      else if (errors[slot.slot_ref]) { status.textContent = errors[slot.slot_ref]; status.className += ' err'; }
+      else if (slot.has_image) { status.textContent = 'Sent'; status.className += ' ok'; }
+      else if (slot.waived) { status.textContent = 'Allowed without a picture'; status.className += ' ok'; }
+      else status.textContent = 'Needs a picture';
+      row.appendChild(status);
+
+      var label = el('label', 'btn' + (slot.has_image ? ' ghost' : ''), slot.has_image ? 'Retake' : 'Take picture');
+      var input = el('input'); input.type = 'file'; input.accept = 'image/*'; input.setAttribute('capture', 'environment');
+      input.addEventListener('change', function () { if (input.files[0]) upload(slot, input.files[0]); });
+      label.appendChild(input);
+      row.appendChild(label);
+      card.appendChild(row);
+
+      // "Same as #N": reuse another unit's picture instead of taking a new one.
+      var seen = {};
+      var others = pictured.filter(function (o) {
+        if (o.slot_ref === slot.slot_ref || seen[o.image_id]) return false;
+        seen[o.image_id] = 1;
+        return true;
+      });
+      if (others.length && !isDone(slot)) {
+        var copies = el('div', 'row');
+        copies.appendChild(el('span', 'state', 'Same as'));
+        others.forEach(function (o) {
+          var b = el('button', 'ghost', '#' + (slots.indexOf(o) + 1));
+          b.type = 'button';
+          b.addEventListener('click', function () { copyFrom(slot, o); });
+          copies.appendChild(b);
+        });
+        card.appendChild(copies);
+      }
+      list.appendChild(card);
+    });
+    var doneCount = slots.filter(isDone).length;
+    document.getElementById('bar').style.width = slots.length ? (100 * doneCount / slots.length) + '%' : '0';
+    var allDone = !!slots.length && doneCount === slots.length;
+    document.getElementById('done').classList.toggle('on', allDone);
+    // Closes the tab once the last picture lands, when the browser lets this
+    // page do so (only a tab a script opened can be closed).
+    if (allDone && wasDone === false) setTimeout(function () { try { window.close(); } catch (e) {} }, 2500);
+    wasDone = allDone;
+  }
+
+  // Shrinks a phone photo to ~900px JPEG before sending: tens of KB
+  // instead of several MB, which is what makes the upload near-instant.
+  function shrink(file) {
+    if (!window.createImageBitmap) return Promise.resolve(file);
+    return createImageBitmap(file, { imageOrientation: 'from-image' }).then(function (bmp) {
+      var k = Math.min(1, 900 / Math.max(bmp.width, bmp.height));
+      var c = document.createElement('canvas');
+      c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+      return new Promise(function (res, rej) {
+        c.toBlob(function (b) { b ? res(b) : rej(new Error('encode')); }, 'image/jpeg', 0.65);
+      });
+    }, function () { return file; });
+  }
+
+  function refresh() {
+    return fetch(base + '/status').then(function (r) {
+      if (!r.ok) { var err = new Error('Could not load.'); err.gone = r.status === 404; throw err; }
+      return r.json();
+    }).then(function (data) {
+      slots = data.slots || [];
+      document.getElementById('content').hidden = false;
+      render();
+    });
+  }
+
+  // A dead link (never valid, expired, or its sale has landed) shows only the
+  // logo and a 404, none of the page's details.
+  function showInvalid() {
+    document.getElementById('content').hidden = true;
+    document.getElementById('fatal').hidden = true;
+    document.getElementById('invalid').hidden = false;
+  }
+
+  function upload(slot, file) {
+    busy[slot.slot_ref] = true; delete errors[slot.slot_ref];
+    local[slot.slot_ref] = URL.createObjectURL(file);
+    render();
+    shrink(file).then(function (blob) {
+      var fd = new FormData();
+      fd.append('image', blob, 'item.jpg');
+      return fetch(base + '/slots/' + encodeURIComponent(slot.slot_ref) + '/image', { method: 'POST', body: fd });
+    }).then(function (r) {
+      if (!r.ok) throw new Error('Upload failed');
+      return r.json().then(function (data) { slots = data.slots || slots; });
+    }).catch(function () {
+      errors[slot.slot_ref] = 'Failed \u2014 tap Retake';
+      delete local[slot.slot_ref];
+    }).then(function () { delete busy[slot.slot_ref]; render(); });
+  }
+
+  function copyFrom(slot, source) {
+    busy[slot.slot_ref] = true; render();
+    fetch(base + '/slots/' + encodeURIComponent(slot.slot_ref) + '/copy', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from_slot_ref: source.slot_ref })
+    }).then(function (r) {
+      if (!r.ok) throw new Error('copy');
+      return r.json().then(function (data) { slots = data.slots || slots; });
+    }).catch(function () { errors[slot.slot_ref] = 'Failed \u2014 try again'; })
+      .then(function () { delete busy[slot.slot_ref]; render(); });
+  }
+
+  refresh().catch(function (e) {
+    if (e.gone) { showInvalid(); return; }
+    var f = document.getElementById('fatal'); f.hidden = false; f.textContent = e.message;
+  });
+  setInterval(function () {
+    if (!Object.keys(busy).length) refresh().catch(function (e) { if (e.gone) showInvalid(); });
+  }, 4000);
+})();
+</script>
+</body>
+</html>

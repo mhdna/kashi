@@ -5,6 +5,13 @@ body,
   -webkit-user-select: none;
 }
 
+// No rubber-band overscroll: on a Mac trackpad, scrolling past the top or
+// bottom of a page pulled it away and showed blank background behind it.
+html,
+body {
+  overscroll-behavior: none;
+}
+
 input,
 textarea,
 [contenteditable='true'],

@@ -27,7 +27,7 @@
           density="comfortable"
           :headers="headers"
           :items="invoiceTypes"
-          :items-per-page-options="[14, 25, 50, 100]"
+          :items-per-page-options="[15, 25, 50, 100]"
           :loading="loading"
           @click:row="openRow"
         >

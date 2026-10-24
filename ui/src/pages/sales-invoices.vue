@@ -348,6 +348,7 @@
 <script setup lang="ts">
   import { useField, useForm } from 'vee-validate'
   import { computed, ref } from 'vue'
+  import { useRoute } from 'vue-router'
   import InvoiceTypesDialog from '@/components/InvoiceTypesDialog.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useBranches } from '@/composables/useBranches'
@@ -356,8 +357,8 @@
   import { useClients } from '@/composables/useClients'
   import { useInventories } from '@/composables/useInventories'
   import { useInvoiceDetails } from '@/composables/useInvoiceDetails'
-  import { usePageAccess } from '@/composables/usePageAccess'
   import { useNotify } from '@/composables/useNotify'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { usePosSettings } from '@/composables/usePosSettings'
   import { usePriceLists } from '@/composables/usePriceLists'
   import { useSalesInvoices } from '@/composables/useSalesInvoices'
@@ -413,11 +414,13 @@
     { title: '', key: 'actions', align: 'end', sortable: false },
   ])
 
+  const route = useRoute()
   const tableRef = ref(null)
   const dialog = ref(false)
   const invoiceTypesDialog = ref(false)
   const invoiceTab = ref('retail')
-  const retailSearch = ref('')
+  // ?search= (from the app bar's Branch sync list) prefills the retail search.
+  const retailSearch = ref(typeof route.query.search === 'string' ? route.query.search : '')
   const retailBranchFilter = ref(null)
   const wholesaleSearch = ref('')
   const submitting = ref(false)

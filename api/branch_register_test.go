@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 	mockdb "github.com/mhdna/kashi/db/mock"
 	db "github.com/mhdna/kashi/db/sqlc"
@@ -159,6 +160,44 @@ func TestCreateBranchCommand_RemoteReturnGoesToTheSellingRegister(t *testing.T) 
 	rec := adminRequest(t, server, http.MethodPost, fmt.Sprintf("/branches/%d/commands", buBranchID), map[string]any{
 		"type":    "remote_return_invoice",
 		"payload": map[string]any{"branch_invoice_id": 3, "client_ref": "sale-1"},
+	})
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+}
+
+func TestCreateBranchCommand_RemoteExchangeSendsTheTillItsOwnProductKeys(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	uid := uuid.New()
+
+	store.EXPECT().GetBranch(gomock.Any(), buBranchID).Return(db.Branch{ID: buBranchID}, nil)
+	store.EXPECT().
+		GetBranchInvoiceByClientRef(gomock.Any(), gomock.Any()).
+		Return(db.BranchInvoice{ID: 3, BranchID: buBranchID, RegisterID: 22, Kind: "sales"}, nil)
+	store.EXPECT().GetProductVariant(gomock.Any(), int64(7)).
+		Return(db.ProductVariant{ID: 7, Uid: uid, Barcode: "1234", IsActive: true}, nil)
+	store.EXPECT().
+		CreateBranchCommand(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, arg db.CreateBranchCommandParams) (db.BranchCommand, error) {
+			var sent struct {
+				ClientRef    string                     `json:"client_ref"`
+				Items        []map[string]any           `json:"items"`
+				Replacements []remoteReplacementPayload `json:"replacements"`
+			}
+			require.NoError(t, json.Unmarshal(arg.Payload, &sent))
+			require.Equal(t, "sale-1", sent.ClientRef)
+			require.Len(t, sent.Items, 1)
+			require.Equal(t, []remoteReplacementPayload{{ProductUID: uid.String(), Barcode: "1234", Quantity: 2}}, sent.Replacements)
+			return db.BranchCommand{ID: 1, RegisterID: arg.RegisterID}, nil
+		})
+
+	server := newTestServer(t, store)
+	rec := adminRequest(t, server, http.MethodPost, fmt.Sprintf("/branches/%d/commands", buBranchID), map[string]any{
+		"type": "remote_return_invoice",
+		"payload": map[string]any{
+			"client_ref":   "sale-1",
+			"items":        []map[string]any{{"branch_product_id": 15499, "quantity": 1}},
+			"replacements": []map[string]any{{"variant_id": 7, "quantity": 2}},
+		},
 	})
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 }
