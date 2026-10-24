@@ -770,6 +770,8 @@ type BranchInvoiceItem struct {
 	Quantity        int64         `json:"quantity"`
 	ProductUid      uuid.NullUUID `json:"product_uid"`
 	Unknown         bool          `json:"unknown"`
+	Deal            string        `json:"deal"`
+	DealDiscount    int64         `json:"deal_discount"`
 }
 
 type BranchInvoicePayment struct {

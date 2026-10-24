@@ -51,8 +51,10 @@ INSERT INTO branch_invoice_items (
   discount,
   quantity,
   product_uid,
-  unknown
-) VALUES ( $1, $2, $3, $4, $5, $6, $7, $8 )
+  unknown,
+  deal,
+  deal_discount
+) VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 )
 RETURNING *;
 
 -- name: ListBranchInvoiceItems :many
