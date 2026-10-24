@@ -9051,6 +9051,21 @@ func (mr *MockStoreMockRecorder) ListDiscountListsForBranchSync(arg0, arg1 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDiscountListsForBranchSync", reflect.TypeOf((*MockStore)(nil).ListDiscountListsForBranchSync), arg0, arg1)
 }
 
+// ListDiscountListsRemovedFromBranch mocks base method.
+func (m *MockStore) ListDiscountListsRemovedFromBranch(arg0 context.Context, arg1 db.ListDiscountListsRemovedFromBranchParams) ([]db.ListDiscountListsRemovedFromBranchRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListDiscountListsRemovedFromBranch", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListDiscountListsRemovedFromBranchRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListDiscountListsRemovedFromBranch indicates an expected call of ListDiscountListsRemovedFromBranch.
+func (mr *MockStoreMockRecorder) ListDiscountListsRemovedFromBranch(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDiscountListsRemovedFromBranch", reflect.TypeOf((*MockStore)(nil).ListDiscountListsRemovedFromBranch), arg0, arg1)
+}
+
 // ListDueEmailSchedules mocks base method.
 func (m *MockStore) ListDueEmailSchedules(arg0 context.Context) ([]db.EmailSchedule, error) {
 	m.ctrl.T.Helper()
@@ -9664,6 +9679,21 @@ func (m *MockStore) ListPriceListsForBranchSync(arg0 context.Context, arg1 db.Li
 func (mr *MockStoreMockRecorder) ListPriceListsForBranchSync(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPriceListsForBranchSync", reflect.TypeOf((*MockStore)(nil).ListPriceListsForBranchSync), arg0, arg1)
+}
+
+// ListPriceListsRemovedFromBranch mocks base method.
+func (m *MockStore) ListPriceListsRemovedFromBranch(arg0 context.Context, arg1 db.ListPriceListsRemovedFromBranchParams) ([]db.ListPriceListsRemovedFromBranchRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListPriceListsRemovedFromBranch", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListPriceListsRemovedFromBranchRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListPriceListsRemovedFromBranch indicates an expected call of ListPriceListsRemovedFromBranch.
+func (mr *MockStoreMockRecorder) ListPriceListsRemovedFromBranch(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPriceListsRemovedFromBranch", reflect.TypeOf((*MockStore)(nil).ListPriceListsRemovedFromBranch), arg0, arg1)
 }
 
 // ListProductAttributes mocks base method.

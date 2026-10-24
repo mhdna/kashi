@@ -128,6 +128,18 @@ func (server *Server) priceListsForBranchSync(ctx *gin.Context, branchID int64, 
 		}
 		out = append(out, entry)
 	}
+
+	// Lists the branch was taken off go to it as inactive, so its till
+	// drops them (000206).
+	removed, err := server.store.ListPriceListsRemovedFromBranch(ctx, db.ListPriceListsRemovedFromBranchParams{
+		BranchID: branchID, Since: since,
+	})
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range removed {
+		out = append(out, syncPriceList{UID: r.Uid, Name: r.Name, UpdatedAt: r.RemovedAt, Items: []syncPriceListItem{}})
+	}
 	return out, nil
 }
 
@@ -194,6 +206,20 @@ func (server *Server) discountListsForBranchSync(ctx *gin.Context, branchID int6
 			}
 		}
 		out = append(out, entry)
+	}
+
+	// As for price lists: a list the branch was taken off goes as inactive.
+	removed, err := server.store.ListDiscountListsRemovedFromBranch(ctx, db.ListDiscountListsRemovedFromBranchParams{
+		BranchID: branchID, Since: since,
+	})
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range removed {
+		out = append(out, syncDiscountList{
+			UID: r.Uid, Name: r.Name, UpdatedAt: r.RemovedAt,
+			Items: []syncDiscountListItem{}, OptionItems: []syncDiscountListOptionItem{}, Deals: []syncDeal{},
+		})
 	}
 	return out, nil
 }
