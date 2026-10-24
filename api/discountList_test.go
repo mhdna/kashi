@@ -73,11 +73,29 @@ func TestSetDiscountListBranchesAPI(t *testing.T) {
 			},
 		},
 		{
+			// A list that is off discounts nothing: the branch just moves.
+			name: "MovesOffAnInactiveList",
+			body: map[string]any{"branch_ids": []int64{10}},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetDiscountListBranch(gomock.Any(), gomock.Eq(int64(10))).
+					Return(db.DiscountListBranch{BranchID: 10, DiscountListID: 2}, nil)
+				store.EXPECT().GetDiscountList(gomock.Any(), gomock.Eq(int64(2))).
+					Return(db.DiscountList{ID: 2, IsActive: false, ValidFrom: time.Now().Add(-time.Hour), ValidTo: time.Now().Add(time.Hour)}, nil)
+				store.EXPECT().DeleteDiscountListBranchesForList(gomock.Any(), gomock.Eq(int64(1))).Return(nil)
+				store.EXPECT().UpsertDiscountListBranch(gomock.Any(), db.UpsertDiscountListBranchParams{BranchID: 10, DiscountListID: 1}).Return(nil)
+			},
+			checkResponse: func(t *testing.T, rec *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, rec.Code)
+			},
+		},
+		{
 			name: "ConflictWithAnotherList",
 			body: map[string]any{"branch_ids": []int64{10}},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().GetDiscountListBranch(gomock.Any(), gomock.Eq(int64(10))).
 					Return(db.DiscountListBranch{BranchID: 10, DiscountListID: 2}, nil)
+				store.EXPECT().GetDiscountList(gomock.Any(), gomock.Eq(int64(2))).
+					Return(db.DiscountList{ID: 2, Name: "Centro", IsActive: true, ValidFrom: time.Now().Add(-time.Hour), ValidTo: time.Now().Add(time.Hour)}, nil)
 				store.EXPECT().DeleteDiscountListBranchesForList(gomock.Any(), gomock.Any()).Times(0)
 				store.EXPECT().UpsertDiscountListBranch(gomock.Any(), gomock.Any()).Times(0)
 			},
