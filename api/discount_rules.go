@@ -108,6 +108,9 @@ func (server *Server) listDiscountListRules(ctx *gin.Context) {
 }
 
 type discountRuleRequest struct {
+	// The saved rule this is (from the GET), 0 for a new one: saved rules
+	// are updated in place, see ReplaceDiscountListRuleGroupsTx.
+	ID                 int64    `json:"id"`
 	Name               string   `json:"name"`
 	CodePrefixes       []string `json:"code_prefixes"`
 	ExceptCodePrefixes []string `json:"except_code_prefixes"`
@@ -129,6 +132,7 @@ type discountRuleRequest struct {
 }
 
 type discountRuleGroupRequest struct {
+	ID      int64                 `json:"id"`
 	Name    string                `json:"name"`
 	Enabled bool                  `json:"enabled"`
 	Rules   []discountRuleRequest `json:"rules" binding:"dive"`
@@ -166,7 +170,7 @@ func (server *Server) setDiscountListRules(ctx *gin.Context) {
 	groups := make([]db.DiscountListRuleGroupInput, len(req.Groups))
 	n := 0 // rules are numbered through the groups in errors, as on the page
 	for g, group := range req.Groups {
-		groups[g] = db.DiscountListRuleGroupInput{Name: strings.TrimSpace(group.Name), Enabled: group.Enabled}
+		groups[g] = db.DiscountListRuleGroupInput{ID: group.ID, Name: strings.TrimSpace(group.Name), Enabled: group.Enabled}
 		for _, r := range group.Rules {
 			n++
 			in, err := server.discountRuleInput(ctx, n, r)
@@ -195,6 +199,7 @@ var errRuleAnswered = errors.New("rule refused")
 // ready to save; a rule that doesn't fit is answered here.
 func (server *Server) discountRuleInput(ctx *gin.Context, i int, r discountRuleRequest) (db.DiscountListRuleInput, error) {
 	in := db.DiscountListRuleInput{
+		ID: r.ID,
 		Rule: db.CreateDiscountListRuleParams{
 			Name:               r.Name,
 			CodePrefixes:       cleanEntries(r.CodePrefixes),
