@@ -172,9 +172,11 @@ INSERT INTO branch_invoice_items (
   discount,
   quantity,
   product_uid,
-  unknown
-) VALUES ( $1, $2, $3, $4, $5, $6, $7, $8 )
-RETURNING id, branch_invoice_id, branch_product_id, unit_price, line_total, discount, quantity, product_uid, unknown
+  unknown,
+  deal,
+  deal_discount
+) VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 )
+RETURNING id, branch_invoice_id, branch_product_id, unit_price, line_total, discount, quantity, product_uid, unknown, deal, deal_discount
 `
 
 type CreateBranchInvoiceItemParams struct {
@@ -186,6 +188,8 @@ type CreateBranchInvoiceItemParams struct {
 	Quantity        int64         `json:"quantity"`
 	ProductUid      uuid.NullUUID `json:"product_uid"`
 	Unknown         bool          `json:"unknown"`
+	Deal            string        `json:"deal"`
+	DealDiscount    int64         `json:"deal_discount"`
 }
 
 func (q *Queries) CreateBranchInvoiceItem(ctx context.Context, arg CreateBranchInvoiceItemParams) (BranchInvoiceItem, error) {
@@ -198,6 +202,8 @@ func (q *Queries) CreateBranchInvoiceItem(ctx context.Context, arg CreateBranchI
 		arg.Quantity,
 		arg.ProductUid,
 		arg.Unknown,
+		arg.Deal,
+		arg.DealDiscount,
 	)
 	var i BranchInvoiceItem
 	err := row.Scan(
@@ -210,6 +216,8 @@ func (q *Queries) CreateBranchInvoiceItem(ctx context.Context, arg CreateBranchI
 		&i.Quantity,
 		&i.ProductUid,
 		&i.Unknown,
+		&i.Deal,
+		&i.DealDiscount,
 	)
 	return i, err
 }
@@ -402,7 +410,7 @@ func (q *Queries) InheritBranchInvoiceCancellation(ctx context.Context, id int64
 
 const listBranchInvoiceItems = `-- name: ListBranchInvoiceItems :many
 SELECT
-  bii.id, bii.branch_invoice_id, bii.branch_product_id, bii.unit_price, bii.line_total, bii.discount, bii.quantity, bii.product_uid, bii.unknown,
+  bii.id, bii.branch_invoice_id, bii.branch_product_id, bii.unit_price, bii.line_total, bii.discount, bii.quantity, bii.product_uid, bii.unknown, bii.deal, bii.deal_discount,
   COALESCE(p.name, '')::text AS product_name,
   COALESCE(p.code, '')::text AS product_code,
   COALESCE(pv.barcode, '')::text AS barcode,
@@ -427,6 +435,8 @@ type ListBranchInvoiceItemsRow struct {
 	Quantity        int64         `json:"quantity"`
 	ProductUid      uuid.NullUUID `json:"product_uid"`
 	Unknown         bool          `json:"unknown"`
+	Deal            string        `json:"deal"`
+	DealDiscount    int64         `json:"deal_discount"`
 	ProductName     string        `json:"product_name"`
 	ProductCode     string        `json:"product_code"`
 	Barcode         string        `json:"barcode"`
@@ -457,6 +467,8 @@ func (q *Queries) ListBranchInvoiceItems(ctx context.Context, branchInvoiceID in
 			&i.Quantity,
 			&i.ProductUid,
 			&i.Unknown,
+			&i.Deal,
+			&i.DealDiscount,
 			&i.ProductName,
 			&i.ProductCode,
 			&i.Barcode,

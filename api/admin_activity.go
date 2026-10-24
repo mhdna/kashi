@@ -89,6 +89,7 @@ var adminResourceNames = map[string]string{
 	"stock_counts":              "stock count",
 	"price_lists":               "price list",
 	"discount_lists":            "discount list",
+	"deals":                     "deal",
 	"coupon_lists":              "coupon list",
 	"coupon_types":              "coupon type",
 	"invoice_types":             "invoice type",

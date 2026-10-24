@@ -32,6 +32,8 @@ type discountRule struct {
 	Brands             []string             `json:"brands"`
 	Discount           int16                `json:"discount"`
 	Options            []discountRuleOption `json:"options"`
+	// The deal the rule puts its products on (000201), 0 for none.
+	DealID int64 `json:"deal_id"`
 	// How many variants the rule decides now, after the rules above it.
 	Variants int64 `json:"variants"`
 }
@@ -56,7 +58,7 @@ func (server *Server) discountListRules(ctx *gin.Context, listID int64) ([]disco
 			CodePrefixes: r.CodePrefixes, ExceptCodePrefixes: r.ExceptCodePrefixes,
 			Kinds: r.Kinds, Categories: r.Categories, SubCategories: r.SubCategories,
 			Origins: r.Origins, Brands: r.Brands,
-			Discount: r.Discount, Options: byRule[r.ID], Variants: r.Variants,
+			Discount: r.Discount, Options: byRule[r.ID], DealID: r.DealID.Int64, Variants: r.Variants,
 		}
 		if rules[i].Options == nil {
 			rules[i].Options = []discountRuleOption{}
@@ -89,7 +91,11 @@ type discountRuleRequest struct {
 	Origins            []string `json:"origins"`
 	Brands             []string `json:"brands"`
 	Discount           int16    `json:"discount" binding:"min=0,max=100"`
-	Options            []struct {
+	DealID             int64    `json:"deal_id" binding:"min=0"`
+	// A rule with no condition takes every product; it has to say so, so an
+	// empty rule saved by mistake doesn't discount the whole shop.
+	AllProducts bool `json:"all_products"`
+	Options     []struct {
 		SaleOptionID int64 `json:"sale_option_id" binding:"required,min=1"`
 		Discount     int16 `json:"discount" binding:"min=0,max=100"`
 	} `json:"options" binding:"dive"`
@@ -133,7 +139,7 @@ func (server *Server) setDiscountListRules(ctx *gin.Context) {
 			Options: map[int64]int16{},
 		}
 		p := in.Rule
-		if len(p.CodePrefixes)+len(p.Kinds)+len(p.Categories)+len(p.SubCategories)+len(p.Origins)+len(p.Brands) == 0 {
+		if len(p.CodePrefixes)+len(p.Kinds)+len(p.Categories)+len(p.SubCategories)+len(p.Origins)+len(p.Brands) == 0 && !r.AllProducts {
 			// A rule with no condition would take every product in the shop.
 			server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("rule %d (%q) has no condition", i+1, r.Name))
 			return
@@ -148,6 +154,20 @@ func (server *Server) setDiscountListRules(ctx *gin.Context) {
 				return
 			}
 			in.Options[o.SaleOptionID] = o.Discount
+		}
+		if r.DealID != 0 {
+			// As for a hand-set row (bindRowDeal): the deal replaces the
+			// discount, whatever the option.
+			if r.Discount != 0 || len(r.Options) > 0 {
+				server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("rule %d (%q): a deal replaces the discount, so it takes no discount or option discounts", i+1, r.Name))
+				return
+			}
+			deal, err := server.dealParam(ctx, r.DealID)
+			if err != nil {
+				server.writeError(ctx, statusForLookup(err), err)
+				return
+			}
+			in.Rule.DealID = deal
 		}
 		inputs[i] = in
 	}
