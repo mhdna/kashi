@@ -299,10 +299,21 @@ func (server *Server) setPriceListBranches(ctx *gin.Context) {
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
 		}
-		if existing.PriceListID != uri.ID {
+		if existing.PriceListID == uri.ID {
+			continue
+		}
+		// As for discount lists: a list that is off or out of its dates
+		// prices nothing, so the branch moves over; one in force is refused.
+		other, err := server.store.GetPriceList(ctx, existing.PriceListID)
+		if err != nil {
+			server.writeError(ctx, statusForLookup(err), err)
+			return
+		}
+		now := time.Now()
+		if other.IsActive && !now.Before(other.ValidFrom) && !now.After(other.ValidTo) {
 			server.writeError(ctx, http.StatusConflict, fmt.Errorf(
-				"branch %d is already assigned to price list %d; remove it there first",
-				branchID, existing.PriceListID))
+				"branch %d is on the price list %q, which is in force; take it off there first",
+				branchID, other.Name))
 			return
 		}
 	}
