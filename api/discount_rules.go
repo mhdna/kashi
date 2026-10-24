@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -35,6 +36,7 @@ type discountRule struct {
 	SubCategories      []string             `json:"sub_categories"`
 	Origins            []string             `json:"origins"`
 	Brands             []string             `json:"brands"`
+	MaxPrice           int64                `json:"max_price"` // only products selling for at most this many cents (000208); 0 for no limit
 	Discount           int16                `json:"discount"`
 	Options            []discountRuleOption `json:"options"`
 	// The deal the rule puts its products on (000201), 0 for none.
@@ -88,7 +90,7 @@ func (server *Server) discountListRuleGroups(ctx *gin.Context, listID int64) ([]
 			ID: r.ID, Name: r.Name,
 			CodePrefixes: r.CodePrefixes, ExceptCodePrefixes: r.ExceptCodePrefixes,
 			Kinds: r.Kinds, Categories: r.Categories, SubCategories: r.SubCategories,
-			Origins: r.Origins, Brands: r.Brands,
+			Origins: r.Origins, Brands: r.Brands, MaxPrice: r.MaxPrice.Int64,
 			Discount: r.Discount, Options: byRule[r.ID], DealID: r.DealID.Int64,
 			Enabled: r.IsEnabled, Variants: r.Variants,
 		}
@@ -133,6 +135,7 @@ type discountRuleRequest struct {
 	SubCategories      []string `json:"sub_categories"`
 	Origins            []string `json:"origins"`
 	Brands             []string `json:"brands"`
+	MaxPrice           int64    `json:"max_price" binding:"min=0"` // cents; 0 for no limit
 	Discount           int16    `json:"discount" binding:"min=0,max=100"`
 	DealID             int64    `json:"deal_id" binding:"min=0"`
 	// A rule with no condition takes every product; it has to say so, so an
@@ -228,8 +231,12 @@ func (server *Server) discountRuleInput(ctx *gin.Context, i int, r discountRuleR
 		},
 		Options: map[int64]int16{},
 	}
+	if r.MaxPrice > 0 {
+		in.Rule.MaxPrice = sql.NullInt64{Int64: r.MaxPrice, Valid: true}
+	}
 	p := in.Rule
-	if len(p.CodePrefixes)+len(p.Kinds)+len(p.Categories)+len(p.SubCategories)+len(p.Origins)+len(p.Brands) == 0 && !r.AllProducts {
+	// A price limit is a condition too: "everything up to $1.11" is a rule.
+	if len(p.CodePrefixes)+len(p.Kinds)+len(p.Categories)+len(p.SubCategories)+len(p.Origins)+len(p.Brands) == 0 && !p.MaxPrice.Valid && !r.AllProducts {
 		// A rule with no condition would take every product in the shop.
 		server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("rule %d (%q) has no condition", i, r.Name))
 		return in, errRuleAnswered
