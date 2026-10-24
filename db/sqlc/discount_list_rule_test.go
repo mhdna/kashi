@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 	"time"
 
@@ -241,4 +242,81 @@ func TestDiscountListRulesSaveInPlace(t *testing.T) {
 		DiscountListID: list.ID, ProductVariantID: variant.ID,
 	})
 	require.Error(t, err)
+}
+
+// A rule with a price limit takes only products selling for at most that
+// ("toys up to $1.11: no discount"), judged by the price in the active price
+// lists, and follows a price change; a product with no price is never taken.
+func TestDiscountListRuleMaxPrice(t *testing.T) {
+	ctx := context.Background()
+	list, err := testQueries.CreateDiscountList(ctx, CreateDiscountListParams{
+		Name: util.RandomString(8), ValidFrom: time.Now(), ValidTo: time.Now().Add(time.Hour),
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = testQueries.DeleteDiscountList(ctx, list.ID) })
+	prices, err := testQueries.CreatePriceList(ctx, CreatePriceListParams{
+		Name: util.RandomString(8), IsActive: true, ValidFrom: time.Now(), ValidTo: time.Now().Add(time.Hour),
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _, _ = testDB.ExecContext(ctx, `DELETE FROM price_lists WHERE id = $1`, prices.ID) })
+
+	kind := "Kind" + util.RandomString(8)
+	_, err = testDB.ExecContext(ctx, `INSERT INTO attributes (id, name) VALUES (3, 'kind') ON CONFLICT DO NOTHING`)
+	require.NoError(t, err)
+	var valueID int64
+	require.NoError(t, testDB.QueryRowContext(ctx, `
+		INSERT INTO attributes_values (attribute_id, value) VALUES (3, $1)
+		ON CONFLICT (attribute_id, value) DO UPDATE SET value = EXCLUDED.value RETURNING id`, kind).Scan(&valueID))
+	cheap, dear, unpriced := createRandomVariant(t), createRandomVariant(t), createRandomVariant(t)
+	for _, v := range []ProductVariant{cheap, dear, unpriced} {
+		_, err := testDB.ExecContext(ctx, `
+			INSERT INTO products_attributes (attribute_id, product_id, attribute_value_id) VALUES (3, $1, $2)`, v.ProductID, valueID)
+		require.NoError(t, err)
+	}
+	setPrice := func(v ProductVariant, cents int64) {
+		_, err := testQueries.CreatePriceListItem(ctx, CreatePriceListItemParams{
+			PriceListID: prices.ID, ProductVariantID: v.ID, Price: cents,
+		})
+		require.NoError(t, err)
+	}
+	setPrice(cheap, 111)
+	setPrice(dear, 500)
+
+	// The cheap ones are kept out (0) above the rule that gives the kind 30%.
+	require.NoError(t, testStore.ReplaceDiscountListRulesTx(ctx, list.ID, []DiscountListRuleInput{
+		{Rule: CreateDiscountListRuleParams{Name: "cheap", Kinds: []string{kind}, MaxPrice: sql.NullInt64{Int64: 111, Valid: true}}},
+		{Rule: CreateDiscountListRuleParams{Name: "kind", Kinds: []string{kind}, Discount: 30}},
+	}))
+
+	has := func(v ProductVariant) bool {
+		_, err := testQueries.GetVariantDiscountFromList(ctx, GetVariantDiscountFromListParams{
+			DiscountListID: list.ID, ProductVariantID: v.ID,
+		})
+		return err == nil
+	}
+	require.False(t, has(cheap), "$1.11 is at the limit: kept out")
+	require.True(t, has(dear), "$5 is over it: 30%")
+	require.True(t, has(unpriced), "no price is never taken by a price limit")
+
+	// The page's count says the same.
+	decided, err := testQueries.CountDiscountListRuleDecided(ctx, list.ID)
+	require.NoError(t, err)
+	counts := map[string]int64{}
+	rules, err := testQueries.ListDiscountListRules(ctx, list.ID)
+	require.NoError(t, err)
+	for _, r := range rules {
+		for _, d := range decided {
+			if d.RuleID == r.ID {
+				counts[r.Name] = d.Variants
+			}
+		}
+	}
+	require.Equal(t, int64(1), counts["cheap"])
+	require.Equal(t, int64(2), counts["kind"])
+
+	// A price change moves a product across the limit, in both directions.
+	setPrice(dear, 100)
+	require.False(t, has(dear), "now $1: kept out")
+	setPrice(cheap, 999)
+	require.True(t, has(cheap), "now $9.99: 30%")
 }
