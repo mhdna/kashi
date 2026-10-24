@@ -10,8 +10,10 @@
       <v-app-bar-title v-if="!xs">
         <div class="d-flex align-center text-truncate">
           <!--<img class="me-1" src="/everywear.png" style="height: 35px;">-->
-          Kashi Cloud
-          <span v-if="pageTitle" class="ms-2">- {{ pageTitle }}</span>
+          <router-link to="/" class="title-link">Kashi Cloud</router-link>
+          <span v-if="pageTitle" class="ms-2">
+            - <router-link :to="route.path" class="title-link">{{ pageTitle }}</router-link>
+          </span>
         </div>
       </v-app-bar-title>
       <v-spacer v-else />
@@ -175,6 +177,14 @@ router.afterEach(() => {
 </script>
 
 <style scoped>
+.title-link {
+  color: inherit;
+  text-decoration: none;
+}
+.title-link:hover {
+  text-decoration: underline;
+}
+
 /*@import url("https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap");*/
 
 .page-wrapper {
