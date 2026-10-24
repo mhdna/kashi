@@ -73,6 +73,7 @@ type defaultBranchSettings struct {
 	PriceEditRestricted              *bool  `json:"price_edit_restricted,omitempty"`
 	DiscountToggle                   *bool  `json:"discount_toggle,omitempty"`
 	DiscountToggleDefaultOff         *bool  `json:"discount_toggle_default_off,omitempty"`
+	DealToggle                       *bool  `json:"deal_toggle,omitempty"`
 	SoundsEnabled                    *bool  `json:"sounds_enabled,omitempty"`
 	AttendanceManagerApprovalEnabled *bool  `json:"attendance_manager_approval_enabled,omitempty"`
 	ShiftReportSignatures            *bool  `json:"shift_report_signatures,omitempty"`
