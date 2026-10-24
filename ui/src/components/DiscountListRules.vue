@@ -5,6 +5,10 @@
   matches decides its discount; saving writes the rules out as the list's
   rows below, and kashi keeps them in step as products change. A row set
   by hand beats the rules.
+
+  Rules sit in named groups (000203) -- "Exclusions", "Winter sale" -- and
+  each group and each rule has an on/off switch; one that is off decides
+  nothing. Switches, like every other change here, take effect on Save.
 -->
 <template>
   <div class="px-4 pt-3 pb-1">
@@ -20,12 +24,28 @@
           text="Not saved"
           variant="tonal"
         />
+        <v-switch
+          v-if="ruleCount > 0"
+          v-model="allOn"
+          class="flex-grow-0"
+          color="primary"
+          density="compact"
+          hide-details
+          label="All on"
+        />
+        <v-btn
+          prepend-icon="mdi-plus-box-outline"
+          size="small"
+          text="Add group"
+          variant="tonal"
+          @click="openGroup(-1)"
+        />
         <v-btn
           prepend-icon="mdi-plus"
           size="small"
           text="Add rule"
           variant="tonal"
-          @click="openRule(-1)"
+          @click="openRule(groups.length - 1, -1)"
         />
         <v-btn
           color="primary"
@@ -41,23 +61,102 @@
     </div>
 
     <div v-if="loading" class="py-2"><v-progress-linear indeterminate /></div>
-    <div v-else-if="rules.length === 0" class="text-body-2 text-medium-emphasis pb-2">
+    <div v-else-if="groups.length === 0" class="text-body-2 text-medium-emphasis pb-2">
       No rules: this list has only the products added below.
     </div>
     <v-table v-else class="rules-table" density="compact">
       <thead>
         <tr>
+          <th style="width: 56px" />
           <th style="width: 32px">#</th>
           <th>Rule</th>
           <th>Matches</th>
           <th class="text-end">Discount</th>
           <th class="text-end">Products</th>
-          <th v-if="canEdit" style="width: 132px" />
+          <th v-if="canEdit" style="width: 172px" />
         </tr>
       </thead>
-      <tbody>
-        <tr v-for="(rule, i) in rules" :key="i">
-          <td class="text-medium-emphasis">{{ i + 1 }}</td>
+      <tbody v-for="(group, g) in groups" :key="`group-${g}`">
+        <tr class="group-row">
+          <td>
+            <v-switch
+              v-model="group.enabled"
+              color="primary"
+              density="compact"
+              :disabled="!canEdit"
+              hide-details
+              @update:model-value="dirty = true"
+            />
+          </td>
+          <td colspan="5">
+            <span class="font-weight-medium">{{ group.name || 'Untitled group' }}</span>
+            <span class="text-body-2 text-medium-emphasis">
+              · {{ group.rules.length }} {{ group.rules.length === 1 ? 'rule' : 'rules' }}
+              <template v-if="!group.enabled"> · off</template>
+            </span>
+          </td>
+          <td v-if="canEdit" class="text-end text-no-wrap">
+            <v-btn
+              density="comfortable"
+              :disabled="g === 0"
+              icon="mdi-arrow-up"
+              size="small"
+              title="Move the group up"
+              variant="text"
+              @click="moveGroup(g, -1)"
+            />
+            <v-btn
+              density="comfortable"
+              :disabled="g === groups.length - 1"
+              icon="mdi-arrow-down"
+              size="small"
+              title="Move the group down"
+              variant="text"
+              @click="moveGroup(g, 1)"
+            />
+            <v-btn
+              density="comfortable"
+              icon="mdi-plus"
+              size="small"
+              title="Add a rule to this group"
+              variant="text"
+              @click="openRule(g, -1)"
+            />
+            <v-btn
+              density="comfortable"
+              icon="mdi-pencil"
+              size="small"
+              title="Rename the group"
+              variant="text"
+              @click="openGroup(g)"
+            />
+            <v-btn
+              color="error"
+              density="comfortable"
+              icon="mdi-delete"
+              size="small"
+              title="Delete the group and its rules"
+              variant="text"
+              @click="removeGroup(g)"
+            />
+          </td>
+        </tr>
+        <tr
+          v-for="(rule, r) in group.rules"
+          :key="`rule-${g}-${r}`"
+          :class="{ 'rule-off': !group.enabled || !rule.enabled }"
+        >
+          <td>
+            <v-switch
+              v-model="rule.enabled"
+              color="primary"
+              density="compact"
+              :disabled="!canEdit"
+              hide-details
+              @update:model-value="dirty = true"
+            />
+          </td>
+          <td class="text-medium-emphasis">{{ ruleNumber(g, r) }}</td>
           <td>{{ rule.name || '—' }}</td>
           <td>
             <div class="d-flex flex-wrap ga-1 py-1">
@@ -75,26 +174,34 @@
           <td v-if="canEdit" class="text-end text-no-wrap">
             <v-btn
               density="comfortable"
-              :disabled="i === 0"
-              icon="mdi-arrow-up"
+              icon="mdi-target"
               size="small"
+              title="Only this rule: turn every other rule off"
               variant="text"
-              @click="move(i, -1)"
+              @click="onlyThis(g, r)"
             />
             <v-btn
               density="comfortable"
-              :disabled="i === rules.length - 1"
+              :disabled="r === 0"
+              icon="mdi-arrow-up"
+              size="small"
+              variant="text"
+              @click="moveRule(g, r, -1)"
+            />
+            <v-btn
+              density="comfortable"
+              :disabled="r === group.rules.length - 1"
               icon="mdi-arrow-down"
               size="small"
               variant="text"
-              @click="move(i, 1)"
+              @click="moveRule(g, r, 1)"
             />
             <v-btn
               density="comfortable"
               icon="mdi-pencil"
               size="small"
               variant="text"
-              @click="openRule(i)"
+              @click="openRule(g, r)"
             />
             <v-btn
               color="error"
@@ -102,24 +209,58 @@
               icon="mdi-delete"
               size="small"
               variant="text"
-              @click="remove(i)"
+              @click="removeRule(g, r)"
             />
           </td>
         </tr>
       </tbody>
     </v-table>
 
-    <v-dialog v-model="ruleDialog" max-width="600">
+    <v-dialog v-model="groupDialog" max-width="420">
       <v-card>
-        <v-card-title>{{ editingIndex < 0 ? 'Add rule' : 'Edit rule' }}</v-card-title>
+        <v-card-title>{{ editingGroup < 0 ? 'Add group' : 'Rename group' }}</v-card-title>
         <v-card-text>
           <v-text-field
-            v-model="form.name"
+            v-model="groupName"
+            autofocus
             density="compact"
+            hide-details
             label="Name"
-            placeholder="e.g. Lady Turkey"
+            placeholder="e.g. Exclusions, Winter sale"
             variant="outlined"
+            @keyup.enter="applyGroup"
           />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn text="Cancel" variant="text" @click="groupDialog = false" />
+          <v-btn color="primary" text="Done" variant="flat" @click="applyGroup" />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="ruleDialog" max-width="600">
+      <v-card>
+        <v-card-title>{{ editing.rule < 0 ? 'Add rule' : 'Edit rule' }}</v-card-title>
+        <v-card-text>
+          <div class="d-flex ga-3">
+            <v-text-field
+              v-model="form.name"
+              density="compact"
+              label="Name"
+              placeholder="e.g. Lady Turkey"
+              variant="outlined"
+            />
+            <v-select
+              v-if="groups.length > 1"
+              v-model="form.group"
+              density="compact"
+              :items="groups.map((group, g) => ({ title: group.name || 'Untitled group', value: g }))"
+              label="Group"
+              style="max-width: 200px"
+              variant="outlined"
+            />
+          </div>
           <p class="text-body-2 text-medium-emphasis mb-3">
             A product matches when it fits every box that has something in it; within a box,
             any one value is enough.
@@ -257,7 +398,9 @@
     ...attributeFields.map(f => ({ key: f.key, label: f.label, fmt: v => v })),
   ]
 
-  const rules = ref([])
+  // [{ name, enabled, rules: [...] }], in order; rules run top to bottom
+  // straight through the groups.
+  const groups = ref([])
   const loading = ref(false)
   const saving = ref(false)
   const dirty = ref(false)
@@ -271,13 +414,13 @@
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(data.error || `Request failed with status ${res.status}`)
-    return data.rules ?? []
+    return data.groups ?? []
   }
 
   async function load () {
     loading.value = true
     try {
-      rules.value = await request('GET')
+      groups.value = await request('GET')
       dirty.value = false
     } catch (error) {
       notify.error(error.message)
@@ -325,32 +468,100 @@
     return parts.length > 0 ? `${plain} · ${parts.join(' · ')}` : plain
   }
 
-  function move (i, step) {
-    const next = [...rules.value]
-    ;[next[i], next[i + step]] = [next[i + step], next[i]]
-    rules.value = next
+  const ruleCount = computed(() => groups.value.reduce((n, group) => n + group.rules.length, 0))
+
+  // A rule's number on the page: counted straight through the groups, as
+  // the rules run (and as the API's errors number them).
+  function ruleNumber (g, r) {
+    return groups.value.slice(0, g).reduce((n, group) => n + group.rules.length, 0) + r + 1
+  }
+
+  // On while every group and every rule is; switching it sets them all.
+  const allOn = computed({
+    get: () => groups.value.every(group => group.enabled && group.rules.every(rule => rule.enabled)),
+    set: on => {
+      for (const group of groups.value) {
+        group.enabled = on
+        for (const rule of group.rules) rule.enabled = on
+      }
+      dirty.value = true
+    },
+  })
+
+  // Only this rule: every other group off (their rules keep their own
+  // switches, so turning a group back on brings back what it had), and in
+  // this group every other rule off.
+  function onlyThis (g, r) {
+    for (const [gi, group] of groups.value.entries()) {
+      group.enabled = gi === g
+      if (gi === g) {
+        for (const [ri, rule] of group.rules.entries()) rule.enabled = ri === r
+      }
+    }
     dirty.value = true
   }
 
-  function remove (i) {
-    rules.value = rules.value.filter((_, j) => j !== i)
+  function swap (list, i, step) {
+    const next = [...list]
+    ;[next[i], next[i + step]] = [next[i + step], next[i]]
+    return next
+  }
+
+  function moveRule (g, r, step) {
+    groups.value[g].rules = swap(groups.value[g].rules, r, step)
     dirty.value = true
+  }
+
+  function moveGroup (g, step) {
+    groups.value = swap(groups.value, g, step)
+    dirty.value = true
+  }
+
+  function removeRule (g, r) {
+    groups.value[g].rules = groups.value[g].rules.filter((_, j) => j !== r)
+    dirty.value = true
+  }
+
+  function removeGroup (g) {
+    groups.value = groups.value.filter((_, j) => j !== g)
+    dirty.value = true
+  }
+
+  const groupDialog = ref(false)
+  const editingGroup = ref(-1)
+  const groupName = ref('')
+
+  function openGroup (g) {
+    editingGroup.value = g
+    groupName.value = g >= 0 ? groups.value[g].name : ''
+    groupDialog.value = true
+  }
+
+  function applyGroup () {
+    const name = groupName.value.trim()
+    if (editingGroup.value < 0) groups.value = [...groups.value, { name, enabled: true, rules: [] }]
+    else groups.value[editingGroup.value].name = name
+    dirty.value = true
+    groupDialog.value = false
   }
 
   const ruleDialog = ref(false)
-  const editingIndex = ref(-1)
-  const form = reactive({ name: '', discount: '0', options: {}, dealId: 0, allProducts: false })
+  // Where the rule being edited is; rule -1 adds one to the group.
+  const editing = reactive({ group: -1, rule: -1 })
+  const form = reactive({ name: '', discount: '0', options: {}, dealId: 0, allProducts: false, group: 0 })
 
-  function openRule (i) {
+  function openRule (g, r) {
     loadAttributeValues()
-    editingIndex.value = i
-    const rule = i >= 0 ? rules.value[i] : {}
+    editing.group = g
+    editing.rule = r
+    const rule = r >= 0 ? groups.value[g].rules[r] : {}
+    form.group = Math.max(g, 0)
     form.name = rule.name ?? ''
     for (const c of CONDITIONS) form[c.key] = [...(rule[c.key] ?? [])]
     form.discount = String(rule.discount ?? 0)
     form.dealId = rule.deal_id ?? 0
     // A saved rule with no conditions is an "every product" one.
-    form.allProducts = i >= 0 && !hasConditions(rule)
+    form.allProducts = r >= 0 && !hasConditions(rule)
     form.options = Object.fromEntries(props.saleOptions.map(o => {
       const found = (rule.options ?? []).find(x => x.sale_option_id === o.id)
       return [o.id, found ? String(found.discount) : '']
@@ -382,7 +593,8 @@
       }
       options.push({ sale_option_id: o.id, sale_option: o.name, discount: d })
     }
-    const rule = { name: form.name.trim(), discount, options, deal_id: dealId, variants: 0 }
+    const old = editing.rule >= 0 ? groups.value[editing.group].rules[editing.rule] : null
+    const rule = { name: form.name.trim(), discount, options, deal_id: dealId, enabled: old?.enabled ?? true, variants: 0 }
     for (const c of CONDITIONS) {
       rule[c.key] = form.allProducts ? [] : form[c.key].map(v => String(v).trim()).filter(Boolean)
     }
@@ -391,10 +603,15 @@
       notify.error('Give the rule at least one condition: a code start, kind, category, origin or brand.')
       return
     }
-    const next = [...rules.value]
-    if (editingIndex.value < 0) next.push(rule)
-    else next[editingIndex.value] = rule
-    rules.value = next
+    // The first rule of a list with no groups makes one for it.
+    if (groups.value.length === 0) groups.value = [{ name: 'Rules', enabled: true, rules: [] }]
+    const target = Math.min(form.group, groups.value.length - 1)
+    if (old && target === editing.group) {
+      groups.value[target].rules[editing.rule] = rule
+    } else {
+      if (old) removeRule(editing.group, editing.rule)
+      groups.value[target].rules = [...groups.value[target].rules, rule]
+    }
     dirty.value = true
     ruleDialog.value = false
   }
@@ -404,8 +621,12 @@
     try {
       // A rule with no conditions was made "every product" on purpose (the
       // only way to make one here), so it says so to the API.
-      rules.value = await request('PUT', {
-        rules: rules.value.map(r => ({ ...r, all_products: !hasConditions(r) })),
+      groups.value = await request('PUT', {
+        groups: groups.value.map(group => ({
+          name: group.name,
+          enabled: group.enabled,
+          rules: group.rules.map(r => ({ ...r, all_products: !hasConditions(r) })),
+        })),
       })
       dirty.value = false
       notify.success('Rules saved: the list below now follows them.')
@@ -428,5 +649,12 @@
 }
 .rules-table td {
   vertical-align: middle;
+}
+.group-row td {
+  background: rgba(var(--v-theme-on-surface), 0.04);
+}
+/* A rule that is off, or in a group that is off, decides nothing. */
+.rule-off td:not(:first-child) {
+  opacity: 0.45;
 }
 </style>

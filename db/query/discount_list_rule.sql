@@ -27,14 +27,30 @@ DELETE FROM discount_list_rules WHERE discount_list_id = $1;
 INSERT INTO discount_list_rules (
   discount_list_id, position, name,
   code_prefixes, except_code_prefixes, kinds, categories, sub_categories, origins, brands,
-  discount, deal_id
+  discount, deal_id, group_id, is_enabled
 ) VALUES (
   sqlc.arg(discount_list_id), sqlc.arg(position), sqlc.arg(name),
   sqlc.arg(code_prefixes)::text[], sqlc.arg(except_code_prefixes)::text[], sqlc.arg(kinds)::text[],
   sqlc.arg(categories)::text[], sqlc.arg(sub_categories)::text[], sqlc.arg(origins)::text[],
-  sqlc.arg(brands)::text[], sqlc.arg(discount), sqlc.narg(deal_id)::bigint
+  sqlc.arg(brands)::text[], sqlc.arg(discount), sqlc.narg(deal_id)::bigint,
+  sqlc.arg(group_id), sqlc.arg(is_enabled)
 ) RETURNING *;
 
 -- name: CreateDiscountListRuleOption :exec
 INSERT INTO discount_list_rule_options (rule_id, sale_option_id, discount)
 VALUES ($1, $2, $3);
+
+-- name: ListDiscountListRuleGroups :many
+-- A list's rule groups in order (000203).
+SELECT * FROM discount_list_rule_groups
+WHERE discount_list_id = $1
+ORDER BY position, id;
+
+-- name: DeleteDiscountListRuleGroups :exec
+-- Their rules go with them (ON DELETE CASCADE).
+DELETE FROM discount_list_rule_groups WHERE discount_list_id = $1;
+
+-- name: CreateDiscountListRuleGroup :one
+INSERT INTO discount_list_rule_groups (discount_list_id, position, name, is_enabled)
+VALUES ($1, $2, $3, $4)
+RETURNING *;
