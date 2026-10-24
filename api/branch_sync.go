@@ -107,6 +107,10 @@ type branchInvoiceItemRequest struct {
 	LineTotal  int64  `json:"line_total"`
 	Discount   int16  `json:"discount"`
 	Quantity   int64  `json:"quantity" binding:"required"`
+	// A line the till priced with a deal (000201): the deal's name and what
+	// it took off the line. Empty from tills that predate deals.
+	Deal         string `json:"deal"`
+	DealDiscount int64  `json:"deal_discount"`
 }
 
 // branchInvoiceRequest is deliberately NOT the same shape as
@@ -272,6 +276,8 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 			LineTotal:       item.LineTotal,
 			Discount:        item.Discount,
 			Quantity:        item.Quantity,
+			Deal:            item.Deal,
+			DealDiscount:    item.DealDiscount,
 		})
 	}
 

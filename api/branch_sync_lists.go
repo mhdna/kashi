@@ -44,6 +44,22 @@ type syncPriceList struct {
 type syncDiscountListItem struct {
 	ProductVariantUID uuid.UUID `json:"product_variant_uid"`
 	Discount          int16     `json:"discount"`
+	// The deal the variant is on (000201), one of the list's Deals; a row
+	// with a deal has discount 0, so a till that predates deals sells it at
+	// its list price -- the deal replaces the discount there too.
+	DealUID *uuid.UUID `json:"deal_uid,omitempty"`
+}
+
+// A deal's terms, sent with every list whose rows name it. See 000201 for
+// what each kind means.
+type syncDeal struct {
+	UID         uuid.UUID `json:"uid"`
+	Name        string    `json:"name"`
+	Kind        string    `json:"kind"`
+	BuyQty      int32     `json:"buy_qty"`
+	GetQty      int32     `json:"get_qty"`
+	Percent     int16     `json:"percent"`
+	BundlePrice int64     `json:"bundle_price"`
 }
 
 // A discount that applies only when the cashier sells the variant as the
@@ -68,6 +84,7 @@ type syncDiscountList struct {
 	// A separate field rather than more Items so a till that predates sale
 	// options ignores them instead of reading them as plain discounts.
 	OptionItems []syncDiscountListOptionItem `json:"option_items"`
+	Deals       []syncDeal                   `json:"deals"`
 }
 
 // An inactive list is sent with an empty Items set: the till is being told to
@@ -134,6 +151,7 @@ func (server *Server) discountListsForBranchSync(ctx *gin.Context, branchID int6
 			UpdatedAt:   l.UpdatedAt,
 			Items:       []syncDiscountListItem{},
 			OptionItems: []syncDiscountListOptionItem{},
+			Deals:       []syncDeal{},
 		}
 		if l.IsActive {
 			rows, err := server.store.ListDiscountListItemsForSync(ctx, l.ID)
@@ -141,9 +159,23 @@ func (server *Server) discountListsForBranchSync(ctx *gin.Context, branchID int6
 				return nil, err
 			}
 			for _, r := range rows {
-				entry.Items = append(entry.Items, syncDiscountListItem{
+				item := syncDiscountListItem{
 					ProductVariantUID: r.ProductVariantUid,
 					Discount:          r.Discount,
+				}
+				if r.DealUid.Valid {
+					item.DealUID = &r.DealUid.UUID
+				}
+				entry.Items = append(entry.Items, item)
+			}
+			deals, err := server.store.ListDealsForDiscountListSync(ctx, l.ID)
+			if err != nil {
+				return nil, err
+			}
+			for _, d := range deals {
+				entry.Deals = append(entry.Deals, syncDeal{
+					UID: d.Uid, Name: d.Name, Kind: d.Kind, BuyQty: d.BuyQty,
+					GetQty: d.GetQty, Percent: d.Percent, BundlePrice: d.BundlePrice,
 				})
 			}
 			optionRows, err := server.store.ListDiscountListOptionItemsForSync(ctx, l.ID)

@@ -770,6 +770,8 @@ type BranchInvoiceItem struct {
 	Quantity        int64         `json:"quantity"`
 	ProductUid      uuid.NullUUID `json:"product_uid"`
 	Unknown         bool          `json:"unknown"`
+	Deal            string        `json:"deal"`
+	DealDiscount    int64         `json:"deal_discount"`
 }
 
 type BranchInvoicePayment struct {
@@ -1160,6 +1162,19 @@ type Currency struct {
 	UpdatedAt              time.Time `json:"updated_at"`
 }
 
+type Deal struct {
+	ID          int64     `json:"id"`
+	Uid         uuid.UUID `json:"uid"`
+	Name        string    `json:"name"`
+	Kind        string    `json:"kind"`
+	BuyQty      int32     `json:"buy_qty"`
+	GetQty      int32     `json:"get_qty"`
+	Percent     int16     `json:"percent"`
+	BundlePrice int64     `json:"bundle_price"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
 type DefaultBranchSetting struct {
 	ID        int16           `json:"id"`
 	Settings  json.RawMessage `json:"settings"`
@@ -1190,6 +1205,7 @@ type DiscountListItem struct {
 	Discount         int16         `json:"discount"`
 	ProductVariantID int64         `json:"product_variant_id"`
 	RuleID           sql.NullInt64 `json:"rule_id"`
+	DealID           sql.NullInt64 `json:"deal_id"`
 }
 
 type DiscountListOptionItem struct {
@@ -1201,19 +1217,20 @@ type DiscountListOptionItem struct {
 }
 
 type DiscountListRule struct {
-	ID                 int64     `json:"id"`
-	DiscountListID     int64     `json:"discount_list_id"`
-	Position           int32     `json:"position"`
-	Name               string    `json:"name"`
-	CodePrefixes       []string  `json:"code_prefixes"`
-	ExceptCodePrefixes []string  `json:"except_code_prefixes"`
-	Kinds              []string  `json:"kinds"`
-	Categories         []string  `json:"categories"`
-	SubCategories      []string  `json:"sub_categories"`
-	Origins            []string  `json:"origins"`
-	Brands             []string  `json:"brands"`
-	Discount           int16     `json:"discount"`
-	CreatedAt          time.Time `json:"created_at"`
+	ID                 int64         `json:"id"`
+	DiscountListID     int64         `json:"discount_list_id"`
+	Position           int32         `json:"position"`
+	Name               string        `json:"name"`
+	CodePrefixes       []string      `json:"code_prefixes"`
+	ExceptCodePrefixes []string      `json:"except_code_prefixes"`
+	Kinds              []string      `json:"kinds"`
+	Categories         []string      `json:"categories"`
+	SubCategories      []string      `json:"sub_categories"`
+	Origins            []string      `json:"origins"`
+	Brands             []string      `json:"brands"`
+	Discount           int16         `json:"discount"`
+	CreatedAt          time.Time     `json:"created_at"`
+	DealID             sql.NullInt64 `json:"deal_id"`
 }
 
 type DiscountListRuleOption struct {

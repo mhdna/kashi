@@ -16,6 +16,13 @@
         <span>{{ cfg.title }}</span>
         <v-spacer />
         <v-btn
+          v-if="kind === 'discount'"
+          prepend-icon="mdi-gift-outline"
+          text="Deals"
+          variant="tonal"
+          @click="dealsDialog = true"
+        />
+        <v-btn
           v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
@@ -97,6 +104,7 @@
             <template v-if="kind === 'discount'">
               <DiscountListRules
                 :can-edit="canEdit"
+                :deals="deals"
                 :list-id="selectedList.id"
                 :sale-options="saleOptions"
                 @saved="reloadItems"
@@ -124,13 +132,25 @@
                 v-if="kind === 'discount'"
                 v-model="addSaleOptionId"
                 density="compact"
+                :disabled="addDealId !== 0"
                 hide-details
                 :items="saleOptionChoices"
                 label="Sold as"
                 style="max-width: 150px;"
                 variant="outlined"
               />
+              <v-select
+                v-if="kind === 'discount'"
+                v-model="addDealId"
+                density="compact"
+                hide-details
+                :items="dealChoices"
+                label="Gives"
+                style="max-width: 190px;"
+                variant="outlined"
+              />
               <v-text-field
+                v-if="addDealId === 0"
                 v-model="addValue"
                 density="compact"
                 hide-details
@@ -144,7 +164,7 @@
               />
               <v-btn
                 color="primary"
-                :disabled="!addVariantId || addValue === ''"
+                :disabled="!addVariantId || (addValue === '' && addDealId === 0)"
                 :loading="addingItem"
                 text="Add"
                 variant="flat"
@@ -212,7 +232,15 @@
                 <span v-else>By hand</span>
               </template>
               <template #[`item.${cfg.valueKey}`]="{ item }">
-                {{ cfg.display(item[cfg.valueKey]) }}
+                <v-chip
+                  v-if="item.deal_id"
+                  color="deep-purple"
+                  prepend-icon="mdi-gift-outline"
+                  size="small"
+                  :text="item.deal_name"
+                  variant="tonal"
+                />
+                <template v-else>{{ cfg.display(item[cfg.valueKey]) }}</template>
               </template>
             </ServerSideTable>
           </template>
@@ -306,7 +334,17 @@
             variant="outlined"
           />
           <div class="d-flex ga-3 mt-3">
+            <v-select
+              v-model="bulkDealId"
+              density="compact"
+              hide-details
+              :items="dealChoices"
+              label="Gives"
+              style="max-width: 200px;"
+              variant="outlined"
+            />
             <v-text-field
+              v-if="bulkDealId === 0"
               v-model="bulkValue"
               density="compact"
               hide-details
@@ -317,6 +355,7 @@
               variant="outlined"
             />
             <v-select
+              v-if="bulkDealId === 0"
               v-model="bulkSaleOptionId"
               density="compact"
               hide-details
@@ -345,7 +384,7 @@
           <v-btn text="Close" variant="text" @click="bulkDialog = false" />
           <v-btn
             color="primary"
-            :disabled="!bulkEntries.trim() || bulkValue === ''"
+            :disabled="!bulkEntries.trim() || (bulkValue === '' && bulkDealId === 0)"
             :loading="bulkSaving"
             text="Apply"
             variant="flat"
@@ -365,7 +404,18 @@
           </div>
         </v-card-title>
         <v-card-text>
+          <v-select
+            v-if="kind === 'discount' && !editItemTarget?.sale_option_id"
+            v-model="editItemDealId"
+            class="mb-3"
+            density="compact"
+            hide-details
+            :items="dealChoices"
+            label="Gives"
+            variant="outlined"
+          />
           <v-text-field
+            v-if="editItemDealId === 0"
             v-model="editItemValue"
             autofocus
             density="compact"
@@ -477,6 +527,8 @@
       </v-card>
     </v-dialog>
 
+    <DealsDialog v-model="dealsDialog" :can-edit="canEdit" />
+
     <BranchAssignDialog
       v-model="branchesDialog"
       :kind="cfg.singular"
@@ -490,12 +542,14 @@
 <script setup lang="ts">
   import { computed, onMounted, reactive, ref, watch } from 'vue'
   import BranchAssignDialog from '@/components/BranchAssignDialog.vue'
+  import DealsDialog from '@/components/DealsDialog.vue'
   import DiscountListRules from '@/components/DiscountListRules.vue'
   import PageSidebar from '@/components/PageSidebar.vue'
   import BulkDeleteBar from '@/components/Tables/BulkDeleteBar.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { authFetch } from '@/composables/useApi'
   import { useBulkDelete } from '@/composables/useBulkDelete'
+  import { useDeals } from '@/composables/useDeals'
   import { useDiscountLists } from '@/composables/useDiscountLists'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
@@ -583,6 +637,25 @@
 
   onMounted(() => {
     if (props.kind === 'discount') fetchSaleOptions().catch(error => notify.error(error.message))
+  })
+
+  // ---- deals (discount lists) ------------------------------------------
+  // A plain discount row can give a deal (000201) instead of a percent; 0 in
+  // the "Gives" pickers is a plain discount.
+  const { deals, fetchDeals } = useDeals()
+  const dealsDialog = ref(false)
+  const dealChoices = computed(() => [
+    { title: 'A discount', value: 0 },
+    ...deals.value.map(d => ({ title: d.name, value: d.id })),
+  ])
+
+  onMounted(() => {
+    if (props.kind === 'discount') fetchDeals().catch(error => notify.error(error.message))
+  })
+
+  // Closing the deals dialog may have renamed one the table shows.
+  watch(dealsDialog, value => {
+    if (!value) reloadItems()
   })
 
   const optionsDialog = ref(false)
@@ -691,6 +764,7 @@
   const addVariantId = ref(null)
   const addValue = ref('')
   const addSaleOptionId = ref(0)
+  const addDealId = ref(0)
   const addingItem = ref(false)
   let variantSearchTimer
 
@@ -702,7 +776,12 @@
   onMounted(() => searchVariants(''))
 
   async function addItem () {
-    if (!addVariantId.value || addValue.value === '') return
+    if (!addVariantId.value) return
+    if (addDealId.value) {
+      await addDealItem()
+      return
+    }
+    if (addValue.value === '') return
     const parsed = cfg.value.parse(addValue.value)
     if (!Number.isFinite(parsed) || parsed < 0) {
       notify.error(`Enter a valid ${cfg.value.valueLabel.toLowerCase()}.`)
@@ -721,16 +800,31 @@
     }
   }
 
+  async function addDealItem () {
+    addingItem.value = true
+    try {
+      await saveItem(selectedList.value.id, addVariantId.value, 0, 0, addDealId.value)
+      addVariantId.value = null
+      reloadItems()
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      addingItem.value = false
+    }
+  }
+
   // ---- paste many codes onto a discount list ---------------------------------
   const bulkDialog = ref(false)
   const bulkEntries = ref('')
   const bulkValue = ref('')
   const bulkSaleOptionId = ref(0)
+  const bulkDealId = ref(0)
   const bulkSaving = ref(false)
   const bulkUnmatched = ref([])
 
   async function applyBulk () {
-    const discount = Number(bulkValue.value)
+    const dealId = bulkDealId.value
+    const discount = dealId ? 0 : Number(bulkValue.value)
     if (!Number.isInteger(discount) || discount < 0 || discount > 100) {
       notify.error('Enter a discount from 0 to 100.')
       return
@@ -744,13 +838,16 @@
           discount_list_id: selectedList.value.id,
           entries: bulkEntries.value.split(/[\s,;]+/).filter(Boolean),
           discount,
-          sale_option_id: bulkSaleOptionId.value,
+          sale_option_id: dealId ? 0 : bulkSaleOptionId.value,
+          deal_id: dealId,
         }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || `Request failed with status ${res.status}`)
       bulkUnmatched.value = data.unmatched ?? []
-      notify.success(`${data.set} product(s) set to ${discount}%.`)
+      notify.success(dealId
+        ? `${data.set} product(s) put on ${dealChoices.value.find(d => d.value === dealId)?.title}.`
+        : `${data.set} product(s) set to ${discount}%.`)
       if (bulkUnmatched.value.length === 0) {
         bulkDialog.value = false
         bulkEntries.value = ''
@@ -767,12 +864,14 @@
   const editItemDialog = ref(false)
   const editItemTarget = ref(null)
   const editItemValue = ref('')
+  const editItemDealId = ref(0)
   const savingItem = ref(false)
 
   function openEditItem (item) {
     if (!canEdit.value) return
     editItemTarget.value = item
     editItemValue.value = cfg.value.toInput(item[cfg.value.valueKey])
+    editItemDealId.value = item.deal_id ?? 0
     editItemDialog.value = true
   }
 
@@ -783,11 +882,12 @@
   }
 
   async function saveEditItem () {
-    const parsed = cfg.value.parse(editItemValue.value)
+    const dealId = editItemDealId.value
+    const parsed = dealId ? 0 : cfg.value.parse(editItemValue.value)
     if (!Number.isFinite(parsed) || parsed < 0) return
     savingItem.value = true
     try {
-      await saveItem(selectedList.value.id, editItemTarget.value.product_variant_id, parsed, editItemTarget.value.sale_option_id ?? 0)
+      await saveItem(selectedList.value.id, editItemTarget.value.product_variant_id, parsed, editItemTarget.value.sale_option_id ?? 0, dealId)
       editItemDialog.value = false
       reloadItems()
     } catch (error) {

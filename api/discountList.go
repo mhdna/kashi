@@ -163,12 +163,18 @@ type createDiscountListItemRequest struct {
 	Discount int16 `json:"discount" binding:"min=0,max=100"`
 	// See bulkSetDiscountListItemsRequest.SaleOptionID.
 	SaleOptionID int64 `json:"sale_option_id" binding:"min=0"`
+	// See bulkSetDiscountListItemsRequest.DealID.
+	DealID int64 `json:"deal_id" binding:"min=0"`
 }
 
 func (server *Server) createDiscountListItem(ctx *gin.Context) {
 	var req createDiscountListItemRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	deal, ok := server.bindRowDeal(ctx, req.DealID, req.Discount, req.SaleOptionID)
+	if !ok {
 		return
 	}
 	if req.SaleOptionID > 0 {
@@ -190,6 +196,7 @@ func (server *Server) createDiscountListItem(ctx *gin.Context) {
 		DiscountListID:   req.DiscountListID,
 		ProductVariantID: req.ProductVariantID,
 		Discount:         req.Discount,
+		DealID:           deal,
 	}
 
 	item, err := server.store.CreateDiscountListItem(ctx, arg)
@@ -358,6 +365,31 @@ type bulkSetDiscountListItemsRequest struct {
 	// Set, the discount applies only when the variant is sold as this sale
 	// option (discount_list_option_items); 0 sets the plain discount.
 	SaleOptionID int64 `json:"sale_option_id" binding:"min=0"`
+	// Set, the variants go on this deal (000201) instead of a discount: only
+	// on a plain row, and with discount 0, since a deal replaces the discount.
+	DealID int64 `json:"deal_id" binding:"min=0"`
+}
+
+// bindRowDeal checks a row request's deal (0: none) and answers the error
+// itself when it doesn't fit; ok is false then.
+func (server *Server) bindRowDeal(ctx *gin.Context, dealID int64, discount int16, saleOptionID int64) (sql.NullInt64, bool) {
+	if dealID == 0 {
+		return sql.NullInt64{}, true
+	}
+	if discount != 0 {
+		server.writeError(ctx, http.StatusBadRequest, errors.New("a deal replaces the discount: give one or the other"))
+		return sql.NullInt64{}, false
+	}
+	if saleOptionID != 0 {
+		server.writeError(ctx, http.StatusBadRequest, errors.New("a deal applies whatever the sale option; set it on the plain row"))
+		return sql.NullInt64{}, false
+	}
+	deal, err := server.dealParam(ctx, dealID)
+	if err != nil {
+		server.writeError(ctx, statusForLookup(err), err)
+		return sql.NullInt64{}, false
+	}
+	return deal, true
 }
 
 // bulkSetDiscountListItems is the quick way onto a discount list: paste the
@@ -379,6 +411,10 @@ func (server *Server) bulkSetDiscountListItems(ctx *gin.Context) {
 		server.writeError(ctx, statusForLookup(err), err)
 		return
 	}
+	deal, ok := server.bindRowDeal(ctx, req.DealID, req.Discount, req.SaleOptionID)
+	if !ok {
+		return
+	}
 	var set []int64
 	var err error
 	if req.SaleOptionID > 0 {
@@ -392,7 +428,7 @@ func (server *Server) bulkSetDiscountListItems(ctx *gin.Context) {
 		})
 	} else {
 		set, err = server.store.BulkSetDiscountListItems(ctx, db.BulkSetDiscountListItemsParams{
-			DiscountListID: req.DiscountListID, Entries: entries, Discount: req.Discount,
+			DiscountListID: req.DiscountListID, Entries: entries, Discount: req.Discount, DealID: deal,
 		})
 	}
 	if err != nil {

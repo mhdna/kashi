@@ -22,6 +22,9 @@ type BranchInvoiceItemParams struct {
 	ProductUID uuid.NullUUID `json:"product_uid"`
 	UnitPrice  int64         `json:"unit_price"`
 	LineTotal  int64         `json:"line_total"`
+	// A deal line (000202): the deal's name and what it took off the line.
+	Deal         string `json:"deal"`
+	DealDiscount int64  `json:"deal_discount"`
 	// Unknown: the till rang this up as an "Unknown item" (its placeholder
 	// barcode, or the product the branch named for it). Such a line is stored
 	// unresolved and moves no stock until it is matched to a real product.
@@ -125,6 +128,8 @@ func (store *SQLStore) CreateBranchInvoiceTx(ctx context.Context, arg CreateBran
 				Quantity:        item.Quantity,
 				ProductUid:      productUID,
 				Unknown:         item.Unknown || item.Barcode == UnknownItemBarcode,
+				Deal:            item.Deal,
+				DealDiscount:    item.DealDiscount,
 			})
 			if err != nil {
 				return err

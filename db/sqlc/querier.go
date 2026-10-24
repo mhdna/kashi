@@ -105,7 +105,8 @@ type Querier interface {
 	BranchVisitorEventRefsPresent(ctx context.Context, arg BranchVisitorEventRefsPresentParams) ([]string, error)
 	// Puts every variant whose barcode, or whose product's code, is in entries on
 	// the list at one discount (adding it or changing it). A code names all of its
-	// product's variants. Returns the variant ids it set.
+	// product's variants. deal_id, when set, puts them on that deal instead
+	// (discount 0). Returns the variant ids it set.
 	BulkSetDiscountListItems(ctx context.Context, arg BulkSetDiscountListItemsParams) ([]int64, error)
 	// BulkSetDiscountListItems for one option: the discount applies to the
 	// matched variants only when they are sold as that option.
@@ -299,9 +300,11 @@ type Querier interface {
 	CreateCouponList(ctx context.Context, arg CreateCouponListParams) (CouponList, error)
 	CreateCouponType(ctx context.Context, arg CreateCouponTypeParams) (CouponType, error)
 	CreateCurrency(ctx context.Context, arg CreateCurrencyParams) (Currency, error)
+	CreateDeal(ctx context.Context, arg CreateDealParams) (Deal, error)
 	CreateDiscountList(ctx context.Context, arg CreateDiscountListParams) (DiscountList, error)
 	// A row written here is set by hand: it takes the row over from the rules
-	// (000200), which then leave the variant alone.
+	// (000200), which then leave the variant alone. deal_id puts the variant on a
+	// deal (000201) instead of a discount.
 	CreateDiscountListItem(ctx context.Context, arg CreateDiscountListItemParams) (DiscountListItem, error)
 	CreateDiscountListRule(ctx context.Context, arg CreateDiscountListRuleParams) (DiscountListRule, error)
 	CreateDiscountListRuleOption(ctx context.Context, arg CreateDiscountListRuleOptionParams) error
@@ -483,6 +486,7 @@ type Querier interface {
 	DeleteCoupons(ctx context.Context, codes []string) (int64, error)
 	DeleteCurrencies(ctx context.Context, codes []string) (int64, error)
 	DeleteCurrency(ctx context.Context, code string) error
+	DeleteDeal(ctx context.Context, id int64) error
 	DeleteDiscountList(ctx context.Context, id int64) error
 	DeleteDiscountListBranch(ctx context.Context, branchID int64) error
 	DeleteDiscountListBranchesForList(ctx context.Context, discountListID int64) error
@@ -597,6 +601,7 @@ type Querier interface {
 	GetCouponList(ctx context.Context, id int64) (CouponList, error)
 	GetCouponType(ctx context.Context, id int64) (CouponType, error)
 	GetCurrency(ctx context.Context, code string) (Currency, error)
+	GetDeal(ctx context.Context, id int64) (Deal, error)
 	GetDefaultBranchSettings(ctx context.Context) (DefaultBranchSetting, error)
 	GetDefaultCurrency(ctx context.Context) (Currency, error)
 	GetDefaultDiscountForVariant(ctx context.Context, productVariantID int64) (int16, error)
@@ -1217,6 +1222,12 @@ type Querier interface {
 	// branch_visitor_events.day is already the branch's local day (stamped by
 	// the till), so it's matched directly; only the hour needs the timezone.
 	ListDayVisitorsByHour(ctx context.Context, arg ListDayVisitorsByHourParams) ([]ListDayVisitorsByHourRow, error)
+	// Every deal, with how many list rows and rules put it on products, so the
+	// page can say where a deal is used before it is changed or deleted.
+	ListDeals(ctx context.Context) ([]ListDealsRow, error)
+	// The deals a list's rows name: they travel with the list, so the till
+	// always has the terms of every deal it can price.
+	ListDealsForDiscountListSync(ctx context.Context, discountListID int64) ([]Deal, error)
 	// Of the given pictures, the ones that can go: not the picture of a unit still
 	// waiting to be matched on a sale that has arrived. A checkout whose sale never
 	// came (the till or kashi was down) is not waiting on anyone, so it can go.
@@ -1227,7 +1238,7 @@ type Querier interface {
 	// See ListPriceListItemsWithProduct: rows are variant-level, so the label needs
 	// the barcode and color/size to be identifiable. Option rows (000199) are
 	// listed alongside the plain ones; sale_option_id 0 / sale_option '' marks a
-	// plain row.
+	// plain row. Only a plain row can name a deal (000201).
 	ListDiscountListItemsWithProduct(ctx context.Context, arg ListDiscountListItemsWithProductParams) ([]ListDiscountListItemsWithProductRow, error)
 	// Options travel by name, like colors and attributes: a till has no copy of
 	// kashi's sale_options ids.
@@ -1799,6 +1810,7 @@ type Querier interface {
 	UpdateCouponCategory(ctx context.Context, arg UpdateCouponCategoryParams) (CouponCategory, error)
 	UpdateCouponType(ctx context.Context, arg UpdateCouponTypeParams) (CouponType, error)
 	UpdateCurrency(ctx context.Context, arg UpdateCurrencyParams) (Currency, error)
+	UpdateDeal(ctx context.Context, arg UpdateDealParams) (Deal, error)
 	UpdateDiscountList(ctx context.Context, arg UpdateDiscountListParams) error
 	UpdateDiscountListItem(ctx context.Context, arg UpdateDiscountListItemParams) error
 	UpdateEmailSchedule(ctx context.Context, arg UpdateEmailScheduleParams) (EmailSchedule, error)

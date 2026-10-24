@@ -176,7 +176,7 @@ func (q *Queries) DeleteUnknownItemImages(ctx context.Context, dollar_1 []int64)
 }
 
 const findUnknownInvoiceItem = `-- name: FindUnknownInvoiceItem :one
-SELECT id, branch_invoice_id, branch_product_id, unit_price, line_total, discount, quantity, product_uid, unknown FROM branch_invoice_items
+SELECT id, branch_invoice_id, branch_product_id, unit_price, line_total, discount, quantity, product_uid, unknown, deal, deal_discount FROM branch_invoice_items
 WHERE branch_invoice_id = $1 AND unknown AND unit_price = $2 AND discount = $3 AND quantity > 0
 ORDER BY id
 LIMIT 1
@@ -202,6 +202,8 @@ func (q *Queries) FindUnknownInvoiceItem(ctx context.Context, arg FindUnknownInv
 		&i.Quantity,
 		&i.ProductUid,
 		&i.Unknown,
+		&i.Deal,
+		&i.DealDiscount,
 	)
 	return i, err
 }
