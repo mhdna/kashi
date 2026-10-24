@@ -13,19 +13,20 @@ import (
 )
 
 const createDeal = `-- name: CreateDeal :one
-INSERT INTO deals (name, kind, buy_qty, get_qty, percent, bundle_price, fallback_percent)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, uid, name, kind, buy_qty, get_qty, percent, bundle_price, created_at, updated_at, fallback_percent
+INSERT INTO deals (name, kind, buy_qty, get_qty, percent, bundle_price, fallback_percent, fallback_only_without_set)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING id, uid, name, kind, buy_qty, get_qty, percent, bundle_price, created_at, updated_at, fallback_percent, fallback_only_without_set
 `
 
 type CreateDealParams struct {
-	Name            string `json:"name"`
-	Kind            string `json:"kind"`
-	BuyQty          int32  `json:"buy_qty"`
-	GetQty          int32  `json:"get_qty"`
-	Percent         int16  `json:"percent"`
-	BundlePrice     int64  `json:"bundle_price"`
-	FallbackPercent int16  `json:"fallback_percent"`
+	Name                   string `json:"name"`
+	Kind                   string `json:"kind"`
+	BuyQty                 int32  `json:"buy_qty"`
+	GetQty                 int32  `json:"get_qty"`
+	Percent                int16  `json:"percent"`
+	BundlePrice            int64  `json:"bundle_price"`
+	FallbackPercent        int16  `json:"fallback_percent"`
+	FallbackOnlyWithoutSet bool   `json:"fallback_only_without_set"`
 }
 
 func (q *Queries) CreateDeal(ctx context.Context, arg CreateDealParams) (Deal, error) {
@@ -37,6 +38,7 @@ func (q *Queries) CreateDeal(ctx context.Context, arg CreateDealParams) (Deal, e
 		arg.Percent,
 		arg.BundlePrice,
 		arg.FallbackPercent,
+		arg.FallbackOnlyWithoutSet,
 	)
 	var i Deal
 	err := row.Scan(
@@ -51,6 +53,7 @@ func (q *Queries) CreateDeal(ctx context.Context, arg CreateDealParams) (Deal, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.FallbackPercent,
+		&i.FallbackOnlyWithoutSet,
 	)
 	return i, err
 }
@@ -65,7 +68,7 @@ func (q *Queries) DeleteDeal(ctx context.Context, id int64) error {
 }
 
 const getDeal = `-- name: GetDeal :one
-SELECT id, uid, name, kind, buy_qty, get_qty, percent, bundle_price, created_at, updated_at, fallback_percent FROM deals WHERE id = $1
+SELECT id, uid, name, kind, buy_qty, get_qty, percent, bundle_price, created_at, updated_at, fallback_percent, fallback_only_without_set FROM deals WHERE id = $1
 `
 
 func (q *Queries) GetDeal(ctx context.Context, id int64) (Deal, error) {
@@ -83,12 +86,13 @@ func (q *Queries) GetDeal(ctx context.Context, id int64) (Deal, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.FallbackPercent,
+		&i.FallbackOnlyWithoutSet,
 	)
 	return i, err
 }
 
 const listDeals = `-- name: ListDeals :many
-SELECT d.id, d.uid, d.name, d.kind, d.buy_qty, d.get_qty, d.percent, d.bundle_price, d.created_at, d.updated_at, d.fallback_percent,
+SELECT d.id, d.uid, d.name, d.kind, d.buy_qty, d.get_qty, d.percent, d.bundle_price, d.created_at, d.updated_at, d.fallback_percent, d.fallback_only_without_set,
        (SELECT COUNT(*) FROM discount_list_items i WHERE i.deal_id = d.id)::bigint AS variants,
        (SELECT COUNT(*) FROM discount_list_rules r WHERE r.deal_id = d.id)::bigint AS rules
 FROM deals d
@@ -96,19 +100,20 @@ ORDER BY d.name, d.id
 `
 
 type ListDealsRow struct {
-	ID              int64     `json:"id"`
-	Uid             uuid.UUID `json:"uid"`
-	Name            string    `json:"name"`
-	Kind            string    `json:"kind"`
-	BuyQty          int32     `json:"buy_qty"`
-	GetQty          int32     `json:"get_qty"`
-	Percent         int16     `json:"percent"`
-	BundlePrice     int64     `json:"bundle_price"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
-	FallbackPercent int16     `json:"fallback_percent"`
-	Variants        int64     `json:"variants"`
-	Rules           int64     `json:"rules"`
+	ID                     int64     `json:"id"`
+	Uid                    uuid.UUID `json:"uid"`
+	Name                   string    `json:"name"`
+	Kind                   string    `json:"kind"`
+	BuyQty                 int32     `json:"buy_qty"`
+	GetQty                 int32     `json:"get_qty"`
+	Percent                int16     `json:"percent"`
+	BundlePrice            int64     `json:"bundle_price"`
+	CreatedAt              time.Time `json:"created_at"`
+	UpdatedAt              time.Time `json:"updated_at"`
+	FallbackPercent        int16     `json:"fallback_percent"`
+	FallbackOnlyWithoutSet bool      `json:"fallback_only_without_set"`
+	Variants               int64     `json:"variants"`
+	Rules                  int64     `json:"rules"`
 }
 
 // Every deal, with how many list rows and rules put it on products, so the
@@ -134,6 +139,7 @@ func (q *Queries) ListDeals(ctx context.Context) ([]ListDealsRow, error) {
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.FallbackPercent,
+			&i.FallbackOnlyWithoutSet,
 			&i.Variants,
 			&i.Rules,
 		); err != nil {
@@ -151,7 +157,7 @@ func (q *Queries) ListDeals(ctx context.Context) ([]ListDealsRow, error) {
 }
 
 const listDealsForDiscountListSync = `-- name: ListDealsForDiscountListSync :many
-SELECT d.id, d.uid, d.name, d.kind, d.buy_qty, d.get_qty, d.percent, d.bundle_price, d.created_at, d.updated_at, d.fallback_percent FROM deals d
+SELECT d.id, d.uid, d.name, d.kind, d.buy_qty, d.get_qty, d.percent, d.bundle_price, d.created_at, d.updated_at, d.fallback_percent, d.fallback_only_without_set FROM deals d
 WHERE d.id IN (SELECT deal_id FROM discount_list_items WHERE discount_list_id = $1)
 ORDER BY d.id
 `
@@ -179,6 +185,7 @@ func (q *Queries) ListDealsForDiscountListSync(ctx context.Context, discountList
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.FallbackPercent,
+			&i.FallbackOnlyWithoutSet,
 		); err != nil {
 			return nil, err
 		}
@@ -196,20 +203,21 @@ func (q *Queries) ListDealsForDiscountListSync(ctx context.Context, discountList
 const updateDeal = `-- name: UpdateDeal :one
 UPDATE deals
 SET name = $2, kind = $3, buy_qty = $4, get_qty = $5, percent = $6, bundle_price = $7,
-    fallback_percent = $8, updated_at = now()
+    fallback_percent = $8, fallback_only_without_set = $9, updated_at = now()
 WHERE id = $1
-RETURNING id, uid, name, kind, buy_qty, get_qty, percent, bundle_price, created_at, updated_at, fallback_percent
+RETURNING id, uid, name, kind, buy_qty, get_qty, percent, bundle_price, created_at, updated_at, fallback_percent, fallback_only_without_set
 `
 
 type UpdateDealParams struct {
-	ID              int64  `json:"id"`
-	Name            string `json:"name"`
-	Kind            string `json:"kind"`
-	BuyQty          int32  `json:"buy_qty"`
-	GetQty          int32  `json:"get_qty"`
-	Percent         int16  `json:"percent"`
-	BundlePrice     int64  `json:"bundle_price"`
-	FallbackPercent int16  `json:"fallback_percent"`
+	ID                     int64  `json:"id"`
+	Name                   string `json:"name"`
+	Kind                   string `json:"kind"`
+	BuyQty                 int32  `json:"buy_qty"`
+	GetQty                 int32  `json:"get_qty"`
+	Percent                int16  `json:"percent"`
+	BundlePrice            int64  `json:"bundle_price"`
+	FallbackPercent        int16  `json:"fallback_percent"`
+	FallbackOnlyWithoutSet bool   `json:"fallback_only_without_set"`
 }
 
 func (q *Queries) UpdateDeal(ctx context.Context, arg UpdateDealParams) (Deal, error) {
@@ -222,6 +230,7 @@ func (q *Queries) UpdateDeal(ctx context.Context, arg UpdateDealParams) (Deal, e
 		arg.Percent,
 		arg.BundlePrice,
 		arg.FallbackPercent,
+		arg.FallbackOnlyWithoutSet,
 	)
 	var i Deal
 	err := row.Scan(
@@ -236,6 +245,7 @@ func (q *Queries) UpdateDeal(ctx context.Context, arg UpdateDealParams) (Deal, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.FallbackPercent,
+		&i.FallbackOnlyWithoutSet,
 	)
 	return i, err
 }
