@@ -83,6 +83,17 @@ func TestDiscountListRules(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, rules, 2)
 	require.Equal(t, int64(1), rules[1].Variants)
+	require.Equal(t, int64(0), rules[0].Variants, "an exclusion writes no rows")
+
+	// What each rule decides, the exclusion's too: the bag.
+	decided, err := testQueries.CountDiscountListRuleDecided(ctx, list.ID)
+	require.NoError(t, err)
+	byRule := map[int64]int64{}
+	for _, d := range decided {
+		byRule[d.RuleID] = d.Variants
+	}
+	require.Equal(t, int64(1), byRule[rules[0].ID], "the accessories rule keeps the bag out")
+	require.Equal(t, int64(1), byRule[rules[1].ID], "the turkey rule has the shirt")
 
 	// The shirt stops being Turkish: it leaves the rule when that commits.
 	setAttr(shirt.ProductID, 8, "China")

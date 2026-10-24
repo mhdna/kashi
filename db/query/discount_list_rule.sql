@@ -83,3 +83,42 @@ WHERE discount_list_id = $1 AND NOT (id = ANY(sqlc.arg(keep)::bigint[]));
 
 -- name: DeleteDiscountListRuleOptions :exec
 DELETE FROM discount_list_rule_options WHERE rule_id = $1;
+
+-- name: CountDiscountListRuleDecided :many
+-- How many variants each rule of a list decides, first match wins, the way
+-- refresh_discount_rules (000204) picks them. A rule giving no discount and
+-- no deal writes no rows, so ListDiscountListRules counts it as 0; this is
+-- what it keeps out (or gives) all the same.
+WITH rules AS (
+    SELECT r.id, r.position,
+           ARRAY(SELECT upper(x) || '%' FROM unnest(r.code_prefixes) x) AS prefixes,
+           ARRAY(SELECT upper(x) || '%' FROM unnest(r.except_code_prefixes) x) AS except_prefixes,
+           ARRAY(SELECT lower(x) FROM unnest(r.kinds) x) AS kinds,
+           ARRAY(SELECT lower(x) FROM unnest(r.categories) x) AS categories,
+           ARRAY(SELECT lower(x) FROM unnest(r.sub_categories) x) AS sub_categories,
+           ARRAY(SELECT lower(x) FROM unnest(r.origins) x) AS origins,
+           ARRAY(SELECT lower(x) FROM unnest(r.brands) x) AS brands
+    FROM discount_list_rules r
+    WHERE r.discount_list_id = $1
+      AND r.is_enabled
+      AND EXISTS (SELECT 1 FROM discount_list_rule_groups g WHERE g.id = r.group_id AND g.is_enabled)
+), decided AS (
+    SELECT DISTINCT ON (f.product_variant_id) r.id AS rule_id
+    FROM rules r
+    JOIN discount_rule_facts f ON
+            (cardinality(r.prefixes) = 0 OR f.code LIKE ANY (r.prefixes))
+        AND NOT (f.code LIKE ANY (r.except_prefixes))
+        AND (cardinality(r.kinds) = 0 OR f.kind = ANY (r.kinds))
+        AND (cardinality(r.categories) = 0 OR f.category = ANY (r.categories))
+        AND (cardinality(r.sub_categories) = 0 OR f.sub_category = ANY (r.sub_categories))
+        AND (cardinality(r.origins) = 0 OR f.origin = ANY (r.origins))
+        AND (cardinality(r.brands) = 0 OR f.brand = ANY (r.brands))
+    WHERE NOT EXISTS (SELECT 1 FROM discount_list_items m
+                      WHERE m.discount_list_id = $1
+                        AND m.product_variant_id = f.product_variant_id AND m.rule_id IS NULL)
+      AND NOT EXISTS (SELECT 1 FROM discount_list_option_items m
+                      WHERE m.discount_list_id = $1
+                        AND m.product_variant_id = f.product_variant_id AND m.rule_id IS NULL)
+    ORDER BY f.product_variant_id, r.position, r.id
+)
+SELECT rule_id, COUNT(*)::bigint AS variants FROM decided GROUP BY rule_id;

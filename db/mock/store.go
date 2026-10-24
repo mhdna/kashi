@@ -1410,6 +1410,21 @@ func (mr *MockStoreMockRecorder) CountDiscountListItemsWithProduct(arg0, arg1 in
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountDiscountListItemsWithProduct", reflect.TypeOf((*MockStore)(nil).CountDiscountListItemsWithProduct), arg0, arg1)
 }
 
+// CountDiscountListRuleDecided mocks base method.
+func (m *MockStore) CountDiscountListRuleDecided(arg0 context.Context, arg1 int64) ([]db.CountDiscountListRuleDecidedRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountDiscountListRuleDecided", arg0, arg1)
+	ret0, _ := ret[0].([]db.CountDiscountListRuleDecidedRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountDiscountListRuleDecided indicates an expected call of CountDiscountListRuleDecided.
+func (mr *MockStoreMockRecorder) CountDiscountListRuleDecided(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountDiscountListRuleDecided", reflect.TypeOf((*MockStore)(nil).CountDiscountListRuleDecided), arg0, arg1)
+}
+
 // CountDiscountLists mocks base method.
 func (m *MockStore) CountDiscountLists(arg0 context.Context) (int64, error) {
 	m.ctrl.T.Helper()
