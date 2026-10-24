@@ -54,3 +54,32 @@ DELETE FROM discount_list_rule_groups WHERE discount_list_id = $1;
 INSERT INTO discount_list_rule_groups (discount_list_id, position, name, is_enabled)
 VALUES ($1, $2, $3, $4)
 RETURNING *;
+
+-- name: UpdateDiscountListRuleGroup :execrows
+-- Saved in place, so a group (and its rules) keeps its id.
+UPDATE discount_list_rule_groups
+SET position = $3, name = $4, is_enabled = $5
+WHERE id = $1 AND discount_list_id = $2;
+
+-- name: UpdateDiscountListRule :execrows
+-- Saved in place: the rows a rule wrote carry its id (rule_id), so a rule
+-- re-created with a new id would have every one of them rewritten.
+UPDATE discount_list_rules
+SET position = sqlc.arg(position), name = sqlc.arg(name),
+    code_prefixes = sqlc.arg(code_prefixes)::text[], except_code_prefixes = sqlc.arg(except_code_prefixes)::text[],
+    kinds = sqlc.arg(kinds)::text[], categories = sqlc.arg(categories)::text[],
+    sub_categories = sqlc.arg(sub_categories)::text[], origins = sqlc.arg(origins)::text[],
+    brands = sqlc.arg(brands)::text[], discount = sqlc.arg(discount), deal_id = sqlc.narg(deal_id)::bigint,
+    group_id = sqlc.arg(group_id), is_enabled = sqlc.arg(is_enabled)
+WHERE id = sqlc.arg(id) AND discount_list_id = sqlc.arg(discount_list_id);
+
+-- name: DeleteDiscountListRulesExcept :exec
+DELETE FROM discount_list_rules
+WHERE discount_list_id = $1 AND NOT (id = ANY(sqlc.arg(keep)::bigint[]));
+
+-- name: DeleteDiscountListRuleGroupsExcept :exec
+DELETE FROM discount_list_rule_groups
+WHERE discount_list_id = $1 AND NOT (id = ANY(sqlc.arg(keep)::bigint[]));
+
+-- name: DeleteDiscountListRuleOptions :exec
+DELETE FROM discount_list_rule_options WHERE rule_id = $1;
