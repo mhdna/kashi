@@ -9,9 +9,10 @@ INSERT INTO branch_expenses (
   branch_cashbox_account_id,
   branch_cashbox_account_name,
   branch_shift_id,
-  occurred_at
+  occurred_at,
+  from_central
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 )
 RETURNING *;
 
@@ -40,3 +41,33 @@ SELECT COUNT(*) FROM branch_expenses
 WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
   AND branch_expenses.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND (sqlc.arg(search)::text = '' OR description ILIKE '%' || sqlc.arg(search)::text || '%');
+
+-- name: SetBranchExpenseCategory :one
+-- A till re-categorising one of its own expenses (kashi-pos expense
+-- detail). NULL category_id is "no category".
+UPDATE branch_expenses
+SET category_id = sqlc.narg(category_id)
+WHERE branch_id = $1 AND client_ref = $2
+RETURNING *;
+
+-- name: SetBranchExpenseFromCentral :one
+-- A till marking one of its own expenses as paid by central, or not.
+UPDATE branch_expenses
+SET from_central = $3
+WHERE branch_id = $1 AND client_ref = $2
+RETURNING *;
+
+-- name: SetBranchExpenseFromCentralByID :one
+-- The same, from kashi's expenses page.
+UPDATE branch_expenses
+SET from_central = $2
+WHERE id = $1
+RETURNING *;
+
+-- name: CancelBranchExpense :one
+-- Stamps cancelled_at once; a second cancel matches no row (the handler
+-- reads the row first, so that's an idempotent no-op, not an error).
+UPDATE branch_expenses
+SET cancelled_at = now()
+WHERE id = $1 AND cancelled_at IS NULL
+RETURNING *;

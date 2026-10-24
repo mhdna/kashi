@@ -79,8 +79,20 @@ export async function authFetch (url, options = {}) {
     try {
       const newToken = await renewOnce(authStore)
       res = await request(newToken)
-    } catch {
-      // refresh failed, fall through to the logout/redirect below
+    } catch (err) {
+      // A transient refresh failure (server unreachable mid-deploy-restart,
+      // or a gateway status while it's coming back up) says nothing about
+      // whether the session itself is still good -- see the matching
+      // comment in stores/auth.js's renew(). Surface it as a retryable
+      // error instead of silently falling through to a logout the user
+      // did nothing to deserve; markServerUpdating already has its own
+      // recovery/retry flow (useServerStatus.js) for this case.
+      if (err?.transientRefreshFailure) {
+        markServerUpdating()
+        throw err
+      }
+      // refresh failed for a real reason (bad/expired refresh token), fall
+      // through to the logout/redirect below
     }
   }
 

@@ -65,7 +65,8 @@
 
 <script setup lang="ts">
   import { ref } from 'vue'
+  import { ymd } from '@/utils/dates'
 
-  const currentDate = ref(new Date().toISOString().slice(0, 10))
+  const currentDate = ref(ymd(new Date()))
   const supplierInvoice = ref('')
 </script>

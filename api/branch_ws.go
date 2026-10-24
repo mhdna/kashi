@@ -201,6 +201,15 @@ type branchWSMessage struct {
 	// exist (branch_quick_access.go); "app_updates" means the till can fetch
 	// its update from /branch/app_update (app_update.go).
 	Features []string `json:"features,omitempty"`
+	// Review is set on "review": a client just answered the rating poll for
+	// a sale at this branch. A one-off notice for the till to show, so a
+	// missed push is simply never seen.
+	Review *branchReview `json:"review,omitempty"`
+}
+
+type branchReview struct {
+	ClientName string `json:"client_name"`
+	Rating     int16  `json:"rating"` // 1-5
 }
 
 // notify sends a message to every connected register of one branch. Unlike

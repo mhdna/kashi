@@ -94,11 +94,11 @@ func (server *Server) getSalesAnalysis(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	now := time.Now().UTC()
-	tomorrow := now.Truncate(24*time.Hour).AddDate(0, 0, 1)
+	today := businessToday()
+	tomorrow := today.AddDate(0, 0, 1)
 	year := req.Year
 	if year == 0 {
-		year = now.Year()
+		year = today.Year()
 		if len(years) > 0 {
 			year = int(years[0])
 		}
@@ -106,8 +106,8 @@ func (server *Server) getSalesAnalysis(ctx *gin.Context) {
 	month := req.Month
 	if month == 0 {
 		month = 12
-		if year == now.Year() {
-			month = int(now.Month())
+		if year == today.Year() {
+			month = int(today.Month())
 		}
 	}
 
@@ -124,17 +124,17 @@ func (server *Server) getSalesAnalysis(ctx *gin.Context) {
 
 	// Daily sales from the December before (for January's growth) through
 	// the period's end, and last year's same stretch.
-	dailySales, err := server.store.ReportDailySales(ctx, db.ReportDailySalesParams{DateFrom: from.AddDate(0, -1, 0), DateTo: to})
+	dailySales, err := server.store.ReportDailySales(ctx, db.ReportDailySalesParams{DateFrom: dayStart(from.AddDate(0, -1, 0)), DateTo: dayStart(to)})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	costed, err := server.store.ReportDailyCosted(ctx, db.ReportDailyCostedParams{DateFrom: from, DateTo: to})
+	costed, err := server.store.ReportDailyCosted(ctx, db.ReportDailyCostedParams{DateFrom: dayStart(from), DateTo: dayStart(to)})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	lastYearSales, err := server.store.ReportDailySales(ctx, db.ReportDailySalesParams{DateFrom: lastFrom, DateTo: lastTo})
+	lastYearSales, err := server.store.ReportDailySales(ctx, db.ReportDailySalesParams{DateFrom: dayStart(lastFrom), DateTo: dayStart(lastTo)})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
@@ -190,12 +190,12 @@ func (server *Server) getSalesAnalysis(ctx *gin.Context) {
 	}
 
 	// Categories, top five, next to the same stretch of last year.
-	categories, err := server.store.ReportCategorySales(ctx, db.ReportCategorySalesParams{DateFrom: from, DateTo: to})
+	categories, err := server.store.ReportCategorySales(ctx, db.ReportCategorySalesParams{DateFrom: dayStart(from), DateTo: dayStart(to)})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	lastYearCategories, err := server.store.ReportCategorySales(ctx, db.ReportCategorySalesParams{DateFrom: lastFrom, DateTo: lastTo})
+	lastYearCategories, err := server.store.ReportCategorySales(ctx, db.ReportCategorySalesParams{DateFrom: dayStart(lastFrom), DateTo: dayStart(lastTo)})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
@@ -214,7 +214,7 @@ func (server *Server) getSalesAnalysis(ctx *gin.Context) {
 		})
 	}
 
-	branchRows, err := server.store.ReportBranchSales(ctx, db.ReportBranchSalesParams{DateFrom: from, DateTo: to})
+	branchRows, err := server.store.ReportBranchSales(ctx, db.ReportBranchSalesParams{DateFrom: dayStart(from), DateTo: dayStart(to)})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
@@ -230,7 +230,7 @@ func (server *Server) getSalesAnalysis(ctx *gin.Context) {
 		branches = append(branches, b)
 	}
 
-	payments, err := server.store.ReportPaymentMethods(ctx, db.ReportPaymentMethodsParams{DateFrom: from, DateTo: to})
+	payments, err := server.store.ReportPaymentMethods(ctx, db.ReportPaymentMethodsParams{DateFrom: dayStart(from), DateTo: dayStart(to)})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return

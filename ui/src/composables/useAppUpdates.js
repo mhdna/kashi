@@ -21,8 +21,9 @@ export function useAppUpdates () {
     listReleases: async () => (await requestJSON(`${API_BASE}/app_releases`))?.releases ?? [],
     listRegisters: async () => (await requestJSON(`${API_BASE}/app_updates/registers`))?.registers ?? [],
     listEvents: async () => (await requestJSON(`${API_BASE}/app_updates/events?limit=200`))?.events ?? [],
-    setTarget: (releaseId, registerIds) =>
-      requestJSON(`${API_BASE}/app_updates/target`, jsonBody('PUT', { release_id: releaseId, register_ids: registerIds })),
+    // force: install as soon as it's downloaded, even with a shift open.
+    setTarget: (releaseId, registerIds, force = false) =>
+      requestJSON(`${API_BASE}/app_updates/target`, jsonBody('PUT', { release_id: releaseId, register_ids: registerIds, force })),
     updateNotes: (id, notes) => requestJSON(`${API_BASE}/app_releases/${id}`, jsonBody('PUT', { notes })),
     deleteRelease: id => requestJSON(`${API_BASE}/app_releases/${id}`, { method: 'DELETE' }),
   }

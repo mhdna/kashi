@@ -94,6 +94,8 @@ func TestBranchInvoice_HistoricalFlagReachesTx(t *testing.T) {
 	defer ctrl.Finish()
 	store := mockdb.NewMockStore(ctrl)
 	stubBranchAuth(store)
+	// A sale looks up the branch's named "Unknown item" product.
+	store.EXPECT().GetBranchSettings(gomock.Any(), gomock.Any()).Return(db.BranchSetting{}, sql.ErrNoRows).AnyTimes()
 
 	store.EXPECT().
 		GetBranchInvoiceByClientRef(gomock.Any(), gomock.Any()).

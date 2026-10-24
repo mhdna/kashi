@@ -15,7 +15,9 @@ import (
 var errRelatedClientRefRequired = errors.New("related_client_ref is required for a return or exchange invoice")
 
 // branchHealth lets a branch confirm its API key works and see how kashi
-// identifies it, before wiring up anything that actually moves data.
+// identifies it, before wiring up anything that actually moves data. It also
+// carries kashi's clock and the branch's timezone: the till keeps its days
+// in that zone and warns when the PC's own clock is off (kashi-pos clock.go).
 func (server *Server) branchHealth(ctx *gin.Context) {
 	identity, err := server.tillIdentity(ctx)
 	if err != nil {
@@ -27,6 +29,8 @@ func (server *Server) branchHealth(ctx *gin.Context) {
 		"branch_code":   identity.BranchCode,
 		"register_id":   identity.RegisterID,
 		"register_code": identity.RegisterCode,
+		"timezone":      identity.Timezone,
+		"server_time":   time.Now().UTC(),
 	})
 }
 
@@ -35,6 +39,7 @@ type tillIdentity struct {
 	BranchCode   string
 	RegisterID   int64
 	RegisterCode string
+	Timezone     string
 }
 
 // tillIdentity resolves the authenticated register and its branch.
@@ -52,6 +57,7 @@ func (server *Server) tillIdentity(ctx *gin.Context) (tillIdentity, error) {
 		BranchCode:   branch.Code,
 		RegisterID:   register.ID,
 		RegisterCode: register.Code,
+		Timezone:     branch.Timezone,
 	}, nil
 }
 
@@ -101,6 +107,10 @@ type branchInvoiceItemRequest struct {
 	LineTotal  int64  `json:"line_total"`
 	Discount   int16  `json:"discount"`
 	Quantity   int64  `json:"quantity" binding:"required"`
+	// A line the till priced with a deal (000201): the deal's name and what
+	// it took off the line. Empty from tills that predate deals.
+	Deal         string `json:"deal"`
+	DealDiscount int64  `json:"deal_discount"`
 }
 
 // branchInvoiceRequest is deliberately NOT the same shape as
@@ -146,6 +156,10 @@ type branchInvoiceRequest struct {
 	// of the sale being returned/exchanged against.
 	RelatedClientRef string `json:"related_client_ref"`
 
+	// The picture session of a sale that includes "Unknown item" lines (see
+	// unknown_items.go). Empty on every other sale.
+	UnknownSessionRef string `json:"unknown_session_ref"`
+
 	// Both best-effort display data, not synced/shared entities -- see the
 	// matching comment on branchInvoicePaymentPayload in kashi-pos's
 	// sync_outbox.go. Neither is required: an older kashi-pos build that
@@ -166,6 +180,10 @@ type branchInvoiceRequest struct {
 	// up by mistake): both get cancelled_at, so sales statistics skip them --
 	// see applyBranchInvoiceCancellation. Only meaningful on a return.
 	Cancellation bool `json:"cancellation"`
+	// LbpTotal/LbpRate are the LBP total the till printed and the LBP per
+	// USD it used, stamped at checkout. Older kashi-pos builds omit them.
+	LbpTotal *int64 `json:"lbp_total"`
+	LbpRate  *int64 `json:"lbp_rate"`
 }
 
 // applyBranchInvoiceCancellation sets cancelled_at for a cancellation return
@@ -223,6 +241,7 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
 		}
+		server.linkUnknownSession(ctx, branchID, existing.ID, req.UnknownSessionRef)
 		server.writeJSON(ctx, http.StatusOK, envelope{"invoice": existing})
 		return
 	} else if err != sql.ErrNoRows {
@@ -245,9 +264,11 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 		return
 	}
 
+	unknownBarcode := server.branchUnknownBarcode(ctx, branchID)
 	items := make([]db.BranchInvoiceItemParams, 0, len(req.Items))
 	for _, item := range req.Items {
 		items = append(items, db.BranchInvoiceItemParams{
+			Unknown:         unknownBarcode != "" && item.Barcode == unknownBarcode,
 			BranchProductID: item.BranchProductID,
 			Barcode:         item.Barcode,
 			ProductUID:      parseNullUUID(item.ProductUID),
@@ -255,6 +276,8 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 			LineTotal:       item.LineTotal,
 			Discount:        item.Discount,
 			Quantity:        item.Quantity,
+			Deal:            item.Deal,
+			DealDiscount:    item.DealDiscount,
 		})
 	}
 
@@ -298,6 +321,8 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 			ClientUid:              clientUID,
 			RegisterID:             registerID,
 			SalespersonID:          salespersonID,
+			LbpTotal:               nullInt64Ptr(req.LbpTotal),
+			LbpRate:                nullInt64Ptr(req.LbpRate),
 		},
 		Items:    items,
 		Payments: payments,
@@ -312,6 +337,7 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 					server.writeError(ctx, http.StatusInternalServerError, err)
 					return
 				}
+				server.linkUnknownSession(ctx, branchID, existing.ID, req.UnknownSessionRef)
 				server.writeJSON(ctx, http.StatusOK, envelope{"invoice": existing})
 				return
 			}
@@ -323,6 +349,7 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	server.linkUnknownSession(ctx, branchID, result.Invoice.ID, req.UnknownSessionRef)
 
 	// Only the genuinely-new-insert path reaches here (the two lookups above
 	// return early on "already exists"), so this never double-notifies
@@ -336,20 +363,26 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 	if currency, err := server.store.GetDefaultCurrency(ctx); err == nil {
 		currencyCode = currency.Code
 	}
-	// GrandTotal is already the net signed cash effect the branch reported
-	// (positive for sales, negative for a refund return, and for an
-	// exchange whatever kashi-pos's own netDifference computed -- positive,
-	// negative, or zero) -- see the ListDailyIncome comment in
-	// db/query/branch_invoice.sql. Forcing a second negation here for
-	// "return" used to double-flip it back to positive.
-	server.adminHub.broadcastAll(adminWSMessage{
-		Type:         "branch_invoice_created",
-		BranchID:     branchID,
-		Kind:         kind,
-		Amount:       req.GrandTotal,
-		CurrencyCode: currencyCode,
-		Label:        req.BranchInvoiceCode,
-	})
+	// A backfill or a till catching up on its offline queue pushes sales that
+	// happened long ago; announcing each as live activity floods every open
+	// admin tab with stale toasts, so only a recent, non-historical sale
+	// notifies.
+	if !req.Historical && time.Since(req.OccurredAt) <= liveInvoiceNotifyWindow {
+		// GrandTotal is already the net signed cash effect the branch reported
+		// (positive for sales, negative for a refund return, and for an
+		// exchange whatever kashi-pos's own netDifference computed -- positive,
+		// negative, or zero) -- see the ListDailyIncome comment in
+		// db/query/branch_invoice.sql. Forcing a second negation here for
+		// "return" used to double-flip it back to positive.
+		server.adminHub.broadcastAll(adminWSMessage{
+			Type:         "branch_invoice_created",
+			BranchID:     branchID,
+			Kind:         kind,
+			Amount:       req.GrandTotal,
+			CurrencyCode: currencyCode,
+			Label:        req.BranchInvoiceCode,
+		})
+	}
 	for _, conflict := range result.Oversold {
 		server.adminHub.broadcastAll(adminWSMessage{
 			Type:     "branch_sync_conflict",
@@ -361,6 +394,10 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 
 	server.writeJSON(ctx, http.StatusOK, envelope{"invoice": result.Invoice, "items": result.Items, "payments": result.Payments})
 }
+
+// liveInvoiceNotifyWindow is how recent an invoice's occurred_at must be for
+// its arrival to be broadcast to admin clients as live activity.
+const liveInvoiceNotifyWindow = 10 * time.Minute
 
 func (server *Server) createBranchSalesInvoice(ctx *gin.Context) {
 	server.createBranchInvoice(ctx, "sales")
@@ -443,4 +480,13 @@ func isUniqueViolation(err error) bool {
 func isForeignKeyViolation(err error) bool {
 	pqErr, ok := err.(*pq.Error)
 	return ok && pqErr.Code.Name() == "foreign_key_violation"
+}
+
+// nullInt64Ptr is an optional JSON number as a nullable column: nil (the
+// field was omitted) is NULL.
+func nullInt64Ptr(value *int64) sql.NullInt64 {
+	if value == nil {
+		return sql.NullInt64{}
+	}
+	return sql.NullInt64{Int64: *value, Valid: true}
 }

@@ -25,11 +25,13 @@
                 'cell-flash': isHighlighted(mi, d),
                 'cell-today': isToday(mi, d),
                 'cell-link': isOpenable(mi, d),
+                'cell-empty': isOpenable(mi, d) && !get(mi, d),
               }"
-              :style="d <= daysInMonth[mi] ? cellStyle(get(mi, d)) : {}"
+              :style="isOpenable(mi, d) && get(mi, d) ? cellStyle(get(mi, d)) : {}"
+              :title="isOpenable(mi, d) && !loading ? exact(get(mi, d)) : undefined"
               @click="openDay(mi, d)"
             >
-              {{ d <= daysInMonth[mi] && !loading ? format(get(mi, d)) : "" }}
+              {{ cellText(mi, d) }}
             </td>
           </tr>
         </tbody>
@@ -40,6 +42,7 @@
               v-for="(month, mi) in months"
               :key="month"
               class="sticky-foot"
+              :title="loading ? undefined : exact(monthTotals[mi])"
             >
               {{ loading ? "" : format(monthTotals[mi]) }}
             </td>
@@ -90,8 +93,9 @@
   // Footfall page.
   // yearNav puts the year picker in the grid's corner cell, which holds the
   // day column wide; turn it off when the page shows the year elsewhere.
-  const props = withDefaults(defineProps<{ branchIds?: number[] | null, yearNav?: boolean }>(), {
+  const props = withDefaults(defineProps<{ branchIds?: number[] | null, registerIds?: number[], yearNav?: boolean }>(), {
     branchIds: null,
+    registerIds: () => [],
     yearNav: true,
   })
 
@@ -198,11 +202,29 @@
 
   // highlightChanges is false for a branch-filter switch (a whole new grid,
   // nothing to flash) and true for a live socket-triggered refresh.
+  //
+  // loadGeneration guards against two load() calls racing: a year/branch
+  // switch (highlightChanges=false) can overlap with a socket-triggered
+  // refresh (highlightChanges=true, firing once per synced invoice -- rapid
+  // during a bulk historical import) for what is now the *same* selected
+  // year. Without this, a highlightChanges=true call that resolves after a
+  // newer one already replaced data.value diffs "next" against a
+  // "previous" snapshot that's actually stale -- e.g. still the old year's
+  // numbers -- so nearly every cell reads as changed and flashes at once,
+  // even though only the handful a real sync touched actually did. Only
+  // the most recently *started* call is allowed to write data.value or
+  // flash anything; every earlier one that resolves late is simply
+  // discarded once a newer one has begun. (The older `year !==
+  // selectedYear.value` check this replaces only caught the sub-case where
+  // the year had changed again by the time the fetch resolved, not two
+  // in-flight calls for the same year.)
+  let loadGeneration = 0
   async function load (highlightChanges = false) {
     const year = selectedYear.value
+    const generation = ++loadGeneration
     if (!highlightChanges) loading.value = true
-    const days = await getDailyIncome(year, branchFilter.value).catch(() => [])
-    if (year !== selectedYear.value) return
+    const days = await getDailyIncome(year, branchFilter.value, props.registerIds).catch(() => [])
+    if (generation !== loadGeneration) return
     loading.value = false
     const next = months.map((_, mi) => Array.from({ length: daysInMonth.value[mi] }, () => 0))
     for (const entry of days) {
@@ -221,7 +243,7 @@
     scrollToToday()
   }
 
-  watch([() => branchFilter.value.join(','), selectedYear], () => load(false), { immediate: true })
+  watch([() => branchFilter.value.join(','), () => props.registerIds.join(','), selectedYear], () => load(false), { immediate: true })
 
   // Branch sync pushes new invoices over the admin socket -- without this,
   // today's cell only updates on the next full page load. SyncCard listens
@@ -246,11 +268,29 @@
 
   const monthTotals = computed(() => data.value.map(month => month.reduce((sum, v) => sum + v, 0)))
 
+  // The whole year's sum, for the page to show beside the picker (null
+  // while a fresh grid is loading).
+  const emit = defineEmits<{ total: [value: number | null] }>()
+  watch([monthTotals, loading], () => {
+    emit('total', loading.value ? null : monthTotals.value.reduce((sum, v) => sum + v, 0))
+  }, { immediate: true })
+
   const allValues = computed(() => data.value.flat())
   const min = computed(() => Math.min(...allValues.value))
   const max = computed(() => Math.max(...allValues.value))
 
-  const format = v => '$' + v.toLocaleString()
+  // Whole dollars in the grid so every column lines up; the exact amount is
+  // the cell's tooltip.
+  const format = v => '$' + Math.round(v).toLocaleString()
+  const exact = v => '$' + v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+  // Days that haven't happened (or don't exist) stay blank; a past day
+  // without sales is a faint dash rather than "$0".
+  function cellText (mi, day) {
+    if (loading.value || !isOpenable(mi, day)) return ''
+    const v = get(mi, day)
+    return v ? format(v) : '–'
+  }
 
   function cellStyle (v) {
     const t = (v - min.value) / (max.value - min.value || 1)
@@ -289,13 +329,18 @@
   width: 100%;
   height: 100%;
   overflow: auto;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
 
+/* Separate (zero-spaced) borders, not collapsed: a collapsed border isn't
+   painted with its sticky cell, so the scrolled heat colours showed through
+   the pinned day column's row lines. */
 .heatmap-table {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   width: 100%;
   font-size: 13px;
+  font-variant-numeric: tabular-nums;
   /* Fill the space so the totals sit on the bottom edge: the day rows
      share whatever height is spare. Capped (~48px a day) so a very tall
      screen doesn't get giant rows; phones keep compact rows and scroll
@@ -315,7 +360,11 @@
   padding: 6px 12px;
   text-align: right;
   white-space: nowrap;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: thin solid rgba(var(--v-border-color), calc(var(--v-border-opacity) * 0.6));
+}
+
+.cell-empty {
+  color: rgba(var(--v-theme-on-surface), 0.3);
 }
 
 .cell-link {
@@ -350,6 +399,8 @@
   left: 0;
   text-align: left;
   background: rgb(var(--v-theme-surface));
+  /* A clean edge for the pinned column over whatever scrolls under it. */
+  box-shadow: inset -1px 0 0 rgba(var(--v-border-color), var(--v-border-opacity));
   z-index: 1;
 }
 
@@ -406,7 +457,7 @@
 .heatmap-table tfoot td {
   font-weight: 600;
   border-bottom: none;
-  border-top: 2px solid rgba(0, 0, 0, 0.12);
+  border-top: 2px solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
 
 .sticky-foot {

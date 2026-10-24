@@ -30,7 +30,9 @@ func (req listProductRevenueRequest) toArgs() (from, to time.Time, category, sub
 	if err != nil {
 		return
 	}
-	to = to.AddDate(0, 0, 1) // inclusive end day, matching the [from, to) filters below
+	// Inclusive end day, matching the [from, to) filters below; both
+	// bounds are midnights in businessZone.
+	from, to = dayStart(from), dayStart(to.AddDate(0, 0, 1))
 	if req.CategoryValueID > 0 {
 		category = sql.NullInt64{Int64: req.CategoryValueID, Valid: true}
 	}

@@ -20,7 +20,7 @@
           {{ item.source }}
         </v-chip>
         <v-spacer />
-        <span class="text-body-2 font-weight-medium me-2">{{ money(item.total) }}</span>
+        <span class="text-body-2 font-weight-medium me-2">{{ money(item.total, item.currency) }}</span>
         <v-chip size="x-small" variant="tonal">{{ dateChip(item.occurred_at) }}</v-chip>
       </template>
       <template #details="{ item }">
@@ -28,7 +28,7 @@
           :rows="[
             ['Source', item.source],
             ['Client', item.client],
-            ['Amount', money(item.total)],
+            ['Amount', money(item.total, item.currency)],
             ['Currency', item.currency],
             ['Date', dateFull(item.occurred_at)],
           ]"
@@ -47,7 +47,7 @@
       <template #row="{ item }">
         <span class="text-body-2 text-truncate">{{ item.supplier }}</span>
         <v-spacer />
-        <span class="text-body-2 font-weight-medium me-2">{{ money(item.total) }}</span>
+        <span class="text-body-2 font-weight-medium me-2">{{ money(item.total, item.currency) }}</span>
         <v-chip size="x-small" variant="tonal">{{ dateChip(item.purchased_at) }}</v-chip>
       </template>
       <template #details="{ item }">
@@ -55,7 +55,7 @@
           :rows="[
             ['Supplier', item.supplier],
             ['Items', item.items],
-            ['Amount', money(item.total)],
+            ['Amount', money(item.total, item.currency)],
             ['Currency', item.currency],
             ['Date', dateFull(item.purchased_at)],
           ]"
@@ -74,7 +74,7 @@
       <template #row="{ item }">
         <span class="text-body-2 text-truncate">{{ item.category || 'Uncategorised' }}</span>
         <v-spacer />
-        <span class="text-body-2 font-weight-medium me-2">{{ money(item.amount) }}</span>
+        <span class="text-body-2 font-weight-medium me-2">{{ money(item.amount, item.currency) }}</span>
         <v-chip class="me-1" size="x-small" variant="tonal">{{ dateChip(item.occurred_at) }}</v-chip>
         <ExpenseReceiptThumb :image-id="item.image_id" />
       </template>
@@ -84,7 +84,7 @@
             ['Source', item.source],
             ['Description', item.description],
             ['Category', item.category],
-            ['Amount', money(item.amount)],
+            ['Amount', money(item.amount, item.currency)],
             ['Currency', item.currency],
             ['Date', dateFull(item.occurred_at)],
           ]"
@@ -98,6 +98,7 @@
   import { computed, ref } from 'vue'
   import { useDashboardLiveEvents } from '@/composables/useDashboardLiveEvents'
   import { API_BASE } from '@/config'
+  import { displayCurrencyCode, formatAmount } from '@/utils/money'
   import { useIncomeFilters } from './composables/useIncomeFilters'
   import DashboardList from './DashboardList.vue'
   import DetailList from './DetailList.vue'
@@ -127,9 +128,9 @@
     expensesList.value?.reset()
   })
 
-  function money (cents) {
-    const n = Number(cents || 0) / 100
-    return `${Number.isInteger(n) ? n : n.toFixed(2)}$`
+  // Each row is shown in its own currency (an LBP expense is not dollars).
+  function money (cents, currency) {
+    return formatAmount(cents, displayCurrencyCode(currency))
   }
   function dateChip (value) {
     return value ? new Date(value).toLocaleDateString([], { day: '2-digit', month: 'short' }) : '—'

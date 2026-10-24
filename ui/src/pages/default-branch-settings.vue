@@ -46,22 +46,23 @@
           color="primary"
           :direction="$vuetify.display.smAndDown ? 'horizontal' : 'vertical'"
         >
-          <v-tab class="text-none" text="Pricing" value="pricing" />
+          <v-tab class="text-none" text="Money" value="money" />
+          <v-tab class="text-none" text="Payments" value="payments" />
           <v-tab class="text-none" text="Behaviour" value="behaviour" />
+          <v-tab class="text-none" text="Till display" value="display" />
           <v-tab class="text-none" text="Cash &amp; shifts" value="cash" />
-          <v-tab class="text-none" text="Page access" value="pages" />
           <v-tab class="text-none" text="Printing" value="printing" />
           <v-tab class="text-none" text="Attendance" value="attendance" />
-          <v-tab class="text-none" text="Till display" value="display" />
+          <v-tab class="text-none" text="Page access" value="pages" />
         </v-tabs>
 
         <v-divider vertical />
 
         <div class="dbs-section-pane">
           <v-form :disabled="!canEdit">
-            <div v-show="sectionTab === 'pricing'">
+            <div v-show="sectionTab === 'money'">
               <section class="dbs-section">
-                <div class="dbs-section-title">Pricing &amp; Exchange</div>
+                <div class="dbs-section-title">Rates &amp; rounding</div>
                 <div class="field-grid">
                   <v-text-field
                     v-model.number="form.tax_rate"
@@ -121,6 +122,12 @@
                     type="number"
                     variant="outlined"
                   />
+                </div>
+              </section>
+
+              <section class="dbs-section">
+                <div class="dbs-section-title">Returns &amp; exchange</div>
+                <div class="field-grid">
                   <v-text-field
                     v-model.number="form.exchange_window_hours"
                     density="compact"
@@ -131,11 +138,49 @@
                   />
                 </div>
               </section>
+
+            </div>
+
+            <div v-show="sectionTab === 'payments'">
+              <section class="dbs-section">
+                <div class="dbs-section-title">At the till</div>
+                <p class="text-caption text-medium-emphasis mt-4 mb-2">
+                  "Leave as is" keeps each branch's own value when you apply to all.
+                </p>
+                <div class="field-grid">
+                  <template v-for="f in OPTIONAL_FIELDS.payments" :key="f.key">
+                    <v-select
+                      v-if="f.type === 'bool'"
+                      v-model="form[f.key]"
+                      density="compact"
+                      hide-details
+                      :items="TRI_STATE"
+                      :label="f.label"
+                      variant="outlined"
+                    />
+                    <v-text-field
+                      v-else
+                      clearable
+                      density="compact"
+                      hide-details
+                      :label="f.label"
+                      min="0"
+                      :model-value="scaledValue(form[f.key], f.scale)"
+                      placeholder="Leave as is"
+                      :step="f.step"
+                      type="number"
+                      variant="outlined"
+                      @update:model-value="v => (form[f.key] = unscaledValue(v, f.scale))"
+                    />
+                  </template>
+                </div>
+              </section>
+
             </div>
 
             <div v-show="sectionTab === 'behaviour'">
               <section class="dbs-section">
-                <div class="dbs-section-title">Behaviour</div>
+                <div class="dbs-section-title">Product search</div>
                 <div class="dbs-switch-grid">
                   <v-switch
                     v-model="form.search_button_enabled"
@@ -144,6 +189,76 @@
                     hide-details
                     label="Product search button on sale screen"
                   />
+                </div>
+                <p class="text-caption text-medium-emphasis mt-4 mb-2">
+                  "Leave as is" keeps each branch's own value when you apply to all.
+                </p>
+                <div class="field-grid">
+                  <template v-for="f in OPTIONAL_FIELDS.productSearch" :key="f.key">
+                    <v-select
+                      v-if="f.type === 'bool'"
+                      v-model="form[f.key]"
+                      density="compact"
+                      hide-details
+                      :items="TRI_STATE"
+                      :label="f.label"
+                      variant="outlined"
+                    />
+                    <v-text-field
+                      v-else
+                      clearable
+                      density="compact"
+                      hide-details
+                      :label="f.label"
+                      min="0"
+                      :model-value="scaledValue(form[f.key], f.scale)"
+                      placeholder="Leave as is"
+                      :step="f.step"
+                      type="number"
+                      variant="outlined"
+                      @update:model-value="v => (form[f.key] = unscaledValue(v, f.scale))"
+                    />
+                  </template>
+                </div>
+              </section>
+
+              <section class="dbs-section">
+                <div class="dbs-section-title">Scanning</div>
+                <p class="text-caption text-medium-emphasis mt-4 mb-2">
+                  "Leave as is" keeps each branch's own value when you apply to all.
+                </p>
+                <div class="field-grid">
+                  <template v-for="f in OPTIONAL_FIELDS.scanning" :key="f.key">
+                    <v-select
+                      v-if="f.type === 'bool'"
+                      v-model="form[f.key]"
+                      density="compact"
+                      hide-details
+                      :items="TRI_STATE"
+                      :label="f.label"
+                      variant="outlined"
+                    />
+                    <v-text-field
+                      v-else
+                      clearable
+                      density="compact"
+                      hide-details
+                      :label="f.label"
+                      min="0"
+                      :model-value="scaledValue(form[f.key], f.scale)"
+                      placeholder="Leave as is"
+                      :step="f.step"
+                      type="number"
+                      variant="outlined"
+                      @update:model-value="v => (form[f.key] = unscaledValue(v, f.scale))"
+                    />
+                  </template>
+                </div>
+              </section>
+
+              <section class="dbs-section">
+                <div class="dbs-section-title">Pricing &amp; discounts</div>
+                <div class="dbs-switch-grid">
                   <v-switch
                     v-model="form.custom_item_discounts_enabled"
                     color="primary"
@@ -172,13 +287,42 @@
                     hide-details
                     label="Price-change manual override mode"
                   />
-                  <v-switch
-                    v-model="form.invoice_keyboard_mode"
-                    color="primary"
-                    density="compact"
-                    hide-details
-                    label="Invoice keyboard (number-pad) mode"
-                  />
+                </div>
+                <p class="text-caption text-medium-emphasis mt-4 mb-2">
+                  "Leave as is" keeps each branch's own value when you apply to all.
+                </p>
+                <div class="field-grid">
+                  <template v-for="f in OPTIONAL_FIELDS.pricing" :key="f.key">
+                    <v-select
+                      v-if="f.type === 'bool'"
+                      v-model="form[f.key]"
+                      density="compact"
+                      hide-details
+                      :items="TRI_STATE"
+                      :label="f.label"
+                      variant="outlined"
+                    />
+                    <v-text-field
+                      v-else
+                      clearable
+                      density="compact"
+                      hide-details
+                      :label="f.label"
+                      min="0"
+                      :model-value="scaledValue(form[f.key], f.scale)"
+                      placeholder="Leave as is"
+                      :step="f.step"
+                      type="number"
+                      variant="outlined"
+                      @update:model-value="v => (form[f.key] = unscaledValue(v, f.scale))"
+                    />
+                  </template>
+                </div>
+              </section>
+
+              <section class="dbs-section">
+                <div class="dbs-section-title">Invoice rules</div>
+                <div class="dbs-switch-grid">
                   <v-switch
                     v-model="form.client_required"
                     color="primary"
@@ -187,6 +331,227 @@
                     label="Require a client on every invoice"
                   />
                 </div>
+                <p class="text-caption text-medium-emphasis mt-4 mb-2">
+                  "Leave as is" keeps each branch's own value when you apply to all.
+                </p>
+                <div class="field-grid">
+                  <template v-for="f in OPTIONAL_FIELDS.invoice" :key="f.key">
+                    <v-select
+                      v-if="f.type === 'bool'"
+                      v-model="form[f.key]"
+                      density="compact"
+                      hide-details
+                      :items="TRI_STATE"
+                      :label="f.label"
+                      variant="outlined"
+                    />
+                    <v-text-field
+                      v-else
+                      clearable
+                      density="compact"
+                      hide-details
+                      :label="f.label"
+                      min="0"
+                      :model-value="scaledValue(form[f.key], f.scale)"
+                      placeholder="Leave as is"
+                      :step="f.step"
+                      type="number"
+                      variant="outlined"
+                      @update:model-value="v => (form[f.key] = unscaledValue(v, f.scale))"
+                    />
+                  </template>
+                </div>
+              </section>
+
+              <section class="dbs-section">
+                <div class="dbs-section-title">Counters &amp; charts</div>
+                <p class="text-caption text-medium-emphasis mt-4 mb-2">
+                  "Leave as is" keeps each branch's own value when you apply to all.
+                </p>
+                <div class="field-grid">
+                  <template v-for="f in OPTIONAL_FIELDS.counters" :key="f.key">
+                    <v-select
+                      v-if="f.type === 'bool'"
+                      v-model="form[f.key]"
+                      density="compact"
+                      hide-details
+                      :items="TRI_STATE"
+                      :label="f.label"
+                      variant="outlined"
+                    />
+                    <v-text-field
+                      v-else
+                      clearable
+                      density="compact"
+                      hide-details
+                      :label="f.label"
+                      min="0"
+                      :model-value="scaledValue(form[f.key], f.scale)"
+                      placeholder="Leave as is"
+                      :step="f.step"
+                      type="number"
+                      variant="outlined"
+                      @update:model-value="v => (form[f.key] = unscaledValue(v, f.scale))"
+                    />
+                  </template>
+                </div>
+              </section>
+
+            </div>
+
+            <div v-show="sectionTab === 'display'">
+              <section class="dbs-section">
+                <div class="dbs-section-title">Look &amp; feel</div>
+                <p class="text-caption text-medium-emphasis mb-2">
+                  "Leave as is" keeps each till's own value when you apply to all.
+                </p>
+                <div class="field-grid">
+                  <template v-for="f in LOOK_FIELDS" :key="f.key">
+                    <v-select
+                      v-if="f.items"
+                      v-model="form.display_prefs[f.key]"
+                      density="compact"
+                      hide-details
+                      :items="f.items"
+                      :label="f.label"
+                      variant="outlined"
+                    />
+                    <v-text-field
+                      v-else
+                      clearable
+                      density="compact"
+                      hide-details
+                      :hint="f.hint"
+                      :label="f.label"
+                      :max="f.max"
+                      :min="f.min"
+                      :model-value="form.display_prefs[f.key]"
+                      placeholder="Leave as is"
+                      type="number"
+                      variant="outlined"
+                      @update:model-value="v => (form.display_prefs[f.key] = unscaledValue(v, 1))"
+                    />
+                  </template>
+                  <CurrencySelect
+                    v-model="form.display_prefs.calculator_total_currency"
+                    clearable
+                    label="Calculator shows first"
+                    placeholder="Leave as is"
+                    variant="outlined"
+                  />
+                </div>
+                <div class="dbs-switch-grid mt-3">
+                  <v-switch
+                    v-model="form.invoice_keyboard_mode"
+                    color="primary"
+                    density="compact"
+                    hide-details
+                    label="Invoice keyboard (number-pad) mode"
+                  />
+                </div>
+                <p class="text-caption text-medium-emphasis mt-4 mb-2">
+                  "Leave as is" keeps each branch's own value when you apply to all.
+                </p>
+                <div class="field-grid">
+                  <template v-for="f in OPTIONAL_FIELDS.look" :key="f.key">
+                    <v-select
+                      v-if="f.type === 'bool'"
+                      v-model="form[f.key]"
+                      density="compact"
+                      hide-details
+                      :items="TRI_STATE"
+                      :label="f.label"
+                      variant="outlined"
+                    />
+                    <v-text-field
+                      v-else
+                      clearable
+                      density="compact"
+                      hide-details
+                      :label="f.label"
+                      min="0"
+                      :model-value="scaledValue(form[f.key], f.scale)"
+                      placeholder="Leave as is"
+                      :step="f.step"
+                      type="number"
+                      variant="outlined"
+                      @update:model-value="v => (form[f.key] = unscaledValue(v, f.scale))"
+                    />
+                  </template>
+                </div>
+              </section>
+
+              <section class="dbs-section">
+                <div class="dbs-section-title">Quick access cards</div>
+                <div class="field-grid">
+                  <template v-for="f in CARD_FIELDS" :key="f.key">
+                    <v-select
+                      v-if="f.items"
+                      v-model="form.display_prefs[f.key]"
+                      density="compact"
+                      hide-details
+                      :items="f.items"
+                      :label="f.label"
+                      variant="outlined"
+                    />
+                    <v-text-field
+                      v-else
+                      clearable
+                      density="compact"
+                      hide-details
+                      :hint="f.hint"
+                      :label="f.label"
+                      :max="f.max"
+                      :min="f.min"
+                      :model-value="form.display_prefs[f.key]"
+                      placeholder="Leave as is"
+                      type="number"
+                      variant="outlined"
+                      @update:model-value="v => (form.display_prefs[f.key] = unscaledValue(v, 1))"
+                    />
+                  </template>
+                </div>
+              </section>
+
+            </div>
+
+            <div v-show="sectionTab === 'cash'">
+              <section class="dbs-section">
+                <div class="dbs-section-title">Opening cash</div>
+                <p class="text-caption text-medium-emphasis mt-4 mb-2">
+                  "Leave as is" keeps each branch's own value when you apply to all.
+                </p>
+                <div class="field-grid">
+                  <template v-for="f in OPTIONAL_FIELDS.opening" :key="f.key">
+                    <v-select
+                      v-if="f.type === 'bool'"
+                      v-model="form[f.key]"
+                      density="compact"
+                      hide-details
+                      :items="TRI_STATE"
+                      :label="f.label"
+                      variant="outlined"
+                    />
+                    <v-text-field
+                      v-else
+                      clearable
+                      density="compact"
+                      hide-details
+                      :label="f.label"
+                      min="0"
+                      :model-value="scaledValue(form[f.key], f.scale)"
+                      placeholder="Leave as is"
+                      :step="f.step"
+                      type="number"
+                      variant="outlined"
+                      @update:model-value="v => (form[f.key] = unscaledValue(v, f.scale))"
+                    />
+                  </template>
+                </div>
+              </section>
+
+              <section class="dbs-section">
+                <div class="dbs-section-title">Closing shifts</div>
                 <v-select
                   v-model="form.shift_receipt_upload_mode"
                   class="mt-3"
@@ -200,7 +565,7 @@
                   "Leave as is" keeps each branch's own value when you apply to all.
                 </p>
                 <div class="field-grid">
-                  <template v-for="f in OPTIONAL_FIELDS.behaviour" :key="f.key">
+                  <template v-for="f in OPTIONAL_FIELDS.closing" :key="f.key">
                     <v-select
                       v-if="f.type === 'bool'"
                       v-model="form[f.key]"
@@ -227,120 +592,32 @@
                   </template>
                 </div>
               </section>
-            </div>
 
-            <div v-show="sectionTab === 'cash'">
-              <section class="dbs-section">
-                <div class="dbs-section-title">Cash &amp; shifts</div>
-                <p class="text-caption text-medium-emphasis mb-2">
-                  "Leave as is" keeps each branch's own value when you apply to all.
-                </p>
-                <div class="field-grid">
-                  <template v-for="f in OPTIONAL_FIELDS.cash" :key="f.key">
-                    <v-select
-                      v-if="f.type === 'bool'"
-                      v-model="form[f.key]"
-                      density="compact"
-                      hide-details
-                      :items="TRI_STATE"
-                      :label="f.label"
-                      variant="outlined"
-                    />
-                    <v-text-field
-                      v-else
-                      clearable
-                      density="compact"
-                      hide-details
-                      :label="f.label"
-                      min="0"
-                      :model-value="scaledValue(form[f.key], f.scale)"
-                      placeholder="Leave as is"
-                      :step="f.step"
-                      type="number"
-                      variant="outlined"
-                      @update:model-value="v => (form[f.key] = unscaledValue(v, f.scale))"
-                    />
-                  </template>
-                </div>
-              </section>
-            </div>
-
-            <div v-show="sectionTab === 'pages'">
-              <section class="dbs-section">
-                <div class="dbs-section-title">Page access (non-admin users)</div>
-                <div class="dbs-switch-grid">
-                  <v-switch
-                    v-model="form.page_unlock_clients"
-                    color="primary"
-                    density="compact"
-                    hide-details
-                    label="Clients"
-                  />
-                  <v-switch
-                    v-model="form.page_unlock_inventory"
-                    color="primary"
-                    density="compact"
-                    hide-details
-                    label="Inventory"
-                  />
-                  <v-switch
-                    v-model="form.page_unlock_transfers"
-                    color="primary"
-                    density="compact"
-                    hide-details
-                    label="Transfers"
-                  />
-                  <v-switch
-                    v-model="form.page_unlock_attendance"
-                    color="primary"
-                    density="compact"
-                    hide-details
-                    label="Attendance"
-                  />
-                  <v-switch
-                    v-model="form.page_unlock_salespersons"
-                    color="primary"
-                    density="compact"
-                    hide-details
-                    label="Salespersons"
-                  />
-                </div>
-                <p class="text-caption text-medium-emphasis mt-4 mb-2">
-                  "Leave as is" keeps each branch's own value when you apply to all.
-                </p>
-                <div class="field-grid">
-                  <template v-for="f in OPTIONAL_FIELDS.pages" :key="f.key">
-                    <v-select
-                      v-if="f.type === 'bool'"
-                      v-model="form[f.key]"
-                      density="compact"
-                      hide-details
-                      :items="TRI_STATE"
-                      :label="f.label"
-                      variant="outlined"
-                    />
-                    <v-text-field
-                      v-else
-                      clearable
-                      density="compact"
-                      hide-details
-                      :label="f.label"
-                      min="0"
-                      :model-value="scaledValue(form[f.key], f.scale)"
-                      placeholder="Leave as is"
-                      :step="f.step"
-                      type="number"
-                      variant="outlined"
-                      @update:model-value="v => (form[f.key] = unscaledValue(v, f.scale))"
-                    />
-                  </template>
-                </div>
-              </section>
             </div>
 
             <div v-show="sectionTab === 'printing'">
               <section class="dbs-section">
-                <div class="dbs-section-title">Printing</div>
+                <div class="dbs-section-title">Receipt look</div>
+                <v-switch
+                  color="primary"
+                  density="compact"
+                  hide-details
+                  label="Set the receipt look in this template"
+                  :model-value="lookInTemplate"
+                  @update:model-value="setLookInTemplate"
+                />
+                <p class="text-caption text-medium-emphasis mt-1 mb-3">
+                  Off keeps each branch's own look when you apply to all.
+                </p>
+                <ReceiptLookPicker
+                  v-if="lookInTemplate"
+                  v-model:layout="form.receipt_layout"
+                  v-model:theme="form.receipt_theme"
+                />
+              </section>
+
+              <section class="dbs-section">
+                <div class="dbs-section-title">Receipt</div>
                 <div class="field-grid">
                   <v-select
                     v-model="form.printer_size"
@@ -415,17 +692,52 @@
                     label="Cut paper after printing"
                   />
                 </div>
+              </section>
+
+              <section class="dbs-section">
+                <div class="dbs-section-title">End-of-shift receipt</div>
+                <p class="text-caption text-medium-emphasis mt-4 mb-2">
+                  "Leave as is" keeps each branch's own value when you apply to all.
+                </p>
+                <div class="field-grid">
+                  <template v-for="f in OPTIONAL_FIELDS.endShift" :key="f.key">
+                    <v-select
+                      v-if="f.type === 'bool'"
+                      v-model="form[f.key]"
+                      density="compact"
+                      hide-details
+                      :items="TRI_STATE"
+                      :label="f.label"
+                      variant="outlined"
+                    />
+                    <v-text-field
+                      v-else
+                      clearable
+                      density="compact"
+                      hide-details
+                      :label="f.label"
+                      min="0"
+                      :model-value="scaledValue(form[f.key], f.scale)"
+                      placeholder="Leave as is"
+                      :step="f.step"
+                      type="number"
+                      variant="outlined"
+                      @update:model-value="v => (form[f.key] = unscaledValue(v, f.scale))"
+                    />
+                  </template>
+                </div>
                 <p class="text-caption text-medium-emphasis mt-3">
                   Physical device identifiers (printer name, receipt printer, customer-screen
                   COM port) are specific to one till and are never part of this template &mdash;
                   set those per branch from Branch Settings.
                 </p>
               </section>
+
             </div>
 
             <div v-show="sectionTab === 'attendance'">
               <section class="dbs-section">
-                <div class="dbs-section-title">Attendance</div>
+                <div class="dbs-section-title">Attendance machine</div>
                 <div class="field-grid">
                   <v-text-field
                     v-model.number="form.attendance_duplicate_interval_seconds"
@@ -465,22 +777,60 @@
                   never part of this template &mdash; set those per branch from Branch Settings.
                 </p>
               </section>
+
             </div>
 
-            <div v-show="sectionTab === 'display'">
+            <div v-show="sectionTab === 'pages'">
               <section class="dbs-section">
-                <div class="dbs-section-title">How the till's screen looks</div>
-                <p class="text-caption text-medium-emphasis mb-2">
-                  "Leave as is" keeps each till's own value when you apply to all.
+                <div class="dbs-section-title">Page access (non-admin users)</div>
+                <div class="dbs-switch-grid">
+                  <v-switch
+                    v-model="form.page_unlock_clients"
+                    color="primary"
+                    density="compact"
+                    hide-details
+                    label="Clients"
+                  />
+                  <v-switch
+                    v-model="form.page_unlock_inventory"
+                    color="primary"
+                    density="compact"
+                    hide-details
+                    label="Inventory"
+                  />
+                  <v-switch
+                    v-model="form.page_unlock_transfers"
+                    color="primary"
+                    density="compact"
+                    hide-details
+                    label="Transfers"
+                  />
+                  <v-switch
+                    v-model="form.page_unlock_attendance"
+                    color="primary"
+                    density="compact"
+                    hide-details
+                    label="Attendance"
+                  />
+                  <v-switch
+                    v-model="form.page_unlock_salespersons"
+                    color="primary"
+                    density="compact"
+                    hide-details
+                    label="Salespersons"
+                  />
+                </div>
+                <p class="text-caption text-medium-emphasis mt-4 mb-2">
+                  "Leave as is" keeps each branch's own value when you apply to all.
                 </p>
                 <div class="field-grid">
-                  <template v-for="f in DISPLAY_FIELDS" :key="f.key">
+                  <template v-for="f in OPTIONAL_FIELDS.pages" :key="f.key">
                     <v-select
-                      v-if="f.items"
-                      v-model="form.display_prefs[f.key]"
+                      v-if="f.type === 'bool'"
+                      v-model="form[f.key]"
                       density="compact"
                       hide-details
-                      :items="f.items"
+                      :items="TRI_STATE"
                       :label="f.label"
                       variant="outlined"
                     />
@@ -489,26 +839,19 @@
                       clearable
                       density="compact"
                       hide-details
-                      :hint="f.hint"
                       :label="f.label"
-                      :max="f.max"
-                      :min="f.min"
-                      :model-value="form.display_prefs[f.key]"
+                      min="0"
+                      :model-value="scaledValue(form[f.key], f.scale)"
                       placeholder="Leave as is"
+                      :step="f.step"
                       type="number"
                       variant="outlined"
-                      @update:model-value="v => (form.display_prefs[f.key] = unscaledValue(v, 1))"
+                      @update:model-value="v => (form[f.key] = unscaledValue(v, f.scale))"
                     />
                   </template>
-                  <CurrencySelect
-                    v-model="form.display_prefs.calculator_total_currency"
-                    clearable
-                    label="Calculator shows first"
-                    placeholder="Leave as is"
-                    variant="outlined"
-                  />
                 </div>
               </section>
+
             </div>
           </v-form>
         </div>
@@ -541,8 +884,9 @@
 </template>
 
 <script setup>
-  import { onMounted, ref } from 'vue'
+  import { computed, onMounted, ref } from 'vue'
   import CurrencySelect from '@/components/CurrencySelect.vue'
+  import ReceiptLookPicker from '@/components/ReceiptLookPicker.vue'
   import { useBranches } from '@/composables/useBranches'
   import { useDefaultBranchSettings } from '@/composables/useDefaultBranchSettings'
   import { useNotify } from '@/composables/useNotify'
@@ -553,7 +897,7 @@
   const { branches, fetchBranches } = useBranches()
   const { getDefaultBranchSettings, updateDefaultBranchSettings, applyDefaultBranchSettingsToAll } = useDefaultBranchSettings()
 
-  const sectionTab = ref('pricing')
+  const sectionTab = ref('money')
   const loading = ref(false)
   const saving = ref(false)
   const applying = ref(false)
@@ -578,24 +922,48 @@
   // defaultBranchSettings in api/default_branch_settings.go). Money is
   // stored in cents and edited in dollars (scale 100).
   const OPTIONAL_FIELDS = {
-    behaviour: [
-      { key: 'salesperson_per_invoice_required', label: 'Salesperson on every invoice', type: 'bool' },
+    payments: [
+      { key: 'max_overpayment_cents', label: 'Max overpayment (USD, 0 = no limit)', type: 'number', scale: 100, step: 0.01 },
       { key: 'overchange_confirmation', label: 'Confirm change larger than owed', type: 'bool' },
       { key: 'hide_payment_method_currency', label: 'Hide currency on payment buttons', type: 'bool' },
       { key: 'auto_append_lbp_zeros', label: 'Type LBP in thousands', type: 'bool' },
+    ],
+    productSearch: [
+      { key: 'product_search_code_only', label: 'Product search by code only (hide names)', type: 'bool' },
+    ],
+    scanning: [
+      { key: 'scan_by_code_enabled', label: 'Accept a product code in the scan field', type: 'bool' },
+    ],
+    pricing: [
+      { key: 'price_edit_restricted', label: 'Manual price/discount edits only for selected codes', type: 'bool' },
+      { key: 'discount_toggle', label: "Salespersons can turn a line's discount (30%) off and on", type: 'bool' },
+      { key: 'discount_toggle_default_off', label: 'Discounts start off on each new line', type: 'bool' },
+      { key: 'deal_toggle', label: "Salespersons can turn a line's deal (B2G1) off and on", type: 'bool' },
+    ],
+    invoice: [
+      { key: 'salesperson_per_invoice_required', label: 'Salesperson on every invoice', type: 'bool' },
+    ],
+    counters: [
       { key: 'visitor_counter_enabled', label: 'Visitor counter buttons', type: 'bool' },
       { key: 'non_admin_month_nav_enabled', label: "Cashiers browse other months' income", type: 'bool' },
-      { key: 'close_shift_requires_sync', label: 'Upload everything before closing a shift', type: 'bool' },
-      { key: 'scan_by_code_enabled', label: 'Accept a product code in the scan field', type: 'bool' },
+    ],
+    look: [
       { key: 'sounds_enabled', label: 'Play sounds (scan, checkout, errors, keypad)', type: 'bool' },
     ],
-    cash: [
+    opening: [
       { key: 'opening_float_enabled', label: 'Shifts start with an opening float', type: 'bool' },
       { key: 'count_opening_cash_on_close', label: 'Count the opening float when closing', type: 'bool' },
-      { key: 'auto_close_stale_shifts', label: "Close yesterday's open shift at startup", type: 'bool' },
       { key: 'default_opening_float_usd', label: 'Default opening float (USD)', type: 'number', scale: 100, step: 0.01 },
       { key: 'default_opening_float_lbp', label: 'Default opening float (LBP)', type: 'number', scale: 1, step: 1000 },
-      { key: 'max_overpayment_cents', label: 'Max overpayment (USD, 0 = no limit)', type: 'number', scale: 100, step: 0.01 },
+    ],
+    closing: [
+      { key: 'auto_close_stale_shifts', label: "Close yesterday's open shift at startup", type: 'bool' },
+      { key: 'close_shift_requires_sync', label: 'Upload everything before closing a shift', type: 'bool' },
+      { key: 'auto_cover_negative_lbp', label: 'At close shift, cover a negative Cash LL balance from Cash $$', type: 'bool' },
+    ],
+    endShift: [
+      { key: 'shift_report_signatures', label: 'Signature lines on end-of-shift receipt', type: 'bool' },
+      { key: 'shift_report_uppercase_header', label: 'Store and branch name in capitals on end-of-shift receipt', type: 'bool' },
     ],
     pages: [
       { key: 'page_unlock_products', label: 'Products page', type: 'bool' },
@@ -618,6 +986,9 @@
     },
   ]
 
+  const LOOK_FIELDS = DISPLAY_FIELDS.filter(f => ['theme', 'animations_enabled'].includes(f.key))
+  const CARD_FIELDS = DISPLAY_FIELDS.filter(f => !['theme', 'animations_enabled'].includes(f.key))
+
   function scaledValue (value, scale) {
     return value == null ? '' : value / scale
   }
@@ -627,6 +998,13 @@
   }
 
   // Only the prefs actually set; an empty object means none.
+  const lookInTemplate = computed(() => Boolean(form.value.receipt_theme))
+
+  function setLookInTemplate (on) {
+    form.value.receipt_theme = on ? 'classic' : ''
+    form.value.receipt_layout = on ? 'A' : ''
+  }
+
   function templatePayload () {
     const prefs = Object.fromEntries(
       Object.entries(form.value.display_prefs).filter(([, v]) => v != null && v !== ''),
@@ -670,6 +1048,9 @@
       receipt_title_size: 0,
       receipt_body_size: 0,
       receipt_cutoff: true,
+      // Empty: the template leaves each branch's look alone.
+      receipt_theme: '',
+      receipt_layout: '',
       attendance_enabled: false,
       attendance_duplicate_interval_seconds: 0,
       attendance_cashier_history: false,

@@ -48,6 +48,23 @@ export const useAuthStore = defineStore('auth', () => {
   // and the UI additionally hides pages (api/access.go).
   const access = ref(JSON.parse(localStorage.getItem('access') || 'null'))
 
+  // Tabs share the sign-in through localStorage but each keeps its own copy
+  // in memory, and its own admin socket -- which is what puts a user in the
+  // app bar's online list. So when another tab logs out, or signs in as
+  // someone else, this tab follows by reloading into that state rather than
+  // staying signed in (and online) as the old user. A token refresh keeps
+  // the same user, so it's left alone.
+  window.addEventListener('storage', event => {
+    if (event.key !== 'user' && event.key !== 'token' && event.key !== null) {
+      return
+    }
+    const stored = JSON.parse(localStorage.getItem('user') || 'null')
+    const signedIn = Boolean(localStorage.getItem('token'))
+    if ((stored?.id ?? null) !== (user.value?.id ?? null) || signedIn !== Boolean(token.value)) {
+      window.location.reload()
+    }
+  })
+
   const isAuthenticated = computed(() => !!token.value)
   const isAdmin = computed(() => !!access.value?.is_admin)
 
@@ -155,13 +172,35 @@ export const useAuthStore = defineStore('auth', () => {
       throw new Error('No refresh token')
     }
 
-    const res = await fetch(`${API_BASE}/tokens/renew_access`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refreshToken.value }),
-    })
+    let res
+    try {
+      res = await fetch(`${API_BASE}/tokens/renew_access`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken.value }),
+      })
+    } catch {
+      // The server couldn't be reached at all -- e.g. mid-restart during a
+      // deploy. That says nothing about whether the refresh token is still
+      // good, so this must never be read as "session expired": useApi's
+      // authFetch only logs the user out for transientRefreshFailure=false
+      // (or no flag), so this flag keeps a deploy-restart blip from ending
+      // a perfectly valid session.
+      const err = new Error(connectionErrorMessage())
+      err.transientRefreshFailure = true
+      throw err
+    }
+
+    if (isGatewayStatus(res.status)) {
+      const err = new Error(SERVER_UPDATING_MESSAGE)
+      err.transientRefreshFailure = true
+      throw err
+    }
 
     if (!res.ok) {
+      // A real answer from the server saying the refresh token itself is
+      // no good (expired, revoked, or just wrong) -- this one really does
+      // mean the session is over.
       throw new Error('Session expired')
     }
 

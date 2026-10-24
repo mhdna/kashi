@@ -33,11 +33,17 @@ SELECT
 FROM branch_shift_receipt_images
 JOIN branch_shifts ON branch_shifts.id = branch_shift_receipt_images.branch_shift_id
 JOIN branches ON branches.id = branch_shifts.branch_id
+WHERE NOT branches.hidden_from_reports
+  AND branch_shifts.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
 ORDER BY branch_shift_receipt_images.id DESC
 LIMIT $1 OFFSET $2;
 
 -- name: CountBranchShiftReceiptImages :one
-SELECT COUNT(*) FROM branch_shift_receipt_images;
+SELECT COUNT(*) FROM branch_shift_receipt_images
+JOIN branch_shifts ON branch_shifts.id = branch_shift_receipt_images.branch_shift_id
+JOIN branches ON branches.id = branch_shifts.branch_id
+WHERE NOT branches.hidden_from_reports
+  AND branch_shifts.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports);
 
 -- Same as RotateBranchExpenseImage.
 -- name: RotateBranchShiftReceiptImage :one

@@ -38,6 +38,13 @@ type Store interface {
 	ReplaceBranchQuickAccessTx(ctx context.Context, branchID int64, items []QuickAccessItemInput) error
 	ImportBranchQuickAccessTx(ctx context.Context, branchID int64, items []QuickAccessItemInput) (bool, error)
 	ReplaceWhatsAppRulesTx(ctx context.Context, rules []CreateWhatsAppRuleParams) ([]WhatsappRule, error)
+	SaveReviewSettingsTx(ctx context.Context, settings SetReviewSettingsParams, branches []SetBranchPlaceIDParams) error
+	SaveWhatsAppSenderTx(ctx context.Context, settings SetWhatsAppSenderSettingsParams, branches []SetBranchWhatsAppNumberParams) error
+	UpdateWhatsAppNumberTx(ctx context.Context, id int64, label string, makeDefault bool) (WhatsappNumber, error)
+	ResolveUnknownItemsTx(ctx context.Context, slotIDs []int64, variantID int64) error
+	SetProductSaleOptionsTx(ctx context.Context, entries []string, saleOptionIDs []int64) (int, error)
+	ReplaceDiscountListRulesTx(ctx context.Context, listID int64, rules []DiscountListRuleInput) error
+	ReplaceDiscountListRuleGroupsTx(ctx context.Context, listID int64, groups []DiscountListRuleGroupInput) error
 }
 
 // provides all the functions to execute SQL queries

@@ -73,3 +73,14 @@ FROM price_list_items pli
 JOIN product_variants pv ON pv.id = pli.product_variant_id
 WHERE pli.price_list_id = $1
 ORDER BY pv.uid;
+
+-- name: ListPriceListsRemovedFromBranch :many
+-- See ListDiscountListsRemovedFromBranch.
+SELECT pl.uid, pl.name, r.removed_at
+FROM price_list_branch_removals r
+JOIN price_lists pl ON pl.id = r.price_list_id
+WHERE r.branch_id = sqlc.arg(branch_id) AND r.removed_at > sqlc.arg(since)
+  AND NOT pl.is_default
+  AND NOT EXISTS (SELECT 1 FROM price_list_branches b
+                  WHERE b.branch_id = r.branch_id AND b.price_list_id = r.price_list_id)
+ORDER BY r.removed_at;

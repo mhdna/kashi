@@ -56,6 +56,7 @@ func (server *Server) storeReplacementPhoto(ctx *gin.Context, dir string) (strin
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return "", storedImage{}, false
 	}
+	warmThumbnails(destPath)
 	return destPath, stored, true
 }
 

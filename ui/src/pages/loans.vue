@@ -32,8 +32,8 @@
           mandatory
           variant="outlined"
         >
-          <v-btn value="own">Central</v-btn>
           <v-btn value="branch">Branch</v-btn>
+          <v-btn value="own">Central</v-btn>
         </v-btn-toggle>
         <v-btn
           v-if="canEdit && tab === 'own'"
@@ -133,6 +133,14 @@
                   size="small"
                   variant="text"
                   @click.stop="openEdit(item)"
+                />
+                <v-icon-btn
+                  v-if="canEdit && item.origin === 'branch_loan' && item.status !== 'cancelled'"
+                  icon="mdi-cancel"
+                  size="small"
+                  title="Cancel loan"
+                  variant="text"
+                  @click.stop="cancelLoan(item)"
                 />
               </template>
 
@@ -331,11 +339,13 @@
     paid: { color: 'success', label: 'Paid' },
     partial: { color: 'warning', label: 'Partial' },
     unpaid: { color: 'grey', label: 'Unpaid' },
+    cancelled: { color: 'error', label: 'Cancelled' },
   }
   const STATUS_OPTIONS = [
     { title: 'Unpaid', value: 'unpaid' },
     { title: 'Partial', value: 'partial' },
     { title: 'Paid', value: 'paid' },
+    { title: 'Cancelled', value: 'cancelled' },
   ]
 
   const { branches, fetchBranches } = useBranches()
@@ -379,7 +389,9 @@
     return loanCategories.value.find(c => c.id === id) ?? null
   }
 
-  function branchName (id) {
+  // branch_id is a nullable column, so the API sends it as {Int64, Valid}.
+  function branchName (value) {
+    const id = value?.Valid === false ? null : (value?.Int64 ?? value)
     return branches.value.find(b => b.id === id)?.name ?? (id ? `Branch #${id}` : '—')
   }
 
@@ -438,7 +450,7 @@
     ]
   })
 
-  const tab = ref('own')
+  const tab = ref('branch')
   const search = ref('')
   const statusFilter = ref(null)
   const selectedCategory = ref(null)
@@ -569,6 +581,22 @@
         throw new Error(err.error || `Request failed with status ${res.status}`)
       }
       await loadPayments(loan.id)
+      reload()
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
+
+  // A branch loan can't be deleted -- the till keeps it, marked cancelled,
+  // and every total skips it.
+  async function cancelLoan (loan) {
+    if (!confirm(`Cancel loan "${loan.description}"? The branch will show it as cancelled.`)) return
+    try {
+      const res = await authFetch(`${API_BASE}/loans/${loan.id}/cancel`, { method: 'POST' })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || `Request failed with status ${res.status}`)
+      }
       reload()
     } catch (error) {
       notify.error(error.message)

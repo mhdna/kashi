@@ -40,7 +40,7 @@ ORDER BY revenue DESC;
 -- Same scope and filters as ListProductRevenue, rolled up by local calendar
 -- day instead of by product -- the trend line for the Product Revenues page.
 SELECT
-  (i.created_at AT TIME ZONE 'UTC')::date AS day,
+  (i.created_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   SUM(ip.line_total)::bigint AS revenue,
   SUM(ip.quantity)::bigint AS quantity
 FROM invoice_products ip
@@ -120,7 +120,7 @@ ORDER BY revenue DESC;
 -- Same scope/filters/estimate caveat as ListBranchProductRevenue, rolled up
 -- by local calendar day -- the trend line for the kashi-pos tab.
 SELECT
-  (sm.created_at AT TIME ZONE 'UTC')::date AS day,
+  (sm.created_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   SUM(-sm.quantity * COALESCE(vdp.price, 0))::bigint AS revenue,
   SUM(-sm.quantity)::bigint AS quantity
 FROM stock_movements sm

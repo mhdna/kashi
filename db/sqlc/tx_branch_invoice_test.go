@@ -112,3 +112,27 @@ func TestBranchShifts_SameLocalRefFromTwoRegisters(t *testing.T) {
 		require.NoError(t, err, "each register has its own shift 5")
 	}
 }
+
+// A line the till priced with a deal keeps the deal's name and saving.
+func TestCreateBranchInvoiceTx_KeepsDealLines(t *testing.T) {
+	branch := createTestBranchWithRegister(t)
+	variant := createRandomVariant(t)
+	result, err := testStore.CreateBranchInvoiceTx(context.Background(), CreateBranchInvoiceTxParams{
+		CreateBranchInvoiceParams: CreateBranchInvoiceParams{
+			BranchID: branch.Branch.ID, RegisterID: branch.Register.ID, ClientRef: uuid.NewString(),
+			Kind: "sales", BranchInvoiceCode: "SA/" + branch.Register.Code + "/2026/00002",
+			GrandTotal: 2000, OccurredAt: time.Now(),
+		},
+		Items: []BranchInvoiceItemParams{
+			{Barcode: variant.Barcode, Quantity: 2, UnitPrice: 1000, LineTotal: 2000, Deal: "Buy 2 get 1"},
+			{Barcode: variant.Barcode, Quantity: 1, UnitPrice: 1000, LineTotal: 0, Deal: "Buy 2 get 1", DealDiscount: 1000},
+		},
+	})
+	require.NoError(t, err)
+	items, err := testQueries.ListBranchInvoiceItems(context.Background(), result.Invoice.ID)
+	require.NoError(t, err)
+	require.Len(t, items, 2)
+	require.Equal(t, "Buy 2 get 1", items[1].Deal)
+	require.Equal(t, int64(1000), items[1].DealDiscount)
+	require.Equal(t, int64(0), items[1].LineTotal)
+}

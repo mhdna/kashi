@@ -60,7 +60,7 @@ SELECT r.*,
 FROM whatsapp_replies r
 LEFT JOIN whatsapp_messages m ON m.id = r.message_id
 LEFT JOIN branches b ON b.id = m.branch_id
-WHERE r.received_at >= sqlc.arg(from_at) AND r.received_at < sqlc.arg(to_at)
+WHERE (m.id IS NULL OR (NOT m.is_test AND COALESCE(m.branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports))) AND r.received_at >= sqlc.arg(from_at) AND r.received_at < sqlc.arg(to_at)
   AND (sqlc.arg(branch_id)::bigint = 0 OR m.branch_id = sqlc.arg(branch_id))
   AND (sqlc.arg(search)::text = ''
        OR r.client_name ILIKE '%' || sqlc.arg(search) || '%'
@@ -74,7 +74,7 @@ LIMIT sqlc.arg(page_size) OFFSET sqlc.arg(page_offset);
 SELECT count(*)
 FROM whatsapp_replies r
 LEFT JOIN whatsapp_messages m ON m.id = r.message_id
-WHERE r.received_at >= sqlc.arg(from_at) AND r.received_at < sqlc.arg(to_at)
+WHERE (m.id IS NULL OR (NOT m.is_test AND COALESCE(m.branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports))) AND r.received_at >= sqlc.arg(from_at) AND r.received_at < sqlc.arg(to_at)
   AND (sqlc.arg(branch_id)::bigint = 0 OR m.branch_id = sqlc.arg(branch_id))
   AND (sqlc.arg(search)::text = ''
        OR r.client_name ILIKE '%' || sqlc.arg(search) || '%'

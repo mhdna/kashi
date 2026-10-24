@@ -28,7 +28,7 @@ func TestPutBranchClients_MixedBatch(t *testing.T) {
 	store.EXPECT().GetClientLink(gomock.Any(), db.GetClientLinkParams{RegisterID: testRegisterID, BranchClientID: 1}).
 		Return(int64(0), sql.ErrNoRows)
 	store.EXPECT().GetClientByPhone(gomock.Any(), "70123456").Return(db.Client{}, sql.ErrNoRows)
-	store.EXPECT().CreateClient(gomock.Any(), db.CreateClientParams{Name: "Ali", Phone: "70123456", ClientType: "retail"}).
+	store.EXPECT().CreateClient(gomock.Any(), db.CreateClientParams{Name: "Ali", Phone: "70123456", ClientType: "retail", PhoneValid: true, PhoneCountry: "LB"}).
 		Return(db.Client{ID: 100, Name: "Ali", Phone: "70123456"}, nil)
 	store.EXPECT().UpsertClientLink(gomock.Any(), db.UpsertClientLinkParams{BranchID: testBranchID, RegisterID: testRegisterID, BranchClientID: 1, ClientID: 100}).
 		Return(nil)
@@ -94,7 +94,7 @@ func TestPutBranchClients_LinkedClientIsUpdatedKeepingType(t *testing.T) {
 
 	store.EXPECT().GetClientLink(gomock.Any(), gomock.Any()).Return(int64(100), nil)
 	store.EXPECT().GetClient(gomock.Any(), int64(100)).Return(db.Client{ID: 100, ClientType: "wholesale"}, nil)
-	store.EXPECT().UpdateClient(gomock.Any(), db.UpdateClientParams{ID: 100, Name: "New Name", Phone: "70123456", ClientType: "wholesale"}).
+	store.EXPECT().UpdateClient(gomock.Any(), db.UpdateClientParams{ID: 100, Name: "New Name", Phone: "70123456", ClientType: "wholesale", PhoneValid: true, PhoneCountry: "LB"}).
 		Return(db.Client{ID: 100}, nil)
 
 	server := newTestServer(t, store)

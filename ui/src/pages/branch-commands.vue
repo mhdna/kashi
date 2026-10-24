@@ -252,6 +252,73 @@
             />
           </template>
 
+          <template v-else-if="sendForm.type === 'replace_shift_balance'">
+            <p class="text-body-2 mb-3">
+              Moves value between two payment methods in the till's open shift, the same as its
+              Swap balance dialog. The sales themselves don't change.
+            </p>
+            <v-select
+              v-model="sendForm.registerId"
+              class="mb-3"
+              density="compact"
+              hide-details
+              item-title="label"
+              item-value="id"
+              :items="registerOptions"
+              label="Register"
+              variant="outlined"
+            />
+            <div class="d-flex ga-3 mb-3">
+              <v-select
+                v-model="sendForm.fromAccount"
+                density="compact"
+                hide-details
+                :items="balanceAccountOptions"
+                label="From"
+                :loading="pickerLoading"
+                variant="outlined"
+              />
+              <v-select
+                v-model="sendForm.toAccount"
+                density="compact"
+                hide-details
+                :items="balanceAccountOptions.filter(name => name !== sendForm.fromAccount)"
+                label="To"
+                :loading="pickerLoading"
+                variant="outlined"
+              />
+            </div>
+            <v-text-field
+              v-model.number="sendForm.amountUsd"
+              density="compact"
+              hide-details
+              label="Amount (USD)"
+              min="0"
+              prefix="$"
+              step="0.01"
+              type="number"
+              variant="outlined"
+            />
+            <v-checkbox
+              v-if="canTransferNegative"
+              v-model="sendForm.allowNegative"
+              density="compact"
+              hide-details
+              label="Transfer: take the amount out of the source even if it goes below zero"
+            />
+            <p v-if="sendForm.fromAccount && sendForm.toAccount && sendForm.amountUsd > 0" class="text-caption text-medium-emphasis mt-2">
+              <template v-if="sendForm.allowNegative">
+                {{ sendForm.fromAccount }} goes down by {{ formatMoney(amountCents) }} and
+                {{ sendForm.toAccount }} goes up by {{ formatMoney(amountCents) }}.
+              </template>
+              <template v-else>
+                Swaps {{ formatMoney(amountCents) }} of {{ sendForm.fromAccount }}'s balance into
+                {{ sendForm.toAccount }}, keeping its sign. The till refuses it if that's more than
+                {{ sendForm.fromAccount }} holds.
+              </template>
+            </p>
+          </template>
+
           <template v-else-if="sendForm.type === 'reprint_invoice'">
             <p class="text-body-2 mb-3">
               Prints the receipt again on the printer of the till that made the sale.
@@ -297,9 +364,11 @@
   import { authFetch } from '@/composables/useApi'
   import { COMMAND_TYPE_LABELS, useBranchCommands } from '@/composables/useBranchCommands'
   import { useBranches } from '@/composables/useBranches'
+  import { useBranchPaymentMethods } from '@/composables/useBranchPaymentMethods'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
+  import { useAuthStore } from '@/stores/auth'
   import { formatMoney } from '@/utils/money'
 
   const notify = useNotify()
@@ -309,6 +378,11 @@
 
   const { branches, fetchBranches, listRegisters, fetchConnectedRegisters } = useBranches()
   const { summary, refreshCommandSummary, sendCommand, cancelCommand, retryCommand } = useBranchCommands()
+  const { listBranchPaymentMethods } = useBranchPaymentMethods()
+  const auth = useAuthStore()
+  // "Negative Balance Transfers" in Settings > Roles; admins always can.
+  // The API checks it again (api/branch_command.go).
+  const canTransferNegative = computed(() => auth.canEdit('shift_negative_balance'))
 
   const STATUS_FILTERS = [
     { title: 'All', value: '' },
@@ -321,6 +395,7 @@
     { title: 'Sync now', value: 'sync_now' },
     { title: 'Print a close shift', value: 'print_shift_report' },
     { title: 'Reprint an invoice', value: 'reprint_invoice' },
+    { title: 'Swap a shift balance', value: 'replace_shift_balance' },
   ]
   const typeOptions = Object.entries(COMMAND_TYPE_LABELS).map(([value, title]) => ({ value, title }))
 
@@ -423,10 +498,16 @@
   const sendDialog = ref(false)
   const sending = ref(false)
   const pickerLoading = ref(false)
-  const sendForm = reactive({ type: 'sync_now', registerId: 0, shiftId: null, clientRef: null })
+  const sendForm = reactive({ type: 'sync_now', registerId: 0, shiftId: null, clientRef: null, fromAccount: null, toAccount: null, amountUsd: null, allowNegative: false })
   const shifts = ref([])
   const invoices = ref([])
   const invoiceSearch = ref('')
+  const paymentMethods = ref([])
+  // On Account / On Coupon aren't money in a drawer; the till refuses them.
+  const balanceAccountOptions = computed(() => paymentMethods.value
+    .filter(m => m.is_enabled && !/^(on account|on coupon)$/i.test(m.name.trim()))
+    .map(m => m.name))
+  const amountCents = computed(() => Math.round(Number(sendForm.amountUsd || 0) * 100))
 
   const shiftOptions = computed(() => shifts.value.map(s => ({
     id: s.id,
@@ -439,6 +520,10 @@
   const sendReady = computed(() => {
     if (sendForm.type === 'print_shift_report') return sendForm.shiftId != null
     if (sendForm.type === 'reprint_invoice') return !!sendForm.clientRef
+    if (sendForm.type === 'replace_shift_balance') {
+      return !!sendForm.registerId && !!sendForm.fromAccount && !!sendForm.toAccount
+        && sendForm.fromAccount !== sendForm.toAccount && amountCents.value > 0
+    }
     return true
   })
 
@@ -449,7 +534,7 @@
   }
 
   function openSendDialog () {
-    Object.assign(sendForm, { type: 'sync_now', registerId: 0, shiftId: null, clientRef: null })
+    Object.assign(sendForm, { type: 'sync_now', registerId: 0, shiftId: null, clientRef: null, fromAccount: null, toAccount: null, amountUsd: null, allowNegative: false })
     sendDialog.value = true
   }
 
@@ -457,11 +542,22 @@
     if (!sendDialog.value || !activeBranch.value) return
     pickerLoading.value = true
     try {
-      if (type === 'print_shift_report') {
-        const data = await getJSON(`${API_BASE}/branch_shifts?branch_id=${activeBranch.value.id}&page_size=50&page_id=0`)
-        shifts.value = data?.branch_shifts ?? []
-      } else if (type === 'reprint_invoice') {
-        await loadInvoices('')
+      switch (type) {
+        case 'print_shift_report': {
+          const data = await getJSON(`${API_BASE}/branch_shifts?branch_id=${activeBranch.value.id}&page_size=50&page_id=0`)
+          shifts.value = data?.branch_shifts ?? []
+          break
+        }
+        case 'reprint_invoice': {
+          await loadInvoices('')
+          break
+        }
+        case 'replace_shift_balance': {
+          // One register: the swap changes that till's shift only.
+          sendForm.registerId = registerOptions.value.length === 1 ? registerOptions.value[0].id : 0
+          paymentMethods.value = await listBranchPaymentMethods(activeBranch.value.id)
+          break
+        }
       }
     } catch (error) {
       notify.error(error.message)
@@ -494,6 +590,15 @@
         }
         case 'reprint_invoice': {
           sent = await sendCommand(branchId, 'reprint_invoice', { client_ref: sendForm.clientRef })
+          break
+        }
+        case 'replace_shift_balance': {
+          sent = await sendCommand(branchId, 'replace_shift_balance', {
+            from_account: sendForm.fromAccount,
+            to_account: sendForm.toAccount,
+            amount_cents: amountCents.value,
+            allow_negative: canTransferNegative.value && sendForm.allowNegative,
+          }, sendForm.registerId)
           break
         }
         default: {

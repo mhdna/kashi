@@ -34,14 +34,14 @@ func TestBranchAppUpdate_ReturnsTargetOrNull(t *testing.T) {
 	stubBranchAuth(store)
 	server := newAppUpdateTestServer(t, store)
 
-	store.EXPECT().GetRegisterTargetRelease(gomock.Any(), testRegisterID).Return(db.AppRelease{}, sql.ErrNoRows)
+	store.EXPECT().GetRegisterTargetRelease(gomock.Any(), testRegisterID).Return(db.GetRegisterTargetReleaseRow{}, sql.ErrNoRows)
 	rec := httptest.NewRecorder()
 	server.router.ServeHTTP(rec, newBranchRequest(t, http.MethodGet, "/branch/app_update", nil))
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.JSONEq(t, `{"release":null}`, rec.Body.String())
 
 	store.EXPECT().GetRegisterTargetRelease(gomock.Any(), testRegisterID).
-		Return(db.AppRelease{ID: 3, Version: "1.0.9", Flavor: "standard", FileName: "Kashi-Cloud.exe", FilePath: "secret/path", Sha256: "ab", Signature: "sig"}, nil)
+		Return(db.GetRegisterTargetReleaseRow{ID: 3, Version: "1.0.9", Flavor: "standard", FileName: "Kashi-Cloud.exe", FilePath: "secret/path", Sha256: "ab", Signature: "sig", TargetForce: true}, nil)
 	rec = httptest.NewRecorder()
 	server.router.ServeHTTP(rec, newBranchRequest(t, http.MethodGet, "/branch/app_update", nil))
 	require.Equal(t, http.StatusOK, rec.Code)
@@ -50,6 +50,7 @@ func TestBranchAppUpdate_ReturnsTargetOrNull(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
 	require.Equal(t, "1.0.9", body.Release["version"])
+	require.Equal(t, true, body.Release["force"]) // forced on App Updates: install now
 	require.NotContains(t, body.Release, "file_path")
 }
 
@@ -63,7 +64,7 @@ func TestBranchAppUpdateDownload_OnlyTheTargetAndResumable(t *testing.T) {
 	rel := filepath.Join("standard", "1.0.9", "x", "Kashi-Cloud.exe")
 	require.NoError(t, os.MkdirAll(filepath.Dir(filepath.Join(server.appReleaseStorageDir(), rel)), 0o755))
 	require.NoError(t, os.WriteFile(filepath.Join(server.appReleaseStorageDir(), rel), content, 0o644))
-	release := db.AppRelease{ID: 3, Version: "1.0.9", FileName: "Kashi-Cloud.exe", FilePath: rel, CreatedAt: time.Now()}
+	release := db.GetRegisterTargetReleaseRow{ID: 3, Version: "1.0.9", FileName: "Kashi-Cloud.exe", FilePath: rel, CreatedAt: time.Now()}
 	store.EXPECT().GetRegisterTargetRelease(gomock.Any(), testRegisterID).Return(release, nil).AnyTimes()
 
 	rec := httptest.NewRecorder()

@@ -239,7 +239,7 @@ func (server *Server) branchTargetsProgress(ctx *gin.Context) {
 
 	rows, err := server.store.ListBranchTargetsProgress(ctx, db.ListBranchTargetsProgressParams{
 		BranchID: branchID,
-		Since:    time.Now().UTC().AddDate(0, -2, 0),
+		Since:    businessToday().AddDate(0, -2, 0),
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)

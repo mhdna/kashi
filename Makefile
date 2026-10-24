@@ -72,7 +72,9 @@ deploy: deploy-api deploy-ui
 # Cross-compile the API, ship it with the current migrations, run any
 # pending ones on the prod DB (idempotent), restart the service.
 deploy-api:
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o /tmp/kashi-api-linux .
+	# -s -w drops the debug tables (57 MB -> 41 MB, ~17 MB as rsync sends it):
+	# the upload is most of a deploy. Panics still name their functions.
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o /tmp/kashi-api-linux .
 	rsync -avz /tmp/kashi-api-linux $(SSH):$(APP_DIR)/api-linux
 	rsync -avz --delete ./db/migrations/ $(SSH):$(APP_DIR)/migrations/
 	ssh $(SSH) 'chown -R kashi:kashi $(APP_DIR)/api-linux $(APP_DIR)/migrations && \
@@ -97,9 +99,22 @@ deploy-notes:
 	elif [ -n "$(DRY_RUN)" ]; then printf '%s\n' "$$sql"; \
 	else printf '%s\n' "$$sql" | ssh $(SSH) "LC_ALL=C.UTF-8 psql '$(PROD_DB)' -v ON_ERROR_STOP=1 -q" && echo "Posted release notes."; fi
 
+# Ship the WhatsApp bridge (../bnc/whatsapp-bridge), point its chat log at
+# kashi's Inbox (CHAT_LOG_URL, added once) and restart it. Run it after
+# deploy-api: the bridge reports to an endpoint that has to exist. The restart
+# briefly disconnects the numbers, so pick a quiet time.
+BRIDGE_SRC ?= ../bnc/whatsapp-bridge
+BRIDGE_DIR ?= /home/wabridge/app
+deploy-whatsapp:
+	rsync -avz $(BRIDGE_SRC)/server.mjs $(BRIDGE_SRC)/report.mjs $(BRIDGE_SRC)/package.json $(BRIDGE_SRC)/package-lock.json $(SSH):$(BRIDGE_DIR)/
+	ssh $(SSH) 'cd $(BRIDGE_DIR) && chown wabridge:wabridge server.mjs report.mjs package.json package-lock.json && \
+		(grep -q "^CHAT_LOG_URL=" bridge.env || echo "CHAT_LOG_URL=http://127.0.0.1:$$(sed -n "s/^HTTP_SERVER_ADDRESS=.*://p" $(APP_DIR)/app.env)/whatsapp/bridge/chat" >> bridge.env) && \
+		sudo -u wabridge env HOME=/home/wabridge npm ci --omit=dev && \
+		systemctl restart whatsapp-bridge && sleep 3 && systemctl is-active whatsapp-bridge'
+
 # Run pending migrations on prod without shipping anything.
 migrate-prod:
 	rsync -avz --delete ./db/migrations/ $(SSH):$(APP_DIR)/migrations/
 	ssh $(SSH) 'migrate -path $(APP_DIR)/migrations -database "$(PROD_DB)" up'
 
-.PHONY: postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 sqlc test server dev mock proto evans seed deploy deploy-api deploy-ui deploy-notes migrate-prod
+.PHONY: postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 sqlc test server dev mock proto evans seed deploy deploy-api deploy-ui deploy-notes deploy-whatsapp migrate-prod

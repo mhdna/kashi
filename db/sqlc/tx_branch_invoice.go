@@ -22,6 +22,13 @@ type BranchInvoiceItemParams struct {
 	ProductUID uuid.NullUUID `json:"product_uid"`
 	UnitPrice  int64         `json:"unit_price"`
 	LineTotal  int64         `json:"line_total"`
+	// A deal line (000202): the deal's name and what it took off the line.
+	Deal         string `json:"deal"`
+	DealDiscount int64  `json:"deal_discount"`
+	// Unknown: the till rang this up as an "Unknown item" (its placeholder
+	// barcode, or the product the branch named for it). Such a line is stored
+	// unresolved and moves no stock until it is matched to a real product.
+	Unknown bool `json:"unknown"`
 	Discount   int16         `json:"discount"`
 	Quantity   int64         `json:"quantity"`
 }
@@ -80,11 +87,23 @@ func (store *SQLStore) CreateBranchInvoiceTx(ctx context.Context, arg CreateBran
 			return err
 		}
 
+		if err := q.SetClientBranchIfNull(ctx, SetClientBranchIfNullParams{
+			BranchID:       sql.NullInt64{Int64: arg.BranchID, Valid: true},
+			ClientUid:      arg.ClientUid,
+			RegisterID:     arg.RegisterID,
+			BranchClientID: arg.BranchClientID,
+		}); err != nil {
+			return err
+		}
+
 		// Resolve each line to its central variant once: by uid when the till
 		// sent one, else by barcode. nil means "doesn't resolve" -- the line
 		// is still recorded, it just can't move central stock.
 		variants := make([]*ProductVariant, len(arg.Items))
 		for i, item := range arg.Items {
+			if item.Unknown || item.Barcode == UnknownItemBarcode {
+				continue
+			}
 			v, err := resolveBranchLineVariant(ctx, q, item)
 			if err != nil {
 				return err
@@ -108,6 +127,9 @@ func (store *SQLStore) CreateBranchInvoiceTx(ctx context.Context, arg CreateBran
 				Discount:        item.Discount,
 				Quantity:        item.Quantity,
 				ProductUid:      productUID,
+				Unknown:         item.Unknown || item.Barcode == UnknownItemBarcode,
+				Deal:            item.Deal,
+				DealDiscount:    item.DealDiscount,
 			})
 			if err != nil {
 				return err

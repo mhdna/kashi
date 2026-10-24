@@ -1,7 +1,8 @@
 -- Sales reports over report_sale_invoices / report_sale_lines (migration
 -- 000134): the Dashboard's cost of goods and the Sales Dashboard
 -- (api/sales_dashboard.go). Ranges are half-open [date_from, date_to), days
--- are UTC calendar days like the rest of the dashboard.
+-- are Beirut calendar days (businessZone in api/business_zone.go) like the
+-- rest of the dashboard.
 
 -- name: ReportCostOfGoods :one
 -- Cost of goods sold for the Dashboard, scoped like its other figures:
@@ -23,7 +24,7 @@ WHERE occurred_at >= sqlc.arg(date_from)::timestamptz
 -- name: ReportCostOfGoodsSeries :many
 -- ReportCostOfGoods per day.
 SELECT
-  (occurred_at AT TIME ZONE 'UTC')::date AS day,
+  (occurred_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   COALESCE(SUM(quantity * unit_cost), 0)::bigint AS cogs
 FROM report_sale_lines
 WHERE occurred_at >= sqlc.arg(date_from)::timestamptz
@@ -40,14 +41,14 @@ ORDER BY day;
 -- name: ReportSaleYears :many
 -- Every year that has a sale, newest first, for the Sales Dashboard's
 -- year picker.
-SELECT DISTINCT EXTRACT(YEAR FROM occurred_at AT TIME ZONE 'UTC')::int AS year
+SELECT DISTINCT EXTRACT(YEAR FROM occurred_at AT TIME ZONE 'Asia/Beirut')::int AS year
 FROM report_sale_invoices
 ORDER BY year DESC;
 
 -- name: ReportDailySales :many
 -- Sales (net of returns) per day.
 SELECT
-  (occurred_at AT TIME ZONE 'UTC')::date AS day,
+  (occurred_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   COALESCE(SUM(grand_total), 0)::bigint AS sales
 FROM report_sale_invoices
 WHERE occurred_at >= sqlc.arg(date_from)::timestamptz
@@ -59,7 +60,7 @@ ORDER BY day;
 -- Per day, what lines with a known cost sold for and what they cost --
 -- the Sales Dashboard's profit is the difference.
 SELECT
-  (occurred_at AT TIME ZONE 'UTC')::date AS day,
+  (occurred_at AT TIME ZONE 'Asia/Beirut')::date AS day,
   COALESCE(SUM(line_total), 0)::bigint AS costed_revenue,
   COALESCE(SUM(quantity * unit_cost), 0)::bigint AS cogs
 FROM report_sale_lines

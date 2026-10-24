@@ -85,7 +85,6 @@
               class="prp-table"
               :headers="headers"
               :items="products"
-              :items-per-page="15"
               :search="search"
               :sort-by="[{ key: 'revenue', order: 'desc' }]"
             >

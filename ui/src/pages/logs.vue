@@ -76,7 +76,6 @@
           density="comfortable"
           :headers="headers"
           :items="filteredEntries"
-          :items-per-page="15"
           :sort-by="[{ key: 'timestamp', order: 'desc' }]"
         >
           <template #item.timestamp="{ item }">

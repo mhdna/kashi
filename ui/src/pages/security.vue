@@ -37,7 +37,7 @@
           </v-chip>
           <v-spacer />
           <v-btn
-            v-if="canEdit && overview?.open_alerts"
+            v-if="canEdit && openUnpinned > 0"
             prepend-icon="mdi-check-all"
             size="small"
             variant="text"
@@ -56,38 +56,72 @@
           <v-list-item
             v-for="a in shownAlerts"
             :key="a.id"
-            class="px-1"
-            :class="{ 'alert--seen': a.acknowledged_at }"
+            class="alert-item"
+            :class="{ 'alert--seen': a.acknowledged_at, 'alert--pinned': a.pinned }"
+            :style="{ '--alert-severity': severityOf(a).bar }"
           >
             <template #prepend>
               <v-icon :color="ALERT_KINDS[a.kind]?.color ?? 'grey'" :icon="ALERT_KINDS[a.kind]?.icon ?? 'mdi-alert'" size="20" />
             </template>
             <v-list-item-title class="text-body-2">
+              <v-chip
+                class="me-1"
+                :color="severityOf(a).color"
+                label
+                size="x-small"
+                variant="flat"
+              >
+                {{ severityOf(a).label }}
+              </v-chip>
               <b>{{ ALERT_KINDS[a.kind]?.label ?? a.kind }}</b>
               <span v-if="a.count > 1" class="text-medium-emphasis"> ×{{ a.count }}</span>
               — {{ a.detail }}
             </v-list-item-title>
             <v-list-item-subtitle class="text-caption">
               {{ flag(a.country_code) }} {{ a.ip }} · {{ ago(a.last_at) }}
+              <template v-if="a.acknowledged_at && a.acknowledged_by">
+                · {{ a.severity === 'critical' ? 'resolved' : 'seen' }} by {{ a.acknowledged_by }}
+              </template>
             </v-list-item-subtitle>
-            <template v-if="canEdit" #append>
-              <v-btn
-                v-if="!isBanned(a.ip)"
-                color="error"
-                size="x-small"
-                variant="text"
-                @click="openBan(a.ip)"
-              >
-                Ban
-              </v-btn>
-              <v-btn
-                v-if="!a.acknowledged_at"
-                aria-label="Mark seen"
-                icon="mdi-check"
-                size="x-small"
-                variant="text"
-                @click="acknowledge([a.id])"
-              />
+            <template #append>
+              <span class="d-flex align-center ga-1">
+                <template v-if="canEdit">
+                  <v-btn
+                    v-if="!isBanned(a.ip)"
+                    color="error"
+                    size="x-small"
+                    variant="text"
+                    @click="openBan(a.ip)"
+                  >
+                    Ban
+                  </v-btn>
+                  <v-btn
+                    v-if="a.pinned"
+                    color="error"
+                    prepend-icon="mdi-check"
+                    size="x-small"
+                    variant="tonal"
+                    @click="acknowledge([a.id])"
+                  >
+                    Resolve
+                  </v-btn>
+                  <v-btn
+                    v-else-if="!a.acknowledged_at"
+                    aria-label="Mark seen"
+                    icon="mdi-check"
+                    size="x-small"
+                    variant="text"
+                    @click="acknowledge([a.id])"
+                  />
+                </template>
+                <v-icon
+                  v-if="a.pinned"
+                  aria-label="Pinned until resolved"
+                  color="error"
+                  icon="mdi-pin"
+                  size="18"
+                />
+              </span>
             </template>
           </v-list-item>
         </v-list>
@@ -154,7 +188,7 @@
         item-value="ip"
         :items="visitors"
         :items-length="visitorTotal"
-        :items-per-page-options="[25, 50, 100, 250]"
+        :items-per-page-options="tablePageSizeOptions(pageSize)"
         :loading="visitorsLoading"
         show-expand
       >
@@ -391,7 +425,9 @@
   import { authFetch } from '@/composables/useApi'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { useSecurityAlerts } from '@/composables/useSecurityAlerts'
   import { API_BASE } from '@/config'
+  import { tablePageSizeOptions, useSettingsStore } from '@/stores/settings'
 
   // Who reaches the API, from where, and what to do about it -- see
   // api/security.go. Needs the Security section; editing it to ban, unban
@@ -407,6 +443,17 @@
     login_abroad: { label: 'Sign-in from abroad', icon: 'mdi-earth', color: 'error' },
     foreign_visit: { label: 'Visit from abroad', icon: 'mdi-earth', color: 'warning' },
     blocked_country: { label: 'Refused (country)', icon: 'mdi-shield-lock-outline', color: 'info' },
+  }
+  // Severity comes from the server (alertSeverities in api/security.go).
+  // color is the chip's, bar the strip down the card's left edge.
+  const SEVERITIES = {
+    critical: { label: 'Critical', color: 'error', bar: 'rgb(var(--v-theme-error))' },
+    high: { label: 'High', color: 'deep-orange', bar: '#ff5722' },
+    medium: { label: 'Medium', color: 'warning', bar: 'rgb(var(--v-theme-warning))' },
+    low: { label: 'Low', color: 'info', bar: 'rgb(var(--v-theme-info))' },
+  }
+  function severityOf (a) {
+    return SEVERITIES[a.severity] ?? SEVERITIES.medium
   }
   const KIND_COLORS = { admin: 'primary', till: 'success', public: 'grey' }
   const BAN_LENGTHS = [
@@ -454,7 +501,13 @@
   const loading = ref(false)
   const showSeen = ref(false)
 
-  const shownAlerts = computed(() => (overview.value?.alerts ?? []).filter(a => showSeen.value || !a.acknowledged_at))
+  // Pinned (unresolved critical) alerts first; the server already sends them
+  // first, this keeps it so whatever the filter.
+  const shownAlerts = computed(() => (overview.value?.alerts ?? [])
+    .filter(a => showSeen.value || !a.acknowledged_at)
+    .sort((x, y) => Number(y.pinned) - Number(x.pinned)))
+  // What "Mark all seen" would clear: open alerts that aren't pinned.
+  const openUnpinned = computed(() => (overview.value?.alerts ?? []).filter(a => !a.acknowledged_at && !a.pinned).length)
   const countries = computed(() => overview.value?.countries ?? [])
   const bans = computed(() => overview.value?.bans ?? [])
   const bannedSet = computed(() => new Set(bans.value.map(b => b.ip)))
@@ -490,11 +543,13 @@
       !== JSON.stringify([draft.country_filter_enabled, draft.allowed_countries, draft.always_allowed, draft.auto_ban_enabled, draft.auto_ban_failed_logins, draft.auto_ban_minutes])
   })
 
+  const { openSecurityAlerts } = useSecurityAlerts()
   async function loadOverview () {
     loading.value = true
     try {
       const keepDraft = settingsDirty.value
       overview.value = await request('/security/overview')
+      openSecurityAlerts.value = overview.value?.open_alerts ?? 0
       if (!keepDraft) resetDraft()
     } catch (error) {
       notify.error(error.message)
@@ -584,7 +639,7 @@
   const visitorTotal = ref(0)
   const visitorsLoading = ref(false)
   const page = ref(1)
-  const pageSize = ref(50)
+  const pageSize = ref(useSettingsStore().tablePageSize)
   const search = ref('')
   const countryFilter = ref('')
 
@@ -674,6 +729,17 @@
 .alert-list {
   max-height: 340px;
   overflow-y: auto;
+}
+
+.alert-item {
+  border-left: 4px solid var(--alert-severity);
+  border-radius: 4px;
+  margin-bottom: 4px;
+  padding-inline: 8px 4px !important;
+}
+
+.alert--pinned {
+  background: rgba(var(--v-theme-error), 0.08);
 }
 
 .alert--seen {

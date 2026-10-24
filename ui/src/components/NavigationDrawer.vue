@@ -97,7 +97,11 @@
             :title="item.title"
             :to="item.to"
             :value="item.title"
-          />
+          >
+            <template v-if="item.to === '/security' && openSecurityAlerts > 0" #append>
+              <v-badge color="error" :content="openSecurityAlerts" inline />
+            </template>
+          </v-list-item>
         </div>
       </v-list>
     </template>
@@ -111,7 +115,9 @@
   import { useBranchCommands } from '@/composables/useBranchCommands'
   import { useBranchSyncConflicts } from '@/composables/useBranchSyncConflicts'
   import { useLowStockAlerts } from '@/composables/useLowStockAlerts'
+  import { useSecurityAlerts } from '@/composables/useSecurityAlerts'
   import { useStockHealth } from '@/composables/useStockHealth'
+  import { useWhatsAppFailures } from '@/composables/useWhatsAppFailures'
   import { useAuthStore } from '@/stores/auth'
 
   const props = defineProps({
@@ -123,7 +129,7 @@
 
   // Links to pages the user's role can't open are hidden (see useAllowedNav).
   const auth = useAuthStore()
-  const { allowedNavItems: visibleNavItems, allowedAppendItems: visibleAppendItems } = useAllowedNav()
+  const { allowedNavItems: visibleNavItems, allowedAppendItems: visibleAppendItems, allowed } = useAllowedNav()
 
   // Real counts backing the Alerts nav badges, shown separately: red for
   // out-of-stock, orange for merely low (see pages/alerts.vue, api/low_stock.go).
@@ -176,7 +182,30 @@
   // plus a nudge when kashi reports a new conflict.
   const { commandsStatus, refreshCommandSummary } = useBranchCommands()
   const { conflictsStatus, refreshConflictSummary } = useBranchSyncConflicts()
-  const { onMessage: onAdminMessage } = useAdminSocket()
+  // WhatsApp sale messages that failed lately (useWhatsAppFailures).
+  const { whatsAppFailureStatus, refreshWhatsAppFailures } = useWhatsAppFailures()
+  const canSeeWhatsApp = () => allowed({ to: '/whatsapp' })
+  function refreshWhatsAppStatus () {
+    if (!canSeeWhatsApp()) {return}
+    refreshWhatsAppFailures().catch(() => {})
+  }
+  const { onMessage: onAdminMessage, ensureConnected: ensureAdminSocket } = useAdminSocket()
+
+  // Security nav badge: open (unacknowledged) alerts, refetched when kashi
+  // reports a new one. Only for those who can open the Security page.
+  const { openSecurityAlerts, refreshOpenSecurityAlerts } = useSecurityAlerts()
+  const canSeeSecurity = () => allowed({ to: '/security' })
+  function refreshSecurityAlerts () {
+    if (!canSeeSecurity()) {return}
+    refreshOpenSecurityAlerts().catch(() => {})
+  }
+  // The 30s branch-status poll also refetches the badge, in case a
+  // security_alert message was missed while the socket was down.
+  function refreshStatus () {
+    refreshBranchStatus()
+    refreshSecurityAlerts()
+    refreshWhatsAppStatus()
+  }
 
   function refreshBranchStatus () {
     if (!auth.canView('branches')) {return}
@@ -186,12 +215,27 @@
 
   let branchStatusPoll = null
   let conflictNudge = null
+  let whatsAppNudge = null
   let offAdminMessage = null
   onMounted(() => {
-    refreshBranchStatus()
-    branchStatusPoll = setInterval(refreshBranchStatus, 30_000)
+    refreshStatus()
+    branchStatusPoll = setInterval(refreshStatus, 30_000)
+    if (canSeeSecurity() || canSeeWhatsApp()) {ensureAdminSocket()}
     // A sync can stage hundreds of conflicts at once; one refetch per burst.
     offAdminMessage = onAdminMessage((msg) => {
+      if (msg?.type === 'security_alert') {
+        refreshSecurityAlerts()
+        return
+      }
+      if (msg?.type === 'whatsapp_message') {
+        if (!whatsAppNudge) {
+          whatsAppNudge = setTimeout(() => {
+            whatsAppNudge = null
+            refreshWhatsAppStatus()
+          }, 2000)
+        }
+        return
+      }
       if (msg?.type !== 'branch_sync_conflict' || conflictNudge) {return}
       conflictNudge = setTimeout(() => {
         conflictNudge = null
@@ -202,6 +246,7 @@
   onUnmounted(() => {
     clearInterval(branchStatusPoll)
     clearTimeout(conflictNudge)
+    clearTimeout(whatsAppNudge)
     offAdminMessage?.()
   })
 
@@ -209,6 +254,7 @@
     if (append === 'status') {return healthStatus.value}
     if (append === 'commands-status') {return commandsStatus.value}
     if (append === 'conflicts-status') {return conflictsStatus.value}
+    if (append === 'whatsapp-status') {return canSeeWhatsApp() ? whatsAppFailureStatus.value : null}
     return null
   }
 </script>

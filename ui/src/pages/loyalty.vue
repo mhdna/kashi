@@ -5,39 +5,7 @@
       <v-icon icon="mdi-trophy" />
       <div class="text-h6 font-weight-medium">Loyalty</div>
       <v-spacer />
-      <v-menu v-model="rangeMenu" :close-on-content-click="false">
-        <template #activator="{ props }">
-          <v-text-field
-            v-bind="props"
-            class="range-field"
-            density="compact"
-            hide-details
-            label="Period"
-            :model-value="rangeLabel"
-            prepend-inner-icon="mdi-calendar"
-            readonly
-            variant="outlined"
-          />
-        </template>
-        <v-card>
-          <div class="d-flex flex-wrap ga-2 pa-3 pb-0">
-            <v-chip
-              v-for="p in rangePresets"
-              :key="p.key"
-              :color="activePreset === p.key ? 'primary' : undefined"
-              size="small"
-              @click="applyPreset(p)"
-            >
-              {{ p.title }}
-            </v-chip>
-          </div>
-          <v-date-picker v-model="dateRange" :max="todayIso" multiple="range" />
-          <v-card-actions>
-            <v-spacer />
-            <v-btn color="primary" text="Done" variant="text" @click="rangeMenu = false" />
-          </v-card-actions>
-        </v-card>
-      </v-menu>
+      <DateRangePicker v-model="dateRange" clearable empty-label="All time" :max="todayIso" />
       <v-btn-toggle
         v-model="clientType"
         density="compact"
@@ -63,7 +31,7 @@
       <span class="text-caption text-medium-emphasis">Loading clients…</span>
     </div>
 
-    <v-alert v-else-if="rows.length === 0" class="ly-notice mx-4" type="info" variant="tonal">
+    <v-alert v-else-if="totalMembers === 0" class="ly-notice mx-4" type="info" variant="tonal">
       No clients to analyse yet.
     </v-alert>
 
@@ -242,7 +210,6 @@
               density="compact"
               :headers="risingHeaders"
               :items="risingClients"
-              :items-per-page="10"
               :search="risingSearch"
               :sort-by="[{ key: 'gapCents', order: 'asc' }]"
             >
@@ -279,13 +246,14 @@
 
 <script setup lang="ts">
   import { computed, onMounted, ref, shallowRef, watch } from 'vue'
-  import VChart from '@/components/EChart.vue'
   import { useTheme } from 'vuetify'
   import TierChip from '@/components/Clients/TierChip.vue'
+  import VChart from '@/components/EChart.vue'
   import { useClientTiers } from '@/composables/useClientTiers'
   import { useNotify } from '@/composables/useNotify'
   import { dedupedFetch } from '@/composables/useRequestDedup'
   import { API_BASE } from '@/config'
+  import { ymd } from '@/utils/dates'
   import { formatCompactMoney } from '@/utils/money'
 
   // --- echarts chrome (same helpers as footfall.vue / conversion.vue) -------
@@ -313,66 +281,28 @@
     () => clientTypeOptions.find(o => o.value === clientType.value)?.title ?? '',
   )
 
-  const { sortedTiers, tierFor } = useClientTiers()
+  const { sortedTiers } = useClientTiers()
   // Entry tier first, top tier last -- the order the pyramid and the
   // composition bars read in.
   const tierLadder = computed(() => sortedTiers().toReversed())
 
   // --- data load ----------------------------------------------------------
-  // Tiers are a front-end bucketing over total_spent, so this page needs
-  // every client, not a page of them. /clients/spending_summary returns the
-  // whole population ranked by spend, carrying only the five columns used
-  // below -- one request, one server-side aggregation pass. (The paged
-  // /clients/by_spending re-runs that aggregation per page, which is what
-  // made this page take minutes on a 25k-client tenant.)
+  // Tiers are a front-end setting, so they go to the server with each request
+  // (tier_mins). /clients/loyalty_overview buckets every client into them and
+  // returns only the per-tier totals, the monthly sign-ups and the clients
+  // about to level up, so the page never downloads the client list.
   // Period the activity numbers (revenue, active members) cover. Tiers, points
   // and "close to leveling up" stay lifetime -- a tier is earned over a
   // client's whole history, so bucketing by one month's spend would put
   // nearly everyone in the entry tier.
-  const rangeMenu = ref(false)
   const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate())
-  const todayIso = (() => {
-    const t = startOfDay(new Date())
-    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`
-  })()
-  function monthRange (offset = 0) {
-    const now = new Date()
-    const first = new Date(now.getFullYear(), now.getMonth() + offset, 1)
-    const last = offset === 0 ? startOfDay(now) : new Date(now.getFullYear(), now.getMonth() + offset + 1, 0)
-    return [first, last]
-  }
-  const rangePresets = [
-    { key: 'month', title: 'This month', range: () => monthRange(0) },
-    { key: 'last-month', title: 'Last month', range: () => monthRange(-1) },
-    {
-      key: '90d',
-      title: 'Last 90 days',
-      range: () => {
-        const now = startOfDay(new Date())
-        return [new Date(now.getFullYear(), now.getMonth(), now.getDate() - 89), now]
-      },
-    },
-    { key: 'all', title: 'All time', range: () => [] },
-  ]
-  const dateRange = ref(monthRange(0))
-  const activePreset = ref('month')
-  function applyPreset (p) {
-    activePreset.value = p.key
-    dateRange.value = p.range()
-  }
-  watch(dateRange, () => {
-    // The picker fired, not a preset: only clear the highlight when the
-    // selection no longer matches the active preset.
-    const p = rangePresets.find(x => x.key === activePreset.value)
-    const want = p ? p.range() : []
-    const same = want.length === dateRange.value.length
-      && want.every((d, i) => startOfDay(new Date(d)).getTime() === startOfDay(new Date(dateRange.value[i])).getTime())
-    if (!same) activePreset.value = ''
-  })
+  const todayIso = ymd(new Date())
+  // 'YYYY-MM-DD' strings, or [] for all time; starts on this month.
+  const dateRange = ref([ymd(new Date(new Date().getFullYear(), new Date().getMonth(), 1)), todayIso])
 
   // [from, to) in local time; to is the first instant after the last picked day.
   const bounds = computed(() => {
-    const days = dateRange.value.map(d => startOfDay(new Date(d))).toSorted((a, b) => a - b)
+    const days = dateRange.value.map(d => new Date(`${d}T00:00:00`)).toSorted((a, b) => a - b)
     if (days.length === 0) return null
     const last = days.at(-1)
     return { from: days[0], to: new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1) }
@@ -385,9 +315,7 @@
     return b.from.getTime() === lastDay.getTime() ? fmt(b.from) : `${fmt(b.from)} – ${fmt(lastDay)}`
   })
 
-  // shallowRef: tens of thousands of rows, only ever replaced wholesale.
-  // A deep ref would proxy every row and slow every pass over them below.
-  const rows = shallowRef([])
+  const overview = shallowRef({ tiers: [], joins: [], rising: [] })
   const loading = ref(false)
   const notify = useNotify()
 
@@ -400,11 +328,12 @@
         params.set('from', bounds.value.from.toISOString())
         params.set('to', bounds.value.to.toISOString())
       }
-      const data = await dedupedFetch(`${API_BASE}/clients/spending_summary?${params}`)
-      rows.value = data?.clients ?? []
+      for (const t of tierLadder.value) params.append('tier_mins', Math.round(t.minAmount))
+      const data = await dedupedFetch(`${API_BASE}/clients/loyalty_overview?${params}`)
+      overview.value = { tiers: data?.tiers ?? [], joins: data?.joins ?? [], rising: data?.rising ?? [] }
     } catch (error_) {
       notify.error(error_.message)
-      rows.value = []
+      overview.value = { tiers: [], joins: [], rising: [] }
     } finally {
       loading.value = false
     }
@@ -412,14 +341,9 @@
 
   onMounted(load)
   watch(clientType, load)
-  // bounds changes while the picker is open (one per day clicked); wait for
-  // the menu to close so dragging across a range doesn't reload per click.
-  watch(bounds, () => {
-    if (!rangeMenu.value) load()
-  })
-  watch(rangeMenu, isOpen => {
-    if (!isOpen) load()
-  })
+  watch(bounds, load)
+  // Editing a tier's minimum on the Clients page changes who lands where.
+  watch(() => tierLadder.value.map(t => t.minAmount).join(','), load)
 
   // --- aggregation ------------------------------------------------------------
   function money (cents) {
@@ -430,41 +354,35 @@
   }
   const pct = x => `${(x * 100).toFixed(1)}%`
 
-  const totalMembers = computed(() => rows.value.length)
-  const activeMembers = computed(
-    () => rows.value.filter(c => (c.period_invoice_count ?? 0) > 0).length,
-  )
-  const totalRevenue = computed(
-    () => rows.value.reduce((s, c) => s + (c.period_spent ?? 0), 0),
-  )
-  const totalPoints = computed(
-    () => rows.value.reduce((s, c) => s + (c.valid_loyalty_points ?? 0), 0),
-  )
+  const sum = key => overview.value.tiers.reduce((acc, t) => acc + (t[key] ?? 0), 0)
+  const totalMembers = computed(() => sum('members'))
+  const activeMembers = computed(() => sum('active'))
+  const totalRevenue = computed(() => sum('revenue'))
+  const totalPoints = computed(() => sum('points'))
 
-  // One bucket per tier, entry-first. Every client lands in exactly one via
-  // the same tierFor() the Clients page uses.
+  // One bucket per tier, entry-first. The server numbers tiers from 0 at the
+  // entry tier, in the same order as tierLadder.
   const tierStats = computed(() => {
-    const ladder = tierLadder.value
-    const buckets = new Map(
-      ladder.map(t => [t.id, { id: t.id, label: t.label, color: t.color, minAmount: t.minAmount, members: 0, active: 0, revenue: 0, points: 0 }]),
-    )
-    for (const c of rows.value) {
-      const bucket = buckets.get(tierFor(c.total_spent)?.id)
-      if (!bucket) continue
-      bucket.members++
-      if ((c.period_invoice_count ?? 0) > 0) bucket.active++
-      bucket.revenue += c.period_spent ?? 0
-      bucket.points += c.valid_loyalty_points ?? 0
-    }
-    const members = rows.value.length
+    const byIndex = new Map(overview.value.tiers.map(t => [t.tier_index, t]))
+    const members = totalMembers.value
     const revenue = totalRevenue.value
-    return ladder.map(t => {
-      const b = buckets.get(t.id)
+    return tierLadder.value.map((t, i) => {
+      const b = byIndex.get(i)
+      const row = {
+        id: t.id,
+        label: t.label,
+        color: t.color,
+        minAmount: t.minAmount,
+        members: b?.members ?? 0,
+        active: b?.active ?? 0,
+        revenue: b?.revenue ?? 0,
+        points: b?.points ?? 0,
+      }
       return {
-        ...b,
-        baseShare: members ? b.members / members : 0,
-        revShare: revenue ? b.revenue / revenue : 0,
-        avgSpend: b.active ? b.revenue / b.active : 0,
+        ...row,
+        baseShare: members ? row.members / members : 0,
+        revShare: revenue ? row.revenue / revenue : 0,
+        avgSpend: row.active ? row.revenue / row.active : 0,
       }
     })
   })
@@ -571,12 +489,8 @@
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
       keys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
     }
-    const counts = Object.fromEntries(keys.map(k => [k, 0]))
-    for (const c of rows.value) {
-      const k = String(c.created_at ?? '').slice(0, 7)
-      if (k in counts) counts[k]++
-    }
-    return { keys, values: keys.map(k => counts[k]) }
+    const counts = Object.fromEntries(overview.value.joins.map(j => [j.month, j.joined]))
+    return { keys, values: keys.map(k => counts[k] ?? 0) }
   })
 
   const newMembersOption = computed(() => ({
@@ -615,31 +529,26 @@
     { title: 'Progress', key: 'progress', align: 'end', sortable: false },
   ]
 
+  // The server picks the 25 closest to their next tier; this only attaches
+  // the tier names and colors, which live in the browser.
   const risingClients = computed(() => {
     const ladder = tierLadder.value
-    const out = []
-    for (const c of rows.value) {
-      const current = tierFor(c.total_spent)
-      const idx = ladder.findIndex(t => t.id === current?.id)
-      if (idx === -1 || idx >= ladder.length - 1) continue // already at the top
-      const next = ladder[idx + 1]
-      const dollars = (c.total_spent ?? 0) / 100
-      const gap = next.minAmount - dollars
-      const progress = next.minAmount > 0 ? dollars / next.minAmount : 1
-      if (gap <= 0 || progress < 0.7) continue
-      out.push({
+    return overview.value.rising.flatMap(c => {
+      const current = ladder[c.tier_index]
+      const next = ladder[c.tier_index + 1]
+      if (!current || !next) return []
+      return [{
         id: c.id,
         name: c.name,
         current: current.label,
         currentColor: current.color,
         next: next.label,
         nextColor: next.color,
-        spent: c.total_spent ?? 0,
-        gapCents: Math.round(gap * 100),
-        progress,
-      })
-    }
-    return out.toSorted((a, b) => a.gapCents - b.gapCents).slice(0, 25)
+        spent: c.spent,
+        gapCents: c.next_min - c.spent,
+        progress: c.spent / c.next_min,
+      }]
+    })
   })
 </script>
 
@@ -710,11 +619,6 @@
 
 .rising-search {
   max-width: 220px;
-}
-
-.range-field {
-  min-width: 240px;
-  max-width: 280px;
 }
 
 .client-link {

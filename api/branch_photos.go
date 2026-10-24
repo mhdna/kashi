@@ -50,6 +50,36 @@ func (server *Server) branchExpensePhotos(ctx *gin.Context) {
 	server.writeJSON(ctx, http.StatusOK, envelope{"images": images})
 }
 
+// branchExpensePhotoFirst serves the first photo of one of this branch's
+// expenses in a single request (the till's list rows used to list ids and then
+// fetch the file: two round trips each). No expense or no photo is a 404,
+// which the till shows as no picture.
+func (server *Server) branchExpensePhotoFirst(ctx *gin.Context) {
+	branchID := ctx.MustGet(branchIDKey).(int64)
+	var req branchExpensePhotosRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	expense, err := server.store.GetBranchExpenseByClientRef(ctx, db.GetBranchExpenseByClientRefParams{
+		BranchID: branchID, ClientRef: req.ClientRef,
+	})
+	if err != nil {
+		server.writeError(ctx, statusForLookup(err), err)
+		return
+	}
+	images, err := server.store.ListBranchExpenseImagesForExpense(ctx, expense.ID)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(images) == 0 {
+		server.writeError(ctx, http.StatusNotFound, errors.New("no photo"))
+		return
+	}
+	server.serveStoredImage(ctx, images[0].FilePath, images[0].ContentType, images[0].Rotation)
+}
+
 type branchPhotoIDRequest struct {
 	ID int64 `uri:"id" binding:"required,min=1"`
 }

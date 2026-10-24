@@ -38,5 +38,27 @@ export function useBarcodes () {
     return res.blob()
   }
 
-  return { assignBarcodes, printLabels }
+  // The saved label design, the themes (each with a preview), and the label size.
+  async function getDesign () {
+    return requestJSON(`${API_BASE}/barcodes/design`)
+  }
+
+  async function saveDesign ({ theme, design }) {
+    return requestJSON(`${API_BASE}/barcodes/design`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme, design }),
+    })
+  }
+
+  // The label drawn as SVG by the same code that makes the PDF.
+  async function previewDesign ({ design, sample = 0, borders = false }) {
+    return requestJSON(`${API_BASE}/barcodes/design/preview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ design, sample, borders }),
+    })
+  }
+
+  return { assignBarcodes, printLabels, getDesign, saveDesign, previewDesign }
 }

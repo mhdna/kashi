@@ -56,6 +56,10 @@ func main() {
 	go runRecurringExpenseScheduler(context.Background(), store)
 	go api.RunBranchTargetSeriesScheduler(context.Background(), store, server.BranchHub())
 	go server.RunSecurity(context.Background())
+	go server.RunEmailScheduler(context.Background())
+	go server.RunGooglePlacesScheduler(context.Background())
+	go server.RunUnknownImageCleanup(context.Background())
+	go server.RunClientSpendRefresh(context.Background())
 	// runGrpcServer(config, store)
 	if err := server.Start(config.HTTPServerAddress); err != nil {
 		log.Fatal("cannot start server:", err)

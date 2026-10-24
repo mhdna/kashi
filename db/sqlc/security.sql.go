@@ -14,14 +14,24 @@ import (
 )
 
 const acknowledgeSecurityAlerts = `-- name: AcknowledgeSecurityAlerts :exec
-UPDATE security_alerts SET acknowledged_at = now()
+UPDATE security_alerts SET acknowledged_at = now(), acknowledged_by = $1
 WHERE acknowledged_at IS NULL
-  AND (COALESCE(cardinality($1::bigint[]), 0) = 0 OR id = ANY($1::bigint[]))
+  AND CASE WHEN COALESCE(cardinality($2::bigint[]), 0) = 0
+        THEN kind <> ALL($3::text[])
+        ELSE id = ANY($2::bigint[])
+      END
 `
 
-// Marks the given alerts seen; an empty list marks every open one.
-func (q *Queries) AcknowledgeSecurityAlerts(ctx context.Context, ids []int64) error {
-	_, err := q.db.ExecContext(ctx, acknowledgeSecurityAlerts, pq.Array(ids))
+type AcknowledgeSecurityAlertsParams struct {
+	AcknowledgedBy string   `json:"acknowledged_by"`
+	Ids            []int64  `json:"ids"`
+	KeptKinds      []string `json:"kept_kinds"`
+}
+
+// Marks the given alerts seen; an empty list marks every open one except
+// those of kept_kinds (critical ones, resolved only one by one).
+func (q *Queries) AcknowledgeSecurityAlerts(ctx context.Context, arg AcknowledgeSecurityAlertsParams) error {
+	_, err := q.db.ExecContext(ctx, acknowledgeSecurityAlerts, arg.AcknowledgedBy, pq.Array(arg.Ids), pq.Array(arg.KeptKinds))
 	return err
 }
 
@@ -126,19 +136,22 @@ func (q *Queries) ListActiveIPBans(ctx context.Context) ([]IpBan, error) {
 }
 
 const listSecurityAlerts = `-- name: ListSecurityAlerts :many
-SELECT id, kind, ip, country_code, detail, count, first_at, last_at, acknowledged_at FROM security_alerts
+SELECT id, kind, ip, country_code, detail, count, first_at, last_at, acknowledged_at, acknowledged_by FROM security_alerts
 WHERE (NOT $1::bool OR acknowledged_at IS NULL)
-ORDER BY last_at DESC
-LIMIT $2
+ORDER BY (acknowledged_at IS NULL AND kind = ANY($2::text[])) DESC, last_at DESC
+LIMIT $3
 `
 
 type ListSecurityAlertsParams struct {
-	OpenOnly bool  `json:"open_only"`
-	PageSize int32 `json:"page_size"`
+	OpenOnly    bool     `json:"open_only"`
+	PinnedKinds []string `json:"pinned_kinds"`
+	PageSize    int32    `json:"page_size"`
 }
 
+// Open alerts of the pinned (critical) kinds come first, so the page limit
+// never pushes one off the list before someone resolves it.
 func (q *Queries) ListSecurityAlerts(ctx context.Context, arg ListSecurityAlertsParams) ([]SecurityAlert, error) {
-	rows, err := q.db.QueryContext(ctx, listSecurityAlerts, arg.OpenOnly, arg.PageSize)
+	rows, err := q.db.QueryContext(ctx, listSecurityAlerts, arg.OpenOnly, pq.Array(arg.PinnedKinds), arg.PageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -156,6 +169,7 @@ func (q *Queries) ListSecurityAlerts(ctx context.Context, arg ListSecurityAlerts
 			&i.FirstAt,
 			&i.LastAt,
 			&i.AcknowledgedAt,
+			&i.AcknowledgedBy,
 		); err != nil {
 			return nil, err
 		}

@@ -50,6 +50,10 @@ type defaultBranchSettings struct {
 	ReceiptTitleSize float64 `json:"receipt_title_size"`
 	ReceiptBodySize  float64 `json:"receipt_body_size"`
 	ReceiptCutoff    bool    `json:"receipt_cutoff"`
+	// The printed invoice's look. Empty (a template saved before this
+	// existed) leaves each branch's own look alone when applied to all.
+	ReceiptTheme  string `json:"receipt_theme,omitempty"`
+	ReceiptLayout string `json:"receipt_layout,omitempty"`
 
 	AttendanceEnabled                  bool  `json:"attendance_enabled"`
 	AttendanceDuplicateIntervalSeconds int64 `json:"attendance_duplicate_interval_seconds"`
@@ -65,8 +69,16 @@ type defaultBranchSettings struct {
 	// keeps its own value instead of getting a zero pushed over it.
 	CloseShiftRequiresSync           *bool  `json:"close_shift_requires_sync,omitempty"`
 	ScanByCodeEnabled                *bool  `json:"scan_by_code_enabled,omitempty"`
+	ProductSearchCodeOnly            *bool  `json:"product_search_code_only,omitempty"`
+	PriceEditRestricted              *bool  `json:"price_edit_restricted,omitempty"`
+	DiscountToggle                   *bool  `json:"discount_toggle,omitempty"`
+	DiscountToggleDefaultOff         *bool  `json:"discount_toggle_default_off,omitempty"`
+	DealToggle                       *bool  `json:"deal_toggle,omitempty"`
 	SoundsEnabled                    *bool  `json:"sounds_enabled,omitempty"`
 	AttendanceManagerApprovalEnabled *bool  `json:"attendance_manager_approval_enabled,omitempty"`
+	ShiftReportSignatures            *bool  `json:"shift_report_signatures,omitempty"`
+	ShiftReportUppercaseHeader       *bool  `json:"shift_report_uppercase_header,omitempty"`
+	AutoCoverNegativeLBP             *bool  `json:"auto_cover_negative_lbp,omitempty"`
 	SalespersonPerInvoiceRequired    *bool  `json:"salesperson_per_invoice_required,omitempty"`
 	NonAdminMonthNavEnabled          *bool  `json:"non_admin_month_nav_enabled,omitempty"`
 	OpeningFloatEnabled              *bool  `json:"opening_float_enabled,omitempty"`

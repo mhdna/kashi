@@ -340,6 +340,8 @@ type setAppUpdateTargetRequest struct {
 	// ReleaseID nil clears the target: the register keeps what it runs.
 	ReleaseID   *int64  `json:"release_id"`
 	RegisterIDs []int64 `json:"register_ids" binding:"required,min=1,dive,min=1"`
+	// Force: install as soon as it's downloaded, even with a shift open.
+	Force bool `json:"force"`
 }
 
 // setAppUpdateTarget tells registers which release to run -- newer to
@@ -395,13 +397,16 @@ func (server *Server) setAppUpdateTarget(ctx *gin.Context) {
 	for _, r := range registers {
 		ids = append(ids, r.ID)
 	}
-	if err := server.store.SetRegistersTargetRelease(ctx, db.SetRegistersTargetReleaseParams{ReleaseID: target, RegisterIds: ids}); err != nil {
+	if err := server.store.SetRegistersTargetRelease(ctx, db.SetRegistersTargetReleaseParams{ReleaseID: target, RegisterIds: ids, Force: req.Force && target.Valid}); err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	byName := server.displayName(ctx, ctx.MustGet(authoizationPayloadKey).(*token.Payload))
 	state, detail := "targeted", fmt.Sprintf("Set to %s by %s", release.Version, byName)
+	if req.Force && target.Valid {
+		detail = fmt.Sprintf("Forced to %s by %s", release.Version, byName)
+	}
 	if !target.Valid {
 		state, detail = "target_cleared", fmt.Sprintf("Target cleared by %s", byName)
 	}
@@ -462,6 +467,8 @@ type branchAppUpdateManifest struct {
 	Sha256    string `json:"sha256"`
 	Signature string `json:"signature"`
 	Notes     string `json:"notes"`
+	// Install right away, even mid-shift (App Updates' "force").
+	Force bool `json:"force"`
 }
 
 // branchAppUpdate answers a till's "what should I run?" -- its target
@@ -481,6 +488,7 @@ func (server *Server) branchAppUpdate(ctx *gin.Context) {
 		ID: release.ID, Version: release.Version, Flavor: release.Flavor,
 		FileName: release.FileName, SizeBytes: release.SizeBytes,
 		Sha256: release.Sha256, Signature: release.Signature, Notes: release.Notes,
+		Force: release.TargetForce,
 	}})
 }
 

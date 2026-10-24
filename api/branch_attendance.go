@@ -348,6 +348,44 @@ func (server *Server) listBranchAttendanceEvents(ctx *gin.Context) {
 	server.writeJSON(ctx, http.StatusOK, envelope{"branch_attendance_events": events, "total": total})
 }
 
+type listBranchAttendanceRangeRequest struct {
+	BranchID int64  `form:"branch_id"`
+	From     string `form:"from" binding:"required,datetime=2006-01-02"`
+	To       string `form:"to" binding:"required,datetime=2006-01-02"`
+}
+
+// listBranchAttendanceEventsInRange returns every punch between two dates,
+// unpaged, for the admin timesheet views. Pairing punches into worked spans
+// and breaks happens in the UI, which already has to lay them out.
+func (server *Server) listBranchAttendanceEventsInRange(ctx *gin.Context) {
+	var req listBranchAttendanceRangeRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	if req.From > req.To {
+		server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("from must not be after to"))
+		return
+	}
+
+	var branchID sql.NullInt64
+	if req.BranchID > 0 {
+		branchID = sql.NullInt64{Int64: req.BranchID, Valid: true}
+	}
+
+	events, err := server.store.ListBranchAttendanceEventsInRange(ctx, db.ListBranchAttendanceEventsInRangeParams{
+		BranchID: branchID,
+		FromDate: req.From,
+		ToDate:   req.To,
+	})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	server.writeJSON(ctx, http.StatusOK, envelope{"branch_attendance_events": events})
+}
+
 // --- Admin-side attendance editing ---------------------------------------
 //
 // The punch stream is normally append-only and device-authoritative, but an

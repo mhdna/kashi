@@ -27,6 +27,17 @@ export function useAttendance () {
     }
   }
 
+  // Every punch between two YYYY-MM-DD dates (inclusive), unpaged, for the
+  // timesheet views.
+  async function listEventsInRange ({ branchId, from, to }) {
+    const url = new URL(`${API_BASE}/branch_attendance_events/range`)
+    url.searchParams.set('from', from)
+    url.searchParams.set('to', to)
+    if (branchId) {url.searchParams.set('branch_id', branchId)}
+    const data = await requestJSON(url.toString())
+    return data?.branch_attendance_events ?? []
+  }
+
   // Multipart: let the browser set the boundary Content-Type itself.
   async function importCsv (file, branchId) {
     const body = new FormData()
@@ -68,5 +79,5 @@ export function useAttendance () {
     return data?.command ?? null
   }
 
-  return { listEvents, importCsv, updateEvent, deleteEvent, listPendingRequests, reviewRequest }
+  return { listEvents, listEventsInRange, importCsv, updateEvent, deleteEvent, listPendingRequests, reviewRequest }
 }

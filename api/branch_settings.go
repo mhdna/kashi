@@ -72,6 +72,20 @@ type branchSettingsRequest struct {
 	ReceiptTitleSize *float64 `json:"receipt_title_size"`
 	ReceiptBodySize  *float64 `json:"receipt_body_size"`
 	ReceiptCutoff    *bool    `json:"receipt_cutoff"`
+	// The printed invoice's look: a theme id and one of its layout ids (the
+	// till's catalog, receipt_theme.go). Nil or unrecognisable keeps the
+	// till's default, Classic layout A.
+	ReceiptTheme  *string `json:"receipt_theme"`
+	ReceiptLayout *string `json:"receipt_layout"`
+	// The cashier/manager sign-off lines on the end-of-shift receipt. Nil
+	// (a till that predates it) keeps them on, the till's own default.
+	ShiftReportSignatures *bool `json:"shift_report_signatures"`
+	// Store and branch name in capitals on the end-of-shift receipt. Nil
+	// keeps them as typed, the till's own default.
+	ShiftReportUppercaseHeader *bool `json:"shift_report_uppercase_header"`
+	// At close shift, swap a negative Cash LL balance into Cash $$. Nil
+	// leaves it off, the till's own default.
+	AutoCoverNegativeLBP *bool `json:"auto_cover_negative_lbp"`
 
 	// --- per-machine device identifiers (reported for display; the admin
 	// UI defaults these to "managed at the branch") ---
@@ -109,6 +123,27 @@ type branchSettingsRequest struct {
 	// entered barcode. Nil (a till that predates it) keeps it on, the
 	// till's own default.
 	ScanByCodeEnabled *bool `json:"scan_by_code_enabled"`
+
+	// Product search matches codes only and hides names. Nil (a till that
+	// predates it) leaves it off, the till's own default.
+	ProductSearchCodeOnly *bool `json:"product_search_code_only"`
+	// Manual price and discount edits only on the codes in PriceEditCodes
+	// (comma-separated). Nil leaves them off/empty, the till's own default.
+	PriceEditRestricted *bool   `json:"price_edit_restricted"`
+	PriceEditCodes      *string `json:"price_edit_codes"`
+	// Salespersons can tap a line's list discount (DiscountToggle) or its
+	// deal (DealToggle) to turn it off for that sale, never change it;
+	// DiscountToggleDefaultOff makes new lines start with the discount off.
+	// Nil leaves them off, the till's own default.
+	DiscountToggle           *bool `json:"discount_toggle"`
+	DiscountToggleDefaultOff *bool `json:"discount_toggle_default_off"`
+	DealToggle               *bool `json:"deal_toggle"`
+	// Barcode of the product the till's "Unknown item" button adds. Nil or
+	// empty: the till's built-in placeholder.
+	UnknownProductBarcode *string `json:"unknown_product_barcode"`
+	// Product search columns the till leaves out (comma-separated names from
+	// code, name, brand, color, size, price). Nil or empty: all shown.
+	ProductSearchHiddenFields *string `json:"product_search_hidden_fields"`
 
 	// Let the till play its sounds (scan/checkout chimes, error and warning
 	// tones, keypad clicks). Nil (a till that predates it) keeps them off,
@@ -229,6 +264,25 @@ func mergeJSONObjects(base any, patch json.RawMessage) (json.RawMessage, error) 
 		merged[key] = value
 	}
 	return json.Marshal(merged)
+}
+
+// receiptLookID is a theme or layout id as stored: trimmed, short and made
+// of letters, digits, dashes and underscores, else the fallback. Whether the
+// id names a real theme is the till's call; it falls back too.
+func receiptLookID(p *string, fallback string) string {
+	if p == nil {
+		return fallback
+	}
+	id := strings.TrimSpace(*p)
+	if id == "" || len(id) > 32 {
+		return fallback
+	}
+	for _, r := range id {
+		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '-' || r == '_') {
+			return fallback
+		}
+	}
+	return id
 }
 
 func validOversellMode(mode string) bool {
@@ -422,6 +476,12 @@ func (server *Server) upsertBranchSettings(ctx *gin.Context, branchID int64, req
 		ReceiptTitleSize: orZero(req.ReceiptTitleSize),
 		ReceiptBodySize:  orZero(req.ReceiptBodySize),
 		ReceiptCutoff:    orZero(req.ReceiptCutoff),
+		ReceiptTheme:     receiptLookID(req.ReceiptTheme, "classic"),
+		ReceiptLayout:    receiptLookID(req.ReceiptLayout, "A"),
+
+		ShiftReportSignatures:      orTrue(req.ShiftReportSignatures),
+		ShiftReportUppercaseHeader: orZero(req.ShiftReportUppercaseHeader),
+		AutoCoverNegativeLbp:       orZero(req.AutoCoverNegativeLBP),
 
 		PrinterID:      orZero(req.PrinterID),
 		ReceiptPrinter: orZero(req.ReceiptPrinter),
@@ -438,6 +498,14 @@ func (server *Server) upsertBranchSettings(ctx *gin.Context, branchID int64, req
 		OversellMode:                       oversellMode,
 		CloseShiftRequiresSync:             orZero(req.CloseShiftRequiresSync),
 		ScanByCodeEnabled:                  orTrue(req.ScanByCodeEnabled),
+		ProductSearchCodeOnly:              orZero(req.ProductSearchCodeOnly),
+		PriceEditRestricted:                orZero(req.PriceEditRestricted),
+		PriceEditCodes:                     orZero(req.PriceEditCodes),
+		DiscountToggle:                     orZero(req.DiscountToggle),
+		DiscountToggleDefaultOff:           orZero(req.DiscountToggleDefaultOff),
+		DealToggle:                         orZero(req.DealToggle),
+		UnknownProductBarcode:              strings.TrimSpace(orZero(req.UnknownProductBarcode)),
+		ProductSearchHiddenFields:          orZero(req.ProductSearchHiddenFields),
 		SoundsEnabled:                      orZero(req.SoundsEnabled),
 		AttendanceManagerApprovalEnabled:   orTrue(req.AttendanceManagerApprovalEnabled),
 

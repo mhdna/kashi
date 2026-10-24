@@ -33,6 +33,79 @@
     </v-card>
   </v-dialog>
 
+  <v-dialog v-model="exportDialog" max-width="520">
+    <v-card>
+      <v-card-title>Export Clients to CSV</v-card-title>
+      <v-card-text>
+        <div class="text-caption text-medium-emphasis mb-1">Fields</div>
+        <div class="d-flex flex-wrap mb-2">
+          <v-checkbox
+            v-for="field in exportFieldOptions"
+            :key="field.value"
+            v-model="exportFields"
+            density="compact"
+            hide-details
+            :label="field.title"
+            style="flex: 0 0 50%"
+            :value="field.value"
+          />
+        </div>
+
+        <v-select
+          v-model="exportBranchIds"
+          chips
+          clearable
+          closable-chips
+          density="compact"
+          hide-details
+          item-title="name"
+          item-value="id"
+          :items="branches"
+          label="Branches (empty = all)"
+          multiple
+          variant="outlined"
+        />
+
+        <div class="mt-3">
+          <DateRangePicker v-model="exportRange" clearable empty-label="Came any time" />
+        </div>
+        <v-checkbox
+          v-model="exportNoDuplicates"
+          density="compact"
+          hide-details
+          label="No duplicates"
+        />
+        <v-checkbox
+          v-model="exportIncludeExcluded"
+          density="compact"
+          hide-details
+          label="Include cancelled invoices and hidden branches"
+        />
+        <div class="text-caption text-medium-emphasis mt-2">
+          A client belongs to a branch if they bought something there (cancelled invoices and
+          branches hidden from reports are skipped unless you include them). Each selected branch gets
+          its own file (a zip when there are several); with none selected you get one file of
+          every {{ tab }} client. Dates keep only those who bought in that period, and Total
+          spent / Invoices count just that scope.
+          <b>No duplicates</b> removes anyone with the same phone in more than one file from all
+          of them, and keeps one row per phone inside a file. <b>Phone check</b> adds a column
+          marking numbers that aren't valid Lebanese numbers as Invalid.
+        </div>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn text="Cancel" @click="exportDialog = false" />
+        <v-btn
+          color="primary"
+          :disabled="exportFields.length === 0"
+          :loading="exporting"
+          text="Export"
+          @click="exportCsv"
+        />
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
   <v-dialog v-model="deleteDialog" max-width="420">
     <v-card>
       <v-card-title>Delete Client</v-card-title>
@@ -69,19 +142,85 @@
           </v-btn>
         </template>
         <v-list>
-          <v-list-item :active="selectedBranchId === null" @click="selectedBranchId = null">
+          <v-list-item :active="selectedBranchIds.length === 0" @click="selectedBranchIds = []">
             <v-list-item-title>All Branches</v-list-item-title>
           </v-list-item>
           <v-list-item
             v-for="branch in branches"
             :key="branch.id"
-            :active="selectedBranchId === branch.id"
-            @click="selectedBranchId = branch.id"
+            :active="selectedBranchIds.includes(branch.id)"
+            @click="toggleBranch(branch.id)"
           >
+            <template #prepend>
+              <v-icon v-if="selectedBranchIds.includes(branch.id)" icon="mdi-check" size="small" />
+            </template>
             <v-list-item-title>{{ branch.name }}</v-list-item-title>
           </v-list-item>
         </v-list>
       </v-menu>
+      <v-menu>
+        <template #activator="{ props: menuProps }">
+          <v-btn
+            prepend-icon="mdi-earth"
+            rounded="lg"
+            style="border-color: rgb(var(--v-theme-surface-light));"
+            v-bind="menuProps"
+            variant="outlined"
+          >
+            {{ selectedCountryLabel }}
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item :active="selectedCountry === ''" @click="selectedCountry = ''">
+            <v-list-item-title>All Countries</v-list-item-title>
+          </v-list-item>
+          <v-list-item
+            v-for="c in phoneCountries"
+            :key="c.phone_country"
+            :active="selectedCountry === c.phone_country"
+            @click="selectedCountry = c.phone_country"
+          >
+            <template #prepend>
+              <span class="me-1">{{ countryFlag(c.phone_country) }}</span>
+            </template>
+            <v-list-item-title>{{ c.phone_country }} ({{ c.client_count }})</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
+      <v-btn-toggle
+        v-model="phoneValidFilter"
+        density="comfortable"
+        divided
+        mandatory
+        rounded="lg"
+        variant="outlined"
+      >
+        <v-btn text="Any Phone" value="any" />
+        <v-btn text="Valid" value="valid" />
+        <v-btn text="Invalid" value="invalid" />
+      </v-btn-toggle>
+      <DateRangePicker v-model="dateRange" clearable />
+      <v-btn-toggle
+        v-if="dateRange.length > 0"
+        v-model="visit"
+        density="comfortable"
+        divided
+        mandatory
+        rounded="lg"
+        variant="outlined"
+      >
+        <v-btn text="All" value="" />
+        <v-btn text="First-timers" value="first" />
+        <v-btn text="Returning" value="returning" />
+      </v-btn-toggle>
+      <v-btn
+        prepend-icon="mdi-file-delimited-outline"
+        rounded="lg"
+        style="border-color: rgb(var(--v-theme-surface-light));"
+        text="Export CSV"
+        variant="outlined"
+        @click="openExport"
+      />
       <v-btn
         v-if="canEdit"
         color="primary"
@@ -95,8 +234,12 @@
   <ClientLoyaltyBoard
     :key="tab"
     ref="boardRef"
-    :branch-id="selectedBranchId"
+    :branch-ids="selectedBranchIds"
     :client-type="tab"
+    :date-range="dateRange"
+    :phone-country="selectedCountry"
+    :phone-valid="phoneValidFilter === 'valid' ? true : phoneValidFilter === 'invalid' ? false : null"
+    :visit="dateRange.length > 0 ? visit : ''"
     @delete="openDelete"
     @edit="openEdit"
     @reactivate="reactivate"
@@ -108,10 +251,14 @@
   import { useField, useForm } from 'vee-validate'
   import { computed, onMounted, ref } from 'vue'
   import ClientLoyaltyBoard from '@/components/Clients/ClientLoyaltyBoard.vue'
+  import { authFetch } from '@/composables/useApi'
   import { useBranches } from '@/composables/useBranches'
   import { useClients } from '@/composables/useClients'
-  import { usePageAccess } from '@/composables/usePageAccess'
   import { useNotify } from '@/composables/useNotify'
+  import { usePageAccess } from '@/composables/usePageAccess'
+  import { API_BASE } from '@/config'
+  import { countryFlag } from '@/utils/countryFlag'
+  import { rangeBounds } from '@/utils/dateRange'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
@@ -122,11 +269,107 @@
 
   onMounted(() => fetchBranches())
 
-  const selectedBranchId = ref(null)
+  const selectedBranchIds = ref([])
   const selectedBranchLabel = computed(() => {
-    if (selectedBranchId.value === null) return 'All Branches'
-    return branches.value.find(b => b.id === selectedBranchId.value)?.name ?? 'All Branches'
+    if (selectedBranchIds.value.length === 0) return 'All Branches'
+    if (selectedBranchIds.value.length === 1) {
+      return branches.value.find(b => b.id === selectedBranchIds.value[0])?.name ?? 'All Branches'
+    }
+    return `${selectedBranchIds.value.length} Branches`
   })
+
+  function toggleBranch (id) {
+    selectedBranchIds.value = selectedBranchIds.value.includes(id)
+      ? selectedBranchIds.value.filter(b => b !== id)
+      : [...selectedBranchIds.value, id]
+  }
+
+  // Country filter: only countries actually present among clients' phones
+  // (see listClientPhoneCountries in api/client_phone_cleanup.go), so this
+  // never offers a country that would return zero results.
+  const phoneCountries = ref([])
+  onMounted(async () => {
+    const res = await authFetch(`${API_BASE}/clients/phone_countries`)
+    const data = await res.json()
+    phoneCountries.value = data?.countries ?? []
+  })
+  const selectedCountry = ref('')
+  const selectedCountryLabel = computed(() => {
+    if (!selectedCountry.value) return 'All Countries'
+    const c = phoneCountries.value.find(x => x.phone_country === selectedCountry.value)
+    return `${countryFlag(selectedCountry.value)} ${c?.phone_country ?? selectedCountry.value}`
+  })
+  // 'any' | 'valid' | 'invalid' -- see phone_valid in client_phone_cleanup.go.
+  const phoneValidFilter = ref('any')
+
+  // Clients who bought in this window (and their spend in it); [] = any time.
+  const dateRange = ref([])
+  // Within that window: '' everyone, 'first' bought for the first time in it,
+  // 'returning' bought before it too.
+  const visit = ref('')
+
+  // ---- CSV export ----------------------------------------------------------
+  const exportFieldOptions = [
+    { title: 'Name', value: 'name' },
+    { title: 'Phone', value: 'phone' },
+    { title: 'Phone check (Lebanese)', value: 'phone_check' },
+    { title: 'Type', value: 'client_type' },
+    { title: 'Status', value: 'status' },
+    { title: 'Member since', value: 'created_at' },
+    { title: 'Loyalty points', value: 'loyalty' },
+    { title: 'Total spent', value: 'total_spent' },
+    { title: 'Invoices', value: 'invoices' },
+    { title: 'Last visit', value: 'last_visit' },
+  ]
+  const exportDialog = ref(false)
+  const exporting = ref(false)
+  const exportFields = ref(['name', 'phone'])
+  const exportBranchIds = ref([])
+  const exportNoDuplicates = ref(false)
+  const exportIncludeExcluded = ref(false)
+  const exportRange = ref([])
+
+  function openExport () {
+    // Start from the branches already filtered on the page.
+    exportBranchIds.value = [...selectedBranchIds.value]
+    exportRange.value = [...dateRange.value]
+    exportDialog.value = true
+  }
+
+  async function exportCsv () {
+    exporting.value = true
+    try {
+      const params = new URLSearchParams()
+      params.set('client_type', tab.value)
+      // Keep the checkbox order stable rather than click order.
+      params.set('fields', exportFieldOptions.map(f => f.value).filter(v => exportFields.value.includes(v)).join(','))
+      for (const id of exportBranchIds.value) params.append('branch_ids', id)
+      if (exportNoDuplicates.value) params.set('no_duplicates', true)
+      if (exportIncludeExcluded.value) params.set('include_excluded', true)
+      const { from, to } = rangeBounds(exportRange.value)
+      if (from) params.set('from', from)
+      if (to) params.set('to', to)
+
+      const res = await authFetch(`${API_BASE}/clients/export?${params}`)
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error || `Export failed with status ${res.status}`)
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      // One file comes back as a .csv, several branches as a .zip.
+      link.download = res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ?? (blob.type === 'application/zip' ? 'clients.zip' : 'clients.csv')
+      link.click()
+      URL.revokeObjectURL(url)
+      exportDialog.value = false
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      exporting.value = false
+    }
+  }
 
   const tab = ref('retail')
   const boardRef = ref(null)

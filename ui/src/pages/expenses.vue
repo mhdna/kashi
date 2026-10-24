@@ -125,12 +125,11 @@
               />
             </v-col>
           </v-row>
-          <v-text-field
+          <DateField
             v-model="rNextDueAt.value.value"
             density="compact"
             :error-messages="rNextDueAt.errorMessage.value"
             label="First Due Date"
-            type="date"
           />
 
           <v-card-actions class="px-0">
@@ -191,13 +190,12 @@
               <CurrencySelect v-model="bxForm.currencyCode" :error-messages="bxErrors.currencyCode" />
             </v-col>
           </v-row>
-          <v-text-field
+          <DateField
             v-model="bxForm.occurredAt"
             density="compact"
             hint="Defaults to now"
             label="Date"
             persistent-hint
-            type="date"
           />
 
           <v-card-actions class="px-0">
@@ -234,9 +232,9 @@
           mandatory
           variant="outlined"
         >
+          <v-btn value="branch">Branch</v-btn>
           <v-btn value="own">Central</v-btn>
           <v-btn value="recurring">Recurring</v-btn>
-          <v-btn value="branch">Branch</v-btn>
         </v-btn-toggle>
         <div class="d-flex ga-2">
           <v-btn
@@ -397,12 +395,54 @@
                         <v-icon :color="expenseColor(item)" :icon="expenseIcon(item)" size="22" />
                       </v-avatar>
                     </template>
-                    <v-list-item-title class="font-weight-medium">{{ item.description }}</v-list-item-title>
+                    <v-list-item-title class="font-weight-medium" :class="{ 'text-decoration-line-through': isCancelled(item) }">{{ item.description }}</v-list-item-title>
                     <v-list-item-subtitle>
                       {{ prettyDate(item.occurred_at) }} · {{ branchName(item.branch_id) }} · {{ categoryLabel(item.category_id) }}
                     </v-list-item-subtitle>
                     <template #append>
-                      <span class="text-error font-weight-medium">−{{ money(item.amount) }} {{ item.currency_code }}</span>
+                      <v-chip
+                        v-if="item.from_central"
+                        class="me-2"
+                        color="primary"
+                        prepend-icon="mdi-domain"
+                        size="small"
+                        variant="tonal"
+                      >
+                        From central · من المركزي
+                      </v-chip>
+                      <v-chip
+                        v-if="isCancelled(item)"
+                        class="me-2"
+                        color="error"
+                        size="small"
+                        variant="tonal"
+                      >
+                        Cancelled
+                      </v-chip>
+                      <span
+                        class="font-weight-medium"
+                        :class="isCancelled(item) ? 'text-medium-emphasis text-decoration-line-through' : 'text-error'"
+                      >−{{ money(item.amount) }} {{ item.currency_code }}</span>
+                      <!-- Only a till's own expense: one entered here has no shift to keep it out of. -->
+                      <v-icon-btn
+                        v-if="canEdit && !isCancelled(item) && item.branch_cashbox_account_id !== 0"
+                        class="ms-1"
+                        :color="item.from_central ? 'primary' : undefined"
+                        icon="mdi-domain"
+                        size="small"
+                        :title="item.from_central ? 'Paid from the till after all' : 'Paid by central (من المركزي)'"
+                        variant="text"
+                        @click.stop="toggleFromCentral(item)"
+                      />
+                      <v-icon-btn
+                        v-if="canEdit && !isCancelled(item)"
+                        class="ms-1"
+                        icon="mdi-cancel"
+                        size="small"
+                        title="Cancel expense"
+                        variant="text"
+                        @click.stop="cancelBranchExpense(item)"
+                      />
                     </template>
                   </v-list-item>
                   <v-divider v-if="i < filteredBranchExpenses.length - 1" />
@@ -445,12 +485,13 @@
   import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
   import { categoryIcon } from '@/data/expenseCategoryIcons'
+  import { useSettingsStore } from '@/stores/settings'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
   const notify = useNotify()
 
-  const PAGE_SIZE = 25
+  const PAGE_SIZE = useSettingsStore().tablePageSize
 
   const { branches, fetchBranches } = useBranches()
   const {
@@ -467,7 +508,7 @@
     fetchExpenses()
   })
 
-  const tab = ref('own')
+  const tab = ref('branch')
   const search = ref('')
   const selectedCategory = ref(null)
 
@@ -703,6 +744,47 @@
     }
   }
 
+  // cancelled_at is a Go sql.NullTime: { Time, Valid } on the wire, an
+  // object (so truthy) even when the expense was never cancelled.
+  function isCancelled (item) {
+    return Boolean(item.cancelled_at?.Valid)
+  }
+
+  // A branch expense can't be deleted -- the till keeps it, marked
+  // cancelled, and every total skips it.
+  async function cancelBranchExpense (item) {
+    if (!confirm(`Cancel expense "${item.description}"? The branch will show it as cancelled.`)) return
+    try {
+      await apiJSON(`${API_BASE}/branch_expenses/${item.id}/cancel`, { method: 'POST' })
+      fetchBranchExpenses(false)
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
+
+  // From central: central paid it, so the till's shift doesn't take it off
+  // the drawer. It's still the branch's expense; the till hears of the change.
+  // Shown flipped as soon as it's confirmed; put back if kashi refuses.
+  async function toggleFromCentral (item) {
+    const next = !item.from_central
+    const question = next
+      ? `Mark "${item.description}" as paid by central (من المركزي)? The branch's shift will stop taking it out of the drawer.`
+      : `Mark "${item.description}" as paid from the till? The branch's shift will take it out of the drawer again.`
+    if (!confirm(question)) return
+    item.from_central = next
+    try {
+      const data = await apiJSON(`${API_BASE}/branch_expenses/${item.id}/from_central`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from_central: next }),
+      })
+      item.from_central = data.branch_expense.from_central
+    } catch (error) {
+      item.from_central = !next
+      notify.error(error.message)
+    }
+  }
+
   // -- Branch expenses list --
 
   const branchExpenses = ref([])
@@ -853,7 +935,7 @@
     if (value === 'branch' && !branchLoaded) fetchBranchExpenses()
     if (value === 'recurring' && recurringExpenses.value.length === 0) fetchRecurringExpenses()
     nextTick(setupInfiniteScroll)
-  })
+  }, { immediate: true })
 
   // -- Recurring expenses --
 

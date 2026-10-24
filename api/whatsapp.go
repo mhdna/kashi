@@ -45,11 +45,34 @@ var whatsAppImageHeaderTemplates = map[string]bool{
 // details and kashi does the actual Cloud API call. Items let rules match
 // on what was sold; a till too old to send them just never matches those.
 type branchWhatsAppThankYouRequest struct {
-	ClientName      string             `json:"client_name"`
-	ClientPhone     string             `json:"client_phone" binding:"required"`
-	InvoiceCode     string             `json:"invoice_code" binding:"required"`
-	GrandTotalCents int64              `json:"grand_total_cents"`
-	Items           []whatsAppSaleItem `json:"items"`
+	ClientName      string `json:"client_name"`
+	ClientPhone     string `json:"client_phone" binding:"required"`
+	InvoiceCode     string `json:"invoice_code" binding:"required"`
+	GrandTotalCents int64  `json:"grand_total_cents"`
+	// PaidCents is what the client paid now, without any part put on
+	// account; "Total paid" shows it, and is left out when it's 0. Nil from
+	// tills before 1.1.11: the total is used.
+	PaidCents *int64             `json:"paid_cents"`
+	Items     []whatsAppSaleItem `json:"items"`
+
+	// welcome marks the message sent before checkout (see
+	// sendBranchWhatsAppWelcome): no rating poll or review link, no invoice.
+	welcome bool
+	// pollOnly marks the checkout of a client whose welcome already went out:
+	// only the rating poll is still due, for a new client (that welcome was
+	// their first message).
+	pollOnly bool
+	// welcomeID is that welcome's whatsapp_messages row: the poll is
+	// recorded on it rather than as a row of its own.
+	welcomeID int64
+}
+
+// paidCents is the amount a message shows as paid.
+func (req branchWhatsAppThankYouRequest) paidCents() int64 {
+	if req.PaidCents != nil {
+		return *req.PaidCents
+	}
+	return req.GrandTotalCents
 }
 
 // sendBranchWhatsAppThankYou is best-effort: config disabled/incomplete,
@@ -76,6 +99,15 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 		server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": "whatsapp disabled"})
 		return
 	}
+	branch, err := server.store.GetBranch(ctx, branchID)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if err == nil && !branch.WhatsappEnabled {
+		server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": "whatsapp off for this branch"})
+		return
+	}
 
 	to := whatsAppDigits(req.ClientPhone)
 	entry := db.CreateWhatsAppMessageParams{
@@ -96,6 +128,30 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 		BranchID: sql.NullInt64{Int64: branchID, Valid: true}, InvoiceCode: req.InvoiceCode,
 	}); err == nil && already {
 		server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": "already sent for this invoice"})
+		return
+	}
+
+	// A welcome already went out when the till got this client's number: the
+	// sale takes it over (it gets the invoice) and the client isn't messaged again.
+	if welcomeID, err := server.store.ClaimWhatsAppWelcome(ctx, db.ClaimWhatsAppWelcomeParams{
+		Invoice: req.InvoiceCode, TotalCents: req.GrandTotalCents, Items: int32(len(req.Items)),
+		Phone: to, Branch: sql.NullInt64{Int64: branchID, Valid: true},
+	}); err == nil {
+		// The welcome carried no poll (nothing was bought yet): it goes now.
+		sender, err := server.store.GetWhatsAppSenderSettings(ctx)
+		if err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		if sender.WhatsappSender == whatsAppSenderBridge && sender.WhatsappFeedbackMode != whatsAppFeedbackLink && sender.WhatsappPollNew {
+			req.pollOnly, req.welcomeID = true, welcomeID
+			server.sendWhatsAppViaBridge(ctx, entry, sender, branch.Name, whatsAppBranchHiddenFields(sender, branch.WhatsappHiddenFields), req)
+			return
+		}
+		server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": "welcome already sent before checkout"})
+		return
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -124,8 +180,20 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 		server.logWhatsAppMessage(ctx, entry, whatsAppStatusSkipped, "rule: "+decision.RuleName)
 		return
 	}
-	entry.TemplateName = decision.TemplateName
+	branchName := branch.Name
 
+	sender, err := server.store.GetWhatsAppSenderSettings(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if sender.WhatsappSender != whatsAppSenderMeta {
+		server.sendWhatsAppViaBridge(ctx, entry, sender, branchName, whatsAppBranchHiddenFields(sender, branch.WhatsappHiddenFields), req)
+		return
+	}
+
+	entry.Sender = whatsAppSenderMeta
+	entry.TemplateName = decision.TemplateName
 	phoneNumberID := strings.TrimSpace(settings.WhatsappPhoneNumberID)
 	token := strings.TrimSpace(settings.WhatsappAccessToken)
 	if phoneNumberID == "" || token == "" || decision.TemplateName == "" {
@@ -133,14 +201,32 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 		return
 	}
 
-	branchName := ""
-	if branch, err := server.store.GetBranch(ctx, branchID); err == nil {
-		branchName = branch.Name
+	// The review link (review_link.go): its own code per message, when the
+	// template has a place for it.
+	var reviewURL string
+	if whatsAppHasParam(decision.TemplateParams, "review", "review_code", "review_button") {
+		code, link, reason, err := server.newReviewLink(ctx, branchID)
+		if err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		if reason != "" {
+			server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, reason)
+			return
+		}
+		entry.ReviewCode, reviewURL = code, link
 	}
 
-	params := whatsAppTemplateParams(decision.TemplateParams, req.ClientName, branchName, req.InvoiceCode, req.GrandTotalCents)
+	params := whatsAppTemplateParams(decision.TemplateParams, req.ClientName, branchName, req.InvoiceCode, req.paidCents(), reviewURL, entry.ReviewCode)
 
 	components := []map[string]any{{"type": "body", "parameters": params}}
+	if whatsAppHasParam(decision.TemplateParams, "review_button") {
+		// A "visit website" button whose URL ends in {{1}}: the code fills it.
+		components = append(components, map[string]any{
+			"type": "button", "sub_type": "url", "index": "0",
+			"parameters": []map[string]any{{"type": "text", "text": entry.ReviewCode}},
+		})
+	}
 	if whatsAppImageHeaderTemplates[decision.TemplateName] {
 		headerImage := whatsAppHeaderImages[rand.Intn(len(whatsAppHeaderImages))]
 		components = append([]map[string]any{{
@@ -154,7 +240,7 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 	wamid, err := whatsAppSendTemplate(phoneNumberID, token, to, decision.TemplateName, decision.TemplateLang, components)
 	if err != nil {
 		log.Printf("whatsapp thank-you: send failed for invoice %s: %v", logSafe(req.InvoiceCode), err)
-		server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, err.Error())
+		server.logWhatsAppSendError(ctx, entry, err)
 		return
 	}
 
@@ -165,10 +251,127 @@ func (server *Server) sendBranchWhatsAppThankYou(ctx *gin.Context) {
 	server.logWhatsAppMessage(ctx, entry, whatsAppStatusSent, "")
 }
 
+// branchWhatsAppWelcomeRequest is what kashi-pos POSTs as soon as a sale has a
+// named client with a phone number, before checkout.
+type branchWhatsAppWelcomeRequest struct {
+	ClientName  string `json:"client_name"`
+	ClientPhone string `json:"client_phone" binding:"required"`
+}
+
+// sendBranchWhatsAppWelcome sends a new client's first message (the channel
+// invite, see whatsAppFirstOrReturning) before their sale is paid, when
+// Settings > WhatsApp turns that on. Anything else -- the setting off, a
+// client messaged before, a rule saying skip -- answers `{"sent": false}`
+// with a reason, and a returning client's message waits for checkout, where
+// the invoice details exist. The sale's checkout then finds this message
+// (ClaimWhatsAppWelcome) and sends nothing more. Only through the bridge: a
+// Meta template can't leave out its receipt parameters.
+func (server *Server) sendBranchWhatsAppWelcome(ctx *gin.Context) {
+	branchID := ctx.MustGet(branchIDKey).(int64)
+
+	var req branchWhatsAppWelcomeRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	notSent := func(reason string) {
+		server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": reason})
+	}
+
+	settings, err := server.store.GetWhatsAppSettings(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	sender, err := server.store.GetWhatsAppSenderSettings(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	switch {
+	case !settings.WhatsappEnabled:
+		notSent("whatsapp disabled")
+		return
+	case sender.WhatsappSender != whatsAppSenderBridge:
+		notSent("welcome before checkout needs the WhatsApp bridge")
+		return
+	case !sender.WhatsappChannelFirst || !sender.WhatsappWelcomeEarly:
+		notSent("welcome is sent after checkout")
+		return
+	case !sender.WhatsappMessageNew:
+		notSent("message is off for new clients")
+		return
+	}
+	branch, err := server.store.GetBranch(ctx, branchID)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if err == nil && !branch.WhatsappEnabled {
+		notSent("whatsapp off for this branch")
+		return
+	}
+	to := whatsAppDigits(req.ClientPhone)
+	if to == "" {
+		notSent("unusable phone number")
+		return
+	}
+	if _, err := server.store.LastWhatsAppSentAt(ctx, to); err == nil {
+		notSent("returning client: messaged at checkout")
+		return
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	rules, err := server.loadWhatsAppRules(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	// Nothing is sold yet, so only the rules that don't look at the sale apply.
+	decision := decideWhatsApp(rules, whatsAppSale{BranchID: branchID, Phone: to, Now: time.Now()}, settings)
+	entry := db.CreateWhatsAppMessageParams{
+		BranchID:    sql.NullInt64{Int64: branchID, Valid: true},
+		ClientName:  strings.TrimSpace(req.ClientName),
+		ClientPhone: to,
+		RuleName:    decision.RuleName,
+	}
+	if decision.RuleIndex >= 0 {
+		entry.RuleID = sql.NullInt64{Int64: decision.RuleID, Valid: true}
+	}
+	if decision.Action == whatsAppActionSkip {
+		server.logWhatsAppMessage(ctx, entry, whatsAppStatusSkipped, "rule: "+decision.RuleName)
+		return
+	}
+	server.sendWhatsAppViaBridge(ctx, entry, sender, branch.Name, whatsAppBranchHiddenFields(sender, branch.WhatsappHiddenFields),
+		branchWhatsAppThankYouRequest{ClientName: req.ClientName, ClientPhone: req.ClientPhone, welcome: true})
+}
+
 // logWhatsAppMessage records one outcome, tells open WhatsApp pages, and
 // answers the till.
 func (server *Server) logWhatsAppMessage(ctx *gin.Context, entry db.CreateWhatsAppMessageParams, status, reason string) {
+	server.recordWhatsAppOutcome(ctx, entry, status, reason, false)
+}
+
+// logWhatsAppSendError records a send that failed. A temporary failure (the
+// bridge or Meta unreachable or overloaded) tells the till to retry; it keeps
+// the sale pending and asks again later.
+func (server *Server) logWhatsAppSendError(ctx *gin.Context, entry db.CreateWhatsAppMessageParams, err error) {
+	server.recordWhatsAppOutcome(ctx, entry, whatsAppStatusFailed, err.Error(), isWhatsAppTemporary(err))
+}
+
+func (server *Server) recordWhatsAppOutcome(ctx *gin.Context, entry db.CreateWhatsAppMessageParams, status, reason string, retry bool) {
 	entry.Status, entry.Reason = status, reason
+	// One row per sale: an earlier failed try of this invoice gives way to
+	// how this one went.
+	if entry.BranchID.Valid && entry.InvoiceCode != "" {
+		if err := server.store.DeleteFailedWhatsAppMessagesForInvoice(ctx, db.DeleteFailedWhatsAppMessagesForInvoiceParams{
+			BranchID: entry.BranchID, InvoiceCode: entry.InvoiceCode,
+		}); err != nil {
+			log.Printf("whatsapp: clear earlier failures for invoice %s: %v", entry.InvoiceCode, err)
+		}
+	}
 	if _, err := server.store.CreateWhatsAppMessage(ctx, entry); err != nil {
 		log.Printf("whatsapp: log message for invoice %s: %v", logSafe(entry.InvoiceCode), err)
 	} else {
@@ -178,7 +381,33 @@ func (server *Server) logWhatsAppMessage(ctx *gin.Context, entry db.CreateWhatsA
 		server.writeJSON(ctx, http.StatusOK, envelope{"sent": true})
 		return
 	}
-	server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": reason})
+	server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": reason, "retry": retry})
+}
+
+// whatsAppTemporaryError marks a failed send that may work if tried again
+// later: the bridge or Meta was unreachable, overloaded or rate-limiting.
+type whatsAppTemporaryError struct{ err error }
+
+func (e whatsAppTemporaryError) Error() string { return e.err.Error() }
+func (e whatsAppTemporaryError) Unwrap() error { return e.err }
+
+func whatsAppTemporary(err error) error { return whatsAppTemporaryError{err} }
+
+func isWhatsAppTemporary(err error) bool {
+	var t whatsAppTemporaryError
+	return errors.As(err, &t)
+}
+
+// whatsAppTemporaryStatus: HTTP answers worth retrying.
+func whatsAppTemporaryStatus(status int) bool {
+	return status >= 500 || status == http.StatusTooManyRequests || status == http.StatusRequestTimeout
+}
+
+// Meta error codes that are about load or throttling, not the message:
+// https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes
+var whatsAppMetaTemporaryCodes = map[int]bool{
+	1: true, 2: true, 4: true, 17: true, 341: true, 80007: true,
+	130429: true, 131000: true, 131016: true, 133004: true,
 }
 
 // whatsAppSendTemplate POSTs a template message via Meta's WhatsApp Business
@@ -215,7 +444,7 @@ func whatsAppSendTemplate(phoneNumberID, token, to, templateName, templateLang s
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("POST %s: %w", endpoint, err)
+		return "", whatsAppTemporary(fmt.Errorf("POST %s: %w", endpoint, err))
 	}
 	defer resp.Body.Close()
 	return parseWhatsAppSendResponse(resp.StatusCode, resp.Body)
@@ -243,13 +472,19 @@ func parseWhatsAppSendResponse(status int, body io.Reader) (string, error) {
 		if detail := strings.TrimSpace(out.Error.Details.Details); detail != "" && detail != msg {
 			msg = strings.TrimSpace(msg + ": " + detail)
 		}
-		if msg == "" {
-			return "", fmt.Errorf("HTTP %d", status)
+		var err error
+		switch {
+		case msg == "":
+			err = fmt.Errorf("HTTP %d", status)
+		case out.Error.Code != 0:
+			err = fmt.Errorf("%s (code %d)", msg, out.Error.Code)
+		default:
+			err = errors.New(msg)
 		}
-		if out.Error.Code != 0 {
-			return "", fmt.Errorf("%s (code %d)", msg, out.Error.Code)
+		if whatsAppTemporaryStatus(status) || whatsAppMetaTemporaryCodes[out.Error.Code] {
+			err = whatsAppTemporary(err)
 		}
-		return "", errors.New(msg)
+		return "", err
 	}
 	if decodeErr != nil || len(out.Messages) == 0 {
 		// Accepted, just without an id we could read.
@@ -260,9 +495,20 @@ func parseWhatsAppSendResponse(status int, body io.Reader) (string, error) {
 
 // whatsAppTemplateParams builds the template's body parameters in the order
 // given by paramNames (comma-separated placeholder names: name, market,
-// branch, invoice, total). Unknown placeholder names are skipped.
-func whatsAppTemplateParams(paramNames, clientName, branchName, invoiceCode string, grandTotalCents int64) []map[string]any {
-	name := strings.TrimSpace(clientName)
+// branch, invoice, total, review = the review link, review_code = just its
+// code). Unknown placeholder names are skipped, as is review_button, which
+// fills the template's URL button rather than its body.
+// whatsAppFirstName is how a message greets the client: "Rana" for
+// "Rana Haddad".
+func whatsAppFirstName(fullName string) string {
+	if parts := strings.Fields(fullName); len(parts) > 0 {
+		return parts[0]
+	}
+	return ""
+}
+
+func whatsAppTemplateParams(paramNames, clientName, branchName, invoiceCode string, grandTotalCents int64, reviewURL, reviewCode string) []map[string]any {
+	name := whatsAppFirstName(clientName)
 	if name == "" {
 		name = "there"
 	}
@@ -272,6 +518,10 @@ func whatsAppTemplateParams(paramNames, clientName, branchName, invoiceCode stri
 		"branch":  strings.TrimSpace(branchName),
 		"invoice": invoiceCode,
 		"total":   fmt.Sprintf("$%.2f", float64(grandTotalCents)/100),
+	}
+	if reviewURL != "" {
+		values["review"] = reviewURL
+		values["review_code"] = reviewCode
 	}
 
 	var params []map[string]any
@@ -286,12 +536,33 @@ func whatsAppTemplateParams(paramNames, clientName, branchName, invoiceCode stri
 	return params
 }
 
-// whatsAppDigits turns an E.164 phone ("+96170123456") into the digits-only
-// form the Cloud API expects ("96170123456"). Returns "" when nothing
-// dial-able is left.
+// whatsAppHasParam reports whether the comma-separated placeholder list
+// names any of names.
+func whatsAppHasParam(paramNames string, names ...string) bool {
+	for _, key := range strings.Split(paramNames, ",") {
+		key = strings.TrimSpace(key)
+		for _, n := range names {
+			if key == n {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// whatsAppDigits turns a phone into the digits-with-country-code form
+// WhatsApp expects ("96170123456"). A number without a country code is
+// Lebanese, as clients' numbers are typed at the till: "70 123 456",
+// "03 123 456" or "3 123 456". Returns "" when nothing dial-able is left.
 func whatsAppDigits(phone string) string {
-	digits := onlyDigits(phone)
-	if len(digits) < 8 {
+	digits := strings.TrimPrefix(onlyDigits(phone), "00")
+	if strings.HasPrefix(digits, "0") {
+		digits = "961" + strings.TrimPrefix(digits, "0")
+	}
+	if len(digits) == 7 || len(digits) == 8 {
+		digits = "961" + digits
+	}
+	if len(digits) < 10 {
 		return ""
 	}
 	return digits

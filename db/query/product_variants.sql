@@ -171,7 +171,13 @@ SELECT
   subcategory_val.value AS sub_category,
   kind_val.value AS kind,
   season_val.value AS season,
-  year_val.value AS year
+  year_val.value AS year,
+  -- The options the till asks for when this product is sold (000199), by
+  -- name; empty for an ordinary product.
+  COALESCE((SELECT array_agg(so.name ORDER BY so.sort_order, so.name)
+            FROM product_sale_options pso
+            JOIN sale_options so ON so.id = pso.sale_option_id
+            WHERE pso.product_id = products.id), '{}')::text[] AS sale_options
 FROM product_variants
 JOIN products ON products.id = product_variants.product_id
 LEFT JOIN colors ON colors.id = product_variants.color_id
@@ -208,7 +214,13 @@ SELECT
   subcategory_val.value AS sub_category,
   kind_val.value AS kind,
   season_val.value AS season,
-  year_val.value AS year
+  year_val.value AS year,
+  -- The options the till asks for when this product is sold (000199), by
+  -- name; empty for an ordinary product.
+  COALESCE((SELECT array_agg(so.name ORDER BY so.sort_order, so.name)
+            FROM product_sale_options pso
+            JOIN sale_options so ON so.id = pso.sale_option_id
+            WHERE pso.product_id = products.id), '{}')::text[] AS sale_options
 FROM product_variants
 JOIN products ON products.id = product_variants.product_id
 LEFT JOIN colors ON colors.id = product_variants.color_id
@@ -245,7 +257,13 @@ SELECT
   subcategory_val.value AS sub_category,
   kind_val.value AS kind,
   season_val.value AS season,
-  year_val.value AS year
+  year_val.value AS year,
+  -- The options the till asks for when this product is sold (000199), by
+  -- name; empty for an ordinary product.
+  COALESCE((SELECT array_agg(so.name ORDER BY so.sort_order, so.name)
+            FROM product_sale_options pso
+            JOIN sale_options so ON so.id = pso.sale_option_id
+            WHERE pso.product_id = products.id), '{}')::text[] AS sale_options
 FROM product_variants
 JOIN products ON products.id = product_variants.product_id
 LEFT JOIN colors ON colors.id = product_variants.color_id
@@ -261,3 +279,13 @@ LEFT JOIN attributes_values season_val ON season_val.id = season_pa.attribute_va
 LEFT JOIN products_attributes year_pa ON year_pa.product_id = products.id AND year_pa.attribute_id = 6
 LEFT JOIN attributes_values year_val ON year_val.id = year_pa.attribute_value_id
 WHERE product_variants.uid = ANY(sqlc.arg(uids)::uuid[]);
+
+-- name: SeedProductVariantsCostByCode :execrows
+-- Fills in avg_cost for every variant of one product, but only where it is
+-- still at the 0 default -- i.e. never seeded by an actual stock receipt
+-- (UpdateProductVariantAvgCost above). Used to backfill a starting cost
+-- basis from an external cost list (cmd/import_costs-style one-off); it
+-- never overwrites a real moving-average cost built from real receipts.
+UPDATE product_variants
+SET avg_cost = sqlc.arg(cost)::bigint, updated_at = now()
+WHERE product_id = sqlc.arg(product_id) AND avg_cost = 0;

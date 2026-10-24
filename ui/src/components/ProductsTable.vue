@@ -2,7 +2,6 @@
   <ServerSideTable
     ref="tableRef"
     :api-u-r-l="apiURL"
-    :default-items-per-page="14"
     density="comfortable"
     :external-search="props.search"
     flush

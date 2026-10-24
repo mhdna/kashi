@@ -132,12 +132,18 @@
             <template #item.branch_id="{ item }">{{ branchName(item.branch_id) }}</template>
             <template #item.opened_at="{ item }">{{ formatDate(item.opened_at) }}</template>
             <template #item.closed_at="{ item }">{{ formatDate(item.closed_at) }}</template>
-            <template #item.expected_usd="{ item }">{{ money(item.expected_usd) }}</template>
-            <template #item.counted_usd="{ item }">{{ money(item.counted_usd) }}</template>
+            <template #item.expected_usd="{ item }">
+              <div class="font-weight-medium">{{ shiftTotal(item, 'expected') }}</div>
+            </template>
+            <template #item.counted_usd="{ item }">
+              <div class="font-weight-medium">{{ shiftTotal(item, 'counted') }}</div>
+            </template>
             <template #item.variance_usd="{ item }">
-              <v-chip :color="varianceColor(item.variance_usd)" size="small" variant="tonal">
-                {{ signedMoney(item.variance_usd) }}
-              </v-chip>
+              <div class="font-weight-medium">
+                <v-chip :color="varianceColor(shiftTotalCents(item, 'variance'))" size="small" variant="tonal">
+                  {{ signed(shiftTotalCents(item, 'variance')) }}
+                </v-chip>
+              </div>
             </template>
             <template #item.receipt="{ item }">
               <v-btn
@@ -315,9 +321,9 @@
     { title: 'Closed By', key: 'closing_person_name', align: 'start', sortable: false },
     { title: 'Opened', key: 'opened_at', align: 'start', sortable: false },
     { title: 'Closed', key: 'closed_at', align: 'start', sortable: false },
-    { title: 'Expected USD', key: 'expected_usd', align: 'end', sortable: false },
-    { title: 'Counted USD', key: 'counted_usd', align: 'end', sortable: false },
-    { title: 'Variance USD', key: 'variance_usd', align: 'end', sortable: false },
+    { title: 'Expected', key: 'expected_usd', align: 'end', sortable: false },
+    { title: 'Counted', key: 'counted_usd', align: 'end', sortable: false },
+    { title: 'Variance', key: 'variance_usd', align: 'end', sortable: false },
     { title: 'Receipt', key: 'receipt', align: 'center', sortable: false, width: 90 },
     { title: 'Received', key: 'received_at', align: 'end', sortable: false },
     { title: '', key: 'print', align: 'end', sortable: false, width: 56 },
@@ -481,9 +487,26 @@
     })
   }
 
-  function signedMoney (cents) {
-    const value = money(cents)
-    return Number(cents) > 0 ? `+${value}` : value
+  // A shift's amounts as one USD figure in cents: the LBP drawer is priced at
+  // the rate the till closed at (kashi fills 90000 for shifts from before the
+  // rate was reported). The per-method split lives in the shift's dialog.
+  function shiftTotalCents (shift, kind) {
+    const rate = Number(shift.lbp_rate) || 90_000
+    const lbpCents = Math.round((Number(shift[`${kind}_lbp`]) || 0) / rate * 100)
+    return ['usd', 'visa', 'whish'].reduce((sum, key) => sum + (Number(shift[`${kind}_${key}`]) || 0), lbpCents)
+  }
+
+  // Shift totals are in the default currency, dollars: "$180.00", "-$5.00".
+  function dollars (cents) {
+    return `${cents < 0 ? '-' : ''}$${money(Math.abs(cents))}`
+  }
+
+  function shiftTotal (shift, kind) {
+    return dollars(shiftTotalCents(shift, kind))
+  }
+
+  function signed (cents) {
+    return cents > 0 ? `+${dollars(cents)}` : dollars(cents)
   }
 
   function varianceColor (cents) {
@@ -550,11 +573,6 @@
 </script>
 
 <style scoped>
-.image-stage {
-  height: min(70vh, 640px);
-  width: 100%;
-}
-
 .page-root {
   flex: 1 1 auto;
   min-height: 0;

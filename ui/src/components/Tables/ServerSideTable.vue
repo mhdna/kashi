@@ -37,6 +37,7 @@
   import { isConnectionError } from '@/composables/useApi'
   import { dedupedFetch } from '@/composables/useRequestDedup'
   import { useNotify } from '@/composables/useNotify'
+  import { DEFAULT_TABLE_PAGE_SIZE, useSettingsStore } from '@/stores/settings'
 
   const props = defineProps({
     apiURL: {
@@ -54,9 +55,10 @@
       type: Object,
       default: () => ({}),
     },
+    // Rows per page; null follows Settings > General > Rows per table.
     defaultItemsPerPage: {
       type: Number,
-      default: 14,
+      default: null,
     },
     density: {
       type: String,
@@ -152,14 +154,15 @@
   // The table needs all valid choices, not only the initial page size.
   // Every option (and the initial value) must stay within maxPageSize, or
   // the server rejects the request with a PageSize "max" validation error.
+  const startItemsPerPage = props.defaultItemsPerPage ?? useSettingsStore().tablePageSize
   const itemsPerPageOptions = [
-    ...new Set([props.defaultItemsPerPage, 14, 25, 50, 100, props.maxPageSize]),
+    ...new Set([startItemsPerPage, DEFAULT_TABLE_PAGE_SIZE, 25, 50, 100]),
   ]
     .filter(n => n > 0 && n <= props.maxPageSize)
     .toSorted((a, b) => a - b)
   const itemsPerPage = ref(
-    props.defaultItemsPerPage <= props.maxPageSize
-      ? props.defaultItemsPerPage
+    startItemsPerPage <= props.maxPageSize
+      ? startItemsPerPage
       : (itemsPerPageOptions.at(-1) ?? props.maxPageSize),
   )
   const page = ref(1)

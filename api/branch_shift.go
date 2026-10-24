@@ -32,16 +32,23 @@ type branchShiftCloseRequest struct {
 	// Expected/Counted amounts have no "required" tag for the same reason as
 	// branchInvoiceRequest.GrandTotal: 0 is a legitimate amount (an empty
 	// shift), not a missing field.
-	ExpectedUsd   int64     `json:"expected_usd"`
-	ExpectedLbp   int64     `json:"expected_lbp"`
-	ExpectedVisa  int64     `json:"expected_visa"`
-	ExpectedWhish int64     `json:"expected_whish"`
-	CountedUsd    int64     `json:"counted_usd"`
-	CountedLbp    int64     `json:"counted_lbp"`
-	CountedVisa   int64     `json:"counted_visa"`
-	CountedWhish  int64     `json:"counted_whish"`
-	OccurredAt    time.Time `json:"occurred_at" binding:"required"`
+	ExpectedUsd   int64 `json:"expected_usd"`
+	ExpectedLbp   int64 `json:"expected_lbp"`
+	ExpectedVisa  int64 `json:"expected_visa"`
+	ExpectedWhish int64 `json:"expected_whish"`
+	CountedUsd    int64 `json:"counted_usd"`
+	CountedLbp    int64 `json:"counted_lbp"`
+	CountedVisa   int64 `json:"counted_visa"`
+	CountedWhish  int64 `json:"counted_whish"`
+	// LbpRate is LBP per USD when the till closed the shift. A till that
+	// predates the field omits it, and the rate then was 90000.
+	LbpRate    int64     `json:"lbp_rate"`
+	OccurredAt time.Time `json:"occurred_at" binding:"required"`
 }
+
+// legacyLBPRate is the LBP per USD every till used before it reported the rate
+// with a shift close.
+const legacyLBPRate = 90000
 
 func nullTimeIfSet(t time.Time) sql.NullTime {
 	if t.IsZero() {
@@ -76,6 +83,11 @@ func (server *Server) createBranchShiftClose(ctx *gin.Context) {
 		return
 	}
 
+	lbpRate := req.LbpRate
+	if lbpRate <= 0 {
+		lbpRate = legacyLBPRate
+	}
+
 	shift, err := server.store.CreateBranchShift(ctx, db.CreateBranchShiftParams{
 		BranchID:          branchID,
 		ClientRef:         req.ShiftRef,
@@ -99,6 +111,7 @@ func (server *Server) createBranchShiftClose(ctx *gin.Context) {
 		VarianceWhish:     req.CountedWhish - req.ExpectedWhish,
 		OccurredAt:        req.OccurredAt,
 		RegisterID:        registerID,
+		LbpRate:           lbpRate,
 	})
 	if err != nil {
 		if isUniqueViolation(err) {
