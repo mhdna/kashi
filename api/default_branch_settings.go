@@ -71,6 +71,8 @@ type defaultBranchSettings struct {
 	ScanByCodeEnabled                *bool  `json:"scan_by_code_enabled,omitempty"`
 	ProductSearchCodeOnly            *bool  `json:"product_search_code_only,omitempty"`
 	PriceEditRestricted              *bool  `json:"price_edit_restricted,omitempty"`
+	DiscountToggle                   *bool  `json:"discount_toggle,omitempty"`
+	DiscountToggleDefaultOff         *bool  `json:"discount_toggle_default_off,omitempty"`
 	SoundsEnabled                    *bool  `json:"sounds_enabled,omitempty"`
 	AttendanceManagerApprovalEnabled *bool  `json:"attendance_manager_approval_enabled,omitempty"`
 	ShiftReportSignatures            *bool  `json:"shift_report_signatures,omitempty"`

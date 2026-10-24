@@ -372,6 +372,21 @@
                           rows="3"
                           variant="outlined"
                         />
+                        <v-switch
+                          v-model="settingsForm.discount_toggle"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Salespersons can turn a line's discount or deal off and on (not change it)"
+                        />
+                        <v-switch
+                          v-if="settingsForm.discount_toggle"
+                          v-model="settingsForm.discount_toggle_default_off"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Discounts start off on each new line"
+                        />
                       </div>
                     </section>
 
@@ -1584,6 +1599,8 @@
     'scan_by_code_enabled',
     'product_search_code_only',
     'price_edit_restricted',
+    'discount_toggle',
+    'discount_toggle_default_off',
     'sounds_enabled',
     'salesperson_per_invoice_required',
     'non_admin_month_nav_enabled',
@@ -1962,6 +1979,8 @@
     product_search_code_only: 'Code-only product search',
     price_edit_restricted: 'Price edits by code',
     price_edit_codes: 'Codes allowed for price edits',
+    discount_toggle: 'Turn discounts off at the till',
+    discount_toggle_default_off: 'Discounts start off',
     unknown_product_barcode: 'Unknown item product',
     product_search_hidden_fields: 'Product search hidden columns',
     receipt_theme: 'Receipt theme',
