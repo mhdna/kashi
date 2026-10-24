@@ -62,6 +62,8 @@ type syncDeal struct {
 	BundlePrice int64     `json:"bundle_price"`
 	// What units outside a set get (000205); 0 for none.
 	FallbackPercent int16 `json:"fallback_percent"`
+	// The fallback is only for a cart that makes no set (000207).
+	FallbackOnlyWithoutSet bool `json:"fallback_only_without_set"`
 }
 
 // A discount that applies only when the cashier sells the variant as the
@@ -190,7 +192,7 @@ func (server *Server) discountListsForBranchSync(ctx *gin.Context, branchID int6
 				entry.Deals = append(entry.Deals, syncDeal{
 					UID: d.Uid, Name: d.Name, Kind: d.Kind, BuyQty: d.BuyQty,
 					GetQty: d.GetQty, Percent: d.Percent, BundlePrice: d.BundlePrice,
-					FallbackPercent: d.FallbackPercent,
+					FallbackPercent: d.FallbackPercent, FallbackOnlyWithoutSet: d.FallbackOnlyWithoutSet,
 				})
 			}
 			optionRows, err := server.store.ListDiscountListOptionItemsForSync(ctx, l.ID)

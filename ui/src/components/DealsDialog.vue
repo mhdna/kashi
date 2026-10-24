@@ -159,6 +159,14 @@
           type="number"
           variant="outlined"
         />
+        <v-switch
+          v-if="form.kind === 'buy_get' && Number(form.fallback_percent) > 0"
+          v-model="form.fallback_only_without_set"
+          color="primary"
+          density="compact"
+          hide-details
+          label="Only when no unit is free"
+        />
         <v-alert class="mt-2" density="compact" type="info" variant="tonal">
           {{ dealTerms(formDeal) }}
         </v-alert>
@@ -221,7 +229,7 @@
 
   const editDialog = ref(false)
   const saving = ref(false)
-  const form = reactive({ id: 0, name: '', kind: 'buy_get', buy_qty: 2, get_qty: 1, percent: 100, fallback_percent: 0, bundlePrice: '' })
+  const form = reactive({ id: 0, name: '', kind: 'buy_get', buy_qty: 2, get_qty: 1, percent: 100, fallback_percent: 0, fallback_only_without_set: false, bundlePrice: '' })
 
   // The form as a deal, for the terms preview and the save.
   const formDeal = computed(() => ({
@@ -231,19 +239,20 @@
     percent: form.kind === 'bundle_price' ? 0 : Number(form.percent) || 0,
     bundle_price: form.kind === 'bundle_price' ? Math.round(Number(form.bundlePrice) * 100) || 0 : 0,
     fallback_percent: form.kind === 'buy_get' ? Number(form.fallback_percent) || 0 : 0,
+    fallback_only_without_set: form.kind === 'buy_get' && Boolean(form.fallback_only_without_set),
   }))
 
   function openEdit (deal) {
     Object.assign(form, deal
       ? { ...deal, bundlePrice: deal.bundle_price ? String(deal.bundle_price / 100) : '' }
-      : { id: 0, name: '', kind: 'buy_get', buy_qty: 2, get_qty: 1, percent: 100, fallback_percent: 0, bundlePrice: '' })
+      : { id: 0, name: '', kind: 'buy_get', buy_qty: 2, get_qty: 1, percent: 100, fallback_percent: 0, fallback_only_without_set: false, bundlePrice: '' })
     editDialog.value = true
   }
 
   function applyPreset (p) {
     Object.assign(form, {
       name: p.name, kind: p.kind, buy_qty: p.buy_qty, get_qty: p.get_qty ?? 0,
-      percent: p.percent ?? 0, fallback_percent: p.fallback_percent ?? 0, bundlePrice: p.bundle_price ? String(p.bundle_price / 100) : '',
+      percent: p.percent ?? 0, fallback_percent: p.fallback_percent ?? 0, fallback_only_without_set: p.fallback_only_without_set ?? false, bundlePrice: p.bundle_price ? String(p.bundle_price / 100) : '',
     })
   }
 

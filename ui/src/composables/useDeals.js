@@ -29,6 +29,7 @@ async function saveDeal (deal) {
     name: deal.name, kind: deal.kind, buy_qty: deal.buy_qty, get_qty: deal.get_qty,
     percent: deal.percent, bundle_price: deal.bundle_price,
     fallback_percent: deal.fallback_percent ?? 0,
+    fallback_only_without_set: deal.fallback_only_without_set ?? false,
   }
   await requestJSON(deal.id ? `${API_BASE}/deals/${deal.id}` : `${API_BASE}/deals`, {
     method: deal.id ? 'PUT' : 'POST',
@@ -49,7 +50,11 @@ function dealTerms (deal) {
   switch (deal.kind) {
     case 'buy_get': {
       const reward = deal.percent >= 100 ? 'free' : `${deal.percent}% off`
-      const otherwise = deal.fallback_percent ? `; units outside a set get ${deal.fallback_percent}% off` : ''
+      const otherwise = deal.fallback_percent
+        ? (deal.fallback_only_without_set
+          ? `; otherwise ${deal.fallback_percent}% off, but only when no unit is free`
+          : `; units outside a set get ${deal.fallback_percent}% off`)
+        : ''
       return `Buy ${deal.buy_qty}, get ${deal.get_qty} ${reward} (cheapest)${otherwise}`
     }
     case 'bundle_price': {
