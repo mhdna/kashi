@@ -43,6 +43,20 @@ The plain discount on outlet rules is what a till gives when it doesn't ask
 cosmetics, accessories, home or toys) ask Summer/Winter at the till; that is
 a product setting and applies in every branch.
 
+Fixed season (production 2026-10-24, backup first:
+`/root/backups/kashi-product-sale-options-before-season-fix-2026-10-24.dump`):
+outlet clothes that can only be one season keep just that option, and the
+till (kashi-pos `single-sale-option`) sells them as it without asking.
+Read from the name first, then the sub-category; "Summer" or "Winter" in the
+name beats the other words ("Lady Long Summer Jacket" is Summer, "Kids Girl
+Winter Short" is Winter); a name with words of both seasons still asks.
+
+| Season | Name words | Sub-categories | Products |
+|---|---|---|---|
+| Winter | winter, wool, fleece, fur, vizon, cashmere, anorak, doblanka, ski, coat, parka, puffer, thermal, velvet, jacket, blazer, sweater, sweatshirt, hood…, cardigan, pullover, knit | coat, jacket, blazer, vizon, sweater, sweatshirt, hoodie, cardigan, winter dress | 2,123 |
+| Summer | summer, short(s), bermuda, mayo, swim…, bikini, hawaii/hawai, tank, sleeveless, linen, sandal | shorts, sport shorts, swimwear, mayo | 455 |
+| Asks | everything else: t-shirts, shirts, pants, jeans, dresses, vests, pyjamas… | | 2,648 |
+
 The group table below is how these rules were agreed.
 
 | # | Group | Asks Summer/Winter? | Winter | Summer |
