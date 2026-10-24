@@ -144,6 +144,21 @@
             variant="outlined"
           />
         </div>
+        <v-text-field
+          v-if="form.kind === 'buy_get'"
+          v-model.number="form.fallback_percent"
+          class="mt-3"
+          density="compact"
+          hint="What units that don't make up a set get: with Buy 2 get 1, one or two items. 0 for nothing."
+          label="Otherwise, off"
+          max="100"
+          min="0"
+          persistent-hint
+          style="max-width: 220px"
+          suffix="%"
+          type="number"
+          variant="outlined"
+        />
         <v-alert class="mt-2" density="compact" type="info" variant="tonal">
           {{ dealTerms(formDeal) }}
         </v-alert>
@@ -191,6 +206,7 @@
   // The usual ones, one click away. "Every 3rd item 50% off" is buy 2 get 1 at 50%.
   const PRESETS = [
     { name: 'Buy 2 get 1 free', kind: 'buy_get', buy_qty: 2, get_qty: 1, percent: 100 },
+    { name: 'Buy 2 get 1 free, otherwise 30% off', kind: 'buy_get', buy_qty: 2, get_qty: 1, percent: 100, fallback_percent: 30 },
     { name: 'Buy 1 get 1 free', kind: 'buy_get', buy_qty: 1, get_qty: 1, percent: 100 },
     { name: 'Buy 3 get 2 free', kind: 'buy_get', buy_qty: 3, get_qty: 2, percent: 100 },
     { name: '2nd item 50% off', kind: 'buy_get', buy_qty: 1, get_qty: 1, percent: 50 },
@@ -205,7 +221,7 @@
 
   const editDialog = ref(false)
   const saving = ref(false)
-  const form = reactive({ id: 0, name: '', kind: 'buy_get', buy_qty: 2, get_qty: 1, percent: 100, bundlePrice: '' })
+  const form = reactive({ id: 0, name: '', kind: 'buy_get', buy_qty: 2, get_qty: 1, percent: 100, fallback_percent: 0, bundlePrice: '' })
 
   // The form as a deal, for the terms preview and the save.
   const formDeal = computed(() => ({
@@ -214,19 +230,20 @@
     get_qty: form.kind === 'buy_get' ? Number(form.get_qty) || 0 : 0,
     percent: form.kind === 'bundle_price' ? 0 : Number(form.percent) || 0,
     bundle_price: form.kind === 'bundle_price' ? Math.round(Number(form.bundlePrice) * 100) || 0 : 0,
+    fallback_percent: form.kind === 'buy_get' ? Number(form.fallback_percent) || 0 : 0,
   }))
 
   function openEdit (deal) {
     Object.assign(form, deal
       ? { ...deal, bundlePrice: deal.bundle_price ? String(deal.bundle_price / 100) : '' }
-      : { id: 0, name: '', kind: 'buy_get', buy_qty: 2, get_qty: 1, percent: 100, bundlePrice: '' })
+      : { id: 0, name: '', kind: 'buy_get', buy_qty: 2, get_qty: 1, percent: 100, fallback_percent: 0, bundlePrice: '' })
     editDialog.value = true
   }
 
   function applyPreset (p) {
     Object.assign(form, {
       name: p.name, kind: p.kind, buy_qty: p.buy_qty, get_qty: p.get_qty ?? 0,
-      percent: p.percent ?? 0, bundlePrice: p.bundle_price ? String(p.bundle_price / 100) : '',
+      percent: p.percent ?? 0, fallback_percent: p.fallback_percent ?? 0, bundlePrice: p.bundle_price ? String(p.bundle_price / 100) : '',
     })
   }
 

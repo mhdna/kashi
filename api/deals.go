@@ -37,6 +37,8 @@ type dealRequest struct {
 	GetQty      int32  `json:"get_qty" binding:"min=0,max=100"`
 	Percent     int16  `json:"percent" binding:"min=0,max=100"`
 	BundlePrice int64  `json:"bundle_price" binding:"min=0"`
+	// What units outside a set get ("Buy 2 get 1, otherwise 30%"); buy_get only.
+	FallbackPercent int16 `json:"fallback_percent" binding:"min=0,max=100"`
 }
 
 // params checks the request makes sense for its kind and clears the fields
@@ -56,7 +58,7 @@ func (req dealRequest) params() (db.CreateDealParams, error) {
 		if req.Percent < 1 {
 			return p, errors.New("say how much off they get (100% is free)")
 		}
-		p.GetQty, p.Percent = req.GetQty, req.Percent
+		p.GetQty, p.Percent, p.FallbackPercent = req.GetQty, req.Percent, req.FallbackPercent
 	case dealBundlePrice:
 		if req.BuyQty < 2 {
 			return p, errors.New("a bundle is at least 2 units")
@@ -123,7 +125,7 @@ func (server *Server) updateDeal(ctx *gin.Context) {
 	}
 	deal, err := server.store.UpdateDeal(ctx, db.UpdateDealParams{
 		ID: uri.ID, Name: p.Name, Kind: p.Kind, BuyQty: p.BuyQty, GetQty: p.GetQty,
-		Percent: p.Percent, BundlePrice: p.BundlePrice,
+		Percent: p.Percent, BundlePrice: p.BundlePrice, FallbackPercent: p.FallbackPercent,
 	})
 	if err != nil {
 		server.writeError(ctx, statusForLookup(err), err)
