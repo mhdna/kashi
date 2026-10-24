@@ -131,6 +131,11 @@ type branchSettingsRequest struct {
 	// (comma-separated). Nil leaves them off/empty, the till's own default.
 	PriceEditRestricted *bool   `json:"price_edit_restricted"`
 	PriceEditCodes      *string `json:"price_edit_codes"`
+	// Salespersons can tap a line's list discount or deal to turn it off for
+	// that sale, never change it; DiscountToggleDefaultOff makes new lines
+	// start off. Nil leaves them off, the till's own default.
+	DiscountToggle           *bool `json:"discount_toggle"`
+	DiscountToggleDefaultOff *bool `json:"discount_toggle_default_off"`
 	// Barcode of the product the till's "Unknown item" button adds. Nil or
 	// empty: the till's built-in placeholder.
 	UnknownProductBarcode *string `json:"unknown_product_barcode"`
@@ -494,6 +499,8 @@ func (server *Server) upsertBranchSettings(ctx *gin.Context, branchID int64, req
 		ProductSearchCodeOnly:              orZero(req.ProductSearchCodeOnly),
 		PriceEditRestricted:                orZero(req.PriceEditRestricted),
 		PriceEditCodes:                     orZero(req.PriceEditCodes),
+		DiscountToggle:                     orZero(req.DiscountToggle),
+		DiscountToggleDefaultOff:           orZero(req.DiscountToggleDefaultOff),
 		UnknownProductBarcode:              strings.TrimSpace(orZero(req.UnknownProductBarcode)),
 		ProductSearchHiddenFields:          orZero(req.ProductSearchHiddenFields),
 		SoundsEnabled:                      orZero(req.SoundsEnabled),

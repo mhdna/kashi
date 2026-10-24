@@ -206,7 +206,7 @@ type Querier interface {
 	CountDashboardSales(ctx context.Context, arg CountDashboardSalesParams) (int64, error)
 	CountDiscountListItemsWithProduct(ctx context.Context, arg CountDiscountListItemsWithProductParams) (int64, error)
 	// How many variants each rule of a list decides, first match wins, the way
-	// refresh_discount_rules (000204) picks them. A rule giving no discount and
+	// refresh_discount_rules (000208) picks them. A rule giving no discount and
 	// no deal writes no rows, so ListDiscountListRules counts it as 0; this is
 	// what it keeps out (or gives) all the same.
 	CountDiscountListRuleDecided(ctx context.Context, discountListID int64) ([]CountDiscountListRuleDecidedRow, error)
