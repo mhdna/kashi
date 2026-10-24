@@ -499,7 +499,10 @@ type Querier interface {
 	DeleteDiscountListOptionItems(ctx context.Context, arg DeleteDiscountListOptionItemsParams) (int64, error)
 	// Their rules go with them (ON DELETE CASCADE).
 	DeleteDiscountListRuleGroups(ctx context.Context, discountListID int64) error
+	DeleteDiscountListRuleGroupsExcept(ctx context.Context, arg DeleteDiscountListRuleGroupsExceptParams) error
+	DeleteDiscountListRuleOptions(ctx context.Context, ruleID int64) error
 	DeleteDiscountListRules(ctx context.Context, discountListID int64) error
+	DeleteDiscountListRulesExcept(ctx context.Context, arg DeleteDiscountListRulesExceptParams) error
 	DeleteEmailSchedule(ctx context.Context, id int64) error
 	DeleteEmployee(ctx context.Context, id int64) error
 	DeleteExpense(ctx context.Context, id int64) error
@@ -1818,6 +1821,11 @@ type Querier interface {
 	UpdateDeal(ctx context.Context, arg UpdateDealParams) (Deal, error)
 	UpdateDiscountList(ctx context.Context, arg UpdateDiscountListParams) error
 	UpdateDiscountListItem(ctx context.Context, arg UpdateDiscountListItemParams) error
+	// Saved in place: the rows a rule wrote carry its id (rule_id), so a rule
+	// re-created with a new id would have every one of them rewritten.
+	UpdateDiscountListRule(ctx context.Context, arg UpdateDiscountListRuleParams) (int64, error)
+	// Saved in place, so a group (and its rules) keeps its id.
+	UpdateDiscountListRuleGroup(ctx context.Context, arg UpdateDiscountListRuleGroupParams) (int64, error)
 	UpdateEmailSchedule(ctx context.Context, arg UpdateEmailScheduleParams) (EmailSchedule, error)
 	UpdateEmployee(ctx context.Context, arg UpdateEmployeeParams) (Employee, error)
 	UpdateEmployeeSalary(ctx context.Context, arg UpdateEmployeeSalaryParams) (Employee, error)

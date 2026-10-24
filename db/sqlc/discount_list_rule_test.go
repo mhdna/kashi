@@ -171,3 +171,63 @@ func TestDiscountListRuleSwitches(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, int16(30), d)
 }
+
+// Rules saved again with their ids are updated in place: they keep their
+// ids, an unchanged save writes no rows (the list isn't re-sent), and a
+// changed rule moves the list's updated_at once its rows change.
+func TestDiscountListRulesSaveInPlace(t *testing.T) {
+	ctx := context.Background()
+	list, err := testQueries.CreateDiscountList(ctx, CreateDiscountListParams{
+		Name: util.RandomString(8), ValidFrom: time.Now(), ValidTo: time.Now().Add(time.Hour),
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = testQueries.DeleteDiscountList(ctx, list.ID) })
+	prefix := "IP" + util.RandomString(6)
+	variant := createRandomVariant(t)
+	_, err = testDB.ExecContext(ctx, `UPDATE products SET code = $1 WHERE id = $2`, prefix+"1", variant.ProductID)
+	require.NoError(t, err)
+
+	save := func(groupID, ruleID int64, discount int16) {
+		require.NoError(t, testStore.ReplaceDiscountListRuleGroupsTx(ctx, list.ID, []DiscountListRuleGroupInput{
+			{ID: groupID, Name: "Sale", Enabled: true, Rules: []DiscountListRuleInput{
+				{ID: ruleID, Rule: CreateDiscountListRuleParams{Name: "r", CodePrefixes: []string{prefix}, Discount: discount, IsEnabled: true}},
+			}},
+		}))
+	}
+	updatedAt := func() time.Time {
+		l, err := testQueries.GetDiscountList(ctx, list.ID)
+		require.NoError(t, err)
+		return l.UpdatedAt
+	}
+
+	save(0, 0, 30)
+	groups, err := testQueries.ListDiscountListRuleGroups(ctx, list.ID)
+	require.NoError(t, err)
+	rules, err := testQueries.ListDiscountListRules(ctx, list.ID)
+	require.NoError(t, err)
+	require.Len(t, rules, 1)
+	groupID, ruleID := groups[0].ID, rules[0].ID
+	before := updatedAt()
+
+	save(groupID, ruleID, 30)
+	rules, err = testQueries.ListDiscountListRules(ctx, list.ID)
+	require.NoError(t, err)
+	require.Equal(t, ruleID, rules[0].ID)
+	require.Equal(t, before, updatedAt(), "an unchanged save writes no rows")
+
+	save(groupID, ruleID, 40)
+	row, err := testQueries.GetVariantDiscountFromList(ctx, GetVariantDiscountFromListParams{
+		DiscountListID: list.ID, ProductVariantID: variant.ID,
+	})
+	require.NoError(t, err)
+	require.Equal(t, int16(40), row.Discount)
+	require.Equal(t, ruleID, row.RuleID.Int64)
+	require.True(t, updatedAt().After(before), "a changed rule's rows move the list")
+
+	// Left out: deleted, with its rows.
+	require.NoError(t, testStore.ReplaceDiscountListRuleGroupsTx(ctx, list.ID, nil))
+	_, err = testQueries.GetVariantDiscountFromList(ctx, GetVariantDiscountFromListParams{
+		DiscountListID: list.ID, ProductVariantID: variant.ID,
+	})
+	require.Error(t, err)
+}
