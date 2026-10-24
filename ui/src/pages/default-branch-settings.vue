@@ -936,6 +936,8 @@
     ],
     pricing: [
       { key: 'price_edit_restricted', label: 'Manual price/discount edits only for selected codes', type: 'bool' },
+      { key: 'discount_toggle', label: "Salespersons can turn a line's discount or deal off and on", type: 'bool' },
+      { key: 'discount_toggle_default_off', label: 'Discounts start off on each new line', type: 'bool' },
     ],
     invoice: [
       { key: 'salesperson_per_invoice_required', label: 'Salesperson on every invoice', type: 'bool' },

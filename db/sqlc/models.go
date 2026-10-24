@@ -912,6 +912,8 @@ type BranchSetting struct {
 	ProductSearchHiddenFields          string          `json:"product_search_hidden_fields"`
 	ReceiptTheme                       string          `json:"receipt_theme"`
 	ReceiptLayout                      string          `json:"receipt_layout"`
+	DiscountToggle                     bool            `json:"discount_toggle"`
+	DiscountToggleDefaultOff           bool            `json:"discount_toggle_default_off"`
 }
 
 type BranchShift struct {
