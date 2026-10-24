@@ -68,3 +68,31 @@ func TestSetDiscountListRuleGroups(t *testing.T) {
 	}})
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 }
+
+// A price limit is a condition (a rule of only "up to $1.11" is a rule, not
+// an empty one) and is saved in cents; 0 is no limit.
+func TestSetDiscountListRuleMaxPrice(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	store.EXPECT().GetDiscountList(gomock.Any(), int64(1)).Return(db.DiscountList{ID: 1}, nil)
+	store.EXPECT().ReplaceDiscountListRuleGroupsTx(gomock.Any(), int64(1), gomock.Any()).
+		DoAndReturn(func(_ any, _ int64, groups []db.DiscountListRuleGroupInput) error {
+			require.Equal(t, int64(111), groups[0].Rules[0].Rule.MaxPrice.Int64)
+			require.True(t, groups[0].Rules[0].Rule.MaxPrice.Valid)
+			require.Equal(t, []string{"Toys"}, groups[0].Rules[1].Rule.Categories)
+			require.False(t, groups[0].Rules[1].Rule.MaxPrice.Valid)
+			return nil
+		})
+	store.EXPECT().ListDiscountListRuleGroups(gomock.Any(), int64(1)).Return([]db.DiscountListRuleGroup{}, nil)
+	store.EXPECT().ListDiscountListRules(gomock.Any(), int64(1)).Return([]db.ListDiscountListRulesRow{}, nil)
+	store.EXPECT().CountDiscountListRuleDecided(gomock.Any(), int64(1)).Return([]db.CountDiscountListRuleDecidedRow{}, nil)
+	store.EXPECT().ListDiscountListRuleOptions(gomock.Any(), int64(1)).Return([]db.ListDiscountListRuleOptionsRow{}, nil)
+
+	rec := putRules(t, store, map[string]any{"groups": []any{
+		map[string]any{"name": "Exclusions", "enabled": true, "rules": []any{
+			map[string]any{"name": "Cheap", "max_price": 111, "enabled": true},
+			map[string]any{"name": "Toys", "categories": []string{"Toys"}, "max_price": 0, "discount": 30, "enabled": true},
+		}},
+	}})
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+}

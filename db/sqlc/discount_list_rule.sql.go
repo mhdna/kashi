@@ -15,7 +15,7 @@ import (
 
 const countDiscountListRuleDecided = `-- name: CountDiscountListRuleDecided :many
 WITH rules AS (
-    SELECT r.id, r.position,
+    SELECT r.id, r.position, r.max_price,
            ARRAY(SELECT upper(x) || '%' FROM unnest(r.code_prefixes) x) AS prefixes,
            ARRAY(SELECT upper(x) || '%' FROM unnest(r.except_code_prefixes) x) AS except_prefixes,
            ARRAY(SELECT lower(x) FROM unnest(r.kinds) x) AS kinds,
@@ -27,6 +27,12 @@ WITH rules AS (
     WHERE r.discount_list_id = $1
       AND r.is_enabled
       AND EXISTS (SELECT 1 FROM discount_list_rule_groups g WHERE g.id = r.group_id AND g.is_enabled)
+), prices AS (
+    -- As in refresh_discount_rules (000208): the price in the active price lists.
+    SELECT i.product_variant_id, min(i.price) AS price
+    FROM price_list_items i
+    JOIN price_lists l ON l.id = i.price_list_id AND l.is_active
+    GROUP BY i.product_variant_id
 ), decided AS (
     SELECT DISTINCT ON (f.product_variant_id) r.id AS rule_id
     FROM rules r
@@ -38,7 +44,9 @@ WITH rules AS (
         AND (cardinality(r.sub_categories) = 0 OR f.sub_category = ANY (r.sub_categories))
         AND (cardinality(r.origins) = 0 OR f.origin = ANY (r.origins))
         AND (cardinality(r.brands) = 0 OR f.brand = ANY (r.brands))
-    WHERE NOT EXISTS (SELECT 1 FROM discount_list_items m
+    LEFT JOIN prices pr ON pr.product_variant_id = f.product_variant_id
+    WHERE (r.max_price IS NULL OR pr.price <= r.max_price)
+      AND NOT EXISTS (SELECT 1 FROM discount_list_items m
                       WHERE m.discount_list_id = $1
                         AND m.product_variant_id = f.product_variant_id AND m.rule_id IS NULL)
       AND NOT EXISTS (SELECT 1 FROM discount_list_option_items m
@@ -55,7 +63,7 @@ type CountDiscountListRuleDecidedRow struct {
 }
 
 // How many variants each rule of a list decides, first match wins, the way
-// refresh_discount_rules (000204) picks them. A rule giving no discount and
+// refresh_discount_rules (000208) picks them. A rule giving no discount and
 // no deal writes no rows, so ListDiscountListRules counts it as 0; this is
 // what it keeps out (or gives) all the same.
 func (q *Queries) CountDiscountListRuleDecided(ctx context.Context, discountListID int64) ([]CountDiscountListRuleDecidedRow, error) {
@@ -85,14 +93,14 @@ const createDiscountListRule = `-- name: CreateDiscountListRule :one
 INSERT INTO discount_list_rules (
   discount_list_id, position, name,
   code_prefixes, except_code_prefixes, kinds, categories, sub_categories, origins, brands,
-  discount, deal_id, group_id, is_enabled
+  discount, deal_id, group_id, is_enabled, max_price
 ) VALUES (
   $1, $2, $3,
   $4::text[], $5::text[], $6::text[],
   $7::text[], $8::text[], $9::text[],
   $10::text[], $11, $12::bigint,
-  $13, $14
-) RETURNING id, discount_list_id, position, name, code_prefixes, except_code_prefixes, kinds, categories, sub_categories, origins, brands, discount, created_at, deal_id, is_enabled, group_id
+  $13, $14, $15::bigint
+) RETURNING id, discount_list_id, position, name, code_prefixes, except_code_prefixes, kinds, categories, sub_categories, origins, brands, discount, created_at, deal_id, is_enabled, group_id, max_price
 `
 
 type CreateDiscountListRuleParams struct {
@@ -110,6 +118,7 @@ type CreateDiscountListRuleParams struct {
 	DealID             sql.NullInt64 `json:"deal_id"`
 	GroupID            int64         `json:"group_id"`
 	IsEnabled          bool          `json:"is_enabled"`
+	MaxPrice           sql.NullInt64 `json:"max_price"`
 }
 
 func (q *Queries) CreateDiscountListRule(ctx context.Context, arg CreateDiscountListRuleParams) (DiscountListRule, error) {
@@ -128,6 +137,7 @@ func (q *Queries) CreateDiscountListRule(ctx context.Context, arg CreateDiscount
 		arg.DealID,
 		arg.GroupID,
 		arg.IsEnabled,
+		arg.MaxPrice,
 	)
 	var i DiscountListRule
 	err := row.Scan(
@@ -147,6 +157,7 @@ func (q *Queries) CreateDiscountListRule(ctx context.Context, arg CreateDiscount
 		&i.DealID,
 		&i.IsEnabled,
 		&i.GroupID,
+		&i.MaxPrice,
 	)
 	return i, err
 }
@@ -340,7 +351,7 @@ func (q *Queries) ListDiscountListRuleOptions(ctx context.Context, discountListI
 }
 
 const listDiscountListRules = `-- name: ListDiscountListRules :many
-SELECT r.id, r.discount_list_id, r.position, r.name, r.code_prefixes, r.except_code_prefixes, r.kinds, r.categories, r.sub_categories, r.origins, r.brands, r.discount, r.created_at, r.deal_id, r.is_enabled, r.group_id,
+SELECT r.id, r.discount_list_id, r.position, r.name, r.code_prefixes, r.except_code_prefixes, r.kinds, r.categories, r.sub_categories, r.origins, r.brands, r.discount, r.created_at, r.deal_id, r.is_enabled, r.group_id, r.max_price,
        (SELECT COUNT(DISTINCT x.product_variant_id) FROM (
           SELECT product_variant_id FROM discount_list_items WHERE rule_id = r.id
           UNION ALL
@@ -368,6 +379,7 @@ type ListDiscountListRulesRow struct {
 	DealID             sql.NullInt64 `json:"deal_id"`
 	IsEnabled          bool          `json:"is_enabled"`
 	GroupID            int64         `json:"group_id"`
+	MaxPrice           sql.NullInt64 `json:"max_price"`
 	Variants           int64         `json:"variants"`
 }
 
@@ -399,6 +411,7 @@ func (q *Queries) ListDiscountListRules(ctx context.Context, discountListID int6
 			&i.DealID,
 			&i.IsEnabled,
 			&i.GroupID,
+			&i.MaxPrice,
 			&i.Variants,
 		); err != nil {
 			return nil, err
@@ -421,8 +434,8 @@ SET position = $1, name = $2,
     kinds = $5::text[], categories = $6::text[],
     sub_categories = $7::text[], origins = $8::text[],
     brands = $9::text[], discount = $10, deal_id = $11::bigint,
-    group_id = $12, is_enabled = $13
-WHERE id = $14 AND discount_list_id = $15
+    group_id = $12, is_enabled = $13, max_price = $14::bigint
+WHERE id = $15 AND discount_list_id = $16
 `
 
 type UpdateDiscountListRuleParams struct {
@@ -439,6 +452,7 @@ type UpdateDiscountListRuleParams struct {
 	DealID             sql.NullInt64 `json:"deal_id"`
 	GroupID            int64         `json:"group_id"`
 	IsEnabled          bool          `json:"is_enabled"`
+	MaxPrice           sql.NullInt64 `json:"max_price"`
 	ID                 int64         `json:"id"`
 	DiscountListID     int64         `json:"discount_list_id"`
 }
@@ -460,6 +474,7 @@ func (q *Queries) UpdateDiscountListRule(ctx context.Context, arg UpdateDiscount
 		arg.DealID,
 		arg.GroupID,
 		arg.IsEnabled,
+		arg.MaxPrice,
 		arg.ID,
 		arg.DiscountListID,
 	)

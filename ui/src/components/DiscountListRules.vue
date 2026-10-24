@@ -293,6 +293,17 @@
               multiple
               variant="outlined"
             />
+            <v-text-field
+              v-model="form.maxPrice"
+              density="compact"
+              hide-details
+              label="Price up to (at most)"
+              min="0"
+              prefix="$"
+              step="0.01"
+              type="number"
+              variant="outlined"
+            />
             <v-combobox
               v-for="f in attributeFields"
               :key="f.key"
@@ -458,13 +469,15 @@
   ])
 
   function hasConditions (rule) {
-    return CONDITIONS.some(c => c.key !== 'except_code_prefixes' && (rule[c.key] ?? []).length > 0)
+    return rule.max_price > 0
+      || CONDITIONS.some(c => c.key !== 'except_code_prefixes' && (rule[c.key] ?? []).length > 0)
   }
 
   function conditionChips (rule) {
     const chips = CONDITIONS.flatMap(c => (rule[c.key] ?? []).length > 0
       ? [`${c.label}: ${rule[c.key].map(v => c.fmt(v)).join(', ')}`]
       : [])
+    if (rule.max_price > 0) chips.push(`Price: up to $${rule.max_price / 100}`)
     return hasConditions(rule) ? chips : ['Every product', ...chips]
   }
 
@@ -555,7 +568,7 @@
   const ruleDialog = ref(false)
   // Where the rule being edited is; rule -1 adds one to the group.
   const editing = reactive({ group: -1, rule: -1 })
-  const form = reactive({ name: '', discount: '0', options: {}, dealId: 0, allProducts: false, group: 0 })
+  const form = reactive({ name: '', discount: '0', options: {}, dealId: 0, allProducts: false, group: 0, maxPrice: '' })
 
   function openRule (g, r) {
     loadAttributeValues()
@@ -565,6 +578,7 @@
     form.group = Math.max(g, 0)
     form.name = rule.name ?? ''
     for (const c of CONDITIONS) form[c.key] = [...(rule[c.key] ?? [])]
+    form.maxPrice = rule.max_price > 0 ? String(rule.max_price / 100) : ''
     form.discount = String(rule.discount ?? 0)
     // A saved rule giving nothing at all is shown as "No discount".
     const givesNothing = r >= 0 && !rule.deal_id && !rule.discount && (rule.options ?? []).length === 0
@@ -608,9 +622,15 @@
     for (const c of CONDITIONS) {
       rule[c.key] = form.allProducts ? [] : form[c.key].map(v => String(v).trim()).filter(Boolean)
     }
+    const maxPrice = form.allProducts || String(form.maxPrice).trim() === '' ? 0 : Math.round(Number(form.maxPrice) * 100)
+    if (!Number.isFinite(maxPrice) || maxPrice < 0) {
+      notify.error('Enter the price limit in dollars, like 1.11, or leave it empty.')
+      return
+    }
+    rule.max_price = maxPrice
     rule.all_products = form.allProducts
     if (!form.allProducts && !hasConditions(rule)) {
-      notify.error('Give the rule at least one condition: a code start, kind, category, origin or brand.')
+      notify.error('Give the rule at least one condition: a code start, kind, category, origin, brand or price.')
       return
     }
     // The first rule of a list with no groups makes one for it.

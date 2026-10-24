@@ -1241,6 +1241,7 @@ type DiscountListRule struct {
 	DealID             sql.NullInt64 `json:"deal_id"`
 	IsEnabled          bool          `json:"is_enabled"`
 	GroupID            int64         `json:"group_id"`
+	MaxPrice           sql.NullInt64 `json:"max_price"`
 }
 
 type DiscountListRuleGroup struct {
