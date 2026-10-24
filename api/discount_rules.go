@@ -40,7 +40,8 @@ type discountRule struct {
 	// The deal the rule puts its products on (000201), 0 for none.
 	DealID  int64 `json:"deal_id"`
 	Enabled bool  `json:"enabled"`
-	// How many variants the rule decides now, after the rules above it.
+	// How many variants the rule decides now, after the rules above it (an
+	// exclusion, which writes no rows, counts the ones it keeps out).
 	Variants int64 `json:"variants"`
 }
 
@@ -68,6 +69,14 @@ func (server *Server) discountListRuleGroups(ctx *gin.Context, listID int64) ([]
 	for _, o := range options {
 		byRule[o.RuleID] = append(byRule[o.RuleID], discountRuleOption{o.SaleOptionID, o.SaleOption, o.Discount})
 	}
+	decided, err := server.store.CountDiscountListRuleDecided(ctx, listID)
+	if err != nil {
+		return nil, err
+	}
+	decidedBy := map[int64]int64{}
+	for _, d := range decided {
+		decidedBy[d.RuleID] = d.Variants
+	}
 	out := make([]discountRuleGroup, len(groups))
 	at := map[int64]int{}
 	for i, g := range groups {
@@ -82,6 +91,11 @@ func (server *Server) discountListRuleGroups(ctx *gin.Context, listID int64) ([]
 			Origins: r.Origins, Brands: r.Brands,
 			Discount: r.Discount, Options: byRule[r.ID], DealID: r.DealID.Int64,
 			Enabled: r.IsEnabled, Variants: r.Variants,
+		}
+		// A rule giving no discount and no deal (an exclusion) writes no
+		// rows; say how many products it decides all the same.
+		if rule.Variants == 0 {
+			rule.Variants = decidedBy[r.ID]
 		}
 		if rule.Options == nil {
 			rule.Options = []discountRuleOption{}
