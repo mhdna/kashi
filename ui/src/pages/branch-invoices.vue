@@ -59,12 +59,28 @@
             <tbody>
               <tr v-for="item in itemsDetails.items" :key="item.id">
                 <td>
-                  <div>{{ productName(item) }}</div>
+                  <div>
+                    {{ productName(item) }}
+                    <!-- A line the till priced with a deal (000202). -->
+                    <v-chip
+                      v-if="item.deal && item.deal_discount"
+                      class="ms-1"
+                      :color="isFreeLine(item) ? 'success' : 'deep-purple'"
+                      label
+                      prepend-icon="mdi-gift-outline"
+                      size="x-small"
+                      :text="isFreeLine(item) ? `FREE · ${item.deal}` : item.deal"
+                      variant="flat"
+                    />
+                  </div>
                   <div class="text-caption text-medium-emphasis">{{ productDetail(item) }}</div>
                 </td>
                 <td class="text-end">{{ item.quantity }}</td>
                 <td class="text-end">{{ formatMoney(item.unit_price) }}</td>
-                <td class="text-end">{{ item.discount }}%</td>
+                <td class="text-end">
+                  <template v-if="item.deal_discount">-{{ formatMoney(Math.abs(item.deal_discount)) }}</template>
+                  <template v-else>{{ item.discount }}%</template>
+                </td>
                 <td class="text-end">{{ formatMoney(item.line_total) }}</td>
               </tr>
             </tbody>
@@ -377,6 +393,13 @@
   function productName (item) {
     return item?.product_name || `Unknown product (#${item?.branch_product_id})`
   }
+
+  // Free: the deal took each unit's whole price. deal_discount is signed like
+  // the quantity on a returned line.
+  function isFreeLine (item) {
+    return Math.abs(item.deal_discount) === item.unit_price * Math.abs(item.quantity)
+  }
+
 
   function productDetail (item) {
     return [item?.product_code, [item?.color_name, item?.size_name].filter(Boolean).join(' / '), item?.barcode]

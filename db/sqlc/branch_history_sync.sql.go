@@ -228,7 +228,7 @@ func (q *Queries) ListBranchInvoiceHistoryForSync(ctx context.Context, arg ListB
 
 const listBranchInvoiceItemsForHistory = `-- name: ListBranchInvoiceItemsForHistory :many
 SELECT
-  bii.id, bii.branch_invoice_id, bii.branch_product_id, bii.unit_price, bii.line_total, bii.discount, bii.quantity, bii.product_uid, bii.unknown,
+  bii.id, bii.branch_invoice_id, bii.branch_product_id, bii.unit_price, bii.line_total, bii.discount, bii.quantity, bii.product_uid, bii.unknown, bii.deal, bii.deal_discount,
   pv.barcode AS resolved_barcode
 FROM branch_invoice_items bii
 LEFT JOIN product_variants pv ON pv.uid = bii.product_uid
@@ -246,6 +246,8 @@ type ListBranchInvoiceItemsForHistoryRow struct {
 	Quantity        int64          `json:"quantity"`
 	ProductUid      uuid.NullUUID  `json:"product_uid"`
 	Unknown         bool           `json:"unknown"`
+	Deal            string         `json:"deal"`
+	DealDiscount    int64          `json:"deal_discount"`
 	ResolvedBarcode sql.NullString `json:"resolved_barcode"`
 }
 
@@ -275,6 +277,8 @@ func (q *Queries) ListBranchInvoiceItemsForHistory(ctx context.Context, branchIn
 			&i.Quantity,
 			&i.ProductUid,
 			&i.Unknown,
+			&i.Deal,
+			&i.DealDiscount,
 			&i.ResolvedBarcode,
 		); err != nil {
 			return nil, err

@@ -102,7 +102,7 @@ func (q *Queries) SalespersonPerformanceInvoices(ctx context.Context, arg Salesp
 }
 
 const salespersonPerformanceItems = `-- name: SalespersonPerformanceItems :many
-SELECT i.id, i.branch_invoice_id, i.branch_product_id, i.unit_price, i.line_total, i.discount, i.quantity, i.product_uid, i.unknown
+SELECT i.id, i.branch_invoice_id, i.branch_product_id, i.unit_price, i.line_total, i.discount, i.quantity, i.product_uid, i.unknown, i.deal, i.deal_discount
 FROM branch_invoice_items i
 JOIN branch_invoices bi ON bi.id = i.branch_invoice_id
 WHERE bi.kind = 'sales'
@@ -138,6 +138,8 @@ func (q *Queries) SalespersonPerformanceItems(ctx context.Context, arg Salespers
 			&i.Quantity,
 			&i.ProductUid,
 			&i.Unknown,
+			&i.Deal,
+			&i.DealDiscount,
 		); err != nil {
 			return nil, err
 		}
