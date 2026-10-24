@@ -1,6 +1,6 @@
 -- name: CreateDeal :one
-INSERT INTO deals (name, kind, buy_qty, get_qty, percent, bundle_price)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO deals (name, kind, buy_qty, get_qty, percent, bundle_price, fallback_percent)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: GetDeal :one
@@ -18,7 +18,7 @@ ORDER BY d.name, d.id;
 -- name: UpdateDeal :one
 UPDATE deals
 SET name = $2, kind = $3, buy_qty = $4, get_qty = $5, percent = $6, bundle_price = $7,
-    updated_at = now()
+    fallback_percent = $8, updated_at = now()
 WHERE id = $1
 RETURNING *;
 

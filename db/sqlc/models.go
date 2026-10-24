@@ -1163,16 +1163,17 @@ type Currency struct {
 }
 
 type Deal struct {
-	ID          int64     `json:"id"`
-	Uid         uuid.UUID `json:"uid"`
-	Name        string    `json:"name"`
-	Kind        string    `json:"kind"`
-	BuyQty      int32     `json:"buy_qty"`
-	GetQty      int32     `json:"get_qty"`
-	Percent     int16     `json:"percent"`
-	BundlePrice int64     `json:"bundle_price"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID              int64     `json:"id"`
+	Uid             uuid.UUID `json:"uid"`
+	Name            string    `json:"name"`
+	Kind            string    `json:"kind"`
+	BuyQty          int32     `json:"buy_qty"`
+	GetQty          int32     `json:"get_qty"`
+	Percent         int16     `json:"percent"`
+	BundlePrice     int64     `json:"bundle_price"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+	FallbackPercent int16     `json:"fallback_percent"`
 }
 
 type DefaultBranchSetting struct {

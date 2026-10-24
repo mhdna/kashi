@@ -113,6 +113,8 @@ func TestDealKindChecks(t *testing.T) {
 		{Name: "bundle no price", Kind: "bundle_price", BuyQty: 3},
 		{Name: "volume no percent", Kind: "volume_percent", BuyQty: 3},
 		{Name: "unknown", Kind: "spend", BuyQty: 3, Percent: 10},
+		{Name: "bundle fallback", Kind: "bundle_price", BuyQty: 3, BundlePrice: 5000, FallbackPercent: 30},
+		{Name: "fallback over 100", Kind: "buy_get", BuyQty: 2, GetQty: 1, Percent: 100, FallbackPercent: 101},
 	} {
 		_, err := testQueries.CreateDeal(ctx, bad)
 		require.Error(t, err, bad.Name)
