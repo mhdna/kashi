@@ -914,6 +914,7 @@ type BranchSetting struct {
 	ReceiptLayout                      string          `json:"receipt_layout"`
 	DiscountToggle                     bool            `json:"discount_toggle"`
 	DiscountToggleDefaultOff           bool            `json:"discount_toggle_default_off"`
+	DealToggle                         bool            `json:"deal_toggle"`
 }
 
 type BranchShift struct {
