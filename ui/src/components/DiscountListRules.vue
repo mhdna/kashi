@@ -318,11 +318,15 @@
             style="max-width: 280px"
             variant="outlined"
           />
+          <p v-if="form.dealId === NO_DISCOUNT" class="text-body-2 text-medium-emphasis mt-2">
+            These products sell at full price, with no discount and no deal, and the rules below
+            don't apply to them: put this rule above the ones it should keep them out of.
+          </p>
           <div v-if="form.dealId === 0" class="d-flex flex-wrap ga-3 mt-4">
             <v-text-field
               v-model="form.discount"
               density="compact"
-              hint="0 keeps these products at full price, and out of the rules below"
+              hint="0 is the same as No discount"
               label="Discount"
               max="100"
               min="0"
@@ -444,8 +448,11 @@
       .map(v => v.value)
   }
 
-  // 0 is a plain discount; anything else gives that deal instead.
+  // What a rule gives: no discount at all (full price, and the rules below
+  // don't apply -- how exclusions are made), a discount (0), or a deal.
+  const NO_DISCOUNT = -1
   const dealChoices = computed(() => [
+    { title: 'No discount (full price)', value: NO_DISCOUNT },
     { title: 'A discount', value: 0 },
     ...props.deals.map(d => ({ title: d.name, value: d.id })),
   ])
@@ -464,7 +471,7 @@
   function discountText (rule) {
     if (rule.deal_id) return props.deals.find(d => d.id === rule.deal_id)?.name ?? 'Deal'
     const parts = (rule.options ?? []).map(o => `${o.sale_option} ${o.discount}%`)
-    const plain = rule.discount > 0 ? `${rule.discount}%` : 'none'
+    const plain = rule.discount > 0 ? `${rule.discount}%` : 'No discount'
     return parts.length > 0 ? `${plain} · ${parts.join(' · ')}` : plain
   }
 
@@ -559,7 +566,9 @@
     form.name = rule.name ?? ''
     for (const c of CONDITIONS) form[c.key] = [...(rule[c.key] ?? [])]
     form.discount = String(rule.discount ?? 0)
-    form.dealId = rule.deal_id ?? 0
+    // A saved rule giving nothing at all is shown as "No discount".
+    const givesNothing = r >= 0 && !rule.deal_id && !rule.discount && (rule.options ?? []).length === 0
+    form.dealId = givesNothing ? NO_DISCOUNT : (rule.deal_id ?? 0)
     // A saved rule with no conditions is an "every product" one.
     form.allProducts = r >= 0 && !hasConditions(rule)
     form.options = Object.fromEntries(props.saleOptions.map(o => {
@@ -575,15 +584,16 @@
   }
 
   function applyRule () {
-    const dealId = form.dealId
-    const discount = dealId ? 0 : percent(form.discount)
+    const noDiscount = form.dealId === NO_DISCOUNT
+    const dealId = noDiscount ? 0 : form.dealId
+    const discount = dealId || noDiscount ? 0 : percent(form.discount)
     if (discount === null) {
       notify.error('Enter a discount from 0 to 100.')
       return
     }
     const options = []
     // A deal replaces the discount, whatever the option, so it has no option discounts.
-    for (const o of dealId ? [] : props.saleOptions) {
+    for (const o of dealId || noDiscount ? [] : props.saleOptions) {
       const raw = form.options[o.id]
       if (raw === '' || raw == null) continue
       const d = percent(raw)
