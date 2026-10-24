@@ -55,6 +55,7 @@ func TestSetDiscountListRuleGroups(t *testing.T) {
 		})
 	store.EXPECT().ListDiscountListRuleGroups(gomock.Any(), int64(1)).Return([]db.DiscountListRuleGroup{}, nil)
 	store.EXPECT().ListDiscountListRules(gomock.Any(), int64(1)).Return([]db.ListDiscountListRulesRow{}, nil)
+	store.EXPECT().CountDiscountListRuleDecided(gomock.Any(), int64(1)).Return([]db.CountDiscountListRuleDecidedRow{}, nil)
 	store.EXPECT().ListDiscountListRuleOptions(gomock.Any(), int64(1)).Return([]db.ListDiscountListRuleOptionsRow{}, nil)
 
 	rec := putRules(t, store, map[string]any{"groups": []any{
