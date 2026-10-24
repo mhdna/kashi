@@ -29,6 +29,18 @@ func TestDealRequestParams(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int16(0), p.FallbackPercent)
 
+	// "Only when no unit is free" needs a fallback to qualify, and stays off
+	// unless asked for.
+	p, err = dealRequest{Name: "B2G1", Kind: dealBuyGet, BuyQty: 2, GetQty: 1, Percent: 100, FallbackPercent: 30, FallbackOnlyWithoutSet: true}.params()
+	require.NoError(t, err)
+	require.True(t, p.FallbackOnlyWithoutSet)
+	p, err = dealRequest{Name: "B2G1", Kind: dealBuyGet, BuyQty: 2, GetQty: 1, Percent: 100, FallbackPercent: 30}.params()
+	require.NoError(t, err)
+	require.False(t, p.FallbackOnlyWithoutSet)
+	p, err = dealRequest{Name: "B2G1", Kind: dealBuyGet, BuyQty: 2, GetQty: 1, Percent: 100, FallbackOnlyWithoutSet: true}.params()
+	require.NoError(t, err)
+	require.False(t, p.FallbackOnlyWithoutSet)
+
 	p, err = dealRequest{Name: "3 for 50", Kind: dealBundlePrice, BuyQty: 3, GetQty: 1, Percent: 10, BundlePrice: 5000}.params()
 	require.NoError(t, err)
 	require.Equal(t, int32(0), p.GetQty)
