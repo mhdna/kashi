@@ -8,8 +8,9 @@
       <v-divider />
       <v-card-text>
         <p class="text-medium-emphasis text-body-2 mb-3">
-          A branch can only use one {{ kind }} at a time. Ticking a branch that
-          already belongs to another {{ kind }} is rejected — untick it there first.
+          A branch can only use one {{ kind }} at a time. A branch on another {{ kind }}
+          that is switched off moves over to this one; one in force has to be unticked
+          there first.
         </p>
 
         <div v-if="loading" class="py-4 text-center">
