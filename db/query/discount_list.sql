@@ -248,3 +248,16 @@ LEFT JOIN colors ON colors.id = pv.color_id
 LEFT JOIN sizes ON sizes.id = pv.size_id
 WHERE pv.barcode = sqlc.arg(entry)::text OR lower(p.code) = lower(sqlc.arg(entry)::text)
 ORDER BY pv.id;
+
+-- name: ListDiscountListsRemovedFromBranch :many
+-- Lists the branch was taken off since the till's cursor (000206), which it
+-- is sent as inactive so it drops its copy. Not the default list, which
+-- every branch keeps, nor one the branch is back on.
+SELECT dl.uid, dl.name, r.removed_at
+FROM discount_list_branch_removals r
+JOIN discount_lists dl ON dl.id = r.discount_list_id
+WHERE r.branch_id = sqlc.arg(branch_id) AND r.removed_at > sqlc.arg(since)
+  AND NOT dl.is_default
+  AND NOT EXISTS (SELECT 1 FROM discount_list_branches b
+                  WHERE b.branch_id = r.branch_id AND b.discount_list_id = r.discount_list_id)
+ORDER BY r.removed_at;

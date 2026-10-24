@@ -671,6 +671,54 @@ func (q *Queries) ListDiscountListsForBranchSync(ctx context.Context, arg ListDi
 	return items, nil
 }
 
+const listDiscountListsRemovedFromBranch = `-- name: ListDiscountListsRemovedFromBranch :many
+SELECT dl.uid, dl.name, r.removed_at
+FROM discount_list_branch_removals r
+JOIN discount_lists dl ON dl.id = r.discount_list_id
+WHERE r.branch_id = $1 AND r.removed_at > $2
+  AND NOT dl.is_default
+  AND NOT EXISTS (SELECT 1 FROM discount_list_branches b
+                  WHERE b.branch_id = r.branch_id AND b.discount_list_id = r.discount_list_id)
+ORDER BY r.removed_at
+`
+
+type ListDiscountListsRemovedFromBranchParams struct {
+	BranchID int64     `json:"branch_id"`
+	Since    time.Time `json:"since"`
+}
+
+type ListDiscountListsRemovedFromBranchRow struct {
+	Uid       uuid.UUID `json:"uid"`
+	Name      string    `json:"name"`
+	RemovedAt time.Time `json:"removed_at"`
+}
+
+// Lists the branch was taken off since the till's cursor (000206), which it
+// is sent as inactive so it drops its copy. Not the default list, which
+// every branch keeps, nor one the branch is back on.
+func (q *Queries) ListDiscountListsRemovedFromBranch(ctx context.Context, arg ListDiscountListsRemovedFromBranchParams) ([]ListDiscountListsRemovedFromBranchRow, error) {
+	rows, err := q.db.QueryContext(ctx, listDiscountListsRemovedFromBranch, arg.BranchID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListDiscountListsRemovedFromBranchRow{}
+	for rows.Next() {
+		var i ListDiscountListsRemovedFromBranchRow
+		if err := rows.Scan(&i.Uid, &i.Name, &i.RemovedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUnmatchedDiscountEntries = `-- name: ListUnmatchedDiscountEntries :many
 SELECT e.entry::text AS entry
 FROM unnest($1::text[]) AS e(entry)
