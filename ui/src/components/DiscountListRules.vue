@@ -1,6 +1,7 @@
 <!--
   A discount list's rules (api/discount_rules.go): "Lady + Turkey: 30%",
-  "codes starting CA: winter 20%, summer 50%". The first rule a product
+  "codes starting CA: winter 20%, summer 50%", "everything: Buy 2 get 1
+  free" (a deal, 000201, in place of a discount). The first rule a product
   matches decides its discount; saving writes the rules out as the list's
   rows below, and kashi keeps them in step as products change. A row set
   by hand beats the rules.
@@ -123,7 +124,14 @@
             A product matches when it fits every box that has something in it; within a box,
             any one value is enough.
           </p>
-          <div class="rule-grid">
+          <v-switch
+            v-model="form.allProducts"
+            color="primary"
+            density="compact"
+            hide-details
+            label="Every product (no conditions)"
+          />
+          <div v-if="!form.allProducts" class="rule-grid">
             <v-combobox
               v-model="form.code_prefixes"
               chips
@@ -159,7 +167,17 @@
             />
           </div>
 
-          <div class="d-flex flex-wrap ga-3 mt-4">
+          <v-select
+            v-model="form.dealId"
+            class="mt-4"
+            density="compact"
+            hide-details
+            :items="dealChoices"
+            label="Gives"
+            style="max-width: 280px"
+            variant="outlined"
+          />
+          <div v-if="form.dealId === 0" class="d-flex flex-wrap ga-3 mt-4">
             <v-text-field
               v-model="form.discount"
               density="compact"
@@ -211,7 +229,7 @@
 </template>
 
 <script setup lang="ts">
-  import { reactive, ref, watch } from 'vue'
+  import { computed, reactive, ref, watch } from 'vue'
   import { authFetch } from '@/composables/useApi'
   import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
@@ -220,6 +238,7 @@
     listId: { type: Number, required: true },
     canEdit: { type: Boolean, default: false },
     saleOptions: { type: Array, default: () => [] },
+    deals: { type: Array, default: () => [] },
   })
   const emit = defineEmits(['saved'])
   const notify = useNotify()
@@ -282,13 +301,25 @@
       .map(v => v.value)
   }
 
+  // 0 is a plain discount; anything else gives that deal instead.
+  const dealChoices = computed(() => [
+    { title: 'A discount', value: 0 },
+    ...props.deals.map(d => ({ title: d.name, value: d.id })),
+  ])
+
+  function hasConditions (rule) {
+    return CONDITIONS.some(c => c.key !== 'except_code_prefixes' && (rule[c.key] ?? []).length > 0)
+  }
+
   function conditionChips (rule) {
-    return CONDITIONS.flatMap(c => (rule[c.key] ?? []).length > 0
+    const chips = CONDITIONS.flatMap(c => (rule[c.key] ?? []).length > 0
       ? [`${c.label}: ${rule[c.key].map(v => c.fmt(v)).join(', ')}`]
       : [])
+    return hasConditions(rule) ? chips : ['Every product', ...chips]
   }
 
   function discountText (rule) {
+    if (rule.deal_id) return props.deals.find(d => d.id === rule.deal_id)?.name ?? 'Deal'
     const parts = (rule.options ?? []).map(o => `${o.sale_option} ${o.discount}%`)
     const plain = rule.discount > 0 ? `${rule.discount}%` : 'none'
     return parts.length > 0 ? `${plain} · ${parts.join(' · ')}` : plain
@@ -308,7 +339,7 @@
 
   const ruleDialog = ref(false)
   const editingIndex = ref(-1)
-  const form = reactive({ name: '', discount: '0', options: {} })
+  const form = reactive({ name: '', discount: '0', options: {}, dealId: 0, allProducts: false })
 
   function openRule (i) {
     loadAttributeValues()
@@ -317,6 +348,9 @@
     form.name = rule.name ?? ''
     for (const c of CONDITIONS) form[c.key] = [...(rule[c.key] ?? [])]
     form.discount = String(rule.discount ?? 0)
+    form.dealId = rule.deal_id ?? 0
+    // A saved rule with no conditions is an "every product" one.
+    form.allProducts = i >= 0 && !hasConditions(rule)
     form.options = Object.fromEntries(props.saleOptions.map(o => {
       const found = (rule.options ?? []).find(x => x.sale_option_id === o.id)
       return [o.id, found ? String(found.discount) : '']
@@ -330,13 +364,15 @@
   }
 
   function applyRule () {
-    const discount = percent(form.discount)
+    const dealId = form.dealId
+    const discount = dealId ? 0 : percent(form.discount)
     if (discount === null) {
       notify.error('Enter a discount from 0 to 100.')
       return
     }
     const options = []
-    for (const o of props.saleOptions) {
+    // A deal replaces the discount, whatever the option, so it has no option discounts.
+    for (const o of dealId ? [] : props.saleOptions) {
       const raw = form.options[o.id]
       if (raw === '' || raw == null) continue
       const d = percent(raw)
@@ -346,9 +382,12 @@
       }
       options.push({ sale_option_id: o.id, sale_option: o.name, discount: d })
     }
-    const rule = { name: form.name.trim(), discount, options, variants: 0 }
-    for (const c of CONDITIONS) rule[c.key] = form[c.key].map(v => String(v).trim()).filter(Boolean)
-    if (attributeFields.every(f => rule[f.key].length === 0) && rule.code_prefixes.length === 0) {
+    const rule = { name: form.name.trim(), discount, options, deal_id: dealId, variants: 0 }
+    for (const c of CONDITIONS) {
+      rule[c.key] = form.allProducts ? [] : form[c.key].map(v => String(v).trim()).filter(Boolean)
+    }
+    rule.all_products = form.allProducts
+    if (!form.allProducts && !hasConditions(rule)) {
       notify.error('Give the rule at least one condition: a code start, kind, category, origin or brand.')
       return
     }
@@ -363,7 +402,11 @@
   async function save () {
     saving.value = true
     try {
-      rules.value = await request('PUT', { rules: rules.value })
+      // A rule with no conditions was made "every product" on purpose (the
+      // only way to make one here), so it says so to the API.
+      rules.value = await request('PUT', {
+        rules: rules.value.map(r => ({ ...r, all_products: !hasConditions(r) })),
+      })
       dirty.value = false
       notify.success('Rules saved: the list below now follows them.')
       emit('saved')

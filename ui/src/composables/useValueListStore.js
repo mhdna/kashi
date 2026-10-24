@@ -69,10 +69,14 @@ export function useValueListStore ({ base, rootKey, listIdKey, valueKey }) {
 
   // Upsert — POST does INSERT ... ON CONFLICT DO UPDATE, so it adds or edits.
   // saleOptionId (discount lists only) names a per-option row; 0 is the plain one.
-  async function saveItem (listId, variantId, value, saleOptionId = 0) {
+  // dealId (discount lists only) puts the variant on a deal instead; value is 0 then.
+  async function saveItem (listId, variantId, value, saleOptionId = 0, dealId = 0) {
     const body = { [listIdKey]: listId, product_variant_id: variantId, [valueKey]: value }
     if (saleOptionId) {
       body.sale_option_id = saleOptionId
+    }
+    if (dealId) {
+      body.deal_id = dealId
     }
     return requestJSON(`${API_BASE}${base}/items`, {
       method: 'POST',
