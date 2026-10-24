@@ -17,13 +17,14 @@ const createDiscountListRule = `-- name: CreateDiscountListRule :one
 INSERT INTO discount_list_rules (
   discount_list_id, position, name,
   code_prefixes, except_code_prefixes, kinds, categories, sub_categories, origins, brands,
-  discount, deal_id
+  discount, deal_id, group_id, is_enabled
 ) VALUES (
   $1, $2, $3,
   $4::text[], $5::text[], $6::text[],
   $7::text[], $8::text[], $9::text[],
-  $10::text[], $11, $12::bigint
-) RETURNING id, discount_list_id, position, name, code_prefixes, except_code_prefixes, kinds, categories, sub_categories, origins, brands, discount, created_at, deal_id
+  $10::text[], $11, $12::bigint,
+  $13, $14
+) RETURNING id, discount_list_id, position, name, code_prefixes, except_code_prefixes, kinds, categories, sub_categories, origins, brands, discount, created_at, deal_id, is_enabled, group_id
 `
 
 type CreateDiscountListRuleParams struct {
@@ -39,6 +40,8 @@ type CreateDiscountListRuleParams struct {
 	Brands             []string      `json:"brands"`
 	Discount           int16         `json:"discount"`
 	DealID             sql.NullInt64 `json:"deal_id"`
+	GroupID            int64         `json:"group_id"`
+	IsEnabled          bool          `json:"is_enabled"`
 }
 
 func (q *Queries) CreateDiscountListRule(ctx context.Context, arg CreateDiscountListRuleParams) (DiscountListRule, error) {
@@ -55,6 +58,8 @@ func (q *Queries) CreateDiscountListRule(ctx context.Context, arg CreateDiscount
 		pq.Array(arg.Brands),
 		arg.Discount,
 		arg.DealID,
+		arg.GroupID,
+		arg.IsEnabled,
 	)
 	var i DiscountListRule
 	err := row.Scan(
@@ -72,6 +77,40 @@ func (q *Queries) CreateDiscountListRule(ctx context.Context, arg CreateDiscount
 		&i.Discount,
 		&i.CreatedAt,
 		&i.DealID,
+		&i.IsEnabled,
+		&i.GroupID,
+	)
+	return i, err
+}
+
+const createDiscountListRuleGroup = `-- name: CreateDiscountListRuleGroup :one
+INSERT INTO discount_list_rule_groups (discount_list_id, position, name, is_enabled)
+VALUES ($1, $2, $3, $4)
+RETURNING id, discount_list_id, position, name, is_enabled, created_at
+`
+
+type CreateDiscountListRuleGroupParams struct {
+	DiscountListID int64  `json:"discount_list_id"`
+	Position       int32  `json:"position"`
+	Name           string `json:"name"`
+	IsEnabled      bool   `json:"is_enabled"`
+}
+
+func (q *Queries) CreateDiscountListRuleGroup(ctx context.Context, arg CreateDiscountListRuleGroupParams) (DiscountListRuleGroup, error) {
+	row := q.db.QueryRowContext(ctx, createDiscountListRuleGroup,
+		arg.DiscountListID,
+		arg.Position,
+		arg.Name,
+		arg.IsEnabled,
+	)
+	var i DiscountListRuleGroup
+	err := row.Scan(
+		&i.ID,
+		&i.DiscountListID,
+		&i.Position,
+		&i.Name,
+		&i.IsEnabled,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -92,6 +131,16 @@ func (q *Queries) CreateDiscountListRuleOption(ctx context.Context, arg CreateDi
 	return err
 }
 
+const deleteDiscountListRuleGroups = `-- name: DeleteDiscountListRuleGroups :exec
+DELETE FROM discount_list_rule_groups WHERE discount_list_id = $1
+`
+
+// Their rules go with them (ON DELETE CASCADE).
+func (q *Queries) DeleteDiscountListRuleGroups(ctx context.Context, discountListID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteDiscountListRuleGroups, discountListID)
+	return err
+}
+
 const deleteDiscountListRules = `-- name: DeleteDiscountListRules :exec
 DELETE FROM discount_list_rules WHERE discount_list_id = $1
 `
@@ -99,6 +148,43 @@ DELETE FROM discount_list_rules WHERE discount_list_id = $1
 func (q *Queries) DeleteDiscountListRules(ctx context.Context, discountListID int64) error {
 	_, err := q.db.ExecContext(ctx, deleteDiscountListRules, discountListID)
 	return err
+}
+
+const listDiscountListRuleGroups = `-- name: ListDiscountListRuleGroups :many
+SELECT id, discount_list_id, position, name, is_enabled, created_at FROM discount_list_rule_groups
+WHERE discount_list_id = $1
+ORDER BY position, id
+`
+
+// A list's rule groups in order (000203).
+func (q *Queries) ListDiscountListRuleGroups(ctx context.Context, discountListID int64) ([]DiscountListRuleGroup, error) {
+	rows, err := q.db.QueryContext(ctx, listDiscountListRuleGroups, discountListID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DiscountListRuleGroup{}
+	for rows.Next() {
+		var i DiscountListRuleGroup
+		if err := rows.Scan(
+			&i.ID,
+			&i.DiscountListID,
+			&i.Position,
+			&i.Name,
+			&i.IsEnabled,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listDiscountListRuleOptions = `-- name: ListDiscountListRuleOptions :many
@@ -147,7 +233,7 @@ func (q *Queries) ListDiscountListRuleOptions(ctx context.Context, discountListI
 }
 
 const listDiscountListRules = `-- name: ListDiscountListRules :many
-SELECT r.id, r.discount_list_id, r.position, r.name, r.code_prefixes, r.except_code_prefixes, r.kinds, r.categories, r.sub_categories, r.origins, r.brands, r.discount, r.created_at, r.deal_id,
+SELECT r.id, r.discount_list_id, r.position, r.name, r.code_prefixes, r.except_code_prefixes, r.kinds, r.categories, r.sub_categories, r.origins, r.brands, r.discount, r.created_at, r.deal_id, r.is_enabled, r.group_id,
        (SELECT COUNT(DISTINCT x.product_variant_id) FROM (
           SELECT product_variant_id FROM discount_list_items WHERE rule_id = r.id
           UNION ALL
@@ -173,6 +259,8 @@ type ListDiscountListRulesRow struct {
 	Discount           int16         `json:"discount"`
 	CreatedAt          time.Time     `json:"created_at"`
 	DealID             sql.NullInt64 `json:"deal_id"`
+	IsEnabled          bool          `json:"is_enabled"`
+	GroupID            int64         `json:"group_id"`
 	Variants           int64         `json:"variants"`
 }
 
@@ -202,6 +290,8 @@ func (q *Queries) ListDiscountListRules(ctx context.Context, discountListID int6
 			&i.Discount,
 			&i.CreatedAt,
 			&i.DealID,
+			&i.IsEnabled,
+			&i.GroupID,
 			&i.Variants,
 		); err != nil {
 			return nil, err

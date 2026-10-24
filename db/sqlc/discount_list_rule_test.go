@@ -112,3 +112,62 @@ func TestDiscountListRules(t *testing.T) {
 	_, found = discountOf(bag.ID)
 	require.False(t, found)
 }
+
+// A rule or group that is off decides nothing (000203): the rule below an
+// off rule applies, an off group writes no rows, and switching it back on
+// brings them back.
+func TestDiscountListRuleSwitches(t *testing.T) {
+	ctx := context.Background()
+	list, err := testQueries.CreateDiscountList(ctx, CreateDiscountListParams{
+		Name: util.RandomString(8), ValidFrom: time.Now(), ValidTo: time.Now().Add(time.Hour),
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = testQueries.DeleteDiscountList(ctx, list.ID) })
+
+	prefix := "SW" + util.RandomString(6)
+	variant := createRandomVariant(t)
+	_, err = testDB.ExecContext(ctx, `UPDATE products SET code = $1 WHERE id = $2`, prefix+"1", variant.ProductID)
+	require.NoError(t, err)
+
+	save := func(firstOn, groupOn bool) {
+		require.NoError(t, testStore.ReplaceDiscountListRuleGroupsTx(ctx, list.ID, []DiscountListRuleGroupInput{
+			{Name: "Sale", Enabled: groupOn, Rules: []DiscountListRuleInput{
+				{Rule: CreateDiscountListRuleParams{Name: "first", CodePrefixes: []string{prefix}, Discount: 30, IsEnabled: firstOn}},
+				{Rule: CreateDiscountListRuleParams{Name: "second", CodePrefixes: []string{prefix}, Discount: 10, IsEnabled: true}},
+			}},
+		}))
+	}
+	discount := func() (int16, bool) {
+		row, err := testQueries.GetVariantDiscountFromList(ctx, GetVariantDiscountFromListParams{
+			DiscountListID: list.ID, ProductVariantID: variant.ID,
+		})
+		if err != nil {
+			return 0, false
+		}
+		return row.Discount, true
+	}
+
+	save(true, true)
+	d, ok := discount()
+	require.True(t, ok)
+	require.Equal(t, int16(30), d)
+
+	save(false, true)
+	d, ok = discount()
+	require.True(t, ok)
+	require.Equal(t, int16(10), d, "with the first rule off the second decides")
+
+	save(true, false)
+	_, ok = discount()
+	require.False(t, ok, "an off group writes nothing")
+
+	groups, err := testQueries.ListDiscountListRuleGroups(ctx, list.ID)
+	require.NoError(t, err)
+	require.Len(t, groups, 1)
+	require.False(t, groups[0].IsEnabled)
+
+	save(true, true)
+	d, ok = discount()
+	require.True(t, ok)
+	require.Equal(t, int16(30), d)
+}

@@ -44,6 +44,7 @@ type Store interface {
 	ResolveUnknownItemsTx(ctx context.Context, slotIDs []int64, variantID int64) error
 	SetProductSaleOptionsTx(ctx context.Context, entries []string, saleOptionIDs []int64) (int, error)
 	ReplaceDiscountListRulesTx(ctx context.Context, listID int64, rules []DiscountListRuleInput) error
+	ReplaceDiscountListRuleGroupsTx(ctx context.Context, listID int64, groups []DiscountListRuleGroupInput) error
 }
 
 // provides all the functions to execute SQL queries
