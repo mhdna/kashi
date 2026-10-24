@@ -333,10 +333,22 @@ func (server *Server) setDiscountListBranches(ctx *gin.Context) {
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
 		}
-		if existing.DiscountListID != uri.ID {
+		if existing.DiscountListID == uri.ID {
+			continue
+		}
+		// A list that is off or out of its dates discounts nothing, so the
+		// branch simply moves over (the upsert below takes it). Taking a
+		// branch from a list in force is refused: that changes its prices.
+		other, err := server.store.GetDiscountList(ctx, existing.DiscountListID)
+		if err != nil {
+			server.writeError(ctx, statusForLookup(err), err)
+			return
+		}
+		now := time.Now()
+		if other.IsActive && !now.Before(other.ValidFrom) && !now.After(other.ValidTo) {
 			server.writeError(ctx, http.StatusConflict, fmt.Errorf(
-				"branch %d is already assigned to discount list %d; remove it there first",
-				branchID, existing.DiscountListID))
+				"branch %d is on the discount list %q, which is in force; take it off there first",
+				branchID, other.Name))
 			return
 		}
 	}
