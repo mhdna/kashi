@@ -1231,6 +1231,17 @@ type DiscountListRule struct {
 	Discount           int16         `json:"discount"`
 	CreatedAt          time.Time     `json:"created_at"`
 	DealID             sql.NullInt64 `json:"deal_id"`
+	IsEnabled          bool          `json:"is_enabled"`
+	GroupID            int64         `json:"group_id"`
+}
+
+type DiscountListRuleGroup struct {
+	ID             int64     `json:"id"`
+	DiscountListID int64     `json:"discount_list_id"`
+	Position       int32     `json:"position"`
+	Name           string    `json:"name"`
+	IsEnabled      bool      `json:"is_enabled"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 type DiscountListRuleOption struct {

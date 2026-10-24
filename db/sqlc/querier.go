@@ -307,6 +307,7 @@ type Querier interface {
 	// deal (000201) instead of a discount.
 	CreateDiscountListItem(ctx context.Context, arg CreateDiscountListItemParams) (DiscountListItem, error)
 	CreateDiscountListRule(ctx context.Context, arg CreateDiscountListRuleParams) (DiscountListRule, error)
+	CreateDiscountListRuleGroup(ctx context.Context, arg CreateDiscountListRuleGroupParams) (DiscountListRuleGroup, error)
 	CreateDiscountListRuleOption(ctx context.Context, arg CreateDiscountListRuleOptionParams) error
 	CreateEmailReport(ctx context.Context, arg CreateEmailReportParams) (EmailReport, error)
 	CreateEmailSchedule(ctx context.Context, arg CreateEmailScheduleParams) (EmailSchedule, error)
@@ -496,6 +497,8 @@ type Querier interface {
 	// Rows are named by (variant, option) pairs, given as two parallel arrays;
 	// two unnests in one select list zip them pairwise.
 	DeleteDiscountListOptionItems(ctx context.Context, arg DeleteDiscountListOptionItemsParams) (int64, error)
+	// Their rules go with them (ON DELETE CASCADE).
+	DeleteDiscountListRuleGroups(ctx context.Context, discountListID int64) error
 	DeleteDiscountListRules(ctx context.Context, discountListID int64) error
 	DeleteEmailSchedule(ctx context.Context, id int64) error
 	DeleteEmployee(ctx context.Context, id int64) error
@@ -1243,6 +1246,8 @@ type Querier interface {
 	// Options travel by name, like colors and attributes: a till has no copy of
 	// kashi's sale_options ids.
 	ListDiscountListOptionItemsForSync(ctx context.Context, discountListID int64) ([]ListDiscountListOptionItemsForSyncRow, error)
+	// A list's rule groups in order (000203).
+	ListDiscountListRuleGroups(ctx context.Context, discountListID int64) ([]DiscountListRuleGroup, error)
 	// Option discounts of a list's rules; options travel by name, as on the tills.
 	ListDiscountListRuleOptions(ctx context.Context, discountListID int64) ([]ListDiscountListRuleOptionsRow, error)
 	// A list's rules in the order they run, with how many variants each one
