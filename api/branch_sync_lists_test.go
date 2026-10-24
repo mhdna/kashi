@@ -21,6 +21,7 @@ func TestBranchSyncChanges_PriceLists_SendsItemsInline(t *testing.T) {
 	defer ctrl.Finish()
 	store := mockdb.NewMockStore(ctrl)
 	stubBranchAuth(store)
+	stubNoListRemovals(store)
 
 	listUID := uuid.New()
 	variantUID := uuid.New()
@@ -66,6 +67,7 @@ func TestBranchSyncChanges_PriceLists_InactiveListCarriesNoItems(t *testing.T) {
 	defer ctrl.Finish()
 	store := mockdb.NewMockStore(ctrl)
 	stubBranchAuth(store)
+	stubNoListRemovals(store)
 
 	store.EXPECT().
 		ListPriceListsForBranchSync(gomock.Any(), gomock.Any()).
@@ -100,6 +102,7 @@ func TestBranchSyncChanges_PriceLists_ScopedToCallingBranch(t *testing.T) {
 	defer ctrl.Finish()
 	store := mockdb.NewMockStore(ctrl)
 	stubBranchAuth(store)
+	stubNoListRemovals(store)
 
 	var gotBranchID int64
 	store.EXPECT().
@@ -123,6 +126,7 @@ func TestBranchSyncChanges_DiscountLists_SendsItemsInline(t *testing.T) {
 	defer ctrl.Finish()
 	store := mockdb.NewMockStore(ctrl)
 	stubBranchAuth(store)
+	stubNoListRemovals(store)
 
 	variantUID, dealVariantUID, dealUID := uuid.New(), uuid.New(), uuid.New()
 
@@ -175,4 +179,41 @@ func TestBranchSyncChanges_DiscountLists_SendsItemsInline(t *testing.T) {
 	require.Equal(t, []syncDiscountListOptionItem{
 		{ProductVariantUID: variantUID, SaleOption: "Summer", Discount: 50},
 	}, body.Items[0].OptionItems)
+}
+
+// stubNoListRemovals: the branch was taken off no list (000206).
+func stubNoListRemovals(store *mockdb.MockStore) {
+	store.EXPECT().ListPriceListsRemovedFromBranch(gomock.Any(), gomock.Any()).AnyTimes().
+		Return([]db.ListPriceListsRemovedFromBranchRow{}, nil)
+	store.EXPECT().ListDiscountListsRemovedFromBranch(gomock.Any(), gomock.Any()).AnyTimes().
+		Return([]db.ListDiscountListsRemovedFromBranchRow{}, nil)
+}
+
+// A list the branch was taken off reaches it as inactive, with nothing in
+// it, so its till drops its copy.
+func TestBranchSyncChanges_DiscountLists_RemovedListGoesInactive(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	store := mockdb.NewMockStore(ctrl)
+	stubBranchAuth(store)
+
+	removedUID := uuid.New()
+	store.EXPECT().ListDiscountListsForBranchSync(gomock.Any(), gomock.Any()).Return([]db.DiscountList{}, nil)
+	store.EXPECT().ListDiscountListsRemovedFromBranch(gomock.Any(), gomock.Any()).
+		Return([]db.ListDiscountListsRemovedFromBranchRow{{Uid: removedUID, Name: "Centro", RemovedAt: time.Now()}}, nil)
+
+	server := newTestServer(t, store)
+	rec := httptest.NewRecorder()
+	server.router.ServeHTTP(rec, newBranchRequest(t, http.MethodGet,
+		"/branch/sync/changes?entity=discount_lists", nil))
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var body struct {
+		Items []syncDiscountList `json:"items"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	require.Len(t, body.Items, 1)
+	require.Equal(t, removedUID, body.Items[0].UID)
+	require.False(t, body.Items[0].IsActive)
+	require.Empty(t, body.Items[0].Items)
 }

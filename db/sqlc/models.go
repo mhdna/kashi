@@ -1201,6 +1201,12 @@ type DiscountListBranch struct {
 	CreatedAt      time.Time `json:"created_at"`
 }
 
+type DiscountListBranchRemoval struct {
+	BranchID       int64     `json:"branch_id"`
+	DiscountListID int64     `json:"discount_list_id"`
+	RemovedAt      time.Time `json:"removed_at"`
+}
+
 type DiscountListItem struct {
 	DiscountListID   int64         `json:"discount_list_id"`
 	Discount         int16         `json:"discount"`
@@ -1551,6 +1557,12 @@ type PriceListBranch struct {
 	BranchID    int64     `json:"branch_id"`
 	PriceListID int64     `json:"price_list_id"`
 	CreatedAt   time.Time `json:"created_at"`
+}
+
+type PriceListBranchRemoval struct {
+	BranchID    int64     `json:"branch_id"`
+	PriceListID int64     `json:"price_list_id"`
+	RemovedAt   time.Time `json:"removed_at"`
 }
 
 type PriceListItem struct {

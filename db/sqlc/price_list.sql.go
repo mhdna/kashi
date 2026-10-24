@@ -293,6 +293,52 @@ func (q *Queries) ListPriceListsForBranchSync(ctx context.Context, arg ListPrice
 	return items, nil
 }
 
+const listPriceListsRemovedFromBranch = `-- name: ListPriceListsRemovedFromBranch :many
+SELECT pl.uid, pl.name, r.removed_at
+FROM price_list_branch_removals r
+JOIN price_lists pl ON pl.id = r.price_list_id
+WHERE r.branch_id = $1 AND r.removed_at > $2
+  AND NOT pl.is_default
+  AND NOT EXISTS (SELECT 1 FROM price_list_branches b
+                  WHERE b.branch_id = r.branch_id AND b.price_list_id = r.price_list_id)
+ORDER BY r.removed_at
+`
+
+type ListPriceListsRemovedFromBranchParams struct {
+	BranchID int64     `json:"branch_id"`
+	Since    time.Time `json:"since"`
+}
+
+type ListPriceListsRemovedFromBranchRow struct {
+	Uid       uuid.UUID `json:"uid"`
+	Name      string    `json:"name"`
+	RemovedAt time.Time `json:"removed_at"`
+}
+
+// See ListDiscountListsRemovedFromBranch.
+func (q *Queries) ListPriceListsRemovedFromBranch(ctx context.Context, arg ListPriceListsRemovedFromBranchParams) ([]ListPriceListsRemovedFromBranchRow, error) {
+	rows, err := q.db.QueryContext(ctx, listPriceListsRemovedFromBranch, arg.BranchID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListPriceListsRemovedFromBranchRow{}
+	for rows.Next() {
+		var i ListPriceListsRemovedFromBranchRow
+		if err := rows.Scan(&i.Uid, &i.Name, &i.RemovedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const unsetDefaultPriceList = `-- name: UnsetDefaultPriceList :exec
 UPDATE price_lists
 SET is_default = false, updated_at = now()
