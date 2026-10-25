@@ -205,50 +205,65 @@
     return e;
   }
   function isDone(s) { return s.has_image || s.waived; }
-
+  // One card per cart line: a picture of its first unit covers them all (the
+  // server sets it on the whole line). A till that sends no line_ref gets a
+  // card per unit.
+  function lines() {
+    var out = [], byRef = {};
+    slots.forEach(function (s) {
+      var key = s.line_ref || ('unit:' + s.slot_ref);
+      if (!byRef[key]) { byRef[key] = { slot: s, units: [] }; out.push(byRef[key]); }
+      byRef[key].units.push(s);
+      if (s.has_image && !byRef[key].pictured) byRef[key].pictured = s;
+    });
+    out.forEach(function (line) {
+      line.done = line.units.every(isDone);
+      line.waived = line.units.every(function (s) { return s.waived; });
+    });
+    return out;
+  }
   function render() {
     var list = document.getElementById('list');
     list.textContent = '';
-    var pictured = slots.filter(function (s) { return s.has_image; });
-    slots.forEach(function (slot, i) {
-      var card = el('div', 'item' + (isDone(slot) ? ' done' : ''));
+    var all = lines();
+    all.forEach(function (line, i) {
+      var slot = line.slot, shown = line.pictured;
+      var card = el('div', 'item' + (line.done ? ' done' : ''));
       var head = el('div', 'head');
       head.appendChild(el('span', '', '#' + (i + 1) + ' \u00b7 ' + (slot.label || 'Unknown item')));
-      head.appendChild(el('span', 'price', '$' + (slot.unit_price / 100).toFixed(2)));
+      head.appendChild(el('span', 'price', '$' + (slot.unit_price / 100).toFixed(2) +
+        (line.units.length > 1 ? ' \u00d7 ' + line.units.length : '')));
       card.appendChild(head);
-
       var row = el('div', 'row');
-      var src = local[slot.slot_ref] || (slot.has_image ? base + '/images/' + slot.image_id + '?w=160' : '');
+      var src = local[slot.slot_ref] || (shown ? base + '/images/' + shown.image_id + '?w=160' : '');
       if (src) { var img = el('img', 'thumb'); img.src = src; img.alt = ''; row.appendChild(img); }
       var status = el('span', 'state');
       if (busy[slot.slot_ref]) status.textContent = 'Sending\u2026';
       else if (errors[slot.slot_ref]) { status.textContent = errors[slot.slot_ref]; status.className += ' err'; }
-      else if (slot.has_image) { status.textContent = 'Sent'; status.className += ' ok'; }
-      else if (slot.waived) { status.textContent = 'Allowed without a picture'; status.className += ' ok'; }
+      else if (shown && line.done) { status.textContent = 'Sent'; status.className += ' ok'; }
+      else if (line.waived) { status.textContent = 'Allowed without a picture'; status.className += ' ok'; }
       else status.textContent = 'Needs a picture';
       row.appendChild(status);
-
-      var label = el('label', 'btn' + (slot.has_image ? ' ghost' : ''), slot.has_image ? 'Retake' : 'Take picture');
+      var label = el('label', 'btn' + (shown ? ' ghost' : ''), shown ? 'Retake' : 'Take picture');
       var input = el('input'); input.type = 'file'; input.accept = 'image/*'; input.setAttribute('capture', 'environment');
       input.addEventListener('change', function () { if (input.files[0]) upload(slot, input.files[0]); });
       label.appendChild(input);
       row.appendChild(label);
       card.appendChild(row);
-
-      // "Same as #N": reuse another unit's picture instead of taking a new one.
+      // "Same as #N": reuse another line's picture instead of taking a new one.
       var seen = {};
-      var others = pictured.filter(function (o) {
-        if (o.slot_ref === slot.slot_ref || seen[o.image_id]) return false;
-        seen[o.image_id] = 1;
+      var others = all.filter(function (o) {
+        if (o === line || !o.pictured || seen[o.pictured.image_id]) return false;
+        seen[o.pictured.image_id] = 1;
         return true;
       });
-      if (others.length && !isDone(slot)) {
+      if (others.length && !line.done) {
         var copies = el('div', 'row');
         copies.appendChild(el('span', 'state', 'Same as'));
         others.forEach(function (o) {
-          var b = el('button', 'ghost', '#' + (slots.indexOf(o) + 1));
+          var b = el('button', 'ghost', '#' + (all.indexOf(o) + 1));
           b.type = 'button';
-          b.addEventListener('click', function () { copyFrom(slot, o); });
+          b.addEventListener('click', function () { copyFrom(slot, o.pictured); });
           copies.appendChild(b);
         });
         card.appendChild(copies);

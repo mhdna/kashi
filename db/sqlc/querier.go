@@ -1782,7 +1782,8 @@ type Querier interface {
 	// CreateBranchTransferRequestTx resolves an outgoing line.
 	SetTransferItemReceivedQuantityByVariant(ctx context.Context, arg SetTransferItemReceivedQuantityByVariantParams) (int64, error)
 	SetTransferStatus(ctx context.Context, arg SetTransferStatusParams) (Transfer, error)
-	// A slot already matched to a product keeps the picture it was matched with.
+	// The picture goes to the slot and to every other unit of its cart line. A
+	// slot already matched to a product keeps the picture it was matched with.
 	SetUnknownItemSlotImage(ctx context.Context, arg SetUnknownItemSlotImageParams) error
 	SetUserAvatarColor(ctx context.Context, arg SetUserAvatarColorParams) error
 	SetVariantBarcode(ctx context.Context, arg SetVariantBarcodeParams) (ProductVariant, error)

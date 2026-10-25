@@ -1925,6 +1925,7 @@ type UnknownItemSlot struct {
 	ResolvedAt        sql.NullTime  `json:"resolved_at"`
 	WaivedAt          sql.NullTime  `json:"waived_at"`
 	WaivedBy          string        `json:"waived_by"`
+	LineRef           string        `json:"line_ref"`
 }
 
 type User struct {
