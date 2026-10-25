@@ -11,8 +11,8 @@ SELECT * FROM unknown_item_sessions WHERE branch_id = $1 AND client_ref = $2;
 SELECT * FROM unknown_item_sessions WHERE token = $1;
 
 -- name: CreateUnknownItemSlot :exec
-INSERT INTO unknown_item_slots (session_id, slot_ref, position, label, unit_price, discount)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO unknown_item_slots (session_id, slot_ref, position, label, unit_price, discount, line_ref)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT (session_id, slot_ref) DO NOTHING;
 
 -- name: ListUnknownItemSlotsForSession :many
@@ -30,9 +30,13 @@ RETURNING *;
 SELECT * FROM unknown_item_images WHERE id = $1;
 
 -- name: SetUnknownItemSlotImage :exec
--- A slot already matched to a product keeps the picture it was matched with.
-UPDATE unknown_item_slots SET image_id = $3
-WHERE session_id = $1 AND slot_ref = $2 AND resolved_at IS NULL;
+-- The picture goes to the slot and to every other unit of its cart line. A
+-- slot already matched to a product keeps the picture it was matched with.
+UPDATE unknown_item_slots s SET image_id = $3
+WHERE s.session_id = $1 AND s.resolved_at IS NULL
+  AND (s.slot_ref = $2 OR (s.line_ref <> '' AND s.line_ref = (
+    SELECT o.line_ref FROM unknown_item_slots o WHERE o.session_id = $1 AND o.slot_ref = $2
+  )));
 
 -- name: LinkUnknownItemSession :exec
 UPDATE unknown_item_sessions SET branch_invoice_id = $3
