@@ -135,6 +135,77 @@
     </v-card>
   </v-dialog>
 
+  <div class="invoice-filters d-flex flex-wrap align-center ga-3 px-4 py-3">
+    <v-select
+      v-model="registerFilter"
+      clearable
+      density="compact"
+      hide-details
+      item-title="label"
+      item-value="id"
+      :items="registerOptions"
+      placeholder="All registers"
+      style="max-width: 220px"
+      variant="outlined"
+    />
+    <v-select
+      v-model="kindFilter"
+      clearable
+      density="compact"
+      hide-details
+      :items="kindOptions"
+      placeholder="All types"
+      style="max-width: 160px"
+      variant="outlined"
+    />
+    <v-select
+      v-model="statusFilter"
+      clearable
+      density="compact"
+      hide-details
+      :items="statusOptions"
+      placeholder="Any status"
+      style="max-width: 160px"
+      variant="outlined"
+    />
+    <v-text-field
+      v-model="dateFrom"
+      density="compact"
+      hide-details
+      label="From"
+      :max="dateTo || undefined"
+      style="max-width: 170px"
+      type="date"
+      variant="outlined"
+    />
+    <v-text-field
+      v-model="dateTo"
+      density="compact"
+      hide-details
+      label="To"
+      :min="dateFrom || undefined"
+      style="max-width: 170px"
+      type="date"
+      variant="outlined"
+    />
+    <v-btn
+      v-if="hasExtraFilters"
+      prepend-icon="mdi-close"
+      text="Clear"
+      variant="text"
+      @click="clearFilters"
+    />
+    <v-spacer />
+    <v-btn
+      color="success"
+      :loading="exporting"
+      prepend-icon="mdi-microsoft-excel"
+      text="Export to Excel"
+      variant="tonal"
+      @click="exportToExcel"
+    />
+  </div>
+
   <ServerSideTable
     ref="tableRef"
     :api-u-r-l="apiURL"
@@ -343,6 +414,7 @@
   import { useRoute } from 'vue-router'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
+  import { useBranches } from '@/composables/useBranches'
   import { useBranchInvoices } from '@/composables/useBranchInvoices'
   import { useBranchSettings } from '@/composables/useBranchSettings'
   import { useInvoiceDetails } from '@/composables/useInvoiceDetails'
@@ -357,7 +429,7 @@
     searchDebounce: { type: Number, default: 100 },
   })
 
-  const { listBranchInvoiceItems, requestRemoteCancel, requestRemoteReturn } = useBranchInvoices()
+  const { exportBranchInvoices, listBranchInvoiceItems, requestRemoteCancel, requestRemoteReturn } = useBranchInvoices()
   const { listBranchCommands } = useBranchSettings()
   const { getBranchInvoiceDetails } = useInvoiceDetails()
   const notify = useNotify()
@@ -438,9 +510,84 @@
 
   const apiURL = `${API_BASE}/branch_invoices`
   const tableRef = ref(null)
-  const queryParams = computed(() => ({
+
+  const kindOptions = [
+    { title: 'Sales', value: 'sales' },
+    { title: 'Returns', value: 'return' },
+    { title: 'Exchanges', value: 'exchange' },
+  ]
+  const statusOptions = [
+    { title: 'Active', value: 'active' },
+    { title: 'Cancelled', value: 'cancelled' },
+  ]
+  const registerFilter = ref(null)
+  const kindFilter = ref(null)
+  const statusFilter = ref(null)
+  const dateFrom = ref('')
+  const dateTo = ref('')
+  const hasExtraFilters = computed(() =>
+    Boolean(registerFilter.value || kindFilter.value || statusFilter.value || dateFrom.value || dateTo.value))
+
+  function clearFilters () {
+    registerFilter.value = null
+    kindFilter.value = null
+    statusFilter.value = null
+    dateFrom.value = ''
+    dateTo.value = ''
+  }
+
+  // Registers to pick from: every till, or just the chosen branch's.
+  const { listAllRegisters } = useBranches()
+  const allRegisters = ref([])
+  onMounted(async () => {
+    try {
+      allRegisters.value = await listAllRegisters()
+    } catch (error) {
+      notify.error(error.message)
+    }
+  })
+  const registerOptions = computed(() =>
+    allRegisters.value
+      .filter(r => !props.branchFilter || r.branch_id === props.branchFilter)
+      .map(r => ({
+        id: r.id,
+        label: `${branchName(r.branch_id)} - ${r.name || r.code}`,
+      })))
+  // A register of another branch can't stay picked once the branch changes.
+  watch(() => props.branchFilter, () => {
+    if (registerFilter.value && !registerOptions.value.some(r => r.id === registerFilter.value)) {
+      registerFilter.value = null
+    }
+  })
+
+  const filterParams = computed(() => ({
     branch_id: props.branchFilter || null,
+    register_id: registerFilter.value,
+    kind: kindFilter.value,
+    status: statusFilter.value,
+    date_from: dateFrom.value,
+    date_to: dateTo.value,
   }))
+  const queryParams = filterParams
+
+  const exporting = ref(false)
+  async function exportToExcel () {
+    exporting.value = true
+    try {
+      const params = { ...filterParams.value }
+      if (props.search.trim()) params.search = props.search.trim()
+      const blob = await exportBranchInvoices(params)
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = `invoices-${new Date().toISOString().slice(0, 10)}.xlsx`
+      link.click()
+      URL.revokeObjectURL(link.href)
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      exporting.value = false
+    }
+  }
 
   const itemsDialog = ref(false)
   const itemsTarget = ref(null)

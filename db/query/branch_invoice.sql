@@ -107,7 +107,16 @@ WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
     OR branch_invoice_code ILIKE '%' || sqlc.arg(search)::text || '%'
     OR salesperson_name ILIKE '%' || sqlc.arg(search)::text || '%'
   )
-ORDER BY id DESC
+  AND (sqlc.narg(register_id)::bigint IS NULL OR register_id = sqlc.narg(register_id))
+  AND (sqlc.narg(kind)::text IS NULL OR kind = sqlc.narg(kind))
+  AND (
+    sqlc.narg(status)::text IS NULL
+    OR (sqlc.narg(status) = 'cancelled' AND cancelled_at IS NOT NULL)
+    OR (sqlc.narg(status) = 'active' AND cancelled_at IS NULL)
+  )
+  AND (sqlc.narg(date_from)::timestamptz IS NULL OR occurred_at >= sqlc.narg(date_from))
+  AND (sqlc.narg(date_to)::timestamptz IS NULL OR occurred_at < sqlc.narg(date_to))
+ORDER BY occurred_at DESC, id DESC
 LIMIT sqlc.arg(page_size)
 OFFSET sqlc.arg(page_offset);
 
@@ -120,7 +129,16 @@ WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
     sqlc.arg(search)::text = ''
     OR branch_invoice_code ILIKE '%' || sqlc.arg(search)::text || '%'
     OR salesperson_name ILIKE '%' || sqlc.arg(search)::text || '%'
-  );
+  )
+  AND (sqlc.narg(register_id)::bigint IS NULL OR register_id = sqlc.narg(register_id))
+  AND (sqlc.narg(kind)::text IS NULL OR kind = sqlc.narg(kind))
+  AND (
+    sqlc.narg(status)::text IS NULL
+    OR (sqlc.narg(status) = 'cancelled' AND cancelled_at IS NOT NULL)
+    OR (sqlc.narg(status) = 'active' AND cancelled_at IS NULL)
+  )
+  AND (sqlc.narg(date_from)::timestamptz IS NULL OR occurred_at >= sqlc.narg(date_from))
+  AND (sqlc.narg(date_to)::timestamptz IS NULL OR occurred_at < sqlc.narg(date_to));
 
 -- name: ListDailyIncome :many
 -- Sums grand_total across both kinds ('sales' and 'return') rather than

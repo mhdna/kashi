@@ -499,6 +499,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/branch_shift_receipt_images/:id/rotation", server.rotateBranchShiftReceiptImage)
 	authRoutes.PUT("/branch_shift_receipt_images/:id/replace", server.replaceBranchShiftReceiptImage)
 	authRoutes.GET("/branch_invoices", server.listBranchInvoices)
+	authRoutes.GET("/branch_invoices/export", server.exportBranchInvoices)
 	authRoutes.DELETE("/branch_invoices/:id", server.deleteBranchInvoice)
 	authRoutes.GET("/branch_sync_conflicts", server.listBranchSyncConflicts)
 	authRoutes.GET("/branch_sync_conflicts/summary", server.branchSyncConflictSummary)
