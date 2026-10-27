@@ -108,12 +108,16 @@ func (server *Server) branchAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// Only a missing register is the till's fault. Any other error (the
+		// database down or still starting) must be a 5xx, or the till parks
+		// everything it pushes meanwhile as rejected for good.
 		register, err := server.store.GetBranchRegisterByCode(ctx, code)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				err = errors.New("unknown register")
+				server.abortError(ctx, http.StatusUnauthorized, errors.New("unknown register"))
+				return
 			}
-			server.abortError(ctx, http.StatusUnauthorized, err)
+			server.abortError(ctx, http.StatusInternalServerError, err)
 			return
 		}
 		if !register.IsActive {
@@ -127,7 +131,11 @@ func (server *Server) branchAuthMiddleware() gin.HandlerFunc {
 
 		branch, err := server.store.GetBranch(ctx, register.BranchID)
 		if err != nil {
-			server.abortError(ctx, http.StatusUnauthorized, err)
+			status := http.StatusInternalServerError
+			if err == sql.ErrNoRows {
+				status = http.StatusUnauthorized
+			}
+			server.abortError(ctx, status, err)
 			return
 		}
 		if !branch.IsActive {
