@@ -355,3 +355,17 @@ func TestListBranchRegisters_ReportedSettingsArePlainJSON(t *testing.T) {
 	require.Equal(t, "EPSON-A", got.Registers[0].ReportedSettings["printer_id"])
 	require.Nil(t, got.Registers[1].ReportedSettings)
 }
+
+// A database outage while checking a till's credentials is kashi's fault,
+// not the till's: it must answer 5xx so the till retries, not 401 (which
+// the till takes as a rejection and parks the record for good).
+func TestBranchAuth_DatabaseErrorIsServerError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	store.EXPECT().GetBranchRegisterByCode(gomock.Any(), testRegisterCode).Return(db.BranchRegister{}, sql.ErrConnDone)
+
+	server := newTestServer(t, store)
+	rec := httptest.NewRecorder()
+	server.router.ServeHTTP(rec, newBranchRequest(t, http.MethodGet, "/branch/commands/pending", nil))
+	require.Equal(t, http.StatusInternalServerError, rec.Code)
+}
