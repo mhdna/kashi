@@ -96,5 +96,19 @@ export function useBranchInvoices () {
     return data?.sales_days ?? []
   }
 
-  return { listBranchInvoiceItems, listRecentBranchInvoices, requestRemoteCancel, requestRemoteReturn, listSalesStats }
+  // The list under the same filters as an Excel file (a Blob).
+  async function exportBranchInvoices (params) {
+    const url = new URL(`${API_BASE}/branch_invoices/export`)
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== null && value !== undefined && value !== '') {url.searchParams.set(key, value)}
+    }
+    const res = await authFetch(url.toString())
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.error || `Request failed with status ${res.status}`)
+    }
+    return res.blob()
+  }
+
+  return { exportBranchInvoices, listBranchInvoiceItems, listRecentBranchInvoices, requestRemoteCancel, requestRemoteReturn, listSalesStats }
 }
