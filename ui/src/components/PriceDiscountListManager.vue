@@ -23,6 +23,13 @@
           @click="dealsDialog = true"
         />
         <v-btn
+          v-if="kind === 'discount'"
+          prepend-icon="mdi-receipt-text-outline"
+          text="Invoice discounts"
+          variant="tonal"
+          @click="invoiceDiscountsDialog = true"
+        />
+        <v-btn
           v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
@@ -528,6 +535,7 @@
     </v-dialog>
 
     <DealsDialog v-model="dealsDialog" :can-edit="canEdit" />
+    <InvoiceDiscountsDialog v-model="invoiceDiscountsDialog" :can-edit="canEdit" />
 
     <BranchAssignDialog
       v-model="branchesDialog"
@@ -544,6 +552,7 @@
   import BranchAssignDialog from '@/components/BranchAssignDialog.vue'
   import DealsDialog from '@/components/DealsDialog.vue'
   import DiscountListRules from '@/components/DiscountListRules.vue'
+  import InvoiceDiscountsDialog from '@/components/InvoiceDiscountsDialog.vue'
   import PageSidebar from '@/components/PageSidebar.vue'
   import BulkDeleteBar from '@/components/Tables/BulkDeleteBar.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
@@ -644,6 +653,7 @@
   // the "Gives" pickers is a plain discount.
   const { deals, fetchDeals } = useDeals()
   const dealsDialog = ref(false)
+  const invoiceDiscountsDialog = ref(false)
   const dealChoices = computed(() => [
     { title: 'A discount', value: 0 },
     ...deals.value.map(d => ({ title: d.name, value: d.id })),
