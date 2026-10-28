@@ -186,3 +186,84 @@ func TestUnknownItemsFlow(t *testing.T) {
 	}
 	require.Equal(t, 3, mine)
 }
+
+// One picture covers every unit of its cart line: a line of two is done with
+// a single upload, while the next line, at the same price, still waits for
+// its own.
+func TestUnknownItemPictureCoversItsLine(t *testing.T) {
+	config, err := util.LoadConfig("..")
+	require.NoError(t, err)
+	conn, err := sql.Open(config.DBDriver, config.DBSource)
+	require.NoError(t, err)
+	defer conn.Close()
+	if err := conn.Ping(); err != nil {
+		t.Skipf("no database: %v", err)
+	}
+	store := db.NewStore(conn)
+	ctx := context.Background()
+
+	const key = "unknown-line-key"
+	hash, err := util.HashPassword(key)
+	require.NoError(t, err)
+	branch, err := store.CreateBranchTx(ctx, db.CreateBranchTxParams{
+		Name: util.RandomString(10), Code: util.RandomString(6), RegisterAPIKeyHash: hash,
+	})
+	require.NoError(t, err)
+
+	server := newTestServer(t, store)
+	server.config.ExpenseImageStorageDir = t.TempDir()
+	do := func(req *http.Request) *httptest.ResponseRecorder {
+		rec := httptest.NewRecorder()
+		server.router.ServeHTTP(rec, req)
+		return rec
+	}
+
+	raw, _ := json.Marshal(map[string]any{
+		"client_ref": uuid.NewString(),
+		"slots": []map[string]any{
+			{"slot_ref": "1", "line_ref": "1", "label": "Unknown item #1", "unit_price": 200},
+			{"slot_ref": "2", "line_ref": "1", "label": "Unknown item #1", "unit_price": 200},
+			{"slot_ref": "3", "line_ref": "2", "label": "Unknown item #2", "unit_price": 200},
+		},
+	})
+	req := httptest.NewRequest(http.MethodPost, "/branch/unknown_sessions", bytes.NewReader(raw))
+	req.Header.Set(branchCodeHeaderKey, branch.Register.Code)
+	req.Header.Set(branchKeyHeaderKey, key)
+	req.Header.Set("Content-Type", "application/json")
+	rec := do(req)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	var opened struct {
+		UploadToken string `json:"upload_token"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &opened))
+
+	var jpg bytes.Buffer
+	require.NoError(t, jpeg.Encode(&jpg, image.NewRGBA(image.Rect(0, 0, 32, 24)), nil))
+	var form bytes.Buffer
+	writer := multipart.NewWriter(&form)
+	part, err := writer.CreatePart(textproto.MIMEHeader{
+		"Content-Disposition": {`form-data; name="image"; filename="item.jpg"`},
+		"Content-Type":        {"image/jpeg"},
+	})
+	require.NoError(t, err)
+	_, err = part.Write(jpg.Bytes())
+	require.NoError(t, err)
+	require.NoError(t, writer.Close())
+	upload := httptest.NewRequest(http.MethodPost, "/unknown_uploads/"+opened.UploadToken+"/slots/1/image", &form)
+	upload.Header.Set("Content-Type", writer.FormDataContentType())
+	rec = do(upload)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+
+	var out struct {
+		Complete bool              `json:"complete"`
+		Slots    []unknownSlotView `json:"slots"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &out))
+	require.False(t, out.Complete)
+	require.Len(t, out.Slots, 3)
+	require.True(t, out.Slots[0].HasImage)
+	require.True(t, out.Slots[1].HasImage, "the line's second unit shares the picture")
+	require.Equal(t, out.Slots[0].ImageID, out.Slots[1].ImageID)
+	require.False(t, out.Slots[2].HasImage, "another line needs its own picture")
+	require.Equal(t, "2", out.Slots[2].LineRef)
+}

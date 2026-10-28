@@ -43,6 +43,9 @@ type unknownSlotRequest struct {
 	Label     string `json:"label"`
 	UnitPrice int64  `json:"unit_price"`
 	Discount  int16  `json:"discount"`
+	// The cart line the unit is on: one picture covers the whole line. Tills
+	// before this send none, and each unit needs its own picture.
+	LineRef string `json:"line_ref"`
 }
 
 type createUnknownSessionRequest struct {
@@ -57,6 +60,7 @@ type unknownSlotView struct {
 	Label     string `json:"label"`
 	UnitPrice int64  `json:"unit_price"`
 	Discount  int16  `json:"discount"`
+	LineRef   string `json:"line_ref"`
 	ImageID   int64  `json:"image_id,omitempty"`
 	HasImage  bool   `json:"has_image"`
 	// Waived: a manager let this unit through with no picture.
@@ -68,7 +72,7 @@ func unknownSlotViews(slots []db.UnknownItemSlot) []unknownSlotView {
 	for _, slot := range slots {
 		view := unknownSlotView{
 			SlotRef: slot.SlotRef, Position: slot.Position, Label: slot.Label,
-			UnitPrice: slot.UnitPrice, Discount: slot.Discount,
+			UnitPrice: slot.UnitPrice, Discount: slot.Discount, LineRef: slot.LineRef,
 			HasImage: slot.ImageID.Valid,
 			Waived:   slot.WaivedAt.Valid,
 		}
@@ -135,7 +139,7 @@ func (server *Server) createUnknownSession(ctx *gin.Context) {
 	for i, slot := range req.Slots {
 		if err := server.store.CreateUnknownItemSlot(ctx, db.CreateUnknownItemSlotParams{
 			SessionID: session.ID, SlotRef: slot.SlotRef, Position: int32(i),
-			Label: slot.Label, UnitPrice: slot.UnitPrice, Discount: slot.Discount,
+			Label: slot.Label, UnitPrice: slot.UnitPrice, Discount: slot.Discount, LineRef: slot.LineRef,
 		}); err != nil {
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
@@ -270,9 +274,10 @@ func (server *Server) unknownUploadImageFile(ctx *gin.Context) {
 	server.serveStoredImage(ctx, image.FilePath, image.ContentType, image.Rotation)
 }
 
-// uploadUnknownSlotImage takes one picture for one unit. The phone sends each
-// as soon as it is taken (already shrunk), so the till is released the moment
-// the last unit has its picture.
+// uploadUnknownSlotImage takes one picture for one unit and the rest of its
+// cart line (SetUnknownItemSlotImage). The phone sends each as soon as it is
+// taken (already shrunk), so the till is released the moment the last unit
+// has its picture.
 func (server *Server) uploadUnknownSlotImage(ctx *gin.Context) {
 	session, ok := server.lookupUnknownSession(ctx)
 	if !ok {
