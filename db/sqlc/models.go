@@ -758,6 +758,8 @@ type BranchInvoice struct {
 	SalespersonID          sql.NullInt64  `json:"salesperson_id"`
 	LbpTotal               sql.NullInt64  `json:"lbp_total"`
 	LbpRate                sql.NullInt64  `json:"lbp_rate"`
+	InvoiceDiscount        int64          `json:"invoice_discount"`
+	InvoiceDiscountName    string         `json:"invoice_discount_name"`
 }
 
 type BranchInvoiceItem struct {
@@ -772,6 +774,7 @@ type BranchInvoiceItem struct {
 	Unknown         bool          `json:"unknown"`
 	Deal            string        `json:"deal"`
 	DealDiscount    int64         `json:"deal_discount"`
+	InvoiceDiscount int64         `json:"invoice_discount"`
 }
 
 type BranchInvoicePayment struct {
@@ -1440,6 +1443,28 @@ type Invoice struct {
 	InvoiceTypeID      int64         `json:"invoice_type_id"`
 	SalespersonID      sql.NullInt64 `json:"salesperson_id"`
 	LoyaltyPointsDelta int64         `json:"loyalty_points_delta"`
+}
+
+type InvoiceDiscount struct {
+	ID          int64        `json:"id"`
+	Uid         uuid.UUID    `json:"uid"`
+	Name        string       `json:"name"`
+	MinTotal    int64        `json:"min_total"`
+	Kind        string       `json:"kind"`
+	Percent     int16        `json:"percent"`
+	Amount      int64        `json:"amount"`
+	AllBranches bool         `json:"all_branches"`
+	ValidFrom   sql.NullTime `json:"valid_from"`
+	ValidTo     sql.NullTime `json:"valid_to"`
+	IsActive    bool         `json:"is_active"`
+	DeletedAt   sql.NullTime `json:"deleted_at"`
+	CreatedAt   time.Time    `json:"created_at"`
+	UpdatedAt   time.Time    `json:"updated_at"`
+}
+
+type InvoiceDiscountBranch struct {
+	InvoiceDiscountID int64 `json:"invoice_discount_id"`
+	BranchID          int64 `json:"branch_id"`
 }
 
 type InvoiceIndex struct {

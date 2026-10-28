@@ -208,6 +208,11 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 	case "discount_lists":
 		branchID := ctx.MustGet(branchIDKey).(int64)
 		items, err = server.discountListsForBranchSync(ctx, branchID, since)
+	case "invoice_discounts":
+		// Every rule changed since, with whether it applies to this branch
+		// -- see invoice_discounts.go.
+		branchID := ctx.MustGet(branchIDKey).(int64)
+		items, err = server.invoiceDiscountsForBranchSync(ctx, branchID, since)
 	case "expense_categories":
 		// Global like currencies; the query itself restricts to
 		// scope='branch' rows -- central-only categories never leave kashi.

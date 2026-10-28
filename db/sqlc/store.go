@@ -22,6 +22,7 @@ type Store interface {
 	TransferApproveTx(ctx context.Context, arg TransferStageTxParams) (TransferStageTxResult, error)
 	StockAdjustmentTx(ctx context.Context, arg StockAdjustmentTxParams) (StockAdjustmentTxResult, error)
 	CreateBranchInvoiceTx(ctx context.Context, arg CreateBranchInvoiceTxParams) (CreateBranchInvoiceTxResult, error)
+	SaveInvoiceDiscountTx(ctx context.Context, arg SaveInvoiceDiscountTxParams) (InvoiceDiscount, error)
 	CreateBranchTransferRequestTx(ctx context.Context, arg CreateBranchTransferRequestTxParams) (CreateBranchTransferRequestTxResult, error)
 	ConfirmBranchTransferTx(ctx context.Context, arg ConfirmBranchTransferTxParams) (Transfer, error)
 	ApplyBranchSettlementTx(ctx context.Context, arg ApplyBranchSettlementTxParams) (ApplyBranchSettlementTxResult, error)
