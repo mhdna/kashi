@@ -31,6 +31,7 @@ type Querier interface {
 	// creating the row if this SKU has never been stocked there. Cost is left
 	// untouched (used for sales, returns, transfers, adjustments).
 	AddInventoryStockQuantity(ctx context.Context, arg AddInventoryStockQuantityParams) (InventoryStock, error)
+	AddInvoiceDiscountBranch(ctx context.Context, arg AddInvoiceDiscountBranchParams) error
 	AddInvoiceProduct(ctx context.Context, arg AddInvoiceProductParams) (InvoiceProduct, error)
 	// Gives every product named by entries each of the options; returns the
 	// product ids it matched.
@@ -330,6 +331,7 @@ type Querier interface {
 	CreateGooglePlaceSnapshot(ctx context.Context, arg CreateGooglePlaceSnapshotParams) error
 	CreateInventory(ctx context.Context, arg CreateInventoryParams) (Inventory, error)
 	CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (Invoice, error)
+	CreateInvoiceDiscount(ctx context.Context, arg CreateInvoiceDiscountParams) (InvoiceDiscount, error)
 	CreateInvoicePayment(ctx context.Context, arg CreateInvoicePaymentParams) (InvoicePayment, error)
 	CreateInvoiceType(ctx context.Context, arg CreateInvoiceTypeParams) (InvoiceType, error)
 	// One code minted as part of a coupon_lists batch (see coupon_list.sql).
@@ -524,6 +526,10 @@ type Querier interface {
 	DeleteIPBan(ctx context.Context, ip string) error
 	DeleteInventories(ctx context.Context, ids []int64) (int64, error)
 	DeleteInventory(ctx context.Context, id int64) error
+	// Kept, marked deleted: the tills drop it when it comes down as not
+	// applying to them (000212).
+	DeleteInvoiceDiscount(ctx context.Context, id int64) error
+	DeleteInvoiceDiscountBranches(ctx context.Context, invoiceDiscountID int64) error
 	DeleteLoan(ctx context.Context, id int64) error
 	DeleteLoanCategory(ctx context.Context, id int64) error
 	DeleteLoanPayment(ctx context.Context, id int64) error
@@ -1316,6 +1322,12 @@ type Querier interface {
 	ListIncomingBranchTransfersUpdatedSince(ctx context.Context, arg ListIncomingBranchTransfersUpdatedSinceParams) ([]Transfer, error)
 	ListInventories(ctx context.Context, arg ListInventoriesParams) ([]Inventory, error)
 	ListInventoryStock(ctx context.Context, arg ListInventoryStockParams) ([]ListInventoryStockRow, error)
+	ListInvoiceDiscountBranchIDs(ctx context.Context) ([]InvoiceDiscountBranch, error)
+	ListInvoiceDiscounts(ctx context.Context) ([]InvoiceDiscount, error)
+	// Every rule changed since the branch last asked, deleted ones included,
+	// with whether it applies to the branch: a rule that doesn't (deleted,
+	// switched off, or the branch taken off it) tells the till to drop it.
+	ListInvoiceDiscountsForBranchSync(ctx context.Context, arg ListInvoiceDiscountsForBranchSyncParams) ([]ListInvoiceDiscountsForBranchSyncRow, error)
 	ListInvoicePaymentsByInvoice(ctx context.Context, invoiceID int64) ([]ListInvoicePaymentsByInvoiceRow, error)
 	ListInvoiceProductsByInvoice(ctx context.Context, invoiceID int64) ([]ListInvoiceProductsByInvoiceRow, error)
 	ListInvoiceTypes(ctx context.Context) ([]InvoiceType, error)
@@ -1712,6 +1724,8 @@ type Querier interface {
 	SetBranchExpenseFromCentralByID(ctx context.Context, arg SetBranchExpenseFromCentralByIDParams) (BranchExpense, error)
 	SetBranchHiddenFromReports(ctx context.Context, arg SetBranchHiddenFromReportsParams) error
 	SetBranchInventory(ctx context.Context, arg SetBranchInventoryParams) error
+	SetBranchInvoiceDiscount(ctx context.Context, arg SetBranchInvoiceDiscountParams) error
+	SetBranchInvoiceItemDiscount(ctx context.Context, arg SetBranchInvoiceItemDiscountParams) error
 	SetBranchInvoiceItemResolved(ctx context.Context, arg SetBranchInvoiceItemResolvedParams) error
 	// Salesperson Performance (api/salesperson_performance.go) and the tills'
 	// one-time report of who made their past sales.
@@ -1844,6 +1858,7 @@ type Querier interface {
 	UpdateExpense(ctx context.Context, arg UpdateExpenseParams) (Expense, error)
 	UpdateExpenseCategory(ctx context.Context, arg UpdateExpenseCategoryParams) (ExpenseCategory, error)
 	UpdateInventory(ctx context.Context, arg UpdateInventoryParams) error
+	UpdateInvoiceDiscount(ctx context.Context, arg UpdateInvoiceDiscountParams) (InvoiceDiscount, error)
 	UpdateInvoiceType(ctx context.Context, arg UpdateInvoiceTypeParams) (InvoiceType, error)
 	// Central loans only -- branch-origin loans are a synced record of what a
 	// branch reported and stay read-only here (WHERE origin filter makes a

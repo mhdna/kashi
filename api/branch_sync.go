@@ -111,6 +111,9 @@ type branchInvoiceItemRequest struct {
 	// it took off the line. Empty from tills that predate deals.
 	Deal         string `json:"deal"`
 	DealDiscount int64  `json:"deal_discount"`
+	// The line's share of the sale's invoice discount (000212); LineTotal
+	// already has it off. 0 from tills that predate it.
+	InvoiceDiscount int64 `json:"invoice_discount"`
 }
 
 // branchInvoiceRequest is deliberately NOT the same shape as
@@ -159,6 +162,11 @@ type branchInvoiceRequest struct {
 	// The picture session of a sale that includes "Unknown item" lines (see
 	// unknown_items.go). Empty on every other sale.
 	UnknownSessionRef string `json:"unknown_session_ref"`
+
+	// The sale's invoice discount (000212): what it took off the sale, and
+	// the rule's name. Absent from tills that predate it.
+	InvoiceDiscount     int64  `json:"invoice_discount"`
+	InvoiceDiscountName string `json:"invoice_discount_name"`
 
 	// Both best-effort display data, not synced/shared entities -- see the
 	// matching comment on branchInvoicePaymentPayload in kashi-pos's
@@ -278,6 +286,7 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 			Quantity:        item.Quantity,
 			Deal:            item.Deal,
 			DealDiscount:    item.DealDiscount,
+			InvoiceDiscount: item.InvoiceDiscount,
 		})
 	}
 
@@ -324,8 +333,10 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 			LbpTotal:               nullInt64Ptr(req.LbpTotal),
 			LbpRate:                nullInt64Ptr(req.LbpRate),
 		},
-		Items:    items,
-		Payments: payments,
+		Items:               items,
+		Payments:            payments,
+		InvoiceDiscount:     req.InvoiceDiscount,
+		InvoiceDiscountName: req.InvoiceDiscountName,
 	})
 	if err != nil {
 		if isUniqueViolation(err) {

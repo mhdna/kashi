@@ -25,6 +25,9 @@ type BranchInvoiceItemParams struct {
 	// A deal line (000202): the deal's name and what it took off the line.
 	Deal         string `json:"deal"`
 	DealDiscount int64  `json:"deal_discount"`
+	// The line's share of the sale's invoice discount (000212), cents;
+	// LineTotal already has it off.
+	InvoiceDiscount int64 `json:"invoice_discount"`
 	// Unknown: the till rang this up as an "Unknown item" (its placeholder
 	// barcode, or the product the branch named for it). Such a line is stored
 	// unresolved and moves no stock until it is matched to a real product.
@@ -46,6 +49,10 @@ type CreateBranchInvoiceTxParams struct {
 	CreateBranchInvoiceParams
 	Items    []BranchInvoiceItemParams    `json:"items"`
 	Payments []BranchInvoicePaymentParams `json:"payments"`
+	// The sale's invoice discount (000212): what it took off, and the
+	// rule's name. 0 / "" for none.
+	InvoiceDiscount     int64  `json:"invoice_discount"`
+	InvoiceDiscountName string `json:"invoice_discount_name"`
 }
 
 type CreateBranchInvoiceTxResult struct {
@@ -85,6 +92,14 @@ func (store *SQLStore) CreateBranchInvoiceTx(ctx context.Context, arg CreateBran
 		invoice, err := q.CreateBranchInvoice(ctx, arg.CreateBranchInvoiceParams)
 		if err != nil {
 			return err
+		}
+		if arg.InvoiceDiscount != 0 {
+			if err := q.SetBranchInvoiceDiscount(ctx, SetBranchInvoiceDiscountParams{
+				ID: invoice.ID, InvoiceDiscount: arg.InvoiceDiscount, InvoiceDiscountName: arg.InvoiceDiscountName,
+			}); err != nil {
+				return err
+			}
+			invoice.InvoiceDiscount, invoice.InvoiceDiscountName = arg.InvoiceDiscount, arg.InvoiceDiscountName
 		}
 
 		if err := q.SetClientBranchIfNull(ctx, SetClientBranchIfNullParams{
@@ -133,6 +148,14 @@ func (store *SQLStore) CreateBranchInvoiceTx(ctx context.Context, arg CreateBran
 			})
 			if err != nil {
 				return err
+			}
+			if item.InvoiceDiscount != 0 {
+				if err := q.SetBranchInvoiceItemDiscount(ctx, SetBranchInvoiceItemDiscountParams{
+					ID: created.ID, InvoiceDiscount: item.InvoiceDiscount,
+				}); err != nil {
+					return err
+				}
+				created.InvoiceDiscount = item.InvoiceDiscount
 			}
 			items = append(items, created)
 		}
