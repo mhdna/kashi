@@ -1,3 +1,4 @@
+DROP TRIGGER IF EXISTS sync_notify ON invoice_discounts;
 ALTER TABLE branch_invoice_items DROP COLUMN IF EXISTS invoice_discount;
 ALTER TABLE branch_invoices
     DROP COLUMN IF EXISTS invoice_discount_name,
