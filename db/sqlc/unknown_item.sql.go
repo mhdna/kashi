@@ -142,7 +142,9 @@ func (q *Queries) CreateUnknownItemSession(ctx context.Context, arg CreateUnknow
 const createUnknownItemSlot = `-- name: CreateUnknownItemSlot :exec
 INSERT INTO unknown_item_slots (session_id, slot_ref, position, label, unit_price, discount, line_ref)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-ON CONFLICT (session_id, slot_ref) DO NOTHING
+ON CONFLICT (session_id, slot_ref) DO UPDATE SET
+  position = EXCLUDED.position, label = EXCLUDED.label, unit_price = EXCLUDED.unit_price,
+  discount = EXCLUDED.discount, line_ref = EXCLUDED.line_ref
 `
 
 type CreateUnknownItemSlotParams struct {
@@ -155,6 +157,8 @@ type CreateUnknownItemSlotParams struct {
 	LineRef   string `json:"line_ref"`
 }
 
+// A till re-sending its session as the cart changes moves and relabels the
+// units it already sent; their pictures stay.
 func (q *Queries) CreateUnknownItemSlot(ctx context.Context, arg CreateUnknownItemSlotParams) error {
 	_, err := q.db.ExecContext(ctx, createUnknownItemSlot,
 		arg.SessionID,
@@ -174,6 +178,22 @@ DELETE FROM unknown_item_images WHERE id = ANY($1::bigint[])
 
 func (q *Queries) DeleteUnknownItemImages(ctx context.Context, dollar_1 []int64) error {
 	_, err := q.db.ExecContext(ctx, deleteUnknownItemImages, pq.Array(dollar_1))
+	return err
+}
+
+const deleteUnknownItemSlotsNotIn = `-- name: DeleteUnknownItemSlotsNotIn :exec
+DELETE FROM unknown_item_slots
+WHERE session_id = $1 AND NOT (slot_ref = ANY($2::text[]))
+`
+
+type DeleteUnknownItemSlotsNotInParams struct {
+	SessionID int64    `json:"session_id"`
+	SlotRefs  []string `json:"slot_refs"`
+}
+
+// Units taken off the cart since the session was last sent.
+func (q *Queries) DeleteUnknownItemSlotsNotIn(ctx context.Context, arg DeleteUnknownItemSlotsNotInParams) error {
+	_, err := q.db.ExecContext(ctx, deleteUnknownItemSlotsNotIn, arg.SessionID, pq.Array(arg.SlotRefs))
 	return err
 }
 
@@ -879,6 +899,25 @@ type SetUnknownItemSlotImageParams struct {
 // slot already matched to a product keeps the picture it was matched with.
 func (q *Queries) SetUnknownItemSlotImage(ctx context.Context, arg SetUnknownItemSlotImageParams) error {
 	_, err := q.db.ExecContext(ctx, setUnknownItemSlotImage, arg.SessionID, arg.SlotRef, arg.ImageID)
+	return err
+}
+
+const shareUnknownLineImages = `-- name: ShareUnknownLineImages :exec
+UPDATE unknown_item_slots s SET image_id = (
+  SELECT o.image_id FROM unknown_item_slots o
+  WHERE o.session_id = s.session_id AND o.line_ref = s.line_ref AND o.image_id IS NOT NULL
+  ORDER BY o.position LIMIT 1
+)
+WHERE s.session_id = $1 AND s.image_id IS NULL AND s.line_ref <> '' AND s.resolved_at IS NULL
+  AND EXISTS (
+    SELECT 1 FROM unknown_item_slots o
+    WHERE o.session_id = s.session_id AND o.line_ref = s.line_ref AND o.image_id IS NOT NULL
+  )
+`
+
+// A unit added to a cart line that already has its picture shares it.
+func (q *Queries) ShareUnknownLineImages(ctx context.Context, sessionID int64) error {
+	_, err := q.db.ExecContext(ctx, shareUnknownLineImages, sessionID)
 	return err
 }
 

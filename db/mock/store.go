@@ -4943,6 +4943,20 @@ func (mr *MockStoreMockRecorder) DeleteUnknownItemImages(arg0, arg1 interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUnknownItemImages", reflect.TypeOf((*MockStore)(nil).DeleteUnknownItemImages), arg0, arg1)
 }
 
+// DeleteUnknownItemSlotsNotIn mocks base method.
+func (m *MockStore) DeleteUnknownItemSlotsNotIn(arg0 context.Context, arg1 db.DeleteUnknownItemSlotsNotInParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteUnknownItemSlotsNotIn", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteUnknownItemSlotsNotIn indicates an expected call of DeleteUnknownItemSlotsNotIn.
+func (mr *MockStoreMockRecorder) DeleteUnknownItemSlotsNotIn(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUnknownItemSlotsNotIn", reflect.TypeOf((*MockStore)(nil).DeleteUnknownItemSlotsNotIn), arg0, arg1)
+}
+
 // DeleteUser mocks base method.
 func (m *MockStore) DeleteUser(arg0 context.Context, arg1 int64) error {
 	m.ctrl.T.Helper()
@@ -12562,6 +12576,20 @@ func (m *MockStore) SetWhatsAppSettings(arg0 context.Context, arg1 db.SetWhatsAp
 func (mr *MockStoreMockRecorder) SetWhatsAppSettings(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetWhatsAppSettings", reflect.TypeOf((*MockStore)(nil).SetWhatsAppSettings), arg0, arg1)
+}
+
+// ShareUnknownLineImages mocks base method.
+func (m *MockStore) ShareUnknownLineImages(arg0 context.Context, arg1 int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ShareUnknownLineImages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ShareUnknownLineImages indicates an expected call of ShareUnknownLineImages.
+func (mr *MockStoreMockRecorder) ShareUnknownLineImages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ShareUnknownLineImages", reflect.TypeOf((*MockStore)(nil).ShareUnknownLineImages), arg0, arg1)
 }
 
 // SplitUnknownInvoiceItem mocks base method.

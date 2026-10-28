@@ -372,6 +372,8 @@ type Querier interface {
 	CreateTransferItem(ctx context.Context, arg CreateTransferItemParams) (TransferItem, error)
 	CreateUnknownItemImage(ctx context.Context, arg CreateUnknownItemImageParams) (UnknownItemImage, error)
 	CreateUnknownItemSession(ctx context.Context, arg CreateUnknownItemSessionParams) (UnknownItemSession, error)
+	// A till re-sending its session as the cart changes moves and relabels the
+	// units it already sent; their pictures stay.
 	CreateUnknownItemSlot(ctx context.Context, arg CreateUnknownItemSlotParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateWhatsAppMessage(ctx context.Context, arg CreateWhatsAppMessageParams) (WhatsappMessage, error)
@@ -552,6 +554,8 @@ type Querier interface {
 	DeleteStockCountItems(ctx context.Context, stockCountID int64) error
 	DeleteTransferItem(ctx context.Context, arg DeleteTransferItemParams) error
 	DeleteUnknownItemImages(ctx context.Context, dollar_1 []int64) error
+	// Units taken off the cart since the session was last sent.
+	DeleteUnknownItemSlotsNotIn(ctx context.Context, arg DeleteUnknownItemSlotsNotInParams) error
 	DeleteUser(ctx context.Context, id int64) error
 	DeleteWhatsAppNumber(ctx context.Context, id int64) error
 	FindUnknownInvoiceItem(ctx context.Context, arg FindUnknownInvoiceItemParams) (BranchInvoiceItem, error)
@@ -1805,6 +1809,8 @@ type Querier interface {
 	SetWhatsAppNumberPhone(ctx context.Context, arg SetWhatsAppNumberPhoneParams) error
 	SetWhatsAppSenderSettings(ctx context.Context, arg SetWhatsAppSenderSettingsParams) error
 	SetWhatsAppSettings(ctx context.Context, arg SetWhatsAppSettingsParams) error
+	// A unit added to a cart line that already has its picture shares it.
+	ShareUnknownLineImages(ctx context.Context, sessionID int64) error
 	SplitUnknownInvoiceItem(ctx context.Context, arg SplitUnknownInvoiceItemParams) error
 	// Net sales revenue: same grand_total-sum convention as ListDailyIncome in
 	// branch_invoice.sql (returns already net out via their signed grand_total).

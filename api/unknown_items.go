@@ -104,8 +104,11 @@ func allUnknownSlotsPictured(slots []db.UnknownItemSlot) bool {
 	return len(slots) > 0
 }
 
-// createUnknownSession opens (or reopens, for a retried call) the picture
-// session of one checkout and returns the token the phone's QR link carries.
+// createUnknownSession opens the picture session of one cart and returns the
+// token the phone's QR link carries. The till sends it again (same client_ref,
+// same token) whenever the cart's unknown items change: units it no longer
+// lists are dropped, the rest keep their pictures, and the phone page picks
+// the change up on its next refresh.
 func (server *Server) createUnknownSession(ctx *gin.Context) {
 	branchID := ctx.MustGet(branchIDKey).(int64)
 	registerID := ctx.MustGet(registerIDKey).(int64)
@@ -136,6 +139,11 @@ func (server *Server) createUnknownSession(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	if session.BranchInvoiceID.Valid {
+		server.writeError(ctx, http.StatusConflict, errors.New("this session's sale has already landed"))
+		return
+	}
+	refs := make([]string, 0, len(req.Slots))
 	for i, slot := range req.Slots {
 		if err := server.store.CreateUnknownItemSlot(ctx, db.CreateUnknownItemSlotParams{
 			SessionID: session.ID, SlotRef: slot.SlotRef, Position: int32(i),
@@ -144,6 +152,17 @@ func (server *Server) createUnknownSession(ctx *gin.Context) {
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
 		}
+		refs = append(refs, slot.SlotRef)
+	}
+	if err := server.store.DeleteUnknownItemSlotsNotIn(ctx, db.DeleteUnknownItemSlotsNotInParams{
+		SessionID: session.ID, SlotRefs: refs,
+	}); err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if err := server.store.ShareUnknownLineImages(ctx, session.ID); err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
 	}
 	slots, err := server.store.ListUnknownItemSlotsForSession(ctx, session.ID)
 	if err != nil {
