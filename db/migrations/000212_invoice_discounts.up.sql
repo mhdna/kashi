@@ -52,3 +52,7 @@ ALTER TABLE branch_invoices
     ADD COLUMN invoice_discount_name text NOT NULL DEFAULT '';
 ALTER TABLE branch_invoice_items
     ADD COLUMN invoice_discount bigint NOT NULL DEFAULT 0;
+
+-- Tills re-fetch the rules the moment one changes (000109).
+CREATE TRIGGER sync_notify AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE ON invoice_discounts
+FOR EACH STATEMENT EXECUTE FUNCTION notify_sync_change('invoice_discounts');
