@@ -11,13 +11,15 @@
     @pointerup="endDrag"
     @wheel.prevent="onWheel"
   >
-    <img
-      :alt="alt"
-      class="zoom-stage__img"
-      draggable="false"
-      :src="src"
-      :style="{ transform: `translate(${tx}px, ${ty}px) scale(${scale})` }"
-    >
+    <div class="zoom-stage__frame" :style="{ transform: `translate(${tx}px, ${ty}px) scale(${scale})` }">
+      <img
+        :alt="alt"
+        class="zoom-stage__img"
+        draggable="false"
+        :src="src"
+        :style="turnStyle"
+      >
+    </div>
 
     <!-- A rotate or replace in flight: a percentage while a replacement
          uploads, then a spinner while the server converts it. -->
@@ -65,7 +67,7 @@
           icon="mdi-rotate-left"
           size="small"
           variant="text"
-          @click="emit('rotate', -90)"
+          @click="turn(-90)"
         />
         <v-btn
           aria-label="Rotate right"
@@ -74,8 +76,33 @@
           icon="mdi-rotate-right"
           size="small"
           variant="text"
-          @click="emit('rotate', 90)"
+          @click="turn(90)"
         />
+        <template v-if="pendingTurn">
+          <v-btn
+            aria-label="Undo the turn"
+            density="comfortable"
+            :disabled="busy"
+            icon="mdi-close"
+            size="small"
+            title="Undo the turn"
+            variant="text"
+            @click="pendingTurn = 0"
+          />
+          <v-btn
+            class="ms-1"
+            color="primary"
+            density="comfortable"
+            :disabled="busy"
+            prepend-icon="mdi-check"
+            rounded="pill"
+            size="small"
+            variant="flat"
+            @click="saveTurn"
+          >
+            Save
+          </v-btn>
+        </template>
         <v-divider class="mx-1" vertical />
       </template>
       <v-btn
@@ -111,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, watch } from 'vue'
+  import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
   // A photo viewer for dialogs: the image is fitted (contain) into a
   // fixed-height stage, and can be zoomed with the mouse wheel (towards the
@@ -119,10 +146,12 @@
   // dragged around while zoomed in.
   //
   // With `rotatable` it also offers rotate left/right buttons, and with
-  // `replaceable` a button to pick another file. It changes nothing itself:
-  // it emits `rotate` (-90 or 90) or `replace` (the picked File), the parent
-  // saves that (usePhotoActions) and passes the re-fetched photo back as a
-  // new `src`, holding `busy` while that's in flight.
+  // `replaceable` a button to pick another file. The rotate buttons only turn
+  // the photo on screen, instantly; Save then emits `rotate` once with the
+  // whole turn (-90, 90 or 180). It saves nothing itself: on `rotate` or
+  // `replace` (the picked File) the parent saves that (usePhotoActions) and
+  // passes the re-fetched photo back as a new `src`, holding `busy` while
+  // that's in flight.
   const props = defineProps({
     src: {
       type: String,
@@ -184,8 +213,50 @@
     ty.value = 0
   }
 
-  // A new photo starts fitted.
-  watch(() => props.src, reset)
+  // The turn shown on screen but not saved yet: 0, 90, 180 or 270 clockwise.
+  const pendingTurn = ref(0)
+  function turn (delta: number) {
+    pendingTurn.value = (pendingTurn.value + delta + 360) % 360
+  }
+  function saveTurn () {
+    // The server takes -90, 90 or 180 on top of the saved turn.
+    emit('rotate', pendingTurn.value === 270 ? -90 : pendingTurn.value)
+  }
+
+  // A sideways turn swaps the image's box, so it is laid out at the stage's
+  // height by its width, centred, and turned back into the stage.
+  const stageWidth = ref(0)
+  const stageHeight = ref(0)
+  let observer: ResizeObserver | null = null
+  onMounted(() => {
+    observer = new ResizeObserver(() => {
+      stageWidth.value = stage.value?.clientWidth ?? 0
+      stageHeight.value = stage.value?.clientHeight ?? 0
+    })
+    observer.observe(stage.value!)
+  })
+  onBeforeUnmount(() => observer?.disconnect())
+  const turnStyle = computed(() => {
+    if (!pendingTurn.value) return {}
+    if (pendingTurn.value === 180) return { transform: 'rotate(180deg)' }
+    const w = stageWidth.value
+    const h = stageHeight.value
+    return {
+      position: 'absolute' as const,
+      width: `${h}px`,
+      height: `${w}px`,
+      left: `${(w - h) / 2}px`,
+      top: `${(h - w) / 2}px`,
+      transform: `rotate(${pendingTurn.value}deg)`,
+    }
+  })
+
+  // A new photo (the saved turn coming back, or another photo) starts fitted
+  // and unturned.
+  watch(() => props.src, () => {
+    reset()
+    pendingTurn.value = 0
+  })
 
   // Keep the scaled image covering the stage, so it can't be dragged out of
   // view: t stays within [size - size * scale, 0] on each axis.
@@ -274,12 +345,18 @@
   cursor: grabbing;
 }
 
+.zoom-stage__frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-origin: 0 0;
+}
+
 .zoom-stage__img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  transform-origin: 0 0;
 }
 
 .zoom-busy {
