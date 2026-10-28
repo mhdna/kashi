@@ -2,6 +2,16 @@
   <div class="timesheet">
     <div class="timesheet-toolbar d-flex flex-wrap align-center ga-3 px-4 py-3">
       <DateRangePicker v-model:from="from" v-model:to="to" class="timesheet-date" />
+      <v-autocomplete
+        v-model="selectedPerson"
+        class="timesheet-person"
+        clearable
+        density="compact"
+        hide-details
+        :items="personOptions"
+        label="Salesperson"
+        variant="outlined"
+      />
       <v-progress-circular
         v-if="loading"
         color="primary"
@@ -210,8 +220,23 @@
 
   const loading = ref(false)
   const events = ref([])
-  const rows = computed(() => buildTimesheet(events.value))
+  const allRows = computed(() => buildTimesheet(events.value))
   const showBranch = computed(() => !props.branchId)
+
+  // Salesperson filter: a personKey (branch + device user), so two people
+  // with the same name on different branches stay apart. It is kept across
+  // date and branch changes; someone with no punches in range just shows none.
+  const selectedPerson = ref(null)
+  const personOptions = computed(() => {
+    const people = new Map()
+    for (const row of allRows.value) {
+      if (people.has(row.personKey)) continue
+      const title = showBranch.value ? `${row.name} · ${branchLabel(row.branchId)}` : row.name
+      people.set(row.personKey, { title, value: row.personKey })
+    }
+    return [...people.values()].toSorted((a, b) => a.title.localeCompare(b.title))
+  })
+  const rows = computed(() => selectedPerson.value ? allRows.value.filter(r => r.personKey === selectedPerson.value) : allRows.value)
 
   let requestSeq = 0
   async function load () {
@@ -344,6 +369,9 @@
 }
 .timesheet-date {
   flex: 0 1 170px;
+}
+.timesheet-person {
+  flex: 0 1 260px;
 }
 
 .timeline-row {
