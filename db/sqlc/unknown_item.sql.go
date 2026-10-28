@@ -140,8 +140,8 @@ func (q *Queries) CreateUnknownItemSession(ctx context.Context, arg CreateUnknow
 }
 
 const createUnknownItemSlot = `-- name: CreateUnknownItemSlot :exec
-INSERT INTO unknown_item_slots (session_id, slot_ref, position, label, unit_price, discount)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO unknown_item_slots (session_id, slot_ref, position, label, unit_price, discount, line_ref)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT (session_id, slot_ref) DO NOTHING
 `
 
@@ -152,6 +152,7 @@ type CreateUnknownItemSlotParams struct {
 	Label     string `json:"label"`
 	UnitPrice int64  `json:"unit_price"`
 	Discount  int16  `json:"discount"`
+	LineRef   string `json:"line_ref"`
 }
 
 func (q *Queries) CreateUnknownItemSlot(ctx context.Context, arg CreateUnknownItemSlotParams) error {
@@ -162,6 +163,7 @@ func (q *Queries) CreateUnknownItemSlot(ctx context.Context, arg CreateUnknownIt
 		arg.Label,
 		arg.UnitPrice,
 		arg.Discount,
+		arg.LineRef,
 	)
 	return err
 }
@@ -275,7 +277,7 @@ func (q *Queries) GetUnknownItemSessionByToken(ctx context.Context, token string
 }
 
 const getUnknownItemSlotByRef = `-- name: GetUnknownItemSlotByRef :one
-SELECT id, session_id, slot_ref, position, label, unit_price, discount, image_id, resolved_variant_id, resolved_at, waived_at, waived_by FROM unknown_item_slots WHERE session_id = $1 AND slot_ref = $2
+SELECT id, session_id, slot_ref, position, label, unit_price, discount, image_id, resolved_variant_id, resolved_at, waived_at, waived_by, line_ref FROM unknown_item_slots WHERE session_id = $1 AND slot_ref = $2
 `
 
 type GetUnknownItemSlotByRefParams struct {
@@ -299,12 +301,13 @@ func (q *Queries) GetUnknownItemSlotByRef(ctx context.Context, arg GetUnknownIte
 		&i.ResolvedAt,
 		&i.WaivedAt,
 		&i.WaivedBy,
+		&i.LineRef,
 	)
 	return i, err
 }
 
 const getUnknownItemSlotForResolve = `-- name: GetUnknownItemSlotForResolve :one
-SELECT s.id, s.session_id, s.slot_ref, s.position, s.label, s.unit_price, s.discount, s.image_id, s.resolved_variant_id, s.resolved_at, s.waived_at, s.waived_by, sess.branch_id, sess.branch_invoice_id
+SELECT s.id, s.session_id, s.slot_ref, s.position, s.label, s.unit_price, s.discount, s.image_id, s.resolved_variant_id, s.resolved_at, s.waived_at, s.waived_by, s.line_ref, sess.branch_id, sess.branch_invoice_id
 FROM unknown_item_slots s
 JOIN unknown_item_sessions sess ON sess.id = s.session_id
 WHERE s.id = $1
@@ -324,6 +327,7 @@ type GetUnknownItemSlotForResolveRow struct {
 	ResolvedAt        sql.NullTime  `json:"resolved_at"`
 	WaivedAt          sql.NullTime  `json:"waived_at"`
 	WaivedBy          string        `json:"waived_by"`
+	LineRef           string        `json:"line_ref"`
 	BranchID          int64         `json:"branch_id"`
 	BranchInvoiceID   sql.NullInt64 `json:"branch_invoice_id"`
 }
@@ -344,6 +348,7 @@ func (q *Queries) GetUnknownItemSlotForResolve(ctx context.Context, id int64) (G
 		&i.ResolvedAt,
 		&i.WaivedAt,
 		&i.WaivedBy,
+		&i.LineRef,
 		&i.BranchID,
 		&i.BranchInvoiceID,
 	)
@@ -521,7 +526,7 @@ func (q *Queries) ListUnknownItemImages(ctx context.Context, arg ListUnknownItem
 }
 
 const listUnknownItemSlotsForSession = `-- name: ListUnknownItemSlotsForSession :many
-SELECT id, session_id, slot_ref, position, label, unit_price, discount, image_id, resolved_variant_id, resolved_at, waived_at, waived_by FROM unknown_item_slots WHERE session_id = $1 ORDER BY position
+SELECT id, session_id, slot_ref, position, label, unit_price, discount, image_id, resolved_variant_id, resolved_at, waived_at, waived_by, line_ref FROM unknown_item_slots WHERE session_id = $1 ORDER BY position
 `
 
 func (q *Queries) ListUnknownItemSlotsForSession(ctx context.Context, sessionID int64) ([]UnknownItemSlot, error) {
@@ -546,6 +551,7 @@ func (q *Queries) ListUnknownItemSlotsForSession(ctx context.Context, sessionID 
 			&i.ResolvedAt,
 			&i.WaivedAt,
 			&i.WaivedBy,
+			&i.LineRef,
 		); err != nil {
 			return nil, err
 		}
@@ -855,8 +861,11 @@ func (q *Queries) SetBranchInvoiceItemResolved(ctx context.Context, arg SetBranc
 }
 
 const setUnknownItemSlotImage = `-- name: SetUnknownItemSlotImage :exec
-UPDATE unknown_item_slots SET image_id = $3
-WHERE session_id = $1 AND slot_ref = $2 AND resolved_at IS NULL
+UPDATE unknown_item_slots s SET image_id = $3
+WHERE s.session_id = $1 AND s.resolved_at IS NULL
+  AND (s.slot_ref = $2 OR (s.line_ref <> '' AND s.line_ref = (
+    SELECT o.line_ref FROM unknown_item_slots o WHERE o.session_id = $1 AND o.slot_ref = $2
+  )))
 `
 
 type SetUnknownItemSlotImageParams struct {
@@ -865,7 +874,8 @@ type SetUnknownItemSlotImageParams struct {
 	ImageID   sql.NullInt64 `json:"image_id"`
 }
 
-// A slot already matched to a product keeps the picture it was matched with.
+// The picture goes to the slot and to every other unit of its cart line. A
+// slot already matched to a product keeps the picture it was matched with.
 func (q *Queries) SetUnknownItemSlotImage(ctx context.Context, arg SetUnknownItemSlotImageParams) error {
 	_, err := q.db.ExecContext(ctx, setUnknownItemSlotImage, arg.SessionID, arg.SlotRef, arg.ImageID)
 	return err
