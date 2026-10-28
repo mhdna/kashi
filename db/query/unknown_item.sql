@@ -11,9 +11,31 @@ SELECT * FROM unknown_item_sessions WHERE branch_id = $1 AND client_ref = $2;
 SELECT * FROM unknown_item_sessions WHERE token = $1;
 
 -- name: CreateUnknownItemSlot :exec
+-- A till re-sending its session as the cart changes moves and relabels the
+-- units it already sent; their pictures stay.
 INSERT INTO unknown_item_slots (session_id, slot_ref, position, label, unit_price, discount, line_ref)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-ON CONFLICT (session_id, slot_ref) DO NOTHING;
+ON CONFLICT (session_id, slot_ref) DO UPDATE SET
+  position = EXCLUDED.position, label = EXCLUDED.label, unit_price = EXCLUDED.unit_price,
+  discount = EXCLUDED.discount, line_ref = EXCLUDED.line_ref;
+
+-- name: DeleteUnknownItemSlotsNotIn :exec
+-- Units taken off the cart since the session was last sent.
+DELETE FROM unknown_item_slots
+WHERE session_id = $1 AND NOT (slot_ref = ANY(@slot_refs::text[]));
+
+-- name: ShareUnknownLineImages :exec
+-- A unit added to a cart line that already has its picture shares it.
+UPDATE unknown_item_slots s SET image_id = (
+  SELECT o.image_id FROM unknown_item_slots o
+  WHERE o.session_id = s.session_id AND o.line_ref = s.line_ref AND o.image_id IS NOT NULL
+  ORDER BY o.position LIMIT 1
+)
+WHERE s.session_id = $1 AND s.image_id IS NULL AND s.line_ref <> '' AND s.resolved_at IS NULL
+  AND EXISTS (
+    SELECT 1 FROM unknown_item_slots o
+    WHERE o.session_id = s.session_id AND o.line_ref = s.line_ref AND o.image_id IS NOT NULL
+  );
 
 -- name: ListUnknownItemSlotsForSession :many
 SELECT * FROM unknown_item_slots WHERE session_id = $1 ORDER BY position;

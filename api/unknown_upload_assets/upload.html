@@ -196,7 +196,7 @@
   // This page's own path (/unknown_uploads/<token>, or /api/unknown_uploads/
   // <token> behind the prod proxy); every call hangs off it.
   var base = location.pathname.replace(/\/+$/, '');
-  var slots = [], local = {}, busy = {}, errors = {}, wasDone = null;
+  var slots = [], local = {}, busy = {}, errors = {};
 
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -274,10 +274,6 @@
     document.getElementById('bar').style.width = slots.length ? (100 * doneCount / slots.length) + '%' : '0';
     var allDone = !!slots.length && doneCount === slots.length;
     document.getElementById('done').classList.toggle('on', allDone);
-    // Closes the tab once the last picture lands, when the browser lets this
-    // page do so (only a tab a script opened can be closed).
-    if (allDone && wasDone === false) setTimeout(function () { try { window.close(); } catch (e) {} }, 2500);
-    wasDone = allDone;
   }
 
   // Shrinks a phone photo to ~900px JPEG before sending: tens of KB
@@ -347,9 +343,12 @@
     if (e.gone) { showInvalid(); return; }
     var f = document.getElementById('fatal'); f.hidden = false; f.textContent = e.message;
   });
+  // The till can add items to the session while the phone is open (it
+  // re-sends the cart as it changes), so the list is re-read every couple of
+  // seconds.
   setInterval(function () {
     if (!Object.keys(busy).length) refresh().catch(function (e) { if (e.gone) showInvalid(); });
-  }, 4000);
+  }, 2000);
 })();
 </script>
 </body>
