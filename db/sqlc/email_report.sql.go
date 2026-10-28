@@ -152,7 +152,7 @@ func (q *Queries) GetEmailSettings(ctx context.Context) (GetEmailSettingsRow, er
 
 const listEmailReportInvoices = `-- name: ListEmailReportInvoices :many
 WITH picked AS (
-  SELECT bi.id, bi.branch_id, bi.client_ref, bi.kind, bi.branch_invoice_code, bi.branch_cashbox_account_id, bi.branch_shift_id, bi.branch_inventory_id, bi.branch_client_id, bi.related_client_ref, bi.discount, bi.subtotal, bi.discounted_total, bi.grand_total, bi.loyalty_points_delta, bi.occurred_at, bi.received_at, bi.salesperson_name, bi.historical, bi.client_uid, bi.register_id, bi.cancelled_at, bi.salesperson_id, bi.lbp_total, bi.lbp_rate FROM branch_invoices bi
+  SELECT bi.id, bi.branch_id, bi.client_ref, bi.kind, bi.branch_invoice_code, bi.branch_cashbox_account_id, bi.branch_shift_id, bi.branch_inventory_id, bi.branch_client_id, bi.related_client_ref, bi.discount, bi.subtotal, bi.discounted_total, bi.grand_total, bi.loyalty_points_delta, bi.occurred_at, bi.received_at, bi.salesperson_name, bi.historical, bi.client_uid, bi.register_id, bi.cancelled_at, bi.salesperson_id, bi.lbp_total, bi.lbp_rate, bi.invoice_discount, bi.invoice_discount_name FROM branch_invoices bi
   JOIN branches b ON b.id = bi.branch_id
   WHERE bi.occurred_at >= ($1::date - 1)
     AND bi.occurred_at < ($2::date + 2)
@@ -390,7 +390,7 @@ func (q *Queries) ListEmailReportRegisters(ctx context.Context) ([]ListEmailRepo
 
 const listEmailReportShiftInvoices = `-- name: ListEmailReportShiftInvoices :many
 WITH picked AS (
-  SELECT bi.id, bi.branch_id, bi.client_ref, bi.kind, bi.branch_invoice_code, bi.branch_cashbox_account_id, bi.branch_shift_id, bi.branch_inventory_id, bi.branch_client_id, bi.related_client_ref, bi.discount, bi.subtotal, bi.discounted_total, bi.grand_total, bi.loyalty_points_delta, bi.occurred_at, bi.received_at, bi.salesperson_name, bi.historical, bi.client_uid, bi.register_id, bi.cancelled_at, bi.salesperson_id, bi.lbp_total, bi.lbp_rate FROM branch_invoices bi
+  SELECT bi.id, bi.branch_id, bi.client_ref, bi.kind, bi.branch_invoice_code, bi.branch_cashbox_account_id, bi.branch_shift_id, bi.branch_inventory_id, bi.branch_client_id, bi.related_client_ref, bi.discount, bi.subtotal, bi.discounted_total, bi.grand_total, bi.loyalty_points_delta, bi.occurred_at, bi.received_at, bi.salesperson_name, bi.historical, bi.client_uid, bi.register_id, bi.cancelled_at, bi.salesperson_id, bi.lbp_total, bi.lbp_rate, bi.invoice_discount, bi.invoice_discount_name FROM branch_invoices bi
   JOIN branch_shifts s ON s.register_id = bi.register_id AND s.branch_shift_id = bi.branch_shift_id
   WHERE s.id = $1
     AND bi.cancelled_at IS NULL
