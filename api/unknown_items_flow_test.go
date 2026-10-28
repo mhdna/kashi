@@ -218,8 +218,9 @@ func TestUnknownItemPictureCoversItsLine(t *testing.T) {
 		return rec
 	}
 
+	clientRef := uuid.NewString()
 	raw, _ := json.Marshal(map[string]any{
-		"client_ref": uuid.NewString(),
+		"client_ref": clientRef,
 		"slots": []map[string]any{
 			{"slot_ref": "1", "line_ref": "1", "label": "Unknown item #1", "unit_price": 200},
 			{"slot_ref": "2", "line_ref": "1", "label": "Unknown item #1", "unit_price": 200},
@@ -266,4 +267,34 @@ func TestUnknownItemPictureCoversItsLine(t *testing.T) {
 	require.Equal(t, out.Slots[0].ImageID, out.Slots[1].ImageID)
 	require.False(t, out.Slots[2].HasImage, "another line needs its own picture")
 	require.Equal(t, "2", out.Slots[2].LineRef)
+
+	// The cashier adds a unit to line 1 and takes line 2 off the cart while
+	// the phone is still open: the same link now lists the new set, and the
+	// new unit already shares its line's picture.
+	resend := func(slots []map[string]any) {
+		raw, _ := json.Marshal(map[string]any{"client_ref": clientRef, "slots": slots})
+		req := httptest.NewRequest(http.MethodPost, "/branch/unknown_sessions", bytes.NewReader(raw))
+		req.Header.Set(branchCodeHeaderKey, branch.Register.Code)
+		req.Header.Set(branchKeyHeaderKey, key)
+		req.Header.Set("Content-Type", "application/json")
+		rec := do(req)
+		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+		var again struct {
+			UploadToken string `json:"upload_token"`
+		}
+		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &again))
+		require.Equal(t, opened.UploadToken, again.UploadToken, "the phone's link stays the same")
+	}
+	resend([]map[string]any{
+		{"slot_ref": "1", "line_ref": "1", "label": "Unknown item #1", "unit_price": 200},
+		{"slot_ref": "2", "line_ref": "1", "label": "Unknown item #1", "unit_price": 200},
+		{"slot_ref": "4", "line_ref": "1", "label": "Unknown item #1", "unit_price": 200},
+	})
+	rec = do(httptest.NewRequest(http.MethodGet, "/unknown_uploads/"+opened.UploadToken+"/status", nil))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &out))
+	require.Len(t, out.Slots, 3)
+	require.Equal(t, "4", out.Slots[2].SlotRef)
+	require.Equal(t, out.Slots[0].ImageID, out.Slots[2].ImageID, "the added unit shares its line's picture")
+	require.True(t, out.Complete, "line 2 is gone, so nothing is missing")
 }
