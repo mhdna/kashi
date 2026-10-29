@@ -235,9 +235,35 @@
                     v-model="draft.whatsapp_message_logo"
                     color="primary"
                     density="compact"
-                    :disabled="!canEdit"
+                    :disabled="!canEdit || draft.whatsapp_poll_combined"
                     hide-details
                     label="Banner on top of the message (not a link)"
+                  />
+                </v-col>
+                <!-- The purchase details inside the poll: one message, not two. -->
+                <v-col cols="12" md="6">
+                  <v-switch
+                    v-model="draft.whatsapp_poll_combined"
+                    color="primary"
+                    density="compact"
+                    :disabled="!canEdit"
+                    hint="Plain text: no bold, no banner and no channel link, so it has its own short text"
+                    label="Send the purchase details inside the poll (one message)"
+                    persistent-hint
+                  />
+                </v-col>
+                <v-col v-if="draft.whatsapp_poll_combined" cols="12" md="6">
+                  <v-textarea
+                    v-model="draft.whatsapp_combined_message"
+                    auto-grow
+                    density="compact"
+                    :disabled="!canEdit"
+                    :hint="`Above the poll question. Same {placeholders} as the message; keep it short, WhatsApp cuts a poll after about ${pollTextLimit} characters`"
+                    label="Purchase details in the poll"
+                    persistent-hint
+                    :placeholder="defaultCombinedMessage"
+                    rows="3"
+                    variant="outlined"
                   />
                 </v-col>
                 <v-col cols="12" md="6">
@@ -411,7 +437,7 @@
         <v-col cols="12" md="5">
           <v-card class="card" variant="flat">
             <div class="card__title mb-2">Preview</div>
-            <div class="bubble">
+            <div v-if="!combined" class="bubble">
               <img
                 v-if="pollMode && draft.whatsapp_message_logo"
                 alt=""
@@ -420,13 +446,17 @@
               >
               <div v-html="previewHTML" />
             </div>
-            <div v-if="pollMode" class="bubble poll mt-1">
-              <div class="font-weight-medium mb-1">{{ pollQuestion }}</div>
+            <div v-if="pollMode" class="bubble poll" :class="{ 'mt-1': !combined }">
+              <div class="font-weight-medium mb-1 poll__text">{{ combined ? combinedText : pollQuestion }}</div>
               <div class="text-caption poll__hint mb-1">Select one</div>
               <div v-for="o in pollOptions" :key="o" class="poll__option">
                 <span class="poll__radio" />{{ o }}
               </div>
             </div>
+            <p v-if="combined" class="text-caption mt-2 mb-0" :class="combinedTooLong ? 'text-error' : 'text-medium-emphasis'">
+              {{ [...combinedText].length }} / {{ pollTextLimit }} characters{{ combinedTooLong ? ': WhatsApp may cut the end off, shorten the text' : '' }}.
+              The message on the left goes only to clients who get no poll (see "Who gets what").
+            </p>
           </v-card>
         </v-col>
 
@@ -696,6 +726,8 @@
   const defaultLinkMessage = ref('')
   const defaultPollQuestion = ref('')
   const defaultPollOptions = ref('')
+  const defaultCombinedMessage = ref('')
+  const pollTextLimit = ref(255)
   const defaultFollowups = ref({})
   // The follow-up for each kind of answer, by what it counts as.
   // One row per message: its switch for a new client, then for a returning one.
@@ -731,6 +763,8 @@
     defaultLinkMessage.value = body.default_link_message || ''
     defaultPollQuestion.value = body.default_poll_question || ''
     defaultPollOptions.value = body.default_poll_options || ''
+    defaultCombinedMessage.value = body.default_combined_message || ''
+    pollTextLimit.value = body.poll_text_limit || 255
     defaultFollowups.value = body.default_followups || {}
   }
   async function load () {
@@ -883,6 +917,15 @@
     const lines = (draft.value?.whatsapp_poll_options || '').split('\n').map(l => l.trim()).filter(Boolean)
     return lines.length >= 3 && lines.length <= 5 ? lines : defaultPollOptions.value.split('\n')
   })
+  // Like the server's whatsAppCombinedPollText: the details, a blank line,
+  // the question; no *_~ markers, as a poll shows them as they are.
+  const combined = computed(() => pollMode.value && !!draft.value?.whatsapp_poll_combined)
+  const combinedText = computed(() => {
+    const message = (draft.value?.whatsapp_combined_message?.trim() || defaultCombinedMessage.value).replaceAll(/[*_~]/g, '')
+    const details = fillMessage(message)
+    return details ? `${details}\n\n${pollQuestion.value}` : pollQuestion.value
+  })
+  const combinedTooLong = computed(() => [...combinedText.value].length > pollTextLimit.value)
   const previewHTML = computed(() => {
     const message = pollMode.value
       ? (draft.value?.whatsapp_bridge_message || defaultMessage.value)
@@ -1070,6 +1113,9 @@
 }
 .poll__hint {
   color: #667781;
+}
+.poll__text {
+  white-space: pre-line;
 }
 .poll__option {
   display: flex;
