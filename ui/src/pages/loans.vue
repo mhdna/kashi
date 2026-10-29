@@ -327,6 +327,7 @@
   import { authFetch } from '@/composables/useApi'
   import { useBranches } from '@/composables/useBranches'
   import { useBulkDelete } from '@/composables/useBulkDelete'
+  import { confirmDialog } from '@/composables/useDialog'
   import { useLoanCategories } from '@/composables/useLoanCategories'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
@@ -573,7 +574,7 @@
   }
 
   async function removePayment (loan, payment) {
-    if (!confirm(`Delete this payment of ${formatMoney(payment.amount)} ${payment.currency_code}?`)) return
+    if (!(await confirmDialog({ text: `Delete this payment of ${formatMoney(payment.amount)} ${payment.currency_code}?`, okText: 'Delete', danger: true }))) return
     try {
       const res = await authFetch(`${API_BASE}/loan_payments/${payment.id}`, { method: 'DELETE' })
       if (!res.ok) {
@@ -590,7 +591,7 @@
   // A branch loan can't be deleted -- the till keeps it, marked cancelled,
   // and every total skips it.
   async function cancelLoan (loan) {
-    if (!confirm(`Cancel loan "${loan.description}"? The branch will show it as cancelled.`)) return
+    if (!(await confirmDialog({ text: `Cancel loan "${loan.description}"? The branch will show it as cancelled.`, okText: 'Cancel it', danger: true }))) return
     try {
       const res = await authFetch(`${API_BASE}/loans/${loan.id}/cancel`, { method: 'POST' })
       if (!res.ok) {
@@ -678,7 +679,7 @@
 
   async function removeLoan () {
     if (!editingId.value) return
-    if (!confirm('Delete this loan? Loans that still have payments can\'t be deleted.')) return
+    if (!(await confirmDialog({ text: 'Delete this loan? Loans that still have payments can\'t be deleted.', okText: 'Delete', danger: true }))) return
     submitting.value = true
     try {
       const res = await authFetch(`${API_BASE}/loans/${editingId.value}`, { method: 'DELETE' })
@@ -719,7 +720,7 @@
   }
 
   async function removeCategory (category) {
-    if (!confirm(`Delete category "${category.name}"? Categories still used by a loan can't be deleted.`)) return
+    if (!(await confirmDialog({ text: `Delete category "${category.name}"? Categories still used by a loan can't be deleted.`, okText: 'Delete', danger: true }))) return
     try {
       await deleteLoanCategory(category.id)
       if (selectedCategory.value === category.id) selectedCategory.value = null

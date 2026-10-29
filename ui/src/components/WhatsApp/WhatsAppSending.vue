@@ -660,6 +660,7 @@
 
 <script setup>
   import { computed, onUnmounted, ref } from 'vue'
+  import { confirmDialog, promptDialog } from '@/composables/useDialog'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { useWhatsApp } from '@/composables/useWhatsApp'
@@ -991,7 +992,7 @@
     }
   }
   async function rename (n) {
-    const label = window.prompt('Name', n.label)
+    const label = await promptDialog({ title: 'Rename number', label: 'Name', value: n.label, okText: 'Save' })
     if (label == null) return
     try {
       await updateNumber(n.id, { label: label.trim(), is_default: n.is_default })
@@ -1003,10 +1004,16 @@
   // A number that only carries bigger sales (a restricted one, say): smaller
   // invoices go out from the branch's next number, the default, or the oldest.
   async function setMinTotal (n) {
-    const answer = window.prompt(
-      `Send from ${n.label || 'this number'} only for invoices of at least ($). Smaller ones go from another number. 0 = every invoice.`,
-      String((n.min_total_cents ?? 0) / 100),
-    )
+    const answer = await promptDialog({
+      title: `Minimum invoice for ${n.label || 'this number'}`,
+      text: 'Send from this number only for invoices of at least this amount. Smaller ones go from another number.',
+      label: 'Minimum invoice',
+      prefix: '$',
+      type: 'number',
+      hint: '0 = every invoice',
+      value: (n.min_total_cents ?? 0) / 100,
+      okText: 'Save',
+    })
     if (answer == null) return
     const dollars = Number(answer.trim() || 0)
     if (!Number.isFinite(dollars) || dollars < 0) {
@@ -1021,7 +1028,7 @@
     }
   }
   async function remove (n) {
-    if (!window.confirm(`Remove ${n.label || 'this number'}? It is unlinked from WhatsApp, and branches sending from it go back to the default number.`)) return
+    if (!(await confirmDialog({ text: `Remove ${n.label || 'this number'}? It is unlinked from WhatsApp, and branches sending from it go back to the default number.`, okText: 'Remove', danger: true }))) return
     try {
       await deleteNumber(n.id)
       await load()

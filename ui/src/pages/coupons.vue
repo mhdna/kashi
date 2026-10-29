@@ -453,6 +453,7 @@
   import { useCouponLists } from '@/composables/useCouponLists'
   import { useCoupons } from '@/composables/useCoupons'
   import { useCouponTypes } from '@/composables/useCouponTypes'
+  import { confirmDialog } from '@/composables/useDialog'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
@@ -680,7 +681,7 @@
   }
 
   async function removeCategory (category) {
-    if (!confirm(`Delete category "${category.name}"? Categories still used by a coupon can't be deleted.`)) return
+    if (!(await confirmDialog({ text: `Delete category "${category.name}"? Categories still used by a coupon can't be deleted.`, okText: 'Delete', danger: true }))) return
     try {
       await deleteCouponCategory(category.id)
       if (selectedCategory.value === category.id) selectedCategory.value = null
@@ -766,7 +767,7 @@
   }
 
   async function removeType (item) {
-    if (!confirm(`Delete coupon type "${item.name}"? Types still used by a coupon can't be deleted.`)) return
+    if (!(await confirmDialog({ text: `Delete coupon type "${item.name}"? Types still used by a coupon can't be deleted.`, okText: 'Delete', danger: true }))) return
     try {
       await deleteCouponType(item.id)
     } catch (error) {
@@ -827,7 +828,7 @@
   }
 
   async function closeList (item) {
-    if (!confirm(`Close campaign "${item.name}"? Every still-active code it minted will be deactivated too.`)) return
+    if (!(await confirmDialog({ text: `Close campaign "${item.name}"? Every still-active code it minted will be deactivated too.`, okText: 'Close', danger: true }))) return
     try {
       await deactivateCouponList(item.id)
     } catch (error) {

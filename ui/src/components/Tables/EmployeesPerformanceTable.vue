@@ -250,6 +250,7 @@
 <script setup lang="ts">
   import { computed, onMounted, reactive, ref } from 'vue'
   import { useBranches } from '@/composables/useBranches'
+  import { confirmDialog } from '@/composables/useDialog'
   import { useEmployees } from '@/composables/useEmployees'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
@@ -499,7 +500,7 @@
   }
 
   async function remove (item) {
-    if (!confirm(`Delete employee "${item.name}"?`)) return
+    if (!(await confirmDialog({ text: `Delete employee "${item.name}"?`, okText: 'Delete', danger: true }))) return
     try {
       await deleteEmployee(item.id)
       await reload()
