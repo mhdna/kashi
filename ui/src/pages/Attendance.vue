@@ -218,6 +218,7 @@
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useAttendance } from '@/composables/useAttendance'
   import { useBranches } from '@/composables/useBranches'
+  import { confirmDialog } from '@/composables/useDialog'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
@@ -364,7 +365,7 @@
   }
 
   async function remove (item) {
-    if (!confirm(`Delete the ${item.event_date} ${item.event_time} punch for ${item.salesperson_name || 'this employee'}?`)) return
+    if (!(await confirmDialog({ text: `Delete the ${item.event_date} ${item.event_time} punch for ${item.salesperson_name || 'this employee'}?`, okText: 'Delete', danger: true }))) return
     try {
       await deleteEvent(item.id)
       reload()

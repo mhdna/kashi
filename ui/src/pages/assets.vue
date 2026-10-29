@@ -190,6 +190,7 @@
   import { useAssetCategories } from '@/composables/useAssetCategories'
   import { useAssets } from '@/composables/useAssets'
   import { useBulkDelete } from '@/composables/useBulkDelete'
+  import { confirmDialog } from '@/composables/useDialog'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
@@ -370,7 +371,7 @@
   }
 
   async function removeCategory (category) {
-    if (!confirm(`Delete category "${category.name}"? Categories still used by an asset can't be deleted.`)) return
+    if (!(await confirmDialog({ text: `Delete category "${category.name}"? Categories still used by an asset can't be deleted.`, okText: 'Delete', danger: true }))) return
     try {
       await deleteAssetCategory(category.id)
       if (selectedCategory.value === category.id) selectedCategory.value = null

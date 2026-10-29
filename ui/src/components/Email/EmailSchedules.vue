@@ -105,6 +105,7 @@
   import { computed, onMounted, onUnmounted, ref } from 'vue'
   import EmailScheduleDialog from '@/components/Email/EmailScheduleDialog.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
+  import { confirmDialog } from '@/composables/useDialog'
   import { useEmailReports } from '@/composables/useEmailReports'
   import { useNotify } from '@/composables/useNotify'
   import { useAuthStore } from '@/stores/auth'
@@ -244,7 +245,7 @@
   }
 
   async function remove (item) {
-    if (!window.confirm(`Delete “${item.name || 'Untitled'}”? Reports it already sent stay in History.`)) return
+    if (!(await confirmDialog({ text: `Delete “${item.name || 'Untitled'}”? Reports it already sent stay in History.`, okText: 'Delete', danger: true }))) return
     try {
       await deleteEmailSchedule(item.id)
       await load()

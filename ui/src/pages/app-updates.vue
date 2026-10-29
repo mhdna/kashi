@@ -340,6 +340,7 @@
   import { computed, onMounted, onUnmounted, ref } from 'vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useAppUpdates } from '@/composables/useAppUpdates'
+  import { confirmDialog } from '@/composables/useDialog'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
 
@@ -509,7 +510,7 @@
   async function confirmRollback (r) {
     const prev = previousReleaseFor(r)
     if (!prev) return
-    if (!window.confirm(`Roll ${r.branch_name} · ${r.code} back from ${r.app_version} to ${prev.version}? It installs at the next safe moment, like an update.`)) return
+    if (!(await confirmDialog({ text: `Roll ${r.branch_name} · ${r.code} back from ${r.app_version} to ${prev.version}? It installs at the next safe moment, like an update.`, okText: 'Roll back' }))) return
     await saveTarget(prev.id, [r.id])
   }
 
@@ -566,7 +567,7 @@
     }
   }
   async function deleteRelease (release) {
-    if (!window.confirm(`Delete release ${release.version} (${release.flavor})? Tills that already run it keep it.`)) return
+    if (!(await confirmDialog({ text: `Delete release ${release.version} (${release.flavor})? Tills that already run it keep it.`, okText: 'Delete', danger: true }))) return
     try {
       await api.deleteRelease(release.id)
       await reloadAll()

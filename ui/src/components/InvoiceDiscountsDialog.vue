@@ -218,6 +218,7 @@
   import { computed, reactive, ref, watch } from 'vue'
   import { authFetch } from '@/composables/useApi'
   import { useBranches } from '@/composables/useBranches'
+  import { confirmDialog } from '@/composables/useDialog'
   import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
   import { formatMoney } from '@/utils/money'
@@ -355,7 +356,7 @@
   }
 
   async function remove (rule) {
-    if (!confirm(`Delete "${rule.name}"? The tills stop giving it on their next sync.`)) return
+    if (!(await confirmDialog({ text: `Delete "${rule.name}"? The tills stop giving it on their next sync.`, okText: 'Delete', danger: true }))) return
     try {
       await requestJSON(`/invoice_discounts/${rule.id}`, { method: 'DELETE' })
       await load()

@@ -4,12 +4,14 @@
     <ErrorBoundary v-else>
       <router-view />
     </ErrorBoundary>
+    <AppDialog />
   </v-app>
 </template>
 
 <script lang="ts" setup>
   import { computed, watch } from 'vue'
   import { useTheme } from 'vuetify'
+  import AppDialog from '@/components/AppDialog.vue'
   import ErrorBoundary from '@/components/ErrorBoundary.vue'
   import UnsupportedDevice from '@/components/UnsupportedDevice.vue'
   import { BLOCK_NON_DESKTOP } from '@/config'

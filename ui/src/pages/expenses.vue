@@ -480,6 +480,7 @@
   import { authFetch } from '@/composables/useApi'
   import { useBranches } from '@/composables/useBranches'
   import { useBulkDelete } from '@/composables/useBulkDelete'
+  import { confirmDialog } from '@/composables/useDialog'
   import { useExpenseCategories } from '@/composables/useExpenseCategories'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
@@ -735,7 +736,7 @@
   })
 
   async function removeExpense (item) {
-    if (!confirm(`Delete expense "${item.description}"?`)) return
+    if (!(await confirmDialog({ text: `Delete expense "${item.description}"?`, okText: 'Delete', danger: true }))) return
     try {
       await apiJSON(`${API_BASE}/expenses/${item.id}`, { method: 'DELETE' })
       fetchExpenses()
@@ -753,7 +754,7 @@
   // A branch expense can't be deleted -- the till keeps it, marked
   // cancelled, and every total skips it.
   async function cancelBranchExpense (item) {
-    if (!confirm(`Cancel expense "${item.description}"? The branch will show it as cancelled.`)) return
+    if (!(await confirmDialog({ text: `Cancel expense "${item.description}"? The branch will show it as cancelled.`, okText: 'Cancel it', danger: true }))) return
     try {
       await apiJSON(`${API_BASE}/branch_expenses/${item.id}/cancel`, { method: 'POST' })
       fetchBranchExpenses(false)
@@ -770,7 +771,7 @@
     const question = next
       ? `Mark "${item.description}" as paid by central (من المركزي)? The branch's shift will stop taking it out of the drawer.`
       : `Mark "${item.description}" as paid from the till? The branch's shift will take it out of the drawer again.`
-    if (!confirm(question)) return
+    if (!(await confirmDialog({ text: question, okText: 'Mark' }))) return
     item.from_central = next
     try {
       const data = await apiJSON(`${API_BASE}/branch_expenses/${item.id}/from_central`, {
@@ -1070,7 +1071,7 @@
   }
 
   async function removeCategory (category) {
-    if (!confirm(`Delete category "${category.name}"? Categories still used by an expense can't be deleted.`)) return
+    if (!(await confirmDialog({ text: `Delete category "${category.name}"? Categories still used by an expense can't be deleted.`, okText: 'Delete', danger: true }))) return
     try {
       await deleteExpenseCategory(category.id)
       if (selectedCategory.value === category.id) selectedCategory.value = null
