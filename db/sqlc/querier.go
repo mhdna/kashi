@@ -1080,6 +1080,11 @@ type Querier interface {
 	ListCashboxAccountsForSync(ctx context.Context) ([]CashboxAccount, error)
 	ListCashboxAccountsUpdatedSince(ctx context.Context, updatedAt time.Time) ([]CashboxAccount, error)
 	ListCashboxes(ctx context.Context, arg ListCashboxesParams) ([]Cashbox, error)
+	// Releases whose file can go (see api/app_release_cleanup.go): not among
+	// the newest `keep` of their flavor, no active register still waiting to
+	// install it, and either sent somewhere already or superseded by a newer
+	// upload.
+	ListCleanableAppReleases(ctx context.Context, keep int64) ([]ListCleanableAppReleasesRow, error)
 	// Distinct countries actually present among clients' phones, for the
 	// clients page's country filter dropdown -- so it only ever offers a
 	// country that would return at least one result, instead of the full
@@ -1562,6 +1567,8 @@ type Querier interface {
 	// invoices (sales positive, returns negative) plus non-cancelled branch
 	// invoices of reported-on branches/registers.
 	LoyaltyTierStats(ctx context.Context, arg LoyaltyTierStatsParams) ([]LoyaltyTierStatsRow, error)
+	MarkAppReleaseFileRemoved(ctx context.Context, id int64) error
+	MarkAppReleaseTargeted(ctx context.Context, id int64) error
 	// The original punch of an approved replace/delete on the till. Kept, not
 	// deleted, so the audit trail shows what was there and who took it away.
 	MarkBranchAttendanceEventRemoved(ctx context.Context, arg MarkBranchAttendanceEventRemovedParams) error
@@ -1583,6 +1590,8 @@ type Querier interface {
 	// answer: why it wasn't great, and what they looked for and didn't find.
 	PollReplies(ctx context.Context, arg PollRepliesParams) ([]PollRepliesRow, error)
 	ProductBarcodesPresent(ctx context.Context, dollar_1 []string) ([]string, error)
+	// Publishing a version whose file was cleaned up uploads it again.
+	ReattachAppReleaseFile(ctx context.Context, arg ReattachAppReleaseFileParams) (AppRelease, error)
 	// Apply an inbound quantity delta and roll the per-location moving-average
 	// cost forward. When existing on-hand is <= 0 the average is just reset to
 	// the incoming cost (no meaningful prior average to blend).
@@ -1716,6 +1725,7 @@ type Querier interface {
 	// basis from an external cost list (cmd/import_costs-style one-off); it
 	// never overwrites a real moving-average cost built from real receipts.
 	SeedProductVariantsCostByCode(ctx context.Context, arg SeedProductVariantsCostByCodeParams) (int64, error)
+	SetAppReleaseKeep(ctx context.Context, appReleaseKeep int32) (AppSetting, error)
 	SetAssetCost(ctx context.Context, arg SetAssetCostParams) error
 	SetBarcodeLabelDesign(ctx context.Context, barcodeLabelDesign json.RawMessage) (AppSetting, error)
 	SetBranchActive(ctx context.Context, arg SetBranchActiveParams) error

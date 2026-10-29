@@ -8417,6 +8417,21 @@ func (mr *MockStoreMockRecorder) ListCashboxes(arg0, arg1 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCashboxes", reflect.TypeOf((*MockStore)(nil).ListCashboxes), arg0, arg1)
 }
 
+// ListCleanableAppReleases mocks base method.
+func (m *MockStore) ListCleanableAppReleases(arg0 context.Context, arg1 int64) ([]db.ListCleanableAppReleasesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListCleanableAppReleases", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListCleanableAppReleasesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListCleanableAppReleases indicates an expected call of ListCleanableAppReleases.
+func (mr *MockStoreMockRecorder) ListCleanableAppReleases(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCleanableAppReleases", reflect.TypeOf((*MockStore)(nil).ListCleanableAppReleases), arg0, arg1)
+}
+
 // ListClientPhoneCountries mocks base method.
 func (m *MockStore) ListClientPhoneCountries(arg0 context.Context) ([]db.ListClientPhoneCountriesRow, error) {
 	m.ctrl.T.Helper()
@@ -10712,6 +10727,34 @@ func (mr *MockStoreMockRecorder) LoyaltyTierStats(arg0, arg1 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoyaltyTierStats", reflect.TypeOf((*MockStore)(nil).LoyaltyTierStats), arg0, arg1)
 }
 
+// MarkAppReleaseFileRemoved mocks base method.
+func (m *MockStore) MarkAppReleaseFileRemoved(arg0 context.Context, arg1 int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkAppReleaseFileRemoved", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkAppReleaseFileRemoved indicates an expected call of MarkAppReleaseFileRemoved.
+func (mr *MockStoreMockRecorder) MarkAppReleaseFileRemoved(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAppReleaseFileRemoved", reflect.TypeOf((*MockStore)(nil).MarkAppReleaseFileRemoved), arg0, arg1)
+}
+
+// MarkAppReleaseTargeted mocks base method.
+func (m *MockStore) MarkAppReleaseTargeted(arg0 context.Context, arg1 int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkAppReleaseTargeted", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkAppReleaseTargeted indicates an expected call of MarkAppReleaseTargeted.
+func (mr *MockStoreMockRecorder) MarkAppReleaseTargeted(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAppReleaseTargeted", reflect.TypeOf((*MockStore)(nil).MarkAppReleaseTargeted), arg0, arg1)
+}
+
 // MarkBranchAttendanceEventRemoved mocks base method.
 func (m *MockStore) MarkBranchAttendanceEventRemoved(arg0 context.Context, arg1 db.MarkBranchAttendanceEventRemovedParams) error {
 	m.ctrl.T.Helper()
@@ -10927,6 +10970,21 @@ func (m *MockStore) PurchaseReceiveTx(arg0 context.Context, arg1 db.PurchaseRece
 func (mr *MockStoreMockRecorder) PurchaseReceiveTx(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PurchaseReceiveTx", reflect.TypeOf((*MockStore)(nil).PurchaseReceiveTx), arg0, arg1)
+}
+
+// ReattachAppReleaseFile mocks base method.
+func (m *MockStore) ReattachAppReleaseFile(arg0 context.Context, arg1 db.ReattachAppReleaseFileParams) (db.AppRelease, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReattachAppReleaseFile", arg0, arg1)
+	ret0, _ := ret[0].(db.AppRelease)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReattachAppReleaseFile indicates an expected call of ReattachAppReleaseFile.
+func (mr *MockStoreMockRecorder) ReattachAppReleaseFile(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReattachAppReleaseFile", reflect.TypeOf((*MockStore)(nil).ReattachAppReleaseFile), arg0, arg1)
 }
 
 // ReceiveInventoryStock mocks base method.
@@ -11723,6 +11781,21 @@ func (m *MockStore) SeedProductVariantsCostByCode(arg0 context.Context, arg1 db.
 func (mr *MockStoreMockRecorder) SeedProductVariantsCostByCode(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SeedProductVariantsCostByCode", reflect.TypeOf((*MockStore)(nil).SeedProductVariantsCostByCode), arg0, arg1)
+}
+
+// SetAppReleaseKeep mocks base method.
+func (m *MockStore) SetAppReleaseKeep(arg0 context.Context, arg1 int32) (db.AppSetting, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetAppReleaseKeep", arg0, arg1)
+	ret0, _ := ret[0].(db.AppSetting)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetAppReleaseKeep indicates an expected call of SetAppReleaseKeep.
+func (mr *MockStoreMockRecorder) SetAppReleaseKeep(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetAppReleaseKeep", reflect.TypeOf((*MockStore)(nil).SetAppReleaseKeep), arg0, arg1)
 }
 
 // SetAssetCost mocks base method.

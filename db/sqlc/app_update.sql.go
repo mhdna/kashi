@@ -27,7 +27,7 @@ func (q *Queries) CountRegistersTargetingRelease(ctx context.Context, targetRele
 const createAppRelease = `-- name: CreateAppRelease :one
 INSERT INTO app_releases (version, flavor, file_name, file_path, size_bytes, sha256, signature, notes, uploaded_by)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, version, flavor, file_name, file_path, size_bytes, sha256, signature, notes, uploaded_by, created_at
+RETURNING id, version, flavor, file_name, file_path, size_bytes, sha256, signature, notes, uploaded_by, created_at, targeted_at, file_removed_at
 `
 
 type CreateAppReleaseParams struct {
@@ -67,6 +67,8 @@ func (q *Queries) CreateAppRelease(ctx context.Context, arg CreateAppReleasePara
 		&i.Notes,
 		&i.UploadedBy,
 		&i.CreatedAt,
+		&i.TargetedAt,
+		&i.FileRemovedAt,
 	)
 	return i, err
 }
@@ -105,7 +107,7 @@ func (q *Queries) DeleteAppRelease(ctx context.Context, id int64) error {
 }
 
 const getAppRelease = `-- name: GetAppRelease :one
-SELECT id, version, flavor, file_name, file_path, size_bytes, sha256, signature, notes, uploaded_by, created_at FROM app_releases WHERE id = $1
+SELECT id, version, flavor, file_name, file_path, size_bytes, sha256, signature, notes, uploaded_by, created_at, targeted_at, file_removed_at FROM app_releases WHERE id = $1
 `
 
 func (q *Queries) GetAppRelease(ctx context.Context, id int64) (AppRelease, error) {
@@ -123,29 +125,33 @@ func (q *Queries) GetAppRelease(ctx context.Context, id int64) (AppRelease, erro
 		&i.Notes,
 		&i.UploadedBy,
 		&i.CreatedAt,
+		&i.TargetedAt,
+		&i.FileRemovedAt,
 	)
 	return i, err
 }
 
 const getRegisterTargetRelease = `-- name: GetRegisterTargetRelease :one
-SELECT a.id, a.version, a.flavor, a.file_name, a.file_path, a.size_bytes, a.sha256, a.signature, a.notes, a.uploaded_by, a.created_at, r.target_force FROM app_releases a
+SELECT a.id, a.version, a.flavor, a.file_name, a.file_path, a.size_bytes, a.sha256, a.signature, a.notes, a.uploaded_by, a.created_at, a.targeted_at, a.file_removed_at, r.target_force FROM app_releases a
 JOIN branch_registers r ON r.target_release_id = a.id
 WHERE r.id = $1
 `
 
 type GetRegisterTargetReleaseRow struct {
-	ID          int64         `json:"id"`
-	Version     string        `json:"version"`
-	Flavor      string        `json:"flavor"`
-	FileName    string        `json:"file_name"`
-	FilePath    string        `json:"file_path"`
-	SizeBytes   int64         `json:"size_bytes"`
-	Sha256      string        `json:"sha256"`
-	Signature   string        `json:"signature"`
-	Notes       string        `json:"notes"`
-	UploadedBy  sql.NullInt64 `json:"uploaded_by"`
-	CreatedAt   time.Time     `json:"created_at"`
-	TargetForce bool          `json:"target_force"`
+	ID            int64         `json:"id"`
+	Version       string        `json:"version"`
+	Flavor        string        `json:"flavor"`
+	FileName      string        `json:"file_name"`
+	FilePath      string        `json:"file_path"`
+	SizeBytes     int64         `json:"size_bytes"`
+	Sha256        string        `json:"sha256"`
+	Signature     string        `json:"signature"`
+	Notes         string        `json:"notes"`
+	UploadedBy    sql.NullInt64 `json:"uploaded_by"`
+	CreatedAt     time.Time     `json:"created_at"`
+	TargetedAt    sql.NullTime  `json:"targeted_at"`
+	FileRemovedAt sql.NullTime  `json:"file_removed_at"`
+	TargetForce   bool          `json:"target_force"`
 }
 
 func (q *Queries) GetRegisterTargetRelease(ctx context.Context, id int64) (GetRegisterTargetReleaseRow, error) {
@@ -163,13 +169,15 @@ func (q *Queries) GetRegisterTargetRelease(ctx context.Context, id int64) (GetRe
 		&i.Notes,
 		&i.UploadedBy,
 		&i.CreatedAt,
+		&i.TargetedAt,
+		&i.FileRemovedAt,
 		&i.TargetForce,
 	)
 	return i, err
 }
 
 const listAppReleases = `-- name: ListAppReleases :many
-SELECT a.id, a.version, a.flavor, a.file_name, a.file_path, a.size_bytes, a.sha256, a.signature, a.notes, a.uploaded_by, a.created_at,
+SELECT a.id, a.version, a.flavor, a.file_name, a.file_path, a.size_bytes, a.sha256, a.signature, a.notes, a.uploaded_by, a.created_at, a.targeted_at, a.file_removed_at,
   (SELECT count(*) FROM branch_registers r
     WHERE r.is_active AND r.app_version = a.version AND r.app_flavor = a.flavor)::bigint AS running_count,
   (SELECT count(*) FROM branch_registers r
@@ -179,19 +187,21 @@ ORDER BY a.created_at DESC, a.id DESC
 `
 
 type ListAppReleasesRow struct {
-	ID           int64         `json:"id"`
-	Version      string        `json:"version"`
-	Flavor       string        `json:"flavor"`
-	FileName     string        `json:"file_name"`
-	FilePath     string        `json:"file_path"`
-	SizeBytes    int64         `json:"size_bytes"`
-	Sha256       string        `json:"sha256"`
-	Signature    string        `json:"signature"`
-	Notes        string        `json:"notes"`
-	UploadedBy   sql.NullInt64 `json:"uploaded_by"`
-	CreatedAt    time.Time     `json:"created_at"`
-	RunningCount int64         `json:"running_count"`
-	TargetCount  int64         `json:"target_count"`
+	ID            int64         `json:"id"`
+	Version       string        `json:"version"`
+	Flavor        string        `json:"flavor"`
+	FileName      string        `json:"file_name"`
+	FilePath      string        `json:"file_path"`
+	SizeBytes     int64         `json:"size_bytes"`
+	Sha256        string        `json:"sha256"`
+	Signature     string        `json:"signature"`
+	Notes         string        `json:"notes"`
+	UploadedBy    sql.NullInt64 `json:"uploaded_by"`
+	CreatedAt     time.Time     `json:"created_at"`
+	TargetedAt    sql.NullTime  `json:"targeted_at"`
+	FileRemovedAt sql.NullTime  `json:"file_removed_at"`
+	RunningCount  int64         `json:"running_count"`
+	TargetCount   int64         `json:"target_count"`
 }
 
 // Newest first, with how many active registers run each release and how
@@ -217,6 +227,8 @@ func (q *Queries) ListAppReleases(ctx context.Context) ([]ListAppReleasesRow, er
 			&i.Notes,
 			&i.UploadedBy,
 			&i.CreatedAt,
+			&i.TargetedAt,
+			&i.FileRemovedAt,
 			&i.RunningCount,
 			&i.TargetCount,
 		); err != nil {
@@ -344,6 +356,57 @@ func (q *Queries) ListBranchRegistersByIDs(ctx context.Context, ids []int64) ([]
 	return items, nil
 }
 
+const listCleanableAppReleases = `-- name: ListCleanableAppReleases :many
+SELECT a.id, a.version, a.flavor, a.file_path FROM app_releases a
+WHERE a.file_removed_at IS NULL
+  AND (SELECT count(*) FROM app_releases n
+        WHERE n.flavor = a.flavor AND (n.created_at, n.id) > (a.created_at, a.id)) >= $1::bigint
+  AND NOT EXISTS (SELECT 1 FROM branch_registers r
+        WHERE r.is_active AND r.target_release_id = a.id AND r.app_version <> a.version)
+  AND (a.targeted_at IS NOT NULL
+       OR EXISTS (SELECT 1 FROM app_releases n
+        WHERE n.flavor = a.flavor AND (n.created_at, n.id) > (a.created_at, a.id)))
+`
+
+type ListCleanableAppReleasesRow struct {
+	ID       int64  `json:"id"`
+	Version  string `json:"version"`
+	Flavor   string `json:"flavor"`
+	FilePath string `json:"file_path"`
+}
+
+// Releases whose file can go (see api/app_release_cleanup.go): not among
+// the newest `keep` of their flavor, no active register still waiting to
+// install it, and either sent somewhere already or superseded by a newer
+// upload.
+func (q *Queries) ListCleanableAppReleases(ctx context.Context, keep int64) ([]ListCleanableAppReleasesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listCleanableAppReleases, keep)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListCleanableAppReleasesRow{}
+	for rows.Next() {
+		var i ListCleanableAppReleasesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Version,
+			&i.Flavor,
+			&i.FilePath,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listRegisterUpdateStatuses = `-- name: ListRegisterUpdateStatuses :many
 SELECT r.id, r.branch_id, b.name AS branch_name, b.code AS branch_code,
   r.code, r.name, r.is_active, r.last_seen_at,
@@ -415,6 +478,76 @@ func (q *Queries) ListRegisterUpdateStatuses(ctx context.Context) ([]ListRegiste
 	return items, nil
 }
 
+const markAppReleaseFileRemoved = `-- name: MarkAppReleaseFileRemoved :exec
+UPDATE app_releases SET file_removed_at = now() WHERE id = $1
+`
+
+func (q *Queries) MarkAppReleaseFileRemoved(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, markAppReleaseFileRemoved, id)
+	return err
+}
+
+const markAppReleaseTargeted = `-- name: MarkAppReleaseTargeted :exec
+UPDATE app_releases SET targeted_at = coalesce(targeted_at, now()) WHERE id = $1
+`
+
+func (q *Queries) MarkAppReleaseTargeted(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, markAppReleaseTargeted, id)
+	return err
+}
+
+const reattachAppReleaseFile = `-- name: ReattachAppReleaseFile :one
+UPDATE app_releases
+SET file_name = $1, file_path = $2,
+    size_bytes = $3, sha256 = $4, signature = $5,
+    notes = CASE WHEN $6::text = '' THEN notes ELSE $6::text END,
+    targeted_at = NULL, file_removed_at = NULL
+WHERE version = $7 AND flavor = $8 AND file_removed_at IS NOT NULL
+RETURNING id, version, flavor, file_name, file_path, size_bytes, sha256, signature, notes, uploaded_by, created_at, targeted_at, file_removed_at
+`
+
+type ReattachAppReleaseFileParams struct {
+	FileName  string `json:"file_name"`
+	FilePath  string `json:"file_path"`
+	SizeBytes int64  `json:"size_bytes"`
+	Sha256    string `json:"sha256"`
+	Signature string `json:"signature"`
+	Notes     string `json:"notes"`
+	Version   string `json:"version"`
+	Flavor    string `json:"flavor"`
+}
+
+// Publishing a version whose file was cleaned up uploads it again.
+func (q *Queries) ReattachAppReleaseFile(ctx context.Context, arg ReattachAppReleaseFileParams) (AppRelease, error) {
+	row := q.db.QueryRowContext(ctx, reattachAppReleaseFile,
+		arg.FileName,
+		arg.FilePath,
+		arg.SizeBytes,
+		arg.Sha256,
+		arg.Signature,
+		arg.Notes,
+		arg.Version,
+		arg.Flavor,
+	)
+	var i AppRelease
+	err := row.Scan(
+		&i.ID,
+		&i.Version,
+		&i.Flavor,
+		&i.FileName,
+		&i.FilePath,
+		&i.SizeBytes,
+		&i.Sha256,
+		&i.Signature,
+		&i.Notes,
+		&i.UploadedBy,
+		&i.CreatedAt,
+		&i.TargetedAt,
+		&i.FileRemovedAt,
+	)
+	return i, err
+}
+
 const setRegisterUpdateStatus = `-- name: SetRegisterUpdateStatus :exec
 UPDATE branch_registers
 SET app_version = $2, app_flavor = $3, update_state = $4, update_detail = $5,
@@ -461,7 +594,7 @@ func (q *Queries) SetRegistersTargetRelease(ctx context.Context, arg SetRegister
 
 const updateAppReleaseNotes = `-- name: UpdateAppReleaseNotes :one
 UPDATE app_releases SET notes = $2 WHERE id = $1
-RETURNING id, version, flavor, file_name, file_path, size_bytes, sha256, signature, notes, uploaded_by, created_at
+RETURNING id, version, flavor, file_name, file_path, size_bytes, sha256, signature, notes, uploaded_by, created_at, targeted_at, file_removed_at
 `
 
 type UpdateAppReleaseNotesParams struct {
@@ -484,6 +617,8 @@ func (q *Queries) UpdateAppReleaseNotes(ctx context.Context, arg UpdateAppReleas
 		&i.Notes,
 		&i.UploadedBy,
 		&i.CreatedAt,
+		&i.TargetedAt,
+		&i.FileRemovedAt,
 	)
 	return i, err
 }
