@@ -79,13 +79,16 @@ type appReleaseResponse struct {
 	CreatedAt    time.Time `json:"created_at"`
 	RunningCount int64     `json:"running_count"`
 	TargetCount  int64     `json:"target_count"`
+	// The build file was cleaned up (app_release_cleanup.go); tills that
+	// don't run it yet can't be sent it until it's published again.
+	FileRemoved bool `json:"file_removed"`
 }
 
 func newAppReleaseResponse(r db.AppRelease) appReleaseResponse {
 	return appReleaseResponse{
 		ID: r.ID, Version: r.Version, Flavor: r.Flavor, FileName: r.FileName,
 		SizeBytes: r.SizeBytes, Sha256: r.Sha256, Signature: r.Signature,
-		Notes: r.Notes, CreatedAt: r.CreatedAt,
+		Notes: r.Notes, CreatedAt: r.CreatedAt, FileRemoved: r.FileRemovedAt.Valid,
 	}
 }
 
@@ -102,9 +105,15 @@ func (server *Server) listAppReleases(ctx *gin.Context) {
 			SizeBytes: r.SizeBytes, Sha256: r.Sha256, Signature: r.Signature,
 			Notes: r.Notes, CreatedAt: r.CreatedAt,
 			RunningCount: r.RunningCount, TargetCount: r.TargetCount,
+			FileRemoved: r.FileRemovedAt.Valid,
 		})
 	}
-	server.writeJSON(ctx, http.StatusOK, envelope{"releases": releases})
+	settings, err := server.store.GetAppSettings(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"releases": releases, "keep": settings.AppReleaseKeep})
 }
 
 // createAppRelease stores an uploaded build (multipart: file, version,
@@ -183,6 +192,17 @@ func (server *Server) createAppRelease(ctx *gin.Context) {
 		Notes:      notes,
 		UploadedBy: sql.NullInt64{Int64: userID, Valid: true},
 	})
+	if err != nil && isUniqueViolation(err) {
+		// Already published -- but if its file was cleaned up, this upload
+		// brings it back.
+		reattached, rerr := server.store.ReattachAppReleaseFile(ctx, db.ReattachAppReleaseFileParams{
+			Version: version, Flavor: flavor, FileName: fileName, FilePath: relPath,
+			SizeBytes: fileHeader.Size, Sha256: sum, Signature: signature, Notes: notes,
+		})
+		if rerr == nil {
+			release, err = reattached, nil
+		}
+	}
 	if err != nil {
 		os.RemoveAll(dir)
 		if isUniqueViolation(err) {
@@ -391,6 +411,18 @@ func (server *Server) setAppUpdateTarget(ctx *gin.Context) {
 			server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("%s run a different build than %s (%s)", strings.Join(mismatched, ", "), release.Version, release.Flavor))
 			return
 		}
+		if release.FileRemovedAt.Valid {
+			var missing []string
+			for _, r := range registers {
+				if r.AppVersion != release.Version {
+					missing = append(missing, r.Code)
+				}
+			}
+			if len(missing) > 0 {
+				server.writeError(ctx, http.StatusConflict, fmt.Errorf("%s's file was cleaned up after its tills installed it, so %s can't get it; publish %s again (make publish) first", release.Version, strings.Join(missing, ", "), release.Version))
+				return
+			}
+		}
 	}
 
 	ids := make([]int64, 0, len(registers))
@@ -400,6 +432,12 @@ func (server *Server) setAppUpdateTarget(ctx *gin.Context) {
 	if err := server.store.SetRegistersTargetRelease(ctx, db.SetRegistersTargetReleaseParams{ReleaseID: target, RegisterIds: ids, Force: req.Force && target.Valid}); err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
+	}
+	if target.Valid {
+		if err := server.store.MarkAppReleaseTargeted(ctx, release.ID); err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
 	}
 
 	byName := server.displayName(ctx, ctx.MustGet(authoizationPayloadKey).(*token.Payload))
@@ -422,6 +460,7 @@ func (server *Server) setAppUpdateTarget(ctx *gin.Context) {
 		server.branchHub.notifyRegister(r.ID, branchWSMessage{Type: "app_update"})
 	}
 
+	server.cleanAppReleasesSoon()
 	server.adminHub.broadcastAll(adminWSMessage{Type: "app_update_changed"})
 	server.writeJSON(ctx, http.StatusOK, envelope{"updated": len(ids)})
 }
@@ -511,6 +550,10 @@ func (server *Server) branchAppUpdateDownload(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusNotFound, errors.New("this release isn't this register's update"))
 		return
 	}
+	if release.FileRemovedAt.Valid {
+		server.writeError(ctx, http.StatusGone, fmt.Errorf("%s's file was cleaned up; it has to be published again", release.Version))
+		return
+	}
 	file, err := os.Open(filepath.Join(server.appReleaseStorageDir(), release.FilePath))
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, fmt.Errorf("release file: %w", err))
@@ -585,6 +628,9 @@ func (server *Server) branchAppUpdateStatus(ctx *gin.Context) {
 		}
 	}
 
+	if req.AppVersion != previous.AppVersion || req.State == "updated" || req.State == "up_to_date" {
+		server.cleanAppReleasesSoon()
+	}
 	server.adminHub.broadcastAll(adminWSMessage{Type: "app_update_changed", BranchID: previous.BranchID})
 	server.writeJSON(ctx, http.StatusOK, envelope{"success": true})
 }

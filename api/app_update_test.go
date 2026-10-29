@@ -25,6 +25,9 @@ import (
 func newAppUpdateTestServer(t *testing.T, store *mockdb.MockStore) *Server {
 	server := newTestServer(t, store)
 	server.config.AppReleaseStorageDir = t.TempDir()
+	// Handlers start a build clean-up in the background; keeping every build
+	// makes it stop after reading the setting.
+	store.EXPECT().GetAppSettings(gomock.Any()).Return(db.AppSetting{AppReleaseKeep: appReleaseKeepAll}, nil).AnyTimes()
 	return server
 }
 
@@ -132,6 +135,7 @@ func TestSetAppUpdateTarget_RejectsOtherFlavorAndNotifies(t *testing.T) {
 	store.EXPECT().SetRegistersTargetRelease(gomock.Any(), db.SetRegistersTargetReleaseParams{
 		ReleaseID: sql.NullInt64{Int64: 3, Valid: true}, RegisterIds: []int64{1},
 	}).Return(nil)
+	store.EXPECT().MarkAppReleaseTargeted(gomock.Any(), int64(3)).Return(nil)
 	store.EXPECT().GetUser(gomock.Any(), gomock.Any()).Return(db.User{Username: "alex", Name: "Alex Morgan"}, nil)
 	store.EXPECT().CreateAppUpdateEvent(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(_ any, arg db.CreateAppUpdateEventParams) error {

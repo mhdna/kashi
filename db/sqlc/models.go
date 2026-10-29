@@ -463,17 +463,19 @@ type AdminActivity struct {
 }
 
 type AppRelease struct {
-	ID         int64         `json:"id"`
-	Version    string        `json:"version"`
-	Flavor     string        `json:"flavor"`
-	FileName   string        `json:"file_name"`
-	FilePath   string        `json:"file_path"`
-	SizeBytes  int64         `json:"size_bytes"`
-	Sha256     string        `json:"sha256"`
-	Signature  string        `json:"signature"`
-	Notes      string        `json:"notes"`
-	UploadedBy sql.NullInt64 `json:"uploaded_by"`
-	CreatedAt  time.Time     `json:"created_at"`
+	ID            int64         `json:"id"`
+	Version       string        `json:"version"`
+	Flavor        string        `json:"flavor"`
+	FileName      string        `json:"file_name"`
+	FilePath      string        `json:"file_path"`
+	SizeBytes     int64         `json:"size_bytes"`
+	Sha256        string        `json:"sha256"`
+	Signature     string        `json:"signature"`
+	Notes         string        `json:"notes"`
+	UploadedBy    sql.NullInt64 `json:"uploaded_by"`
+	CreatedAt     time.Time     `json:"created_at"`
+	TargetedAt    sql.NullTime  `json:"targeted_at"`
+	FileRemovedAt sql.NullTime  `json:"file_removed_at"`
 }
 
 type AppSetting struct {
@@ -544,6 +546,7 @@ type AppSetting struct {
 	WhatsappPollNew            bool            `json:"whatsapp_poll_new"`
 	WhatsappPollReturning      bool            `json:"whatsapp_poll_returning"`
 	WhatsappFollowupReturning  bool            `json:"whatsapp_followup_returning"`
+	AppReleaseKeep             int32           `json:"app_release_keep"`
 }
 
 type AppUpdateEvent struct {
