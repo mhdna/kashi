@@ -8,7 +8,8 @@ SELECT whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridg
        whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad,
        whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_welcome_early, whatsapp_delete_for_me,
        whatsapp_delete_poll_for_me, whatsapp_followup_returning,
-       whatsapp_message_new, whatsapp_message_returning, whatsapp_poll_new, whatsapp_poll_returning
+       whatsapp_message_new, whatsapp_message_returning, whatsapp_poll_new, whatsapp_poll_returning,
+       whatsapp_poll_combined, whatsapp_combined_message
 FROM app_settings WHERE id = 1;
 
 -- name: SetWhatsAppSenderSettings :exec
@@ -37,6 +38,8 @@ UPDATE app_settings SET
     whatsapp_message_returning = sqlc.arg(whatsapp_message_returning),
     whatsapp_poll_new = sqlc.arg(whatsapp_poll_new),
     whatsapp_poll_returning = sqlc.arg(whatsapp_poll_returning),
+    whatsapp_poll_combined = sqlc.arg(whatsapp_poll_combined),
+    whatsapp_combined_message = sqlc.arg(whatsapp_combined_message),
     updated_at = now()
 WHERE id = 1;
 

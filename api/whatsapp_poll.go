@@ -129,14 +129,15 @@ func whatsAppPollGap() int64 {
 	return 1000 + n.Int64()
 }
 
-// sendWhatsAppPoll queues the rating poll right after the message. It
-// returns the poll's ref, or "" when it couldn't be queued (the message
-// itself still went).
-func (server *Server) sendWhatsAppPoll(ctx *gin.Context, sender db.GetWhatsAppSenderSettingsRow, instance, phone string) (string, error) {
+// sendWhatsAppPoll queues the rating poll, with text as its question (the
+// question alone, or the purchase details and the question in one poll). It
+// returns the poll's ref, or "" when it couldn't be queued (a message before
+// it still went).
+func (server *Server) sendWhatsAppPoll(ctx *gin.Context, sender db.GetWhatsAppSenderSettingsRow, instance, phone, text string) (string, error) {
 	ref := newReviewCode()
 	err := whatsAppBridgeCall(ctx, sender, http.MethodPost, "/message/sendText/"+instance, map[string]any{
 		"number":      phone,
-		"text":        whatsAppPollQuestion(sender.WhatsappPollQuestion),
+		"text":        text,
 		"poll":        whatsAppPollOptions(sender.WhatsappPollOptions),
 		"ref":         ref,
 		"callback":    server.whatsAppPollCallback(),

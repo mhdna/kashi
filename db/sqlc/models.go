@@ -547,6 +547,8 @@ type AppSetting struct {
 	WhatsappPollReturning      bool            `json:"whatsapp_poll_returning"`
 	WhatsappFollowupReturning  bool            `json:"whatsapp_followup_returning"`
 	AppReleaseKeep             int32           `json:"app_release_keep"`
+	WhatsappPollCombined       bool            `json:"whatsapp_poll_combined"`
+	WhatsappCombinedMessage    string          `json:"whatsapp_combined_message"`
 }
 
 type AppUpdateEvent struct {

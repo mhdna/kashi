@@ -217,7 +217,8 @@ SELECT whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridg
        whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad,
        whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_welcome_early, whatsapp_delete_for_me,
        whatsapp_delete_poll_for_me, whatsapp_followup_returning,
-       whatsapp_message_new, whatsapp_message_returning, whatsapp_poll_new, whatsapp_poll_returning
+       whatsapp_message_new, whatsapp_message_returning, whatsapp_poll_new, whatsapp_poll_returning,
+       whatsapp_poll_combined, whatsapp_combined_message
 FROM app_settings WHERE id = 1
 `
 
@@ -246,6 +247,8 @@ type GetWhatsAppSenderSettingsRow struct {
 	WhatsappMessageReturning  bool   `json:"whatsapp_message_returning"`
 	WhatsappPollNew           bool   `json:"whatsapp_poll_new"`
 	WhatsappPollReturning     bool   `json:"whatsapp_poll_returning"`
+	WhatsappPollCombined      bool   `json:"whatsapp_poll_combined"`
+	WhatsappCombinedMessage   string `json:"whatsapp_combined_message"`
 }
 
 // Sending post-sale messages from our own numbers through the WhatsApp
@@ -278,6 +281,8 @@ func (q *Queries) GetWhatsAppSenderSettings(ctx context.Context) (GetWhatsAppSen
 		&i.WhatsappMessageReturning,
 		&i.WhatsappPollNew,
 		&i.WhatsappPollReturning,
+		&i.WhatsappPollCombined,
+		&i.WhatsappCombinedMessage,
 	)
 	return i, err
 }
@@ -461,6 +466,8 @@ UPDATE app_settings SET
     whatsapp_message_returning = $22,
     whatsapp_poll_new = $23,
     whatsapp_poll_returning = $24,
+    whatsapp_poll_combined = $25,
+    whatsapp_combined_message = $26,
     updated_at = now()
 WHERE id = 1
 `
@@ -490,6 +497,8 @@ type SetWhatsAppSenderSettingsParams struct {
 	WhatsappMessageReturning  bool   `json:"whatsapp_message_returning"`
 	WhatsappPollNew           bool   `json:"whatsapp_poll_new"`
 	WhatsappPollReturning     bool   `json:"whatsapp_poll_returning"`
+	WhatsappPollCombined      bool   `json:"whatsapp_poll_combined"`
+	WhatsappCombinedMessage   string `json:"whatsapp_combined_message"`
 }
 
 func (q *Queries) SetWhatsAppSenderSettings(ctx context.Context, arg SetWhatsAppSenderSettingsParams) error {
@@ -518,6 +527,8 @@ func (q *Queries) SetWhatsAppSenderSettings(ctx context.Context, arg SetWhatsApp
 		arg.WhatsappMessageReturning,
 		arg.WhatsappPollNew,
 		arg.WhatsappPollReturning,
+		arg.WhatsappPollCombined,
+		arg.WhatsappCombinedMessage,
 	)
 	return err
 }
