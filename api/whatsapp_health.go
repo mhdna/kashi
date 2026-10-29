@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	db "github.com/mhdna/kashi/db/sqlc"
 )
 
 // The Health tab: warning signs before a number gets banned. The bridge
@@ -122,11 +123,33 @@ func (server *Server) resumeWhatsAppNumber(ctx *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := whatsAppBridgeCall(ctx, sender, http.MethodPost, "/instance/resume/"+url.PathEscape(number.Instance), map[string]any{}, nil); err != nil {
+	// drop_queued: what queued up while it was paused is thrown away rather
+	// than sent in one go, and those messages are logged as not sent.
+	var req struct {
+		DropQueued bool `json:"drop_queued"`
+	}
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	var reply struct {
+		Dropped []string `json:"dropped"`
+	}
+	if err := whatsAppBridgeCall(ctx, sender, http.MethodPost, "/instance/resume/"+url.PathEscape(number.Instance), map[string]any{"dropQueued": req.DropQueued}, &reply); err != nil {
 		server.writeError(ctx, http.StatusBadGateway, err)
 		return
 	}
-	server.writeJSON(ctx, http.StatusOK, envelope{"ok": true})
+	if len(reply.Dropped) > 0 {
+		if err := server.store.SkipDroppedWhatsAppMessages(ctx, db.SkipDroppedWhatsAppMessagesParams{
+			Reason: "dropped: queued while the number was paused",
+			Refs:   reply.Dropped,
+		}); err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		server.adminHub.broadcastAll(adminWSMessage{Type: "whatsapp_message"})
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"ok": true, "dropped": len(reply.Dropped)})
 }
 
 // whatsAppFailureCritical is how many sale messages failing within an hour

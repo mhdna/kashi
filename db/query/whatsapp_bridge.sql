@@ -147,3 +147,12 @@ FROM whatsapp_poll_replies r
 JOIN whatsapp_messages m ON m.id = r.whatsapp_message_id
 JOIN whatsapp_numbers n ON n.id = m.whatsapp_number_id
 WHERE r.id = sqlc.arg(id) AND r.media_type <> '';
+
+-- name: SkipDroppedWhatsAppMessages :exec
+-- Messages the bridge dropped from a paused number's queue on resume (refs
+-- from POST /instance/resume): logged as sent when queued, they never went.
+UPDATE whatsapp_messages SET
+    status = 'skipped',
+    reason = sqlc.arg(reason)
+WHERE status = 'sent'
+  AND (bridge_ref = ANY(sqlc.arg(refs)::text[]) OR poll_ref = ANY(sqlc.arg(refs)::text[]));
