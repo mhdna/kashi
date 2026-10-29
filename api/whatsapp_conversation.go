@@ -166,10 +166,14 @@ func whatsAppConversation(m db.GetWhatsAppMessageWithBranchRow, sender db.GetWha
 			if question == "" || m.PollOptions == "" {
 				question, options = whatsAppPollQuestion(sender.WhatsappPollQuestion), whatsAppPollOptions(sender.WhatsappPollOptions)
 			}
-			bubbles = append(bubbles, whatsAppBubble{
+			poll := whatsAppBubble{
 				From: "us", Kind: "poll", Text: question,
 				Options: options, Chosen: m.PollAnswer, At: m.CreatedAt.Add(time.Second),
-			})
+			}
+			if pollOnly {
+				poll.Ticks = whatsAppTicks(m) // the poll went alone: its ticks are the row's
+			}
+			bubbles = append(bubbles, poll)
 		}
 	}
 
