@@ -135,7 +135,7 @@ func (q *Queries) ClearDefaultWhatsAppNumber(ctx context.Context) error {
 const createWhatsAppNumber = `-- name: CreateWhatsAppNumber :one
 INSERT INTO whatsapp_numbers (instance, label, is_default)
 VALUES ($1, $2, NOT EXISTS (SELECT 1 FROM whatsapp_numbers))
-RETURNING id, instance, label, phone, is_default, created_at
+RETURNING id, instance, label, phone, is_default, created_at, min_total_cents
 `
 
 type CreateWhatsAppNumberParams struct {
@@ -154,6 +154,7 @@ func (q *Queries) CreateWhatsAppNumber(ctx context.Context, arg CreateWhatsAppNu
 		&i.Phone,
 		&i.IsDefault,
 		&i.CreatedAt,
+		&i.MinTotalCents,
 	)
 	return i, err
 }
@@ -168,7 +169,7 @@ func (q *Queries) DeleteWhatsAppNumber(ctx context.Context, id int64) error {
 }
 
 const getWhatsAppNumber = `-- name: GetWhatsAppNumber :one
-SELECT id, instance, label, phone, is_default, created_at FROM whatsapp_numbers WHERE id = $1
+SELECT id, instance, label, phone, is_default, created_at, min_total_cents FROM whatsapp_numbers WHERE id = $1
 `
 
 func (q *Queries) GetWhatsAppNumber(ctx context.Context, id int64) (WhatsappNumber, error) {
@@ -181,6 +182,7 @@ func (q *Queries) GetWhatsAppNumber(ctx context.Context, id int64) (WhatsappNumb
 		&i.Phone,
 		&i.IsDefault,
 		&i.CreatedAt,
+		&i.MinTotalCents,
 	)
 	return i, err
 }
@@ -322,7 +324,7 @@ func (q *Queries) ListBranchWhatsAppNumbers(ctx context.Context) ([]ListBranchWh
 }
 
 const listWhatsAppNumbers = `-- name: ListWhatsAppNumbers :many
-SELECT id, instance, label, phone, is_default, created_at FROM whatsapp_numbers ORDER BY id
+SELECT id, instance, label, phone, is_default, created_at, min_total_cents FROM whatsapp_numbers ORDER BY id
 `
 
 func (q *Queries) ListWhatsAppNumbers(ctx context.Context) ([]WhatsappNumber, error) {
@@ -341,6 +343,7 @@ func (q *Queries) ListWhatsAppNumbers(ctx context.Context) ([]WhatsappNumber, er
 			&i.Phone,
 			&i.IsDefault,
 			&i.CreatedAt,
+			&i.MinTotalCents,
 		); err != nil {
 			return nil, err
 		}
@@ -540,16 +543,18 @@ func (q *Queries) SkipDroppedWhatsAppMessages(ctx context.Context, arg SkipDropp
 }
 
 const updateWhatsAppNumberLabel = `-- name: UpdateWhatsAppNumberLabel :one
-UPDATE whatsapp_numbers SET label = $1 WHERE id = $2 RETURNING id, instance, label, phone, is_default, created_at
+UPDATE whatsapp_numbers SET label = $1, min_total_cents = $2
+WHERE id = $3 RETURNING id, instance, label, phone, is_default, created_at, min_total_cents
 `
 
 type UpdateWhatsAppNumberLabelParams struct {
-	Label string `json:"label"`
-	ID    int64  `json:"id"`
+	Label         string `json:"label"`
+	MinTotalCents int64  `json:"min_total_cents"`
+	ID            int64  `json:"id"`
 }
 
 func (q *Queries) UpdateWhatsAppNumberLabel(ctx context.Context, arg UpdateWhatsAppNumberLabelParams) (WhatsappNumber, error) {
-	row := q.db.QueryRowContext(ctx, updateWhatsAppNumberLabel, arg.Label, arg.ID)
+	row := q.db.QueryRowContext(ctx, updateWhatsAppNumberLabel, arg.Label, arg.MinTotalCents, arg.ID)
 	var i WhatsappNumber
 	err := row.Scan(
 		&i.ID,
@@ -558,25 +563,30 @@ func (q *Queries) UpdateWhatsAppNumberLabel(ctx context.Context, arg UpdateWhats
 		&i.Phone,
 		&i.IsDefault,
 		&i.CreatedAt,
+		&i.MinTotalCents,
 	)
 	return i, err
 }
 
 const whatsAppNumberForBranch = `-- name: WhatsAppNumberForBranch :one
-SELECT n.id, n.instance, n.label, n.phone, n.is_default, n.created_at
+SELECT n.id, n.instance, n.label, n.phone, n.is_default, n.created_at, n.min_total_cents
 FROM whatsapp_numbers n
 LEFT JOIN branches b ON b.id = $1
-WHERE n.id = b.whatsapp_number_id
-   OR (b.whatsapp_number_id IS NULL
-       AND (n.is_default OR NOT EXISTS (SELECT 1 FROM whatsapp_numbers d WHERE d.is_default)))
-ORDER BY n.is_default DESC, n.id
+WHERE n.min_total_cents <= $2
+ORDER BY n.id = b.whatsapp_number_id IS TRUE DESC, n.is_default DESC, n.id
 LIMIT 1
 `
 
-// The number a branch's messages go out from: its own, else the default,
-// else (no default, as when the first number was removed) the oldest one.
-func (q *Queries) WhatsAppNumberForBranch(ctx context.Context, branchID int64) (WhatsappNumber, error) {
-	row := q.db.QueryRowContext(ctx, whatsAppNumberForBranch, branchID)
+type WhatsAppNumberForBranchParams struct {
+	BranchID   int64 `json:"branch_id"`
+	TotalCents int64 `json:"total_cents"`
+}
+
+// The number a branch's sale goes out from: its own, else the default, else
+// (no default, as when the first number was removed) the oldest one. A number
+// whose minimum invoice the sale is under is passed over for the next one.
+func (q *Queries) WhatsAppNumberForBranch(ctx context.Context, arg WhatsAppNumberForBranchParams) (WhatsappNumber, error) {
+	row := q.db.QueryRowContext(ctx, whatsAppNumberForBranch, arg.BranchID, arg.TotalCents)
 	var i WhatsappNumber
 	err := row.Scan(
 		&i.ID,
@@ -585,6 +595,7 @@ func (q *Queries) WhatsAppNumberForBranch(ctx context.Context, branchID int64) (
 		&i.Phone,
 		&i.IsDefault,
 		&i.CreatedAt,
+		&i.MinTotalCents,
 	)
 	return i, err
 }
