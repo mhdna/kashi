@@ -262,9 +262,11 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 		server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, "WhatsApp bridge not set up (Settings > WhatsApp)")
 		return
 	}
-	number, err := server.store.WhatsAppNumberForBranch(ctx, entry.BranchID.Int64)
+	number, err := server.store.WhatsAppNumberForBranch(ctx, db.WhatsAppNumberForBranchParams{
+		BranchID: entry.BranchID.Int64, TotalCents: req.GrandTotalCents,
+	})
 	if errors.Is(err, sql.ErrNoRows) {
-		server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, "no WhatsApp number for this branch (Settings > WhatsApp)")
+		server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, "no WhatsApp number for this branch, or the invoice is under every number's minimum (Settings > WhatsApp)")
 		return
 	}
 	if err != nil {
@@ -830,12 +832,22 @@ func (server *Server) updateWhatsAppNumber(ctx *gin.Context) {
 	var req struct {
 		Label     string `json:"label"`
 		IsDefault bool   `json:"is_default"`
+		// The smallest invoice it sends for; left out keeps the current one.
+		MinTotalCents *int64 `json:"min_total_cents"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	updated, err := server.store.UpdateWhatsAppNumberTx(ctx, number.ID, strings.TrimSpace(req.Label), req.IsDefault)
+	minTotal := number.MinTotalCents
+	if req.MinTotalCents != nil {
+		if *req.MinTotalCents < 0 {
+			server.writeError(ctx, http.StatusBadRequest, errors.New("the minimum invoice can't be negative"))
+			return
+		}
+		minTotal = *req.MinTotalCents
+	}
+	updated, err := server.store.UpdateWhatsAppNumberTx(ctx, number.ID, strings.TrimSpace(req.Label), req.IsDefault, minTotal)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return

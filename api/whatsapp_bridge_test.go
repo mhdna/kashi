@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -90,6 +91,21 @@ func TestWhatsAppInstanceName(t *testing.T) {
 }
 
 // fakeBridge records what kashi sent and answers like the bridge.
+// numberForBranch matches WhatsAppNumberForBranch's params on the branch
+// alone; the sale total each test sends doesn't matter to it.
+func numberForBranch(branchID int64) gomock.Matcher {
+	return branchMatcher(branchID)
+}
+
+type branchMatcher int64
+
+func (m branchMatcher) Matches(x any) bool {
+	p, ok := x.(db.WhatsAppNumberForBranchParams)
+	return ok && p.BranchID == int64(m)
+}
+
+func (m branchMatcher) String() string { return fmt.Sprintf("branch %d", int64(m)) }
+
 func fakeBridge(t *testing.T, status int, reply string) (*httptest.Server, *map[string]any, *string) {
 	t.Helper()
 	got := map[string]any{}
@@ -125,7 +141,7 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 		store := mockdb.NewMockStore(ctrl)
 		server := newTestServer(t, store)
 
-		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), int64(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
+		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), numberForBranch(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
 		store.EXPECT().GetReviewSettings(gomock.Any()).Return(reviewSettingsRow(), nil)
 		store.EXPECT().GetBranch(gomock.Any(), int64(2)).Return(db.Branch{ID: 2}, nil)
 		store.EXPECT().DeleteFailedWhatsAppMessagesForInvoice(gomock.Any(), gomock.Any()).Return(nil)
@@ -159,7 +175,7 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		store := mockdb.NewMockStore(ctrl)
 		server := newTestServer(t, store)
-		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), int64(2)).Return(db.WhatsappNumber{}, sql.ErrNoRows)
+		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), numberForBranch(2)).Return(db.WhatsappNumber{}, sql.ErrNoRows)
 		store.EXPECT().DeleteFailedWhatsAppMessagesForInvoice(gomock.Any(), gomock.Any()).Return(nil)
 		store.EXPECT().CreateWhatsAppMessage(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(_ any, arg db.CreateWhatsAppMessageParams) (db.WhatsappMessage, error) {
@@ -168,7 +184,7 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 				return db.WhatsappMessage{}, nil
 			})
 		rec := run(server, db.GetWhatsAppSenderSettingsRow{WhatsappMessageNew: true, WhatsappMessageReturning: true, WhatsappPollNew: true, WhatsappPollReturning: true, WhatsappSender: "bridge", WhatsappBridgeKey: "secret-key"})
-		require.JSONEq(t, `{"sent":false,"reason":"no WhatsApp number for this branch (Settings > WhatsApp)","retry":false}`, rec.Body.String())
+		require.JSONEq(t, `{"sent":false,"reason":"no WhatsApp number for this branch, or the invoice is under every number's minimum (Settings > WhatsApp)","retry":false}`, rec.Body.String())
 	})
 
 	t.Run("a number that isn't linked reports the bridge's reason", func(t *testing.T) {
@@ -176,7 +192,7 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		store := mockdb.NewMockStore(ctrl)
 		server := newTestServer(t, store)
-		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), int64(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
+		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), numberForBranch(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
 		store.EXPECT().DeleteFailedWhatsAppMessagesForInvoice(gomock.Any(), gomock.Any()).Return(nil)
 		store.EXPECT().CreateWhatsAppMessage(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(_ any, arg db.CreateWhatsAppMessageParams) (db.WhatsappMessage, error) {
@@ -196,7 +212,7 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		store := mockdb.NewMockStore(ctrl)
 		server := newTestServer(t, store)
-		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), int64(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
+		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), numberForBranch(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
 		store.EXPECT().DeleteFailedWhatsAppMessagesForInvoice(gomock.Any(), gomock.Any()).Return(nil)
 		store.EXPECT().CreateWhatsAppMessage(gomock.Any(), gomock.Any()).Return(db.WhatsappMessage{}, nil)
 		rec := run(server, db.GetWhatsAppSenderSettingsRow{WhatsappMessageNew: true, WhatsappMessageReturning: true, WhatsappPollNew: true, WhatsappPollReturning: true,
@@ -210,7 +226,7 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		store := mockdb.NewMockStore(ctrl)
 		server := newTestServer(t, store)
-		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), int64(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
+		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), numberForBranch(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
 		store.EXPECT().DeleteFailedWhatsAppMessagesForInvoice(gomock.Any(), gomock.Any()).Return(nil)
 		store.EXPECT().CreateWhatsAppMessage(gomock.Any(), gomock.Any()).Return(db.WhatsappMessage{}, nil)
 		rec := run(server, db.GetWhatsAppSenderSettingsRow{WhatsappMessageNew: true, WhatsappMessageReturning: true, WhatsappPollNew: true, WhatsappPollReturning: true,
@@ -231,7 +247,7 @@ func TestSendWhatsAppViaBridgeOnAccountLeavesOutTotalPaid(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	store := mockdb.NewMockStore(ctrl)
 	server := newTestServer(t, store)
-	store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), int64(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
+	store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), numberForBranch(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
 	store.EXPECT().DeleteFailedWhatsAppMessagesForInvoice(gomock.Any(), gomock.Any()).Return(nil)
 	var text string // the message as sent (the bridge's last request is the poll)
 	store.EXPECT().CreateWhatsAppMessage(gomock.Any(), gomock.Any()).DoAndReturn(
@@ -273,7 +289,7 @@ func TestSendWhatsAppViaBridgePerAudienceSwitches(t *testing.T) {
 		}))
 		t.Cleanup(bridge.Close)
 		store := mockdb.NewMockStore(gomock.NewController(t))
-		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), int64(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
+		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), numberForBranch(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
 		store.EXPECT().LastWhatsAppSentAt(gomock.Any(), "96170123456").Return(time.Now().Add(-48*time.Hour), nil)
 		store.EXPECT().DeleteFailedWhatsAppMessagesForInvoice(gomock.Any(), gomock.Any()).Return(nil)
 		store.EXPECT().CreateWhatsAppMessage(gomock.Any(), gomock.Any()).DoAndReturn(
@@ -292,7 +308,7 @@ func TestSendWhatsAppViaBridgePerAudienceSwitches(t *testing.T) {
 
 	t.Run("a new client with both off is skipped", func(t *testing.T) {
 		store := mockdb.NewMockStore(gomock.NewController(t))
-		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), int64(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
+		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), numberForBranch(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
 		store.EXPECT().LastWhatsAppSentAt(gomock.Any(), "96170123456").Return(time.Time{}, sql.ErrNoRows)
 		store.EXPECT().DeleteFailedWhatsAppMessagesForInvoice(gomock.Any(), gomock.Any()).Return(nil)
 		store.EXPECT().CreateWhatsAppMessage(gomock.Any(), gomock.Any()).DoAndReturn(
@@ -330,7 +346,7 @@ func TestSendWhatsAppViaBridgePollAfterWelcomeJoinsItsRow(t *testing.T) {
 		BranchID: sql.NullInt64{Int64: 1, Valid: true}, InvoiceCode: sale.InvoiceCode, ClientName: "Mhmd", ClientPhone: "9613953570",
 	}
 	store := mockdb.NewMockStore(gomock.NewController(t))
-	store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), int64(1)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
+	store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), numberForBranch(1)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
 	store.EXPECT().AttachWhatsAppPoll(gomock.Any(), gomock.Any()).DoAndReturn(
 		func(_ any, arg db.AttachWhatsAppPollParams) error {
 			require.Equal(t, int64(77), arg.ID)

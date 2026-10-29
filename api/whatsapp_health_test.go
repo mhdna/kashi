@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -65,4 +66,29 @@ func TestGetWhatsAppHealth(t *testing.T) {
 	hamra := body.Numbers[1]
 	require.Equal(t, []string{"Hamra"}, hamra.Branches)
 	require.Nil(t, hamra.Health) // a bridge before 2.4.0 says nothing
+}
+
+func TestResumeWhatsAppNumberDropsQueue(t *testing.T) {
+	bridge, got, path := fakeBridge(t, http.StatusOK, `{"status":"RESUMED","dropped":["ref-a","poll-b"]}`)
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	server := newTestServer(t, store)
+
+	store.EXPECT().GetWhatsAppNumber(gomock.Any(), int64(1)).Return(db.WhatsappNumber{ID: 1, Instance: "kashi-centro"}, nil)
+	store.EXPECT().GetWhatsAppSenderSettings(gomock.Any()).Return(db.GetWhatsAppSenderSettingsRow{WhatsappBridgeUrl: bridge.URL, WhatsappBridgeKey: "secret-key"}, nil)
+	store.EXPECT().SkipDroppedWhatsAppMessages(gomock.Any(), db.SkipDroppedWhatsAppMessagesParams{
+		Reason: "dropped: queued while the number was paused",
+		Refs:   []string{"ref-a", "poll-b"},
+	}).Return(nil)
+
+	rec := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(rec)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"drop_queued":true}`))
+	ctx.Params = gin.Params{{Key: "id", Value: "1"}}
+	server.resumeWhatsAppNumber(ctx)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Equal(t, "/instance/resume/kashi-centro", *path)
+	require.Equal(t, true, (*got)["dropQueued"])
+	require.JSONEq(t, `{"ok":true,"dropped":2}`, rec.Body.String())
 }

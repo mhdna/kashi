@@ -2062,12 +2062,13 @@ type WhatsappMessage struct {
 }
 
 type WhatsappNumber struct {
-	ID        int64     `json:"id"`
-	Instance  string    `json:"instance"`
-	Label     string    `json:"label"`
-	Phone     string    `json:"phone"`
-	IsDefault bool      `json:"is_default"`
-	CreatedAt time.Time `json:"created_at"`
+	ID            int64     `json:"id"`
+	Instance      string    `json:"instance"`
+	Label         string    `json:"label"`
+	Phone         string    `json:"phone"`
+	IsDefault     bool      `json:"is_default"`
+	CreatedAt     time.Time `json:"created_at"`
+	MinTotalCents int64     `json:"min_total_cents"`
 }
 
 type WhatsappPollReply struct {
