@@ -18,7 +18,11 @@ function jsonBody (method, body) {
 // to run, and what every till reports back. See api/app_update.go.
 export function useAppUpdates () {
   return {
-    listReleases: async () => (await requestJSON(`${API_BASE}/app_releases`))?.releases ?? [],
+    // keep: how many old build files stay (0 none, N newest per flavor, -1 all).
+    listReleases: async () => {
+      const body = await requestJSON(`${API_BASE}/app_releases`)
+      return { releases: body?.releases ?? [], keep: body?.keep ?? 0 }
+    },
     listRegisters: async () => (await requestJSON(`${API_BASE}/app_updates/registers`))?.registers ?? [],
     listEvents: async () => (await requestJSON(`${API_BASE}/app_updates/events?limit=200`))?.events ?? [],
     // force: install as soon as it's downloaded, even with a shift open.
@@ -26,5 +30,6 @@ export function useAppUpdates () {
       requestJSON(`${API_BASE}/app_updates/target`, jsonBody('PUT', { release_id: releaseId, register_ids: registerIds, force })),
     updateNotes: (id, notes) => requestJSON(`${API_BASE}/app_releases/${id}`, jsonBody('PUT', { notes })),
     deleteRelease: id => requestJSON(`${API_BASE}/app_releases/${id}`, { method: 'DELETE' }),
+    setKeep: keep => requestJSON(`${API_BASE}/app_updates/keep`, jsonBody('PUT', { keep })),
   }
 }
