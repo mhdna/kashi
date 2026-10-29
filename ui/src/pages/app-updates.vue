@@ -117,7 +117,21 @@
         </v-data-table>
 
         <!-- ------------------------------------------------ releases -->
-        <div class="au-section-title mb-2">Releases</div>
+        <div class="mb-2 d-flex align-center ga-3 flex-wrap">
+          <div class="au-section-title">Releases</div>
+          <v-spacer />
+          <v-select
+            v-model="keep"
+            class="au-keep"
+            density="compact"
+            :disabled="!canEdit"
+            hide-details
+            :items="KEEP_OPTIONS"
+            label="Keep old builds"
+            variant="outlined"
+            @update:model-value="saveKeep"
+          />
+        </div>
         <v-data-table
           class="mb-6"
           density="compact"
@@ -134,7 +148,10 @@
           <template #item.notes="{ item }">
             <div class="au-notes" :title="item.notes">{{ item.notes || '—' }}</div>
           </template>
-          <template #item.size_bytes="{ item }">{{ formatSize(item.size_bytes) }}</template>
+          <template #item.size_bytes="{ item }">
+            <span v-if="item.file_removed" class="text-medium-emphasis" title="The file was deleted once its tills installed it. Publish this version again to send it to other tills.">Deleted</span>
+            <template v-else>{{ formatSize(item.size_bytes) }}</template>
+          </template>
           <template #item.created_at="{ item }">
             <span :title="formatDate(item.created_at)">{{ ago(item.created_at) }}</span>
           </template>
@@ -143,9 +160,11 @@
           </template>
           <template v-if="canEdit" #item.actions="{ item }">
             <v-btn
+              :disabled="item.file_removed"
               prepend-icon="mdi-rocket-launch-outline"
               size="small"
               text="Deploy"
+              :title="item.file_removed ? 'The file was deleted; publish this version again first' : undefined"
               variant="text"
               @click="openDeployDialog(item)"
             />
@@ -347,6 +366,19 @@
   const loading = ref(false)
   const saving = ref(false)
   const releases = ref([])
+  // Old build files kept on the server: 0 none (each goes once its tills
+  // installed it), N the newest N per flavor, -1 all. See
+  // api/app_release_cleanup.go.
+  const keep = ref(0)
+  const KEEP_OPTIONS = [
+    { value: 0, title: 'None (delete once installed)' },
+    { value: 1, title: 'Newest 1' },
+    { value: 2, title: 'Newest 2' },
+    { value: 3, title: 'Newest 3' },
+    { value: 5, title: 'Newest 5' },
+    { value: 10, title: 'Newest 10' },
+    { value: -1, title: 'All' },
+  ]
   const registers = ref([])
   const events = ref([])
   const selectedRegisterIds = ref([])
@@ -405,7 +437,7 @@
     if (!r.app_version) return null
     const flavor = r.app_flavor || 'standard'
     return releases.value
-      .filter(rel => rel.flavor === flavor && compareVersions(rel.version, r.app_version) < 0)
+      .filter(rel => !rel.file_removed && rel.flavor === flavor && compareVersions(rel.version, r.app_version) < 0)
       .toSorted((a, b) => compareVersions(b.version, a.version))[0] ?? null
   }
   function compareVersions (a, b) {
@@ -422,7 +454,8 @@
     loading.value = true
     try {
       const [rel, regs, evs] = await Promise.all([api.listReleases(), api.listRegisters(), api.listEvents()])
-      releases.value = rel
+      releases.value = rel.releases
+      keep.value = rel.keep
       registers.value = regs
       events.value = evs
     } catch (error) {
@@ -444,6 +477,7 @@
     return [
       { id: null, label: 'Keep what it runs (no update)' },
       ...releases.value
+        .filter(rel => !rel.file_removed || rel.id === targetReleaseId.value)
         .filter(rel => flavors.size === 0 || (flavors.size === 1 && flavors.has(rel.flavor)))
         .map(rel => ({ id: rel.id, label: `${rel.version} (${rel.flavor})` })),
     ]
@@ -522,6 +556,15 @@
       saving.value = false
     }
   }
+  async function saveKeep (value) {
+    try {
+      await api.setKeep(value)
+      notify.success(value === 0 ? 'Build files are deleted once their tills install them' : 'Saved')
+    } catch (error) {
+      notify.error(error.message)
+      reloadAll()
+    }
+  }
   async function deleteRelease (release) {
     if (!window.confirm(`Delete release ${release.version} (${release.flavor})? Tills that already run it keep it.`)) return
     try {
@@ -561,7 +604,8 @@
       refetchTimer = setTimeout(() => {
         Promise.all([api.listReleases(), api.listRegisters(), api.listEvents()])
           .then(([rel, regs, evs]) => {
-            releases.value = rel
+            releases.value = rel.releases
+            keep.value = rel.keep
             registers.value = regs
             events.value = evs
           })
@@ -596,6 +640,9 @@
   flex: 1 1 auto;
   min-width: 0;
   overflow-y: auto;
+}
+.au-keep {
+  max-width: 260px;
 }
 .au-section-title,
 .au-stat-label {

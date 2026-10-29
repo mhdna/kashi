@@ -587,6 +587,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/app_updates/registers", server.listAppUpdateRegisters)
 	authRoutes.PUT("/app_updates/target", server.setAppUpdateTarget)
 	authRoutes.GET("/app_updates/events", server.listAppUpdateEvents)
+	authRoutes.PUT("/app_updates/keep", server.setAppReleaseKeep)
 
 	// adminWS can't sit under authRoutes: authMiddleware only reads the
 	// Authorization header, and a browser WebSocket handshake can't set

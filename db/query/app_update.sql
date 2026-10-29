@@ -71,3 +71,34 @@ JOIN branches b ON b.id = r.branch_id
 LEFT JOIN app_releases a ON a.id = e.release_id
 ORDER BY e.created_at DESC, e.id DESC
 LIMIT $1;
+
+-- name: MarkAppReleaseTargeted :exec
+UPDATE app_releases SET targeted_at = coalesce(targeted_at, now()) WHERE id = $1;
+
+-- name: ListCleanableAppReleases :many
+-- Releases whose file can go (see api/app_release_cleanup.go): not among
+-- the newest `keep` of their flavor, no active register still waiting to
+-- install it, and either sent somewhere already or superseded by a newer
+-- upload.
+SELECT a.id, a.version, a.flavor, a.file_path FROM app_releases a
+WHERE a.file_removed_at IS NULL
+  AND (SELECT count(*) FROM app_releases n
+        WHERE n.flavor = a.flavor AND (n.created_at, n.id) > (a.created_at, a.id)) >= sqlc.arg(keep)::bigint
+  AND NOT EXISTS (SELECT 1 FROM branch_registers r
+        WHERE r.is_active AND r.target_release_id = a.id AND r.app_version <> a.version)
+  AND (a.targeted_at IS NOT NULL
+       OR EXISTS (SELECT 1 FROM app_releases n
+        WHERE n.flavor = a.flavor AND (n.created_at, n.id) > (a.created_at, a.id)));
+
+-- name: MarkAppReleaseFileRemoved :exec
+UPDATE app_releases SET file_removed_at = now() WHERE id = $1;
+
+-- name: ReattachAppReleaseFile :one
+-- Publishing a version whose file was cleaned up uploads it again.
+UPDATE app_releases
+SET file_name = sqlc.arg(file_name), file_path = sqlc.arg(file_path),
+    size_bytes = sqlc.arg(size_bytes), sha256 = sqlc.arg(sha256), signature = sqlc.arg(signature),
+    notes = CASE WHEN sqlc.arg(notes)::text = '' THEN notes ELSE sqlc.arg(notes)::text END,
+    targeted_at = NULL, file_removed_at = NULL
+WHERE version = sqlc.arg(version) AND flavor = sqlc.arg(flavor) AND file_removed_at IS NOT NULL
+RETURNING *;
