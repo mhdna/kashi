@@ -59,6 +59,31 @@ const (
 	defaultWhatsAppLinkMessage = "Hi {name},\n\nThank you for shopping at *Grand Bazaar* today 🤍\n\nHere are the details of your purchase:\n🧾 Receipt code:\n*{invoice}*\n📅 Date: {date}\n💳 Total paid: *{total}*\n\nWe'd love to hear about your visit. It only takes a moment on Google:\n{review}\n\n📢 Follow our WhatsApp channel for new arrivals and offers: {channel}"
 )
 
+// The purchase details as the poll's own text (whatsapp_poll_combined), the
+// poll's question added below. A poll is plain text: no *bold*, no banner, no
+// link to tap, and WhatsApp cuts a long one, so it's short and has no channel.
+const defaultWhatsAppCombinedMessage = "Hi {name}, thank you for shopping at Grand Bazaar today 🤍\n🧾 {invoice} · 📅 {date}\n💳 {total}"
+
+// whatsAppPollTextLimit is about where WhatsApp cuts a poll's question.
+const whatsAppPollTextLimit = 255
+
+// whatsAppCombinedPollText is the one poll's text: the saved message (else
+// the default) filled in, a blank line, then the poll's question. The text's
+// *_~ markers, formatting elsewhere, would show as they are in a poll, so they go.
+func whatsAppCombinedPollText(sender db.GetWhatsAppSenderSettingsRow, values map[string]string) string {
+	message := strings.TrimSpace(sender.WhatsappCombinedMessage)
+	if message == "" {
+		message = defaultWhatsAppCombinedMessage
+	}
+	message = strings.NewReplacer("*", "", "_", "", "~", "").Replace(message)
+	details := whatsAppBridgeText(message, values)
+	question := whatsAppPollQuestion(sender.WhatsappPollQuestion)
+	if details == "" {
+		return question
+	}
+	return details + "\n\n" + question
+}
+
 // whatsAppBridgeMessageFor is the message for the feedback mode: the saved
 // one, else the default.
 func whatsAppBridgeMessageFor(sender db.GetWhatsAppSenderSettingsRow) string {
@@ -325,6 +350,13 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 	}
 
 	entry.Body = whatsAppBridgeText(message, values) // kept for the chat view
+	// Both going, and set to go as one: the details become the poll's text
+	// and no message goes before it.
+	pollText := whatsAppPollQuestion(sender.WhatsappPollQuestion)
+	if sendMessage && sendPoll && sender.WhatsappPollCombined {
+		sendMessage = false
+		pollText = whatsAppCombinedPollText(sender, values)
+	}
 
 	var out struct {
 		Status string `json:"status"`
@@ -359,11 +391,11 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 			return
 		}
 	} else {
-		entry.Body = whatsAppPollQuestion(sender.WhatsappPollQuestion) // only the poll goes: the chat view shows it
+		entry.Body = pollText // only the poll goes: the chat view shows it
 	}
 	if sendPoll {
 		var pollErr error
-		entry.PollRef, pollErr = server.sendWhatsAppPoll(ctx, sender, url.PathEscape(number.Instance), entry.ClientPhone)
+		entry.PollRef, pollErr = server.sendWhatsAppPoll(ctx, sender, url.PathEscape(number.Instance), entry.ClientPhone, pollText)
 		if pollErr != nil {
 			// The thank-you went; say in the log that the poll didn't.
 			if !sendMessage {
@@ -374,8 +406,12 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 			return
 		}
 		if entry.PollRef != "" {
-			entry.PollQuestion = whatsAppPollQuestion(sender.WhatsappPollQuestion)
+			entry.PollQuestion = pollText
 			entry.PollOptions = strings.Join(whatsAppPollOptions(sender.WhatsappPollOptions), "\n")
+			if !sendMessage {
+				// The poll is all that went: its ticks are the row's.
+				entry.BridgeRef = entry.PollRef
+			}
 		}
 		// After an early welcome the poll joins the welcome's row: one row per
 		// client, showing the welcome's ticks. A row of its own would never get
@@ -530,7 +566,11 @@ type whatsAppSenderBody struct {
 	// Sent messages are removed from our own number's chats ("delete for me").
 	DeleteForMe bool `json:"whatsapp_delete_for_me"`
 	// The same for the rating poll, separately: votes on a deleted poll may not arrive.
-	DeletePollForMe bool                   `json:"whatsapp_delete_poll_for_me"`
+	DeletePollForMe bool `json:"whatsapp_delete_poll_for_me"`
+	// Poll mode: the purchase details inside the poll, one message (see
+	// whatsAppCombinedPollText), with its own text.
+	PollCombined    bool                   `json:"whatsapp_poll_combined"`
+	CombinedMessage string                 `json:"whatsapp_combined_message"`
 	Branches        []whatsAppBranchNumber `json:"branches"`
 }
 
@@ -589,12 +629,16 @@ func (server *Server) getWhatsAppSender(ctx *gin.Context) {
 			PollNew:           sender.WhatsappPollNew,
 			PollReturning:     sender.WhatsappPollReturning,
 			FollowupReturning: sender.WhatsappFollowupReturning,
+			PollCombined:      sender.WhatsappPollCombined,
+			CombinedMessage:   sender.WhatsappCombinedMessage,
 			Branches:          branches,
 		},
-		"default_message":       defaultWhatsAppPollMessage,
-		"default_link_message":  defaultWhatsAppLinkMessage,
-		"default_poll_question": defaultWhatsAppPollQuestion,
-		"default_poll_options":  strings.Join(defaultWhatsAppPollOptions, "\n"),
+		"default_message":          defaultWhatsAppPollMessage,
+		"default_link_message":     defaultWhatsAppLinkMessage,
+		"default_poll_question":    defaultWhatsAppPollQuestion,
+		"default_combined_message": defaultWhatsAppCombinedMessage,
+		"poll_text_limit":          whatsAppPollTextLimit,
+		"default_poll_options":     strings.Join(defaultWhatsAppPollOptions, "\n"),
 		"default_followups": envelope{
 			"good": defaultWhatsAppFollowupGood,
 			"okay": defaultWhatsAppFollowupOkay,
@@ -720,6 +764,8 @@ func (server *Server) updateWhatsAppSender(ctx *gin.Context) {
 		WhatsappPollNew:           req.PollNew,
 		WhatsappPollReturning:     req.PollReturning,
 		WhatsappFollowupReturning: req.FollowupReturning,
+		WhatsappPollCombined:      req.PollCombined,
+		WhatsappCombinedMessage:   strings.TrimSpace(req.CombinedMessage),
 	}, branches); err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
