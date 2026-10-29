@@ -1,4 +1,4 @@
-import { isGatewayStatus, markServerUpdating } from '@/composables/useServerStatus'
+import { isProxyOutage, markServerUpdating } from '@/composables/useServerStatus'
 import router from '@/router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -70,7 +70,7 @@ export async function authFetch (url, options = {}) {
     throw new Error(connectionErrorMessage())
   }
 
-  if (isGatewayStatus(res.status)) {
+  if (isProxyOutage(res)) {
     markServerUpdating()
     throw new Error(SERVER_UPDATING_MESSAGE)
   }
@@ -121,14 +121,15 @@ export async function authUpload (url, { method = 'POST', body, onProgress } = {
       if (e.lengthComputable) {onProgress?.(e.loaded / e.total)}
     })
     xhr.addEventListener('load', () => {
-      resolve(new Response(xhr.responseText, { status: xhr.status }))
+      const type = xhr.getResponseHeader('Content-Type')
+      resolve(new Response(xhr.responseText, { status: xhr.status, headers: type ? { 'Content-Type': type } : {} }))
     })
     xhr.addEventListener('error', () => reject(new Error(connectionErrorMessage())))
     xhr.send(body)
   })
 
   let res = await send(authStore.token)
-  if (isGatewayStatus(res.status)) {
+  if (isProxyOutage(res)) {
     markServerUpdating()
     throw new Error(SERVER_UPDATING_MESSAGE)
   }
