@@ -27,7 +27,17 @@ func (server *Server) writeJSON(ctx *gin.Context, status int, data envelope) {
 // (4xx) are the caller's fault and don't need a server-side trace, but a 500
 // means something broke here, and this codebase has no other mechanism that
 // records that anywhere today.
+//
+// 502/503/504 are reserved for the proxy: the UI reads them as "the API is
+// being redeployed" and covers the app with the Updating overlay until the
+// API answers again (ui/src/composables/useServerStatus.js). A handler
+// whose upstream failed (the WhatsApp bridge, a slow query) sends a 500
+// instead, so its error shows on the page rather than a stuck overlay.
 func (server *Server) writeError(ctx *gin.Context, status int, err error) {
+	switch status {
+	case http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+		status = http.StatusInternalServerError
+	}
 	if status >= http.StatusInternalServerError {
 		log.Printf("error: %v %v: %v", logSafe(ctx.Request.Method), logSafe(ctx.Request.URL.Path), logSafe(err.Error()))
 	}

@@ -19,6 +19,15 @@ export function isGatewayStatus (status) {
   return GATEWAY_STATUSES.has(status)
 }
 
+// A gateway status from the proxy itself, not the API: the API's own errors
+// are JSON ({"error": ...}) and never mean it's down -- a WhatsApp bridge
+// failure while linking a number used to come back as a 502 and pin the
+// overlay up, since the QR poll kept re-raising it.
+export function isProxyOutage (res) {
+  return isGatewayStatus(res.status)
+    && !String(res.headers?.get('Content-Type') ?? '').includes('application/json')
+}
+
 // Any real HTTP answer from the API -- even 401 -- means it's back. Plain
 // fetch rather than authFetch: no token renewal or logout redirect while
 // we're only checking whether the server is there.
