@@ -101,6 +101,13 @@
                     text="Default"
                     variant="tonal"
                   />
+                  <v-chip
+                    v-if="n.min_total_cents > 0"
+                    class="ms-1"
+                    size="x-small"
+                    :text="`Invoices of $${n.min_total_cents / 100}+`"
+                    variant="tonal"
+                  />
                 </v-list-item-title>
                 <v-list-item-subtitle>
                   {{ n.phone ? `+${n.phone}` : 'Not linked yet' }} ·
@@ -123,6 +130,13 @@
                     title="Make default"
                     variant="text"
                     @click="makeDefault(n)"
+                  />
+                  <v-btn
+                    icon="mdi-currency-usd"
+                    size="small"
+                    title="Minimum invoice: smaller ones go from another number"
+                    variant="text"
+                    @click="setMinTotal(n)"
                   />
                   <v-btn
                     icon="mdi-pencil"
@@ -981,6 +995,26 @@
     if (label == null) return
     try {
       await updateNumber(n.id, { label: label.trim(), is_default: n.is_default })
+      await reloadNumbers()
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
+  // A number that only carries bigger sales (a restricted one, say): smaller
+  // invoices go out from the branch's next number, the default, or the oldest.
+  async function setMinTotal (n) {
+    const answer = window.prompt(
+      `Send from ${n.label || 'this number'} only for invoices of at least ($). Smaller ones go from another number. 0 = every invoice.`,
+      String((n.min_total_cents ?? 0) / 100),
+    )
+    if (answer == null) return
+    const dollars = Number(answer.trim() || 0)
+    if (!Number.isFinite(dollars) || dollars < 0) {
+      notify.error('Enter an amount in dollars, like 50.')
+      return
+    }
+    try {
+      await updateNumber(n.id, { label: n.label, is_default: n.is_default, min_total_cents: Math.round(dollars * 100) })
       await reloadNumbers()
     } catch (error) {
       notify.error(error.message)

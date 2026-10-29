@@ -18,9 +18,10 @@ func (store *SQLStore) SaveWhatsAppSenderTx(ctx context.Context, settings SetWha
 	})
 }
 
-// UpdateWhatsAppNumberTx renames a number and, when makeDefault, makes it
-// the one number every branch without its own sends from.
-func (store *SQLStore) UpdateWhatsAppNumberTx(ctx context.Context, id int64, label string, makeDefault bool) (WhatsappNumber, error) {
+// UpdateWhatsAppNumberTx renames a number, sets the smallest invoice it sends
+// for and, when makeDefault, makes it the one number every branch without its
+// own sends from.
+func (store *SQLStore) UpdateWhatsAppNumberTx(ctx context.Context, id int64, label string, makeDefault bool, minTotalCents int64) (WhatsappNumber, error) {
 	var number WhatsappNumber
 	err := store.execTx(ctx, func(q *Queries) error {
 		if makeDefault {
@@ -32,7 +33,7 @@ func (store *SQLStore) UpdateWhatsAppNumberTx(ctx context.Context, id int64, lab
 			}
 		}
 		var err error
-		number, err = q.UpdateWhatsAppNumberLabel(ctx, UpdateWhatsAppNumberLabelParams{ID: id, Label: label})
+		number, err = q.UpdateWhatsAppNumberLabel(ctx, UpdateWhatsAppNumberLabelParams{ID: id, Label: label, MinTotalCents: minTotalCents})
 		return err
 	})
 	return number, err

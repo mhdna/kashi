@@ -97,7 +97,7 @@ func TestSendWhatsAppViaBridgeWithPoll(t *testing.T) {
 	store := mockdb.NewMockStore(ctrl)
 	server := newTestServer(t, store)
 	server.config.HTTPServerAddress = "127.0.0.1:8090"
-	store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), int64(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
+	store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), numberForBranch(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
 	store.EXPECT().CreateWhatsAppMessage(gomock.Any(), gomock.Any()).DoAndReturn(
 		func(_ any, arg db.CreateWhatsAppMessageParams) (db.WhatsappMessage, error) {
 			require.Regexp(t, reviewCodePattern, arg.PollRef)
