@@ -171,6 +171,44 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 		require.Regexp(t, `https://grandbz\.com/review/[2-9a-zA-Z]{8}$`, text)
 	})
 
+	t.Run("poll mode, combined: the details go in the poll, one message", func(t *testing.T) {
+		calls := 0
+		var got map[string]any
+		bridge := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			calls++
+			got = map[string]any{}
+			_ = json.NewDecoder(r.Body).Decode(&got)
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"status":"QUEUED"}`))
+		}))
+		t.Cleanup(bridge.Close)
+		ctrl := gomock.NewController(t)
+		store := mockdb.NewMockStore(ctrl)
+		server := newTestServer(t, store)
+
+		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), numberForBranch(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
+		store.EXPECT().DeleteFailedWhatsAppMessagesForInvoice(gomock.Any(), gomock.Any()).Return(nil)
+		store.EXPECT().CreateWhatsAppMessage(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ any, arg db.CreateWhatsAppMessageParams) (db.WhatsappMessage, error) {
+				require.Equal(t, whatsAppStatusSent, arg.Status)
+				require.Regexp(t, reviewCodePattern, arg.PollRef)
+				require.Equal(t, arg.PollRef, arg.BridgeRef, "the poll's ticks are the row's")
+				require.Equal(t, arg.Body, arg.PollQuestion, "the chat view shows the poll alone")
+				return db.WhatsappMessage{}, nil
+			})
+
+		rec := run(server, db.GetWhatsAppSenderSettingsRow{WhatsappMessageNew: true, WhatsappMessageReturning: true, WhatsappPollNew: true, WhatsappPollReturning: true,
+			WhatsappSender: "bridge", WhatsappFeedbackMode: "poll", WhatsappBridgeUrl: bridge.URL, WhatsappBridgeKey: "secret-key",
+			WhatsappPollCombined: true, WhatsappMessageLogo: true, WhatsappChannelUrl: "https://whatsapp.com/channel/x",
+		})
+		require.Equal(t, http.StatusOK, rec.Code)
+		require.Equal(t, 1, calls, "no message before the poll")
+		require.NotEmpty(t, got["poll"])
+		require.Nil(t, got["image"])
+		require.Equal(t, "Hi Sara, thank you for shopping at Grand Bazaar today 🤍\n🧾 SA/CT/2026/00482 · 📅 "+
+			time.Now().In(businessZone).Format("02/01/2006")+"\n💳 $156.25\n\nHow was your visit today?", got["text"])
+	})
+
 	t.Run("no number for the branch fails without calling the bridge", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		store := mockdb.NewMockStore(ctrl)
@@ -367,4 +405,22 @@ func TestSendWhatsAppViaBridgePollAfterWelcomeJoinsItsRow(t *testing.T) {
 	require.Len(t, bodies, 1)
 	require.Contains(t, bodies[0], `"poll"`)
 	require.Contains(t, rec.Body.String(), `"sent":true`)
+}
+
+func TestWhatsAppCombinedPollText(t *testing.T) {
+	sender := db.GetWhatsAppSenderSettingsRow{}
+	at := time.Date(2026, 10, 29, 12, 0, 0, 0, businessZone)
+	values := whatsAppMessageValues(sender, nil, "Ahmad Saleh", "Centro", "GB-48213", 4250, at)
+	require.Equal(t, "Hi Ahmad, thank you for shopping at Grand Bazaar today 🤍\n🧾 GB-48213 · 📅 29/10/2026\n💳 $42.50\n\nHow was your visit today?",
+		whatsAppCombinedPollText(sender, values))
+
+	// Receipt details switched off ("channel first" for a new client): the greeting and the question.
+	values = whatsAppMessageValues(sender, whatsAppReceiptFields, "Ahmad", "Centro", "GB-48213", 4250, at)
+	require.Equal(t, "Hi Ahmad, thank you for shopping at Grand Bazaar today 🤍\n\nHow was your visit today?", whatsAppCombinedPollText(sender, values))
+
+	// A saved text: WhatsApp's *bold* would show as stars in a poll, so they go.
+	sender.WhatsappCombinedMessage = "Thanks *{name}* ({total})"
+	sender.WhatsappPollQuestion = "Rate us"
+	values = whatsAppMessageValues(sender, nil, "Ahmad", "Centro", "GB-48213", 4250, at)
+	require.Equal(t, "Thanks Ahmad ($42.50)\n\nRate us", whatsAppCombinedPollText(sender, values))
 }
