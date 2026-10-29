@@ -378,7 +378,13 @@ func (server *Server) recordWhatsAppOutcome(ctx *gin.Context, entry db.CreateWha
 		server.adminHub.broadcastAll(adminWSMessage{Type: "whatsapp_message", BranchID: entry.BranchID.Int64})
 	}
 	if status == whatsAppStatusSent {
-		server.writeJSON(ctx, http.StatusOK, envelope{"sent": true})
+		// "from": the label of the number it went out from ("Centro phone"),
+		// set by sendWhatsAppViaBridge, so Send test can say which one it used.
+		reply := envelope{"sent": true}
+		if from := ctx.GetString(whatsAppFromKey); from != "" {
+			reply["from"] = from
+		}
+		server.writeJSON(ctx, http.StatusOK, reply)
 		return
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{"sent": false, "reason": reason, "retry": retry})

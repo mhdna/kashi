@@ -896,7 +896,7 @@
     try {
       const res = await sendTest({ phone: testPhone.value.trim(), branch_id: testBranch.value })
       testResult.value = res.sent
-        ? { ok: true, text: 'Queued — it arrives in about 20–45 seconds.' }
+        ? { ok: true, text: `Queued${res.from ? ` from "${res.from}"` : ''} — it arrives in about 20–45 seconds.` }
         : { ok: false, text: res.reason || 'Not sent.' }
       await reloadNumbers()
     } catch (error) {

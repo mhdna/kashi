@@ -252,6 +252,10 @@ func whatsAppAudienceName(first bool) string {
 	return "returning"
 }
 
+// whatsAppFromKey holds, on the request, the label of the number a bridge
+// send went out from; recordWhatsAppOutcome answers it as "from".
+const whatsAppFromKey = "whatsapp_from"
+
 func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWhatsAppMessageParams, sender db.GetWhatsAppSenderSettingsRow, branchName string, hidden []string, req branchWhatsAppThankYouRequest) {
 	entry.Sender = whatsAppSenderBridge
 	if strings.TrimSpace(sender.WhatsappBridgeKey) == "" {
@@ -269,6 +273,7 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 	}
 	entry.WhatsappNumberID = sql.NullInt64{Int64: number.ID, Valid: true}
 	entry.BridgeRef = newReviewCode()
+	ctx.Set(whatsAppFromKey, number.Label)
 
 	pollMode := sender.WhatsappFeedbackMode != whatsAppFeedbackLink
 	message := whatsAppBridgeMessageFor(sender)
