@@ -53,7 +53,8 @@ VALUES (sqlc.arg(instance), sqlc.arg(label), NOT EXISTS (SELECT 1 FROM whatsapp_
 RETURNING *;
 
 -- name: UpdateWhatsAppNumberLabel :one
-UPDATE whatsapp_numbers SET label = sqlc.arg(label) WHERE id = sqlc.arg(id) RETURNING *;
+UPDATE whatsapp_numbers SET label = sqlc.arg(label), min_total_cents = sqlc.arg(min_total_cents)
+WHERE id = sqlc.arg(id) RETURNING *;
 
 -- name: SetWhatsAppNumberPhone :exec
 UPDATE whatsapp_numbers SET phone = sqlc.arg(phone) WHERE id = sqlc.arg(id) AND phone <> sqlc.arg(phone);
@@ -78,15 +79,14 @@ UPDATE branches SET
 WHERE id = sqlc.arg(id);
 
 -- name: WhatsAppNumberForBranch :one
--- The number a branch's messages go out from: its own, else the default,
--- else (no default, as when the first number was removed) the oldest one.
+-- The number a branch's sale goes out from: its own, else the default, else
+-- (no default, as when the first number was removed) the oldest one. A number
+-- whose minimum invoice the sale is under is passed over for the next one.
 SELECT n.*
 FROM whatsapp_numbers n
 LEFT JOIN branches b ON b.id = sqlc.arg(branch_id)
-WHERE n.id = b.whatsapp_number_id
-   OR (b.whatsapp_number_id IS NULL
-       AND (n.is_default OR NOT EXISTS (SELECT 1 FROM whatsapp_numbers d WHERE d.is_default)))
-ORDER BY n.is_default DESC, n.id
+WHERE n.min_total_cents <= sqlc.arg(total_cents)
+ORDER BY n.id = b.whatsapp_number_id IS TRUE DESC, n.is_default DESC, n.id
 LIMIT 1;
 
 -- name: RecordWhatsAppPollVote :one

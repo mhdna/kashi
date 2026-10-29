@@ -13534,18 +13534,18 @@ func (mr *MockStoreMockRecorder) UpdateWhatsAppNumberLabel(arg0, arg1 interface{
 }
 
 // UpdateWhatsAppNumberTx mocks base method.
-func (m *MockStore) UpdateWhatsAppNumberTx(arg0 context.Context, arg1 int64, arg2 string, arg3 bool) (db.WhatsappNumber, error) {
+func (m *MockStore) UpdateWhatsAppNumberTx(arg0 context.Context, arg1 int64, arg2 string, arg3 bool, arg4 int64) (db.WhatsappNumber, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateWhatsAppNumberTx", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "UpdateWhatsAppNumberTx", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(db.WhatsappNumber)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateWhatsAppNumberTx indicates an expected call of UpdateWhatsAppNumberTx.
-func (mr *MockStoreMockRecorder) UpdateWhatsAppNumberTx(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockStoreMockRecorder) UpdateWhatsAppNumberTx(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateWhatsAppNumberTx", reflect.TypeOf((*MockStore)(nil).UpdateWhatsAppNumberTx), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateWhatsAppNumberTx", reflect.TypeOf((*MockStore)(nil).UpdateWhatsAppNumberTx), arg0, arg1, arg2, arg3, arg4)
 }
 
 // UpsertAttributeValue mocks base method.
@@ -13930,7 +13930,7 @@ func (mr *MockStoreMockRecorder) WhatsAppMessagesByRule(arg0, arg1 interface{}) 
 }
 
 // WhatsAppNumberForBranch mocks base method.
-func (m *MockStore) WhatsAppNumberForBranch(arg0 context.Context, arg1 int64) (db.WhatsappNumber, error) {
+func (m *MockStore) WhatsAppNumberForBranch(arg0 context.Context, arg1 db.WhatsAppNumberForBranchParams) (db.WhatsappNumber, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WhatsAppNumberForBranch", arg0, arg1)
 	ret0, _ := ret[0].(db.WhatsappNumber)
