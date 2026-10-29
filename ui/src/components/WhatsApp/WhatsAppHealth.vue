@@ -79,16 +79,30 @@
               Open WhatsApp on that phone and check for a warning before resuming. Its branches'
               messages wait in the queue meanwhile.
             </div>
-            <v-btn
-              class="mt-2"
-              color="error"
-              :loading="resuming === n.id"
-              prepend-icon="mdi-play"
-              size="small"
-              text="Resume sending"
-              variant="flat"
-              @click="resume(n)"
-            />
+            <div v-if="n.queued" class="text-caption mt-1">
+              {{ n.queued }} waiting. Dropping them is safer: a backlog sent in one go is what gets a
+              number restricted. New sales get their messages as usual.
+            </div>
+            <div class="d-flex flex-wrap ga-2 mt-2">
+              <v-btn
+                color="error"
+                :loading="resuming === n.id"
+                prepend-icon="mdi-play"
+                size="small"
+                :text="n.queued ? `Drop ${n.queued} waiting and resume` : 'Resume sending'"
+                variant="flat"
+                @click="resume(n, true)"
+              />
+              <v-btn
+                v-if="n.queued"
+                color="error"
+                :disabled="resuming === n.id"
+                size="small"
+                text="Resume and send them too"
+                variant="text"
+                @click="resume(n, false)"
+              />
+            </div>
           </v-alert>
 
           <template v-if="n.health">
@@ -177,11 +191,11 @@
     }
   }
 
-  async function resume (n) {
+  async function resume (n, dropQueued) {
     resuming.value = n.id
     try {
-      await resumeNumber(n.id)
-      notify.success('Sending again')
+      const res = await resumeNumber(n.id, dropQueued)
+      notify.success(res.dropped ? `Sending again, ${res.dropped} waiting messages dropped` : 'Sending again')
       await load()
     } catch (error) {
       notify.error(error.message)

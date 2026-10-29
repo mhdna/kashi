@@ -1811,6 +1811,9 @@ type Querier interface {
 	SetWhatsAppSettings(ctx context.Context, arg SetWhatsAppSettingsParams) error
 	// A unit added to a cart line that already has its picture shares it.
 	ShareUnknownLineImages(ctx context.Context, sessionID int64) error
+	// Messages the bridge dropped from a paused number's queue on resume (refs
+	// from POST /instance/resume): logged as sent when queued, they never went.
+	SkipDroppedWhatsAppMessages(ctx context.Context, arg SkipDroppedWhatsAppMessagesParams) error
 	SplitUnknownInvoiceItem(ctx context.Context, arg SplitUnknownInvoiceItemParams) error
 	// Net sales revenue: same grand_total-sum convention as ListDailyIncome in
 	// branch_invoice.sql (returns already net out via their signed grand_total).

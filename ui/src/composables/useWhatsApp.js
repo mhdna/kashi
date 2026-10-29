@@ -42,7 +42,7 @@ export function useWhatsApp () {
     deleteNumber: id => requestJSON(`/whatsapp/numbers/${id}`, { method: 'DELETE' }),
     // Warning signs before a ban, and resuming a number that paused itself (api/whatsapp_health.go).
     getHealth: () => requestJSON('/whatsapp/health'),
-    resumeNumber: id => sendJSON('POST', `/whatsapp/numbers/${id}/resume`, {}),
+    resumeNumber: (id, dropQueued) => sendJSON('POST', `/whatsapp/numbers/${id}/resume`, { drop_queued: dropQueued }),
     searchClients: async search =>
       (await requestJSON(`/whatsapp/clients?${new URLSearchParams({ search })}`)).clients ?? [],
     clientsByPhones: async phones =>

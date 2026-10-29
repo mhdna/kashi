@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 const addWhatsAppPollReply = `-- name: AddWhatsAppPollReply :one
@@ -514,6 +516,26 @@ func (q *Queries) SetWhatsAppSenderSettings(ctx context.Context, arg SetWhatsApp
 		arg.WhatsappPollNew,
 		arg.WhatsappPollReturning,
 	)
+	return err
+}
+
+const skipDroppedWhatsAppMessages = `-- name: SkipDroppedWhatsAppMessages :exec
+UPDATE whatsapp_messages SET
+    status = 'skipped',
+    reason = $1
+WHERE status = 'sent'
+  AND (bridge_ref = ANY($2::text[]) OR poll_ref = ANY($2::text[]))
+`
+
+type SkipDroppedWhatsAppMessagesParams struct {
+	Reason string   `json:"reason"`
+	Refs   []string `json:"refs"`
+}
+
+// Messages the bridge dropped from a paused number's queue on resume (refs
+// from POST /instance/resume): logged as sent when queued, they never went.
+func (q *Queries) SkipDroppedWhatsAppMessages(ctx context.Context, arg SkipDroppedWhatsAppMessagesParams) error {
+	_, err := q.db.ExecContext(ctx, skipDroppedWhatsAppMessages, arg.Reason, pq.Array(arg.Refs))
 	return err
 }
 
