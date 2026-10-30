@@ -37,6 +37,18 @@
       </RptSection>
     </template>
 
+    <!-- Punches the till didn't import: the device user is linked to no
+         salesperson. An employee among them (enrolled twice, a new number)
+         is missing those punches from every hour above. -->
+    <RptSection
+      v-if="has('unlinked') && unlinked.length > 0"
+      :note="t('The attendance device logged these, but its user is linked to no salesperson, so they count nowhere. If one is an employee, set that device number on their salesperson so new punches count.')"
+      part="unlinked"
+      :title="t('Punches nobody is linked to')"
+    >
+      <RptTable :columns="unlinkedColumns" compact :rows="unlinked" />
+    </RptSection>
+
     <!-- One page per employee: every day of the period, the days with no
          punches too, so it can go straight into a payroll file. -->
     <template v-if="has('detail')">
@@ -63,7 +75,7 @@
 
 <script setup>
   import { computed } from 'vue'
-  import { formatClock } from '@/utils/attendanceSessions'
+  import { formatClock, isSkippedPunch } from '@/utils/attendanceSessions'
   import { reportLang, t } from './reportI18n'
   import { csvSection, dayLabel, daysBetween, hours, int, num1 } from './reportKit'
   import { timesheetRows } from './reportRows'
@@ -82,6 +94,31 @@
 
   const rows = computed(() => timesheetRows(props.ctx)
     .filter(r => props.ctx.employees.length === 0 || props.ctx.employees.includes(r.person)))
+
+  // Skipped punches by device user (kashi-pos sends them as 'Skipped: ...').
+  const unlinked = computed(() => {
+    const byUser = new Map()
+    for (const e of props.ctx.attendance ?? []) {
+      if (!isSkippedPunch(e)) {continue}
+      const key = `${e.branch_id}|${e.attendance_user_id}`
+      const row = byUser.get(key) ?? { branch: props.ctx.branchNames[e.branch_id] ?? `#${e.branch_id}`, user: e.attendance_user_id, name: e.salesperson_name, punches: 0, days: new Set(), first: e.event_date, last: e.event_date }
+      row.punches++
+      row.days.add(e.event_date)
+      if (e.event_date < row.first) {row.first = e.event_date}
+      if (e.event_date > row.last) {row.last = e.event_date}
+      byUser.set(key, row)
+    }
+    return [...byUser.values()].map(r => ({ ...r, days: r.days.size })).toSorted((a, b) => b.punches - a.punches)
+  })
+  const unlinkedColumns = [
+    { key: 'name', title: t('Name on the device') },
+    { key: 'user', title: t('Device number') },
+    { key: 'branch', title: t('Branch') },
+    { key: 'punches', title: t('Punches'), type: 'int', strong: true },
+    { key: 'days', title: t('Days'), type: 'int' },
+    { key: 'first', title: t('First'), type: 'date' },
+    { key: 'last', title: t('Last'), type: 'date' },
+  ]
 
   const avgClock = list => (list.length > 0 ? formatClock(list.reduce((a, b) => a + b, 0) / list.length) : '')
   const missingPunch = t('Missing punch')
@@ -206,6 +243,7 @@
       return [
         has('hours') && csvSection(t('Hours per employee'), summaryColumns, people.value),
         has('grid') && csvSection(t('Hours per day'), gridColumns, people.value),
+        has('unlinked') && csvSection(t('Punches nobody is linked to'), unlinkedColumns, unlinked.value),
         has('detail') && csvSection(t('Every day'), [{ key: 'name', title: t('Employee') }, ...detailColumns],
                                     people.value.flatMap(p => p.rows.map(r => ({ ...r, name: p.name, spans: r.spans.replaceAll(/[⁦⁩]/g, '') })))),
       ].filter(Boolean)
