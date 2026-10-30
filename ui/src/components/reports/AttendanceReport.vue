@@ -5,7 +5,6 @@
 
     <RptSection v-if="has('hours')" :title="t('Hours per employee')">
       <RptTable :columns="summaryColumns" numbered :rows="people" :total="total" />
-      <RptChart v-if="people.length > 0" :height="Math.max(160, Math.min(people.length, CHART_ROWS) * 26 + 40)" :option="hoursChart" />
     </RptSection>
 
     <template v-if="has('grid') && people.length > 0">
@@ -55,9 +54,8 @@
   import { computed } from 'vue'
   import { formatClock } from '@/utils/attendanceSessions'
   import { reportLang, t } from './reportI18n'
-  import { barOption, CHART_ROWS, csvSection, daysBetween, hours, int, num1 } from './reportKit'
+  import { csvSection, daysBetween, hours, int, num1 } from './reportKit'
   import { timesheetRows } from './reportRows'
-  import RptChart from './RptChart.vue'
   import RptKpis from './RptKpis.vue'
   import RptSection from './RptSection.vue'
   import RptTable from './RptTable.vue'
@@ -141,13 +139,6 @@
     { key: 'incomplete', title: t('Missing'), type: 'int' },
   ]
 
-  const hoursChart = computed(() => barOption({
-    categories: people.value.slice(0, CHART_ROWS).map(p => p.name),
-    series: [{ name: t('Hours worked'), data: people.value.slice(0, CHART_ROWS).map(p => Math.round(p.worked / 6) / 10) }],
-    kind: 'hours',
-    horizontal: true,
-    labels: true,
-  }))
 
   const gridDays = computed(() => daysBetween(props.ctx.from, props.ctx.to))
   const weekdayInitial = d => new Date(`${d}T00:00:00`).toLocaleDateString(reportLang() === 'ar' ? 'ar-LB' : 'en-GB', { weekday: 'narrow' })

@@ -301,4 +301,25 @@ export const AR = {
   'Taken in': 'المبلغ المقبوض',
   'Discount rate': 'نسبة الخصم',
   'Sales discounted': 'المبيعات المخفّضة',
+
+  // Poll answers (the usual wording; a leading emoji is kept as it is)
+  'Loved it': 'أعجبني كثيراً',
+  'It was okay': 'كان مقبولاً',
+  'Not great': 'لم يكن جيداً',
+  'Answer': 'الإجابة',
+  'Answers by day': 'الإجابات يومياً',
+  'Customers who gave the lowest answers -- worth a call.': 'زبائن أعطوا أدنى الإجابات — يستحقون اتصالاً.',
+  'Only answers to the follow-up question, within a day of it.': 'فقط الردود على سؤال المتابعة، خلال يوم منه.',
+  'Poll answers': 'إجابات الاستطلاع',
+
+  // Customers groups
+  'By number of visits': 'حسب عدد الزيارات',
+  'By amount spent': 'حسب المبلغ المنفق',
+  '% of customers': '% من الزبائن',
+  '% of spend': '% من الإنفاق',
+  'Per customer': 'لكل زبون',
+  '{pct} · spent {amount}': '{pct} · أنفقوا {amount}',
+  'Sales with a named customer, by weekday and hour on the till.': 'المبيعات المسجّلة باسم زبون، حسب اليوم والساعة على الصندوق.',
+  'Left out on purpose: {products} products (from item figures) and {clients} customers (from everything).':
+    'مستبعد عمداً: {products} منتج (من أرقام القطع) و{clients} زبون (من كل الأرقام).',
 }

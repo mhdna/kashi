@@ -450,13 +450,14 @@ export const guideSections = [
     ]),
 
   entry('reports', 'Analysis', 'Reports',
-    'End-of-month (or any period) reports to print or save as PDF, in English or Arabic: a monthly overview, customers (with busy times and feedback), salespersons & attendance, and sales & goods.',
+    'End-of-month (or any period) reports to print or save as PDF, in English or Arabic: monthly overview, customers (with busy times), customer feedback, salespersons & attendance, and sales & goods.',
     [
-      'Pick a report on the left and tick the parts you want in it -- for example only the attendance parts of the salespersons report. Your choice is remembered per report.',
-      'Choose the period, branches and (for salespersons) employees.',
-      'The <b>EN / عربي</b> switch draws the whole report in Arabic, right to left.',
+      'Pick a report on the left and tick the parts you want -- for example only the attendance parts of the salespersons report.',
+      'Choose the period, branches and (for salespersons) employees, then <b>Save as default</b>: the page opens like that from then on, for everyone.',
+      '<b>Leave out products or customers</b> keeps them out of every report: a customer\'s sales drop out of all figures, a product drops out of best sellers, categories, sizes and item counts.',
+      'The preview is an A4 page: zoom in and out, or <b>Fit width</b>, above it. The <b>EN / عربي</b> switch draws the report in Arabic, right to left.',
       '<b>Export PDF</b> opens the print dialog: choose <b>Save as PDF</b>. <b>CSV</b> downloads the tables of the ticked parts for Excel.',
-      'Salesperson performance shows sales per hour worked when the salesperson\'s attendance device number is set.',
+      'Customer feedback shows the poll\'s own answers (Loved it, It was okay, Not great) and only the replies to the follow-up question.',
     ]),
 
   entry('busy-hours', 'Analysis', 'Busy Hours',
