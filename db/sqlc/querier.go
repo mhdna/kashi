@@ -1998,6 +1998,13 @@ type Querier interface {
 	// (no default, as when the first number was removed) the oldest one. A number
 	// whose minimum invoice the sale is under is passed over for the next one.
 	WhatsAppNumberForBranch(ctx context.Context, arg WhatsAppNumberForBranchParams) (WhatsappNumber, error)
+	// The Health tab's counts per number, from our own log rather than the
+	// bridge's (which counts test sends too): sends and failures of the last 24
+	// hours, sends of the week before for the usual daily figure, and messages
+	// of the last week still on one tick after 3 days. prior_days is how much of
+	// that week the number was already sending, so a new number's usual isn't
+	// averaged over days it didn't exist.
+	WhatsAppNumberSendCounts(ctx context.Context) ([]WhatsAppNumberSendCountsRow, error)
 	// A till that reports the same sale twice doesn't message the client twice.
 	WhatsAppSentForInvoice(ctx context.Context, arg WhatsAppSentForInvoiceParams) (bool, error)
 	WhatsAppTopRecipients(ctx context.Context, arg WhatsAppTopRecipientsParams) ([]WhatsAppTopRecipientsRow, error)
