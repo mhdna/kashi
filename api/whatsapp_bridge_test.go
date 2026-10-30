@@ -418,6 +418,13 @@ func TestWhatsAppCombinedPollText(t *testing.T) {
 	values = whatsAppMessageValues(sender, whatsAppReceiptFields, "Ahmad", "Centro", "GB-48213", 4250, at)
 	require.Equal(t, "Hi Ahmad,\nThank you for shopping at Grand Bazaar today 🤍\n\nHow was your visit today?", whatsAppCombinedPollText(sender, values))
 
+	// Details sharing a line go one by one: the receipt code off keeps the date.
+	sender.WhatsappCombinedMessage = "Hi {name}\n🧾 {invoice} · 📅 {date}\n💳 {total}"
+	values = whatsAppMessageValues(sender, []string{"invoice"}, "Ahmad", "Centro", "GB-48213", 4250, at)
+	require.Equal(t, "Hi Ahmad\n📅 29/10/2026\n💳 $42.50\n\nHow was your visit today?", whatsAppCombinedPollText(sender, values))
+	values = whatsAppMessageValues(sender, []string{"invoice", "date"}, "Ahmad", "Centro", "GB-48213", 4250, at)
+	require.Equal(t, "Hi Ahmad\n💳 $42.50\n\nHow was your visit today?", whatsAppCombinedPollText(sender, values))
+
 	// A saved text: WhatsApp's *bold* would show as stars in a poll, so they go.
 	sender.WhatsappCombinedMessage = "Thanks *{name}* ({total})"
 	sender.WhatsappPollQuestion = "Rate us"

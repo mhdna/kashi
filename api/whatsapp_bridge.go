@@ -182,7 +182,8 @@ func whatsAppBridgeText(message string, values map[string]string) string {
 	src := strings.Split(message, "\n")
 	dropped := make([]bool, len(src))
 	for i, line := range src {
-		dropped[i] = whatsAppEmptyPlaceholder(line, values)
+		src[i] = whatsAppDropEmptySegments(line, values)
+		dropped[i] = whatsAppEmptyPlaceholder(src[i], values)
 	}
 	// Bottom up, so a heading sees the labels under it already gone.
 	for i := len(src) - 1; i >= 0; i-- {
@@ -243,6 +244,31 @@ func whatsAppOrphanLabel(lines []string, dropped []bool, i int) bool {
 		}
 	}
 	return true
+}
+
+// whatsAppSegmentSep splits a line holding several details, like
+// "🧾 {invoice} · 📅 {date}", into pieces that go one by one.
+const whatsAppSegmentSep = " · "
+
+// whatsAppDropEmptySegments takes out of a line split by whatsAppSegmentSep
+// the pieces whose placeholder is empty, so switching off one detail doesn't
+// take the others on its line with it. A line left with none is dropped as a
+// whole by whatsAppEmptyPlaceholder.
+func whatsAppDropEmptySegments(line string, values map[string]string) string {
+	if !strings.Contains(line, whatsAppSegmentSep) {
+		return line
+	}
+	segments := strings.Split(line, whatsAppSegmentSep)
+	kept := make([]string, 0, len(segments))
+	for _, segment := range segments {
+		if !whatsAppEmptyPlaceholder(segment, values) {
+			kept = append(kept, segment)
+		}
+	}
+	if len(kept) == 0 {
+		return line
+	}
+	return strings.Join(kept, whatsAppSegmentSep)
 }
 
 func whatsAppEmptyPlaceholder(line string, values map[string]string) bool {
