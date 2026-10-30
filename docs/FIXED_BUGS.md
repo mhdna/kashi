@@ -3,6 +3,24 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-10-30 · Reports kept a salesperson's old name
+
+**Symptom.** After renaming "Ahmad Robai" to "Ahmad Robaie", the attendance
+pages and the salesperson ranking still said "Ahmad Robai", and his punches
+at a second branch showed as another person.
+
+**Cause.** The attendance reports took the name the fingerprint device sends
+with each punch, which still had the old spelling. Punches at a branch where
+he has no salesperson record, and till sales typed with the old name, were
+matched to nobody.
+
+**Fix.** A person's name in the reports is kashi's salesperson name. Punches
+with the same device number at another branch, and typed sale names, count
+for the salesperson whose kashi name starts with them ("Ahmad Robai" ->
+"Ahmad Robaie") (`ui/src/components/reports/reportRows.js`,
+`AttendanceReport.vue`). Checked against production data; no automated
+test covers it.
+
 ## 2026-10-30 · Feedback dropped replies from customers who didn't tap an answer
 
 **Symptom.** The feedback report and the Reviews page showed only a handful
