@@ -267,6 +267,16 @@
           variant="text"
           @click="zoom = 1"
         />
+        <v-divider class="mx-1" vertical />
+        <v-btn
+          :active="darkView"
+          density="comfortable"
+          icon="mdi-weather-night"
+          size="small"
+          :title="darkView ? 'Show the page white' : 'Show the page dark (the PDF stays white)'"
+          variant="text"
+          @click="darkView = !darkView"
+        />
       </div>
 
       <div v-if="(loading && !ready) || !fontsReady || !settingsReady" class="d-flex justify-center pa-12">
@@ -277,7 +287,7 @@
         Tick at least one part of the report on the left.
       </v-alert>
       <div v-else-if="ready" class="zoom-box" :style="{ width: `${pageWidth * scale}px`, height: `${sheetHeight * scale}px` }">
-        <div class="zoom-inner" :style="{ width: `${pageWidth}px`, transform: `scale(${scale})` }">
+        <div class="zoom-inner" :class="{ 'zoom-inner--dark': darkView }" :style="{ width: `${pageWidth}px`, transform: `scale(${scale})` }">
           <div
             :key="`${report.key}|${sheetLang}`"
             ref="sheetRef"
@@ -1002,6 +1012,10 @@
   const savedZoom = stored('reports.zoom', 'fit')
   const zoom = ref(savedZoom === 'fit' ? 'fit' : (Number(savedZoom) || 'fit'))
   watch(zoom, value => store('reports.zoom', String(value)))
+  // Dark viewing only: the frame around the sheet is inverted on screen,
+  // and the PDF copies the sheet itself, which stays white.
+  const darkView = ref(stored('reports.dark', '0') === '1')
+  watch(darkView, value => store('reports.dark', value ? '1' : '0'))
   const previewRef = ref(null)
   const previewWidth = ref(0)
   const sheetHeight = ref(0)
@@ -1125,6 +1139,11 @@
 }
 .zoom-inner {
   transform-origin: top left;
+}
+/* Inverting with a half-turn of hue keeps chart and tag colours close to
+   their own hues on a dark page. */
+.zoom-inner--dark {
+  filter: invert(0.9) hue-rotate(180deg);
 }
 .reports-preview .rpt-sheet {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);

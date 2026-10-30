@@ -190,20 +190,19 @@ ORDER BY 1;
 -- Clients who answered 1 or 2 stars, newest first: the ones to call back.
 SELECT m.id, m.poll_voted_at, m.poll_rating, m.poll_answer, m.client_name, m.client_phone,
        m.invoice_code, m.grand_total_cents, COALESCE(b.name, '')::text AS branch_name,
-       -- What they wrote back to the follow-up question, oldest first
-       -- (the same answers PollReplies counts).
+       -- What they wrote back about the sale, oldest first (the same
+       -- replies PollReplies counts).
        COALESCE((SELECT string_agg(NULLIF(r.body, ''), E'\n' ORDER BY r.received_at)
                  FROM whatsapp_poll_replies r
                  WHERE r.whatsapp_message_id = m.id
-                   AND m.poll_followup_at IS NOT NULL
-                   AND r.received_at >= m.poll_followup_at
-                   AND r.received_at < m.poll_followup_at + interval '24 hours'
+                   AND r.received_at >= m.created_at
+                   AND r.received_at < GREATEST(m.created_at, COALESCE(m.poll_followup_at, m.created_at)) + interval '24 hours'
                    AND (r.kind <> 'text' OR r.body ~ '[^[:space:][:punct:]]')
                    AND (SELECT count(*) FROM whatsapp_poll_replies e
                         WHERE e.whatsapp_message_id = r.whatsapp_message_id
-                          AND e.received_at >= m.poll_followup_at
+                          AND e.received_at >= m.created_at
                           AND (e.kind <> 'text' OR e.body ~ '[^[:space:][:punct:]]')
-                          AND (e.received_at, e.id) < (r.received_at, r.id)) < 3), '')::text AS replies
+                          AND (e.received_at, e.id) < (r.received_at, r.id)) < 5), '')::text AS replies
 FROM whatsapp_messages m
 LEFT JOIN branches b ON b.id = m.branch_id
 WHERE NOT m.is_test AND COALESCE(m.branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND m.poll_rating <= 2
@@ -222,18 +221,19 @@ JOIN whatsapp_messages m ON m.id = r.whatsapp_message_id
 LEFT JOIN branches b ON b.id = m.branch_id
 WHERE NOT m.is_test AND COALESCE(m.branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND r.received_at >= sqlc.arg(from_at) AND r.received_at < sqlc.arg(to_at)
   AND (sqlc.arg(branch_id)::bigint = 0 OR m.branch_id = sqlc.arg(branch_id))
-  -- Only answers to the follow-up question: written after it, within a
-  -- day, the client's first three messages, and more than punctuation. The
-  -- bridge reports everything a client writes after the poll, including
-  -- later small talk ("Hi", "Kifc") that isn't feedback.
-  AND m.poll_followup_at IS NOT NULL
-  AND r.received_at >= m.poll_followup_at
-  AND r.received_at < m.poll_followup_at + interval '24 hours'
+  -- What a client writes about the sale: from the poll message until a
+  -- day after it (or after the follow-up question, when that went out
+  -- later), the first five messages with more than punctuation. The
+  -- bridge reports everything a client writes after a poll, including
+  -- later small talk; many clients answer in words without tapping an
+  -- answer, so no follow-up is needed for a reply to count.
+  AND r.received_at >= m.created_at
+  AND r.received_at < GREATEST(m.created_at, COALESCE(m.poll_followup_at, m.created_at)) + interval '24 hours'
   AND (r.kind <> 'text' OR r.body ~ '[^[:space:][:punct:]]')
   AND (SELECT count(*) FROM whatsapp_poll_replies e
        WHERE e.whatsapp_message_id = r.whatsapp_message_id
-         AND e.received_at >= m.poll_followup_at
+         AND e.received_at >= m.created_at
          AND (e.kind <> 'text' OR e.body ~ '[^[:space:][:punct:]]')
-         AND (e.received_at, e.id) < (r.received_at, r.id)) < 3
+         AND (e.received_at, e.id) < (r.received_at, r.id)) < 5
 ORDER BY r.received_at DESC
 LIMIT 100;
