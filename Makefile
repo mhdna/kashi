@@ -55,8 +55,8 @@ evans:
 seed:
 	go run ./cmd/seed/main.go
 
-# --- cloud deploy (example.com droplet, shared with kashi-commerce) -------
-# kashi lives at cloud.example.com now (example.com itself serves
+# --- cloud deploy (grandbz.com droplet, shared with kashi-commerce) -------
+# kashi lives at cloud.grandbz.com now (grandbz.com itself serves
 # kashi-commerce). One-time server setup lives in ui/deploy/SETUP.md and
 # kashi-commerce/deploy/SETUP.md. Needs an ssh alias `kashi` ->
 # root@<server-ip> (in ~/.ssh/config).
@@ -71,7 +71,7 @@ PROD_DB  ?= postgresql://kashi:kashi@localhost:5432/kashi?sslmode=disable
 deploy:
 	$(MAKE) -j2 --output-sync=target deploy-api build-ui
 	$(MAKE) ship-ui
-	@echo "Deployed -> https://cloud.example.com/"
+	@echo "Deployed -> https://cloud.grandbz.com/"
 
 # Cross-compile the API, ship it with the current migrations, run any
 # pending ones on the prod DB (idempotent), restart the service.

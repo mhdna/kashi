@@ -1,4 +1,4 @@
-# Kashi UI -- build + deploy the SPA to cloud.example.com on the shared
+# Kashi UI -- build + deploy the SPA to cloud.grandbz.com on the shared
 # droplet, where Caddy serves it statically and reverse-proxies /api/* to
 # the Go server.
 #
@@ -25,7 +25,7 @@ build: install
 # pointing at chunks that aren't there yet (or are already gone).
 deploy: build
 	rsync -avz --delete-after --delay-updates --chmod=D755,F644 $(DIST)/ $(SSH):$(UI_ROOT)/
-	@echo "Deployed -> https://cloud.example.com/"
+	@echo "Deployed -> https://cloud.grandbz.com/"
 
 caddy-reload:
 	ssh $(SSH) 'systemctl reload caddy'
