@@ -28,7 +28,7 @@
           :icon="currentActivity ? currentActivity.icon : 'mdi-cloud'"
           :size="mobile ? 20 : undefined"
         />
-        <div v-if="!mobile" class="text-body-2 ticker" :class="{ 'ticker--active': activeItems.length > 0 }">
+        <div v-if="!mobile" class="text-body-2 ticker">
           <TransitionGroup class="d-flex align-center reel" name="ticker" tag="div">
             <span
               v-for="item in activeItems"
@@ -137,7 +137,7 @@
   // 'notification' mode (the default) BranchActivityToast owns this instead
   // and activeItems is never fed -- see the onMessage handler.
   const MAX_VISIBLE = 3
-  const activeItems = ref([]) // [{ id, text, color, trendIcon, icon }], oldest first
+  const activeItems = ref([]) // [{ id, text, color, trendIcon, icon, groupKey, count }], oldest first
 
   // The newest visible activity -- drives the pill's leading icon.
   const currentActivity = computed(() => activeItems.value.at(-1) ?? null)
@@ -154,12 +154,22 @@
   function pushActivity (message) {
     const described = describeBranchActivity(message, branchName)
     if (!described) return
+    // Same group already showing (e.g. a burst of one branch's sync
+    // conflicts): drop it and carry its count into the new, newest item.
+    let count = 1
+    const same = described.groupKey && activeItems.value.find(it => it.groupKey === described.groupKey)
+    if (same) {
+      count = same.count + 1
+      dropItem(same.id)
+    }
     const item = {
       id: ++itemSeq,
-      text: described.shortText ?? described.text,
+      text: count > 1 ? described.groupText(count) : (described.shortText ?? described.text),
       color: described.color,
       trendIcon: described.trendIcon,
       icon: described.icon,
+      groupKey: described.groupKey,
+      count,
     }
     activeItems.value.push(item)
     itemTimers.set(item.id, setTimeout(() => dropItem(item.id), settingsStore.activityMessageSeconds * 1000))
@@ -315,10 +325,9 @@
 }
 
 /* The reel and the status line are stacked in a single grid cell so they
-   can crossfade in place. Idle, the pill hugs its status text. While
-   messages show, the width is fixed so it never resizes with their text: the
-   reel is split into MAX_VISIBLE equal slots and anything longer than its
-   slot is ellipsized. */
+   can crossfade in place. The pill hugs whichever is wider -- its status
+   text, or the messages -- up to max-width; each message is capped at a
+   third of that and ellipsized past it. */
 .ticker {
   display: grid;
   grid-template: 1fr / 1fr;
@@ -327,10 +336,6 @@
   overflow: hidden;
   white-space: nowrap;
   max-width: min(44vw, 520px);
-}
-
-.ticker--active {
-  width: min(44vw, 520px);
 }
 
 .ticker > * {
@@ -361,9 +366,9 @@
 .activity-item {
   display: inline-flex;
   align-items: center;
-  /* one of three equal slots (two 6px gaps) */
-  flex: 0 0 calc((100% - 12px) / 3);
-  justify-content: center;
+  /* sized to its text; at most a third of the ticker's cap (two 6px gaps) */
+  flex: 0 1 auto;
+  max-width: calc((min(44vw, 520px) - 12px) / 3);
   min-width: 0;
 }
 
