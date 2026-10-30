@@ -492,6 +492,38 @@
                 </tr>
               </tbody>
             </v-table>
+            <!-- How often one client can be messaged: a second sale soon after
+                 the first doesn't send again. -->
+            <v-row class="mt-3" density="compact">
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model.number="draft.whatsapp_message_gap_minutes"
+                  density="compact"
+                  :disabled="!canEdit"
+                  hint="A client who buys again sooner gets nothing. 0: every sale"
+                  label="At most one message every"
+                  min="0"
+                  persistent-hint
+                  suffix="minutes"
+                  type="number"
+                  variant="outlined"
+                />
+              </v-col>
+              <v-col v-if="pollMode" cols="12" md="6">
+                <v-text-field
+                  v-model.number="draft.whatsapp_poll_every_hours"
+                  density="compact"
+                  :disabled="!canEdit"
+                  hint="Sooner, the message goes without the poll. 24: once a day; 0: every sale"
+                  label="At most one rating poll every"
+                  min="0"
+                  persistent-hint
+                  suffix="hours"
+                  type="number"
+                  variant="outlined"
+                />
+              </v-col>
+            </v-row>
           </v-card>
         </v-col>
 
@@ -786,6 +818,10 @@
   async function save () {
     saving.value = true
     try {
+      // An emptied number field is "", which the API can't read as minutes.
+      for (const k of ['whatsapp_message_gap_minutes', 'whatsapp_poll_every_hours']) {
+        draft.value[k] = Math.max(0, Math.round(Number(draft.value[k]) || 0))
+      }
       apply(await saveSender(draft.value))
       notify.success('Saved.')
     } catch (error) {

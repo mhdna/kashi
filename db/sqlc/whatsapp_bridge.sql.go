@@ -218,7 +218,8 @@ SELECT whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridg
        whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_welcome_early, whatsapp_delete_for_me,
        whatsapp_delete_poll_for_me, whatsapp_followup_returning,
        whatsapp_message_new, whatsapp_message_returning, whatsapp_poll_new, whatsapp_poll_returning,
-       whatsapp_poll_combined, whatsapp_combined_message
+       whatsapp_poll_combined, whatsapp_combined_message,
+       whatsapp_message_gap_minutes, whatsapp_poll_every_hours
 FROM app_settings WHERE id = 1
 `
 
@@ -249,6 +250,8 @@ type GetWhatsAppSenderSettingsRow struct {
 	WhatsappPollReturning     bool   `json:"whatsapp_poll_returning"`
 	WhatsappPollCombined      bool   `json:"whatsapp_poll_combined"`
 	WhatsappCombinedMessage   string `json:"whatsapp_combined_message"`
+	WhatsappMessageGapMinutes int32  `json:"whatsapp_message_gap_minutes"`
+	WhatsappPollEveryHours    int32  `json:"whatsapp_poll_every_hours"`
 }
 
 // Sending post-sale messages from our own numbers through the WhatsApp
@@ -283,8 +286,26 @@ func (q *Queries) GetWhatsAppSenderSettings(ctx context.Context) (GetWhatsAppSen
 		&i.WhatsappPollReturning,
 		&i.WhatsappPollCombined,
 		&i.WhatsappCombinedMessage,
+		&i.WhatsappMessageGapMinutes,
+		&i.WhatsappPollEveryHours,
 	)
 	return i, err
+}
+
+const lastWhatsAppPollAt = `-- name: LastWhatsAppPollAt :one
+SELECT created_at
+FROM whatsapp_messages
+WHERE client_phone = $1 AND status = 'sent' AND poll_ref <> '' AND NOT is_test
+ORDER BY created_at DESC
+LIMIT 1
+`
+
+// When this phone was last sent a rating poll; no rows when never.
+func (q *Queries) LastWhatsAppPollAt(ctx context.Context, clientPhone string) (time.Time, error) {
+	row := q.db.QueryRowContext(ctx, lastWhatsAppPollAt, clientPhone)
+	var created_at time.Time
+	err := row.Scan(&created_at)
+	return created_at, err
 }
 
 const listBranchWhatsAppNumbers = `-- name: ListBranchWhatsAppNumbers :many
@@ -468,6 +489,8 @@ UPDATE app_settings SET
     whatsapp_poll_returning = $24,
     whatsapp_poll_combined = $25,
     whatsapp_combined_message = $26,
+    whatsapp_message_gap_minutes = $27,
+    whatsapp_poll_every_hours = $28,
     updated_at = now()
 WHERE id = 1
 `
@@ -499,6 +522,8 @@ type SetWhatsAppSenderSettingsParams struct {
 	WhatsappPollReturning     bool   `json:"whatsapp_poll_returning"`
 	WhatsappPollCombined      bool   `json:"whatsapp_poll_combined"`
 	WhatsappCombinedMessage   string `json:"whatsapp_combined_message"`
+	WhatsappMessageGapMinutes int32  `json:"whatsapp_message_gap_minutes"`
+	WhatsappPollEveryHours    int32  `json:"whatsapp_poll_every_hours"`
 }
 
 func (q *Queries) SetWhatsAppSenderSettings(ctx context.Context, arg SetWhatsAppSenderSettingsParams) error {
@@ -529,6 +554,8 @@ func (q *Queries) SetWhatsAppSenderSettings(ctx context.Context, arg SetWhatsApp
 		arg.WhatsappPollReturning,
 		arg.WhatsappPollCombined,
 		arg.WhatsappCombinedMessage,
+		arg.WhatsappMessageGapMinutes,
+		arg.WhatsappPollEveryHours,
 	)
 	return err
 }

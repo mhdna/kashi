@@ -431,3 +431,91 @@ func TestWhatsAppCombinedPollText(t *testing.T) {
 	values = whatsAppMessageValues(sender, nil, "Ahmad", "Centro", "GB-48213", 4250, at)
 	require.Equal(t, "Thanks Ahmad ($42.50)\n\nRate us", whatsAppCombinedPollText(sender, values))
 }
+
+// One client buying twice in a short while: no second message within the
+// gap, and the poll at most once in its window.
+func TestSendWhatsAppViaBridgeSendLimits(t *testing.T) {
+	sale := branchWhatsAppThankYouRequest{ClientName: "Maha", ClientPhone: "+961 70 123456", InvoiceCode: "SA/CT/2026/00490", GrandTotalCents: 4000}
+	entry := db.CreateWhatsAppMessageParams{
+		BranchID: sql.NullInt64{Int64: 2, Valid: true}, InvoiceCode: sale.InvoiceCode, ClientName: "Maha", ClientPhone: "96170123456",
+	}
+	newBridge := func(t *testing.T) (*httptest.Server, *[]string) {
+		var bodies []string
+		bridge := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var buf bytes.Buffer
+			_, _ = buf.ReadFrom(r.Body)
+			bodies = append(bodies, buf.String())
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"status":"QUEUED"}`))
+		}))
+		t.Cleanup(bridge.Close)
+		return bridge, &bodies
+	}
+	sender := func(url string) db.GetWhatsAppSenderSettingsRow {
+		return db.GetWhatsAppSenderSettingsRow{
+			WhatsappSender: "bridge", WhatsappBridgeKey: "secret-key", WhatsappBridgeUrl: url,
+			WhatsappMessageNew: true, WhatsappMessageReturning: true, WhatsappPollNew: true, WhatsappPollReturning: true,
+			WhatsappMessageGapMinutes: 60, WhatsappPollEveryHours: 24,
+		}
+	}
+	run := func(t *testing.T, store *mockdb.MockStore, sender db.GetWhatsAppSenderSettingsRow, entry db.CreateWhatsAppMessageParams) {
+		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+		ctx.Request = httptest.NewRequest(http.MethodPost, "/", nil)
+		newTestServer(t, store).sendWhatsAppViaBridge(ctx, entry, sender, "Centro", nil, sale)
+	}
+
+	t.Run("messaged 12 minutes ago: nothing goes", func(t *testing.T) {
+		bridge, bodies := newBridge(t)
+		store := mockdb.NewMockStore(gomock.NewController(t))
+		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), gomock.Any()).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
+		store.EXPECT().LastWhatsAppSentAt(gomock.Any(), "96170123456").Return(time.Now().Add(-12*time.Minute), nil)
+		store.EXPECT().DeleteFailedWhatsAppMessagesForInvoice(gomock.Any(), gomock.Any()).Return(nil)
+		store.EXPECT().CreateWhatsAppMessage(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ any, arg db.CreateWhatsAppMessageParams) (db.WhatsappMessage, error) {
+				require.Equal(t, whatsAppStatusSkipped, arg.Status)
+				require.Equal(t, "messaged 12 min ago, at most once every 1 h (Settings > WhatsApp)", arg.Reason)
+				return db.WhatsappMessage{}, nil
+			})
+		run(t, store, sender(bridge.URL), entry)
+		require.Empty(t, *bodies)
+	})
+
+	t.Run("polled 3 hours ago: the message goes, the poll doesn't", func(t *testing.T) {
+		bridge, bodies := newBridge(t)
+		store := mockdb.NewMockStore(gomock.NewController(t))
+		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), gomock.Any()).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
+		store.EXPECT().LastWhatsAppSentAt(gomock.Any(), "96170123456").Return(time.Now().Add(-3*time.Hour), nil)
+		store.EXPECT().LastWhatsAppPollAt(gomock.Any(), "96170123456").Return(time.Now().Add(-3*time.Hour), nil)
+		store.EXPECT().DeleteFailedWhatsAppMessagesForInvoice(gomock.Any(), gomock.Any()).Return(nil)
+		store.EXPECT().CreateWhatsAppMessage(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ any, arg db.CreateWhatsAppMessageParams) (db.WhatsappMessage, error) {
+				require.Equal(t, whatsAppStatusSent, arg.Status)
+				require.Empty(t, arg.PollRef)
+				return db.WhatsappMessage{}, nil
+			})
+		s := sender(bridge.URL)
+		s.WhatsappPollCombined = true // no poll to carry the details: the plain message goes
+		run(t, store, s, entry)
+		require.Len(t, *bodies, 1)
+		require.NotContains(t, (*bodies)[0], `"poll"`)
+	})
+
+	t.Run("a test send isn't held back", func(t *testing.T) {
+		bridge, bodies := newBridge(t)
+		store := mockdb.NewMockStore(gomock.NewController(t))
+		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), gomock.Any()).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
+		store.EXPECT().DeleteFailedWhatsAppMessagesForInvoice(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		store.EXPECT().CreateWhatsAppMessage(gomock.Any(), gomock.Any()).Return(db.WhatsappMessage{}, nil)
+		test := entry
+		test.IsTest = true
+		run(t, store, sender(bridge.URL), test)
+		require.Len(t, *bodies, 2) // the message, then the poll
+	})
+}
+
+func TestWhatsAppDuration(t *testing.T) {
+	require.Equal(t, "1 min", whatsAppDuration(10*time.Second))
+	require.Equal(t, "60 min", whatsAppDuration(59*time.Minute+50*time.Second))
+	require.Equal(t, "24 h", whatsAppDuration(24*time.Hour))
+	require.Equal(t, "3 days", whatsAppDuration(72*time.Hour))
+}
