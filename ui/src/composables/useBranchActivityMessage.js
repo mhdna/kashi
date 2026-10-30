@@ -107,16 +107,30 @@ function invoiceTone (type, kind) {
   return 'green-darken-4'
 }
 
+// The app-bar reel's wording: what went wrong, in two or three words.
+const SYNC_CONFLICT_SHORT_WORDING = {
+  phone_name_mismatch: 'client name differs',
+  invalid_phone: 'bad client phone',
+  phone_taken: 'phone already used',
+  oversold: 'sold out of stock',
+}
+
 // describeSyncConflict is split out of describeBranchActivity's switch so
 // that function's cyclomatic complexity doesn't creep further.
 function describeSyncConflict (message, branch) {
   const what = SYNC_CONFLICT_WORDING[message.kind] ?? 'a sync conflict'
   return {
     text: `${branch}: ${what} needs resolving`,
-    shortText: `${branch}: sync conflict`,
+    shortText: `${branch}: ${SYNC_CONFLICT_SHORT_WORDING[message.kind] ?? 'needs a fix'}`,
     color: 'warning',
     tone: 'amber-darken-4',
     icon: 'mdi-alert-circle-outline',
+    // The reel only draws a per-item glyph when trendIcon is set.
+    trendIcon: 'mdi-alert-circle-outline',
+    // A till pushes conflicts in bursts. The reel folds a branch's burst
+    // into one item with a count instead of repeating itself.
+    groupKey: `sync_conflict:${message.branch_id}`,
+    groupText: n => `${branch}: ${n} to fix`,
     money: false,
   }
 }
@@ -132,6 +146,8 @@ function describeSyncConflict (message, branch) {
 //   icon      leading mdi glyph
 //   amount    signed cents when the message carries money, else undefined
 //   money     true when the toast should use its amount+currency+kind layout
+//   groupKey  optional; reel items sharing it fold into one item whose text
+//             becomes groupText(count)
 //
 // Returns null for a type that isn't branch activity.
 export function describeBranchActivity (message, branchName) {

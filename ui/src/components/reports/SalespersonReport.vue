@@ -15,18 +15,6 @@
         <RptCard :title="t('Net sales')">
           <RptChart :height="chartHeight" :option="netChart" />
         </RptCard>
-        <RptCard :title="t('Number of sales')">
-          <RptChart :height="chartHeight" :option="countChart" />
-        </RptCard>
-        <RptCard :title="t('Average sale')">
-          <RptChart :height="chartHeight" :option="avgChart" />
-        </RptCard>
-        <RptCard :title="t('Items per sale')">
-          <RptChart :height="chartHeight" :option="itemsChart" />
-        </RptCard>
-        <RptCard :title="t('Share of net sales')">
-          <RptChart :height="220" :option="shareChart" />
-        </RptCard>
         <RptCard v-if="hasHours" :title="t('Net sales per hour worked')">
           <RptChart :height="chartHeight" :option="perHourChart" />
         </RptCard>
@@ -50,7 +38,7 @@
 <script setup>
   import { computed } from 'vue'
   import { t } from './reportI18n'
-  import { barOption, CHART_ROWS, csvSection, day, dayLabel, daysBetween, donutOption, int, lineOption, money, pct, ratio, SERIES } from './reportKit'
+  import { barOption, CHART_ROWS, chartDay, csvSection, day, daysBetween, int, lineOption, money, pct, ratio, SERIES } from './reportKit'
   import { salespersonRows, timesheetRows } from './reportRows'
   import RptCard from './RptCard.vue'
   import RptChart from './RptChart.vue'
@@ -142,11 +130,7 @@
   const names = computed(() => chartRows.value.map(r => r.name))
   const hbar = (name, pick, kind) => barOption({ categories: names.value, series: [{ name, data: chartRows.value.map(r => pick(r)) }], kind, horizontal: true, labels: true })
   const netChart = computed(() => hbar(t('Net sales'), r => r.net_total / 100, 'money'))
-  const countChart = computed(() => hbar(t('Sales'), r => r.sales_count, 'int'))
-  const avgChart = computed(() => hbar(t('Average sale'), r => r.avg / 100, 'money'))
-  const itemsChart = computed(() => hbar(t('Items per sale'), r => Math.round(r.items_per_sale * 10) / 10, 'num1'))
   const perHourChart = computed(() => hbar(t('Net sales per hour worked'), r => (r.per_hour ?? 0) / 100, 'money'))
-  const shareChart = computed(() => donutOption({ items: rows.value.map(r => ({ name: r.name, value: r.net_total / 100 })) }))
 
   const trendChart = computed(() => {
     const days = daysBetween(props.ctx.from, props.ctx.to)
@@ -157,7 +141,7 @@
       }
       return { name: r.name, color: SERIES[i], data: days.map(d => (byDay.get(d) ?? 0) / 100) }
     })
-    return lineOption({ categories: days.map(d => dayLabel(d, { day: 'numeric', month: 'short' })), series, kind: 'money' })
+    return lineOption({ categories: days.map(d => chartDay(d)), series, kind: 'money' })
   })
 
   const categoryChart = computed(() => {

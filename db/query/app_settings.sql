@@ -40,3 +40,9 @@ SET app_release_keep = $1,
     updated_at = now()
 WHERE id = 1
 RETURNING *;
+
+-- name: GetReportSettings :one
+SELECT report_settings FROM app_settings WHERE id = 1;
+
+-- name: SetReportSettings :exec
+UPDATE app_settings SET report_settings = sqlc.arg(report_settings), updated_at = now() WHERE id = 1;

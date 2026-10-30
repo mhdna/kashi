@@ -610,3 +610,63 @@ func (q *Queries) WhatsAppNumberForBranch(ctx context.Context, arg WhatsAppNumbe
 	)
 	return i, err
 }
+
+const whatsAppNumberSendCounts = `-- name: WhatsAppNumberSendCounts :many
+SELECT
+  whatsapp_number_id::bigint AS number_id,
+  count(*) FILTER (WHERE status = 'sent' AND created_at > now() - interval '24 hours')::int AS sent_24h,
+  count(*) FILTER (WHERE status = 'failed' AND created_at > now() - interval '24 hours')::int AS failed_24h,
+  count(*) FILTER (WHERE status = 'sent' AND created_at <= now() - interval '24 hours')::int AS sent_prior_week,
+  LEAST(7, GREATEST(0, EXTRACT(epoch FROM (now() - interval '24 hours')
+    - COALESCE(min(created_at) FILTER (WHERE status = 'sent'), now())) / 86400))::float8 AS prior_days,
+  count(*) FILTER (WHERE status = 'sent' AND bridge_ref <> '' AND delivered_at IS NULL
+    AND created_at > now() - interval '7 days' AND created_at <= now() - interval '3 days')::int AS one_tick
+FROM whatsapp_messages
+WHERE whatsapp_number_id IS NOT NULL AND NOT is_test AND created_at > now() - interval '8 days'
+GROUP BY whatsapp_number_id
+`
+
+type WhatsAppNumberSendCountsRow struct {
+	NumberID      int64   `json:"number_id"`
+	Sent24h       int32   `json:"sent_24h"`
+	Failed24h     int32   `json:"failed_24h"`
+	SentPriorWeek int32   `json:"sent_prior_week"`
+	PriorDays     float64 `json:"prior_days"`
+	OneTick       int32   `json:"one_tick"`
+}
+
+// The Health tab's counts per number, from our own log rather than the
+// bridge's (which counts test sends too): sends and failures of the last 24
+// hours, sends of the week before for the usual daily figure, and messages
+// of the last week still on one tick after 3 days. prior_days is how much of
+// that week the number was already sending, so a new number's usual isn't
+// averaged over days it didn't exist.
+func (q *Queries) WhatsAppNumberSendCounts(ctx context.Context) ([]WhatsAppNumberSendCountsRow, error) {
+	rows, err := q.db.QueryContext(ctx, whatsAppNumberSendCounts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []WhatsAppNumberSendCountsRow{}
+	for rows.Next() {
+		var i WhatsAppNumberSendCountsRow
+		if err := rows.Scan(
+			&i.NumberID,
+			&i.Sent24h,
+			&i.Failed24h,
+			&i.SentPriorWeek,
+			&i.PriorDays,
+			&i.OneTick,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

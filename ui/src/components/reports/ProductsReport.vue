@@ -2,30 +2,16 @@
   <RptKpis :items="kpis" />
 
   <RptSection v-if="has('categories')" :title="t('Categories')">
-    <RptGrid>
-      <RptChart :height="220" :option="categoryChart" />
-      <RptTable :columns="categoryColumns" compact :rows="categories" :total="categoryTotal" />
-    </RptGrid>
+    <RptTable :columns="categoryColumns" compact :rows="categories" :total="categoryTotal" />
   </RptSection>
 
-  <RptSection v-if="has('revenue')" :title="t('Best sellers by net sales (top {n})', { n: topN })">
+  <RptSection v-if="has('bestsellers')" :title="bestTitle">
     <RptTable
       :columns="productColumns"
       compact
       :limit="topN"
       numbered
-      :rows="byRevenue"
-    />
-  </RptSection>
-
-  <RptSection v-if="has('units')" :break-before="has('revenue')" :title="t('Best sellers by units (top {n})', { n: topN })">
-    <RptChart :height="Math.min(topN, 15) * 22 + 30" :option="unitsChart" />
-    <RptTable
-      :columns="productColumns"
-      compact
-      :limit="topN"
-      numbered
-      :rows="byUnits"
+      :rows="bestSellers"
     />
   </RptSection>
 
@@ -58,7 +44,7 @@
 <script setup>
   import { computed } from 'vue'
   import { t } from './reportI18n'
-  import { barOption, csvSection, donutOption, int, money, pct, ratio } from './reportKit'
+  import { barOption, csvSection, int, money, pct, ratio } from './reportKit'
   import { categoryRows } from './reportRows'
   import RptCard from './RptCard.vue'
   import RptChart from './RptChart.vue'
@@ -69,7 +55,7 @@
 
   // What sold: categories, best sellers by money and by units, sizes and
   // colours, what came back, and the margin where costs are known.
-  // Parts: categories, revenue, units, attrs, returned.
+  // Parts: categories, bestsellers, attrs, returned.
   const props = defineProps({
     ctx: { type: Object, required: true },
     parts: { type: Array, required: true },
@@ -81,8 +67,13 @@
   const withMargin = p => ({ ...p, margin: p.costed_revenue > 0 ? ratio(p.costed_revenue - p.cost, p.costed_revenue) : null, avg_price: ratio(p.revenue, p.quantity) })
   const products = computed(() => data.value.products.filter(p => p.product_id > 0).map(p => withMargin(p)))
   const unresolved = computed(() => data.value.products.find(p => p.product_id === 0))
-  const byRevenue = computed(() => products.value)
-  const byUnits = computed(() => products.value.toSorted((a, b) => b.quantity - a.quantity))
+  // One best-seller list, by money or by units (the sidebar's Sort by); the
+  // table shows both, so a second list only repeated it.
+  const byUnits = computed(() => props.ctx.options.sortBy === 'units')
+  const bestSellers = computed(() => (byUnits.value ? products.value.toSorted((a, b) => b.quantity - a.quantity) : products.value))
+  const bestTitle = computed(() => (byUnits.value
+    ? t('Best sellers by units (top {n})', { n: topN.value })
+    : t('Best sellers by net sales (top {n})', { n: topN.value })))
   const returned = computed(() => products.value.filter(p => p.returned < 0).map(p => ({ ...p, returned_units: -p.returned })).toSorted((a, b) => b.returned_units - a.returned_units))
   const categories = computed(() => categoryRows(data.value.products).map(c => withMargin(c)))
 
@@ -128,11 +119,6 @@
     { key: 'quantity', title: t('Net units sold'), type: 'int' },
   ]
 
-  const categoryChart = computed(() => donutOption({ items: categories.value.map(c => ({ name: c.category, value: c.revenue / 100 })) }))
-  const unitsChart = computed(() => {
-    const top = byUnits.value.slice(0, Math.min(topN.value, 15))
-    return barOption({ categories: top.map(p => p.product_name || p.product_code), series: [{ name: t('Units'), data: top.map(p => p.quantity) }], horizontal: true, labels: true })
-  })
   const attr = kind => data.value.variant_attributes.filter(a => a.kind === kind && a.quantity > 0).map(a => ({ ...a, name: a.name || t('None') })).toSorted((a, b) => b.quantity - a.quantity)
   const sizes = computed(() => attr('size'))
   const colors = computed(() => attr('color'))
@@ -146,7 +132,7 @@
       const attrColumns = [{ key: 'kind', title: t('Kind'), value: a => t(a.kind === 'size' ? 'Size' : 'Colour') }, { key: 'name', title: t('Name') }, { key: 'quantity', title: t('Units'), type: 'int' }, { key: 'revenue', title: t('Net sales'), type: 'money' }]
       return [
         has('categories') && csvSection(t('Categories'), categoryColumns, categories.value),
-        (has('revenue') || has('units')) && csvSection(t('Products'), productColumns, byRevenue.value),
+        has('bestsellers') && csvSection(t('Products'), productColumns, bestSellers.value),
         has('attrs') && csvSection(t('Sizes and colours'), attrColumns, [...sizes.value, ...colors.value]),
         has('returned') && csvSection(t('Most returned'), returnColumns, returned.value),
       ].filter(Boolean)

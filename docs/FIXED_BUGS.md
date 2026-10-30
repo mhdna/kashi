@@ -3,6 +3,41 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-10-30 · WhatsApp Health counted test sends and showed "usual 0"
+
+**Symptom.** On WhatsApp > Health, "Sent today" included test messages
+sent from Settings, and a number in daily use could show "15 (usual 0)".
+
+**Cause.** The card showed the bridge's own counts. The bridge counts every
+message a number sends, tests too, and works out the usual over days when
+the number wasn't linked yet.
+
+**Fix.** kashi now counts sends, failures and one-ticks per number from its
+own `whatsapp_messages` log, leaving out test sends
+(`WhatsAppNumberSendCounts` in `db/query/whatsapp_bridge.sql`,
+`withOwnCounts` in `api/whatsapp_health.go`). The usual is averaged only over
+the days of the past week when the number was already sending, and a number
+with less than a day of history reads "new number". Disconnects, refusals
+and the risk score still come from the bridge. The card now says "Sent, last
+24 h", since that's the window, and one tick means 3 days, as on the Messages
+tab (`WhatsAppHealth.vue`). Covered by `TestGetWhatsAppHealth` and
+`TestWhatsAppHealthNewNumberHasNoUsual` in `api/whatsapp_health_test.go`.
+
+## 2026-10-30 · Small talk showed up as poll feedback
+
+**Symptom.** The Reviews page and the customer feedback report listed
+"Hi", "Kifc", "." and other chat as customers' replies to the rating poll.
+
+**Cause.** The WhatsApp bridge reports every message a client writes after
+a poll, and `PollReplies` / `LowPollRatings` showed all of them, however
+late and whatever they said.
+
+**Fix.** Only answers to the follow-up question count: written after it was
+sent, within 24 hours, the client's first three messages with more than
+punctuation (`db/query/review_link.sql`). The messages are still stored.
+Checked with throwaway rows in a rolled-back transaction against a local
+database; no automated test covers it.
+
 ## 2026-10-30 · Salespersons couldn't be renamed
 
 **Symptom.** Renaming a salesperson ("Ahmad Robai" to "Ahmad Robaie") failed

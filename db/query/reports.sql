@@ -21,6 +21,13 @@ WITH inv AS (
     AND NOT b.hidden_from_reports
     AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
     AND bi.cancelled_at IS NULL
+    AND NOT EXISTS (
+        -- customers left out of reports (report settings)
+        SELECT 1 FROM clients xc
+        WHERE xc.id = ANY(sqlc.arg(exclude_client_ids)::bigint[])
+          AND (xc.uid = bi.client_uid OR EXISTS (
+            SELECT 1 FROM client_links xl
+            WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 )
 SELECT
   count(*) FILTER (WHERE kind = 'sales')::bigint AS sales_count,
@@ -35,10 +42,10 @@ SELECT
   count(DISTINCT client_id)::bigint AS clients_served,
   count(DISTINCT (occurred_at AT TIME ZONE 'Asia/Beirut')::date) FILTER (WHERE kind = 'sales')::bigint AS selling_days,
   COALESCE((
-    SELECT sum(i.quantity) FROM branch_invoice_items i JOIN inv ON inv.id = i.branch_invoice_id WHERE inv.kind = 'sales'
+    SELECT sum(i.quantity) FROM branch_invoice_items i JOIN inv ON inv.id = i.branch_invoice_id WHERE inv.kind = 'sales' AND NOT EXISTS (SELECT 1 FROM product_variants xv WHERE xv.uid = i.product_uid AND xv.product_id = ANY(sqlc.arg(exclude_product_ids)::bigint[]))
   ), 0)::bigint AS items_sold,
   COALESCE((
-    SELECT -sum(i.quantity) FROM branch_invoice_items i JOIN inv ON inv.id = i.branch_invoice_id WHERE i.quantity < 0
+    SELECT -sum(i.quantity) FROM branch_invoice_items i JOIN inv ON inv.id = i.branch_invoice_id WHERE i.quantity < 0 AND NOT EXISTS (SELECT 1 FROM product_variants xv WHERE xv.uid = i.product_uid AND xv.product_id = ANY(sqlc.arg(exclude_product_ids)::bigint[]))
   ), 0)::bigint AS items_returned
 FROM inv;
 
@@ -58,6 +65,13 @@ WITH days AS (
     AND NOT b.hidden_from_reports
     AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
     AND bi.cancelled_at IS NULL
+    AND NOT EXISTS (
+        -- customers left out of reports (report settings)
+        SELECT 1 FROM clients xc
+        WHERE xc.id = ANY(sqlc.arg(exclude_client_ids)::bigint[])
+          AND (xc.uid = bi.client_uid OR EXISTS (
+            SELECT 1 FROM client_links xl
+            WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
   GROUP BY 1
 ), visits AS (
   SELECT (e.occurred_at AT TIME ZONE b.timezone)::date AS day, count(*)::bigint AS visitors
@@ -97,6 +111,13 @@ WHERE bi.occurred_at >= sqlc.arg(from_day)::date - 1 AND bi.occurred_at < sqlc.a
   AND NOT b.hidden_from_reports
   AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
   AND bi.cancelled_at IS NULL
+  AND NOT EXISTS (
+      -- customers left out of reports (report settings)
+      SELECT 1 FROM clients xc
+      WHERE xc.id = ANY(sqlc.arg(exclude_client_ids)::bigint[])
+        AND (xc.uid = bi.client_uid OR EXISTS (
+          SELECT 1 FROM client_links xl
+          WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 GROUP BY bi.branch_id, b.name
 ORDER BY net_total DESC;
 
@@ -119,6 +140,13 @@ WHERE bi.kind = 'sales'
   AND NOT b.hidden_from_reports
   AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
   AND bi.cancelled_at IS NULL
+  AND NOT EXISTS (
+      -- customers left out of reports (report settings)
+      SELECT 1 FROM clients xc
+      WHERE xc.id = ANY(sqlc.arg(exclude_client_ids)::bigint[])
+        AND (xc.uid = bi.client_uid OR EXISTS (
+          SELECT 1 FROM client_links xl
+          WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 GROUP BY 1, 2
 ORDER BY 1, 2;
 
@@ -144,10 +172,18 @@ WITH inv AS (
     AND NOT b.hidden_from_reports
     AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
     AND bi.cancelled_at IS NULL
+    AND NOT EXISTS (
+        -- customers left out of reports (report settings)
+        SELECT 1 FROM clients xc
+        WHERE xc.id = ANY(sqlc.arg(exclude_client_ids)::bigint[])
+          AND (xc.uid = bi.client_uid OR EXISTS (
+            SELECT 1 FROM client_links xl
+            WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 ), items AS (
   SELECT i.branch_invoice_id, sum(i.quantity) AS quantity
   FROM branch_invoice_items i
   WHERE i.branch_invoice_id IN (SELECT id FROM inv)
+    AND NOT EXISTS (SELECT 1 FROM product_variants xv WHERE xv.uid = i.product_uid AND xv.product_id = ANY(sqlc.arg(exclude_product_ids)::bigint[]))
   GROUP BY 1
 )
 SELECT
@@ -190,6 +226,13 @@ WHERE bi.occurred_at >= sqlc.arg(from_day)::date - 1 AND bi.occurred_at < sqlc.a
   AND NOT b.hidden_from_reports
   AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
   AND bi.cancelled_at IS NULL
+  AND NOT EXISTS (
+      -- customers left out of reports (report settings)
+      SELECT 1 FROM clients xc
+      WHERE xc.id = ANY(sqlc.arg(exclude_client_ids)::bigint[])
+        AND (xc.uid = bi.client_uid OR EXISTS (
+          SELECT 1 FROM client_links xl
+          WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 GROUP BY 1, 2, 3, 4
 ORDER BY 4;
 
@@ -215,6 +258,14 @@ WHERE bi.occurred_at >= sqlc.arg(from_day)::date - 1 AND bi.occurred_at < sqlc.a
   AND NOT b.hidden_from_reports
   AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
   AND bi.cancelled_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM product_variants xv WHERE xv.uid = i.product_uid AND xv.product_id = ANY(sqlc.arg(exclude_product_ids)::bigint[]))
+  AND NOT EXISTS (
+      -- customers left out of reports (report settings)
+      SELECT 1 FROM clients xc
+      WHERE xc.id = ANY(sqlc.arg(exclude_client_ids)::bigint[])
+        AND (xc.uid = bi.client_uid OR EXISTS (
+          SELECT 1 FROM client_links xl
+          WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 GROUP BY 1, 2, 3, 4
 ORDER BY revenue DESC;
 
@@ -244,6 +295,14 @@ WHERE bi.occurred_at >= sqlc.arg(from_day)::date - 1 AND bi.occurred_at < sqlc.a
   AND NOT b.hidden_from_reports
   AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
   AND bi.cancelled_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM product_variants xv WHERE xv.uid = i.product_uid AND xv.product_id = ANY(sqlc.arg(exclude_product_ids)::bigint[]))
+  AND NOT EXISTS (
+      -- customers left out of reports (report settings)
+      SELECT 1 FROM clients xc
+      WHERE xc.id = ANY(sqlc.arg(exclude_client_ids)::bigint[])
+        AND (xc.uid = bi.client_uid OR EXISTS (
+          SELECT 1 FROM client_links xl
+          WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 GROUP BY 1, 2, 3, 4
 ORDER BY revenue DESC
 LIMIT 5000;
@@ -269,6 +328,14 @@ FROM (
     AND NOT b.hidden_from_reports
     AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
     AND bi.cancelled_at IS NULL
+    AND NOT EXISTS (SELECT 1 FROM product_variants xv WHERE xv.uid = i.product_uid AND xv.product_id = ANY(sqlc.arg(exclude_product_ids)::bigint[]))
+    AND NOT EXISTS (
+        -- customers left out of reports (report settings)
+        SELECT 1 FROM clients xc
+        WHERE xc.id = ANY(sqlc.arg(exclude_client_ids)::bigint[])
+          AND (xc.uid = bi.client_uid OR EXISTS (
+            SELECT 1 FROM client_links xl
+            WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
   UNION ALL
   SELECT 'color', COALESCE(c.name, ''), i.quantity, i.line_total
   FROM branch_invoice_items i
@@ -282,6 +349,14 @@ FROM (
     AND NOT b.hidden_from_reports
     AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
     AND bi.cancelled_at IS NULL
+    AND NOT EXISTS (SELECT 1 FROM product_variants xv WHERE xv.uid = i.product_uid AND xv.product_id = ANY(sqlc.arg(exclude_product_ids)::bigint[]))
+    AND NOT EXISTS (
+        -- customers left out of reports (report settings)
+        SELECT 1 FROM clients xc
+        WHERE xc.id = ANY(sqlc.arg(exclude_client_ids)::bigint[])
+          AND (xc.uid = bi.client_uid OR EXISTS (
+            SELECT 1 FROM client_links xl
+            WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 ) x
 GROUP BY 1, 2
 ORDER BY revenue DESC;
@@ -304,10 +379,18 @@ WITH inv AS (
     AND NOT b.hidden_from_reports
     AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
     AND bi.cancelled_at IS NULL
+    AND NOT EXISTS (
+        -- customers left out of reports (report settings)
+        SELECT 1 FROM clients xc
+        WHERE xc.id = ANY(sqlc.arg(exclude_client_ids)::bigint[])
+          AND (xc.uid = bi.client_uid OR EXISTS (
+            SELECT 1 FROM client_links xl
+            WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 ), items AS (
   SELECT i.branch_invoice_id, sum(i.quantity) AS quantity
   FROM branch_invoice_items i
   WHERE i.branch_invoice_id IN (SELECT id FROM inv WHERE client_id IS NOT NULL)
+    AND NOT EXISTS (SELECT 1 FROM product_variants xv WHERE xv.uid = i.product_uid AND xv.product_id = ANY(sqlc.arg(exclude_product_ids)::bigint[]))
   GROUP BY 1
 )
 SELECT
@@ -348,6 +431,13 @@ WHERE bi.occurred_at >= sqlc.arg(from_day)::date - 1 AND bi.occurred_at < sqlc.a
   AND NOT b.hidden_from_reports
   AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
   AND bi.cancelled_at IS NULL
+  AND NOT EXISTS (
+      -- customers left out of reports (report settings)
+      SELECT 1 FROM clients xc
+      WHERE xc.id = ANY(sqlc.arg(exclude_client_ids)::bigint[])
+        AND (xc.uid = bi.client_uid OR EXISTS (
+          SELECT 1 FROM client_links xl
+          WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 GROUP BY p.account_name
 ORDER BY amount DESC;
 
@@ -372,5 +462,12 @@ WHERE bi.kind = 'sales'
   AND NOT b.hidden_from_reports
   AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
   AND bi.cancelled_at IS NULL
+  AND NOT EXISTS (
+      -- customers left out of reports (report settings)
+      SELECT 1 FROM clients xc
+      WHERE xc.id = ANY(sqlc.arg(exclude_client_ids)::bigint[])
+        AND (xc.uid = bi.client_uid OR EXISTS (
+          SELECT 1 FROM client_links xl
+          WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 GROUP BY 1
 ORDER BY amount DESC;

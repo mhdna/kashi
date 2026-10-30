@@ -1,6 +1,7 @@
 package api
 
 import (
+	"math"
 	"net/http"
 	"net/url"
 	"time"
@@ -37,17 +38,20 @@ type whatsAppBridgeHealth struct {
 }
 
 type whatsAppNumberHealth struct {
-	Risk           int        `json:"risk"`
-	Level          string     `json:"level"` // ok, warning or high
-	Reasons        []string   `json:"reasons"`
-	PausedAt       *time.Time `json:"paused_at"`
-	PausedReason   string     `json:"paused_reason"`
-	Sent24h        int        `json:"sent_24h"`
-	SentDailyAvg   float64    `json:"sent_daily_avg"`
-	Disconnects24h int        `json:"disconnects_24h"`
-	Failed24h      int        `json:"failed_24h"`
-	Rejected24h    int        `json:"rejected_24h"`
-	// Messages of the last week still on one tick after 2 days.
+	Risk         int        `json:"risk"`
+	Level        string     `json:"level"` // ok, warning or high
+	Reasons      []string   `json:"reasons"`
+	PausedAt     *time.Time `json:"paused_at"`
+	PausedReason string     `json:"paused_reason"`
+	// Sends, failures and one-ticks are counted from whatsapp_messages
+	// (withOwnCounts), the rest is the bridge's.
+	Sent24h int `json:"sent_24h"`
+	// Nil until the number has a day of sending before the last 24 hours.
+	SentDailyAvg   *float64 `json:"sent_daily_avg"`
+	Disconnects24h int      `json:"disconnects_24h"`
+	Failed24h      int      `json:"failed_24h"`
+	Rejected24h    int      `json:"rejected_24h"`
+	// Messages of the last week still on one tick after 3 days.
 	OneTick       int        `json:"one_tick"`
 	LastProblemAt *time.Time `json:"last_problem_at"`
 	LastProblem   string     `json:"last_problem"`
@@ -59,7 +63,7 @@ func (h *whatsAppBridgeHealth) forUI() *whatsAppNumberHealth {
 	}
 	out := &whatsAppNumberHealth{
 		Risk: h.Risk, Level: h.Level, Reasons: h.Reasons,
-		Sent24h: h.Sent24h, SentDailyAvg: h.SentDailyAvg,
+		Sent24h: h.Sent24h, SentDailyAvg: &h.SentDailyAvg,
 		Disconnects24h: h.Disconnects24h, Failed24h: h.Failed24h, Rejected24h: h.Rejected24h, OneTick: h.OneTick,
 	}
 	if out.Reasons == nil {
@@ -80,6 +84,19 @@ func (h *whatsAppBridgeHealth) forUI() *whatsAppNumberHealth {
 	return out
 }
 
+// withOwnCounts swaps the bridge's message counts for ours. The bridge
+// counts every message a number sends, test sends from Settings included,
+// and averages a new number over days it wasn't linked yet; our log knows
+// which sends were tests and when each number started.
+func (h *whatsAppNumberHealth) withOwnCounts(c db.WhatsAppNumberSendCountsRow) {
+	h.Sent24h, h.Failed24h, h.OneTick = int(c.Sent24h), int(c.Failed24h), int(c.OneTick)
+	h.SentDailyAvg = nil
+	if c.PriorDays >= 1 {
+		avg := math.Round(float64(c.SentPriorWeek)/c.PriorDays*10) / 10
+		h.SentDailyAvg = &avg
+	}
+}
+
 // getWhatsAppHealth lists every number with its warning signs and the
 // branches sending from it.
 func (server *Server) getWhatsAppHealth(ctx *gin.Context) {
@@ -98,6 +115,15 @@ func (server *Server) getWhatsAppHealth(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	counts, err := server.store.WhatsAppNumberSendCounts(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	countsByNumber := map[int64]db.WhatsAppNumberSendCountsRow{}
+	for _, c := range counts {
+		countsByNumber[c.NumberID] = c
+	}
 	type numberHealth struct {
 		whatsAppNumberRow
 		Branches []string `json:"branches"`
@@ -105,6 +131,9 @@ func (server *Server) getWhatsAppHealth(ctx *gin.Context) {
 	out := make([]numberHealth, len(numbers))
 	for i, n := range numbers {
 		out[i] = numberHealth{whatsAppNumberRow: n, Branches: []string{}}
+		if n.Health != nil {
+			n.Health.withOwnCounts(countsByNumber[n.ID]) // zero counts when it sent nothing
+		}
 		for _, b := range branches {
 			if !b.WhatsappEnabled {
 				continue

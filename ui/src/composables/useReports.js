@@ -15,5 +15,24 @@ export function useReports () {
       if (!res.ok) {throw new Error(body.error || `Request failed with status ${res.status}`)}
       return body
     },
+
+    // The page's saved defaults and the products and customers left out of
+    // every report (api/reports.go). Read and written whole.
+    getReportSettings: async () => {
+      const res = await authFetch(`${API_BASE}/reports/settings`)
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {throw new Error(body.error || `Request failed with status ${res.status}`)}
+      return body.settings ?? {}
+    },
+    saveReportSettings: async settings => {
+      const res = await authFetch(`${API_BASE}/reports/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {throw new Error(body.error || `Request failed with status ${res.status}`)}
+      return body.settings
+    },
   }
 }

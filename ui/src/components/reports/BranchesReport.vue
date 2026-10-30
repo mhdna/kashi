@@ -3,22 +3,6 @@
     <RptTable :columns="columns" numbered :rows="rows" :total="total" />
   </RptSection>
 
-  <RptSection v-if="rows.length > 0">
-    <RptGrid>
-      <RptCard :title="t('Net sales')">
-        <RptChart :height="height" :option="netChart" />
-      </RptCard>
-      <RptCard :title="t('Number of sales')">
-        <RptChart :height="height" :option="countChart" />
-      </RptCard>
-      <RptCard :title="t('Average sale')">
-        <RptChart :height="height" :option="avgChart" />
-      </RptCard>
-      <RptCard :title="t('Share of net sales')">
-        <RptChart :height="Math.max(height, 200)" :option="shareChart" />
-      </RptCard>
-    </RptGrid>
-  </RptSection>
 
   <RptSection v-if="rows.length > 1" :note="t('Net sales per day, each branch on its own line.')" :title="t('Day by day')">
     <RptChart :height="260" :option="trendChart" />
@@ -28,10 +12,8 @@
 <script setup>
   import { computed } from 'vue'
   import { t } from './reportI18n'
-  import { barOption, CHART_ROWS, csvSection, day, dayLabel, daysBetween, donutOption, lineOption, ratio, SERIES } from './reportKit'
-  import RptCard from './RptCard.vue'
+  import { chartDay, csvSection, day, daysBetween, lineOption, ratio, SERIES } from './reportKit'
   import RptChart from './RptChart.vue'
-  import RptGrid from './RptGrid.vue'
   import RptSection from './RptSection.vue'
   import RptTable from './RptTable.vue'
 
@@ -67,14 +49,6 @@
     { key: 'return_rate', title: t('Return %'), type: 'pct' },
   ]
 
-  const chartRows = computed(() => rows.value.slice(0, CHART_ROWS))
-  const height = computed(() => Math.max(140, chartRows.value.length * 26 + 30))
-  const names = computed(() => chartRows.value.map(r => r.branch_name))
-  const hbar = (name, pick, kind) => barOption({ categories: names.value, series: [{ name, data: chartRows.value.map(r => pick(r)) }], kind, horizontal: true, labels: true })
-  const netChart = computed(() => hbar(t('Net sales'), r => r.net_total / 100, 'money'))
-  const countChart = computed(() => hbar(t('Sales'), r => r.sales_count, 'int'))
-  const avgChart = computed(() => hbar(t('Average sale'), r => r.avg / 100, 'money'))
-  const shareChart = computed(() => donutOption({ items: rows.value.map(r => ({ name: r.branch_name, value: r.net_total / 100 })) }))
 
   // Branch-day totals come from the salesperson-by-day rows.
   const trendChart = computed(() => {
@@ -86,7 +60,7 @@
       }
       return { name: b.branch_name, color: SERIES[i], data: days.map(d => (byDay.get(d) ?? 0) / 100) }
     })
-    return lineOption({ categories: days.map(d => dayLabel(d, { day: 'numeric', month: 'short' })), series, kind: 'money' })
+    return lineOption({ categories: days.map(d => chartDay(d)), series, kind: 'money' })
   })
 
   defineExpose({ csv: () => [csvSection(t('Branches'), columns, rows.value)] })

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -28,7 +29,9 @@ func TestGetReports(t *testing.T) {
 	// expectAll sets every report query up to answer empty, except the
 	// summary, which the test checks comes back as it was given.
 	expectAll := func(store *mockdb.MockStore, ids []int64) {
-		store.EXPECT().PeriodReportSummary(gomock.Any(), db.PeriodReportSummaryParams{FromDay: from, ToDay: to, BranchIds: ids}).
+		store.EXPECT().GetReportSettings(gomock.Any()).Return(json.RawMessage(`{"exclusions":{"products":[{"id":7,"label":"Bag"}],"clients":[{"id":9,"label":"Staff"}]}}`), nil)
+		// The saved exclusions go to every query.
+		store.EXPECT().PeriodReportSummary(gomock.Any(), db.PeriodReportSummaryParams{FromDay: from, ToDay: to, BranchIds: ids, ExcludeProductIds: []int64{7}, ExcludeClientIds: []int64{9}}).
 			Return(db.PeriodReportSummaryRow{SalesCount: 12, SalesTotal: 150000, NetTotal: 140000}, nil)
 		store.EXPECT().PeriodReportDaily(gomock.Any(), gomock.Any()).Return(nil, nil)
 		store.EXPECT().PeriodReportByBranch(gomock.Any(), gomock.Any()).Return(nil, nil)
@@ -63,6 +66,7 @@ func TestGetReports(t *testing.T) {
 	t.Run("a failing query is a server error", func(t *testing.T) {
 		store := mockdb.NewMockStore(gomock.NewController(t))
 		server := newTestServer(t, store)
+		store.EXPECT().GetReportSettings(gomock.Any()).Return(json.RawMessage(`{}`), nil)
 		store.EXPECT().PeriodReportSummary(gomock.Any(), gomock.Any()).Return(db.PeriodReportSummaryRow{}, errors.New("boom"))
 		require.Equal(t, http.StatusInternalServerError, get(server, "from=2026-09-01&to=2026-09-30").Code)
 	})
@@ -72,5 +76,42 @@ func TestGetReports(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, get(server, "from=2026-09-30&to=2026-09-01").Code)
 		require.Equal(t, http.StatusBadRequest, get(server, "from=2024-01-01&to=2026-09-01").Code)
 		require.Equal(t, http.StatusBadRequest, get(server, "from=2026-09-01&to=2026-09-30&branch_ids=x").Code)
+	})
+}
+
+func TestReportSettings(t *testing.T) {
+	put := func(server *Server, body string) *httptest.ResponseRecorder {
+		rec := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(rec)
+		ctx.Request = httptest.NewRequest(http.MethodPut, "/reports/settings", strings.NewReader(body))
+		ctx.Request.Header.Set("Content-Type", "application/json")
+		server.updateReportSettings(ctx)
+		return rec
+	}
+
+	t.Run("saves an object as it is", func(t *testing.T) {
+		store := mockdb.NewMockStore(gomock.NewController(t))
+		server := newTestServer(t, store)
+		saved := `{"defaults":{"branch_ids":[3]},"exclusions":{"clients":[{"id":9,"label":"Staff"}]}}`
+		store.EXPECT().SetReportSettings(gomock.Any(), json.RawMessage(saved)).Return(nil)
+		rec := put(server, `{"settings":`+saved+`}`)
+		require.Equal(t, http.StatusOK, rec.Code)
+	})
+
+	t.Run("anything but an object is refused", func(t *testing.T) {
+		server := newTestServer(t, mockdb.NewMockStore(gomock.NewController(t)))
+		require.Equal(t, http.StatusBadRequest, put(server, `{"settings":[1,2]}`).Code)
+		require.Equal(t, http.StatusBadRequest, put(server, `{}`).Code)
+	})
+
+	t.Run("nothing saved reads as an empty object", func(t *testing.T) {
+		store := mockdb.NewMockStore(gomock.NewController(t))
+		server := newTestServer(t, store)
+		store.EXPECT().GetReportSettings(gomock.Any()).Return(json.RawMessage(`{}`), nil)
+		rec := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(rec)
+		ctx.Request = httptest.NewRequest(http.MethodGet, "/reports/settings", nil)
+		server.getReportSettings(ctx)
+		require.JSONEq(t, `{"settings":{}}`, rec.Body.String())
 	})
 }
