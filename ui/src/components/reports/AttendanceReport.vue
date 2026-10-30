@@ -49,7 +49,13 @@
         <h2 class="rpt-person-title">{{ p.name }}</h2>
         <p v-if="branchOf(p)" class="rpt-note">{{ branchOf(p) }}</p>
         <RptKpis :items="personKpis(p)" />
-        <RptTable :columns="detailColumns" compact :rows="dayRows(p)" :total="dayTotal(p)" />
+        <RptTable
+          :columns="detailColumns"
+          compact
+          :row-class="dayClass"
+          :rows="dayRows(p)"
+          :total="dayTotal(p)"
+        />
       </section>
     </template>
   </template>
@@ -102,8 +108,10 @@
         date: row.date,
         // Clock times stay left-to-right inside an Arabic line.
         spans: row.sessions.map(s => `⁦${formatClock(s.in) || '?'}–${formatClock(s.out) || '?'}⁩`).join(reportLang() === 'ar' ? '، ' : ', '),
-        breaks: row.breakTotal,
-        worked: row.worked,
+        breaks: row.breakTotal || null,
+        // A day missing a punch with nothing countable shows no hours.
+        worked: row.incomplete && row.worked < 1 ? null : row.worked,
+        incomplete: row.incomplete,
         flag: row.incomplete ? missingPunch : '',
       })
     }
@@ -164,9 +172,11 @@
     { key: 'date', title: t('Date'), value: r => (r.isTotal ? t('Total') : dayLabel(r.date)) },
     { key: 'spans', title: t('In – out') },
     { key: 'breaks', title: t('Breaks'), type: 'hours' },
-    { key: 'worked', title: t('Worked'), type: 'hours' },
-    { key: 'flag', title: '' },
+    { key: 'worked', title: t('Worked'), type: 'hours', bar: true, strong: true },
+    { key: 'flag', title: '', tag: true },
   ]
+  // Missing a punch: orange; no punches at all: greyed.
+  const dayClass = r => (r.incomplete ? 'rpt-row--warn' : (r.spans === '' && !r.isTotal ? 'rpt-row--off' : ''))
   const branchOf = p => props.ctx.branchNames[props.ctx.people.list.find(x => x.key === p.key)?.branchId] ?? p.branch
   // Every day of the period; a day without punches shows as such.
   function dayRows (p) {
