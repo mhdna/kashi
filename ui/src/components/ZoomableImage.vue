@@ -38,6 +38,34 @@
       </div>
     </div>
 
+    <!-- An unsaved turn: Undo and Save get their own bar at the top. In the
+         toolbar they pushed the rotate buttons aside, so a second click on
+         "rotate right" landed on Save. -->
+    <div v-if="rotatable && pendingTurn" class="zoom-pending" @dblclick.stop @pointerdown.stop>
+      <span class="text-caption">Turned {{ pendingTurn === 270 ? -90 : pendingTurn }}°</span>
+      <v-btn
+        density="comfortable"
+        :disabled="busy"
+        prepend-icon="mdi-close"
+        rounded="pill"
+        size="small"
+        text="Undo"
+        variant="text"
+        @click="pendingTurn = 0"
+      />
+      <v-btn
+        color="primary"
+        density="comfortable"
+        :disabled="busy"
+        prepend-icon="mdi-check"
+        rounded="pill"
+        size="small"
+        text="Save"
+        variant="flat"
+        @click="saveTurn"
+      />
+    </div>
+
     <div class="zoom-controls" @dblclick.stop @pointerdown.stop>
       <template v-if="replaceable">
         <v-btn
@@ -78,31 +106,6 @@
           variant="text"
           @click="turn(90)"
         />
-        <template v-if="pendingTurn">
-          <v-btn
-            aria-label="Undo the turn"
-            density="comfortable"
-            :disabled="busy"
-            icon="mdi-close"
-            size="small"
-            title="Undo the turn"
-            variant="text"
-            @click="pendingTurn = 0"
-          />
-          <v-btn
-            class="ms-1"
-            color="primary"
-            density="comfortable"
-            :disabled="busy"
-            prepend-icon="mdi-check"
-            rounded="pill"
-            size="small"
-            variant="flat"
-            @click="saveTurn"
-          >
-            Save
-          </v-btn>
-        </template>
         <v-divider class="mx-1" vertical />
       </template>
       <v-btn
@@ -382,6 +385,22 @@
   border-radius: 999px;
   background: rgba(var(--v-theme-surface), 0.85);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  cursor: default;
+}
+
+.zoom-pending {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 12px;
+  border-radius: 999px;
+  background: rgba(var(--v-theme-surface), 0.92);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  transform: translateX(-50%);
   cursor: default;
 }
 

@@ -3,6 +3,21 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-10-30 · Turning a photo twice saved it after one turn
+
+**Symptom.** In the photo viewer (expense, shift and unknown-item photos),
+clicking "rotate right" twice saved the photo after the first turn instead
+of turning it again.
+
+**Cause.** Undo and Save appeared inside the toolbar after the first turn.
+The toolbar is anchored at the bottom right, so it grew to the left: the
+rotate buttons slid over and Save landed where "rotate right" had been.
+
+**Fix.** Undo and Save sit in their own bar at the top of the photo
+("Turned 90° · Undo · Save"), and the toolbar never changes size
+(`ui/src/components/ZoomableImage.vue`). Checked in a browser that "rotate
+right" keeps its place after a turn; no automated test covers it.
+
 ## 2026-10-30 · WhatsApp Health counted test sends and showed "usual 0"
 
 **Symptom.** On WhatsApp > Health, "Sent today" included test messages
