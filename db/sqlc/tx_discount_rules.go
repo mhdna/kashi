@@ -78,6 +78,8 @@ func (store *SQLStore) ReplaceDiscountListRuleGroupsTx(ctx context.Context, list
 						CodePrefixes: r.CodePrefixes, ExceptCodePrefixes: r.ExceptCodePrefixes, Kinds: r.Kinds,
 						Categories: r.Categories, SubCategories: r.SubCategories, Origins: r.Origins, Brands: r.Brands,
 						Discount: r.Discount, DealID: r.DealID, GroupID: r.GroupID, IsEnabled: r.IsEnabled,
+						DealFallbackPercent: r.DealFallbackPercent,
+						MaxPrice:            r.MaxPrice,
 					})
 					if err != nil {
 						return err
