@@ -65,6 +65,12 @@ UI_ROOT  ?= /var/www/kashi-ui
 APP_DIR  ?= /home/kashi/app
 PROD_DB  ?= postgresql://kashi:kashi@localhost:5432/kashi?sslmode=disable
 
+# Each ssh/rsync to the droplet takes ~3s just to connect, and a deploy makes
+# four. The first one stays open in the background (a minute after the last
+# use) and the rest go through it.
+SSH_MUX  ?= -o ControlMaster=auto -o ControlPath=/tmp/kashi-ssh-%C -o ControlPersist=60
+export RSYNC_RSH = ssh $(SSH_MUX)
+
 # Full release: API binary + migrations, then the UI. The UI builds while the
 # API compiles, uploads and restarts; only its upload waits for the API, so a
 # new page never calls an endpoint the old API doesn't have yet.
@@ -81,7 +87,7 @@ deploy-api:
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o /tmp/kashi-api-linux .
 	rsync -avz /tmp/kashi-api-linux $(SSH):$(APP_DIR)/api-linux
 	rsync -avz --delete ./db/migrations/ $(SSH):$(APP_DIR)/migrations/
-	ssh $(SSH) 'chown -R kashi:kashi $(APP_DIR)/api-linux $(APP_DIR)/migrations && \
+	ssh $(SSH_MUX) $(SSH) 'chown -R kashi:kashi $(APP_DIR)/api-linux $(APP_DIR)/migrations && \
 		chmod +x $(APP_DIR)/api-linux && \
 		migrate -path $(APP_DIR)/migrations -database "$(PROD_DB)" up && \
 		systemctl restart kashi-api && sleep 1 && systemctl is-active kashi-api'
@@ -101,11 +107,11 @@ ship-ui:
 # home page's IT Management feed, as Alex (cmd/release_notes). Run it after
 # a deploy. DRY_RUN=1 prints the SQL instead of posting it.
 deploy-notes:
-	@posted=$$(ssh $(SSH) "LC_ALL=C.UTF-8 psql '$(PROD_DB)' -At -c \"SELECT route FROM admin_activities WHERE method = 'RELEASE'\"") && \
+	@posted=$$(ssh $(SSH_MUX) $(SSH) "LC_ALL=C.UTF-8 psql '$(PROD_DB)' -At -c \"SELECT route FROM admin_activities WHERE method = 'RELEASE'\"") && \
 	sql=$$(printf '%s\n' "$$posted" | go run ./cmd/release_notes) && \
 	if [ -z "$$sql" ]; then exit 0; \
 	elif [ -n "$(DRY_RUN)" ]; then printf '%s\n' "$$sql"; \
-	else printf '%s\n' "$$sql" | ssh $(SSH) "LC_ALL=C.UTF-8 psql '$(PROD_DB)' -v ON_ERROR_STOP=1 -q" && echo "Posted release notes."; fi
+	else printf '%s\n' "$$sql" | ssh $(SSH_MUX) $(SSH) "LC_ALL=C.UTF-8 psql '$(PROD_DB)' -v ON_ERROR_STOP=1 -q" && echo "Posted release notes."; fi
 
 # Ship the WhatsApp bridge (../bnc/whatsapp-bridge), point its chat log at
 # kashi's Inbox (CHAT_LOG_URL, added once) and restart it. Run it after
@@ -115,7 +121,7 @@ BRIDGE_SRC ?= ../bnc/whatsapp-bridge
 BRIDGE_DIR ?= /home/wabridge/app
 deploy-whatsapp:
 	rsync -avz $(BRIDGE_SRC)/server.mjs $(BRIDGE_SRC)/report.mjs $(BRIDGE_SRC)/package.json $(BRIDGE_SRC)/package-lock.json $(SSH):$(BRIDGE_DIR)/
-	ssh $(SSH) 'cd $(BRIDGE_DIR) && chown wabridge:wabridge server.mjs report.mjs package.json package-lock.json && \
+	ssh $(SSH_MUX) $(SSH) 'cd $(BRIDGE_DIR) && chown wabridge:wabridge server.mjs report.mjs package.json package-lock.json && \
 		(grep -q "^CHAT_LOG_URL=" bridge.env || echo "CHAT_LOG_URL=http://127.0.0.1:$$(sed -n "s/^HTTP_SERVER_ADDRESS=.*://p" $(APP_DIR)/app.env)/whatsapp/bridge/chat" >> bridge.env) && \
 		sudo -u wabridge env HOME=/home/wabridge npm ci --omit=dev && \
 		systemctl restart whatsapp-bridge && sleep 3 && systemctl is-active whatsapp-bridge'
@@ -123,6 +129,6 @@ deploy-whatsapp:
 # Run pending migrations on prod without shipping anything.
 migrate-prod:
 	rsync -avz --delete ./db/migrations/ $(SSH):$(APP_DIR)/migrations/
-	ssh $(SSH) 'migrate -path $(APP_DIR)/migrations -database "$(PROD_DB)" up'
+	ssh $(SSH_MUX) $(SSH) 'migrate -path $(APP_DIR)/migrations -database "$(PROD_DB)" up'
 
 .PHONY: postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 sqlc test server dev mock proto evans seed deploy deploy-api deploy-ui build-ui ship-ui deploy-notes deploy-whatsapp migrate-prod
