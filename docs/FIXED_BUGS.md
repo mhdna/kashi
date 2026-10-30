@@ -3,6 +3,24 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-10-30 · Feedback dropped replies from customers who didn't tap an answer
+
+**Symptom.** The feedback report and the Reviews page showed only a handful
+of customer replies: in October 13 of the 42 stored ones. Written feedback
+like "W sabaya wel 5edmi tamem" or "Great!" was missing.
+
+**Cause.** The earlier small-talk fix (below) counted a reply only after the
+follow-up question. The follow-up goes out after a customer taps an answer,
+and most customers who wrote back never tapped one, so all their replies
+were dropped.
+
+**Fix.** A reply counts from the poll message until a day after it (or after
+the follow-up, when that went out later), the first five messages with more
+than punctuation (`db/query/review_link.sql`). Long chats are trimmed to
+five, and the report's Hide button removes small talk by hand. Checked
+against production: 22 of October's 42 replies now show, every one of the
+missing feedback messages among them; no automated test covers it.
+
 ## 2026-10-30 · Turning a photo twice saved it after one turn
 
 **Symptom.** In the photo viewer (expense, shift and unknown-item photos),
