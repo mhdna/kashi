@@ -7263,6 +7263,21 @@ func (mr *MockStoreMockRecorder) InsertBranchQuickAccessItem(arg0, arg1 interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertBranchQuickAccessItem", reflect.TypeOf((*MockStore)(nil).InsertBranchQuickAccessItem), arg0, arg1)
 }
 
+// LastWhatsAppPollAt mocks base method.
+func (m *MockStore) LastWhatsAppPollAt(arg0 context.Context, arg1 string) (time.Time, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LastWhatsAppPollAt", arg0, arg1)
+	ret0, _ := ret[0].(time.Time)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LastWhatsAppPollAt indicates an expected call of LastWhatsAppPollAt.
+func (mr *MockStoreMockRecorder) LastWhatsAppPollAt(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LastWhatsAppPollAt", reflect.TypeOf((*MockStore)(nil).LastWhatsAppPollAt), arg0, arg1)
+}
+
 // LastWhatsAppSentAt mocks base method.
 func (m *MockStore) LastWhatsAppSentAt(arg0 context.Context, arg1 string) (time.Time, error) {
 	m.ctrl.T.Helper()

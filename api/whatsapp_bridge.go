@@ -307,6 +307,37 @@ func whatsAppAudienceName(first bool) string {
 // send went out from; recordWhatsAppOutcome answers it as "from".
 const whatsAppFromKey = "whatsapp_from"
 
+// whatsAppSendLimit says why a client can't be sent something again yet
+// (last says when they last were), or "" when they can. A limit of 0 is off.
+func (server *Server) whatsAppSendLimit(ctx *gin.Context, last func(context.Context, string) (time.Time, error), phone string, limit time.Duration, what string) (string, error) {
+	if limit <= 0 {
+		return "", nil
+	}
+	at, err := last(ctx, phone)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	if ago := time.Since(at); ago < limit {
+		return fmt.Sprintf("%s %s ago, at most once every %s (Settings > WhatsApp)", what, whatsAppDuration(ago), whatsAppDuration(limit)), nil
+	}
+	return "", nil
+}
+
+// whatsAppDuration: "12 min", "3 h", "2 days".
+func whatsAppDuration(d time.Duration) string {
+	switch {
+	case d < time.Hour:
+		return fmt.Sprintf("%d min", max(1, int(d.Round(time.Minute).Minutes())))
+	case d < 48*time.Hour:
+		return fmt.Sprintf("%d h", int(d.Round(time.Hour).Hours()))
+	default:
+		return fmt.Sprintf("%d days", int(d.Round(24*time.Hour).Hours()/24))
+	}
+}
+
 func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWhatsAppMessageParams, sender db.GetWhatsAppSenderSettingsRow, branchName string, hidden []string, req branchWhatsAppThankYouRequest) {
 	entry.Sender = whatsAppSenderBridge
 	if strings.TrimSpace(sender.WhatsappBridgeKey) == "" {
@@ -352,6 +383,38 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 	if !sendMessage && !sendPoll {
 		server.logWhatsAppMessage(ctx, entry, whatsAppStatusSkipped, "switched off for "+whatsAppAudienceName(first)+" clients (Settings > WhatsApp)")
 		return
+	}
+	// A client who buys twice in an hour isn't messaged twice, and gets the
+	// poll once a day (by default). Test sends are never held back. The poll
+	// after an early welcome is the same visit's, so the gap doesn't hold it.
+	if !entry.IsTest {
+		if !req.pollOnly {
+			reason, err := server.whatsAppSendLimit(ctx, server.store.LastWhatsAppSentAt, entry.ClientPhone,
+				time.Duration(sender.WhatsappMessageGapMinutes)*time.Minute, "messaged")
+			if err != nil {
+				server.writeError(ctx, http.StatusInternalServerError, err)
+				return
+			}
+			if reason != "" {
+				server.logWhatsAppMessage(ctx, entry, whatsAppStatusSkipped, reason)
+				return
+			}
+		}
+		if sendPoll {
+			reason, err := server.whatsAppSendLimit(ctx, server.store.LastWhatsAppPollAt, entry.ClientPhone,
+				time.Duration(sender.WhatsappPollEveryHours)*time.Hour, "sent the poll")
+			if err != nil {
+				server.writeError(ctx, http.StatusInternalServerError, err)
+				return
+			}
+			if reason != "" {
+				sendPoll = false
+				if !sendMessage {
+					server.logWhatsAppMessage(ctx, entry, whatsAppStatusSkipped, reason)
+					return
+				}
+			}
+		}
 	}
 	values := whatsAppMessageValues(sender, hidden, req.ClientName, branchName, req.InvoiceCode, req.paidCents(), time.Now())
 	if req.paidCents() <= 0 {
@@ -595,9 +658,13 @@ type whatsAppSenderBody struct {
 	DeletePollForMe bool `json:"whatsapp_delete_poll_for_me"`
 	// Poll mode: the purchase details inside the poll, one message (see
 	// whatsAppCombinedPollText), with its own text.
-	PollCombined    bool                   `json:"whatsapp_poll_combined"`
-	CombinedMessage string                 `json:"whatsapp_combined_message"`
-	Branches        []whatsAppBranchNumber `json:"branches"`
+	PollCombined    bool   `json:"whatsapp_poll_combined"`
+	CombinedMessage string `json:"whatsapp_combined_message"`
+	// How often one client can be messaged; 0 turns a limit off (see
+	// whatsAppSendLimit).
+	MessageGapMinutes int                    `json:"whatsapp_message_gap_minutes"`
+	PollEveryHours    int                    `json:"whatsapp_poll_every_hours"`
+	Branches          []whatsAppBranchNumber `json:"branches"`
 }
 
 func (server *Server) getWhatsAppSender(ctx *gin.Context) {
@@ -657,6 +724,8 @@ func (server *Server) getWhatsAppSender(ctx *gin.Context) {
 			FollowupReturning: sender.WhatsappFollowupReturning,
 			PollCombined:      sender.WhatsappPollCombined,
 			CombinedMessage:   sender.WhatsappCombinedMessage,
+			MessageGapMinutes: int(sender.WhatsappMessageGapMinutes),
+			PollEveryHours:    int(sender.WhatsappPollEveryHours),
 			Branches:          branches,
 		},
 		"default_message":          defaultWhatsAppPollMessage,
@@ -754,6 +823,10 @@ func (server *Server) updateWhatsAppSender(ctx *gin.Context) {
 		return
 	}
 	pollOptions := strings.Join(lines, "\n")
+	if req.MessageGapMinutes < 0 || req.MessageGapMinutes > 7*24*60 || req.PollEveryHours < 0 || req.PollEveryHours > 365*24 {
+		server.writeError(ctx, http.StatusBadRequest, errors.New("the time between messages and between polls can't be negative or over a week and a year"))
+		return
+	}
 
 	branches := make([]db.SetBranchWhatsAppNumberParams, len(req.Branches))
 	for i, b := range req.Branches {
@@ -792,6 +865,8 @@ func (server *Server) updateWhatsAppSender(ctx *gin.Context) {
 		WhatsappFollowupReturning: req.FollowupReturning,
 		WhatsappPollCombined:      req.PollCombined,
 		WhatsappCombinedMessage:   strings.TrimSpace(req.CombinedMessage),
+		WhatsappMessageGapMinutes: int32(req.MessageGapMinutes),
+		WhatsappPollEveryHours:    int32(req.PollEveryHours),
 	}, branches); err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
