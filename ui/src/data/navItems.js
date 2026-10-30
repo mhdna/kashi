@@ -12,7 +12,6 @@ export const navItems = [
     title: 'Analysis',
     icon: 'mdi-chart-bar',
     children: [
-      { title: 'Reports', icon: 'mdi-file-chart-outline', to: '/reports' },
       { title: 'Dashboard', icon: 'mdi-view-dashboard', to: '/dashboard' },
       { title: 'Targets', icon: 'mdi-target', to: '/targets' },
       { title: 'Footfall', icon: 'mdi-walk', to: '/footfall' },
@@ -117,6 +116,7 @@ export const navItems = [
 
 export const appendItems = [
   { title: 'Calendar', icon: 'mdi-calendar', to: '/calendar' },
+  { title: 'Reports', icon: 'mdi-file-chart-outline', to: '/reports' },
   { title: 'Storage', icon: 'mdi-google-drive', to: '/storage' },
   { title: 'Dev Logs', icon: 'mdi-code-tags', to: '/logs' },
   { title: 'Audit Log', icon: 'mdi-history', to: '/audit-log' },
