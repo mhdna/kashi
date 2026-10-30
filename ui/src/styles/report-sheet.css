@@ -1,0 +1,89 @@
+/* The Reports page's printable sheet (components/reports). The same rules
+   style the on-screen preview and the print frame the PDF comes from
+   (utils/reportExport.js imports this file raw), so what you see is what
+   prints. Paper colours on purpose: a report is white whatever the theme. */
+
+.rpt-sheet {
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 28px 32px;
+  background: #fff;
+  color: #1f1f1e;
+  font-family: Roboto, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.rpt-sheet *, .rpt-sheet *::before, .rpt-sheet *::after { box-sizing: border-box; }
+
+.rpt-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+  border-bottom: 2px solid #1f1f1e;
+}
+.rpt-title { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+.rpt-subtitle { margin: 2px 0 0; color: #52514e; font-size: 12px; }
+.rpt-meta { text-align: right; color: #52514e; font-size: 10px; }
+.rpt-meta strong { color: #1f1f1e; }
+
+.rpt-section { margin: 0 0 18px; }
+.rpt-section--break { break-before: page; }
+.rpt-h2 {
+  margin: 0 0 6px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid #e6e5e1;
+  font-size: 13px;
+  font-weight: 700;
+  break-after: avoid;
+}
+.rpt-h3 { margin: 0 0 4px; font-size: 11.5px; font-weight: 600; break-after: avoid; }
+.rpt-note { margin: 0 0 6px; color: #6d6c68; font-size: 10px; }
+.rpt-h2 + .rpt-note { break-after: avoid; }
+.rpt-empty { margin: 4px 0 8px; color: #6d6c68; font-style: italic; }
+
+.rpt-grid { display: grid; gap: 14px; align-items: start; margin-bottom: 10px; }
+.rpt-card { break-inside: avoid; min-width: 0; }
+.rpt-chart { width: 100%; break-inside: avoid; margin-bottom: 6px; }
+.rpt-chart img { display: block; width: 100%; height: 100%; object-fit: contain; }
+
+.rpt-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+  break-inside: avoid;
+}
+.rpt-kpi { padding: 8px 10px; border: 1px solid #e6e5e1; border-radius: 6px; background: #fafaf8; }
+.rpt-kpi__value { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rpt-kpi__label { color: #52514e; font-size: 10px; }
+.rpt-kpi__hint { color: #8a8984; font-size: 9px; }
+
+.rpt-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+.rpt-table th {
+  padding: 4px 6px;
+  border-bottom: 1.5px solid #1f1f1e;
+  color: #52514e;
+  font-size: 9.5px;
+  font-weight: 600;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.rpt-table td { padding: 3.5px 6px; border-bottom: 1px solid #eeede9; vertical-align: top; }
+.rpt-table tbody tr:nth-child(even) td { background: #fbfbfa; }
+.rpt-table tfoot td { border-top: 1.5px solid #1f1f1e; border-bottom: none; font-weight: 700; }
+.rpt-table tr { break-inside: avoid; }
+.rpt-table--compact td, .rpt-table--compact th { padding: 2px 3px; font-size: 9px; }
+.rpt-table .rpt-right { text-align: right; white-space: nowrap; }
+.rpt-table .rpt-num { width: 22px; color: #8a8984; text-align: right; }
+
+.rpt-person { break-inside: avoid; margin-bottom: 14px; }
+.rpt-tag { display: inline-block; padding: 0 6px; border-radius: 8px; background: #eef4fc; color: #1d5fae; font-size: 9.5px; }
+.rpt-tag--warn { background: #fdf1e3; color: #8a4b00; }
+.rpt-quote { margin: 0 0 6px; padding: 4px 10px; border-left: 3px solid #e6e5e1; break-inside: avoid; }
+.rpt-quote__meta { color: #6d6c68; font-size: 9.5px; }
+.rpt-footer { margin-top: 18px; padding-top: 6px; border-top: 1px solid #e6e5e1; color: #8a8984; font-size: 9px; }
