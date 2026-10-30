@@ -65,8 +65,12 @@ UI_ROOT  ?= /var/www/kashi-ui
 APP_DIR  ?= /home/kashi/app
 PROD_DB  ?= postgresql://kashi:kashi@localhost:5432/kashi?sslmode=disable
 
-# Full release: API binary + migrations, then the UI.
-deploy: deploy-api deploy-ui
+# Full release: API binary + migrations, then the UI. The UI builds while the
+# API compiles, uploads and restarts; only its upload waits for the API, so a
+# new page never calls an endpoint the old API doesn't have yet.
+deploy:
+	$(MAKE) -j2 --output-sync=target deploy-api build-ui
+	$(MAKE) ship-ui
 	@echo "Deployed -> https://cloud.example.com/"
 
 # Cross-compile the API, ship it with the current migrations, run any
@@ -85,8 +89,12 @@ deploy-api:
 # Build the SPA (uses ui/.env.production -> VITE_API_URL=/api) and mirror it
 # into the Caddy web root. Fast path for front-end-only changes.
 # Swaps files in at the end, deletes old ones last (see ui/Makefile).
-deploy-ui:
+deploy-ui: build-ui ship-ui
+
+build-ui:
 	$(MAKE) -C ui build
+
+ship-ui:
 	rsync -avz --delete-after --delay-updates --chmod=D755,F644 ui/dist/ $(SSH):$(UI_ROOT)/
 
 # Post the feat/fix/perf commits shipped since the last posted one to the
@@ -117,4 +125,4 @@ migrate-prod:
 	rsync -avz --delete ./db/migrations/ $(SSH):$(APP_DIR)/migrations/
 	ssh $(SSH) 'migrate -path $(APP_DIR)/migrations -database "$(PROD_DB)" up'
 
-.PHONY: postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 sqlc test server dev mock proto evans seed deploy deploy-api deploy-ui deploy-notes deploy-whatsapp migrate-prod
+.PHONY: postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 sqlc test server dev mock proto evans seed deploy deploy-api deploy-ui build-ui ship-ui deploy-notes deploy-whatsapp migrate-prod
