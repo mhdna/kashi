@@ -17,42 +17,31 @@
 
   <RptSection v-if="has('who')" :break-before="has('best')" :title="t('Who they are')">
     <RptGrid>
-      <RptCard :note="t('Customers by how many times they bought in the period.')" :title="t('Visits per customer')">
-        <RptChart :height="200" :option="visitsChart" />
+      <RptCard :note="t('Customers by how many times they bought in the period.')" :title="t('By number of visits')">
+        <RptTable :columns="visitColumns" compact :rows="visitRows" />
       </RptCard>
-      <RptCard :note="t('Customers by what they spent in the period, net of returns.')" :title="t('Spend per customer')">
-        <RptChart :height="200" :option="spendChart" />
-      </RptCard>
-      <RptCard :note="t('New = first purchase ever was in this period.')" :title="t('New and returning customers')">
-        <RptChart :height="200" :option="newChart" />
-      </RptCard>
-      <RptCard :title="t('Customers by home branch')">
-        <RptChart :height="200" :option="homeChart" />
+      <RptCard :note="t('Customers by what they spent in the period, net of returns.')" :title="t('By amount spent')">
+        <RptTable :columns="spendColumns" compact :rows="spendRows" />
       </RptCard>
     </RptGrid>
+    <RptCard v-if="homeRows.length > 1" :title="t('Customers by home branch')">
+      <RptTable :columns="homeColumns" compact :rows="homeRows" />
+    </RptCard>
   </RptSection>
 
   <RptSection
     v-if="has('when')"
-    :note="t('Sales with a named customer, by the time on the till. Averages are per day of that weekday in the period.')"
+    :note="t('Sales with a named customer, by weekday and hour on the till.')"
     :title="t('When customers come')"
   >
     <RptChart :height="230" :option="heatChart" />
-    <RptGrid>
-      <RptCard :title="t('By weekday (average per day)')">
-        <RptChart :height="190" :option="weekdayChart" />
-      </RptCard>
-      <RptCard :title="t('By hour (total)')">
-        <RptChart :height="190" :option="hourChart" />
-      </RptCard>
-    </RptGrid>
   </RptSection>
 </template>
 
 <script setup>
   import { computed } from 'vue'
   import { t } from './reportI18n'
-  import { barOption, csvSection, donutOption, heatmapOption, hourLabel, int, money, num1, pct, ratio, weekdayCounts, weekdays } from './reportKit'
+  import { csvSection, heatmapOption, int, money, num1, pct, ratio } from './reportKit'
   import RptCard from './RptCard.vue'
   import RptChart from './RptChart.vue'
   import RptGrid from './RptGrid.vue'
@@ -83,12 +72,13 @@
   const repeat = computed(() => clients.value.filter(c => c.visits >= 2).length)
   const spent = computed(() => clients.value.reduce((sum, c) => sum + c.net_total, 0))
   const visits = computed(() => clients.value.reduce((sum, c) => sum + c.visits, 0))
+  const newSpent = computed(() => clients.value.filter(c => c.is_new).reduce((sum, c) => sum + c.net_total, 0))
 
   const kpis = computed(() => {
     const s = data.value.summary
     return [
       { label: t('Customers served'), value: int(count.value) },
-      { label: t('New customers'), value: int(newCount.value), hint: pct(ratio(newCount.value, count.value)) },
+      { label: t('New customers'), value: int(newCount.value), hint: t('{pct} · spent {amount}', { pct: pct(ratio(newCount.value, count.value)), amount: money(newSpent.value) }) },
       { label: t('Returning customers'), value: int(count.value - newCount.value) },
       { label: t('Came back 2+ times'), value: int(repeat.value), hint: pct(ratio(repeat.value, count.value)) },
       { label: t('Spend per customer'), value: money(ratio(spent.value, count.value)) },
@@ -118,43 +108,58 @@
     { key: 'last_at', title: t('Last visit'), type: 'datetime' },
   ]
 
-  function buckets (edges, value, label) {
-    const counts = edges.map(() => 0)
+  // Customers grouped by a measure, with what each group spent: the share
+  // of customers next to the share of money says who carries the sales.
+  function bucketRows (edges, value, label) {
+    const rows = edges.map((edge, i) => ({ group: label(edge, edges[i + 1]), customers: 0, spent: 0 }))
     for (const c of clients.value) {
-      const i = edges.findLastIndex(edge => value(c) >= edge)
-      counts[Math.max(0, i)]++
+      const row = rows[Math.max(0, edges.findLastIndex(edge => value(c) >= edge))]
+      row.customers++
+      row.spent += c.net_total
     }
-    return barOption({ categories: edges.map((edge, i) => label(edge, edges[i + 1])), series: [{ name: t('Customers'), data: counts }], labels: true })
+    return rows.filter(r => r.customers > 0).map(r => ({
+      ...r,
+      customerShare: ratio(r.customers, count.value),
+      spentShare: ratio(r.spent, spent.value),
+      perCustomer: ratio(r.spent, r.customers),
+    }))
   }
-  const visitsChart = computed(() => buckets([1, 2, 3, 4, 6, 10], c => c.visits, (a, b) => (b === undefined ? `${a}+` : (b - a === 1 ? `${a}` : `${a}–${b - 1}`))))
-  const spendChart = computed(() => buckets([0, 25, 50, 100, 200, 500, 1000], c => c.net_total / 100, (a, b) => (b === undefined ? `$${a}+` : `$${a}–${b}`)))
-  const newChart = computed(() => donutOption({ items: [{ name: t('Returning'), value: count.value - newCount.value }, { name: t('New'), value: newCount.value }], kind: 'int' }))
-  const homeChart = computed(() => {
+  const visitRows = computed(() => bucketRows([1, 2, 3, 4, 6, 10], c => c.visits, (a, b) => (b === undefined ? `${a}+` : (b - a === 1 ? `${a}` : `${a}–${b - 1}`))))
+  const spendRows = computed(() => bucketRows([0, 25, 50, 100, 200, 500, 1000], c => c.net_total / 100, (a, b) => (b === undefined ? `$${a}+` : `$${a}–${b}`)))
+  function groupColumns (title) {
+    return [
+      { key: 'group', title },
+      { key: 'customers', title: t('Customers'), type: 'int' },
+      { key: 'customerShare', title: t('% of customers'), type: 'pct' },
+      { key: 'spent', title: t('Spent'), type: 'money' },
+      { key: 'spentShare', title: t('% of spend'), type: 'pct' },
+      { key: 'perCustomer', title: t('Per customer'), type: 'money' },
+    ]
+  }
+  const visitColumns = groupColumns(t('Visits'))
+  const spendColumns = groupColumns(t('Spent'))
+
+  const homeRows = computed(() => {
     const byBranch = new Map()
     for (const c of clients.value) {
       const name = c.home_branch || t('Unknown')
-      byBranch.set(name, (byBranch.get(name) ?? 0) + 1)
+      const row = byBranch.get(name) ?? { branch: name, customers: 0, spent: 0, isNew: 0 }
+      row.customers++
+      row.spent += c.net_total
+      row.isNew += c.is_new ? 1 : 0
+      byBranch.set(name, row)
     }
-    return donutOption({ items: [...byBranch].map(([name, value]) => ({ name, value })), kind: 'int' })
+    return [...byBranch.values()].toSorted((a, b) => b.spent - a.spent)
   })
+  const homeColumns = [
+    { key: 'branch', title: t('Home branch') },
+    { key: 'customers', title: t('Customers'), type: 'int' },
+    { key: 'isNew', title: t('New customers'), type: 'int' },
+    { key: 'spent', title: t('Spent'), type: 'money' },
+  ]
 
   const named = computed(() => data.value.weekday_hour.map(c => ({ weekday: c.weekday, hour: c.hour, value: c.named_count })))
   const heatChart = computed(() => heatmapOption({ cells: named.value }))
-  const weekdayChart = computed(() => {
-    const counts = weekdayCounts(props.ctx.from, props.ctx.to)
-    const totals = Array.from({ length: 8 }, () => 0)
-    for (const c of named.value) {totals[c.weekday] += c.value}
-    return barOption({ categories: weekdays(), series: [{ name: t('Customer sales per day'), data: weekdays().map((_, i) => Math.round(totals[i + 1] / (counts[i + 1] || 1) * 10) / 10) }], labels: true })
-  })
-  const hourChart = computed(() => {
-    const totals = new Map()
-    for (const c of named.value) {totals.set(c.hour, (totals.get(c.hour) ?? 0) + c.value)}
-    const used = [...totals.keys()].filter(h => totals.get(h) > 0)
-    const lo = used.length > 0 ? Math.min(...used) : 9
-    const hi = used.length > 0 ? Math.max(...used) : 21
-    const hrs = Array.from({ length: hi - lo + 1 }, (_, i) => lo + i)
-    return barOption({ categories: hrs.map(h => hourLabel(h)), series: [{ name: t('Customer sales'), data: hrs.map(h => totals.get(h) ?? 0) }] })
-  })
 
   defineExpose({
     csv: () => (has('best') || has('frequent') || has('who')

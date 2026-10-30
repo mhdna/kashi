@@ -15,10 +15,7 @@
   </RptSection>
 
   <RptSection v-if="has('branches') && data.branches.length > 1" :title="t('Branches')">
-    <RptGrid>
-      <RptChart :height="200" :option="branchChart" />
-      <RptTable :columns="branchColumns" :rows="data.branches" :total="branchTotal" />
-    </RptGrid>
+    <RptTable :columns="branchColumns" compact :rows="data.branches" :total="branchTotal" />
   </RptSection>
 
   <RptSection v-if="has('sold')" :title="t('What sold')">
@@ -59,7 +56,7 @@
 <script setup>
   import { computed } from 'vue'
   import { t } from './reportI18n'
-  import { barOption, csvSection, day, dayLabel, daysBetween, donutOption, int, money, num1, pct, ratio, weekdayCounts, weekdays } from './reportKit'
+  import { barOption, chartDay, csvSection, day, daysBetween, donutOption, int, money, num1, pct, ratio, weekdayCounts, weekdays } from './reportKit'
   import { categoryRows, salespersonRows } from './reportRows'
   import RptCard from './RptCard.vue'
   import RptChart from './RptChart.vue'
@@ -103,7 +100,7 @@
     return daysBetween(props.ctx.from, props.ctx.to).map(ymd => ({ sales_count: 0, sales_total: 0, net_total: 0, visitors: 0, ...byDay.get(ymd), day: ymd }))
   })
   const dailyChart = computed(() => barOption({
-    categories: days.value.map(d => dayLabel(d.day, { day: 'numeric', month: 'short' })),
+    categories: days.value.map(d => chartDay(d.day)),
     series: [{ name: t('Net sales'), data: days.value.map(d => d.net_total / 100) }],
     kind: 'money',
   }))
@@ -137,7 +134,6 @@
     { key: 'share', title: t('Share'), type: 'pct', value: r => ratio(r.net_total, s.value.net_total) },
   ]
   const branchTotal = computed(() => ({ branch_name: t('Total'), sales_count: s.value.sales_count, net_total: s.value.net_total, share: 1 }))
-  const branchChart = computed(() => donutOption({ items: data.value.branches.map(b => ({ name: b.branch_name, value: b.net_total / 100 })) }))
 
   const namedProducts = computed(() => data.value.products.filter(p => p.product_id > 0))
   const productColumns = [

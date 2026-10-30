@@ -54,6 +54,9 @@ export function dayLabel (ymd, opts) {
   if (!ymd) {return ''}
   return new Date(`${day(ymd)}T00:00:00`).toLocaleDateString(dateLocale(), opts ?? DAY_LABEL)
 }
+// A day on a chart axis: "30 Oct", and "30/10" in Arabic, whose month
+// names are too long to sit side by side.
+export const chartDay = ymd => dayLabel(ymd, isRtl() ? { day: 'numeric', month: 'numeric' } : { day: 'numeric', month: 'short' })
 export function dateTime (iso) {
   if (!iso) {return ''}
   return new Date(iso).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short', year: 'numeric' })
@@ -122,11 +125,12 @@ const legendStyle = { textStyle: { color: INK_2, fontSize: 10 }, icon: 'roundRec
 const sides = (start, end) => (isRtl() ? { left: end, right: start } : { left: start, right: end })
 
 function valueAxis (kind, extra = {}) {
-  const formatter = kind === 'money'
-    ? v => `${v < 0 ? '−' : ''}$${intFmt.format(Math.abs(v))}`
-    : (kind === 'hours'
-      ? v => t('{n}h', { n: intFmt.format(v) })
-      : (kind === 'num1' ? v => axisNum1.format(v) : v => intFmt.format(v)))
+  const formatters = {
+    money: v => `${v < 0 ? '−' : ''}$${intFmt.format(Math.abs(v))}`,
+    hours: v => t('{n}h', { n: intFmt.format(v) }),
+    num1: v => axisNum1.format(v),
+  }
+  const formatter = formatters[kind] ?? (v => intFmt.format(v))
   return { type: 'value', minInterval: kind === 'int' ? 1 : undefined, ...axisStyle, axisLabel: { ...axisStyle.axisLabel, formatter }, ...extra }
 }
 function tooltipValue (kind) {
