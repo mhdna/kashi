@@ -10,7 +10,13 @@
     <tbody>
       <tr v-for="(row, i) in shownRows" :key="i">
         <td v-if="numbered" class="rpt-num">{{ i + 1 }}</td>
-        <td v-for="col in columns" :key="col.key" :class="alignClass(col)">{{ displayCell(col, row) }}</td>
+        <td v-for="col in columns" :key="col.key" :class="[alignClass(col), { 'rpt-strong': col.strong }]">
+          <!-- A share column gets a small bar, scaled to the column's largest. -->
+          <span v-if="col.bar" class="rpt-bar-cell">
+            <span class="rpt-bar" :style="{ width: barWidth(col, row) }" />{{ displayCell(col, row) }}
+          </span>
+          <template v-else>{{ displayCell(col, row) }}</template>
+        </td>
       </tr>
     </tbody>
     <tfoot v-if="total">
@@ -30,7 +36,7 @@
 <script setup>
   import { computed } from 'vue'
   import { t } from './reportI18n'
-  import { displayCell } from './reportKit'
+  import { cellValue, displayCell } from './reportKit'
 
   // A printed table. columns: [{ key, title, type?, value? }] (see
   // reportKit's column types); total: an optional footer row keyed like rows.
@@ -45,5 +51,15 @@
   })
 
   const shownRows = computed(() => (props.limit > 0 ? props.rows.slice(0, props.limit) : props.rows))
+
+  // columns: { bar: true } draws a bar beside the value, { strong: true }
+  // sets the table's key figure in bold.
+  const barMax = computed(() => Object.fromEntries(props.columns.filter(c => c.bar)
+    .map(c => [c.key, Math.max(0, ...props.rows.map(r => Number(cellValue(c, r)) || 0))])))
+  function barWidth (col, row) {
+    const max = barMax.value[col.key]
+    const value = Math.max(0, Number(cellValue(col, row)) || 0)
+    return max > 0 ? `${Math.round(value / max * 100) / 100 * 36}px` : '0px'
+  }
   const alignClass = col => (col.type && col.type !== 'text' && col.type !== 'date' && col.type !== 'datetime' ? 'rpt-right' : '')
 </script>

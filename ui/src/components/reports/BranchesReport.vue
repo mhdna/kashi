@@ -1,10 +1,14 @@
 <template>
-  <RptSection :title="t('Branches side by side')">
+  <RptSection v-if="has('comparison.table')" part="comparison.table" :title="t('Branches side by side')">
     <RptTable :columns="columns" numbered :rows="rows" :total="total" />
   </RptSection>
 
-
-  <RptSection v-if="rows.length > 1" :note="t('Net sales per day, each branch on its own line.')" :title="t('Day by day')">
+  <RptSection
+    v-if="has('comparison.trend') && rows.length > 1"
+    :note="t('Net sales per day, each branch on its own line.')"
+    part="comparison.trend"
+    :title="t('Day by day')"
+  >
     <RptChart :height="260" :option="trendChart" />
   </RptSection>
 </template>
@@ -17,11 +21,12 @@
   import RptSection from './RptSection.vue'
   import RptTable from './RptTable.vue'
 
-  // Every branch next to the others (one part: 'comparison').
+  // Every branch next to the others. Parts: comparison.table, comparison.trend.
   const props = defineProps({
     ctx: { type: Object, required: true },
     parts: { type: Array, required: true },
   })
+  const has = part => props.parts.includes(part)
   const data = computed(() => props.ctx.data)
 
   const rows = computed(() => {
@@ -42,8 +47,8 @@
     { key: 'sales_count', title: t('Sales'), type: 'int' },
     { key: 'sales_total', title: t('Gross'), type: 'money' },
     { key: 'returns_total', title: t('Returns'), type: 'money' },
-    { key: 'net_total', title: t('Net sales'), type: 'money' },
-    { key: 'share', title: t('Share'), type: 'pct' },
+    { key: 'net_total', title: t('Net sales'), type: 'money', strong: true },
+    { key: 'share', title: t('Share'), type: 'pct', bar: true },
     { key: 'avg', title: t('Avg sale'), type: 'money' },
     { key: 'discount_total', title: t('Discounts'), type: 'money' },
     { key: 'return_rate', title: t('Return %'), type: 'pct' },
@@ -63,5 +68,5 @@
     return lineOption({ categories: days.map(d => chartDay(d)), series, kind: 'money' })
   })
 
-  defineExpose({ csv: () => [csvSection(t('Branches'), columns, rows.value)] })
+  defineExpose({ csv: () => (has('comparison.table') ? [csvSection(t('Branches'), columns, rows.value)] : []) })
 </script>

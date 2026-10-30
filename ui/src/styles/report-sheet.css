@@ -51,32 +51,37 @@
 .rpt-chart img { display: block; width: 100%; height: 100%; object-fit: contain; }
 
 .rpt-kpis {
+  /* A plain strip of figures between two rules, like a printed statement. */
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
-  gap: 8px;
-  margin-bottom: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  column-gap: 16px;
+  row-gap: 4px;
+  margin-bottom: 16px;
+  padding: 2px 0 10px;
+  border-bottom: 1px solid #d9d8d4;
   break-inside: avoid;
 }
-.rpt-kpi { padding: 8px 10px 9px; border: 1px solid #e6e5e1; border-top: 3px solid #2a78d6; border-radius: 6px; background: #fafaf8; }
-.rpt-kpi__label { color: #1f1f1e; font-size: 11px; font-weight: 600; line-height: 1.3; }
-.rpt-kpi__value { margin-top: 3px; font-size: 17px; font-weight: 700; line-height: 1.25; font-variant-numeric: tabular-nums; }
-.rpt-kpi__hint { margin-top: 2px; color: #6d6c68; font-size: 9.5px; }
+.rpt-kpi { padding: 2px 0; }
+.rpt-kpi__label { color: #52514e; font-size: 10.5px; line-height: 1.3; }
+.rpt-kpi__value { margin-top: 1px; font-size: 16px; font-weight: 700; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.rpt-kpi__hint { color: #8a8984; font-size: 9.5px; }
 
 .rpt-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-variant-numeric: tabular-nums; }
 .rpt-table th {
-  padding: 4px 6px;
-  border-bottom: 1.5px solid #1f1f1e;
-  color: #52514e;
+  padding: 4px 6px 5px;
+  border-bottom: 1px solid #bdbcb7;
+  color: #6d6c68;
   font-size: 9.5px;
   font-weight: 600;
   text-align: start;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
   white-space: nowrap;
 }
-.rpt-table td { padding: 3.5px 6px; border-bottom: 1px solid #eeede9; vertical-align: top; }
-.rpt-table tbody tr:nth-child(even) td { background: #fbfbfa; }
-.rpt-table tfoot td { border-top: 1.5px solid #1f1f1e; border-bottom: none; font-weight: 700; }
+.rpt-table td { padding: 4px 6px; border-bottom: 1px solid #f0efeb; vertical-align: top; }
+.rpt-table tbody tr:nth-child(even) td { background: #fbfbf9; }
+.rpt-table tfoot td { border-top: 1px solid #1f1f1e; border-bottom: none; background: #f4f3ef; font-weight: 700; }
+.rpt-table .rpt-strong { font-weight: 600; }
+.rpt-bar-cell { display: inline-flex; align-items: center; justify-content: flex-end; gap: 5px; }
+.rpt-bar { display: inline-block; height: 6px; border-radius: 3px; background: #7eaee7; }
 .rpt-table tr { break-inside: avoid; }
 .rpt-table--compact td, .rpt-table--compact th { padding: 2px 3px; font-size: 9px; }
 .rpt-table .rpt-right { text-align: end; white-space: nowrap; }
@@ -92,7 +97,7 @@
 /* Arabic sheets: Plex Arabic first, a little more line height for its
    taller letters, and no all-caps tracking (Arabic has no case). */
 .rpt-sheet[dir="rtl"] { font-family: 'IBM Plex Sans Arabic', Roboto, Tahoma, sans-serif; line-height: 1.6; }
-.rpt-sheet[dir="rtl"] .rpt-table th { text-transform: none; letter-spacing: 0; font-size: 10px; }
+.rpt-sheet[dir="rtl"] .rpt-table th { font-size: 10px; }
 .rpt-sheet[dir="rtl"] .rpt-title { letter-spacing: 0; }
 /* Figures (amounts, percentages, hours) are laid out left-to-right so a
    minus sign or unit stays where it belongs; they line up on the left, the
@@ -101,8 +106,41 @@
 .rpt-sheet[dir="rtl"] .rpt-table .rpt-right { direction: ltr; text-align: left; }
 .rpt-sheet[dir="rtl"] .rpt-table td:not(.rpt-right) { unicode-bidi: plaintext; text-align: right; }
 .rpt-sheet[dir="rtl"] .rpt-kpi__value { unicode-bidi: plaintext; text-align: right; }
-.rpt-sheet[dir="rtl"] .rpt-kpi__label { font-size: 12px; }
+.rpt-sheet[dir="rtl"] .rpt-kpi__label { font-size: 11.5px; }
 
 /* Parts of one report: each block after the first starts a new page. */
 .rpt-block + .rpt-block { break-before: page; }
 .rpt-block-title { margin: 0 0 10px; font-size: 16px; font-weight: 700; }
+
+/* On-screen tools inside the sheet (never printed: the print copy drops
+   them). */
+.rpt-quote { position: relative; }
+.rpt-hide-btn {
+  margin-inline-start: 8px;
+  padding: 0 6px;
+  border: 1px solid #d9d8d4;
+  border-radius: 4px;
+  background: #fff;
+  color: #52514e;
+  font: inherit;
+  font-size: 9.5px;
+  cursor: pointer;
+}
+.rpt-hide-btn:hover { border-color: #1f1f1e; color: #1f1f1e; }
+.rpt-hidden-list { margin-top: 12px; padding: 8px 10px; border: 1px dashed #d9d8d4; border-radius: 4px; }
+.rpt-hidden-list .rpt-quote { opacity: 0.6; }
+
+/* Attendance month as a shaded calendar. */
+.rpt-calendar .rpt-cal-cell { min-width: 18px; padding: 3px 1px; text-align: center; font-size: 8.5px; border: 1px solid #fff; }
+.rpt-calendar tbody tr:nth-child(even) td.rpt-cal-cell:empty { background: #fbfbfa; }
+.rpt-cal-legend { margin-top: 6px; }
+.rpt-cal-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; }
+.rpt-calendar .rpt-cal-head { text-align: center; padding: 3px 1px; }
+.rpt-person-title { margin: 0 0 2px; font-size: 16px; font-weight: 700; }
+/* Hide buttons beside section headings and over the figures strip. */
+.rpt-hide-btn--part { vertical-align: 2px; opacity: 0; transition: opacity 0.15s; }
+.rpt-section:hover > .rpt-h2 .rpt-hide-btn--part,
+.rpt-card:hover > .rpt-h3 .rpt-hide-btn--part,
+.rpt-kpis:hover > .rpt-hide-btn--part { opacity: 1; }
+.rpt-kpis { position: relative; }
+.rpt-kpis__hide { position: absolute; top: 4px; inset-inline-end: 0; }
