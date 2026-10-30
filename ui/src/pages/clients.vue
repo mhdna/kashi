@@ -222,6 +222,14 @@
         @click="openExport"
       />
       <v-btn
+        prepend-icon="mdi-file-chart-outline"
+        rounded="lg"
+        style="border-color: rgb(var(--v-theme-surface-light));"
+        text="Monthly report"
+        to="/reports?report=customers"
+        variant="outlined"
+      />
+      <v-btn
         v-if="canEdit"
         color="primary"
         prepend-icon="mdi-plus"
