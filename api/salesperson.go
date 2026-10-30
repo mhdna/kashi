@@ -101,17 +101,25 @@ func (server *Server) createSalesperson(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, salesperson)
 }
 
+// The id and the name are bound apart: binding the URI validates the whole
+// struct, and a required name isn't in the URI, so one struct for both
+// refused every rename.
+type updateSalespersonURI struct {
+	ID int64 `uri:"id" binding:"required,min=1"`
+}
+
 type updateSalespersonRequest struct {
-	ID   int64  `uri:"id" binding:"required,min=1"`
+	ID   int64  `json:"-"`
 	Name string `json:"name" binding:"required"`
 }
 
 func (server *Server) updateSalesperson(ctx *gin.Context) {
-	var req updateSalespersonRequest
-	if err := ctx.ShouldBindUri(&req); err != nil {
+	var uri updateSalespersonURI
+	if err := ctx.ShouldBindUri(&uri); err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
 	}
+	req := updateSalespersonRequest{ID: uri.ID}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return

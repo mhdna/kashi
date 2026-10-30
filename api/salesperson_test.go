@@ -53,3 +53,23 @@ func TestSetSalespersonColor_NotFound(t *testing.T) {
 	rec := adminRequest(t, server, http.MethodPut, "/salespersons/5/color", map[string]string{"color": "#1E88E5"})
 	require.Equal(t, http.StatusNotFound, rec.Code)
 }
+
+// A rename reaches the store: the id comes from the URL, the name from the
+// body (binding both into one struct used to refuse every rename).
+func TestUpdateSalesperson_Renames(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	store := mockdb.NewMockStore(ctrl)
+	branch := sql.NullInt64{Int64: 1, Valid: true}
+	store.EXPECT().GetSalesperson(gomock.Any(), int64(6)).Return(db.Salesperson{ID: 6, Name: "Ahmad Robai", BranchID: branch}, nil)
+	store.EXPECT().
+		UpdateBranchSalespersonName(gomock.Any(), gomock.Eq(db.UpdateBranchSalespersonNameParams{ID: 6, Name: "Ahmad Robaie", BranchID: branch})).
+		Return(db.Salesperson{ID: 6, Name: "Ahmad Robaie", BranchID: branch}, nil)
+
+	server := newTestServer(t, store)
+	rec := adminRequest(t, server, http.MethodPut, "/salespersons/6", map[string]string{"name": "Ahmad Robaie"})
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+
+	rec = adminRequest(t, server, http.MethodPut, "/salespersons/6", map[string]string{"name": ""})
+	require.Equal(t, http.StatusBadRequest, rec.Code)
+}
