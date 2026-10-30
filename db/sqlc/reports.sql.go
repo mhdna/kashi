@@ -29,14 +29,22 @@ WHERE bi.occurred_at >= $1::date - 1 AND bi.occurred_at < $2::date + 2
   AND NOT b.hidden_from_reports
   AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
   AND bi.cancelled_at IS NULL
+  AND NOT EXISTS (
+      -- customers left out of reports (report settings)
+      SELECT 1 FROM clients xc
+      WHERE xc.id = ANY($4::bigint[])
+        AND (xc.uid = bi.client_uid OR EXISTS (
+          SELECT 1 FROM client_links xl
+          WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 GROUP BY bi.branch_id, b.name
 ORDER BY net_total DESC
 `
 
 type PeriodReportByBranchParams struct {
-	FromDay   time.Time `json:"from_day"`
-	ToDay     time.Time `json:"to_day"`
-	BranchIds []int64   `json:"branch_ids"`
+	FromDay          time.Time `json:"from_day"`
+	ToDay            time.Time `json:"to_day"`
+	BranchIds        []int64   `json:"branch_ids"`
+	ExcludeClientIds []int64   `json:"exclude_client_ids"`
 }
 
 type PeriodReportByBranchRow struct {
@@ -50,7 +58,12 @@ type PeriodReportByBranchRow struct {
 }
 
 func (q *Queries) PeriodReportByBranch(ctx context.Context, arg PeriodReportByBranchParams) ([]PeriodReportByBranchRow, error) {
-	rows, err := q.db.QueryContext(ctx, periodReportByBranch, arg.FromDay, arg.ToDay, pq.Array(arg.BranchIds))
+	rows, err := q.db.QueryContext(ctx, periodReportByBranch,
+		arg.FromDay,
+		arg.ToDay,
+		pq.Array(arg.BranchIds),
+		pq.Array(arg.ExcludeClientIds),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -95,10 +108,18 @@ WITH inv AS (
     AND NOT b.hidden_from_reports
     AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
     AND bi.cancelled_at IS NULL
+    AND NOT EXISTS (
+        -- customers left out of reports (report settings)
+        SELECT 1 FROM clients xc
+        WHERE xc.id = ANY($4::bigint[])
+          AND (xc.uid = bi.client_uid OR EXISTS (
+            SELECT 1 FROM client_links xl
+            WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 ), items AS (
   SELECT i.branch_invoice_id, sum(i.quantity) AS quantity
   FROM branch_invoice_items i
   WHERE i.branch_invoice_id IN (SELECT id FROM inv WHERE client_id IS NOT NULL)
+    AND NOT EXISTS (SELECT 1 FROM product_variants xv WHERE xv.uid = i.product_uid AND xv.product_id = ANY($5::bigint[]))
   GROUP BY 1
 )
 SELECT
@@ -126,9 +147,11 @@ LIMIT 5000
 `
 
 type PeriodReportClientsParams struct {
-	FromDay   time.Time `json:"from_day"`
-	ToDay     time.Time `json:"to_day"`
-	BranchIds []int64   `json:"branch_ids"`
+	FromDay           time.Time `json:"from_day"`
+	ToDay             time.Time `json:"to_day"`
+	BranchIds         []int64   `json:"branch_ids"`
+	ExcludeClientIds  []int64   `json:"exclude_client_ids"`
+	ExcludeProductIds []int64   `json:"exclude_product_ids"`
 }
 
 type PeriodReportClientsRow struct {
@@ -150,7 +173,13 @@ type PeriodReportClientsRow struct {
 // spent net of returns, and when they first bought anywhere -- which says
 // whether the period brought them in. Capped as a guard.
 func (q *Queries) PeriodReportClients(ctx context.Context, arg PeriodReportClientsParams) ([]PeriodReportClientsRow, error) {
-	rows, err := q.db.QueryContext(ctx, periodReportClients, arg.FromDay, arg.ToDay, pq.Array(arg.BranchIds))
+	rows, err := q.db.QueryContext(ctx, periodReportClients,
+		arg.FromDay,
+		arg.ToDay,
+		pq.Array(arg.BranchIds),
+		pq.Array(arg.ExcludeClientIds),
+		pq.Array(arg.ExcludeProductIds),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -200,6 +229,13 @@ WITH days AS (
     AND NOT b.hidden_from_reports
     AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
     AND bi.cancelled_at IS NULL
+    AND NOT EXISTS (
+        -- customers left out of reports (report settings)
+        SELECT 1 FROM clients xc
+        WHERE xc.id = ANY($4::bigint[])
+          AND (xc.uid = bi.client_uid OR EXISTS (
+            SELECT 1 FROM client_links xl
+            WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
   GROUP BY 1
 ), visits AS (
   SELECT (e.occurred_at AT TIME ZONE b.timezone)::date AS day, count(*)::bigint AS visitors
@@ -224,9 +260,10 @@ ORDER BY 1
 `
 
 type PeriodReportDailyParams struct {
-	FromDay   time.Time `json:"from_day"`
-	ToDay     time.Time `json:"to_day"`
-	BranchIds []int64   `json:"branch_ids"`
+	FromDay          time.Time `json:"from_day"`
+	ToDay            time.Time `json:"to_day"`
+	BranchIds        []int64   `json:"branch_ids"`
+	ExcludeClientIds []int64   `json:"exclude_client_ids"`
 }
 
 type PeriodReportDailyRow struct {
@@ -239,7 +276,12 @@ type PeriodReportDailyRow struct {
 
 // Per branch-local day: sales, returns and customers in (people counter).
 func (q *Queries) PeriodReportDaily(ctx context.Context, arg PeriodReportDailyParams) ([]PeriodReportDailyRow, error) {
-	rows, err := q.db.QueryContext(ctx, periodReportDaily, arg.FromDay, arg.ToDay, pq.Array(arg.BranchIds))
+	rows, err := q.db.QueryContext(ctx, periodReportDaily,
+		arg.FromDay,
+		arg.ToDay,
+		pq.Array(arg.BranchIds),
+		pq.Array(arg.ExcludeClientIds),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -286,14 +328,22 @@ WHERE bi.kind = 'sales'
   AND NOT b.hidden_from_reports
   AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
   AND bi.cancelled_at IS NULL
+  AND NOT EXISTS (
+      -- customers left out of reports (report settings)
+      SELECT 1 FROM clients xc
+      WHERE xc.id = ANY($4::bigint[])
+        AND (xc.uid = bi.client_uid OR EXISTS (
+          SELECT 1 FROM client_links xl
+          WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 GROUP BY 1
 ORDER BY amount DESC
 `
 
 type PeriodReportDiscountsParams struct {
-	FromDay   time.Time `json:"from_day"`
-	ToDay     time.Time `json:"to_day"`
-	BranchIds []int64   `json:"branch_ids"`
+	FromDay          time.Time `json:"from_day"`
+	ToDay            time.Time `json:"to_day"`
+	BranchIds        []int64   `json:"branch_ids"`
+	ExcludeClientIds []int64   `json:"exclude_client_ids"`
 }
 
 type PeriodReportDiscountsRow struct {
@@ -305,7 +355,12 @@ type PeriodReportDiscountsRow struct {
 // Named discounts (the invoice-level discount's name, a deal, or a plain
 // percentage) on sales: how often and how much they took off.
 func (q *Queries) PeriodReportDiscounts(ctx context.Context, arg PeriodReportDiscountsParams) ([]PeriodReportDiscountsRow, error) {
-	rows, err := q.db.QueryContext(ctx, periodReportDiscounts, arg.FromDay, arg.ToDay, pq.Array(arg.BranchIds))
+	rows, err := q.db.QueryContext(ctx, periodReportDiscounts,
+		arg.FromDay,
+		arg.ToDay,
+		pq.Array(arg.BranchIds),
+		pq.Array(arg.ExcludeClientIds),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -341,14 +396,22 @@ WHERE bi.occurred_at >= $1::date - 1 AND bi.occurred_at < $2::date + 2
   AND NOT b.hidden_from_reports
   AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
   AND bi.cancelled_at IS NULL
+  AND NOT EXISTS (
+      -- customers left out of reports (report settings)
+      SELECT 1 FROM clients xc
+      WHERE xc.id = ANY($4::bigint[])
+        AND (xc.uid = bi.client_uid OR EXISTS (
+          SELECT 1 FROM client_links xl
+          WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 GROUP BY p.account_name
 ORDER BY amount DESC
 `
 
 type PeriodReportPaymentMethodsParams struct {
-	FromDay   time.Time `json:"from_day"`
-	ToDay     time.Time `json:"to_day"`
-	BranchIds []int64   `json:"branch_ids"`
+	FromDay          time.Time `json:"from_day"`
+	ToDay            time.Time `json:"to_day"`
+	BranchIds        []int64   `json:"branch_ids"`
+	ExcludeClientIds []int64   `json:"exclude_client_ids"`
 }
 
 type PeriodReportPaymentMethodsRow struct {
@@ -359,7 +422,12 @@ type PeriodReportPaymentMethodsRow struct {
 
 // What sales and refunds went through, by the till's payment account name.
 func (q *Queries) PeriodReportPaymentMethods(ctx context.Context, arg PeriodReportPaymentMethodsParams) ([]PeriodReportPaymentMethodsRow, error) {
-	rows, err := q.db.QueryContext(ctx, periodReportPaymentMethods, arg.FromDay, arg.ToDay, pq.Array(arg.BranchIds))
+	rows, err := q.db.QueryContext(ctx, periodReportPaymentMethods,
+		arg.FromDay,
+		arg.ToDay,
+		pq.Array(arg.BranchIds),
+		pq.Array(arg.ExcludeClientIds),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -405,15 +473,25 @@ WHERE bi.occurred_at >= $1::date - 1 AND bi.occurred_at < $2::date + 2
   AND NOT b.hidden_from_reports
   AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
   AND bi.cancelled_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM product_variants xv WHERE xv.uid = i.product_uid AND xv.product_id = ANY($4::bigint[]))
+  AND NOT EXISTS (
+      -- customers left out of reports (report settings)
+      SELECT 1 FROM clients xc
+      WHERE xc.id = ANY($5::bigint[])
+        AND (xc.uid = bi.client_uid OR EXISTS (
+          SELECT 1 FROM client_links xl
+          WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 GROUP BY 1, 2, 3, 4
 ORDER BY revenue DESC
 LIMIT 5000
 `
 
 type PeriodReportProductsParams struct {
-	FromDay   time.Time `json:"from_day"`
-	ToDay     time.Time `json:"to_day"`
-	BranchIds []int64   `json:"branch_ids"`
+	FromDay           time.Time `json:"from_day"`
+	ToDay             time.Time `json:"to_day"`
+	BranchIds         []int64   `json:"branch_ids"`
+	ExcludeProductIds []int64   `json:"exclude_product_ids"`
+	ExcludeClientIds  []int64   `json:"exclude_client_ids"`
 }
 
 type PeriodReportProductsRow struct {
@@ -432,7 +510,13 @@ type PeriodReportProductsRow struct {
 // Every product sold in the period, net of returns. Lines whose barcode
 // never resolved to a kashi product come back as one row with product_id 0.
 func (q *Queries) PeriodReportProducts(ctx context.Context, arg PeriodReportProductsParams) ([]PeriodReportProductsRow, error) {
-	rows, err := q.db.QueryContext(ctx, periodReportProducts, arg.FromDay, arg.ToDay, pq.Array(arg.BranchIds))
+	rows, err := q.db.QueryContext(ctx, periodReportProducts,
+		arg.FromDay,
+		arg.ToDay,
+		pq.Array(arg.BranchIds),
+		pq.Array(arg.ExcludeProductIds),
+		pq.Array(arg.ExcludeClientIds),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -486,14 +570,24 @@ WHERE bi.occurred_at >= $1::date - 1 AND bi.occurred_at < $2::date + 2
   AND NOT b.hidden_from_reports
   AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
   AND bi.cancelled_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM product_variants xv WHERE xv.uid = i.product_uid AND xv.product_id = ANY($4::bigint[]))
+  AND NOT EXISTS (
+      -- customers left out of reports (report settings)
+      SELECT 1 FROM clients xc
+      WHERE xc.id = ANY($5::bigint[])
+        AND (xc.uid = bi.client_uid OR EXISTS (
+          SELECT 1 FROM client_links xl
+          WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 GROUP BY 1, 2, 3, 4
 ORDER BY revenue DESC
 `
 
 type PeriodReportSalespersonCategoriesParams struct {
-	FromDay   time.Time `json:"from_day"`
-	ToDay     time.Time `json:"to_day"`
-	BranchIds []int64   `json:"branch_ids"`
+	FromDay           time.Time `json:"from_day"`
+	ToDay             time.Time `json:"to_day"`
+	BranchIds         []int64   `json:"branch_ids"`
+	ExcludeProductIds []int64   `json:"exclude_product_ids"`
+	ExcludeClientIds  []int64   `json:"exclude_client_ids"`
 }
 
 type PeriodReportSalespersonCategoriesRow struct {
@@ -507,7 +601,13 @@ type PeriodReportSalespersonCategoriesRow struct {
 
 // What each salesperson sold, by product category (net of returns).
 func (q *Queries) PeriodReportSalespersonCategories(ctx context.Context, arg PeriodReportSalespersonCategoriesParams) ([]PeriodReportSalespersonCategoriesRow, error) {
-	rows, err := q.db.QueryContext(ctx, periodReportSalespersonCategories, arg.FromDay, arg.ToDay, pq.Array(arg.BranchIds))
+	rows, err := q.db.QueryContext(ctx, periodReportSalespersonCategories,
+		arg.FromDay,
+		arg.ToDay,
+		pq.Array(arg.BranchIds),
+		pq.Array(arg.ExcludeProductIds),
+		pq.Array(arg.ExcludeClientIds),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -553,14 +653,22 @@ WHERE bi.occurred_at >= $1::date - 1 AND bi.occurred_at < $2::date + 2
   AND NOT b.hidden_from_reports
   AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
   AND bi.cancelled_at IS NULL
+  AND NOT EXISTS (
+      -- customers left out of reports (report settings)
+      SELECT 1 FROM clients xc
+      WHERE xc.id = ANY($4::bigint[])
+        AND (xc.uid = bi.client_uid OR EXISTS (
+          SELECT 1 FROM client_links xl
+          WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 GROUP BY 1, 2, 3, 4
 ORDER BY 4
 `
 
 type PeriodReportSalespersonDailyParams struct {
-	FromDay   time.Time `json:"from_day"`
-	ToDay     time.Time `json:"to_day"`
-	BranchIds []int64   `json:"branch_ids"`
+	FromDay          time.Time `json:"from_day"`
+	ToDay            time.Time `json:"to_day"`
+	BranchIds        []int64   `json:"branch_ids"`
+	ExcludeClientIds []int64   `json:"exclude_client_ids"`
 }
 
 type PeriodReportSalespersonDailyRow struct {
@@ -574,7 +682,12 @@ type PeriodReportSalespersonDailyRow struct {
 
 // Net sales per salesperson per branch-local day, for the trend chart.
 func (q *Queries) PeriodReportSalespersonDaily(ctx context.Context, arg PeriodReportSalespersonDailyParams) ([]PeriodReportSalespersonDailyRow, error) {
-	rows, err := q.db.QueryContext(ctx, periodReportSalespersonDaily, arg.FromDay, arg.ToDay, pq.Array(arg.BranchIds))
+	rows, err := q.db.QueryContext(ctx, periodReportSalespersonDaily,
+		arg.FromDay,
+		arg.ToDay,
+		pq.Array(arg.BranchIds),
+		pq.Array(arg.ExcludeClientIds),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -622,10 +735,18 @@ WITH inv AS (
     AND NOT b.hidden_from_reports
     AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
     AND bi.cancelled_at IS NULL
+    AND NOT EXISTS (
+        -- customers left out of reports (report settings)
+        SELECT 1 FROM clients xc
+        WHERE xc.id = ANY($4::bigint[])
+          AND (xc.uid = bi.client_uid OR EXISTS (
+            SELECT 1 FROM client_links xl
+            WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 ), items AS (
   SELECT i.branch_invoice_id, sum(i.quantity) AS quantity
   FROM branch_invoice_items i
   WHERE i.branch_invoice_id IN (SELECT id FROM inv)
+    AND NOT EXISTS (SELECT 1 FROM product_variants xv WHERE xv.uid = i.product_uid AND xv.product_id = ANY($5::bigint[]))
   GROUP BY 1
 )
 SELECT
@@ -652,9 +773,11 @@ ORDER BY net_total DESC
 `
 
 type PeriodReportSalespersonsParams struct {
-	FromDay   time.Time `json:"from_day"`
-	ToDay     time.Time `json:"to_day"`
-	BranchIds []int64   `json:"branch_ids"`
+	FromDay           time.Time `json:"from_day"`
+	ToDay             time.Time `json:"to_day"`
+	BranchIds         []int64   `json:"branch_ids"`
+	ExcludeClientIds  []int64   `json:"exclude_client_ids"`
+	ExcludeProductIds []int64   `json:"exclude_product_ids"`
 }
 
 type PeriodReportSalespersonsRow struct {
@@ -679,7 +802,13 @@ type PeriodReportSalespersonsRow struct {
 // salesperson's current name (a renamed salesperson stays one person); an
 // unlinked one is grouped by the name the till typed, with id 0.
 func (q *Queries) PeriodReportSalespersons(ctx context.Context, arg PeriodReportSalespersonsParams) ([]PeriodReportSalespersonsRow, error) {
-	rows, err := q.db.QueryContext(ctx, periodReportSalespersons, arg.FromDay, arg.ToDay, pq.Array(arg.BranchIds))
+	rows, err := q.db.QueryContext(ctx, periodReportSalespersons,
+		arg.FromDay,
+		arg.ToDay,
+		pq.Array(arg.BranchIds),
+		pq.Array(arg.ExcludeClientIds),
+		pq.Array(arg.ExcludeProductIds),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -726,12 +855,19 @@ WITH inv AS (
   LEFT JOIN clients cu ON cu.uid = bi.client_uid
   LEFT JOIN client_links cl ON cl.register_id = bi.register_id AND cl.branch_client_id = bi.branch_client_id
   -- A day either side for the index; the exact local days are checked next.
-  WHERE bi.occurred_at >= $1::date - 1 AND bi.occurred_at < $2::date + 2
-    AND (bi.occurred_at AT TIME ZONE b.timezone)::date BETWEEN $1::date AND $2::date
-    AND (COALESCE(cardinality($3::bigint[]), 0) = 0 OR bi.branch_id = ANY($3::bigint[]))
+  WHERE bi.occurred_at >= $2::date - 1 AND bi.occurred_at < $3::date + 2
+    AND (bi.occurred_at AT TIME ZONE b.timezone)::date BETWEEN $2::date AND $3::date
+    AND (COALESCE(cardinality($4::bigint[]), 0) = 0 OR bi.branch_id = ANY($4::bigint[]))
     AND NOT b.hidden_from_reports
     AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
     AND bi.cancelled_at IS NULL
+    AND NOT EXISTS (
+        -- customers left out of reports (report settings)
+        SELECT 1 FROM clients xc
+        WHERE xc.id = ANY($5::bigint[])
+          AND (xc.uid = bi.client_uid OR EXISTS (
+            SELECT 1 FROM client_links xl
+            WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 )
 SELECT
   count(*) FILTER (WHERE kind = 'sales')::bigint AS sales_count,
@@ -746,18 +882,20 @@ SELECT
   count(DISTINCT client_id)::bigint AS clients_served,
   count(DISTINCT (occurred_at AT TIME ZONE 'Asia/Beirut')::date) FILTER (WHERE kind = 'sales')::bigint AS selling_days,
   COALESCE((
-    SELECT sum(i.quantity) FROM branch_invoice_items i JOIN inv ON inv.id = i.branch_invoice_id WHERE inv.kind = 'sales'
+    SELECT sum(i.quantity) FROM branch_invoice_items i JOIN inv ON inv.id = i.branch_invoice_id WHERE inv.kind = 'sales' AND NOT EXISTS (SELECT 1 FROM product_variants xv WHERE xv.uid = i.product_uid AND xv.product_id = ANY($1::bigint[]))
   ), 0)::bigint AS items_sold,
   COALESCE((
-    SELECT -sum(i.quantity) FROM branch_invoice_items i JOIN inv ON inv.id = i.branch_invoice_id WHERE i.quantity < 0
+    SELECT -sum(i.quantity) FROM branch_invoice_items i JOIN inv ON inv.id = i.branch_invoice_id WHERE i.quantity < 0 AND NOT EXISTS (SELECT 1 FROM product_variants xv WHERE xv.uid = i.product_uid AND xv.product_id = ANY($1::bigint[]))
   ), 0)::bigint AS items_returned
 FROM inv
 `
 
 type PeriodReportSummaryParams struct {
-	FromDay   time.Time `json:"from_day"`
-	ToDay     time.Time `json:"to_day"`
-	BranchIds []int64   `json:"branch_ids"`
+	ExcludeProductIds []int64   `json:"exclude_product_ids"`
+	FromDay           time.Time `json:"from_day"`
+	ToDay             time.Time `json:"to_day"`
+	BranchIds         []int64   `json:"branch_ids"`
+	ExcludeClientIds  []int64   `json:"exclude_client_ids"`
 }
 
 type PeriodReportSummaryRow struct {
@@ -785,7 +923,13 @@ type PeriodReportSummaryRow struct {
 // exchanges carry their own sign (negative for money given back), so a plain
 // SUM nets them.
 func (q *Queries) PeriodReportSummary(ctx context.Context, arg PeriodReportSummaryParams) (PeriodReportSummaryRow, error) {
-	row := q.db.QueryRowContext(ctx, periodReportSummary, arg.FromDay, arg.ToDay, pq.Array(arg.BranchIds))
+	row := q.db.QueryRowContext(ctx, periodReportSummary,
+		pq.Array(arg.ExcludeProductIds),
+		arg.FromDay,
+		arg.ToDay,
+		pq.Array(arg.BranchIds),
+		pq.Array(arg.ExcludeClientIds),
+	)
 	var i PeriodReportSummaryRow
 	err := row.Scan(
 		&i.SalesCount,
@@ -824,6 +968,14 @@ FROM (
     AND NOT b.hidden_from_reports
     AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
     AND bi.cancelled_at IS NULL
+    AND NOT EXISTS (SELECT 1 FROM product_variants xv WHERE xv.uid = i.product_uid AND xv.product_id = ANY($4::bigint[]))
+    AND NOT EXISTS (
+        -- customers left out of reports (report settings)
+        SELECT 1 FROM clients xc
+        WHERE xc.id = ANY($5::bigint[])
+          AND (xc.uid = bi.client_uid OR EXISTS (
+            SELECT 1 FROM client_links xl
+            WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
   UNION ALL
   SELECT 'color', COALESCE(c.name, ''), i.quantity, i.line_total
   FROM branch_invoice_items i
@@ -837,15 +989,25 @@ FROM (
     AND NOT b.hidden_from_reports
     AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
     AND bi.cancelled_at IS NULL
+    AND NOT EXISTS (SELECT 1 FROM product_variants xv WHERE xv.uid = i.product_uid AND xv.product_id = ANY($4::bigint[]))
+    AND NOT EXISTS (
+        -- customers left out of reports (report settings)
+        SELECT 1 FROM clients xc
+        WHERE xc.id = ANY($5::bigint[])
+          AND (xc.uid = bi.client_uid OR EXISTS (
+            SELECT 1 FROM client_links xl
+            WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 ) x
 GROUP BY 1, 2
 ORDER BY revenue DESC
 `
 
 type PeriodReportVariantAttributesParams struct {
-	FromDay   time.Time `json:"from_day"`
-	ToDay     time.Time `json:"to_day"`
-	BranchIds []int64   `json:"branch_ids"`
+	FromDay           time.Time `json:"from_day"`
+	ToDay             time.Time `json:"to_day"`
+	BranchIds         []int64   `json:"branch_ids"`
+	ExcludeProductIds []int64   `json:"exclude_product_ids"`
+	ExcludeClientIds  []int64   `json:"exclude_client_ids"`
 }
 
 type PeriodReportVariantAttributesRow struct {
@@ -858,7 +1020,13 @@ type PeriodReportVariantAttributesRow struct {
 // Units and revenue by size and by colour (kind 'size' / 'color'), net of
 // returns, for resolved lines only.
 func (q *Queries) PeriodReportVariantAttributes(ctx context.Context, arg PeriodReportVariantAttributesParams) ([]PeriodReportVariantAttributesRow, error) {
-	rows, err := q.db.QueryContext(ctx, periodReportVariantAttributes, arg.FromDay, arg.ToDay, pq.Array(arg.BranchIds))
+	rows, err := q.db.QueryContext(ctx, periodReportVariantAttributes,
+		arg.FromDay,
+		arg.ToDay,
+		pq.Array(arg.BranchIds),
+		pq.Array(arg.ExcludeProductIds),
+		pq.Array(arg.ExcludeClientIds),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -901,14 +1069,22 @@ WHERE bi.kind = 'sales'
   AND NOT b.hidden_from_reports
   AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
   AND bi.cancelled_at IS NULL
+  AND NOT EXISTS (
+      -- customers left out of reports (report settings)
+      SELECT 1 FROM clients xc
+      WHERE xc.id = ANY($4::bigint[])
+        AND (xc.uid = bi.client_uid OR EXISTS (
+          SELECT 1 FROM client_links xl
+          WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 GROUP BY 1, 2
 ORDER BY 1, 2
 `
 
 type PeriodReportWeekdayHourParams struct {
-	FromDay   time.Time `json:"from_day"`
-	ToDay     time.Time `json:"to_day"`
-	BranchIds []int64   `json:"branch_ids"`
+	FromDay          time.Time `json:"from_day"`
+	ToDay            time.Time `json:"to_day"`
+	BranchIds        []int64   `json:"branch_ids"`
+	ExcludeClientIds []int64   `json:"exclude_client_ids"`
 }
 
 type PeriodReportWeekdayHourRow struct {
@@ -923,7 +1099,12 @@ type PeriodReportWeekdayHourRow struct {
 // own time zone; named_count is the ones with a known customer, for the
 // customers report's "when do they come".
 func (q *Queries) PeriodReportWeekdayHour(ctx context.Context, arg PeriodReportWeekdayHourParams) ([]PeriodReportWeekdayHourRow, error) {
-	rows, err := q.db.QueryContext(ctx, periodReportWeekdayHour, arg.FromDay, arg.ToDay, pq.Array(arg.BranchIds))
+	rows, err := q.db.QueryContext(ctx, periodReportWeekdayHour,
+		arg.FromDay,
+		arg.ToDay,
+		pq.Array(arg.BranchIds),
+		pq.Array(arg.ExcludeClientIds),
+	)
 	if err != nil {
 		return nil, err
 	}

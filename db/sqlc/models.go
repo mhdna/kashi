@@ -549,6 +549,7 @@ type AppSetting struct {
 	AppReleaseKeep             int32           `json:"app_release_keep"`
 	WhatsappPollCombined       bool            `json:"whatsapp_poll_combined"`
 	WhatsappCombinedMessage    string          `json:"whatsapp_combined_message"`
+	ReportSettings             json.RawMessage `json:"report_settings"`
 }
 
 type AppUpdateEvent struct {

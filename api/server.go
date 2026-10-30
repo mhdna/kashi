@@ -519,6 +519,8 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/branch_visitor_stats", server.listBranchVisitorStats)
 	authRoutes.GET("/busy_hours", server.getBusyHours)
 	authRoutes.GET("/reports", server.getReports)
+	authRoutes.GET("/reports/settings", server.getReportSettings)
+	authRoutes.PUT("/reports/settings", server.updateReportSettings)
 	authRoutes.GET("/branch_invoice_settlements", server.listBranchInvoiceSettlements)
 	authRoutes.GET("/branch_attendance_changes", server.listBranchAttendanceChanges)
 	authRoutes.GET("/branch_attendance_changes/pending", server.listPendingBranchAttendanceRequests)
