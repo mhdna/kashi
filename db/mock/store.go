@@ -14226,6 +14226,21 @@ func (mr *MockStoreMockRecorder) WhatsAppNumberForBranch(arg0, arg1 interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WhatsAppNumberForBranch", reflect.TypeOf((*MockStore)(nil).WhatsAppNumberForBranch), arg0, arg1)
 }
 
+// WhatsAppNumberSendCounts mocks base method.
+func (m *MockStore) WhatsAppNumberSendCounts(arg0 context.Context) ([]db.WhatsAppNumberSendCountsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WhatsAppNumberSendCounts", arg0)
+	ret0, _ := ret[0].([]db.WhatsAppNumberSendCountsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// WhatsAppNumberSendCounts indicates an expected call of WhatsAppNumberSendCounts.
+func (mr *MockStoreMockRecorder) WhatsAppNumberSendCounts(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WhatsAppNumberSendCounts", reflect.TypeOf((*MockStore)(nil).WhatsAppNumberSendCounts), arg0)
+}
+
 // WhatsAppSentForInvoice mocks base method.
 func (m *MockStore) WhatsAppSentForInvoice(arg0 context.Context, arg1 db.WhatsAppSentForInvoiceParams) (bool, error) {
 	m.ctrl.T.Helper()

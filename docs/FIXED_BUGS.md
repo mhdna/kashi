@@ -3,6 +3,26 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-10-30 · WhatsApp Health counted test sends and showed "usual 0"
+
+**Symptom.** On WhatsApp > Health, "Sent today" included test messages
+sent from Settings, and a number in daily use could show "15 (usual 0)".
+
+**Cause.** The card showed the bridge's own counts. The bridge counts every
+message a number sends, tests too, and works out the usual over days when
+the number wasn't linked yet.
+
+**Fix.** kashi now counts sends, failures and one-ticks per number from its
+own `whatsapp_messages` log, leaving out test sends
+(`WhatsAppNumberSendCounts` in `db/query/whatsapp_bridge.sql`,
+`withOwnCounts` in `api/whatsapp_health.go`). The usual is averaged only over
+the days of the past week when the number was already sending, and a number
+with less than a day of history reads "new number". Disconnects, refusals
+and the risk score still come from the bridge. The card now says "Sent, last
+24 h", since that's the window, and one tick means 3 days, as on the Messages
+tab (`WhatsAppHealth.vue`). Covered by `TestGetWhatsAppHealth` and
+`TestWhatsAppHealthNewNumberHasNoUsual` in `api/whatsapp_health_test.go`.
+
 ## 2026-10-30 · Small talk showed up as poll feedback
 
 **Symptom.** The Reviews page and the customer feedback report listed

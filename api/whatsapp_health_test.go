@@ -38,6 +38,11 @@ func TestGetWhatsAppHealth(t *testing.T) {
 		{ID: 2, Name: "Hamra", WhatsappNumberID: sql.NullInt64{Int64: 2, Valid: true}, WhatsappEnabled: true}, // its own
 		{ID: 3, Name: "Closed", WhatsappEnabled: false},                                                       // switched off
 	}, nil)
+	// The bridge said 12 sent and 10.5 a day, test sends included; our log
+	// says 9 real sends today and 21 over the 3.5 days before.
+	store.EXPECT().WhatsAppNumberSendCounts(gomock.Any()).Return([]db.WhatsAppNumberSendCountsRow{
+		{NumberID: 1, Sent24h: 9, Failed24h: 1, SentPriorWeek: 21, PriorDays: 3.5, OneTick: 2},
+	}, nil)
 
 	rec := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(rec)
@@ -62,6 +67,12 @@ func TestGetWhatsAppHealth(t *testing.T) {
 	require.NotNil(t, centro.Health.PausedAt)
 	require.Equal(t, "3 messages refused on delivery", centro.Health.PausedReason)
 	require.Equal(t, "rejected (error 463)", centro.Health.LastProblem)
+	require.Equal(t, 9, centro.Health.Sent24h)
+	require.NotNil(t, centro.Health.SentDailyAvg)
+	require.InDelta(t, 6.0, *centro.Health.SentDailyAvg, 0.001)
+	require.Equal(t, 1, centro.Health.Failed24h)
+	require.Equal(t, 2, centro.Health.OneTick)
+	require.Equal(t, 1, centro.Health.Disconnects24h) // still the bridge's
 
 	hamra := body.Numbers[1]
 	require.Equal(t, []string{"Hamra"}, hamra.Branches)
@@ -91,4 +102,12 @@ func TestResumeWhatsAppNumberDropsQueue(t *testing.T) {
 	require.Equal(t, "/instance/resume/kashi-centro", *path)
 	require.Equal(t, true, (*got)["dropQueued"])
 	require.JSONEq(t, `{"ok":true,"dropped":2}`, rec.Body.String())
+}
+
+// A number linked today has no usual yet, rather than "usual 0".
+func TestWhatsAppHealthNewNumberHasNoUsual(t *testing.T) {
+	h := &whatsAppNumberHealth{}
+	h.withOwnCounts(db.WhatsAppNumberSendCountsRow{Sent24h: 15, PriorDays: 0.4})
+	require.Equal(t, 15, h.Sent24h)
+	require.Nil(t, h.SentDailyAvg)
 }
