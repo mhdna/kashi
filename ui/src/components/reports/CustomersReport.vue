@@ -16,14 +16,12 @@
   </RptSection>
 
   <RptSection v-if="has('who')" :break-before="has('best')" :title="t('Who they are')">
-    <RptGrid>
-      <RptCard :note="t('Customers by how many times they bought in the period.')" :title="t('By number of visits')">
-        <RptTable :columns="visitColumns" compact :rows="visitRows" />
-      </RptCard>
-      <RptCard :note="t('Customers by what they spent in the period, net of returns.')" :title="t('By amount spent')">
-        <RptTable :columns="spendColumns" compact :rows="spendRows" />
-      </RptCard>
-    </RptGrid>
+    <RptCard :note="t('Customers by how many times they bought in the period.')" :title="t('By number of visits')">
+      <RptTable :columns="visitColumns" compact :rows="visitRows" />
+    </RptCard>
+    <RptCard :note="t('Customers by what they spent in the period, net of returns.')" :title="t('By amount spent')">
+      <RptTable :columns="spendColumns" compact :rows="spendRows" />
+    </RptCard>
     <RptCard v-if="homeRows.length > 1" :title="t('Customers by home branch')">
       <RptTable :columns="homeColumns" compact :rows="homeRows" />
     </RptCard>
@@ -34,14 +32,19 @@
     :note="t('Sales with a named customer, by weekday and hour on the till.')"
     :title="t('When customers come')"
   >
-    <RptChart :height="230" :option="heatChart" />
+    <RptGrid template="3fr 2fr">
+      <RptChart :height="250" :option="heatChart" />
+      <RptCard :title="t('Busiest times')">
+        <RptTable :columns="slotColumns" compact :rows="topSlots" />
+      </RptCard>
+    </RptGrid>
   </RptSection>
 </template>
 
 <script setup>
   import { computed } from 'vue'
   import { t } from './reportI18n'
-  import { csvSection, heatmapOption, int, money, num1, pct, ratio } from './reportKit'
+  import { csvSection, heatmapOption, hourLabel, int, money, num1, pct, ratio, weekdays } from './reportKit'
   import RptCard from './RptCard.vue'
   import RptChart from './RptChart.vue'
   import RptGrid from './RptGrid.vue'
@@ -160,6 +163,12 @@
 
   const named = computed(() => data.value.weekday_hour.map(c => ({ weekday: c.weekday, hour: c.hour, value: c.named_count })))
   const heatChart = computed(() => heatmapOption({ cells: named.value }))
+  const names = weekdays()
+  const topSlots = computed(() => named.value.filter(c => c.value > 0).toSorted((a, b) => b.value - a.value).slice(0, 8).map(c => ({ when: `${names[c.weekday - 1]} ${hourLabel(c.hour)}`, sales: c.value })))
+  const slotColumns = [
+    { key: 'when', title: t('When') },
+    { key: 'sales', title: t('Customer sales'), type: 'int' },
+  ]
 
   defineExpose({
     csv: () => (has('best') || has('frequent') || has('who')
