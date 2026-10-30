@@ -25,7 +25,7 @@
         <v-btn
           prepend-icon="mdi-file-chart-outline"
           text="Hours report"
-          to="/reports?report=attendance"
+          to="/reports?report=staff&parts=hours,grid,detail"
           variant="tonal"
         />
         <v-btn

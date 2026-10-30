@@ -1,5 +1,8 @@
 <template>
-  <div class="rpt-chart" :style="{ height: `${height}px` }">
+  <!-- ltr even on an Arabic sheet: the canvas would otherwise move the
+       punctuation of Latin labels ("Omar H." -> ".Omar H"); Arabic text
+       still reads right-to-left, and the axes do the mirroring. -->
+  <div class="rpt-chart" dir="ltr" :style="{ height: `${height}px` }">
     <VChart
       autoresize
       :init-options="{ devicePixelRatio: 2 }"
