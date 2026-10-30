@@ -5,6 +5,8 @@
 
 // Categorical hues in a fixed order (validated for colour-blind separation
 // on a light surface). A ninth series folds into "Other", never a new hue.
+import { isRtl, t } from './reportI18n'
+
 export const SERIES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6', '#e34948']
 // One-hue sequential ramp for heatmaps: light to dark.
 export const SEQUENTIAL = ['#eef4fc', '#b9d3f3', '#7eaee7', '#3f86d8', '#1d5fae', '#123f78']
@@ -12,16 +14,22 @@ const INK = '#1f1f1e'
 const INK_2 = '#52514e'
 const GRID = '#e6e5e1'
 
-export const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] // ISO 1..7
+// Dates in the sheet's language; digits stay Western in Arabic too.
+const dateLocale = () => (isRtl() ? 'ar-LB-u-nu-latn' : 'en-GB')
 
-export const hourLabel = h => `${((h + 11) % 12) + 1} ${h < 12 ? 'AM' : 'PM'}`
+// Short weekday names, ISO order (Monday first). 2024-01-01 was a Monday.
+export function weekdays () {
+  return Array.from({ length: 7 }, (_, i) => new Date(2024, 0, 1 + i).toLocaleDateString(dateLocale(), { weekday: 'short' }))
+}
+
+export const hourLabel = h => `${((h + 11) % 12) + 1} ${h < 12 ? t('AM') : t('PM')}`
 
 // ---- formats ----------------------------------------------------------------
 
-const intFmt = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 })
-const num1Fmt = new Intl.NumberFormat(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+const intFmt = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
+const num1Fmt = new Intl.NumberFormat('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
-const moneyFmt = new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const moneyFmt = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 // "$1,234.50", "$30", "−$5.25": cents only when there are any.
 export function money (cents) {
   const value = Math.round(Number(cents || 0))
@@ -34,21 +42,21 @@ export function money (cents) {
 export const CHART_ROWS = 20
 export const int = n => intFmt.format(Number(n || 0))
 export const num1 = n => num1Fmt.format(Number(n || 0))
-export const pct = ratio => (Number.isFinite(ratio) ? `${num1Fmt.format(ratio * 100)}%` : '—')
+export const pct = ratio => (Number.isFinite(ratio) ? `${num1Fmt.format((ratio || 0) * 100)}%` : '—')
 // Minutes as "7h 05m".
 export function hours (minutes) {
   const whole = Math.round(Number(minutes || 0))
-  return `${Math.floor(whole / 60)}h ${String(whole % 60).padStart(2, '0')}m`
+  return t('{h}h {m}m', { h: Math.floor(whole / 60), m: String(whole % 60).padStart(2, '0') })
 }
 export const day = value => String(value ?? '').slice(0, 10)
 const DAY_LABEL = { weekday: 'short', day: 'numeric', month: 'short' }
 export function dayLabel (ymd, opts) {
   if (!ymd) {return ''}
-  return new Date(`${day(ymd)}T00:00:00`).toLocaleDateString(undefined, opts ?? DAY_LABEL)
+  return new Date(`${day(ymd)}T00:00:00`).toLocaleDateString(dateLocale(), opts ?? DAY_LABEL)
 }
 export function dateTime (iso) {
   if (!iso) {return ''}
-  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short', year: 'numeric' })
 }
 export const ratio = (a, b) => (b ? a / b : 0)
 
@@ -90,12 +98,17 @@ export function csvCell (column, row) {
 
 // ---- charts -----------------------------------------------------------------
 // No animation: the PDF export snapshots each chart's canvas straight away.
+// In Arabic every chart is mirrored: categories and time run from the
+// right, the value axis and legends sit on the reading side.
 
-const base = {
+const FONT = () => (isRtl() ? '"IBM Plex Sans Arabic", Roboto, Tahoma, sans-serif' : 'Roboto, "IBM Plex Sans Arabic", system-ui, sans-serif')
+function base () {
+  return {
   animation: false,
   color: SERIES,
-  textStyle: { color: INK, fontFamily: 'Roboto, system-ui, sans-serif' },
+  textStyle: { color: INK, fontFamily: FONT() },
   tooltip: { trigger: 'axis', confine: true },
+}
 }
 const axisStyle = {
   axisLine: { lineStyle: { color: GRID } },
@@ -103,16 +116,22 @@ const axisStyle = {
   axisLabel: { color: INK_2, fontSize: 10 },
   splitLine: { lineStyle: { color: GRID } },
 }
+const axisNum1 = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 })
+const legendStyle = { textStyle: { color: INK_2, fontSize: 10 }, icon: 'roundRect', itemWidth: 10, itemHeight: 10 }
+// left/right padding swapped for the mirrored layout
+const sides = (start, end) => (isRtl() ? { left: end, right: start } : { left: start, right: end })
 
-function valueAxis (kind) {
+function valueAxis (kind, extra = {}) {
   const formatter = kind === 'money'
-    ? v => `$${intFmt.format(v)}`
-    : (kind === 'hours' ? v => `${intFmt.format(v)}h` : v => intFmt.format(v))
-  return { type: 'value', minInterval: kind === 'int' ? 1 : undefined, ...axisStyle, axisLabel: { ...axisStyle.axisLabel, formatter } }
+    ? v => `${v < 0 ? '−' : ''}$${intFmt.format(Math.abs(v))}`
+    : (kind === 'hours'
+      ? v => t('{n}h', { n: intFmt.format(v) })
+      : (kind === 'num1' ? v => axisNum1.format(v) : v => intFmt.format(v)))
+  return { type: 'value', minInterval: kind === 'int' ? 1 : undefined, ...axisStyle, axisLabel: { ...axisStyle.axisLabel, formatter }, ...extra }
 }
 function tooltipValue (kind) {
   if (kind === 'money') {return v => money(Math.round(v * 100))}
-  if (kind === 'hours') {return v => `${num1(v)} h`}
+  if (kind === 'hours') {return v => t('{n} h', { n: num1(v) })}
   if (kind === 'num1') {return v => num1(v)}
   return v => int(v)
 }
@@ -120,41 +139,47 @@ function tooltipValue (kind) {
 // Bars along categories. series: [{ name, data }]; values are already in
 // display units (dollars, hours, counts). horizontal suits long names.
 export function barOption ({ categories, series, kind = 'int', horizontal = false, stack = false, labels = false }) {
+  const rtl = isRtl()
   const catAxis = {
     type: 'category',
     data: categories,
     ...axisStyle,
-    axisLabel: { ...axisStyle.axisLabel, interval: 0, width: horizontal ? 110 : 70, overflow: 'truncate', rotate: !horizontal && categories.length > 12 ? 45 : 0 },
-    inverse: horizontal,
+    // Every label while they fit; past a month of days, echarts picks.
+    axisLabel: { ...axisStyle.axisLabel, interval: horizontal || categories.length <= 40 ? 0 : 'auto', width: horizontal ? 110 : 70, overflow: 'truncate', rotate: !horizontal && categories.length > 12 && categories.length <= 40 ? (rtl ? -45 : 45) : 0 },
+    // Top-down for horizontal bars; right-to-left for vertical ones in Arabic.
+    inverse: horizontal || rtl,
+    position: horizontal && rtl ? 'right' : undefined,
   }
+  const end = horizontal ? (rtl ? [4, 0, 0, 4] : [0, 4, 4, 0]) : [4, 4, 0, 0]
   return {
-    ...base,
-    tooltip: { ...base.tooltip, axisPointer: { type: 'shadow' }, valueFormatter: tooltipValue(kind) },
-    legend: series.length > 1 ? { top: 0, textStyle: { color: INK_2, fontSize: 10 }, icon: 'roundRect', itemWidth: 10, itemHeight: 10 } : undefined,
-    grid: { left: horizontal ? 120 : 50, right: labels ? 60 : 16, top: series.length > 1 ? 28 : 12, bottom: !horizontal && categories.length > 12 ? 50 : 24, containLabel: false },
-    xAxis: horizontal ? valueAxis(kind) : catAxis,
-    yAxis: horizontal ? catAxis : valueAxis(kind),
+    ...base(),
+    tooltip: { ...base().tooltip, axisPointer: { type: 'shadow' }, valueFormatter: tooltipValue(kind) },
+    legend: series.length > 1 ? { top: 0, ...legendStyle } : undefined,
+    grid: { ...sides(horizontal ? 120 : 50, labels ? 60 : 16), top: series.length > 1 ? 28 : 12, bottom: !horizontal && categories.length > 12 && categories.length <= 40 ? 50 : 24 },
+    xAxis: horizontal ? valueAxis(kind, { inverse: rtl }) : catAxis,
+    yAxis: horizontal ? catAxis : valueAxis(kind, { position: rtl ? 'right' : 'left' }),
     series: series.map((s, i) => ({
       type: 'bar',
       name: s.name,
       data: s.data,
       stack: stack ? 'all' : undefined,
       barMaxWidth: 26,
-      itemStyle: { color: s.color ?? SERIES[i % SERIES.length], borderRadius: stack ? 0 : (horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]), borderColor: '#fff', borderWidth: stack ? 1 : 0 },
-      label: labels ? { show: true, position: horizontal ? 'right' : 'top', color: INK_2, fontSize: 10, formatter: p => tooltipValue(kind)(p.value) } : undefined,
+      itemStyle: { color: s.color ?? SERIES[i % SERIES.length], borderRadius: stack ? 0 : end, borderColor: '#fff', borderWidth: stack ? 1 : 0 },
+      label: labels ? { show: true, position: horizontal ? (rtl ? 'left' : 'right') : 'top', color: INK_2, fontSize: 10, formatter: p => tooltipValue(kind)(p.value) } : undefined,
     })),
   }
 }
 
 // Lines over days (categories are labels). One axis only.
 export function lineOption ({ categories, series, kind = 'int', area = false }) {
+  const rtl = isRtl()
   return {
-    ...base,
-    tooltip: { ...base.tooltip, valueFormatter: tooltipValue(kind) },
-    legend: series.length > 1 ? { top: 0, textStyle: { color: INK_2, fontSize: 10 }, type: 'scroll' } : undefined,
-    grid: { left: 50, right: 16, top: series.length > 1 ? 28 : 12, bottom: 24 },
-    xAxis: { type: 'category', data: categories, ...axisStyle, boundaryGap: false },
-    yAxis: valueAxis(kind),
+    ...base(),
+    tooltip: { ...base().tooltip, valueFormatter: tooltipValue(kind) },
+    legend: series.length > 1 ? { top: 0, type: 'scroll', ...legendStyle } : undefined,
+    grid: { ...sides(50, 16), top: series.length > 1 ? 28 : 12, bottom: 24 },
+    xAxis: { type: 'category', data: categories, ...axisStyle, boundaryGap: false, inverse: rtl },
+    yAxis: valueAxis(kind, { position: rtl ? 'right' : 'left' }),
     series: series.map((s, i) => ({
       type: 'line',
       name: s.name,
@@ -171,22 +196,32 @@ export function lineOption ({ categories, series, kind = 'int', area = false }) 
 // Share of a whole. items: [{ name, value }] in display units; anything past
 // the seventh slice folds into "Other" so no hue repeats.
 export function donutOption ({ items, kind = 'money' }) {
+  const rtl = isRtl()
   const sorted = items.filter(i => i.value > 0).toSorted((a, b) => b.value - a.value)
   const shown = sorted.slice(0, 7)
   const rest = sorted.slice(7).reduce((sum, i) => sum + i.value, 0)
-  if (rest > 0) {shown.push({ name: 'Other', value: rest, itemStyle: { color: '#a8a7a2' } })}
+  if (rest > 0) {shown.push({ name: t('Other'), value: rest, itemStyle: { color: '#a8a7a2' } })}
   const total = shown.reduce((sum, i) => sum + i.value, 0) || 1
   return {
-    ...base,
+    ...base(),
     tooltip: { trigger: 'item', confine: true, valueFormatter: tooltipValue(kind) },
-    legend: { orient: 'vertical', right: 0, top: 'middle', textStyle: { color: INK_2, fontSize: 10 }, formatter: name => {
-      const item = shown.find(i => i.name === name)
-      return `${name}  ${pct((item?.value ?? 0) / total)}`
-    } },
+    legend: {
+      orient: 'vertical',
+      ...(rtl ? { left: 0 } : { right: 0 }),
+      top: 'middle',
+      ...legendStyle,
+      formatter: name => {
+        const item = shown.find(i => i.name === name)
+        const share = pct((item?.value ?? 0) / total)
+        // The chart canvas is left-to-right, so in Arabic the share goes
+        // first and the name reads from the right.
+        return rtl ? `${share}  ${name}` : `${name}  ${share}`
+      },
+    },
     series: [{
       type: 'pie',
       radius: ['45%', '72%'],
-      center: ['32%', '50%'],
+      center: [rtl ? '68%' : '32%', '50%'],
       data: shown,
       label: { show: false },
       itemStyle: { borderColor: '#fff', borderWidth: 2 },
@@ -196,6 +231,8 @@ export function donutOption ({ items, kind = 'money' }) {
 
 // Weekday x hour grid on the sequential ramp. cells: [{ weekday 1..7, hour, value }].
 export function heatmapOption ({ cells, kind = 'int', hoursShown }) {
+  const rtl = isRtl()
+  const days = weekdays()
   const hrs = hoursShown ?? (() => {
     const used = cells.filter(c => c.value > 0).map(c => c.hour)
     if (used.length === 0) {return [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]}
@@ -206,12 +243,12 @@ export function heatmapOption ({ cells, kind = 'int', hoursShown }) {
   const data = cells.filter(c => hrs.includes(c.hour)).map(c => [hrs.indexOf(c.hour), c.weekday - 1, c.value])
   const max = Math.max(1, ...data.map(d => d[2]))
   return {
-    ...base,
-    tooltip: { trigger: 'item', confine: true, formatter: p => `${WEEKDAYS[p.value[1]]} ${hourLabel(hrs[p.value[0]])}: ${tooltipValue(kind)(p.value[2])}` },
-    grid: { left: 40, right: 12, top: 8, bottom: 52 },
-    xAxis: { type: 'category', data: hrs.map(h => hourLabel(h)), ...axisStyle, splitArea: { show: false } },
-    yAxis: { type: 'category', data: WEEKDAYS, ...axisStyle, inverse: true },
-    visualMap: { min: 0, max, calculable: false, orient: 'horizontal', left: 'center', bottom: 0, itemHeight: 120, itemWidth: 10, inRange: { color: SEQUENTIAL }, textStyle: { color: INK_2, fontSize: 10 }, formatter: v => tooltipValue(kind)(v) },
+    ...base(),
+    tooltip: { trigger: 'item', confine: true, formatter: p => `${days[p.value[1]]} ${hourLabel(hrs[p.value[0]])}: ${tooltipValue(kind)(p.value[2])}` },
+    grid: { ...sides(48, 12), top: 8, bottom: 52 },
+    xAxis: { type: 'category', data: hrs.map(h => hourLabel(h)), ...axisStyle, splitArea: { show: false }, inverse: rtl },
+    yAxis: { type: 'category', data: days, ...axisStyle, inverse: true, position: rtl ? 'right' : 'left' },
+    visualMap: { min: 0, max, calculable: false, orient: 'horizontal', left: 'center', bottom: 0, itemHeight: 120, itemWidth: 10, inverse: rtl, inRange: { color: SEQUENTIAL }, textStyle: { color: INK_2, fontSize: 10 }, formatter: v => tooltipValue(kind)(v) },
     series: [{ type: 'heatmap', data, itemStyle: { borderColor: '#fff', borderWidth: 2, borderRadius: 3 } }],
   }
 }

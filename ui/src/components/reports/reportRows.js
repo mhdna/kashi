@@ -3,11 +3,12 @@
 // their attendance punches.
 
 import { buildTimesheet } from '@/utils/attendanceSessions'
+import { t } from './reportI18n'
 
 export function categoryRows (products) {
   const byName = new Map()
   for (const p of products) {
-    const name = p.product_id > 0 ? (p.category || 'No category') : 'Unresolved items'
+    const name = p.product_id > 0 ? (p.category || t('No category')) : t('Unresolved items')
     const row = byName.get(name) ?? { category: name, quantity: 0, revenue: 0, products: 0, cost: 0, costed_revenue: 0 }
     row.quantity += p.quantity
     row.revenue += p.revenue
@@ -34,7 +35,7 @@ export function buildPeople ({ salespersons = [], staff = [], timesheet = [] }) 
   const byName = new Map() // `${branch}|${name}` -> key
 
   function add (key, name, branchId) {
-    if (!people.has(key)) {people.set(key, { key, name: name || 'No salesperson', branchId })}
+    if (!people.has(key)) {people.set(key, { key, name: name || t('No salesperson'), branchId })}
     if (name && !byName.has(`${branchId}|${norm(name)}`)) {byName.set(`${branchId}|${norm(name)}`, key)}
     return key
   }
@@ -88,7 +89,7 @@ export function salespersonRows (rows, ctx, { filter = false } = {}) {
       key,
       // Sales nobody was picked for are kept apart per branch, so say which.
       named: Boolean(r.salesperson_name),
-      name: r.salesperson_name || `No salesperson (${ctx.branchNames[r.branch_id] ?? r.branch_name})`,
+      name: r.salesperson_name || t('No salesperson ({branch})', { branch: ctx.branchNames[r.branch_id] ?? r.branch_name }),
       branch: ctx.branchNames[r.branch_id] ?? r.branch_name,
       sales_count: 0, sales_total: 0, returns_count: 0, returns_total: 0, net_total: 0,
       discount_total: 0, discounted_count: 0, items_sold: 0, biggest_sale: 0, clients_served: 0, selling_days: 0,

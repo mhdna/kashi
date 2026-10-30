@@ -23,12 +23,13 @@
     </tfoot>
   </table>
   <p v-if="rows.length > shownRows.length" class="rpt-note">
-    Showing the first {{ shownRows.length }} of {{ rows.length }} rows; the CSV export has them all.
+    {{ t('Showing the first {n} of {total} rows; the CSV export has them all.', { n: shownRows.length, total: rows.length }) }}
   </p>
 </template>
 
 <script setup>
   import { computed } from 'vue'
+  import { t } from './reportI18n'
   import { displayCell } from './reportKit'
 
   // A printed table. columns: [{ key, title, type?, value? }] (see
@@ -40,7 +41,7 @@
     limit: { type: Number, default: 0 },
     numbered: { type: Boolean, default: false },
     compact: { type: Boolean, default: false },
-    empty: { type: String, default: 'Nothing in this period.' },
+    empty: { type: String, default: () => t('Nothing in this period.') },
   })
 
   const shownRows = computed(() => (props.limit > 0 ? props.rows.slice(0, props.limit) : props.rows))
