@@ -759,6 +759,7 @@ type Querier interface {
 	GetPurchase(ctx context.Context, id int64) (GetPurchaseRow, error)
 	GetRecurringExpense(ctx context.Context, id int64) (RecurringExpense, error)
 	GetRegisterTargetRelease(ctx context.Context, id int64) (GetRegisterTargetReleaseRow, error)
+	GetReportSettings(ctx context.Context) (json.RawMessage, error)
 	GetReturnInvoice(ctx context.Context, invoiceID int64) (ReturnInvoice, error)
 	// Review links in the post-sale WhatsApp message and the Google data behind
 	// the Reviews page (api/review_link.go, api/google_places.go).
@@ -1825,6 +1826,7 @@ type Querier interface {
 	SetRecurringExpenseActive(ctx context.Context, arg SetRecurringExpenseActiveParams) (RecurringExpense, error)
 	SetRegisterUpdateStatus(ctx context.Context, arg SetRegisterUpdateStatusParams) error
 	SetRegistersTargetRelease(ctx context.Context, arg SetRegistersTargetReleaseParams) error
+	SetReportSettings(ctx context.Context, reportSettings json.RawMessage) error
 	SetReviewSettings(ctx context.Context, arg SetReviewSettingsParams) error
 	SetSalespersonActive(ctx context.Context, arg SetSalespersonActiveParams) (Salesperson, error)
 	// Set from kashi: from now on the till takes this value (see 000127).

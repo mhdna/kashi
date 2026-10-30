@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -61,6 +62,11 @@ func (server *Server) getReports(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
 	}
+	ex, err := server.reportExclusions(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
 
 	// Every query has the same three arguments; sqlc gives each its own
 	// params type, so they are spelled out per call. The first error stops
@@ -86,51 +92,51 @@ func (server *Server) getReports(ctx *gin.Context) {
 		discounts    []db.PeriodReportDiscountsRow
 	)
 	run(func() (err error) {
-		summary, err = server.store.PeriodReportSummary(ctx, db.PeriodReportSummaryParams{FromDay: from, ToDay: to, BranchIds: branchIDs})
+		summary, err = server.store.PeriodReportSummary(ctx, db.PeriodReportSummaryParams{FromDay: from, ToDay: to, BranchIds: branchIDs, ExcludeClientIds: ex.clients, ExcludeProductIds: ex.products})
 		return
 	})
 	run(func() (err error) {
-		daily, err = server.store.PeriodReportDaily(ctx, db.PeriodReportDailyParams{FromDay: from, ToDay: to, BranchIds: branchIDs})
+		daily, err = server.store.PeriodReportDaily(ctx, db.PeriodReportDailyParams{FromDay: from, ToDay: to, BranchIds: branchIDs, ExcludeClientIds: ex.clients})
 		return
 	})
 	run(func() (err error) {
-		byBranch, err = server.store.PeriodReportByBranch(ctx, db.PeriodReportByBranchParams{FromDay: from, ToDay: to, BranchIds: branchIDs})
+		byBranch, err = server.store.PeriodReportByBranch(ctx, db.PeriodReportByBranchParams{FromDay: from, ToDay: to, BranchIds: branchIDs, ExcludeClientIds: ex.clients})
 		return
 	})
 	run(func() (err error) {
-		weekdayHour, err = server.store.PeriodReportWeekdayHour(ctx, db.PeriodReportWeekdayHourParams{FromDay: from, ToDay: to, BranchIds: branchIDs})
+		weekdayHour, err = server.store.PeriodReportWeekdayHour(ctx, db.PeriodReportWeekdayHourParams{FromDay: from, ToDay: to, BranchIds: branchIDs, ExcludeClientIds: ex.clients})
 		return
 	})
 	run(func() (err error) {
-		salespersons, err = server.store.PeriodReportSalespersons(ctx, db.PeriodReportSalespersonsParams{FromDay: from, ToDay: to, BranchIds: branchIDs})
+		salespersons, err = server.store.PeriodReportSalespersons(ctx, db.PeriodReportSalespersonsParams{FromDay: from, ToDay: to, BranchIds: branchIDs, ExcludeClientIds: ex.clients, ExcludeProductIds: ex.products})
 		return
 	})
 	run(func() (err error) {
-		spDaily, err = server.store.PeriodReportSalespersonDaily(ctx, db.PeriodReportSalespersonDailyParams{FromDay: from, ToDay: to, BranchIds: branchIDs})
+		spDaily, err = server.store.PeriodReportSalespersonDaily(ctx, db.PeriodReportSalespersonDailyParams{FromDay: from, ToDay: to, BranchIds: branchIDs, ExcludeClientIds: ex.clients})
 		return
 	})
 	run(func() (err error) {
-		spCategories, err = server.store.PeriodReportSalespersonCategories(ctx, db.PeriodReportSalespersonCategoriesParams{FromDay: from, ToDay: to, BranchIds: branchIDs})
+		spCategories, err = server.store.PeriodReportSalespersonCategories(ctx, db.PeriodReportSalespersonCategoriesParams{FromDay: from, ToDay: to, BranchIds: branchIDs, ExcludeClientIds: ex.clients, ExcludeProductIds: ex.products})
 		return
 	})
 	run(func() (err error) {
-		products, err = server.store.PeriodReportProducts(ctx, db.PeriodReportProductsParams{FromDay: from, ToDay: to, BranchIds: branchIDs})
+		products, err = server.store.PeriodReportProducts(ctx, db.PeriodReportProductsParams{FromDay: from, ToDay: to, BranchIds: branchIDs, ExcludeClientIds: ex.clients, ExcludeProductIds: ex.products})
 		return
 	})
 	run(func() (err error) {
-		attributes, err = server.store.PeriodReportVariantAttributes(ctx, db.PeriodReportVariantAttributesParams{FromDay: from, ToDay: to, BranchIds: branchIDs})
+		attributes, err = server.store.PeriodReportVariantAttributes(ctx, db.PeriodReportVariantAttributesParams{FromDay: from, ToDay: to, BranchIds: branchIDs, ExcludeClientIds: ex.clients, ExcludeProductIds: ex.products})
 		return
 	})
 	run(func() (err error) {
-		clients, err = server.store.PeriodReportClients(ctx, db.PeriodReportClientsParams{FromDay: from, ToDay: to, BranchIds: branchIDs})
+		clients, err = server.store.PeriodReportClients(ctx, db.PeriodReportClientsParams{FromDay: from, ToDay: to, BranchIds: branchIDs, ExcludeClientIds: ex.clients, ExcludeProductIds: ex.products})
 		return
 	})
 	run(func() (err error) {
-		payments, err = server.store.PeriodReportPaymentMethods(ctx, db.PeriodReportPaymentMethodsParams{FromDay: from, ToDay: to, BranchIds: branchIDs})
+		payments, err = server.store.PeriodReportPaymentMethods(ctx, db.PeriodReportPaymentMethodsParams{FromDay: from, ToDay: to, BranchIds: branchIDs, ExcludeClientIds: ex.clients})
 		return
 	})
 	run(func() (err error) {
-		discounts, err = server.store.PeriodReportDiscounts(ctx, db.PeriodReportDiscountsParams{FromDay: from, ToDay: to, BranchIds: branchIDs})
+		discounts, err = server.store.PeriodReportDiscounts(ctx, db.PeriodReportDiscountsParams{FromDay: from, ToDay: to, BranchIds: branchIDs, ExcludeClientIds: ex.clients})
 		return
 	})
 	if firstErr != nil {
@@ -160,4 +166,84 @@ func orEmpty[T any](rows []T) []T {
 		return []T{}
 	}
 	return rows
+}
+
+// ---- saved settings -------------------------------------------------------
+//
+// The page's defaults and the products and customers left out of every
+// report live in app_settings.report_settings as the page writes them. Only
+// the exclusions mean anything here; the rest is the page's business.
+
+type reportSettingsExclusions struct {
+	Exclusions struct {
+		Products []struct {
+			ID int64 `json:"id"`
+		} `json:"products"`
+		Clients []struct {
+			ID int64 `json:"id"`
+		} `json:"clients"`
+	} `json:"exclusions"`
+}
+
+type reportExclusionIDs struct {
+	products []int64
+	clients  []int64
+}
+
+func (server *Server) reportExclusions(ctx *gin.Context) (reportExclusionIDs, error) {
+	ids := reportExclusionIDs{products: []int64{}, clients: []int64{}}
+	raw, err := server.store.GetReportSettings(ctx)
+	if err != nil {
+		return ids, err
+	}
+	var settings reportSettingsExclusions
+	if len(raw) > 0 {
+		// Something the page didn't write is no reason to fail a report.
+		_ = json.Unmarshal(raw, &settings)
+	}
+	for _, p := range settings.Exclusions.Products {
+		ids.products = append(ids.products, p.ID)
+	}
+	for _, c := range settings.Exclusions.Clients {
+		ids.clients = append(ids.clients, c.ID)
+	}
+	return ids, nil
+}
+
+func (server *Server) getReportSettings(ctx *gin.Context) {
+	raw, err := server.store.GetReportSettings(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(raw) == 0 {
+		raw = json.RawMessage(`{}`)
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"settings": raw})
+}
+
+type reportSettingsRequest struct {
+	Settings json.RawMessage `json:"settings" binding:"required"`
+}
+
+func (server *Server) updateReportSettings(ctx *gin.Context) {
+	var req reportSettingsRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	var object map[string]json.RawMessage
+	if err := json.Unmarshal(req.Settings, &object); err != nil || object == nil {
+		server.writeError(ctx, http.StatusBadRequest, errors.New("settings must be a JSON object"))
+		return
+	}
+	if len(req.Settings) > 256<<10 {
+		server.writeError(ctx, http.StatusBadRequest, errors.New("settings are too large"))
+		return
+	}
+	if err := server.store.SetReportSettings(ctx, req.Settings); err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"settings": req.Settings})
 }
