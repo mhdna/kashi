@@ -164,6 +164,24 @@ func TestDealRuleFallback(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, after.UpdatedAt.After(before.UpdatedAt))
 
+	// Saving the rules again keeps a rule's price limit: the saved rule is
+	// updated in place, and the update used to drop it.
+	limited := append([]DiscountListRuleInput(nil), rules...)
+	limited[1].Rule.MaxPrice = sql.NullInt64{Int64: 1, Valid: true}
+	require.NoError(t, testStore.ReplaceDiscountListRulesTx(ctx, list.ID, limited))
+	saved, err := testQueries.ListDiscountListRules(ctx, list.ID)
+	require.NoError(t, err)
+	require.Len(t, saved, 2)
+	for i := range limited {
+		limited[i].ID = saved[i].ID
+	}
+	require.NoError(t, testStore.ReplaceDiscountListRulesTx(ctx, list.ID, limited))
+	saved, err = testQueries.ListDiscountListRules(ctx, list.ID)
+	require.NoError(t, err)
+	require.Equal(t, limited[1].ID, saved[1].ID, "the rule is updated in place")
+	require.Equal(t, sql.NullInt64{Int64: 1, Valid: true}, saved[1].MaxPrice)
+	require.NoError(t, testStore.ReplaceDiscountListRulesTx(ctx, list.ID, rules))
+
 	// Set by hand: the row is the hand's, with the deal's own fallback.
 	_, err = testQueries.CreateDiscountListItem(ctx, CreateDiscountListItemParams{
 		DiscountListID: list.ID, ProductVariantID: outlet.ID, DealID: nullInt64(b2g1.ID),
