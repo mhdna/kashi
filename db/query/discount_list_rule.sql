@@ -27,13 +27,14 @@ DELETE FROM discount_list_rules WHERE discount_list_id = $1;
 INSERT INTO discount_list_rules (
   discount_list_id, position, name,
   code_prefixes, except_code_prefixes, kinds, categories, sub_categories, origins, brands,
-  discount, deal_id, group_id, is_enabled, max_price
+  discount, deal_id, group_id, is_enabled, max_price, deal_fallback_percent
 ) VALUES (
   sqlc.arg(discount_list_id), sqlc.arg(position), sqlc.arg(name),
   sqlc.arg(code_prefixes)::text[], sqlc.arg(except_code_prefixes)::text[], sqlc.arg(kinds)::text[],
   sqlc.arg(categories)::text[], sqlc.arg(sub_categories)::text[], sqlc.arg(origins)::text[],
   sqlc.arg(brands)::text[], sqlc.arg(discount), sqlc.narg(deal_id)::bigint,
-  sqlc.arg(group_id), sqlc.arg(is_enabled), sqlc.narg(max_price)::bigint
+  sqlc.arg(group_id), sqlc.arg(is_enabled), sqlc.narg(max_price)::bigint,
+  sqlc.narg(deal_fallback_percent)::smallint
 ) RETURNING *;
 
 -- name: CreateDiscountListRuleOption :exec
@@ -70,7 +71,8 @@ SET position = sqlc.arg(position), name = sqlc.arg(name),
     kinds = sqlc.arg(kinds)::text[], categories = sqlc.arg(categories)::text[],
     sub_categories = sqlc.arg(sub_categories)::text[], origins = sqlc.arg(origins)::text[],
     brands = sqlc.arg(brands)::text[], discount = sqlc.arg(discount), deal_id = sqlc.narg(deal_id)::bigint,
-    group_id = sqlc.arg(group_id), is_enabled = sqlc.arg(is_enabled), max_price = sqlc.narg(max_price)::bigint
+    group_id = sqlc.arg(group_id), is_enabled = sqlc.arg(is_enabled), max_price = sqlc.narg(max_price)::bigint,
+    deal_fallback_percent = sqlc.narg(deal_fallback_percent)::smallint
 WHERE id = sqlc.arg(id) AND discount_list_id = sqlc.arg(discount_list_id);
 
 -- name: DeleteDiscountListRulesExcept :exec
