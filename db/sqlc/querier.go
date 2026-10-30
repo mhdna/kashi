@@ -1581,6 +1581,45 @@ type Querier interface {
 	MarkLoanUploadTokenUsed(ctx context.Context, id int64) error
 	MarkUnknownItemSlotResolved(ctx context.Context, arg MarkUnknownItemSlotResolvedParams) error
 	MarkWhatsAppReviewClicked(ctx context.Context, id int64) error
+	PeriodReportByBranch(ctx context.Context, arg PeriodReportByBranchParams) ([]PeriodReportByBranchRow, error)
+	// Every known customer who bought in the period: visits (sales), what they
+	// spent net of returns, and when they first bought anywhere -- which says
+	// whether the period brought them in. Capped as a guard.
+	PeriodReportClients(ctx context.Context, arg PeriodReportClientsParams) ([]PeriodReportClientsRow, error)
+	// Per branch-local day: sales, returns and customers in (people counter).
+	PeriodReportDaily(ctx context.Context, arg PeriodReportDailyParams) ([]PeriodReportDailyRow, error)
+	// Named discounts (the invoice-level discount's name, a deal, or a plain
+	// percentage) on sales: how often and how much they took off.
+	PeriodReportDiscounts(ctx context.Context, arg PeriodReportDiscountsParams) ([]PeriodReportDiscountsRow, error)
+	// What sales and refunds went through, by the till's payment account name.
+	PeriodReportPaymentMethods(ctx context.Context, arg PeriodReportPaymentMethodsParams) ([]PeriodReportPaymentMethodsRow, error)
+	// Every product sold in the period, net of returns. Lines whose barcode
+	// never resolved to a kashi product come back as one row with product_id 0.
+	PeriodReportProducts(ctx context.Context, arg PeriodReportProductsParams) ([]PeriodReportProductsRow, error)
+	// What each salesperson sold, by product category (net of returns).
+	PeriodReportSalespersonCategories(ctx context.Context, arg PeriodReportSalespersonCategoriesParams) ([]PeriodReportSalespersonCategoriesRow, error)
+	// Net sales per salesperson per branch-local day, for the trend chart.
+	PeriodReportSalespersonDaily(ctx context.Context, arg PeriodReportSalespersonDailyParams) ([]PeriodReportSalespersonDailyRow, error)
+	// One row per salesperson per branch. A linked invoice shows its
+	// salesperson's current name (a renamed salesperson stays one person); an
+	// unlinked one is grouped by the name the till typed, with id 0.
+	PeriodReportSalespersons(ctx context.Context, arg PeriodReportSalespersonsParams) ([]PeriodReportSalespersonsRow, error)
+	// The Reports page (api/reports.go): end-of-period reports over the tills'
+	// invoices -- sales, salespersons, customers, products, busy times and
+	// payments. Every query takes the same scope as the Busy Hours page:
+	// [from_day, to_day] are calendar days in each branch's own time zone, an
+	// empty branch_ids means every branch, and cancelled sales and branches or
+	// registers hidden from reports are left out. Amounts are cents; returns and
+	// exchanges carry their own sign (negative for money given back), so a plain
+	// SUM nets them.
+	PeriodReportSummary(ctx context.Context, arg PeriodReportSummaryParams) (PeriodReportSummaryRow, error)
+	// Units and revenue by size and by colour (kind 'size' / 'color'), net of
+	// returns, for resolved lines only.
+	PeriodReportVariantAttributes(ctx context.Context, arg PeriodReportVariantAttributesParams) ([]PeriodReportVariantAttributesRow, error)
+	// Sales by weekday (ISO: 1 Monday .. 7 Sunday) and hour, in the branch's
+	// own time zone; named_count is the ones with a known customer, for the
+	// customers report's "when do they come".
+	PeriodReportWeekdayHour(ctx context.Context, arg PeriodReportWeekdayHourParams) ([]PeriodReportWeekdayHourRow, error)
 	// The WhatsApp rating poll over the range: polls sent, answers, and how many
 	// of each star.
 	PollRatingTotals(ctx context.Context, arg PollRatingTotalsParams) (PollRatingTotalsRow, error)
