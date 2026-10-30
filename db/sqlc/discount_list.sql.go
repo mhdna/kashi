@@ -56,7 +56,7 @@ WITH matched AS (
 INSERT INTO discount_list_items (discount_list_id, product_variant_id, discount, deal_id)
 SELECT $1, variant_id, $2, $3::bigint FROM matched
 ON CONFLICT (discount_list_id, product_variant_id)
-DO UPDATE SET discount = EXCLUDED.discount, deal_id = EXCLUDED.deal_id, rule_id = NULL
+DO UPDATE SET discount = EXCLUDED.discount, deal_id = EXCLUDED.deal_id, deal_fallback_percent = NULL, rule_id = NULL
 RETURNING product_variant_id
 `
 
@@ -202,8 +202,8 @@ const createDiscountListItem = `-- name: CreateDiscountListItem :one
 INSERT INTO discount_list_items (discount_list_id, product_variant_id, discount, deal_id)
 VALUES ($1, $2, $3, $4)
 ON CONFLICT (discount_list_id, product_variant_id)
-DO UPDATE SET discount = $3, deal_id = $4, rule_id = NULL
-RETURNING discount_list_id, discount, product_variant_id, rule_id, deal_id
+DO UPDATE SET discount = $3, deal_id = $4, deal_fallback_percent = NULL, rule_id = NULL
+RETURNING discount_list_id, discount, product_variant_id, rule_id, deal_id, deal_fallback_percent
 `
 
 type CreateDiscountListItemParams struct {
@@ -230,6 +230,7 @@ func (q *Queries) CreateDiscountListItem(ctx context.Context, arg CreateDiscount
 		&i.ProductVariantID,
 		&i.RuleID,
 		&i.DealID,
+		&i.DealFallbackPercent,
 	)
 	return i, err
 }
@@ -360,7 +361,7 @@ func (q *Queries) GetDiscountListByUID(ctx context.Context, uid uuid.UUID) (Disc
 }
 
 const getVariantDiscountFromList = `-- name: GetVariantDiscountFromList :one
-SELECT discount_list_id, discount, product_variant_id, rule_id, deal_id FROM discount_list_items
+SELECT discount_list_id, discount, product_variant_id, rule_id, deal_id, deal_fallback_percent FROM discount_list_items
 WHERE discount_list_id = $1 AND product_variant_id = $2
 `
 
@@ -378,12 +379,13 @@ func (q *Queries) GetVariantDiscountFromList(ctx context.Context, arg GetVariant
 		&i.ProductVariantID,
 		&i.RuleID,
 		&i.DealID,
+		&i.DealFallbackPercent,
 	)
 	return i, err
 }
 
 const listDiscountListItems = `-- name: ListDiscountListItems :many
-SELECT discount_list_id, discount, product_variant_id, rule_id, deal_id FROM discount_list_items
+SELECT discount_list_id, discount, product_variant_id, rule_id, deal_id, deal_fallback_percent FROM discount_list_items
 WHERE discount_list_id = $1
 ORDER BY product_variant_id
 `
@@ -403,6 +405,7 @@ func (q *Queries) ListDiscountListItems(ctx context.Context, discountListID int6
 			&i.ProductVariantID,
 			&i.RuleID,
 			&i.DealID,
+			&i.DealFallbackPercent,
 		); err != nil {
 			return nil, err
 		}
@@ -418,7 +421,7 @@ func (q *Queries) ListDiscountListItems(ctx context.Context, discountListID int6
 }
 
 const listDiscountListItemsForSync = `-- name: ListDiscountListItemsForSync :many
-SELECT pv.uid AS product_variant_uid, dli.discount, deals.uid AS deal_uid
+SELECT pv.uid AS product_variant_uid, dli.discount, deals.uid AS deal_uid, dli.deal_fallback_percent
 FROM discount_list_items dli
 JOIN product_variants pv ON pv.id = dli.product_variant_id
 LEFT JOIN deals ON deals.id = dli.deal_id
@@ -427,9 +430,10 @@ ORDER BY pv.uid
 `
 
 type ListDiscountListItemsForSyncRow struct {
-	ProductVariantUid uuid.UUID     `json:"product_variant_uid"`
-	Discount          int16         `json:"discount"`
-	DealUid           uuid.NullUUID `json:"deal_uid"`
+	ProductVariantUid   uuid.UUID     `json:"product_variant_uid"`
+	Discount            int16         `json:"discount"`
+	DealUid             uuid.NullUUID `json:"deal_uid"`
+	DealFallbackPercent sql.NullInt16 `json:"deal_fallback_percent"`
 }
 
 func (q *Queries) ListDiscountListItemsForSync(ctx context.Context, discountListID int64) ([]ListDiscountListItemsForSyncRow, error) {
@@ -441,7 +445,12 @@ func (q *Queries) ListDiscountListItemsForSync(ctx context.Context, discountList
 	items := []ListDiscountListItemsForSyncRow{}
 	for rows.Next() {
 		var i ListDiscountListItemsForSyncRow
-		if err := rows.Scan(&i.ProductVariantUid, &i.Discount, &i.DealUid); err != nil {
+		if err := rows.Scan(
+			&i.ProductVariantUid,
+			&i.Discount,
+			&i.DealUid,
+			&i.DealFallbackPercent,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -923,7 +932,7 @@ func (q *Queries) UpdateDiscountList(ctx context.Context, arg UpdateDiscountList
 
 const updateDiscountListItem = `-- name: UpdateDiscountListItem :exec
 UPDATE discount_list_items
-SET discount = $3, deal_id = NULL, rule_id = NULL
+SET discount = $3, deal_id = NULL, deal_fallback_percent = NULL, rule_id = NULL
 WHERE discount_list_id = $1 AND product_variant_id = $2
 `
 

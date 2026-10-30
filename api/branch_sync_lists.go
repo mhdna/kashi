@@ -48,6 +48,11 @@ type syncDiscountListItem struct {
 	// with a deal has discount 0, so a till that predates deals sells it at
 	// its list price -- the deal replaces the discount there too.
 	DealUID *uuid.UUID `json:"deal_uid,omitempty"`
+	// What the variant gets outside a set, in place of the deal's fallback
+	// (000216); absent for the deal's own. Its own field, not Discount, so a
+	// till that predates it gives the deal's fallback rather than stacking
+	// a discount on the deal.
+	DealFallbackPercent *int16 `json:"deal_fallback_percent,omitempty"`
 }
 
 // A deal's terms, sent with every list whose rows name it. See 000201 for
@@ -181,6 +186,9 @@ func (server *Server) discountListsForBranchSync(ctx *gin.Context, branchID int6
 				}
 				if r.DealUid.Valid {
 					item.DealUID = &r.DealUid.UUID
+				}
+				if r.DealUid.Valid && r.DealFallbackPercent.Valid {
+					item.DealFallbackPercent = &r.DealFallbackPercent.Int16
 				}
 				entry.Items = append(entry.Items, item)
 			}

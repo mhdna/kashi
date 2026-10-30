@@ -39,7 +39,7 @@ WHERE is_default = true AND id != $1;
 INSERT INTO discount_list_items (discount_list_id, product_variant_id, discount, deal_id)
 VALUES ($1, $2, $3, $4)
 ON CONFLICT (discount_list_id, product_variant_id)
-DO UPDATE SET discount = $3, deal_id = $4, rule_id = NULL
+DO UPDATE SET discount = $3, deal_id = $4, deal_fallback_percent = NULL, rule_id = NULL
 RETURNING *;
 
 -- name: GetVariantDiscountFromList :one
@@ -81,7 +81,7 @@ WHERE product_variant_id = $1;
 
 -- name: UpdateDiscountListItem :exec
 UPDATE discount_list_items
-SET discount = $3, deal_id = NULL, rule_id = NULL
+SET discount = $3, deal_id = NULL, deal_fallback_percent = NULL, rule_id = NULL
 WHERE discount_list_id = $1 AND product_variant_id = $2;
 
 -- name: DeleteDiscountListItem :exec
@@ -181,7 +181,7 @@ WHERE (dlb.branch_id IS NOT NULL OR dl.is_default = true)
 ORDER BY dl.updated_at;
 
 -- name: ListDiscountListItemsForSync :many
-SELECT pv.uid AS product_variant_uid, dli.discount, deals.uid AS deal_uid
+SELECT pv.uid AS product_variant_uid, dli.discount, deals.uid AS deal_uid, dli.deal_fallback_percent
 FROM discount_list_items dli
 JOIN product_variants pv ON pv.id = dli.product_variant_id
 LEFT JOIN deals ON deals.id = dli.deal_id
@@ -202,7 +202,7 @@ WITH matched AS (
 INSERT INTO discount_list_items (discount_list_id, product_variant_id, discount, deal_id)
 SELECT sqlc.arg(discount_list_id), variant_id, sqlc.arg(discount), sqlc.narg(deal_id)::bigint FROM matched
 ON CONFLICT (discount_list_id, product_variant_id)
-DO UPDATE SET discount = EXCLUDED.discount, deal_id = EXCLUDED.deal_id, rule_id = NULL
+DO UPDATE SET discount = EXCLUDED.discount, deal_id = EXCLUDED.deal_id, deal_fallback_percent = NULL, rule_id = NULL
 RETURNING product_variant_id;
 
 -- name: ListUnmatchedDiscountEntries :many

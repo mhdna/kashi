@@ -1220,11 +1220,12 @@ type DiscountListBranchRemoval struct {
 }
 
 type DiscountListItem struct {
-	DiscountListID   int64         `json:"discount_list_id"`
-	Discount         int16         `json:"discount"`
-	ProductVariantID int64         `json:"product_variant_id"`
-	RuleID           sql.NullInt64 `json:"rule_id"`
-	DealID           sql.NullInt64 `json:"deal_id"`
+	DiscountListID      int64         `json:"discount_list_id"`
+	Discount            int16         `json:"discount"`
+	ProductVariantID    int64         `json:"product_variant_id"`
+	RuleID              sql.NullInt64 `json:"rule_id"`
+	DealID              sql.NullInt64 `json:"deal_id"`
+	DealFallbackPercent sql.NullInt16 `json:"deal_fallback_percent"`
 }
 
 type DiscountListOptionItem struct {
@@ -1236,23 +1237,24 @@ type DiscountListOptionItem struct {
 }
 
 type DiscountListRule struct {
-	ID                 int64         `json:"id"`
-	DiscountListID     int64         `json:"discount_list_id"`
-	Position           int32         `json:"position"`
-	Name               string        `json:"name"`
-	CodePrefixes       []string      `json:"code_prefixes"`
-	ExceptCodePrefixes []string      `json:"except_code_prefixes"`
-	Kinds              []string      `json:"kinds"`
-	Categories         []string      `json:"categories"`
-	SubCategories      []string      `json:"sub_categories"`
-	Origins            []string      `json:"origins"`
-	Brands             []string      `json:"brands"`
-	Discount           int16         `json:"discount"`
-	CreatedAt          time.Time     `json:"created_at"`
-	DealID             sql.NullInt64 `json:"deal_id"`
-	IsEnabled          bool          `json:"is_enabled"`
-	GroupID            int64         `json:"group_id"`
-	MaxPrice           sql.NullInt64 `json:"max_price"`
+	ID                  int64         `json:"id"`
+	DiscountListID      int64         `json:"discount_list_id"`
+	Position            int32         `json:"position"`
+	Name                string        `json:"name"`
+	CodePrefixes        []string      `json:"code_prefixes"`
+	ExceptCodePrefixes  []string      `json:"except_code_prefixes"`
+	Kinds               []string      `json:"kinds"`
+	Categories          []string      `json:"categories"`
+	SubCategories       []string      `json:"sub_categories"`
+	Origins             []string      `json:"origins"`
+	Brands              []string      `json:"brands"`
+	Discount            int16         `json:"discount"`
+	CreatedAt           time.Time     `json:"created_at"`
+	DealID              sql.NullInt64 `json:"deal_id"`
+	IsEnabled           bool          `json:"is_enabled"`
+	GroupID             int64         `json:"group_id"`
+	MaxPrice            sql.NullInt64 `json:"max_price"`
+	DealFallbackPercent sql.NullInt16 `json:"deal_fallback_percent"`
 }
 
 type DiscountListRuleGroup struct {
