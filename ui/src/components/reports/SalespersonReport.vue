@@ -6,7 +6,13 @@
     :note="hasHours ? t('Hours come from attendance punches, matched by the salesperson\'s device number (or same name and branch).') : ''"
     :title="t('Ranking')"
   >
-    <RptTable :columns="shownColumns" numbered :rows="rows" :total="total" />
+    <RptTable
+      :columns="sheetColumns"
+      compact
+      numbered
+      :rows="rows"
+      :total="total"
+    />
   </RptSection>
 
   <template v-if="rows.length > 0">
@@ -21,9 +27,6 @@
       </RptGrid>
     </RptSection>
 
-    <RptSection v-if="has('trend')" :note="t('Top six salespersons by net sales.')" :title="t('Day by day')">
-      <RptChart :height="260" :option="trendChart" />
-    </RptSection>
 
     <RptSection
       v-if="has('categories') && hasCategories"
@@ -38,7 +41,7 @@
 <script setup>
   import { computed } from 'vue'
   import { t } from './reportI18n'
-  import { barOption, CHART_ROWS, chartDay, csvSection, day, daysBetween, int, lineOption, money, pct, ratio, SERIES } from './reportKit'
+  import { barOption, CHART_ROWS, csvSection, int, money, pct, ratio, SERIES } from './reportKit'
   import { salespersonRows, timesheetRows } from './reportRows'
   import RptCard from './RptCard.vue'
   import RptChart from './RptChart.vue'
@@ -49,7 +52,7 @@
 
   // How each salesperson did: sales, invoices, average sale, items, returns,
   // discounts, customers -- and, where their attendance is known, sales per
-  // hour worked. Parts: ranking, charts, trend, categories.
+  // hour worked. Parts: ranking, charts, categories.
   const props = defineProps({
     ctx: { type: Object, required: true },
     parts: { type: Array, required: true },
@@ -124,6 +127,9 @@
   ]
   // Hours columns only once someone's attendance is known.
   const shownColumns = computed(() => (hasHours.value ? columns : columns.filter(c => c.key !== 'worked' && c.key !== 'per_hour')))
+  // What fits a portrait page; items, discount rate and biggest sale stay in
+  // the CSV.
+  const sheetColumns = computed(() => shownColumns.value.filter(c => !['items_sold', 'discount_rate', 'biggest_sale'].includes(c.key)))
 
   const chartRows = computed(() => rows.value.slice(0, CHART_ROWS))
   const chartHeight = computed(() => Math.max(150, chartRows.value.length * 24 + 30))
@@ -132,17 +138,6 @@
   const netChart = computed(() => hbar(t('Net sales'), r => r.net_total / 100, 'money'))
   const perHourChart = computed(() => hbar(t('Net sales per hour worked'), r => (r.per_hour ?? 0) / 100, 'money'))
 
-  const trendChart = computed(() => {
-    const days = daysBetween(props.ctx.from, props.ctx.to)
-    const series = rows.value.slice(0, 6).map((r, i) => {
-      const byDay = new Map()
-      for (const d of data.value.salesperson_daily) {
-        if (props.ctx.people.forSales(d) === r.key) {byDay.set(day(d.day), (byDay.get(day(d.day)) ?? 0) + d.net_total)}
-      }
-      return { name: r.name, color: SERIES[i], data: days.map(d => (byDay.get(d) ?? 0) / 100) }
-    })
-    return lineOption({ categories: days.map(d => chartDay(d)), series, kind: 'money' })
-  })
 
   const categoryChart = computed(() => {
     const totals = new Map()

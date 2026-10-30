@@ -3,7 +3,12 @@
 
   <template v-if="has('busy')">
     <RptSection :note="t('Average sales per day at each weekday and hour, by the branch\'s own clock.')" :title="t('Sales by weekday and hour')">
-      <RptChart :height="240" :option="heatChart" />
+      <RptGrid template="3fr 2fr">
+        <RptChart :height="250" :option="heatChart" />
+        <RptCard :title="t('Busiest times')">
+          <RptTable :columns="slotColumns" compact :rows="topSlots" />
+        </RptCard>
+      </RptGrid>
     </RptSection>
 
     <RptSection :title="t('Through the day and the week')">
@@ -36,6 +41,7 @@
   import RptGrid from './RptGrid.vue'
   import RptKpis from './RptKpis.vue'
   import RptSection from './RptSection.vue'
+  import RptTable from './RptTable.vue'
 
   // When the stores are busy: sales by weekday and hour, and footfall with
   // conversion where the tills count people. Parts: busy, footfall.
@@ -65,6 +71,14 @@
     const n = counts.value[i + 1] || 1
     return { weekday: name, sales: list.reduce((s, c) => s + c.sales_count, 0) / n, money: list.reduce((s, c) => s + c.sales_total, 0) / n }
   }))
+
+  // The eight weekday-hours with the most sales a day, for beside the heatmap.
+  const topSlots = computed(() => cells.value.toSorted((a, b) => b.perDay - a.perDay).slice(0, 8).map(c => ({ when: `${names[c.weekday - 1]} ${hourLabel(c.hour)}`, perDay: c.perDay, money: c.sales_total / (counts.value[c.weekday] || 1) })))
+  const slotColumns = [
+    { key: 'when', title: t('When') },
+    { key: 'perDay', title: t('Sales a day'), type: 'num1' },
+    { key: 'money', title: t('Net sales a day'), type: 'money' },
+  ]
 
   const visitors = computed(() => data.value.daily.reduce((sum, d) => sum + d.visitors, 0))
   const kpis = computed(() => {

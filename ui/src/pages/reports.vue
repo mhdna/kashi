@@ -409,7 +409,7 @@
       ],
     },
     {
-      key: 'customers', title: 'Customers', subtitle: 'Best customers, when they come, busy hours', icon: 'mdi-account-star-outline', landscape: true,
+      key: 'customers', title: 'Customers', subtitle: 'Best customers, when they come, busy hours', icon: 'mdi-account-star-outline',
       parts: [
         { key: 'best', comp: 'customers', title: 'Best customers' },
         { key: 'frequent', comp: 'customers', title: 'Most frequent visitors' },
@@ -429,11 +429,10 @@
       ],
     },
     {
-      key: 'staff', title: 'Salespersons & attendance', subtitle: 'Sales per person, hours, $/hour', icon: 'mdi-account-cash', landscape: true, employees: true,
+      key: 'staff', title: 'Salespersons & attendance', subtitle: 'Sales per person, hours, $/hour', icon: 'mdi-account-cash', employees: true,
       parts: [
         { key: 'ranking', comp: 'salespersons', title: 'Ranking' },
         { key: 'charts', comp: 'salespersons', title: 'Sales charts' },
-        { key: 'trend', comp: 'salespersons', title: 'Day by day' },
         { key: 'categories', comp: 'salespersons', title: 'Category mix' },
         { key: 'staffDiscounts', comp: 'payments', title: 'Discounts by salesperson' },
         { key: 'hours', comp: 'attendance', title: 'Hours per employee' },
@@ -442,7 +441,7 @@
       ],
     },
     {
-      key: 'sales', title: 'Sales & goods', subtitle: 'Best sellers, categories, payments, discounts', icon: 'mdi-package-variant', landscape: true,
+      key: 'sales', title: 'Sales & goods', subtitle: 'Best sellers, categories, payments, discounts', icon: 'mdi-package-variant',
       parts: [
         { key: 'categories', comp: 'products', title: 'Categories' },
         { key: 'bestsellers', comp: 'products', title: 'Best sellers' },
@@ -472,7 +471,7 @@
     summary: ['overview'],
     branches: ['overview', ['comparison']],
     attendance: ['staff', ['hours', 'grid']],
-    salespersons: ['staff', ['ranking', 'charts', 'trend', 'categories']],
+    salespersons: ['staff', ['ranking', 'charts', 'categories']],
     busy: ['customers', ['busy', 'footfall']],
     products: ['sales', ['categories', 'bestsellers', 'attrs', 'returned']],
     payments: ['sales', ['payments', 'discounts', 'returns']],
@@ -858,11 +857,10 @@
   }))
 
   // ---- A4 preview and zoom ----------------------------------------------------
-  // The sheet is drawn at A4 width at 96 dpi (portrait 210mm, landscape
-  // 297mm) with the print's 10mm margins inside it, so the preview wraps
-  // lines exactly as the PDF does. Zoom scales the drawn sheet, like a PDF
-  // viewer, rather than redrawing it.
-  const pageWidth = computed(() => (report.value.landscape ? 1123 : 794))
+  // Every report is portrait A4: 210mm at 96 dpi, with the print's 10mm
+  // margins inside, so the preview wraps lines exactly as the PDF does.
+  // Zoom scales the drawn sheet, like a PDF viewer, rather than redrawing it.
+  const pageWidth = 794
   const ZOOMS = [0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2]
   const savedZoom = stored('reports.zoom', 'fit')
   const zoom = ref(savedZoom === 'fit' ? 'fit' : (Number(savedZoom) || 'fit'))
@@ -873,7 +871,7 @@
   const scale = computed(() => {
     if (zoom.value !== 'fit') {return zoom.value}
     if (!previewWidth.value) {return 1}
-    return Math.max(0.3, Math.min(2, (previewWidth.value - 48) / pageWidth.value))
+    return Math.max(0.3, Math.min(2, (previewWidth.value - 48) / pageWidth))
   })
   function zoomBy (step) {
     const now = scale.value
@@ -933,7 +931,7 @@
   async function exportPdf () {
     if (!sheetRef.value) {return}
     try {
-      await printReport(sheetRef.value, { title: fileTitle.value, landscape: report.value.landscape, lang: sheetLang.value })
+      await printReport(sheetRef.value, { title: fileTitle.value, lang: sheetLang.value })
     } catch (error) {
       notify.error(error.message)
     }

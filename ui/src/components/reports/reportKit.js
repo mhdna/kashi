@@ -133,6 +133,13 @@ function valueAxis (kind, extra = {}) {
   const formatter = formatters[kind] ?? (v => intFmt.format(v))
   return { type: 'value', minInterval: kind === 'int' ? 1 : undefined, ...axisStyle, axisLabel: { ...axisStyle.axisLabel, formatter }, ...extra }
 }
+function compactMoney (dollars) {
+  const abs = Math.abs(dollars)
+  const sign = dollars < 0 ? '−' : ''
+  if (abs >= 1e6) {return `${sign}$${num1(abs / 1e6)}M`}
+  if (abs >= 1e3) {return `${sign}$${num1(abs / 1e3)}K`}
+  return `${sign}$${intFmt.format(abs)}`
+}
 function tooltipValue (kind) {
   if (kind === 'money') {return v => money(Math.round(v * 100))}
   if (kind === 'hours') {return v => t('{n} h', { n: num1(v) })}
@@ -155,6 +162,9 @@ export function barOption ({ categories, series, kind = 'int', horizontal = fals
     position: horizontal && rtl ? 'right' : undefined,
   }
   const end = horizontal ? (rtl ? [4, 0, 0, 4] : [0, 4, 4, 0]) : [4, 4, 0, 0]
+  // Amounts over upright bars sit side by side: "$3.9K" fits where
+  // "$3,950.15" runs into its neighbour.
+  const shortMoney = kind === 'money' && !horizontal
   return {
     ...base(),
     tooltip: { ...base().tooltip, axisPointer: { type: 'shadow' }, valueFormatter: tooltipValue(kind) },
@@ -169,7 +179,7 @@ export function barOption ({ categories, series, kind = 'int', horizontal = fals
       stack: stack ? 'all' : undefined,
       barMaxWidth: 26,
       itemStyle: { color: s.color ?? SERIES[i % SERIES.length], borderRadius: stack ? 0 : end, borderColor: '#fff', borderWidth: stack ? 1 : 0 },
-      label: labels ? { show: true, position: horizontal ? (rtl ? 'left' : 'right') : 'top', color: INK_2, fontSize: 10, formatter: p => tooltipValue(kind)(p.value) } : undefined,
+      label: labels ? { show: true, position: horizontal ? (rtl ? 'left' : 'right') : 'top', color: INK_2, fontSize: 10, formatter: p => (shortMoney ? compactMoney(p.value) : tooltipValue(kind)(p.value)) } : undefined,
     })),
   }
 }
@@ -250,7 +260,7 @@ export function heatmapOption ({ cells, kind = 'int', hoursShown }) {
     ...base(),
     tooltip: { trigger: 'item', confine: true, formatter: p => `${days[p.value[1]]} ${hourLabel(hrs[p.value[0]])}: ${tooltipValue(kind)(p.value[2])}` },
     grid: { ...sides(48, 12), top: 8, bottom: 52 },
-    xAxis: { type: 'category', data: hrs.map(h => hourLabel(h)), ...axisStyle, splitArea: { show: false }, inverse: rtl },
+    xAxis: { type: 'category', data: hrs.map(h => hourLabel(h)), ...axisStyle, axisLabel: { ...axisStyle.axisLabel, interval: hrs.length > 8 ? 1 : 0 }, splitArea: { show: false }, inverse: rtl },
     yAxis: { type: 'category', data: days, ...axisStyle, inverse: true, position: rtl ? 'right' : 'left' },
     visualMap: { min: 0, max, calculable: false, orient: 'horizontal', left: 'center', bottom: 0, itemHeight: 120, itemWidth: 10, inverse: rtl, inRange: { color: SEQUENTIAL }, textStyle: { color: INK_2, fontSize: 10 }, formatter: v => tooltipValue(kind)(v) },
     series: [{ type: 'heatmap', data, itemStyle: { borderColor: '#fff', borderWidth: 2, borderRadius: 3 } }],
