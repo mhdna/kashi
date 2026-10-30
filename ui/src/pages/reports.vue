@@ -121,14 +121,40 @@
           placeholder="Everyone"
           variant="outlined"
         />
-        <v-select
-          v-if="needsTopN"
-          v-model="topN"
-          density="compact"
-          hide-details
-          :items="[10, 20, 25, 50, 100]"
-          label="List length"
-          variant="outlined"
+        <div v-if="needsTopN || usesPart('bestsellers')" class="d-flex ga-2">
+          <v-select
+            v-if="needsTopN"
+            v-model="topN"
+            density="compact"
+            hide-details
+            :items="[10, 20, 25, 50, 100]"
+            label="List length"
+            variant="outlined"
+          />
+          <v-select
+            v-if="usesPart('bestsellers')"
+            v-model="sortBy"
+            density="compact"
+            hide-details
+            :items="[{ title: 'Net sales', value: 'revenue' }, { title: 'Units', value: 'units' }]"
+            label="Best sellers by"
+            variant="outlined"
+          />
+        </div>
+
+        <v-btn
+          prepend-icon="mdi-filter-remove-outline"
+          :text="excludedCount > 0 ? `Left out of reports (${excludedCount})` : 'Leave out products or customers'"
+          variant="tonal"
+          @click="exclusionsDialog = true"
+        />
+        <v-btn
+          :disabled="!dirty || !canEdit"
+          :loading="savingDefaults"
+          prepend-icon="mdi-content-save-outline"
+          :text="dirty ? 'Save as default' : 'Saved as default'"
+          variant="text"
+          @click="saveDefaults"
         />
 
         <div class="d-flex ga-2 mt-1">
@@ -155,57 +181,175 @@
       </div>
     </aside>
 
-    <!-- The sheet, as it will print -->
-    <main class="reports-preview">
-      <div v-if="(loading && !ready) || !fontsReady" class="d-flex justify-center pa-12">
+    <!-- The sheet at A4 width, as it will print, zoomable like a PDF viewer -->
+    <main ref="previewRef" class="reports-preview">
+      <div class="zoom-bar">
+        <v-btn
+          density="comfortable"
+          icon="mdi-magnify-minus-outline"
+          size="small"
+          title="Zoom out"
+          variant="text"
+          @click="zoomBy(-1)"
+        />
+        <span class="zoom-value">{{ Math.round(scale * 100) }}%</span>
+        <v-btn
+          density="comfortable"
+          icon="mdi-magnify-plus-outline"
+          size="small"
+          title="Zoom in"
+          variant="text"
+          @click="zoomBy(1)"
+        />
+        <v-divider class="mx-1" vertical />
+        <v-btn
+          :active="zoom === 'fit'"
+          density="comfortable"
+          prepend-icon="mdi-arrow-expand-horizontal"
+          size="small"
+          text="Fit width"
+          variant="text"
+          @click="zoom = 'fit'"
+        />
+        <v-btn
+          :active="zoom === 1"
+          density="comfortable"
+          size="small"
+          text="100%"
+          variant="text"
+          @click="zoom = 1"
+        />
+      </div>
+
+      <div v-if="(loading && !ready) || !fontsReady || !settingsReady" class="d-flex justify-center pa-12">
         <v-progress-circular color="primary" indeterminate />
       </div>
       <v-alert v-else-if="loadError" class="ma-6" type="error" variant="tonal">{{ loadError }}</v-alert>
       <v-alert v-else-if="parts.length === 0" class="ma-6" type="info" variant="tonal">
         Tick at least one part of the report on the left.
       </v-alert>
-      <div
-        v-else-if="ready"
-        :key="`${report.key}|${sheetLang}`"
-        ref="sheetRef"
-        class="rpt-sheet"
-        :class="{ 'reports-loading': loading }"
-        :dir="sheetLang === 'ar' ? 'rtl' : 'ltr'"
-        :lang="sheetLang"
-        :style="{ width: report.landscape ? '1100px' : '800px' }"
-      >
-        <header class="rpt-head">
-          <div>
-            <h1 class="rpt-title">{{ sheetTitle }}</h1>
-            <p class="rpt-subtitle">{{ periodLabel }}</p>
-          </div>
-          <div class="rpt-meta">
-            <div><strong>{{ branchLabel }}</strong></div>
-            <div v-if="report.employees && employees.length > 0">{{ employeeLabel }}</div>
-            <div>{{ t('Generated {at}', { at: generatedLabel }) }}</div>
-          </div>
-        </header>
+      <div v-else-if="ready" class="zoom-box" :style="{ width: `${pageWidth * scale}px`, height: `${sheetHeight * scale}px` }">
+        <div class="zoom-inner" :style="{ width: `${pageWidth}px`, transform: `scale(${scale})` }">
+          <div
+            :key="`${report.key}|${sheetLang}`"
+            ref="sheetRef"
+            class="rpt-sheet"
+            :class="{ 'reports-loading': loading }"
+            :dir="sheetLang === 'ar' ? 'rtl' : 'ltr'"
+            :lang="sheetLang"
+            :style="{ width: `${pageWidth}px` }"
+          >
+            <header class="rpt-head">
+              <div>
+                <h1 class="rpt-title">{{ sheetTitle }}</h1>
+                <p class="rpt-subtitle">{{ periodLabel }}</p>
+              </div>
+              <div class="rpt-meta">
+                <div><strong>{{ branchLabel }}</strong></div>
+                <div v-if="report.employees && employees.length > 0">{{ employeeLabel }}</div>
+                <div>{{ t('Generated {at}', { at: generatedLabel }) }}</div>
+              </div>
+            </header>
 
-        <div v-for="(block, index) in blocks" :key="block.comp" class="rpt-block">
-          <h2 v-if="index > 0 && block.title" class="rpt-block-title">{{ block.title }}</h2>
-          <component
-            :is="COMPONENTS[block.comp]"
-            :ref="el => (blockRefs[block.comp] = el)"
-            :ctx="ctx"
-            :parts="block.parts"
-          />
+            <div v-for="(block, index) in blocks" :key="block.comp" class="rpt-block">
+              <h2 v-if="index > 0 && block.title" class="rpt-block-title">{{ block.title }}</h2>
+              <component
+                :is="COMPONENTS[block.comp]"
+                :ref="el => (blockRefs[block.comp] = el)"
+                :ctx="ctx"
+                :parts="block.parts"
+              />
+            </div>
+
+            <footer class="rpt-footer">
+              {{ t('Amounts in USD. Net sales are sales less returns and exchange refunds; cancelled sales and branches hidden from reports are left out. Days are each branch\'s own calendar days.') }}
+              <template v-if="excludedCount > 0 && needsSales">
+                {{ t('Left out on purpose: {products} products (from item figures) and {clients} customers (from everything).', { products: exclusions.products.length, clients: exclusions.clients.length }) }}
+              </template>
+            </footer>
+          </div>
         </div>
-
-        <footer class="rpt-footer">
-          {{ t('Amounts in USD. Net sales are sales less returns and exchange refunds; cancelled sales and branches hidden from reports are left out. Days are each branch\'s own calendar days.') }}
-        </footer>
       </div>
     </main>
+
+    <!-- Products and customers left out of every report -->
+    <v-dialog v-model="exclusionsDialog" max-width="620">
+      <v-card>
+        <v-card-title>Left out of reports</v-card-title>
+        <v-card-text>
+          <p class="text-body-2 text-medium-emphasis mb-4">
+            Saved for everyone. A customer left out is gone from every figure (their sales too).
+            A product left out is gone from best sellers, categories, sizes and item counts;
+            the money it brought in stays in the sales totals. Pick from who and what sold in the loaded period.
+          </p>
+
+          <div class="text-subtitle-2 mb-1">Customers</div>
+          <v-autocomplete
+            v-model="pickClient"
+            clearable
+            density="compact"
+            hide-details
+            item-title="title"
+            item-value="value"
+            :items="clientChoices"
+            no-data-text="No customer bought in the loaded period"
+            placeholder="Search a customer by name or phone"
+            prepend-inner-icon="mdi-account-search"
+            return-object
+            variant="outlined"
+            @update:model-value="addExclusion('clients', $event)"
+          />
+          <div class="d-flex flex-wrap ga-1 mt-2 mb-4">
+            <v-chip
+              v-for="c in exclusions.clients"
+              :key="c.id"
+              closable
+              size="small"
+              :text="c.label"
+              @click:close="removeExclusion('clients', c.id)"
+            />
+            <span v-if="exclusions.clients.length === 0" class="text-caption text-medium-emphasis">None</span>
+          </div>
+
+          <div class="text-subtitle-2 mb-1">Products</div>
+          <v-autocomplete
+            v-model="pickProduct"
+            clearable
+            density="compact"
+            hide-details
+            item-title="title"
+            item-value="value"
+            :items="productChoices"
+            no-data-text="No product sold in the loaded period"
+            placeholder="Search a product by name or code"
+            prepend-inner-icon="mdi-package-variant"
+            return-object
+            variant="outlined"
+            @update:model-value="addExclusion('products', $event)"
+          />
+          <div class="d-flex flex-wrap ga-1 mt-2">
+            <v-chip
+              v-for="p in exclusions.products"
+              :key="p.id"
+              closable
+              size="small"
+              :text="p.label"
+              @click:close="removeExclusion('products', p.id)"
+            />
+            <span v-if="exclusions.products.length === 0" class="text-caption text-medium-emphasis">None</span>
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn text="Done" @click="exclusionsDialog = false" />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script setup>
-  import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue'
+  import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import DateField from '@/components/DateField.vue'
   import AttendanceReport from '@/components/reports/AttendanceReport.vue'
@@ -224,16 +368,19 @@
   import { useBranches } from '@/composables/useBranches'
   import { useBranchSalespersons } from '@/composables/useBranchSalespersons'
   import { useNotify } from '@/composables/useNotify'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { useReports } from '@/composables/useReports'
   import { useReviews } from '@/composables/useReviews'
   import { buildTimesheet } from '@/utils/attendanceSessions'
   import { downloadCsv, printReport } from '@/utils/reportExport'
   import '@/styles/report-sheet.css'
 
-  // End-of-period reports, each one a printable sheet in English or Arabic:
-  // pick a report and the parts of it you want, a period, branches (and
-  // employees where it applies), then export to PDF or CSV. Other pages link
-  // here with ?report=<key>[&parts=a,b].
+  // End-of-period reports, each one a printable A4 sheet in English or
+  // Arabic: pick a report and the parts of it you want, a period, branches
+  // (and employees where it applies), then export to PDF or CSV. What the
+  // page opens with and what's left out of every report are saved for
+  // everyone (/reports/settings). Other pages link here with
+  // ?report=<key>[&parts=a,b].
 
   const COMPONENTS = {
     summary: SummaryReport,
@@ -262,7 +409,7 @@
       ],
     },
     {
-      key: 'customers', title: 'Customers', subtitle: 'Best customers, when they come, busy hours, feedback', icon: 'mdi-account-star-outline', landscape: true,
+      key: 'customers', title: 'Customers', subtitle: 'Best customers, when they come, busy hours', icon: 'mdi-account-star-outline', landscape: true,
       parts: [
         { key: 'best', comp: 'customers', title: 'Best customers' },
         { key: 'frequent', comp: 'customers', title: 'Most frequent visitors' },
@@ -270,7 +417,12 @@
         { key: 'when', comp: 'customers', title: 'When customers come' },
         { key: 'busy', comp: 'busy', title: 'Busy hours and days' },
         { key: 'footfall', comp: 'busy', title: 'Footfall and conversion' },
-        { key: 'ratings', comp: 'feedback', title: 'Ratings' },
+      ],
+    },
+    {
+      key: 'feedback', title: 'Customer feedback', subtitle: 'Poll answers, replies, Google reviews', icon: 'mdi-star-outline',
+      parts: [
+        { key: 'ratings', comp: 'feedback', title: 'Poll answers' },
         { key: 'reviews', comp: 'feedback', title: 'Review requests and Google' },
         { key: 'unhappy', comp: 'feedback', title: 'Unhappy customers' },
         { key: 'replies', comp: 'feedback', title: 'What customers wrote back' },
@@ -293,8 +445,7 @@
       key: 'sales', title: 'Sales & goods', subtitle: 'Best sellers, categories, payments, discounts', icon: 'mdi-package-variant', landscape: true,
       parts: [
         { key: 'categories', comp: 'products', title: 'Categories' },
-        { key: 'revenue', comp: 'products', title: 'Best sellers by net sales' },
-        { key: 'units', comp: 'products', title: 'Best sellers by units' },
+        { key: 'bestsellers', comp: 'products', title: 'Best sellers' },
         { key: 'attrs', comp: 'products', title: 'Sizes and colours' },
         { key: 'returned', comp: 'products', title: 'Most returned' },
         { key: 'payments', comp: 'payments', title: 'Payment methods' },
@@ -316,29 +467,27 @@
     products: 'Goods',
     payments: 'Payments, discounts and returns',
   }
-  // The report keys before the reports were grouped, for old links.
+  // Report keys from before the reports were grouped, for old links.
   const OLD_KEYS = {
     summary: ['overview'],
     branches: ['overview', ['comparison']],
     attendance: ['staff', ['hours', 'grid']],
     salespersons: ['staff', ['ranking', 'charts', 'trend', 'categories']],
-    customers: ['customers', ['best', 'frequent', 'who', 'when']],
-    feedback: ['customers', ['ratings', 'reviews', 'unhappy', 'replies']],
     busy: ['customers', ['busy', 'footfall']],
-    products: ['sales', ['categories', 'revenue', 'units', 'attrs', 'returned']],
+    products: ['sales', ['categories', 'bestsellers', 'attrs', 'returned']],
     payments: ['sales', ['payments', 'discounts', 'returns']],
   }
 
   const route = useRoute()
   const router = useRouter()
   const notify = useNotify()
-  const { getReports } = useReports()
+  const { canEdit } = usePageAccess()
+  const { getReports, getReportSettings, saveReportSettings } = useReports()
   const { listEventsInRange } = useAttendance()
   const { listBranchSalespersons } = useBranchSalespersons()
   const { getReviews } = useReviews()
   const { branches, fetchBranches } = useBranches()
 
-  // ---- language -----------------------------------------------------------
   function stored (key, fallback) {
     try {
       return localStorage.getItem(key) ?? fallback
@@ -350,24 +499,25 @@
     try {
       localStorage.setItem(key, value)
     } catch {
-      // private window: settings just aren't remembered
+      // private window: the zoom just isn't remembered
     }
   }
+
+  // ---- language -----------------------------------------------------------
   // lang is the switch; sheetLang is what the sheet is drawn in, which
   // follows only once the Arabic face is loaded -- charts draw on canvas
   // once and wouldn't pick it up later.
-  const lang = ref(stored('reports.lang', 'en') === 'ar' ? 'ar' : 'en')
-  const sheetLang = ref(lang.value)
-  setReportLang(lang.value)
-  const fontsReady = ref(lang.value === 'en')
+  const lang = ref('en')
+  const sheetLang = ref('en')
+  setReportLang('en')
+  const fontsReady = ref(true)
   async function loadArabicFont () {
+    fontsReady.value = false
     installReportFonts()
     await Promise.all([400, 500, 700].map(w => document.fonts.load(`${w} 16px "${ARABIC_FONT}"`, 'ع').catch(() => {})))
     fontsReady.value = true
   }
-  if (lang.value === 'ar') {loadArabicFont()}
   watch(lang, async value => {
-    store('reports.lang', value)
     if (value === 'ar') {await loadArabicFont()}
     setReportLang(value)
     sheetLang.value = value
@@ -379,27 +529,17 @@
     : (OLD_KEYS[route.query.report] ?? ['overview'])
   const selectedReport = ref([linkedKey])
   const report = computed(() => REPORTS.find(r => r.key === selectedReport.value[0]) ?? REPORTS[0])
-
-  const defaultParts = r => r.parts.filter(p => !p.off).map(p => p.key)
-  function savedParts (r) {
-    try {
-      const value = JSON.parse(stored(`reports.parts.${r.key}`, 'null'))
-      return Array.isArray(value) ? value.filter(k => r.parts.some(p => p.key === k)) : defaultParts(r)
-    } catch {
-      return defaultParts(r)
-    }
-  }
   const queryParts = typeof route.query.parts === 'string' ? route.query.parts.split(',') : linkedParts
-  const parts = ref(queryParts ? queryParts.filter(k => report.value.parts.some(p => p.key === k)) : savedParts(report.value))
-  // A link's parts are for this visit only; ticking boxes is remembered.
-  let fromLink = Boolean(queryParts)
-  watch(parts, value => {
-    if (!fromLink) {store(`reports.parts.${report.value.key}`, JSON.stringify(value))}
-    fromLink = false
-  })
+
+  const validParts = (r, keys) => keys.filter(k => r.parts.some(p => p.key === k))
+  // A report's parts: the saved default, else every part not marked off.
+  function defaultParts (r) {
+    const saved = settings.value.defaults?.parts?.[r.key]
+    return Array.isArray(saved) ? validParts(r, saved) : r.parts.filter(p => !p.off).map(p => p.key)
+  }
+  const parts = ref([])
   watch(report, r => {
-    fromLink = true
-    parts.value = savedParts(r)
+    parts.value = defaultParts(r)
     employees.value = []
     router.replace({ query: { report: r.key } })
   })
@@ -425,6 +565,7 @@
     .map(g => ({ comp: g.comp, title: sheetLang.value && t(BLOCK_TITLES[g.comp]), parts: g.parts.filter(p => parts.value.includes(p.key)).map(p => p.key) }))
     .filter(b => b.parts.length > 0))
   const usesComp = comp => blocks.value.some(b => b.comp === comp)
+  const usesPart = key => parts.value.includes(key) && report.value.parts.some(p => p.key === key)
   const needsTopN = computed(() => usesComp('customers') || usesComp('products'))
 
   // ---- filters ----------------------------------------------------------------
@@ -440,9 +581,8 @@
     { title: 'Custom…', value: 'custom' },
   ]
   // Early in a month the month that just ended is the one people report on.
-  const period = ref(PERIODS.some(p => p.value === route.query.period)
-    ? route.query.period
-    : (new Date().getDate() <= 5 ? 'last-month' : 'this-month'))
+  const autoPeriod = () => (new Date().getDate() <= 5 ? 'last-month' : 'this-month')
+  const period = ref(autoPeriod())
   const customFrom = ref(ymd(new Date(new Date().getFullYear(), new Date().getMonth(), 1)))
   const customTo = ref(ymd(new Date()))
 
@@ -488,6 +628,106 @@
   const branchNames = computed(() => Object.fromEntries(branches.value.map(b => [b.id, b.name])))
   const employees = ref([])
   const topN = ref(25)
+  const sortBy = ref('revenue')
+
+  // ---- saved settings ---------------------------------------------------------
+  // { defaults: { branch_ids, period, lang, top_n, sort_by, parts: { report: [..] } },
+  //   exclusions: { products: [{ id, label }], clients: [{ id, label }] } }
+  const settings = ref({})
+  const settingsReady = ref(false)
+  const exclusions = computed(() => ({
+    products: settings.value.exclusions?.products ?? [],
+    clients: settings.value.exclusions?.clients ?? [],
+  }))
+  const excludedCount = computed(() => exclusions.value.products.length + exclusions.value.clients.length)
+
+  async function loadSettings () {
+    try {
+      settings.value = (await getReportSettings()) ?? {}
+    } catch (error) {
+      notify.error(error.message)
+    }
+    const d = settings.value.defaults ?? {}
+    if (Array.isArray(d.branch_ids)) {branchIds.value = d.branch_ids.filter(id => Number.isInteger(id))}
+    // A link's period wins over the saved one.
+    if (PERIODS.some(p => p.value === route.query.period)) {
+      period.value = route.query.period
+    } else if (PERIODS.some(p => p.value === d.period) && d.period !== 'custom') {
+      period.value = d.period
+    }
+    if ([10, 20, 25, 50, 100].includes(d.top_n)) {topN.value = d.top_n}
+    if (d.sort_by === 'units' || d.sort_by === 'revenue') {sortBy.value = d.sort_by}
+    parts.value = queryParts ? validParts(report.value, queryParts) : defaultParts(report.value)
+    if (d.lang === 'ar') {lang.value = 'ar'}
+    settingsReady.value = true
+  }
+
+  // What Save as default would store, to tell whether anything changed.
+  const currentDefaults = computed(() => ({
+    branch_ids: [...branchIds.value].toSorted((a, b) => a - b),
+    period: period.value === 'custom' ? autoPeriod() : period.value,
+    lang: lang.value,
+    top_n: topN.value,
+    sort_by: sortBy.value,
+    parts: { ...settings.value.defaults?.parts, [report.value.key]: parts.value },
+  }))
+  const dirty = computed(() => {
+    const d = settings.value.defaults ?? {}
+    const c = currentDefaults.value
+    return JSON.stringify([c.branch_ids, c.period, c.lang, c.top_n, c.sort_by, [...parts.value].toSorted()])
+      !== JSON.stringify([[...(d.branch_ids ?? [])].toSorted((a, b) => a - b), d.period ?? autoPeriod(), d.lang ?? 'en', d.top_n ?? 25, d.sort_by ?? 'revenue', [...defaultParts(report.value)].toSorted()])
+  })
+
+  const savingDefaults = ref(false)
+  async function saveSettings (next) {
+    const saved = await saveReportSettings(next)
+    settings.value = saved ?? next
+  }
+  async function saveDefaults () {
+    savingDefaults.value = true
+    try {
+      await saveSettings({ ...settings.value, defaults: currentDefaults.value })
+      notify.success('Saved: the Reports page opens like this from now on.')
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      savingDefaults.value = false
+    }
+  }
+
+  // ---- left out of reports ---------------------------------------------------
+  const exclusionsDialog = ref(false)
+  const pickClient = ref(null)
+  const pickProduct = ref(null)
+  const clientChoices = computed(() => (data.value?.clients ?? [])
+    .filter(c => !exclusions.value.clients.some(x => x.id === c.client_id))
+    .map(c => ({ title: c.phone ? `${c.name} · ${c.phone}` : c.name, value: c.client_id })))
+  const productChoices = computed(() => (data.value?.products ?? [])
+    .filter(p => p.product_id > 0 && !exclusions.value.products.some(x => x.id === p.product_id))
+    .map(p => ({ title: p.product_code ? `${p.product_name} · ${p.product_code}` : p.product_name, value: p.product_id })))
+
+  async function changeExclusions (kind, list) {
+    try {
+      await saveSettings({ ...settings.value, exclusions: { ...exclusions.value, [kind]: list } })
+      // The figures change: fetch them again.
+      loadedKeys.sales = ''
+      load()
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
+  function addExclusion (kind, item) {
+    if (!item) {return}
+    changeExclusions(kind, [...exclusions.value[kind], { id: item.value, label: item.title }])
+    // Clear the box once the pick is taken.
+    setTimeout(() => {
+      pickClient.value = null
+      pickProduct.value = null
+    })
+  }
+  function removeExclusion (kind, id) {
+    changeExclusions(kind, exclusions.value[kind].filter(x => x.id !== id))
+  }
 
   // ---- data -------------------------------------------------------------------
   // Each source is loaded once per filter set and kept while switching
@@ -511,17 +751,22 @@
 
   let seq = 0
   async function load () {
+    if (!settingsReady.value) {return}
     const { from, to } = range.value
     if (!from || !to || from > to) {return}
     const key = filterKey.value
     const jobs = []
     if (needsSales.value && loadedKeys.sales !== key) {
+      loadedKeys.sales = key
       jobs.push(getReports({ from, to, branchIds: branchIds.value }).then(body => {
         data.value = body
-        loadedKeys.sales = key
+      }).catch(error => {
+        loadedKeys.sales = ''
+        throw error
       }))
     }
     if (needsAttendance.value && loadedKeys.attendance !== key) {
+      loadedKeys.attendance = key
       // The attendance endpoint takes one branch or all; several picked
       // branches are filtered here.
       const one = branchIds.value.length === 1 ? branchIds.value[0] : null
@@ -531,11 +776,10 @@
       }).catch(error => {
         attendance.value = []
         attendanceError.value = error.message
-      }).finally(() => {
-        loadedKeys.attendance = key
       }))
     }
     if (needsReviews.value && loadedKeys.reviews !== key) {
+      loadedKeys.reviews = key
       const params = { from, to }
       if (branchIds.value.length === 1) {params.branch_id = branchIds.value[0]}
       jobs.push(getReviews(params).then(body => {
@@ -544,8 +788,6 @@
       }).catch(error => {
         reviews.value = {}
         reviewsError.value = error.message
-      }).finally(() => {
-        loadedKeys.reviews = key
       }))
     }
     if (jobs.length === 0) {return}
@@ -580,8 +822,9 @@
   }
 
   watch([filterKey, blocks], load)
-  onMounted(() => {
+  onMounted(async () => {
     fetchBranches().catch(error => notify.error(error.message))
+    await loadSettings()
     load()
   })
 
@@ -611,8 +854,52 @@
     reviewsError: reviewsError.value,
     people: people.value,
     employees: employees.value,
-    options: { topN: topN.value },
+    options: { topN: topN.value, sortBy: sortBy.value },
   }))
+
+  // ---- A4 preview and zoom ----------------------------------------------------
+  // The sheet is drawn at A4 width at 96 dpi (portrait 210mm, landscape
+  // 297mm) with the print's 10mm margins inside it, so the preview wraps
+  // lines exactly as the PDF does. Zoom scales the drawn sheet, like a PDF
+  // viewer, rather than redrawing it.
+  const pageWidth = computed(() => (report.value.landscape ? 1123 : 794))
+  const ZOOMS = [0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2]
+  const savedZoom = stored('reports.zoom', 'fit')
+  const zoom = ref(savedZoom === 'fit' ? 'fit' : (Number(savedZoom) || 'fit'))
+  watch(zoom, value => store('reports.zoom', String(value)))
+  const previewRef = ref(null)
+  const previewWidth = ref(0)
+  const sheetHeight = ref(0)
+  const scale = computed(() => {
+    if (zoom.value !== 'fit') {return zoom.value}
+    if (!previewWidth.value) {return 1}
+    return Math.max(0.3, Math.min(2, (previewWidth.value - 48) / pageWidth.value))
+  })
+  function zoomBy (step) {
+    const now = scale.value
+    const next = step > 0 ? ZOOMS.find(z => z > now + 0.001) : ZOOMS.findLast(z => z < now - 0.001)
+    zoom.value = next ?? (step > 0 ? ZOOMS.at(-1) : ZOOMS[0])
+  }
+
+  const sheetRef = ref(null)
+  let observer
+  onMounted(() => {
+    observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        if (entry.target === previewRef.value) {previewWidth.value = entry.contentRect.width + 48}
+        if (entry.target === sheetRef.value) {sheetHeight.value = entry.target.offsetHeight}
+      }
+    })
+    if (previewRef.value) {observer.observe(previewRef.value)}
+  })
+  watch(sheetRef, (el, old) => {
+    if (old) {observer?.unobserve(old)}
+    if (el) {
+      observer?.observe(el)
+      sheetHeight.value = el.offsetHeight
+    }
+  })
+  onBeforeUnmount(() => observer?.disconnect())
 
   // ---- header and export ------------------------------------------------------
   // Each reads sheetLang so the header follows a language switch.
@@ -642,7 +929,6 @@
   // Shown in the sheet's language, refreshed when the figures load.
   const generatedLabel = computed(() => generatedAt.value.toLocaleString(dateLocale(), { dateStyle: 'medium', timeStyle: 'short' }))
 
-  const sheetRef = ref(null)
   const blockRefs = reactive({})
   async function exportPdf () {
     if (!sheetRef.value) {return}
@@ -671,11 +957,39 @@
   border-right: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
 .reports-preview {
+  position: relative;
   flex: 1 1 auto;
   min-width: 0;
   overflow: auto;
-  padding: 24px;
+  padding: 0 24px 24px;
   background: rgba(var(--v-theme-on-surface), 0.06);
+}
+.zoom-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  margin: 0 -24px 16px;
+  padding: 4px 8px;
+  background: rgb(var(--v-theme-surface));
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+.zoom-value {
+  min-width: 48px;
+  font-size: 0.85rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+/* The box takes the zoomed size so the page scrolls right; the sheet
+   inside keeps its A4 layout and is only scaled. */
+.zoom-box {
+  margin: 0 auto;
+}
+.zoom-inner {
+  transform-origin: top left;
 }
 .reports-preview .rpt-sheet {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
@@ -694,6 +1008,7 @@
 @media (max-width: 960px) {
   .reports-page { flex-direction: column; height: auto; }
   .reports-side { flex: 0 0 auto; border-right: none; }
-  .reports-preview { padding: 8px; }
+  .reports-preview { padding: 0 8px 8px; }
+  .zoom-bar { margin: 0 -8px 8px; }
 }
 </style>

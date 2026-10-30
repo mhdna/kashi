@@ -11,12 +11,6 @@
         <RptCard :title="t('Sales per hour (average per day)')">
           <RptChart :height="200" :option="hourCountChart" />
         </RptCard>
-        <RptCard :title="t('Net sales per hour (average per day)')">
-          <RptChart :height="200" :option="hourMoneyChart" />
-        </RptCard>
-        <RptCard :title="t('Sales per weekday (average per day)')">
-          <RptChart :height="200" :option="weekdayCountChart" />
-        </RptCard>
         <RptCard :title="t('Net sales per weekday (average per day)')">
           <RptChart :height="200" :option="weekdayMoneyChart" />
         </RptCard>
@@ -36,7 +30,7 @@
 <script setup>
   import { computed } from 'vue'
   import { t } from './reportI18n'
-  import { barOption, csvSection, day, dayLabel, daysBetween, heatmapOption, hourLabel, int, lineOption, num1, pct, ratio, weekdayCounts, weekdays } from './reportKit'
+  import { barOption, chartDay, csvSection, day, daysBetween, heatmapOption, hourLabel, int, lineOption, num1, pct, ratio, weekdayCounts, weekdays } from './reportKit'
   import RptCard from './RptCard.vue'
   import RptChart from './RptChart.vue'
   import RptGrid from './RptGrid.vue'
@@ -94,15 +88,13 @@
 
   const heatChart = computed(() => heatmapOption({ cells: cells.value.map(c => ({ weekday: c.weekday, hour: c.hour, value: Math.round(c.perDay * 10) / 10 })), kind: 'num1' }))
   const hourCountChart = computed(() => barOption({ categories: byHour.value.map(h => h.hour), series: [{ name: t('Sales'), data: byHour.value.map(h => Math.round(h.sales * 10) / 10) }], kind: 'num1' }))
-  const hourMoneyChart = computed(() => barOption({ categories: byHour.value.map(h => h.hour), series: [{ name: t('Net sales'), data: byHour.value.map(h => h.money / 100) }], kind: 'money' }))
-  const weekdayCountChart = computed(() => barOption({ categories: names, series: [{ name: t('Sales'), data: byWeekday.value.map(w => Math.round(w.sales * 10) / 10) }], kind: 'num1', labels: true }))
   const weekdayMoneyChart = computed(() => barOption({ categories: names, series: [{ name: t('Net sales'), data: byWeekday.value.map(w => w.money / 100) }], kind: 'money', labels: true }))
 
   const days = computed(() => {
     const byDay = new Map(data.value.daily.map(d => [day(d.day), d]))
     return daysBetween(props.ctx.from, props.ctx.to).map(d => ({ day: d, visitors: byDay.get(d)?.visitors ?? 0, sales: byDay.get(d)?.sales_count ?? 0 }))
   })
-  const labels = computed(() => days.value.map(d => dayLabel(d.day, { day: 'numeric', month: 'short' })))
+  const labels = computed(() => days.value.map(d => chartDay(d.day)))
   const visitorsChart = computed(() => barOption({ categories: labels.value, series: [{ name: t('Visitors'), data: days.value.map(d => d.visitors) }, { name: t('Sales'), data: days.value.map(d => d.sales) }] }))
   const conversionChart = computed(() => lineOption({ categories: labels.value, series: [{ name: t('Conversion %'), data: days.value.map(d => (d.visitors > 0 ? Math.round(d.sales / d.visitors * 1000) / 10 : null)) }], kind: 'num1' }))
 

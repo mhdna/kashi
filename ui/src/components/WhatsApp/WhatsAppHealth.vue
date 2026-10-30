@@ -118,12 +118,12 @@
             </div>
 
             <div class="wh-stats text-body-2">
-              <span>Sent today</span>
-              <strong>{{ n.health.sent_24h }} <span class="text-medium-emphasis font-weight-regular">(usual {{ n.health.sent_daily_avg }})</span></strong>
+              <span title="Sales messages of the last 24 hours, test sends left out">Sent, last 24 h</span>
+              <strong>{{ n.health.sent_24h }} <span class="text-medium-emphasis font-weight-regular">({{ n.health.sent_daily_avg == null ? 'new number' : `usual ${n.health.sent_daily_avg}` }})</span></strong>
               <span>Disconnects</span><strong>{{ n.health.disconnects_24h }}</strong>
               <span>Refused by WhatsApp</span><strong>{{ n.health.rejected_24h }}</strong>
               <span>Failed sends</span><strong>{{ n.health.failed_24h }}</strong>
-              <span title="Messages of the last week not delivered after 2 days: blocked, or the phone is off">Stuck on one tick</span><strong>{{ n.health.one_tick ?? 0 }}</strong>
+              <span title="Messages of the last week not delivered after 3 days: blocked, or the phone is off">Stuck on one tick</span><strong>{{ n.health.one_tick ?? 0 }}</strong>
             </div>
             <div v-if="n.health.last_problem_at" class="text-caption text-medium-emphasis mt-2">
               Last problem: {{ n.health.last_problem }}, {{ when(n.health.last_problem_at) }}

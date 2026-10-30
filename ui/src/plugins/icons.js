@@ -8,6 +8,7 @@ import {
   mdiAccountGroupOutline,
   mdiAccountMultipleCheck,
   mdiAccountOutline,
+  mdiAccountSearch,
   mdiAccountStarOutline,
   mdiAccountTieOutline,
   mdiAlert,
@@ -19,6 +20,7 @@ import {
   mdiAppleKeyboardOption,
   mdiAppleKeyboardShift,
   mdiArrowDown,
+  mdiArrowExpandHorizontal,
   mdiArrowLeft,
   mdiArrowLeftThin,
   mdiArrowRight,
@@ -99,6 +101,7 @@ import {
   mdiContentCopy,
   mdiContentSave,
   mdiContentSaveAll,
+  mdiContentSaveOutline,
   mdiCreditCardOutline,
   mdiCurrencyUsd,
   mdiCurrencyUsdOff,
@@ -117,6 +120,7 @@ import {
   mdiFileDocumentOutline,
   mdiFilePdfBox,
   mdiFilter,
+  mdiFilterRemoveOutline,
   mdiFilterVariant,
   mdiFingerprint,
   mdiFirework,
@@ -289,6 +293,10 @@ import {
 import { h } from 'vue'
 
 const iconPaths = {
+  'mdi-filter-remove-outline': mdiFilterRemoveOutline,
+  'mdi-content-save-outline': mdiContentSaveOutline,
+  'mdi-arrow-expand-horizontal': mdiArrowExpandHorizontal,
+  'mdi-account-search': mdiAccountSearch,
   'mdi-account-star-outline': mdiAccountStarOutline,
   'mdi-file-chart-outline': mdiFileChartOutline,
   'mdi-file-pdf-box': mdiFilePdfBox,

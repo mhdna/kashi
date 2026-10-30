@@ -11,7 +11,7 @@ import (
 )
 
 const getAppSettings = `-- name: GetAppSettings :one
-SELECT id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first, review_place_id, review_base_url, review_title, review_description, google_places_api_key, whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message, whatsapp_poll_question, whatsapp_poll_options, whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url, whatsapp_message_logo, whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad, google_reviews_enabled, whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_delete_for_me, whatsapp_delete_poll_for_me, upload_pages_follow_system, unknown_images_auto_delete, table_page_size, whatsapp_welcome_early, barcode_label_design, whatsapp_message_new, whatsapp_message_returning, whatsapp_poll_new, whatsapp_poll_returning, whatsapp_followup_returning, app_release_keep, whatsapp_poll_combined, whatsapp_combined_message FROM app_settings WHERE id = 1
+SELECT id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first, review_place_id, review_base_url, review_title, review_description, google_places_api_key, whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message, whatsapp_poll_question, whatsapp_poll_options, whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url, whatsapp_message_logo, whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad, google_reviews_enabled, whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_delete_for_me, whatsapp_delete_poll_for_me, upload_pages_follow_system, unknown_images_auto_delete, table_page_size, whatsapp_welcome_early, barcode_label_design, whatsapp_message_new, whatsapp_message_returning, whatsapp_poll_new, whatsapp_poll_returning, whatsapp_followup_returning, app_release_keep, whatsapp_poll_combined, whatsapp_combined_message, report_settings FROM app_settings WHERE id = 1
 `
 
 func (q *Queries) GetAppSettings(ctx context.Context) (AppSetting, error) {
@@ -88,8 +88,20 @@ func (q *Queries) GetAppSettings(ctx context.Context) (AppSetting, error) {
 		&i.AppReleaseKeep,
 		&i.WhatsappPollCombined,
 		&i.WhatsappCombinedMessage,
+		&i.ReportSettings,
 	)
 	return i, err
+}
+
+const getReportSettings = `-- name: GetReportSettings :one
+SELECT report_settings FROM app_settings WHERE id = 1
+`
+
+func (q *Queries) GetReportSettings(ctx context.Context) (json.RawMessage, error) {
+	row := q.db.QueryRowContext(ctx, getReportSettings)
+	var report_settings json.RawMessage
+	err := row.Scan(&report_settings)
+	return report_settings, err
 }
 
 const setAppReleaseKeep = `-- name: SetAppReleaseKeep :one
@@ -97,7 +109,7 @@ UPDATE app_settings
 SET app_release_keep = $1,
     updated_at = now()
 WHERE id = 1
-RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first, review_place_id, review_base_url, review_title, review_description, google_places_api_key, whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message, whatsapp_poll_question, whatsapp_poll_options, whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url, whatsapp_message_logo, whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad, google_reviews_enabled, whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_delete_for_me, whatsapp_delete_poll_for_me, upload_pages_follow_system, unknown_images_auto_delete, table_page_size, whatsapp_welcome_early, barcode_label_design, whatsapp_message_new, whatsapp_message_returning, whatsapp_poll_new, whatsapp_poll_returning, whatsapp_followup_returning, app_release_keep, whatsapp_poll_combined, whatsapp_combined_message
+RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first, review_place_id, review_base_url, review_title, review_description, google_places_api_key, whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message, whatsapp_poll_question, whatsapp_poll_options, whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url, whatsapp_message_logo, whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad, google_reviews_enabled, whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_delete_for_me, whatsapp_delete_poll_for_me, upload_pages_follow_system, unknown_images_auto_delete, table_page_size, whatsapp_welcome_early, barcode_label_design, whatsapp_message_new, whatsapp_message_returning, whatsapp_poll_new, whatsapp_poll_returning, whatsapp_followup_returning, app_release_keep, whatsapp_poll_combined, whatsapp_combined_message, report_settings
 `
 
 func (q *Queries) SetAppReleaseKeep(ctx context.Context, appReleaseKeep int32) (AppSetting, error) {
@@ -174,6 +186,7 @@ func (q *Queries) SetAppReleaseKeep(ctx context.Context, appReleaseKeep int32) (
 		&i.AppReleaseKeep,
 		&i.WhatsappPollCombined,
 		&i.WhatsappCombinedMessage,
+		&i.ReportSettings,
 	)
 	return i, err
 }
@@ -183,7 +196,7 @@ UPDATE app_settings
 SET barcode_label_design = $1,
     updated_at = now()
 WHERE id = 1
-RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first, review_place_id, review_base_url, review_title, review_description, google_places_api_key, whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message, whatsapp_poll_question, whatsapp_poll_options, whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url, whatsapp_message_logo, whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad, google_reviews_enabled, whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_delete_for_me, whatsapp_delete_poll_for_me, upload_pages_follow_system, unknown_images_auto_delete, table_page_size, whatsapp_welcome_early, barcode_label_design, whatsapp_message_new, whatsapp_message_returning, whatsapp_poll_new, whatsapp_poll_returning, whatsapp_followup_returning, app_release_keep, whatsapp_poll_combined, whatsapp_combined_message
+RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first, review_place_id, review_base_url, review_title, review_description, google_places_api_key, whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message, whatsapp_poll_question, whatsapp_poll_options, whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url, whatsapp_message_logo, whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad, google_reviews_enabled, whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_delete_for_me, whatsapp_delete_poll_for_me, upload_pages_follow_system, unknown_images_auto_delete, table_page_size, whatsapp_welcome_early, barcode_label_design, whatsapp_message_new, whatsapp_message_returning, whatsapp_poll_new, whatsapp_poll_returning, whatsapp_followup_returning, app_release_keep, whatsapp_poll_combined, whatsapp_combined_message, report_settings
 `
 
 func (q *Queries) SetBarcodeLabelDesign(ctx context.Context, barcodeLabelDesign json.RawMessage) (AppSetting, error) {
@@ -260,6 +273,7 @@ func (q *Queries) SetBarcodeLabelDesign(ctx context.Context, barcodeLabelDesign 
 		&i.AppReleaseKeep,
 		&i.WhatsappPollCombined,
 		&i.WhatsappCombinedMessage,
+		&i.ReportSettings,
 	)
 	return i, err
 }
@@ -270,7 +284,7 @@ SET product_autofill_rules = $1,
     product_autofill_code_layout = $2,
     updated_at = now()
 WHERE id = 1
-RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first, review_place_id, review_base_url, review_title, review_description, google_places_api_key, whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message, whatsapp_poll_question, whatsapp_poll_options, whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url, whatsapp_message_logo, whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad, google_reviews_enabled, whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_delete_for_me, whatsapp_delete_poll_for_me, upload_pages_follow_system, unknown_images_auto_delete, table_page_size, whatsapp_welcome_early, barcode_label_design, whatsapp_message_new, whatsapp_message_returning, whatsapp_poll_new, whatsapp_poll_returning, whatsapp_followup_returning, app_release_keep, whatsapp_poll_combined, whatsapp_combined_message
+RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first, review_place_id, review_base_url, review_title, review_description, google_places_api_key, whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message, whatsapp_poll_question, whatsapp_poll_options, whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url, whatsapp_message_logo, whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad, google_reviews_enabled, whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_delete_for_me, whatsapp_delete_poll_for_me, upload_pages_follow_system, unknown_images_auto_delete, table_page_size, whatsapp_welcome_early, barcode_label_design, whatsapp_message_new, whatsapp_message_returning, whatsapp_poll_new, whatsapp_poll_returning, whatsapp_followup_returning, app_release_keep, whatsapp_poll_combined, whatsapp_combined_message, report_settings
 `
 
 type SetProductAutofillRulesParams struct {
@@ -352,8 +366,18 @@ func (q *Queries) SetProductAutofillRules(ctx context.Context, arg SetProductAut
 		&i.AppReleaseKeep,
 		&i.WhatsappPollCombined,
 		&i.WhatsappCombinedMessage,
+		&i.ReportSettings,
 	)
 	return i, err
+}
+
+const setReportSettings = `-- name: SetReportSettings :exec
+UPDATE app_settings SET report_settings = $1, updated_at = now() WHERE id = 1
+`
+
+func (q *Queries) SetReportSettings(ctx context.Context, reportSettings json.RawMessage) error {
+	_, err := q.db.ExecContext(ctx, setReportSettings, reportSettings)
+	return err
 }
 
 const updateAppSettings = `-- name: UpdateAppSettings :one
@@ -372,7 +396,7 @@ SET financials_high_season_months = $1,
     table_page_size = $12,
     updated_at = now()
 WHERE id = 1
-RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first, review_place_id, review_base_url, review_title, review_description, google_places_api_key, whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message, whatsapp_poll_question, whatsapp_poll_options, whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url, whatsapp_message_logo, whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad, google_reviews_enabled, whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_delete_for_me, whatsapp_delete_poll_for_me, upload_pages_follow_system, unknown_images_auto_delete, table_page_size, whatsapp_welcome_early, barcode_label_design, whatsapp_message_new, whatsapp_message_returning, whatsapp_poll_new, whatsapp_poll_returning, whatsapp_followup_returning, app_release_keep, whatsapp_poll_combined, whatsapp_combined_message
+RETURNING id, financials_high_season_months, updated_at, activity_message_seconds, activity_display_mode, barcode_label_width, barcode_label_height, upcoming_events_days, upcoming_events_menu_days, hidden_builtin_events, default_low_stock_threshold, whatsapp_enabled, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_template_name, whatsapp_template_lang, whatsapp_template_params, product_autofill_enabled, product_autofill_rules, product_autofill_code_layout, whatsapp_message_cost_micros, whatsapp_webhook_verify_token, whatsapp_app_secret, email_resend_api_key, email_sender_name, email_sender_address, email_reply_to, email_default_recipients, email_business_name, email_csv_columns, email_attachment_format, email_group_by_register, email_oldest_first, review_place_id, review_base_url, review_title, review_description, google_places_api_key, whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridge_message, whatsapp_poll_question, whatsapp_poll_options, whatsapp_feedback_mode, whatsapp_bridge_link_message, whatsapp_channel_url, whatsapp_message_logo, whatsapp_followup, whatsapp_followup_good, whatsapp_followup_okay, whatsapp_followup_bad, google_reviews_enabled, whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_delete_for_me, whatsapp_delete_poll_for_me, upload_pages_follow_system, unknown_images_auto_delete, table_page_size, whatsapp_welcome_early, barcode_label_design, whatsapp_message_new, whatsapp_message_returning, whatsapp_poll_new, whatsapp_poll_returning, whatsapp_followup_returning, app_release_keep, whatsapp_poll_combined, whatsapp_combined_message, report_settings
 `
 
 type UpdateAppSettingsParams struct {
@@ -477,6 +501,7 @@ func (q *Queries) UpdateAppSettings(ctx context.Context, arg UpdateAppSettingsPa
 		&i.AppReleaseKeep,
 		&i.WhatsappPollCombined,
 		&i.WhatsappCombinedMessage,
+		&i.ReportSettings,
 	)
 	return i, err
 }

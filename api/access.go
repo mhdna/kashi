@@ -272,6 +272,7 @@ var routeRules = []routeRule{
 	rule("/sales_dashboard", "", "analytics"),
 	rule("/busy_hours", "", "analytics"),
 	rule("/reports", "", "analytics"),
+	rule("/reports/settings", "analytics", "analytics"),
 	rule("/sales_analysis", "", "analytics"),
 	rule("/salesperson_performance", "", "analytics"),
 	rule("/financials", "", "analytics"),

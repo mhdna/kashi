@@ -2,10 +2,7 @@
   <RptKpis v-if="has('payments') || has('discounts') || has('returns')" :items="kpis" />
 
   <RptSection v-if="has('payments')" :title="t('Payment methods')">
-    <RptGrid>
-      <RptChart :height="220" :option="paymentChart" />
-      <RptTable :columns="paymentColumns" compact :rows="payments" :total="paymentTotal" />
-    </RptGrid>
+    <RptTable :columns="paymentColumns" compact :rows="payments" :total="paymentTotal" />
   </RptSection>
 
   <RptSection v-if="has('discounts')" :title="t('Discounts')">
@@ -13,11 +10,6 @@
   </RptSection>
 
   <RptSection v-if="has('staffDiscounts')" :title="t('Discounts by salesperson')">
-    <RptChart
-      v-if="people.some(p => p.discount_total > 0)"
-      :height="Math.max(140, Math.min(people.length, CHART_ROWS) * 24 + 30)"
-      :option="discountChart"
-    />
     <RptTable :columns="personColumns" compact :rows="people" />
   </RptSection>
 
@@ -29,10 +21,8 @@
 <script setup>
   import { computed } from 'vue'
   import { t } from './reportI18n'
-  import { barOption, CHART_ROWS, csvSection, donutOption, int, money, pct, ratio } from './reportKit'
+  import { csvSection, int, money, pct, ratio } from './reportKit'
   import { salespersonRows } from './reportRows'
-  import RptChart from './RptChart.vue'
-  import RptGrid from './RptGrid.vue'
   import RptKpis from './RptKpis.vue'
   import RptSection from './RptSection.vue'
   import RptTable from './RptTable.vue'
@@ -66,7 +56,6 @@
     { key: 'amount', title: t('Amount'), type: 'money' },
     { key: 'share', title: t('Share'), type: 'pct', value: r => ratio(r.amount, paid.value) },
   ]
-  const paymentChart = computed(() => donutOption({ items: payments.value.map(p => ({ name: p.account_name, value: p.amount / 100 })) }))
 
   const discountColumns = [
     { key: 'name', title: t('Discount'), value: r => (r.name === 'Line discounts / deals' ? t('Line discounts / deals') : r.name) },
@@ -86,10 +75,6 @@
     { key: 'rate', title: t('Of list price'), type: 'pct' },
     { key: 'returns_total', title: t('Returns'), type: 'money' },
   ]
-  const discountChart = computed(() => {
-    const top = people.value.slice(0, CHART_ROWS)
-    return barOption({ categories: top.map(p => p.name), series: [{ name: t('Discounts'), data: top.map(p => p.discount_total / 100) }], kind: 'money', horizontal: true, labels: true })
-  })
 
   const branchColumns = [
     { key: 'branch_name', title: t('Branch') },

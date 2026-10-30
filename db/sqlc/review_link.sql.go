@@ -277,9 +277,20 @@ func (q *Queries) ListGoogleReviews(ctx context.Context, arg ListGoogleReviewsPa
 const lowPollRatings = `-- name: LowPollRatings :many
 SELECT m.id, m.poll_voted_at, m.poll_rating, m.poll_answer, m.client_name, m.client_phone,
        m.invoice_code, m.grand_total_cents, COALESCE(b.name, '')::text AS branch_name,
-       -- What they wrote back after the poll, oldest first.
+       -- What they wrote back to the follow-up question, oldest first
+       -- (the same answers PollReplies counts).
        COALESCE((SELECT string_agg(NULLIF(r.body, ''), E'\n' ORDER BY r.received_at)
-                 FROM whatsapp_poll_replies r WHERE r.whatsapp_message_id = m.id), '')::text AS replies
+                 FROM whatsapp_poll_replies r
+                 WHERE r.whatsapp_message_id = m.id
+                   AND m.poll_followup_at IS NOT NULL
+                   AND r.received_at >= m.poll_followup_at
+                   AND r.received_at < m.poll_followup_at + interval '24 hours'
+                   AND (r.kind <> 'text' OR r.body ~ '[^[:space:][:punct:]]')
+                   AND (SELECT count(*) FROM whatsapp_poll_replies e
+                        WHERE e.whatsapp_message_id = r.whatsapp_message_id
+                          AND e.received_at >= m.poll_followup_at
+                          AND (e.kind <> 'text' OR e.body ~ '[^[:space:][:punct:]]')
+                          AND (e.received_at, e.id) < (r.received_at, r.id)) < 3), '')::text AS replies
 FROM whatsapp_messages m
 LEFT JOIN branches b ON b.id = m.branch_id
 WHERE NOT m.is_test AND COALESCE(m.branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND m.poll_rating <= 2
@@ -552,6 +563,19 @@ JOIN whatsapp_messages m ON m.id = r.whatsapp_message_id
 LEFT JOIN branches b ON b.id = m.branch_id
 WHERE NOT m.is_test AND COALESCE(m.branch_id, 0) NOT IN (SELECT hb.id FROM branches hb WHERE hb.hidden_from_reports) AND r.received_at >= $1 AND r.received_at < $2
   AND ($3::bigint = 0 OR m.branch_id = $3)
+  -- Only answers to the follow-up question: written after it, within a
+  -- day, the client's first three messages, and more than punctuation. The
+  -- bridge reports everything a client writes after the poll, including
+  -- later small talk ("Hi", "Kifc") that isn't feedback.
+  AND m.poll_followup_at IS NOT NULL
+  AND r.received_at >= m.poll_followup_at
+  AND r.received_at < m.poll_followup_at + interval '24 hours'
+  AND (r.kind <> 'text' OR r.body ~ '[^[:space:][:punct:]]')
+  AND (SELECT count(*) FROM whatsapp_poll_replies e
+       WHERE e.whatsapp_message_id = r.whatsapp_message_id
+         AND e.received_at >= m.poll_followup_at
+         AND (e.kind <> 'text' OR e.body ~ '[^[:space:][:punct:]]')
+         AND (e.received_at, e.id) < (r.received_at, r.id)) < 3
 ORDER BY r.received_at DESC
 LIMIT 100
 `
