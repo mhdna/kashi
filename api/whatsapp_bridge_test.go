@@ -205,7 +205,7 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 		require.Equal(t, 1, calls, "no message before the poll")
 		require.NotEmpty(t, got["poll"])
 		require.Nil(t, got["image"])
-		require.Equal(t, "Hi Sara, thank you for shopping at Grand Bazaar today 🤍\n🧾 SA/CT/2026/00482 · 📅 "+
+		require.Equal(t, "Hi Sara,\nThank you for shopping at Grand Bazaar today 🤍\n🧾 SA/CT/2026/00482\n📅 "+
 			time.Now().In(businessZone).Format("02/01/2006")+"\n💳 $156.25\n\nHow was your visit today?", got["text"])
 	})
 
@@ -411,12 +411,12 @@ func TestWhatsAppCombinedPollText(t *testing.T) {
 	sender := db.GetWhatsAppSenderSettingsRow{}
 	at := time.Date(2026, 10, 29, 12, 0, 0, 0, businessZone)
 	values := whatsAppMessageValues(sender, nil, "Ahmad Saleh", "Centro", "GB-48213", 4250, at)
-	require.Equal(t, "Hi Ahmad, thank you for shopping at Grand Bazaar today 🤍\n🧾 GB-48213 · 📅 29/10/2026\n💳 $42.50\n\nHow was your visit today?",
+	require.Equal(t, "Hi Ahmad,\nThank you for shopping at Grand Bazaar today 🤍\n🧾 GB-48213\n📅 29/10/2026\n💳 $42.50\n\nHow was your visit today?",
 		whatsAppCombinedPollText(sender, values))
 
 	// Receipt details switched off ("channel first" for a new client): the greeting and the question.
 	values = whatsAppMessageValues(sender, whatsAppReceiptFields, "Ahmad", "Centro", "GB-48213", 4250, at)
-	require.Equal(t, "Hi Ahmad, thank you for shopping at Grand Bazaar today 🤍\n\nHow was your visit today?", whatsAppCombinedPollText(sender, values))
+	require.Equal(t, "Hi Ahmad,\nThank you for shopping at Grand Bazaar today 🤍\n\nHow was your visit today?", whatsAppCombinedPollText(sender, values))
 
 	// A saved text: WhatsApp's *bold* would show as stars in a poll, so they go.
 	sender.WhatsappCombinedMessage = "Thanks *{name}* ({total})"
