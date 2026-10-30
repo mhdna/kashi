@@ -1,5 +1,6 @@
 <template>
   <div class="rpt-kpis">
+    <RptHide class="rpt-kpis__hide" :part="part" />
     <div v-for="kpi in items" :key="kpi.label" class="rpt-kpi">
       <!-- What it is first, then the figure: the label names the answer
            ("Quietest weekday"), so it must not hide under the value. -->
@@ -12,5 +13,11 @@
 
 <script setup>
   // Headline numbers: [{ label, value, hint? }], value already formatted.
-  defineProps({ items: { type: Array, required: true } })
+  import RptHide from './RptHide.vue'
+
+  defineProps({
+    items: { type: Array, required: true },
+    // The part key, for its Hide button.
+    part: { type: String, default: '' },
+  })
 </script>

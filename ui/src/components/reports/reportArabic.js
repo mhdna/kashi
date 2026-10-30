@@ -50,7 +50,7 @@ export const AR = {
   'Returns': 'المرتجعات',
   'Discounts given': 'الخصومات الممنوحة',
   'Discounts': 'الخصومات',
-  'Customers served': 'الزبائن المخدومون',
+  'Customers served': 'إجمالي عدد الزبائن',
   'Biggest sale': 'أكبر بيعة',
   'Biggest': 'الأكبر',
   'Visitors (counter)': 'الزوار (العدّاد)',
@@ -320,12 +320,21 @@ export const AR = {
   'Per customer': 'لكل زبون',
   '{pct} · spent {amount}': '{pct} · أنفقوا {amount}',
   'Sales with a named customer, by weekday and hour on the till.': 'المبيعات المسجّلة باسم زبون، حسب اليوم والساعة على الصندوق.',
-  'Left out on purpose: {products} products (from item figures) and {clients} customers (from everything).':
-    'مستبعد عمداً: {products} منتج (من أرقام القطع) و{clients} زبون (من كل الأرقام).',
 
   // Busiest times
   'Busiest times': 'أكثر الأوقات ازدحاماً',
   'When': 'الوقت',
   'Sales a day': 'مبيعات في اليوم',
   'Net sales a day': 'صافي المبيعات في اليوم',
+  'Left out: {products} products, {clients} customers': 'مستبعد: {products} منتج، {clients} زبون',
+  'Hide': 'إخفاء',
+  'Show': 'إظهار',
+  'Hidden from the report ({n})': 'مخفي من التقرير ({n})',
+  'Hours worked each day.': 'ساعات العمل كل يوم.',
+  'hours worked, darker = longer': 'ساعات العمل، الأغمق = أطول',
+  'missing an IN or OUT punch': 'تنقصه بصمة دخول أو خروج',
+  'No punches': 'بدون بصمات',
+  'Attendance by employee': 'الحضور لكل موظف',
+  'By branch': 'حسب الفرع',
+  'Month calendar': 'تقويم الشهر',
 }
