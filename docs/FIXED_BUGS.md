@@ -42,3 +42,23 @@ and then applied to every price.
 
 **Fix.** The update passes `MaxPrice` (`db/sqlc/tx_discount_rules.go`).
 Test: `TestDealRuleFallback` saves a rule with a limit twice, by its id.
+
+## 2026-10-30 — `make seed` creates no branches and no branch invoices
+
+**Symptom:** on a fresh database `make seed` logged "failed to ensure branch …:
+column api_key_hash does not exist", then "no branches available, skipping
+branch invoices". With branches added by hand, every invoice failed with
+"null value in column register_id". The dashboard, home feed and every
+branch report were empty.
+
+**Cause:** `cmd/seed/main.go` predated the move of API keys from `branches` to
+`branch_registers`: it still wrote `branches.api_key_hash` and never set
+`branch_invoices.register_id`, which is now NOT NULL. Its branch codes
+(`BR-SEED-01`) also contained a dash, which a till refuses as a branch code.
+
+**Fix:** `ensureSeedBranches` creates branches with letters-only codes, a
+register for every branch that has none (sharing the branch's code, like a
+branch's first register), and returns branch and register pairs;
+`seedBranchInvoices` sets `register_id`. Checked by running the seed against a
+freshly migrated throwaway database: 5 branches and 1,000 branch invoices. No
+automated test covers the seed command.
