@@ -1,29 +1,32 @@
 <template>
-  <RptKpis :items="kpis" />
+  <RptKpis v-if="has('kpis.busy')" :items="kpis" part="kpis.busy" />
 
-  <template v-if="has('busy')">
-    <RptSection :note="t('Average sales per day at each weekday and hour, by the branch\'s own clock.')" :title="t('Sales by weekday and hour')">
-      <RptGrid template="3fr 2fr">
-        <RptChart :height="250" :option="heatChart" />
-        <RptCard :title="t('Busiest times')">
-          <RptTable :columns="slotColumns" compact :rows="topSlots" />
-        </RptCard>
-      </RptGrid>
-    </RptSection>
+  <RptSection
+    v-if="has('busy.heatmap') || has('busy.busiest')"
+    :note="t('Average sales per day at each weekday and hour, by the branch\'s own clock.')"
+    :part="['busy.heatmap', 'busy.busiest']"
+    :title="t('Sales by weekday and hour')"
+  >
+    <RptGrid template="3fr 2fr">
+      <RptChart v-if="has('busy.heatmap')" :height="250" :option="heatChart" />
+      <RptCard v-if="has('busy.busiest')" part="busy.busiest" :title="t('Busiest times')">
+        <RptTable :columns="slotColumns" compact :rows="topSlots" />
+      </RptCard>
+    </RptGrid>
+  </RptSection>
 
-    <RptSection :title="t('Through the day and the week')">
-      <RptGrid>
-        <RptCard :title="t('Sales per hour (average per day)')">
-          <RptChart :height="200" :option="hourCountChart" />
-        </RptCard>
-        <RptCard :title="t('Net sales per weekday (average per day)')">
-          <RptChart :height="200" :option="weekdayMoneyChart" />
-        </RptCard>
-      </RptGrid>
-    </RptSection>
-  </template>
+  <RptSection v-if="has('busy.hour') || has('busy.weekday')" :part="['busy.hour', 'busy.weekday']" :title="t('Through the day and the week')">
+    <RptGrid>
+      <RptCard v-if="has('busy.hour')" part="busy.hour" :title="t('Sales per hour (average per day)')">
+        <RptChart :height="200" :option="hourCountChart" />
+      </RptCard>
+      <RptCard v-if="has('busy.weekday')" part="busy.weekday" :title="t('Net sales per weekday (average per day)')">
+        <RptChart :height="200" :option="weekdayMoneyChart" />
+      </RptCard>
+    </RptGrid>
+  </RptSection>
 
-  <RptSection v-if="has('footfall')" :note="t('Customers in from the people counters, and the share of them who bought.')" :title="t('Footfall and conversion')">
+  <RptSection v-if="has('footfall')" :note="t('Customers in from the people counters, and the share of them who bought.')" part="footfall" :title="t('Footfall and conversion')">
     <template v-if="visitors > 0">
       <RptChart :height="200" :option="visitorsChart" />
       <RptChart :height="180" :option="conversionChart" />
@@ -114,7 +117,7 @@
 
   defineExpose({
     csv: () => [
-      has('busy') && csvSection(t('Sales by weekday and hour'), [
+      (has('busy.heatmap') || has('busy.busiest')) && csvSection(t('Sales by weekday and hour'), [
         { key: 'weekday', title: t('Weekday'), value: r => names[r.weekday - 1] },
         { key: 'hour', title: t('Hour'), value: r => hourLabel(r.hour) },
         { key: 'sales_count', title: t('Sales'), type: 'int' },

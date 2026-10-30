@@ -1,9 +1,7 @@
 <template>
   <p v-if="ctx.attendanceError" class="rpt-empty">{{ t('Attendance couldn\'t be loaded: {error}', { error: ctx.attendanceError }) }}</p>
   <template v-else>
-    <RptKpis :items="kpis" />
-
-    <RptSection v-if="has('hours')" :title="t('Hours per employee')">
+    <RptSection v-if="has('hours')" part="hours" :title="t('Hours per employee')">
       <RptTable :columns="summaryColumns" numbered :rows="people" :total="total" />
     </RptSection>
 
@@ -12,40 +10,47 @@
       <RptSection
         v-else
         :break-before="has('hours')"
-        :note="t('Hours worked each day. ! marks a day with a missing IN or OUT punch, so its hours are short.')"
-        :title="t('Month grid')"
+        :note="t('Hours worked each day.')"
+        part="grid"
+        :title="t('Month calendar')"
       >
-        <table class="rpt-table rpt-table--compact">
+        <table class="rpt-table rpt-table--compact rpt-calendar">
           <thead>
             <tr>
               <th>{{ t('Employee') }}</th>
-              <th v-for="d in gridDays" :key="d" class="rpt-right">{{ Number(d.slice(8)) }}<br>{{ weekdayInitial(d) }}</th>
+              <th v-for="d in gridDays" :key="d" class="rpt-cal-head">{{ Number(d.slice(8)) }}<br>{{ weekdayInitial(d) }}</th>
               <th class="rpt-right">{{ t('Total') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="p in people" :key="p.key">
               <td>{{ p.name }}</td>
-              <td v-for="d in gridDays" :key="d" class="rpt-right">{{ gridCell(p, d) }}</td>
+              <td v-for="d in gridDays" :key="d" class="rpt-cal-cell" :style="cellStyle(p, d)">{{ gridCell(p, d) }}</td>
               <td class="rpt-right"><strong>{{ num1(p.worked / 60) }}</strong></td>
             </tr>
           </tbody>
         </table>
+        <p class="rpt-note rpt-cal-legend">
+          <span class="rpt-cal-swatch" style="background: #a9c7ee" /> <span class="rpt-cal-swatch" style="background: #2a6fc2" /> {{ t('hours worked, darker = longer') }}
+          <span class="rpt-cal-swatch" style="background: #fde7d4; margin-inline-start: 12px" /> {{ t('missing an IN or OUT punch') }}
+        </p>
       </RptSection>
     </template>
 
+    <!-- One page per employee: every day of the period, the days with no
+         punches too, so it can go straight into a payroll file. -->
     <template v-if="has('detail')">
-      <RptSection
+      <section
         v-for="(p, index) in people"
         :key="p.key"
-        :break-before="index === 0 && (has('hours') || has('grid'))"
-        :title="`${p.name}${p.branch ? ` · ${p.branch}` : ''}`"
+        class="rpt-section rpt-person-page"
+        :class="{ 'rpt-section--break': index > 0 || has('hours') || has('grid') }"
       >
-        <p class="rpt-note">
-          {{ t('{days} days · {worked} worked · {avg} a day on average · breaks {breaks}', { days: p.days, worked: hours(p.worked), avg: hours(p.worked / (p.days || 1)), breaks: hours(p.breaks) }) }}<template v-if="p.incomplete"> · {{ t('{n} days with a missing punch', { n: p.incomplete }) }}</template>
-        </p>
-        <RptTable :columns="detailColumns" compact :rows="p.rows" />
-      </RptSection>
+        <h2 class="rpt-person-title">{{ p.name }}</h2>
+        <p v-if="branchOf(p)" class="rpt-note">{{ branchOf(p) }}</p>
+        <RptKpis :items="personKpis(p)" />
+        <RptTable :columns="detailColumns" compact :rows="dayRows(p)" :total="dayTotal(p)" />
+      </section>
     </template>
   </template>
 </template>
@@ -54,7 +59,7 @@
   import { computed } from 'vue'
   import { formatClock } from '@/utils/attendanceSessions'
   import { reportLang, t } from './reportI18n'
-  import { csvSection, daysBetween, hours, int, num1 } from './reportKit'
+  import { csvSection, dayLabel, daysBetween, hours, int, num1 } from './reportKit'
   import { timesheetRows } from './reportRows'
   import RptKpis from './RptKpis.vue'
   import RptSection from './RptSection.vue'
@@ -118,19 +123,12 @@
     return tt
   })
 
-  const kpis = computed(() => [
-    { label: t('Employees'), value: int(people.value.length) },
-    { label: t('Hours worked'), value: hours(total.value.worked) },
-    { label: t('Days worked'), value: int(total.value.days), hint: t('person-days') },
-    { label: t('Average day'), value: hours(total.value.worked / (total.value.days || 1)) },
-    { label: t('Days missing a punch'), value: int(total.value.incomplete) },
-  ])
 
   const summaryColumns = [
     { key: 'name', title: t('Employee') },
     ...(props.ctx.multiBranch ? [{ key: 'branch', title: t('Branch') }] : []),
     { key: 'days', title: t('Days'), type: 'int' },
-    { key: 'worked', title: t('Hours'), type: 'hours' },
+    { key: 'worked', title: t('Hours'), type: 'hours', strong: true },
     { key: 'avg', title: t('Avg / day'), type: 'hours' },
     { key: 'avgIn', title: t('Avg in') },
     { key: 'avgOut', title: t('Avg out') },
@@ -142,19 +140,51 @@
 
   const gridDays = computed(() => daysBetween(props.ctx.from, props.ctx.to))
   const weekdayInitial = d => new Date(`${d}T00:00:00`).toLocaleDateString(reportLang() === 'ar' ? 'ar-LB' : 'en-GB', { weekday: 'narrow' })
+  // The month as a shaded calendar: darker = longer day, so absences and
+  // short days show at a glance. A day missing its IN or OUT is orange and
+  // shows "!" when it has no hours to count.
+  const RAMP = ['#eef4fc', '#cfe0f6', '#a9c7ee', '#7eaee7', '#4f8fdc', '#2a6fc2', '#1d5fae']
   function gridCell (p, d) {
     const row = p.byDay[d]
     if (!row) {return ''}
-    return `${num1(row.worked / 60)}${row.incomplete ? '!' : ''}`
+    if (row.incomplete && row.worked < 1) {return '!'}
+    return num1(row.worked / 60)
+  }
+  function cellStyle (p, d) {
+    const row = p.byDay[d]
+    if (!row) {return {}}
+    if (row.incomplete) {return { background: '#fde7d4', color: '#8a4b00' }}
+    const i = Math.min(RAMP.length - 1, Math.floor(row.worked / 60 / 10 * RAMP.length))
+    return { background: RAMP[i], color: i >= 4 ? '#fff' : '#1f1f1e' }
   }
 
+
+  const noPunches = t('No punches')
   const detailColumns = [
-    { key: 'date', title: t('Date'), type: 'date' },
+    { key: 'date', title: t('Date'), value: r => (r.isTotal ? t('Total') : dayLabel(r.date)) },
     { key: 'spans', title: t('In – out') },
     { key: 'breaks', title: t('Breaks'), type: 'hours' },
     { key: 'worked', title: t('Worked'), type: 'hours' },
     { key: 'flag', title: '' },
   ]
+  const branchOf = p => props.ctx.branchNames[props.ctx.people.list.find(x => x.key === p.key)?.branchId] ?? p.branch
+  // Every day of the period; a day without punches shows as such.
+  function dayRows (p) {
+    const byDate = new Map(p.rows.map(r => [r.date, r]))
+    return gridDays.value.map(d => byDate.get(d) ?? { date: d, spans: '', breaks: null, worked: null, flag: noPunches })
+  }
+  const dayTotal = p => ({ isTotal: true, date: '', spans: '', breaks: p.breaks, worked: p.worked })
+  function personKpis (p) {
+    return [
+      { label: t('Days worked'), value: int(p.days) },
+      { label: t('Hours worked'), value: hours(p.worked) },
+      { label: t('Average day'), value: hours(p.avg) },
+      { label: t('Avg in'), value: p.avgIn || '—' },
+      { label: t('Avg out'), value: p.avgOut || '—' },
+      { label: t('Breaks'), value: hours(p.breaks) },
+      { label: t('Days missing a punch'), value: int(p.incomplete) },
+    ]
+  }
 
   defineExpose({
     csv: () => {

@@ -9,6 +9,8 @@ import sheetCss from '@/styles/report-sheet.css?raw'
 // which don't survive a DOM copy, so each is swapped for an image of itself.
 export async function printReport (sheet, { title, lang = 'en' }) {
   const copy = sheet.cloneNode(true)
+  // Buttons and lists that are only for working on the report on screen.
+  for (const el of copy.querySelectorAll('.rpt-screen-only')) {el.remove()}
   const charts = [...sheet.querySelectorAll('.rpt-chart')]
   const copies = [...copy.querySelectorAll('.rpt-chart')]
   for (const [i, chart] of charts.entries()) {

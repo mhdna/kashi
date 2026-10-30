@@ -1,19 +1,19 @@
 <template>
-  <RptKpis v-if="has('payments') || has('discounts') || has('returns')" :items="kpis" />
+  <RptKpis v-if="has('kpis.payments')" :items="kpis" part="kpis.payments" />
 
-  <RptSection v-if="has('payments')" :title="t('Payment methods')">
+  <RptSection v-if="has('payments')" part="payments" :title="t('Payment methods')">
     <RptTable :columns="paymentColumns" compact :rows="payments" :total="paymentTotal" />
   </RptSection>
 
-  <RptSection v-if="has('discounts')" :title="t('Discounts')">
+  <RptSection v-if="has('discounts')" part="discounts" :title="t('Discounts')">
     <RptTable :columns="discountColumns" compact :rows="data.discounts" />
   </RptSection>
 
-  <RptSection v-if="has('staffDiscounts')" :title="t('Discounts by salesperson')">
+  <RptSection v-if="has('staffDiscounts')" part="staffDiscounts" :title="t('Discounts by salesperson')">
     <RptTable :columns="personColumns" compact :rows="people" />
   </RptSection>
 
-  <RptSection v-if="has('returns')" :title="t('Returns and exchanges by branch')">
+  <RptSection v-if="has('returns')" part="returns" :title="t('Returns and exchanges by branch')">
     <RptTable :columns="branchColumns" compact :rows="data.branches" />
   </RptSection>
 </template>
@@ -54,7 +54,7 @@
     { key: 'account_name', title: t('Method') },
     { key: 'invoices', title: t('Invoices'), type: 'int' },
     { key: 'amount', title: t('Amount'), type: 'money' },
-    { key: 'share', title: t('Share'), type: 'pct', value: r => ratio(r.amount, paid.value) },
+    { key: 'share', title: t('Share'), type: 'pct', bar: true, value: r => ratio(r.amount, paid.value) },
   ]
 
   const discountColumns = [

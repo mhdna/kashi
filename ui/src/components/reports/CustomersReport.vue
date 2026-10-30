@@ -1,11 +1,11 @@
 <template>
-  <RptKpis :items="kpis" />
+  <RptKpis v-if="has('kpis.customers')" :items="kpis" part="kpis.customers" />
 
-  <RptSection v-if="has('best')" :title="t('Best customers (top {n})', { n: topN })">
+  <RptSection v-if="has('best')" part="best" :title="t('Best customers (top {n})', { n: topN })">
     <RptTable :columns="topColumns" :limit="topN" numbered :rows="clients" />
   </RptSection>
 
-  <RptSection v-if="has('frequent')" :title="t('Most frequent visitors')">
+  <RptSection v-if="has('frequent')" part="frequent" :title="t('Most frequent visitors')">
     <RptTable
       :columns="frequentColumns"
       compact
@@ -15,26 +15,32 @@
     />
   </RptSection>
 
-  <RptSection v-if="has('who')" :break-before="has('best')" :title="t('Who they are')">
-    <RptCard :note="t('Customers by how many times they bought in the period.')" :title="t('By number of visits')">
+  <RptSection
+    v-if="has('who.visits') || has('who.spend') || has('who.home')"
+    :break-before="has('best')"
+    :part="['who.visits', 'who.spend', 'who.home']"
+    :title="t('Who they are')"
+  >
+    <RptCard v-if="has('who.visits')" :note="t('Customers by how many times they bought in the period.')" part="who.visits" :title="t('By number of visits')">
       <RptTable :columns="visitColumns" compact :rows="visitRows" />
     </RptCard>
-    <RptCard :note="t('Customers by what they spent in the period, net of returns.')" :title="t('By amount spent')">
+    <RptCard v-if="has('who.spend')" :note="t('Customers by what they spent in the period, net of returns.')" part="who.spend" :title="t('By amount spent')">
       <RptTable :columns="spendColumns" compact :rows="spendRows" />
     </RptCard>
-    <RptCard v-if="homeRows.length > 1" :title="t('Customers by home branch')">
+    <RptCard v-if="has('who.home') && homeRows.length > 1" part="who.home" :title="t('Customers by home branch')">
       <RptTable :columns="homeColumns" compact :rows="homeRows" />
     </RptCard>
   </RptSection>
 
   <RptSection
-    v-if="has('when')"
+    v-if="has('when.heatmap') || has('when.busiest')"
     :note="t('Sales with a named customer, by weekday and hour on the till.')"
+    :part="['when.heatmap', 'when.busiest']"
     :title="t('When customers come')"
   >
     <RptGrid template="3fr 2fr">
-      <RptChart :height="250" :option="heatChart" />
-      <RptCard :title="t('Busiest times')">
+      <RptChart v-if="has('when.heatmap')" :height="250" :option="heatChart" />
+      <RptCard v-if="has('when.busiest')" part="when.busiest" :title="t('Busiest times')">
         <RptTable :columns="slotColumns" compact :rows="topSlots" />
       </RptCard>
     </RptGrid>
@@ -135,7 +141,7 @@
       { key: 'customers', title: t('Customers'), type: 'int' },
       { key: 'customerShare', title: t('% of customers'), type: 'pct' },
       { key: 'spent', title: t('Spent'), type: 'money' },
-      { key: 'spentShare', title: t('% of spend'), type: 'pct' },
+      { key: 'spentShare', title: t('% of spend'), type: 'pct', bar: true },
       { key: 'perCustomer', title: t('Per customer'), type: 'money' },
     ]
   }
@@ -171,7 +177,7 @@
   ]
 
   defineExpose({
-    csv: () => (has('best') || has('frequent') || has('who')
+    csv: () => (has('best') || has('frequent') || has('who.visits') || has('who.spend')
       ? [csvSection(t('Customers'), [
         { key: 'name', title: t('Customer') },
         ...topColumns.slice(1),

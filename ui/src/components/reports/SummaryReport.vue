@@ -1,26 +1,31 @@
 <template>
-  <RptKpis :items="kpis" />
+  <RptKpis v-if="has('kpis.summary')" :items="kpis" part="kpis.summary" />
 
-  <RptSection v-if="has('days')" :note="t('Net sales are sales less returns and exchange refunds.')" :title="t('Sales day by day')">
-    <RptChart :height="220" :option="dailyChart" />
+  <RptSection
+    v-if="has('days.chart') || has('days.weekday') || has('days.best')"
+    :note="t('Net sales are sales less returns and exchange refunds.')"
+    :part="['days.chart', 'days.weekday', 'days.best']"
+    :title="t('Sales day by day')"
+  >
+    <RptChart v-if="has('days.chart')" :height="220" :option="dailyChart" />
     <RptGrid>
-      <RptCard :title="t('Average net sales by weekday')">
+      <RptCard v-if="has('days.weekday')" part="days.weekday" :title="t('Average net sales by weekday')">
         <RptChart :height="190" :option="weekdayChart" />
       </RptCard>
-      <RptCard :title="t('Best and slowest days')">
+      <RptCard v-if="has('days.best')" part="days.best" :title="t('Best and slowest days')">
         <RptTable :columns="dayColumns" compact :rows="bestDays" />
         <RptTable v-if="slowDays.length > 0" :columns="dayColumns" compact :rows="slowDays" />
       </RptCard>
     </RptGrid>
   </RptSection>
 
-  <RptSection v-if="has('branches') && data.branches.length > 1" :title="t('Branches')">
+  <RptSection v-if="has('branches') && data.branches.length > 1" part="branches" :title="t('Branches')">
     <RptTable :columns="branchColumns" compact :rows="data.branches" :total="branchTotal" />
   </RptSection>
 
-  <RptSection v-if="has('sold')" :title="t('What sold')">
+  <RptSection v-if="has('sold.products') || has('sold.categories')" :part="['sold.products', 'sold.categories']" :title="t('What sold')">
     <RptGrid>
-      <RptCard :title="t('Top 10 products by net sales')">
+      <RptCard v-if="has('sold.products')" part="sold.products" :title="t('Top 10 products by net sales')">
         <RptTable
           :columns="productColumns"
           compact
@@ -29,15 +34,15 @@
           :rows="namedProducts"
         />
       </RptCard>
-      <RptCard :title="t('Categories')">
+      <RptCard v-if="has('sold.categories')" part="sold.categories" :title="t('Categories')">
         <RptChart :height="200" :option="categoryChart" />
       </RptCard>
     </RptGrid>
   </RptSection>
 
-  <RptSection v-if="has('people')" :title="t('People and payments')">
+  <RptSection v-if="has('people.salespersons') || has('people.payments')" :part="['people.salespersons', 'people.payments']" :title="t('People and payments')">
     <RptGrid>
-      <RptCard :title="t('Top salespersons')">
+      <RptCard v-if="has('people.salespersons')" part="people.salespersons" :title="t('Top salespersons')">
         <RptTable
           :columns="salespersonColumns"
           compact
@@ -46,7 +51,7 @@
           :rows="salespersons"
         />
       </RptCard>
-      <RptCard :title="t('Payment methods')">
+      <RptCard v-if="has('people.payments')" part="people.payments" :title="t('Payment methods')">
         <RptTable :columns="paymentColumns" compact :rows="data.payment_methods" />
       </RptCard>
     </RptGrid>
@@ -120,7 +125,7 @@
   const dayColumns = [
     { key: 'day', title: t('Day'), type: 'date' },
     { key: 'sales_count', title: t('Sales'), type: 'int' },
-    { key: 'net_total', title: t('Net sales'), type: 'money' },
+    { key: 'net_total', title: t('Net sales'), type: 'money', strong: true },
   ]
   const sellingDays = computed(() => days.value.filter(d => d.sales_count > 0).toSorted((a, b) => b.net_total - a.net_total))
   const bestDays = computed(() => sellingDays.value.slice(0, 5))
@@ -130,8 +135,8 @@
   const branchColumns = [
     { key: 'branch_name', title: t('Branch') },
     { key: 'sales_count', title: t('Sales'), type: 'int' },
-    { key: 'net_total', title: t('Net sales'), type: 'money' },
-    { key: 'share', title: t('Share'), type: 'pct', value: r => ratio(r.net_total, s.value.net_total) },
+    { key: 'net_total', title: t('Net sales'), type: 'money', strong: true },
+    { key: 'share', title: t('Share'), type: 'pct', bar: true, value: r => ratio(r.net_total, s.value.net_total) },
   ]
   const branchTotal = computed(() => ({ branch_name: t('Total'), sales_count: s.value.sales_count, net_total: s.value.net_total, share: 1 }))
 
@@ -139,7 +144,7 @@
   const productColumns = [
     { key: 'product_name', title: t('Product'), value: r => r.product_name || r.product_code },
     { key: 'quantity', title: t('Units'), type: 'int' },
-    { key: 'revenue', title: t('Net sales'), type: 'money' },
+    { key: 'revenue', title: t('Net sales'), type: 'money', strong: true },
   ]
   const categoryChart = computed(() => donutOption({ items: categoryRows(data.value.products).map(c => ({ name: c.category, value: c.revenue / 100 })) }))
 
@@ -148,7 +153,7 @@
     { key: 'name', title: t('Salesperson') },
     ...(props.ctx.multiBranch ? [{ key: 'branch', title: t('Branch') }] : []),
     { key: 'sales_count', title: t('Sales'), type: 'int' },
-    { key: 'net_total', title: t('Net sales'), type: 'money' },
+    { key: 'net_total', title: t('Net sales'), type: 'money', strong: true },
   ]
   const paymentColumns = [
     { key: 'account_name', title: t('Method') },
@@ -158,11 +163,11 @@
 
   defineExpose({
     csv: () => [
-      has('days') && csvSection(t('Days'), [...dayColumns, { key: 'visitors', title: t('Visitors'), type: 'int' }], days.value),
+      (has('days.chart') || has('days.best')) && csvSection(t('Days'), [...dayColumns, { key: 'visitors', title: t('Visitors'), type: 'int' }], days.value),
       has('branches') && csvSection(t('Branches'), branchColumns, data.value.branches),
-      has('sold') && csvSection(t('Products'), productColumns, namedProducts.value),
-      has('people') && csvSection(t('Salespersons'), salespersonColumns, salespersons.value),
-      has('people') && csvSection(t('Payment methods'), paymentColumns, data.value.payment_methods),
+      has('sold.products') && csvSection(t('Products'), productColumns, namedProducts.value),
+      has('people.salespersons') && csvSection(t('Salespersons'), salespersonColumns, salespersons.value),
+      has('people.payments') && csvSection(t('Payment methods'), paymentColumns, data.value.payment_methods),
     ].filter(Boolean),
   })
 </script>

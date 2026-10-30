@@ -1,9 +1,10 @@
 <template>
-  <RptKpis :items="kpis" />
+  <RptKpis v-if="has('kpis.salespersons')" :items="kpis" part="kpis.salespersons" />
 
   <RptSection
     v-if="has('ranking')"
     :note="hasHours ? t('Hours come from attendance punches, matched by the salesperson\'s device number (or same name and branch).') : ''"
+    part="ranking"
     :title="t('Ranking')"
   >
     <RptTable
@@ -15,27 +16,14 @@
     />
   </RptSection>
 
-  <template v-if="rows.length > 0">
-    <RptSection v-if="has('charts')" :break-before="has('ranking')" :title="t('Who sold what')">
-      <RptGrid>
-        <RptCard :title="t('Net sales')">
-          <RptChart :height="chartHeight" :option="netChart" />
-        </RptCard>
-        <RptCard v-if="hasHours" :title="t('Net sales per hour worked')">
-          <RptChart :height="chartHeight" :option="perHourChart" />
-        </RptCard>
-      </RptGrid>
-    </RptSection>
-
-
-    <RptSection
-      v-if="has('categories') && hasCategories"
-      :note="t('Units sold by product category; lines whose product isn\'t known to kashi are left out.')"
-      :title="t('Category mix')"
-    >
-      <RptChart :height="chartHeight + 30" :option="categoryChart" />
-    </RptSection>
-  </template>
+  <RptSection
+    v-if="has('categories') && hasCategories && rows.length > 0"
+    :note="t('Units sold by product category; lines whose product isn\'t known to kashi are left out.')"
+    part="categories"
+    :title="t('Category mix')"
+  >
+    <RptChart :height="chartHeight + 30" :option="categoryChart" />
+  </RptSection>
 </template>
 
 <script setup>
@@ -52,7 +40,7 @@
 
   // How each salesperson did: sales, invoices, average sale, items, returns,
   // discounts, customers -- and, where their attendance is known, sales per
-  // hour worked. Parts: ranking, charts, categories.
+  // hour worked. Parts: ranking, categories.
   const props = defineProps({
     ctx: { type: Object, required: true },
     parts: { type: Array, required: true },
@@ -112,8 +100,8 @@
     { key: 'name', title: t('Salesperson') },
     ...(props.ctx.multiBranch ? [{ key: 'branch', title: t('Branch') }] : []),
     { key: 'sales_count', title: t('Sales'), type: 'int' },
-    { key: 'net_total', title: t('Net sales'), type: 'money' },
-    { key: 'share', title: t('Share'), type: 'pct' },
+    { key: 'net_total', title: t('Net sales'), type: 'money', strong: true },
+    { key: 'share', title: t('Share'), type: 'pct', bar: true },
     { key: 'avg', title: t('Avg sale'), type: 'money' },
     { key: 'items_sold', title: t('Items'), type: 'int' },
     { key: 'items_per_sale', title: t('Items/sale'), type: 'num1' },
@@ -122,7 +110,7 @@
     { key: 'discount_rate', title: t('Disc. %'), type: 'pct' },
     { key: 'clients_served', title: t('Customers'), type: 'int' },
     { key: 'biggest_sale', title: t('Biggest'), type: 'money' },
-    { key: 'worked', title: t('Hours'), type: 'hours' },
+    { key: 'worked', title: t('Hours'), type: 'hours', strong: true },
     { key: 'per_hour', title: t('$/hour'), type: 'money' },
   ]
   // Hours columns only once someone's attendance is known.
@@ -134,9 +122,6 @@
   const chartRows = computed(() => rows.value.slice(0, CHART_ROWS))
   const chartHeight = computed(() => Math.max(150, chartRows.value.length * 24 + 30))
   const names = computed(() => chartRows.value.map(r => r.name))
-  const hbar = (name, pick, kind) => barOption({ categories: names.value, series: [{ name, data: chartRows.value.map(r => pick(r)) }], kind, horizontal: true, labels: true })
-  const netChart = computed(() => hbar(t('Net sales'), r => r.net_total / 100, 'money'))
-  const perHourChart = computed(() => hbar(t('Net sales per hour worked'), r => (r.per_hour ?? 0) / 100, 'money'))
 
 
   const categoryChart = computed(() => {
@@ -156,5 +141,5 @@
     return barOption({ categories: names.value, series, horizontal: true, stack: true })
   })
 
-  defineExpose({ csv: () => (has('ranking') || has('charts') ? [csvSection(t('Salespersons'), shownColumns.value, rows.value)] : []) })
+  defineExpose({ csv: () => (has('ranking') ? [csvSection(t('Salespersons'), shownColumns.value, rows.value)] : []) })
 </script>
