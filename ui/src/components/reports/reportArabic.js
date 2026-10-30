@@ -322,4 +322,10 @@ export const AR = {
   'Sales with a named customer, by weekday and hour on the till.': 'المبيعات المسجّلة باسم زبون، حسب اليوم والساعة على الصندوق.',
   'Left out on purpose: {products} products (from item figures) and {clients} customers (from everything).':
     'مستبعد عمداً: {products} منتج (من أرقام القطع) و{clients} زبون (من كل الأرقام).',
+
+  // Busiest times
+  'Busiest times': 'أكثر الأوقات ازدحاماً',
+  'When': 'الوقت',
+  'Sales a day': 'مبيعات في اليوم',
+  'Net sales a day': 'صافي المبيعات في اليوم',
 }
