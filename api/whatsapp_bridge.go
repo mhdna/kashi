@@ -62,7 +62,7 @@ const (
 // The purchase details as the poll's own text (whatsapp_poll_combined), the
 // poll's question added below. A poll is plain text: no *bold*, no banner, no
 // link to tap, and WhatsApp cuts a long one, so it's short and has no channel.
-const defaultWhatsAppCombinedMessage = "Hi {name}, thank you for shopping at Grand Bazaar today 🤍\n🧾 {invoice} · 📅 {date}\n💳 {total}"
+const defaultWhatsAppCombinedMessage = "Hi {name},\nThank you for shopping at Grand Bazaar today 🤍\n🧾 {invoice}\n📅 {date}\n💳 {total}"
 
 // whatsAppPollTextLimit is about where WhatsApp cuts a poll's question.
 const whatsAppPollTextLimit = 255
