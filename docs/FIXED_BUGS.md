@@ -3,6 +3,21 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-10-30 · Small talk showed up as poll feedback
+
+**Symptom.** The Reviews page and the customer feedback report listed
+"Hi", "Kifc", "." and other chat as customers' replies to the rating poll.
+
+**Cause.** The WhatsApp bridge reports every message a client writes after
+a poll, and `PollReplies` / `LowPollRatings` showed all of them, however
+late and whatever they said.
+
+**Fix.** Only answers to the follow-up question count: written after it was
+sent, within 24 hours, the client's first three messages with more than
+punctuation (`db/query/review_link.sql`). The messages are still stored.
+Checked with throwaway rows in a rolled-back transaction against a local
+database; no automated test covers it.
+
 ## 2026-10-30 · Salespersons couldn't be renamed
 
 **Symptom.** Renaming a salesperson ("Ahmad Robai" to "Ahmad Robaie") failed
