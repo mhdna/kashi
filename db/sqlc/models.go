@@ -550,6 +550,8 @@ type AppSetting struct {
 	WhatsappPollCombined       bool            `json:"whatsapp_poll_combined"`
 	WhatsappCombinedMessage    string          `json:"whatsapp_combined_message"`
 	ReportSettings             json.RawMessage `json:"report_settings"`
+	WhatsappMessageGapMinutes  int32           `json:"whatsapp_message_gap_minutes"`
+	WhatsappPollEveryHours     int32           `json:"whatsapp_poll_every_hours"`
 }
 
 type AppUpdateEvent struct {
