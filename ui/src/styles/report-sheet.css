@@ -9,7 +9,7 @@
   padding: 28px 32px;
   background: #fff;
   color: #1f1f1e;
-  font-family: Roboto, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: Roboto, 'IBM Plex Sans Arabic', system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
   font-size: 11px;
   line-height: 1.45;
 }
@@ -26,7 +26,7 @@
 }
 .rpt-title { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
 .rpt-subtitle { margin: 2px 0 0; color: #52514e; font-size: 12px; }
-.rpt-meta { text-align: right; color: #52514e; font-size: 10px; }
+.rpt-meta { text-align: end; color: #52514e; font-size: 10px; }
 .rpt-meta strong { color: #1f1f1e; }
 
 .rpt-section { margin: 0 0 18px; }
@@ -68,7 +68,7 @@
   color: #52514e;
   font-size: 9.5px;
   font-weight: 600;
-  text-align: left;
+  text-align: start;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   white-space: nowrap;
@@ -78,12 +78,29 @@
 .rpt-table tfoot td { border-top: 1.5px solid #1f1f1e; border-bottom: none; font-weight: 700; }
 .rpt-table tr { break-inside: avoid; }
 .rpt-table--compact td, .rpt-table--compact th { padding: 2px 3px; font-size: 9px; }
-.rpt-table .rpt-right { text-align: right; white-space: nowrap; }
-.rpt-table .rpt-num { width: 22px; color: #8a8984; text-align: right; }
+.rpt-table .rpt-right { text-align: end; white-space: nowrap; }
+.rpt-table .rpt-num { width: 22px; color: #8a8984; text-align: end; }
 
 .rpt-person { break-inside: avoid; margin-bottom: 14px; }
 .rpt-tag { display: inline-block; padding: 0 6px; border-radius: 8px; background: #eef4fc; color: #1d5fae; font-size: 9.5px; }
 .rpt-tag--warn { background: #fdf1e3; color: #8a4b00; }
-.rpt-quote { margin: 0 0 6px; padding: 4px 10px; border-left: 3px solid #e6e5e1; break-inside: avoid; }
+.rpt-quote { margin: 0 0 6px; padding: 4px 10px; border-inline-start: 3px solid #e6e5e1; break-inside: avoid; }
 .rpt-quote__meta { color: #6d6c68; font-size: 9.5px; }
 .rpt-footer { margin-top: 18px; padding-top: 6px; border-top: 1px solid #e6e5e1; color: #8a8984; font-size: 9px; }
+
+/* Arabic sheets: Plex Arabic first, a little more line height for its
+   taller letters, and no all-caps tracking (Arabic has no case). */
+.rpt-sheet[dir="rtl"] { font-family: 'IBM Plex Sans Arabic', Roboto, Tahoma, sans-serif; line-height: 1.6; }
+.rpt-sheet[dir="rtl"] .rpt-table th { text-transform: none; letter-spacing: 0; font-size: 10px; }
+.rpt-sheet[dir="rtl"] .rpt-title { letter-spacing: 0; }
+/* Figures (amounts, percentages, hours) are laid out left-to-right so a
+   minus sign or unit stays where it belongs; they line up on the left, the
+   end of an Arabic row. Names take the direction of their own script, so
+   "Omar H." keeps its full stop at the end. */
+.rpt-sheet[dir="rtl"] .rpt-table .rpt-right { direction: ltr; text-align: left; }
+.rpt-sheet[dir="rtl"] .rpt-table td:not(.rpt-right) { unicode-bidi: plaintext; text-align: right; }
+.rpt-sheet[dir="rtl"] .rpt-kpi__value { unicode-bidi: plaintext; text-align: right; }
+
+/* Parts of one report: each block after the first starts a new page. */
+.rpt-block + .rpt-block { break-before: page; }
+.rpt-block-title { margin: 0 0 10px; font-size: 16px; font-weight: 700; }

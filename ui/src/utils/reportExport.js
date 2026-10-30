@@ -1,12 +1,13 @@
 // Exports for the Reports page: the on-screen sheet to PDF (through the
 // browser's print dialog, "Save as PDF") and its tables to CSV.
 
+import { reportFontCss } from '@/components/reports/reportFonts'
 import sheetCss from '@/styles/report-sheet.css?raw'
 
 // Prints a copy of the sheet from a hidden frame, so the app's own layout
 // (nav, scroll containers) never reaches the paper. Charts are canvases,
 // which don't survive a DOM copy, so each is swapped for an image of itself.
-export async function printReport (sheet, { title, landscape = false }) {
+export async function printReport (sheet, { title, landscape = false, lang = 'en' }) {
   const copy = sheet.cloneNode(true)
   const charts = [...sheet.querySelectorAll('.rpt-chart')]
   const copies = [...copy.querySelectorAll('.rpt-chart')]
@@ -23,7 +24,8 @@ export async function printReport (sheet, { title, landscape = false }) {
   document.body.append(frame)
   const doc = frame.contentDocument
   doc.open()
-  doc.write(`<!doctype html><html><head><meta charset="utf-8"><title></title><style>
+  doc.write(`<!doctype html><html lang="${lang}" dir="${lang === 'ar' ? 'rtl' : 'ltr'}"><head><meta charset="utf-8"><title></title><style>
+    ${reportFontCss}
     @page { size: A4 ${landscape ? 'landscape' : 'portrait'}; margin: 10mm; }
     html, body { margin: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     ${sheetCss}
@@ -33,6 +35,7 @@ export async function printReport (sheet, { title, landscape = false }) {
   doc.title = title
   doc.body.append(doc.importNode(copy, true))
   await Promise.all([...doc.images].map(img => img.decode().catch(() => {})))
+  await doc.fonts.ready
 
   // Chrome names the PDF after the top document's title.
   const previousTitle = document.title

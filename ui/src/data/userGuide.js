@@ -450,10 +450,12 @@ export const guideSections = [
     ]),
 
   entry('reports', 'Analysis', 'Reports',
-    'End-of-month (or any period) reports to print or save as PDF: overview, attendance and hours, salesperson performance, customers, customer feedback, products and categories, busy times, payments and discounts, and branch comparison.',
+    'End-of-month (or any period) reports to print or save as PDF, in English or Arabic: a monthly overview, customers (with busy times and feedback), salespersons & attendance, and sales & goods.',
     [
-      'Pick a report on the left, then the period, branches and (for attendance and salespersons) employees.',
-      '<b>Export PDF</b> opens the print dialog: choose <b>Save as PDF</b>. <b>CSV</b> downloads the report\'s tables for Excel.',
+      'Pick a report on the left and tick the parts you want in it -- for example only the attendance parts of the salespersons report. Your choice is remembered per report.',
+      'Choose the period, branches and (for salespersons) employees.',
+      'The <b>EN / عربي</b> switch draws the whole report in Arabic, right to left.',
+      '<b>Export PDF</b> opens the print dialog: choose <b>Save as PDF</b>. <b>CSV</b> downloads the tables of the ticked parts for Excel.',
       'Salesperson performance shows sales per hour worked when the salesperson\'s attendance device number is set.',
     ]),
 
