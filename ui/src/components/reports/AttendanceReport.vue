@@ -85,7 +85,7 @@
     for (const row of rows.value) {
       let p = byPerson.get(row.person)
       if (!p) {
-        p = { key: row.person, name: row.name, branch: props.ctx.multiBranch ? props.ctx.branchNames[row.branchId] : '', days: 0, worked: 0, breaks: 0, incomplete: 0, longest: 0, ins: [], outs: [], byDay: {}, rows: [] }
+        p = { key: row.person, name: props.ctx.people.nameOf(row.person) ?? row.name, branch: props.ctx.multiBranch ? props.ctx.branchNames[row.branchId] : '', days: 0, worked: 0, breaks: 0, incomplete: 0, longest: 0, ins: [], outs: [], byDay: {}, rows: [] }
         byPerson.set(row.person, p)
       }
       p.days++
