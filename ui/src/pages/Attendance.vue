@@ -23,6 +23,12 @@
           @click="openRequests"
         />
         <v-btn
+          prepend-icon="mdi-file-chart-outline"
+          text="Hours report"
+          to="/reports?report=attendance"
+          variant="tonal"
+        />
+        <v-btn
           prepend-icon="mdi-refresh"
           text="Sync from POS"
           variant="text"
