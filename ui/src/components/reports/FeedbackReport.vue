@@ -4,29 +4,36 @@
     <p v-if="ctx.branchIds.length > 1" class="rpt-note">
       {{ t('Feedback can be shown for one branch or for all of them; with several branches picked this covers every branch.') }}
     </p>
-    <RptKpis :items="kpis" />
+    <RptKpis v-if="has('kpis.feedback')" :items="kpis" part="kpis.feedback" />
     <p v-if="!totals.polls && !funnel.with_link && places.length === 0" class="rpt-empty">
       {{ t('No feedback was collected in this period: no rating polls or review links went out, and no Google place is set up.') }}
     </p>
 
-    <RptSection v-if="has('ratings') && totals.answers > 0" :note="t('Answers to the rating poll sent on WhatsApp after a sale.')" :title="t('How customers rated us')">
+    <RptSection
+      v-if="(has('ratings.answers') || has('ratings.daily') || has('ratings.branches')) && totals.answers > 0"
+      :note="t('Answers to the rating poll sent on WhatsApp after a sale.')"
+      :part="['ratings.answers', 'ratings.daily', 'ratings.branches']"
+      :title="t('How customers rated us')"
+    >
       <RptGrid>
-        <RptCard :title="t('Answers')">
+        <RptCard v-if="has('ratings.answers')" part="ratings.answers" :title="t('Answers')">
           <RptTable :columns="answerColumns" compact :rows="answerRows" />
         </RptCard>
-        <RptCard :title="t('Answers by day')">
+        <RptCard v-if="has('ratings.daily')" part="ratings.daily" :title="t('Answers by day')">
           <RptChart :height="200" :option="dailyChart" />
         </RptCard>
       </RptGrid>
-      <RptTable v-if="ratingBranches.length > 1" :columns="branchColumns" compact :rows="ratingBranches" />
+      <RptCard v-if="has('ratings.branches') && ratingBranches.length > 1" part="ratings.branches" :title="t('By branch')">
+        <RptTable :columns="branchColumns" compact :rows="ratingBranches" />
+      </RptCard>
     </RptSection>
 
-    <template v-if="has('reviews')">
-      <RptSection v-if="funnel.with_link > 0" :note="t('Post-sale WhatsApp messages carrying the Google review link.')" :title="t('Review requests')">
+    <template v-if="has('reviews.funnel') || has('reviews.google')">
+      <RptSection v-if="has('reviews.funnel') && funnel.with_link > 0" :note="t('Post-sale WhatsApp messages carrying the Google review link.')" part="reviews.funnel" :title="t('Review requests')">
         <RptTable :columns="funnelColumns" compact :rows="funnelRows" />
       </RptSection>
 
-      <RptSection v-if="places.length > 0" :title="t('Google')">
+      <RptSection v-if="has('reviews.google') && places.length > 0" part="reviews.google" :title="t('Google')">
         <RptTable :columns="placeColumns" compact :rows="places" />
         <template v-if="googleReviews.length > 0">
           <h3 class="rpt-h3">{{ t('Latest Google reviews') }}</h3>
@@ -38,23 +45,37 @@
       </RptSection>
     </template>
 
-    <RptSection v-if="has('unhappy') && low.length > 0" :note="t('Customers who gave the lowest answers -- worth a call.')" :title="t('Unhappy customers')">
+    <RptSection v-if="has('unhappy') && low.length > 0" :note="t('Customers who gave the lowest answers -- worth a call.')" part="unhappy" :title="t('Unhappy customers')">
       <RptTable :columns="lowColumns" compact :rows="low" />
     </RptSection>
 
     <RptSection
-      v-if="has('replies') && replies.length > 0"
+      v-if="has('replies') && (shownReplies.length > 0 || hiddenList.length > 0)"
       :note="t('Only answers to the follow-up question, within a day of it.')"
+      part="replies"
       :title="t('What customers wrote back')"
     >
-      <blockquote v-for="reply in replies.slice(0, 40)" :key="reply.id" class="rpt-quote">
+      <blockquote v-for="reply in shownReplies.slice(0, 40)" :key="reply.id" class="rpt-quote">
         <div>{{ reply.body || `(${reply.kind})` }}</div>
         <div class="rpt-quote__meta">
           {{ reply.client_name || reply.client_phone }}<template v-if="answerOf(reply)"> · {{ answerOf(reply) }}</template>
           · {{ reply.branch_name }} · {{ dateTime(reply.received_at) }}
+          <button v-if="ctx.toggleReply" class="rpt-screen-only rpt-hide-btn" type="button" @click="ctx.toggleReply(reply.id)">{{ t('Hide') }}</button>
         </div>
       </blockquote>
-      <p v-if="replies.length > 40" class="rpt-note">{{ t('And {n} more; the CSV export has them all.', { n: replies.length - 40 }) }}</p>
+      <p v-if="shownReplies.length > 40" class="rpt-note">{{ t('And {n} more; the CSV export has them all.', { n: shownReplies.length - 40 }) }}</p>
+
+      <!-- Replies hidden by hand: listed on screen to bring back, never printed. -->
+      <div v-if="hiddenList.length > 0" class="rpt-screen-only rpt-hidden-list">
+        <div class="rpt-note">{{ t('Hidden from the report ({n})', { n: hiddenList.length }) }}</div>
+        <blockquote v-for="reply in hiddenList" :key="reply.id" class="rpt-quote">
+          <div>{{ reply.body || `(${reply.kind})` }}</div>
+          <div class="rpt-quote__meta">
+            {{ reply.client_name || reply.client_phone }} · {{ dateTime(reply.received_at) }}
+            <button v-if="ctx.toggleReply" class="rpt-hide-btn" type="button" @click="ctx.toggleReply(reply.id)">{{ t('Show') }}</button>
+          </div>
+        </blockquote>
+      </div>
     </RptSection>
   </template>
 </template>
@@ -86,6 +107,11 @@
   const places = computed(() => (r.value.places ?? []).filter(p => p.checked).map(p => ({ ...p, branches: p.branches.join(', ') })))
   const googleReviews = computed(() => (r.value.reviews ?? []).slice(0, 8))
   const replies = computed(() => r.value.ratings?.replies ?? [])
+  // Replies hidden by hand on the Reports page (small talk the automatic
+  // filter let through) stay out of the sheet, the counts and the CSV.
+  const isHidden = reply => (props.ctx.hiddenReplies ?? []).includes(reply.id)
+  const shownReplies = computed(() => replies.value.filter(reply => !isHidden(reply)))
+  const hiddenList = computed(() => replies.value.filter(reply => isHidden(reply)))
   const ratingBranches = computed(() => r.value.ratings?.branches ?? [])
 
   // The poll's answers as configured, best first. Each counts as a number of
@@ -109,7 +135,12 @@
   const count = (row, stars) => row?.[`stars${stars}`] ?? 0
 
   const answerRows = computed(() => options.value.map(o => ({ answer: o.label, count: count(totals.value, o.stars), share: ratio(count(totals.value, o.stars), totals.value.answers) })))
-  const low = computed(() => (r.value.ratings?.low ?? []).map(l => ({ ...l, answer: answerOf(l), at: nv(l.poll_voted_at) })))
+  // What an unhappy customer wrote, without the replies hidden by hand.
+  const low = computed(() => (r.value.ratings?.low ?? []).map(l => {
+    const hidden = new Set(hiddenList.value.filter(x => x.client_phone === l.client_phone).map(x => x.body))
+    const replies = String(l.replies ?? '').split('\n').filter(line => line && !hidden.has(line)).join('\n')
+    return { ...l, replies, answer: answerOf(l), at: nv(l.poll_voted_at) }
+  }))
 
   const kpis = computed(() => {
     const tt = totals.value
@@ -118,7 +149,7 @@
       { label: t('Answered'), value: int(tt.answers), hint: pct(ratio(tt.answers, tt.polls)) },
       // One tile per answer: what share of customers pressed it.
       ...answerRows.value.map(a => ({ label: a.answer, value: pct(a.share), hint: t('{n} customers', { n: int(a.count) }) })),
-      { label: t('Replies received'), value: int(replies.value.length) },
+      { label: t('Replies received'), value: int(shownReplies.value.length) },
     ]
     if (funnel.value.with_link > 0) {
       items.push({ label: t('Review links opened'), value: int(funnel.value.clicked), hint: t('{pct} of links sent', { pct: pct(ratio(funnel.value.clicked, funnel.value.with_link)) }) })
@@ -138,7 +169,7 @@
   const answerColumns = [
     { key: 'answer', title: t('Answer') },
     { key: 'count', title: t('Customers'), type: 'int' },
-    { key: 'share', title: t('Share'), type: 'pct' },
+    { key: 'share', title: t('Share'), type: 'pct', bar: true },
   ]
   // Each day's answers stacked, best answer first in the legend.
   const dailyChart = computed(() => {
@@ -189,9 +220,9 @@
 
   defineExpose({
     csv: () => [
-      has('ratings') && csvSection(t('Answers'), answerColumns, answerRows.value),
-      has('ratings') && csvSection(t('Ratings by branch'), branchColumns.value, ratingBranches.value),
-      has('reviews') && csvSection(t('Review requests'), funnelColumns, funnelRows.value),
+      has('ratings.answers') && csvSection(t('Answers'), answerColumns, answerRows.value),
+      has('ratings.branches') && csvSection(t('Ratings by branch'), branchColumns.value, ratingBranches.value),
+      has('reviews.funnel') && csvSection(t('Review requests'), funnelColumns, funnelRows.value),
       has('unhappy') && csvSection(t('Unhappy customers'), lowColumns, low.value),
       has('replies') && csvSection(t('What customers wrote back'), [
         { key: 'received_at', title: t('Date'), type: 'datetime' },
@@ -200,7 +231,7 @@
         { key: 'branch_name', title: t('Branch') },
         { key: 'answer', title: t('Answer'), value: x => answerOf(x) },
         { key: 'body', title: t('Message') },
-      ], replies.value),
+      ], shownReplies.value),
     ].filter(Boolean),
   })
 </script>

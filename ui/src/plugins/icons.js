@@ -4,6 +4,7 @@ import {
   mdiAccountArrowRight,
   mdiAccountCancelOutline,
   mdiAccountCash,
+  mdiAccountClockOutline,
   mdiAccountGroup,
   mdiAccountGroupOutline,
   mdiAccountMultipleCheck,
@@ -293,6 +294,7 @@ import {
 import { h } from 'vue'
 
 const iconPaths = {
+  'mdi-account-clock-outline': mdiAccountClockOutline,
   'mdi-filter-remove-outline': mdiFilterRemoveOutline,
   'mdi-content-save-outline': mdiContentSaveOutline,
   'mdi-arrow-expand-horizontal': mdiArrowExpandHorizontal,

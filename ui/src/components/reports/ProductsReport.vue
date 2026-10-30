@@ -1,11 +1,11 @@
 <template>
-  <RptKpis :items="kpis" />
+  <RptKpis v-if="has('kpis.products')" :items="kpis" part="kpis.products" />
 
-  <RptSection v-if="has('categories')" :title="t('Categories')">
+  <RptSection v-if="has('categories')" part="categories" :title="t('Categories')">
     <RptTable :columns="categoryColumns" compact :rows="categories" :total="categoryTotal" />
   </RptSection>
 
-  <RptSection v-if="has('bestsellers')" :title="bestTitle">
+  <RptSection v-if="has('bestsellers')" part="bestsellers" :title="bestTitle">
     <RptTable
       :columns="productColumns"
       compact
@@ -15,18 +15,18 @@
     />
   </RptSection>
 
-  <RptSection v-if="has('attrs') && hasAttrs" :title="t('Sizes and colours')">
+  <RptSection v-if="(has('attrs.sizes') || has('attrs.colours')) && hasAttrs" :part="['attrs.sizes', 'attrs.colours']" :title="t('Sizes and colours')">
     <RptGrid>
-      <RptCard :title="t('Units by size')">
+      <RptCard v-if="has('attrs.sizes')" part="attrs.sizes" :title="t('Units by size')">
         <RptChart :height="Math.max(140, Math.min(sizes.length, 15) * 20 + 30)" :option="sizeChart" />
       </RptCard>
-      <RptCard :title="t('Units by colour')">
+      <RptCard v-if="has('attrs.colours')" part="attrs.colours" :title="t('Units by colour')">
         <RptChart :height="Math.max(140, Math.min(colors.length, 15) * 20 + 30)" :option="colorChart" />
       </RptCard>
     </RptGrid>
   </RptSection>
 
-  <RptSection v-if="has('returned') && returned.length > 0" :title="t('Most returned')">
+  <RptSection v-if="has('returned') && returned.length > 0" part="returned" :title="t('Most returned')">
     <RptTable
       :columns="returnColumns"
       compact
@@ -100,16 +100,16 @@
     { key: 'quantity', title: t('Units'), type: 'int' },
     { key: 'invoices', title: t('Sales'), type: 'int' },
     { key: 'avg_price', title: t('Avg price'), type: 'money' },
-    { key: 'revenue', title: t('Net sales'), type: 'money' },
-    { key: 'share', title: t('Share'), type: 'pct', value: r => ratio(r.revenue, revenue.value) },
+    { key: 'revenue', title: t('Net sales'), type: 'money', strong: true },
+    { key: 'share', title: t('Share'), type: 'pct', bar: true, value: r => ratio(r.revenue, revenue.value) },
     { key: 'margin', title: t('Margin'), type: 'pct', value: r => r.margin ?? Number.NaN },
   ]
   const categoryColumns = [
     { key: 'category', title: t('Category') },
     { key: 'products', title: t('Products'), type: 'int' },
     { key: 'quantity', title: t('Units'), type: 'int' },
-    { key: 'revenue', title: t('Net sales'), type: 'money' },
-    { key: 'share', title: t('Share'), type: 'pct', value: r => ratio(r.revenue, revenue.value) },
+    { key: 'revenue', title: t('Net sales'), type: 'money', strong: true },
+    { key: 'share', title: t('Share'), type: 'pct', bar: true, value: r => ratio(r.revenue, revenue.value) },
   ]
   const categoryTotal = computed(() => ({ category: t('Total'), products: products.value.length, quantity: units.value, revenue: revenue.value }))
   const returnColumns = [
@@ -129,11 +129,11 @@
 
   defineExpose({
     csv: () => {
-      const attrColumns = [{ key: 'kind', title: t('Kind'), value: a => t(a.kind === 'size' ? 'Size' : 'Colour') }, { key: 'name', title: t('Name') }, { key: 'quantity', title: t('Units'), type: 'int' }, { key: 'revenue', title: t('Net sales'), type: 'money' }]
+      const attrColumns = [{ key: 'kind', title: t('Kind'), value: a => t(a.kind === 'size' ? 'Size' : 'Colour') }, { key: 'name', title: t('Name') }, { key: 'quantity', title: t('Units'), type: 'int' }, { key: 'revenue', title: t('Net sales'), type: 'money', strong: true }]
       return [
         has('categories') && csvSection(t('Categories'), categoryColumns, categories.value),
         has('bestsellers') && csvSection(t('Products'), productColumns, bestSellers.value),
-        has('attrs') && csvSection(t('Sizes and colours'), attrColumns, [...sizes.value, ...colors.value]),
+        (has('attrs.sizes') || has('attrs.colours')) && csvSection(t('Sizes and colours'), attrColumns, [...sizes.value, ...colors.value]),
         has('returned') && csvSection(t('Most returned'), returnColumns, returned.value),
       ].filter(Boolean)
     },

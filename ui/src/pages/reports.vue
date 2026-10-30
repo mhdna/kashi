@@ -51,19 +51,67 @@
               @click="toggleAllParts"
             />
           </div>
-          <template v-for="group in partGroups" :key="group.title">
-            <div v-if="partGroups.length > 1" class="text-caption font-weight-medium mt-1">{{ group.title }}</div>
+          <!-- A tree: each block of the report, then its sections and parts.
+               A box with something under it ticks or clears all of it. -->
+          <div v-for="group in partGroups" :key="group.comp" class="part-tree">
             <v-checkbox
-              v-for="part in group.parts"
-              :key="part.key"
-              v-model="parts"
-              class="part-check"
+              v-if="partGroups.length > 1"
+              class="part-check part-check--group"
               density="compact"
               hide-details
-              :label="part.title"
-              :value="part.key"
+              :indeterminate="tickedCount(group.parts) > 0 && tickedCount(group.parts) < group.parts.length"
+              :label="group.title"
+              :model-value="tickedCount(group.parts) === group.parts.length"
+              @update:model-value="setParts(group.parts, $event)"
             />
-          </template>
+            <div :class="{ 'part-tree__children': partGroups.length > 1 }">
+              <template v-for="node in group.nodes" :key="node.key">
+                <v-checkbox
+                  v-if="node.part"
+                  v-model="parts"
+                  class="part-check"
+                  density="compact"
+                  hide-details
+                  :label="node.part.title"
+                  :value="node.part.key"
+                />
+                <template v-else>
+                  <div class="d-flex align-center">
+                    <v-checkbox
+                      class="part-check"
+                      density="compact"
+                      hide-details
+                      :indeterminate="tickedCount(node.children) > 0 && tickedCount(node.children) < node.children.length"
+                      :label="node.section"
+                      :model-value="tickedCount(node.children) === node.children.length"
+                      @update:model-value="setParts(node.children, $event)"
+                    />
+                    <v-spacer />
+                    <v-btn
+                      density="compact"
+                      :icon="openNodes.includes(node.key) ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+                      size="x-small"
+                      :title="openNodes.includes(node.key) ? 'Hide its parts' : 'Show its parts'"
+                      variant="text"
+                      @click="toggleOpen(node.key)"
+                    />
+                  </div>
+                  <div v-if="openNodes.includes(node.key)" class="part-tree__children">
+                    <v-checkbox
+                      v-for="part in node.children"
+                      :key="part.key"
+                      v-model="parts"
+                      class="part-check"
+                      density="compact"
+                      hide-details
+                      :label="part.title"
+                      :value="part.key"
+                    />
+                  </div>
+                </template>
+              </template>
+            </div>
+          </div>
         </div>
 
         <v-select
@@ -248,6 +296,9 @@
                 <div><strong>{{ branchLabel }}</strong></div>
                 <div v-if="report.employees && employees.length > 0">{{ employeeLabel }}</div>
                 <div>{{ t('Generated {at}', { at: generatedLabel }) }}</div>
+                <div v-if="excludedCount > 0 && needsSales">
+                  {{ t('Left out: {products} products, {clients} customers', { products: exclusions.products.length, clients: exclusions.clients.length }) }}
+                </div>
               </div>
             </header>
 
@@ -260,13 +311,6 @@
                 :parts="block.parts"
               />
             </div>
-
-            <footer class="rpt-footer">
-              {{ t('Amounts in USD. Net sales are sales less returns and exchange refunds; cancelled sales and branches hidden from reports are left out. Days are each branch\'s own calendar days.') }}
-              <template v-if="excludedCount > 0 && needsSales">
-                {{ t('Left out on purpose: {products} products (from item figures) and {clients} customers (from everything).', { products: exclusions.products.length, clients: exclusions.clients.length }) }}
-              </template>
-            </footer>
           </div>
         </div>
       </div>
@@ -349,7 +393,7 @@
 </template>
 
 <script setup>
-  import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
+  import { computed, onBeforeUnmount, onMounted, provide, reactive, ref, shallowRef, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import DateField from '@/components/DateField.vue'
   import AttendanceReport from '@/components/reports/AttendanceReport.vue'
@@ -394,36 +438,57 @@
     products: ProductsReport,
   }
 
-  // Each report is a set of parts; a part belongs to one component, which
-  // draws the parts it is given. Parts of one component stay together, in
-  // the order listed. title is English and goes through t() on the sheet.
+  // Each report is a set of parts, shown as a tree on the left: a part
+  // belongs to one component (its block on the sheet, the tree's top level)
+  // and, when several parts share one heading on the sheet, to a `section`
+  // (the tree's middle level), so a whole section or one piece of it can be
+  // left out. The component draws the parts it is given. title is English
+  // and goes through t() on the sheet.
   const REPORTS = [
     {
       key: 'overview', title: 'Monthly overview', subtitle: 'Sales, days, branches, best sellers', icon: 'mdi-view-dashboard-outline',
       parts: [
-        { key: 'days', comp: 'summary', title: 'Sales day by day' },
+        { key: 'kpis.summary', comp: 'summary', title: 'Headline figures' },
+        { key: 'days.chart', comp: 'summary', section: 'Sales day by day', title: 'Daily chart' },
+        { key: 'days.weekday', comp: 'summary', section: 'Sales day by day', title: 'Average by weekday' },
+        { key: 'days.best', comp: 'summary', section: 'Sales day by day', title: 'Best and slowest days' },
         { key: 'branches', comp: 'summary', title: 'Branches' },
-        { key: 'sold', comp: 'summary', title: 'What sold' },
-        { key: 'people', comp: 'summary', title: 'Top salespersons and payments' },
-        { key: 'comparison', comp: 'branches', title: 'Branch comparison', off: true },
+        { key: 'sold.products', comp: 'summary', section: 'What sold', title: 'Top 10 products' },
+        { key: 'sold.categories', comp: 'summary', section: 'What sold', title: 'Categories' },
+        { key: 'people.salespersons', comp: 'summary', section: 'People and payments', title: 'Top salespersons' },
+        { key: 'people.payments', comp: 'summary', section: 'People and payments', title: 'Payment methods' },
+        { key: 'comparison.table', comp: 'branches', title: 'Branches side by side', off: true },
+        { key: 'comparison.trend', comp: 'branches', title: 'Day by day', off: true },
       ],
     },
     {
       key: 'customers', title: 'Customers', subtitle: 'Best customers, when they come, busy hours', icon: 'mdi-account-star-outline',
       parts: [
+        { key: 'kpis.customers', comp: 'customers', title: 'Headline figures' },
         { key: 'best', comp: 'customers', title: 'Best customers' },
         { key: 'frequent', comp: 'customers', title: 'Most frequent visitors' },
-        { key: 'who', comp: 'customers', title: 'Who they are' },
-        { key: 'when', comp: 'customers', title: 'When customers come' },
-        { key: 'busy', comp: 'busy', title: 'Busy hours and days' },
+        { key: 'who.visits', comp: 'customers', section: 'Who they are', title: 'By number of visits' },
+        { key: 'who.spend', comp: 'customers', section: 'Who they are', title: 'By amount spent' },
+        { key: 'who.home', comp: 'customers', section: 'Who they are', title: 'By home branch' },
+        { key: 'when.heatmap', comp: 'customers', section: 'When customers come', title: 'Weekday and hour' },
+        { key: 'when.busiest', comp: 'customers', section: 'When customers come', title: 'Busiest times' },
+        { key: 'kpis.busy', comp: 'busy', title: 'Headline figures' },
+        { key: 'busy.heatmap', comp: 'busy', section: 'Sales by weekday and hour', title: 'Weekday and hour' },
+        { key: 'busy.busiest', comp: 'busy', section: 'Sales by weekday and hour', title: 'Busiest times' },
+        { key: 'busy.hour', comp: 'busy', section: 'Through the day and the week', title: 'Sales per hour' },
+        { key: 'busy.weekday', comp: 'busy', section: 'Through the day and the week', title: 'Net sales per weekday' },
         { key: 'footfall', comp: 'busy', title: 'Footfall and conversion' },
       ],
     },
     {
       key: 'feedback', title: 'Customer feedback', subtitle: 'Poll answers, replies, Google reviews', icon: 'mdi-star-outline',
       parts: [
-        { key: 'ratings', comp: 'feedback', title: 'Poll answers' },
-        { key: 'reviews', comp: 'feedback', title: 'Review requests and Google' },
+        { key: 'kpis.feedback', comp: 'feedback', title: 'Headline figures' },
+        { key: 'ratings.answers', comp: 'feedback', section: 'Poll answers', title: 'Answers' },
+        { key: 'ratings.daily', comp: 'feedback', section: 'Poll answers', title: 'Answers by day' },
+        { key: 'ratings.branches', comp: 'feedback', section: 'Poll answers', title: 'By branch' },
+        { key: 'reviews.funnel', comp: 'feedback', section: 'Reviews', title: 'Review requests' },
+        { key: 'reviews.google', comp: 'feedback', section: 'Reviews', title: 'Google' },
         { key: 'unhappy', comp: 'feedback', title: 'Unhappy customers' },
         { key: 'replies', comp: 'feedback', title: 'What customers wrote back' },
       ],
@@ -431,28 +496,49 @@
     {
       key: 'staff', title: 'Salespersons & attendance', subtitle: 'Sales per person, hours, $/hour', icon: 'mdi-account-cash', employees: true,
       parts: [
+        { key: 'kpis.salespersons', comp: 'salespersons', title: 'Headline figures' },
         { key: 'ranking', comp: 'salespersons', title: 'Ranking' },
-        { key: 'charts', comp: 'salespersons', title: 'Sales charts' },
         { key: 'categories', comp: 'salespersons', title: 'Category mix' },
-        { key: 'staffDiscounts', comp: 'payments', title: 'Discounts by salesperson' },
+        { key: 'staffDiscounts', comp: 'payments', title: 'Discounts by salesperson', off: true },
         { key: 'hours', comp: 'attendance', title: 'Hours per employee' },
-        { key: 'grid', comp: 'attendance', title: 'Month grid' },
-        { key: 'detail', comp: 'attendance', title: 'Every day per employee', off: true },
+        { key: 'grid', comp: 'attendance', title: 'Month calendar' },
+      ],
+    },
+    {
+      key: 'attendanceDetail', title: 'Attendance by employee', subtitle: 'A page per employee, every day', icon: 'mdi-account-clock-outline', employees: true,
+      parts: [
+        { key: 'detail', comp: 'attendance', title: 'Every day per employee' },
       ],
     },
     {
       key: 'sales', title: 'Sales & goods', subtitle: 'Best sellers, categories, payments, discounts', icon: 'mdi-package-variant',
       parts: [
+        { key: 'kpis.products', comp: 'products', title: 'Headline figures' },
         { key: 'categories', comp: 'products', title: 'Categories' },
         { key: 'bestsellers', comp: 'products', title: 'Best sellers' },
-        { key: 'attrs', comp: 'products', title: 'Sizes and colours' },
+        { key: 'attrs.sizes', comp: 'products', section: 'Sizes and colours', title: 'Units by size' },
+        { key: 'attrs.colours', comp: 'products', section: 'Sizes and colours', title: 'Units by colour' },
         { key: 'returned', comp: 'products', title: 'Most returned' },
+        { key: 'kpis.payments', comp: 'payments', title: 'Headline figures' },
         { key: 'payments', comp: 'payments', title: 'Payment methods' },
         { key: 'discounts', comp: 'payments', title: 'Discounts' },
         { key: 'returns', comp: 'payments', title: 'Returns by branch' },
       ],
     },
   ]
+  // A part saved (or linked) before parts were split stands for its pieces.
+  const OLD_PARTS = {
+    days: ['days.chart', 'days.weekday', 'days.best'],
+    sold: ['sold.products', 'sold.categories'],
+    people: ['people.salespersons', 'people.payments'],
+    comparison: ['comparison.table', 'comparison.trend'],
+    who: ['who.visits', 'who.spend', 'who.home'],
+    when: ['when.heatmap', 'when.busiest'],
+    busy: ['busy.heatmap', 'busy.busiest', 'busy.hour', 'busy.weekday'],
+    ratings: ['ratings.answers', 'ratings.daily', 'ratings.branches'],
+    reviews: ['reviews.funnel', 'reviews.google'],
+    attrs: ['attrs.sizes', 'attrs.colours'],
+  }
   // Headings over the second and later blocks of a report, and the group
   // labels of the part checkboxes.
   const BLOCK_TITLES = {
@@ -471,10 +557,10 @@
     summary: ['overview'],
     branches: ['overview', ['comparison']],
     attendance: ['staff', ['hours', 'grid']],
-    salespersons: ['staff', ['ranking', 'charts', 'categories']],
-    busy: ['customers', ['busy', 'footfall']],
-    products: ['sales', ['categories', 'bestsellers', 'attrs', 'returned']],
-    payments: ['sales', ['payments', 'discounts', 'returns']],
+    salespersons: ['staff', ['ranking', 'categories']],
+    busy: ['customers', ['kpis.busy', 'busy', 'footfall']],
+    products: ['sales', ['kpis.products', 'categories', 'bestsellers', 'attrs', 'returned']],
+    payments: ['sales', ['kpis.payments', 'payments', 'discounts', 'returns']],
   }
 
   const route = useRoute()
@@ -530,11 +616,21 @@
   const report = computed(() => REPORTS.find(r => r.key === selectedReport.value[0]) ?? REPORTS[0])
   const queryParts = typeof route.query.parts === 'string' ? route.query.parts.split(',') : linkedParts
 
-  const validParts = (r, keys) => keys.filter(k => r.parts.some(p => p.key === k))
-  // A report's parts: the saved default, else every part not marked off.
+  // Known part keys only, old combined parts opened into their pieces.
+  const validParts = (r, keys) => keys
+    .flatMap(k => OLD_PARTS[k] ?? [k])
+    .filter((k, i, all) => all.indexOf(k) === i && r.parts.some(p => p.key === k))
+  // A report's parts: the saved default, else every part not marked off. A
+  // default saved before the headline figures were a part of their own
+  // keeps them.
   function defaultParts (r) {
     const saved = settings.value.defaults?.parts?.[r.key]
-    return Array.isArray(saved) ? validParts(r, saved) : r.parts.filter(p => !p.off).map(p => p.key)
+    if (!Array.isArray(saved)) {return r.parts.filter(p => !p.off).map(p => p.key)}
+    const keys = validParts(r, saved)
+    if (!saved.some(k => k.startsWith('kpis.'))) {
+      keys.push(...r.parts.filter(p => p.key.startsWith('kpis.') && keys.some(k => r.parts.find(q => q.key === k)?.comp === p.comp)).map(p => p.key))
+    }
+    return keys
   }
   const parts = ref([])
   watch(report, r => {
@@ -547,17 +643,42 @@
   function toggleAllParts () {
     parts.value = allParts.value ? [] : report.value.parts.map(p => p.key)
   }
+  // The tree on the left: components, then sections (parts sharing one
+  // heading on the sheet) or single parts.
   const partGroups = computed(() => {
     const groups = []
     for (const p of report.value.parts) {
       let group = groups.find(g => g.comp === p.comp)
       if (!group) {
-        group = { comp: p.comp, title: BLOCK_TITLES[p.comp], parts: [] }
+        group = { comp: p.comp, title: BLOCK_TITLES[p.comp], parts: [], nodes: [] }
         groups.push(group)
       }
       group.parts.push(p)
+      const node = p.section && group.nodes.find(n => n.section === p.section)
+      if (node) {
+        node.children.push(p)
+      } else {
+        group.nodes.push(p.section ? { section: p.section, key: `${p.comp}|${p.section}`, children: [p] } : { key: p.key, part: p })
+      }
     }
     return groups
+  })
+  // Ticking a group or section ticks everything under it.
+  const keysOf = list => list.map(p => p.key)
+  const tickedCount = list => list.filter(p => parts.value.includes(p.key)).length
+  function setParts (list, on) {
+    const keys = keysOf(list)
+    parts.value = on
+      ? [...parts.value, ...keys.filter(k => !parts.value.includes(k))]
+      : parts.value.filter(k => !keys.includes(k))
+  }
+  const openNodes = ref([])
+  function toggleOpen (key) {
+    openNodes.value = openNodes.value.includes(key) ? openNodes.value.filter(k => k !== key) : [...openNodes.value, key]
+  }
+  // The sheet's Hide buttons untick their part(s).
+  provide('reportHideParts', keys => {
+    parts.value = parts.value.filter(k => !keys.includes(k))
   })
   // The components to draw, in report order, each with its ticked parts.
   const blocks = computed(() => partGroups.value
@@ -639,6 +760,20 @@
     clients: settings.value.exclusions?.clients ?? [],
   }))
   const excludedCount = computed(() => exclusions.value.products.length + exclusions.value.clients.length)
+
+  // Poll replies hidden from the feedback report by hand (small talk the
+  // automatic filter let through). Saved for everyone, like the rest.
+  const hiddenReplies = computed(() => settings.value.hidden_replies ?? [])
+  async function toggleReply (id) {
+    const list = hiddenReplies.value.includes(id)
+      ? hiddenReplies.value.filter(x => x !== id)
+      : [...hiddenReplies.value, id]
+    try {
+      await saveSettings({ ...settings.value, hidden_replies: list })
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
 
   async function loadSettings () {
     try {
@@ -854,6 +989,8 @@
     people: people.value,
     employees: employees.value,
     options: { topN: topN.value, sortBy: sortBy.value },
+    hiddenReplies: hiddenReplies.value,
+    toggleReply: canEdit.value ? toggleReply : null,
   }))
 
   // ---- A4 preview and zoom ----------------------------------------------------
@@ -1002,6 +1139,12 @@
 }
 .part-check :deep(.v-label) {
   font-size: 0.85rem;
+}
+.part-check--group :deep(.v-label) {
+  font-weight: 600;
+}
+.part-tree__children {
+  padding-inline-start: 22px;
 }
 @media (max-width: 960px) {
   .reports-page { flex-direction: column; height: auto; }
