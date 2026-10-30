@@ -8,6 +8,7 @@ import {
   mdiAccountGroupOutline,
   mdiAccountMultipleCheck,
   mdiAccountOutline,
+  mdiAccountStarOutline,
   mdiAccountTieOutline,
   mdiAlert,
   mdiAlertCircle,
@@ -111,8 +112,10 @@ import {
   mdiEye,
   mdiEyedropper,
   mdiEyeOff,
+  mdiFileChartOutline,
   mdiFileDelimitedOutline,
   mdiFileDocumentOutline,
+  mdiFilePdfBox,
   mdiFilter,
   mdiFilterVariant,
   mdiFingerprint,
@@ -266,6 +269,7 @@ import {
   mdiUpdate,
   mdiVideo,
   mdiViewDashboard,
+  mdiViewDashboardOutline,
   mdiViewGallery,
   mdiVolumeHigh,
   mdiVolumeLow,
@@ -285,6 +289,10 @@ import {
 import { h } from 'vue'
 
 const iconPaths = {
+  'mdi-account-star-outline': mdiAccountStarOutline,
+  'mdi-file-chart-outline': mdiFileChartOutline,
+  'mdi-file-pdf-box': mdiFilePdfBox,
+  'mdi-view-dashboard-outline': mdiViewDashboardOutline,
   'mdi-account': mdiAccount,
   'mdi-account-arrow-left': mdiAccountArrowLeft,
   'mdi-account-arrow-right': mdiAccountArrowRight,

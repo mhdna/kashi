@@ -1,6 +1,15 @@
 <template>
   <v-container class="performance-page px-4 px-md-6 pb-4 pb-md-6 pt-1 pt-md-2" fluid>
-    <h1 class="text-h4 font-weight-bold mb-5">Salesperson performance</h1>
+    <div class="d-flex align-center flex-wrap ga-3 mb-5">
+      <h1 class="text-h4 font-weight-bold">Salesperson performance</h1>
+      <v-spacer />
+      <v-btn
+        prepend-icon="mdi-file-chart-outline"
+        text="Monthly report (PDF)"
+        to="/reports?report=salespersons"
+        variant="tonal"
+      />
+    </div>
 
     <v-alert class="formula-card mb-5" color="primary" icon="mdi-information" variant="tonal">
       <div class="font-weight-bold mb-1">Formula</div>

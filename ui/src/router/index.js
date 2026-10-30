@@ -10,6 +10,7 @@ const routes = [
   { path: '/financials', component: () => import('@/pages/financials.vue'), meta: { title: 'Financials', section: 'analytics', page: 'financials' } },
   { path: '/targets', component: () => import('@/pages/targets.vue'), meta: { title: 'Targets', section: 'analytics', page: 'targets' } },
   { path: '/footfall', component: () => import('@/pages/footfall.vue'), meta: { title: 'Footfall', section: 'analytics', page: 'footfall' } },
+  { path: '/reports', component: () => import('@/pages/reports.vue'), meta: { title: 'Reports', section: 'analytics', page: 'reports' } },
   { path: '/busy-hours', component: () => import('@/pages/busy-hours.vue'), meta: { title: 'Busy Hours', section: 'analytics', page: 'busy-hours' } },
   { path: '/product-revenues', component: () => import('@/pages/product-revenues.vue'), meta: { title: 'Product Revenues', section: 'analytics', page: 'product-revenues' } },
   { path: '/conversion', component: () => import('@/pages/conversion.vue'), meta: { title: 'Conversion', section: 'analytics', page: 'conversion' } },

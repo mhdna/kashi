@@ -10867,6 +10867,186 @@ func (mr *MockStoreMockRecorder) MarkWhatsAppReviewClicked(arg0, arg1 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkWhatsAppReviewClicked", reflect.TypeOf((*MockStore)(nil).MarkWhatsAppReviewClicked), arg0, arg1)
 }
 
+// PeriodReportByBranch mocks base method.
+func (m *MockStore) PeriodReportByBranch(arg0 context.Context, arg1 db.PeriodReportByBranchParams) ([]db.PeriodReportByBranchRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PeriodReportByBranch", arg0, arg1)
+	ret0, _ := ret[0].([]db.PeriodReportByBranchRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PeriodReportByBranch indicates an expected call of PeriodReportByBranch.
+func (mr *MockStoreMockRecorder) PeriodReportByBranch(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PeriodReportByBranch", reflect.TypeOf((*MockStore)(nil).PeriodReportByBranch), arg0, arg1)
+}
+
+// PeriodReportClients mocks base method.
+func (m *MockStore) PeriodReportClients(arg0 context.Context, arg1 db.PeriodReportClientsParams) ([]db.PeriodReportClientsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PeriodReportClients", arg0, arg1)
+	ret0, _ := ret[0].([]db.PeriodReportClientsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PeriodReportClients indicates an expected call of PeriodReportClients.
+func (mr *MockStoreMockRecorder) PeriodReportClients(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PeriodReportClients", reflect.TypeOf((*MockStore)(nil).PeriodReportClients), arg0, arg1)
+}
+
+// PeriodReportDaily mocks base method.
+func (m *MockStore) PeriodReportDaily(arg0 context.Context, arg1 db.PeriodReportDailyParams) ([]db.PeriodReportDailyRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PeriodReportDaily", arg0, arg1)
+	ret0, _ := ret[0].([]db.PeriodReportDailyRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PeriodReportDaily indicates an expected call of PeriodReportDaily.
+func (mr *MockStoreMockRecorder) PeriodReportDaily(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PeriodReportDaily", reflect.TypeOf((*MockStore)(nil).PeriodReportDaily), arg0, arg1)
+}
+
+// PeriodReportDiscounts mocks base method.
+func (m *MockStore) PeriodReportDiscounts(arg0 context.Context, arg1 db.PeriodReportDiscountsParams) ([]db.PeriodReportDiscountsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PeriodReportDiscounts", arg0, arg1)
+	ret0, _ := ret[0].([]db.PeriodReportDiscountsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PeriodReportDiscounts indicates an expected call of PeriodReportDiscounts.
+func (mr *MockStoreMockRecorder) PeriodReportDiscounts(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PeriodReportDiscounts", reflect.TypeOf((*MockStore)(nil).PeriodReportDiscounts), arg0, arg1)
+}
+
+// PeriodReportPaymentMethods mocks base method.
+func (m *MockStore) PeriodReportPaymentMethods(arg0 context.Context, arg1 db.PeriodReportPaymentMethodsParams) ([]db.PeriodReportPaymentMethodsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PeriodReportPaymentMethods", arg0, arg1)
+	ret0, _ := ret[0].([]db.PeriodReportPaymentMethodsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PeriodReportPaymentMethods indicates an expected call of PeriodReportPaymentMethods.
+func (mr *MockStoreMockRecorder) PeriodReportPaymentMethods(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PeriodReportPaymentMethods", reflect.TypeOf((*MockStore)(nil).PeriodReportPaymentMethods), arg0, arg1)
+}
+
+// PeriodReportProducts mocks base method.
+func (m *MockStore) PeriodReportProducts(arg0 context.Context, arg1 db.PeriodReportProductsParams) ([]db.PeriodReportProductsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PeriodReportProducts", arg0, arg1)
+	ret0, _ := ret[0].([]db.PeriodReportProductsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PeriodReportProducts indicates an expected call of PeriodReportProducts.
+func (mr *MockStoreMockRecorder) PeriodReportProducts(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PeriodReportProducts", reflect.TypeOf((*MockStore)(nil).PeriodReportProducts), arg0, arg1)
+}
+
+// PeriodReportSalespersonCategories mocks base method.
+func (m *MockStore) PeriodReportSalespersonCategories(arg0 context.Context, arg1 db.PeriodReportSalespersonCategoriesParams) ([]db.PeriodReportSalespersonCategoriesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PeriodReportSalespersonCategories", arg0, arg1)
+	ret0, _ := ret[0].([]db.PeriodReportSalespersonCategoriesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PeriodReportSalespersonCategories indicates an expected call of PeriodReportSalespersonCategories.
+func (mr *MockStoreMockRecorder) PeriodReportSalespersonCategories(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PeriodReportSalespersonCategories", reflect.TypeOf((*MockStore)(nil).PeriodReportSalespersonCategories), arg0, arg1)
+}
+
+// PeriodReportSalespersonDaily mocks base method.
+func (m *MockStore) PeriodReportSalespersonDaily(arg0 context.Context, arg1 db.PeriodReportSalespersonDailyParams) ([]db.PeriodReportSalespersonDailyRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PeriodReportSalespersonDaily", arg0, arg1)
+	ret0, _ := ret[0].([]db.PeriodReportSalespersonDailyRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PeriodReportSalespersonDaily indicates an expected call of PeriodReportSalespersonDaily.
+func (mr *MockStoreMockRecorder) PeriodReportSalespersonDaily(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PeriodReportSalespersonDaily", reflect.TypeOf((*MockStore)(nil).PeriodReportSalespersonDaily), arg0, arg1)
+}
+
+// PeriodReportSalespersons mocks base method.
+func (m *MockStore) PeriodReportSalespersons(arg0 context.Context, arg1 db.PeriodReportSalespersonsParams) ([]db.PeriodReportSalespersonsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PeriodReportSalespersons", arg0, arg1)
+	ret0, _ := ret[0].([]db.PeriodReportSalespersonsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PeriodReportSalespersons indicates an expected call of PeriodReportSalespersons.
+func (mr *MockStoreMockRecorder) PeriodReportSalespersons(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PeriodReportSalespersons", reflect.TypeOf((*MockStore)(nil).PeriodReportSalespersons), arg0, arg1)
+}
+
+// PeriodReportSummary mocks base method.
+func (m *MockStore) PeriodReportSummary(arg0 context.Context, arg1 db.PeriodReportSummaryParams) (db.PeriodReportSummaryRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PeriodReportSummary", arg0, arg1)
+	ret0, _ := ret[0].(db.PeriodReportSummaryRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PeriodReportSummary indicates an expected call of PeriodReportSummary.
+func (mr *MockStoreMockRecorder) PeriodReportSummary(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PeriodReportSummary", reflect.TypeOf((*MockStore)(nil).PeriodReportSummary), arg0, arg1)
+}
+
+// PeriodReportVariantAttributes mocks base method.
+func (m *MockStore) PeriodReportVariantAttributes(arg0 context.Context, arg1 db.PeriodReportVariantAttributesParams) ([]db.PeriodReportVariantAttributesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PeriodReportVariantAttributes", arg0, arg1)
+	ret0, _ := ret[0].([]db.PeriodReportVariantAttributesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PeriodReportVariantAttributes indicates an expected call of PeriodReportVariantAttributes.
+func (mr *MockStoreMockRecorder) PeriodReportVariantAttributes(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PeriodReportVariantAttributes", reflect.TypeOf((*MockStore)(nil).PeriodReportVariantAttributes), arg0, arg1)
+}
+
+// PeriodReportWeekdayHour mocks base method.
+func (m *MockStore) PeriodReportWeekdayHour(arg0 context.Context, arg1 db.PeriodReportWeekdayHourParams) ([]db.PeriodReportWeekdayHourRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PeriodReportWeekdayHour", arg0, arg1)
+	ret0, _ := ret[0].([]db.PeriodReportWeekdayHourRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PeriodReportWeekdayHour indicates an expected call of PeriodReportWeekdayHour.
+func (mr *MockStoreMockRecorder) PeriodReportWeekdayHour(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PeriodReportWeekdayHour", reflect.TypeOf((*MockStore)(nil).PeriodReportWeekdayHour), arg0, arg1)
+}
+
 // PollRatingTotals mocks base method.
 func (m *MockStore) PollRatingTotals(arg0 context.Context, arg1 db.PollRatingTotalsParams) (db.PollRatingTotalsRow, error) {
 	m.ctrl.T.Helper()
