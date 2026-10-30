@@ -167,3 +167,29 @@ func TestListBranchAttendanceEventsInRange_RejectsBadRange(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, recorder.Code, query)
 	}
 }
+
+// A punch the till didn't import (device user linked to nobody) is stored as
+// it came, so the reports can list it.
+func TestCreateBranchAttendanceEvents_StoresSkippedPunch(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	store := mockdb.NewMockStore(ctrl)
+	stubBranchAuth(store)
+	store.EXPECT().GetBranchAttendanceEventByClientRef(gomock.Any(), gomock.Any()).Return(db.BranchAttendanceEvent{}, sql.ErrNoRows)
+	store.EXPECT().CreateBranchAttendanceEvent(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ any, arg db.CreateBranchAttendanceEventParams) (db.BranchAttendanceEvent, error) {
+			require.Equal(t, "Skipped: unlinked", arg.Status)
+			require.Equal(t, "U7", arg.AttendanceUserID)
+			return db.BranchAttendanceEvent{ID: 1}, nil
+		})
+
+	body := map[string]any{"events": []map[string]any{
+		{"ref": "dev|d2", "salesperson_name": "Ava 2", "attendance_user_id": "U7", "event_date": "2026-08-20", "event_time": "18:00:00", "type": "Face", "status": "Skipped: unlinked"},
+	}}
+	server := newTestServer(t, store)
+	recorder := httptest.NewRecorder()
+	server.router.ServeHTTP(recorder, newBranchRequest(t, http.MethodPost, "/branch/attendance_events", body))
+	require.Equal(t, http.StatusOK, recorder.Code)
+	require.True(t, isSkippedAttendance("Skipped: unlinked"))
+	require.False(t, isSkippedAttendance("Success"))
+}

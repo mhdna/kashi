@@ -338,4 +338,11 @@ export const AR = {
   'By branch': 'حسب الفرع',
   'Month calendar': 'تقويم الشهر',
   'What customers wrote within a day of the poll (the first five messages). Hide drops small talk.': 'ما كتبه الزبائن خلال يوم من الاستطلاع (أول خمس رسائل). «إخفاء» يستبعد الأحاديث الجانبية.',
+  'Punches nobody is linked to': 'بصمات غير مرتبطة بأحد',
+  'The attendance device logged these, but its user is linked to no salesperson, so they count nowhere. If one is an employee, set that device number on their salesperson so new punches count.': 'سجّلها جهاز الحضور لكن مستخدمها غير مرتبط بأي موظف، فلا تُحتسب. إن كان أحدهم موظفاً، أضف رقم الجهاز هذا إلى ملفه كي تُحتسب البصمات الجديدة.',
+  'Name on the device': 'الاسم على الجهاز',
+  'Device number': 'رقم الجهاز',
+  'Punches': 'البصمات',
+  'First': 'الأولى',
+  'Last': 'الأخيرة',
 }

@@ -60,6 +60,10 @@ func (server *Server) createBranchAttendanceEvents(ctx *gin.Context) {
 
 	perEventToasts := len(req.Events) <= attendanceEventBackfillToastCap
 	inserted := 0
+	// Counted for the toasts: a punch the till didn't import (its device
+	// user is linked to nobody) is kept for the reports but announces
+	// nothing.
+	announced := 0
 	for _, event := range req.Events {
 		if _, err := server.store.GetBranchAttendanceEventByClientRef(ctx, db.GetBranchAttendanceEventByClientRefParams{
 			BranchID:  branchID,
@@ -91,6 +95,10 @@ func (server *Server) createBranchAttendanceEvents(ctx *gin.Context) {
 			return
 		}
 		inserted++
+		if isSkippedAttendance(event.Status) {
+			continue
+		}
+		announced++
 
 		if perEventToasts {
 			server.adminHub.broadcastAll(adminWSMessage{
@@ -101,11 +109,11 @@ func (server *Server) createBranchAttendanceEvents(ctx *gin.Context) {
 		}
 	}
 
-	if inserted > 0 && !perEventToasts {
+	if announced > 0 && !perEventToasts {
 		server.adminHub.broadcastAll(adminWSMessage{
 			Type:     "branch_attendance_events",
 			BranchID: branchID,
-			Amount:   int64(inserted),
+			Amount:   int64(announced),
 		})
 	}
 
@@ -607,4 +615,11 @@ func isBlankRow(row []string) bool {
 func shortHash(s string) string {
 	sum := sha256.Sum256([]byte(s))
 	return hex.EncodeToString(sum[:])[:16]
+}
+
+// isSkippedAttendance says whether a punch is one the till didn't import
+// ("Skipped: unlinked", see kashi-pos attendance.go): kept so the reports can
+// show it, never counted as worked time.
+func isSkippedAttendance(status string) bool {
+	return strings.HasPrefix(status, "Skipped")
 }

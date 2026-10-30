@@ -59,10 +59,15 @@ function pairPunches (punches) {
   return sessions
 }
 
+export const isSkippedPunch = event => String(event.status ?? '').startsWith('Skipped')
+
 // rows: one per (date, person), sorted by date then name.
 export function buildTimesheet (events) {
   const groups = new Map()
   for (const event of events) {
+    // A punch the till didn't import (its device user is linked to nobody)
+    // is listed by the reports but never counts as time worked.
+    if (isSkippedPunch(event)) {continue}
     const minutes = parseMinutes(event.event_time)
     if (minutes === null) {continue}
     const key = `${event.event_date}|${personKey(event)}`
