@@ -3,6 +3,19 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-10-30 · Salespersons couldn't be renamed
+
+**Symptom.** Renaming a salesperson ("Ahmad Robai" to "Ahmad Robaie") failed
+with "Field validation for 'Name' failed on the 'required' tag", from the
+page and from the API alike.
+
+**Cause.** `updateSalesperson` bound the URL and the body into one struct.
+Binding the URL validates the whole struct, and the required name is only in
+the body, so it refused every rename before reading the body.
+
+**Fix.** The id is bound from the URL on its own struct, then the name from
+the body (`api/salesperson.go`). Test: `TestUpdateSalesperson_Renames`.
+
 ## 2026-10-30 · Mixed carts got no free item on B2G1
 
 **Symptom.** At the till, a boy's jeans (BOC5…) and two CA girl's jeans on
