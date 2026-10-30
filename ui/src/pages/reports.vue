@@ -512,11 +512,13 @@
         { key: 'staffDiscounts', comp: 'payments', title: 'Discounts by salesperson', off: true },
         { key: 'hours', comp: 'attendance', title: 'Hours per employee' },
         { key: 'grid', comp: 'attendance', title: 'Month calendar' },
+        { key: 'unlinked', comp: 'attendance', title: 'Punches nobody is linked to' },
       ],
     },
     {
       key: 'attendanceDetail', title: 'Attendance by employee', subtitle: 'A page per employee, every day', icon: 'mdi-account-clock-outline', employees: true,
       parts: [
+        { key: 'unlinked', comp: 'attendance', title: 'Punches nobody is linked to' },
         { key: 'detail', comp: 'attendance', title: 'Every day per employee' },
       ],
     },
@@ -627,9 +629,11 @@
   const queryParts = typeof route.query.parts === 'string' ? route.query.parts.split(',') : linkedParts
 
   // Known part keys only, old combined parts opened into their pieces.
-  const validParts = (r, keys) => keys
-    .flatMap(k => OLD_PARTS[k] ?? [k])
-    .filter((k, i, all) => all.indexOf(k) === i && r.parts.some(p => p.key === k))
+  function validParts (r, keys) {
+    return keys
+      .flatMap(k => OLD_PARTS[k] ?? [k])
+      .filter((k, i, all) => all.indexOf(k) === i && r.parts.some(p => p.key === k))
+  }
   // A report's parts: the saved default, else every part not marked off. A
   // default saved before the headline figures were a part of their own
   // keeps them.
@@ -640,6 +644,11 @@
     if (!saved.some(k => k.startsWith('kpis.'))) {
       keys.push(...r.parts.filter(p => p.key.startsWith('kpis.') && keys.some(k => r.parts.find(q => q.key === k)?.comp === p.comp)).map(p => p.key))
     }
+    // A part added since the default was saved starts ticked (unless it is
+    // off by default) rather than missing. Defaults saved before parts were
+    // recorded only predate 'unlinked'.
+    const seen = settings.value.defaults?.parts_seen?.[r.key] ?? r.parts.map(p => p.key).filter(k => k !== 'unlinked')
+    keys.push(...r.parts.filter(p => !p.off && !seen.includes(p.key) && !keys.includes(p.key)).map(p => p.key))
     return keys
   }
   const parts = ref([])
@@ -814,6 +823,7 @@
     top_n: topN.value,
     sort_by: sortBy.value,
     parts: { ...settings.value.defaults?.parts, [report.value.key]: parts.value },
+    parts_seen: { ...settings.value.defaults?.parts_seen, [report.value.key]: report.value.parts.map(p => p.key) },
   }))
   const dirty = computed(() => {
     const d = settings.value.defaults ?? {}
