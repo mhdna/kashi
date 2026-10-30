@@ -6,7 +6,7 @@
       <v-btn
         prepend-icon="mdi-file-chart-outline"
         text="Monthly report (PDF)"
-        to="/reports?report=salespersons"
+        to="/reports?report=staff"
         variant="tonal"
       />
     </div>
