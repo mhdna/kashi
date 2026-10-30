@@ -8,13 +8,14 @@
       </tr>
     </thead>
     <tbody>
-      <tr v-for="(row, i) in shownRows" :key="i">
+      <tr v-for="(row, i) in shownRows" :key="i" :class="rowClass ? rowClass(row) : ''">
         <td v-if="numbered" class="rpt-num">{{ i + 1 }}</td>
         <td v-for="col in columns" :key="col.key" :class="[alignClass(col), { 'rpt-strong': col.strong }]">
           <!-- A share column gets a small bar, scaled to the column's largest. -->
           <span v-if="col.bar" class="rpt-bar-cell">
             <span class="rpt-bar" :style="{ width: barWidth(col, row) }" />{{ displayCell(col, row) }}
           </span>
+          <span v-else-if="col.tag" :class="{ 'rpt-tag': displayCell(col, row) }">{{ displayCell(col, row) }}</span>
           <template v-else>{{ displayCell(col, row) }}</template>
         </td>
       </tr>
@@ -48,6 +49,8 @@
     numbered: { type: Boolean, default: false },
     compact: { type: Boolean, default: false },
     empty: { type: String, default: () => t('Nothing in this period.') },
+    // row => class name, to colour a row (e.g. 'rpt-row--warn').
+    rowClass: { type: Function, default: null },
   })
 
   const shownRows = computed(() => (props.limit > 0 ? props.rows.slice(0, props.limit) : props.rows))

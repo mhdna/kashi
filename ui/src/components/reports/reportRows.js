@@ -45,6 +45,16 @@ export function buildPeople ({ salespersons = [], staff = [], timesheet = [] }) 
     bySalespersonId.set(s.id, key)
     if (s.attendance_user_id) {byAttendance.set(`${s.branch_id}|${s.attendance_user_id}`, key)}
   }
+  // Punches at a branch where the person has no salesperson record (they
+  // cover another shop): the same device number and a name kashi's starts
+  // with -- the device may still carry an old spelling ("Ahmad Robai" for
+  // "Ahmad Robaie").
+  function elsewhere (row) {
+    const id = String(row.personKey).split('|').slice(1).join('|')
+    const name = norm(row.name)
+    const match = staff.find(s => s.attendance_user_id && s.attendance_user_id === id && name && norm(s.name).startsWith(name))
+    return match ? bySalespersonId.get(match.id) : undefined
+  }
 
   // Attendance: timesheet personKey is `${branch}|${device user id or name}`.
   const attendanceKey = new Map()
@@ -52,6 +62,7 @@ export function buildPeople ({ salespersons = [], staff = [], timesheet = [] }) 
     if (attendanceKey.has(row.personKey)) {continue}
     const key = byAttendance.get(row.personKey)
       ?? byName.get(`${row.branchId}|${norm(row.name)}`)
+      ?? elsewhere(row)
       ?? add(`att:${row.personKey}`, row.name, row.branchId)
     attendanceKey.set(row.personKey, key)
   }
@@ -60,7 +71,14 @@ export function buildPeople ({ salespersons = [], staff = [], timesheet = [] }) 
     if (row.salesperson_id > 0) {
       return bySalespersonId.get(row.salesperson_id) ?? add(`sp:${row.salesperson_id}`, row.salesperson_name, row.branch_id)
     }
-    return byName.get(`${row.branch_id}|${norm(row.salesperson_name)}`)
+    const typed = norm(row.salesperson_name)
+    // A name typed at the till for an older spelling of a salesperson of
+    // that branch ("Ahmad Robai" for "Ahmad Robaie") is that salesperson.
+    const renamed = typed.length >= 5
+      ? staff.find(s => s.branch_id === row.branch_id && norm(s.name).startsWith(typed))
+      : undefined
+    return byName.get(`${row.branch_id}|${typed}`)
+      ?? (renamed ? bySalespersonId.get(renamed.id) : undefined)
       ?? add(`name:${row.branch_id}|${norm(row.salesperson_name)}`, row.salesperson_name, row.branch_id)
   }
   for (const row of salespersons) {forSales(row)}
@@ -69,6 +87,8 @@ export function buildPeople ({ salespersons = [], staff = [], timesheet = [] }) 
     list: [...people.values()].toSorted((a, b) => a.name.localeCompare(b.name)),
     forSales,
     forAttendance: personKey => attendanceKey.get(personKey),
+    // kashi's name for a person, which wins over what a till or device sent.
+    nameOf: key => people.get(key)?.name,
   }
 }
 
@@ -89,7 +109,7 @@ export function salespersonRows (rows, ctx, { filter = false } = {}) {
       key,
       // Sales nobody was picked for are kept apart per branch, so say which.
       named: Boolean(r.salesperson_name),
-      name: r.salesperson_name || t('No salesperson ({branch})', { branch: ctx.branchNames[r.branch_id] ?? r.branch_name }),
+      name: (r.salesperson_name && (ctx.people.nameOf(key) ?? r.salesperson_name)) || t('No salesperson ({branch})', { branch: ctx.branchNames[r.branch_id] ?? r.branch_name }),
       branch: ctx.branchNames[r.branch_id] ?? r.branch_name,
       sales_count: 0, sales_total: 0, returns_count: 0, returns_total: 0, net_total: 0,
       discount_total: 0, discounted_count: 0, items_sold: 0, biggest_sale: 0, clients_served: 0, selling_days: 0,

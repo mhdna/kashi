@@ -337,4 +337,5 @@ export const AR = {
   'Attendance by employee': 'الحضور لكل موظف',
   'By branch': 'حسب الفرع',
   'Month calendar': 'تقويم الشهر',
+  'What customers wrote within a day of the poll (the first five messages). Hide drops small talk.': 'ما كتبه الزبائن خلال يوم من الاستطلاع (أول خمس رسائل). «إخفاء» يستبعد الأحاديث الجانبية.',
 }
