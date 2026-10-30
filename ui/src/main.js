@@ -2,6 +2,7 @@ import { polyfillCountryFlagEmojis } from 'country-flag-emoji-polyfill'
 import { createApp } from 'vue'
 
 import { installClientLogger } from '@/composables/useClientLogs'
+import { installDialogGuard } from '@/composables/useDialogGuard'
 import { registerPlugins } from '@/plugins'
 
 import App from './App.vue'
@@ -12,6 +13,9 @@ import '@fontsource/roboto/500.css'
 import '@fontsource/roboto/700.css'
 
 installClientLogger()
+
+// Dialogs ask before a click outside or Escape throws away unsaved changes.
+installDialogGuard()
 
 // Windows browsers draw flag emoji as bare letters ("LB"); this loads a flag
 // font only when the platform can't render them.
