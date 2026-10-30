@@ -1,5 +1,6 @@
 <template>
   <v-dialog
+    class="app-question-dialog"
     max-width="460"
     :model-value="dialogState.open"
     @update:model-value="(v: boolean) => !v && cancel()"
