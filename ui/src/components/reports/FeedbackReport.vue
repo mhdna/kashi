@@ -51,7 +51,7 @@
 
     <RptSection
       v-if="has('replies') && (shownReplies.length > 0 || hiddenList.length > 0)"
-      :note="t('Only answers to the follow-up question, within a day of it.')"
+      :note="t('What customers wrote within a day of the poll (the first five messages). Hide drops small talk.')"
       part="replies"
       :title="t('What customers wrote back')"
     >
