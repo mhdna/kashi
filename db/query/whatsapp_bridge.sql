@@ -9,7 +9,8 @@ SELECT whatsapp_sender, whatsapp_bridge_url, whatsapp_bridge_key, whatsapp_bridg
        whatsapp_hidden_fields, whatsapp_channel_first, whatsapp_welcome_early, whatsapp_delete_for_me,
        whatsapp_delete_poll_for_me, whatsapp_followup_returning,
        whatsapp_message_new, whatsapp_message_returning, whatsapp_poll_new, whatsapp_poll_returning,
-       whatsapp_poll_combined, whatsapp_combined_message
+       whatsapp_poll_combined, whatsapp_combined_message,
+       whatsapp_message_gap_minutes, whatsapp_poll_every_hours
 FROM app_settings WHERE id = 1;
 
 -- name: SetWhatsAppSenderSettings :exec
@@ -40,6 +41,8 @@ UPDATE app_settings SET
     whatsapp_poll_returning = sqlc.arg(whatsapp_poll_returning),
     whatsapp_poll_combined = sqlc.arg(whatsapp_poll_combined),
     whatsapp_combined_message = sqlc.arg(whatsapp_combined_message),
+    whatsapp_message_gap_minutes = sqlc.arg(whatsapp_message_gap_minutes),
+    whatsapp_poll_every_hours = sqlc.arg(whatsapp_poll_every_hours),
     updated_at = now()
 WHERE id = 1;
 
@@ -179,3 +182,11 @@ SELECT
 FROM whatsapp_messages
 WHERE whatsapp_number_id IS NOT NULL AND NOT is_test AND created_at > now() - interval '8 days'
 GROUP BY whatsapp_number_id;
+
+-- name: LastWhatsAppPollAt :one
+-- When this phone was last sent a rating poll; no rows when never.
+SELECT created_at
+FROM whatsapp_messages
+WHERE client_phone = sqlc.arg(client_phone) AND status = 'sent' AND poll_ref <> '' AND NOT is_test
+ORDER BY created_at DESC
+LIMIT 1;

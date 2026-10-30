@@ -831,6 +831,8 @@ type Querier interface {
 	// cancellation already left waiting for it.
 	InheritBranchInvoiceCancellation(ctx context.Context, id int64) error
 	InsertBranchQuickAccessItem(ctx context.Context, arg InsertBranchQuickAccessItemParams) error
+	// When this phone was last sent a rating poll; no rows when never.
+	LastWhatsAppPollAt(ctx context.Context, clientPhone string) (time.Time, error)
 	// When this phone was last actually messaged; no rows when never.
 	LastWhatsAppSentAt(ctx context.Context, clientPhone string) (time.Time, error)
 	LatestGooglePlaceSnapshot(ctx context.Context, placeID string) (GooglePlaceSnapshot, error)
