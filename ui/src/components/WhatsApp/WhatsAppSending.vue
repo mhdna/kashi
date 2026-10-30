@@ -890,8 +890,13 @@
     let hidden = hiddenFields.value
     if (draft.value?.whatsapp_channel_first) hidden = firstOrReturning(hidden, previewFirst.value)
     for (const key of hidden) values[key] = ''
-    const lines = message.split('\n')
-    const dropped = lines.map(line => [...line.matchAll(/\{(\w+)\}/g)].some(m => m[1] in values && !values[m[1]]))
+    const empty = line => [...line.matchAll(/\{(\w+)\}/g)].some(m => m[1] in values && !values[m[1]])
+    // Like the server's whatsAppDropEmptySegments: "a · b" pieces go one by one.
+    const lines = message.split('\n').map(line => {
+      const kept = line.split(' · ').filter(segment => !empty(segment))
+      return kept.length > 0 ? kept.join(' · ') : line
+    })
+    const dropped = lines.map(line => empty(line))
     const isLabel = line => line.trim().endsWith(':') && !/\{\w+\}/.test(line)
     for (let i = lines.length - 1; i >= 0; i--) {
       if (dropped[i] || !isLabel(lines[i]) || !lines[i + 1]?.trim()) continue
