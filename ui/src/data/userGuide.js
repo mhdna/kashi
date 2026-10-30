@@ -449,6 +449,14 @@ export const guideSections = [
       'Changes when you pick a different range of months or branches.',
     ]),
 
+  entry('reports', 'Analysis', 'Reports',
+    'End-of-month (or any period) reports to print or save as PDF: overview, attendance and hours, salesperson performance, customers, customer feedback, products and categories, busy times, payments and discounts, and branch comparison.',
+    [
+      'Pick a report on the left, then the period, branches and (for attendance and salespersons) employees.',
+      '<b>Export PDF</b> opens the print dialog: choose <b>Save as PDF</b>. <b>CSV</b> downloads the report\'s tables for Excel.',
+      'Salesperson performance shows sales per hour worked when the salesperson\'s attendance device number is set.',
+    ]),
+
   entry('busy-hours', 'Analysis', 'Busy Hours',
     'When customers come in, and when they buy. Everything is an average per day.',
     [
@@ -1003,6 +1011,7 @@ export const guideIcons = {
   'dashboard': 'mdi-view-dashboard',
   'targets': 'mdi-target',
   'footfall': 'mdi-walk',
+  'reports': 'mdi-file-chart-outline',
   'busy-hours': 'mdi-clock-time-four-outline',
   'product-revenues': 'mdi-package-variant',
   'conversion': 'mdi-percent-outline',
