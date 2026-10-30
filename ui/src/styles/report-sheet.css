@@ -51,17 +51,14 @@
 .rpt-chart img { display: block; width: 100%; height: 100%; object-fit: contain; }
 
 .rpt-kpis {
-  /* A plain strip of figures between two rules, like a printed statement. */
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  column-gap: 16px;
-  row-gap: 4px;
+  gap: 8px;
   margin-bottom: 16px;
-  padding: 2px 0 10px;
-  border-bottom: 1px solid #d9d8d4;
   break-inside: avoid;
 }
-.rpt-kpi { padding: 2px 0; }
+/* A plain card: thin border, no shading or coloured edge. */
+.rpt-kpi { padding: 7px 10px 8px; border: 1px solid #dcdbd6; border-radius: 6px; }
 .rpt-kpi__label { color: #52514e; font-size: 10.5px; line-height: 1.3; }
 .rpt-kpi__value { margin-top: 1px; font-size: 16px; font-weight: 700; line-height: 1.3; font-variant-numeric: tabular-nums; }
 .rpt-kpi__hint { color: #8a8984; font-size: 9.5px; }
@@ -144,3 +141,9 @@
 .rpt-kpis:hover > .rpt-hide-btn--part { opacity: 1; }
 .rpt-kpis { position: relative; }
 .rpt-kpis__hide { position: absolute; top: 4px; inset-inline-end: 0; }
+/* Coloured rows: a day missing a punch, a day off. */
+.rpt-table tbody tr.rpt-row--warn td { background: #fff3e6; }
+.rpt-table tr.rpt-row--warn .rpt-tag { background: #fde1c4; color: #8a4b00; }
+.rpt-table tr.rpt-row--warn .rpt-bar { background: #f0a35e; }
+.rpt-table tbody tr.rpt-row--off td { color: #a8a7a2; }
+.rpt-table tr.rpt-row--off .rpt-tag { background: #f1f0ec; color: #8a8984; }
