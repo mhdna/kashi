@@ -333,6 +333,24 @@
             These products sell at full price, with no discount and no deal, and the rules below
             don't apply to them: put this rule above the ones it should keep them out of.
           </p>
+          <!-- Every product on a deal is pooled with the others; this is only
+               what this rule's products get when they're left outside a set. -->
+          <v-text-field
+            v-if="form.dealId > 0"
+            v-model="form.dealFallback"
+            class="mt-4"
+            density="compact"
+            hint="what these get when they're not in a full set; empty for the deal's own"
+            label="Otherwise"
+            max="100"
+            min="0"
+            persistent-hint
+            :placeholder="dealFallbackPlaceholder"
+            style="max-width: 280px"
+            suffix="%"
+            type="number"
+            variant="outlined"
+          />
           <div v-if="form.dealId === 0" class="d-flex flex-wrap ga-3 mt-4">
             <v-text-field
               v-model="form.discount"
@@ -482,7 +500,10 @@
   }
 
   function discountText (rule) {
-    if (rule.deal_id) return props.deals.find(d => d.id === rule.deal_id)?.name ?? 'Deal'
+    if (rule.deal_id) {
+      const name = props.deals.find(d => d.id === rule.deal_id)?.name ?? 'Deal'
+      return rule.deal_fallback_percent != null ? `${name} · otherwise ${rule.deal_fallback_percent}%` : name
+    }
     const parts = (rule.options ?? []).map(o => `${o.sale_option} ${o.discount}%`)
     const plain = rule.discount > 0 ? `${rule.discount}%` : 'No discount'
     return parts.length > 0 ? `${plain} · ${parts.join(' · ')}` : plain
@@ -568,7 +589,13 @@
   const ruleDialog = ref(false)
   // Where the rule being edited is; rule -1 adds one to the group.
   const editing = reactive({ group: -1, rule: -1 })
-  const form = reactive({ name: '', discount: '0', options: {}, dealId: 0, allProducts: false, group: 0, maxPrice: '' })
+  const form = reactive({ name: '', discount: '0', options: {}, dealId: 0, dealFallback: '', allProducts: false, group: 0, maxPrice: '' })
+
+  // The deal's own fallback, shown in the empty "Otherwise" field.
+  const dealFallbackPlaceholder = computed(() => {
+    const deal = props.deals.find(d => d.id === form.dealId)
+    return deal?.fallback_percent ? `${deal.fallback_percent} (the deal's own)` : "the deal's own"
+  })
 
   function openRule (g, r) {
     loadAttributeValues()
@@ -583,6 +610,7 @@
     // A saved rule giving nothing at all is shown as "No discount".
     const givesNothing = r >= 0 && !rule.deal_id && !rule.discount && (rule.options ?? []).length === 0
     form.dealId = givesNothing ? NO_DISCOUNT : (rule.deal_id ?? 0)
+    form.dealFallback = rule.deal_fallback_percent != null ? String(rule.deal_fallback_percent) : ''
     // A saved rule with no conditions is an "every product" one.
     form.allProducts = r >= 0 && !hasConditions(rule)
     form.options = Object.fromEntries(props.saleOptions.map(o => {
@@ -617,8 +645,16 @@
       }
       options.push({ sale_option_id: o.id, sale_option: o.name, discount: d })
     }
+    let dealFallback = null
+    if (dealId && String(form.dealFallback).trim() !== '') {
+      dealFallback = percent(form.dealFallback)
+      if (dealFallback === null) {
+        notify.error('Enter the "otherwise" percent from 0 to 100, or leave it empty for the deal\'s own.')
+        return
+      }
+    }
     const old = editing.rule >= 0 ? groups.value[editing.group].rules[editing.rule] : null
-    const rule = { id: old?.id ?? 0, name: form.name.trim(), discount, options, deal_id: dealId, enabled: old?.enabled ?? true, variants: 0 }
+    const rule = { id: old?.id ?? 0, name: form.name.trim(), discount, options, deal_id: dealId, deal_fallback_percent: dealFallback, enabled: old?.enabled ?? true, variants: 0 }
     for (const c of CONDITIONS) {
       rule[c.key] = form.allProducts ? [] : form[c.key].map(v => String(v).trim()).filter(Boolean)
     }

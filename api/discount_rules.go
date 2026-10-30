@@ -40,8 +40,11 @@ type discountRule struct {
 	Discount           int16                `json:"discount"`
 	Options            []discountRuleOption `json:"options"`
 	// The deal the rule puts its products on (000201), 0 for none.
-	DealID  int64 `json:"deal_id"`
-	Enabled bool  `json:"enabled"`
+	DealID int64 `json:"deal_id"`
+	// What the rule's products get outside a set, in place of the deal's
+	// own fallback (000216); null for the deal's own.
+	DealFallbackPercent *int16 `json:"deal_fallback_percent"`
+	Enabled             bool   `json:"enabled"`
 	// How many variants the rule decides now, after the rules above it (an
 	// exclusion, which writes no rows, counts the ones it keeps out).
 	Variants int64 `json:"variants"`
@@ -94,6 +97,9 @@ func (server *Server) discountListRuleGroups(ctx *gin.Context, listID int64) ([]
 			Discount: r.Discount, Options: byRule[r.ID], DealID: r.DealID.Int64,
 			Enabled: r.IsEnabled, Variants: r.Variants,
 		}
+		if r.DealFallbackPercent.Valid {
+			rule.DealFallbackPercent = &r.DealFallbackPercent.Int16
+		}
 		// A rule giving no discount and no deal (an exclusion) writes no
 		// rows; say how many products it decides all the same.
 		if rule.Variants == 0 {
@@ -138,6 +144,9 @@ type discountRuleRequest struct {
 	MaxPrice           int64    `json:"max_price" binding:"min=0"` // cents; 0 for no limit
 	Discount           int16    `json:"discount" binding:"min=0,max=100"`
 	DealID             int64    `json:"deal_id" binding:"min=0"`
+	// With a deal: what its products get outside a set, in place of the
+	// deal's fallback; null (or absent) for the deal's own.
+	DealFallbackPercent *int16 `json:"deal_fallback_percent" binding:"omitempty,min=0,max=100"`
 	// A rule with no condition takes every product; it has to say so, so an
 	// empty rule saved by mistake doesn't discount the whole shop.
 	AllProducts bool `json:"all_products"`
@@ -265,6 +274,12 @@ func (server *Server) discountRuleInput(ctx *gin.Context, i int, r discountRuleR
 			return in, errRuleAnswered
 		}
 		in.Rule.DealID = deal
+		if r.DealFallbackPercent != nil {
+			in.Rule.DealFallbackPercent = sql.NullInt16{Int16: *r.DealFallbackPercent, Valid: true}
+		}
+	} else if r.DealFallbackPercent != nil {
+		server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("rule %d (%q): an 'otherwise' percent is only for a deal", i, r.Name))
+		return in, errRuleAnswered
 	}
 	return in, nil
 }
