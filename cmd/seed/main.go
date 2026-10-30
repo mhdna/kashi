@@ -798,8 +798,8 @@ func seedPurchases(ctx context.Context, store db.Store, supplierIDs, variantIDs 
 // that query has no received_at parameter (it defaults to now()), and here
 // we specifically want it backdated.
 func seedBranchInvoices(ctx context.Context, conn *sql.DB) {
-	branchIDs := ensureSeedBranches(ctx, conn)
-	if len(branchIDs) == 0 {
+	branches := ensureSeedBranches(ctx, conn)
+	if len(branches) == 0 {
 		log.Println("warning: no branches available, skipping branch invoices")
 		return
 	}
@@ -819,7 +819,7 @@ func seedBranchInvoices(ctx context.Context, conn *sql.DB) {
 	const total = 1000
 	created := 0
 	for i := 0; i < total; i++ {
-		branchID := branchIDs[i%len(branchIDs)]
+		branch := branches[i%len(branches)]
 		kind := kinds[rand.Intn(len(kinds))]
 
 		itemsTotal := int64(rand.Intn(24000) + 1000) // $10.00 - $250.00 in cents
@@ -851,21 +851,21 @@ func seedBranchInvoices(ctx context.Context, conn *sql.DB) {
 				branch_cashbox_account_id, branch_shift_id, branch_inventory_id,
 				branch_client_id, related_client_ref,
 				discount, subtotal, discounted_total, grand_total,
-				loyalty_points_delta, occurred_at, received_at, salesperson_name
+				loyalty_points_delta, occurred_at, received_at, salesperson_name, register_id
 			) VALUES (
 				$1, $2, $3, $4,
 				$5, $6, $7,
 				NULL, NULL,
 				$8, $9, $10, $11,
-				$12, $13, $14, $15
+				$12, $13, $14, $15, $16
 			)
 			ON CONFLICT (branch_id, client_ref) DO NOTHING
 			RETURNING id`,
-			branchID, clientRef, kind, code,
+			branch.id, clientRef, kind, code,
 			rand.Int63n(5)+1, rand.Int63n(9)+1, rand.Int63n(5)+1,
 			discount, itemsTotal, itemsTotal, grandTotal,
 			grandTotal/100, occurredAt, receivedAt,
-			salespeople[rand.Intn(len(salespeople))],
+			salespeople[rand.Intn(len(salespeople))], branch.registerID,
 		).Scan(&invoiceID)
 		if err == sql.ErrNoRows {
 			continue // already seeded on an earlier run
@@ -904,31 +904,57 @@ func seedBranchInvoices(ctx context.Context, conn *sql.DB) {
 	fmt.Printf("  ✓ Completed: %d branch invoices created\n", created)
 }
 
-// ensureSeedBranches returns existing branch IDs, creating a small set of
-// placeholder branches first if the table is empty.
-func ensureSeedBranches(ctx context.Context, conn *sql.DB) []int64 {
-	if ids := queryInt64s(ctx, conn, `SELECT id FROM branches ORDER BY id`); len(ids) > 0 {
-		return ids
+// seedBranch is a branch and the register its seeded invoices come from.
+type seedBranch struct {
+	id, registerID int64
+}
+
+// ensureSeedBranches returns every branch with a register to attach seeded
+// invoices to, creating placeholder branches first if the table is empty and
+// a register for any branch without one (branch_invoices.register_id is NOT
+// NULL). Codes are letters only: a till refuses a branch code with anything
+// else in it, and a branch's first register shares the branch's code.
+func ensureSeedBranches(ctx context.Context, conn *sql.DB) []seedBranch {
+	if ids := queryInt64s(ctx, conn, `SELECT id FROM branches ORDER BY id`); len(ids) == 0 {
+		names := []string{"Beirut Central", "Tripoli Depot", "Saida Store", "Zahle Hub", "Jounieh Outlet"}
+		codes := []string{"BEI", "TRI", "SAI", "ZAH", "JOU"}
+		for i, name := range names {
+			if _, err := conn.ExecContext(ctx, `
+				INSERT INTO branches (name, code) VALUES ($1, $2)
+				ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name`,
+				name, codes[i],
+			); err != nil {
+				log.Printf("warning: failed to ensure branch %s: %v", name, err)
+			}
+		}
 	}
 
-	names := []string{"Beirut Central", "Tripoli Depot", "Saida Store", "Zahle Hub", "Jounieh Outlet"}
-	ids := make([]int64, 0, len(names))
-	for i, name := range names {
-		var id int64
-		err := conn.QueryRowContext(ctx, `
-			INSERT INTO branches (name, code, api_key_hash)
-			VALUES ($1, $2, $3)
-			ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name
-			RETURNING id`,
-			name, fmt.Sprintf("BR-SEED-%02d", i+1), "seed-placeholder-not-a-real-key",
-		).Scan(&id)
-		if err != nil {
-			log.Printf("warning: failed to ensure branch %s: %v", name, err)
-			continue
-		}
-		ids = append(ids, id)
+	if _, err := conn.ExecContext(ctx, `
+		INSERT INTO branch_registers (branch_id, code, api_key_hash)
+		SELECT b.id, b.code, 'seed-placeholder-not-a-real-key'
+		FROM branches b
+		WHERE NOT EXISTS (SELECT 1 FROM branch_registers r WHERE r.branch_id = b.id)`,
+	); err != nil {
+		log.Printf("warning: failed to ensure seed registers: %v", err)
 	}
-	return ids
+
+	rows, err := conn.QueryContext(ctx, `
+		SELECT b.id, MIN(r.id)
+		FROM branches b JOIN branch_registers r ON r.branch_id = b.id
+		GROUP BY b.id ORDER BY b.id`)
+	if err != nil {
+		log.Printf("warning: failed to list seed branches: %v", err)
+		return nil
+	}
+	defer rows.Close()
+	var branches []seedBranch
+	for rows.Next() {
+		var b seedBranch
+		if err := rows.Scan(&b.id, &b.registerID); err == nil {
+			branches = append(branches, b)
+		}
+	}
+	return branches
 }
 
 func queryInt64s(ctx context.Context, conn *sql.DB, query string) []int64 {
