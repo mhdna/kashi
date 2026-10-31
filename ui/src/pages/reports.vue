@@ -310,7 +310,7 @@
                 <div><strong>{{ branchLabel }}</strong></div>
                 <div v-if="report.employees && employees.length > 0">{{ employeeLabel }}</div>
                 <div>{{ t('Generated {at}', { at: generatedLabel }) }}</div>
-                <div v-if="excludedCount > 0 && needsSales">
+                <div v-if="showExcluded && excludedCount > 0 && needsSales">
                   {{ t('Left out: {products} products, {clients} customers', { products: exclusions.products.length, clients: exclusions.clients.length }) }}
                 </div>
               </div>
@@ -396,6 +396,15 @@
             />
             <span v-if="exclusions.products.length === 0" class="text-caption text-medium-emphasis">None</span>
           </div>
+
+          <v-switch
+            v-model="showExcluded"
+            class="mt-2"
+            color="primary"
+            density="compact"
+            hide-details
+            label="Say on the report how many are left out"
+          />
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -796,6 +805,10 @@
     products: settings.value.exclusions?.products ?? [],
     clients: settings.value.exclusions?.clients ?? [],
   }))
+  // The "Left out: N products, N customers" line in the sheet's header is
+  // hidden unless asked for (this browser only).
+  const showExcluded = ref(stored('reports.showExcluded', '0') === '1')
+  watch(showExcluded, value => store('reports.showExcluded', value ? '1' : '0'))
   const excludedCount = computed(() => exclusions.value.products.length + exclusions.value.clients.length)
 
   // Poll replies hidden from the feedback report by hand (small talk the
