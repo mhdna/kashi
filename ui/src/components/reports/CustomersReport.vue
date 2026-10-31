@@ -16,9 +16,9 @@
   </RptSection>
 
   <RptSection
-    v-if="has('who.visits') || has('who.spend') || has('who.home')"
+    v-if="has('who.visits') || has('who.spend') || has('who.home') || has('who.top')"
     :break-before="has('best')"
-    :part="['who.visits', 'who.spend', 'who.home']"
+    :part="['who.visits', 'who.spend', 'who.home', 'who.top']"
     :title="t('Who they are')"
   >
     <RptCard v-if="has('who.visits')" :note="t('Customers by how many times they bought in the period.')" part="who.visits" :title="t('By number of visits')">
@@ -26,6 +26,9 @@
     </RptCard>
     <RptCard v-if="has('who.spend')" :note="t('Customers by what they spent in the period, net of returns.')" part="who.spend" :title="t('By amount spent')">
       <RptTable :columns="spendColumns" compact :rows="spendRows" />
+    </RptCard>
+    <RptCard v-if="has('who.top') && count >= 10" :note="t('How much of the period\'s sales the best customers carry.')" part="who.top" :title="t('How much the top customers bring')">
+      <RptTable :columns="topShareColumns" compact :rows="topShareRows" />
     </RptCard>
     <RptCard v-if="has('who.home') && homeRows.length > 1" part="who.home" :title="t('Customers by home branch')">
       <RptTable :columns="homeColumns" compact :rows="homeRows" />
@@ -147,6 +150,28 @@
   }
   const visitColumns = groupColumns(t('Visits'))
   const spendColumns = groupColumns(t('Spent'))
+
+  // The best customers' weight: the top 10, then the top 10%, 20% and half.
+  const topShareRows = computed(() => {
+    const n = count.value
+    const groups = [
+      { group: t('Top 10 customers'), size: 10 },
+      { group: t('Top 10%'), size: Math.ceil(n * 0.1) },
+      { group: t('Top 20%'), size: Math.ceil(n * 0.2) },
+      { group: t('Top half'), size: Math.ceil(n * 0.5) },
+    ]
+    return groups.map(g => {
+      const total = clients.value.slice(0, g.size).reduce((sum, c) => sum + c.net_total, 0)
+      return { ...g, spent: total, spentShare: ratio(total, spent.value), salesShare: ratio(total, data.value.summary.net_total) }
+    })
+  })
+  const topShareColumns = [
+    { key: 'group', title: t('Customers') },
+    { key: 'size', title: t('How many'), type: 'int' },
+    { key: 'spent', title: t('Spent'), type: 'money' },
+    { key: 'spentShare', title: t('% of customers\' spend'), type: 'pct', bar: true },
+    { key: 'salesShare', title: t('% of net sales'), type: 'pct' },
+  ]
 
   const homeRows = computed(() => {
     const byBranch = new Map()

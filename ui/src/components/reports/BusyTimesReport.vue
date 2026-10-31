@@ -15,13 +15,16 @@
     </RptGrid>
   </RptSection>
 
-  <RptSection v-if="has('busy.hour') || has('busy.weekday')" :part="['busy.hour', 'busy.weekday']" :title="t('Through the day and the week')">
+  <RptSection v-if="has('busy.hour') || has('busy.weekday') || has('busy.avg')" :part="['busy.hour', 'busy.weekday', 'busy.avg']" :title="t('Through the day and the week')">
     <RptGrid>
       <RptCard v-if="has('busy.hour')" part="busy.hour" :title="t('Sales per hour (average per day)')">
         <RptChart :height="200" :option="hourCountChart" />
       </RptCard>
       <RptCard v-if="has('busy.weekday')" part="busy.weekday" :title="t('Net sales per weekday (average per day)')">
         <RptChart :height="200" :option="weekdayMoneyChart" />
+      </RptCard>
+      <RptCard v-if="has('busy.avg')" :note="t('What a sale comes to at each hour: when the big baskets happen.')" part="busy.avg" :title="t('Average sale by hour')">
+        <RptChart :height="200" :option="hourAvgChart" />
       </RptCard>
     </RptGrid>
   </RptSection>
@@ -67,7 +70,9 @@
   })
   const byHour = computed(() => hours.value.map(h => {
     const list = cells.value.filter(c => c.hour === h)
-    return { hour: hourLabel(h), sales: list.reduce((s, c) => s + c.sales_count, 0) / nDays.value, money: list.reduce((s, c) => s + c.sales_total, 0) / nDays.value }
+    const count = list.reduce((s, c) => s + c.sales_count, 0)
+    const total = list.reduce((s, c) => s + c.sales_total, 0)
+    return { hour: hourLabel(h), sales: count / nDays.value, money: total / nDays.value, avg: ratio(total, count) }
   }))
   const byWeekday = computed(() => names.map((name, i) => {
     const list = cells.value.filter(c => c.weekday === i + 1)
@@ -105,6 +110,7 @@
 
   const heatChart = computed(() => heatmapOption({ cells: cells.value.map(c => ({ weekday: c.weekday, hour: c.hour, value: Math.round(c.perDay * 10) / 10 })), kind: 'num1' }))
   const hourCountChart = computed(() => barOption({ categories: byHour.value.map(h => h.hour), series: [{ name: t('Sales'), data: byHour.value.map(h => Math.round(h.sales * 10) / 10) }], kind: 'num1' }))
+  const hourAvgChart = computed(() => barOption({ categories: byHour.value.map(h => h.hour), series: [{ name: t('Average sale'), data: byHour.value.map(h => Math.round(h.avg) / 100) }], kind: 'money' }))
   const weekdayMoneyChart = computed(() => barOption({ categories: names, series: [{ name: t('Net sales'), data: byWeekday.value.map(w => w.money / 100) }], kind: 'money', labels: true }))
 
   const days = computed(() => {
