@@ -28,10 +28,13 @@ export async function printReport (sheet, { title, lang = 'en' }) {
   doc.open()
   doc.write(`<!doctype html><html lang="${lang}" dir="${lang === 'ar' ? 'rtl' : 'ltr'}"><head><meta charset="utf-8"><title></title><style>
     ${reportFontCss}
-    @page { size: A4 portrait; margin: 10mm; }
+    @page { size: A4 portrait; margin: 0; }
     html, body { margin: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     ${sheetCss}
-    .rpt-sheet { width: auto !important; padding: 0 !important; box-shadow: none !important; }
+    /* The 10mm page margins are the sheet's own padding, repeated on every
+       page, not @page margins: the print dialog drops those when its
+       Margins option is "None", and the report then ran to the paper edge. */
+    .rpt-sheet { width: auto !important; padding: 10mm !important; box-shadow: none !important; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
   </style></head><body></body></html>`)
   doc.close()
   doc.title = title
