@@ -3,6 +3,21 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-10-31 · The report appeared dimmed, then faded in, after its animation
+
+**Symptom.** On the Reports page, once the "Preparing your report" picture
+went away the sheet appeared dimmed and only then faded to full strength,
+which felt like lag.
+
+**Cause.** The sheet is dimmed (`.reports-loading`) while `loading` is true,
+meant for reloads where the old sheet stays up. On a first load the sheet
+shows as soon as the figures arrive, but `loading` stays true while the staff
+list loads afterwards, so the new sheet was dimmed and then faded in.
+
+**Fix.** `ui/src/pages/reports.vue` dims the sheet only when one was already
+showing when the load started (`dimSheet`). Checked with a build; no
+automated test covers the page.
+
 ## 2026-10-31 · Deleting a picture in Storage reloaded the whole grid
 
 **Symptom.** Deleting unknown-item pictures on the Storage page blanked every
