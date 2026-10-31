@@ -90,7 +90,9 @@ func (server *Server) getReports(ctx *gin.Context) {
 		clients      []db.PeriodReportClientsRow
 		payments     []db.PeriodReportPaymentMethodsRow
 		discounts    []db.PeriodReportDiscountsRow
+		previous     db.PeriodReportSummaryRow
 	)
+	prevFrom, prevTo := previousPeriod(from, to)
 	run(func() (err error) {
 		summary, err = server.store.PeriodReportSummary(ctx, db.PeriodReportSummaryParams{FromDay: from, ToDay: to, BranchIds: branchIDs, ExcludeClientIds: ex.clients, ExcludeProductIds: ex.products})
 		return
@@ -139,6 +141,11 @@ func (server *Server) getReports(ctx *gin.Context) {
 		discounts, err = server.store.PeriodReportDiscounts(ctx, db.PeriodReportDiscountsParams{FromDay: from, ToDay: to, BranchIds: branchIDs, ExcludeClientIds: ex.clients})
 		return
 	})
+	// The headline figures for the period before, to compare against.
+	run(func() (err error) {
+		previous, err = server.store.PeriodReportSummary(ctx, db.PeriodReportSummaryParams{FromDay: prevFrom, ToDay: prevTo, BranchIds: branchIDs, ExcludeClientIds: ex.clients, ExcludeProductIds: ex.products})
+		return
+	})
 	if firstErr != nil {
 		server.writeError(ctx, http.StatusInternalServerError, firstErr)
 		return
@@ -172,7 +179,24 @@ func (server *Server) getReports(ctx *gin.Context) {
 		"clients":                orEmpty(clients),
 		"payment_methods":        orEmpty(payments),
 		"discounts":              orEmpty(discounts),
+		"previous": envelope{
+			"from":    prevFrom.Format(time.DateOnly),
+			"to":      prevTo.Format(time.DateOnly),
+			"summary": previous,
+		},
 	})
+}
+
+// previousPeriod is the stretch just before [from, to] that it is fairly
+// compared with: whole calendar months step back by as many months (October
+// against September, Q3 against Q2), anything else by as many days.
+func previousPeriod(from, to time.Time) (time.Time, time.Time) {
+	if from.Day() == 1 && to.AddDate(0, 0, 1).Day() == 1 {
+		months := (to.Year()-from.Year())*12 + int(to.Month()-from.Month()) + 1
+		return from.AddDate(0, -months, 0), from.AddDate(0, 0, -1)
+	}
+	days := int(to.Sub(from).Hours()/24) + 1
+	return from.AddDate(0, 0, -days), from.AddDate(0, 0, -1)
 }
 
 // orEmpty keeps an empty result a JSON [] rather than null.
