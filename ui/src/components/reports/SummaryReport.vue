@@ -93,6 +93,13 @@
       { label: t('Customers served'), value: int(sum.clients_served), hint: t('{pct} of sales named', { pct: pct(ratio(sum.named_sales_count, sum.sales_count)) }) },
       { label: t('Biggest sale'), value: money(sum.biggest_sale) },
     ]
+    // Profit only where the goods' cost is known; the hint says how much
+    // of the sales that covers.
+    const costed = data.value.products.reduce((a, p) => a + p.costed_revenue, 0)
+    if (costed > 0) {
+      const profit = costed - data.value.products.reduce((a, p) => a + p.cost, 0)
+      items.splice(1, 0, { label: t('Gross profit'), value: money(profit), hint: t('{pct} margin, on {share} of sales with a known cost', { pct: pct(ratio(profit, costed)), share: pct(ratio(costed, sum.net_total)) }) })
+    }
     if (visitors.value > 0) {
       items.push({ label: t('Visitors (counter)'), value: int(visitors.value), hint: t('{pct} bought', { pct: pct(ratio(sum.sales_count, visitors.value)) }) })
     }
