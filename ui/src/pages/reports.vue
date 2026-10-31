@@ -296,7 +296,7 @@
             :key="`${report.key}|${sheetLang}`"
             ref="sheetRef"
             class="rpt-sheet"
-            :class="{ 'reports-loading': loading }"
+            :class="{ 'reports-loading': loading && dimSheet }"
             :dir="sheetLang === 'ar' ? 'rtl' : 'ltr'"
             :lang="sheetLang"
             :style="{ width: `${pageWidth}px` }"
@@ -933,6 +933,7 @@
   // Each source is loaded once per filter set and kept while switching
   // reports; attendance and feedback only when a ticked part needs them.
   const loading = ref(false)
+  const dimSheet = ref(false)
   const loadError = ref('')
   const data = shallowRef(null)
   const attendance = shallowRef([])
@@ -994,6 +995,10 @@
 
     const mine = ++seq
     loading.value = true
+    // Dim the sheet only when one was already showing (a reload with other
+    // filters). A first load shows the sheet at full strength as soon as
+    // its numbers are in, rather than dimmed while the staff list loads.
+    dimSheet.value = ready.value
     loadError.value = ''
     try {
       await Promise.all(jobs)
