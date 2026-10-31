@@ -459,6 +459,7 @@
       key: 'overview', title: 'Monthly overview', subtitle: 'Sales, days, branches, best sellers', icon: 'mdi-view-dashboard-outline',
       parts: [
         { key: 'kpis.summary', comp: 'summary', title: 'Headline figures' },
+        { key: 'compare', comp: 'summary', title: 'Compared with the period before' },
         { key: 'days.chart', comp: 'summary', section: 'Sales day by day', title: 'Daily chart' },
         { key: 'days.weekday', comp: 'summary', section: 'Sales day by day', title: 'Average by weekday' },
         { key: 'days.best', comp: 'summary', section: 'Sales day by day', title: 'Best and slowest days' },
@@ -480,6 +481,7 @@
         { key: 'who.visits', comp: 'customers', section: 'Who they are', title: 'By number of visits' },
         { key: 'who.spend', comp: 'customers', section: 'Who they are', title: 'By amount spent' },
         { key: 'who.home', comp: 'customers', section: 'Who they are', title: 'By home branch' },
+        { key: 'who.top', comp: 'customers', section: 'Who they are', title: 'How much the top customers bring' },
         { key: 'when.heatmap', comp: 'customers', section: 'When customers come', title: 'Weekday and hour' },
         { key: 'when.busiest', comp: 'customers', section: 'When customers come', title: 'Busiest times' },
         { key: 'kpis.busy', comp: 'busy', title: 'Headline figures' },
@@ -487,6 +489,7 @@
         { key: 'busy.busiest', comp: 'busy', section: 'Sales by weekday and hour', title: 'Busiest times' },
         { key: 'busy.hour', comp: 'busy', section: 'Through the day and the week', title: 'Sales per hour' },
         { key: 'busy.weekday', comp: 'busy', section: 'Through the day and the week', title: 'Net sales per weekday' },
+        { key: 'busy.avg', comp: 'busy', section: 'Through the day and the week', title: 'Average sale by hour' },
         { key: 'footfall', comp: 'busy', title: 'Footfall and conversion' },
       ],
     },
