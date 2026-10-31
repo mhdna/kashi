@@ -1,23 +1,18 @@
 <template>
   <div class="server-down" :class="{ 'server-down--overlay': overlay }">
     <section class="server-down__content text-center">
-      <v-icon class="server-down__icon" :icon="icon" size="72" />
+      <v-progress-circular v-if="updating && !offline" class="server-down__icon" indeterminate size="28" width="3" />
+      <v-icon v-else class="server-down__icon" :icon="icon" size="40" />
 
-      <h1 class="text-h4 font-weight-bold mt-6">{{ title }}</h1>
-      <p class="text-body-1 text-medium-emphasis mt-3 mb-0">{{ text }}</p>
-      <p v-if="!offline" class="d-flex align-center justify-center ga-2 text-body-2 text-medium-emphasis mt-4 mb-0">
-        <v-progress-circular indeterminate size="14" width="2" />
-        {{ slow ? 'Taking longer than usual. Still checking…' : 'This page will come back on its own.' }}
-      </p>
+      <h1 class="text-h6 font-weight-medium mt-5">{{ title }}</h1>
+      <p class="text-body-2 text-medium-emphasis mt-1 mb-0">{{ text }}</p>
 
       <v-btn
-        v-if="!overlay"
-        class="mt-8"
-        color="primary"
+        v-if="!overlay && !updating"
+        class="mt-6"
         :loading="retrying"
         prepend-icon="mdi-refresh"
-        rounded="pill"
-        size="large"
+        variant="tonal"
         @click="retry"
       >
         Try again
@@ -54,6 +49,14 @@
     },
   })
 
+  // A deploy is over in seconds; past a minute, say so rather than keep
+  // promising "a few seconds".
+  const slow = ref(false)
+  const slowTimer = setTimeout(() => {
+    slow.value = true
+  }, 60_000)
+  onUnmounted(() => clearTimeout(slowTimer))
+
   const icon = computed(() => {
     if (props.offline) return 'mdi-wifi-off'
     return props.updating ? 'mdi-update' : 'mdi-server-network-off'
@@ -64,16 +67,9 @@
   })
   const text = computed(() => {
     if (props.offline) return NO_INTERNET_MESSAGE
-    return props.updating ? 'A new version is being installed. This usually takes a few seconds.' : props.message
+    if (slow.value) return 'Taking longer than usual. Still checking…'
+    return props.updating ? 'Back in a few seconds.' : props.message
   })
-
-  // A deploy is over in seconds; past a minute, say so rather than keep
-  // promising "a few seconds".
-  const slow = ref(false)
-  const slowTimer = setTimeout(() => {
-    slow.value = true
-  }, 60_000)
-  onUnmounted(() => clearTimeout(slowTimer))
 
   // A full reload is the simplest reliable recovery: it re-runs auth, re-mounts
   // every page and re-issues the requests that failed while the server was off.
@@ -87,9 +83,7 @@
 <style scoped>
 .server-down {
   align-items: center;
-  background:
-    radial-gradient(circle at top, rgba(var(--v-theme-primary), 0.14), transparent 45%),
-    rgb(var(--v-theme-background));
+  background: rgb(var(--v-theme-background));
   display: flex;
   justify-content: center;
   min-height: 100dvh;
@@ -104,11 +98,11 @@
 }
 
 .server-down__content {
-  max-width: 380px;
+  max-width: 340px;
   width: 100%;
 }
 
 .server-down__icon {
-  color: rgba(var(--v-theme-on-surface), 0.35);
+  color: rgba(var(--v-theme-on-surface), 0.4);
 }
 </style>
