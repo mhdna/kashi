@@ -794,6 +794,21 @@
     }
   }
 
+  // People left out of the attendance reports (the owner, a test user),
+  // saved for everyone like the hidden replies. [{ key, label }]: the label
+  // names them in the "Hidden" list even in a period they didn't work.
+  const hiddenPeople = computed(() => settings.value.hidden_people ?? [])
+  async function togglePerson (key, label) {
+    const list = hiddenPeople.value.some(x => x.key === key)
+      ? hiddenPeople.value.filter(x => x.key !== key)
+      : [...hiddenPeople.value, { key, label }]
+    try {
+      await saveSettings({ ...settings.value, hidden_people: list })
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
+
   async function loadSettings () {
     try {
       settings.value = (await getReportSettings()) ?? {}
@@ -1011,6 +1026,8 @@
     options: { topN: topN.value, sortBy: sortBy.value },
     hiddenReplies: hiddenReplies.value,
     toggleReply: canEdit.value ? toggleReply : null,
+    hiddenPeople: hiddenPeople.value,
+    togglePerson: canEdit.value ? togglePerson : null,
   }))
 
   // ---- A4 preview and zoom ----------------------------------------------------
