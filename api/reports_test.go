@@ -54,6 +54,9 @@ func TestGetReports(t *testing.T) {
 		store.EXPECT().PeriodReportClients(gomock.Any(), gomock.Any()).Return(nil, nil)
 		store.EXPECT().PeriodReportPaymentMethods(gomock.Any(), gomock.Any()).Return(nil, nil)
 		store.EXPECT().PeriodReportDiscounts(gomock.Any(), gomock.Any()).Return(nil, nil)
+		// September is compared with August.
+		store.EXPECT().PeriodReportSummary(gomock.Any(), db.PeriodReportSummaryParams{FromDay: time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC), ToDay: time.Date(2026, 8, 31, 0, 0, 0, 0, time.UTC), BranchIds: ids, ExcludeProductIds: []int64{7}, ExcludeClientIds: []int64{9}}).
+			Return(db.PeriodReportSummaryRow{SalesCount: 10}, nil)
 	}
 
 	t.Run("every section for the days and branches asked", func(t *testing.T) {
@@ -66,6 +69,8 @@ func TestGetReports(t *testing.T) {
 		var body map[string]json.RawMessage
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
 		require.Contains(t, string(body["summary"]), `"sales_count":12`)
+		require.Contains(t, string(body["previous"]), `"from":"2026-08-01"`)
+		require.Contains(t, string(body["previous"]), `"sales_count":10`)
 		// Empty sections are [] so the page can map over them as they are.
 		for _, key := range []string{"daily", "branches", "weekday_hour", "salespersons", "salesperson_daily",
 			"salesperson_categories", "products", "variant_attributes", "product_attributes", "clients", "payment_methods", "discounts"} {
@@ -94,6 +99,25 @@ func TestGetReports(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, get(server, "from=2024-01-01&to=2026-09-01").Code)
 		require.Equal(t, http.StatusBadRequest, get(server, "from=2026-09-01&to=2026-09-30&branch_ids=x").Code)
 	})
+}
+
+func TestPreviousPeriod(t *testing.T) {
+	d := func(s string) time.Time {
+		v, err := time.Parse(time.DateOnly, s)
+		require.NoError(t, err)
+		return v
+	}
+	for _, c := range []struct{ from, to, prevFrom, prevTo string }{
+		{"2026-10-01", "2026-10-31", "2026-09-01", "2026-09-30"}, // a month
+		{"2026-03-01", "2026-03-31", "2026-02-01", "2026-02-28"}, // into a short month
+		{"2026-07-01", "2026-09-30", "2026-04-01", "2026-06-30"}, // a quarter
+		{"2026-10-26", "2026-11-01", "2026-10-19", "2026-10-25"}, // a week
+		{"2026-10-02", "2026-10-31", "2026-09-02", "2026-10-01"}, // 30 days
+	} {
+		from, to := previousPeriod(d(c.from), d(c.to))
+		require.Equal(t, c.prevFrom, from.Format(time.DateOnly), c.from)
+		require.Equal(t, c.prevTo, to.Format(time.DateOnly), c.from)
+	}
 }
 
 func TestReportSettings(t *testing.T) {
