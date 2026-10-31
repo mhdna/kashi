@@ -16,12 +16,12 @@
     the host layout to a column). Row actions move to a menu for the
     selected item since there's no hover on touch. -->
   <div v-if="compact" class="page-sidebar page-sidebar--compact d-flex align-center ga-1 px-2 py-1">
-    <v-progress-circular
+    <PreparingState
       v-if="loading"
       class="mx-2"
-      color="primary"
-      indeterminate
-      size="20"
+      kind="data"
+      :size="28"
+      title="Loading"
     />
     <v-chip-group
       v-else
@@ -83,7 +83,7 @@
 
   <div v-else class="page-sidebar d-flex flex-column" :style="{ flex: `0 0 ${width}px`, width: `${width}px` }">
     <div v-if="loading" class="d-flex justify-center pa-6">
-      <v-progress-circular color="primary" indeterminate size="24" />
+      <PreparingState kind="data" :size="34" title="Loading" />
     </div>
     <v-list
       v-else

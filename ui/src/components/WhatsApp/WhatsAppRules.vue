@@ -100,7 +100,7 @@
         </v-col>
       </v-row>
       <div class="d-flex align-center flex-wrap ga-2 mt-3 text-body-2">
-        <v-progress-circular v-if="testing" indeterminate size="16" width="2" />
+        <PreparingState v-if="testing" kind="chat" :size="24" title="Loading" />
         <template v-else-if="testResult">
           <v-chip
             :color="testResult.action === 'skip' ? undefined : 'success'"
@@ -125,9 +125,7 @@
       </div>
     </v-sheet>
 
-    <div v-if="loading" class="d-flex justify-center pa-8">
-      <v-progress-circular color="primary" indeterminate />
-    </div>
+    <PreparingState v-if="loading" kind="chat" min-height="240px" title="Loading message rules" />
     <div v-else-if="draft.length === 0" class="text-body-2 text-medium-emphasis text-center py-8">
       No rules: every sale to a client with a phone gets the default message.
     </div>

@@ -143,7 +143,7 @@
                   {{ group.empty }}
                 </div>
                 <div v-if="kashiLoading && group.key === 'other'" class="d-flex justify-center py-2">
-                  <v-progress-circular indeterminate size="18" width="2" />
+                  <PreparingState kind="data" :size="25" title="Loading" />
                 </div>
               </div>
             </v-card>
@@ -265,7 +265,7 @@
                 No recent activity yet.
               </div>
               <div v-if="activitiesLoading" class="d-flex justify-center py-2">
-                <v-progress-circular indeterminate size="18" width="2" />
+                <PreparingState kind="data" :size="25" title="Loading" />
               </div>
             </div>
           </v-card>
@@ -350,7 +350,7 @@
                 Nothing added yet.
               </div>
               <div v-else-if="latestLoading" class="d-flex justify-center py-2">
-                <v-progress-circular indeterminate size="18" width="2" />
+                <PreparingState kind="data" :size="25" title="Loading" />
               </div>
               <div v-else-if="latestLoaded && canShowMoreLatest && !mdAndUp" class="d-flex justify-center py-2">
                 <v-btn
@@ -484,7 +484,7 @@
             @rotate="delta => changeLatestPhoto(item => rotatePhoto(item.kind, item.id, delta))"
           />
           <div v-else class="d-flex justify-center pa-8">
-            <v-progress-circular indeterminate />
+            <PreparingState kind="data" min-height="160px" title="Loading the photo" />
           </div>
         </div>
         <template v-if="photoItem && latestTarget(photoItem)">

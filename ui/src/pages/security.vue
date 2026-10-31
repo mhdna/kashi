@@ -3,7 +3,7 @@
     <div class="d-flex align-center flex-wrap ga-2 mb-1">
       <v-icon icon="mdi-shield-lock-outline" />
       <div class="text-h6 font-weight-medium">Security</div>
-      <v-progress-circular v-if="loading" indeterminate size="18" width="2" />
+      <PreparingState v-if="loading" kind="data" :size="25" title="Loading" />
       <v-spacer />
       <v-btn prepend-icon="mdi-refresh" variant="text" @click="refreshAll">Refresh</v-btn>
     </div>

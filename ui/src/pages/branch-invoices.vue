@@ -13,7 +13,7 @@
       <v-divider />
       <v-card-text class="invoice-details-content pa-6">
         <div v-if="itemsLoading" class="d-flex justify-center pa-4">
-          <v-progress-circular color="primary" indeterminate />
+          <PreparingState kind="receipt" min-height="160px" title="Loading the items" />
         </div>
         <template v-else-if="itemsDetails">
           <v-sheet class="pa-0" rounded="lg">
@@ -272,7 +272,7 @@
           </v-alert>
 
           <div v-if="remoteReturnItemsLoading" class="d-flex justify-center pa-4">
-            <v-progress-circular color="primary" indeterminate />
+            <PreparingState kind="receipt" min-height="160px" title="Loading the invoice's items" />
           </div>
           <template v-else>
             <div class="text-body-2 mb-2">{{ remoteMode === 'exchange' ? 'Items to take back' : 'Items to return' }}</div>
@@ -361,13 +361,12 @@
           <v-textarea v-model="remoteReturnReason" class="mt-4" label="Reason (optional)" rows="2" />
         </template>
 
-        <div v-else-if="remoteReturnPhase === 'polling'" class="d-flex flex-column align-center pa-6">
-          <v-progress-circular class="mb-4" color="primary" indeterminate />
-          <div class="text-body-2 text-center">
-            Waiting for {{ branchName(remoteReturnTarget?.branch_id) }} to process the
-            {{ remoteMode === 'cancel' ? 'cancellation' : remoteMode }}...
-          </div>
-        </div>
+        <PreparingState
+          v-else-if="remoteReturnPhase === 'polling'"
+          kind="receipt"
+          min-height="220px"
+          :title="`Waiting for ${branchName(remoteReturnTarget?.branch_id)} to process the ${remoteMode === 'cancel' ? 'cancellation' : remoteMode}`"
+        />
 
         <template v-else-if="remoteReturnPhase === 'result'">
           <v-alert

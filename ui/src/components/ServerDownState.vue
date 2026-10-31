@@ -1,7 +1,13 @@
 <template>
   <div class="server-down" :class="{ 'server-down--overlay': overlay }">
     <section class="server-down__content text-center">
-      <v-progress-circular v-if="updating && !offline" class="server-down__icon" indeterminate size="28" width="3" />
+      <PreparingState
+        v-if="updating && !offline"
+        class="server-down__icon"
+        kind="settings"
+        :size="39"
+        title="Loading"
+      />
       <v-icon v-else class="server-down__icon" :icon="icon" size="40" />
 
       <h1 class="text-h6 font-weight-medium mt-5">{{ title }}</h1>

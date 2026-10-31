@@ -53,12 +53,12 @@
     </v-virtual-scroll>
 
     <div v-else-if="loading" class="text-center pa-6">
-      <v-progress-circular color="primary" indeterminate size="24" width="2" />
+      <PreparingState kind="data" :size="34" title="Loading" />
     </div>
     <div v-else class="text-medium-emphasis text-center pa-6">{{ emptyText }}</div>
 
     <div v-if="loading && items.length > 0" class="d-flex justify-center py-2">
-      <v-progress-circular color="primary" indeterminate size="16" width="2" />
+      <PreparingState kind="data" :size="24" title="Loading" />
     </div>
   </v-card>
 </template>

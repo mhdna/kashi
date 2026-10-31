@@ -8,13 +8,7 @@
           Financial Position
         </div>
 
-        <v-progress-circular
-          v-if="loading && summary == null"
-          color="indigo-lighten-2"
-          indeterminate
-          size="26"
-          width="2"
-        />
+        <PreparingState v-if="loading && summary == null" kind="chart" :size="36" title="Loading" />
 
         <template v-else>
           <div class="d-flex align-baseline ga-3">

@@ -14,9 +14,12 @@
         />
       </div>
       <div class="wi__scroll">
-        <div v-if="loadingChats && chats.length === 0" class="d-flex justify-center pa-6">
-          <v-progress-circular indeterminate />
-        </div>
+        <PreparingState
+          v-if="loadingChats && chats.length === 0"
+          kind="chat"
+          min-height="200px"
+          title="Loading conversations"
+        />
         <div v-else-if="chats.length === 0" class="pa-6 text-body-2 text-medium-emphasis text-center">
           {{ search ? 'No conversation matches.' : 'No conversations yet. Messages show up here as they come in on your numbers.' }}
         </div>
@@ -70,9 +73,12 @@
           <div v-if="moreMessages" class="text-center mb-2">
             <v-btn :loading="loadingMessages" size="small" variant="tonal" @click="loadEarlier">Earlier messages</v-btn>
           </div>
-          <div v-if="loadingMessages && messages.length === 0" class="d-flex justify-center pa-6">
-            <v-progress-circular indeterminate />
-          </div>
+          <PreparingState
+            v-if="loadingMessages && messages.length === 0"
+            kind="chat"
+            min-height="200px"
+            title="Loading messages"
+          />
           <template v-for="(m, i) in messages" :key="m.id">
             <div v-if="dayLabel(i)" class="wi__day">{{ dayLabel(i) }}</div>
             <div class="wi__row" :class="{ 'wi__row--us': m.from_me }">

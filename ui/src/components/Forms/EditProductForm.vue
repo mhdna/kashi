@@ -8,9 +8,7 @@
     <v-divider />
 
     <v-card-text class="py-4">
-      <div v-if="loading" class="py-8 text-center">
-        <v-progress-circular color="primary" indeterminate />
-      </div>
+      <PreparingState v-if="loading" kind="box" min-height="220px" title="Loading the product" />
 
       <div v-else-if="loadError" class="text-center py-8 text-medium-emphasis">
         <div class="mb-2">Failed to load product.</div>

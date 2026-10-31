@@ -32,7 +32,7 @@
 
       <v-card-text class="pa-4">
         <div v-if="loading" class="d-flex justify-center pa-4">
-          <v-progress-circular color="primary" indeterminate />
+          <PreparingState kind="data" min-height="160px" title="Loading details" />
         </div>
         <v-alert v-else-if="error" density="compact" type="warning" variant="tonal">{{ error }}</v-alert>
 

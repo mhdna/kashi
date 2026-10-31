@@ -328,7 +328,7 @@
               <div v-else-if="!expensesLoading" class="text-medium-emphasis text-center pa-10">No matching expenses.</div>
 
               <div class="d-flex justify-center pa-3">
-                <v-progress-circular v-if="expensesLoading" color="primary" indeterminate size="24" />
+                <PreparingState v-if="expensesLoading" kind="receipt" :size="34" title="Loading" />
                 <div v-if="expensesHasMore" ref="expensesSentinel" class="infinite-scroll-sentinel" />
               </div>
             </v-window-item>
@@ -451,7 +451,7 @@
               <div v-else-if="!branchLoading" class="text-medium-emphasis text-center pa-10">No branch expenses yet.</div>
 
               <div class="d-flex justify-center pa-3">
-                <v-progress-circular v-if="branchLoading" color="primary" indeterminate size="24" />
+                <PreparingState v-if="branchLoading" kind="receipt" :size="34" title="Loading" />
                 <div v-if="branchHasMore" ref="branchSentinel" class="infinite-scroll-sentinel" />
               </div>
             </v-window-item>

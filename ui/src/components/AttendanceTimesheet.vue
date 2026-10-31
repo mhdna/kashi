@@ -12,13 +12,7 @@
         label="Salesperson"
         variant="outlined"
       />
-      <v-progress-circular
-        v-if="loading"
-        color="primary"
-        indeterminate
-        size="20"
-        width="2"
-      />
+      <PreparingState v-if="loading" kind="people" :size="28" title="Loading" />
     </div>
     <v-divider />
 

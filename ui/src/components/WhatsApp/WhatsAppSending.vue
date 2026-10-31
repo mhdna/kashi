@@ -1,8 +1,6 @@
 <template>
   <div class="pa-4 pt-3">
-    <div v-if="!draft" class="d-flex justify-center pa-12">
-      <v-progress-circular color="primary" indeterminate />
-    </div>
+    <PreparingState v-if="!draft" kind="chat" title="Loading sending settings" />
 
     <v-row v-else density="compact">
       <!-- How messages go out -->
@@ -707,7 +705,13 @@
               :src="qrImage"
               width="260"
             />
-            <v-progress-circular v-else class="my-12" color="primary" indeterminate />
+            <PreparingState
+              v-else
+              class="my-12"
+              kind="chat"
+              min-height="160px"
+              title="Getting the QR code"
+            />
             <div v-if="qrError" class="text-caption text-error mt-2">{{ qrError }}</div>
           </template>
         </v-card-text>

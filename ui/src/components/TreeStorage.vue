@@ -36,7 +36,7 @@
             >
               Delete{{ selectedIds.length > 0 ? ` (${selectedIds.length})` : '' }}
             </v-btn>
-            <v-progress-circular v-if="loading" indeterminate size="20" />
+            <PreparingState v-if="loading" kind="box" :size="28" title="Loading" />
           </div>
         </div>
 
@@ -66,7 +66,7 @@
             <v-img aspect-ratio="1" cover :src="thumbnailUrls[imageKey(image)]">
               <template #placeholder>
                 <div class="d-flex align-center justify-center fill-height">
-                  <v-progress-circular indeterminate size="24" />
+                  <PreparingState kind="box" :size="34" title="Loading" />
                 </div>
               </template>
             </v-img>
@@ -108,7 +108,12 @@
         <!-- Fixed-height stage: the dialog keeps its size while the photo
           loads, then the photo fits inside it. -->
         <div class="image-stage d-flex align-center justify-center">
-          <v-progress-circular v-if="previewLoading" indeterminate size="32" />
+          <PreparingState
+            v-if="previewLoading"
+            kind="box"
+            min-height="160px"
+            title="Loading the photo"
+          />
           <ZoomableImage
             v-else-if="previewUrl"
             :busy="changingPhoto"

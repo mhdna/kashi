@@ -14,7 +14,7 @@
         </p>
 
         <div v-if="loading" class="py-4 text-center">
-          <v-progress-circular indeterminate size="24" />
+          <PreparingState kind="data" :size="34" title="Loading" />
         </div>
 
         <template v-else>

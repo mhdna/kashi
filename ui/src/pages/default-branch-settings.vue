@@ -35,9 +35,12 @@
         click "Apply to all branches".
       </p>
 
-      <div v-if="loading" class="d-flex justify-center pa-8">
-        <v-progress-circular color="primary" indeterminate />
-      </div>
+      <PreparingState
+        v-if="loading"
+        kind="settings"
+        min-height="240px"
+        title="Loading default settings"
+      />
 
       <div v-else class="dbs-detail">
         <v-tabs

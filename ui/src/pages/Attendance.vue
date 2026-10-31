@@ -167,7 +167,7 @@
         <v-card-title>Attendance requests</v-card-title>
         <v-card-text>
           <div v-if="requestsLoading" class="d-flex justify-center pa-4">
-            <v-progress-circular color="primary" indeterminate />
+            <PreparingState kind="people" min-height="160px" title="Loading requests" />
           </div>
           <v-alert v-else-if="pendingRequests.length === 0" type="info" variant="tonal">
             No pending attendance requests.

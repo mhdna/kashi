@@ -2,7 +2,7 @@
   <div class="financials d-flex flex-column flex-grow-1 pa-4" style="min-height: 0; overflow-y: auto">
     <div class="d-flex align-center ga-2 mb-3">
       <div class="text-h6 font-weight-medium">Financials</div>
-      <v-progress-circular v-if="loading" indeterminate size="18" width="2" />
+      <PreparingState v-if="loading" kind="chart" :size="25" title="Loading" />
     </div>
 
     <!-- Last 30 days at a glance, and the next 30 as forecast. -->

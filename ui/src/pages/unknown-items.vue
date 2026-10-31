@@ -67,7 +67,7 @@
                     :title="`${thumbFailed[unit.image_id]} — tap to retry`"
                     @click.stop="retryThumb(unit.image_id)"
                   />
-                  <v-progress-circular v-else indeterminate size="20" width="2" />
+                  <PreparingState v-else kind="box" :size="28" title="Loading" />
                 </v-avatar>
               </template>
               <v-list-item-title>
@@ -116,7 +116,7 @@
                 <v-icon color="warning" icon="mdi-alert-circle-outline" /><br>
                 {{ thumbFailed[item.image_id] }}<br>tap to retry
               </div>
-              <v-progress-circular v-else indeterminate size="24" width="2" />
+              <PreparingState v-else kind="box" :size="34" title="Loading" />
               <v-checkbox-btn
                 v-if="view === 'pending' && canEdit"
                 class="unknown-check"

@@ -34,9 +34,12 @@
       </div>
 
       <v-card-text class="pyramid-scroll flex-grow-1">
-        <div v-if="pyramidLoading" class="d-flex justify-center pa-8">
-          <v-progress-circular color="primary" indeterminate />
-        </div>
+        <PreparingState
+          v-if="pyramidLoading"
+          kind="people"
+          min-height="240px"
+          title="Ranking clients by spending"
+        />
         <div v-else-if="pyramidClients.length === 0" class="text-center text-medium-emphasis pa-8">
           No spending data yet.
         </div>
@@ -138,7 +141,7 @@
         v-if="restLoading && restItems.length === 0"
         class="flex-grow-1 d-flex align-center justify-center"
       >
-        <v-progress-circular color="primary" indeterminate size="24" width="2" />
+        <PreparingState kind="people" :size="34" title="Loading" />
       </div>
       <div
         v-else-if="!restLoading && restItems.length === 0"
@@ -150,7 +153,7 @@
         v-else-if="restLoading && restItems.length > 0"
         class="rest-more-loader d-flex align-center justify-center ga-2 py-2 text-caption text-medium-emphasis"
       >
-        <v-progress-circular color="primary" indeterminate size="14" width="2" />
+        <PreparingState kind="people" :size="24" title="Loading" />
         Loading more…
       </div>
     </div>
