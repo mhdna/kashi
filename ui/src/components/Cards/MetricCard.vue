@@ -9,13 +9,12 @@
 
     <!-- Only the very first load (no value yet) shows a spinner. Once a
       number is on screen it stays put through every background refresh. -->
-    <v-progress-circular
+    <PreparingState
       v-if="props.loading && props.value == null"
       class="mt-3"
-      color="indigo-lighten-2"
-      indeterminate
-      size="22"
-      width="2"
+      kind="chart"
+      :size="31"
+      title="Loading"
     />
     <template v-else>
       <div class="metric-value text-headline-small font-weight-bold">

@@ -59,7 +59,7 @@
         v-if="!error && loading && items.length === 0"
         class="flex-grow-1 d-flex align-center justify-center"
       >
-        <v-progress-circular color="primary" indeterminate size="22" width="2" />
+        <PreparingState kind="data" :size="31" title="Loading" />
       </div>
       <div
         v-else-if="!error && !loading && items.length === 0"

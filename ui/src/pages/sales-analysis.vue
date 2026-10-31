@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="d-flex align-center flex-wrap ga-3 pa-4 pb-2">
       <div class="text-h6 font-weight-medium">Sales Analysis</div>
-      <v-progress-circular v-if="loading" indeterminate size="18" width="2" />
+      <PreparingState v-if="loading" kind="chart" :size="25" title="Loading" />
       <v-spacer />
       <v-select
         v-model="selectedYear"

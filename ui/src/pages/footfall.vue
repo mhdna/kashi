@@ -33,7 +33,7 @@
     </div>
 
     <div v-if="loading" class="d-flex justify-center pa-12">
-      <v-progress-circular color="primary" indeterminate />
+      <PreparingState kind="people" min-height="160px" title="Counting visitors" />
     </div>
 
     <v-alert v-else-if="rows.length === 0" class="ff-notice mx-4" type="info" variant="tonal">

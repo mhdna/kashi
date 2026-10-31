@@ -16,9 +16,12 @@
 
       <div class="wc__layout">
         <div class="wc__chat pa-3">
-          <div v-if="loading" class="d-flex justify-center pa-6">
-            <v-progress-circular indeterminate />
-          </div>
+          <PreparingState
+            v-if="loading"
+            kind="chat"
+            min-height="200px"
+            title="Loading the conversation"
+          />
           <template v-else>
             <template v-for="(b, i) in bubbles" :key="i">
               <div v-if="dayLabel(i)" class="wc__day">{{ dayLabel(i) }}</div>

@@ -205,7 +205,7 @@
 
       <v-card-text class="targets-dialog-body">
         <div v-if="targetsLoading" class="d-flex justify-center pa-8">
-          <v-progress-circular color="primary" indeterminate />
+          <PreparingState kind="data" min-height="160px" title="Loading targets" />
         </div>
 
         <v-window v-else v-model="targetsTab">
@@ -477,7 +477,7 @@
       <v-card-title>Staff -- {{ salespersonsBranch?.name }}</v-card-title>
       <v-card-text>
         <div v-if="salespersonsLoading" class="d-flex justify-center pa-4">
-          <v-progress-circular color="primary" indeterminate />
+          <PreparingState kind="data" min-height="160px" title="Loading staff" />
         </div>
         <template v-else>
           <v-alert v-if="salespersonsList.length === 0" class="mb-4" type="info" variant="tonal">

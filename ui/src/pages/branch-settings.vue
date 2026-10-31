@@ -87,9 +87,12 @@
               </div>
             </v-alert>
 
-            <div v-if="settingsLoading" class="d-flex justify-center pa-8">
-              <v-progress-circular color="primary" indeterminate />
-            </div>
+            <PreparingState
+              v-if="settingsLoading"
+              kind="settings"
+              min-height="240px"
+              title="Loading the branch's settings"
+            />
 
             <v-alert
               v-else-if="!settingsForm"

@@ -51,7 +51,7 @@
       </table>
     </div>
     <div v-if="loading" class="heatmap-loader">
-      <v-progress-circular color="primary" indeterminate size="40" />
+      <PreparingState kind="chart" min-height="160px" title="Loading" />
     </div>
   </div>
 </template>

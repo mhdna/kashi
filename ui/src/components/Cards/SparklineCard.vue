@@ -13,13 +13,12 @@
       <!-- Only the very first load (no value yet) shows a spinner. Once a
         number is on screen it stays put through every background refresh --
         the value just changes in place, no flip to a loader, no reflow. -->
-      <v-progress-circular
+      <PreparingState
         v-if="props.loading && props.value == null"
         class="mt-3"
-        color="indigo-lighten-2"
-        indeterminate
-        size="22"
-        width="2"
+        kind="chart"
+        :size="31"
+        title="Loading"
       />
       <div v-else class="d-flex align-center flex-wrap ga-2 mt-2">
         <span class="metric-value text-h4 font-weight-black">

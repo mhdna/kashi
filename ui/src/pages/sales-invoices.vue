@@ -173,7 +173,7 @@
       <v-card-title>Invoice Details -- {{ details?.invoice?.invoice_code }}</v-card-title>
       <v-card-text>
         <div v-if="detailsLoading" class="d-flex justify-center pa-4">
-          <v-progress-circular color="primary" indeterminate />
+          <PreparingState kind="receipt" min-height="160px" title="Loading the invoice" />
         </div>
         <template v-else-if="details">
           <v-row density="compact">

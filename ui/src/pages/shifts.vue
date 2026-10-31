@@ -249,7 +249,12 @@
         <v-divider />
         <!-- Fixed-height stage so the dialog doesn't resize when the photo lands. -->
         <div class="image-stage d-flex align-center justify-center pa-2">
-          <v-progress-circular v-if="receiptLoading" indeterminate />
+          <PreparingState
+            v-if="receiptLoading"
+            kind="receipt"
+            min-height="160px"
+            title="Loading the receipt"
+          />
           <ZoomableImage
             v-else-if="receiptUrl"
             alt="Close-shift receipt"
