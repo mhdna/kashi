@@ -366,6 +366,7 @@ export const AR = {
   'Hours worked each day.': 'ساعات العمل كل يوم.',
   'hours worked, darker = longer': 'ساعات العمل، الأغمق = أطول',
   'missing an IN or OUT punch': 'تنقصه بصمة دخول أو خروج',
+  'greyed: no punches': 'باهت: بلا بصمات',
   'No punches': 'بدون بصمات',
   'Attendance by employee': 'الحضور لكل موظف',
   'By branch': 'حسب الفرع',
