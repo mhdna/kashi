@@ -136,9 +136,14 @@
 .rpt-cal-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; }
 .rpt-calendar .rpt-cal-head { text-align: center; padding: 3px 1px; }
 .rpt-person-title { margin: 0 0 2px; font-size: 16px; font-weight: 700; }
-/* Employees follow one another; one is never split across two pages. */
-.rpt-person-page { break-inside: avoid; }
-.rpt-person-page--next { padding-top: 14px; border-top: 1px solid #e6e5e1; }
+/* Employees follow one another; one is never split across two pages. Kept
+   short enough that two fit on a page: the seven figures in one slim row. */
+.rpt-person-page { break-inside: avoid; margin-bottom: 12px; }
+.rpt-person-page--next { padding-top: 10px; border-top: 1px solid #e6e5e1; }
+.rpt-person-page .rpt-kpis { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin-bottom: 8px; }
+.rpt-person-page .rpt-kpi { padding: 4px 7px 5px; }
+.rpt-person-page .rpt-kpi__label { font-size: 9.5px; }
+.rpt-person-page .rpt-kpi__value { font-size: 13px; }
 /* A long period's days in two columns side by side. */
 .rpt-split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
 .rpt-split .rpt-table { margin-bottom: 0; }
