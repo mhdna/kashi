@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>kashi vs Wizard Cloud ERP: missing features &amp; milestone roadmap</title>
+<style>
+:root{--bg:#f7f7f5;--card:#fff;--ink:#1d1f23;--muted:#62666d;--line:#e3e3df;--accent:#2f5bd3;
+--ahead:#0f8a5f;--have:#3d7a3d;--partial:#b7791f;--missing:#c0392b;--skip:#8a8f98;
+--p0:#c0392b;--p1:#d9822b;--p2:#2f5bd3;--p3:#8a8f98}
+@media (prefers-color-scheme:dark){:root{--bg:#141518;--card:#1c1e22;--ink:#e8e8e6;--muted:#9aa0a8;--line:#2c2f35;--accent:#7b9cff}}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{padding:40px 24px 24px;max-width:1180px;margin:auto}
+header h1{font-size:30px;line-height:1.2;margin:0 0 6px}
+header .sub{color:var(--muted)}
+main{max-width:1180px;margin:auto;padding:0 24px 80px}
+nav.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 24px;display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+nav.top a{color:var(--muted);text-decoration:none;font-size:14px} nav.top a:hover{color:var(--accent)}
+section{margin-top:44px} h2{font-size:22px;margin:0 0 14px} h3{margin:0 0 6px;font-size:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+ul.tight{margin:0;padding-left:20px} ul.tight li{margin:6px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.stat .n{font-size:30px;font-weight:700} .stat .l{color:var(--muted);font-size:13px}
+.bar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin-top:14px;border:1px solid var(--line)}
+.pill{display:inline-block;padding:1px 9px;border-radius:999px;font-size:12px;font-weight:600;color:#fff;white-space:nowrap}
+.s-ahead{background:var(--ahead)} .s-have{background:var(--have)} .s-partial{background:var(--partial)} .s-missing{background:var(--missing)} .s-skip{background:var(--skip)}
+.p-P0{background:var(--p0)} .p-P1{background:var(--p1)} .p-P2{background:var(--p2)} .p-P3{background:var(--p3)}
+.size{border:1px solid var(--line);color:var(--muted);background:transparent}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+td.note{color:var(--muted)}
+.timeline{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.ms{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--p2);border-radius:10px;padding:14px 16px;text-decoration:none;color:inherit;display:block}
+.ms:hover{border-color:var(--accent)}
+.ms.P0{border-left-color:var(--p0)} .ms.P1{border-left-color:var(--p1)} .ms.P2{border-left-color:var(--p2)} .ms.P3{border-left-color:var(--p3)}
+.ms .id{font-weight:700;color:var(--muted);font-size:13px} .ms .t{font-weight:650;margin:2px 0 6px} .ms .g{color:var(--muted);font-size:13px}
+.phase{margin:6px 0}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
+.controls button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer;font-size:13px}
+.controls button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.controls input{flex:1;min-width:200px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:7px 10px;font-size:14px}
+details.mod{background:var(--card);border:1px solid var(--line);border-radius:12px;margin:10px 0;overflow:hidden}
+details.mod>summary{cursor:pointer;padding:12px 16px;font-weight:650;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+details.mod>summary .mini{display:flex;gap:4px;margin-left:auto}
+details.mod table{margin:0}
+.milestone{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin:16px 0;scroll-margin-top:60px}
+.milestone .meta{display:flex;gap:8px;align-items:center;margin:4px 0 10px;flex-wrap:wrap}
+.milestone .why{color:var(--muted);margin:6px 0 12px}
+.done{margin-top:12px;padding:10px 12px;border-radius:8px;background:color-mix(in srgb,var(--ahead) 12%,transparent)}
+.edges{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.edge{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--ahead);border-radius:10px;padding:14px 16px}
+.edge b{display:block;margin-bottom:4px}
+code{background:color-mix(in srgb,var(--muted) 15%,transparent);padding:1px 5px;border-radius:4px;font-size:13px}
+.hidden{display:none}
+footer{color:var(--muted);font-size:13px;text-align:center;padding:30px}
+</style></head><body>
+<nav class="top"><a href="#tldr">TL;DR</a><a href="#score">Scoreboard</a><a href="#roadmap">Roadmap</a><a href="#edges">Where we win</a>
+<a href="#matrix">Feature matrix</a><a href="#milestones">Milestones</a><a href="#nightmare">Nightmare plan</a><a href="#risks">Risks</a></nav>
+<header><h1>kashi vs Wizard Cloud ERP: missing features &amp; milestone roadmap</h1><div class="sub">Last updated 2026-10-31 · 158 Wizard capabilities compared · 14 milestones · 93 features to build</div></header>
+<main>
+<section id="tldr"><h2>TL;DR</h2><div class="card"><ul class="tight">
+<li><strong>Retail till / branch operations: kashi is already ahead.</strong> Offline till with real sync, remote commands, signed updates, deals/discount rules/coupons, loyalty tiers, WhatsApp automation, Google reviews, footfall &amp; conversion, door-device attendance, shift close vs expected with photo, stock-health forecasting, scheduled email reports. Their POS Cloud is a browser screen; their marketing doesn&#x27;t even mention most of this.</li>
+<li><strong>Back office: Wizard is far ahead.</strong> They are an accounting-first ERP: general ledger, receivables &amp; payables with credit limits and statements, quote→order→delivery→invoice, purchase orders, landed cost, banks &amp; cheques, VAT, USD/LBP with dated rates and revaluation, payroll. kashi has none of the ledger and only fragments of the rest.</li>
+<li><strong>Their product is old and fragile.</strong> Yii 1 + jQuery, 268 document types bolted on over 20 years (including one-off customer forms like &#x27;Otis Contract&#x27;, &#x27;Yarz Member&#x27;, &#x27;Leave Request-Califood&#x27;). Right now a pending DB upgrade breaks most of their screens for our account, error pages leak raw SQL, and every page ships the logged-in user&#x27;s <strong>plaintext password</strong> inside its JavaScript (<code>wz.user.pwd</code>).</li>
+<li><strong>The plan:</strong> M0 builds the shared document engine, then M1–M2 (receivables + wholesale selling, payables + purchasing) let us switch the R1 wholesale branch off Wizard. M3–M6 make kashi a full trading ERP. M7–M9 make it sellable. After that we pick fights module by module where we can be 10x better (mobile, WhatsApp, analytics, offline).</li>
+</ul></div></section>
+<section id="score"><h2>Scoreboard</h2><div class="stats">
+<div class="stat"><div class="n" style="color:var(--ahead)">13</div><div class="l">🟢 kashi already does it better</div></div>
+<div class="stat"><div class="n" style="color:var(--have)">14</div><div class="l">✅ kashi has it</div></div>
+<div class="stat"><div class="n" style="color:var(--partial)">38</div><div class="l">🟡 kashi has a piece of it</div></div>
+<div class="stat"><div class="n" style="color:var(--missing)">88</div><div class="l">❌ kashi doesn&#x27;t have it</div></div>
+<div class="stat"><div class="n" style="color:var(--skip)">5</div><div class="l">⚪ not worth building for us</div></div>
+</div><div class="bar">
+<div class="s-ahead" style="width:8.23%" title="kashi ahead: 13"></div>
+<div class="s-have" style="width:8.86%" title="have: 14"></div>
+<div class="s-partial" style="width:24.05%" title="partial: 38"></div>
+<div class="s-missing" style="width:55.70%" title="missing: 88"></div>
+<div class="s-skip" style="width:3.16%" title="skip: 5"></div>
+</div><p class="sub" style="color:var(--muted);font-size:13px">Share of Wizard's capabilities by kashi status.</p></section>
+<section id="roadmap"><h2>Roadmap</h2><div class="card" style="margin-bottom:14px"><ul class="tight">
+<li class="phase"><strong>Phase A: Replace Wizard for R1 (M0 → M1 → M2).</strong> Run kashi in parallel with Wizard for one month on the wholesale branch and compare client balances, supplier balances and stock. When they match, stop paying for Wizard&#x27;s Backoffice.</li>
+<li class="phase"><strong>Phase B: Become a full trading ERP (M3 → M4 → M5 → M6).</strong> Bale opening is our unique feature; the ledger is the big one. After M5 our accountant works in kashi too.</li>
+<li class="phase"><strong>Phase C: Sell it (M7 + M9).</strong> Approvals/permissions plus multi-tenant, Arabic, Wizard import, transparent pricing.</li>
+<li class="phase"><strong>Phase D: Out-feature them (M8, M10, M11, M12).</strong> Payroll from real attendance, offline mobile sales, WhatsApp CRM/portal, e-commerce.</li>
+<li class="phase"><strong>M13</strong> only on customer demand.</li>
+</ul><p style="color:var(--muted);font-size:13px;margin:10px 0 0">
+<span class="pill p-P0">P0</span> needed to drop Wizard in our own business · <span class="pill p-P1">P1</span> needed to sell kashi to other retailers/wholesalers · <span class="pill p-P2">P2</span> needed to compete across the board · <span class="pill p-P3">P3</span> only for specific verticals / on demand
+ · Sizes: <b>S</b> < 1 week, <b>M</b> 1–3 weeks, <b>L</b> 3–6 weeks, <b>XL</b> 6+ weeks</p></div><div class="timeline">
+<a class="ms P0" href="#m0"><div class="id">M0 <span class="pill p-P0">P0</span> <span class="pill size">L</span></div><div class="t">Document engine &amp; money foundations</div><div class="g">Build once what every later document needs, so M1–M6 are mostly screens, not plumbing.</div></a>
+<a class="ms P0" href="#m1"><div class="id">M1 <span class="pill p-P0">P0</span> <span class="pill size">L</span></div><div class="t">Receivables &amp; wholesale selling</div><div class="g">Run the R1 wholesale branch&#x27;s selling and debt collection in kashi.</div></a>
+<a class="ms P0" href="#m2"><div class="id">M2 <span class="pill p-P0">P0</span> <span class="pill size">L</span></div><div class="t">Purchasing, payables &amp; landed cost</div><div class="g">Buy, receive, cost and pay suppliers in kashi.</div></a>
+<a class="ms P1" href="#m3"><div class="id">M3 <span class="pill p-P1">P1</span> <span class="pill size">M</span></div><div class="t">Bale opening, units &amp; inventory depth</div><div class="g">Model how the clothing-bale business really works, plus the inventory controls Wizard sells on.</div></a>
+<a class="ms P1" href="#m4"><div class="id">M4 <span class="pill p-P1">P1</span> <span class="pill size">M</span></div><div class="t">Quote → Order → Delivery chain</div><div class="g">Full wholesale order flow for bigger clients and dealers.</div></a>
+<a class="ms P1" href="#m5"><div class="id">M5 <span class="pill p-P1">P1</span> <span class="pill size">XL</span></div><div class="t">General ledger &amp; financial statements</div><div class="g">Become an ERP, not &#x27;POS + back office&#x27;. Required to fully drop Wizard and to sell to anyone with an accountant.</div></a>
+<a class="ms P1" href="#m6"><div class="id">M6 <span class="pill p-P1">P1</span> <span class="pill size">M</span></div><div class="t">Banks, cheques &amp; VAT</div><div class="g">Cover how Lebanese businesses actually get paid and file taxes.</div></a>
+<a class="ms P1" href="#m7"><div class="id">M7 <span class="pill p-P1">P1</span> <span class="pill size">M</span></div><div class="t">Approvals, permissions &amp; control</div><div class="g">Give owners the control Wizard sells to managers, with our better UX.</div></a>
+<a class="ms P2" href="#m8"><div class="id">M8 <span class="pill p-P2">P2</span> <span class="pill size">L</span></div><div class="t">Payroll &amp; HR</div><div class="g">Turn our attendance lead into real payroll.</div></a>
+<a class="ms P1" href="#m9"><div class="id">M9 <span class="pill p-P1">P1</span> <span class="pill size">L</span></div><div class="t">Sell kashi (productize)</div><div class="g">Make kashi something another company can buy and be running in a week.</div></a>
+<a class="ms P2" href="#m10"><div class="id">M10 <span class="pill p-P2">P2</span> <span class="pill size">L</span></div><div class="t">Mobile sales &amp; warehouse app</div><div class="g">Beat Wizard&#x27;s mobile app with our offline sync experience.</div></a>
+<a class="ms P2" href="#m11"><div class="id">M11 <span class="pill p-P2">P2</span> <span class="pill size">M</span></div><div class="t">CRM, customer portal &amp; loyalty 2.0</div><div class="g">Turn our WhatsApp + loyalty lead into a CRM Wizard can&#x27;t match.</div></a>
+<a class="ms P2" href="#m12"><div class="id">M12 <span class="pill p-P2">P2</span> <span class="pill size">M</span></div><div class="t">E-commerce &amp; marketplaces</div><div class="g">One stock number for shops and online.</div></a>
+<a class="ms P3" href="#m13"><div class="id">M13 <span class="pill p-P3">P3</span> <span class="pill size">M</span></div><div class="t">Fixed assets &amp; the rest</div><div class="g">Fill remaining module checkboxes only when a customer needs them.</div></a>
+</div></section>
+<section id="edges"><h2>Where kashi already wins</h2><div class="edges">
+<div class="edge"><b>Truly offline till</b>kashi-pos runs on local SQLite with an outbox and reconciles; Wizard&#x27;s POS Cloud is a web page that only claims offline.</div>
+<div class="edge"><b>Branch control from HQ</b>Remote commands (reprint, return, replace shift balance, sync now, set PIN, cancel record), signed app updates per register, sync conflict screen.</div>
+<div class="edge"><b>Promotions engine</b>Deals (buy X get Y, N for $), rule-group discount lists per branch, coupons with types/categories/lists, sale options. Wizard has basic promotion types.</div>
+<div class="edge"><b>WhatsApp-native</b>Meta Cloud API with rules, chats, polls, thank-you/welcome, cost tracking. Wizard only says &#x27;SMS &amp; notifications&#x27;.</div>
+<div class="edge"><b>Analytics</b>Dashboard tabs, 90-day forecast, stock health, slow movers, product revenue, salesperson performance, targets, busy hours, footfall-to-sales conversion.</div>
+<div class="edge"><b>Staff &amp; cash discipline</b>Door-device attendance, shift close vs expected with photo, short-close alerts, manager approvals, PIN lockout.</div>
+<div class="edge"><b>Audit &amp; security</b>Before/after audit log, admin activity feed, IP bans, alerts. Wizard leaks passwords and SQL.</div>
+<div class="edge"><b>Modern stack &amp; speed</b>Go + Vue 3, WebSocket live updates, fast iteration. Wizard is Yii 1 + jQuery with 20 years of one-off customer forms.</div>
+</div></section>
+<section id="r1"><h2>What Wizard is set up with for R1 today</h2><div class="card"><table><tbody>
+<tr><th style="width:180px">Licensed modules</th><td>Backoffice, POS Cloud, Reports (the other 11 marketed modules exist in their code but aren&#x27;t licensed)</td></tr>
+<tr><th style="width:180px">Company / branch</th><td>R1, branch WHOLESALE; 2 warehouses (R1 WholeSale, R1 Retail); 2 cost centers (Default, Retail)</td></tr>
+<tr><th style="width:180px">Currencies</th><td>LBP and USD, USD is the base; per-currency rounding/precision; price factor 20000</td></tr>
+<tr><th style="width:180px">Price lists</th><td>7: Bazaar, Default, LL, Outlet, Retail, USD, Wholesale (some marked TTC = VAT-inclusive)</td></tr>
+<tr><th style="width:180px">Product structure</th><td>4 family levels (Kind / Family 1 / Family 2 / Year), brands used as grades (Crème, Extra, L1–L4, Original, Outlet, UKStock…), seasons (Summer/Winter), units Pcs/KG, color &amp; size ON, supplier item codes</td></tr>
+<tr><th style="width:180px">Sales options on</th><td>advanced pricing, auto-settlement, salesman on documents, discount categories, quotation transfer, color/size on lines</td></tr>
+<tr><th style="width:180px">Accounting</th><td>5-level Lebanese chart of accounts in use (41110 clients, 40110 suppliers, 428xx staff loans, 4659xx service suppliers, fixed asset &amp; amortization accounts, NSSF payable, taxes due…)</td></tr>
+<tr><th style="width:180px">Clients</th><td>hundreds of wholesale clients incl. many &#x27;-Employee&#x27; accounts (staff buying on credit), outlets, online, regional dealers</td></tr>
+</tbody></table></div></section>
+<section id="matrix"><h2>Full feature matrix: Wizard vs kashi</h2><div class="controls" id="mfilters"><input id="msearch" placeholder="Search features…">
+<button data-st="all" class="on">All</button><button data-st="ahead">🟢 kashi ahead</button><button data-st="have">✅ have</button><button data-st="partial">🟡 partial</button><button data-st="missing">❌ missing</button><button data-st="skip">⚪ skip</button>
+<button id="expand">Expand all</button></div>
+<details class="mod"><summary>Sales (wholesale documents) <span class="mini"><span class="pill s-partial" title="partial">5</span><span class="pill s-missing" title="missing">15</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="missing"><td>Quotation / Sales Offer (status, validity days, terms, revise, close, duplicate)</td><td><span class="pill s-missing">missing</span></td><td class="note">kashi-pos &#x27;quote&#x27; is only a cart price preview</td></tr>
+<tr data-st="missing"><td>Quote → Order → Invoice conversion, one quote to many orders/invoices</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Sales Order: open / partial / multi-invoice, preparation status (not assigned → preparing → prepared)</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Shipping info on orders (truck, container, vessel, ETD/ETA, ports, insurance, origin)</td><td><span class="pill s-missing">missing</span></td><td class="note">export-oriented; low priority for us</td></tr>
+<tr data-st="missing"><td>Consignment sales (goods at client, unsold visibility)</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Delivery OUT / Preparation delivery / Packing list documents</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="partial"><td>Sales invoice at HQ for wholesale clients (sub-account, address, terms, price list, salesman, warehouse, cost center)</td><td><span class="pill s-partial">partial</span></td><td class="note">kashi has central sales_invoices but no wholesale workflow; real sales come from tills</td></tr>
+<tr data-st="missing"><td>Price list follows the client</td><td><span class="pill s-missing">missing</span></td><td class="note">price lists are per branch; client_type=wholesale is only a label</td></tr>
+<tr data-st="partial"><td>Discount automation by client / product / group / category</td><td><span class="pill s-partial">partial</span></td><td class="note">rule-based discount lists, deals and coupons are strong but per branch, not per client</td></tr>
+<tr data-st="missing"><td>Credit limit checked when the order/invoice is raised</td><td><span class="pill s-missing">missing</span></td><td class="note">no credit_limit anywhere in the schema</td></tr>
+<tr data-st="missing"><td>Payment terms, due dates, installments (Sales Bills with interest %)</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Invoice aging &amp; automated reminder emails</td><td><span class="pill s-missing">missing</span></td><td class="note">we have WhatsApp + email infra to do this better</td></tr>
+<tr data-st="partial"><td>Sales commissions by rep / product / order value</td><td><span class="pill s-partial">partial</span></td><td class="note">salesperson per line + performance pages; employees have a commission field; no rules engine</td></tr>
+<tr data-st="missing"><td>Sales order shortage → purchase request / PO</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Upload invoice/order lines from Excel</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Recurring invoices</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="partial"><td>Return request with approval, credit notes, debit notes</td><td><span class="pill s-partial">partial</span></td><td class="note">POS returns/exchanges + remote return are good; no credit-note document, no approval</td></tr>
+<tr data-st="partial"><td>Side panel on every document: unpaid invoices, balance, statement, sales history, pending orders</td><td><span class="pill s-partial">partial</span></td><td class="note">client profile page has spend &amp; history; no balances</td></tr>
+<tr data-st="missing"><td>Email the printed document to the client</td><td><span class="pill s-missing">missing</span></td><td class="note">we email reports, not documents</td></tr>
+<tr data-st="missing"><td>Discountable bills / bills of exchange</td><td><span class="pill s-missing">missing</span></td><td class="note">Lebanese-market instrument; P3</td></tr>
+</tbody></table></details>
+<details class="mod"><summary>Receivables &amp; payables <span class="mini"><span class="pill s-partial" title="partial">1</span><span class="pill s-missing" title="missing">8</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="missing"><td>Client balances at HQ (per currency)</td><td><span class="pill s-missing">missing</span></td><td class="note">&#x27;On Account&#x27; receivables live only in each till&#x27;s SQLite</td></tr>
+<tr data-st="partial"><td>Receipt voucher allocated to specific invoices (auto-settlement option)</td><td><span class="pill s-partial">partial</span></td><td class="note">PayClientAccount on the till; nothing at HQ</td></tr>
+<tr data-st="missing"><td>Statement of account (client &amp; supplier), dual currency</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Receivables aging (monthly buckets) &amp; not-yet-due schedule</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Supplier balances, payment vouchers, supplier aging</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Down payments (client &amp; supplier) linked to later invoices</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Payment requests → approval → payment</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Credit facility types (cash / 30 days / …) per client &amp; supplier</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Opening balances for clients &amp; suppliers</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+</tbody></table></details>
+<details class="mod"><summary>Purchasing / procurement <span class="mini"><span class="pill s-have" title="have">1</span><span class="pill s-partial" title="partial">5</span><span class="pill s-missing" title="missing">9</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="partial"><td>Supplier records with terms, contacts, product lists</td><td><span class="pill s-partial">partial</span></td><td class="note">name/phone/country/address + costs per product; suppliers can&#x27;t even be edited (update handler commented out)</td></tr>
+<tr data-st="partial"><td>Supplier price lists, last price paid, compare</td><td><span class="pill s-partial">partial</span></td><td class="note">product_supplier_costs exists; no UI to compare</td></tr>
+<tr data-st="partial"><td>Internal requisition → transfer</td><td><span class="pill s-partial">partial</span></td><td class="note">till transfer requests with HQ approval (good)</td></tr>
+<tr data-st="missing"><td>Purchase requisition / supplier request (SR, RU)</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>RFQ to several suppliers, compare quotes, quote → PO</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Purchase Order with expected date &amp; delay tracking, consignment POs</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Delivery IN / goods receipt against PO (partial receipts, 3-way match)</td><td><span class="pill s-missing">missing</span></td><td class="note">purchase &#x27;receive&#x27; exists but no PO to match against</td></tr>
+<tr data-st="have"><td>Purchase invoice (receive into warehouse, cost update)</td><td><span class="pill s-have">have</span></td><td class="note">draft/received/cancelled, moving-average cost, FIFO batches</td></tr>
+<tr data-st="missing"><td>Landed cost: allocate freight/customs/clearing over a shipment</td><td><span class="pill s-missing">missing</span></td><td class="note">critical for imported bales/containers</td></tr>
+<tr data-st="missing"><td>Generate selling prices from cost + markup % on a purchase</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Purchase returns / debit notes</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Multi-level approvals by value / department / role</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="partial"><td>Reorder automation (below min → PO suggestion)</td><td><span class="pill s-partial">partial</span></td><td class="note">low-stock alerts + stock health, no PO generation</td></tr>
+<tr data-st="missing"><td>Shipments &amp; containers, letters of credit (LC)</td><td><span class="pill s-missing">missing</span></td><td class="note">P3 unless we import directly</td></tr>
+<tr data-st="partial"><td>Expense purchase orders, purchase expenses, expenses on goods</td><td><span class="pill s-partial">partial</span></td><td class="note">expenses with categories, recurring, photos; not tied to suppliers/POs</td></tr>
+</tbody></table></details>
+<details class="mod"><summary>Accounting / finance <span class="mini"><span class="pill s-ahead" title="kashi ahead">1</span><span class="pill s-have" title="have">1</span><span class="pill s-missing" title="missing">15</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="missing"><td>Chart of accounts (multi-level), posting rules, predefined accounts</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Automatic posting from every document (sales, COGS, purchases, expenses, payroll)</td><td><span class="pill s-missing">missing</span></td><td class="note">entries table only links cash to a source</td></tr>
+<tr data-st="missing"><td>Journal vouchers (duplicate, reverse, account distribution)</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Trial balance, balance sheet, P&amp;L, cash flow, journal report</td><td><span class="pill s-missing">missing</span></td><td class="note">financials page gives sales/gross profit/expenses + forecast</td></tr>
+<tr data-st="missing"><td>Cost centers (multi-level)</td><td><span class="pill s-missing">missing</span></td><td class="note">branches/inventories could map to cost centers</td></tr>
+<tr data-st="missing"><td>Deferred expenses &amp; accruals, provisions</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Budget plan</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Close year, period lock, opening balances</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Exchange-rate table by date, rate stored on every document</td><td><span class="pill s-missing">missing</span></td><td class="note">one current rate per currency (units_per_usd_micros)</td></tr>
+<tr data-st="missing"><td>Realised / unrealised FX gain-loss, period-end revaluation</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Bank accounts, deposits, withdrawals, cash-to-bank</td><td><span class="pill s-missing">missing</span></td><td class="note">payment methods (cash/Visa/Whish) + cashboxes only</td></tr>
+<tr data-st="missing"><td>Bank reconciliation (bank feed / statement import)</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Cheques received / paid / post-dated, checkbooks, maturity tracking</td><td><span class="pill s-missing">missing</span></td><td class="note">very common in Lebanese wholesale</td></tr>
+<tr data-st="missing"><td>VAT categories per product, VAT-inclusive (TTC) price lists, VAT reports, MOF numbers</td><td><span class="pill s-missing">missing</span></td><td class="note">one tax_rate per till</td></tr>
+<tr data-st="missing"><td>Bulk upload of journal entries / invoices</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="ahead"><td>Expenses with categories, recurring expenses, photos</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">phone-photo upload, from-central flag, recurring auto-post</td></tr>
+<tr data-st="have"><td>Staff/partner loans with payments</td><td><span class="pill s-have">have</span></td><td class="note">loans + loan payments + photos</td></tr>
+</tbody></table></details>
+<details class="mod"><summary>Inventory <span class="mini"><span class="pill s-ahead" title="kashi ahead">3</span><span class="pill s-have" title="have">4</span><span class="pill s-partial" title="partial">8</span><span class="pill s-missing" title="missing">5</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="have"><td>Multi-warehouse stock with warehouse groups</td><td><span class="pill s-have">have</span></td><td class="note">inventories of type warehouse/store, treemaps</td></tr>
+<tr data-st="ahead"><td>Transfers between locations</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">request → approve → dispatch → receive with received qty and photos</td></tr>
+<tr data-st="missing"><td>Units of measure, packing, conversions, decimal quantities (KG)</td><td><span class="pill s-missing">missing</span></td><td class="note">quantities are bigint; bales by KG need this</td></tr>
+<tr data-st="ahead"><td>Barcodes &amp; label printing</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">label designer, barcode PDF</td></tr>
+<tr data-st="partial"><td>Min / max per item per location, below-min, reorder suggestions</td><td><span class="pill s-partial">partial</span></td><td class="note">low-stock threshold + alerts</td></tr>
+<tr data-st="partial"><td>Stock count by item / group / brand / category</td><td><span class="pill s-partial">partial</span></td><td class="note">stock counts with count sheets per inventory (draft/post)</td></tr>
+<tr data-st="missing"><td>Count &amp; compare: several counters, merge, approve differences</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="have"><td>Stock adjustment with reasons &amp; upload from file</td><td><span class="pill s-have">have</span></td><td class="note">adjustments with reason + stock_movements ledger</td></tr>
+<tr data-st="partial"><td>Product catalogue with images &amp; specs</td><td><span class="pill s-partial">partial</span></td><td class="note"></td></tr>
+<tr data-st="ahead"><td>Categorisation by many attributes</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">colors, sizes, attributes, autofill rules (11k products auto-categorised)</td></tr>
+<tr data-st="partial"><td>Expiry, lot &amp; serial tracking</td><td><span class="pill s-partial">partial</span></td><td class="note">FIFO purchase batches only</td></tr>
+<tr data-st="have"><td>Bulk product upload via Excel</td><td><span class="pill s-have">have</span></td><td class="note">product CSV import/export</td></tr>
+<tr data-st="partial"><td>Warehouse replenishment suggestions between branches</td><td><span class="pill s-partial">partial</span></td><td class="note">stock health / slow movers is a good base</td></tr>
+<tr data-st="partial"><td>Item aging report</td><td><span class="pill s-partial">partial</span></td><td class="note">slow movers</td></tr>
+<tr data-st="partial"><td>Valuation: average cost / landed cost; COGS posted as goods move</td><td><span class="pill s-partial">partial</span></td><td class="note">moving average yes; landed no; no ledger posting</td></tr>
+<tr data-st="missing"><td>Unpacking / disassembly (one item → many, e.g. bale → graded pieces)</td><td><span class="pill s-missing">missing</span></td><td class="note">very relevant to the bale business</td></tr>
+<tr data-st="partial"><td>Waste / damage document</td><td><span class="pill s-partial">partial</span></td><td class="note">adjustment with reason</td></tr>
+<tr data-st="missing"><td>Inventory with orders: balance incl. open sales &amp; purchase orders</td><td><span class="pill s-missing">missing</span></td><td class="note">needs orders first</td></tr>
+<tr data-st="missing"><td>Closing inventory per fiscal year</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="have"><td>Movement log with who/when/where</td><td><span class="pill s-have">have</span></td><td class="note">stock_movements + audit_logs</td></tr>
+</tbody></table></details>
+<details class="mod"><summary>Warehouse management <span class="mini"><span class="pill s-partial" title="partial">2</span><span class="pill s-missing" title="missing">3</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="missing"><td>Bins / zones / shelf locations</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Barcode-driven receive / pick / pack / dispatch</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="partial"><td>Inbound / outbound documents with approval flows</td><td><span class="pill s-partial">partial</span></td><td class="note">transfers have approval; no DO/DI documents</td></tr>
+<tr data-st="partial"><td>Warehouse staff raising procurement requests</td><td><span class="pill s-partial">partial</span></td><td class="note">till transfer requests</td></tr>
+<tr data-st="missing"><td>Mobile scanning for all warehouse ops</td><td><span class="pill s-missing">missing</span></td><td class="note">phones only used for photo uploads today</td></tr>
+</tbody></table></details>
+<details class="mod"><summary>Products &amp; pricing <span class="mini"><span class="pill s-ahead" title="kashi ahead">1</span><span class="pill s-partial" title="partial">5</span><span class="pill s-missing" title="missing">3</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="partial"><td>Secondary name (Arabic), HS code, season, year level</td><td><span class="pill s-partial">partial</span></td><td class="note">attributes can hold some of these</td></tr>
+<tr data-st="partial"><td>Supplier item code, supplier price + markup %</td><td><span class="pill s-partial">partial</span></td><td class="note">supplier costs per product</td></tr>
+<tr data-st="missing"><td>Weight / volume / density / dimensions</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Warning message shown when the item is sold</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="partial"><td>&#x27;Authorize sales below cost&#x27; per product</td><td><span class="pill s-partial">partial</span></td><td class="note">oversell checks exist; below-cost guard unclear</td></tr>
+<tr data-st="partial"><td>Price history per product &amp; bulk change prices with history</td><td><span class="pill s-partial">partial</span></td><td class="note">price lists editable; no history view</td></tr>
+<tr data-st="partial"><td>Product types: stock / service / produced / composite (bundles)</td><td><span class="pill s-partial">partial</span></td><td class="note">deals cover bundles at the till</td></tr>
+<tr data-st="ahead"><td>Promotions: by barcode, quantity, client, gift product, rebates</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">deals, discount rules, coupons, sale options</td></tr>
+<tr data-st="missing"><td>Scale barcodes (price/weight embedded)</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+</tbody></table></details>
+<details class="mod"><summary>POS <span class="mini"><span class="pill s-ahead" title="kashi ahead">3</span><span class="pill s-have" title="have">3</span><span class="pill s-partial" title="partial">2</span><span class="pill s-missing" title="missing">2</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="ahead"><td>Works offline, syncs with HQ</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">true local SQLite + outbox; theirs is a browser app</td></tr>
+<tr data-st="have"><td>Multi cash &amp; currencies at the till</td><td><span class="pill s-have">have</span></td><td class="note">USD/LBP, Visa, Whish, LBP rounding</td></tr>
+<tr data-st="have"><td>Link branches / see other branches&#x27; stock</td><td><span class="pill s-have">have</span></td><td class="note"></td></tr>
+<tr data-st="partial"><td>Runs on Android / any tablet</td><td><span class="pill s-partial">partial</span></td><td class="note">Wails desktop (Windows/macOS); no Android build</td></tr>
+<tr data-st="ahead"><td>POS settlement, POS shift</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">expected vs counted, photo, Z-report, auto-close, HQ alerts</td></tr>
+<tr data-st="have"><td>POS vouchers</td><td><span class="pill s-have">have</span></td><td class="note">coupons</td></tr>
+<tr data-st="missing"><td>POS sales order / customer order from the till</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="partial"><td>Loyalty points check &amp; redeem at POS</td><td><span class="pill s-partial">partial</span></td><td class="note">points earned per invoice; redemption flow to verify</td></tr>
+<tr data-st="missing"><td>Cash-drawer kick</td><td><span class="pill s-missing">missing</span></td><td class="note">no drawer-open ESC/POS command found</td></tr>
+<tr data-st="ahead"><td>Remote commands, signed auto-updates, sync conflicts</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">Wizard has nothing comparable</td></tr>
+</tbody></table></details>
+<details class="mod"><summary>CRM <span class="mini"><span class="pill s-ahead" title="kashi ahead">2</span><span class="pill s-missing" title="missing">5</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="missing"><td>Leads with custom stages, pipeline by stage/rep/region</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Tasks, calls, meetings, reminders</td><td><span class="pill s-missing">missing</span></td><td class="note">calendar_events exists</td></tr>
+<tr data-st="missing"><td>Visit planning, check-ins, missed visits</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Bulk lead import, lead → prospect → client conversion</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Win/loss, lead source, sales-cycle reports</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="ahead"><td>Customer messaging</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">WhatsApp Cloud API: rules, chats, thank-you/welcome, polls, cost tracking</td></tr>
+<tr data-st="ahead"><td>Reputation</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">Google reviews + review links</td></tr>
+</tbody></table></details>
+<details class="mod"><summary>Loyalty <span class="mini"><span class="pill s-have" title="have">2</span><span class="pill s-partial" title="partial">1</span><span class="pill s-missing" title="missing">2</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="have"><td>Membership tiers, automatic tiering</td><td><span class="pill s-have">have</span></td><td class="note">loyalty page with tiers</td></tr>
+<tr data-st="partial"><td>Point rules by amount / product / frequency</td><td><span class="pill s-partial">partial</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Campaigns: double points for holidays / items</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Customer portal: balance &amp; history on phone/browser</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="have"><td>Real-time point sync across branches</td><td><span class="pill s-have">have</span></td><td class="note"></td></tr>
+</tbody></table></details>
+<details class="mod"><summary>Payroll &amp; HR <span class="mini"><span class="pill s-ahead" title="kashi ahead">1</span><span class="pill s-have" title="have">1</span><span class="pill s-partial" title="partial">1</span><span class="pill s-missing" title="missing">5</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="have"><td>Employee records</td><td><span class="pill s-have">have</span></td><td class="note"></td></tr>
+<tr data-st="ahead"><td>Attendance</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">Akuvox door device, change requests with approval, complaints, timesheets</td></tr>
+<tr data-st="missing"><td>Leave requests (absent, day off, sick, half-day, vacation) with balances</td><td><span class="pill s-missing">missing</span></td><td class="note">attendance change requests only</td></tr>
+<tr data-st="missing"><td>Salary history with effective dates</td><td><span class="pill s-missing">missing</span></td><td class="note">single salary snapshot</td></tr>
+<tr data-st="missing"><td>Payroll run from attendance, payslips, bonuses, deductions</td><td><span class="pill s-missing">missing</span></td><td class="note">late units typed by hand</td></tr>
+<tr data-st="partial"><td>Advances on salary / loan deductions from payroll</td><td><span class="pill s-partial">partial</span></td><td class="note">loans exist, not deducted</td></tr>
+<tr data-st="missing"><td>NSSF &amp; income-tax reports, end-of-service indemnity</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Appraisals, recruitment, CVs, interviews, resignation</td><td><span class="pill s-missing">missing</span></td><td class="note">P3</td></tr>
+</tbody></table></details>
+<details class="mod"><summary>Mobile sales app <span class="mini"><span class="pill s-missing" title="missing">7</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="missing"><td>Floor sales / sales orders from a phone</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Van sales: stock loaded in vehicle, cash sales</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Collections with printed receipt</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Routes, check-ins, salesman GPS, visit reports</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Delivery trips, drivers, close delivery at client</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Offline counting, merge counters, submit for approval</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Mobile CRM (prospects, quotations)</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+</tbody></table></details>
+<details class="mod"><summary>E-commerce <span class="mini"><span class="pill s-missing" title="missing">3</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="missing"><td>Push products, prices, discounts, images to website</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Live stock to Shopify / WooCommerce / Magento / Amazon</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Import web orders → invoice + delivery note</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+</tbody></table></details>
+<details class="mod"><summary>Fixed assets <span class="mini"><span class="pill s-have" title="have">1</span><span class="pill s-partial" title="partial">1</span><span class="pill s-missing" title="missing">3</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="have"><td>Asset register with categories &amp; location</td><td><span class="pill s-have">have</span></td><td class="note">assets + categories + treemap</td></tr>
+<tr data-st="missing"><td>Depreciation methods, auto-posted monthly</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Disposal / sale / write-off</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="partial"><td>QR tags + scan audit</td><td><span class="pill s-partial">partial</span></td><td class="note">barcode infra exists</td></tr>
+<tr data-st="missing"><td>Costs logged against the asset</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+</tbody></table></details>
+<details class="mod"><summary>Platform &amp; administration <span class="mini"><span class="pill s-ahead" title="kashi ahead">2</span><span class="pill s-have" title="have">1</span><span class="pill s-partial" title="partial">7</span><span class="pill s-missing" title="missing">2</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="partial"><td>Generic approval engine for any document type</td><td><span class="pill s-partial">partial</span></td><td class="note">transfers, attendance, manager password on till</td></tr>
+<tr data-st="partial"><td>Access per document type, per user restrictions (branch/warehouse/salesman/cost center)</td><td><span class="pill s-partial">partial</span></td><td class="note">per-page none/view/edit roles</td></tr>
+<tr data-st="ahead"><td>Audit trail per document</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">before/after JSON audit_logs, admin activities, home feed</td></tr>
+<tr data-st="partial"><td>Attachments with folders on any document</td><td><span class="pill s-partial">partial</span></td><td class="note">phone photos for expenses/loans/shifts/transfers</td></tr>
+<tr data-st="partial"><td>Print template designer for every document</td><td><span class="pill s-partial">partial</span></td><td class="note">receipt designer + label designer</td></tr>
+<tr data-st="partial"><td>Every grid: column chooser, saved templates, PDF/Excel export</td><td><span class="pill s-partial">partial</span></td><td class="note">XLSX in reports; not universal</td></tr>
+<tr data-st="missing"><td>Global search</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="have"><td>Notifications</td><td><span class="pill s-have">have</span></td><td class="note">home activity feed + WebSocket push</td></tr>
+<tr data-st="partial"><td>Languages</td><td><span class="pill s-partial">partial</span></td><td class="note">Wizard: EN/FR UI. kashi: English UI, Arabic in reports</td></tr>
+<tr data-st="missing"><td>Multi-company / company groups, per-company licensing</td><td><span class="pill s-missing">missing</span></td><td class="note">needed to sell kashi</td></tr>
+<tr data-st="partial"><td>Data import from another system (COA, clients, products, balances)</td><td><span class="pill s-partial">partial</span></td><td class="note">product &amp; client CSV imports</td></tr>
+<tr data-st="ahead"><td>Security</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">IP bans, country filter, security alerts; Wizard leaks plaintext passwords in page source</td></tr>
+</tbody></table></details>
+<details class="mod"><summary>Other Wizard modules (vertical) <span class="mini"><span class="pill s-missing" title="missing">1</span><span class="pill s-skip" title="skip">5</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="skip"><td>Production / BOM / production orders / waste / QC</td><td><span class="pill s-skip">skip</span></td><td class="note">only &#x27;bale sorting&#x27; matters to us, covered by unpacking</td></tr>
+<tr data-st="skip"><td>Maintenance contracts &amp; service tickets by serial</td><td><span class="pill s-skip">skip</span></td><td class="note">for elevators/solar/electronics</td></tr>
+<tr data-st="skip"><td>Project management (divisions, budgets, material per project)</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+<tr data-st="skip"><td>Rent contracts, property</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+<tr data-st="skip"><td>Freight forwarding shipments</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Client portal (statements, invoices, points)</td><td><span class="pill s-missing">missing</span></td><td class="note">worth building as part of loyalty/receivables</td></tr>
+</tbody></table></details>
+</section>
+<section id="milestones"><h2>Milestones in detail</h2><div class="controls" id="pfilters">
+<button data-p="all" class="on">All priorities</button><button data-p="P0">P0</button><button data-p="P1">P1</button><button data-p="P2">P2</button><button data-p="P3">P3</button></div>
+<div class="milestone" id="m0" data-p="P0"><h3>M0 · Document engine &amp; money foundations</h3><div class="meta"><span class="pill p-P0">P0</span><span class="pill size">L · 3–6 weeks</span></div><div><strong>Goal:</strong> Build once what every later document needs, so M1–M6 are mostly screens, not plumbing.</div><div class="why">Wizard&#x27;s strength is that every document (offer, order, invoice, receipt, PO, transfer…) behaves the same: numbering, status, convert-to-next, duplicate, Excel upload, print, email, attachments, audit. If we build each document by hand we will never catch up; if we build the engine, each new document is a week.</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P0"><td><strong>Generic document header/lines model</strong></td><td><span class="pill p-P0">P0</span></td><td><span class="pill size">M</span></td><td>doc_types table (code like SA/SO/SF/PO/RV, name, numbering prefix per branch/year, default warehouse, posting behaviour). documents(id, type, number, date, branch, warehouse, party_type/party_id, currency, rate, status, ref, notes, created_by) + document_lines(product/variant, qty decimal, unit, unit_price, discount, tax_code, line_total, warehouse) + document_links(from_id, to_id, line mapping, qty) for partial conversions.</td></tr>
+<tr data-p="P0"><td><strong>Status machine + convert-to-next</strong></td><td><span class="pill p-P0">P0</span></td><td><span class="pill size">M</span></td><td>draft → confirmed → partially fulfilled → closed/cancelled; &#x27;Transfer to order/invoice/PO&#x27; copies open quantities and links lines, so partial delivery/invoicing is tracked automatically.</td></tr>
+<tr data-p="P0"><td><strong>Exchange-rate table by date</strong></td><td><span class="pill p-P0">P0</span></td><td><span class="pill size">S</span></td><td>currency_rates(currency, date, rate, source, entered_by); every document stores original currency, amount, rate and rate date. Keep the current units_per_usd_micros as &#x27;today&#x27;s rate&#x27; for the till. Allow correcting a rate and re-processing affected docs.</td></tr>
+<tr data-p="P0"><td><strong>Decimal quantities + units of measure</strong></td><td><span class="pill p-P0">P0</span></td><td><span class="pill size">M</span></td><td>units(name, symbol, precision), product_units(product, unit, factor_to_base, barcode, is_purchase_default, is_sales_default). Quantities become numeric(14,3) at HQ; till keeps integers for pieces but supports KG items. Needed for bales sold by the kilo.</td></tr>
+<tr data-p="P0"><td><strong>Universal grid</strong></td><td><span class="pill p-P0">P0</span></td><td><span class="pill size">M</span></td><td>One Vue grid component: column chooser, saved column templates per user, filters (Today/Week/Month/Quarter/Year/All), totals row, PDF + Excel export, row click → document. Wizard uses this everywhere and users love it.</td></tr>
+<tr data-p="P1"><td><strong>Excel line upload on any document</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Paste or upload code/barcode + qty + price; validate; preview; insert.</td></tr>
+<tr data-p="P1"><td><strong>Print templates per document type + email/WhatsApp the PDF</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">M</span></td><td>Extend the receipt designer into A4 templates (header, logo, columns, totals, footer, Arabic). Send via email (Resend) or WhatsApp document message.</td></tr>
+<tr data-p="P1"><td><strong>Attachments on any document</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Reuse the phone-upload/QR flow; attach images or PDFs to any document id.</td></tr>
+<tr data-p="P1"><td><strong>Per-document audit &amp; history tab</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>We already have audit_logs; show it on every document with who/when/what changed.</td></tr>
+</tbody></table>
+<div class="done"><strong>Done when:</strong> A test document type can be created, numbered, converted, partially fulfilled, printed, emailed, exported and audited without type-specific code.</div>
+</div>
+<div class="milestone" id="m1" data-p="P0"><h3>M1 · Receivables &amp; wholesale selling</h3><div class="meta"><span class="pill p-P0">P0</span><span class="pill size">L · 3–6 weeks</span></div><div><strong>Goal:</strong> Run the R1 wholesale branch&#x27;s selling and debt collection in kashi.</div><div class="why">This is the daily pain Wizard solves for us: who owes what, statements, credit limits, wholesale prices by client. It&#x27;s also the #1 thing every Lebanese wholesaler asks for (their site: &#x27;Cash, cheques and long collection cycles&#x27;).</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P0"><td><strong>Client accounts at HQ</strong></td><td><span class="pill p-P0">P0</span></td><td><span class="pill size">M</span></td><td>client_ledger(client, date, doc_type, doc_id, currency, debit, credit, rate, due_date). Sync till &#x27;On Account&#x27; entries up so HQ sees every client&#x27;s balance per currency. Opening balances import.</td></tr>
+<tr data-p="P0"><td><strong>Credit limit, payment terms, credit facility</strong></td><td><span class="pill p-P0">P0</span></td><td><span class="pill size">S</span></td><td>clients.credit_limit (+currency), clients.payment_terms_days / terms table (cash, 30, 60, installments). Block or require manager approval when an order/invoice would exceed the limit or the client has overdue invoices — at HQ and on the till.</td></tr>
+<tr data-p="P0"><td><strong>Price list per client / client group</strong></td><td><span class="pill p-P0">P0</span></td><td><span class="pill size">S</span></td><td>clients.price_list_id and client_groups with default price list + discount list. Till and HQ invoice pick the client&#x27;s list automatically. Makes client_type=wholesale real.</td></tr>
+<tr data-p="P0"><td><strong>Wholesale invoice at HQ</strong></td><td><span class="pill p-P0">P0</span></td><td><span class="pill size">M</span></td><td>On the M0 engine: client, address, salesman, warehouse, currency + rate, price list, line discount, invoice discount, VAT, notes, delivery date/address. Fast keyboard line entry by code/barcode, color/size grid entry, Excel upload, KG items.</td></tr>
+<tr data-p="P0"><td><strong>Receipt voucher with allocation</strong></td><td><span class="pill p-P0">P0</span></td><td><span class="pill size">M</span></td><td>Receive cash/cheque/Whish/bank in any currency, allocate to oldest or chosen invoices (auto-settlement option), change rate, print receipt, WhatsApp receipt to client.</td></tr>
+<tr data-p="P0"><td><strong>Statement of account</strong></td><td><span class="pill p-P0">P0</span></td><td><span class="pill size">S</span></td><td>Per client, date range, per currency columns, running balance, opening balance; PDF + WhatsApp + email.</td></tr>
+<tr data-p="P0"><td><strong>Aging &amp; not-yet-due</strong></td><td><span class="pill p-P0">P0</span></td><td><span class="pill size">S</span></td><td>Buckets 0–30/31–60/61–90/90+ and future due schedule, by client, salesman, region; dashboard card.</td></tr>
+<tr data-p="P0"><td><strong>Return sales invoice &amp; credit note</strong></td><td><span class="pill p-P0">P0</span></td><td><span class="pill size">S</span></td><td>Return against an invoice or free return; credit note for price adjustments; both hit the client ledger.</td></tr>
+<tr data-p="P1"><td><strong>Client side panel</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>On every sales document: balance, overdue, last 10 invoices, last price for this item, pending orders, quick statement.</td></tr>
+<tr data-p="P1"><td><strong>WhatsApp collection reminders</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Rules: &#x27;X days overdue → send statement&#x27;; one-click &#x27;send statement&#x27; to all overdue clients. This beats Wizard&#x27;s email reminders in Lebanon.</td></tr>
+<tr data-p="P2"><td><strong>Installment plans (Sales Bills)</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Split an invoice into N bills with optional interest %; due-date tracking.</td></tr>
+</tbody></table>
+<div class="done"><strong>Done when:</strong> R1 wholesale can invoice, collect, send statements and see aging entirely in kashi for a full month in parallel with Wizard, and the balances match.</div>
+</div>
+<div class="milestone" id="m2" data-p="P0"><h3>M2 · Purchasing, payables &amp; landed cost</h3><div class="meta"><span class="pill p-P0">P0</span><span class="pill size">L · 3–6 weeks</span></div><div><strong>Goal:</strong> Buy, receive, cost and pay suppliers in kashi.</div><div class="why">Our real margin is decided at purchase time: bale/container cost + freight + customs + clearing. Without landed cost and supplier balances we can&#x27;t price correctly or know what we owe.</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P0"><td><strong>Supplier CRUD done properly</strong></td><td><span class="pill p-P0">P0</span></td><td><span class="pill size">S</span></td><td>Edit/deactivate, contacts, currency, payment terms, supplier categories (China, Dubai, Turkey…), products &amp; item codes, notes.</td></tr>
+<tr data-p="P0"><td><strong>Purchase Order</strong></td><td><span class="pill p-P0">P0</span></td><td><span class="pill size">M</span></td><td>PO with expected date, delay days, partial receipts, close/cancel; PO → receipt → invoice conversion on the M0 engine.</td></tr>
+<tr data-p="P1"><td><strong>Goods receipt against PO (3-way match)</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">M</span></td><td>Receive by scan, record differences, invoice only what was received; warn when invoice qty/price differs from PO/receipt.</td></tr>
+<tr data-p="P0"><td><strong>Landed cost allocation</strong></td><td><span class="pill p-P0">P0</span></td><td><span class="pill size">M</span></td><td>&#x27;Expenses on goods&#x27; document linked to one or more purchase invoices; distribute by value, quantity, weight or manual; updates item cost and batch cost. Clearing/freight suppliers get their own payables.</td></tr>
+<tr data-p="P0"><td><strong>Generate selling prices from cost</strong></td><td><span class="pill p-P0">P0</span></td><td><span class="pill size">S</span></td><td>On a received purchase: cost × markup % (per category/price list) → proposed prices for each price list, review then apply. Keeps price history.</td></tr>
+<tr data-p="P0"><td><strong>Supplier ledger, payment vouchers, supplier aging</strong></td><td><span class="pill p-P0">P0</span></td><td><span class="pill size">M</span></td><td>Mirror of M1 for suppliers: balances per currency, pay by cash/cheque/bank, allocate to invoices, statements, aging.</td></tr>
+<tr data-p="P0"><td><strong>Purchase returns &amp; debit notes</strong></td><td><span class="pill p-P0">P0</span></td><td><span class="pill size">S</span></td><td>Return against a purchase; reverses stock and supplier balance.</td></tr>
+<tr data-p="P1"><td><strong>Payment requests with approval</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Request → manager approves → becomes a payment voucher.</td></tr>
+<tr data-p="P1"><td><strong>Reorder suggestions → PO</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>From min/max and stock-health velocity, propose quantities per supplier; one click to create POs.</td></tr>
+<tr data-p="P2"><td><strong>Supplier price history &amp; compare</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Last price paid per supplier per item, quote comparison table.</td></tr>
+</tbody></table>
+<div class="done"><strong>Done when:</strong> A container/bale purchase can be ordered, received, landed-costed, priced and paid in kashi, and the supplier statement matches the supplier&#x27;s.</div>
+</div>
+<div class="milestone" id="m3" data-p="P1"><h3>M3 · Bale opening, units &amp; inventory depth</h3><div class="meta"><span class="pill p-P1">P1</span><span class="pill size">M · 1–3 weeks</span></div><div><strong>Goal:</strong> Model how the clothing-bale business really works, plus the inventory controls Wizard sells on.</div><div class="why">Wizard has generic Unpacking/Disassembly; we can build a purpose-made &#x27;bale opening&#x27; flow that no generic ERP has, and that is a selling point to every bale importer in Lebanon.</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P1"><td><strong>Bale opening / sorting document</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">M</span></td><td>Input: a bale (KG or piece, with landed cost). Output: graded products (Crème, Extra, L1–L4…) with quantities; cost allocated by weight, by grade ratio or by expected selling value; waste line. Stats per supplier: grade yield %, cost per graded piece.</td></tr>
+<tr data-p="P1"><td><strong>Unpacking (carton → pieces) and kitting</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Generic version of the above using product_units factors.</td></tr>
+<tr data-p="P1"><td><strong>Min / max per item per location</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Per inventory; below-min list; feeds reorder and replenishment.</td></tr>
+<tr data-p="P1"><td><strong>Branch replenishment suggestions</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>From warehouse to shops using sales velocity (stock health already computes it) → draft transfers.</td></tr>
+<tr data-p="P1"><td><strong>Count &amp; compare</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">M</span></td><td>Count by brand/category/group slices; several counters (phones) in parallel; merge; show differences; approve → adjustment.</td></tr>
+<tr data-p="P1"><td><strong>Stock aging report</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Age buckets by receipt batch; markdown suggestions for old stock (our sale options/discount lists can apply them).</td></tr>
+<tr data-p="P2"><td><strong>Balance incl. orders</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Available = on hand − reserved (open SO) + incoming (open PO).</td></tr>
+<tr data-p="P2"><td><strong>Product extras</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Secondary/Arabic name, HS code, season, year, weight, warning message on sale, &#x27;allow below cost&#x27;, price history tab.</td></tr>
+<tr data-p="P3"><td><strong>Serial / lot / expiry (optional per product)</strong></td><td><span class="pill p-P3">P3</span></td><td><span class="pill size">M</span></td><td>Only if we target electronics/pharma/food.</td></tr>
+</tbody></table>
+<div class="done"><strong>Done when:</strong> A real bale can be opened into graded stock with correct unit costs, and weekly counts are done from phones by several staff.</div>
+</div>
+<div class="milestone" id="m4" data-p="P1"><h3>M4 · Quote → Order → Delivery chain</h3><div class="meta"><span class="pill p-P1">P1</span><span class="pill size">M · 1–3 weeks</span></div><div><strong>Goal:</strong> Full wholesale order flow for bigger clients and dealers.</div><div class="why">Their &#x27;Sales&#x27; module pitch is exactly this. Dealers order, we prepare, deliver in parts, invoice.</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P1"><td><strong>Quotation</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Validity days, terms, status (open/sent/won/lost/expired), revise, duplicate, convert to order; WhatsApp the PDF.</td></tr>
+<tr data-p="P1"><td><strong>Sales order</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">M</span></td><td>Reserve stock, partial delivery &amp; invoicing, consignment flag, preparation status (assigned picker → preparing → prepared), close/cancel, return order.</td></tr>
+<tr data-p="P1"><td><strong>Delivery note / preparation</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Pick list per warehouse, scan to confirm, delivery note signed (photo on phone), then invoice.</td></tr>
+<tr data-p="P2"><td><strong>Shortage → purchase</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Lines not in stock become a supplier requisition/PO linked to the order.</td></tr>
+<tr data-p="P2"><td><strong>Commissions</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Rules by rep/product/category/collected amount; monthly commission report feeding payroll (M8).</td></tr>
+<tr data-p="P3"><td><strong>Recurring invoices</strong></td><td><span class="pill p-P3">P3</span></td><td><span class="pill size">S</span></td><td>For rent/service style clients.</td></tr>
+</tbody></table>
+<div class="done"><strong>Done when:</strong> A dealer order can be quoted, confirmed, prepared, delivered in two parts and invoiced twice with stock and balances right.</div>
+</div>
+<div class="milestone" id="m5" data-p="P1"><h3>M5 · General ledger &amp; financial statements</h3><div class="meta"><span class="pill p-P1">P1</span><span class="pill size">XL · 6+ weeks</span></div><div><strong>Goal:</strong> Become an ERP, not &#x27;POS + back office&#x27;. Required to fully drop Wizard and to sell to anyone with an accountant.</div><div class="why">Every Wizard page leads back to accounting (&#x27;Accounting sits underneath everything&#x27;). The ledger is the moat; it&#x27;s also the biggest single build. Do it after M1–M2 so sub-ledgers already exist and posting rules are obvious.</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P1"><td><strong>Chart of accounts with Lebanese template</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">M</span></td><td>Multi-level accounts (class → group → account → auxiliary); ship the Lebanese standard plan as a template; client/supplier/employee auxiliaries map to 411/401/42x.</td></tr>
+<tr data-p="P1"><td><strong>Journal &amp; posting rules</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">L</span></td><td>journal_entries + journal_lines (account, debit, credit, currency, original amount, rate, cost center, doc link). Posting rules per document type (sales → 411/701/VAT; COGS → 601/37; purchase; expenses; loans; shift cash differences; payroll). Idempotent re-posting.</td></tr>
+<tr data-p="P1"><td><strong>Journal voucher</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Manual JV with duplicate/reverse, recurring JVs, Excel upload.</td></tr>
+<tr data-p="P1"><td><strong>Cost centers</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Map branches/inventories/departments; every line can carry one; P&amp;L by cost center.</td></tr>
+<tr data-p="P1"><td><strong>Reports</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">M</span></td><td>Trial balance (with auxiliaries), general ledger, account statement, P&amp;L, balance sheet, cash flow, journal report; in USD or LBP; compare periods; PDF/Excel.</td></tr>
+<tr data-p="P1"><td><strong>FX revaluation</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">M</span></td><td>Period-end revaluation of open monetary balances at closing rate; realised vs unrealised gain/loss accounts; reversible journal.</td></tr>
+<tr data-p="P1"><td><strong>Period lock &amp; year close</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Lock dates, closing entries, opening balances of next year, closing inventory.</td></tr>
+<tr data-p="P2"><td><strong>Deferred expenses / accruals / provisions</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Spread an expense over N months automatically.</td></tr>
+<tr data-p="P3"><td><strong>Budget vs actual</strong></td><td><span class="pill p-P3">P3</span></td><td><span class="pill size">S</span></td><td></td></tr>
+</tbody></table>
+<div class="done"><strong>Done when:</strong> Our accountant can produce the year&#x27;s trial balance and P&amp;L from kashi and it matches Wizard&#x27;s for the same period.</div>
+</div>
+<div class="milestone" id="m6" data-p="P1"><h3>M6 · Banks, cheques &amp; VAT</h3><div class="meta"><span class="pill p-P1">P1</span><span class="pill size">M · 1–3 weeks</span></div><div><strong>Goal:</strong> Cover how Lebanese businesses actually get paid and file taxes.</div><div class="why">Wizard&#x27;s &#x27;built for Lebanon&#x27; pitch = USD/LBP in one ledger, VAT that reconciles, cheques and long collection cycles.</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P1"><td><strong>Bank accounts &amp; movements</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Bank accounts per currency, deposit, withdraw, cash-to-bank, transfers between accounts, bank charges.</td></tr>
+<tr data-p="P1"><td><strong>Cheques</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">M</span></td><td>Cheques received (from clients) and issued (checkbooks), post-dated register, maturity calendar, deposit/collect/bounce/return flows, notifications on due dates.</td></tr>
+<tr data-p="P2"><td><strong>Bank reconciliation</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">M</span></td><td>Import statement CSV/Excel, auto-match by amount/date/ref, manual match, reconciliation report.</td></tr>
+<tr data-p="P1"><td><strong>VAT</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">M</span></td><td>Tax codes per product/category, VAT-inclusive (TTC) price lists, VAT on purchase &amp; sale lines, MOF number on clients/suppliers, VAT return report (sales/purchases, collected/deductible), per-till tax_rate replaced by codes.</td></tr>
+<tr data-p="P3"><td><strong>Fiscal e-invoicing readiness</strong></td><td><span class="pill p-P3">P3</span></td><td><span class="pill size">S</span></td><td>Keep the document model ready for a future Lebanese e-invoicing mandate (sequential numbers, QR, immutable after post).</td></tr>
+</tbody></table>
+<div class="done"><strong>Done when:</strong> A quarter&#x27;s VAT return and all cheque movements come out of kashi.</div>
+</div>
+<div class="milestone" id="m7" data-p="P1"><h3>M7 · Approvals, permissions &amp; control</h3><div class="meta"><span class="pill p-P1">P1</span><span class="pill size">M · 1–3 weeks</span></div><div><strong>Goal:</strong> Give owners the control Wizard sells to managers, with our better UX.</div><div class="why">Wizard: &#x27;multi-level approvals by value, department, or user roles&#x27;, access per document type, per-user branch/warehouse limits.</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P1"><td><strong>Generic approval engine</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">M</span></td><td>Rules per document type: condition (amount &gt; X, discount &gt; Y%, below cost, credit limit exceeded) → approver role/user, multi-step. Approve from the web, the till or a WhatsApp link.</td></tr>
+<tr data-p="P1"><td><strong>Document-level permissions</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Per role per document type: view/create/edit/post/cancel/print/export; field-level hide cost &amp; margin.</td></tr>
+<tr data-p="P1"><td><strong>Scope restrictions</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Users limited to branches, warehouses, salesmen, cost centers, price lists.</td></tr>
+<tr data-p="P2"><td><strong>Global search</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Search any client, product, document number, cheque, phone from one box.</td></tr>
+<tr data-p="P2"><td><strong>Notifications center</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Approvals waiting, overdue clients, cheques due, low stock, short shifts; push + WhatsApp.</td></tr>
+</tbody></table>
+<div class="done"><strong>Done when:</strong> A discount above the threshold on any document stops and waits for the right approver, and a branch user can only see their branch.</div>
+</div>
+<div class="milestone" id="m8" data-p="P2"><h3>M8 · Payroll &amp; HR</h3><div class="meta"><span class="pill p-P2">P2</span><span class="pill size">L · 3–6 weeks</span></div><div><strong>Goal:</strong> Turn our attendance lead into real payroll.</div><div class="why">We already capture attendance from door devices, which Wizard doesn&#x27;t. Payroll on top of it (with NSSF and end-of-service) closes the loop.</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P2"><td><strong>Salary history &amp; contracts</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Effective-dated salary, allowances, transport, commission rules, working schedule.</td></tr>
+<tr data-p="P2"><td><strong>Leave management</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Leave kinds (absent, day off, sick, half-day, vacation), balances accrued by policy, request/approve from the till.</td></tr>
+<tr data-p="P2"><td><strong>Payroll run</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">M</span></td><td>Pull attendance (late/overtime computed, not typed), leave, commissions (M4), advances &amp; loan deductions; payslips; post to ledger; pay by cash/bank.</td></tr>
+<tr data-p="P2"><td><strong>Payslips by WhatsApp</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>PDF payslip to each employee.</td></tr>
+<tr data-p="P2"><td><strong>NSSF &amp; tax reports, end-of-service</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">M</span></td><td>Lebanese NSSF contributions, income tax, end-of-service indemnity accrual.</td></tr>
+</tbody></table>
+<div class="done"><strong>Done when:</strong> The month&#x27;s payroll is calculated from attendance and paid from kashi.</div>
+</div>
+<div class="milestone" id="m9" data-p="P1"><h3>M9 · Sell kashi (productize)</h3><div class="meta"><span class="pill p-P1">P1</span><span class="pill size">L · 3–6 weeks</span></div><div><strong>Goal:</strong> Make kashi something another company can buy and be running in a week.</div><div class="why">To be Wizard&#x27;s &#x27;nightmare competitor&#x27; it has to be installable for others, not only for us. Their weak spots: price on request, slow onboarding, old UI, outages like the current upgrade.</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P1"><td><strong>Multi-tenant / multi-company</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">L</span></td><td>Tenant isolation (schema or tenant_id), company groups, per-company settings, branding, subdomains.</td></tr>
+<tr data-p="P1"><td><strong>Module licensing &amp; plans</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Switch modules on per tenant (POS, wholesale, purchasing, accounting, payroll…), per-register/per-user pricing, public price list (Wizard hides prices: be transparent).</td></tr>
+<tr data-p="P1"><td><strong>Migration from Wizard (and Excel)</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">M</span></td><td>Import clients (with balances), suppliers, products with family levels/brands/units/barcodes/prices per list, chart of accounts, opening stock &amp; cost, open invoices. We know their exact data model now.</td></tr>
+<tr data-p="P1"><td><strong>Onboarding wizard</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Company, currencies &amp; rates, branches, warehouses, taxes, price lists, users; demo data.</td></tr>
+<tr data-p="P1"><td><strong>Languages: Arabic UI + French</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">M</span></td><td>Full i18n with RTL; Arabic documents and receipts.</td></tr>
+<tr data-p="P2"><td><strong>Android / tablet till</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">L</span></td><td>Same Vue frontend packaged for Android (Capacitor) with SQLite, or a PWA offline mode.</td></tr>
+<tr data-p="P1"><td><strong>Reliability &amp; trust</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Zero-downtime migrations (already additive), status page, daily backups with export, 2FA, SSO later.</td></tr>
+<tr data-p="P2"><td><strong>Docs &amp; sales site</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">M</span></td><td>User guide (exists), comparison pages vs Wizard/Odoo, videos, demo booking.</td></tr>
+</tbody></table>
+<div class="done"><strong>Done when:</strong> A new retailer signs up, imports from Wizard/Excel and sells on day one.</div>
+</div>
+<div class="milestone" id="m10" data-p="P2"><h3>M10 · Mobile sales &amp; warehouse app</h3><div class="meta"><span class="pill p-P2">P2</span><span class="pill size">L · 3–6 weeks</span></div><div><strong>Goal:</strong> Beat Wizard&#x27;s mobile app with our offline sync experience.</div><div class="why">Their mobile app is a big part of the wholesale pitch (van sales, collection, routes, offline count). We already know how to do offline sync.</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P2"><td><strong>Salesman app (PWA/Android)</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">L</span></td><td>Client list with balance/credit/overdue, catalogue with stock &amp; client price, orders &amp; quotations, offline with sync.</td></tr>
+<tr data-p="P2"><td><strong>Collections</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Receive payment on the spot, Bluetooth receipt or WhatsApp receipt, allocates in M1 ledger.</td></tr>
+<tr data-p="P2"><td><strong>Van sales</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">M</span></td><td>Vehicle = inventory; load/unload transfers; cash sales from van; end-of-day van settlement.</td></tr>
+<tr data-p="P3"><td><strong>Routes &amp; visits</strong></td><td><span class="pill p-P3">P3</span></td><td><span class="pill size">M</span></td><td>Planned visits, check-in with GPS, missed / no-order visits report.</td></tr>
+<tr data-p="P2"><td><strong>Warehouse scanning</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">M</span></td><td>Receive against PO, pick sales orders, count, transfer — all by phone camera or Bluetooth scanner.</td></tr>
+</tbody></table>
+<div class="done"><strong>Done when:</strong> A rep can take orders and collect money offline for a day and everything syncs cleanly.</div>
+</div>
+<div class="milestone" id="m11" data-p="P2"><h3>M11 · CRM, customer portal &amp; loyalty 2.0</h3><div class="meta"><span class="pill p-P2">P2</span><span class="pill size">M · 1–3 weeks</span></div><div><strong>Goal:</strong> Turn our WhatsApp + loyalty lead into a CRM Wizard can&#x27;t match.</div><div class="why">Their CRM is classic leads/stages; ours can live inside WhatsApp where Lebanese customers actually are.</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P2"><td><strong>Leads &amp; pipeline</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">M</span></td><td>Leads from WhatsApp chats, forms, imports; custom stages; tasks &amp; reminders; convert to client; win/loss reports.</td></tr>
+<tr data-p="P2"><td><strong>Customer portal</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">M</span></td><td>Phone-number login (WhatsApp OTP): loyalty points, invoices, statement &amp; balance, receipts, reviews.</td></tr>
+<tr data-p="P2"><td><strong>Loyalty rules &amp; campaigns</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Earn by amount/product/category, double-points periods, birthday rewards, redemption at POS, tier upgrades automatic.</td></tr>
+<tr data-p="P2"><td><strong>Segments &amp; broadcasts</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Segments by spend/recency/branch (we already export VCF lists by hand) → WhatsApp campaigns with opt-out and cost estimate.</td></tr>
+</tbody></table>
+<div class="done"><strong>Done when:</strong> A WhatsApp enquiry becomes a lead, then a client, and that client checks their points and balance from a link.</div>
+</div>
+<div class="milestone" id="m12" data-p="P2"><h3>M12 · E-commerce &amp; marketplaces</h3><div class="meta"><span class="pill p-P2">P2</span><span class="pill size">M · 1–3 weeks</span></div><div><strong>Goal:</strong> One stock number for shops and online.</div><div class="why">Wizard sells Shopify/WooCommerce/Magento sync; online clothing in Lebanon runs on Instagram + WhatsApp + Shopify/WooCommerce.</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P2"><td><strong>Shopify &amp; WooCommerce connectors</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">M</span></td><td>Push products/variants/images/prices/discounts, live stock per location, pull orders → sales order → delivery → invoice.</td></tr>
+<tr data-p="P3"><td><strong>Online stock allocation</strong></td><td><span class="pill p-P3">P3</span></td><td><span class="pill size">S</span></td><td>Which inventories feed the web; safety stock.</td></tr>
+<tr data-p="P3"><td><strong>Delivery companies</strong></td><td><span class="pill p-P3">P3</span></td><td><span class="pill size">S</span></td><td>COD reconciliation with local delivery companies.</td></tr>
+</tbody></table>
+<div class="done"><strong>Done when:</strong> An online order reserves stock in kashi within a minute and is invoiced from the same flow as a shop order.</div>
+</div>
+<div class="milestone" id="m13" data-p="P3"><h3>M13 · Fixed assets &amp; the rest</h3><div class="meta"><span class="pill p-P3">P3</span><span class="pill size">M · 1–3 weeks</span></div><div><strong>Goal:</strong> Fill remaining module checkboxes only when a customer needs them.</div><div class="why">Low value for retail; good for completeness in sales conversations.</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P3"><td><strong>Depreciation &amp; disposal</strong></td><td><span class="pill p-P3">P3</span></td><td><span class="pill size">S</span></td><td>Methods, useful life, monthly auto-posting, disposal/sale with gain/loss.</td></tr>
+<tr data-p="P3"><td><strong>Asset QR audit</strong></td><td><span class="pill p-P3">P3</span></td><td><span class="pill size">S</span></td><td>Scan tags by phone, compare with register by location.</td></tr>
+<tr data-p="P3"><td><strong>After-sales tickets</strong></td><td><span class="pill p-P3">P3</span></td><td><span class="pill size">M</span></td><td>Only if we target electronics: tickets, warranty by serial, parts &amp; labour.</td></tr>
+<tr data-p="P3"><td><strong>Production / projects</strong></td><td><span class="pill p-P3">P3</span></td><td><span class="pill size">L</span></td><td>Skip unless a paying customer needs it.</td></tr>
+</tbody></table>
+</div>
+</section>
+<section id="nightmare"><h2>How we become their nightmare</h2><div class="card"><ul class="tight">
+<li><strong>&#x27;Switch from Wizard in a weekend&#x27;</strong>: an importer that reads their exact data model (we&#x27;ve seen it: g_aux clients/suppliers, in_* documents, family levels, price lists, COA).</li>
+<li><strong>WhatsApp everything</strong>: statements, receipts, payslips, approvals, reminders, quotations sent as PDFs, customer portal by WhatsApp login. Wizard only does email/SMS.</li>
+<li><strong>Offline everywhere</strong>: till and mobile both truly offline-first with our proven outbox sync.</li>
+<li><strong>Bale-business features</strong>: bale opening with grade yields and landed cost per graded piece. No generic ERP has this.</li>
+<li><strong>Transparent pricing</strong>: Wizard hides prices (&#x27;contact us&#x27;). Publish ours.</li>
+<li><strong>Live owner app</strong>: today&#x27;s sales, cash per branch, overdue clients and approvals on the phone, live over WebSocket.</li>
+<li><strong>Security as a feature</strong>: we never ship passwords to the browser; audit everything; 2FA.</li>
+<li><strong>Speed of change</strong>: weekly signed releases to every till vs their &#x27;Upgrade statements are available&#x27; screens that break the app.</li>
+</ul></div></section>
+<section id="risks"><h2>Risks & rules for ourselves</h2><div class="card"><ul class="tight">
+<li><strong>The ledger is the hardest part.</strong> Get posting rules reviewed by our accountant before coding; build M1/M2 sub-ledgers so they post cleanly later.</li>
+<li><strong>Two sources of sales.</strong> kashi has central sales_invoices and till-synced branch_invoices. The document engine (M0) should become the single model; migrate carefully (migrations must stay additive for till rollback).</li>
+<li><strong>Integer quantities on tills.</strong> Decimal/KG support must not break existing till sync; add new columns rather than change types.</li>
+<li><strong>Scope creep.</strong> Wizard has 268 document types because it says yes to every customer. Say no to verticals (production, projects, rent) unless paid for.</li>
+<li><strong>Parallel run discipline.</strong> Don&#x27;t switch R1 off Wizard until a full month of balances match.</li>
+</ul></div></section>
+<section id="sources"><h2>How this was researched</h2><div class="card"><ul class="tight">
+<li>Logged into thewizardcloud.net/98 as the R1 wholesale user (read-only): every route in their JavaScript, every form, grid column and Actions menu that loads, the full app config (268 document types, 57 document codes, 85 company options, price lists, warehouses, currencies, chart of accounts).</li>
+<li>Every page on wizardsolutions.net from its sitemap (70 pages): home, /modules, all 14 module pages, 23 industry pages, 4 &#x27;compare&#x27; pages (Odoo, SAP B1, Dynamics BC, QuickBooks), 5 guides, 14 glossary pages, about, customers.</li>
+<li>A full survey of ~/Code/kashi (Go + Postgres + Vue HQ) and ~/Code/kashi-pos (Wails + SQLite till): routes, 219 kashi migrations, POS migrations, App.d.ts bindings, settings, integrations.</li>
+</ul></div></section></main><footer>kashi · internal roadmap</footer>
+<script>
+const ms=document.getElementById('msearch');let st='all';
+function applyM(){const q=ms.value.toLowerCase();document.querySelectorAll('details.mod').forEach(d=>{let any=0;
+d.querySelectorAll('tbody tr').forEach(r=>{const ok=(st==='all'||r.dataset.st===st)&&(!q||r.textContent.toLowerCase().includes(q));r.classList.toggle('hidden',!ok);if(ok)any++;});
+d.classList.toggle('hidden',!any);if((q||st!=='all')&&any)d.open=true;});}
+ms.addEventListener('input',applyM);
+document.querySelectorAll('#mfilters button[data-st]').forEach(b=>b.onclick=()=>{st=b.dataset.st;document.querySelectorAll('#mfilters button[data-st]').forEach(x=>x.classList.toggle('on',x===b));applyM();});
+document.getElementById('expand').onclick=e=>{const all=[...document.querySelectorAll('details.mod')];const open=!all.every(d=>d.open);all.forEach(d=>d.open=open);e.target.textContent=open?'Collapse all':'Expand all';};
+document.querySelectorAll('#pfilters button').forEach(b=>b.onclick=()=>{const p=b.dataset.p;document.querySelectorAll('#pfilters button').forEach(x=>x.classList.toggle('on',x===b));
+document.querySelectorAll('.milestone').forEach(m=>{let any=0;m.querySelectorAll('tbody tr').forEach(r=>{const ok=p==='all'||r.dataset.p===p;r.classList.toggle('hidden',!ok);if(ok)any++;});m.classList.toggle('hidden',!any);});});
+</script></body></html>
