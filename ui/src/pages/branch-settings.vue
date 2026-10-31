@@ -1517,7 +1517,7 @@
     quick_access_show_code: true,
     quick_access_show_name: true,
     quick_access_show_remove: true,
-    animations_enabled: true,
+    animations_enabled: false,
     calculator_total_currency: 'USD',
     theme: 'light',
   }
