@@ -2,6 +2,15 @@
   <RptKpis v-if="has('kpis.summary')" :items="kpis" part="kpis.summary" />
 
   <RptSection
+    v-if="has('compare') && previous"
+    :note="t('Same branches and settings, {from} to {to}.', { from: dayLabel(previous.from, LONG_DAY), to: dayLabel(previous.to, LONG_DAY) })"
+    part="compare"
+    :title="t('Compared with the period before')"
+  >
+    <RptTable :columns="compareColumns" compact :rows="compareRows" />
+  </RptSection>
+
+  <RptSection
     v-if="has('days.chart') || has('days.weekday') || has('days.best')"
     :note="t('Net sales are sales less returns and exchange refunds.')"
     :part="['days.chart', 'days.weekday', 'days.best']"
@@ -61,7 +70,7 @@
 <script setup>
   import { computed } from 'vue'
   import { t } from './reportI18n'
-  import { barOption, chartDay, csvSection, day, daysBetween, donutOption, int, money, num1, pct, ratio, weekdayCounts, weekdays } from './reportKit'
+  import { barOption, change, chartDay, csvSection, day, dayLabel, daysBetween, donutOption, formatAs, int, money, num1, pct, ratio, weekdayCounts, weekdays } from './reportKit'
   import { categoryRows, salespersonRows } from './reportRows'
   import RptCard from './RptCard.vue'
   import RptChart from './RptChart.vue'
@@ -105,6 +114,46 @@
     }
     return items
   })
+
+  // This period against the one before (the API picks it: the month before
+  // for whole months, else as many days back). For returns and discounts a
+  // drop is the good direction.
+  const LONG_DAY = { day: 'numeric', month: 'short', year: 'numeric' }
+  const previous = computed(() => data.value.previous ?? null)
+  const compareRows = computed(() => {
+    const a = s.value
+    const b = previous.value.summary
+    const measures = [
+      { measure: t('Net sales'), type: 'money', of: x => x.net_total },
+      { measure: t('Sales'), type: 'int', of: x => x.sales_count },
+      { measure: t('Sales a day'), type: 'num1', of: x => ratio(x.sales_count, x.selling_days) },
+      { measure: t('Average sale'), type: 'money', of: x => ratio(x.sales_total, x.sales_count) },
+      { measure: t('Items sold'), type: 'int', of: x => x.items_sold },
+      { measure: t('Items per sale'), type: 'num1', of: x => ratio(x.items_sold, x.sales_count) },
+      // Shown signed as on the card (money back is negative), compared as
+      // money given back.
+      { measure: t('Returns & exchanges'), type: 'money', of: x => -x.returns_total, show: v => -v, lowerIsBetter: true },
+      { measure: t('Discounts given'), type: 'money', of: x => x.discount_total, lowerIsBetter: true },
+      { measure: t('Customers served'), type: 'int', of: x => x.clients_served },
+      { measure: t('Sales with a customer'), type: 'pct', of: x => ratio(x.named_sales_count, x.sales_count) },
+    ]
+    return measures.map(m => {
+      const now = m.of(a)
+      const before = m.of(b)
+      // Shares change by points, not by a percent of themselves; a figure
+      // that flipped sign (exchanges that brought money in) has no percent.
+      const delta = m.type === 'pct' ? now - before : (before && Math.sign(before) === Math.sign(now) ? (now - before) / Math.abs(before) : Number.NaN)
+      const sign = delta > 0.0005 ? '+' : (delta < -0.0005 ? '−' : '')
+      const deltaText = m.type === 'pct' && Number.isFinite(delta) ? t('{n} pts', { n: `${sign}${num1(Math.abs(delta) * 100)}` }) : change(delta)
+      return { ...m, now, before, delta, deltaText }
+    })
+  })
+  const compareColumns = [
+    { key: 'measure', title: t('Measure') },
+    { key: 'now', title: t('This period'), value: r => formatAs(r.type, r.show ? r.show(r.now) : r.now), right: true, strong: true },
+    { key: 'before', title: t('Before'), value: r => formatAs(r.type, r.show ? r.show(r.before) : r.before), right: true },
+    { key: 'delta', title: t('Change'), value: r => r.deltaText, right: true, cellClass: r => (Math.abs(r.delta) < 0.005 || !Number.isFinite(r.delta) ? '' : ((r.delta > 0) === !r.lowerIsBetter ? 'rpt-up' : 'rpt-down')) },
+  ]
 
   // Every day of the period, with the days nothing sold at zero.
   const days = computed(() => {
@@ -170,6 +219,12 @@
 
   defineExpose({
     csv: () => [
+      has('compare') && previous.value && csvSection(t('Compared with the period before'), [
+        compareColumns[0],
+        { key: 'now', title: t('This period'), value: r => (r.type === 'money' ? ((r.show ? r.show(r.now) : r.now) / 100).toFixed(2) : (r.type === 'pct' ? (r.now * 100).toFixed(1) : r.now)) },
+        { key: 'before', title: t('Before'), value: r => (r.type === 'money' ? ((r.show ? r.show(r.before) : r.before) / 100).toFixed(2) : (r.type === 'pct' ? (r.before * 100).toFixed(1) : r.before)) },
+        { key: 'delta', title: t('Change'), value: r => (Number.isFinite(r.delta) ? (r.delta * 100).toFixed(1) : '') },
+      ], compareRows.value),
       (has('days.chart') || has('days.best')) && csvSection(t('Days'), [...dayColumns, { key: 'visitors', title: t('Visitors'), type: 'int' }], days.value),
       has('branches') && csvSection(t('Branches'), branchColumns, data.value.branches),
       has('sold.products') && csvSection(t('Products'), productColumns, namedProducts.value),

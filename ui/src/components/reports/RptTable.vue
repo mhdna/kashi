@@ -10,7 +10,7 @@
     <tbody>
       <tr v-for="(row, i) in shownRows" :key="i" :class="rowClass ? rowClass(row) : ''">
         <td v-if="numbered" class="rpt-num">{{ i + 1 }}</td>
-        <td v-for="col in columns" :key="col.key" :class="[alignClass(col), { 'rpt-strong': col.strong }]">
+        <td v-for="col in columns" :key="col.key" :class="[alignClass(col), { 'rpt-strong': col.strong }, col.cellClass ? col.cellClass(row) : '']">
           <!-- A share column gets a small bar, scaled to the column's largest. -->
           <span v-if="col.bar" class="rpt-bar-cell">
             <span class="rpt-bar" :style="{ width: barWidth(col, row) }" />{{ displayCell(col, row) }}
@@ -56,7 +56,8 @@
   const shownRows = computed(() => (props.limit > 0 ? props.rows.slice(0, props.limit) : props.rows))
 
   // columns: { bar: true } draws a bar beside the value, { strong: true }
-  // sets the table's key figure in bold.
+  // sets the table's key figure in bold, { cellClass: row => '…' } colours
+  // a cell (e.g. 'rpt-up' / 'rpt-down').
   const barMax = computed(() => Object.fromEntries(props.columns.filter(c => c.bar)
     .map(c => [c.key, Math.max(0, ...props.rows.map(r => Number(cellValue(c, r)) || 0))])))
   function barWidth (col, row) {
@@ -64,5 +65,5 @@
     const value = Math.max(0, Number(cellValue(col, row)) || 0)
     return max > 0 ? `${Math.round(value / max * 100) / 100 * 36}px` : '0px'
   }
-  const alignClass = col => (col.type && col.type !== 'text' && col.type !== 'date' && col.type !== 'datetime' ? 'rpt-right' : '')
+  const alignClass = col => (col.right || (col.type && col.type !== 'text' && col.type !== 'date' && col.type !== 'datetime') ? 'rpt-right' : '')
 </script>
