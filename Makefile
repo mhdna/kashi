@@ -81,6 +81,10 @@ deploy:
 
 # Cross-compile the API, ship it with the current migrations, run any
 # pending ones on the prod DB (idempotent), restart the service.
+# Rebuild docs/dev-docs.html (the browsable developer docs) from docs/DEV_DOCS.md.
+dev-docs:
+	node docs/build-dev-docs.mjs
+
 deploy-api:
 	# -s -w drops the debug tables (57 MB -> 41 MB, ~17 MB as rsync sends it):
 	# the upload is most of a deploy. Panics still name their functions.
@@ -131,4 +135,4 @@ migrate-prod:
 	rsync -avz --delete ./db/migrations/ $(SSH):$(APP_DIR)/migrations/
 	ssh $(SSH_MUX) $(SSH) 'migrate -path $(APP_DIR)/migrations -database "$(PROD_DB)" up'
 
-.PHONY: postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 sqlc test server dev mock proto evans seed deploy deploy-api deploy-ui build-ui ship-ui deploy-notes deploy-whatsapp migrate-prod
+.PHONY: dev-docs postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 sqlc test server dev mock proto evans seed deploy deploy-api deploy-ui build-ui ship-ui deploy-notes deploy-whatsapp migrate-prod
