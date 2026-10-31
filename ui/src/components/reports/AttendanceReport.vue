@@ -64,6 +64,10 @@
          period longer than ten days is laid out in two columns, so a month
          takes about a third of a page instead of a page each. -->
     <template v-if="has('detail')">
+      <p v-if="splitDays && people.length > 0" class="rpt-note rpt-cal-legend">
+        <span class="rpt-cal-swatch" style="background: #fff3e6; border: 1px solid #f3d3ad" /> {{ t('missing an IN or OUT punch') }}
+        <span class="rpt-cal-swatch" style="margin-inline-start: 12px; border: 1px solid #dcdbd6" /> <span style="color: #a3a29d">{{ t('greyed: no punches') }}</span>
+      </p>
       <section
         v-for="(p, index) in people"
         :key="p.key"
@@ -247,10 +251,16 @@
     { key: 'flag', title: '', tag: true },
   ]
   // Over ten days the day table goes in two columns, the first half of the
-  // days on the left. Without the bars: each half would scale its own.
+  // days on the left. Each half is narrow, so it drops the bars (each half
+  // would scale its own) and the "Missing punch" / "No punches" labels:
+  // the row colours say it (a legend sits above the employees), and with
+  // the labels the dates and times wrapped onto two lines, making an
+  // employee too tall to fit two on a page.
   const splitDays = computed(() => gridDays.value.length > 10)
   const splitAt = computed(() => Math.ceil(gridDays.value.length / 2))
-  const splitColumns = detailColumns.map(c => (c.bar ? { ...c, bar: false } : c))
+  const splitColumns = detailColumns
+    .filter(c => !c.tag)
+    .map(c => (c.bar ? { ...c, bar: false } : c))
   // Missing a punch: orange; no punches at all: greyed.
   const dayClass = r => (r.incomplete ? 'rpt-row--warn' : (r.spans === '' && !r.isTotal ? 'rpt-row--off' : ''))
   const branchOf = p => props.ctx.branchNames[props.ctx.people.list.find(x => x.key === p.key)?.branchId] ?? p.branch
