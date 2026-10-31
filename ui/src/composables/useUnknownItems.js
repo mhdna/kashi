@@ -35,7 +35,7 @@ export function useUnknownItems () {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ids }),
     })
-    return { deleted: data?.deleted ?? 0, kept: data?.kept ?? 0 }
+    return { deleted: data?.deleted ?? 0, kept: data?.kept ?? 0, deletedIds: data?.deleted_ids ?? null }
   }
 
   async function fetchWaiting () {

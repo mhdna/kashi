@@ -185,6 +185,48 @@ func TestUnknownItemsFlow(t *testing.T) {
 		}
 	}
 	require.Equal(t, 3, mine)
+
+	// 6. Deleting pictures on the Attachments page: one from a checkout whose
+	// sale never came goes, the one still waiting to be matched stays, and the
+	// answer names what went so the page can drop just those.
+	otherRef := uuid.NewString()
+	var other struct {
+		UploadToken string `json:"upload_token"`
+	}
+	decode(do(tillRequest(http.MethodPost, "/branch/unknown_sessions", map[string]any{
+		"client_ref": otherRef,
+		"slots":      []map[string]any{{"slot_ref": "1", "label": "Unknown item", "unit_price": 1000}},
+	})), &other)
+	var otherForm bytes.Buffer
+	otherWriter := multipart.NewWriter(&otherForm)
+	otherPart, err := otherWriter.CreatePart(textproto.MIMEHeader{
+		"Content-Disposition": {`form-data; name="image"; filename="item.jpg"`},
+		"Content-Type":        {"image/jpeg"},
+	})
+	require.NoError(t, err)
+	_, err = otherPart.Write(jpg.Bytes())
+	require.NoError(t, err)
+	require.NoError(t, otherWriter.Close())
+	otherUpload := httptest.NewRequest(http.MethodPost, "/unknown_uploads/"+other.UploadToken+"/slots/1/image", &otherForm)
+	otherUpload.Header.Set("Content-Type", otherWriter.FormDataContentType())
+	require.Equal(t, http.StatusOK, do(otherUpload).Code)
+	var otherStatus struct {
+		Slots []unknownSlotView `json:"slots"`
+	}
+	decode(do(tillRequest(http.MethodGet, "/branch/unknown_sessions/status?client_ref="+otherRef, nil)), &otherStatus)
+	strayID := otherStatus.Slots[0].ImageID
+	require.NotZero(t, strayID)
+
+	var deleted struct {
+		Deleted    int     `json:"deleted"`
+		Kept       int     `json:"kept"`
+		DeletedIDs []int64 `json:"deleted_ids"`
+	}
+	decode(do(adminJSONRequest(t, server, http.MethodPost, "/unknown_items/images/delete",
+		map[string]any{"ids": []int64{slots[0].ImageID, strayID}})), &deleted)
+	require.Equal(t, 1, deleted.Deleted)
+	require.Equal(t, 1, deleted.Kept)
+	require.Equal(t, []int64{strayID}, deleted.DeletedIDs)
 }
 
 // One picture covers every unit of its cart line: a line of two is done with

@@ -295,18 +295,39 @@
   async function deleteSelected () {
     deleting.value = true
     try {
-      const { deleted, kept } = await deleteUnknownItemImages(selectedIds.value)
+      const { deleted, kept, deletedIds } = await deleteUnknownItemImages(selectedIds.value)
       notify.success(kept
         ? `${deleted} deleted, ${kept} kept (their sale is still waiting to be matched)`
         : `${deleted} deleted`)
       confirmDelete.value = false
       selectedIds.value = []
-      resetAndLoad()
+      // Take just the deleted pictures out of the grid; reloading it would
+      // blank every thumbnail and fetch them all again. An older server
+      // doesn't say which went, so then the grid is reloaded.
+      if (deletedIds) {
+        removeFromGrid(deletedIds)
+      } else {
+        resetAndLoad()
+      }
     } catch (error) {
       notify.error(error.message)
     } finally {
       deleting.value = false
     }
+  }
+
+  // Delete is only offered in a deletable kind's own folder (never "All"),
+  // so the ids are unique in the grid.
+  function removeFromGrid (ids) {
+    const gone = new Set(ids)
+    const removed = images.value.filter(image => gone.has(image.id))
+    for (const image of removed) {
+      const key = imageKey(image)
+      if (thumbnailUrls.value[key]) {URL.revokeObjectURL(thumbnailUrls.value[key])}
+      delete thumbnailUrls.value[key]
+    }
+    images.value = images.value.filter(image => !removed.includes(image))
+    total.value = Math.max(0, total.value - removed.length)
   }
 
   const previewDialog = ref(false)
