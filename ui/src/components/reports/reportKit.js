@@ -43,6 +43,12 @@ export const CHART_ROWS = 20
 export const int = n => intFmt.format(Number(n || 0))
 export const num1 = n => num1Fmt.format(Number(n || 0))
 export const pct = ratio => (Number.isFinite(ratio) ? `${num1Fmt.format((ratio || 0) * 100)}%` : '—')
+// A change as a ratio, signed: "+12.5%", "−3.0%".
+export function change (ratio) {
+  if (!Number.isFinite(ratio)) {return '—'}
+  const sign = ratio > 0.0005 ? '+' : (ratio < -0.0005 ? '−' : '')
+  return `${sign}${num1Fmt.format(Math.abs(ratio) * 100)}%`
+}
 // Minutes as "7h 05m".
 export function hours (minutes) {
   const whole = Math.round(Number(minutes || 0))
@@ -82,6 +88,10 @@ const CSV = {
   date: v => day(v),
   datetime: v => (v ? String(v).slice(0, 10) : ''),
 }
+
+// A value shown as a column type would show it, for tables whose rows are
+// of different kinds.
+export const formatAs = (type, value) => (DISPLAY[type] ?? DISPLAY.text)(value)
 
 export function cellValue (column, row) {
   return column.value ? column.value(row) : row[column.key]

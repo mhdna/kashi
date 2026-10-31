@@ -77,6 +77,8 @@
 .rpt-table tbody tr:nth-child(even) td { background: #fbfbf9; }
 .rpt-table tfoot td { border-top: 1px solid #1f1f1e; border-bottom: none; background: #f4f3ef; font-weight: 700; }
 .rpt-table .rpt-strong { font-weight: 600; }
+.rpt-table .rpt-up { color: #17794a; }
+.rpt-table .rpt-down { color: #b3261e; }
 .rpt-bar-cell { display: inline-flex; align-items: center; justify-content: flex-end; gap: 5px; }
 .rpt-bar { display: inline-block; height: 6px; border-radius: 3px; background: #7eaee7; }
 .rpt-table tr { break-inside: avoid; }
