@@ -37,9 +37,7 @@
     </v-tabs>
     <v-divider />
 
-    <div v-if="loading" class="d-flex justify-center pa-12">
-      <v-progress-circular color="primary" indeterminate />
-    </div>
+    <PreparingState v-if="loading" kind="chart" title="Analysing inventory" />
 
     <v-window v-else v-model="tab" class="flex-grow-1" style="overflow-y: auto">
       <!-- Overview ------------------------------------------------------ -->

@@ -32,9 +32,7 @@
       </v-select>
     </div>
 
-    <div v-if="loading" class="d-flex justify-center pa-12">
-      <v-progress-circular color="primary" indeterminate />
-    </div>
+    <PreparingState v-if="loading" kind="chart" title="Working out target progress" />
 
     <v-alert v-else-if="allTargets.length === 0" class="tg-notice mx-4" type="info" variant="tonal">
       No targets set on any branch yet.

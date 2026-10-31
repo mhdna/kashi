@@ -279,9 +279,13 @@
         />
       </div>
 
-      <div v-if="(loading && !ready) || !fontsReady || !settingsReady" class="d-flex justify-center pa-12">
-        <v-progress-circular color="primary" indeterminate />
-      </div>
+      <PreparingState
+        v-if="(loading && !ready) || !fontsReady || !settingsReady"
+        kind="pdf"
+        min-height="60vh"
+        subtitle="Gathering the numbers and laying out the pages"
+        title="Preparing your report"
+      />
       <v-alert v-else-if="loadError" class="ma-6" type="error" variant="tonal">{{ loadError }}</v-alert>
       <v-alert v-else-if="parts.length === 0" class="ma-6" type="info" variant="tonal">
         Tick at least one part of the report on the left.

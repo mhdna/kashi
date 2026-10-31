@@ -9,9 +9,7 @@
 -->
 <template>
   <div class="pa-4 pt-3">
-    <div v-if="loading && !stats" class="d-flex justify-center pa-12">
-      <v-progress-circular color="primary" indeterminate />
-    </div>
+    <PreparingState v-if="loading && !stats" kind="chart" title="Loading WhatsApp stats" />
 
     <template v-else-if="stats">
       <!-- Sale messages still not sent after the till's retries (the same

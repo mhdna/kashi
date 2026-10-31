@@ -31,9 +31,7 @@
       </v-select>
     </div>
 
-    <div v-if="loading && !loaded" class="d-flex justify-center pa-12">
-      <v-progress-circular color="primary" indeterminate />
-    </div>
+    <PreparingState v-if="loading && !loaded" kind="chart" title="Finding the busy hours" />
 
     <v-alert v-else-if="!hasAny" class="mx-4" type="info" variant="tonal">
       No customers counted and no sales in this range.
