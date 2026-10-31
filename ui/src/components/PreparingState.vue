@@ -39,6 +39,11 @@
           <span class="printer__paper"><span v-for="i in 3" :key="i" class="printer__line" /></span>
           <span class="printer__slot" />
         </div>
+        <div v-else-if="kind === 'update'" class="update">
+          <span class="update__ring" />
+          <span class="update__cloud" />
+          <span class="update__arrow" />
+        </div>
         <div v-else class="rows">
           <span v-for="i in 3" :key="i" class="row" :style="{ '--i': i }" />
         </div>
@@ -56,7 +61,8 @@
     // What's being prepared, which picks the picture: 'pdf' (a page writing
     // itself), 'chart' (bars growing), 'people' (heads bobbing), 'chat'
     // (bubbles and typing dots), 'settings' (gears turning), 'box' (an item
-    // dropping into a box), 'receipt' (a receipt printing) or 'data' (rows
+    // dropping into a box), 'receipt' (a receipt printing), 'update' (an
+    // arrow rising through a cloud in a turning ring) or 'data' (rows
     // filling in).
     kind: { type: String, default: 'data' },
     title: { type: String, default: 'Preparing…' },
@@ -69,7 +75,11 @@
 </script>
 
 <style scoped>
+/* The pictures are grey, drawn in the text colour at low strength; the
+   update one is in the theme colour. */
 .preparing {
+  --prep: var(--v-theme-on-surface);
+  --prep-a: 0.5;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -111,7 +121,7 @@
   position: relative;
   width: 58px;
   height: 74px;
-  border: 2px solid rgba(var(--v-theme-primary), 0.7);
+  border: 2px solid rgba(var(--prep), calc(0.7 * var(--prep-a)));
   border-radius: 6px;
   background: rgb(var(--v-theme-surface));
   animation: preparing-float 2.8s ease-in-out infinite;
@@ -123,7 +133,7 @@
   top: calc(10px + var(--i) * 8px);
   height: 4px;
   border-radius: 2px;
-  background: rgba(var(--v-theme-primary), 0.4);
+  background: rgba(var(--prep), calc(0.4 * var(--prep-a)));
   transform-origin: left center;
   animation: preparing-write 2.8s ease-out infinite;
   animation-delay: calc(var(--i) * 0.22s);
@@ -135,8 +145,8 @@
   left: 50%;
   padding: 1px 6px;
   border-radius: 3px;
-  background: rgb(var(--v-theme-primary));
-  color: rgb(var(--v-theme-on-primary));
+  background: rgba(var(--prep), var(--prep-a));
+  color: rgb(var(--v-theme-surface));
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -157,7 +167,7 @@
 .bar {
   width: 11px;
   border-radius: 3px 3px 0 0;
-  background: rgba(var(--v-theme-primary), 0.75);
+  background: rgba(var(--prep), calc(0.75 * var(--prep-a)));
   transform-origin: bottom center;
   animation: preparing-grow 1.4s ease-in-out infinite alternate;
   animation-delay: calc(var(--i) * 0.16s);
@@ -174,7 +184,7 @@
 .row {
   height: 9px;
   border-radius: 5px;
-  background: rgba(var(--v-theme-primary), 0.55);
+  background: rgba(var(--prep), calc(0.55 * var(--prep-a)));
   transform-origin: left center;
   animation: preparing-write 2s ease-out infinite;
   animation-delay: calc(var(--i) * 0.2s);
@@ -201,7 +211,7 @@
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(var(--v-theme-primary), 0.75);
+  background: rgba(var(--prep), calc(0.75 * var(--prep-a)));
 }
 .person::before {
   top: 0;
@@ -242,7 +252,7 @@
   align-self: flex-end;
   width: 52px;
   border-bottom-right-radius: 3px;
-  background: rgba(var(--v-theme-primary), 0.75);
+  background: rgba(var(--prep), calc(0.75 * var(--prep-a)));
   transform-origin: right center;
   animation: preparing-reply 2.4s ease-out infinite;
 }
@@ -264,9 +274,9 @@
 .gear {
   position: absolute;
   border-style: dashed;
-  border-color: rgba(var(--v-theme-primary), 0.8);
+  border-color: rgba(var(--prep), calc(0.8 * var(--prep-a)));
   border-radius: 50%;
-  box-shadow: inset 0 0 0 3px rgba(var(--v-theme-primary), 0.35);
+  box-shadow: inset 0 0 0 3px rgba(var(--prep), calc(0.35 * var(--prep-a)));
 }
 .gear--big {
   left: 0;
@@ -298,7 +308,7 @@
   bottom: 0;
   height: 34px;
   border-radius: 4px;
-  background: rgba(var(--v-theme-primary), 0.75);
+  background: rgba(var(--prep), calc(0.75 * var(--prep-a)));
 }
 .box__item {
   position: absolute;
@@ -308,7 +318,7 @@
   height: 22px;
   margin-left: -11px;
   border-radius: 4px;
-  background: rgba(var(--v-theme-primary), 0.35);
+  background: rgba(var(--prep), calc(0.35 * var(--prep-a)));
   animation: preparing-drop 1.8s ease-in infinite;
 }
 
@@ -341,16 +351,88 @@
   padding: 8px 7px;
   border-radius: 3px 3px 0 0;
   background: rgb(var(--v-theme-surface));
-  border: 2px solid rgba(var(--v-theme-primary), 0.6);
+  border: 2px solid rgba(var(--prep), calc(0.6 * var(--prep-a)));
   animation: preparing-print 2.4s ease-out infinite;
 }
 .printer__line {
   height: 3px;
   border-radius: 2px;
-  background: rgba(var(--v-theme-primary), 0.45);
+  background: rgba(var(--prep), calc(0.45 * var(--prep-a)));
 }
 .printer__line:nth-child(2) { width: 70%; }
 
+/* The app updating: an arrow rising through a cloud, in a turning ring. */
+.update {
+  --prep: var(--v-theme-primary);
+  --prep-a: 1;
+  position: relative;
+  width: 84px;
+  height: 84px;
+}
+.update__ring {
+  position: absolute;
+  inset: 0;
+  border: 3px solid rgba(var(--prep), calc(0.15 * var(--prep-a)));
+  border-top-color: rgba(var(--prep), var(--prep-a));
+  border-right-color: rgba(var(--prep), calc(0.55 * var(--prep-a)));
+  border-radius: 50%;
+  animation: preparing-spin 1.6s linear infinite;
+}
+.update__cloud {
+  position: absolute;
+  left: 18px;
+  top: 44px;
+  width: 48px;
+  height: 18px;
+  border-radius: 9px;
+  background: rgba(var(--prep), calc(0.35 * var(--prep-a)));
+}
+.update__cloud::before,
+.update__cloud::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: inherit;
+}
+.update__cloud::before {
+  left: 6px;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+}
+.update__cloud::after {
+  left: 18px;
+  top: -15px;
+  width: 24px;
+  height: 24px;
+}
+.update__arrow {
+  position: absolute;
+  left: 39px;
+  top: 26px;
+  width: 6px;
+  height: 22px;
+  border-radius: 3px;
+  background: rgba(var(--prep), var(--prep-a));
+  animation: preparing-rise 1.6s ease-in-out infinite;
+}
+.update__arrow::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: -9px;
+  width: 18px;
+  height: 12px;
+  background: inherit;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+@keyframes preparing-rise {
+  0% { opacity: 0; transform: translateY(10px); }
+  30% { opacity: 1; }
+  70% { opacity: 1; transform: translateY(-4px); }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
 @keyframes preparing-bob {
   0%, 100% { translate: 0 0; }
   50% { translate: 0 -6px; }

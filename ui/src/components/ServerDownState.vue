@@ -1,17 +1,23 @@
 <template>
   <div class="server-down" :class="{ 'server-down--overlay': overlay }">
-    <section class="server-down__content text-center">
+    <section class="server-down__card text-center">
       <PreparingState
         v-if="updating && !offline"
-        class="server-down__icon"
-        kind="settings"
-        :size="39"
-        title="Loading"
+        kind="update"
+        min-height="0"
+        :subtitle="text"
+        :title="title"
       />
-      <v-icon v-else class="server-down__icon" :icon="icon" size="40" />
+      <template v-else>
+        <div class="server-down__badge">
+          <v-icon :icon="icon" size="34" />
+        </div>
+        <h1 class="text-h6 font-weight-medium mt-4">{{ title }}</h1>
+        <p class="text-body-2 text-medium-emphasis mt-1 mb-0">{{ text }}</p>
+      </template>
 
-      <h1 class="text-h6 font-weight-medium mt-5">{{ title }}</h1>
-      <p class="text-body-2 text-medium-emphasis mt-1 mb-0">{{ text }}</p>
+      <!-- Something is happening: a thin bar sweeps under the text. -->
+      <div v-if="updating && !offline" class="server-down__sweep" />
 
       <v-btn
         v-if="!overlay && !updating"
@@ -96,19 +102,81 @@
   padding: 24px;
 }
 
+/* Over a still-mounted page: the page shows through, dimmed and blurred,
+   so it's clear nothing on it was lost. */
 .server-down--overlay {
   position: fixed;
   inset: 0;
   /* Above the app bar, drawers and dialogs. */
   z-index: 3000;
+  background: rgba(var(--v-theme-background), 0.7);
+  backdrop-filter: blur(6px);
+  animation: server-down-fade 0.2s ease-out;
 }
 
-.server-down__content {
-  max-width: 340px;
+.server-down__card {
+  position: relative;
+  overflow: hidden;
+  max-width: 360px;
   width: 100%;
+  padding: 28px 28px 32px;
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 16px;
+  background: rgb(var(--v-theme-surface));
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  animation: server-down-rise 0.25s ease-out;
 }
 
-.server-down__icon {
-  color: rgba(var(--v-theme-on-surface), 0.4);
+.server-down__card :deep(.preparing) {
+  padding: 0;
+}
+
+.server-down__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(var(--v-theme-on-surface), 0.06);
+  color: rgba(var(--v-theme-on-surface), 0.55);
+}
+
+.server-down__sweep {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  overflow: hidden;
+  background: rgba(var(--v-theme-primary), 0.12);
+}
+.server-down__sweep::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: rgb(var(--v-theme-primary));
+  border-radius: 2px;
+  animation: server-down-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes server-down-fade {
+  from { opacity: 0; }
+}
+@keyframes server-down-rise {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+}
+@keyframes server-down-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .server-down--overlay,
+  .server-down__card,
+  .server-down__sweep::after {
+    animation: none;
+  }
 }
 </style>
