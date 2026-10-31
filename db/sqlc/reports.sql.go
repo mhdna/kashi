@@ -449,6 +449,54 @@ func (q *Queries) PeriodReportPaymentMethods(ctx context.Context, arg PeriodRepo
 	return items, nil
 }
 
+const periodReportProductAttributes = `-- name: PeriodReportProductAttributes :many
+SELECT pa.product_id, a.name::text AS attribute, av.value::text AS value
+FROM products_attributes pa
+JOIN attributes a ON a.id = pa.attribute_id
+JOIN attributes_values av ON av.id = pa.attribute_value_id
+WHERE pa.product_id = ANY($1::bigint[])
+  AND btrim(av.value) <> ''
+UNION ALL
+SELECT ps.product_id, 'supplier'::text, s.name::text
+FROM product_suppliers ps
+JOIN suppliers s ON s.id = ps.supplier_id
+WHERE ps.product_id = ANY($1::bigint[])
+  AND btrim(s.name) <> ''
+`
+
+type PeriodReportProductAttributesRow struct {
+	ProductID int64  `json:"product_id"`
+	Attribute string `json:"attribute"`
+	Value     string `json:"value"`
+}
+
+// The attribute values (brand, sub-category, kind, origin, year, season...)
+// and suppliers of the products in product_ids -- the period's products --
+// so the page can break sales down by any of them. Blank values are left
+// out; a product with none counts as "not set" on the page.
+func (q *Queries) PeriodReportProductAttributes(ctx context.Context, productIds []int64) ([]PeriodReportProductAttributesRow, error) {
+	rows, err := q.db.QueryContext(ctx, periodReportProductAttributes, pq.Array(productIds))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PeriodReportProductAttributesRow{}
+	for rows.Next() {
+		var i PeriodReportProductAttributesRow
+		if err := rows.Scan(&i.ProductID, &i.Attribute, &i.Value); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const periodReportProducts = `-- name: PeriodReportProducts :many
 SELECT
   COALESCE(p.id, 0)::bigint AS product_id,
