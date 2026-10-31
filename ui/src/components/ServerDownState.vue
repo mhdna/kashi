@@ -129,9 +129,6 @@
 
 .server-down__card :deep(.preparing) {
   padding: 0;
-  /* The card itself fades in; its text mustn't wait like a page loader. */
-  animation: none;
-  opacity: 1;
 }
 
 .server-down__badge {
