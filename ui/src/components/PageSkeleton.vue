@@ -29,10 +29,6 @@
 </script>
 
 <style scoped>
-.page-skeleton {
-  animation: sk-fade-in 0.25s ease-out;
-}
-
 .sk-title {
   width: min(320px, 55%);
 }
@@ -54,17 +50,5 @@
 .sk-table {
   border-radius: 12px;
   overflow: hidden;
-}
-
-/* Don't flash anything for loads that finish almost at once. */
-@keyframes sk-fade-in {
-  0%,
-  40% {
-    opacity: 0;
-  }
-
-  100% {
-    opacity: 1;
-  }
 }
 </style>

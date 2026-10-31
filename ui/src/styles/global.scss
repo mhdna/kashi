@@ -139,3 +139,23 @@ html.text-selection-enabled #app {
     margin: 8px;
   }
 }
+
+// Loaders (skeletons and the animated "preparing" pictures) keep their space
+// but stay invisible for the first 0.4 s, then fade in: a page that's ready
+// almost at once never flashes one.
+.v-skeleton-loader,
+.preparing {
+  opacity: 0;
+  animation: kashi-loader-appear 0.2s ease-out 0.4s forwards;
+}
+
+@keyframes kashi-loader-appear {
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v-skeleton-loader,
+  .preparing {
+    animation-duration: 0s;
+  }
+}
