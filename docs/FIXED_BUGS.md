@@ -3,6 +3,26 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-10-31 · Deleting a picture in Storage reloaded the whole grid
+
+**Symptom.** Deleting unknown-item pictures on the Storage page blanked every
+thumbnail into a loading state and loaded the whole grid again, as if the
+page had reloaded.
+
+**Cause.** After a delete, `deleteSelected` in
+`ui/src/components/TreeStorage.vue` called `resetAndLoad()`, which throws
+away every thumbnail and fetches the grid from the first page. The server
+only answered how many were deleted and kept, not which, so the page couldn't
+drop just those.
+
+**Fix.** The delete endpoint also returns `deleted_ids`
+(`api/unknown_image_cleanup.go`), and the page removes just those pictures
+from the grid and frees their thumbnails; the rest stay as they are. With an
+older server (no `deleted_ids`) it still reloads. Test: step 6 of
+`TestUnknownItemsFlow` (`api/unknown_items_flow_test.go`) checks that a
+picture whose sale is waiting to be matched is kept and the other is named in
+`deleted_ids`.
+
 ## 2026-10-31 · Closing the command palette asked "Discard your changes?"
 
 **Symptom.** After typing in the command palette (Ctrl/Cmd+K), closing it with

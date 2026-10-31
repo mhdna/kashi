@@ -78,7 +78,9 @@ func (server *Server) deleteUnknownItemImages(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	server.writeJSON(ctx, http.StatusOK, envelope{"deleted": len(ids), "kept": len(req.IDs) - len(ids)})
+	// deleted_ids lets the page drop just those pictures instead of loading
+	// the whole grid again.
+	server.writeJSON(ctx, http.StatusOK, envelope{"deleted": len(ids), "kept": len(req.IDs) - len(ids), "deleted_ids": ids})
 }
 
 // RunUnknownImageCleanup deletes old unknown-item pictures once a day, when
