@@ -75,7 +75,7 @@ const DISPLAY = {
   datetime: dateTime,
 }
 const CSV = {
-  money: v => (Number(v || 0) / 100).toFixed(2),
+  money: v => (v === null ? '' : (Number(v || 0) / 100).toFixed(2)),
   pct: v => (Number.isFinite(v) ? (v * 100).toFixed(1) : ''),
   hours: v => (Number(v || 0) / 60).toFixed(2),
   num1: v => Number(v || 0).toFixed(1),
