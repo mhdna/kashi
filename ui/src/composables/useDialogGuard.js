@@ -9,7 +9,9 @@ import { confirmDialog } from '@/composables/useDialog'
 // It works from the page, ahead of Vuetify: window capture listeners run
 // before Vuetify's own (click-outside listens on document, Escape on window).
 // A dialog with fields that change on their own and aren't edits can opt
-// out with data-no-discard-guard on anything inside it.
+// out with data-no-discard-guard on anything inside it. The command palette
+// (Ctrl/Cmd+K) is skipped too: its search box is all it has, and Vuetify
+// renders its dialog, so there is nowhere to put the attribute.
 
 // The fields' state as text, to compare: inputs, switches, toggled buttons,
 // chosen chips and dates.
@@ -37,7 +39,7 @@ function topOverlay () {
 }
 
 function guardedContent (overlay) {
-  if (!overlay?.classList.contains('v-dialog') || overlay.classList.contains('app-question-dialog')) {return null}
+  if (!overlay?.classList.contains('v-dialog') || overlay.classList.contains('app-question-dialog') || overlay.classList.contains('v-command-palette')) {return null}
   const content = overlay.querySelector(':scope > .v-overlay__content')
   if (!content || content.querySelector('[data-no-discard-guard]')) {return null}
   return content

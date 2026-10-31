@@ -3,6 +3,21 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-10-31 · Closing the command palette asked "Discard your changes?"
+
+**Symptom.** After typing in the command palette (Ctrl/Cmd+K), closing it with
+Escape or a click outside brought up "Discard your changes? What you changed
+in this window hasn't been saved.", as if it were a form.
+
+**Cause.** The unsaved-changes guard (`ui/src/composables/useDialogGuard.js`)
+watches every dialog's fields and asks before closing one whose fields
+changed. The palette is a dialog whose only field is its search box, so any
+search counted as an unsaved edit. Its dialog is rendered by Vuetify, so it
+couldn't carry the guard's `data-no-discard-guard` opt-out.
+
+**Fix.** The guard skips dialogs with Vuetify's `v-command-palette` class.
+Checked with a build; no automated test covers the guard.
+
 ## 2026-10-31 · Report PDFs ran to the edge of the paper
 
 **Symptom.** An exported report PDF had no margins: the title, cards and
