@@ -39,7 +39,7 @@ func TestBranchExpenseUploadLink(t *testing.T) {
 		UploadToken string `json:"upload_token"`
 	}
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
-	require.Len(t, body.UploadToken, 64)
+	require.Len(t, body.UploadToken, 16, "a short token, for a short link")
 
 	store.EXPECT().GetBranchExpenseByClientRef(gomock.Any(), byRef).Return(db.BranchExpense{ID: 5, BranchID: testBranchID}, nil)
 	store.EXPECT().CountBranchExpenseImagesForExpense(gomock.Any(), int64(5)).Return(int64(maxExpenseUploadImages), nil)
@@ -57,6 +57,13 @@ func TestBranchExpenseUploadLink(t *testing.T) {
 	rec = httptest.NewRecorder()
 	server.router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/loan_uploads/done/status", nil))
 	require.Equal(t, http.StatusNotFound, rec.Code, "an already used link is gone")
+
+	// The short path is the same link.
+	store.EXPECT().GetLoanUploadTokenByToken(gomock.Any(), "done").
+		Return(db.LoanUploadToken{ID: 3, LoanID: 9, ExpiresAt: time.Now().Add(time.Minute), UsedAt: sql.NullTime{Time: time.Now(), Valid: true}}, nil)
+	rec = httptest.NewRecorder()
+	server.router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/l/done/status", nil))
+	require.Equal(t, http.StatusNotFound, rec.Code, "an already used link is gone on the short path too")
 }
 
 // The same for a loan, looked up within the calling branch.

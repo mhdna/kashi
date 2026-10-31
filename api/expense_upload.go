@@ -1,10 +1,8 @@
 package api
 
 import (
-	"crypto/rand"
 	"database/sql"
 	_ "embed"
-	"encoding/hex"
 	"fmt"
 	"net/http"
 	"os"
@@ -42,13 +40,12 @@ var expenseUploadPage = newPhoneUploadPage(expenseUploadPageHTML)
 // freshly-created branch expense. Called from createBranchExpense
 // (branch_expense.go) only on the genuinely-new-insert path.
 func (server *Server) createBranchExpenseUploadToken(ctx *gin.Context, branchExpenseID int64) (string, error) {
-	raw := make([]byte, 32)
-	if _, err := rand.Read(raw); err != nil {
-		return "", fmt.Errorf("generate upload token: %w", err)
+	token, err := newUploadToken()
+	if err != nil {
+		return "", err
 	}
-	token := hex.EncodeToString(raw)
 
-	_, err := server.store.CreateBranchExpenseUploadToken(ctx, db.CreateBranchExpenseUploadTokenParams{
+	_, err = server.store.CreateBranchExpenseUploadToken(ctx, db.CreateBranchExpenseUploadTokenParams{
 		BranchExpenseID: branchExpenseID,
 		Token:           token,
 		ExpiresAt:       time.Now().UTC().Add(expenseUploadTokenTTL),

@@ -1,10 +1,8 @@
 package api
 
 import (
-	"crypto/rand"
 	"database/sql"
 	_ "embed"
-	"encoding/hex"
 	"fmt"
 	"net/http"
 	"os"
@@ -42,13 +40,12 @@ var transferUploadPage = newPhoneUploadPage(transferUploadPageHTML)
 // createBranchTransferRequest (branch_transfer.go) only on the
 // genuinely-new-insert path.
 func (server *Server) createBranchTransferUploadToken(ctx *gin.Context, transferID int64) (string, error) {
-	raw := make([]byte, 32)
-	if _, err := rand.Read(raw); err != nil {
-		return "", fmt.Errorf("generate upload token: %w", err)
+	token, err := newUploadToken()
+	if err != nil {
+		return "", err
 	}
-	token := hex.EncodeToString(raw)
 
-	_, err := server.store.CreateBranchTransferUploadToken(ctx, db.CreateBranchTransferUploadTokenParams{
+	_, err = server.store.CreateBranchTransferUploadToken(ctx, db.CreateBranchTransferUploadTokenParams{
 		TransferID: transferID,
 		Token:      token,
 		ExpiresAt:  time.Now().UTC().Add(transferUploadTokenTTL),

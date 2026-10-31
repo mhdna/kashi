@@ -1,9 +1,7 @@
 package api
 
 import (
-	"crypto/rand"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -21,14 +19,6 @@ import (
 // (expense_upload.go) -- same page, same limits, same single-use expiring
 // token -- for a loan a till reported. Files go under the expense image
 // directory in loans/<loan id>, which prod already keeps on its volume.
-
-func newUploadToken() (string, error) {
-	raw := make([]byte, 32)
-	if _, err := rand.Read(raw); err != nil {
-		return "", fmt.Errorf("generate upload token: %w", err)
-	}
-	return hex.EncodeToString(raw), nil
-}
 
 // createLoanUploadToken mints the link a till shows as a QR code for a
 // loan: on the loan's first sync (createBranchLoan) and whenever the till
