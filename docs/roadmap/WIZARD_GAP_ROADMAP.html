@@ -58,20 +58,20 @@ footer{color:var(--muted);font-size:13px;text-align:center;padding:30px}
 <header><h1>kashi vs Wizard Cloud ERP: missing features &amp; milestone roadmap</h1><div class="sub">Last updated 2026-10-31 · 158 Wizard capabilities compared · 14 milestones · 93 features to build</div></header>
 <main>
 <section id="tldr"><h2>TL;DR</h2><div class="card"><ul class="tight">
-<li><strong>Retail till / branch operations: kashi is already ahead.</strong> Offline till with real sync, remote commands, signed updates, deals/discount rules/coupons, loyalty tiers, WhatsApp automation, Google reviews, footfall &amp; conversion, door-device attendance, shift close vs expected with photo, stock-health forecasting, scheduled email reports. Their POS Cloud is a browser screen; their marketing doesn&#x27;t even mention most of this.</li>
+<li><strong>Branch operations &amp; analytics: kashi looks ahead (POS app not yet reviewed).</strong> Offline till with real sync, remote commands, signed updates, deals/discount rules/coupons, loyalty tiers, WhatsApp automation, Google reviews, footfall &amp; conversion, door-device attendance, shift close vs expected with photo, stock-health forecasting, scheduled email reports. Their POS is a separate Flutter app we haven&#x27;t reviewed yet, so the till-vs-till comparison is pending.</li>
 <li><strong>Back office: Wizard is far ahead.</strong> They are an accounting-first ERP: general ledger, receivables &amp; payables with credit limits and statements, quote→order→delivery→invoice, purchase orders, landed cost, banks &amp; cheques, VAT, USD/LBP with dated rates and revaluation, payroll. kashi has none of the ledger and only fragments of the rest.</li>
 <li><strong>Their product is old and fragile.</strong> Yii 1 + jQuery, 268 document types bolted on over 20 years (including one-off customer forms like &#x27;Otis Contract&#x27;, &#x27;Yarz Member&#x27;, &#x27;Leave Request-Califood&#x27;). Right now a pending DB upgrade breaks most of their screens for our account, error pages leak raw SQL, and every page ships the logged-in user&#x27;s <strong>plaintext password</strong> inside its JavaScript (<code>wz.user.pwd</code>).</li>
 <li><strong>The plan:</strong> M0 builds the shared document engine, then M1–M2 (receivables + wholesale selling, payables + purchasing) let us switch the R1 wholesale branch off Wizard. M3–M6 make kashi a full trading ERP. M7–M9 make it sellable. After that we pick fights module by module where we can be 10x better (mobile, WhatsApp, analytics, offline).</li>
 </ul></div></section>
 <section id="score"><h2>Scoreboard</h2><div class="stats">
-<div class="stat"><div class="n" style="color:var(--ahead)">13</div><div class="l">🟢 kashi already does it better</div></div>
-<div class="stat"><div class="n" style="color:var(--have)">14</div><div class="l">✅ kashi has it</div></div>
+<div class="stat"><div class="n" style="color:var(--ahead)">10</div><div class="l">🟢 kashi already does it better</div></div>
+<div class="stat"><div class="n" style="color:var(--have)">17</div><div class="l">✅ kashi has it</div></div>
 <div class="stat"><div class="n" style="color:var(--partial)">38</div><div class="l">🟡 kashi has a piece of it</div></div>
 <div class="stat"><div class="n" style="color:var(--missing)">88</div><div class="l">❌ kashi doesn&#x27;t have it</div></div>
 <div class="stat"><div class="n" style="color:var(--skip)">5</div><div class="l">⚪ not worth building for us</div></div>
 </div><div class="bar">
-<div class="s-ahead" style="width:8.23%" title="kashi ahead: 13"></div>
-<div class="s-have" style="width:8.86%" title="have: 14"></div>
+<div class="s-ahead" style="width:6.33%" title="kashi ahead: 10"></div>
+<div class="s-have" style="width:10.76%" title="have: 17"></div>
 <div class="s-partial" style="width:24.05%" title="partial: 38"></div>
 <div class="s-missing" style="width:55.70%" title="missing: 88"></div>
 <div class="s-skip" style="width:3.16%" title="skip: 5"></div>
@@ -101,7 +101,7 @@ footer{color:var(--muted);font-size:13px;text-align:center;padding:30px}
 <a class="ms P3" href="#m13"><div class="id">M13 <span class="pill p-P3">P3</span> <span class="pill size">M</span></div><div class="t">Fixed assets &amp; the rest</div><div class="g">Fill remaining module checkboxes only when a customer needs them.</div></a>
 </div></section>
 <section id="edges"><h2>Where kashi already wins</h2><div class="edges">
-<div class="edge"><b>Truly offline till</b>kashi-pos runs on local SQLite with an outbox and reconciles; Wizard&#x27;s POS Cloud is a web page that only claims offline.</div>
+<div class="edge"><b>Offline till with real sync</b>kashi-pos runs on local SQLite with an outbox and reconciles. Their Flutter POS also claims offline; compare once reviewed.</div>
 <div class="edge"><b>Branch control from HQ</b>Remote commands (reprint, return, replace shift balance, sync now, set PIN, cancel record), signed app updates per register, sync conflict screen.</div>
 <div class="edge"><b>Promotions engine</b>Deals (buy X get Y, N for $), rule-group discount lists per branch, coupons with types/categories/lists, sale options. Wizard has basic promotion types.</div>
 <div class="edge"><b>WhatsApp-native</b>Meta Cloud API with rules, chats, polls, thank-you/welcome, cost tracking. Wizard only says &#x27;SMS &amp; notifications&#x27;.</div>
@@ -232,17 +232,17 @@ footer{color:var(--muted);font-size:13px;text-align:center;padding:30px}
 <tr data-st="ahead"><td>Promotions: by barcode, quantity, client, gift product, rebates</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">deals, discount rules, coupons, sale options</td></tr>
 <tr data-st="missing"><td>Scale barcodes (price/weight embedded)</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
 </tbody></table></details>
-<details class="mod"><summary>POS <span class="mini"><span class="pill s-ahead" title="kashi ahead">3</span><span class="pill s-have" title="have">3</span><span class="pill s-partial" title="partial">2</span><span class="pill s-missing" title="missing">2</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
-<tr data-st="ahead"><td>Works offline, syncs with HQ</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">true local SQLite + outbox; theirs is a browser app</td></tr>
+<details class="mod"><summary>POS (their Flutter app not reviewed yet — statuses are provisional) <span class="mini"><span class="pill s-have" title="have">6</span><span class="pill s-partial" title="partial">2</span><span class="pill s-missing" title="missing">2</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="have"><td>Works offline, syncs with HQ</td><td><span class="pill s-have">have</span></td><td class="note">true local SQLite + outbox; their Flutter POS app not reviewed yet</td></tr>
 <tr data-st="have"><td>Multi cash &amp; currencies at the till</td><td><span class="pill s-have">have</span></td><td class="note">USD/LBP, Visa, Whish, LBP rounding</td></tr>
 <tr data-st="have"><td>Link branches / see other branches&#x27; stock</td><td><span class="pill s-have">have</span></td><td class="note"></td></tr>
-<tr data-st="partial"><td>Runs on Android / any tablet</td><td><span class="pill s-partial">partial</span></td><td class="note">Wails desktop (Windows/macOS); no Android build</td></tr>
-<tr data-st="ahead"><td>POS settlement, POS shift</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">expected vs counted, photo, Z-report, auto-close, HQ alerts</td></tr>
+<tr data-st="partial"><td>Runs on Android / any tablet</td><td><span class="pill s-partial">partial</span></td><td class="note">Wails desktop (Windows/macOS); their POS is Flutter (Android/Windows)</td></tr>
+<tr data-st="have"><td>POS settlement, POS shift</td><td><span class="pill s-have">have</span></td><td class="note">expected vs counted, photo, Z-report, auto-close, HQ alerts</td></tr>
 <tr data-st="have"><td>POS vouchers</td><td><span class="pill s-have">have</span></td><td class="note">coupons</td></tr>
 <tr data-st="missing"><td>POS sales order / customer order from the till</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
 <tr data-st="partial"><td>Loyalty points check &amp; redeem at POS</td><td><span class="pill s-partial">partial</span></td><td class="note">points earned per invoice; redemption flow to verify</td></tr>
 <tr data-st="missing"><td>Cash-drawer kick</td><td><span class="pill s-missing">missing</span></td><td class="note">no drawer-open ESC/POS command found</td></tr>
-<tr data-st="ahead"><td>Remote commands, signed auto-updates, sync conflicts</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">Wizard has nothing comparable</td></tr>
+<tr data-st="have"><td>Remote commands, signed auto-updates, sync conflicts</td><td><span class="pill s-have">have</span></td><td class="note">not visible in their web app; check their POS app</td></tr>
 </tbody></table></details>
 <details class="mod"><summary>CRM <span class="mini"><span class="pill s-ahead" title="kashi ahead">2</span><span class="pill s-missing" title="missing">5</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
 <tr data-st="missing"><td>Leads with custom stages, pipeline by stage/rep/region</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>

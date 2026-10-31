@@ -10,7 +10,7 @@ _Last updated 2026-10-31._
 
 ## TL;DR
 
-- **Retail till / branch operations: kashi is already ahead.** Offline till with real sync, remote commands, signed updates, deals/discount rules/coupons, loyalty tiers, WhatsApp automation, Google reviews, footfall & conversion, door-device attendance, shift close vs expected with photo, stock-health forecasting, scheduled email reports. Their POS Cloud is a browser screen; their marketing doesn't even mention most of this.
+- **Branch operations & analytics: kashi looks ahead (POS app not yet reviewed).** Offline till with real sync, remote commands, signed updates, deals/discount rules/coupons, loyalty tiers, WhatsApp automation, Google reviews, footfall & conversion, door-device attendance, shift close vs expected with photo, stock-health forecasting, scheduled email reports. Their POS is a separate Flutter app we haven't reviewed yet, so the till-vs-till comparison is pending.
 - **Back office: Wizard is far ahead.** They are an accounting-first ERP: general ledger, receivables & payables with credit limits and statements, quote→order→delivery→invoice, purchase orders, landed cost, banks & cheques, VAT, USD/LBP with dated rates and revaluation, payroll. kashi has none of the ledger and only fragments of the rest.
 - **Their product is old and fragile.** Yii 1 + jQuery, 268 document types bolted on over 20 years (including one-off customer forms like 'Otis Contract', 'Yarz Member', 'Leave Request-Califood'). Right now a pending DB upgrade breaks most of their screens for our account, error pages leak raw SQL, and every page ships the logged-in user's **plaintext password** inside its JavaScript (`wz.user.pwd`).
 - **The plan:** M0 builds the shared document engine, then M1–M2 (receivables + wholesale selling, payables + purchasing) let us switch the R1 wholesale branch off Wizard. M3–M6 make kashi a full trading ERP. M7–M9 make it sellable. After that we pick fights module by module where we can be 10x better (mobile, WhatsApp, analytics, offline).
@@ -21,8 +21,8 @@ Of **158** capabilities Wizard has (from their app and their website):
 
 | Status | Count | Meaning |
 |---|---|---|
-| 🟢 kashi ahead | 13 | kashi already does it better |
-| ✅ have | 14 | kashi has it |
+| 🟢 kashi ahead | 10 | kashi already does it better |
+| ✅ have | 17 | kashi has it |
 | 🟡 partial | 38 | kashi has a piece of it |
 | ❌ missing | 88 | kashi doesn't have it |
 | ⚪ skip | 5 | not worth building for us |
@@ -64,7 +64,7 @@ Of **158** capabilities Wizard has (from their app and their website):
 
 ## Where kashi already wins (amplify these)
 
-- **Truly offline till**: kashi-pos runs on local SQLite with an outbox and reconciles; Wizard's POS Cloud is a web page that only claims offline.
+- **Offline till with real sync**: kashi-pos runs on local SQLite with an outbox and reconciles. Their Flutter POS also claims offline; compare once reviewed.
 - **Branch control from HQ**: Remote commands (reprint, return, replace shift balance, sync now, set PIN, cancel record), signed app updates per register, sync conflict screen.
 - **Promotions engine**: Deals (buy X get Y, N for $), rule-group discount lists per branch, coupons with types/categories/lists, sale options. Wizard has basic promotion types.
 - **WhatsApp-native**: Meta Cloud API with rules, chats, polls, thank-you/welcome, cost tracking. Wizard only says 'SMS & notifications'.
@@ -234,22 +234,22 @@ _1 kashi ahead, 5 partial, 3 missing_
 | Promotions: by barcode, quantity, client, gift product, rebates | 🟢 kashi ahead | deals, discount rules, coupons, sale options |
 | Scale barcodes (price/weight embedded) | ❌ missing |  |
 
-### POS
+### POS (their Flutter app not reviewed yet — statuses are provisional)
 
-_3 kashi ahead, 3 have, 2 partial, 2 missing_
+_6 have, 2 partial, 2 missing_
 
 | Wizard capability | kashi | Notes |
 |---|---|---|
-| Works offline, syncs with HQ | 🟢 kashi ahead | true local SQLite + outbox; theirs is a browser app |
+| Works offline, syncs with HQ | ✅ have | true local SQLite + outbox; their Flutter POS app not reviewed yet |
 | Multi cash & currencies at the till | ✅ have | USD/LBP, Visa, Whish, LBP rounding |
 | Link branches / see other branches' stock | ✅ have |  |
-| Runs on Android / any tablet | 🟡 partial | Wails desktop (Windows/macOS); no Android build |
-| POS settlement, POS shift | 🟢 kashi ahead | expected vs counted, photo, Z-report, auto-close, HQ alerts |
+| Runs on Android / any tablet | 🟡 partial | Wails desktop (Windows/macOS); their POS is Flutter (Android/Windows) |
+| POS settlement, POS shift | ✅ have | expected vs counted, photo, Z-report, auto-close, HQ alerts |
 | POS vouchers | ✅ have | coupons |
 | POS sales order / customer order from the till | ❌ missing |  |
 | Loyalty points check & redeem at POS | 🟡 partial | points earned per invoice; redemption flow to verify |
 | Cash-drawer kick | ❌ missing | no drawer-open ESC/POS command found |
-| Remote commands, signed auto-updates, sync conflicts | 🟢 kashi ahead | Wizard has nothing comparable |
+| Remote commands, signed auto-updates, sync conflicts | ✅ have | not visible in their web app; check their POS app |
 
 ### CRM
 
