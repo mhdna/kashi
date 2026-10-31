@@ -134,6 +134,10 @@
 .rpt-cal-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; }
 .rpt-calendar .rpt-cal-head { text-align: center; padding: 3px 1px; }
 .rpt-person-title { margin: 0 0 2px; font-size: 16px; font-weight: 700; }
+.rpt-person-title .rpt-hide-btn--part { font-size: 11px; font-weight: 400; }
+.rpt-person-page:hover .rpt-person-title .rpt-hide-btn--part { opacity: 1; }
+.rpt-hidden-people { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin: 0 0 12px; }
+.rpt-hidden-person { font-size: 12px; color: #52514e; }
 /* Hide buttons beside section headings and over the figures strip. */
 .rpt-hide-btn--part { vertical-align: 2px; opacity: 0; transition: opacity 0.15s; }
 .rpt-section:hover > .rpt-h2 .rpt-hide-btn--part,

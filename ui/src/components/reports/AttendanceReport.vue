@@ -1,6 +1,15 @@
 <template>
   <p v-if="ctx.attendanceError" class="rpt-empty">{{ t('Attendance couldn\'t be loaded: {error}', { error: ctx.attendanceError }) }}</p>
   <template v-else>
+    <!-- People hidden by hand: listed on screen to bring back, never printed. -->
+    <div v-if="ctx.employees.length === 0 && (ctx.hiddenPeople ?? []).length > 0" class="rpt-screen-only rpt-hidden-list rpt-hidden-people">
+      <span class="rpt-note">{{ t('Hidden from the report ({n})', { n: ctx.hiddenPeople.length }) }}:</span>
+      <span v-for="h in ctx.hiddenPeople" :key="h.key" class="rpt-hidden-person">
+        {{ h.label }}
+        <button v-if="ctx.togglePerson" class="rpt-hide-btn" type="button" @click="ctx.togglePerson(h.key, h.label)">{{ t('Show') }}</button>
+      </span>
+    </div>
+
     <RptSection v-if="has('hours')" part="hours" :title="t('Hours per employee')">
       <RptTable :columns="summaryColumns" numbered :rows="people" :total="total" />
     </RptSection>
@@ -58,7 +67,10 @@
         class="rpt-section rpt-person-page"
         :class="{ 'rpt-section--break': index > 0 || has('hours') || has('grid') }"
       >
-        <h2 class="rpt-person-title">{{ p.name }}</h2>
+        <h2 class="rpt-person-title">
+          {{ p.name }}
+          <button v-if="ctx.togglePerson" class="rpt-screen-only rpt-hide-btn rpt-hide-btn--part" type="button" @click="ctx.togglePerson(p.key, p.name)">{{ t('Hide') }}</button>
+        </h2>
         <p v-if="branchOf(p)" class="rpt-note">{{ branchOf(p) }}</p>
         <RptKpis :items="personKpis(p)" />
         <RptTable
@@ -92,8 +104,11 @@
   })
   const has = part => props.parts.includes(part)
 
+  // Employees picked in the filter always show; with none picked, everyone
+  // but the people hidden by hand.
+  const hiddenKeys = computed(() => new Set((props.ctx.hiddenPeople ?? []).map(x => x.key)))
   const rows = computed(() => timesheetRows(props.ctx)
-    .filter(r => props.ctx.employees.length === 0 || props.ctx.employees.includes(r.person)))
+    .filter(r => props.ctx.employees.length > 0 ? props.ctx.employees.includes(r.person) : !hiddenKeys.value.has(r.person)))
 
   // Skipped punches by device user (kashi-pos sends them as 'Skipped: ...').
   const unlinked = computed(() => {
