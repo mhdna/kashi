@@ -3,6 +3,20 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-10-31 · Report PDFs ran to the edge of the paper
+
+**Symptom.** An exported report PDF had no margins: the title, cards and
+tables touched the left, right and top edges of the A4 page.
+
+**Cause.** The 10mm margins came only from the print page's `@page` rule,
+and the print dialog throws that away when its Margins option is "None"
+(Safari ignores it too). The sheet's own padding was switched off for print.
+
+**Fix.** `ui/src/utils/reportExport.js` now prints with `@page { margin: 0 }`
+and gives the sheet 10mm padding with `box-decoration-break: clone`, so every
+page keeps its margins whatever the dialog says. Checked by printing a
+three-page test sheet in headless Chrome: each page keeps 10mm on all sides.
+
 ## 2026-10-30 · Reports kept a salesperson's old name
 
 **Symptom.** After renaming "Ahmad Robai" to "Ahmad Robaie", the attendance
