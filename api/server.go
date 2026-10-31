@@ -701,6 +701,29 @@ func (server *Server) setupRoutes() {
 	router.GET("/transfer_uploads/:token/status", server.transferUploadStatus)
 	router.POST("/transfer_uploads/:token/images", server.uploadTransferAttachment)
 
+	// The same flows under one-letter paths, so the link a till shows (as a
+	// QR code, and as text to type) is short: /s/<token> for a shift
+	// receipt, /e/ an expense, /l/ a loan, /t/ a transfer, /u/ unknown
+	// items. The long paths above stay for links already handed out and for
+	// tills that predate these.
+	router.GET("/u/:token", server.unknownUploadPage)
+	router.GET("/u/:token/status", server.unknownUploadStatus)
+	router.GET("/u/:token/images/:image_id", server.unknownUploadImageFile)
+	router.POST("/u/:token/slots/:slot_ref/image", server.uploadUnknownSlotImage)
+	router.POST("/u/:token/slots/:slot_ref/copy", server.copyUnknownSlotImage)
+	router.GET("/e/:token", server.expenseUploadPage)
+	router.GET("/e/:token/status", server.expenseUploadStatus)
+	router.POST("/e/:token/images", server.uploadExpenseImages)
+	router.GET("/l/:token", server.expenseUploadPage)
+	router.GET("/l/:token/status", server.loanUploadStatus)
+	router.POST("/l/:token/images", server.uploadLoanImages)
+	router.GET("/s/:token", server.shiftUploadPage)
+	router.GET("/s/:token/status", server.shiftUploadStatus)
+	router.POST("/s/:token/images", server.uploadShiftReceiptImage)
+	router.GET("/t/:token", server.transferUploadPage)
+	router.GET("/t/:token/status", server.transferUploadStatus)
+	router.POST("/t/:token/images", server.uploadTransferAttachment)
+
 	server.router = router
 }
 

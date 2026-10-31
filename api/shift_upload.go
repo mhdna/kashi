@@ -1,10 +1,8 @@
 package api
 
 import (
-	"crypto/rand"
 	"database/sql"
 	_ "embed"
-	"encoding/hex"
 	"fmt"
 	"net/http"
 	"os"
@@ -30,13 +28,12 @@ var shiftUploadPage = newPhoneUploadPage(shiftUploadPageHTML)
 // freshly-created branch shift close. Called from createBranchShiftClose
 // (branch_shift.go) only on the genuinely-new-insert path.
 func (server *Server) createBranchShiftUploadToken(ctx *gin.Context, branchShiftID int64) (string, error) {
-	raw := make([]byte, 32)
-	if _, err := rand.Read(raw); err != nil {
-		return "", fmt.Errorf("generate upload token: %w", err)
+	token, err := newUploadToken()
+	if err != nil {
+		return "", err
 	}
-	token := hex.EncodeToString(raw)
 
-	_, err := server.store.CreateBranchShiftUploadToken(ctx, db.CreateBranchShiftUploadTokenParams{
+	_, err = server.store.CreateBranchShiftUploadToken(ctx, db.CreateBranchShiftUploadTokenParams{
 		BranchShiftID: branchShiftID,
 		Token:         token,
 		ExpiresAt:     time.Now().UTC().Add(shiftUploadTokenTTL),
