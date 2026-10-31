@@ -20,9 +20,9 @@ export default {
   syncChanges: svg(900, 240, [
     box(10, 60, 180, 80, 'any write', 'plain', 'handler, script,\nmanual SQL'),
     box(225, 60, 180, 80, 'Postgres NOTIFY', 'blue', "channel 'kashi_sync'\n(migration 000109)"),
-    box(440, 60, 200, 80, 'kashi batches', 'green', 'one sync_changed\nper short window'),
-    box(675, 60, 215, 80, 'till re-fetches', 'orange', 'GET /branch/sync/changes\n?since=cursor'),
-    arrow([[190, 100], [225, 100]]), arrow([[405, 100], [440, 100]]), arrow([[640, 100], [675, 100]], 'WebSocket'),
+    box(435, 60, 180, 80, 'kashi batches', 'green', 'one sync_changed\nper short window'),
+    box(700, 60, 190, 80, 'till re-fetches', 'orange', 'GET sync/changes\n?since=cursor'),
+    arrow([[190, 100], [225, 100]]), arrow([[405, 100], [435, 100]]), arrow([[615, 100], [700, 100]], 'WebSocket'),
     `<text class="note" x="450" y="190">The socket only carries a pointer, never data. A duplicate or lost message costs one cheap request.</text>`,
     `<text class="note" x="450" y="214">If the listener loses its connection, tills get pull_all and catch up on everything.</text>`,
   ].join('')),
