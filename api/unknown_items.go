@@ -1,10 +1,8 @@
 package api
 
 import (
-	"crypto/rand"
 	"database/sql"
 	_ "embed"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -123,8 +121,8 @@ func (server *Server) createUnknownSession(ctx *gin.Context) {
 		return
 	}
 
-	raw := make([]byte, 24)
-	if _, err := rand.Read(raw); err != nil {
+	token, err := newUploadToken()
+	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -132,7 +130,7 @@ func (server *Server) createUnknownSession(ctx *gin.Context) {
 		BranchID:   branchID,
 		RegisterID: registerID,
 		ClientRef:  req.ClientRef,
-		Token:      hex.EncodeToString(raw),
+		Token:      token,
 		ExpiresAt:  time.Now().UTC().Add(unknownSessionTTL),
 	})
 	if err != nil {
