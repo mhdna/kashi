@@ -1,8 +1,6 @@
 <template>
   <div>
-    <div v-if="loading" class="d-flex justify-center pa-12">
-      <v-progress-circular color="primary" indeterminate />
-    </div>
+    <PreparingState v-if="loading" kind="chart" title="Adding up this product's sales" />
 
     <v-alert v-else-if="products.length === 0" class="prp-notice" type="info" variant="tonal">
       {{ emptyText }}

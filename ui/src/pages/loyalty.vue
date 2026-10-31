@@ -26,10 +26,7 @@
       <TierChip v-for="t in tierLadder" :key="t.id" show-threshold :tier="t" />
     </div>
 
-    <div v-if="loading" class="d-flex flex-column align-center ga-2 pa-12">
-      <v-progress-circular color="primary" indeterminate />
-      <span class="text-caption text-medium-emphasis">Loading clients…</span>
-    </div>
+    <PreparingState v-if="loading" kind="data" title="Loading clients" />
 
     <v-alert v-else-if="totalMembers === 0" class="ly-notice mx-4" type="info" variant="tonal">
       No clients to analyse yet.

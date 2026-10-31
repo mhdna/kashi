@@ -15,9 +15,7 @@
 
       <div class="health-content">
         <div class="pa-4 health-body">
-          <div v-if="loading && !loaded" class="d-flex justify-center pa-12">
-            <v-progress-circular color="primary" indeterminate />
-          </div>
+          <PreparingState v-if="loading && !loaded" kind="chart" title="Checking stock health" />
           <template v-else>
             <v-row class="mb-2 flex-grow-0" density="compact">
               <v-col cols="12" sm="6">

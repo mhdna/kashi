@@ -89,9 +89,7 @@
       <v-tab value="cash">Shifts &amp; Expenses</v-tab>
     </v-tabs>
 
-    <div v-if="loading && !summary" class="d-flex justify-center pa-12">
-      <v-progress-circular color="primary" indeterminate />
-    </div>
+    <PreparingState v-if="loading && !summary" kind="data" title="Adding up the day's income" />
 
     <v-window v-else-if="summary" v-model="tab" class="day-window">
       <!-- Overview -->

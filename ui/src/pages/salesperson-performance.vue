@@ -124,7 +124,7 @@
         <v-chip color="primary" size="small" variant="tonal">{{ rankedRows.length }} employees</v-chip>
       </v-card-title>
       <v-divider />
-      <v-card-text v-if="loading" class="py-10 text-center"><v-progress-circular color="primary" indeterminate /></v-card-text>
+      <PreparingState v-if="loading" kind="data" min-height="260px" title="Ranking salespersons" />
       <v-card-text v-else-if="rankedRows.length === 0" class="py-10 text-center text-medium-emphasis">
         No salesperson activity matches these filters.
       </v-card-text>

@@ -32,9 +32,7 @@
       </v-select>
     </div>
 
-    <div v-if="loading" class="d-flex justify-center pa-12">
-      <v-progress-circular color="primary" indeterminate />
-    </div>
+    <PreparingState v-if="loading" kind="chart" title="Working out conversion" />
 
     <v-alert v-else-if="rows.length === 0" class="cv-notice mx-4" type="info" variant="tonal">
       No footfall or sales in this range.
