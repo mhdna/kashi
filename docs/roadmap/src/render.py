@@ -3,6 +3,31 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from content import *
 from content_more import WIZARD_EXTRA
 from content_odoo import *
+import diagrams as D
+import glob
+SHOT_DIR_REL = "../../_local/wizard-screenshots-2026-10-31"
+SHOT_DIR = os.path.normpath(os.path.join(sys.argv[1], SHOT_DIR_REL))
+SHOTS = {  # milestone -> filename patterns (substring match) of Wizard screenshots that show how they do it
+    "M0": ["sales-sales-index__record.png", "sales-sales-index__record-actions-menu", "sales-offer.png", "sales-offer__actions-menu", "sales-order-index__actions-menu"],
+    "M1": ["sales-sales-indexaging", "sales-sales-indexnotdue", "receivable-receipt-index", "related-Statement_of_Account", "related-Client_Balance", "related-Unpaid_Invoices", "auxiliary-client.png", "auxiliary-client-list"],
+    "M2": ["sales-purchase-index__record.png", "sales-purchase-index__record-actions-menu", "sales-porder-index", "sales-purchase-indexaging", "sales-expensesforgoods-index", "procurment-request-index", "receivable-payment-index", "receivable-paymentreq-index"],
+    "M3": ["inventory-count-list", "inventory-count-listdetail", "inventory-wzinv-main", "inventory-wzinv-costsindex", "inventory-internalrequisition", "product-product.png", "product-product__tab", "product-product-listpricelist"],
+    "M4": ["sales-offer", "sales-order-index", "sales-order-listorder", "sales-order-listproductorder", "shipment-shipment"],
+    "M5": ["account-account.png", "account-voucher-index__record.png", "account-voucher-index__actions-menu", "account-statement", "global-costCenter", "global-initialize-index1", "global-tools-indexclosinginventory"],
+    "M6": ["account-bank-list", "account-checkbook", "account-CheckMngRec", "account-bankOp", "account-AccountReconciliation", "global-vat", "global-CurrencyRate", "global-currency"],
+    "M7": ["global-approval", "global-audit", "auxiliary-users-list", "global-wzOptions"],
+    "M8": ["payroll-attendance-indexleave", "payroll-payroll"],
+    "M13": ["sales-assets-index", "maintenance-maintenance-index", "maintenance-tickets", "production-production"],
+}
+def shots_for(mid):
+    files = sorted(glob.glob(os.path.join(SHOT_DIR, "*.png")))
+    picked = []
+    for pat in SHOTS.get(mid, []):
+        for f in files:
+            b = os.path.basename(f)
+            if pat in b and b not in picked:
+                picked.append(b)
+    return picked[:10]
 MATRIX = MATRIX + WIZARD_EXTRA
 TITLE = 'kashi vs Wizard Cloud ERP & Odoo: missing features & milestone roadmap'
 
@@ -177,6 +202,17 @@ details.mod table{{margin:0}}
 .edge b{{display:block;margin-bottom:4px}}
 code{{background:color-mix(in srgb,var(--muted) 15%,transparent);padding:1px 5px;border-radius:4px;font-size:13px}}
 .hidden{{display:none}}
+figure.dia{{margin:14px 0 6px;background:#fbfbfa;border:1px solid var(--line);border-radius:12px;padding:12px 12px 6px}}
+figure.dia svg{{width:100%;height:auto;display:block}}
+figure.dia figcaption{{color:var(--muted);font-size:13px;padding:6px 4px 4px}}
+svg.legend{{width:100%;height:auto;display:block;margin:4px 0 2px}}
+.gallery{{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:10px}}
+.gallery a{{display:block;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff;text-decoration:none;color:var(--muted);font-size:12px}}
+.gallery img{{width:100%;height:170px;object-fit:cover;object-position:center top;display:block;border-bottom:1px solid var(--line)}}
+.gallery span{{display:block;padding:5px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+.ghead{{margin-top:14px;font-weight:650;font-size:14px}}
+#lightbox{{position:fixed;inset:0;background:rgba(10,12,16,.82);display:none;align-items:flex-start;justify-content:center;overflow:auto;z-index:50;padding:30px}}
+#lightbox img{{max-width:96vw;background:#fff;border-radius:6px}}
 footer{{color:var(--muted);font-size:13px;text-align:center;padding:30px}}
 </style></head><body>
 <nav class="top"><a href="#tldr">TL;DR</a><a href="#score">Scoreboard</a><a href="#roadmap">Roadmap</a><a href="#edges">Where we win</a>
@@ -187,6 +223,7 @@ footer{{color:var(--muted);font-size:13px;text-align:center;padding:30px}}
 h('<section id="tldr"><h2>TL;DR</h2><div class="card"><ul class="tight">')
 for s in TLDR: h(f"<li>{inline(s)}</li>")
 h('</ul></div></section>')
+h('<section id="picture"><h2>The big picture</h2>' + D.legend() + D.big_picture() + '</section>')
 
 h('<section id="score"><h2>Scoreboard</h2><div class="stats">')
 for k in STATUS_LABEL:
@@ -194,7 +231,8 @@ for k in STATUS_LABEL:
 h('</div><div class="bar">')
 for k in STATUS_LABEL:
     h(f'<div class="s-{k}" style="width:{counts[k]/total*100:.2f}%" title="{STATUS_LABEL[k]}: {counts[k]}"></div>')
-h('</div><p class="sub" style="color:var(--muted);font-size:13px">Share of Wizard\'s capabilities by kashi status.</p></section>')
+h('</div><p class="sub" style="color:var(--muted);font-size:13px">Share of Wizard\'s capabilities by kashi status.</p>')
+h('<h3 style="margin-top:20px">Coverage map: Wizard, module by module</h3>' + D.heatmap(MATRIX) + '</section>')
 
 h('<section id="roadmap"><h2>Roadmap</h2><div class="card" style="margin-bottom:14px"><ul class="tight">')
 for s in ORDER_NOTES: h(f'<li class="phase">{inline(s)}</li>')
@@ -226,17 +264,25 @@ for mod, rows in MATRIX:
     h('</tbody></table></details>')
 h('</section>')
 
-h('<section id="milestones"><h2>Milestones in detail</h2><div class="controls" id="pfilters">')
+h('<section id="milestones"><h2>Milestones in detail</h2>' + D.legend() + '<div class="controls" id="pfilters">')
 h('<button data-p="all" class="on">All priorities</button>' + "".join(f'<button data-p="{k}">{k}</button>' for k in PRIO_TEXT) + '</div>')
 for m in MILESTONES:
     h(f'<div class="milestone" id="{m["id"].lower()}" data-p="{m["priority"]}"><h3>{m["id"]} · {html.escape(m["title"])}</h3>'
       f'<div class="meta"><span class="pill p-{m["priority"]}">{m["priority"]}</span><span class="pill size">{m["size"]} · {SIZE_TEXT[m["size"]]}</span></div>'
-      f'<div><strong>Goal:</strong> {inline(m["goal"])}</div><div class="why">{inline(m["why"])}</div>'
-      '<table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>')
+      f'<div><strong>Goal:</strong> {inline(m["goal"])}</div><div class="why">{inline(m["why"])}</div>')
+    if m["id"] in D.ILLUSTRATIONS: h(D.ILLUSTRATIONS[m["id"]]())
+    h('<table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>')
     for name, p, s, d in m["features"]:
         h(f'<tr data-p="{p}"><td><strong>{inline(name)}</strong></td><td><span class="pill p-{p}">{p}</span></td><td><span class="pill size">{s}</span></td><td>{inline(d)}</td></tr>')
     h('</tbody></table>')
     if m["done_when"]: h(f'<div class="done"><strong>Done when:</strong> {inline(m["done_when"])}</div>')
+    pics = shots_for(m["id"])
+    if pics:
+        h('<div class="ghead">How Wizard does it today (their real screens)</div><div class="gallery">')
+        for b in pics:
+            lab = re.sub(r"^\d+_", "", b[:-4]).replace("__", " · ").replace("-", "/", 2).replace("_", " ")
+            h(f'<a href="{SHOT_DIR_REL}/{b}" class="shot"><img loading="lazy" src="{SHOT_DIR_REL}/{b}" alt="{html.escape(lab)}"><span>{html.escape(lab)}</span></a>')
+        h('</div>')
     h('</div>')
 h('</section>')
 
@@ -249,6 +295,7 @@ h('</div><div class="bar">')
 for k in STATUS_LABEL:
     h(f'<div class="s-{k}" style="width:{ocounts[k]/ototal*100:.2f}%" title="{STATUS_LABEL[k]}: {ocounts[k]}"></div>')
 h(f'</div><p style="color:var(--muted);font-size:13px">Share of {ototal} Odoo capabilities by kashi status.</p>')
+h('<h3 style="margin-top:20px">Coverage map: Odoo, app by app</h3>' + D.heatmap(ODOO_MATRIX))
 for mod, rows in ODOO_MATRIX:
     c = {k: sum(1 for r in rows if r[1] == k) for k in STATUS_LABEL}
     mini = "".join(f'<span class="pill s-{k}" title="{STATUS_LABEL[k]}">{c[k]}</span>' for k in STATUS_LABEL if c[k])
@@ -264,12 +311,20 @@ h('</div>')
 for m in ODOO_MILESTONES:
     h(f'<div class="milestone" id="{m["id"].lower()}" data-p="{m["priority"]}"><h3>{m["id"]} · {html.escape(m["title"])}</h3>'
       f'<div class="meta"><span class="pill p-{m["priority"]}">{m["priority"]}</span><span class="pill size">{m["size"]} · {SIZE_TEXT[m["size"]]}</span></div>'
-      f'<div><strong>Goal:</strong> {inline(m["goal"])}</div><div class="why">{inline(m["why"])}</div>'
-      '<table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>')
+      f'<div><strong>Goal:</strong> {inline(m["goal"])}</div><div class="why">{inline(m["why"])}</div>')
+    if m["id"] in D.ILLUSTRATIONS: h(D.ILLUSTRATIONS[m["id"]]())
+    h('<table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>')
     for name, p_, sz, d in m["features"]:
         h(f'<tr data-p="{p_}"><td><strong>{inline(name)}</strong></td><td><span class="pill p-{p_}">{p_}</span></td><td><span class="pill size">{sz}</span></td><td>{inline(d)}</td></tr>')
     h('</tbody></table>')
     if m["done_when"]: h(f'<div class="done"><strong>Done when:</strong> {inline(m["done_when"])}</div>')
+    pics = shots_for(m["id"])
+    if pics:
+        h('<div class="ghead">How Wizard does it today (their real screens)</div><div class="gallery">')
+        for b in pics:
+            lab = re.sub(r"^\d+_", "", b[:-4]).replace("__", " · ").replace("-", "/", 2).replace("_", " ")
+            h(f'<a href="{SHOT_DIR_REL}/{b}" class="shot"><img loading="lazy" src="{SHOT_DIR_REL}/{b}" alt="{html.escape(lab)}"><span>{html.escape(lab)}</span></a>')
+        h('</div>')
     h('</div>')
 h('</section>')
 IMP = {"Critical": "p-P0", "High": "p-P1", "High (our niche)": "p-P1", "Medium": "p-P2"}
@@ -286,7 +341,8 @@ h('</ul></div></section>')
 h('<section id="sources"><h2>How this was researched</h2><div class="card"><ul class="tight">')
 for s in SOURCES: h(f"<li>{inline(s)}</li>")
 h('</ul></div></section></main><footer>kashi · internal roadmap</footer>')
-h("""<script>
+h("""<div id="lightbox"><img alt=""></div><script>
+const lb=document.getElementById('lightbox');document.querySelectorAll('a.shot').forEach(a=>a.onclick=e=>{e.preventDefault();lb.querySelector('img').src=a.getAttribute('href');lb.style.display='flex';});lb.onclick=()=>lb.style.display='none';
 const ms=document.getElementById('msearch');let st='all';
 function applyM(){const q=ms.value.toLowerCase();document.querySelectorAll('details.mod').forEach(d=>{let any=0;
 d.querySelectorAll('tbody tr').forEach(r=>{const ok=(st==='all'||r.dataset.st===st)&&(!q||r.textContent.toLowerCase().includes(q));r.classList.toggle('hidden',!ok);if(ok)any++;});
