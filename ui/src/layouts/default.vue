@@ -63,12 +63,6 @@
     <BranchActivityToast />
 
     <div class="page-wrapper">
-      <div v-if="isNavigating" class="loading-overlay">
-        <div class="google-spinner">
-          <div class="google-spinner-inner" />
-        </div>
-      </div>
-
       <!-- Pages wait for the settings: a table reads its rows-per-page when it
            mounts, so it has to know the setting by then. -->
       <v-defaults-provider v-if="settingsStore.loaded" :defaults="tableDefaults">
@@ -78,19 +72,11 @@
           </template>
 
           <template #fallback>
-            <v-container class="fill-height">
-              <v-row align="center" justify="center">
-                <v-progress-circular color="primary" indeterminate size="64" />
-              </v-row>
-            </v-container>
+            <PageSkeleton />
           </template>
         </Suspense>
       </v-defaults-provider>
-      <v-container v-else class="fill-height">
-        <v-row align="center" justify="center">
-          <v-progress-circular color="primary" indeterminate size="64" />
-        </v-row>
-      </v-container>
+      <PageSkeleton v-else />
     </div>
   </v-main>
   <!-- <AppFooter /> -->
@@ -108,6 +94,7 @@ import BranchDiscountButton from "@/components/BranchDiscountButton.vue";
 import CommandPalette from "@/components/CommandPalette.vue";
 import ConnectedBranchesCard from "@/components/ConnectedBranchesCard.vue";
 import OnlineUsersStack from "@/components/OnlineUsersStack.vue";
+import PageSkeleton from "@/components/PageSkeleton.vue";
 import SyncingBranchesCard from "@/components/SyncingBranchesCard.vue";
 // import NotificationMenu from '@/components/Menus/NotificationMenu.vue'
 import { useAppStore } from "@/stores/app";
@@ -158,16 +145,13 @@ function toggleDrawer() {
 
 const router = useRouter();
 const route = useRoute();
-const isNavigating = ref(false);
 const pageTitle = ref(route.meta.title || "");
-const navStart = 0;
 
 router.beforeEach((to) => {
   pageTitle.value = to.meta.title || "";
 });
 
 router.afterEach(() => {
-  isNavigating.value = false;
   // The mobile drawer is a temporary overlay -- close it once a link is
   // picked instead of leaving it covering the page just opened.
   if (mobile.value) {
@@ -196,40 +180,5 @@ router.afterEach(() => {
   height: calc(100dvh - 48px);
   overflow: auto;
   position: relative;
-}
-
-.loading-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgb(var(--v-theme-background));
-}
-
-.google-spinner {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: conic-gradient(from 135deg, #4285f4 90deg, #e8eaed 90deg);
-  animation: google-spin 1s linear infinite;
-}
-
-.google-spinner-inner {
-  position: absolute;
-  inset: 4px;
-  background: rgb(var(--v-theme-background));
-  border-radius: 50%;
-}
-
-@keyframes google-spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
 }
 </style>
