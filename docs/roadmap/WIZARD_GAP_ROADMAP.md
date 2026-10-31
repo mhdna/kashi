@@ -1,4 +1,4 @@
-# kashi vs Wizard Cloud ERP: missing features & milestone roadmap
+# kashi vs Wizard Cloud ERP & Odoo: missing features & milestone roadmap
 
 _Last updated 2026-10-31._
 
@@ -6,6 +6,8 @@ _Last updated 2026-10-31._
 
 - Logged into thewizardcloud.net/98 as the R1 wholesale user (read-only): every route in their JavaScript, every form, grid column and Actions menu that loads, the full app config (268 document types, 57 document codes, 85 company options, price lists, warehouses, currencies, chart of accounts).
 - Every page on wizardsolutions.net from its sitemap (70 pages): home, /modules, all 14 module pages, 23 industry pages, 4 'compare' pages (Odoo, SAP B1, Dynamics BC, QuickBooks), 5 guides, 14 glossary pages, about, customers.
+- Every feature card on Wizard's 23 industry pages and 5 guides (about 770 cards; the extra ones are in the 'More Wizard detail' groups).
+- Odoo: odoo.com/page/all-apps, the Point of Sale, Accounting, Inventory, Sales and Purchase feature pages, odoo.com/pricing, apps.odoo.com l10n_lb listings.
 - A full survey of ~/Code/kashi (Go + Postgres + Vue HQ) and ~/Code/kashi-pos (Wails + SQLite till): routes, 219 kashi migrations, POS migrations, App.d.ts bindings, settings, integrations.
 
 ## TL;DR
@@ -13,19 +15,20 @@ _Last updated 2026-10-31._
 - **Branch operations & analytics: kashi looks ahead (POS app not yet reviewed).** Offline till with real sync, remote commands, signed updates, deals/discount rules/coupons, loyalty tiers, WhatsApp automation, Google reviews, footfall & conversion, door-device attendance, shift close vs expected with photo, stock-health forecasting, scheduled email reports. Their POS is a separate Flutter app we haven't reviewed yet, so the till-vs-till comparison is pending.
 - **Back office: Wizard is far ahead.** They are an accounting-first ERP: general ledger, receivables & payables with credit limits and statements, quote→order→delivery→invoice, purchase orders, landed cost, banks & cheques, VAT, USD/LBP with dated rates and revaluation, payroll. kashi has none of the ledger and only fragments of the rest.
 - **Their product is old and fragile.** Yii 1 + jQuery, 268 document types bolted on over 20 years (including one-off customer forms like 'Otis Contract', 'Yarz Member', 'Leave Request-Califood'). Right now a pending DB upgrade breaks most of their screens for our account, error pages leak raw SQL, and every page ships the logged-in user's **plaintext password** inside its JavaScript (`wz.user.pwd`).
+- **Odoo is a different threat**: a huge, modern suite (~45 apps, AI, portal, Studio) sold per user through partners, but with no official Lebanese localization or payroll and a POS that isn't built for USD+LBP cash. Part 2 maps it feature by feature with its own O-milestones; Part 3 ranks what actually matters to Lebanese businesses.
 - **The plan:** M0 builds the shared document engine, then M1–M2 (receivables + wholesale selling, payables + purchasing) let us switch the R1 wholesale branch off Wizard. M3–M6 make kashi a full trading ERP. M7–M9 make it sellable. After that we pick fights module by module where we can be 10x better (mobile, WhatsApp, analytics, offline).
 
 ## Scoreboard
 
-Of **158** capabilities Wizard has (from their app and their website):
+Of **204** capabilities Wizard has (from their app and their website):
 
 | Status | Count | Meaning |
 |---|---|---|
 | 🟢 kashi ahead | 10 | kashi already does it better |
 | ✅ have | 17 | kashi has it |
-| 🟡 partial | 38 | kashi has a piece of it |
-| ❌ missing | 88 | kashi doesn't have it |
-| ⚪ skip | 5 | not worth building for us |
+| 🟡 partial | 49 | kashi has a piece of it |
+| ❌ missing | 108 | kashi doesn't have it |
+| ⚪ skip | 20 | not worth building for us |
 
 ## Priorities & sizes used below
 
@@ -360,6 +363,80 @@ _1 missing, 5 skip_
 | Freight forwarding shipments | ⚪ skip |  |
 | Client portal (statements, invoices, points) | ❌ missing | worth building as part of loyalty/receivables |
 
+### More Wizard detail: warehouse & stock discipline (industry/guide pages)
+
+_5 partial, 9 missing_
+
+| Wizard capability | kashi | Notes |
+|---|---|---|
+| Blind count sheets (counter doesn't see expected qty) | ❌ missing | easy win on our stock counts |
+| Two counters on valuable items, compare before posting | ❌ missing | fits the multi-counter count in M3 |
+| Reason required on every adjustment | 🟡 partial | reasons exist; make them mandatory with a list |
+| Quarantine on receipt (received but not sellable until checked) | ❌ missing | useful for bales before sorting |
+| Bin / shelf locations, zones that match the building, receiving that ends at a bin | ❌ missing |  |
+| First-expiry-first-out picking, expiry alerts by window | 🟡 partial | FIFO batches only |
+| Cases and pieces (buy cartons, sell singles) | ❌ missing | units & packing (M0) |
+| Bulk loading of vehicles / trips | ❌ missing | van sales (M10) |
+| Thresholds per branch (min/max per location) | 🟡 partial | global low-stock threshold |
+| Stock by location including customer sites (consignment) + ageing on consigned units | ❌ missing |  |
+| Lead time per supplier, purchase orders raised from a shortfall | ❌ missing |  |
+| Return rate by product, damage & returns tracking | 🟡 partial | returns exist; no return-rate report |
+| Margin per item / per shipment / per customer | 🟡 partial | gross profit overall; not per shipment or client |
+| Price history per item | ❌ missing |  |
+
+### More Wizard detail: money & billing
+
+_2 partial, 7 missing, 1 skip_
+
+| Wizard capability | kashi | Notes |
+|---|---|---|
+| Partial payments across different exchange rates | ❌ missing | needs dated rates (M0) |
+| Balances viewable in the trading currency + translated balance | ❌ missing |  |
+| Reporting currency independent of trading currency | ❌ missing |  |
+| Retention held as a visible balance on invoices | ❌ missing | seen as retention_pc on their invoice form |
+| Advance payments recovered against later invoices | ❌ missing | down payments |
+| Milestone billing, recurring retainers, unbilled time | ⚪ skip | services businesses |
+| Subscription & membership billing with renewals | ❌ missing | could matter for loyalty memberships |
+| Automated payment reminders & invoice aging emails | ❌ missing | do it on WhatsApp (M1) |
+| Credit note posted together with the stock movement | 🟡 partial | returns move stock; no credit note doc |
+| Investor / owner financial reporting | 🟡 partial | dashboard + financials, no statements |
+
+### More Wizard detail: people, service & channels
+
+_4 partial, 4 missing, 2 skip_
+
+| Wizard capability | kashi | Notes |
+|---|---|---|
+| Staff & shift scheduling (rota) | ❌ missing | we have attendance but no planned schedule to compare against |
+| Workforce / field service scheduling | ⚪ skip |  |
+| SMS notifications to customers | 🟡 partial | WhatsApp instead (better in Lebanon) |
+| Warranty tracking & warranty cost | ⚪ skip | electronics |
+| AI-powered sales analytics (claimed on online-retail page) | 🟡 partial | we have analytics + forecast; no AI layer yet |
+| Demand forecasting & order planning | 🟡 partial | stock health + 90-day financial forecast |
+| Route optimisation & delivery scheduling | ❌ missing | M10 |
+| Automated carrier selection, shipping & fulfilment | ❌ missing | local delivery companies (M12) |
+| Multi-channel order processing (B2B + B2C, web + marketplace + shop) | 🟡 partial | shops only |
+| Customs & trade compliance, duty and clearance, inland transport | ❌ missing | landed cost covers our need |
+
+### More Wizard detail: vertical modules they sell (from 23 industry pages)
+
+_12 skip_
+
+| Wizard capability | kashi | Notes |
+|---|---|---|
+| Restaurants: menus, recipes & sub-recipes, yield & waste factors, kitchen workflow, tables | ⚪ skip |  |
+| Hotels: room reservations, guest profiles, guest loyalty | ⚪ skip |  |
+| Clinics: patients, appointments, insurance billing, medical inventory | ⚪ skip |  |
+| Gyms: memberships, renewals, staff scheduling | ⚪ skip |  |
+| Real estate / property: listings, leases, tenants, rent & maintenance, income per property | ⚪ skip |  |
+| Contracting: projects, divisions, budgets, material per site | ⚪ skip |  |
+| Freight forwarding: multi-modal shipments, margin per shipment/lane, customs | ⚪ skip |  |
+| Solar: installations, energy monitoring, maintenance | ⚪ skip |  |
+| Events: RSVP, ticketing, vendors | ⚪ skip |  |
+| SaaS / IT: subscriptions, churn analytics, agile projects, timesheets | ⚪ skip |  |
+| Pharma: batch & expiry, cold storage, GMP/FDA compliance reports | ⚪ skip |  |
+| Customization business model: one-off forms per client (e.g. 'Otis Contract', 'Yarz Member', 'Leave Request-Califood') | ⚪ skip | they say yes to everything; we shouldn't |
+
 ## Milestones in detail
 
 <a id="m0"></a>
@@ -662,8 +739,300 @@ _1 missing, 5 skip_
 | **After-sales tickets** | P3 | M | Only if we target electronics: tickets, warranty by serial, parts & labour. |
 | **Production / projects** | P3 | L | Skip unless a paying customer needs it. |
 
+## Part 2 — kashi vs Odoo
+
+- **Odoo is the giant.** ~45 apps in one suite (website, sales, finance, supply chain, HR, marketing, services, productivity, AI, Studio). In Lebanon it's sold and implemented through partners (e.g. Circosoft), not by Odoo directly.
+- **Pricing (odoo.com/pricing):** one app free with unlimited users; 'Standard' all apps and 'Custom' (Studio, agentic AI, multi-company, API) are billed per user per month (the page shows roughly US$ 9–21 per user per month depending on plan and discount). Implementation, custom code, Odoo.sh hosting and in-app credits (SMS, AI bill scanning) are extra — the real cost in Lebanon is the partner's implementation.
+- **Lebanon fit is weak out of the box.** We found no official Lebanese localization: the only `l10n_lb` modules on apps.odoo.com are community charts of accounts for Odoo 13 and 14. No Lebanese payroll (NSSF, end-of-service). Multi-currency is strong in accounting (daily automated rates) but the POS only lists currency rounding, not USD+LBP cash at the till.
+- **Where Odoo is stronger than Wizard:** modern UI, customer portal with online payment & e-signature, AI invoice scanning, bank sync, marketing apps, website/eCommerce, Studio (no-code customization), huge app marketplace. **Where Wizard is stronger than Odoo:** Lebanese accounting habits (USD/LBP ledger, cheques, VAT reports, NSSF payroll), one vendor doing support.
+- **Where kashi beats both:** offline-first multi-branch retail with real sync, USD/LBP cash at the till, WhatsApp-native customer flows, door-device attendance, footfall/conversion, retail analytics, and the speed to build Lebanon-specific features they won't.
+
+Of **89** Odoo capabilities: 🟢 10 kashi ahead, ✅ 7 have, 🟡 28 partial, ❌ 35 missing, ⚪ 9 skip.
+
+### Odoo · Point of Sale (Odoo POS Shop)
+
+| Odoo capability | kashi | Notes |
+|---|---|---|
+| Offline mode, offline payments synced on reconnect | ✅ have | kashi-pos is offline-first by design (local SQLite + outbox) |
+| Connect devices: scanners, printers, cash drawers, payment terminals (IoT box) | 🟡 partial | ESC/POS printers, pole display, scanner detection; no card terminals, no drawer kick |
+| PC and tablet, browser support | 🟡 partial | Windows/macOS desktop; no Android/iPad |
+| Payment methods, split payments, currency rounding | 🟢 kashi ahead | USD/LBP/Visa/Whish with LBP rounding and change in LBP |
+| Card payments via external terminals | ❌ missing |  |
+| Bill splitting, tips | ⚪ skip | restaurant features |
+| Invoice from POS, B2B customers, credit limits at POS | 🟡 partial | On Account exists; no credit limit |
+| Prevent cash payment-method re-use / cash control | 🟢 kashi ahead | shift close vs expected, manager approvals, PIN lockout |
+| Prices & discounts, pricelists | 🟢 kashi ahead | deals, rule-based discount lists, coupons |
+| Parallel orders | ✅ have | hold invoices |
+| Customized receipts | 🟢 kashi ahead | receipt designer with themes |
+| Weighing at the counter (scale integration), weighed barcodes | ❌ missing |  |
+| Sell on the move (phone/tablet POS) | ❌ missing |  |
+| Dynamic barcodes (price/weight/loyalty embedded) | ❌ missing |  |
+| Order history, daily sales, cash flows | ✅ have |  |
+| Franchises / multi-store | 🟢 kashi ahead | remote commands, signed updates, per-branch settings |
+| Self-service kiosk, preparation display | ⚪ skip |  |
+| Customer registration at POS, identify customers | ✅ have | phone lookup, required-client setting |
+| Loyalty cards (points) | ✅ have | loyalty points & tiers |
+| eWallet (store credit topped up or from refunds) | ❌ missing | useful for exchanges/refunds |
+| Gift cards | 🟡 partial | coupons; no sellable gift card with balance |
+| Units of measure, multiple barcodes, variants | 🟡 partial | variants & barcodes yes; no UoM |
+| Product availability across shops | ✅ have | other branches' stock from the till |
+| Ship later (order now, deliver later) | ❌ missing |  |
+
+### Odoo · Accounting & Invoicing
+
+| Odoo capability | kashi | Notes |
+|---|---|---|
+| Full double-entry accounting, journal entries, period closing, lock dates | ❌ missing | M5 |
+| Multi-company | ❌ missing | M9 |
+| AI invoice digitization (OCR vendor bills & receipts) | ❌ missing | we already photograph expenses; add AI extraction |
+| AI assistant | ❌ missing |  |
+| Invoice templates, automated draft invoices | 🟡 partial | receipt designer only |
+| Credit notes & refunds | 🟡 partial | returns; no credit note doc |
+| Sales credit limits | ❌ missing | M1 |
+| Multi-currency with daily automated exchange-rate updates | 🟡 partial | one current rate, typed by hand |
+| Online payments, customer portal, QR mobile payments, direct debit | ❌ missing |  |
+| Automated payment follow-ups (dunning levels) | ❌ missing | M1, WhatsApp |
+| Batch payments, automated wire transfers, check printing | ❌ missing |  |
+| Bank synchronization, statement import, smart reconciliation, partial/outstanding payments | ❌ missing | M6 |
+| Cash register management | 🟢 kashi ahead | shifts per payment method |
+| Dynamic financial statements, tax engine, tax reports, tax audit report, cash-basis tax | ❌ missing | M5/M6 |
+| Analytic accounting: multi-dimensional plans, distribution, budgets | ❌ missing |  |
+| Assets, deferred revenue & expense, period cut-off | 🟡 partial | asset register only |
+| Expenses app (employee expenses, receipts) | 🟢 kashi ahead | phone-photo expenses, recurring, from-central |
+| Web services API, data import/export | 🟡 partial | internal REST + CSV imports; no public API |
+| Documents, Sign (e-signature), Spreadsheets (BI) | 🟡 partial | photos + XLSX exports; no e-sign, no spreadsheet BI |
+
+### Odoo · Inventory & Purchase
+
+| Odoo capability | kashi | Notes |
+|---|---|---|
+| Locations, putaway rules, smart removal, packages | ❌ missing |  |
+| Receipts / pick / pack / ship operations, role-based to-do list | ❌ missing |  |
+| Scrap, returns, inventory adjustments, stock allocation/reservation | 🟡 partial | adjustments + returns |
+| Routes: drop-ship, cross-dock, push/pull, subcontracting, multi-warehouse | 🟡 partial | multi-warehouse + transfers only |
+| Barcode app (scan to receive, pick, count) | ❌ missing |  |
+| Replenishment: forecast, reordering rules (min/max), lead times, make-to-order | 🟡 partial | low stock + stock health |
+| Lots / serials / expiry dates | 🟡 partial | FIFO batches |
+| Variants, custom fields, vendor pricelists, shipping labels | 🟡 partial | variants & attributes strong; no shipping labels |
+| Costing FIFO / AVCO / standard, perpetual valuation, landed costs | 🟡 partial | moving average + FIFO batches; no landed cost, no ledger |
+| Stock aging report | 🟡 partial | slow movers |
+| Quality checks, PLM, Manufacturing, Maintenance | ⚪ skip |  |
+| RFQs, purchase tenders, blanket orders, vendor bill control (3-way match) | ❌ missing | M2 |
+| Vendor quality rating, purchase dashboards & forecasts | ❌ missing |  |
+| Inter-company rules, automatic inter-company reconciliation | ❌ missing |  |
+
+### Odoo · Sales & CRM
+
+| Odoo capability | kashi | Notes |
+|---|---|---|
+| Quotation builder & templates, pro forma, upselling/optional products | ❌ missing | M4 |
+| Electronic signature & online payment of quotes | ❌ missing |  |
+| Sales orders → invoicing, order-specific routes, contracts | ❌ missing | M4 |
+| Sales warnings on customers/products | ❌ missing |  |
+| Variant grid entry | 🟡 partial | variant pickers on the till |
+| Coupons, promotions, loyalty, gift cards & eWallet | 🟢 kashi ahead | except eWallet/gift card balance |
+| Pricelists with rules, discounts, product configurator | 🟡 partial | price lists per branch; no client price lists |
+| Commissions | 🟡 partial | salesperson performance, no commission rules |
+| CRM pipeline, activities, AI lead scoring | ❌ missing | M11 |
+| Subscriptions, rental | ⚪ skip |  |
+
+### Odoo · Website, Marketing & Communication
+
+| Odoo capability | kashi | Notes |
+|---|---|---|
+| Website builder, eCommerce, blog, forum, eLearning | ❌ missing | M12 (connectors first) |
+| Live chat | 🟡 partial | WhatsApp chats in kashi |
+| WhatsApp app (templates, messages from records) | 🟢 kashi ahead | deeper: rules, polls, thank-you/welcome, cost tracking, review requests |
+| Email marketing, SMS marketing, social marketing | ❌ missing |  |
+| Marketing automation (journeys) | 🟡 partial | WhatsApp rules |
+| Events, surveys | 🟡 partial | WhatsApp polls + Google review flow |
+
+### Odoo · HR & Services
+
+| Odoo capability | kashi | Notes |
+|---|---|---|
+| Employees | ✅ have |  |
+| Attendances (kiosk / badge) | 🟢 kashi ahead | door-device punches, approvals, complaints |
+| Time off with accrual | ❌ missing | M8 |
+| Payroll (country localizations) | ❌ missing | M8 — and Odoo has no Lebanese payroll |
+| Planning (shift scheduling) | ❌ missing | very useful for shops |
+| Recruitment, appraisals, referrals, fleet | ⚪ skip |  |
+| Project, timesheets, field service, helpdesk, appointments | ⚪ skip |  |
+
+### Odoo · Productivity & Platform
+
+| Odoo capability | kashi | Notes |
+|---|---|---|
+| Discuss (internal chat), VoIP | ⚪ skip | staff use WhatsApp |
+| Approvals app | 🟡 partial | transfers, attendance, manager password |
+| Internet of Things (scales, terminals, printers via IoT box) | 🟡 partial | printers + display |
+| Knowledge base | 🟡 partial | user guide page |
+| AI: tools and agents in every app | ❌ missing | big opportunity for us (Claude) |
+| Studio: no-code custom fields, views, reports, automations | ❌ missing |  |
+| ESG reporting | ⚪ skip |  |
+| Arabic UI with RTL | 🟡 partial | Arabic in reports only |
+| Third-party app store (thousands of modules) | ⚪ skip | can't match; don't try |
+
+### Odoo-driven milestones (O-series)
+
+These come on top of M0–M13; where an M-milestone already covers an Odoo feature it is not repeated.
+
+| # | Milestone | Priority | Size | Goal |
+|---|---|---|---|---|
+| O1 | [AI layer (our answer to Odoo AI)](#o1) | P1 | M | Make AI the reason to pick kashi over both. |
+| O2 | [Customer portal, online payment & e-signature](#o2) | P1 | M | Match Odoo's portal, built WhatsApp-first. |
+| O3 | [POS hardware & retail parity](#o3) | P1 | M | Close the till gaps Odoo POS covers. |
+| O4 | [Warehouse operations](#o4) | P2 | L | Odoo-level stock operations for the wholesale warehouse. |
+| O5 | [Marketing suite on our WhatsApp lead](#o5) | P2 | M | Beat Odoo's Email/SMS/Social/Automation apps where Lebanese customers actually are. |
+| O6 | [Staff planning (shifts) + time off](#o6) | P2 | M | Odoo Planning + Time Off, wired to our attendance. |
+| O7 | [Custom fields, reports & dashboards (Studio-lite)](#o7) | P2 | M | Let customers adapt kashi without us writing code each time. |
+
+<a id="o1"></a>
+#### O1 · AI layer (our answer to Odoo AI)
+
+**Priority:** P1 · **Size:** M (1–3 weeks)
+
+**Goal:** Make AI the reason to pick kashi over both.
+
+**Why:** Odoo now sells 'AI tools and agents' and AI bill scanning as paid credits; Wizard has nothing. We can use Claude directly.
+
+| Feature | Priority | Size | What to build |
+|---|---|---|---|
+| **Scan supplier bills & expense receipts** | P1 | S | Photo (we already collect them) → supplier, date, lines, totals, currency; user confirms; creates the purchase/expense. |
+| **Ask kashi** | P1 | M | Chat box (web + WhatsApp for the owner): 'how much did Hara sell this week vs last', 'who owes more than $500', 'what should I reorder'. Read-only tools over our API. |
+| **Smart product entry** | P2 | S | From a photo or name, propose category, attributes, Arabic name, price band (extends autofill rules). |
+| **WhatsApp AI replies** | P2 | M | Answer customer questions about stock, prices, opening hours, order status; hand off to staff. |
+| **Anomaly alerts** | P2 | S | Unusual discounts, voids, short shifts, price edits, stock drops pushed to the owner. |
+
+**Done when:** An expense photo becomes a posted expense with one tap, and the owner gets correct answers from 'Ask kashi'.
+
+
+<a id="o2"></a>
+#### O2 · Customer portal, online payment & e-signature
+
+**Priority:** P1 · **Size:** M (1–3 weeks)
+
+**Goal:** Match Odoo's portal, built WhatsApp-first.
+
+**Why:** Odoo's portal lets clients see/pay invoices and sign quotes; wholesale clients in Lebanon would rather get a WhatsApp link.
+
+| Feature | Priority | Size | What to build |
+|---|---|---|---|
+| **Client portal via WhatsApp link (OTP)** | P1 | M | Invoices, statement & balance (M1), quotations (M4), loyalty points, receipts; Arabic/English. |
+| **Accept & sign quotations** | P2 | S | Signature pad, accepted quote → sales order. |
+| **Online payment / payment links** | P2 | M | Whish payment links where available, card gateway (e.g. Areeba/local acquirer) later; record against the client ledger. |
+
+**Done when:** A wholesale client opens a link, sees what they owe, signs a quote and pays.
+
+
+<a id="o3"></a>
+#### O3 · POS hardware & retail parity
+
+**Priority:** P1 · **Size:** M (1–3 weeks)
+
+**Goal:** Close the till gaps Odoo POS covers.
+
+**Why:** These are small individually but show up in every POS comparison.
+
+| Feature | Priority | Size | What to build |
+|---|---|---|---|
+| **Cash drawer kick** | P0 | S | ESC/POS pulse on cash payments and on manager 'open drawer' (logged). |
+| **Scales & weighed barcodes** | P1 | M | Serial scale reading at checkout; EAN-13 price/weight embedded barcodes (prefix 2x). |
+| **Gift cards & eWallet / store credit** | P1 | S | Sell gift cards with balance; refunds and exchanges can go to store credit; usable in any branch. |
+| **Units of measure at the till** | P1 | S | Sell by KG/metre; depends on M0. |
+| **Card terminal integration** | P2 | M | Pass amount to the bank terminal and read the result (depends on local acquirer APIs). |
+| **Android / tablet till** | P2 | L | Same as M9; Odoo and Wizard both run on tablets. |
+| **Ship later / customer orders from the till** | P2 | S | Take deposit, reserve stock, deliver later. |
+
+<a id="o4"></a>
+#### O4 · Warehouse operations
+
+**Priority:** P2 · **Size:** L (3–6 weeks)
+
+**Goal:** Odoo-level stock operations for the wholesale warehouse.
+
+**Why:** Odoo Inventory is its strongest app; Wizard sells bins/zones too. We need a lean version, not all of Odoo's routes.
+
+| Feature | Priority | Size | What to build |
+|---|---|---|---|
+| **Locations & bins, putaway rules** | P2 | M | Optional per inventory; receiving ends at a bin. |
+| **Pick / pack / ship with phone barcode scanning** | P2 | M | From sales orders (M4) and transfers. |
+| **Reservation & availability** | P2 | S | Reserve on order; available-to-promise. |
+| **Lots/expiry & quarantine** | P3 | S | For non-clothing customers. |
+| **Drop-ship & cross-dock** | P3 | S | Only if a customer asks. |
+
+<a id="o5"></a>
+#### O5 · Marketing suite on our WhatsApp lead
+
+**Priority:** P2 · **Size:** M (1–3 weeks)
+
+**Goal:** Beat Odoo's Email/SMS/Social/Automation apps where Lebanese customers actually are.
+
+**Why:** Odoo splits marketing into 5 paid apps; we already run WhatsApp at scale.
+
+| Feature | Priority | Size | What to build |
+|---|---|---|---|
+| **Segments & campaigns** | P2 | S | Segments by spend, recency, branch, category bought; WhatsApp + email campaigns; opt-out; cost estimate (we already export VCF lists by hand). |
+| **Journeys / automation** | P2 | M | Welcome → first purchase → 30-day no visit → birthday → points expiring. |
+| **Surveys & reviews** | P2 | S | Extend WhatsApp polls + Google reviews into NPS per branch/salesperson. |
+| **Email & SMS fallback** | P3 | S | For customers without WhatsApp. |
+
+<a id="o6"></a>
+#### O6 · Staff planning (shifts) + time off
+
+**Priority:** P2 · **Size:** M (1–3 weeks)
+
+**Goal:** Odoo Planning + Time Off, wired to our attendance.
+
+**Why:** We record when staff arrive; without a planned rota we can't say who is late or short-staffed. Odoo has Planning; Wizard has staff scheduling on some industry pages.
+
+| Feature | Priority | Size | What to build |
+|---|---|---|---|
+| **Weekly rota per branch** | P2 | S | Drag shifts; publish to staff by WhatsApp. |
+| **Late/absent vs plan** | P2 | S | Computed from door punches vs rota; feeds payroll deductions (M8) instead of typed late units. |
+| **Time off requests & balances** | P2 | S | Request from the till or WhatsApp; approve; accrue. |
+| **Staffing vs footfall** | P3 | S | Use busy hours/visitor counts to suggest staffing — no one else can do this. |
+
+<a id="o7"></a>
+#### O7 · Custom fields, reports & dashboards (Studio-lite)
+
+**Priority:** P2 · **Size:** M (1–3 weeks)
+
+**Goal:** Let customers adapt kashi without us writing code each time.
+
+**Why:** Odoo Studio and Spreadsheet BI are why companies pick Odoo; Wizard does one-off custom forms by hand.
+
+| Feature | Priority | Size | What to build |
+|---|---|---|---|
+| **Custom fields on products/clients/documents** | P2 | M | Typed fields, shown in forms, grids, filters, exports, print templates. |
+| **Report builder** | P2 | M | Pick a dataset, group/pivot, chart, save, schedule by email/WhatsApp. |
+| **Automations** | P3 | M | When X happens → do Y (notify, set field, send WhatsApp). |
+| **Public API & webhooks** | P2 | M | Token-based API for partners and integrations. |
+
+## Part 3 — What matters most in the Lebanese market
+
+| Need | Importance | Wizard | Odoo | kashi today | What to build |
+|---|---|---|---|---|---|
+| USD + LBP in the same sale, price in USD, take cash in both, give change in LBP | **Critical** | Strong in ledger; POS app not reviewed | Accounting multi-currency yes; POS only rounding | ahead at the till; no dated rates/ledger | Dated rate table, dual-currency statements & ledger (M0, M1, M5) |
+| Cash-heavy economy, wallets & money-transfer apps (Whish, OMT, BOB Finance), few card terminals | **Critical** | Cash & cheques focus | Card/online gateways focus | have: cash per currency, Whish method, shift control | OMT/BOB methods, wallet reconciliation reports, payment links (O2) |
+| Unreliable power & internet | **Critical** | Web app (POS app not reviewed) | POS offline mode; back office online only | ahead: offline-first till + outbox sync | Offline mobile app (M10), keep sync bullet-proof |
+| Selling on credit (dayn), collectors, statements, reminders | **Critical** | Strong: credit limits, statements, aging | Credit limits, follow-ups by email | partial: till-only On Account | M1 + WhatsApp statements/reminders |
+| WhatsApp is the main customer & staff channel | **High** | SMS/notifications | WhatsApp app (templates) | ahead | Put every document and approval on WhatsApp (O1, O2, O5) |
+| VAT (11%), MOF numbers, VAT-inclusive prices, quarterly VAT returns; check stamp-duty rules with the accountant | **High** | Claims Lebanese VAT compliance | No official Lebanese localization (community l10n_lb for v13/14 only) | missing: one tax rate per till | M6 VAT codes + return report; verify stamp duty |
+| Payroll: NSSF, income tax, end-of-service indemnity, transport allowance | **High** | Has NSSF rules, end-of-service | No Lebanese payroll | partial: attendance only | M8 with Lebanese rules — a clear edge over Odoo |
+| Imports through Beirut port: freight, customs, clearing agents, landed cost | **High** | Landed cost, shipments, LC | Landed costs | missing | M2 landed cost; bale opening (M3) |
+| Frequent repricing (inflation history), USD price lists, bulk price updates | **High** | Generate price lists, price history | Pricelists with rules | partial: price lists per branch | Bulk reprice by %/category with history (M2/M3) |
+| Arabic, English & French; Arabic receipts and documents | **High** | EN/FR UI | Full Arabic RTL | partial: Arabic in reports | Arabic UI + documents (M9) |
+| Cheques & post-dated cheques in B2B (less since 2019, still common with suppliers) | **Medium** | Strong | Check printing, batch payments | missing | M6 cheque register |
+| Delivery companies & cash-on-delivery for online sales | **Medium** | Generic shipping | Shipping connectors (mostly international carriers) | missing | COD reconciliation with local couriers (M12) |
+| Instagram/WhatsApp commerce rather than full web stores | **Medium** | Shopify/WooCommerce/Magento sync | Own website + eCommerce | partial: WhatsApp | WhatsApp catalog + order links before a full store (M12) |
+| Price-sensitive SMBs, per-user pricing hurts, want local support in Arabic | **High** | Price on request, local team | Per-user pricing + partner implementation fees | own team, fast changes | Per-branch flat pricing published openly (M9) |
+| Secondhand clothing / bale trade (bala), graded stock sold by piece or kilo | **High (our niche)** | Generic unpacking/disassembly | Generic manufacturing/kits | missing | Bale opening with grade yields & landed cost (M3) |
+
 ## How we become their nightmare
 
+- **The Lebanon-native ERP**: USD+LBP at the till and in the books, WhatsApp everywhere, NSSF payroll, offline-first — the gap between Wizard's old stack and Odoo's foreign one.
+- **AI that Odoo charges credits for**: bill scanning, 'Ask kashi', anomaly alerts (O1).
 - **'Switch from Wizard in a weekend'**: an importer that reads their exact data model (we've seen it: g_aux clients/suppliers, in_* documents, family levels, price lists, COA).
 - **WhatsApp everything**: statements, receipts, payslips, approvals, reminders, quotations sent as PDFs, customer portal by WhatsApp login. Wizard only does email/SMS.
 - **Offline everywhere**: till and mobile both truly offline-first with our proven outbox sync.

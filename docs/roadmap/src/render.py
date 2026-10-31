@@ -1,6 +1,10 @@
 import html, re, sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from content import *
+from content_more import WIZARD_EXTRA
+from content_odoo import *
+MATRIX = MATRIX + WIZARD_EXTRA
+TITLE = 'kashi vs Wizard Cloud ERP & Odoo: missing features & milestone roadmap'
 
 OUT = sys.argv[1]
 STATUS_LABEL = {"ahead": "kashi ahead", "have": "have", "partial": "partial", "missing": "missing", "skip": "skip"}
@@ -16,6 +20,11 @@ for _, rows in MATRIX:
     for _, st, _ in rows:
         counts[st] += 1
 total = sum(counts.values())
+ocounts = {k: 0 for k in STATUS_LABEL}
+for _, rows in ODOO_MATRIX:
+    for _, st, _ in rows:
+        ocounts[st] += 1
+ototal = sum(ocounts.values())
 nfeat = sum(len(m["features"]) for m in MILESTONES)
 
 # ------------------------------------------------------------------ Markdown
@@ -70,6 +79,35 @@ for m in MILESTONES:
     if m["done_when"]:
         w(f"\n**Done when:** {m['done_when']}\n")
     w("")
+w("## Part 2 — kashi vs Odoo\n")
+for s_ in ODOO_INTRO: w(f"- {s_}")
+w(f"\nOf **{ototal}** Odoo capabilities: " + ", ".join(f"{STATUS_ICON[k]} {ocounts[k]} {STATUS_LABEL[k]}" for k in STATUS_LABEL) + ".\n")
+for mod, rows in ODOO_MATRIX:
+    w(f"### Odoo · {mod}\n")
+    w("| Odoo capability | kashi | Notes |\n|---|---|---|")
+    for f, st, note in rows:
+        w(f"| {f} | {STATUS_ICON[st]} {STATUS_LABEL[st]} | {note} |")
+    w("")
+w("### Odoo-driven milestones (O-series)\n")
+w("These come on top of M0–M13; where an M-milestone already covers an Odoo feature it is not repeated.\n")
+w("| # | Milestone | Priority | Size | Goal |\n|---|---|---|---|---|")
+for m in ODOO_MILESTONES:
+    w(f"| {m['id']} | [{m['title']}](#{m['id'].lower()}) | {m['priority']} | {m['size']} | {m['goal']} |")
+w("")
+for m in ODOO_MILESTONES:
+    w(f"<a id=\"{m['id'].lower()}\"></a>\n#### {m['id']} · {m['title']}\n")
+    w(f"**Priority:** {m['priority']} · **Size:** {m['size']} ({SIZE_TEXT[m['size']]})\n")
+    w(f"**Goal:** {m['goal']}\n\n**Why:** {m['why']}\n")
+    w("| Feature | Priority | Size | What to build |\n|---|---|---|---|")
+    for name, p_, sz, d in m["features"]:
+        w(f"| **{name}** | {p_} | {sz} | {d} |")
+    if m["done_when"]: w(f"\n**Done when:** {m['done_when']}\n")
+    w("")
+w("## Part 3 — What matters most in the Lebanese market\n")
+w("| Need | Importance | Wizard | Odoo | kashi today | What to build |\n|---|---|---|---|---|---|")
+for need, imp, wz, od, ks, build in LEBANON:
+    w(f"| {need} | **{imp}** | {wz} | {od} | {ks} | {build} |")
+w("")
 w("## How we become their nightmare\n")
 for s in KILL_SHOTS: w(f"- {s}")
 w("\n## Risks & rules for ourselves\n")
@@ -142,8 +180,8 @@ code{{background:color-mix(in srgb,var(--muted) 15%,transparent);padding:1px 5px
 footer{{color:var(--muted);font-size:13px;text-align:center;padding:30px}}
 </style></head><body>
 <nav class="top"><a href="#tldr">TL;DR</a><a href="#score">Scoreboard</a><a href="#roadmap">Roadmap</a><a href="#edges">Where we win</a>
-<a href="#matrix">Feature matrix</a><a href="#milestones">Milestones</a><a href="#nightmare">Nightmare plan</a><a href="#risks">Risks</a></nav>
-<header><h1>{html.escape(TITLE)}</h1><div class="sub">Last updated {DATE} · {total} Wizard capabilities compared · {len(MILESTONES)} milestones · {nfeat} features to build</div></header>
+<a href="#matrix">Feature matrix</a><a href="#milestones">Milestones</a><a href="#odoo">vs Odoo</a><a href="#lebanon">Lebanon</a><a href="#nightmare">Nightmare plan</a><a href="#risks">Risks</a></nav>
+<header><h1>{html.escape(TITLE)}</h1><div class="sub">Last updated {DATE} · {total} Wizard + {ototal} Odoo capabilities compared · {len(MILESTONES)}+{len(ODOO_MILESTONES)} milestones · {nfeat + sum(len(m['features']) for m in ODOO_MILESTONES)} features to build</div></header>
 <main>""")
 
 h('<section id="tldr"><h2>TL;DR</h2><div class="card"><ul class="tight">')
@@ -202,6 +240,43 @@ for m in MILESTONES:
     h('</div>')
 h('</section>')
 
+h('<section id="odoo"><h2>Part 2 — kashi vs Odoo</h2><div class="card" style="margin-bottom:14px"><ul class="tight">')
+for s_ in ODOO_INTRO: h(f"<li>{inline(s_)}</li>")
+h('</ul></div><div class="stats">')
+for k in STATUS_LABEL:
+    h(f'<div class="stat"><div class="n" style="color:var(--{k})">{ocounts[k]}</div><div class="l">{STATUS_ICON[k]} {html.escape(meaning[k])}</div></div>')
+h('</div><div class="bar">')
+for k in STATUS_LABEL:
+    h(f'<div class="s-{k}" style="width:{ocounts[k]/ototal*100:.2f}%" title="{STATUS_LABEL[k]}: {ocounts[k]}"></div>')
+h(f'</div><p style="color:var(--muted);font-size:13px">Share of {ototal} Odoo capabilities by kashi status.</p>')
+for mod, rows in ODOO_MATRIX:
+    c = {k: sum(1 for r in rows if r[1] == k) for k in STATUS_LABEL}
+    mini = "".join(f'<span class="pill s-{k}" title="{STATUS_LABEL[k]}">{c[k]}</span>' for k in STATUS_LABEL if c[k])
+    h(f'<details class="mod"><summary>Odoo · {html.escape(mod)} <span class="mini">{mini}</span></summary><table><thead><tr><th>Odoo capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>')
+    for f, st, note in rows:
+        h(f'<tr data-st="{st}"><td>{inline(f)}</td><td><span class="pill s-{st}">{STATUS_LABEL[st]}</span></td><td class="note">{inline(note)}</td></tr>')
+    h('</tbody></table></details>')
+h('<h3 style="margin-top:26px">Odoo-driven milestones (O-series)</h3><p style="color:var(--muted)">On top of M0–M13; Odoo features already covered by an M-milestone are not repeated.</p><div class="timeline">')
+for m in ODOO_MILESTONES:
+    h(f'<a class="ms {m["priority"]}" href="#{m["id"].lower()}"><div class="id">{m["id"]} <span class="pill p-{m["priority"]}">{m["priority"]}</span> <span class="pill size">{m["size"]}</span></div>'
+      f'<div class="t">{html.escape(m["title"])}</div><div class="g">{inline(m["goal"])}</div></a>')
+h('</div>')
+for m in ODOO_MILESTONES:
+    h(f'<div class="milestone" id="{m["id"].lower()}" data-p="{m["priority"]}"><h3>{m["id"]} · {html.escape(m["title"])}</h3>'
+      f'<div class="meta"><span class="pill p-{m["priority"]}">{m["priority"]}</span><span class="pill size">{m["size"]} · {SIZE_TEXT[m["size"]]}</span></div>'
+      f'<div><strong>Goal:</strong> {inline(m["goal"])}</div><div class="why">{inline(m["why"])}</div>'
+      '<table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>')
+    for name, p_, sz, d in m["features"]:
+        h(f'<tr data-p="{p_}"><td><strong>{inline(name)}</strong></td><td><span class="pill p-{p_}">{p_}</span></td><td><span class="pill size">{sz}</span></td><td>{inline(d)}</td></tr>')
+    h('</tbody></table>')
+    if m["done_when"]: h(f'<div class="done"><strong>Done when:</strong> {inline(m["done_when"])}</div>')
+    h('</div>')
+h('</section>')
+IMP = {"Critical": "p-P0", "High": "p-P1", "High (our niche)": "p-P1", "Medium": "p-P2"}
+h('<section id="lebanon"><h2>Part 3 — What matters most in the Lebanese market</h2><div class="card" style="overflow-x:auto"><table><thead><tr><th>Need</th><th>Importance</th><th>Wizard</th><th>Odoo</th><th>kashi today</th><th>What to build</th></tr></thead><tbody>')
+for need, imp, wz, od, ks, build in LEBANON:
+    h(f'<tr><td><strong>{inline(need)}</strong></td><td><span class="pill {IMP.get(imp,"p-P2")}">{html.escape(imp)}</span></td><td class="note">{inline(wz)}</td><td class="note">{inline(od)}</td><td>{inline(ks)}</td><td>{inline(build)}</td></tr>')
+h('</tbody></table></div></section>')
 h('<section id="nightmare"><h2>How we become their nightmare</h2><div class="card"><ul class="tight">')
 for s in KILL_SHOTS: h(f"<li>{inline(s)}</li>")
 h('</ul></div></section>')

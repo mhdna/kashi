@@ -12,6 +12,8 @@ SOURCES = [
     "codes, 85 company options, price lists, warehouses, currencies, chart of accounts).",
     "Every page on wizardsolutions.net from its sitemap (70 pages): home, /modules, all 14 module pages, "
     "23 industry pages, 4 'compare' pages (Odoo, SAP B1, Dynamics BC, QuickBooks), 5 guides, 14 glossary pages, about, customers.",
+    "Every feature card on Wizard's 23 industry pages and 5 guides (about 770 cards; the extra ones are in the 'More Wizard detail' groups).",
+    "Odoo: odoo.com/page/all-apps, the Point of Sale, Accounting, Inventory, Sales and Purchase feature pages, odoo.com/pricing, apps.odoo.com l10n_lb listings.",
     "A full survey of ~/Code/kashi (Go + Postgres + Vue HQ) and ~/Code/kashi-pos (Wails + SQLite till): routes, "
     "219 kashi migrations, POS migrations, App.d.ts bindings, settings, integrations.",
 ]
@@ -28,6 +30,9 @@ TLDR = [
     "one-off customer forms like 'Otis Contract', 'Yarz Member', 'Leave Request-Califood'). Right now a pending "
     "DB upgrade breaks most of their screens for our account, error pages leak raw SQL, and every page ships the "
     "logged-in user's **plaintext password** inside its JavaScript (`wz.user.pwd`).",
+    "**Odoo is a different threat**: a huge, modern suite (~45 apps, AI, portal, Studio) sold per user through partners, but with no official "
+    "Lebanese localization or payroll and a POS that isn't built for USD+LBP cash. Part 2 maps it feature by feature with its own O-milestones; "
+    "Part 3 ranks what actually matters to Lebanese businesses.",
     "**The plan:** M0 builds the shared document engine, then M1–M2 (receivables + wholesale selling, payables + purchasing) "
     "let us switch the R1 wholesale branch off Wizard. M3–M6 make kashi a full trading ERP. M7–M9 make it sellable. "
     "After that we pick fights module by module where we can be 10x better (mobile, WhatsApp, analytics, offline).",
@@ -501,6 +506,8 @@ ORDER_NOTES = [
 ]
 
 KILL_SHOTS = [
+    "**The Lebanon-native ERP**: USD+LBP at the till and in the books, WhatsApp everywhere, NSSF payroll, offline-first — the gap between Wizard's old stack and Odoo's foreign one.",
+    "**AI that Odoo charges credits for**: bill scanning, 'Ask kashi', anomaly alerts (O1).",
     "**'Switch from Wizard in a weekend'**: an importer that reads their exact data model (we've seen it: g_aux clients/suppliers, in_* documents, family levels, price lists, COA).",
     "**WhatsApp everything**: statements, receipts, payslips, approvals, reminders, quotations sent as PDFs, customer portal by WhatsApp login. Wizard only does email/SMS.",
     "**Offline everywhere**: till and mobile both truly offline-first with our proven outbox sync.",

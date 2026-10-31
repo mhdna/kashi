@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" style="color-scheme:light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>kashi vs Wizard Cloud ERP: missing features &amp; milestone roadmap</title>
+<title>kashi vs Wizard Cloud ERP &amp; Odoo: missing features &amp; milestone roadmap</title>
 <style>
 :root{--bg:#f7f7f5;--card:#fff;--ink:#1d1f23;--muted:#62666d;--line:#e3e3df;--accent:#2f5bd3;
 --ahead:#0f8a5f;--have:#3d7a3d;--partial:#b7791f;--missing:#c0392b;--skip:#8a8f98;
@@ -54,27 +54,28 @@ code{background:color-mix(in srgb,var(--muted) 15%,transparent);padding:1px 5px;
 footer{color:var(--muted);font-size:13px;text-align:center;padding:30px}
 </style></head><body>
 <nav class="top"><a href="#tldr">TL;DR</a><a href="#score">Scoreboard</a><a href="#roadmap">Roadmap</a><a href="#edges">Where we win</a>
-<a href="#matrix">Feature matrix</a><a href="#milestones">Milestones</a><a href="#nightmare">Nightmare plan</a><a href="#risks">Risks</a></nav>
-<header><h1>kashi vs Wizard Cloud ERP: missing features &amp; milestone roadmap</h1><div class="sub">Last updated 2026-10-31 · 158 Wizard capabilities compared · 14 milestones · 93 features to build</div></header>
+<a href="#matrix">Feature matrix</a><a href="#milestones">Milestones</a><a href="#odoo">vs Odoo</a><a href="#lebanon">Lebanon</a><a href="#nightmare">Nightmare plan</a><a href="#risks">Risks</a></nav>
+<header><h1>kashi vs Wizard Cloud ERP &amp; Odoo: missing features &amp; milestone roadmap</h1><div class="sub">Last updated 2026-10-31 · 204 Wizard + 89 Odoo capabilities compared · 14+7 milestones · 125 features to build</div></header>
 <main>
 <section id="tldr"><h2>TL;DR</h2><div class="card"><ul class="tight">
 <li><strong>Branch operations &amp; analytics: kashi looks ahead (POS app not yet reviewed).</strong> Offline till with real sync, remote commands, signed updates, deals/discount rules/coupons, loyalty tiers, WhatsApp automation, Google reviews, footfall &amp; conversion, door-device attendance, shift close vs expected with photo, stock-health forecasting, scheduled email reports. Their POS is a separate Flutter app we haven&#x27;t reviewed yet, so the till-vs-till comparison is pending.</li>
 <li><strong>Back office: Wizard is far ahead.</strong> They are an accounting-first ERP: general ledger, receivables &amp; payables with credit limits and statements, quote→order→delivery→invoice, purchase orders, landed cost, banks &amp; cheques, VAT, USD/LBP with dated rates and revaluation, payroll. kashi has none of the ledger and only fragments of the rest.</li>
 <li><strong>Their product is old and fragile.</strong> Yii 1 + jQuery, 268 document types bolted on over 20 years (including one-off customer forms like &#x27;Otis Contract&#x27;, &#x27;Yarz Member&#x27;, &#x27;Leave Request-Califood&#x27;). Right now a pending DB upgrade breaks most of their screens for our account, error pages leak raw SQL, and every page ships the logged-in user&#x27;s <strong>plaintext password</strong> inside its JavaScript (<code>wz.user.pwd</code>).</li>
+<li><strong>Odoo is a different threat</strong>: a huge, modern suite (~45 apps, AI, portal, Studio) sold per user through partners, but with no official Lebanese localization or payroll and a POS that isn&#x27;t built for USD+LBP cash. Part 2 maps it feature by feature with its own O-milestones; Part 3 ranks what actually matters to Lebanese businesses.</li>
 <li><strong>The plan:</strong> M0 builds the shared document engine, then M1–M2 (receivables + wholesale selling, payables + purchasing) let us switch the R1 wholesale branch off Wizard. M3–M6 make kashi a full trading ERP. M7–M9 make it sellable. After that we pick fights module by module where we can be 10x better (mobile, WhatsApp, analytics, offline).</li>
 </ul></div></section>
 <section id="score"><h2>Scoreboard</h2><div class="stats">
 <div class="stat"><div class="n" style="color:var(--ahead)">10</div><div class="l">🟢 kashi already does it better</div></div>
 <div class="stat"><div class="n" style="color:var(--have)">17</div><div class="l">✅ kashi has it</div></div>
-<div class="stat"><div class="n" style="color:var(--partial)">38</div><div class="l">🟡 kashi has a piece of it</div></div>
-<div class="stat"><div class="n" style="color:var(--missing)">88</div><div class="l">❌ kashi doesn&#x27;t have it</div></div>
-<div class="stat"><div class="n" style="color:var(--skip)">5</div><div class="l">⚪ not worth building for us</div></div>
+<div class="stat"><div class="n" style="color:var(--partial)">49</div><div class="l">🟡 kashi has a piece of it</div></div>
+<div class="stat"><div class="n" style="color:var(--missing)">108</div><div class="l">❌ kashi doesn&#x27;t have it</div></div>
+<div class="stat"><div class="n" style="color:var(--skip)">20</div><div class="l">⚪ not worth building for us</div></div>
 </div><div class="bar">
-<div class="s-ahead" style="width:6.33%" title="kashi ahead: 10"></div>
-<div class="s-have" style="width:10.76%" title="have: 17"></div>
-<div class="s-partial" style="width:24.05%" title="partial: 38"></div>
-<div class="s-missing" style="width:55.70%" title="missing: 88"></div>
-<div class="s-skip" style="width:3.16%" title="skip: 5"></div>
+<div class="s-ahead" style="width:4.90%" title="kashi ahead: 10"></div>
+<div class="s-have" style="width:8.33%" title="have: 17"></div>
+<div class="s-partial" style="width:24.02%" title="partial: 49"></div>
+<div class="s-missing" style="width:52.94%" title="missing: 108"></div>
+<div class="s-skip" style="width:9.80%" title="skip: 20"></div>
 </div><p class="sub" style="color:var(--muted);font-size:13px">Share of Wizard's capabilities by kashi status.</p></section>
 <section id="roadmap"><h2>Roadmap</h2><div class="card" style="margin-bottom:14px"><ul class="tight">
 <li class="phase"><strong>Phase A: Replace Wizard for R1 (M0 → M1 → M2).</strong> Run kashi in parallel with Wizard for one month on the wholesale branch and compare client balances, supplier balances and stock. When they match, stop paying for Wizard&#x27;s Backoffice.</li>
@@ -313,6 +314,60 @@ footer{color:var(--muted);font-size:13px;text-align:center;padding:30px}
 <tr data-st="skip"><td>Freight forwarding shipments</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
 <tr data-st="missing"><td>Client portal (statements, invoices, points)</td><td><span class="pill s-missing">missing</span></td><td class="note">worth building as part of loyalty/receivables</td></tr>
 </tbody></table></details>
+<details class="mod"><summary>More Wizard detail: warehouse &amp; stock discipline (industry/guide pages) <span class="mini"><span class="pill s-partial" title="partial">5</span><span class="pill s-missing" title="missing">9</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="missing"><td>Blind count sheets (counter doesn&#x27;t see expected qty)</td><td><span class="pill s-missing">missing</span></td><td class="note">easy win on our stock counts</td></tr>
+<tr data-st="missing"><td>Two counters on valuable items, compare before posting</td><td><span class="pill s-missing">missing</span></td><td class="note">fits the multi-counter count in M3</td></tr>
+<tr data-st="partial"><td>Reason required on every adjustment</td><td><span class="pill s-partial">partial</span></td><td class="note">reasons exist; make them mandatory with a list</td></tr>
+<tr data-st="missing"><td>Quarantine on receipt (received but not sellable until checked)</td><td><span class="pill s-missing">missing</span></td><td class="note">useful for bales before sorting</td></tr>
+<tr data-st="missing"><td>Bin / shelf locations, zones that match the building, receiving that ends at a bin</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="partial"><td>First-expiry-first-out picking, expiry alerts by window</td><td><span class="pill s-partial">partial</span></td><td class="note">FIFO batches only</td></tr>
+<tr data-st="missing"><td>Cases and pieces (buy cartons, sell singles)</td><td><span class="pill s-missing">missing</span></td><td class="note">units &amp; packing (M0)</td></tr>
+<tr data-st="missing"><td>Bulk loading of vehicles / trips</td><td><span class="pill s-missing">missing</span></td><td class="note">van sales (M10)</td></tr>
+<tr data-st="partial"><td>Thresholds per branch (min/max per location)</td><td><span class="pill s-partial">partial</span></td><td class="note">global low-stock threshold</td></tr>
+<tr data-st="missing"><td>Stock by location including customer sites (consignment) + ageing on consigned units</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Lead time per supplier, purchase orders raised from a shortfall</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="partial"><td>Return rate by product, damage &amp; returns tracking</td><td><span class="pill s-partial">partial</span></td><td class="note">returns exist; no return-rate report</td></tr>
+<tr data-st="partial"><td>Margin per item / per shipment / per customer</td><td><span class="pill s-partial">partial</span></td><td class="note">gross profit overall; not per shipment or client</td></tr>
+<tr data-st="missing"><td>Price history per item</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+</tbody></table></details>
+<details class="mod"><summary>More Wizard detail: money &amp; billing <span class="mini"><span class="pill s-partial" title="partial">2</span><span class="pill s-missing" title="missing">7</span><span class="pill s-skip" title="skip">1</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="missing"><td>Partial payments across different exchange rates</td><td><span class="pill s-missing">missing</span></td><td class="note">needs dated rates (M0)</td></tr>
+<tr data-st="missing"><td>Balances viewable in the trading currency + translated balance</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Reporting currency independent of trading currency</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Retention held as a visible balance on invoices</td><td><span class="pill s-missing">missing</span></td><td class="note">seen as retention_pc on their invoice form</td></tr>
+<tr data-st="missing"><td>Advance payments recovered against later invoices</td><td><span class="pill s-missing">missing</span></td><td class="note">down payments</td></tr>
+<tr data-st="skip"><td>Milestone billing, recurring retainers, unbilled time</td><td><span class="pill s-skip">skip</span></td><td class="note">services businesses</td></tr>
+<tr data-st="missing"><td>Subscription &amp; membership billing with renewals</td><td><span class="pill s-missing">missing</span></td><td class="note">could matter for loyalty memberships</td></tr>
+<tr data-st="missing"><td>Automated payment reminders &amp; invoice aging emails</td><td><span class="pill s-missing">missing</span></td><td class="note">do it on WhatsApp (M1)</td></tr>
+<tr data-st="partial"><td>Credit note posted together with the stock movement</td><td><span class="pill s-partial">partial</span></td><td class="note">returns move stock; no credit note doc</td></tr>
+<tr data-st="partial"><td>Investor / owner financial reporting</td><td><span class="pill s-partial">partial</span></td><td class="note">dashboard + financials, no statements</td></tr>
+</tbody></table></details>
+<details class="mod"><summary>More Wizard detail: people, service &amp; channels <span class="mini"><span class="pill s-partial" title="partial">4</span><span class="pill s-missing" title="missing">4</span><span class="pill s-skip" title="skip">2</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="missing"><td>Staff &amp; shift scheduling (rota)</td><td><span class="pill s-missing">missing</span></td><td class="note">we have attendance but no planned schedule to compare against</td></tr>
+<tr data-st="skip"><td>Workforce / field service scheduling</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+<tr data-st="partial"><td>SMS notifications to customers</td><td><span class="pill s-partial">partial</span></td><td class="note">WhatsApp instead (better in Lebanon)</td></tr>
+<tr data-st="skip"><td>Warranty tracking &amp; warranty cost</td><td><span class="pill s-skip">skip</span></td><td class="note">electronics</td></tr>
+<tr data-st="partial"><td>AI-powered sales analytics (claimed on online-retail page)</td><td><span class="pill s-partial">partial</span></td><td class="note">we have analytics + forecast; no AI layer yet</td></tr>
+<tr data-st="partial"><td>Demand forecasting &amp; order planning</td><td><span class="pill s-partial">partial</span></td><td class="note">stock health + 90-day financial forecast</td></tr>
+<tr data-st="missing"><td>Route optimisation &amp; delivery scheduling</td><td><span class="pill s-missing">missing</span></td><td class="note">M10</td></tr>
+<tr data-st="missing"><td>Automated carrier selection, shipping &amp; fulfilment</td><td><span class="pill s-missing">missing</span></td><td class="note">local delivery companies (M12)</td></tr>
+<tr data-st="partial"><td>Multi-channel order processing (B2B + B2C, web + marketplace + shop)</td><td><span class="pill s-partial">partial</span></td><td class="note">shops only</td></tr>
+<tr data-st="missing"><td>Customs &amp; trade compliance, duty and clearance, inland transport</td><td><span class="pill s-missing">missing</span></td><td class="note">landed cost covers our need</td></tr>
+</tbody></table></details>
+<details class="mod"><summary>More Wizard detail: vertical modules they sell (from 23 industry pages) <span class="mini"><span class="pill s-skip" title="skip">12</span></span></summary><table><thead><tr><th>Wizard capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="skip"><td>Restaurants: menus, recipes &amp; sub-recipes, yield &amp; waste factors, kitchen workflow, tables</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+<tr data-st="skip"><td>Hotels: room reservations, guest profiles, guest loyalty</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+<tr data-st="skip"><td>Clinics: patients, appointments, insurance billing, medical inventory</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+<tr data-st="skip"><td>Gyms: memberships, renewals, staff scheduling</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+<tr data-st="skip"><td>Real estate / property: listings, leases, tenants, rent &amp; maintenance, income per property</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+<tr data-st="skip"><td>Contracting: projects, divisions, budgets, material per site</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+<tr data-st="skip"><td>Freight forwarding: multi-modal shipments, margin per shipment/lane, customs</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+<tr data-st="skip"><td>Solar: installations, energy monitoring, maintenance</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+<tr data-st="skip"><td>Events: RSVP, ticketing, vendors</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+<tr data-st="skip"><td>SaaS / IT: subscriptions, churn analytics, agile projects, timesheets</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+<tr data-st="skip"><td>Pharma: batch &amp; expiry, cold storage, GMP/FDA compliance reports</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+<tr data-st="skip"><td>Customization business model: one-off forms per client (e.g. &#x27;Otis Contract&#x27;, &#x27;Yarz Member&#x27;, &#x27;Leave Request-Califood&#x27;)</td><td><span class="pill s-skip">skip</span></td><td class="note">they say yes to everything; we shouldn&#x27;t</td></tr>
+</tbody></table></details>
 </section>
 <section id="milestones"><h2>Milestones in detail</h2><div class="controls" id="pfilters">
 <button data-p="all" class="on">All priorities</button><button data-p="P0">P0</button><button data-p="P1">P1</button><button data-p="P2">P2</button><button data-p="P3">P3</button></div>
@@ -465,7 +520,213 @@ footer{color:var(--muted);font-size:13px;text-align:center;padding:30px}
 </tbody></table>
 </div>
 </section>
+<section id="odoo"><h2>Part 2 — kashi vs Odoo</h2><div class="card" style="margin-bottom:14px"><ul class="tight">
+<li><strong>Odoo is the giant.</strong> ~45 apps in one suite (website, sales, finance, supply chain, HR, marketing, services, productivity, AI, Studio). In Lebanon it&#x27;s sold and implemented through partners (e.g. Circosoft), not by Odoo directly.</li>
+<li><strong>Pricing (odoo.com/pricing):</strong> one app free with unlimited users; &#x27;Standard&#x27; all apps and &#x27;Custom&#x27; (Studio, agentic AI, multi-company, API) are billed per user per month (the page shows roughly US$ 9–21 per user per month depending on plan and discount). Implementation, custom code, Odoo.sh hosting and in-app credits (SMS, AI bill scanning) are extra — the real cost in Lebanon is the partner&#x27;s implementation.</li>
+<li><strong>Lebanon fit is weak out of the box.</strong> We found no official Lebanese localization: the only <code>l10n_lb</code> modules on apps.odoo.com are community charts of accounts for Odoo 13 and 14. No Lebanese payroll (NSSF, end-of-service). Multi-currency is strong in accounting (daily automated rates) but the POS only lists currency rounding, not USD+LBP cash at the till.</li>
+<li><strong>Where Odoo is stronger than Wizard:</strong> modern UI, customer portal with online payment &amp; e-signature, AI invoice scanning, bank sync, marketing apps, website/eCommerce, Studio (no-code customization), huge app marketplace. <strong>Where Wizard is stronger than Odoo:</strong> Lebanese accounting habits (USD/LBP ledger, cheques, VAT reports, NSSF payroll), one vendor doing support.</li>
+<li><strong>Where kashi beats both:</strong> offline-first multi-branch retail with real sync, USD/LBP cash at the till, WhatsApp-native customer flows, door-device attendance, footfall/conversion, retail analytics, and the speed to build Lebanon-specific features they won&#x27;t.</li>
+</ul></div><div class="stats">
+<div class="stat"><div class="n" style="color:var(--ahead)">10</div><div class="l">🟢 kashi already does it better</div></div>
+<div class="stat"><div class="n" style="color:var(--have)">7</div><div class="l">✅ kashi has it</div></div>
+<div class="stat"><div class="n" style="color:var(--partial)">28</div><div class="l">🟡 kashi has a piece of it</div></div>
+<div class="stat"><div class="n" style="color:var(--missing)">35</div><div class="l">❌ kashi doesn&#x27;t have it</div></div>
+<div class="stat"><div class="n" style="color:var(--skip)">9</div><div class="l">⚪ not worth building for us</div></div>
+</div><div class="bar">
+<div class="s-ahead" style="width:11.24%" title="kashi ahead: 10"></div>
+<div class="s-have" style="width:7.87%" title="have: 7"></div>
+<div class="s-partial" style="width:31.46%" title="partial: 28"></div>
+<div class="s-missing" style="width:39.33%" title="missing: 35"></div>
+<div class="s-skip" style="width:10.11%" title="skip: 9"></div>
+</div><p style="color:var(--muted);font-size:13px">Share of 89 Odoo capabilities by kashi status.</p>
+<details class="mod"><summary>Odoo · Point of Sale (Odoo POS Shop) <span class="mini"><span class="pill s-ahead" title="kashi ahead">5</span><span class="pill s-have" title="have">6</span><span class="pill s-partial" title="partial">5</span><span class="pill s-missing" title="missing">6</span><span class="pill s-skip" title="skip">2</span></span></summary><table><thead><tr><th>Odoo capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="have"><td>Offline mode, offline payments synced on reconnect</td><td><span class="pill s-have">have</span></td><td class="note">kashi-pos is offline-first by design (local SQLite + outbox)</td></tr>
+<tr data-st="partial"><td>Connect devices: scanners, printers, cash drawers, payment terminals (IoT box)</td><td><span class="pill s-partial">partial</span></td><td class="note">ESC/POS printers, pole display, scanner detection; no card terminals, no drawer kick</td></tr>
+<tr data-st="partial"><td>PC and tablet, browser support</td><td><span class="pill s-partial">partial</span></td><td class="note">Windows/macOS desktop; no Android/iPad</td></tr>
+<tr data-st="ahead"><td>Payment methods, split payments, currency rounding</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">USD/LBP/Visa/Whish with LBP rounding and change in LBP</td></tr>
+<tr data-st="missing"><td>Card payments via external terminals</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="skip"><td>Bill splitting, tips</td><td><span class="pill s-skip">skip</span></td><td class="note">restaurant features</td></tr>
+<tr data-st="partial"><td>Invoice from POS, B2B customers, credit limits at POS</td><td><span class="pill s-partial">partial</span></td><td class="note">On Account exists; no credit limit</td></tr>
+<tr data-st="ahead"><td>Prevent cash payment-method re-use / cash control</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">shift close vs expected, manager approvals, PIN lockout</td></tr>
+<tr data-st="ahead"><td>Prices &amp; discounts, pricelists</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">deals, rule-based discount lists, coupons</td></tr>
+<tr data-st="have"><td>Parallel orders</td><td><span class="pill s-have">have</span></td><td class="note">hold invoices</td></tr>
+<tr data-st="ahead"><td>Customized receipts</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">receipt designer with themes</td></tr>
+<tr data-st="missing"><td>Weighing at the counter (scale integration), weighed barcodes</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Sell on the move (phone/tablet POS)</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Dynamic barcodes (price/weight/loyalty embedded)</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="have"><td>Order history, daily sales, cash flows</td><td><span class="pill s-have">have</span></td><td class="note"></td></tr>
+<tr data-st="ahead"><td>Franchises / multi-store</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">remote commands, signed updates, per-branch settings</td></tr>
+<tr data-st="skip"><td>Self-service kiosk, preparation display</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+<tr data-st="have"><td>Customer registration at POS, identify customers</td><td><span class="pill s-have">have</span></td><td class="note">phone lookup, required-client setting</td></tr>
+<tr data-st="have"><td>Loyalty cards (points)</td><td><span class="pill s-have">have</span></td><td class="note">loyalty points &amp; tiers</td></tr>
+<tr data-st="missing"><td>eWallet (store credit topped up or from refunds)</td><td><span class="pill s-missing">missing</span></td><td class="note">useful for exchanges/refunds</td></tr>
+<tr data-st="partial"><td>Gift cards</td><td><span class="pill s-partial">partial</span></td><td class="note">coupons; no sellable gift card with balance</td></tr>
+<tr data-st="partial"><td>Units of measure, multiple barcodes, variants</td><td><span class="pill s-partial">partial</span></td><td class="note">variants &amp; barcodes yes; no UoM</td></tr>
+<tr data-st="have"><td>Product availability across shops</td><td><span class="pill s-have">have</span></td><td class="note">other branches&#x27; stock from the till</td></tr>
+<tr data-st="missing"><td>Ship later (order now, deliver later)</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+</tbody></table></details>
+<details class="mod"><summary>Odoo · Accounting &amp; Invoicing <span class="mini"><span class="pill s-ahead" title="kashi ahead">2</span><span class="pill s-partial" title="partial">6</span><span class="pill s-missing" title="missing">11</span></span></summary><table><thead><tr><th>Odoo capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="missing"><td>Full double-entry accounting, journal entries, period closing, lock dates</td><td><span class="pill s-missing">missing</span></td><td class="note">M5</td></tr>
+<tr data-st="missing"><td>Multi-company</td><td><span class="pill s-missing">missing</span></td><td class="note">M9</td></tr>
+<tr data-st="missing"><td>AI invoice digitization (OCR vendor bills &amp; receipts)</td><td><span class="pill s-missing">missing</span></td><td class="note">we already photograph expenses; add AI extraction</td></tr>
+<tr data-st="missing"><td>AI assistant</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="partial"><td>Invoice templates, automated draft invoices</td><td><span class="pill s-partial">partial</span></td><td class="note">receipt designer only</td></tr>
+<tr data-st="partial"><td>Credit notes &amp; refunds</td><td><span class="pill s-partial">partial</span></td><td class="note">returns; no credit note doc</td></tr>
+<tr data-st="missing"><td>Sales credit limits</td><td><span class="pill s-missing">missing</span></td><td class="note">M1</td></tr>
+<tr data-st="partial"><td>Multi-currency with daily automated exchange-rate updates</td><td><span class="pill s-partial">partial</span></td><td class="note">one current rate, typed by hand</td></tr>
+<tr data-st="missing"><td>Online payments, customer portal, QR mobile payments, direct debit</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Automated payment follow-ups (dunning levels)</td><td><span class="pill s-missing">missing</span></td><td class="note">M1, WhatsApp</td></tr>
+<tr data-st="missing"><td>Batch payments, automated wire transfers, check printing</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Bank synchronization, statement import, smart reconciliation, partial/outstanding payments</td><td><span class="pill s-missing">missing</span></td><td class="note">M6</td></tr>
+<tr data-st="ahead"><td>Cash register management</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">shifts per payment method</td></tr>
+<tr data-st="missing"><td>Dynamic financial statements, tax engine, tax reports, tax audit report, cash-basis tax</td><td><span class="pill s-missing">missing</span></td><td class="note">M5/M6</td></tr>
+<tr data-st="missing"><td>Analytic accounting: multi-dimensional plans, distribution, budgets</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="partial"><td>Assets, deferred revenue &amp; expense, period cut-off</td><td><span class="pill s-partial">partial</span></td><td class="note">asset register only</td></tr>
+<tr data-st="ahead"><td>Expenses app (employee expenses, receipts)</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">phone-photo expenses, recurring, from-central</td></tr>
+<tr data-st="partial"><td>Web services API, data import/export</td><td><span class="pill s-partial">partial</span></td><td class="note">internal REST + CSV imports; no public API</td></tr>
+<tr data-st="partial"><td>Documents, Sign (e-signature), Spreadsheets (BI)</td><td><span class="pill s-partial">partial</span></td><td class="note">photos + XLSX exports; no e-sign, no spreadsheet BI</td></tr>
+</tbody></table></details>
+<details class="mod"><summary>Odoo · Inventory &amp; Purchase <span class="mini"><span class="pill s-partial" title="partial">7</span><span class="pill s-missing" title="missing">6</span><span class="pill s-skip" title="skip">1</span></span></summary><table><thead><tr><th>Odoo capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="missing"><td>Locations, putaway rules, smart removal, packages</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Receipts / pick / pack / ship operations, role-based to-do list</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="partial"><td>Scrap, returns, inventory adjustments, stock allocation/reservation</td><td><span class="pill s-partial">partial</span></td><td class="note">adjustments + returns</td></tr>
+<tr data-st="partial"><td>Routes: drop-ship, cross-dock, push/pull, subcontracting, multi-warehouse</td><td><span class="pill s-partial">partial</span></td><td class="note">multi-warehouse + transfers only</td></tr>
+<tr data-st="missing"><td>Barcode app (scan to receive, pick, count)</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="partial"><td>Replenishment: forecast, reordering rules (min/max), lead times, make-to-order</td><td><span class="pill s-partial">partial</span></td><td class="note">low stock + stock health</td></tr>
+<tr data-st="partial"><td>Lots / serials / expiry dates</td><td><span class="pill s-partial">partial</span></td><td class="note">FIFO batches</td></tr>
+<tr data-st="partial"><td>Variants, custom fields, vendor pricelists, shipping labels</td><td><span class="pill s-partial">partial</span></td><td class="note">variants &amp; attributes strong; no shipping labels</td></tr>
+<tr data-st="partial"><td>Costing FIFO / AVCO / standard, perpetual valuation, landed costs</td><td><span class="pill s-partial">partial</span></td><td class="note">moving average + FIFO batches; no landed cost, no ledger</td></tr>
+<tr data-st="partial"><td>Stock aging report</td><td><span class="pill s-partial">partial</span></td><td class="note">slow movers</td></tr>
+<tr data-st="skip"><td>Quality checks, PLM, Manufacturing, Maintenance</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>RFQs, purchase tenders, blanket orders, vendor bill control (3-way match)</td><td><span class="pill s-missing">missing</span></td><td class="note">M2</td></tr>
+<tr data-st="missing"><td>Vendor quality rating, purchase dashboards &amp; forecasts</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Inter-company rules, automatic inter-company reconciliation</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+</tbody></table></details>
+<details class="mod"><summary>Odoo · Sales &amp; CRM <span class="mini"><span class="pill s-ahead" title="kashi ahead">1</span><span class="pill s-partial" title="partial">3</span><span class="pill s-missing" title="missing">5</span><span class="pill s-skip" title="skip">1</span></span></summary><table><thead><tr><th>Odoo capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="missing"><td>Quotation builder &amp; templates, pro forma, upselling/optional products</td><td><span class="pill s-missing">missing</span></td><td class="note">M4</td></tr>
+<tr data-st="missing"><td>Electronic signature &amp; online payment of quotes</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="missing"><td>Sales orders → invoicing, order-specific routes, contracts</td><td><span class="pill s-missing">missing</span></td><td class="note">M4</td></tr>
+<tr data-st="missing"><td>Sales warnings on customers/products</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="partial"><td>Variant grid entry</td><td><span class="pill s-partial">partial</span></td><td class="note">variant pickers on the till</td></tr>
+<tr data-st="ahead"><td>Coupons, promotions, loyalty, gift cards &amp; eWallet</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">except eWallet/gift card balance</td></tr>
+<tr data-st="partial"><td>Pricelists with rules, discounts, product configurator</td><td><span class="pill s-partial">partial</span></td><td class="note">price lists per branch; no client price lists</td></tr>
+<tr data-st="partial"><td>Commissions</td><td><span class="pill s-partial">partial</span></td><td class="note">salesperson performance, no commission rules</td></tr>
+<tr data-st="missing"><td>CRM pipeline, activities, AI lead scoring</td><td><span class="pill s-missing">missing</span></td><td class="note">M11</td></tr>
+<tr data-st="skip"><td>Subscriptions, rental</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+</tbody></table></details>
+<details class="mod"><summary>Odoo · Website, Marketing &amp; Communication <span class="mini"><span class="pill s-ahead" title="kashi ahead">1</span><span class="pill s-partial" title="partial">3</span><span class="pill s-missing" title="missing">2</span></span></summary><table><thead><tr><th>Odoo capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="missing"><td>Website builder, eCommerce, blog, forum, eLearning</td><td><span class="pill s-missing">missing</span></td><td class="note">M12 (connectors first)</td></tr>
+<tr data-st="partial"><td>Live chat</td><td><span class="pill s-partial">partial</span></td><td class="note">WhatsApp chats in kashi</td></tr>
+<tr data-st="ahead"><td>WhatsApp app (templates, messages from records)</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">deeper: rules, polls, thank-you/welcome, cost tracking, review requests</td></tr>
+<tr data-st="missing"><td>Email marketing, SMS marketing, social marketing</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="partial"><td>Marketing automation (journeys)</td><td><span class="pill s-partial">partial</span></td><td class="note">WhatsApp rules</td></tr>
+<tr data-st="partial"><td>Events, surveys</td><td><span class="pill s-partial">partial</span></td><td class="note">WhatsApp polls + Google review flow</td></tr>
+</tbody></table></details>
+<details class="mod"><summary>Odoo · HR &amp; Services <span class="mini"><span class="pill s-ahead" title="kashi ahead">1</span><span class="pill s-have" title="have">1</span><span class="pill s-missing" title="missing">3</span><span class="pill s-skip" title="skip">2</span></span></summary><table><thead><tr><th>Odoo capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="have"><td>Employees</td><td><span class="pill s-have">have</span></td><td class="note"></td></tr>
+<tr data-st="ahead"><td>Attendances (kiosk / badge)</td><td><span class="pill s-ahead">kashi ahead</span></td><td class="note">door-device punches, approvals, complaints</td></tr>
+<tr data-st="missing"><td>Time off with accrual</td><td><span class="pill s-missing">missing</span></td><td class="note">M8</td></tr>
+<tr data-st="missing"><td>Payroll (country localizations)</td><td><span class="pill s-missing">missing</span></td><td class="note">M8 — and Odoo has no Lebanese payroll</td></tr>
+<tr data-st="missing"><td>Planning (shift scheduling)</td><td><span class="pill s-missing">missing</span></td><td class="note">very useful for shops</td></tr>
+<tr data-st="skip"><td>Recruitment, appraisals, referrals, fleet</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+<tr data-st="skip"><td>Project, timesheets, field service, helpdesk, appointments</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+</tbody></table></details>
+<details class="mod"><summary>Odoo · Productivity &amp; Platform <span class="mini"><span class="pill s-partial" title="partial">4</span><span class="pill s-missing" title="missing">2</span><span class="pill s-skip" title="skip">3</span></span></summary><table><thead><tr><th>Odoo capability</th><th style="width:120px">kashi</th><th>Notes</th></tr></thead><tbody>
+<tr data-st="skip"><td>Discuss (internal chat), VoIP</td><td><span class="pill s-skip">skip</span></td><td class="note">staff use WhatsApp</td></tr>
+<tr data-st="partial"><td>Approvals app</td><td><span class="pill s-partial">partial</span></td><td class="note">transfers, attendance, manager password</td></tr>
+<tr data-st="partial"><td>Internet of Things (scales, terminals, printers via IoT box)</td><td><span class="pill s-partial">partial</span></td><td class="note">printers + display</td></tr>
+<tr data-st="partial"><td>Knowledge base</td><td><span class="pill s-partial">partial</span></td><td class="note">user guide page</td></tr>
+<tr data-st="missing"><td>AI: tools and agents in every app</td><td><span class="pill s-missing">missing</span></td><td class="note">big opportunity for us (Claude)</td></tr>
+<tr data-st="missing"><td>Studio: no-code custom fields, views, reports, automations</td><td><span class="pill s-missing">missing</span></td><td class="note"></td></tr>
+<tr data-st="skip"><td>ESG reporting</td><td><span class="pill s-skip">skip</span></td><td class="note"></td></tr>
+<tr data-st="partial"><td>Arabic UI with RTL</td><td><span class="pill s-partial">partial</span></td><td class="note">Arabic in reports only</td></tr>
+<tr data-st="skip"><td>Third-party app store (thousands of modules)</td><td><span class="pill s-skip">skip</span></td><td class="note">can&#x27;t match; don&#x27;t try</td></tr>
+</tbody></table></details>
+<h3 style="margin-top:26px">Odoo-driven milestones (O-series)</h3><p style="color:var(--muted)">On top of M0–M13; Odoo features already covered by an M-milestone are not repeated.</p><div class="timeline">
+<a class="ms P1" href="#o1"><div class="id">O1 <span class="pill p-P1">P1</span> <span class="pill size">M</span></div><div class="t">AI layer (our answer to Odoo AI)</div><div class="g">Make AI the reason to pick kashi over both.</div></a>
+<a class="ms P1" href="#o2"><div class="id">O2 <span class="pill p-P1">P1</span> <span class="pill size">M</span></div><div class="t">Customer portal, online payment &amp; e-signature</div><div class="g">Match Odoo&#x27;s portal, built WhatsApp-first.</div></a>
+<a class="ms P1" href="#o3"><div class="id">O3 <span class="pill p-P1">P1</span> <span class="pill size">M</span></div><div class="t">POS hardware &amp; retail parity</div><div class="g">Close the till gaps Odoo POS covers.</div></a>
+<a class="ms P2" href="#o4"><div class="id">O4 <span class="pill p-P2">P2</span> <span class="pill size">L</span></div><div class="t">Warehouse operations</div><div class="g">Odoo-level stock operations for the wholesale warehouse.</div></a>
+<a class="ms P2" href="#o5"><div class="id">O5 <span class="pill p-P2">P2</span> <span class="pill size">M</span></div><div class="t">Marketing suite on our WhatsApp lead</div><div class="g">Beat Odoo&#x27;s Email/SMS/Social/Automation apps where Lebanese customers actually are.</div></a>
+<a class="ms P2" href="#o6"><div class="id">O6 <span class="pill p-P2">P2</span> <span class="pill size">M</span></div><div class="t">Staff planning (shifts) + time off</div><div class="g">Odoo Planning + Time Off, wired to our attendance.</div></a>
+<a class="ms P2" href="#o7"><div class="id">O7 <span class="pill p-P2">P2</span> <span class="pill size">M</span></div><div class="t">Custom fields, reports &amp; dashboards (Studio-lite)</div><div class="g">Let customers adapt kashi without us writing code each time.</div></a>
+</div>
+<div class="milestone" id="o1" data-p="P1"><h3>O1 · AI layer (our answer to Odoo AI)</h3><div class="meta"><span class="pill p-P1">P1</span><span class="pill size">M · 1–3 weeks</span></div><div><strong>Goal:</strong> Make AI the reason to pick kashi over both.</div><div class="why">Odoo now sells &#x27;AI tools and agents&#x27; and AI bill scanning as paid credits; Wizard has nothing. We can use Claude directly.</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P1"><td><strong>Scan supplier bills &amp; expense receipts</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Photo (we already collect them) → supplier, date, lines, totals, currency; user confirms; creates the purchase/expense.</td></tr>
+<tr data-p="P1"><td><strong>Ask kashi</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">M</span></td><td>Chat box (web + WhatsApp for the owner): &#x27;how much did Hara sell this week vs last&#x27;, &#x27;who owes more than $500&#x27;, &#x27;what should I reorder&#x27;. Read-only tools over our API.</td></tr>
+<tr data-p="P2"><td><strong>Smart product entry</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>From a photo or name, propose category, attributes, Arabic name, price band (extends autofill rules).</td></tr>
+<tr data-p="P2"><td><strong>WhatsApp AI replies</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">M</span></td><td>Answer customer questions about stock, prices, opening hours, order status; hand off to staff.</td></tr>
+<tr data-p="P2"><td><strong>Anomaly alerts</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Unusual discounts, voids, short shifts, price edits, stock drops pushed to the owner.</td></tr>
+</tbody></table>
+<div class="done"><strong>Done when:</strong> An expense photo becomes a posted expense with one tap, and the owner gets correct answers from &#x27;Ask kashi&#x27;.</div>
+</div>
+<div class="milestone" id="o2" data-p="P1"><h3>O2 · Customer portal, online payment &amp; e-signature</h3><div class="meta"><span class="pill p-P1">P1</span><span class="pill size">M · 1–3 weeks</span></div><div><strong>Goal:</strong> Match Odoo&#x27;s portal, built WhatsApp-first.</div><div class="why">Odoo&#x27;s portal lets clients see/pay invoices and sign quotes; wholesale clients in Lebanon would rather get a WhatsApp link.</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P1"><td><strong>Client portal via WhatsApp link (OTP)</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">M</span></td><td>Invoices, statement &amp; balance (M1), quotations (M4), loyalty points, receipts; Arabic/English.</td></tr>
+<tr data-p="P2"><td><strong>Accept &amp; sign quotations</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Signature pad, accepted quote → sales order.</td></tr>
+<tr data-p="P2"><td><strong>Online payment / payment links</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">M</span></td><td>Whish payment links where available, card gateway (e.g. Areeba/local acquirer) later; record against the client ledger.</td></tr>
+</tbody></table>
+<div class="done"><strong>Done when:</strong> A wholesale client opens a link, sees what they owe, signs a quote and pays.</div>
+</div>
+<div class="milestone" id="o3" data-p="P1"><h3>O3 · POS hardware &amp; retail parity</h3><div class="meta"><span class="pill p-P1">P1</span><span class="pill size">M · 1–3 weeks</span></div><div><strong>Goal:</strong> Close the till gaps Odoo POS covers.</div><div class="why">These are small individually but show up in every POS comparison.</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P0"><td><strong>Cash drawer kick</strong></td><td><span class="pill p-P0">P0</span></td><td><span class="pill size">S</span></td><td>ESC/POS pulse on cash payments and on manager &#x27;open drawer&#x27; (logged).</td></tr>
+<tr data-p="P1"><td><strong>Scales &amp; weighed barcodes</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">M</span></td><td>Serial scale reading at checkout; EAN-13 price/weight embedded barcodes (prefix 2x).</td></tr>
+<tr data-p="P1"><td><strong>Gift cards &amp; eWallet / store credit</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Sell gift cards with balance; refunds and exchanges can go to store credit; usable in any branch.</td></tr>
+<tr data-p="P1"><td><strong>Units of measure at the till</strong></td><td><span class="pill p-P1">P1</span></td><td><span class="pill size">S</span></td><td>Sell by KG/metre; depends on M0.</td></tr>
+<tr data-p="P2"><td><strong>Card terminal integration</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">M</span></td><td>Pass amount to the bank terminal and read the result (depends on local acquirer APIs).</td></tr>
+<tr data-p="P2"><td><strong>Android / tablet till</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">L</span></td><td>Same as M9; Odoo and Wizard both run on tablets.</td></tr>
+<tr data-p="P2"><td><strong>Ship later / customer orders from the till</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Take deposit, reserve stock, deliver later.</td></tr>
+</tbody></table>
+</div>
+<div class="milestone" id="o4" data-p="P2"><h3>O4 · Warehouse operations</h3><div class="meta"><span class="pill p-P2">P2</span><span class="pill size">L · 3–6 weeks</span></div><div><strong>Goal:</strong> Odoo-level stock operations for the wholesale warehouse.</div><div class="why">Odoo Inventory is its strongest app; Wizard sells bins/zones too. We need a lean version, not all of Odoo&#x27;s routes.</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P2"><td><strong>Locations &amp; bins, putaway rules</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">M</span></td><td>Optional per inventory; receiving ends at a bin.</td></tr>
+<tr data-p="P2"><td><strong>Pick / pack / ship with phone barcode scanning</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">M</span></td><td>From sales orders (M4) and transfers.</td></tr>
+<tr data-p="P2"><td><strong>Reservation &amp; availability</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Reserve on order; available-to-promise.</td></tr>
+<tr data-p="P3"><td><strong>Lots/expiry &amp; quarantine</strong></td><td><span class="pill p-P3">P3</span></td><td><span class="pill size">S</span></td><td>For non-clothing customers.</td></tr>
+<tr data-p="P3"><td><strong>Drop-ship &amp; cross-dock</strong></td><td><span class="pill p-P3">P3</span></td><td><span class="pill size">S</span></td><td>Only if a customer asks.</td></tr>
+</tbody></table>
+</div>
+<div class="milestone" id="o5" data-p="P2"><h3>O5 · Marketing suite on our WhatsApp lead</h3><div class="meta"><span class="pill p-P2">P2</span><span class="pill size">M · 1–3 weeks</span></div><div><strong>Goal:</strong> Beat Odoo&#x27;s Email/SMS/Social/Automation apps where Lebanese customers actually are.</div><div class="why">Odoo splits marketing into 5 paid apps; we already run WhatsApp at scale.</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P2"><td><strong>Segments &amp; campaigns</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Segments by spend, recency, branch, category bought; WhatsApp + email campaigns; opt-out; cost estimate (we already export VCF lists by hand).</td></tr>
+<tr data-p="P2"><td><strong>Journeys / automation</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">M</span></td><td>Welcome → first purchase → 30-day no visit → birthday → points expiring.</td></tr>
+<tr data-p="P2"><td><strong>Surveys &amp; reviews</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Extend WhatsApp polls + Google reviews into NPS per branch/salesperson.</td></tr>
+<tr data-p="P3"><td><strong>Email &amp; SMS fallback</strong></td><td><span class="pill p-P3">P3</span></td><td><span class="pill size">S</span></td><td>For customers without WhatsApp.</td></tr>
+</tbody></table>
+</div>
+<div class="milestone" id="o6" data-p="P2"><h3>O6 · Staff planning (shifts) + time off</h3><div class="meta"><span class="pill p-P2">P2</span><span class="pill size">M · 1–3 weeks</span></div><div><strong>Goal:</strong> Odoo Planning + Time Off, wired to our attendance.</div><div class="why">We record when staff arrive; without a planned rota we can&#x27;t say who is late or short-staffed. Odoo has Planning; Wizard has staff scheduling on some industry pages.</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P2"><td><strong>Weekly rota per branch</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Drag shifts; publish to staff by WhatsApp.</td></tr>
+<tr data-p="P2"><td><strong>Late/absent vs plan</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Computed from door punches vs rota; feeds payroll deductions (M8) instead of typed late units.</td></tr>
+<tr data-p="P2"><td><strong>Time off requests &amp; balances</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">S</span></td><td>Request from the till or WhatsApp; approve; accrue.</td></tr>
+<tr data-p="P3"><td><strong>Staffing vs footfall</strong></td><td><span class="pill p-P3">P3</span></td><td><span class="pill size">S</span></td><td>Use busy hours/visitor counts to suggest staffing — no one else can do this.</td></tr>
+</tbody></table>
+</div>
+<div class="milestone" id="o7" data-p="P2"><h3>O7 · Custom fields, reports &amp; dashboards (Studio-lite)</h3><div class="meta"><span class="pill p-P2">P2</span><span class="pill size">M · 1–3 weeks</span></div><div><strong>Goal:</strong> Let customers adapt kashi without us writing code each time.</div><div class="why">Odoo Studio and Spreadsheet BI are why companies pick Odoo; Wizard does one-off custom forms by hand.</div><table><thead><tr><th style="width:24%">Feature</th><th style="width:60px">Prio</th><th style="width:50px">Size</th><th>What to build</th></tr></thead><tbody>
+<tr data-p="P2"><td><strong>Custom fields on products/clients/documents</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">M</span></td><td>Typed fields, shown in forms, grids, filters, exports, print templates.</td></tr>
+<tr data-p="P2"><td><strong>Report builder</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">M</span></td><td>Pick a dataset, group/pivot, chart, save, schedule by email/WhatsApp.</td></tr>
+<tr data-p="P3"><td><strong>Automations</strong></td><td><span class="pill p-P3">P3</span></td><td><span class="pill size">M</span></td><td>When X happens → do Y (notify, set field, send WhatsApp).</td></tr>
+<tr data-p="P2"><td><strong>Public API &amp; webhooks</strong></td><td><span class="pill p-P2">P2</span></td><td><span class="pill size">M</span></td><td>Token-based API for partners and integrations.</td></tr>
+</tbody></table>
+</div>
+</section>
+<section id="lebanon"><h2>Part 3 — What matters most in the Lebanese market</h2><div class="card" style="overflow-x:auto"><table><thead><tr><th>Need</th><th>Importance</th><th>Wizard</th><th>Odoo</th><th>kashi today</th><th>What to build</th></tr></thead><tbody>
+<tr><td><strong>USD + LBP in the same sale, price in USD, take cash in both, give change in LBP</strong></td><td><span class="pill p-P0">Critical</span></td><td class="note">Strong in ledger; POS app not reviewed</td><td class="note">Accounting multi-currency yes; POS only rounding</td><td>ahead at the till; no dated rates/ledger</td><td>Dated rate table, dual-currency statements &amp; ledger (M0, M1, M5)</td></tr>
+<tr><td><strong>Cash-heavy economy, wallets &amp; money-transfer apps (Whish, OMT, BOB Finance), few card terminals</strong></td><td><span class="pill p-P0">Critical</span></td><td class="note">Cash &amp; cheques focus</td><td class="note">Card/online gateways focus</td><td>have: cash per currency, Whish method, shift control</td><td>OMT/BOB methods, wallet reconciliation reports, payment links (O2)</td></tr>
+<tr><td><strong>Unreliable power &amp; internet</strong></td><td><span class="pill p-P0">Critical</span></td><td class="note">Web app (POS app not reviewed)</td><td class="note">POS offline mode; back office online only</td><td>ahead: offline-first till + outbox sync</td><td>Offline mobile app (M10), keep sync bullet-proof</td></tr>
+<tr><td><strong>Selling on credit (dayn), collectors, statements, reminders</strong></td><td><span class="pill p-P0">Critical</span></td><td class="note">Strong: credit limits, statements, aging</td><td class="note">Credit limits, follow-ups by email</td><td>partial: till-only On Account</td><td>M1 + WhatsApp statements/reminders</td></tr>
+<tr><td><strong>WhatsApp is the main customer &amp; staff channel</strong></td><td><span class="pill p-P1">High</span></td><td class="note">SMS/notifications</td><td class="note">WhatsApp app (templates)</td><td>ahead</td><td>Put every document and approval on WhatsApp (O1, O2, O5)</td></tr>
+<tr><td><strong>VAT (11%), MOF numbers, VAT-inclusive prices, quarterly VAT returns; check stamp-duty rules with the accountant</strong></td><td><span class="pill p-P1">High</span></td><td class="note">Claims Lebanese VAT compliance</td><td class="note">No official Lebanese localization (community l10n_lb for v13/14 only)</td><td>missing: one tax rate per till</td><td>M6 VAT codes + return report; verify stamp duty</td></tr>
+<tr><td><strong>Payroll: NSSF, income tax, end-of-service indemnity, transport allowance</strong></td><td><span class="pill p-P1">High</span></td><td class="note">Has NSSF rules, end-of-service</td><td class="note">No Lebanese payroll</td><td>partial: attendance only</td><td>M8 with Lebanese rules — a clear edge over Odoo</td></tr>
+<tr><td><strong>Imports through Beirut port: freight, customs, clearing agents, landed cost</strong></td><td><span class="pill p-P1">High</span></td><td class="note">Landed cost, shipments, LC</td><td class="note">Landed costs</td><td>missing</td><td>M2 landed cost; bale opening (M3)</td></tr>
+<tr><td><strong>Frequent repricing (inflation history), USD price lists, bulk price updates</strong></td><td><span class="pill p-P1">High</span></td><td class="note">Generate price lists, price history</td><td class="note">Pricelists with rules</td><td>partial: price lists per branch</td><td>Bulk reprice by %/category with history (M2/M3)</td></tr>
+<tr><td><strong>Arabic, English &amp; French; Arabic receipts and documents</strong></td><td><span class="pill p-P1">High</span></td><td class="note">EN/FR UI</td><td class="note">Full Arabic RTL</td><td>partial: Arabic in reports</td><td>Arabic UI + documents (M9)</td></tr>
+<tr><td><strong>Cheques &amp; post-dated cheques in B2B (less since 2019, still common with suppliers)</strong></td><td><span class="pill p-P2">Medium</span></td><td class="note">Strong</td><td class="note">Check printing, batch payments</td><td>missing</td><td>M6 cheque register</td></tr>
+<tr><td><strong>Delivery companies &amp; cash-on-delivery for online sales</strong></td><td><span class="pill p-P2">Medium</span></td><td class="note">Generic shipping</td><td class="note">Shipping connectors (mostly international carriers)</td><td>missing</td><td>COD reconciliation with local couriers (M12)</td></tr>
+<tr><td><strong>Instagram/WhatsApp commerce rather than full web stores</strong></td><td><span class="pill p-P2">Medium</span></td><td class="note">Shopify/WooCommerce/Magento sync</td><td class="note">Own website + eCommerce</td><td>partial: WhatsApp</td><td>WhatsApp catalog + order links before a full store (M12)</td></tr>
+<tr><td><strong>Price-sensitive SMBs, per-user pricing hurts, want local support in Arabic</strong></td><td><span class="pill p-P1">High</span></td><td class="note">Price on request, local team</td><td class="note">Per-user pricing + partner implementation fees</td><td>own team, fast changes</td><td>Per-branch flat pricing published openly (M9)</td></tr>
+<tr><td><strong>Secondhand clothing / bale trade (bala), graded stock sold by piece or kilo</strong></td><td><span class="pill p-P1">High (our niche)</span></td><td class="note">Generic unpacking/disassembly</td><td class="note">Generic manufacturing/kits</td><td>missing</td><td>Bale opening with grade yields &amp; landed cost (M3)</td></tr>
+</tbody></table></div></section>
 <section id="nightmare"><h2>How we become their nightmare</h2><div class="card"><ul class="tight">
+<li><strong>The Lebanon-native ERP</strong>: USD+LBP at the till and in the books, WhatsApp everywhere, NSSF payroll, offline-first — the gap between Wizard&#x27;s old stack and Odoo&#x27;s foreign one.</li>
+<li><strong>AI that Odoo charges credits for</strong>: bill scanning, &#x27;Ask kashi&#x27;, anomaly alerts (O1).</li>
 <li><strong>&#x27;Switch from Wizard in a weekend&#x27;</strong>: an importer that reads their exact data model (we&#x27;ve seen it: g_aux clients/suppliers, in_* documents, family levels, price lists, COA).</li>
 <li><strong>WhatsApp everything</strong>: statements, receipts, payslips, approvals, reminders, quotations sent as PDFs, customer portal by WhatsApp login. Wizard only does email/SMS.</li>
 <li><strong>Offline everywhere</strong>: till and mobile both truly offline-first with our proven outbox sync.</li>
@@ -485,6 +746,8 @@ footer{color:var(--muted);font-size:13px;text-align:center;padding:30px}
 <section id="sources"><h2>How this was researched</h2><div class="card"><ul class="tight">
 <li>Logged into thewizardcloud.net/98 as the R1 wholesale user (read-only): every route in their JavaScript, every form, grid column and Actions menu that loads, the full app config (268 document types, 57 document codes, 85 company options, price lists, warehouses, currencies, chart of accounts).</li>
 <li>Every page on wizardsolutions.net from its sitemap (70 pages): home, /modules, all 14 module pages, 23 industry pages, 4 &#x27;compare&#x27; pages (Odoo, SAP B1, Dynamics BC, QuickBooks), 5 guides, 14 glossary pages, about, customers.</li>
+<li>Every feature card on Wizard&#x27;s 23 industry pages and 5 guides (about 770 cards; the extra ones are in the &#x27;More Wizard detail&#x27; groups).</li>
+<li>Odoo: odoo.com/page/all-apps, the Point of Sale, Accounting, Inventory, Sales and Purchase feature pages, odoo.com/pricing, apps.odoo.com l10n_lb listings.</li>
 <li>A full survey of ~/Code/kashi (Go + Postgres + Vue HQ) and ~/Code/kashi-pos (Wails + SQLite till): routes, 219 kashi migrations, POS migrations, App.d.ts bindings, settings, integrations.</li>
 </ul></div></section></main><footer>kashi · internal roadmap</footer>
 <script>
