@@ -58,14 +58,17 @@
       <RptTable :columns="unlinkedColumns" compact :rows="unlinked" />
     </RptSection>
 
-    <!-- One page per employee: every day of the period, the days with no
-         punches too, so it can go straight into a payroll file. -->
+    <!-- Every day of the period per employee, the days with no punches too,
+         so it can go straight into a payroll file. Employees follow one
+         another down the page (one is never split across two pages), and a
+         period longer than ten days is laid out in two columns, so a month
+         takes about a third of a page instead of a page each. -->
     <template v-if="has('detail')">
       <section
         v-for="(p, index) in people"
         :key="p.key"
         class="rpt-section rpt-person-page"
-        :class="{ 'rpt-section--break': index > 0 || has('hours') || has('grid') }"
+        :class="{ 'rpt-person-page--next': index > 0 }"
       >
         <h2 class="rpt-person-title">
           {{ p.name }}
@@ -73,7 +76,23 @@
         </h2>
         <p v-if="branchOf(p)" class="rpt-note">{{ branchOf(p) }}</p>
         <RptKpis :items="personKpis(p)" />
+        <div v-if="splitDays" class="rpt-split">
+          <RptTable
+            :columns="splitColumns"
+            compact
+            :row-class="dayClass"
+            :rows="dayRows(p).slice(0, splitAt)"
+          />
+          <RptTable
+            :columns="splitColumns"
+            compact
+            :row-class="dayClass"
+            :rows="dayRows(p).slice(splitAt)"
+            :total="dayTotal(p)"
+          />
+        </div>
         <RptTable
+          v-else
           :columns="detailColumns"
           compact
           :row-class="dayClass"
@@ -227,6 +246,11 @@
     { key: 'worked', title: t('Worked'), type: 'hours', bar: true, strong: true },
     { key: 'flag', title: '', tag: true },
   ]
+  // Over ten days the day table goes in two columns, the first half of the
+  // days on the left. Without the bars: each half would scale its own.
+  const splitDays = computed(() => gridDays.value.length > 10)
+  const splitAt = computed(() => Math.ceil(gridDays.value.length / 2))
+  const splitColumns = detailColumns.map(c => (c.bar ? { ...c, bar: false } : c))
   // Missing a punch: orange; no punches at all: greyed.
   const dayClass = r => (r.incomplete ? 'rpt-row--warn' : (r.spans === '' && !r.isTotal ? 'rpt-row--off' : ''))
   const branchOf = p => props.ctx.branchNames[props.ctx.people.list.find(x => x.key === p.key)?.branchId] ?? p.branch
