@@ -1596,6 +1596,11 @@ type Querier interface {
 	PeriodReportDiscounts(ctx context.Context, arg PeriodReportDiscountsParams) ([]PeriodReportDiscountsRow, error)
 	// What sales and refunds went through, by the till's payment account name.
 	PeriodReportPaymentMethods(ctx context.Context, arg PeriodReportPaymentMethodsParams) ([]PeriodReportPaymentMethodsRow, error)
+	// The attribute values (brand, sub-category, kind, origin, year, season...)
+	// and suppliers of the products in product_ids -- the period's products --
+	// so the page can break sales down by any of them. Blank values are left
+	// out; a product with none counts as "not set" on the page.
+	PeriodReportProductAttributes(ctx context.Context, productIds []int64) ([]PeriodReportProductAttributesRow, error)
 	// Every product sold in the period, net of returns. Lines whose barcode
 	// never resolved to a kashi product come back as one row with product_id 0.
 	PeriodReportProducts(ctx context.Context, arg PeriodReportProductsParams) ([]PeriodReportProductsRow, error)

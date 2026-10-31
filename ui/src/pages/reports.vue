@@ -528,6 +528,16 @@
         { key: 'kpis.products', comp: 'products', title: 'Headline figures' },
         { key: 'categories', comp: 'products', title: 'Categories' },
         { key: 'bestsellers', comp: 'products', title: 'Best sellers' },
+        { key: 'profitable', comp: 'products', section: 'Profit', title: 'Most profitable' },
+        { key: 'lowMargin', comp: 'products', section: 'Profit', title: 'Lowest margins' },
+        { key: 'by.brand', comp: 'products', section: 'Breakdowns', title: 'By brand' },
+        { key: 'by.type', comp: 'products', section: 'Breakdowns', title: 'By product type' },
+        { key: 'by.audience', comp: 'products', section: 'Breakdowns', title: 'By who it\'s for' },
+        { key: 'by.origin', comp: 'products', section: 'Breakdowns', title: 'By country of origin' },
+        { key: 'by.year', comp: 'products', section: 'Breakdowns', title: 'By collection year' },
+        { key: 'by.season', comp: 'products', section: 'Breakdowns', title: 'By season' },
+        { key: 'by.supplier', comp: 'products', section: 'Breakdowns', title: 'By supplier' },
+        { key: 'priceBands', comp: 'products', section: 'Breakdowns', title: 'Price ranges' },
         { key: 'attrs.sizes', comp: 'products', section: 'Sizes and colours', title: 'Units by size' },
         { key: 'attrs.colours', comp: 'products', section: 'Sizes and colours', title: 'Units by colour' },
         { key: 'returned', comp: 'products', title: 'Most returned' },
@@ -550,6 +560,7 @@
     ratings: ['ratings.answers', 'ratings.daily', 'ratings.branches'],
     reviews: ['reviews.funnel', 'reviews.google'],
     attrs: ['attrs.sizes', 'attrs.colours'],
+    by: ['by.brand', 'by.type', 'by.audience', 'by.origin', 'by.year', 'by.season', 'by.supplier', 'priceBands'],
   }
   // Headings over the second and later blocks of a report, and the group
   // labels of the part checkboxes.
