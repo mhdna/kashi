@@ -10972,6 +10972,21 @@ func (mr *MockStoreMockRecorder) PeriodReportPaymentMethods(arg0, arg1 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PeriodReportPaymentMethods", reflect.TypeOf((*MockStore)(nil).PeriodReportPaymentMethods), arg0, arg1)
 }
 
+// PeriodReportProductAttributes mocks base method.
+func (m *MockStore) PeriodReportProductAttributes(arg0 context.Context, arg1 []int64) ([]db.PeriodReportProductAttributesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PeriodReportProductAttributes", arg0, arg1)
+	ret0, _ := ret[0].([]db.PeriodReportProductAttributesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PeriodReportProductAttributes indicates an expected call of PeriodReportProductAttributes.
+func (mr *MockStoreMockRecorder) PeriodReportProductAttributes(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PeriodReportProductAttributes", reflect.TypeOf((*MockStore)(nil).PeriodReportProductAttributes), arg0, arg1)
+}
+
 // PeriodReportProducts mocks base method.
 func (m *MockStore) PeriodReportProducts(arg0 context.Context, arg1 db.PeriodReportProductsParams) ([]db.PeriodReportProductsRow, error) {
 	m.ctrl.T.Helper()

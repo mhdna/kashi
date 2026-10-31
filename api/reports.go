@@ -144,6 +144,20 @@ func (server *Server) getReports(ctx *gin.Context) {
 		return
 	}
 
+	// Attributes and suppliers of the products sold, for the breakdowns by
+	// brand, type, origin and so on. Needs the product list, so it runs after.
+	productIDs := make([]int64, 0, len(products))
+	for _, p := range products {
+		if p.ProductID > 0 {
+			productIDs = append(productIDs, p.ProductID)
+		}
+	}
+	productAttributes, err := server.store.PeriodReportProductAttributes(ctx, productIDs)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
 	server.writeJSON(ctx, http.StatusOK, envelope{
 		"summary":                summary,
 		"daily":                  orEmpty(daily),
@@ -154,6 +168,7 @@ func (server *Server) getReports(ctx *gin.Context) {
 		"salesperson_categories": orEmpty(spCategories),
 		"products":               orEmpty(products),
 		"variant_attributes":     orEmpty(attributes),
+		"product_attributes":     orEmpty(productAttributes),
 		"clients":                orEmpty(clients),
 		"payment_methods":        orEmpty(payments),
 		"discounts":              orEmpty(discounts),

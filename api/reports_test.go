@@ -28,7 +28,7 @@ func TestGetReports(t *testing.T) {
 
 	// expectAll sets every report query up to answer empty, except the
 	// summary, which the test checks comes back as it was given.
-	expectAll := func(store *mockdb.MockStore, ids []int64) {
+	expectAll := func(store *mockdb.MockStore, ids []int64, products ...db.PeriodReportProductsRow) {
 		store.EXPECT().GetReportSettings(gomock.Any()).Return(json.RawMessage(`{"exclusions":{"products":[{"id":7,"label":"Bag"}],"clients":[{"id":9,"label":"Staff"}]}}`), nil)
 		// The saved exclusions go to every query.
 		store.EXPECT().PeriodReportSummary(gomock.Any(), db.PeriodReportSummaryParams{FromDay: from, ToDay: to, BranchIds: ids, ExcludeProductIds: []int64{7}, ExcludeClientIds: []int64{9}}).
@@ -39,7 +39,17 @@ func TestGetReports(t *testing.T) {
 		store.EXPECT().PeriodReportSalespersons(gomock.Any(), gomock.Any()).Return(nil, nil)
 		store.EXPECT().PeriodReportSalespersonDaily(gomock.Any(), gomock.Any()).Return(nil, nil)
 		store.EXPECT().PeriodReportSalespersonCategories(gomock.Any(), gomock.Any()).Return(nil, nil)
-		store.EXPECT().PeriodReportProducts(gomock.Any(), gomock.Any()).Return(nil, nil)
+		store.EXPECT().PeriodReportProducts(gomock.Any(), gomock.Any()).Return(products, nil)
+		// Attributes are asked for the resolved products only (id 0 is the
+		// unresolved-lines row).
+		productIDs := []int64{}
+		for _, p := range products {
+			if p.ProductID > 0 {
+				productIDs = append(productIDs, p.ProductID)
+			}
+		}
+		store.EXPECT().PeriodReportProductAttributes(gomock.Any(), productIDs).
+			Return([]db.PeriodReportProductAttributesRow{}, nil)
 		store.EXPECT().PeriodReportVariantAttributes(gomock.Any(), gomock.Any()).Return(nil, nil)
 		store.EXPECT().PeriodReportClients(gomock.Any(), gomock.Any()).Return(nil, nil)
 		store.EXPECT().PeriodReportPaymentMethods(gomock.Any(), gomock.Any()).Return(nil, nil)
@@ -58,9 +68,16 @@ func TestGetReports(t *testing.T) {
 		require.Contains(t, string(body["summary"]), `"sales_count":12`)
 		// Empty sections are [] so the page can map over them as they are.
 		for _, key := range []string{"daily", "branches", "weekday_hour", "salespersons", "salesperson_daily",
-			"salesperson_categories", "products", "variant_attributes", "clients", "payment_methods", "discounts"} {
+			"salesperson_categories", "products", "variant_attributes", "product_attributes", "clients", "payment_methods", "discounts"} {
 			require.Equal(t, "[]", string(body[key]), key)
 		}
+	})
+
+	t.Run("attributes of the products sold", func(t *testing.T) {
+		store := mockdb.NewMockStore(gomock.NewController(t))
+		server := newTestServer(t, store)
+		expectAll(store, []int64{}, db.PeriodReportProductsRow{ProductID: 5}, db.PeriodReportProductsRow{ProductID: 0}, db.PeriodReportProductsRow{ProductID: 8})
+		require.Equal(t, http.StatusOK, get(server, "from=2026-09-01&to=2026-09-30").Code)
 	})
 
 	t.Run("a failing query is a server error", func(t *testing.T) {

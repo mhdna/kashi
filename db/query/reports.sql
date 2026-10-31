@@ -307,6 +307,24 @@ GROUP BY 1, 2, 3, 4
 ORDER BY revenue DESC
 LIMIT 5000;
 
+-- name: PeriodReportProductAttributes :many
+-- The attribute values (brand, sub-category, kind, origin, year, season...)
+-- and suppliers of the products in product_ids -- the period's products --
+-- so the page can break sales down by any of them. Blank values are left
+-- out; a product with none counts as "not set" on the page.
+SELECT pa.product_id, a.name::text AS attribute, av.value::text AS value
+FROM products_attributes pa
+JOIN attributes a ON a.id = pa.attribute_id
+JOIN attributes_values av ON av.id = pa.attribute_value_id
+WHERE pa.product_id = ANY(sqlc.arg(product_ids)::bigint[])
+  AND btrim(av.value) <> ''
+UNION ALL
+SELECT ps.product_id, 'supplier'::text, s.name::text
+FROM product_suppliers ps
+JOIN suppliers s ON s.id = ps.supplier_id
+WHERE ps.product_id = ANY(sqlc.arg(product_ids)::bigint[])
+  AND btrim(s.name) <> '';
+
 -- name: PeriodReportVariantAttributes :many
 -- Units and revenue by size and by colour (kind 'size' / 'color'), net of
 -- returns, for resolved lines only.
