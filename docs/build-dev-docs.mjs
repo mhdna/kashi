@@ -89,7 +89,7 @@ function renderBlocks(src) {
       if (kind === 'stats') {
         out.push(`<div class="stats">${rows.map(([v, l, c, ic]) => `<div class="stat ${c}">${icon(ic || 'mdiChartBox')}<b>${esc(v)}</b><span>${inline(l)}</span></div>`).join('')}</div>`)
       } else {
-        out.push(`<div class="cards">${rows.map(([ic, t, tx, c]) => `<div class="card ${c || 'indigo'}"><div class="ci">${icon(ic)}</div><h4>${inline(t)}</h4><p>${inline(tx || '')}</p></div>`).join('')}</div>`)
+        out.push(`<div class="vcards">${rows.map(([ic, t, tx, c]) => `<div class="vc ${c || 'indigo'}"><div class="ci">${icon(ic)}</div><h4>${inline(t)}</h4><p>${inline(tx || '')}</p></div>`).join('')}</div>`)
       }
     } else if (line.startsWith('::: gallery')) {
       const buf = []
@@ -217,13 +217,18 @@ for (const s of sections) {
 }
 for (const s of sections) {
   let fence = false
+  let blk = false
   s.lead = ''
   for (const l of s.lines) {
     if (l.startsWith('```')) { fence = !fence; continue }
+    if (blk) { if (l.trim() === ':::') blk = false; continue }
+    if (/^::: (glance|stats|cards|gallery|timeline|details)/.test(l)) { blk = true; continue }
     if (fence || !l.trim() || /^(#|\||>|:::|\s*[-*] |\s*\d+\. |---)/.test(l)) continue
     s.lead = l.trim().replace(/`/g, '').replace(/\*\*/g, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
     break
   }
+  if (config.leads && config.leads[s.id]) s.lead = config.leads[s.id]
+  s.color = config.colors && config.colors[s.id]
   s.html = renderBlocks(s.lines)
   s.toc = [...s.html.matchAll(/<h3 id="([^"]+)">(.*?)<\/h3>/g)].map((m) => [m[1], m[2].replace(/<[^>]+>/g, '')])
   s.text = s.html.replace(/<svg[\s\S]*?<\/svg>/g, ' ').replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ')
@@ -242,7 +247,7 @@ const navHtml = groups.map((g) =>
 
 const cardsHtml = groups.map((g) =>
   `<h3 class="gh">${esc(g.name)}</h3><div class="cards">` +
-  g.items.map((s) => `<a class="card" href="#${s.id}" data-id="${s.id}"><span class="ci">${icon(s.icon)}</span><b>${esc(s.title)}</b><span>${esc(s.lead.slice(0, 120))}${s.lead.length > 120 ? '...' : ''}</span></a>`).join('') + '</div>').join('')
+  g.items.map((s) => `<a class="card" href="#${s.id}" data-id="${s.id}"><span class="ci"${s.color ? ` style="background:${s.color};color:#fff"` : ''}>${icon(s.icon)}</span><b>${esc(s.title)}</b><span>${esc(s.lead.slice(0, 120))}${s.lead.length > 120 ? '...' : ''}</span></a>`).join('') + '</div>').join('')
 
 const pagesHtml = sections.map((s, n) => {
   const prev = sections[n - 1]
@@ -321,14 +326,14 @@ ol.steps li:before{content:counter(s);position:absolute;left:16px;top:16px;width
 .glance h2{display:flex;align-items:center;gap:10px;font:500 18px Roboto,sans-serif;margin:12px 0 4px;color:var(--t)}.glance h2 .ic{color:var(--acc)}
 .glance ul{list-style:none;padding:0;margin:0}.glance li{position:relative;padding:5px 0 5px 22px;margin:0;line-height:26px}.glance li:before{content:"";position:absolute;left:4px;top:15px;width:7px;height:7px;border-radius:50%;background:var(--acc)}
 .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin:12px 0}.gallery a{display:block;background:var(--s);border-radius:2px;box-shadow:var(--e1);overflow:hidden;text-decoration:none;color:var(--m);font-size:12px}.gallery img{width:100%;height:160px;object-fit:cover;object-position:top;display:block;background:#fff}.gallery span{display:block;padding:6px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chip.green,.stat.green,.card.green{--c:#2e7d32}.chip.teal,.stat.teal,.card.teal{--c:#00796b}.chip.amber,.stat.amber,.card.amber{--c:#f9a825}.chip.red,.stat.red,.card.red{--c:#c62828}.chip.grey,.stat.grey,.card.grey{--c:#757575}.chip.indigo,.stat.indigo,.card.indigo{--c:#3f51b5}.chip.blue,.stat.blue,.card.blue{--c:#1565c0}.chip.purple,.stat.purple,.card.purple{--c:#6a1b9a}.chip.orange,.stat.orange,.card.orange{--c:#ef6c00}.chip.pink,.stat.pink,.card.pink{--c:#ad1457}.chip{display:inline-block;padding:1px 10px;border-radius:12px;font:500 13px/20px Roboto,sans-serif;white-space:nowrap;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);border:1px solid color-mix(in srgb,var(--c) 40%,transparent)}
+.chip.green,.stat.green,.vc.green{--c:#2e7d32}.chip.teal,.stat.teal,.vc.teal{--c:#00796b}.chip.amber,.stat.amber,.vc.amber{--c:#f9a825}.chip.red,.stat.red,.vc.red{--c:#c62828}.chip.grey,.stat.grey,.vc.grey{--c:#757575}.chip.indigo,.stat.indigo,.vc.indigo{--c:#3f51b5}.chip.blue,.stat.blue,.vc.blue{--c:#1565c0}.chip.purple,.stat.purple,.vc.purple{--c:#6a1b9a}.chip.orange,.stat.orange,.vc.orange{--c:#ef6c00}.chip.pink,.stat.pink,.vc.pink{--c:#ad1457}.chip{display:inline-block;padding:1px 10px;border-radius:12px;font:500 13px/20px Roboto,sans-serif;white-space:nowrap;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);border:1px solid color-mix(in srgb,var(--c) 40%,transparent)}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0}
 .stat{background:var(--s);border-radius:2px;box-shadow:var(--e1);border-top:4px solid var(--c);padding:14px 16px;display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-items:center}
 .stat .ic{grid-row:span 2;width:34px;height:34px;color:var(--c)}.stat b{font:500 30px/34px Roboto,sans-serif;color:var(--c)}.stat span{color:var(--m);font-size:14px}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin:16px 0}
-.card{background:var(--s);border-radius:2px;box-shadow:var(--e1);padding:16px;border-top:4px solid var(--c)}
-.card .ci{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--c);margin-bottom:8px}.card .ci .ic{width:24px;height:24px}
-.card h4{margin:0 0 4px;font:500 17px Roboto,sans-serif}.card p{margin:0;color:var(--m);font-size:14px;line-height:21px}
+.vcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin:16px 0}
+.vc{background:var(--s);border-radius:2px;box-shadow:var(--e1);padding:16px;border-top:4px solid var(--c)}
+.vc .ci{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--c);margin-bottom:8px}.vc .ci .ic{width:24px;height:24px}
+.vc h4{margin:0 0 4px;font:500 17px Roboto,sans-serif}.vc p{margin:0;color:var(--m);font-size:14px;line-height:21px}
 .fig svg{max-width:100%;height:auto}
 .fig{background:var(--s);border-radius:2px;box-shadow:var(--e1);padding:16px;text-align:center}.fig img{max-width:100%;background:#fff}figcaption{color:var(--m);font-size:14px;margin-top:8px}
 .diagram{width:100%;height:auto;font-family:Roboto,sans-serif}
@@ -350,7 +355,7 @@ ol.timeline{list-style:none;margin:24px 0;padding:0 0 0 32px;border-left:2px sol
 .home .big h1{font:300 54px/62px Roboto,sans-serif;margin:0 0 12px;color:#fff}.home .big p{color:rgba(255,255,255,.87);max-width:760px;font-size:19px;line-height:30px}.home .big code{background:rgba(255,255,255,.2);color:#fff}.home .big a{color:#ff80ab}.home .big .chips a{color:#fff}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}.chips a{display:flex;align-items:center;gap:8px;padding:0 16px;height:42px;border-radius:2px;color:#fff;text-transform:uppercase;font:500 16px Roboto,sans-serif;letter-spacing:.5px;background:rgba(255,255,255,.15)}.chips a:hover{background:rgba(255,255,255,.28);text-decoration:none}
 .chips .ic{width:18px;height:18px}.gh{font:500 16px Roboto,sans-serif;color:var(--m);margin:32px 0 8px;padding-bottom:8px;border-bottom:1px solid var(--o)}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.vcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
 .card{display:flex;flex-direction:column;gap:6px;padding:16px;background:var(--s);border-radius:2px;box-shadow:var(--e1);color:var(--t);transition:box-shadow .2s}
 .card:hover{box-shadow:var(--e2);text-decoration:none}.card b{font:500 19px Roboto,sans-serif}.card span:last-child{color:var(--m);font-size:15.5px;line-height:23px}
 .ci{width:48px;height:48px;border-radius:50%;background:var(--p);color:#fff;display:grid;place-items:center;margin-bottom:6px}:root[data-theme=dark] .ci{color:#212121}
