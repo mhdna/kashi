@@ -161,6 +161,7 @@
 .rpt-kpis { position: relative; }
 .rpt-kpis__hide { position: absolute; top: 4px; inset-inline-end: 0; }
 /* Coloured rows: a day missing a punch, a day off. */
+.rpt-table tbody tr.rpt-row--auto td { background: #e6f0ff; }
 .rpt-table tbody tr.rpt-row--warn td { background: #fff3e6; }
 .rpt-table tr.rpt-row--warn .rpt-tag { background: #fde1c4; color: #8a4b00; }
 .rpt-table tr.rpt-row--warn .rpt-bar { background: #f0a35e; }

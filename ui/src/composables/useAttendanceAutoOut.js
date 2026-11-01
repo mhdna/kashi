@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useReports } from '@/composables/useReports'
 import { parseMinutes } from '@/utils/attendanceSessions'
 
@@ -11,6 +11,20 @@ import { parseMinutes } from '@/utils/attendanceSessions'
 const autoInTime = ref('')
 const autoOutTime = ref('')
 let seeded = false
+
+// Which assumed times to mark on screen: 'off' | 'in' | 'out' | 'both'. A
+// view option, kept in this browser.
+const stored = localStorage.getItem('attendance.highlightAuto')
+const highlightAuto = ref(['in', 'out', 'both'].includes(stored) ? stored : 'off')
+watch(highlightAuto, value => localStorage.setItem('attendance.highlightAuto', value))
+const HIGHLIGHT_OPTIONS = [
+  { title: 'No highlight', value: 'off' },
+  { title: 'Highlight auto in', value: 'in' },
+  { title: 'Highlight auto out', value: 'out' },
+  { title: 'Highlight both', value: 'both' },
+]
+// Is a session's assumed side ('in' / 'out' / undefined) to be marked?
+export const isHighlighted = auto => Boolean(auto) && (highlightAuto.value === 'both' || highlightAuto.value === auto)
 
 function applyDefaults (defaults) {
   autoInTime.value = defaults?.auto_in ?? ''
@@ -40,6 +54,8 @@ export function useAttendanceAutoOut () {
   return {
     autoInTime,
     autoOutTime,
+    highlightAuto,
+    HIGHLIGHT_OPTIONS,
     autoInMinutes: computed(() => toMinutes(autoInTime.value)),
     autoOutMinutes: computed(() => toMinutes(autoOutTime.value)),
     applyAutoDefaults: applyDefaults,

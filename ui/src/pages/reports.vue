@@ -140,6 +140,14 @@
             variant="outlined"
           />
         </div>
+        <v-select
+          v-model="highlightAuto"
+          density="compact"
+          hide-details
+          :items="HIGHLIGHT_OPTIONS"
+          label="Highlight auto in / out (*)"
+          variant="outlined"
+        />
         <div class="d-flex ga-2">
           <v-text-field
             v-model="autoInTime"
@@ -628,7 +636,7 @@
   const notify = useNotify()
   const { canEdit } = usePageAccess()
   const { getReports, getReportSettings, saveReportSettings } = useReports()
-  const { autoInTime, autoOutTime, autoInMinutes, autoOutMinutes, applyAutoDefaults } = useAttendanceAutoOut()
+  const { autoInTime, autoOutTime, highlightAuto, HIGHLIGHT_OPTIONS, autoInMinutes, autoOutMinutes, applyAutoDefaults } = useAttendanceAutoOut()
   const { listEventsInRange } = useAttendance()
   const { listBranchSalespersons } = useBranchSalespersons()
   const { getReviews } = useReviews()

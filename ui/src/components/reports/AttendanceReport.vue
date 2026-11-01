@@ -110,6 +110,7 @@
 
 <script setup>
   import { computed } from 'vue'
+  import { isHighlighted } from '@/composables/useAttendanceAutoOut'
   import { formatClock, isSkippedPunch } from '@/utils/attendanceSessions'
   import { reportLang, t } from './reportI18n'
   import { csvSection, dayLabel, daysBetween, hours, int, num1 } from './reportKit'
@@ -182,11 +183,12 @@
       p.rows.push({
         date: row.date,
         // Clock times stay left-to-right inside an Arabic line.
-        spans: row.sessions.map(s => `⁦${formatClock(s.in) || '?'}–${formatClock(s.out) || '?'}⁩`).join(reportLang() === 'ar' ? '، ' : ', '),
+        spans: row.sessions.map(s => `⁦${formatClock(s.in) || '?'}${isHighlighted(s.auto) && s.auto === 'in' ? '*' : ''}–${formatClock(s.out) || '?'}${isHighlighted(s.auto) && s.auto === 'out' ? '*' : ''}⁩`).join(reportLang() === 'ar' ? '، ' : ', '),
         breaks: row.breakTotal || null,
         // A day missing a punch with nothing countable shows no hours.
         worked: row.incomplete && row.worked < 1 ? null : row.worked,
         incomplete: row.incomplete,
+        auto: row.sessions.some(s => isHighlighted(s.auto)),
         flag: row.incomplete ? missingPunch : '',
       })
     }
@@ -262,7 +264,11 @@
     .filter(c => !c.tag)
     .map(c => (c.bar ? { ...c, bar: false } : c))
   // Missing a punch: orange; no punches at all: greyed.
-  const dayClass = r => (r.incomplete ? 'rpt-row--warn' : (r.spans === '' && !r.isTotal ? 'rpt-row--off' : ''))
+  function dayClass (r) {
+    if (r.incomplete) {return 'rpt-row--warn'}
+    if (r.auto) {return 'rpt-row--auto'}
+    return r.spans === '' && !r.isTotal ? 'rpt-row--off' : ''
+  }
   const branchOf = p => props.ctx.branchNames[props.ctx.people.list.find(x => x.key === p.key)?.branchId] ?? p.branch
   // Every day of the period; a day without punches shows as such.
   function dayRows (p) {

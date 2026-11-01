@@ -64,7 +64,7 @@ export const isSkippedPunch = event => String(event.status ?? '').startsWith('Sk
 // An IN never closed by the end of the day is closed at `autoOut` (minutes
 // since midnight), the way a shop that locks up at a fixed hour reads it.
 // Only a day that is over (or today, once the hour has passed) and only an
-// IN earlier than that hour; the span is flagged `auto` so it shows as
+// IN earlier than that hour; the span is flagged `auto` ('in' / 'out') so it shows as
 // assumed, not as a punch.
 function closeOpenSessions (sessions, date, autoOut) {
   const last = sessions.at(-1)
@@ -74,7 +74,7 @@ function closeOpenSessions (sessions, date, autoOut) {
   const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
   if (date > today || (date === today && now.getHours() * 60 + now.getMinutes() < autoOut)) {return}
   last.out = autoOut
-  last.auto = true
+  last.auto = 'out'
 }
 
 // An OUT with no IN before it (the person never scanned in) is opened at
@@ -84,7 +84,7 @@ function openClosedSessions (sessions, autoIn) {
   for (const s of sessions) {
     if (s.in === null && s.out !== null && s.out > autoIn) {
       s.in = autoIn
-      s.auto = true
+      s.auto = 'in'
     }
   }
 }

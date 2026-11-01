@@ -32,6 +32,15 @@
         type="time"
         variant="outlined"
       />
+      <v-select
+        v-model="highlightAuto"
+        class="timesheet-person"
+        density="compact"
+        hide-details
+        :items="HIGHLIGHT_OPTIONS"
+        label="Highlight"
+        variant="outlined"
+      />
       <v-btn
         :loading="savingAuto"
         prepend-icon="mdi-content-save-outline"
@@ -73,14 +82,14 @@
             </td>
             <template v-for="n in maxSessions" :key="n">
               <td class="text-center">
-                <span v-if="row.sessions[n - 1]" :class="{ 'text-error': row.sessions[n - 1].in === null }">
+                <span v-if="row.sessions[n - 1]" :class="{ 'text-error': row.sessions[n - 1].in === null, 'auto-hl': row.sessions[n - 1].auto === 'in' && isHighlighted('in') }">
                   {{ row.sessions[n - 1].in === null ? 'missing' : formatClock(row.sessions[n - 1].in) }}
                 </span>
               </td>
               <td class="text-center">
                 <template v-if="row.sessions[n - 1]">
                   <v-chip v-if="isStillIn(row, n - 1)" color="green" size="x-small" text="still in" />
-                  <span v-else :class="{ 'text-error': row.sessions[n - 1].out === null }">
+                  <span v-else :class="{ 'text-error': row.sessions[n - 1].out === null, 'auto-hl': row.sessions[n - 1].auto === 'out' && isHighlighted('out') }">
                     {{ row.sessions[n - 1].out === null ? 'missing' : formatClock(row.sessions[n - 1].out) }}
                   </span>
                 </template>
@@ -136,6 +145,7 @@
               <div
                 v-if="s.in !== null && s.out !== null"
                 class="timeline-span"
+                :class="{ 'timeline-span--auto': isHighlighted(s.auto) }"
                 :style="spanStyle(s.in, s.out)"
                 :title="`${formatClock(s.in)}–${formatClock(s.out)} (${formatDuration(s.out - s.in)})`"
               />
@@ -206,7 +216,7 @@
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue'
   import { useAttendance } from '@/composables/useAttendance'
-  import { useAttendanceAutoOut } from '@/composables/useAttendanceAutoOut'
+  import { isHighlighted, useAttendanceAutoOut } from '@/composables/useAttendanceAutoOut'
   import { useNotify } from '@/composables/useNotify'
   import { buildTimesheet, formatClock, formatDuration } from '@/utils/attendanceSessions'
 
@@ -242,7 +252,7 @@
 
   const loading = ref(false)
   const events = ref([])
-  const { autoInTime, autoOutTime, autoInMinutes, autoOutMinutes, ensureAutoDefaults, saveAutoDefaults } = useAttendanceAutoOut()
+  const { autoInTime, autoOutTime, highlightAuto, HIGHLIGHT_OPTIONS, autoInMinutes, autoOutMinutes, ensureAutoDefaults, saveAutoDefaults } = useAttendanceAutoOut()
   ensureAutoDefaults()
   const savingAuto = ref(false)
   async function saveAuto () {
@@ -408,6 +418,15 @@
 }
 .timesheet-person {
   flex: 0 1 260px;
+}
+.auto-hl {
+  background: rgba(var(--v-theme-warning), 0.35);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+.timeline-span--auto {
+  background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.45) 0 4px, transparent 4px 8px);
+  outline: 2px solid rgb(var(--v-theme-warning));
 }
 .timesheet-autoout {
   flex: 0 1 150px;
