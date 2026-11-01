@@ -5,7 +5,7 @@ export default {
   title: 'Kashi developer docs',
   out: 'dev-docs.html',
   mdiFrom: ['../ui/package.json'],
-  favicon: { icon: 'mdiStorefront', bg: '#00796b' },
+  favicon: { icon: 'mdiCodeBraces', bg: '#3949ab' },
   source: { file: 'DEV_DOCS.md' },
   chips: [
     ['till-sync', 'Till sync', 'mdiSync'],
