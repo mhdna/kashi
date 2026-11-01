@@ -17,8 +17,12 @@ import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const dir = dirname(fileURLToPath(import.meta.url))
-const config = (await import('./dev-docs.config.mjs')).default
+// Optional argument: path to another config file; paths in it are relative to that file.
+import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
+const cfgPath = process.argv[2] ? resolve(process.argv[2]) : join(dirname(fileURLToPath(import.meta.url)), 'dev-docs.config.mjs')
+const dir = dirname(cfgPath)
+const config = (await import(pathToFileURL(cfgPath).href)).default
 const DIAGRAMS = config.diagrams
 let mdi = {}
 for (const from of config.mdiFrom) {
@@ -74,6 +78,15 @@ function renderBlocks(src) {
       const [path, cap] = line.replace('::: image', '').split('|').map((s) => s.trim())
       out.push(`<figure class="fig"><img src="${path}" alt="${esc(cap || '')}"><figcaption>${inline(cap || '')}</figcaption></figure>`)
       i++
+    } else if (line.startsWith('::: gallery')) {
+      const buf = []
+      i++
+      while (i < src.length && src[i].trim() !== ':::') buf.push(src[i++])
+      i++
+      out.push(`<div class="gallery">${buf.filter((l) => l.includes('|')).map((l) => {
+        const [p, c] = l.split('|').map((x) => x.trim())
+        return `<a href="${p}" target="_blank"><img loading="lazy" src="${p}" alt="${esc(c)}"><span>${esc(c)}</span></a>`
+      }).join('')}</div>`)
     } else if (line.startsWith('::: glance')) {
       const buf = []
       i++
@@ -294,6 +307,7 @@ ol.steps li:before{content:counter(s);position:absolute;left:16px;top:16px;width
 .glance{background:var(--s);border-radius:2px;box-shadow:var(--e1);border-top:4px solid var(--acc);padding:4px 20px 12px;margin:16px 0}
 .glance h2{display:flex;align-items:center;gap:10px;font:500 18px Roboto,sans-serif;margin:12px 0 4px;color:var(--t)}.glance h2 .ic{color:var(--acc)}
 .glance ul{list-style:none;padding:0;margin:0}.glance li{position:relative;padding:5px 0 5px 22px;margin:0;line-height:26px}.glance li:before{content:"";position:absolute;left:4px;top:15px;width:7px;height:7px;border-radius:50%;background:var(--acc)}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin:12px 0}.gallery a{display:block;background:var(--s);border-radius:2px;box-shadow:var(--e1);overflow:hidden;text-decoration:none;color:var(--m);font-size:12px}.gallery img{width:100%;height:160px;object-fit:cover;object-position:top;display:block;background:#fff}.gallery span{display:block;padding:6px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fig{background:var(--s);border-radius:2px;box-shadow:var(--e1);padding:16px;text-align:center}.fig img{max-width:100%;background:#fff}figcaption{color:var(--m);font-size:14px;margin-top:8px}
 .diagram{width:100%;height:auto;font-family:Roboto,sans-serif}
 .box rect{fill:var(--sv);stroke:var(--o);stroke-width:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.25))}.bt{font-size:16.5px;font-weight:500;fill:var(--t);text-anchor:middle}.bs{font-size:14px;fill:var(--m);text-anchor:middle}
