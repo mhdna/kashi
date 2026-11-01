@@ -394,7 +394,9 @@ const intro = config.source.file
   : renderBlocks(config.intro.split('\n'))
 
 const favSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${config.favicon.bg}"/><g transform="translate(10 10) scale(1.83)"><path fill="#fff" d="${mdi[config.favicon.icon] || ''}"/></g></svg>`
-const favicon = 'data:image/svg+xml,' + encodeURIComponent(favSvg)
+const favicon = config.favicon.file
+  ? 'data:image/png;base64,' + readFileSync(join(dir, config.favicon.file)).toString('base64')
+  : 'data:image/svg+xml,' + encodeURIComponent(favSvg)
 
 const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
