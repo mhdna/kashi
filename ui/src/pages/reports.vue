@@ -124,7 +124,7 @@
           label="Period"
           variant="outlined"
         />
-        <div v-if="period === 'custom'" class="d-flex ga-2">
+        <div v-if="period === 'custom'" class="d-flex flex-column ga-2">
           <DateField
             v-model="customFrom"
             density="compact"

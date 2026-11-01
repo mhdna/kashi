@@ -1,5 +1,8 @@
 <template>
   <v-date-input
+    first-day-of-week="1"
+    hide-actions
+    show-adjacent-months
     v-bind="$attrs"
     clearable
     :model-value="date"
