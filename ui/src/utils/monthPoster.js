@@ -103,7 +103,7 @@ export function drawMonthPoster ({ logo, month, events, colorToHex }) {
     ctx.fill()
 
     // Badge: the day the event starts in this month, with the month under it.
-    const shown = Math.max(event.start, first)
+    const shown = new Date(Math.max(event.start, first))
     ctx.fillStyle = onColor(hex)
     ctx.textAlign = 'center'
     ctx.font = `800 48px ${FONT}`
