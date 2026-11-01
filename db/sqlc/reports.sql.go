@@ -17,9 +17,9 @@ SELECT
   bi.branch_id,
   b.name AS branch_name,
   count(*) FILTER (WHERE bi.kind = 'sales')::bigint AS sales_count,
-  COALESCE(sum(bi.grand_total) FILTER (WHERE bi.kind = 'sales'), 0)::bigint AS sales_total,
-  COALESCE(sum(bi.grand_total) FILTER (WHERE bi.kind <> 'sales'), 0)::bigint AS returns_total,
-  COALESCE(sum(bi.grand_total), 0)::bigint AS net_total,
+  COALESCE(sum((bi.grand_total - branch_invoice_deferred_coupons(bi.id))) FILTER (WHERE bi.kind = 'sales'), 0)::bigint AS sales_total,
+  COALESCE(sum((bi.grand_total - branch_invoice_deferred_coupons(bi.id))) FILTER (WHERE bi.kind <> 'sales'), 0)::bigint AS returns_total,
+  COALESCE(sum((bi.grand_total - branch_invoice_deferred_coupons(bi.id))), 0)::bigint AS net_total,
   COALESCE(sum(bi.subtotal - bi.discounted_total) FILTER (WHERE bi.kind = 'sales'), 0)::bigint AS discount_total
 FROM branch_invoices bi
 JOIN branches b ON b.id = bi.branch_id
@@ -97,7 +97,7 @@ const periodReportClients = `-- name: PeriodReportClients :many
 WITH inv AS (
   SELECT
     COALESCE(cu.id, cl.client_id) AS client_id,
-    bi.kind, bi.grand_total, bi.branch_id, bi.occurred_at, bi.id
+    bi.kind, bi.grand_total - branch_invoice_deferred_coupons(bi.id) AS grand_total, bi.branch_id, bi.occurred_at, bi.id
   FROM branch_invoices bi
   JOIN branches b ON b.id = bi.branch_id
   LEFT JOIN clients cu ON cu.uid = bi.client_uid
@@ -219,8 +219,8 @@ WITH days AS (
   SELECT
     (bi.occurred_at AT TIME ZONE b.timezone)::date AS day,
     count(*) FILTER (WHERE bi.kind = 'sales')::bigint AS sales_count,
-    COALESCE(sum(bi.grand_total) FILTER (WHERE bi.kind = 'sales'), 0)::bigint AS sales_total,
-    COALESCE(sum(bi.grand_total), 0)::bigint AS net_total
+    COALESCE(sum((bi.grand_total - branch_invoice_deferred_coupons(bi.id))) FILTER (WHERE bi.kind = 'sales'), 0)::bigint AS sales_total,
+    COALESCE(sum((bi.grand_total - branch_invoice_deferred_coupons(bi.id))), 0)::bigint AS net_total
   FROM branch_invoices bi
   JOIN branches b ON b.id = bi.branch_id
   WHERE bi.occurred_at >= $1::date - 1 AND bi.occurred_at < $2::date + 2
@@ -691,7 +691,7 @@ SELECT
   bi.branch_id,
   (bi.occurred_at AT TIME ZONE b.timezone)::date AS day,
   count(*) FILTER (WHERE bi.kind = 'sales')::bigint AS sales_count,
-  COALESCE(sum(bi.grand_total), 0)::bigint AS net_total
+  COALESCE(sum((bi.grand_total - branch_invoice_deferred_coupons(bi.id))), 0)::bigint AS net_total
 FROM branch_invoices bi
 JOIN branches b ON b.id = bi.branch_id
 LEFT JOIN salespersons s ON s.id = bi.salesperson_id
@@ -767,7 +767,7 @@ func (q *Queries) PeriodReportSalespersonDaily(ctx context.Context, arg PeriodRe
 const periodReportSalespersons = `-- name: PeriodReportSalespersons :many
 WITH inv AS (
   SELECT
-    bi.id, bi.branch_id, bi.kind, bi.grand_total, bi.subtotal, bi.discounted_total,
+    bi.id, bi.branch_id, bi.kind, bi.grand_total - branch_invoice_deferred_coupons(bi.id) AS grand_total, bi.subtotal, bi.discounted_total,
     (bi.occurred_at AT TIME ZONE b.timezone) AS local_at,
     COALESCE(bi.salesperson_id, 0)::bigint AS salesperson_id,
     COALESCE(s.name, NULLIF(bi.salesperson_name, ''), '')::text AS salesperson_name,
@@ -897,7 +897,7 @@ func (q *Queries) PeriodReportSalespersons(ctx context.Context, arg PeriodReport
 const periodReportSummary = `-- name: PeriodReportSummary :one
 
 WITH inv AS (
-  SELECT bi.id, bi.branch_id, bi.client_ref, bi.kind, bi.branch_invoice_code, bi.branch_cashbox_account_id, bi.branch_shift_id, bi.branch_inventory_id, bi.branch_client_id, bi.related_client_ref, bi.discount, bi.subtotal, bi.discounted_total, bi.grand_total, bi.loyalty_points_delta, bi.occurred_at, bi.received_at, bi.salesperson_name, bi.historical, bi.client_uid, bi.register_id, bi.cancelled_at, bi.salesperson_id, bi.lbp_total, bi.lbp_rate, bi.invoice_discount, bi.invoice_discount_name, COALESCE(cu.id, cl.client_id) AS client_id
+  SELECT bi.id, bi.branch_id, bi.client_ref, bi.kind, bi.branch_invoice_code, bi.branch_cashbox_account_id, bi.branch_shift_id, bi.branch_inventory_id, bi.branch_client_id, bi.related_client_ref, bi.discount, bi.subtotal, bi.discounted_total, bi.grand_total, bi.loyalty_points_delta, bi.occurred_at, bi.received_at, bi.salesperson_name, bi.historical, bi.client_uid, bi.register_id, bi.cancelled_at, bi.salesperson_id, bi.lbp_total, bi.lbp_rate, bi.invoice_discount, bi.invoice_discount_name, bi.grand_total - branch_invoice_deferred_coupons(bi.id) AS net_amount, COALESCE(cu.id, cl.client_id) AS client_id
   FROM branch_invoices bi
   JOIN branches b ON b.id = bi.branch_id
   LEFT JOIN clients cu ON cu.uid = bi.client_uid
@@ -919,13 +919,13 @@ WITH inv AS (
 )
 SELECT
   count(*) FILTER (WHERE kind = 'sales')::bigint AS sales_count,
-  COALESCE(sum(grand_total) FILTER (WHERE kind = 'sales'), 0)::bigint AS sales_total,
+  COALESCE(sum(net_amount) FILTER (WHERE kind = 'sales'), 0)::bigint AS sales_total,
   count(*) FILTER (WHERE kind <> 'sales')::bigint AS returns_count,
-  COALESCE(sum(grand_total) FILTER (WHERE kind <> 'sales'), 0)::bigint AS returns_total,
-  COALESCE(sum(grand_total), 0)::bigint AS net_total,
+  COALESCE(sum(net_amount) FILTER (WHERE kind <> 'sales'), 0)::bigint AS returns_total,
+  COALESCE(sum(net_amount), 0)::bigint AS net_total,
   COALESCE(sum(subtotal - discounted_total) FILTER (WHERE kind = 'sales'), 0)::bigint AS discount_total,
   count(*) FILTER (WHERE kind = 'sales' AND subtotal > discounted_total)::bigint AS discounted_count,
-  COALESCE(max(grand_total) FILTER (WHERE kind = 'sales'), 0)::bigint AS biggest_sale,
+  COALESCE(max(net_amount) FILTER (WHERE kind = 'sales'), 0)::bigint AS biggest_sale,
   count(*) FILTER (WHERE kind = 'sales' AND client_id IS NOT NULL)::bigint AS named_sales_count,
   count(DISTINCT client_id)::bigint AS clients_served,
   count(DISTINCT (occurred_at AT TIME ZONE 'Asia/Beirut')::date) FILTER (WHERE kind = 'sales')::bigint AS selling_days,
@@ -1106,7 +1106,7 @@ SELECT
   EXTRACT(ISODOW FROM bi.occurred_at AT TIME ZONE b.timezone)::int AS weekday,
   EXTRACT(HOUR FROM bi.occurred_at AT TIME ZONE b.timezone)::int AS hour,
   count(*)::bigint AS sales_count,
-  COALESCE(sum(bi.grand_total), 0)::bigint AS sales_total,
+  COALESCE(sum((bi.grand_total - branch_invoice_deferred_coupons(bi.id))), 0)::bigint AS sales_total,
   count(*) FILTER (WHERE bi.client_uid IS NOT NULL OR bi.branch_client_id IS NOT NULL)::bigint AS named_count
 FROM branch_invoices bi
 JOIN branches b ON b.id = bi.branch_id
