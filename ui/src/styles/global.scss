@@ -32,6 +32,35 @@ html.text-selection-enabled #app {
   -webkit-user-select: text;
 }
 
+// Even with text selection on, interface controls are not text to copy:
+// menus, dropdown items, buttons, tabs, chips, field labels, navigation.
+// Inputs keep selecting (rule above), as do data cells and .selectable.
+html.text-selection-enabled {
+  .v-overlay__content .v-list,
+  .v-list-item,
+  .v-btn,
+  .v-tab,
+  .v-chip,
+  .v-label,
+  .v-field-label,
+  .v-navigation-drawer,
+  .v-app-bar,
+  .v-toolbar,
+  .v-tabs,
+  .v-select__selection,
+  .v-picker,
+  .v-date-picker,
+  .v-checkbox,
+  .v-switch,
+  .v-radio,
+  .v-pagination,
+  .v-data-table-header,
+  th {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}
+
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(128, 128, 128, 0.65) transparent;
