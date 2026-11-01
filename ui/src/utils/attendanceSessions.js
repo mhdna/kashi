@@ -66,8 +66,18 @@ export const isSkippedPunch = event => String(event.status ?? '').startsWith('Sk
 // Only a day that is over (or today, once the hour has passed) and only an
 // IN earlier than that hour; the span is flagged `auto` ('in' / 'out') so it shows as
 // assumed, not as a punch.
-function closeOpenSessions (sessions, date, autoOut) {
+function closeOpenSessions (sessions, date, autoOut, autoIn) {
   const last = sessions.at(-1)
+  // The day's only punch is at or after closing time: nobody clocks IN then,
+  // it is the OUT of someone who never scanned in. With an auto in set, open
+  // the day there instead of leaving a lone "22:03–?".
+  if (sessions.length === 1 && autoIn !== null && autoIn !== undefined && autoOut !== null && autoOut !== undefined
+    && last.in !== null && last.out === null && last.in >= autoOut && autoIn < last.in) {
+    last.out = last.in
+    last.in = autoIn
+    last.auto = 'in'
+    return
+  }
   if (autoOut === null || autoOut === undefined || !last || last.in === null || last.out !== null || last.in >= autoOut) {return}
   const now = new Date()
   const pad = n => String(n).padStart(2, '0')
@@ -120,7 +130,7 @@ export function buildTimesheet (events, { autoOut = null, autoIn = null } = {}) 
     group.punches.sort((a, b) => a.minutes - b.minutes)
     const sessions = pairPunches(group.punches)
     openClosedSessions(sessions, autoIn)
-    closeOpenSessions(sessions, group.date, autoOut)
+    closeOpenSessions(sessions, group.date, autoOut, autoIn)
 
     let worked = 0
     for (const s of sessions) {
