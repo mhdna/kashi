@@ -64,6 +64,9 @@
          period longer than ten days is laid out in two columns, so a month
          takes about a third of a page instead of a page each. -->
     <template v-if="has('detail')">
+      <p v-if="showBranchColors" class="rpt-note">
+        <span v-for="id in branchIdsInUse" :key="id" class="rpt-legend-item"><span class="rpt-swatch" :style="{ background: branchColor(id) }" />{{ ctx.branchNames[id] }}</span>
+      </p>
       <p v-if="splitDays && people.length > 0" class="rpt-note rpt-cal-legend">
         <span class="rpt-cal-swatch" style="background: #fff3e6; border: 1px solid #f3d3ad" /> {{ t('missing an IN or OUT punch') }}
         <span class="rpt-cal-swatch" style="margin-inline-start: 12px; border: 1px solid #dcdbd6" /> <span style="color: #a3a29d">{{ t('greyed: no punches') }}</span>
@@ -182,6 +185,7 @@
       p.byDay[row.date] = row
       p.rows.push({
         date: row.date,
+        branchId: row.branchId,
         // Clock times stay left-to-right inside an Arabic line.
         spans: row.sessions.map(s => `⁦${formatClock(s.in) || '?'}${isHighlighted(s.auto) && s.auto === 'in' ? '*' : ''}–${formatClock(s.out) || '?'}${isHighlighted(s.auto) && s.auto === 'out' ? '*' : ''}⁩`).join(reportLang() === 'ar' ? '، ' : ', '),
         breaks: row.breakTotal || null,
@@ -244,9 +248,16 @@
   }
 
 
+  // One colour per branch, so a day worked at another shop is easy to spot.
+  // Only drawn when the report covers more than one branch.
+  const BRANCH_COLORS = ['#4f7cd6', '#e0743f', '#3fa57a', '#c25a9a', '#b8a02e', '#7a62c9', '#2fa3b5', '#a0674b']
+  const branchIdsInUse = computed(() => [...new Set(rows.value.map(r => r.branchId))].toSorted((a, b) => a - b))
+  const showBranchColors = computed(() => branchIdsInUse.value.length > 1)
+  const branchColor = id => (showBranchColors.value && id !== undefined ? BRANCH_COLORS[branchIdsInUse.value.indexOf(id) % BRANCH_COLORS.length] : '')
+
   const noPunches = t('No punches')
   const detailColumns = [
-    { key: 'date', title: t('Date'), value: r => (r.isTotal ? t('Total') : dayLabel(r.date)) },
+    { key: 'date', title: t('Date'), value: r => (r.isTotal ? t('Total') : dayLabel(r.date)), swatch: r => branchColor(r.branchId) },
     { key: 'spans', title: t('In – out') },
     { key: 'breaks', title: t('Breaks'), type: 'hours' },
     { key: 'worked', title: t('Worked'), type: 'hours', bar: true, strong: true },

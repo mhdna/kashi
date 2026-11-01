@@ -167,3 +167,7 @@
 .rpt-table tr.rpt-row--warn .rpt-bar { background: #f0a35e; }
 .rpt-table tbody tr.rpt-row--off td { color: #a8a7a2; }
 .rpt-table tr.rpt-row--off .rpt-tag { background: #f1f0ec; color: #8a8984; }
+
+/* A branch's colour square before a day, and the legend naming them. */
+.rpt-swatch { display: inline-block; width: 8px; height: 8px; margin-inline-end: 6px; border-radius: 2px; vertical-align: baseline; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.rpt-legend-item { margin-inline-end: 14px; }

@@ -16,7 +16,10 @@
             <span class="rpt-bar" :style="{ width: barWidth(col, row) }" />{{ displayCell(col, row) }}
           </span>
           <span v-else-if="col.tag" :class="{ 'rpt-tag': displayCell(col, row) }">{{ displayCell(col, row) }}</span>
-          <template v-else>{{ displayCell(col, row) }}</template>
+          <template v-else>
+            <!-- { swatch: row => '#hex' } puts a small colour square before the value. -->
+            <span v-if="col.swatch && col.swatch(row)" class="rpt-swatch" :style="{ background: col.swatch(row) }" />{{ displayCell(col, row) }}
+          </template>
         </td>
       </tr>
     </tbody>
