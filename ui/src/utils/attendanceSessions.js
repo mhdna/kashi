@@ -77,9 +77,21 @@ function closeOpenSessions (sessions, date, autoOut) {
   last.auto = true
 }
 
-// rows: one per (date, person), sorted by date then name. `autoOut`: see
-// closeOpenSessions (null = off).
-export function buildTimesheet (events, { autoOut = null } = {}) {
+// An OUT with no IN before it (the person never scanned in) is opened at
+// `autoIn`, when that is earlier than the OUT.
+function openClosedSessions (sessions, autoIn) {
+  if (autoIn === null || autoIn === undefined) {return}
+  for (const s of sessions) {
+    if (s.in === null && s.out !== null && s.out > autoIn) {
+      s.in = autoIn
+      s.auto = true
+    }
+  }
+}
+
+// rows: one per (date, person), sorted by date then name. `autoOut` /
+// `autoIn`: see closeOpenSessions / openClosedSessions (null = off).
+export function buildTimesheet (events, { autoOut = null, autoIn = null } = {}) {
   const groups = new Map()
   for (const event of events) {
     // A punch the till didn't import (its device user is linked to nobody)
@@ -107,6 +119,7 @@ export function buildTimesheet (events, { autoOut = null } = {}) {
   for (const group of groups.values()) {
     group.punches.sort((a, b) => a.minutes - b.minutes)
     const sessions = pairPunches(group.punches)
+    openClosedSessions(sessions, autoIn)
     closeOpenSessions(sessions, group.date, autoOut)
 
     let worked = 0

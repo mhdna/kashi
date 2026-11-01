@@ -13,6 +13,16 @@
         variant="outlined"
       />
       <v-text-field
+        v-model="autoInTime"
+        class="timesheet-autoout"
+        clearable
+        density="compact"
+        hide-details
+        label="Auto in at"
+        type="time"
+        variant="outlined"
+      />
+      <v-text-field
         v-model="autoOutTime"
         class="timesheet-autoout"
         clearable
@@ -21,6 +31,13 @@
         label="Auto out at"
         type="time"
         variant="outlined"
+      />
+      <v-btn
+        :loading="savingAuto"
+        prepend-icon="mdi-content-save-outline"
+        text="Save as default"
+        variant="text"
+        @click="saveAuto"
       />
       <PreparingState v-if="loading" kind="people" :size="28" title="Loading" />
     </div>
@@ -225,8 +242,21 @@
 
   const loading = ref(false)
   const events = ref([])
-  const { autoOutTime, autoOutMinutes } = useAttendanceAutoOut()
-  const allRows = computed(() => buildTimesheet(events.value, { autoOut: autoOutMinutes.value }))
+  const { autoInTime, autoOutTime, autoInMinutes, autoOutMinutes, ensureAutoDefaults, saveAutoDefaults } = useAttendanceAutoOut()
+  ensureAutoDefaults()
+  const savingAuto = ref(false)
+  async function saveAuto () {
+    savingAuto.value = true
+    try {
+      await saveAutoDefaults()
+      notify.success('Saved: auto in / auto out open like this from now on.')
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      savingAuto.value = false
+    }
+  }
+  const allRows = computed(() => buildTimesheet(events.value, { autoIn: autoInMinutes.value, autoOut: autoOutMinutes.value }))
   const showBranch = computed(() => !props.branchId)
 
   // Salesperson filter: a personKey (branch + device user), so two people

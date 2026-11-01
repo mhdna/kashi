@@ -140,16 +140,26 @@
             variant="outlined"
           />
         </div>
-        <v-text-field
-          v-model="autoOutTime"
-          clearable
-          density="compact"
-          hint="Closes a missing out at this hour"
-          label="Auto out at (attendance)"
-          persistent-hint
-          type="time"
-          variant="outlined"
-        />
+        <div class="d-flex ga-2">
+          <v-text-field
+            v-model="autoInTime"
+            clearable
+            density="compact"
+            hide-details
+            label="Auto in at"
+            type="time"
+            variant="outlined"
+          />
+          <v-text-field
+            v-model="autoOutTime"
+            clearable
+            density="compact"
+            hide-details
+            label="Auto out at"
+            type="time"
+            variant="outlined"
+          />
+        </div>
         <v-select
           v-model="branchIds"
           chips
@@ -618,6 +628,7 @@
   const notify = useNotify()
   const { canEdit } = usePageAccess()
   const { getReports, getReportSettings, saveReportSettings } = useReports()
+  const { autoInTime, autoOutTime, autoInMinutes, autoOutMinutes, applyAutoDefaults } = useAttendanceAutoOut()
   const { listEventsInRange } = useAttendance()
   const { listBranchSalespersons } = useBranchSalespersons()
   const { getReviews } = useReviews()
@@ -869,6 +880,7 @@
     if (d.sort_by === 'units' || d.sort_by === 'revenue') {sortBy.value = d.sort_by}
     parts.value = queryParts ? validParts(report.value, queryParts) : defaultParts(report.value)
     if (d.lang === 'ar') {lang.value = 'ar'}
+    applyAutoDefaults(d)
     settingsReady.value = true
   }
 
@@ -879,14 +891,16 @@
     lang: lang.value,
     top_n: topN.value,
     sort_by: sortBy.value,
+    auto_in: autoInTime.value || '',
+    auto_out: autoOutTime.value || '',
     parts: { ...settings.value.defaults?.parts, [report.value.key]: parts.value },
     parts_seen: { ...settings.value.defaults?.parts_seen, [report.value.key]: report.value.parts.map(p => p.key) },
   }))
   const dirty = computed(() => {
     const d = settings.value.defaults ?? {}
     const c = currentDefaults.value
-    return JSON.stringify([c.branch_ids, c.period, c.lang, c.top_n, c.sort_by, [...parts.value].toSorted()])
-      !== JSON.stringify([[...(d.branch_ids ?? [])].toSorted((a, b) => a - b), d.period ?? autoPeriod(), d.lang ?? 'en', d.top_n ?? 25, d.sort_by ?? 'revenue', [...defaultParts(report.value)].toSorted()])
+    return JSON.stringify([c.branch_ids, c.period, c.lang, c.top_n, c.sort_by, c.auto_in, c.auto_out, [...parts.value].toSorted()])
+      !== JSON.stringify([[...(d.branch_ids ?? [])].toSorted((a, b) => a - b), d.period ?? autoPeriod(), d.lang ?? 'en', d.top_n ?? 25, d.sort_by ?? 'revenue', d.auto_in ?? '', d.auto_out ?? '', [...defaultParts(report.value)].toSorted()])
   })
 
   const savingDefaults = ref(false)
@@ -1044,8 +1058,7 @@
     load()
   })
 
-  const { autoOutTime, autoOutMinutes } = useAttendanceAutoOut()
-  const timesheet = computed(() => buildTimesheet(attendance.value, { autoOut: autoOutMinutes.value }))
+  const timesheet = computed(() => buildTimesheet(attendance.value, { autoIn: autoInMinutes.value, autoOut: autoOutMinutes.value }))
   const people = computed(() => buildPeople({ salespersons: data.value?.salespersons ?? [], staff: staff.value, timesheet: timesheet.value }))
   const employeeOptions = computed(() => people.value.list.map(p => ({
     title: branchIds.value.length === 1 ? p.name : `${p.name} · ${branchNames.value[p.branchId] ?? ''}`,
@@ -1066,6 +1079,7 @@
     branchNames: branchNames.value,
     multiBranch: branchIds.value.length !== 1 && (data.value?.branches?.length ?? 0) > 1,
     attendance: attendance.value,
+    autoIn: autoInMinutes.value,
     autoOut: autoOutMinutes.value,
     attendanceError: attendanceError.value,
     reviews: reviews.value,
