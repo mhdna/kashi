@@ -3,6 +3,18 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-01 · Same salesperson listed several times in reports
+
+**Symptom.** The Salesperson report showed one person on several rows
+("Lama D" and "Lama D.", "Elena Abboud" and "Elena Aboud", two "Ahmad Robaie").
+
+**Cause.** Rows were keyed per branch by the exact name typed at the till, so
+spelling variants, initials and the same person in two branches stayed apart.
+
+**Fix.** `buildPeople` in `ui/src/components/reports/reportRows.js` now folds
+names that match word by word (equal, one typo, or an initial) into the first
+person seen, kashi's own salesperson name winning, across branches.
+
 ## 2026-10-31 · The report appeared dimmed, then faded in, after its animation
 
 **Symptom.** On the Reports page, once the "Preparing your report" picture
