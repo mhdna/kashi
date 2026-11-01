@@ -770,6 +770,8 @@
   const PERIODS = [
     { title: 'This month', value: 'this-month' },
     { title: 'Last month', value: 'last-month' },
+    { title: 'This 25th – 25th', value: 'cycle-this' },
+    { title: 'Last 25th – 25th', value: 'cycle-last' },
     { title: 'This week', value: 'this-week' },
     { title: 'Last week', value: 'last-week' },
     { title: 'Last 30 days', value: 'last-30' },
@@ -791,6 +793,16 @@
     switch (period.value) {
       case 'last-month': {
         return { from: ymd(new Date(y, m - 1, 1)), to: ymd(new Date(y, m, 0)) }
+      }
+      // A pay cycle running from the 25th to the 25th (both days included).
+      // This one starts on the latest 25th up to today; last one is the
+      // cycle before it.
+      case 'cycle-this':
+      case 'cycle-last': {
+        const start = new Date(y, today.getDate() >= 25 ? m : m - 1, 25)
+        const first = period.value === 'cycle-this' ? start : new Date(start.getFullYear(), start.getMonth() - 1, 25)
+        const last = new Date(first.getFullYear(), first.getMonth() + 1, 25)
+        return { from: ymd(first), to: ymd(last > today ? today : last) }
       }
       case 'this-week': {
         return { from: ymd(monday), to: ymd(today) }
