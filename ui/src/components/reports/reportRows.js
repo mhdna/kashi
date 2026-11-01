@@ -22,34 +22,6 @@ export function categoryRows (products) {
 
 const norm = name => String(name ?? '').trim().toLowerCase()
 
-function editDistance (a, b) {
-  let prev = Array.from({ length: b.length + 1 }, (_, i) => i)
-  for (let i = 1; i <= a.length; i++) {
-    const cur = [i]
-    for (let j = 1; j <= b.length; j++) {
-      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1))
-    }
-    prev = cur
-  }
-  return prev[b.length]
-}
-
-// Two spellings of one person's name: "Lama D" / "Lama D.", "Elena Abboud" /
-// "Elena Aboud", "Fatima D." / "Fatima Dor". Same word count (two or more),
-// each word equal, one typo apart (words of 4+ letters) or an initial of the
-// other.
-function sameName (a, b) {
-  const wa = norm(a).replace(/[^\p{L}\p{N}\s]/gu, '').split(/\s+/).filter(Boolean)
-  const wb = norm(b).replace(/[^\p{L}\p{N}\s]/gu, '').split(/\s+/).filter(Boolean)
-  if (wa.length < 2 || wa.length !== wb.length) {return false}
-  return wa.every((x, i) => {
-    const y = wb[i]
-    if (x === y) {return true}
-    if (x.length === 1 || y.length === 1) {return i > 0 && (x.length === 1 ? y.startsWith(x) : x.startsWith(y))}
-    return Math.min(x.length, y.length) >= 4 && editDistance(x, y) <= 1
-  })
-}
-
 // People across the period, keyed so the Employees filter, the salesperson
 // rows and the attendance rows all agree. kashi's salesperson list is the
 // bridge: a salesperson's device user number (or, failing that, the same
@@ -111,22 +83,12 @@ export function buildPeople ({ salespersons = [], staff = [], timesheet = [] }) 
   }
   for (const row of salespersons) {forSales(row)}
 
-  // Fold spellings of one name (any branch) into the first person seen;
-  // kashi's own salespersons were added first, so their name wins.
-  const alias = new Map()
-  const canon = []
-  for (const p of people.values()) {
-    const hit = canon.find(c => sameName(c.name, p.name))
-    if (hit) {alias.set(p.key, hit.key)} else {canon.push(p)}
-  }
-  const resolve = key => alias.get(key) ?? key
-
   return {
-    list: canon.toSorted((a, b) => a.name.localeCompare(b.name)),
-    forSales: row => resolve(forSales(row)),
-    forAttendance: personKey => resolve(attendanceKey.get(personKey)),
+    list: [...people.values()].toSorted((a, b) => a.name.localeCompare(b.name)),
+    forSales,
+    forAttendance: personKey => attendanceKey.get(personKey),
     // kashi's name for a person, which wins over what a till or device sent.
-    nameOf: key => people.get(resolve(key))?.name,
+    nameOf: key => people.get(key)?.name,
   }
 }
 
