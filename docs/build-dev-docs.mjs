@@ -45,6 +45,7 @@ function inline(text) {
   t = esc(t)
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/(^|[\s(])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>')
+    .replace(/\[\[(\w+):([^\]]+)\]\]/g, '<span class="chip $1">$2</span>')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, l, u) =>
       u.startsWith('#') ? `<a href="${u}" data-go="${u.slice(1)}">${l}</a>` : `<a href="${u}">${l}</a>`)
   return t.replace(/\u0000(\d+)\u0000/g, (_, i) => codes[i])
@@ -78,6 +79,18 @@ function renderBlocks(src) {
       const [path, cap] = line.replace('::: image', '').split('|').map((s) => s.trim())
       out.push(`<figure class="fig"><img src="${path}" alt="${esc(cap || '')}"><figcaption>${inline(cap || '')}</figcaption></figure>`)
       i++
+    } else if (line.startsWith('::: stats') || line.startsWith('::: cards')) {
+      const kind = line.startsWith('::: stats') ? 'stats' : 'cards'
+      const buf = []
+      i++
+      while (i < src.length && src[i].trim() !== ':::') buf.push(src[i++])
+      i++
+      const rows = buf.filter((l) => l.includes('|')).map((l) => l.split('|').map((x) => x.trim()))
+      if (kind === 'stats') {
+        out.push(`<div class="stats">${rows.map(([v, l, c, ic]) => `<div class="stat ${c}">${icon(ic || 'mdiChartBox')}<b>${esc(v)}</b><span>${inline(l)}</span></div>`).join('')}</div>`)
+      } else {
+        out.push(`<div class="cards">${rows.map(([ic, t, tx, c]) => `<div class="card ${c || 'indigo'}"><div class="ci">${icon(ic)}</div><h4>${inline(t)}</h4><p>${inline(tx || '')}</p></div>`).join('')}</div>`)
+      }
     } else if (line.startsWith('::: gallery')) {
       const buf = []
       i++
@@ -308,6 +321,15 @@ ol.steps li:before{content:counter(s);position:absolute;left:16px;top:16px;width
 .glance h2{display:flex;align-items:center;gap:10px;font:500 18px Roboto,sans-serif;margin:12px 0 4px;color:var(--t)}.glance h2 .ic{color:var(--acc)}
 .glance ul{list-style:none;padding:0;margin:0}.glance li{position:relative;padding:5px 0 5px 22px;margin:0;line-height:26px}.glance li:before{content:"";position:absolute;left:4px;top:15px;width:7px;height:7px;border-radius:50%;background:var(--acc)}
 .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin:12px 0}.gallery a{display:block;background:var(--s);border-radius:2px;box-shadow:var(--e1);overflow:hidden;text-decoration:none;color:var(--m);font-size:12px}.gallery img{width:100%;height:160px;object-fit:cover;object-position:top;display:block;background:#fff}.gallery span{display:block;padding:6px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip.green,.stat.green,.card.green{--c:#2e7d32}.chip.teal,.stat.teal,.card.teal{--c:#00796b}.chip.amber,.stat.amber,.card.amber{--c:#f9a825}.chip.red,.stat.red,.card.red{--c:#c62828}.chip.grey,.stat.grey,.card.grey{--c:#757575}.chip.indigo,.stat.indigo,.card.indigo{--c:#3f51b5}.chip.blue,.stat.blue,.card.blue{--c:#1565c0}.chip.purple,.stat.purple,.card.purple{--c:#6a1b9a}.chip.orange,.stat.orange,.card.orange{--c:#ef6c00}.chip.pink,.stat.pink,.card.pink{--c:#ad1457}.chip{display:inline-block;padding:1px 10px;border-radius:12px;font:500 13px/20px Roboto,sans-serif;white-space:nowrap;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);border:1px solid color-mix(in srgb,var(--c) 40%,transparent)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0}
+.stat{background:var(--s);border-radius:2px;box-shadow:var(--e1);border-top:4px solid var(--c);padding:14px 16px;display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-items:center}
+.stat .ic{grid-row:span 2;width:34px;height:34px;color:var(--c)}.stat b{font:500 30px/34px Roboto,sans-serif;color:var(--c)}.stat span{color:var(--m);font-size:14px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin:16px 0}
+.card{background:var(--s);border-radius:2px;box-shadow:var(--e1);padding:16px;border-top:4px solid var(--c)}
+.card .ci{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--c);margin-bottom:8px}.card .ci .ic{width:24px;height:24px}
+.card h4{margin:0 0 4px;font:500 17px Roboto,sans-serif}.card p{margin:0;color:var(--m);font-size:14px;line-height:21px}
+.fig svg{max-width:100%;height:auto}
 .fig{background:var(--s);border-radius:2px;box-shadow:var(--e1);padding:16px;text-align:center}.fig img{max-width:100%;background:#fff}figcaption{color:var(--m);font-size:14px;margin-top:8px}
 .diagram{width:100%;height:auto;font-family:Roboto,sans-serif}
 .box rect{fill:var(--sv);stroke:var(--o);stroke-width:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.25))}.bt{font-size:16.5px;font-weight:500;fill:var(--t);text-anchor:middle}.bs{font-size:14px;fill:var(--m);text-anchor:middle}
