@@ -711,7 +711,7 @@
   const parts = ref([])
   watch(report, r => {
     parts.value = defaultParts(r)
-    employees.value = []
+    employees.value = [...(settings.value.defaults?.employees ?? [])]
     router.replace({ query: { report: r.key } })
   })
 
@@ -889,6 +889,7 @@
     parts.value = queryParts ? validParts(report.value, queryParts) : defaultParts(report.value)
     if (d.lang === 'ar') {lang.value = 'ar'}
     applyAutoDefaults(d)
+    if (Array.isArray(d.employees)) {employees.value = d.employees.filter(k => typeof k === 'string')}
     settingsReady.value = true
   }
 
@@ -901,14 +902,16 @@
     sort_by: sortBy.value,
     auto_in: autoInTime.value || '',
     auto_out: autoOutTime.value || '',
+    highlight_auto: highlightAuto.value,
+    employees: [...employees.value].toSorted(),
     parts: { ...settings.value.defaults?.parts, [report.value.key]: parts.value },
     parts_seen: { ...settings.value.defaults?.parts_seen, [report.value.key]: report.value.parts.map(p => p.key) },
   }))
   const dirty = computed(() => {
     const d = settings.value.defaults ?? {}
     const c = currentDefaults.value
-    return JSON.stringify([c.branch_ids, c.period, c.lang, c.top_n, c.sort_by, c.auto_in, c.auto_out, [...parts.value].toSorted()])
-      !== JSON.stringify([[...(d.branch_ids ?? [])].toSorted((a, b) => a - b), d.period ?? autoPeriod(), d.lang ?? 'en', d.top_n ?? 25, d.sort_by ?? 'revenue', d.auto_in ?? '', d.auto_out ?? '', [...defaultParts(report.value)].toSorted()])
+    return JSON.stringify([c.branch_ids, c.period, c.lang, c.top_n, c.sort_by, c.auto_in, c.auto_out, c.highlight_auto, c.employees, [...parts.value].toSorted()])
+      !== JSON.stringify([[...(d.branch_ids ?? [])].toSorted((a, b) => a - b), d.period ?? autoPeriod(), d.lang ?? 'en', d.top_n ?? 25, d.sort_by ?? 'revenue', d.auto_in ?? '', d.auto_out ?? '', d.highlight_auto ?? 'off', [...(d.employees ?? [])].toSorted(), [...defaultParts(report.value)].toSorted()])
   })
 
   const savingDefaults = ref(false)

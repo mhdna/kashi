@@ -1,4 +1,4 @@
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useReports } from '@/composables/useReports'
 import { parseMinutes } from '@/utils/attendanceSessions'
 
@@ -13,10 +13,8 @@ const autoOutTime = ref('')
 let seeded = false
 
 // Which assumed times to mark on screen: 'off' | 'in' | 'out' | 'both'. A
-// view option, kept in this browser.
-const stored = localStorage.getItem('attendance.highlightAuto')
-const highlightAuto = ref(['in', 'out', 'both'].includes(stored) ? stored : 'off')
-watch(highlightAuto, value => localStorage.setItem('attendance.highlightAuto', value))
+// view option; its saved default is defaults.highlight_auto, like the hours.
+const highlightAuto = ref('off')
 const HIGHLIGHT_OPTIONS = [
   { title: 'No highlight', value: 'off' },
   { title: 'Highlight auto in', value: 'in' },
@@ -29,6 +27,7 @@ export const isHighlighted = auto => Boolean(auto) && (highlightAuto.value === '
 function applyDefaults (defaults) {
   autoInTime.value = defaults?.auto_in ?? ''
   autoOutTime.value = defaults?.auto_out ?? ''
+  highlightAuto.value = ['in', 'out', 'both'].includes(defaults?.highlight_auto) ? defaults.highlight_auto : 'off'
   seeded = true
 }
 
@@ -46,7 +45,7 @@ export function useAttendanceAutoOut () {
   // Store the two hours as the defaults, keeping the rest of the settings.
   async function saveAutoDefaults () {
     const current = (await getReportSettings()) ?? {}
-    const defaults = { ...current.defaults, auto_in: autoInTime.value || '', auto_out: autoOutTime.value || '' }
+    const defaults = { ...current.defaults, auto_in: autoInTime.value || '', auto_out: autoOutTime.value || '', highlight_auto: highlightAuto.value }
     await saveReportSettings({ ...current, defaults })
     return defaults
   }
