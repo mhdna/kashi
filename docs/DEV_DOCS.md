@@ -240,6 +240,86 @@ Item codes match exactly or as a prefix written `ABC*`, any case.
 
 > [!TIP] The unsaved-changes guard (`useDialogGuard`) watches every dialog's fields; a dialog whose only field is a search box needs `data-no-discard-guard` (or be skipped by class).
 
+::: group US POS landscape
+
+## US POS systems {icon=mdiStoreSearch}
+
+::: glance
+- Researched 2026-11-01 from general market knowledge (no live pricing); **verify vendor details before copying a design**.
+- Two worlds: **big-box** (Target, Walmart, Kroger: NCR/Toshiba/Diebold Nixdorf lanes, custom software) and **small/mid retail SaaS** (Square, Shopify, Lightspeed, Clover, Toast for food).
+- Kashi already covers the core: offline-first tills, multi-branch sync, multi-currency, price/discount lists, coupons, loyalty, stock counts, transfers, purchasing, WhatsApp receipts.
+- Biggest US-style gaps: **gift cards, store credit, layaway, split tender, ecommerce/BOPIS, customer-facing display, self-checkout, tips, sales-tax engine, mobile/handheld POS**.
+:::
+
+### Popular systems
+
+| System | Typical user | Known for |
+| --- | --- | --- |
+| Square for Retail | Small shops | Free tier, built-in card reader, fast onboarding, invoices, online store, loyalty and gift cards. |
+| Shopify POS | Brands selling online and in store | One catalog and inventory across web and shops, BOPIS, staff roles, exchanges across channels, customer profiles. |
+| Lightspeed Retail | Mid-size specialty retail | Deep inventory (variants, matrix, serials, purchase orders, reorder points), multi-store, consignment. |
+| Clover | SMB, bank-resold | Own hardware (Station, Mini, Flex), app marketplace, integrated payments. |
+| Toast | Restaurants | Handhelds, table service, kitchen display; cited for UX ideas only (food, not retail). |
+| Heartland / Global Payments | SMB and enterprise | Payments-first, retail and hospitality, reporting. |
+| Revel | Larger SMB, QSR | iPad POS, enterprise controls, inventory, employee management. |
+| NCR Voyix (Aloha, Counterpoint, Silver) | Enterprise and mid-market | Lane hardware, self-checkout, large-scale back office. |
+| Toshiba (Global Commerce) | Grocery, big-box | Self-checkout and fixed lanes, store-wide software. |
+| Diebold Nixdorf | Grocery, big-box | Self-checkout, ATMs, vision-based loss prevention. |
+| Oracle Xstore / MICROS | Large chains | Omnichannel, enterprise-grade promotions, tax and returns. |
+| Epicor, Retail Pro, Microsoft Dynamics, SAP | Large retail | ERP-tied POS: finance, supply chain, merchandising. |
+| Target / Walmart / Kroger (custom) | Own chains | Branded self-checkout, price match, app scan-and-go, store-pickup staff tools. |
+
+### Self-checkout patterns (from the Target lane that prompted this page)
+
+| Pattern | Idea for Kashi |
+| --- | --- |
+| "Scan items to begin" idle screen with one icon and one sentence | A matching idle state on the customer-facing display. |
+| Running list + total always visible, big pay button | Customer-facing second screen mirroring the cart. |
+| Weight-verify bagging area, attendant override | Attendant approval already fits Kashi's PIN auth; add a "call staff" flag. |
+| Age/ID prompts, restricted items | Product flag "needs ID check" that blocks the sale until staff confirm. |
+| Price Match Policy signage | See "Price match" below. |
+| App scan-and-go with loyalty id (Target Circle) | Phone number already identifies clients; QR to link a client to a till. |
+
+### What Kashi has vs. what is missing
+
+| Feature (typical in US POS) | Kashi today | Gap / idea | Effort |
+| --- | --- | --- | --- |
+| Gift cards (sell, load, redeem, balance check) | None | New `gift_cards` table synced to tills; sell as a line, redeem as a payment type. | Medium |
+| Store credit | Exchanges and loans exist | Issue credit on returns instead of cash; redeem as a payment type. | Medium |
+| Split tender (cash + card + credit in one sale) | Multi-currency payments exist | Verify arbitrary mixed payments with change rules, surface in quick pay UI. | Small |
+| Layaway / deposits / special orders | None | Partial payments against a held sale; stock reserved until paid. | Large |
+| Parked sales | Not verified | Park/resume carts per register, sync-free. | Small |
+| Returns without receipt, restocking fee | Exchanges and cancel exist | Return reason codes, fee, manager approval. | Small |
+| Sales tax engine (rates by state, county, product class, exempt customers) | Basic `tax` in shift reports | Tax categories and exemption certificates if Kashi ever sells in the US. | Medium |
+| Tips and gratuity | None | Optional tip step on card payment; only for service retail. | Small |
+| Customer-facing display | None | Second window mirroring the cart (Wails supports multiple windows). | Medium |
+| Self-checkout mode | `kiosk` mode exists for the cash machine | Customer-operated flow: scan, pay, receipt; attendant PIN override. | Large |
+| Scan-and-go / mobile POS (phone or handheld as a till) | None | Web till for floor staff to ring up from the aisle. | Large |
+| Ecommerce sync, BOPIS, ship-from-store | None | Product feed plus order intake; pick lists per branch. | Large |
+| Email/SMS receipts | WhatsApp, email pages exist | Add "receipt by email/SMS" choice at tender time. | Small |
+| Loyalty tiers, points expiry, birthday offers | Loyalty page exists | Tiers, expiry and automated offers via WhatsApp. | Medium |
+| Promotions engine (BOGO, mix-and-match, spend X get Y, bundles) | Deals, coupons, discount lists | Rule types beyond discount lists; see `doc/product-rules.md`. | Medium |
+| Price match | None | Price-override reason code with logged competitor evidence. | Small |
+| Reorder points and auto purchase orders | Stock health alerts, purchase invoices | Per-branch min/max and a "suggested PO" page per supplier. | Medium |
+| Serial / IMEI tracking | `serial` exists in the tills | Check it covers warranty lookup. | Small |
+| Consignment and vendor-owned stock | None | Supplier-owned flag with payout report. | Medium |
+| Employee commissions and spiffs | Salesperson performance, targets | Commission rules on top of targets. | Medium |
+| Time clock with breaks and overtime | Attendance exists | Break types and weekly overtime summary. | Small |
+| Loss prevention (void/discount exceptions) | Audit log, security guard | Exception report: voids, big discounts, no-sale drawer opens per cashier. | Small |
+| Cash drawer: paid-in/out, blind close, drops | Shifts with float and close | Safe drops and blind count. | Small |
+| Offline mode | Built in (tills are the truth) | None; a selling point against SaaS POS. | None |
+| EMV/card terminal integration | Not in scope today | Needed for US card payments (Stripe Terminal, Square Terminal, Clover). | Large |
+| EBT/SNAP, WIC | None | Grocery only; skip unless Kashi enters grocery. | Large |
+
+### Suggested order
+
+1. **Quick wins:** split tender check, parked sales, return reason codes, void/discount exception report, safe drops.
+2. **Customer-facing:** second display, email/SMS receipts, "needs ID" product flag.
+3. **Money products:** gift cards, then store credit (they share the payment-type plumbing).
+4. **Big bets:** promotions engine, layaway, self-checkout, ecommerce/BOPIS, card terminal integration.
+
+> [!NOTE] Anything that adds a payment type touches `Money and time` (cents, rounding) and the till `invoice_settlement` flow; read those pages first.
+
 ::: group Knowledge base
 
 ## Recipes {icon=mdiRocketLaunch}
