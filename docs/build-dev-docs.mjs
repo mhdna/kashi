@@ -334,7 +334,7 @@ ol.steps li:before{content:counter(s);position:absolute;left:16px;top:16px;width
 .vc{background:var(--s);border-radius:2px;box-shadow:var(--e1);padding:16px;border-top:4px solid var(--c)}
 .vc .ci{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--c);margin-bottom:8px}.vc .ci .ic{width:24px;height:24px}
 .vc h4{margin:0 0 4px;font:500 17px Roboto,sans-serif}.vc p{margin:0;color:var(--m);font-size:14px;line-height:21px}
-.fig svg{max-width:100%;height:auto}
+.fig svg{max-width:100%;height:auto;color:var(--t)}
 .fig{background:var(--s);border-radius:2px;box-shadow:var(--e1);padding:16px;text-align:center}.fig img{max-width:100%;background:#fff}figcaption{color:var(--m);font-size:14px;margin-top:8px}
 .diagram{width:100%;height:auto;font-family:Roboto,sans-serif}
 .box rect{fill:var(--sv);stroke:var(--o);stroke-width:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.25))}.bt{font-size:16.5px;font-weight:500;fill:var(--t);text-anchor:middle}.bs{font-size:14px;fill:var(--m);text-anchor:middle}
