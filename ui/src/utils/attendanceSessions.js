@@ -47,6 +47,7 @@ function pairPunches (punches) {
       // first one stands.
       if (!open) {
         open = { in: punch.minutes, out: null }
+        if (punch.auto) {open.auto = 'in'}
         sessions.push(open)
       }
     } else if (open) {
@@ -66,18 +67,8 @@ export const isSkippedPunch = event => String(event.status ?? '').startsWith('Sk
 // Only a day that is over (or today, once the hour has passed) and only an
 // IN earlier than that hour; the span is flagged `auto` ('in' / 'out') so it shows as
 // assumed, not as a punch.
-function closeOpenSessions (sessions, date, autoOut, autoIn) {
+function closeOpenSessions (sessions, date, autoOut) {
   const last = sessions.at(-1)
-  // The day's only punch is at or after closing time: nobody clocks IN then,
-  // it is the OUT of someone who never scanned in. With an auto in set, open
-  // the day there instead of leaving a lone "22:03–?".
-  if (sessions.length === 1 && autoIn !== null && autoIn !== undefined && autoOut !== null && autoOut !== undefined
-    && last.in !== null && last.out === null && last.in >= autoOut && autoIn < last.in) {
-    last.out = last.in
-    last.in = autoIn
-    last.auto = 'in'
-    return
-  }
   if (autoOut === null || autoOut === undefined || !last || last.in === null || last.out !== null || last.in >= autoOut) {return}
   const now = new Date()
   const pad = n => String(n).padStart(2, '0')
@@ -85,6 +76,21 @@ function closeOpenSessions (sessions, date, autoOut, autoIn) {
   if (date > today || (date === today && now.getHours() * 60 + now.getMinutes() < autoOut)) {return}
   last.out = autoOut
   last.auto = 'out'
+}
+
+// Closing-time rule. The day's last punch within 10 minutes before (or any
+// time after) the auto-out hour is someone leaving, an OUT, not an IN. The
+// punches then alternate backwards from it (OUT, IN, OUT, ...), and when that
+// leaves the first punch as an OUT the day's IN was never scanned: it is
+// added at the auto-in hour, so 18:38 20:09 21:59 reads 10:00 in, 18:38 out,
+// 20:09 in, 21:59 out. Unlabelled punches only, and only with both hours set
+// and the auto-in earlier than the day's first punch.
+const CLOSING_WINDOW = 10
+function openFromClosing (punches, autoIn, autoOut) {
+  if (autoIn === null || autoIn === undefined || autoOut === null || autoOut === undefined) {return}
+  if (punches.length % 2 === 0 || punches.some(p => p.kind)) {return}
+  if (punches.at(-1).minutes < autoOut - CLOSING_WINDOW || autoIn >= punches[0].minutes) {return}
+  punches.unshift({ minutes: autoIn, kind: 'in', auto: true })
 }
 
 // An OUT with no IN before it (the person never scanned in) is opened at
@@ -128,9 +134,10 @@ export function buildTimesheet (events, { autoOut = null, autoIn = null } = {}) 
   const rows = []
   for (const group of groups.values()) {
     group.punches.sort((a, b) => a.minutes - b.minutes)
+    openFromClosing(group.punches, autoIn, autoOut)
     const sessions = pairPunches(group.punches)
     openClosedSessions(sessions, autoIn)
-    closeOpenSessions(sessions, group.date, autoOut, autoIn)
+    closeOpenSessions(sessions, group.date, autoOut)
 
     let worked = 0
     for (const s of sessions) {
