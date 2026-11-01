@@ -41,6 +41,7 @@ function editDistance (a, b) {
 function sameName (a, b) {
   const wa = norm(a).replace(/[^\p{L}\p{N}\s]/gu, '').split(/\s+/).filter(Boolean)
   const wb = norm(b).replace(/[^\p{L}\p{N}\s]/gu, '').split(/\s+/).filter(Boolean)
+  if (wa.length > 0 && wa.join(' ') === wb.join(' ')) {return true}
   if (wa.length < 2 || wa.length !== wb.length) {return false}
   return wa.every((x, i) => {
     const y = wb[i]
