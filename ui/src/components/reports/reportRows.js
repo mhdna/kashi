@@ -94,7 +94,7 @@ export function buildPeople ({ salespersons = [], staff = [], timesheet = [] }) 
 
 // The timesheet (one row per person per day) with each row's person key.
 export function timesheetRows (ctx) {
-  return buildTimesheet(ctx.attendance ?? []).map(row => ({ ...row, person: ctx.people.forAttendance(row.personKey) }))
+  return buildTimesheet(ctx.attendance ?? [], { autoOut: ctx.autoOut }).map(row => ({ ...row, person: ctx.people.forAttendance(row.personKey) }))
 }
 
 // Salesperson rows merged per person (a person who sold in two branches is

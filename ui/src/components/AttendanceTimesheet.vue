@@ -12,6 +12,16 @@
         label="Salesperson"
         variant="outlined"
       />
+      <v-text-field
+        v-model="autoOutTime"
+        class="timesheet-autoout"
+        clearable
+        density="compact"
+        hide-details
+        label="Auto out at"
+        type="time"
+        variant="outlined"
+      />
       <PreparingState v-if="loading" kind="people" :size="28" title="Loading" />
     </div>
     <v-divider />
@@ -179,6 +189,7 @@
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue'
   import { useAttendance } from '@/composables/useAttendance'
+  import { useAttendanceAutoOut } from '@/composables/useAttendanceAutoOut'
   import { useNotify } from '@/composables/useNotify'
   import { buildTimesheet, formatClock, formatDuration } from '@/utils/attendanceSessions'
 
@@ -214,7 +225,8 @@
 
   const loading = ref(false)
   const events = ref([])
-  const allRows = computed(() => buildTimesheet(events.value))
+  const { autoOutTime, autoOutMinutes } = useAttendanceAutoOut()
+  const allRows = computed(() => buildTimesheet(events.value, { autoOut: autoOutMinutes.value }))
   const showBranch = computed(() => !props.branchId)
 
   // Salesperson filter: a personKey (branch + device user), so two people
@@ -366,6 +378,9 @@
 }
 .timesheet-person {
   flex: 0 1 260px;
+}
+.timesheet-autoout {
+  flex: 0 1 150px;
 }
 
 .timeline-row {

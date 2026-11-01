@@ -61,8 +61,25 @@ function pairPunches (punches) {
 
 export const isSkippedPunch = event => String(event.status ?? '').startsWith('Skipped')
 
-// rows: one per (date, person), sorted by date then name.
-export function buildTimesheet (events) {
+// An IN never closed by the end of the day is closed at `autoOut` (minutes
+// since midnight), the way a shop that locks up at a fixed hour reads it.
+// Only a day that is over (or today, once the hour has passed) and only an
+// IN earlier than that hour; the span is flagged `auto` so it shows as
+// assumed, not as a punch.
+function closeOpenSessions (sessions, date, autoOut) {
+  const last = sessions.at(-1)
+  if (autoOut === null || autoOut === undefined || !last || last.in === null || last.out !== null || last.in >= autoOut) {return}
+  const now = new Date()
+  const pad = n => String(n).padStart(2, '0')
+  const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+  if (date > today || (date === today && now.getHours() * 60 + now.getMinutes() < autoOut)) {return}
+  last.out = autoOut
+  last.auto = true
+}
+
+// rows: one per (date, person), sorted by date then name. `autoOut`: see
+// closeOpenSessions (null = off).
+export function buildTimesheet (events, { autoOut = null } = {}) {
   const groups = new Map()
   for (const event of events) {
     // A punch the till didn't import (its device user is linked to nobody)
@@ -90,6 +107,7 @@ export function buildTimesheet (events) {
   for (const group of groups.values()) {
     group.punches.sort((a, b) => a.minutes - b.minutes)
     const sessions = pairPunches(group.punches)
+    closeOpenSessions(sessions, group.date, autoOut)
 
     let worked = 0
     for (const s of sessions) {

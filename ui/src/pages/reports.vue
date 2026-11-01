@@ -140,6 +140,16 @@
             variant="outlined"
           />
         </div>
+        <v-text-field
+          v-model="autoOutTime"
+          clearable
+          density="compact"
+          hint="Closes a missing out at this hour"
+          label="Auto out at (attendance)"
+          persistent-hint
+          type="time"
+          variant="outlined"
+        />
         <v-select
           v-model="branchIds"
           chips
@@ -439,6 +449,7 @@
   import { useReports } from '@/composables/useReports'
   import { useReviews } from '@/composables/useReviews'
   import { buildTimesheet } from '@/utils/attendanceSessions'
+  import { useAttendanceAutoOut } from '@/composables/useAttendanceAutoOut'
   import { downloadCsv, printReport } from '@/utils/reportExport'
   import '@/styles/report-sheet.css'
 
@@ -1033,7 +1044,8 @@
     load()
   })
 
-  const timesheet = computed(() => buildTimesheet(attendance.value))
+  const { autoOutTime, autoOutMinutes } = useAttendanceAutoOut()
+  const timesheet = computed(() => buildTimesheet(attendance.value, { autoOut: autoOutMinutes.value }))
   const people = computed(() => buildPeople({ salespersons: data.value?.salespersons ?? [], staff: staff.value, timesheet: timesheet.value }))
   const employeeOptions = computed(() => people.value.list.map(p => ({
     title: branchIds.value.length === 1 ? p.name : `${p.name} · ${branchNames.value[p.branchId] ?? ''}`,
@@ -1054,6 +1066,7 @@
     branchNames: branchNames.value,
     multiBranch: branchIds.value.length !== 1 && (data.value?.branches?.length ?? 0) > 1,
     attendance: attendance.value,
+    autoOut: autoOutMinutes.value,
     attendanceError: attendanceError.value,
     reviews: reviews.value,
     reviewsError: reviewsError.value,
