@@ -97,3 +97,24 @@ func (server *Server) deleteCalendarEvent(ctx *gin.Context) {
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{"deleted": true})
 }
+
+// syncCalendarEvent is one item of the "calendar_events" sync entity: the
+// user-defined events the tills list on their Events page. Dates are plain
+// YYYY-MM-DD strings (an event is a day range, not a moment). The built-in
+// retail calendar is not sent; each till carries its own copy.
+type syncCalendarEvent struct {
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	Icon      string `json:"icon"`
+	Color     string `json:"color"`
+	StartDate string `json:"start_date"`
+	EndDate   string `json:"end_date"`
+}
+
+func newSyncCalendarEvent(e db.CalendarEvent) syncCalendarEvent {
+	return syncCalendarEvent{
+		ID: e.ID, Name: e.Name, Icon: e.Icon, Color: e.Color,
+		StartDate: e.StartDate.Format(dateLayout),
+		EndDate:   e.EndDate.Format(dateLayout),
+	}
+}
