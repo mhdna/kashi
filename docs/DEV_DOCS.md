@@ -111,6 +111,7 @@ Business settings (WhatsApp credentials, templates, webhook secret) live **in th
 
 - Report SQL spells the zone `'Asia/Beirut'`; Go code uses `businessToday` / `dayStart` (UTC-midnight `date` values, `timestamptz` bounds).
 - Sale payloads are signed cents: positive revenue, negative refund, an exchange carries its net.
+- Report **net sales leave out deferred coupons** (coupon types with `calculate_on_checkout`), like kashi-pos: `branch_invoice_deferred_coupons(invoice id)` finds the coupon through `coupons.redeemed_invoice_ref = branch_invoices.client_ref` and returns the "On Coupon" payment, capped at the invoice total. Plain coupons count. Reports in `db/query/reports.sql` subtract it; the dashboard and e-mail reports do not yet.
 - The till reads clock skew from `/branch/health` (kashi's clock and the branch zone).
 
 ## Database and migrations {icon=mdiDatabase}
