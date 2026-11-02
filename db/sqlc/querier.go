@@ -1810,6 +1810,10 @@ type Querier interface {
 	// for why this flips a flag instead of removing the row.
 	SetBranchTargetActive(ctx context.Context, arg SetBranchTargetActiveParams) (BranchTarget, error)
 	SetBranchTargetSeriesActive(ctx context.Context, arg SetBranchTargetSeriesActiveParams) (BranchTargetSeries, error)
+	// Pausing / resuming a recurring series hides / restores the periods that
+	// are running or still to come, so the till's target bars follow the toggle
+	// straight away. Finished periods are left alone (they're history).
+	SetBranchTargetsActiveBySeriesSince(ctx context.Context, arg SetBranchTargetsActiveBySeriesSinceParams) error
 	SetBranchUserActive(ctx context.Context, arg SetBranchUserActiveParams) (BranchUser, error)
 	SetBranchWhatsAppNumber(ctx context.Context, arg SetBranchWhatsAppNumberParams) error
 	SetCashboxAccountActive(ctx context.Context, arg SetCashboxAccountActiveParams) (CashboxAccount, error)

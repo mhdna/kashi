@@ -866,6 +866,10 @@
   }
 
   async function submitTarget () {
+    if (!targetForm.value.dateFrom || !targetForm.value.dateTo) {
+      notify.error('Pick the dates this target covers')
+      return
+    }
     targetSaving.value = true
     try {
       const payload = {

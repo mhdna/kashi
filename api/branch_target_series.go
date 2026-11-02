@@ -111,6 +111,21 @@ func (server *Server) setBranchTargetSeriesActive(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	// The till's target bars follow the toggle at once: periods running or
+	// still to come are hidden on pause and restored on resume.
+	today := businessToday()
+	if err := server.store.SetBranchTargetsActiveBySeriesSince(ctx, db.SetBranchTargetsActiveBySeriesSinceParams{
+		SeriesID: sql.NullInt64{Int64: series.ID, Valid: true},
+		IsActive: req.Active,
+		DateTo:   today,
+	}); err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if req.Active {
+		ensureCurrentPeriod(ctx, server.store, server.branchHub, series, today)
+	}
+	server.branchHub.notify(series.BranchID, branchWSMessage{Type: "target_updated"})
 	ctx.JSON(http.StatusOK, series)
 }
 
