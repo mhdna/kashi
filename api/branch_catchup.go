@@ -399,6 +399,18 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 			}
 			items = out
 		}
+	case "calendar_events":
+		// Whole set every time, ignoring `since`: events are few, and a
+		// deleted one can only be expressed by its absence.
+		var rows []db.CalendarEvent
+		rows, err = server.store.ListCalendarEvents(ctx)
+		if err == nil {
+			out := make([]syncCalendarEvent, len(rows))
+			for i, r := range rows {
+				out[i] = newSyncCalendarEvent(r)
+			}
+			items = out
+		}
 	case "quick_access":
 		// Register-scoped and always whole (ignores `since`): this register's
 		// mode plus its branch's list -- see branch_quick_access.go.

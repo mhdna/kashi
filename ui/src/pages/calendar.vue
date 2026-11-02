@@ -34,6 +34,7 @@
       <!-- Phones: icon-only buttons so the toolbar fits on one line. -->
       <template v-if="xs">
         <v-btn aria-label="Manage events" icon="mdi-calendar-plus" variant="text" @click="manageOpen = true" />
+        <v-btn aria-label="Events picture" icon="mdi-image" variant="text" @click="openPoster" />
         <v-btn aria-label="Today" icon="mdi-calendar-today" variant="text" @click="goToToday" />
       </template>
       <template v-else>
@@ -43,6 +44,13 @@
           text="Events"
           variant="tonal"
           @click="manageOpen = true"
+        />
+        <v-btn
+          class="me-2"
+          prepend-icon="mdi-image"
+          text="Picture"
+          variant="tonal"
+          @click="openPoster"
         />
         <v-btn prepend-icon="mdi-calendar-today" text="Today" variant="tonal" @click="goToToday" />
       </template>
@@ -232,19 +240,54 @@
         </v-card-text>
       </v-card>
     </v-dialog>
+    <!-- The month's events as a picture to send to people. -->
+    <v-dialog v-model="posterOpen" max-width="560" scrollable>
+      <v-card>
+        <v-card-title class="text-subtitle-1 d-flex align-center">
+          Events of {{ title }}
+          <v-spacer />
+          <v-btn icon="mdi-close" size="small" variant="text" @click="posterOpen = false" />
+        </v-card-title>
+        <v-divider />
+        <v-card-text class="pa-3">
+          <v-img v-if="posterUrl" :src="posterUrl" />
+        </v-card-text>
+        <v-divider />
+        <v-card-actions>
+          <v-spacer />
+          <v-btn
+            v-if="canShare"
+            prepend-icon="mdi-share-variant"
+            text="Share"
+            variant="tonal"
+            @click="sharePoster"
+          />
+          <v-btn
+            color="primary"
+            prepend-icon="mdi-download"
+            text="Download"
+            variant="flat"
+            @click="downloadPoster"
+          />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 
 <script setup>
   import { computed, onMounted, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
-  import { useDisplay } from 'vuetify'
+  import { useDisplay, useTheme  } from 'vuetify'
+  import colors from 'vuetify/util/colors'
+  import gbLogo from '@/assets/gb-logo.png'
   import { useCalendarEvents } from '@/composables/useCalendarEvents'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { getEventsForRange, retailCalendarEvents } from '@/data/retailCalendarEvents'
   import { useAuthStore } from '@/stores/auth'
   import { useSettingsStore } from '@/stores/settings'
+  import { canvasToBlob, drawMonthPoster } from '@/utils/monthPoster'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
@@ -287,6 +330,67 @@
     const f = form.value
     return f.name.trim() !== '' && f.start_date !== '' && f.end_date !== '' && f.end_date >= f.start_date
   })
+
+  // --- Events picture ----------------------------------------------------
+  const theme = useTheme()
+  const posterOpen = ref(false)
+  const posterUrl = ref('')
+  let posterBlob = null
+  const canShare = typeof navigator !== 'undefined' && !!navigator.canShare
+
+  // "deep-orange" -> colors.deepOrange.base, "blue-darken-2" -> colors.blue.darken2,
+  // theme names ("primary") -> the live theme colour.
+  function colorToHex (name) {
+    if (!name) return null
+    if (name.startsWith('#')) return name
+    const themed = theme.current.value.colors[name]
+    if (themed) return themed
+    const m = /^(.*?)(?:-(lighten|darken|accent)-(\d))?$/.exec(name)
+    const family = m[1].replaceAll(/-(\w)/g, (_, c) => c.toUpperCase())
+    return colors[family]?.[m[2] ? `${m[2]}${m[3]}` : 'base'] ?? null
+  }
+
+  async function openPoster () {
+    try {
+      const logo = new Image()
+      logo.src = gbLogo
+      await logo.decode()
+      const canvas = drawMonthPoster({
+        logo,
+        month: rangeStart.value ?? new Date(),
+        events: events.value,
+        colorToHex,
+      })
+      posterBlob = await canvasToBlob(canvas)
+      if (posterUrl.value) URL.revokeObjectURL(posterUrl.value)
+      posterUrl.value = URL.createObjectURL(posterBlob)
+      posterOpen.value = true
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
+
+  function posterFileName () {
+    const d = rangeStart.value ?? new Date()
+    return `events-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}.png`
+  }
+
+  function downloadPoster () {
+    const a = document.createElement('a')
+    a.href = posterUrl.value
+    a.download = posterFileName()
+    a.click()
+  }
+
+  async function sharePoster () {
+    const file = new File([posterBlob], posterFileName(), { type: 'image/png' })
+    if (!navigator.canShare({ files: [file] })) return downloadPoster()
+    try {
+      await navigator.share({ files: [file], title: `Events of ${title.value}` })
+    } catch (error) {
+      if (error.name !== 'AbortError') notify.error(error.message)
+    }
+  }
 
   const hiddenSet = computed(() => new Set(settingsStore.hiddenBuiltinEvents))
 
