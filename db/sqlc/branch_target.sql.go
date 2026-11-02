@@ -350,6 +350,27 @@ func (q *Queries) SetBranchTargetActive(ctx context.Context, arg SetBranchTarget
 	return i, err
 }
 
+const setBranchTargetsActiveBySeriesSince = `-- name: SetBranchTargetsActiveBySeriesSince :exec
+UPDATE branch_targets
+SET is_active = $2,
+    updated_at = now()
+WHERE series_id = $1 AND date_to >= $3
+`
+
+type SetBranchTargetsActiveBySeriesSinceParams struct {
+	SeriesID sql.NullInt64 `json:"series_id"`
+	IsActive bool          `json:"is_active"`
+	DateTo   time.Time     `json:"date_to"`
+}
+
+// Pausing / resuming a recurring series hides / restores the periods that
+// are running or still to come, so the till's target bars follow the toggle
+// straight away. Finished periods are left alone (they're history).
+func (q *Queries) SetBranchTargetsActiveBySeriesSince(ctx context.Context, arg SetBranchTargetsActiveBySeriesSinceParams) error {
+	_, err := q.db.ExecContext(ctx, setBranchTargetsActiveBySeriesSince, arg.SeriesID, arg.IsActive, arg.DateTo)
+	return err
+}
+
 const sumBranchRevenueForRange = `-- name: SumBranchRevenueForRange :one
 SELECT COALESCE(SUM(grand_total), 0)::bigint AS total
 FROM branch_invoices

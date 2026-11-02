@@ -12327,6 +12327,20 @@ func (mr *MockStoreMockRecorder) SetBranchTargetSeriesActive(arg0, arg1 interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchTargetSeriesActive", reflect.TypeOf((*MockStore)(nil).SetBranchTargetSeriesActive), arg0, arg1)
 }
 
+// SetBranchTargetsActiveBySeriesSince mocks base method.
+func (m *MockStore) SetBranchTargetsActiveBySeriesSince(arg0 context.Context, arg1 db.SetBranchTargetsActiveBySeriesSinceParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetBranchTargetsActiveBySeriesSince", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetBranchTargetsActiveBySeriesSince indicates an expected call of SetBranchTargetsActiveBySeriesSince.
+func (mr *MockStoreMockRecorder) SetBranchTargetsActiveBySeriesSince(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchTargetsActiveBySeriesSince", reflect.TypeOf((*MockStore)(nil).SetBranchTargetsActiveBySeriesSince), arg0, arg1)
+}
+
 // SetBranchUserActive mocks base method.
 func (m *MockStore) SetBranchUserActive(arg0 context.Context, arg1 db.SetBranchUserActiveParams) (db.BranchUser, error) {
 	m.ctrl.T.Helper()

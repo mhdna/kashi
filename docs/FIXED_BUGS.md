@@ -3,6 +3,26 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-02 · Pausing a recurring target did nothing on the till, and Add Target errored without dates
+
+**Symptom.** (1) Switching a recurring target off or on in a branch's Targets
+dialog changed nothing on the till's Balance page until something else
+refreshed it. (2) Pressing Add in the Add Target dialog without picking dates
+showed `parsing time "T00:00:00Z" as "2006-01-02T15:04:05Z07:00"`.
+
+**Cause.** (1) `setBranchTargetSeriesActive` only flipped the series flag: it
+never touched the periods already generated and never told the branch's
+tills to re-pull. (2) The dialog sent the empty dates as `T00:00:00Z`, which
+the API can't parse.
+
+**Fix.** (1) `api/branch_target_series.go`: pausing hides the periods running
+or still to come, resuming restores them (and creates the current one if
+missing, via `ensureCurrentPeriod` in `api/branch_target_series_scheduler.go`),
+and the branch is notified with `target_updated`. New query
+`SetBranchTargetsActiveBySeriesSince`; test
+`TestPausingASeriesHidesItsCurrentTarget`. (2) `ui/src/pages/branches.vue`
+asks for the dates before sending.
+
 ## 2026-10-31 · The report appeared dimmed, then faded in, after its animation
 
 **Symptom.** On the Reports page, once the "Preparing your report" picture

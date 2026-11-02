@@ -67,6 +67,15 @@ SELECT * FROM branch_targets
 WHERE series_id = $1 AND date_from = $2
 LIMIT 1;
 
+-- name: SetBranchTargetsActiveBySeriesSince :exec
+-- Pausing / resuming a recurring series hides / restores the periods that
+-- are running or still to come, so the till's target bars follow the toggle
+-- straight away. Finished periods are left alone (they're history).
+UPDATE branch_targets
+SET is_active = $2,
+    updated_at = now()
+WHERE series_id = $1 AND date_to >= $3;
+
 -- name: DeactivateBranchTargetsBySeries :exec
 -- Part of deleting a whole recurring series (see DeleteBranchTargetSeriesTx
 -- in tx_branch_target_series.go) -- every period it ever generated needs

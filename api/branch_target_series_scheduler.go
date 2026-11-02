@@ -40,31 +40,38 @@ func fireDueBranchTargetSeries(ctx context.Context, store db.Store, hub *branchH
 
 	now := businessToday()
 	for _, s := range series {
-		start, end := currentPeriod(s, now)
-		seriesID := sql.NullInt64{Int64: s.ID, Valid: true}
+		ensureCurrentPeriod(ctx, store, hub, s, now)
+	}
+}
 
-		_, err := store.GetBranchTargetBySeriesAndStart(ctx, db.GetBranchTargetBySeriesAndStartParams{
-			SeriesID: seriesID,
-			DateFrom: start,
-		})
-		if err == nil {
-			continue // this period's row already exists
-		}
+// ensureCurrentPeriod creates the series' target row for the period that
+// contains now, unless it exists (a paused series' row is reactivated by the
+// toggle itself), and tells the owning branch when it made one.
+func ensureCurrentPeriod(ctx context.Context, store db.Store, hub *branchHub, s db.BranchTargetSeries, now time.Time) {
+	start, end := currentPeriod(s, now)
+	seriesID := sql.NullInt64{Int64: s.ID, Valid: true}
 
-		if _, err := store.CreateGeneratedBranchTarget(ctx, db.CreateGeneratedBranchTargetParams{
-			BranchID:     s.BranchID,
-			DateFrom:     start,
-			DateTo:       end,
-			TargetAmount: s.TargetAmount,
-			Color:        s.Color,
-			SeriesID:     seriesID,
-		}); err != nil {
-			log.Printf("branch target series %d: create period %s: %v", s.ID, start.Format("2006-01-02"), err)
-			continue
-		}
-		if hub != nil {
-			hub.notify(s.BranchID, branchWSMessage{Type: "target_updated"})
-		}
+	_, err := store.GetBranchTargetBySeriesAndStart(ctx, db.GetBranchTargetBySeriesAndStartParams{
+		SeriesID: seriesID,
+		DateFrom: start,
+	})
+	if err == nil {
+		return // this period's row already exists
+	}
+
+	if _, err := store.CreateGeneratedBranchTarget(ctx, db.CreateGeneratedBranchTargetParams{
+		BranchID:     s.BranchID,
+		DateFrom:     start,
+		DateTo:       end,
+		TargetAmount: s.TargetAmount,
+		Color:        s.Color,
+		SeriesID:     seriesID,
+	}); err != nil {
+		log.Printf("branch target series %d: create period %s: %v", s.ID, start.Format("2006-01-02"), err)
+		return
+	}
+	if hub != nil {
+		hub.notify(s.BranchID, branchWSMessage{Type: "target_updated"})
 	}
 }
 
