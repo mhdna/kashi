@@ -47,10 +47,21 @@ type syncReportEntity struct {
 	RowsApplied int64  `json:"rows_applied"`
 }
 
+// syncReportList is one list as the till holds it (list_fingerprint.go).
+type syncReportList struct {
+	Kind string `json:"kind" binding:"oneof=price discount"`
+	UID  string `json:"uid" binding:"required"`
+	Rows int32  `json:"rows"`
+	Hash string `json:"hash" binding:"required"`
+}
+
 type syncReportRequest struct {
-	Entities      []syncReportEntity `json:"entities" binding:"dive"`
-	OutboxPending int64              `json:"outbox_pending"`
-	OutboxFailed  int64              `json:"outbox_failed"`
+	Entities []syncReportEntity `json:"entities" binding:"dive"`
+	// Every list the till has, when any of them changed; absent otherwise, and
+	// always from a till too old to report them.
+	Lists         []syncReportList `json:"lists" binding:"dive"`
+	OutboxPending int64            `json:"outbox_pending"`
+	OutboxFailed  int64            `json:"outbox_failed"`
 }
 
 // branchSyncReport is the till's own word on its last pull. It sends it only
@@ -68,6 +79,20 @@ func (server *Server) branchSyncReport(ctx *gin.Context) {
 		}); err != nil {
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
+		}
+	}
+	if len(req.Lists) > 0 {
+		if err := server.store.ClearBranchRegisterListStates(ctx, registerID); err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		for _, l := range req.Lists {
+			if err := server.store.SetBranchRegisterListState(ctx, db.SetBranchRegisterListStateParams{
+				RegisterID: registerID, Kind: l.Kind, ListUid: l.UID, Rows: l.Rows, Hash: l.Hash,
+			}); err != nil {
+				server.writeError(ctx, http.StatusInternalServerError, err)
+				return
+			}
 		}
 	}
 	if err := server.store.ReportBranchSyncOutbox(ctx, db.ReportBranchSyncOutboxParams{

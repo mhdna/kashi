@@ -19,7 +19,8 @@
             size="small"
             variant="tonal"
           >
-            {{ r.branch_name }} · {{ r.register_code }}: {{ STATES[r.state].title }}
+            <v-icon v-if="r.verified" class="me-1" icon="mdi-check-circle" size="16" />
+            {{ r.branch_name }} · {{ r.register_code }}: {{ chipTitle(r) }}
           </v-chip>
         </template>
       </v-tooltip>
@@ -48,16 +49,19 @@
     waiting: { title: 'Waiting for the till', color: 'warning' },
     offline: { title: 'Offline', color: undefined },
     stuck: { title: 'Stuck', color: 'error' },
+    different: { title: 'Different', color: 'error' },
   }
 
   const registers = ref([])
   const changedAt = ref(null)
+  const expectedRows = ref(0)
   const loaded = ref(false)
 
   // An offline till can't be waited on, so it doesn't hold the progress back.
   const online = computed(() => registers.value.filter(r => r.state !== 'offline'))
   const reachedCount = computed(() => registers.value.filter(r => r.state === 'reached').length)
-  const stuckCount = computed(() => registers.value.filter(r => r.state === 'stuck').length)
+  // Stuck or holding something else: both are a till selling on the wrong list.
+  const stuckCount = computed(() => registers.value.filter(r => r.state === 'stuck' || r.state === 'different').length)
   const offlineCount = computed(() => registers.value.length - online.value.length)
   const pendingCount = computed(() => online.value.filter(r => r.state !== 'reached').length)
   const progress = computed(() => online.value.length === 0 ? 0 : 100 * (online.value.length - pendingCount.value) / online.value.length)
@@ -65,7 +69,7 @@
 
   const summary = computed(() => {
     const parts = [`Reached ${reachedCount.value} of ${registers.value.length} till${registers.value.length === 1 ? '' : 's'}`]
-    if (stuckCount.value > 0) parts.push(`${stuckCount.value} stuck`)
+    if (stuckCount.value > 0) parts.push(`${stuckCount.value} with a problem`)
     if (offlineCount.value > 0) parts.push(`${offlineCount.value} offline`)
     return parts.join(' · ')
   })
@@ -78,8 +82,16 @@
     return `${Math.round(seconds / 86_400)} d ago`
   }
 
+  function chipTitle (r) {
+    // An older till can't be checked: it should have it, going by its sync.
+    if (r.state === 'reached' && !r.verified) return 'Reached (not checked)'
+    return STATES[r.state].title
+  }
+
   function detail (r) {
-    if (r.state === 'reached') return `Has this version${r.reached_at ? `, since ${ago(r.reached_at)}` : ''}`
+    if (r.state === 'reached' && r.verified) return `Checked: the till holds exactly this list${r.reached_at ? `, as of ${ago(r.reached_at)}` : ''}`
+    if (r.state === 'reached') return 'Going by its sync it should have this. It needs a newer version of the app to check what it really holds.'
+    if (r.state === 'different') return `The till says it's up to date but holds something else (${r.till_rows ?? '?'} rows, kashi has ${expectedRows.value}). To send it again, edit this list and save it.`
     if (r.state === 'stuck') return r.error || 'It keeps asking for the same data, so applying it is failing'
     if (r.state === 'offline') return `Last seen ${r.last_seen_at ? ago(r.last_seen_at) : 'never'}. It gets this when it comes back.`
     if (r.state === 'sending') return `Pulled it ${r.last_pull_at ? ago(r.last_pull_at) : ''}; it confirms when applied, or on its next pull`
@@ -100,6 +112,7 @@
       if (res.ok) {
         registers.value = data.registers ?? []
         changedAt.value = data.changed_at
+        expectedRows.value = data.expected_rows ?? 0
       }
     } catch { /* informational: the next round tries again */ } finally {
       if (mine === latest) {

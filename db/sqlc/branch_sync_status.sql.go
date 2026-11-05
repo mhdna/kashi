@@ -51,6 +51,50 @@ func (q *Queries) BranchSyncLatestChanges(ctx context.Context, branchID int64) (
 	return i, err
 }
 
+const clearBranchRegisterListStates = `-- name: ClearBranchRegisterListStates :exec
+DELETE FROM branch_register_list_state WHERE register_id = $1
+`
+
+// A till reports every list it has, so one it no longer has goes.
+func (q *Queries) ClearBranchRegisterListStates(ctx context.Context, registerID int64) error {
+	_, err := q.db.ExecContext(ctx, clearBranchRegisterListStates, registerID)
+	return err
+}
+
+const listBranchRegisterListStates = `-- name: ListBranchRegisterListStates :many
+SELECT register_id, kind, list_uid, rows, hash, reported_at FROM branch_register_list_state WHERE kind = $1
+`
+
+func (q *Queries) ListBranchRegisterListStates(ctx context.Context, kind string) ([]BranchRegisterListState, error) {
+	rows, err := q.db.QueryContext(ctx, listBranchRegisterListStates, kind)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []BranchRegisterListState{}
+	for rows.Next() {
+		var i BranchRegisterListState
+		if err := rows.Scan(
+			&i.RegisterID,
+			&i.Kind,
+			&i.ListUid,
+			&i.Rows,
+			&i.Hash,
+			&i.ReportedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listBranchSyncStatus = `-- name: ListBranchSyncStatus :many
 SELECT
   r.id AS register_id, r.code AS register_code, r.name AS register_name,
@@ -217,5 +261,31 @@ type ReportBranchSyncOutboxParams struct {
 
 func (q *Queries) ReportBranchSyncOutbox(ctx context.Context, arg ReportBranchSyncOutboxParams) error {
 	_, err := q.db.ExecContext(ctx, reportBranchSyncOutbox, arg.RegisterID, arg.Pending, arg.Failed)
+	return err
+}
+
+const setBranchRegisterListState = `-- name: SetBranchRegisterListState :exec
+INSERT INTO branch_register_list_state (register_id, kind, list_uid, rows, hash)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (register_id, kind, list_uid) DO UPDATE SET
+  rows = EXCLUDED.rows, hash = EXCLUDED.hash, reported_at = now()
+`
+
+type SetBranchRegisterListStateParams struct {
+	RegisterID int64  `json:"register_id"`
+	Kind       string `json:"kind"`
+	ListUid    string `json:"list_uid"`
+	Rows       int32  `json:"rows"`
+	Hash       string `json:"hash"`
+}
+
+func (q *Queries) SetBranchRegisterListState(ctx context.Context, arg SetBranchRegisterListStateParams) error {
+	_, err := q.db.ExecContext(ctx, setBranchRegisterListState,
+		arg.RegisterID,
+		arg.Kind,
+		arg.ListUid,
+		arg.Rows,
+		arg.Hash,
+	)
 	return err
 }

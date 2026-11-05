@@ -842,6 +842,15 @@ type BranchRegister struct {
 	TargetForce              bool                  `json:"target_force"`
 }
 
+type BranchRegisterListState struct {
+	RegisterID int64     `json:"register_id"`
+	Kind       string    `json:"kind"`
+	ListUid    string    `json:"list_uid"`
+	Rows       int32     `json:"rows"`
+	Hash       string    `json:"hash"`
+	ReportedAt time.Time `json:"reported_at"`
+}
+
 type BranchRegisterSyncOutbox struct {
 	RegisterID int64     `json:"register_id"`
 	Pending    int64     `json:"pending"`

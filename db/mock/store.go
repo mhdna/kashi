@@ -857,6 +857,20 @@ func (mr *MockStoreMockRecorder) ClaimWhatsAppWelcome(arg0, arg1 interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClaimWhatsAppWelcome", reflect.TypeOf((*MockStore)(nil).ClaimWhatsAppWelcome), arg0, arg1)
 }
 
+// ClearBranchRegisterListStates mocks base method.
+func (m *MockStore) ClearBranchRegisterListStates(arg0 context.Context, arg1 int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClearBranchRegisterListStates", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ClearBranchRegisterListStates indicates an expected call of ClearBranchRegisterListStates.
+func (mr *MockStoreMockRecorder) ClearBranchRegisterListStates(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearBranchRegisterListStates", reflect.TypeOf((*MockStore)(nil).ClearBranchRegisterListStates), arg0, arg1)
+}
+
 // ClearDefaultWhatsAppNumber mocks base method.
 func (m *MockStore) ClearDefaultWhatsAppNumber(arg0 context.Context) error {
 	m.ctrl.T.Helper()
@@ -8012,6 +8026,21 @@ func (mr *MockStoreMockRecorder) ListBranchQuickAccessItems(arg0, arg1 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchQuickAccessItems", reflect.TypeOf((*MockStore)(nil).ListBranchQuickAccessItems), arg0, arg1)
 }
 
+// ListBranchRegisterListStates mocks base method.
+func (m *MockStore) ListBranchRegisterListStates(arg0 context.Context, arg1 string) ([]db.BranchRegisterListState, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBranchRegisterListStates", arg0, arg1)
+	ret0, _ := ret[0].([]db.BranchRegisterListState)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBranchRegisterListStates indicates an expected call of ListBranchRegisterListStates.
+func (mr *MockStoreMockRecorder) ListBranchRegisterListStates(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchRegisterListStates", reflect.TypeOf((*MockStore)(nil).ListBranchRegisterListStates), arg0, arg1)
+}
+
 // ListBranchRegisters mocks base method.
 func (m *MockStore) ListBranchRegisters(arg0 context.Context, arg1 int64) ([]db.BranchRegister, error) {
 	m.ctrl.T.Helper()
@@ -12323,6 +12352,20 @@ func (m *MockStore) SetBranchRegisterHiddenFromReports(arg0 context.Context, arg
 func (mr *MockStoreMockRecorder) SetBranchRegisterHiddenFromReports(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchRegisterHiddenFromReports", reflect.TypeOf((*MockStore)(nil).SetBranchRegisterHiddenFromReports), arg0, arg1)
+}
+
+// SetBranchRegisterListState mocks base method.
+func (m *MockStore) SetBranchRegisterListState(arg0 context.Context, arg1 db.SetBranchRegisterListStateParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetBranchRegisterListState", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetBranchRegisterListState indicates an expected call of SetBranchRegisterListState.
+func (mr *MockStoreMockRecorder) SetBranchRegisterListState(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBranchRegisterListState", reflect.TypeOf((*MockStore)(nil).SetBranchRegisterListState), arg0, arg1)
 }
 
 // SetBranchRegisterQuickAccessMode mocks base method.

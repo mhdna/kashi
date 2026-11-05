@@ -70,3 +70,16 @@ SELECT
   )::timestamptz AS price_lists,
   (SELECT COALESCE(max(updated_at), 'epoch') FROM product_variants)::timestamptz AS products,
   (SELECT COALESCE(max(updated_at), 'epoch') FROM clients)::timestamptz AS clients;
+
+-- name: ClearBranchRegisterListStates :exec
+-- A till reports every list it has, so one it no longer has goes.
+DELETE FROM branch_register_list_state WHERE register_id = $1;
+
+-- name: SetBranchRegisterListState :exec
+INSERT INTO branch_register_list_state (register_id, kind, list_uid, rows, hash)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (register_id, kind, list_uid) DO UPDATE SET
+  rows = EXCLUDED.rows, hash = EXCLUDED.hash, reported_at = now();
+
+-- name: ListBranchRegisterListStates :many
+SELECT * FROM branch_register_list_state WHERE kind = $1;
