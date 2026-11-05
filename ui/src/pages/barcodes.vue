@@ -73,7 +73,7 @@
               />
             </template>
             <template #item.price="{ item }">
-              {{ item.price ? formatMoney(item.price) : '—' }}
+              {{ item.price?.Valid ? formatMoney(item.price.Int64) : '—' }}
             </template>
             <template #item.qty="{ item }">
               <v-text-field

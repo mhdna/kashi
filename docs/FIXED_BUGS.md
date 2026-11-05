@@ -3,6 +3,16 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-05 · The Barcodes page showed NaN as the price
+
+**Symptom.** Every product with a price showed "NaN" in the Barcodes page's Price
+column. The printed labels were right.
+
+**Cause.** `GET /barcodes` sends the price as `{"Int64": 2900, "Valid": true}`, as it
+can be empty, and the page treated that object as a number.
+
+**Fix.** The page reads `Int64` when `Valid` is set (`ui/src/pages/barcodes.vue`).
+
 ## 2026-11-05 · Picking a product on a price or discount list showed its number
 
 **Symptom.** After choosing a product in "Product variant" on a price or discount
