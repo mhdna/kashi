@@ -3,6 +3,20 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-05 · Picking a product on a price or discount list showed its number
+
+**Symptom.** After choosing a product in "Product variant" on a price or discount
+list, the box showed a number like 4174 instead of the product's name.
+
+**Cause.** Picking one clears the box's search, which loads the first page of
+products. A product found by typing usually isn't on it, so the box had only its id
+to show.
+
+**Fix.** The box holds the picked variant itself and skips that search
+(`ui/src/components/PriceDiscountListManager.vue`). The UI has no test runner, so this
+was checked in Chrome with a stubbed search: the old box showed 4174, the new one the
+name.
+
 ## 2026-11-05 · A till never got a list change that saved slowly, yet showed "Reached"
 
 **Symptom.** A crocs rule at 21% was saved and Centro showed "Reached", but the till

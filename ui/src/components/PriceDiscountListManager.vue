@@ -123,7 +123,7 @@
 
             <div v-if="canEdit" class="d-flex align-end ga-3 pa-4">
               <v-autocomplete
-                v-model="addVariantId"
+                v-model="addVariant"
                 class="flex-grow-1"
                 clearable
                 density="compact"
@@ -134,6 +134,7 @@
                 label="Product variant"
                 :loading="variantSearchLoading"
                 no-filter
+                return-object
                 variant="outlined"
                 @update:search="onVariantSearch"
               />
@@ -173,7 +174,7 @@
               />
               <v-btn
                 color="primary"
-                :disabled="!addVariantId || (addValue === '' && addDealId === 0)"
+                :disabled="!addVariant || (addValue === '' && addDealId === 0)"
                 :loading="addingItem"
                 text="Add"
                 variant="flat"
@@ -778,7 +779,9 @@
   // rather than products -- reusing useVariants, the same source the sales
   // invoice picker uses, so a row reads identically in both places.
   const { variants: variantOptions, loading: variantSearchLoading, searchVariants } = useVariants()
-  const addVariantId = ref(null)
+  // The picked variant itself, not its id: picking one clears the search, which
+  // loads the first page, and an id missing from it would show as a bare number.
+  const addVariant = ref(null)
   const addValue = ref('')
   const addSaleOptionId = ref(0)
   const addDealId = ref(0)
@@ -787,13 +790,15 @@
 
   function onVariantSearch (query) {
     clearTimeout(variantSearchTimer)
+    // The box filling in the picked variant's label isn't someone searching.
+    if (query && query === addVariant.value?.label) return
     variantSearchTimer = setTimeout(() => searchVariants(query?.trim() ?? ''), 300)
   }
 
   onMounted(() => searchVariants(''))
 
   async function addItem () {
-    if (!addVariantId.value) return
+    if (!addVariant.value) return
     if (addDealId.value) {
       await addDealItem()
       return
@@ -806,8 +811,8 @@
     }
     addingItem.value = true
     try {
-      await saveItem(selectedList.value.id, addVariantId.value, parsed, addSaleOptionId.value)
-      addVariantId.value = null
+      await saveItem(selectedList.value.id, addVariant.value.id, parsed, addSaleOptionId.value)
+      addVariant.value = null
       addValue.value = ''
       reloadItems()
     } catch (error) {
@@ -820,8 +825,8 @@
   async function addDealItem () {
     addingItem.value = true
     try {
-      await saveItem(selectedList.value.id, addVariantId.value, 0, 0, addDealId.value)
-      addVariantId.value = null
+      await saveItem(selectedList.value.id, addVariant.value.id, 0, 0, addDealId.value)
+      addVariant.value = null
       reloadItems()
     } catch (error) {
       notify.error(error.message)
