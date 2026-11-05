@@ -358,6 +358,7 @@ Add a Symptom / Cause / Fix entry to `docs/FIXED_BUGS.md` in the same commit.
 
 | Symptom | Cause / rule |
 | --- | --- |
+| Postgres JIT | Off for the app role (000222): compiling took 2-3s on the 1-CPU server, longer than the queries it sped up. Check `SHOW jit` before trusting a timing on another machine. |
 | Icon renders as text, app lags | Unregistered `mdi-*` name. Add to `plugins/icons.js`. |
 | New route returns 403 for non-admins | Not in `routeRules`. |
 | Two websocket writers panic | Writing a raw conn; use `wsConn`. |

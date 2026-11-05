@@ -86,7 +86,7 @@ func TestDiscountListRules(t *testing.T) {
 	require.Equal(t, int64(1), rules[1].Variants)
 	require.Equal(t, int64(0), rules[0].Variants, "an exclusion writes no rows")
 
-	// What each rule decides, the exclusion's too: the bag.
+	// An exclusion's count comes from matching: it keeps the bag out.
 	decided, err := testQueries.CountDiscountListRuleDecided(ctx, list.ID)
 	require.NoError(t, err)
 	byRule := map[int64]int64{}
@@ -94,7 +94,7 @@ func TestDiscountListRules(t *testing.T) {
 		byRule[d.RuleID] = d.Variants
 	}
 	require.Equal(t, int64(1), byRule[rules[0].ID], "the accessories rule keeps the bag out")
-	require.Equal(t, int64(1), byRule[rules[1].ID], "the turkey rule has the shirt")
+	require.Zero(t, byRule[rules[1].ID], "the turkey rule's count comes from its rows, not from here")
 
 	// The shirt stops being Turkish: it leaves the rule when that commits.
 	setAttr(shirt.ProductID, 8, "China")
@@ -305,6 +305,7 @@ func TestDiscountListRuleMaxPrice(t *testing.T) {
 	rules, err := testQueries.ListDiscountListRules(ctx, list.ID)
 	require.NoError(t, err)
 	for _, r := range rules {
+		counts[r.Name] = r.Variants
 		for _, d := range decided {
 			if d.RuleID == r.ID {
 				counts[r.Name] = d.Variants

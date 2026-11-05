@@ -87,10 +87,11 @@ WHERE discount_list_id = $1 AND NOT (id = ANY(sqlc.arg(keep)::bigint[]));
 DELETE FROM discount_list_rule_options WHERE rule_id = $1;
 
 -- name: CountDiscountListRuleDecided :many
--- How many variants each rule of a list decides, first match wins, the way
--- refresh_discount_rules (000208) picks them. A rule giving no discount and
--- no deal writes no rows, so ListDiscountListRules counts it as 0; this is
--- what it keeps out (or gives) all the same.
+-- How many variants each exclusion rule of a list keeps out, first match wins.
+-- A rule giving no discount, deal or option writes no rows, so
+-- ListDiscountListRules counts it as 0. Every variant another rule decided has a
+-- row, so only the variants with none are matched: far fewer than the whole
+-- catalog against every rule, which took seconds.
 WITH rules AS (
     SELECT r.id, r.position, r.max_price,
            ARRAY(SELECT upper(x) || '%' FROM unnest(r.code_prefixes) x) AS prefixes,
@@ -102,18 +103,19 @@ WITH rules AS (
            ARRAY(SELECT lower(x) FROM unnest(r.brands) x) AS brands
     FROM discount_list_rules r
     WHERE r.discount_list_id = $1
-      AND r.is_enabled
+      AND r.is_enabled AND r.discount = 0 AND r.deal_id IS NULL
+      AND NOT EXISTS (SELECT 1 FROM discount_list_rule_options o WHERE o.rule_id = r.id)
       AND EXISTS (SELECT 1 FROM discount_list_rule_groups g WHERE g.id = r.group_id AND g.is_enabled)
-), prices AS (
-    -- As in refresh_discount_rules (000208): the price in the active price lists.
-    SELECT i.product_variant_id, min(i.price) AS price
-    FROM price_list_items i
-    JOIN price_lists l ON l.id = i.price_list_id AND l.is_active
-    GROUP BY i.product_variant_id
+), undecided AS MATERIALIZED (
+    SELECT f.* FROM discount_rule_facts f
+    WHERE NOT EXISTS (SELECT 1 FROM discount_list_items m
+                      WHERE m.discount_list_id = $1 AND m.product_variant_id = f.product_variant_id)
+      AND NOT EXISTS (SELECT 1 FROM discount_list_option_items m
+                      WHERE m.discount_list_id = $1 AND m.product_variant_id = f.product_variant_id)
 ), decided AS (
     SELECT DISTINCT ON (f.product_variant_id) r.id AS rule_id
     FROM rules r
-    JOIN discount_rule_facts f ON
+    JOIN undecided f ON
             (cardinality(r.prefixes) = 0 OR f.code LIKE ANY (r.prefixes))
         AND NOT (f.code LIKE ANY (r.except_prefixes))
         AND (cardinality(r.kinds) = 0 OR f.kind = ANY (r.kinds))
@@ -121,14 +123,11 @@ WITH rules AS (
         AND (cardinality(r.sub_categories) = 0 OR f.sub_category = ANY (r.sub_categories))
         AND (cardinality(r.origins) = 0 OR f.origin = ANY (r.origins))
         AND (cardinality(r.brands) = 0 OR f.brand = ANY (r.brands))
-    LEFT JOIN prices pr ON pr.product_variant_id = f.product_variant_id
-    WHERE (r.max_price IS NULL OR pr.price <= r.max_price)
-      AND NOT EXISTS (SELECT 1 FROM discount_list_items m
-                      WHERE m.discount_list_id = $1
-                        AND m.product_variant_id = f.product_variant_id AND m.rule_id IS NULL)
-      AND NOT EXISTS (SELECT 1 FROM discount_list_option_items m
-                      WHERE m.discount_list_id = $1
-                        AND m.product_variant_id = f.product_variant_id AND m.rule_id IS NULL)
+    -- As in refresh_discount_rules (000208): the price in the active price lists.
+    WHERE r.max_price IS NULL OR r.max_price >= (
+        SELECT min(i.price) FROM price_list_items i
+        JOIN price_lists l ON l.id = i.price_list_id AND l.is_active
+        WHERE i.product_variant_id = f.product_variant_id)
     ORDER BY f.product_variant_id, r.position, r.id
 )
 SELECT rule_id, COUNT(*)::bigint AS variants FROM decided GROUP BY rule_id;
