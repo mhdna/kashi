@@ -106,6 +106,8 @@
               />
             </div>
 
+            <ListDelivery ref="deliveryRef" :kind="kind" :list-id="selectedList.id" />
+
             <v-divider />
 
             <template v-if="kind === 'discount'">
@@ -553,6 +555,7 @@
   import DealsDialog from '@/components/DealsDialog.vue'
   import DiscountListRules from '@/components/DiscountListRules.vue'
   import InvoiceDiscountsDialog from '@/components/InvoiceDiscountsDialog.vue'
+  import ListDelivery from '@/components/ListDelivery.vue'
   import PageSidebar from '@/components/PageSidebar.vue'
   import BulkDeleteBar from '@/components/Tables/BulkDeleteBar.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
@@ -713,8 +716,12 @@
   const tableRef = ref(null)
   const itemSearch = ref('')
 
+  // Anything that reloads the rows may have changed the list: the tills get it.
+  const deliveryRef = ref(null)
+
   function reloadItems () {
     tableRef.value?.reload()
+    deliveryRef.value?.reload()
   }
 
   // ---- item bulk delete ------------------------------------------------
