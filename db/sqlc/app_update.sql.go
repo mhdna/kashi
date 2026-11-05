@@ -25,21 +25,25 @@ func (q *Queries) CountRegistersTargetingRelease(ctx context.Context, targetRele
 }
 
 const createAppRelease = `-- name: CreateAppRelease :one
-INSERT INTO app_releases (version, flavor, file_name, file_path, size_bytes, sha256, signature, notes, uploaded_by)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, version, flavor, file_name, file_path, size_bytes, sha256, signature, notes, uploaded_by, created_at, targeted_at, file_removed_at
+INSERT INTO app_releases (version, flavor, file_name, file_path, size_bytes, sha256, signature, notes, uploaded_by,
+                          encoding, file_size_bytes, file_sha256)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+RETURNING id, version, flavor, file_name, file_path, size_bytes, sha256, signature, notes, uploaded_by, created_at, targeted_at, file_removed_at, encoding, file_size_bytes, file_sha256
 `
 
 type CreateAppReleaseParams struct {
-	Version    string        `json:"version"`
-	Flavor     string        `json:"flavor"`
-	FileName   string        `json:"file_name"`
-	FilePath   string        `json:"file_path"`
-	SizeBytes  int64         `json:"size_bytes"`
-	Sha256     string        `json:"sha256"`
-	Signature  string        `json:"signature"`
-	Notes      string        `json:"notes"`
-	UploadedBy sql.NullInt64 `json:"uploaded_by"`
+	Version       string        `json:"version"`
+	Flavor        string        `json:"flavor"`
+	FileName      string        `json:"file_name"`
+	FilePath      string        `json:"file_path"`
+	SizeBytes     int64         `json:"size_bytes"`
+	Sha256        string        `json:"sha256"`
+	Signature     string        `json:"signature"`
+	Notes         string        `json:"notes"`
+	UploadedBy    sql.NullInt64 `json:"uploaded_by"`
+	Encoding      string        `json:"encoding"`
+	FileSizeBytes int64         `json:"file_size_bytes"`
+	FileSha256    string        `json:"file_sha256"`
 }
 
 func (q *Queries) CreateAppRelease(ctx context.Context, arg CreateAppReleaseParams) (AppRelease, error) {
@@ -53,6 +57,9 @@ func (q *Queries) CreateAppRelease(ctx context.Context, arg CreateAppReleasePara
 		arg.Signature,
 		arg.Notes,
 		arg.UploadedBy,
+		arg.Encoding,
+		arg.FileSizeBytes,
+		arg.FileSha256,
 	)
 	var i AppRelease
 	err := row.Scan(
@@ -69,6 +76,9 @@ func (q *Queries) CreateAppRelease(ctx context.Context, arg CreateAppReleasePara
 		&i.CreatedAt,
 		&i.TargetedAt,
 		&i.FileRemovedAt,
+		&i.Encoding,
+		&i.FileSizeBytes,
+		&i.FileSha256,
 	)
 	return i, err
 }
@@ -107,7 +117,7 @@ func (q *Queries) DeleteAppRelease(ctx context.Context, id int64) error {
 }
 
 const getAppRelease = `-- name: GetAppRelease :one
-SELECT id, version, flavor, file_name, file_path, size_bytes, sha256, signature, notes, uploaded_by, created_at, targeted_at, file_removed_at FROM app_releases WHERE id = $1
+SELECT id, version, flavor, file_name, file_path, size_bytes, sha256, signature, notes, uploaded_by, created_at, targeted_at, file_removed_at, encoding, file_size_bytes, file_sha256 FROM app_releases WHERE id = $1
 `
 
 func (q *Queries) GetAppRelease(ctx context.Context, id int64) (AppRelease, error) {
@@ -127,12 +137,60 @@ func (q *Queries) GetAppRelease(ctx context.Context, id int64) (AppRelease, erro
 		&i.CreatedAt,
 		&i.TargetedAt,
 		&i.FileRemovedAt,
+		&i.Encoding,
+		&i.FileSizeBytes,
+		&i.FileSha256,
+	)
+	return i, err
+}
+
+const getAppReleasePatch = `-- name: GetAppReleasePatch :one
+SELECT id, release_id, base_sha256, base_version, file_path, size_bytes, file_sha256, created_at FROM app_release_patches WHERE id = $1
+`
+
+func (q *Queries) GetAppReleasePatch(ctx context.Context, id int64) (AppReleasePatch, error) {
+	row := q.db.QueryRowContext(ctx, getAppReleasePatch, id)
+	var i AppReleasePatch
+	err := row.Scan(
+		&i.ID,
+		&i.ReleaseID,
+		&i.BaseSha256,
+		&i.BaseVersion,
+		&i.FilePath,
+		&i.SizeBytes,
+		&i.FileSha256,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getAppReleasePatchForBase = `-- name: GetAppReleasePatchForBase :one
+SELECT id, release_id, base_sha256, base_version, file_path, size_bytes, file_sha256, created_at FROM app_release_patches WHERE release_id = $1 AND base_sha256 = $2
+`
+
+type GetAppReleasePatchForBaseParams struct {
+	ReleaseID  int64  `json:"release_id"`
+	BaseSha256 string `json:"base_sha256"`
+}
+
+func (q *Queries) GetAppReleasePatchForBase(ctx context.Context, arg GetAppReleasePatchForBaseParams) (AppReleasePatch, error) {
+	row := q.db.QueryRowContext(ctx, getAppReleasePatchForBase, arg.ReleaseID, arg.BaseSha256)
+	var i AppReleasePatch
+	err := row.Scan(
+		&i.ID,
+		&i.ReleaseID,
+		&i.BaseSha256,
+		&i.BaseVersion,
+		&i.FilePath,
+		&i.SizeBytes,
+		&i.FileSha256,
+		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getRegisterTargetRelease = `-- name: GetRegisterTargetRelease :one
-SELECT a.id, a.version, a.flavor, a.file_name, a.file_path, a.size_bytes, a.sha256, a.signature, a.notes, a.uploaded_by, a.created_at, a.targeted_at, a.file_removed_at, r.target_force FROM app_releases a
+SELECT a.id, a.version, a.flavor, a.file_name, a.file_path, a.size_bytes, a.sha256, a.signature, a.notes, a.uploaded_by, a.created_at, a.targeted_at, a.file_removed_at, a.encoding, a.file_size_bytes, a.file_sha256, r.target_force FROM app_releases a
 JOIN branch_registers r ON r.target_release_id = a.id
 WHERE r.id = $1
 `
@@ -151,6 +209,9 @@ type GetRegisterTargetReleaseRow struct {
 	CreatedAt     time.Time     `json:"created_at"`
 	TargetedAt    sql.NullTime  `json:"targeted_at"`
 	FileRemovedAt sql.NullTime  `json:"file_removed_at"`
+	Encoding      string        `json:"encoding"`
+	FileSizeBytes int64         `json:"file_size_bytes"`
+	FileSha256    string        `json:"file_sha256"`
 	TargetForce   bool          `json:"target_force"`
 }
 
@@ -171,13 +232,51 @@ func (q *Queries) GetRegisterTargetRelease(ctx context.Context, id int64) (GetRe
 		&i.CreatedAt,
 		&i.TargetedAt,
 		&i.FileRemovedAt,
+		&i.Encoding,
+		&i.FileSizeBytes,
+		&i.FileSha256,
 		&i.TargetForce,
 	)
 	return i, err
 }
 
+const listAppReleasePatchSummaries = `-- name: ListAppReleasePatchSummaries :many
+SELECT release_id, count(*)::bigint AS patches, coalesce(min(size_bytes), 0)::bigint AS smallest_bytes
+FROM app_release_patches GROUP BY release_id
+`
+
+type ListAppReleasePatchSummariesRow struct {
+	ReleaseID     int64 `json:"release_id"`
+	Patches       int64 `json:"patches"`
+	SmallestBytes int64 `json:"smallest_bytes"`
+}
+
+// How many patches each release has and their total size, for the page.
+func (q *Queries) ListAppReleasePatchSummaries(ctx context.Context) ([]ListAppReleasePatchSummariesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listAppReleasePatchSummaries)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListAppReleasePatchSummariesRow{}
+	for rows.Next() {
+		var i ListAppReleasePatchSummariesRow
+		if err := rows.Scan(&i.ReleaseID, &i.Patches, &i.SmallestBytes); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listAppReleases = `-- name: ListAppReleases :many
-SELECT a.id, a.version, a.flavor, a.file_name, a.file_path, a.size_bytes, a.sha256, a.signature, a.notes, a.uploaded_by, a.created_at, a.targeted_at, a.file_removed_at,
+SELECT a.id, a.version, a.flavor, a.file_name, a.file_path, a.size_bytes, a.sha256, a.signature, a.notes, a.uploaded_by, a.created_at, a.targeted_at, a.file_removed_at, a.encoding, a.file_size_bytes, a.file_sha256,
   (SELECT count(*) FROM branch_registers r
     WHERE r.is_active AND r.app_version = a.version AND r.app_flavor = a.flavor)::bigint AS running_count,
   (SELECT count(*) FROM branch_registers r
@@ -200,6 +299,9 @@ type ListAppReleasesRow struct {
 	CreatedAt     time.Time     `json:"created_at"`
 	TargetedAt    sql.NullTime  `json:"targeted_at"`
 	FileRemovedAt sql.NullTime  `json:"file_removed_at"`
+	Encoding      string        `json:"encoding"`
+	FileSizeBytes int64         `json:"file_size_bytes"`
+	FileSha256    string        `json:"file_sha256"`
 	RunningCount  int64         `json:"running_count"`
 	TargetCount   int64         `json:"target_count"`
 }
@@ -229,6 +331,9 @@ func (q *Queries) ListAppReleases(ctx context.Context) ([]ListAppReleasesRow, er
 			&i.CreatedAt,
 			&i.TargetedAt,
 			&i.FileRemovedAt,
+			&i.Encoding,
+			&i.FileSizeBytes,
+			&i.FileSha256,
 			&i.RunningCount,
 			&i.TargetCount,
 		); err != nil {
@@ -500,21 +605,25 @@ const reattachAppReleaseFile = `-- name: ReattachAppReleaseFile :one
 UPDATE app_releases
 SET file_name = $1, file_path = $2,
     size_bytes = $3, sha256 = $4, signature = $5,
-    notes = CASE WHEN $6::text = '' THEN notes ELSE $6::text END,
+    encoding = $6, file_size_bytes = $7, file_sha256 = $8,
+    notes = CASE WHEN $9::text = '' THEN notes ELSE $9::text END,
     targeted_at = NULL, file_removed_at = NULL
-WHERE version = $7 AND flavor = $8 AND file_removed_at IS NOT NULL
-RETURNING id, version, flavor, file_name, file_path, size_bytes, sha256, signature, notes, uploaded_by, created_at, targeted_at, file_removed_at
+WHERE version = $10 AND flavor = $11 AND file_removed_at IS NOT NULL
+RETURNING id, version, flavor, file_name, file_path, size_bytes, sha256, signature, notes, uploaded_by, created_at, targeted_at, file_removed_at, encoding, file_size_bytes, file_sha256
 `
 
 type ReattachAppReleaseFileParams struct {
-	FileName  string `json:"file_name"`
-	FilePath  string `json:"file_path"`
-	SizeBytes int64  `json:"size_bytes"`
-	Sha256    string `json:"sha256"`
-	Signature string `json:"signature"`
-	Notes     string `json:"notes"`
-	Version   string `json:"version"`
-	Flavor    string `json:"flavor"`
+	FileName      string `json:"file_name"`
+	FilePath      string `json:"file_path"`
+	SizeBytes     int64  `json:"size_bytes"`
+	Sha256        string `json:"sha256"`
+	Signature     string `json:"signature"`
+	Encoding      string `json:"encoding"`
+	FileSizeBytes int64  `json:"file_size_bytes"`
+	FileSha256    string `json:"file_sha256"`
+	Notes         string `json:"notes"`
+	Version       string `json:"version"`
+	Flavor        string `json:"flavor"`
 }
 
 // Publishing a version whose file was cleaned up uploads it again.
@@ -525,6 +634,9 @@ func (q *Queries) ReattachAppReleaseFile(ctx context.Context, arg ReattachAppRel
 		arg.SizeBytes,
 		arg.Sha256,
 		arg.Signature,
+		arg.Encoding,
+		arg.FileSizeBytes,
+		arg.FileSha256,
 		arg.Notes,
 		arg.Version,
 		arg.Flavor,
@@ -544,6 +656,9 @@ func (q *Queries) ReattachAppReleaseFile(ctx context.Context, arg ReattachAppRel
 		&i.CreatedAt,
 		&i.TargetedAt,
 		&i.FileRemovedAt,
+		&i.Encoding,
+		&i.FileSizeBytes,
+		&i.FileSha256,
 	)
 	return i, err
 }
@@ -594,7 +709,7 @@ func (q *Queries) SetRegistersTargetRelease(ctx context.Context, arg SetRegister
 
 const updateAppReleaseNotes = `-- name: UpdateAppReleaseNotes :one
 UPDATE app_releases SET notes = $2 WHERE id = $1
-RETURNING id, version, flavor, file_name, file_path, size_bytes, sha256, signature, notes, uploaded_by, created_at, targeted_at, file_removed_at
+RETURNING id, version, flavor, file_name, file_path, size_bytes, sha256, signature, notes, uploaded_by, created_at, targeted_at, file_removed_at, encoding, file_size_bytes, file_sha256
 `
 
 type UpdateAppReleaseNotesParams struct {
@@ -619,6 +734,51 @@ func (q *Queries) UpdateAppReleaseNotes(ctx context.Context, arg UpdateAppReleas
 		&i.CreatedAt,
 		&i.TargetedAt,
 		&i.FileRemovedAt,
+		&i.Encoding,
+		&i.FileSizeBytes,
+		&i.FileSha256,
+	)
+	return i, err
+}
+
+const upsertAppReleasePatch = `-- name: UpsertAppReleasePatch :one
+INSERT INTO app_release_patches (release_id, base_sha256, base_version, file_path, size_bytes, file_sha256)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (release_id, base_sha256) DO UPDATE SET
+  base_version = EXCLUDED.base_version, file_path = EXCLUDED.file_path,
+  size_bytes = EXCLUDED.size_bytes, file_sha256 = EXCLUDED.file_sha256, created_at = now()
+RETURNING id, release_id, base_sha256, base_version, file_path, size_bytes, file_sha256, created_at
+`
+
+type UpsertAppReleasePatchParams struct {
+	ReleaseID   int64  `json:"release_id"`
+	BaseSha256  string `json:"base_sha256"`
+	BaseVersion string `json:"base_version"`
+	FilePath    string `json:"file_path"`
+	SizeBytes   int64  `json:"size_bytes"`
+	FileSha256  string `json:"file_sha256"`
+}
+
+// Publishing the patch from one base again replaces it.
+func (q *Queries) UpsertAppReleasePatch(ctx context.Context, arg UpsertAppReleasePatchParams) (AppReleasePatch, error) {
+	row := q.db.QueryRowContext(ctx, upsertAppReleasePatch,
+		arg.ReleaseID,
+		arg.BaseSha256,
+		arg.BaseVersion,
+		arg.FilePath,
+		arg.SizeBytes,
+		arg.FileSha256,
+	)
+	var i AppReleasePatch
+	err := row.Scan(
+		&i.ID,
+		&i.ReleaseID,
+		&i.BaseSha256,
+		&i.BaseVersion,
+		&i.FilePath,
+		&i.SizeBytes,
+		&i.FileSha256,
+		&i.CreatedAt,
 	)
 	return i, err
 }

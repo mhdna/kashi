@@ -5074,6 +5074,36 @@ func (mr *MockStoreMockRecorder) GetAppRelease(arg0, arg1 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAppRelease", reflect.TypeOf((*MockStore)(nil).GetAppRelease), arg0, arg1)
 }
 
+// GetAppReleasePatch mocks base method.
+func (m *MockStore) GetAppReleasePatch(arg0 context.Context, arg1 int64) (db.AppReleasePatch, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAppReleasePatch", arg0, arg1)
+	ret0, _ := ret[0].(db.AppReleasePatch)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAppReleasePatch indicates an expected call of GetAppReleasePatch.
+func (mr *MockStoreMockRecorder) GetAppReleasePatch(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAppReleasePatch", reflect.TypeOf((*MockStore)(nil).GetAppReleasePatch), arg0, arg1)
+}
+
+// GetAppReleasePatchForBase mocks base method.
+func (m *MockStore) GetAppReleasePatchForBase(arg0 context.Context, arg1 db.GetAppReleasePatchForBaseParams) (db.AppReleasePatch, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAppReleasePatchForBase", arg0, arg1)
+	ret0, _ := ret[0].(db.AppReleasePatch)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAppReleasePatchForBase indicates an expected call of GetAppReleasePatchForBase.
+func (mr *MockStoreMockRecorder) GetAppReleasePatchForBase(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAppReleasePatchForBase", reflect.TypeOf((*MockStore)(nil).GetAppReleasePatchForBase), arg0, arg1)
+}
+
 // GetAppSettings mocks base method.
 func (m *MockStore) GetAppSettings(arg0 context.Context) (db.AppSetting, error) {
 	m.ctrl.T.Helper()
@@ -7484,6 +7514,21 @@ func (m *MockStore) ListAllClientPhones(arg0 context.Context) ([]db.ListAllClien
 func (mr *MockStoreMockRecorder) ListAllClientPhones(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllClientPhones", reflect.TypeOf((*MockStore)(nil).ListAllClientPhones), arg0)
+}
+
+// ListAppReleasePatchSummaries mocks base method.
+func (m *MockStore) ListAppReleasePatchSummaries(arg0 context.Context) ([]db.ListAppReleasePatchSummariesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListAppReleasePatchSummaries", arg0)
+	ret0, _ := ret[0].([]db.ListAppReleasePatchSummariesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListAppReleasePatchSummaries indicates an expected call of ListAppReleasePatchSummaries.
+func (mr *MockStoreMockRecorder) ListAppReleasePatchSummaries(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAppReleasePatchSummaries", reflect.TypeOf((*MockStore)(nil).ListAppReleasePatchSummaries), arg0)
 }
 
 // ListAppReleases mocks base method.
@@ -14017,6 +14062,21 @@ func (m *MockStore) UpdateWhatsAppNumberTx(arg0 context.Context, arg1 int64, arg
 func (mr *MockStoreMockRecorder) UpdateWhatsAppNumberTx(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateWhatsAppNumberTx", reflect.TypeOf((*MockStore)(nil).UpdateWhatsAppNumberTx), arg0, arg1, arg2, arg3, arg4)
+}
+
+// UpsertAppReleasePatch mocks base method.
+func (m *MockStore) UpsertAppReleasePatch(arg0 context.Context, arg1 db.UpsertAppReleasePatchParams) (db.AppReleasePatch, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpsertAppReleasePatch", arg0, arg1)
+	ret0, _ := ret[0].(db.AppReleasePatch)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpsertAppReleasePatch indicates an expected call of UpsertAppReleasePatch.
+func (mr *MockStoreMockRecorder) UpsertAppReleasePatch(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpsertAppReleasePatch", reflect.TypeOf((*MockStore)(nil).UpsertAppReleasePatch), arg0, arg1)
 }
 
 // UpsertAttributeValue mocks base method.

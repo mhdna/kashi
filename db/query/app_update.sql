@@ -1,6 +1,7 @@
 -- name: CreateAppRelease :one
-INSERT INTO app_releases (version, flavor, file_name, file_path, size_bytes, sha256, signature, notes, uploaded_by)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+INSERT INTO app_releases (version, flavor, file_name, file_path, size_bytes, sha256, signature, notes, uploaded_by,
+                          encoding, file_size_bytes, file_sha256)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 RETURNING *;
 
 -- name: GetAppRelease :one
@@ -98,7 +99,28 @@ UPDATE app_releases SET file_removed_at = now() WHERE id = $1;
 UPDATE app_releases
 SET file_name = sqlc.arg(file_name), file_path = sqlc.arg(file_path),
     size_bytes = sqlc.arg(size_bytes), sha256 = sqlc.arg(sha256), signature = sqlc.arg(signature),
+    encoding = sqlc.arg(encoding), file_size_bytes = sqlc.arg(file_size_bytes), file_sha256 = sqlc.arg(file_sha256),
     notes = CASE WHEN sqlc.arg(notes)::text = '' THEN notes ELSE sqlc.arg(notes)::text END,
     targeted_at = NULL, file_removed_at = NULL
 WHERE version = sqlc.arg(version) AND flavor = sqlc.arg(flavor) AND file_removed_at IS NOT NULL
 RETURNING *;
+
+-- name: UpsertAppReleasePatch :one
+-- Publishing the patch from one base again replaces it.
+INSERT INTO app_release_patches (release_id, base_sha256, base_version, file_path, size_bytes, file_sha256)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (release_id, base_sha256) DO UPDATE SET
+  base_version = EXCLUDED.base_version, file_path = EXCLUDED.file_path,
+  size_bytes = EXCLUDED.size_bytes, file_sha256 = EXCLUDED.file_sha256, created_at = now()
+RETURNING *;
+
+-- name: GetAppReleasePatchForBase :one
+SELECT * FROM app_release_patches WHERE release_id = $1 AND base_sha256 = $2;
+
+-- name: GetAppReleasePatch :one
+SELECT * FROM app_release_patches WHERE id = $1;
+
+-- name: ListAppReleasePatchSummaries :many
+-- How many patches each release has and their total size, for the page.
+SELECT release_id, count(*)::bigint AS patches, coalesce(min(size_bytes), 0)::bigint AS smallest_bytes
+FROM app_release_patches GROUP BY release_id;

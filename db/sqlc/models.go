@@ -476,6 +476,20 @@ type AppRelease struct {
 	CreatedAt     time.Time     `json:"created_at"`
 	TargetedAt    sql.NullTime  `json:"targeted_at"`
 	FileRemovedAt sql.NullTime  `json:"file_removed_at"`
+	Encoding      string        `json:"encoding"`
+	FileSizeBytes int64         `json:"file_size_bytes"`
+	FileSha256    string        `json:"file_sha256"`
+}
+
+type AppReleasePatch struct {
+	ID          int64     `json:"id"`
+	ReleaseID   int64     `json:"release_id"`
+	BaseSha256  string    `json:"base_sha256"`
+	BaseVersion string    `json:"base_version"`
+	FilePath    string    `json:"file_path"`
+	SizeBytes   int64     `json:"size_bytes"`
+	FileSha256  string    `json:"file_sha256"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type AppSetting struct {

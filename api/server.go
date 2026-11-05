@@ -594,6 +594,8 @@ func (server *Server) setupRoutes() {
 	authRoutes.POST("/app_releases", server.createAppRelease)
 	authRoutes.PUT("/app_releases/:id", server.updateAppRelease)
 	authRoutes.DELETE("/app_releases/:id", server.deleteAppRelease)
+	authRoutes.POST("/app_releases/:id/patches", server.createAppReleasePatch)
+	authRoutes.GET("/app_releases/:id/file", server.getAppReleaseFile)
 	authRoutes.GET("/app_updates/registers", server.listAppUpdateRegisters)
 	authRoutes.PUT("/app_updates/target", server.setAppUpdateTarget)
 	authRoutes.GET("/app_updates/events", server.listAppUpdateEvents)
@@ -678,6 +680,7 @@ func (server *Server) setupRoutes() {
 	branchRoutes.GET("/transfer_requests/upload_status", server.branchTransferUploadStatus)
 	branchRoutes.GET("/app_update", server.branchAppUpdate)
 	branchRoutes.GET("/app_update/download/:id", server.branchAppUpdateDownload)
+	branchRoutes.GET("/app_update/patch/:id", server.branchAppUpdatePatchDownload)
 	branchRoutes.POST("/app_update/status", server.branchAppUpdateStatus)
 
 	// expense_uploads is deliberately public: a phone scanning the QR code
