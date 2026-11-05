@@ -92,6 +92,7 @@ Business settings (WhatsApp credentials, templates, webhook secret) live **in th
 | Identity | Rows carry a `uid`. A till's local ids mean nothing here; invoice lines reference the till's own ids as plain values. |
 | Catch-up | `since` omitted = a full snapshot (a fresh till needs no bootstrap). `cursor` supersedes `since`. An old till that omits `limit` still gets one unbounded answer. |
 | Completeness | `/branch/sync/ids` lists uid + `updated_at` (inactive rows included, so a till learns a row went inactive); `/branch/sync/fetch` returns the missing rows. |
+| Lists | A price or discount list the till must stop using is sent **active and empty**, never inactive: tills delete an inactive list, which fails once it has sales and rolls back the whole pull. |
 | Live push | Postgres `NOTIFY kashi_sync` (migration 000109) batches into one `sync_changed`; a lost listener sends `pull_all`. Any write triggers it: handler, script or SQL. |
 | Full sync | A till's "Sync everything" holds a **lease** (renewed every 30 s) so the admin UI shows the branch as syncing; end, closed socket or missed renewal ends it. |
 | History | A fresh till can pull its own past invoices, expenses, loans and shift closes (`branch_history_sync`). |

@@ -62,7 +62,7 @@ func TestBranchSyncChanges_PriceLists_SendsItemsInline(t *testing.T) {
 
 // A deactivated list still reaches the till -- that's how it learns to drop
 // its copy -- but its contents aren't shipped, so no item query runs at all.
-func TestBranchSyncChanges_PriceLists_InactiveListCarriesNoItems(t *testing.T) {
+func TestBranchSyncChanges_PriceLists_InactiveListGoesEmpty(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	store := mockdb.NewMockStore(ctrl)
@@ -91,7 +91,7 @@ func TestBranchSyncChanges_PriceLists_InactiveListCarriesNoItems(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
 	require.Len(t, body.Items, 1)
-	require.False(t, body.Items[0].IsActive)
+	require.True(t, body.Items[0].IsActive, "a till can't delete a list with sales, so it is emptied")
 	require.Empty(t, body.Items[0].Items)
 }
 
@@ -189,9 +189,9 @@ func stubNoListRemovals(store *mockdb.MockStore) {
 		Return([]db.ListDiscountListsRemovedFromBranchRow{}, nil)
 }
 
-// A list the branch was taken off reaches it as inactive, with nothing in
-// it, so its till drops its copy.
-func TestBranchSyncChanges_DiscountLists_RemovedListGoesInactive(t *testing.T) {
+// A list the branch was taken off reaches it as active, with nothing in it, so
+// its till stops pricing from it even when the list has sales.
+func TestBranchSyncChanges_DiscountLists_RemovedListGoesEmpty(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	store := mockdb.NewMockStore(ctrl)
@@ -214,6 +214,6 @@ func TestBranchSyncChanges_DiscountLists_RemovedListGoesInactive(t *testing.T) {
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
 	require.Len(t, body.Items, 1)
 	require.Equal(t, removedUID, body.Items[0].UID)
-	require.False(t, body.Items[0].IsActive)
+	require.True(t, body.Items[0].IsActive, "a till can't delete a list with sales, so it is emptied")
 	require.Empty(t, body.Items[0].Items)
 }

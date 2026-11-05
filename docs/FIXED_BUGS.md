@@ -3,6 +3,22 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-05 · A branch moved to another discount list never got it
+
+**Symptom.** Centro was moved from "Buy 2 Get 1" to "buy 1 get 1" in kashi, but
+its till kept selling on the old deal, with no error anywhere in kashi.
+
+**Cause.** A list the till must stop using was sent as inactive, and tills delete
+such a list. Once it has sales the delete fails, because `invoice_products` points
+at it. That rolled back the whole pull, so the new list was lost too, the cursor
+stayed put and the till retried forever.
+
+**Fix.** Such a list now goes as active with no items, which prices nothing and
+always applies (`api/branch_sync_lists.go`). Tests:
+`TestBranchSyncChanges_DiscountLists_RemovedListGoesEmpty`,
+`TestBranchSyncChanges_PriceLists_InactiveListGoesEmpty`. The payload was also
+run through the real till sync code against a list with sales.
+
 ## 2026-11-05 · Picking a list failed with "PageID failed on the 'min' tag"
 
 **Symptom.** After the fix below, picking a price or discount list showed "Failed
