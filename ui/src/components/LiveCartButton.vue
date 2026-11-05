@@ -18,6 +18,14 @@
       <v-card-title class="d-flex align-center ga-2">
         Live cart
         <v-spacer />
+        <v-chip
+          :color="onlineOnly ? 'success' : undefined"
+          filter
+          :model-value="onlineOnly"
+          :text="`Online${offlineCount ? ` (${registers.length - offlineCount}/${registers.length})` : ''}`"
+          :variant="onlineOnly ? 'tonal' : 'outlined'"
+          @click="onlineOnly = !onlineOnly"
+        />
         <v-select
           v-model="branchId"
           density="compact"
@@ -41,9 +49,18 @@
         >
           This branch has no active till.
         </v-alert>
+        <v-alert
+          v-else-if="shownRegisters.length === 0"
+          density="compact"
+          type="info"
+          variant="tonal"
+        >
+          None of this branch's {{ registers.length }} tills is reporting right now.
+          <a class="text-decoration-underline cursor-pointer" @click="onlineOnly = false">Show them all</a>
+        </v-alert>
 
         <v-card
-          v-for="reg in registers"
+          v-for="reg in shownRegisters"
           :key="reg.register_id"
           class="mb-4"
           variant="outlined"
@@ -267,6 +284,20 @@
   const open = ref(false)
   const branchId = ref(null)
   const registers = ref([])
+  // Only the tills reporting now, unless the filter is turned off; the
+  // choice is remembered.
+  const ONLINE_ONLY_KEY = 'liveCart.onlineOnly'
+  const onlineOnly = ref(true)
+  try {
+    onlineOnly.value = localStorage.getItem(ONLINE_ONLY_KEY) !== '0'
+  } catch {}
+  watch(onlineOnly, value => {
+    try {
+      localStorage.setItem(ONLINE_ONLY_KEY, value ? '1' : '0')
+    } catch {}
+  })
+  const offlineCount = computed(() => registers.value.filter(r => !r.online).length)
+  const shownRegisters = computed(() => onlineOnly.value ? registers.value.filter(r => r.online) : registers.value)
   const loading = ref(false)
   const saving = ref(null)
   // What is typed per register, for the sale it was typed on:

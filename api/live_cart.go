@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -118,8 +119,9 @@ type liveCartCommandView struct {
 	Error  string `json:"error,omitempty"`
 }
 
-// getLiveCarts is every active register of a branch with the sale it has
-// open (cart is null when it has reported nothing lately).
+// getLiveCarts is every active register of a branch, online says whether it
+// is reporting now, and cart is the sale it has open (null when it isn't).
+// A register with no name goes by its code.
 func (server *Server) getLiveCarts(ctx *gin.Context) {
 	var uri liveCartURI
 	if err := ctx.ShouldBindUri(&uri); err != nil {
@@ -136,7 +138,11 @@ func (server *Server) getLiveCarts(ctx *gin.Context) {
 		if !r.IsActive {
 			continue
 		}
-		view := liveCartView{RegisterID: r.ID, RegisterName: r.Name}
+		name := strings.TrimSpace(r.Name)
+		if name == "" {
+			name = r.Code
+		}
+		view := liveCartView{RegisterID: r.ID, RegisterName: name}
 		if e, ok := server.liveCarts.get(r.ID); ok && e.BranchID == uri.BranchID {
 			at := e.ReceivedAt
 			view.ReceivedAt = &at
