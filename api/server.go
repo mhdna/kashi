@@ -639,6 +639,7 @@ func (server *Server) setupRoutes() {
 	branchRoutes.GET("/sync/changes", server.branchSyncChanges)
 	branchRoutes.POST("/sync/report", server.branchSyncReport)
 	branchRoutes.POST("/live_cart", server.branchLiveCart)
+	branchRoutes.POST("/invoice_ratings", server.branchInvoiceRatings)
 	branchRoutes.POST("/sync/reconcile", server.branchReconcile)
 	branchRoutes.POST("/sync/full_sync/start", server.branchFullSyncStart)
 	branchRoutes.POST("/sync/full_sync/end", server.branchFullSyncEnd)

@@ -955,6 +955,9 @@ type Querier interface {
 	ListBranchInvoiceItemsNamed(ctx context.Context, branchInvoiceID int64) ([]ListBranchInvoiceItemsNamedRow, error)
 	ListBranchInvoicePayments(ctx context.Context, branchInvoiceID int64) ([]BranchInvoicePayment, error)
 	ListBranchInvoicePaymentsForHistory(ctx context.Context, branchInvoiceIds []int64) ([]BranchInvoicePayment, error)
+	// The client's poll answer on each of these sales of a branch, for the
+	// till's invoices list; the latest vote when a sale got more than one message.
+	ListBranchInvoiceRatings(ctx context.Context, arg ListBranchInvoiceRatingsParams) ([]ListBranchInvoiceRatingsRow, error)
 	ListBranchInvoiceSettlementPayments(ctx context.Context, branchInvoiceSettlementID int64) ([]BranchInvoiceSettlementPayment, error)
 	ListBranchInvoiceSettlements(ctx context.Context, arg ListBranchInvoiceSettlementsParams) ([]BranchInvoiceSettlement, error)
 	// sqlc.narg(branch_id) is nullable: NULL means "all branches", matching how

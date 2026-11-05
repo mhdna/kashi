@@ -138,6 +138,9 @@ type branchSettingsRequest struct {
 	DiscountToggle           *bool `json:"discount_toggle"`
 	DiscountToggleDefaultOff *bool `json:"discount_toggle_default_off"`
 	DealToggle               *bool `json:"deal_toggle"`
+	// The invoices list shows each sale's WhatsApp poll answer as an emoji.
+	// Nil (a till that predates it) keeps it on, the till's own default.
+	InvoiceRatingsEnabled *bool `json:"invoice_ratings_enabled"`
 	// Barcode of the product the till's "Unknown item" button adds. Nil or
 	// empty: the till's built-in placeholder.
 	UnknownProductBarcode *string `json:"unknown_product_barcode"`
@@ -504,6 +507,7 @@ func (server *Server) upsertBranchSettings(ctx *gin.Context, branchID int64, req
 		DiscountToggle:                     orZero(req.DiscountToggle),
 		DiscountToggleDefaultOff:           orZero(req.DiscountToggleDefaultOff),
 		DealToggle:                         orZero(req.DealToggle),
+		InvoiceRatingsEnabled:              orTrue(req.InvoiceRatingsEnabled),
 		UnknownProductBarcode:              strings.TrimSpace(orZero(req.UnknownProductBarcode)),
 		ProductSearchHiddenFields:          orZero(req.ProductSearchHiddenFields),
 		SoundsEnabled:                      orZero(req.SoundsEnabled),

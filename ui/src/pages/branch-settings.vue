@@ -417,6 +417,13 @@
                           hide-details
                           label="Require a salesperson on every invoice"
                         />
+                        <v-switch
+                          v-model="settingsForm.invoice_ratings_enabled"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Show how clients rated each sale (WhatsApp poll) in the invoices list"
+                        />
                       </div>
                     </section>
 
@@ -1612,6 +1619,7 @@
     'discount_toggle',
     'discount_toggle_default_off',
     'deal_toggle',
+    'invoice_ratings_enabled',
     'sounds_enabled',
     'salesperson_per_invoice_required',
     'non_admin_month_nav_enabled',
@@ -1677,7 +1685,7 @@
       // and on is what every branch did before it existed (the primary
       // currency leading; codes accepted in the scan field) -- so only an
       // explicit false flips it.
-      if (k === 'split_primary_first' || k === 'scan_by_code_enabled' || k === 'attendance_manager_approval_enabled' || k === 'shift_report_signatures') {
+      if (k === 'split_primary_first' || k === 'scan_by_code_enabled' || k === 'attendance_manager_approval_enabled' || k === 'shift_report_signatures' || k === 'invoice_ratings_enabled') {
         form[k] = d[k] !== false
         continue
       }
@@ -1993,6 +2001,7 @@
     discount_toggle: 'Turn discounts off at the till',
     discount_toggle_default_off: 'Discounts start off',
     deal_toggle: 'Turn deals off at the till',
+    invoice_ratings_enabled: 'Client ratings in the invoices list',
     unknown_product_barcode: 'Unknown item product',
     product_search_hidden_fields: 'Product search hidden columns',
     receipt_theme: 'Receipt theme',
