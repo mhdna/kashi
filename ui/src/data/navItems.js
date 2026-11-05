@@ -9,6 +9,20 @@ export const navItems = [
   { title: 'Loyalty', icon: 'mdi-trophy', to: '/loyalty' },
   { title: 'Emails', icon: 'mdi-email-outline', to: '/emails' },
   {
+    title: 'Alerts',
+    icon: 'mdi-alert-circle-outline',
+    to: '/alerts',
+    append: 'alert-count',
+  },
+  {
+    title: 'Stock Health',
+    icon: 'mdi-heart-pulse',
+    to: '/stock-health',
+    append: 'status',
+  },
+  { title: 'Commands', icon: 'mdi-console-line', to: '/branch-commands', append: 'commands-status' },
+  { title: 'Conflicts', icon: 'mdi-source-branch-sync', to: '/branch-conflicts', append: 'conflicts-status' },
+  {
     title: 'Analysis',
     icon: 'mdi-chart-bar',
     children: [
@@ -39,20 +53,6 @@ export const navItems = [
   },
   { title: 'Assets Treemap', icon: 'mdi-view-gallery', to: '/assets-treemap' },
   { title: 'Warehouses Treemap', icon: 'mdi-warehouse', to: '/warehouses-treemap' },
-  {
-    title: 'Alerts',
-    icon: 'mdi-alert-circle-outline',
-    to: '/alerts',
-    append: 'alert-count',
-  },
-  {
-    title: 'Stock Health',
-    icon: 'mdi-heart-pulse',
-    to: '/stock-health',
-    append: 'status',
-  },
-  { title: 'Commands', icon: 'mdi-console-line', to: '/branch-commands', append: 'commands-status' },
-  { title: 'Conflicts', icon: 'mdi-source-branch-sync', to: '/branch-conflicts', append: 'conflicts-status' },
   {
     title: 'Branches',
     icon: 'mdi-domain',
