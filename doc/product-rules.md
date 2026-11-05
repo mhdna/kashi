@@ -91,7 +91,7 @@ Men summer 50%"):
 | Origin | Prefixes |
 |---|---|
 | Turkey | T… clothing codes (TM, T, TNV, TSD, TJ, TDC, TOC, TZ, TMAY, TJU, TMP, TB, TSN, TW, TL, TU, TKS, THV, THP, TP, TV…), FNV, FDC |
-| China | COC, CDC, CJ6, X…, GJUL, HBA, CB, OT, digit-only codes, Y, HQ, O, HA, FS, S, I, HD, J, HBB, AO, CF, BL, WX, GH, K, UK, HBC, TEST, TOY, IT, DR, A, ACC, AOC |
+| China | COC, CDC, CJ6, X…, GJUL, HBA, CB, OT, digit-only codes, Y, HQ, O, HA, FS, S, I, HD, J, HBB, AO, CF, BL, WX, GH, K, UK, HBC, TEST, TOY, IT, DR, A, AA, ACC, AOC |
 | Bangladesh | BOC, N… (N, NSC, NJ, NJUL, NNMAY, NNJUL…), BNV, BM, BC |
 | Lebanon | L… (L, LNV, LSEP, LY, LMAY, LJUN), ACNV, ACCJUN, RDC, RJ6, RNV |
 | Mixed | OF, OFNV, OFN (Black Friday lots), SU |
