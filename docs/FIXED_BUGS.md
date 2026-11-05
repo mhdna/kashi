@@ -3,6 +3,20 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-05 · Picking a list failed with "PageID failed on the 'min' tag"
+
+**Symptom.** After the fix below, picking a price or discount list showed "Failed
+to load data: Key: 'listPageQuery.PageID' Error:Field validation for 'PageID'
+failed on the 'min' tag".
+
+**Cause.** That fix reset the table's row count to -1 when the URL changed. The
+data table works out its pages from that count, so -1 gave it no pages, it
+dropped to page 0 and asked for a negative `page_id`.
+
+**Fix.** The count resets to 0 (`ui/src/components/Tables/ServerSideTable.vue`).
+The UI has no test runner, so this was checked in Chrome against a stub server
+that refuses a negative `page_id`.
+
 ## 2026-11-05 · Picking a price or discount list kept showing the first list's rows
 
 **Symptom.** On Discount Lists and Price Lists, picking another list changed the

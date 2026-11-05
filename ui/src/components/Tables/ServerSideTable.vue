@@ -284,7 +284,9 @@
   // on screen belongs to it, so it empties and loads from page 1.
   watch(() => props.apiURL, () => {
     serverItems.value = []
-    totalItems.value = -1
+    // 0, not -1: the data table works out its pages from this, and -1 makes
+    // none, which drops it to page 0 and a negative page_id.
+    totalItems.value = 0
     clearSelection()
     reloadFromFirstPage()
   })
