@@ -120,7 +120,9 @@ func syncEntityState(row db.ListBranchSyncStatusRow, latest *time.Time) string {
 		return syncStateRetrying
 	case latest != nil && row.LastPullAt.Valid && latest.After(row.LastPullAt.Time):
 		return syncStateBehind
-	case row.ItemsSent > 0 && (!row.ReportedAt.Valid || row.ReportedAt.Time.Before(row.LastPullAt.Time)):
+	// Only a pull with a cursor can wait on a later one: a whole-set entity sends
+	// everything every time, so its items say nothing about what's new.
+	case row.SyncedThrough.Valid && row.ItemsSent > 0 && (!row.ReportedAt.Valid || row.ReportedAt.Time.Before(row.LastPullAt.Time)):
 		return syncStateSent
 	}
 	return syncStateSynced

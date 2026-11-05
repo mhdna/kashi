@@ -22,15 +22,16 @@ func TestSyncEntityState(t *testing.T) {
 		"nothing to get":         {db.ListBranchSyncStatusRow{LastPullAt: at(pulled)}, &earlier, syncStateSynced},
 		"no latest change known": {db.ListBranchSyncStatusRow{LastPullAt: at(pulled)}, nil, syncStateSynced},
 		"changed since the pull": {db.ListBranchSyncStatusRow{LastPullAt: at(pulled)}, &later, syncStateBehind},
-		"sent, no word yet":      {db.ListBranchSyncStatusRow{LastPullAt: at(pulled), ItemsSent: 2}, &earlier, syncStateSent},
+		"sent, no word yet":      {db.ListBranchSyncStatusRow{LastPullAt: at(pulled), SyncedThrough: at(earlier), ItemsSent: 2}, &earlier, syncStateSent},
 		"sent and confirmed": {
 			db.ListBranchSyncStatusRow{LastPullAt: at(pulled), ItemsSent: 2, ReportedAt: at(later)}, &earlier, syncStateSynced,
 		},
 		"an older report doesn't confirm": {
-			db.ListBranchSyncStatusRow{LastPullAt: at(pulled), ItemsSent: 2, ReportedAt: at(earlier)}, &earlier, syncStateSent,
+			db.ListBranchSyncStatusRow{LastPullAt: at(pulled), SyncedThrough: at(earlier), ItemsSent: 2, ReportedAt: at(earlier)}, &earlier, syncStateSent,
 		},
-		"asked again once":   {db.ListBranchSyncStatusRow{LastPullAt: at(pulled), ItemsSent: 2, Retries: 1}, &earlier, syncStateRetrying},
-		"keeps asking again": {db.ListBranchSyncStatusRow{LastPullAt: at(pulled), ItemsSent: 2, Retries: 2}, &earlier, syncStateStuck},
+		"a whole-set entity always sends everything": {db.ListBranchSyncStatusRow{LastPullAt: at(pulled), ItemsSent: 5}, nil, syncStateSynced},
+		"asked again once":                           {db.ListBranchSyncStatusRow{LastPullAt: at(pulled), ItemsSent: 2, Retries: 1}, &earlier, syncStateRetrying},
+		"keeps asking again":                         {db.ListBranchSyncStatusRow{LastPullAt: at(pulled), ItemsSent: 2, Retries: 2}, &earlier, syncStateStuck},
 		"the till says it failed": {
 			db.ListBranchSyncStatusRow{LastPullAt: at(pulled), Error: "FOREIGN KEY constraint failed"}, &earlier, syncStateStuck,
 		},
