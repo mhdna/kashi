@@ -25,12 +25,25 @@
           @click="generate"
         />
         <v-btn
+          :disabled="selected.length === 0"
+          prepend-icon="mdi-playlist-plus"
+          text="Add to queue"
+          variant="tonal"
+          @click="addSelectedToQueue"
+        />
+        <v-btn
+          prepend-icon="mdi-tray-full"
+          :text="`Queue (${queue.length})`"
+          variant="tonal"
+          @click="queueDialog = true"
+        />
+        <v-btn
           color="primary"
           :disabled="selected.length === 0"
           prepend-icon="mdi-printer"
           text="Print PDF"
           variant="flat"
-          @click="printDialog = true"
+          @click="openPrint(false)"
         />
       </v-card-title>
       <v-divider />
@@ -87,15 +100,114 @@
                 variant="solo-filled"
               />
             </template>
+            <template #item.queue="{ item }">
+              <v-btn
+                aria-label="Add to print queue"
+                icon="mdi-playlist-plus"
+                size="small"
+                title="Add to print queue"
+                variant="text"
+                @click="addToQueue(item)"
+              />
+            </template>
           </ServerSideTable>
         </div>
       </div>
     </v-card>
 
+    <!-- The labels waiting to be printed together -->
+    <v-dialog v-model="queueDialog" max-width="720" scrollable>
+      <v-card>
+        <v-card-title class="text-h6">
+          Print queue · {{ queue.length }} item{{ queue.length === 1 ? '' : 's' }},
+          {{ labelCount }} label{{ labelCount === 1 ? '' : 's' }}
+        </v-card-title>
+        <v-divider />
+        <v-card-text class="pa-0">
+          <p v-if="queue.length === 0" class="text-body-2 text-medium-emphasis pa-4 mb-0">
+            Nothing queued yet. Search for a product and press its add button.
+          </p>
+          <v-table v-else density="comfortable">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Barcode</th>
+                <th class="text-center">Qty</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="entry in queue" :key="entry.id">
+                <td>
+                  <div class="text-body-2">{{ entry.name }}</div>
+                  <div class="text-caption text-medium-emphasis">
+                    {{ [entry.code, entry.variant].filter(Boolean).join(' · ') }}
+                  </div>
+                </td>
+                <td>
+                  <span class="bc-mono">{{ entry.barcode }}</span>
+                  <v-chip
+                    v-if="!isEan13(entry.barcode)"
+                    class="ms-2"
+                    color="warning"
+                    size="x-small"
+                    text="no barcode"
+                  />
+                </td>
+                <td>
+                  <v-text-field
+                    v-model.number="entry.qty"
+                    class="bc-qty mx-auto"
+                    density="compact"
+                    hide-details
+                    min="1"
+                    style="width: 72px"
+                    type="number"
+                    variant="solo-filled"
+                    @blur="entry.qty = Math.max(1, Number(entry.qty) || 1)"
+                  />
+                </td>
+                <td class="text-end">
+                  <v-btn
+                    aria-label="Remove from queue"
+                    color="error"
+                    icon="mdi-delete-outline"
+                    size="small"
+                    variant="text"
+                    @click="removeFromQueue(entry.id)"
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+        </v-card-text>
+        <v-divider />
+        <v-card-actions>
+          <v-btn
+            color="error"
+            :disabled="queue.length === 0"
+            text="Clear queue"
+            variant="text"
+            @click="clearQueue"
+          />
+          <v-spacer />
+          <v-btn text="Close" variant="text" @click="queueDialog = false" />
+          <v-btn
+            color="primary"
+            :disabled="queue.length === 0"
+            prepend-icon="mdi-printer"
+            text="Print all"
+            variant="flat"
+            @click="openPrint(true)"
+          />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Print options -->
     <v-dialog v-model="printDialog" max-width="480">
       <v-card>
-        <v-card-title class="text-h6">Print {{ selected.length }} item{{ selected.length === 1 ? '' : 's' }}</v-card-title>
+        <v-card-title class="text-h6">Print {{ printCount }} item{{ printCount === 1 ? '' : 's' }}</v-card-title>
         <v-card-text>
           <v-checkbox
             v-model="separatorEnabled"
@@ -143,6 +255,14 @@
             Default comes from Settings ({{ settings.barcodeLabelWidth }} × {{ settings.barcodeLabelHeight }}).
           </div>
 
+          <v-checkbox
+            v-if="printingQueue"
+            v-model="emptyQueueAfter"
+            class="mt-2"
+            density="compact"
+            hide-details
+            label="Empty the queue after printing"
+          />
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -161,8 +281,9 @@
 </template>
 
 <script setup lang="ts">
-  import { onMounted, reactive, ref } from 'vue'
+  import { computed, onMounted, reactive, ref } from 'vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
+  import { useBarcodeQueue } from '@/composables/useBarcodeQueue'
   import { useBarcodes } from '@/composables/useBarcodes'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { useNotify } from '@/composables/useNotify'
@@ -183,6 +304,7 @@
     { title: 'Barcode', key: 'barcode', sortable: false },
     { title: 'Price', key: 'price', align: 'end', sortable: false },
     { title: 'Qty to print', key: 'qty', align: 'center', sortable: false, width: 110 },
+    { title: 'Queue', key: 'queue', align: 'center', sortable: false, width: 70 },
   ]
 
   const separatorFieldOptions = [
@@ -201,7 +323,41 @@
   const notify = useNotify()
   const assigning = ref(false)
 
+  const { queue, labelCount, add: queueAdd, remove: removeFromQueue, clear: clearQueue } = useBarcodeQueue()
+  const queueDialog = ref(false)
+  // Rows seen so far by id, as a selection can span pages.
+  const rowsById = {}
+
+  function addToQueue (row) {
+    queueAdd(row, qtyById[row.id])
+    notify.success(`${row.product_name} added to the print queue.`)
+  }
+
+  function addSelectedToQueue () {
+    for (const id of selected.value) {
+      if (rowsById[id]) queueAdd(rowsById[id], qtyById[id])
+    }
+    notify.success(`Added to the print queue (${queue.value.length} now).`)
+    tableRef.value?.clearSelection()
+  }
+
   const printDialog = ref(false)
+  // What the print dialog is printing: the queue, or the ticked rows.
+  const printingQueue = ref(false)
+  const emptyQueueAfter = ref(true)
+  const printCount = computed(() => printingQueue.value ? queue.value.length : selected.value.length)
+
+  function openPrint (fromQueue) {
+    printingQueue.value = fromQueue
+    printDialog.value = true
+  }
+
+  function printItems () {
+    return printingQueue.value
+      ? queue.value.map(entry => ({ variant_id: entry.id, qty: Math.max(1, Number(entry.qty) || 1) }))
+      : selected.value.map(id => ({ variant_id: id, qty: Math.max(1, Number(qtyById[id]) || 1) }))
+  }
+
   const printing = ref(false)
   const separatorEnabled = ref(false)
   const separatorFields = ref(['name', 'qty'])
@@ -215,6 +371,7 @@
   // Seed a default print quantity of 1 for every freshly loaded row.
   function onLoaded (items) {
     for (const v of items) {
+      rowsById[v.id] = v
       if (qtyById[v.id] == null) qtyById[v.id] = 1
     }
   }
@@ -238,7 +395,7 @@
   async function doPrint () {
     printing.value = true
     try {
-      const items = selected.value.map(id => ({ variant_id: id, qty: Math.max(1, Number(qtyById[id]) || 1) }))
+      const items = printItems()
       const blob = await printLabels({
         items,
         separator: { enabled: separatorEnabled.value, fields: separatorFields.value },
@@ -248,6 +405,10 @@
       window.open(url, '_blank')
       setTimeout(() => URL.revokeObjectURL(url), 60_000)
       printDialog.value = false
+      if (printingQueue.value) {
+        queueDialog.value = false
+        if (emptyQueueAfter.value) clearQueue()
+      }
     } catch (error) {
       notify.error(error.message)
     } finally {

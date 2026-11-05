@@ -688,6 +688,7 @@ export const guideSections = [
   entry('barcodes', 'Stock', 'Barcodes',
     'Print barcode labels.',
     [
+      'To print many products together, press the add button on each row as you find it, then open <b>Queue</b> and press <b>Print all</b> for one PDF. The queue stays in this browser until you empty it.',
       'Search products, set how many labels each, then <b>Generate barcodes</b> to get a PDF.',
       'Label size is set in the dialog (72 points = 1 inch).',
     ]),
