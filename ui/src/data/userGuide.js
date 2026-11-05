@@ -769,6 +769,7 @@ export const guideSections = [
       '<b>Send command</b>, then choose the branch, the till and the type.',
       'Types: <b>Sync now</b>, <b>Print close shift</b>, <b>Reprint invoice</b>, <b>Return invoice</b>, <b>Swap shift balance</b>, <b>Set PIN</b>, <b>Update settings</b> and <b>Transfer decision</b>.',
       'Cards at the top show how many are <b>Queued</b>, how many <b>Failed</b> in the last 24 hours, and how many tills are online.',
+      '<b>Sync</b> shows what each till has received: discounts, prices, products and the rest. <b>Stuck</b> means it keeps failing to apply something and is still selling on its old copy.',
     ],
     'A command runs when the till is online. If it is not, it waits in the queue.',
     [

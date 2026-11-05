@@ -97,6 +97,8 @@
             </v-chip>
           </div>
 
+          <BranchSyncStatus ref="syncRef" :branch-id="selectedId" />
+
           <!-- ------------------------------------------------- filters -->
           <div class="d-flex flex-wrap align-center ga-3 mb-2">
             <v-chip-group v-model="statusFilter" color="primary" mandatory>
@@ -359,6 +361,7 @@
 <script setup>
   import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
+  import BranchSyncStatus from '@/components/BranchSyncStatus.vue'
   import PageSidebar from '@/components/PageSidebar.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { authFetch } from '@/composables/useApi'
@@ -405,6 +408,7 @@
   const typeFilter = ref(null)
   const registerFilter = ref(null)
   const tableRef = ref(null)
+  const syncRef = ref(null)
 
   const activeBranch = computed(() => branches.value.find(b => b.id === selectedId.value) ?? null)
   const branchItems = computed(() => branches.value.map(b => ({ value: b.id, title: b.name, subtitle: b.code, raw: b })))
@@ -653,6 +657,7 @@
   }
   async function reloadAll () {
     tableRef.value?.reloadFromFirstPage?.()
+    syncRef.value?.reload()
     await Promise.all([refreshCommandSummary().catch(() => {}), loadConnected(), loadRegisters()])
   }
 

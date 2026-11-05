@@ -424,6 +424,11 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 		return
 	}
 
+	// Later pages of a walk carry the same since; only its first is a pull.
+	if req.Cursor == "" {
+		server.recordSyncPull(ctx, req.Entity, since, items)
+	}
+
 	server.writeJSON(ctx, http.StatusOK, envelope{
 		"entity":      req.Entity,
 		"items":       items,

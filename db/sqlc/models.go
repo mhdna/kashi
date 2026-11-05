@@ -842,6 +842,26 @@ type BranchRegister struct {
 	TargetForce              bool                  `json:"target_force"`
 }
 
+type BranchRegisterSyncOutbox struct {
+	RegisterID int64     `json:"register_id"`
+	Pending    int64     `json:"pending"`
+	Failed     int64     `json:"failed"`
+	ReportedAt time.Time `json:"reported_at"`
+}
+
+type BranchRegisterSyncStatus struct {
+	RegisterID    int64        `json:"register_id"`
+	Entity        string       `json:"entity"`
+	LastPullAt    time.Time    `json:"last_pull_at"`
+	SyncedThrough sql.NullTime `json:"synced_through"`
+	ItemsSent     int32        `json:"items_sent"`
+	Retries       int32        `json:"retries"`
+	StuckSince    sql.NullTime `json:"stuck_since"`
+	Error         string       `json:"error"`
+	RowsApplied   int64        `json:"rows_applied"`
+	ReportedAt    sql.NullTime `json:"reported_at"`
+}
+
 type BranchSetting struct {
 	BranchID                           int64           `json:"branch_id"`
 	BranchName                         string          `json:"branch_name"`
