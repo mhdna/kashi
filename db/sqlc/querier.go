@@ -151,6 +151,8 @@ type Querier interface {
 	// A sale's checkout finds the welcome sent to its client earlier (no invoice
 	// yet, within the last 12 hours) and takes it over, so it isn't messaged twice.
 	ClaimWhatsAppWelcome(ctx context.Context, arg ClaimWhatsAppWelcomeParams) (int64, error)
+	// A till reports every list it has, so one it no longer has goes.
+	ClearBranchRegisterListStates(ctx context.Context, registerID int64) error
 	ClearDefaultWhatsAppNumber(ctx context.Context) error
 	// Entries are matched the way BulkSetDiscountListItems matches them: a
 	// variant barcode names its product, a code names the product directly.
@@ -986,6 +988,7 @@ type Querier interface {
 	// A branch's central Quick Access list, in card order, with enough of each
 	// product to show it in the admin editor; tills only use uid/position/colours.
 	ListBranchQuickAccessItems(ctx context.Context, branchID int64) ([]ListBranchQuickAccessItemsRow, error)
+	ListBranchRegisterListStates(ctx context.Context, kind string) ([]BranchRegisterListState, error)
 	ListBranchRegisters(ctx context.Context, branchID int64) ([]BranchRegister, error)
 	ListBranchRegistersByIDs(ctx context.Context, ids []int64) ([]BranchRegister, error)
 	// Same scope/filters/estimate caveat as ListBranchProductRevenue, rolled up
@@ -1812,6 +1815,7 @@ type Querier interface {
 	SetBranchPlaceID(ctx context.Context, arg SetBranchPlaceIDParams) error
 	SetBranchRegisterActive(ctx context.Context, arg SetBranchRegisterActiveParams) error
 	SetBranchRegisterHiddenFromReports(ctx context.Context, arg SetBranchRegisterHiddenFromReportsParams) error
+	SetBranchRegisterListState(ctx context.Context, arg SetBranchRegisterListStateParams) error
 	// Later flip wins: a flip only applies if it's newer than the one stored, so
 	// a till's offline flip that arrives late can't undo a more recent one made
 	// in kashi (or vice versa). 0 rows = this flip was older, ignored.
