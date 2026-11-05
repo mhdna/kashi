@@ -214,10 +214,16 @@
     return { items, total }
   }
 
+  // Only the newest request may fill the table: an older one landing late
+  // would show the previous list's rows, or a page the user has left.
+  let latestLoad = 0
+
   function loadItems ({ page, itemsPerPage, sortBy }) {
+    const thisLoad = ++latestLoad
     loading.value = true
     fetchPage({ page, itemsPerPage, sortBy })
       .then(({ items, total }) => {
+        if (thisLoad !== latestLoad) return
         serverItems.value = items
         totalItems.value = total
         // Collapse rows that fell off the page and tell the parent what
@@ -229,12 +235,13 @@
         emit('loaded', items)
       })
       .catch(error_ => {
+        if (thisLoad !== latestLoad) return
         notify.error(isConnectionError(error_) ? error_.message : `Failed to load data: ${error_.message}`)
         serverItems.value = []
         totalItems.value = 0
       })
       .finally(() => {
-        loading.value = false
+        if (thisLoad === latestLoad) loading.value = false
       })
   }
 
@@ -273,6 +280,14 @@
 
   watch(() => props.externalSearch, debouncedReload)
   watch(() => props.queryParams, debouncedReload, { deep: true })
+  // A new URL is a different table (the next price or discount list): nothing
+  // on screen belongs to it, so it empties and loads from page 1.
+  watch(() => props.apiURL, () => {
+    serverItems.value = []
+    totalItems.value = -1
+    clearSelection()
+    reloadFromFirstPage()
+  })
 
   defineExpose({ reload, reloadFromFirstPage, selected, clearSelection, items: serverItems })
 </script>

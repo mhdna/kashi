@@ -3,6 +3,21 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-05 · Picking a price or discount list kept showing the first list's rows
+
+**Symptom.** On Discount Lists and Price Lists, picking another list changed the
+header and rules but not the table, so the page seemed to load forever. The
+"buy 1 get 1" list showed the "Buy 2 Get 1" rows.
+
+**Cause.** `ServerSideTable` read its URL only when it fetched, and nothing
+fetched when the URL changed. These are the only pages whose URL changes, so the
+rows stayed until something else, like paging or a search, forced a reload.
+
+**Fix.** A new URL now empties the table and loads page 1, and only the newest
+request may fill it, so a late answer can't bring back the old list
+(`ui/src/components/Tables/ServerSideTable.vue`). The UI has no test runner, so
+this was checked by running the old and new table in Chrome with stubbed answers.
+
 ## 2026-11-05 · A picture taken on the phone sometimes never uploaded
 
 **Symptom.** On the unknown items phone page, a picture was taken for an item
