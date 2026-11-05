@@ -3,6 +3,20 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-05 · Saving a list's rules timed out with "status 524"
+
+**Symptom.** Saving rules spun for minutes and then failed with "Request failed
+with status 524", though the save went on to work on the server.
+
+**Cause.** Every save re-matches the rules, and that joined every candidate match
+to the price table with no index: 455 million comparisons, for a price limit most
+rules don't have. It took 2m30s on the server, past Cloudflare's 100s limit.
+
+**Fix.** The price is looked up only for a rule with a limit
+(`db/migrations/000224_faster_rule_refresh.up.sql`). On a copy of production's
+tables, the same save went from 35s to 1s, with identical rows on every list.
+Test: `TestDiscountListRuleMaxPrice`.
+
 ## 2026-11-05 · A branch moved to another discount list never got it
 
 **Symptom.** Centro was moved from "Buy 2 Get 1" to "buy 1 get 1" in kashi, but
