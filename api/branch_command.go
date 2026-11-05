@@ -49,6 +49,9 @@ var allowedBranchCommandTypes = map[string]bool{
 	// set_expense_from_central: only enqueued by
 	// adminSetBranchExpenseFromCentral.
 	"set_expense_from_central": true,
+	// cart_override: only enqueued by setLiveCartOverride (live_cart.go),
+	// which checks the sale is the one on screen.
+	"cart_override": true,
 }
 
 type createBranchCommandRequest struct {

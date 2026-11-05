@@ -24,6 +24,7 @@
         <ConnectedBranchesCard />
         <SyncingBranchesCard />
         <BranchDiscountButton />
+        <LiveCartButton />
         <CommandPalette />
         <!-- <NotificationMenu class="me-4" /> -->
         <!-- <v-icon icon="mdi-translate" /> -->
@@ -91,6 +92,7 @@ import AppNotifications from "@/components/AppNotifications.vue";
 import BranchActivityToast from "@/components/BranchActivityToast.vue";
 import ToggleTheme from "@/components/Buttons/ToggleTheme.vue";
 import BranchDiscountButton from "@/components/BranchDiscountButton.vue";
+import LiveCartButton from "@/components/LiveCartButton.vue";
 import CommandPalette from "@/components/CommandPalette.vue";
 import ConnectedBranchesCard from "@/components/ConnectedBranchesCard.vue";
 import OnlineUsersStack from "@/components/OnlineUsersStack.vue";
