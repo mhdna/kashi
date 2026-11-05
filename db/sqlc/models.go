@@ -955,6 +955,7 @@ type BranchSetting struct {
 	DiscountToggle                     bool            `json:"discount_toggle"`
 	DiscountToggleDefaultOff           bool            `json:"discount_toggle_default_off"`
 	DealToggle                         bool            `json:"deal_toggle"`
+	InvoiceRatingsEnabled              bool            `json:"invoice_ratings_enabled"`
 }
 
 type BranchShift struct {

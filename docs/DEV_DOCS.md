@@ -192,6 +192,7 @@ Business settings (WhatsApp credentials, templates, webhook secret) live **in th
 - No matching rule = the default. A condition-less `skip` at the bottom disables the default.
 - Phones compare by digits; if they differ, the **last 8 digits** (Lebanese number without country code).
 - The webhook reports sent, delivered, read, replies and failures; there is also a poll and a bridge.
+- A till's invoices list shows each sale's **poll answer** as an emoji: it posts the codes on screen to `/branch/invoice_ratings` (by branch + invoice code; `invoice_ratings_enabled`, on by default).
 :::
 
 ::: diagram whatsapp

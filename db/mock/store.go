@@ -7906,6 +7906,21 @@ func (mr *MockStoreMockRecorder) ListBranchInvoicePaymentsForHistory(arg0, arg1 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchInvoicePaymentsForHistory", reflect.TypeOf((*MockStore)(nil).ListBranchInvoicePaymentsForHistory), arg0, arg1)
 }
 
+// ListBranchInvoiceRatings mocks base method.
+func (m *MockStore) ListBranchInvoiceRatings(arg0 context.Context, arg1 db.ListBranchInvoiceRatingsParams) ([]db.ListBranchInvoiceRatingsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBranchInvoiceRatings", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListBranchInvoiceRatingsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBranchInvoiceRatings indicates an expected call of ListBranchInvoiceRatings.
+func (mr *MockStoreMockRecorder) ListBranchInvoiceRatings(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchInvoiceRatings", reflect.TypeOf((*MockStore)(nil).ListBranchInvoiceRatings), arg0, arg1)
+}
+
 // ListBranchInvoiceSettlementPayments mocks base method.
 func (m *MockStore) ListBranchInvoiceSettlementPayments(arg0 context.Context, arg1 int64) ([]db.BranchInvoiceSettlementPayment, error) {
 	m.ctrl.T.Helper()

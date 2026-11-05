@@ -308,6 +308,51 @@ func (q *Queries) LastWhatsAppPollAt(ctx context.Context, clientPhone string) (t
 	return created_at, err
 }
 
+const listBranchInvoiceRatings = `-- name: ListBranchInvoiceRatings :many
+SELECT DISTINCT ON (invoice_code) invoice_code, poll_rating::smallint AS poll_rating, poll_answer
+FROM whatsapp_messages
+WHERE branch_id = $1::bigint
+  AND invoice_code = ANY($2::text[])
+  AND poll_rating IS NOT NULL
+ORDER BY invoice_code, poll_voted_at DESC NULLS LAST, id DESC
+`
+
+type ListBranchInvoiceRatingsParams struct {
+	BranchID     int64    `json:"branch_id"`
+	InvoiceCodes []string `json:"invoice_codes"`
+}
+
+type ListBranchInvoiceRatingsRow struct {
+	InvoiceCode string `json:"invoice_code"`
+	PollRating  int16  `json:"poll_rating"`
+	PollAnswer  string `json:"poll_answer"`
+}
+
+// The client's poll answer on each of these sales of a branch, for the
+// till's invoices list; the latest vote when a sale got more than one message.
+func (q *Queries) ListBranchInvoiceRatings(ctx context.Context, arg ListBranchInvoiceRatingsParams) ([]ListBranchInvoiceRatingsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listBranchInvoiceRatings, arg.BranchID, pq.Array(arg.InvoiceCodes))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListBranchInvoiceRatingsRow{}
+	for rows.Next() {
+		var i ListBranchInvoiceRatingsRow
+		if err := rows.Scan(&i.InvoiceCode, &i.PollRating, &i.PollAnswer); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listBranchWhatsAppNumbers = `-- name: ListBranchWhatsAppNumbers :many
 SELECT id, name, whatsapp_number_id, whatsapp_enabled, whatsapp_hidden_fields FROM branches ORDER BY id
 `

@@ -190,3 +190,13 @@ FROM whatsapp_messages
 WHERE client_phone = sqlc.arg(client_phone) AND status = 'sent' AND poll_ref <> '' AND NOT is_test
 ORDER BY created_at DESC
 LIMIT 1;
+
+-- name: ListBranchInvoiceRatings :many
+-- The client's poll answer on each of these sales of a branch, for the
+-- till's invoices list; the latest vote when a sale got more than one message.
+SELECT DISTINCT ON (invoice_code) invoice_code, poll_rating::smallint AS poll_rating, poll_answer
+FROM whatsapp_messages
+WHERE branch_id = sqlc.arg(branch_id)::bigint
+  AND invoice_code = ANY(sqlc.arg(invoice_codes)::text[])
+  AND poll_rating IS NOT NULL
+ORDER BY invoice_code, poll_voted_at DESC NULLS LAST, id DESC;
