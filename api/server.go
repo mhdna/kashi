@@ -33,6 +33,8 @@ type Server struct {
 	// (phone_upload_page.go); uploadThemeLoaded says it has been read.
 	uploadFollowSystem atomic.Bool
 	uploadThemeLoaded  atomic.Bool
+	// The sale open on each till (live_cart.go).
+	liveCarts liveCartStore
 }
 
 func NewServer(config util.Config, store db.Store) (*Server, error) {
@@ -335,6 +337,8 @@ func (server *Server) setupRoutes() {
 	authRoutes.PUT("/invoice_discounts/:id", server.updateInvoiceDiscount)
 	authRoutes.DELETE("/invoice_discounts/:id", server.deleteInvoiceDiscount)
 	authRoutes.PUT("/discount_lists/branch/:branch_id", server.setBranchDiscount)
+	authRoutes.GET("/live_carts/:branch_id", server.getLiveCarts)
+	authRoutes.POST("/live_carts/:branch_id/override", server.setLiveCartOverride)
 	authRoutes.GET("/sale_options", server.listSaleOptions)
 	authRoutes.POST("/sale_options", server.createSaleOption)
 	authRoutes.POST("/sale_options/products", server.setProductSaleOptions)
@@ -634,6 +638,7 @@ func (server *Server) setupRoutes() {
 	branchRoutes.POST("/attendance_changes", server.createBranchAttendanceChange)
 	branchRoutes.GET("/sync/changes", server.branchSyncChanges)
 	branchRoutes.POST("/sync/report", server.branchSyncReport)
+	branchRoutes.POST("/live_cart", server.branchLiveCart)
 	branchRoutes.POST("/sync/reconcile", server.branchReconcile)
 	branchRoutes.POST("/sync/full_sync/start", server.branchFullSyncStart)
 	branchRoutes.POST("/sync/full_sync/end", server.branchFullSyncEnd)

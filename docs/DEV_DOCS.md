@@ -169,6 +169,8 @@ Business settings (WhatsApp credentials, templates, webhook secret) live **in th
 - Branch-wide `update_settings` is also written to `branch_settings` (kashi is the authority).
 :::
 
+**Live cart** (`api/live_cart.go`, app-bar cart button): each till reports its open sale to `POST /branch/live_cart` on every change and every 20 s. Only the latest per register is kept, **in memory**; anything older than 75 s counts as offline. `POST /live_carts/:branch_id/override` (pricing rights) sends a `cart_override` for that sale only: every deal off, or a line's price, discount or no deal by barcode. The till applies it **past the branch's price/discount/deal settings** and refuses one for a sale it no longer has open. The set replaces the last one, so an empty set undoes everything.
+
 ::: diagram commands
 
 ## App updates {icon=mdiUpdate}

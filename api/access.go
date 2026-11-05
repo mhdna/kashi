@@ -246,6 +246,9 @@ var routeRules = []routeRule{
 	rule("/discount_lists", "pricing", "pricing", "products", "sales"),
 	rule("/sale_options", "pricing", "pricing", "products", "sales"),
 	rule("/deals", "pricing", "pricing", "products", "sales"),
+	// The sale open on a till and changes to it (live_cart.go): reading it
+	// is pricing too, since it shows prices and is only there to change them.
+	rule("/live_carts", "pricing", "pricing"),
 	rule("/coupons", "pricing", "pricing", "clients"),
 	rule("/coupon_categories", "pricing", "pricing", "clients"),
 
