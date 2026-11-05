@@ -570,6 +570,8 @@ type Querier interface {
 	DeleteWhatsAppNumber(ctx context.Context, id int64) error
 	FindUnknownInvoiceItem(ctx context.Context, arg FindUnknownInvoiceItemParams) (BranchInvoiceItem, error)
 	GetAppRelease(ctx context.Context, id int64) (AppRelease, error)
+	GetAppReleasePatch(ctx context.Context, id int64) (AppReleasePatch, error)
+	GetAppReleasePatchForBase(ctx context.Context, arg GetAppReleasePatchForBaseParams) (AppReleasePatch, error)
 	GetAppSettings(ctx context.Context) (AppSetting, error)
 	GetAsset(ctx context.Context, id int64) (Asset, error)
 	GetAssetByName(ctx context.Context, name string) (Asset, error)
@@ -859,6 +861,8 @@ type Querier interface {
 	// (api/client_phone_cleanup.go) -- unlike ListClients this is never paged,
 	// since the job needs every row in one pass to detect collisions.
 	ListAllClientPhones(ctx context.Context) ([]ListAllClientPhonesRow, error)
+	// How many patches each release has and their total size, for the page.
+	ListAppReleasePatchSummaries(ctx context.Context) ([]ListAppReleasePatchSummariesRow, error)
 	// Newest first, with how many active registers run each release and how
 	// many are told to.
 	ListAppReleases(ctx context.Context) ([]ListAppReleasesRow, error)
@@ -1979,6 +1983,8 @@ type Querier interface {
 	UpdateTransfer(ctx context.Context, arg UpdateTransferParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) error
 	UpdateWhatsAppNumberLabel(ctx context.Context, arg UpdateWhatsAppNumberLabelParams) (WhatsappNumber, error)
+	// Publishing the patch from one base again replaces it.
+	UpsertAppReleasePatch(ctx context.Context, arg UpsertAppReleasePatchParams) (AppReleasePatch, error)
 	UpsertAttributeValue(ctx context.Context, arg UpsertAttributeValueParams) (AttributesValue, error)
 	UpsertBranchSettings(ctx context.Context, arg UpsertBranchSettingsParams) (BranchSetting, error)
 	// Idempotent on (branch_id, entity, ref): a retried outbox push re-reports

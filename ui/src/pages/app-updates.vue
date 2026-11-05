@@ -150,7 +150,16 @@
           </template>
           <template #item.size_bytes="{ item }">
             <span v-if="item.file_removed" class="text-medium-emphasis" title="The file was deleted once its tills installed it. Publish this version again to send it to other tills.">Deleted</span>
-            <template v-else>{{ formatSize(item.size_bytes) }}</template>
+            <template v-else>
+              <!-- What a till downloads: the compressed build, or a patch
+                   from the build it runs (api/app_update_compact.go). -->
+              <span :title="`The program is ${formatSize(item.size_bytes)}`">
+                {{ formatSize(item.encoding ? item.download_bytes : item.size_bytes) }}
+              </span>
+              <div v-if="item.patches" class="text-caption text-medium-emphasis" title="Tills on a build this was patched from download only the difference">
+                patch {{ formatSize(item.patch_bytes) }}{{ item.patches > 1 ? ` · ${item.patches} builds` : '' }}
+              </div>
+            </template>
           </template>
           <template #item.created_at="{ item }">
             <span :title="formatDate(item.created_at)">{{ ago(item.created_at) }}</span>

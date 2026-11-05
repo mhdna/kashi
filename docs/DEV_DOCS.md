@@ -180,6 +180,8 @@ Business settings (WhatsApp credentials, templates, webhook secret) live **in th
 - Kashi **cannot verify the signature** (the public key lives in kashi-pos); it refuses a file whose SHA-256 differs from the uploader's.
 - Admin sets a **target** per register on App Updates; kashi nudges; the till fetches, downloads, installs at a safe moment, reports each step.
 - Rollback = the same with an older target. Release files are stored under a fixed on-disk name, never the uploaded one.
+- **Small downloads** (`api/app_update_compact.go`): builds are stored **zstd** (~28 MB → ~9 MB), plus **patches** (~1–2 MB) from each build tills run, keyed by that exe's SHA-256. A till asking `accept=zstd,patch&have=<its exe sha>` gets both; an older till gets the plain exe, unpacked once to `release.raw`.
+- `sha256`/`size_bytes`/signature are always **the exe's**; on a zstd upload kashi unpacks it to check that. A bad patch fails the till's check and it falls back to the full download.
 :::
 
 ::: diagram release

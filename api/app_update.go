@@ -82,6 +82,12 @@ type appReleaseResponse struct {
 	// The build file was cleaned up (app_release_cleanup.go); tills that
 	// don't run it yet can't be sent it until it's published again.
 	FileRemoved bool `json:"file_removed"`
+	// What a till downloads: the stored file (zstd: about a third of the
+	// exe), and the patches from earlier builds, the smallest of them.
+	Encoding      string `json:"encoding"`
+	DownloadBytes int64  `json:"download_bytes"`
+	Patches       int64  `json:"patches"`
+	PatchBytes    int64  `json:"patch_bytes"`
 }
 
 func newAppReleaseResponse(r db.AppRelease) appReleaseResponse {
@@ -89,6 +95,7 @@ func newAppReleaseResponse(r db.AppRelease) appReleaseResponse {
 		ID: r.ID, Version: r.Version, Flavor: r.Flavor, FileName: r.FileName,
 		SizeBytes: r.SizeBytes, Sha256: r.Sha256, Signature: r.Signature,
 		Notes: r.Notes, CreatedAt: r.CreatedAt, FileRemoved: r.FileRemovedAt.Valid,
+		Encoding: r.Encoding, DownloadBytes: r.FileSizeBytes,
 	}
 }
 
@@ -98,6 +105,15 @@ func (server *Server) listAppReleases(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	summaries, err := server.store.ListAppReleasePatchSummaries(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	patches := map[int64]db.ListAppReleasePatchSummariesRow{}
+	for _, p := range summaries {
+		patches[p.ReleaseID] = p
+	}
 	releases := make([]appReleaseResponse, 0, len(rows))
 	for _, r := range rows {
 		releases = append(releases, appReleaseResponse{
@@ -106,6 +122,8 @@ func (server *Server) listAppReleases(ctx *gin.Context) {
 			Notes: r.Notes, CreatedAt: r.CreatedAt,
 			RunningCount: r.RunningCount, TargetCount: r.TargetCount,
 			FileRemoved: r.FileRemovedAt.Valid,
+			Encoding:    r.Encoding, DownloadBytes: r.FileSizeBytes,
+			Patches: patches[r.ID].Patches, PatchBytes: patches[r.ID].SmallestBytes,
 		})
 	}
 	settings, err := server.store.GetAppSettings(ctx)
@@ -128,6 +146,14 @@ func (server *Server) createAppRelease(ctx *gin.Context) {
 	wantSum := strings.ToLower(strings.TrimSpace(ctx.PostForm("sha256")))
 	signature := strings.TrimSpace(ctx.PostForm("signature"))
 	notes := strings.TrimSpace(ctx.PostForm("notes"))
+	// "zstd": the file is the exe compressed (app_update_compact.go), and
+	// file_sha256 is the compressed file's checksum; sha256 stays the exe's.
+	encoding := strings.TrimSpace(ctx.PostForm("encoding"))
+	wantFileSum := strings.ToLower(strings.TrimSpace(ctx.PostForm("file_sha256")))
+	if encoding != "" && encoding != appReleaseEncodingZstd {
+		server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("unknown encoding %q", encoding))
+		return
+	}
 
 	if !appReleaseVersionPattern.MatchString(version) {
 		server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("version must look like 1.2.3, got %q", version))
@@ -169,6 +195,23 @@ func (server *Server) createAppRelease(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	fileSum, fileSize := sum, fileHeader.Size
+	exeSize := fileHeader.Size
+	if encoding == appReleaseEncodingZstd {
+		if wantFileSum != "" && fileSum != wantFileSum {
+			os.RemoveAll(dir)
+			server.writeError(ctx, http.StatusBadRequest, errors.New("the uploaded file's checksum doesn't match; the upload was probably cut off, try again"))
+			return
+		}
+		// What the till will check is the exe inside, so that's what has to
+		// match what was signed.
+		sum, exeSize, err = zstdExeDigest(filepath.Join(server.appReleaseStorageDir(), relPath))
+		if err != nil {
+			os.RemoveAll(dir)
+			server.writeError(ctx, http.StatusBadRequest, err)
+			return
+		}
+	}
 	if wantSum != "" && sum != wantSum {
 		os.RemoveAll(dir)
 		server.writeError(ctx, http.StatusBadRequest, errors.New("the uploaded file's checksum doesn't match; the upload was probably cut off, try again"))
@@ -182,22 +225,26 @@ func (server *Server) createAppRelease(ctx *gin.Context) {
 		return
 	}
 	release, err := server.store.CreateAppRelease(ctx, db.CreateAppReleaseParams{
-		Version:    version,
-		Flavor:     flavor,
-		FileName:   fileName,
-		FilePath:   relPath,
-		SizeBytes:  fileHeader.Size,
-		Sha256:     sum,
-		Signature:  signature,
-		Notes:      notes,
-		UploadedBy: sql.NullInt64{Int64: userID, Valid: true},
+		Version:       version,
+		Flavor:        flavor,
+		FileName:      fileName,
+		FilePath:      relPath,
+		SizeBytes:     exeSize,
+		Sha256:        sum,
+		Signature:     signature,
+		Notes:         notes,
+		UploadedBy:    sql.NullInt64{Int64: userID, Valid: true},
+		Encoding:      encoding,
+		FileSizeBytes: fileSize,
+		FileSha256:    fileSum,
 	})
 	if err != nil && isUniqueViolation(err) {
 		// Already published -- but if its file was cleaned up, this upload
 		// brings it back.
 		reattached, rerr := server.store.ReattachAppReleaseFile(ctx, db.ReattachAppReleaseFileParams{
 			Version: version, Flavor: flavor, FileName: fileName, FilePath: relPath,
-			SizeBytes: fileHeader.Size, Sha256: sum, Signature: signature, Notes: notes,
+			SizeBytes: exeSize, Sha256: sum, Signature: signature, Notes: notes,
+			Encoding: encoding, FileSizeBytes: fileSize, FileSha256: fileSum,
 		})
 		if rerr == nil {
 			release, err = reattached, nil
@@ -508,6 +555,12 @@ type branchAppUpdateManifest struct {
 	Notes     string `json:"notes"`
 	// Install right away, even mid-shift (App Updates' "force").
 	Force bool `json:"force"`
+	// Only for a till that said it understands them (accept=zstd,patch):
+	// the full download is zstd, of DownloadBytes; Patch rebuilds this
+	// release from the exe the till runs (have=). See app_update_compact.go.
+	Encoding      string                  `json:"encoding,omitempty"`
+	DownloadBytes int64                   `json:"download_bytes,omitempty"`
+	Patch         *appUpdatePatchManifest `json:"patch,omitempty"`
 }
 
 // branchAppUpdate answers a till's "what should I run?" -- its target
@@ -523,12 +576,28 @@ func (server *Server) branchAppUpdate(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	server.writeJSON(ctx, http.StatusOK, envelope{"release": branchAppUpdateManifest{
+	manifest := branchAppUpdateManifest{
 		ID: release.ID, Version: release.Version, Flavor: release.Flavor,
 		FileName: release.FileName, SizeBytes: release.SizeBytes,
 		Sha256: release.Sha256, Signature: release.Signature, Notes: release.Notes,
 		Force: release.TargetForce,
-	}})
+	}
+	accept := ctx.Query("accept")
+	if release.Encoding == appReleaseEncodingZstd && acceptsEncoding(accept, appReleaseEncodingZstd) {
+		manifest.Encoding, manifest.DownloadBytes = appReleaseEncodingZstd, release.FileSizeBytes
+	}
+	if have := strings.ToLower(ctx.Query("have")); acceptsEncoding(accept, "patch") && sha256HexPattern.MatchString(have) {
+		patch, err := server.store.GetAppReleasePatchForBase(ctx, db.GetAppReleasePatchForBaseParams{
+			ReleaseID: release.ID, BaseSha256: have,
+		})
+		if err == nil {
+			manifest.Patch = &appUpdatePatchManifest{ID: patch.ID, BaseSha256: patch.BaseSha256, SizeBytes: patch.SizeBytes}
+		} else if err != sql.ErrNoRows {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"release": manifest})
 }
 
 // branchAppUpdateDownload streams a till its target release. It honors
@@ -554,7 +623,18 @@ func (server *Server) branchAppUpdateDownload(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusGone, fmt.Errorf("%s's file was cleaned up; it has to be published again", release.Version))
 		return
 	}
-	file, err := os.Open(filepath.Join(server.appReleaseStorageDir(), release.FilePath))
+	// A till that asked for zstd gets the stored file; any other, the exe.
+	path := filepath.Join(server.appReleaseStorageDir(), release.FilePath)
+	if release.Encoding != "" && ctx.Query("encoding") != release.Encoding {
+		path, err = server.rawReleaseFile(storedRelease{
+			FilePath: release.FilePath, Encoding: release.Encoding, Sha256: release.Sha256, SizeBytes: release.SizeBytes,
+		})
+		if err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, fmt.Errorf("release file: %w", err))
+			return
+		}
+	}
+	file, err := os.Open(path)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, fmt.Errorf("release file: %w", err))
 		return

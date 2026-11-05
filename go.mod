@@ -27,6 +27,7 @@ require (
 )
 
 require (
+	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/nyaruka/phonenumbers v1.8.1 // indirect
 	github.com/richardlehane/mscfb v1.0.7 // indirect
 	github.com/richardlehane/msoleps v1.0.6 // indirect
