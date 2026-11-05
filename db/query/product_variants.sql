@@ -1,3 +1,16 @@
+-- name: CreateProductVariantWithFreeBarcode :one
+-- For a generated barcode: no row back means it's taken, with no error, because an
+-- error would abort the transaction and leave nothing to retry in.
+INSERT INTO product_variants (
+  product_id,
+  color_id,
+  size_id,
+  barcode
+) VALUES (
+  $1, $2, $3, $4
+) ON CONFLICT (barcode) DO NOTHING
+RETURNING *;
+
 -- name: CreateProductVariant :one
 -- No price column: since 000094 a variant's price is an entry in a price
 -- list, not a property of the variant, so a newly created variant starts with

@@ -87,6 +87,51 @@ func (q *Queries) CreateProductVariant(ctx context.Context, arg CreateProductVar
 	return i, err
 }
 
+const createProductVariantWithFreeBarcode = `-- name: CreateProductVariantWithFreeBarcode :one
+INSERT INTO product_variants (
+  product_id,
+  color_id,
+  size_id,
+  barcode
+) VALUES (
+  $1, $2, $3, $4
+) ON CONFLICT (barcode) DO NOTHING
+RETURNING id, product_id, color_id, size_id, barcode, price, is_active, created_at, updated_at, avg_cost, uid
+`
+
+type CreateProductVariantWithFreeBarcodeParams struct {
+	ProductID int64         `json:"product_id"`
+	ColorID   sql.NullInt64 `json:"color_id"`
+	SizeID    sql.NullInt64 `json:"size_id"`
+	Barcode   string        `json:"barcode"`
+}
+
+// For a generated barcode: no row back means it's taken, with no error, because an
+// error would abort the transaction and leave nothing to retry in.
+func (q *Queries) CreateProductVariantWithFreeBarcode(ctx context.Context, arg CreateProductVariantWithFreeBarcodeParams) (ProductVariant, error) {
+	row := q.db.QueryRowContext(ctx, createProductVariantWithFreeBarcode,
+		arg.ProductID,
+		arg.ColorID,
+		arg.SizeID,
+		arg.Barcode,
+	)
+	var i ProductVariant
+	err := row.Scan(
+		&i.ID,
+		&i.ProductID,
+		&i.ColorID,
+		&i.SizeID,
+		&i.Barcode,
+		&i.Price,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.AvgCost,
+		&i.Uid,
+	)
+	return i, err
+}
+
 const deleteProductVariant = `-- name: DeleteProductVariant :exec
 DELETE FROM product_variants
 WHERE id = $1

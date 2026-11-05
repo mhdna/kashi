@@ -357,6 +357,9 @@ type Querier interface {
 	// list, not a property of the variant, so a newly created variant starts with
 	// no price and is unsellable until it is added to one.
 	CreateProductVariant(ctx context.Context, arg CreateProductVariantParams) (ProductVariant, error)
+	// For a generated barcode: no row back means it's taken, with no error, because an
+	// error would abort the transaction and leave nothing to retry in.
+	CreateProductVariantWithFreeBarcode(ctx context.Context, arg CreateProductVariantWithFreeBarcodeParams) (ProductVariant, error)
 	CreatePurchase(ctx context.Context, arg CreatePurchaseParams) (Purchase, error)
 	CreateRecurringExpense(ctx context.Context, arg CreateRecurringExpenseParams) (RecurringExpense, error)
 	CreateResolvedBranchInvoiceItem(ctx context.Context, arg CreateResolvedBranchInvoiceItemParams) error

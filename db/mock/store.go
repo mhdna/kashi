@@ -3205,6 +3205,21 @@ func (mr *MockStoreMockRecorder) CreateProductVariant(arg0, arg1 interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateProductVariant", reflect.TypeOf((*MockStore)(nil).CreateProductVariant), arg0, arg1)
 }
 
+// CreateProductVariantWithFreeBarcode mocks base method.
+func (m *MockStore) CreateProductVariantWithFreeBarcode(arg0 context.Context, arg1 db.CreateProductVariantWithFreeBarcodeParams) (db.ProductVariant, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateProductVariantWithFreeBarcode", arg0, arg1)
+	ret0, _ := ret[0].(db.ProductVariant)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateProductVariantWithFreeBarcode indicates an expected call of CreateProductVariantWithFreeBarcode.
+func (mr *MockStoreMockRecorder) CreateProductVariantWithFreeBarcode(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateProductVariantWithFreeBarcode", reflect.TypeOf((*MockStore)(nil).CreateProductVariantWithFreeBarcode), arg0, arg1)
+}
+
 // CreatePurchase mocks base method.
 func (m *MockStore) CreatePurchase(arg0 context.Context, arg1 db.CreatePurchaseParams) (db.Purchase, error) {
 	m.ctrl.T.Helper()

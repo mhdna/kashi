@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-
-	"github.com/lib/pq"
 )
 
 type CreateProductTxParams struct {
@@ -57,19 +55,16 @@ func createVariantWithBarcode(ctx context.Context, q *Queries, productID int64, 
 		if err != nil {
 			return ProductVariant{}, err
 		}
-		variant, err := q.CreateProductVariant(ctx, CreateProductVariantParams{
+		variant, err := q.CreateProductVariantWithFreeBarcode(ctx, CreateProductVariantWithFreeBarcodeParams{
 			ProductID: productID,
 			ColorID:   colorID,
 			SizeID:    sizeID,
 			Barcode:   strconv.FormatInt(generateEAN13(itemNumber), 10),
 		})
-		if err == nil {
-			return variant, nil
+		if errors.Is(err, sql.ErrNoRows) {
+			continue // taken: try the next number
 		}
-		var pqErr *pq.Error
-		if !errors.As(err, &pqErr) || pqErr.Code != "23505" {
-			return ProductVariant{}, err
-		}
+		return variant, err
 	}
 	return ProductVariant{}, fmt.Errorf("failed to generate unique barcode after 20 attempts")
 }

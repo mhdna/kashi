@@ -3,6 +3,20 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-05 · Adding a product failed with "current transaction is aborted"
+
+**Symptom.** Adding a product failed with "pq: current transaction is aborted, commands
+ignored until end of transaction block (25P02)". Pressing Add again sometimes worked.
+
+**Cause.** Two things. The barcode sequence sat at 82 while imported products held
+nearly every number up to about 10,000, so generated barcodes kept being taken. And
+the retry ran inside the transaction the failed insert had already aborted, so it
+could never succeed.
+
+**Fix.** A taken barcode now just returns no row (`CreateProductVariantWithFreeBarcode`,
+`db/sqlc/tx_product.go`), and the sequence moved past the imported block
+(`000227_barcode_sequence_past_imports`). Test: `TestCreateProductSkipsATakenBarcode`.
+
 ## 2026-11-05 · The Barcodes page showed NaN as the price
 
 **Symptom.** Every product with a price showed "NaN" in the Barcodes page's Price
