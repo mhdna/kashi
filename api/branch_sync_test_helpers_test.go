@@ -42,6 +42,10 @@ func stubBranchAuth(store *mockdb.MockStore) {
 		TouchBranchRegister(gomock.Any(), gomock.Eq(testRegisterID)).
 		Return(nil).
 		AnyTimes()
+	store.EXPECT().
+		RecordBranchSyncPull(gomock.Any(), gomock.Any()).
+		Return(nil).
+		AnyTimes()
 }
 
 func newBranchRequest(t *testing.T, method, path string, body any) *http.Request {

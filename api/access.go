@@ -258,6 +258,7 @@ var routeRules = []routeRule{
 	rule("/branch_users", "branches", "branches"),
 	rule("/branch_sync_conflicts", "branches", "branches"),
 	rule("/branch_commands", "branches", "branches"),
+	rule("/branch_sync_status", "branches", "branches"),
 	// Targets and salespersons are managed from the Branches page, so writing
 	// them takes Branches edit; the Analytics/HR pages only read them.
 	rule("/branches/:id/targets", "branches", "branches", "analytics"),

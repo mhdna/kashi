@@ -103,6 +103,10 @@ type Querier interface {
 	// stock (the kind that needs a stock fix), for the Conflicts page sidebar
 	// and its nav dot.
 	BranchSyncConflictSummary(ctx context.Context) ([]BranchSyncConflictSummaryRow, error)
+	// When kashi last changed what a branch's tills pull, for the entities that
+	// matter most; the epoch when it never has. Lists follow the same scope as
+	// ListDiscountListsForBranchSync, plus the lists the branch was taken off.
+	BranchSyncLatestChanges(ctx context.Context, branchID int64) (BranchSyncLatestChangesRow, error)
 	BranchVisitorEventRefsPresent(ctx context.Context, arg BranchVisitorEventRefsPresentParams) ([]string, error)
 	// Puts every variant whose barcode, or whose product's code, is in entries on
 	// the list at one discount (adding it or changing it). A code names all of its
@@ -206,10 +210,11 @@ type Querier interface {
 	CountDashboardPurchases(ctx context.Context, arg CountDashboardPurchasesParams) (int64, error)
 	CountDashboardSales(ctx context.Context, arg CountDashboardSalesParams) (int64, error)
 	CountDiscountListItemsWithProduct(ctx context.Context, arg CountDiscountListItemsWithProductParams) (int64, error)
-	// How many variants each rule of a list decides, first match wins, the way
-	// refresh_discount_rules (000208) picks them. A rule giving no discount and
-	// no deal writes no rows, so ListDiscountListRules counts it as 0; this is
-	// what it keeps out (or gives) all the same.
+	// How many variants each exclusion rule of a list keeps out, first match wins.
+	// A rule giving no discount, deal or option writes no rows, so
+	// ListDiscountListRules counts it as 0. Every variant another rule decided has a
+	// row, so only the variants with none are matched: far fewer than the whole
+	// catalog against every rule, which took seconds.
 	CountDiscountListRuleDecided(ctx context.Context, discountListID int64) ([]CountDiscountListRuleDecidedRow, error)
 	CountDiscountLists(ctx context.Context) (int64, error)
 	CountEmailReports(ctx context.Context, status sql.NullString) (int64, error)
@@ -1021,6 +1026,9 @@ type Querier interface {
 	// ---------------------------------------------------------------------------
 	ListBranchStockForSync(ctx context.Context, arg ListBranchStockForSyncParams) ([]ListBranchStockForSyncRow, error)
 	ListBranchSyncConflictsPage(ctx context.Context, arg ListBranchSyncConflictsPageParams) ([]ListBranchSyncConflictsPageRow, error)
+	// Every active register with what it has reported; one row per entity, or one
+	// row with no entity for a register that hasn't pulled since this was added.
+	ListBranchSyncStatus(ctx context.Context, branchID sql.NullInt64) ([]ListBranchSyncStatusRow, error)
 	ListBranchTargetSeriesForBranch(ctx context.Context, branchID int64) ([]BranchTargetSeries, error)
 	ListBranchTargetsForBranch(ctx context.Context, branchID int64) ([]BranchTarget, error)
 	// Branch-wide progress for a till's target bars: what every register of
@@ -1643,6 +1651,9 @@ type Querier interface {
 	// cost forward. When existing on-hand is <= 0 the average is just reset to
 	// the incoming cost (no meaningful prior average to blend).
 	ReceiveInventoryStock(ctx context.Context, arg ReceiveInventoryStockParams) (InventoryStock, error)
+	// One catch-up request. The same cursor again after a pull that sent items means
+	// the till failed to apply them; a cursor that moved clears all of that.
+	RecordBranchSyncPull(ctx context.Context, arg RecordBranchSyncPullParams) error
 	RecordEmailScheduleRun(ctx context.Context, arg RecordEmailScheduleRunParams) error
 	// Opens an alert, or bumps the open one of the same kind for the same IP
 	// seen within the last hour.
@@ -1676,6 +1687,9 @@ type Querier interface {
 	// Sales per branch; sales entered in kashi come back with branch_id 0 and
 	// an empty name.
 	ReportBranchSales(ctx context.Context, arg ReportBranchSalesParams) ([]ReportBranchSalesRow, error)
+	// The till's own word on an entity: the error applying it, '' when it worked.
+	ReportBranchSyncEntity(ctx context.Context, arg ReportBranchSyncEntityParams) error
+	ReportBranchSyncOutbox(ctx context.Context, arg ReportBranchSyncOutboxParams) error
 	// Revenue per product category. Lines without a product or whose product
 	// has no category come back with an empty name.
 	ReportCategorySales(ctx context.Context, arg ReportCategorySalesParams) ([]ReportCategorySalesRow, error)
