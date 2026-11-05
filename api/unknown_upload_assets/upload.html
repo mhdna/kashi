@@ -184,6 +184,8 @@
         <span>You can close this page. <span dir="rtl" lang="ar">يمكنك إغلاق هذه الصفحة.</span></span></div>
       <div class="bar"><i id="bar"></i></div>
       <div id="list"></div>
+      <!-- One input for every card, outside the list render() rebuilds. -->
+      <input type="file" id="camera" accept="image/*" capture="environment">
     </div>
     <div id="invalid" class="center" hidden>
       <div class="code">404</div>
@@ -197,6 +199,10 @@
   // <token> behind the prod proxy); every call hangs off it.
   var base = location.pathname.replace(/\/+$/, '');
   var slots = [], local = {}, busy = {}, errors = {};
+  // The camera input lives in the page, never in a card: the refresh below
+  // can rebuild the cards while the camera is open, and an input removed then
+  // loses the picture without a word. `pending` is the unit it was opened for.
+  var camera = document.getElementById('camera'), pending = null;
 
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -245,9 +251,8 @@
       else status.textContent = 'Needs a picture';
       row.appendChild(status);
       var label = el('label', 'btn' + (shown ? ' ghost' : ''), shown ? 'Retake' : 'Take picture');
-      var input = el('input'); input.type = 'file'; input.accept = 'image/*'; input.setAttribute('capture', 'environment');
-      input.addEventListener('change', function () { if (input.files[0]) upload(slot, input.files[0]); });
-      label.appendChild(input);
+      label.htmlFor = 'camera';
+      label.addEventListener('click', function () { pending = slot; });
       row.appendChild(label);
       card.appendChild(row);
       // "Same as #N": reuse another line's picture instead of taking a new one.
@@ -296,9 +301,12 @@
       if (!r.ok) { var err = new Error('Could not load.'); err.gone = r.status === 404; throw err; }
       return r.json();
     }).then(function (data) {
-      slots = data.slots || [];
+      var next = data.slots || [];
+      var changed = JSON.stringify(next) !== JSON.stringify(slots);
+      slots = next;
       document.getElementById('content').hidden = false;
-      render();
+      // Only when something changed: a rebuild under a finger eats the tap.
+      if (changed) render();
     });
   }
 
@@ -338,6 +346,13 @@
     }).catch(function () { errors[slot.slot_ref] = 'Failed \u2014 try again'; })
       .then(function () { delete busy[slot.slot_ref]; render(); });
   }
+
+  camera.addEventListener('change', function () {
+    var file = camera.files[0], slot = pending;
+    pending = null;
+    camera.value = ''; // so the same file can be picked again after a failure
+    if (file && slot) upload(slot, file);
+  });
 
   refresh().catch(function (e) {
     if (e.gone) { showInvalid(); return; }

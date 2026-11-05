@@ -3,6 +3,24 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-05 · A picture taken on the phone sometimes never uploaded
+
+**Symptom.** On the unknown items phone page, a picture was taken for an item
+but the card stayed on "Needs a picture", with no thumbnail and no error, while
+the items around it showed "Sent".
+
+**Cause.** Each card built its own camera input, and the page rebuilt every card
+every 2 seconds, even with nothing new. The input the camera was opened from was
+usually gone from the page by the time the picture came back, and a removed input
+is not reliable on phones, so the picture could be lost before any upload started.
+Worked out from the code and the screen state; not reproduced on a phone.
+
+**Fix.** One camera input now stays in the page outside the cards and remembers
+which item it was opened for, and the refresh only rebuilds the cards when
+something changed (`api/unknown_upload_assets/upload.html`). Covered by
+`TestUnknownUploadPageKeepsCameraInputOutOfTheCards`
+(`api/unknown_upload_page_test.go`).
+
 ## 2026-11-02 · Pausing a recurring target did nothing on the till, and Add Target errored without dates
 
 **Symptom.** (1) Switching a recurring target off or on in a branch's Targets
