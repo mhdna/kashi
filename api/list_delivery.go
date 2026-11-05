@@ -45,7 +45,8 @@ func listDeliveryState(row db.ListBranchSyncStatusRow, changedAt, now time.Time)
 	if row.SyncedThrough.Valid && !row.SyncedThrough.Time.Before(changedAt) {
 		return deliveryReached, nullTimePtr(row.LastPullAt)
 	}
-	if pulledSince && row.Error == "" && row.ReportedAt.Valid && !row.ReportedAt.Time.Before(row.LastPullAt.Time) {
+	// A pull that sent nothing after the change can't have carried it.
+	if pulledSince && row.ItemsSent > 0 && row.Error == "" && row.ReportedAt.Valid && !row.ReportedAt.Time.Before(row.LastPullAt.Time) {
 		return deliveryReached, nullTimePtr(row.ReportedAt)
 	}
 	switch {
@@ -53,7 +54,7 @@ func listDeliveryState(row db.ListBranchSyncStatusRow, changedAt, now time.Time)
 		return deliveryStuck, nil
 	case !row.LastSeenAt.Valid || now.Sub(row.LastSeenAt.Time) > deliveryOfflineAfter:
 		return deliveryOffline, nil
-	case pulledSince:
+	case pulledSince && row.ItemsSent > 0:
 		return deliverySending, nil
 	}
 	return deliveryWaiting, nil

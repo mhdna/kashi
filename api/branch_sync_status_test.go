@@ -41,3 +41,9 @@ func TestSyncEntityState(t *testing.T) {
 		})
 	}
 }
+
+// A pull's next cursor has to start behind now: a write already stamped but not
+// yet committed would otherwise fall behind the cursor and never reach the till.
+func TestBranchSyncCursorKeepsAnOverlap(t *testing.T) {
+	require.GreaterOrEqual(t, syncCursorOverlap, time.Minute)
+}

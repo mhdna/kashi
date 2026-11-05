@@ -20,13 +20,14 @@ func TestListDeliveryState(t *testing.T) {
 		row  db.ListBranchSyncStatusRow
 		want string
 	}{
-		"hasn't asked yet":     {db.ListBranchSyncStatusRow{LastSeenAt: seen, LastPullAt: at(before), SyncedThrough: at(before)}, deliveryWaiting},
-		"not seen lately":      {db.ListBranchSyncStatusRow{LastSeenAt: at(now.Add(-time.Hour)), LastPullAt: at(before)}, deliveryOffline},
-		"pulled, no word":      {db.ListBranchSyncStatusRow{LastSeenAt: seen, LastPullAt: at(after), SyncedThrough: at(before), ItemsSent: 2}, deliverySending},
-		"pulled and reported":  {db.ListBranchSyncStatusRow{LastSeenAt: seen, LastPullAt: at(after), SyncedThrough: at(before), ItemsSent: 2, ReportedAt: at(after)}, deliveryReached},
-		"its cursor passed it": {db.ListBranchSyncStatusRow{LastSeenAt: seen, LastPullAt: at(after), SyncedThrough: at(after)}, deliveryReached},
-		"has it, now offline":  {db.ListBranchSyncStatusRow{LastSeenAt: at(now.Add(-time.Hour)), LastPullAt: at(after), SyncedThrough: at(after)}, deliveryReached},
-		"keeps failing":        {db.ListBranchSyncStatusRow{LastSeenAt: seen, LastPullAt: at(after), SyncedThrough: at(before), ItemsSent: 2, Retries: 2}, deliveryStuck},
+		"hasn't asked yet":         {db.ListBranchSyncStatusRow{LastSeenAt: seen, LastPullAt: at(before), SyncedThrough: at(before)}, deliveryWaiting},
+		"not seen lately":          {db.ListBranchSyncStatusRow{LastSeenAt: at(now.Add(-time.Hour)), LastPullAt: at(before)}, deliveryOffline},
+		"pulled, no word":          {db.ListBranchSyncStatusRow{LastSeenAt: seen, LastPullAt: at(after), SyncedThrough: at(before), ItemsSent: 2}, deliverySending},
+		"pulled and reported":      {db.ListBranchSyncStatusRow{LastSeenAt: seen, LastPullAt: at(after), SyncedThrough: at(before), ItemsSent: 2, ReportedAt: at(after)}, deliveryReached},
+		"its cursor passed it":     {db.ListBranchSyncStatusRow{LastSeenAt: seen, LastPullAt: at(after), SyncedThrough: at(after)}, deliveryReached},
+		"has it, now offline":      {db.ListBranchSyncStatusRow{LastSeenAt: at(now.Add(-time.Hour)), LastPullAt: at(after), SyncedThrough: at(after)}, deliveryReached},
+		"pulled, but nothing came": {db.ListBranchSyncStatusRow{LastSeenAt: seen, LastPullAt: at(after), SyncedThrough: at(before), ReportedAt: at(after)}, deliveryWaiting},
+		"keeps failing":            {db.ListBranchSyncStatusRow{LastSeenAt: seen, LastPullAt: at(after), SyncedThrough: at(before), ItemsSent: 2, Retries: 2}, deliveryStuck},
 		"reports a failure": {
 			db.ListBranchSyncStatusRow{LastSeenAt: seen, LastPullAt: at(after), SyncedThrough: at(before), ItemsSent: 2, Error: "boom", ReportedAt: at(after)}, deliveryStuck,
 		},

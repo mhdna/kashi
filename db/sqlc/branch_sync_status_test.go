@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mhdna/kashi/util"
 	"github.com/stretchr/testify/require"
 )
 
@@ -66,4 +67,31 @@ func TestRecordBranchSyncPullCountsRepeats(t *testing.T) {
 	pull(sql.NullTime{}, 5)
 	retries, _, _ = state()
 	require.Zero(t, retries)
+}
+
+// A list's stamp is when its row was written, not when the transaction began: a
+// slow save stamped with its start could fall behind a till's cursor before it
+// committed, and that till would never get it.
+func TestListStampIsWriteTime(t *testing.T) {
+	ctx := context.Background()
+	list, err := testQueries.CreateDiscountList(ctx, CreateDiscountListParams{
+		Name: util.RandomString(8), IsActive: true,
+		ValidFrom: time.Now().Add(-time.Hour), ValidTo: time.Now().Add(time.Hour),
+	})
+	require.NoError(t, err)
+	variant := createRandomVariant(t)
+
+	tx, err := testDB.BeginTx(ctx, nil)
+	require.NoError(t, err)
+	defer tx.Rollback()
+	var began time.Time
+	require.NoError(t, tx.QueryRowContext(ctx, `SELECT now()`).Scan(&began))
+	_, err = tx.ExecContext(ctx, `SELECT pg_sleep(0.3)`)
+	require.NoError(t, err)
+	_, err = tx.ExecContext(ctx, `INSERT INTO discount_list_items (discount_list_id, product_variant_id, discount)
+		VALUES ($1, $2, 10)`, list.ID, variant.ID)
+	require.NoError(t, err)
+	var stamped time.Time
+	require.NoError(t, tx.QueryRowContext(ctx, `SELECT updated_at FROM discount_lists WHERE id = $1`, list.ID).Scan(&stamped))
+	require.Greater(t, stamped.Sub(began), 250*time.Millisecond)
 }

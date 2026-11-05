@@ -3,6 +3,23 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-05 · A till never got a list change that saved slowly, yet showed "Reached"
+
+**Symptom.** A crocs rule at 21% was saved and Centro showed "Reached", but the till
+kept selling Men Crocs at 30%.
+
+**Cause.** The list was stamped with `now()`, when the save's transaction began
+(12:50:07), and committed three minutes later (12:53:10). The till pulled at 12:52:55,
+so its cursor passed the stamp before the change was visible. After the commit the
+list looked older than the till's cursor and was never sent. "Reached" compares the
+same cursor, so it was wrong too.
+
+**Fix.** List stamps use `clock_timestamp()`, the cursor kept 2 minutes behind now
+(`syncCursorOverlap` in `api/branch_catchup.go`), and the migration re-sends every
+list to repair what was missed (`000225_list_stamps_at_write_time`). A pull that sent
+nothing no longer counts towards "Reached". Tests: `TestListStampIsWriteTime`,
+`TestBranchSyncCursorKeepsAnOverlap`, `TestListDeliveryState`.
+
 ## 2026-11-05 · Saving a list's rules timed out with "status 524"
 
 **Symptom.** Saving rules spun for minutes and then failed with "Request failed

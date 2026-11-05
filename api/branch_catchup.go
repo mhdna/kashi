@@ -19,6 +19,13 @@ var errUnknownSyncEntity = errors.New("unknown entity")
 // request. A branch that omits `limit` entirely gets the pre-pagination
 // behaviour: one unbounded query, no next_cursor -- kept so an older
 // kashi-pos build keeps working unchanged.
+// syncCursorOverlap is how far behind now a till's next cursor starts. A row's
+// updated_at is written before its transaction commits, so a pull in between would
+// otherwise move the cursor past a change it couldn't see yet, and the till would
+// never get it. Applying a row twice is harmless, so the next pull or two simply
+// send recent rows again.
+const syncCursorOverlap = 2 * time.Minute
+
 const (
 	syncChangesDefaultLimit = 500
 	syncChangesMaxLimit     = 1000
@@ -110,7 +117,8 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 	// query running and this line, the branch's next catch-up (using this
 	// as its new cursor) will still see it, rather than the client's own
 	// clock potentially skipping past a change that landed mid-request.
-	serverTime := time.Now().UTC()
+	// Set back by syncCursorOverlap, for writes stamped before they commit.
+	serverTime := time.Now().UTC().Add(-syncCursorOverlap)
 
 	paged := pagedSyncEntities[req.Entity] && req.Limit > 0
 	nextCursor := ""
