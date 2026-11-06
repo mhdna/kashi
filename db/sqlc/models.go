@@ -566,6 +566,7 @@ type AppSetting struct {
 	ReportSettings             json.RawMessage `json:"report_settings"`
 	WhatsappMessageGapMinutes  int32           `json:"whatsapp_message_gap_minutes"`
 	WhatsappPollEveryHours     int32           `json:"whatsapp_poll_every_hours"`
+	BusinessType               string          `json:"business_type"`
 }
 
 type AppUpdateEvent struct {

@@ -50,7 +50,12 @@ type updateAppSettingsRequest struct {
 	UnknownImagesAutoDelete bool `json:"unknown_images_auto_delete"`
 	// TablePageSize is how many rows every table loads at a time.
 	TablePageSize int16 `json:"table_page_size"`
+	// BusinessType picks the built-in calendar (clothing, tech, ...).
+	BusinessType string `json:"business_type"`
 }
+
+// validBusinessTypes must match the keys in ui/src/data/retailCalendarEvents.js.
+var validBusinessTypes = map[string]bool{"clothing": true, "tech": true, "general": true}
 
 const maxTablePageSize = 100 // what the API's page_size accepts
 
@@ -96,6 +101,14 @@ func (server *Server) updateAppSettings(ctx *gin.Context) {
 		return
 	}
 
+	if req.BusinessType == "" {
+		req.BusinessType = "clothing"
+	}
+	if !validBusinessTypes[req.BusinessType] {
+		server.writeError(ctx, http.StatusBadRequest, errors.New("business_type must be clothing, tech or general"))
+		return
+	}
+
 	months, err := json.Marshal(req.FinancialsHighSeasonMonths)
 	if err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
@@ -124,6 +137,7 @@ func (server *Server) updateAppSettings(ctx *gin.Context) {
 		UploadPagesFollowSystem:    req.UploadPagesFollowSystem,
 		UnknownImagesAutoDelete:    req.UnknownImagesAutoDelete,
 		TablePageSize:              req.TablePageSize,
+		BusinessType:               req.BusinessType,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)

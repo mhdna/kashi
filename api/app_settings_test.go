@@ -77,3 +77,53 @@ func TestSetProductAutofillRules_RejectsBadRules(t *testing.T) {
 		})
 	}
 }
+
+func validAppSettingsBody(businessType string) map[string]any {
+	return map[string]any{
+		"financials_high_season_months": []int{6, 7},
+		"activity_message_seconds":      5,
+		"activity_display_mode":         "appbar",
+		"barcode_label_width":           50,
+		"barcode_label_height":          30,
+		"upcoming_events_days":          15,
+		"upcoming_events_menu_days":     180,
+		"table_page_size":               20,
+		"business_type":                 businessType,
+	}
+}
+
+func TestUpdateAppSettings_BusinessType(t *testing.T) {
+	t.Run("unknown type is refused", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		store := mockdb.NewMockStore(ctrl) // nothing saved
+		server := newTestServer(t, store)
+		rec := adminRequest(t, server, http.MethodPut, "/app_settings", validAppSettingsBody("bakery"))
+		require.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
+	})
+
+	t.Run("a missing type saves as clothing", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		store := mockdb.NewMockStore(ctrl)
+		store.EXPECT().UpdateAppSettings(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, arg db.UpdateAppSettingsParams) (db.AppSetting, error) {
+				require.Equal(t, "clothing", arg.BusinessType)
+				return db.AppSetting{ID: 1, BusinessType: arg.BusinessType}, nil
+			})
+		server := newTestServer(t, store)
+		rec := adminRequest(t, server, http.MethodPut, "/app_settings", validAppSettingsBody(""))
+		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	})
+
+	t.Run("tech is saved", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		store := mockdb.NewMockStore(ctrl)
+		store.EXPECT().UpdateAppSettings(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, arg db.UpdateAppSettingsParams) (db.AppSetting, error) {
+				require.Equal(t, "tech", arg.BusinessType)
+				return db.AppSetting{ID: 1, BusinessType: arg.BusinessType}, nil
+			})
+		server := newTestServer(t, store)
+		rec := adminRequest(t, server, http.MethodPut, "/app_settings", validAppSettingsBody("tech"))
+		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	})
+}
