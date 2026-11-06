@@ -1,3 +1,5 @@
+import catalog from '../../../api/builtin_events.json'
+
 function nthWeekdayOfMonth (year, month, weekday, n) {
   const first = new Date(year, month, 1)
   const day = 1 + ((weekday - first.getDay() + 7) % 7) + (n - 1) * 7
@@ -15,21 +17,6 @@ function addDays (date, days) {
 // sighting and can differ by a day or two - events below are labelled
 // "(approx.)" for that reason.
 const HIJRI_YEAR_DAYS = 354.367_07
-const EID_AL_FITR_ANCHOR = new Date(2024, 3, 10) // 1 Shawwal 1445 AH
-const EID_AL_ADHA_ANCHOR = new Date(2024, 5, 16) // 10 Dhu al-Hijjah 1445 AH
-const RAMADAN_ANCHOR = new Date(2024, 2, 11) // 1 Ramadan 1445 AH
-const ISLAMIC_NEW_YEAR_ANCHOR = new Date(2024, 6, 7) // 1 Muharram 1446 AH
-const ASHURA_ANCHOR = new Date(2024, 6, 16) // 10 Muharram 1446 AH
-const MAWLID_ANCHOR = new Date(2024, 8, 15) // 12 Rabi' al-awwal 1446 AH
-const SHABAN_15_ANCHOR = new Date(2024, 1, 25) // 15 Sha'ban 1445 AH
-const GHADIR_ANCHOR = new Date(2024, 5, 24) // 18 Dhu al-Hijjah 1445 AH
-const ARBAEEN_ANCHOR = new Date(2024, 7, 25) // 20 Safar 1446 AH
-const RAJAB_13_ANCHOR = new Date(2024, 0, 25) // 13 Rajab 1445 AH
-const MABATH_ANCHOR = new Date(2024, 1, 7) // 27 Rajab 1445 AH
-const FATIMA_BIRTH_ANCHOR = new Date(2024, 0, 2) // 20 Jumada II 1445 AH
-const HUSSAIN_BIRTH_ANCHOR = new Date(2024, 1, 13) // 3 Sha'ban 1445 AH
-const QADR_ANCHOR = new Date(2024, 3, 2) // 23 Ramadan 1445 AH
-const ALI_MARTYRDOM_ANCHOR = new Date(2024, 2, 31) // 21 Ramadan 1445 AH
 
 // A Hijri date comes round every ~354 days, so it can land twice in one
 // Gregorian year (early January and late December): return every hit.
@@ -43,15 +30,6 @@ function approximateHijriDates (anchor, year) {
     }
   }
   return found
-}
-
-// An event that falls on a Hijri date, lasting `days` days from `offset`
-// days before/after it (offset 0 = starting on the day itself).
-function hijriSpan (anchor, { days = 1, offset = 0 } = {}) {
-  return year => approximateHijriDates(anchor, year).map(d => {
-    const start = addDays(d, offset)
-    return { start, end: addDays(start, days - 1), allDay: true }
-  })
 }
 
 // Western (Gregorian) Easter Sunday -- Meeus/Jones/Butcher algorithm.
@@ -86,434 +64,55 @@ function orthodoxEaster (year) {
   return addDays(new Date(year, month - 1, day), 13)
 }
 
-function oneDay (year, month, date) {
-  return [{ start: new Date(year, month, date), end: new Date(year, month, date), allDay: true }]
-}
-function span (year, m1, d1, m2, d2, endYearOffset = 0) {
-  return [{ start: new Date(year, m1, d1), end: new Date(year + endYearOffset, m2, d2), allDay: true }]
-}
-function single (d) {
-  return [{ start: d, end: d, allDay: true }]
+// The date rules of one built-in event, for one year -> [{ start, end, allDay }].
+// The rule kinds (see api/builtin_events.json, which the tills receive too):
+//   fixed       { month, day, days? }
+//   span        { from: [m, d], to: [m, d], toNextYear? }
+//   nthWeekday  { month, weekday, n, offset?, days? }   (weekday 0 = Sunday)
+//   easter      { kind: 'western' | 'orthodox', offset?, days? }
+//   hijri       { anchor: 'YYYY-MM-DD' of a Hijri date, offset?, days? }
+// Months are 1-12. `days` defaults to 1; `offset` shifts the start in days.
+export function expandRule (rule, year) {
+  const run = (start, days = 1) => ({ start, end: addDays(start, days - 1), allDay: true })
+  switch (rule.type) {
+    case 'fixed': {
+      return [run(new Date(year, rule.month - 1, rule.day), rule.days)]
+    }
+    case 'span': {
+      const end = new Date(year + (rule.toNextYear ? 1 : 0), rule.to[0] - 1, rule.to[1])
+      return [{ start: new Date(year, rule.from[0] - 1, rule.from[1]), end, allDay: true }]
+    }
+    case 'nthWeekday': {
+      const d = addDays(nthWeekdayOfMonth(year, rule.month - 1, rule.weekday, rule.n), rule.offset ?? 0)
+      return [run(d, rule.days)]
+    }
+    case 'easter': {
+      const easter = rule.kind === 'orthodox' ? orthodoxEaster(year) : westernEaster(year)
+      return [run(addDays(easter, rule.offset ?? 0), rule.days)]
+    }
+    case 'hijri': {
+      const [y, m, d] = rule.anchor.split('-').map(Number)
+      return approximateHijriDates(new Date(y, m - 1, d), year)
+        .map(date => run(addDays(date, rule.offset ?? 0), rule.days))
+    }
+    default: {
+      return []
+    }
+  }
 }
 
-// Every built-in event belongs to one list. A business type (below) is a set
-// of lists, so a clothing shop never sees Cyber Monday and a tech shop never
-// sees Swimwear Season. Lebanon's list is part of every business type and, as
-// events are shown unless hidden, is on by default.
-export const EVENT_LISTS = {
-  lebanon: { title: 'Lebanon', icon: 'mdi-flag' },
-  islamic: { title: 'Islamic', icon: 'mdi-mosque' },
-  retail: { title: 'Shopping seasons', icon: 'mdi-sale' },
-  clothing: { title: 'Clothing', icon: 'mdi-hanger' },
-  tech: { title: 'Tech', icon: 'mdi-laptop' },
-  party: { title: 'Parties & fun', icon: 'mdi-party-popper' },
-}
-
-// The key is what api/app_settings.go (validBusinessTypes) accepts.
-export const BUSINESS_TYPES = {
-  clothing: { title: 'Clothing', icon: 'mdi-hanger', lists: ['lebanon', 'islamic', 'retail', 'clothing'] },
-  tech: { title: 'Tech', icon: 'mdi-laptop', lists: ['lebanon', 'islamic', 'retail', 'tech'] },
-  general: { title: 'General shop', icon: 'mdi-store', lists: ['lebanon', 'islamic', 'retail', 'party'] },
-}
+// api/builtin_events.json is the one list of built-in events: kashi serves it
+// to the tills (the calendar_settings sync entity), so changing it needs no
+// till release. A business type is a set of lists; events are shown unless
+// hidden, so a new event is on by default.
+export const EVENT_LISTS = catalog.lists
+export const BUSINESS_TYPES = catalog.businessTypes
 export const DEFAULT_BUSINESS_TYPE = 'clothing'
 
-export const retailCalendarEvents = [
-  // --- Lebanon: public holidays and the moments Lebanese shoppers dress up for.
-  {
-    list: 'lebanon',
-    name: 'عيد الميلاد للأرمن',
-    color: 'red-darken-2',
-    icon: 'mdi-church',
-    dates: year => oneDay(year, 0, 6),
-  },
-  {
-    list: 'lebanon',
-    name: 'عيد مار مارون',
-    color: 'red-darken-3',
-    icon: 'mdi-church',
-    dates: year => oneDay(year, 1, 9),
-  },
-  {
-    list: 'lebanon',
-    name: 'عيد الأم',
-    color: 'deep-purple',
-    icon: 'mdi-flower-tulip',
-    dates: year => oneDay(year, 2, 21), // Lebanon and the Arab world: 21 March
-  },
-  {
-    list: 'lebanon',
-    name: 'عيد البشارة',
-    color: 'indigo-lighten-1',
-    icon: 'mdi-church',
-    dates: year => oneDay(year, 2, 25),
-  },
-  {
-    list: 'lebanon',
-    name: 'الجمعة العظيمة (غربي)',
-    color: 'blue-grey-darken-1',
-    icon: 'mdi-cross',
-    dates: year => single(addDays(westernEaster(year), -2)),
-  },
-  {
-    list: 'lebanon',
-    name: 'عيد الفصح (غربي)',
-    color: 'purple-lighten-1',
-    icon: 'mdi-flower-tulip',
-    dates: year => single(westernEaster(year)),
-  },
-  {
-    list: 'lebanon',
-    name: 'الجمعة العظيمة (شرقي)',
-    color: 'blue-grey-darken-2',
-    icon: 'mdi-cross',
-    dates: year => single(addDays(orthodoxEaster(year), -2)),
-  },
-  {
-    list: 'lebanon',
-    name: 'عيد الفصح (شرقي)',
-    color: 'purple-darken-1',
-    icon: 'mdi-flower-tulip',
-    dates: year => single(orthodoxEaster(year)),
-  },
-  {
-    list: 'lebanon',
-    name: 'عيد العمال',
-    color: 'red',
-    icon: 'mdi-hammer-wrench',
-    dates: year => oneDay(year, 4, 1),
-  },
-  {
-    list: 'lebanon',
-    name: 'عيد المقاومة والتحرير',
-    color: 'green-darken-3',
-    icon: 'mdi-flag',
-    dates: year => oneDay(year, 4, 25),
-  },
-  {
-    list: 'lebanon',
-    name: 'عيد الجيش',
-    color: 'green-darken-4',
-    icon: 'mdi-flag',
-    dates: year => oneDay(year, 7, 1),
-  },
-  {
-    list: 'lebanon',
-    name: 'عيد انتقال العذراء',
-    color: 'light-blue-darken-1',
-    icon: 'mdi-church',
-    dates: year => oneDay(year, 7, 15),
-  },
-  {
-    list: 'lebanon',
-    name: 'عيد جميع القديسين',
-    color: 'grey-darken-1',
-    icon: 'mdi-church',
-    dates: year => oneDay(year, 10, 1),
-  },
-  {
-    list: 'lebanon',
-    name: 'عيد الاستقلال',
-    color: 'red-darken-1',
-    icon: 'mdi-flag',
-    dates: year => oneDay(year, 10, 22),
-  },
-  {
-    list: 'lebanon',
-    name: 'عيد الميلاد',
-    color: 'green-darken-2',
-    icon: 'mdi-pine-tree',
-    dates: year => oneDay(year, 11, 25),
-  },
-  {
-    list: 'islamic',
-    name: 'رمضان (تقريبي)',
-    color: 'teal-darken-2',
-    icon: 'mdi-star-crescent',
-    dates: hijriSpan(RAMADAN_ANCHOR, { days: 30 }),
-  },
-  {
-    list: 'islamic',
-    name: 'عيد الفطر (تقريبي)',
-    color: 'amber-darken-2',
-    icon: 'mdi-moon-waning-crescent',
-    dates: hijriSpan(EID_AL_FITR_ANCHOR, { days: 3 }),
-  },
-  {
-    list: 'islamic',
-    name: 'عيد الأضحى (تقريبي)',
-    color: 'brown-darken-1',
-    icon: 'mdi-moon-waning-crescent',
-    dates: hijriSpan(EID_AL_ADHA_ANCHOR, { days: 4 }),
-  },
-  {
-    list: 'islamic',
-    name: 'رأس السنة الهجرية (تقريبي)',
-    color: 'teal-darken-3',
-    icon: 'mdi-mosque',
-    dates: hijriSpan(ISLAMIC_NEW_YEAR_ANCHOR),
-  },
-  {
-    list: 'islamic',
-    name: 'عاشوراء (تقريبي)',
-    color: 'grey-darken-3',
-    icon: 'mdi-mosque',
-    dates: hijriSpan(ASHURA_ANCHOR),
-  },
-  {
-    list: 'islamic',
-    name: 'المولد النبوي (تقريبي)',
-    color: 'green',
-    icon: 'mdi-mosque',
-    dates: hijriSpan(MAWLID_ANCHOR),
-  },
-
-  {
-    list: 'islamic',
-    name: 'عيد الغدير (١٨ ذو الحجة، تقريبي)',
-    color: 'green-darken-2',
-    icon: 'mdi-handshake',
-    dates: hijriSpan(GHADIR_ANCHOR),
-  },
-  {
-    list: 'islamic',
-    name: '١٥ شعبان – مولد الإمام المهدي (تقريبي)',
-    color: 'amber-darken-1',
-    icon: 'mdi-star-crescent',
-    dates: hijriSpan(SHABAN_15_ANCHOR),
-  },
-  {
-    list: 'islamic',
-    name: 'مولد الإمام الحسين (٣ شعبان، تقريبي)',
-    color: 'green',
-    icon: 'mdi-mosque',
-    dates: hijriSpan(HUSSAIN_BIRTH_ANCHOR),
-  },
-  {
-    list: 'islamic',
-    name: 'مولد الإمام علي (١٣ رجب، تقريبي)',
-    color: 'green-darken-1',
-    icon: 'mdi-mosque',
-    dates: hijriSpan(RAJAB_13_ANCHOR),
-  },
-  {
-    list: 'islamic',
-    name: 'المبعث النبوي (٢٧ رجب، تقريبي)',
-    color: 'teal',
-    icon: 'mdi-mosque',
-    dates: hijriSpan(MABATH_ANCHOR),
-  },
-  {
-    list: 'islamic',
-    name: 'مولد السيدة فاطمة الزهراء (تقريبي)',
-    color: 'pink-darken-2',
-    icon: 'mdi-mosque',
-    dates: hijriSpan(FATIMA_BIRTH_ANCHOR),
-  },
-  {
-    list: 'islamic',
-    name: 'ذكرى استشهاد الإمام علي (٢١ رمضان، تقريبي)',
-    color: 'grey-darken-3',
-    icon: 'mdi-mosque',
-    dates: hijriSpan(ALI_MARTYRDOM_ANCHOR),
-  },
-  {
-    list: 'islamic',
-    name: 'ليلة القدر (٢٣ رمضان، تقريبي)',
-    color: 'indigo-darken-3',
-    icon: 'mdi-star-crescent',
-    dates: hijriSpan(QADR_ANCHOR),
-  },
-  {
-    list: 'islamic',
-    name: 'الأربعين (تقريبي)',
-    color: 'grey-darken-2',
-    icon: 'mdi-mosque',
-    dates: hijriSpan(ARBAEEN_ANCHOR),
-  },
-  // --- Shopping seasons every shop has.
-  {
-    list: 'retail',
-    name: 'New Year Sale',
-    color: 'indigo',
-    icon: 'mdi-firework',
-    dates: year => span(year, 0, 1, 0, 7),
-  },
-  {
-    list: 'retail',
-    name: 'Valentine’s Day',
-    color: 'pink',
-    icon: 'mdi-heart',
-    dates: year => oneDay(year, 1, 14),
-  },
-  {
-    list: 'retail',
-    name: 'Summer Sale (approx.)',
-    color: 'orange',
-    icon: 'mdi-white-balance-sunny',
-    dates: year => span(year, 6, 15, 7, 31),
-  },
-  {
-    list: 'retail',
-    name: 'Back to School',
-    color: 'teal',
-    icon: 'mdi-school',
-    dates: year => span(year, 7, 15, 8, 5),
-  },
-  {
-    list: 'retail',
-    name: 'Black Friday',
-    color: 'blue-grey',
-    icon: 'mdi-sale',
-    dates: year => single(addDays(nthWeekdayOfMonth(year, 10, 4, 4), 1)), // day after US Thanksgiving
-  },
-  {
-    list: 'retail',
-    name: 'Christmas Gift Season',
-    color: 'green-lighten-1',
-    icon: 'mdi-gift-outline',
-    dates: year => span(year, 11, 1, 11, 24),
-  },
-
-  // --- Clothing.
-  {
-    list: 'clothing',
-    name: 'Women’s Day',
-    color: 'pink-darken-1',
-    icon: 'mdi-human-female',
-    dates: year => oneDay(year, 2, 8),
-  },
-  {
-    list: 'clothing',
-    name: 'Spring Collection Arrival',
-    color: 'light-green',
-    icon: 'mdi-leaf',
-    dates: year => span(year, 1, 15, 2, 15),
-  },
-  {
-    list: 'clothing',
-    name: 'تسوّق عيد الفطر (تقريبي)',
-    color: 'amber',
-    icon: 'mdi-tag-heart',
-    // The two weeks before Eid, when families buy new clothes.
-    dates: hijriSpan(EID_AL_FITR_ANCHOR, { days: 14, offset: -14 }),
-  },
-  {
-    list: 'clothing',
-    name: 'تسوّق الفصح',
-    color: 'purple-lighten-2',
-    icon: 'mdi-tag-heart',
-    dates: year => [{ start: addDays(westernEaster(year), -14), end: addDays(westernEaster(year), -1), allDay: true }],
-  },
-  {
-    list: 'clothing',
-    name: 'Summer Collection Arrival',
-    color: 'yellow-darken-2',
-    icon: 'mdi-tshirt-crew',
-    dates: year => span(year, 3, 15, 4, 15),
-  },
-  {
-    list: 'clothing',
-    name: 'Swimwear Season',
-    color: 'cyan',
-    icon: 'mdi-beach',
-    dates: year => span(year, 4, 1, 5, 15),
-  },
-  {
-    list: 'clothing',
-    name: 'Graduation Season',
-    color: 'deep-purple-lighten-1',
-    icon: 'mdi-school',
-    dates: year => span(year, 4, 15, 5, 30),
-  },
-  {
-    list: 'clothing',
-    name: 'Father’s Day',
-    color: 'blue-darken-1',
-    icon: 'mdi-account-tie',
-    dates: year => single(nthWeekdayOfMonth(year, 5, 0, 3)), // 3rd Sunday of June
-  },
-  {
-    list: 'clothing',
-    name: 'Wedding Season',
-    color: 'pink-lighten-2',
-    icon: 'mdi-ring',
-    dates: year => span(year, 5, 15, 8, 15),
-  },
-  {
-    list: 'clothing',
-    name: 'تسوّق عيد الأضحى (تقريبي)',
-    color: 'brown-lighten-1',
-    icon: 'mdi-tag-heart',
-    dates: hijriSpan(EID_AL_ADHA_ANCHOR, { days: 7, offset: -7 }),
-  },
-  {
-    list: 'clothing',
-    name: 'Fall Collection Arrival',
-    color: 'orange-darken-3',
-    icon: 'mdi-leaf',
-    dates: year => span(year, 8, 1, 9, 15),
-  },
-  {
-    list: 'clothing',
-    name: 'Coats & Jackets Season',
-    color: 'blue-grey-darken-2',
-    icon: 'mdi-snowflake',
-    dates: year => span(year, 9, 15, 10, 30),
-  },
-  {
-    list: 'clothing',
-    name: 'Winter Clearance Sale (approx.)',
-    color: 'cyan-darken-1',
-    icon: 'mdi-snowflake',
-    dates: year => span(year, 1, 20, 2, 10),
-  },
-
-  // --- Tech.
-  {
-    list: 'tech',
-    name: 'Prime Day (approx.)',
-    color: 'blue-darken-3',
-    icon: 'mdi-sale',
-    dates: year => span(year, 6, 15, 6, 16),
-  },
-  {
-    list: 'tech',
-    name: 'New iPhone Season',
-    color: 'grey-darken-2',
-    icon: 'mdi-cellphone',
-    dates: year => span(year, 8, 10, 8, 30),
-  },
-  {
-    list: 'tech',
-    name: 'Singles’ Day (11.11)',
-    color: 'red-darken-1',
-    icon: 'mdi-sale',
-    dates: year => oneDay(year, 10, 11),
-  },
-  {
-    list: 'tech',
-    name: 'Cyber Monday',
-    color: 'blue-darken-2',
-    icon: 'mdi-laptop',
-    dates: year => single(addDays(nthWeekdayOfMonth(year, 10, 4, 4), 4)),
-  },
-
-  // --- Parties & fun (general shops).
-  {
-    list: 'party',
-    name: 'Halloween',
-    color: 'deep-orange',
-    icon: 'mdi-halloween',
-    dates: year => oneDay(year, 9, 31),
-  },
-  {
-    list: 'party',
-    name: 'New Year’s Eve',
-    color: 'indigo-darken-2',
-    icon: 'mdi-glass-cocktail',
-    dates: year => oneDay(year, 11, 31),
-  },
-]
+export const retailCalendarEvents = catalog.events.map(event => ({
+  ...event,
+  dates: year => expandRule(event.rule, year),
+}))
 
 // The built-in events a business type shows (before the user hides any).
 export function eventsForBusiness (businessType) {

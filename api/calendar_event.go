@@ -1,6 +1,7 @@
 package api
 
 import (
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -123,10 +124,18 @@ func newSyncCalendarEvent(e db.CalendarEvent) syncCalendarEvent {
 // syncCalendarSettings is the one item of the "calendar_settings" sync
 // entity: the business type and the built-in events hidden in kashi's
 // Calendar, so the tills' Events page shows the same list.
+//
+// Catalog is the whole list of built-in events as date rules
+// (builtin_events.json, the same file kashi's own calendar reads), so a change
+// to it reaches the tills with the next pull and needs no till release.
 type syncCalendarSettings struct {
-	BusinessType string   `json:"business_type"`
-	HiddenEvents []string `json:"hidden_builtin_events"`
+	BusinessType string          `json:"business_type"`
+	HiddenEvents []string        `json:"hidden_builtin_events"`
+	Catalog      json.RawMessage `json:"catalog"`
 }
+
+//go:embed builtin_events.json
+var builtinEventsCatalog []byte
 
 func newSyncCalendarSettings(s db.AppSetting) syncCalendarSettings {
 	hidden := []string{}
@@ -134,5 +143,5 @@ func newSyncCalendarSettings(s db.AppSetting) syncCalendarSettings {
 	if hidden == nil {
 		hidden = []string{}
 	}
-	return syncCalendarSettings{BusinessType: s.BusinessType, HiddenEvents: hidden}
+	return syncCalendarSettings{BusinessType: s.BusinessType, HiddenEvents: hidden, Catalog: builtinEventsCatalog}
 }
