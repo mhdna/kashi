@@ -13,6 +13,7 @@ import {
   mdiAccountStarOutline,
   mdiAccountTie,
   mdiAccountTieOutline,
+  mdiAirplane,
   mdiAlert,
   mdiAlertCircle,
   mdiAlertCircleOutline,
@@ -171,8 +172,10 @@ import {
   mdiImage,
   mdiLeaf,
   mdiMosque,
+  mdiMusic,
   mdiPalmTree,
   mdiPartyPopper,
+  mdiPercent,
   mdiRing,
   mdiShareVariant,
   mdiImageEditOutline,
@@ -625,6 +628,9 @@ const iconPaths = {
   'mdi-leaf': mdiLeaf,
   'mdi-account-tie': mdiAccountTie,
   'mdi-store': mdiStore,
+  'mdi-percent': mdiPercent,
+  'mdi-airplane': mdiAirplane,
+  'mdi-music': mdiMusic,
 }
 
 // An icon missing from iconPaths is a bug (scripts/check-icons.mjs fails the

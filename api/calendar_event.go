@@ -67,6 +67,12 @@ func (server *Server) createCalendarEvent(ctx *gin.Context) {
 	if icon == "" {
 		icon = "mdi-calendar-star"
 	}
+	// Only icons every till has (the "icons" list of builtin_events.json): one
+	// a till lacks would show as plain text there.
+	if !calendarIconAllowed(icon) {
+		server.writeError(ctx, http.StatusBadRequest, errors.New("icon must be one of the calendar icons"))
+		return
+	}
 	color := strings.TrimSpace(req.Color)
 	if color == "" {
 		color = "primary"
@@ -144,4 +150,20 @@ func newSyncCalendarSettings(s db.AppSetting) syncCalendarSettings {
 		hidden = []string{}
 	}
 	return syncCalendarSettings{BusinessType: s.BusinessType, HiddenEvents: hidden, Catalog: builtinEventsCatalog}
+}
+
+// calendarIconAllowed says whether an icon is in the shared calendar icon set.
+func calendarIconAllowed(icon string) bool {
+	var catalog struct {
+		Icons []string `json:"icons"`
+	}
+	if err := json.Unmarshal(builtinEventsCatalog, &catalog); err != nil {
+		return false
+	}
+	for _, allowed := range catalog.Icons {
+		if allowed == icon {
+			return true
+		}
+	}
+	return false
 }

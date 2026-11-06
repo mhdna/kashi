@@ -157,18 +157,25 @@
                 </v-select>
               </v-col>
               <v-col cols="6" sm="6">
-                <v-text-field
+                <v-select
                   v-model="form.icon"
                   density="compact"
                   hide-details
-                  hint="Any mdi-* icon name"
+                  :items="CALENDAR_ICONS"
                   label="Icon"
                   variant="outlined"
                 >
                   <template #prepend-inner>
                     <v-icon :icon="form.icon || 'mdi-calendar-star'" size="16" />
                   </template>
-                </v-text-field>
+                  <template #item="{ props: itemProps, item }">
+                    <v-list-item v-bind="itemProps" :title="item.raw.replace('mdi-', '')">
+                      <template #prepend>
+                        <v-icon :icon="item.raw" />
+                      </template>
+                    </v-list-item>
+                  </template>
+                </v-select>
               </v-col>
             </v-row>
             <div class="d-flex justify-end mt-2">
@@ -316,7 +323,7 @@
   import { useCalendarEvents } from '@/composables/useCalendarEvents'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
-  import { BUSINESS_TYPES, EVENT_LISTS, eventsForBusiness, getEventsForRange } from '@/data/retailCalendarEvents'
+  import { BUSINESS_TYPES, CALENDAR_ICONS, EVENT_LISTS, eventsForBusiness, getEventsForRange } from '@/data/retailCalendarEvents'
   import { useAuthStore } from '@/stores/auth'
   import { useSettingsStore } from '@/stores/settings'
   import { canvasToBlob, drawMonthPoster } from '@/utils/monthPoster'

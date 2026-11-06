@@ -107,6 +107,9 @@ export function expandRule (rule, year) {
 // hidden, so a new event is on by default.
 export const EVENT_LISTS = catalog.lists
 export const BUSINESS_TYPES = catalog.businessTypes
+// The icons an event can use (built-in or your own). Every till registers all
+// of them -- its build checks this same list -- so none shows as plain text.
+export const CALENDAR_ICONS = catalog.icons
 export const DEFAULT_BUSINESS_TYPE = 'clothing'
 
 export const retailCalendarEvents = catalog.events.map(event => ({

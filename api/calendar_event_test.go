@@ -25,6 +25,7 @@ func TestNewSyncCalendarSettings(t *testing.T) {
 // must be the ones the settings API accepts.
 func TestBuiltinEventsCatalog(t *testing.T) {
 	var catalog struct {
+		Icons         []string                   `json:"icons"`
 		Lists         map[string]json.RawMessage `json:"lists"`
 		BusinessTypes map[string]struct {
 			Lists []string `json:"lists"`
@@ -32,6 +33,7 @@ func TestBuiltinEventsCatalog(t *testing.T) {
 		Events []struct {
 			List string `json:"list"`
 			Name string `json:"name"`
+			Icon string `json:"icon"`
 			Rule struct {
 				Type string `json:"type"`
 			} `json:"rule"`
@@ -46,6 +48,14 @@ func TestBuiltinEventsCatalog(t *testing.T) {
 			require.Contains(t, catalog.Lists, list)
 		}
 	}
+
+	// Every icon the catalog itself uses is in the shared set, which the tills
+	// must all have (their build checks the same file).
+	for _, e := range catalog.Events {
+		require.True(t, calendarIconAllowed(e.Icon), "%s uses %s, which is not in icons", e.Name, e.Icon)
+	}
+	require.True(t, calendarIconAllowed("mdi-calendar-star"), "the default icon must be allowed")
+	require.False(t, calendarIconAllowed("mdi-not-a-real-icon"))
 
 	rules := map[string]bool{"fixed": true, "span": true, "nthWeekday": true, "easter": true, "hijri": true}
 	seen := map[string]bool{}
