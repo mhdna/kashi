@@ -158,7 +158,11 @@
     return getEventsForRange(
       { date: isoDate(start) },
       { date: isoDate(end) },
-      { custom: customEvents.value, hidden: settingsStore.hiddenBuiltinEvents },
+      {
+        custom: customEvents.value,
+        hidden: settingsStore.hiddenBuiltinEvents,
+        businessType: settingsStore.businessType,
+      },
     )
       .filter(e => daysFromToday(e.end) >= 0 && daysFromToday(e.start) <= days)
       .toSorted((a, b) => a.start - b.start)

@@ -213,30 +213,62 @@
 
           <v-divider class="my-4" />
           <div class="text-subtitle-2 mb-1">Built-in events</div>
+          <v-select
+            class="mb-2"
+            density="compact"
+            :disabled="!canEditSettings"
+            hide-details
+            item-title="title"
+            item-value="value"
+            :items="businessTypeItems"
+            label="Type of business"
+            :model-value="settingsStore.businessType"
+            variant="outlined"
+            @update:model-value="changeBusinessType"
+          >
+            <template #prepend-inner>
+              <v-icon :icon="BUSINESS_TYPES[settingsStore.businessType]?.icon" size="18" />
+            </template>
+          </v-select>
           <p class="text-caption text-medium-emphasis mb-1">
-            Turn one off to hide it from the calendar and the appbar card.
+            The type picks which events are listed. Turn one off to hide it
+            from the calendar and the appbar card.
           </p>
-          <v-list density="compact">
-            <v-list-item
-              v-for="ev in builtinEvents"
-              :key="ev.name"
-              :title="ev.name"
-            >
-              <template #prepend>
-                <v-icon :color="ev.color" :icon="ev.icon" />
-              </template>
-              <template #append>
-                <v-switch
-                  color="primary"
-                  density="compact"
-                  :disabled="!canEditSettings"
-                  hide-details
-                  :model-value="!hiddenSet.has(ev.name)"
-                  @update:model-value="toggleBuiltinEvent(ev.name)"
-                />
-              </template>
-            </v-list-item>
-          </v-list>
+          <template v-for="group in builtinGroups" :key="group.key">
+            <v-list-subheader class="d-flex align-center px-0">
+              <v-icon class="me-2" :icon="group.icon" size="16" />
+              {{ group.title }}
+              <v-spacer />
+              <v-btn
+                :disabled="!canEditSettings"
+                size="x-small"
+                :text="groupAllOn(group) ? 'Turn all off' : 'Turn all on'"
+                variant="text"
+                @click="toggleGroup(group)"
+              />
+            </v-list-subheader>
+            <v-list density="compact">
+              <v-list-item
+                v-for="ev in group.events"
+                :key="ev.name"
+                :title="ev.name"
+              >
+                <template #prepend>
+                  <v-icon :color="ev.color" :icon="ev.icon" />
+                </template>
+                <template #append>
+                  <v-switch
+                    color="primary"
+                    density="compact"
+                    :disabled="!canEditSettings"
+                    hide-details
+                    :model-value="!hiddenSet.has(ev.name)"
+                    @update:model-value="toggleBuiltinEvent(ev.name)"
+                  />
+                </template>
+              </v-list-item>
+            </v-list>
+          </template>
         </v-card-text>
       </v-card>
     </v-dialog>
@@ -284,7 +316,7 @@
   import { useCalendarEvents } from '@/composables/useCalendarEvents'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
-  import { getEventsForRange, retailCalendarEvents } from '@/data/retailCalendarEvents'
+  import { BUSINESS_TYPES, EVENT_LISTS, eventsForBusiness, getEventsForRange } from '@/data/retailCalendarEvents'
   import { useAuthStore } from '@/stores/auth'
   import { useSettingsStore } from '@/stores/settings'
   import { canvasToBlob, drawMonthPoster } from '@/utils/monthPoster'
@@ -394,14 +426,57 @@
 
   const hiddenSet = computed(() => new Set(settingsStore.hiddenBuiltinEvents))
 
-  const builtinEvents = computed(() =>
-    retailCalendarEvents.map(e => ({ name: e.name, icon: e.icon, color: e.color })),
+  // The built-in events of this business type, grouped by list for the
+  // manage dialog. Lebanon first: it is part of every business type.
+  const businessEvents = computed(() => eventsForBusiness(settingsStore.businessType))
+
+  const builtinGroups = computed(() =>
+    Object.entries(EVENT_LISTS)
+      .map(([key, list]) => ({
+        key,
+        ...list,
+        events: businessEvents.value.filter(e => e.list === key),
+      }))
+      .filter(group => group.events.length > 0),
   )
+
+  const businessTypeItems = Object.entries(BUSINESS_TYPES)
+    .map(([value, type]) => ({ value, title: type.title, icon: type.icon }))
+
+  async function changeBusinessType (type) {
+    try {
+      await settingsStore.setBusinessType(type)
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
+
+  // Turn a whole list on or off in one save.
+  function groupAllOn (group) {
+    return group.events.every(e => !hiddenSet.value.has(e.name))
+  }
+
+  async function toggleGroup (group) {
+    const hidden = new Set(settingsStore.hiddenBuiltinEvents)
+    const turnOn = !groupAllOn(group)
+    for (const e of group.events) {
+      if (turnOn) {
+        hidden.delete(e.name)
+      } else {
+        hidden.add(e.name)
+      }
+    }
+    try {
+      await settingsStore.setHiddenBuiltinEvents([...hidden])
+    } catch (error) {
+      notify.error(error.message)
+    }
+  }
 
   const searchEvents = computed(() => {
     const year = rangeStart.value?.getFullYear() ?? new Date().getFullYear()
 
-    const builtin = retailCalendarEvents
+    const builtin = businessEvents.value
       .filter(event => !hiddenSet.value.has(event.name))
       .flatMap(event => event.dates(year).map(({ start, end, allDay }) => ({
         name: event.name,
@@ -431,6 +506,7 @@
     events.value = getEventsForRange(start, end, {
       custom: customEvents.value,
       hidden: settingsStore.hiddenBuiltinEvents,
+      businessType: settingsStore.businessType,
     })
   }
 
@@ -518,6 +594,7 @@
 
   // Re-merge whenever the hidden-built-ins set changes from the toggles.
   watch(() => settingsStore.hiddenBuiltinEvents, renderRange, { deep: true })
+  watch(() => settingsStore.businessType, renderRange)
 
   onMounted(loadCustom)
 

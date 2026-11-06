@@ -38,6 +38,8 @@ export const useSettingsStore = defineStore('settings', {
     upcomingEventsDays: DEFAULT_UPCOMING_EVENTS_DAYS,
     upcomingEventsMenuDays: DEFAULT_UPCOMING_EVENTS_MENU_DAYS,
     hiddenBuiltinEvents: [],
+    // Which built-in calendar this business uses (data/retailCalendarEvents.js).
+    businessType: 'clothing',
     productAutofillEnabled: true,
     uploadPagesFollowSystem: false,
     unknownImagesAutoDelete: false,
@@ -65,6 +67,7 @@ export const useSettingsStore = defineStore('settings', {
         this.upcomingEventsDays = settings.upcoming_events_days ?? DEFAULT_UPCOMING_EVENTS_DAYS
         this.upcomingEventsMenuDays = settings.upcoming_events_menu_days ?? DEFAULT_UPCOMING_EVENTS_MENU_DAYS
         this.hiddenBuiltinEvents = settings.hidden_builtin_events ?? []
+        this.businessType = settings.business_type || 'clothing'
         this.productAutofillEnabled = settings.product_autofill_enabled ?? true
         this.uploadPagesFollowSystem = settings.upload_pages_follow_system ?? false
         this.unknownImagesAutoDelete = settings.unknown_images_auto_delete ?? false
@@ -86,6 +89,7 @@ export const useSettingsStore = defineStore('settings', {
         upcoming_events_days: this.upcomingEventsDays,
         upcoming_events_menu_days: this.upcomingEventsMenuDays,
         hidden_builtin_events: this.hiddenBuiltinEvents,
+        business_type: this.businessType,
         product_autofill_enabled: this.productAutofillEnabled,
         upload_pages_follow_system: this.uploadPagesFollowSystem,
         unknown_images_auto_delete: this.unknownImagesAutoDelete,
@@ -112,6 +116,17 @@ export const useSettingsStore = defineStore('settings', {
     async setHiddenBuiltinEvents (names) {
       this.hiddenBuiltinEvents = names
       await this.persist()
+    },
+
+    async setBusinessType (type) {
+      const previous = this.businessType
+      this.businessType = type
+      try {
+        await this.persist()
+      } catch (error) {
+        this.businessType = previous
+        throw error
+      }
     },
 
     async toggleBuiltinEventHidden (name) {
