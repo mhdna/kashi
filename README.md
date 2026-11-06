@@ -22,6 +22,11 @@ prices, clients, and the tills themselves.
 It runs as a Go API with a PostgreSQL database and a Vue 3 + Vuetify web app,
 live at `cloud.example.com`.
 
+<p align="center">
+  <img src="docs/images/kashi-and-till.png" alt="A sale on a kashi-pos till, and the same sale seen live in kashi's Live cart" width="100%"/>
+</p>
+<p align="center"><sub>A sale being rung up on a branch's till (left), seen live from Kashi (right), which can reprice it. Demo data.</sub></p>
+
 ---
 
 ## Contents
