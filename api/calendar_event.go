@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -117,4 +118,21 @@ func newSyncCalendarEvent(e db.CalendarEvent) syncCalendarEvent {
 		StartDate: e.StartDate.Format(dateLayout),
 		EndDate:   e.EndDate.Format(dateLayout),
 	}
+}
+
+// syncCalendarSettings is the one item of the "calendar_settings" sync
+// entity: the business type and the built-in events hidden in kashi's
+// Calendar, so the tills' Events page shows the same list.
+type syncCalendarSettings struct {
+	BusinessType string   `json:"business_type"`
+	HiddenEvents []string `json:"hidden_builtin_events"`
+}
+
+func newSyncCalendarSettings(s db.AppSetting) syncCalendarSettings {
+	hidden := []string{}
+	_ = json.Unmarshal(s.HiddenBuiltinEvents, &hidden) // bad JSON: show everything
+	if hidden == nil {
+		hidden = []string{}
+	}
+	return syncCalendarSettings{BusinessType: s.BusinessType, HiddenEvents: hidden}
 }

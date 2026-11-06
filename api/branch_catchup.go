@@ -419,6 +419,14 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 			}
 			items = out
 		}
+	case "calendar_settings":
+		// One item, always sent: which built-in calendar this business uses and
+		// which of its events are switched off (the tills carry the event lists).
+		var settings db.AppSetting
+		settings, err = server.store.GetAppSettings(ctx)
+		if err == nil {
+			items = []syncCalendarSettings{newSyncCalendarSettings(settings)}
+		}
 	case "quick_access":
 		// Register-scoped and always whole (ignores `since`): this register's
 		// mode plus its branch's list -- see branch_quick_access.go.
