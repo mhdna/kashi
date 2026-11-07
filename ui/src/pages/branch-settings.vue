@@ -776,6 +776,16 @@
                           hide-details
                           label="Print receipt after checkout"
                         />
+                        <!-- A till pref (display_prefs): the till has no switch for it. -->
+                        <v-switch
+                          v-model="displayForm.print_return_receipts"
+                          color="primary"
+                          data-test="print-return-receipts"
+                          density="compact"
+                          :disabled="!settingsForm.receipt_enabled"
+                          hide-details
+                          label="Print return and exchange receipts"
+                        />
                         <v-switch
                           v-model="settingsForm.receipt_cutoff"
                           color="primary"
@@ -1426,6 +1436,7 @@
   import { useBranchUsers } from '@/composables/useBranchUsers'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { displayFormFrom } from '@/utils/tillDisplayPrefs'
 
   const notify = useNotify()
 
@@ -1518,17 +1529,7 @@
 
   // The till screen's look, sent as one display_prefs object. Defaults are
   // the till's own defaults (kashi-pos lib/display.ts).
-  const DISPLAY_DEFAULTS = {
-    quick_access_rows: 3,
-    quick_access_font_scale: 100,
-    quick_access_show_code: true,
-    quick_access_show_name: true,
-    quick_access_show_remove: true,
-    animations_enabled: false,
-    calculator_total_currency: 'USD',
-    theme: 'light',
-  }
-  const displayForm = ref({ ...DISPLAY_DEFAULTS })
+  const displayForm = ref(displayFormFrom(null))
   const displayRegisterId = ref(null)
   const displaySending = ref(false)
 
@@ -1711,7 +1712,7 @@
       const data = await getBranchSettings(id)
       if (data) {
         settingsForm.value = formFromSettings(data)
-        displayForm.value = { ...DISPLAY_DEFAULTS, ...data.display_prefs }
+        displayForm.value = displayFormFrom(data.display_prefs)
         managedLocally.value = Array.isArray(data.managed_locally) ? [...data.managed_locally] : []
         socialPlatformsText.value = JSON.stringify(data.social_platforms ?? [])
         socialHandlesText.value = JSON.stringify(data.social_handles ?? {})
