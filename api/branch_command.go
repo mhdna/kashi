@@ -197,6 +197,11 @@ func (server *Server) resolveCommandTarget(ctx *gin.Context, branchID int64, req
 		if err != nil {
 			return 0, nil, statusForLookup(err), err
 		}
+		// An invoice imported from the old POS (historical) lives on no till:
+		// its register never pairs, so the command would wait forever.
+		if invoice.Historical {
+			return 0, nil, http.StatusBadRequest, errors.New("this invoice was imported from the old POS; no till has it")
+		}
 		// A cancel is a full return of a sale (see kashi-pos's CancelInvoice);
 		// the till re-checks all of this, refusing here just answers the admin
 		// at once instead of through a failed command later.

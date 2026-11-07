@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import { API_BASE } from '@/config'
+import { printOnTillPayload } from '@/utils/invoicePrint'
 import { authFetch } from './useApi'
 
 async function requestJSON (url, options) {
@@ -80,6 +81,12 @@ export function useBranchCommands () {
     return sendCommand(shift.branch_id, 'print_shift_report', { shift_id: shift.id })
   }
 
+  // Prints a branch invoice's receipt (sale, return or exchange) on the till
+  // that rang it up. invoice is a branch_invoices row from kashi.
+  function printBranchInvoice (invoice) {
+    return sendCommand(invoice.branch_id, 'reprint_invoice', printOnTillPayload(invoice))
+  }
+
   return {
     summary,
     commandsStatus,
@@ -88,5 +95,6 @@ export function useBranchCommands () {
     cancelCommand,
     retryCommand,
     printBranchShift,
+    printBranchInvoice,
   }
 }

@@ -1,0 +1,96 @@
+[
+  {
+    "branch_cashbox_account_id": 0,
+    "branch_client_id": {
+      "Int64": 0,
+      "Valid": false
+    },
+    "branch_id": 1,
+    "branch_inventory_id": 0,
+    "branch_invoice_code": "RS/CT/2026/00068",
+    "branch_shift_id": 0,
+    "cancelled_at": {
+      "Time": "0001-01-01T00:00:00Z",
+      "Valid": false
+    },
+    "client_ref": "8912abdf-ed49-46cf-be63-84b63ce7f5f2",
+    "client_uid": null,
+    "discount": 0,
+    "discounted_total": -4100,
+    "grand_total": -4100,
+    "historical": false,
+    "id": 123302,
+    "invoice_discount": 0,
+    "invoice_discount_name": "",
+    "kind": "return",
+    "lbp_rate": {
+      "Int64": 0,
+      "Valid": false
+    },
+    "lbp_total": {
+      "Int64": 0,
+      "Valid": false
+    },
+    "loyalty_points_delta": 0,
+    "occurred_at": "2026-11-07T18:52:15Z",
+    "received_at": "2026-11-07T18:52:15Z",
+    "register_id": 3,
+    "related_client_ref": {
+      "String": "",
+      "Valid": false
+    },
+    "salesperson_id": {
+      "Int64": 0,
+      "Valid": false
+    },
+    "salesperson_name": "",
+    "subtotal": -4100
+  },
+  {
+    "branch_cashbox_account_id": 0,
+    "branch_client_id": {
+      "Int64": 0,
+      "Valid": false
+    },
+    "branch_id": 1,
+    "branch_inventory_id": 0,
+    "branch_invoice_code": "CN-1",
+    "branch_shift_id": 0,
+    "cancelled_at": {
+      "Time": "0001-01-01T00:00:00Z",
+      "Valid": false
+    },
+    "client_ref": "csv-import:CN-1",
+    "client_uid": null,
+    "discount": 0,
+    "discounted_total": 2500,
+    "grand_total": 2500,
+    "historical": true,
+    "id": 5000,
+    "invoice_discount": 0,
+    "invoice_discount_name": "",
+    "kind": "sales",
+    "lbp_rate": {
+      "Int64": 0,
+      "Valid": false
+    },
+    "lbp_total": {
+      "Int64": 0,
+      "Valid": false
+    },
+    "loyalty_points_delta": 0,
+    "occurred_at": "2026-11-07T18:52:15Z",
+    "received_at": "2026-11-07T18:52:15Z",
+    "register_id": 9,
+    "related_client_ref": {
+      "String": "",
+      "Valid": false
+    },
+    "salesperson_id": {
+      "Int64": 0,
+      "Valid": false
+    },
+    "salesperson_name": "",
+    "subtotal": 2500
+  }
+]
