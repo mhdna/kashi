@@ -168,6 +168,7 @@ Business settings (WhatsApp credentials, templates, webhook secret) live **in th
 - A new command type needs **both** `allowedBranchCommandTypes` here **and** an executor in kashi-pos `commands.go`, backed by a real validated function.
 - Commands about one sale/shift go to **the till that has it**; others to every active register.
 - `reprint_invoice` (Invoices page **Print on till**, any kind) is refused for a `historical` old-POS import: no till has it.
+- `remote_return_invoice` carries `print_receipt: false` when the dialog's **Print the receipt on the till** is unticked; ticked sends nothing and the till's **Print return receipts** decides.
 - Branch-wide `update_settings` is also written to `branch_settings` (kashi is the authority).
 :::
 

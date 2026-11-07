@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	mockdb "github.com/mhdna/kashi/db/mock"
 	db "github.com/mhdna/kashi/db/sqlc"
 	"github.com/stretchr/testify/require"
@@ -169,4 +170,58 @@ func TestCreateBranchCommand_ReprintUnknownInvoiceIsNotFound(t *testing.T) {
 	code, register := reprintInvoiceRequest(t, db.BranchInvoice{}, sql.ErrNoRows)
 	require.Equal(t, http.StatusNotFound, code)
 	require.Zero(t, register)
+}
+
+// remoteReturnSentPayload queues a remote_return_invoice with payload and
+// answers the payload the till is sent.
+func remoteReturnSentPayload(t *testing.T, payload map[string]any) map[string]json.RawMessage {
+	t.Helper()
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	var sent map[string]json.RawMessage
+
+	store.EXPECT().GetBranch(gomock.Any(), buBranchID).Return(db.Branch{ID: buBranchID}, nil)
+	store.EXPECT().GetBranchInvoiceByClientRef(gomock.Any(), gomock.Any()).
+		Return(db.BranchInvoice{ID: 3, BranchID: buBranchID, RegisterID: 22, Kind: "sales"}, nil)
+	store.EXPECT().GetProductVariant(gomock.Any(), int64(7)).AnyTimes().
+		Return(db.ProductVariant{ID: 7, Uid: uuid.New(), Barcode: "1234", IsActive: true}, nil)
+	store.EXPECT().CreateBranchCommand(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, arg db.CreateBranchCommandParams) (db.BranchCommand, error) {
+			require.NoError(t, json.Unmarshal(arg.Payload, &sent))
+			return db.BranchCommand{ID: 1, RegisterID: arg.RegisterID}, nil
+		})
+
+	server := newTestServer(t, store)
+	rec := adminRequest(t, server, http.MethodPost, fmt.Sprintf("/branches/%d/commands", buBranchID), map[string]any{
+		"type":    "remote_return_invoice",
+		"payload": payload,
+	})
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	return sent
+}
+
+// The Return dialog's "Print the receipt on the till" unticked reaches the
+// till as print_receipt: false, for a return, an exchange (whose payload kashi
+// rewrites) and a cancel; ticked, nothing is sent and the till decides.
+func TestCreateBranchCommand_RemoteReturnCarriesTheReceiptChoice(t *testing.T) {
+	item := []map[string]any{{"branch_product_id": 11684, "quantity": 1, "unit_price": 1500}}
+	cases := map[string]map[string]any{
+		"return":   {"client_ref": "sale-1", "items": item},
+		"exchange": {"client_ref": "sale-1", "items": item, "replacements": []map[string]any{{"variant_id": 7, "quantity": 1}}},
+		"cancel":   {"client_ref": "sale-1", "cancel": true},
+	}
+	for name, base := range cases {
+		t.Run(name+"/unticked", func(t *testing.T) {
+			payload := map[string]any{"print_receipt": false}
+			for k, v := range base {
+				payload[k] = v
+			}
+			sent := remoteReturnSentPayload(t, payload)
+			require.JSONEq(t, `false`, string(sent["print_receipt"]))
+		})
+		t.Run(name+"/ticked", func(t *testing.T) {
+			sent := remoteReturnSentPayload(t, base)
+			require.NotContains(t, sent, "print_receipt")
+		})
+	}
 }
