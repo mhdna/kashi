@@ -113,6 +113,14 @@
           :invoice="itemsTarget"
           text
         />
+        <v-btn
+          v-if="auth.canEdit('branches') && canEditRefund(itemsTarget) && itemsDetails"
+          data-test="edit-refund"
+          prepend-icon="mdi-pencil"
+          text="Edit refund"
+          variant="text"
+          @click="refundEditOpen = true"
+        />
         <v-spacer />
         <v-btn
           v-if="itemsTarget?.kind === 'sales' && !isCancelled(itemsTarget)"
@@ -251,6 +259,13 @@
       <InvoicePrintButton :branch-name="branchName(item.branch_id)" :invoice="item" />
     </template>
   </ServerSideTable>
+
+  <ReturnEditDialog
+    v-model="refundEditOpen"
+    :branch-name="branchName(itemsTarget?.branch_id)"
+    :invoice="itemsDetails?.invoice ?? null"
+    :items="itemsDetails?.items ?? []"
+  />
 
   <v-dialog v-model="remoteReturnDialog" max-width="560">
     <v-card>
@@ -423,6 +438,7 @@
   import { useRoute } from 'vue-router'
   import InvoicePrintButton from '@/components/Invoice/InvoicePrintButton.vue'
   import RemoteReturnReceiptCheckbox from '@/components/Invoice/RemoteReturnReceiptCheckbox.vue'
+  import ReturnEditDialog from '@/components/Invoice/ReturnEditDialog.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useBranches } from '@/composables/useBranches'
@@ -432,6 +448,8 @@
   import { useNotify } from '@/composables/useNotify'
   import { useVariants } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
+  import { useAuthStore } from '@/stores/auth'
+  import { canEditRefund } from '@/utils/returnEdit'
 
   const props = defineProps({
     branches: { type: Array, default: () => [] },
@@ -442,6 +460,7 @@
 
   const { exportBranchInvoices, listBranchInvoiceItems, requestRemoteCancel, requestRemoteReturn } = useBranchInvoices()
   const { listBranchCommands } = useBranchSettings()
+  const auth = useAuthStore()
   const { getBranchInvoiceDetails } = useInvoiceDetails()
   const notify = useNotify()
 
@@ -604,6 +623,7 @@
   const itemsDialog = ref(false)
   const itemsTarget = ref(null)
   const itemsDetails = ref(null)
+  const refundEditOpen = ref(false)
   const itemsLoading = ref(false)
 
   // ?open=<id> (a sale clicked in the app bar's Branch sync list): its

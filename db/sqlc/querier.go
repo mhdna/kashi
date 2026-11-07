@@ -940,6 +940,9 @@ type Querier interface {
 	// Expenses and loans aren't tracked per register and stay branch-wide.
 	// ---------------------------------------------------------------------------
 	ListBranchInvoiceHistoryForSync(ctx context.Context, arg ListBranchInvoiceHistoryForSyncParams) ([]BranchInvoice, error)
+	// A till invoice's lines in the order they were sent: a line's position is
+	// how the till names it (kashi-pos return_edit.go).
+	ListBranchInvoiceItemIDs(ctx context.Context, branchInvoiceID int64) ([]int64, error)
 	// With the product each line is, for the admin views: the till only sends
 	// its own local product id, which means nothing here, so the name comes
 	// from the variant product_uid resolves to (blank for an old line that
@@ -1814,6 +1817,7 @@ type Querier interface {
 	SetBranchInventory(ctx context.Context, arg SetBranchInventoryParams) error
 	SetBranchInvoiceDiscount(ctx context.Context, arg SetBranchInvoiceDiscountParams) error
 	SetBranchInvoiceItemDiscount(ctx context.Context, arg SetBranchInvoiceItemDiscountParams) error
+	SetBranchInvoiceItemLineTotal(ctx context.Context, arg SetBranchInvoiceItemLineTotalParams) error
 	SetBranchInvoiceItemResolved(ctx context.Context, arg SetBranchInvoiceItemResolvedParams) error
 	// Salesperson Performance (api/salesperson_performance.go) and the tills'
 	// one-time report of who made their past sales.
@@ -1831,6 +1835,8 @@ type Querier interface {
 	// in kashi (or vice versa). 0 rows = this flip was older, ignored.
 	SetBranchRegisterQuickAccessMode(ctx context.Context, arg SetBranchRegisterQuickAccessModeParams) (int64, error)
 	SetBranchRegisterReportedSettings(ctx context.Context, arg SetBranchRegisterReportedSettingsParams) error
+	// A till return or exchange keeps one total in all three.
+	SetBranchReturnTotals(ctx context.Context, arg SetBranchReturnTotalsParams) error
 	// managed_locally is admin-owned, not branch-reported: a branch's settings
 	// push (UpsertBranchSettings) never touches it. Only the admin UI sets it.
 	SetBranchSettingsManagedLocally(ctx context.Context, arg SetBranchSettingsManagedLocallyParams) (BranchSetting, error)

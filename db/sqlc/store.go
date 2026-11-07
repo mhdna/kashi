@@ -26,6 +26,7 @@ type Store interface {
 	CreateBranchTransferRequestTx(ctx context.Context, arg CreateBranchTransferRequestTxParams) (CreateBranchTransferRequestTxResult, error)
 	ConfirmBranchTransferTx(ctx context.Context, arg ConfirmBranchTransferTxParams) (Transfer, error)
 	ApplyBranchSettlementTx(ctx context.Context, arg ApplyBranchSettlementTxParams) (ApplyBranchSettlementTxResult, error)
+	ApplyBranchReturnEditTx(ctx context.Context, arg ApplyBranchReturnEditTxParams) (BranchInvoice, error)
 	FireRecurringExpenseTx(ctx context.Context, recurring RecurringExpense) (Expense, error)
 	DeleteBranchTargetSeriesTx(ctx context.Context, seriesID int64) (BranchTargetSeries, error)
 	BatchSetEmployeeSalaries(ctx context.Context, args []UpdateEmployeeSalaryParams) ([]Employee, error)

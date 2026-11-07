@@ -439,6 +439,35 @@ func (q *Queries) InheritBranchInvoiceCancellation(ctx context.Context, id int64
 	return err
 }
 
+const listBranchInvoiceItemIDs = `-- name: ListBranchInvoiceItemIDs :many
+SELECT id FROM branch_invoice_items WHERE branch_invoice_id = $1 ORDER BY id
+`
+
+// A till invoice's lines in the order they were sent: a line's position is
+// how the till names it (kashi-pos return_edit.go).
+func (q *Queries) ListBranchInvoiceItemIDs(ctx context.Context, branchInvoiceID int64) ([]int64, error) {
+	rows, err := q.db.QueryContext(ctx, listBranchInvoiceItemIDs, branchInvoiceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []int64{}
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listBranchInvoiceItems = `-- name: ListBranchInvoiceItems :many
 SELECT
   bii.id, bii.branch_invoice_id, bii.branch_product_id, bii.unit_price, bii.line_total, bii.discount, bii.quantity, bii.product_uid, bii.unknown, bii.deal, bii.deal_discount, bii.invoice_discount,
@@ -885,5 +914,43 @@ type MarkBranchInvoicesCancelledParams struct {
 // both rows get the mark. COALESCE keeps the first stamp on a replayed push.
 func (q *Queries) MarkBranchInvoicesCancelled(ctx context.Context, arg MarkBranchInvoicesCancelledParams) error {
 	_, err := q.db.ExecContext(ctx, markBranchInvoicesCancelled, arg.BranchID, pq.Array(arg.ClientRefs))
+	return err
+}
+
+const setBranchInvoiceItemLineTotal = `-- name: SetBranchInvoiceItemLineTotal :exec
+UPDATE branch_invoice_items SET line_total = $2 WHERE id = $1
+`
+
+type SetBranchInvoiceItemLineTotalParams struct {
+	ID        int64 `json:"id"`
+	LineTotal int64 `json:"line_total"`
+}
+
+func (q *Queries) SetBranchInvoiceItemLineTotal(ctx context.Context, arg SetBranchInvoiceItemLineTotalParams) error {
+	_, err := q.db.ExecContext(ctx, setBranchInvoiceItemLineTotal, arg.ID, arg.LineTotal)
+	return err
+}
+
+const setBranchReturnTotals = `-- name: SetBranchReturnTotals :exec
+UPDATE branch_invoices
+SET subtotal = $2, discounted_total = $2, grand_total = $2, lbp_total = $3, lbp_rate = $4
+WHERE id = $1
+`
+
+type SetBranchReturnTotalsParams struct {
+	ID       int64         `json:"id"`
+	Subtotal int64         `json:"subtotal"`
+	LbpTotal sql.NullInt64 `json:"lbp_total"`
+	LbpRate  sql.NullInt64 `json:"lbp_rate"`
+}
+
+// A till return or exchange keeps one total in all three.
+func (q *Queries) SetBranchReturnTotals(ctx context.Context, arg SetBranchReturnTotalsParams) error {
+	_, err := q.db.ExecContext(ctx, setBranchReturnTotals,
+		arg.ID,
+		arg.Subtotal,
+		arg.LbpTotal,
+		arg.LbpRate,
+	)
 	return err
 }

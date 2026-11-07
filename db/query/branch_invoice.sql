@@ -239,3 +239,17 @@ LIMIT 1;
 -- historical=true guard means this can never remove a real till's sale,
 -- even given a wrong id -- see deleteBranchInvoice in api/branch_invoice.go.
 DELETE FROM branch_invoices WHERE id = sqlc.arg(id) AND historical = true;
+
+-- name: ListBranchInvoiceItemIDs :many
+-- A till invoice's lines in the order they were sent: a line's position is
+-- how the till names it (kashi-pos return_edit.go).
+SELECT id FROM branch_invoice_items WHERE branch_invoice_id = $1 ORDER BY id;
+
+-- name: SetBranchInvoiceItemLineTotal :exec
+UPDATE branch_invoice_items SET line_total = $2 WHERE id = $1;
+
+-- name: SetBranchReturnTotals :exec
+-- A till return or exchange keeps one total in all three.
+UPDATE branch_invoices
+SET subtotal = $2, discounted_total = $2, grand_total = $2, lbp_total = $3, lbp_rate = $4
+WHERE id = $1;
