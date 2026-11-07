@@ -267,6 +267,7 @@
             is online.
           </v-alert>
           <v-textarea v-model="remoteReturnReason" label="Reason (optional)" rows="2" />
+          <RemoteReturnReceiptCheckbox v-model="remoteReturnPrint" />
         </template>
         <template v-else-if="remoteReturnPhase === 'items'">
           <v-alert class="mb-4" type="info" variant="tonal">
@@ -367,6 +368,7 @@
           </template>
 
           <v-textarea v-model="remoteReturnReason" class="mt-4" label="Reason (optional)" rows="2" />
+          <RemoteReturnReceiptCheckbox v-model="remoteReturnPrint" />
         </template>
 
         <PreparingState
@@ -420,6 +422,7 @@
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
   import InvoicePrintButton from '@/components/Invoice/InvoicePrintButton.vue'
+  import RemoteReturnReceiptCheckbox from '@/components/Invoice/RemoteReturnReceiptCheckbox.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useBranches } from '@/composables/useBranches'
@@ -656,6 +659,7 @@
     remoteMode.value = 'cancel'
     remoteReturnTarget.value = invoice
     remoteReturnReason.value = ''
+    remoteReturnPrint.value = true
     remoteReturnPhase.value = 'items'
     remoteReturnDialog.value = true
   }
@@ -663,7 +667,7 @@
   async function submitRemoteCancel () {
     remoteReturnLoading.value = true
     try {
-      const command = await requestRemoteCancel(remoteReturnTarget.value.branch_id, remoteReturnTarget.value, remoteReturnReason.value)
+      const command = await requestRemoteCancel(remoteReturnTarget.value.branch_id, remoteReturnTarget.value, remoteReturnReason.value, remoteReturnPrint.value)
       remoteReturnPhase.value = 'polling'
       pollRemoteReturnCommand(remoteReturnTarget.value.branch_id, command?.id)
     } catch (error) {
@@ -711,6 +715,8 @@
   }
   const remoteReturnTarget = ref(null)
   const remoteReturnReason = ref('')
+  // "Print the receipt on the till"; ticked again each time the dialog opens.
+  const remoteReturnPrint = ref(true)
   const remoteReturnLoading = ref(false)
   const remoteReturnRows = ref([])
   const remoteReturnItemsLoading = ref(false)
@@ -726,6 +732,7 @@
     remoteMode.value = mode
     remoteReturnTarget.value = invoice
     remoteReturnReason.value = ''
+    remoteReturnPrint.value = true
     remoteReturnRows.value = []
     replacements.value = []
     replacementPick.value = null
@@ -770,7 +777,7 @@
       const replacementLines = remoteMode.value === 'exchange'
         ? replacements.value.map(row => ({ variant_id: row.variant.id, quantity: row.quantity }))
         : []
-      const command = await requestRemoteReturn(remoteReturnTarget.value.branch_id, remoteReturnTarget.value, remoteReturnReason.value, items, replacementLines)
+      const command = await requestRemoteReturn(remoteReturnTarget.value.branch_id, remoteReturnTarget.value, remoteReturnReason.value, items, replacementLines, remoteReturnPrint.value)
       remoteReturnPhase.value = 'polling'
       pollRemoteReturnCommand(remoteReturnTarget.value.branch_id, command?.id)
     } catch (error) {

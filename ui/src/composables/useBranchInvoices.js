@@ -1,4 +1,5 @@
 import { API_BASE } from '@/config'
+import { remoteReturnPayload } from '@/utils/remoteReturnPayload'
 import { authFetch } from './useApi'
 
 async function requestJSON (url, options) {
@@ -42,19 +43,13 @@ export function useBranchInvoices () {
   // `replacements` makes it an exchange: { variant_id, quantity } lines from
   // kashi's catalogue, which kashi rewrites into the till's own product keys
   // before queueing (see withTillReplacements in api/branch_command.go).
-  async function requestRemoteReturn (branchId, invoice, reason, items = [], replacements = []) {
+  async function requestRemoteReturn (branchId, invoice, reason, items = [], replacements = [], printReceipt = true) {
     const data = await requestJSON(`${API_BASE}/branches/${branchId}/commands`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         type: 'remote_return_invoice',
-        payload: {
-          branch_invoice_id: invoice.id,
-          client_ref: invoice.client_ref,
-          reason: reason || '',
-          items,
-          replacements,
-        },
+        payload: remoteReturnPayload({ invoice, reason, items, replacements, printReceipt }),
       }),
     })
     return data?.command ?? null
@@ -64,18 +59,13 @@ export function useBranchInvoices () {
   // flags it as a cancellation, so the sale and its return both come back
   // marked cancelled_at and drop out of sales statistics. For a sale rung up
   // by mistake; a real customer return stays requestRemoteReturn.
-  async function requestRemoteCancel (branchId, invoice, reason) {
+  async function requestRemoteCancel (branchId, invoice, reason, printReceipt = true) {
     const data = await requestJSON(`${API_BASE}/branches/${branchId}/commands`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         type: 'remote_return_invoice',
-        payload: {
-          branch_invoice_id: invoice.id,
-          client_ref: invoice.client_ref,
-          reason: reason || '',
-          cancel: true,
-        },
+        payload: remoteReturnPayload({ invoice, reason, cancel: true, printReceipt }),
       }),
     })
     return data?.command ?? null
