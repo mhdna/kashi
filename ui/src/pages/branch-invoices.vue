@@ -285,7 +285,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="row in remoteReturnRows" :key="row.branch_product_id">
+                <tr v-for="row in remoteReturnRows" :key="row.item.id">
                   <td>
                     <v-checkbox-btn v-model="row.selected" density="compact" />
                   </td>
@@ -733,6 +733,7 @@
       remoteReturnRows.value = invoiceItems.map(item => ({
         item,
         branch_product_id: item.branch_product_id,
+        unit_price: item.unit_price,
         maxQuantity: item.quantity,
         quantity: item.quantity,
         selected: true,
@@ -751,6 +752,9 @@
         .filter(row => row.selected)
         .map(row => ({
           branch_product_id: row.branch_product_id,
+          // A product can sit on several lines of one sale (a deal's paid
+          // and free units, or two prices); the price tells the till which.
+          unit_price: row.unit_price,
           quantity: Math.min(Math.max(1, Number(row.quantity) || 1), row.maxQuantity),
         }))
       const replacementLines = remoteMode.value === 'exchange'

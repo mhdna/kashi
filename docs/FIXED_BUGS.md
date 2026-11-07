@@ -3,6 +3,22 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-07 · Returning both units of a buy-1-get-1 sale failed at the till
+
+**Symptom.** "Return remotely" on a Buy 1 Get 1 sale of two alike shoes failed
+with "checkout return: item has already been returned", though nothing had been
+returned. The two rows in the dialog also shared one key.
+
+**Cause.** A deal sale keeps the paid and free units of a product as separate
+lines, and the till's return code expected one line per product (see
+kashi-pos's FIXED_BUGS). The dialog keyed its rows by product id, which repeats.
+
+**Fix.** The dialog keys rows by line and sends each line's unit price
+(`ui/src/pages/branch-invoices.vue`); the till spreads a request over the
+product's lines (kashi-pos `commands.go`, `exchange_validation.go`). Tests are in
+kashi-pos: `TestExecuteRemoteReturnInvoiceCommand_DealLinesOfOneProduct`,
+`TestDealRefundOfAlikeUnitsSpansThePaidAndFreeLines`.
+
 ## 2026-11-05 · Adding a product failed with "current transaction is aborted"
 
 **Symptom.** Adding a product failed with "pq: current transaction is aborted, commands

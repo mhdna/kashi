@@ -32,7 +32,7 @@ export function useBranchInvoices () {
   // later through the normal /branch/return_invoices sync path, same as
   // any other branch-originated return.
   //
-  // `items` is optional -- a list of { branch_product_id, quantity } for
+  // `items` is optional -- a list of { branch_product_id, unit_price, quantity } for
   // the specific lines/quantities to return (branch_product_id comes
   // straight from listBranchInvoiceItems, which is the branch's own local
   // product id -- kashi never reinterprets it). Omitted/empty returns
