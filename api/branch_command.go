@@ -33,7 +33,9 @@ var allowedBranchCommandTypes = map[string]bool{
 	"set_branch_user_pin":       true,
 	"print_shift_report":        true,
 	"reprint_invoice":           true,
-	"sync_now":                  true,
+	// Edit a return or exchange's refund (kashi-pos return_edit.go).
+	"edit_return_invoice": true,
+	"sync_now":            true,
 	// Swap or transfer a balance in a till's open shift. allow_negative
 	// (taking the source below zero) needs shift_negative_balance.
 	"replace_shift_balance": true,
@@ -221,6 +223,25 @@ func (server *Server) resolveCommandTarget(ctx *gin.Context, branchID int64, req
 			if err != nil {
 				return 0, nil, http.StatusBadRequest, err
 			}
+		}
+		return invoice.RegisterID, payload, 0, nil
+
+	case "edit_return_invoice":
+		var target struct {
+			ClientRef string `json:"client_ref"`
+		}
+		if err := json.Unmarshal(req.Payload, &target); err != nil || target.ClientRef == "" {
+			return 0, nil, http.StatusBadRequest, errors.New("edit_return_invoice needs the return's client_ref")
+		}
+		invoice, err := server.store.GetBranchInvoiceByClientRef(ctx, db.GetBranchInvoiceByClientRefParams{BranchID: branchID, ClientRef: target.ClientRef})
+		if err != nil {
+			return 0, nil, statusForLookup(err), err
+		}
+		if invoice.Historical {
+			return 0, nil, http.StatusBadRequest, errors.New("this invoice was imported from the old POS; no till has it")
+		}
+		if invoice.Kind != "return" && invoice.Kind != "exchange" {
+			return 0, nil, http.StatusBadRequest, errors.New("only a return or an exchange can have its refund edited")
 		}
 		return invoice.RegisterID, payload, 0, nil
 
