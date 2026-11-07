@@ -33,7 +33,7 @@
                   <img v-if="b.banner" alt="" class="wc__banner" :src="bannerURL">
 
                   <template v-if="b.kind === 'poll'">
-                    <div class="font-weight-bold mb-1">{{ b.text }}</div>
+                    <div class="font-weight-bold mb-1" style="white-space: pre-line">{{ b.text }}</div>
                     <div class="wc__poll-hint">Select one</div>
                     <div v-for="o in b.options" :key="o" class="wc__option">
                       <v-icon

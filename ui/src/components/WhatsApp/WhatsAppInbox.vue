@@ -107,7 +107,7 @@
                   </div>
                 </template>
                 <template v-else-if="m.kind === 'poll'">
-                  <div class="font-weight-bold mb-1">{{ m.text }}</div>
+                  <div class="font-weight-bold mb-1" style="white-space: pre-line">{{ m.text }}</div>
                   <div class="wi__poll-hint">Select one</div>
                   <div v-for="o in m.options" :key="o" class="wi__option">
                     <v-icon color="grey" icon="mdi-checkbox-blank-circle-outline" size="20" />

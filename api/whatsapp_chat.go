@@ -108,7 +108,10 @@ func (server *Server) receiveWhatsAppChatMessage(ctx *gin.Context) {
 }
 
 // The bridge reports a poll as text: "📊 Question" then one "• option" per
-// line. The chat shows it as the poll bubble, like the Messages tab does.
+// line. The chat shows it as the poll bubble, like the Messages tab does,
+// without the 📊. The question can run over several lines (the combined
+// poll: greeting, thank-you and question in one), so the options are the
+// "• " lines at the end and everything before them is the question.
 //
 // Careful: this matches the bridge's wording, and that code isn't in this
 // repo to check. The Makefile's BRIDGE_SRC (../bnc/whatsapp-bridge) has no
@@ -122,24 +125,34 @@ func (server *Server) receiveWhatsAppChatMessage(ctx *gin.Context) {
 // logged on that row.
 func whatsAppPollFromText(body string) (question string, options []string, ok bool) {
 	lines := strings.Split(strings.TrimSpace(body), "\n")
-	question, found := strings.CutPrefix(lines[0], "📊 ")
+	first, found := strings.CutPrefix(lines[0], "📊 ")
 	if !found || len(lines) < 2 {
 		return "", nil, false
 	}
-	for _, line := range lines[1:] {
-		option, found := strings.CutPrefix(strings.TrimSpace(line), "• ")
-		if !found {
-			return "", nil, false
-		}
-		options = append(options, option)
+	lines[0] = first
+	start := len(lines)
+	for start > 1 && strings.HasPrefix(strings.TrimSpace(lines[start-1]), "• ") {
+		start--
 	}
-	return strings.TrimSpace(question), options, true
+	if start == len(lines) {
+		return "", nil, false
+	}
+	for _, line := range lines[start:] {
+		options = append(options, strings.TrimPrefix(strings.TrimSpace(line), "• "))
+	}
+	question = strings.TrimSpace(strings.Join(lines[:start], "\n"))
+	if question == "" {
+		return "", nil, false
+	}
+	return question, options, true
 }
 
-// The last line of a chat in the list: a poll is its question.
+// The last line of a chat in the list: a poll is its question's last line
+// ("How was your visit today?"), not its greeting.
 func whatsAppChatPreview(body string) string {
 	if question, _, ok := whatsAppPollFromText(body); ok {
-		return "📊 " + question
+		lines := strings.Split(question, "\n")
+		return strings.TrimSpace(lines[len(lines)-1])
 	}
 	return body
 }

@@ -3,6 +3,22 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-07 · The rating poll showed in the Inbox as text starting with 📊
+
+**Symptom.** In the WhatsApp Inbox, the combined rating poll ("Hi Rena, / Thank
+you for shopping… / How was your visit today?" with its options) showed as a
+plain text bubble starting with 📊, its options as "•" lines, instead of the
+poll bubble.
+
+**Cause.** The bridge logs a poll as "📊 question" then "• option" lines.
+`whatsAppPollFromText` took only the first line as the question, so a question
+over several lines (the combined poll's) didn't parse, and the raw text was shown.
+
+**Fix.** The options are the "• " lines at the end and everything before them
+is the question (`api/whatsapp_chat.go`). The poll bubble keeps the question's
+line breaks (`WhatsAppInbox.vue`, `WhatsAppConversation.vue`), and the chat list
+previews a poll as its last line, without 📊. Test: `TestWhatsAppPollFromText`.
+
 ## 2026-11-07 · Returning both units of a buy-1-get-1 sale failed at the till
 
 **Symptom.** "Return remotely" on a Buy 1 Get 1 sale of two alike shoes failed
