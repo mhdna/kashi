@@ -7,7 +7,7 @@
 // with the other details; hint: shown in its empty box.
 export const MESSAGE_PARTS = [
   { key: 'greeting', title: 'Greeting', hint: 'Hi', field: 'name' },
-  { key: 'thanks', title: 'Thank-you line', hint: 'Thank you for shopping at *Grand Bazaar* today 🤍' },
+  { key: 'thanks', title: 'Thank-you line', hint: 'Thank you for shopping at *Grand Bazaar* today' },
   { key: 'heading', title: 'Details heading', hint: 'Here are the details of your purchase:' },
   { key: 'invoice', title: 'Receipt code', hint: '🧾 Receipt code:', field: 'invoice' },
   { key: 'date', title: 'Date', hint: '📅 Date:', field: 'date' },

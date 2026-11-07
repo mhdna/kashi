@@ -55,14 +55,14 @@ const (
 // *bold* is WhatsApp's own formatting; a line whose placeholder has nothing
 // to fill ({channel} not set) is left out.
 const (
-	defaultWhatsAppPollMessage = "Hi {name},\n\nThank you for shopping at *Grand Bazaar* today 🤍\n\nHere are the details of your purchase:\n🧾 Receipt code:\n*{invoice}*\n📅 Date: {date}\n💳 Total paid: *{total}*\n\n📢 Follow our WhatsApp channel for new arrivals and offers: {channel}"
-	defaultWhatsAppLinkMessage = "Hi {name},\n\nThank you for shopping at *Grand Bazaar* today 🤍\n\nHere are the details of your purchase:\n🧾 Receipt code:\n*{invoice}*\n📅 Date: {date}\n💳 Total paid: *{total}*\n\nWe'd love to hear about your visit. It only takes a moment on Google:\n{review}\n\n📢 Follow our WhatsApp channel for new arrivals and offers: {channel}"
+	defaultWhatsAppPollMessage = "Hi {name},\n\nThank you for shopping at *Grand Bazaar* today\n\nHere are the details of your purchase:\n🧾 Receipt code:\n*{invoice}*\n📅 Date: {date}\n💳 Total paid: *{total}*\n\n📢 Follow our WhatsApp channel for new arrivals and offers: {channel}"
+	defaultWhatsAppLinkMessage = "Hi {name},\n\nThank you for shopping at *Grand Bazaar* today\n\nHere are the details of your purchase:\n🧾 Receipt code:\n*{invoice}*\n📅 Date: {date}\n💳 Total paid: *{total}*\n\nWe'd love to hear about your visit. It only takes a moment on Google:\n{review}\n\n📢 Follow our WhatsApp channel for new arrivals and offers: {channel}"
 )
 
 // The purchase details as the poll's own text (whatsapp_poll_combined), the
 // poll's question added below. A poll is plain text: no *bold*, no banner, no
 // link to tap, and WhatsApp cuts a long one, so it's short and has no channel.
-const defaultWhatsAppCombinedMessage = "Hi {name},\nThank you for shopping at Grand Bazaar today 🤍\n🧾 {invoice}\n📅 {date}\n💳 {total}"
+const defaultWhatsAppCombinedMessage = "Hi {name},\nThank you for shopping at Grand Bazaar today\n🧾 {invoice}\n📅 {date}\n💳 {total}"
 
 // whatsAppPollTextLimit is about where WhatsApp cuts a poll's question.
 const whatsAppPollTextLimit = 255
