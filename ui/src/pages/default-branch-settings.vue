@@ -983,6 +983,7 @@
     { key: 'quick_access_show_name', label: 'Name on quick access cards', items: TRI_STATE },
     { key: 'quick_access_show_remove', label: 'Remove (X) on quick access cards', items: TRI_STATE },
     { key: 'animations_enabled', label: 'Animations', items: TRI_STATE },
+    { key: 'print_return_receipts', label: 'Print return and exchange receipts', items: TRI_STATE },
     {
       key: 'theme',
       label: 'Theme',
