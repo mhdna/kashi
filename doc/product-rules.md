@@ -144,7 +144,7 @@ put October 2026 on all of them.
 | Field | Holds | Example |
 |---|---|---|
 | kind | who it's for | Lady, Men, Kids, Baby |
-| category | garment group | Tops, Bottoms, Outerwear, Dresses, Sets, Shoes, Accessories, Underwear & Night, Home |
+| category | garment group | Tops, Bottoms, Outerwear, Dresses, Sets, Shoes, Accessories, Underwear, Sleepwear, Home |
 | sub-category | the garment | Sweater, T-Shirt, Jeans, Coat, Pyjama |
 | origin | country | Turkey, China, Bangladesh, Lebanon |
 | brand | brand | Favori, Everywear |
@@ -176,9 +176,9 @@ left out (deactivated). Coverage on the 2026-10-17 snapshot: 13,173 of
 | | Other | accessor, sunglasses, umbrella, lunch box, water bottle |
 | Shoes | Shoes | shoe, sneaker, boot, slipper, sandal, trainer |
 | Swimwear | Swimwear | mayo, swim, bikini, burkini |
-| Underwear & Night | Pyjama | pyjama, night |
-| | Underwear | boxer, slip, bra, underwear, bretel, brief, camisole |
+| Sleepwear | Pyjama | pyjama, night |
 | | Robe | rob, robe |
+| Underwear | Underwear | boxer, slip, bra, underwear, bretel, brief, camisole |
 | Sets | Overall & Romper | overall, romper, barboteuse, jumpsuit, onesie, salopette |
 | | Set | set, suit, tracksuit, "N pcs" |
 | Dresses | Dress | dress, abaya, tunic, kaftan |
