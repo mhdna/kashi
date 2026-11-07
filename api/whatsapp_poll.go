@@ -66,7 +66,7 @@ func whatsAppPollStars(options []string) []int16 {
 const (
 	defaultWhatsAppFollowupGood = "Thank you 🤍 Was there anything you looked for and didn't find? Reply here and tell us.\n\nشكراً كتير 🤍 في شي كنت عم تدوّر عليه وما لقيته عنّا؟ خبّرنا هون."
 	defaultWhatsAppFollowupOkay = "Thank you! What could we do better? Reply here and tell us.\n\nشكراً إلك! شو فينا نعمل أحسن؟ خبّرنا هون."
-	defaultWhatsAppFollowupBad  = "Sorry to hear that 😕 What went wrong? Reply here, we'd like to make it right.\n\nزعلنا كتير 😕 شو اللي صار؟ احكيلنا هون، ويهمّنا نصلّح الموضوع."
+	defaultWhatsAppFollowupBad  = "Sorry to hear that 😕 What went wrong? Reply here, we'd like to make it right.\n\nزعلنا كتير 😕 شو اللي صار؟ احكيلنا هون، بهمّنا نصلّح الموضوع."
 )
 
 // whatsAppPollFollowup is the follow-up for an answer worth these stars: a
