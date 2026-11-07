@@ -108,6 +108,11 @@
       </v-card-text>
       <v-divider />
       <v-card-actions class="px-6 py-4">
+        <InvoicePrintButton
+          :branch-name="branchName(itemsTarget?.branch_id)"
+          :invoice="itemsTarget"
+          text
+        />
         <v-spacer />
         <v-btn
           v-if="itemsTarget?.kind === 'sales' && !isCancelled(itemsTarget)"
@@ -241,6 +246,9 @@
     </template>
     <template #item.received_at="{ item }">
       {{ new Date(item.received_at).toLocaleString() }}
+    </template>
+    <template #item.print="{ item }">
+      <InvoicePrintButton :branch-name="branchName(item.branch_id)" :invoice="item" />
     </template>
   </ServerSideTable>
 
@@ -411,6 +419,7 @@
 <script setup lang="ts">
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
+  import InvoicePrintButton from '@/components/Invoice/InvoicePrintButton.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useBranches } from '@/composables/useBranches'
@@ -505,6 +514,7 @@
     { title: 'Grand Total', key: 'grand_total', align: 'end', sortable: false },
     { title: 'Occurred At', key: 'occurred_at', align: 'start', sortable: false },
     { title: 'Received At', key: 'received_at', align: 'start', sortable: false },
+    { title: '', key: 'print', align: 'end', sortable: false, width: 56 },
   ])
 
   const apiURL = `${API_BASE}/branch_invoices`

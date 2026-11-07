@@ -50,6 +50,7 @@ The central back office of a multi-branch retail chain: a Go API, PostgreSQL and
 | `make seed` | Demo data. |
 | `make proto` | gRPC code + Swagger. |
 | `cd ui && pnpm lint` / `pnpm build` | Lint-fix / build to `ui/dist`. |
+| `cd ui && pnpm test` | UI tests (vitest + happy-dom; config `ui/vitest.config.mjs`, Vuetify helper `src/test/vuetify.js`). |
 
 ### Configuration (`app.env`)
 
@@ -166,6 +167,7 @@ Business settings (WhatsApp credentials, templates, webhook secret) live **in th
 - Admin creates a **pending** row (audit trail) and nudges the till; the till fetches, runs, acks.
 - A new command type needs **both** `allowedBranchCommandTypes` here **and** an executor in kashi-pos `commands.go`, backed by a real validated function.
 - Commands about one sale/shift go to **the till that has it**; others to every active register.
+- `reprint_invoice` (Invoices page **Print on till**, any kind) is refused for a `historical` old-POS import: no till has it.
 - Branch-wide `update_settings` is also written to `branch_settings` (kashi is the authority).
 :::
 
