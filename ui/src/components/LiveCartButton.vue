@@ -1,8 +1,9 @@
 <!--
   App-bar shortcut: see the sale open on each till of a branch, as it is
   rung up, and change it past the branch's own rules: turn every deal off,
-  or give a line a price, a discount or no deal (api/live_cart.go). It only
-  changes that one sale; the till applies it and locks those lines.
+  or give a line a price, a discount or no deal, and an unknown item its
+  deal choice (api/live_cart.go, utils/liveCart.js). It only changes that
+  one sale; the till applies it and locks those lines.
 -->
 <template>
   <v-btn
@@ -124,12 +125,16 @@
                     <template v-if="editable(reg)">
                       <th style="width: 120px">Price</th>
                       <th style="width: 100px">Discount</th>
-                      <th class="text-center">No deal</th>
+                      <th class="text-center">Deal</th>
                     </template>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(line, i) in cartOf(reg).lines" :key="`${line.barcode}:${line.saleOption}:${i}`">
+                  <tr
+                    v-for="(line, i) in cartOf(reg).lines"
+                    :key="`${line.barcode}:${line.lineRef}:${line.saleOption}:${i}`"
+                    data-test="live-cart-line"
+                  >
                     <td>
                       <div class="d-flex align-center ga-1">
                         <v-icon
@@ -142,7 +147,7 @@
                         <span class="font-weight-medium">{{ line.name }}</span>
                       </div>
                       <div class="text-caption text-medium-emphasis">
-                        {{ line.code }}<span v-if="line.variant"> · {{ line.variant }}</span><span v-if="line.saleOption"> · {{ line.saleOption }}</span>
+                        <span v-if="line.unknown && line.unknownDeal" class="me-1">{{ unknownDealText(line) }} ·</span>{{ line.code }}<span v-if="line.variant"> · {{ line.variant }}</span><span v-if="line.saleOption"> · {{ line.saleOption }}</span>
                       </div>
                     </td>
                     <td class="text-end">{{ line.qty }}</td>
@@ -171,9 +176,9 @@
                       />
                     </td>
                     <template v-if="editable(reg)">
-                      <template v-if="line.unknown || !line.barcode || line.qty <= 0">
+                      <template v-if="!canSetLine(line)">
                         <td class="text-caption text-medium-emphasis" colspan="3">
-                          {{ line.unknown ? 'Unknown items can’t be set one by one' : '—' }}
+                          {{ lockedLineText(line) }}
                         </td>
                       </template>
                       <template v-else>
@@ -205,7 +210,19 @@
                             @update:model-value="touch(reg)"
                           />
                         </td>
-                        <td class="text-center">
+                        <td v-if="line.unknown">
+                          <v-select
+                            v-model="lineDraft(reg, line).unknownDeal"
+                            density="compact"
+                            :disabled="draftOf(reg).allDealsOff"
+                            hide-details
+                            :items="unknownDealItems(line.unknownDealLabel)"
+                            style="min-width: 150px"
+                            variant="outlined"
+                            @update:model-value="touch(reg)"
+                          />
+                        </td>
+                        <td v-else class="text-center">
                           <v-checkbox-btn
                             v-model="lineDraft(reg, line).noDeal"
                             class="d-inline-flex"
@@ -273,6 +290,15 @@
   import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
   import { useAuthStore } from '@/stores/auth'
+  import {
+    buildOverrideLines,
+    canSetLine,
+    draftLinesFromOverrides,
+    emptyLineDraft,
+    lineKey,
+    lockedLineText,
+    unknownDealItems,
+  } from '@/utils/liveCart'
 
   const auth = useAuthStore()
   const notify = useNotify()
@@ -301,7 +327,7 @@
   const loading = ref(false)
   const saving = ref(null)
   // What is typed per register, for the sale it was typed on:
-  // { saleRef, allDealsOff, lines: { [barcode]: { price, discount, noDeal } }, dirty }
+  // { saleRef, allDealsOff, lines: { [lineKey]: { price, discount, noDeal, unknownDeal } }, dirty }
   const drafts = reactive({})
   let timer = null
 
@@ -326,14 +352,7 @@
     const d = drafts[reg.register_id]
     if (d && d.saleRef === cart.saleRef && (d.dirty || reg.last_command?.status === 'pending')) return
     const o = cart.overrides || {}
-    const lines = {}
-    for (const l of o.lines || []) {
-      lines[l.barcode] = {
-        price: l.price_cents == null ? '' : (l.price_cents / 100).toFixed(2),
-        discount: l.discount == null ? '' : String(l.discount),
-        noDeal: Boolean(l.no_deal),
-      }
-    }
+    const lines = draftLinesFromOverrides(o)
     drafts[reg.register_id] = { saleRef: cart.saleRef, allDealsOff: Boolean(o.all_deals_off), lines, dirty: false }
   }
 
@@ -344,8 +363,13 @@
 
   function lineDraft (reg, line) {
     const d = draftOf(reg)
-    d.lines[line.barcode] ??= { price: '', discount: '', noDeal: false }
-    return d.lines[line.barcode]
+    d.lines[lineKey(line)] ??= emptyLineDraft()
+    return d.lines[lineKey(line)]
+  }
+
+  // The deal an unknown item is on at the till, as the deal picker names it.
+  function unknownDealText (line) {
+    return unknownDealItems(line.unknownDealLabel).find(c => c.value === line.unknownDeal)?.title ?? ''
   }
 
   function touch (reg) {
@@ -380,34 +404,6 @@
     timer = null
   }
 
-  function buildLines (reg) {
-    const d = draftOf(reg)
-    const out = []
-    const seen = new Set()
-    for (const line of reg.cart.lines) {
-      if (line.unknown || !line.barcode || line.qty <= 0 || seen.has(line.barcode)) continue
-      seen.add(line.barcode)
-      const l = d.lines[line.barcode]
-      if (!l) continue
-      const entry = { barcode: line.barcode }
-      if (String(l.price).trim() !== '') {
-        const cents = Math.round(Number(l.price) * 100)
-        if (!(cents > 0)) throw new Error(`${line.name}: enter a price above 0.`)
-        entry.price_cents = cents
-      }
-      if (String(l.discount).trim() !== '') {
-        const discount = Number(l.discount)
-        if (!Number.isInteger(discount) || discount < 0 || discount > 100) {
-          throw new Error(`${line.name}: enter a discount from 0 to 100.`)
-        }
-        entry.discount = discount
-      }
-      if (l.noDeal && !d.allDealsOff) entry.no_deal = true
-      if (entry.price_cents != null || entry.discount != null || entry.no_deal) out.push(entry)
-    }
-    return out
-  }
-
   async function send (reg, body) {
     saving.value = reg.register_id
     try {
@@ -431,7 +427,7 @@
   function apply (reg) {
     let lines
     try {
-      lines = buildLines(reg)
+      lines = buildOverrideLines(reg.cart.lines, draftOf(reg).lines, draftOf(reg).allDealsOff)
     } catch (error) {
       notify.error(error.message)
       return
