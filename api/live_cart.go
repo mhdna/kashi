@@ -22,7 +22,7 @@ import (
 // off or offline).
 //
 // A change is a cart_override command to the register: every deal off, or a
-// line's price, discount or deal. The till applies it itself, past the
+// line's price, discount or deal; an unknown item's goes by its line ref. The till applies it itself, past the
 // branch's custom price/discount and deal settings, to that one sale only.
 
 const liveCartStale = 75 * time.Second
@@ -161,12 +161,21 @@ func (server *Server) getLiveCarts(ctx *gin.Context) {
 	server.writeJSON(ctx, http.StatusOK, envelope{"registers": out})
 }
 
+// liveCartLineOverride is one line's change, by barcode. Every unknown item
+// shares one barcode, so one is named by its line ref (the till's unknownRef,
+// reported as lineRef), and can take a deal choice too.
 type liveCartLineOverride struct {
-	Barcode    string `json:"barcode" binding:"required"`
-	PriceCents *int64 `json:"price_cents,omitempty"`
-	Discount   *int64 `json:"discount,omitempty"`
-	NoDeal     bool   `json:"no_deal,omitempty"`
+	Barcode     string `json:"barcode" binding:"required"`
+	LineRef     string `json:"line_ref,omitempty"`
+	PriceCents  *int64 `json:"price_cents,omitempty"`
+	Discount    *int64 `json:"discount,omitempty"`
+	NoDeal      bool   `json:"no_deal,omitempty"`
+	UnknownDeal string `json:"unknown_deal,omitempty"`
 }
+
+// The deal choices an unknown item can take (kashi-pos unknown_item_deal.go):
+// on the shop's deal at 30% or 20% outside a set, or on none.
+var liveCartUnknownDeals = map[string]bool{"b2g1_30": true, "b2g1_20": true, "none": true}
 
 type liveCartOverrideRequest struct {
 	RegisterID  int64                  `json:"register_id" binding:"required,min=1"`
@@ -216,6 +225,10 @@ func (server *Server) setLiveCartOverride(ctx *gin.Context) {
 		}
 		if l.Discount != nil && (*l.Discount < 0 || *l.Discount > 100) {
 			server.writeError(ctx, http.StatusBadRequest, errors.New("a discount must be 0 to 100"))
+			return
+		}
+		if l.UnknownDeal != "" && (l.LineRef == "" || !liveCartUnknownDeals[l.UnknownDeal]) {
+			server.writeError(ctx, http.StatusBadRequest, errors.New("a deal choice is 30%, 20% or none, and only for an unknown item"))
 			return
 		}
 	}

@@ -73,3 +73,48 @@ func TestSetLiveCartOverride(t *testing.T) {
 	e, _ := server.liveCarts.get(registerID)
 	require.Equal(t, int64(9), e.LastCommandID)
 }
+
+// An unknown item's change goes to the till by its line ref, with its deal
+// choice; a deal choice that isn't one, or on a line with no ref, is refused.
+func TestSetLiveCartOverrideUnknownItem(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	const registerID = int64(23)
+	store.EXPECT().GetBranchRegister(gomock.Any(), registerID).
+		Return(db.BranchRegister{ID: registerID, BranchID: buBranchID}, nil).AnyTimes()
+	store.EXPECT().GetUserByUsername(gomock.Any(), gomock.Any()).Return(db.User{ID: 5}, nil).AnyTimes()
+	var sent json.RawMessage
+	store.EXPECT().CreateBranchCommand(gomock.Any(), gomock.Any()).Times(1).
+		DoAndReturn(func(_ context.Context, arg db.CreateBranchCommandParams) (db.BranchCommand, error) {
+			sent = arg.Payload
+			return db.BranchCommand{ID: 10, RegisterID: arg.RegisterID}, nil
+		})
+
+	server := newTestServer(t, store)
+	server.liveCarts.put(registerID, buBranchID, json.RawMessage(`{"saleRef":"sale-1","mode":"sale"}`))
+	url := fmt.Sprintf("/live_carts/%d/override", buBranchID)
+	send := func(lines ...map[string]any) int {
+		rec := adminRequest(t, server, http.MethodPost, url, map[string]any{
+			"register_id": registerID, "sale_ref": "sale-1", "lines": lines,
+		})
+		return rec.Code
+	}
+
+	require.Equal(t, http.StatusBadRequest, send(map[string]any{"barcode": "UNKNOWN", "line_ref": "u1", "unknown_deal": "b2g1_99"}))
+	require.Equal(t, http.StatusBadRequest, send(map[string]any{"barcode": "123", "unknown_deal": "none"}))
+
+	require.Equal(t, http.StatusOK, send(
+		map[string]any{"barcode": "UNKNOWN", "line_ref": "u1", "price_cents": 2500, "discount": 10},
+		map[string]any{"barcode": "UNKNOWN", "line_ref": "u2", "unknown_deal": "b2g1_30"},
+	))
+	var payload struct {
+		Lines []liveCartLineOverride `json:"lines"`
+	}
+	require.NoError(t, json.Unmarshal(sent, &payload))
+	require.Len(t, payload.Lines, 2)
+	require.Equal(t, "u1", payload.Lines[0].LineRef)
+	require.Equal(t, int64(2500), *payload.Lines[0].PriceCents)
+	require.Equal(t, int64(10), *payload.Lines[0].Discount)
+	require.Equal(t, "u2", payload.Lines[1].LineRef)
+	require.Equal(t, "b2g1_30", payload.Lines[1].UnknownDeal)
+}
