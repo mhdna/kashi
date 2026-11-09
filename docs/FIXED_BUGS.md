@@ -3,6 +3,33 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-09 · Lady jeans (EOC5/EF6) all showed $11
+
+**Symptom.** EOC5LJE25, EOC5LJE35, EF6LJE29 and the other outlet lady jeans were
+priced $11 in kashi and on the tills, though the code's last number is the price.
+
+**Cause.** The September product import gave these items the placeholder price
+1100 (cents) instead of the price in the code.
+
+**Fix.** On production, the 8 variants were set to code number × 100 in the Default
+price list and `product_variants.price` (EOC5LJE7/14/15/20/25/29/35, EF6LJE29/35);
+the old values are in table `_bak_lady_jeans_price_20261109`. The sync triggers
+push the change to the tills. Other codes that end in 11 (CA22…11) really are $11
+and were left alone. Not a code change, so no test.
+
+## 2026-11-09 · Auto-fill filled EF6LJE10 wrongly (category "Lady", Type "Jeans", no origin)
+
+**Symptom.** Auto-fill on EF6LJE10 put "Lady" in Category and "Jeans" in Type and
+left Sub-Category, Kind and Origin empty; older codes like CA21LSW filled nothing.
+
+**Cause.** The rules were still in the old layout (category = audience, a Type
+field), had no outlet origin, and the code layout required a price at the end of
+every code.
+
+**Fix.** Rules and layout rewritten from the production codes (migration 000232,
+`db/tools/gen_autofill_rules.py`); see `doc/product-rules.md`. Tests:
+`ui/src/utils/productAutofillRules.test.js`, `TestShippedAutofillRules_PassPageValidation`.
+
 ## 2026-11-07 · The rating poll showed in the Inbox as text starting with 📊
 
 **Symptom.** In the WhatsApp Inbox, the combined rating poll ("Hi Rena, / Thank
