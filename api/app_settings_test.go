@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -126,4 +128,41 @@ func TestUpdateAppSettings_BusinessType(t *testing.T) {
 		rec := adminRequest(t, server, http.MethodPut, "/app_settings", validAppSettingsBody("tech"))
 		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	})
+}
+
+// The rules migration 000232 ships must be savable from the Auto-fill Rules
+// page: every rule passes the same validation, and they fit the limits. A rule
+// the page would reject would make that page unusable after the migration.
+func TestShippedAutofillRules_PassPageValidation(t *testing.T) {
+	sql, err := os.ReadFile("../db/migrations/000232_autofill_new_code_layout.up.sql")
+	require.NoError(t, err)
+	between := func(tag string) string {
+		parts := strings.Split(string(sql), "$"+tag+"$")
+		require.Len(t, parts, 3, "migration must hold exactly one $%s$ block", tag)
+		return parts[1]
+	}
+	var rules []map[string]any
+	require.NoError(t, json.Unmarshal([]byte(between("rules")), &rules))
+	require.NotEmpty(t, rules)
+	layout := between("layout")
+
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	store.EXPECT().SetProductAutofillRules(gomock.Any(), gomock.Any()).
+		Return(db.AppSetting{ID: 1}, nil)
+	server := newTestServer(t, store)
+	rec := adminRequest(t, server, http.MethodPut, "/app_settings/product_autofill_rules", map[string]any{
+		"rules": rules, "code_layout": layout,
+	})
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+
+	// The garment fields are filled in pairs: no category without a
+	// sub-category from the same kind of rule.
+	count := map[string]int{}
+	for _, r := range rules {
+		count[r["source"].(string)+"/"+r["field"].(string)]++
+	}
+	require.Equal(t, count["code/category"], count["code/subcategory"], "category and sub-category rules come in pairs")
+	require.Equal(t, count["name/category"], count["name/subcategory"])
+	require.Zero(t, count["code/type"]+count["name/type"], "the legacy Type field is no longer filled")
 }
