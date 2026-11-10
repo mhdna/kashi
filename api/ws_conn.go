@@ -17,8 +17,13 @@ import (
 const (
 	wsPingInterval = 30 * time.Second
 	wsPongWait     = 60 * time.Second
-	wsWriteWait    = 10 * time.Second
 )
+
+// wsWriteWait bounds every write, pings and messages alike. A peer that has
+// stopped reading -- a tab asleep behind Cloudflare, a till whose network
+// died -- would otherwise let a write block forever once the TCP buffers
+// fill. A var only so tests can shorten it.
+var wsWriteWait = 10 * time.Second
 
 // wsConn wraps a gorilla *websocket.Conn with a write mutex.
 //
@@ -38,10 +43,19 @@ func newWSConn(conn *websocket.Conn) *wsConn {
 	return &wsConn{conn: conn}
 }
 
+// writeJSON sends one message within wsWriteWait. A socket that can't take
+// it is closed: a write that timed out leaves it unusable anyway, and
+// closing ends the handler's read loop, which takes the peer out of its hub
+// so later pushes don't wait on it again.
 func (c *wsConn) writeJSON(v any) error {
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
-	return c.conn.WriteJSON(v)
+	_ = c.conn.SetWriteDeadline(time.Now().Add(wsWriteWait))
+	err := c.conn.WriteJSON(v)
+	if err != nil {
+		_ = c.conn.Close()
+	}
+	return err
 }
 
 func (c *wsConn) close() error {

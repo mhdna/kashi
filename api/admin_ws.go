@@ -143,10 +143,18 @@ type adminWSMessage struct {
 // broadcastAll notifies every currently-connected admin client. There's no
 // per-client targeting today (every admin sees every branch), so this is
 // the only send method the hub needs.
+//
+// The writes happen after the lock is released: a slow tab then delays only
+// this broadcast (by up to wsWriteWait), never a connect, a disconnect or
+// another lookup on the hub.
 func (h *adminHub) broadcastAll(message adminWSMessage) {
 	h.mu.RLock()
-	defer h.mu.RUnlock()
+	conns := make([]*wsConn, 0, len(h.conns))
 	for conn := range h.conns {
+		conns = append(conns, conn)
+	}
+	h.mu.RUnlock()
+	for _, conn := range conns {
 		if err := conn.writeJSON(message); err != nil {
 			log.Printf("admin hub: broadcast failed: %v", err)
 		}
