@@ -3,6 +3,27 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-10 · Centro showed "No branches connected" while its till was syncing
+
+**Symptom.** The Connected branches pill showed a red 0 and "No branches connected"
+though Centro's till was sending invoices and syncing normally.
+
+**Cause.** Two things. Pushes to tills and admin tabs were written while holding the
+hub's lock and with no time limit, so one socket that stopped reading (a phone tab
+asleep behind Cloudflare, a till on a dead network) could block a write forever and
+with it every connect and the connected list, which then failed to load and showed
+0. Separately, Cloudflare closes long sockets every few minutes to hours
+(11m, 1h50m, 20m in the prod log); the till redials in seconds, but in between the
+branch counted as gone.
+
+**Fix.** `wsConn.writeJSON` sets a 10s write deadline and closes a socket whose write
+fails (`api/ws_conn.go`); both hubs write after releasing their lock
+(`api/branch_ws.go`, `api/admin_ws.go`); a register stays connected for 45s after its
+socket closes, until it reconnects or the grace is swept. Tests:
+`api/branch_hub_test.go` (a till or tab that never reads doesn't freeze the hub, a
+timed-out write closes the socket, short gaps stay connected, the grace runs out,
+a replaced socket closing late, two registers on one branch).
+
 ## 2026-11-09 · Lady jeans (EOC5/EF6) all showed $11
 
 **Symptom.** EOC5LJE25, EOC5LJE35, EF6LJE29 and the other outlet lady jeans were

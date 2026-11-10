@@ -42,6 +42,22 @@ type branchHub struct {
 	// branch as syncing until kashi restarts (which is what a plain flag
 	// did). It is also dropped when the register's WebSocket closes.
 	syncing map[int64]syncLease
+	// recent holds registers whose socket closed less than connGrace ago,
+	// still counted as connected; a reconnect takes them out again.
+	recent map[int64]recentConn
+	now    func() time.Time
+}
+
+// connGrace is how long a register still counts as connected after its
+// socket closes. Cloudflare closes long-lived sockets now and then (every
+// few minutes to few hours) and the till is back within seconds; without
+// this, each of those gaps showed the branch as disconnected. A till that
+// really went away drops off once the grace runs out.
+const connGrace = 45 * time.Second
+
+type recentConn struct {
+	branchID int64
+	until    time.Time
 }
 
 // syncLeaseTTL is how long one start/heartbeat keeps a register marked as
@@ -58,6 +74,8 @@ func newBranchHub() *branchHub {
 		conns:          make(map[int64]*wsConn),
 		registerBranch: make(map[int64]int64),
 		syncing:        make(map[int64]syncLease),
+		recent:         make(map[int64]recentConn),
+		now:            time.Now,
 	}
 }
 
@@ -115,15 +133,19 @@ func (server *Server) syncingBranchesMessage() adminWSMessage {
 	return adminWSMessage{Type: "branch_sync_status_changed", BranchIDs: server.branchHub.syncingBranchIDs(time.Now())}
 }
 
-// expireSyncLeasesLoop clears lapsed full-sync leases every 30s and, when it
-// clears any, pushes the new list -- otherwise an admin UI already showing
-// "syncing" would keep showing it until its next reload.
+// expireSyncLeasesLoop clears lapsed full-sync leases and connection
+// graces every 30s and, when it clears any, pushes the new list --
+// otherwise an admin UI already showing "syncing" or "connected" would keep
+// showing it until its next reload.
 func (server *Server) expireSyncLeasesLoop() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 	for now := range ticker.C {
 		if server.branchHub.expireSyncLeases(now) {
 			server.broadcastSyncingBranches()
+		}
+		if server.branchHub.expireRecentConns(now) {
+			server.broadcastBranchConnections()
 		}
 	}
 }
@@ -139,34 +161,96 @@ func (h *branchHub) add(branchID, registerID int64, conn *wsConn) {
 	}
 	h.conns[registerID] = conn
 	h.registerBranch[registerID] = branchID
+	delete(h.recent, registerID)
 }
 
+// remove takes a register's socket out of the hub, if it's still the one
+// on record (a reconnect may already have replaced it), and starts its
+// connGrace.
 func (h *branchHub) remove(registerID int64, conn *wsConn) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if h.conns[registerID] == conn {
+		h.recent[registerID] = recentConn{branchID: h.registerBranch[registerID], until: h.now().Add(connGrace)}
 		delete(h.conns, registerID)
 		delete(h.registerBranch, registerID)
 	}
 }
 
+// expireRecentConns drops registers whose grace ran out without a
+// reconnect, and reports whether it dropped any.
+func (h *branchHub) expireRecentConns(now time.Time) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	expired := false
+	for registerID, r := range h.recent {
+		if !now.Before(r.until) {
+			delete(h.recent, registerID)
+			expired = true
+		}
+	}
+	return expired
+}
+
+// connectedRegisters is every register with a socket now or inside its
+// connGrace, mapped to its branch. Callers hold h.mu.
+func (h *branchHub) connectedRegisters() map[int64]int64 {
+	now := h.now()
+	out := make(map[int64]int64, len(h.registerBranch)+len(h.recent))
+	for registerID, r := range h.recent {
+		if now.Before(r.until) {
+			out[registerID] = r.branchID
+		}
+	}
+	for registerID, branchID := range h.registerBranch {
+		out[registerID] = branchID
+	}
+	return out
+}
+
 // connectedBranchIDs reports which distinct branches have at least one
-// register connected right now.
+// register connected right now (connGrace included).
 func (h *branchHub) connectedBranchIDs() []int64 {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	return distinctValues(h.registerBranch)
+	return distinctValues(h.connectedRegisters())
 }
 
-// connectedRegisterIDs reports which registers are connected right now.
+// connectedRegisterIDs reports which registers are connected right now
+// (connGrace included).
 func (h *branchHub) connectedRegisterIDs() []int64 {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	ids := make([]int64, 0, len(h.conns))
-	for registerID := range h.conns {
+	registers := h.connectedRegisters()
+	ids := make([]int64, 0, len(registers))
+	for registerID := range registers {
 		ids = append(ids, registerID)
 	}
 	return ids
+}
+
+// sockets lists the live sockets of the registers match accepts, so a push
+// can write to them after the lock is released: a till that stopped reading
+// then delays only that push (by up to wsWriteWait), never a connect, a
+// disconnect or the connected list.
+func (h *branchHub) sockets(match func(registerID, branchID int64) bool) map[int64]*wsConn {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	out := make(map[int64]*wsConn)
+	for registerID, conn := range h.conns {
+		if conn != nil && match(registerID, h.registerBranch[registerID]) {
+			out[registerID] = conn
+		}
+	}
+	return out
+}
+
+func writeToRegisters(conns map[int64]*wsConn, message branchWSMessage) {
+	for registerID, conn := range conns {
+		if err := conn.writeJSON(message); err != nil {
+			log.Printf("branch hub: notify register %d failed: %v", registerID, err)
+		}
+	}
 }
 
 func distinctValues(m map[int64]int64) []int64 {
@@ -218,43 +302,20 @@ type branchReview struct {
 // a poll-based catch-up path (see kashi-pos's runSyncTick) that doesn't
 // depend on this push ever arriving.
 func (h *branchHub) notify(branchID int64, message branchWSMessage) {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	for registerID, conn := range h.conns {
-		if h.registerBranch[registerID] != branchID {
-			continue
-		}
-		if err := conn.writeJSON(message); err != nil {
-			log.Printf("branch hub: notify register %d failed: %v", registerID, err)
-		}
-	}
+	writeToRegisters(h.sockets(func(_, b int64) bool { return b == branchID }), message)
 }
 
 // notifyRegister sends a message to one register, if it's connected --
 // for things only that till should act on, such as a command addressed to it.
 func (h *branchHub) notifyRegister(registerID int64, message branchWSMessage) {
-	h.mu.RLock()
-	conn, ok := h.conns[registerID]
-	h.mu.RUnlock()
-	if !ok {
-		return
-	}
-	if err := conn.writeJSON(message); err != nil {
-		log.Printf("branch hub: notify register %d failed: %v", registerID, err)
-	}
+	writeToRegisters(h.sockets(func(id, _ int64) bool { return id == registerID }), message)
 }
 
 // broadcastAll notifies every currently-connected register — for global
 // master data (currencies, cashbox_accounts) that applies identically to
 // every branch.
 func (h *branchHub) broadcastAll(message branchWSMessage) {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	for registerID, conn := range h.conns {
-		if err := conn.writeJSON(message); err != nil {
-			log.Printf("branch hub: notify register %d failed: %v", registerID, err)
-		}
-	}
+	writeToRegisters(h.sockets(func(_, _ int64) bool { return true }), message)
 }
 
 // broadcastBranchConnections tells admin UIs which branches and registers

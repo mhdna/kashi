@@ -158,6 +158,8 @@ Business settings (WhatsApp credentials, templates, webhook secret) live **in th
 - `/branch/ws` pushes pointers to tills.
 - Both hubs wrap sockets in `wsConn` (a **write mutex**: gorilla panics on two concurrent writers) with ping/pong heartbeats so a dead peer is noticed in seconds.
 - Every handler may broadcast from many goroutines, so never write to a raw `*websocket.Conn`.
+- Every write has a **10s limit** (`wsWriteWait`); a socket that can't take one is closed. Hubs copy their sockets under the lock and **write after releasing it**, so one peer that stopped reading can't freeze connects or the connected list.
+- **Connected = socket now, or closed under 45s ago** (`connGrace`). Cloudflare closes long sockets every few minutes to hours and the till redials in seconds; the grace keeps that off the pill. Lapsed graces are swept every 30s and pushed.
 
 ::: group Features
 
