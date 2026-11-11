@@ -476,7 +476,7 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 		err = whatsAppBridgeCall(ctx, sender, http.MethodPost, "/message/sendText/"+url.PathEscape(number.Instance), body, &out)
 		if err != nil {
 			log.Printf("whatsapp thank-you: bridge send failed for invoice %s: %v", req.InvoiceCode, err)
-			server.logWhatsAppSendError(ctx, entry, err)
+			server.logWhatsAppSendError(ctx, entry, whatsAppNumberDownError(number.Label, err))
 			return
 		}
 	} else {
@@ -488,10 +488,11 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 		if pollErr != nil {
 			// The thank-you went; say in the log that the poll didn't.
 			if !sendMessage {
-				server.logWhatsAppSendError(ctx, entry, fmt.Errorf("poll not sent: %w", pollErr))
+				// The poll was all there was to send, so its failure is the send's.
+				server.logWhatsAppSendError(ctx, entry, whatsAppNumberDownError(number.Label, pollErr))
 				return
 			}
-			server.logWhatsAppMessage(ctx, entry, whatsAppStatusSent, "poll not sent: "+pollErr.Error())
+			server.logWhatsAppMessage(ctx, entry, whatsAppStatusSent, "poll not sent: "+whatsAppNumberDownError(number.Label, pollErr).Error())
 			return
 		}
 		if entry.PollRef != "" {
@@ -576,6 +577,21 @@ func whatsAppBridgeCall(ctx context.Context, sender db.GetWhatsAppSenderSettings
 		return json.Unmarshal(raw, out)
 	}
 	return nil
+}
+
+// whatsAppNumberDownError turns the bridge's "not connected" into what the
+// person reading the log can act on: which number, and that it needs linking
+// again (WhatsApp logs a number out for good; nothing retries it by itself).
+// Other errors pass through untouched, and stay temporary when they were.
+func whatsAppNumberDownError(label string, err error) error {
+	if err == nil || !isWhatsAppTemporary(err) || !whatsAppBridgeDisconnected(err.Error()) {
+		return err
+	}
+	who := "This number's"
+	if label = strings.TrimSpace(label); label != "" {
+		who = label + "'s"
+	}
+	return whatsAppTemporary(fmt.Errorf("%s WhatsApp is logged out or disconnected: link it again in Settings > WhatsApp (%w)", who, err))
 }
 
 // whatsAppBridgeDisconnected: the bridge refused because the number's

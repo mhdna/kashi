@@ -3,6 +3,24 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-11 · Failed WhatsApp rows said "poll not sent: WhatsApp is not connected"
+
+**Symptom.** Invoices of the Sour branch showed Failed with "poll not sent: WhatsApp
+bridge: WhatsApp is not connected", for three days, with no hint what to do.
+
+**Cause.** WhatsApp logged the Sour number out (code 401) on 2026-11-08 18:19, two
+seconds after a send, in the middle of a ramp-up (14, 25, 40, 81 messages a day). A
+logged-out number stays down until someone scans its QR again; every send after
+that failed. The log text named neither the number nor the cure, and called a
+poll-only send "poll not sent" as if a message had gone.
+
+**Fix.** `whatsAppNumberDownError` in `api/whatsapp_bridge.go` rewrites a
+"not connected" failure to "<Number>'s WhatsApp is logged out or disconnected: link
+it again in Settings > WhatsApp", still marked temporary so the till retries; a
+poll-only failure is the send's own failure. Covered by
+`TestWhatsAppNumberDownError` and the "isn't linked" case in
+`api/whatsapp_bridge_test.go`.
+
 ## 2026-11-10 · Centro showed "No branches connected" while its till was syncing
 
 **Symptom.** The Connected branches pill showed a red 0 and "No branches connected"

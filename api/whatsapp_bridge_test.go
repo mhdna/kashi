@@ -226,16 +226,17 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 	})
 
 	t.Run("a number that isn't linked reports the bridge's reason", func(t *testing.T) {
+		const downReason = "Centro's WhatsApp is logged out or disconnected: link it again in Settings > WhatsApp (WhatsApp bridge: WhatsApp is not connected)"
 		bridge, _, _ := fakeBridge(t, http.StatusConflict, `{"status":409,"error":"Conflict","response":{"message":["WhatsApp is not connected"]}}`)
 		ctrl := gomock.NewController(t)
 		store := mockdb.NewMockStore(ctrl)
 		server := newTestServer(t, store)
-		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), numberForBranch(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12"}, nil)
+		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), numberForBranch(2)).Return(db.WhatsappNumber{ID: 5, Instance: "kashi-centro-ab12", Label: "Centro"}, nil)
 		store.EXPECT().DeleteFailedWhatsAppMessagesForInvoice(gomock.Any(), gomock.Any()).Return(nil)
 		store.EXPECT().CreateWhatsAppMessage(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(_ any, arg db.CreateWhatsAppMessageParams) (db.WhatsappMessage, error) {
 				require.Equal(t, whatsAppStatusFailed, arg.Status)
-				require.Equal(t, "WhatsApp bridge: WhatsApp is not connected", arg.Reason)
+				require.Equal(t, downReason, arg.Reason)
 				return db.WhatsappMessage{}, nil
 			})
 		rec := run(server, db.GetWhatsAppSenderSettingsRow{WhatsappMessageNew: true, WhatsappMessageReturning: true, WhatsappPollNew: true, WhatsappPollReturning: true,
@@ -243,7 +244,7 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 			WhatsappBridgeMessage: "Thanks {name} for {invoice}",
 		})
 		// Linking the number again fixes it, so the till is told to retry.
-		require.JSONEq(t, `{"sent":false,"reason":"WhatsApp bridge: WhatsApp is not connected","retry":true}`, rec.Body.String())
+		require.JSONEq(t, `{"sent":false,"reason":"`+downReason+`","retry":true}`, rec.Body.String())
 	})
 
 	t.Run("an unreachable bridge is retried", func(t *testing.T) {
@@ -518,4 +519,18 @@ func TestWhatsAppDuration(t *testing.T) {
 	require.Equal(t, "60 min", whatsAppDuration(59*time.Minute+50*time.Second))
 	require.Equal(t, "24 h", whatsAppDuration(24*time.Hour))
 	require.Equal(t, "3 days", whatsAppDuration(72*time.Hour))
+}
+
+func TestWhatsAppNumberDownError(t *testing.T) {
+	down := whatsAppTemporary(fmt.Errorf("WhatsApp bridge: WhatsApp is not connected"))
+	got := whatsAppNumberDownError("Sour", down)
+	require.Equal(t, "Sour's WhatsApp is logged out or disconnected: link it again in Settings > WhatsApp (WhatsApp bridge: WhatsApp is not connected)", got.Error())
+	require.True(t, isWhatsAppTemporary(got), "still worth a retry once linked")
+	require.Contains(t, whatsAppNumberDownError("  ", down).Error(), "This number's WhatsApp")
+
+	other := whatsAppTemporary(fmt.Errorf("WhatsApp bridge unreachable: timeout"))
+	require.Equal(t, other, whatsAppNumberDownError("Sour", other))
+	bad := fmt.Errorf("WhatsApp bridge: number is not on WhatsApp")
+	require.Equal(t, bad, whatsAppNumberDownError("Sour", bad))
+	require.NoError(t, whatsAppNumberDownError("Sour", nil))
 }
