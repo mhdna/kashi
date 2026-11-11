@@ -197,17 +197,18 @@
 
 <script setup>
   import { computed, onMounted, ref, watch } from 'vue'
-  import VChart from '@/components/EChart.vue'
   import { useRoute, useRouter } from 'vue-router'
   import { useDisplay, useTheme } from 'vuetify'
   import ListPanel from '@/components/Cards/ListPanel.vue'
   import MetricCard from '@/components/Cards/MetricCard.vue'
+  import VChart from '@/components/EChart.vue'
   import SendEmailReportDialog from '@/components/Email/SendEmailReportDialog.vue'
   import { useBranchCommands } from '@/composables/useBranchCommands'
   import { useBranches } from '@/composables/useBranches'
   import { useDailyIncome } from '@/composables/useDailyIncome'
   import { useNotify } from '@/composables/useNotify'
   import { useAuthStore } from '@/stores/auth'
+  import { paymentIcon } from '@/utils/paymentIcon'
 
   const route = useRoute()
   const notify = useNotify()
@@ -370,6 +371,7 @@
     return rows.map(p => ({
       key: p.account_name,
       label: p.account_name || 'Unnamed account',
+      icon: paymentIcon(p.account_name),
       sub: `${p.invoice_count} ${p.invoice_count === 1 ? 'invoice' : 'invoices'}`,
       value: money(p.total),
       pct: pct(p.total, total),

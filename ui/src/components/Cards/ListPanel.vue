@@ -2,7 +2,7 @@
   The bordered, uppercase-titled list panel from Sales Analytics'
   SalesAnalyticsTab: label on the left, value + muted share on the right,
   optional caption under the label.
-    rows: [{ key, label, sub?, value, pct? }]
+    rows: [{ key, label, sub?, value, pct?, icon? }]  (icon: an mdi-… name shown before the label)
   A `row-append` slot adds something after a row's value (e.g. a button).
 -->
 <template>
@@ -12,6 +12,9 @@
     <div v-if="rows.length === 0" class="text-caption text-medium-emphasis px-3 py-4">{{ emptyText }}</div>
     <v-list v-else class="pa-0 flex-grow-1" density="compact">
       <v-list-item v-for="row in rows" :key="row.key" class="px-3" :subtitle="row.sub || undefined">
+        <template v-if="row.icon" #prepend>
+          <v-icon class="mr-3" data-test="row-icon" :icon="row.icon" size="20" />
+        </template>
         <template #title>{{ row.label }}</template>
         <template #append>
           <span class="text-caption mr-3 text-no-wrap">{{ row.value }}</span>
