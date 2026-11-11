@@ -41,6 +41,40 @@ func listenSync(t *testing.T) func(wait time.Duration) []string {
 	}
 }
 
+// listenSyncUntil is listenSync for checks that expect a notification: it
+// returns as soon as a "branches" one arrives (up to two seconds), so a slow
+// delivery doesn't make the test flaky. A check that expects silence still
+// uses the fixed window.
+func listenSyncUntil(t *testing.T) func() []string {
+	t.Helper()
+	config, err := util.LoadConfig("../..")
+	require.NoError(t, err)
+	dsn := config.DBSource
+	if env := os.Getenv("DB_SOURCE"); env != "" {
+		dsn = env
+	}
+	l := pq.NewListener(dsn, time.Second, time.Minute, nil)
+	require.NoError(t, l.Listen("kashi_sync"))
+	t.Cleanup(func() { l.Close() })
+	return func() []string {
+		var got []string
+		timeout := time.After(2 * time.Second)
+		for {
+			select {
+			case n := <-l.Notify:
+				if n != nil {
+					got = append(got, n.Extra)
+					if strings.Contains(n.Extra, "branches") {
+						return got
+					}
+				}
+			case <-timeout:
+				return got
+			}
+		}
+	}
+}
+
 func newBranchID(t *testing.T) int64 {
 	var id int64
 	require.NoError(t, testDB.QueryRowContext(context.Background(),
@@ -84,32 +118,33 @@ func TestBranchesNotify_LastSeenDoesNotWakeTheTills(t *testing.T) {
 func TestBranchesNotify_RealChangesStillNotify(t *testing.T) {
 	ctx := context.Background()
 	id := newBranchID(t)
-	collect := listenSync(t)
-	collect(300 * time.Millisecond)
+	wait := listenSyncUntil(t)
+	wait() // the insert's own notification
 
-	for name, stmt := range map[string]string{
-		"rename":     `UPDATE branches SET name = name || 'x' WHERE id = $1`,
-		"deactivate": `UPDATE branches SET is_active = false WHERE id = $1`,
-		"delete":     `DELETE FROM branches WHERE id = $1`,
+	// In this order: the delete has to come last, or there is nothing to change.
+	for _, step := range []struct{ name, stmt string }{
+		{"rename", `UPDATE branches SET name = name || 'x' WHERE id = $1`},
+		{"deactivate", `UPDATE branches SET is_active = false WHERE id = $1`},
+		{"delete", `DELETE FROM branches WHERE id = $1`},
 	} {
-		_, err := testDB.ExecContext(ctx, stmt, id)
-		require.NoError(t, err, name)
-		got := collect(400 * time.Millisecond)
-		require.True(t, hasBranches(got), "%s must notify, got %v", name, got)
-		require.Contains(t, strings.Join(got, ","), "incoming_transfer_requests", name)
+		_, err := testDB.ExecContext(ctx, step.stmt, id)
+		require.NoError(t, err, step.name)
+		got := wait()
+		require.True(t, hasBranches(got), "%s must notify, got %v", step.name, got)
+		require.Contains(t, strings.Join(got, ","), "incoming_transfer_requests", step.name)
 	}
 
 	// A new branch too.
 	newBranchID(t)
-	require.True(t, hasBranches(collect(400*time.Millisecond)), "an insert must notify")
+	require.True(t, hasBranches(wait()), "an insert must notify")
 }
 
 // A stamp together with a real change is still a change.
 func TestBranchesNotify_StampPlusRealChangeNotifies(t *testing.T) {
 	id := newBranchID(t)
-	collect := listenSync(t)
-	collect(300 * time.Millisecond)
+	wait := listenSyncUntil(t)
+	wait()
 	_, err := testDB.ExecContext(context.Background(), `UPDATE branches SET last_seen_at = now(), name = name || 'y' WHERE id = $1`, id)
 	require.NoError(t, err)
-	require.True(t, hasBranches(collect(400*time.Millisecond)))
+	require.True(t, hasBranches(wait()))
 }
