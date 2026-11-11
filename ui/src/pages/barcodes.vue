@@ -32,6 +32,12 @@
           @click="addSelectedToQueue"
         />
         <v-btn
+          prepend-icon="mdi-warehouse"
+          text="Fill from inventory"
+          variant="tonal"
+          @click="openFill"
+        />
+        <v-btn
           prepend-icon="mdi-tray-full"
           :text="`Queue (${queue.length})`"
           variant="tonal"
@@ -204,6 +210,48 @@
       </v-card>
     </v-dialog>
 
+    <!-- Fill the queue from an inventory: one label per piece on hand -->
+    <v-dialog v-model="fillDialog" max-width="480">
+      <v-card>
+        <v-card-title class="text-h6">Fill from inventory</v-card-title>
+        <v-card-text>
+          <p class="text-body-2 mb-4">
+            Queues one label for every piece in stock: each product's quantity to print is what the
+            inventory holds. A product already in the queue gets that quantity instead.
+          </p>
+          <v-select
+            v-model="fillInventoryId"
+            hide-details
+            item-title="name"
+            item-value="id"
+            :items="inventories"
+            label="Inventory"
+            variant="outlined"
+          />
+          <v-checkbox
+            v-model="fillUseSearch"
+            class="mt-2"
+            density="compact"
+            :disabled="!search"
+            hide-details
+            :label="search ? `Only products matching “${search}”` : 'Only products matching the search (type one first)'"
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn text="Cancel" variant="text" @click="fillDialog = false" />
+          <v-btn
+            color="primary"
+            :disabled="!fillInventoryId"
+            :loading="filling"
+            text="Add to queue"
+            variant="flat"
+            @click="fillFromInventory"
+          />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Print options -->
     <v-dialog v-model="printDialog" max-width="480">
       <v-card>
@@ -285,10 +333,12 @@
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useBarcodeQueue } from '@/composables/useBarcodeQueue'
   import { useBarcodes } from '@/composables/useBarcodes'
-  import { usePageAccess } from '@/composables/usePageAccess'
+  import { useInventories } from '@/composables/useInventories'
   import { useNotify } from '@/composables/useNotify'
+  import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
   import { useSettingsStore } from '@/stores/settings'
+  import { applyStockFill, fetchAllStock, stockQueueEntries } from '@/utils/barcodeStockFill'
   import { formatMoney } from '@/utils/money'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
@@ -339,6 +389,42 @@
     }
     notify.success(`Added to the print queue (${queue.value.length} now).`)
     tableRef.value?.clearSelection()
+  }
+
+  // Fill from inventory: the queue gets one label per piece on hand.
+  const { inventories, fetchInventories, fetchStock } = useInventories()
+  const fillDialog = ref(false)
+  const fillInventoryId = ref(null)
+  const fillUseSearch = ref(false)
+  const filling = ref(false)
+
+  async function openFill () {
+    fillUseSearch.value = false
+    fillDialog.value = true
+    if (inventories.value.length === 0) await fetchInventories().catch(() => {})
+    if (!fillInventoryId.value && inventories.value.length > 0) fillInventoryId.value = inventories.value[0].id
+  }
+
+  async function fillFromInventory () {
+    filling.value = true
+    try {
+      const term = fillUseSearch.value ? (search.value ?? '') : ''
+      const stock = await fetchAllStock(pageId => fetchStock(fillInventoryId.value, { search: term, pageSize: 500, pageId }))
+      const entries = stockQueueEntries(stock)
+      if (entries.length === 0) {
+        notify.error('Nothing in stock there to print.')
+        return
+      }
+      queue.value = applyStockFill(queue.value, entries)
+      fillDialog.value = false
+      queueDialog.value = true
+      const pieces = entries.reduce((n, e) => n + e.qty, 0)
+      notify.success(`${entries.length} products, ${pieces} labels added to the print queue.`)
+    } catch (error) {
+      notify.error(error.message)
+    } finally {
+      filling.value = false
+    }
   }
 
   const printDialog = ref(false)
