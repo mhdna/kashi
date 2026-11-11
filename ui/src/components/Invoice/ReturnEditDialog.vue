@@ -7,6 +7,14 @@
           Set how much each returned item gives back. The till changes the return, its total
           and the cash in its drawer, and notes why.
         </p>
+        <v-checkbox
+          v-model="fullPrice"
+          color="primary"
+          data-test="full-price"
+          density="compact"
+          hide-details
+          label="Refund full price, ignoring any deal charge-back"
+        />
         <div v-for="row in rows" :key="row.position" class="refund-row" data-test="refund-row">
           <div class="refund-name">
             <div class="text-body-1">{{ row.name }}</div>
@@ -18,6 +26,7 @@
             v-model="entered[row.position]"
             class="refund-input"
             density="compact"
+            :disabled="fullPrice"
             :error-messages="problem(row)"
             label="Gives back"
             prefix="$"
@@ -63,6 +72,7 @@
   import { formatMoney } from '@/utils/money'
   import {
     creditProblem,
+    fullPriceEntries,
     parseCredit,
     refundEdit,
     refundEditPayload,
@@ -84,6 +94,8 @@
   const entered = ref<Record<number, string>>({})
   const reason = ref('')
   const sending = ref(false)
+  const fullPrice = ref(false)
+  let typed: Record<number, string> = {} // what was typed, kept while full price is on
 
   watch(
     () => [props.modelValue, rows.value] as const,
@@ -91,9 +103,19 @@
       if (!open) {return}
       entered.value = Object.fromEntries(rows.value.map(r => [r.position, (r.credit / 100).toFixed(2)]))
       reason.value = ''
+      fullPrice.value = false
     },
     { immediate: true },
   )
+
+  watch(fullPrice, on => {
+    if (on) {
+      typed = { ...entered.value }
+      entered.value = fullPriceEntries(rows.value)
+    } else {
+      entered.value = typed
+    }
+  })
 
   function problem (row: any) {
     return creditProblem(row, parseCredit(entered.value[row.position]))

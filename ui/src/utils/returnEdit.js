@@ -40,6 +40,13 @@ export function parseCredit (text) {
   return Math.round(Number(s) * 100)
 }
 
+// What every row reads when "full price" is on: each returned line gives
+// back its whole price, whatever a deal charged back. Entries are the text a
+// field holds ("15.00"), keyed by the row's position.
+export function fullPriceEntries (rows) {
+  return Object.fromEntries(rows.map(r => [r.position, (r.max / 100).toFixed(2)]))
+}
+
 // Why an entered credit can't be sent, or '' when it can.
 export function creditProblem (row, cents) {
   if (cents === null || cents === undefined || Number.isNaN(cents)) {return 'Enter an amount like 15 or 15.00'}

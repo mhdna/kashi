@@ -70,4 +70,37 @@ describe('ReturnEditDialog', () => {
     expect(document.body.textContent).toContain('At most 15.00, its price')
     expect(sendButton().disabled).toBe(true)
   })
+
+  it('full price gives every item its whole price, regardless of the deal', async () => {
+    open()
+    await flushPromises()
+    document.querySelector('[data-test="full-price"] input').click()
+    await flushPromises()
+    expect(inputs().map(i => i.value)).toEqual(['9.00', '15.00', '29.00'])
+    expect(inputs().every(i => i.disabled)).toBe(true)
+    expect(document.querySelector('[data-test="refund-total"]').textContent).toContain('-53.00')
+    sendButton().click()
+    await flushPromises()
+    expect(sendCommand).toHaveBeenCalledWith(1, 'edit_return_invoice', {
+      client_ref: 'ref-68',
+      lines: [{ position: 0, barcode: 'b-pants', line_total: -900 }, { position: 1, barcode: 'b-hoodie', line_total: -1500 }],
+      reason: '',
+    })
+  })
+
+  it('switching full price off brings back what was typed', async () => {
+    open()
+    await flushPromises()
+    const hoodie = inputs()[1]
+    hoodie.value = '14'
+    hoodie.dispatchEvent(new Event('input'))
+    await flushPromises()
+    const box = document.querySelector('[data-test="full-price"] input')
+    box.click()
+    await flushPromises()
+    box.click()
+    await flushPromises()
+    expect(inputs().map(i => i.value)).toEqual(['0.00', '14', '29.00'])
+    expect(inputs().some(i => i.disabled)).toBe(false)
+  })
 })

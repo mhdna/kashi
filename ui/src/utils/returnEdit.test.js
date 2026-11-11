@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canEditRefund, creditProblem, parseCredit, refundEdit, refundEditPayload, refundRows } from './returnEdit'
+import { canEditRefund, creditProblem, fullPriceEntries, parseCredit, refundEdit, refundEditPayload, refundRows } from './returnEdit'
 
 // RS/CT/2026/00068 as kashi shows it.
 const invoice = { kind: 'return', client_ref: 'ref-68', branch_id: 1, grand_total: -4100, branch_invoice_code: 'RS/CT/2026/00068' }
@@ -8,6 +8,21 @@ const items = [
   { quantity: -1, unit_price: 1500, line_total: -1200, barcode: '8000000115959', product_name: 'Kids Boy Hoodie', product_code: 'BOC5KBH15' },
   { quantity: -1, unit_price: 2900, line_total: -2900, barcode: '8000000072931', product_name: 'Kids Girl Jacket', product_code: 'CA24KGJK29' },
 ]
+
+describe('full price', () => {
+  it('fills each row with its price, and the edit moves by the charge-back', () => {
+    const rows = refundRows(items)
+    expect(fullPriceEntries(rows)).toEqual({ 0: '9.00', 1: '15.00', 2: '29.00' })
+    const credits = Object.fromEntries(rows.map(r => [r.position, r.max]))
+    expect(refundEdit(invoice, rows, credits).newTotal).toBe(-5300)
+  })
+
+  it('is never over a price, so it always passes the check', () => {
+    for (const row of refundRows(items)) {
+      expect(creditProblem(row, Math.round(Number(fullPriceEntries([row])[row.position]) * 100))).toBe('')
+    }
+  })
+})
 
 describe('edit refund', () => {
   it('makes RS/CT/2026/00068 give back $44', () => {
