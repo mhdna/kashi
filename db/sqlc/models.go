@@ -972,6 +972,7 @@ type BranchSetting struct {
 	DealToggle                         bool            `json:"deal_toggle"`
 	InvoiceRatingsEnabled              bool            `json:"invoice_ratings_enabled"`
 	VariantPickRequired                bool            `json:"variant_pick_required"`
+	SyncVerbose                        bool            `json:"sync_verbose"`
 }
 
 type BranchShift struct {

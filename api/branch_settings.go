@@ -142,6 +142,9 @@ type branchSettingsRequest struct {
 	// cashier pick one (items can override it). Nil leaves it off, the
 	// till's own default.
 	VariantPickRequired *bool `json:"variant_pick_required"`
+	// The till's sync light shows every step of a pull, not only the ones that
+	// received something. Nil leaves it off, the till's own default.
+	SyncVerbose *bool `json:"sync_verbose"`
 	// The invoices list shows each sale's WhatsApp poll answer as an emoji.
 	// Nil (a till that predates it) keeps it on, the till's own default.
 	InvoiceRatingsEnabled *bool `json:"invoice_ratings_enabled"`
@@ -512,6 +515,7 @@ func (server *Server) upsertBranchSettings(ctx *gin.Context, branchID int64, req
 		DiscountToggleDefaultOff:           orZero(req.DiscountToggleDefaultOff),
 		DealToggle:                         orZero(req.DealToggle),
 		VariantPickRequired:                orZero(req.VariantPickRequired),
+		SyncVerbose:                        orZero(req.SyncVerbose),
 		InvoiceRatingsEnabled:              orTrue(req.InvoiceRatingsEnabled),
 		UnknownProductBarcode:              strings.TrimSpace(orZero(req.UnknownProductBarcode)),
 		ProductSearchHiddenFields:          orZero(req.ProductSearchHiddenFields),

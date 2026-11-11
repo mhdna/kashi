@@ -73,3 +73,21 @@ func TestDefaultBranchSettings_VariantPickRequiredIsOptional(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, string(raw), `"variant_pick_required":true`)
 }
+
+// Same for the sync light's verbose switch: only in the saved template when the
+// admin chose a value, so "leave as is" never pushes false over a branch's own.
+func TestDefaultBranchSettings_SyncVerboseIsOptional(t *testing.T) {
+	var unset defaultBranchSettings
+	require.NoError(t, json.Unmarshal([]byte(`{}`), &unset))
+	raw, err := json.Marshal(unset)
+	require.NoError(t, err)
+	require.NotContains(t, string(raw), "sync_verbose")
+
+	var on defaultBranchSettings
+	require.NoError(t, json.Unmarshal([]byte(`{"sync_verbose":true}`), &on))
+	require.NotNil(t, on.SyncVerbose)
+	require.True(t, *on.SyncVerbose)
+	raw, err = json.Marshal(on)
+	require.NoError(t, err)
+	require.Contains(t, string(raw), `"sync_verbose":true`)
+}

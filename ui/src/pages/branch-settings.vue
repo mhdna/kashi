@@ -512,6 +512,13 @@
                           label="Play sounds (scan, checkout, errors, keypad)"
                         />
                         <v-switch
+                          v-model="settingsForm.sync_verbose"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Sync light: show every step (verbose), not only what changed"
+                        />
+                        <v-switch
                           v-model="settingsForm.invoice_keyboard_mode"
                           color="primary"
                           density="compact"
@@ -1628,6 +1635,7 @@
     'discount_toggle_default_off',
     'deal_toggle',
     'variant_pick_required',
+    'sync_verbose',
     'invoice_ratings_enabled',
     'sounds_enabled',
     'salesperson_per_invoice_required',
@@ -2011,6 +2019,7 @@
     discount_toggle_default_off: 'Discounts start off',
     deal_toggle: 'Turn deals off at the till',
     variant_pick_required: 'Pick colour/size on scan',
+    sync_verbose: 'Sync light: every step',
     invoice_ratings_enabled: 'Client ratings in the invoices list',
     unknown_product_barcode: 'Unknown item product',
     product_search_hidden_fields: 'Product search hidden columns',
