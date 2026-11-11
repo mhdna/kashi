@@ -316,6 +316,34 @@ func (q *Queries) ListSaleOptions(ctx context.Context) ([]SaleOption, error) {
 	return items, nil
 }
 
+const setVariantPickForEntries = `-- name: SetVariantPickForEntries :execrows
+UPDATE products SET variant_pick = $1::text
+WHERE id IN (
+  SELECT pv.product_id FROM product_variants pv
+  WHERE pv.barcode = ANY($2::text[])
+  UNION
+  SELECT p.id FROM products p
+  WHERE lower(p.code) = ANY(SELECT lower(e) FROM unnest($2::text[]) AS e)
+)
+`
+
+type SetVariantPickForEntriesParams struct {
+	VariantPick string   `json:"variant_pick"`
+	Entries     []string `json:"entries"`
+}
+
+// Sets the "pick colour/size on scan" override (” follows the branch,
+// 'always', 'never') on every product named by entries, matched like the
+// sale options above: a variant barcode names its product, a code names
+// the product directly. Returns how many products matched.
+func (q *Queries) SetVariantPickForEntries(ctx context.Context, arg SetVariantPickForEntriesParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, setVariantPickForEntries, arg.VariantPick, pq.Array(arg.Entries))
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const upsertDiscountListOptionItem = `-- name: UpsertDiscountListOptionItem :exec
 INSERT INTO discount_list_option_items (discount_list_id, product_variant_id, sale_option_id, discount)
 VALUES ($1, $2, $3, $4)

@@ -971,6 +971,7 @@ type BranchSetting struct {
 	DiscountToggleDefaultOff           bool            `json:"discount_toggle_default_off"`
 	DealToggle                         bool            `json:"deal_toggle"`
 	InvoiceRatingsEnabled              bool            `json:"invoice_ratings_enabled"`
+	VariantPickRequired                bool            `json:"variant_pick_required"`
 }
 
 type BranchShift struct {
@@ -1666,6 +1667,7 @@ type Product struct {
 	LowStockThreshold     sql.NullInt64 `json:"low_stock_threshold"`
 	LowStockAlertsEnabled bool          `json:"low_stock_alerts_enabled"`
 	CategoryID            sql.NullInt64 `json:"category_id"`
+	VariantPick           string        `json:"variant_pick"`
 }
 
 type ProductCategory struct {

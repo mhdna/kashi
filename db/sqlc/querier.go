@@ -1901,6 +1901,11 @@ type Querier interface {
 	SetUnknownItemSlotImage(ctx context.Context, arg SetUnknownItemSlotImageParams) error
 	SetUserAvatarColor(ctx context.Context, arg SetUserAvatarColorParams) error
 	SetVariantBarcode(ctx context.Context, arg SetVariantBarcodeParams) (ProductVariant, error)
+	// Sets the "pick colour/size on scan" override ('' follows the branch,
+	// 'always', 'never') on every product named by entries, matched like the
+	// sale options above: a variant barcode names its product, a code names
+	// the product directly. Returns how many products matched.
+	SetVariantPickForEntries(ctx context.Context, arg SetVariantPickForEntriesParams) (int64, error)
 	SetWhatsAppMessageCost(ctx context.Context, costMicros int64) error
 	SetWhatsAppNumberPhone(ctx context.Context, arg SetWhatsAppNumberPhoneParams) error
 	SetWhatsAppSenderSettings(ctx context.Context, arg SetWhatsAppSenderSettingsParams) error

@@ -313,6 +313,13 @@
                           hide-details
                           label="Accept a product code in the scan field"
                         />
+                        <v-switch
+                          v-model="settingsForm.variant_pick_required"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          label="Cashier must pick the colour/size when a scanned item has variants"
+                        />
                         <v-text-field
                           v-model="settingsForm.unknown_product_barcode"
                           density="compact"
@@ -1620,6 +1627,7 @@
     'discount_toggle',
     'discount_toggle_default_off',
     'deal_toggle',
+    'variant_pick_required',
     'invoice_ratings_enabled',
     'sounds_enabled',
     'salesperson_per_invoice_required',
@@ -2002,6 +2010,7 @@
     discount_toggle: 'Turn discounts off at the till',
     discount_toggle_default_off: 'Discounts start off',
     deal_toggle: 'Turn deals off at the till',
+    variant_pick_required: 'Pick colour/size on scan',
     invoice_ratings_enabled: 'Client ratings in the invoices list',
     unknown_product_barcode: 'Unknown item product',
     product_search_hidden_fields: 'Product search hidden columns',

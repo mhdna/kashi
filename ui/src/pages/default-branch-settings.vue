@@ -942,6 +942,7 @@
       { key: 'discount_toggle', label: "Salespersons can turn a line's discount (30%) off and on", type: 'bool' },
       { key: 'discount_toggle_default_off', label: 'Discounts start off on each new line', type: 'bool' },
       { key: 'deal_toggle', label: "Salespersons can turn a line's deal (B2G1) off and on", type: 'bool' },
+      { key: 'variant_pick_required', label: 'Cashier must pick the colour/size when a scanned item has variants', type: 'bool' },
       { key: 'invoice_ratings_enabled', label: 'Show how clients rated each sale (WhatsApp poll) in the invoices list', type: 'bool' },
     ],
     invoice: [
