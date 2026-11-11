@@ -210,6 +210,7 @@ var routeRules = []routeRule{
 	lookup("/attribute_types", "products"),
 	lookup("/attribute_values", "products"),
 	rule("/barcodes", "products", "products", "inventory"),
+	rule("/variant_pick", "products", "products", "pricing"),
 	// Low-stock thresholds and mutes are set from the Alerts page, which is
 	// part of Inventory.
 	lookup("/products/:id/low_stock_threshold", "inventory"),

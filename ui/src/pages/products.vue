@@ -13,6 +13,10 @@
     />
   </v-dialog>
 
+  <v-dialog v-model="variantPickDialog" max-width="560" :retain-focus="false" scrollable>
+    <VariantPickDialog v-if="variantPickDialog" @close="variantPickDialog = false" />
+  </v-dialog>
+
   <div class="page-root">
     <v-card class="products-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
@@ -56,6 +60,13 @@
           type="file"
           @change="onFilePicked"
         >
+        <v-btn
+          v-if="canEdit"
+          prepend-icon="mdi-palette"
+          text="Colour/size on scan"
+          variant="tonal"
+          @click="variantPickDialog = true"
+        />
         <v-btn
           v-if="canEdit"
           color="primary"
@@ -168,6 +179,7 @@
   import EditProductForm from '@/components/Forms/EditProductForm.vue'
   import NewProductForm from '@/components/Forms/NewProductForm.vue'
   import ProductsTable from '@/components/ProductsTable.vue'
+  import VariantPickDialog from '@/components/VariantPickDialog.vue'
   import { useAttributes } from '@/composables/useAttributes'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
@@ -177,6 +189,7 @@
   const { canEdit } = usePageAccess()
 
   const dialog = ref(false)
+  const variantPickDialog = ref(false)
   const search = ref('')
   const productsTableRef = ref(null)
 

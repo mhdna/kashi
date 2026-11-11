@@ -342,6 +342,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/sale_options", server.listSaleOptions)
 	authRoutes.POST("/sale_options", server.createSaleOption)
 	authRoutes.POST("/sale_options/products", server.setProductSaleOptions)
+	authRoutes.POST("/variant_pick", server.setVariantPick)
 
 	router.POST("/users/login", server.loginUser)
 	// Meta's WhatsApp webhook: no login, every POST is signed (whatsapp_webhook.go).

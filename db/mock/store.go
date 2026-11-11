@@ -13096,6 +13096,21 @@ func (mr *MockStoreMockRecorder) SetVariantBarcode(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetVariantBarcode", reflect.TypeOf((*MockStore)(nil).SetVariantBarcode), arg0, arg1)
 }
 
+// SetVariantPickForEntries mocks base method.
+func (m *MockStore) SetVariantPickForEntries(arg0 context.Context, arg1 db.SetVariantPickForEntriesParams) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetVariantPickForEntries", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetVariantPickForEntries indicates an expected call of SetVariantPickForEntries.
+func (mr *MockStoreMockRecorder) SetVariantPickForEntries(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetVariantPickForEntries", reflect.TypeOf((*MockStore)(nil).SetVariantPickForEntries), arg0, arg1)
+}
+
 // SetWhatsAppMessageCost mocks base method.
 func (m *MockStore) SetWhatsAppMessageCost(arg0 context.Context, arg1 int64) error {
 	m.ctrl.T.Helper()

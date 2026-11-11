@@ -251,7 +251,7 @@ func (q *Queries) GetVariantTotalOnHand(ctx context.Context, variantID int64) (i
 }
 
 const listProductVariants = `-- name: ListProductVariants :many
-SELECT product_variants.id, product_variants.product_id, product_variants.color_id, product_variants.size_id, product_variants.barcode, product_variants.price, product_variants.is_active, product_variants.created_at, product_variants.updated_at, product_variants.avg_cost, product_variants.uid, products.id, products.code, products.name, products.description, products.is_active, products.created_at, products.low_stock_threshold, products.low_stock_alerts_enabled, products.category_id FROM product_variants
+SELECT product_variants.id, product_variants.product_id, product_variants.color_id, product_variants.size_id, product_variants.barcode, product_variants.price, product_variants.is_active, product_variants.created_at, product_variants.updated_at, product_variants.avg_cost, product_variants.uid, products.id, products.code, products.name, products.description, products.is_active, products.created_at, products.low_stock_threshold, products.low_stock_alerts_enabled, products.category_id, products.variant_pick FROM product_variants
 INNER JOIN products ON products.id = product_variants.product_id
 ORDER BY product_variants.id
 LIMIT $1
@@ -298,6 +298,7 @@ func (q *Queries) ListProductVariants(ctx context.Context, arg ListProductVarian
 			&i.Product.LowStockThreshold,
 			&i.Product.LowStockAlertsEnabled,
 			&i.Product.CategoryID,
+			&i.Product.VariantPick,
 		); err != nil {
 			return nil, err
 		}
@@ -363,6 +364,7 @@ SELECT
   products.code,
   products.name,
   products.description,
+  products.variant_pick,
   colors.name AS color_name,
   sizes.name AS size_name,
   brand_val.value AS brand,
@@ -403,6 +405,7 @@ type ListProductVariantsForSyncRow struct {
 	Code        string         `json:"code"`
 	Name        string         `json:"name"`
 	Description string         `json:"description"`
+	VariantPick string         `json:"variant_pick"`
 	ColorName   sql.NullString `json:"color_name"`
 	SizeName    sql.NullString `json:"size_name"`
 	Brand       sql.NullString `json:"brand"`
@@ -451,6 +454,7 @@ func (q *Queries) ListProductVariantsForSync(ctx context.Context, updatedAt time
 			&i.Code,
 			&i.Name,
 			&i.Description,
+			&i.VariantPick,
 			&i.ColorName,
 			&i.SizeName,
 			&i.Brand,
@@ -483,6 +487,7 @@ SELECT
   products.code,
   products.name,
   products.description,
+  products.variant_pick,
   colors.name AS color_name,
   sizes.name AS size_name,
   brand_val.value AS brand,
@@ -522,6 +527,7 @@ type ListProductVariantsForSyncByUIDsRow struct {
 	Code        string         `json:"code"`
 	Name        string         `json:"name"`
 	Description string         `json:"description"`
+	VariantPick string         `json:"variant_pick"`
 	ColorName   sql.NullString `json:"color_name"`
 	SizeName    sql.NullString `json:"size_name"`
 	Brand       sql.NullString `json:"brand"`
@@ -552,6 +558,7 @@ func (q *Queries) ListProductVariantsForSyncByUIDs(ctx context.Context, uids []u
 			&i.Code,
 			&i.Name,
 			&i.Description,
+			&i.VariantPick,
 			&i.ColorName,
 			&i.SizeName,
 			&i.Brand,
@@ -584,6 +591,7 @@ SELECT
   products.code,
   products.name,
   products.description,
+  products.variant_pick,
   colors.name AS color_name,
   sizes.name AS size_name,
   brand_val.value AS brand,
@@ -631,6 +639,7 @@ type ListProductVariantsForSyncPagedRow struct {
 	Code        string         `json:"code"`
 	Name        string         `json:"name"`
 	Description string         `json:"description"`
+	VariantPick string         `json:"variant_pick"`
 	ColorName   sql.NullString `json:"color_name"`
 	SizeName    sql.NullString `json:"size_name"`
 	Brand       sql.NullString `json:"brand"`
@@ -662,6 +671,7 @@ func (q *Queries) ListProductVariantsForSyncPaged(ctx context.Context, arg ListP
 			&i.Code,
 			&i.Name,
 			&i.Description,
+			&i.VariantPick,
 			&i.ColorName,
 			&i.SizeName,
 			&i.Brand,

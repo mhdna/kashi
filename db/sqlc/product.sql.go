@@ -20,7 +20,7 @@ INSERT INTO products (
   description
 ) VALUES (
     $1, $2, $3
-) RETURNING id, code, name, description, is_active, created_at, low_stock_threshold, low_stock_alerts_enabled, category_id
+) RETURNING id, code, name, description, is_active, created_at, low_stock_threshold, low_stock_alerts_enabled, category_id, variant_pick
 `
 
 type CreateProductParams struct {
@@ -42,6 +42,7 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		&i.LowStockThreshold,
 		&i.LowStockAlertsEnabled,
 		&i.CategoryID,
+		&i.VariantPick,
 	)
 	return i, err
 }
@@ -85,7 +86,7 @@ func (q *Queries) GetFirstActiveVariantBarcodeByCode(ctx context.Context, code s
 }
 
 const getProduct = `-- name: GetProduct :one
-SELECT id, code, name, description, is_active, created_at, low_stock_threshold, low_stock_alerts_enabled, category_id FROM products
+SELECT id, code, name, description, is_active, created_at, low_stock_threshold, low_stock_alerts_enabled, category_id, variant_pick FROM products
 WHERE id = $1 LIMIT 1
 `
 
@@ -102,6 +103,7 @@ func (q *Queries) GetProduct(ctx context.Context, id int64) (Product, error) {
 		&i.LowStockThreshold,
 		&i.LowStockAlertsEnabled,
 		&i.CategoryID,
+		&i.VariantPick,
 	)
 	return i, err
 }
@@ -118,7 +120,7 @@ const getProductByCode = `-- name: GetProductByCode :one
 
 
 
-SELECT id, code, name, description, is_active, created_at, low_stock_threshold, low_stock_alerts_enabled, category_id FROM products WHERE code = $1 LIMIT 1
+SELECT id, code, name, description, is_active, created_at, low_stock_threshold, low_stock_alerts_enabled, category_id, variant_pick FROM products WHERE code = $1 LIMIT 1
 `
 
 // -- name: CreatePriceList :one
@@ -234,12 +236,13 @@ func (q *Queries) GetProductByCode(ctx context.Context, code string) (Product, e
 		&i.LowStockThreshold,
 		&i.LowStockAlertsEnabled,
 		&i.CategoryID,
+		&i.VariantPick,
 	)
 	return i, err
 }
 
 const getProductByName = `-- name: GetProductByName :one
-SELECT id, code, name, description, is_active, created_at, low_stock_threshold, low_stock_alerts_enabled, category_id FROM products
+SELECT id, code, name, description, is_active, created_at, low_stock_threshold, low_stock_alerts_enabled, category_id, variant_pick FROM products
 WHERE name = $1 LIMIT 1
 `
 
@@ -256,6 +259,7 @@ func (q *Queries) GetProductByName(ctx context.Context, name string) (Product, e
 		&i.LowStockThreshold,
 		&i.LowStockAlertsEnabled,
 		&i.CategoryID,
+		&i.VariantPick,
 	)
 	return i, err
 }

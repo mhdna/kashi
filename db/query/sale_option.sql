@@ -89,3 +89,17 @@ JOIN product_variants pv ON pv.id = dloi.product_variant_id
 JOIN sale_options so ON so.id = dloi.sale_option_id
 WHERE dloi.discount_list_id = $1
 ORDER BY pv.uid, so.name;
+
+-- name: SetVariantPickForEntries :execrows
+-- Sets the "pick colour/size on scan" override ('' follows the branch,
+-- 'always', 'never') on every product named by entries, matched like the
+-- sale options above: a variant barcode names its product, a code names
+-- the product directly. Returns how many products matched.
+UPDATE products SET variant_pick = sqlc.arg(variant_pick)::text
+WHERE id IN (
+  SELECT pv.product_id FROM product_variants pv
+  WHERE pv.barcode = ANY(sqlc.arg(entries)::text[])
+  UNION
+  SELECT p.id FROM products p
+  WHERE lower(p.code) = ANY(SELECT lower(e) FROM unnest(sqlc.arg(entries)::text[]) AS e)
+);
