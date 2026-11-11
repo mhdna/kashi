@@ -3,6 +3,23 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-11 · Tills pulled from kashi about twice a second, all day
+
+**Symptom.** The till's new sync light showed "Updating" every half second, even with
+nothing changing. On kashi's side every connected till was re-fetching the branch list
+non-stop.
+
+**Cause.** Every request a till makes stamps its branch's `last_seen_at`
+(`TouchBranchRegister`). The `sync_notify` trigger on `branches` (000109) fired for any
+update, so that stamp told every connected till "branches changed, pull". The pull is a
+request, which stamps `last_seen_at` again: a loop that sustained itself.
+
+**Fix.** Migration 000234 splits the trigger: inserts and deletes notify as before, an
+update notifies only when something other than `last_seen_at` changed. Covered by
+`db/sqlc/branches_notify_test.go` (a stamp and `TouchBranchRegister` stay silent; rename,
+deactivate, delete, insert and stamp-plus-change still notify). Breaking the trigger
+makes the first test fail.
+
 ## 2026-11-11 · Failed WhatsApp rows said "poll not sent: WhatsApp is not connected"
 
 **Symptom.** Invoices of the Sour branch showed Failed with "poll not sent: WhatsApp
