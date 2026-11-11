@@ -228,7 +228,7 @@ A code is `[origin][month][year][audience][type][price][-suffix]`:
 | price | the number at the end (EF6LJE10 → 10) | price |
 
 `EOC5LSW25` = Outlet, 2025, Lady, Tops › Sweater, price 25. In a one-digit-year
-code S is Set and B is Jacket; in a two-digit year S is Short. Older codes have no
+code S is Set and B is Blazer (Outerwear › Blazer; migration 000236); JP is jogging pants (Pants); in a two-digit year S is Short. Older codes have no
 price (`CA21LSW`) and fill none; a bare model number (T1178, X2527385) is never a
 price. Outlet stock never gets a fixed season; other families get Summer from
 MAY/JUN/JUL/AUG and Winter from NV/DC. Home prefixes are Home with no kind or year.

@@ -140,12 +140,12 @@ code_regex('subcategory', 'Other', r'^(?:ACC|AOC|ACCJUN|ACNV)(?![A-Z])')
 code_regex('category', 'Shoes', r'^AD(?=\d)')
 code_regex('subcategory', 'Shoes', r'^AD(?=\d)')
 
-# One-digit-year families write S for Set and B for Jacket (EOC5LS..., EF6LB...);
+# One-digit-year families write S for Set and B for Blazer (EOC5LS..., EF6LB...);
 # in two-digit years S is Short.
 ONE_DIGIT = r'^[A-Z]+?\d(?!\d)(?:BB|BG|KB|KG|JB|JG|MX|K|B|L|M)?'
 for field, value in (('category', 'Sets'), ('subcategory', 'Set')):
     code_regex(field, value, ONE_DIGIT + r'S(?:\d|[^A-Z\d]|$)')
-for field, value in (('category', 'Outerwear'), ('subcategory', 'Jacket')):
+for field, value in (('category', 'Outerwear'), ('subcategory', 'Blazer')):
     code_regex(field, value, ONE_DIGIT + r'B(?:\d|[^A-Z\d]|$)')
 
 # (category, sub-category, type tokens)
@@ -161,7 +161,7 @@ TYPES = [
     ('Outerwear', 'Jacket', 'JK J SJ SPJK FJK FJ ANO AN JEJK JKC JKSP JJB JKD JKG JKL JKB LJK RJK JEJ ZJ ANJ JJK JJG AJ DFJ SKIJ SKP SKIP SKPN JSKPN TBZ'),
     ('Outerwear', 'Coat', 'COAT CO VZ WVZ FUR WV CT LCO FU'),
     ('Outerwear', 'Vest & Gilet', 'V VS SPV SPVS FV VKG'),
-    ('Bottoms', 'Pants', 'PN P CTPN WCTPN SPPN CTP JGPN JOP JO CP WPN FPN HA HAPN WP CRP CRPN SP PA PNT CPN PNXL PNX RPN THPN MXPN KP FP FJO WLP CLP LIP VP SYP'),
+    ('Bottoms', 'Pants', 'PN P JP CTPN WCTPN SPPN CTP JGPN JOP JO CP WPN FPN HA HAPN WP CRP CRPN SP PA PNT CPN PNXL PNX RPN THPN MXPN KP FP FJO WLP CLP LIP VP SYP'),
     ('Bottoms', 'Jeans', 'JE JN FJE WJE ZJE JEXL JEX SLJE SKN GH TOROS DOGA GR IRA'),
     ('Bottoms', 'Shorts', 'S CTS SPS WS SHO CSHO'),
     ('Bottoms', 'Skirt', 'SK WSK'),
