@@ -32,3 +32,4 @@ hexdump_session.log
 
 # Spreadsheets dropped in the repo root for one-off imports
 /*.xlsx
+.deploy-logs/

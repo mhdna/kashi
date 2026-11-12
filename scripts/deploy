@@ -1,0 +1,7 @@
+#!/bin/sh
+# ./scripts/deploy [--verbose|-v] [TARGET]   (TARGET: deploy (default), deploy-api, deploy-ui, migrate-prod ...)
+# make can't take --verbose itself, so this turns it into VERBOSE=1.
+cd "$(dirname "$0")/.." || exit 1
+target=deploy; v=
+for a in "$@"; do case "$a" in --verbose|-v) v=1 ;; *) target=$a ;; esac; done
+exec make "$target" ${v:+VERBOSE=1}

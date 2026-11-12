@@ -71,13 +71,23 @@ PROD_DB  ?= postgresql://kashi:kashi@localhost:5432/kashi?sslmode=disable
 SSH_MUX  ?= -o ControlMaster=auto -o ControlPath=/tmp/kashi-ssh-%C -o ControlPersist=60
 export RSYNC_RSH = ssh $(SSH_MUX)
 
+# Deploy output is short and coloured: each step shows one line and its output
+# goes to .deploy-logs/ (see scripts/step.sh). `make deploy VERBOSE=1`, or
+# `./scripts/deploy --verbose`, shows everything.
+MAKEFLAGS += --no-print-directory
+export VERBOSE
+export FORCE_COLOR ?= $(shell test -t 2 && echo 1)
+STEP = ./scripts/step.sh
+
 # Full release: API binary + migrations, then the UI. The UI builds while the
 # API compiles, uploads and restarts; only its upload waits for the API, so a
 # new page never calls an endpoint the old API doesn't have yet.
 deploy:
-	$(MAKE) -j2 --output-sync=target deploy-api build-ui
-	$(MAKE) ship-ui
-	@echo "Deployed -> https://cloud.grandbz.com/"
+	@. ./scripts/pretty.sh; start=$$(date +%s); \
+	printf '%s %sKashi%s -> cloud.grandbz.com\n' "$$B_DEPLOY" "$$C_BOLD" "$$C_RESET"; \
+	$(MAKE) -j2 --output-sync=target STEP_NOSPIN=1 deploy-api build-ui || exit 1; \
+	$(MAKE) ship-ui || exit 1; \
+	say_ok "Deployed in $$(( $$(date +%s) - start ))s  ->  https://cloud.grandbz.com/"
 
 # Cross-compile the API, ship it with the current migrations, run any
 # pending ones on the prod DB (idempotent), restart the service.
@@ -85,13 +95,12 @@ deploy:
 dev-docs:
 	node docs/build-dev-docs.mjs
 
+# -s -w drops the debug tables (57 MB -> 41 MB, ~17 MB as rsync sends it):
+# the upload is most of a deploy. Panics still name their functions.
 deploy-api:
-	# -s -w drops the debug tables (57 MB -> 41 MB, ~17 MB as rsync sends it):
-	# the upload is most of a deploy. Panics still name their functions.
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o /tmp/kashi-api-linux .
-	rsync -avz /tmp/kashi-api-linux $(SSH):$(APP_DIR)/api-linux
-	rsync -avz --delete ./db/migrations/ $(SSH):$(APP_DIR)/migrations/
-	ssh $(SSH_MUX) $(SSH) 'chown -R kashi:kashi $(APP_DIR)/api-linux $(APP_DIR)/migrations && \
+	@$(STEP) "Building API" "Built API" -- env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o /tmp/kashi-api-linux .
+	@$(STEP) "Uploading API" "Uploaded API" -- sh -c 'rsync -avz /tmp/kashi-api-linux $(SSH):$(APP_DIR)/api-linux && rsync -avz --delete ./db/migrations/ $(SSH):$(APP_DIR)/migrations/'
+	@$(STEP) "Migrating and restarting API" "API migrated and running" -- ssh $(SSH_MUX) $(SSH) 'chown -R kashi:kashi $(APP_DIR)/api-linux $(APP_DIR)/migrations && \
 		chmod +x $(APP_DIR)/api-linux && \
 		migrate -path $(APP_DIR)/migrations -database "$(PROD_DB)" up && \
 		systemctl restart kashi-api && sleep 1 && systemctl is-active kashi-api'
@@ -102,10 +111,10 @@ deploy-api:
 deploy-ui: build-ui ship-ui
 
 build-ui:
-	$(MAKE) -C ui build
+	@$(STEP) "Building UI" "Built UI" -- $(MAKE) -C ui build
 
 ship-ui:
-	rsync -avz --delete-after --delay-updates --chmod=D755,F644 ui/dist/ $(SSH):$(UI_ROOT)/
+	@$(STEP) "Uploading UI" "Uploaded UI" -- rsync -avz --delete-after --delay-updates --chmod=D755,F644 ui/dist/ $(SSH):$(UI_ROOT)/
 
 # Post the feat/fix/perf commits shipped since the last posted one to the
 # home page's IT Management feed, as Alex (cmd/release_notes). Run it after
