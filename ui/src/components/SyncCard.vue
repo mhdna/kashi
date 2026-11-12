@@ -12,40 +12,35 @@
       <v-card
         v-bind="props"
         class="d-flex align-center me-2"
-        :class="mobile ? 'icon-pill' : 'py-1 px-2'"
+        :class="[mobile ? 'icon-pill' : 'py-1 px-2', pill && !mobile ? `activity-pill activity-pill--${pill.tint}` : '']"
         rounded="xl"
         style="cursor: pointer"
-        variant="tonal"
+        :variant="pill && !mobile ? 'flat' : 'tonal'"
       >
-        <!-- Idle "synced ... ago" state leads with the cloud. On desktop
-             during activity the per-message trend arrows carry the meaning,
-             so the leading glyph is dropped; the mobile icon-only pill still
-             needs it, so it keeps the activity's own glyph there. -->
         <v-icon
-          v-if="mobile || !currentActivity"
+          v-if="mobile || !pill"
           :class="{ 'me-2': !mobile }"
           :color="currentActivity ? currentActivity.color : wsIconColor"
           :icon="currentActivity ? currentActivity.icon : 'mdi-cloud'"
           :size="mobile ? 20 : undefined"
         />
+        <!-- One message at a time, like the Syncing pill: a ring spinner in
+             its colour, its icon, the branch in bold and the short detail,
+             and +N for the others still showing. Three side by side were
+             each cut to "Test Branch: shift b...". -->
         <div v-if="!mobile" class="text-body-2 ticker">
-          <TransitionGroup class="d-flex align-center reel" name="ticker" tag="div">
-            <span
-              v-for="item in activeItems"
-              :key="`activity-${item.id}`"
-              class="activity-item"
-            >
-              <v-icon
-                v-if="item.trendIcon"
-                class="me-1"
-                :color="item.color"
-                :icon="item.trendIcon"
-                size="14"
-              />
-              <span class="activity-item__text">{{ item.text }}</span>
+          <Transition name="swap">
+            <span v-if="pill" :key="`activity-${pill.id}`" class="activity-line" data-test="activity-line">
+              <v-progress-circular :color="pill.color" indeterminate size="16" width="2" />
+              <v-icon :color="pill.color" :icon="pill.icon" size="14" />
+              <span class="activity-line__text">
+                <strong v-if="pill.branch">{{ pill.branch }}</strong>
+                {{ pill.detail }}
+              </span>
+              <span v-if="pill.more > 0" class="activity-line__more" data-test="activity-more">+{{ pill.more }}</span>
             </span>
-          </TransitionGroup>
-          <span class="status" :class="{ 'status--dim': activeItems.length > 0 }">{{ statusText }}</span>
+          </Transition>
+          <span class="status" :class="{ 'status--dim': pill }">{{ statusText }}</span>
         </div>
       </v-card>
     </template>
@@ -90,6 +85,7 @@
   import { useNetworkStatus } from '@/composables/useNetworkStatus'
   import { useAuthStore } from '@/stores/auth'
   import { useSettingsStore } from '@/stores/settings'
+  import { activityPill } from '@/utils/activityPill'
 
   const { branches, fetchBranches } = useBranches()
   const { listRecentBranchInvoices } = useBranchInvoices()
@@ -141,6 +137,7 @@
 
   // The newest visible activity -- drives the pill's leading icon.
   const currentActivity = computed(() => activeItems.value.at(-1) ?? null)
+  const pill = computed(() => activityPill(activeItems.value))
   const itemTimers = new Map()
   let itemSeq = 0
 
@@ -324,7 +321,7 @@
   overflow-y: auto;
 }
 
-/* The reel and the status line are stacked in a single grid cell so they
+/* The message and the status line are stacked in a single grid cell so they
    can crossfade in place. The pill hugs whichever is wider -- its status
    text, or the messages -- up to max-width; each message is capped at a
    third of that and ellipsized past it. */
@@ -342,68 +339,59 @@
   grid-area: 1 / 1;
 }
 
-.reel {
-  position: relative; /* contains the absolutely-positioned leaving pill */
-  gap: 6px;
-  width: 100%;
-  justify-content: center;
-}
+/* The tint follows the message, like the Syncing pill's soft info tint. */
+.activity-pill--success { background: rgba(var(--v-theme-success), 0.14); border: 1px solid rgba(var(--v-theme-success), 0.28); }
+.activity-pill--error { background: rgba(var(--v-theme-error), 0.14); border: 1px solid rgba(var(--v-theme-error), 0.28); }
+.activity-pill--warning { background: rgba(var(--v-theme-warning), 0.14); border: 1px solid rgba(var(--v-theme-warning), 0.28); }
+.activity-pill--info { background: rgba(var(--v-theme-info), 0.14); border: 1px solid rgba(var(--v-theme-info), 0.28); }
+.activity-pill { transition: background-color 0.24s ease, border-color 0.24s ease; }
 
-/* Fades out when messages are showing and fades back in as the last pill
-   collapses -- a crossfade in place, no layout swap. */
-.status {
-  text-align: center;
-  transition: opacity 0.24s ease;
-}
-
-.status--dim {
-  opacity: 0;
-}
-
-/* Each message rides directly on the pill's own surface -- no separate
-   background -- so the only thing that moves when one leaves is the
-   messages themselves. */
-.activity-item {
+.activity-line {
   display: inline-flex;
   align-items: center;
-  /* sized to its text; at most a third of the ticker's cap (two 6px gaps) */
-  flex: 0 1 auto;
-  max-width: calc((min(44vw, 520px) - 12px) / 3);
+  gap: 8px;
   min-width: 0;
+  max-width: 100%;
+  padding: 0 4px;
 }
 
-.activity-item__text {
+.activity-line__text {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Conveyor belt: a new pill fades in from the right; the oldest is pulled
-   OUT OF FLOW the instant it starts leaving (position: absolute), so the
-   survivors immediately have their final slots and glide into them under
-   ticker-move rather than being shoved by a shrinking sibling. The leaver
-   just fades and drifts left on top. This is what keeps a 4th-message
-   arrival smooth on the left edge. */
-.ticker-enter-active {
-  transition: opacity 0.28s ease, transform 0.28s ease;
+.activity-line__text strong {
+  font-weight: 600;
 }
 
-.ticker-leave-active {
-  position: absolute;
-  transition: opacity 0.2s ease, transform 0.28s ease;
+.activity-line__more {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(var(--v-theme-on-surface), 0.1);
 }
 
-.ticker-enter-from {
-  transform: translateX(14px);
+/* The newest message crossfades in over the last, in place. */
+.swap-enter-active,
+.swap-leave-active {
+  transition: opacity 0.24s ease, transform 0.24s ease;
+}
+
+.swap-enter-from {
   opacity: 0;
+  transform: translateY(6px);
 }
 
-.ticker-leave-to {
-  transform: translateX(-10px);
+.swap-leave-to {
   opacity: 0;
+  transform: translateY(-6px);
 }
 
-.ticker-move {
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+@media (prefers-reduced-motion: reduce) {
+  .swap-enter-active,
+  .swap-leave-active { transition: none; }
 }
 </style>
