@@ -714,3 +714,24 @@ FROM clients
 WHERE phone_country <> ''
 GROUP BY phone_country
 ORDER BY client_count DESC;
+
+-- name: ListHiddenBranchOnlyClientIDs :many
+-- Of these clients, the ones only hidden branches ever made or sold to (see
+-- client_hidden_branch_only). Other tills get them as inactive.
+SELECT id FROM clients
+WHERE id = ANY(sqlc.arg(ids)::bigint[]) AND client_hidden_branch_only(id);
+
+-- name: ListBranchHiddenOnlyClientIDs :many
+-- The clients this branch made or sold to that no visible branch has: the
+-- ones hiding (or showing) the branch takes off (or puts back on) other tills.
+SELECT c.id FROM clients c
+WHERE c.client_type = 'retail'
+  AND (
+    c.branch_id = sqlc.arg(branch_id)::bigint
+    OR EXISTS (SELECT 1 FROM client_links cl WHERE cl.client_id = c.id AND cl.branch_id = sqlc.arg(branch_id)::bigint)
+  )
+  AND client_hidden_branch_only(c.id);
+
+-- name: TouchClients :exec
+-- Re-sends these clients to every till on its next pull.
+UPDATE clients SET updated_at = now() WHERE id = ANY(sqlc.arg(ids)::bigint[]);

@@ -180,9 +180,17 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 				last := rows[len(rows)-1]
 				nextCursor = syncCursor{updatedAt: last.UpdatedAt, id: last.ID}.encode()
 			}
+			if err == nil {
+				err = server.retractHiddenBranchClients(ctx, rows)
+			}
 			items = rows
 		} else {
-			items, err = server.store.ListClientsUpdatedSince(ctx, since)
+			var rows []db.Client
+			rows, err = server.store.ListClientsUpdatedSince(ctx, since)
+			if err == nil {
+				err = server.retractHiddenBranchClients(ctx, rows)
+			}
+			items = rows
 		}
 	case "branch_targets":
 		// Unlike the entities above, targets are branch-specific -- scoped
@@ -628,4 +636,39 @@ func (server *Server) branchReconcile(ctx *gin.Context) {
 		}
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{"missing": missing})
+}
+
+// retractHiddenBranchClients sends a visible branch's till every client only
+// hidden (test) branches made or sold to as inactive, so it hides them (the
+// till never deletes a client). A hidden branch's own tills get them as they
+// are. Flipping the switch re-sends them (setBranchHiddenFromReports).
+func (server *Server) retractHiddenBranchClients(ctx *gin.Context, rows []db.Client) error {
+	if len(rows) == 0 {
+		return nil
+	}
+	branch, err := server.store.GetBranch(ctx, ctx.MustGet(branchIDKey).(int64))
+	if err != nil {
+		return err
+	}
+	if branch.HiddenFromReports {
+		return nil
+	}
+	ids := make([]int64, len(rows))
+	for i, r := range rows {
+		ids[i] = r.ID
+	}
+	hidden, err := server.store.ListHiddenBranchOnlyClientIDs(ctx, ids)
+	if err != nil || len(hidden) == 0 {
+		return err
+	}
+	retract := make(map[int64]bool, len(hidden))
+	for _, id := range hidden {
+		retract[id] = true
+	}
+	for i := range rows {
+		if retract[rows[i].ID] {
+			rows[i].IsActive = false
+		}
+	}
+	return nil
 }

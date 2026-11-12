@@ -56,11 +56,13 @@ export function useBranches () {
   // A hidden branch keeps syncing; its data just stays out of every report
   // (dashboard, daily income, invoice lists, ...) -- see migration 000117.
   async function setBranchHiddenFromReports (id, hidden) {
-    await requestJSON(`${API_BASE}/branches/${id}/${hidden ? 'hide_from_reports' : 'show_in_reports'}`, { method: 'POST' })
+    const data = await requestJSON(`${API_BASE}/branches/${id}/${hidden ? 'hide_from_reports' : 'show_in_reports'}`, { method: 'POST' })
     const branch = branches.value.find(b => b.id === id)
     if (branch) {
       branch.hidden_from_reports = hidden
     }
+    // How many of its own clients went off (or back on) the other tills.
+    return data?.clients_resent ?? 0
   }
 
   async function listRegisters (branchId) {
