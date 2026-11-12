@@ -164,13 +164,13 @@ left out (deactivated). Coverage on the 2026-10-17 snapshot: 13,173 of
 
 | Category | Sub-category | Name words |
 |---|---|---|
+| Accessories | Socks & Tights | sock, collant, tights (before Home: "towel socks" are socks) |
 | Home | Home | cup, glass, plate, bowl, towel, blanket, table cover, carpet, cutting board, mat, pot, tray, container, mug, sheet, pillow, comforter, curtain |
 | Beauty | Perfume & Care | body milk, body lotion, perfume, for him/her, shampoo, conditioner, lotion, cream, sanitizer, shower gel, spray |
 | Accessories | Bag | bag, sack, wallet, purse, backpack |
 | | Hat & Cap | hat, cap, beanie |
 | | Gloves | glove |
 | | Scarf & Shawl | scarf, shawl, neck cover, hijab |
-| | Socks & Tights | sock, collant, tights |
 | | Belt | belt |
 | | Watch & Jewelry | watch, bracelet, ring, necklace, earring, key holder |
 | | Other | accessor, sunglasses, umbrella, lunch box, water bottle |

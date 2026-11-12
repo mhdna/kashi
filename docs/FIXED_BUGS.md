@@ -3,6 +3,21 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-12 · Towel socks were filed as Home and got the 30% discount
+
+**Symptom.** At the till, "Men Towel long socks" (COC5MTLSO3) showed -30%. Socks are accessories and
+get no discount.
+
+**Cause.** The auto-fill reads category from words in the name, first match wins, and the Home row
+(which lists "towel") came before Socks & Tights. Five towel-sock products were saved as Home / Home,
+so the China & Turkey 30% rule caught them instead of the no-discount Accessories rule.
+
+**Fix.** On prod the five products (COC5MTLSO3, X23MTLSCK3, X23MTSCK2.5, X23KSOCKST3, X23BSOCKST2) were
+moved to Accessories / Socks & Tights. In `db/tools/gen_autofill_rules.py` the socks row now comes
+before Home; migration 000237 ships the regenerated rules. Covered by
+`ui/src/utils/productAutofillRules.test.js` ("socks are accessories, even towel socks"; the five
+cases fail against 000236).
+
 ## 2026-11-11 · Tills pulled from kashi about twice a second, all day
 
 **Symptom.** The till's new sync light showed "Updating" every half second, even with

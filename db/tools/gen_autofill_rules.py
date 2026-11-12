@@ -192,13 +192,14 @@ for category, sub, tokens in TYPES:
 # Words in the name, first match wins (top to bottom), for codes the layout
 # can't read. Same order and words as doc/product-rules.md.
 NAME_TYPES = [
+    # Before Home: "Towel Socks" is socks, not a towel.
+    ('Accessories', 'Socks & Tights', r'\b(?:socks?|collants?|tights)\b'),
     ('Home', 'Home', r'\b(?:cups?|glass(?:es)?|plates?|bowls?|towels?|blankets?|table ?cover|carpets?|cutting board|mats?|pots?|trays?|containers?|mugs?|sheets?|pillows?|comforters?|curtains?|duvets?|bed set|tables?|cabinets?)\b'),
     ('Beauty', 'Perfume & Care', r'\b(?:body (?:milk|lotion)|perfumes?|for (?:him|her)|shampoo|conditioner|lotion|cream|sanitizer|shower gel|spray)\b'),
     ('Accessories', 'Bag', r'\b(?:bags?|sacks?|wallets?|purse|backpacks?)\b'),
     ('Accessories', 'Hat & Cap', r'\b(?:hats?|caps?|beanie)\b'),
     ('Accessories', 'Gloves', r'\bgloves?\b'),
     ('Accessories', 'Scarf & Shawl', r'\b(?:scarf|scarves|shawls?|neck cover|hijab)\b'),
-    ('Accessories', 'Socks & Tights', r'\b(?:socks?|collants?|tights)\b'),
     ('Accessories', 'Belt', r'\bbelts?\b'),
     ('Accessories', 'Watch & Jewelry', r'\b(?:watch|bracelet|rings?|necklace|earrings?|key holder)\b'),
     ('Accessories', 'Other', r'\b(?:accessor\w*|sunglasses|umbrella|lunch box|water bottle)\b'),
