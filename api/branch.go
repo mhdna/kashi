@@ -175,6 +175,17 @@ func (server *Server) setBranchHiddenFromReports(hidden bool) gin.HandlerFunc {
 			return
 		}
 
+		// The branch's own clients (the ones no visible branch has) go off
+		// every other till when it is hidden, and back when it is shown:
+		// they are picked while the branch is hidden and re-sent after.
+		var own []int64
+		var err error
+		if !hidden {
+			if own, err = server.store.ListBranchHiddenOnlyClientIDs(ctx, req.ID); err != nil {
+				server.writeError(ctx, http.StatusInternalServerError, err)
+				return
+			}
+		}
 		if err := server.store.SetBranchHiddenFromReports(ctx, db.SetBranchHiddenFromReportsParams{
 			ID:                req.ID,
 			HiddenFromReports: hidden,
@@ -182,7 +193,20 @@ func (server *Server) setBranchHiddenFromReports(hidden bool) gin.HandlerFunc {
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
 		}
+		if hidden {
+			if own, err = server.store.ListBranchHiddenOnlyClientIDs(ctx, req.ID); err != nil {
+				server.writeError(ctx, http.StatusInternalServerError, err)
+				return
+			}
+		}
+		if len(own) > 0 {
+			if err := server.store.TouchClients(ctx, own); err != nil {
+				server.writeError(ctx, http.StatusInternalServerError, err)
+				return
+			}
+			server.branchHub.broadcastAll(branchWSMessage{Type: "client_updated"})
+		}
 
-		server.writeJSON(ctx, http.StatusOK, envelope{"id": req.ID, "hidden_from_reports": hidden})
+		server.writeJSON(ctx, http.StatusOK, envelope{"id": req.ID, "hidden_from_reports": hidden, "clients_resent": len(own)})
 	}
 }

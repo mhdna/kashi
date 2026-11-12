@@ -84,6 +84,7 @@ Business settings (WhatsApp credentials, templates, webhook secret) live **in th
 - Paged only for the two unbounded entities (clients, variants): `limit` + opaque `cursor` `<updated_at>|<id>`.
 - A **completeness check** compares every uid, because a cursor only sees changes.
 - Conflicts are **staged** for an admin; a push never fails because staging failed.
+- A branch **hidden from reports** (a test branch) keeps its own clients to itself: other tills get them as inactive.
 :::
 
 ::: diagram syncChanges
@@ -92,6 +93,7 @@ Business settings (WhatsApp credentials, templates, webhook secret) live **in th
 | --- | --- |
 | Identity | Rows carry a `uid`. A till's local ids mean nothing here; invoice lines reference the till's own ids as plain values. |
 | Catch-up | `since` omitted = a full snapshot (a fresh till needs no bootstrap). `cursor` supersedes `since`. An old till that omits `limit` still gets one unbounded answer. |
+| Hidden branches | A client is the hidden branch's own when only hidden branches linked, homed or sold to them (`client_hidden_branch_only`, migration 238). The pull and `/branch/sync/fetch` send such a client to a visible branch's till as `is_active: false`, so the till hides it (it never deletes a client); the hidden branch's own tills get it as is. Hiding or showing a branch bumps those clients' `updated_at` and broadcasts `client_updated`, so every till re-pulls them. |
 | Completeness | `/branch/sync/ids` lists uid + `updated_at` (inactive rows included, so a till learns a row went inactive); `/branch/sync/fetch` returns the missing rows. |
 | Cursor overlap | `server_time` from catch-up is 2 min behind now (`syncCursorOverlap`): `updated_at` is written before commit, so a pull in between would pass a change it can't see yet. Stamp list rows with `clock_timestamp()`, not `now()`. |
 | Lists | A price or discount list the till must stop using is sent **active and empty**, never inactive: tills delete an inactive list, which fails once it has sales and rolls back the whole pull. |

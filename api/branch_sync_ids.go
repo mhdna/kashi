@@ -123,7 +123,14 @@ func (server *Server) branchSyncFetch(ctx *gin.Context) {
 	var err error
 	switch req.Entity {
 	case "clients":
-		items, err = server.store.ListClientsByUIDs(ctx, uids)
+		var rows []db.Client
+		rows, err = server.store.ListClientsByUIDs(ctx, uids)
+		if err == nil {
+			// Same as the pull: a hidden branch's own clients go inactive
+			// here, or a completeness check would bring them back.
+			err = server.retractHiddenBranchClients(ctx, rows)
+		}
+		items = rows
 	case "products":
 		items, err = server.store.ListProductVariantsForSyncByUIDs(ctx, uids)
 	}

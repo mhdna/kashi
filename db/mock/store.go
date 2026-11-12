@@ -7861,6 +7861,21 @@ func (mr *MockStoreMockRecorder) ListBranchExpenses(arg0, arg1 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchExpenses", reflect.TypeOf((*MockStore)(nil).ListBranchExpenses), arg0, arg1)
 }
 
+// ListBranchHiddenOnlyClientIDs mocks base method.
+func (m *MockStore) ListBranchHiddenOnlyClientIDs(arg0 context.Context, arg1 int64) ([]int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBranchHiddenOnlyClientIDs", arg0, arg1)
+	ret0, _ := ret[0].([]int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBranchHiddenOnlyClientIDs indicates an expected call of ListBranchHiddenOnlyClientIDs.
+func (mr *MockStoreMockRecorder) ListBranchHiddenOnlyClientIDs(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBranchHiddenOnlyClientIDs", reflect.TypeOf((*MockStore)(nil).ListBranchHiddenOnlyClientIDs), arg0, arg1)
+}
+
 // ListBranchInvoiceCouponCodesForHistory mocks base method.
 func (m *MockStore) ListBranchInvoiceCouponCodesForHistory(arg0 context.Context, arg1 db.ListBranchInvoiceCouponCodesForHistoryParams) ([]db.ListBranchInvoiceCouponCodesForHistoryRow, error) {
 	m.ctrl.T.Helper()
@@ -9584,6 +9599,21 @@ func (m *MockStore) ListGoogleReviews(arg0 context.Context, arg1 db.ListGoogleRe
 func (mr *MockStoreMockRecorder) ListGoogleReviews(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListGoogleReviews", reflect.TypeOf((*MockStore)(nil).ListGoogleReviews), arg0, arg1)
+}
+
+// ListHiddenBranchOnlyClientIDs mocks base method.
+func (m *MockStore) ListHiddenBranchOnlyClientIDs(arg0 context.Context, arg1 []int64) ([]int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListHiddenBranchOnlyClientIDs", arg0, arg1)
+	ret0, _ := ret[0].([]int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListHiddenBranchOnlyClientIDs indicates an expected call of ListHiddenBranchOnlyClientIDs.
+func (mr *MockStoreMockRecorder) ListHiddenBranchOnlyClientIDs(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListHiddenBranchOnlyClientIDs", reflect.TypeOf((*MockStore)(nil).ListHiddenBranchOnlyClientIDs), arg0, arg1)
 }
 
 // ListHomeActivityResolutions mocks base method.
@@ -13266,6 +13296,20 @@ func (m *MockStore) TouchBranchRegister(arg0 context.Context, arg1 int64) error 
 func (mr *MockStoreMockRecorder) TouchBranchRegister(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TouchBranchRegister", reflect.TypeOf((*MockStore)(nil).TouchBranchRegister), arg0, arg1)
+}
+
+// TouchClients mocks base method.
+func (m *MockStore) TouchClients(arg0 context.Context, arg1 []int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TouchClients", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// TouchClients indicates an expected call of TouchClients.
+func (mr *MockStoreMockRecorder) TouchClients(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TouchClients", reflect.TypeOf((*MockStore)(nil).TouchClients), arg0, arg1)
 }
 
 // TransferApproveTx mocks base method.

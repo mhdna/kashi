@@ -634,6 +634,7 @@
               :disabled="!canEdit"
               hide-details
               :model-value="!item.hidden_from_reports"
+              title="Off: out of reports, and its own clients stay off the other tills"
               @update:model-value="value => toggleInReports(item, value)"
             />
           </template>
@@ -692,6 +693,7 @@
   import { useBranchTargets } from '@/composables/useBranchTargets'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { hiddenBranchMessage } from '@/utils/hiddenBranchMessage'
 
   const notify = useNotify()
 
@@ -737,8 +739,9 @@
     { title: 'Name', key: 'name', align: 'start' },
     { title: 'Code', key: 'code', align: 'start' },
     { title: 'Active', key: 'is_active', align: 'center', sortable: false },
-    // Off keeps the branch syncing but out of every report and stat.
-    { title: 'In reports', key: 'hidden_from_reports', align: 'center', sortable: false },
+    // Off keeps the branch syncing but out of every report and stat, and
+    // keeps its own clients off the other tills (a test branch).
+    { title: 'Shared', key: 'hidden_from_reports', align: 'center', sortable: false },
     { title: 'Last Seen', key: 'last_seen_at', align: 'start', sortable: false },
     { title: '', key: 'actions', align: 'end', sortable: false },
   ])
@@ -812,7 +815,8 @@
 
   async function toggleInReports (item, value) {
     try {
-      await setBranchHiddenFromReports(item.id, !value)
+      const moved = await setBranchHiddenFromReports(item.id, !value)
+      notify.success(hiddenBranchMessage(item.name, !value, moved))
     } catch (error) {
       notify.error(error.message)
     }
