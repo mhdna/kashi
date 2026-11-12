@@ -1,16 +1,16 @@
 <template>
-  <v-card
+  <div
     v-if="syncingBranchIds.length > 0"
-    class="d-flex align-center"
-    :class="mobile ? 'icon-pill' : 'py-1 px-2'"
-    rounded="xl"
-    variant="tonal"
+    class="sync-pill"
+    :class="{ 'sync-pill--icon': mobile }"
+    :title="`Syncing ${syncingBranchNames}`"
+    role="status"
   >
-    <v-icon class="rotate" color="info" icon="mdi-cloud-download" size="18" />
-    <span v-if="!mobile" class="ms-1 text-body-2">
-      Syncing {{ syncingBranchNames }}
+    <v-progress-circular color="info" indeterminate size="16" width="2" />
+    <span v-if="!mobile" class="sync-pill__text">
+      Syncing <strong>{{ syncingBranchNames }}</strong>
     </span>
-  </v-card>
+  </div>
 </template>
 
 <script setup>
@@ -54,20 +54,28 @@
 </script>
 
 <style scoped>
-  .icon-pill {
+  /* A soft pill with a ring spinner, like the till's sync light in kashi-pos. */
+  .sync-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 14px 0 10px;
+    border-radius: 999px;
+    background: rgba(var(--v-theme-info), 0.14);
+    border: 1px solid rgba(var(--v-theme-info), 0.28);
+    font-size: 0.8125rem;
+    white-space: nowrap;
+  }
+
+  .sync-pill--icon {
     width: 34px;
     height: 34px;
+    padding: 0;
     justify-content: center;
   }
 
-  /* A static download icon reads as "idle"; spin it so a persistently
-     syncing branch stays visually distinct from any other cloud icon. */
-  .rotate {
-    animation: spin 1.6s linear infinite;
-  }
-
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+  .sync-pill__text strong {
+    font-weight: 600;
   }
 </style>
