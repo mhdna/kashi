@@ -1351,8 +1351,9 @@ type Querier interface {
 	// Newest first, for the given places.
 	ListGoogleReviews(ctx context.Context, arg ListGoogleReviewsParams) ([]GoogleReview, error)
 	// Of these clients, the ones only hidden branches ever made or sold to (see
-	// client_hidden_branch_only). Other tills get them as inactive.
-	ListHiddenBranchOnlyClientIDs(ctx context.Context, ids []int64) ([]int64, error)
+	// client_hidden_branch_only), and whether one is withheld from visible tills
+	// altogether (made after its branches were hidden) or sent to them inactive.
+	ListHiddenBranchOnlyClients(ctx context.Context, ids []int64) ([]ListHiddenBranchOnlyClientsRow, error)
 	// Which of a page's rows of one kind are resolved, and by whom.
 	ListHomeActivityResolutions(ctx context.Context, arg ListHomeActivityResolutionsParams) ([]ListHomeActivityResolutionsRow, error)
 	// Products that have opted out of low-stock alerting entirely, regardless
@@ -1579,6 +1580,9 @@ type Querier interface {
 	// The WhatsApp page: post-sale message rules and the message log
 	// (api/whatsapp_rules.go).
 	ListWhatsAppRules(ctx context.Context) ([]WhatsappRule, error)
+	// Of these uids, the clients withheld from visible tills: the completeness
+	// check must not list them, or a till would fetch what the pull leaves out.
+	ListWithheldClientUIDs(ctx context.Context, uids []uuid.UUID) ([]uuid.UUID, error)
 	// Clients who answered 1 or 2 stars, newest first: the ones to call back.
 	LowPollRatings(ctx context.Context, arg LowPollRatingsParams) ([]LowPollRatingsRow, error)
 	// Loyalty page: new clients per calendar month (UTC) over the last 12 months.
@@ -1819,6 +1823,8 @@ type Querier interface {
 	SetBranchExpenseFromCentral(ctx context.Context, arg SetBranchExpenseFromCentralParams) (BranchExpense, error)
 	// The same, from kashi's expenses page.
 	SetBranchExpenseFromCentralByID(ctx context.Context, arg SetBranchExpenseFromCentralByIDParams) (BranchExpense, error)
+	// hidden_since keeps the first hide's time while it stays hidden, and clears
+	// when shown (see client_withheld_from_visible).
 	SetBranchHiddenFromReports(ctx context.Context, arg SetBranchHiddenFromReportsParams) error
 	SetBranchInventory(ctx context.Context, arg SetBranchInventoryParams) error
 	SetBranchInvoiceDiscount(ctx context.Context, arg SetBranchInvoiceDiscountParams) error

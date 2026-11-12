@@ -1418,26 +1418,63 @@ func (q *Queries) ListClientsWithLoyalty(ctx context.Context, arg ListClientsWit
 	return items, nil
 }
 
-const listHiddenBranchOnlyClientIDs = `-- name: ListHiddenBranchOnlyClientIDs :many
-SELECT id FROM clients
+const listHiddenBranchOnlyClients = `-- name: ListHiddenBranchOnlyClients :many
+SELECT id, uid, client_withheld_from_visible(id)::boolean AS withheld FROM clients
 WHERE id = ANY($1::bigint[]) AND client_hidden_branch_only(id)
 `
 
+type ListHiddenBranchOnlyClientsRow struct {
+	ID       int64     `json:"id"`
+	Uid      uuid.UUID `json:"uid"`
+	Withheld bool      `json:"withheld"`
+}
+
 // Of these clients, the ones only hidden branches ever made or sold to (see
-// client_hidden_branch_only). Other tills get them as inactive.
-func (q *Queries) ListHiddenBranchOnlyClientIDs(ctx context.Context, ids []int64) ([]int64, error) {
-	rows, err := q.db.QueryContext(ctx, listHiddenBranchOnlyClientIDs, pq.Array(ids))
+// client_hidden_branch_only), and whether one is withheld from visible tills
+// altogether (made after its branches were hidden) or sent to them inactive.
+func (q *Queries) ListHiddenBranchOnlyClients(ctx context.Context, ids []int64) ([]ListHiddenBranchOnlyClientsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listHiddenBranchOnlyClients, pq.Array(ids))
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []int64{}
+	items := []ListHiddenBranchOnlyClientsRow{}
 	for rows.Next() {
-		var id int64
-		if err := rows.Scan(&id); err != nil {
+		var i ListHiddenBranchOnlyClientsRow
+		if err := rows.Scan(&i.ID, &i.Uid, &i.Withheld); err != nil {
 			return nil, err
 		}
-		items = append(items, id)
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listWithheldClientUIDs = `-- name: ListWithheldClientUIDs :many
+SELECT uid FROM clients
+WHERE uid = ANY($1::uuid[]) AND client_withheld_from_visible(id)
+`
+
+// Of these uids, the clients withheld from visible tills: the completeness
+// check must not list them, or a till would fetch what the pull leaves out.
+func (q *Queries) ListWithheldClientUIDs(ctx context.Context, uids []uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, listWithheldClientUIDs, pq.Array(uids))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var uid uuid.UUID
+		if err := rows.Scan(&uid); err != nil {
+			return nil, err
+		}
+		items = append(items, uid)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

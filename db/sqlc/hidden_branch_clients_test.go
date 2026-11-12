@@ -8,8 +8,78 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
+
+func hiddenOnlyIDs(ctx context.Context, ids []int64) ([]int64, error) {
+	rows, err := testQueries.ListHiddenBranchOnlyClients(ctx, ids)
+	out := make([]int64, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, r.ID)
+	}
+	return out, err
+}
+
+// The reported case: Test Branch 2's fake clients made after it was hidden
+// never reached a real till, so they are withheld from visible tills
+// altogether; older ones may have, so they go out as inactive.
+func TestHiddenBranchWithheldClients(t *testing.T) {
+	ctx := context.Background()
+	test := createTestBranchWithRegister(t)
+	seq := int64(2_000_000)
+	link := func(c Client) {
+		seq++
+		require.NoError(t, testQueries.UpsertClientLink(ctx, UpsertClientLinkParams{BranchID: test.Branch.ID, RegisterID: test.Register.ID, BranchClientID: seq, ClientID: c.ID}))
+	}
+	before := createRandomClient(t)
+	link(before)
+	// clients.created_at is stored to the second, and one made in the same
+	// second as the hide counts as before it (sent inactive, the safe side).
+	time.Sleep(1100 * time.Millisecond)
+	require.NoError(t, testQueries.SetBranchHiddenFromReports(ctx, SetBranchHiddenFromReportsParams{ID: test.Branch.ID, HiddenFromReports: true}))
+	time.Sleep(1100 * time.Millisecond)
+	after := createRandomClient(t)
+	link(after)
+
+	withheld := func() map[int64]bool {
+		rows, err := testQueries.ListHiddenBranchOnlyClients(ctx, []int64{before.ID, after.ID})
+		require.NoError(t, err)
+		out := map[int64]bool{}
+		for _, r := range rows {
+			out[r.ID] = r.Withheld
+		}
+		return out
+	}
+	require.Equal(t, map[int64]bool{before.ID: false, after.ID: true}, withheld())
+
+	uids, err := testQueries.ListWithheldClientUIDs(ctx, []uuid.UUID{before.Uid, after.Uid})
+	require.NoError(t, err)
+	require.Equal(t, []uuid.UUID{after.Uid}, uids)
+
+	// Hiding again keeps the first hide's time.
+	require.NoError(t, testQueries.SetBranchHiddenFromReports(ctx, SetBranchHiddenFromReportsParams{ID: test.Branch.ID, HiddenFromReports: true}))
+	require.Equal(t, map[int64]bool{before.ID: false, after.ID: true}, withheld())
+
+	// Shown: nobody is hidden-only. Hidden again later: both may be on a real
+	// till by then, so neither is withheld.
+	require.NoError(t, testQueries.SetBranchHiddenFromReports(ctx, SetBranchHiddenFromReportsParams{ID: test.Branch.ID, HiddenFromReports: false}))
+	require.Empty(t, withheld())
+	time.Sleep(1100 * time.Millisecond)
+	require.NoError(t, testQueries.SetBranchHiddenFromReports(ctx, SetBranchHiddenFromReportsParams{ID: test.Branch.ID, HiddenFromReports: true}))
+	require.Equal(t, map[int64]bool{before.ID: false, after.ID: false}, withheld())
+
+	// A visible branch linking the client: not hidden-only, never withheld.
+	real := createTestBranchWithRegister(t)
+	late := createRandomClient(t)
+	link(late)
+	seq++
+	require.NoError(t, testQueries.UpsertClientLink(ctx, UpsertClientLinkParams{BranchID: real.Branch.ID, RegisterID: real.Register.ID, BranchClientID: seq, ClientID: late.ID}))
+	uids, err = testQueries.ListWithheldClientUIDs(ctx, []uuid.UUID{late.Uid})
+	require.NoError(t, err)
+	require.Empty(t, uids)
+	require.NoError(t, testQueries.SetBranchHiddenFromReports(ctx, SetBranchHiddenFromReportsParams{ID: test.Branch.ID, HiddenFromReports: false}))
+}
 
 // A client only a hidden (test) branch made or sold to stays on that branch:
 // the rule behind the other tills getting it as inactive.
@@ -58,12 +128,12 @@ func TestHiddenBranchOnlyClients(t *testing.T) {
 	ids := []int64{fake.ID, fakeHome.ID, shared.ID, boughtAtReal.ID, cancelledAtReal.ID, realHome.ID, central.ID}
 
 	// Nothing hidden yet: nobody is retracted.
-	got, err := testQueries.ListHiddenBranchOnlyClientIDs(ctx, ids)
+	got, err := hiddenOnlyIDs(ctx, ids)
 	require.NoError(t, err)
 	require.Empty(t, got)
 
 	hide(test, true)
-	got, err = testQueries.ListHiddenBranchOnlyClientIDs(ctx, ids)
+	got, err = hiddenOnlyIDs(ctx, ids)
 	require.NoError(t, err)
 	require.ElementsMatch(t, []int64{fake.ID, fakeHome.ID, cancelledAtReal.ID}, got)
 
@@ -76,14 +146,14 @@ func TestHiddenBranchOnlyClients(t *testing.T) {
 
 	// Hiding the real branch too makes the shared ones hidden-only as well.
 	hide(real, true)
-	got, err = testQueries.ListHiddenBranchOnlyClientIDs(ctx, ids)
+	got, err = hiddenOnlyIDs(ctx, ids)
 	require.NoError(t, err)
 	require.ElementsMatch(t, []int64{fake.ID, fakeHome.ID, shared.ID, boughtAtReal.ID, cancelledAtReal.ID, realHome.ID}, got)
 	hide(real, false)
 
 	// Showing the test branch again puts everyone back.
 	hide(test, false)
-	got, err = testQueries.ListHiddenBranchOnlyClientIDs(ctx, ids)
+	got, err = hiddenOnlyIDs(ctx, ids)
 	require.NoError(t, err)
 	require.Empty(t, got)
 
@@ -150,7 +220,7 @@ func TestHiddenBranchOnlyClientsRandom(t *testing.T) {
 				want = append(want, c.ID)
 			}
 		}
-		got, err := testQueries.ListHiddenBranchOnlyClientIDs(ctx, ids)
+		got, err := hiddenOnlyIDs(ctx, ids)
 		require.NoError(t, err)
 		require.ElementsMatch(t, want, got, fmt.Sprintf("round %d hidden %v", round, hidden))
 	}

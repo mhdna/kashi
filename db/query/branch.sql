@@ -43,6 +43,9 @@ WHERE id != $1 AND is_active
 ORDER BY name;
 
 -- name: SetBranchHiddenFromReports :exec
+-- hidden_since keeps the first hide's time while it stays hidden, and clears
+-- when shown (see client_withheld_from_visible).
 UPDATE branches
-SET hidden_from_reports = $2
+SET hidden_from_reports = $2,
+    hidden_since = CASE WHEN $2 THEN COALESCE(hidden_since, now()) ELSE NULL END
 WHERE id = $1;

@@ -656,6 +656,7 @@ type Branch struct {
 	WhatsappNumberID         sql.NullInt64  `json:"whatsapp_number_id"`
 	WhatsappEnabled          bool           `json:"whatsapp_enabled"`
 	WhatsappHiddenFields     sql.NullString `json:"whatsapp_hidden_fields"`
+	HiddenSince              sql.NullTime   `json:"hidden_since"`
 }
 
 type BranchAttendanceChange struct {

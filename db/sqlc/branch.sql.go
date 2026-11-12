@@ -15,7 +15,7 @@ INSERT INTO branches (
   name,
   code
 ) VALUES ( $1, $2 )
-RETURNING id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports, google_place_id, whatsapp_number_id, whatsapp_enabled, whatsapp_hidden_fields
+RETURNING id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports, google_place_id, whatsapp_number_id, whatsapp_enabled, whatsapp_hidden_fields, hidden_since
 `
 
 type CreateBranchParams struct {
@@ -41,12 +41,13 @@ func (q *Queries) CreateBranch(ctx context.Context, arg CreateBranchParams) (Bra
 		&i.WhatsappNumberID,
 		&i.WhatsappEnabled,
 		&i.WhatsappHiddenFields,
+		&i.HiddenSince,
 	)
 	return i, err
 }
 
 const getBranch = `-- name: GetBranch :one
-SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports, google_place_id, whatsapp_number_id, whatsapp_enabled, whatsapp_hidden_fields FROM branches
+SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports, google_place_id, whatsapp_number_id, whatsapp_enabled, whatsapp_hidden_fields, hidden_since FROM branches
 WHERE id = $1 LIMIT 1
 `
 
@@ -68,12 +69,13 @@ func (q *Queries) GetBranch(ctx context.Context, id int64) (Branch, error) {
 		&i.WhatsappNumberID,
 		&i.WhatsappEnabled,
 		&i.WhatsappHiddenFields,
+		&i.HiddenSince,
 	)
 	return i, err
 }
 
 const getBranchByCode = `-- name: GetBranchByCode :one
-SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports, google_place_id, whatsapp_number_id, whatsapp_enabled, whatsapp_hidden_fields FROM branches
+SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports, google_place_id, whatsapp_number_id, whatsapp_enabled, whatsapp_hidden_fields, hidden_since FROM branches
 WHERE code = $1 LIMIT 1
 `
 
@@ -95,12 +97,13 @@ func (q *Queries) GetBranchByCode(ctx context.Context, code string) (Branch, err
 		&i.WhatsappNumberID,
 		&i.WhatsappEnabled,
 		&i.WhatsappHiddenFields,
+		&i.HiddenSince,
 	)
 	return i, err
 }
 
 const getBranchByCodeExcluding = `-- name: GetBranchByCodeExcluding :one
-SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports, google_place_id, whatsapp_number_id, whatsapp_enabled, whatsapp_hidden_fields FROM branches
+SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports, google_place_id, whatsapp_number_id, whatsapp_enabled, whatsapp_hidden_fields, hidden_since FROM branches
 WHERE code = $1 AND id != $2 AND is_active LIMIT 1
 `
 
@@ -129,12 +132,13 @@ func (q *Queries) GetBranchByCodeExcluding(ctx context.Context, arg GetBranchByC
 		&i.WhatsappNumberID,
 		&i.WhatsappEnabled,
 		&i.WhatsappHiddenFields,
+		&i.HiddenSince,
 	)
 	return i, err
 }
 
 const listBranches = `-- name: ListBranches :many
-SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports, google_place_id, whatsapp_number_id, whatsapp_enabled, whatsapp_hidden_fields FROM branches
+SELECT id, name, code, is_active, last_seen_at, created_at, inventory_id, timezone, quick_access_initialized_at, hidden_from_reports, google_place_id, whatsapp_number_id, whatsapp_enabled, whatsapp_hidden_fields, hidden_since FROM branches
 ORDER BY name
 `
 
@@ -162,6 +166,7 @@ func (q *Queries) ListBranches(ctx context.Context) ([]Branch, error) {
 			&i.WhatsappNumberID,
 			&i.WhatsappEnabled,
 			&i.WhatsappHiddenFields,
+			&i.HiddenSince,
 		); err != nil {
 			return nil, err
 		}
@@ -239,7 +244,8 @@ func (q *Queries) SetBranchActive(ctx context.Context, arg SetBranchActiveParams
 
 const setBranchHiddenFromReports = `-- name: SetBranchHiddenFromReports :exec
 UPDATE branches
-SET hidden_from_reports = $2
+SET hidden_from_reports = $2,
+    hidden_since = CASE WHEN $2 THEN COALESCE(hidden_since, now()) ELSE NULL END
 WHERE id = $1
 `
 
@@ -248,6 +254,8 @@ type SetBranchHiddenFromReportsParams struct {
 	HiddenFromReports bool  `json:"hidden_from_reports"`
 }
 
+// hidden_since keeps the first hide's time while it stays hidden, and clears
+// when shown (see client_withheld_from_visible).
 func (q *Queries) SetBranchHiddenFromReports(ctx context.Context, arg SetBranchHiddenFromReportsParams) error {
 	_, err := q.db.ExecContext(ctx, setBranchHiddenFromReports, arg.ID, arg.HiddenFromReports)
 	return err

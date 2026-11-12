@@ -9601,19 +9601,19 @@ func (mr *MockStoreMockRecorder) ListGoogleReviews(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListGoogleReviews", reflect.TypeOf((*MockStore)(nil).ListGoogleReviews), arg0, arg1)
 }
 
-// ListHiddenBranchOnlyClientIDs mocks base method.
-func (m *MockStore) ListHiddenBranchOnlyClientIDs(arg0 context.Context, arg1 []int64) ([]int64, error) {
+// ListHiddenBranchOnlyClients mocks base method.
+func (m *MockStore) ListHiddenBranchOnlyClients(arg0 context.Context, arg1 []int64) ([]db.ListHiddenBranchOnlyClientsRow, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListHiddenBranchOnlyClientIDs", arg0, arg1)
-	ret0, _ := ret[0].([]int64)
+	ret := m.ctrl.Call(m, "ListHiddenBranchOnlyClients", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListHiddenBranchOnlyClientsRow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListHiddenBranchOnlyClientIDs indicates an expected call of ListHiddenBranchOnlyClientIDs.
-func (mr *MockStoreMockRecorder) ListHiddenBranchOnlyClientIDs(arg0, arg1 interface{}) *gomock.Call {
+// ListHiddenBranchOnlyClients indicates an expected call of ListHiddenBranchOnlyClients.
+func (mr *MockStoreMockRecorder) ListHiddenBranchOnlyClients(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListHiddenBranchOnlyClientIDs", reflect.TypeOf((*MockStore)(nil).ListHiddenBranchOnlyClientIDs), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListHiddenBranchOnlyClients", reflect.TypeOf((*MockStore)(nil).ListHiddenBranchOnlyClients), arg0, arg1)
 }
 
 // ListHomeActivityResolutions mocks base method.
@@ -10889,6 +10889,21 @@ func (m *MockStore) ListWhatsAppRules(arg0 context.Context) ([]db.WhatsappRule, 
 func (mr *MockStoreMockRecorder) ListWhatsAppRules(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListWhatsAppRules", reflect.TypeOf((*MockStore)(nil).ListWhatsAppRules), arg0)
+}
+
+// ListWithheldClientUIDs mocks base method.
+func (m *MockStore) ListWithheldClientUIDs(arg0 context.Context, arg1 []uuid.UUID) ([]uuid.UUID, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListWithheldClientUIDs", arg0, arg1)
+	ret0, _ := ret[0].([]uuid.UUID)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListWithheldClientUIDs indicates an expected call of ListWithheldClientUIDs.
+func (mr *MockStoreMockRecorder) ListWithheldClientUIDs(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListWithheldClientUIDs", reflect.TypeOf((*MockStore)(nil).ListWithheldClientUIDs), arg0, arg1)
 }
 
 // LowPollRatings mocks base method.

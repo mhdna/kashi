@@ -88,14 +88,14 @@ func (server *Server) putBranchClients(ctx *gin.Context) {
 				if outcome.client.Uid != uuid.Nil {
 					res.UID = outcome.client.Uid.String()
 				}
-				changed = true
+				changed = changed || outcome.changed
 			}
 		}
 		results[i] = res
 	}
 
 	if changed {
-		server.branchHub.broadcastAll(branchWSMessage{Type: "client_updated"})
+		server.notifyClientsChanged(ctx, branchID)
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{"results": results})
 }

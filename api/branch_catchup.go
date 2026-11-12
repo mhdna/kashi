@@ -180,15 +180,17 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 				last := rows[len(rows)-1]
 				nextCursor = syncCursor{updatedAt: last.UpdatedAt, id: last.ID}.encode()
 			}
+			// The cursor above comes from the last row central read, so
+			// leaving withheld rows out never stalls the walk.
 			if err == nil {
-				err = server.retractHiddenBranchClients(ctx, rows)
+				rows, err = server.retractHiddenBranchClients(ctx, rows)
 			}
 			items = rows
 		} else {
 			var rows []db.Client
 			rows, err = server.store.ListClientsUpdatedSince(ctx, since)
 			if err == nil {
-				err = server.retractHiddenBranchClients(ctx, rows)
+				rows, err = server.retractHiddenBranchClients(ctx, rows)
 			}
 			items = rows
 		}
@@ -638,37 +640,52 @@ func (server *Server) branchReconcile(ctx *gin.Context) {
 	server.writeJSON(ctx, http.StatusOK, envelope{"missing": missing})
 }
 
-// retractHiddenBranchClients sends a visible branch's till every client only
-// hidden (test) branches made or sold to as inactive, so it hides them (the
-// till never deletes a client). A hidden branch's own tills get them as they
-// are. Flipping the switch re-sends them (setBranchHiddenFromReports).
-func (server *Server) retractHiddenBranchClients(ctx *gin.Context, rows []db.Client) error {
+// retractHiddenBranchClients is what a visible branch's till gets of the
+// clients only hidden (test) branches made or sold to: one made after its
+// branches were hidden never reached a visible till, so it is left out
+// altogether; an older one may be on a till already, so it goes out as
+// inactive and the till hides it (a till never deletes a client). A hidden
+// branch's own tills get everything as it is. Flipping the switch re-sends
+// them (setBranchHiddenFromReports).
+func (server *Server) retractHiddenBranchClients(ctx *gin.Context, rows []db.Client) ([]db.Client, error) {
 	if len(rows) == 0 {
-		return nil
+		return rows, nil
 	}
-	branch, err := server.store.GetBranch(ctx, ctx.MustGet(branchIDKey).(int64))
-	if err != nil {
-		return err
-	}
-	if branch.HiddenFromReports {
-		return nil
+	visible, err := server.requestingBranchVisible(ctx)
+	if err != nil || !visible {
+		return rows, err
 	}
 	ids := make([]int64, len(rows))
 	for i, r := range rows {
 		ids[i] = r.ID
 	}
-	hidden, err := server.store.ListHiddenBranchOnlyClientIDs(ctx, ids)
+	hidden, err := server.store.ListHiddenBranchOnlyClients(ctx, ids)
 	if err != nil || len(hidden) == 0 {
-		return err
+		return rows, err
 	}
-	retract := make(map[int64]bool, len(hidden))
-	for _, id := range hidden {
-		retract[id] = true
+	withheld := make(map[int64]bool, len(hidden))
+	for _, h := range hidden {
+		withheld[h.ID] = h.Withheld
 	}
-	for i := range rows {
-		if retract[rows[i].ID] {
-			rows[i].IsActive = false
+	out := rows[:0:0]
+	for _, r := range rows {
+		w, isHidden := withheld[r.ID]
+		switch {
+		case isHidden && w:
+			continue
+		case isHidden:
+			r.IsActive = false
 		}
+		out = append(out, r)
 	}
-	return nil
+	return out, nil
+}
+
+// requestingBranchVisible: the till asking is not a hidden (test) branch's.
+func (server *Server) requestingBranchVisible(ctx *gin.Context) (bool, error) {
+	branch, err := server.store.GetBranch(ctx, ctx.MustGet(branchIDKey).(int64))
+	if err != nil {
+		return false, err
+	}
+	return !branch.HiddenFromReports, nil
 }
