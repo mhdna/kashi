@@ -10,7 +10,16 @@ describe('activityPill', () => {
       item(2, 'Test Branch: shift -5.00 USD', { color: 'error', trendIcon: 'mdi-triangle-down' }),
       item(3, 'Test Branch: shift 2.00 USD', { trendIcon: 'mdi-triangle' }),
     ])
-    expect(p).toEqual({ id: 3, branch: 'Test Branch', detail: 'shift 2.00 USD', icon: 'mdi-triangle', color: 'success', tint: 'success', more: 2 })
+    expect(p).toEqual({ id: 3, key: 'activity-3', branch: 'Test Branch', detail: 'shift 2.00 USD', icon: 'mdi-triangle', color: 'success', tint: 'success', more: 2 })
+  })
+
+  it('the reported case: a growing group keeps its key, so it only changes text', () => {
+    const a = activityPill([item(1, 'Centro: 5 to fix', { groupKey: 'sync_conflict:1' })])
+    const b = activityPill([item(2, 'Centro: 6 to fix', { groupKey: 'sync_conflict:1' })])
+    expect(a.key).toBe('sync_conflict:1')
+    expect(b.key).toBe(a.key)
+    expect(b.detail).toBe('6 to fix')
+    expect(activityPill([item(3, 'Centro: 2.00 USD')]).key).not.toBe(a.key)
   })
 
   it('nothing showing is null', () => {

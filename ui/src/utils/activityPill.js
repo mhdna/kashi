@@ -28,6 +28,9 @@ export function activityPill (items) {
   const { branch, detail } = splitActivityText(current.text)
   return {
     id: current.id,
+    // A group ("Centro: 5 to fix" -> "6 to fix") keeps one key, so only its
+    // text changes; a new message gets a new key and swaps in.
+    key: current.groupKey || `activity-${current.id}`,
     branch,
     detail,
     icon: current.trendIcon || current.icon || 'mdi-cloud',

@@ -3,6 +3,22 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-12 · App-bar pill: two messages drawn on top of each other
+
+**Symptom.** The app bar's sync pill showed garbled text like "Centrows 5 to fix":
+the old and the new message overlapped in the same spot.
+
+**Cause.** The new one-card pill crossfaded old and new messages in the same grid
+cell, so both were drawn at once during the fade. A growing group ("5 to fix" ->
+"6 to fix") also got a new key on every message, so it swapped the whole card
+instead of just changing the number.
+
+**Fix.** The swap is `mode="out-in"` (the old message leaves before the new one
+comes) and shorter, and a group keeps one key (`groupKey`), so its count updates in
+place (`ui/src/components/SyncCard.vue`, `ui/src/utils/activityPill.js`). Tests:
+`activityPill.test.js` ("a growing group keeps its key"), `SyncCard.test.js` ("a
+growing conflict count updates in place").
+
 ## 2026-11-12 · Towel socks were filed as Home and got the 30% discount
 
 **Symptom.** At the till, "Men Towel long socks" (COC5MTLSO3) showed -30%. Socks are accessories and

@@ -29,8 +29,10 @@
              and +N for the others still showing. Three side by side were
              each cut to "Test Branch: shift b...". -->
         <div v-if="!mobile" class="text-body-2 ticker">
-          <Transition name="swap">
-            <span v-if="pill" :key="`activity-${pill.id}`" class="activity-line" data-test="activity-line">
+          <!-- out-in: the old message is gone before the new one comes, so
+               two never overlap in the same spot. -->
+          <Transition mode="out-in" name="swap">
+            <span v-if="pill" :key="pill.key" class="activity-line" data-test="activity-line">
               <v-progress-circular :color="pill.color" indeterminate size="16" width="2" />
               <v-icon :color="pill.color" :icon="pill.icon" size="14" />
               <span class="activity-line__text">
@@ -377,7 +379,7 @@
 /* The newest message crossfades in over the last, in place. */
 .swap-enter-active,
 .swap-leave-active {
-  transition: opacity 0.24s ease, transform 0.24s ease;
+  transition: opacity 0.14s ease, transform 0.14s ease;
 }
 
 .swap-enter-from {

@@ -55,6 +55,20 @@ describe('SyncCard', () => {
     expect(wrapper.find('.activity-pill--error').exists()).toBe(true)
   })
 
+  it('the reported case: a growing conflict count updates in place, one line, no overlap', async () => {
+    await show()
+    const conflict = { type: 'branch_sync_conflict', branch_id: 1, kind: 'oversold' }
+    for (let n = 0; n < 5; n++) {handler(conflict)}
+    await flushPromises()
+    const before = wrapper.find('[data-test="activity-line"]').element
+    handler(conflict)
+    await flushPromises()
+    const lines = wrapper.findAll('[data-test="activity-line"]')
+    expect(lines.length).toBe(1)
+    expect(lines[0].element).toBe(before)
+    expect(lines[0].text()).toContain('6 to fix')
+  })
+
   it('no activity: the plain synced status, no spinner', async () => {
     await show()
     expect(wrapper.find('[data-test="activity-line"]').exists()).toBe(false)
