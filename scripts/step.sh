@@ -12,7 +12,7 @@ log="$dir/$(printf '%s' "$label" | tr -c 'A-Za-z0-9' '-' | tr -s '-' | sed 's/^-
 start=$(date +%s)
 
 if [ -n "$VERBOSE" ]; then
-  say_step "$label…"
+  say_step "${label}…"
   "$@"; rc=$?
   secs=$(( $(date +%s) - start ))
   if [ "$rc" -eq 0 ]; then say_ok "$done_label in ${secs}s"; else say_fail "$label failed (after ${secs}s)"; fi
@@ -30,7 +30,7 @@ if [ -t 1 ] && [ -z "$NO_COLOR" ] && [ -z "$STEP_NOSPIN" ]; then
   done
   printf '\r\033[K'
 else
-  say_step "$label…"
+  say_step "${label}…"
 fi
 wait "$pid"; rc=$?
 secs=$(( $(date +%s) - start ))
