@@ -79,6 +79,7 @@ func TestBranchSyncIDs_PagesByUID(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	store := mockdb.NewMockStore(ctrl)
 	stubBranchAuth(store)
+	store.EXPECT().ListWithheldClientUIDs(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 	a, b := uuid.New(), uuid.New()
 
 	store.EXPECT().ListClientSyncIDs(gomock.Any(), db.ListClientSyncIDsParams{AfterUid: uuid.Nil, RowLimit: 2}).

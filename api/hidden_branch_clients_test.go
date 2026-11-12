@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	mockdb "github.com/mhdna/kashi/db/mock"
 	db "github.com/mhdna/kashi/db/sqlc"
 	"github.com/stretchr/testify/require"
@@ -41,7 +42,7 @@ func TestBranchPullClients_HiddenBranchClientsGoInactive(t *testing.T) {
 			} else {
 				store.EXPECT().ListClientsUpdatedSincePaged(gomock.Any(), gomock.Any()).Return(rows, nil)
 			}
-			store.EXPECT().ListHiddenBranchOnlyClientIDs(gomock.Any(), []int64{1, 2, 3}).Return([]int64{1}, nil)
+			store.EXPECT().ListHiddenBranchOnlyClients(gomock.Any(), []int64{1, 2, 3}).Return([]db.ListHiddenBranchOnlyClientsRow{{ID: 1}}, nil)
 
 			got := pullClients(t, newTestServer(t, store), query)
 			require.Len(t, got.Items, 3)
@@ -61,7 +62,7 @@ func TestBranchPullClients_HiddenBranchKeepsItsOwn(t *testing.T) {
 		Return(db.Branch{ID: testBranchID, Code: testBranchCode, IsActive: true, HiddenFromReports: true}, nil).AnyTimes()
 	stubBranchAuth(store)
 	store.EXPECT().ListClientsUpdatedSince(gomock.Any(), gomock.Any()).Return([]db.Client{{ID: 1, IsActive: true}}, nil)
-	store.EXPECT().ListHiddenBranchOnlyClientIDs(gomock.Any(), gomock.Any()).Times(0)
+	store.EXPECT().ListHiddenBranchOnlyClients(gomock.Any(), gomock.Any()).Times(0)
 
 	got := pullClients(t, newTestServer(t, store), "")
 	require.True(t, got.Items[0].IsActive)
@@ -73,7 +74,7 @@ func TestBranchPullClients_EmptySkipsLookup(t *testing.T) {
 	store := mockdb.NewMockStore(ctrl)
 	stubBranchAuth(store)
 	store.EXPECT().ListClientsUpdatedSince(gomock.Any(), gomock.Any()).Return([]db.Client{}, nil)
-	store.EXPECT().ListHiddenBranchOnlyClientIDs(gomock.Any(), gomock.Any()).Times(0)
+	store.EXPECT().ListHiddenBranchOnlyClients(gomock.Any(), gomock.Any()).Times(0)
 	require.Empty(t, pullClients(t, newTestServer(t, store), "").Items)
 }
 
@@ -126,7 +127,7 @@ func TestBranchSyncFetchClients_HiddenBranchClientsGoInactive(t *testing.T) {
 	stubBranchAuth(store)
 	store.EXPECT().ListClientsByUIDs(gomock.Any(), gomock.Any()).
 		Return([]db.Client{{ID: 1, IsActive: true}, {ID: 2, IsActive: true}}, nil)
-	store.EXPECT().ListHiddenBranchOnlyClientIDs(gomock.Any(), []int64{1, 2}).Return([]int64{2}, nil)
+	store.EXPECT().ListHiddenBranchOnlyClients(gomock.Any(), []int64{1, 2}).Return([]db.ListHiddenBranchOnlyClientsRow{{ID: 2}}, nil)
 
 	rec := httptest.NewRecorder()
 	newTestServer(t, store).router.ServeHTTP(rec, newBranchRequest(t, http.MethodPost, "/branch/sync/fetch",
@@ -136,4 +137,86 @@ func TestBranchSyncFetchClients_HiddenBranchClientsGoInactive(t *testing.T) {
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
 	require.True(t, got.Items[0].IsActive)
 	require.False(t, got.Items[1].IsActive)
+}
+
+// The reported case: a test branch's clients made after it was hidden are
+// left out of a visible till's pull entirely; older ones go inactive. The
+// page cursor still comes from the last row read, so the walk moves on.
+func TestBranchPullClients_WithheldLeftOut(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	stubBranchAuth(store)
+	rows := []db.Client{{ID: 1, Name: "Old fake", IsActive: true}, {ID: 2, Name: "Real", IsActive: true}, {ID: 3, Name: "New fake", IsActive: true}}
+	store.EXPECT().ListClientsUpdatedSincePaged(gomock.Any(), gomock.Any()).Return(rows, nil)
+	store.EXPECT().ListHiddenBranchOnlyClients(gomock.Any(), []int64{1, 2, 3}).
+		Return([]db.ListHiddenBranchOnlyClientsRow{{ID: 1}, {ID: 3, Withheld: true}}, nil)
+
+	rec := httptest.NewRecorder()
+	newTestServer(t, store).router.ServeHTTP(rec, newBranchRequest(t, http.MethodGet, "/branch/sync/changes?entity=clients&limit=3", nil))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	var got struct {
+		Items      []db.Client `json:"items"`
+		NextCursor string      `json:"next_cursor"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
+	require.Len(t, got.Items, 2)
+	require.Equal(t, int64(1), got.Items[0].ID)
+	require.False(t, got.Items[0].IsActive)
+	require.Equal(t, int64(2), got.Items[1].ID)
+	require.True(t, got.Items[1].IsActive)
+	require.NotEmpty(t, got.NextCursor, "a full page still has a next cursor")
+}
+
+// The completeness check doesn't list withheld clients, and its cursor is the
+// last uid read, withheld or not.
+func TestBranchSyncIDsClients_WithheldLeftOut(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	stubBranchAuth(store)
+	a, b := uuid.New(), uuid.New()
+	store.EXPECT().ListClientSyncIDs(gomock.Any(), gomock.Any()).
+		Return([]db.ListClientSyncIDsRow{{Uid: a}, {Uid: b}}, nil)
+	store.EXPECT().ListWithheldClientUIDs(gomock.Any(), []uuid.UUID{a, b}).Return([]uuid.UUID{b}, nil)
+
+	rec := httptest.NewRecorder()
+	newTestServer(t, store).router.ServeHTTP(rec, newBranchRequest(t, http.MethodPost, "/branch/sync/ids",
+		map[string]any{"entity": "clients", "limit": 2}))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	var got struct {
+		IDs  []branchSyncID `json:"ids"`
+		Next string         `json:"next"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
+	require.Len(t, got.IDs, 1)
+	require.Equal(t, a, got.IDs[0].UID)
+	require.Equal(t, b.String(), got.Next)
+}
+
+// The reported case: a till re-sending clients central already has (draining
+// a backlog) changes nothing: no UpdateClient, so updated_at doesn't move and
+// no till pulls them back.
+func TestPutBranchClients_UnchangedIsLeftAlone(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	stubBranchAuth(store)
+	same := db.Client{ID: 100, Name: "Ali", Phone: "70123456", PhoneValid: syncedPhoneValid("70123456"), PhoneCountry: syncedPhoneCountry("70123456")}
+	store.EXPECT().GetClientLink(gomock.Any(), db.GetClientLinkParams{RegisterID: testRegisterID, BranchClientID: 1}).Return(int64(100), nil)
+	store.EXPECT().GetClient(gomock.Any(), int64(100)).Return(same, nil)
+	store.EXPECT().UpdateClient(gomock.Any(), gomock.Any()).Times(0)
+
+	rec := httptest.NewRecorder()
+	newTestServer(t, store).router.ServeHTTP(rec, newBranchRequest(t, http.MethodPost, "/branch/clients_batch",
+		map[string]any{"clients": []map[string]any{{"branch_client_id": 1, "name": "Ali", "phone": "70123456"}}}))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	require.Contains(t, rec.Body.String(), `"status":"ok"`)
+}
+
+func TestClientEditChanges(t *testing.T) {
+	base := db.Client{Name: "Ali", Phone: "70123456", PhoneValid: syncedPhoneValid("70123456"), PhoneCountry: syncedPhoneCountry("70123456")}
+	require.False(t, clientEditChanges(base, "Ali", "70123456"))
+	require.True(t, clientEditChanges(base, "Ali K", "70123456"))
+	require.True(t, clientEditChanges(base, "Ali", "71123456"))
+	stale := base
+	stale.PhoneValid = !base.PhoneValid
+	require.True(t, clientEditChanges(stale, "Ali", "70123456"), "a stale phone_valid is fixed by the edit")
 }

@@ -63,6 +63,7 @@ func (server *Server) branchSyncIDs(ctx *gin.Context) {
 	}
 
 	ids := make([]branchSyncID, 0, limit)
+	next := ""
 	switch req.Entity {
 	case "clients":
 		rows, err := server.store.ListClientSyncIDs(ctx, db.ListClientSyncIDsParams{AfterUid: after, RowLimit: int32(limit)})
@@ -72,6 +73,15 @@ func (server *Server) branchSyncIDs(ctx *gin.Context) {
 		}
 		for _, r := range rows {
 			ids = append(ids, branchSyncID{UID: r.Uid, UpdatedAt: r.UpdatedAt})
+		}
+		// The page's last uid is the cursor, taken before withheld clients
+		// are left out so the walk never stalls on them.
+		if len(ids) == limit {
+			next = ids[len(ids)-1].UID.String()
+		}
+		if ids, err = server.dropWithheldClientIDs(ctx, ids); err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
 		}
 	case "products":
 		rows, err := server.store.ListVariantSyncIDs(ctx, db.ListVariantSyncIDsParams{AfterUid: after, RowLimit: int32(limit)})
@@ -84,8 +94,7 @@ func (server *Server) branchSyncIDs(ctx *gin.Context) {
 		}
 	}
 
-	next := ""
-	if len(ids) == limit {
+	if req.Entity != "clients" && len(ids) == limit {
 		next = ids[len(ids)-1].UID.String()
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{"ids": ids, "next": next})
@@ -128,7 +137,7 @@ func (server *Server) branchSyncFetch(ctx *gin.Context) {
 		if err == nil {
 			// Same as the pull: a hidden branch's own clients go inactive
 			// here, or a completeness check would bring them back.
-			err = server.retractHiddenBranchClients(ctx, rows)
+			rows, err = server.retractHiddenBranchClients(ctx, rows)
 		}
 		items = rows
 	case "products":
@@ -161,4 +170,36 @@ func (server *Server) branchClientUIDs(ctx *gin.Context) {
 		pairs = append(pairs, branchClientUIDPair{BranchClientID: r.BranchClientID, UID: r.Uid})
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{"pairs": pairs})
+}
+
+// dropWithheldClientIDs leaves out, for a visible branch's till, the clients
+// the pull withholds from it (see retractHiddenBranchClients): listing them
+// would have the completeness check fetch them anyway.
+func (server *Server) dropWithheldClientIDs(ctx *gin.Context, ids []branchSyncID) ([]branchSyncID, error) {
+	if len(ids) == 0 {
+		return ids, nil
+	}
+	visible, err := server.requestingBranchVisible(ctx)
+	if err != nil || !visible {
+		return ids, err
+	}
+	uids := make([]uuid.UUID, len(ids))
+	for i, id := range ids {
+		uids[i] = id.UID
+	}
+	withheld, err := server.store.ListWithheldClientUIDs(ctx, uids)
+	if err != nil || len(withheld) == 0 {
+		return ids, err
+	}
+	skip := make(map[uuid.UUID]bool, len(withheld))
+	for _, u := range withheld {
+		skip[u] = true
+	}
+	out := ids[:0:0]
+	for _, id := range ids {
+		if !skip[id.UID] {
+			out = append(out, id)
+		}
+	}
+	return out, nil
 }

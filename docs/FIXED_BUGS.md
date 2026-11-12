@@ -3,6 +3,27 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-12 · Every till kept "Updating clients" while a test branch drained its backlog
+
+**Symptom.** Every branch's sync light kept reading "Updating · Clients · 3000
+changes", then Waiting, then Updating again, for as long as Test Branch 2's till
+was sending its backlog of (fake) clients.
+
+**Cause.** Two things on central. Every client a till sent was saved again with
+`updated_at = now()` even when nothing about it had changed, and every batch
+broadcast `client_updated` to all tills, so each one pulled the whole batch back.
+And a hidden branch's clients, though sent to visible tills as inactive, were
+still sent: every till downloaded all of Test Branch 2's fake clients.
+
+**Fix.** An unchanged client is left alone and only a real change wakes the tills
+(`api/branch_client.go`, `clientEditChanges`, `notifyClientsChanged`). A hidden
+branch's pushes wake only its own registers, and its clients made after it was
+hidden are left out of visible tills' pull, completeness ids and fetch altogether
+(`branches.hidden_since`, `client_withheld_from_visible`, migration 239;
+`api/branch_catchup.go`, `api/branch_sync_ids.go`). Tests:
+`api/hidden_branch_clients_test.go` ("UnchangedIsLeftAlone", "WithheldLeftOut"),
+`db/sqlc/hidden_branch_clients_test.go` ("TestHiddenBranchWithheldClients").
+
 ## 2026-11-12 · App-bar pill: two messages drawn on top of each other
 
 **Symptom.** The app bar's sync pill showed garbled text like "Centrows 5 to fix":

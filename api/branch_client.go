@@ -112,7 +112,9 @@ func (server *Server) putBranchClient(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	server.branchHub.broadcastAll(branchWSMessage{Type: "client_updated"})
+	if outcome.changed {
+		server.notifyClientsChanged(ctx, branchID)
+	}
 	if outcome.conflictKind != "" {
 		server.writeJSON(ctx, http.StatusOK, envelope{
 			"client": outcome.client, "conflict": true, "conflict_kind": outcome.conflictKind,
@@ -129,6 +131,18 @@ func (server *Server) putBranchClient(ctx *gin.Context) {
 type branchClientOutcome struct {
 	client       db.Client
 	conflictKind string
+	// changed: a client row was created or really edited. Re-sending an
+	// unchanged client (a till draining a backlog) changes nothing, so no till
+	// is told to pull again.
+	changed bool
+}
+
+// clientEditChanges reports whether a till's name and phone differ from what
+// central has; an equal one is left alone, so its updated_at doesn't move and
+// every till doesn't pull it again.
+func clientEditChanges(existing db.Client, name, phone string) bool {
+	return existing.Name != name || existing.Phone != phone ||
+		existing.PhoneValid != syncedPhoneValid(phone) || existing.PhoneCountry != syncedPhoneCountry(phone)
 }
 
 // resolveBranchClient applies the resolution rules documented on
@@ -168,6 +182,9 @@ func (server *Server) resolveBranchClient(ctx *gin.Context, branchID, registerID
 		if getErr != nil {
 			return branchClientOutcome{}, getErr
 		}
+		if !clientEditChanges(linked, req.Name, req.Phone) {
+			return branchClientOutcome{client: linked}, nil
+		}
 		client, updErr := server.store.UpdateClient(ctx, db.UpdateClientParams{
 			ID:           linkedClientID,
 			Name:         req.Name,
@@ -179,7 +196,7 @@ func (server *Server) resolveBranchClient(ctx *gin.Context, branchID, registerID
 		if updErr != nil {
 			return branchClientOutcome{}, updErr
 		}
-		return branchClientOutcome{client: client}, nil
+		return branchClientOutcome{client: client, changed: true}, nil
 
 	case err == sql.ErrNoRows:
 		// Not linked yet.
@@ -232,7 +249,7 @@ func (server *Server) resolveBranchClient(ctx *gin.Context, branchID, registerID
 			}); linkErr != nil {
 				return branchClientOutcome{}, linkErr
 			}
-			return branchClientOutcome{client: client}, nil
+			return branchClientOutcome{client: client, changed: createErr == nil}, nil
 
 		default:
 			return branchClientOutcome{}, phoneErr
@@ -255,6 +272,7 @@ func (server *Server) resolveBranchClient(ctx *gin.Context, branchID, registerID
 func (server *Server) resolveBranchClientByUID(ctx *gin.Context, branchID, registerID int64, req branchClientRequest, uid uuid.UUID, refStr string, payloadJSON []byte) (branchClientOutcome, error) {
 	var client db.Client
 	conflictKind := ""
+	changed := false
 
 	existing, err := server.store.GetClientByUID(ctx, uid)
 	switch {
@@ -269,16 +287,21 @@ func (server *Server) resolveBranchClientByUID(ctx *gin.Context, branchID, regis
 			server.stageBranchSyncConflict(ctx, branchID, "client", refStr, conflictKind, payloadJSON,
 				sql.NullInt64{Int64: other.ID, Valid: true})
 		}
-		client, err = server.store.UpdateClient(ctx, db.UpdateClientParams{
-			ID:           existing.ID,
-			Name:         req.Name,
-			Phone:        phone,
-			ClientType:   existing.ClientType,
-			PhoneValid:   syncedPhoneValid(phone),
-			PhoneCountry: syncedPhoneCountry(phone),
-		})
-		if err != nil {
-			return branchClientOutcome{}, err
+		if clientEditChanges(existing, req.Name, phone) {
+			client, err = server.store.UpdateClient(ctx, db.UpdateClientParams{
+				ID:           existing.ID,
+				Name:         req.Name,
+				Phone:        phone,
+				ClientType:   existing.ClientType,
+				PhoneValid:   syncedPhoneValid(phone),
+				PhoneCountry: syncedPhoneCountry(phone),
+			})
+			if err != nil {
+				return branchClientOutcome{}, err
+			}
+			changed = true
+		} else {
+			client = existing
 		}
 
 	case errors.Is(err, sql.ErrNoRows):
@@ -307,6 +330,7 @@ func (server *Server) resolveBranchClientByUID(ctx *gin.Context, branchID, regis
 			switch {
 			case createErr == nil:
 				client = created
+				changed = true
 			case isUniqueViolation(createErr):
 				// A concurrent push won the race on phone or uid; resolve
 				// to whichever row now holds this phone.
@@ -334,5 +358,18 @@ func (server *Server) resolveBranchClientByUID(ctx *gin.Context, branchID, regis
 	}); err != nil {
 		return branchClientOutcome{}, err
 	}
-	return branchClientOutcome{client: client, conflictKind: conflictKind}, nil
+	return branchClientOutcome{client: client, conflictKind: conflictKind, changed: changed}, nil
+}
+
+// notifyClientsChanged tells tills to pull clients after a branch's push
+// really changed some. A hidden (test) branch's clients never go to visible
+// tills, so only that branch's own registers are told; waking every till for
+// them made each one pull the test branch's whole backlog, batch by batch.
+func (server *Server) notifyClientsChanged(ctx *gin.Context, branchID int64) {
+	msg := branchWSMessage{Type: "client_updated"}
+	if branch, err := server.store.GetBranch(ctx, branchID); err == nil && branch.HiddenFromReports {
+		server.branchHub.notify(branchID, msg)
+		return
+	}
+	server.branchHub.broadcastAll(msg)
 }

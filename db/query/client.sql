@@ -715,11 +715,18 @@ WHERE phone_country <> ''
 GROUP BY phone_country
 ORDER BY client_count DESC;
 
--- name: ListHiddenBranchOnlyClientIDs :many
+-- name: ListHiddenBranchOnlyClients :many
 -- Of these clients, the ones only hidden branches ever made or sold to (see
--- client_hidden_branch_only). Other tills get them as inactive.
-SELECT id FROM clients
+-- client_hidden_branch_only), and whether one is withheld from visible tills
+-- altogether (made after its branches were hidden) or sent to them inactive.
+SELECT id, uid, client_withheld_from_visible(id)::boolean AS withheld FROM clients
 WHERE id = ANY(sqlc.arg(ids)::bigint[]) AND client_hidden_branch_only(id);
+
+-- name: ListWithheldClientUIDs :many
+-- Of these uids, the clients withheld from visible tills: the completeness
+-- check must not list them, or a till would fetch what the pull leaves out.
+SELECT uid FROM clients
+WHERE uid = ANY(sqlc.arg(uids)::uuid[]) AND client_withheld_from_visible(id);
 
 -- name: ListBranchHiddenOnlyClientIDs :many
 -- The clients this branch made or sold to that no visible branch has: the
