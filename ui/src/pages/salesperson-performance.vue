@@ -237,6 +237,7 @@
               v-model="adjustmentSearch"
               class="mb-3"
               clearable
+              data-discard-ignore
               density="compact"
               hide-details
               label="Search adjustments"

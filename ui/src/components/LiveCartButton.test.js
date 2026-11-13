@@ -35,15 +35,20 @@ vi.mock('@/composables/useBranches', () => ({
   useBranches: () => ({ branches: ref([{ id: 1, name: 'Centro', is_active: true }]), fetchBranches: async () => {} }),
 }))
 vi.mock('@/composables/useNotify', () => ({ useNotify: () => ({ success: vi.fn(), error: vi.fn() }) }))
+const asked = []
+vi.mock('@/composables/useDialog', () => ({ confirmDialog: vi.fn(async opts => { asked.push(opts.title); return false }) }))
 vi.mock('@/stores/auth', () => ({ useAuthStore: () => ({ canEdit: () => true }) }))
 
 const { default: LiveCartButton } = await import('./LiveCartButton.vue')
+const { installDialogGuard } = await import('@/composables/useDialogGuard')
+installDialogGuard()
 
 let wrapper
-afterEach(() => { wrapper?.unmount(); posts.length = 0; document.body.innerHTML = '' })
+afterEach(() => { wrapper?.unmount(); posts.length = 0; asked.length = 0; document.body.innerHTML = '' })
 
 async function open () {
-  wrapper = mount(LiveCartButton, { global: { plugins: [vuetify()] }, attachTo: document.body })
+  // Real transitions, so the dialog's DOM is Vuetify's own (the discard guard reads it).
+  wrapper = mount(LiveCartButton, { global: { plugins: [vuetify()], stubs: { transition: false } }, attachTo: document.body })
   await wrapper.find('button').trigger('click')
   await flushPromises()
 }
@@ -75,5 +80,33 @@ describe('LiveCartButton', () => {
       register_id: 23, sale_ref: 'sale-1', all_deals_off: false,
       lines: [{ barcode: 'UNKNOWN', line_ref: 'u1', price_cents: 2500 }],
     }])
+  })
+
+  // The reported bug: picking a branch (or Online) to look at made Escape
+  // ask "Discard your changes?" though nothing was edited.
+  it('closes on Escape after only the branch picker and Online filter were touched', async () => {
+    await open()
+    const title = document.querySelector('.v-dialog .v-card-title')
+    expect(title.querySelector('.v-select').closest('[data-discard-ignore]')).not.toBeNull()
+    title.querySelector('.v-select input').dispatchEvent(new Event('pointerdown', { bubbles: true }))
+    const select = title.querySelector('.v-select__selection')
+    if (select) {select.textContent = 'Hara'}
+    title.querySelector('.v-chip').click()
+    await flushPromises()
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await flushPromises()
+    expect(asked).toEqual([])
+  })
+
+  it('still asks on Escape once a price was typed and not applied', async () => {
+    await open()
+    const price = rows()[1].querySelector('input[type="number"]')
+    price.dispatchEvent(new Event('pointerdown', { bubbles: true }))
+    price.value = '25'
+    price.dispatchEvent(new Event('input'))
+    await flushPromises()
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await flushPromises()
+    expect(asked).toEqual(['Discard your changes?'])
   })
 })

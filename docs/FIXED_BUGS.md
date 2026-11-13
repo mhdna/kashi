@@ -3,6 +3,32 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-13 · "Discard your changes?" came up where nothing was edited
+
+**Symptom.** Live cart asked "Discard your changes?" on Escape or a click
+outside after only picking another branch to look at. The same happened
+after typing in a dialog's search box (a product's stock, a salesperson's
+adjustments), after using the Products filter dialog, after picking in
+Reports' "Left out of reports" (which saves each pick at once), and in any
+dialog after switching its tabs or once live rows arrived.
+
+**Cause.** The guard snapshotted every input and every active button in the
+whole dialog as one string. A view control counted as an edit, a tab is an
+active button, and rows that arrived with live data (a till's cart) changed
+the snapshot on their own.
+
+**Fix.** `ui/src/composables/useDialogGuard.js` now notes each field
+(Vuetify input, toggle group, chip group, date picker, bare input) on its
+own when the user touches the dialog and compares only those; fields that
+appear later count only once touched, and plain buttons and tabs aren't
+fields. View controls are marked `data-discard-ignore` (Live cart's title
+with its Branch and Online filters, the search boxes in `inventory.vue` and
+`salesperson-performance.vue`); the Products filter dialog and Reports'
+exclusions dialog opt out with `data-no-discard-guard`. Tests:
+`ui/src/composables/useDialogGuard.test.js`, and
+`ui/src/components/LiveCartButton.test.js` runs the real guard on the
+mounted dialog (branch picker: no question; a typed price: asks).
+
 ## 2026-11-13 · Unknown item showed its price twice on the picture page
 
 **Symptom.** On the phone page where the cashier takes pictures, each unknown

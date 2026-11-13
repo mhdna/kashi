@@ -359,8 +359,9 @@
     </main>
 
     <!-- Products and customers left out of every report -->
+    <!-- Each pick is saved as it is made: nothing to discard. -->
     <v-dialog v-model="exclusionsDialog" max-width="620">
-      <v-card>
+      <v-card data-no-discard-guard>
         <v-card-title>Left out of reports</v-card-title>
         <v-card-text>
           <p class="text-body-2 text-medium-emphasis mb-4">

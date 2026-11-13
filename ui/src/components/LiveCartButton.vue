@@ -16,7 +16,8 @@
 
   <v-dialog v-model="open" max-width="980" scrollable>
     <v-card>
-      <v-card-title class="d-flex align-center ga-2">
+      <!-- The branch and Online filters pick what to look at; they aren't edits. -->
+      <v-card-title class="d-flex align-center ga-2" data-discard-ignore>
         Live cart
         <v-spacer />
         <v-chip

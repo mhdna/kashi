@@ -78,8 +78,9 @@
       </v-card-title>
       <v-divider />
 
+      <!-- Filters apply as they change: nothing to discard. -->
       <v-dialog v-model="filterMenu" max-width="640" scrollable>
-        <v-card>
+        <v-card data-no-discard-guard>
           <v-card-title class="d-flex align-center ga-2">
             <v-icon icon="mdi-filter-variant" size="20" />
             <span class="text-h6">Filter Products</span>

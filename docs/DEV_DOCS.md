@@ -259,7 +259,7 @@ Item codes match exactly or as a prefix written `ABC*`, any case.
 2. Sidebar entry in `data/navItems.js`.
 3. Page added to its section in `api/access.go`, plus a `routeRules` entry for its API prefix.
 
-> [!TIP] The unsaved-changes guard (`useDialogGuard`) watches every dialog's fields; a dialog whose only field is a search box needs `data-no-discard-guard` (or be skipped by class).
+> [!TIP] The unsaved-changes guard (`useDialogGuard`) compares each dialog field present when the user first touched the dialog (rows arriving later and tab switches don't count). Mark a view control (branch picker, search box, filter) `data-discard-ignore`; a dialog that saves as you go or is all filters gets `data-no-discard-guard`.
 
 ::: group US POS landscape
 
@@ -386,7 +386,7 @@ Add a Symptom / Cause / Fix entry to `docs/FIXED_BUGS.md` in the same commit.
 | Old till breaks after deploy | A migration dropped or renamed something. |
 | Zero price rejected | Do not mark amount fields `required` (0 is valid). |
 | Receipt/PDF margins | Report PDFs need page margins applied explicitly (fixed 2026-10-31). |
-| Dialog asks "Discard your changes?" | Guard sees a field edit; opt out with `data-no-discard-guard`. |
+| Dialog asks "Discard your changes?" | Guard sees a field edit; mark view controls `data-discard-ignore`, or the dialog `data-no-discard-guard`. |
 | Live push stops after scale-out | Hubs are in-memory, single instance only. |
 
 ### Smaller traps

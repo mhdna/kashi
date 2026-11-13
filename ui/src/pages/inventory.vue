@@ -135,6 +135,7 @@
           v-model="stockSearch"
           class="mb-2"
           clearable
+          data-discard-ignore
           density="compact"
           hide-details
           placeholder="Search SKU / barcode"
