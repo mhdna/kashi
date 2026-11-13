@@ -324,6 +324,7 @@
 
           <div v-show="invoiceTab === 'wholesale'" class="pa-4">
             <ServerSideTable
+              v-if="wholesaleOpened"
               ref="tableRef"
               :api-u-r-l="apiURL"
               density="comfortable"
@@ -347,7 +348,7 @@
 
 <script setup lang="ts">
   import { useField, useForm } from 'vee-validate'
-  import { computed, ref } from 'vue'
+  import { computed, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
   import InvoiceTypesDialog from '@/components/InvoiceTypesDialog.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
@@ -392,14 +393,22 @@
   const { getPosSettings } = usePosSettings()
   const { getInvoiceDetails } = useInvoiceDetails()
 
-  fetchCashboxes()
+  // Only branches are needed to show the retail list. The rest feed the New
+  // Sales Invoice dialog and load the first time it opens (each list stays
+  // cached for the session), so they don't hold up opening the page.
   fetchBranches()
-  fetchCashboxAccounts()
-  fetchShifts()
-  fetchInventories()
-  fetchClients()
-  fetchPriceLists()
-  searchVariants('')
+  let dialogDataRequested = false
+  function loadDialogData () {
+    if (dialogDataRequested) return
+    dialogDataRequested = true
+    fetchCashboxes()
+    fetchCashboxAccounts()
+    fetchShifts()
+    fetchInventories()
+    fetchClients()
+    fetchPriceLists()
+    searchVariants('')
+  }
 
   const openShifts = computed(() => shifts.value.filter(s => !s.is_closed))
 
@@ -419,6 +428,12 @@
   const dialog = ref(false)
   const invoiceTypesDialog = ref(false)
   const invoiceTab = ref('retail')
+  // The wholesale table mounts (and loads) the first time its tab is opened,
+  // then stays mounted so switching back keeps its page and search.
+  const wholesaleOpened = ref(false)
+  watch(invoiceTab, tab => {
+    if (tab === 'wholesale') wholesaleOpened.value = true
+  }, { immediate: true })
   // ?search= (from the app bar's Branch sync list) prefills the retail search.
   const retailSearch = ref(typeof route.query.search === 'string' ? route.query.search : '')
   const retailBranchFilter = ref(null)
@@ -508,6 +523,7 @@
   }
 
   function openCreate () {
+    loadDialogData()
     handleReset()
     discount.value.value = 0
     lines.value = []

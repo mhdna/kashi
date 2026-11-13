@@ -9,6 +9,23 @@ Measured or reported slow things that are not fixed yet. Nothing recorded yet.
 
 ## Entries
 
+### 2026-11-13 Invoices page fetched the hidden dialog's and tab's data on open
+
+**Symptom:** the Invoices list was slow to show on first load.
+
+**Finding:** opening the page sent 10 requests. Only 3 were for what's on
+screen (retail invoices, branches, registers). The other 7 were the New Sales
+Invoice dialog's lists (cashboxes, accounts, shifts, inventories, clients,
+price lists, 50 barcodes), plus the Wholesale table, whose tab is hidden.
+They compete with the retail list for the browser's connections and the
+server. `/clients/` was the slowest one (see the entry below). Time in the
+browser was not measured.
+
+**Change:** `ui/src/pages/sales-invoices.vue` loads the dialog's lists the first
+time Add Invoice is clicked, and mounts the Wholesale table the first time its
+tab opens. Opening the page now sends 3 requests. Test:
+`ui/src/pages/sales-invoices.test.js`.
+
 ### 2026-11-13 Clients list summed every client's till points on each call
 
 **Symptom:** the Invoices page was slow to open. It loads `/clients/` for the
