@@ -71,7 +71,7 @@
                 </v-avatar>
               </template>
               <v-list-item-title>
-                {{ unit.branch_name }} · {{ unit.label || 'Unknown item' }}
+                {{ unit.branch_name }} · {{ unknownLabel(unit.label, unit.unit_price) }}
                 <v-chip
                   v-if="unit.help_requested_at"
                   class="ms-2"
@@ -208,6 +208,7 @@
   import { useUnknownItems } from '@/composables/useUnknownItems'
   import { useAuthStore } from '@/stores/auth'
   import { formatAmount } from '@/utils/money'
+  import { unknownLabel } from '@/utils/unknownItems'
 
   const notify = useNotify()
   const { canEdit } = usePageAccess()

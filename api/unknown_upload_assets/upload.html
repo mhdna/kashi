@@ -228,6 +228,18 @@
     });
     return out;
   }
+  // unknownLabel:start
+  // Tills name a unit "Unknown item $25.00"; the card shows the price on its
+  // own, so a label ending in the unit's own price drops it (else the card
+  // read "Unknown item $25.00 $25.00"). A label with another price, or a
+  // cashier's name, stays as it is. Same rule as ui/src/utils/unknownItems.js.
+  function unknownLabel(label, cents) {
+    var text = ' ' + String(label || '').trim();
+    var price = ' $' + (Number(cents || 0) / 100).toFixed(2);
+    if (text.slice(-price.length) === price) text = text.slice(0, -price.length);
+    return text.trim() || 'Unknown item';
+  }
+  // unknownLabel:end
   function render() {
     var list = document.getElementById('list');
     list.textContent = '';
@@ -236,7 +248,7 @@
       var slot = line.slot, shown = line.pictured;
       var card = el('div', 'item' + (line.done ? ' done' : ''));
       var head = el('div', 'head');
-      head.appendChild(el('span', '', '#' + (i + 1) + ' \u00b7 ' + (slot.label || 'Unknown item')));
+      head.appendChild(el('span', '', '#' + (i + 1) + ' \u00b7 ' + unknownLabel(slot.label, slot.unit_price)));
       head.appendChild(el('span', 'price', '$' + (slot.unit_price / 100).toFixed(2) +
         (line.units.length > 1 ? ' \u00d7 ' + line.units.length : '')));
       card.appendChild(head);

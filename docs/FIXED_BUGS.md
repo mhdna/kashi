@@ -3,6 +3,24 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-13 · Unknown item showed its price twice on the picture page
+
+**Symptom.** On the phone page where the cashier takes pictures, each unknown
+item read "Unknown item $25.00 $25.00". The admin Unknown items page's Waiting
+tab showed the price in the title and again under it.
+
+**Cause.** The till names each unit "Unknown item $25.00", with the price
+already in the name, and both pages print the unit's price next to the name.
+The till's own picture dialog shows that name with no separate price, so
+the name sent to the till has to keep its price.
+
+**Fix.** Both pages drop a trailing price from the name when it is the unit's
+own price; a cashier's name or a different price is left alone.
+`unknownLabel` in `api/unknown_upload_assets/upload.html` and
+`ui/src/utils/unknownItems.js` (used by `ui/src/pages/unknown-items.vue`).
+Tests: `ui/src/utils/unknownItems.test.js` runs the same cases on both copies
+and renders the real phone page.
+
 ## 2026-11-12 · Every till kept "Updating clients" while a test branch drained its backlog
 
 **Symptom.** Every branch's sync light kept reading "Updating · Clients · 3000
