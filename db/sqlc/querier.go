@@ -1208,6 +1208,10 @@ type Querier interface {
 	// alongside kashi's own admin-invoice points. Used by the admin clients
 	// page so the displayed balance isn't missing everything earned at a
 	// branch till.
+	// The page of clients is picked first, then points are summed for just those
+	// clients (LATERAL, via idx_branch_invoices_register_branch_client). Summing
+	// every client's points before paging read all of branch_invoices on each
+	// call: 141 ms at 300k invoices vs 1.5 ms this way (docs/PERFORMANCE.md).
 	ListClientsWithLoyalty(ctx context.Context, arg ListClientsWithLoyaltyParams) ([]ListClientsWithLoyaltyRow, error)
 	ListColors(ctx context.Context) ([]Color, error)
 	ListColorsPage(ctx context.Context, arg ListColorsPageParams) ([]Color, error)
