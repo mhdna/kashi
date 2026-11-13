@@ -29,18 +29,25 @@ OFFSET $2;
 -- alongside kashi's own admin-invoice points. Used by the admin clients
 -- page so the displayed balance isn't missing everything earned at a
 -- branch till.
+-- The page of clients is picked first, then points are summed for just those
+-- clients (LATERAL, via idx_branch_invoices_register_branch_client). Summing
+-- every client's points before paging read all of branch_invoices on each
+-- call: 141 ms at 300k invoices vs 1.5 ms this way (docs/PERFORMANCE.md).
 SELECT c.*, COALESCE(bl.branch_points, 0)::bigint AS branch_loyalty_points
-FROM clients c
-LEFT JOIN (
-  SELECT cl.client_id, SUM(bi.loyalty_points_delta) AS branch_points
-  FROM branch_invoices bi
-  JOIN client_links cl ON cl.register_id = bi.register_id AND cl.branch_client_id = bi.branch_client_id
-  GROUP BY cl.client_id
-) bl ON bl.client_id = c.id
-WHERE sqlc.narg(client_type)::text IS NULL OR c.client_type = sqlc.narg(client_type)
-ORDER BY c.name
-LIMIT $1
-OFFSET $2;
+FROM (
+  SELECT * FROM clients
+  WHERE sqlc.narg(client_type)::text IS NULL OR client_type = sqlc.narg(client_type)
+  ORDER BY name, id
+  LIMIT $1
+  OFFSET $2
+) c
+LEFT JOIN LATERAL (
+  SELECT SUM(bi.loyalty_points_delta) AS branch_points
+  FROM client_links cl
+  JOIN branch_invoices bi ON bi.register_id = cl.register_id AND bi.branch_client_id = cl.branch_client_id
+  WHERE cl.client_id = c.id
+) bl ON true
+ORDER BY c.name, c.id;
 
 -- name: UpdateClient :one
 UPDATE clients
