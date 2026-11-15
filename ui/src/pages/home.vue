@@ -31,6 +31,8 @@
 
       </div>
 
+      <ActiveLinksCard class="home-active-links" />
+
       <div v-if="canViewKashiActivity || canViewActivity || canViewLatest" class="home-feeds">
         <section v-if="canViewKashiActivity" aria-label="IT Management" class="home-activities">
           <div class="home-activities-head d-flex align-center px-1 mb-2">
@@ -510,6 +512,7 @@
   import { useRouter } from 'vue-router'
   import { useDisplay, useTheme } from 'vuetify'
   import appLogo from '@/assets/app-logo.png'
+  import ActiveLinksCard from '@/components/ActiveLinksCard.vue'
   import ActivityDetailDialog from '@/components/ActivityDetailDialog.vue'
   import AppLogo from '@/components/AppLogo.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
@@ -1324,6 +1327,12 @@
   }
 
   /* The two feeds share the bottom third of the page, side by side. */
+  .home-active-links {
+    flex: 0 0 auto;
+    max-width: 1600px;
+    margin: 24px auto 0;
+  }
+
   .home-feeds {
     display: flex;
     flex: 1 1 0;
