@@ -852,6 +852,10 @@ type Querier interface {
 	ListActiveBranchRegisterIDs(ctx context.Context, branchID int64) ([]int64, error)
 	ListActiveBranchTargetSeries(ctx context.Context) ([]BranchTargetSeries, error)
 	ListActiveIPBans(ctx context.Context) ([]IpBan, error)
+	// Every phone link a till has handed out that still works: not used, not
+	// expired, and for unknown items still missing a picture or pass. One row per
+	// link, soonest to expire first, for the home page's "Active links" list.
+	ListActiveUploadLinks(ctx context.Context) ([]ListActiveUploadLinksRow, error)
 	// User and role changes are admin housekeeping, kept out of the feed.
 	ListAdminActivities(ctx context.Context, arg ListAdminActivitiesParams) ([]ListAdminActivitiesRow, error)
 	ListAllAttributeValues(ctx context.Context) ([]ListAllAttributeValuesRow, error)

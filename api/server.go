@@ -103,6 +103,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/audit_logs", server.listAuditLogs)
 	authRoutes.GET("/admin_activities", server.listAdminActivities)
 	authRoutes.GET("/home/latest", server.listLatestAdditions)
+	authRoutes.GET("/home/active_links", server.listActiveLinks)
 	authRoutes.GET("/home/activities", server.listHomeActivities)
 	authRoutes.GET("/home/activities/urgent", server.listUrgentHomeActivities)
 	authRoutes.GET("/home/activities/detail", server.getHomeActivityDetail)

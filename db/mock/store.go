@@ -7456,6 +7456,21 @@ func (mr *MockStoreMockRecorder) ListActiveIPBans(arg0 interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListActiveIPBans", reflect.TypeOf((*MockStore)(nil).ListActiveIPBans), arg0)
 }
 
+// ListActiveUploadLinks mocks base method.
+func (m *MockStore) ListActiveUploadLinks(arg0 context.Context) ([]db.ListActiveUploadLinksRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListActiveUploadLinks", arg0)
+	ret0, _ := ret[0].([]db.ListActiveUploadLinksRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListActiveUploadLinks indicates an expected call of ListActiveUploadLinks.
+func (mr *MockStoreMockRecorder) ListActiveUploadLinks(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListActiveUploadLinks", reflect.TypeOf((*MockStore)(nil).ListActiveUploadLinks), arg0)
+}
+
 // ListAdminActivities mocks base method.
 func (m *MockStore) ListAdminActivities(arg0 context.Context, arg1 db.ListAdminActivitiesParams) ([]db.ListAdminActivitiesRow, error) {
 	m.ctrl.T.Helper()
