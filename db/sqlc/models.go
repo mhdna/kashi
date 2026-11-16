@@ -1670,6 +1670,7 @@ type Product struct {
 	LowStockAlertsEnabled bool          `json:"low_stock_alerts_enabled"`
 	CategoryID            sql.NullInt64 `json:"category_id"`
 	VariantPick           string        `json:"variant_pick"`
+	Source                string        `json:"source"`
 }
 
 type ProductCategory struct {
@@ -1975,13 +1976,19 @@ type TransferItem struct {
 }
 
 type UnknownItemImage struct {
-	ID          int64     `json:"id"`
-	SessionID   int64     `json:"session_id"`
-	FilePath    string    `json:"file_path"`
-	ContentType string    `json:"content_type"`
-	SizeBytes   int64     `json:"size_bytes"`
-	Rotation    int16     `json:"rotation"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID           int64         `json:"id"`
+	SessionID    int64         `json:"session_id"`
+	FilePath     string        `json:"file_path"`
+	ContentType  string        `json:"content_type"`
+	SizeBytes    int64         `json:"size_bytes"`
+	Rotation     int16         `json:"rotation"`
+	CreatedAt    time.Time     `json:"created_at"`
+	LabelStatus  string        `json:"label_status"`
+	LabelName    string        `json:"label_name"`
+	LabelCode    string        `json:"label_code"`
+	LabelBarcode string        `json:"label_barcode"`
+	LabelPrice   sql.NullInt64 `json:"label_price"`
+	LabelError   string        `json:"label_error"`
 }
 
 type UnknownItemSession struct {
@@ -2010,6 +2017,8 @@ type UnknownItemSlot struct {
 	WaivedAt          sql.NullTime  `json:"waived_at"`
 	WaivedBy          string        `json:"waived_by"`
 	LineRef           string        `json:"line_ref"`
+	Barcode           string        `json:"barcode"`
+	AutoResolved      bool          `json:"auto_resolved"`
 }
 
 type User struct {

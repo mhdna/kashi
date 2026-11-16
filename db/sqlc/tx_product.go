@@ -28,7 +28,18 @@ type CreateProductTxParams struct {
 	// PriceListID nil means the default list.
 	Price       *int64 `json:"price"`
 	PriceListID *int64 `json:"price_list_id"`
+	// BarcodeText is an explicit barcode kept exactly as written, leading
+	// zeros included (Barcode is a number and would drop them). It wins
+	// over Barcode and, like it, applies to a single variant only.
+	BarcodeText string `json:"barcode_text"`
+	// Source records how the product was made: "" by hand or import,
+	// ProductSourceLabelPhoto by the label reader.
+	Source string `json:"source"`
 }
+
+// ProductSourceLabelPhoto marks a product created from an unknown item's
+// label picture (api/label_reader.go); Kashi Cloud shows it as a tag.
+const ProductSourceLabelPhoto = "label_photo"
 
 type CreateProductTxResult struct {
 	Product           Product             `json:"product"`
@@ -154,18 +165,32 @@ func (store *SQLStore) CreateProductTx(ctx context.Context, arg CreateProductTxP
 
 		// An explicit barcode can only apply to a single variant.
 		explicitBarcode := arg.Barcode
-		if explicitBarcode != nil && len(colorCells)*len(sizeCells) > 1 {
+		if (explicitBarcode != nil || arg.BarcodeText != "") && len(colorCells)*len(sizeCells) > 1 {
 			return fmt.Errorf("an explicit barcode cannot be used when creating multiple variants")
 		}
 
 		for _, c := range colorCells {
 			for _, s := range sizeCells {
-				variant, err := createVariantWithBarcode(ctx, q, product.ID, c, s, explicitBarcode)
+				var variant ProductVariant
+				if arg.BarcodeText != "" {
+					variant, err = q.CreateProductVariant(ctx, CreateProductVariantParams{
+						ProductID: product.ID, ColorID: c, SizeID: s, Barcode: arg.BarcodeText,
+					})
+				} else {
+					variant, err = createVariantWithBarcode(ctx, q, product.ID, c, s, explicitBarcode)
+				}
 				if err != nil {
 					return err
 				}
 				result.Variants = append(result.Variants, variant)
 			}
+		}
+
+		if arg.Source != "" {
+			if err := q.SetProductSource(ctx, SetProductSourceParams{ID: product.ID, Source: arg.Source}); err != nil {
+				return err
+			}
+			product.Source = arg.Source
 		}
 
 		if arg.Price != nil {

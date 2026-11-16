@@ -40,6 +40,14 @@ type Config struct {
 	// ResendAPIKey sends emailed invoice reports (api/email_report.go)
 	// through Resend. Unset means email is off on this server.
 	ResendAPIKey string `mapstructure:"RESEND_API_KEY"`
+
+	// The label reader (api/label_reader.go) reads unknown item pictures
+	// with a vision model: LABEL_READER_PROVIDER is "groq", "anthropic" or
+	// empty (off). LABEL_READER_MODEL overrides the provider's default.
+	LabelReaderProvider string `mapstructure:"LABEL_READER_PROVIDER"`
+	LabelReaderModel    string `mapstructure:"LABEL_READER_MODEL"`
+	GroqAPIKey          string `mapstructure:"GROQ_API_KEY"`
+	AnthropicAPIKey     string `mapstructure:"ANTHROPIC_API_KEY"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

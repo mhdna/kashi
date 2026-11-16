@@ -71,7 +71,7 @@ func (q *Queries) CreateResolvedBranchInvoiceItem(ctx context.Context, arg Creat
 const createUnknownItemImage = `-- name: CreateUnknownItemImage :one
 INSERT INTO unknown_item_images (session_id, file_path, content_type, size_bytes)
 VALUES ($1, $2, $3, $4)
-RETURNING id, session_id, file_path, content_type, size_bytes, rotation, created_at
+RETURNING id, session_id, file_path, content_type, size_bytes, rotation, created_at, label_status, label_name, label_code, label_barcode, label_price, label_error
 `
 
 type CreateUnknownItemImageParams struct {
@@ -97,6 +97,12 @@ func (q *Queries) CreateUnknownItemImage(ctx context.Context, arg CreateUnknownI
 		&i.SizeBytes,
 		&i.Rotation,
 		&i.CreatedAt,
+		&i.LabelStatus,
+		&i.LabelName,
+		&i.LabelCode,
+		&i.LabelBarcode,
+		&i.LabelPrice,
+		&i.LabelError,
 	)
 	return i, err
 }
@@ -140,11 +146,11 @@ func (q *Queries) CreateUnknownItemSession(ctx context.Context, arg CreateUnknow
 }
 
 const createUnknownItemSlot = `-- name: CreateUnknownItemSlot :exec
-INSERT INTO unknown_item_slots (session_id, slot_ref, position, label, unit_price, discount, line_ref)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO unknown_item_slots (session_id, slot_ref, position, label, unit_price, discount, line_ref, barcode)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 ON CONFLICT (session_id, slot_ref) DO UPDATE SET
   position = EXCLUDED.position, label = EXCLUDED.label, unit_price = EXCLUDED.unit_price,
-  discount = EXCLUDED.discount, line_ref = EXCLUDED.line_ref
+  discount = EXCLUDED.discount, line_ref = EXCLUDED.line_ref, barcode = EXCLUDED.barcode
 `
 
 type CreateUnknownItemSlotParams struct {
@@ -155,6 +161,7 @@ type CreateUnknownItemSlotParams struct {
 	UnitPrice int64  `json:"unit_price"`
 	Discount  int16  `json:"discount"`
 	LineRef   string `json:"line_ref"`
+	Barcode   string `json:"barcode"`
 }
 
 // A till re-sending its session as the cart changes moves and relabels the
@@ -168,6 +175,7 @@ func (q *Queries) CreateUnknownItemSlot(ctx context.Context, arg CreateUnknownIt
 		arg.UnitPrice,
 		arg.Discount,
 		arg.LineRef,
+		arg.Barcode,
 	)
 	return err
 }
@@ -232,7 +240,7 @@ func (q *Queries) FindUnknownInvoiceItem(ctx context.Context, arg FindUnknownInv
 }
 
 const getUnknownItemImage = `-- name: GetUnknownItemImage :one
-SELECT id, session_id, file_path, content_type, size_bytes, rotation, created_at FROM unknown_item_images WHERE id = $1
+SELECT id, session_id, file_path, content_type, size_bytes, rotation, created_at, label_status, label_name, label_code, label_barcode, label_price, label_error FROM unknown_item_images WHERE id = $1
 `
 
 func (q *Queries) GetUnknownItemImage(ctx context.Context, id int64) (UnknownItemImage, error) {
@@ -246,6 +254,12 @@ func (q *Queries) GetUnknownItemImage(ctx context.Context, id int64) (UnknownIte
 		&i.SizeBytes,
 		&i.Rotation,
 		&i.CreatedAt,
+		&i.LabelStatus,
+		&i.LabelName,
+		&i.LabelCode,
+		&i.LabelBarcode,
+		&i.LabelPrice,
+		&i.LabelError,
 	)
 	return i, err
 }
@@ -298,7 +312,7 @@ func (q *Queries) GetUnknownItemSessionByToken(ctx context.Context, token string
 }
 
 const getUnknownItemSlotByRef = `-- name: GetUnknownItemSlotByRef :one
-SELECT id, session_id, slot_ref, position, label, unit_price, discount, image_id, resolved_variant_id, resolved_at, waived_at, waived_by, line_ref FROM unknown_item_slots WHERE session_id = $1 AND slot_ref = $2
+SELECT id, session_id, slot_ref, position, label, unit_price, discount, image_id, resolved_variant_id, resolved_at, waived_at, waived_by, line_ref, barcode, auto_resolved FROM unknown_item_slots WHERE session_id = $1 AND slot_ref = $2
 `
 
 type GetUnknownItemSlotByRefParams struct {
@@ -323,12 +337,14 @@ func (q *Queries) GetUnknownItemSlotByRef(ctx context.Context, arg GetUnknownIte
 		&i.WaivedAt,
 		&i.WaivedBy,
 		&i.LineRef,
+		&i.Barcode,
+		&i.AutoResolved,
 	)
 	return i, err
 }
 
 const getUnknownItemSlotForResolve = `-- name: GetUnknownItemSlotForResolve :one
-SELECT s.id, s.session_id, s.slot_ref, s.position, s.label, s.unit_price, s.discount, s.image_id, s.resolved_variant_id, s.resolved_at, s.waived_at, s.waived_by, s.line_ref, sess.branch_id, sess.branch_invoice_id
+SELECT s.id, s.session_id, s.slot_ref, s.position, s.label, s.unit_price, s.discount, s.image_id, s.resolved_variant_id, s.resolved_at, s.waived_at, s.waived_by, s.line_ref, s.barcode, s.auto_resolved, sess.branch_id, sess.branch_invoice_id
 FROM unknown_item_slots s
 JOIN unknown_item_sessions sess ON sess.id = s.session_id
 WHERE s.id = $1
@@ -349,6 +365,8 @@ type GetUnknownItemSlotForResolveRow struct {
 	WaivedAt          sql.NullTime  `json:"waived_at"`
 	WaivedBy          string        `json:"waived_by"`
 	LineRef           string        `json:"line_ref"`
+	Barcode           string        `json:"barcode"`
+	AutoResolved      bool          `json:"auto_resolved"`
 	BranchID          int64         `json:"branch_id"`
 	BranchInvoiceID   sql.NullInt64 `json:"branch_invoice_id"`
 }
@@ -370,6 +388,8 @@ func (q *Queries) GetUnknownItemSlotForResolve(ctx context.Context, id int64) (G
 		&i.WaivedAt,
 		&i.WaivedBy,
 		&i.LineRef,
+		&i.Barcode,
+		&i.AutoResolved,
 		&i.BranchID,
 		&i.BranchInvoiceID,
 	)
@@ -483,6 +503,64 @@ func (q *Queries) ListDeletableUnknownItemImages(ctx context.Context, ids []int6
 	return items, nil
 }
 
+const listLabelResolvableSlots = `-- name: ListLabelResolvableSlots :many
+SELECT s.id, s.line_ref, s.unit_price, s.barcode AS scanned_barcode, s.image_id,
+  img.label_name, img.label_code, img.label_barcode, img.label_price
+FROM unknown_item_slots s
+JOIN unknown_item_sessions sess ON sess.id = s.session_id
+JOIN unknown_item_images img ON img.id = s.image_id
+WHERE s.session_id = $1 AND s.resolved_at IS NULL
+  AND sess.branch_invoice_id IS NOT NULL AND img.label_status = 'read'
+ORDER BY s.position
+`
+
+type ListLabelResolvableSlotsRow struct {
+	ID             int64         `json:"id"`
+	LineRef        string        `json:"line_ref"`
+	UnitPrice      int64         `json:"unit_price"`
+	ScannedBarcode string        `json:"scanned_barcode"`
+	ImageID        sql.NullInt64 `json:"image_id"`
+	LabelName      string        `json:"label_name"`
+	LabelCode      string        `json:"label_code"`
+	LabelBarcode   string        `json:"label_barcode"`
+	LabelPrice     sql.NullInt64 `json:"label_price"`
+}
+
+// Units of one landed sale whose picture's label was read and that nobody
+// has resolved yet: what the label reader can turn into products.
+func (q *Queries) ListLabelResolvableSlots(ctx context.Context, sessionID int64) ([]ListLabelResolvableSlotsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listLabelResolvableSlots, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListLabelResolvableSlotsRow{}
+	for rows.Next() {
+		var i ListLabelResolvableSlotsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.LineRef,
+			&i.UnitPrice,
+			&i.ScannedBarcode,
+			&i.ImageID,
+			&i.LabelName,
+			&i.LabelCode,
+			&i.LabelBarcode,
+			&i.LabelPrice,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUnknownItemImages = `-- name: ListUnknownItemImages :many
 SELECT
   img.id,
@@ -547,7 +625,7 @@ func (q *Queries) ListUnknownItemImages(ctx context.Context, arg ListUnknownItem
 }
 
 const listUnknownItemSlotsForSession = `-- name: ListUnknownItemSlotsForSession :many
-SELECT id, session_id, slot_ref, position, label, unit_price, discount, image_id, resolved_variant_id, resolved_at, waived_at, waived_by, line_ref FROM unknown_item_slots WHERE session_id = $1 ORDER BY position
+SELECT id, session_id, slot_ref, position, label, unit_price, discount, image_id, resolved_variant_id, resolved_at, waived_at, waived_by, line_ref, barcode, auto_resolved FROM unknown_item_slots WHERE session_id = $1 ORDER BY position
 `
 
 func (q *Queries) ListUnknownItemSlotsForSession(ctx context.Context, sessionID int64) ([]UnknownItemSlot, error) {
@@ -573,6 +651,8 @@ func (q *Queries) ListUnknownItemSlotsForSession(ctx context.Context, sessionID 
 			&i.WaivedAt,
 			&i.WaivedBy,
 			&i.LineRef,
+			&i.Barcode,
+			&i.AutoResolved,
 		); err != nil {
 			return nil, err
 		}
@@ -607,11 +687,20 @@ SELECT
   i.branch_invoice_code,
   i.occurred_at,
   COALESCE(p.name, '')::text AS resolved_name,
-  COALESCE(pv.barcode, '')::text AS resolved_barcode
+  COALESCE(pv.barcode, '')::text AS resolved_barcode,
+  COALESCE(p.source, '')::text AS resolved_source,
+  s.barcode AS scanned_barcode,
+  s.auto_resolved,
+  COALESCE(img.label_status, '')::text AS label_status,
+  COALESCE(img.label_name, '')::text AS label_name,
+  COALESCE(img.label_code, '')::text AS label_code,
+  COALESCE(img.label_barcode, '')::text AS label_barcode,
+  img.label_price
 FROM unknown_item_slots s
 JOIN unknown_item_sessions sess ON sess.id = s.session_id
 JOIN branches b ON b.id = sess.branch_id
 JOIN branch_invoices i ON i.id = sess.branch_invoice_id
+LEFT JOIN unknown_item_images img ON img.id = s.image_id
 LEFT JOIN product_variants pv ON pv.id = s.resolved_variant_id
 LEFT JOIN products p ON p.id = pv.product_id
 WHERE (s.image_id IS NOT NULL OR s.waived_at IS NOT NULL)
@@ -647,6 +736,14 @@ type ListUnknownItemsRow struct {
 	OccurredAt        time.Time     `json:"occurred_at"`
 	ResolvedName      string        `json:"resolved_name"`
 	ResolvedBarcode   string        `json:"resolved_barcode"`
+	ResolvedSource    string        `json:"resolved_source"`
+	ScannedBarcode    string        `json:"scanned_barcode"`
+	AutoResolved      bool          `json:"auto_resolved"`
+	LabelStatus       string        `json:"label_status"`
+	LabelName         string        `json:"label_name"`
+	LabelCode         string        `json:"label_code"`
+	LabelBarcode      string        `json:"label_barcode"`
+	LabelPrice        sql.NullInt64 `json:"label_price"`
 }
 
 // Pictured units of sold invoices, pending or resolved, newest first.
@@ -679,6 +776,14 @@ func (q *Queries) ListUnknownItems(ctx context.Context, arg ListUnknownItemsPara
 			&i.OccurredAt,
 			&i.ResolvedName,
 			&i.ResolvedBarcode,
+			&i.ResolvedSource,
+			&i.ScannedBarcode,
+			&i.AutoResolved,
+			&i.LabelStatus,
+			&i.LabelName,
+			&i.LabelCode,
+			&i.LabelBarcode,
+			&i.LabelPrice,
 		); err != nil {
 			return nil, err
 		}
@@ -775,6 +880,15 @@ func (q *Queries) ListWaitingUnknownItems(ctx context.Context) ([]ListWaitingUnk
 		return nil, err
 	}
 	return items, nil
+}
+
+const markUnknownItemSlotAutoResolved = `-- name: MarkUnknownItemSlotAutoResolved :exec
+UPDATE unknown_item_slots SET auto_resolved = true WHERE id = $1
+`
+
+func (q *Queries) MarkUnknownItemSlotAutoResolved(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, markUnknownItemSlotAutoResolved, id)
+	return err
 }
 
 const markUnknownItemSlotResolved = `-- name: MarkUnknownItemSlotResolved :exec
@@ -878,6 +992,37 @@ type SetBranchInvoiceItemResolvedParams struct {
 
 func (q *Queries) SetBranchInvoiceItemResolved(ctx context.Context, arg SetBranchInvoiceItemResolvedParams) error {
 	_, err := q.db.ExecContext(ctx, setBranchInvoiceItemResolved, arg.ID, arg.ProductUid)
+	return err
+}
+
+const setUnknownItemImageLabel = `-- name: SetUnknownItemImageLabel :exec
+UPDATE unknown_item_images SET
+  label_status = $2, label_name = $3, label_code = $4, label_barcode = $5,
+  label_price = $6, label_error = $7
+WHERE id = $1
+`
+
+type SetUnknownItemImageLabelParams struct {
+	ID           int64         `json:"id"`
+	LabelStatus  string        `json:"label_status"`
+	LabelName    string        `json:"label_name"`
+	LabelCode    string        `json:"label_code"`
+	LabelBarcode string        `json:"label_barcode"`
+	LabelPrice   sql.NullInt64 `json:"label_price"`
+	LabelError   string        `json:"label_error"`
+}
+
+// What the label reader made of a picture (label_status 'read' or 'failed').
+func (q *Queries) SetUnknownItemImageLabel(ctx context.Context, arg SetUnknownItemImageLabelParams) error {
+	_, err := q.db.ExecContext(ctx, setUnknownItemImageLabel,
+		arg.ID,
+		arg.LabelStatus,
+		arg.LabelName,
+		arg.LabelCode,
+		arg.LabelBarcode,
+		arg.LabelPrice,
+		arg.LabelError,
+	)
 	return err
 }
 

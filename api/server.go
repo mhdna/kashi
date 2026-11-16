@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os/signal"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -35,6 +36,11 @@ type Server struct {
 	uploadThemeLoaded  atomic.Bool
 	// The sale open on each till (live_cart.go).
 	liveCarts liveCartStore
+	// labelReader reads unknown item pictures (label_reader.go); nil when
+	// it's off. labelMu keeps two readings of one sale from racing to make
+	// the same product.
+	labelReader labelReader
+	labelMu     sync.Mutex
 }
 
 func NewServer(config util.Config, store db.Store) (*Server, error) {
@@ -44,11 +50,12 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 	}
 
 	server := &Server{
-		config:     config,
-		store:      store,
-		tokenMaker: tokenMaker,
-		branchHub:  newBranchHub(),
-		adminHub:   newAdminHub(),
+		config:      config,
+		store:       store,
+		tokenMaker:  tokenMaker,
+		branchHub:   newBranchHub(),
+		labelReader: newLabelReader(config),
+		adminHub:    newAdminHub(),
 	}
 	server.security = newSecurityGuard(store, newGeoIP(config.GeoIPDir))
 	server.security.notify = func() {

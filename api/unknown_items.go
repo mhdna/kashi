@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	_ "embed"
 	"errors"
@@ -44,6 +45,10 @@ type unknownSlotRequest struct {
 	// The cart line the unit is on: one picture covers the whole line. Tills
 	// before this send none, and each unit needs its own picture.
 	LineRef string `json:"line_ref"`
+	// Barcode is what the till scanned when the item had one it didn't
+	// know; the label reader trusts it over what it reads (older tills
+	// send none).
+	Barcode string `json:"barcode"`
 }
 
 type createUnknownSessionRequest struct {
@@ -146,6 +151,7 @@ func (server *Server) createUnknownSession(ctx *gin.Context) {
 		if err := server.store.CreateUnknownItemSlot(ctx, db.CreateUnknownItemSlotParams{
 			SessionID: session.ID, SlotRef: slot.SlotRef, Position: int32(i),
 			Label: slot.Label, UnitPrice: slot.UnitPrice, Discount: slot.Discount, LineRef: slot.LineRef,
+			Barcode: clip(strings.TrimSpace(slot.Barcode), 64),
 		}); err != nil {
 			server.writeError(ctx, http.StatusInternalServerError, err)
 			return
@@ -233,6 +239,14 @@ func (server *Server) linkUnknownSession(ctx *gin.Context, branchID, invoiceID i
 		ClientRef:       sessionRef,
 		BranchInvoiceID: sql.NullInt64{Int64: invoiceID, Valid: true},
 	})
+	// Labels already read can become products now that the sale is here.
+	if server.labelReader != nil {
+		if session, err := server.store.GetUnknownItemSessionByRef(ctx, db.GetUnknownItemSessionByRefParams{
+			BranchID: branchID, ClientRef: sessionRef,
+		}); err == nil {
+			go server.autoResolveLabels(context.Background(), session.ID)
+		}
+	}
 }
 
 // --- the phone, reached by the QR link (public, token-gated) ---
@@ -354,6 +368,7 @@ func (server *Server) uploadUnknownSlotImage(ctx *gin.Context) {
 		return
 	}
 	server.adminHub.broadcastAll(adminWSMessage{Type: "unknown_item_uploaded", BranchID: session.BranchID})
+	server.readUnknownLabel(image.ID, session.ID, destPath, stored.ContentType)
 	// The phone gets the new state back, so it needs no status call after.
 	slots, err := server.store.ListUnknownItemSlotsForSession(ctx, session.ID)
 	if err != nil {
@@ -449,6 +464,19 @@ type unknownItemView struct {
 	OccurredAt        time.Time  `json:"occurred_at"`
 	ResolvedName      string     `json:"resolved_name"`
 	ResolvedBarcode   string     `json:"resolved_barcode"`
+	// ResolvedSource is the product's source: "label_photo" when the label
+	// reader made it (the page shows "From photo").
+	ResolvedSource string `json:"resolved_source"`
+	ScannedBarcode string `json:"scanned_barcode"`
+	AutoResolved   bool   `json:"auto_resolved"`
+	// What the label reader read off the picture ("" status: not read).
+	LabelStatus  string `json:"label_status"`
+	LabelName    string `json:"label_name"`
+	LabelCode    string `json:"label_code"`
+	LabelBarcode string `json:"label_barcode"`
+	LabelPrice   *int64 `json:"label_price"`
+	// LabelPriceMismatch: the label's price isn't what the cashier charged.
+	LabelPriceMismatch bool `json:"label_price_mismatch"`
 }
 
 func unknownItemViews(rows []db.ListUnknownItemsRow) []unknownItemView {
@@ -462,6 +490,10 @@ func unknownItemViews(rows []db.ListUnknownItemsRow) []unknownItemView {
 			SessionID: r.SessionID, BranchID: r.BranchID, BranchName: r.BranchName,
 			BranchInvoiceID: nullIDValue(r.BranchInvoiceID), BranchInvoiceCode: r.BranchInvoiceCode,
 			OccurredAt: r.OccurredAt, ResolvedName: r.ResolvedName, ResolvedBarcode: r.ResolvedBarcode,
+			ResolvedSource: r.ResolvedSource, ScannedBarcode: r.ScannedBarcode, AutoResolved: r.AutoResolved,
+			LabelStatus: r.LabelStatus, LabelName: r.LabelName, LabelCode: r.LabelCode,
+			LabelBarcode: r.LabelBarcode, LabelPrice: nullIDValue(r.LabelPrice),
+			LabelPriceMismatch: r.LabelPrice.Valid && r.LabelPrice.Int64 != r.UnitPrice,
 		})
 	}
 	return views
