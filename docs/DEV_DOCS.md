@@ -122,6 +122,8 @@ Business settings (WhatsApp credentials, templates, webhook secret) live **in th
 - Report SQL spells the zone `'Asia/Beirut'`; Go code uses `businessToday` / `dayStart` (UTC-midnight `date` values, `timestamptz` bounds).
 - Sale payloads are signed cents: positive revenue, negative refund, an exchange carries its net.
 - Report **net sales leave out deferred coupons** (coupon types with `calculate_on_checkout`), like kashi-pos: `branch_invoice_deferred_coupons(invoice id)` finds the coupon through `coupons.redeemed_invoice_ref = branch_invoices.client_ref` and returns the "On Coupon" payment, capped at the invoice total. Plain coupons count. Reports in `db/query/reports.sql` subtract it; the dashboard and e-mail reports do not yet.
+- The **Items report** (`GET /reports/items`, `api/item_report.go`, `db/query/item_report.sql`) is the Reports page on one group of goods: `codes` (code prefixes, any of, case-insensitive), `skip_codes`, `category_ids`, `supplier_ids`, ANDed; at least one of codes, category or supplier. Every figure is a `SUM` over the group's invoice lines (`line_total` already has line, deal and invoice-discount shares off), so it nets returns but, unlike invoice-level figures, does not take off deferred coupons. Discounts = till price × quantity − `line_total` on units sold. Stock is `inventory_stock` now, in every inventory, whatever branches are picked.
+- `/product_categories` is a lookup any signed-in user can read; `/suppliers` reads for Analytics too (the Items report's boxes).
 - The till reads clock skew from `/branch/health` (kashi's clock and the branch zone).
 
 ## Database and migrations {icon=mdiDatabase}
@@ -409,6 +411,7 @@ Add a Symptom / Cause / Fix entry to `docs/FIXED_BUGS.md` in the same commit.
 - 2026-10-29 | WhatsApp rating poll | Option to send purchase details inside the rating poll.
 - 2026-11-09 | Auto-fill rewritten | Rules read the real code convention (EF6LJE10 = outlet lady jeans, 2026, price 10), generated from a script (migration 000232).
 - 2026-10-31 | Loading polish | No skeleton/loader flashes on fast loads; report fixes.
+- 2026-11-16 | Items report | A report on one group of goods: codes starting with X, a category, a supplier.
 :::
 
 > [!NOTE] `doc/product-rules.md` records the agreed discount and product-field rules (what was applied to production on 2026-10-23, with the backup names).

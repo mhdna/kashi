@@ -843,6 +843,33 @@ type Querier interface {
 	// cancellation already left waiting for it.
 	InheritBranchInvoiceCancellation(ctx context.Context, id int64) error
 	InsertBranchQuickAccessItem(ctx context.Context, arg InsertBranchQuickAccessItemParams) error
+	ItemReportByBranch(ctx context.Context, arg ItemReportByBranchParams) ([]ItemReportByBranchRow, error)
+	ItemReportDaily(ctx context.Context, arg ItemReportDailyParams) ([]ItemReportDailyRow, error)
+	// The group's products that sold, shaped like PeriodReportProducts so the
+	// Goods block draws them as it draws every product.
+	ItemReportProducts(ctx context.Context, arg ItemReportProductsParams) ([]ItemReportProductsRow, error)
+	// Who sold the group, one row per salesperson per branch (named as in
+	// PeriodReportSalespersons).
+	ItemReportSalespersons(ctx context.Context, arg ItemReportSalespersonsParams) ([]ItemReportSalespersonsRow, error)
+	// Every product in the group, sold or not, with what is on hand now in
+	// every inventory: how much of the group is left, and what sits unsold.
+	// Inactive products count only while they still hold stock.
+	ItemReportStock(ctx context.Context, arg ItemReportStockParams) ([]ItemReportStockRow, error)
+	// The Items report (api/item_report.go): the Reports page's figures for
+	// one group of goods -- every product whose code starts with one of
+	// code_prefixes (and none of skip_prefixes), in category_ids, from
+	// supplier_ids. An empty list doesn't narrow anything. The scope is the
+	// other reports' (db/query/reports.sql): branch-local days, hidden branches
+	// and registers, cancelled sales and the customers and products left out of
+	// reports. Every figure comes from the invoice lines, signed as stored
+	// (returned lines are negative), and line_total already has the line's
+	// discount, deal and share of the invoice discount off, so SUM(line_total)
+	// is what the goods brought in.
+	// The group's headline figures, and all_net_sales: what every line in the
+	// same scope brought in, for the group's share.
+	ItemReportSummary(ctx context.Context, arg ItemReportSummaryParams) (ItemReportSummaryRow, error)
+	// Units and money of the group by size and by colour.
+	ItemReportVariantAttributes(ctx context.Context, arg ItemReportVariantAttributesParams) ([]ItemReportVariantAttributesRow, error)
 	// When this phone was last sent a rating poll; no rows when never.
 	LastWhatsAppPollAt(ctx context.Context, clientPhone string) (time.Time, error)
 	// When this phone was last actually messaged; no rows when never.

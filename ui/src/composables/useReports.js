@@ -1,3 +1,4 @@
+import { itemQuery } from '@/components/reports/itemReport'
 import { API_BASE } from '@/config'
 import { authFetch } from './useApi'
 
@@ -14,6 +15,25 @@ export function useReports () {
       const body = await res.json().catch(() => ({}))
       if (!res.ok) {throw new Error(body.error || `Request failed with status ${res.status}`)}
       return body
+    },
+
+    // The Items report's figures (api/item_report.go): one group of goods,
+    // picked by code, category and supplier.
+    getItemReport: async ({ from, to, branchIds = [], filter }) => {
+      const url = new URL(`${API_BASE}/reports/items`)
+      for (const [key, value] of Object.entries(itemQuery({ from, to, branchIds, filter }))) {url.searchParams.set(key, value)}
+      const res = await authFetch(url)
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {throw new Error(body.error || `Request failed with status ${res.status}`)}
+      return body
+    },
+
+    // Product categories, for the Items report's Category box.
+    getProductCategories: async () => {
+      const res = await authFetch(`${API_BASE}/product_categories`)
+      const body = await res.json().catch(() => [])
+      if (!res.ok) {throw new Error(body.error || `Request failed with status ${res.status}`)}
+      return Array.isArray(body) ? body : (body.product_categories ?? [])
     },
 
     // The page's saved defaults and the products and customers left out of

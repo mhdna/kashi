@@ -1,0 +1,192 @@
+{
+  "branches": [
+    {
+      "branch_id": 1,
+      "branch_name": "Branch",
+      "discount": 200,
+      "net_sales": 1600,
+      "net_units": 2,
+      "sales_count": 2,
+      "units_back": 1
+    }
+  ],
+  "daily": [
+    {
+      "day": "2026-09-10T00:00:00Z",
+      "net_sales": 1800,
+      "net_units": 2,
+      "sales_count": 1
+    },
+    {
+      "day": "2026-09-11T00:00:00Z",
+      "net_sales": 700,
+      "net_units": 1,
+      "sales_count": 1
+    },
+    {
+      "day": "2026-09-12T00:00:00Z",
+      "net_sales": -900,
+      "net_units": -1,
+      "sales_count": 0
+    }
+  ],
+  "filter": {
+    "category_ids": [],
+    "codes": [
+      "QBASEX"
+    ],
+    "skip_codes": [
+      "QBASEXY"
+    ],
+    "supplier_ids": []
+  },
+  "previous": {
+    "from": "2026-09-07",
+    "summary": {
+      "all_net_sales": 1000,
+      "cost": 400,
+      "costed_revenue": 1000,
+      "customers": 0,
+      "discounted_lines": 0,
+      "gross_sales": 1000,
+      "list_value": 1000,
+      "net_sales": 1000,
+      "net_units": 1,
+      "products_sold": 1,
+      "returned_value": 0,
+      "sales_count": 1,
+      "selling_days": 1,
+      "units_back": 0,
+      "units_out": 1
+    },
+    "to": "2026-09-09"
+  },
+  "product_attributes": [
+    {
+      "attribute": "supplier",
+      "product_id": 1,
+      "value": "Acme"
+    }
+  ],
+  "products": [
+    {
+      "category": "Shoes",
+      "cost": 400,
+      "costed_revenue": 900,
+      "invoices": 2,
+      "product_code": "QBASEX01",
+      "product_id": 1,
+      "product_name": "Item X01",
+      "quantity": 1,
+      "returned": -1,
+      "revenue": 900
+    },
+    {
+      "category": "Bags",
+      "cost": 0,
+      "costed_revenue": 0,
+      "invoices": 1,
+      "product_code": "QBASEX02",
+      "product_id": 2,
+      "product_name": "Item X02",
+      "quantity": 1,
+      "returned": 0,
+      "revenue": 700
+    }
+  ],
+  "salespersons": [
+    {
+      "branch_id": 1,
+      "branch_name": "Branch",
+      "discount": 200,
+      "net_sales": 900,
+      "net_units": 1,
+      "sales_count": 1,
+      "salesperson_id": 0,
+      "salesperson_name": ""
+    },
+    {
+      "branch_id": 1,
+      "branch_name": "Branch",
+      "discount": 0,
+      "net_sales": 700,
+      "net_units": 1,
+      "sales_count": 1,
+      "salesperson_id": 0,
+      "salesperson_name": "Rana"
+    }
+  ],
+  "stock": [
+    {
+      "category": "Shoes",
+      "on_hand": 10,
+      "product_code": "QBASEX01",
+      "product_id": 1,
+      "product_name": "Item X01"
+    },
+    {
+      "category": "Bags",
+      "on_hand": 0,
+      "product_code": "QBASEX02",
+      "product_id": 2,
+      "product_name": "Item X02"
+    },
+    {
+      "category": "",
+      "on_hand": 7,
+      "product_code": "QBASEX04",
+      "product_id": 3,
+      "product_name": "Item X04"
+    },
+    {
+      "category": "",
+      "on_hand": 2,
+      "product_code": "QBASEX05",
+      "product_id": 4,
+      "product_name": "Item X05"
+    }
+  ],
+  "summary": {
+    "all_net_sales": 3000,
+    "cost": 400,
+    "costed_revenue": 900,
+    "customers": 0,
+    "discounted_lines": 1,
+    "gross_sales": 2500,
+    "list_value": 2700,
+    "net_sales": 1600,
+    "net_units": 2,
+    "products_sold": 2,
+    "returned_value": 900,
+    "sales_count": 2,
+    "selling_days": 2,
+    "units_back": 1,
+    "units_out": 3
+  },
+  "variant_attributes": [
+    {
+      "kind": "color",
+      "name": "Red-QBASE",
+      "quantity": 1,
+      "revenue": 900
+    },
+    {
+      "kind": "size",
+      "name": "M",
+      "quantity": 1,
+      "revenue": 900
+    },
+    {
+      "kind": "color",
+      "name": "",
+      "quantity": 1,
+      "revenue": 700
+    },
+    {
+      "kind": "size",
+      "name": "",
+      "quantity": 1,
+      "revenue": 700
+    }
+  ]
+}

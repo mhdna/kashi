@@ -181,6 +181,58 @@
           placeholder="All branches"
           variant="outlined"
         />
+        <!-- The Items report: which goods it is on. -->
+        <div v-if="report.items" class="d-flex flex-column ga-3">
+          <v-combobox
+            v-model="itemCodes"
+            chips
+            closable-chips
+            density="compact"
+            hide-details
+            hint="Type a code start and press Enter"
+            label="Code starts with"
+            multiple
+            persistent-placeholder
+            placeholder="X, BZ, TOC5..."
+            variant="outlined"
+          />
+          <v-combobox
+            v-model="itemSkipCodes"
+            chips
+            closable-chips
+            density="compact"
+            hide-details
+            label="But not starting with"
+            multiple
+            variant="outlined"
+          />
+          <v-autocomplete
+            v-model="itemCategoryIds"
+            chips
+            closable-chips
+            density="compact"
+            hide-details
+            :items="categoryOptions"
+            label="Category"
+            multiple
+            persistent-placeholder
+            placeholder="Any category"
+            variant="outlined"
+          />
+          <v-autocomplete
+            v-model="itemSupplierIds"
+            chips
+            closable-chips
+            density="compact"
+            hide-details
+            :items="supplierOptions"
+            label="Supplier"
+            multiple
+            persistent-placeholder
+            placeholder="Any supplier"
+            variant="outlined"
+          />
+        </div>
         <v-autocomplete
           v-if="report.employees"
           v-model="employees"
@@ -315,6 +367,9 @@
         title="Preparing your report"
       />
       <v-alert v-else-if="loadError" class="ma-6" type="error" variant="tonal">{{ loadError }}</v-alert>
+      <v-alert v-else-if="report.items && !itemsPicked" class="ma-6" type="info" variant="tonal">
+        Pick the items on the left: a code they start with (like X or BZ), a category or a supplier.
+      </v-alert>
       <v-alert v-else-if="parts.length === 0" class="ma-6" type="info" variant="tonal">
         Tick at least one part of the report on the left.
       </v-alert>
@@ -337,6 +392,7 @@
               <div class="rpt-meta">
                 <div><strong>{{ branchLabel }}</strong></div>
                 <div v-if="report.employees && employees.length > 0">{{ employeeLabel }}</div>
+                <div v-if="report.items">{{ itemLabel }}</div>
                 <div>{{ t('Generated {at}', { at: generatedLabel }) }}</div>
                 <div v-if="showExcluded && excludedCount > 0 && needsSales">
                   {{ t('Left out: {products} products, {clients} customers', { products: exclusions.products.length, clients: exclusions.clients.length }) }}
@@ -453,6 +509,8 @@
   import BusyTimesReport from '@/components/reports/BusyTimesReport.vue'
   import CustomersReport from '@/components/reports/CustomersReport.vue'
   import FeedbackReport from '@/components/reports/FeedbackReport.vue'
+  import { hasItemFilter, itemFilterFromQuery, itemFilterKey, itemFilterLabel, itemFilterToQuery, normalizeItemFilter } from '@/components/reports/itemReport'
+  import ItemsReport from '@/components/reports/ItemsReport.vue'
   import PaymentsReport from '@/components/reports/PaymentsReport.vue'
   import ProductsReport from '@/components/reports/ProductsReport.vue'
   import { ARABIC_FONT, installReportFonts } from '@/components/reports/reportFonts'
@@ -467,6 +525,7 @@
   import { usePageAccess } from '@/composables/usePageAccess'
   import { useReports } from '@/composables/useReports'
   import { useReviews } from '@/composables/useReviews'
+  import { useSuppliers } from '@/composables/useSuppliers'
   import { buildTimesheet } from '@/utils/attendanceSessions'
   import { useAttendanceAutoOut } from '@/composables/useAttendanceAutoOut'
   import { downloadCsv, printReport } from '@/utils/reportExport'
@@ -489,6 +548,7 @@
     attendance: AttendanceReport,
     payments: PaymentsReport,
     products: ProductsReport,
+    items: ItemsReport,
   }
 
   // Each report is a set of parts, shown as a tree on the left: a part
@@ -593,6 +653,35 @@
         { key: 'returns', comp: 'payments', title: 'Returns by branch' },
       ],
     },
+    {
+      // One group of goods, picked by code, category or supplier (the
+      // sidebar's item fields); every figure is that group's only.
+      key: 'items', title: 'Items', subtitle: 'Codes starting with X, a category, a supplier', icon: 'mdi-tag-multiple', items: true,
+      parts: [
+        { key: 'kpis.items', comp: 'items', title: 'Headline figures' },
+        { key: 'items.compare', comp: 'items', title: 'Compared with the period before' },
+        { key: 'items.days', comp: 'items', title: 'Day by day' },
+        { key: 'items.branches', comp: 'items', title: 'By branch' },
+        { key: 'items.salespersons', comp: 'items', title: 'Who sold them' },
+        { key: 'items.stock', comp: 'items', section: 'Stock', title: 'Stock left' },
+        { key: 'items.unsold', comp: 'items', section: 'Stock', title: 'Not selling' },
+        { key: 'categories', comp: 'products', title: 'Categories' },
+        { key: 'bestsellers', comp: 'products', title: 'Best sellers' },
+        { key: 'profitable', comp: 'products', section: 'Profit', title: 'Most profitable' },
+        { key: 'lowMargin', comp: 'products', section: 'Profit', title: 'Lowest margins' },
+        { key: 'by.brand', comp: 'products', section: 'Breakdowns', title: 'By brand' },
+        { key: 'by.type', comp: 'products', section: 'Breakdowns', title: 'By product type' },
+        { key: 'by.audience', comp: 'products', section: 'Breakdowns', title: 'By who it\'s for' },
+        { key: 'by.origin', comp: 'products', section: 'Breakdowns', title: 'By country of origin', off: true },
+        { key: 'by.year', comp: 'products', section: 'Breakdowns', title: 'By collection year', off: true },
+        { key: 'by.season', comp: 'products', section: 'Breakdowns', title: 'By season', off: true },
+        { key: 'by.supplier', comp: 'products', section: 'Breakdowns', title: 'By supplier' },
+        { key: 'priceBands', comp: 'products', section: 'Breakdowns', title: 'Price ranges' },
+        { key: 'attrs.sizes', comp: 'products', section: 'Sizes and colours', title: 'Units by size' },
+        { key: 'attrs.colours', comp: 'products', section: 'Sizes and colours', title: 'Units by colour' },
+        { key: 'returned', comp: 'products', title: 'Most returned' },
+      ],
+    },
   ]
   // A part saved (or linked) before parts were split stands for its pieces.
   const OLD_PARTS = {
@@ -620,6 +709,7 @@
     attendance: 'Attendance & hours',
     products: 'Goods',
     payments: 'Payments, discounts and returns',
+    items: 'Items',
   }
   // Report keys from before the reports were grouped, for old links.
   const OLD_KEYS = {
@@ -636,7 +726,8 @@
   const router = useRouter()
   const notify = useNotify()
   const { canEdit } = usePageAccess()
-  const { getReports, getReportSettings, saveReportSettings } = useReports()
+  const { getReports, getItemReport, getProductCategories, getReportSettings, saveReportSettings } = useReports()
+  const { suppliers, fetchSuppliers } = useSuppliers()
   const { autoInTime, autoOutTime, highlightAuto, HIGHLIGHT_OPTIONS, autoInMinutes, autoOutMinutes, applyAutoDefaults } = useAttendanceAutoOut()
   const { listEventsInRange } = useAttendance()
   const { listBranchSalespersons } = useBranchSalespersons()
@@ -713,7 +804,7 @@
   watch(report, r => {
     parts.value = defaultParts(r)
     employees.value = [...(settings.value.defaults?.employees ?? [])]
-    router.replace({ query: { report: r.key } })
+    router.replace({ query: { report: r.key, ...(r.items ? itemFilterToQuery(itemFilter.value) : {}) } })
   })
 
   const allParts = computed(() => parts.value.length === report.value.parts.length)
@@ -763,7 +854,7 @@
     .filter(b => b.parts.length > 0))
   const usesComp = comp => blocks.value.some(b => b.comp === comp)
   const usesPart = key => parts.value.includes(key) && report.value.parts.some(p => p.key === key)
-  const needsTopN = computed(() => usesComp('customers') || usesComp('products'))
+  const needsTopN = computed(() => usesComp('customers') || usesComp('products') || usesComp('items'))
 
   // ---- filters ----------------------------------------------------------------
   const pad = n => String(n).padStart(2, '0')
@@ -839,6 +930,47 @@
   const topN = ref(25)
   const sortBy = ref('revenue')
 
+  // The Items report's goods: codes they start with (and don't), categories
+  // and suppliers. A link's filter wins over the saved one.
+  const linkedItems = itemFilterFromQuery(route.query)
+  const itemCodes = ref(linkedItems.codes)
+  const itemSkipCodes = ref(linkedItems.skipCodes)
+  const itemCategoryIds = ref(linkedItems.categoryIds)
+  const itemSupplierIds = ref(linkedItems.supplierIds)
+  const itemFilter = computed(() => normalizeItemFilter({
+    codes: itemCodes.value, skipCodes: itemSkipCodes.value, categoryIds: itemCategoryIds.value, supplierIds: itemSupplierIds.value,
+  }))
+  const itemsPicked = computed(() => hasItemFilter(itemFilter.value))
+  // "x, bz" typed as one chip shows as the codes it stands for.
+  watch([itemCodes, itemSkipCodes], () => {
+    const tidy = (box, list) => {
+      if (JSON.stringify(box.value) !== JSON.stringify(list)) {box.value = list}
+    }
+    tidy(itemCodes, itemFilter.value.codes)
+    tidy(itemSkipCodes, itemFilter.value.skipCodes)
+  })
+  watch(itemFilter, f => {
+    if (report.value.items) {router.replace({ query: { report: report.value.key, ...itemFilterToQuery(f) } })}
+  })
+  const categories = ref([])
+  const categoryOptions = computed(() => categories.value.map(c => ({ title: c.name, value: c.id })))
+  const supplierOptions = computed(() => suppliers.value.map(s => ({ title: s.name, value: s.id })))
+  const categoryNames = computed(() => Object.fromEntries(categories.value.map(c => [c.id, c.name])))
+  const supplierNames = computed(() => Object.fromEntries(suppliers.value.map(s => [s.id, s.name])))
+  let pickListsLoaded = false
+  async function loadPickLists () {
+    if (pickListsLoaded) {return}
+    pickListsLoaded = true
+    const [cats] = await Promise.all([
+      getProductCategories().catch(() => []),
+      fetchSuppliers().catch(() => []),
+    ])
+    categories.value = cats.filter(c => c.is_active !== false).toSorted((a, b) => a.name.localeCompare(b.name))
+  }
+  watch(() => report.value.items, on => {
+    if (on) {loadPickLists()}
+  }, { immediate: true })
+
   // ---- saved settings ---------------------------------------------------------
   // { defaults: { branch_ids, period, lang, top_n, sort_by, parts: { report: [..] } },
   //   exclusions: { products: [{ id, label }], clients: [{ id, label }] } }
@@ -903,6 +1035,13 @@
     if (d.lang === 'ar') {lang.value = 'ar'}
     applyAutoDefaults(d)
     if (Array.isArray(d.employees)) {employees.value = d.employees.filter(k => typeof k === 'string')}
+    if (!hasItemFilter(linkedItems) && d.items) {
+      const saved = normalizeItemFilter(d.items)
+      itemCodes.value = saved.codes
+      itemSkipCodes.value = saved.skipCodes
+      itemCategoryIds.value = saved.categoryIds
+      itemSupplierIds.value = saved.supplierIds
+    }
     settingsReady.value = true
   }
 
@@ -917,14 +1056,15 @@
     auto_out: autoOutTime.value || '',
     highlight_auto: highlightAuto.value,
     employees: [...employees.value].toSorted(),
+    items: itemFilter.value,
     parts: { ...settings.value.defaults?.parts, [report.value.key]: parts.value },
     parts_seen: { ...settings.value.defaults?.parts_seen, [report.value.key]: report.value.parts.map(p => p.key) },
   }))
   const dirty = computed(() => {
     const d = settings.value.defaults ?? {}
     const c = currentDefaults.value
-    return JSON.stringify([c.branch_ids, c.period, c.lang, c.top_n, c.sort_by, c.auto_in, c.auto_out, c.highlight_auto, c.employees, [...parts.value].toSorted()])
-      !== JSON.stringify([[...(d.branch_ids ?? [])].toSorted((a, b) => a - b), d.period ?? autoPeriod(), d.lang ?? 'en', d.top_n ?? 25, d.sort_by ?? 'revenue', d.auto_in ?? '', d.auto_out ?? '', d.highlight_auto ?? 'off', [...(d.employees ?? [])].toSorted(), [...defaultParts(report.value)].toSorted()])
+    return JSON.stringify([c.branch_ids, c.period, c.lang, c.top_n, c.sort_by, c.auto_in, c.auto_out, c.highlight_auto, c.employees, itemFilterKey(c.items), [...parts.value].toSorted()])
+      !== JSON.stringify([[...(d.branch_ids ?? [])].toSorted((a, b) => a - b), d.period ?? autoPeriod(), d.lang ?? 'en', d.top_n ?? 25, d.sort_by ?? 'revenue', d.auto_in ?? '', d.auto_out ?? '', d.highlight_auto ?? 'off', [...(d.employees ?? [])].toSorted(), itemFilterKey(d.items), [...defaultParts(report.value)].toSorted()])
   })
 
   const savingDefaults = ref(false)
@@ -985,17 +1125,21 @@
   const dimSheet = ref(false)
   const loadError = ref('')
   const data = shallowRef(null)
+  const itemData = shallowRef(null)
   const attendance = shallowRef([])
   const attendanceError = ref('')
   const reviews = shallowRef(null)
   const reviewsError = ref('')
   const staff = shallowRef([])
-  const loadedKeys = { sales: '', attendance: '', reviews: '' }
+  const loadedKeys = { sales: '', attendance: '', reviews: '', items: '' }
 
   const filterKey = computed(() => `${range.value.from}|${range.value.to}|${branchIds.value.join(',')}`)
   // Sales figures feed everything but feedback; attendance feeds the
   // attendance parts and salespersons' hours.
-  const needsSales = computed(() => blocks.value.some(b => b.comp !== 'feedback'))
+  // The Items report draws on its own figures (/reports/items) only.
+  const needsSales = computed(() => !report.value.items && blocks.value.some(b => b.comp !== 'feedback'))
+  const needsItems = computed(() => Boolean(report.value.items) && itemsPicked.value && blocks.value.length > 0)
+  const itemsKey = computed(() => `${filterKey.value}|${itemFilterKey(itemFilter.value)}`)
   const needsAttendance = computed(() => usesComp('attendance') || usesComp('salespersons'))
   const needsReviews = computed(() => usesComp('feedback'))
 
@@ -1012,6 +1156,16 @@
         data.value = body
       }).catch(error => {
         loadedKeys.sales = ''
+        throw error
+      }))
+    }
+    if (needsItems.value && loadedKeys.items !== itemsKey.value) {
+      const mineKey = itemsKey.value
+      loadedKeys.items = mineKey
+      jobs.push(getItemReport({ from, to, branchIds: branchIds.value, filter: itemFilter.value }).then(body => {
+        if (loadedKeys.items === mineKey) {itemData.value = body}
+      }).catch(error => {
+        loadedKeys.items = ''
         throw error
       }))
     }
@@ -1075,7 +1229,7 @@
     staff.value = [...staff.value, ...lists.flat()]
   }
 
-  watch([filterKey, blocks], load)
+  watch([filterKey, blocks, itemsKey], load)
   onMounted(async () => {
     fetchBranches().catch(error => notify.error(error.message))
     await loadSettings()
@@ -1091,17 +1245,18 @@
 
   const ready = computed(() => {
     if (needsSales.value && !data.value) {return false}
+    if (report.value.items && (!itemsPicked.value || !itemData.value)) {return false}
     if (needsReviews.value && !reviews.value) {return false}
     return true
   })
 
   const ctx = computed(() => ({
-    data: data.value,
+    data: report.value.items ? itemData.value : data.value,
     from: range.value.from,
     to: range.value.to,
     branchIds: branchIds.value,
     branchNames: branchNames.value,
-    multiBranch: branchIds.value.length !== 1 && (data.value?.branches?.length ?? 0) > 1,
+    multiBranch: branchIds.value.length !== 1 && ((report.value.items ? itemData.value : data.value)?.branches?.length ?? 0) > 1,
     attendance: attendance.value,
     autoIn: autoInMinutes.value,
     autoOut: autoOutMinutes.value,
@@ -1188,7 +1343,8 @@
     const names = new Map(people.value.list.map(p => [p.key, p.name]))
     return employees.value.map(k => names.get(k) ?? k).join(listSep())
   })
-  const fileTitle = computed(() => `${sheetTitle.value} - ${periodLabel.value}${branchIds.value.length > 0 ? ` - ${branchLabel.value}` : ''}`)
+  const itemLabel = computed(() => sheetLang.value && itemFilterLabel(itemFilter.value, { categories: categoryNames.value, suppliers: supplierNames.value }))
+  const fileTitle = computed(() => `${sheetTitle.value}${report.value.items && itemFilter.value.codes.length > 0 ? ` ${itemFilter.value.codes.join(' ')}` : ''} - ${periodLabel.value}${branchIds.value.length > 0 ? ` - ${branchLabel.value}` : ''}`)
   // Shown in the sheet's language, refreshed when the figures load.
   const generatedLabel = computed(() => generatedAt.value.toLocaleString(dateLocale(), { dateStyle: 'medium', timeStyle: 'short' }))
 

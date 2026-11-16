@@ -209,6 +209,8 @@ var routeRules = []routeRule{
 	lookup("/attributes", "products"),
 	lookup("/attribute_types", "products"),
 	lookup("/attribute_values", "products"),
+	// Categories are picked from anywhere (the Items report's Category box).
+	lookup("/product_categories", "products"),
 	rule("/barcodes", "products", "products", "inventory"),
 	rule("/variant_pick", "products", "products", "pricing"),
 	// Low-stock thresholds and mutes are set from the Alerts page, which is
@@ -231,7 +233,8 @@ var routeRules = []routeRule{
 	rule("/transfer_items", "inventory", "inventory"),
 	rule("/purchases", "inventory", "inventory"),
 	rule("/purchase_items", "inventory", "inventory"),
-	rule("/suppliers", "inventory", "inventory", "accounting"),
+	// Analytics reads them for the Items report's Supplier box.
+	rule("/suppliers", "inventory", "inventory", "accounting", "analytics"),
 
 	// Sales and clients
 	rule("/sales_invoices", "sales", "sales", "analytics"),
@@ -278,6 +281,7 @@ var routeRules = []routeRule{
 	rule("/busy_hours", "", "analytics"),
 	rule("/reports", "", "analytics"),
 	rule("/reports/settings", "analytics", "analytics"),
+	rule("/reports/items", "", "analytics"),
 	rule("/sales_analysis", "", "analytics"),
 	rule("/salesperson_performance", "", "analytics"),
 	rule("/financials", "", "analytics"),

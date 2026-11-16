@@ -7352,6 +7352,111 @@ func (mr *MockStoreMockRecorder) InsertBranchQuickAccessItem(arg0, arg1 interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertBranchQuickAccessItem", reflect.TypeOf((*MockStore)(nil).InsertBranchQuickAccessItem), arg0, arg1)
 }
 
+// ItemReportByBranch mocks base method.
+func (m *MockStore) ItemReportByBranch(arg0 context.Context, arg1 db.ItemReportByBranchParams) ([]db.ItemReportByBranchRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ItemReportByBranch", arg0, arg1)
+	ret0, _ := ret[0].([]db.ItemReportByBranchRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ItemReportByBranch indicates an expected call of ItemReportByBranch.
+func (mr *MockStoreMockRecorder) ItemReportByBranch(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ItemReportByBranch", reflect.TypeOf((*MockStore)(nil).ItemReportByBranch), arg0, arg1)
+}
+
+// ItemReportDaily mocks base method.
+func (m *MockStore) ItemReportDaily(arg0 context.Context, arg1 db.ItemReportDailyParams) ([]db.ItemReportDailyRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ItemReportDaily", arg0, arg1)
+	ret0, _ := ret[0].([]db.ItemReportDailyRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ItemReportDaily indicates an expected call of ItemReportDaily.
+func (mr *MockStoreMockRecorder) ItemReportDaily(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ItemReportDaily", reflect.TypeOf((*MockStore)(nil).ItemReportDaily), arg0, arg1)
+}
+
+// ItemReportProducts mocks base method.
+func (m *MockStore) ItemReportProducts(arg0 context.Context, arg1 db.ItemReportProductsParams) ([]db.ItemReportProductsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ItemReportProducts", arg0, arg1)
+	ret0, _ := ret[0].([]db.ItemReportProductsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ItemReportProducts indicates an expected call of ItemReportProducts.
+func (mr *MockStoreMockRecorder) ItemReportProducts(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ItemReportProducts", reflect.TypeOf((*MockStore)(nil).ItemReportProducts), arg0, arg1)
+}
+
+// ItemReportSalespersons mocks base method.
+func (m *MockStore) ItemReportSalespersons(arg0 context.Context, arg1 db.ItemReportSalespersonsParams) ([]db.ItemReportSalespersonsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ItemReportSalespersons", arg0, arg1)
+	ret0, _ := ret[0].([]db.ItemReportSalespersonsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ItemReportSalespersons indicates an expected call of ItemReportSalespersons.
+func (mr *MockStoreMockRecorder) ItemReportSalespersons(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ItemReportSalespersons", reflect.TypeOf((*MockStore)(nil).ItemReportSalespersons), arg0, arg1)
+}
+
+// ItemReportStock mocks base method.
+func (m *MockStore) ItemReportStock(arg0 context.Context, arg1 db.ItemReportStockParams) ([]db.ItemReportStockRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ItemReportStock", arg0, arg1)
+	ret0, _ := ret[0].([]db.ItemReportStockRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ItemReportStock indicates an expected call of ItemReportStock.
+func (mr *MockStoreMockRecorder) ItemReportStock(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ItemReportStock", reflect.TypeOf((*MockStore)(nil).ItemReportStock), arg0, arg1)
+}
+
+// ItemReportSummary mocks base method.
+func (m *MockStore) ItemReportSummary(arg0 context.Context, arg1 db.ItemReportSummaryParams) (db.ItemReportSummaryRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ItemReportSummary", arg0, arg1)
+	ret0, _ := ret[0].(db.ItemReportSummaryRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ItemReportSummary indicates an expected call of ItemReportSummary.
+func (mr *MockStoreMockRecorder) ItemReportSummary(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ItemReportSummary", reflect.TypeOf((*MockStore)(nil).ItemReportSummary), arg0, arg1)
+}
+
+// ItemReportVariantAttributes mocks base method.
+func (m *MockStore) ItemReportVariantAttributes(arg0 context.Context, arg1 db.ItemReportVariantAttributesParams) ([]db.ItemReportVariantAttributesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ItemReportVariantAttributes", arg0, arg1)
+	ret0, _ := ret[0].([]db.ItemReportVariantAttributesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ItemReportVariantAttributes indicates an expected call of ItemReportVariantAttributes.
+func (mr *MockStoreMockRecorder) ItemReportVariantAttributes(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ItemReportVariantAttributes", reflect.TypeOf((*MockStore)(nil).ItemReportVariantAttributes), arg0, arg1)
+}
+
 // LastWhatsAppPollAt mocks base method.
 func (m *MockStore) LastWhatsAppPollAt(arg0 context.Context, arg1 string) (time.Time, error) {
 	m.ctrl.T.Helper()

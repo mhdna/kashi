@@ -37,6 +37,11 @@ func TestRuleFor(t *testing.T) {
 		{"/app_updates/target", false, "updates", true},
 		{"/security/bans/:ip", false, "security", true},
 		{"/branch_commands/:id/cancel", false, "branches", true},
+		// The Items report reads categories and suppliers.
+		{"/product_categories", true, "products", true},
+		{"/product_categories/:id", true, "products", true},
+		{"/suppliers", false, "inventory", true},
+		{"/reports/items", false, "", true},
 		// A prefix must match whole segments.
 		{"/productsfoo", false, "", false},
 		// Unlisted -> admin-only.
@@ -84,6 +89,11 @@ func TestPermissionMiddleware(t *testing.T) {
 		Section: sqlStr("photo_rotation"), CanView: sqlBool(true), CanEdit: sqlBool(false),
 	}}
 
+	analyticsView := []db.GetUserAccessRow{{
+		RoleID: 6, RoleName: "Reports",
+		Section: sqlStr("analytics"), CanView: sqlBool(true), CanEdit: sqlBool(false),
+	}}
+
 	cases := []struct {
 		name   string
 		rows   []db.GetUserAccessRow
@@ -106,6 +116,13 @@ func TestPermissionMiddleware(t *testing.T) {
 		{"rotate photos permission rotates transfers", photoRotation, http.MethodPut, "/transfers/1/attachment/rotation", http.StatusOK},
 		{"rotate photos permission can't replace", photoRotation, http.MethodPut, "/branch_expense_images/1/replace", http.StatusForbidden},
 		{"section editor can't replace its photos", accountingEdit, http.MethodPut, "/branch_expense_images/1/replace", http.StatusForbidden},
+		// The Items report: its figures and its Category and Supplier boxes.
+		{"reports viewer reads the items report", analyticsView, http.MethodGet, "/reports/items", http.StatusOK},
+		{"reports viewer reads categories", analyticsView, http.MethodGet, "/product_categories", http.StatusOK},
+		{"reports viewer reads suppliers", analyticsView, http.MethodGet, "/suppliers", http.StatusOK},
+		{"reports viewer can't add a supplier", analyticsView, http.MethodPost, "/suppliers", http.StatusForbidden},
+		{"reports viewer can't add a category", analyticsView, http.MethodPost, "/product_categories", http.StatusForbidden},
+		{"no sections, no items report", noPerms, http.MethodGet, "/reports/items", http.StatusForbidden},
 	}
 
 	for _, c := range cases {
@@ -139,6 +156,11 @@ func TestPermissionMiddleware(t *testing.T) {
 			guarded.PUT("/branch_expense_images/:id/rotation", ok)
 			guarded.PUT("/transfers/:id/attachment/rotation", ok)
 			guarded.PUT("/branch_expense_images/:id/replace", ok)
+			guarded.GET("/reports/items", ok)
+			guarded.GET("/product_categories", ok)
+			guarded.POST("/product_categories", ok)
+			guarded.GET("/suppliers", ok)
+			guarded.POST("/suppliers", ok)
 			server.router = router
 
 			recorder := httptest.NewRecorder()
