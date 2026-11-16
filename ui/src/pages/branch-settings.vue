@@ -692,18 +692,6 @@
                         office before it closes the shift and prints the close receipt, showing
                         progress. Offline, a manager can override on the till.
                       </div>
-                      <v-switch
-                        v-model="settingsForm.auto_cover_negative_lbp"
-                        class="mt-3"
-                        color="primary"
-                        density="compact"
-                        hide-details
-                        label="At close shift, cover a negative Cash LL balance from Cash $$"
-                      />
-                      <div class="text-caption text-medium-emphasis mt-1">
-                        When more LBP went out as change than came in, the shortfall is swapped
-                        into Cash $$ as the close-shift screen opens, so LBP closes at 0.
-                      </div>
                     </section>
 
                   </div>
@@ -1622,7 +1610,6 @@
     'receipt_cutoff',
     'shift_report_signatures',
     'shift_report_uppercase_header',
-    'auto_cover_negative_lbp',
     'attendance_enabled',
     'attendance_cashier_history',
     'attendance_manager_approval_enabled',
@@ -2057,7 +2044,6 @@
     receipt_cutoff: 'Cut paper',
     shift_report_signatures: 'Shift receipt signatures',
     shift_report_uppercase_header: 'Shift receipt capitals',
-    auto_cover_negative_lbp: 'Cover negative LBP at close',
     printer_size: 'Printer size',
     branch_phone: 'Branch phone',
   }
