@@ -295,6 +295,9 @@ type listProductRequest struct {
 	CreatedFrom      *time.Time `form:"created_from" time_format:"2006-01-02"`
 	CreatedTo        *time.Time `form:"created_to" time_format:"2006-01-02"`
 	AttributeValueID []int64    `form:"attribute_value_ids"`
+	// Source narrows to how products were made: "label_photo" lists the
+	// ones the label reader created, for checking them over.
+	Source *string `form:"source"`
 }
 
 func nullBool(v *bool) sql.NullBool {
@@ -302,6 +305,14 @@ func nullBool(v *bool) sql.NullBool {
 		return sql.NullBool{}
 	}
 	return sql.NullBool{Bool: *v, Valid: true}
+}
+
+// nullStringPtr: nil and "" both mean no filter.
+func nullStringPtr(v *string) sql.NullString {
+	if v == nil || *v == "" {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: *v, Valid: true}
 }
 
 func nullTime(v *time.Time) sql.NullTime {
@@ -342,6 +353,7 @@ func (server *Server) listProducts(ctx *gin.Context) {
 		CreatedFrom:       nullTime(req.CreatedFrom),
 		CreatedTo:         nullTime(createdTo),
 		AttributeValueIds: req.AttributeValueID,
+		Source:            nullStringPtr(req.Source),
 	})
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {

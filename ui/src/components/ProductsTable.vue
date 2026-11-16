@@ -19,6 +19,10 @@
         size="18"
       />
     </template>
+    <template #item.name="{ item }">
+      {{ item.name }}
+      <v-chip v-if="isFromPhoto(item)" class="ms-1" data-test="from-photo" label size="x-small">From photo</v-chip>
+    </template>
     <template #item.created_at="{ item }">
       {{ formatDate(item.created_at) }}
     </template>
@@ -29,6 +33,7 @@
   import { computed, ref } from 'vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { API_BASE } from '@/config'
+  import { isFromPhoto, productQueryParams } from '@/utils/productQuery'
 
   const props = defineProps({
     search: {
@@ -52,20 +57,7 @@
     { title: 'Created At', key: 'created_at', align: 'end' },
   ])
 
-  // Only send filters that are actually set; ServerSideTable skips empty
-  // values but keeping the object lean avoids needless URL churn.
-  const queryParams = computed(() => {
-    const f = props.filters || {}
-    const out = {}
-    if (f.is_active === true || f.is_active === false) out.is_active = String(f.is_active)
-    if (f.has_variants === true) out.has_variants = 'true'
-    if (f.created_from) out.created_from = f.created_from
-    if (f.created_to) out.created_to = f.created_to
-    if (Array.isArray(f.attribute_value_ids) && f.attribute_value_ids.length > 0) {
-      out.attribute_value_ids = f.attribute_value_ids
-    }
-    return out
-  })
+  const queryParams = computed(() => productQueryParams(props.filters))
 
   function formatDate (value) {
     if (!value) return '—'

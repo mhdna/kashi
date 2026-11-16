@@ -269,7 +269,7 @@ func (q *Queries) GetProductByName(ctx context.Context, name string) (Product, e
 }
 
 const listProducts = `-- name: ListProducts :many
-SELECT p.id, p.code, p.name, p.description, p.is_active, p.created_at,
+SELECT p.id, p.code, p.name, p.description, p.is_active, p.created_at, p.source,
        count(*) OVER() AS total_count
 FROM products p
 WHERE ($1::text = ''
@@ -277,29 +277,31 @@ WHERE ($1::text = ''
        OR p.name ILIKE '%' || $1 || '%'
        OR p.description ILIKE '%' || $1 || '%')
   AND ($2::bool IS NULL OR p.is_active = $2)
-  AND ($3::timestamptz IS NULL OR p.created_at >= $3)
-  AND ($4::timestamptz IS NULL OR p.created_at < $4)
-  AND ($5::bool IS NULL
-       OR EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id) = $5)
-  AND (cardinality($6::bigint[]) = 0
+  AND ($3::text IS NULL OR p.source = $3)
+  AND ($4::timestamptz IS NULL OR p.created_at >= $4)
+  AND ($5::timestamptz IS NULL OR p.created_at < $5)
+  AND ($6::bool IS NULL
+       OR EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id) = $6)
+  AND (cardinality($7::bigint[]) = 0
        OR (SELECT count(DISTINCT pa.attribute_value_id)
              FROM products_attributes pa
             WHERE pa.product_id = p.id
-              AND pa.attribute_value_id = ANY($6::bigint[]))
-           = cardinality($6::bigint[]))
+              AND pa.attribute_value_id = ANY($7::bigint[]))
+           = cardinality($7::bigint[]))
 ORDER BY p.id
-LIMIT $8 OFFSET $7
+LIMIT $9 OFFSET $8
 `
 
 type ListProductsParams struct {
-	Search            string       `json:"search"`
-	IsActive          sql.NullBool `json:"is_active"`
-	CreatedFrom       sql.NullTime `json:"created_from"`
-	CreatedTo         sql.NullTime `json:"created_to"`
-	HasVariants       sql.NullBool `json:"has_variants"`
-	AttributeValueIds []int64      `json:"attribute_value_ids"`
-	PageOffset        int32        `json:"page_offset"`
-	PageLimit         int32        `json:"page_limit"`
+	Search            string         `json:"search"`
+	IsActive          sql.NullBool   `json:"is_active"`
+	Source            sql.NullString `json:"source"`
+	CreatedFrom       sql.NullTime   `json:"created_from"`
+	CreatedTo         sql.NullTime   `json:"created_to"`
+	HasVariants       sql.NullBool   `json:"has_variants"`
+	AttributeValueIds []int64        `json:"attribute_value_ids"`
+	PageOffset        int32          `json:"page_offset"`
+	PageLimit         int32          `json:"page_limit"`
 }
 
 type ListProductsRow struct {
@@ -309,6 +311,7 @@ type ListProductsRow struct {
 	Description string    `json:"description"`
 	IsActive    bool      `json:"is_active"`
 	CreatedAt   time.Time `json:"created_at"`
+	Source      string    `json:"source"`
 	TotalCount  int64     `json:"total_count"`
 }
 
@@ -324,6 +327,7 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]L
 	rows, err := q.db.QueryContext(ctx, listProducts,
 		arg.Search,
 		arg.IsActive,
+		arg.Source,
 		arg.CreatedFrom,
 		arg.CreatedTo,
 		arg.HasVariants,
@@ -345,6 +349,7 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]L
 			&i.Description,
 			&i.IsActive,
 			&i.CreatedAt,
+			&i.Source,
 			&i.TotalCount,
 		); err != nil {
 			return nil, err

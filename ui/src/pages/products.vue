@@ -122,6 +122,15 @@
               label="Has variants"
             />
 
+            <v-switch
+              v-model="fromPhoto"
+              class="mb-2"
+              color="primary"
+              density="compact"
+              hide-details
+              label="From photo (made by the label reader)"
+            />
+
             <div class="text-caption text-medium-emphasis mb-1">Created between</div>
             <div class="d-flex flex-wrap ga-3 mb-5">
               <DateRangePicker v-model:from="createdFrom" v-model:to="createdTo" clearable empty-label="Any time" />
@@ -252,6 +261,7 @@
   const filterMenu = ref(false)
   const statusFilter = ref('all')
   const hasVariants = ref(false)
+  const fromPhoto = ref(false)
   const createdFrom = ref(null)
   const createdTo = ref(null)
 
@@ -267,6 +277,7 @@
   const filters = computed(() => ({
     is_active: statusFilter.value === 'all' ? null : statusFilter.value === 'active',
     has_variants: hasVariants.value ? true : null,
+    source: fromPhoto.value ? 'label_photo' : null,
     created_from: createdFrom.value || null,
     created_to: createdTo.value || null,
     attribute_value_ids: selectedAttributeIds.value,
@@ -276,6 +287,7 @@
     let n = 0
     if (statusFilter.value !== 'all') n++
     if (hasVariants.value) n++
+    if (fromPhoto.value) n++
     if (createdFrom.value) n++
     if (createdTo.value) n++
     n += selectedAttributeIds.value.length
@@ -285,6 +297,7 @@
   function clearFilters () {
     statusFilter.value = 'all'
     hasVariants.value = false
+    fromPhoto.value = false
     createdFrom.value = null
     createdTo.value = null
     for (const key of Object.keys(attrSelections)) attrSelections[key] = []

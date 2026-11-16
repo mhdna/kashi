@@ -222,6 +222,20 @@ func TestUnknownItemsLabelFlow(t *testing.T) {
 	require.Equal(t, int64(1000), defaultPrice(variant.ID), "the cashier's price, not the label's")
 	require.Zero(t, unknownLines(first), "the sold line is now the real product")
 
+	// The Products list can show only the label reader's products, tagged.
+	listed, err := store.ListProducts(ctx, db.ListProductsParams{
+		Search: code, Source: sql.NullString{String: db.ProductSourceLabelPhoto, Valid: true},
+		PageLimit: 10, AttributeValueIds: []int64{},
+	})
+	require.NoError(t, err)
+	require.Len(t, listed, 1)
+	require.Equal(t, db.ProductSourceLabelPhoto, listed[0].Source)
+	none, err := store.ListProducts(ctx, db.ListProductsParams{
+		Search: code, Source: sql.NullString{String: "other", Valid: true}, PageLimit: 10, AttributeValueIds: []int64{},
+	})
+	require.NoError(t, err)
+	require.Empty(t, none)
+
 	// The Unknown items page sees the reading and can warn about the price.
 	items, err := store.ListUnknownItems(ctx, db.ListUnknownItemsParams{Resolved: true, Limit: 200})
 	require.NoError(t, err)

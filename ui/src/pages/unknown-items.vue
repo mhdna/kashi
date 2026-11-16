@@ -136,6 +136,25 @@
               <div v-if="resolved" class="text-caption mt-1">
                 → {{ item.resolved_name || 'a product' }}
                 <span class="text-medium-emphasis">{{ item.resolved_barcode }}</span>
+                <v-chip
+                  v-if="labelReading(item).fromPhoto"
+                  class="ms-1"
+                  data-test="from-photo"
+                  label
+                  size="x-small"
+                >
+                  From photo
+                </v-chip>
+              </div>
+              <div v-if="labelReading(item).status === 'read'" class="text-caption mt-1" data-test="label-reading">
+                <div>Label: <bdi>{{ labelReading(item).name || 'no name' }}</bdi></div>
+                <div v-if="labelReading(item).details" class="text-medium-emphasis">{{ labelReading(item).details }}</div>
+                <div v-if="labelReading(item).warning" class="text-warning" data-test="label-warning">
+                  {{ labelReading(item).warning }}
+                </div>
+              </div>
+              <div v-else-if="labelReading(item).status === 'failed'" class="text-caption text-medium-emphasis mt-1">
+                Couldn't read the label
               </div>
             </div>
           </v-card>
@@ -208,7 +227,7 @@
   import { useUnknownItems } from '@/composables/useUnknownItems'
   import { useAuthStore } from '@/stores/auth'
   import { formatAmount } from '@/utils/money'
-  import { unknownLabel } from '@/utils/unknownItems'
+  import { labelReading, unknownLabel } from '@/utils/unknownItems'
 
   const notify = useNotify()
   const { canEdit } = usePageAccess()

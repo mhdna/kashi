@@ -2,16 +2,20 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"io"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/anthropics/anthropic-sdk-go/v2/option"
+	db "github.com/mhdna/kashi/db/sqlc"
 	"github.com/mhdna/kashi/util"
 	"github.com/stretchr/testify/require"
 )
@@ -236,4 +240,35 @@ func TestAnthropicLabelReader(t *testing.T) {
 		option.WithAPIKey("claude-key"), option.WithBaseURL(refusing.URL), option.WithMaxRetries(0))
 	_, err = reader.Read(context.Background(), []byte("x"), "image/jpeg")
 	require.ErrorContains(t, err, "declined")
+}
+
+// TestUnknownItemViewsGolden writes the Unknown items rows the page gets for
+// the label reader's cases to ui/src/utils/testdata, where unknownItems.test.js
+// checks what the page shows from them: a change to the JSON on either side
+// fails a test.
+func TestUnknownItemViewsGolden(t *testing.T) {
+	row := func(id int64, status string, price sql.NullInt64, unit int64, source string) db.ListUnknownItemsRow {
+		return db.ListUnknownItemsRow{
+			ID: id, Label: "Unknown item", UnitPrice: unit, BranchName: "Centro", BranchInvoiceCode: "SA/1",
+			LabelStatus: status, LabelName: "cup set 6pcs basic-Glasses", LabelCode: "CS3850-",
+			LabelBarcode: exampleLabelBarcode, LabelPrice: price, ResolvedSource: source,
+			ResolvedName: "cup set 6pcs basic-Glasses", ResolvedBarcode: exampleLabelBarcode, AutoResolved: source != "",
+		}
+	}
+	views := unknownItemViews([]db.ListUnknownItemsRow{
+		row(1, "read", sql.NullInt64{Int64: 1200, Valid: true}, 1200, db.ProductSourceLabelPhoto), // the user's label, sold at $12
+		row(2, "read", sql.NullInt64{Int64: 1200, Valid: true}, 1000, db.ProductSourceLabelPhoto), // sold at $10
+		row(3, "read", sql.NullInt64{}, 1000, ""),                                                 // no price on the label
+		row(4, "failed", sql.NullInt64{}, 1000, ""),
+		row(5, "", sql.NullInt64{}, 1000, ""), // reader off
+	})
+	require.False(t, views[0].LabelPriceMismatch)
+	require.True(t, views[1].LabelPriceMismatch)
+	require.False(t, views[2].LabelPriceMismatch)
+
+	out, err := json.MarshalIndent(views, "", "  ")
+	require.NoError(t, err)
+	path := filepath.Join("..", "ui", "src", "utils", "testdata", "unknown_item_views.json")
+	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+	require.NoError(t, os.WriteFile(path, append(out, '\n'), 0o644))
 }

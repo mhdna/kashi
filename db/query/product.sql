@@ -29,7 +29,7 @@ WHERE id = $1;
 -- total_count is carried alongside each row via a window function so the
 -- caller doesn't need a second CountProducts round-trip that re-scans the
 -- same filtered set again.
-SELECT p.id, p.code, p.name, p.description, p.is_active, p.created_at,
+SELECT p.id, p.code, p.name, p.description, p.is_active, p.created_at, p.source,
        count(*) OVER() AS total_count
 FROM products p
 WHERE (sqlc.arg(search)::text = ''
@@ -37,6 +37,7 @@ WHERE (sqlc.arg(search)::text = ''
        OR p.name ILIKE '%' || sqlc.arg(search) || '%'
        OR p.description ILIKE '%' || sqlc.arg(search) || '%')
   AND (sqlc.narg(is_active)::bool IS NULL OR p.is_active = sqlc.narg(is_active))
+  AND (sqlc.narg(source)::text IS NULL OR p.source = sqlc.narg(source))
   AND (sqlc.narg(created_from)::timestamptz IS NULL OR p.created_at >= sqlc.narg(created_from))
   AND (sqlc.narg(created_to)::timestamptz IS NULL OR p.created_at < sqlc.narg(created_to))
   AND (sqlc.narg(has_variants)::bool IS NULL
