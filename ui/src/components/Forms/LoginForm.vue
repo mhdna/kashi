@@ -48,7 +48,7 @@
 
       <v-btn
         block
-        color="blue"
+        color="primary"
         :loading="submitting"
         size="large"
         variant="tonal"

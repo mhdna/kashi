@@ -40,16 +40,19 @@ export default createVuetify({
   theme: {
     defaultTheme: getInitialTheme(),
     themes: {
+      // Brand: the Ribbon K's maroon on paper. Dark mode lifts the maroon
+      // so buttons and links stay readable on a dark surface.
       light: {
         colors: {
-          primary: '#3F51B5', // Indigo 500
+          primary: '#660000',
+          background: '#F7F2EA',
         },
       },
       dark: {
         dark: true,
         colors: {
           error: '#B71C1C',
-          primary: '#5C6BC0', // Indigo 400
+          primary: '#E0928A',
         },
       },
     },
