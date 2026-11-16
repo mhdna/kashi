@@ -13,17 +13,10 @@
         v-bind="props"
         class="d-flex align-center"
         :class="mobile ? 'icon-pill' : 'py-1 px-2'"
-        rounded="xl"
         style="cursor: pointer"
         variant="tonal"
       >
-        <v-icon
-          class="status-dot"
-          :class="{ 'status-dot--outlined': serverDown }"
-          :color="statusColor"
-          icon="mdi-circle"
-          size="16"
-        />
+        <v-icon :color="statusColor" icon="mdi-store-outline" size="20" />
         <span v-if="!mobile" class="ms-1 text-body-2">
           <template v-if="!online">No internet</template>
           <template v-else-if="serverDown">Server is down, we'll be back soon.</template>
@@ -82,8 +75,9 @@
   const { online } = useNetworkStatus()
   const serverDown = computed(() => !online.value || status.value === 'closed')
   const statusColor = computed(() => {
-    if (serverDown.value) return 'white'
-    return connectedBranchIds.value.length > 0 ? 'success' : 'error'
+    // Neutral while branches are connected; red only when none are.
+    if (serverDown.value) return undefined
+    return connectedBranchIds.value.length > 0 ? undefined : 'error'
   })
 
   function branchName (branchId) {
