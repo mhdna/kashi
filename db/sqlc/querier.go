@@ -1384,6 +1384,9 @@ type Querier interface {
 	ListInvoiceTypes(ctx context.Context) ([]InvoiceType, error)
 	ListInvoices(ctx context.Context, arg ListInvoicesParams) ([]Invoice, error)
 	ListInvoicesPage(ctx context.Context, arg ListInvoicesPageParams) ([]Invoice, error)
+	// Units of one landed sale whose picture's label was read and that nobody
+	// has resolved yet: what the label reader can turn into products.
+	ListLabelResolvableSlots(ctx context.Context, sessionID int64) ([]ListLabelResolvableSlotsRow, error)
 	// The home page's "Latest added" feed: the newest photos (expense,
 	// close-shift receipt), transfers, central expenses and purchases, merged
 	// newest first. Each include_* flag is the caller's view access to that
@@ -1624,6 +1627,7 @@ type Querier interface {
 	MarkBranchShiftUploadTokenUsed(ctx context.Context, id int64) error
 	MarkBranchTransferUploadTokenUsed(ctx context.Context, id int64) error
 	MarkLoanUploadTokenUsed(ctx context.Context, id int64) error
+	MarkUnknownItemSlotAutoResolved(ctx context.Context, id int64) error
 	MarkUnknownItemSlotResolved(ctx context.Context, arg MarkUnknownItemSlotResolvedParams) error
 	MarkWhatsAppReviewClicked(ctx context.Context, id int64) error
 	PeriodReportByBranch(ctx context.Context, arg PeriodReportByBranchParams) ([]PeriodReportByBranchRow, error)
@@ -1885,6 +1889,7 @@ type Querier interface {
 	SetProductAutofillRules(ctx context.Context, arg SetProductAutofillRulesParams) (AppSetting, error)
 	SetProductCategory(ctx context.Context, arg SetProductCategoryParams) error
 	SetProductLowStockAlertsEnabled(ctx context.Context, arg SetProductLowStockAlertsEnabledParams) error
+	SetProductSource(ctx context.Context, arg SetProductSourceParams) error
 	SetProductVariantActive(ctx context.Context, arg SetProductVariantActiveParams) error
 	SetPurchaseStatus(ctx context.Context, arg SetPurchaseStatusParams) (Purchase, error)
 	SetPurchaseTotals(ctx context.Context, arg SetPurchaseTotalsParams) error
@@ -1916,6 +1921,8 @@ type Querier interface {
 	// CreateBranchTransferRequestTx resolves an outgoing line.
 	SetTransferItemReceivedQuantityByVariant(ctx context.Context, arg SetTransferItemReceivedQuantityByVariantParams) (int64, error)
 	SetTransferStatus(ctx context.Context, arg SetTransferStatusParams) (Transfer, error)
+	// What the label reader made of a picture (label_status 'read' or 'failed').
+	SetUnknownItemImageLabel(ctx context.Context, arg SetUnknownItemImageLabelParams) error
 	// The picture goes to the slot and to every other unit of its cart line. A
 	// slot already matched to a product keeps the picture it was matched with.
 	SetUnknownItemSlotImage(ctx context.Context, arg SetUnknownItemSlotImageParams) error

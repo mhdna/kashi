@@ -32,3 +32,38 @@ func TestCreateProductSkipsATakenBarcode(t *testing.T) {
 	require.Len(t, result.Variants, 1)
 	require.Equal(t, strconv.FormatInt(generateEAN13(next+3), 10), result.Variants[0].Barcode)
 }
+
+// The label reader's products keep their barcode exactly as printed, a
+// leading zero included (a number would drop it and no scan would match),
+// and are tagged with where they came from.
+func TestCreateProductWithTextBarcodeAndSource(t *testing.T) {
+	ctx := context.Background()
+	barcode := "0" + strconv.FormatInt(util.RandomInt(100000000000, 999999999999), 10)
+	price := int64(1000)
+	result, err := testStore.CreateProductTx(ctx, CreateProductTxParams{
+		Code: "LBL-" + util.RandomString(6), Name: "cup set 6pcs basic-Glasses",
+		BarcodeText: barcode, Price: &price, Source: ProductSourceLabelPhoto,
+	})
+	require.NoError(t, err)
+	require.Equal(t, barcode, result.Variant.Barcode)
+	require.Equal(t, ProductSourceLabelPhoto, result.Product.Source)
+
+	stored, err := testQueries.GetProductVariantByBarcode(ctx, barcode)
+	require.NoError(t, err)
+	require.Equal(t, result.Variant.ID, stored.ID)
+	product, err := testQueries.GetProduct(ctx, result.Product.ID)
+	require.NoError(t, err)
+	require.Equal(t, ProductSourceLabelPhoto, product.Source)
+
+	// A product made by hand has no source.
+	plain, err := testStore.CreateProductTx(ctx, CreateProductTxParams{Code: "LBL-" + util.RandomString(6), Name: "plain"})
+	require.NoError(t, err)
+	require.Empty(t, plain.Product.Source)
+
+	// Like a numeric barcode, a text one can't be spread over several variants.
+	_, err = testStore.CreateProductTx(ctx, CreateProductTxParams{
+		Code: "LBL-" + util.RandomString(6), Name: "two", BarcodeText: "0" + barcode[1:],
+		ColorIDs: []int64{1, 2},
+	})
+	require.Error(t, err)
+}

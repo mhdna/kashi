@@ -13,11 +13,11 @@ SELECT * FROM unknown_item_sessions WHERE token = $1;
 -- name: CreateUnknownItemSlot :exec
 -- A till re-sending its session as the cart changes moves and relabels the
 -- units it already sent; their pictures stay.
-INSERT INTO unknown_item_slots (session_id, slot_ref, position, label, unit_price, discount, line_ref)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO unknown_item_slots (session_id, slot_ref, position, label, unit_price, discount, line_ref, barcode)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 ON CONFLICT (session_id, slot_ref) DO UPDATE SET
   position = EXCLUDED.position, label = EXCLUDED.label, unit_price = EXCLUDED.unit_price,
-  discount = EXCLUDED.discount, line_ref = EXCLUDED.line_ref;
+  discount = EXCLUDED.discount, line_ref = EXCLUDED.line_ref, barcode = EXCLUDED.barcode;
 
 -- name: DeleteUnknownItemSlotsNotIn :exec
 -- Units taken off the cart since the session was last sent.
@@ -85,11 +85,20 @@ SELECT
   i.branch_invoice_code,
   i.occurred_at,
   COALESCE(p.name, '')::text AS resolved_name,
-  COALESCE(pv.barcode, '')::text AS resolved_barcode
+  COALESCE(pv.barcode, '')::text AS resolved_barcode,
+  COALESCE(p.source, '')::text AS resolved_source,
+  s.barcode AS scanned_barcode,
+  s.auto_resolved,
+  COALESCE(img.label_status, '')::text AS label_status,
+  COALESCE(img.label_name, '')::text AS label_name,
+  COALESCE(img.label_code, '')::text AS label_code,
+  COALESCE(img.label_barcode, '')::text AS label_barcode,
+  img.label_price
 FROM unknown_item_slots s
 JOIN unknown_item_sessions sess ON sess.id = s.session_id
 JOIN branches b ON b.id = sess.branch_id
 JOIN branch_invoices i ON i.id = sess.branch_invoice_id
+LEFT JOIN unknown_item_images img ON img.id = s.image_id
 LEFT JOIN product_variants pv ON pv.id = s.resolved_variant_id
 LEFT JOIN products p ON p.id = pv.product_id
 WHERE (s.image_id IS NOT NULL OR s.waived_at IS NOT NULL)
@@ -245,3 +254,25 @@ WHERE (
 
 -- name: DeleteUnknownItemImages :exec
 DELETE FROM unknown_item_images WHERE id = ANY($1::bigint[]);
+
+-- name: SetUnknownItemImageLabel :exec
+-- What the label reader made of a picture (label_status 'read' or 'failed').
+UPDATE unknown_item_images SET
+  label_status = $2, label_name = $3, label_code = $4, label_barcode = $5,
+  label_price = $6, label_error = $7
+WHERE id = $1;
+
+-- name: ListLabelResolvableSlots :many
+-- Units of one landed sale whose picture's label was read and that nobody
+-- has resolved yet: what the label reader can turn into products.
+SELECT s.id, s.line_ref, s.unit_price, s.barcode AS scanned_barcode, s.image_id,
+  img.label_name, img.label_code, img.label_barcode, img.label_price
+FROM unknown_item_slots s
+JOIN unknown_item_sessions sess ON sess.id = s.session_id
+JOIN unknown_item_images img ON img.id = s.image_id
+WHERE s.session_id = $1 AND s.resolved_at IS NULL
+  AND sess.branch_invoice_id IS NOT NULL AND img.label_status = 'read'
+ORDER BY s.position;
+
+-- name: MarkUnknownItemSlotAutoResolved :exec
+UPDATE unknown_item_slots SET auto_resolved = true WHERE id = $1;

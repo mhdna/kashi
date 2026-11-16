@@ -218,6 +218,16 @@ Item codes match exactly or as a prefix written `ABC*`, any case.
 - When the sale lands it is linked to its session; an admin then matches each picture to a real product and the line is relabelled.
 - Pictures of sales that never happened are cleaned up (`unknown_image_cleanup`); the Storage page can delete and returns `deleted_ids`.
 
+**Label reader** (`api/label_reader.go`, `api/unknown_items_label.go`): with `LABEL_READER_PROVIDER` set (`groq` or `anthropic`, plus `GROQ_API_KEY` / `ANTHROPIC_API_KEY`; `LABEL_READER_MODEL` overrides the default `qwen/qwen3.8-27b` / `claude-opus-5-5`) every picture's price label is read in the background: name, code, price, barcode. Off when unset.
+
+| Step | Rule |
+| --- | --- |
+| Read | Right after upload, off the request. Stored on `unknown_item_images.label_*`; a failed read is `label_status = 'failed'` with the error, and the unit waits for a person. |
+| Barcode | The till's scan (`unknown_item_slots.barcode`) wins; else the label's digits, **kept only when the GS1 check digit holds**. No barcode at all: left for a person. |
+| Product | Once the sale has landed (whichever of read / landing comes second): the barcode's existing product, else a new one with the label's name and code (the barcode as code when the label's is taken), **the cashier's price** on the default list, `products.source = 'label_photo'` ("From photo"). One picture = one cart line = one product. |
+| Price | A label price that isn't the cashier's is only a warning (`label_price_mismatch` on the Unknown items list). |
+| Resolve | Same `ResolveUnknownItemsTx` as a person's match, then `auto_resolved`. Two readings of one sale are serialised (`labelMu`); a lost race on the barcode uses the winner's product. |
+
 ## Security guard {icon=mdiShieldAlert}
 
 ::: glance

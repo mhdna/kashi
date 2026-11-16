@@ -170,3 +170,6 @@ JOIN product_variants pv ON pv.product_id = p.id AND pv.is_active
 WHERE p.code = $1
 ORDER BY pv.id
 LIMIT 1;
+
+-- name: SetProductSource :exec
+UPDATE products SET source = $2 WHERE id = $1;
