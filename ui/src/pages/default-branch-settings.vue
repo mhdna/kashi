@@ -965,7 +965,6 @@
     closing: [
       { key: 'auto_close_stale_shifts', label: "Close yesterday's open shift at startup", type: 'bool' },
       { key: 'close_shift_requires_sync', label: 'Upload everything before closing a shift', type: 'bool' },
-      { key: 'auto_cover_negative_lbp', label: 'At close shift, cover a negative Cash LL balance from Cash $$', type: 'bool' },
     ],
     endShift: [
       { key: 'shift_report_signatures', label: 'Signature lines on end-of-shift receipt', type: 'bool' },
