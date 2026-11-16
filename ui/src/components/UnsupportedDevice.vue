@@ -16,7 +16,7 @@
 </template>
 
 <script lang="ts" setup>
-  import appLogo from '@/assets/app-logo.png'
+  import appLogo from '@/assets/kashi-logo.svg'
 </script>
 
 <style scoped>

@@ -9,8 +9,10 @@
            and up get the full brand and page title (truncating if tight). -->
       <v-app-bar-title v-if="!xs">
         <div class="d-flex align-center text-truncate">
-          <!--<img class="me-1" src="/everywear.png" style="height: 35px;">-->
-          <router-link to="/" class="title-link">Kashi Cloud</router-link>
+          <router-link to="/" class="title-link d-flex align-center">
+            <img alt="" class="app-bar-logo me-2" src="/favicon.svg">
+            Kashi Cloud
+          </router-link>
           <span v-if="pageTitle" class="ms-2">
             - <router-link :to="route.path" class="title-link">{{ pageTitle }}</router-link>
           </span>
@@ -169,6 +171,10 @@ router.afterEach(() => {
 }
 .title-link:hover {
   text-decoration: underline;
+}
+.app-bar-logo {
+  height: 28px;
+  width: 28px;
 }
 
 /*@import url("https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap");*/
