@@ -231,6 +231,13 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 		// -- see invoice_discounts.go.
 		branchID := ctx.MustGet(branchIDKey).(int64)
 		items, err = server.invoiceDiscountsForBranchSync(ctx, branchID, since)
+	case "referral_program":
+		// The rules, when they changed since -- see referrals.go.
+		items, err = server.referralProgramForBranchSync(ctx, since)
+	case "referral_rewards":
+		// Every reward changed since, for every till: an owner can use
+		// theirs at any branch.
+		items, err = server.referralRewardsForBranchSync(ctx, since)
 	case "expense_categories":
 		// Global like currencies; the query itself restricts to
 		// scope='branch' rows -- central-only categories never leave kashi.

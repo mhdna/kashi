@@ -168,6 +168,11 @@ type branchInvoiceRequest struct {
 	InvoiceDiscount     int64  `json:"invoice_discount"`
 	InvoiceDiscountName string `json:"invoice_discount_name"`
 
+	// Referrals (referrals.go): the code of the client who sent this new
+	// customer, and the reward this sale used. Absent from older tills.
+	ReferralCode      string `json:"referral_code"`
+	ReferralRewardUID string `json:"referral_reward_uid"`
+
 	// Both best-effort display data, not synced/shared entities -- see the
 	// matching comment on branchInvoicePaymentPayload in kashi-pos's
 	// sync_outbox.go. Neither is required: an older kashi-pos build that
@@ -250,6 +255,7 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 			return
 		}
 		server.linkUnknownSession(ctx, branchID, existing.ID, req.UnknownSessionRef)
+		server.applyBranchInvoiceReferral(ctx, branchID, existing.Kind, existing, req)
 		server.writeJSON(ctx, http.StatusOK, envelope{"invoice": existing})
 		return
 	} else if err != sql.ErrNoRows {
@@ -361,6 +367,7 @@ func (server *Server) createBranchInvoice(ctx *gin.Context, kind string) {
 		return
 	}
 	server.linkUnknownSession(ctx, branchID, result.Invoice.ID, req.UnknownSessionRef)
+	server.applyBranchInvoiceReferral(ctx, branchID, kind, result.Invoice, req)
 
 	// Only the genuinely-new-insert path reaches here (the two lookups above
 	// return early on "already exists"), so this never double-notifies

@@ -784,6 +784,8 @@ type BranchInvoice struct {
 	LbpRate                sql.NullInt64  `json:"lbp_rate"`
 	InvoiceDiscount        int64          `json:"invoice_discount"`
 	InvoiceDiscountName    string         `json:"invoice_discount_name"`
+	ReferralCode           string         `json:"referral_code"`
+	ReferralRewardUid      uuid.NullUUID  `json:"referral_reward_uid"`
 }
 
 type BranchInvoiceItem struct {
@@ -1135,6 +1137,7 @@ type Client struct {
 	BranchID           sql.NullInt64 `json:"branch_id"`
 	PhoneValid         bool          `json:"phone_valid"`
 	PhoneCountry       string        `json:"phone_country"`
+	ReferralCode       string        `json:"referral_code"`
 }
 
 type ClientLink struct {
@@ -1755,6 +1758,40 @@ type RecurringExpense struct {
 	Active        bool          `json:"active"`
 	CreatedAt     time.Time     `json:"created_at"`
 	CategoryID    sql.NullInt64 `json:"category_id"`
+}
+
+type Referral struct {
+	ID                       int64         `json:"id"`
+	Uid                      uuid.UUID     `json:"uid"`
+	Code                     string        `json:"code"`
+	OwnerClientID            sql.NullInt64 `json:"owner_client_id"`
+	FriendClientUid          uuid.NullUUID `json:"friend_client_uid"`
+	BranchID                 int64         `json:"branch_id"`
+	BranchInvoiceID          int64         `json:"branch_invoice_id"`
+	Status                   string        `json:"status"`
+	RefuseReason             string        `json:"refuse_reason"`
+	Percent                  int16         `json:"percent"`
+	MaxCents                 int64         `json:"max_cents"`
+	AvailableAt              sql.NullTime  `json:"available_at"`
+	ExpiresAt                sql.NullTime  `json:"expires_at"`
+	UsedBranchInvoiceID      sql.NullInt64 `json:"used_branch_invoice_id"`
+	UsedAt                   sql.NullTime  `json:"used_at"`
+	UsedAgainBranchInvoiceID sql.NullInt64 `json:"used_again_branch_invoice_id"`
+	CreatedAt                time.Time     `json:"created_at"`
+	UpdatedAt                time.Time     `json:"updated_at"`
+}
+
+type ReferralProgram struct {
+	ID                 int32     `json:"id"`
+	Enabled            bool      `json:"enabled"`
+	RewardPercent      int16     `json:"reward_percent"`
+	MaxRewardCents     int64     `json:"max_reward_cents"`
+	MinFriendSpend     int64     `json:"min_friend_spend"`
+	UnlockAfterDays    int32     `json:"unlock_after_days"`
+	ExpiresAfterDays   int32     `json:"expires_after_days"`
+	CancelOnReturn     bool      `json:"cancel_on_return"`
+	MaxRewardsPerMonth int32     `json:"max_rewards_per_month"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 type ReportSaleInvoice struct {

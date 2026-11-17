@@ -137,6 +137,7 @@ type Querier interface {
 	// Branch-reported loans only: a central loan is deleted, there's no till to
 	// tell. Stamps cancelled_at once, like CancelBranchExpense.
 	CancelBranchLoan(ctx context.Context, id int64) (Loan, error)
+	CancelReferral(ctx context.Context, id int64) error
 	// The once-only gate on a branch's list: 1 row the first time it's set up
 	// (by a till's import or an admin save), 0 ever after.
 	ClaimBranchQuickAccessInit(ctx context.Context, id int64) (int64, error)
@@ -157,6 +158,8 @@ type Querier interface {
 	// Entries are matched the way BulkSetDiscountListItems matches them: a
 	// variant barcode names its product, a code names the product directly.
 	ClearProductSaleOptionsForEntries(ctx context.Context, entries []string) error
+	// Whether a client is an owner: someone who earned a reward was a customer.
+	ClientHasReferralReward(ctx context.Context, clientUid uuid.UUID) (bool, error)
 	ClientPhonesPresent(ctx context.Context, dollar_1 []string) ([]string, error)
 	CloseShift(ctx context.Context, id int64) error
 	CompleteBranchCommand(ctx context.Context, arg CompleteBranchCommandParams) (BranchCommand, error)
@@ -244,6 +247,7 @@ type Querier interface {
 	CountOpenSecurityAlerts(ctx context.Context) (int64, error)
 	// Admin users besides $1, so the last admin can't be deleted or demoted.
 	CountOtherAdmins(ctx context.Context, id int64) (int64, error)
+	CountOwnerRewardsSince(ctx context.Context, arg CountOwnerRewardsSinceParams) (int64, error)
 	CountPriceListItemsWithProduct(ctx context.Context, arg CountPriceListItemsWithProductParams) (int64, error)
 	CountPriceListsFiltered(ctx context.Context, search string) (int64, error)
 	CountProductVariants(ctx context.Context) (int64, error)
@@ -362,6 +366,7 @@ type Querier interface {
 	CreateProductVariantWithFreeBarcode(ctx context.Context, arg CreateProductVariantWithFreeBarcodeParams) (ProductVariant, error)
 	CreatePurchase(ctx context.Context, arg CreatePurchaseParams) (Purchase, error)
 	CreateRecurringExpense(ctx context.Context, arg CreateRecurringExpenseParams) (RecurringExpense, error)
+	CreateReferral(ctx context.Context, arg CreateReferralParams) (Referral, error)
 	CreateResolvedBranchInvoiceItem(ctx context.Context, arg CreateResolvedBranchInvoiceItemParams) error
 	CreateReturnInvoice(ctx context.Context, arg CreateReturnInvoiceParams) (ReturnInvoice, error)
 	CreateReviewLinkClick(ctx context.Context, arg CreateReviewLinkClickParams) error
@@ -569,6 +574,9 @@ type Querier interface {
 	DeleteUser(ctx context.Context, id int64) error
 	DeleteWhatsAppNumber(ctx context.Context, id int64) error
 	FindUnknownInvoiceItem(ctx context.Context, arg FindUnknownInvoiceItemParams) (BranchInvoiceItem, error)
+	FriendAlreadyReferred(ctx context.Context, clientUid uuid.UUID) (bool, error)
+	// Whether the client bought anything before this sale, at any branch.
+	FriendHasOtherSale(ctx context.Context, arg FriendHasOtherSaleParams) (bool, error)
 	GetAppRelease(ctx context.Context, id int64) (AppRelease, error)
 	GetAppReleasePatch(ctx context.Context, id int64) (AppReleasePatch, error)
 	GetAppReleasePatchForBase(ctx context.Context, arg GetAppReleasePatchForBaseParams) (AppReleasePatch, error)
@@ -625,6 +633,7 @@ type Querier interface {
 	GetCashboxAccountBalance(ctx context.Context, arg GetCashboxAccountBalanceParams) (ShiftsAccountsBalance, error)
 	GetClient(ctx context.Context, id int64) (Client, error)
 	GetClientByPhone(ctx context.Context, phone string) (Client, error)
+	GetClientByReferralCode(ctx context.Context, referralCode string) (Client, error)
 	// Shared-identity (uid) queries for branch sync. See 000093_sync_uid.up.sql.
 	GetClientByUID(ctx context.Context, uid uuid.UUID) (Client, error)
 	GetClientLink(ctx context.Context, arg GetClientLinkParams) (int64, error)
@@ -770,6 +779,11 @@ type Querier interface {
 	GetProductVariantByUID(ctx context.Context, uid uuid.UUID) (ProductVariant, error)
 	GetPurchase(ctx context.Context, id int64) (GetPurchaseRow, error)
 	GetRecurringExpense(ctx context.Context, id int64) (RecurringExpense, error)
+	GetReferralBySourceInvoice(ctx context.Context, branchInvoiceID int64) (Referral, error)
+	GetReferralByUID(ctx context.Context, uid uuid.UUID) (Referral, error)
+	GetReferralProgram(ctx context.Context) (ReferralProgram, error)
+	// The till's feed: the rules when they changed since its cursor.
+	GetReferralProgramUpdatedSince(ctx context.Context, updatedAt time.Time) ([]ReferralProgram, error)
 	GetRegisterTargetRelease(ctx context.Context, id int64) (GetRegisterTargetReleaseRow, error)
 	GetReportSettings(ctx context.Context) (json.RawMessage, error)
 	GetReturnInvoice(ctx context.Context, invoiceID int64) (ReturnInvoice, error)
@@ -1508,6 +1522,9 @@ type Querier interface {
 	ListPurchaseItems(ctx context.Context, purchaseID sql.NullInt64) ([]ListPurchaseItemsRow, error)
 	ListPurchases(ctx context.Context, arg ListPurchasesParams) ([]ListPurchasesRow, error)
 	ListRecurringExpenses(ctx context.Context) ([]RecurringExpense, error)
+	// Every reward changed since the till's cursor, refusals left out.
+	ListReferralRewardsForSync(ctx context.Context, updatedAt time.Time) ([]ListReferralRewardsForSyncRow, error)
+	ListReferrals(ctx context.Context, arg ListReferralsParams) ([]ListReferralsRow, error)
 	ListRegisterUpdateStatuses(ctx context.Context) ([]ListRegisterUpdateStatusesRow, error)
 	ListRolePermissions(ctx context.Context) ([]RolePermission, error)
 	ListRoles(ctx context.Context) ([]ListRolesRow, error)
@@ -1627,6 +1644,9 @@ type Querier interface {
 	MarkBranchShiftUploadTokenUsed(ctx context.Context, id int64) error
 	MarkBranchTransferUploadTokenUsed(ctx context.Context, id int64) error
 	MarkLoanUploadTokenUsed(ctx context.Context, id int64) error
+	MarkReferralUsed(ctx context.Context, arg MarkReferralUsedParams) (int64, error)
+	// A second sale used a reward already used: the sale stands, this flags it.
+	MarkReferralUsedAgain(ctx context.Context, arg MarkReferralUsedAgainParams) error
 	MarkUnknownItemSlotAutoResolved(ctx context.Context, id int64) error
 	MarkUnknownItemSlotResolved(ctx context.Context, arg MarkUnknownItemSlotResolvedParams) error
 	MarkWhatsAppReviewClicked(ctx context.Context, id int64) error
@@ -1712,6 +1732,8 @@ type Querier interface {
 	// drops what was paid "On Account"; gross_spent keeps it. Line items are
 	// pre-aggregated per invoice so they can't multiply grand_total.
 	RefreshClientSpend(ctx context.Context) error
+	// The sale that used a reward was cancelled: the owner has it again.
+	ReleaseReferralUsedBy(ctx context.Context, usedBranchInvoiceID sql.NullInt64) error
 	RenameRole(ctx context.Context, arg RenameRoleParams) error
 	// Points the row at a replacement photo (api/photo_replace.go); the new
 	// photo starts upright.
@@ -1856,6 +1878,7 @@ type Querier interface {
 	SetBranchInvoiceItemDiscount(ctx context.Context, arg SetBranchInvoiceItemDiscountParams) error
 	SetBranchInvoiceItemLineTotal(ctx context.Context, arg SetBranchInvoiceItemLineTotalParams) error
 	SetBranchInvoiceItemResolved(ctx context.Context, arg SetBranchInvoiceItemResolvedParams) error
+	SetBranchInvoiceReferral(ctx context.Context, arg SetBranchInvoiceReferralParams) error
 	// Salesperson Performance (api/salesperson_performance.go) and the tills'
 	// one-time report of who made their past sales.
 	// Only a salesperson of the invoice's own branch is accepted.
@@ -1964,6 +1987,8 @@ type Querier interface {
 	// (loyalty_points_delta on branch_invoices) -- this never recomputes that
 	// number, only sums what's already been reported.
 	SumClientLoyaltyPoints(ctx context.Context, clientID int64) (int64, error)
+	// What the returns (not exchanges) of a sale gave back, negative.
+	SumReturnsOfBranchSale(ctx context.Context, arg SumReturnsOfBranchSaleParams) (int64, error)
 	// Bumps both the register's and its branch's last_seen_at: the branch is
 	// "seen" whenever any of its registers is.
 	TouchBranchRegister(ctx context.Context, id int64) error
@@ -2030,6 +2055,7 @@ type Querier interface {
 	// current_qty is the on-hand across all locations before this receipt.
 	UpdateProductVariantAvgCost(ctx context.Context, arg UpdateProductVariantAvgCostParams) error
 	UpdateRecurringExpenseNextDue(ctx context.Context, arg UpdateRecurringExpenseNextDueParams) (RecurringExpense, error)
+	UpdateReferralProgram(ctx context.Context, arg UpdateReferralProgramParams) (ReferralProgram, error)
 	UpdateSalesperson(ctx context.Context, arg UpdateSalespersonParams) (Salesperson, error)
 	UpdateSecuritySettings(ctx context.Context, arg UpdateSecuritySettingsParams) (SecuritySetting, error)
 	UpdateSize(ctx context.Context, arg UpdateSizeParams) (Size, error)

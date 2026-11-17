@@ -72,6 +72,7 @@ var accessSections = []accessSection{
 	{"clients", "Clients", "Clients, loyalty and reviews", []accessPage{
 		{"clients", "Clients"},
 		{"loyalty", "Loyalty"},
+		{"referrals", "Referrals"},
 		{"reviews", "Reviews"},
 	}},
 	{"branches", "Branches", "Branches, branch settings and sync conflicts", []accessPage{
@@ -252,6 +253,9 @@ var routeRules = []routeRule{
 	rule("/live_carts", "pricing", "pricing"),
 	rule("/coupons", "pricing", "pricing", "clients"),
 	rule("/coupon_categories", "pricing", "pricing", "clients"),
+	// Referrals (referrals.go), the Referrals page under Clients.
+	rule("/referral_program", "clients", "clients", "pricing"),
+	rule("/referrals", "clients", "clients", "pricing"),
 
 	// Branches. The longer /branches/:id/... prefixes below win over this.
 	lookup("/branches", "branches"),

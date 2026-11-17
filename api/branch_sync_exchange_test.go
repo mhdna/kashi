@@ -25,7 +25,9 @@ func postReturnInvoice(t *testing.T, items []map[string]any) string {
 	// A sale looks up the branch's named "Unknown item" product.
 	store.EXPECT().GetBranchSettings(gomock.Any(), gomock.Any()).Return(db.BranchSetting{}, sql.ErrNoRows).AnyTimes()
 
-	store.EXPECT().GetBranchInvoiceByClientRef(gomock.Any(), gomock.Any()).Return(db.BranchInvoice{}, sql.ErrNoRows)
+	// Once for the replay check, once more for the sale it returns
+	// (referrals.go), which isn't there either.
+	store.EXPECT().GetBranchInvoiceByClientRef(gomock.Any(), gomock.Any()).Return(db.BranchInvoice{}, sql.ErrNoRows).Times(2)
 	store.EXPECT().GetDefaultCurrency(gomock.Any()).Return(db.Currency{}, sql.ErrNoRows)
 	var kind string
 	store.EXPECT().CreateBranchInvoiceTx(gomock.Any(), gomock.Any()).

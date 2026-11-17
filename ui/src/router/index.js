@@ -78,6 +78,7 @@ const routes = [
   { path: '/clients', component: () => import('@/pages/clients.vue'), meta: { title: 'Clients', section: 'clients', page: 'clients' } },
   { path: '/clients/:id', component: () => import('@/pages/client-page.vue'), meta: { title: 'Client', section: 'clients', page: 'clients' } },
   { path: '/loyalty', component: () => import('@/pages/loyalty.vue'), meta: { title: 'Loyalty', section: 'clients', page: 'loyalty' } },
+  { path: '/referrals', component: () => import('@/pages/referrals.vue'), meta: { title: 'Referrals', section: 'clients', page: 'referrals' } },
   // Reviews moved into the WhatsApp page.
   { path: '/reviews', redirect: '/whatsapp?tab=reviews' },
   { path: '/suppliers', component: () => import('@/pages/suppliers.vue'), meta: { title: 'Suppliers', section: 'inventory', page: 'suppliers' } },
