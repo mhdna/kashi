@@ -1,65 +1,3 @@
--- Referrals (api/referrals.go). Every client gets a short code to give to
--- friends. A new customer's first sale can name it, and the code's owner
--- gets one reward: a percent off a later sale, at any branch.
-
--- The code's characters: none that read like another (no 0/O, 1/I/L, 2/Z,
--- 5/S, 8/B, U/V). 23 of them, a prime, so the check character (positions
--- weighted 1, 2, 3 ..., mod 23) catches every single wrong character and
--- every swap of two neighbours. The tills check codes the same way.
-CREATE OR REPLACE FUNCTION referral_check_char(body text) RETURNS text
-LANGUAGE plpgsql IMMUTABLE AS $$
-DECLARE
-    alphabet constant text := 'ACDEFGHJKMNPQRTWXY34679';
-    s int := 0;
-    v int;
-BEGIN
-    FOR i IN 1..length(body) LOOP
-        v := strpos(alphabet, substr(body, i, 1)) - 1;
-        IF v < 0 THEN
-            RETURN NULL;
-        END IF;
-        s := s + i * v;
-    END LOOP;
-    RETURN substr(alphabet, (s % 23) + 1, 1);
-END $$;
-
--- A random unused code: 5 random characters and the check character.
-CREATE OR REPLACE FUNCTION new_referral_code() RETURNS text
-LANGUAGE plpgsql VOLATILE AS $$
-DECLARE
-    alphabet constant text := 'ACDEFGHJKMNPQRTWXY34679';
-    body text;
-    code text;
-BEGIN
-    LOOP
-        body := '';
-        FOR i IN 1..5 LOOP
-            body := body || substr(alphabet, 1 + floor(random() * 23)::int, 1);
-        END LOOP;
-        code := body || referral_check_char(body);
-        IF NOT EXISTS (SELECT 1 FROM clients WHERE referral_code = code) THEN
-            RETURN code;
-        END IF;
-    END LOOP;
-END $$;
-
-ALTER TABLE clients ADD COLUMN referral_code text;
-CREATE UNIQUE INDEX clients_referral_code_key ON clients (referral_code);
-
--- One row at a time, so each code sees the ones given before it. The tills
--- pull every client again once to get the codes.
-DO $$
-DECLARE
-    r record;
-BEGIN
-    FOR r IN SELECT id FROM clients WHERE referral_code IS NULL ORDER BY id LOOP
-        UPDATE clients SET referral_code = new_referral_code(), updated_at = now() WHERE id = r.id;
-    END LOOP;
-END $$;
-
-ALTER TABLE clients ALTER COLUMN referral_code SET DEFAULT new_referral_code();
-ALTER TABLE clients ALTER COLUMN referral_code SET NOT NULL;
-
 -- The rules, one row. Off until someone switches them on.
 CREATE TABLE referral_program (
     id int PRIMARY KEY DEFAULT 1 CHECK (id = 1),
@@ -83,6 +21,7 @@ INSERT INTO referral_program (id) VALUES (1);
 
 -- One row per sale that named a code. status: available, used or cancelled
 -- for a reward; refused (with refuse_reason) when the sale didn't earn one.
+-- The foreign keys lock clients and branch_invoices only against writes.
 CREATE TABLE referrals (
     id bigserial PRIMARY KEY,
     uid uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
@@ -108,6 +47,3 @@ CREATE INDEX idx_referrals_owner ON referrals (owner_client_id);
 CREATE INDEX idx_referrals_updated_at ON referrals (updated_at);
 -- A friend earns a reward for someone once.
 CREATE UNIQUE INDEX referrals_friend_once ON referrals (friend_client_uid) WHERE status <> 'refused';
-
-ALTER TABLE branch_invoices ADD COLUMN referral_code text NOT NULL DEFAULT '';
-ALTER TABLE branch_invoices ADD COLUMN referral_reward_uid uuid;

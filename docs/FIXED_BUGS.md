@@ -3,6 +3,26 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-17 · The referrals deploy deadlocked and left the database dirty
+
+**Symptom.** `make deploy` failed at "Migrating and restarting API" with
+`deadlock detected` (the try before it timed out on the migration lock).
+Migration 243 was marked dirty; nothing of it was applied.
+
+**Cause.** 243 did everything in one transaction: it added the clients
+column (an exclusive lock on clients), gave 130k clients a code one
+`UPDATE` at a time with that lock held, and only at the end altered
+branch_invoices. The invoice list's queries held branch_invoices and waited
+for clients; the migration held clients and waited for branch_invoices.
+
+**Fix.** Split into 243 to 248, each locking one table only briefly: the
+invoice columns, the clients column and functions, the index, the tables,
+the codes in one row-locking `UPDATE` (made from the id by a one-to-one
+map, so there's nothing to check for repeats and readers never wait), then
+the default and NOT NULL. `db/migrations/000243` to `000248`; the schema at
+the end is the same, so `TestReferralCodesInTheDatabase` and
+`TestReferralFlow` cover it. To recover: `migrate force 242`, deploy again.
+
 ## 2026-11-13 · "Discard your changes?" came up where nothing was edited
 
 **Symptom.** Live cart asked "Discard your changes?" on Escape or a click

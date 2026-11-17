@@ -1,0 +1,2 @@
+ALTER TABLE clients ALTER COLUMN referral_code DROP NOT NULL;
+ALTER TABLE clients ALTER COLUMN referral_code DROP DEFAULT;
