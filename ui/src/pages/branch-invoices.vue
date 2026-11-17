@@ -182,6 +182,16 @@
       variant="outlined"
     />
     <v-text-field
+      v-model="clientInput"
+      clearable
+      density="compact"
+      hide-details
+      placeholder="Client name or phone"
+      prepend-inner-icon="mdi-account-search"
+      style="max-width: 230px"
+      variant="outlined"
+    />
+    <v-text-field
       v-model="dateFrom"
       density="compact"
       hide-details
@@ -449,6 +459,7 @@
   import { useVariants } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
   import { useAuthStore } from '@/stores/auth'
+  import { hasInvoiceFilters, invoiceFilterParams } from '@/utils/invoiceFilters'
   import { canEditRefund } from '@/utils/returnEdit'
 
   const props = defineProps({
@@ -556,8 +567,30 @@
   const statusFilter = ref(null)
   const dateFrom = ref('')
   const dateTo = ref('')
-  const hasExtraFilters = computed(() =>
-    Boolean(registerFilter.value || kindFilter.value || statusFilter.value || dateFrom.value || dateTo.value))
+  // The box is what's typed; clientFilter follows it after a pause so a request
+  // isn't sent for every key.
+  const clientInput = ref('')
+  const clientFilter = ref('')
+  let clientTimer = null
+  watch(clientInput, value => {
+    clearTimeout(clientTimer)
+    if (!value) {
+      clientFilter.value = ''
+      return
+    }
+    clientTimer = setTimeout(() => {
+      clientFilter.value = value
+    }, 300)
+  })
+  onUnmounted(() => clearTimeout(clientTimer))
+  const hasExtraFilters = computed(() => hasInvoiceFilters({
+    registerId: registerFilter.value,
+    kind: kindFilter.value,
+    status: statusFilter.value,
+    dateFrom: dateFrom.value,
+    dateTo: dateTo.value,
+    client: clientInput.value,
+  }))
 
   function clearFilters () {
     registerFilter.value = null
@@ -565,6 +598,8 @@
     statusFilter.value = null
     dateFrom.value = ''
     dateTo.value = ''
+    clientInput.value = ''
+    clientFilter.value = ''
   }
 
   // Registers to pick from: every till, or just the chosen branch's.
@@ -591,13 +626,14 @@
     }
   })
 
-  const filterParams = computed(() => ({
-    branch_id: props.branchFilter || null,
-    register_id: registerFilter.value,
+  const filterParams = computed(() => invoiceFilterParams({
+    branchId: props.branchFilter,
+    registerId: registerFilter.value,
     kind: kindFilter.value,
     status: statusFilter.value,
-    date_from: dateFrom.value,
-    date_to: dateTo.value,
+    dateFrom: dateFrom.value,
+    dateTo: dateTo.value,
+    client: clientFilter.value,
   }))
   const queryParams = filterParams
 

@@ -108,6 +108,24 @@ WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
     OR salesperson_name ILIKE '%' || sqlc.arg(search)::text || '%'
   )
   AND (sqlc.narg(register_id)::bigint IS NULL OR register_id = sqlc.narg(register_id))
+  -- client: a name fragment of the invoice's customer, or (client_digits, set by
+  -- the API when the term has no letters) a run of the phone's digits whatever
+  -- its spacing or +. The matching clients are found first through the trigram
+  -- indexes (000242), then the invoices by uid or by the till's client link.
+  AND (
+    sqlc.arg(client)::text = ''
+    OR client_uid IN (
+      SELECT c.uid FROM clients c
+      WHERE c.name ILIKE '%' || sqlc.arg(client)::text || '%'
+        OR (sqlc.arg(client_digits)::text <> ''
+            AND regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || sqlc.arg(client_digits)::text || '%'))
+    OR (register_id, branch_client_id) IN (
+      SELECT cl.register_id, cl.branch_client_id FROM client_links cl
+      JOIN clients c ON c.id = cl.client_id
+      WHERE c.name ILIKE '%' || sqlc.arg(client)::text || '%'
+        OR (sqlc.arg(client_digits)::text <> ''
+            AND regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || sqlc.arg(client_digits)::text || '%'))
+  )
   AND (sqlc.narg(kind)::text IS NULL OR kind = sqlc.narg(kind))
   AND (
     sqlc.narg(status)::text IS NULL
@@ -131,6 +149,24 @@ WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
     OR salesperson_name ILIKE '%' || sqlc.arg(search)::text || '%'
   )
   AND (sqlc.narg(register_id)::bigint IS NULL OR register_id = sqlc.narg(register_id))
+  -- client: a name fragment of the invoice's customer, or (client_digits, set by
+  -- the API when the term has no letters) a run of the phone's digits whatever
+  -- its spacing or +. The matching clients are found first through the trigram
+  -- indexes (000242), then the invoices by uid or by the till's client link.
+  AND (
+    sqlc.arg(client)::text = ''
+    OR client_uid IN (
+      SELECT c.uid FROM clients c
+      WHERE c.name ILIKE '%' || sqlc.arg(client)::text || '%'
+        OR (sqlc.arg(client_digits)::text <> ''
+            AND regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || sqlc.arg(client_digits)::text || '%'))
+    OR (register_id, branch_client_id) IN (
+      SELECT cl.register_id, cl.branch_client_id FROM client_links cl
+      JOIN clients c ON c.id = cl.client_id
+      WHERE c.name ILIKE '%' || sqlc.arg(client)::text || '%'
+        OR (sqlc.arg(client_digits)::text <> ''
+            AND regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || sqlc.arg(client_digits)::text || '%'))
+  )
   AND (sqlc.narg(kind)::text IS NULL OR kind = sqlc.narg(kind))
   AND (
     sqlc.narg(status)::text IS NULL

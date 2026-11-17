@@ -20,6 +20,8 @@ type listBranchInvoicesRequest struct {
 	BranchID   int64  `form:"branch_id"`
 	RegisterID int64  `form:"register_id"`
 	Search     string `form:"search"`
+	// client: a name or phone fragment of the invoice's customer.
+	Client string `form:"client"`
 	// kind: sales | return | exchange. status: active | cancelled.
 	Kind   string `form:"kind" binding:"omitempty,oneof=sales return exchange"`
 	Status string `form:"status" binding:"omitempty,oneof=active cancelled"`
@@ -34,11 +36,13 @@ type branchInvoiceFilter struct {
 	branchID, registerID sql.NullInt64
 	kind, status         sql.NullString
 	dateFrom, dateTo     sql.NullTime
-	search               string
+	search, client       string
+	clientDigits         string
 }
 
 func (req listBranchInvoicesRequest) filter() branchInvoiceFilter {
-	f := branchInvoiceFilter{search: req.Search}
+	f := branchInvoiceFilter{search: req.Search, client: strings.TrimSpace(req.Client)}
+	f.clientDigits = db.ClientSearchDigits(f.client)
 	if req.BranchID > 0 {
 		f.branchID = sql.NullInt64{Int64: req.BranchID, Valid: true}
 	}
@@ -63,7 +67,7 @@ func (req listBranchInvoicesRequest) filter() branchInvoiceFilter {
 func (f branchInvoiceFilter) page(size, offset int32) db.ListBranchInvoicesPageParams {
 	return db.ListBranchInvoicesPageParams{
 		BranchID: f.branchID, RegisterID: f.registerID, Kind: f.kind, Status: f.status,
-		DateFrom: f.dateFrom, DateTo: f.dateTo, Search: f.search,
+		DateFrom: f.dateFrom, DateTo: f.dateTo, Search: f.search, Client: f.client, ClientDigits: f.clientDigits,
 		PageSize: size, PageOffset: offset,
 	}
 }
@@ -71,7 +75,7 @@ func (f branchInvoiceFilter) page(size, offset int32) db.ListBranchInvoicesPageP
 func (f branchInvoiceFilter) count() db.CountBranchInvoicesFilteredParams {
 	return db.CountBranchInvoicesFilteredParams{
 		BranchID: f.branchID, RegisterID: f.registerID, Kind: f.kind, Status: f.status,
-		DateFrom: f.dateFrom, DateTo: f.dateTo, Search: f.search,
+		DateFrom: f.dateFrom, DateTo: f.dateTo, Search: f.search, Client: f.client, ClientDigits: f.clientDigits,
 	}
 }
 

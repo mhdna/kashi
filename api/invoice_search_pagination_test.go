@@ -105,3 +105,44 @@ func TestExportBranchInvoicesXLSX(t *testing.T) {
 	require.Contains(t, recorder.Header().Get("Content-Type"), "spreadsheetml")
 	require.Equal(t, "PK", recorder.Body.String()[:2]) // an xlsx is a zip
 }
+
+// The client box sends client=, trimmed, to the page, its count and the export alike.
+func TestListBranchInvoicesClientFilter(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	store.EXPECT().ListBranchInvoicesPage(gomock.Any(), db.ListBranchInvoicesPageParams{
+		Client: "Maya", Search: "SA/CT", PageSize: 14,
+	}).Return([]db.BranchInvoice{}, nil)
+	store.EXPECT().CountBranchInvoicesFiltered(gomock.Any(), db.CountBranchInvoicesFilteredParams{
+		Client: "Maya", Search: "SA/CT",
+	}).Return(int64(4), nil)
+
+	server := newTestServer(t, store)
+	recorder := httptest.NewRecorder()
+	request, err := http.NewRequest(http.MethodGet, "/branch_invoices?page_size=14&client=%20Maya%20&search=SA/CT", nil)
+	require.NoError(t, err)
+	addAuthorization(t, request, server.tokenMaker, authorizationTypeBearer, "user", time.Minute)
+
+	server.router.ServeHTTP(recorder, request)
+	require.Equal(t, http.StatusOK, recorder.Code)
+	require.JSONEq(t, `{"branch_invoices":[],"total":4}`, recorder.Body.String())
+}
+
+func TestExportBranchInvoicesClientFilter(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	store.EXPECT().ListBranchInvoicesPage(gomock.Any(), db.ListBranchInvoicesPageParams{
+		Client: "70123456", ClientDigits: "70123456", PageSize: exportBranchInvoicesLimit,
+	}).Return([]db.BranchInvoice{}, nil)
+	store.EXPECT().ListBranches(gomock.Any()).Return([]db.Branch{}, nil)
+	store.EXPECT().ListAllBranchRegisters(gomock.Any()).Return([]db.BranchRegister{}, nil)
+
+	server := newTestServer(t, store)
+	recorder := httptest.NewRecorder()
+	request, err := http.NewRequest(http.MethodGet, "/branch_invoices/export?client=70123456", nil)
+	require.NoError(t, err)
+	addAuthorization(t, request, server.tokenMaker, authorizationTypeBearer, "user", time.Minute)
+
+	server.router.ServeHTTP(recorder, request)
+	require.Equal(t, http.StatusOK, recorder.Code)
+}
