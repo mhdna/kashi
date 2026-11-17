@@ -114,6 +114,20 @@
           </div>
         </div>
 
+        <v-text-field
+          v-if="report.codes"
+          v-model="codesDraft"
+          clearable
+          density="compact"
+          hint="Separate several with commas, then press Enter"
+          label="Product codes start with"
+          persistent-hint
+          placeholder="TT, TX"
+          variant="outlined"
+          @blur="applyCodes"
+          @click:clear="clearCodes"
+          @keydown.enter="applyCodes"
+        />
         <v-select
           v-model="period"
           density="compact"
@@ -315,6 +329,9 @@
         title="Preparing your report"
       />
       <v-alert v-else-if="loadError" class="ma-6" type="error" variant="tonal">{{ loadError }}</v-alert>
+      <v-alert v-else-if="report.codes && codes.length === 0" class="ma-6" type="info" variant="tonal">
+        Type the start of the product codes on the left (TT, or TT, TX) to see how those products sold.
+      </v-alert>
       <v-alert v-else-if="parts.length === 0" class="ma-6" type="info" variant="tonal">
         Tick at least one part of the report on the left.
       </v-alert>
@@ -338,7 +355,7 @@
                 <div><strong>{{ branchLabel }}</strong></div>
                 <div v-if="report.employees && employees.length > 0">{{ employeeLabel }}</div>
                 <div>{{ t('Generated {at}', { at: generatedLabel }) }}</div>
-                <div v-if="showExcluded && excludedCount > 0 && needsSales">
+                <div v-if="showExcluded && excludedCount > 0 && (needsSales || needsGroup)">
                   {{ t('Left out: {products} products, {clients} customers', { products: exclusions.products.length, clients: exclusions.clients.length }) }}
                 </div>
               </div>
@@ -454,6 +471,8 @@
   import CustomersReport from '@/components/reports/CustomersReport.vue'
   import FeedbackReport from '@/components/reports/FeedbackReport.vue'
   import PaymentsReport from '@/components/reports/PaymentsReport.vue'
+  import { codesLabel, parseCodes } from '@/components/reports/productGroup'
+  import ProductGroupReport from '@/components/reports/ProductGroupReport.vue'
   import ProductsReport from '@/components/reports/ProductsReport.vue'
   import { ARABIC_FONT, installReportFonts } from '@/components/reports/reportFonts'
   import { setReportLang, t } from '@/components/reports/reportI18n'
@@ -489,6 +508,7 @@
     attendance: AttendanceReport,
     payments: PaymentsReport,
     products: ProductsReport,
+    group: ProductGroupReport,
   }
 
   // Each report is a set of parts, shown as a tree on the left: a part
@@ -593,6 +613,35 @@
         { key: 'returns', comp: 'payments', title: 'Returns by branch' },
       ],
     },
+    // The products whose code starts with what's typed in the sidebar
+    // (codes: true), from /reports/product_group. Its Goods parts are the
+    // Sales & goods ones, drawn over the group's products only.
+    {
+      key: 'productGroup', title: 'Product group', subtitle: 'Products by the start of their code', icon: 'mdi-tag-multiple-outline', codes: true,
+      parts: [
+        { key: 'kpis.group', comp: 'group', title: 'Headline figures' },
+        { key: 'group.compare', comp: 'group', title: 'Compared with the period before' },
+        { key: 'group.days', comp: 'group', title: 'Day by day' },
+        { key: 'group.branches', comp: 'group', title: 'By branch' },
+        { key: 'group.salespersons', comp: 'group', title: 'By salesperson' },
+        { key: 'group.customers', comp: 'group', title: 'Customers who bought them' },
+        { key: 'categories', comp: 'products', title: 'Categories' },
+        { key: 'bestsellers', comp: 'products', title: 'Best sellers' },
+        { key: 'profitable', comp: 'products', section: 'Profit', title: 'Most profitable' },
+        { key: 'lowMargin', comp: 'products', section: 'Profit', title: 'Lowest margins' },
+        { key: 'by.brand', comp: 'products', section: 'Breakdowns', title: 'By brand' },
+        { key: 'by.type', comp: 'products', section: 'Breakdowns', title: 'By product type' },
+        { key: 'by.audience', comp: 'products', section: 'Breakdowns', title: 'By who it\'s for' },
+        { key: 'by.origin', comp: 'products', section: 'Breakdowns', title: 'By country of origin' },
+        { key: 'by.year', comp: 'products', section: 'Breakdowns', title: 'By collection year' },
+        { key: 'by.season', comp: 'products', section: 'Breakdowns', title: 'By season' },
+        { key: 'by.supplier', comp: 'products', section: 'Breakdowns', title: 'By supplier' },
+        { key: 'priceBands', comp: 'products', section: 'Breakdowns', title: 'Price ranges' },
+        { key: 'attrs.sizes', comp: 'products', section: 'Sizes and colours', title: 'Units by size' },
+        { key: 'attrs.colours', comp: 'products', section: 'Sizes and colours', title: 'Units by colour' },
+        { key: 'returned', comp: 'products', title: 'Most returned' },
+      ],
+    },
   ]
   // A part saved (or linked) before parts were split stands for its pieces.
   const OLD_PARTS = {
@@ -620,6 +669,7 @@
     attendance: 'Attendance & hours',
     products: 'Goods',
     payments: 'Payments, discounts and returns',
+    group: 'Product group',
   }
   // Report keys from before the reports were grouped, for old links.
   const OLD_KEYS = {
@@ -636,7 +686,7 @@
   const router = useRouter()
   const notify = useNotify()
   const { canEdit } = usePageAccess()
-  const { getReports, getReportSettings, saveReportSettings } = useReports()
+  const { getReports, getProductGroupReport, getReportSettings, saveReportSettings } = useReports()
   const { autoInTime, autoOutTime, highlightAuto, HIGHLIGHT_OPTIONS, autoInMinutes, autoOutMinutes, applyAutoDefaults } = useAttendanceAutoOut()
   const { listEventsInRange } = useAttendance()
   const { listBranchSalespersons } = useBranchSalespersons()
@@ -713,7 +763,7 @@
   watch(report, r => {
     parts.value = defaultParts(r)
     employees.value = [...(settings.value.defaults?.employees ?? [])]
-    router.replace({ query: { report: r.key } })
+    router.replace({ query: { report: r.key, ...(r.codes && codes.value.length > 0 ? { codes: codes.value.join(',') } : {}) } })
   })
 
   const allParts = computed(() => parts.value.length === report.value.parts.length)
@@ -763,7 +813,7 @@
     .filter(b => b.parts.length > 0))
   const usesComp = comp => blocks.value.some(b => b.comp === comp)
   const usesPart = key => parts.value.includes(key) && report.value.parts.some(p => p.key === key)
-  const needsTopN = computed(() => usesComp('customers') || usesComp('products'))
+  const needsTopN = computed(() => usesComp('customers') || usesComp('products') || usesPart('group.customers'))
 
   // ---- filters ----------------------------------------------------------------
   const pad = n => String(n).padStart(2, '0')
@@ -838,6 +888,21 @@
   const employees = ref([])
   const topN = ref(25)
   const sortBy = ref('revenue')
+  // The Product group report's code beginnings: codes is what the report
+  // shows, codesDraft what's in the box until Enter or leaving it.
+  const codes = ref(typeof route.query.codes === 'string' ? parseCodes(route.query.codes) : [])
+  const codesDraft = ref(codesLabel(codes.value))
+  function applyCodes () {
+    codes.value = parseCodes(codesDraft.value)
+    codesDraft.value = codesLabel(codes.value)
+  }
+  function clearCodes () {
+    codesDraft.value = ''
+    codes.value = []
+  }
+  watch(codes, value => {
+    if (report.value.codes) {router.replace({ query: { report: report.value.key, ...(value.length > 0 ? { codes: value.join(',') } : {}) } })}
+  })
 
   // ---- saved settings ---------------------------------------------------------
   // { defaults: { branch_ids, period, lang, top_n, sort_by, parts: { report: [..] } },
@@ -899,6 +964,11 @@
     }
     if ([10, 20, 25, 50, 100].includes(d.top_n)) {topN.value = d.top_n}
     if (d.sort_by === 'units' || d.sort_by === 'revenue') {sortBy.value = d.sort_by}
+    // A link's codes win over the saved ones.
+    if (codes.value.length === 0 && Array.isArray(d.group_codes)) {
+      codes.value = parseCodes(d.group_codes.join(','))
+      codesDraft.value = codesLabel(codes.value)
+    }
     parts.value = queryParts ? validParts(report.value, queryParts) : defaultParts(report.value)
     if (d.lang === 'ar') {lang.value = 'ar'}
     applyAutoDefaults(d)
@@ -913,6 +983,7 @@
     lang: lang.value,
     top_n: topN.value,
     sort_by: sortBy.value,
+    group_codes: codes.value,
     auto_in: autoInTime.value || '',
     auto_out: autoOutTime.value || '',
     highlight_auto: highlightAuto.value,
@@ -923,8 +994,8 @@
   const dirty = computed(() => {
     const d = settings.value.defaults ?? {}
     const c = currentDefaults.value
-    return JSON.stringify([c.branch_ids, c.period, c.lang, c.top_n, c.sort_by, c.auto_in, c.auto_out, c.highlight_auto, c.employees, [...parts.value].toSorted()])
-      !== JSON.stringify([[...(d.branch_ids ?? [])].toSorted((a, b) => a - b), d.period ?? autoPeriod(), d.lang ?? 'en', d.top_n ?? 25, d.sort_by ?? 'revenue', d.auto_in ?? '', d.auto_out ?? '', d.highlight_auto ?? 'off', [...(d.employees ?? [])].toSorted(), [...defaultParts(report.value)].toSorted()])
+    return JSON.stringify([c.branch_ids, c.period, c.lang, c.top_n, c.sort_by, c.group_codes, c.auto_in, c.auto_out, c.highlight_auto, c.employees, [...parts.value].toSorted()])
+      !== JSON.stringify([[...(d.branch_ids ?? [])].toSorted((a, b) => a - b), d.period ?? autoPeriod(), d.lang ?? 'en', d.top_n ?? 25, d.sort_by ?? 'revenue', d.group_codes ?? [], d.auto_in ?? '', d.auto_out ?? '', d.highlight_auto ?? 'off', [...(d.employees ?? [])].toSorted(), [...defaultParts(report.value)].toSorted()])
   })
 
   const savingDefaults = ref(false)
@@ -951,7 +1022,7 @@
   const clientChoices = computed(() => (data.value?.clients ?? [])
     .filter(c => !exclusions.value.clients.some(x => x.id === c.client_id))
     .map(c => ({ title: c.phone ? `${c.name} · ${c.phone}` : c.name, value: c.client_id })))
-  const productChoices = computed(() => (data.value?.products ?? [])
+  const productChoices = computed(() => (ctx.value.data?.products ?? [])
     .filter(p => p.product_id > 0 && !exclusions.value.products.some(x => x.id === p.product_id))
     .map(p => ({ title: p.product_code ? `${p.product_name} · ${p.product_code}` : p.product_name, value: p.product_id })))
 
@@ -960,6 +1031,7 @@
       await saveSettings({ ...settings.value, exclusions: { ...exclusions.value, [kind]: list } })
       // The figures change: fetch them again.
       loadedKeys.sales = ''
+      loadedKeys.group = ''
       load()
     } catch (error) {
       notify.error(error.message)
@@ -990,12 +1062,16 @@
   const reviews = shallowRef(null)
   const reviewsError = ref('')
   const staff = shallowRef([])
-  const loadedKeys = { sales: '', attendance: '', reviews: '' }
+  const groupData = shallowRef(null)
+  const loadedKeys = { sales: '', attendance: '', reviews: '', group: '' }
 
   const filterKey = computed(() => `${range.value.from}|${range.value.to}|${branchIds.value.join(',')}`)
   // Sales figures feed everything but feedback; attendance feeds the
   // attendance parts and salespersons' hours.
-  const needsSales = computed(() => blocks.value.some(b => b.comp !== 'feedback'))
+  // The Product group report draws everything from its own answer.
+  const needsSales = computed(() => !report.value.codes && blocks.value.some(b => b.comp !== 'feedback'))
+  const needsGroup = computed(() => Boolean(report.value.codes) && codes.value.length > 0 && blocks.value.length > 0)
+  const groupKey = computed(() => `${filterKey.value}|${codes.value.join(',')}`)
   const needsAttendance = computed(() => usesComp('attendance') || usesComp('salespersons'))
   const needsReviews = computed(() => usesComp('feedback'))
 
@@ -1012,6 +1088,15 @@
         data.value = body
       }).catch(error => {
         loadedKeys.sales = ''
+        throw error
+      }))
+    }
+    if (needsGroup.value && loadedKeys.group !== groupKey.value) {
+      loadedKeys.group = groupKey.value
+      jobs.push(getProductGroupReport({ from, to, branchIds: branchIds.value, codes: codes.value }).then(body => {
+        groupData.value = body
+      }).catch(error => {
+        loadedKeys.group = ''
         throw error
       }))
     }
@@ -1075,7 +1160,7 @@
     staff.value = [...staff.value, ...lists.flat()]
   }
 
-  watch([filterKey, blocks], load)
+  watch([filterKey, blocks, codes], load)
   onMounted(async () => {
     fetchBranches().catch(error => notify.error(error.message))
     await loadSettings()
@@ -1092,11 +1177,13 @@
   const ready = computed(() => {
     if (needsSales.value && !data.value) {return false}
     if (needsReviews.value && !reviews.value) {return false}
+    if (needsGroup.value && !groupData.value) {return false}
+    if (report.value.codes && codes.value.length === 0) {return false}
     return true
   })
 
   const ctx = computed(() => ({
-    data: data.value,
+    data: report.value.codes ? groupData.value : data.value,
     from: range.value.from,
     to: range.value.to,
     branchIds: branchIds.value,
@@ -1169,7 +1256,9 @@
   const generatedAt = ref(new Date())
   const dateLocale = () => (sheetLang.value === 'ar' ? 'ar-LB-u-nu-latn' : 'en-GB')
   const listSep = () => (sheetLang.value === 'ar' ? '، ' : ', ')
-  const sheetTitle = computed(() => sheetLang.value && t(report.value.title))
+  const sheetTitle = computed(() => (sheetLang.value && report.value.codes && codes.value.length > 0
+    ? t('Products: {codes}', { codes: codesLabel(codes.value, listSep()) })
+    : sheetLang.value && t(report.value.title)))
   const longDate = d => new Date(`${d}T00:00:00`).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long', year: 'numeric' })
   const periodLabel = computed(() => {
     const { from, to } = range.value

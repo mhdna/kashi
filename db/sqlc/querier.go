@@ -1755,9 +1755,22 @@ type Querier interface {
 	// its own average cost, or the variant's when the row has none (stock
 	// counts set only the variant's).
 	ReportInventoryValue(ctx context.Context) (int64, error)
+	// What every line in the scope brought in (line_total), the base for a
+	// product group's share of sales. The same lines PeriodReportProducts adds
+	// up, so it equals the Sales & goods report's net sales.
+	ReportLinesRevenue(ctx context.Context, arg ReportLinesRevenueParams) (int64, error)
 	// What sales were paid with: the till's payment accounts by name ("Cash
 	// $$", "Visa", ...) plus kashi's own cashbox accounts, merged by name.
 	ReportPaymentMethods(ctx context.Context, arg ReportPaymentMethodsParams) ([]ReportPaymentMethodsRow, error)
+	// The Product group report (api/report_product_group.go): every invoice
+	// line of the products whose code matches one of code_patterns (LIKE
+	// patterns on the upper-cased code, built and escaped by the API), one row
+	// per invoice and size/colour, in the same scope as the queries above. The
+	// API adds them up by product, day, branch, salesperson and customer, so
+	// every table of the report comes from the same rows. Revenue is the lines'
+	// line_total, as in PeriodReportProducts. Capped as a guard; the API says
+	// so when the cap is hit.
+	ReportProductGroupLines(ctx context.Context, arg ReportProductGroupLinesParams) ([]ReportProductGroupLinesRow, error)
 	// What customers still owe on till sales put "On Account". Settling a sale
 	// later rewrites its payment lines (createBranchInvoiceSettlement), so the
 	// On Account lines left are exactly what's outstanding.

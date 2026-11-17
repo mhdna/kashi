@@ -489,3 +489,89 @@ WHERE bi.kind = 'sales'
           WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
 GROUP BY 1
 ORDER BY amount DESC;
+
+-- name: ReportProductGroupLines :many
+-- The Product group report (api/report_product_group.go): every invoice
+-- line of the products whose code matches one of code_patterns (LIKE
+-- patterns on the upper-cased code, built and escaped by the API), one row
+-- per invoice and size/colour, in the same scope as the queries above. The
+-- API adds them up by product, day, branch, salesperson and customer, so
+-- every table of the report comes from the same rows. Revenue is the lines'
+-- line_total, as in PeriodReportProducts. Capped as a guard; the API says
+-- so when the cap is hit.
+SELECT
+  bi.id AS invoice_id,
+  bi.kind,
+  (bi.occurred_at AT TIME ZONE b.timezone)::date AS day,
+  bi.branch_id,
+  b.name AS branch_name,
+  COALESCE(bi.salesperson_id, 0)::bigint AS salesperson_id,
+  COALESCE(s.name, NULLIF(bi.salesperson_name, ''), '')::text AS salesperson_name,
+  COALESCE(cu.id, cl.client_id, 0)::bigint AS client_id,
+  COALESCE(cc.name, '')::text AS client_name,
+  COALESCE(cc.phone, '')::text AS client_phone,
+  p.id AS product_id,
+  p.code AS product_code,
+  p.name AS product_name,
+  COALESCE(pc.name, '')::text AS category,
+  COALESCE(sz.name, '')::text AS size,
+  COALESCE(co.name, '')::text AS color,
+  COALESCE(sum(i.quantity), 0)::bigint AS quantity,
+  COALESCE(sum(i.line_total), 0)::bigint AS revenue,
+  COALESCE(sum(i.quantity * pv.avg_cost) FILTER (WHERE pv.avg_cost > 0), 0)::bigint AS cost,
+  COALESCE(sum(i.line_total) FILTER (WHERE pv.avg_cost > 0), 0)::bigint AS costed_revenue,
+  COALESCE(sum(i.quantity) FILTER (WHERE i.quantity < 0), 0)::bigint AS returned
+FROM branch_invoice_items i
+JOIN product_variants pv ON pv.uid = i.product_uid
+JOIN products p ON p.id = pv.product_id
+JOIN branch_invoices bi ON bi.id = i.branch_invoice_id
+JOIN branches b ON b.id = bi.branch_id
+LEFT JOIN product_categories pc ON pc.id = p.category_id
+LEFT JOIN sizes sz ON sz.id = pv.size_id
+LEFT JOIN colors co ON co.id = pv.color_id
+LEFT JOIN salespersons s ON s.id = bi.salesperson_id
+LEFT JOIN clients cu ON cu.uid = bi.client_uid
+LEFT JOIN client_links cl ON cl.register_id = bi.register_id AND cl.branch_client_id = bi.branch_client_id
+LEFT JOIN clients cc ON cc.id = COALESCE(cu.id, cl.client_id)
+WHERE upper(p.code) LIKE ANY(sqlc.arg(code_patterns)::text[])
+  AND bi.occurred_at >= sqlc.arg(from_day)::date - 1 AND bi.occurred_at < sqlc.arg(to_day)::date + 2
+  AND (bi.occurred_at AT TIME ZONE b.timezone)::date BETWEEN sqlc.arg(from_day)::date AND sqlc.arg(to_day)::date
+  AND (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 OR bi.branch_id = ANY(sqlc.arg(branch_ids)::bigint[]))
+  AND NOT b.hidden_from_reports
+  AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
+  AND bi.cancelled_at IS NULL
+  AND NOT (p.id = ANY(sqlc.arg(exclude_product_ids)::bigint[]))
+  AND NOT EXISTS (
+      -- customers left out of reports (report settings)
+      SELECT 1 FROM clients xc
+      WHERE xc.id = ANY(sqlc.arg(exclude_client_ids)::bigint[])
+        AND (xc.uid = bi.client_uid OR EXISTS (
+          SELECT 1 FROM client_links xl
+          WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
+GROUP BY bi.id, bi.kind, b.timezone, b.name, s.name, cu.id, cl.client_id, cc.name, cc.phone, p.id, pc.name, sz.name, co.name
+ORDER BY bi.id
+LIMIT 200001;
+
+-- name: ReportLinesRevenue :one
+-- What every line in the scope brought in (line_total), the base for a
+-- product group's share of sales. The same lines PeriodReportProducts adds
+-- up, so it equals the Sales & goods report's net sales.
+SELECT COALESCE(sum(i.line_total), 0)::bigint
+FROM branch_invoice_items i
+JOIN branch_invoices bi ON bi.id = i.branch_invoice_id
+JOIN branches b ON b.id = bi.branch_id
+WHERE bi.occurred_at >= sqlc.arg(from_day)::date - 1 AND bi.occurred_at < sqlc.arg(to_day)::date + 2
+  AND (bi.occurred_at AT TIME ZONE b.timezone)::date BETWEEN sqlc.arg(from_day)::date AND sqlc.arg(to_day)::date
+  AND (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 OR bi.branch_id = ANY(sqlc.arg(branch_ids)::bigint[]))
+  AND NOT b.hidden_from_reports
+  AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
+  AND bi.cancelled_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM product_variants xv WHERE xv.uid = i.product_uid AND xv.product_id = ANY(sqlc.arg(exclude_product_ids)::bigint[]))
+  AND NOT EXISTS (
+      -- customers left out of reports (report settings)
+      SELECT 1 FROM clients xc
+      WHERE xc.id = ANY(sqlc.arg(exclude_client_ids)::bigint[])
+        AND (xc.uid = bi.client_uid OR EXISTS (
+          SELECT 1 FROM client_links xl
+          WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
+;

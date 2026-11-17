@@ -11829,6 +11829,21 @@ func (mr *MockStoreMockRecorder) ReportInventoryValue(arg0 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportInventoryValue", reflect.TypeOf((*MockStore)(nil).ReportInventoryValue), arg0)
 }
 
+// ReportLinesRevenue mocks base method.
+func (m *MockStore) ReportLinesRevenue(arg0 context.Context, arg1 db.ReportLinesRevenueParams) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReportLinesRevenue", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReportLinesRevenue indicates an expected call of ReportLinesRevenue.
+func (mr *MockStoreMockRecorder) ReportLinesRevenue(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportLinesRevenue", reflect.TypeOf((*MockStore)(nil).ReportLinesRevenue), arg0, arg1)
+}
+
 // ReportPaymentMethods mocks base method.
 func (m *MockStore) ReportPaymentMethods(arg0 context.Context, arg1 db.ReportPaymentMethodsParams) ([]db.ReportPaymentMethodsRow, error) {
 	m.ctrl.T.Helper()
@@ -11842,6 +11857,21 @@ func (m *MockStore) ReportPaymentMethods(arg0 context.Context, arg1 db.ReportPay
 func (mr *MockStoreMockRecorder) ReportPaymentMethods(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportPaymentMethods", reflect.TypeOf((*MockStore)(nil).ReportPaymentMethods), arg0, arg1)
+}
+
+// ReportProductGroupLines mocks base method.
+func (m *MockStore) ReportProductGroupLines(arg0 context.Context, arg1 db.ReportProductGroupLinesParams) ([]db.ReportProductGroupLinesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReportProductGroupLines", arg0, arg1)
+	ret0, _ := ret[0].([]db.ReportProductGroupLinesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReportProductGroupLines indicates an expected call of ReportProductGroupLines.
+func (mr *MockStoreMockRecorder) ReportProductGroupLines(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportProductGroupLines", reflect.TypeOf((*MockStore)(nil).ReportProductGroupLines), arg0, arg1)
 }
 
 // ReportReceivables mocks base method.

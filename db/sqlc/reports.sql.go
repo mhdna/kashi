@@ -1179,3 +1179,196 @@ func (q *Queries) PeriodReportWeekdayHour(ctx context.Context, arg PeriodReportW
 	}
 	return items, nil
 }
+
+const reportLinesRevenue = `-- name: ReportLinesRevenue :one
+SELECT COALESCE(sum(i.line_total), 0)::bigint
+FROM branch_invoice_items i
+JOIN branch_invoices bi ON bi.id = i.branch_invoice_id
+JOIN branches b ON b.id = bi.branch_id
+WHERE bi.occurred_at >= $1::date - 1 AND bi.occurred_at < $2::date + 2
+  AND (bi.occurred_at AT TIME ZONE b.timezone)::date BETWEEN $1::date AND $2::date
+  AND (COALESCE(cardinality($3::bigint[]), 0) = 0 OR bi.branch_id = ANY($3::bigint[]))
+  AND NOT b.hidden_from_reports
+  AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
+  AND bi.cancelled_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM product_variants xv WHERE xv.uid = i.product_uid AND xv.product_id = ANY($4::bigint[]))
+  AND NOT EXISTS (
+      -- customers left out of reports (report settings)
+      SELECT 1 FROM clients xc
+      WHERE xc.id = ANY($5::bigint[])
+        AND (xc.uid = bi.client_uid OR EXISTS (
+          SELECT 1 FROM client_links xl
+          WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
+`
+
+type ReportLinesRevenueParams struct {
+	FromDay           time.Time `json:"from_day"`
+	ToDay             time.Time `json:"to_day"`
+	BranchIds         []int64   `json:"branch_ids"`
+	ExcludeProductIds []int64   `json:"exclude_product_ids"`
+	ExcludeClientIds  []int64   `json:"exclude_client_ids"`
+}
+
+// What every line in the scope brought in (line_total), the base for a
+// product group's share of sales. The same lines PeriodReportProducts adds
+// up, so it equals the Sales & goods report's net sales.
+func (q *Queries) ReportLinesRevenue(ctx context.Context, arg ReportLinesRevenueParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, reportLinesRevenue,
+		arg.FromDay,
+		arg.ToDay,
+		pq.Array(arg.BranchIds),
+		pq.Array(arg.ExcludeProductIds),
+		pq.Array(arg.ExcludeClientIds),
+	)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const reportProductGroupLines = `-- name: ReportProductGroupLines :many
+SELECT
+  bi.id AS invoice_id,
+  bi.kind,
+  (bi.occurred_at AT TIME ZONE b.timezone)::date AS day,
+  bi.branch_id,
+  b.name AS branch_name,
+  COALESCE(bi.salesperson_id, 0)::bigint AS salesperson_id,
+  COALESCE(s.name, NULLIF(bi.salesperson_name, ''), '')::text AS salesperson_name,
+  COALESCE(cu.id, cl.client_id, 0)::bigint AS client_id,
+  COALESCE(cc.name, '')::text AS client_name,
+  COALESCE(cc.phone, '')::text AS client_phone,
+  p.id AS product_id,
+  p.code AS product_code,
+  p.name AS product_name,
+  COALESCE(pc.name, '')::text AS category,
+  COALESCE(sz.name, '')::text AS size,
+  COALESCE(co.name, '')::text AS color,
+  COALESCE(sum(i.quantity), 0)::bigint AS quantity,
+  COALESCE(sum(i.line_total), 0)::bigint AS revenue,
+  COALESCE(sum(i.quantity * pv.avg_cost) FILTER (WHERE pv.avg_cost > 0), 0)::bigint AS cost,
+  COALESCE(sum(i.line_total) FILTER (WHERE pv.avg_cost > 0), 0)::bigint AS costed_revenue,
+  COALESCE(sum(i.quantity) FILTER (WHERE i.quantity < 0), 0)::bigint AS returned
+FROM branch_invoice_items i
+JOIN product_variants pv ON pv.uid = i.product_uid
+JOIN products p ON p.id = pv.product_id
+JOIN branch_invoices bi ON bi.id = i.branch_invoice_id
+JOIN branches b ON b.id = bi.branch_id
+LEFT JOIN product_categories pc ON pc.id = p.category_id
+LEFT JOIN sizes sz ON sz.id = pv.size_id
+LEFT JOIN colors co ON co.id = pv.color_id
+LEFT JOIN salespersons s ON s.id = bi.salesperson_id
+LEFT JOIN clients cu ON cu.uid = bi.client_uid
+LEFT JOIN client_links cl ON cl.register_id = bi.register_id AND cl.branch_client_id = bi.branch_client_id
+LEFT JOIN clients cc ON cc.id = COALESCE(cu.id, cl.client_id)
+WHERE upper(p.code) LIKE ANY($1::text[])
+  AND bi.occurred_at >= $2::date - 1 AND bi.occurred_at < $3::date + 2
+  AND (bi.occurred_at AT TIME ZONE b.timezone)::date BETWEEN $2::date AND $3::date
+  AND (COALESCE(cardinality($4::bigint[]), 0) = 0 OR bi.branch_id = ANY($4::bigint[]))
+  AND NOT b.hidden_from_reports
+  AND bi.register_id NOT IN (SELECT r.id FROM branch_registers r WHERE r.hidden_from_reports)
+  AND bi.cancelled_at IS NULL
+  AND NOT (p.id = ANY($5::bigint[]))
+  AND NOT EXISTS (
+      -- customers left out of reports (report settings)
+      SELECT 1 FROM clients xc
+      WHERE xc.id = ANY($6::bigint[])
+        AND (xc.uid = bi.client_uid OR EXISTS (
+          SELECT 1 FROM client_links xl
+          WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
+GROUP BY bi.id, bi.kind, b.timezone, b.name, s.name, cu.id, cl.client_id, cc.name, cc.phone, p.id, pc.name, sz.name, co.name
+ORDER BY bi.id
+LIMIT 200001
+`
+
+type ReportProductGroupLinesParams struct {
+	CodePatterns      []string  `json:"code_patterns"`
+	FromDay           time.Time `json:"from_day"`
+	ToDay             time.Time `json:"to_day"`
+	BranchIds         []int64   `json:"branch_ids"`
+	ExcludeProductIds []int64   `json:"exclude_product_ids"`
+	ExcludeClientIds  []int64   `json:"exclude_client_ids"`
+}
+
+type ReportProductGroupLinesRow struct {
+	InvoiceID       int64     `json:"invoice_id"`
+	Kind            string    `json:"kind"`
+	Day             time.Time `json:"day"`
+	BranchID        int64     `json:"branch_id"`
+	BranchName      string    `json:"branch_name"`
+	SalespersonID   int64     `json:"salesperson_id"`
+	SalespersonName string    `json:"salesperson_name"`
+	ClientID        int64     `json:"client_id"`
+	ClientName      string    `json:"client_name"`
+	ClientPhone     string    `json:"client_phone"`
+	ProductID       int64     `json:"product_id"`
+	ProductCode     string    `json:"product_code"`
+	ProductName     string    `json:"product_name"`
+	Category        string    `json:"category"`
+	Size            string    `json:"size"`
+	Color           string    `json:"color"`
+	Quantity        int64     `json:"quantity"`
+	Revenue         int64     `json:"revenue"`
+	Cost            int64     `json:"cost"`
+	CostedRevenue   int64     `json:"costed_revenue"`
+	Returned        int64     `json:"returned"`
+}
+
+// The Product group report (api/report_product_group.go): every invoice
+// line of the products whose code matches one of code_patterns (LIKE
+// patterns on the upper-cased code, built and escaped by the API), one row
+// per invoice and size/colour, in the same scope as the queries above. The
+// API adds them up by product, day, branch, salesperson and customer, so
+// every table of the report comes from the same rows. Revenue is the lines'
+// line_total, as in PeriodReportProducts. Capped as a guard; the API says
+// so when the cap is hit.
+func (q *Queries) ReportProductGroupLines(ctx context.Context, arg ReportProductGroupLinesParams) ([]ReportProductGroupLinesRow, error) {
+	rows, err := q.db.QueryContext(ctx, reportProductGroupLines,
+		pq.Array(arg.CodePatterns),
+		arg.FromDay,
+		arg.ToDay,
+		pq.Array(arg.BranchIds),
+		pq.Array(arg.ExcludeProductIds),
+		pq.Array(arg.ExcludeClientIds),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReportProductGroupLinesRow{}
+	for rows.Next() {
+		var i ReportProductGroupLinesRow
+		if err := rows.Scan(
+			&i.InvoiceID,
+			&i.Kind,
+			&i.Day,
+			&i.BranchID,
+			&i.BranchName,
+			&i.SalespersonID,
+			&i.SalespersonName,
+			&i.ClientID,
+			&i.ClientName,
+			&i.ClientPhone,
+			&i.ProductID,
+			&i.ProductCode,
+			&i.ProductName,
+			&i.Category,
+			&i.Size,
+			&i.Color,
+			&i.Quantity,
+			&i.Revenue,
+			&i.Cost,
+			&i.CostedRevenue,
+			&i.Returned,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

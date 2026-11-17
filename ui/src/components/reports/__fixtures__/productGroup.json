@@ -1,0 +1,235 @@
+{
+  "all_revenue": 50000,
+  "branches": [
+    {
+      "branch_id": 2,
+      "branch_name": "Branch 2",
+      "cost": 900,
+      "costed_revenue": 2500,
+      "quantity": 4,
+      "returned": 0,
+      "revenue": 7000,
+      "sales_count": 2
+    },
+    {
+      "branch_id": 1,
+      "branch_name": "Branch 1",
+      "cost": 1200,
+      "costed_revenue": 2000,
+      "quantity": 2,
+      "returned": -1,
+      "revenue": 3500,
+      "sales_count": 1
+    }
+  ],
+  "clients": [
+    {
+      "client_id": 5,
+      "cost": 1200,
+      "costed_revenue": 2000,
+      "last_day": "2026-09-04",
+      "name": "Client 5",
+      "phone": "+96170000005",
+      "quantity": 2,
+      "returned": -1,
+      "revenue": 3500,
+      "visits": 1
+    },
+    {
+      "client_id": 6,
+      "cost": 900,
+      "costed_revenue": 2500,
+      "last_day": "2026-09-10",
+      "name": "Client 6",
+      "phone": "+96170000006",
+      "quantity": 1,
+      "returned": 0,
+      "revenue": 2500,
+      "visits": 1
+    }
+  ],
+  "codes": [
+    "TT",
+    "TX"
+  ],
+  "daily": [
+    {
+      "cost": 2400,
+      "costed_revenue": 4000,
+      "day": "2026-09-02",
+      "quantity": 3,
+      "returned": 0,
+      "revenue": 5500,
+      "sales_count": 1
+    },
+    {
+      "cost": -1200,
+      "costed_revenue": -2000,
+      "day": "2026-09-04",
+      "quantity": 2,
+      "returned": -1,
+      "revenue": 2500,
+      "sales_count": 1
+    },
+    {
+      "cost": 900,
+      "costed_revenue": 2500,
+      "day": "2026-09-10",
+      "quantity": 1,
+      "returned": 0,
+      "revenue": 2500,
+      "sales_count": 1
+    }
+  ],
+  "previous": {
+    "from": "2026-08-01",
+    "summary": {
+      "clients": 1,
+      "cost": 1200,
+      "costed_revenue": 2000,
+      "named_sales_count": 1,
+      "products": 1,
+      "quantity": 1,
+      "returned": 0,
+      "returns_count": 0,
+      "revenue": 2000,
+      "sales_count": 1,
+      "selling_days": 1
+    },
+    "to": "2026-08-31"
+  },
+  "product_attributes": [
+    {
+      "attribute": "brand",
+      "product_id": 2,
+      "value": "Acme"
+    }
+  ],
+  "products": [
+    {
+      "category": "Shirts",
+      "cost": 0,
+      "costed_revenue": 0,
+      "invoices": 2,
+      "product_code": "TT02",
+      "product_id": 2,
+      "product_name": "Shirt 2",
+      "quantity": 4,
+      "returned": 0,
+      "revenue": 6000
+    },
+    {
+      "category": "Shirts",
+      "cost": 900,
+      "costed_revenue": 2500,
+      "invoices": 1,
+      "product_code": "TT03",
+      "product_id": 3,
+      "product_name": "Shirt 3",
+      "quantity": 1,
+      "returned": 0,
+      "revenue": 2500
+    },
+    {
+      "category": "Shirts",
+      "cost": 1200,
+      "costed_revenue": 2000,
+      "invoices": 2,
+      "product_code": "TT01",
+      "product_id": 1,
+      "product_name": "Shirt 1",
+      "quantity": 1,
+      "returned": -1,
+      "revenue": 2000
+    }
+  ],
+  "salespersons": [
+    {
+      "branch_id": 2,
+      "branch_name": "Branch 2",
+      "cost": 0,
+      "costed_revenue": 0,
+      "quantity": 3,
+      "returned": 0,
+      "revenue": 4500,
+      "sales_count": 1,
+      "salesperson_id": 0,
+      "salesperson_name": "Lea"
+    },
+    {
+      "branch_id": 1,
+      "branch_name": "Branch 1",
+      "cost": 1200,
+      "costed_revenue": 2000,
+      "quantity": 2,
+      "returned": -1,
+      "revenue": 3500,
+      "sales_count": 1,
+      "salesperson_id": 0,
+      "salesperson_name": "Rami"
+    },
+    {
+      "branch_id": 2,
+      "branch_name": "Branch 2",
+      "cost": 900,
+      "costed_revenue": 2500,
+      "quantity": 1,
+      "returned": 0,
+      "revenue": 2500,
+      "sales_count": 1,
+      "salesperson_id": 0,
+      "salesperson_name": ""
+    }
+  ],
+  "summary": {
+    "clients": 2,
+    "cost": 2100,
+    "costed_revenue": 4500,
+    "named_sales_count": 2,
+    "products": 3,
+    "quantity": 6,
+    "returned": -1,
+    "returns_count": 1,
+    "revenue": 10500,
+    "sales_count": 3,
+    "selling_days": 3
+  },
+  "variant_attributes": [
+    {
+      "kind": "color",
+      "name": "Blue",
+      "quantity": 3,
+      "revenue": 4500
+    },
+    {
+      "kind": "color",
+      "name": "Red",
+      "quantity": 2,
+      "revenue": 3500
+    },
+    {
+      "kind": "color",
+      "name": "",
+      "quantity": 1,
+      "revenue": 2500
+    },
+    {
+      "kind": "size",
+      "name": "L",
+      "quantity": 4,
+      "revenue": 6000
+    },
+    {
+      "kind": "size",
+      "name": "",
+      "quantity": 1,
+      "revenue": 2500
+    },
+    {
+      "kind": "size",
+      "name": "M",
+      "quantity": 1,
+      "revenue": 2000
+    }
+  ]
+}

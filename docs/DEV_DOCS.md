@@ -123,6 +123,8 @@ Business settings (WhatsApp credentials, templates, webhook secret) live **in th
 - Sale payloads are signed cents: positive revenue, negative refund, an exchange carries its net.
 - Report **net sales leave out deferred coupons** (coupon types with `calculate_on_checkout`), like kashi-pos: `branch_invoice_deferred_coupons(invoice id)` finds the coupon through `coupons.redeemed_invoice_ref = branch_invoices.client_ref` and returns the "On Coupon" payment, capped at the invoice total. Plain coupons count. Reports in `db/query/reports.sql` subtract it; the dashboard and e-mail reports do not yet.
 - The till reads clock skew from `/branch/health` (kashi's clock and the branch zone).
+- **Product group report** (`GET /reports/product_group?codes=TT,TX`, `api/report_product_group.go`): products whose code starts with a prefix (any case; `%` and `_` match literally). One query (`ReportProductGroupLines`, capped at 200k lines) returns the group's lines and Go adds them up, so every table sums to the headline figures. Money is `line_total`, as in Sales & goods, and `products` has the `/reports` shape, so `ProductsReport.vue` draws the group's Goods parts unchanged.
+- The UI test fixture `ui/src/components/reports/__fixtures__/productGroup.json` is that handler's real answer: after a deliberate change, `UPDATE_FIXTURES=1 go test ./api -run TestGetProductGroupReport`, then run the UI tests.
 
 ## Database and migrations {icon=mdiDatabase}
 
