@@ -47,17 +47,7 @@ func (server *Server) getReports(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	from, errFrom := time.Parse(time.DateOnly, req.From)
-	to, errTo := time.Parse(time.DateOnly, req.To)
-	if errFrom != nil || errTo != nil || to.Before(from) {
-		server.writeError(ctx, http.StatusBadRequest, errors.New("from and to must be YYYY-MM-DD, from first"))
-		return
-	}
-	if to.Sub(from) > 400*24*time.Hour {
-		server.writeError(ctx, http.StatusBadRequest, errors.New("pick at most a year"))
-		return
-	}
-	branchIDs, err := parseBranchIDList(req.BranchIDs)
+	from, to, branchIDs, err := parseReportScope(req)
 	if err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return

@@ -397,4 +397,18 @@ export const AR = {
   'How many': 'العدد',
   "% of customers' spend": '% من إنفاق الزبائن',
   '% of net sales': '% من صافي المبيعات',
+
+  // Product group
+  'Product group': 'مجموعة منتجات',
+  'Products: {codes}': 'المنتجات: {codes}',
+  'Headline figures': 'الأرقام الرئيسية',
+  'By salesperson': 'حسب البائع',
+  'Customers who bought them': 'الزبائن الذين اشتروها',
+  'Customers who bought them (top {n})': 'الزبائن الذين اشتروها (أول {n})',
+  '{pct} of all sales': '{pct} من كل المبيعات',
+  '{n} came back ({pct})': 'أُعيد {n} ({pct})',
+  'Same codes, branches and settings, {from} to {to}.': 'الرموز والفروع والإعدادات نفسها، من {from} إلى {to}.',
+  'Customers known by name or phone; {pct} of these sales had one.': 'الزبائن المعروفون بالاسم أو الهاتف؛ {pct} من هذه المبيعات كان لها زبون.',
+  'Last bought': 'آخر شراء',
+  'Value': 'القيمة',
 }
