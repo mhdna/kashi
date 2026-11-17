@@ -35,6 +35,8 @@ var allowedBranchCommandTypes = map[string]bool{
 	"reprint_invoice":           true,
 	// Edit a return or exchange's refund (kashi-pos return_edit.go).
 	"edit_return_invoice": true,
+	// Re-split a sale between payment methods (kashi-pos remote_payments.go).
+	"change_invoice_settlement": true,
 	"sync_now":            true,
 	// Swap or transfer a balance in a till's open shift. allow_negative
 	// (taking the source below zero) needs shift_negative_balance.
@@ -215,6 +217,11 @@ func (server *Server) resolveCommandTarget(ctx *gin.Context, branchID int64, req
 				return 0, nil, http.StatusBadRequest, errors.New("this sale is already cancelled")
 			}
 		}
+		if req.Type == "remote_return_invoice" {
+			if err := remoteReturnPayments(req.Payload, target.Cancel); err != nil {
+				return 0, nil, http.StatusBadRequest, err
+			}
+		}
 		if req.Type == "remote_return_invoice" && len(target.Replacements) > 0 {
 			if target.Cancel {
 				return 0, nil, http.StatusBadRequest, errors.New("a cancel can't take replacement items")
@@ -269,6 +276,9 @@ func (server *Server) resolveCommandTarget(ctx *gin.Context, branchID int64, req
 
 	case "replace_shift_balance":
 		return server.resolveReplaceShiftBalanceTarget(ctx, branchID, req)
+
+	case "change_invoice_settlement":
+		return server.resolveChangeSettlementTarget(ctx, branchID, req.Payload)
 	}
 
 	if req.RegisterID != 0 {

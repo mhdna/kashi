@@ -121,6 +121,14 @@
           variant="text"
           @click="refundEditOpen = true"
         />
+        <v-btn
+          v-if="auth.canEdit('branches') && itemsTarget?.kind === 'sales' && !isCancelled(itemsTarget) && itemsDetails"
+          data-test="change-settlement"
+          prepend-icon="mdi-swap-horizontal"
+          text="Change settlement"
+          variant="text"
+          @click="settlementOpen = true"
+        />
         <v-spacer />
         <v-btn
           v-if="itemsTarget?.kind === 'sales' && !isCancelled(itemsTarget)"
@@ -270,6 +278,14 @@
     </template>
   </ServerSideTable>
 
+  <SettlementChangeDialog
+    v-model="settlementOpen"
+    :branch-name="branchName(itemsTarget?.branch_id)"
+    :invoice="itemsDetails?.invoice ?? null"
+    :payments="itemsDetails?.payments ?? []"
+    @changed="refreshViewedInvoice"
+  />
+
   <ReturnEditDialog
     v-model="refundEditOpen"
     :branch-name="branchName(itemsTarget?.branch_id)"
@@ -277,7 +293,7 @@
     :items="itemsDetails?.items ?? []"
   />
 
-  <v-dialog v-model="remoteReturnDialog" max-width="560">
+  <v-dialog v-model="remoteReturnDialog" :max-width="remoteReturnPhase === 'payments' ? 720 : 560">
     <v-card>
       <v-card-title>
         {{ remoteTitles[remoteMode] }} -- {{ remoteReturnTarget?.branch_invoice_code }}
@@ -396,6 +412,28 @@
           <RemoteReturnReceiptCheckbox v-model="remoteReturnPrint" />
         </template>
 
+        <template v-else-if="remoteReturnPhase === 'payments'">
+          <div v-if="remotePaymentsLoading" class="d-flex justify-center pa-6">
+            <v-progress-circular indeterminate />
+          </div>
+          <template v-else>
+            <p class="text-body-2 mb-2">
+              {{ remoteMode === 'exchange' ? 'How the difference is settled' : 'How the refund is given back' }}, by payment
+              method. This is kashi's estimate from what the items sold for{{ remoteMode === 'exchange' ? ' and the branch prices' : '' }};
+              the till works out the exact amount and refuses payments that don't match it, saying its own figure.
+            </p>
+            <p v-if="unpricedNames.length > 0" class="text-body-2 text-error mb-2">
+              No price at this branch for {{ unpricedNames.join(', ') }}; the estimate leaves it out.
+            </p>
+            <PaymentEntryPanel
+              v-model="remoteEntries"
+              :currencies="remoteCurrencies"
+              :due-cents="remoteDueCents"
+              :methods="remoteMethods"
+            />
+          </template>
+        </template>
+
         <PreparingState
           v-else-if="remoteReturnPhase === 'polling'"
           kind="receipt"
@@ -432,11 +470,33 @@
         <v-btn
           v-else-if="remoteReturnPhase === 'items'"
           color="primary"
+          data-test="remote-next"
           :disabled="!hasSelectedReturnItems || (remoteMode === 'exchange' && replacements.length === 0)"
-          :loading="remoteReturnLoading"
-          :text="remoteMode === 'exchange' ? 'Queue exchange' : 'Queue return'"
-          @click="submitRemoteReturn"
+          text="Next: payments"
+          @click="openRemotePayments"
         />
+        <template v-else-if="remoteReturnPhase === 'payments'">
+          <v-btn text="Back" @click="remoteReturnPhase = 'items'" />
+          <v-btn
+            data-test="remote-till-settles"
+            :disabled="remotePaymentsLoading"
+            :loading="remoteReturnLoading && !remoteSendingPayments"
+            text="Let the till settle it"
+            @click="submitRemoteReturn(false)"
+          />
+          <v-btn
+            color="primary"
+            data-test="remote-queue"
+            :disabled="!remotePaymentStatus.done"
+            :loading="remoteReturnLoading && remoteSendingPayments"
+            :text="remoteMode === 'exchange' ? 'Queue exchange' : 'Queue return'"
+            @click="submitRemoteReturn(true)"
+          />
+        </template>
+        <template v-else-if="remoteReturnPhase === 'result' && remoteReturnResult?.status === 'failed' && remoteMode !== 'cancel'">
+          <v-btn text="Close" @click="closeRemoteReturn" />
+          <v-btn color="primary" text="Edit and send again" @click="remoteReturnPhase = 'payments'" />
+        </template>
         <v-btn v-else text="Close" @click="closeRemoteReturn" />
       </v-card-actions>
     </v-card>
@@ -447,8 +507,10 @@
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
   import InvoicePrintButton from '@/components/Invoice/InvoicePrintButton.vue'
+  import PaymentEntryPanel from '@/components/Invoice/PaymentEntryPanel.vue'
   import RemoteReturnReceiptCheckbox from '@/components/Invoice/RemoteReturnReceiptCheckbox.vue'
   import ReturnEditDialog from '@/components/Invoice/ReturnEditDialog.vue'
+  import SettlementChangeDialog from '@/components/Invoice/SettlementChangeDialog.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useBranches } from '@/composables/useBranches'
@@ -456,10 +518,12 @@
   import { useBranchSettings } from '@/composables/useBranchSettings'
   import { useInvoiceDetails } from '@/composables/useInvoiceDetails'
   import { useNotify } from '@/composables/useNotify'
+  import { usePaymentEntry } from '@/composables/usePaymentEntry'
   import { useVariants } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
   import { useAuthStore } from '@/stores/auth'
   import { hasInvoiceFilters, invoiceFilterParams } from '@/utils/invoiceFilters'
+  import { estimateCents, paymentStatus, toPayload, unpricedReplacements } from '@/utils/paymentEntry'
   import { canEditRefund } from '@/utils/returnEdit'
 
   const props = defineProps({
@@ -697,6 +761,18 @@
     }
   }
 
+  // Change settlement: the till re-splits the sale, then syncs it back here.
+  const settlementOpen = ref(false)
+  async function refreshViewedInvoice () {
+    tableRef.value?.reload()
+    if (!itemsTarget.value) return
+    try {
+      itemsDetails.value = await getBranchInvoiceDetails(itemsTarget.value.id)
+    } catch {
+      // the list still shows it; the details reload on next open
+    }
+  }
+
   function returnViewedInvoice () {
     const invoice = itemsTarget.value
     itemsDialog.value = false
@@ -784,6 +860,55 @@
 
   const hasSelectedReturnItems = computed(() => remoteReturnRows.value.some(row => row.selected))
 
+  // 'payments': how the refund (or an exchange's difference) is split
+  // between the till's payment methods, entered on the calculator.
+  const { loadPaymentSetup, variantPrices } = usePaymentEntry()
+  const remoteMethods = ref([])
+  const remoteCurrencies = ref([])
+  const remoteEntries = ref([])
+  const remotePrices = ref({})
+  const remotePaymentsLoading = ref(false)
+  const remoteSendingPayments = ref(false)
+  let remoteEntriesDue = null
+  const selectedReturnRows = computed(() => remoteReturnRows.value.filter(row => row.selected).map(row => ({
+    ...row,
+    quantity: Math.min(Math.max(1, Number(row.quantity) || 1), row.maxQuantity),
+  })))
+  const remoteDueCents = computed(() => estimateCents(
+    selectedReturnRows.value,
+    remoteMode.value === 'exchange' ? replacements.value : [],
+    remotePrices.value,
+  ))
+  const remotePaymentStatus = computed(() => paymentStatus(remoteEntries.value, remoteDueCents.value, remoteCurrencies.value))
+  const unpricedNames = computed(() => remoteMode.value === 'exchange'
+    ? unpricedReplacements(replacements.value, remotePrices.value).map(row => row.variant.label)
+    : [])
+
+  async function openRemotePayments () {
+    const target = remoteReturnTarget.value
+    remoteReturnPhase.value = 'payments'
+    remotePaymentsLoading.value = true
+    try {
+      const [setup, prices] = await Promise.all([
+        remoteMethods.value.length > 0 ? { methods: remoteMethods.value, currencies: remoteCurrencies.value } : loadPaymentSetup(target.branch_id),
+        remoteMode.value === 'exchange' ? variantPrices(target.branch_id, replacements.value.map(row => row.variant.id)) : {},
+      ])
+      remoteMethods.value = setup.methods
+      remoteCurrencies.value = setup.currencies
+      remotePrices.value = prices
+      // Entries made against another total (the items changed) start over.
+      if (remoteDueCents.value !== remoteEntriesDue) {
+        remoteEntries.value = []
+        remoteEntriesDue = remoteDueCents.value
+      }
+    } catch (error) {
+      notify.error(error.message)
+      remoteReturnPhase.value = 'items'
+    } finally {
+      remotePaymentsLoading.value = false
+    }
+  }
+
   async function openRemoteReturn (invoice, mode = 'return') {
     remoteMode.value = mode
     remoteReturnTarget.value = invoice
@@ -793,6 +918,10 @@
     replacements.value = []
     replacementPick.value = null
     replacementQuantity.value = 1
+    remoteMethods.value = []
+    remoteEntries.value = []
+    remoteEntriesDue = null
+    remotePrices.value = {}
     if (mode === 'exchange') {
       searchVariants('')
     }
@@ -818,8 +947,9 @@
     }
   }
 
-  async function submitRemoteReturn () {
+  async function submitRemoteReturn (withPayments = false) {
     remoteReturnLoading.value = true
+    remoteSendingPayments.value = withPayments
     try {
       const items = remoteReturnRows.value
         .filter(row => row.selected)
@@ -833,7 +963,8 @@
       const replacementLines = remoteMode.value === 'exchange'
         ? replacements.value.map(row => ({ variant_id: row.variant.id, quantity: row.quantity }))
         : []
-      const command = await requestRemoteReturn(remoteReturnTarget.value.branch_id, remoteReturnTarget.value, remoteReturnReason.value, items, replacementLines, remoteReturnPrint.value)
+      const payments = withPayments ? toPayload(remoteEntries.value) : []
+      const command = await requestRemoteReturn(remoteReturnTarget.value.branch_id, remoteReturnTarget.value, remoteReturnReason.value, items, replacementLines, remoteReturnPrint.value, payments)
       remoteReturnPhase.value = 'polling'
       pollRemoteReturnCommand(remoteReturnTarget.value.branch_id, command?.id)
     } catch (error) {

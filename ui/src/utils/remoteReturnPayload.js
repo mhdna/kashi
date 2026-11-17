@@ -5,7 +5,11 @@
 // sends print_receipt: false and the till never prints it; ticked sends
 // nothing, so the till prints by its own "Print return receipts" setting
 // (and a till from before the setting prints as it always has).
-export function remoteReturnPayload ({ invoice, reason = '', items, replacements, cancel = false, printReceipt = true }) {
+//
+// payments, when the admin split the refund (or an exchange's difference)
+// between payment methods, go as entered: [{ account_name, amount_cents,
+// amount_units? }]. None: the till settles it on its own. A cancel takes none.
+export function remoteReturnPayload ({ invoice, reason = '', items, replacements, cancel = false, printReceipt = true, payments = [] }) {
   const payload = {
     branch_invoice_id: invoice.id,
     client_ref: invoice.client_ref,
@@ -16,6 +20,9 @@ export function remoteReturnPayload ({ invoice, reason = '', items, replacements
   } else {
     payload.items = items ?? []
     payload.replacements = replacements ?? []
+    if (payments?.length) {
+      payload.payments = payments
+    }
   }
   if (printReceipt === false) {
     payload.print_receipt = false
