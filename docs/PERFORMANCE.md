@@ -5,9 +5,33 @@ Speed and size work, newest first (see the global rules). Each entry: **Symptom*
 
 ## Known slow spots
 
-Measured or reported slow things that are not fixed yet. Nothing recorded yet.
+Measured or reported slow things that are not fixed yet.
+
+- Invoices client box with a 1 or 2 character term: trigrams need 3 characters, so
+  such a term still reads every client (about 0.5 s a pass on prod).
 
 ## Entries
+
+### 2026-11-17 Filtering retail invoices by client took over a minute
+
+**Symptom:** typing a name or phone in the new client box on Invoices took ages.
+
+**Finding:** the first version checked each of the 35k invoices against the 131k
+clients (a correlated `EXISTS` with an `OR` across uid and till link). On prod it
+did not finish within 60 s (`EXPLAIN ANALYZE`, cancelled by `statement_timeout`).
+Finding the matching clients once and then the invoices by hashed lookup took it to
+1.2 s ("maya") and 2.2 s ("70 12"), most of it two sequential `ILIKE` scans of
+`clients` (0.5 to 0.8 s each). On a local copy of the same size, trigram indexes cut
+those queries from 100 to 210 ms to 5 to 7 ms.
+
+**Change:** `db/query/branch_invoice.sql` finds matching clients first, then invoices
+by `client_uid IN` or `(register_id, branch_client_id) IN`. Migration 000242 adds
+trigram indexes on `clients.name` and on the phone's digits. The API works out the
+digits once (`db/sqlc/client_search.go`), so a term with letters skips the phone
+match and the phone `ILIKE` is gone.
+
+**Not done:** the time on prod after the indexes is not measured yet (it needs the
+deploy that adds them).
 
 ### 2026-11-13 Invoices page fetched the hidden dialog's and tab's data on open
 

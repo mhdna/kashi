@@ -47,11 +47,11 @@ func TestBranchInvoicesFilterByClient(t *testing.T) {
 
 	count := func(client string, kind sql.NullString) int {
 		page, err := testQueries.ListBranchInvoicesPage(ctx, ListBranchInvoicesPageParams{
-			BranchID: sql.NullInt64{Int64: till.branchID, Valid: true}, Client: client, Kind: kind, PageSize: 100,
+			BranchID: sql.NullInt64{Int64: till.branchID, Valid: true}, Client: client, ClientDigits: ClientSearchDigits(client), Kind: kind, PageSize: 100,
 		})
 		require.NoError(t, err)
 		n, err := testQueries.CountBranchInvoicesFiltered(ctx, CountBranchInvoicesFilteredParams{
-			BranchID: sql.NullInt64{Int64: till.branchID, Valid: true}, Client: client, Kind: kind,
+			BranchID: sql.NullInt64{Int64: till.branchID, Valid: true}, Client: client, ClientDigits: ClientSearchDigits(client), Kind: kind,
 		})
 		require.NoError(t, err)
 		require.Equal(t, int64(len(page)), n, "count must equal the page for %q", client)

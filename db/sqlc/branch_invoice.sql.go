@@ -39,45 +39,44 @@ WHERE ($1::bigint IS NULL OR branch_id = $1)
     OR salesperson_name ILIKE '%' || $2::text || '%'
   )
   AND ($3::bigint IS NULL OR register_id = $3)
-  -- client: a name or phone fragment of the invoice's customer (matched by uid or
-  -- by the till's client link); a term with no letters also matches the phone's digits
-  -- whatever its spacing or +.
+  -- client: a name fragment of the invoice's customer, or (client_digits, set by
+  -- the API when the term has no letters) a run of the phone's digits whatever
+  -- its spacing or +. The matching clients are found first through the trigram
+  -- indexes (000242), then the invoices by uid or by the till's client link.
   AND (
     $4::text = ''
-    OR EXISTS (
-      SELECT 1 FROM clients c
-      WHERE (c.uid = branch_invoices.client_uid OR EXISTS (
-          SELECT 1 FROM client_links cl
-          WHERE cl.client_id = c.id AND cl.register_id = branch_invoices.register_id
-            AND cl.branch_client_id = branch_invoices.branch_client_id))
-        AND (
-          c.name ILIKE '%' || $4::text || '%'
-          OR c.phone ILIKE '%' || $4::text || '%'
-          OR ($4::text !~ '[[:alpha:]]'
-              AND regexp_replace($4::text, '\D', '', 'g') <> ''
-              AND regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || regexp_replace($4::text, '\D', '', 'g') || '%')
-        )
-    )
+    OR client_uid IN (
+      SELECT c.uid FROM clients c
+      WHERE c.name ILIKE '%' || $4::text || '%'
+        OR ($5::text <> ''
+            AND regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || $5::text || '%'))
+    OR (register_id, branch_client_id) IN (
+      SELECT cl.register_id, cl.branch_client_id FROM client_links cl
+      JOIN clients c ON c.id = cl.client_id
+      WHERE c.name ILIKE '%' || $4::text || '%'
+        OR ($5::text <> ''
+            AND regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || $5::text || '%'))
   )
-  AND ($5::text IS NULL OR kind = $5)
+  AND ($6::text IS NULL OR kind = $6)
   AND (
-    $6::text IS NULL
-    OR ($6 = 'cancelled' AND cancelled_at IS NOT NULL)
-    OR ($6 = 'active' AND cancelled_at IS NULL)
+    $7::text IS NULL
+    OR ($7 = 'cancelled' AND cancelled_at IS NOT NULL)
+    OR ($7 = 'active' AND cancelled_at IS NULL)
   )
-  AND ($7::timestamptz IS NULL OR occurred_at >= $7)
-  AND ($8::timestamptz IS NULL OR occurred_at < $8)
+  AND ($8::timestamptz IS NULL OR occurred_at >= $8)
+  AND ($9::timestamptz IS NULL OR occurred_at < $9)
 `
 
 type CountBranchInvoicesFilteredParams struct {
-	BranchID   sql.NullInt64  `json:"branch_id"`
-	Search     string         `json:"search"`
-	RegisterID sql.NullInt64  `json:"register_id"`
-	Client     string         `json:"client"`
-	Kind       sql.NullString `json:"kind"`
-	Status     sql.NullString `json:"status"`
-	DateFrom   sql.NullTime   `json:"date_from"`
-	DateTo     sql.NullTime   `json:"date_to"`
+	BranchID     sql.NullInt64  `json:"branch_id"`
+	Search       string         `json:"search"`
+	RegisterID   sql.NullInt64  `json:"register_id"`
+	Client       string         `json:"client"`
+	ClientDigits string         `json:"client_digits"`
+	Kind         sql.NullString `json:"kind"`
+	Status       sql.NullString `json:"status"`
+	DateFrom     sql.NullTime   `json:"date_from"`
+	DateTo       sql.NullTime   `json:"date_to"`
 }
 
 func (q *Queries) CountBranchInvoicesFiltered(ctx context.Context, arg CountBranchInvoicesFilteredParams) (int64, error) {
@@ -86,6 +85,7 @@ func (q *Queries) CountBranchInvoicesFiltered(ctx context.Context, arg CountBran
 		arg.Search,
 		arg.RegisterID,
 		arg.Client,
+		arg.ClientDigits,
 		arg.Kind,
 		arg.Status,
 		arg.DateFrom,
@@ -686,50 +686,49 @@ WHERE ($1::bigint IS NULL OR branch_id = $1)
     OR salesperson_name ILIKE '%' || $2::text || '%'
   )
   AND ($3::bigint IS NULL OR register_id = $3)
-  -- client: a name or phone fragment of the invoice's customer (matched by uid or
-  -- by the till's client link); a term with no letters also matches the phone's digits
-  -- whatever its spacing or +.
+  -- client: a name fragment of the invoice's customer, or (client_digits, set by
+  -- the API when the term has no letters) a run of the phone's digits whatever
+  -- its spacing or +. The matching clients are found first through the trigram
+  -- indexes (000242), then the invoices by uid or by the till's client link.
   AND (
     $4::text = ''
-    OR EXISTS (
-      SELECT 1 FROM clients c
-      WHERE (c.uid = branch_invoices.client_uid OR EXISTS (
-          SELECT 1 FROM client_links cl
-          WHERE cl.client_id = c.id AND cl.register_id = branch_invoices.register_id
-            AND cl.branch_client_id = branch_invoices.branch_client_id))
-        AND (
-          c.name ILIKE '%' || $4::text || '%'
-          OR c.phone ILIKE '%' || $4::text || '%'
-          OR ($4::text !~ '[[:alpha:]]'
-              AND regexp_replace($4::text, '\D', '', 'g') <> ''
-              AND regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || regexp_replace($4::text, '\D', '', 'g') || '%')
-        )
-    )
+    OR client_uid IN (
+      SELECT c.uid FROM clients c
+      WHERE c.name ILIKE '%' || $4::text || '%'
+        OR ($5::text <> ''
+            AND regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || $5::text || '%'))
+    OR (register_id, branch_client_id) IN (
+      SELECT cl.register_id, cl.branch_client_id FROM client_links cl
+      JOIN clients c ON c.id = cl.client_id
+      WHERE c.name ILIKE '%' || $4::text || '%'
+        OR ($5::text <> ''
+            AND regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || $5::text || '%'))
   )
-  AND ($5::text IS NULL OR kind = $5)
+  AND ($6::text IS NULL OR kind = $6)
   AND (
-    $6::text IS NULL
-    OR ($6 = 'cancelled' AND cancelled_at IS NOT NULL)
-    OR ($6 = 'active' AND cancelled_at IS NULL)
+    $7::text IS NULL
+    OR ($7 = 'cancelled' AND cancelled_at IS NOT NULL)
+    OR ($7 = 'active' AND cancelled_at IS NULL)
   )
-  AND ($7::timestamptz IS NULL OR occurred_at >= $7)
-  AND ($8::timestamptz IS NULL OR occurred_at < $8)
+  AND ($8::timestamptz IS NULL OR occurred_at >= $8)
+  AND ($9::timestamptz IS NULL OR occurred_at < $9)
 ORDER BY occurred_at DESC, id DESC
-LIMIT $10
-OFFSET $9
+LIMIT $11
+OFFSET $10
 `
 
 type ListBranchInvoicesPageParams struct {
-	BranchID   sql.NullInt64  `json:"branch_id"`
-	Search     string         `json:"search"`
-	RegisterID sql.NullInt64  `json:"register_id"`
-	Client     string         `json:"client"`
-	Kind       sql.NullString `json:"kind"`
-	Status     sql.NullString `json:"status"`
-	DateFrom   sql.NullTime   `json:"date_from"`
-	DateTo     sql.NullTime   `json:"date_to"`
-	PageOffset int32          `json:"page_offset"`
-	PageSize   int32          `json:"page_size"`
+	BranchID     sql.NullInt64  `json:"branch_id"`
+	Search       string         `json:"search"`
+	RegisterID   sql.NullInt64  `json:"register_id"`
+	Client       string         `json:"client"`
+	ClientDigits string         `json:"client_digits"`
+	Kind         sql.NullString `json:"kind"`
+	Status       sql.NullString `json:"status"`
+	DateFrom     sql.NullTime   `json:"date_from"`
+	DateTo       sql.NullTime   `json:"date_to"`
+	PageOffset   int32          `json:"page_offset"`
+	PageSize     int32          `json:"page_size"`
 }
 
 func (q *Queries) ListBranchInvoicesPage(ctx context.Context, arg ListBranchInvoicesPageParams) ([]BranchInvoice, error) {
@@ -738,6 +737,7 @@ func (q *Queries) ListBranchInvoicesPage(ctx context.Context, arg ListBranchInvo
 		arg.Search,
 		arg.RegisterID,
 		arg.Client,
+		arg.ClientDigits,
 		arg.Kind,
 		arg.Status,
 		arg.DateFrom,

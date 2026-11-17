@@ -37,10 +37,12 @@ type branchInvoiceFilter struct {
 	kind, status         sql.NullString
 	dateFrom, dateTo     sql.NullTime
 	search, client       string
+	clientDigits         string
 }
 
 func (req listBranchInvoicesRequest) filter() branchInvoiceFilter {
 	f := branchInvoiceFilter{search: req.Search, client: strings.TrimSpace(req.Client)}
+	f.clientDigits = db.ClientSearchDigits(f.client)
 	if req.BranchID > 0 {
 		f.branchID = sql.NullInt64{Int64: req.BranchID, Valid: true}
 	}
@@ -65,7 +67,7 @@ func (req listBranchInvoicesRequest) filter() branchInvoiceFilter {
 func (f branchInvoiceFilter) page(size, offset int32) db.ListBranchInvoicesPageParams {
 	return db.ListBranchInvoicesPageParams{
 		BranchID: f.branchID, RegisterID: f.registerID, Kind: f.kind, Status: f.status,
-		DateFrom: f.dateFrom, DateTo: f.dateTo, Search: f.search, Client: f.client,
+		DateFrom: f.dateFrom, DateTo: f.dateTo, Search: f.search, Client: f.client, ClientDigits: f.clientDigits,
 		PageSize: size, PageOffset: offset,
 	}
 }
@@ -73,7 +75,7 @@ func (f branchInvoiceFilter) page(size, offset int32) db.ListBranchInvoicesPageP
 func (f branchInvoiceFilter) count() db.CountBranchInvoicesFilteredParams {
 	return db.CountBranchInvoicesFilteredParams{
 		BranchID: f.branchID, RegisterID: f.registerID, Kind: f.kind, Status: f.status,
-		DateFrom: f.dateFrom, DateTo: f.dateTo, Search: f.search, Client: f.client,
+		DateFrom: f.dateFrom, DateTo: f.dateTo, Search: f.search, Client: f.client, ClientDigits: f.clientDigits,
 	}
 }
 

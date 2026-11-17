@@ -132,7 +132,7 @@ func TestExportBranchInvoicesClientFilter(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	store := mockdb.NewMockStore(ctrl)
 	store.EXPECT().ListBranchInvoicesPage(gomock.Any(), db.ListBranchInvoicesPageParams{
-		Client: "70123456", PageSize: exportBranchInvoicesLimit,
+		Client: "70123456", ClientDigits: "70123456", PageSize: exportBranchInvoicesLimit,
 	}).Return([]db.BranchInvoice{}, nil)
 	store.EXPECT().ListBranches(gomock.Any()).Return([]db.Branch{}, nil)
 	store.EXPECT().ListAllBranchRegisters(gomock.Any()).Return([]db.BranchRegister{}, nil)
