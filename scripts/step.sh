@@ -21,6 +21,18 @@ fi
 
 "$@" >"$log" 2>&1 &
 pid=$!
+# A step that runs long says so on the terminal itself (/dev/tty gets past
+# make's held-back parallel output) with the end of its log, so a stuck
+# step explains itself instead of sitting silent.
+slow=${STEP_SLOW:-60}
+(
+  sleep "$slow"
+  while kill -0 "$pid" 2>/dev/null; do
+    { printf '\n%s still running after %ss. Last of its log:\n' "$label" "$(( $(date +%s) - start ))"; tail -n 5 "$log"; } >/dev/tty 2>/dev/null || break
+    sleep "$slow"
+  done
+) &
+watcher=$!
 if [ -t 1 ] && [ -z "$NO_COLOR" ] && [ -z "$STEP_NOSPIN" ]; then
   i=0
   while kill -0 "$pid" 2>/dev/null; do
@@ -33,6 +45,7 @@ else
   say_step "${label}…"
 fi
 wait "$pid"; rc=$?
+kill "$watcher" 2>/dev/null; wait "$watcher" 2>/dev/null
 secs=$(( $(date +%s) - start ))
 if [ "$rc" -eq 0 ]; then
   say_ok "$done_label in ${secs}s"
