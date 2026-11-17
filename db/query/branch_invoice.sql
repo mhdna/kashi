@@ -108,6 +108,26 @@ WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
     OR salesperson_name ILIKE '%' || sqlc.arg(search)::text || '%'
   )
   AND (sqlc.narg(register_id)::bigint IS NULL OR register_id = sqlc.narg(register_id))
+  -- client: a name or phone fragment of the invoice's customer (matched by uid or
+  -- by the till's client link); a term with no letters also matches the phone's digits
+  -- whatever its spacing or +.
+  AND (
+    sqlc.arg(client)::text = ''
+    OR EXISTS (
+      SELECT 1 FROM clients c
+      WHERE (c.uid = branch_invoices.client_uid OR EXISTS (
+          SELECT 1 FROM client_links cl
+          WHERE cl.client_id = c.id AND cl.register_id = branch_invoices.register_id
+            AND cl.branch_client_id = branch_invoices.branch_client_id))
+        AND (
+          c.name ILIKE '%' || sqlc.arg(client)::text || '%'
+          OR c.phone ILIKE '%' || sqlc.arg(client)::text || '%'
+          OR (sqlc.arg(client)::text !~ '[[:alpha:]]'
+              AND regexp_replace(sqlc.arg(client)::text, '\D', '', 'g') <> ''
+              AND regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || regexp_replace(sqlc.arg(client)::text, '\D', '', 'g') || '%')
+        )
+    )
+  )
   AND (sqlc.narg(kind)::text IS NULL OR kind = sqlc.narg(kind))
   AND (
     sqlc.narg(status)::text IS NULL
@@ -131,6 +151,26 @@ WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
     OR salesperson_name ILIKE '%' || sqlc.arg(search)::text || '%'
   )
   AND (sqlc.narg(register_id)::bigint IS NULL OR register_id = sqlc.narg(register_id))
+  -- client: a name or phone fragment of the invoice's customer (matched by uid or
+  -- by the till's client link); a term with no letters also matches the phone's digits
+  -- whatever its spacing or +.
+  AND (
+    sqlc.arg(client)::text = ''
+    OR EXISTS (
+      SELECT 1 FROM clients c
+      WHERE (c.uid = branch_invoices.client_uid OR EXISTS (
+          SELECT 1 FROM client_links cl
+          WHERE cl.client_id = c.id AND cl.register_id = branch_invoices.register_id
+            AND cl.branch_client_id = branch_invoices.branch_client_id))
+        AND (
+          c.name ILIKE '%' || sqlc.arg(client)::text || '%'
+          OR c.phone ILIKE '%' || sqlc.arg(client)::text || '%'
+          OR (sqlc.arg(client)::text !~ '[[:alpha:]]'
+              AND regexp_replace(sqlc.arg(client)::text, '\D', '', 'g') <> ''
+              AND regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || regexp_replace(sqlc.arg(client)::text, '\D', '', 'g') || '%')
+        )
+    )
+  )
   AND (sqlc.narg(kind)::text IS NULL OR kind = sqlc.narg(kind))
   AND (
     sqlc.narg(status)::text IS NULL
