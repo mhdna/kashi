@@ -1,7 +1,11 @@
 <template>
   <v-main class="unsupported-device">
     <section class="unsupported-device__content text-center">
-      <AppLogo class="unsupported-device__logo mx-auto" />
+      <v-img
+        alt="Kashi Cloud"
+        class="unsupported-device__logo mx-auto"
+        :src="appLogo"
+      />
 
       <h1 class="text-h4 font-weight-bold mt-6">Desktop only</h1>
       <p class="text-body-1 text-medium-emphasis mt-3 mb-0">
@@ -12,7 +16,7 @@
 </template>
 
 <script lang="ts" setup>
-  import AppLogo from '@/components/AppLogo.vue'
+  import appLogo from '@/assets/app-logo.png'
 </script>
 
 <style scoped>

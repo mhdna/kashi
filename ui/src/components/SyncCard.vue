@@ -13,13 +13,14 @@
         v-bind="props"
         class="d-flex align-center me-2"
         :class="[mobile ? 'icon-pill' : 'py-1 px-2', pill && !mobile ? `activity-pill activity-pill--${pill.tint}` : '']"
+        rounded="xl"
         style="cursor: pointer"
         :variant="pill && !mobile ? 'flat' : 'tonal'"
       >
         <v-icon
           v-if="mobile || !pill"
           :class="{ 'me-2': !mobile }"
-          :color="currentActivity ? currentActivity.color : undefined"
+          :color="currentActivity ? currentActivity.color : wsIconColor"
           :icon="currentActivity ? currentActivity.icon : 'mdi-cloud'"
           :size="mobile ? 20 : undefined"
         />
@@ -122,6 +123,7 @@
   // outage.
   const { online } = useNetworkStatus()
   const serverDown = computed(() => !online.value || wsStatus.value === 'closed')
+  const wsIconColor = computed(() => (serverDown.value ? undefined : 'success'))
 
   // 'appbar' mode: branch activity (sales/returns/expenses) rides on the
   // card's line. It's a sliding window of the most recent MAX_VISIBLE

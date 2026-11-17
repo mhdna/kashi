@@ -9,10 +9,8 @@
            and up get the full brand and page title (truncating if tight). -->
       <v-app-bar-title v-if="!xs">
         <div class="d-flex align-center text-truncate">
-          <router-link to="/" class="title-link d-flex align-center">
-            <span aria-hidden="true" class="app-bar-logo me-2" :style="{ '--k': `url(&quot;${kashiK}&quot;)` }" />
-            Kashi Cloud
-          </router-link>
+          <!--<img class="me-1" src="/everywear.png" style="height: 35px;">-->
+          <router-link to="/" class="title-link">Kashi Cloud</router-link>
           <span v-if="pageTitle" class="ms-2">
             - <router-link :to="route.path" class="title-link">{{ pageTitle }}</router-link>
           </span>
@@ -90,7 +88,6 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useDisplay } from "vuetify";
-import kashiK from "@/assets/kashi-k.svg";
 import AppNotifications from "@/components/AppNotifications.vue";
 import BranchActivityToast from "@/components/BranchActivityToast.vue";
 import ToggleTheme from "@/components/Buttons/ToggleTheme.vue";
@@ -172,14 +169,6 @@ router.afterEach(() => {
 }
 .title-link:hover {
   text-decoration: underline;
-}
-/* The K stroke alone, in the bar's own text colour. */
-.app-bar-logo {
-  height: 24px;
-  width: 24px;
-  background-color: currentColor;
-  mask: var(--k) center / contain no-repeat;
-  -webkit-mask: var(--k) center / contain no-repeat;
 }
 
 /*@import url("https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap");*/

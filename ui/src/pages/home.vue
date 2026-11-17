@@ -3,7 +3,14 @@
     <div class="home-content">
       <div class="home-top">
         <section class="home-hero text-center">
-          <AppLogo class="mx-auto home-logo" />
+          <div
+            v-if="mdAndUp"
+            aria-label="K"
+            class="home-desktop-logo mx-auto"
+            role="img"
+            :style="{ '--home-logo-color': logoColor, '--home-logo-image': `url(${appLogo})` }"
+          />
+          <AppLogo v-else class="mx-auto home-phone-logo" />
           <p v-if="appVersion || appCommit" class="mt-0 mb-0 text-caption text-disabled build-info">
             {{ [appVersion, appCommit && `commit: ${appCommit}`].filter(Boolean).join(' · ') }}
           </p>
@@ -503,7 +510,8 @@
 <script setup lang="ts">
   import { computed, onMounted, onUnmounted, ref } from 'vue'
   import { useRouter } from 'vue-router'
-  import { useDisplay } from 'vuetify'
+  import { useDisplay, useTheme } from 'vuetify'
+  import appLogo from '@/assets/app-logo.png'
   import ActiveLinksCard from '@/components/ActiveLinksCard.vue'
   import ActivityDetailDialog from '@/components/ActivityDetailDialog.vue'
   import AppLogo from '@/components/AppLogo.vue'
@@ -525,6 +533,10 @@
   }
 
   const { mdAndUp, xs } = useDisplay()
+  const theme = useTheme()
+  const logoColor = computed(() => theme.global.current.value.dark
+    ? 'rgb(var(--v-theme-on-surface))'
+    : 'rgba(var(--v-theme-on-surface), 0.7)')
 
   const auth = useAuthStore()
   const { color: myAvatarColor } = useUserAvatar()
@@ -1298,8 +1310,20 @@
     line-height: 1.6;
   }
 
-  .home-logo {
-    margin-bottom: 8px;
+  /* The logo image is square but "K" fills only its middle -- the bottom
+     quarter is empty -- so each logo pulls the version line up into that
+     space (a fifth of the logo's width) to sit just under the letters. */
+  .home-desktop-logo {
+    width: clamp(72px, 9vw, 132px);
+    margin-bottom: calc(clamp(72px, 9vw, 132px) * -0.2);
+    aspect-ratio: 1;
+    background-color: var(--home-logo-color);
+    mask: var(--home-logo-image) center / contain no-repeat;
+    -webkit-mask: var(--home-logo-image) center / contain no-repeat;
+  }
+
+  .home-phone-logo {
+    margin-bottom: calc(clamp(100px, 13vw, 180px) * -0.2);
   }
 
   /* The two feeds share the bottom third of the page, side by side. */

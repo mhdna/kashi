@@ -13,17 +13,22 @@
         v-bind="props"
         class="d-flex align-center me-2"
         :class="mobile ? 'icon-pill' : 'py-1 px-2'"
+        rounded="xl"
         style="cursor: pointer"
         variant="tonal"
       >
         <v-icon
           :class="{ 'me-2': !mobile }"
+          :color="next ? next.color : undefined"
           :icon="next ? next.icon : 'mdi-calendar'"
           :size="mobile ? 20 : undefined"
         />
         <div v-if="!mobile" class="text-body-2 label">
           <template v-if="next">
-            <bdi>{{ next.name }}</bdi>, {{ next.relative }}
+            <span>{{ next.lead }}</span>
+            <span class="ms-1">{{ next.name }}</span>
+            <!-- "Now:" already says it's on; only future events need the when. -->
+            <span v-if="next.relative !== 'on now'" class="ms-1">· {{ next.relative }}</span>
           </template>
           <span v-else>No events in {{ pillDays }} days</span>
         </div>
@@ -42,7 +47,7 @@
         <v-list-item
           v-for="event in events"
           :key="`${event.name}-${event.start.getTime()}`"
-          :subtitle="`${event.dateLabel}, ${event.relative}`"
+          :subtitle="`${event.dateLabel} · ${event.relative}`"
           :title="event.name"
           :to="canOpenCalendar ? calendarLink(event) : undefined"
           @click="menu = false"
@@ -173,7 +178,10 @@
   const next = computed(() => {
     const event = eventsWithin(pillDays.value)[0]
     if (!event) return null
-    return event
+    return {
+      ...event,
+      lead: event.relative === 'on now' ? 'Now:' : 'Upcoming:',
+    }
   })
 
   async function loadCustom () {
