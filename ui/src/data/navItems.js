@@ -7,6 +7,7 @@ export const navItems = [
   { title: 'WhatsApp & Reviews', icon: 'mdi-whatsapp', to: '/whatsapp', append: 'whatsapp-status' },
   { title: 'Clients', icon: 'mdi-account', to: '/clients' },
   { title: 'Loyalty', icon: 'mdi-trophy', to: '/loyalty' },
+  { title: 'Referrals', icon: 'mdi-gift-outline', to: '/referrals' },
   { title: 'Emails', icon: 'mdi-email-outline', to: '/emails' },
   {
     title: 'Alerts',
