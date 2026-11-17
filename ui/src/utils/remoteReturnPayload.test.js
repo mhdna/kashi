@@ -63,3 +63,17 @@ describe('remoteReturnPayload', () => {
     }
   })
 })
+
+describe('remoteReturnPayload payments', () => {
+  const payments = [{ account_name: 'Cash $$', amount_cents: -1000 }, { account_name: 'Visa', amount_cents: -1400 }]
+  it('carries the split the admin entered', () => {
+    expect(remoteReturnPayload({ invoice: sale, items, payments }).payments).toEqual(payments)
+  })
+  it('sends no payments when there are none: the till settles it', () => {
+    expect(remoteReturnPayload({ invoice: sale, items })).not.toHaveProperty('payments')
+    expect(remoteReturnPayload({ invoice: sale, items, payments: [] })).not.toHaveProperty('payments')
+  })
+  it('a cancel never carries payments', () => {
+    expect(remoteReturnPayload({ invoice: sale, cancel: true, payments })).not.toHaveProperty('payments')
+  })
+})

@@ -43,13 +43,13 @@ export function useBranchInvoices () {
   // `replacements` makes it an exchange: { variant_id, quantity } lines from
   // kashi's catalogue, which kashi rewrites into the till's own product keys
   // before queueing (see withTillReplacements in api/branch_command.go).
-  async function requestRemoteReturn (branchId, invoice, reason, items = [], replacements = [], printReceipt = true) {
+  async function requestRemoteReturn (branchId, invoice, reason, items = [], replacements = [], printReceipt = true, payments = []) {
     const data = await requestJSON(`${API_BASE}/branches/${branchId}/commands`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         type: 'remote_return_invoice',
-        payload: remoteReturnPayload({ invoice, reason, items, replacements, printReceipt }),
+        payload: remoteReturnPayload({ invoice, reason, items, replacements, printReceipt, payments }),
       }),
     })
     return data?.command ?? null

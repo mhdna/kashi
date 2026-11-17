@@ -564,6 +564,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.POST("/branch_commands/:id/retry", server.retryBranchCommand)
 
 	authRoutes.GET("/branches/:id/payment_methods", server.listBranchPaymentMethods)
+	authRoutes.GET("/branches/:id/variant_prices", server.listBranchVariantPrices)
 	authRoutes.PUT("/branches/:id/payment_methods/:account_id", server.putBranchPaymentMethod)
 
 	authRoutes.GET("/branches/:id/targets", server.listBranchTargets)
