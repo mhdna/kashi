@@ -1,7 +1,7 @@
 <template>
   <section class="rpt-section" :class="{ 'rpt-section--break': breakBefore }">
     <h2 v-if="title" class="rpt-h2">{{ title }}<RptHide :part="part" /></h2>
-    <p v-if="note" class="rpt-note">{{ note }}</p>
+    <p v-if="note" class="rpt-note rpt-subtitle">{{ note }}</p>
     <slot />
   </section>
 </template>

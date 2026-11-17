@@ -319,6 +319,15 @@
           variant="text"
           @click="darkView = !darkView"
         />
+        <v-btn
+          :active="showNotes"
+          density="comfortable"
+          icon="mdi-text"
+          size="small"
+          :title="showNotes ? 'Hide the explanatory lines under headings' : 'Show the explanatory lines under headings'"
+          variant="text"
+          @click="showNotes = !showNotes"
+        />
       </div>
 
       <PreparingState
@@ -341,7 +350,7 @@
             :key="`${report.key}|${sheetLang}`"
             ref="sheetRef"
             class="rpt-sheet"
-            :class="{ 'reports-loading': loading && dimSheet }"
+            :class="{ 'reports-loading': loading && dimSheet, 'rpt-sheet--no-notes': !showNotes }"
             :dir="sheetLang === 'ar' ? 'rtl' : 'ltr'"
             :lang="sheetLang"
             :style="{ width: `${pageWidth}px` }"
@@ -1217,6 +1226,10 @@
   // and the PDF copies the sheet itself, which stays white.
   const darkView = ref(stored('reports.dark', '0') === '1')
   watch(darkView, value => store('reports.dark', value ? '1' : '0'))
+  // The grey explanatory lines under headings: hidden by default (this
+  // browser only), on the PDF too.
+  const showNotes = ref(stored('reports.notes', '0') === '1')
+  watch(showNotes, value => store('reports.notes', value ? '1' : '0'))
   const previewRef = ref(null)
   const previewWidth = ref(0)
   const sheetHeight = ref(0)

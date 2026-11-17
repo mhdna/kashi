@@ -1,7 +1,7 @@
 <template>
   <div class="rpt-card">
     <h3 v-if="title" class="rpt-h3">{{ title }}<RptHide :part="part" /></h3>
-    <p v-if="note" class="rpt-note">{{ note }}</p>
+    <p v-if="note" class="rpt-note rpt-subtitle">{{ note }}</p>
     <slot />
   </div>
 </template>

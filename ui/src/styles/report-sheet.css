@@ -42,6 +42,7 @@
 }
 .rpt-h3 { margin: 0 0 4px; font-size: 11.5px; font-weight: 600; break-after: avoid; }
 .rpt-note { margin: 0 0 6px; color: #6d6c68; font-size: 10px; }
+.rpt-sheet--no-notes .rpt-subtitle { display: none; }
 .rpt-h2 + .rpt-note { break-after: avoid; }
 .rpt-empty { margin: 4px 0 8px; color: #6d6c68; font-style: italic; }
 
