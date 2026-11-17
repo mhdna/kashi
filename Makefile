@@ -100,10 +100,9 @@ dev-docs:
 deploy-api:
 	@$(STEP) "Building API" "Built API" -- env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o /tmp/kashi-api-linux .
 	@$(STEP) "Uploading API" "Uploaded API" -- sh -c 'rsync -avz /tmp/kashi-api-linux $(SSH):$(APP_DIR)/api-linux && rsync -avz --delete ./db/migrations/ $(SSH):$(APP_DIR)/migrations/'
-	@$(STEP) "Migrating and restarting API" "API migrated and running" -- ssh $(SSH_MUX) $(SSH) 'chown -R kashi:kashi $(APP_DIR)/api-linux $(APP_DIR)/migrations && \
-		chmod +x $(APP_DIR)/api-linux && \
-		migrate -path $(APP_DIR)/migrations -database "$(PROD_DB)" up && \
-		systemctl restart kashi-api && sleep 1 && systemctl is-active kashi-api'
+	@$(STEP) "Migrating and restarting API" "API migrated and running" -- sh -c 'ssh $(SSH_MUX) $(SSH) "chown -R kashi:kashi $(APP_DIR)/api-linux $(APP_DIR)/migrations && chmod +x $(APP_DIR)/api-linux" && \
+		ssh $(SSH_MUX) $(SSH) "sh -s -- $(APP_DIR)/migrations \"$(PROD_DB)\"" < scripts/prod_migrate.sh && \
+		ssh $(SSH_MUX) $(SSH) "systemctl restart kashi-api && sleep 1 && systemctl is-active kashi-api"'
 
 # Build the SPA (uses ui/.env.production -> VITE_API_URL=/api) and mirror it
 # into the Caddy web root. Fast path for front-end-only changes.
