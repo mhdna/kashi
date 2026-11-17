@@ -34,6 +34,8 @@
     "loyalty_points_delta": 0,
     "occurred_at": "2026-11-07T18:52:15Z",
     "received_at": "2026-11-07T18:52:15Z",
+    "referral_code": "",
+    "referral_reward_uid": null,
     "register_id": 3,
     "related_client_ref": {
       "String": "",
@@ -81,6 +83,8 @@
     "loyalty_points_delta": 0,
     "occurred_at": "2026-11-07T18:52:15Z",
     "received_at": "2026-11-07T18:52:15Z",
+    "referral_code": "",
+    "referral_reward_uid": null,
     "register_id": 9,
     "related_client_ref": {
       "String": "",

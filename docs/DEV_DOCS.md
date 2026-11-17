@@ -232,6 +232,20 @@ Item codes match exactly or as a prefix written `ABC*`, any case.
 | Price | A label price that isn't the cashier's is only a warning (`label_price_mismatch` on the Unknown items list). |
 | Resolve | Same `ResolveUnknownItemsTx` as a person's match, then `auto_resolved`. Two readings of one sale are serialised (`labelMu`); a lost race on the barcode uses the winner's product. |
 
+## Referrals {icon=mdiGiftOutline}
+
+Every client has a code (`clients.referral_code`, migration 000243): 5 random characters and a **check character** from an alphabet without look-alikes (`ACDEFGHJKMNPQRTWXY34679`, 23 is prime, so any one wrong character or two swapped neighbours fails). The database makes them (`new_referral_code()`, the column default; unique index). The till checks them with the same rule (kashi-pos `referrals.go`, `lib/referralCode.ts`); the vectors in `api/referrals_test.go` are shared by all three.
+
+| Step | Rule (`api/referrals.go`) |
+| --- | --- |
+| Friend's sale | The till sends `referral_code` on a sale. `decideReferral` gives the owner a reward, or refuses with the reason shown on the Referrals page: off, bad code, nobody's code, no customer, own code, **bought before at any branch**, already sent by someone (one reward per friend, `referrals_friend_once`), under the minimum, owner's monthly limit. The friend gets nothing. |
+| Reward | `referrals` row, `available`, the program's percent and cap, usable from `unlock_after_days` after the sale until `expires_after_days` later (0 = right away / forever). |
+| Tills | Feeds `referral_program` (the rules a till needs) and `referral_rewards` (refusals left out); `referrals_updated` / `referral_program_updated` on the branch socket. |
+| Use | The till uses a reward when it beats the spend tiers and sends `referral_reward_uid`: `used`. A second till that used it offline keeps its sale; `used_again_branch_invoice_id` flags it. |
+| Undo | Cancelling the sale that used it makes it `available` again. With `cancel_on_return`, a friend's sale cancelled, or returned down to nothing or under the minimum, cancels a reward not used yet. Exchanges never do. |
+
+Everything here is best-effort after the sale is stored: a failure is logged, never fails the till's push, and a replay is harmless (one row per source invoice).
+
 ## Security guard {icon=mdiShieldAlert}
 
 ::: glance

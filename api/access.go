@@ -252,6 +252,9 @@ var routeRules = []routeRule{
 	rule("/live_carts", "pricing", "pricing"),
 	rule("/coupons", "pricing", "pricing", "clients"),
 	rule("/coupon_categories", "pricing", "pricing", "clients"),
+	// Referrals (referrals.go): the rules are pricing, the list is clients.
+	rule("/referral_program", "pricing", "pricing", "clients"),
+	rule("/referrals", "clients", "clients", "pricing"),
 
 	// Branches. The longer /branches/:id/... prefixes below win over this.
 	lookup("/branches", "branches"),

@@ -897,7 +897,7 @@ func (q *Queries) PeriodReportSalespersons(ctx context.Context, arg PeriodReport
 const periodReportSummary = `-- name: PeriodReportSummary :one
 
 WITH inv AS (
-  SELECT bi.id, bi.branch_id, bi.client_ref, bi.kind, bi.branch_invoice_code, bi.branch_cashbox_account_id, bi.branch_shift_id, bi.branch_inventory_id, bi.branch_client_id, bi.related_client_ref, bi.discount, bi.subtotal, bi.discounted_total, bi.grand_total, bi.loyalty_points_delta, bi.occurred_at, bi.received_at, bi.salesperson_name, bi.historical, bi.client_uid, bi.register_id, bi.cancelled_at, bi.salesperson_id, bi.lbp_total, bi.lbp_rate, bi.invoice_discount, bi.invoice_discount_name, bi.grand_total - branch_invoice_deferred_coupons(bi.id) AS net_amount, COALESCE(cu.id, cl.client_id) AS client_id
+  SELECT bi.id, bi.branch_id, bi.client_ref, bi.kind, bi.branch_invoice_code, bi.branch_cashbox_account_id, bi.branch_shift_id, bi.branch_inventory_id, bi.branch_client_id, bi.related_client_ref, bi.discount, bi.subtotal, bi.discounted_total, bi.grand_total, bi.loyalty_points_delta, bi.occurred_at, bi.received_at, bi.salesperson_name, bi.historical, bi.client_uid, bi.register_id, bi.cancelled_at, bi.salesperson_id, bi.lbp_total, bi.lbp_rate, bi.invoice_discount, bi.invoice_discount_name, bi.referral_code, bi.referral_reward_uid, bi.grand_total - branch_invoice_deferred_coupons(bi.id) AS net_amount, COALESCE(cu.id, cl.client_id) AS client_id
   FROM branch_invoices bi
   JOIN branches b ON b.id = bi.branch_id
   LEFT JOIN clients cu ON cu.uid = bi.client_uid
