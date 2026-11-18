@@ -252,20 +252,8 @@
             clearable
             density="compact"
             hide-details
-            label="Search retail invoices"
+            label="Search invoice code or salesperson"
             prepend-inner-icon="mdi-magnify"
-            variant="outlined"
-          />
-          <v-select
-            v-model="retailBranchFilter"
-            clearable
-            density="compact"
-            hide-details
-            item-title="name"
-            item-value="id"
-            :items="branches"
-            placeholder="All branches"
-            style="max-width: 260px"
             variant="outlined"
           />
         </template>
@@ -315,7 +303,6 @@
         <div class="invoices-content">
           <div v-show="invoiceTab === 'retail'">
             <BranchInvoices
-              :branch-filter="retailBranchFilter"
               :branches="branches"
               :search="retailSearch"
               :search-debounce="100"
@@ -436,7 +423,6 @@
   }, { immediate: true })
   // ?search= (from the app bar's Branch sync list) prefills the retail search.
   const retailSearch = ref(typeof route.query.search === 'string' ? route.query.search : '')
-  const retailBranchFilter = ref(null)
   const wholesaleSearch = ref('')
   const submitting = ref(false)
   const notify = useNotify()

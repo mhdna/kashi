@@ -28,6 +28,16 @@ type listBranchInvoicesRequest struct {
 	// date_from / date_to are YYYY-MM-DD shop days, both inclusive.
 	DateFrom string `form:"date_from" binding:"omitempty,datetime=2006-01-02"`
 	DateTo   string `form:"date_to" binding:"omitempty,datetime=2006-01-02"`
+	// product: a code, name or barcode the invoice must have a line of.
+	// product_field narrows it to one of those (empty: any); product_match is
+	// how it matches (empty: contains).
+	Product      string `form:"product"`
+	ProductField string `form:"product_field" binding:"omitempty,oneof=code name barcode"`
+	ProductMatch string `form:"product_match" binding:"omitempty,oneof=contains starts ends exact"`
+	// total_min / total_max: the grand total range in cents, both inclusive
+	// (a return's total is negative).
+	TotalMin *int64 `form:"total_min"`
+	TotalMax *int64 `form:"total_max"`
 }
 
 // branchInvoiceFilter is the part of the list request that narrows rows,
@@ -38,10 +48,46 @@ type branchInvoiceFilter struct {
 	dateFrom, dateTo     sql.NullTime
 	search, client       string
 	clientDigits         string
+	productPattern       string
+	productField         string
+	totalMin, totalMax   sql.NullInt64
+}
+
+// likePattern turns a typed term into an ILIKE pattern for the match mode:
+// contains (the default), starts, ends or exact. The term's own %, _ and \
+// are escaped so they match themselves. An empty term gives "", no filter.
+func likePattern(term, match string) string {
+	term = strings.TrimSpace(term)
+	if term == "" {
+		return ""
+	}
+	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(term)
+	switch match {
+	case "starts":
+		return escaped + "%"
+	case "ends":
+		return "%" + escaped
+	case "exact":
+		return escaped
+	default:
+		return "%" + escaped + "%"
+	}
 }
 
 func (req listBranchInvoicesRequest) filter() branchInvoiceFilter {
-	f := branchInvoiceFilter{search: req.Search, client: strings.TrimSpace(req.Client)}
+	f := branchInvoiceFilter{
+		search: req.Search, client: strings.TrimSpace(req.Client),
+		productPattern: likePattern(req.Product, req.ProductMatch),
+	}
+	if f.productPattern != "" {
+		f.productField = req.ProductField
+	}
+	if req.TotalMin != nil {
+		f.totalMin = sql.NullInt64{Int64: *req.TotalMin, Valid: true}
+	}
+	if req.TotalMax != nil {
+		f.totalMax = sql.NullInt64{Int64: *req.TotalMax, Valid: true}
+	}
 	f.clientDigits = db.ClientSearchDigits(f.client)
 	if req.BranchID > 0 {
 		f.branchID = sql.NullInt64{Int64: req.BranchID, Valid: true}
@@ -68,6 +114,7 @@ func (f branchInvoiceFilter) page(size, offset int32) db.ListBranchInvoicesPageP
 	return db.ListBranchInvoicesPageParams{
 		BranchID: f.branchID, RegisterID: f.registerID, Kind: f.kind, Status: f.status,
 		DateFrom: f.dateFrom, DateTo: f.dateTo, Search: f.search, Client: f.client, ClientDigits: f.clientDigits,
+		ProductPattern: f.productPattern, ProductField: f.productField, TotalMin: f.totalMin, TotalMax: f.totalMax,
 		PageSize: size, PageOffset: offset,
 	}
 }
@@ -76,6 +123,7 @@ func (f branchInvoiceFilter) count() db.CountBranchInvoicesFilteredParams {
 	return db.CountBranchInvoicesFilteredParams{
 		BranchID: f.branchID, RegisterID: f.registerID, Kind: f.kind, Status: f.status,
 		DateFrom: f.dateFrom, DateTo: f.dateTo, Search: f.search, Client: f.client, ClientDigits: f.clientDigits,
+		ProductPattern: f.productPattern, ProductField: f.productField, TotalMin: f.totalMin, TotalMax: f.totalMax,
 	}
 }
 

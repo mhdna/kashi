@@ -97,3 +97,41 @@ describe('Invoices page first load', () => {
     expect(document.body.textContent).toContain('New Sales Invoice')
   })
 })
+
+describe('Retail filters dialog', () => {
+  it('the row of boxes is gone: one Filters button, and the search box', async () => {
+    await open()
+    expect(button('Filters')).toBeTruthy()
+    expect(wrapper.text()).not.toContain('All registers')
+    expect(wrapper.find('[data-test="filter-summary"]').exists()).toBe(false)
+  })
+
+  it('applying a product code filter reloads the list with it, and says so on the page', async () => {
+    await open()
+    await button('Filters').trigger('click')
+    await flushPromises()
+    const dialog = wrapper.findComponent({ name: 'InvoiceFilterDialog' })
+    dialog.vm.$emit('apply', {
+      product: 'SH12', productField: 'code', productMatch: 'starts', totalMin: '10', kind: 'return',
+    })
+    await new Promise(r => setTimeout(r, 400)) // the table's reload debounce
+    await flushPromises()
+    const last = requested.findLast(p => p.startsWith('/branch_invoices?'))
+    const query = new URLSearchParams(last.split('?')[1])
+    expect(query.get('product')).toBe('SH12')
+    expect(query.get('product_field')).toBe('code')
+    expect(query.get('product_match')).toBe('starts')
+    expect(query.get('total_min')).toBe('1000')
+    expect(query.get('kind')).toBe('return')
+    expect(button('Filters (3)')).toBeTruthy()
+    expect(wrapper.find('[data-test="filter-summary"]').text())
+      .toBe('Returns, Product code starts with "SH12", Total at least 10.00')
+
+    await wrapper.find('[data-test="clear-filters"]').trigger('click')
+    await new Promise(r => setTimeout(r, 400))
+    await flushPromises()
+    const cleared = requested.findLast(p => p.startsWith('/branch_invoices?'))
+    expect(cleared).not.toContain('product=')
+    expect(wrapper.find('[data-test="filter-summary"]').exists()).toBe(false)
+  })
+})
