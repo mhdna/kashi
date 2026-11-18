@@ -112,6 +112,16 @@ describe('Receipt Designer', () => {
     expect(JSON.parse(previews.at(-1).texts).order).toEqual(['payments', 'policy', 'referral', 'thanks', 'socials'])
   })
 
+  it('the reported case: the panel sits beside the receipt, not under it', async () => {
+    await open()
+    const work = find('receipt-image').element.closest('.rd-work')
+    expect([...work.children].map(c => c.className.split(' ')[0])).toEqual(['rd-picker', 'rd-paper-col', 'rd-panel'])
+    expect(work.className).not.toContain('rd-work--shop')
+    await find('tab-shop').trigger('click')
+    await settle()
+    expect(find('receipt-image').element.closest('.rd-work').className).toContain('rd-work--shop')
+  })
+
   it('every mode is drawn', async () => {
     await open()
     for (const [label, mode] of [['Sale with referral code', 'referral'], ['Sale with a client', 'client'], ['Exchange', 'exchange'], ['Return', 'return']]) {

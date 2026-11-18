@@ -45,7 +45,7 @@
       </v-tabs>
       <v-progress-linear v-if="loading" indeterminate />
       <div class="rd-body">
-        <div class="rd-work">
+        <div class="rd-work" :class="{ 'rd-work--shop': tab === 'shop' }">
           <div v-if="tab === 'receipt'" class="rd-picker">
             <ReceiptLookPicker v-model:layout="layout" v-model:theme="theme" :saved-theme="savedTheme">
               <template #preview>
@@ -414,14 +414,33 @@
 .rd-target {
   flex: 0 1 240px;
 }
+/* Three columns side by side: themes, the receipt, its panel. The panel
+   keeps beside the receipt and scrolls on its own. */
 .rd-work {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 220px auto minmax(340px, 1fr);
+  align-items: start;
   gap: 24px;
 }
+/* Shop details: the receipt and the form, no theme list. */
+.rd-work--shop {
+  grid-template-columns: auto minmax(340px, 1fr);
+}
+@media (max-width: 1100px) {
+  .rd-work {
+    grid-template-columns: auto minmax(300px, 1fr);
+  }
+  .rd-picker {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 760px) {
+  .rd-work {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .rd-picker {
-  flex: 0 0 250px;
+  min-width: 0;
 }
 /* The picker's own preview column isn't used here: the paper is beside it. */
 .rd-picker :deep(.rlp) {
@@ -438,7 +457,7 @@
   min-width: 0;
   max-width: 100%;
   /* Room on the right for a part's name beside the paper. */
-  padding-right: 110px;
+  padding-right: 96px;
 }
 .rd-modes {
   flex-wrap: wrap;
@@ -451,8 +470,8 @@
 .rd-panel {
   position: sticky;
   top: 0;
-  flex: 1 1 320px;
-  max-width: 520px;
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
   min-width: 0;
   padding: 16px;
   border-radius: 8px;

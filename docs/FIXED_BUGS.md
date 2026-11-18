@@ -3,6 +3,14 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-18: The Receipt Designer's panel fell under the receipt
+
+**Symptom:** after picking a part of the receipt, its settings showed far below the receipt instead of beside it, so changing something meant scrolling away from what it changed.
+
+**Cause:** the theme list, the receipt (with room for the part's name beside it) and the panel sat in a row that wraps. Together they were wider than the page, so the panel wrapped to a new line under the receipt.
+
+**Fix:** the designer is a three-column grid (themes, receipt, panel), the panel keeping beside the receipt and scrolling on its own; the Shop details tab is two columns, and narrow screens stack (`ui/src/pages/receipt-designer.vue`). Test: "the panel sits beside the receipt, not under it" in `receipt-designer.test.js` (happy-dom doesn't lay out, so it checks the columns' order and classes; the wrap was read from the CSS).
+
 ## 2026-11-18: The Receipt Designer showed the old receipt, without the socials
 
 **Symptom:** after the deploy with the editable paper, the designer still showed the receipt without "Follow us on:" and the social icons, and the parts to click didn't line up with what was drawn.
