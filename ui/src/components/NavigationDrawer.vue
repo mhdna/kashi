@@ -5,111 +5,71 @@
     location="left"
     :model-value="props.mobile ? props.modelValue : true"
     :permanent="!props.mobile"
-    :rail="props.rail"
     :temporary="props.mobile"
-    width="260"
+    :width="drawerWidth"
     @update:model-value="props.mobile && $emit('update:modelValue', $event)"
   >
-    <v-list density="compact" nav>
-      <template v-for="item in visibleNavItems" :key="item.title">
-        <!-- Group item -->
-        <v-list-group
-          v-if="item.children"
-          :prepend-icon="item.icon"
-          :value="item.title"
+    <div class="nav-shell">
+      <!-- The rail: one icon per section, always there. -->
+      <nav aria-label="Sections" class="nav-rail" data-test="nav-rail">
+        <v-tooltip
+          v-for="section in sections"
+          :key="section.key"
+          location="end"
+          :text="section.title"
         >
-          <template #activator="{ props: activatorProps }">
-            <v-list-item v-bind="activatorProps" :title="item.title" />
-          </template>
-
-          <v-list-item
-            v-for="child in item.children"
-            :key="child.title"
-            class="ms-1 me-0"
-            :prepend-icon="child.icon"
-            :title="child.title"
-            :to="child.to"
-            :value="child.to"
-          >
-            <template v-if="statusFor(child.append)" #append>
-              <span
-                :aria-label="`${child.title} status is ${statusFor(child.append)}`"
-                class="nav-status d-flex align-center ga-2"
-                role="img"
-              >
-                <span class="nav-status-dot" :class="`nav-status-dot--${statusFor(child.append)}`" />
-              </span>
-            </template>
-          </v-list-item>
-        </v-list-group>
-
-        <!-- Single item -->
-        <v-list-item
-          v-else
-          :color="item.color"
-          :prepend-icon="item.icon"
-          :title="item.title"
-          :to="item.to"
-          :value="item.title"
-        >
-          <template v-if="statusFor(item.append)" #append>
-            <span
-              :aria-label="`${item.title} status is ${statusFor(item.append)}`"
-              class="nav-status d-flex align-center ga-2"
-              role="img"
+          <template #activator="{ props: tip }">
+            <button
+              v-bind="tip"
+              :aria-current="section.key === openKey ? 'true' : undefined"
+              :aria-label="section.title"
+              class="nav-rail-btn"
+              :class="{ 'nav-rail-btn--open': section.key === openKey }"
+              :data-test="`rail-${section.key}`"
+              type="button"
+              @click="openSection(section.key)"
             >
-              <span class="nav-status-dot" :class="`nav-status-dot--${statusFor(item.append)}`" />
-            </span>
+              <v-icon :icon="section.icon" />
+              <span v-if="needsAttention(section)" class="nav-rail-dot" :data-test="`rail-dot-${section.key}`" />
+            </button>
           </template>
-          <template v-else-if="item.append === 'alert-count' && !alertsLoaded" #append>
-            <span aria-label="Alerts are loading" class="nav-status d-flex align-center ga-2" role="img">
-              <span class="nav-status-dot nav-status-dot--loading" />
-            </span>
-          </template>
-          <template v-else-if="item.append === 'alert-count' && (outOfStockCount > 0 || lowStockCount > 0)" #append>
-            <span class="d-flex align-center ga-1">
-              <v-badge
-                v-if="outOfStockCount > 0"
-                color="error"
-                :content="outOfStockCount"
-                inline
-              />
-              <v-badge
-                v-if="lowStockCount > 0"
-                color="warning"
-                :content="lowStockCount"
-                inline
-              />
-            </span>
-          </template>
-        </v-list-item>
-      </template>
-    </v-list>
+        </v-tooltip>
+      </nav>
 
-    <template #append>
-      <v-divider thickness="2" />
-      <v-list class="nav-append pa-0" density="compact" nav>
-        <div class="pa-2">
-          <v-list-item
-            v-for="item in visibleAppendItems"
-            :key="item.title"
-            :prepend-icon="item.icon"
-            :title="item.title"
-            :to="item.to"
-            :value="item.title"
-          >
-            <template v-if="item.to === '/security' && openSecurityAlerts > 0" #append>
-              <v-badge color="error" :content="openSecurityAlerts" inline />
+      <!-- The open section's pages. -->
+      <div v-if="!props.rail && openSectionInfo" class="nav-pages" data-test="nav-pages">
+        <div class="nav-pages-title" data-test="nav-section-title">{{ openSectionInfo.title }}</div>
+        <v-list density="compact" nav>
+          <template v-for="item in openSectionInfo.items" :key="item.title">
+            <template v-if="item.children">
+              <v-list-subheader class="nav-heading">{{ item.title }}</v-list-subheader>
+              <NavLink
+                v-for="child in item.children"
+                :key="child.to"
+                :alert-counts="alertCounts"
+                :item="child"
+                :security-count="openSecurityAlerts"
+                :status="statusFor(child.append)"
+              />
             </template>
-          </v-list-item>
-        </div>
-      </v-list>
-    </template>
+            <NavLink
+              v-else
+              :alert-counts="alertCounts"
+              :item="item"
+              :security-count="openSecurityAlerts"
+              :status="statusFor(item.append)"
+            />
+          </template>
+        </v-list>
+      </div>
+    </div>
   </v-navigation-drawer>
 </template>
 
 <script setup>
-  import { onMounted, onUnmounted, ref } from 'vue'
+  import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+  import { useRoute } from 'vue-router'
+  import NavLink from '@/components/NavLink.vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useAllowedNav } from '@/composables/useAllowedNav'
   import { useBranchCommands } from '@/composables/useBranchCommands'
@@ -118,6 +78,7 @@
   import { useSecurityAlerts } from '@/composables/useSecurityAlerts'
   import { useStockHealth } from '@/composables/useStockHealth'
   import { useWhatsAppFailures } from '@/composables/useWhatsAppFailures'
+  import { navPages, sectionForPath } from '@/data/navItems'
   import { useAuthStore } from '@/stores/auth'
 
   const props = defineProps({
@@ -125,11 +86,28 @@
     rail: { type: Boolean, default: false },
     mobile: { type: Boolean, default: false },
   })
-  defineEmits(['update:modelValue', 'update:rail'])
 
   // Links to pages the user's role can't open are hidden (see useAllowedNav).
   const auth = useAuthStore()
-  const { allowedNavItems: visibleNavItems, allowedAppendItems: visibleAppendItems, allowed } = useAllowedNav()
+  const { allowedSections: sections, allowed } = useAllowedNav()
+
+  // The open section follows the page; a click on the rail opens another.
+  const route = useRoute()
+  const openKey = ref(sectionForPath(sections.value, route.path) ?? sections.value[0]?.key ?? '')
+  watch(() => route.path, path => {
+    const key = sectionForPath(sections.value, path)
+    if (key) {openKey.value = key}
+  })
+  const openSectionInfo = computed(() => sections.value.find(s => s.key === openKey.value) ?? sections.value[0] ?? null)
+  const emit = defineEmits(['update:modelValue', 'update:rail'])
+  function openSection (key) {
+    openKey.value = key
+    // A collapsed drawer opens to show the section's pages.
+    if (props.rail) {emit('update:rail', false)}
+  }
+
+  const RAIL_WIDTH = 64
+  const drawerWidth = computed(() => (props.rail ? RAIL_WIDTH : RAIL_WIDTH + 236))
 
   // Real counts backing the Alerts nav badges, shown separately: red for
   // out-of-stock, orange for merely low (see pages/alerts.vue, api/low_stock.go).
@@ -250,6 +228,19 @@
     offAdminMessage?.()
   })
 
+  const alertCounts = computed(() => ({ loaded: alertsLoaded.value, out: outOfStockCount.value, low: lowStockCount.value }))
+
+  // A section's icon gets a dot when one of its pages wants a look: stock
+  // running out, a warning or critical status, an open security alert.
+  function needsAttention (section) {
+    return navPages(section).some((page) => {
+      const status = statusFor(page.append)
+      if (status === 'warning' || status === 'critical') {return true}
+      if (page.append === 'alert-count') {return outOfStockCount.value > 0}
+      return page.to === '/security' && openSecurityAlerts.value > 0
+    })
+  }
+
   function statusFor (append) {
     if (append === 'status') {return healthStatus.value}
     if (append === 'commands-status') {return commandsStatus.value}
@@ -260,49 +251,75 @@
 </script>
 
 <style scoped>
-.nav-drawer {
-  --v-list-prepend-gap: 20px;
+.nav-shell {
+  display: flex;
+  height: 100%;
 }
-
-/* Grey band behind the bottom links (Calendar … Settings), set apart from
-   the main nav. Tinted from on-surface so it works in both themes. */
-.nav-append {
-  background-color: rgba(var(--v-theme-on-surface), 0.08);
+.nav-rail {
+  flex: 0 0 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 0;
+  overflow-y: auto;
+  border-inline-end: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
-
-.nav-drawer :deep(.v-list-group__items .v-list-item) {
-  padding-inline-start: 16px !important;
-}
-
-.nav-status-dot {
-  width: 18px;
-  height: 18px;
-  display: block;
-  border-radius: 50%;
-  background-color: rgb(var(--v-theme-success));
-}
-.nav-status-dot--healthy {
-  background-color: rgb(var(--v-theme-success));
-}
-.nav-status-dot--warning {
-  background-color: rgb(var(--v-theme-warning));
-}
-.nav-status-dot--critical {
-  background-color: rgb(var(--v-theme-error));
-}
-/* Placeholder while the first status fetch is in flight. */
-.nav-status-dot--loading {
-  background-color: rgba(var(--v-theme-on-surface), 0.12);
-  animation: nav-status-pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes nav-status-pulse {
-  50% { opacity: 0.4; }
-}
-
-.nav-status {
-  min-width: 24px;
+.nav-rail-btn {
+  position: relative;
+  width: 48px;
+  height: 44px;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  margin-inline-end: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(var(--v-theme-on-surface), 0.7);
+  cursor: pointer;
+}
+.nav-rail-btn:hover {
+  color: rgb(var(--v-theme-on-surface));
+  background: rgba(var(--v-theme-on-surface), 0.06);
+}
+/* The open section: its icon in the primary colour with a bar beside it. */
+.nav-rail-btn--open {
+  color: rgb(var(--v-theme-primary));
+}
+.nav-rail-btn--open::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 2px;
+  background: rgb(var(--v-theme-primary));
+}
+.nav-rail-dot {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgb(var(--v-theme-error));
+}
+.nav-pages {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-y: auto;
+}
+.nav-pages-title {
+  padding: 14px 16px 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(var(--v-theme-on-surface), 0.6);
+}
+.nav-heading {
+  min-height: 28px;
+  font-size: 0.75rem;
 }
 </style>
