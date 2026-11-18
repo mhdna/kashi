@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { dollarsToCents, formToRequest, programSummary, programToForm, referralRow, statusColor } from './referrals'
+import { dollarsToCents, formToRequest, listNames, programSummary, programToForm, referralRow, statusColor } from './referrals'
 
 describe('referral rules form', () => {
   it('round-trips the API rules', () => {
     const api = {
-      enabled: true, reward_percent: 15, max_reward_cents: 2550, min_friend_spend: 3000,
+      enabled: true, branch_ids: [3, 7], reward_percent: 15, max_reward_cents: 2550, min_friend_spend: 3000,
       unlock_after_days: 0, expires_after_days: 60, cancel_on_return: true, max_rewards_per_month: 3,
     }
     const form = programToForm(api)
@@ -16,7 +16,7 @@ describe('referral rules form', () => {
   it('reads empty as none and dollars to the cent', () => {
     expect(dollarsToCents('')).toBe(0)
     expect(dollarsToCents('$30')).toBe(3000)
-    expect(dollarsToCents('1,250.10')).toBe(125010)
+    expect(dollarsToCents('1,250.10')).toBe(125_010)
     expect(dollarsToCents('0.29')).toBe(29)
     expect(() => dollarsToCents('-5')).toThrow(/dollars/)
     expect(() => dollarsToCents('abc', 'The cap')).toThrow(/The cap/)
@@ -32,13 +32,14 @@ describe('referral rules form', () => {
 
   it('defaults to the user\'s 15%, off, right away, forever', () => {
     const req = formToRequest(programToForm({}))
-    expect(req).toMatchObject({ enabled: false, reward_percent: 15, unlock_after_days: 0, expires_after_days: 0, max_reward_cents: 0 })
+    expect(req).toMatchObject({ enabled: false, branch_ids: [], reward_percent: 15, unlock_after_days: 0, expires_after_days: 0, max_reward_cents: 0 })
   })
 
   it('says what the rules do, without long dashes or dots', () => {
-    expect(programSummary({ enabled: false })).toMatch(/off/)
-    const s = programSummary({ enabled: true, reward_percent: 15, max_reward_cents: 2000, min_friend_spend: 3000 })
-    expect(s).toBe('A new customer\'s first purchase with a client\'s code gives that client 15% off one later visit, up to $20, when the purchase is $30 or more.')
+    expect(programSummary({ enabled: false })).toMatch(/off at every branch/)
+    const names = { 3: 'Centro', 7: 'Hara' }
+    const s = programSummary({ enabled: true, branch_ids: [3, 7], reward_percent: 15, max_reward_cents: 2000, min_friend_spend: 3000 }, id => names[id])
+    expect(s).toBe('On at Centro and Hara. A new customer\'s first purchase with a client\'s code gives that client 15% off one later visit, up to $20, when the purchase is $30 or more.')
     expect(s).not.toMatch(/[–—·•]/)
   })
 })
@@ -57,5 +58,29 @@ describe('referral rows', () => {
     expect(statusColor('available')).toBe('success')
     expect(statusColor('cancelled')).toBe('error')
     expect(statusColor('nope')).toBe('')
+  })
+})
+
+describe('referrals per branch', () => {
+  it('the reported case: on at one branch only', () => {
+    const req = formToRequest({ ...programToForm({ reward_percent: 15 }), branchIds: [7] })
+    expect(req).toMatchObject({ enabled: true, branch_ids: [7] })
+  })
+  it('no branch ticked is off, whatever the program said before', () => {
+    expect(formToRequest({ ...programToForm({ enabled: true, reward_percent: 15 }), branchIds: [] })).toMatchObject({ enabled: false, branch_ids: [] })
+  })
+  it('sends each branch once, in order, and nothing that is not an id', () => {
+    expect(formToRequest({ ...programToForm({}), branchIds: [9, 3, 9, '4', 0, -1, null] }).branch_ids).toEqual([3, 4, 9])
+  })
+  it('on with no branches, or off with some, reads as off', () => {
+    expect(programSummary({ enabled: true, branch_ids: [] })).toMatch(/off at every branch/)
+    expect(programSummary({ enabled: false, branch_ids: [3] })).toMatch(/off at every branch/)
+  })
+  it('names the branches as a person would', () => {
+    expect(listNames([])).toBe('')
+    expect(listNames(['Centro'])).toBe('Centro')
+    expect(listNames(['Centro', 'Hara'])).toBe('Centro and Hara')
+    expect(listNames(['Centro', 'Hara', 'Dora'])).toBe('Centro, Hara and Dora')
+    expect(programSummary({ enabled: true, branch_ids: [5], reward_percent: 10 })).toContain('On at Branch #5.')
   })
 })

@@ -17,6 +17,7 @@ vi.mock('@/composables/useApi', () => ({
     }
     if (path === '/referral_program') {return { ok: true, status: 200, json: async () => ({ referral_program: program }) }}
     if (path.startsWith('/referrals')) {return { ok: true, status: 200, json: async () => ({ referrals }) }}
+    if (path.startsWith('/branches')) {return { ok: true, status: 200, json: async () => ({ branches: [{ id: 3, name: 'Centro' }, { id: 7, name: 'Hara' }] }) }}
     return { ok: false, status: 404, json: async () => ({}) }
   },
 }))
@@ -71,13 +72,28 @@ describe('Referrals page', () => {
 
   it('saves the rules', async () => {
     const w = await open()
-    await input(w, 'enabled').setValue(true)
+    await input(w, 'branch-7').setValue(true)
     await input(w, 'percent').setValue('20')
     await w.find('form').trigger('submit')
     await flushPromises()
     const put = calls.find(c => c.method === 'PUT')
-    expect(put.body).toMatchObject({ enabled: true, reward_percent: 20, max_reward_cents: 0, cancel_on_return: true })
-    expect(w.find('[data-test="summary"]').text()).toContain('20% off one later visit')
+    expect(put.body).toMatchObject({ enabled: true, branch_ids: [7], reward_percent: 20, max_reward_cents: 0, cancel_on_return: true })
+    expect(w.find('[data-test="summary"]').text()).toBe('On at Hara. A new customer\'s first purchase with a client\'s code gives that client 20% off one later visit.')
+  })
+
+  it('the reported case: a switch for each branch, and turning the last one off turns referrals off', async () => {
+    program = { ...program, enabled: true, branch_ids: [3] }
+    const w = await open()
+    expect(w.find('[data-test="branches"]').text()).toContain('Centro')
+    expect(w.find('[data-test="branches"]').text()).toContain('Hara')
+    expect(input(w, 'branch-3').element.checked).toBe(true)
+    expect(input(w, 'branch-7').element.checked).toBe(false)
+    expect(w.find('[data-test="summary"]').text()).toMatch(/^On at Centro\./)
+    await input(w, 'branch-3').setValue(false)
+    await w.find('form').trigger('submit')
+    await flushPromises()
+    expect(calls.find(c => c.method === 'PUT').body).toMatchObject({ enabled: false, branch_ids: [] })
+    expect(w.find('[data-test="summary"]').text()).toMatch(/off at every branch/)
   })
 
   it('filters by status', async () => {

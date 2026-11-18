@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const cancelReferral = `-- name: CancelReferral :exec
@@ -244,7 +245,7 @@ func (q *Queries) GetReferralByUID(ctx context.Context, uid uuid.UUID) (Referral
 }
 
 const getReferralProgram = `-- name: GetReferralProgram :one
-SELECT id, enabled, reward_percent, max_reward_cents, min_friend_spend, unlock_after_days, expires_after_days, cancel_on_return, max_rewards_per_month, updated_at FROM referral_program WHERE id = 1
+SELECT id, enabled, reward_percent, max_reward_cents, min_friend_spend, unlock_after_days, expires_after_days, cancel_on_return, max_rewards_per_month, updated_at, branch_ids FROM referral_program WHERE id = 1
 `
 
 func (q *Queries) GetReferralProgram(ctx context.Context) (ReferralProgram, error) {
@@ -261,12 +262,13 @@ func (q *Queries) GetReferralProgram(ctx context.Context) (ReferralProgram, erro
 		&i.CancelOnReturn,
 		&i.MaxRewardsPerMonth,
 		&i.UpdatedAt,
+		pq.Array(&i.BranchIds),
 	)
 	return i, err
 }
 
 const getReferralProgramUpdatedSince = `-- name: GetReferralProgramUpdatedSince :many
-SELECT id, enabled, reward_percent, max_reward_cents, min_friend_spend, unlock_after_days, expires_after_days, cancel_on_return, max_rewards_per_month, updated_at FROM referral_program WHERE id = 1 AND updated_at > $1
+SELECT id, enabled, reward_percent, max_reward_cents, min_friend_spend, unlock_after_days, expires_after_days, cancel_on_return, max_rewards_per_month, updated_at, branch_ids FROM referral_program WHERE id = 1 AND updated_at > $1
 `
 
 // The till's feed: the rules when they changed since its cursor.
@@ -290,6 +292,7 @@ func (q *Queries) GetReferralProgramUpdatedSince(ctx context.Context, updatedAt 
 			&i.CancelOnReturn,
 			&i.MaxRewardsPerMonth,
 			&i.UpdatedAt,
+			pq.Array(&i.BranchIds),
 		); err != nil {
 			return nil, err
 		}
@@ -536,20 +539,21 @@ const updateReferralProgram = `-- name: UpdateReferralProgram :one
 UPDATE referral_program SET
     enabled = $1, reward_percent = $2, max_reward_cents = $3, min_friend_spend = $4,
     unlock_after_days = $5, expires_after_days = $6, cancel_on_return = $7,
-    max_rewards_per_month = $8, updated_at = now()
+    max_rewards_per_month = $8, branch_ids = $9::bigint[], updated_at = now()
 WHERE id = 1
-RETURNING id, enabled, reward_percent, max_reward_cents, min_friend_spend, unlock_after_days, expires_after_days, cancel_on_return, max_rewards_per_month, updated_at
+RETURNING id, enabled, reward_percent, max_reward_cents, min_friend_spend, unlock_after_days, expires_after_days, cancel_on_return, max_rewards_per_month, updated_at, branch_ids
 `
 
 type UpdateReferralProgramParams struct {
-	Enabled            bool  `json:"enabled"`
-	RewardPercent      int16 `json:"reward_percent"`
-	MaxRewardCents     int64 `json:"max_reward_cents"`
-	MinFriendSpend     int64 `json:"min_friend_spend"`
-	UnlockAfterDays    int32 `json:"unlock_after_days"`
-	ExpiresAfterDays   int32 `json:"expires_after_days"`
-	CancelOnReturn     bool  `json:"cancel_on_return"`
-	MaxRewardsPerMonth int32 `json:"max_rewards_per_month"`
+	Enabled            bool    `json:"enabled"`
+	RewardPercent      int16   `json:"reward_percent"`
+	MaxRewardCents     int64   `json:"max_reward_cents"`
+	MinFriendSpend     int64   `json:"min_friend_spend"`
+	UnlockAfterDays    int32   `json:"unlock_after_days"`
+	ExpiresAfterDays   int32   `json:"expires_after_days"`
+	CancelOnReturn     bool    `json:"cancel_on_return"`
+	MaxRewardsPerMonth int32   `json:"max_rewards_per_month"`
+	BranchIds          []int64 `json:"branch_ids"`
 }
 
 func (q *Queries) UpdateReferralProgram(ctx context.Context, arg UpdateReferralProgramParams) (ReferralProgram, error) {
@@ -562,6 +566,7 @@ func (q *Queries) UpdateReferralProgram(ctx context.Context, arg UpdateReferralP
 		arg.ExpiresAfterDays,
 		arg.CancelOnReturn,
 		arg.MaxRewardsPerMonth,
+		pq.Array(arg.BranchIds),
 	)
 	var i ReferralProgram
 	err := row.Scan(
@@ -575,6 +580,7 @@ func (q *Queries) UpdateReferralProgram(ctx context.Context, arg UpdateReferralP
 		&i.CancelOnReturn,
 		&i.MaxRewardsPerMonth,
 		&i.UpdatedAt,
+		pq.Array(&i.BranchIds),
 	)
 	return i, err
 }

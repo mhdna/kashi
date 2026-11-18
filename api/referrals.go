@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -212,6 +213,8 @@ func (server *Server) recordReferral(ctx context.Context, branchID int64, invoic
 	if err != nil {
 		return false, err
 	}
+	// A code given at a branch where referrals are off earns nothing.
+	program.Enabled = referralsOnAt(program, branchID)
 	facts := referralFacts{Program: program, CodeValid: validReferralCode(code), FriendUID: invoice.ClientUid, SaleTotal: invoice.GrandTotal}
 	var owner db.Client
 	if facts.CodeValid {
@@ -329,14 +332,30 @@ type syncReferralProgram struct {
 	UpdatedAt      time.Time `json:"updated_at"`
 }
 
-func (server *Server) referralProgramForBranchSync(ctx context.Context, since time.Time) ([]syncReferralProgram, error) {
+// referralsOnAt says whether referrals are on at a branch: the program is
+// on and the branch is one of its branches.
+func referralsOnAt(p db.ReferralProgram, branchID int64) bool {
+	if !p.Enabled {
+		return false
+	}
+	for _, id := range p.BranchIds {
+		if id == branchID {
+			return true
+		}
+	}
+	return false
+}
+
+// referralProgramForBranchSync is the rules as one branch's tills pull them:
+// on only when that branch is one of the program's.
+func (server *Server) referralProgramForBranchSync(ctx context.Context, branchID int64, since time.Time) ([]syncReferralProgram, error) {
 	rows, err := server.store.GetReferralProgramUpdatedSince(ctx, since)
 	if err != nil {
 		return nil, err
 	}
 	out := make([]syncReferralProgram, len(rows))
 	for i, p := range rows {
-		out[i] = syncReferralProgram{Enabled: p.Enabled, RewardPercent: p.RewardPercent, MinFriendSpend: p.MinFriendSpend, UpdatedAt: p.UpdatedAt}
+		out[i] = syncReferralProgram{Enabled: referralsOnAt(p, branchID), RewardPercent: p.RewardPercent, MinFriendSpend: p.MinFriendSpend, UpdatedAt: p.UpdatedAt}
 	}
 	return out, nil
 }
@@ -391,6 +410,30 @@ type referralProgramRequest struct {
 	ExpiresAfterDays   int32 `json:"expires_after_days"`
 	CancelOnReturn     bool  `json:"cancel_on_return"`
 	MaxRewardsPerMonth int32 `json:"max_rewards_per_month"`
+	// BranchIDs are the branches where referrals are on. Absent (an older
+	// page), enabled means every branch and off means none.
+	BranchIDs *[]int64 `json:"branch_ids"`
+}
+
+// branchIDs is the request's branches, each once and in order; all is every
+// branch, for a request that only says on or off.
+func (r referralProgramRequest) branchIDs(all []int64) []int64 {
+	if r.BranchIDs == nil {
+		if r.Enabled {
+			return all
+		}
+		return []int64{}
+	}
+	seen := map[int64]bool{}
+	out := []int64{}
+	for _, id := range *r.BranchIDs {
+		if id > 0 && !seen[id] {
+			seen[id] = true
+			out = append(out, id)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
+	return out
 }
 
 func (r referralProgramRequest) validate() error {
@@ -417,8 +460,26 @@ func (server *Server) updateReferralProgram(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
 	}
+	branches, err := server.store.ListBranches(ctx)
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	all := make([]int64, 0, len(branches))
+	known := map[int64]bool{}
+	for _, b := range branches {
+		all = append(all, b.ID)
+		known[b.ID] = true
+	}
+	branchIDs := req.branchIDs(all)
+	for _, id := range branchIDs {
+		if !known[id] {
+			server.writeError(ctx, http.StatusBadRequest, fmt.Errorf("no branch #%d", id))
+			return
+		}
+	}
 	program, err := server.store.UpdateReferralProgram(ctx, db.UpdateReferralProgramParams{
-		Enabled: req.Enabled, RewardPercent: req.RewardPercent, MaxRewardCents: req.MaxRewardCents,
+		Enabled: len(branchIDs) > 0, BranchIds: branchIDs, RewardPercent: req.RewardPercent, MaxRewardCents: req.MaxRewardCents,
 		MinFriendSpend: req.MinFriendSpend, UnlockAfterDays: req.UnlockAfterDays, ExpiresAfterDays: req.ExpiresAfterDays,
 		CancelOnReturn: req.CancelOnReturn, MaxRewardsPerMonth: req.MaxRewardsPerMonth,
 	})
