@@ -182,7 +182,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+  import { computed, onMounted, onUnmounted, provide, ref, watch } from 'vue'
   import ReceiptBanners from '@/components/Receipt/ReceiptBanners.vue'
   import ReceiptLivePaper from '@/components/Receipt/ReceiptLivePaper.vue'
   import ReceiptLookPicker from '@/components/ReceiptLookPicker.vue'
@@ -196,6 +196,7 @@
     dealModes, designJSON, emptyDesign, emptyShop, footerOrder, groupInfo, moveSection, parseDesign, previewQuery,
     shopFromSettings, shopPayload, socialPlatforms,
   } from '@/utils/receiptDesign'
+  import { receiptFontURL } from '@/utils/receiptFonts'
 
   const ALL = 0
 
@@ -257,6 +258,12 @@
     bannerFocus.value = i
     tab.value = 'banners'
   }
+  // The till's fonts, for lines shown and typed in their own letters.
+  provide('receiptFontFile', async (key: string, bold: boolean) => {
+    const res = await authFetch(receiptFontURL(API_BASE, key, bold))
+    if (!res.ok) {throw new Error(`font ${key}: ${res.status}`)}
+    return res.arrayBuffer()
+  })
   async function drawBanner (banner: string) {
     const data = await requestJSON(`${API_BASE}/receipt_designer/banner?${new URLSearchParams({ b: banner })}`)
     return data.image as string

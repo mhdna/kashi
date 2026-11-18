@@ -1,18 +1,20 @@
 import { flushPromises, mount } from '@vue/test-utils'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { vuetify } from '@/test/vuetify'
 import { emptyDesign } from '@/utils/receiptDesign'
 import catalog from '@/utils/testdata/receipt_designer_catalog.json'
+import ReceiptFontSelect from './ReceiptFontSelect.vue'
 import ReceiptLivePaper from './ReceiptLivePaper.vue'
 
 let wrapper
+const fontFile = vi.fn(async () => new ArrayBuffer(8))
 afterEach(() => { wrapper?.unmount(); wrapper = null; document.body.innerHTML = '' })
 
 const marks = [{ group: 'header', top: 0, bottom: 200 }, { group: 'columns', top: 280, bottom: 600 }, { group: 'payments', top: 650, bottom: 760 }, { group: 'thanks', top: 900, bottom: 1000 }]
 const lines = [
   { key: 'col_item', group: 'columns', top: 300, bottom: 330, text: 'ITEM', size_px: 26, align: 'left', left: 24, right: 90 },
   { key: 'col_qty', group: 'columns', top: 300, bottom: 330, text: 'QTY', size_px: 26, align: 'left', left: 340, right: 390 },
-  { key: 'payments_title', group: 'payments', top: 660, bottom: 690, text: 'PAYMENT DETAILS', size_px: 26, align: 'center' },
+  { key: 'payments_title', group: 'payments', top: 660, bottom: 690, text: 'PAYMENT DETAILS', size_px: 26, align: 'center', font: 'belleza', bold: true },
   { key: 'invoice_number', group: 'header', top: 150, bottom: 180, text: 'Sales Invoice: PV-1', size_px: 24, align: 'center' },
   { key: 'policy_text', group: 'policy', top: 800, bottom: 860, text: 'Exchanges accepted within 3 days.', size_px: 22, align: 'center' },
 ]
@@ -24,7 +26,7 @@ function open (props = {}) {
       'onPick': g => wrapper.setProps({ picked: g }),
       ...props,
     },
-    global: { plugins: [vuetify()] },
+    global: { plugins: [vuetify()], provide: { receiptFontFile: fontFile } },
     attachTo: document.body,
   })
   return wrapper
@@ -115,5 +117,23 @@ describe('ReceiptLivePaper', () => {
   it('says it is drawing before the first picture', () => {
     open({ image: '' })
     expect(wrapper.text()).toContain('Drawing the receipt')
+  })
+
+  it('the reported case: the typing box keeps the line\'s own letters, not a stand-in font', async () => {
+    open()
+    await find('words-payments_title').trigger('click')
+    const style = find('edit-words').element.style
+    expect(style.fontFamily).toContain('kashi-receipt-belleza-bold')
+    expect(style.fontFamily).not.toContain('Cascadia')
+    expect(fontFile).toHaveBeenCalledWith('belleza', true)
+  })
+
+  it('a line takes a font from its toolbar', async () => {
+    open()
+    await find('words-payments_title').trigger('click')
+    expect(find('line-font').exists()).toBe(true)
+    wrapper.findComponent(ReceiptFontSelect).vm.$emit('update:modelValue', 'pacifico')
+    await flushPromises()
+    expect(wrapper.props('design').elements.payments_title).toEqual({ font: 'pacifico' })
   })
 })

@@ -92,6 +92,13 @@
           variant="outlined"
           @update:model-value="v => set(i, { when: v })"
         />
+        <ReceiptFontSelect
+          :catalog="catalog"
+          label="Font of the words"
+          :model-value="b.font ?? ''"
+          :test="`banner-font-${i}`"
+          @update:model-value="v => set(i, { font: v })"
+        />
         <v-select
           :data-test="`banner-place-${i}`"
           density="compact"
@@ -137,6 +144,7 @@
 
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue'
+  import ReceiptFontSelect from '@/components/Receipt/ReceiptFontSelect.vue'
   import {
     addBanner, bannerMax, bannerMode, bannerPlaceOptions, bannerWhenOptions, moveBanner, removeBanner, updateBanner,
   } from '@/utils/receiptDesign'
@@ -159,7 +167,7 @@
   // Each banner's picture, by what it shows; drawn once each.
   const images = ref<Record<string, string>>({})
   function key (b: Record<string, any>) {
-    return JSON.stringify({ style: b.style, title: b.title, subtitle: b.subtitle ?? '' })
+    return JSON.stringify({ style: b.style, title: b.title, subtitle: b.subtitle ?? '', font: b.font ?? '' })
   }
   async function want (b: Record<string, any>) {
     const k = key(b)

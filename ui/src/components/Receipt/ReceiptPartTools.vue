@@ -1,7 +1,7 @@
 <!--
   The toolbar that opens right under a part of the receipt: whether it
   prints, its place (the parts under the totals move), every line of it at
-  once (capitals, size, weight, alignment), its lines and box, the date
+  once (capitals, size, font, weight, alignment), its lines and box, the date
   format for the customer, salesperson and date part, and Default.
 -->
 <template>
@@ -102,6 +102,12 @@
         :value="g.size ?? 0"
         @step="n => update(groupSizeStep(design, catalog, group, n))"
       />
+      <ReceiptFontSelect
+        :catalog="catalog"
+        :model-value="g.font"
+        test="group-font"
+        @update:model-value="v => update(setGroup(design, group, { font: v || '' }))"
+      />
       <v-btn-toggle
         color="primary"
         data-test="group-bold"
@@ -191,6 +197,7 @@
 
 <script setup lang="ts">
   import { computed } from 'vue'
+  import ReceiptFontSelect from '@/components/Receipt/ReceiptFontSelect.vue'
   import SizeStepper from '@/components/Receipt/SizeStepper.vue'
   import {
     footerOrder, groupBoldState, groupInfo, groupSizeStep, isGroupChanged, isSectionHidden, lineStyleOptions,

@@ -3,6 +3,14 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-18: Typing over a receipt line switched it to another font
+
+**Symptom:** in the Receipt Designer, clicking a line to type over it (the store name in Belleza, say) showed the words in a bold monospace font instead of the receipt's own letters.
+
+**Cause:** the typing box always used a fixed stand-in font (Cascadia Mono, bold); the designer didn't know which font the till drew the line in.
+
+**Fix:** the till now says which font and weight each line is drawn in, kashi serves the till's font files (`/receipt_designer/font`), and the box loads and uses that font (`ReceiptLivePaper.vue`, `utils/receiptFonts.js`). Tests: "the typing box keeps the line's own letters" in `ReceiptLivePaper.test.js`, `TestReceiptDesignerFont`.
+
 ## 2026-11-18: The Receipt Designer's panel fell under the receipt
 
 **Symptom:** after picking a part of the receipt, its settings showed far below the receipt instead of beside it, so changing something meant scrolling away from what it changed.

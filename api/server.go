@@ -523,6 +523,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/receipt_designer/catalog", server.getReceiptDesignerCatalog)
 	authRoutes.GET("/receipt_designer/preview", server.getReceiptDesignerPreview)
 	authRoutes.GET("/receipt_designer/banner", server.getReceiptDesignerBanner)
+	authRoutes.GET("/receipt_designer/font", server.getReceiptDesignerFont)
 	authRoutes.GET("/branch_invoices", server.listBranchInvoices)
 	authRoutes.GET("/branch_invoices/export", server.exportBranchInvoices)
 	authRoutes.DELETE("/branch_invoices/:id", server.deleteBranchInvoice)

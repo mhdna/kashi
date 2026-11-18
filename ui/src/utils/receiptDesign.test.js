@@ -263,3 +263,18 @@ describe('banners', () => {
     expect(bannerMode({}, deals)).toBe('')
   })
 })
+
+describe('fonts in the design', () => {
+  it('a line\'s, a part\'s and a banner\'s font are sent, and come back', () => {
+    let d = setElement(emptyDesign(), 'store_name', { font: 'pacifico' })
+    d = setGroup(d, 'totals', { font: 'inter' })
+    d = updateBanner(addBanner(d, catalog.banner_presets[0]), 0, { font: 'lobster' })
+    const sent = JSON.parse(designJSON(d))
+    expect(sent.elements.store_name).toEqual({ font: 'pacifico' })
+    expect(sent.groups.totals).toEqual({ font: 'inter' })
+    expect(sent.banners[0].font).toBe('lobster')
+    expect(designJSON(parseDesign(designJSON(d)))).toBe(designJSON(d))
+    expect(isElementChanged(d, 'store_name')).toBe(true)
+    expect(designJSON(setElement(d, 'store_name', { font: '' }))).not.toContain('pacifico')
+  })
+})
