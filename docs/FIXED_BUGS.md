@@ -3,6 +3,14 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-18: The Receipt Designer showed the old receipt, without the socials
+
+**Symptom:** after the deploy with the editable paper, the designer still showed the receipt without "Follow us on:" and the social icons, and the parts to click didn't line up with what was drawn.
+
+**Cause:** the new preview pictures have the same names as the old ones (`classic-A.png`), and the site lets browsers keep them for 4 hours, so the browser drew the old picture under the new part places.
+
+**Fix:** the till's preview generator gives every picture a version (a hash of it) in the catalog, and the designer asks for `classic-A.png?v=<version>`, so a changed picture always loads fresh (`receiptPreviewURL` in `ui/src/utils/receiptTexts.js`, `ReceiptPaper.vue`, `ReceiptLookPicker.vue`; kashi-pos `receipt_preview_test.go`). Tests: "every picture carries its version" in `receiptTexts.test.js`, "asks for the picture by its version" in `ReceiptPaper.test.js`.
+
 ## 2026-11-17 · The referrals deploy deadlocked and left the database dirty
 
 **Symptom.** `make deploy` failed at "Migrating and restarting API" with

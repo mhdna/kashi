@@ -54,7 +54,7 @@
       <slot :layout="layoutInfo" name="preview" :theme="themeInfo">
         <img
           :alt="`${themeInfo.name} receipt, layout ${layoutInfo.id}`"
-          :src="`/receipt-previews/${layoutInfo.preview}`"
+          :src="receiptPreviewURL(layoutInfo.modes?.[0] ?? { file: layoutInfo.preview })"
         >
       </slot>
     </div>
@@ -64,6 +64,7 @@
 <script setup lang="ts">
   import { computed } from 'vue'
   import catalog from '@/data/receiptThemes.json'
+  import { receiptPreviewURL } from '@/utils/receiptTexts'
 
   type Layout = { id: string, name: string, description: string, preview: string, modes?: any[] }
   type Theme = { id: string, name: string, description: string, best_for: string, layouts: Layout[] }

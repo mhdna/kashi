@@ -37,6 +37,11 @@ describe('ReceiptPaper', () => {
     expect(part('referral_note').exists()).toBe(true)
   })
 
+  it('asks for the picture by its version', () => {
+    open('sale')
+    expect(wrapper.find('.rp-image').element.style.backgroundImage).toContain(`?v=${modeInfo('sale').version}`)
+  })
+
   it('draws the picture at the paper width, each strip cut from its place', () => {
     open('sale', emptyTexts(), { paperWidth: 288 })
     const scale = 288 / modeInfo('sale').width

@@ -118,10 +118,10 @@
 
 <script setup lang="ts">
   import { computed, nextTick, ref } from 'vue'
-  import { paperStrips, sectionLabels, textParts, wording } from '@/utils/receiptTexts'
+  import { paperStrips, receiptPreviewURL, sectionLabels, textParts, wording } from '@/utils/receiptTexts'
 
   type Mark = { kind: string, part: string, top: number, bottom: number, left?: number, right?: number, size_px?: number, bold?: boolean, text?: string }
-  type ModeInfo = { mode: string, file: string, width: number, height: number, parts: Mark[] }
+  type ModeInfo = { mode: string, file: string, version?: string, width: number, height: number, parts: Mark[] }
   type Texts = Record<string, any>
   type CatalogTexts = { defaults: Record<string, string>, sections: string[], max_length: number, referral_percent: number, referral_code: string }
   type Strip = { kind: string, part?: string, section?: string, top: number, bottom: number, text?: string, sizePx?: number, bold?: boolean, reworded?: boolean, icons?: { top: number, bottom: number, left: number, right: number } }
@@ -139,7 +139,8 @@
 
   const strips = computed<Strip[]>(() => paperStrips(props.modeInfo, props.texts, props.catalogTexts))
   const scale = computed(() => props.paperWidth / (props.modeInfo.width || 576))
-  const src = computed(() => `${props.base}${props.modeInfo.file}`)
+  // The version makes a new picture load fresh instead of one the browser kept.
+  const src = computed(() => receiptPreviewURL(props.modeInfo, props.base))
 
   function sliceStyle (top: number, bottom: number) {
     const s = scale.value

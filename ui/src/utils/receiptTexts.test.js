@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import catalog from '@/data/receiptThemes.json'
 import {
   emptyTexts, isHidden, isReworded, paperStrips, parseTexts, pictureRows,
-  receiptModes, sectionLabels, shownText, textParts, textsJSON, toggleHidden, wording,
+  receiptModes, receiptPreviewURL, sectionLabels, shownText, textParts, textsJSON, toggleHidden, wording,
 } from './receiptTexts'
 import cases from './testdata/receipt_texts_cases.json'
 
@@ -148,5 +148,19 @@ describe('paperStrips over every look and mode', () => {
     expect(strips.find(s => s.part === 'thanks')).toMatchObject({ reworded: true, text: 'See you soon' })
     expect(strips.find(s => s.part === 'socials_title')).toMatchObject({ reworded: true, text: 'Find us:' })
     expect(strips.find(s => s.part === 'payments_title')).toMatchObject({ reworded: false, text: 'PAYMENT DETAILS' })
+  })
+})
+
+describe('receiptPreviewURL', () => {
+  it('the reported case: every picture carries its version, so an old copy is never shown', () => {
+    for (const { where, m } of everyMode) {
+      expect(m.version, where).toMatch(/^[0-9a-f]{10}$/)
+      expect(receiptPreviewURL(m), where).toBe(`/receipt-previews/${m.file}?v=${m.version}`)
+    }
+    const versions = new Set(everyMode.map(e => e.m.version))
+    expect(versions.size).toBe(everyMode.length)
+  })
+  it('works without a version', () => {
+    expect(receiptPreviewURL({ file: 'a.png' })).toBe('/receipt-previews/a.png')
   })
 })

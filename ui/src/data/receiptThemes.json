@@ -37,6 +37,7 @@
             {
               "mode": "sale",
               "file": "classic-A.png",
+              "version": "3d4047c92b",
               "width": 576,
               "height": 2044,
               "parts": [
@@ -115,6 +116,7 @@
             {
               "mode": "referral",
               "file": "classic-A-referral.png",
+              "version": "25e879ec41",
               "width": 576,
               "height": 2209,
               "parts": [
@@ -216,6 +218,7 @@
             {
               "mode": "client",
               "file": "classic-A-client.png",
+              "version": "aa02642490",
               "width": 576,
               "height": 2044,
               "parts": [
@@ -294,6 +297,7 @@
             {
               "mode": "exchange",
               "file": "classic-A-exchange.png",
+              "version": "3f02fd059a",
               "width": 576,
               "height": 1326,
               "parts": [
@@ -372,6 +376,7 @@
             {
               "mode": "return",
               "file": "classic-A-return.png",
+              "version": "7daa3f0fa1",
               "width": 576,
               "height": 1253,
               "parts": [
@@ -458,6 +463,7 @@
             {
               "mode": "sale",
               "file": "classic-B.png",
+              "version": "8fc394a495",
               "width": 576,
               "height": 2260,
               "parts": [
@@ -536,6 +542,7 @@
             {
               "mode": "referral",
               "file": "classic-B-referral.png",
+              "version": "9b7e2fef91",
               "width": 576,
               "height": 2425,
               "parts": [
@@ -637,6 +644,7 @@
             {
               "mode": "client",
               "file": "classic-B-client.png",
+              "version": "3bbf6d01e0",
               "width": 576,
               "height": 2260,
               "parts": [
@@ -715,6 +723,7 @@
             {
               "mode": "exchange",
               "file": "classic-B-exchange.png",
+              "version": "43023f1edc",
               "width": 576,
               "height": 1432,
               "parts": [
@@ -793,6 +802,7 @@
             {
               "mode": "return",
               "file": "classic-B-return.png",
+              "version": "0616f9f116",
               "width": 576,
               "height": 1325,
               "parts": [
@@ -879,6 +889,7 @@
             {
               "mode": "sale",
               "file": "classic-C.png",
+              "version": "1ad5c48ea0",
               "width": 576,
               "height": 2152,
               "parts": [
@@ -957,6 +968,7 @@
             {
               "mode": "referral",
               "file": "classic-C-referral.png",
+              "version": "a46eb22291",
               "width": 576,
               "height": 2317,
               "parts": [
@@ -1058,6 +1070,7 @@
             {
               "mode": "client",
               "file": "classic-C-client.png",
+              "version": "3cf77666a1",
               "width": 576,
               "height": 2152,
               "parts": [
@@ -1136,6 +1149,7 @@
             {
               "mode": "exchange",
               "file": "classic-C-exchange.png",
+              "version": "feb83b6ab0",
               "width": 576,
               "height": 1362,
               "parts": [
@@ -1214,6 +1228,7 @@
             {
               "mode": "return",
               "file": "classic-C-return.png",
+              "version": "f61b477514",
               "width": 576,
               "height": 1287,
               "parts": [
@@ -1308,6 +1323,7 @@
             {
               "mode": "sale",
               "file": "supermarket-A.png",
+              "version": "da0aeb23c8",
               "width": 576,
               "height": 1880,
               "parts": [
@@ -1386,6 +1402,7 @@
             {
               "mode": "referral",
               "file": "supermarket-A-referral.png",
+              "version": "d7596f09a1",
               "width": 576,
               "height": 2022,
               "parts": [
@@ -1487,6 +1504,7 @@
             {
               "mode": "client",
               "file": "supermarket-A-client.png",
+              "version": "d7e4408f0a",
               "width": 576,
               "height": 1880,
               "parts": [
@@ -1565,6 +1583,7 @@
             {
               "mode": "exchange",
               "file": "supermarket-A-exchange.png",
+              "version": "92f666608c",
               "width": 576,
               "height": 1156,
               "parts": [
@@ -1643,6 +1662,7 @@
             {
               "mode": "return",
               "file": "supermarket-A-return.png",
+              "version": "d98d1afe57",
               "width": 576,
               "height": 1118,
               "parts": [
@@ -1729,6 +1749,7 @@
             {
               "mode": "sale",
               "file": "supermarket-B.png",
+              "version": "86fbef40ea",
               "width": 576,
               "height": 1810,
               "parts": [
@@ -1807,6 +1828,7 @@
             {
               "mode": "referral",
               "file": "supermarket-B-referral.png",
+              "version": "1e6d426314",
               "width": 576,
               "height": 1952,
               "parts": [
@@ -1908,6 +1930,7 @@
             {
               "mode": "client",
               "file": "supermarket-B-client.png",
+              "version": "d1f420a4fa",
               "width": 576,
               "height": 1810,
               "parts": [
@@ -1986,6 +2009,7 @@
             {
               "mode": "exchange",
               "file": "supermarket-B-exchange.png",
+              "version": "aca2ed3111",
               "width": 576,
               "height": 1156,
               "parts": [
@@ -2064,6 +2088,7 @@
             {
               "mode": "return",
               "file": "supermarket-B-return.png",
+              "version": "de18f37f7f",
               "width": 576,
               "height": 1083,
               "parts": [
@@ -2150,6 +2175,7 @@
             {
               "mode": "sale",
               "file": "supermarket-C.png",
+              "version": "75ca4d2d63",
               "width": 576,
               "height": 1705,
               "parts": [
@@ -2228,6 +2254,7 @@
             {
               "mode": "referral",
               "file": "supermarket-C-referral.png",
+              "version": "37556a1706",
               "width": 576,
               "height": 1847,
               "parts": [
@@ -2329,6 +2356,7 @@
             {
               "mode": "client",
               "file": "supermarket-C-client.png",
+              "version": "33c0599d06",
               "width": 576,
               "height": 1705,
               "parts": [
@@ -2407,6 +2435,7 @@
             {
               "mode": "exchange",
               "file": "supermarket-C-exchange.png",
+              "version": "509ab76fdc",
               "width": 576,
               "height": 1121,
               "parts": [
@@ -2485,6 +2514,7 @@
             {
               "mode": "return",
               "file": "supermarket-C-return.png",
+              "version": "2cf53bf989",
               "width": 576,
               "height": 1048,
               "parts": [
@@ -2579,6 +2609,7 @@
             {
               "mode": "sale",
               "file": "boutique-A.png",
+              "version": "80ad5a4553",
               "width": 576,
               "height": 2465,
               "parts": [
@@ -2657,6 +2688,7 @@
             {
               "mode": "referral",
               "file": "boutique-A-referral.png",
+              "version": "095d068609",
               "width": 576,
               "height": 2607,
               "parts": [
@@ -2758,6 +2790,7 @@
             {
               "mode": "client",
               "file": "boutique-A-client.png",
+              "version": "bee1c7880b",
               "width": 576,
               "height": 2465,
               "parts": [
@@ -2836,6 +2869,7 @@
             {
               "mode": "exchange",
               "file": "boutique-A-exchange.png",
+              "version": "4543b0fc11",
               "width": 576,
               "height": 1419,
               "parts": [
@@ -2914,6 +2948,7 @@
             {
               "mode": "return",
               "file": "boutique-A-return.png",
+              "version": "d74e81711b",
               "width": 576,
               "height": 1299,
               "parts": [
@@ -3000,6 +3035,7 @@
             {
               "mode": "sale",
               "file": "boutique-B.png",
+              "version": "83a64f8664",
               "width": 576,
               "height": 2225,
               "parts": [
@@ -3078,6 +3114,7 @@
             {
               "mode": "referral",
               "file": "boutique-B-referral.png",
+              "version": "e36432fd7b",
               "width": 576,
               "height": 2367,
               "parts": [
@@ -3179,6 +3216,7 @@
             {
               "mode": "client",
               "file": "boutique-B-client.png",
+              "version": "7b075e50f3",
               "width": 576,
               "height": 2225,
               "parts": [
@@ -3257,6 +3295,7 @@
             {
               "mode": "exchange",
               "file": "boutique-B-exchange.png",
+              "version": "51559258a1",
               "width": 576,
               "height": 1329,
               "parts": [
@@ -3335,6 +3374,7 @@
             {
               "mode": "return",
               "file": "boutique-B-return.png",
+              "version": "a52fb44d50",
               "width": 576,
               "height": 1285,
               "parts": [
@@ -3429,6 +3469,7 @@
             {
               "mode": "sale",
               "file": "modern-A.png",
+              "version": "fa93e8f720",
               "width": 576,
               "height": 2095,
               "parts": [
@@ -3507,6 +3548,7 @@
             {
               "mode": "referral",
               "file": "modern-A-referral.png",
+              "version": "8a658e3f95",
               "width": 576,
               "height": 2227,
               "parts": [
@@ -3608,6 +3650,7 @@
             {
               "mode": "client",
               "file": "modern-A-client.png",
+              "version": "7023963557",
               "width": 576,
               "height": 2095,
               "parts": [
@@ -3686,6 +3729,7 @@
             {
               "mode": "exchange",
               "file": "modern-A-exchange.png",
+              "version": "ba14e12ef0",
               "width": 576,
               "height": 1226,
               "parts": [
@@ -3764,6 +3808,7 @@
             {
               "mode": "return",
               "file": "modern-A-return.png",
+              "version": "6fed0ab2a2",
               "width": 576,
               "height": 1183,
               "parts": [
@@ -3850,6 +3895,7 @@
             {
               "mode": "sale",
               "file": "modern-B.png",
+              "version": "b34444c20a",
               "width": 576,
               "height": 1903,
               "parts": [
@@ -3928,6 +3974,7 @@
             {
               "mode": "referral",
               "file": "modern-B-referral.png",
+              "version": "349db8e092",
               "width": 576,
               "height": 2035,
               "parts": [
@@ -4029,6 +4076,7 @@
             {
               "mode": "client",
               "file": "modern-B-client.png",
+              "version": "c2d917e465",
               "width": 576,
               "height": 1903,
               "parts": [
@@ -4107,6 +4155,7 @@
             {
               "mode": "exchange",
               "file": "modern-B-exchange.png",
+              "version": "e0d9e41754",
               "width": 576,
               "height": 1252,
               "parts": [
@@ -4185,6 +4234,7 @@
             {
               "mode": "return",
               "file": "modern-B-return.png",
+              "version": "1ab916a950",
               "width": 576,
               "height": 1170,
               "parts": [
@@ -4279,6 +4329,7 @@
             {
               "mode": "sale",
               "file": "bistro-A.png",
+              "version": "728c41b4ed",
               "width": 576,
               "height": 1883,
               "parts": [
@@ -4357,6 +4408,7 @@
             {
               "mode": "referral",
               "file": "bistro-A-referral.png",
+              "version": "0056e08cba",
               "width": 576,
               "height": 2011,
               "parts": [
@@ -4458,6 +4510,7 @@
             {
               "mode": "client",
               "file": "bistro-A-client.png",
+              "version": "6ce4d09dd7",
               "width": 576,
               "height": 1883,
               "parts": [
@@ -4536,6 +4589,7 @@
             {
               "mode": "exchange",
               "file": "bistro-A-exchange.png",
+              "version": "02290c7690",
               "width": 576,
               "height": 1143,
               "parts": [
@@ -4614,6 +4668,7 @@
             {
               "mode": "return",
               "file": "bistro-A-return.png",
+              "version": "10aff176d8",
               "width": 576,
               "height": 1136,
               "parts": [
@@ -4700,6 +4755,7 @@
             {
               "mode": "sale",
               "file": "bistro-B.png",
+              "version": "b2c0588363",
               "width": 576,
               "height": 1855,
               "parts": [
@@ -4778,6 +4834,7 @@
             {
               "mode": "referral",
               "file": "bistro-B-referral.png",
+              "version": "166976049f",
               "width": 576,
               "height": 1983,
               "parts": [
@@ -4879,6 +4936,7 @@
             {
               "mode": "client",
               "file": "bistro-B-client.png",
+              "version": "e4e7c3d17c",
               "width": 576,
               "height": 1855,
               "parts": [
@@ -4957,6 +5015,7 @@
             {
               "mode": "exchange",
               "file": "bistro-B-exchange.png",
+              "version": "db60aa3ae8",
               "width": 576,
               "height": 1181,
               "parts": [
@@ -5035,6 +5094,7 @@
             {
               "mode": "return",
               "file": "bistro-B-return.png",
+              "version": "f6bf579aea",
               "width": 576,
               "height": 1103,
               "parts": [
@@ -5129,6 +5189,7 @@
             {
               "mode": "sale",
               "file": "typewriter-A.png",
+              "version": "fc4def959c",
               "width": 576,
               "height": 1790,
               "parts": [
@@ -5207,6 +5268,7 @@
             {
               "mode": "referral",
               "file": "typewriter-A-referral.png",
+              "version": "73bcaa9ed1",
               "width": 576,
               "height": 1933,
               "parts": [
@@ -5308,6 +5370,7 @@
             {
               "mode": "client",
               "file": "typewriter-A-client.png",
+              "version": "56a98ee7b0",
               "width": 576,
               "height": 1790,
               "parts": [
@@ -5386,6 +5449,7 @@
             {
               "mode": "exchange",
               "file": "typewriter-A-exchange.png",
+              "version": "6905330428",
               "width": 576,
               "height": 1140,
               "parts": [
@@ -5464,6 +5528,7 @@
             {
               "mode": "return",
               "file": "typewriter-A-return.png",
+              "version": "d0d3567d91",
               "width": 576,
               "height": 1071,
               "parts": [
@@ -5550,6 +5615,7 @@
             {
               "mode": "sale",
               "file": "typewriter-B.png",
+              "version": "8e1f640959",
               "width": 576,
               "height": 1922,
               "parts": [
@@ -5628,6 +5694,7 @@
             {
               "mode": "referral",
               "file": "typewriter-B-referral.png",
+              "version": "faa05e9353",
               "width": 576,
               "height": 2065,
               "parts": [
@@ -5729,6 +5796,7 @@
             {
               "mode": "client",
               "file": "typewriter-B-client.png",
+              "version": "b065a76d1a",
               "width": 576,
               "height": 1922,
               "parts": [
@@ -5807,6 +5875,7 @@
             {
               "mode": "exchange",
               "file": "typewriter-B-exchange.png",
+              "version": "8b7851748b",
               "width": 576,
               "height": 1173,
               "parts": [
@@ -5885,6 +5954,7 @@
             {
               "mode": "return",
               "file": "typewriter-B-return.png",
+              "version": "a67a2868dd",
               "width": 576,
               "height": 1104,
               "parts": [

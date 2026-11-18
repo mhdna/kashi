@@ -179,3 +179,10 @@ export function paperStrips (modeInfo, texts, catalogTexts) {
 export function pictureRows (strips) {
   return strips.reduce((sum, s) => sum + (s.kind === 'hidden' ? 0 : s.bottom - s.top), 0)
 }
+
+// receiptPreviewURL is where a mode's picture is served, with its version so
+// a new picture is never answered from the browser's copy of the old one.
+export function receiptPreviewURL (modeInfo, base = '/receipt-previews/') {
+  const url = `${base}${modeInfo?.file ?? ''}`
+  return modeInfo?.version ? `${url}?v=${modeInfo.version}` : url
+}
