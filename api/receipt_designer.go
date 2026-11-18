@@ -28,6 +28,10 @@ type receiptPreviewRequest struct {
 	Mode     string `form:"mode" binding:"omitempty,oneof=sale referral client exchange return"`
 	// texts is the design as receipt_texts JSON.
 	Texts string `form:"texts"`
+	// shop, when set, is the shop's details being edited (DesignerShop JSON,
+	// fields present override the branch's saved ones), so the receipt shows
+	// them before they are saved.
+	Shop string `form:"shop"`
 }
 
 // designerShop is the branch's own data the receipt prints, from its
@@ -49,7 +53,7 @@ func (server *Server) getReceiptDesignerPreview(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	if len(req.Texts) > 64*1024 {
+	if len(req.Texts) > 64*1024 || len(req.Shop) > 16*1024 {
 		server.writeError(ctx, http.StatusBadRequest, errors.New("the design is too long"))
 		return
 	}
@@ -61,6 +65,13 @@ func (server *Server) getReceiptDesignerPreview(ctx *gin.Context) {
 			in.Shop = designerShop(settings)
 		case !errors.Is(err, sql.ErrNoRows):
 			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+	}
+	if strings.TrimSpace(req.Shop) != "" {
+		// Over the saved details: only the fields sent change.
+		if err := json.Unmarshal([]byte(req.Shop), &in.Shop); err != nil {
+			server.writeError(ctx, http.StatusBadRequest, errors.New("the shop details can't be read"))
 			return
 		}
 	}
@@ -77,6 +88,8 @@ func (server *Server) getReceiptDesignerPreview(ctx *gin.Context) {
 		"width":  out.Width,
 		"height": out.Height,
 		"marks":  out.Marks,
+		// Each line whose words can change, to type over it on the paper.
+		"lines": out.Lines,
 		// The design as the till will keep it.
 		"texts": receiptrender.NormalizeReceiptTextsJSON(strings.TrimSpace(req.Texts)),
 	})

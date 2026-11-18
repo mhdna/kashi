@@ -54,6 +54,9 @@ type defaultBranchSettings struct {
 	// existed) leaves each branch's own look alone when applied to all.
 	ReceiptTheme  string `json:"receipt_theme,omitempty"`
 	ReceiptLayout string `json:"receipt_layout,omitempty"`
+	// The receipt's design (receipt_texts), from the Receipt Designer's "Make
+	// this the default"; nil leaves each branch's own when applied to all.
+	ReceiptTexts *string `json:"receipt_texts,omitempty"`
 
 	AttendanceEnabled                  bool  `json:"attendance_enabled"`
 	AttendanceDuplicateIntervalSeconds int64 `json:"attendance_duplicate_interval_seconds"`

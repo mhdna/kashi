@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
-  alignOptions, boldState, can, caseOptions, designJSON, elementsOf, emptyDesign, groupInfo, isGroupChanged,
-  isSectionHidden, markAt, parseDesign, previewQuery, receiptPreviewURL, resetGroup, setBold, setElement,
+  alignOptions, boldState, can, caseOptions, designJSON, elementsOf, emptyDesign,
+  footerOrder, groupBoldState, groupInfo, groupSizeStep, isElementChanged, isGroupChanged,
+  isSectionHidden, lineStyleOptions, markAt, moveSection, parseDesign, previewQuery, receiptPreviewURL, resetElement, resetGroup,
+  setBold, setDecor, setElement, setGroup, setGroupBold, shopFromSettings, shopPayload, shopPreview,
   sizeStep, toggleSection,
 } from './receiptDesign'
 // What kashi's API serves (TestReceiptDesignerCatalog writes it), so a part
@@ -59,14 +61,14 @@ describe('editing a design', () => {
     d = sizeStep(sizeStep(emptyDesign(), catalog, 'store_name', 1), catalog, 'store_name', -1)
     expect(d.elements.store_name).toBeUndefined()
   })
-  it('bold has three states: the look\'s own, bold, regular', () => {
+  it('bold is bold, regular, or nothing picked for the look\'s own', () => {
     let d = setBold(emptyDesign(), 'thanks', 'regular')
     expect(boldState(d, 'thanks')).toBe('regular')
     expect(JSON.parse(designJSON(d)).elements.thanks).toEqual({ bold: false })
     d = setBold(d, 'thanks', 'bold')
     expect(boldState(d, 'thanks')).toBe('bold')
-    d = setBold(d, 'thanks', 'look')
-    expect(boldState(d, 'thanks')).toBe('look')
+    d = setBold(d, 'thanks', undefined)
+    expect(boldState(d, 'thanks')).toBeUndefined()
     expect(designJSON(d)).toBe('')
   })
   it('leaves a part out and puts it back, and resets a part whole', () => {
@@ -142,5 +144,72 @@ describe('the preview request and the paper', () => {
   it('asks for a thumbnail by its version', () => {
     expect(receiptPreviewURL({ file: 'classic-A.png', version: 'abc' })).toBe('/receipt-previews/classic-A.png?v=abc')
     expect(receiptPreviewURL({ file: 'a.png' })).toBe('/receipt-previews/a.png')
+  })
+})
+
+describe('a whole part, its lines and box, and its place', () => {
+  it('the reported case: a part centred and regular at once, and back to default', () => {
+    let d = setGroup(emptyDesign(), 'payments', { align: 'center' })
+    d = setGroupBold(d, 'payments', 'regular')
+    d = groupSizeStep(d, catalog, 'payments', 2)
+    expect(JSON.parse(designJSON(d))).toEqual({ groups: { payments: { align: 'center', bold: false, size: 2 } } })
+    expect(groupBoldState(d, 'payments')).toBe('regular')
+    expect(isGroupChanged(d, catalog, 'payments')).toBe(true)
+    expect(designJSON(resetGroup(d, catalog, 'payments'))).toBe('')
+  })
+  it('a line resets on its own, its part untouched', () => {
+    let d = setElement(emptyDesign(), 'received', { bold: true, size: 2 })
+    d = setGroup(d, 'payments', { align: 'right' })
+    expect(isElementChanged(d, 'received')).toBe(true)
+    d = resetElement(d, 'received')
+    expect(isElementChanged(d, 'received')).toBe(false)
+    expect(d.groups.payments).toEqual({ align: 'right' })
+  })
+  it('lines and a box: kept only with something set', () => {
+    let d = setDecor(emptyDesign(), 'policy', { box: 'dashed', rounded: true, thickness: 3 })
+    d = setDecor(d, 'thanks', { above: 'double' })
+    d = setDecor(d, 'payments', { below: 'none' })
+    expect(JSON.parse(designJSON(d)).decor).toEqual({ policy: { box: 'dashed', rounded: true, thickness: 3 }, thanks: { above: 'double' }, payments: { below: 'none' } })
+    d = setDecor(d, 'thanks', { above: '' })
+    expect(JSON.parse(designJSON(d)).decor.thanks).toBeUndefined()
+    // Round corners without a box mean nothing.
+    expect(JSON.parse(designJSON(setDecor(emptyDesign(), 'x', { rounded: true })) || '{}').decor?.x?.rounded).toBeUndefined()
+    expect(lineStyleOptions.map(o => o.value)).toEqual(catalog.line_styles)
+  })
+  it('moves a part up and down, and back to the default order sends nothing', () => {
+    expect(footerOrder(emptyDesign(), catalog)).toEqual(catalog.footer_order)
+    let d = moveSection(emptyDesign(), catalog, 'thanks', -1)
+    expect(footerOrder(d, catalog)).toEqual(['payments', 'policy', 'referral', 'thanks', 'socials'])
+    expect(JSON.parse(designJSON(d)).order).toEqual(['payments', 'policy', 'referral', 'thanks', 'socials'])
+    d = moveSection(d, catalog, 'thanks', 1)
+    expect(designJSON(d)).toBe('')
+    expect(moveSection(emptyDesign(), catalog, 'payments', -1)).toEqual(emptyDesign())
+    expect(moveSection(emptyDesign(), catalog, 'thanks', 1)).toEqual(emptyDesign())
+  })
+  it('randomized: any moves keep every part once', () => {
+    let d = emptyDesign()
+    for (let i = 0; i < 300; i++) {
+      const s = catalog.footer_order[Math.floor(Math.random() * catalog.footer_order.length)]
+      d = moveSection(d, catalog, s, Math.random() < 0.5 ? -1 : 1)
+      expect(footerOrder(d, catalog).toSorted()).toEqual(catalog.footer_order.toSorted())
+      expect(designJSON(parseDesign(designJSON(d)))).toBe(designJSON(d))
+    }
+  })
+})
+
+describe('shop details', () => {
+  it('reads a branch\'s settings and saves them back, the phone only for one branch', () => {
+    const shop = shopFromSettings({
+      market_name: 'Bazaar', branch_phone: '03 111', website: 'bz.com', return_policy: 'Swaps in 7 days',
+      social_platforms: ['instagram', 'myspace', 'tiktok'], social_handles: { instagram: '@bz', tiktok: ' ' },
+    })
+    expect(shop.social_platforms).toEqual(['instagram', 'tiktok'])
+    expect(shopPayload(shop)).toEqual({
+      market_name: 'Bazaar', branch_phone: '03 111', website: 'bz.com', return_policy: 'Swaps in 7 days',
+      social_platforms: ['instagram'], social_handles: { instagram: '@bz' },
+    })
+    expect(shopPayload(shop, { allBranches: true })).not.toHaveProperty('branch_phone')
+    expect(JSON.parse(shopPreview(shop))).toMatchObject({ store_name: 'Bazaar', phone: '03 111', social_handles: { instagram: '@bz' } })
+    expect(shopFromSettings(null)).toEqual(shopFromSettings({}))
   })
 })
