@@ -24,7 +24,7 @@ func (store *SQLStore) SaveInvoiceDiscountTx(ctx context.Context, arg SaveInvoic
 			out, err = q.UpdateInvoiceDiscount(ctx, UpdateInvoiceDiscountParams{
 				ID: arg.ID, Name: c.Name, MinTotal: c.MinTotal, Kind: c.Kind, Percent: c.Percent,
 				Amount: c.Amount, AllBranches: c.AllBranches, ValidFrom: c.ValidFrom,
-				ValidTo: c.ValidTo, IsActive: c.IsActive,
+				ValidTo: c.ValidTo, IsActive: c.IsActive, CashierPicks: c.CashierPicks,
 			})
 		}
 		if err != nil {

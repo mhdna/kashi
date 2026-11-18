@@ -1,12 +1,12 @@
 -- name: CreateInvoiceDiscount :one
-INSERT INTO invoice_discounts (name, min_total, kind, percent, amount, all_branches, valid_from, valid_to, is_active)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+INSERT INTO invoice_discounts (name, min_total, kind, percent, amount, all_branches, valid_from, valid_to, is_active, cashier_picks)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 RETURNING *;
 
 -- name: UpdateInvoiceDiscount :one
 UPDATE invoice_discounts
 SET name = $2, min_total = $3, kind = $4, percent = $5, amount = $6, all_branches = $7,
-    valid_from = $8, valid_to = $9, is_active = $10, updated_at = now()
+    valid_from = $8, valid_to = $9, is_active = $10, cashier_picks = $11, updated_at = now()
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 
@@ -37,7 +37,7 @@ ON CONFLICT DO NOTHING;
 -- Every rule changed since the branch last asked, deleted ones included,
 -- with whether it applies to the branch: a rule that doesn't (deleted,
 -- switched off, or the branch taken off it) tells the till to drop it.
-SELECT d.uid, d.name, d.min_total, d.kind, d.percent, d.amount, d.valid_from, d.valid_to, d.updated_at,
+SELECT d.uid, d.name, d.min_total, d.kind, d.percent, d.amount, d.valid_from, d.valid_to, d.updated_at, d.cashier_picks,
        (d.deleted_at IS NULL AND d.is_active AND (d.all_branches OR EXISTS (
            SELECT 1 FROM invoice_discount_branches b
            WHERE b.invoice_discount_id = d.id AND b.branch_id = sqlc.arg(branch_id)::bigint

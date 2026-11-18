@@ -66,6 +66,9 @@ type invoiceDiscountRequest struct {
 	ValidFrom   *time.Time `json:"valid_from"`
 	ValidTo     *time.Time `json:"valid_to"`
 	IsActive    bool       `json:"is_active"`
+	// CashierPicks: the till's cashier turns it on for a sale (Rewards
+	// button) instead of it applying by itself.
+	CashierPicks bool `json:"cashier_picks"`
 }
 
 // params checks the request and clears the field its kind doesn't read, so
@@ -73,7 +76,7 @@ type invoiceDiscountRequest struct {
 func (req invoiceDiscountRequest) params() (db.SaveInvoiceDiscountTxParams, error) {
 	c := db.CreateInvoiceDiscountParams{
 		Name: strings.TrimSpace(req.Name), MinTotal: req.MinTotal, Kind: req.Kind,
-		AllBranches: req.AllBranches, IsActive: req.IsActive,
+		AllBranches: req.AllBranches, IsActive: req.IsActive, CashierPicks: req.CashierPicks,
 	}
 	if c.Name == "" {
 		return db.SaveInvoiceDiscountTxParams{}, errors.New("name is required")
@@ -177,6 +180,8 @@ type syncInvoiceDiscount struct {
 	ValidTo   *time.Time `json:"valid_to"`
 	Applies   bool       `json:"applies"`
 	UpdatedAt time.Time  `json:"updated_at"`
+	// CashierPicks: the till applies it only when the cashier picks it.
+	CashierPicks bool `json:"cashier_picks"`
 }
 
 func (server *Server) invoiceDiscountsForBranchSync(ctx *gin.Context, branchID int64, since time.Time) ([]syncInvoiceDiscount, error) {
@@ -190,7 +195,7 @@ func (server *Server) invoiceDiscountsForBranchSync(ctx *gin.Context, branchID i
 	for i, r := range rows {
 		out[i] = syncInvoiceDiscount{
 			UID: r.Uid, Name: r.Name, MinTotal: r.MinTotal, Kind: r.Kind, Percent: r.Percent,
-			Amount: r.Amount, Applies: r.Applies, UpdatedAt: r.UpdatedAt,
+			Amount: r.Amount, Applies: r.Applies, UpdatedAt: r.UpdatedAt, CashierPicks: r.CashierPicks,
 		}
 		if r.ValidFrom.Valid {
 			out[i].ValidFrom = &r.ValidFrom.Time

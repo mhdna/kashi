@@ -179,6 +179,15 @@
           />
         </div>
         <v-switch
+          v-model="form.cashier_picks"
+          color="primary"
+          data-test="cashier-picks"
+          density="compact"
+          hint="Like a student discount: it shows under the till's Rewards button, and the cashier turns it on for a sale. Off, it applies by itself once the total is reached."
+          label="The cashier picks it for a sale"
+          persistent-hint
+        />
+        <v-switch
           v-model="form.is_active"
           color="primary"
           density="compact"
@@ -251,6 +260,10 @@
   function ruleTerms (rule) {
     if (!rule) return ''
     const off = rule.kind === 'percent' ? `${rule.percent}% off` : `$${formatMoney(rule.amount)} off`
+    if (rule.cashier_picks) {
+      const on = rule.min_total > 0 ? ` on invoices of $${formatMoney(rule.min_total)} or more` : ''
+      return `When the cashier picks it: ${off} the whole invoice${on}`
+    }
     return `Invoices of $${formatMoney(rule.min_total)} or more get ${off} the whole invoice`
   }
 
@@ -293,7 +306,7 @@
   function blank () {
     return {
       id: 0, name: '', minTotal: '', kind: 'percent', percent: 10, amount: '',
-      all_branches: true, branch_ids: [], validFrom: '', validTo: '', is_active: true,
+      all_branches: true, branch_ids: [], validFrom: '', validTo: '', is_active: true, cashier_picks: false,
     }
   }
   const form = reactive(blank())
@@ -303,6 +316,7 @@
     min_total: Math.round(Number(form.minTotal) * 100) || 0,
     percent: form.kind === 'percent' ? Number(form.percent) || 0 : 0,
     amount: form.kind === 'amount' ? Math.round(Number(form.amount) * 100) || 0 : 0,
+    cashier_picks: Boolean(form.cashier_picks),
   }))
 
   function openEdit (rule) {
@@ -314,6 +328,7 @@
         validFrom: day(when(rule.valid_from)),
         validTo: untilDay(when(rule.valid_to)),
         is_active: rule.is_active,
+        cashier_picks: Boolean(rule.cashier_picks),
       }
       : blank())
     editDialog.value = true
