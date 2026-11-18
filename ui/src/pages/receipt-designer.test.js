@@ -14,6 +14,9 @@ vi.mock('@/composables/useApi', () => ({
   authFetch: async (url, options = {}) => {
     const path = String(url).replace('http://test/api', '')
     if (path.startsWith('/receipt_designer/catalog')) {return { ok: true, status: 200, json: async () => ({ catalog }) }}
+    if (path.startsWith('/invoice_discounts')) {
+      return { ok: true, status: 200, json: async () => ({ invoice_discounts: [{ id: 5, name: 'Students 15%', kind: 'percent', percent: 15, amount: 0, is_active: true }] }) }
+    }
     if (path.startsWith('/default_branch_settings')) {
       if (options.method === 'PUT') {
         puts.push(JSON.parse(options.body))
@@ -27,7 +30,7 @@ vi.mock('@/composables/useApi', () => ({
         image: 'data:image/png;base64,AAAA', width: 576, height: 1000,
         marks: [{ group: 'header', top: 0, bottom: 200 }, { group: 'columns', top: 300, bottom: 600 }, { group: 'thanks', top: 900, bottom: 1000 }],
         lines: [
-          { key: 'col_item', group: 'columns', top: 300, bottom: 330, text: 'ITEM', size_px: 26, align: 'left' },
+          { key: 'col_item', group: 'columns', top: 300, bottom: 330, text: 'ITEM', size_px: 26, align: 'left', left: 24, right: 90 },
           { key: 'thanks', group: 'thanks', top: 910, bottom: 940, text: 'Thank you for shopping with us!', size_px: 26, align: 'center' },
         ],
         texts: '',
@@ -86,7 +89,7 @@ describe('Receipt Designer', () => {
   it('the reported case: type a column title right on the receipt, and it is drawn again with it', async () => {
     await open()
     await find('words-col_item').trigger('click')
-    expect(find('panel-title').text()).toBe('Items and column titles')
+    expect(find('line-tools-title').text()).toBe('Item')
     await find('edit-words').setValue('Article')
     await find('edit-words').trigger('keydown', { key: 'Enter' })
     await settle()
@@ -112,19 +115,30 @@ describe('Receipt Designer', () => {
     expect(JSON.parse(previews.at(-1).texts).order).toEqual(['payments', 'policy', 'referral', 'thanks', 'socials'])
   })
 
-  it('the reported case: the panel sits beside the receipt, not under it', async () => {
+  it('the receipt sits beside the themes, its options on it, no side panel', async () => {
     await open()
     const work = find('receipt-image').element.closest('.rd-work')
-    expect([...work.children].map(c => c.className.split(' ')[0])).toEqual(['rd-picker', 'rd-paper-col', 'rd-panel'])
+    expect([...work.children].map(c => c.className.split(' ')[0])).toEqual(['rd-picker', 'rd-paper-col'])
     expect(work.className).not.toContain('rd-work--shop')
     await find('tab-shop').trigger('click')
     await settle()
     expect(find('receipt-image').element.closest('.rd-work').className).toContain('rd-work--shop')
   })
 
+  it('the reported case: each deal has a view of its own, drawn with the deal', async () => {
+    await open()
+    await button('Students 15%').trigger('click')
+    await settle()
+    expect(previews.at(-1).mode).toBe('client')
+    expect(JSON.parse(previews.at(-1).deal)).toEqual({ name: 'Students 15%', kind: 'percent', percent: 15, amount: 0 })
+    await button('Sale').trigger('click')
+    await settle()
+    expect(previews.at(-1).deal).toBeUndefined()
+  })
+
   it('every mode is drawn', async () => {
     await open()
-    for (const [label, mode] of [['Sale with referral code', 'referral'], ['Sale with a client', 'client'], ['Exchange', 'exchange'], ['Return', 'return']]) {
+    for (const [label, mode] of [['Sale with referral code', 'referral'], ['Sale with a client', 'client'], ['Exchange', 'exchange'], ['Return', 'return'], ['Buy 2 get 1', 'item_deal']]) {
       await button(label).trigger('click')
       await settle()
       expect(previews.at(-1).mode, label).toBe(mode)

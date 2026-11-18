@@ -232,3 +232,29 @@ func TestDefaultBranchSettingsKeepsReceiptTexts(t *testing.T) {
 	require.NoError(t, err)
 	require.NotContains(t, string(raw), "receipt_texts", "an unset design leaves each branch's own")
 }
+
+// The reported case: each deal gets a view of its own, its line on the receipt.
+func TestReceiptDesignerPreviewWithDeal(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	store.EXPECT().GetReferralProgram(gomock.Any()).Return(db.ReferralProgram{}, nil).AnyTimes()
+	server := newTestServer(t, store)
+	rec := adminRequest(t, server, http.MethodGet, "/receipt_designer/preview?"+url.Values{
+		"mode": {"client"}, "deal": {`{"name":"Students 15%","kind":"percent","percent":15}`},
+	}.Encode(), nil)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	require.Contains(t, rec.Body.String(), `"key":"invoice_discount"`)
+	require.Contains(t, rec.Body.String(), `"text":"Students 15%"`)
+	_, code := previewRequest(t, server, url.Values{"deal": {"{nope"}})
+	require.Equal(t, http.StatusBadRequest, code)
+}
+
+func TestReceiptDesignerPreviewItemDeal(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	store.EXPECT().GetReferralProgram(gomock.Any()).Return(db.ReferralProgram{}, nil).AnyTimes()
+	server := newTestServer(t, store)
+	body, code := previewRequest(t, server, url.Values{"mode": {"item_deal"}})
+	require.Equal(t, http.StatusOK, code)
+	require.Greater(t, body.Height, 500)
+}
