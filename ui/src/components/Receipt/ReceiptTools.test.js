@@ -1,10 +1,13 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it } from 'vitest'
 import { vuetify } from '@/test/vuetify'
-import { emptyDesign, setElement, toggleSection } from '@/utils/receiptDesign'
+import { designJSON, emptyDesign, setElement, toggleSection } from '@/utils/receiptDesign'
 import catalog from '@/utils/testdata/receipt_designer_catalog.json'
+import ReceiptFontSelect from './ReceiptFontSelect.vue'
 import ReceiptLineTools from './ReceiptLineTools.vue'
 import ReceiptPartTools from './ReceiptPartTools.vue'
+
+globalThis.visualViewport ??= { width: 1024, height: 768, offsetTop: 0, offsetLeft: 0, scale: 1, addEventListener () {}, removeEventListener () {} }
 
 let wrapper
 afterEach(() => { wrapper?.unmount(); wrapper = null; document.body.innerHTML = '' })
@@ -121,5 +124,40 @@ describe('ReceiptPartTools', () => {
     partTools('policy', toggleSection(setElement(emptyDesign(), 'policy_title', { text: 'X' }), 'policy'))
     expect(find('part-printed').text()).toContain('Print this part')
     expect(find('reset-part').exists()).toBe(true)
+  })
+})
+
+describe('fonts', () => {
+  it('the reported case: a line takes a font from the list, each name in its own letters, and Default undoes it', async () => {
+    lineTools('store_name')
+    await find('line-font').find('.v-field').trigger('mousedown')
+    await flushPromises()
+    const names = [...document.querySelectorAll('.rfont-name')]
+    expect(names.length).toBe(catalog.fonts.length)
+    const pacifico = names.find(n => n.textContent === 'Pacifico')
+    expect(pacifico.style.fontFamily).toContain('kashi-receipt-pacifico')
+    pacifico.closest('.v-list-item').click()
+    await flushPromises()
+    expect(design().elements.store_name).toEqual({ font: 'pacifico' })
+    expect(find('line-font').text()).toContain('Pacifico')
+    await find('line-default').trigger('click')
+    expect(design().elements.store_name).toBeUndefined()
+  })
+
+  it('lines that can\'t change font show no list', () => {
+    lineTools('invoice_label_sale')
+    expect(find('line-font').exists()).toBe(false)
+  })
+
+  it('a part sets every line\'s font at once; clearing it is the look\'s own', async () => {
+    partTools('totals')
+    wrapper.findComponent(ReceiptFontSelect).vm.$emit('update:modelValue', 'bebas-neue')
+    await flushPromises()
+    expect(design().groups.totals).toEqual({ font: 'bebas-neue' })
+    expect(find('reset-part').exists()).toBe(true)
+    wrapper.findComponent(ReceiptFontSelect).vm.$emit('update:modelValue', '')
+    await flushPromises()
+    expect(design().groups.totals?.font ?? '').toBe('')
+    expect(designJSON(design())).toBe('')
   })
 })

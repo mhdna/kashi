@@ -100,13 +100,14 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, nextTick, ref, watch } from 'vue'
+  import { computed, inject, nextTick, ref, watch } from 'vue'
   import ReceiptLineTools from '@/components/Receipt/ReceiptLineTools.vue'
   import ReceiptPartTools from '@/components/Receipt/ReceiptPartTools.vue'
   import { can, setElement } from '@/utils/receiptDesign'
+  import { fontStyle, loadReceiptFont } from '@/utils/receiptFonts'
 
   type Band = { top: number, bottom: number }
-  type Line = Band & { key: string, group: string, text: string, size_px: number, align: string, left?: number, right?: number }
+  type Line = Band & { key: string, group: string, text: string, size_px: number, align: string, left?: number, right?: number, font?: string, bold?: boolean }
 
   const props = withDefaults(defineProps<{
     image?: string
@@ -129,6 +130,7 @@
   })
   const emit = defineEmits<{ 'pick': [group: string], 'update:design': [design: Record<string, any>], 'banner': [index: number] }>()
 
+  const fetchFont = inject<(key: string, bold: boolean) => Promise<ArrayBuffer>>('receiptFontFile', async () => new ArrayBuffer(0))
   const line = ref<Line | null>(null)
   const typing = ref(false)
   const draft = ref('')
@@ -173,7 +175,8 @@
   }
   function inputStyle (l: Line) {
     const scale = props.width / (props.imageWidth || 576)
-    return { fontSize: `${Math.max(10, l.size_px * scale)}px`, textAlign: (l.align || 'center') as 'left' | 'center' | 'right' }
+    // The words keep the letters the till prints them in.
+    return { fontWeight: l.bold ? 700 : 400, ...fontStyle(l.font, l.bold), fontSize: `${Math.max(10, l.size_px * scale)}px`, textAlign: (l.align || 'center') as 'left' | 'center' | 'right' }
   }
   function multiline (key: string) {
     return key === 'policy_text' || key === 'referral_note'
@@ -208,6 +211,7 @@
     typing.value = Boolean(info && props.catalog && can(props.catalog, info, 'text'))
     if (!typing.value) {return}
     draft.value = wordsOf(l)
+    loadReceiptFont(l.font, Boolean(l.bold), fetchFont)
     await nextTick()
     editor.value?.focus()
     editor.value?.select()
@@ -313,7 +317,6 @@
   background: #fffbe6;
   color: #000;
   font-family: 'Cascadia Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
-  font-weight: 700;
 }
 .rlive-tools {
   position: absolute;

@@ -121,3 +121,15 @@ func (server *Server) getReceiptDesignerBanner(ctx *gin.Context) {
 	}
 	server.writeJSON(ctx, http.StatusOK, envelope{"image": "data:image/png;base64," + base64.StdEncoding.EncodeToString(png)})
 }
+
+// getReceiptDesignerFont serves a receipt font's file (key, bold=1), so the
+// designer shows a line, and types over it, in the letters the till prints.
+func (server *Server) getReceiptDesignerFont(ctx *gin.Context) {
+	data, ok := receiptrender.ReceiptFontFile(ctx.Query("key"), ctx.Query("bold") == "1")
+	if !ok {
+		server.writeError(ctx, http.StatusNotFound, errors.New("no such font"))
+		return
+	}
+	ctx.Header("Cache-Control", "private, max-age=86400")
+	ctx.Data(http.StatusOK, "font/ttf", data)
+}

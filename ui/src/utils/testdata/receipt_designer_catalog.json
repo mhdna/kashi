@@ -86,6 +86,7 @@
     "align": 16,
     "bold": 8,
     "case": 2,
+    "font": 64,
     "hide": 32,
     "size": 4,
     "text": 1
@@ -128,28 +129,28 @@
       "group": "header",
       "label": "Store name",
       "default": "",
-      "can": 63
+      "can": 127
     },
     {
       "key": "branch_name",
       "group": "header",
       "label": "Branch name",
       "default": "",
-      "can": 63
+      "can": 127
     },
     {
       "key": "phone",
       "group": "header",
       "label": "Phone",
       "default": "",
-      "can": 63
+      "can": 127
     },
     {
       "key": "invoice_number",
       "group": "header",
       "label": "Invoice number line",
       "default": "",
-      "can": 60
+      "can": 124
     },
     {
       "key": "invoice_label_sale",
@@ -177,28 +178,28 @@
       "group": "header",
       "label": "Website",
       "default": "",
-      "can": 63
+      "can": 127
     },
     {
       "key": "meta_customer",
       "group": "meta",
       "label": "Customer",
       "default": "Customer",
-      "can": 47
+      "can": 111
     },
     {
       "key": "meta_salesperson",
       "group": "meta",
       "label": "Salesperson",
       "default": "Salesperson",
-      "can": 47
+      "can": 111
     },
     {
       "key": "meta_date",
       "group": "meta",
       "label": "Date",
       "default": "Date",
-      "can": 47
+      "can": 111
     },
     {
       "key": "note_label",
@@ -219,168 +220,305 @@
       "group": "columns",
       "label": "Item",
       "default": "ITEM",
-      "can": 3
+      "can": 67
     },
     {
       "key": "col_qty",
       "group": "columns",
       "label": "Quantity",
       "default": "QTY",
-      "can": 3
+      "can": 67
     },
     {
       "key": "col_disc",
       "group": "columns",
       "label": "Discount",
       "default": "DISC",
-      "can": 3
+      "can": 67
     },
     {
       "key": "col_price",
       "group": "columns",
       "label": "Price",
       "default": "PRICE",
-      "can": 3
+      "can": 67
     },
     {
       "key": "col_total",
       "group": "columns",
       "label": "Total",
       "default": "TOTAL",
-      "can": 3
+      "can": 67
     },
     {
       "key": "col_amount",
       "group": "columns",
       "label": "Amount",
       "default": "AMOUNT",
-      "can": 3
+      "can": 67
     },
     {
       "key": "subtotal",
       "group": "totals",
       "label": "Subtotal",
       "default": "Subtotal",
-      "can": 47
+      "can": 111
     },
     {
       "key": "discount",
       "group": "totals",
       "label": "Discount",
       "default": "Discount",
-      "can": 15
+      "can": 79
     },
     {
       "key": "rounding",
       "group": "totals",
       "label": "Rounding",
       "default": "Rounding",
-      "can": 15
+      "can": 79
     },
     {
       "key": "items_count",
       "group": "totals",
       "label": "Items count",
       "default": "Items",
-      "can": 47
+      "can": 111
     },
     {
       "key": "you_saved",
       "group": "totals",
       "label": "You saved",
       "default": "You saved",
-      "can": 47
+      "can": 111
     },
     {
       "key": "total",
       "group": "totals",
       "label": "Total",
       "default": "TOTAL",
-      "can": 3
+      "can": 67
     },
     {
       "key": "invoice_discount",
       "group": "totals",
       "label": "Deal on the invoice",
       "default": "{name}",
-      "can": 15
+      "can": 79
     },
     {
       "key": "equivalent",
       "group": "totals",
       "label": "Other currency total",
       "default": "{currency} equivalent",
-      "can": 47
+      "can": 111
     },
     {
       "key": "payments_title",
       "group": "payments",
       "label": "Title",
       "default": "PAYMENT DETAILS",
-      "can": 63
+      "can": 127
     },
     {
       "key": "received",
       "group": "payments",
       "label": "Paid line",
       "default": "Received",
-      "can": 15
+      "can": 79
     },
     {
       "key": "change",
       "group": "payments",
       "label": "Change line",
       "default": "Change",
-      "can": 15
+      "can": 79
     },
     {
       "key": "policy_title",
       "group": "policy",
       "label": "Title",
       "default": "EXCHANGE POLICY",
-      "can": 63
+      "can": 127
     },
     {
       "key": "policy_text",
       "group": "policy",
       "label": "Policy",
       "default": "Exchanges accepted within 3 days.",
-      "can": 31
+      "can": 95
     },
     {
       "key": "referral_title",
       "group": "referral",
       "label": "Title",
       "default": "YOUR CODE:",
-      "can": 31
+      "can": 95
     },
     {
       "key": "referral_note",
       "group": "referral",
       "label": "Line",
       "default": "Give this code to a friend. When they shop with us for the first time, you get {percent} off your next visit.",
-      "can": 31
+      "can": 95
     },
     {
       "key": "socials_title",
       "group": "socials",
       "label": "Title",
       "default": "Follow us on:",
-      "can": 15
+      "can": 79
     },
     {
       "key": "socials_handle",
       "group": "socials",
       "label": "Handle under the icons",
       "default": "",
-      "can": 44
+      "can": 108
     },
     {
       "key": "thanks",
       "group": "thanks",
       "label": "Thank-you line",
       "default": "Thank you for shopping with us!",
-      "can": 63
+      "can": 127
+    }
+  ],
+  "fonts": [
+    {
+      "key": "go-mono",
+      "label": "Go Mono",
+      "kind": "mono"
+    },
+    {
+      "key": "go-sans",
+      "label": "Go Sans",
+      "kind": "sans"
+    },
+    {
+      "key": "cascadia-mono",
+      "label": "Cascadia Mono",
+      "kind": "mono"
+    },
+    {
+      "key": "plex-mono",
+      "label": "IBM Plex Mono",
+      "kind": "mono"
+    },
+    {
+      "key": "courier-prime",
+      "label": "Courier Prime",
+      "kind": "mono"
+    },
+    {
+      "key": "roboto-mono",
+      "label": "Roboto Mono",
+      "kind": "mono"
+    },
+    {
+      "key": "space-mono",
+      "label": "Space Mono",
+      "kind": "mono"
+    },
+    {
+      "key": "special-elite",
+      "label": "Special Elite (typewriter)",
+      "kind": "mono"
+    },
+    {
+      "key": "manrope",
+      "label": "Manrope",
+      "kind": "sans"
+    },
+    {
+      "key": "jost",
+      "label": "Jost",
+      "kind": "sans"
+    },
+    {
+      "key": "inter",
+      "label": "Inter",
+      "kind": "sans"
+    },
+    {
+      "key": "poppins",
+      "label": "Poppins",
+      "kind": "sans"
+    },
+    {
+      "key": "montserrat",
+      "label": "Montserrat",
+      "kind": "sans"
+    },
+    {
+      "key": "belleza",
+      "label": "Belleza",
+      "kind": "sans"
+    },
+    {
+      "key": "lora",
+      "label": "Lora",
+      "kind": "serif"
+    },
+    {
+      "key": "merriweather",
+      "label": "Merriweather",
+      "kind": "serif"
+    },
+    {
+      "key": "cormorant",
+      "label": "Cormorant Garamond",
+      "kind": "serif"
+    },
+    {
+      "key": "playfair",
+      "label": "Playfair Display",
+      "kind": "serif"
+    },
+    {
+      "key": "oswald",
+      "label": "Oswald",
+      "kind": "display"
+    },
+    {
+      "key": "bebas-neue",
+      "label": "Bebas Neue",
+      "kind": "display"
+    },
+    {
+      "key": "anton",
+      "label": "Anton",
+      "kind": "display"
+    },
+    {
+      "key": "archivo-black",
+      "label": "Archivo Black",
+      "kind": "display"
+    },
+    {
+      "key": "abril-fatface",
+      "label": "Abril Fatface",
+      "kind": "display"
+    },
+    {
+      "key": "righteous",
+      "label": "Righteous",
+      "kind": "display"
+    },
+    {
+      "key": "lobster",
+      "label": "Lobster",
+      "kind": "script"
+    },
+    {
+      "key": "pacifico",
+      "label": "Pacifico",
+      "kind": "script"
+    },
+    {
+      "key": "dancing-script",
+      "label": "Dancing Script",
+      "kind": "script"
     }
   ],
   "footer_order": [

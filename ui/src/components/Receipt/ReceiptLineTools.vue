@@ -1,6 +1,6 @@
 <!--
   The toolbar that opens right under a line of the receipt: its capitals,
-  size, weight and alignment, whether it prints, and Default. Only what the
+  size, font, weight and alignment, whether it prints, and Default. Only what the
   till lets that line change shows. Nothing picked is the look's own.
 -->
 <template>
@@ -50,6 +50,13 @@
         :value="el.size ?? 0"
         @step="n => update(sizeStep(design, catalog, info.key, n))"
       />
+      <ReceiptFontSelect
+        v-if="can(catalog, info, 'font')"
+        :catalog="catalog"
+        :model-value="el.font"
+        test="line-font"
+        @update:model-value="v => set({ font: v })"
+      />
       <v-btn-toggle
         v-if="can(catalog, info, 'bold')"
         color="primary"
@@ -95,6 +102,7 @@
 
 <script setup lang="ts">
   import { computed } from 'vue'
+  import ReceiptFontSelect from '@/components/Receipt/ReceiptFontSelect.vue'
   import SizeStepper from '@/components/Receipt/SizeStepper.vue'
   import { boldState, can, isElementChanged, resetElement, setBold, setElement, sizeStep } from '@/utils/receiptDesign'
 

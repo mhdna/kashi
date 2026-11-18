@@ -85,7 +85,7 @@ function isEmptyDecor (d) {
 
 function isEmptyElement (e) {
   return !e || Object.entries(e).every(([k, v]) => {
-    if (k === 'text' || k === 'case' || k === 'align') {return !String(v ?? '').trim()}
+    if (k === 'text' || k === 'case' || k === 'align' || k === 'font') {return !String(v ?? '').trim()}
     if (k === 'size') {return !Number(v)}
     if (k === 'hide') {return !v}
     if (k === 'bold') {return v === undefined || v === null}
@@ -100,6 +100,7 @@ function cleanElement (e) {
   if (Number(e.size)) {clean.size = Number(e.size)}
   if (e.bold === true || e.bold === false) {clean.bold = e.bold}
   if (e.align) {clean.align = e.align}
+  if (e.font) {clean.font = e.font}
   if (e.hide) {clean.hide = true}
   return clean
 }
@@ -131,7 +132,7 @@ export function designJSON (design) {
   const hide = [...new Set(design?.hide)]
   if (hide.length > 0) {out.hide = hide}
   if (design?.date_format) {out.date_format = design.date_format}
-  // A part takes capitals, size, weight and alignment, not words or hiding.
+  // A part takes capitals, size, weight, alignment and font, not words or hiding.
   const groups = cleanMap(design?.groups, isEmptyElement, g => cleanElement({ ...g, text: '', hide: false }))
   if (groups) {out.groups = groups}
   const decor = cleanMap(design?.decor, isEmptyDecor, cleanDecor)
@@ -373,6 +374,7 @@ function cleanBanner (b) {
   if (String(b.subtitle ?? '').trim()) {out.subtitle = String(b.subtitle).trim()}
   if (b.when) {out.when = b.when}
   if (b.place) {out.place = b.place}
+  if (b.font) {out.font = b.font}
   return out
 }
 

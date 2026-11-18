@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"golang.org/x/image/font/opentype"
 	"image"
 	"image/png"
 	"net/http"
@@ -277,4 +278,21 @@ func TestReceiptDesignerBanner(t *testing.T) {
 		rec := adminRequest(t, server, http.MethodGet, "/receipt_designer/banner?"+url.Values{"b": {bad}}.Encode(), nil)
 		require.Equal(t, http.StatusBadRequest, rec.Code, bad)
 	}
+}
+
+// The designer loads each receipt font's file to show lines in it.
+func TestReceiptDesignerFont(t *testing.T) {
+	server := newTestServer(t, mockdb.NewMockStore(gomock.NewController(t)))
+	for _, q := range []string{"key=pacifico", "key=inter&bold=1", "key=go-mono"} {
+		rec := adminRequest(t, server, http.MethodGet, "/receipt_designer/font?"+q, nil)
+		require.Equal(t, http.StatusOK, rec.Code, q)
+		require.Equal(t, "font/ttf", rec.Header().Get("Content-Type"))
+		_, err := opentype.Parse(rec.Body.Bytes())
+		require.NoError(t, err, q)
+	}
+	regular := adminRequest(t, server, http.MethodGet, "/receipt_designer/font?key=inter", nil)
+	bold := adminRequest(t, server, http.MethodGet, "/receipt_designer/font?key=inter&bold=1", nil)
+	require.NotEqual(t, regular.Body.Bytes(), bold.Body.Bytes())
+	rec := adminRequest(t, server, http.MethodGet, "/receipt_designer/font?key=nope", nil)
+	require.Equal(t, http.StatusNotFound, rec.Code)
 }
