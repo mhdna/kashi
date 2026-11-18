@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -41,6 +39,8 @@ var receiptTextsCases = []struct {
 	{"cut to 300 characters", `{"thanks":"` + strings.Repeat("é", 400) + `"}`},
 	{"exactly 300 kept", `{"thanks":"` + strings.Repeat("x", 300) + `"}`},
 	{"arabic kept", `{"thanks":"شكراً لزيارتكم"}`},
+	{"an element and a date format", `{"elements":{"col_item":{"text":" Article ","size":4}},"date_format":"iso"}`},
+	{"unknown element dropped", `{"elements":{"nope":{"text":"x"}}}`},
 }
 
 func TestReceiptTextsJSON(t *testing.T) {
@@ -56,27 +56,11 @@ func TestReceiptTextsJSON(t *testing.T) {
 	require.Equal(t, `{"hide":["policy"]}`, got(`{"hide":["header","items","policy"]}`))
 	require.Equal(t, "", got(`{"hide":["header"]}`))
 	cut := got(`{"thanks":"` + strings.Repeat("é", 400) + `"}`)
-	var parsed receiptTexts
+	var parsed struct {
+		Thanks string `json:"thanks"`
+	}
 	require.NoError(t, json.Unmarshal([]byte(cut), &parsed))
 	require.Equal(t, 300, len([]rune(parsed.Thanks)))
-}
-
-// What this side stores for every case, for the UI to agree with.
-func TestReceiptTextsGolden(t *testing.T) {
-	type row struct {
-		Name string `json:"name"`
-		In   string `json:"in"`
-		Out  string `json:"out"`
-	}
-	rows := make([]row, 0, len(receiptTextsCases))
-	for _, c := range receiptTextsCases {
-		rows = append(rows, row{c.Name, c.In, receiptTextsJSON(strPtr(c.In))})
-	}
-	out, err := json.MarshalIndent(rows, "", "  ")
-	require.NoError(t, err)
-	path := filepath.Join("..", "ui", "src", "utils", "testdata", "receipt_texts_cases.json")
-	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
-	require.NoError(t, os.WriteFile(path, append(out, '\n'), 0o644))
 }
 
 // The Receipt Designer saves through update_settings: the branch stores the

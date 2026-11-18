@@ -1,0 +1,194 @@
+package api
+
+import (
+	"bytes"
+	"database/sql"
+	"encoding/base64"
+	"encoding/json"
+	"image"
+	"image/png"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/golang/mock/gomock"
+	mockdb "github.com/mhdna/kashi/db/mock"
+	db "github.com/mhdna/kashi/db/sqlc"
+	"github.com/mhdna/kashi/receiptrender"
+	"github.com/stretchr/testify/require"
+)
+
+func samePixels(a, b image.Image) bool {
+	if a.Bounds() != b.Bounds() {
+		return false
+	}
+	for y := a.Bounds().Min.Y; y < a.Bounds().Max.Y; y++ {
+		for x := a.Bounds().Min.X; x < a.Bounds().Max.X; x++ {
+			r1, g1, b1, _ := a.At(x, y).RGBA()
+			r2, g2, b2, _ := b.At(x, y).RGBA()
+			if r1 != r2 || g1 != g2 || b1 != b2 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// kashi's copy of the renderer draws exactly what the till does: every look
+// in every mode, with no design, matches the till's own pictures
+// (ui/public/receipt-previews, from make receipt-previews in kashi-pos).
+func TestReceiptRendererMatchesTheTill(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("..", "ui", "src", "data", "receiptThemes.json"))
+	require.NoError(t, err)
+	var catalog struct {
+		Themes []struct {
+			ID      string `json:"id"`
+			Layouts []struct {
+				ID    string `json:"id"`
+				Modes []struct {
+					Mode string `json:"mode"`
+					File string `json:"file"`
+				} `json:"modes"`
+			} `json:"layouts"`
+		} `json:"themes"`
+	}
+	require.NoError(t, json.Unmarshal(raw, &catalog))
+	n := 0
+	for _, theme := range catalog.Themes {
+		for _, layout := range theme.Layouts {
+			for _, mode := range layout.Modes {
+				want, err := os.ReadFile(filepath.Join("..", "ui", "public", "receipt-previews", mode.File))
+				require.NoError(t, err)
+				wantImg, err := png.Decode(bytes.NewReader(want))
+				require.NoError(t, err)
+				out, err := receiptrender.RenderDesignerPreview(receiptrender.DesignerInput{Theme: theme.ID, Layout: layout.ID, Mode: mode.Mode})
+				require.NoError(t, err)
+				got, err := png.Decode(bytes.NewReader(out.PNG))
+				require.NoError(t, err)
+				require.True(t, samePixels(wantImg, got), "%s/%s/%s differs from the till's picture", theme.ID, layout.ID, mode.Mode)
+				n++
+			}
+		}
+	}
+	require.Equal(t, 70, n)
+}
+
+func previewRequest(t *testing.T, server *Server, query url.Values) (*struct {
+	Image  string `json:"image"`
+	Width  int    `json:"width"`
+	Height int    `json:"height"`
+	Marks  []struct {
+		Group  string `json:"group"`
+		Top    int    `json:"top"`
+		Bottom int    `json:"bottom"`
+	} `json:"marks"`
+	Texts string `json:"texts"`
+}, int) {
+	t.Helper()
+	rec := adminRequest(t, server, http.MethodGet, "/receipt_designer/preview?"+query.Encode(), nil)
+	if rec.Code != http.StatusOK {
+		return nil, rec.Code
+	}
+	var body struct {
+		Image  string `json:"image"`
+		Width  int    `json:"width"`
+		Height int    `json:"height"`
+		Marks  []struct {
+			Group  string `json:"group"`
+			Top    int    `json:"top"`
+			Bottom int    `json:"bottom"`
+		} `json:"marks"`
+		Texts string `json:"texts"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	return &body, rec.Code
+}
+
+// The reported case: the branch's own receipt, with its socials and policy,
+// drawn with the design being edited.
+func TestReceiptDesignerPreviewForABranch(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	store.EXPECT().GetBranchSettings(gomock.Any(), int64(7)).Return(db.BranchSetting{
+		MarketName: "Bazaar", BranchName: "Centro", BranchPhone: "03 111 222", ReturnPolicy: "Swaps within 7 days.",
+		SocialPlatforms: json.RawMessage(`["instagram","tiktok"]`), SocialHandles: json.RawMessage(`{"instagram":"@bazaar","tiktok":"@bz"}`),
+	}, nil)
+	store.EXPECT().GetReferralProgram(gomock.Any()).Return(db.ReferralProgram{RewardPercent: 20}, nil)
+	server := newTestServer(t, store)
+
+	texts := `{"elements":{"thanks":{"text":" Bye ","case":"upper","size":4}},"date_format":"iso"}`
+	body, code := previewRequest(t, server, url.Values{"branch_id": {"7"}, "mode": {"referral"}, "texts": {texts}})
+	require.Equal(t, http.StatusOK, code)
+	require.True(t, strings.HasPrefix(body.Image, "data:image/png;base64,"))
+	data, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(body.Image, "data:image/png;base64,"))
+	require.NoError(t, err)
+	img, err := png.Decode(bytes.NewReader(data))
+	require.NoError(t, err)
+	require.Equal(t, body.Width, img.Bounds().Dx())
+	require.Equal(t, body.Height, img.Bounds().Dy())
+	require.Equal(t, `{"elements":{"thanks":{"text":"Bye","case":"upper","size":4}},"date_format":"iso"}`, body.Texts)
+	groups := map[string]bool{}
+	for _, m := range body.Marks {
+		require.True(t, m.Top >= 0 && m.Bottom <= body.Height && m.Top < m.Bottom, "%s %d-%d", m.Group, m.Top, m.Bottom)
+		groups[m.Group] = true
+	}
+	for _, g := range []string{"header", "meta", "columns", "totals", "payments", "policy", "referral", "socials", "thanks"} {
+		require.True(t, groups[g], "no %s to click", g)
+	}
+}
+
+// No branch chosen (All branches) or a branch with no settings yet: the
+// sample shop.
+func TestReceiptDesignerPreviewSample(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	store.EXPECT().GetBranchSettings(gomock.Any(), int64(9)).Return(db.BranchSetting{}, sql.ErrNoRows)
+	store.EXPECT().GetReferralProgram(gomock.Any()).Return(db.ReferralProgram{}, nil).Times(2)
+	server := newTestServer(t, store)
+	for _, q := range []url.Values{{}, {"branch_id": {"9"}}} {
+		body, code := previewRequest(t, server, q)
+		require.Equal(t, http.StatusOK, code)
+		require.Greater(t, body.Height, 500)
+		require.Equal(t, "", body.Texts)
+	}
+}
+
+func TestReceiptDesignerPreviewRefusesBadInput(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	server := newTestServer(t, store)
+	_, code := previewRequest(t, server, url.Values{"mode": {"birthday"}})
+	require.Equal(t, http.StatusBadRequest, code)
+	_, code = previewRequest(t, server, url.Values{"texts": {strings.Repeat("x", 70*1024)}})
+	require.Equal(t, http.StatusBadRequest, code)
+}
+
+func TestReceiptDesignerCatalog(t *testing.T) {
+	server := newTestServer(t, mockdb.NewMockStore(gomock.NewController(t)))
+	rec := adminRequest(t, server, http.MethodGet, "/receipt_designer/catalog", nil)
+	require.Equal(t, http.StatusOK, rec.Code)
+	var body struct {
+		Catalog struct {
+			Groups      []map[string]any `json:"groups"`
+			Elements    []map[string]any `json:"elements"`
+			DateFormats []map[string]any `json:"date_formats"`
+		} `json:"catalog"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	require.Len(t, body.Catalog.Groups, 9)
+	require.Greater(t, len(body.Catalog.Elements), 30)
+	require.Greater(t, len(body.Catalog.DateFormats), 4)
+	// The whole catalog as served, for the UI's tests.
+	var whole struct {
+		Catalog json.RawMessage `json:"catalog"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &whole))
+	var pretty bytes.Buffer
+	require.NoError(t, json.Indent(&pretty, whole.Catalog, "", "  "))
+	out := pretty.Bytes()
+	path := filepath.Join("..", "ui", "src", "utils", "testdata", "receipt_designer_catalog.json")
+	require.NoError(t, os.WriteFile(path, append(out, '\n'), 0o644))
+}

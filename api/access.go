@@ -261,6 +261,7 @@ var routeRules = []routeRule{
 	lookup("/branches", "branches"),
 	lookup("/branches/connected", ""),
 	rule("/branches/:id/settings", "branches", "branches"),
+	rule("/receipt_designer", "branches", "branches"),
 	rule("/branches/:id/commands", "branches", "branches"),
 	// Prices at a branch, for the remote exchange dialog's estimate.
 	rule("/branches/:id/variant_prices", "", "sales", "pricing", "branches"),

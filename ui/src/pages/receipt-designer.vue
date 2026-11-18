@@ -8,6 +8,7 @@
         <v-select
           v-model="target"
           class="rd-target"
+          data-test="target"
           density="compact"
           hide-details
           item-title="name"
@@ -35,40 +36,52 @@
           v-model:theme="theme"
           :saved-theme="savedTheme"
         >
-          <template #preview="{ layout: layoutInfo }">
-            <div class="rd-paper-col">
-              <v-btn-toggle
-                v-model="mode"
-                class="rd-modes"
-                color="primary"
-                data-test="receipt-modes"
-                density="comfortable"
-                divided
-                mandatory
-                variant="outlined"
-              >
-                <v-btn v-for="m in receiptModes" :key="m.mode" size="small" :value="m.mode">{{ m.label }}</v-btn>
-              </v-btn-toggle>
-              <ReceiptPaper
-                v-if="modeFor(layoutInfo)"
-                :catalog-texts="catalogTexts"
-                :editable="canEdit"
-                :mode-info="modeFor(layoutInfo)"
-                :texts="texts"
-                @update:texts="t => texts = t"
-              />
-              <div class="text-caption text-medium-emphasis rd-paper-note">
-                <template v-if="canEdit">Click a part of the receipt to reword it, or the eye to leave it out.</template>
-                <template v-if="mode === 'referral'"> The referral code prints only while referrals are on.</template>
+          <template #preview>
+            <div class="rd-work">
+              <div class="rd-paper-col">
+                <v-btn-toggle
+                  v-model="mode"
+                  class="rd-modes"
+                  color="primary"
+                  data-test="receipt-modes"
+                  density="comfortable"
+                  divided
+                  mandatory
+                  variant="outlined"
+                >
+                  <v-btn v-for="m in modes" :key="m.mode" size="small" :value="m.mode">{{ m.label }}</v-btn>
+                </v-btn-toggle>
+                <ReceiptLivePaper
+                  :editable="canEdit"
+                  :groups="catalog?.groups ?? []"
+                  :height="preview.height"
+                  :image="preview.image"
+                  :loading="drawing"
+                  :marks="preview.marks"
+                  :picked="picked"
+                  @pick="g => picked = g"
+                />
+                <div v-if="previewError" class="text-body-2 text-error" data-test="preview-error">{{ previewError }}</div>
+                <div class="text-caption text-medium-emphasis rd-paper-note">
+                  Drawn with the till's own code<template v-if="target !== ALL"> and this branch's name, phone, policy and socials</template>.
+                  <template v-if="mode === 'referral'"> The referral code prints only at branches with referrals on.</template>
+                </div>
+              </div>
+              <div v-if="catalog" class="rd-panel">
+                <ReceiptPartPanel
+                  :catalog="catalog"
+                  :design="design"
+                  :group="canEdit ? picked : ''"
+                  @update:design="d => design = d"
+                />
               </div>
             </div>
           </template>
         </ReceiptLookPicker>
         <div class="text-caption text-medium-emphasis mt-4">
-          The theme, layout and wording of the printed invoice. Each register applies them within a few
-          seconds if online. The store name, phone, exchange policy text and socials come from Branch
-          Settings; title and body fonts there apply to the Classic theme, the other themes bring their own.
-          Previews show sample items.
+          The theme, layout and every line of the printed invoice. Each register applies them within a few
+          seconds if online, once it runs a version that knows them. Title and body fonts in Branch Settings
+          apply to the Classic theme; the other themes bring their own. The receipt shows sample items.
         </div>
       </div>
     </v-card>
@@ -76,17 +89,27 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, ref, watch } from 'vue'
-  import ReceiptPaper from '@/components/Receipt/ReceiptPaper.vue'
+  import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+  import ReceiptLivePaper from '@/components/Receipt/ReceiptLivePaper.vue'
+  import ReceiptPartPanel from '@/components/Receipt/ReceiptPartPanel.vue'
   import ReceiptLookPicker from '@/components/ReceiptLookPicker.vue'
+  import { authFetch } from '@/composables/useApi'
   import { useBranches } from '@/composables/useBranches'
   import { useBranchSettings } from '@/composables/useBranchSettings'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
-  import catalog from '@/data/receiptThemes.json'
-  import { emptyTexts, parseTexts, receiptModes, textsJSON } from '@/utils/receiptTexts'
+  import { API_BASE } from '@/config'
+  import { designJSON, emptyDesign, parseDesign, previewQuery } from '@/utils/receiptDesign'
 
   const ALL = 0
+
+  const modes = [
+    { mode: 'sale', label: 'Sale' },
+    { mode: 'referral', label: 'Sale with referral code' },
+    { mode: 'client', label: 'Sale with a client' },
+    { mode: 'exchange', label: 'Exchange' },
+    { mode: 'return', label: 'Return' },
+  ]
 
   const { canEdit } = usePageAccess()
   const { branches, fetchBranches } = useBranches()
@@ -99,21 +122,58 @@
   const theme = ref('classic')
   const layout = ref('A')
   const savedTheme = ref('')
-  // The receipt's wording and the parts it leaves out (receipt_texts).
-  const texts = ref<Record<string, any>>(emptyTexts())
   const mode = ref('sale')
-  const catalogTexts = catalog.texts
-  function modeFor (layoutInfo: { modes?: any[] }) {
-    return layoutInfo?.modes?.find(m => m.mode === mode.value) ?? layoutInfo?.modes?.[0] ?? null
-  }
+  // How each line of the receipt is changed (receipt_texts).
+  const design = ref<any>(emptyDesign())
+  const picked = ref('')
+  const catalog = ref<any>(null)
 
   const targets = computed(() => [
     { id: ALL, name: 'All branches' },
     ...branches.value.map((b: { id: number, name: string }) => ({ id: b.id, name: b.name })),
   ])
 
-  // Choosing one branch shows the look it has now; "All branches" starts from
-  // whatever is on screen.
+  async function getJSON (url: string) {
+    const res = await authFetch(url)
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {throw new Error(data.error || `Request failed with status ${res.status}`)}
+    return data
+  }
+
+  // The receipt, drawn again a moment after each change; an answer to an
+  // older request than the last one sent is dropped.
+  const preview = ref<{ image: string, height: number, marks: any[] }>({ image: '', height: 0, marks: [] })
+  const drawing = ref(false)
+  const previewError = ref('')
+  let previewTimer: ReturnType<typeof setTimeout> | undefined
+  let previewToken = 0
+  async function drawNow () {
+    const token = ++previewToken
+    drawing.value = true
+    try {
+      const query = previewQuery({
+        theme: theme.value, layout: layout.value, mode: mode.value,
+        branchId: target.value === ALL ? 0 : target.value, design: design.value,
+      })
+      const data = await getJSON(`${API_BASE}/receipt_designer/preview?${query}`)
+      if (token !== previewToken) {return}
+      preview.value = { image: data.image, height: data.height, marks: data.marks ?? [] }
+      previewError.value = ''
+    } catch (error) {
+      if (token === previewToken) {previewError.value = (error as Error).message}
+    } finally {
+      if (token === previewToken) {drawing.value = false}
+    }
+  }
+  function drawSoon () {
+    clearTimeout(previewTimer)
+    previewTimer = setTimeout(drawNow, 200)
+  }
+  watch([theme, layout, mode, target, () => designJSON(design.value)], drawSoon)
+  onUnmounted(() => clearTimeout(previewTimer))
+
+  // Choosing one branch shows the look and design it has now; "All
+  // branches" starts from whatever is on screen.
   watch(target, async id => {
     if (id === ALL) {
       savedTheme.value = ''
@@ -124,7 +184,7 @@
       const settings = await getBranchSettings(id)
       theme.value = settings?.receipt_theme || 'classic'
       layout.value = settings?.receipt_layout || 'A'
-      texts.value = parseTexts(settings?.receipt_texts)
+      design.value = parseDesign(settings?.receipt_texts)
       savedTheme.value = theme.value
     } catch (error) {
       notify.error((error as Error).message)
@@ -137,13 +197,9 @@
     saving.value = true
     try {
       const ids = target.value === ALL ? branches.value.map((b: { id: number }) => b.id) : [target.value]
-      const payload = {
-        receipt_theme: theme.value,
-        receipt_layout: layout.value,
-        receipt_texts: textsJSON(texts.value, { sections: catalogTexts.sections, maxLength: catalogTexts.max_length }),
-      }
-      for (const id of ids) await updateBranchSettings(id, payload)
-      if (target.value !== ALL) savedTheme.value = theme.value
+      const payload = { receipt_theme: theme.value, receipt_layout: layout.value, receipt_texts: designJSON(design.value) }
+      for (const id of ids) {await updateBranchSettings(id, payload)}
+      if (target.value !== ALL) {savedTheme.value = theme.value}
       notify.success(`Saved for ${ids.length === 1 ? 'the branch' : `${ids.length} branches`}. Each register applies it within a few seconds if online.`)
     } catch (error) {
       notify.error((error as Error).message)
@@ -154,12 +210,14 @@
 
   onMounted(async () => {
     try {
-      await fetchBranches()
+      const [, data] = await Promise.all([fetchBranches(), getJSON(`${API_BASE}/receipt_designer/catalog`)])
+      catalog.value = data.catalog
     } catch (error) {
       notify.error((error as Error).message)
     } finally {
       loading.value = false
     }
+    drawNow()
   })
 </script>
 
@@ -181,10 +239,17 @@
   min-height: 0;
   overflow-y: auto;
   padding: 16px;
-  max-width: 1040px;
 }
 .rd-target {
   flex: 0 1 240px;
+}
+.rd-work {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 20px;
+  width: 100%;
 }
 .rd-paper-col {
   display: flex;
@@ -201,5 +266,15 @@
 .rd-paper-note {
   max-width: 360px;
   text-align: center;
+}
+.rd-panel {
+  position: sticky;
+  top: 0;
+  flex: 1 1 320px;
+  max-width: 460px;
+  min-width: 0;
+  padding: 16px;
+  border-radius: 8px;
+  background: rgb(var(--v-theme-surface));
 }
 </style>

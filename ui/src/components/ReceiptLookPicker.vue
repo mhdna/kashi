@@ -64,7 +64,7 @@
 <script setup lang="ts">
   import { computed } from 'vue'
   import catalog from '@/data/receiptThemes.json'
-  import { receiptPreviewURL } from '@/utils/receiptTexts'
+  import { receiptPreviewURL } from '@/utils/receiptDesign'
 
   type Layout = { id: string, name: string, description: string, preview: string, modes?: any[] }
   type Theme = { id: string, name: string, description: string, best_for: string, layouts: Layout[] }
