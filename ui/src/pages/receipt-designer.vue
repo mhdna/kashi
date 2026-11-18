@@ -190,6 +190,7 @@
     { mode: 'client', label: 'Sale with a client' },
     { mode: 'exchange', label: 'Exchange' },
     { mode: 'return', label: 'Return' },
+    { mode: 'item_deal', label: 'Buy 2 get 1' },
   ]
 
   const { canEdit } = usePageAccess()

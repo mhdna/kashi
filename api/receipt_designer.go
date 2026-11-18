@@ -25,7 +25,7 @@ type receiptPreviewRequest struct {
 	BranchID int64  `form:"branch_id"`
 	Theme    string `form:"theme"`
 	Layout   string `form:"layout"`
-	Mode     string `form:"mode" binding:"omitempty,oneof=sale referral client exchange return"`
+	Mode     string `form:"mode" binding:"omitempty,oneof=sale referral client exchange return item_deal"`
 	// texts is the design as receipt_texts JSON.
 	Texts string `form:"texts"`
 	// shop, when set, is the shop's details being edited (DesignerShop JSON,

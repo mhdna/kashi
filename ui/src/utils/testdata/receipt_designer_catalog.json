@@ -125,6 +125,13 @@
       "can": 3
     },
     {
+      "key": "deal_free",
+      "group": "columns",
+      "label": "Free item tag",
+      "default": "(FREE)",
+      "can": 35
+    },
+    {
       "key": "col_item",
       "group": "columns",
       "label": "Item",

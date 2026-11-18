@@ -138,7 +138,7 @@ describe('Receipt Designer', () => {
 
   it('every mode is drawn', async () => {
     await open()
-    for (const [label, mode] of [['Sale with referral code', 'referral'], ['Sale with a client', 'client'], ['Exchange', 'exchange'], ['Return', 'return']]) {
+    for (const [label, mode] of [['Sale with referral code', 'referral'], ['Sale with a client', 'client'], ['Exchange', 'exchange'], ['Return', 'return'], ['Buy 2 get 1', 'item_deal']]) {
       await button(label).trigger('click')
       await settle()
       expect(previews.at(-1).mode, label).toBe(mode)

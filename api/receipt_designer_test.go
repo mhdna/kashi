@@ -248,3 +248,13 @@ func TestReceiptDesignerPreviewWithDeal(t *testing.T) {
 	_, code := previewRequest(t, server, url.Values{"deal": {"{nope"}})
 	require.Equal(t, http.StatusBadRequest, code)
 }
+
+func TestReceiptDesignerPreviewItemDeal(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	store.EXPECT().GetReferralProgram(gomock.Any()).Return(db.ReferralProgram{}, nil).AnyTimes()
+	server := newTestServer(t, store)
+	body, code := previewRequest(t, server, url.Values{"mode": {"item_deal"}})
+	require.Equal(t, http.StatusOK, code)
+	require.Greater(t, body.Height, 500)
+}
