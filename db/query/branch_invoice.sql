@@ -134,6 +134,23 @@ WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
   )
   AND (sqlc.narg(date_from)::timestamptz IS NULL OR occurred_at >= sqlc.narg(date_from))
   AND (sqlc.narg(date_to)::timestamptz IS NULL OR occurred_at < sqlc.narg(date_to))
+  -- product_pattern: an ILIKE pattern the API builds from the product box and
+  -- its match mode (contains, starts with, ends with, exact), matched against
+  -- the product's code, name or barcode (product_field; '' is any of them).
+  -- The matching variants are found first (trigram indexes on products, 000103),
+  -- then their lines by product_uid.
+  AND (
+    sqlc.arg(product_pattern)::text = ''
+    OR branch_invoices.id IN (
+      SELECT bii.branch_invoice_id FROM branch_invoice_items bii
+      JOIN product_variants pv ON pv.uid = bii.product_uid
+      JOIN products p ON p.id = pv.product_id
+      WHERE (sqlc.arg(product_field)::text IN ('', 'code') AND p.code ILIKE sqlc.arg(product_pattern)::text)
+        OR (sqlc.arg(product_field)::text IN ('', 'name') AND p.name ILIKE sqlc.arg(product_pattern)::text)
+        OR (sqlc.arg(product_field)::text IN ('', 'barcode') AND pv.barcode ILIKE sqlc.arg(product_pattern)::text))
+  )
+  AND (sqlc.narg(total_min)::bigint IS NULL OR grand_total >= sqlc.narg(total_min))
+  AND (sqlc.narg(total_max)::bigint IS NULL OR grand_total <= sqlc.narg(total_max))
 ORDER BY occurred_at DESC, id DESC
 LIMIT sqlc.arg(page_size)
 OFFSET sqlc.arg(page_offset);
@@ -174,7 +191,24 @@ WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
     OR (sqlc.narg(status) = 'active' AND cancelled_at IS NULL)
   )
   AND (sqlc.narg(date_from)::timestamptz IS NULL OR occurred_at >= sqlc.narg(date_from))
-  AND (sqlc.narg(date_to)::timestamptz IS NULL OR occurred_at < sqlc.narg(date_to));
+  AND (sqlc.narg(date_to)::timestamptz IS NULL OR occurred_at < sqlc.narg(date_to))
+  -- product_pattern: an ILIKE pattern the API builds from the product box and
+  -- its match mode (contains, starts with, ends with, exact), matched against
+  -- the product's code, name or barcode (product_field; '' is any of them).
+  -- The matching variants are found first (trigram indexes on products, 000103),
+  -- then their lines by product_uid.
+  AND (
+    sqlc.arg(product_pattern)::text = ''
+    OR branch_invoices.id IN (
+      SELECT bii.branch_invoice_id FROM branch_invoice_items bii
+      JOIN product_variants pv ON pv.uid = bii.product_uid
+      JOIN products p ON p.id = pv.product_id
+      WHERE (sqlc.arg(product_field)::text IN ('', 'code') AND p.code ILIKE sqlc.arg(product_pattern)::text)
+        OR (sqlc.arg(product_field)::text IN ('', 'name') AND p.name ILIKE sqlc.arg(product_pattern)::text)
+        OR (sqlc.arg(product_field)::text IN ('', 'barcode') AND pv.barcode ILIKE sqlc.arg(product_pattern)::text))
+  )
+  AND (sqlc.narg(total_min)::bigint IS NULL OR grand_total >= sqlc.narg(total_min))
+  AND (sqlc.narg(total_max)::bigint IS NULL OR grand_total <= sqlc.narg(total_max));
 
 -- name: ListDailyIncome :many
 -- Sums grand_total across both kinds ('sales' and 'return') rather than

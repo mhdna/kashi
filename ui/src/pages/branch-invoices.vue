@@ -157,70 +157,21 @@
   </v-dialog>
 
   <div class="invoice-filters d-flex flex-wrap align-center ga-3 px-4 py-3">
-    <v-select
-      v-model="registerFilter"
-      clearable
-      density="compact"
-      hide-details
-      item-title="label"
-      item-value="id"
-      :items="registerOptions"
-      placeholder="All registers"
-      style="max-width: 220px"
-      variant="outlined"
-    />
-    <v-select
-      v-model="kindFilter"
-      clearable
-      density="compact"
-      hide-details
-      :items="kindOptions"
-      placeholder="All types"
-      style="max-width: 160px"
-      variant="outlined"
-    />
-    <v-select
-      v-model="statusFilter"
-      clearable
-      density="compact"
-      hide-details
-      :items="statusOptions"
-      placeholder="Any status"
-      style="max-width: 160px"
-      variant="outlined"
-    />
-    <v-text-field
-      v-model="clientInput"
-      clearable
-      density="compact"
-      hide-details
-      placeholder="Client name or phone"
-      prepend-inner-icon="mdi-account-search"
-      style="max-width: 230px"
-      variant="outlined"
-    />
-    <v-text-field
-      v-model="dateFrom"
-      density="compact"
-      hide-details
-      label="From"
-      :max="dateTo || undefined"
-      style="max-width: 170px"
-      type="date"
-      variant="outlined"
-    />
-    <v-text-field
-      v-model="dateTo"
-      density="compact"
-      hide-details
-      label="To"
-      :min="dateFrom || undefined"
-      style="max-width: 170px"
-      type="date"
-      variant="outlined"
-    />
     <v-btn
-      v-if="hasExtraFilters"
+      data-test="open-filters"
+      prepend-icon="mdi-filter-variant"
+      :text="filterCount ? `Filters (${filterCount})` : 'Filters'"
+      variant="outlined"
+      @click="filterDialog = true"
+    />
+    <span
+      v-if="filterSummary.length > 0"
+      class="filter-summary text-body-2 text-medium-emphasis"
+      data-test="filter-summary"
+    >{{ filterSummary.join(', ') }}</span>
+    <v-btn
+      v-if="filterCount"
+      data-test="clear-filters"
       prepend-icon="mdi-close"
       text="Clear"
       variant="text"
@@ -236,6 +187,14 @@
       @click="exportToExcel"
     />
   </div>
+
+  <InvoiceFilterDialog
+    v-model="filterDialog"
+    :branches="branches"
+    :filters="filters"
+    :registers="registerOptions"
+    @apply="applyFilters"
+  />
 
   <ServerSideTable
     ref="tableRef"
@@ -506,6 +465,7 @@
 <script setup lang="ts">
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
+  import InvoiceFilterDialog from '@/components/Invoice/InvoiceFilterDialog.vue'
   import InvoicePrintButton from '@/components/Invoice/InvoicePrintButton.vue'
   import PaymentEntryPanel from '@/components/Invoice/PaymentEntryPanel.vue'
   import RemoteReturnReceiptCheckbox from '@/components/Invoice/RemoteReturnReceiptCheckbox.vue'
@@ -522,13 +482,12 @@
   import { useVariants } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
   import { useAuthStore } from '@/stores/auth'
-  import { hasInvoiceFilters, invoiceFilterParams } from '@/utils/invoiceFilters'
+  import { countInvoiceFilters, emptyFilters, invoiceFilterParams, invoiceFilterSummary } from '@/utils/invoiceFilters'
   import { estimateCents, paymentStatus, toPayload, unpricedReplacements } from '@/utils/paymentEntry'
   import { canEditRefund } from '@/utils/returnEdit'
 
   const props = defineProps({
     branches: { type: Array, default: () => [] },
-    branchFilter: { type: [Number, String], default: null },
     search: { type: String, default: '' },
     searchDebounce: { type: Number, default: 100 },
   })
@@ -549,7 +508,7 @@
     ensureConnected()
     unsubscribe = onMessage(message => {
       if (message.type !== 'branch_invoice_created') return
-      if (props.branchFilter && message.branch_id !== props.branchFilter) return
+      if (filters.value.branchId && message.branch_id !== filters.value.branchId) return
       tableRef.value?.reload()
     })
   })
@@ -617,56 +576,18 @@
   const apiURL = `${API_BASE}/branch_invoices`
   const tableRef = ref(null)
 
-  const kindOptions = [
-    { title: 'Sales', value: 'sales' },
-    { title: 'Returns', value: 'return' },
-    { title: 'Exchanges', value: 'exchange' },
-  ]
-  const statusOptions = [
-    { title: 'Active', value: 'active' },
-    { title: 'Cancelled', value: 'cancelled' },
-  ]
-  const registerFilter = ref(null)
-  const kindFilter = ref(null)
-  const statusFilter = ref(null)
-  const dateFrom = ref('')
-  const dateTo = ref('')
-  // The box is what's typed; clientFilter follows it after a pause so a request
-  // isn't sent for every key.
-  const clientInput = ref('')
-  const clientFilter = ref('')
-  let clientTimer = null
-  watch(clientInput, value => {
-    clearTimeout(clientTimer)
-    if (!value) {
-      clientFilter.value = ''
-      return
-    }
-    clientTimer = setTimeout(() => {
-      clientFilter.value = value
-    }, 300)
-  })
-  onUnmounted(() => clearTimeout(clientTimer))
-  const hasExtraFilters = computed(() => hasInvoiceFilters({
-    registerId: registerFilter.value,
-    kind: kindFilter.value,
-    status: statusFilter.value,
-    dateFrom: dateFrom.value,
-    dateTo: dateTo.value,
-    client: clientInput.value,
-  }))
-
-  function clearFilters () {
-    registerFilter.value = null
-    kindFilter.value = null
-    statusFilter.value = null
-    dateFrom.value = ''
-    dateTo.value = ''
-    clientInput.value = ''
-    clientFilter.value = ''
+  // Every filter lives in the Filters dialog; the list follows what was applied.
+  const filterDialog = ref(false)
+  const filters = ref(emptyFilters())
+  function applyFilters (next) {
+    filters.value = { ...emptyFilters(), ...next }
   }
+  function clearFilters () {
+    filters.value = emptyFilters()
+  }
+  const filterCount = computed(() => countInvoiceFilters(filters.value))
 
-  // Registers to pick from: every till, or just the chosen branch's.
+  // Registers to pick from (the dialog narrows them to the chosen branch).
   const { listAllRegisters } = useBranches()
   const allRegisters = ref([])
   onMounted(async () => {
@@ -677,28 +598,17 @@
     }
   })
   const registerOptions = computed(() =>
-    allRegisters.value
-      .filter(r => !props.branchFilter || r.branch_id === props.branchFilter)
-      .map(r => ({
-        id: r.id,
-        label: `${branchName(r.branch_id)} - ${r.name || r.code}`,
-      })))
-  // A register of another branch can't stay picked once the branch changes.
-  watch(() => props.branchFilter, () => {
-    if (registerFilter.value && !registerOptions.value.some(r => r.id === registerFilter.value)) {
-      registerFilter.value = null
-    }
-  })
-
-  const filterParams = computed(() => invoiceFilterParams({
-    branchId: props.branchFilter,
-    registerId: registerFilter.value,
-    kind: kindFilter.value,
-    status: statusFilter.value,
-    dateFrom: dateFrom.value,
-    dateTo: dateTo.value,
-    client: clientFilter.value,
+    allRegisters.value.map(r => ({
+      id: r.id,
+      branch_id: r.branch_id,
+      label: `${branchName(r.branch_id)} - ${r.name || r.code}`,
+    })))
+  const filterSummary = computed(() => invoiceFilterSummary(filters.value, {
+    branch: branchName,
+    register: id => registerOptions.value.find(r => r.id === id)?.label,
   }))
+
+  const filterParams = computed(() => invoiceFilterParams(filters.value))
   const queryParams = filterParams
 
   const exporting = ref(false)
@@ -1010,8 +920,9 @@
 </script>
 
 <style scoped>
-.invoice-search {
-  flex: 0 1 320px;
+.filter-summary {
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .invoice-details-card {

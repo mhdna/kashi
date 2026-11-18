@@ -146,3 +146,101 @@ func TestExportBranchInvoicesClientFilter(t *testing.T) {
 	server.router.ServeHTTP(recorder, request)
 	require.Equal(t, http.StatusOK, recorder.Code)
 }
+
+// The filter dialog's product box: code/name/barcode, a match mode and a total
+// range reach the page, its count and the export alike.
+func TestListBranchInvoicesProductAndTotalFilters(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	min, max := sql.NullInt64{Int64: -500, Valid: true}, sql.NullInt64{Int64: 12000, Valid: true}
+	store.EXPECT().ListBranchInvoicesPage(gomock.Any(), db.ListBranchInvoicesPageParams{
+		ProductPattern: "SH-12%", ProductField: "code", TotalMin: min, TotalMax: max, PageSize: 14,
+	}).Return([]db.BranchInvoice{}, nil)
+	store.EXPECT().CountBranchInvoicesFiltered(gomock.Any(), db.CountBranchInvoicesFilteredParams{
+		ProductPattern: "SH-12%", ProductField: "code", TotalMin: min, TotalMax: max,
+	}).Return(int64(1), nil)
+
+	server := newTestServer(t, store)
+	recorder := httptest.NewRecorder()
+	request, err := http.NewRequest(http.MethodGet,
+		"/branch_invoices?page_size=14&product=%20SH-12%20&product_field=code&product_match=starts&total_min=-500&total_max=12000", nil)
+	require.NoError(t, err)
+	addAuthorization(t, request, server.tokenMaker, authorizationTypeBearer, "user", time.Minute)
+
+	server.router.ServeHTTP(recorder, request)
+	require.Equal(t, http.StatusOK, recorder.Code)
+	require.JSONEq(t, `{"branch_invoices":[],"total":1}`, recorder.Body.String())
+}
+
+func TestExportBranchInvoicesProductFilter(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	store.EXPECT().ListBranchInvoicesPage(gomock.Any(), db.ListBranchInvoicesPageParams{
+		ProductPattern: "%shirt%", PageSize: exportBranchInvoicesLimit,
+	}).Return([]db.BranchInvoice{}, nil)
+	store.EXPECT().ListBranches(gomock.Any()).Return([]db.Branch{}, nil)
+	store.EXPECT().ListAllBranchRegisters(gomock.Any()).Return([]db.BranchRegister{}, nil)
+
+	server := newTestServer(t, store)
+	recorder := httptest.NewRecorder()
+	request, err := http.NewRequest(http.MethodGet, "/branch_invoices/export?product=shirt", nil)
+	require.NoError(t, err)
+	addAuthorization(t, request, server.tokenMaker, authorizationTypeBearer, "user", time.Minute)
+
+	server.router.ServeHTTP(recorder, request)
+	require.Equal(t, http.StatusOK, recorder.Code)
+}
+
+// A field or mode the dialog never sends is refused, not silently ignored.
+func TestListBranchInvoicesRejectsBadProductOptions(t *testing.T) {
+	for _, query := range []string{
+		"product=a&product_field=color",
+		"product=a&product_match=regex",
+		"total_min=ten",
+	} {
+		ctrl := gomock.NewController(t)
+		store := mockdb.NewMockStore(ctrl)
+		server := newTestServer(t, store)
+		recorder := httptest.NewRecorder()
+		request, err := http.NewRequest(http.MethodGet, "/branch_invoices?"+query, nil)
+		require.NoError(t, err)
+		addAuthorization(t, request, server.tokenMaker, authorizationTypeBearer, "user", time.Minute)
+		server.router.ServeHTTP(recorder, request)
+		require.Equal(t, http.StatusBadRequest, recorder.Code, query)
+	}
+}
+
+// A field with no term is no filter at all.
+func TestListBranchInvoicesFieldWithoutTerm(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	store.EXPECT().ListBranchInvoicesPage(gomock.Any(), db.ListBranchInvoicesPageParams{PageSize: 14}).Return([]db.BranchInvoice{}, nil)
+	store.EXPECT().CountBranchInvoicesFiltered(gomock.Any(), db.CountBranchInvoicesFilteredParams{}).Return(int64(0), nil)
+
+	server := newTestServer(t, store)
+	recorder := httptest.NewRecorder()
+	request, err := http.NewRequest(http.MethodGet, "/branch_invoices?page_size=14&product=%20%20&product_field=name&product_match=exact", nil)
+	require.NoError(t, err)
+	addAuthorization(t, request, server.tokenMaker, authorizationTypeBearer, "user", time.Minute)
+	server.router.ServeHTTP(recorder, request)
+	require.Equal(t, http.StatusOK, recorder.Code)
+}
+
+func TestLikePattern(t *testing.T) {
+	cases := []struct{ term, match, want string }{
+		{"SH12", "", "%SH12%"},
+		{"SH12", "contains", "%SH12%"},
+		{"SH12", "starts", "SH12%"},
+		{"SH12", "ends", "%SH12"},
+		{"SH12", "exact", "SH12"},
+		{"  SH12 ", "exact", "SH12"},
+		{"", "starts", ""},
+		{"   ", "contains", ""},
+		{"50%", "contains", `%50\%%`},
+		{"A_B", "exact", `A\_B`},
+		{`C:\x`, "starts", `C:\\x%`},
+	}
+	for _, c := range cases {
+		require.Equal(t, c.want, likePattern(c.term, c.match), "%q %q", c.term, c.match)
+	}
+}

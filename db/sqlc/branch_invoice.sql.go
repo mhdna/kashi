@@ -65,18 +65,39 @@ WHERE ($1::bigint IS NULL OR branch_id = $1)
   )
   AND ($8::timestamptz IS NULL OR occurred_at >= $8)
   AND ($9::timestamptz IS NULL OR occurred_at < $9)
+  -- product_pattern: an ILIKE pattern the API builds from the product box and
+  -- its match mode (contains, starts with, ends with, exact), matched against
+  -- the product's code, name or barcode (product_field; '' is any of them).
+  -- The matching variants are found first (trigram indexes on products, 000103),
+  -- then their lines by product_uid.
+  AND (
+    $10::text = ''
+    OR branch_invoices.id IN (
+      SELECT bii.branch_invoice_id FROM branch_invoice_items bii
+      JOIN product_variants pv ON pv.uid = bii.product_uid
+      JOIN products p ON p.id = pv.product_id
+      WHERE ($11::text IN ('', 'code') AND p.code ILIKE $10::text)
+        OR ($11::text IN ('', 'name') AND p.name ILIKE $10::text)
+        OR ($11::text IN ('', 'barcode') AND pv.barcode ILIKE $10::text))
+  )
+  AND ($12::bigint IS NULL OR grand_total >= $12)
+  AND ($13::bigint IS NULL OR grand_total <= $13)
 `
 
 type CountBranchInvoicesFilteredParams struct {
-	BranchID     sql.NullInt64  `json:"branch_id"`
-	Search       string         `json:"search"`
-	RegisterID   sql.NullInt64  `json:"register_id"`
-	Client       string         `json:"client"`
-	ClientDigits string         `json:"client_digits"`
-	Kind         sql.NullString `json:"kind"`
-	Status       sql.NullString `json:"status"`
-	DateFrom     sql.NullTime   `json:"date_from"`
-	DateTo       sql.NullTime   `json:"date_to"`
+	BranchID       sql.NullInt64  `json:"branch_id"`
+	Search         string         `json:"search"`
+	RegisterID     sql.NullInt64  `json:"register_id"`
+	Client         string         `json:"client"`
+	ClientDigits   string         `json:"client_digits"`
+	Kind           sql.NullString `json:"kind"`
+	Status         sql.NullString `json:"status"`
+	DateFrom       sql.NullTime   `json:"date_from"`
+	DateTo         sql.NullTime   `json:"date_to"`
+	ProductPattern string         `json:"product_pattern"`
+	ProductField   string         `json:"product_field"`
+	TotalMin       sql.NullInt64  `json:"total_min"`
+	TotalMax       sql.NullInt64  `json:"total_max"`
 }
 
 func (q *Queries) CountBranchInvoicesFiltered(ctx context.Context, arg CountBranchInvoicesFilteredParams) (int64, error) {
@@ -90,6 +111,10 @@ func (q *Queries) CountBranchInvoicesFiltered(ctx context.Context, arg CountBran
 		arg.Status,
 		arg.DateFrom,
 		arg.DateTo,
+		arg.ProductPattern,
+		arg.ProductField,
+		arg.TotalMin,
+		arg.TotalMax,
 	)
 	var count int64
 	err := row.Scan(&count)
@@ -722,23 +747,44 @@ WHERE ($1::bigint IS NULL OR branch_id = $1)
   )
   AND ($8::timestamptz IS NULL OR occurred_at >= $8)
   AND ($9::timestamptz IS NULL OR occurred_at < $9)
+  -- product_pattern: an ILIKE pattern the API builds from the product box and
+  -- its match mode (contains, starts with, ends with, exact), matched against
+  -- the product's code, name or barcode (product_field; '' is any of them).
+  -- The matching variants are found first (trigram indexes on products, 000103),
+  -- then their lines by product_uid.
+  AND (
+    $10::text = ''
+    OR branch_invoices.id IN (
+      SELECT bii.branch_invoice_id FROM branch_invoice_items bii
+      JOIN product_variants pv ON pv.uid = bii.product_uid
+      JOIN products p ON p.id = pv.product_id
+      WHERE ($11::text IN ('', 'code') AND p.code ILIKE $10::text)
+        OR ($11::text IN ('', 'name') AND p.name ILIKE $10::text)
+        OR ($11::text IN ('', 'barcode') AND pv.barcode ILIKE $10::text))
+  )
+  AND ($12::bigint IS NULL OR grand_total >= $12)
+  AND ($13::bigint IS NULL OR grand_total <= $13)
 ORDER BY occurred_at DESC, id DESC
-LIMIT $11
-OFFSET $10
+LIMIT $15
+OFFSET $14
 `
 
 type ListBranchInvoicesPageParams struct {
-	BranchID     sql.NullInt64  `json:"branch_id"`
-	Search       string         `json:"search"`
-	RegisterID   sql.NullInt64  `json:"register_id"`
-	Client       string         `json:"client"`
-	ClientDigits string         `json:"client_digits"`
-	Kind         sql.NullString `json:"kind"`
-	Status       sql.NullString `json:"status"`
-	DateFrom     sql.NullTime   `json:"date_from"`
-	DateTo       sql.NullTime   `json:"date_to"`
-	PageOffset   int32          `json:"page_offset"`
-	PageSize     int32          `json:"page_size"`
+	BranchID       sql.NullInt64  `json:"branch_id"`
+	Search         string         `json:"search"`
+	RegisterID     sql.NullInt64  `json:"register_id"`
+	Client         string         `json:"client"`
+	ClientDigits   string         `json:"client_digits"`
+	Kind           sql.NullString `json:"kind"`
+	Status         sql.NullString `json:"status"`
+	DateFrom       sql.NullTime   `json:"date_from"`
+	DateTo         sql.NullTime   `json:"date_to"`
+	ProductPattern string         `json:"product_pattern"`
+	ProductField   string         `json:"product_field"`
+	TotalMin       sql.NullInt64  `json:"total_min"`
+	TotalMax       sql.NullInt64  `json:"total_max"`
+	PageOffset     int32          `json:"page_offset"`
+	PageSize       int32          `json:"page_size"`
 }
 
 func (q *Queries) ListBranchInvoicesPage(ctx context.Context, arg ListBranchInvoicesPageParams) ([]BranchInvoice, error) {
@@ -752,6 +798,10 @@ func (q *Queries) ListBranchInvoicesPage(ctx context.Context, arg ListBranchInvo
 		arg.Status,
 		arg.DateFrom,
 		arg.DateTo,
+		arg.ProductPattern,
+		arg.ProductField,
+		arg.TotalMin,
+		arg.TotalMax,
 		arg.PageOffset,
 		arg.PageSize,
 	)
