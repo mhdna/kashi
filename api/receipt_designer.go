@@ -105,3 +105,19 @@ func (server *Server) getReceiptDesignerPreview(ctx *gin.Context) {
 		"texts": receiptrender.NormalizeReceiptTextsJSON(strings.TrimSpace(req.Texts)),
 	})
 }
+
+// getReceiptDesignerBanner draws one banner (b: its JSON) alone, as the till
+// prints it, for the designer's gallery of ready-made banners.
+func (server *Server) getReceiptDesignerBanner(ctx *gin.Context) {
+	raw := ctx.Query("b")
+	if raw == "" || len(raw) > 4096 {
+		server.writeError(ctx, http.StatusBadRequest, errors.New("which banner?"))
+		return
+	}
+	png, err := receiptrender.RenderBannerPreview(raw)
+	if err != nil {
+		server.writeError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	server.writeJSON(ctx, http.StatusOK, envelope{"image": "data:image/png;base64," + base64.StdEncoding.EncodeToString(png)})
+}

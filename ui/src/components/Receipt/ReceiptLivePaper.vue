@@ -127,7 +127,7 @@
     image: '', height: 0, imageWidth: 576, marks: () => [], lines: () => [], catalog: null,
     design: () => ({ elements: {} }), picked: '', loading: false, editable: true, width: 420, maxLength: 300,
   })
-  const emit = defineEmits<{ 'pick': [group: string], 'update:design': [design: Record<string, any>] }>()
+  const emit = defineEmits<{ 'pick': [group: string], 'update:design': [design: Record<string, any>], 'banner': [index: number] }>()
 
   const line = ref<Line | null>(null)
   const typing = ref(false)
@@ -136,6 +136,7 @@
 
   const groups = computed(() => props.catalog?.groups ?? [])
   function groupLabel (key: string) {
+    if (key.startsWith('banner-')) {return 'Banner'}
     return groups.value.find((g: any) => g.key === key)?.label ?? key
   }
   function elementInfo (key: string) {
@@ -191,6 +192,12 @@
   function pickPart (group: string) {
     line.value = null
     typing.value = false
+    // A banner opens in the Banners tab.
+    if (group.startsWith('banner-')) {
+      emit('pick', '')
+      emit('banner', Number(group.slice(7)))
+      return
+    }
     emit('pick', group)
   }
 

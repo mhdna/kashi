@@ -39,7 +39,7 @@ export const socialPlatforms = [
 
 // emptyDesign is every default: nothing changed, nothing left out.
 export function emptyDesign () {
-  return { elements: {}, hide: [], date_format: '', groups: {}, decor: {}, order: [] }
+  return { elements: {}, hide: [], date_format: '', groups: {}, decor: {}, order: [], banners: [] }
 }
 
 // parseDesign reads a stored receipt_texts value. The older per-part fields
@@ -75,6 +75,7 @@ export function parseDesign (raw) {
     }
   }
   if (Array.isArray(value.order)) {out.order = value.order.filter(o => typeof o === 'string')}
+  if (Array.isArray(value.banners)) {out.banners = value.banners.filter(b => b && typeof b === 'object').map(b => ({ ...b }))}
   return out
 }
 
@@ -136,6 +137,8 @@ export function designJSON (design) {
   const decor = cleanMap(design?.decor, isEmptyDecor, cleanDecor)
   if (decor) {out.decor = decor}
   if ((design?.order ?? []).length > 0) {out.order = [...design.order]}
+  const banners = (design?.banners ?? []).filter(b => b.style && String(b.title ?? '').trim()).map(b => cleanBanner(b))
+  if (banners.length > 0) {out.banners = banners}
   return Object.keys(out).length > 0 ? JSON.stringify(out) : ''
 }
 
@@ -360,4 +363,67 @@ export function dealModes (rules) {
   return (rules ?? [])
     .filter(r => r && r.is_active !== false && !r.deleted_at?.Valid)
     .map(r => ({ mode: `deal:${r.id}`, label: r.name, deal: { name: r.name, kind: r.kind, percent: r.percent, amount: r.amount } }))
+}
+
+// Banners: display lettering the till draws (receipt_banner.go), up to four.
+export const bannerMax = 4
+
+function cleanBanner (b) {
+  const out = { style: b.style, title: String(b.title).trim() }
+  if (String(b.subtitle ?? '').trim()) {out.subtitle = String(b.subtitle).trim()}
+  if (b.when) {out.when = b.when}
+  if (b.place) {out.place = b.place}
+  return out
+}
+
+// addBanner puts a banner (a preset, say) at the end, while there is room.
+export function addBanner (design, banner) {
+  const banners = design.banners ?? []
+  if (banners.length >= bannerMax) {return design}
+  return { ...design, banners: [...banners, { ...banner }] }
+}
+
+export function updateBanner (design, i, patch) {
+  const banners = (design.banners ?? []).map((b, j) => (j === i ? { ...b, ...patch } : b))
+  return { ...design, banners }
+}
+
+export function removeBanner (design, i) {
+  return { ...design, banners: (design.banners ?? []).filter((_, j) => j !== i) }
+}
+
+export function moveBanner (design, i, step) {
+  const banners = [...(design.banners ?? [])]
+  const j = i + step
+  if (j < 0 || j >= banners.length) {return design}
+  ;[banners[i], banners[j]] = [banners[j], banners[i]]
+  return { ...design, banners }
+}
+
+// bannerWhenOptions are when a banner can print: always, on a buy X get Y
+// sale, with any deal on the invoice, or with one of kashi's deals.
+export function bannerWhenOptions (deals) {
+  return [
+    { value: '', title: 'Always' },
+    { value: 'item_deal', title: 'On a buy X get Y sale' },
+    { value: 'deal', title: 'With any deal on the invoice' },
+    ...(deals ?? []).filter(d => d?.name).map(d => ({ value: `deal:${d.name}`, title: `With ${d.name}` })),
+  ]
+}
+
+export const bannerPlaceOptions = [
+  { value: '', title: 'Under the shop\'s name' },
+  { value: 'bottom', title: 'At the end' },
+]
+
+// bannerMode is the view where a banner shows: the one its condition needs.
+export function bannerMode (banner, deals) {
+  const when = banner?.when ?? ''
+  if (when === 'item_deal') {return 'item_deal'}
+  if (when === 'deal') {return dealModes(deals)[0]?.mode ?? 'sale'}
+  if (when.startsWith('deal:')) {
+    const name = when.slice(5)
+    return dealModes(deals).find(m => m.label === name)?.mode ?? 'item_deal'
+  }
+  return ''
 }

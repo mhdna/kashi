@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
-  alignOptions, boldState, can, caseOptions, dealModes, designJSON, elementsOf, emptyDesign,
-  footerOrder, groupBoldState, groupInfo, groupSizeStep, isElementChanged, isGroupChanged,
-  isSectionHidden, lineStyleOptions, markAt, moveSection, parseDesign, previewQuery, receiptPreviewURL, resetElement, resetGroup,
-  setBold, setDecor, setElement, setGroup, setGroupBold, shopFromSettings, shopPayload, shopPreview,
-  sizeStep, toggleSection,
+  addBanner, alignOptions, bannerMax, bannerMode, bannerWhenOptions, boldState, can, caseOptions, dealModes, designJSON, elementsOf, emptyDesign, footerOrder, groupBoldState, groupInfo,
+  groupSizeStep, isElementChanged, isGroupChanged, isSectionHidden, lineStyleOptions, markAt,
+  moveBanner, moveSection, parseDesign, previewQuery, receiptPreviewURL, removeBanner, resetElement, resetGroup, setBold,
+  setDecor, setElement, setGroup, setGroupBold, shopFromSettings, shopPayload, shopPreview, sizeStep,
+  toggleSection, updateBanner,
 } from './receiptDesign'
 // What kashi's API serves (TestReceiptDesignerCatalog writes it), so a part
 // or a line the till adds is checked here too.
@@ -229,5 +229,37 @@ describe('deal modes', () => {
   it('a deal goes with the preview', () => {
     const q = new URLSearchParams(previewQuery({ mode: 'client', design: emptyDesign(), deal: { name: 'Staff', kind: 'amount', amount: 500 } }))
     expect(JSON.parse(q.get('deal'))).toEqual({ name: 'Staff', kind: 'amount', percent: 0, amount: 500 })
+  })
+})
+
+describe('banners', () => {
+  it('the reported case: add a ready-made banner, change its words, and it is sent', () => {
+    let d = addBanner(emptyDesign(), catalog.banner_presets[0])
+    expect(d.banners).toHaveLength(1)
+    d = updateBanner(d, 0, { title: '  BUY ONE GET ONE ', subtitle: '' })
+    expect(JSON.parse(designJSON(d)).banners).toEqual([{ style: 'ribbon', title: 'BUY ONE GET ONE', when: 'item_deal' }])
+    expect(designJSON(parseDesign(designJSON(d)))).toBe(designJSON(d))
+  })
+  it('takes up to four, moves and removes them', () => {
+    let d = emptyDesign()
+    for (const p of catalog.banner_presets) {d = addBanner(d, p)}
+    expect(d.banners).toHaveLength(bannerMax)
+    const first = d.banners[0].title
+    d = moveBanner(d, 0, 1)
+    expect(d.banners[1].title).toBe(first)
+    expect(moveBanner(d, 0, -1)).toBe(d)
+    d = removeBanner(d, 1)
+    expect(d.banners.map(b => b.title)).not.toContain(first)
+  })
+  it('a banner with no words isn\'t sent', () => {
+    expect(designJSON(updateBanner(addBanner(emptyDesign(), catalog.banner_presets[3]), 0, { title: '  ' }))).toBe('')
+  })
+  it('prints always, on buy X get Y, with any deal, or with one of kashi\'s deals', () => {
+    const deals = [{ id: 1, name: 'Students 15%', kind: 'percent', percent: 15, is_active: true }]
+    expect(bannerWhenOptions(deals).map(o => o.value)).toEqual(['', 'item_deal', 'deal', 'deal:Students 15%'])
+    expect(bannerMode({ when: 'item_deal' }, deals)).toBe('item_deal')
+    expect(bannerMode({ when: 'deal:Students 15%' }, dealModes(deals).length > 0 ? deals : [])).toBe('deal:1')
+    expect(bannerMode({ when: 'deal' }, deals)).toBe('deal:1')
+    expect(bannerMode({}, deals)).toBe('')
   })
 })
