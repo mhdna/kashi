@@ -143,6 +143,9 @@ type printBarcodesRequest struct {
 		Width  float64 `json:"width"`
 		Height float64 `json:"height"`
 	} `json:"label"`
+	// BlankFirstPage puts one empty page before the labels, for printers
+	// that skip the first page of a job.
+	BlankFirstPage bool `json:"blank_first_page"`
 }
 
 func (server *Server) printBarcodes(ctx *gin.Context) {
@@ -200,11 +203,12 @@ func (server *Server) printBarcodes(ctx *gin.Context) {
 	}
 
 	pdf, err := buildLabelsPDF(items, labelOptions{
-		Width:     width,
-		Height:    height,
-		Separator: req.Separator.Enabled,
-		Fields:    fields,
-		Design:    parseSavedLabelDesign(settings.BarcodeLabelDesign).Design,
+		Width:          width,
+		Height:         height,
+		Separator:      req.Separator.Enabled,
+		BlankFirstPage: req.BlankFirstPage,
+		Fields:         fields,
+		Design:         parseSavedLabelDesign(settings.BarcodeLabelDesign).Design,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusBadRequest, err)
