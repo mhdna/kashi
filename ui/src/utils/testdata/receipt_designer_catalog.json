@@ -101,21 +101,21 @@
       "group": "meta",
       "label": "Customer",
       "default": "Customer",
-      "can": 35
+      "can": 47
     },
     {
       "key": "meta_salesperson",
       "group": "meta",
       "label": "Salesperson",
       "default": "Salesperson",
-      "can": 35
+      "can": 47
     },
     {
       "key": "meta_date",
       "group": "meta",
       "label": "Date",
       "default": "Date",
-      "can": 35
+      "can": 47
     },
     {
       "key": "note_label",
@@ -171,35 +171,35 @@
       "group": "totals",
       "label": "Subtotal",
       "default": "Subtotal",
-      "can": 35
+      "can": 47
     },
     {
       "key": "discount",
       "group": "totals",
       "label": "Discount",
       "default": "Discount",
-      "can": 3
+      "can": 15
     },
     {
       "key": "rounding",
       "group": "totals",
       "label": "Rounding",
       "default": "Rounding",
-      "can": 3
+      "can": 15
     },
     {
       "key": "items_count",
       "group": "totals",
       "label": "Items count",
       "default": "Items",
-      "can": 35
+      "can": 47
     },
     {
       "key": "you_saved",
       "group": "totals",
       "label": "You saved",
       "default": "You saved",
-      "can": 35
+      "can": 47
     },
     {
       "key": "total",
@@ -213,7 +213,7 @@
       "group": "totals",
       "label": "Other currency total",
       "default": "{currency} equivalent",
-      "can": 35
+      "can": 47
     },
     {
       "key": "payments_title",
@@ -227,14 +227,14 @@
       "group": "payments",
       "label": "Paid line",
       "default": "Received",
-      "can": 3
+      "can": 15
     },
     {
       "key": "change",
       "group": "payments",
       "label": "Change line",
       "default": "Change",
-      "can": 3
+      "can": 15
     },
     {
       "key": "policy_title",
@@ -286,6 +286,13 @@
       "can": 63
     }
   ],
+  "footer_order": [
+    "payments",
+    "policy",
+    "referral",
+    "socials",
+    "thanks"
+  ],
   "groups": [
     {
       "key": "header",
@@ -328,6 +335,12 @@
       "label": "Thank-you line",
       "section": "thanks"
     }
+  ],
+  "line_styles": [
+    "dotted",
+    "dashed",
+    "solid",
+    "double"
   ],
   "max_length": 300,
   "modes": [

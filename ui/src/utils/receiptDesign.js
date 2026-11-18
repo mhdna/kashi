@@ -13,16 +13,33 @@ export const caseOptions = [
   { value: 'lower', title: 'all small' },
 ]
 
+// Picked by toggles: none picked is the look's own (each line's Default
+// button gets back there).
 export const alignOptions = [
-  { value: '', title: 'As the look has it' },
   { value: 'left', title: 'Left' },
   { value: 'center', title: 'Centre' },
   { value: 'right', title: 'Right' },
 ]
 
+export const lineStyleOptions = [
+  { value: 'dotted', title: 'Dotted' },
+  { value: 'dashed', title: 'Dashed' },
+  { value: 'solid', title: 'Solid' },
+  { value: 'double', title: 'Double' },
+]
+
+// The social platforms the till has icons and handles for.
+export const socialPlatforms = [
+  { value: 'instagram', title: 'Instagram' },
+  { value: 'facebook', title: 'Facebook' },
+  { value: 'tiktok', title: 'TikTok' },
+  { value: 'threads', title: 'Threads' },
+  { value: 'youtube', title: 'YouTube' },
+]
+
 // emptyDesign is every default: nothing changed, nothing left out.
 export function emptyDesign () {
-  return { elements: {}, hide: [], date_format: '' }
+  return { elements: {}, hide: [], date_format: '', groups: {}, decor: {}, order: [] }
 }
 
 // parseDesign reads a stored receipt_texts value. The older per-part fields
@@ -50,7 +67,19 @@ export function parseDesign (raw) {
   }
   if (Array.isArray(value.hide)) {out.hide = value.hide.filter(h => typeof h === 'string')}
   if (typeof value.date_format === 'string') {out.date_format = value.date_format}
+  for (const field of ['groups', 'decor']) {
+    if (value[field] && typeof value[field] === 'object' && !Array.isArray(value[field])) {
+      for (const [key, v] of Object.entries(value[field])) {
+        if (v && typeof v === 'object') {out[field][key] = { ...v }}
+      }
+    }
+  }
+  if (Array.isArray(value.order)) {out.order = value.order.filter(o => typeof o === 'string')}
   return out
+}
+
+function isEmptyDecor (d) {
+  return !d || (!d.above && !d.below && !d.box && !d.rounded && !Number(d.thickness))
 }
 
 function isEmptyElement (e) {
@@ -63,27 +92,50 @@ function isEmptyElement (e) {
   })
 }
 
-// designJSON is the design to send: elements with something set, only
+function cleanElement (e) {
+  const clean = {}
+  if (String(e.text ?? '').trim()) {clean.text = e.text}
+  if (e.case) {clean.case = e.case}
+  if (Number(e.size)) {clean.size = Number(e.size)}
+  if (e.bold === true || e.bold === false) {clean.bold = e.bold}
+  if (e.align) {clean.align = e.align}
+  if (e.hide) {clean.hide = true}
+  return clean
+}
+
+function cleanDecor (d) {
+  const clean = {}
+  for (const f of ['above', 'below', 'box']) {if (d[f]) {clean[f] = d[f]}}
+  if (d.rounded && d.box) {clean.rounded = true}
+  if (Number(d.thickness)) {clean.thickness = Number(d.thickness)}
+  return clean
+}
+
+// cleanMap keeps the entries of a map with something set, each cleaned.
+function cleanMap (map, isEmpty, clean) {
+  const out = {}
+  for (const [key, v] of Object.entries(map ?? {})) {
+    if (!isEmpty(v)) {out[key] = clean(v)}
+  }
+  return Object.keys(out).length > 0 ? out : null
+}
+
+// designJSON is the design to send: lines and parts with something set, only
 // sections left out, '' for every default. kashi and the till clean it the
 // rest of the way (the preview answers with what will be kept).
 export function designJSON (design) {
   const out = {}
-  const elements = {}
-  for (const [key, e] of Object.entries(design?.elements ?? {})) {
-    if (isEmptyElement(e)) {continue}
-    const clean = {}
-    if (String(e.text ?? '').trim()) {clean.text = e.text}
-    if (e.case) {clean.case = e.case}
-    if (Number(e.size)) {clean.size = Number(e.size)}
-    if (e.bold === true || e.bold === false) {clean.bold = e.bold}
-    if (e.align) {clean.align = e.align}
-    if (e.hide) {clean.hide = true}
-    elements[key] = clean
-  }
-  if (Object.keys(elements).length > 0) {out.elements = elements}
+  const elements = cleanMap(design?.elements, isEmptyElement, cleanElement)
+  if (elements) {out.elements = elements}
   const hide = [...new Set(design?.hide)]
   if (hide.length > 0) {out.hide = hide}
   if (design?.date_format) {out.date_format = design.date_format}
+  // A part takes capitals, size, weight and alignment, not words or hiding.
+  const groups = cleanMap(design?.groups, isEmptyElement, g => cleanElement({ ...g, text: '', hide: false }))
+  if (groups) {out.groups = groups}
+  const decor = cleanMap(design?.decor, isEmptyDecor, cleanDecor)
+  if (decor) {out.decor = decor}
+  if ((design?.order ?? []).length > 0) {out.order = [...design.order]}
   return Object.keys(out).length > 0 ? JSON.stringify(out) : ''
 }
 
@@ -108,13 +160,29 @@ export function setElement (design, key, patch) {
   return { ...design, elements }
 }
 
-// resetGroup puts every line of a part back to its default.
+// resetElement puts one line back to the look's own.
+export function resetElement (design, key) {
+  const elements = { ...design.elements }
+  delete elements[key]
+  return { ...design, elements }
+}
+
+export function isElementChanged (design, key) {
+  return !isEmptyElement(design.elements[key])
+}
+
+// resetGroup puts a whole part back: its lines, its own settings, its lines
+// and box, and printing it.
 export function resetGroup (design, catalog, group) {
   const elements = { ...design.elements }
   for (const e of elementsOf(catalog, group)) {delete elements[e.key]}
+  const groups = { ...design.groups }
+  delete groups[group]
+  const decor = { ...design.decor }
+  delete decor[group]
   const section = groupInfo(catalog, group)?.section
   const hide = section ? design.hide.filter(h => h !== section) : design.hide
-  return { ...design, elements, hide, date_format: group === 'meta' ? '' : design.date_format }
+  return { ...design, elements, groups, decor, hide, date_format: group === 'meta' ? '' : design.date_format }
 }
 
 export function isGroupChanged (design, catalog, group) {
@@ -122,6 +190,48 @@ export function isGroupChanged (design, catalog, group) {
   return elementsOf(catalog, group).some(e => !isEmptyElement(design.elements[e.key]))
     || Boolean(section && design.hide.includes(section))
     || (group === 'meta' && Boolean(design.date_format))
+    || !isEmptyElement(design.groups?.[group])
+    || !isEmptyDecor(design.decor?.[group])
+}
+
+// setGroup changes a setting for every line of a part at once.
+export function setGroup (design, group, patch) {
+  const next = { ...design.groups?.[group], ...patch }
+  const groups = { ...design.groups }
+  if (isEmptyElement(next)) {delete groups[group]} else {groups[group] = next}
+  return { ...design, groups }
+}
+
+export function groupSizeStep (design, catalog, group, step) {
+  const now = Number(design.groups?.[group]?.size ?? 0)
+  return setGroup(design, group, { size: Math.min(catalog.size_max, Math.max(catalog.size_min, now + step)) })
+}
+
+// setDecor changes a part's lines and box.
+export function setDecor (design, group, patch) {
+  const next = { ...design.decor?.[group], ...patch }
+  const decor = { ...design.decor }
+  if (isEmptyDecor(next)) {delete decor[group]} else {decor[group] = next}
+  return { ...design, decor }
+}
+
+// The parts under the totals that can move, in print order.
+export function footerOrder (design, catalog) {
+  const all = catalog?.footer_order ?? ['payments', 'policy', 'referral', 'socials', 'thanks']
+  const named = (design.order ?? []).filter(k => all.includes(k))
+  return [...new Set([...named, ...all])]
+}
+
+// moveSection moves a part under the totals up (-1) or down (1); a part that
+// can't move further, or one that doesn't move, leaves the design as it was.
+export function moveSection (design, catalog, section, step) {
+  const order = footerOrder(design, catalog)
+  const i = order.indexOf(section)
+  const j = i + step
+  if (i < 0 || j < 0 || j >= order.length) {return design}
+  ;[order[i], order[j]] = [order[j], order[i]]
+  const all = catalog?.footer_order ?? []
+  return { ...design, order: order.join(',') === all.join(',') ? [] : order }
 }
 
 export function isSectionHidden (design, section) {
@@ -140,22 +250,80 @@ export function sizeStep (design, catalog, key, step) {
   return setElement(design, key, { size: next })
 }
 
-// boldState is the bold toggle's value: 'look' (as the look has it), 'bold'
-// or 'regular'; setBold takes the same.
+// boldState is the bold toggle's value: 'bold', 'regular', or undefined for
+// the look's own; setBold takes the same.
 export function boldState (design, key) {
   const b = design.elements[key]?.bold
   if (b === true) {return 'bold'}
   if (b === false) {return 'regular'}
-  return 'look'
+  return undefined
 }
 
 export function setBold (design, key, state) {
   return setElement(design, key, { bold: state === 'bold' ? true : (state === 'regular' ? false : undefined) })
 }
 
+export function groupBoldState (design, group) {
+  const b = design.groups?.[group]?.bold
+  if (b === true) {return 'bold'}
+  if (b === false) {return 'regular'}
+  return undefined
+}
+
+export function setGroupBold (design, group, state) {
+  return setGroup(design, group, { bold: state === 'bold' ? true : (state === 'regular' ? false : undefined) })
+}
+
+// emptyShop is a branch's details as the Shop details tab edits them.
+export function emptyShop () {
+  return { store_name: '', phone: '', website: '', return_policy: '', social_platforms: [], social_handles: {} }
+}
+
+// shopFromSettings reads a branch's saved settings into the tab.
+export function shopFromSettings (s) {
+  const shop = emptyShop()
+  if (!s) {return shop}
+  shop.store_name = s.market_name ?? ''
+  shop.phone = s.branch_phone || s.market_phone || ''
+  shop.website = s.website ?? ''
+  shop.return_policy = s.return_policy ?? ''
+  const platforms = Array.isArray(s.social_platforms) ? s.social_platforms : []
+  shop.social_platforms = platforms.filter(p => socialPlatforms.some(o => o.value === p))
+  shop.social_handles = s.social_handles && typeof s.social_handles === 'object' ? { ...s.social_handles } : {}
+  return shop
+}
+
+// shopPayload is what the tab saves to a branch (update_settings). The
+// phone is each branch's own, so saving for every branch leaves it out.
+export function shopPayload (shop, { allBranches = false } = {}) {
+  const handles = {}
+  for (const p of shop.social_platforms) {
+    const h = String(shop.social_handles?.[p] ?? '').trim()
+    if (h) {handles[p] = h}
+  }
+  const out = {
+    market_name: shop.store_name.trim(),
+    website: shop.website.trim(),
+    return_policy: shop.return_policy.trim(),
+    social_platforms: shop.social_platforms.filter(p => handles[p]),
+    social_handles: handles,
+  }
+  if (!allBranches) {out.branch_phone = shop.phone.trim()}
+  return out
+}
+
+// shopPreview is the shop as the preview takes it, so unsaved details show.
+export function shopPreview (shop) {
+  const p = shopPayload(shop)
+  return JSON.stringify({
+    store_name: p.market_name, phone: p.branch_phone, website: p.website, return_policy: p.return_policy,
+    social_platforms: p.social_platforms, social_handles: p.social_handles,
+  })
+}
+
 // previewQuery is the preview request for a look, a mode, a branch and the
 // design.
-export function previewQuery ({ theme, layout, mode, branchId, design }) {
+export function previewQuery ({ theme, layout, mode, branchId, design, shop }) {
   const q = new URLSearchParams()
   if (theme) {q.set('theme', theme)}
   if (layout) {q.set('layout', layout)}
@@ -163,6 +331,7 @@ export function previewQuery ({ theme, layout, mode, branchId, design }) {
   if (branchId) {q.set('branch_id', String(branchId))}
   const texts = designJSON(design)
   if (texts) {q.set('texts', texts)}
+  if (shop) {q.set('shop', shopPreview(shop))}
   return q.toString()
 }
 

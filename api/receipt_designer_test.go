@@ -192,3 +192,43 @@ func TestReceiptDesignerCatalog(t *testing.T) {
 	path := filepath.Join("..", "ui", "src", "utils", "testdata", "receipt_designer_catalog.json")
 	require.NoError(t, os.WriteFile(path, append(out, '\n'), 0o644))
 }
+
+// Shop details being edited show on the receipt before they are saved, over
+// the branch's own.
+func TestReceiptDesignerPreviewWithUnsavedShop(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	store.EXPECT().GetBranchSettings(gomock.Any(), int64(7)).Return(db.BranchSetting{MarketName: "Bazaar", BranchName: "Centro"}, nil)
+	store.EXPECT().GetReferralProgram(gomock.Any()).Return(db.ReferralProgram{}, nil).AnyTimes()
+	server := newTestServer(t, store)
+	body, code := previewRequest(t, server, url.Values{"branch_id": {"7"}, "shop": {`{"store_name":"New Name","social_platforms":["instagram"],"social_handles":{"instagram":"@new"}}`}})
+	require.Equal(t, http.StatusOK, code)
+	var lines []struct {
+		Key  string `json:"key"`
+		Text string `json:"text"`
+	}
+	rec := adminRequest(t, server, http.MethodGet, "/receipt_designer/preview?"+url.Values{"shop": {`{"store_name":"New Name"}`}}.Encode(), nil)
+	var raw struct {
+		Lines json.RawMessage `json:"lines"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &raw))
+	require.NoError(t, json.Unmarshal(raw.Lines, &lines))
+	found := false
+	for _, l := range lines {
+		found = found || (l.Key == "store_name" && l.Text == "New Name")
+	}
+	require.True(t, found, "the unsaved store name isn't on the receipt: %s", raw.Lines)
+	require.Greater(t, body.Height, 0)
+	_, code = previewRequest(t, server, url.Values{"shop": {"{oops"}})
+	require.Equal(t, http.StatusBadRequest, code)
+}
+
+func TestDefaultBranchSettingsKeepsReceiptTexts(t *testing.T) {
+	texts := `{"elements":{"thanks":{"text":"Bye"}}}`
+	raw, err := json.Marshal(defaultBranchSettings{ReceiptTheme: "modern", ReceiptTexts: &texts})
+	require.NoError(t, err)
+	require.Contains(t, string(raw), `"receipt_texts":"{\"elements\":{\"thanks\":{\"text\":\"Bye\"}}}"`)
+	raw, err = json.Marshal(defaultBranchSettings{})
+	require.NoError(t, err)
+	require.NotContains(t, string(raw), "receipt_texts", "an unset design leaves each branch's own")
+}
