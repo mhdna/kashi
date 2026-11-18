@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  alignOptions, boldState, can, caseOptions, designJSON, elementsOf, emptyDesign,
+  alignOptions, boldState, can, caseOptions, dealModes, designJSON, elementsOf, emptyDesign,
   footerOrder, groupBoldState, groupInfo, groupSizeStep, isElementChanged, isGroupChanged,
   isSectionHidden, lineStyleOptions, markAt, moveSection, parseDesign, previewQuery, receiptPreviewURL, resetElement, resetGroup,
   setBold, setDecor, setElement, setGroup, setGroupBold, shopFromSettings, shopPayload, shopPreview,
@@ -211,5 +211,23 @@ describe('shop details', () => {
     expect(shopPayload(shop, { allBranches: true })).not.toHaveProperty('branch_phone')
     expect(JSON.parse(shopPreview(shop))).toMatchObject({ store_name: 'Bazaar', phone: '03 111', social_handles: { instagram: '@bz' } })
     expect(shopFromSettings(null)).toEqual(shopFromSettings({}))
+  })
+})
+
+describe('deal modes', () => {
+  it('the reported case: one view for each deal in use, more as they are added', () => {
+    const modes = dealModes([
+      { id: 1, name: 'Students 15%', kind: 'percent', percent: 15, amount: 0, is_active: true },
+      { id: 2, name: '15% above $100', kind: 'percent', percent: 15, amount: 0, min_total: 10_000, is_active: true },
+      { id: 3, name: 'Off', kind: 'amount', amount: 500, is_active: false },
+      { id: 4, name: 'Gone', kind: 'amount', amount: 500, is_active: true, deleted_at: { Valid: true } },
+    ])
+    expect(modes.map(m => m.label)).toEqual(['Students 15%', '15% above $100'])
+    expect(modes[0]).toEqual({ mode: 'deal:1', label: 'Students 15%', deal: { name: 'Students 15%', kind: 'percent', percent: 15, amount: 0 } })
+    expect(dealModes(null)).toEqual([])
+  })
+  it('a deal goes with the preview', () => {
+    const q = new URLSearchParams(previewQuery({ mode: 'client', design: emptyDesign(), deal: { name: 'Staff', kind: 'amount', amount: 500 } }))
+    expect(JSON.parse(q.get('deal'))).toEqual({ name: 'Staff', kind: 'amount', percent: 0, amount: 500 })
   })
 })

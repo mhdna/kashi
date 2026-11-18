@@ -209,6 +209,13 @@
       "can": 3
     },
     {
+      "key": "invoice_discount",
+      "group": "totals",
+      "label": "Deal on the invoice",
+      "default": "{name}",
+      "can": 15
+    },
+    {
       "key": "equivalent",
       "group": "totals",
       "label": "Other currency total",

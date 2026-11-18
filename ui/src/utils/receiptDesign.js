@@ -323,7 +323,7 @@ export function shopPreview (shop) {
 
 // previewQuery is the preview request for a look, a mode, a branch and the
 // design.
-export function previewQuery ({ theme, layout, mode, branchId, design, shop }) {
+export function previewQuery ({ theme, layout, mode, branchId, design, shop, deal }) {
   const q = new URLSearchParams()
   if (theme) {q.set('theme', theme)}
   if (layout) {q.set('layout', layout)}
@@ -332,6 +332,7 @@ export function previewQuery ({ theme, layout, mode, branchId, design, shop }) {
   const texts = designJSON(design)
   if (texts) {q.set('texts', texts)}
   if (shop) {q.set('shop', shopPreview(shop))}
+  if (deal) {q.set('deal', JSON.stringify({ name: deal.name, kind: deal.kind, percent: deal.percent ?? 0, amount: deal.amount ?? 0 }))}
   return q.toString()
 }
 
@@ -350,4 +351,13 @@ export function markAt (marks, y) {
 export function receiptPreviewURL (modeInfo, base = '/receipt-previews/') {
   const url = `${base}${modeInfo?.file ?? ''}`
   return modeInfo?.version ? `${url}?v=${modeInfo.version}` : url
+}
+
+// dealModes are the designer's modes for kashi's deals (invoice discounts):
+// one for each in use, shown as a sale to a client with the deal applied,
+// so a deal added later gets its own view too.
+export function dealModes (rules) {
+  return (rules ?? [])
+    .filter(r => r && r.is_active !== false && !r.deleted_at?.Valid)
+    .map(r => ({ mode: `deal:${r.id}`, label: r.name, deal: { name: r.name, kind: r.kind, percent: r.percent, amount: r.amount } }))
 }

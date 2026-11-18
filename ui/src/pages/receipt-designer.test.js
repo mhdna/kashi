@@ -14,6 +14,9 @@ vi.mock('@/composables/useApi', () => ({
   authFetch: async (url, options = {}) => {
     const path = String(url).replace('http://test/api', '')
     if (path.startsWith('/receipt_designer/catalog')) {return { ok: true, status: 200, json: async () => ({ catalog }) }}
+    if (path.startsWith('/invoice_discounts')) {
+      return { ok: true, status: 200, json: async () => ({ invoice_discounts: [{ id: 5, name: 'Students 15%', kind: 'percent', percent: 15, amount: 0, is_active: true }] }) }
+    }
     if (path.startsWith('/default_branch_settings')) {
       if (options.method === 'PUT') {
         puts.push(JSON.parse(options.body))
@@ -120,6 +123,17 @@ describe('Receipt Designer', () => {
     await find('tab-shop').trigger('click')
     await settle()
     expect(find('receipt-image').element.closest('.rd-work').className).toContain('rd-work--shop')
+  })
+
+  it('the reported case: each deal has a view of its own, drawn with the deal', async () => {
+    await open()
+    await button('Students 15%').trigger('click')
+    await settle()
+    expect(previews.at(-1).mode).toBe('client')
+    expect(JSON.parse(previews.at(-1).deal)).toEqual({ name: 'Students 15%', kind: 'percent', percent: 15, amount: 0 })
+    await button('Sale').trigger('click')
+    await settle()
+    expect(previews.at(-1).deal).toBeUndefined()
   })
 
   it('every mode is drawn', async () => {

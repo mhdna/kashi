@@ -65,7 +65,7 @@
               mandatory
               variant="outlined"
             >
-              <v-btn v-for="m in modes" :key="m.mode" size="small" :value="m.mode">{{ m.label }}</v-btn>
+              <v-btn v-for="m in allModes" :key="m.mode" size="small" :value="m.mode">{{ m.label }}</v-btn>
             </v-btn-toggle>
             <ReceiptLivePaper
               :catalog="catalog"
@@ -178,13 +178,13 @@
   import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
   import {
-    designJSON, emptyDesign, emptyShop, footerOrder, groupInfo, moveSection, parseDesign, previewQuery,
+    dealModes, designJSON, emptyDesign, emptyShop, footerOrder, groupInfo, moveSection, parseDesign, previewQuery,
     shopFromSettings, shopPayload, socialPlatforms,
   } from '@/utils/receiptDesign'
 
   const ALL = 0
 
-  const modes = [
+  const baseModes = [
     { mode: 'sale', label: 'Sale' },
     { mode: 'referral', label: 'Sale with referral code' },
     { mode: 'client', label: 'Sale with a client' },
@@ -214,6 +214,11 @@
   // preview once touched, so they show before Save.
   const shop = ref<any>(emptyShop())
   const shopTouched = ref(false)
+
+  // One more mode for each of kashi's deals, its line on the receipt.
+  const deals = ref<any[]>([])
+  const allModes = computed(() => [...baseModes, ...dealModes(deals.value)])
+  const currentMode = computed(() => allModes.value.find(m => m.mode === mode.value) ?? baseModes[0])
 
   const targets = computed(() => [
     { id: ALL, name: 'All branches' },
@@ -248,7 +253,9 @@
     drawing.value = true
     try {
       const query = previewQuery({
-        theme: theme.value, layout: layout.value, mode: mode.value,
+        theme: theme.value, layout: layout.value,
+        mode: currentMode.value.deal ? 'client' : mode.value,
+        deal: (currentMode.value as any).deal ?? null,
         branchId: target.value === ALL ? 0 : target.value, design: design.value,
         shop: shopTouched.value ? shop.value : null,
       })
@@ -355,6 +362,8 @@
     try {
       const [, data] = await Promise.all([fetchBranches(), requestJSON(`${API_BASE}/receipt_designer/catalog`)])
       catalog.value = data.catalog
+      // The deals are a nice-to-have here: without them the other modes stay.
+      requestJSON(`${API_BASE}/invoice_discounts`).then(r => { deals.value = r.invoice_discounts ?? [] }).catch(() => {})
     } catch (error) {
       notify.error((error as Error).message)
     } finally {

@@ -32,6 +32,9 @@ type receiptPreviewRequest struct {
 	// fields present override the branch's saved ones), so the receipt shows
 	// them before they are saved.
 	Shop string `form:"shop"`
+	// deal, when set, is an invoice discount applied to the sale
+	// (DesignerDeal JSON: name, kind, percent, amount), so its line shows.
+	Deal string `form:"deal"`
 }
 
 // designerShop is the branch's own data the receipt prints, from its
@@ -74,6 +77,14 @@ func (server *Server) getReceiptDesignerPreview(ctx *gin.Context) {
 			server.writeError(ctx, http.StatusBadRequest, errors.New("the shop details can't be read"))
 			return
 		}
+	}
+	if strings.TrimSpace(req.Deal) != "" {
+		var deal receiptrender.DesignerDeal
+		if err := json.Unmarshal([]byte(req.Deal), &deal); err != nil || len(deal.Name) > 200 {
+			server.writeError(ctx, http.StatusBadRequest, errors.New("the deal can't be read"))
+			return
+		}
+		in.Deal = &deal
 	}
 	if program, err := server.store.GetReferralProgram(ctx); err == nil {
 		in.ReferralPercent = int64(program.RewardPercent)
