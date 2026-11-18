@@ -77,6 +77,9 @@ type branchSettingsRequest struct {
 	// till's default, Classic layout A.
 	ReceiptTheme  *string `json:"receipt_theme"`
 	ReceiptLayout *string `json:"receipt_layout"`
+	// receipt_texts: the receipt's wording and the parts it leaves out, as
+	// JSON (receiptTextsJSON); '' is every default.
+	ReceiptTexts *string `json:"receipt_texts"`
 	// The cashier/manager sign-off lines on the end-of-shift receipt. Nil
 	// (a till that predates it) keeps them on, the till's own default.
 	ShiftReportSignatures *bool `json:"shift_report_signatures"`
@@ -488,6 +491,7 @@ func (server *Server) upsertBranchSettings(ctx *gin.Context, branchID int64, req
 		ReceiptCutoff:    orZero(req.ReceiptCutoff),
 		ReceiptTheme:     receiptLookID(req.ReceiptTheme, "classic"),
 		ReceiptLayout:    receiptLookID(req.ReceiptLayout, "A"),
+		ReceiptTexts:     receiptTextsJSON(req.ReceiptTexts),
 
 		ShiftReportSignatures:      orTrue(req.ShiftReportSignatures),
 		ShiftReportUppercaseHeader: orZero(req.ShiftReportUppercaseHeader),
