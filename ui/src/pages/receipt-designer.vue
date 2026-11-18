@@ -41,11 +41,12 @@
       <v-divider />
       <v-tabs v-model="tab" class="px-4" color="primary" density="compact">
         <v-tab data-test="tab-receipt" value="receipt">Receipt</v-tab>
+        <v-tab data-test="tab-banners" value="banners">Banners</v-tab>
         <v-tab data-test="tab-shop" value="shop">Shop details</v-tab>
       </v-tabs>
       <v-progress-linear v-if="loading" indeterminate />
       <div class="rd-body">
-        <div class="rd-work" :class="{ 'rd-work--shop': tab === 'shop' }">
+        <div class="rd-work" :class="{ 'rd-work--shop': tab !== 'receipt' }">
           <div v-if="tab === 'receipt'" class="rd-picker">
             <ReceiptLookPicker v-model:layout="layout" v-model:theme="theme" :saved-theme="savedTheme">
               <template #preview>
@@ -79,6 +80,7 @@
               :marks="preview.marks"
               :max-length="catalog?.max_length ?? 300"
               :picked="picked"
+              @banner="openBanner"
               @pick="g => picked = g"
               @update:design="d => design = d"
             />
@@ -87,6 +89,18 @@
               <template v-if="canEdit && tab === 'receipt'">Click any words to change them, or a part for all of it. </template>Drawn with the till's own code<template v-if="target !== ALL"> and this branch's details</template>.
               <template v-if="mode === 'referral'"> The referral code prints only at branches with referrals on.</template>
             </div>
+          </div>
+
+          <div v-if="tab === 'banners' && catalog" class="rd-panel" data-test="banners-tab">
+            <ReceiptBanners
+              :catalog="catalog"
+              :deals="deals"
+              :design="design"
+              :draw="drawBanner"
+              :focus="bannerFocus"
+              @see="m => mode = m"
+              @update:design="d => design = d"
+            />
           </div>
 
           <div v-if="tab === 'shop'" class="rd-panel" data-test="shop-tab">
@@ -169,6 +183,7 @@
 
 <script setup lang="ts">
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+  import ReceiptBanners from '@/components/Receipt/ReceiptBanners.vue'
   import ReceiptLivePaper from '@/components/Receipt/ReceiptLivePaper.vue'
   import ReceiptLookPicker from '@/components/ReceiptLookPicker.vue'
   import { authFetch } from '@/composables/useApi'
@@ -234,6 +249,17 @@
     const data = await res.json().catch(() => ({}))
     if (!res.ok) {throw new Error(data.error || `Request failed with status ${res.status}`)}
     return data
+  }
+
+  // Banners: a click on one on the receipt opens it in the Banners tab.
+  const bannerFocus = ref(-1)
+  function openBanner (i: number) {
+    bannerFocus.value = i
+    tab.value = 'banners'
+  }
+  async function drawBanner (banner: string) {
+    const data = await requestJSON(`${API_BASE}/receipt_designer/banner?${new URLSearchParams({ b: banner })}`)
+    return data.image as string
   }
 
   function toggleSocial (platform: string, on: boolean) {

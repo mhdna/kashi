@@ -258,3 +258,23 @@ func TestReceiptDesignerPreviewItemDeal(t *testing.T) {
 	require.Equal(t, http.StatusOK, code)
 	require.Greater(t, body.Height, 500)
 }
+
+// The gallery's ready-made banners, each drawn as the till prints it.
+func TestReceiptDesignerBanner(t *testing.T) {
+	server := newTestServer(t, mockdb.NewMockStore(gomock.NewController(t)))
+	rec := adminRequest(t, server, http.MethodGet, "/receipt_designer/banner?"+url.Values{"b": {`{"style":"ribbon","title":"BUY 1 GET 1","subtitle":"FREE"}`}}.Encode(), nil)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	var body struct {
+		Image string `json:"image"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	data, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(body.Image, "data:image/png;base64,"))
+	require.NoError(t, err)
+	img, err := png.Decode(bytes.NewReader(data))
+	require.NoError(t, err)
+	require.Equal(t, 576, img.Bounds().Dx())
+	for _, bad := range []string{"", `{"style":"nope","title":"x"}`, "{oops"} {
+		rec := adminRequest(t, server, http.MethodGet, "/receipt_designer/banner?"+url.Values{"b": {bad}}.Encode(), nil)
+		require.Equal(t, http.StatusBadRequest, rec.Code, bad)
+	}
+}

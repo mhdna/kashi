@@ -14,6 +14,7 @@ vi.mock('@/composables/useApi', () => ({
   authFetch: async (url, options = {}) => {
     const path = String(url).replace('http://test/api', '')
     if (path.startsWith('/receipt_designer/catalog')) {return { ok: true, status: 200, json: async () => ({ catalog }) }}
+    if (path.startsWith('/receipt_designer/banner')) {return { ok: true, status: 200, json: async () => ({ image: 'data:image/png;base64,QkFOTkVS' }) }}
     if (path.startsWith('/invoice_discounts')) {
       return { ok: true, status: 200, json: async () => ({ invoice_discounts: [{ id: 5, name: 'Students 15%', kind: 'percent', percent: 15, amount: 0, is_active: true }] }) }
     }
@@ -28,7 +29,7 @@ vi.mock('@/composables/useApi', () => ({
       previews.push(Object.fromEntries(new URLSearchParams(path.split('?')[1] ?? '')))
       return { ok: true, status: 200, json: async () => ({
         image: 'data:image/png;base64,AAAA', width: 576, height: 1000,
-        marks: [{ group: 'header', top: 0, bottom: 200 }, { group: 'columns', top: 300, bottom: 600 }, { group: 'thanks', top: 900, bottom: 1000 }],
+        marks: [{ group: 'banner-0', top: 200, bottom: 280 }, { group: 'header', top: 0, bottom: 200 }, { group: 'columns', top: 300, bottom: 600 }, { group: 'thanks', top: 900, bottom: 1000 }],
         lines: [
           { key: 'col_item', group: 'columns', top: 300, bottom: 330, text: 'ITEM', size_px: 26, align: 'left', left: 24, right: 90 },
           { key: 'thanks', group: 'thanks', top: 910, bottom: 940, text: 'Thank you for shopping with us!', size_px: 26, align: 'center' },
@@ -134,6 +135,24 @@ describe('Receipt Designer', () => {
     await button('Sale').trigger('click')
     await settle()
     expect(previews.at(-1).deal).toBeUndefined()
+  })
+
+  it('the reported case: ready-made banners added from the Banners tab go on the receipt', async () => {
+    await open()
+    await find('tab-banners').trigger('click')
+    await settle()
+    await find('preset-0').trigger('click')
+    await settle()
+    expect(JSON.parse(previews.at(-1).texts).banners).toEqual([{ style: 'ribbon', title: 'BUY 1 GET 1', subtitle: 'FREE', when: 'item_deal' }])
+    await find('banner-see-0').trigger('click')
+    await settle()
+    expect(previews.at(-1).mode).toBe('item_deal')
+  })
+
+  it('a click on a banner on the receipt opens it in the Banners tab', async () => {
+    await open()
+    await find('pick-banner-0').trigger('click')
+    expect(find('banners-tab').exists()).toBe(true)
   })
 
   it('every mode is drawn', async () => {

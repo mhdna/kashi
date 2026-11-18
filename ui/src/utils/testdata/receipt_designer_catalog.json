@@ -1,4 +1,87 @@
 {
+  "banner_presets": [
+    {
+      "style": "ribbon",
+      "title": "BUY 1 GET 1",
+      "subtitle": "FREE",
+      "when": "item_deal"
+    },
+    {
+      "style": "burst",
+      "title": "BUY 2 GET 1",
+      "subtitle": "The third one is on us",
+      "when": "item_deal"
+    },
+    {
+      "style": "stamp",
+      "title": "STUDENT DEAL",
+      "subtitle": "15% off the whole invoice",
+      "when": "deal"
+    },
+    {
+      "style": "frame",
+      "title": "SALE",
+      "subtitle": "Up to 50% off"
+    },
+    {
+      "style": "ornament",
+      "title": "Thank You",
+      "subtitle": "See you again soon",
+      "place": "bottom"
+    },
+    {
+      "style": "stars",
+      "title": "NEW SEASON",
+      "subtitle": "Fresh arrivals in store"
+    },
+    {
+      "style": "frame",
+      "title": "VIP",
+      "subtitle": "Members save more"
+    },
+    {
+      "style": "burst",
+      "title": "WEEKEND DEAL",
+      "subtitle": "Saturday and Sunday only"
+    },
+    {
+      "style": "ribbon",
+      "title": "YOU SAVED",
+      "subtitle": "with today's deal",
+      "when": "deal"
+    },
+    {
+      "style": "stars",
+      "title": "GIFT",
+      "subtitle": "Wrapped with love"
+    }
+  ],
+  "banner_styles": [
+    {
+      "key": "ribbon",
+      "label": "Ribbon"
+    },
+    {
+      "key": "burst",
+      "label": "Burst"
+    },
+    {
+      "key": "stamp",
+      "label": "Stamp"
+    },
+    {
+      "key": "frame",
+      "label": "Frame"
+    },
+    {
+      "key": "ornament",
+      "label": "Ornament"
+    },
+    {
+      "key": "stars",
+      "label": "Stars"
+    }
+  ],
   "can": {
     "align": 16,
     "bold": 8,
