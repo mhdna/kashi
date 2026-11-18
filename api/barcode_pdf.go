@@ -135,7 +135,10 @@ type labelOptions struct {
 	Width     float64 // page width in points
 	Height    float64 // page height in points
 	Separator bool    // prepend a header page before each item + draw side borders
-	Fields    map[string]bool
+	// BlankFirstPage starts the PDF with one empty label-size page, for label
+	// printers that feed (skip) the first page of every job.
+	BlankFirstPage bool
+	Fields         map[string]bool
 	// Design is how the label is drawn (barcode_label.go). The zero value is
 	// the default design.
 	Design labelDesign
@@ -290,6 +293,10 @@ func buildLabelsPDF(items []labelItem, opts labelOptions) ([]byte, error) {
 	}
 
 	sideBarW := labelSideBarW
+
+	if opts.BlankFirstPage {
+		doc.addPage(opts.Width, opts.Height, fonts, "")
+	}
 
 	for _, it := range items {
 		bars, ok := ean13Bars(it.Barcode)

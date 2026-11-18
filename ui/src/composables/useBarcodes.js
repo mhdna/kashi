@@ -24,12 +24,13 @@ export function useBarcodes () {
     })
   }
 
-  // Returns a Blob of the generated label PDF.
-  async function printLabels ({ items, separator, label }) {
+  // Returns a Blob of the generated label PDF. body is printRequestBody()
+  // from utils/barcodePrint.
+  async function printLabels (body) {
     const res = await authFetch(`${API_BASE}/barcodes/print`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items, separator, label }),
+      body: JSON.stringify(body),
     })
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))

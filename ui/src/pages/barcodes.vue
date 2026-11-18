@@ -278,6 +278,13 @@
             </div>
           </v-expand-transition>
 
+          <v-checkbox
+            v-model="blankFirstPage"
+            density="compact"
+            hide-details
+            label="Start with an empty page (for printers that skip the first page)"
+          />
+
           <v-divider class="my-3" />
 
           <div class="text-caption text-medium-emphasis mb-1">Label size (points, 72 = 1 inch)</div>
@@ -329,7 +336,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, reactive, ref } from 'vue'
+  import { computed, onMounted, reactive, ref, watch } from 'vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useBarcodeQueue } from '@/composables/useBarcodeQueue'
   import { useBarcodes } from '@/composables/useBarcodes'
@@ -338,6 +345,7 @@
   import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
   import { useSettingsStore } from '@/stores/settings'
+  import { loadBlankFirstPage, printRequestBody, saveBlankFirstPage } from '@/utils/barcodePrint'
   import { applyStockFill, fetchAllStock, stockQueueEntries } from '@/utils/barcodeStockFill'
   import { formatMoney } from '@/utils/money'
 
@@ -447,6 +455,9 @@
   const printing = ref(false)
   const separatorEnabled = ref(false)
   const separatorFields = ref(['name', 'qty'])
+  // Remembered in this browser: it belongs to the printer next to it.
+  const blankFirstPage = ref(loadBlankFirstPage())
+  watch(blankFirstPage, on => saveBlankFirstPage(on))
   const labelWidth = ref(0)
   const labelHeight = ref(0)
 
@@ -482,11 +493,14 @@
     printing.value = true
     try {
       const items = printItems()
-      const blob = await printLabels({
+      const blob = await printLabels(printRequestBody({
         items,
-        separator: { enabled: separatorEnabled.value, fields: separatorFields.value },
-        label: { width: Number(labelWidth.value) || 0, height: Number(labelHeight.value) || 0 },
-      })
+        separatorEnabled: separatorEnabled.value,
+        separatorFields: separatorFields.value,
+        labelWidth: labelWidth.value,
+        labelHeight: labelHeight.value,
+        blankFirstPage: blankFirstPage.value,
+      }))
       const url = URL.createObjectURL(blob)
       window.open(url, '_blank')
       setTimeout(() => URL.revokeObjectURL(url), 60_000)
