@@ -287,7 +287,7 @@ Everything here is best-effort after the sale is stored: a failure is logged, ne
 ### New admin page
 
 1. Page in `ui/src/pages`; route in `router/index.js` with `meta.section` and `meta.page`.
-2. Sidebar entry in `data/navItems.js`.
+2. Sidebar entry in `data/navItems.js`, in the section it belongs to (`navSections`: the rail shows one icon per section, the drawer lists the open section's pages).
 3. Page added to its section in `api/access.go`, plus a `routeRules` entry for its API prefix.
 
 > [!TIP] The unsaved-changes guard (`useDialogGuard`) compares each dialog field present when the user first touched the dialog (rows arriving later and tab switches don't count). Mark a view control (branch picker, search box, filter) `data-discard-ignore`; a dialog that saves as you go or is all filters gets `data-no-discard-guard`.

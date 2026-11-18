@@ -10,9 +10,9 @@
       <v-app-bar-title v-if="!xs">
         <div class="d-flex align-center text-truncate">
           <!--<img class="me-1" src="/everywear.png" style="height: 35px;">-->
-          <router-link to="/" class="title-link">Kashi Cloud</router-link>
+          <router-link class="title-link" to="/">Kashi Cloud</router-link>
           <span v-if="pageTitle" class="ms-2">
-            - <router-link :to="route.path" class="title-link">{{ pageTitle }}</router-link>
+            - <router-link class="title-link" :to="route.path">{{ pageTitle }}</router-link>
           </span>
         </div>
       </v-app-bar-title>
@@ -56,7 +56,7 @@
       </template>
     </v-app-bar>
 
-    <NavigationDrawer v-model="showDrawer" :mobile="mobile" :rail="isRail" />
+    <NavigationDrawer v-model="showDrawer" v-model:rail="isRail" :mobile="mobile" />
 
     <!-- Kept outside <v-app-bar>: Vuetify transforms the app bar for its
          scroll behaviour, and a transformed ancestor would anchor this
@@ -85,81 +85,81 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { useDisplay } from "vuetify";
-import AppNotifications from "@/components/AppNotifications.vue";
-import BranchActivityToast from "@/components/BranchActivityToast.vue";
-import ToggleTheme from "@/components/Buttons/ToggleTheme.vue";
-import BranchDiscountButton from "@/components/BranchDiscountButton.vue";
-import LiveCartButton from "@/components/LiveCartButton.vue";
-import CommandPalette from "@/components/CommandPalette.vue";
-import ConnectedBranchesCard from "@/components/ConnectedBranchesCard.vue";
-import OnlineUsersStack from "@/components/OnlineUsersStack.vue";
-import PageSkeleton from "@/components/PageSkeleton.vue";
-import SyncingBranchesCard from "@/components/SyncingBranchesCard.vue";
-// import NotificationMenu from '@/components/Menus/NotificationMenu.vue'
-import { useAppStore } from "@/stores/app";
-import { useAuthStore } from "@/stores/auth";
-import { useSettingsStore } from "@/stores/settings";
+  import { computed, onMounted, ref } from "vue";
+  import { useRoute, useRouter } from "vue-router";
+  import { useDisplay } from "vuetify";
+  import AppNotifications from "@/components/AppNotifications.vue";
+  import BranchActivityToast from "@/components/BranchActivityToast.vue";
+  import BranchDiscountButton from "@/components/BranchDiscountButton.vue";
+  import ToggleTheme from "@/components/Buttons/ToggleTheme.vue";
+  import CommandPalette from "@/components/CommandPalette.vue";
+  import ConnectedBranchesCard from "@/components/ConnectedBranchesCard.vue";
+  import LiveCartButton from "@/components/LiveCartButton.vue";
+  import OnlineUsersStack from "@/components/OnlineUsersStack.vue";
+  import PageSkeleton from "@/components/PageSkeleton.vue";
+  import SyncingBranchesCard from "@/components/SyncingBranchesCard.vue";
+  // import NotificationMenu from '@/components/Menus/NotificationMenu.vue'
+  import { useAppStore } from "@/stores/app";
+  import { useAuthStore } from "@/stores/auth";
+  import { useSettingsStore } from "@/stores/settings";
 
-const auth = useAuthStore();
-const appStore = useAppStore();
+  const auth = useAuthStore();
+  const appStore = useAppStore();
 
-// Same choices as ToggleTheme, for the phone overflow menu.
-const themeOptions = [
-  { value: "system", title: "System", icon: "mdi-theme-light-dark" },
-  { value: "light", title: "Light", icon: "mdi-white-balance-sunny" },
-  { value: "dark", title: "Dark", icon: "mdi-weather-night" },
-];
-const settingsStore = useSettingsStore();
-// Every table starts at the Rows per table setting (Settings > General).
-const tableDefaults = computed(() => ({
-  VDataTable: { itemsPerPage: settingsStore.tablePageSize },
-  VDataTableServer: { itemsPerPage: settingsStore.tablePageSize },
-}));
-// Loads the global app settings (activity display prefs, financials high
-// season months) once per session -- BranchActivityToast/SyncCard read
-// settingsStore's activity fields reactively, so this can resolve after
-// they mount without any special handling.
-onMounted(() => {
-  settingsStore.init();
-  auth.refreshAccess();
-});
+  // Same choices as ToggleTheme, for the phone overflow menu.
+  const themeOptions = [
+    { value: "system", title: "System", icon: "mdi-theme-light-dark" },
+    { value: "light", title: "Light", icon: "mdi-white-balance-sunny" },
+    { value: "dark", title: "Dark", icon: "mdi-weather-night" },
+  ];
+  const settingsStore = useSettingsStore();
+  // Every table starts at the Rows per table setting (Settings > General).
+  const tableDefaults = computed(() => ({
+    VDataTable: { itemsPerPage: settingsStore.tablePageSize },
+    VDataTableServer: { itemsPerPage: settingsStore.tablePageSize },
+  }));
+  // Loads the global app settings (activity display prefs, financials high
+  // season months) once per session -- BranchActivityToast/SyncCard read
+  // settingsStore's activity fields reactively, so this can resolve after
+  // they mount without any special handling.
+  onMounted(() => {
+    settingsStore.init();
+    auth.refreshAccess();
+  });
 
-function handleLogout() {
-  auth.logout();
-  router.push("/login");
-}
-
-const showDrawer = ref(false);
-const isRail = ref(false);
-const { mobile, xs } = useDisplay();
-
-function toggleDrawer() {
-  if (mobile.value) {
-    showDrawer.value = !showDrawer.value;
-    isRail.value = false;
-  } else {
-    isRail.value = !isRail.value;
+  function handleLogout() {
+    auth.logout();
+    router.push("/login");
   }
-}
 
-const router = useRouter();
-const route = useRoute();
-const pageTitle = ref(route.meta.title || "");
+  const showDrawer = ref(false);
+  const isRail = ref(false);
+  const { mobile, xs } = useDisplay();
 
-router.beforeEach((to) => {
-  pageTitle.value = to.meta.title || "";
-});
-
-router.afterEach(() => {
-  // The mobile drawer is a temporary overlay -- close it once a link is
-  // picked instead of leaving it covering the page just opened.
-  if (mobile.value) {
-    showDrawer.value = false;
+  function toggleDrawer() {
+    if (mobile.value) {
+      showDrawer.value = !showDrawer.value;
+      isRail.value = false;
+    } else {
+      isRail.value = !isRail.value;
+    }
   }
-});
+
+  const router = useRouter();
+  const route = useRoute();
+  const pageTitle = ref(route.meta.title || "");
+
+  router.beforeEach((to) => {
+    pageTitle.value = to.meta.title || "";
+  });
+
+  router.afterEach(() => {
+    // The mobile drawer is a temporary overlay -- close it once a link is
+    // picked instead of leaving it covering the page just opened.
+    if (mobile.value) {
+      showDrawer.value = false;
+    }
+  });
 </script>
 
 <style scoped>

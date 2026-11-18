@@ -1,6 +1,6 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { appendItems, navItems } from '@/data/navItems'
+import { appendItems, navItems, navSections } from '@/data/navItems'
 import { useAuthStore } from '@/stores/auth'
 
 // The nav menus (drawer, command palette, home links) filtered to the pages
@@ -26,5 +26,18 @@ export function useAllowedNav () {
   )
   const allowedAppendItems = computed(() => appendItems.filter(item => allowed(item)))
 
-  return { allowedNavItems, allowedAppendItems, allowed }
+  // The rail's sections, each with only the pages the user can open; a
+  // section with none disappears.
+  const allowedSections = computed(() =>
+    navSections
+      .map(section => ({
+        ...section,
+        items: section.items
+          .map(item => (item.children ? { ...item, children: item.children.filter(child => allowed(child)) } : item))
+          .filter(item => (item.children ? item.children.length > 0 : allowed(item))),
+      }))
+      .filter(section => section.items.length > 0),
+  )
+
+  return { allowedNavItems, allowedAppendItems, allowedSections, allowed }
 }
