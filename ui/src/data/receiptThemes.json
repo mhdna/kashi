@@ -1,6 +1,26 @@
 {
   "default_layout": "A",
   "default_theme": "classic",
+  "texts": {
+    "defaults": {
+      "payments_title": "PAYMENT DETAILS",
+      "policy_title": "EXCHANGE POLICY",
+      "referral_note": "Give this code to a friend. When they shop with us for the first time, you get {percent} off your next visit.",
+      "referral_title": "YOUR CODE:",
+      "socials_title": "Follow us on:",
+      "thanks": "Thank you for shopping with us!"
+    },
+    "max_length": 300,
+    "referral_code": "K7M4QH",
+    "referral_percent": 15,
+    "sections": [
+      "payments",
+      "policy",
+      "referral",
+      "socials",
+      "thanks"
+    ]
+  },
   "themes": [
     {
       "id": "classic",
@@ -12,19 +32,1264 @@
           "id": "A",
           "name": "Columns",
           "description": "Item, quantity, discount and total on one line each.",
-          "preview": "classic-A.png"
+          "preview": "classic-A.png",
+          "modes": [
+            {
+              "mode": "sale",
+              "file": "classic-A.png",
+              "width": 576,
+              "height": 2044,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1574,
+                  "bottom": 1605,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1574,
+                  "bottom": 1725
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1725,
+                  "bottom": 1754,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1725,
+                  "bottom": 1826
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1826,
+                  "bottom": 1858,
+                  "left": 121,
+                  "right": 316,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1826,
+                  "bottom": 1858,
+                  "left": 326,
+                  "right": 454
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1826,
+                  "bottom": 1917
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1933,
+                  "bottom": 1964,
+                  "text": "Thank you for shopping with us!",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1933,
+                  "bottom": 2020
+                }
+              ]
+            },
+            {
+              "mode": "referral",
+              "file": "classic-A-referral.png",
+              "width": 576,
+              "height": 2209,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1574,
+                  "bottom": 1605,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1574,
+                  "bottom": 1725
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1725,
+                  "bottom": 1754,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1725,
+                  "bottom": 1826
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_title",
+                  "top": 1826,
+                  "bottom": 1863,
+                  "text": "YOUR CODE:",
+                  "size_px": 31.200000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_note",
+                  "top": 1877,
+                  "bottom": 1961,
+                  "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
+                  "size_px": 22.1
+                },
+                {
+                  "kind": "section",
+                  "part": "referral",
+                  "top": 1826,
+                  "bottom": 1991
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1991,
+                  "bottom": 2023,
+                  "left": 121,
+                  "right": 316,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1991,
+                  "bottom": 2023,
+                  "left": 326,
+                  "right": 454
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1991,
+                  "bottom": 2082
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 2098,
+                  "bottom": 2129,
+                  "text": "Thank you for shopping with us!",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 2098,
+                  "bottom": 2185
+                }
+              ]
+            },
+            {
+              "mode": "client",
+              "file": "classic-A-client.png",
+              "width": 576,
+              "height": 2044,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1574,
+                  "bottom": 1605,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1574,
+                  "bottom": 1725
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1725,
+                  "bottom": 1754,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1725,
+                  "bottom": 1826
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1826,
+                  "bottom": 1858,
+                  "left": 121,
+                  "right": 316,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1826,
+                  "bottom": 1858,
+                  "left": 326,
+                  "right": 454
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1826,
+                  "bottom": 1917
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1933,
+                  "bottom": 1964,
+                  "text": "Thank you for shopping with us!",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1933,
+                  "bottom": 2020
+                }
+              ]
+            },
+            {
+              "mode": "exchange",
+              "file": "classic-A-exchange.png",
+              "width": 576,
+              "height": 1326,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 900,
+                  "bottom": 931,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 900,
+                  "bottom": 1007
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1007,
+                  "bottom": 1036,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1007,
+                  "bottom": 1108
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1108,
+                  "bottom": 1140,
+                  "left": 121,
+                  "right": 316,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1108,
+                  "bottom": 1140,
+                  "left": 326,
+                  "right": 454
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1108,
+                  "bottom": 1199
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1215,
+                  "bottom": 1246,
+                  "text": "Thank you for shopping with us!",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1215,
+                  "bottom": 1302
+                }
+              ]
+            },
+            {
+              "mode": "return",
+              "file": "classic-A-return.png",
+              "width": 576,
+              "height": 1253,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 827,
+                  "bottom": 858,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 827,
+                  "bottom": 934
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 934,
+                  "bottom": 963,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 934,
+                  "bottom": 1035
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1035,
+                  "bottom": 1067,
+                  "left": 121,
+                  "right": 316,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1035,
+                  "bottom": 1067,
+                  "left": 326,
+                  "right": 454
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1035,
+                  "bottom": 1126
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1142,
+                  "bottom": 1173,
+                  "text": "Thank you for shopping with us!",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1142,
+                  "bottom": 1229
+                }
+              ]
+            }
+          ]
         },
         {
           "id": "B",
           "name": "Price columns",
           "description": "Item, quantity, unit price and total; discounts on their own line.",
-          "preview": "classic-B.png"
+          "preview": "classic-B.png",
+          "modes": [
+            {
+              "mode": "sale",
+              "file": "classic-B.png",
+              "width": 576,
+              "height": 2260,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1790,
+                  "bottom": 1821,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1790,
+                  "bottom": 1941
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1941,
+                  "bottom": 1970,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1941,
+                  "bottom": 2042
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 2042,
+                  "bottom": 2074,
+                  "left": 121,
+                  "right": 316,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 2042,
+                  "bottom": 2074,
+                  "left": 326,
+                  "right": 454
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 2042,
+                  "bottom": 2133
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 2149,
+                  "bottom": 2180,
+                  "text": "Thank you for shopping with us!",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 2149,
+                  "bottom": 2236
+                }
+              ]
+            },
+            {
+              "mode": "referral",
+              "file": "classic-B-referral.png",
+              "width": 576,
+              "height": 2425,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1790,
+                  "bottom": 1821,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1790,
+                  "bottom": 1941
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1941,
+                  "bottom": 1970,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1941,
+                  "bottom": 2042
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_title",
+                  "top": 2042,
+                  "bottom": 2079,
+                  "text": "YOUR CODE:",
+                  "size_px": 31.200000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_note",
+                  "top": 2093,
+                  "bottom": 2177,
+                  "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
+                  "size_px": 22.1
+                },
+                {
+                  "kind": "section",
+                  "part": "referral",
+                  "top": 2042,
+                  "bottom": 2207
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 2207,
+                  "bottom": 2239,
+                  "left": 121,
+                  "right": 316,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 2207,
+                  "bottom": 2239,
+                  "left": 326,
+                  "right": 454
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 2207,
+                  "bottom": 2298
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 2314,
+                  "bottom": 2345,
+                  "text": "Thank you for shopping with us!",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 2314,
+                  "bottom": 2401
+                }
+              ]
+            },
+            {
+              "mode": "client",
+              "file": "classic-B-client.png",
+              "width": 576,
+              "height": 2260,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1790,
+                  "bottom": 1821,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1790,
+                  "bottom": 1941
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1941,
+                  "bottom": 1970,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1941,
+                  "bottom": 2042
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 2042,
+                  "bottom": 2074,
+                  "left": 121,
+                  "right": 316,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 2042,
+                  "bottom": 2074,
+                  "left": 326,
+                  "right": 454
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 2042,
+                  "bottom": 2133
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 2149,
+                  "bottom": 2180,
+                  "text": "Thank you for shopping with us!",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 2149,
+                  "bottom": 2236
+                }
+              ]
+            },
+            {
+              "mode": "exchange",
+              "file": "classic-B-exchange.png",
+              "width": 576,
+              "height": 1432,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1006,
+                  "bottom": 1037,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1006,
+                  "bottom": 1113
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1113,
+                  "bottom": 1142,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1113,
+                  "bottom": 1214
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1214,
+                  "bottom": 1246,
+                  "left": 121,
+                  "right": 316,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1214,
+                  "bottom": 1246,
+                  "left": 326,
+                  "right": 454
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1214,
+                  "bottom": 1305
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1321,
+                  "bottom": 1352,
+                  "text": "Thank you for shopping with us!",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1321,
+                  "bottom": 1408
+                }
+              ]
+            },
+            {
+              "mode": "return",
+              "file": "classic-B-return.png",
+              "width": 576,
+              "height": 1325,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 899,
+                  "bottom": 930,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 899,
+                  "bottom": 1006
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1006,
+                  "bottom": 1035,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1006,
+                  "bottom": 1107
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1107,
+                  "bottom": 1139,
+                  "left": 121,
+                  "right": 316,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1107,
+                  "bottom": 1139,
+                  "left": 326,
+                  "right": 454
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1107,
+                  "bottom": 1198
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1214,
+                  "bottom": 1245,
+                  "text": "Thank you for shopping with us!",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1214,
+                  "bottom": 1301
+                }
+              ]
+            }
+          ]
         },
         {
           "id": "C",
           "name": "Detailed",
           "description": "Name and total, then code and quantity lines. The longest.",
-          "preview": "classic-C.png"
+          "preview": "classic-C.png",
+          "modes": [
+            {
+              "mode": "sale",
+              "file": "classic-C.png",
+              "width": 576,
+              "height": 2152,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1682,
+                  "bottom": 1713,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1682,
+                  "bottom": 1833
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1833,
+                  "bottom": 1862,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1833,
+                  "bottom": 1934
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1934,
+                  "bottom": 1966,
+                  "left": 121,
+                  "right": 316,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1934,
+                  "bottom": 1966,
+                  "left": 326,
+                  "right": 454
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1934,
+                  "bottom": 2025
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 2041,
+                  "bottom": 2072,
+                  "text": "Thank you for shopping with us!",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 2041,
+                  "bottom": 2128
+                }
+              ]
+            },
+            {
+              "mode": "referral",
+              "file": "classic-C-referral.png",
+              "width": 576,
+              "height": 2317,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1682,
+                  "bottom": 1713,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1682,
+                  "bottom": 1833
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1833,
+                  "bottom": 1862,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1833,
+                  "bottom": 1934
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_title",
+                  "top": 1934,
+                  "bottom": 1971,
+                  "text": "YOUR CODE:",
+                  "size_px": 31.200000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_note",
+                  "top": 1985,
+                  "bottom": 2069,
+                  "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
+                  "size_px": 22.1
+                },
+                {
+                  "kind": "section",
+                  "part": "referral",
+                  "top": 1934,
+                  "bottom": 2099
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 2099,
+                  "bottom": 2131,
+                  "left": 121,
+                  "right": 316,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 2099,
+                  "bottom": 2131,
+                  "left": 326,
+                  "right": 454
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 2099,
+                  "bottom": 2190
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 2206,
+                  "bottom": 2237,
+                  "text": "Thank you for shopping with us!",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 2206,
+                  "bottom": 2293
+                }
+              ]
+            },
+            {
+              "mode": "client",
+              "file": "classic-C-client.png",
+              "width": 576,
+              "height": 2152,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1682,
+                  "bottom": 1713,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1682,
+                  "bottom": 1833
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1833,
+                  "bottom": 1862,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1833,
+                  "bottom": 1934
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1934,
+                  "bottom": 1966,
+                  "left": 121,
+                  "right": 316,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1934,
+                  "bottom": 1966,
+                  "left": 326,
+                  "right": 454
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1934,
+                  "bottom": 2025
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 2041,
+                  "bottom": 2072,
+                  "text": "Thank you for shopping with us!",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 2041,
+                  "bottom": 2128
+                }
+              ]
+            },
+            {
+              "mode": "exchange",
+              "file": "classic-C-exchange.png",
+              "width": 576,
+              "height": 1362,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 936,
+                  "bottom": 967,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 936,
+                  "bottom": 1043
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1043,
+                  "bottom": 1072,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1043,
+                  "bottom": 1144
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1144,
+                  "bottom": 1176,
+                  "left": 121,
+                  "right": 316,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1144,
+                  "bottom": 1176,
+                  "left": 326,
+                  "right": 454
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1144,
+                  "bottom": 1235
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1251,
+                  "bottom": 1282,
+                  "text": "Thank you for shopping with us!",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1251,
+                  "bottom": 1338
+                }
+              ]
+            },
+            {
+              "mode": "return",
+              "file": "classic-C-return.png",
+              "width": 576,
+              "height": 1287,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 861,
+                  "bottom": 892,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 861,
+                  "bottom": 968
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 968,
+                  "bottom": 997,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 968,
+                  "bottom": 1069
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1069,
+                  "bottom": 1101,
+                  "left": 121,
+                  "right": 316,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1069,
+                  "bottom": 1101,
+                  "left": 326,
+                  "right": 454
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1069,
+                  "bottom": 1160
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1176,
+                  "bottom": 1207,
+                  "text": "Thank you for shopping with us!",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1176,
+                  "bottom": 1263
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -38,19 +1303,1264 @@
           "id": "A",
           "name": "Register",
           "description": "Name and amount; quantity and savings only when they matter.",
-          "preview": "supermarket-A.png"
+          "preview": "supermarket-A.png",
+          "modes": [
+            {
+              "mode": "sale",
+              "file": "supermarket-A.png",
+              "width": 576,
+              "height": 1880,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1477,
+                  "bottom": 1507,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1477,
+                  "bottom": 1601
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1601,
+                  "bottom": 1629,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 21.242,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1601,
+                  "bottom": 1682
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1682,
+                  "bottom": 1714,
+                  "left": 134,
+                  "right": 303,
+                  "text": "Follow us on:",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1682,
+                  "bottom": 1714,
+                  "left": 313,
+                  "right": 441
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1682,
+                  "bottom": 1760
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1770,
+                  "bottom": 1800,
+                  "text": "THANK YOU, COME AGAIN",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1770,
+                  "bottom": 1856
+                }
+              ]
+            },
+            {
+              "mode": "referral",
+              "file": "supermarket-A-referral.png",
+              "width": 576,
+              "height": 2022,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1477,
+                  "bottom": 1507,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1477,
+                  "bottom": 1601
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1601,
+                  "bottom": 1629,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 21.242,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1601,
+                  "bottom": 1682
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_title",
+                  "top": 1682,
+                  "bottom": 1717,
+                  "text": "YOUR CODE:",
+                  "size_px": 26.832,
+                  "bold": true
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_note",
+                  "top": 1725,
+                  "bottom": 1806,
+                  "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
+                  "size_px": 19.006
+                },
+                {
+                  "kind": "section",
+                  "part": "referral",
+                  "top": 1682,
+                  "bottom": 1824
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1824,
+                  "bottom": 1856,
+                  "left": 134,
+                  "right": 303,
+                  "text": "Follow us on:",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1824,
+                  "bottom": 1856,
+                  "left": 313,
+                  "right": 441
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1824,
+                  "bottom": 1902
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1912,
+                  "bottom": 1942,
+                  "text": "THANK YOU, COME AGAIN",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1912,
+                  "bottom": 1998
+                }
+              ]
+            },
+            {
+              "mode": "client",
+              "file": "supermarket-A-client.png",
+              "width": 576,
+              "height": 1880,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1477,
+                  "bottom": 1507,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1477,
+                  "bottom": 1601
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1601,
+                  "bottom": 1629,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 21.242,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1601,
+                  "bottom": 1682
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1682,
+                  "bottom": 1714,
+                  "left": 134,
+                  "right": 303,
+                  "text": "Follow us on:",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1682,
+                  "bottom": 1714,
+                  "left": 313,
+                  "right": 441
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1682,
+                  "bottom": 1760
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1770,
+                  "bottom": 1800,
+                  "text": "THANK YOU, COME AGAIN",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1770,
+                  "bottom": 1856
+                }
+              ]
+            },
+            {
+              "mode": "exchange",
+              "file": "supermarket-A-exchange.png",
+              "width": 576,
+              "height": 1156,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 790,
+                  "bottom": 820,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 790,
+                  "bottom": 877
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 877,
+                  "bottom": 905,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 21.242,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 877,
+                  "bottom": 958
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 958,
+                  "bottom": 990,
+                  "left": 134,
+                  "right": 303,
+                  "text": "Follow us on:",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 958,
+                  "bottom": 990,
+                  "left": 313,
+                  "right": 441
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 958,
+                  "bottom": 1036
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1046,
+                  "bottom": 1076,
+                  "text": "THANK YOU, COME AGAIN",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1046,
+                  "bottom": 1132
+                }
+              ]
+            },
+            {
+              "mode": "return",
+              "file": "supermarket-A-return.png",
+              "width": 576,
+              "height": 1118,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 752,
+                  "bottom": 782,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 752,
+                  "bottom": 839
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 839,
+                  "bottom": 867,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 21.242,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 839,
+                  "bottom": 920
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 920,
+                  "bottom": 952,
+                  "left": 134,
+                  "right": 303,
+                  "text": "Follow us on:",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 920,
+                  "bottom": 952,
+                  "left": 313,
+                  "right": 441
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 920,
+                  "bottom": 998
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1008,
+                  "bottom": 1038,
+                  "text": "THANK YOU, COME AGAIN",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1008,
+                  "bottom": 1094
+                }
+              ]
+            }
+          ]
         },
         {
           "id": "B",
           "name": "Quantity first",
           "description": "A quantity column on the left, like a till tape.",
-          "preview": "supermarket-B.png"
+          "preview": "supermarket-B.png",
+          "modes": [
+            {
+              "mode": "sale",
+              "file": "supermarket-B.png",
+              "width": 576,
+              "height": 1810,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1407,
+                  "bottom": 1437,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1407,
+                  "bottom": 1531
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1531,
+                  "bottom": 1559,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 21.242,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1531,
+                  "bottom": 1612
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1612,
+                  "bottom": 1644,
+                  "left": 134,
+                  "right": 303,
+                  "text": "Follow us on:",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1612,
+                  "bottom": 1644,
+                  "left": 313,
+                  "right": 441
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1612,
+                  "bottom": 1690
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1700,
+                  "bottom": 1730,
+                  "text": "THANK YOU, COME AGAIN",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1700,
+                  "bottom": 1786
+                }
+              ]
+            },
+            {
+              "mode": "referral",
+              "file": "supermarket-B-referral.png",
+              "width": 576,
+              "height": 1952,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1407,
+                  "bottom": 1437,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1407,
+                  "bottom": 1531
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1531,
+                  "bottom": 1559,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 21.242,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1531,
+                  "bottom": 1612
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_title",
+                  "top": 1612,
+                  "bottom": 1647,
+                  "text": "YOUR CODE:",
+                  "size_px": 26.832,
+                  "bold": true
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_note",
+                  "top": 1655,
+                  "bottom": 1736,
+                  "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
+                  "size_px": 19.006
+                },
+                {
+                  "kind": "section",
+                  "part": "referral",
+                  "top": 1612,
+                  "bottom": 1754
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1754,
+                  "bottom": 1786,
+                  "left": 134,
+                  "right": 303,
+                  "text": "Follow us on:",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1754,
+                  "bottom": 1786,
+                  "left": 313,
+                  "right": 441
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1754,
+                  "bottom": 1832
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1842,
+                  "bottom": 1872,
+                  "text": "THANK YOU, COME AGAIN",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1842,
+                  "bottom": 1928
+                }
+              ]
+            },
+            {
+              "mode": "client",
+              "file": "supermarket-B-client.png",
+              "width": 576,
+              "height": 1810,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1407,
+                  "bottom": 1437,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1407,
+                  "bottom": 1531
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1531,
+                  "bottom": 1559,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 21.242,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1531,
+                  "bottom": 1612
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1612,
+                  "bottom": 1644,
+                  "left": 134,
+                  "right": 303,
+                  "text": "Follow us on:",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1612,
+                  "bottom": 1644,
+                  "left": 313,
+                  "right": 441
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1612,
+                  "bottom": 1690
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1700,
+                  "bottom": 1730,
+                  "text": "THANK YOU, COME AGAIN",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1700,
+                  "bottom": 1786
+                }
+              ]
+            },
+            {
+              "mode": "exchange",
+              "file": "supermarket-B-exchange.png",
+              "width": 576,
+              "height": 1156,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 790,
+                  "bottom": 820,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 790,
+                  "bottom": 877
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 877,
+                  "bottom": 905,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 21.242,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 877,
+                  "bottom": 958
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 958,
+                  "bottom": 990,
+                  "left": 134,
+                  "right": 303,
+                  "text": "Follow us on:",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 958,
+                  "bottom": 990,
+                  "left": 313,
+                  "right": 441
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 958,
+                  "bottom": 1036
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1046,
+                  "bottom": 1076,
+                  "text": "THANK YOU, COME AGAIN",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1046,
+                  "bottom": 1132
+                }
+              ]
+            },
+            {
+              "mode": "return",
+              "file": "supermarket-B-return.png",
+              "width": 576,
+              "height": 1083,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 717,
+                  "bottom": 747,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 717,
+                  "bottom": 804
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 804,
+                  "bottom": 832,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 21.242,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 804,
+                  "bottom": 885
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 885,
+                  "bottom": 917,
+                  "left": 134,
+                  "right": 303,
+                  "text": "Follow us on:",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 885,
+                  "bottom": 917,
+                  "left": 313,
+                  "right": 441
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 885,
+                  "bottom": 963
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 973,
+                  "bottom": 1003,
+                  "text": "THANK YOU, COME AGAIN",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 973,
+                  "bottom": 1059
+                }
+              ]
+            }
+          ]
         },
         {
           "id": "C",
           "name": "With codes",
           "description": "Each item followed by its code and unit price.",
-          "preview": "supermarket-C.png"
+          "preview": "supermarket-C.png",
+          "modes": [
+            {
+              "mode": "sale",
+              "file": "supermarket-C.png",
+              "width": 576,
+              "height": 1705,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1302,
+                  "bottom": 1332,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1302,
+                  "bottom": 1426
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1426,
+                  "bottom": 1454,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 21.242,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1426,
+                  "bottom": 1507
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1507,
+                  "bottom": 1539,
+                  "left": 134,
+                  "right": 303,
+                  "text": "Follow us on:",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1507,
+                  "bottom": 1539,
+                  "left": 313,
+                  "right": 441
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1507,
+                  "bottom": 1585
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1595,
+                  "bottom": 1625,
+                  "text": "THANK YOU, COME AGAIN",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1595,
+                  "bottom": 1681
+                }
+              ]
+            },
+            {
+              "mode": "referral",
+              "file": "supermarket-C-referral.png",
+              "width": 576,
+              "height": 1847,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1302,
+                  "bottom": 1332,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1302,
+                  "bottom": 1426
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1426,
+                  "bottom": 1454,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 21.242,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1426,
+                  "bottom": 1507
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_title",
+                  "top": 1507,
+                  "bottom": 1542,
+                  "text": "YOUR CODE:",
+                  "size_px": 26.832,
+                  "bold": true
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_note",
+                  "top": 1550,
+                  "bottom": 1631,
+                  "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
+                  "size_px": 19.006
+                },
+                {
+                  "kind": "section",
+                  "part": "referral",
+                  "top": 1507,
+                  "bottom": 1649
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1649,
+                  "bottom": 1681,
+                  "left": 134,
+                  "right": 303,
+                  "text": "Follow us on:",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1649,
+                  "bottom": 1681,
+                  "left": 313,
+                  "right": 441
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1649,
+                  "bottom": 1727
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1737,
+                  "bottom": 1767,
+                  "text": "THANK YOU, COME AGAIN",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1737,
+                  "bottom": 1823
+                }
+              ]
+            },
+            {
+              "mode": "client",
+              "file": "supermarket-C-client.png",
+              "width": 576,
+              "height": 1705,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1302,
+                  "bottom": 1332,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1302,
+                  "bottom": 1426
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1426,
+                  "bottom": 1454,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 21.242,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1426,
+                  "bottom": 1507
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1507,
+                  "bottom": 1539,
+                  "left": 134,
+                  "right": 303,
+                  "text": "Follow us on:",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1507,
+                  "bottom": 1539,
+                  "left": 313,
+                  "right": 441
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1507,
+                  "bottom": 1585
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1595,
+                  "bottom": 1625,
+                  "text": "THANK YOU, COME AGAIN",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1595,
+                  "bottom": 1681
+                }
+              ]
+            },
+            {
+              "mode": "exchange",
+              "file": "supermarket-C-exchange.png",
+              "width": 576,
+              "height": 1121,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 755,
+                  "bottom": 785,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 755,
+                  "bottom": 842
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 842,
+                  "bottom": 870,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 21.242,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 842,
+                  "bottom": 923
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 923,
+                  "bottom": 955,
+                  "left": 134,
+                  "right": 303,
+                  "text": "Follow us on:",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 923,
+                  "bottom": 955,
+                  "left": 313,
+                  "right": 441
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 923,
+                  "bottom": 1001
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1011,
+                  "bottom": 1041,
+                  "text": "THANK YOU, COME AGAIN",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1011,
+                  "bottom": 1097
+                }
+              ]
+            },
+            {
+              "mode": "return",
+              "file": "supermarket-C-return.png",
+              "width": 576,
+              "height": 1048,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 682,
+                  "bottom": 712,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 682,
+                  "bottom": 769
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 769,
+                  "bottom": 797,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 21.242,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 769,
+                  "bottom": 850
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 850,
+                  "bottom": 882,
+                  "left": 134,
+                  "right": 303,
+                  "text": "Follow us on:",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 850,
+                  "bottom": 882,
+                  "left": 313,
+                  "right": 441
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 850,
+                  "bottom": 928
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 938,
+                  "bottom": 968,
+                  "text": "THANK YOU, COME AGAIN",
+                  "size_px": 22.36,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 938,
+                  "bottom": 1024
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -64,13 +2574,843 @@
           "id": "A",
           "name": "Centered",
           "description": "Each item centered with its size, colour and price beneath.",
-          "preview": "boutique-A.png"
+          "preview": "boutique-A.png",
+          "modes": [
+            {
+              "mode": "sale",
+              "file": "boutique-A.png",
+              "width": 576,
+              "height": 2465,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 2006,
+                  "bottom": 2042,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 2006,
+                  "bottom": 2155
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 2155,
+                  "bottom": 2189,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 23.465000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 2155,
+                  "bottom": 2255
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 2255,
+                  "bottom": 2287,
+                  "left": 146,
+                  "right": 292,
+                  "text": "Follow us on:",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 2255,
+                  "bottom": 2287,
+                  "left": 302,
+                  "right": 430
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 2255,
+                  "bottom": 2339
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 2349,
+                  "bottom": 2385,
+                  "text": "Thank you for shopping with us",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 2349,
+                  "bottom": 2441
+                }
+              ]
+            },
+            {
+              "mode": "referral",
+              "file": "boutique-A-referral.png",
+              "width": 576,
+              "height": 2607,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 2006,
+                  "bottom": 2042,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 2006,
+                  "bottom": 2155
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 2155,
+                  "bottom": 2189,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 23.465000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 2155,
+                  "bottom": 2255
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_title",
+                  "top": 2255,
+                  "bottom": 2298,
+                  "text": "YOUR CODE:",
+                  "size_px": 29.639999999999997,
+                  "bold": true
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_note",
+                  "top": 2306,
+                  "bottom": 2372,
+                  "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
+                  "size_px": 20.994999999999997
+                },
+                {
+                  "kind": "section",
+                  "part": "referral",
+                  "top": 2255,
+                  "bottom": 2397
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 2397,
+                  "bottom": 2429,
+                  "left": 146,
+                  "right": 292,
+                  "text": "Follow us on:",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 2397,
+                  "bottom": 2429,
+                  "left": 302,
+                  "right": 430
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 2397,
+                  "bottom": 2481
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 2491,
+                  "bottom": 2527,
+                  "text": "Thank you for shopping with us",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 2491,
+                  "bottom": 2583
+                }
+              ]
+            },
+            {
+              "mode": "client",
+              "file": "boutique-A-client.png",
+              "width": 576,
+              "height": 2465,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 2006,
+                  "bottom": 2042,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 2006,
+                  "bottom": 2155
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 2155,
+                  "bottom": 2189,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 23.465000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 2155,
+                  "bottom": 2255
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 2255,
+                  "bottom": 2287,
+                  "left": 146,
+                  "right": 292,
+                  "text": "Follow us on:",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 2255,
+                  "bottom": 2287,
+                  "left": 302,
+                  "right": 430
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 2255,
+                  "bottom": 2339
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 2349,
+                  "bottom": 2385,
+                  "text": "Thank you for shopping with us",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 2349,
+                  "bottom": 2441
+                }
+              ]
+            },
+            {
+              "mode": "exchange",
+              "file": "boutique-A-exchange.png",
+              "width": 576,
+              "height": 1419,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1003,
+                  "bottom": 1039,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1003,
+                  "bottom": 1109
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1109,
+                  "bottom": 1143,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 23.465000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1109,
+                  "bottom": 1209
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1209,
+                  "bottom": 1241,
+                  "left": 146,
+                  "right": 292,
+                  "text": "Follow us on:",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1209,
+                  "bottom": 1241,
+                  "left": 302,
+                  "right": 430
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1209,
+                  "bottom": 1293
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1303,
+                  "bottom": 1339,
+                  "text": "Thank you for shopping with us",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1303,
+                  "bottom": 1395
+                }
+              ]
+            },
+            {
+              "mode": "return",
+              "file": "boutique-A-return.png",
+              "width": 576,
+              "height": 1299,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 883,
+                  "bottom": 919,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 883,
+                  "bottom": 989
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 989,
+                  "bottom": 1023,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 23.465000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 989,
+                  "bottom": 1089
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1089,
+                  "bottom": 1121,
+                  "left": 146,
+                  "right": 292,
+                  "text": "Follow us on:",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1089,
+                  "bottom": 1121,
+                  "left": 302,
+                  "right": 430
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1089,
+                  "bottom": 1173
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1183,
+                  "bottom": 1219,
+                  "text": "Thank you for shopping with us",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1183,
+                  "bottom": 1275
+                }
+              ]
+            }
+          ]
         },
         {
           "id": "B",
           "name": "Ledger",
           "description": "Name and total on the left and right, details beneath.",
-          "preview": "boutique-B.png"
+          "preview": "boutique-B.png",
+          "modes": [
+            {
+              "mode": "sale",
+              "file": "boutique-B.png",
+              "width": 576,
+              "height": 2225,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1766,
+                  "bottom": 1802,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1766,
+                  "bottom": 1915
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1915,
+                  "bottom": 1949,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 23.465000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1915,
+                  "bottom": 2015
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 2015,
+                  "bottom": 2047,
+                  "left": 146,
+                  "right": 292,
+                  "text": "Follow us on:",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 2015,
+                  "bottom": 2047,
+                  "left": 302,
+                  "right": 430
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 2015,
+                  "bottom": 2099
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 2109,
+                  "bottom": 2145,
+                  "text": "Thank you for shopping with us",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 2109,
+                  "bottom": 2201
+                }
+              ]
+            },
+            {
+              "mode": "referral",
+              "file": "boutique-B-referral.png",
+              "width": 576,
+              "height": 2367,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1766,
+                  "bottom": 1802,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1766,
+                  "bottom": 1915
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1915,
+                  "bottom": 1949,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 23.465000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1915,
+                  "bottom": 2015
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_title",
+                  "top": 2015,
+                  "bottom": 2058,
+                  "text": "YOUR CODE:",
+                  "size_px": 29.639999999999997,
+                  "bold": true
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_note",
+                  "top": 2066,
+                  "bottom": 2132,
+                  "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
+                  "size_px": 20.994999999999997
+                },
+                {
+                  "kind": "section",
+                  "part": "referral",
+                  "top": 2015,
+                  "bottom": 2157
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 2157,
+                  "bottom": 2189,
+                  "left": 146,
+                  "right": 292,
+                  "text": "Follow us on:",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 2157,
+                  "bottom": 2189,
+                  "left": 302,
+                  "right": 430
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 2157,
+                  "bottom": 2241
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 2251,
+                  "bottom": 2287,
+                  "text": "Thank you for shopping with us",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 2251,
+                  "bottom": 2343
+                }
+              ]
+            },
+            {
+              "mode": "client",
+              "file": "boutique-B-client.png",
+              "width": 576,
+              "height": 2225,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1766,
+                  "bottom": 1802,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1766,
+                  "bottom": 1915
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1915,
+                  "bottom": 1949,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 23.465000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1915,
+                  "bottom": 2015
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 2015,
+                  "bottom": 2047,
+                  "left": 146,
+                  "right": 292,
+                  "text": "Follow us on:",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 2015,
+                  "bottom": 2047,
+                  "left": 302,
+                  "right": 430
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 2015,
+                  "bottom": 2099
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 2109,
+                  "bottom": 2145,
+                  "text": "Thank you for shopping with us",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 2109,
+                  "bottom": 2201
+                }
+              ]
+            },
+            {
+              "mode": "exchange",
+              "file": "boutique-B-exchange.png",
+              "width": 576,
+              "height": 1329,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 913,
+                  "bottom": 949,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 913,
+                  "bottom": 1019
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1019,
+                  "bottom": 1053,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 23.465000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1019,
+                  "bottom": 1119
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1119,
+                  "bottom": 1151,
+                  "left": 146,
+                  "right": 292,
+                  "text": "Follow us on:",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1119,
+                  "bottom": 1151,
+                  "left": 302,
+                  "right": 430
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1119,
+                  "bottom": 1203
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1213,
+                  "bottom": 1249,
+                  "text": "Thank you for shopping with us",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1213,
+                  "bottom": 1305
+                }
+              ]
+            },
+            {
+              "mode": "return",
+              "file": "boutique-B-return.png",
+              "width": 576,
+              "height": 1285,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 869,
+                  "bottom": 905,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 869,
+                  "bottom": 975
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 975,
+                  "bottom": 1009,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 23.465000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 975,
+                  "bottom": 1075
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1075,
+                  "bottom": 1107,
+                  "left": 146,
+                  "right": 292,
+                  "text": "Follow us on:",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1075,
+                  "bottom": 1107,
+                  "left": 302,
+                  "right": 430
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1075,
+                  "bottom": 1159
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1169,
+                  "bottom": 1205,
+                  "text": "Thank you for shopping with us",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1169,
+                  "bottom": 1261
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -84,13 +3424,843 @@
           "id": "A",
           "name": "Clean",
           "description": "Name and total, quantity and savings on a quiet second line.",
-          "preview": "modern-A.png"
+          "preview": "modern-A.png",
+          "modes": [
+            {
+              "mode": "sale",
+              "file": "modern-A.png",
+              "width": 576,
+              "height": 2095,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1655,
+                  "bottom": 1690,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1655,
+                  "bottom": 1794
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1794,
+                  "bottom": 1828,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.206000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1794,
+                  "bottom": 1886
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1886,
+                  "bottom": 1918,
+                  "left": 137,
+                  "right": 300,
+                  "text": "Follow us on:",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1886,
+                  "bottom": 1918,
+                  "left": 310,
+                  "right": 438
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1886,
+                  "bottom": 1970
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1980,
+                  "bottom": 2015,
+                  "text": "Thanks for your visit!",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1980,
+                  "bottom": 2071
+                }
+              ]
+            },
+            {
+              "mode": "referral",
+              "file": "modern-A-referral.png",
+              "width": 576,
+              "height": 2227,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1655,
+                  "bottom": 1690,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1655,
+                  "bottom": 1794
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1794,
+                  "bottom": 1828,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.206000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1794,
+                  "bottom": 1886
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_title",
+                  "top": 1886,
+                  "bottom": 1928,
+                  "text": "YOUR CODE:",
+                  "size_px": 30.576,
+                  "bold": true
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_note",
+                  "top": 1936,
+                  "bottom": 2000,
+                  "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
+                  "size_px": 21.658
+                },
+                {
+                  "kind": "section",
+                  "part": "referral",
+                  "top": 1886,
+                  "bottom": 2018
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 2018,
+                  "bottom": 2050,
+                  "left": 137,
+                  "right": 300,
+                  "text": "Follow us on:",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 2018,
+                  "bottom": 2050,
+                  "left": 310,
+                  "right": 438
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 2018,
+                  "bottom": 2102
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 2112,
+                  "bottom": 2147,
+                  "text": "Thanks for your visit!",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 2112,
+                  "bottom": 2203
+                }
+              ]
+            },
+            {
+              "mode": "client",
+              "file": "modern-A-client.png",
+              "width": 576,
+              "height": 2095,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1655,
+                  "bottom": 1690,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1655,
+                  "bottom": 1794
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1794,
+                  "bottom": 1828,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.206000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1794,
+                  "bottom": 1886
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1886,
+                  "bottom": 1918,
+                  "left": 137,
+                  "right": 300,
+                  "text": "Follow us on:",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1886,
+                  "bottom": 1918,
+                  "left": 310,
+                  "right": 438
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1886,
+                  "bottom": 1970
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1980,
+                  "bottom": 2015,
+                  "text": "Thanks for your visit!",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1980,
+                  "bottom": 2071
+                }
+              ]
+            },
+            {
+              "mode": "exchange",
+              "file": "modern-A-exchange.png",
+              "width": 576,
+              "height": 1226,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 828,
+                  "bottom": 863,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 828,
+                  "bottom": 925
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 925,
+                  "bottom": 959,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.206000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 925,
+                  "bottom": 1017
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1017,
+                  "bottom": 1049,
+                  "left": 137,
+                  "right": 300,
+                  "text": "Follow us on:",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1017,
+                  "bottom": 1049,
+                  "left": 310,
+                  "right": 438
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1017,
+                  "bottom": 1101
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1111,
+                  "bottom": 1146,
+                  "text": "Thanks for your visit!",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1111,
+                  "bottom": 1202
+                }
+              ]
+            },
+            {
+              "mode": "return",
+              "file": "modern-A-return.png",
+              "width": 576,
+              "height": 1183,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 785,
+                  "bottom": 820,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 785,
+                  "bottom": 882
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 882,
+                  "bottom": 916,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.206000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 882,
+                  "bottom": 974
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 974,
+                  "bottom": 1006,
+                  "left": 137,
+                  "right": 300,
+                  "text": "Follow us on:",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 974,
+                  "bottom": 1006,
+                  "left": 310,
+                  "right": 438
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 974,
+                  "bottom": 1058
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1068,
+                  "bottom": 1103,
+                  "text": "Thanks for your visit!",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1068,
+                  "bottom": 1159
+                }
+              ]
+            }
+          ]
         },
         {
           "id": "B",
           "name": "Table",
           "description": "A table with a dark header bar.",
-          "preview": "modern-B.png"
+          "preview": "modern-B.png",
+          "modes": [
+            {
+              "mode": "sale",
+              "file": "modern-B.png",
+              "width": 576,
+              "height": 1903,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1463,
+                  "bottom": 1498,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1463,
+                  "bottom": 1602
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1602,
+                  "bottom": 1636,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.206000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1602,
+                  "bottom": 1694
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1694,
+                  "bottom": 1726,
+                  "left": 137,
+                  "right": 300,
+                  "text": "Follow us on:",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1694,
+                  "bottom": 1726,
+                  "left": 310,
+                  "right": 438
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1694,
+                  "bottom": 1778
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1788,
+                  "bottom": 1823,
+                  "text": "Thanks for your visit!",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1788,
+                  "bottom": 1879
+                }
+              ]
+            },
+            {
+              "mode": "referral",
+              "file": "modern-B-referral.png",
+              "width": 576,
+              "height": 2035,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1463,
+                  "bottom": 1498,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1463,
+                  "bottom": 1602
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1602,
+                  "bottom": 1636,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.206000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1602,
+                  "bottom": 1694
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_title",
+                  "top": 1694,
+                  "bottom": 1736,
+                  "text": "YOUR CODE:",
+                  "size_px": 30.576,
+                  "bold": true
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_note",
+                  "top": 1744,
+                  "bottom": 1808,
+                  "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
+                  "size_px": 21.658
+                },
+                {
+                  "kind": "section",
+                  "part": "referral",
+                  "top": 1694,
+                  "bottom": 1826
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1826,
+                  "bottom": 1858,
+                  "left": 137,
+                  "right": 300,
+                  "text": "Follow us on:",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1826,
+                  "bottom": 1858,
+                  "left": 310,
+                  "right": 438
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1826,
+                  "bottom": 1910
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1920,
+                  "bottom": 1955,
+                  "text": "Thanks for your visit!",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1920,
+                  "bottom": 2011
+                }
+              ]
+            },
+            {
+              "mode": "client",
+              "file": "modern-B-client.png",
+              "width": 576,
+              "height": 1903,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1463,
+                  "bottom": 1498,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1463,
+                  "bottom": 1602
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1602,
+                  "bottom": 1636,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.206000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1602,
+                  "bottom": 1694
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1694,
+                  "bottom": 1726,
+                  "left": 137,
+                  "right": 300,
+                  "text": "Follow us on:",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1694,
+                  "bottom": 1726,
+                  "left": 310,
+                  "right": 438
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1694,
+                  "bottom": 1778
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1788,
+                  "bottom": 1823,
+                  "text": "Thanks for your visit!",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1788,
+                  "bottom": 1879
+                }
+              ]
+            },
+            {
+              "mode": "exchange",
+              "file": "modern-B-exchange.png",
+              "width": 576,
+              "height": 1252,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 854,
+                  "bottom": 889,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 854,
+                  "bottom": 951
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 951,
+                  "bottom": 985,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.206000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 951,
+                  "bottom": 1043
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1043,
+                  "bottom": 1075,
+                  "left": 137,
+                  "right": 300,
+                  "text": "Follow us on:",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1043,
+                  "bottom": 1075,
+                  "left": 310,
+                  "right": 438
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1043,
+                  "bottom": 1127
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1137,
+                  "bottom": 1172,
+                  "text": "Thanks for your visit!",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1137,
+                  "bottom": 1228
+                }
+              ]
+            },
+            {
+              "mode": "return",
+              "file": "modern-B-return.png",
+              "width": 576,
+              "height": 1170,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 772,
+                  "bottom": 807,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 772,
+                  "bottom": 869
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 869,
+                  "bottom": 903,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.206000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 869,
+                  "bottom": 961
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 961,
+                  "bottom": 993,
+                  "left": 137,
+                  "right": 300,
+                  "text": "Follow us on:",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 961,
+                  "bottom": 993,
+                  "left": 310,
+                  "right": 438
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 961,
+                  "bottom": 1045
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1055,
+                  "bottom": 1090,
+                  "text": "Thanks for your visit!",
+                  "size_px": 25.480000000000004,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1055,
+                  "bottom": 1146
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -104,13 +4274,843 @@
           "id": "A",
           "name": "Menu",
           "description": "Name, dot leader, price; quantity beneath when more than one.",
-          "preview": "bistro-A.png"
+          "preview": "bistro-A.png",
+          "modes": [
+            {
+              "mode": "sale",
+              "file": "bistro-A.png",
+              "width": 576,
+              "height": 1883,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1457,
+                  "bottom": 1489,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1457,
+                  "bottom": 1590
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1590,
+                  "bottom": 1621,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 23.712,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1590,
+                  "bottom": 1680
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1680,
+                  "bottom": 1712,
+                  "left": 142,
+                  "right": 296,
+                  "text": "Follow us on:",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1680,
+                  "bottom": 1712,
+                  "left": 306,
+                  "right": 434
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1680,
+                  "bottom": 1761
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1771,
+                  "bottom": 1803,
+                  "text": "Thank you, see you again!",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1771,
+                  "bottom": 1859
+                }
+              ]
+            },
+            {
+              "mode": "referral",
+              "file": "bistro-A-referral.png",
+              "width": 576,
+              "height": 2011,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1457,
+                  "bottom": 1489,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1457,
+                  "bottom": 1590
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1590,
+                  "bottom": 1621,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 23.712,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1590,
+                  "bottom": 1680
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_title",
+                  "top": 1680,
+                  "bottom": 1719,
+                  "text": "YOUR CODE:",
+                  "size_px": 29.951999999999998,
+                  "bold": true
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_note",
+                  "top": 1727,
+                  "bottom": 1787,
+                  "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
+                  "size_px": 21.216
+                },
+                {
+                  "kind": "section",
+                  "part": "referral",
+                  "top": 1680,
+                  "bottom": 1808
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1808,
+                  "bottom": 1840,
+                  "left": 142,
+                  "right": 296,
+                  "text": "Follow us on:",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1808,
+                  "bottom": 1840,
+                  "left": 306,
+                  "right": 434
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1808,
+                  "bottom": 1889
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1899,
+                  "bottom": 1931,
+                  "text": "Thank you, see you again!",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1899,
+                  "bottom": 1987
+                }
+              ]
+            },
+            {
+              "mode": "client",
+              "file": "bistro-A-client.png",
+              "width": 576,
+              "height": 1883,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1457,
+                  "bottom": 1489,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1457,
+                  "bottom": 1590
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1590,
+                  "bottom": 1621,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 23.712,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1590,
+                  "bottom": 1680
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1680,
+                  "bottom": 1712,
+                  "left": 142,
+                  "right": 296,
+                  "text": "Follow us on:",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1680,
+                  "bottom": 1712,
+                  "left": 306,
+                  "right": 434
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1680,
+                  "bottom": 1761
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1771,
+                  "bottom": 1803,
+                  "text": "Thank you, see you again!",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1771,
+                  "bottom": 1859
+                }
+              ]
+            },
+            {
+              "mode": "exchange",
+              "file": "bistro-A-exchange.png",
+              "width": 576,
+              "height": 1143,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 756,
+                  "bottom": 788,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 756,
+                  "bottom": 850
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 850,
+                  "bottom": 881,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 23.712,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 850,
+                  "bottom": 940
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 940,
+                  "bottom": 972,
+                  "left": 142,
+                  "right": 296,
+                  "text": "Follow us on:",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 940,
+                  "bottom": 972,
+                  "left": 306,
+                  "right": 434
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 940,
+                  "bottom": 1021
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1031,
+                  "bottom": 1063,
+                  "text": "Thank you, see you again!",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1031,
+                  "bottom": 1119
+                }
+              ]
+            },
+            {
+              "mode": "return",
+              "file": "bistro-A-return.png",
+              "width": 576,
+              "height": 1136,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 749,
+                  "bottom": 781,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 749,
+                  "bottom": 843
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 843,
+                  "bottom": 874,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 23.712,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 843,
+                  "bottom": 933
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 933,
+                  "bottom": 965,
+                  "left": 142,
+                  "right": 296,
+                  "text": "Follow us on:",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 933,
+                  "bottom": 965,
+                  "left": 306,
+                  "right": 434
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 933,
+                  "bottom": 1014
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1024,
+                  "bottom": 1056,
+                  "text": "Thank you, see you again!",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1024,
+                  "bottom": 1112
+                }
+              ]
+            }
+          ]
         },
         {
           "id": "B",
           "name": "Quantity first",
           "description": "2 x Name ...... price.",
-          "preview": "bistro-B.png"
+          "preview": "bistro-B.png",
+          "modes": [
+            {
+              "mode": "sale",
+              "file": "bistro-B.png",
+              "width": 576,
+              "height": 1855,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1429,
+                  "bottom": 1461,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1429,
+                  "bottom": 1562
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1562,
+                  "bottom": 1593,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 23.712,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1562,
+                  "bottom": 1652
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1652,
+                  "bottom": 1684,
+                  "left": 142,
+                  "right": 296,
+                  "text": "Follow us on:",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1652,
+                  "bottom": 1684,
+                  "left": 306,
+                  "right": 434
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1652,
+                  "bottom": 1733
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1743,
+                  "bottom": 1775,
+                  "text": "Thank you, see you again!",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1743,
+                  "bottom": 1831
+                }
+              ]
+            },
+            {
+              "mode": "referral",
+              "file": "bistro-B-referral.png",
+              "width": 576,
+              "height": 1983,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1429,
+                  "bottom": 1461,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1429,
+                  "bottom": 1562
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1562,
+                  "bottom": 1593,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 23.712,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1562,
+                  "bottom": 1652
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_title",
+                  "top": 1652,
+                  "bottom": 1691,
+                  "text": "YOUR CODE:",
+                  "size_px": 29.951999999999998,
+                  "bold": true
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_note",
+                  "top": 1699,
+                  "bottom": 1759,
+                  "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
+                  "size_px": 21.216
+                },
+                {
+                  "kind": "section",
+                  "part": "referral",
+                  "top": 1652,
+                  "bottom": 1780
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1780,
+                  "bottom": 1812,
+                  "left": 142,
+                  "right": 296,
+                  "text": "Follow us on:",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1780,
+                  "bottom": 1812,
+                  "left": 306,
+                  "right": 434
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1780,
+                  "bottom": 1861
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1871,
+                  "bottom": 1903,
+                  "text": "Thank you, see you again!",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1871,
+                  "bottom": 1959
+                }
+              ]
+            },
+            {
+              "mode": "client",
+              "file": "bistro-B-client.png",
+              "width": 576,
+              "height": 1855,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1429,
+                  "bottom": 1461,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1429,
+                  "bottom": 1562
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1562,
+                  "bottom": 1593,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 23.712,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1562,
+                  "bottom": 1652
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1652,
+                  "bottom": 1684,
+                  "left": 142,
+                  "right": 296,
+                  "text": "Follow us on:",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1652,
+                  "bottom": 1684,
+                  "left": 306,
+                  "right": 434
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1652,
+                  "bottom": 1733
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1743,
+                  "bottom": 1775,
+                  "text": "Thank you, see you again!",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1743,
+                  "bottom": 1831
+                }
+              ]
+            },
+            {
+              "mode": "exchange",
+              "file": "bistro-B-exchange.png",
+              "width": 576,
+              "height": 1181,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 794,
+                  "bottom": 826,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 794,
+                  "bottom": 888
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 888,
+                  "bottom": 919,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 23.712,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 888,
+                  "bottom": 978
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 978,
+                  "bottom": 1010,
+                  "left": 142,
+                  "right": 296,
+                  "text": "Follow us on:",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 978,
+                  "bottom": 1010,
+                  "left": 306,
+                  "right": 434
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 978,
+                  "bottom": 1059
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1069,
+                  "bottom": 1101,
+                  "text": "Thank you, see you again!",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1069,
+                  "bottom": 1157
+                }
+              ]
+            },
+            {
+              "mode": "return",
+              "file": "bistro-B-return.png",
+              "width": 576,
+              "height": 1103,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 716,
+                  "bottom": 748,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 716,
+                  "bottom": 810
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 810,
+                  "bottom": 841,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 23.712,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 810,
+                  "bottom": 900
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 900,
+                  "bottom": 932,
+                  "left": 142,
+                  "right": 296,
+                  "text": "Follow us on:",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 900,
+                  "bottom": 932,
+                  "left": 306,
+                  "right": 434
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 900,
+                  "bottom": 981
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 991,
+                  "bottom": 1023,
+                  "text": "Thank you, see you again!",
+                  "size_px": 24.96,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 991,
+                  "bottom": 1079
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -124,13 +5124,843 @@
           "id": "A",
           "name": "Tape",
           "description": "Fixed columns: quantity, item, price, total.",
-          "preview": "typewriter-A.png"
+          "preview": "typewriter-A.png",
+          "modes": [
+            {
+              "mode": "sale",
+              "file": "typewriter-A.png",
+              "width": 576,
+              "height": 1790,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1387,
+                  "bottom": 1417,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1387,
+                  "bottom": 1511
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1511,
+                  "bottom": 1539,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1511,
+                  "bottom": 1592
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1592,
+                  "bottom": 1624,
+                  "left": 115,
+                  "right": 323,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1592,
+                  "bottom": 1624,
+                  "left": 333,
+                  "right": 461
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1592,
+                  "bottom": 1670
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1680,
+                  "bottom": 1710,
+                  "text": "*** THANK YOU ***",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1680,
+                  "bottom": 1766
+                }
+              ]
+            },
+            {
+              "mode": "referral",
+              "file": "typewriter-A-referral.png",
+              "width": 576,
+              "height": 1933,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1387,
+                  "bottom": 1417,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1387,
+                  "bottom": 1511
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1511,
+                  "bottom": 1539,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1511,
+                  "bottom": 1592
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_title",
+                  "top": 1592,
+                  "bottom": 1628,
+                  "text": "YOUR CODE:",
+                  "size_px": 31.200000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_note",
+                  "top": 1636,
+                  "bottom": 1717,
+                  "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
+                  "size_px": 22.1
+                },
+                {
+                  "kind": "section",
+                  "part": "referral",
+                  "top": 1592,
+                  "bottom": 1735
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1735,
+                  "bottom": 1767,
+                  "left": 115,
+                  "right": 323,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1735,
+                  "bottom": 1767,
+                  "left": 333,
+                  "right": 461
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1735,
+                  "bottom": 1813
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1823,
+                  "bottom": 1853,
+                  "text": "*** THANK YOU ***",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1823,
+                  "bottom": 1909
+                }
+              ]
+            },
+            {
+              "mode": "client",
+              "file": "typewriter-A-client.png",
+              "width": 576,
+              "height": 1790,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1387,
+                  "bottom": 1417,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1387,
+                  "bottom": 1511
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1511,
+                  "bottom": 1539,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1511,
+                  "bottom": 1592
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1592,
+                  "bottom": 1624,
+                  "left": 115,
+                  "right": 323,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1592,
+                  "bottom": 1624,
+                  "left": 333,
+                  "right": 461
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1592,
+                  "bottom": 1670
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1680,
+                  "bottom": 1710,
+                  "text": "*** THANK YOU ***",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1680,
+                  "bottom": 1766
+                }
+              ]
+            },
+            {
+              "mode": "exchange",
+              "file": "typewriter-A-exchange.png",
+              "width": 576,
+              "height": 1140,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 774,
+                  "bottom": 804,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 774,
+                  "bottom": 861
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 861,
+                  "bottom": 889,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 861,
+                  "bottom": 942
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 942,
+                  "bottom": 974,
+                  "left": 115,
+                  "right": 323,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 942,
+                  "bottom": 974,
+                  "left": 333,
+                  "right": 461
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 942,
+                  "bottom": 1020
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1030,
+                  "bottom": 1060,
+                  "text": "*** THANK YOU ***",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1030,
+                  "bottom": 1116
+                }
+              ]
+            },
+            {
+              "mode": "return",
+              "file": "typewriter-A-return.png",
+              "width": 576,
+              "height": 1071,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 705,
+                  "bottom": 735,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 705,
+                  "bottom": 792
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 792,
+                  "bottom": 820,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 792,
+                  "bottom": 873
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 873,
+                  "bottom": 905,
+                  "left": 115,
+                  "right": 323,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 873,
+                  "bottom": 905,
+                  "left": 333,
+                  "right": 461
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 873,
+                  "bottom": 951
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 961,
+                  "bottom": 991,
+                  "text": "*** THANK YOU ***",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 961,
+                  "bottom": 1047
+                }
+              ]
+            }
+          ]
         },
         {
           "id": "B",
           "name": "Itemized",
           "description": "Item, then quantity at price, then any discount.",
-          "preview": "typewriter-B.png"
+          "preview": "typewriter-B.png",
+          "modes": [
+            {
+              "mode": "sale",
+              "file": "typewriter-B.png",
+              "width": 576,
+              "height": 1922,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1519,
+                  "bottom": 1549,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1519,
+                  "bottom": 1643
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1643,
+                  "bottom": 1671,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1643,
+                  "bottom": 1724
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1724,
+                  "bottom": 1756,
+                  "left": 115,
+                  "right": 323,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1724,
+                  "bottom": 1756,
+                  "left": 333,
+                  "right": 461
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1724,
+                  "bottom": 1802
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1812,
+                  "bottom": 1842,
+                  "text": "*** THANK YOU ***",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1812,
+                  "bottom": 1898
+                }
+              ]
+            },
+            {
+              "mode": "referral",
+              "file": "typewriter-B-referral.png",
+              "width": 576,
+              "height": 2065,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1519,
+                  "bottom": 1549,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1519,
+                  "bottom": 1643
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1643,
+                  "bottom": 1671,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1643,
+                  "bottom": 1724
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_title",
+                  "top": 1724,
+                  "bottom": 1760,
+                  "text": "YOUR CODE:",
+                  "size_px": 31.200000000000003,
+                  "bold": true
+                },
+                {
+                  "kind": "text",
+                  "part": "referral_note",
+                  "top": 1768,
+                  "bottom": 1849,
+                  "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
+                  "size_px": 22.1
+                },
+                {
+                  "kind": "section",
+                  "part": "referral",
+                  "top": 1724,
+                  "bottom": 1867
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1867,
+                  "bottom": 1899,
+                  "left": 115,
+                  "right": 323,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1867,
+                  "bottom": 1899,
+                  "left": 333,
+                  "right": 461
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1867,
+                  "bottom": 1945
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1955,
+                  "bottom": 1985,
+                  "text": "*** THANK YOU ***",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1955,
+                  "bottom": 2041
+                }
+              ]
+            },
+            {
+              "mode": "client",
+              "file": "typewriter-B-client.png",
+              "width": 576,
+              "height": 1922,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 1519,
+                  "bottom": 1549,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 1519,
+                  "bottom": 1643
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 1643,
+                  "bottom": 1671,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 1643,
+                  "bottom": 1724
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 1724,
+                  "bottom": 1756,
+                  "left": 115,
+                  "right": 323,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 1724,
+                  "bottom": 1756,
+                  "left": 333,
+                  "right": 461
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 1724,
+                  "bottom": 1802
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1812,
+                  "bottom": 1842,
+                  "text": "*** THANK YOU ***",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1812,
+                  "bottom": 1898
+                }
+              ]
+            },
+            {
+              "mode": "exchange",
+              "file": "typewriter-B-exchange.png",
+              "width": 576,
+              "height": 1173,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 807,
+                  "bottom": 837,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 807,
+                  "bottom": 894
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 894,
+                  "bottom": 922,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 894,
+                  "bottom": 975
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 975,
+                  "bottom": 1007,
+                  "left": 115,
+                  "right": 323,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 975,
+                  "bottom": 1007,
+                  "left": 333,
+                  "right": 461
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 975,
+                  "bottom": 1053
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 1063,
+                  "bottom": 1093,
+                  "text": "*** THANK YOU ***",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 1063,
+                  "bottom": 1149
+                }
+              ]
+            },
+            {
+              "mode": "return",
+              "file": "typewriter-B-return.png",
+              "width": 576,
+              "height": 1104,
+              "parts": [
+                {
+                  "kind": "text",
+                  "part": "payments_title",
+                  "top": 738,
+                  "bottom": 768,
+                  "text": "PAYMENT DETAILS",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "payments",
+                  "top": 738,
+                  "bottom": 825
+                },
+                {
+                  "kind": "text",
+                  "part": "policy_title",
+                  "top": 825,
+                  "bottom": 853,
+                  "text": "EXCHANGE POLICY",
+                  "size_px": 24.7,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "policy",
+                  "top": 825,
+                  "bottom": 906
+                },
+                {
+                  "kind": "text",
+                  "part": "socials_title",
+                  "top": 906,
+                  "bottom": 938,
+                  "left": 115,
+                  "right": 323,
+                  "text": "Follow us on:",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "icons",
+                  "part": "socials_icons",
+                  "top": 906,
+                  "bottom": 938,
+                  "left": 333,
+                  "right": 461
+                },
+                {
+                  "kind": "section",
+                  "part": "socials",
+                  "top": 906,
+                  "bottom": 984
+                },
+                {
+                  "kind": "text",
+                  "part": "thanks",
+                  "top": 994,
+                  "bottom": 1024,
+                  "text": "*** THANK YOU ***",
+                  "size_px": 26,
+                  "bold": true
+                },
+                {
+                  "kind": "section",
+                  "part": "thanks",
+                  "top": 994,
+                  "bottom": 1080
+                }
+              ]
+            }
+          ]
         }
       ]
     }

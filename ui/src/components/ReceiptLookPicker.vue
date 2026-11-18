@@ -50,10 +50,13 @@
     </div>
 
     <div class="rlp-preview">
-      <img
-        :alt="`${themeInfo.name} receipt, layout ${layoutInfo.id}`"
-        :src="`/receipt-previews/${layoutInfo.preview}`"
-      >
+      <!-- The designer puts its editable paper here. -->
+      <slot :layout="layoutInfo" name="preview" :theme="themeInfo">
+        <img
+          :alt="`${themeInfo.name} receipt, layout ${layoutInfo.id}`"
+          :src="`/receipt-previews/${layoutInfo.preview}`"
+        >
+      </slot>
     </div>
   </div>
 </template>
@@ -62,7 +65,7 @@
   import { computed } from 'vue'
   import catalog from '@/data/receiptThemes.json'
 
-  type Layout = { id: string, name: string, description: string, preview: string }
+  type Layout = { id: string, name: string, description: string, preview: string, modes?: any[] }
   type Theme = { id: string, name: string, description: string, best_for: string, layouts: Layout[] }
 
   const themes: Theme[] = catalog.themes
