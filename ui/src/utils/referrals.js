@@ -6,6 +6,8 @@
 export function programToForm (p = {}) {
   return {
     enabled: Boolean(p.enabled),
+    // The branches where referrals are on; none is off everywhere.
+    branchIds: Array.isArray(p.branch_ids) ? [...p.branch_ids] : [],
     rewardPercent: Number(p.reward_percent ?? 15),
     maxRewardDollars: centsToDollars(p.max_reward_cents),
     minFriendSpendDollars: centsToDollars(p.min_friend_spend),
@@ -20,8 +22,10 @@ export function programToForm (p = {}) {
 export function formToRequest (f) {
   const percent = wholeNumber(f.rewardPercent, 'The reward')
   if (percent < 1 || percent > 100) {throw new Error('The reward must be from 1% to 100%')}
+  const branchIds = [...new Set((f.branchIds ?? []).map(Number).filter(id => Number.isInteger(id) && id > 0))].toSorted((a, b) => a - b)
   return {
-    enabled: Boolean(f.enabled),
+    enabled: branchIds.length > 0,
+    branch_ids: branchIds,
     reward_percent: percent,
     max_reward_cents: dollarsToCents(f.maxRewardDollars, 'The cap'),
     min_friend_spend: dollarsToCents(f.minFriendSpendDollars, 'The minimum spend'),
@@ -53,13 +57,21 @@ function wholeNumber (value, label) {
   return Number(text)
 }
 
-// programSummary is one line saying what the rules do now.
-export function programSummary (p) {
-  if (!p?.enabled) {return 'Referrals are off. Tills don\'t take codes or print them.'}
+// listNames reads ["Centro", "Hara", "Dora"] as "Centro, Hara and Dora".
+export function listNames (names) {
+  if (names.length <= 1) {return names.join('')}
+  return `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+}
+
+// programSummary is one line saying what the rules do now, and where.
+// branchName turns a branch id into its name.
+export function programSummary (p, branchName = id => `Branch #${id}`) {
+  const ids = p?.enabled ? (p.branch_ids ?? []) : []
+  if (ids.length === 0) {return 'Referrals are off at every branch. Tills don\'t take codes or print them.'}
   const parts = [`A new customer's first purchase with a client's code gives that client ${p.reward_percent}% off one later visit`]
   if (p.max_reward_cents > 0) {parts.push(`up to $${p.max_reward_cents / 100}`)}
   if (p.min_friend_spend > 0) {parts.push(`when the purchase is $${p.min_friend_spend / 100} or more`)}
-  return parts.join(', ') + '.'
+  return `On at ${listNames(ids.map(id => branchName(id)))}. ${parts.join(', ')}.`
 }
 
 export const statusLabels = {

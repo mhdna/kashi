@@ -146,14 +146,21 @@ func TestReferralFlow(t *testing.T) {
 		_, _ = store.UpdateReferralProgram(context.Background(), db.UpdateReferralProgramParams{
 			Enabled: before.Enabled, RewardPercent: before.RewardPercent, MaxRewardCents: before.MaxRewardCents,
 			MinFriendSpend: before.MinFriendSpend, UnlockAfterDays: before.UnlockAfterDays, ExpiresAfterDays: before.ExpiresAfterDays,
-			CancelOnReturn: before.CancelOnReturn, MaxRewardsPerMonth: before.MaxRewardsPerMonth,
+			CancelOnReturn: before.CancelOnReturn, MaxRewardsPerMonth: before.MaxRewardsPerMonth, BranchIds: before.BranchIds,
 		})
 	})
+	// On means on at this test's branch, unless a step names others.
+	var branchIDs []int64
 	setProgram := func(p db.UpdateReferralProgramParams) {
+		if p.Enabled && p.BranchIds == nil {
+			p.BranchIds = branchIDs
+		}
+		if p.BranchIds == nil {
+			p.BranchIds = []int64{}
+		}
 		_, err := store.UpdateReferralProgram(ctx, p)
 		require.NoError(t, err)
 	}
-	setProgram(db.UpdateReferralProgramParams{Enabled: true, RewardPercent: 15, CancelOnReturn: true})
 
 	const key = "referral-flow-key"
 	hash, err := util.HashPassword(key)
@@ -162,6 +169,8 @@ func TestReferralFlow(t *testing.T) {
 		Name: util.RandomString(10), Code: util.RandomString(6), RegisterAPIKeyHash: hash,
 	})
 	require.NoError(t, err)
+	branchIDs = []int64{branch.Branch.ID}
+	setProgram(db.UpdateReferralProgramParams{Enabled: true, RewardPercent: 15, CancelOnReturn: true})
 	server := newTestServer(t, store)
 
 	till := func(method, path string, body any) *httptest.ResponseRecorder {
@@ -361,6 +370,17 @@ func TestReferralFlow(t *testing.T) {
 	late := newClient("Late")
 	_, offSale := sell(&late, 5000, map[string]any{"referral_code": owner.code})
 	require.Equal(t, referralRefusedOff, referralOf(offSale).RefuseReason)
+
+	// 8. On at another branch only: a code given here earns nothing, and this
+	// branch's tills are told referrals are off.
+	setProgram(db.UpdateReferralProgramParams{Enabled: true, RewardPercent: 15, BranchIds: []int64{branch.Branch.ID + 1_000_000}})
+	elsewhere := newClient("Elsewhere")
+	_, elsewhereSale := sell(&elsewhere, 5000, map[string]any{"referral_code": owner.code})
+	require.Equal(t, referralRefusedOff, referralOf(elsewhereSale).RefuseReason)
+	programFeed.Items = nil
+	require.NoError(t, json.Unmarshal(feed("referral_program", start), &programFeed))
+	require.Len(t, programFeed.Items, 1)
+	require.False(t, programFeed.Items[0].Enabled, "off at this branch")
 }
 
 func lowerCode(code string) string {

@@ -13,14 +13,22 @@
         <p class="text-body-2 text-medium-emphasis mb-4" data-test="summary">{{ summary }}</p>
 
         <v-form class="referral-rules mb-6" @submit.prevent="save">
-          <v-switch
-            v-model="form.enabled"
-            color="primary"
-            data-test="enabled"
-            hide-details
-            inset
-            label="Referrals on"
-          />
+          <div class="text-subtitle-2 mb-1">Branches where referrals are on</div>
+          <div class="referral-branches mb-4" data-test="branches">
+            <v-switch
+              v-for="b in branches"
+              :key="b.id"
+              v-model="form.branchIds"
+              color="primary"
+              :data-test="`branch-${b.id}`"
+              density="compact"
+              hide-details
+              inset
+              :label="b.name"
+              :value="b.id"
+            />
+            <div v-if="branches.length === 0" class="text-body-2 text-medium-emphasis">No branches yet.</div>
+          </div>
           <div class="referral-grid">
             <v-text-field
               v-model="form.rewardPercent"
@@ -82,7 +90,13 @@
             label="Take the reward back if the friend's purchase is cancelled or returned (before it is used)"
           />
           <div class="d-flex align-center ga-3 mt-2">
-            <v-btn color="primary" data-test="save" :loading="saving" type="submit" variant="flat">Save</v-btn>
+            <v-btn
+              color="primary"
+              data-test="save"
+              :loading="saving"
+              type="submit"
+              variant="flat"
+            >Save</v-btn>
             <span v-if="formError" class="text-error text-body-2" data-test="form-error">{{ formError }}</span>
           </div>
         </v-form>
@@ -90,7 +104,14 @@
         <div class="d-flex flex-wrap align-center ga-3 mb-2">
           <div class="text-subtitle-1 font-weight-medium">Referrals</div>
           <v-spacer />
-          <v-btn-toggle v-model="status" color="primary" density="compact" mandatory variant="outlined" @update:model-value="loadList">
+          <v-btn-toggle
+            v-model="status"
+            color="primary"
+            density="compact"
+            mandatory
+            variant="outlined"
+            @update:model-value="loadList"
+          >
             <v-btn value="">All</v-btn>
             <v-btn value="available">Ready to use</v-btn>
             <v-btn value="used">Used</v-btn>
@@ -98,7 +119,7 @@
             <v-btn value="refused">No reward</v-btn>
           </v-btn-toggle>
         </div>
-        <v-table density="comfortable" data-test="list">
+        <v-table data-test="list" density="comfortable">
           <thead>
             <tr>
               <th>Date</th>
@@ -110,7 +131,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-if="!rows.length">
+            <tr v-if="rows.length === 0">
               <td class="text-medium-emphasis" colspan="6">{{ loading ? 'Loading' : 'No referrals yet' }}</td>
             </tr>
             <tr v-for="row in rows" :key="row.id">
@@ -143,12 +164,17 @@
 <script setup>
   import { computed, onMounted, ref } from 'vue'
   import { authFetch } from '@/composables/useApi'
+  import { useBranches } from '@/composables/useBranches'
   import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
   import { formatMoney } from '@/utils/money'
   import { formToRequest, programSummary, programToForm, referralRow, statusColor } from '@/utils/referrals'
 
   const notify = useNotify()
+  const { branches, fetchBranches } = useBranches()
+  function branchName (id) {
+    return branches.value.find(b => b.id === id)?.name ?? `Branch #${id}`
+  }
   const program = ref(null)
   const form = ref(programToForm())
   const formError = ref('')
@@ -157,7 +183,7 @@
   const rows = ref([])
   const loading = ref(false)
 
-  const summary = computed(() => programSummary(program.value))
+  const summary = computed(() => programSummary(program.value, branchName))
 
   async function requestJSON (url, options) {
     const res = await authFetch(url, options)
@@ -217,6 +243,7 @@
   }
 
   async function reload () {
+    fetchBranches().catch(error => notify.error(error.message))
     try {
       await loadProgram()
     } catch (error) {
@@ -229,6 +256,11 @@
 </script>
 
 <style scoped>
+.referral-branches {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 24px;
+}
 .referral-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));

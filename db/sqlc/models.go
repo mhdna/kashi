@@ -1793,6 +1793,7 @@ type ReferralProgram struct {
 	CancelOnReturn     bool      `json:"cancel_on_return"`
 	MaxRewardsPerMonth int32     `json:"max_rewards_per_month"`
 	UpdatedAt          time.Time `json:"updated_at"`
+	BranchIds          []int64   `json:"branch_ids"`
 }
 
 type ReportSaleInvoice struct {
