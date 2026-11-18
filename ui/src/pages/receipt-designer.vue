@@ -68,8 +68,9 @@
               <v-btn v-for="m in modes" :key="m.mode" size="small" :value="m.mode">{{ m.label }}</v-btn>
             </v-btn-toggle>
             <ReceiptLivePaper
+              :catalog="catalog"
+              :design="design"
               :editable="canEdit && tab === 'receipt'"
-              :groups="catalog?.groups ?? []"
               :height="preview.height"
               :image="preview.image"
               :image-width="preview.width"
@@ -78,24 +79,14 @@
               :marks="preview.marks"
               :max-length="catalog?.max_length ?? 300"
               :picked="picked"
-              :words-of="wordsOf"
               @pick="g => picked = g"
-              @words="setWords"
+              @update:design="d => design = d"
             />
             <div v-if="previewError" class="text-body-2 text-error" data-test="preview-error">{{ previewError }}</div>
             <div class="text-caption text-medium-emphasis rd-paper-note">
-              Drawn with the till's own code<template v-if="target !== ALL"> and this branch's details</template>.
+              <template v-if="canEdit && tab === 'receipt'">Click any words to change them, or a part for all of it. </template>Drawn with the till's own code<template v-if="target !== ALL"> and this branch's details</template>.
               <template v-if="mode === 'referral'"> The referral code prints only at branches with referrals on.</template>
             </div>
-          </div>
-
-          <div v-if="tab === 'receipt' && catalog" class="rd-panel">
-            <ReceiptPartPanel
-              :catalog="catalog"
-              :design="design"
-              :group="canEdit ? picked : ''"
-              @update:design="d => design = d"
-            />
           </div>
 
           <div v-if="tab === 'shop'" class="rd-panel" data-test="shop-tab">
@@ -179,7 +170,6 @@
 <script setup lang="ts">
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import ReceiptLivePaper from '@/components/Receipt/ReceiptLivePaper.vue'
-  import ReceiptPartPanel from '@/components/Receipt/ReceiptPartPanel.vue'
   import ReceiptLookPicker from '@/components/ReceiptLookPicker.vue'
   import { authFetch } from '@/composables/useApi'
   import { useBranches } from '@/composables/useBranches'
@@ -189,7 +179,7 @@
   import { API_BASE } from '@/config'
   import {
     designJSON, emptyDesign, emptyShop, footerOrder, groupInfo, moveSection, parseDesign, previewQuery,
-    setElement, shopFromSettings, shopPayload, socialPlatforms,
+    shopFromSettings, shopPayload, socialPlatforms,
   } from '@/utils/receiptDesign'
 
   const ALL = 0
@@ -238,24 +228,6 @@
     const data = await res.json().catch(() => ({}))
     if (!res.ok) {throw new Error(data.error || `Request failed with status ${res.status}`)}
     return data
-  }
-
-  // The words a line starts from when typed over on the paper: the design's
-  // own, else the default with its placeholders ({percent}), else what it
-  // prints.
-  function wordsOf (key: string, printed: string) {
-    const own = design.value.elements?.[key]?.text
-    if (own) {return own}
-    const info = (catalog.value?.elements ?? []).find((e: any) => e.key === key)
-    if (info?.default && /\{(percent|currency)\}/.test(info.default)) {return info.default}
-    return printed
-  }
-
-  function setWords (key: string, text: string) {
-    const info = (catalog.value?.elements ?? []).find((e: any) => e.key === key)
-    // The default typed back is no change at all.
-    const value = text === info?.default ? '' : text
-    design.value = setElement(design.value, key, { text: value })
   }
 
   function toggleSocial (platform: string, on: boolean) {
@@ -418,7 +390,7 @@
    keeps beside the receipt and scrolls on its own. */
 .rd-work {
   display: grid;
-  grid-template-columns: 220px auto minmax(340px, 1fr);
+  grid-template-columns: 220px minmax(0, 1fr);
   align-items: start;
   gap: 24px;
 }
@@ -426,12 +398,9 @@
 .rd-work--shop {
   grid-template-columns: auto minmax(340px, 1fr);
 }
-@media (max-width: 1100px) {
+@media (max-width: 900px) {
   .rd-work {
-    grid-template-columns: auto minmax(300px, 1fr);
-  }
-  .rd-picker {
-    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 @media (max-width: 760px) {
@@ -456,8 +425,10 @@
   gap: 12px;
   min-width: 0;
   max-width: 100%;
-  /* Room on the right for a part's name beside the paper. */
+  /* Room on the right for a part's name beside the paper, and under it for
+     a toolbar opened near the bottom. */
   padding-right: 96px;
+  padding-bottom: 220px;
 }
 .rd-modes {
   flex-wrap: wrap;

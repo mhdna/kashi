@@ -27,7 +27,7 @@ vi.mock('@/composables/useApi', () => ({
         image: 'data:image/png;base64,AAAA', width: 576, height: 1000,
         marks: [{ group: 'header', top: 0, bottom: 200 }, { group: 'columns', top: 300, bottom: 600 }, { group: 'thanks', top: 900, bottom: 1000 }],
         lines: [
-          { key: 'col_item', group: 'columns', top: 300, bottom: 330, text: 'ITEM', size_px: 26, align: 'left' },
+          { key: 'col_item', group: 'columns', top: 300, bottom: 330, text: 'ITEM', size_px: 26, align: 'left', left: 24, right: 90 },
           { key: 'thanks', group: 'thanks', top: 910, bottom: 940, text: 'Thank you for shopping with us!', size_px: 26, align: 'center' },
         ],
         texts: '',
@@ -86,7 +86,7 @@ describe('Receipt Designer', () => {
   it('the reported case: type a column title right on the receipt, and it is drawn again with it', async () => {
     await open()
     await find('words-col_item').trigger('click')
-    expect(find('panel-title').text()).toBe('Items and column titles')
+    expect(find('line-tools-title').text()).toBe('Item')
     await find('edit-words').setValue('Article')
     await find('edit-words').trigger('keydown', { key: 'Enter' })
     await settle()
@@ -112,10 +112,10 @@ describe('Receipt Designer', () => {
     expect(JSON.parse(previews.at(-1).texts).order).toEqual(['payments', 'policy', 'referral', 'thanks', 'socials'])
   })
 
-  it('the reported case: the panel sits beside the receipt, not under it', async () => {
+  it('the receipt sits beside the themes, its options on it, no side panel', async () => {
     await open()
     const work = find('receipt-image').element.closest('.rd-work')
-    expect([...work.children].map(c => c.className.split(' ')[0])).toEqual(['rd-picker', 'rd-paper-col', 'rd-panel'])
+    expect([...work.children].map(c => c.className.split(' ')[0])).toEqual(['rd-picker', 'rd-paper-col'])
     expect(work.className).not.toContain('rd-work--shop')
     await find('tab-shop').trigger('click')
     await settle()

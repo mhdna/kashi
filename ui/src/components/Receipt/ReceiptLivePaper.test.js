@@ -1,100 +1,119 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it } from 'vitest'
 import { vuetify } from '@/test/vuetify'
+import { emptyDesign } from '@/utils/receiptDesign'
 import catalog from '@/utils/testdata/receipt_designer_catalog.json'
 import ReceiptLivePaper from './ReceiptLivePaper.vue'
 
 let wrapper
-afterEach(() => { wrapper?.unmount() })
+afterEach(() => { wrapper?.unmount(); wrapper = null; document.body.innerHTML = '' })
 
-const marks = [{ group: 'header', top: 0, bottom: 200 }, { group: 'thanks', top: 900, bottom: 1000 }]
+const marks = [{ group: 'header', top: 0, bottom: 200 }, { group: 'columns', top: 280, bottom: 600 }, { group: 'payments', top: 650, bottom: 760 }, { group: 'thanks', top: 900, bottom: 1000 }]
+const lines = [
+  { key: 'col_item', group: 'columns', top: 300, bottom: 330, text: 'ITEM', size_px: 26, align: 'left', left: 24, right: 90 },
+  { key: 'col_qty', group: 'columns', top: 300, bottom: 330, text: 'QTY', size_px: 26, align: 'left', left: 340, right: 390 },
+  { key: 'payments_title', group: 'payments', top: 660, bottom: 690, text: 'PAYMENT DETAILS', size_px: 26, align: 'center' },
+  { key: 'invoice_number', group: 'header', top: 150, bottom: 180, text: 'Sales Invoice: PV-1', size_px: 24, align: 'center' },
+  { key: 'policy_text', group: 'policy', top: 800, bottom: 860, text: 'Exchanges accepted within 3 days.', size_px: 22, align: 'center' },
+]
 function open (props = {}) {
   wrapper = mount(ReceiptLivePaper, {
-    props: { image: 'data:image/png;base64,AAAA', height: 1000, marks, groups: catalog.groups, ...props },
+    props: {
+      image: 'data:image/png;base64,AAAA', height: 1000, imageWidth: 576, marks, lines, catalog, design: emptyDesign(),
+      'onUpdate:design': d => wrapper.setProps({ design: d }),
+      'onPick': g => wrapper.setProps({ picked: g }),
+      ...props,
+    },
     global: { plugins: [vuetify()] },
+    attachTo: document.body,
   })
   return wrapper
 }
+const find = sel => wrapper.find(`[data-test="${sel}"]`)
 
 describe('ReceiptLivePaper', () => {
-  it('shows the till\'s drawing and a place to click for each part, where it is', () => {
+  it('shows the till\'s drawing with each part where it is', () => {
     open()
-    expect(wrapper.find('[data-test="receipt-image"]').attributes('src')).toBe('data:image/png;base64,AAAA')
-    const thanks = wrapper.find('[data-test="pick-thanks"]')
-    expect(thanks.element.style.top).toBe('90%')
-    expect(thanks.element.style.height).toBe('10%')
-    expect(thanks.attributes('aria-label')).toBe('Change Thank-you line')
+    expect(find('receipt-image').attributes('src')).toBe('data:image/png;base64,AAAA')
+    expect(find('pick-thanks').element.style.top).toBe('90%')
+    expect(find('pick-thanks').attributes('aria-label')).toBe('Change Thank-you line')
   })
-  it('a click picks the part, and the picked one is outlined', async () => {
-    open({ picked: 'header' })
-    await wrapper.find('[data-test="pick-thanks"]').trigger('click')
-    expect(wrapper.emitted('pick')).toEqual([['thanks']])
-    expect(wrapper.find('[data-test="pick-header"]').classes()).toContain('rlive-part--picked')
-  })
-  it('read-only: nothing to pick', async () => {
-    open({ editable: false })
-    await wrapper.find('[data-test="pick-thanks"]').trigger('click')
-    expect(wrapper.emitted('pick')).toBeUndefined()
-  })
-  it('says it is drawing before the first picture', () => {
-    open({ image: '' })
-    expect(wrapper.text()).toContain('Drawing the receipt')
-  })
-})
 
-describe('ReceiptLivePaper typing on the paper', () => {
-  const lines = [
-    { key: 'payments_title', group: 'payments', top: 300, bottom: 330, text: 'PAYMENT DETAILS', size_px: 26, align: 'center' },
-    { key: 'policy_text', group: 'policy', top: 500, bottom: 560, text: 'Exchanges accepted within 3 days.', size_px: 22, align: 'center' },
-  ]
-  function openLines (props = {}) {
-    wrapper = mount(ReceiptLivePaper, {
-      props: { image: 'data:image/png;base64,AAAA', height: 1000, marks, lines, groups: catalog.groups, attachTo: document.body, ...props },
-      global: { plugins: [vuetify()] },
-      attachTo: document.body,
-    })
-    return wrapper
-  }
+  it('the reported case: ITEM is its own spot on its row, and its options open right under it', async () => {
+    open()
+    const item = find('words-col_item')
+    expect(item.element.style.left).toBe(`${(24 / 576) * 100 - 0.5}%`)
+    expect(find('words-col_qty').element.style.left).not.toBe(item.element.style.left)
+    await item.trigger('click')
+    expect(wrapper.props('picked')).toBe('columns')
+    expect(find('line-tools-title').text()).toBe('Item')
+    // The toolbar sits right under the line.
+    expect(find('line-tools').element.parentElement.style.top).toBe(`calc(${(330 / 1000) * 100}% + 4px)`)
+    const abc = find('line-case').findAll('button').find(b => b.text() === 'ABC')
+    await abc.trigger('click')
+    expect(wrapper.props('design').elements.col_item).toEqual({ case: 'upper' })
+  })
 
-  it('the reported case: click words, type, Enter: the new words are sent, and the part picked', async () => {
-    openLines()
-    await wrapper.find('[data-test="words-payments_title"]').trigger('click')
-    expect(wrapper.emitted('pick')).toEqual([['payments']])
-    const box = wrapper.find('[data-test="edit-words"]')
+  it('type over words in place: Enter keeps them, the default typed back is no change', async () => {
+    open()
+    await find('words-payments_title').trigger('click')
+    const box = find('edit-words')
     expect(box.element.value).toBe('PAYMENT DETAILS')
     expect(box.element.style.textAlign).toBe('center')
     await box.setValue('  PAID WITH ')
     await box.trigger('keydown', { key: 'Enter' })
-    expect(wrapper.emitted('words')).toEqual([['payments_title', 'PAID WITH']])
-    expect(wrapper.find('[data-test="edit-words"]').exists()).toBe(false)
+    expect(wrapper.props('design').elements.payments_title).toEqual({ text: 'PAID WITH' })
+    await find('words-payments_title').trigger('click')
+    await find('edit-words').setValue('PAYMENT DETAILS')
+    await find('edit-words').trigger('keydown', { key: 'Enter' })
+    expect(wrapper.props('design').elements.payments_title).toBeUndefined()
   })
 
-  it('Esc, or the same words, sends nothing; long words get a box of lines', async () => {
-    openLines()
-    await wrapper.find('[data-test="words-payments_title"]').trigger('click')
-    await wrapper.find('[data-test="edit-words"]').setValue('Other')
-    await wrapper.find('[data-test="edit-words"]').trigger('keydown', { key: 'Escape' })
-    await wrapper.find('[data-test="words-payments_title"]').trigger('click')
-    await wrapper.find('[data-test="edit-words"]').trigger('keydown', { key: 'Enter' })
-    expect(wrapper.emitted('words')).toBeUndefined()
-    await wrapper.find('[data-test="words-policy_text"]').trigger('click')
-    expect(wrapper.find('[data-test="edit-words"]').element.tagName).toBe('TEXTAREA')
+  it('Esc keeps the words as they were; long words get a box of lines', async () => {
+    open()
+    await find('words-payments_title').trigger('click')
+    await find('edit-words').setValue('Other')
+    await find('edit-words').trigger('keydown', { key: 'Escape' })
+    expect(find('edit-words').exists()).toBe(false)
+    expect(wrapper.props('design').elements.payments_title).toBeUndefined()
+    await find('words-policy_text').trigger('click')
+    expect(find('edit-words').element.tagName).toBe('TEXTAREA')
   })
 
-  it('starts from the design\'s own words when there are some', async () => {
-    openLines({ wordsOf: key => (key === 'payments_title' ? 'MINE' : '') })
-    await wrapper.find('[data-test="words-payments_title"]').trigger('click')
-    expect(wrapper.find('[data-test="edit-words"]').element.value).toBe('MINE')
+  it('a line whose words can\'t change still opens its options, with nothing to type', async () => {
+    open()
+    await find('words-invoice_number').trigger('click')
+    expect(find('edit-words').exists()).toBe(false)
+    expect(find('line-tools-title').text()).toBe('Invoice number line')
   })
 
-  it('read-only: no words to click', () => {
-    openLines({ editable: false })
-    expect(wrapper.find('[data-test="words-payments_title"]').exists()).toBe(false)
+  it('a click on a part opens the part\'s options under it; the cross closes them', async () => {
+    open()
+    await find('pick-payments').trigger('click')
+    expect(find('part-tools-title').text()).toBe('Payment details')
+    expect(find('part-tools').element.parentElement.style.top).toBe(`calc(${(760 / 1000) * 100}% + 4px)`)
+    await find('part-close').trigger('click')
+    expect(find('part-tools').exists()).toBe(false)
+    expect(wrapper.props('picked')).toBe('')
   })
 
-  it('a part\'s name shows beside the paper, not over its words', () => {
-    openLines({ picked: 'thanks' })
-    const label = wrapper.find('[data-test="pick-thanks"] .rlive-label')
-    expect(label.exists()).toBe(true)
+  it('the picked line follows a redrawn receipt', async () => {
+    open()
+    await find('words-col_item').trigger('click')
+    await wrapper.setProps({ lines: lines.map(l => (l.key === 'col_item' ? { ...l, top: 310, bottom: 340 } : l)) })
+    await flushPromises()
+    expect(find('line-tools').element.parentElement.style.top).toBe(`calc(${(340 / 1000) * 100}% + 4px)`)
+  })
+
+  it('read-only: nothing to click', () => {
+    open({ editable: false, picked: 'payments' })
+    expect(find('words-col_item').exists()).toBe(false)
+    expect(find('part-tools').exists()).toBe(false)
+    expect(find('pick-thanks').attributes('disabled')).toBeDefined()
+  })
+
+  it('says it is drawing before the first picture', () => {
+    open({ image: '' })
+    expect(wrapper.text()).toContain('Drawing the receipt')
   })
 })
