@@ -1,0 +1,462 @@
+{
+  "can": {
+    "align": 16,
+    "bold": 8,
+    "case": 2,
+    "hide": 32,
+    "size": 4,
+    "text": 1
+  },
+  "date_formats": [
+    {
+      "key": "",
+      "label": "19-10-2026 14:30"
+    },
+    {
+      "key": "slash",
+      "label": "19/10/2026 14:30"
+    },
+    {
+      "key": "slash12",
+      "label": "19/10/2026 2:30 PM"
+    },
+    {
+      "key": "iso",
+      "label": "2026-10-19 14:30"
+    },
+    {
+      "key": "long",
+      "label": "19 Oct 2026, 14:30"
+    },
+    {
+      "key": "longday",
+      "label": "Mon 19 Oct 2026, 14:30"
+    },
+    {
+      "key": "date",
+      "label": "19/10/2026"
+    }
+  ],
+  "default_layout": "A",
+  "default_theme": "classic",
+  "elements": [
+    {
+      "key": "store_name",
+      "group": "header",
+      "label": "Store name",
+      "default": "",
+      "can": 63
+    },
+    {
+      "key": "branch_name",
+      "group": "header",
+      "label": "Branch name",
+      "default": "",
+      "can": 63
+    },
+    {
+      "key": "phone",
+      "group": "header",
+      "label": "Phone",
+      "default": "",
+      "can": 63
+    },
+    {
+      "key": "invoice_number",
+      "group": "header",
+      "label": "Invoice number line",
+      "default": "",
+      "can": 60
+    },
+    {
+      "key": "invoice_label_sale",
+      "group": "header",
+      "label": "Sale invoice title",
+      "default": "Sales Invoice",
+      "can": 3
+    },
+    {
+      "key": "invoice_label_exchange",
+      "group": "header",
+      "label": "Exchange invoice title",
+      "default": "Exchange Invoice",
+      "can": 3
+    },
+    {
+      "key": "invoice_label_return",
+      "group": "header",
+      "label": "Return invoice title",
+      "default": "Return Invoice",
+      "can": 3
+    },
+    {
+      "key": "website",
+      "group": "header",
+      "label": "Website",
+      "default": "",
+      "can": 63
+    },
+    {
+      "key": "meta_customer",
+      "group": "meta",
+      "label": "Customer",
+      "default": "Customer",
+      "can": 35
+    },
+    {
+      "key": "meta_salesperson",
+      "group": "meta",
+      "label": "Salesperson",
+      "default": "Salesperson",
+      "can": 35
+    },
+    {
+      "key": "meta_date",
+      "group": "meta",
+      "label": "Date",
+      "default": "Date",
+      "can": 35
+    },
+    {
+      "key": "note_label",
+      "group": "meta",
+      "label": "Note",
+      "default": "Note",
+      "can": 3
+    },
+    {
+      "key": "col_item",
+      "group": "columns",
+      "label": "Item",
+      "default": "ITEM",
+      "can": 3
+    },
+    {
+      "key": "col_qty",
+      "group": "columns",
+      "label": "Quantity",
+      "default": "QTY",
+      "can": 3
+    },
+    {
+      "key": "col_disc",
+      "group": "columns",
+      "label": "Discount",
+      "default": "DISC",
+      "can": 3
+    },
+    {
+      "key": "col_price",
+      "group": "columns",
+      "label": "Price",
+      "default": "PRICE",
+      "can": 3
+    },
+    {
+      "key": "col_total",
+      "group": "columns",
+      "label": "Total",
+      "default": "TOTAL",
+      "can": 3
+    },
+    {
+      "key": "col_amount",
+      "group": "columns",
+      "label": "Amount",
+      "default": "AMOUNT",
+      "can": 3
+    },
+    {
+      "key": "subtotal",
+      "group": "totals",
+      "label": "Subtotal",
+      "default": "Subtotal",
+      "can": 35
+    },
+    {
+      "key": "discount",
+      "group": "totals",
+      "label": "Discount",
+      "default": "Discount",
+      "can": 3
+    },
+    {
+      "key": "rounding",
+      "group": "totals",
+      "label": "Rounding",
+      "default": "Rounding",
+      "can": 3
+    },
+    {
+      "key": "items_count",
+      "group": "totals",
+      "label": "Items count",
+      "default": "Items",
+      "can": 35
+    },
+    {
+      "key": "you_saved",
+      "group": "totals",
+      "label": "You saved",
+      "default": "You saved",
+      "can": 35
+    },
+    {
+      "key": "total",
+      "group": "totals",
+      "label": "Total",
+      "default": "TOTAL",
+      "can": 3
+    },
+    {
+      "key": "equivalent",
+      "group": "totals",
+      "label": "Other currency total",
+      "default": "{currency} equivalent",
+      "can": 35
+    },
+    {
+      "key": "payments_title",
+      "group": "payments",
+      "label": "Title",
+      "default": "PAYMENT DETAILS",
+      "can": 63
+    },
+    {
+      "key": "received",
+      "group": "payments",
+      "label": "Paid line",
+      "default": "Received",
+      "can": 3
+    },
+    {
+      "key": "change",
+      "group": "payments",
+      "label": "Change line",
+      "default": "Change",
+      "can": 3
+    },
+    {
+      "key": "policy_title",
+      "group": "policy",
+      "label": "Title",
+      "default": "EXCHANGE POLICY",
+      "can": 63
+    },
+    {
+      "key": "policy_text",
+      "group": "policy",
+      "label": "Policy",
+      "default": "Exchanges accepted within 3 days.",
+      "can": 31
+    },
+    {
+      "key": "referral_title",
+      "group": "referral",
+      "label": "Title",
+      "default": "YOUR CODE:",
+      "can": 31
+    },
+    {
+      "key": "referral_note",
+      "group": "referral",
+      "label": "Line",
+      "default": "Give this code to a friend. When they shop with us for the first time, you get {percent} off your next visit.",
+      "can": 31
+    },
+    {
+      "key": "socials_title",
+      "group": "socials",
+      "label": "Title",
+      "default": "Follow us on:",
+      "can": 15
+    },
+    {
+      "key": "socials_handle",
+      "group": "socials",
+      "label": "Handle under the icons",
+      "default": "",
+      "can": 44
+    },
+    {
+      "key": "thanks",
+      "group": "thanks",
+      "label": "Thank-you line",
+      "default": "Thank you for shopping with us!",
+      "can": 63
+    }
+  ],
+  "groups": [
+    {
+      "key": "header",
+      "label": "Shop and invoice number"
+    },
+    {
+      "key": "meta",
+      "label": "Customer, salesperson and date"
+    },
+    {
+      "key": "columns",
+      "label": "Items and column titles"
+    },
+    {
+      "key": "totals",
+      "label": "Totals"
+    },
+    {
+      "key": "payments",
+      "label": "Payment details",
+      "section": "payments"
+    },
+    {
+      "key": "policy",
+      "label": "Exchange policy",
+      "section": "policy"
+    },
+    {
+      "key": "referral",
+      "label": "Referral code",
+      "section": "referral"
+    },
+    {
+      "key": "socials",
+      "label": "Socials",
+      "section": "socials"
+    },
+    {
+      "key": "thanks",
+      "label": "Thank-you line",
+      "section": "thanks"
+    }
+  ],
+  "max_length": 300,
+  "modes": [
+    "sale",
+    "referral",
+    "client",
+    "exchange",
+    "return"
+  ],
+  "size_max": 10,
+  "size_min": -4,
+  "themes": [
+    {
+      "id": "classic",
+      "name": "Classic",
+      "description": "The original look: dotted dividers, boxed total, your own font choices.",
+      "best_for": "Any shop",
+      "layouts": [
+        {
+          "id": "A",
+          "name": "Columns",
+          "description": "Item, quantity, discount and total on one line each."
+        },
+        {
+          "id": "B",
+          "name": "Price columns",
+          "description": "Item, quantity, unit price and total; discounts on their own line."
+        },
+        {
+          "id": "C",
+          "name": "Detailed",
+          "description": "Name and total, then code and quantity lines. The longest."
+        }
+      ]
+    },
+    {
+      "id": "supermarket",
+      "name": "Supermarket",
+      "description": "Dense monospaced register tape in capitals, with item count and savings.",
+      "best_for": "Supermarkets, groceries, pharmacies: many items per sale",
+      "layouts": [
+        {
+          "id": "A",
+          "name": "Register",
+          "description": "Name and amount; quantity and savings only when they matter."
+        },
+        {
+          "id": "B",
+          "name": "Quantity first",
+          "description": "A quantity column on the left, like a till tape."
+        },
+        {
+          "id": "C",
+          "name": "With codes",
+          "description": "Each item followed by its code and unit price."
+        }
+      ]
+    },
+    {
+      "id": "boutique",
+      "name": "Boutique",
+      "description": "Elegant serif with size and colour shown, and room to breathe.",
+      "best_for": "Clothing, shoes, jewellery, gifts",
+      "layouts": [
+        {
+          "id": "A",
+          "name": "Centered",
+          "description": "Each item centered with its size, colour and price beneath."
+        },
+        {
+          "id": "B",
+          "name": "Ledger",
+          "description": "Name and total on the left and right, details beneath."
+        }
+      ]
+    },
+    {
+      "id": "modern",
+      "name": "Modern",
+      "description": "Clean geometric sans with a solid total bar.",
+      "best_for": "Cafés, electronics, cosmetics, any contemporary shop",
+      "layouts": [
+        {
+          "id": "A",
+          "name": "Clean",
+          "description": "Name and total, quantity and savings on a quiet second line."
+        },
+        {
+          "id": "B",
+          "name": "Table",
+          "description": "A table with a dark header bar."
+        }
+      ]
+    },
+    {
+      "id": "bistro",
+      "name": "Bistro",
+      "description": "Menu style with dot leaders and a double-ruled total.",
+      "best_for": "Restaurants, bakeries, delis, florists",
+      "layouts": [
+        {
+          "id": "A",
+          "name": "Menu",
+          "description": "Name, dot leader, price; quantity beneath when more than one."
+        },
+        {
+          "id": "B",
+          "name": "Quantity first",
+          "description": "2 x Name ...... price."
+        }
+      ]
+    },
+    {
+      "id": "typewriter",
+      "name": "Typewriter",
+      "description": "Courier tape in capitals with dashed dividers.",
+      "best_for": "Bookshops, hardware, vintage and craft shops",
+      "layouts": [
+        {
+          "id": "A",
+          "name": "Tape",
+          "description": "Fixed columns: quantity, item, price, total."
+        },
+        {
+          "id": "B",
+          "name": "Itemized",
+          "description": "Item, then quantity at price, then any discount."
+        }
+      ]
+    }
+  ]
+}
