@@ -172,6 +172,9 @@ func TestReferralFlow(t *testing.T) {
 	branchIDs = []int64{branch.Branch.ID}
 	setProgram(db.UpdateReferralProgramParams{Enabled: true, RewardPercent: 15, CancelOnReturn: true})
 	server := newTestServer(t, store)
+	// Each reward's owner is told once the friend's sale is in.
+	var notified []referralReward
+	server.referralNotifier = func(r referralReward) { notified = append(notified, r) }
 
 	till := func(method, path string, body any) *httptest.ResponseRecorder {
 		var raw []byte
@@ -253,6 +256,11 @@ func TestReferralFlow(t *testing.T) {
 	require.Equal(t, owner.id, reward.OwnerClientID.Int64)
 	require.EqualValues(t, 15, reward.Percent)
 	require.Equal(t, owner.code, reward.Code)
+	// The reported case: Rami hears of it after the sale, not before.
+	require.Len(t, notified, 1)
+	require.Equal(t, owner.id, notified[0].Owner.ID)
+	require.EqualValues(t, 15, notified[0].Percent)
+	require.Equal(t, branch.Branch.ID, notified[0].BranchID)
 	var storedCode string
 	require.NoError(t, conn.QueryRow(`SELECT referral_code FROM branch_invoices WHERE id = $1`, friendSale).Scan(&storedCode))
 	require.Equal(t, owner.code, storedCode)
@@ -301,6 +309,7 @@ func TestReferralFlow(t *testing.T) {
 	require.Equal(t, againSale, used.UsedAgainBranchInvoiceID.Int64)
 
 	// 3. Rules. Sara again: she has bought before.
+	toldBefore := len(notified)
 	_, second := sell(&friend, 4000, map[string]any{"referral_code": owner.code})
 	require.Equal(t, referralRefusedNotNew, referralOf(second).RefuseReason)
 	// Rami with his own code.
@@ -327,6 +336,8 @@ func TestReferralFlow(t *testing.T) {
 	// 4. A friend's sale returned under the minimum takes the reward back;
 	// one cancelled does too; an exchange doesn't.
 	keeper, returner, canceller := newClient("Keeper"), newClient("Returner"), newClient("Canceller")
+	// A code refused (a second sale, own code, typo, walk-in, too small) tells no one.
+	require.Len(t, notified, toldBefore)
 	keepRef, keepSale := sell(&keeper, 5000, map[string]any{"referral_code": owner.code})
 	retRef, retSale := sell(&returner, 5000, map[string]any{"referral_code": owner.code})
 	canRef, canSale := sell(&canceller, 5000, map[string]any{"referral_code": owner.code})

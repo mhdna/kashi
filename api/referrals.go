@@ -266,6 +266,10 @@ func (server *Server) recordReferral(ctx context.Context, branchID int64, invoic
 	if err != nil {
 		return false, err
 	}
+	if params.Status == "available" {
+		// The owner hears of it now that the friend's sale is in.
+		server.notifyReferralReward(referralReward{BranchID: branchID, Owner: owner, Percent: params.Percent, ExpiresAt: params.ExpiresAt, InvoiceCode: invoice.BranchInvoiceCode})
+	}
 	return params.Status == "available", nil
 }
 
