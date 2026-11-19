@@ -256,7 +256,9 @@ describe('banners', () => {
   })
   it('prints always, on buy X get Y, with any deal, or with one of kashi\'s deals', () => {
     const deals = [{ id: 1, name: 'Students 15%', kind: 'percent', percent: 15, is_active: true }]
-    expect(bannerWhenOptions(deals).map(o => o.value)).toEqual(['', 'item_deal', 'deal', 'deal:Students 15%'])
+    expect(bannerWhenOptions(deals).map(o => o.value)).toEqual(['', 'item_deal', 'deal', 'item_discount', 'referral', 'deal:Students 15%'])
+    expect(bannerMode({ when: 'referral' }, deals)).toBe('referral')
+    expect(bannerMode({ when: 'item_discount' }, deals)).toBe('sale')
     expect(bannerMode({ when: 'item_deal' }, deals)).toBe('item_deal')
     expect(bannerMode({ when: 'deal:Students 15%' }, dealModes(deals).length > 0 ? deals : [])).toBe('deal:1')
     expect(bannerMode({ when: 'deal' }, deals)).toBe('deal:1')
@@ -323,7 +325,7 @@ describe('Arabic in the design', () => {
   it('the catalog offers Arabic, with a Lebanese default, on the lines that can have it', () => {
     const note = catalog.elements.find(e => e.key === 'referral_note')
     expect(can(catalog, note, 'arabic')).toBe(true)
-    expect(note.ar_default).toContain('عطي هيدا الكود')
+    expect(note.ar_default).toContain('شارك هالكود مع حدا ما زارنا قبل')
     expect(can(catalog, catalog.elements.find(e => e.key === 'col_item'), 'arabic')).toBe(false)
   })
 })

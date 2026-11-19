@@ -50,6 +50,9 @@ type DesignerInput struct {
 	Texts           string
 	Shop            DesignerShop
 	ReferralPercent int64
+	// ReferralRewardTo is who central's program rewards (owner, friend,
+	// both): the referral note's default wording follows it.
+	ReferralRewardTo string
 	// Deal, when set, is applied to the sale, so its line shows.
 	Deal *DesignerDeal
 }
@@ -125,6 +128,7 @@ func RenderDesignerPreview(in DesignerInput) (DesignerPreview, error) {
 		if percent <= 0 {
 			percent = sampleReferralPercent
 		}
+		data.Texts.ReferralRewardTo = in.ReferralRewardTo
 		if data.Texts.hidden(receiptSectionReferral) {
 			data.ReferralCode, data.ReferralNote = "", ""
 		} else {

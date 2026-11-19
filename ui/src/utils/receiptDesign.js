@@ -436,6 +436,8 @@ export function bannerWhenOptions (deals) {
     { value: '', title: 'Always' },
     { value: 'item_deal', title: 'On a buy X get Y sale' },
     { value: 'deal', title: 'With any deal on the invoice' },
+    { value: 'item_discount', title: 'With an item on sale' },
+    { value: 'referral', title: 'For a customer with a referral code to share' },
     ...(deals ?? []).filter(d => d?.name).map(d => ({ value: `deal:${d.name}`, title: `With ${d.name}` })),
   ]
 }
@@ -449,6 +451,8 @@ export const bannerPlaceOptions = [
 export function bannerMode (banner, deals) {
   const when = banner?.when ?? ''
   if (when === 'item_deal') {return 'item_deal'}
+  if (when === 'referral') {return 'referral'}
+  if (when === 'item_discount') {return 'sale'}
   if (when === 'deal') {return dealModes(deals)[0]?.mode ?? 'sale'}
   if (when.startsWith('deal:')) {
     const name = when.slice(5)
