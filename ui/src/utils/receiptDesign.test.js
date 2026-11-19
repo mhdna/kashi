@@ -327,3 +327,14 @@ describe('Arabic in the design', () => {
     expect(can(catalog, catalog.elements.find(e => e.key === 'col_item'), 'arabic')).toBe(false)
   })
 })
+
+describe('deal views', () => {
+  it('two branches\' deal with one name is one view', () => {
+    const modes = dealModes([
+      { id: 1, name: '10% above $50', kind: 'percent', percent: 10, is_active: true },
+      { id: 5, name: '10% above $50', kind: 'percent', percent: 10, is_active: true },
+      { id: 4, name: 'Students 15%', kind: 'percent', percent: 15, is_active: true },
+    ])
+    expect(modes.map(m => m.label)).toEqual(['10% above $50', 'Students 15%'])
+  })
+})

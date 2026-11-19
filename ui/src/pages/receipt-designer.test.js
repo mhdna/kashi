@@ -265,4 +265,12 @@ describe('Receipt Designer', () => {
     expect(src).toMatch(/\.rd-card > :not\(\.rd-body\) \{\s*flex: 0 0 auto;/)
     expect(src).toMatch(/\.rd-body \{\s*flex: 1 1 auto;\s*min-height: 0;\s*overflow-y: auto;/)
   })
+
+  it('the reported case: All branches opens with the default template\'s receipt, Arabic and all', async () => {
+    template.receipt_texts = JSON.stringify({ elements: { thanks: { lang: 'both' } } })
+    await open()
+    await settle()
+    expect(JSON.parse(previews.at(-1).texts).elements.thanks).toEqual({ lang: 'both' })
+    template.receipt_texts = ''
+  })
 })

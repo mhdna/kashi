@@ -3,6 +3,14 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-19: The Receipt Designer showed a blank design for "All branches"
+
+**Symptom:** with "Apply to: All branches", the designer showed the plain receipt, none of what the branches had (their Arabic lines, banners), so it looked as if nothing had been applied. Each deal also showed twice in the views when two branches had one with the same name.
+
+**Cause:** "All branches" started from whatever was on screen (blank on opening) instead of any saved design; the deal views were one per deal row, not per name.
+
+**Fix:** "All branches" loads the Default Settings template's receipt (`loadAllBranchesDesign`, `ui/src/pages/receipt-designer.vue`); deal views are one per name (`dealModes`). Tests: "All branches opens with the default template's receipt" in `receipt-designer.test.js`, "two branches' deal with one name is one view" in `receiptDesign.test.js`.
+
 ## 2026-11-19: Centro's till couldn't finish fetching customer codes
 
 **Symptom:** after the till update meant to fetch older customers' referral codes, reprints at Centro still printed no code.
