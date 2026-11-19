@@ -6,6 +6,9 @@
 <template>
   <div class="rbn" data-no-discard-guard>
     <div class="text-subtitle-1 font-weight-medium mb-1">On this receipt</div>
+    <div class="text-body-2 text-medium-emphasis mb-3" data-test="banners-one">
+      Each receipt prints one banner: the one for the biggest deal on it, else one for any deal, else one that always prints.
+    </div>
     <div v-if="banners.length === 0" class="text-body-2 text-medium-emphasis mb-3" data-test="banners-none">
       No banners yet. Pick one below.
     </div>
@@ -123,7 +126,7 @@
     </div>
 
     <div class="text-subtitle-1 font-weight-medium mt-4 mb-1">Ready-made</div>
-    <div v-if="banners.length >= bannerMax" class="text-body-2 text-medium-emphasis mb-2">A receipt takes up to {{ bannerMax }} banners.</div>
+    <div v-if="banners.length >= bannerMax" class="text-body-2 text-medium-emphasis mb-2">A branch keeps up to {{ bannerMax }} banners.</div>
     <div class="rbn-gallery">
       <button
         v-for="(p, i) in catalog.banner_presets ?? []"

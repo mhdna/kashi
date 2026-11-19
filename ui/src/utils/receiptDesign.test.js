@@ -240,9 +240,9 @@ describe('banners', () => {
     expect(JSON.parse(designJSON(d)).banners).toEqual([{ style: 'ribbon', title: 'BUY ONE GET ONE', when: 'item_deal' }])
     expect(designJSON(parseDesign(designJSON(d)))).toBe(designJSON(d))
   })
-  it('takes up to four, moves and removes them', () => {
+  it('takes up to twelve, moves and removes them', () => {
     let d = emptyDesign()
-    for (const p of catalog.banner_presets) {d = addBanner(d, p)}
+    for (const [i, p] of [...catalog.banner_presets, ...catalog.banner_presets].entries()) {d = addBanner(d, { ...p, title: `${p.title} ${i}` })}
     expect(d.banners).toHaveLength(bannerMax)
     const first = d.banners[0].title
     d = moveBanner(d, 0, 1)

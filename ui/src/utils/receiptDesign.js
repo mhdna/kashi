@@ -366,8 +366,9 @@ export function dealModes (rules) {
     .map(r => ({ mode: `deal:${r.id}`, label: r.name, deal: { name: r.name, kind: r.kind, percent: r.percent, amount: r.amount } }))
 }
 
-// Banners: display lettering the till draws (receipt_banner.go), up to four.
-export const bannerMax = 4
+// Banners: display lettering the till draws (receipt_banner.go). A branch
+// keeps up to 12 (one per deal, say); each receipt prints one, the best fit.
+export const bannerMax = 12
 
 function cleanBanner (b) {
   const out = { style: b.style, title: String(b.title).trim() }
