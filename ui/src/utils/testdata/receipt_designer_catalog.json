@@ -87,6 +87,7 @@
     "arabic": 256,
     "bold": 8,
     "case": 2,
+    "dark": 512,
     "font": 64,
     "hide": 32,
     "show": 128,
@@ -131,21 +132,21 @@
       "group": "header",
       "label": "Store name",
       "default": "",
-      "can": 383
+      "can": 895
     },
     {
       "key": "branch_name",
       "group": "header",
       "label": "Branch name",
       "default": "",
-      "can": 383
+      "can": 895
     },
     {
       "key": "phone",
       "group": "header",
       "label": "Phone",
       "default": "",
-      "can": 383
+      "can": 895
     },
     {
       "key": "invoice_number",
@@ -180,14 +181,14 @@
       "group": "header",
       "label": "Website",
       "default": "",
-      "can": 383
+      "can": 895
     },
     {
       "key": "meta_customer",
       "group": "meta",
       "label": "Customer",
       "default": "Customer",
-      "can": 367,
+      "can": 879,
       "ar_default": "الزبون"
     },
     {
@@ -195,7 +196,7 @@
       "group": "meta",
       "label": "Salesman",
       "default": "Salesman",
-      "can": 367,
+      "can": 879,
       "ar_default": "البياع"
     },
     {
@@ -203,7 +204,7 @@
       "group": "meta",
       "label": "Date",
       "default": "Date",
-      "can": 367,
+      "can": 879,
       "ar_default": "التاريخ"
     },
     {
@@ -295,7 +296,7 @@
       "group": "totals",
       "label": "Subtotal",
       "default": "Subtotal",
-      "can": 367,
+      "can": 879,
       "ar_default": "المجموع قبل الحسم"
     },
     {
@@ -303,7 +304,7 @@
       "group": "totals",
       "label": "Discount",
       "default": "Discount",
-      "can": 335,
+      "can": 847,
       "ar_default": "الحسم"
     },
     {
@@ -311,7 +312,7 @@
       "group": "totals",
       "label": "Rounding",
       "default": "Rounding",
-      "can": 335,
+      "can": 847,
       "ar_default": "تدوير"
     },
     {
@@ -319,7 +320,7 @@
       "group": "totals",
       "label": "Items count",
       "default": "Items",
-      "can": 367,
+      "can": 879,
       "ar_default": "عدد القطع"
     },
     {
@@ -327,7 +328,7 @@
       "group": "totals",
       "label": "You saved",
       "default": "You saved",
-      "can": 367,
+      "can": 879,
       "ar_default": "وفرت"
     },
     {
@@ -342,14 +343,14 @@
       "group": "totals",
       "label": "Deal on the invoice",
       "default": "{name}",
-      "can": 335
+      "can": 847
     },
     {
       "key": "equivalent",
       "group": "totals",
       "label": "Other currency total",
       "default": "{currency} equivalent",
-      "can": 367,
+      "can": 879,
       "ar_default": "بالليرة"
     },
     {
@@ -357,7 +358,7 @@
       "group": "payments",
       "label": "Title",
       "default": "PAYMENT DETAILS",
-      "can": 383,
+      "can": 895,
       "ar_default": "تفاصيل الدفع"
     },
     {
@@ -365,7 +366,7 @@
       "group": "payments",
       "label": "Paid line",
       "default": "Received",
-      "can": 335,
+      "can": 847,
       "ar_default": "دفعت"
     },
     {
@@ -373,7 +374,7 @@
       "group": "payments",
       "label": "Change line",
       "default": "Change",
-      "can": 335,
+      "can": 847,
       "ar_default": "الباقي"
     },
     {
@@ -381,7 +382,7 @@
       "group": "policy",
       "label": "Title",
       "default": "EXCHANGE POLICY",
-      "can": 383,
+      "can": 895,
       "ar_default": "شروط التبديل"
     },
     {
@@ -389,7 +390,7 @@
       "group": "policy",
       "label": "Policy",
       "default": "Exchanges accepted within 3 days.",
-      "can": 351,
+      "can": 863,
       "ar_default": "فيك تبدل خلال ٣ أيام."
     },
     {
@@ -397,23 +398,25 @@
       "group": "referral",
       "label": "Title",
       "default": "YOUR CODE:",
-      "can": 351,
-      "ar_default": "الكود تبعك"
+      "can": 863,
+      "ar_default": "الكود تبعك",
+      "dark_default": true
     },
     {
       "key": "referral_note",
       "group": "referral",
       "label": "Line",
       "default": "Give this code to a friend. When they shop with us for the first time, you get {percent} off your next visit.",
-      "can": 351,
-      "ar_default": "شارك هالكود مع حدا ما زارنا قبل، ولما يستعملو بتاخدوا انتو التنين حسم {percent} على كامل الفاتورة."
+      "can": 863,
+      "ar_default": "شارك هالكود مع حدا ما زارنا قبل، ولما يستعملو بتاخدوا انتو التنين حسم {percent} على كامل الفاتورة.",
+      "dark_default": true
     },
     {
       "key": "socials_title",
       "group": "socials",
       "label": "Title",
       "default": "Follow us on:",
-      "can": 335,
+      "can": 847,
       "ar_default": "تابعونا على:"
     },
     {
@@ -428,7 +431,7 @@
       "group": "thanks",
       "label": "Thank-you line",
       "default": "Thank you for shopping with us!",
-      "can": 383,
+      "can": 895,
       "ar_default": "يسلمو، نورتونا!"
     }
   ],

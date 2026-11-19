@@ -88,7 +88,7 @@ function isEmptyElement (e) {
     if (k === 'text' || k === 'case' || k === 'align' || k === 'font' || k === 'lang' || k === 'text_ar') {return !String(v ?? '').trim()}
     if (k === 'size') {return !Number(v)}
     if (k === 'hide' || k === 'show') {return !v}
-    if (k === 'bold') {return v === undefined || v === null}
+    if (k === 'bold' || k === 'dark') {return v === undefined || v === null}
     return true
   })
 }
@@ -99,6 +99,7 @@ function cleanElement (e) {
   if (e.case) {clean.case = e.case}
   if (Number(e.size)) {clean.size = Number(e.size)}
   if (e.bold === true || e.bold === false) {clean.bold = e.bold}
+  if (e.dark === true || e.dark === false) {clean.dark = e.dark}
   if (e.align) {clean.align = e.align}
   if (e.font) {clean.font = e.font}
   if (e.lang) {clean.lang = e.lang}
@@ -468,3 +469,27 @@ export const langOptions = [
   { value: 'ar', title: 'عربي' },
   { value: 'both', title: 'Both' },
 ]
+
+// A line printed white on black: its own choice, else the line's default
+// (the catalog's dark_default; the referral code's lines are dark).
+export function isDark (design, info) {
+  const own = design.elements?.[info.key]?.dark
+  return own === true || own === false ? own : Boolean(info.dark_default)
+}
+
+// setDark stores a line's choice; the line's default is stored as no choice.
+export function setDark (design, info, dark) {
+  return setElement(design, info.key, { dark: dark === Boolean(info.dark_default) ? undefined : dark })
+}
+
+// A part's dark choice: 'dark', 'light' or none (each line's own).
+export function groupDarkState (design, group) {
+  const d = design.groups?.[group]?.dark
+  if (d === true) {return 'dark'}
+  if (d === false) {return 'light'}
+  return undefined
+}
+
+export function setGroupDark (design, group, state) {
+  return setGroup(design, group, { dark: state === 'dark' ? true : (state === 'light' ? false : undefined) })
+}

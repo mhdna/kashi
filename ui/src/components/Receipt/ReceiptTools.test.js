@@ -223,3 +223,28 @@ describe('Arabic', () => {
     expect(find('line-lang').exists()).toBe(false)
   })
 })
+
+describe('white on black', () => {
+  it('the reported case: a line can go on black and back', async () => {
+    lineTools('thanks')
+    await find('line-dark').trigger('click')
+    expect(design().elements.thanks).toEqual({ dark: true })
+    await find('line-dark').trigger('click')
+    expect(design().elements.thanks).toBeUndefined()
+  })
+
+  it('the referral code is on black by default; switching it off is stored', async () => {
+    lineTools('referral_title')
+    expect(find('line-dark').text()).toContain('White on black')
+    await find('line-dark').trigger('click')
+    expect(design().elements.referral_title).toEqual({ dark: false })
+  })
+
+  it('a whole part on black or on white', async () => {
+    partTools('totals')
+    await button('group-dark', 'On black').trigger('click')
+    expect(design().groups.totals).toEqual({ dark: true })
+    await button('group-dark', 'On white').trigger('click')
+    expect(design().groups.totals).toEqual({ dark: false })
+  })
+})

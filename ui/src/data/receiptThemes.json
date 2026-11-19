@@ -495,9 +495,9 @@
             {
               "mode": "referral",
               "file": "classic-A-referral.png",
-              "version": "a6a048ae26",
+              "version": "fd4b8b6690",
               "width": 576,
-              "height": 2047,
+              "height": 2039,
               "parts": [
                 {
                   "kind": "group",
@@ -859,14 +859,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1650,
-                  "bottom": 1687
+                  "top": 1646,
+                  "bottom": 1683
                 },
                 {
                   "kind": "line",
                   "part": "referral_title",
-                  "top": 1650,
-                  "bottom": 1687,
+                  "top": 1646,
+                  "bottom": 1683,
                   "left": 2,
                   "text": "YOUR CODE: K7M4QH",
                   "size_px": 31.200000000000003,
@@ -876,8 +876,8 @@
                 {
                   "kind": "text",
                   "part": "referral_title",
-                  "top": 1650,
-                  "bottom": 1687,
+                  "top": 1646,
+                  "bottom": 1683,
                   "text": "YOUR CODE:",
                   "size_px": 31.200000000000003,
                   "bold": true
@@ -885,14 +885,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1715,
-                  "bottom": 1799
+                  "top": 1697,
+                  "bottom": 1781
                 },
                 {
                   "kind": "line",
                   "part": "referral_note",
-                  "top": 1715,
-                  "bottom": 1799,
+                  "top": 1697,
+                  "bottom": 1781,
                   "left": 2,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 22.1,
@@ -901,8 +901,8 @@
                 {
                   "kind": "text",
                   "part": "referral_note",
-                  "top": 1715,
-                  "bottom": 1799,
+                  "top": 1697,
+                  "bottom": 1781,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 22.1
                 },
@@ -910,19 +910,19 @@
                   "kind": "section",
                   "part": "referral",
                   "top": 1636,
-                  "bottom": 1829
+                  "bottom": 1821
                 },
                 {
                   "kind": "group",
                   "part": "referral",
                   "top": 1636,
-                  "bottom": 1829
+                  "bottom": 1821
                 },
                 {
                   "kind": "line",
                   "part": "socials_title",
-                  "top": 1829,
-                  "bottom": 1860,
+                  "top": 1821,
+                  "bottom": 1852,
                   "left": 1,
                   "text": "Follow us on:",
                   "size_px": 26,
@@ -934,8 +934,8 @@
                 {
                   "kind": "text",
                   "part": "socials_title",
-                  "top": 1829,
-                  "bottom": 1861,
+                  "top": 1821,
+                  "bottom": 1853,
                   "left": 121,
                   "right": 316,
                   "text": "Follow us on:",
@@ -945,22 +945,22 @@
                 {
                   "kind": "icons",
                   "part": "socials_icons",
-                  "top": 1829,
-                  "bottom": 1861,
+                  "top": 1821,
+                  "bottom": 1853,
                   "left": 326,
                   "right": 454
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1877,
-                  "bottom": 1906
+                  "top": 1869,
+                  "bottom": 1898
                 },
                 {
                   "kind": "line",
                   "part": "socials_handle",
-                  "top": 1877,
-                  "bottom": 1906,
+                  "top": 1869,
+                  "bottom": 1898,
                   "left": 2,
                   "text": "@yourstore",
                   "size_px": 24.7,
@@ -969,26 +969,26 @@
                 {
                   "kind": "section",
                   "part": "socials",
-                  "top": 1829,
-                  "bottom": 1920
+                  "top": 1821,
+                  "bottom": 1912
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1829,
-                  "bottom": 1920
+                  "top": 1821,
+                  "bottom": 1912
                 },
                 {
                   "kind": "group",
                   "part": "thanks",
-                  "top": 1936,
-                  "bottom": 1967
+                  "top": 1928,
+                  "bottom": 1959
                 },
                 {
                   "kind": "line",
                   "part": "thanks",
-                  "top": 1936,
-                  "bottom": 1967,
+                  "top": 1928,
+                  "bottom": 1959,
                   "left": 2,
                   "text": "Thank you for shopping with us!",
                   "size_px": 26,
@@ -998,8 +998,8 @@
                 {
                   "kind": "text",
                   "part": "thanks",
-                  "top": 1936,
-                  "bottom": 1967,
+                  "top": 1928,
+                  "bottom": 1959,
                   "text": "Thank you for shopping with us!",
                   "size_px": 26,
                   "bold": true
@@ -1007,8 +1007,8 @@
                 {
                   "kind": "section",
                   "part": "thanks",
-                  "top": 1936,
-                  "bottom": 2023
+                  "top": 1928,
+                  "bottom": 2015
                 }
               ]
             },
@@ -2792,9 +2792,9 @@
             {
               "mode": "referral",
               "file": "classic-B-referral.png",
-              "version": "497a420d91",
+              "version": "5ee3fc1e01",
               "width": 576,
-              "height": 2263,
+              "height": 2255,
               "parts": [
                 {
                   "kind": "group",
@@ -3156,14 +3156,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1866,
-                  "bottom": 1903
+                  "top": 1862,
+                  "bottom": 1899
                 },
                 {
                   "kind": "line",
                   "part": "referral_title",
-                  "top": 1866,
-                  "bottom": 1903,
+                  "top": 1862,
+                  "bottom": 1899,
                   "left": 2,
                   "text": "YOUR CODE: K7M4QH",
                   "size_px": 31.200000000000003,
@@ -3173,8 +3173,8 @@
                 {
                   "kind": "text",
                   "part": "referral_title",
-                  "top": 1866,
-                  "bottom": 1903,
+                  "top": 1862,
+                  "bottom": 1899,
                   "text": "YOUR CODE:",
                   "size_px": 31.200000000000003,
                   "bold": true
@@ -3182,14 +3182,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1931,
-                  "bottom": 2015
+                  "top": 1913,
+                  "bottom": 1997
                 },
                 {
                   "kind": "line",
                   "part": "referral_note",
-                  "top": 1931,
-                  "bottom": 2015,
+                  "top": 1913,
+                  "bottom": 1997,
                   "left": 2,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 22.1,
@@ -3198,8 +3198,8 @@
                 {
                   "kind": "text",
                   "part": "referral_note",
-                  "top": 1931,
-                  "bottom": 2015,
+                  "top": 1913,
+                  "bottom": 1997,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 22.1
                 },
@@ -3207,19 +3207,19 @@
                   "kind": "section",
                   "part": "referral",
                   "top": 1852,
-                  "bottom": 2045
+                  "bottom": 2037
                 },
                 {
                   "kind": "group",
                   "part": "referral",
                   "top": 1852,
-                  "bottom": 2045
+                  "bottom": 2037
                 },
                 {
                   "kind": "line",
                   "part": "socials_title",
-                  "top": 2045,
-                  "bottom": 2076,
+                  "top": 2037,
+                  "bottom": 2068,
                   "left": 1,
                   "text": "Follow us on:",
                   "size_px": 26,
@@ -3231,8 +3231,8 @@
                 {
                   "kind": "text",
                   "part": "socials_title",
-                  "top": 2045,
-                  "bottom": 2077,
+                  "top": 2037,
+                  "bottom": 2069,
                   "left": 121,
                   "right": 316,
                   "text": "Follow us on:",
@@ -3242,22 +3242,22 @@
                 {
                   "kind": "icons",
                   "part": "socials_icons",
-                  "top": 2045,
-                  "bottom": 2077,
+                  "top": 2037,
+                  "bottom": 2069,
                   "left": 326,
                   "right": 454
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 2093,
-                  "bottom": 2122
+                  "top": 2085,
+                  "bottom": 2114
                 },
                 {
                   "kind": "line",
                   "part": "socials_handle",
-                  "top": 2093,
-                  "bottom": 2122,
+                  "top": 2085,
+                  "bottom": 2114,
                   "left": 2,
                   "text": "@yourstore",
                   "size_px": 24.7,
@@ -3266,26 +3266,26 @@
                 {
                   "kind": "section",
                   "part": "socials",
-                  "top": 2045,
-                  "bottom": 2136
+                  "top": 2037,
+                  "bottom": 2128
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 2045,
-                  "bottom": 2136
+                  "top": 2037,
+                  "bottom": 2128
                 },
                 {
                   "kind": "group",
                   "part": "thanks",
-                  "top": 2152,
-                  "bottom": 2183
+                  "top": 2144,
+                  "bottom": 2175
                 },
                 {
                   "kind": "line",
                   "part": "thanks",
-                  "top": 2152,
-                  "bottom": 2183,
+                  "top": 2144,
+                  "bottom": 2175,
                   "left": 2,
                   "text": "Thank you for shopping with us!",
                   "size_px": 26,
@@ -3295,8 +3295,8 @@
                 {
                   "kind": "text",
                   "part": "thanks",
-                  "top": 2152,
-                  "bottom": 2183,
+                  "top": 2144,
+                  "bottom": 2175,
                   "text": "Thank you for shopping with us!",
                   "size_px": 26,
                   "bold": true
@@ -3304,8 +3304,8 @@
                 {
                   "kind": "section",
                   "part": "thanks",
-                  "top": 2152,
-                  "bottom": 2239
+                  "top": 2144,
+                  "bottom": 2231
                 }
               ]
             },
@@ -5063,9 +5063,9 @@
             {
               "mode": "referral",
               "file": "classic-C-referral.png",
-              "version": "3c7ab0ebb8",
+              "version": "315cd63caf",
               "width": 576,
-              "height": 2175,
+              "height": 2167,
               "parts": [
                 {
                   "kind": "group",
@@ -5401,14 +5401,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1778,
-                  "bottom": 1815
+                  "top": 1774,
+                  "bottom": 1811
                 },
                 {
                   "kind": "line",
                   "part": "referral_title",
-                  "top": 1778,
-                  "bottom": 1815,
+                  "top": 1774,
+                  "bottom": 1811,
                   "left": 2,
                   "text": "YOUR CODE: K7M4QH",
                   "size_px": 31.200000000000003,
@@ -5418,8 +5418,8 @@
                 {
                   "kind": "text",
                   "part": "referral_title",
-                  "top": 1778,
-                  "bottom": 1815,
+                  "top": 1774,
+                  "bottom": 1811,
                   "text": "YOUR CODE:",
                   "size_px": 31.200000000000003,
                   "bold": true
@@ -5427,14 +5427,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1843,
-                  "bottom": 1927
+                  "top": 1825,
+                  "bottom": 1909
                 },
                 {
                   "kind": "line",
                   "part": "referral_note",
-                  "top": 1843,
-                  "bottom": 1927,
+                  "top": 1825,
+                  "bottom": 1909,
                   "left": 2,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 22.1,
@@ -5443,8 +5443,8 @@
                 {
                   "kind": "text",
                   "part": "referral_note",
-                  "top": 1843,
-                  "bottom": 1927,
+                  "top": 1825,
+                  "bottom": 1909,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 22.1
                 },
@@ -5452,19 +5452,19 @@
                   "kind": "section",
                   "part": "referral",
                   "top": 1764,
-                  "bottom": 1957
+                  "bottom": 1949
                 },
                 {
                   "kind": "group",
                   "part": "referral",
                   "top": 1764,
-                  "bottom": 1957
+                  "bottom": 1949
                 },
                 {
                   "kind": "line",
                   "part": "socials_title",
-                  "top": 1957,
-                  "bottom": 1988,
+                  "top": 1949,
+                  "bottom": 1980,
                   "left": 1,
                   "text": "Follow us on:",
                   "size_px": 26,
@@ -5476,8 +5476,8 @@
                 {
                   "kind": "text",
                   "part": "socials_title",
-                  "top": 1957,
-                  "bottom": 1989,
+                  "top": 1949,
+                  "bottom": 1981,
                   "left": 121,
                   "right": 316,
                   "text": "Follow us on:",
@@ -5487,22 +5487,22 @@
                 {
                   "kind": "icons",
                   "part": "socials_icons",
-                  "top": 1957,
-                  "bottom": 1989,
+                  "top": 1949,
+                  "bottom": 1981,
                   "left": 326,
                   "right": 454
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 2005,
-                  "bottom": 2034
+                  "top": 1997,
+                  "bottom": 2026
                 },
                 {
                   "kind": "line",
                   "part": "socials_handle",
-                  "top": 2005,
-                  "bottom": 2034,
+                  "top": 1997,
+                  "bottom": 2026,
                   "left": 2,
                   "text": "@yourstore",
                   "size_px": 24.7,
@@ -5511,26 +5511,26 @@
                 {
                   "kind": "section",
                   "part": "socials",
-                  "top": 1957,
-                  "bottom": 2048
+                  "top": 1949,
+                  "bottom": 2040
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1957,
-                  "bottom": 2048
+                  "top": 1949,
+                  "bottom": 2040
                 },
                 {
                   "kind": "group",
                   "part": "thanks",
-                  "top": 2064,
-                  "bottom": 2095
+                  "top": 2056,
+                  "bottom": 2087
                 },
                 {
                   "kind": "line",
                   "part": "thanks",
-                  "top": 2064,
-                  "bottom": 2095,
+                  "top": 2056,
+                  "bottom": 2087,
                   "left": 2,
                   "text": "Thank you for shopping with us!",
                   "size_px": 26,
@@ -5540,8 +5540,8 @@
                 {
                   "kind": "text",
                   "part": "thanks",
-                  "top": 2064,
-                  "bottom": 2095,
+                  "top": 2056,
+                  "bottom": 2087,
                   "text": "Thank you for shopping with us!",
                   "size_px": 26,
                   "bold": true
@@ -5549,8 +5549,8 @@
                 {
                   "kind": "section",
                   "part": "thanks",
-                  "top": 2064,
-                  "bottom": 2151
+                  "top": 2056,
+                  "bottom": 2143
                 }
               ]
             },
@@ -7265,9 +7265,9 @@
             {
               "mode": "referral",
               "file": "supermarket-A-referral.png",
-              "version": "68a10ec662",
+              "version": "31e6410e1a",
               "width": 576,
-              "height": 1863,
+              "height": 1867,
               "parts": [
                 {
                   "kind": "group",
@@ -7630,14 +7630,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1515,
-                  "bottom": 1550
+                  "top": 1517,
+                  "bottom": 1552
                 },
                 {
                   "kind": "line",
                   "part": "referral_title",
-                  "top": 1515,
-                  "bottom": 1550,
+                  "top": 1517,
+                  "bottom": 1552,
                   "left": 2,
                   "text": "YOUR CODE: K7M4QH",
                   "size_px": 26.832,
@@ -7647,8 +7647,8 @@
                 {
                   "kind": "text",
                   "part": "referral_title",
-                  "top": 1515,
-                  "bottom": 1550,
+                  "top": 1517,
+                  "bottom": 1552,
                   "text": "YOUR CODE:",
                   "size_px": 26.832,
                   "bold": true
@@ -7656,14 +7656,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1566,
-                  "bottom": 1647
+                  "top": 1560,
+                  "bottom": 1641
                 },
                 {
                   "kind": "line",
                   "part": "referral_note",
-                  "top": 1566,
-                  "bottom": 1647,
+                  "top": 1560,
+                  "bottom": 1641,
                   "left": 2,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 19.006,
@@ -7672,8 +7672,8 @@
                 {
                   "kind": "text",
                   "part": "referral_note",
-                  "top": 1566,
-                  "bottom": 1647,
+                  "top": 1560,
+                  "bottom": 1641,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 19.006
                 },
@@ -7681,19 +7681,19 @@
                   "kind": "section",
                   "part": "referral",
                   "top": 1507,
-                  "bottom": 1665
+                  "bottom": 1669
                 },
                 {
                   "kind": "group",
                   "part": "referral",
                   "top": 1507,
-                  "bottom": 1665
+                  "bottom": 1669
                 },
                 {
                   "kind": "line",
                   "part": "socials_title",
-                  "top": 1665,
-                  "bottom": 1695,
+                  "top": 1669,
+                  "bottom": 1699,
                   "left": 1,
                   "text": "Follow us on:",
                   "size_px": 22.36,
@@ -7705,8 +7705,8 @@
                 {
                   "kind": "text",
                   "part": "socials_title",
-                  "top": 1665,
-                  "bottom": 1697,
+                  "top": 1669,
+                  "bottom": 1701,
                   "left": 134,
                   "right": 303,
                   "text": "Follow us on:",
@@ -7716,22 +7716,22 @@
                 {
                   "kind": "icons",
                   "part": "socials_icons",
-                  "top": 1665,
-                  "bottom": 1697,
+                  "top": 1669,
+                  "bottom": 1701,
                   "left": 313,
                   "right": 441
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1707,
-                  "bottom": 1735
+                  "top": 1711,
+                  "bottom": 1739
                 },
                 {
                   "kind": "line",
                   "part": "socials_handle",
-                  "top": 1707,
-                  "bottom": 1735,
+                  "top": 1711,
+                  "bottom": 1739,
                   "left": 2,
                   "text": "@yourstore",
                   "size_px": 21.242,
@@ -7740,26 +7740,26 @@
                 {
                   "kind": "section",
                   "part": "socials",
-                  "top": 1665,
-                  "bottom": 1743
+                  "top": 1669,
+                  "bottom": 1747
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1665,
-                  "bottom": 1743
+                  "top": 1669,
+                  "bottom": 1747
                 },
                 {
                   "kind": "group",
                   "part": "thanks",
-                  "top": 1753,
-                  "bottom": 1783
+                  "top": 1757,
+                  "bottom": 1787
                 },
                 {
                   "kind": "line",
                   "part": "thanks",
-                  "top": 1753,
-                  "bottom": 1783,
+                  "top": 1757,
+                  "bottom": 1787,
                   "left": 2,
                   "text": "THANK YOU, COME AGAIN",
                   "size_px": 22.36,
@@ -7769,8 +7769,8 @@
                 {
                   "kind": "text",
                   "part": "thanks",
-                  "top": 1753,
-                  "bottom": 1783,
+                  "top": 1757,
+                  "bottom": 1787,
                   "text": "THANK YOU, COME AGAIN",
                   "size_px": 22.36,
                   "bold": true
@@ -7778,8 +7778,8 @@
                 {
                   "kind": "section",
                   "part": "thanks",
-                  "top": 1753,
-                  "bottom": 1839
+                  "top": 1757,
+                  "bottom": 1843
                 }
               ]
             },
@@ -9556,9 +9556,9 @@
             {
               "mode": "referral",
               "file": "supermarket-B-referral.png",
-              "version": "97a1f58e76",
+              "version": "60ecfa637d",
               "width": 576,
-              "height": 1793,
+              "height": 1797,
               "parts": [
                 {
                   "kind": "group",
@@ -9934,14 +9934,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1445,
-                  "bottom": 1480
+                  "top": 1447,
+                  "bottom": 1482
                 },
                 {
                   "kind": "line",
                   "part": "referral_title",
-                  "top": 1445,
-                  "bottom": 1480,
+                  "top": 1447,
+                  "bottom": 1482,
                   "left": 2,
                   "text": "YOUR CODE: K7M4QH",
                   "size_px": 26.832,
@@ -9951,8 +9951,8 @@
                 {
                   "kind": "text",
                   "part": "referral_title",
-                  "top": 1445,
-                  "bottom": 1480,
+                  "top": 1447,
+                  "bottom": 1482,
                   "text": "YOUR CODE:",
                   "size_px": 26.832,
                   "bold": true
@@ -9960,14 +9960,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1496,
-                  "bottom": 1577
+                  "top": 1490,
+                  "bottom": 1571
                 },
                 {
                   "kind": "line",
                   "part": "referral_note",
-                  "top": 1496,
-                  "bottom": 1577,
+                  "top": 1490,
+                  "bottom": 1571,
                   "left": 2,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 19.006,
@@ -9976,8 +9976,8 @@
                 {
                   "kind": "text",
                   "part": "referral_note",
-                  "top": 1496,
-                  "bottom": 1577,
+                  "top": 1490,
+                  "bottom": 1571,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 19.006
                 },
@@ -9985,19 +9985,19 @@
                   "kind": "section",
                   "part": "referral",
                   "top": 1437,
-                  "bottom": 1595
+                  "bottom": 1599
                 },
                 {
                   "kind": "group",
                   "part": "referral",
                   "top": 1437,
-                  "bottom": 1595
+                  "bottom": 1599
                 },
                 {
                   "kind": "line",
                   "part": "socials_title",
-                  "top": 1595,
-                  "bottom": 1625,
+                  "top": 1599,
+                  "bottom": 1629,
                   "left": 1,
                   "text": "Follow us on:",
                   "size_px": 22.36,
@@ -10009,8 +10009,8 @@
                 {
                   "kind": "text",
                   "part": "socials_title",
-                  "top": 1595,
-                  "bottom": 1627,
+                  "top": 1599,
+                  "bottom": 1631,
                   "left": 134,
                   "right": 303,
                   "text": "Follow us on:",
@@ -10020,22 +10020,22 @@
                 {
                   "kind": "icons",
                   "part": "socials_icons",
-                  "top": 1595,
-                  "bottom": 1627,
+                  "top": 1599,
+                  "bottom": 1631,
                   "left": 313,
                   "right": 441
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1637,
-                  "bottom": 1665
+                  "top": 1641,
+                  "bottom": 1669
                 },
                 {
                   "kind": "line",
                   "part": "socials_handle",
-                  "top": 1637,
-                  "bottom": 1665,
+                  "top": 1641,
+                  "bottom": 1669,
                   "left": 2,
                   "text": "@yourstore",
                   "size_px": 21.242,
@@ -10044,26 +10044,26 @@
                 {
                   "kind": "section",
                   "part": "socials",
-                  "top": 1595,
-                  "bottom": 1673
+                  "top": 1599,
+                  "bottom": 1677
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1595,
-                  "bottom": 1673
+                  "top": 1599,
+                  "bottom": 1677
                 },
                 {
                   "kind": "group",
                   "part": "thanks",
-                  "top": 1683,
-                  "bottom": 1713
+                  "top": 1687,
+                  "bottom": 1717
                 },
                 {
                   "kind": "line",
                   "part": "thanks",
-                  "top": 1683,
-                  "bottom": 1713,
+                  "top": 1687,
+                  "bottom": 1717,
                   "left": 2,
                   "text": "THANK YOU, COME AGAIN",
                   "size_px": 22.36,
@@ -10073,8 +10073,8 @@
                 {
                   "kind": "text",
                   "part": "thanks",
-                  "top": 1683,
-                  "bottom": 1713,
+                  "top": 1687,
+                  "bottom": 1717,
                   "text": "THANK YOU, COME AGAIN",
                   "size_px": 22.36,
                   "bold": true
@@ -10082,8 +10082,8 @@
                 {
                   "kind": "section",
                   "part": "thanks",
-                  "top": 1683,
-                  "bottom": 1769
+                  "top": 1687,
+                  "bottom": 1773
                 }
               ]
             },
@@ -11886,9 +11886,9 @@
             {
               "mode": "referral",
               "file": "supermarket-C-referral.png",
-              "version": "7c473c0ed7",
+              "version": "c4f392dbf9",
               "width": 576,
-              "height": 1968,
+              "height": 1972,
               "parts": [
                 {
                   "kind": "group",
@@ -12251,14 +12251,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1620,
-                  "bottom": 1655
+                  "top": 1622,
+                  "bottom": 1657
                 },
                 {
                   "kind": "line",
                   "part": "referral_title",
-                  "top": 1620,
-                  "bottom": 1655,
+                  "top": 1622,
+                  "bottom": 1657,
                   "left": 2,
                   "text": "YOUR CODE: K7M4QH",
                   "size_px": 26.832,
@@ -12268,8 +12268,8 @@
                 {
                   "kind": "text",
                   "part": "referral_title",
-                  "top": 1620,
-                  "bottom": 1655,
+                  "top": 1622,
+                  "bottom": 1657,
                   "text": "YOUR CODE:",
                   "size_px": 26.832,
                   "bold": true
@@ -12277,14 +12277,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1671,
-                  "bottom": 1752
+                  "top": 1665,
+                  "bottom": 1746
                 },
                 {
                   "kind": "line",
                   "part": "referral_note",
-                  "top": 1671,
-                  "bottom": 1752,
+                  "top": 1665,
+                  "bottom": 1746,
                   "left": 2,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 19.006,
@@ -12293,8 +12293,8 @@
                 {
                   "kind": "text",
                   "part": "referral_note",
-                  "top": 1671,
-                  "bottom": 1752,
+                  "top": 1665,
+                  "bottom": 1746,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 19.006
                 },
@@ -12302,19 +12302,19 @@
                   "kind": "section",
                   "part": "referral",
                   "top": 1612,
-                  "bottom": 1770
+                  "bottom": 1774
                 },
                 {
                   "kind": "group",
                   "part": "referral",
                   "top": 1612,
-                  "bottom": 1770
+                  "bottom": 1774
                 },
                 {
                   "kind": "line",
                   "part": "socials_title",
-                  "top": 1770,
-                  "bottom": 1800,
+                  "top": 1774,
+                  "bottom": 1804,
                   "left": 1,
                   "text": "Follow us on:",
                   "size_px": 22.36,
@@ -12326,8 +12326,8 @@
                 {
                   "kind": "text",
                   "part": "socials_title",
-                  "top": 1770,
-                  "bottom": 1802,
+                  "top": 1774,
+                  "bottom": 1806,
                   "left": 134,
                   "right": 303,
                   "text": "Follow us on:",
@@ -12337,22 +12337,22 @@
                 {
                   "kind": "icons",
                   "part": "socials_icons",
-                  "top": 1770,
-                  "bottom": 1802,
+                  "top": 1774,
+                  "bottom": 1806,
                   "left": 313,
                   "right": 441
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1812,
-                  "bottom": 1840
+                  "top": 1816,
+                  "bottom": 1844
                 },
                 {
                   "kind": "line",
                   "part": "socials_handle",
-                  "top": 1812,
-                  "bottom": 1840,
+                  "top": 1816,
+                  "bottom": 1844,
                   "left": 2,
                   "text": "@yourstore",
                   "size_px": 21.242,
@@ -12361,26 +12361,26 @@
                 {
                   "kind": "section",
                   "part": "socials",
-                  "top": 1770,
-                  "bottom": 1848
+                  "top": 1774,
+                  "bottom": 1852
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1770,
-                  "bottom": 1848
+                  "top": 1774,
+                  "bottom": 1852
                 },
                 {
                   "kind": "group",
                   "part": "thanks",
-                  "top": 1858,
-                  "bottom": 1888
+                  "top": 1862,
+                  "bottom": 1892
                 },
                 {
                   "kind": "line",
                   "part": "thanks",
-                  "top": 1858,
-                  "bottom": 1888,
+                  "top": 1862,
+                  "bottom": 1892,
                   "left": 2,
                   "text": "THANK YOU, COME AGAIN",
                   "size_px": 22.36,
@@ -12390,8 +12390,8 @@
                 {
                   "kind": "text",
                   "part": "thanks",
-                  "top": 1858,
-                  "bottom": 1888,
+                  "top": 1862,
+                  "bottom": 1892,
                   "text": "THANK YOU, COME AGAIN",
                   "size_px": 22.36,
                   "bold": true
@@ -12399,8 +12399,8 @@
                 {
                   "kind": "section",
                   "part": "thanks",
-                  "top": 1858,
-                  "bottom": 1944
+                  "top": 1862,
+                  "bottom": 1948
                 }
               ]
             },
@@ -14125,9 +14125,9 @@
             {
               "mode": "referral",
               "file": "boutique-A-referral.png",
-              "version": "4712c6fe48",
+              "version": "8f970ce760",
               "width": 576,
-              "height": 2433,
+              "height": 2437,
               "parts": [
                 {
                   "kind": "group",
@@ -14443,14 +14443,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 2073,
-                  "bottom": 2116
+                  "top": 2075,
+                  "bottom": 2118
                 },
                 {
                   "kind": "line",
                   "part": "referral_title",
-                  "top": 2073,
-                  "bottom": 2116,
+                  "top": 2075,
+                  "bottom": 2118,
                   "left": 2,
                   "text": "YOUR CODE: K7M4QH",
                   "size_px": 29.639999999999997,
@@ -14460,8 +14460,8 @@
                 {
                   "kind": "text",
                   "part": "referral_title",
-                  "top": 2073,
-                  "bottom": 2116,
+                  "top": 2075,
+                  "bottom": 2118,
                   "text": "YOUR CODE:",
                   "size_px": 29.639999999999997,
                   "bold": true
@@ -14469,14 +14469,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 2132,
-                  "bottom": 2198
+                  "top": 2126,
+                  "bottom": 2192
                 },
                 {
                   "kind": "line",
                   "part": "referral_note",
-                  "top": 2132,
-                  "bottom": 2198,
+                  "top": 2126,
+                  "bottom": 2192,
                   "left": 2,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 20.994999999999997,
@@ -14485,8 +14485,8 @@
                 {
                   "kind": "text",
                   "part": "referral_note",
-                  "top": 2132,
-                  "bottom": 2198,
+                  "top": 2126,
+                  "bottom": 2192,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 20.994999999999997
                 },
@@ -14494,19 +14494,19 @@
                   "kind": "section",
                   "part": "referral",
                   "top": 2065,
-                  "bottom": 2223
+                  "bottom": 2227
                 },
                 {
                   "kind": "group",
                   "part": "referral",
                   "top": 2065,
-                  "bottom": 2223
+                  "bottom": 2227
                 },
                 {
                   "kind": "line",
                   "part": "socials_title",
-                  "top": 2223,
-                  "bottom": 2259,
+                  "top": 2227,
+                  "bottom": 2263,
                   "left": 1,
                   "text": "Follow us on:",
                   "size_px": 24.7,
@@ -14518,8 +14518,8 @@
                 {
                   "kind": "text",
                   "part": "socials_title",
-                  "top": 2223,
-                  "bottom": 2255,
+                  "top": 2227,
+                  "bottom": 2259,
                   "left": 146,
                   "right": 292,
                   "text": "Follow us on:",
@@ -14529,22 +14529,22 @@
                 {
                   "kind": "icons",
                   "part": "socials_icons",
-                  "top": 2223,
-                  "bottom": 2255,
+                  "top": 2227,
+                  "bottom": 2259,
                   "left": 302,
                   "right": 430
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 2265,
-                  "bottom": 2299
+                  "top": 2269,
+                  "bottom": 2303
                 },
                 {
                   "kind": "line",
                   "part": "socials_handle",
-                  "top": 2265,
-                  "bottom": 2299,
+                  "top": 2269,
+                  "bottom": 2303,
                   "left": 2,
                   "text": "@yourstore",
                   "size_px": 23.465000000000003,
@@ -14553,26 +14553,26 @@
                 {
                   "kind": "section",
                   "part": "socials",
-                  "top": 2223,
-                  "bottom": 2307
+                  "top": 2227,
+                  "bottom": 2311
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 2223,
-                  "bottom": 2307
+                  "top": 2227,
+                  "bottom": 2311
                 },
                 {
                   "kind": "group",
                   "part": "thanks",
-                  "top": 2317,
-                  "bottom": 2353
+                  "top": 2321,
+                  "bottom": 2357
                 },
                 {
                   "kind": "line",
                   "part": "thanks",
-                  "top": 2317,
-                  "bottom": 2353,
+                  "top": 2321,
+                  "bottom": 2357,
                   "left": 2,
                   "text": "Thank you for shopping with us",
                   "size_px": 24.7,
@@ -14582,8 +14582,8 @@
                 {
                   "kind": "text",
                   "part": "thanks",
-                  "top": 2317,
-                  "bottom": 2353,
+                  "top": 2321,
+                  "bottom": 2357,
                   "text": "Thank you for shopping with us",
                   "size_px": 24.7,
                   "bold": true
@@ -14591,8 +14591,8 @@
                 {
                   "kind": "section",
                   "part": "thanks",
-                  "top": 2317,
-                  "bottom": 2409
+                  "top": 2321,
+                  "bottom": 2413
                 }
               ]
             },
@@ -16192,9 +16192,9 @@
             {
               "mode": "referral",
               "file": "boutique-B-referral.png",
-              "version": "d274ea061a",
+              "version": "5280bf3731",
               "width": 576,
-              "height": 2195,
+              "height": 2199,
               "parts": [
                 {
                   "kind": "group",
@@ -16510,14 +16510,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1835,
-                  "bottom": 1878
+                  "top": 1837,
+                  "bottom": 1880
                 },
                 {
                   "kind": "line",
                   "part": "referral_title",
-                  "top": 1835,
-                  "bottom": 1878,
+                  "top": 1837,
+                  "bottom": 1880,
                   "left": 2,
                   "text": "YOUR CODE: K7M4QH",
                   "size_px": 29.639999999999997,
@@ -16527,8 +16527,8 @@
                 {
                   "kind": "text",
                   "part": "referral_title",
-                  "top": 1835,
-                  "bottom": 1878,
+                  "top": 1837,
+                  "bottom": 1880,
                   "text": "YOUR CODE:",
                   "size_px": 29.639999999999997,
                   "bold": true
@@ -16536,14 +16536,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1894,
-                  "bottom": 1960
+                  "top": 1888,
+                  "bottom": 1954
                 },
                 {
                   "kind": "line",
                   "part": "referral_note",
-                  "top": 1894,
-                  "bottom": 1960,
+                  "top": 1888,
+                  "bottom": 1954,
                   "left": 2,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 20.994999999999997,
@@ -16552,8 +16552,8 @@
                 {
                   "kind": "text",
                   "part": "referral_note",
-                  "top": 1894,
-                  "bottom": 1960,
+                  "top": 1888,
+                  "bottom": 1954,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 20.994999999999997
                 },
@@ -16561,19 +16561,19 @@
                   "kind": "section",
                   "part": "referral",
                   "top": 1827,
-                  "bottom": 1985
+                  "bottom": 1989
                 },
                 {
                   "kind": "group",
                   "part": "referral",
                   "top": 1827,
-                  "bottom": 1985
+                  "bottom": 1989
                 },
                 {
                   "kind": "line",
                   "part": "socials_title",
-                  "top": 1985,
-                  "bottom": 2021,
+                  "top": 1989,
+                  "bottom": 2025,
                   "left": 1,
                   "text": "Follow us on:",
                   "size_px": 24.7,
@@ -16585,8 +16585,8 @@
                 {
                   "kind": "text",
                   "part": "socials_title",
-                  "top": 1985,
-                  "bottom": 2017,
+                  "top": 1989,
+                  "bottom": 2021,
                   "left": 146,
                   "right": 292,
                   "text": "Follow us on:",
@@ -16596,22 +16596,22 @@
                 {
                   "kind": "icons",
                   "part": "socials_icons",
-                  "top": 1985,
-                  "bottom": 2017,
+                  "top": 1989,
+                  "bottom": 2021,
                   "left": 302,
                   "right": 430
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 2027,
-                  "bottom": 2061
+                  "top": 2031,
+                  "bottom": 2065
                 },
                 {
                   "kind": "line",
                   "part": "socials_handle",
-                  "top": 2027,
-                  "bottom": 2061,
+                  "top": 2031,
+                  "bottom": 2065,
                   "left": 2,
                   "text": "@yourstore",
                   "size_px": 23.465000000000003,
@@ -16620,26 +16620,26 @@
                 {
                   "kind": "section",
                   "part": "socials",
-                  "top": 1985,
-                  "bottom": 2069
+                  "top": 1989,
+                  "bottom": 2073
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1985,
-                  "bottom": 2069
+                  "top": 1989,
+                  "bottom": 2073
                 },
                 {
                   "kind": "group",
                   "part": "thanks",
-                  "top": 2079,
-                  "bottom": 2115
+                  "top": 2083,
+                  "bottom": 2119
                 },
                 {
                   "kind": "line",
                   "part": "thanks",
-                  "top": 2079,
-                  "bottom": 2115,
+                  "top": 2083,
+                  "bottom": 2119,
                   "left": 2,
                   "text": "Thank you for shopping with us",
                   "size_px": 24.7,
@@ -16649,8 +16649,8 @@
                 {
                   "kind": "text",
                   "part": "thanks",
-                  "top": 2079,
-                  "bottom": 2115,
+                  "top": 2083,
+                  "bottom": 2119,
                   "text": "Thank you for shopping with us",
                   "size_px": 24.7,
                   "bold": true
@@ -16658,8 +16658,8 @@
                 {
                   "kind": "section",
                   "part": "thanks",
-                  "top": 2079,
-                  "bottom": 2171
+                  "top": 2083,
+                  "bottom": 2175
                 }
               ]
             },
@@ -18267,9 +18267,9 @@
             {
               "mode": "referral",
               "file": "modern-A-referral.png",
-              "version": "6768d4eadc",
+              "version": "8163cc5fce",
               "width": 576,
-              "height": 2057,
+              "height": 2061,
               "parts": [
                 {
                   "kind": "group",
@@ -18585,14 +18585,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1708,
-                  "bottom": 1750
+                  "top": 1710,
+                  "bottom": 1752
                 },
                 {
                   "kind": "line",
                   "part": "referral_title",
-                  "top": 1708,
-                  "bottom": 1750,
+                  "top": 1710,
+                  "bottom": 1752,
                   "left": 2,
                   "text": "YOUR CODE: K7M4QH",
                   "size_px": 30.576,
@@ -18602,8 +18602,8 @@
                 {
                   "kind": "text",
                   "part": "referral_title",
-                  "top": 1708,
-                  "bottom": 1750,
+                  "top": 1710,
+                  "bottom": 1752,
                   "text": "YOUR CODE:",
                   "size_px": 30.576,
                   "bold": true
@@ -18611,14 +18611,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1766,
-                  "bottom": 1830
+                  "top": 1760,
+                  "bottom": 1824
                 },
                 {
                   "kind": "line",
                   "part": "referral_note",
-                  "top": 1766,
-                  "bottom": 1830,
+                  "top": 1760,
+                  "bottom": 1824,
                   "left": 2,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 21.658,
@@ -18627,8 +18627,8 @@
                 {
                   "kind": "text",
                   "part": "referral_note",
-                  "top": 1766,
-                  "bottom": 1830,
+                  "top": 1760,
+                  "bottom": 1824,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 21.658
                 },
@@ -18636,19 +18636,19 @@
                   "kind": "section",
                   "part": "referral",
                   "top": 1700,
-                  "bottom": 1848
+                  "bottom": 1852
                 },
                 {
                   "kind": "group",
                   "part": "referral",
                   "top": 1700,
-                  "bottom": 1848
+                  "bottom": 1852
                 },
                 {
                   "kind": "line",
                   "part": "socials_title",
-                  "top": 1848,
-                  "bottom": 1883,
+                  "top": 1852,
+                  "bottom": 1887,
                   "left": 1,
                   "text": "Follow us on:",
                   "size_px": 25.480000000000004,
@@ -18660,8 +18660,8 @@
                 {
                   "kind": "text",
                   "part": "socials_title",
-                  "top": 1848,
-                  "bottom": 1880,
+                  "top": 1852,
+                  "bottom": 1884,
                   "left": 137,
                   "right": 300,
                   "text": "Follow us on:",
@@ -18671,22 +18671,22 @@
                 {
                   "kind": "icons",
                   "part": "socials_icons",
-                  "top": 1848,
-                  "bottom": 1880,
+                  "top": 1852,
+                  "bottom": 1884,
                   "left": 310,
                   "right": 438
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1890,
-                  "bottom": 1924
+                  "top": 1894,
+                  "bottom": 1928
                 },
                 {
                   "kind": "line",
                   "part": "socials_handle",
-                  "top": 1890,
-                  "bottom": 1924,
+                  "top": 1894,
+                  "bottom": 1928,
                   "left": 2,
                   "text": "@yourstore",
                   "size_px": 24.206000000000003,
@@ -18695,26 +18695,26 @@
                 {
                   "kind": "section",
                   "part": "socials",
-                  "top": 1848,
-                  "bottom": 1932
+                  "top": 1852,
+                  "bottom": 1936
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1848,
-                  "bottom": 1932
+                  "top": 1852,
+                  "bottom": 1936
                 },
                 {
                   "kind": "group",
                   "part": "thanks",
-                  "top": 1942,
-                  "bottom": 1977
+                  "top": 1946,
+                  "bottom": 1981
                 },
                 {
                   "kind": "line",
                   "part": "thanks",
-                  "top": 1942,
-                  "bottom": 1977,
+                  "top": 1946,
+                  "bottom": 1981,
                   "left": 2,
                   "text": "Thanks for your visit!",
                   "size_px": 25.480000000000004,
@@ -18724,8 +18724,8 @@
                 {
                   "kind": "text",
                   "part": "thanks",
-                  "top": 1942,
-                  "bottom": 1977,
+                  "top": 1946,
+                  "bottom": 1981,
                   "text": "Thanks for your visit!",
                   "size_px": 25.480000000000004,
                   "bold": true
@@ -18733,8 +18733,8 @@
                 {
                   "kind": "section",
                   "part": "thanks",
-                  "top": 1942,
-                  "bottom": 2033
+                  "top": 1946,
+                  "bottom": 2037
                 }
               ]
             },
@@ -20386,9 +20386,9 @@
             {
               "mode": "referral",
               "file": "modern-B-referral.png",
-              "version": "c997c811ca",
+              "version": "c040cf92fa",
               "width": 576,
-              "height": 1856,
+              "height": 1860,
               "parts": [
                 {
                   "kind": "group",
@@ -20756,14 +20756,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1507,
-                  "bottom": 1549
+                  "top": 1509,
+                  "bottom": 1551
                 },
                 {
                   "kind": "line",
                   "part": "referral_title",
-                  "top": 1507,
-                  "bottom": 1549,
+                  "top": 1509,
+                  "bottom": 1551,
                   "left": 2,
                   "text": "YOUR CODE: K7M4QH",
                   "size_px": 30.576,
@@ -20773,8 +20773,8 @@
                 {
                   "kind": "text",
                   "part": "referral_title",
-                  "top": 1507,
-                  "bottom": 1549,
+                  "top": 1509,
+                  "bottom": 1551,
                   "text": "YOUR CODE:",
                   "size_px": 30.576,
                   "bold": true
@@ -20782,14 +20782,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1565,
-                  "bottom": 1629
+                  "top": 1559,
+                  "bottom": 1623
                 },
                 {
                   "kind": "line",
                   "part": "referral_note",
-                  "top": 1565,
-                  "bottom": 1629,
+                  "top": 1559,
+                  "bottom": 1623,
                   "left": 2,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 21.658,
@@ -20798,8 +20798,8 @@
                 {
                   "kind": "text",
                   "part": "referral_note",
-                  "top": 1565,
-                  "bottom": 1629,
+                  "top": 1559,
+                  "bottom": 1623,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 21.658
                 },
@@ -20807,19 +20807,19 @@
                   "kind": "section",
                   "part": "referral",
                   "top": 1499,
-                  "bottom": 1647
+                  "bottom": 1651
                 },
                 {
                   "kind": "group",
                   "part": "referral",
                   "top": 1499,
-                  "bottom": 1647
+                  "bottom": 1651
                 },
                 {
                   "kind": "line",
                   "part": "socials_title",
-                  "top": 1647,
-                  "bottom": 1682,
+                  "top": 1651,
+                  "bottom": 1686,
                   "left": 1,
                   "text": "Follow us on:",
                   "size_px": 25.480000000000004,
@@ -20831,8 +20831,8 @@
                 {
                   "kind": "text",
                   "part": "socials_title",
-                  "top": 1647,
-                  "bottom": 1679,
+                  "top": 1651,
+                  "bottom": 1683,
                   "left": 137,
                   "right": 300,
                   "text": "Follow us on:",
@@ -20842,22 +20842,22 @@
                 {
                   "kind": "icons",
                   "part": "socials_icons",
-                  "top": 1647,
-                  "bottom": 1679,
+                  "top": 1651,
+                  "bottom": 1683,
                   "left": 310,
                   "right": 438
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1689,
-                  "bottom": 1723
+                  "top": 1693,
+                  "bottom": 1727
                 },
                 {
                   "kind": "line",
                   "part": "socials_handle",
-                  "top": 1689,
-                  "bottom": 1723,
+                  "top": 1693,
+                  "bottom": 1727,
                   "left": 2,
                   "text": "@yourstore",
                   "size_px": 24.206000000000003,
@@ -20866,26 +20866,26 @@
                 {
                   "kind": "section",
                   "part": "socials",
-                  "top": 1647,
-                  "bottom": 1731
+                  "top": 1651,
+                  "bottom": 1735
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1647,
-                  "bottom": 1731
+                  "top": 1651,
+                  "bottom": 1735
                 },
                 {
                   "kind": "group",
                   "part": "thanks",
-                  "top": 1741,
-                  "bottom": 1776
+                  "top": 1745,
+                  "bottom": 1780
                 },
                 {
                   "kind": "line",
                   "part": "thanks",
-                  "top": 1741,
-                  "bottom": 1776,
+                  "top": 1745,
+                  "bottom": 1780,
                   "left": 2,
                   "text": "Thanks for your visit!",
                   "size_px": 25.480000000000004,
@@ -20895,8 +20895,8 @@
                 {
                   "kind": "text",
                   "part": "thanks",
-                  "top": 1741,
-                  "bottom": 1776,
+                  "top": 1745,
+                  "bottom": 1780,
                   "text": "Thanks for your visit!",
                   "size_px": 25.480000000000004,
                   "bold": true
@@ -20904,8 +20904,8 @@
                 {
                   "kind": "section",
                   "part": "thanks",
-                  "top": 1741,
-                  "bottom": 1832
+                  "top": 1745,
+                  "bottom": 1836
                 }
               ]
             },
@@ -22662,9 +22662,9 @@
             {
               "mode": "referral",
               "file": "bistro-A-referral.png",
-              "version": "b8f37dd77f",
+              "version": "43aad11a11",
               "width": 576,
-              "height": 1862,
+              "height": 1866,
               "parts": [
                 {
                   "kind": "group",
@@ -22973,14 +22973,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1523,
-                  "bottom": 1562
+                  "top": 1525,
+                  "bottom": 1564
                 },
                 {
                   "kind": "line",
                   "part": "referral_title",
-                  "top": 1523,
-                  "bottom": 1562,
+                  "top": 1525,
+                  "bottom": 1564,
                   "left": 2,
                   "text": "YOUR CODE: K7M4QH",
                   "size_px": 29.951999999999998,
@@ -22990,8 +22990,8 @@
                 {
                   "kind": "text",
                   "part": "referral_title",
-                  "top": 1523,
-                  "bottom": 1562,
+                  "top": 1525,
+                  "bottom": 1564,
                   "text": "YOUR CODE:",
                   "size_px": 29.951999999999998,
                   "bold": true
@@ -22999,14 +22999,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1578,
-                  "bottom": 1638
+                  "top": 1572,
+                  "bottom": 1632
                 },
                 {
                   "kind": "line",
                   "part": "referral_note",
-                  "top": 1578,
-                  "bottom": 1638,
+                  "top": 1572,
+                  "bottom": 1632,
                   "left": 2,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 21.216,
@@ -23015,8 +23015,8 @@
                 {
                   "kind": "text",
                   "part": "referral_note",
-                  "top": 1578,
-                  "bottom": 1638,
+                  "top": 1572,
+                  "bottom": 1632,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 21.216
                 },
@@ -23024,19 +23024,19 @@
                   "kind": "section",
                   "part": "referral",
                   "top": 1515,
-                  "bottom": 1659
+                  "bottom": 1663
                 },
                 {
                   "kind": "group",
                   "part": "referral",
                   "top": 1515,
-                  "bottom": 1659
+                  "bottom": 1663
                 },
                 {
                   "kind": "line",
                   "part": "socials_title",
-                  "top": 1659,
-                  "bottom": 1691,
+                  "top": 1663,
+                  "bottom": 1695,
                   "left": 1,
                   "text": "Follow us on:",
                   "size_px": 24.96,
@@ -23048,8 +23048,8 @@
                 {
                   "kind": "text",
                   "part": "socials_title",
-                  "top": 1659,
-                  "bottom": 1691,
+                  "top": 1663,
+                  "bottom": 1695,
                   "left": 142,
                   "right": 296,
                   "text": "Follow us on:",
@@ -23059,22 +23059,22 @@
                 {
                   "kind": "icons",
                   "part": "socials_icons",
-                  "top": 1659,
-                  "bottom": 1691,
+                  "top": 1663,
+                  "bottom": 1695,
                   "left": 306,
                   "right": 434
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1701,
-                  "bottom": 1732
+                  "top": 1705,
+                  "bottom": 1736
                 },
                 {
                   "kind": "line",
                   "part": "socials_handle",
-                  "top": 1701,
-                  "bottom": 1732,
+                  "top": 1705,
+                  "bottom": 1736,
                   "left": 2,
                   "text": "@yourstore",
                   "size_px": 23.712,
@@ -23083,26 +23083,26 @@
                 {
                   "kind": "section",
                   "part": "socials",
-                  "top": 1659,
-                  "bottom": 1740
+                  "top": 1663,
+                  "bottom": 1744
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1659,
-                  "bottom": 1740
+                  "top": 1663,
+                  "bottom": 1744
                 },
                 {
                   "kind": "group",
                   "part": "thanks",
-                  "top": 1750,
-                  "bottom": 1782
+                  "top": 1754,
+                  "bottom": 1786
                 },
                 {
                   "kind": "line",
                   "part": "thanks",
-                  "top": 1750,
-                  "bottom": 1782,
+                  "top": 1754,
+                  "bottom": 1786,
                   "left": 2,
                   "text": "Thank you, see you again!",
                   "size_px": 24.96,
@@ -23112,8 +23112,8 @@
                 {
                   "kind": "text",
                   "part": "thanks",
-                  "top": 1750,
-                  "bottom": 1782,
+                  "top": 1754,
+                  "bottom": 1786,
                   "text": "Thank you, see you again!",
                   "size_px": 24.96,
                   "bold": true
@@ -23121,8 +23121,8 @@
                 {
                   "kind": "section",
                   "part": "thanks",
-                  "top": 1750,
-                  "bottom": 1838
+                  "top": 1754,
+                  "bottom": 1842
                 }
               ]
             },
@@ -24694,9 +24694,9 @@
             {
               "mode": "referral",
               "file": "bistro-B-referral.png",
-              "version": "d6756abee3",
+              "version": "c48033ea11",
               "width": 576,
-              "height": 1834,
+              "height": 1838,
               "parts": [
                 {
                   "kind": "group",
@@ -25005,14 +25005,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1495,
-                  "bottom": 1534
+                  "top": 1497,
+                  "bottom": 1536
                 },
                 {
                   "kind": "line",
                   "part": "referral_title",
-                  "top": 1495,
-                  "bottom": 1534,
+                  "top": 1497,
+                  "bottom": 1536,
                   "left": 2,
                   "text": "YOUR CODE: K7M4QH",
                   "size_px": 29.951999999999998,
@@ -25022,8 +25022,8 @@
                 {
                   "kind": "text",
                   "part": "referral_title",
-                  "top": 1495,
-                  "bottom": 1534,
+                  "top": 1497,
+                  "bottom": 1536,
                   "text": "YOUR CODE:",
                   "size_px": 29.951999999999998,
                   "bold": true
@@ -25031,14 +25031,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1550,
-                  "bottom": 1610
+                  "top": 1544,
+                  "bottom": 1604
                 },
                 {
                   "kind": "line",
                   "part": "referral_note",
-                  "top": 1550,
-                  "bottom": 1610,
+                  "top": 1544,
+                  "bottom": 1604,
                   "left": 2,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 21.216,
@@ -25047,8 +25047,8 @@
                 {
                   "kind": "text",
                   "part": "referral_note",
-                  "top": 1550,
-                  "bottom": 1610,
+                  "top": 1544,
+                  "bottom": 1604,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 21.216
                 },
@@ -25056,19 +25056,19 @@
                   "kind": "section",
                   "part": "referral",
                   "top": 1487,
-                  "bottom": 1631
+                  "bottom": 1635
                 },
                 {
                   "kind": "group",
                   "part": "referral",
                   "top": 1487,
-                  "bottom": 1631
+                  "bottom": 1635
                 },
                 {
                   "kind": "line",
                   "part": "socials_title",
-                  "top": 1631,
-                  "bottom": 1663,
+                  "top": 1635,
+                  "bottom": 1667,
                   "left": 1,
                   "text": "Follow us on:",
                   "size_px": 24.96,
@@ -25080,8 +25080,8 @@
                 {
                   "kind": "text",
                   "part": "socials_title",
-                  "top": 1631,
-                  "bottom": 1663,
+                  "top": 1635,
+                  "bottom": 1667,
                   "left": 142,
                   "right": 296,
                   "text": "Follow us on:",
@@ -25091,22 +25091,22 @@
                 {
                   "kind": "icons",
                   "part": "socials_icons",
-                  "top": 1631,
-                  "bottom": 1663,
+                  "top": 1635,
+                  "bottom": 1667,
                   "left": 306,
                   "right": 434
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1673,
-                  "bottom": 1704
+                  "top": 1677,
+                  "bottom": 1708
                 },
                 {
                   "kind": "line",
                   "part": "socials_handle",
-                  "top": 1673,
-                  "bottom": 1704,
+                  "top": 1677,
+                  "bottom": 1708,
                   "left": 2,
                   "text": "@yourstore",
                   "size_px": 23.712,
@@ -25115,26 +25115,26 @@
                 {
                   "kind": "section",
                   "part": "socials",
-                  "top": 1631,
-                  "bottom": 1712
+                  "top": 1635,
+                  "bottom": 1716
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1631,
-                  "bottom": 1712
+                  "top": 1635,
+                  "bottom": 1716
                 },
                 {
                   "kind": "group",
                   "part": "thanks",
-                  "top": 1722,
-                  "bottom": 1754
+                  "top": 1726,
+                  "bottom": 1758
                 },
                 {
                   "kind": "line",
                   "part": "thanks",
-                  "top": 1722,
-                  "bottom": 1754,
+                  "top": 1726,
+                  "bottom": 1758,
                   "left": 2,
                   "text": "Thank you, see you again!",
                   "size_px": 24.96,
@@ -25144,8 +25144,8 @@
                 {
                   "kind": "text",
                   "part": "thanks",
-                  "top": 1722,
-                  "bottom": 1754,
+                  "top": 1726,
+                  "bottom": 1758,
                   "text": "Thank you, see you again!",
                   "size_px": 24.96,
                   "bold": true
@@ -25153,8 +25153,8 @@
                 {
                   "kind": "section",
                   "part": "thanks",
-                  "top": 1722,
-                  "bottom": 1810
+                  "top": 1726,
+                  "bottom": 1814
                 }
               ]
             },
@@ -26790,9 +26790,9 @@
             {
               "mode": "referral",
               "file": "typewriter-A-referral.png",
-              "version": "f05a6c1342",
+              "version": "26c8225fca",
               "width": 576,
-              "height": 1794,
+              "height": 1798,
               "parts": [
                 {
                   "kind": "group",
@@ -27157,14 +27157,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1445,
-                  "bottom": 1481
+                  "top": 1447,
+                  "bottom": 1483
                 },
                 {
                   "kind": "line",
                   "part": "referral_title",
-                  "top": 1445,
-                  "bottom": 1481,
+                  "top": 1447,
+                  "bottom": 1483,
                   "left": 2,
                   "text": "YOUR CODE: K7M4QH",
                   "size_px": 31.200000000000003,
@@ -27174,8 +27174,8 @@
                 {
                   "kind": "text",
                   "part": "referral_title",
-                  "top": 1445,
-                  "bottom": 1481,
+                  "top": 1447,
+                  "bottom": 1483,
                   "text": "YOUR CODE:",
                   "size_px": 31.200000000000003,
                   "bold": true
@@ -27183,14 +27183,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1497,
-                  "bottom": 1578
+                  "top": 1491,
+                  "bottom": 1572
                 },
                 {
                   "kind": "line",
                   "part": "referral_note",
-                  "top": 1497,
-                  "bottom": 1578,
+                  "top": 1491,
+                  "bottom": 1572,
                   "left": 2,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 22.1,
@@ -27199,8 +27199,8 @@
                 {
                   "kind": "text",
                   "part": "referral_note",
-                  "top": 1497,
-                  "bottom": 1578,
+                  "top": 1491,
+                  "bottom": 1572,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 22.1
                 },
@@ -27208,19 +27208,19 @@
                   "kind": "section",
                   "part": "referral",
                   "top": 1437,
-                  "bottom": 1596
+                  "bottom": 1600
                 },
                 {
                   "kind": "group",
                   "part": "referral",
                   "top": 1437,
-                  "bottom": 1596
+                  "bottom": 1600
                 },
                 {
                   "kind": "line",
                   "part": "socials_title",
-                  "top": 1596,
-                  "bottom": 1626,
+                  "top": 1600,
+                  "bottom": 1630,
                   "left": 1,
                   "text": "Follow us on:",
                   "size_px": 26,
@@ -27232,8 +27232,8 @@
                 {
                   "kind": "text",
                   "part": "socials_title",
-                  "top": 1596,
-                  "bottom": 1628,
+                  "top": 1600,
+                  "bottom": 1632,
                   "left": 115,
                   "right": 323,
                   "text": "Follow us on:",
@@ -27243,22 +27243,22 @@
                 {
                   "kind": "icons",
                   "part": "socials_icons",
-                  "top": 1596,
-                  "bottom": 1628,
+                  "top": 1600,
+                  "bottom": 1632,
                   "left": 333,
                   "right": 461
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1638,
-                  "bottom": 1666
+                  "top": 1642,
+                  "bottom": 1670
                 },
                 {
                   "kind": "line",
                   "part": "socials_handle",
-                  "top": 1638,
-                  "bottom": 1666,
+                  "top": 1642,
+                  "bottom": 1670,
                   "left": 2,
                   "text": "@yourstore",
                   "size_px": 24.7,
@@ -27267,26 +27267,26 @@
                 {
                   "kind": "section",
                   "part": "socials",
-                  "top": 1596,
-                  "bottom": 1674
+                  "top": 1600,
+                  "bottom": 1678
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1596,
-                  "bottom": 1674
+                  "top": 1600,
+                  "bottom": 1678
                 },
                 {
                   "kind": "group",
                   "part": "thanks",
-                  "top": 1684,
-                  "bottom": 1714
+                  "top": 1688,
+                  "bottom": 1718
                 },
                 {
                   "kind": "line",
                   "part": "thanks",
-                  "top": 1684,
-                  "bottom": 1714,
+                  "top": 1688,
+                  "bottom": 1718,
                   "left": 2,
                   "text": "*** THANK YOU ***",
                   "size_px": 26,
@@ -27296,8 +27296,8 @@
                 {
                   "kind": "text",
                   "part": "thanks",
-                  "top": 1684,
-                  "bottom": 1714,
+                  "top": 1688,
+                  "bottom": 1718,
                   "text": "*** THANK YOU ***",
                   "size_px": 26,
                   "bold": true
@@ -27305,8 +27305,8 @@
                 {
                   "kind": "section",
                   "part": "thanks",
-                  "top": 1684,
-                  "bottom": 1770
+                  "top": 1688,
+                  "bottom": 1774
                 }
               ]
             },
@@ -29076,9 +29076,9 @@
             {
               "mode": "referral",
               "file": "typewriter-B-referral.png",
-              "version": "6e217dadf9",
+              "version": "b50696e7fa",
               "width": 576,
-              "height": 1926,
+              "height": 1930,
               "parts": [
                 {
                   "kind": "group",
@@ -29417,14 +29417,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1577,
-                  "bottom": 1613
+                  "top": 1579,
+                  "bottom": 1615
                 },
                 {
                   "kind": "line",
                   "part": "referral_title",
-                  "top": 1577,
-                  "bottom": 1613,
+                  "top": 1579,
+                  "bottom": 1615,
                   "left": 2,
                   "text": "YOUR CODE: K7M4QH",
                   "size_px": 31.200000000000003,
@@ -29434,8 +29434,8 @@
                 {
                   "kind": "text",
                   "part": "referral_title",
-                  "top": 1577,
-                  "bottom": 1613,
+                  "top": 1579,
+                  "bottom": 1615,
                   "text": "YOUR CODE:",
                   "size_px": 31.200000000000003,
                   "bold": true
@@ -29443,14 +29443,14 @@
                 {
                   "kind": "group",
                   "part": "referral",
-                  "top": 1629,
-                  "bottom": 1710
+                  "top": 1623,
+                  "bottom": 1704
                 },
                 {
                   "kind": "line",
                   "part": "referral_note",
-                  "top": 1629,
-                  "bottom": 1710,
+                  "top": 1623,
+                  "bottom": 1704,
                   "left": 2,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 22.1,
@@ -29459,8 +29459,8 @@
                 {
                   "kind": "text",
                   "part": "referral_note",
-                  "top": 1629,
-                  "bottom": 1710,
+                  "top": 1623,
+                  "bottom": 1704,
                   "text": "Give this code to a friend. When they shop with us for the first time, you get 15% off your next visit.",
                   "size_px": 22.1
                 },
@@ -29468,19 +29468,19 @@
                   "kind": "section",
                   "part": "referral",
                   "top": 1569,
-                  "bottom": 1728
+                  "bottom": 1732
                 },
                 {
                   "kind": "group",
                   "part": "referral",
                   "top": 1569,
-                  "bottom": 1728
+                  "bottom": 1732
                 },
                 {
                   "kind": "line",
                   "part": "socials_title",
-                  "top": 1728,
-                  "bottom": 1758,
+                  "top": 1732,
+                  "bottom": 1762,
                   "left": 1,
                   "text": "Follow us on:",
                   "size_px": 26,
@@ -29492,8 +29492,8 @@
                 {
                   "kind": "text",
                   "part": "socials_title",
-                  "top": 1728,
-                  "bottom": 1760,
+                  "top": 1732,
+                  "bottom": 1764,
                   "left": 115,
                   "right": 323,
                   "text": "Follow us on:",
@@ -29503,22 +29503,22 @@
                 {
                   "kind": "icons",
                   "part": "socials_icons",
-                  "top": 1728,
-                  "bottom": 1760,
+                  "top": 1732,
+                  "bottom": 1764,
                   "left": 333,
                   "right": 461
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1770,
-                  "bottom": 1798
+                  "top": 1774,
+                  "bottom": 1802
                 },
                 {
                   "kind": "line",
                   "part": "socials_handle",
-                  "top": 1770,
-                  "bottom": 1798,
+                  "top": 1774,
+                  "bottom": 1802,
                   "left": 2,
                   "text": "@yourstore",
                   "size_px": 24.7,
@@ -29527,26 +29527,26 @@
                 {
                   "kind": "section",
                   "part": "socials",
-                  "top": 1728,
-                  "bottom": 1806
+                  "top": 1732,
+                  "bottom": 1810
                 },
                 {
                   "kind": "group",
                   "part": "socials",
-                  "top": 1728,
-                  "bottom": 1806
+                  "top": 1732,
+                  "bottom": 1810
                 },
                 {
                   "kind": "group",
                   "part": "thanks",
-                  "top": 1816,
-                  "bottom": 1846
+                  "top": 1820,
+                  "bottom": 1850
                 },
                 {
                   "kind": "line",
                   "part": "thanks",
-                  "top": 1816,
-                  "bottom": 1846,
+                  "top": 1820,
+                  "bottom": 1850,
                   "left": 2,
                   "text": "*** THANK YOU ***",
                   "size_px": 26,
@@ -29556,8 +29556,8 @@
                 {
                   "kind": "text",
                   "part": "thanks",
-                  "top": 1816,
-                  "bottom": 1846,
+                  "top": 1820,
+                  "bottom": 1850,
                   "text": "*** THANK YOU ***",
                   "size_px": 26,
                   "bold": true
@@ -29565,8 +29565,8 @@
                 {
                   "kind": "section",
                   "part": "thanks",
-                  "top": 1816,
-                  "bottom": 1902
+                  "top": 1820,
+                  "bottom": 1906
                 }
               ]
             },
