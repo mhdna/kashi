@@ -42,13 +42,13 @@ describe('ReceiptBanners', () => {
     expect(find('banner-0').find('img').attributes('src')).toContain(btoa('BOGO'))
   })
 
-  it('up to four; then the gallery waits', async () => {
+  it('up to twelve; then the gallery waits', async () => {
     let d = emptyDesign()
-    for (const p of catalog.banner_presets.slice(0, 4)) {d = addBanner(d, p)}
+    for (const p of [...catalog.banner_presets, ...catalog.banner_presets].slice(0, 12)) {d = addBanner(d, p)}
     await open(d)
     expect(find('preset-5').attributes('disabled')).toBeDefined()
     await find('banner-remove-1').trigger('click')
-    expect(wrapper.props('design').banners).toHaveLength(3)
+    expect(wrapper.props('design').banners).toHaveLength(11)
     await find('banner-down-0').trigger('click')
     expect(wrapper.props('design').banners[1].title).toBe(catalog.banner_presets[0].title)
   })
