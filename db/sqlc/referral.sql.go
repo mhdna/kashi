@@ -521,6 +521,42 @@ func (q *Queries) SetBranchInvoiceReferral(ctx context.Context, arg SetBranchInv
 	return err
 }
 
+const setNewClientReferralCode = `-- name: SetNewClientReferralCode :one
+UPDATE clients c SET referral_code = $1, updated_at = now()
+WHERE c.id = $2
+  AND NOT EXISTS (SELECT 1 FROM clients o WHERE o.referral_code = $1 AND o.id <> $2)
+RETURNING id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code
+`
+
+type SetNewClientReferralCodeParams struct {
+	ReferralCode string `json:"referral_code"`
+	ClientID     int64  `json:"client_id"`
+}
+
+// A till made this new client's code offline (printed on their first
+// receipt): keep it, unless another client has it.
+func (q *Queries) SetNewClientReferralCode(ctx context.Context, arg SetNewClientReferralCodeParams) (Client, error) {
+	row := q.db.QueryRowContext(ctx, setNewClientReferralCode, arg.ReferralCode, arg.ClientID)
+	var i Client
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Phone,
+		&i.TotalLoyaltyPoints,
+		&i.ValidLoyaltyPoints,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ClientType,
+		&i.Uid,
+		&i.IsActive,
+		&i.BranchID,
+		&i.PhoneValid,
+		&i.PhoneCountry,
+		&i.ReferralCode,
+	)
+	return i, err
+}
+
 const sumReturnsOfBranchSale = `-- name: SumReturnsOfBranchSale :one
 SELECT COALESCE(SUM(grand_total), 0)::bigint FROM branch_invoices
 WHERE branch_id = $1 AND related_client_ref = $2 AND kind = 'return'

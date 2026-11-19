@@ -79,6 +79,9 @@ func (server *Server) putBranchClients(ctx *gin.Context) {
 			res.Error = "request canceled"
 		default:
 			outcome, err := server.resolveBranchClient(ctx, branchID, registerID, c)
+			if err == nil {
+				outcome = server.keepTillReferralCode(ctx, outcome, c)
+			}
 			if err != nil {
 				res.Status = batchClientError
 				res.Error = err.Error()

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -24,6 +25,9 @@ type branchClientRequest struct {
 	// UID is the client's shared identity, minted by whichever side created
 	// the client. Tills that predate uid sync omit it.
 	UID string `json:"uid"`
+	// ReferralCode is the code the till made for the client offline and
+	// printed on their first receipt; kept for a client this push creates.
+	ReferralCode string `json:"referral_code"`
 }
 
 // validBranchPhone reports whether a branch-reported phone is usable as the
@@ -112,6 +116,7 @@ func (server *Server) putBranchClient(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	outcome = server.keepTillReferralCode(ctx, outcome, req)
 	if outcome.changed {
 		server.notifyClientsChanged(ctx, branchID)
 	}
@@ -135,6 +140,8 @@ type branchClientOutcome struct {
 	// unchanged client (a till draining a backlog) changes nothing, so no till
 	// is told to pull again.
 	changed bool
+	// created: this push made the client.
+	created bool
 }
 
 // clientEditChanges reports whether a till's name and phone differ from what
@@ -249,7 +256,7 @@ func (server *Server) resolveBranchClient(ctx *gin.Context, branchID, registerID
 			}); linkErr != nil {
 				return branchClientOutcome{}, linkErr
 			}
-			return branchClientOutcome{client: client, changed: createErr == nil}, nil
+			return branchClientOutcome{client: client, changed: createErr == nil, created: createErr == nil}, nil
 
 		default:
 			return branchClientOutcome{}, phoneErr
@@ -273,6 +280,7 @@ func (server *Server) resolveBranchClientByUID(ctx *gin.Context, branchID, regis
 	var client db.Client
 	conflictKind := ""
 	changed := false
+	madeHere := false
 
 	existing, err := server.store.GetClientByUID(ctx, uid)
 	switch {
@@ -331,6 +339,7 @@ func (server *Server) resolveBranchClientByUID(ctx *gin.Context, branchID, regis
 			case createErr == nil:
 				client = created
 				changed = true
+				madeHere = true
 			case isUniqueViolation(createErr):
 				// A concurrent push won the race on phone or uid; resolve
 				// to whichever row now holds this phone.
@@ -358,7 +367,7 @@ func (server *Server) resolveBranchClientByUID(ctx *gin.Context, branchID, regis
 	}); err != nil {
 		return branchClientOutcome{}, err
 	}
-	return branchClientOutcome{client: client, conflictKind: conflictKind, changed: changed}, nil
+	return branchClientOutcome{client: client, conflictKind: conflictKind, changed: changed, created: madeHere}, nil
 }
 
 // notifyClientsChanged tells tills to pull clients after a branch's push
@@ -372,4 +381,24 @@ func (server *Server) notifyClientsChanged(ctx *gin.Context, branchID int64) {
 		return
 	}
 	server.branchHub.broadcastAll(msg)
+}
+
+// keepTillReferralCode gives a client this push created the code the till
+// made for them offline (printed on their first receipt), unless the code is
+// invalid or another client has it: then the client keeps the one central
+// made, and the till takes that from the answer.
+func (server *Server) keepTillReferralCode(ctx *gin.Context, outcome branchClientOutcome, req branchClientRequest) branchClientOutcome {
+	code := normalizeReferralCode(req.ReferralCode)
+	if !outcome.created || !validReferralCode(code) || outcome.client.ReferralCode == code {
+		return outcome
+	}
+	updated, err := server.store.SetNewClientReferralCode(ctx, db.SetNewClientReferralCodeParams{ReferralCode: code, ClientID: outcome.client.ID})
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) && !isUniqueViolation(err) {
+			log.Printf("keep till referral code for client %d: %v", outcome.client.ID, err)
+		}
+		return outcome
+	}
+	outcome.client = updated
+	return outcome
 }
