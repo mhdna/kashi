@@ -977,6 +977,7 @@ type BranchSetting struct {
 	VariantPickRequired                bool            `json:"variant_pick_required"`
 	SyncVerbose                        bool            `json:"sync_verbose"`
 	ReceiptTexts                       string          `json:"receipt_texts"`
+	DealsStack                         bool            `json:"deals_stack"`
 }
 
 type BranchShift struct {
