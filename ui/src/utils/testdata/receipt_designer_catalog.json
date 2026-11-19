@@ -13,9 +13,8 @@
       "when": "item_deal"
     },
     {
-      "style": "stamp",
+      "style": "ribbon",
       "title": "STUDENT DEAL",
-      "subtitle": "15% off the whole invoice",
       "when": "deal"
     },
     {
