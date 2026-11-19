@@ -85,7 +85,7 @@ function isEmptyDecor (d) {
 
 function isEmptyElement (e) {
   return !e || Object.entries(e).every(([k, v]) => {
-    if (k === 'text' || k === 'case' || k === 'align' || k === 'font') {return !String(v ?? '').trim()}
+    if (k === 'text' || k === 'case' || k === 'align' || k === 'font' || k === 'lang' || k === 'text_ar') {return !String(v ?? '').trim()}
     if (k === 'size') {return !Number(v)}
     if (k === 'hide' || k === 'show') {return !v}
     if (k === 'bold') {return v === undefined || v === null}
@@ -101,6 +101,8 @@ function cleanElement (e) {
   if (e.bold === true || e.bold === false) {clean.bold = e.bold}
   if (e.align) {clean.align = e.align}
   if (e.font) {clean.font = e.font}
+  if (e.lang) {clean.lang = e.lang}
+  if (String(e.text_ar ?? '').trim()) {clean.text_ar = e.text_ar}
   if (e.hide) {clean.hide = true}
   if (e.show) {clean.show = true}
   return clean
@@ -451,3 +453,11 @@ export function bannerMode (banner, deals) {
   }
   return ''
 }
+
+// A line's language: English (''), Arabic ('ar') or both, English then
+// Arabic under it.
+export const langOptions = [
+  { value: '', title: 'EN' },
+  { value: 'ar', title: 'عربي' },
+  { value: 'both', title: 'Both' },
+]

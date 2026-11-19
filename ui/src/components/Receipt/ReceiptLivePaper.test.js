@@ -17,6 +17,7 @@ const lines = [
   { key: 'payments_title', group: 'payments', top: 660, bottom: 690, text: 'PAYMENT DETAILS', size_px: 26, align: 'center', font: 'belleza', bold: true },
   { key: 'invoice_number', group: 'header', top: 150, bottom: 180, text: 'Sales Invoice: PV-1', size_px: 24, align: 'center' },
   { key: 'policy_text', group: 'policy', top: 800, bottom: 860, text: 'Exchanges accepted within 3 days.', size_px: 22, align: 'center' },
+  { key: 'thanks', group: 'thanks', top: 940, bottom: 970, text: 'يسلمو، نورتونا!', size_px: 24, align: 'center', lang: 'ar', font: 'vazirmatn' },
 ]
 function open (props = {}) {
   wrapper = mount(ReceiptLivePaper, {
@@ -135,5 +136,16 @@ describe('ReceiptLivePaper', () => {
     wrapper.findComponent(ReceiptFontSelect).vm.$emit('update:modelValue', 'pacifico')
     await flushPromises()
     expect(wrapper.props('design').elements.payments_title).toEqual({ font: 'pacifico' })
+  })
+
+  it('typing over an Arabic line writes its Arabic words, right to left', async () => {
+    open()
+    await find('words-thanks').trigger('click')
+    const box = find('edit-words')
+    expect(box.attributes('dir')).toBe('rtl')
+    expect(box.element.value).toBe('يسلمو، نورتونا!')
+    await box.setValue('شكرا كتير!')
+    await box.trigger('keydown.enter')
+    expect(wrapper.props('design').elements.thanks).toEqual({ text_ar: 'شكرا كتير!' })
   })
 })

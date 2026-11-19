@@ -313,3 +313,17 @@ describe('item switches (what each item row prints)', () => {
   })
 })
 
+describe('Arabic in the design', () => {
+  it("a line's language and Arabic words are sent, and come back", () => {
+    const d = setElement(emptyDesign(), 'thanks', { lang: 'both', text_ar: 'يسلمو' })
+    expect(JSON.parse(designJSON(d)).elements.thanks).toEqual({ lang: 'both', text_ar: 'يسلمو' })
+    expect(designJSON(parseDesign(designJSON(d)))).toBe(designJSON(d))
+    expect(designJSON(setElement(d, 'thanks', { lang: '', text_ar: '' }))).toBe('')
+  })
+  it('the catalog offers Arabic, with a Lebanese default, on the lines that can have it', () => {
+    const note = catalog.elements.find(e => e.key === 'referral_note')
+    expect(can(catalog, note, 'arabic')).toBe(true)
+    expect(note.ar_default).toContain('عطي هيدا الكود')
+    expect(can(catalog, catalog.elements.find(e => e.key === 'col_item'), 'arabic')).toBe(false)
+  })
+})

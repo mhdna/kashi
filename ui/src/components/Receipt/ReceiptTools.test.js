@@ -199,3 +199,27 @@ describe('fonts', () => {
     expect(designJSON(design())).toBe('')
   })
 })
+
+describe('Arabic', () => {
+  it('the reported case: a line can be English, Arabic or both', async () => {
+    lineTools('policy_text')
+    expect(find('line-lang').exists()).toBe(true)
+    await button('line-lang', 'Both').trigger('click')
+    expect(design().elements.policy_text).toEqual({ lang: 'both' })
+    await button('line-lang', 'عربي').trigger('click')
+    expect(design().elements.policy_text).toEqual({ lang: 'ar' })
+    await button('line-lang', 'EN').trigger('click')
+    expect(design().elements.policy_text).toBeUndefined()
+  })
+
+  it('a part puts all its lines in Arabic at once', async () => {
+    partTools('totals')
+    await button('group-lang', 'Both').trigger('click')
+    expect(design().groups.totals).toEqual({ lang: 'both' })
+  })
+
+  it('a column title has no language choice yet', () => {
+    lineTools('col_item')
+    expect(find('line-lang').exists()).toBe(false)
+  })
+})
