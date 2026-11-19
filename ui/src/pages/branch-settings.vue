@@ -404,6 +404,14 @@
                           hide-details
                           label="Salespersons can turn a line's deal (B2G1) off and on"
                         />
+                        <v-switch
+                          v-model="settingsForm.deals_stack"
+                          color="primary"
+                          data-test="deals-stack"
+                          density="compact"
+                          hide-details
+                          label="Invoice deals add up (off: the biggest one takes over)"
+                        />
                       </div>
                     </section>
 
@@ -1621,6 +1629,7 @@
     'discount_toggle',
     'discount_toggle_default_off',
     'deal_toggle',
+    'deals_stack',
     'variant_pick_required',
     'sync_verbose',
     'invoice_ratings_enabled',
@@ -2005,6 +2014,7 @@
     discount_toggle: 'Turn discounts off at the till',
     discount_toggle_default_off: 'Discounts start off',
     deal_toggle: 'Turn deals off at the till',
+    deals_stack: 'Invoice deals add up',
     variant_pick_required: 'Pick colour/size on scan',
     sync_verbose: 'Sync light: every step',
     invoice_ratings_enabled: 'Client ratings in the invoices list',

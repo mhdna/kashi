@@ -141,6 +141,9 @@ type branchSettingsRequest struct {
 	DiscountToggle           *bool `json:"discount_toggle"`
 	DiscountToggleDefaultOff *bool `json:"discount_toggle_default_off"`
 	DealToggle               *bool `json:"deal_toggle"`
+	// DealsStack: the branch's invoice deals add up instead of the biggest
+	// taking over (the till's invoiceDiscountsStacked). Nil leaves it off.
+	DealsStack *bool `json:"deals_stack"`
 	// A scanned barcode whose item has colour/size variants makes the
 	// cashier pick one (items can override it). Nil leaves it off, the
 	// till's own default.
@@ -518,6 +521,7 @@ func (server *Server) upsertBranchSettings(ctx *gin.Context, branchID int64, req
 		DiscountToggle:                     orZero(req.DiscountToggle),
 		DiscountToggleDefaultOff:           orZero(req.DiscountToggleDefaultOff),
 		DealToggle:                         orZero(req.DealToggle),
+		DealsStack:                         orZero(req.DealsStack),
 		VariantPickRequired:                orZero(req.VariantPickRequired),
 		SyncVerbose:                        orZero(req.SyncVerbose),
 		InvoiceRatingsEnabled:              orTrue(req.InvoiceRatingsEnabled),
