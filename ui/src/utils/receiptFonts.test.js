@@ -9,7 +9,7 @@ describe('receipt fonts', () => {
     const items = fontItems(catalog)
     expect(items.length).toBeGreaterThanOrEqual(27)
     expect(items.map(i => i.value)).toEqual(expect.arrayContaining(['pacifico', 'inter', 'bebas-neue', 'go-mono', 'belleza']))
-    expect(new Set(items.map(i => i.kind))).toEqual(new Set(['Sans', 'Serif', 'Typewriter and mono', 'Display', 'Script']))
+    expect(new Set(items.map(i => i.kind))).toEqual(new Set(['Sans', 'Serif', 'Typewriter and mono', 'Display', 'Script', 'Arabic']))
     for (const i of items) {expect(i.title, i.value).not.toMatch(/[–—·•]/)}
   })
 

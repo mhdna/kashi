@@ -53,6 +53,7 @@
           v-model="draft"
           class="rlive-input"
           data-test="edit-words"
+          :dir="line.lang === 'ar' ? 'rtl' : undefined"
           :maxlength="maxLength"
           rows="2"
           :style="inputStyle(line)"
@@ -66,6 +67,7 @@
           v-model="draft"
           class="rlive-input"
           data-test="edit-words"
+          :dir="line.lang === 'ar' ? 'rtl' : undefined"
           :maxlength="maxLength"
           :style="inputStyle(line)"
           @blur="commit"
@@ -107,7 +109,7 @@
   import { fontStyle, loadReceiptFont } from '@/utils/receiptFonts'
 
   type Band = { top: number, bottom: number }
-  type Line = Band & { key: string, group: string, text: string, size_px: number, align: string, left?: number, right?: number, font?: string, bold?: boolean }
+  type Line = Band & { key: string, group: string, text: string, size_px: number, align: string, left?: number, right?: number, font?: string, bold?: boolean, lang?: string }
 
   const props = withDefaults(defineProps<{
     image?: string
@@ -185,6 +187,10 @@
   // The words a line starts from when typed over: the design's own, else the
   // default with its placeholders ({percent}), else what it prints.
   function wordsOf (l: Line) {
+    // An Arabic line edits the line's Arabic words.
+    if (l.lang === 'ar') {
+      return props.design.elements?.[l.key]?.text_ar || elementInfo(l.key)?.ar_default || l.text
+    }
     const own = props.design.elements?.[l.key]?.text
     if (own) {return own}
     const info = elementInfo(l.key)
@@ -223,6 +229,11 @@
     typing.value = false
     const text = draft.value.trim()
     if (text === wordsOf(l).trim()) {return}
+    if (l.lang === 'ar') {
+      const arValue = text === elementInfo(l.key)?.ar_default ? '' : text
+      emit('update:design', setElement(props.design, l.key, { text_ar: arValue }))
+      return
+    }
     // The default typed back is no change at all.
     const value = text === elementInfo(l.key)?.default ? '' : text
     emit('update:design', setElement(props.design, l.key, { text: value }))

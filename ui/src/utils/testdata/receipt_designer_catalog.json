@@ -84,6 +84,7 @@
   ],
   "can": {
     "align": 16,
+    "arabic": 256,
     "bold": 8,
     "case": 2,
     "font": 64,
@@ -130,21 +131,21 @@
       "group": "header",
       "label": "Store name",
       "default": "",
-      "can": 127
+      "can": 383
     },
     {
       "key": "branch_name",
       "group": "header",
       "label": "Branch name",
       "default": "",
-      "can": 127
+      "can": 383
     },
     {
       "key": "phone",
       "group": "header",
       "label": "Phone",
       "default": "",
-      "can": 127
+      "can": 383
     },
     {
       "key": "invoice_number",
@@ -179,28 +180,31 @@
       "group": "header",
       "label": "Website",
       "default": "",
-      "can": 127
+      "can": 383
     },
     {
       "key": "meta_customer",
       "group": "meta",
       "label": "Customer",
       "default": "Customer",
-      "can": 111
+      "can": 367,
+      "ar_default": "الزبون"
     },
     {
       "key": "meta_salesperson",
       "group": "meta",
       "label": "Salesman",
       "default": "Salesman",
-      "can": 111
+      "can": 367,
+      "ar_default": "البياع"
     },
     {
       "key": "meta_date",
       "group": "meta",
       "label": "Date",
       "default": "Date",
-      "can": 111
+      "can": 367,
+      "ar_default": "التاريخ"
     },
     {
       "key": "note_label",
@@ -291,35 +295,40 @@
       "group": "totals",
       "label": "Subtotal",
       "default": "Subtotal",
-      "can": 111
+      "can": 367,
+      "ar_default": "المجموع قبل الحسم"
     },
     {
       "key": "discount",
       "group": "totals",
       "label": "Discount",
       "default": "Discount",
-      "can": 79
+      "can": 335,
+      "ar_default": "الحسم"
     },
     {
       "key": "rounding",
       "group": "totals",
       "label": "Rounding",
       "default": "Rounding",
-      "can": 79
+      "can": 335,
+      "ar_default": "تدوير"
     },
     {
       "key": "items_count",
       "group": "totals",
       "label": "Items count",
       "default": "Items",
-      "can": 111
+      "can": 367,
+      "ar_default": "عدد القطع"
     },
     {
       "key": "you_saved",
       "group": "totals",
       "label": "You saved",
       "default": "You saved",
-      "can": 111
+      "can": 367,
+      "ar_default": "وفرت"
     },
     {
       "key": "total",
@@ -333,70 +342,79 @@
       "group": "totals",
       "label": "Deal on the invoice",
       "default": "{name}",
-      "can": 79
+      "can": 335
     },
     {
       "key": "equivalent",
       "group": "totals",
       "label": "Other currency total",
       "default": "{currency} equivalent",
-      "can": 111
+      "can": 367,
+      "ar_default": "بالليرة"
     },
     {
       "key": "payments_title",
       "group": "payments",
       "label": "Title",
       "default": "PAYMENT DETAILS",
-      "can": 127
+      "can": 383,
+      "ar_default": "تفاصيل الدفع"
     },
     {
       "key": "received",
       "group": "payments",
       "label": "Paid line",
       "default": "Received",
-      "can": 79
+      "can": 335,
+      "ar_default": "دفعت"
     },
     {
       "key": "change",
       "group": "payments",
       "label": "Change line",
       "default": "Change",
-      "can": 79
+      "can": 335,
+      "ar_default": "الباقي"
     },
     {
       "key": "policy_title",
       "group": "policy",
       "label": "Title",
       "default": "EXCHANGE POLICY",
-      "can": 127
+      "can": 383,
+      "ar_default": "شروط التبديل"
     },
     {
       "key": "policy_text",
       "group": "policy",
       "label": "Policy",
       "default": "Exchanges accepted within 3 days.",
-      "can": 95
+      "can": 351,
+      "ar_default": "فيك تبدل خلال ٣ أيام."
     },
     {
       "key": "referral_title",
       "group": "referral",
       "label": "Title",
       "default": "YOUR CODE:",
-      "can": 95
+      "can": 351,
+      "ar_default": "الكود تبعك"
     },
     {
       "key": "referral_note",
       "group": "referral",
       "label": "Line",
       "default": "Give this code to a friend. When they shop with us for the first time, you get {percent} off your next visit.",
-      "can": 95
+      "can": 351,
+      "ar_default": "عطي هيدا الكود لحدا ما اجا على المحل من قبل، بيربح انت وهوي حسم {percent} على كامل الفاتورة."
     },
     {
       "key": "socials_title",
       "group": "socials",
       "label": "Title",
       "default": "Follow us on:",
-      "can": 79
+      "can": 335,
+      "ar_default": "تابعونا على:"
     },
     {
       "key": "socials_handle",
@@ -410,7 +428,8 @@
       "group": "thanks",
       "label": "Thank-you line",
       "default": "Thank you for shopping with us!",
-      "can": 127
+      "can": 383,
+      "ar_default": "يسلمو، نورتونا!"
     }
   ],
   "fonts": [
@@ -548,6 +567,16 @@
       "key": "dancing-script",
       "label": "Dancing Script",
       "kind": "script"
+    },
+    {
+      "key": "vazirmatn",
+      "label": "Vazirmatn (Arabic)",
+      "kind": "arabic"
+    },
+    {
+      "key": "noto-naskh-arabic",
+      "label": "Noto Naskh (Arabic)",
+      "kind": "arabic"
     }
   ],
   "footer_order": [

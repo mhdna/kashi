@@ -45,7 +45,7 @@ export function fontStyle (key, bold = false) {
   return { fontFamily: `'${receiptFontFamily(key, bold)}', monospace`, fontWeight: 'normal' }
 }
 
-const kindTitles = { sans: 'Sans', serif: 'Serif', mono: 'Typewriter and mono', display: 'Display', script: 'Script' }
+const kindTitles = { sans: 'Sans', serif: 'Serif', mono: 'Typewriter and mono', display: 'Display', script: 'Script', arabic: 'Arabic' }
 
 // fontItems is the catalog's fonts for a list, each with its kind.
 export function fontItems (catalog) {

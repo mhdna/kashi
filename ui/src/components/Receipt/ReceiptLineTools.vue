@@ -84,6 +84,19 @@
         <v-btn aria-label="Centre" icon="mdi-format-align-center" size="small" value="center" />
         <v-btn aria-label="Right" icon="mdi-format-align-right" size="small" value="right" />
       </v-btn-toggle>
+      <v-btn-toggle
+        v-if="can(catalog, info, 'arabic')"
+        color="primary"
+        data-test="line-lang"
+        density="compact"
+        divided
+        mandatory
+        :model-value="el.lang || ''"
+        variant="outlined"
+        @update:model-value="v => set({ lang: v || '' })"
+      >
+        <v-btn v-for="o in langOptions" :key="o.value" size="small" :value="o.value">{{ o.title }}</v-btn>
+      </v-btn-toggle>
       <v-btn
         v-if="can(catalog, info, 'hide')"
         :aria-label="el.hide ? 'Print it' : 'Leave it out'"
@@ -97,6 +110,9 @@
       />
     </div>
     <div v-if="hint" class="rtools-hint">{{ hint }}</div>
+    <div v-if="el.lang && !el.text_ar && !info.ar_default" class="rtools-hint" data-test="line-lang-hint">
+      Click the Arabic line on the receipt to write its words; until then it prints in English.
+    </div>
   </div>
 </template>
 
@@ -104,13 +120,13 @@
   import { computed } from 'vue'
   import ReceiptFontSelect from '@/components/Receipt/ReceiptFontSelect.vue'
   import SizeStepper from '@/components/Receipt/SizeStepper.vue'
-  import { boldState, can, isElementChanged, resetElement, setBold, setElement, sizeStep } from '@/utils/receiptDesign'
+  import { boldState, can, isElementChanged, langOptions, resetElement, setBold, setElement, sizeStep } from '@/utils/receiptDesign'
 
   const props = defineProps<{
     catalog: Record<string, any>
     design: Record<string, any>
     // The line's catalog entry.
-    info: { key: string, label: string, default?: string, can: number }
+    info: { key: string, label: string, default?: string, ar_default?: string, can: number }
   }>()
   const emit = defineEmits<{ 'update:design': [design: Record<string, any>], close: [] }>()
 

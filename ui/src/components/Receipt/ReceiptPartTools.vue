@@ -148,6 +148,18 @@
       </v-btn-toggle>
       <v-btn-toggle
         color="primary"
+        data-test="group-lang"
+        density="compact"
+        divided
+        mandatory
+        :model-value="g.lang || ''"
+        variant="outlined"
+        @update:model-value="v => update(setGroup(design, group, { lang: v || '' }))"
+      >
+        <v-btn v-for="o in langOptions" :key="o.value" size="small" :value="o.value">{{ o.title }}</v-btn>
+      </v-btn-toggle>
+      <v-btn-toggle
+        color="primary"
         data-test="group-align"
         density="compact"
         divided
@@ -226,7 +238,7 @@
   import ReceiptFontSelect from '@/components/Receipt/ReceiptFontSelect.vue'
   import SizeStepper from '@/components/Receipt/SizeStepper.vue'
   import {
-    footerOrder, groupBoldState, groupInfo, groupSizeStep, isGroupChanged, isPartPrinted, isSectionHidden, lineStyleOptions,
+    footerOrder, groupBoldState, groupInfo, groupSizeStep, isGroupChanged, isPartPrinted, isSectionHidden, langOptions, lineStyleOptions,
     moveSection, partsOf, resetGroup, setDecor, setGroup, setGroupBold, setPartPrinted, toggleSection,
   } from '@/utils/receiptDesign'
 
