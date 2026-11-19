@@ -72,6 +72,17 @@ describe('ReceiptLivePaper', () => {
     expect(wrapper.props('design').elements.payments_title).toBeUndefined()
   })
 
+  it('the reported case: the shop\'s long policy cut down to the default sticks', async () => {
+    const long = 'Exchanges accepted within 3 days. Items must be unworn, unused, unwashed, undamaged, with tags. Present this receipt.'
+    open({ lines: lines.map(l => (l.key === 'policy_text' ? { ...l, text: long } : l)) })
+    await find('words-policy_text').trigger('click')
+    expect(find('edit-words').element.value).toBe(long)
+    await find('edit-words').setValue('Exchanges accepted within 3 days.')
+    document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    await flushPromises()
+    expect(wrapper.props('design').elements.policy_text).toEqual({ text: 'Exchanges accepted within 3 days.' })
+  })
+
   it('Esc keeps the words as they were; long words get a box of lines', async () => {
     open()
     await find('words-payments_title').trigger('click')

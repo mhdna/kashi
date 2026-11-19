@@ -3,6 +3,22 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-19: The policy cut down to "Exchanges accepted within 3 days." went back to the long one
+
+**Symptom:** in the Receipt Designer, Centro's exchange policy ("Exchanges
+accepted within 3 days. Items must be unworn, ...") typed down to just
+"Exchanges accepted within 3 days." kept coming back in full.
+
+**Cause:** the designer treats a line's default typed back as no change and
+clears the line's words. The short sentence is the policy line's default, but
+without words of its own the line prints the shop's policy (Shop details),
+not the default, so clearing it brought the long policy back.
+
+**Fix:** the policy line keeps the default when it is typed
+(`ui/src/components/Receipt/ReceiptLivePaper.vue`, `shopFallback`). Test:
+"the reported case: the shop's long policy cut down to the default sticks"
+in `ReceiptLivePaper.test.js`.
+
 ## 2026-11-19: Words typed over a receipt line were lost when clicking away
 
 **Symptom:** in the Receipt Designer, cutting part of the policy line and clicking outside it left the receipt as it was; the box stayed open with the old words.
