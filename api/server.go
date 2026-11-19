@@ -19,12 +19,15 @@ import (
 )
 
 type Server struct {
-	config     util.Config
-	store      db.Store
-	tokenMaker token.Maker
-	router     *gin.Engine
-	branchHub  *branchHub
-	adminHub   *adminHub
+	// referralNotifier, when set (tests), hears each referral reward instead
+	// of a WhatsApp going out (notifyReferralReward).
+	referralNotifier func(referralReward)
+	config           util.Config
+	store            db.Store
+	tokenMaker       token.Maker
+	router           *gin.Engine
+	branchHub        *branchHub
+	adminHub         *adminHub
 	// recordActivity writes the home page's "In kashi" feed
 	// (admin_activity.go); tests replace it.
 	recordActivity func(adminActivity)
