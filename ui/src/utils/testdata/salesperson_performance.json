@@ -1,0 +1,212 @@
+{
+  "branch_targets": [
+    {
+      "branch_id": 1,
+      "amount": 25000
+    }
+  ],
+  "invoices": [
+    {
+      "id": 1,
+      "branch_id": 1,
+      "kind": "sales",
+      "branch_invoice_code": "SA/CT/2026/00001",
+      "grand_total": 9000,
+      "occurred_at": "2026-11-03T10:15:00+02:00",
+      "salesperson_id": 11,
+      "salesperson_name": "Rana Haddad",
+      "items": [
+        {
+          "id": 101,
+          "branch_invoice_id": 1,
+          "branch_product_id": 101,
+          "unit_price": 5000,
+          "line_total": 4500,
+          "discount": 10,
+          "quantity": 1,
+          "product_uid": null,
+          "unknown": false,
+          "deal": "",
+          "deal_discount": 0,
+          "invoice_discount": 0
+        },
+        {
+          "id": 102,
+          "branch_invoice_id": 1,
+          "branch_product_id": 102,
+          "unit_price": 4500,
+          "line_total": 4500,
+          "discount": 0,
+          "quantity": 1,
+          "product_uid": null,
+          "unknown": false,
+          "deal": "",
+          "deal_discount": 0,
+          "invoice_discount": 0
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "branch_id": 1,
+      "kind": "sales",
+      "branch_invoice_code": "SA/CT/2026/00002",
+      "grand_total": 4500,
+      "occurred_at": "2026-11-04T12:00:00+02:00",
+      "salesperson_id": 11,
+      "salesperson_name": "Rana Haddad",
+      "items": [
+        {
+          "id": 103,
+          "branch_invoice_id": 2,
+          "branch_product_id": 103,
+          "unit_price": 4500,
+          "line_total": 4500,
+          "discount": 0,
+          "quantity": 1,
+          "product_uid": null,
+          "unknown": false,
+          "deal": "Buy 1 get 1",
+          "deal_discount": 0,
+          "invoice_discount": 0
+        },
+        {
+          "id": 104,
+          "branch_invoice_id": 2,
+          "branch_product_id": 104,
+          "unit_price": 4500,
+          "line_total": 0,
+          "discount": 0,
+          "quantity": 1,
+          "product_uid": null,
+          "unknown": false,
+          "deal": "Buy 1 get 1",
+          "deal_discount": 4500,
+          "invoice_discount": 0
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "branch_id": 1,
+      "kind": "sales",
+      "branch_invoice_code": "SA/CT/2026/00003",
+      "grand_total": 6000,
+      "occurred_at": "2026-11-05T16:30:00+02:00",
+      "salesperson_id": 12,
+      "salesperson_name": "Ali Saad",
+      "items": [
+        {
+          "id": 105,
+          "branch_invoice_id": 3,
+          "branch_product_id": 105,
+          "unit_price": 3500,
+          "line_total": 6000,
+          "discount": 0,
+          "quantity": 2,
+          "product_uid": null,
+          "unknown": false,
+          "deal": "",
+          "deal_discount": 0,
+          "invoice_discount": 1000
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "branch_id": 1,
+      "kind": "sales",
+      "branch_invoice_code": "SA/CT/2026/00004",
+      "grand_total": 2000,
+      "occurred_at": "2026-11-06T11:00:00+02:00",
+      "salesperson_id": 0,
+      "salesperson_name": "",
+      "items": [
+        {
+          "id": 106,
+          "branch_invoice_id": 4,
+          "branch_product_id": 106,
+          "unit_price": 2000,
+          "line_total": 2000,
+          "discount": 0,
+          "quantity": 1,
+          "product_uid": null,
+          "unknown": false,
+          "deal": "",
+          "deal_discount": 0,
+          "invoice_discount": 0
+        }
+      ]
+    }
+  ],
+  "returns": [
+    {
+      "id": 5,
+      "branch_id": 1,
+      "branch_invoice_code": "RS/CT/2026/00001",
+      "occurred_at": "2026-11-07T10:00:00+02:00",
+      "salesperson_id": 12,
+      "salesperson_name": "Ali Saad",
+      "original_salesperson_id": 11,
+      "original_salesperson_name": "Rana Haddad",
+      "original_invoice_code": "SA/CT/2026/00001",
+      "items": [
+        {
+          "id": 201,
+          "branch_invoice_id": 5,
+          "branch_product_id": 201,
+          "unit_price": 4500,
+          "line_total": -4500,
+          "discount": 0,
+          "quantity": -1,
+          "product_uid": null,
+          "unknown": false,
+          "deal": "",
+          "deal_discount": 0,
+          "invoice_discount": 0
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "branch_id": 1,
+      "branch_invoice_code": "RS/CT/2026/00002",
+      "occurred_at": "2026-11-08T18:00:00+02:00",
+      "salesperson_id": 12,
+      "salesperson_name": "Ali Saad",
+      "original_salesperson_id": 12,
+      "original_salesperson_name": "Ali Saad",
+      "original_invoice_code": "SA/CT/2026/00003",
+      "items": [
+        {
+          "id": 202,
+          "branch_invoice_id": 6,
+          "branch_product_id": 202,
+          "unit_price": 3500,
+          "line_total": -3000,
+          "discount": 0,
+          "quantity": -1,
+          "product_uid": null,
+          "unknown": false,
+          "deal": "",
+          "deal_discount": 0,
+          "invoice_discount": -500
+        },
+        {
+          "id": 203,
+          "branch_invoice_id": 6,
+          "branch_product_id": 203,
+          "unit_price": 8000,
+          "line_total": 8000,
+          "discount": 0,
+          "quantity": 1,
+          "product_uid": null,
+          "unknown": false,
+          "deal": "",
+          "deal_discount": 0,
+          "invoice_discount": 0
+        }
+      ]
+    }
+  ]
+}

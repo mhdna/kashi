@@ -49,3 +49,43 @@ WHERE bi.kind = 'sales'
   AND (sqlc.arg(branch_id)::bigint = 0 OR bi.branch_id = sqlc.arg(branch_id))
   AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports);
+
+-- name: SalespersonPerformanceReturns :many
+-- Returns and exchanges (kind return or exchange) in [from_at, to_at), not cancelled (a cancellation
+-- marks the sale and its return both), each with the sale it came back from
+-- (related_client_ref), so what comes back counts against whoever sold it.
+-- original_salesperson_id is 0 when the sale isn't in kashi or had none.
+SELECT
+  r.id,
+  r.branch_id,
+  r.branch_invoice_code,
+  r.occurred_at,
+  COALESCE(r.salesperson_id, 0)::bigint AS salesperson_id,
+  COALESCE(rs.name, r.salesperson_name)::text AS salesperson_name,
+  COALESCE(o.salesperson_id, 0)::bigint AS original_salesperson_id,
+  COALESCE(os.name, o.salesperson_name, '')::text AS original_salesperson_name,
+  COALESCE(o.branch_invoice_code, '')::text AS original_invoice_code
+FROM branch_invoices r
+LEFT JOIN salespersons rs ON rs.id = r.salesperson_id
+LEFT JOIN branch_invoices o
+  ON o.branch_id = r.branch_id AND o.client_ref = r.related_client_ref AND o.kind = 'sales'
+LEFT JOIN salespersons os ON os.id = o.salesperson_id
+WHERE r.kind IN ('return', 'exchange')
+  AND r.cancelled_at IS NULL
+  AND r.occurred_at >= sqlc.arg(from_at) AND r.occurred_at < sqlc.arg(to_at)
+  AND (sqlc.arg(branch_id)::bigint = 0 OR r.branch_id = sqlc.arg(branch_id))
+  AND r.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND r.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+ORDER BY r.occurred_at;
+
+-- name: SalespersonPerformanceReturnItems :many
+SELECT i.*
+FROM branch_invoice_items i
+JOIN branch_invoices r ON r.id = i.branch_invoice_id
+WHERE r.kind IN ('return', 'exchange')
+  AND r.cancelled_at IS NULL
+  AND r.occurred_at >= sqlc.arg(from_at) AND r.occurred_at < sqlc.arg(to_at)
+  AND (sqlc.arg(branch_id)::bigint = 0 OR r.branch_id = sqlc.arg(branch_id))
+  AND r.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND r.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports);
+

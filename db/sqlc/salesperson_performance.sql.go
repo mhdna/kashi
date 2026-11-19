@@ -155,6 +155,140 @@ func (q *Queries) SalespersonPerformanceItems(ctx context.Context, arg Salespers
 	return items, nil
 }
 
+const salespersonPerformanceReturnItems = `-- name: SalespersonPerformanceReturnItems :many
+SELECT i.id, i.branch_invoice_id, i.branch_product_id, i.unit_price, i.line_total, i.discount, i.quantity, i.product_uid, i.unknown, i.deal, i.deal_discount, i.invoice_discount
+FROM branch_invoice_items i
+JOIN branch_invoices r ON r.id = i.branch_invoice_id
+WHERE r.kind IN ('return', 'exchange')
+  AND r.cancelled_at IS NULL
+  AND r.occurred_at >= $1 AND r.occurred_at < $2
+  AND ($3::bigint = 0 OR r.branch_id = $3)
+  AND r.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND r.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+`
+
+type SalespersonPerformanceReturnItemsParams struct {
+	FromAt   time.Time `json:"from_at"`
+	ToAt     time.Time `json:"to_at"`
+	BranchID int64     `json:"branch_id"`
+}
+
+func (q *Queries) SalespersonPerformanceReturnItems(ctx context.Context, arg SalespersonPerformanceReturnItemsParams) ([]BranchInvoiceItem, error) {
+	rows, err := q.db.QueryContext(ctx, salespersonPerformanceReturnItems, arg.FromAt, arg.ToAt, arg.BranchID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []BranchInvoiceItem{}
+	for rows.Next() {
+		var i BranchInvoiceItem
+		if err := rows.Scan(
+			&i.ID,
+			&i.BranchInvoiceID,
+			&i.BranchProductID,
+			&i.UnitPrice,
+			&i.LineTotal,
+			&i.Discount,
+			&i.Quantity,
+			&i.ProductUid,
+			&i.Unknown,
+			&i.Deal,
+			&i.DealDiscount,
+			&i.InvoiceDiscount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const salespersonPerformanceReturns = `-- name: SalespersonPerformanceReturns :many
+SELECT
+  r.id,
+  r.branch_id,
+  r.branch_invoice_code,
+  r.occurred_at,
+  COALESCE(r.salesperson_id, 0)::bigint AS salesperson_id,
+  COALESCE(rs.name, r.salesperson_name)::text AS salesperson_name,
+  COALESCE(o.salesperson_id, 0)::bigint AS original_salesperson_id,
+  COALESCE(os.name, o.salesperson_name, '')::text AS original_salesperson_name,
+  COALESCE(o.branch_invoice_code, '')::text AS original_invoice_code
+FROM branch_invoices r
+LEFT JOIN salespersons rs ON rs.id = r.salesperson_id
+LEFT JOIN branch_invoices o
+  ON o.branch_id = r.branch_id AND o.client_ref = r.related_client_ref AND o.kind = 'sales'
+LEFT JOIN salespersons os ON os.id = o.salesperson_id
+WHERE r.kind IN ('return', 'exchange')
+  AND r.cancelled_at IS NULL
+  AND r.occurred_at >= $1 AND r.occurred_at < $2
+  AND ($3::bigint = 0 OR r.branch_id = $3)
+  AND r.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
+  AND r.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
+ORDER BY r.occurred_at
+`
+
+type SalespersonPerformanceReturnsParams struct {
+	FromAt   time.Time `json:"from_at"`
+	ToAt     time.Time `json:"to_at"`
+	BranchID int64     `json:"branch_id"`
+}
+
+type SalespersonPerformanceReturnsRow struct {
+	ID                      int64     `json:"id"`
+	BranchID                int64     `json:"branch_id"`
+	BranchInvoiceCode       string    `json:"branch_invoice_code"`
+	OccurredAt              time.Time `json:"occurred_at"`
+	SalespersonID           int64     `json:"salesperson_id"`
+	SalespersonName         string    `json:"salesperson_name"`
+	OriginalSalespersonID   int64     `json:"original_salesperson_id"`
+	OriginalSalespersonName string    `json:"original_salesperson_name"`
+	OriginalInvoiceCode     string    `json:"original_invoice_code"`
+}
+
+// Returns and exchanges (kind return or exchange) in [from_at, to_at), not cancelled (a cancellation
+// marks the sale and its return both), each with the sale it came back from
+// (related_client_ref), so what comes back counts against whoever sold it.
+// original_salesperson_id is 0 when the sale isn't in kashi or had none.
+func (q *Queries) SalespersonPerformanceReturns(ctx context.Context, arg SalespersonPerformanceReturnsParams) ([]SalespersonPerformanceReturnsRow, error) {
+	rows, err := q.db.QueryContext(ctx, salespersonPerformanceReturns, arg.FromAt, arg.ToAt, arg.BranchID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SalespersonPerformanceReturnsRow{}
+	for rows.Next() {
+		var i SalespersonPerformanceReturnsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.BranchID,
+			&i.BranchInvoiceCode,
+			&i.OccurredAt,
+			&i.SalespersonID,
+			&i.SalespersonName,
+			&i.OriginalSalespersonID,
+			&i.OriginalSalespersonName,
+			&i.OriginalInvoiceCode,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setBranchInvoiceSalesperson = `-- name: SetBranchInvoiceSalesperson :execrows
 
 UPDATE branch_invoices bi

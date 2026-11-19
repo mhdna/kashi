@@ -1292,6 +1292,7 @@ type Querier interface {
 	// Local-hour buckets (0-23); hours with no invoices are absent and the
 	// frontend fills zeros.
 	ListDaySalesByHour(ctx context.Context, arg ListDaySalesByHourParams) ([]ListDaySalesByHourRow, error)
+	// A return or exchange counts for whoever made the sale it came back from.
 	ListDaySalesBySalesperson(ctx context.Context, arg ListDaySalesBySalespersonParams) ([]ListDaySalesBySalespersonRow, error)
 	// Best sellers of the day by line revenue, sales invoices only. Items whose
 	// product_uid never resolved to a variant (see resolveVariantByUIDOrBarcode)
@@ -1675,8 +1676,14 @@ type Querier interface {
 	// never resolved to a kashi product come back as one row with product_id 0.
 	PeriodReportProducts(ctx context.Context, arg PeriodReportProductsParams) ([]PeriodReportProductsRow, error)
 	// What each salesperson sold, by product category (net of returns).
+	// A return or exchange counts for whoever made the sale it came back
+	// from, exactly as it was sold; the return's own salesperson only when
+	// kashi doesn't have that sale.
 	PeriodReportSalespersonCategories(ctx context.Context, arg PeriodReportSalespersonCategoriesParams) ([]PeriodReportSalespersonCategoriesRow, error)
 	// Net sales per salesperson per branch-local day, for the trend chart.
+	// A return or exchange counts for whoever made the sale it came back
+	// from, exactly as it was sold; the return's own salesperson only when
+	// kashi doesn't have that sale.
 	PeriodReportSalespersonDaily(ctx context.Context, arg PeriodReportSalespersonDailyParams) ([]PeriodReportSalespersonDailyRow, error)
 	// One row per salesperson per branch. A linked invoice shows its
 	// salesperson's current name (a renamed salesperson stays one person); an
@@ -1796,6 +1803,9 @@ type Querier interface {
 	// every table of the report comes from the same rows. Revenue is the lines'
 	// line_total, as in PeriodReportProducts. Capped as a guard; the API says
 	// so when the cap is hit.
+	// A return or exchange counts for whoever made the sale it came back
+	// from, exactly as it was sold; the return's own salesperson only when
+	// kashi doesn't have that sale.
 	ReportProductGroupLines(ctx context.Context, arg ReportProductGroupLinesParams) ([]ReportProductGroupLinesRow, error)
 	// What customers still owe on till sales put "On Account". Settling a sale
 	// later rewrites its payment lines (createBranchInvoiceSettlement), so the
@@ -1852,6 +1862,12 @@ type Querier interface {
 	// salesperson's current name, so a renamed salesperson stays one person.
 	SalespersonPerformanceInvoices(ctx context.Context, arg SalespersonPerformanceInvoicesParams) ([]SalespersonPerformanceInvoicesRow, error)
 	SalespersonPerformanceItems(ctx context.Context, arg SalespersonPerformanceItemsParams) ([]BranchInvoiceItem, error)
+	SalespersonPerformanceReturnItems(ctx context.Context, arg SalespersonPerformanceReturnItemsParams) ([]BranchInvoiceItem, error)
+	// Returns and exchanges (kind return or exchange) in [from_at, to_at), not cancelled (a cancellation
+	// marks the sale and its return both), each with the sale it came back from
+	// (related_client_ref), so what comes back counts against whoever sold it.
+	// original_salesperson_id is 0 when the sale isn't in kashi or had none.
+	SalespersonPerformanceReturns(ctx context.Context, arg SalespersonPerformanceReturnsParams) ([]SalespersonPerformanceReturnsRow, error)
 	// The picker an admin matches a pictured item with: active variants whose
 	// product name, code or barcode contains the text.
 	SearchVariantsForUnknownItems(ctx context.Context, search string) ([]SearchVariantsForUnknownItemsRow, error)
