@@ -30,12 +30,33 @@
             <div v-if="branches.length === 0" class="text-body-2 text-medium-emphasis">No branches yet.</div>
           </div>
           <div class="referral-grid">
+            <v-select
+              v-model="form.rewardTo"
+              data-test="reward-to"
+              density="comfortable"
+              hide-details
+              :items="rewardToOptions"
+              label="Who gets the reward"
+              variant="outlined"
+            />
             <v-text-field
+              v-if="rewardsFriend(form.rewardTo)"
+              v-model="form.friendPercent"
+              data-test="friend-percent"
+              density="comfortable"
+              hint="Off the new customer's first purchase, the one they use the code on"
+              label="New customer's reward"
+              persistent-hint
+              suffix="%"
+              variant="outlined"
+            />
+            <v-text-field
+              v-if="rewardsOwner(form.rewardTo)"
               v-model="form.rewardPercent"
               data-test="percent"
               density="comfortable"
               hint="Off the owner's next visit, once"
-              label="Reward"
+              label="Reward for the client who shared it"
               persistent-hint
               suffix="%"
               variant="outlined"
@@ -168,7 +189,7 @@
   import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
   import { formatMoney } from '@/utils/money'
-  import { formToRequest, programSummary, programToForm, referralRow, statusColor } from '@/utils/referrals'
+  import { formToRequest, programSummary, programToForm, referralRow, rewardsFriend, rewardsOwner, rewardToOptions, statusColor } from '@/utils/referrals'
 
   const notify = useNotify()
   const { branches, fetchBranches } = useBranches()

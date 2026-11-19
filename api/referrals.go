@@ -246,9 +246,18 @@ func (server *Server) recordReferral(ctx context.Context, branchID int64, invoic
 		params.OwnerClientID = sql.NullInt64{Int64: owner.ID, Valid: true}
 	}
 	reason := decideReferral(facts)
-	if reason != "" {
+	switch {
+	case reason == referralRefusedMonthlyCap && rewardsFriend(program.RewardTo):
+		// The owner's limit holds back only the owner's reward: the new
+		// customer still had theirs off the sale.
+		params.Status, params.Percent = referralStatusFriend, program.FriendPercent
+	case reason != "":
 		params.Status, params.RefuseReason = "refused", reason
-	} else {
+	case !rewardsOwner(program.RewardTo):
+		// Only the new customer was rewarded, at the till, off this sale:
+		// kept so a friend is referred once, with nothing for the owner.
+		params.Status, params.Percent = referralStatusFriend, program.FriendPercent
+	default:
 		params.Status, params.Percent, params.MaxCents = "available", program.RewardPercent, program.MaxRewardCents
 		params.AvailableAt, params.ExpiresAt = referralRewardWindow(program, invoice.OccurredAt)
 	}
@@ -332,6 +341,10 @@ func (server *Server) takeBackReferral(ctx context.Context, branchID int64, sour
 type syncReferralProgram struct {
 	Enabled        bool      `json:"enabled"`
 	RewardPercent  int16     `json:"reward_percent"`
+	// RewardTo is who a code rewards (owner, friend or both); FriendPercent
+	// is what the new customer takes off the sale they use it on.
+	RewardTo      string `json:"reward_to"`
+	FriendPercent int16  `json:"friend_percent"`
 	MinFriendSpend int64     `json:"min_friend_spend"`
 	UpdatedAt      time.Time `json:"updated_at"`
 }
@@ -359,7 +372,8 @@ func (server *Server) referralProgramForBranchSync(ctx context.Context, branchID
 	}
 	out := make([]syncReferralProgram, len(rows))
 	for i, p := range rows {
-		out[i] = syncReferralProgram{Enabled: referralsOnAt(p, branchID), RewardPercent: p.RewardPercent, MinFriendSpend: p.MinFriendSpend, UpdatedAt: p.UpdatedAt}
+		out[i] = syncReferralProgram{Enabled: referralsOnAt(p, branchID), RewardPercent: p.RewardPercent, MinFriendSpend: p.MinFriendSpend,
+			RewardTo: p.RewardTo, FriendPercent: p.FriendPercent, UpdatedAt: p.UpdatedAt}
 	}
 	return out, nil
 }
@@ -417,7 +431,25 @@ type referralProgramRequest struct {
 	// BranchIDs are the branches where referrals are on. Absent (an older
 	// page), enabled means every branch and off means none.
 	BranchIDs *[]int64 `json:"branch_ids"`
+	// RewardTo: "owner" (the client who shared the code, as before),
+	// "friend" (the new customer, off that sale) or "both"; empty keeps
+	// what the program has. FriendPercent is the new customer's percent.
+	RewardTo      string `json:"reward_to"`
+	FriendPercent int16  `json:"friend_percent"`
 }
+
+// referralStatusFriend is a referral that rewarded only the new customer.
+const referralStatusFriend = "friend"
+
+// Who a referral rewards.
+const (
+	referralRewardOwner  = "owner"
+	referralRewardFriend = "friend"
+	referralRewardBoth   = "both"
+)
+
+func rewardsOwner(to string) bool  { return to != referralRewardFriend }
+func rewardsFriend(to string) bool { return to == referralRewardFriend || to == referralRewardBoth }
 
 // branchIDs is the request's branches, each once and in order; all is every
 // branch, for a request that only says on or off.
@@ -442,6 +474,10 @@ func (r referralProgramRequest) branchIDs(all []int64) []int64 {
 
 func (r referralProgramRequest) validate() error {
 	switch {
+	case r.RewardTo != "" && r.RewardTo != referralRewardOwner && r.RewardTo != referralRewardFriend && r.RewardTo != referralRewardBoth:
+		return fmt.Errorf("the reward goes to the owner, the new customer or both")
+	case rewardsFriend(r.RewardTo) && (r.FriendPercent < 1 || r.FriendPercent > 100):
+		return fmt.Errorf("the new customer's percent must be from 1%% to 100%%")
 	case r.RewardPercent < 1 || r.RewardPercent > 100:
 		return fmt.Errorf("the reward must be from 1%% to 100%%")
 	case r.MaxRewardCents < 0 || r.MinFriendSpend < 0:
@@ -482,10 +518,23 @@ func (server *Server) updateReferralProgram(ctx *gin.Context) {
 			return
 		}
 	}
+	// A page that doesn't send them keeps who is rewarded as it was.
+	if req.RewardTo == "" {
+		current, err := server.store.GetReferralProgram(ctx)
+		if err != nil {
+			server.writeError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		req.RewardTo, req.FriendPercent = current.RewardTo, current.FriendPercent
+	}
+	if !rewardsFriend(req.RewardTo) {
+		req.FriendPercent = 0
+	}
 	program, err := server.store.UpdateReferralProgram(ctx, db.UpdateReferralProgramParams{
 		Enabled: len(branchIDs) > 0, BranchIds: branchIDs, RewardPercent: req.RewardPercent, MaxRewardCents: req.MaxRewardCents,
 		MinFriendSpend: req.MinFriendSpend, UnlockAfterDays: req.UnlockAfterDays, ExpiresAfterDays: req.ExpiresAfterDays,
 		CancelOnReturn: req.CancelOnReturn, MaxRewardsPerMonth: req.MaxRewardsPerMonth,
+		RewardTo: req.RewardTo, FriendPercent: req.FriendPercent,
 	})
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)

@@ -5,7 +5,8 @@ SELECT * FROM referral_program WHERE id = 1;
 UPDATE referral_program SET
     enabled = $1, reward_percent = $2, max_reward_cents = $3, min_friend_spend = $4,
     unlock_after_days = $5, expires_after_days = $6, cancel_on_return = $7,
-    max_rewards_per_month = $8, branch_ids = sqlc.arg(branch_ids)::bigint[], updated_at = now()
+    max_rewards_per_month = $8, branch_ids = sqlc.arg(branch_ids)::bigint[],
+    reward_to = sqlc.arg(reward_to), friend_percent = sqlc.arg(friend_percent), updated_at = now()
 WHERE id = 1
 RETURNING *;
 

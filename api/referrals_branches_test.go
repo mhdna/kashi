@@ -43,10 +43,14 @@ func TestUpdateReferralProgramPerBranch(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	store := mockdb.NewMockStore(ctrl)
 	store.EXPECT().ListBranches(gomock.Any()).Return([]db.Branch{{ID: 7, Name: "Centro"}, {ID: 9, Name: "Hara"}}, nil)
+	// A page that doesn't say who is rewarded keeps the program's choice.
+	store.EXPECT().GetReferralProgram(gomock.Any()).Return(db.ReferralProgram{RewardTo: "both", FriendPercent: 10}, nil)
 	store.EXPECT().UpdateReferralProgram(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(_ context.Context, arg db.UpdateReferralProgramParams) (db.ReferralProgram, error) {
 			require.Equal(t, []int64{7}, arg.BranchIds)
 			require.True(t, arg.Enabled)
+			require.Equal(t, "both", arg.RewardTo)
+			require.EqualValues(t, 10, arg.FriendPercent)
 			return db.ReferralProgram{Enabled: true, BranchIds: arg.BranchIds, RewardPercent: 15}, nil
 		})
 	server := newTestServer(t, store)
@@ -59,6 +63,7 @@ func TestUpdateReferralProgramNoBranchesIsOff(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	store := mockdb.NewMockStore(ctrl)
 	store.EXPECT().ListBranches(gomock.Any()).Return([]db.Branch{{ID: 7}}, nil)
+	store.EXPECT().GetReferralProgram(gomock.Any()).Return(db.ReferralProgram{RewardTo: "owner"}, nil)
 	store.EXPECT().UpdateReferralProgram(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(_ context.Context, arg db.UpdateReferralProgramParams) (db.ReferralProgram, error) {
 			require.Equal(t, []int64{}, arg.BranchIds)

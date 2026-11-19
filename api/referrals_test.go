@@ -83,7 +83,10 @@ func TestReferralRewardWindow(t *testing.T) {
 func TestReferralProgramRequestValidate(t *testing.T) {
 	good := referralProgramRequest{Enabled: true, RewardPercent: 15}
 	require.NoError(t, good.validate())
+	require.NoError(t, referralProgramRequest{RewardPercent: 15, RewardTo: "both", FriendPercent: 10}.validate())
+	require.NoError(t, referralProgramRequest{RewardPercent: 15, RewardTo: "owner"}.validate())
 	for _, bad := range []referralProgramRequest{
+		{RewardPercent: 15, RewardTo: "nobody"}, {RewardPercent: 15, RewardTo: "friend"}, {RewardPercent: 15, RewardTo: "both", FriendPercent: 101},
 		{RewardPercent: 0}, {RewardPercent: 101}, {RewardPercent: 15, MinFriendSpend: -1},
 		{RewardPercent: 15, MaxRewardCents: -1}, {RewardPercent: 15, UnlockAfterDays: -1}, {RewardPercent: 15, ExpiresAfterDays: 4000},
 	} {
@@ -157,6 +160,9 @@ func TestReferralFlow(t *testing.T) {
 		}
 		if p.BranchIds == nil {
 			p.BranchIds = []int64{}
+		}
+		if p.RewardTo == "" {
+			p.RewardTo = referralRewardOwner
 		}
 		_, err := store.UpdateReferralProgram(ctx, p)
 		require.NoError(t, err)
@@ -392,6 +398,41 @@ func TestReferralFlow(t *testing.T) {
 	require.NoError(t, json.Unmarshal(feed("referral_program", start), &programFeed))
 	require.Len(t, programFeed.Items, 1)
 	require.False(t, programFeed.Items[0].Enabled, "off at this branch")
+
+	// 9. The reported case: the new customer is rewarded, off their own sale
+	// at the till. Rewarding only them: no reward for the owner, no message,
+	// but the friend is still referred once.
+	told := len(notified)
+	setProgram(db.UpdateReferralProgramParams{Enabled: true, RewardPercent: 15, RewardTo: referralRewardFriend, FriendPercent: 10})
+	programFeed.Items = nil
+	require.NoError(t, json.Unmarshal(feed("referral_program", start), &programFeed))
+	require.Equal(t, referralRewardFriend, programFeed.Items[0].RewardTo, "tills hear who is rewarded")
+	require.EqualValues(t, 10, programFeed.Items[0].FriendPercent)
+	newcomer2 := newClient("Nadia")
+	_, nSale := sell(&newcomer2, 5000, map[string]any{"referral_code": owner.code})
+	nr := referralOf(nSale)
+	require.Equal(t, referralStatusFriend, nr.Status, nr.RefuseReason)
+	require.EqualValues(t, 10, nr.Percent)
+	require.Len(t, notified, told, "the owner isn't told of a reward they don't get")
+	_, nAgain := sell(&newcomer2, 5000, map[string]any{"referral_code": owner.code})
+	require.Equal(t, "refused", referralOf(nAgain).Status, "a friend is referred once")
+
+	// 10. Both: the owner's reward as before, the friend had theirs at the till.
+	setProgram(db.UpdateReferralProgramParams{Enabled: true, RewardPercent: 15, RewardTo: referralRewardBoth, FriendPercent: 10, MaxRewardsPerMonth: 1})
+	sharer := newClient("Sami")
+	fr1, fr2 := newClient("Fadi"), newClient("Ghina")
+	_, b1 := sell(&fr1, 5000, map[string]any{"referral_code": sharer.code})
+	both := referralOf(b1)
+	require.Equal(t, "available", both.Status)
+	require.EqualValues(t, 15, both.Percent, "the owner's percent")
+	require.Len(t, notified, told+1)
+	// Past the owner's monthly limit the owner gets no more, but the
+	// friend's discount at the till still counts.
+	_, b2 := sell(&fr2, 5000, map[string]any{"referral_code": sharer.code})
+	capped2 := referralOf(b2)
+	require.Equal(t, referralStatusFriend, capped2.Status)
+	require.EqualValues(t, 10, capped2.Percent)
+	require.Len(t, notified, told+1)
 }
 
 func lowerCode(code string) string {

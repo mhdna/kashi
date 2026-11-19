@@ -15,13 +15,33 @@ export function programToForm (p = {}) {
     expiresAfterDays: Number(p.expires_after_days ?? 0),
     cancelOnReturn: p.cancel_on_return ?? true,
     maxRewardsPerMonth: Number(p.max_rewards_per_month ?? 0),
+    // Who a code rewards: the client who shared it, the new customer, or both.
+    rewardTo: p.reward_to || 'owner',
+    friendPercent: Number(p.friend_percent || 10),
   }
 }
 
+// rewardToOptions are who a referral can reward.
+export const rewardToOptions = [
+  { value: 'owner', title: 'The client who shared the code' },
+  { value: 'friend', title: 'The new customer' },
+  { value: 'both', title: 'Both' },
+]
+
+export function rewardsOwner (to) { return to !== 'friend' }
+export function rewardsFriend (to) { return to === 'friend' || to === 'both' }
+
 // formToRequest is the form as the API takes it; it throws with what to fix.
 export function formToRequest (f) {
-  const percent = wholeNumber(f.rewardPercent, 'The reward')
+  const rewardTo = ['owner', 'friend', 'both'].includes(f.rewardTo) ? f.rewardTo : 'owner'
+  // The owner's percent is only asked for when the owner is rewarded.
+  const percent = rewardsOwner(rewardTo) ? wholeNumber(f.rewardPercent, 'The reward') : Number(f.rewardPercent) || 15
   if (percent < 1 || percent > 100) {throw new Error('The reward must be from 1% to 100%')}
+  let friendPercent = 0
+  if (rewardsFriend(rewardTo)) {
+    friendPercent = wholeNumber(f.friendPercent, "The new customer's percent")
+    if (friendPercent < 1 || friendPercent > 100) {throw new Error("The new customer's percent must be from 1% to 100%")}
+  }
   const branchIds = [...new Set((f.branchIds ?? []).map(Number).filter(id => Number.isInteger(id) && id > 0))].toSorted((a, b) => a - b)
   return {
     enabled: branchIds.length > 0,
@@ -33,6 +53,8 @@ export function formToRequest (f) {
     expires_after_days: wholeNumber(f.expiresAfterDays, 'Days it lasts'),
     cancel_on_return: Boolean(f.cancelOnReturn),
     max_rewards_per_month: wholeNumber(f.maxRewardsPerMonth, 'Rewards a month'),
+    reward_to: rewardTo,
+    friend_percent: friendPercent,
   }
 }
 
@@ -68,7 +90,14 @@ export function listNames (names) {
 export function programSummary (p, branchName = id => `Branch #${id}`) {
   const ids = p?.enabled ? (p.branch_ids ?? []) : []
   if (ids.length === 0) {return 'Referrals are off at every branch. Tills don\'t take codes or print them.'}
-  const parts = [`A new customer's first purchase with a client's code gives that client ${p.reward_percent}% off one later visit`]
+  const to = p.reward_to || 'owner'
+  const gives = []
+  if (rewardsFriend(to)) {gives.push(`the new customer ${p.friend_percent}% off that purchase`)}
+  if (rewardsOwner(to)) {gives.push(`the client who shared it ${p.reward_percent}% off one later visit`)}
+  // The owner only (as it always was) keeps its own sentence.
+  const parts = to === 'owner'
+    ? [`A new customer's first purchase with a client's code gives that client ${p.reward_percent}% off one later visit`]
+    : [`A new customer's first purchase with a client's code gives ${gives.join(', and ')}`]
   if (p.max_reward_cents > 0) {parts.push(`up to $${p.max_reward_cents / 100}`)}
   if (p.min_friend_spend > 0) {parts.push(`when the purchase is $${p.min_friend_spend / 100} or more`)}
   return `On at ${listNames(ids.map(id => branchName(id)))}. ${parts.join(', ')}.`
@@ -79,11 +108,12 @@ export const statusLabels = {
   used: 'Used',
   cancelled: 'Taken back',
   refused: 'No reward',
+  friend: 'New customer rewarded',
 }
 
 // statusColor is plain text colour, never a fill.
 export function statusColor (status) {
-  return { available: 'success', used: '', cancelled: 'error', refused: 'medium-emphasis' }[status] ?? ''
+  return { available: 'success', used: '', cancelled: 'error', refused: 'medium-emphasis', friend: 'success' }[status] ?? ''
 }
 
 // referralRow is a referral as the list shows it.
