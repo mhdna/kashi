@@ -408,8 +408,7 @@
       "label": "Line",
       "default": "Give this code to a friend. When they shop with us for the first time, you get {percent} off your next visit.",
       "can": 863,
-      "ar_default": "شارك هالكود مع حدا ما زارنا قبل، ولما يستعملو بتاخدوا انتو التنين حسم {percent} على كامل الفاتورة.",
-      "dark_default": true
+      "ar_default": "شارك هالكود مع حدا ما زارنا قبل، ولما يستعملو بتاخدوا انتو التنين حسم {percent} على كامل الفاتورة."
     },
     {
       "key": "socials_title",
