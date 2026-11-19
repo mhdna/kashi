@@ -116,3 +116,11 @@ LEFT JOIN branch_invoices ai ON ai.id = r.used_again_branch_invoice_id
 WHERE (sqlc.arg(status)::text = '' OR r.status = sqlc.arg(status)::text)
 ORDER BY r.created_at DESC, r.id DESC
 LIMIT sqlc.arg(row_limit) OFFSET sqlc.arg(row_offset);
+
+-- name: SetNewClientReferralCode :one
+-- A till made this new client's code offline (printed on their first
+-- receipt): keep it, unless another client has it.
+UPDATE clients c SET referral_code = sqlc.arg(referral_code), updated_at = now()
+WHERE c.id = sqlc.arg(client_id)
+  AND NOT EXISTS (SELECT 1 FROM clients o WHERE o.referral_code = sqlc.arg(referral_code) AND o.id <> sqlc.arg(client_id))
+RETURNING *;

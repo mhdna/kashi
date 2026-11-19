@@ -3,6 +3,19 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-19: A new customer's receipt printed no referral code (a reprint did)
+
+**Symptom:** a customer added at a till's checkout got a receipt without
+their referral code; a reprint a little later showed it.
+
+**Cause:** central makes every client's code (the column's default), and
+the till only learned it on its next sync, after the receipt had printed.
+
+**Fix:** the till makes the code at the first sale, offline, and sends it
+with the client; `keepTillReferralCode` (`api/branch_client.go`, query
+`SetNewClientReferralCode`) keeps it for a client that push creates, unless
+another client has it. Test: `TestBranchClientKeepsTillReferralCode`.
+
 ## 2026-11-19: The policy cut down to "Exchanges accepted within 3 days." went back to the long one
 
 **Symptom:** in the Receipt Designer, Centro's exchange policy ("Exchanges

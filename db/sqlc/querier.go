@@ -1926,6 +1926,9 @@ type Querier interface {
 	SetDefaultWhatsAppNumber(ctx context.Context, id int64) error
 	SetEmailResendAPIKey(ctx context.Context, emailResendApiKey string) error
 	SetEmailSettings(ctx context.Context, arg SetEmailSettingsParams) error
+	// A till made this new client's code offline (printed on their first
+	// receipt): keep it, unless another client has it.
+	SetNewClientReferralCode(ctx context.Context, arg SetNewClientReferralCodeParams) (Client, error)
 	SetProductAutofillRules(ctx context.Context, arg SetProductAutofillRulesParams) (AppSetting, error)
 	SetProductCategory(ctx context.Context, arg SetProductCategoryParams) error
 	SetProductLowStockAlertsEnabled(ctx context.Context, arg SetProductLowStockAlertsEnabledParams) error

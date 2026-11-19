@@ -13088,6 +13088,21 @@ func (mr *MockStoreMockRecorder) SetEmailSettings(arg0, arg1 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetEmailSettings", reflect.TypeOf((*MockStore)(nil).SetEmailSettings), arg0, arg1)
 }
 
+// SetNewClientReferralCode mocks base method.
+func (m *MockStore) SetNewClientReferralCode(arg0 context.Context, arg1 db.SetNewClientReferralCodeParams) (db.Client, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetNewClientReferralCode", arg0, arg1)
+	ret0, _ := ret[0].(db.Client)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetNewClientReferralCode indicates an expected call of SetNewClientReferralCode.
+func (mr *MockStoreMockRecorder) SetNewClientReferralCode(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetNewClientReferralCode", reflect.TypeOf((*MockStore)(nil).SetNewClientReferralCode), arg0, arg1)
+}
+
 // SetProductAutofillRules mocks base method.
 func (m *MockStore) SetProductAutofillRules(arg0 context.Context, arg1 db.SetProductAutofillRulesParams) (db.AppSetting, error) {
 	m.ctrl.T.Helper()
