@@ -87,7 +87,7 @@ function isEmptyElement (e) {
   return !e || Object.entries(e).every(([k, v]) => {
     if (k === 'text' || k === 'case' || k === 'align' || k === 'font') {return !String(v ?? '').trim()}
     if (k === 'size') {return !Number(v)}
-    if (k === 'hide') {return !v}
+    if (k === 'hide' || k === 'show') {return !v}
     if (k === 'bold') {return v === undefined || v === null}
     return true
   })
@@ -102,6 +102,7 @@ function cleanElement (e) {
   if (e.align) {clean.align = e.align}
   if (e.font) {clean.font = e.font}
   if (e.hide) {clean.hide = true}
+  if (e.show) {clean.show = true}
   return clean
 }
 
@@ -150,6 +151,26 @@ export function can (catalog, info, what) {
 
 export function elementsOf (catalog, group) {
   return (catalog?.elements ?? []).filter(e => e.group === group)
+}
+
+// partsOf is a part's switches: elements that can only be printed or left
+// out, like what each item row shows (name, colour and size, code, before and
+// after price). One that can 'show' is off until switched on.
+export function partsOf (catalog, group) {
+  const onOff = (catalog?.can?.hide ?? 0) | (catalog?.can?.show ?? 0)
+  return elementsOf(catalog, group).filter(e => e.can && (e.can & ~onOff) === 0)
+}
+
+export function isPartPrinted (design, catalog, info) {
+  const e = design?.elements?.[info.key] ?? {}
+  return can(catalog, info, 'show') ? Boolean(e.show) : !e.hide
+}
+
+// setPartPrinted switches one of them, keeping the design's others.
+export function setPartPrinted (design, catalog, info, printed) {
+  return can(catalog, info, 'show')
+    ? setElement(design, info.key, { show: printed, hide: undefined })
+    : setElement(design, info.key, { hide: !printed, show: undefined })
 }
 
 export function groupInfo (catalog, group) {

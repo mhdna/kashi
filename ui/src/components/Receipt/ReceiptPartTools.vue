@@ -80,6 +80,32 @@
       />
     </div>
 
+    <template v-if="parts.length > 0">
+      <div class="rtools-label">On each item</div>
+      <div class="rtools-row" data-test="item-parts">
+        <v-btn-toggle
+          color="primary"
+          density="compact"
+          divided
+          :model-value="printedParts"
+          multiple
+          variant="outlined"
+        >
+          <v-btn
+            v-for="p in parts"
+            :key="p.key"
+            :data-test="`item-part-${p.key}`"
+            size="small"
+            :title="isPartPrinted(design, catalog, p) ? `Leave out the ${p.label.toLowerCase()}` : `Print the ${p.label.toLowerCase()}`"
+            :value="p.key"
+            @click="update(setPartPrinted(design, catalog, p, !isPartPrinted(design, catalog, p)))"
+          >
+            {{ p.label }}
+          </v-btn>
+        </v-btn-toggle>
+      </div>
+    </template>
+
     <div class="rtools-label">Every line</div>
     <div class="rtools-row" data-test="whole-part">
       <v-btn-toggle
@@ -200,8 +226,8 @@
   import ReceiptFontSelect from '@/components/Receipt/ReceiptFontSelect.vue'
   import SizeStepper from '@/components/Receipt/SizeStepper.vue'
   import {
-    footerOrder, groupBoldState, groupInfo, groupSizeStep, isGroupChanged, isSectionHidden, lineStyleOptions,
-    moveSection, resetGroup, setDecor, setGroup, setGroupBold, toggleSection,
+    footerOrder, groupBoldState, groupInfo, groupSizeStep, isGroupChanged, isPartPrinted, isSectionHidden, lineStyleOptions,
+    moveSection, partsOf, resetGroup, setDecor, setGroup, setGroupBold, setPartPrinted, toggleSection,
   } from '@/utils/receiptDesign'
 
   const props = defineProps<{
@@ -216,6 +242,8 @@
   const d = computed(() => props.design.decor?.[props.group] ?? {})
   const hidden = computed(() => isSectionHidden(props.design, info.value.section))
   const movable = computed(() => Boolean(info.value.section) && (props.catalog.footer_order ?? []).includes(info.value.section))
+  const parts = computed(() => partsOf(props.catalog, props.group))
+  const printedParts = computed(() => parts.value.filter(p => isPartPrinted(props.design, props.catalog, p)).map(p => p.key))
   const belowOptions = [{ value: 'none', title: 'None' }, ...lineStyleOptions]
 
   function canMove (step: number) {

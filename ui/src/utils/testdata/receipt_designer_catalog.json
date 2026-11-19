@@ -88,6 +88,7 @@
     "case": 2,
     "font": 64,
     "hide": 32,
+    "show": 128,
     "size": 4,
     "text": 1
   },
@@ -207,6 +208,34 @@
       "label": "Note",
       "default": "Note",
       "can": 3
+    },
+    {
+      "key": "item_name",
+      "group": "columns",
+      "label": "Name",
+      "default": "",
+      "can": 32
+    },
+    {
+      "key": "item_variant",
+      "group": "columns",
+      "label": "Colour and size",
+      "default": "",
+      "can": 32
+    },
+    {
+      "key": "item_code",
+      "group": "columns",
+      "label": "Code",
+      "default": "",
+      "can": 128
+    },
+    {
+      "key": "item_price_note",
+      "group": "columns",
+      "label": "Before and after price",
+      "default": "",
+      "can": 32
     },
     {
       "key": "deal_free",

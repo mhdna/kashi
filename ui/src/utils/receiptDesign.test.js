@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   addBanner, alignOptions, bannerMax, bannerMode, bannerWhenOptions, boldState, can, caseOptions, dealModes, designJSON, elementsOf, emptyDesign, footerOrder, groupBoldState, groupInfo,
-  groupSizeStep, isElementChanged, isGroupChanged, isSectionHidden, lineStyleOptions, markAt,
-  moveBanner, moveSection, parseDesign, previewQuery, receiptPreviewURL, removeBanner, resetElement, resetGroup, setBold,
-  setDecor, setElement, setGroup, setGroupBold, shopFromSettings, shopPayload, shopPreview, sizeStep,
+  groupSizeStep, isElementChanged, isGroupChanged, isPartPrinted, isSectionHidden, lineStyleOptions, markAt, moveBanner, moveSection,
+  parseDesign, partsOf, previewQuery, receiptPreviewURL, removeBanner, resetElement, resetGroup, setBold, setDecor,
+  setElement, setGroup, setGroupBold, setPartPrinted, shopFromSettings, shopPayload, shopPreview, sizeStep,
   toggleSection, updateBanner,
 } from './receiptDesign'
 // What kashi's API serves (TestReceiptDesignerCatalog writes it), so a part
@@ -15,7 +15,7 @@ describe('the catalog from the till', () => {
     expect(catalog.groups.map(g => g.key)).toEqual(['header', 'meta', 'columns', 'totals', 'payments', 'policy', 'referral', 'socials', 'thanks'])
     for (const g of catalog.groups) {expect(elementsOf(catalog, g.key).length, g.key).toBeGreaterThan(0)}
     for (const e of catalog.elements) {
-      const any = ['text', 'case', 'size', 'bold', 'align', 'hide'].some(w => can(catalog, e, w))
+      const any = ['text', 'case', 'size', 'bold', 'align', 'hide', 'show'].some(w => can(catalog, e, w))
       expect(any, e.key).toBe(true)
     }
   })
@@ -278,3 +278,38 @@ describe('fonts in the design', () => {
     expect(designJSON(setElement(d, 'store_name', { font: '' }))).not.toContain('pacifico')
   })
 })
+
+describe('item switches (what each item row prints)', () => {
+  it('are the on/off-only lines of the items part, from the real catalog', () => {
+    expect(partsOf(catalog, 'columns').map(e => e.key)).toEqual(['item_name', 'item_variant', 'item_code', 'item_price_note'])
+    for (const g of ['header', 'meta', 'totals', 'payments', 'policy', 'referral', 'socials', 'thanks']) {
+      expect(partsOf(catalog, g), g).toEqual([])
+    }
+    expect(partsOf(null, 'columns')).toEqual([])
+  })
+
+  it('print by default except the code; each switches and switches back to nothing saved', () => {
+    const parts = partsOf(catalog, 'columns')
+    for (const p of parts) {
+      expect(isPartPrinted(emptyDesign(), catalog, p), p.key).toBe(p.key !== 'item_code')
+      const off = setPartPrinted(emptyDesign(), catalog, p, !isPartPrinted(emptyDesign(), catalog, p))
+      expect(isPartPrinted(off, catalog, p), p.key).toBe(p.key === 'item_code')
+      expect(isElementChanged(off, p.key)).toBe(true)
+      const back = setPartPrinted(off, catalog, p, p.key !== 'item_code')
+      expect(back.elements, p.key).toEqual({})
+    }
+  })
+
+  it('keeps a line\'s other settings and survives a save and load', () => {
+    const p = partsOf(catalog, 'columns').find(e => e.key === 'item_code')
+    let d = setPartPrinted(emptyDesign(), catalog, p, true)
+    d = setElement(d, 'col_item', { text: 'Article' })
+    const saved = designJSON(d)
+    expect(JSON.parse(saved).elements).toEqual({ item_code: { show: true }, col_item: { text: 'Article' } })
+    const loaded = parseDesign(saved)
+    expect(isPartPrinted(loaded, catalog, p)).toBe(true)
+    expect(isGroupChanged(loaded, catalog, 'columns')).toBe(true)
+    expect(resetGroup(loaded, catalog, 'columns').elements).toEqual({})
+  })
+})
+
