@@ -245,7 +245,7 @@ func (q *Queries) GetReferralByUID(ctx context.Context, uid uuid.UUID) (Referral
 }
 
 const getReferralProgram = `-- name: GetReferralProgram :one
-SELECT id, enabled, reward_percent, max_reward_cents, min_friend_spend, unlock_after_days, expires_after_days, cancel_on_return, max_rewards_per_month, updated_at, branch_ids FROM referral_program WHERE id = 1
+SELECT id, enabled, reward_percent, max_reward_cents, min_friend_spend, unlock_after_days, expires_after_days, cancel_on_return, max_rewards_per_month, updated_at, branch_ids, reward_to, friend_percent FROM referral_program WHERE id = 1
 `
 
 func (q *Queries) GetReferralProgram(ctx context.Context) (ReferralProgram, error) {
@@ -263,12 +263,14 @@ func (q *Queries) GetReferralProgram(ctx context.Context) (ReferralProgram, erro
 		&i.MaxRewardsPerMonth,
 		&i.UpdatedAt,
 		pq.Array(&i.BranchIds),
+		&i.RewardTo,
+		&i.FriendPercent,
 	)
 	return i, err
 }
 
 const getReferralProgramUpdatedSince = `-- name: GetReferralProgramUpdatedSince :many
-SELECT id, enabled, reward_percent, max_reward_cents, min_friend_spend, unlock_after_days, expires_after_days, cancel_on_return, max_rewards_per_month, updated_at, branch_ids FROM referral_program WHERE id = 1 AND updated_at > $1
+SELECT id, enabled, reward_percent, max_reward_cents, min_friend_spend, unlock_after_days, expires_after_days, cancel_on_return, max_rewards_per_month, updated_at, branch_ids, reward_to, friend_percent FROM referral_program WHERE id = 1 AND updated_at > $1
 `
 
 // The till's feed: the rules when they changed since its cursor.
@@ -293,6 +295,8 @@ func (q *Queries) GetReferralProgramUpdatedSince(ctx context.Context, updatedAt 
 			&i.MaxRewardsPerMonth,
 			&i.UpdatedAt,
 			pq.Array(&i.BranchIds),
+			&i.RewardTo,
+			&i.FriendPercent,
 		); err != nil {
 			return nil, err
 		}
@@ -539,9 +543,10 @@ const updateReferralProgram = `-- name: UpdateReferralProgram :one
 UPDATE referral_program SET
     enabled = $1, reward_percent = $2, max_reward_cents = $3, min_friend_spend = $4,
     unlock_after_days = $5, expires_after_days = $6, cancel_on_return = $7,
-    max_rewards_per_month = $8, branch_ids = $9::bigint[], updated_at = now()
+    max_rewards_per_month = $8, branch_ids = $9::bigint[],
+    reward_to = $10, friend_percent = $11, updated_at = now()
 WHERE id = 1
-RETURNING id, enabled, reward_percent, max_reward_cents, min_friend_spend, unlock_after_days, expires_after_days, cancel_on_return, max_rewards_per_month, updated_at, branch_ids
+RETURNING id, enabled, reward_percent, max_reward_cents, min_friend_spend, unlock_after_days, expires_after_days, cancel_on_return, max_rewards_per_month, updated_at, branch_ids, reward_to, friend_percent
 `
 
 type UpdateReferralProgramParams struct {
@@ -554,6 +559,8 @@ type UpdateReferralProgramParams struct {
 	CancelOnReturn     bool    `json:"cancel_on_return"`
 	MaxRewardsPerMonth int32   `json:"max_rewards_per_month"`
 	BranchIds          []int64 `json:"branch_ids"`
+	RewardTo           string  `json:"reward_to"`
+	FriendPercent      int16   `json:"friend_percent"`
 }
 
 func (q *Queries) UpdateReferralProgram(ctx context.Context, arg UpdateReferralProgramParams) (ReferralProgram, error) {
@@ -567,6 +574,8 @@ func (q *Queries) UpdateReferralProgram(ctx context.Context, arg UpdateReferralP
 		arg.CancelOnReturn,
 		arg.MaxRewardsPerMonth,
 		pq.Array(arg.BranchIds),
+		arg.RewardTo,
+		arg.FriendPercent,
 	)
 	var i ReferralProgram
 	err := row.Scan(
@@ -581,6 +590,8 @@ func (q *Queries) UpdateReferralProgram(ctx context.Context, arg UpdateReferralP
 		&i.MaxRewardsPerMonth,
 		&i.UpdatedAt,
 		pq.Array(&i.BranchIds),
+		&i.RewardTo,
+		&i.FriendPercent,
 	)
 	return i, err
 }

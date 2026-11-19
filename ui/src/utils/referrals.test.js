@@ -6,6 +6,7 @@ describe('referral rules form', () => {
     const api = {
       enabled: true, branch_ids: [3, 7], reward_percent: 15, max_reward_cents: 2550, min_friend_spend: 3000,
       unlock_after_days: 0, expires_after_days: 60, cancel_on_return: true, max_rewards_per_month: 3,
+      reward_to: 'both', friend_percent: 10,
     }
     const form = programToForm(api)
     expect(form.maxRewardDollars).toBe('25.5')
@@ -82,5 +83,30 @@ describe('referrals per branch', () => {
     expect(listNames(['Centro', 'Hara'])).toBe('Centro and Hara')
     expect(listNames(['Centro', 'Hara', 'Dora'])).toBe('Centro, Hara and Dora')
     expect(programSummary({ enabled: true, branch_ids: [5], reward_percent: 10 })).toContain('On at Branch #5.')
+  })
+})
+
+describe('who a referral rewards', () => {
+  it('the reported case: both, the new customer 10% now and the client 15% later', () => {
+    const f = { ...programToForm({ enabled: true, branch_ids: [1], reward_percent: 15 }), rewardTo: 'both', friendPercent: '10' }
+    const req = formToRequest(f)
+    expect(req).toMatchObject({ reward_to: 'both', friend_percent: 10, reward_percent: 15 })
+    expect(programSummary({ enabled: true, branch_ids: [1], ...req }, () => 'Centro')).toBe(
+      "On at Centro. A new customer's first purchase with a client's code gives the new customer 10% off that purchase, and the client who shared it 15% off one later visit.")
+  })
+  it('only the new customer: no owner percent asked for or described', () => {
+    const req = formToRequest({ ...programToForm({ branch_ids: [1] }), rewardTo: 'friend', friendPercent: '12', rewardPercent: '' })
+    expect(req).toMatchObject({ reward_to: 'friend', friend_percent: 12 })
+    expect(programSummary({ enabled: true, branch_ids: [1], ...req }, () => 'Hara')).not.toContain('later visit')
+  })
+  it('the owner only, as before: no new customer percent sent', () => {
+    expect(formToRequest({ ...programToForm({ branch_ids: [1] }), rewardTo: 'owner', friendPercent: '50' }).friend_percent).toBe(0)
+    expect(programToForm({}).rewardTo).toBe('owner')
+  })
+  it('a bad new customer percent is refused', () => {
+    expect(() => formToRequest({ ...programToForm({ branch_ids: [1] }), rewardTo: 'both', friendPercent: '0' })).toThrow("new customer's percent")
+  })
+  it('a referral that only rewarded the new customer has its own label', () => {
+    expect(referralRow({ status: 'friend' }).statusLabel).toBe('New customer rewarded')
   })
 })
