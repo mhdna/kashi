@@ -84,10 +84,10 @@ STEP = ./scripts/step.sh
 # new page never calls an endpoint the old API doesn't have yet.
 deploy:
 	@. ./scripts/pretty.sh; start=$$(date +%s); \
-	printf '%s %sKashi%s -> cloud.grandbz.com\n' "$$B_DEPLOY" "$$C_BOLD" "$$C_RESET"; \
-	$(MAKE) -j2 --output-sync=target STEP_NOSPIN=1 deploy-api build-ui || exit 1; \
-	$(MAKE) ship-ui || exit 1; \
-	say_ok "Deployed in $$(( $$(date +%s) - start ))s  ->  https://cloud.grandbz.com/"
+	printf '%s %sKashi%s -> cloud.grandbz.com, started %s\n' "$$B_DEPLOY" "$$C_BOLD" "$$C_RESET" "$$(date '+%a %-d %b %Y, %H:%M:%S')"; \
+	$(MAKE) -j2 --output-sync=target STEP_NOSPIN=1 deploy-api build-ui || { say_fail "Deploy stopped at $$(date '+%H:%M:%S')"; exit 1; }; \
+	$(MAKE) ship-ui || { say_fail "Deploy stopped at $$(date '+%H:%M:%S')"; exit 1; }; \
+	say_ok "Deployed at $$(date '+%H:%M:%S') on $$(date '+%a %-d %b %Y'), in $$(( $$(date +%s) - start ))s  ->  https://cloud.grandbz.com/"
 
 # Cross-compile the API, ship it with the current migrations, run any
 # pending ones on the prod DB (idempotent), restart the service.
