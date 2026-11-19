@@ -5,7 +5,10 @@ async function requestJSON (url, options) {
   const res = await authFetch(url, options)
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.error || `Request failed with status ${res.status}`)
+    const error = new Error(err.error || `Request failed with status ${res.status}`)
+    // The caller can tell a branch with no settings yet (409) from a failure.
+    error.status = res.status
+    throw error
   }
   return res.json().catch(() => null)
 }

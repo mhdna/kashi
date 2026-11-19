@@ -3,6 +3,14 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-19: Saving a receipt for all branches stopped at a branch with no register
+
+**Symptom:** in the Receipt Designer with "All branches", Save failed with "this branch hasn't reported its settings yet; connect one of its registers first", and the branches after it didn't get the design.
+
+**Cause:** the page saved branch by branch and stopped at the first error; a branch none of whose registers has ever connected (Default, a new branch) has no settings to update, and kashi answers 409 for it.
+
+**Fix:** for all branches, a 409 skips that branch and the rest are saved; the message names the skipped ones. Any other error still stops the save (`ui/src/pages/receipt-designer.vue`, `useBranchSettings.js` keeps the status on its errors). Tests: "saving for all branches skips one no register has connected from" and "any other failure still stops the save" in `receipt-designer.test.js`.
+
 ## 2026-11-18: Typing over a receipt line switched it to another font
 
 **Symptom:** in the Receipt Designer, clicking a line to type over it (the store name in Belleza, say) showed the words in a bold monospace font instead of the receipt's own letters.

@@ -357,10 +357,23 @@
         receipt_texts: designJSON(design.value),
         ...(shopTouched.value ? shopPayload(shop.value, { allBranches: all }) : {}),
       }
-      for (const id of ids) {await updateBranchSettings(id, payload)}
+      // For every branch, one that no register has connected from yet has
+      // nothing to save to (409): it is skipped and named, the rest are saved.
+      const skipped: string[] = []
+      let saved = 0
+      for (const id of ids) {
+        try {
+          await updateBranchSettings(id, payload)
+          saved++
+        } catch (error) {
+          if (!all || (error as { status?: number }).status !== 409) {throw error}
+          skipped.push(branchName(id))
+        }
+      }
       if (!all) {savedTheme.value = theme.value}
       shopTouched.value = false
-      notify.success(`Saved for ${ids.length === 1 ? 'the branch' : `${ids.length} branches`}. Each register applies it within a few seconds if online.`)
+      const done = `Saved for ${saved === 1 ? (all ? '1 branch' : 'the branch') : `${saved} branches`}. Each register applies it within a few seconds if online.`
+      notify.success(skipped.length > 0 ? `${done} Skipped ${skipped.join(', ')}: no register has connected there yet.` : done)
     } catch (error) {
       notify.error((error as Error).message)
     } finally {

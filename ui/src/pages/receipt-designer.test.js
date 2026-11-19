@@ -45,9 +45,11 @@ const getBranchSettings = vi.fn()
 const updateBranchSettings = vi.fn()
 vi.mock('@/composables/useBranchSettings', () => ({ useBranchSettings: () => ({ getBranchSettings, updateBranchSettings }) }))
 vi.mock('@/composables/useBranches', () => ({
-  useBranches: () => ({ branches: ref([{ id: 7, name: 'Centro' }, { id: 8, name: 'Hara' }]), fetchBranches: async () => {} }),
+  useBranches: () => ({ branches: ref([{ id: 7, name: 'Centro' }, { id: 8, name: 'Hara' }, { id: 9, name: 'Showroom' }]), fetchBranches: async () => {} }),
 }))
-vi.mock('@/composables/useNotify', () => ({ useNotify: () => ({ success: vi.fn(), error: vi.fn() }) }))
+const notifySuccess = vi.fn()
+const notifyError = vi.fn()
+vi.mock('@/composables/useNotify', () => ({ useNotify: () => ({ success: notifySuccess, error: notifyError }) }))
 const canEdit = ref(true)
 vi.mock('@/composables/usePageAccess', () => ({ usePageAccess: () => ({ canEdit }) }))
 
@@ -196,10 +198,38 @@ describe('Receipt Designer', () => {
     await find('handle-tiktok').find('input').setValue('@bazaar')
     await button('Save').trigger('click')
     await flushPromises()
-    expect(updateBranchSettings.mock.calls.map(c => c[0])).toEqual([7, 8])
+    expect(updateBranchSettings.mock.calls.map(c => c[0])).toEqual([7, 8, 9])
     const sent = updateBranchSettings.mock.calls[0][1]
     expect(sent).toMatchObject({ social_platforms: ['tiktok'], social_handles: { tiktok: '@bazaar' } })
     expect(sent).not.toHaveProperty('branch_phone')
+  })
+
+  it('the reported case: saving for all branches skips one no register has connected from, and saves the rest', async () => {
+    updateBranchSettings.mockImplementation(async (id) => {
+      if (id === 8) {throw Object.assign(new Error('this branch hasn\'t reported its settings yet; connect one of its registers first'), { status: 409 })}
+    })
+    notifySuccess.mockClear()
+    notifyError.mockClear()
+    await open()
+    await button('Save').trigger('click')
+    await flushPromises()
+    expect(updateBranchSettings.mock.calls.map(c => c[0])).toEqual([7, 8, 9])
+    expect(notifyError).not.toHaveBeenCalled()
+    expect(notifySuccess).toHaveBeenCalledWith('Saved for 2 branches. Each register applies it within a few seconds if online. Skipped Hara: no register has connected there yet.')
+    updateBranchSettings.mockReset()
+  })
+
+  it('any other failure still stops the save and says so', async () => {
+    updateBranchSettings.mockImplementation(async (id) => {
+      if (id === 8) {throw Object.assign(new Error('server down'), { status: 500 })}
+    })
+    notifyError.mockClear()
+    await open()
+    await button('Save').trigger('click')
+    await flushPromises()
+    expect(notifyError).toHaveBeenCalledWith('server down')
+    expect(updateBranchSettings.mock.calls.map(c => c[0])).toEqual([7, 8])
+    updateBranchSettings.mockReset()
   })
 
   it('without touching the shop details, Save sends only the receipt', async () => {
