@@ -95,12 +95,19 @@ ORDER BY revenue DESC
 LIMIT 15;
 
 -- name: ListDaySalesBySalesperson :many
+-- A return or exchange counts for whoever made the sale it came back from.
 SELECT
-  bi.salesperson_name,
+  COALESCE(orig.salesperson_name, bi.salesperson_name)::text AS salesperson_name,
   COUNT(*) FILTER (WHERE bi.kind = 'sales')::bigint AS sales_count,
   COALESCE(SUM(bi.grand_total), 0)::bigint AS net_total
 FROM branch_invoices bi
 JOIN branches b ON b.id = bi.branch_id
+LEFT JOIN LATERAL (
+  SELECT o.salesperson_name FROM branch_invoices o
+  WHERE bi.kind <> 'sales' AND o.branch_id = bi.branch_id
+    AND o.client_ref = bi.related_client_ref AND o.kind = 'sales'
+  LIMIT 1
+) orig ON true
 WHERE bi.occurred_at >= (sqlc.arg(day)::date - 1)
   AND bi.occurred_at < (sqlc.arg(day)::date + 2)
   AND (bi.occurred_at AT TIME ZONE b.timezone)::date = sqlc.arg(day)::date
@@ -108,7 +115,7 @@ WHERE bi.occurred_at >= (sqlc.arg(day)::date - 1)
   AND bi.branch_id NOT IN (SELECT id FROM branches WHERE hidden_from_reports)
   AND bi.register_id NOT IN (SELECT id FROM branch_registers WHERE hidden_from_reports)
   AND bi.cancelled_at IS NULL
-GROUP BY bi.salesperson_name
+GROUP BY 1
 ORDER BY net_total DESC;
 
 -- name: ListDayPaymentsByAccount :many

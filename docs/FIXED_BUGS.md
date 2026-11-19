@@ -3,6 +3,24 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-19: A salesperson showed twice in the reports, once with only returns
+
+**Symptom:** the salesperson ranking listed "Ahmad Robaie" twice: once with
+his sales, once with 0 invoices and -$274.46.
+
+**Cause:** reports credited a return or exchange to the salesperson on the
+return itself. Returns made from kashi carry the till's default salesperson
+(Ahmad), sometimes only as a typed name with no id, so they landed on him,
+or on a second, name-only "Ahmad Robaie", instead of on whoever sold the
+items.
+
+**Fix:** every report that groups by salesperson takes a return's or
+exchange's salesperson from the sale it came back from (`related_client_ref`;
+`db/query/reports.sql`, `ListDaySalesBySalesperson` in
+`db/query/branch_day_summary.sql`), and the return's own only when kashi
+doesn't have that sale. Test: `TestReturnsCountForTheOriginalSeller`
+(`db/sqlc/return_credit_test.go`, against Postgres).
+
 ## 2026-11-19: A new customer's receipt printed no referral code (a reprint did)
 
 **Symptom:** a customer added at a till's checkout got a receipt without

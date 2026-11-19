@@ -158,12 +158,21 @@ WITH inv AS (
   SELECT
     bi.id, bi.branch_id, bi.kind, bi.grand_total - branch_invoice_deferred_coupons(bi.id) AS grand_total, bi.subtotal, bi.discounted_total,
     (bi.occurred_at AT TIME ZONE b.timezone) AS local_at,
-    COALESCE(bi.salesperson_id, 0)::bigint AS salesperson_id,
-    COALESCE(s.name, NULLIF(bi.salesperson_name, ''), '')::text AS salesperson_name,
+    COALESCE(CASE WHEN orig.salesperson_name IS NOT NULL THEN orig.salesperson_id ELSE bi.salesperson_id END, 0)::bigint AS salesperson_id,
+    COALESCE(s.name, NULLIF(COALESCE(orig.salesperson_name, bi.salesperson_name), ''), '')::text AS salesperson_name,
     COALESCE(cu.id, cl.client_id) AS client_id
   FROM branch_invoices bi
   JOIN branches b ON b.id = bi.branch_id
-  LEFT JOIN salespersons s ON s.id = bi.salesperson_id
+  -- A return or exchange counts for whoever made the sale it came back
+  -- from, exactly as it was sold; the return's own salesperson only when
+  -- kashi doesn't have that sale.
+  LEFT JOIN LATERAL (
+    SELECT o.salesperson_id, o.salesperson_name FROM branch_invoices o
+    WHERE bi.kind <> 'sales' AND o.branch_id = bi.branch_id
+      AND o.client_ref = bi.related_client_ref AND o.kind = 'sales'
+    LIMIT 1
+  ) orig ON true
+  LEFT JOIN salespersons s ON s.id = CASE WHEN orig.salesperson_name IS NOT NULL THEN orig.salesperson_id ELSE bi.salesperson_id END
   LEFT JOIN clients cu ON cu.uid = bi.client_uid
   LEFT JOIN client_links cl ON cl.register_id = bi.register_id AND cl.branch_client_id = bi.branch_client_id
   WHERE bi.occurred_at >= sqlc.arg(from_day)::date - 1 AND bi.occurred_at < sqlc.arg(to_day)::date + 2
@@ -211,15 +220,24 @@ ORDER BY net_total DESC;
 -- name: PeriodReportSalespersonDaily :many
 -- Net sales per salesperson per branch-local day, for the trend chart.
 SELECT
-  COALESCE(bi.salesperson_id, 0)::bigint AS salesperson_id,
-  COALESCE(s.name, NULLIF(bi.salesperson_name, ''), '')::text AS salesperson_name,
+  COALESCE(CASE WHEN orig.salesperson_name IS NOT NULL THEN orig.salesperson_id ELSE bi.salesperson_id END, 0)::bigint AS salesperson_id,
+  COALESCE(s.name, NULLIF(COALESCE(orig.salesperson_name, bi.salesperson_name), ''), '')::text AS salesperson_name,
   bi.branch_id,
   (bi.occurred_at AT TIME ZONE b.timezone)::date AS day,
   count(*) FILTER (WHERE bi.kind = 'sales')::bigint AS sales_count,
   COALESCE(sum((bi.grand_total - branch_invoice_deferred_coupons(bi.id))), 0)::bigint AS net_total
 FROM branch_invoices bi
 JOIN branches b ON b.id = bi.branch_id
-LEFT JOIN salespersons s ON s.id = bi.salesperson_id
+-- A return or exchange counts for whoever made the sale it came back
+-- from, exactly as it was sold; the return's own salesperson only when
+-- kashi doesn't have that sale.
+LEFT JOIN LATERAL (
+  SELECT o.salesperson_id, o.salesperson_name FROM branch_invoices o
+  WHERE bi.kind <> 'sales' AND o.branch_id = bi.branch_id
+    AND o.client_ref = bi.related_client_ref AND o.kind = 'sales'
+  LIMIT 1
+) orig ON true
+LEFT JOIN salespersons s ON s.id = CASE WHEN orig.salesperson_name IS NOT NULL THEN orig.salesperson_id ELSE bi.salesperson_id END
 WHERE bi.occurred_at >= sqlc.arg(from_day)::date - 1 AND bi.occurred_at < sqlc.arg(to_day)::date + 2
   AND (bi.occurred_at AT TIME ZONE b.timezone)::date BETWEEN sqlc.arg(from_day)::date AND sqlc.arg(to_day)::date
   AND (COALESCE(cardinality(sqlc.arg(branch_ids)::bigint[]), 0) = 0 OR bi.branch_id = ANY(sqlc.arg(branch_ids)::bigint[]))
@@ -239,8 +257,8 @@ ORDER BY 4;
 -- name: PeriodReportSalespersonCategories :many
 -- What each salesperson sold, by product category (net of returns).
 SELECT
-  COALESCE(bi.salesperson_id, 0)::bigint AS salesperson_id,
-  COALESCE(s.name, NULLIF(bi.salesperson_name, ''), '')::text AS salesperson_name,
+  COALESCE(CASE WHEN orig.salesperson_name IS NOT NULL THEN orig.salesperson_id ELSE bi.salesperson_id END, 0)::bigint AS salesperson_id,
+  COALESCE(s.name, NULLIF(COALESCE(orig.salesperson_name, bi.salesperson_name), ''), '')::text AS salesperson_name,
   bi.branch_id,
   COALESCE(pc.name, '')::text AS category,
   COALESCE(sum(i.quantity), 0)::bigint AS quantity,
@@ -248,7 +266,16 @@ SELECT
 FROM branch_invoice_items i
 JOIN branch_invoices bi ON bi.id = i.branch_invoice_id
 JOIN branches b ON b.id = bi.branch_id
-LEFT JOIN salespersons s ON s.id = bi.salesperson_id
+-- A return or exchange counts for whoever made the sale it came back
+-- from, exactly as it was sold; the return's own salesperson only when
+-- kashi doesn't have that sale.
+LEFT JOIN LATERAL (
+  SELECT o.salesperson_id, o.salesperson_name FROM branch_invoices o
+  WHERE bi.kind <> 'sales' AND o.branch_id = bi.branch_id
+    AND o.client_ref = bi.related_client_ref AND o.kind = 'sales'
+  LIMIT 1
+) orig ON true
+LEFT JOIN salespersons s ON s.id = CASE WHEN orig.salesperson_name IS NOT NULL THEN orig.salesperson_id ELSE bi.salesperson_id END
 LEFT JOIN product_variants pv ON pv.uid = i.product_uid
 LEFT JOIN products p ON p.id = pv.product_id
 LEFT JOIN product_categories pc ON pc.id = p.category_id
@@ -505,8 +532,8 @@ SELECT
   (bi.occurred_at AT TIME ZONE b.timezone)::date AS day,
   bi.branch_id,
   b.name AS branch_name,
-  COALESCE(bi.salesperson_id, 0)::bigint AS salesperson_id,
-  COALESCE(s.name, NULLIF(bi.salesperson_name, ''), '')::text AS salesperson_name,
+  COALESCE(CASE WHEN orig.salesperson_name IS NOT NULL THEN orig.salesperson_id ELSE bi.salesperson_id END, 0)::bigint AS salesperson_id,
+  COALESCE(s.name, NULLIF(COALESCE(orig.salesperson_name, bi.salesperson_name), ''), '')::text AS salesperson_name,
   COALESCE(cu.id, cl.client_id, 0)::bigint AS client_id,
   COALESCE(cc.name, '')::text AS client_name,
   COALESCE(cc.phone, '')::text AS client_phone,
@@ -529,7 +556,16 @@ JOIN branches b ON b.id = bi.branch_id
 LEFT JOIN product_categories pc ON pc.id = p.category_id
 LEFT JOIN sizes sz ON sz.id = pv.size_id
 LEFT JOIN colors co ON co.id = pv.color_id
-LEFT JOIN salespersons s ON s.id = bi.salesperson_id
+-- A return or exchange counts for whoever made the sale it came back
+-- from, exactly as it was sold; the return's own salesperson only when
+-- kashi doesn't have that sale.
+LEFT JOIN LATERAL (
+  SELECT o.salesperson_id, o.salesperson_name FROM branch_invoices o
+  WHERE bi.kind <> 'sales' AND o.branch_id = bi.branch_id
+    AND o.client_ref = bi.related_client_ref AND o.kind = 'sales'
+  LIMIT 1
+) orig ON true
+LEFT JOIN salespersons s ON s.id = CASE WHEN orig.salesperson_name IS NOT NULL THEN orig.salesperson_id ELSE bi.salesperson_id END
 LEFT JOIN clients cu ON cu.uid = bi.client_uid
 LEFT JOIN client_links cl ON cl.register_id = bi.register_id AND cl.branch_client_id = bi.branch_client_id
 LEFT JOIN clients cc ON cc.id = COALESCE(cu.id, cl.client_id)
@@ -548,7 +584,7 @@ WHERE upper(p.code) LIKE ANY(sqlc.arg(code_patterns)::text[])
         AND (xc.uid = bi.client_uid OR EXISTS (
           SELECT 1 FROM client_links xl
           WHERE xl.client_id = xc.id AND xl.register_id = bi.register_id AND xl.branch_client_id = bi.branch_client_id)))
-GROUP BY bi.id, bi.kind, b.timezone, b.name, s.name, cu.id, cl.client_id, cc.name, cc.phone, p.id, pc.name, sz.name, co.name
+GROUP BY bi.id, bi.kind, b.timezone, b.name, s.name, orig.salesperson_id, orig.salesperson_name, cu.id, cl.client_id, cc.name, cc.phone, p.id, pc.name, sz.name, co.name
 ORDER BY bi.id
 LIMIT 200001;
 
