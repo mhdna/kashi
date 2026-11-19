@@ -12453,6 +12453,36 @@ func (mr *MockStoreMockRecorder) SalespersonPerformanceItems(arg0, arg1 interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SalespersonPerformanceItems", reflect.TypeOf((*MockStore)(nil).SalespersonPerformanceItems), arg0, arg1)
 }
 
+// SalespersonPerformanceReturnItems mocks base method.
+func (m *MockStore) SalespersonPerformanceReturnItems(arg0 context.Context, arg1 db.SalespersonPerformanceReturnItemsParams) ([]db.BranchInvoiceItem, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SalespersonPerformanceReturnItems", arg0, arg1)
+	ret0, _ := ret[0].([]db.BranchInvoiceItem)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SalespersonPerformanceReturnItems indicates an expected call of SalespersonPerformanceReturnItems.
+func (mr *MockStoreMockRecorder) SalespersonPerformanceReturnItems(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SalespersonPerformanceReturnItems", reflect.TypeOf((*MockStore)(nil).SalespersonPerformanceReturnItems), arg0, arg1)
+}
+
+// SalespersonPerformanceReturns mocks base method.
+func (m *MockStore) SalespersonPerformanceReturns(arg0 context.Context, arg1 db.SalespersonPerformanceReturnsParams) ([]db.SalespersonPerformanceReturnsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SalespersonPerformanceReturns", arg0, arg1)
+	ret0, _ := ret[0].([]db.SalespersonPerformanceReturnsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SalespersonPerformanceReturns indicates an expected call of SalespersonPerformanceReturns.
+func (mr *MockStoreMockRecorder) SalespersonPerformanceReturns(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SalespersonPerformanceReturns", reflect.TypeOf((*MockStore)(nil).SalespersonPerformanceReturns), arg0, arg1)
+}
+
 // SaveInvoiceDiscountTx mocks base method.
 func (m *MockStore) SaveInvoiceDiscountTx(arg0 context.Context, arg1 db.SaveInvoiceDiscountTxParams) (db.InvoiceDiscount, error) {
 	m.ctrl.T.Helper()

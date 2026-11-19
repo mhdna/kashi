@@ -194,6 +194,119 @@
       </v-data-table>
     </v-card>
 
+    <!-- The salesperson score: the full rule (utils/salespersonScore.js). -->
+    <v-card class="mt-5" data-test="score-card" rounded="lg">
+      <v-card-title class="d-flex align-center py-4">
+        <span>Performance score</span>
+        <v-spacer />
+        <span class="text-body-2 text-medium-emphasis" data-test="score-count">{{ rankedCount }} ranked</span>
+      </v-card-title>
+      <v-divider />
+      <v-card-text>
+        <v-alert class="formula-card mb-4" color="primary" icon="mdi-scale-balance" variant="tonal">
+          <div class="font-weight-bold mb-1">Formula</div>
+          <div class="text-body-2" data-test="score-formula">
+            Score = Target reached ({{ weight('target') }}) + Sales per hour ({{ weight('perHour') }})
+            + Average sale ({{ weight('avgSale') }}) + Items per sale ({{ weight('itemsPerSale') }})
+            + Discount rate ({{ weight('discountRate') }}) + Return rate ({{ weight('returnRate') }}), out of 100
+          </div>
+          <ul class="formula-list text-body-2 mt-2">
+            <li><strong>Net sales</strong> = what was sold minus what came back. A return or exchange counts for whoever made the sale.</li>
+            <li><strong>Target reached</strong> = net sales ÷ their target (the branch target shared by hours worked), up to 150%: points = min(reached, 150%) ÷ 150% × {{ weight('target') }}.</li>
+            <li><strong>Sales per hour, average sale, items per sale</strong> are compared with the team, up to 1.5 times it: points = min(theirs ÷ team, 1.5) ÷ 1.5 × weight.</li>
+            <li><strong>Discount rate and return rate</strong>, lower is better: points = (1 − theirs ÷ (2 × team)) × weight, never under 0.</li>
+            <li>Ranked with at least {{ SCORE_RULE.minInvoices }} invoices and {{ SCORE_RULE.minHours }} hours worked. A part with no data (no target, no hours) is left out and the score is out of the rest.</li>
+            <li>Grades: A from 85, B from 70, C from 55, D under 55.</li>
+          </ul>
+        </v-alert>
+      </v-card-text>
+      <PreparingState v-if="loading" kind="data" min-height="200px" title="Working out the scores" />
+      <v-data-table
+        v-else
+        class="performance-table"
+        data-test="score-table"
+        :headers="scoreHeaders"
+        :items="scorePeople"
+        :items-per-page="-1"
+        no-data-text="No salesperson activity found"
+        @click:row="openScoreFromTable"
+      >
+        <template #item.rank="{ item }">{{ item.rank ?? '' }}</template>
+        <template #item.employee="{ item }">
+          <div class="py-2">
+            <div class="font-weight-medium">{{ item.name }}</div>
+            <div class="text-caption text-medium-emphasis">{{ branchName(item.branchId) }}</div>
+          </div>
+        </template>
+        <template #item.score="{ item }">
+          <span v-if="item.score !== null" class="font-weight-bold" :class="gradeClass(item.grade)">
+            {{ item.score.toFixed(1) }} {{ item.grade }}
+          </span>
+          <span v-else class="text-caption text-medium-emphasis">{{ item.notRankedWhy }}</span>
+        </template>
+        <template #item.net="{ item }">{{ formatMoney(item.net) }}</template>
+        <template #item.target="{ item }">
+          <template v-if="item.target > 0">
+            {{ formatMoney(item.target) }}
+            <div class="text-caption text-medium-emphasis">{{ formatPercent(item.net / item.target) }} reached</div>
+          </template>
+          <span v-else class="text-medium-emphasis">None</span>
+        </template>
+        <template #item.hours="{ item }">{{ item.hours > 0 ? item.hours.toFixed(1) : '' }}</template>
+        <template #item.perHour="{ item }">{{ item.perHour === null ? '' : formatMoney(item.perHour) }}</template>
+        <template #item.avgSale="{ item }">{{ formatMoney(item.avgSale) }}</template>
+        <template #item.itemsPerSale="{ item }">{{ item.itemsPerSale.toFixed(2) }}</template>
+        <template #item.discountRate="{ item }">{{ formatPercent(item.discountRate) }}</template>
+        <template #item.returnRate="{ item }">{{ formatPercent(item.returnRate) }}</template>
+        <template #bottom />
+      </v-data-table>
+    </v-card>
+
+    <v-dialog v-model="scoreDialog" max-width="820">
+      <v-card v-if="scorePerson" data-test="score-dialog" rounded="lg">
+        <v-card-title class="d-flex align-center py-4">
+          <div>
+            <div>{{ scorePerson.name }}</div>
+            <div class="text-caption text-medium-emphasis">How the score was worked out</div>
+          </div>
+          <v-spacer />
+          <v-btn aria-label="Close" icon="mdi-close" variant="text" @click="scoreDialog = false" />
+        </v-card-title>
+        <v-divider />
+        <v-card-text>
+          <div class="score-facts text-body-2 mb-4" data-test="score-facts">
+            <div><span class="text-medium-emphasis">Sold</span> {{ formatMoney(scorePerson.sold) }}</div>
+            <div><span class="text-medium-emphasis">Came back</span> {{ formatMoney(scorePerson.returned) }}</div>
+            <div><span class="text-medium-emphasis">Net sales</span> {{ formatMoney(scorePerson.net) }}</div>
+            <div><span class="text-medium-emphasis">Invoices</span> {{ scorePerson.invoices }}</div>
+            <div><span class="text-medium-emphasis">Items</span> {{ scorePerson.units }}</div>
+            <div><span class="text-medium-emphasis">Hours</span> {{ scorePerson.hours.toFixed(1) }}</div>
+            <div><span class="text-medium-emphasis">Target</span> {{ scorePerson.target > 0 ? formatMoney(scorePerson.target) : 'None' }}</div>
+          </div>
+          <v-table density="compact">
+            <thead>
+              <tr><th>Part</th><th>Calculation</th><th class="text-end">Points</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="p in scorePerson.parts" :key="p.key" :data-test="`score-part-${p.key}`">
+                <td class="text-no-wrap">{{ p.label }}</td>
+                <td class="text-body-2">{{ explainPart(p, showPart) }}</td>
+                <td class="text-end text-no-wrap">{{ p.available ? `${p.points.toFixed(2)} of ${p.weight}` : '' }}</td>
+              </tr>
+            </tbody>
+          </v-table>
+          <p class="text-body-2 mt-4 mb-0" data-test="score-total">
+            <template v-if="scorePerson.score !== null">
+              {{ scorePerson.points.toFixed(2) }} points out of {{ scorePerson.outOf }},
+              so the score is {{ scorePerson.points.toFixed(2) }} ÷ {{ scorePerson.outOf }} × 100 =
+              <strong :class="gradeClass(scorePerson.grade)">{{ scorePerson.score.toFixed(1) }}, grade {{ scorePerson.grade }}</strong>
+            </template>
+            <template v-else>Not ranked: {{ scorePerson.notRankedWhy.toLowerCase() }} in this period.</template>
+          </p>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
     <v-dialog v-model="adjustmentsDialog" max-width="1100">
       <v-card class="adjustments-dialog-card" rounded="lg">
         <v-card-title class="d-flex align-center py-4">
@@ -268,14 +381,31 @@
 
 <script setup lang="ts">
   import { computed, onMounted, ref, watch } from 'vue'
+  import { buildPeople } from '@/components/reports/reportRows'
   import { authFetch } from '@/composables/useApi'
+  import { useAttendance } from '@/composables/useAttendance'
+  import { useAttendanceAutoOut } from '@/composables/useAttendanceAutoOut'
   import { useBranches } from '@/composables/useBranches'
+  import { useBranchSalespersons } from '@/composables/useBranchSalespersons'
   import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
+  import { buildTimesheet } from '@/utils/attendanceSessions'
   import { ymd } from '@/utils/dates'
+  import { explainPart, hoursFromTimesheet, SCORE_RULE, scoreSalespersons } from '@/utils/salespersonScore'
 
   const { branches, fetchBranches } = useBranches()
+  const { listEventsInRange } = useAttendance()
+  const { autoInMinutes, autoOutMinutes, ensureAutoDefaults } = useAttendanceAutoOut()
+  const { listBranchSalespersons } = useBranchSalespersons()
   const invoices = ref([])
+  // For the score: returns and exchanges, each branch's target for the
+  // period, the period's punches and the salespersons they belong to.
+  const returns = ref([])
+  const branchTargets = ref([])
+  const attendance = ref([])
+  const staff = ref([])
+  const scoreDialog = ref(false)
+  const scorePerson = ref(null)
   const loading = ref(false)
   const notify = useNotify()
   const branchId = ref(null)
@@ -451,6 +581,60 @@
     }).toSorted((a, b) => b.score - a.score)
   })
 
+  // The score's table: worked out over the chosen branch (the team is
+  // everyone ranked there), then narrowed to the chosen salesperson.
+  const inBranch = row => branchId.value == null || String(row.branch_id) === String(branchId.value)
+  const scoreHours = computed(() => {
+    const timesheet = buildTimesheet(attendance.value.filter(row => inBranch(row)), { autoIn: autoInMinutes.value, autoOut: autoOutMinutes.value })
+    const people = buildPeople({ staff: staff.value, timesheet })
+    return hoursFromTimesheet(timesheet, people.forAttendance)
+  })
+  const scoreResult = computed(() => scoreSalespersons({
+    invoices: invoices.value.filter(row => inBranch(row)),
+    returns: returns.value.filter(row => inBranch(row)),
+    branchTargets: branchTargets.value.filter(row => inBranch(row)),
+    hours: scoreHours.value,
+  }))
+  const scorePeople = computed(() => salespersonId.value
+    ? scoreResult.value.people.filter(p => p.key === salespersonId.value)
+    : scoreResult.value.people)
+  const rankedCount = computed(() => scorePeople.value.filter(p => p.score !== null).length)
+  const scoreHeaders = [
+    { title: '#', key: 'rank', align: 'start', width: 40 },
+    { title: 'Employee', key: 'employee', align: 'start' },
+    { title: 'Score', key: 'score', align: 'start' },
+    { title: 'Net sales', key: 'net', align: 'end' },
+    { title: 'Target', key: 'target', align: 'end' },
+    { title: 'Hours', key: 'hours', align: 'end' },
+    { title: 'Per hour', key: 'perHour', align: 'end' },
+    { title: 'Average sale', key: 'avgSale', align: 'end' },
+    { title: 'Items per sale', key: 'itemsPerSale', align: 'end' },
+    { title: 'Discount rate', key: 'discountRate', align: 'end' },
+    { title: 'Return rate', key: 'returnRate', align: 'end' },
+  ]
+  function weight (key) {
+    return SCORE_RULE.parts.find(p => p.key === key)?.weight ?? 0
+  }
+  function formatPercent (ratio) {
+    return `${((Number(ratio) || 0) * 100).toFixed(1)}%`
+  }
+  // A part's value in the calculation dialog.
+  function showPart (key, value) {
+    if (key === 'itemsPerSale') {return (Number(value) || 0).toFixed(2)}
+    if (key === 'discountRate' || key === 'returnRate') {return formatPercent(value)}
+    return formatMoney(value)
+  }
+  function gradeClass (g) {
+    return { A: 'text-success', B: 'text-primary', C: 'text-warning', D: 'text-error' }[g] ?? ''
+  }
+  function branchName (id) {
+    return branches.value.find(branch => String(branch.id) === String(id))?.name || ''
+  }
+  function openScoreFromTable (_event, row) {
+    scorePerson.value = row.item
+    scoreDialog.value = true
+  }
+
   const summaries = computed(() => [
     { label: 'Total sold amount', value: formatMoney(rankedRows.value.reduce((sum, row) => sum + row.totalAmount, 0)) },
     { label: 'Total invoices', value: rankedRows.value.reduce((sum, row) => sum + row.totalInvoices, 0).toLocaleString() },
@@ -517,11 +701,31 @@
       if (!response.ok) throw new Error(`Failed to load sales activity (${response.status})`)
       const data = await response.json()
       invoices.value = data?.invoices ?? []
+      returns.value = data?.returns ?? []
+      branchTargets.value = data?.branch_targets ?? []
     } catch (loadError) {
       notify.error(loadError.message || 'Failed to load salesperson performance.')
       invoices.value = []
+      returns.value = []
+      branchTargets.value = []
     } finally {
       loading.value = false
+    }
+    loadHours()
+  }
+
+  // Hours for the score, after the sales are on screen: the period's punches
+  // and each branch's salespersons, to tell whose they are. All time has no
+  // hours (the score leaves that part out).
+  async function loadHours () {
+    const { from, to } = periodBounds.value
+    try {
+      await ensureAutoDefaults()
+      attendance.value = from && to ? await listEventsInRange({ from, to }) : []
+      const ids = [...new Set([...invoices.value, ...attendance.value].map(r => r.branch_id))].slice(0, 30)
+      staff.value = (await Promise.all(ids.map(id => listBranchSalespersons(id).catch(() => [])))).flat()
+    } catch {
+      attendance.value = []
     }
   }
 
@@ -555,4 +759,7 @@
   .adjustments-dialog-content { flex: 1 1 auto; overflow-y: auto; }
   .rank { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: rgba(var(--v-theme-primary), .1); color: rgb(var(--v-theme-primary)); }
   .min-width-0 { min-width: 0; }
+  .formula-list { margin: 0; padding-inline-start: 18px; }
+  .formula-list li + li { margin-top: 2px; }
+  .score-facts { display: flex; flex-wrap: wrap; gap: 6px 20px; }
 </style>

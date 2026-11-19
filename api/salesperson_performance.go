@@ -27,6 +27,36 @@ type salespersonPerformanceInvoice struct {
 	Items []db.BranchInvoiceItem `json:"items"`
 }
 
+// A return or exchange, with the sale's salesperson it counts against.
+type salespersonPerformanceReturn struct {
+	db.SalespersonPerformanceReturnsRow
+	Items []db.BranchInvoiceItem `json:"items"`
+}
+
+// salespersonPerformanceTarget is a branch's target for the period: each
+// active target spread evenly over its days and the period's share of it,
+// as the Sales Analysis page counts it (targetShare).
+type salespersonPerformanceTarget struct {
+	BranchID int64 `json:"branch_id"`
+	Amount   int64 `json:"amount"`
+}
+
+// periodTargets is each branch's target for [from, to) (to exclusive).
+func periodTargets(rows []db.ReportTargetsInRangeRow, from, to time.Time) []salespersonPerformanceTarget {
+	out := []salespersonPerformanceTarget{}
+	seen := map[int64]bool{}
+	for _, r := range rows {
+		if seen[r.BranchID] {
+			continue
+		}
+		seen[r.BranchID] = true
+		if amount, ok := targetShare(rows, r.BranchID, from, to); ok {
+			out = append(out, salespersonPerformanceTarget{BranchID: r.BranchID, Amount: amount})
+		}
+	}
+	return out
+}
+
 func (r salespersonPerformanceRequest) bounds() (time.Time, time.Time, error) {
 	from := time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
 	to := time.Now().AddDate(1, 0, 0)
@@ -89,7 +119,62 @@ func (server *Server) getSalespersonPerformance(ctx *gin.Context) {
 		}
 		invoices[i] = salespersonPerformanceInvoice{SalespersonPerformanceInvoicesRow: row, Items: lines}
 	}
-	server.writeJSON(ctx, http.StatusOK, envelope{"invoices": invoices})
+
+	returnRows, err := server.store.SalespersonPerformanceReturns(ctx, db.SalespersonPerformanceReturnsParams{
+		FromAt: fromAt, ToAt: toAt, BranchID: req.BranchID,
+	})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	returnItems, err := server.store.SalespersonPerformanceReturnItems(ctx, db.SalespersonPerformanceReturnItemsParams{
+		FromAt: fromAt, ToAt: toAt, BranchID: req.BranchID,
+	})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	byReturn := make(map[int64][]db.BranchInvoiceItem, len(returnRows))
+	for _, item := range returnItems {
+		byReturn[item.BranchInvoiceID] = append(byReturn[item.BranchInvoiceID], item)
+	}
+	returns := make([]salespersonPerformanceReturn, len(returnRows))
+	for i, row := range returnRows {
+		lines := byReturn[row.ID]
+		if lines == nil {
+			lines = []db.BranchInvoiceItem{}
+		}
+		returns[i] = salespersonPerformanceReturn{SalespersonPerformanceReturnsRow: row, Items: lines}
+	}
+
+	// Targets by calendar day: the period's first day and the day after its
+	// last (toAt is the start of that day).
+	fromDay, endDay := dateOnly(fromAt.In(businessZone)), dateOnly(toAt.In(businessZone))
+	targetRows, err := server.store.ReportTargetsInRange(ctx, db.ReportTargetsInRangeParams{DateFrom: fromDay, DateTo: endDay})
+	if err != nil {
+		server.writeError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if req.BranchID != 0 {
+		kept := targetRows[:0]
+		for _, r := range targetRows {
+			if r.BranchID == req.BranchID {
+				kept = append(kept, r)
+			}
+		}
+		targetRows = kept
+	}
+
+	server.writeJSON(ctx, http.StatusOK, envelope{
+		"invoices":       invoices,
+		"returns":        returns,
+		"branch_targets": periodTargets(targetRows, fromDay, endDay),
+	})
+}
+
+// dateOnly is t's calendar day as a UTC midnight, how a date column binds.
+func dateOnly(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 }
 
 // branchInvoiceSalespersonsRequest is a till's one-time report of who made
