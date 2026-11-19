@@ -53,6 +53,7 @@ export const navSections = [
   {
     key: 'stock',
     title: 'Products and stock',
+    short: 'Products',
     icon: 'mdi-package-variant',
     items: [
       {
@@ -192,3 +193,9 @@ export function sectionForPath (sections, path) {
 export const navItems = navSections.map(s => ({ title: s.title, icon: s.icon, children: navPages(s) }))
 
 export const appendItems = []
+
+// railLabel is the word under a section's icon in the left rail: its short
+// name when its title is too long for the rail.
+export function railLabel (section) {
+  return section.short || section.title
+}

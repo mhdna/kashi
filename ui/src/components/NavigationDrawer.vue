@@ -15,6 +15,7 @@
         <v-tooltip
           v-for="section in sections"
           :key="section.key"
+          :disabled="railLabel(section) === section.title"
           location="end"
           :text="section.title"
         >
@@ -29,7 +30,8 @@
               type="button"
               @click="openSection(section.key)"
             >
-              <v-icon :icon="section.icon" />
+              <v-icon :icon="section.icon" size="22" />
+              <span class="nav-rail-label" :data-test="`rail-label-${section.key}`">{{ railLabel(section) }}</span>
               <span v-if="needsAttention(section)" class="nav-rail-dot" :data-test="`rail-dot-${section.key}`" />
             </button>
           </template>
@@ -78,7 +80,7 @@
   import { useSecurityAlerts } from '@/composables/useSecurityAlerts'
   import { useStockHealth } from '@/composables/useStockHealth'
   import { useWhatsAppFailures } from '@/composables/useWhatsAppFailures'
-  import { navPages, sectionForPath } from '@/data/navItems'
+  import { navPages, railLabel, sectionForPath } from '@/data/navItems'
   import { useAuthStore } from '@/stores/auth'
 
   const props = defineProps({
@@ -106,7 +108,7 @@
     if (props.rail) {emit('update:rail', false)}
   }
 
-  const RAIL_WIDTH = 64
+  const RAIL_WIDTH = 84
   const drawerWidth = computed(() => (props.rail ? RAIL_WIDTH : RAIL_WIDTH + 236))
 
   // Real counts backing the Alerts nav badges, shown separately: red for
@@ -256,7 +258,7 @@
   height: 100%;
 }
 .nav-rail {
-  flex: 0 0 64px;
+  flex: 0 0 84px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -267,11 +269,14 @@
 }
 .nav-rail-btn {
   position: relative;
-  width: 48px;
-  height: 44px;
+  width: 76px;
+  min-height: 54px;
+  padding: 6px 2px 5px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 3px;
   border: 0;
   border-radius: 8px;
   background: transparent;
@@ -289,17 +294,27 @@
 .nav-rail-btn--open::before {
   content: '';
   position: absolute;
-  left: -8px;
+  left: -4px;
   top: 8px;
   bottom: 8px;
   width: 3px;
   border-radius: 2px;
   background: rgb(var(--v-theme-primary));
 }
+.nav-rail-label {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.15;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .nav-rail-dot {
   position: absolute;
-  top: 8px;
-  right: 10px;
+  top: 6px;
+  right: 20px;
   width: 8px;
   height: 8px;
   border-radius: 50%;

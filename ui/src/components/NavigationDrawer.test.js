@@ -62,6 +62,18 @@ describe('NavigationDrawer', () => {
     expect(find('rail-design').attributes('aria-current')).toBe('true')
   })
 
+  it('every rail icon says its section in words, short enough for the rail', async () => {
+    await open('/')
+    const labels = navSections.map(s => find(`rail-label-${s.key}`).text())
+    expect(labels).toEqual(['Overview', 'Sales', 'Customers', 'Products', 'Money', 'Analysis', 'People', 'Branches', 'Design', 'System'])
+    for (const label of labels) {
+      expect(label.length, label).toBeLessThanOrEqual(10)
+      expect(label).not.toMatch(/[—–·•]/)
+    }
+    // The full name stays for screen readers.
+    expect(find('rail-stock').attributes('aria-label')).toBe('Products and stock')
+  })
+
   it('a click on a section shows its pages, with their headings', async () => {
     await open('/')
     await find('rail-stock').trigger('click')
