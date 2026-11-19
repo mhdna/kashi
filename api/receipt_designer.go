@@ -88,6 +88,7 @@ func (server *Server) getReceiptDesignerPreview(ctx *gin.Context) {
 	}
 	if program, err := server.store.GetReferralProgram(ctx); err == nil {
 		in.ReferralPercent = int64(program.RewardPercent)
+		in.ReferralRewardTo = program.RewardTo
 	}
 	out, err := receiptrender.RenderDesignerPreview(in)
 	if err != nil {
