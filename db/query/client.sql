@@ -732,8 +732,29 @@ WHERE id = ANY(sqlc.arg(ids)::bigint[]) AND client_hidden_branch_only(id);
 -- name: ListWithheldClientUIDs :many
 -- Of these uids, the clients withheld from visible tills: the completeness
 -- check must not list them, or a till would fetch what the pull leaves out.
-SELECT uid FROM clients
-WHERE uid = ANY(sqlc.arg(uids)::uuid[]) AND client_withheld_from_visible(id);
+-- It is client_withheld_from_visible written out as joins over the whole
+-- page: calling the function once per client took ~6s for a page of 5000,
+-- past a till's 10s timeout under load, so the check never finished.
+-- TestWithheldClientUIDsMatchesFunction keeps the two the same.
+SELECT c.uid FROM clients c
+WHERE c.uid = ANY(sqlc.arg(uids)::uuid[])
+  -- some hidden branch has it (link or home branch) ...
+  AND (
+    EXISTS (SELECT 1 FROM client_links cl JOIN branches b ON b.id = cl.branch_id
+            WHERE cl.client_id = c.id AND b.hidden_from_reports)
+    OR EXISTS (SELECT 1 FROM branches b WHERE b.id = c.branch_id AND b.hidden_from_reports)
+  )
+  -- ... and no visible one does: home branch, link or a live sale ...
+  AND NOT EXISTS (SELECT 1 FROM branches b WHERE b.id = c.branch_id AND NOT b.hidden_from_reports)
+  AND NOT EXISTS (SELECT 1 FROM client_links cl JOIN branches b ON b.id = cl.branch_id
+                  WHERE cl.client_id = c.id AND NOT b.hidden_from_reports)
+  AND NOT EXISTS (SELECT 1 FROM branch_invoices bi JOIN branches b ON b.id = bi.branch_id
+                  WHERE bi.client_uid = c.uid AND bi.cancelled_at IS NULL AND NOT b.hidden_from_reports)
+  -- ... and it isn't older than a hidden branch that has it.
+  AND NOT EXISTS (SELECT 1 FROM branches b
+                  WHERE b.hidden_from_reports
+                    AND (b.id = c.branch_id OR EXISTS (SELECT 1 FROM client_links cl WHERE cl.client_id = c.id AND cl.branch_id = b.id))
+                    AND (b.hidden_since IS NULL OR c.created_at < b.hidden_since));
 
 -- name: ListBranchHiddenOnlyClientIDs :many
 -- The clients this branch made or sold to that no visible branch has: the

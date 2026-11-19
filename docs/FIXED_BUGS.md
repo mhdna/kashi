@@ -3,6 +3,14 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-19: Centro's till couldn't finish fetching customer codes
+
+**Symptom:** after the till update meant to fetch older customers' referral codes, reprints at Centro still printed no code.
+
+**Cause:** the till's completeness check pages through every customer, and kashi took 6 to 15 seconds a page to answer because it checked "withheld from visible tills" one customer at a time. Past the till's 10-second timeout the check gave up and restarted, never reaching the customers to fetch.
+
+**Fix:** the withheld rule runs as one set-based query per page, about 20 times faster (`db/query/client.sql`, `ListWithheldClientUIDs`). Test: `TestWithheldClientUIDsMatchesFunction` in `db/sqlc/hidden_branch_clients_test.go`.
+
 ## 2026-11-19: The Receipt Designer's tabs were cut in half
 
 **Symptom:** the Receipt, Banners and Shop details tabs showed only the top half of their words.

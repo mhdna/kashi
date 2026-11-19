@@ -1610,6 +1610,10 @@ type Querier interface {
 	ListWhatsAppRules(ctx context.Context) ([]WhatsappRule, error)
 	// Of these uids, the clients withheld from visible tills: the completeness
 	// check must not list them, or a till would fetch what the pull leaves out.
+	// It is client_withheld_from_visible written out as joins over the whole
+	// page: calling the function once per client took ~6s for a page of 5000,
+	// past a till's 10s timeout under load, so the check never finished.
+	// TestWithheldClientUIDsMatchesFunction keeps the two the same.
 	ListWithheldClientUIDs(ctx context.Context, uids []uuid.UUID) ([]uuid.UUID, error)
 	// Clients who answered 1 or 2 stars, newest first: the ones to call back.
 	LowPollRatings(ctx context.Context, arg LowPollRatingsParams) ([]LowPollRatingsRow, error)
