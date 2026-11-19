@@ -75,6 +75,7 @@ const (
 	referralRefusedReferred   = "The customer was already sent by someone"
 	referralRefusedMinSpend   = "The sale was under the minimum"
 	referralRefusedMonthlyCap = "The owner reached this month's limit"
+	referralRefusedCodeUsed   = "The code was already used"
 )
 
 // referralFacts is what deciding a referral needs to know.
@@ -88,6 +89,8 @@ type referralFacts struct {
 	FriendAlreadyReferred bool
 	SaleTotal             int64
 	OwnerRewardsThisMonth int64
+	// OwnerCodeUsed: a friend already used this code (a code is good once).
+	OwnerCodeUsed bool
 }
 
 // decideReferral says whether a friend's sale earns the owner a reward: ""
@@ -108,6 +111,8 @@ func decideReferral(f referralFacts) string {
 		return referralRefusedNotNew
 	case f.FriendAlreadyReferred:
 		return referralRefusedReferred
+	case f.OwnerCodeUsed:
+		return referralRefusedCodeUsed
 	case f.SaleTotal < f.Program.MinFriendSpend || f.SaleTotal <= 0:
 		return referralRefusedMinSpend
 	case f.Program.MaxRewardsPerMonth > 0 && f.OwnerRewardsThisMonth >= int64(f.Program.MaxRewardsPerMonth):
@@ -235,6 +240,13 @@ func (server *Server) recordReferral(ctx context.Context, branchID int64, invoic
 		if facts.FriendAlreadyReferred, err = server.store.FriendAlreadyReferred(ctx, facts.FriendUID.UUID); err != nil {
 			return false, err
 		}
+		used, err := server.store.CountOwnerRewardsSince(ctx, db.CountOwnerRewardsSinceParams{
+			OwnerClientID: sql.NullInt64{Int64: owner.ID, Valid: true}, CreatedAt: time.Time{},
+		})
+		if err != nil {
+			return false, err
+		}
+		facts.OwnerCodeUsed = used > 0
 		if facts.OwnerRewardsThisMonth, err = server.store.CountOwnerRewardsSince(ctx, db.CountOwnerRewardsSinceParams{
 			OwnerClientID: sql.NullInt64{Int64: owner.ID, Valid: true}, CreatedAt: monthStart(time.Now()),
 		}); err != nil {

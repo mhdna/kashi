@@ -331,7 +331,7 @@ func TestReferralFlow(t *testing.T) {
 	// Under the minimum.
 	setProgram(db.UpdateReferralProgramParams{Enabled: true, RewardPercent: 15, MinFriendSpend: 3000, CancelOnReturn: true})
 	small := newClient("Small")
-	_, smallSale := sell(&small, 2999, map[string]any{"referral_code": owner.code})
+	_, smallSale := sell(&small, 2999, map[string]any{"referral_code": newClient("Owner small").code})
 	require.Equal(t, referralRefusedMinSpend, referralOf(smallSale).RefuseReason)
 	// Refused rewards never reach a till.
 	require.NoError(t, json.Unmarshal(feed("referral_rewards", start), &rewards))
@@ -344,9 +344,10 @@ func TestReferralFlow(t *testing.T) {
 	keeper, returner, canceller := newClient("Keeper"), newClient("Returner"), newClient("Canceller")
 	// A code refused (a second sale, own code, typo, walk-in, too small) tells no one.
 	require.Len(t, notified, toldBefore)
-	keepRef, keepSale := sell(&keeper, 5000, map[string]any{"referral_code": owner.code})
-	retRef, retSale := sell(&returner, 5000, map[string]any{"referral_code": owner.code})
-	canRef, canSale := sell(&canceller, 5000, map[string]any{"referral_code": owner.code})
+	// A code is good once: each friend here brings their own owner's code.
+	keepRef, keepSale := sell(&keeper, 5000, map[string]any{"referral_code": newClient("Owner keep").code})
+	retRef, retSale := sell(&returner, 5000, map[string]any{"referral_code": newClient("Owner return").code})
+	canRef, canSale := sell(&canceller, 5000, map[string]any{"referral_code": newClient("Owner cancel").code})
 	refund(keepRef, 1000, false) // $40 kept: still over $30
 	refund(retRef, 2500, false)  // $25 kept: under $30
 	refund(canRef, 5000, true)
@@ -380,7 +381,8 @@ func TestReferralFlow(t *testing.T) {
 	require.EqualValues(t, 20, first.Percent)
 	require.WithinDuration(t, time.Now().AddDate(0, 0, 2), first.AvailableAt.Time, time.Minute)
 	require.WithinDuration(t, time.Now().AddDate(0, 0, 32), first.ExpiresAt.Time, time.Minute)
-	require.Equal(t, referralRefusedMonthlyCap, referralOf(s2).RefuseReason)
+	// The same code a second time: a code is good once.
+	require.Equal(t, referralRefusedCodeUsed, referralOf(s2).RefuseReason)
 
 	// 7. Off: nothing is earned.
 	setProgram(db.UpdateReferralProgramParams{Enabled: false, RewardPercent: 15})
@@ -409,12 +411,13 @@ func TestReferralFlow(t *testing.T) {
 	require.Equal(t, referralRewardFriend, programFeed.Items[0].RewardTo, "tills hear who is rewarded")
 	require.EqualValues(t, 10, programFeed.Items[0].FriendPercent)
 	newcomer2 := newClient("Nadia")
-	_, nSale := sell(&newcomer2, 5000, map[string]any{"referral_code": owner.code})
+	nOwner := newClient("Owner N")
+	_, nSale := sell(&newcomer2, 5000, map[string]any{"referral_code": nOwner.code})
 	nr := referralOf(nSale)
 	require.Equal(t, referralStatusFriend, nr.Status, nr.RefuseReason)
 	require.EqualValues(t, 10, nr.Percent)
 	require.Len(t, notified, told, "the owner isn't told of a reward they don't get")
-	_, nAgain := sell(&newcomer2, 5000, map[string]any{"referral_code": owner.code})
+	_, nAgain := sell(&newcomer2, 5000, map[string]any{"referral_code": nOwner.code})
 	require.Equal(t, "refused", referralOf(nAgain).Status, "a friend is referred once")
 
 	// 10. Both: the owner's reward as before, the friend had theirs at the till.
@@ -426,12 +429,10 @@ func TestReferralFlow(t *testing.T) {
 	require.Equal(t, "available", both.Status)
 	require.EqualValues(t, 15, both.Percent, "the owner's percent")
 	require.Len(t, notified, told+1)
-	// Past the owner's monthly limit the owner gets no more, but the
-	// friend's discount at the till still counts.
+	// The reported case: the code was used once, so a second friend's sale
+	// with it earns nothing (and the till stops printing it).
 	_, b2 := sell(&fr2, 5000, map[string]any{"referral_code": sharer.code})
-	capped2 := referralOf(b2)
-	require.Equal(t, referralStatusFriend, capped2.Status)
-	require.EqualValues(t, 10, capped2.Percent)
+	require.Equal(t, referralRefusedCodeUsed, referralOf(b2).RefuseReason)
 	require.Len(t, notified, told+1)
 }
 
