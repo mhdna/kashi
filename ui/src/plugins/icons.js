@@ -175,6 +175,7 @@ import {
   mdiImageEditOutline,
   mdiImageMultipleOutline,
   mdiInformation,
+  mdiInvertColors,
   mdiInvoice,
   mdiKey,
   mdiKeyboardReturn,
@@ -321,6 +322,7 @@ import { h } from 'vue'
 
 const iconPaths = {
   'mdi-account-heart-outline': mdiAccountHeartOutline,
+  'mdi-invert-colors': mdiInvertColors,
   'mdi-palette-outline': mdiPaletteOutline,
   'mdi-account-clock-outline': mdiAccountClockOutline,
   'mdi-filter-remove-outline': mdiFilterRemoveOutline,

@@ -98,6 +98,18 @@
         <v-btn v-for="o in langOptions" :key="o.value" size="small" :value="o.value">{{ o.title }}</v-btn>
       </v-btn-toggle>
       <v-btn
+        v-if="can(catalog, info, 'dark')"
+        :aria-pressed="isDark(design, info)"
+        :color="isDark(design, info) ? 'primary' : undefined"
+        data-test="line-dark"
+        density="comfortable"
+        prepend-icon="mdi-invert-colors"
+        size="small"
+        :text="isDark(design, info) ? 'White on black' : 'On black'"
+        :variant="isDark(design, info) ? 'flat' : 'text'"
+        @click="update(setDark(design, info, !isDark(design, info)))"
+      />
+      <v-btn
         v-if="can(catalog, info, 'hide')"
         :aria-label="el.hide ? 'Print it' : 'Leave it out'"
         data-test="line-hide"
@@ -120,13 +132,13 @@
   import { computed } from 'vue'
   import ReceiptFontSelect from '@/components/Receipt/ReceiptFontSelect.vue'
   import SizeStepper from '@/components/Receipt/SizeStepper.vue'
-  import { boldState, can, isElementChanged, langOptions, resetElement, setBold, setElement, sizeStep } from '@/utils/receiptDesign'
+  import { boldState, can, isDark, isElementChanged, langOptions, resetElement, setBold, setDark, setElement, sizeStep } from '@/utils/receiptDesign'
 
   const props = defineProps<{
     catalog: Record<string, any>
     design: Record<string, any>
     // The line's catalog entry.
-    info: { key: string, label: string, default?: string, ar_default?: string, can: number }
+    info: { key: string, label: string, default?: string, ar_default?: string, dark_default?: boolean, can: number }
   }>()
   const emit = defineEmits<{ 'update:design': [design: Record<string, any>], close: [] }>()
 

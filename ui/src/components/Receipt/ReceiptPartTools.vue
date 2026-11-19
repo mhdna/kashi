@@ -148,6 +148,18 @@
       </v-btn-toggle>
       <v-btn-toggle
         color="primary"
+        data-test="group-dark"
+        density="compact"
+        divided
+        :model-value="groupDarkState(design, group)"
+        variant="outlined"
+        @update:model-value="v => update(setGroupDark(design, group, v))"
+      >
+        <v-btn size="small" title="Every line white on black" value="dark">On black</v-btn>
+        <v-btn size="small" title="Every line on white" value="light">On white</v-btn>
+      </v-btn-toggle>
+      <v-btn-toggle
+        color="primary"
         data-test="group-lang"
         density="compact"
         divided
@@ -238,8 +250,8 @@
   import ReceiptFontSelect from '@/components/Receipt/ReceiptFontSelect.vue'
   import SizeStepper from '@/components/Receipt/SizeStepper.vue'
   import {
-    footerOrder, groupBoldState, groupInfo, groupSizeStep, isGroupChanged, isPartPrinted, isSectionHidden, langOptions, lineStyleOptions,
-    moveSection, partsOf, resetGroup, setDecor, setGroup, setGroupBold, setPartPrinted, toggleSection,
+    footerOrder, groupBoldState, groupDarkState, groupInfo, groupSizeStep, isGroupChanged, isPartPrinted, isSectionHidden, langOptions, lineStyleOptions, moveSection,
+    partsOf, resetGroup, setDecor, setGroup, setGroupBold, setGroupDark, setPartPrinted, toggleSection,
   } from '@/utils/receiptDesign'
 
   const props = defineProps<{
