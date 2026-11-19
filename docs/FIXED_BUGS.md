@@ -3,6 +3,14 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-19: Words typed over a receipt line were lost when clicking away
+
+**Symptom:** in the Receipt Designer, cutting part of the policy line and clicking outside it left the receipt as it was; the box stayed open with the old words.
+
+**Cause:** the words were saved only when the typing box lost focus; a click that doesn't move the focus (on the page around the receipt, say) left it open and unsaved, and closing the toolbar threw the words away.
+
+**Fix:** a click anywhere outside the box saves the words, and closing the toolbar saves them too; only Esc drops them (`ui/src/components/Receipt/ReceiptLivePaper.vue`). Tests: "cut part of the policy, click anywhere outside, and it is kept" and "closing the toolbar keeps typed words; Esc drops them" in `ReceiptLivePaper.test.js`.
+
 ## 2026-11-19: The Receipt Designer showed a blank design for "All branches"
 
 **Symptom:** with "Apply to: All branches", the designer showed the plain receipt, none of what the branches had (their Arabic lines, banners), so it looked as if nothing had been applied. Each deal also showed twice in the views when two branches had one with the same name.

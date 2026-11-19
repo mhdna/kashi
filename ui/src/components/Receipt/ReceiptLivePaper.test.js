@@ -148,4 +148,39 @@ describe('ReceiptLivePaper', () => {
     await box.trigger('keydown.enter')
     expect(wrapper.props('design').elements.thanks).toEqual({ text_ar: 'شكرا كتير!' })
   })
+
+  it('the reported case: cut part of the policy, click anywhere outside, and it is kept', async () => {
+    open()
+    await find('words-policy_text').trigger('click')
+    const box = find('edit-words')
+    box.element.value = 'Exchanges accepted.'
+    await box.trigger('input')
+    // A click outside the box that doesn't take the focus away.
+    document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    await flushPromises()
+    expect(wrapper.props('design').elements.policy_text).toEqual({ text: 'Exchanges accepted.' })
+    expect(find('edit-words').exists()).toBe(false)
+  })
+
+  it('closing the toolbar keeps typed words; Esc drops them', async () => {
+    open()
+    await find('words-payments_title').trigger('click')
+    await find('edit-words').setValue('PAID WITH')
+    await find('line-close').trigger('click')
+    expect(wrapper.props('design').elements.payments_title).toEqual({ text: 'PAID WITH' })
+    await find('words-policy_text').trigger('click')
+    await find('edit-words').setValue('Nothing')
+    await find('edit-words').trigger('keydown', { key: 'Escape' })
+    document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    await flushPromises()
+    expect(wrapper.props('design').elements.policy_text).toBeUndefined()
+  })
+
+  it('a click inside the box keeps it open', async () => {
+    open()
+    await find('words-policy_text').trigger('click')
+    find('edit-words').element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    await flushPromises()
+    expect(find('edit-words').exists()).toBe(true)
+  })
 })

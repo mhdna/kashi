@@ -46,7 +46,7 @@
         />
       </template>
 
-      <div v-if="line && typing" class="rlive-edit" :style="lineStyle(line)">
+      <div v-if="line && typing" ref="editBox" class="rlive-edit" :style="lineStyle(line)">
         <textarea
           v-if="multiline(line.key)"
           ref="editor"
@@ -102,7 +102,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, inject, nextTick, ref, watch } from 'vue'
+  import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
   import ReceiptLineTools from '@/components/Receipt/ReceiptLineTools.vue'
   import ReceiptPartTools from '@/components/Receipt/ReceiptPartTools.vue'
   import { can, setElement } from '@/utils/receiptDesign'
@@ -137,6 +137,24 @@
   const typing = ref(false)
   const draft = ref('')
   const editor = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
+  const editBox = ref<HTMLElement | null>(null)
+
+  // Typed words are kept however the box is left: a click anywhere outside
+  // it saves them (not every click moves the focus away), as does closing the
+  // toolbar. Only Esc drops them.
+  function onPointerDownOutside (event: PointerEvent | MouseEvent) {
+    if (!typing.value || !editBox.value) {return}
+    if (event.target instanceof Node && editBox.value.contains(event.target)) {return}
+    commit()
+  }
+  onMounted(() => {
+    document.addEventListener('pointerdown', onPointerDownOutside, true)
+    document.addEventListener('mousedown', onPointerDownOutside, true)
+  })
+  onBeforeUnmount(() => {
+    document.removeEventListener('pointerdown', onPointerDownOutside, true)
+    document.removeEventListener('mousedown', onPointerDownOutside, true)
+  })
 
   const groups = computed(() => props.catalog?.groups ?? [])
   function groupLabel (key: string) {
@@ -244,6 +262,7 @@
   }
 
   function close () {
+    commit()
     line.value = null
     typing.value = false
     emit('pick', '')
