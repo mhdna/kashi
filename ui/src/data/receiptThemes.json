@@ -37,7 +37,7 @@
             {
               "mode": "sale",
               "file": "classic-A.png",
-              "version": "4d8cc66366",
+              "version": "34490bc546",
               "width": 576,
               "height": 2158,
               "parts": [
@@ -128,7 +128,7 @@
                   "top": 295,
                   "bottom": 326,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "cascadia-mono"
                 },
@@ -495,7 +495,7 @@
             {
               "mode": "referral",
               "file": "classic-A-referral.png",
-              "version": "a17cfc1fed",
+              "version": "ddf6eb99f0",
               "width": 576,
               "height": 2323,
               "parts": [
@@ -586,7 +586,7 @@
                   "top": 295,
                   "bottom": 326,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "cascadia-mono"
                 },
@@ -1015,7 +1015,7 @@
             {
               "mode": "client",
               "file": "classic-A-client.png",
-              "version": "a0a3aeda48",
+              "version": "e0b4711f06",
               "width": 576,
               "height": 2158,
               "parts": [
@@ -1106,7 +1106,7 @@
                   "top": 295,
                   "bottom": 326,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "cascadia-mono"
                 },
@@ -1473,7 +1473,7 @@
             {
               "mode": "exchange",
               "file": "classic-A-exchange.png",
-              "version": "3f02fd059a",
+              "version": "738adf30f6",
               "width": 576,
               "height": 1326,
               "parts": [
@@ -1564,7 +1564,7 @@
                   "top": 295,
                   "bottom": 326,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "cascadia-mono"
                 },
@@ -1906,7 +1906,7 @@
             {
               "mode": "return",
               "file": "classic-A-return.png",
-              "version": "7daa3f0fa1",
+              "version": "71fbcb8444",
               "width": 576,
               "height": 1253,
               "parts": [
@@ -1997,7 +1997,7 @@
                   "top": 295,
                   "bottom": 326,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "cascadia-mono"
                 },
@@ -2334,7 +2334,7 @@
             {
               "mode": "sale",
               "file": "classic-B.png",
-              "version": "6238552689",
+              "version": "d6adcd5faa",
               "width": 576,
               "height": 2374,
               "parts": [
@@ -2425,7 +2425,7 @@
                   "top": 295,
                   "bottom": 326,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "cascadia-mono"
                 },
@@ -2792,7 +2792,7 @@
             {
               "mode": "referral",
               "file": "classic-B-referral.png",
-              "version": "122ebb96c8",
+              "version": "24ecaf1d72",
               "width": 576,
               "height": 2539,
               "parts": [
@@ -2883,7 +2883,7 @@
                   "top": 295,
                   "bottom": 326,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "cascadia-mono"
                 },
@@ -3312,7 +3312,7 @@
             {
               "mode": "client",
               "file": "classic-B-client.png",
-              "version": "5a2937beba",
+              "version": "14231b652f",
               "width": 576,
               "height": 2374,
               "parts": [
@@ -3403,7 +3403,7 @@
                   "top": 295,
                   "bottom": 326,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "cascadia-mono"
                 },
@@ -3770,7 +3770,7 @@
             {
               "mode": "exchange",
               "file": "classic-B-exchange.png",
-              "version": "43023f1edc",
+              "version": "2c933f7b83",
               "width": 576,
               "height": 1432,
               "parts": [
@@ -3861,7 +3861,7 @@
                   "top": 295,
                   "bottom": 326,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "cascadia-mono"
                 },
@@ -4203,7 +4203,7 @@
             {
               "mode": "return",
               "file": "classic-B-return.png",
-              "version": "0616f9f116",
+              "version": "0c59f136a5",
               "width": 576,
               "height": 1325,
               "parts": [
@@ -4294,7 +4294,7 @@
                   "top": 295,
                   "bottom": 326,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "cascadia-mono"
                 },
@@ -4631,7 +4631,7 @@
             {
               "mode": "sale",
               "file": "classic-C.png",
-              "version": "5f68b93807",
+              "version": "c59c658227",
               "width": 576,
               "height": 2254,
               "parts": [
@@ -4722,7 +4722,7 @@
                   "top": 295,
                   "bottom": 326,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "cascadia-mono"
                 },
@@ -5063,7 +5063,7 @@
             {
               "mode": "referral",
               "file": "classic-C-referral.png",
-              "version": "6e5ff7dd0d",
+              "version": "4480003c69",
               "width": 576,
               "height": 2419,
               "parts": [
@@ -5154,7 +5154,7 @@
                   "top": 295,
                   "bottom": 326,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "cascadia-mono"
                 },
@@ -5557,7 +5557,7 @@
             {
               "mode": "client",
               "file": "classic-C-client.png",
-              "version": "ad24c41de4",
+              "version": "ae627b3cec",
               "width": 576,
               "height": 2254,
               "parts": [
@@ -5648,7 +5648,7 @@
                   "top": 295,
                   "bottom": 326,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "cascadia-mono"
                 },
@@ -5989,7 +5989,7 @@
             {
               "mode": "exchange",
               "file": "classic-C-exchange.png",
-              "version": "feb83b6ab0",
+              "version": "a657d8fdd2",
               "width": 576,
               "height": 1362,
               "parts": [
@@ -6080,7 +6080,7 @@
                   "top": 295,
                   "bottom": 326,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "cascadia-mono"
                 },
@@ -6396,7 +6396,7 @@
             {
               "mode": "return",
               "file": "classic-C-return.png",
-              "version": "f61b477514",
+              "version": "134d1d797a",
               "width": 576,
               "height": 1287,
               "parts": [
@@ -6487,7 +6487,7 @@
                   "top": 295,
                   "bottom": 326,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "cascadia-mono"
                 },
@@ -6806,7 +6806,7 @@
             {
               "mode": "sale",
               "file": "supermarket-A.png",
-              "version": "87526a1d92",
+              "version": "19744afdd6",
               "width": 576,
               "height": 1985,
               "parts": [
@@ -6900,7 +6900,7 @@
                   "top": 234,
                   "bottom": 264,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 22.36,
                   "font": "plex-mono"
                 },
@@ -7265,7 +7265,7 @@
             {
               "mode": "referral",
               "file": "supermarket-A-referral.png",
-              "version": "0c8ff6e94d",
+              "version": "646ff2cf80",
               "width": 576,
               "height": 2127,
               "parts": [
@@ -7359,7 +7359,7 @@
                   "top": 234,
                   "bottom": 264,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 22.36,
                   "font": "plex-mono"
                 },
@@ -7786,7 +7786,7 @@
             {
               "mode": "client",
               "file": "supermarket-A-client.png",
-              "version": "6d66891d1e",
+              "version": "f31ce17cca",
               "width": 576,
               "height": 1985,
               "parts": [
@@ -7880,7 +7880,7 @@
                   "top": 234,
                   "bottom": 264,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 22.36,
                   "font": "plex-mono"
                 },
@@ -8245,7 +8245,7 @@
             {
               "mode": "exchange",
               "file": "supermarket-A-exchange.png",
-              "version": "92f666608c",
+              "version": "7fa986bd14",
               "width": 576,
               "height": 1156,
               "parts": [
@@ -8339,7 +8339,7 @@
                   "top": 234,
                   "bottom": 264,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 22.36,
                   "font": "plex-mono"
                 },
@@ -8667,7 +8667,7 @@
             {
               "mode": "return",
               "file": "supermarket-A-return.png",
-              "version": "d98d1afe57",
+              "version": "65e27e1d05",
               "width": 576,
               "height": 1118,
               "parts": [
@@ -8761,7 +8761,7 @@
                   "top": 234,
                   "bottom": 264,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 22.36,
                   "font": "plex-mono"
                 },
@@ -9084,7 +9084,7 @@
             {
               "mode": "sale",
               "file": "supermarket-B.png",
-              "version": "58a8671d1a",
+              "version": "4912d50bfe",
               "width": 576,
               "height": 1915,
               "parts": [
@@ -9178,7 +9178,7 @@
                   "top": 234,
                   "bottom": 264,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 22.36,
                   "font": "plex-mono"
                 },
@@ -9556,7 +9556,7 @@
             {
               "mode": "referral",
               "file": "supermarket-B-referral.png",
-              "version": "d10f142fb2",
+              "version": "fcbcf3630b",
               "width": 576,
               "height": 2057,
               "parts": [
@@ -9650,7 +9650,7 @@
                   "top": 234,
                   "bottom": 264,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 22.36,
                   "font": "plex-mono"
                 },
@@ -10090,7 +10090,7 @@
             {
               "mode": "client",
               "file": "supermarket-B-client.png",
-              "version": "93dd0718cd",
+              "version": "64ccb55fe1",
               "width": 576,
               "height": 1915,
               "parts": [
@@ -10184,7 +10184,7 @@
                   "top": 234,
                   "bottom": 264,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 22.36,
                   "font": "plex-mono"
                 },
@@ -10562,7 +10562,7 @@
             {
               "mode": "exchange",
               "file": "supermarket-B-exchange.png",
-              "version": "aca2ed3111",
+              "version": "b6b1d57d83",
               "width": 576,
               "height": 1156,
               "parts": [
@@ -10656,7 +10656,7 @@
                   "top": 234,
                   "bottom": 264,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 22.36,
                   "font": "plex-mono"
                 },
@@ -10997,7 +10997,7 @@
             {
               "mode": "return",
               "file": "supermarket-B-return.png",
-              "version": "de18f37f7f",
+              "version": "9cf0113e70",
               "width": 576,
               "height": 1083,
               "parts": [
@@ -11091,7 +11091,7 @@
                   "top": 234,
                   "bottom": 264,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 22.36,
                   "font": "plex-mono"
                 },
@@ -11427,7 +11427,7 @@
             {
               "mode": "sale",
               "file": "supermarket-C.png",
-              "version": "729acf7ac3",
+              "version": "c2ff6d1499",
               "width": 576,
               "height": 1810,
               "parts": [
@@ -11521,7 +11521,7 @@
                   "top": 234,
                   "bottom": 264,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 22.36,
                   "font": "plex-mono"
                 },
@@ -11886,7 +11886,7 @@
             {
               "mode": "referral",
               "file": "supermarket-C-referral.png",
-              "version": "d015b90d23",
+              "version": "d77cd1f488",
               "width": 576,
               "height": 1952,
               "parts": [
@@ -11980,7 +11980,7 @@
                   "top": 234,
                   "bottom": 264,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 22.36,
                   "font": "plex-mono"
                 },
@@ -12407,7 +12407,7 @@
             {
               "mode": "client",
               "file": "supermarket-C-client.png",
-              "version": "6592fc8cdf",
+              "version": "e94677ae4d",
               "width": 576,
               "height": 1810,
               "parts": [
@@ -12501,7 +12501,7 @@
                   "top": 234,
                   "bottom": 264,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 22.36,
                   "font": "plex-mono"
                 },
@@ -12866,7 +12866,7 @@
             {
               "mode": "exchange",
               "file": "supermarket-C-exchange.png",
-              "version": "509ab76fdc",
+              "version": "14a42828e2",
               "width": 576,
               "height": 1121,
               "parts": [
@@ -12960,7 +12960,7 @@
                   "top": 234,
                   "bottom": 264,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 22.36,
                   "font": "plex-mono"
                 },
@@ -13288,7 +13288,7 @@
             {
               "mode": "return",
               "file": "supermarket-C-return.png",
-              "version": "2cf53bf989",
+              "version": "81a799c674",
               "width": 576,
               "height": 1048,
               "parts": [
@@ -13382,7 +13382,7 @@
                   "top": 234,
                   "bottom": 264,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 22.36,
                   "font": "plex-mono"
                 },
@@ -13713,7 +13713,7 @@
             {
               "mode": "sale",
               "file": "boutique-A.png",
-              "version": "2cab06e878",
+              "version": "1e87777606",
               "width": 576,
               "height": 2579,
               "parts": [
@@ -13808,7 +13808,7 @@
                   "top": 336,
                   "bottom": 372,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 24.7,
                   "bold": true,
                   "font": "jost"
@@ -14125,7 +14125,7 @@
             {
               "mode": "referral",
               "file": "boutique-A-referral.png",
-              "version": "3c11611411",
+              "version": "a1b5ed87ad",
               "width": 576,
               "height": 2721,
               "parts": [
@@ -14220,7 +14220,7 @@
                   "top": 336,
                   "bottom": 372,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 24.7,
                   "bold": true,
                   "font": "jost"
@@ -14599,7 +14599,7 @@
             {
               "mode": "client",
               "file": "boutique-A-client.png",
-              "version": "047b8ca1d8",
+              "version": "7360eed657",
               "width": 576,
               "height": 2579,
               "parts": [
@@ -14694,7 +14694,7 @@
                   "top": 336,
                   "bottom": 372,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 24.7,
                   "bold": true,
                   "font": "jost"
@@ -15011,7 +15011,7 @@
             {
               "mode": "exchange",
               "file": "boutique-A-exchange.png",
-              "version": "4543b0fc11",
+              "version": "f5a190d0fb",
               "width": 576,
               "height": 1419,
               "parts": [
@@ -15106,7 +15106,7 @@
                   "top": 336,
                   "bottom": 372,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 24.7,
                   "bold": true,
                   "font": "jost"
@@ -15398,7 +15398,7 @@
             {
               "mode": "return",
               "file": "boutique-A-return.png",
-              "version": "d74e81711b",
+              "version": "ccf516fbf4",
               "width": 576,
               "height": 1299,
               "parts": [
@@ -15493,7 +15493,7 @@
                   "top": 336,
                   "bottom": 372,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 24.7,
                   "bold": true,
                   "font": "jost"
@@ -15780,7 +15780,7 @@
             {
               "mode": "sale",
               "file": "boutique-B.png",
-              "version": "5f383528df",
+              "version": "6cc67c3bd7",
               "width": 576,
               "height": 2333,
               "parts": [
@@ -15875,7 +15875,7 @@
                   "top": 336,
                   "bottom": 372,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 24.7,
                   "bold": true,
                   "font": "jost"
@@ -16192,7 +16192,7 @@
             {
               "mode": "referral",
               "file": "boutique-B-referral.png",
-              "version": "d730b3d46b",
+              "version": "d08d4e2862",
               "width": 576,
               "height": 2475,
               "parts": [
@@ -16287,7 +16287,7 @@
                   "top": 336,
                   "bottom": 372,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 24.7,
                   "bold": true,
                   "font": "jost"
@@ -16666,7 +16666,7 @@
             {
               "mode": "client",
               "file": "boutique-B-client.png",
-              "version": "a1bb0bf588",
+              "version": "b10516f1b4",
               "width": 576,
               "height": 2333,
               "parts": [
@@ -16761,7 +16761,7 @@
                   "top": 336,
                   "bottom": 372,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 24.7,
                   "bold": true,
                   "font": "jost"
@@ -17078,7 +17078,7 @@
             {
               "mode": "exchange",
               "file": "boutique-B-exchange.png",
-              "version": "51559258a1",
+              "version": "32dec48c11",
               "width": 576,
               "height": 1329,
               "parts": [
@@ -17173,7 +17173,7 @@
                   "top": 336,
                   "bottom": 372,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 24.7,
                   "bold": true,
                   "font": "jost"
@@ -17465,7 +17465,7 @@
             {
               "mode": "return",
               "file": "boutique-B-return.png",
-              "version": "a52fb44d50",
+              "version": "162f5a4e79",
               "width": 576,
               "height": 1285,
               "parts": [
@@ -17560,7 +17560,7 @@
                   "top": 336,
                   "bottom": 372,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 24.7,
                   "bold": true,
                   "font": "jost"
@@ -17855,7 +17855,7 @@
             {
               "mode": "sale",
               "file": "modern-A.png",
-              "version": "2395f62831",
+              "version": "8cce353977",
               "width": 576,
               "height": 2197,
               "parts": [
@@ -17950,7 +17950,7 @@
                   "top": 294,
                   "bottom": 329,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 25.480000000000004,
                   "bold": true,
                   "font": "manrope"
@@ -18267,7 +18267,7 @@
             {
               "mode": "referral",
               "file": "modern-A-referral.png",
-              "version": "de57a4cf07",
+              "version": "a08f110b9f",
               "width": 576,
               "height": 2329,
               "parts": [
@@ -18362,7 +18362,7 @@
                   "top": 294,
                   "bottom": 329,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 25.480000000000004,
                   "bold": true,
                   "font": "manrope"
@@ -18741,7 +18741,7 @@
             {
               "mode": "client",
               "file": "modern-A-client.png",
-              "version": "7ac1a257b4",
+              "version": "41e41aa29e",
               "width": 576,
               "height": 2197,
               "parts": [
@@ -18836,7 +18836,7 @@
                   "top": 294,
                   "bottom": 329,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 25.480000000000004,
                   "bold": true,
                   "font": "manrope"
@@ -19153,7 +19153,7 @@
             {
               "mode": "exchange",
               "file": "modern-A-exchange.png",
-              "version": "ba14e12ef0",
+              "version": "4132105afa",
               "width": 576,
               "height": 1226,
               "parts": [
@@ -19248,7 +19248,7 @@
                   "top": 294,
                   "bottom": 329,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 25.480000000000004,
                   "bold": true,
                   "font": "manrope"
@@ -19540,7 +19540,7 @@
             {
               "mode": "return",
               "file": "modern-A-return.png",
-              "version": "6fed0ab2a2",
+              "version": "a1fb172618",
               "width": 576,
               "height": 1183,
               "parts": [
@@ -19635,7 +19635,7 @@
                   "top": 294,
                   "bottom": 329,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 25.480000000000004,
                   "bold": true,
                   "font": "manrope"
@@ -19922,7 +19922,7 @@
             {
               "mode": "sale",
               "file": "modern-B.png",
-              "version": "9add12d717",
+              "version": "5219952757",
               "width": 576,
               "height": 2020,
               "parts": [
@@ -20017,7 +20017,7 @@
                   "top": 294,
                   "bottom": 329,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 25.480000000000004,
                   "bold": true,
                   "font": "manrope"
@@ -20386,7 +20386,7 @@
             {
               "mode": "referral",
               "file": "modern-B-referral.png",
-              "version": "e461218e58",
+              "version": "727d517c38",
               "width": 576,
               "height": 2152,
               "parts": [
@@ -20481,7 +20481,7 @@
                   "top": 294,
                   "bottom": 329,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 25.480000000000004,
                   "bold": true,
                   "font": "manrope"
@@ -20912,7 +20912,7 @@
             {
               "mode": "client",
               "file": "modern-B-client.png",
-              "version": "5f7528b55a",
+              "version": "3389149b47",
               "width": 576,
               "height": 2020,
               "parts": [
@@ -21007,7 +21007,7 @@
                   "top": 294,
                   "bottom": 329,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 25.480000000000004,
                   "bold": true,
                   "font": "manrope"
@@ -21376,7 +21376,7 @@
             {
               "mode": "exchange",
               "file": "modern-B-exchange.png",
-              "version": "e0d9e41754",
+              "version": "afdd18c366",
               "width": 576,
               "height": 1252,
               "parts": [
@@ -21471,7 +21471,7 @@
                   "top": 294,
                   "bottom": 329,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 25.480000000000004,
                   "bold": true,
                   "font": "manrope"
@@ -21815,7 +21815,7 @@
             {
               "mode": "return",
               "file": "modern-B-return.png",
-              "version": "1ab916a950",
+              "version": "51173378a8",
               "width": 576,
               "height": 1170,
               "parts": [
@@ -21910,7 +21910,7 @@
                   "top": 294,
                   "bottom": 329,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 25.480000000000004,
                   "bold": true,
                   "font": "manrope"
@@ -22257,7 +22257,7 @@
             {
               "mode": "sale",
               "file": "bistro-A.png",
-              "version": "a2a8bf9179",
+              "version": "e5e6bf271b",
               "width": 576,
               "height": 1982,
               "parts": [
@@ -22348,7 +22348,7 @@
                   "top": 276,
                   "bottom": 308,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 24.96,
                   "font": "lora"
                 },
@@ -22662,7 +22662,7 @@
             {
               "mode": "referral",
               "file": "bistro-A-referral.png",
-              "version": "b13775557e",
+              "version": "806220190d",
               "width": 576,
               "height": 2110,
               "parts": [
@@ -22753,7 +22753,7 @@
                   "top": 276,
                   "bottom": 308,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 24.96,
                   "font": "lora"
                 },
@@ -23129,7 +23129,7 @@
             {
               "mode": "client",
               "file": "bistro-A-client.png",
-              "version": "030296659e",
+              "version": "8f599e3caf",
               "width": 576,
               "height": 1982,
               "parts": [
@@ -23220,7 +23220,7 @@
                   "top": 276,
                   "bottom": 308,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 24.96,
                   "font": "lora"
                 },
@@ -23534,7 +23534,7 @@
             {
               "mode": "exchange",
               "file": "bistro-A-exchange.png",
-              "version": "02290c7690",
+              "version": "481603b3f0",
               "width": 576,
               "height": 1143,
               "parts": [
@@ -23625,7 +23625,7 @@
                   "top": 276,
                   "bottom": 308,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 24.96,
                   "font": "lora"
                 },
@@ -23914,7 +23914,7 @@
             {
               "mode": "return",
               "file": "bistro-A-return.png",
-              "version": "10aff176d8",
+              "version": "e46b06c41f",
               "width": 576,
               "height": 1136,
               "parts": [
@@ -24005,7 +24005,7 @@
                   "top": 276,
                   "bottom": 308,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 24.96,
                   "font": "lora"
                 },
@@ -24289,7 +24289,7 @@
             {
               "mode": "sale",
               "file": "bistro-B.png",
-              "version": "d723684118",
+              "version": "4930940757",
               "width": 576,
               "height": 1954,
               "parts": [
@@ -24380,7 +24380,7 @@
                   "top": 276,
                   "bottom": 308,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 24.96,
                   "font": "lora"
                 },
@@ -24694,7 +24694,7 @@
             {
               "mode": "referral",
               "file": "bistro-B-referral.png",
-              "version": "1c20fa0fe1",
+              "version": "a2c8f90e21",
               "width": 576,
               "height": 2082,
               "parts": [
@@ -24785,7 +24785,7 @@
                   "top": 276,
                   "bottom": 308,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 24.96,
                   "font": "lora"
                 },
@@ -25161,7 +25161,7 @@
             {
               "mode": "client",
               "file": "bistro-B-client.png",
-              "version": "11d8220ef0",
+              "version": "f3d9456102",
               "width": 576,
               "height": 1954,
               "parts": [
@@ -25252,7 +25252,7 @@
                   "top": 276,
                   "bottom": 308,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 24.96,
                   "font": "lora"
                 },
@@ -25566,7 +25566,7 @@
             {
               "mode": "exchange",
               "file": "bistro-B-exchange.png",
-              "version": "db60aa3ae8",
+              "version": "1fd0a2b7a9",
               "width": 576,
               "height": 1181,
               "parts": [
@@ -25657,7 +25657,7 @@
                   "top": 276,
                   "bottom": 308,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 24.96,
                   "font": "lora"
                 },
@@ -25946,7 +25946,7 @@
             {
               "mode": "return",
               "file": "bistro-B-return.png",
-              "version": "f6bf579aea",
+              "version": "3a4a74fd9d",
               "width": 576,
               "height": 1103,
               "parts": [
@@ -26037,7 +26037,7 @@
                   "top": 276,
                   "bottom": 308,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 24.96,
                   "font": "lora"
                 },
@@ -26329,7 +26329,7 @@
             {
               "mode": "sale",
               "file": "typewriter-A.png",
-              "version": "785f9efe4b",
+              "version": "842341a5b3",
               "width": 576,
               "height": 1883,
               "parts": [
@@ -26423,7 +26423,7 @@
                   "top": 251,
                   "bottom": 281,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "courier-prime"
                 },
@@ -26790,7 +26790,7 @@
             {
               "mode": "referral",
               "file": "typewriter-A-referral.png",
-              "version": "1d55a53cbd",
+              "version": "f977bdaa7e",
               "width": 576,
               "height": 2026,
               "parts": [
@@ -26884,7 +26884,7 @@
                   "top": 251,
                   "bottom": 281,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "courier-prime"
                 },
@@ -27313,7 +27313,7 @@
             {
               "mode": "client",
               "file": "typewriter-A-client.png",
-              "version": "0ce2bbc1c0",
+              "version": "215193097d",
               "width": 576,
               "height": 1883,
               "parts": [
@@ -27407,7 +27407,7 @@
                   "top": 251,
                   "bottom": 281,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "courier-prime"
                 },
@@ -27774,7 +27774,7 @@
             {
               "mode": "exchange",
               "file": "typewriter-A-exchange.png",
-              "version": "6905330428",
+              "version": "0ca2b102f7",
               "width": 576,
               "height": 1140,
               "parts": [
@@ -27868,7 +27868,7 @@
                   "top": 251,
                   "bottom": 281,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "courier-prime"
                 },
@@ -28210,7 +28210,7 @@
             {
               "mode": "return",
               "file": "typewriter-A-return.png",
-              "version": "d0d3567d91",
+              "version": "ecc01341ec",
               "width": 576,
               "height": 1071,
               "parts": [
@@ -28304,7 +28304,7 @@
                   "top": 251,
                   "bottom": 281,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "courier-prime"
                 },
@@ -28641,7 +28641,7 @@
             {
               "mode": "sale",
               "file": "typewriter-B.png",
-              "version": "ca2c290516",
+              "version": "2176ad6f03",
               "width": 576,
               "height": 2015,
               "parts": [
@@ -28735,7 +28735,7 @@
                   "top": 251,
                   "bottom": 281,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "courier-prime"
                 },
@@ -29076,7 +29076,7 @@
             {
               "mode": "referral",
               "file": "typewriter-B-referral.png",
-              "version": "216460ee15",
+              "version": "4eb60505c9",
               "width": 576,
               "height": 2158,
               "parts": [
@@ -29170,7 +29170,7 @@
                   "top": 251,
                   "bottom": 281,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "courier-prime"
                 },
@@ -29573,7 +29573,7 @@
             {
               "mode": "client",
               "file": "typewriter-B-client.png",
-              "version": "971bbbdd6f",
+              "version": "220a29fa35",
               "width": 576,
               "height": 2015,
               "parts": [
@@ -29667,7 +29667,7 @@
                   "top": 251,
                   "bottom": 281,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "courier-prime"
                 },
@@ -30008,7 +30008,7 @@
             {
               "mode": "exchange",
               "file": "typewriter-B-exchange.png",
-              "version": "8b7851748b",
+              "version": "c2f6dd213b",
               "width": 576,
               "height": 1173,
               "parts": [
@@ -30102,7 +30102,7 @@
                   "top": 251,
                   "bottom": 281,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "courier-prime"
                 },
@@ -30418,7 +30418,7 @@
             {
               "mode": "return",
               "file": "typewriter-B-return.png",
-              "version": "a67a2868dd",
+              "version": "c7bd5db529",
               "width": 576,
               "height": 1104,
               "parts": [
@@ -30512,7 +30512,7 @@
                   "top": 251,
                   "bottom": 281,
                   "left": 1,
-                  "text": "Salesperson",
+                  "text": "Salesman",
                   "size_px": 26,
                   "font": "courier-prime"
                 },

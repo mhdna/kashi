@@ -190,8 +190,8 @@
     {
       "key": "meta_salesperson",
       "group": "meta",
-      "label": "Salesperson",
-      "default": "Salesperson",
+      "label": "Salesman",
+      "default": "Salesman",
       "can": 111
     },
     {
