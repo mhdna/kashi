@@ -257,4 +257,12 @@ describe('Receipt Designer', () => {
     expect(button('Save')).toBeUndefined()
     expect(find('make-default').exists()).toBe(false)
   })
+
+  it('the tabs keep their height: only the body shrinks', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { resolve } = await import('node:path')
+    const src = readFileSync(resolve(process.cwd(), 'src/pages/receipt-designer.vue'), 'utf8')
+    expect(src).toMatch(/\.rd-card > :not\(\.rd-body\) \{\s*flex: 0 0 auto;/)
+    expect(src).toMatch(/\.rd-body \{\s*flex: 1 1 auto;\s*min-height: 0;\s*overflow-y: auto;/)
+  })
 })

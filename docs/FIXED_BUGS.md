@@ -3,6 +3,14 @@
 One entry per bug fixed in kashi, newest first: what went wrong, why, and
 what changed. Add an entry in the same commit as the fix.
 
+## 2026-11-19: The Receipt Designer's tabs were cut in half
+
+**Symptom:** the Receipt, Banners and Shop details tabs showed only the top half of their words.
+
+**Cause:** the page is a column that fits the window; with a tall receipt below, the title and the tab bar shrank along with the body instead of keeping their height.
+
+**Fix:** everything but the body keeps its height (`flex: 0 0 auto`); only the body shrinks and scrolls (`ui/src/pages/receipt-designer.vue`). Test: "the tabs keep their height" in `receipt-designer.test.js` (happy-dom doesn't lay out, so it checks the style).
+
 ## 2026-11-19: Saving a receipt for all branches stopped at a branch with no register
 
 **Symptom:** in the Receipt Designer with "All branches", Save failed with "this branch hasn't reported its settings yet; connect one of its registers first", and the branches after it didn't get the design.

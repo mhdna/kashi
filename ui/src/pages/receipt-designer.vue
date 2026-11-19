@@ -433,6 +433,11 @@
   display: flex;
   flex-direction: column;
 }
+/* Only the body shrinks and scrolls: the title, tabs and loading bar keep
+   their height however tall the receipt is (squeezed, the tabs were cut). */
+.rd-card > :not(.rd-body) {
+  flex: 0 0 auto;
+}
 .rd-body {
   flex: 1 1 auto;
   min-height: 0;
