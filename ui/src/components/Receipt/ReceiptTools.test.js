@@ -120,6 +120,44 @@ describe('ReceiptPartTools', () => {
     expect(find('part-printed').exists()).toBe(false)
   })
 
+  it('what each item prints: name, colour and size, code, before and after price', async () => {
+    partTools('columns')
+    const row = find('item-parts')
+    expect(row.exists()).toBe(true)
+    expect(row.findAll('button').map(b => b.text().trim())).toEqual(['Name', 'Colour and size', 'Code', 'Before and after price'])
+    const pressed = key => find(`item-part-${key}`).classes().includes('v-btn--active')
+    // As the till prints today: everything but the code.
+    expect([pressed('item_name'), pressed('item_variant'), pressed('item_code'), pressed('item_price_note')]).toEqual([true, true, false, true])
+
+    await find('item-part-item_code').trigger('click')
+    await find('item-part-item_name').trigger('click')
+    await find('item-part-item_price_note').trigger('click')
+    expect(design().elements).toEqual({ item_code: { show: true }, item_name: { hide: true }, item_price_note: { hide: true } })
+    expect([pressed('item_name'), pressed('item_code'), pressed('item_price_note')]).toEqual([false, true, false])
+    expect(JSON.parse(designJSON(design())).elements).toEqual({ item_code: { show: true }, item_name: { hide: true }, item_price_note: { hide: true } })
+
+    // Back on: nothing left over to save.
+    await find('item-part-item_code').trigger('click')
+    await find('item-part-item_name').trigger('click')
+    await find('item-part-item_price_note').trigger('click')
+    expect(design().elements).toEqual({})
+    expect(designJSON(design())).toBe('')
+
+    // Default puts them back too.
+    await find('item-part-item_variant').trigger('click')
+    expect(find('reset-part').exists()).toBe(true)
+    await find('reset-part').trigger('click')
+    expect(design().elements).toEqual({})
+  })
+
+  it('only the items part has item switches', () => {
+    for (const group of ['header', 'meta', 'totals', 'payments', 'thanks']) {
+      partTools(group)
+      expect(find('item-parts').exists(), group).toBe(false)
+      wrapper.unmount()
+    }
+  })
+
   it('a part left out says so', () => {
     partTools('policy', toggleSection(setElement(emptyDesign(), 'policy_title', { text: 'X' }), 'policy'))
     expect(find('part-printed').text()).toContain('Print this part')

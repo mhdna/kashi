@@ -182,6 +182,29 @@ func TestReceiptDesignerCatalog(t *testing.T) {
 	require.Len(t, body.Catalog.Groups, 9)
 	require.Greater(t, len(body.Catalog.Elements), 30)
 	require.Greater(t, len(body.Catalog.DateFormats), 4)
+	// What each item row prints: four on/off switches in the Items part; the
+	// code is the one that is off until switched on (show), the others hide.
+	var parts struct {
+		Catalog struct {
+			Can      map[string]int `json:"can"`
+			Elements []struct {
+				Key   string `json:"key"`
+				Group string `json:"group"`
+				Can   int    `json:"can"`
+			} `json:"elements"`
+		} `json:"catalog"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &parts))
+	want := map[string]string{"item_name": "hide", "item_variant": "hide", "item_code": "show", "item_price_note": "hide"}
+	for _, e := range parts.Catalog.Elements {
+		if ability, ok := want[e.Key]; ok {
+			require.Equal(t, "columns", e.Group, e.Key)
+			require.Equal(t, parts.Catalog.Can[ability], e.Can, e.Key)
+			delete(want, e.Key)
+		}
+	}
+	require.Empty(t, want, "item switches missing from the catalog")
+	require.NotZero(t, parts.Catalog.Can["show"])
 	// The whole catalog as served, for the UI's tests.
 	var whole struct {
 		Catalog json.RawMessage `json:"catalog"`
@@ -295,4 +318,32 @@ func TestReceiptDesignerFont(t *testing.T) {
 	require.NotEqual(t, regular.Body.Bytes(), bold.Body.Bytes())
 	rec := adminRequest(t, server, http.MethodGet, "/receipt_designer/font?key=nope", nil)
 	require.Equal(t, http.StatusNotFound, rec.Code)
+}
+
+// What each item row prints, through central's copy of the till's renderer:
+// the switches survive the server's clean-up as they mean something, and
+// switching the code on changes the receipt.
+func TestReceiptDesignerPreviewItemParts(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	store.EXPECT().GetReferralProgram(gomock.Any()).Return(db.ReferralProgram{}, nil).AnyTimes()
+	server := newTestServer(t, store)
+
+	plain, code := previewRequest(t, server, url.Values{})
+	require.Equal(t, http.StatusOK, code)
+	texts := `{"elements":{"item_code":{"show":true,"hide":true},"item_name":{"hide":true,"show":true},"item_price_note":{"hide":true}}}`
+	parts, code := previewRequest(t, server, url.Values{"texts": {texts}})
+	require.Equal(t, http.StatusOK, code)
+	var got struct {
+		Elements map[string]map[string]any `json:"elements"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(parts.Texts), &got))
+	require.Equal(t, map[string]any{"show": true}, got.Elements["item_code"])
+	require.Equal(t, map[string]any{"hide": true}, got.Elements["item_name"])
+	require.Equal(t, map[string]any{"hide": true}, got.Elements["item_price_note"])
+	require.NotEqual(t, plain.Image, parts.Image, "the item switches changed nothing on the receipt")
+
+	codeOnly, code := previewRequest(t, server, url.Values{"texts": {`{"elements":{"item_code":{"show":true}}}`}})
+	require.Equal(t, http.StatusOK, code)
+	require.NotEqual(t, plain.Image, codeOnly.Image, "switching the code on printed nothing more")
 }
