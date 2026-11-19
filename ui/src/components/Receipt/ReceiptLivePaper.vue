@@ -252,9 +252,16 @@
       emit('update:design', setElement(props.design, l.key, { text_ar: arValue }))
       return
     }
-    // The default typed back is no change at all.
-    const value = text === elementInfo(l.key)?.default ? '' : text
+    // The default typed back is no change at all, except for the policy:
+    // without words of its own it prints the shop's policy (Shop details),
+    // not the default, so the default typed there is kept.
+    const value = text === elementInfo(l.key)?.default && !shopFallback(l.key) ? '' : text
     emit('update:design', setElement(props.design, l.key, { text: value }))
+  }
+
+  // A line whose words, when it has none of its own, are the shop's.
+  function shopFallback (key: string) {
+    return key === 'policy_text'
   }
 
   function cancelTyping () {
