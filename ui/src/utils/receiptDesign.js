@@ -384,8 +384,11 @@ export function receiptPreviewURL (modeInfo, base = '/receipt-previews/') {
 // one for each in use, shown as a sale to a client with the deal applied,
 // so a deal added later gets its own view too.
 export function dealModes (rules) {
+  // One view per deal name: two branches' "10% above $50" look the same.
+  const seen = new Set()
   return (rules ?? [])
     .filter(r => r && r.is_active !== false && !r.deleted_at?.Valid)
+    .filter(r => !seen.has(r.name) && seen.add(r.name))
     .map(r => ({ mode: `deal:${r.id}`, label: r.name, deal: { name: r.name, kind: r.kind, percent: r.percent, amount: r.amount } }))
 }
 

@@ -323,11 +323,26 @@
     window.removeEventListener('keydown', onKey)
   })
 
-  // Choosing one branch shows the look, design and details it has now; "All
-  // branches" starts from whatever is on screen.
+  // "All branches" shows the Default Settings template's receipt (what
+  // "Make this the default" saved), not a blank one, so what the branches
+  // were given shows. An empty template keeps what is on screen.
+  async function loadAllBranchesDesign () {
+    try {
+      const data = await requestJSON(`${API_BASE}/default_branch_settings`)
+      const s = data?.settings ?? {}
+      if (s.receipt_texts) {design.value = parseDesign(s.receipt_texts)}
+      if (s.receipt_theme) {theme.value = s.receipt_theme}
+      if (s.receipt_layout) {layout.value = s.receipt_layout}
+    } catch {
+      // Without the template the page starts from what is on screen.
+    }
+  }
+
+  // Choosing one branch shows the look, design and details it has now.
   watch(target, async id => {
     if (id === ALL) {
       savedTheme.value = ''
+      await loadAllBranchesDesign()
       return
     }
     loading.value = true
@@ -409,6 +424,7 @@
     try {
       const [, data] = await Promise.all([fetchBranches(), requestJSON(`${API_BASE}/receipt_designer/catalog`)])
       catalog.value = data.catalog
+      await loadAllBranchesDesign()
       // The deals are a nice-to-have here: without them the other modes stay.
       requestJSON(`${API_BASE}/invoice_discounts`).then(r => { deals.value = r.invoice_discounts ?? [] }).catch(() => {})
     } catch (error) {
