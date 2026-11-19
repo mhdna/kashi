@@ -228,3 +228,72 @@ func TestHiddenBranchOnlyClientsRandom(t *testing.T) {
 		require.NoError(t, testQueries.SetBranchHiddenFromReports(ctx, SetBranchHiddenFromReportsParams{ID: b.Branch.ID, HiddenFromReports: false}))
 	}
 }
+
+// ListWithheldClientUIDs is client_withheld_from_visible written as joins (a
+// page of 5000 took ~6s through the function). Randomized: across hidden and
+// visible branches, links, home branches, live and cancelled sales, and
+// hidden_since before, after or unset, both say the same of every client.
+func TestWithheldClientUIDsMatchesFunction(t *testing.T) {
+	ctx := context.Background()
+	branches := []CreateBranchTxResult{createTestBranchWithRegister(t), createTestBranchWithRegister(t), createTestBranchWithRegister(t)}
+	rng := rand.New(rand.NewSource(7))
+	seq := int64(2_000_000)
+	withheldSeen := 0
+	for round := 0; round < 8; round++ {
+		for _, b := range branches {
+			hidden := rng.Intn(2) == 0
+			require.NoError(t, testQueries.SetBranchHiddenFromReports(ctx, SetBranchHiddenFromReportsParams{ID: b.Branch.ID, HiddenFromReports: hidden}))
+			// hidden_since: unset, long ago, or in the future (every client older).
+			var since any
+			switch rng.Intn(3) {
+			case 1:
+				since = time.Now().Add(-time.Hour * 24 * 365)
+			case 2:
+				since = time.Now().Add(time.Hour)
+			}
+			_, err := testDB.ExecContext(ctx, `UPDATE branches SET hidden_since = $1 WHERE id = $2`, since, b.Branch.ID)
+			require.NoError(t, err)
+		}
+		var clients []Client
+		for n := 0; n < 40; n++ {
+			c := createRandomClient(t)
+			clients = append(clients, c)
+			for _, b := range branches {
+				if rng.Intn(3) == 0 {
+					seq++
+					require.NoError(t, testQueries.UpsertClientLink(ctx, UpsertClientLinkParams{BranchID: b.Branch.ID, RegisterID: b.Register.ID, BranchClientID: seq, ClientID: c.ID}))
+				}
+			}
+			if rng.Intn(3) == 0 {
+				_, err := testDB.ExecContext(ctx, `UPDATE clients SET branch_id = $1 WHERE id = $2`, branches[rng.Intn(len(branches))].Branch.ID, c.ID)
+				require.NoError(t, err)
+			}
+			if rng.Intn(4) == 0 {
+				b := branches[rng.Intn(len(branches))]
+				inv := sellAtBranch(t, b, createRandomVariant(t), 1)
+				_, err := testDB.ExecContext(ctx, `UPDATE branch_invoices SET client_uid = $1, cancelled_at = $2 WHERE id = $3`,
+					c.Uid, sql.NullTime{Time: time.Now(), Valid: rng.Intn(2) == 0}, inv.Invoice.ID)
+				require.NoError(t, err)
+			}
+		}
+		uids := make([]uuid.UUID, len(clients))
+		want := []uuid.UUID{}
+		for i, c := range clients {
+			uids[i] = c.Uid
+			var withheld bool
+			require.NoError(t, testDB.QueryRowContext(ctx, `SELECT client_withheld_from_visible($1)`, c.ID).Scan(&withheld))
+			if withheld {
+				want = append(want, c.Uid)
+			}
+		}
+		got, err := testQueries.ListWithheldClientUIDs(ctx, uids)
+		require.NoError(t, err)
+		require.ElementsMatch(t, want, got, "round %d", round)
+		withheldSeen += len(want)
+	}
+	// The run must have held some withheld clients, or it proves nothing.
+	require.Positive(t, withheldSeen)
+	for _, b := range branches {
+		require.NoError(t, testQueries.SetBranchHiddenFromReports(ctx, SetBranchHiddenFromReportsParams{ID: b.Branch.ID, HiddenFromReports: false}))
+	}
+}

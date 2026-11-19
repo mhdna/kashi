@@ -66,3 +66,11 @@ points for just those clients with a LATERAL join on
 `idx_branch_invoices_register_branch_client`: 1.5 ms on the same data. Paging
 now breaks name ties by id, so a client can't show up on two pages. Tests:
 `db/sqlc/client_loyalty_list_test.go`.
+
+## 2026-11-19: The tills' customer completeness check, 6s to 0.3s a page
+
+**Symptom:** Centro's till never finished checking its 130k customers against kashi, so older customers never got their referral codes and reprints printed none.
+
+**Finding:** each `/branch/sync/ids` page of 5000 customers took 6 to 15 seconds on production; the page query itself took 29 ms, the rest was `ListWithheldClientUIDs` calling `client_withheld_from_visible` once per customer (about 1.2 ms each). Past the till's 10-second timeout the check gave up and started over on its next sync. Prefiltering on "touches a hidden branch" didn't help: Test Branch links 4778 of every 5000.
+
+**Change:** `ListWithheldClientUIDs` is the same rule written as joins over the whole page (`db/query/client.sql`): 291 ms for the same page on production. `TestWithheldClientUIDsMatchesFunction` checks it gives the function's answer on randomized data.
