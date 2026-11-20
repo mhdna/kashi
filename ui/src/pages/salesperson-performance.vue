@@ -208,13 +208,14 @@
           <div class="text-body-2" data-test="score-formula">
             Score = Target reached ({{ weight('target') }}) + Sales per hour ({{ weight('perHour') }})
             + Average sale ({{ weight('avgSale') }}) + Items per sale ({{ weight('itemsPerSale') }})
-            + Discount rate ({{ weight('discountRate') }}) + Return rate ({{ weight('returnRate') }}), out of 100
+            + Return rate ({{ weight('returnRate') }}), out of 100
           </div>
           <ul class="formula-list text-body-2 mt-2">
             <li><strong>Net sales</strong> = what was sold minus what came back. A return or exchange counts for whoever made the sale.</li>
             <li><strong>Target reached</strong> = net sales ÷ their target (the branch target shared by hours worked), up to 150%: points = min(reached, 150%) ÷ 150% × {{ weight('target') }}.</li>
             <li><strong>Sales per hour, average sale, items per sale</strong> are compared with the team, up to 1.5 times it: points = min(theirs ÷ team, 1.5) ÷ 1.5 × weight.</li>
-            <li><strong>Discount rate and return rate</strong>, lower is better: points = (1 − theirs ÷ (2 × team)) × weight, never under 0.</li>
+            <li><strong>Return rate</strong>, lower is better: points = (1 − theirs ÷ (2 × team)) × {{ weight('returnRate') }}, never under 0.</li>
+            <li>Discounts don't count: most come from the discount list, not the salesperson, and selling at a discount already lowers net sales against the target and per hour.</li>
             <li>Ranked with at least {{ SCORE_RULE.minInvoices }} invoices and {{ SCORE_RULE.minHours }} hours worked. A part with no data (no target, no hours) is left out and the score is out of the rest.</li>
             <li>Grades: A from 85, B from 70, C from 55, D under 55.</li>
           </ul>
@@ -256,7 +257,6 @@
         <template #item.perHour="{ item }">{{ item.perHour === null ? '' : formatMoney(item.perHour) }}</template>
         <template #item.avgSale="{ item }">{{ formatMoney(item.avgSale) }}</template>
         <template #item.itemsPerSale="{ item }">{{ item.itemsPerSale.toFixed(2) }}</template>
-        <template #item.discountRate="{ item }">{{ formatPercent(item.discountRate) }}</template>
         <template #item.returnRate="{ item }">{{ formatPercent(item.returnRate) }}</template>
         <template #bottom />
       </v-data-table>
@@ -609,7 +609,6 @@
     { title: 'Per hour', key: 'perHour', align: 'end' },
     { title: 'Average sale', key: 'avgSale', align: 'end' },
     { title: 'Items per sale', key: 'itemsPerSale', align: 'end' },
-    { title: 'Discount rate', key: 'discountRate', align: 'end' },
     { title: 'Return rate', key: 'returnRate', align: 'end' },
   ]
   function weight (key) {
@@ -621,7 +620,7 @@
   // A part's value in the calculation dialog.
   function showPart (key, value) {
     if (key === 'itemsPerSale') {return (Number(value) || 0).toFixed(2)}
-    if (key === 'discountRate' || key === 'returnRate') {return formatPercent(value)}
+    if (key === 'returnRate') {return formatPercent(value)}
     return formatMoney(value)
   }
   function gradeClass (g) {

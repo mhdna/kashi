@@ -66,7 +66,8 @@ describe('Salesperson performance', () => {
     expect(text).toContain('Score = 50% × (sold amount ÷ highest amount)')
     expect(text).toContain('Performance details')
     expect(find('score-card').exists()).toBe(true)
-    expect(find('score-formula').text()).toMatch(/Target reached \(40\).*Sales per hour \(20\).*Return rate \(5\), out of 100/s)
+    expect(find('score-formula').text()).toMatch(/Target reached \(40\).*Sales per hour \(25\).*Items per sale \(15\) \+ Return rate \(5\), out of 100/s)
+    expect(find('score-formula').text()).not.toMatch(/Discount/)
     for (const bad of ['—', '–', '·', '•']) {
       expect(find('score-card').text()).not.toContain(bad)
     }
@@ -99,10 +100,11 @@ describe('Salesperson performance', () => {
     const dialog = document.body.querySelector('[data-test="score-dialog"]')
     expect(dialog).not.toBeNull()
     const text = dialog.textContent
-    for (const label of ['Target reached', 'Sales per hour', 'Average sale', 'Items per sale', 'Discount rate', 'Return rate']) {
+    for (const label of ['Target reached', 'Sales per hour', 'Average sale', 'Items per sale', 'Return rate']) {
       expect(text).toContain(label)
     }
     expect(dialog.querySelector('[data-test="score-part-target"]').textContent).toMatch(/÷ \$\d.*then min\(.*150%\) ÷ 150% × 40 =/)
+    expect(text).not.toContain('Discount rate')
     expect(dialog.querySelector('[data-test="score-total"]').textContent).toMatch(/points out of 100, so the score is .* × 100 = .*grade [ABCD]/s)
     expect(text).not.toMatch(/NaN|undefined/)
   })

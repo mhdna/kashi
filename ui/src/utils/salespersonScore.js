@@ -11,9 +11,12 @@
 // already has the item discount, the deal and its share of the invoice
 // discount off, before tax.
 //
+// Discounts aren't scored: most come from the branch's discount list, which
+// the till applies on its own, so they say what was sold, not how. Selling
+// at a discount already shows in net sales against the target and per hour.
+//
 // The score compares each person with the team: target reached, sales per
-// hour, average sale, items per sale, and (lower is better) discounts and
-// returns. A part that can't be worked out (no target, no hours) is left out
+// hour, average sale, items per sale, and (lower is better) returns. A part that can't be worked out (no target, no hours) is left out
 // and the score is out of the parts that remain, so nobody gets zero for data
 // kashi doesn't have.
 
@@ -24,10 +27,9 @@ export const SCORE_RULE = Object.freeze({
   cap: 1.5,
   parts: Object.freeze([
     { key: 'target', label: 'Target reached', weight: 40 },
-    { key: 'perHour', label: 'Sales per hour', weight: 20 },
+    { key: 'perHour', label: 'Sales per hour', weight: 25 },
     { key: 'avgSale', label: 'Average sale', weight: 15 },
     { key: 'itemsPerSale', label: 'Items per sale', weight: 15 },
-    { key: 'discountRate', label: 'Discount rate', weight: 5, lowerIsBetter: true },
     { key: 'returnRate', label: 'Return rate', weight: 5, lowerIsBetter: true },
   ]),
 })
@@ -52,18 +54,13 @@ export function salespersonKey (id, name) {
 }
 
 function blank (key, name, branchId) {
-  return { key, name, branchId, sold: 0, returned: 0, invoices: 0, units: 0, fullPrice: 0, itemDiscounts: 0, branches: new Set() }
+  return { key, name, branchId, sold: 0, returned: 0, invoices: 0, units: 0, branches: new Set() }
 }
 
-// What a sold line adds: its money, units, price at full and the item
-// discount (what came off besides the deal and the invoice discount).
+// What a sold line adds: its money and units.
 function addSoldLine (row, item) {
-  const qty = num(item.quantity)
-  const full = num(item.unit_price) * qty
   row.sold += num(item.line_total)
-  row.units += qty
-  row.fullPrice += full
-  row.itemDiscounts += Math.max(0, full - num(item.line_total) - num(item.deal_discount) - num(item.invoice_discount))
+  row.units += num(item.quantity)
 }
 
 // collectMetrics adds up each person's sales and returns. Unassigned sales
@@ -145,14 +142,11 @@ export function scoreSalespersons ({ invoices = [], returns = [], branchTargets 
       net: r.net,
       invoices: r.invoices,
       units: r.units,
-      fullPrice: r.fullPrice,
-      itemDiscounts: r.itemDiscounts,
       hours: worked,
       target: targets.get(r.key) ?? 0,
       perHour: worked > 0 ? r.net / worked : null,
       avgSale: r.invoices > 0 ? r.net / r.invoices : 0,
       itemsPerSale: r.invoices > 0 ? r.units / r.invoices : 0,
-      discountRate: r.fullPrice > 0 ? r.itemDiscounts / r.fullPrice : 0,
       returnRate: r.sold > 0 ? r.returned / r.sold : 0,
     }
   })
@@ -172,7 +166,6 @@ export function scoreSalespersons ({ invoices = [], returns = [], branchTargets 
     perHour: withHours.length > 0 ? withHours.reduce((a, p) => a + p.net, 0) / withHours.reduce((a, p) => a + p.hours, 0) : null,
     avgSale: sum(p => p.invoices) > 0 ? sum(p => p.net) / sum(p => p.invoices) : null,
     itemsPerSale: sum(p => p.invoices) > 0 ? sum(p => p.units) / sum(p => p.invoices) : null,
-    discountRate: sum(p => p.fullPrice) > 0 ? sum(p => p.itemDiscounts) / sum(p => p.fullPrice) : null,
     returnRate: sum(p => p.sold) > 0 ? sum(p => p.returned) / sum(p => p.sold) : null,
   }
 

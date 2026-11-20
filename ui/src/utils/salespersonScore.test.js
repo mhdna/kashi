@@ -25,13 +25,13 @@ describe('credit: who each sale and return counts for', () => {
     const rana = rows.get(RANA)
     const ali = rows.get(ALI)
     // Rana: $45 jeans (10% off $50) + $45 belt, then a buy 1 get 1 with the free unit at $0.
-    expect([rana.sold, rana.invoices, rana.units, rana.fullPrice, rana.itemDiscounts]).toEqual([13_500, 2, 4, 18_500, 500])
+    expect([rana.sold, rana.invoices, rana.units]).toEqual([13_500, 2, 4])
     // Ali took back her belt: it counts against her, not him.
     expect(rana.returned).toBe(4500)
     expect(rana.net).toBe(9000)
-    // Ali: two shirts ($10 student discount spread on them, not his discount),
-    // then he exchanged one ($30 back) for an $80 jacket.
-    expect([ali.sold, ali.returned, ali.net, ali.invoices, ali.units, ali.fullPrice, ali.itemDiscounts]).toEqual([14_000, 3000, 11_000, 1, 3, 15_000, 0])
+    // Ali: two shirts ($10 student discount spread on them), then he
+    // exchanged one ($30 back) for an $80 jacket.
+    expect([ali.sold, ali.returned, ali.net, ali.invoices, ali.units]).toEqual([14_000, 3000, 11_000, 1, 3])
     // The sale with no salesperson is kept apart, so the totals still add up.
     expect(rows.get('').net).toBe(2000)
   })
@@ -107,15 +107,13 @@ describe('the score, worked out by hand for the fixture', () => {
     expect(r.averages.perHour).toBeCloseTo(20_000 / 80)
     expect(r.averages.avgSale).toBeCloseTo(20_000 / 3)
     expect(r.averages.itemsPerSale).toBeCloseTo(7 / 3)
-    expect(r.averages.discountRate).toBeCloseTo(500 / 33_500)
     expect(r.averages.returnRate).toBeCloseTo(7500 / 27_500)
 
     const want = {
       target: Math.min(9000 / 15_625, 1.5) / 1.5 * 40,
-      perHour: Math.min((9000 / 50) / (20_000 / 80), 1.5) / 1.5 * 20,
+      perHour: Math.min((9000 / 50) / (20_000 / 80), 1.5) / 1.5 * 25,
       avgSale: Math.min(4500 / (20_000 / 3), 1.5) / 1.5 * 15,
       itemsPerSale: Math.min(2 / (7 / 3), 1.5) / 1.5 * 15,
-      discountRate: Math.max(0, 1 - (500 / 18_500) / (2 * 500 / 33_500)) * 5,
       returnRate: Math.max(0, 1 - (4500 / 13_500) / (2 * 7500 / 27_500)) * 5,
     }
     for (const [key, points] of Object.entries(want)) {
@@ -123,10 +121,10 @@ describe('the score, worked out by hand for the fixture', () => {
     }
     const total = Object.values(want).reduce((a, b) => a + b, 0)
     expect(rana.score).toBeCloseTo(total, 6)
-    expect(rana.score).toBeCloseTo(42.66, 1)
+    expect(rana.score).toBeCloseTo(44.63, 1)
     expect(rana.grade).toBe('D')
     expect(rana.outOf).toBe(100)
-    // Ali sold more per hour, with no discounts of his own.
+    // Ali sold more per hour.
     const ali = person(r, ALI)
     expect(ali.score).toBeGreaterThan(rana.score)
     expect([ali.rank, rana.rank]).toEqual([1, 2])
@@ -135,10 +133,31 @@ describe('the score, worked out by hand for the fixture', () => {
   it('a part kashi can\'t work out is left out, and the score is out of the rest', () => {
     const r = fixture({ hours: new Map(), branchTargets: [] })
     const rana = person(r, RANA)
-    expect(rana.outOf).toBe(40)
+    expect(rana.outOf).toBe(35)
     expect(part(rana, 'perHour').available).toBe(false)
     expect(part(rana, 'target').available).toBe(false)
-    expect(rana.score).toBeCloseTo(rana.points / 40 * 100, 9)
+    expect(rana.score).toBeCloseTo(rana.points / 35 * 100, 9)
+  })
+})
+
+describe('discounts are not scored', () => {
+  it('the rule: target 40, sales per hour 25, average sale 15, items per sale 15, return rate 5, out of 100', () => {
+    expect(SCORE_RULE.parts.map(p => [p.key, p.weight])).toEqual([['target', 40], ['perHour', 25], ['avgSale', 15], ['itemsPerSale', 15], ['returnRate', 5]])
+    expect(SCORE_RULE.parts.reduce((a, p) => a + p.weight, 0)).toBe(100)
+  })
+
+  it('the reported case: a discount-list price off the same takings changes no score', () => {
+    // The same line totals, once at full price and once as a 50% list discount on a doubled price.
+    const asSold = discounted => api.invoices.map(inv => ({
+      ...inv,
+      items: inv.items.map(it => (discounted ? { ...it, unit_price: it.unit_price * 2, discount: 50 } : { ...it, discount: 0 })),
+    }))
+    const plain = fixture({ invoices: asSold(false) })
+    const listed = fixture({ invoices: asSold(true) })
+    for (const p of plain.people) {
+      expect(person(listed, p.key).score).toBeCloseTo(p.score, 9)
+      expect(p.parts.map(x => x.key)).not.toContain('discountRate')
+    }
   })
 })
 
@@ -275,7 +294,7 @@ describe('hours and explanations', () => {
     const rana = person(fixture(), RANA)
     const show = (key, v) => (key === 'itemsPerSale' ? v.toFixed(2) : (key.endsWith('Rate') ? `${(v * 100).toFixed(1)}%` : `$${(v / 100).toFixed(2)}`))
     expect(explainPart(part(rana, 'target'), show)).toBe('$90.00 ÷ $156.25 = 57.6%, then min(57.6%, 150%) ÷ 150% × 40 = 15.36')
-    expect(explainPart(part(rana, 'perHour'), show)).toBe('$1.80 ÷ the team\'s $2.50 = 0.72, then min(0.72, 1.5) ÷ 1.5 × 20 = 9.6')
+    expect(explainPart(part(rana, 'perHour'), show)).toBe('$1.80 ÷ the team\'s $2.50 = 0.72, then min(0.72, 1.5) ÷ 1.5 × 25 = 12')
     expect(explainPart(part(rana, 'returnRate'), show)).toBe('33.3% against the team\'s 27.3%: (1 − 33.3% ÷ (2 × 27.3%)) × 5 = 1.94')
     const bare = person(fixture({ hours: new Map(), branchTargets: [] }), RANA)
     expect(explainPart(part(bare, 'target'), show)).toBe('Not counted: no target for this period.')
