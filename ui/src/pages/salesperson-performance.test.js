@@ -42,11 +42,13 @@ vi.mock('@/composables/useBranchSalespersons', () => ({ useBranchSalespersons: (
 vi.mock('@/composables/useAttendanceAutoOut', () => ({
   useAttendanceAutoOut: () => ({ autoInMinutes: ref(null), autoOutMinutes: ref(null), ensureAutoDefaults: async () => {} }),
 }))
+const printReport = vi.fn(async () => {})
+vi.mock('@/utils/reportExport', () => ({ printReport: (...args) => printReport(...args) }))
 vi.mock('@/composables/useNotify', () => ({ useNotify: () => ({ error: vi.fn(), success: vi.fn() }) }))
 
 let wrapper = null
 beforeEach(() => setActivePinia(createPinia()))
-afterEach(() => { wrapper?.unmount(); wrapper = null; document.body.innerHTML = '' })
+afterEach(() => { wrapper?.unmount(); wrapper = null; document.body.innerHTML = ''; printReport.mockClear() })
 
 async function open () {
   const { default: Page } = await import('./salesperson-performance.vue')
@@ -115,5 +117,41 @@ describe('Salesperson performance', () => {
     await flushPromises()
     const total = document.body.querySelector('[data-test="score-total"]').textContent
     expect(total).toContain('Not ranked: under 10 invoices in this period.')
+  })
+
+  it('no chip has a background: scores and totals are coloured text only', async () => {
+    await open()
+    expect(wrapper.findAll('.v-chip')).toHaveLength(0)
+    const score = wrapper.find('[data-test="ranking-score"]')
+    expect(score.exists()).toBe(true)
+    expect(score.classes().some(c => /^text-(success|warning|error)$/.test(c))).toBe(true)
+    const parts = wrapper.find('[data-test="ranking-parts"]')
+    expect(parts.text()).toMatch(/Amount \d+%.*Invoices \d+%.*Goods \d+%.*Discounts \$.*Price overrides \$/s)
+    expect(parts.find('.text-warning').text()).toMatch(/^Discounts/)
+    expect(parts.find('.text-error').text()).toMatch(/^Price overrides/)
+  })
+
+  it('Export PDF prints both tables as on screen, landscape', async () => {
+    await open()
+    await find('export-pdf').trigger('click')
+    await flushPromises()
+    expect(printReport).toHaveBeenCalledTimes(1)
+    const [sheet, opts] = printReport.mock.calls[0]
+    expect(opts.landscape).toBe(true)
+    expect(opts.title).toMatch(/^Salesperson performance .* All branches$/)
+    expect([...sheet.querySelectorAll('.rpt-h2')].map(h => h.textContent)).toEqual(['Performance ranking', 'Performance score'])
+    const [ranking, score] = sheet.querySelectorAll('table')
+    // The ranking as on screen: same people, same order, same scores.
+    const rankingPdf = [...ranking.querySelectorAll('tbody tr')].map(tr => [tr.cells[1].textContent, tr.cells[3].textContent])
+    const onScreen = wrapper.findAll('.performance-row').map(r => [r.find('.font-weight-bold.text-truncate').text(), r.find('.text-h6').text()])
+    expect(rankingPdf).toEqual(onScreen)
+    expect(rankingPdf.map(r => r[0])).toContain('Rana Haddad')
+    const scoreRowsPdf = [...score.querySelectorAll('tbody tr')].map(tr => [...tr.cells].map(td => td.textContent))
+    // The same rows, in the same order, as the score table on screen.
+    expect(scoreRowsPdf.map(r => r[1])).toEqual(scoreRows().map(r => r.text().match(/Rana Haddad|Ali Saad/)[0]))
+    expect(scoreRowsPdf[0][2]).toBe('Centro')
+    expect(scoreRows()[0].text()).toContain(scoreRowsPdf[0][3])
+    expect(scoreRowsPdf[1][3]).toBe('Under 10 invoices')
+    expect(sheet.textContent).not.toMatch(/NaN|undefined|[—–·]/)
   })
 })

@@ -7,7 +7,8 @@ import sheetCss from '@/styles/report-sheet.css?raw'
 // Prints a copy of the sheet from a hidden frame, so the app's own layout
 // (nav, scroll containers) never reaches the paper. Charts are canvases,
 // which don't survive a DOM copy, so each is swapped for an image of itself.
-export async function printReport (sheet, { title, lang = 'en' }) {
+// landscape: for wide tables (the Salesperson performance page's).
+export async function printReport (sheet, { title, lang = 'en', landscape = false }) {
   const copy = sheet.cloneNode(true)
   // Buttons and lists that are only for working on the report on screen.
   for (const el of copy.querySelectorAll('.rpt-screen-only')) {el.remove()}
@@ -28,7 +29,7 @@ export async function printReport (sheet, { title, lang = 'en' }) {
   doc.open()
   doc.write(`<!doctype html><html lang="${lang}" dir="${lang === 'ar' ? 'rtl' : 'ltr'}"><head><meta charset="utf-8"><title></title><style>
     ${reportFontCss}
-    @page { size: A4 portrait; margin: 0; }
+    @page { size: A4 ${landscape ? 'landscape' : 'portrait'}; margin: 0; }
     html, body { margin: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     ${sheetCss}
     /* The 10mm page margins are the sheet's own padding, repeated on every

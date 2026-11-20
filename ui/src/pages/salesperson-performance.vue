@@ -4,6 +4,14 @@
       <h1 class="text-h4 font-weight-bold">Salesperson performance</h1>
       <v-spacer />
       <v-btn
+        data-test="export-pdf"
+        :disabled="loading"
+        prepend-icon="mdi-file-pdf-box"
+        text="Export PDF"
+        variant="tonal"
+        @click="exportPdf"
+      />
+      <v-btn
         prepend-icon="mdi-file-chart-outline"
         text="Monthly report (PDF)"
         to="/reports?report=staff"
@@ -121,7 +129,7 @@
       <v-card-title class="d-flex align-center py-4">
         <span>Performance ranking</span>
         <v-spacer />
-        <v-chip color="primary" size="small" variant="tonal">{{ rankedRows.length }} employees</v-chip>
+        <span class="text-body-2 text-primary font-weight-medium">{{ rankedRows.length }} employees</span>
       </v-card-title>
       <v-divider />
       <PreparingState v-if="loading" kind="data" min-height="260px" title="Ranking salespersons" />
@@ -152,16 +160,12 @@
             </div>
           </div>
           <v-progress-linear :color="scoreColor(employee.score)" height="12" :model-value="employee.score" rounded />
-          <div class="d-flex flex-wrap ga-2 mt-3">
-            <v-chip size="small" variant="tonal">Amount {{ employee.amountScore.toFixed(0) }}%</v-chip>
-            <v-chip size="small" variant="tonal">Invoices {{ employee.invoiceScore.toFixed(0) }}%</v-chip>
-            <v-chip size="small" variant="tonal">Goods {{ employee.goodsScore.toFixed(0) }}%</v-chip>
-            <v-chip color="warning" size="small" variant="tonal">
-              Discounts {{ formatMoney(employee.totalDiscounts) }}
-            </v-chip>
-            <v-chip color="error" size="small" variant="tonal">
-              Price overrides {{ formatMoney(employee.totalPriceOverrides) }}
-            </v-chip>
+          <div class="d-flex flex-wrap ga-4 mt-3 text-body-2" data-test="ranking-parts">
+            <span>Amount {{ employee.amountScore.toFixed(0) }}%</span>
+            <span>Invoices {{ employee.invoiceScore.toFixed(0) }}%</span>
+            <span>Goods {{ employee.goodsScore.toFixed(0) }}%</span>
+            <span class="text-warning">Discounts {{ formatMoney(employee.totalDiscounts) }}</span>
+            <span class="text-error">Price overrides {{ formatMoney(employee.totalPriceOverrides) }}</span>
           </div>
         </div>
       </v-card-text>
@@ -185,7 +189,7 @@
           </div>
         </template>
         <template #item.score="{ item }">
-          <v-chip :color="scoreColor(item.score)" size="small" variant="tonal">{{ item.score.toFixed(1) }}</v-chip>
+          <span class="font-weight-bold" :class="`text-${scoreColor(item.score)}`" data-test="ranking-score">{{ item.score.toFixed(1) }}</span>
         </template>
         <template #item.totalAmount="{ item }">{{ formatMoney(item.totalAmount) }}</template>
         <template #item.totalDiscounts="{ item }">{{ formatMoney(item.totalDiscounts) }}</template>
@@ -363,9 +367,7 @@
               :search="adjustmentSearch"
             >
               <template #item.type="{ item }">
-                <v-chip :color="item.type === 'Discount' ? 'warning' : 'error'" size="small" variant="tonal">
-                  {{ item.type }}
-                </v-chip>
+                <span class="font-weight-medium" :class="item.type === 'Discount' ? 'text-warning' : 'text-error'">{{ item.type }}</span>
               </template>
               <template #item.date="{ item }">{{ formatDate(item.date) }}</template>
               <template #item.originalPrice="{ item }">{{ item.originalPrice == null ? '—' : formatMoney(item.originalPrice) }}</template>
@@ -391,6 +393,8 @@
   import { API_BASE } from '@/config'
   import { buildTimesheet } from '@/utils/attendanceSessions'
   import { ymd } from '@/utils/dates'
+  import { printReport } from '@/utils/reportExport'
+  import { performanceSheet, performanceTables } from '@/utils/salespersonPdf'
   import { explainPart, hoursFromTimesheet, SCORE_RULE, scoreSalespersons } from '@/utils/salespersonScore'
 
   const { branches, fetchBranches } = useBranches()
@@ -654,6 +658,33 @@
   }
   function scoreColor (score) {
     return score >= 75 ? 'success' : (score >= 45 ? 'warning' : 'error')
+  }
+  // Both tables as they are on screen (same filters), to PDF through the
+  // print dialog.
+  const periodLabel = computed(() => {
+    if (period.value === 'month') {return formattedMonth.value}
+    const { from, to } = periodBounds.value
+    return from ? `${from} to ${to}` : 'All time'
+  })
+  async function exportPdf () {
+    const branch = branchId.value == null ? 'All branches' : branchName(branchId.value)
+    const tables = performanceTables({
+      ranking: rankedRows.value,
+      score: scorePeople.value.map(p => ({ ...p, branchName: branchName(p.branchId) })),
+      money: formatMoney,
+    })
+    const sheet = performanceSheet({
+      title: 'Salesperson performance',
+      period: periodLabel.value,
+      branch,
+      generated: new Date().toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }),
+      tables,
+    })
+    try {
+      await printReport(sheet, { title: `Salesperson performance ${periodLabel.value} ${branch}`, landscape: true })
+    } catch (error) {
+      notify.error(error.message)
+    }
   }
   function selectMonth (monthIndex) {
     month.value = `${monthPickerYear.value}-${String(Number(monthIndex) + 1).padStart(2, '0')}`
