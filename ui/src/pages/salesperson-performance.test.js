@@ -30,8 +30,15 @@ const staff = [
   { id: 12, name: 'Ali Saad', branch_id: 1, attendance_user_id: '8' },
 ]
 
+// Each request's URL, and an answer per request that a test may hold back.
+const requests = []
+let answer = async () => body
 vi.mock('@/composables/useApi', () => ({
-  authFetch: async () => ({ ok: true, status: 200, json: async () => body }),
+  authFetch: async (url) => {
+    requests.push(url)
+    const data = await answer(url)
+    return { ok: true, status: 200, json: async () => data }
+  },
 }))
 vi.mock('@/config', () => ({ API_BASE: 'http://test/api' }))
 vi.mock('@/composables/useBranches', () => ({
@@ -48,7 +55,7 @@ vi.mock('@/composables/useNotify', () => ({ useNotify: () => ({ error: vi.fn(), 
 
 let wrapper = null
 beforeEach(() => setActivePinia(createPinia()))
-afterEach(() => { wrapper?.unmount(); wrapper = null; document.body.innerHTML = ''; printReport.mockClear() })
+afterEach(() => { wrapper?.unmount(); wrapper = null; document.body.innerHTML = ''; printReport.mockClear(); requests.length = 0; answer = async () => body })
 
 async function open () {
   const { default: Page } = await import('./salesperson-performance.vue')
@@ -129,6 +136,48 @@ describe('Salesperson performance', () => {
     expect(parts.text()).toMatch(/Amount \d+%.*Invoices \d+%.*Goods \d+%.*Discounts \$.*Price overrides \$/s)
     expect(parts.find('.text-warning').text()).toMatch(/^Discounts/)
     expect(parts.find('.text-error').text()).toMatch(/^Price overrides/)
+  })
+
+  it('the reported case: the all-time load answering after a custom range never replaces it', async () => {
+    // All time has the old POS's sales under its till account "Centro"; the
+    // chosen dates have Rana and Ali only. All time is held back until the
+    // range has answered, as the bigger answer was on the live page.
+    const oldPos = { invoices: [{ id: 9001, kind: 'sales', branch_id: 1, salesperson_id: 0, salesperson_name: 'Centro', grand_total: 9_999_900, occurred_at: '2025-10-04T09:00:00Z', items: [{ unit_price: 9_999_900, quantity: 1, line_total: 9_999_900 }] }], returns: [], branch_targets: [] }
+    let releaseAllTime
+    const allTimeHeld = new Promise(resolve => { releaseAllTime = resolve })
+    answer = async (url) => {
+      if (!url.includes('from=')) {
+        await allTimeHeld
+        return oldPos
+      }
+      return body
+    }
+    await open()
+    wrapper.vm.period = 'range'
+    await flushPromises()
+    wrapper.vm.dateRange = ['2026-10-25', '2026-12-25']
+    await flushPromises()
+    expect(requests.at(-2)).toMatch(/salesperson_performance\?$/)
+    expect(requests.at(-1)).toMatch(/from=2026-10-25&to=2026-12-25$/)
+    releaseAllTime()
+    await flushPromises()
+    await flushPromises()
+    const names = wrapper.findAll('.performance-row').map(r => r.find('.text-truncate').text())
+    // The fixture's sale with no salesperson is the third row.
+    expect(names.toSorted()).toEqual(['Ali Saad', 'Rana Haddad', 'Unassigned'])
+    expect(wrapper.vm.availableSalespersons.map(p => p.name)).not.toContain('Centro')
+    expect(scoreRows().map(r => r.text())).toEqual(expect.not.arrayContaining([expect.stringMatching(/^\s*Centro/)]))
+    expect(wrapper.text()).not.toContain('$99,999.00')
+    expect(wrapper.vm.loading).toBe(false)
+  })
+
+  it('a later choice of period still loads when the earlier answer comes first', async () => {
+    await open()
+    wrapper.vm.period = 'all'
+    await flushPromises()
+    expect(requests.at(-1)).toMatch(/salesperson_performance\?$/)
+    expect(wrapper.findAll('.performance-row')).toHaveLength(3)
+    expect(wrapper.vm.loading).toBe(false)
   })
 
   it('Export PDF prints both tables as on screen, landscape', async () => {

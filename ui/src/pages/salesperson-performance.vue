@@ -721,41 +721,54 @@
 
   // Every sale of the period with its lines, in one request (see
   // api/salesperson_performance.go).
+  // Each load is numbered and only the latest may fill the page. Picking
+  // "Custom date range" first asks for all time (no dates yet), then for the
+  // dates; all time answers last, being bigger, and used to replace them.
+  let loadSeq = 0
   async function loadData () {
+    const seq = ++loadSeq
+    const stale = () => seq !== loadSeq
     loading.value = true
     try {
       const [, response] = await Promise.all([
         fetchBranches(),
         authFetch(`${API_BASE}/salesperson_performance?${new URLSearchParams(periodBounds.value)}`),
       ])
+      if (stale()) return
       if (!response.ok) throw new Error(`Failed to load sales activity (${response.status})`)
       const data = await response.json()
+      if (stale()) return
       invoices.value = data?.invoices ?? []
       returns.value = data?.returns ?? []
       branchTargets.value = data?.branch_targets ?? []
     } catch (loadError) {
+      if (stale()) return
       notify.error(loadError.message || 'Failed to load salesperson performance.')
       invoices.value = []
       returns.value = []
       branchTargets.value = []
     } finally {
-      loading.value = false
+      if (!stale()) {loading.value = false}
     }
-    loadHours()
+    if (!stale()) {loadHours(stale)}
   }
 
   // Hours for the score, after the sales are on screen: the period's punches
   // and each branch's salespersons, to tell whose they are. All time has no
   // hours (the score leaves that part out).
-  async function loadHours () {
+  async function loadHours (stale) {
     const { from, to } = periodBounds.value
     try {
       await ensureAutoDefaults()
-      attendance.value = from && to ? await listEventsInRange({ from, to }) : []
+      const events = from && to ? await listEventsInRange({ from, to }) : []
+      if (stale()) return
+      attendance.value = events
       const ids = [...new Set([...invoices.value, ...attendance.value].map(r => r.branch_id))].slice(0, 30)
-      staff.value = (await Promise.all(ids.map(id => listBranchSalespersons(id).catch(() => [])))).flat()
+      const people = (await Promise.all(ids.map(id => listBranchSalespersons(id).catch(() => [])))).flat()
+      if (stale()) return
+      staff.value = people
     } catch {
-      attendance.value = []
+      if (!stale()) {attendance.value = []}
     }
   }
 
