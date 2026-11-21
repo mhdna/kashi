@@ -15,11 +15,17 @@ const registers = [
 ]
 
 let wrapper
-afterEach(() => { wrapper?.unmount(); document.body.innerHTML = '' })
+const suggestCalls = []
+let suggestAnswer = () => []
+async function suggestStub (args) {
+  suggestCalls.push(args)
+  return suggestAnswer(args)
+}
+afterEach(() => { wrapper?.unmount(); document.body.innerHTML = ''; suggestCalls.length = 0; suggestAnswer = () => [] })
 
 async function open (filters = emptyFilters()) {
   wrapper = mount(InvoiceFilterDialog, {
-    props: { modelValue: true, filters, branches, registers },
+    props: { modelValue: true, filters, branches, registers, suggestFn: suggestStub },
     global: { plugins: [vuetify()] },
     attachTo: document.body,
   })
@@ -29,6 +35,7 @@ async function open (filters = emptyFilters()) {
 const input = name => document.querySelector(`[data-test="${name}"] input`)
 async function type (name, value) {
   const el = input(name)
+  el.focus()
   el.value = value
   el.dispatchEvent(new Event('input'))
   await flushPromises()
@@ -40,7 +47,7 @@ describe('InvoiceFilterDialog', () => {
   it('shows every filter group, product first', async () => {
     await open()
     const text = document.body.textContent
-    for (const label of ['Product on the invoice', 'Search in', 'Match', 'Branch', 'Register', 'Type', 'Status', 'Client name or phone', 'From', 'To', 'Total from', 'Total to']) {
+    for (const label of ['Product on the invoice', 'Search in', 'Match', 'Branch', 'Register', 'Type', 'Status', 'Client name or phone', 'Salesperson', 'From', 'To', 'Total from', 'Total to']) {
       expect(text, label).toContain(label)
     }
     expect(text).not.toMatch(/[–—·•]/)
@@ -113,6 +120,92 @@ describe('InvoiceFilterDialog', () => {
     await flushPromises()
     expect(state.draft.registerId).toBeNull()
     expect(state.registerChoices.map(r => r.id)).toEqual([20])
+  })
+})
+
+describe('InvoiceFilterDialog salesperson and completions', () => {
+  const wait = ms => new Promise(resolve => setTimeout(resolve, ms))
+
+  it('the reported case: a salesperson reaches the API, a wildcard as typed', async () => {
+    await open()
+    await type('filter-salesperson', ' Ra* ')
+    await type('filter-client', 'Ma*ya')
+    button('filter-apply').click()
+    await flushPromises()
+    expect(invoiceFilterParams(applied())).toMatchObject({ salesperson: 'Ra*', client: 'Ma*ya' })
+  })
+
+  it('lists what the server completes, with the hint, as you type', async () => {
+    suggestAnswer = ({ field }) => field === 'client' ? [{ value: 'Maya Haddad', hint: '+96170123456' }, { value: 'Maya Nasr', hint: '' }] : []
+    await open()
+    await type('filter-client', 'Maya')
+    await wait(300)
+    await flushPromises()
+    expect(suggestCalls).toEqual([{ field: 'client', q: 'Maya', branchId: null, productField: 'any' }])
+    expect(document.body.textContent).toContain('Maya Haddad')
+    expect(document.body.textContent).toContain('+96170123456')
+    expect(document.body.textContent).toContain('Maya Nasr')
+  })
+
+  it('asks for the chosen branch\'s salespersons, and the product field', async () => {
+    await open({ ...emptyFilters(), branchId: 2, productField: 'name' })
+    await type('filter-salesperson', 'R')
+    await type('filter-product', 'shirt')
+    await wait(300)
+    expect(suggestCalls).toContainEqual({ field: 'salesperson', q: 'R', branchId: 2, productField: 'any' })
+    expect(suggestCalls).toContainEqual({ field: 'product', q: 'shirt', branchId: null, productField: 'name' })
+  })
+
+  it('asks nothing for an empty or blank box, and one request for fast typing', async () => {
+    await open()
+    await type('filter-client', '   ')
+    await type('filter-client', 'M')
+    await type('filter-client', 'Ma')
+    await type('filter-client', 'May')
+    await wait(300)
+    expect(suggestCalls.map(c => c.q)).toEqual(['May'])
+    await type('filter-client', '')
+    await wait(300)
+    expect(suggestCalls).toHaveLength(1)
+  })
+
+  it('a slower earlier answer never replaces the newer list', async () => {
+    suggestAnswer = ({ q }) => new Promise(resolve => setTimeout(() => resolve([{ value: `answer for ${q}`, hint: '' }]), q === 'a' ? 250 : 10))
+    await open()
+    await type('filter-client', 'a')
+    await wait(220)
+    await type('filter-client', 'ab')
+    await wait(500)
+    await flushPromises()
+    expect(document.body.textContent).toContain('answer for ab')
+    expect(document.body.textContent).not.toMatch(/answer for a(?!b)/)
+  })
+
+  it('a failing completion leaves the typed text as the filter', async () => {
+    suggestAnswer = () => { throw new Error('offline') }
+    await open()
+    await type('filter-salesperson', 'Rana')
+    await wait(300)
+    button('filter-apply').click()
+    await flushPromises()
+    expect(applied().salesperson).toBe('Rana')
+  })
+
+  it('Clear all empties the salesperson box too', async () => {
+    await open({ ...emptyFilters(), salesperson: 'Rana', client: 'Maya' })
+    expect(input('filter-salesperson').value).toBe('Rana')
+    button('filter-clear').click()
+    await flushPromises()
+    expect(input('filter-salesperson').value).toBe('')
+    expect(input('filter-client').value).toBe('')
+  })
+
+  it('Enter applies when no list is open', async () => {
+    await open()
+    await type('filter-salesperson', 'Rana')
+    input('filter-salesperson').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    await flushPromises()
+    expect(applied().salesperson).toBe('Rana')
   })
 })
 

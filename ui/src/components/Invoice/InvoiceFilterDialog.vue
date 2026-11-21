@@ -28,17 +28,16 @@
             />
           </v-col>
           <v-col cols="12">
-            <v-text-field
+            <SuggestField
               v-model="draft.product"
               autofocus
-              clearable
               data-test="filter-product"
-              density="compact"
-              hide-details
-              label="Code, name or barcode"
-              prepend-inner-icon="mdi-tag-outline"
-              variant="outlined"
-              @keydown.enter="apply"
+              field="product"
+              icon="mdi-tag-outline"
+              label="Code, name or barcode (* is a wildcard)"
+              :product-field="draft.productField"
+              :suggest="suggest"
+              @enter="apply"
             />
           </v-col>
         </v-row>
@@ -106,16 +105,26 @@
             />
           </v-col>
           <v-col cols="12">
-            <v-text-field
+            <SuggestField
               v-model="draft.client"
-              clearable
               data-test="filter-client"
-              density="compact"
-              hide-details
-              label="Client name or phone"
-              prepend-inner-icon="mdi-account-search"
-              variant="outlined"
-              @keydown.enter="apply"
+              field="client"
+              icon="mdi-account-search"
+              label="Client name or phone (* is a wildcard)"
+              :suggest="suggest"
+              @enter="apply"
+            />
+          </v-col>
+          <v-col cols="12">
+            <SuggestField
+              v-model="draft.salesperson"
+              :branch-id="draft.branchId"
+              data-test="filter-salesperson"
+              field="salesperson"
+              icon="mdi-account-tie"
+              label="Salesperson (* is a wildcard)"
+              :suggest="suggest"
+              @enter="apply"
             />
           </v-col>
         </v-row>
@@ -193,6 +202,7 @@
 
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue'
+  import SuggestField from '@/components/Invoice/SuggestField.vue'
   import {
     emptyFilters,
     invoiceFilterError,
@@ -207,7 +217,10 @@
     branches: { type: Array, default: () => [] },
     // { id, branch_id, label } for every register.
     registers: { type: Array, default: () => [] },
+    // Completes the product, client and salesperson boxes (no completions when absent).
+    suggestFn: { type: Function, default: async () => [] },
   })
+  const suggest = args => props.suggestFn(args)
   const emit = defineEmits(['apply'])
   const open = defineModel({ type: Boolean, default: false })
 
@@ -230,7 +243,7 @@
 
   function apply () {
     if (error.value) return
-    emit('apply', { ...draft.value, product: draft.value.product ?? '', client: draft.value.client ?? '' })
+    emit('apply', { ...draft.value, product: draft.value.product ?? '', client: draft.value.client ?? '', salesperson: draft.value.salesperson ?? '' })
     open.value = false
   }
 

@@ -130,7 +130,7 @@ func TestBranchInvoicesFilterByProduct(t *testing.T) {
 	require.Equal(t, []int{0, 2}, product("shirt", "", "contains"), "any field finds the name")
 	require.Equal(t, []int{0, 1, 2}, product("SH12", "", "contains"), "any field finds the code")
 	require.Equal(t, []int{1, 5}, product(tee.barcode, "barcode", "exact"))
-	require.Equal(t, []int{0, 1}, product("529"+tag, "barcode", "starts"), "a barcode prefix")
+	require.Equal(t, []int{0, 1, 2}, product("529"+tag, "barcode", "starts"), "a barcode prefix")
 	require.Equal(t, []int{1, 5}, product("50%", "name", "contains"), "a typed % is the character, not a wildcard")
 	require.Nil(t, product("5_%", "name", "contains"), "a typed _ is the character, not a wildcard")
 	require.Equal(t, []int{1, 5}, product("o 50", "", "contains"), "an invoice with two matching lines is listed once")
@@ -138,7 +138,7 @@ func TestBranchInvoicesFilterByProduct(t *testing.T) {
 	require.Equal(t, []int{0, 3, 4}, found("", "", cents(0), cents(3000)), "total range, both ends inclusive")
 	require.Equal(t, []int{2}, found("", "", none, cents(-1)), "a return's negative total")
 	require.Equal(t, []int{5}, found("", "", cents(6000), none))
-	require.Equal(t, []int{0}, found(likeFor("SH12", "contains"), "code", cents(0), none), "combines with the product filter")
+	require.Equal(t, []int{0, 1}, found(likeFor("SH12", "contains"), "code", cents(0), none), "combines with the product filter")
 
 	// Randomized: random pieces of every code, name and barcode, in every
 	// field and mode, keep exactly the invoices a plain Go match keeps.

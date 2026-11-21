@@ -2002,6 +2002,14 @@ type Querier interface {
 	// from POST /instance/resume): logged as sent when queued, they never went.
 	SkipDroppedWhatsAppMessages(ctx context.Context, arg SkipDroppedWhatsAppMessagesParams) error
 	SplitUnknownInvoiceItem(ctx context.Context, arg SplitUnknownInvoiceItemParams) error
+	// Clients for the invoice filter's client box, by name pattern or phone digits.
+	SuggestInvoiceClients(ctx context.Context, arg SuggestInvoiceClientsParams) ([]SuggestInvoiceClientsRow, error)
+	// Products for the invoice filter's product box: the code or the name matches
+	// the pattern (product_field: '' any, 'code' or 'name').
+	SuggestInvoiceProducts(ctx context.Context, arg SuggestInvoiceProductsParams) ([]SuggestInvoiceProductsRow, error)
+	// Names for the invoice filter's salesperson box, one per name even when
+	// several branches have a person of that name.
+	SuggestSalespersonNames(ctx context.Context, arg SuggestSalespersonNamesParams) ([]string, error)
 	// Net sales revenue: same grand_total-sum convention as ListDailyIncome in
 	// branch_invoice.sql (returns already net out via their signed grand_total).
 	SumBranchRevenueForRange(ctx context.Context, arg SumBranchRevenueForRangeParams) (int64, error)

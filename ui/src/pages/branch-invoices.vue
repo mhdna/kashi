@@ -193,6 +193,7 @@
     :branches="branches"
     :filters="filters"
     :registers="registerOptions"
+    :suggest-fn="suggestInvoiceFilter"
     @apply="applyFilters"
   />
 
@@ -492,7 +493,7 @@
     searchDebounce: { type: Number, default: 100 },
   })
 
-  const { exportBranchInvoices, listBranchInvoiceItems, requestRemoteCancel, requestRemoteReturn } = useBranchInvoices()
+  const { exportBranchInvoices, suggestInvoiceFilter, listBranchInvoiceItems, requestRemoteCancel, requestRemoteReturn } = useBranchInvoices()
   const { listBranchCommands } = useBranchSettings()
   const auth = useAuthStore()
   const { getBranchInvoiceDetails } = useInvoiceDetails()

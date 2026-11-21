@@ -111,10 +111,10 @@ func TestListBranchInvoicesClientFilter(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	store := mockdb.NewMockStore(ctrl)
 	store.EXPECT().ListBranchInvoicesPage(gomock.Any(), db.ListBranchInvoicesPageParams{
-		Client: "Maya", Search: "SA/CT", PageSize: 14,
+		ClientPattern: "%Maya%", Search: "SA/CT", PageSize: 14,
 	}).Return([]db.BranchInvoice{}, nil)
 	store.EXPECT().CountBranchInvoicesFiltered(gomock.Any(), db.CountBranchInvoicesFilteredParams{
-		Client: "Maya", Search: "SA/CT",
+		ClientPattern: "%Maya%", Search: "SA/CT",
 	}).Return(int64(4), nil)
 
 	server := newTestServer(t, store)
@@ -132,7 +132,7 @@ func TestExportBranchInvoicesClientFilter(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	store := mockdb.NewMockStore(ctrl)
 	store.EXPECT().ListBranchInvoicesPage(gomock.Any(), db.ListBranchInvoicesPageParams{
-		Client: "70123456", ClientDigits: "70123456", PageSize: exportBranchInvoicesLimit,
+		ClientPattern: "%70123456%", ClientDigits: "%70123456%", PageSize: exportBranchInvoicesLimit,
 	}).Return([]db.BranchInvoice{}, nil)
 	store.EXPECT().ListBranches(gomock.Any()).Return([]db.Branch{}, nil)
 	store.EXPECT().ListAllBranchRegisters(gomock.Any()).Return([]db.BranchRegister{}, nil)

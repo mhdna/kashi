@@ -76,7 +76,7 @@ describe('countInvoiceFilters', () => {
     expect(hasInvoiceFilters({ ...emptyFilters(), totalMax: '0' })).toBe(true, 'a zero total is a filter')
   })
   it('randomized: the count is the number of parameters the API gets', () => {
-    const keys = { branchId: 3, registerId: 4, kind: 'return', status: 'active', dateFrom: '2026-10-01', dateTo: '2026-10-31', client: 'Maya', product: 'SH', totalMin: '-5', totalMax: '20' }
+    const keys = { branchId: 3, registerId: 4, kind: 'return', status: 'active', dateFrom: '2026-10-01', dateTo: '2026-10-31', client: 'Maya', salesperson: 'Rana', product: 'SH', totalMin: '-5', totalMax: '20' }
     for (let run = 0; run < 500; run++) {
       const filters = emptyFilters()
       let want = 0
@@ -115,5 +115,19 @@ describe('invoiceFilterError', () => {
     expect(invoiceFilterError({ totalMin: 'abc' })).toMatch(/not a number/)
     expect(invoiceFilterError({ totalMax: '1..2' })).toMatch(/not a number/)
     expect(invoiceFilterError({ dateFrom: '2026-11-02', dateTo: '2026-11-01' })).toMatch(/after/)
+  })
+})
+
+describe('salesperson filter', () => {
+  it('is sent trimmed, wildcards untouched, and nothing when blank', () => {
+    expect(invoiceFilterParams({ salesperson: ' Ra* ' }).salesperson).toBe('Ra*')
+    expect(invoiceFilterParams({ salesperson: '  ' }).salesperson).toBeNull()
+    expect(invoiceFilterParams({}).salesperson).toBeNull()
+  })
+  it('counts once, shows Clear, and reads in the summary', () => {
+    expect(countInvoiceFilters({ ...emptyFilters(), salesperson: 'Rana' })).toBe(1)
+    expect(hasInvoiceFilters({ ...emptyFilters(), salesperson: 'Rana' })).toBe(true)
+    expect(hasInvoiceFilters({ ...emptyFilters(), salesperson: ' ' })).toBe(false)
+    expect(invoiceFilterSummary({ ...emptyFilters(), salesperson: 'Ra*', client: 'Maya' })).toEqual(['Client "Maya"', 'Salesperson "Ra*"'])
   })
 })

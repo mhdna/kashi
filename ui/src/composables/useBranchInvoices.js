@@ -100,5 +100,17 @@ export function useBranchInvoices () {
     return res.blob()
   }
 
-  return { exportBranchInvoices, listBranchInvoiceItems, listRecentBranchInvoices, requestRemoteCancel, requestRemoteReturn, listSalesStats }
+  // Names matching what is typed in the filter dialog, for its boxes to list:
+  // [{ value, hint }]. field is salesperson, client or product.
+  async function suggestInvoiceFilter ({ field, q, branchId, productField }) {
+    const url = new URL(`${API_BASE}/branch_invoices/suggest`)
+    url.searchParams.set('field', field)
+    url.searchParams.set('q', q)
+    if (branchId) {url.searchParams.set('branch_id', String(branchId))}
+    if (productField && productField !== 'any') {url.searchParams.set('product_field', productField)}
+    const data = await requestJSON(url.toString())
+    return data?.suggestions ?? []
+  }
+
+  return { suggestInvoiceFilter, exportBranchInvoices, listBranchInvoiceItems, listRecentBranchInvoices, requestRemoteCancel, requestRemoteReturn, listSalesStats }
 }

@@ -39,65 +39,69 @@ WHERE ($1::bigint IS NULL OR branch_id = $1)
     OR salesperson_name ILIKE '%' || $2::text || '%'
   )
   AND ($3::bigint IS NULL OR register_id = $3)
-  -- client: a name fragment of the invoice's customer, or (client_digits, set by
-  -- the API when the term has no letters) a run of the phone's digits whatever
-  -- its spacing or +. The matching clients are found first through the trigram
+  -- client_pattern: an ILIKE pattern of the invoice's customer name (the API
+  -- builds it from the box: contains, or as typed when it has * wildcards), or
+  -- client_digits (a LIKE pattern of digits, set when the term has no letters)
+  -- for the phone whatever its spacing or +. The matching clients are found first through the trigram
   -- indexes (000242), then the invoices by uid or by the till's client link.
   AND (
     $4::text = ''
     OR client_uid IN (
       SELECT c.uid FROM clients c
-      WHERE c.name ILIKE '%' || $4::text || '%'
+      WHERE c.name ILIKE $4::text
         OR ($5::text <> ''
-            AND regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || $5::text || '%'))
+            AND regexp_replace(c.phone, '\D', '', 'g') LIKE $5::text))
     OR (register_id, branch_client_id) IN (
       SELECT cl.register_id, cl.branch_client_id FROM client_links cl
       JOIN clients c ON c.id = cl.client_id
-      WHERE c.name ILIKE '%' || $4::text || '%'
+      WHERE c.name ILIKE $4::text
         OR ($5::text <> ''
-            AND regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || $5::text || '%'))
+            AND regexp_replace(c.phone, '\D', '', 'g') LIKE $5::text))
   )
-  AND ($6::text IS NULL OR kind = $6)
+  -- salesperson_pattern: an ILIKE pattern of who made the sale (trigram index, 000078).
+  AND ($6::text = '' OR salesperson_name ILIKE $6::text)
+  AND ($7::text IS NULL OR kind = $7)
   AND (
-    $7::text IS NULL
-    OR ($7 = 'cancelled' AND cancelled_at IS NOT NULL)
-    OR ($7 = 'active' AND cancelled_at IS NULL)
+    $8::text IS NULL
+    OR ($8 = 'cancelled' AND cancelled_at IS NOT NULL)
+    OR ($8 = 'active' AND cancelled_at IS NULL)
   )
-  AND ($8::timestamptz IS NULL OR occurred_at >= $8)
-  AND ($9::timestamptz IS NULL OR occurred_at < $9)
+  AND ($9::timestamptz IS NULL OR occurred_at >= $9)
+  AND ($10::timestamptz IS NULL OR occurred_at < $10)
   -- product_pattern: an ILIKE pattern the API builds from the product box and
   -- its match mode (contains, starts with, ends with, exact), matched against
   -- the product's code, name or barcode (product_field; '' is any of them).
   -- The matching variants are found first (trigram indexes on products, 000103),
   -- then their lines by product_uid.
   AND (
-    $10::text = ''
+    $11::text = ''
     OR branch_invoices.id IN (
       SELECT bii.branch_invoice_id FROM branch_invoice_items bii
       JOIN product_variants pv ON pv.uid = bii.product_uid
       JOIN products p ON p.id = pv.product_id
-      WHERE ($11::text IN ('', 'code') AND p.code ILIKE $10::text)
-        OR ($11::text IN ('', 'name') AND p.name ILIKE $10::text)
-        OR ($11::text IN ('', 'barcode') AND pv.barcode ILIKE $10::text))
+      WHERE ($12::text IN ('', 'code') AND p.code ILIKE $11::text)
+        OR ($12::text IN ('', 'name') AND p.name ILIKE $11::text)
+        OR ($12::text IN ('', 'barcode') AND pv.barcode ILIKE $11::text))
   )
-  AND ($12::bigint IS NULL OR grand_total >= $12)
-  AND ($13::bigint IS NULL OR grand_total <= $13)
+  AND ($13::bigint IS NULL OR grand_total >= $13)
+  AND ($14::bigint IS NULL OR grand_total <= $14)
 `
 
 type CountBranchInvoicesFilteredParams struct {
-	BranchID       sql.NullInt64  `json:"branch_id"`
-	Search         string         `json:"search"`
-	RegisterID     sql.NullInt64  `json:"register_id"`
-	Client         string         `json:"client"`
-	ClientDigits   string         `json:"client_digits"`
-	Kind           sql.NullString `json:"kind"`
-	Status         sql.NullString `json:"status"`
-	DateFrom       sql.NullTime   `json:"date_from"`
-	DateTo         sql.NullTime   `json:"date_to"`
-	ProductPattern string         `json:"product_pattern"`
-	ProductField   string         `json:"product_field"`
-	TotalMin       sql.NullInt64  `json:"total_min"`
-	TotalMax       sql.NullInt64  `json:"total_max"`
+	BranchID           sql.NullInt64  `json:"branch_id"`
+	Search             string         `json:"search"`
+	RegisterID         sql.NullInt64  `json:"register_id"`
+	ClientPattern      string         `json:"client_pattern"`
+	ClientDigits       string         `json:"client_digits"`
+	SalespersonPattern string         `json:"salesperson_pattern"`
+	Kind               sql.NullString `json:"kind"`
+	Status             sql.NullString `json:"status"`
+	DateFrom           sql.NullTime   `json:"date_from"`
+	DateTo             sql.NullTime   `json:"date_to"`
+	ProductPattern     string         `json:"product_pattern"`
+	ProductField       string         `json:"product_field"`
+	TotalMin           sql.NullInt64  `json:"total_min"`
+	TotalMax           sql.NullInt64  `json:"total_max"`
 }
 
 func (q *Queries) CountBranchInvoicesFiltered(ctx context.Context, arg CountBranchInvoicesFilteredParams) (int64, error) {
@@ -105,8 +109,9 @@ func (q *Queries) CountBranchInvoicesFiltered(ctx context.Context, arg CountBran
 		arg.BranchID,
 		arg.Search,
 		arg.RegisterID,
-		arg.Client,
+		arg.ClientPattern,
 		arg.ClientDigits,
+		arg.SalespersonPattern,
 		arg.Kind,
 		arg.Status,
 		arg.DateFrom,
@@ -721,70 +726,74 @@ WHERE ($1::bigint IS NULL OR branch_id = $1)
     OR salesperson_name ILIKE '%' || $2::text || '%'
   )
   AND ($3::bigint IS NULL OR register_id = $3)
-  -- client: a name fragment of the invoice's customer, or (client_digits, set by
-  -- the API when the term has no letters) a run of the phone's digits whatever
-  -- its spacing or +. The matching clients are found first through the trigram
+  -- client_pattern: an ILIKE pattern of the invoice's customer name (the API
+  -- builds it from the box: contains, or as typed when it has * wildcards), or
+  -- client_digits (a LIKE pattern of digits, set when the term has no letters)
+  -- for the phone whatever its spacing or +. The matching clients are found first through the trigram
   -- indexes (000242), then the invoices by uid or by the till's client link.
   AND (
     $4::text = ''
     OR client_uid IN (
       SELECT c.uid FROM clients c
-      WHERE c.name ILIKE '%' || $4::text || '%'
+      WHERE c.name ILIKE $4::text
         OR ($5::text <> ''
-            AND regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || $5::text || '%'))
+            AND regexp_replace(c.phone, '\D', '', 'g') LIKE $5::text))
     OR (register_id, branch_client_id) IN (
       SELECT cl.register_id, cl.branch_client_id FROM client_links cl
       JOIN clients c ON c.id = cl.client_id
-      WHERE c.name ILIKE '%' || $4::text || '%'
+      WHERE c.name ILIKE $4::text
         OR ($5::text <> ''
-            AND regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || $5::text || '%'))
+            AND regexp_replace(c.phone, '\D', '', 'g') LIKE $5::text))
   )
-  AND ($6::text IS NULL OR kind = $6)
+  -- salesperson_pattern: an ILIKE pattern of who made the sale (trigram index, 000078).
+  AND ($6::text = '' OR salesperson_name ILIKE $6::text)
+  AND ($7::text IS NULL OR kind = $7)
   AND (
-    $7::text IS NULL
-    OR ($7 = 'cancelled' AND cancelled_at IS NOT NULL)
-    OR ($7 = 'active' AND cancelled_at IS NULL)
+    $8::text IS NULL
+    OR ($8 = 'cancelled' AND cancelled_at IS NOT NULL)
+    OR ($8 = 'active' AND cancelled_at IS NULL)
   )
-  AND ($8::timestamptz IS NULL OR occurred_at >= $8)
-  AND ($9::timestamptz IS NULL OR occurred_at < $9)
+  AND ($9::timestamptz IS NULL OR occurred_at >= $9)
+  AND ($10::timestamptz IS NULL OR occurred_at < $10)
   -- product_pattern: an ILIKE pattern the API builds from the product box and
   -- its match mode (contains, starts with, ends with, exact), matched against
   -- the product's code, name or barcode (product_field; '' is any of them).
   -- The matching variants are found first (trigram indexes on products, 000103),
   -- then their lines by product_uid.
   AND (
-    $10::text = ''
+    $11::text = ''
     OR branch_invoices.id IN (
       SELECT bii.branch_invoice_id FROM branch_invoice_items bii
       JOIN product_variants pv ON pv.uid = bii.product_uid
       JOIN products p ON p.id = pv.product_id
-      WHERE ($11::text IN ('', 'code') AND p.code ILIKE $10::text)
-        OR ($11::text IN ('', 'name') AND p.name ILIKE $10::text)
-        OR ($11::text IN ('', 'barcode') AND pv.barcode ILIKE $10::text))
+      WHERE ($12::text IN ('', 'code') AND p.code ILIKE $11::text)
+        OR ($12::text IN ('', 'name') AND p.name ILIKE $11::text)
+        OR ($12::text IN ('', 'barcode') AND pv.barcode ILIKE $11::text))
   )
-  AND ($12::bigint IS NULL OR grand_total >= $12)
-  AND ($13::bigint IS NULL OR grand_total <= $13)
+  AND ($13::bigint IS NULL OR grand_total >= $13)
+  AND ($14::bigint IS NULL OR grand_total <= $14)
 ORDER BY occurred_at DESC, id DESC
-LIMIT $15
-OFFSET $14
+LIMIT $16
+OFFSET $15
 `
 
 type ListBranchInvoicesPageParams struct {
-	BranchID       sql.NullInt64  `json:"branch_id"`
-	Search         string         `json:"search"`
-	RegisterID     sql.NullInt64  `json:"register_id"`
-	Client         string         `json:"client"`
-	ClientDigits   string         `json:"client_digits"`
-	Kind           sql.NullString `json:"kind"`
-	Status         sql.NullString `json:"status"`
-	DateFrom       sql.NullTime   `json:"date_from"`
-	DateTo         sql.NullTime   `json:"date_to"`
-	ProductPattern string         `json:"product_pattern"`
-	ProductField   string         `json:"product_field"`
-	TotalMin       sql.NullInt64  `json:"total_min"`
-	TotalMax       sql.NullInt64  `json:"total_max"`
-	PageOffset     int32          `json:"page_offset"`
-	PageSize       int32          `json:"page_size"`
+	BranchID           sql.NullInt64  `json:"branch_id"`
+	Search             string         `json:"search"`
+	RegisterID         sql.NullInt64  `json:"register_id"`
+	ClientPattern      string         `json:"client_pattern"`
+	ClientDigits       string         `json:"client_digits"`
+	SalespersonPattern string         `json:"salesperson_pattern"`
+	Kind               sql.NullString `json:"kind"`
+	Status             sql.NullString `json:"status"`
+	DateFrom           sql.NullTime   `json:"date_from"`
+	DateTo             sql.NullTime   `json:"date_to"`
+	ProductPattern     string         `json:"product_pattern"`
+	ProductField       string         `json:"product_field"`
+	TotalMin           sql.NullInt64  `json:"total_min"`
+	TotalMax           sql.NullInt64  `json:"total_max"`
+	PageOffset         int32          `json:"page_offset"`
+	PageSize           int32          `json:"page_size"`
 }
 
 func (q *Queries) ListBranchInvoicesPage(ctx context.Context, arg ListBranchInvoicesPageParams) ([]BranchInvoice, error) {
@@ -792,8 +801,9 @@ func (q *Queries) ListBranchInvoicesPage(ctx context.Context, arg ListBranchInvo
 		arg.BranchID,
 		arg.Search,
 		arg.RegisterID,
-		arg.Client,
+		arg.ClientPattern,
 		arg.ClientDigits,
+		arg.SalespersonPattern,
 		arg.Kind,
 		arg.Status,
 		arg.DateFrom,
@@ -1059,4 +1069,131 @@ func (q *Queries) SetBranchReturnTotals(ctx context.Context, arg SetBranchReturn
 		arg.LbpRate,
 	)
 	return err
+}
+
+const suggestInvoiceClients = `-- name: SuggestInvoiceClients :many
+SELECT name, phone FROM clients
+WHERE name ILIKE $1::text
+  OR ($2::text <> ''
+      AND regexp_replace(phone, '\D', '', 'g') LIKE $2::text)
+ORDER BY name, id
+LIMIT $3
+`
+
+type SuggestInvoiceClientsParams struct {
+	ClientPattern string `json:"client_pattern"`
+	ClientDigits  string `json:"client_digits"`
+	MaxRows       int32  `json:"max_rows"`
+}
+
+type SuggestInvoiceClientsRow struct {
+	Name  string `json:"name"`
+	Phone string `json:"phone"`
+}
+
+// Clients for the invoice filter's client box, by name pattern or phone digits.
+func (q *Queries) SuggestInvoiceClients(ctx context.Context, arg SuggestInvoiceClientsParams) ([]SuggestInvoiceClientsRow, error) {
+	rows, err := q.db.QueryContext(ctx, suggestInvoiceClients, arg.ClientPattern, arg.ClientDigits, arg.MaxRows)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SuggestInvoiceClientsRow{}
+	for rows.Next() {
+		var i SuggestInvoiceClientsRow
+		if err := rows.Scan(&i.Name, &i.Phone); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const suggestInvoiceProducts = `-- name: SuggestInvoiceProducts :many
+SELECT code, name FROM products
+WHERE ($1::text IN ('', 'code') AND code ILIKE $2::text)
+   OR ($1::text IN ('', 'name') AND name ILIKE $2::text)
+ORDER BY code
+LIMIT $3
+`
+
+type SuggestInvoiceProductsParams struct {
+	ProductField string `json:"product_field"`
+	Pattern      string `json:"pattern"`
+	MaxRows      int32  `json:"max_rows"`
+}
+
+type SuggestInvoiceProductsRow struct {
+	Code string `json:"code"`
+	Name string `json:"name"`
+}
+
+// Products for the invoice filter's product box: the code or the name matches
+// the pattern (product_field: ” any, 'code' or 'name').
+func (q *Queries) SuggestInvoiceProducts(ctx context.Context, arg SuggestInvoiceProductsParams) ([]SuggestInvoiceProductsRow, error) {
+	rows, err := q.db.QueryContext(ctx, suggestInvoiceProducts, arg.ProductField, arg.Pattern, arg.MaxRows)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SuggestInvoiceProductsRow{}
+	for rows.Next() {
+		var i SuggestInvoiceProductsRow
+		if err := rows.Scan(&i.Code, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const suggestSalespersonNames = `-- name: SuggestSalespersonNames :many
+SELECT DISTINCT name::text AS name FROM salespersons
+WHERE name ILIKE $1::text
+  AND ($2::bigint IS NULL OR branch_id = $2)
+ORDER BY name
+LIMIT $3
+`
+
+type SuggestSalespersonNamesParams struct {
+	Pattern  string        `json:"pattern"`
+	BranchID sql.NullInt64 `json:"branch_id"`
+	MaxRows  int32         `json:"max_rows"`
+}
+
+// Names for the invoice filter's salesperson box, one per name even when
+// several branches have a person of that name.
+func (q *Queries) SuggestSalespersonNames(ctx context.Context, arg SuggestSalespersonNamesParams) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, suggestSalespersonNames, arg.Pattern, arg.BranchID, arg.MaxRows)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		items = append(items, name)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

@@ -108,24 +108,27 @@ WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
     OR salesperson_name ILIKE '%' || sqlc.arg(search)::text || '%'
   )
   AND (sqlc.narg(register_id)::bigint IS NULL OR register_id = sqlc.narg(register_id))
-  -- client: a name fragment of the invoice's customer, or (client_digits, set by
-  -- the API when the term has no letters) a run of the phone's digits whatever
-  -- its spacing or +. The matching clients are found first through the trigram
+  -- client_pattern: an ILIKE pattern of the invoice's customer name (the API
+  -- builds it from the box: contains, or as typed when it has * wildcards), or
+  -- client_digits (a LIKE pattern of digits, set when the term has no letters)
+  -- for the phone whatever its spacing or +. The matching clients are found first through the trigram
   -- indexes (000242), then the invoices by uid or by the till's client link.
   AND (
-    sqlc.arg(client)::text = ''
+    sqlc.arg(client_pattern)::text = ''
     OR client_uid IN (
       SELECT c.uid FROM clients c
-      WHERE c.name ILIKE '%' || sqlc.arg(client)::text || '%'
+      WHERE c.name ILIKE sqlc.arg(client_pattern)::text
         OR (sqlc.arg(client_digits)::text <> ''
-            AND regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || sqlc.arg(client_digits)::text || '%'))
+            AND regexp_replace(c.phone, '\D', '', 'g') LIKE sqlc.arg(client_digits)::text))
     OR (register_id, branch_client_id) IN (
       SELECT cl.register_id, cl.branch_client_id FROM client_links cl
       JOIN clients c ON c.id = cl.client_id
-      WHERE c.name ILIKE '%' || sqlc.arg(client)::text || '%'
+      WHERE c.name ILIKE sqlc.arg(client_pattern)::text
         OR (sqlc.arg(client_digits)::text <> ''
-            AND regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || sqlc.arg(client_digits)::text || '%'))
+            AND regexp_replace(c.phone, '\D', '', 'g') LIKE sqlc.arg(client_digits)::text))
   )
+  -- salesperson_pattern: an ILIKE pattern of who made the sale (trigram index, 000078).
+  AND (sqlc.arg(salesperson_pattern)::text = '' OR salesperson_name ILIKE sqlc.arg(salesperson_pattern)::text)
   AND (sqlc.narg(kind)::text IS NULL OR kind = sqlc.narg(kind))
   AND (
     sqlc.narg(status)::text IS NULL
@@ -166,24 +169,27 @@ WHERE (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
     OR salesperson_name ILIKE '%' || sqlc.arg(search)::text || '%'
   )
   AND (sqlc.narg(register_id)::bigint IS NULL OR register_id = sqlc.narg(register_id))
-  -- client: a name fragment of the invoice's customer, or (client_digits, set by
-  -- the API when the term has no letters) a run of the phone's digits whatever
-  -- its spacing or +. The matching clients are found first through the trigram
+  -- client_pattern: an ILIKE pattern of the invoice's customer name (the API
+  -- builds it from the box: contains, or as typed when it has * wildcards), or
+  -- client_digits (a LIKE pattern of digits, set when the term has no letters)
+  -- for the phone whatever its spacing or +. The matching clients are found first through the trigram
   -- indexes (000242), then the invoices by uid or by the till's client link.
   AND (
-    sqlc.arg(client)::text = ''
+    sqlc.arg(client_pattern)::text = ''
     OR client_uid IN (
       SELECT c.uid FROM clients c
-      WHERE c.name ILIKE '%' || sqlc.arg(client)::text || '%'
+      WHERE c.name ILIKE sqlc.arg(client_pattern)::text
         OR (sqlc.arg(client_digits)::text <> ''
-            AND regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || sqlc.arg(client_digits)::text || '%'))
+            AND regexp_replace(c.phone, '\D', '', 'g') LIKE sqlc.arg(client_digits)::text))
     OR (register_id, branch_client_id) IN (
       SELECT cl.register_id, cl.branch_client_id FROM client_links cl
       JOIN clients c ON c.id = cl.client_id
-      WHERE c.name ILIKE '%' || sqlc.arg(client)::text || '%'
+      WHERE c.name ILIKE sqlc.arg(client_pattern)::text
         OR (sqlc.arg(client_digits)::text <> ''
-            AND regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || sqlc.arg(client_digits)::text || '%'))
+            AND regexp_replace(c.phone, '\D', '', 'g') LIKE sqlc.arg(client_digits)::text))
   )
+  -- salesperson_pattern: an ILIKE pattern of who made the sale (trigram index, 000078).
+  AND (sqlc.arg(salesperson_pattern)::text = '' OR salesperson_name ILIKE sqlc.arg(salesperson_pattern)::text)
   AND (sqlc.narg(kind)::text IS NULL OR kind = sqlc.narg(kind))
   AND (
     sqlc.narg(status)::text IS NULL
@@ -323,3 +329,30 @@ UPDATE branch_invoice_items SET line_total = $2 WHERE id = $1;
 UPDATE branch_invoices
 SET subtotal = $2, discounted_total = $2, grand_total = $2, lbp_total = $3, lbp_rate = $4
 WHERE id = $1;
+
+-- name: SuggestSalespersonNames :many
+-- Names for the invoice filter's salesperson box, one per name even when
+-- several branches have a person of that name.
+SELECT DISTINCT name::text AS name FROM salespersons
+WHERE name ILIKE sqlc.arg(pattern)::text
+  AND (sqlc.narg(branch_id)::bigint IS NULL OR branch_id = sqlc.narg(branch_id))
+ORDER BY name
+LIMIT sqlc.arg(max_rows);
+
+-- name: SuggestInvoiceClients :many
+-- Clients for the invoice filter's client box, by name pattern or phone digits.
+SELECT name, phone FROM clients
+WHERE name ILIKE sqlc.arg(client_pattern)::text
+  OR (sqlc.arg(client_digits)::text <> ''
+      AND regexp_replace(phone, '\D', '', 'g') LIKE sqlc.arg(client_digits)::text)
+ORDER BY name, id
+LIMIT sqlc.arg(max_rows);
+
+-- name: SuggestInvoiceProducts :many
+-- Products for the invoice filter's product box: the code or the name matches
+-- the pattern (product_field: '' any, 'code' or 'name').
+SELECT code, name FROM products
+WHERE (sqlc.arg(product_field)::text IN ('', 'code') AND code ILIKE sqlc.arg(pattern)::text)
+   OR (sqlc.arg(product_field)::text IN ('', 'name') AND name ILIKE sqlc.arg(pattern)::text)
+ORDER BY code
+LIMIT sqlc.arg(max_rows);

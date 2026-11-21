@@ -1,6 +1,10 @@
 // The Retail invoices page's server-side filters (set in the Filters dialog),
 // as the query the API reads and as the short summary shown under the search.
 
+// The names boxes (client, salesperson) take a * wildcard: "Maya*" starts with
+// Maya, "*sen" ends with sen, "Ma*ya" has anything between. Without one the
+// text matches anywhere in the name. The server reads it the same way.
+
 // What the client box sends: its text without the spaces around it, or null so
 // an empty box adds no parameter at all.
 export function clientTerm (text) {
@@ -43,6 +47,7 @@ export function emptyFilters () {
     dateFrom: '',
     dateTo: '',
     client: '',
+    salesperson: '',
     product: '',
     productField: 'any',
     productMatch: 'contains',
@@ -62,7 +67,7 @@ export function amountCents (text) {
 }
 
 export function invoiceFilterParams ({
-  branchId, registerId, kind, status, dateFrom, dateTo, client,
+  branchId, registerId, kind, status, dateFrom, dateTo, client, salesperson,
   product, productField, productMatch, totalMin, totalMax,
 } = {}) {
   const term = String(product ?? '').trim()
@@ -74,6 +79,7 @@ export function invoiceFilterParams ({
     date_from: dateFrom || '',
     date_to: dateTo || '',
     client: clientTerm(client),
+    salesperson: clientTerm(salesperson),
     // Field and mode only go with a term, and only when they aren't the default.
     product: term || null,
     product_field: term && productField && productField !== 'any' ? productField : null,
@@ -87,7 +93,7 @@ export function invoiceFilterParams ({
 // box counts once, whatever its field and mode.
 export function countInvoiceFilters (filters = {}) {
   const p = invoiceFilterParams(filters)
-  return [p.branch_id, p.register_id, p.kind, p.status, p.date_from, p.date_to, p.client, p.product, p.total_min, p.total_max]
+  return [p.branch_id, p.register_id, p.kind, p.status, p.date_from, p.date_to, p.client, p.salesperson, p.product, p.total_min, p.total_max]
     .filter(v => v !== null && v !== '')
 .length
 }
@@ -118,6 +124,7 @@ export function invoiceFilterSummary (filters = {}, names = {}) {
   else if (p.date_from) {out.push(`From ${p.date_from}`)}
   else if (p.date_to) {out.push(`Until ${p.date_to}`)}
   if (p.client) {out.push(`Client "${p.client}"`)}
+  if (p.salesperson) {out.push(`Salesperson "${p.salesperson}"`)}
   if (p.product) {
     const field = titleOf(productFieldOptions, filters.productField || 'any')
     const match = titleOf(productMatchOptions, filters.productMatch || 'contains').toLowerCase()

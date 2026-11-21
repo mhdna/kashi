@@ -13667,6 +13667,51 @@ func (mr *MockStoreMockRecorder) StockAdjustmentTx(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StockAdjustmentTx", reflect.TypeOf((*MockStore)(nil).StockAdjustmentTx), arg0, arg1)
 }
 
+// SuggestInvoiceClients mocks base method.
+func (m *MockStore) SuggestInvoiceClients(arg0 context.Context, arg1 db.SuggestInvoiceClientsParams) ([]db.SuggestInvoiceClientsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SuggestInvoiceClients", arg0, arg1)
+	ret0, _ := ret[0].([]db.SuggestInvoiceClientsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SuggestInvoiceClients indicates an expected call of SuggestInvoiceClients.
+func (mr *MockStoreMockRecorder) SuggestInvoiceClients(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SuggestInvoiceClients", reflect.TypeOf((*MockStore)(nil).SuggestInvoiceClients), arg0, arg1)
+}
+
+// SuggestInvoiceProducts mocks base method.
+func (m *MockStore) SuggestInvoiceProducts(arg0 context.Context, arg1 db.SuggestInvoiceProductsParams) ([]db.SuggestInvoiceProductsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SuggestInvoiceProducts", arg0, arg1)
+	ret0, _ := ret[0].([]db.SuggestInvoiceProductsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SuggestInvoiceProducts indicates an expected call of SuggestInvoiceProducts.
+func (mr *MockStoreMockRecorder) SuggestInvoiceProducts(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SuggestInvoiceProducts", reflect.TypeOf((*MockStore)(nil).SuggestInvoiceProducts), arg0, arg1)
+}
+
+// SuggestSalespersonNames mocks base method.
+func (m *MockStore) SuggestSalespersonNames(arg0 context.Context, arg1 db.SuggestSalespersonNamesParams) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SuggestSalespersonNames", arg0, arg1)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SuggestSalespersonNames indicates an expected call of SuggestSalespersonNames.
+func (mr *MockStoreMockRecorder) SuggestSalespersonNames(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SuggestSalespersonNames", reflect.TypeOf((*MockStore)(nil).SuggestSalespersonNames), arg0, arg1)
+}
+
 // SumBranchRevenueForRange mocks base method.
 func (m *MockStore) SumBranchRevenueForRange(arg0 context.Context, arg1 db.SumBranchRevenueForRangeParams) (int64, error) {
 	m.ctrl.T.Helper()

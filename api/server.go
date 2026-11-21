@@ -529,6 +529,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/receipt_designer/font", server.getReceiptDesignerFont)
 	authRoutes.GET("/branch_invoices", server.listBranchInvoices)
 	authRoutes.GET("/branch_invoices/export", server.exportBranchInvoices)
+	authRoutes.GET("/branch_invoices/suggest", server.suggestBranchInvoiceFilter)
 	authRoutes.DELETE("/branch_invoices/:id", server.deleteBranchInvoice)
 	authRoutes.GET("/branch_sync_conflicts", server.listBranchSyncConflicts)
 	authRoutes.GET("/branch_sync_conflicts/summary", server.branchSyncConflictSummary)

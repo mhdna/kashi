@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/mhdna/kashi/db/sqlc"
@@ -20,8 +21,10 @@ type listBranchInvoicesRequest struct {
 	BranchID   int64  `form:"branch_id"`
 	RegisterID int64  `form:"register_id"`
 	Search     string `form:"search"`
-	// client: a name or phone fragment of the invoice's customer.
+	// client: a name or phone fragment of the invoice's customer; * is a wildcard.
 	Client string `form:"client"`
+	// salesperson: a name fragment of who made the sale; * is a wildcard.
+	Salesperson string `form:"salesperson"`
 	// kind: sales | return | exchange. status: active | cancelled.
 	Kind   string `form:"kind" binding:"omitempty,oneof=sales return exchange"`
 	Status string `form:"status" binding:"omitempty,oneof=active cancelled"`
@@ -46,22 +49,27 @@ type branchInvoiceFilter struct {
 	branchID, registerID sql.NullInt64
 	kind, status         sql.NullString
 	dateFrom, dateTo     sql.NullTime
-	search, client       string
+	search               string
+	clientPattern        string
 	clientDigits         string
+	salespersonPattern   string
 	productPattern       string
 	productField         string
 	totalMin, totalMax   sql.NullInt64
 }
 
+var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+
 // likePattern turns a typed term into an ILIKE pattern for the match mode:
 // contains (the default), starts, ends or exact. The term's own %, _ and \
-// are escaped so they match themselves. An empty term gives "", no filter.
+// match themselves; * is a wildcard for any run of characters. An empty term
+// gives "", no filter.
 func likePattern(term, match string) string {
 	term = strings.TrimSpace(term)
 	if term == "" {
 		return ""
 	}
-	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(term)
+	escaped := strings.ReplaceAll(likeEscaper.Replace(term), "*", "%")
 	switch match {
 	case "starts":
 		return escaped + "%"
@@ -74,9 +82,55 @@ func likePattern(term, match string) string {
 	}
 }
 
+// wildcardPattern is the pattern of a name box (client, salesperson): the term
+// anywhere in the name, or, once it has a * wildcard, exactly as typed, so
+// "Maya*" starts with Maya and "*sen" ends with sen. "" for an empty term.
+func wildcardPattern(term string) string {
+	term = strings.TrimSpace(term)
+	if term == "" {
+		return ""
+	}
+	escaped := strings.ReplaceAll(likeEscaper.Replace(term), "*", "%")
+	if strings.Contains(term, "*") {
+		return escaped
+	}
+	return "%" + escaped + "%"
+}
+
+// phonePattern is the LIKE pattern over a phone's digits (spacing and + gone)
+// for a client box term, or "" when the term has a letter, so only a name
+// matches. Digit runs around a * wildcard must follow each other in order.
+func phonePattern(term string) string {
+	term = strings.TrimSpace(term)
+	if strings.IndexFunc(term, unicode.IsLetter) >= 0 {
+		return ""
+	}
+	var runs []string
+	for _, part := range strings.Split(term, "*") {
+		if d := db.ClientSearchDigits(part); d != "" {
+			runs = append(runs, d)
+		}
+	}
+	if len(runs) == 0 {
+		return ""
+	}
+	pattern := strings.Join(runs, "%")
+	if !strings.Contains(term, "*") {
+		return "%" + pattern + "%"
+	}
+	if strings.HasPrefix(term, "*") {
+		pattern = "%" + pattern
+	}
+	if strings.HasSuffix(term, "*") {
+		pattern += "%"
+	}
+	return pattern
+}
+
 func (req listBranchInvoicesRequest) filter() branchInvoiceFilter {
 	f := branchInvoiceFilter{
-		search: req.Search, client: strings.TrimSpace(req.Client),
+		search: req.Search, clientPattern: wildcardPattern(req.Client),
+		clientDigits: phonePattern(req.Client), salespersonPattern: wildcardPattern(req.Salesperson),
 		productPattern: likePattern(req.Product, req.ProductMatch),
 	}
 	if f.productPattern != "" {
@@ -88,7 +142,6 @@ func (req listBranchInvoicesRequest) filter() branchInvoiceFilter {
 	if req.TotalMax != nil {
 		f.totalMax = sql.NullInt64{Int64: *req.TotalMax, Valid: true}
 	}
-	f.clientDigits = db.ClientSearchDigits(f.client)
 	if req.BranchID > 0 {
 		f.branchID = sql.NullInt64{Int64: req.BranchID, Valid: true}
 	}
@@ -113,7 +166,7 @@ func (req listBranchInvoicesRequest) filter() branchInvoiceFilter {
 func (f branchInvoiceFilter) page(size, offset int32) db.ListBranchInvoicesPageParams {
 	return db.ListBranchInvoicesPageParams{
 		BranchID: f.branchID, RegisterID: f.registerID, Kind: f.kind, Status: f.status,
-		DateFrom: f.dateFrom, DateTo: f.dateTo, Search: f.search, Client: f.client, ClientDigits: f.clientDigits,
+		DateFrom: f.dateFrom, DateTo: f.dateTo, Search: f.search, ClientPattern: f.clientPattern, ClientDigits: f.clientDigits, SalespersonPattern: f.salespersonPattern,
 		ProductPattern: f.productPattern, ProductField: f.productField, TotalMin: f.totalMin, TotalMax: f.totalMax,
 		PageSize: size, PageOffset: offset,
 	}
@@ -122,7 +175,7 @@ func (f branchInvoiceFilter) page(size, offset int32) db.ListBranchInvoicesPageP
 func (f branchInvoiceFilter) count() db.CountBranchInvoicesFilteredParams {
 	return db.CountBranchInvoicesFilteredParams{
 		BranchID: f.branchID, RegisterID: f.registerID, Kind: f.kind, Status: f.status,
-		DateFrom: f.dateFrom, DateTo: f.dateTo, Search: f.search, Client: f.client, ClientDigits: f.clientDigits,
+		DateFrom: f.dateFrom, DateTo: f.dateTo, Search: f.search, ClientPattern: f.clientPattern, ClientDigits: f.clientDigits, SalespersonPattern: f.salespersonPattern,
 		ProductPattern: f.productPattern, ProductField: f.productField, TotalMin: f.totalMin, TotalMax: f.totalMax,
 	}
 }

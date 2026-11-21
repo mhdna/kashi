@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"math/rand"
+	"strings"
 	"testing"
 	"time"
 
@@ -47,11 +48,11 @@ func TestBranchInvoicesFilterByClient(t *testing.T) {
 
 	count := func(client string, kind sql.NullString) int {
 		page, err := testQueries.ListBranchInvoicesPage(ctx, ListBranchInvoicesPageParams{
-			BranchID: sql.NullInt64{Int64: till.branchID, Valid: true}, Client: client, ClientDigits: ClientSearchDigits(client), Kind: kind, PageSize: 100,
+			BranchID: sql.NullInt64{Int64: till.branchID, Valid: true}, ClientPattern: pctWrap(client), ClientDigits: pctWrap(ClientSearchDigits(client)), Kind: kind, PageSize: 100,
 		})
 		require.NoError(t, err)
 		n, err := testQueries.CountBranchInvoicesFiltered(ctx, CountBranchInvoicesFilteredParams{
-			BranchID: sql.NullInt64{Int64: till.branchID, Valid: true}, Client: client, ClientDigits: ClientSearchDigits(client), Kind: kind,
+			BranchID: sql.NullInt64{Int64: till.branchID, Valid: true}, ClientPattern: pctWrap(client), ClientDigits: pctWrap(ClientSearchDigits(client)), Kind: kind,
 		})
 		require.NoError(t, err)
 		require.Equal(t, int64(len(page)), n, "count must equal the page for %q", client)
@@ -71,4 +72,13 @@ func TestBranchInvoicesFilterByClient(t *testing.T) {
 	require.Equal(t, 0, count("55555555", none))
 	require.Equal(t, 0, count("Maya 3", none), "a term with a letter is not matched against phone digits")
 	require.Equal(t, 1, count("Maya", sql.NullString{String: "return", Valid: true}), "combines with the type filter")
+}
+
+// pctWrap is the contains pattern the API builds (api.wildcardPattern) for a
+// term with no wildcard, and "" for an empty one.
+func pctWrap(term string) string {
+	if term == "" {
+		return ""
+	}
+	return "%" + strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(term) + "%"
 }
