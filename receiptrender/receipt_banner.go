@@ -42,6 +42,9 @@ type receiptBanner struct {
 	// Font, when set, is the title's font (receiptFonts) instead of the
 	// style's own.
 	Font string `json:"font,omitempty"`
+	// OwnStyle marks a banner whose style the owner picked for it; the rest
+	// follow receiptTexts.BannerStyle (kept so the designer can tell them).
+	OwnStyle bool `json:"own_style,omitempty"`
 }
 
 // titleFont is the banner's own font, else the style's.
@@ -131,6 +134,7 @@ func normalizeReceiptBanners(in []receiptBanner) []receiptBanner {
 			n.Place = "bottom"
 		}
 		n.Font = validReceiptFont(b.Font)
+		n.OwnStyle = b.OwnStyle
 		out = append(out, n)
 	}
 	return out
@@ -170,7 +174,9 @@ func (c *receiptCanvas) bannerRank(b receiptBanner) (int, bool) {
 	case b.When == "item_deal":
 		return 100, itemDeal("")
 	case b.When == "deal":
-		return 200, c.data.InvoiceDiscount.Cents > 0
+		// Any deal: one off the invoice, or one on its items (a student
+		// deal is often that).
+		return 200, c.data.InvoiceDiscount.Cents > 0 || itemDeal("")
 	case b.When == "referral":
 		// The customer has a referral code to share (printed at the end).
 		return 275, c.data.ReferralCode != ""
