@@ -179,6 +179,16 @@
           />
         </div>
         <v-switch
+          v-if="form.kind === 'amount'"
+          v-model="form.repeats"
+          color="primary"
+          data-test="repeats"
+          density="compact"
+          hint="$50 off every $100: a $200 invoice gets $100 off. Needs a minimum to count by."
+          label="Again for every minimum reached"
+          persistent-hint
+        />
+        <v-switch
           v-model="form.cashier_picks"
           color="primary"
           data-test="cashier-picks"
@@ -260,6 +270,10 @@
   function ruleTerms (rule) {
     if (!rule) return ''
     const off = rule.kind === 'percent' ? `${rule.percent}% off` : `$${formatMoney(rule.amount)} off`
+    if (rule.repeats) {
+      const each = `$${formatMoney(rule.amount)} off for every $${formatMoney(rule.min_total)} of the invoice`
+      return rule.cashier_picks ? `When the cashier picks it: ${each}` : each
+    }
     if (rule.cashier_picks) {
       const on = rule.min_total > 0 ? ` on invoices of $${formatMoney(rule.min_total)} or more` : ''
       return `When the cashier picks it: ${off} the whole invoice${on}`
@@ -306,7 +320,7 @@
   function blank () {
     return {
       id: 0, name: '', minTotal: '', kind: 'percent', percent: 10, amount: '',
-      all_branches: true, branch_ids: [], validFrom: '', validTo: '', is_active: true, cashier_picks: false,
+      all_branches: true, branch_ids: [], validFrom: '', validTo: '', is_active: true, cashier_picks: false, repeats: false,
     }
   }
   const form = reactive(blank())
@@ -317,6 +331,8 @@
     percent: form.kind === 'percent' ? Number(form.percent) || 0 : 0,
     amount: form.kind === 'amount' ? Math.round(Number(form.amount) * 100) || 0 : 0,
     cashier_picks: Boolean(form.cashier_picks),
+    // Repeating counts by the minimum, so only an amount with one repeats.
+    repeats: Boolean(form.repeats) && form.kind === 'amount' && Math.round(Number(form.minTotal) * 100) > 0,
   }))
 
   function openEdit (rule) {
@@ -329,6 +345,7 @@
         validTo: untilDay(when(rule.valid_to)),
         is_active: rule.is_active,
         cashier_picks: Boolean(rule.cashier_picks),
+        repeats: Boolean(rule.repeats),
       }
       : blank())
     editDialog.value = true

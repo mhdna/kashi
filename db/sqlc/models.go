@@ -1524,6 +1524,7 @@ type InvoiceDiscount struct {
 	CreatedAt    time.Time    `json:"created_at"`
 	UpdatedAt    time.Time    `json:"updated_at"`
 	CashierPicks bool         `json:"cashier_picks"`
+	Repeats      bool         `json:"repeats"`
 }
 
 type InvoiceDiscountBranch struct {

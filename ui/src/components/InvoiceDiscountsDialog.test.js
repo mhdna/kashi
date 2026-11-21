@@ -68,4 +68,37 @@ describe('InvoiceDiscountsDialog', () => {
     await flushPromises()
     expect(document.body.querySelector('[data-test="cashier-picks"]')).not.toBeNull()
   })
+
+  it('the reported case: Independence Day $50 off every $100 is saved as repeating', async () => {
+    await open()
+    const state = wrapper.vm.$.setupState
+    state.openEdit(null)
+    await flushPromises()
+    Object.assign(state.form, { name: 'Independence Day $50', kind: 'amount', amount: '50', minTotal: '100', repeats: true })
+    await flushPromises()
+    expect(document.body.querySelector('[data-test="repeats"]')).not.toBeNull()
+    expect(document.body.textContent).toContain('$50.00 off for every $100.00 of the invoice')
+    await state.save()
+    const post = calls.find(c => c.method === 'POST')
+    expect(post.body).toMatchObject({ kind: 'amount', amount: 5000, min_total: 10_000, repeats: true })
+  })
+
+  it('repeating is never sent for a percent or without a minimum, and editing keeps it', async () => {
+    await open()
+    const state = wrapper.vm.$.setupState
+    state.openEdit(null)
+    Object.assign(state.form, { kind: 'percent', percent: 10, minTotal: '100', repeats: true })
+    expect(state.formRule.repeats).toBe(false)
+    await flushPromises()
+    expect(document.body.querySelector('[data-test="repeats"]')).toBeNull()
+    Object.assign(state.form, { kind: 'amount', amount: '50', minTotal: '' })
+    expect(state.formRule.repeats).toBe(false)
+    state.openEdit({ ...rules[1], kind: 'amount', percent: 0, amount: 5000, repeats: true })
+    expect(state.form.repeats).toBe(true)
+    expect(state.formRule.repeats).toBe(true)
+    state.openEdit(null)
+    expect(state.form.repeats).toBe(false)
+    Object.assign(state.form, { kind: 'amount', amount: '50', minTotal: '100' })
+    expect(state.formRule.repeats).toBe(false)
+  })
 })

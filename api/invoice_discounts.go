@@ -69,6 +69,9 @@ type invoiceDiscountRequest struct {
 	// CashierPicks: the till's cashier turns it on for a sale (Rewards
 	// button) instead of it applying by itself.
 	CashierPicks bool `json:"cashier_picks"`
+	// Repeats: an amount rule comes off once for every min_total the sale
+	// reaches ("$50 off every $100").
+	Repeats bool `json:"repeats"`
 }
 
 // params checks the request and clears the field its kind doesn't read, so
@@ -77,6 +80,7 @@ func (req invoiceDiscountRequest) params() (db.SaveInvoiceDiscountTxParams, erro
 	c := db.CreateInvoiceDiscountParams{
 		Name: strings.TrimSpace(req.Name), MinTotal: req.MinTotal, Kind: req.Kind,
 		AllBranches: req.AllBranches, IsActive: req.IsActive, CashierPicks: req.CashierPicks,
+		Repeats: req.Repeats,
 	}
 	if c.Name == "" {
 		return db.SaveInvoiceDiscountTxParams{}, errors.New("name is required")
@@ -94,6 +98,9 @@ func (req invoiceDiscountRequest) params() (db.SaveInvoiceDiscountTxParams, erro
 		c.Amount = req.Amount
 	default:
 		return db.SaveInvoiceDiscountTxParams{}, fmt.Errorf("unknown invoice discount kind %q", req.Kind)
+	}
+	if req.Repeats && (req.Kind != invoiceDiscountAmount || req.MinTotal <= 0) {
+		return db.SaveInvoiceDiscountTxParams{}, errors.New("only an amount off with a minimum can come off again for every minimum reached")
 	}
 	if !req.AllBranches && len(req.BranchIDs) == 0 {
 		return db.SaveInvoiceDiscountTxParams{}, errors.New("pick the branches it is for, or all branches")
@@ -182,6 +189,8 @@ type syncInvoiceDiscount struct {
 	UpdatedAt time.Time  `json:"updated_at"`
 	// CashierPicks: the till applies it only when the cashier picks it.
 	CashierPicks bool `json:"cashier_picks"`
+	// Repeats: the amount comes off once per min_total the sale reaches.
+	Repeats bool `json:"repeats"`
 }
 
 func (server *Server) invoiceDiscountsForBranchSync(ctx *gin.Context, branchID int64, since time.Time) ([]syncInvoiceDiscount, error) {
@@ -196,6 +205,7 @@ func (server *Server) invoiceDiscountsForBranchSync(ctx *gin.Context, branchID i
 		out[i] = syncInvoiceDiscount{
 			UID: r.Uid, Name: r.Name, MinTotal: r.MinTotal, Kind: r.Kind, Percent: r.Percent,
 			Amount: r.Amount, Applies: r.Applies, UpdatedAt: r.UpdatedAt, CashierPicks: r.CashierPicks,
+			Repeats: r.Repeats,
 		}
 		if r.ValidFrom.Valid {
 			out[i].ValidFrom = &r.ValidFrom.Time
