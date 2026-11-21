@@ -69,7 +69,7 @@ var receiptBannerStyles = []receiptBannerStyleInfo{
 
 // receiptBannerPresets are ready-made banners the designer offers.
 var receiptBannerPresets = []receiptBanner{
-	{Style: "ribbon", Title: "BUY 1 GET 1", Subtitle: "FREE", When: "item_deal"},
+	{Style: "ribbon", Title: "BUY 1 GET 1", When: "item_deal"},
 	{Style: "burst", Title: "BUY 2 GET 1", Subtitle: "The third one is on us", When: "item_deal"},
 	{Style: "ribbon", Title: "STUDENT DEAL", When: "deal"},
 	{Style: "frame", Title: "SALE", Subtitle: "Up to 50% off"},
@@ -411,7 +411,7 @@ func (c *receiptCanvas) drawBanner(y int, b receiptBanner) int {
 	}
 	switch b.Style {
 	case "ribbon":
-		// A black band with notched ends, white letters. Every ribbon is as
+		// A notched band outlined in black, black letters. Every ribbon is as
 		// tall as its title at full size: a longer title that has to shrink
 		// to fit ("STUDENT DEAL" beside "BUY 1 GET 1") is centred in the same
 		// band, so two receipts' ribbons match.
@@ -431,8 +431,13 @@ func (c *receiptCanvas) drawBanner(y int, b receiptBanner) int {
 		top, bot := y, y+h
 		notch := 18
 		c.fillPolygon([]image.Point{{left, top}, {right, top}, {right - notch, top + h/2}, {right, bot}, {left, bot}, {left + notch, top + h/2}}, color.Black)
-		c.bannerText(face, b.Title, left+notch, right-notch, top+6+shift, white)
-		sub(top+6+titleH, "jost-regular", 21, white, left+notch, right-notch)
+		// Only a thick black edge: white inside with black letters, so the
+		// thermal head has no large solid area to print (it came out grainy).
+		e := 5
+		c.fillPolygon([]image.Point{{left + e, top + e}, {right - e, top + e}, {right - notch - e + 3, top + h/2}, {right - e, bot - e}, {left + e, bot - e}, {left + notch + e - 3, top + h/2}}, color.White)
+		ink := image.Image(black)
+		c.bannerText(face, b.Title, left+notch, right-notch, top+6+shift, ink)
+		sub(top+6+titleH, "jost-regular", 21, ink, left+notch, right-notch)
 		return bot
 	case "burst":
 		// A black band with zigzag edges.
