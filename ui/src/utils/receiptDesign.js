@@ -76,6 +76,7 @@ export function parseDesign (raw) {
   }
   if (Array.isArray(value.order)) {out.order = value.order.filter(o => typeof o === 'string')}
   if (Array.isArray(value.banners)) {out.banners = value.banners.filter(b => b && typeof b === 'object').map(b => ({ ...b }))}
+  if (typeof value.banner_style === 'string' && value.banner_style) {out.banner_style = value.banner_style}
   return out
 }
 
@@ -143,7 +144,10 @@ export function designJSON (design) {
   if (decor) {out.decor = decor}
   if ((design?.order ?? []).length > 0) {out.order = [...design.order]}
   const banners = (design?.banners ?? []).filter(b => b.style && String(b.title ?? '').trim()).map(b => cleanBanner(b))
-  if (banners.length > 0) {out.banners = banners}
+  if (banners.length > 0) {
+    out.banners = banners
+    if (design.banner_style) {out.banner_style = design.banner_style}
+  }
   return Object.keys(out).length > 0 ? JSON.stringify(out) : ''
 }
 
@@ -403,6 +407,7 @@ function cleanBanner (b) {
   if (b.when) {out.when = b.when}
   if (b.place) {out.place = b.place}
   if (b.font) {out.font = b.font}
+  if (b.own_style) {out.own_style = true}
   return out
 }
 
@@ -492,4 +497,58 @@ export function groupDarkState (design, group) {
 
 export function setGroupDark (design, group, state) {
   return setGroup(design, group, { dark: state === 'dark' ? true : (state === 'light' ? false : undefined) })
+}
+
+// The simple banner screen: one list of kinds of invoice, a banner's words
+// for each, one design for all of them and a design of its own where wanted.
+export const defaultBannerStyle = 'ribbon'
+
+export function bannerKinds (deals) {
+  return [
+    { when: '', label: 'Every invoice', place: '' },
+    { when: 'deal', label: 'Any deal', place: '' },
+    { when: 'item_deal', label: 'Buy X get Y', place: '' },
+    { when: 'item_discount', label: 'Item on sale', place: '' },
+    { when: 'referral', label: 'Customer with a referral code', place: 'bottom' },
+    ...(deals ?? []).filter(d => d?.name).map(d => ({ when: `deal:${d.name}`, label: d.name, place: '' })),
+  ]
+}
+
+export function globalBannerStyle (design) {
+  return design?.banner_style || defaultBannerStyle
+}
+
+export function bannerOfKind (design, when) {
+  return (design?.banners ?? []).find(b => (b.when ?? '') === when)
+}
+
+// setKindBanner changes the words (title, subtitle) or the design (style, ''
+// for the same as all) of a kind's banner, making it when it has none yet.
+export function setKindBanner (design, kind, patch) {
+  const global = globalBannerStyle(design)
+  const banners = design.banners ?? []
+  const i = banners.findIndex(b => (b.when ?? '') === kind.when)
+  const next = { ...patch }
+  if ('style' in patch) {
+    next.own_style = patch.style !== '' && patch.style !== global
+    next.style = patch.style || global
+    if (!next.own_style) {delete next.own_style}
+  }
+  if (i !== -1) {
+    const merged = { ...banners[i], ...next }
+    if ('style' in patch && !next.own_style) {delete merged.own_style}
+    return { ...design, banners: banners.map((b, j) => (j === i ? merged : b)) }
+  }
+  if (banners.length >= bannerMax) {return design}
+  const made = { style: global, title: '', ...(kind.when ? { when: kind.when } : {}), ...(kind.place ? { place: kind.place } : {}), ...next }
+  return { ...design, banners: [...banners, made] }
+}
+
+// setGlobalBannerStyle is the design of every banner without one of its own.
+export function setGlobalBannerStyle (design, style) {
+  return {
+    ...design,
+    banner_style: style,
+    banners: (design.banners ?? []).map(b => (b.own_style ? b : { ...b, style })),
+  }
 }

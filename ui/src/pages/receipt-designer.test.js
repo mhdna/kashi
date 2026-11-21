@@ -139,14 +139,14 @@ describe('Receipt Designer', () => {
     expect(previews.at(-1).deal).toBeUndefined()
   })
 
-  it('the reported case: ready-made banners added from the Banners tab go on the receipt', async () => {
+  it('the reported case: a banner typed for a kind of invoice in the Banners tab goes on the receipt', async () => {
     await open()
     await find('tab-banners').trigger('click')
     await settle()
-    await find('preset-0').trigger('click')
+    await find('title-item_deal').find('input').setValue('BUY 1 GET 1')
     await settle()
-    expect(JSON.parse(previews.at(-1).texts).banners).toEqual([{ style: 'ribbon', title: 'BUY 1 GET 1', subtitle: 'FREE', when: 'item_deal' }])
-    await find('banner-see-0').trigger('click')
+    expect(JSON.parse(previews.at(-1).texts).banners).toEqual([{ style: 'ribbon', title: 'BUY 1 GET 1', when: 'item_deal' }])
+    await find('see-item_deal').trigger('click')
     await settle()
     expect(previews.at(-1).mode).toBe('item_deal')
   })

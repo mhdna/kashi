@@ -1,155 +1,87 @@
 <!--
-  The receipt's banners: a gallery of ready-made ones, drawn by the till's own
-  code (/receipt_designer/banner), to add with a click; then each banner on
-  the receipt with its words, style, when it prints and where.
+  The receipt's banners, kept simple: one list of kinds of invoice (every
+  invoice, any deal, buy X get Y, each of kashi's deals...), the words of the
+  banner each one prints, one design for all of them, and a design of its own
+  for a kind where wanted. Each receipt prints the one banner that fits best.
 -->
 <template>
   <div class="rbn" data-no-discard-guard>
-    <div class="text-subtitle-1 font-weight-medium mb-1">On this receipt</div>
-    <div class="text-body-2 text-medium-emphasis mb-3" data-test="banners-one">
-      Each receipt prints one banner: the one for the biggest deal on it, else one for any deal, else one that always prints.
-    </div>
-    <div v-if="banners.length === 0" class="text-body-2 text-medium-emphasis mb-3" data-test="banners-none">
-      No banners yet. Pick one below.
+    <v-select
+      data-test="banner-global-style"
+      density="compact"
+      hide-details
+      item-title="label"
+      item-value="key"
+      :items="styles"
+      label="Design of all banners"
+      :model-value="globalStyle"
+      variant="outlined"
+      @update:model-value="v => update(setGlobalBannerStyle(design, v))"
+    />
+    <div class="text-body-2 text-medium-emphasis mt-2 mb-3" data-test="banners-one">
+      Write the words for each kind of invoice; leave it empty for no banner. An invoice prints the one that fits it best.
     </div>
     <div
-      v-for="(b, i) in banners"
-      :key="i"
+      v-for="k in kinds"
+      :key="k.when"
       class="rbn-item"
-      :class="{ 'rbn-item--focus': i === focus }"
-      :data-test="`banner-${i}`"
+      :class="{ 'rbn-item--focus': focusWhen === k.when }"
+      :data-test="`kind-${k.when || 'always'}`"
     >
-      <div class="d-flex align-center ga-1 mb-2">
-        <span class="text-body-2 font-weight-medium flex-grow-1">Banner {{ i + 1 }}</span>
-        <v-btn
-          aria-label="Move up"
-          :data-test="`banner-up-${i}`"
-          density="compact"
-          :disabled="i === 0"
-          icon="mdi-arrow-up"
-          size="small"
-          variant="text"
-          @click="update(moveBanner(design, i, -1))"
-        />
-        <v-btn
-          aria-label="Move down"
-          :data-test="`banner-down-${i}`"
-          density="compact"
-          :disabled="i === banners.length - 1"
-          icon="mdi-arrow-down"
-          size="small"
-          variant="text"
-          @click="update(moveBanner(design, i, 1))"
-        />
-        <v-btn
-          aria-label="Remove"
-          :data-test="`banner-remove-${i}`"
-          density="compact"
-          icon="mdi-close"
-          size="small"
-          variant="text"
-          @click="update(removeBanner(design, i))"
-        />
-      </div>
-      <img v-if="images[key(b)]" alt="" class="rbn-thumb" :src="images[key(b)]">
+      <div class="text-body-2 font-weight-medium mb-2">{{ k.label }}</div>
+      <img v-if="of(k) && images[key(of(k))]" alt="" class="rbn-thumb" :src="images[key(of(k))]">
       <div class="rbn-fields">
         <v-text-field
-          :data-test="`banner-title-${i}`"
+          :data-test="`title-${k.when || 'always'}`"
           density="compact"
           hide-details
           label="Words"
           :maxlength="40"
-          :model-value="b.title"
+          :model-value="of(k)?.title ?? ''"
           variant="outlined"
-          @update:model-value="v => set(i, { title: v })"
+          @update:model-value="v => set(k, { title: v })"
         />
         <v-text-field
-          :data-test="`banner-subtitle-${i}`"
+          :data-test="`subtitle-${k.when || 'always'}`"
           density="compact"
           hide-details
           label="Under them"
           :maxlength="80"
-          :model-value="b.subtitle ?? ''"
+          :model-value="of(k)?.subtitle ?? ''"
           variant="outlined"
-          @update:model-value="v => set(i, { subtitle: v })"
+          @update:model-value="v => set(k, { subtitle: v })"
         />
         <v-select
-          :data-test="`banner-style-${i}`"
+          :data-test="`style-${k.when || 'always'}`"
           density="compact"
           hide-details
-          item-title="label"
-          item-value="key"
-          :items="catalog.banner_styles ?? []"
-          label="Style"
-          :model-value="b.style"
+          item-title="title"
+          item-value="value"
+          :items="styleChoices"
+          label="Design"
+          :model-value="of(k)?.own_style ? of(k).style : ''"
           variant="outlined"
-          @update:model-value="v => set(i, { style: v })"
-        />
-        <v-select
-          :data-test="`banner-when-${i}`"
-          density="compact"
-          hide-details
-          :items="whenOptions"
-          label="Prints"
-          :model-value="b.when ?? ''"
-          variant="outlined"
-          @update:model-value="v => set(i, { when: v })"
-        />
-        <ReceiptFontSelect
-          :catalog="catalog"
-          label="Font of the words"
-          :model-value="b.font ?? ''"
-          :test="`banner-font-${i}`"
-          @update:model-value="v => set(i, { font: v })"
-        />
-        <v-select
-          :data-test="`banner-place-${i}`"
-          density="compact"
-          hide-details
-          :items="bannerPlaceOptions"
-          label="Where"
-          :model-value="b.place ?? ''"
-          variant="outlined"
-          @update:model-value="v => set(i, { place: v })"
+          @update:model-value="v => set(k, { style: v })"
         />
       </div>
       <v-btn
-        v-if="bannerMode(b, deals)"
+        v-if="of(k) && bannerMode(of(k), deals)"
         class="mt-1"
-        :data-test="`banner-see-${i}`"
+        :data-test="`see-${k.when || 'always'}`"
         density="compact"
         size="small"
         text="See it on the receipt"
         variant="text"
-        @click="emit('see', bannerMode(b, deals))"
+        @click="emit('see', bannerMode(of(k), deals))"
       />
-    </div>
-
-    <div class="text-subtitle-1 font-weight-medium mt-4 mb-1">Ready-made</div>
-    <div v-if="banners.length >= bannerMax" class="text-body-2 text-medium-emphasis mb-2">A branch keeps up to {{ bannerMax }} banners.</div>
-    <div class="rbn-gallery">
-      <button
-        v-for="(p, i) in catalog.banner_presets ?? []"
-        :key="i"
-        :aria-label="`Add ${p.title}`"
-        class="rbn-preset"
-        :data-test="`preset-${i}`"
-        :disabled="banners.length >= bannerMax"
-        type="button"
-        @click="update(addBanner(design, p))"
-      >
-        <img v-if="images[key(p)]" :alt="p.title" :src="images[key(p)]">
-        <span v-else class="rbn-preset-text">{{ p.title }}</span>
-      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue'
-  import ReceiptFontSelect from '@/components/Receipt/ReceiptFontSelect.vue'
   import {
-    addBanner, bannerMax, bannerMode, bannerPlaceOptions, bannerWhenOptions, moveBanner, removeBanner, updateBanner,
+    bannerKinds, bannerMode, bannerOfKind, globalBannerStyle, setGlobalBannerStyle, setKindBanner,
   } from '@/utils/receiptDesign'
 
   const props = withDefaults(defineProps<{
@@ -165,7 +97,21 @@
   const emit = defineEmits<{ 'update:design': [design: Record<string, any>], see: [mode: string] }>()
 
   const banners = computed(() => props.design.banners ?? [])
-  const whenOptions = computed(() => bannerWhenOptions(props.deals))
+  const styles = computed(() => props.catalog.banner_styles ?? [])
+  const globalStyle = computed(() => globalBannerStyle(props.design))
+  const styleChoices = computed(() => [{ value: '', title: 'Same as all' }, ...styles.value.map((s: any) => ({ value: s.key, title: s.label }))])
+  // The kinds, and any a saved banner has that the list no longer offers
+  // (a deal since removed), so it can still be seen and cleared.
+  const kinds = computed(() => {
+    const list = bannerKinds(props.deals)
+    for (const b of banners.value) {
+      const when = b.when ?? ''
+      if (!list.some(k => k.when === when)) {list.push({ when, label: when.replace(/^deal:/, ''), place: b.place ?? '' })}
+    }
+    return list
+  })
+  const focusWhen = computed(() => (props.focus >= 0 ? banners.value[props.focus]?.when ?? '' : null))
+  const of = (k: { when: string }) => bannerOfKind(props.design, k.when)
 
   // Each banner's picture, by what it shows; drawn once each.
   const images = ref<Record<string, string>>({})
@@ -183,13 +129,13 @@
       // The words alone show instead.
     }
   }
-  watch(() => [...(props.catalog.banner_presets ?? []), ...banners.value], list => { for (const b of list) {want(b)} }, { immediate: true, deep: true })
+  watch(banners, list => { for (const b of list) {want(b)} }, { immediate: true, deep: true })
 
   function update (design: Record<string, any>) {
     emit('update:design', design)
   }
-  function set (i: number, patch: Record<string, any>) {
-    update(updateBanner(props.design, i, patch))
+  function set (k: { when: string, place?: string }, patch: Record<string, any>) {
+    update(setKindBanner(props.design, k as any, patch))
   }
 </script>
 

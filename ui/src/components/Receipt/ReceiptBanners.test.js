@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { vuetify } from '@/test/vuetify'
-import { addBanner, emptyDesign } from '@/utils/receiptDesign'
+import { bannerKinds, designJSON, emptyDesign, setGlobalBannerStyle, setKindBanner } from '@/utils/receiptDesign'
 import catalog from '@/utils/testdata/receipt_designer_catalog.json'
 import ReceiptBanners from './ReceiptBanners.vue'
 
@@ -19,48 +19,59 @@ async function open (design = emptyDesign(), props = {}) {
   return wrapper
 }
 const find = sel => wrapper.find(`[data-test="${sel}"]`)
+const kind = when => ({ when, place: '' })
 
 describe('ReceiptBanners', () => {
-  it('the reported case: a gallery of ready-made banners, drawn as they print', async () => {
+  it('the reported case: a list of invoice kinds incl. each deal, words typed per kind', async () => {
     await open()
-    expect(find('banners-none').exists()).toBe(true)
-    for (const [i, p] of catalog.banner_presets.entries()) {
-      expect(find(`preset-${i}`).find('img').attributes('src'), p.title).toContain(btoa(p.title))
-    }
+    for (const k of ['always', 'deal', 'item_deal', 'item_discount', 'referral', 'deal:Students 15%']) {expect(find(`kind-${k}`).exists(), k).toBe(true)}
+    await find('title-deal:Students 15%').find('input').setValue('STUDENT DEAL')
+    expect(wrapper.props('design').banners).toEqual([{ style: 'ribbon', title: 'STUDENT DEAL', when: 'deal:Students 15%' }])
+    await flushPromises()
+    expect(find('kind-deal:Students 15%').find('img').attributes('src')).toContain(btoa('STUDENT DEAL'))
   })
 
-  it('a click adds one; its words, style, when and where change', async () => {
-    await open()
-    await find('preset-0').trigger('click')
-    expect(wrapper.props('design').banners).toEqual([catalog.banner_presets[0]])
-    await find('banner-title-0').find('input').setValue('BOGO')
-    expect(wrapper.props('design').banners[0].title).toBe('BOGO')
-    wrapper.vm.$.setupState.set(0, { when: 'deal:Students 15%', place: 'bottom', style: 'stars' })
-    await flushPromises()
-    expect(wrapper.props('design').banners[0]).toMatchObject({ when: 'deal:Students 15%', place: 'bottom', style: 'stars' })
-    await flushPromises()
-    expect(find('banner-0').find('img').attributes('src')).toContain(btoa('BOGO'))
-  })
-
-  it('up to twelve; then the gallery waits', async () => {
-    let d = emptyDesign()
-    for (const p of [...catalog.banner_presets, ...catalog.banner_presets].slice(0, 12)) {d = addBanner(d, p)}
+  it('one design for all, changed once; a kind can keep its own', async () => {
+    let d = setKindBanner(emptyDesign(), kind(''), { title: 'SALE' })
+    d = setKindBanner(d, kind('deal'), { title: 'DEAL' })
+    d = setKindBanner(d, kind('deal'), { style: 'stars' })
     await open(d)
-    expect(find('preset-5').attributes('disabled')).toBeDefined()
-    await find('banner-remove-1').trigger('click')
-    expect(wrapper.props('design').banners).toHaveLength(11)
-    await find('banner-down-0').trigger('click')
-    expect(wrapper.props('design').banners[1].title).toBe(catalog.banner_presets[0].title)
+    wrapper.vm.$.setupState.update(setGlobalBannerStyle(wrapper.props('design'), 'burst'))
+    await flushPromises()
+    const b = wrapper.props('design').banners
+    expect(b.find(x => !x.when).style).toBe('burst')
+    expect(b.find(x => x.when === 'deal')).toMatchObject({ style: 'stars', own_style: true })
+    expect(JSON.parse(designJSON(wrapper.props('design'))).banner_style).toBe('burst')
   })
 
-  it('a banner that prints only with a deal shows a way to see it there', async () => {
-    await open(addBanner(emptyDesign(), catalog.banner_presets[0]))
-    await find('banner-see-0').trigger('click')
+  it('an own design set back to "same as all" follows the global one again', () => {
+    let d = setGlobalBannerStyle(emptyDesign(), 'frame')
+    d = setKindBanner(d, kind('deal'), { title: 'X', style: 'stars' })
+    d = setKindBanner(d, kind('deal'), { style: '' })
+    expect(d.banners[0].style).toBe('frame')
+    expect(d.banners[0].own_style).toBeUndefined()
+    expect(setGlobalBannerStyle(d, 'burst').banners[0].style).toBe('burst')
+  })
+
+  it('a kind left with no words is not sent', () => {
+    const d = setKindBanner(emptyDesign(), bannerKinds([]).find(k => k.when === 'referral'), { title: '  ' })
+    expect(d.banners[0].place).toBe('bottom')
+    expect(designJSON(d)).toBe('')
+  })
+
+  it('a saved banner for a deal that is gone still shows, to clear', async () => {
+    await open(setKindBanner(emptyDesign(), kind('deal:Old deal'), { title: 'OLD' }))
+    expect(find('kind-deal:Old deal').exists()).toBe(true)
+  })
+
+  it('a kind that prints with a deal shows a way to see it there', async () => {
+    await open(setKindBanner(emptyDesign(), kind('item_deal'), { title: 'BOGO' }))
+    await find('see-item_deal').trigger('click')
     expect(wrapper.emitted('see')).toEqual([['item_deal']])
   })
 
   it('nothing in long dashes', async () => {
-    await open(addBanner(emptyDesign(), catalog.banner_presets[0]))
+    await open()
     expect(wrapper.text()).not.toMatch(/[–—·•]/)
   })
 })
