@@ -433,7 +433,7 @@ func (c *receiptCanvas) drawBanner(y int, b receiptBanner) int {
 		c.fillPolygon([]image.Point{{left, top}, {right, top}, {right - notch, top + h/2}, {right, bot}, {left, bot}, {left + notch, top + h/2}}, color.Black)
 		// Only a thick black edge: white inside with black letters, so the
 		// thermal head has no large solid area to print (it came out grainy).
-		e := 5
+		e := 8
 		c.fillPolygon([]image.Point{{left + e, top + e}, {right - e, top + e}, {right - notch - e + 3, top + h/2}, {right - e, bot - e}, {left + e, bot - e}, {left + notch + e - 3, top + h/2}}, color.White)
 		ink := image.Image(black)
 		c.bannerText(face, b.Title, left+notch, right-notch, top+6+shift, ink)
