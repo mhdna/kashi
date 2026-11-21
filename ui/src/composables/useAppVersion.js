@@ -12,6 +12,21 @@ const CHECK_MS = 60_000
 
 const newVersion = ref(false)
 let started = false
+let latestBuild = ''
+
+// The address to load to get the new build. A plain reload can be answered
+// from the browser's cached index.html, which is the old build again: the tab
+// then flags the new version once more and the "Updating" screen never goes
+// away. A changed query string can't be answered from that cache.
+export function freshUrl (href, build) {
+  const url = new URL(href)
+  url.searchParams.set('_b', build || String(Date.now()))
+  return url.toString()
+}
+
+export function reloadIntoNewVersion () {
+  window.location.replace(freshUrl(window.location.href, latestBuild))
+}
 
 export async function checkForNewVersion () {
   if (newVersion.value || !started) {
@@ -24,6 +39,7 @@ export async function checkForNewVersion () {
     }
     const { build } = await res.json()
     if (build && build !== RUNNING_BUILD) {
+      latestBuild = build
       newVersion.value = true
     }
   } catch {

@@ -14,7 +14,7 @@
   import { useRoute, useRouter } from 'vue-router'
   import ServerDownState from '@/components/ServerDownState.vue'
   import { authFetch, isConnectionError, SERVER_UPDATING_MESSAGE } from '@/composables/useApi'
-  import { checkForNewVersion, startVersionWatch, useAppVersion } from '@/composables/useAppVersion'
+  import { checkForNewVersion, reloadIntoNewVersion, startVersionWatch, useAppVersion } from '@/composables/useAppVersion'
   import { useNetworkStatus } from '@/composables/useNetworkStatus'
   import { useServerStatus, waitForServer } from '@/composables/useServerStatus'
   import { API_BASE } from '@/config'
@@ -101,7 +101,7 @@
   const router = useRouter()
   router.beforeEach(to => {
     if (!newVersion.value) return true
-    window.location.assign(to.fullPath)
+    reloadIntoNewVersion()
     return false
   })
   function busy () {
@@ -116,7 +116,7 @@
       return
     }
     reloadingForNewVersion.value = true
-    setTimeout(() => window.location.reload(), 1200)
+    setTimeout(reloadIntoNewVersion, 1200)
   }
   watch(newVersion, isNew => {
     if (isNew) reloadWhenIdle()
