@@ -189,6 +189,15 @@
           persistent-hint
         />
         <v-switch
+          v-model="form.replaces_item_discounts"
+          color="primary"
+          data-test="replaces-item-discounts"
+          density="compact"
+          hint="$50 off every $100, else 20%: when it applies, items lose their list discounts and the till charges whichever saves more."
+          label="Not with item discounts"
+          persistent-hint
+        />
+        <v-switch
           v-model="form.cashier_picks"
           color="primary"
           data-test="cashier-picks"
@@ -269,6 +278,11 @@
 
   function ruleTerms (rule) {
     if (!rule) return ''
+    const terms = baseTerms(rule)
+    return rule.replaces_item_discounts ? `${terms}, instead of item discounts` : terms
+  }
+
+  function baseTerms (rule) {
     const off = rule.kind === 'percent' ? `${rule.percent}% off` : `$${formatMoney(rule.amount)} off`
     if (rule.repeats) {
       const each = `$${formatMoney(rule.amount)} off for every $${formatMoney(rule.min_total)} of the invoice`
@@ -321,6 +335,7 @@
     return {
       id: 0, name: '', minTotal: '', kind: 'percent', percent: 10, amount: '',
       all_branches: true, branch_ids: [], validFrom: '', validTo: '', is_active: true, cashier_picks: false, repeats: false,
+      replaces_item_discounts: false,
     }
   }
   const form = reactive(blank())
@@ -331,6 +346,7 @@
     percent: form.kind === 'percent' ? Number(form.percent) || 0 : 0,
     amount: form.kind === 'amount' ? Math.round(Number(form.amount) * 100) || 0 : 0,
     cashier_picks: Boolean(form.cashier_picks),
+    replaces_item_discounts: Boolean(form.replaces_item_discounts),
     // Repeating counts by the minimum, so only an amount with one repeats.
     repeats: Boolean(form.repeats) && form.kind === 'amount' && Math.round(Number(form.minTotal) * 100) > 0,
   }))
@@ -345,6 +361,7 @@
         validTo: untilDay(when(rule.valid_to)),
         is_active: rule.is_active,
         cashier_picks: Boolean(rule.cashier_picks),
+        replaces_item_discounts: Boolean(rule.replaces_item_discounts),
         repeats: Boolean(rule.repeats),
       }
       : blank())
