@@ -129,6 +129,14 @@
           variant="text"
           @click="settlementOpen = true"
         />
+        <v-btn
+          v-if="auth.canEdit('branches') && canOpenForExchange(itemsDetails?.invoice) && itemsDetails"
+          data-test="open-exchange"
+          prepend-icon="mdi-calendar-clock-outline"
+          text="Open for exchange"
+          variant="text"
+          @click="exchangeOpeningOpen = true"
+        />
         <v-spacer />
         <v-btn
           v-if="itemsTarget?.kind === 'sales' && !isCancelled(itemsTarget)"
@@ -244,6 +252,12 @@
     :invoice="itemsDetails?.invoice ?? null"
     :payments="itemsDetails?.payments ?? []"
     @changed="refreshViewedInvoice"
+  />
+
+  <ExchangeOpeningDialog
+    v-model="exchangeOpeningOpen"
+    :branch-name="branchName(itemsTarget?.branch_id)"
+    :invoice="itemsDetails?.invoice ?? null"
   />
 
   <ReturnEditDialog
@@ -466,6 +480,7 @@
 <script setup lang="ts">
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
+  import ExchangeOpeningDialog from '@/components/Invoice/ExchangeOpeningDialog.vue'
   import InvoiceFilterDialog from '@/components/Invoice/InvoiceFilterDialog.vue'
   import InvoicePrintButton from '@/components/Invoice/InvoicePrintButton.vue'
   import PaymentEntryPanel from '@/components/Invoice/PaymentEntryPanel.vue'
@@ -483,6 +498,7 @@
   import { useVariants } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
   import { useAuthStore } from '@/stores/auth'
+  import { canOpenForExchange } from '@/utils/exchangeOpening'
   import { countInvoiceFilters, emptyFilters, invoiceFilterParams, invoiceFilterSummary } from '@/utils/invoiceFilters'
   import { estimateCents, paymentStatus, toPayload, unpricedReplacements } from '@/utils/paymentEntry'
   import { canEditRefund } from '@/utils/returnEdit'
@@ -674,6 +690,8 @@
 
   // Change settlement: the till re-splits the sale, then syncs it back here.
   const settlementOpen = ref(false)
+  // Open for exchange: the till lets an old sale be exchanged until a chosen day.
+  const exchangeOpeningOpen = ref(false)
   async function refreshViewedInvoice () {
     tableRef.value?.reload()
     if (!itemsTarget.value) return

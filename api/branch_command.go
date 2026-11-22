@@ -37,6 +37,9 @@ var allowedBranchCommandTypes = map[string]bool{
 	"edit_return_invoice": true,
 	// Re-split a sale between payment methods (kashi-pos remote_payments.go).
 	"change_invoice_settlement": true,
+	// Let a sale be exchanged past the exchange window (kashi-pos
+	// exchange_opening.go).
+	"open_invoice_exchange": true,
 	"sync_now":            true,
 	// Swap or transfer a balance in a till's open shift. allow_negative
 	// (taking the source below zero) needs shift_negative_balance.
@@ -279,6 +282,9 @@ func (server *Server) resolveCommandTarget(ctx *gin.Context, branchID int64, req
 
 	case "change_invoice_settlement":
 		return server.resolveChangeSettlementTarget(ctx, branchID, req.Payload)
+
+	case "open_invoice_exchange":
+		return server.resolveOpenExchangeTarget(ctx, branchID, req.Payload)
 	}
 
 	if req.RegisterID != 0 {

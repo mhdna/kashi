@@ -182,6 +182,7 @@ Business settings (WhatsApp credentials, templates, webhook secret) live **in th
 - `reprint_invoice` (Invoices page **Print on till**, any kind) is refused for a `historical` old-POS import: no till has it.
 - `remote_return_invoice` carries `print_receipt: false` when the dialog's **Print the receipt on the till** is unticked; ticked sends nothing and the till's **Print return receipts** decides.
 - Payments go by **method name** and signed USD cents (`payments: [{account_name, amount_cents, amount_units?}]`, units for counted LBP). `remote_return_invoice` may carry them (a return's refund, an exchange's difference); `change_invoice_settlement` re-splits a sale. The till requires them to **equal its own total** (LBP within its rounding) and otherwise fails, naming its figure; kashi's dialog total is only an estimate.
+- `open_invoice_exchange` (invoice details **Open for exchange**) sends `until_date` (YYYY-MM-DD, the browser's day; **only today** or N days counting today, up to a year). The till stores it in `exchange_openings` and lets that sale past the exchange window until **23:59:59 of that day on its own clock**; a newer opening replaces the old one, and a date already gone when the till runs it fails.
 - A refund of a sale still owed **On Account** comes off that debt first (kashi-pos `on_account_returns.go`).
 - Branch-wide `update_settings` is also written to `branch_settings` (kashi is the authority).
 :::
