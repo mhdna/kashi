@@ -1509,22 +1509,23 @@ type Invoice struct {
 }
 
 type InvoiceDiscount struct {
-	ID           int64        `json:"id"`
-	Uid          uuid.UUID    `json:"uid"`
-	Name         string       `json:"name"`
-	MinTotal     int64        `json:"min_total"`
-	Kind         string       `json:"kind"`
-	Percent      int16        `json:"percent"`
-	Amount       int64        `json:"amount"`
-	AllBranches  bool         `json:"all_branches"`
-	ValidFrom    sql.NullTime `json:"valid_from"`
-	ValidTo      sql.NullTime `json:"valid_to"`
-	IsActive     bool         `json:"is_active"`
-	DeletedAt    sql.NullTime `json:"deleted_at"`
-	CreatedAt    time.Time    `json:"created_at"`
-	UpdatedAt    time.Time    `json:"updated_at"`
-	CashierPicks bool         `json:"cashier_picks"`
-	Repeats      bool         `json:"repeats"`
+	ID                    int64        `json:"id"`
+	Uid                   uuid.UUID    `json:"uid"`
+	Name                  string       `json:"name"`
+	MinTotal              int64        `json:"min_total"`
+	Kind                  string       `json:"kind"`
+	Percent               int16        `json:"percent"`
+	Amount                int64        `json:"amount"`
+	AllBranches           bool         `json:"all_branches"`
+	ValidFrom             sql.NullTime `json:"valid_from"`
+	ValidTo               sql.NullTime `json:"valid_to"`
+	IsActive              bool         `json:"is_active"`
+	DeletedAt             sql.NullTime `json:"deleted_at"`
+	CreatedAt             time.Time    `json:"created_at"`
+	UpdatedAt             time.Time    `json:"updated_at"`
+	CashierPicks          bool         `json:"cashier_picks"`
+	Repeats               bool         `json:"repeats"`
+	ReplacesItemDiscounts bool         `json:"replaces_item_discounts"`
 }
 
 type InvoiceDiscountBranch struct {

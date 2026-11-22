@@ -101,4 +101,33 @@ describe('InvoiceDiscountsDialog', () => {
     Object.assign(state.form, { kind: 'amount', amount: '50', minTotal: '100' })
     expect(state.formRule.repeats).toBe(false)
   })
+
+  it('the reported case: $50 off every $100, else 20%, is saved as not with item discounts', async () => {
+    await open()
+    const state = wrapper.vm.$.setupState
+    state.openEdit(null)
+    await flushPromises()
+    expect(state.form.replaces_item_discounts).toBe(false)
+    Object.assign(state.form, { name: 'Independence Day $50', kind: 'amount', amount: '50', minTotal: '100', repeats: true, cashier_picks: true, replaces_item_discounts: true })
+    await flushPromises()
+    expect(document.body.querySelector('[data-test="replaces-item-discounts"]')).not.toBeNull()
+    expect(document.body.textContent).toContain('When the cashier picks it: $50.00 off for every $100.00 of the invoice, instead of item discounts')
+    await state.save()
+    const post = calls.find(c => c.method === 'POST')
+    expect(post.body).toMatchObject({ kind: 'amount', amount: 5000, min_total: 10_000, repeats: true, cashier_picks: true, replaces_item_discounts: true })
+  })
+
+  it('not with item discounts works for a percent too, editing keeps it and a new rule starts off', async () => {
+    await open()
+    const state = wrapper.vm.$.setupState
+    state.openEdit(null)
+    Object.assign(state.form, { kind: 'percent', percent: 30, minTotal: '150', replaces_item_discounts: true })
+    expect(state.formRule.replaces_item_discounts).toBe(true)
+    expect(state.ruleTerms(state.formRule)).toBe('Invoices of $150.00 or more get 30% off the whole invoice, instead of item discounts')
+    state.openEdit({ ...rules[1], replaces_item_discounts: true })
+    expect(state.form.replaces_item_discounts).toBe(true)
+    state.openEdit({ ...rules[1] })
+    expect(state.form.replaces_item_discounts).toBe(false)
+    expect(state.ruleTerms(state.formRule)).not.toContain('instead of item discounts')
+  })
 })

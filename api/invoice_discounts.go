@@ -72,6 +72,9 @@ type invoiceDiscountRequest struct {
 	// Repeats: an amount rule comes off once for every min_total the sale
 	// reaches ("$50 off every $100").
 	Repeats bool `json:"repeats"`
+	// ReplacesItemDiscounts: never on top of the lines' own discounts; the
+	// till drops them when it applies and charges whichever saves more.
+	ReplacesItemDiscounts bool `json:"replaces_item_discounts"`
 }
 
 // params checks the request and clears the field its kind doesn't read, so
@@ -80,7 +83,7 @@ func (req invoiceDiscountRequest) params() (db.SaveInvoiceDiscountTxParams, erro
 	c := db.CreateInvoiceDiscountParams{
 		Name: strings.TrimSpace(req.Name), MinTotal: req.MinTotal, Kind: req.Kind,
 		AllBranches: req.AllBranches, IsActive: req.IsActive, CashierPicks: req.CashierPicks,
-		Repeats: req.Repeats,
+		Repeats: req.Repeats, ReplacesItemDiscounts: req.ReplacesItemDiscounts,
 	}
 	if c.Name == "" {
 		return db.SaveInvoiceDiscountTxParams{}, errors.New("name is required")
@@ -191,6 +194,9 @@ type syncInvoiceDiscount struct {
 	CashierPicks bool `json:"cashier_picks"`
 	// Repeats: the amount comes off once per min_total the sale reaches.
 	Repeats bool `json:"repeats"`
+	// ReplacesItemDiscounts: the till prices the lines without their own
+	// discounts when it applies, and charges whichever way saves more.
+	ReplacesItemDiscounts bool `json:"replaces_item_discounts"`
 }
 
 func (server *Server) invoiceDiscountsForBranchSync(ctx *gin.Context, branchID int64, since time.Time) ([]syncInvoiceDiscount, error) {
@@ -205,7 +211,7 @@ func (server *Server) invoiceDiscountsForBranchSync(ctx *gin.Context, branchID i
 		out[i] = syncInvoiceDiscount{
 			UID: r.Uid, Name: r.Name, MinTotal: r.MinTotal, Kind: r.Kind, Percent: r.Percent,
 			Amount: r.Amount, Applies: r.Applies, UpdatedAt: r.UpdatedAt, CashierPicks: r.CashierPicks,
-			Repeats: r.Repeats,
+			Repeats: r.Repeats, ReplacesItemDiscounts: r.ReplacesItemDiscounts,
 		}
 		if r.ValidFrom.Valid {
 			out[i].ValidFrom = &r.ValidFrom.Time

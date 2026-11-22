@@ -30,23 +30,24 @@ func (q *Queries) AddInvoiceDiscountBranch(ctx context.Context, arg AddInvoiceDi
 }
 
 const createInvoiceDiscount = `-- name: CreateInvoiceDiscount :one
-INSERT INTO invoice_discounts (name, min_total, kind, percent, amount, all_branches, valid_from, valid_to, is_active, cashier_picks, repeats)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-RETURNING id, uid, name, min_total, kind, percent, amount, all_branches, valid_from, valid_to, is_active, deleted_at, created_at, updated_at, cashier_picks, repeats
+INSERT INTO invoice_discounts (name, min_total, kind, percent, amount, all_branches, valid_from, valid_to, is_active, cashier_picks, repeats, replaces_item_discounts)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+RETURNING id, uid, name, min_total, kind, percent, amount, all_branches, valid_from, valid_to, is_active, deleted_at, created_at, updated_at, cashier_picks, repeats, replaces_item_discounts
 `
 
 type CreateInvoiceDiscountParams struct {
-	Name         string       `json:"name"`
-	MinTotal     int64        `json:"min_total"`
-	Kind         string       `json:"kind"`
-	Percent      int16        `json:"percent"`
-	Amount       int64        `json:"amount"`
-	AllBranches  bool         `json:"all_branches"`
-	ValidFrom    sql.NullTime `json:"valid_from"`
-	ValidTo      sql.NullTime `json:"valid_to"`
-	IsActive     bool         `json:"is_active"`
-	CashierPicks bool         `json:"cashier_picks"`
-	Repeats      bool         `json:"repeats"`
+	Name                  string       `json:"name"`
+	MinTotal              int64        `json:"min_total"`
+	Kind                  string       `json:"kind"`
+	Percent               int16        `json:"percent"`
+	Amount                int64        `json:"amount"`
+	AllBranches           bool         `json:"all_branches"`
+	ValidFrom             sql.NullTime `json:"valid_from"`
+	ValidTo               sql.NullTime `json:"valid_to"`
+	IsActive              bool         `json:"is_active"`
+	CashierPicks          bool         `json:"cashier_picks"`
+	Repeats               bool         `json:"repeats"`
+	ReplacesItemDiscounts bool         `json:"replaces_item_discounts"`
 }
 
 func (q *Queries) CreateInvoiceDiscount(ctx context.Context, arg CreateInvoiceDiscountParams) (InvoiceDiscount, error) {
@@ -62,6 +63,7 @@ func (q *Queries) CreateInvoiceDiscount(ctx context.Context, arg CreateInvoiceDi
 		arg.IsActive,
 		arg.CashierPicks,
 		arg.Repeats,
+		arg.ReplacesItemDiscounts,
 	)
 	var i InvoiceDiscount
 	err := row.Scan(
@@ -81,6 +83,7 @@ func (q *Queries) CreateInvoiceDiscount(ctx context.Context, arg CreateInvoiceDi
 		&i.UpdatedAt,
 		&i.CashierPicks,
 		&i.Repeats,
+		&i.ReplacesItemDiscounts,
 	)
 	return i, err
 }
@@ -135,7 +138,7 @@ func (q *Queries) ListInvoiceDiscountBranchIDs(ctx context.Context) ([]InvoiceDi
 }
 
 const listInvoiceDiscounts = `-- name: ListInvoiceDiscounts :many
-SELECT id, uid, name, min_total, kind, percent, amount, all_branches, valid_from, valid_to, is_active, deleted_at, created_at, updated_at, cashier_picks, repeats FROM invoice_discounts
+SELECT id, uid, name, min_total, kind, percent, amount, all_branches, valid_from, valid_to, is_active, deleted_at, created_at, updated_at, cashier_picks, repeats, replaces_item_discounts FROM invoice_discounts
 WHERE deleted_at IS NULL
 ORDER BY min_total, id
 `
@@ -166,6 +169,7 @@ func (q *Queries) ListInvoiceDiscounts(ctx context.Context) ([]InvoiceDiscount, 
 			&i.UpdatedAt,
 			&i.CashierPicks,
 			&i.Repeats,
+			&i.ReplacesItemDiscounts,
 		); err != nil {
 			return nil, err
 		}
@@ -181,7 +185,7 @@ func (q *Queries) ListInvoiceDiscounts(ctx context.Context) ([]InvoiceDiscount, 
 }
 
 const listInvoiceDiscountsForBranchSync = `-- name: ListInvoiceDiscountsForBranchSync :many
-SELECT d.uid, d.name, d.min_total, d.kind, d.percent, d.amount, d.valid_from, d.valid_to, d.updated_at, d.cashier_picks, d.repeats,
+SELECT d.uid, d.name, d.min_total, d.kind, d.percent, d.amount, d.valid_from, d.valid_to, d.updated_at, d.cashier_picks, d.repeats, d.replaces_item_discounts,
        (d.deleted_at IS NULL AND d.is_active AND (d.all_branches OR EXISTS (
            SELECT 1 FROM invoice_discount_branches b
            WHERE b.invoice_discount_id = d.id AND b.branch_id = $1::bigint
@@ -197,18 +201,19 @@ type ListInvoiceDiscountsForBranchSyncParams struct {
 }
 
 type ListInvoiceDiscountsForBranchSyncRow struct {
-	Uid          uuid.UUID    `json:"uid"`
-	Name         string       `json:"name"`
-	MinTotal     int64        `json:"min_total"`
-	Kind         string       `json:"kind"`
-	Percent      int16        `json:"percent"`
-	Amount       int64        `json:"amount"`
-	ValidFrom    sql.NullTime `json:"valid_from"`
-	ValidTo      sql.NullTime `json:"valid_to"`
-	UpdatedAt    time.Time    `json:"updated_at"`
-	CashierPicks bool         `json:"cashier_picks"`
-	Repeats      bool         `json:"repeats"`
-	Applies      bool         `json:"applies"`
+	Uid                   uuid.UUID    `json:"uid"`
+	Name                  string       `json:"name"`
+	MinTotal              int64        `json:"min_total"`
+	Kind                  string       `json:"kind"`
+	Percent               int16        `json:"percent"`
+	Amount                int64        `json:"amount"`
+	ValidFrom             sql.NullTime `json:"valid_from"`
+	ValidTo               sql.NullTime `json:"valid_to"`
+	UpdatedAt             time.Time    `json:"updated_at"`
+	CashierPicks          bool         `json:"cashier_picks"`
+	Repeats               bool         `json:"repeats"`
+	ReplacesItemDiscounts bool         `json:"replaces_item_discounts"`
+	Applies               bool         `json:"applies"`
 }
 
 // Every rule changed since the branch last asked, deleted ones included,
@@ -235,6 +240,7 @@ func (q *Queries) ListInvoiceDiscountsForBranchSync(ctx context.Context, arg Lis
 			&i.UpdatedAt,
 			&i.CashierPicks,
 			&i.Repeats,
+			&i.ReplacesItemDiscounts,
 			&i.Applies,
 		); err != nil {
 			return nil, err
@@ -282,24 +288,25 @@ func (q *Queries) SetBranchInvoiceItemDiscount(ctx context.Context, arg SetBranc
 const updateInvoiceDiscount = `-- name: UpdateInvoiceDiscount :one
 UPDATE invoice_discounts
 SET name = $2, min_total = $3, kind = $4, percent = $5, amount = $6, all_branches = $7,
-    valid_from = $8, valid_to = $9, is_active = $10, cashier_picks = $11, repeats = $12, updated_at = now()
+    valid_from = $8, valid_to = $9, is_active = $10, cashier_picks = $11, repeats = $12, replaces_item_discounts = $13, updated_at = now()
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, uid, name, min_total, kind, percent, amount, all_branches, valid_from, valid_to, is_active, deleted_at, created_at, updated_at, cashier_picks, repeats
+RETURNING id, uid, name, min_total, kind, percent, amount, all_branches, valid_from, valid_to, is_active, deleted_at, created_at, updated_at, cashier_picks, repeats, replaces_item_discounts
 `
 
 type UpdateInvoiceDiscountParams struct {
-	ID           int64        `json:"id"`
-	Name         string       `json:"name"`
-	MinTotal     int64        `json:"min_total"`
-	Kind         string       `json:"kind"`
-	Percent      int16        `json:"percent"`
-	Amount       int64        `json:"amount"`
-	AllBranches  bool         `json:"all_branches"`
-	ValidFrom    sql.NullTime `json:"valid_from"`
-	ValidTo      sql.NullTime `json:"valid_to"`
-	IsActive     bool         `json:"is_active"`
-	CashierPicks bool         `json:"cashier_picks"`
-	Repeats      bool         `json:"repeats"`
+	ID                    int64        `json:"id"`
+	Name                  string       `json:"name"`
+	MinTotal              int64        `json:"min_total"`
+	Kind                  string       `json:"kind"`
+	Percent               int16        `json:"percent"`
+	Amount                int64        `json:"amount"`
+	AllBranches           bool         `json:"all_branches"`
+	ValidFrom             sql.NullTime `json:"valid_from"`
+	ValidTo               sql.NullTime `json:"valid_to"`
+	IsActive              bool         `json:"is_active"`
+	CashierPicks          bool         `json:"cashier_picks"`
+	Repeats               bool         `json:"repeats"`
+	ReplacesItemDiscounts bool         `json:"replaces_item_discounts"`
 }
 
 func (q *Queries) UpdateInvoiceDiscount(ctx context.Context, arg UpdateInvoiceDiscountParams) (InvoiceDiscount, error) {
@@ -316,6 +323,7 @@ func (q *Queries) UpdateInvoiceDiscount(ctx context.Context, arg UpdateInvoiceDi
 		arg.IsActive,
 		arg.CashierPicks,
 		arg.Repeats,
+		arg.ReplacesItemDiscounts,
 	)
 	var i InvoiceDiscount
 	err := row.Scan(
@@ -335,6 +343,7 @@ func (q *Queries) UpdateInvoiceDiscount(ctx context.Context, arg UpdateInvoiceDi
 		&i.UpdatedAt,
 		&i.CashierPicks,
 		&i.Repeats,
+		&i.ReplacesItemDiscounts,
 	)
 	return i, err
 }

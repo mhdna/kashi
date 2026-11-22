@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"testing"
 	"time"
@@ -125,4 +126,54 @@ func TestInvoiceDiscountFeedSaysRepeats(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, items[0].Repeats)
 	require.False(t, items[1].Repeats)
+}
+
+// "$50 off every $100, else 20%": central saves "not with item discounts"
+// and tells the tills, for an amount or a percent.
+func TestSaveInvoiceDiscountReplacingItemDiscounts(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	store.EXPECT().SaveInvoiceDiscountTx(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, arg db.SaveInvoiceDiscountTxParams) (db.InvoiceDiscount, error) {
+			require.True(t, arg.Create.ReplacesItemDiscounts)
+			require.True(t, arg.Create.Repeats)
+			return db.InvoiceDiscount{ID: 8, Name: arg.Create.Name, Repeats: true, ReplacesItemDiscounts: true}, nil
+		})
+	server := newTestServer(t, store)
+	rec := adminRequest(t, server, http.MethodPut, "/invoice_discounts/8", map[string]any{
+		"name": "Independence Day $50", "kind": "amount", "amount": 5000, "min_total": 10000,
+		"all_branches": true, "is_active": true, "cashier_picks": true, "repeats": true,
+		"replaces_item_discounts": true,
+	})
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	require.Contains(t, rec.Body.String(), `"replaces_item_discounts":true`)
+
+	for _, req := range []invoiceDiscountRequest{
+		{Name: "X", Kind: invoiceDiscountPercent, Percent: 30, AllBranches: true, ReplacesItemDiscounts: true},
+		{Name: "X", Kind: invoiceDiscountAmount, Amount: 500, AllBranches: true, ReplacesItemDiscounts: true},
+	} {
+		p, err := req.params()
+		require.NoError(t, err)
+		require.True(t, p.Create.ReplacesItemDiscounts)
+	}
+	p, err := invoiceDiscountRequest{Name: "X", Kind: invoiceDiscountPercent, Percent: 10, AllBranches: true}.params()
+	require.NoError(t, err)
+	require.False(t, p.Create.ReplacesItemDiscounts)
+}
+
+func TestInvoiceDiscountFeedSaysReplacesItemDiscounts(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mockdb.NewMockStore(ctrl)
+	store.EXPECT().ListInvoiceDiscountsForBranchSync(gomock.Any(), gomock.Any()).Return([]db.ListInvoiceDiscountsForBranchSyncRow{
+		{Uid: uuid.New(), Name: "Independence Day $50", Kind: "amount", Amount: 5000, MinTotal: 10000, Applies: true, Repeats: true, ReplacesItemDiscounts: true},
+		{Uid: uuid.New(), Name: "$10 off $50", Kind: "amount", Amount: 1000, MinTotal: 5000, Applies: true},
+	}, nil)
+	server := newTestServer(t, store)
+	items, err := server.invoiceDiscountsForBranchSync(nil, 1, time.Time{})
+	require.NoError(t, err)
+	require.True(t, items[0].ReplacesItemDiscounts)
+	require.False(t, items[1].ReplacesItemDiscounts)
+	raw, err := json.Marshal(items[0])
+	require.NoError(t, err)
+	require.Contains(t, string(raw), `"replaces_item_discounts":true`)
 }
