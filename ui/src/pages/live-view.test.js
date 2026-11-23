@@ -182,7 +182,7 @@ describe('live-view page', () => {
       Object.defineProperty(iframe, 'contentDocument', { value: { elementFromPoint: (x, y) => { asked = { x, y }; return target } } })
       await overlay.trigger('click', { clientX: 110, clientY: 120 })
       expect(asked).toEqual({ x: 100 / wrapper.vm.scale, y: 100 / wrapper.vm.scale })
-      expect(socket().sent).toEqual([{ t: 'click', id: 42 }])
+      expect(socket().sent).toEqual([{ t: 'click', id: 42, ts: expect.any(Number) }])
     })
 
     it('a click on something that is not on the till sends nothing', async () => {
@@ -203,7 +203,7 @@ describe('live-view page', () => {
       await overlay.trigger('keydown', { key: '5' })
       await overlay.trigger('keydown', { key: 'v', ctrlKey: true })
       await overlay.trigger('keydown', { key: 'Shift' })
-      expect(socket().sent).toEqual([{ t: 'key', key: 'Enter' }, { t: 'key', key: '5' }])
+      expect(socket().sent).toEqual([{ t: 'key', key: 'Enter', ts: expect.any(Number) }, { t: 'key', key: '5', ts: expect.any(Number) }])
     })
 
     it('shows a click mark and the typed characters at once, and clears them on the till\'s next frame', async () => {
@@ -228,6 +228,33 @@ describe('live-view page', () => {
       await flushPromises()
       expect(wrapper.find('[data-test="click-mark"]').exists()).toBe(false)
       expect(wrapper.find('[data-test="typed-overlay"]').exists()).toBe(false)
+    })
+
+    it('stamps controls with its clock and shows the delay from the till\'s ack', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      try {
+        vi.setSystemTime(50_000)
+        await controlled()
+        expect(wrapper.find('[data-test="live-delay"]').exists()).toBe(false)
+        await wrapper.find('[data-test="control-overlay"]').trigger('keydown', { key: '5' })
+        expect(socket().sent).toEqual([{ t: 'key', key: '5', ts: 50_000 }])
+
+        vi.setSystemTime(50_180)
+        socket().receive({ e: [], a: [], ack: 50_000 })
+        await flushPromises()
+        expect(wrapper.find('[data-test="live-delay"]').text()).toBe('Delay: 180 ms')
+
+        // A frame without an ack keeps the last figure; a newer ack replaces it.
+        socket().receive({ e: [], a: [] })
+        await flushPromises()
+        expect(wrapper.find('[data-test="live-delay"]').text()).toBe('Delay: 180 ms')
+        vi.setSystemTime(50_400)
+        socket().receive({ e: [], a: [], ack: 50_350 })
+        await flushPromises()
+        expect(wrapper.find('[data-test="live-delay"]').text()).toBe('Delay: 50 ms')
+      } finally {
+        vi.useRealTimers()
+      }
     })
 
     it('a click on something that is not on the till leaves no mark', async () => {

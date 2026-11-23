@@ -55,6 +55,7 @@
             :style="{ left: mark.x + 'px', top: mark.y + 'px' }"
           />
           <div v-if="typed" class="live-typed" data-test="typed-overlay">{{ typed }}</div>
+          <div v-if="controlOn && delay !== null" class="live-delay" data-test="live-delay">Delay: {{ delay }} ms</div>
         </div>
 
         <div v-if="actions.length > 0" class="mt-4" data-test="live-actions">
@@ -74,8 +75,8 @@
   import { WS_BASE } from '@/config'
   import { useAuthStore } from '@/stores/auth'
   import {
-    clickMessage, clockSkew, fitScale, initialState, inputMessage, keyMessage, liveStartTime, markAt,
-    pointOnTill, pushActions, screenSize, shiftEvent, typedAfter, watchUrl,
+    clickMessage, clockSkew, delayFrom, fitScale, initialState, inputMessage, keyMessage, liveStartTime, markAt,
+    pointOnTill, pushActions, screenSize, shiftEvent, stamped, typedAfter, watchUrl,
   } from '@/utils/liveView'
   import { createWatch } from '@/utils/liveWatch'
 
@@ -98,6 +99,7 @@
   // Shown at once for what this admin just did; the till's next frame replaces them.
   const mark = ref(null)
   const typed = ref('')
+  const delay = ref(null)
 
   let rrweb = null
   let replayer = null
@@ -168,7 +170,16 @@
 
   // Frames are handled one at a time, in order, though loading rrweb is async.
   function onFrame (frame) {
+    const ms = delayFrom(frame.ack, Date.now())
+    if (ms !== null) {
+      delay.value = ms
+    }
     queue = queue.then(() => handle(frame)).catch(error => console.error('live view', error))
+  }
+
+  // Every control carries this page's clock; the till echoes it back as an ack.
+  function sendControl (message) {
+    return watch.send(stamped(message, Date.now()))
   }
 
   function tillElementAt (event) {
@@ -182,7 +193,7 @@
     const element = tillElementAt(event)
     const id = element ? replayer?.getMirror().getId(element) : -1
     const message = clickMessage(id)
-    if (message && watch.send(message)) {
+    if (message && sendControl(message)) {
       lastClicked = id
       mark.value = markAt(event.clientX, event.clientY, box.value?.getBoundingClientRect())
     }
@@ -192,7 +203,7 @@
     const message = keyMessage(event)
     if (message) {
       event.preventDefault()
-      if (watch.send(message)) {
+      if (sendControl(message)) {
         typed.value = typedAfter(typed.value, message.key)
       }
     }
@@ -204,7 +215,7 @@
     const message = inputMessage(lastClicked, `${node?.value ?? ''}${text}`)
     if (message) {
       event.preventDefault()
-      watch.send(message)
+      sendControl(message)
     }
   }
 
@@ -254,6 +265,16 @@
   margin: -11px 0 0 -11px;
   border: 2px solid rgb(var(--v-theme-warning));
   border-radius: 50%;
+  pointer-events: none;
+}
+.live-delay {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgb(var(--v-theme-surface));
+  font-size: 12px;
   pointer-events: none;
 }
 .live-typed {

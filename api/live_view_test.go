@@ -304,6 +304,19 @@ func TestLiveViewControlRules(t *testing.T) {
 	require.NoError(t, w.WriteMessage(websocket.TextMessage, []byte(click)))
 	require.Equal(t, click, readText(t, till))
 
+	// The page stamps each control with its clock (ts) so it can show the
+	// delay: kashi relays that field to the till untouched, and the till's
+	// answer (ack) comes back to the watcher untouched.
+	stamped := `{"t":"key","key":"5","ts":1700000000123}`
+	require.NoError(t, w.WriteMessage(websocket.TextMessage, []byte(stamped)))
+	require.Equal(t, stamped, readText(t, till))
+	ack := `{"e":[],"a":[],"ack":1700000000123}`
+	full := `{"full":true,"e":[{"type":2,"data":{},"timestamp":1}],"a":[]}`
+	require.NoError(t, till.WriteMessage(websocket.TextMessage, []byte(full)))
+	require.Equal(t, full, readText(t, w))
+	require.NoError(t, till.WriteMessage(websocket.TextMessage, []byte(ack)))
+	require.Equal(t, ack, readText(t, w))
+
 	// Anything else a watcher sends is dropped, not passed to the till.
 	for _, bad := range []string{`{"t":"snapshot"}`, `{"t":"eval","code":"x"}`, `nope`, `{"t":"click","id":1,"pad":"` + strings.Repeat("x", 5000) + `"}`} {
 		_ = w.WriteMessage(websocket.TextMessage, []byte(bad))
@@ -492,12 +505,17 @@ func TestLiveViewProtocolFixture(t *testing.T) {
 	require.NoError(t, till.WriteMessage(websocket.TextMessage, []byte(full)))
 	relayed := readText(t, w)
 	require.Equal(t, full, relayed)
+	ackFrame := `{"e":[],"a":[],"ack":1700000000123}`
+	require.NoError(t, till.WriteMessage(websocket.TextMessage, []byte(ackFrame)))
+	relayedAck := readText(t, w)
+	require.Equal(t, ackFrame, relayedAck)
 
 	fixture := map[string]any{
 		"hello":      json.RawMessage(hello),
 		"start":      json.RawMessage(start),
 		"snapshot":   json.RawMessage(snapshot),
 		"frame":      json.RawMessage(relayed),
+		"ackFrame":   json.RawMessage(relayedAck),
 		"waiting":    json.RawMessage(liveWaitingMsg),
 		"ended":      json.RawMessage(liveEndedMsg),
 		"off":        json.RawMessage(liveOffMsg),
@@ -507,6 +525,7 @@ func TestLiveViewProtocolFixture(t *testing.T) {
 			json.RawMessage(`{"t":"click","id":7}`),
 			json.RawMessage(`{"t":"input","id":7,"v":"abc"}`),
 			json.RawMessage(`{"t":"key","key":"Enter"}`),
+			json.RawMessage(`{"t":"click","id":7,"ts":1700000000123}`),
 		},
 	}
 	// Every control message in the fixture passes kashi's own filter.

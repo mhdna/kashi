@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import fixture from '@/test/fixtures/live_view_protocol.json'
 import {
-  clickMessage, fitScale, initialState, inputMessage, isControlMessage, keyMessage, MAX_ACTIONS,
-  nextState, parseFrame, pointOnTill, pushActions, screenSize, watchUrl,
+  clickMessage, delayFrom, fitScale, initialState, inputMessage, isControlMessage, keyMessage, MAX_ACTIONS,
+  nextState, parseFrame, pointOnTill, pushActions, screenSize, stamped, watchUrl,
 } from './liveView'
 
 // The fixture is written by a Go test (api/live_view_test.go) from what the
@@ -35,6 +35,12 @@ describe('what the server sends (Go fixture)', () => {
     expect(fixture.controls).toContainEqual(clickMessage(7))
     expect(fixture.controls).toContainEqual(inputMessage(7, 'abc'))
     expect(fixture.controls).toContainEqual(keyMessage({ key: 'Enter' }))
+  })
+  it('reads the till\'s ack frame and accepts a stamped control', () => {
+    expect(parseFrame(JSON.stringify(fixture.ackFrame))).toEqual({
+      kind: 'frame', full: false, events: [], actions: [], ack: 1_700_000_000_123,
+    })
+    expect(fixture.controls).toContainEqual(stamped(clickMessage(7), 1_700_000_000_123))
   })
   it('the till start and snapshot messages carry what the till reads', () => {
     expect(fixture.start).toEqual({ type: 'live_view_start', control: true })
@@ -173,5 +179,23 @@ describe('control messages', () => {
 describe('watchUrl', () => {
   it('builds the socket address and escapes the token', () => {
     expect(watchUrl('wss://x.test', 10, 'a b+c')).toBe('wss://x.test/live/watch/10?token=a%20b%2Bc')
+  })
+})
+
+describe('ack and delay', () => {
+  it('ignores a bad ack', () => {
+    for (const ack of ['"x"', 'null', '{}']) {
+      expect(parseFrame(`{"e":[],"ack":${ack}}`)).not.toHaveProperty('ack')
+    }
+  })
+  it('stamping keeps the message and adds the clock', () => {
+    expect(stamped({ t: 'key', key: '5' }, 99)).toEqual({ t: 'key', key: '5', ts: 99 })
+  })
+  it('delay is now minus the echoed stamp, and nothing for a missing or future one', () => {
+    expect(delayFrom(1000, 1180)).toBe(180)
+    expect(delayFrom(1000, 1000)).toBe(0)
+    expect(delayFrom(undefined, 1180)).toBeNull()
+    expect(delayFrom(0, 1180)).toBeNull()
+    expect(delayFrom(2000, 1180)).toBeNull()
   })
 })

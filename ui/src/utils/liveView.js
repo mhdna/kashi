@@ -49,6 +49,8 @@ export function parseFrame (text) {
       full: m.full === true,
       events: m.e,
       actions: Array.isArray(m.a) ? m.a : [],
+      // The till echoes the stamp (ts) of the last control it applied, once.
+      ...(Number.isFinite(m.ack) ? { ack: m.ack } : {}),
     }
   }
   return { kind: 'ignored' }
@@ -178,4 +180,14 @@ export function typedAfter (text, key) {
 /** Where to draw the click mark: the click position inside the box that holds the screen. */
 export function markAt (clientX, clientY, rect) {
   return { x: Math.round(clientX - (rect?.left ?? 0)), y: Math.round(clientY - (rect?.top ?? 0)) }
+}
+
+/** A control message with this page's clock on it, so the till can echo it back as an ack. */
+export function stamped (message, now) {
+  return { ...message, ts: now }
+}
+
+/** The round trip in ms for an echoed stamp, or null when there is no (sane) ack. */
+export function delayFrom (ack, now) {
+  return Number.isFinite(ack) && ack > 0 && now >= ack ? Math.round(now - ack) : null
 }
