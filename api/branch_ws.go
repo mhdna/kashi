@@ -375,6 +375,11 @@ func (server *Server) branchWS(ctx *gin.Context) {
 		return
 	}
 	server.branchHub.add(branchID, registerID, wrapped)
+	// A till whose socket dropped while it was being watched (or that was
+	// restarted) is asked to start sharing again; the session is waiting.
+	if server.liveFlags.view.Load() && server.liveHub.wanted(registerID) {
+		_ = wrapped.writeJSON(branchWSMessage{Type: "live_view_start", Control: server.liveFlags.control.Load()})
+	}
 	server.broadcastBranchConnections()
 	defer func() {
 		server.branchHub.remove(registerID, wrapped)

@@ -58,6 +58,13 @@ func newLiveRig(t *testing.T, store db.Store) *liveRig {
 		c.Set(registerIDKey, id)
 		server.branchLiveStream(c)
 	})
+	server.router.GET("/test/branch/:branch_id/:register_id", func(c *gin.Context) {
+		b, _ := strconv.ParseInt(c.Param("branch_id"), 10, 64)
+		id, _ := strconv.ParseInt(c.Param("register_id"), 10, 64)
+		c.Set(branchIDKey, b)
+		c.Set(registerIDKey, id)
+		server.branchWS(c)
+	})
 	rig := &liveRig{t: t, server: server, http: httptest.NewServer(server.router)}
 	t.Cleanup(rig.http.Close)
 	return rig
@@ -511,4 +518,40 @@ func TestLiveViewProtocolFixture(t *testing.T) {
 	path := filepath.Join("..", "ui", "src", "test", "fixtures", "live_view_protocol.json")
 	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
 	require.NoError(t, os.WriteFile(path, append(data, '\n'), 0o644))
+}
+
+// A till whose branch socket dropped while watched, or that restarted, is
+// asked again to share when it reconnects: the session is still waiting.
+func TestLiveViewBranchReconnectRestartsSharing(t *testing.T) {
+	rig := newLiveRig(t, newRigStore(t))
+	rig.server.liveFlags.set(true, false)
+
+	// Not watched: a connecting till gets a hello and nothing else.
+	idle, _, err := websocket.DefaultDialer.Dial(rig.wsURL("/test/branch/1/10"), nil)
+	require.NoError(t, err)
+	hello := branchMessage(t, idle)
+	require.Equal(t, "hello", hello.Type)
+	require.Contains(t, hello.Features, "live_view")
+	require.NotContains(t, hello.Features, "live_view_control")
+	expectNothing(t, idle)
+	idle.Close()
+	require.Eventually(t, func() bool { _, ok := rig.server.branchHub.branchOf(10); return !ok }, 2*time.Second, 10*time.Millisecond)
+
+	// Watched, then the till reconnects.
+	rig.branchSocket(1, 10)
+	rig.mustWatch(10)
+	again, _, err := websocket.DefaultDialer.Dial(rig.wsURL("/test/branch/1/10"), nil)
+	require.NoError(t, err)
+	defer again.Close()
+	require.Equal(t, "hello", branchMessage(t, again).Type)
+	require.Equal(t, "live_view_start", branchMessage(t, again).Type)
+
+	// With the feature off the same reconnect says nothing about it.
+	rig.server.liveFlags.set(false, false)
+	off, _, err := websocket.DefaultDialer.Dial(rig.wsURL("/test/branch/2/20"), nil)
+	require.NoError(t, err)
+	defer off.Close()
+	m := branchMessage(t, off)
+	require.Equal(t, []string{"sync_changed", "quick_access", "app_updates"}, m.Features)
+	expectNothing(t, off)
 }
