@@ -1,19 +1,19 @@
 <template>
   <v-card>
-    <v-card-title>Invoice Details</v-card-title>
+    <v-card-title>{{ t('Invoice Details') }}</v-card-title>
     <v-card-text>
       <!-- Invoice details content goes here -->
       <div class="d-flex pa-2 align-center justify-start">
         <div class="d-flex w-100">
           <div class="mr-4 font-weight-bold">
-            Supplier:
+            {{ t('Supplier:') }}
           </div>
           <v-menu>
             <template #activator="{ props }">
               <v-select
                 density="compact"
                 :items="['California', 'Colorado', 'Florida', 'Georgia', 'Texas', 'Wyoming']"
-                label="Select"
+                :label="t('Select')"
               />
             </template>
             <v-date-picker v-model="currentDate" />
@@ -21,19 +21,19 @@
         </div>
         <div class="d-flex w-100">
           <div class="mr-4 font-weight-bold">
-            Currency:
+            {{ t('Currency:') }}
           </div>
           <v-select
             density="compact"
             :items="['USD', 'LBP']"
-            label="Select"
+            :label="t('Select')"
           />
         </div>
       </div>
       <div class="d-flex pa-2 align-center justify-start">
         <div class="d-flex w-100">
           <div class="mr-4 font-weight-bold">
-            Invoice:
+            {{ t('Invoice:') }}
           </div>
           <v-menu>
             <template #activator="{ props }">
@@ -49,7 +49,7 @@
         </div>
         <div class="d-flex w-100">
           <div class="mr-4 font-weight-bold">
-            Supplier Invoice:
+            {{ t('Supplier Invoice:') }}
           </div>
           <v-text-field
             v-bind="props"
@@ -66,6 +66,7 @@
 <script setup lang="ts">
   import { ref } from 'vue'
   import { ymd } from '@/utils/dates'
+  import { t } from '@/i18n'
 
   const currentDate = ref(ymd(new Date()))
   const supplierInvoice = ref('')

@@ -30,10 +30,11 @@
 
 <script setup>
   import { computed } from 'vue'
+  import { t } from '@/i18n'
 
   const props = defineProps({
-    title: { type: String, default: 'Productivity target' },
-    timeLeft: { type: String, default: '2 weeks left' },
+    title: { type: String, default: () => t('Productivity target') },
+    timeLeft: { type: String, default: () => t('2 weeks left') },
     pct: { type: Number, default: 78 },
   })
 

@@ -3,12 +3,12 @@
     v-if="syncingBranchIds.length > 0"
     class="sync-pill"
     :class="{ 'sync-pill--icon': mobile }"
-    :title="`Syncing ${syncingBranchNames}`"
+    :title="`${t('Syncing')} ${syncingBranchNames}`"
     role="status"
   >
     <v-progress-circular color="info" indeterminate size="16" width="2" />
     <span v-if="!mobile" class="sync-pill__text">
-      Syncing <strong>{{ syncingBranchNames }}</strong>
+      {{ t('Syncing') }} <strong>{{ syncingBranchNames }}</strong>
     </span>
   </div>
 </template>
@@ -18,6 +18,7 @@
   import { useDisplay } from 'vuetify'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useBranches } from '@/composables/useBranches'
+  import { t } from '@/i18n'
 
   const { branches, fetchBranches, fetchSyncingBranches } = useBranches()
   const { ensureConnected, onMessage } = useAdminSocket()
@@ -27,7 +28,7 @@
   let unsubscribe = null
 
   function branchName (branchId) {
-    return branches.value.find(b => b.id === branchId)?.name ?? `Branch #${branchId}`
+    return branches.value.find(b => b.id === branchId)?.name ?? t('Branch #{id}', { id: branchId })
   }
 
   const syncingBranchNames = computed(() => syncingBranchIds.value.map(branchName).join(', '))

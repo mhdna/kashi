@@ -1,8 +1,8 @@
 <template>
   <div class="financials d-flex flex-column flex-grow-1 pa-4" style="min-height: 0; overflow-y: auto">
     <div class="d-flex align-center ga-2 mb-3">
-      <div class="text-h6 font-weight-medium">Financials</div>
-      <PreparingState v-if="loading" kind="chart" :size="25" title="Loading" />
+      <div class="text-h6 font-weight-medium">{{ t('Financials') }}</div>
+      <PreparingState v-if="loading" kind="chart" :size="25" :title="t('Loading')" />
     </div>
 
     <!-- Last 30 days at a glance, and the next 30 as forecast. -->
@@ -55,17 +55,17 @@
 
     <div class="row-grid mb-3">
       <v-card class="chart-card" variant="flat">
-        <div class="chart-card__title">Sales by Branch</div>
-        <div class="chart-card__subtitle">Last 30 days</div>
+        <div class="chart-card__title">{{ t('Sales by Branch') }}</div>
+        <div class="chart-card__subtitle">{{ t('Last 30 days') }}</div>
         <VChart autoresize class="chart" :option="branchOption" />
       </v-card>
       <v-card class="chart-card" variant="flat">
-        <div class="chart-card__title">Payment Methods</div>
-        <div class="chart-card__subtitle">Last 30 days</div>
+        <div class="chart-card__title">{{ t('Payment Methods') }}</div>
+        <div class="chart-card__subtitle">{{ t('Last 30 days') }}</div>
         <VChart autoresize class="chart" :option="paymentOption" />
       </v-card>
       <v-card class="chart-card" variant="flat">
-        <div class="chart-card__title">Gross Margin</div>
+        <div class="chart-card__title">{{ t('Gross Margin') }}</div>
         <div class="chart-card__subtitle">Daily, last 30 days · items with a known cost</div>
         <VChart autoresize class="chart" :option="marginOption" />
       </v-card>
@@ -73,7 +73,7 @@
 
     <!-- Hidden temporarily -- drop the v-if="false" to bring it back. -->
     <v-card v-if="false" class="chart-card" variant="flat">
-      <div class="chart-card__title">When Sales Happen</div>
+      <div class="chart-card__title">{{ t('When Sales Happen') }}</div>
       <div class="chart-card__subtitle">Sales per weekday and hour, last {{ report?.hourly_since_days ?? 90 }} days, in each branch's time</div>
       <VChart autoresize class="chart chart--heat" :option="hourlyOption" />
     </v-card>
@@ -90,6 +90,7 @@
   import { authFetch } from '@/composables/useApi'
   import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
 
   // Not in the app-wide echarts set (plugins/echarts.js): event shading,
   // expensive-day markers and the heatmap.
@@ -140,16 +141,16 @@
     const change = r && r.sales_prior_30 > 0 ? ((r.sales_30 - r.sales_prior_30) / r.sales_prior_30) * 100 : null
     const coverage = r?.cost_coverage_30
     return [
-      { label: 'Sales', value: money(r?.sales_30), delta: change, hint: 'Last 30 days, vs the 30 before' },
-      { label: 'Forecast', value: money(r?.forecast_next_30), hint: 'Next 30 days' },
+      { label: t('Sales'), value: money(r?.sales_30), delta: change, hint: t('Last 30 days, vs the 30 before') },
+      { label: t('Forecast'), value: money(r?.forecast_next_30), hint: t('Next 30 days') },
       {
-        label: 'Gross Profit',
+        label: t('Gross Profit'),
         value: money(r?.gross_profit_30),
         hint: r?.gross_margin_30 == null
           ? 'Last 30 days'
           : `${Math.round(r.gross_margin_30)}% margin${coverage != null && coverage < 100 ? ` on the ${Math.round(coverage)}% of sales with a known cost` : ''}`,
       },
-      { label: 'Expenses', value: money(r?.expenses_30), hint: 'Last 30 days' },
+      { label: t('Expenses'), value: money(r?.expenses_30), hint: t('Last 30 days') },
     ]
   })
 

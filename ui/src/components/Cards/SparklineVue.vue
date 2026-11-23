@@ -2,7 +2,7 @@
   <v-card class="mx-auto pa-4" max-width="480" rounded="lg">
     <div class="d-flex align-center mb-2">
       <div>
-        <div class="text-title-medium font-weight-bold">Page Views</div>
+        <div class="text-title-medium font-weight-bold">{{ t('Page Views') }}</div>
         <div class="text-body-small text-medium-emphasis">{{ periodLabel }}</div>
       </div>
       <v-spacer />
@@ -13,9 +13,9 @@
         rounded="lg"
         variant="outlined"
       >
-        <v-btn value="weekly">Weekly</v-btn>
-        <v-btn value="monthly">Monthly</v-btn>
-        <v-btn value="quarterly">Quarterly</v-btn>
+        <v-btn value="weekly">{{ t('Weekly') }}</v-btn>
+        <v-btn value="monthly">{{ t('Monthly') }}</v-btn>
+        <v-btn value="quarterly">{{ t('Quarterly') }}</v-btn>
       </v-btn-toggle>
     </div>
 
@@ -32,6 +32,7 @@
   </v-card>
 </template>
 <script setup>
+  import { t } from '@/i18n'
   import { computed, ref } from 'vue'
 
   const period = ref('monthly')
@@ -43,8 +44,8 @@
   }
 
   const periodLabel = computed(() => ({
-    weekly: 'Last 7 days',
-    monthly: 'Last 12 months',
-    quarterly: 'Last 6 quarters',
+    weekly: t('Last 7 days'),
+    monthly: t('Last 12 months'),
+    quarterly: t('Last 6 quarters'),
   })[period.value])
 </script>

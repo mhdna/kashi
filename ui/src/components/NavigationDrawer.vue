@@ -11,7 +11,7 @@
   >
     <div class="nav-shell">
       <!-- The rail: one icon per section, always there. -->
-      <nav aria-label="Sections" class="nav-rail" data-test="nav-rail">
+      <nav :aria-label="t('Sections')" class="nav-rail" data-test="nav-rail">
         <v-tooltip
           v-for="section in sections"
           :key="section.key"
@@ -82,6 +82,7 @@
   import { useWhatsAppFailures } from '@/composables/useWhatsAppFailures'
   import { navPages, railLabel, sectionForPath } from '@/data/navItems'
   import { useAuthStore } from '@/stores/auth'
+  import { t } from '@/i18n'
 
   const props = defineProps({
     modelValue: { type: Boolean, required: true },

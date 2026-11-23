@@ -1,4 +1,5 @@
 <script setup>
+  import { t } from '@/i18n'
   import { ref, computed, onMounted } from 'vue'
   import { useRoute } from 'vue-router'
   import VChart from '@/components/EChart.vue'
@@ -69,20 +70,20 @@
   const meta = computed(() => {
     if (!profile.value) return []
     return [
-      { label: 'Client ID',     value: client.value?.uid    ?? '—' },
-      { label: 'Phone',         value: client.value?.phone ? `${countryFlag(client.value.phone_country)} ${client.value.phone}`.trim() : '—' },
-      { label: 'Home branch',   value: profile.value.homeBranch  || '—' },
-      { label: 'First purchase', value: formatDate(profile.value.firstPurchaseAt) || '—' },
+      { label: t('Client ID'),     value: client.value?.uid    ?? '—' },
+      { label: t('Phone'),         value: client.value?.phone ? `${countryFlag(client.value.phone_country)} ${client.value.phone}`.trim() : '—' },
+      { label: t('Home branch'),   value: profile.value.homeBranch  || '—' },
+      { label: t('First purchase'), value: formatDate(profile.value.firstPurchaseAt) || '—' },
     ]
   })
 
   const statCards = computed(() => {
     if (!profile.value) return []
     return [
-      { title: 'Money Spent',      value: money(profile.value.totalSpentCents) },
-      { title: 'Items Bought',     value: Number(profile.value.itemsBought).toLocaleString() },
-      { title: 'Points Remaining', value: Number(profile.value.pointsRemaining).toLocaleString() },
-      { title: 'Points Redeemed',  value: Number(profile.value.pointsRedeemed).toLocaleString() },
+      { title: t('Money Spent'),      value: money(profile.value.totalSpentCents) },
+      { title: t('Items Bought'),     value: Number(profile.value.itemsBought).toLocaleString() },
+      { title: t('Points Remaining'), value: Number(profile.value.pointsRemaining).toLocaleString() },
+      { title: t('Points Redeemed'),  value: Number(profile.value.pointsRedeemed).toLocaleString() },
     ]
   })
 
@@ -152,12 +153,12 @@
   // Recent purchases
   // ---------------------------------------------------------------------------
   const purchaseHeaders = [
-    { title: 'Date',    key: 'date'    },
-    { title: 'Invoice', key: 'invoice' },
-    { title: 'Branch',  key: 'branch'  },
-    { title: 'Items',   key: 'items',  align: 'end' },
-    { title: 'Payment', key: 'payment' },
-    { title: 'Total',   key: 'total',  align: 'end' },
+    { title: t('Date'),    key: 'date'    },
+    { title: t('Invoice'), key: 'invoice' },
+    { title: t('Branch'),  key: 'branch'  },
+    { title: t('Items'),   key: 'items',  align: 'end' },
+    { title: t('Payment'), key: 'payment' },
+    { title: t('Total'),   key: 'total',  align: 'end' },
   ]
 
   const purchases = computed(() =>
@@ -227,14 +228,14 @@
       <v-row>
         <v-col v-if="hasPaymentData" cols="12" md="5">
           <v-card class="fill-height" flat>
-            <v-card-title class="card-title">Payment Mix</v-card-title>
+            <v-card-title class="card-title">{{ t('Payment Mix') }}</v-card-title>
             <VChart autoresize class="donut" :option="paymentOption" />
           </v-card>
         </v-col>
 
         <v-col cols="12" :md="hasPaymentData ? 7 : 12">
           <v-card flat>
-            <v-card-title class="card-title">Recent Purchases</v-card-title>
+            <v-card-title class="card-title">{{ t('Recent Purchases') }}</v-card-title>
             <v-data-table
               density="compact"
               :headers="purchaseHeaders"
@@ -263,7 +264,7 @@
       <v-row>
         <v-col cols="12" md="5">
           <v-card class="pa-4" flat>
-            <v-card-title class="card-title px-0">Loyalty</v-card-title>
+            <v-card-title class="card-title px-0">{{ t('Loyalty') }}</v-card-title>
 
             <div class="d-flex align-baseline justify-space-between mb-1">
               <span class="text-body-2 text-medium-emphasis">{{ tier }}</span>
@@ -279,7 +280,7 @@
               <span v-if="ptsToNext > 0">
                 {{ ptsToNext.toLocaleString() }} pts to {{ currentTierDef.next }} Tier
               </span>
-              <span v-else class="text-green">Max tier reached</span>
+              <span v-else class="text-green">{{ t('Max tier reached') }}</span>
             </div>
 
             <v-divider class="my-4" />
@@ -287,19 +288,19 @@
             <v-row dense>
               <v-col cols="6">
                 <div class="text-h6 font-weight-bold">{{ money(profile.totalSpentCents) }}</div>
-                <div class="text-caption text-medium-emphasis">Lifetime spend</div>
+                <div class="text-caption text-medium-emphasis">{{ t('Lifetime spend') }}</div>
               </v-col>
               <v-col cols="6">
                 <div class="text-h6 font-weight-bold">{{ Number(profile.pointsRemaining).toLocaleString() }}</div>
-                <div class="text-caption text-medium-emphasis">Points balance</div>
+                <div class="text-caption text-medium-emphasis">{{ t('Points balance') }}</div>
               </v-col>
               <v-col cols="6">
                 <div class="text-h6 font-weight-bold">{{ Number(profile.itemsBought).toLocaleString() }}</div>
-                <div class="text-caption text-medium-emphasis">Items bought</div>
+                <div class="text-caption text-medium-emphasis">{{ t('Items bought') }}</div>
               </v-col>
               <v-col cols="6">
                 <div class="text-h6 font-weight-bold">{{ Number(profile.pointsRedeemed).toLocaleString() }}</div>
-                <div class="text-caption text-medium-emphasis">Points redeemed</div>
+                <div class="text-caption text-medium-emphasis">{{ t('Points redeemed') }}</div>
               </v-col>
             </v-row>
           </v-card>

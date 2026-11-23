@@ -12,6 +12,7 @@
   import { onMounted, ref, watch } from 'vue'
   import VChart from '@/components/EChart.vue'
   import { useNotify } from '@/composables/useNotify'
+  import { t } from '@/i18n'
   import { useWarehouseTreemap } from '@/composables/useWarehouseTreemap'
 
   const props = defineProps({
@@ -27,17 +28,17 @@
   const option = ref({})
 
   const formatMoney = (cents: number) => '$ ' + Math.round(Number(cents || 0) / 100).toLocaleString('en-US')
-  const formatCount = (n: number) => Number(n || 0).toLocaleString('en-US') + ' units'
+  const formatCount = (n: number) => Number(n || 0).toLocaleString('en-US') + ' ' + t('units')
 
   function tooltipFormatter (info: any) {
     const d = info.data || {}
     const rows = [
       `<div style="font-weight:600;margin-bottom:4px">${info.name}</div>`,
-      `Book Value:&nbsp;&nbsp;${formatMoney(info.value)}`,
+      `${t('Book Value')}:&nbsp;&nbsp;${formatMoney(info.value)}`,
     ]
-    if (d.qty !== undefined) rows.push(`Quantity:&nbsp;&nbsp;${formatCount(d.qty)}`)
-    if (d.code) rows.push(`Code:&nbsp;&nbsp;${d.code}`)
-    if (d.location) rows.push(`Location:&nbsp;&nbsp;${d.location}`)
+    if (d.qty !== undefined) rows.push(`${t('Quantity')}:&nbsp;&nbsp;${formatCount(d.qty)}`)
+    if (d.code) rows.push(`${t('Code')}:&nbsp;&nbsp;${d.code}`)
+    if (d.location) rows.push(`${t('Location')}:&nbsp;&nbsp;${d.location}`)
     return rows.join('<br>')
   }
 

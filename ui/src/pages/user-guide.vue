@@ -3,14 +3,14 @@
     <v-card class="guide-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-book-open-variant" />
-        <span>User Guide</span>
+        <span>{{ t('User Guide') }}</span>
         <v-spacer />
         <v-text-field
           v-model="search"
           clearable
           density="compact"
           hide-details
-          label="Search the guide"
+          :label="t('Search the guide')"
           prepend-inner-icon="mdi-magnify"
           style="max-width: 280px"
           variant="outlined"
@@ -47,7 +47,7 @@
               />
             </v-list-group>
           </v-list>
-          <div v-else class="text-medium-emphasis text-caption pa-4">Nothing matches your search.</div>
+          <div v-else class="text-medium-emphasis text-caption pa-4">{{ t('Nothing matches your search.') }}</div>
         </div>
 
         <v-divider vertical />
@@ -106,6 +106,7 @@
 <script setup>
   import { computed, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
+  import { t } from '@/i18n'
   import { guideGroupIcons, guideGroups, guideIcons, guideSections } from '@/data/userGuide'
 
   const route = useRoute()

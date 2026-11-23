@@ -3,7 +3,7 @@
     <v-card class="logs-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-code-tags" />
-        <span>Dev logs</span>
+        <span>{{ t('Dev logs') }}</span>
         <v-chip
           v-if="errorCount"
           color="error"
@@ -29,7 +29,7 @@
           clearable
           density="compact"
           hide-details
-          label="Search messages"
+          :label="t('Search messages')"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
         />
@@ -39,7 +39,7 @@
           density="compact"
           hide-details
           :items="levelOptions"
-          label="Level"
+          :label="t('Level')"
           variant="outlined"
         />
         <v-select
@@ -48,14 +48,14 @@
           density="compact"
           hide-details
           :items="sourceOptions"
-          label="Source"
+          :label="t('Source')"
           variant="outlined"
         />
         <v-btn
           icon="mdi-refresh"
           :loading="loadingServerLogs"
           size="small"
-          title="Refresh backend logs"
+          :title="t('Refresh backend logs')"
           variant="text"
           @click="loadServerLogs"
         />
@@ -63,7 +63,7 @@
           :disabled="clientEntries.length === 0"
           icon="mdi-delete"
           size="small"
-          title="Clear browser logs"
+          :title="t('Clear browser logs')"
           variant="text"
           @click="clear"
         />
@@ -117,6 +117,7 @@
   import { useClientLogs } from '@/composables/useClientLogs'
   import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
 
   const { clear, entries: clientEntries } = useClientLogs()
   const serverEntries = ref([])
@@ -127,22 +128,22 @@
   const source = ref('all')
 
   const levelOptions = [
-    { title: 'All levels', value: 'all' },
-    { title: 'Errors', value: 'error' },
-    { title: 'Warnings', value: 'warn' },
-    { title: 'Info', value: 'info' },
+    { title: t('All levels'), value: 'all' },
+    { title: t('Errors'), value: 'error' },
+    { title: t('Warnings'), value: 'warn' },
+    { title: t('Info'), value: 'info' },
   ]
   const sourceOptions = [
-    { title: 'All sources', value: 'all' },
-    { title: 'Go backend', value: 'backend' },
-    { title: 'Browser', value: 'browser' },
+    { title: t('All sources'), value: 'all' },
+    { title: t('Go backend'), value: 'backend' },
+    { title: t('Browser'), value: 'browser' },
   ]
 
   const headers = [
-    { title: 'Time', key: 'timestamp', width: 130 },
-    { title: 'Level', key: 'level', width: 90 },
-    { title: 'Source', key: 'source', width: 120 },
-    { title: 'Message', key: 'message', sortable: false },
+    { title: t('Time'), key: 'timestamp', width: 130 },
+    { title: t('Level'), key: 'level', width: 90 },
+    { title: t('Source'), key: 'source', width: 120 },
+    { title: t('Message'), key: 'message', sortable: false },
   ]
 
   const entries = computed(() => [...clientEntries.value, ...serverEntries.value])

@@ -3,16 +3,16 @@
     <v-card class="bc-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-console-line" />
-        <span>Commands</span>
+        <span>{{ t('Commands') }}</span>
         <v-spacer />
         <v-btn
           v-if="canEdit && activeBranch"
           prepend-icon="mdi-send-outline"
-          text="Send command"
+          :text="t('Send command')"
           variant="tonal"
           @click="openSendDialog"
         />
-        <v-btn prepend-icon="mdi-refresh" text="Reload" variant="text" @click="reloadAll" />
+        <v-btn prepend-icon="mdi-refresh" :text="t('Reload')" variant="text" @click="reloadAll" />
       </v-card-title>
       <v-divider />
 
@@ -48,32 +48,30 @@
 
         <div class="bc-content pa-5">
           <p class="text-body-2 text-medium-emphasis mb-4">
-            A command waits here until the till runs it: instantly over its live connection, or on
-            its next sync if it's offline. The till runs it with its own local code and reports back
-            whether it worked.
+            {{ t('A command waits here until the till runs it: instantly over its live connection, or on its next sync if it\'s offline. The till runs it with its own local code and reports back whether it worked.') }}
           </p>
 
           <!-- ------------------------------------------------ overview -->
           <div class="bc-stats mb-4">
             <div class="bc-stat">
-              <div class="bc-stat-label">Queued</div>
+              <div class="bc-stat-label">{{ t('Queued') }}</div>
               <div class="bc-stat-value" :class="{ 'text-warning': totals.pending > 0 }">{{ totals.pending }}</div>
               <div class="bc-stat-sub">
                 {{ totals.oldestPendingAt ? `oldest ${ago(totals.oldestPendingAt)}` : 'all commands have run' }}
               </div>
             </div>
             <div class="bc-stat">
-              <div class="bc-stat-label">Failed (24h)</div>
+              <div class="bc-stat-label">{{ t('Failed (24h)') }}</div>
               <div class="bc-stat-value" :class="{ 'text-error': totals.failed > 0 }">{{ totals.failed }}</div>
-              <div class="bc-stat-sub">retry from the list below</div>
+              <div class="bc-stat-sub">{{ t('retry from the list below') }}</div>
             </div>
             <div class="bc-stat">
-              <div class="bc-stat-label">Registers online</div>
+              <div class="bc-stat-label">{{ t('Registers online') }}</div>
               <div class="bc-stat-value">{{ onlineRegisterCount }} / {{ visibleRegisters.length }}</div>
-              <div class="bc-stat-sub">connected right now</div>
+              <div class="bc-stat-sub">{{ t('connected right now') }}</div>
             </div>
             <div class="bc-stat">
-              <div class="bc-stat-label">Last command</div>
+              <div class="bc-stat-label">{{ t('Last command') }}</div>
               <div class="bc-stat-value bc-stat-value--small">
                 {{ totals.lastIssuedAt ? ago(totals.lastIssuedAt) : '—' }}
               </div>
@@ -119,7 +117,7 @@
               density="compact"
               hide-details
               :items="typeOptions"
-              placeholder="Any type"
+              :placeholder="t('Any type')"
               style="max-width: 200px"
               variant="outlined"
             />
@@ -132,7 +130,7 @@
               item-title="label"
               item-value="id"
               :items="registerOptions"
-              placeholder="Any register"
+              :placeholder="t('Any register')"
               style="max-width: 200px"
               variant="outlined"
             />
@@ -161,14 +159,14 @@
               <span v-if="item.completed_at?.Valid" :title="formatDate(item.completed_at.Time)">
                 {{ tookLabel(item) }}
               </span>
-              <span v-else class="text-medium-emphasis">waiting</span>
+              <span v-else class="text-medium-emphasis">{{ t('waiting') }}</span>
             </template>
             <template #item.actions="{ item }">
               <v-btn
                 v-if="canEdit && item.status === 'pending'"
                 prepend-icon="mdi-cancel"
                 size="small"
-                text="Cancel"
+                :text="t('Cancel')"
                 variant="text"
                 @click.stop="cancel(item)"
               />
@@ -176,7 +174,7 @@
                 v-if="canEdit && (item.status === 'failed' || item.status === 'cancelled')"
                 prepend-icon="mdi-replay"
                 size="small"
-                text="Retry"
+                :text="t('Retry')"
                 variant="text"
                 @click.stop="retry(item)"
               />
@@ -186,13 +184,13 @@
                 <td :colspan="columns.length">
                   <div class="bc-detail py-3">
                     <div v-if="item.error?.Valid" class="mb-2">
-                      <div class="bc-detail-label">Error</div>
+                      <div class="bc-detail-label">{{ t('Error') }}</div>
                       <div class="text-error">{{ item.error.String }}</div>
                     </div>
-                    <div class="bc-detail-label">Payload</div>
+                    <div class="bc-detail-label">{{ t('Payload') }}</div>
                     <pre class="bc-json">{{ prettyPayload(item.payload) }}</pre>
                     <div v-if="item.result?.Valid" class="mt-2">
-                      <div class="bc-detail-label">Result</div>
+                      <div class="bc-detail-label">{{ t('Result') }}</div>
                       <pre class="bc-json">{{ prettyPayload(item.result.RawMessage) }}</pre>
                     </div>
                   </div>
@@ -215,14 +213,13 @@
             density="compact"
             hide-details
             :items="SENDABLE_TYPES"
-            label="Command"
+            :label="t('Command')"
             variant="outlined"
           />
 
           <template v-if="sendForm.type === 'sync_now'">
             <p class="text-body-2 mb-3">
-              The till uploads what it has queued and pulls the latest from kashi right away instead
-              of waiting for its next sync.
+              {{ t('The till uploads what it has queued and pulls the latest from kashi right away instead of waiting for its next sync.') }}
             </p>
             <v-select
               v-model="sendForm.registerId"
@@ -231,14 +228,14 @@
               item-title="label"
               item-value="id"
               :items="[{ id: 0, label: 'Every register' }, ...registerOptions]"
-              label="Register"
+              :label="t('Register')"
               variant="outlined"
             />
           </template>
 
           <template v-else-if="sendForm.type === 'print_shift_report'">
             <p class="text-body-2 mb-3">
-              Prints the end-of-shift receipt again on the printer of the till that closed it.
+              {{ t('Prints the end-of-shift receipt again on the printer of the till that closed it.') }}
             </p>
             <v-autocomplete
               v-model="sendForm.shiftId"
@@ -247,7 +244,7 @@
               item-title="label"
               item-value="id"
               :items="shiftOptions"
-              label="Closed shift"
+              :label="t('Closed shift')"
               :loading="pickerLoading"
               no-data-text="No closed shifts reported yet"
               variant="outlined"
@@ -256,8 +253,7 @@
 
           <template v-else-if="sendForm.type === 'replace_shift_balance'">
             <p class="text-body-2 mb-3">
-              Moves value between two payment methods in the till's open shift, the same as its
-              Swap balance dialog. The sales themselves don't change.
+              {{ t('Moves value between two payment methods in the till\'s open shift, the same as its Swap balance dialog. The sales themselves don\'t change.') }}
             </p>
             <v-select
               v-model="sendForm.registerId"
@@ -267,7 +263,7 @@
               item-title="label"
               item-value="id"
               :items="registerOptions"
-              label="Register"
+              :label="t('Register')"
               variant="outlined"
             />
             <div class="d-flex ga-3 mb-3">
@@ -276,7 +272,7 @@
                 density="compact"
                 hide-details
                 :items="balanceAccountOptions"
-                label="From"
+                :label="t('From')"
                 :loading="pickerLoading"
                 variant="outlined"
               />
@@ -285,7 +281,7 @@
                 density="compact"
                 hide-details
                 :items="balanceAccountOptions.filter(name => name !== sendForm.fromAccount)"
-                label="To"
+                :label="t('To')"
                 :loading="pickerLoading"
                 variant="outlined"
               />
@@ -294,7 +290,7 @@
               v-model.number="sendForm.amountUsd"
               density="compact"
               hide-details
-              label="Amount (USD)"
+              :label="t('Amount (USD)')"
               min="0"
               prefix="$"
               step="0.01"
@@ -306,7 +302,7 @@
               v-model="sendForm.allowNegative"
               density="compact"
               hide-details
-              label="Transfer: take the amount out of the source even if it goes below zero"
+              :label="t('Transfer: take the amount out of the source even if it goes below zero')"
             />
             <p v-if="sendForm.fromAccount && sendForm.toAccount && sendForm.amountUsd > 0" class="text-caption text-medium-emphasis mt-2">
               <template v-if="sendForm.allowNegative">
@@ -323,7 +319,7 @@
 
           <template v-else-if="sendForm.type === 'reprint_invoice'">
             <p class="text-body-2 mb-3">
-              Prints the receipt again on the printer of the till that made the sale.
+              {{ t('Prints the receipt again on the printer of the till that made the sale.') }}
             </p>
             <v-autocomplete
               v-model="sendForm.clientRef"
@@ -333,7 +329,7 @@
               item-title="label"
               item-value="client_ref"
               :items="invoiceOptions"
-              label="Invoice"
+              :label="t('Invoice')"
               :loading="pickerLoading"
               no-data-text="No matching invoices"
               no-filter
@@ -343,12 +339,12 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Close" variant="text" @click="sendDialog = false" />
+          <v-btn :text="t('Close')" variant="text" @click="sendDialog = false" />
           <v-btn
             color="primary"
             :disabled="!sendReady"
             :loading="sending"
-            text="Send"
+            :text="t('Send')"
             variant="flat"
             @click="submitSend"
           />
@@ -359,6 +355,7 @@
 </template>
 
 <script setup>
+  import { t } from '@/i18n'
   import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import BranchSyncStatus from '@/components/BranchSyncStatus.vue'
@@ -388,17 +385,17 @@
   const canTransferNegative = computed(() => auth.canEdit('shift_negative_balance'))
 
   const STATUS_FILTERS = [
-    { title: 'All', value: '' },
-    { title: 'Queued', value: 'pending' },
-    { title: 'Failed', value: 'failed' },
-    { title: 'Done', value: 'success' },
-    { title: 'Cancelled', value: 'cancelled' },
+    { title: t('All'), value: '' },
+    { title: t('Queued'), value: 'pending' },
+    { title: t('Failed'), value: 'failed' },
+    { title: t('Done'), value: 'success' },
+    { title: t('Cancelled'), value: 'cancelled' },
   ]
   const SENDABLE_TYPES = [
-    { title: 'Sync now', value: 'sync_now' },
-    { title: 'Print a close shift', value: 'print_shift_report' },
-    { title: 'Reprint an invoice', value: 'reprint_invoice' },
-    { title: 'Swap a shift balance', value: 'replace_shift_balance' },
+    { title: t('Sync now'), value: 'sync_now' },
+    { title: t('Print a close shift'), value: 'print_shift_report' },
+    { title: t('Reprint an invoice'), value: 'reprint_invoice' },
+    { title: t('Swap a shift balance'), value: 'replace_shift_balance' },
   ]
   const typeOptions = Object.entries(COMMAND_TYPE_LABELS).map(([value, title]) => ({ value, title }))
 
@@ -414,13 +411,13 @@
   const branchItems = computed(() => branches.value.map(b => ({ value: b.id, title: b.name, subtitle: b.code, raw: b })))
 
   const headers = computed(() => [
-    { title: 'Command', key: 'type', sortable: false },
-    ...(activeBranch.value ? [] : [{ title: 'Branch', key: 'branch_name', sortable: false }]),
-    { title: 'Register', key: 'register_code', sortable: false },
-    { title: 'Status', key: 'status', sortable: false },
-    { title: 'Issued by', key: 'issued_by_name', sortable: false },
-    { title: 'Issued', key: 'created_at', sortable: false },
-    { title: 'Ran', key: 'completed_at', sortable: false },
+    { title: t('Command'), key: 'type', sortable: false },
+    ...(activeBranch.value ? [] : [{ title: t('Branch'), key: 'branch_name', sortable: false }]),
+    { title: t('Register'), key: 'register_code', sortable: false },
+    { title: t('Status'), key: 'status', sortable: false },
+    { title: t('Issued by'), key: 'issued_by_name', sortable: false },
+    { title: t('Issued'), key: 'created_at', sortable: false },
+    { title: t('Ran'), key: 'completed_at', sortable: false },
     { title: '', key: 'actions', sortable: false, align: 'end' },
   ])
 

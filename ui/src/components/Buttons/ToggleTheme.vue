@@ -12,7 +12,7 @@
         :key="option.value"
         :active="appStore.themePreference === option.value"
         :prepend-icon="option.icon"
-        :title="option.title"
+        :title="t(option.title)"
         @click="appStore.setThemePreference(option.value)"
       />
     </v-list>
@@ -22,6 +22,7 @@
 <script lang="ts" setup>
   import { computed } from 'vue'
   import { useAppStore } from '@/stores/app'
+  import { t } from '@/i18n'
 
   const appStore = useAppStore()
 

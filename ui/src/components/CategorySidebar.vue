@@ -5,8 +5,8 @@
 -->
 <template>
   <PageSidebar
-    add-label="Add Category"
-    empty-text="No categories yet."
+    :add-label="t('Add Category')"
+    :empty-text="t('No categories yet.')"
     :groups="groupDefs"
     :items="items"
     :model-value="modelValue"
@@ -21,6 +21,7 @@
 </template>
 
 <script setup lang="ts">
+  import { t } from '@/i18n'
   import { computed } from 'vue'
   import PageSidebar from '@/components/PageSidebar.vue'
   import { categoryColor, categoryIcon } from '@/data/expenseCategoryIcons'
@@ -36,7 +37,7 @@
   defineEmits(['update:modelValue', 'add', 'edit', 'delete'])
 
   const groupDefs = computed(() => props.groupByScope
-    ? [{ key: 'central', label: 'Central' }, { key: 'branch', label: 'Branch' }]
+    ? [{ key: 'central', label: t('Central') }, { key: 'branch', label: t('Branch') }]
     : [])
 
   const items = computed(() => props.categories
@@ -47,7 +48,7 @@
     .map(category => ({
       value: category.id,
       title: category.name,
-      subtitle: category.is_active ? '' : 'Inactive',
+      subtitle: category.is_active ? '' : t('Inactive'),
       inactive: !category.is_active,
       avatarColor: categoryColor(category),
       avatarIcon: categoryIcon(category),

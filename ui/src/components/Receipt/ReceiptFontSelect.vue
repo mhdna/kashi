@@ -30,13 +30,14 @@
 <script setup lang="ts">
   import { computed, inject, watch } from 'vue'
   import { fontItems, fontStyle, loadReceiptFont } from '@/utils/receiptFonts'
+  import { t } from '@/i18n'
 
   const props = withDefaults(defineProps<{
     catalog: Record<string, any>
     modelValue?: string
     label?: string
     test?: string
-  }>(), { modelValue: '', label: 'Font', test: 'font' })
+  }>(), { modelValue: '', label: () => t('Font'), test: 'font' })
   const emit = defineEmits<{ 'update:modelValue': [key: string] }>()
 
   // The page gives the way to fetch a font file (with the user's sign-in).

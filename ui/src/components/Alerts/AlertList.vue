@@ -11,7 +11,7 @@
         clearable
         density="compact"
         hide-details
-        label="Search products"
+        :label="t('Search products')"
         prepend-inner-icon="mdi-magnify"
         variant="outlined"
       />
@@ -42,7 +42,7 @@
           </template>
           <v-list-item-title class="font-weight-medium">{{ item.name }}</v-list-item-title>
           <v-list-item-subtitle>
-            {{ item.code }} · On hand: {{ item.on_hand }} · Threshold: {{ thresholdLabel(item) }}
+            {{ item.code }} · {{ t('On hand: {n}', { n: item.on_hand }) }} · {{ t('Threshold: {n}', { n: thresholdLabel(item) }) }}
           </v-list-item-subtitle>
           <template #append>
             <v-icon class="text-disabled" icon="mdi-chevron-right" size="20" />
@@ -53,12 +53,12 @@
     </v-virtual-scroll>
 
     <div v-else-if="loading" class="text-center pa-6">
-      <PreparingState kind="data" :size="34" title="Loading" />
+      <PreparingState kind="data" :size="34" :title="t('Loading')" />
     </div>
     <div v-else class="text-medium-emphasis text-center pa-6">{{ emptyText }}</div>
 
     <div v-if="loading && items.length > 0" class="d-flex justify-center py-2">
-      <PreparingState kind="data" :size="24" title="Loading" />
+      <PreparingState kind="data" :size="24" :title="t('Loading')" />
     </div>
   </v-card>
 </template>
@@ -66,6 +66,7 @@
 <script setup lang="ts">
   import { onMounted } from 'vue'
   import { useAlertList } from '@/composables/useAlertList'
+  import { t } from '@/i18n'
 
   const props = defineProps({
     endpoint: { type: String, required: true },
@@ -73,7 +74,7 @@
     title: { type: String, required: true },
     icon: { type: String, required: true },
     color: { type: String, required: true },
-    emptyText: { type: String, default: 'Nothing here.' },
+    emptyText: { type: String, default: () => t('Nothing here.') },
   })
   defineEmits(['select'])
 

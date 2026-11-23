@@ -3,14 +3,14 @@
     <v-card class="dbs-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-content-copy" />
-        <span>Default Settings</span>
+        <span>{{ t('Default Settings') }}</span>
         <v-spacer />
         <v-btn
           v-if="canEdit"
           color="primary"
           :disabled="loading"
           prepend-icon="mdi-send-outline"
-          text="Apply to all branches"
+          :text="t('Apply to all branches')"
           variant="tonal"
           @click="confirmApplyOpen = true"
         />
@@ -18,7 +18,7 @@
           v-if="canEdit"
           color="primary"
           :loading="saving"
-          text="Save"
+          :text="t('Save')"
           variant="flat"
           @click="save"
         />
@@ -30,7 +30,7 @@
         behaviour, page access, printing and attendance. Branch identity (name, storefront
         contact details), per-device fields (printer/COM ids, Akuvox IP) and secrets are never
         part of this template and stay branch-specific; edit those from
-        <RouterLink to="/branch-settings">Branch Settings</RouterLink> instead.
+        <RouterLink to="/branch-settings">{{ t('Branch Settings') }}</RouterLink> instead.
         Saving here only updates the template &mdash; nothing is pushed to a branch until you
         click "Apply to all branches".
       </p>
@@ -39,7 +39,7 @@
         v-if="loading"
         kind="settings"
         min-height="240px"
-        title="Loading default settings"
+        :title="t('Loading default settings')"
       />
 
       <div v-else class="dbs-detail">
@@ -49,14 +49,14 @@
           color="primary"
           :direction="$vuetify.display.smAndDown ? 'horizontal' : 'vertical'"
         >
-          <v-tab class="text-none" text="Money" value="money" />
-          <v-tab class="text-none" text="Payments" value="payments" />
-          <v-tab class="text-none" text="Behaviour" value="behaviour" />
-          <v-tab class="text-none" text="Till display" value="display" />
-          <v-tab class="text-none" text="Cash &amp; shifts" value="cash" />
-          <v-tab class="text-none" text="Printing" value="printing" />
-          <v-tab class="text-none" text="Attendance" value="attendance" />
-          <v-tab class="text-none" text="Page access" value="pages" />
+          <v-tab class="text-none" :text="t('Money')" value="money" />
+          <v-tab class="text-none" :text="t('Payments')" value="payments" />
+          <v-tab class="text-none" :text="t('Behaviour')" value="behaviour" />
+          <v-tab class="text-none" :text="t('Till display')" value="display" />
+          <v-tab class="text-none" :text="t('Cash & shifts')" value="cash" />
+          <v-tab class="text-none" :text="t('Printing')" value="printing" />
+          <v-tab class="text-none" :text="t('Attendance')" value="attendance" />
+          <v-tab class="text-none" :text="t('Page access')" value="pages" />
         </v-tabs>
 
         <v-divider vertical />
@@ -71,7 +71,7 @@
                     v-model.number="form.tax_rate"
                     density="compact"
                     hide-details="auto"
-                    label="Tax Rate (0-1)"
+                    :label="t('Tax Rate (0-1)')"
                     max="1"
                     min="0"
                     step="0.01"
@@ -83,18 +83,18 @@
                     density="compact"
                     hide-details="auto"
                     :items="['half_up', 'up', 'down']"
-                    label="Rounding Mode"
+                    :label="t('Rounding Mode')"
                     variant="outlined"
                   />
                   <CurrencySelect
                     v-model="form.rounding_currency"
-                    label="Rounding Currency"
+                    :label="t('Rounding Currency')"
                     variant="outlined"
                   />
                   <CurrencySelect
                     v-model="form.split_primary_currency"
-                    hint="First half of the till's split total; the rounding currency is the second."
-                    label="Split Primary Currency"
+                    :hint="t('First half of the till\'s split total; the rounding currency is the second.')"
+                    :label="t('Split Primary Currency')"
                     persistent-hint
                     variant="outlined"
                   />
@@ -111,8 +111,8 @@
                     v-model.number="form.split_primary_step"
                     density="compact"
                     hide-details="auto"
-                    hint="Denomination the split truncates the primary to. 0 = use that currency's own Cash Rounding Unit."
-                    label="Split Step"
+                    :hint="t('Denomination the split truncates the primary to. 0 = use that currency\'s own Cash Rounding Unit.')"
+                    :label="t('Split Step')"
                     persistent-hint
                     type="number"
                     variant="outlined"
@@ -121,7 +121,7 @@
                     v-model.number="form.exchange_rate"
                     density="compact"
                     hide-details="auto"
-                    label="Exchange Rate"
+                    :label="t('Exchange Rate')"
                     type="number"
                     variant="outlined"
                   />
@@ -135,7 +135,7 @@
                     v-model.number="form.exchange_window_hours"
                     density="compact"
                     hide-details="auto"
-                    label="Exchange Window (hours)"
+                    :label="t('Exchange Window (hours)')"
                     type="number"
                     variant="outlined"
                   />
@@ -146,7 +146,7 @@
 
             <div v-show="sectionTab === 'payments'">
               <section class="dbs-section">
-                <div class="dbs-section-title">At the till</div>
+                <div class="dbs-section-title">{{ t('At the till') }}</div>
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
                   "Leave as is" keeps each branch's own value when you apply to all.
                 </p>
@@ -169,7 +169,7 @@
                       :label="f.label"
                       min="0"
                       :model-value="scaledValue(form[f.key], f.scale)"
-                      placeholder="Leave as is"
+                      :placeholder="t('Leave as is')"
                       :step="f.step"
                       type="number"
                       variant="outlined"
@@ -183,14 +183,14 @@
 
             <div v-show="sectionTab === 'behaviour'">
               <section class="dbs-section">
-                <div class="dbs-section-title">Product search</div>
+                <div class="dbs-section-title">{{ t('Product search') }}</div>
                 <div class="dbs-switch-grid">
                   <v-switch
                     v-model="form.search_button_enabled"
                     color="primary"
                     density="compact"
                     hide-details
-                    label="Product search button on sale screen"
+                    :label="t('Product search button on sale screen')"
                   />
                 </div>
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
@@ -215,7 +215,7 @@
                       :label="f.label"
                       min="0"
                       :model-value="scaledValue(form[f.key], f.scale)"
-                      placeholder="Leave as is"
+                      :placeholder="t('Leave as is')"
                       :step="f.step"
                       type="number"
                       variant="outlined"
@@ -226,7 +226,7 @@
               </section>
 
               <section class="dbs-section">
-                <div class="dbs-section-title">Scanning</div>
+                <div class="dbs-section-title">{{ t('Scanning') }}</div>
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
                   "Leave as is" keeps each branch's own value when you apply to all.
                 </p>
@@ -249,7 +249,7 @@
                       :label="f.label"
                       min="0"
                       :model-value="scaledValue(form[f.key], f.scale)"
-                      placeholder="Leave as is"
+                      :placeholder="t('Leave as is')"
                       :step="f.step"
                       type="number"
                       variant="outlined"
@@ -267,28 +267,28 @@
                     color="primary"
                     density="compact"
                     hide-details
-                    label="Custom per-line discounts"
+                    :label="t('Custom per-line discounts')"
                   />
                   <v-switch
                     v-model="form.custom_item_prices_enabled"
                     color="primary"
                     density="compact"
                     hide-details
-                    label="Custom item prices"
+                    :label="t('Custom item prices')"
                   />
                   <v-switch
                     v-model="form.per_unit_item_prices_enabled"
                     color="primary"
                     density="compact"
                     hide-details
-                    label="Per-unit item pricing"
+                    :label="t('Per-unit item pricing')"
                   />
                   <v-switch
                     v-model="form.price_change_manual_override_mode"
                     color="primary"
                     density="compact"
                     hide-details
-                    label="Price-change manual override mode"
+                    :label="t('Price-change manual override mode')"
                   />
                 </div>
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
@@ -313,7 +313,7 @@
                       :label="f.label"
                       min="0"
                       :model-value="scaledValue(form[f.key], f.scale)"
-                      placeholder="Leave as is"
+                      :placeholder="t('Leave as is')"
                       :step="f.step"
                       type="number"
                       variant="outlined"
@@ -324,14 +324,14 @@
               </section>
 
               <section class="dbs-section">
-                <div class="dbs-section-title">Invoice rules</div>
+                <div class="dbs-section-title">{{ t('Invoice rules') }}</div>
                 <div class="dbs-switch-grid">
                   <v-switch
                     v-model="form.client_required"
                     color="primary"
                     density="compact"
                     hide-details
-                    label="Require a client on every invoice"
+                    :label="t('Require a client on every invoice')"
                   />
                 </div>
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
@@ -356,7 +356,7 @@
                       :label="f.label"
                       min="0"
                       :model-value="scaledValue(form[f.key], f.scale)"
-                      placeholder="Leave as is"
+                      :placeholder="t('Leave as is')"
                       :step="f.step"
                       type="number"
                       variant="outlined"
@@ -390,7 +390,7 @@
                       :label="f.label"
                       min="0"
                       :model-value="scaledValue(form[f.key], f.scale)"
-                      placeholder="Leave as is"
+                      :placeholder="t('Leave as is')"
                       :step="f.step"
                       type="number"
                       variant="outlined"
@@ -429,7 +429,7 @@
                       :max="f.max"
                       :min="f.min"
                       :model-value="form.display_prefs[f.key]"
-                      placeholder="Leave as is"
+                      :placeholder="t('Leave as is')"
                       type="number"
                       variant="outlined"
                       @update:model-value="v => (form.display_prefs[f.key] = unscaledValue(v, 1))"
@@ -438,8 +438,8 @@
                   <CurrencySelect
                     v-model="form.display_prefs.calculator_total_currency"
                     clearable
-                    label="Calculator shows first"
-                    placeholder="Leave as is"
+                    :label="t('Calculator shows first')"
+                    :placeholder="t('Leave as is')"
                     variant="outlined"
                   />
                 </div>
@@ -449,7 +449,7 @@
                     color="primary"
                     density="compact"
                     hide-details
-                    label="Invoice keyboard (number-pad) mode"
+                    :label="t('Invoice keyboard (number-pad) mode')"
                   />
                 </div>
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
@@ -474,7 +474,7 @@
                       :label="f.label"
                       min="0"
                       :model-value="scaledValue(form[f.key], f.scale)"
-                      placeholder="Leave as is"
+                      :placeholder="t('Leave as is')"
                       :step="f.step"
                       type="number"
                       variant="outlined"
@@ -485,7 +485,7 @@
               </section>
 
               <section class="dbs-section">
-                <div class="dbs-section-title">Quick access cards</div>
+                <div class="dbs-section-title">{{ t('Quick access cards') }}</div>
                 <div class="field-grid">
                   <template v-for="f in CARD_FIELDS" :key="f.key">
                     <v-select
@@ -507,7 +507,7 @@
                       :max="f.max"
                       :min="f.min"
                       :model-value="form.display_prefs[f.key]"
-                      placeholder="Leave as is"
+                      :placeholder="t('Leave as is')"
                       type="number"
                       variant="outlined"
                       @update:model-value="v => (form.display_prefs[f.key] = unscaledValue(v, 1))"
@@ -520,7 +520,7 @@
 
             <div v-show="sectionTab === 'cash'">
               <section class="dbs-section">
-                <div class="dbs-section-title">Opening cash</div>
+                <div class="dbs-section-title">{{ t('Opening cash') }}</div>
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
                   "Leave as is" keeps each branch's own value when you apply to all.
                 </p>
@@ -543,7 +543,7 @@
                       :label="f.label"
                       min="0"
                       :model-value="scaledValue(form[f.key], f.scale)"
-                      placeholder="Leave as is"
+                      :placeholder="t('Leave as is')"
                       :step="f.step"
                       type="number"
                       variant="outlined"
@@ -554,14 +554,14 @@
               </section>
 
               <section class="dbs-section">
-                <div class="dbs-section-title">Closing shifts</div>
+                <div class="dbs-section-title">{{ t('Closing shifts') }}</div>
                 <v-select
                   v-model="form.shift_receipt_upload_mode"
                   class="mt-3"
                   density="compact"
                   hide-details
                   :items="SHIFT_RECEIPT_UPLOAD_MODES"
-                  label="Close-shift receipt photo"
+                  :label="t('Close-shift receipt photo')"
                   variant="outlined"
                 />
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
@@ -586,7 +586,7 @@
                       :label="f.label"
                       min="0"
                       :model-value="scaledValue(form[f.key], f.scale)"
-                      placeholder="Leave as is"
+                      :placeholder="t('Leave as is')"
                       :step="f.step"
                       type="number"
                       variant="outlined"
@@ -600,12 +600,12 @@
 
             <div v-show="sectionTab === 'printing'">
               <section class="dbs-section">
-                <div class="dbs-section-title">Receipt look</div>
+                <div class="dbs-section-title">{{ t('Receipt look') }}</div>
                 <v-switch
                   color="primary"
                   density="compact"
                   hide-details
-                  label="Set the receipt look in this template"
+                  :label="t('Set the receipt look in this template')"
                   :model-value="lookInTemplate"
                   @update:model-value="setLookInTemplate"
                 />
@@ -620,21 +620,21 @@
               </section>
 
               <section class="dbs-section">
-                <div class="dbs-section-title">Receipt</div>
+                <div class="dbs-section-title">{{ t('Receipt') }}</div>
                 <div class="field-grid">
                   <v-select
                     v-model="form.printer_size"
                     density="compact"
                     hide-details="auto"
                     :items="['58mm', '80mm']"
-                    label="Printer Size"
+                    :label="t('Printer Size')"
                     variant="outlined"
                   />
                   <v-text-field
                     v-model.number="form.receipt_width"
                     density="compact"
                     hide-details="auto"
-                    label="Receipt Width (mm)"
+                    :label="t('Receipt Width (mm)')"
                     type="number"
                     variant="outlined"
                   />
@@ -642,7 +642,7 @@
                     v-model.number="form.receipt_height"
                     density="compact"
                     hide-details="auto"
-                    label="Receipt Height (mm)"
+                    :label="t('Receipt Height (mm)')"
                     type="number"
                     variant="outlined"
                   />
@@ -651,7 +651,7 @@
                     density="compact"
                     hide-details="auto"
                     :items="['Belleza', 'Helvetica', 'Times', 'Courier']"
-                    label="Title Font"
+                    :label="t('Title Font')"
                     variant="outlined"
                   />
                   <v-select
@@ -659,14 +659,14 @@
                     density="compact"
                     hide-details="auto"
                     :items="['Printer Font A', 'Courier', 'Helvetica', 'Times', 'Belleza']"
-                    label="Body Font"
+                    :label="t('Body Font')"
                     variant="outlined"
                   />
                   <v-text-field
                     v-model.number="form.receipt_title_size"
                     density="compact"
                     hide-details="auto"
-                    label="Title Size"
+                    :label="t('Title Size')"
                     type="number"
                     variant="outlined"
                   />
@@ -674,7 +674,7 @@
                     v-model.number="form.receipt_body_size"
                     density="compact"
                     hide-details="auto"
-                    label="Body Size"
+                    :label="t('Body Size')"
                     type="number"
                     variant="outlined"
                   />
@@ -685,20 +685,20 @@
                     color="primary"
                     density="compact"
                     hide-details
-                    label="Print receipt after checkout"
+                    :label="t('Print receipt after checkout')"
                   />
                   <v-switch
                     v-model="form.receipt_cutoff"
                     color="primary"
                     density="compact"
                     hide-details
-                    label="Cut paper after printing"
+                    :label="t('Cut paper after printing')"
                   />
                 </div>
               </section>
 
               <section class="dbs-section">
-                <div class="dbs-section-title">End-of-shift receipt</div>
+                <div class="dbs-section-title">{{ t('End-of-shift receipt') }}</div>
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
                   "Leave as is" keeps each branch's own value when you apply to all.
                 </p>
@@ -721,7 +721,7 @@
                       :label="f.label"
                       min="0"
                       :model-value="scaledValue(form[f.key], f.scale)"
-                      placeholder="Leave as is"
+                      :placeholder="t('Leave as is')"
                       :step="f.step"
                       type="number"
                       variant="outlined"
@@ -740,13 +740,13 @@
 
             <div v-show="sectionTab === 'attendance'">
               <section class="dbs-section">
-                <div class="dbs-section-title">Attendance machine</div>
+                <div class="dbs-section-title">{{ t('Attendance machine') }}</div>
                 <div class="field-grid">
                   <v-text-field
                     v-model.number="form.attendance_duplicate_interval_seconds"
                     density="compact"
                     hide-details="auto"
-                    label="Duplicate interval (sec)"
+                    :label="t('Duplicate interval (sec)')"
                     min="0"
                     type="number"
                     variant="outlined"
@@ -758,21 +758,21 @@
                     color="primary"
                     density="compact"
                     hide-details
-                    label="Attendance enabled"
+                    :label="t('Attendance enabled')"
                   />
                   <v-switch
                     v-model="form.attendance_cashier_history"
                     color="primary"
                     density="compact"
                     hide-details
-                    label="Cashiers can browse previous days"
+                    :label="t('Cashiers can browse previous days')"
                   />
                   <v-switch
                     v-model="form.attendance_manager_approval_enabled"
                     color="primary"
                     density="compact"
                     hide-details
-                    label="Manager approves requests on the till (manager password)"
+                    :label="t('Manager approves requests on the till (manager password)')"
                   />
                 </div>
                 <p class="text-caption text-medium-emphasis mt-3">
@@ -785,42 +785,42 @@
 
             <div v-show="sectionTab === 'pages'">
               <section class="dbs-section">
-                <div class="dbs-section-title">Page access (non-admin users)</div>
+                <div class="dbs-section-title">{{ t('Page access (non-admin users)') }}</div>
                 <div class="dbs-switch-grid">
                   <v-switch
                     v-model="form.page_unlock_clients"
                     color="primary"
                     density="compact"
                     hide-details
-                    label="Clients"
+                    :label="t('Clients')"
                   />
                   <v-switch
                     v-model="form.page_unlock_inventory"
                     color="primary"
                     density="compact"
                     hide-details
-                    label="Inventory"
+                    :label="t('Inventory')"
                   />
                   <v-switch
                     v-model="form.page_unlock_transfers"
                     color="primary"
                     density="compact"
                     hide-details
-                    label="Transfers"
+                    :label="t('Transfers')"
                   />
                   <v-switch
                     v-model="form.page_unlock_attendance"
                     color="primary"
                     density="compact"
                     hide-details
-                    label="Attendance"
+                    :label="t('Attendance')"
                   />
                   <v-switch
                     v-model="form.page_unlock_salespersons"
                     color="primary"
                     density="compact"
                     hide-details
-                    label="Salespersons"
+                    :label="t('Salespersons')"
                   />
                 </div>
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
@@ -845,7 +845,7 @@
                       :label="f.label"
                       min="0"
                       :model-value="scaledValue(form[f.key], f.scale)"
-                      placeholder="Leave as is"
+                      :placeholder="t('Leave as is')"
                       :step="f.step"
                       type="number"
                       variant="outlined"
@@ -863,7 +863,7 @@
 
     <v-dialog v-model="confirmApplyOpen" max-width="480">
       <v-card>
-        <v-card-title class="text-subtitle-1">Apply to all branches?</v-card-title>
+        <v-card-title class="text-subtitle-1">{{ t('Apply to all branches?') }}</v-card-title>
         <v-card-text>
           This sends the saved template as a remote command to every branch
           ({{ branches.length }} total). Each branch applies it on its own within a few seconds
@@ -872,11 +872,11 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="confirmApplyOpen = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="confirmApplyOpen = false" />
           <v-btn
             color="primary"
             :loading="applying"
-            text="Apply to all"
+            :text="t('Apply to all')"
             variant="flat"
             @click="applyToAll"
           />
@@ -894,6 +894,7 @@
   import { useDefaultBranchSettings } from '@/composables/useDefaultBranchSettings'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { t } from '@/i18n'
 
   const notify = useNotify()
   const { canEdit } = usePageAccess()
@@ -907,17 +908,17 @@
   const confirmApplyOpen = ref(false)
 
   const SHIFT_RECEIPT_UPLOAD_MODES = [
-    { title: 'Hybrid (office when online, else the till)', value: 2 },
-    { title: 'Local only (the till, over shop Wi-Fi)', value: 3 },
-    { title: 'Central only (straight to the office)', value: 1 },
-    { title: 'Off (no photo)', value: 0 },
+    { title: t('Hybrid (office when online, else the till)'), value: 2 },
+    { title: t('Local only (the till, over shop Wi-Fi)'), value: 3 },
+    { title: t('Central only (straight to the office)'), value: 1 },
+    { title: t('Off (no photo)'), value: 0 },
   ]
 
   // null in a select = "leave as is": the field is left out of the template.
   const TRI_STATE = [
-    { title: 'Leave as is', value: null },
-    { title: 'On', value: true },
-    { title: 'Off', value: false },
+    { title: t('Leave as is'), value: null },
+    { title: t('On'), value: true },
+    { title: t('Off'), value: false },
   ]
 
   // Fields added after the template's first version. Each is optional, so
@@ -926,70 +927,70 @@
   // stored in cents and edited in dollars (scale 100).
   const OPTIONAL_FIELDS = {
     payments: [
-      { key: 'max_overpayment_cents', label: 'Max overpayment (USD, 0 = no limit)', type: 'number', scale: 100, step: 0.01 },
-      { key: 'overchange_confirmation', label: 'Confirm change larger than owed', type: 'bool' },
-      { key: 'hide_payment_method_currency', label: 'Hide currency on payment buttons', type: 'bool' },
-      { key: 'auto_append_lbp_zeros', label: 'Type LBP in thousands', type: 'bool' },
+      { key: 'max_overpayment_cents', label: t('Max overpayment (USD, 0 = no limit)'), type: 'number', scale: 100, step: 0.01 },
+      { key: 'overchange_confirmation', label: t('Confirm change larger than owed'), type: 'bool' },
+      { key: 'hide_payment_method_currency', label: t('Hide currency on payment buttons'), type: 'bool' },
+      { key: 'auto_append_lbp_zeros', label: t('Type LBP in thousands'), type: 'bool' },
     ],
     productSearch: [
-      { key: 'product_search_code_only', label: 'Product search by code only (hide names)', type: 'bool' },
+      { key: 'product_search_code_only', label: t('Product search by code only (hide names)'), type: 'bool' },
     ],
     scanning: [
-      { key: 'scan_by_code_enabled', label: 'Accept a product code in the scan field', type: 'bool' },
+      { key: 'scan_by_code_enabled', label: t('Accept a product code in the scan field'), type: 'bool' },
     ],
     pricing: [
-      { key: 'price_edit_restricted', label: 'Manual price/discount edits only for selected codes', type: 'bool' },
+      { key: 'price_edit_restricted', label: t('Manual price/discount edits only for selected codes'), type: 'bool' },
       { key: 'discount_toggle', label: "Salespersons can turn a line's discount (30%) off and on", type: 'bool' },
-      { key: 'discount_toggle_default_off', label: 'Discounts start off on each new line', type: 'bool' },
+      { key: 'discount_toggle_default_off', label: t('Discounts start off on each new line'), type: 'bool' },
       { key: 'deal_toggle', label: "Salespersons can turn a line's deal (B2G1) off and on", type: 'bool' },
-      { key: 'deals_stack', label: 'Invoice deals add up (off: the biggest one takes over)', type: 'bool' },
-      { key: 'variant_pick_required', label: 'Cashier must pick the colour/size when a scanned item has variants', type: 'bool' },
-      { key: 'sync_verbose', label: 'Sync light: show every step (verbose), not only what changed', type: 'bool' },
-      { key: 'invoice_ratings_enabled', label: 'Show how clients rated each sale (WhatsApp poll) in the invoices list', type: 'bool' },
+      { key: 'deals_stack', label: t('Invoice deals add up (off: the biggest one takes over)'), type: 'bool' },
+      { key: 'variant_pick_required', label: t('Cashier must pick the colour/size when a scanned item has variants'), type: 'bool' },
+      { key: 'sync_verbose', label: t('Sync light: show every step (verbose), not only what changed'), type: 'bool' },
+      { key: 'invoice_ratings_enabled', label: t('Show how clients rated each sale (WhatsApp poll) in the invoices list'), type: 'bool' },
     ],
     invoice: [
-      { key: 'salesperson_per_invoice_required', label: 'Salesperson on every invoice', type: 'bool' },
+      { key: 'salesperson_per_invoice_required', label: t('Salesperson on every invoice'), type: 'bool' },
     ],
     counters: [
-      { key: 'visitor_counter_enabled', label: 'Visitor counter buttons', type: 'bool' },
+      { key: 'visitor_counter_enabled', label: t('Visitor counter buttons'), type: 'bool' },
       { key: 'non_admin_month_nav_enabled', label: "Cashiers browse other months' income", type: 'bool' },
     ],
     look: [
-      { key: 'sounds_enabled', label: 'Play sounds (scan, checkout, errors, keypad)', type: 'bool' },
+      { key: 'sounds_enabled', label: t('Play sounds (scan, checkout, errors, keypad)'), type: 'bool' },
     ],
     opening: [
-      { key: 'opening_float_enabled', label: 'Shifts start with an opening float', type: 'bool' },
-      { key: 'count_opening_cash_on_close', label: 'Count the opening float when closing', type: 'bool' },
-      { key: 'default_opening_float_usd', label: 'Default opening float (USD)', type: 'number', scale: 100, step: 0.01 },
-      { key: 'default_opening_float_lbp', label: 'Default opening float (LBP)', type: 'number', scale: 1, step: 1000 },
+      { key: 'opening_float_enabled', label: t('Shifts start with an opening float'), type: 'bool' },
+      { key: 'count_opening_cash_on_close', label: t('Count the opening float when closing'), type: 'bool' },
+      { key: 'default_opening_float_usd', label: t('Default opening float (USD)'), type: 'number', scale: 100, step: 0.01 },
+      { key: 'default_opening_float_lbp', label: t('Default opening float (LBP)'), type: 'number', scale: 1, step: 1000 },
     ],
     closing: [
       { key: 'auto_close_stale_shifts', label: "Close yesterday's open shift at startup", type: 'bool' },
-      { key: 'close_shift_requires_sync', label: 'Upload everything before closing a shift', type: 'bool' },
+      { key: 'close_shift_requires_sync', label: t('Upload everything before closing a shift'), type: 'bool' },
     ],
     endShift: [
-      { key: 'shift_report_signatures', label: 'Signature lines on end-of-shift receipt', type: 'bool' },
-      { key: 'shift_report_uppercase_header', label: 'Store and branch name in capitals on end-of-shift receipt', type: 'bool' },
+      { key: 'shift_report_signatures', label: t('Signature lines on end-of-shift receipt'), type: 'bool' },
+      { key: 'shift_report_uppercase_header', label: t('Store and branch name in capitals on end-of-shift receipt'), type: 'bool' },
     ],
     pages: [
-      { key: 'page_unlock_products', label: 'Products page', type: 'bool' },
+      { key: 'page_unlock_products', label: t('Products page'), type: 'bool' },
     ],
   }
   const OPTIONAL_KEYS = Object.values(OPTIONAL_FIELDS).flat().map(f => f.key)
 
   // Till screen prefs (kashi-pos display_prefs.go), same "leave as is" rule.
   const DISPLAY_FIELDS = [
-    { key: 'quick_access_rows', label: 'Quick access rows (0 hides)', min: 0, max: 8 },
-    { key: 'quick_access_font_scale', label: 'Quick access text size (%)', min: 70, max: 200 },
-    { key: 'quick_access_show_code', label: 'Code on quick access cards', items: TRI_STATE },
-    { key: 'quick_access_show_name', label: 'Name on quick access cards', items: TRI_STATE },
-    { key: 'quick_access_show_remove', label: 'Remove (X) on quick access cards', items: TRI_STATE },
-    { key: 'animations_enabled', label: 'Animations', items: TRI_STATE },
-    { key: 'print_return_receipts', label: 'Print return and exchange receipts', items: TRI_STATE },
+    { key: 'quick_access_rows', label: t('Quick access rows (0 hides)'), min: 0, max: 8 },
+    { key: 'quick_access_font_scale', label: t('Quick access text size (%)'), min: 70, max: 200 },
+    { key: 'quick_access_show_code', label: t('Code on quick access cards'), items: TRI_STATE },
+    { key: 'quick_access_show_name', label: t('Name on quick access cards'), items: TRI_STATE },
+    { key: 'quick_access_show_remove', label: t('Remove (X) on quick access cards'), items: TRI_STATE },
+    { key: 'animations_enabled', label: t('Animations'), items: TRI_STATE },
+    { key: 'print_return_receipts', label: t('Print return and exchange receipts'), items: TRI_STATE },
     {
       key: 'theme',
-      label: 'Theme',
-      items: [{ title: 'Leave as is', value: null }, { title: 'Light', value: 'light' }, { title: 'Dark', value: 'dark' }],
+      label: t('Theme'),
+      items: [{ title: t('Leave as is'), value: null }, { title: t('Light'), value: 'light' }, { title: t('Dark'), value: 'dark' }],
     },
   ]
 

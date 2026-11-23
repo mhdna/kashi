@@ -10,7 +10,7 @@
     item-title="title"
     item-value="route"
     :items="items"
-    :no-data-text="'No routes found'"
+    :no-data-text="t('No routes found')"
     prepend-inner-icon="mdi-magnify"
     single-line
     transition="slide-y-transition"
@@ -18,7 +18,7 @@
     @update:model-value="goToRoute"
   >
     <template #label>
-      <span>Search <v-code><b>C-K</b></v-code></span>
+      <span>{{ t('Search') }} <v-code><b>C-K</b></v-code></span>
     </template>
     <template #item="{ props, item }">
       <v-list-item
@@ -32,8 +32,9 @@
 </template>
 
 <script setup lang="ts">
-  import { onMounted, onUnmounted, ref } from 'vue'
+  import { computed, onMounted, onUnmounted, ref } from 'vue'
   import { useRouter } from 'vue-router'
+  import { t } from '@/i18n'
 
   const router = useRouter()
   const searchBar = ref<HTMLInputElement | null>(null)
@@ -73,69 +74,69 @@
     window.removeEventListener('keydown', openSearchBar)
   })
 
-  const items = [
+  const items = computed(() => [
     // TODO do it right
     // TODO english autocomplete even if you're typing arabic
     // TODO icons not working
     {
       prependIcon: 'mdi-magnify',
-      title: 'Overview',
-      subtitle: 'Safe Search',
+      title: t('Overview'),
+      subtitle: t('Safe Search'),
       route: '/',
     },
     {
       prependIcon: 'mdi-clock-outline',
-      title: 'Screenshots',
-      subtitle: 'Safe Search',
+      title: t('Screenshots'),
+      subtitle: t('Safe Search'),
       route: '/screenshots',
     },
     {
       prependIcon: 'mdi-clock-outline',
-      title: 'URL List',
-      subtitle: 'Safe Search',
+      title: t('URL List'),
+      subtitle: t('Safe Search'),
       route: '/proxy/urls',
     },
     {
       prependIcon: 'mdi-clock-outline',
-      title: 'Phrases',
-      subtitle: 'Safe Search',
+      title: t('Phrases'),
+      subtitle: t('Safe Search'),
       route: '/proxy/phrases',
     },
     {
       prependIcon: 'mdi-clock-outline',
-      title: 'Redirects',
-      subtitle: 'Safe Search',
+      title: t('Redirects'),
+      subtitle: t('Safe Search'),
       route: '/proxy/redirects',
     },
     {
       prependIcon: 'mdi-clock-outline',
-      title: 'Safe Search',
-      subtitle: 'Safe Search',
+      title: t('Safe Search'),
+      subtitle: t('Safe Search'),
       route: '/proxy/safesearch',
     },
     {
       prependIcon: 'mdi-clock-outline',
-      title: 'Safe Search',
-      subtitle: 'Safe Search',
+      title: t('Safe Search'),
+      subtitle: t('Safe Search'),
       route: '/proxy/safesearch',
     },
     {
       prependIcon: 'mdi-clock-outline',
-      title: 'Safe Search',
-      subtitle: 'Safe Search',
+      title: t('Safe Search'),
+      subtitle: t('Safe Search'),
       route: '/proxy/safesearch',
     },
     {
       prependIcon: 'mdi-clock-outline',
-      title: 'Safe Search',
-      subtitle: 'Safe Search',
+      title: t('Safe Search'),
+      subtitle: t('Safe Search'),
       route: '/proxy/safesearch',
     },
     {
       prependIcon: 'mdi-clock-outline',
-      title: 'Safe Search',
-      subtitle: 'Safe Search',
+      title: t('Safe Search'),
+      subtitle: t('Safe Search'),
       route: '/proxy/safesearch',
     },
-  ]
+  ])
 </script>

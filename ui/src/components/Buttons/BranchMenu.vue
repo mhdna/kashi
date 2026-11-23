@@ -37,6 +37,7 @@
   import { computed, onMounted } from 'vue'
   import { useBranches } from '@/composables/useBranches'
   import { useIncomeFilters } from '@/pages/dashboard/composables/useIncomeFilters'
+  import { t } from '@/i18n'
 
   const { branches, fetchBranches } = useBranches()
   const { selectedBranchId } = useIncomeFilters()
@@ -47,7 +48,7 @@
   onMounted(() => fetchBranches())
 
   const selectedLabel = computed(() => {
-    if (selectedBranchId.value === null) return 'All Branches'
-    return branches.value.find(b => b.id === selectedBranchId.value)?.name ?? 'All Branches'
+    if (selectedBranchId.value === null) return t('All Branches')
+    return branches.value.find(b => b.id === selectedBranchId.value)?.name ?? t('All Branches')
   })
 </script>

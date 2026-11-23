@@ -21,7 +21,7 @@
       class="mx-2"
       kind="data"
       :size="28"
-      title="Loading"
+      :title="t('Loading')"
     />
     <v-chip-group
       v-else
@@ -58,7 +58,7 @@
       <template #activator="{ props: menuProps }">
         <v-btn
           v-bind="menuProps"
-          aria-label="Selected item actions"
+          :aria-label="t('Selected item actions')"
           density="comfortable"
           icon="mdi-dots-vertical"
           size="small"
@@ -83,7 +83,7 @@
 
   <div v-else class="page-sidebar d-flex flex-column" :style="{ flex: `0 0 ${width}px`, width: `${width}px` }">
     <div v-if="loading" class="d-flex justify-center pa-6">
-      <PreparingState kind="data" :size="34" title="Loading" />
+      <PreparingState kind="data" :size="34" :title="t('Loading')" />
     </div>
     <v-list
       v-else
@@ -176,6 +176,7 @@
   import { computed } from 'vue'
   import { useDisplay } from 'vuetify'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { t } from '@/i18n'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()

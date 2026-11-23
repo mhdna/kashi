@@ -7,7 +7,7 @@
         :prev-value="prevMetric('revenue')"
         :series="revenueSeries"
         show-axis
-        title="Revenue"
+        :title="t('Revenue')"
         unit="$"
         :value="metric('revenue')"
       />
@@ -17,7 +17,7 @@
         :prev-value="prevMetric('expenses')"
         :series="expensesSeries"
         show-axis
-        title="Expenses"
+        :title="t('Expenses')"
         unit="$"
         :value="metric('expenses')"
       />
@@ -28,7 +28,7 @@
         :prev-value="prevProfit"
         :series="profitSeries"
         show-axis
-        title="Profit"
+        :title="t('Profit')"
         unit="$"
         :value="profit"
       />
@@ -38,7 +38,7 @@
         :prev-value="prevMargin"
         :series="marginSeries"
         show-axis
-        title="Profit Margin"
+        :title="t('Profit Margin')"
         unit="%"
         :value="margin"
       />
@@ -48,7 +48,7 @@
         :prev-value="prevFinPosition"
         :series="finPositionSeries"
         show-axis
-        title="Financial Position"
+        :title="t('Financial Position')"
         unit="$"
         :value="finPosition"
       />
@@ -65,6 +65,7 @@
   import { useDashboardSummary } from '@/composables/useDashboardSummary'
   // import ChartsRow from '../ChartsRow.vue'
   import TablesRow from '../TablesRow.vue'
+  import { t } from '@/i18n'
 
   const { summary, prevSummary, loading } = useDashboardSummary()
 

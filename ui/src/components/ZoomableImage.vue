@@ -49,7 +49,7 @@
         prepend-icon="mdi-close"
         rounded="pill"
         size="small"
-        text="Undo"
+        :text="t('Undo')"
         variant="text"
         @click="pendingTurn = 0"
       />
@@ -60,7 +60,7 @@
         prepend-icon="mdi-check"
         rounded="pill"
         size="small"
-        text="Save"
+        :text="t('Save')"
         variant="flat"
         @click="saveTurn"
       />
@@ -69,12 +69,12 @@
     <div class="zoom-controls" @dblclick.stop @pointerdown.stop>
       <template v-if="replaceable">
         <v-btn
-          aria-label="Replace photo"
+          :aria-label="t('Replace photo')"
           density="comfortable"
           :disabled="busy"
           icon="mdi-image-edit-outline"
           size="small"
-          title="Replace photo"
+          :title="t('Replace photo')"
           variant="text"
           @click="fileInput?.click()"
         />
@@ -89,7 +89,7 @@
       </template>
       <template v-if="rotatable">
         <v-btn
-          aria-label="Rotate left"
+          :aria-label="t('Rotate left')"
           density="comfortable"
           :disabled="busy"
           icon="mdi-rotate-left"
@@ -98,7 +98,7 @@
           @click="turn(-90)"
         />
         <v-btn
-          aria-label="Rotate right"
+          :aria-label="t('Rotate right')"
           density="comfortable"
           :disabled="busy"
           icon="mdi-rotate-right"
@@ -109,7 +109,7 @@
         <v-divider class="mx-1" vertical />
       </template>
       <v-btn
-        aria-label="Zoom out"
+        :aria-label="t('Zoom out')"
         density="comfortable"
         :disabled="scale <= MIN_SCALE"
         icon="mdi-magnify-minus-outline"
@@ -119,7 +119,7 @@
       />
       <span class="zoom-controls__level text-caption">{{ Math.round(scale * 100) }}%</span>
       <v-btn
-        aria-label="Zoom in"
+        :aria-label="t('Zoom in')"
         density="comfortable"
         :disabled="scale >= MAX_SCALE"
         icon="mdi-magnify-plus-outline"
@@ -128,7 +128,7 @@
         @click="zoomBy(BUTTON_STEP)"
       />
       <v-btn
-        aria-label="Fit to screen"
+        :aria-label="t('Fit to screen')"
         density="comfortable"
         :disabled="scale === 1"
         icon="mdi-fit-to-screen-outline"
@@ -142,6 +142,7 @@
 
 <script setup lang="ts">
   import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+  import { t } from '@/i18n'
 
   // A photo viewer for dialogs: the image is fitted (contain) into a
   // fixed-height stage, and can be zoomed with the mouse wheel (towards the

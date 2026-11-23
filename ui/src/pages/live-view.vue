@@ -2,7 +2,7 @@
   <div class="page-root">
     <v-card class="live-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
-        <v-btn aria-label="Back to branches" icon="mdi-arrow-left" to="/branches" variant="text" />
+        <v-btn :aria-label="t('Back to branches')" icon="mdi-arrow-left" to="/branches" variant="text" />
         <v-icon icon="mdi-monitor" />
         <span data-test="live-title">Live view: {{ title }}</span>
         <v-spacer />
@@ -14,7 +14,7 @@
           density="compact"
           hide-details
           inset
-          label="Take control"
+          :label="t('Take control')"
         />
       </v-card-title>
       <v-divider />
@@ -59,7 +59,7 @@
         </div>
 
         <div v-if="actions.length > 0" class="mt-4" data-test="live-actions">
-          <div class="text-subtitle-2 mb-1">What they did</div>
+          <div class="text-subtitle-2 mb-1">{{ t('What they did') }}</div>
           <div v-for="(a, i) in recent" :key="i" class="text-body-2 text-medium-emphasis">
             {{ a.l }}
           </div>
@@ -79,6 +79,7 @@
     pointOnTill, pushActions, screenSize, shiftEvent, stamped, typedAfter, watchUrl,
   } from '@/utils/liveView'
   import { createWatch } from '@/utils/liveWatch'
+  import { t } from '@/i18n'
 
   // The till's screen rebuilt here with rrweb, never a video: the till sends
   // its page structure once, then changes. rrweb is loaded only on this page.

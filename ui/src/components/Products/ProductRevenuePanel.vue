@@ -1,9 +1,9 @@
 <template>
   <div>
-    <PreparingState v-if="loading" kind="chart" title="Adding up this product's sales" />
+    <PreparingState v-if="loading" kind="chart" :title="t('Adding up this product\'s sales')" />
 
     <v-alert v-else-if="products.length === 0" class="prp-notice" type="info" variant="tonal">
-      {{ emptyText }}
+      {{ emptyText || t('No product sales in this range.') }}
     </v-alert>
 
     <template v-else>
@@ -32,13 +32,13 @@
       <v-row dense>
         <v-col cols="12" md="7">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Revenue trend</div>
+            <div class="chart-card__title">{{ t('Revenue trend') }}</div>
             <v-chart autoresize class="chart" :option="trendOption" />
           </v-card>
         </v-col>
         <v-col cols="12" md="5">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Top products by revenue</div>
+            <div class="chart-card__title">{{ t('Top products by revenue') }}</div>
             <v-chart autoresize class="chart" :option="topProductsOption" />
           </v-card>
         </v-col>
@@ -50,13 +50,13 @@
       <v-row dense>
         <v-col cols="12" md="6">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Revenue by category</div>
+            <div class="chart-card__title">{{ t('Revenue by category') }}</div>
             <v-chart autoresize class="chart" :option="categoryOption" />
           </v-card>
         </v-col>
         <v-col cols="12" md="6">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Revenue by brand</div>
+            <div class="chart-card__title">{{ t('Revenue by brand') }}</div>
             <v-chart autoresize class="chart" :option="brandOption" />
           </v-card>
         </v-col>
@@ -67,7 +67,7 @@
         <v-col cols="12">
           <v-card class="chart-card" variant="flat">
             <div class="d-flex align-center flex-wrap ga-3 mb-2">
-              <div class="chart-card__title mb-0">Revenue by product</div>
+              <div class="chart-card__title mb-0">{{ t('Revenue by product') }}</div>
               <v-spacer />
               <v-text-field
                 v-model="search"
@@ -112,6 +112,7 @@
 <script setup>
   import { computed, ref, watch } from 'vue'
   import VChart from '@/components/EChart.vue'
+  import { t } from '@/i18n'
   import { useTheme } from 'vuetify'
   import { formatMoney } from '@/utils/money'
   import { useNotify } from '@/composables/useNotify'
@@ -121,7 +122,7 @@
     daily: { type: Array, required: true },
     loading: { type: Boolean, default: false },
     error: { type: String, default: '' },
-    emptyText: { type: String, default: 'No product sales in this range.' },
+    emptyText: { type: String, default: '' },
     // Shown as an info banner above the KPIs -- e.g. the kashi-pos tab's
     // "revenue is estimated at catalog price" caveat.
     revenueNote: { type: String, default: '' },
@@ -158,7 +159,7 @@
   const revenueByCategory = computed(() => {
     const byCat = {}
     for (const p of props.products) {
-      const key = p.category || 'Uncategorized'
+      const key = p.category || t('Uncategorized')
       byCat[key] = (byCat[key] ?? 0) + p.revenue
     }
     return Object.entries(byCat).map(([name, value]) => ({ name, value }))
@@ -168,20 +169,20 @@
   )
 
   const kpis = computed(() => [
-    { label: 'Total revenue', value: formatMoney(totalRevenue.value) },
-    { label: 'Units sold', value: totalQuantity.value.toLocaleString() },
-    { label: 'Products sold', value: props.products.length.toLocaleString() },
+    { label: t('Total revenue'), value: formatMoney(totalRevenue.value) },
+    { label: t('Units sold'), value: totalQuantity.value.toLocaleString() },
+    { label: t('Products sold'), value: props.products.length.toLocaleString() },
     {
-      label: 'Avg revenue / unit',
+      label: t('Avg revenue / unit'),
       value: totalQuantity.value > 0 ? formatMoney(Math.round(totalRevenue.value / totalQuantity.value)) : '—',
     },
     {
-      label: 'Top product',
+      label: t('Top product'),
       value: topProduct.value ? formatMoney(topProduct.value.revenue) : '—',
       hint: topProduct.value?.product_name ?? '',
     },
     {
-      label: 'Top category',
+      label: t('Top category'),
       value: topCategory.value ? formatMoney(topCategory.value.value) : '—',
       hint: topCategory.value?.name ?? '',
     },
@@ -290,23 +291,23 @@
   const brandOption = computed(() => {
     const byBrand = {}
     for (const p of props.products) {
-      const key = p.brand || 'Unbranded'
+      const key = p.brand || t('Unbranded')
       byBrand[key] = (byBrand[key] ?? 0) + p.revenue
     }
     return breakdownPieOption(Object.entries(byBrand).map(([name, value]) => ({ name, value })))
   })
 
   // --- table --------------------------------------------------------------
-  const headers = [
-    { title: 'Product', key: 'product_name' },
-    { title: 'Code', key: 'product_code' },
-    { title: 'Category', key: 'category' },
-    { title: 'Sub-category', key: 'subcategory' },
-    { title: 'Brand', key: 'brand' },
-    { title: 'Qty sold', key: 'quantity', align: 'end' },
-    { title: 'Revenue', key: 'revenue', align: 'end' },
-    { title: 'Orders', key: 'invoice_count', align: 'end' },
-  ]
+  const headers = computed(() => [
+    { title: t('Product'), key: 'product_name' },
+    { title: t('Code'), key: 'product_code' },
+    { title: t('Category'), key: 'category' },
+    { title: t('Sub-category'), key: 'subcategory' },
+    { title: t('Brand'), key: 'brand' },
+    { title: t('Qty sold'), key: 'quantity', align: 'end' },
+    { title: t('Revenue'), key: 'revenue', align: 'end' },
+    { title: t('Orders'), key: 'invoice_count', align: 'end' },
+  ])
 </script>
 
 <style scoped>

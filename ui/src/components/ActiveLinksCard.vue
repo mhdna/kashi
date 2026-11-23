@@ -2,11 +2,11 @@
   <!-- The phone links tills have handed out that still work, so a manager can
        open or share one without the till in front of them. Shows nothing
        when there are none. -->
-  <section v-if="links.length > 0" aria-label="Active links" class="active-links">
+  <section v-if="links.length > 0" :aria-label="t('Active links')" class="active-links">
     <div class="d-flex align-center px-1 mb-2">
-      <span class="text-body-2 font-weight-medium">Active links</span>
+      <span class="text-body-2 font-weight-medium">{{ t('Active links') }}</span>
       <v-spacer />
-      <span class="text-caption text-medium-emphasis" data-test="active-links-count">{{ links.length }} open</span>
+      <span class="text-caption text-medium-emphasis" data-test="active-links-count">{{ t('{n} open', { n: links.length }) }}</span>
     </div>
     <v-card variant="outlined">
       <v-list class="py-0" density="compact" lines="two">
@@ -25,7 +25,7 @@
               <v-btn
                 data-test="active-link-copy"
                 size="small"
-                :text="copied === link.path ? 'Copied' : 'Copy'"
+                :text="copied === link.path ? t('Copied') : t('Copy')"
                 variant="text"
                 @click="copy(link)"
               />
@@ -34,7 +34,7 @@
                 rel="noopener"
                 size="small"
                 target="_blank"
-                text="Open"
+                :text="t('Open')"
                 variant="text"
               />
             </template>
@@ -49,6 +49,7 @@
   import { onMounted, onUnmounted, ref } from 'vue'
   import { authFetch } from '@/composables/useApi'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
   import { linkDetail, linkTitle, linkUrl, timeLeft } from '@/utils/activeLinks'
 
   const links = ref([])

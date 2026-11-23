@@ -3,20 +3,22 @@
   import WarehouseChart from '@/components/Stats/WarehouseChart.vue'
   import { useNotify } from '@/composables/useNotify'
   import { useWarehouseTreemap } from '@/composables/useWarehouseTreemap'
+  import { t } from '@/i18n'
 
   const notify = useNotify()
   const { fetchRows, totals, locationOptions } = useWarehouseTreemap()
 
-  const options = ref([{ title: 'All Locations', value: 'all' }])
+  const locations = ref([])
+  const options = computed(() => [{ title: t('All Locations'), value: 'all' }, ...locations.value])
   const selected = ref('all')
 
   const totalValue = computed(() => '$ ' + Math.round(totals(selected.value).valueCents / 100).toLocaleString('en-US'))
-  const totalCount = computed(() => totals(selected.value).qty.toLocaleString('en-US') + ' units')
+  const totalCount = computed(() => t('{n} units', { n: totals(selected.value).qty.toLocaleString('en-US') }))
 
   onMounted(async () => {
     try {
       await fetchRows()
-      options.value = [{ title: 'All Locations', value: 'all' }, ...locationOptions()]
+      locations.value = locationOptions()
     } catch (error) {
       notify.error(error.message)
     }
@@ -31,7 +33,7 @@
         density="compact"
         hide-details
         :items="options"
-        label="Location"
+        :label="t('Location')"
         max-width="260"
         variant="outlined"
       />
@@ -39,7 +41,7 @@
       <v-spacer />
       <div class="text-center">
         <div class="text-h6 font-weight-bold">{{ totalValue }}</div>
-        <div class="text-caption text-medium-emphasis">Total book value &middot; {{ totalCount }}</div>
+        <div class="text-caption text-medium-emphasis">{{ t('Total book value') }} &middot; {{ totalCount }}</div>
       </div>
       <v-spacer />
     </div>

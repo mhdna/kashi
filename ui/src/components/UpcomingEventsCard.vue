@@ -37,7 +37,7 @@
 
     <v-card class="menu-card" max-width="400" min-width="300">
       <v-card-title class="d-flex align-center ga-2 py-2">
-        <span class="text-subtitle-2">Upcoming events</span>
+        <span class="text-subtitle-2">{{ t('Upcoming events') }}</span>
         <v-spacer />
         <span class="text-caption text-medium-emphasis">next {{ menuLabel }}</span>
       </v-card-title>
@@ -72,6 +72,7 @@
   import { getEventsForRange } from '@/data/retailCalendarEvents'
   import { useAuthStore } from '@/stores/auth'
   import { useSettingsStore } from '@/stores/settings'
+  import { t } from '@/i18n'
 
   const settingsStore = useSettingsStore()
   const auth = useAuthStore()

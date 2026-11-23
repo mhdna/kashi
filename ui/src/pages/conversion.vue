@@ -3,7 +3,7 @@
     <!-- Header / controls -- same shape as the Footfall page it extends -->
     <div class="d-flex align-center flex-wrap ga-3 pa-4 pb-2">
       <v-icon icon="mdi-percent-outline" />
-      <div class="text-h6 font-weight-medium">Conversion</div>
+      <div class="text-h6 font-weight-medium">{{ t('Conversion') }}</div>
       <v-spacer />
       <v-select
         v-model="rangeMonths"
@@ -20,22 +20,22 @@
         density="compact"
         hide-details
         :items="branchOptions"
-        label="Branches"
+        :label="t('Branches')"
         multiple
         style="min-width: 220px; max-width: 340px"
         variant="outlined"
       >
         <template #prepend-item>
-          <v-list-item title="All branches" @click="selectedBranchIds = []" />
+          <v-list-item :title="t('All branches')" @click="selectedBranchIds = []" />
           <v-divider />
         </template>
       </v-select>
     </div>
 
-    <PreparingState v-if="loading" kind="chart" title="Working out conversion" />
+    <PreparingState v-if="loading" kind="chart" :title="t('Working out conversion')" />
 
     <v-alert v-else-if="rows.length === 0" class="cv-notice mx-4" type="info" variant="tonal">
-      No footfall or sales in this range.
+      {{ t('No footfall or sales in this range.') }}
     </v-alert>
 
     <v-container v-else class="pa-4 pt-2" fluid>
@@ -65,7 +65,7 @@
       <v-row dense>
         <v-col cols="12" md="8">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Conversion rate by month</div>
+            <div class="chart-card__title">{{ t('Conversion rate by month') }}</div>
             <div v-if="tooManyBranchesForTrend" class="chart-card__subtitle">
               {{ activeBranchIds.length }} branches selected — showing the combined rate. Narrow the branch filter to compare individual lines.
             </div>
@@ -74,7 +74,7 @@
         </v-col>
         <v-col cols="12" md="4">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Conversion by weekday</div>
+            <div class="chart-card__title">{{ t('Conversion by weekday') }}</div>
             <v-chart autoresize class="chart" :option="weekdayOption" />
           </v-card>
         </v-col>
@@ -84,13 +84,13 @@
       <v-row dense>
         <v-col cols="12" md="7">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Visitors vs invoices by month</div>
+            <div class="chart-card__title">{{ t('Visitors vs invoices by month') }}</div>
             <v-chart autoresize class="chart" :option="funnelOption" />
           </v-card>
         </v-col>
         <v-col cols="12" md="5">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Branch comparison — conversion rate</div>
+            <div class="chart-card__title">{{ t('Branch comparison — conversion rate') }}</div>
             <v-chart autoresize class="chart" :option="branchOption" />
           </v-card>
         </v-col>
@@ -100,14 +100,14 @@
       <v-row dense>
         <v-col cols="12">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Conversion rate — month × branch</div>
+            <div class="chart-card__title">{{ t('Conversion rate — month × branch') }}</div>
             <div class="table-scroll">
               <v-table density="compact">
                 <thead>
                   <tr>
-                    <th class="text-left">Month</th>
+                    <th class="text-left">{{ t('Month') }}</th>
                     <th v-for="b in tableBranches" :key="b.id" class="text-right">{{ b.name }}</th>
-                    <th class="text-right font-weight-bold">Overall</th>
+                    <th class="text-right font-weight-bold">{{ t('Overall') }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -121,7 +121,7 @@
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td class="font-weight-bold">Overall</td>
+                    <td class="font-weight-bold">{{ t('Overall') }}</td>
                     <td v-for="b in tableBranches" :key="b.id" class="text-right font-weight-bold">
                       {{ pctOrDash(branchOverall[b.id]) }}
                     </td>
@@ -138,6 +138,7 @@
 </template>
 
 <script setup>
+  import { t } from '@/i18n'
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import VChart from '@/components/EChart.vue'
   import { useTheme } from 'vuetify'
@@ -173,9 +174,9 @@
   }))
 
   const RANGE_OPTIONS = [
-    { title: 'Last 3 months', value: 3 },
-    { title: 'Last 6 months', value: 6 },
-    { title: 'Last 12 months', value: 12 },
+    { title: t('Last 3 months'), value: 3 },
+    { title: t('Last 6 months'), value: 6 },
+    { title: t('Last 12 months'), value: 12 },
   ]
   // Past this many branches the per-branch trend lines just cycle echarts'
   // palette and stop being readable -- collapse to one combined rate line
@@ -420,23 +421,23 @@
       : null
     return [
       {
-        label: 'Conversion rate',
+        label: t('Conversion rate'),
         value: overallRate.value == null ? '—' : pct(overallRate.value),
         delta,
-        hint: 'invoices ÷ visitors',
+        hint: t('invoices ÷ visitors'),
       },
-      { label: 'Visitors in', value: totalVisitors.value.toLocaleString() },
-      { label: 'Invoices', value: totalInvoices.value.toLocaleString() },
+      { label: t('Visitors in'), value: totalVisitors.value.toLocaleString() },
+      { label: t('Invoices'), value: totalInvoices.value.toLocaleString() },
       {
-        label: 'Avg invoice',
+        label: t('Avg invoice'),
         value: totalInvoices.value > 0 ? money(totalRevenue.value / totalInvoices.value) : '—',
-        hint: 'revenue ÷ invoices',
+        hint: t('revenue ÷ invoices'),
       },
       {
-        label: 'Revenue / visitor',
+        label: t('Revenue / visitor'),
         value: totalVisitors.value > 0 ? money(totalRevenue.value / totalVisitors.value) : '—',
       },
-      { label: 'Revenue', value: money(totalRevenue.value) },
+      { label: t('Revenue'), value: money(totalRevenue.value) },
     ]
   })
 

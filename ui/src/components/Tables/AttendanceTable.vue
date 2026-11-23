@@ -9,7 +9,7 @@
             variant="outlined"
             @click="setToday"
           >
-            Today
+            {{ t('Today') }}
           </v-btn>
           <v-btn
             color="grey-darken-2"
@@ -51,16 +51,16 @@
             </template>
             <v-list>
               <v-list-item @click="type = 'day'">
-                <v-list-item-title>Day</v-list-item-title>
+                <v-list-item-title>{{ t('Day') }}</v-list-item-title>
               </v-list-item>
               <v-list-item @click="type = 'week'">
-                <v-list-item-title>Week</v-list-item-title>
+                <v-list-item-title>{{ t('Week') }}</v-list-item-title>
               </v-list-item>
               <v-list-item @click="type = 'month'">
-                <v-list-item-title>Month</v-list-item-title>
+                <v-list-item-title>{{ t('Month') }}</v-list-item-title>
               </v-list-item>
               <v-list-item @click="type = '4day'">
-                <v-list-item-title>4 days</v-list-item-title>
+                <v-list-item-title>{{ t('4 days') }}</v-list-item-title>
               </v-list-item>
             </v-list>
           </v-menu>
@@ -114,7 +114,7 @@
                 variant="text"
                 @click="selectedOpen = false"
               >
-                Cancel
+                {{ t('Cancel') }}
               </v-btn>
             </v-card-actions>
           </v-card>
@@ -125,14 +125,15 @@
 </template>
 <script setup>
   import { onMounted, ref } from 'vue'
+  import { t } from '@/i18n'
 
   const calendar = ref()
 
   const typeToLabel = {
-    'month': 'Month',
-    'week': 'Week',
-    'day': 'Day',
-    '4day': '4 Days',
+    'month': t('Month'),
+    'week': t('Week'),
+    'day': t('Day'),
+    '4day': t('4 Days'),
   }
   const colors = ['blue', 'indigo', 'deep-purple', 'cyan', 'green', 'orange', 'grey darken-1']
   const names = ['Abbass', 'Sara', 'Fatima', 'Alex', 'Batoul', 'Hadi', 'Hussein', 'Alex']

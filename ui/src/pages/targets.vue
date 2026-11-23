@@ -3,7 +3,7 @@
     <!-- Header / controls -->
     <div class="d-flex align-center flex-wrap ga-3 pa-4 pb-2">
       <v-icon icon="mdi-target" />
-      <div class="text-h6 font-weight-medium">Targets</div>
+      <div class="text-h6 font-weight-medium">{{ t('Targets') }}</div>
       <v-spacer />
       <v-select
         v-model="selectedPeriod"
@@ -20,19 +20,19 @@
         density="compact"
         hide-details
         :items="branchOptions"
-        label="Branches"
+        :label="t('Branches')"
         multiple
         style="min-width: 220px; max-width: 340px"
         variant="outlined"
       >
         <template #prepend-item>
-          <v-list-item title="All branches" @click="selectedBranchIds = []" />
+          <v-list-item :title="t('All branches')" @click="selectedBranchIds = []" />
           <v-divider />
         </template>
       </v-select>
     </div>
 
-    <PreparingState v-if="loading" kind="chart" title="Working out target progress" />
+    <PreparingState v-if="loading" kind="chart" :title="t('Working out target progress')" />
 
     <v-alert v-else-if="allTargets.length === 0" class="tg-notice mx-4" type="info" variant="tonal">
       No targets set on any branch yet.
@@ -87,12 +87,12 @@
               <v-table density="compact">
                 <thead>
                   <tr>
-                    <th class="text-left">Branch</th>
-                    <th class="text-left">Period</th>
-                    <th class="text-right">Achieved</th>
-                    <th class="text-right">Target</th>
-                    <th class="text-left" style="min-width: 160px">Progress</th>
-                    <th class="text-left">Status</th>
+                    <th class="text-left">{{ t('Branch') }}</th>
+                    <th class="text-left">{{ t('Period') }}</th>
+                    <th class="text-right">{{ t('Achieved') }}</th>
+                    <th class="text-right">{{ t('Target') }}</th>
+                    <th class="text-left" style="min-width: 160px">{{ t('Progress') }}</th>
+                    <th class="text-left">{{ t('Status') }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -137,6 +137,7 @@
   import { useBranchTargets } from '@/composables/useBranchTargets'
   import { useNotify } from '@/composables/useNotify'
   import { ymd } from '@/utils/dates'
+  import { t } from '@/i18n'
 
   const { branches, fetchBranches } = useBranches()
   const { listBranchTargets } = useBranchTargets()

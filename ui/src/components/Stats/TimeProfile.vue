@@ -5,6 +5,7 @@
 <script setup>
   import VChart from '@/components/EChart.vue'
   import { graphic } from '@/plugins/echarts'
+  import { t } from '@/i18n'
 
   const data = []
   const dataCount = 10
@@ -74,7 +75,7 @@
       },
     },
     title: {
-      text: 'Profile',
+      text: t('Profile'),
       left: 'center',
     },
     dataZoom: [

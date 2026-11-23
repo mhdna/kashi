@@ -18,14 +18,14 @@
         <v-btn
           v-if="kind === 'discount'"
           prepend-icon="mdi-gift-outline"
-          text="Deals"
+          :text="t('Deals')"
           variant="tonal"
           @click="dealsDialog = true"
         />
         <v-btn
           v-if="kind === 'discount'"
           prepend-icon="mdi-receipt-text-outline"
-          text="Invoice discounts"
+          :text="t('Invoice discounts')"
           variant="tonal"
           @click="invoiceDiscountsDialog = true"
         />
@@ -33,7 +33,7 @@
           v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
-          :text="`Add ${cfg.singularTitle}`"
+          :text="kind === 'price' ? t('Add Price List') : t('Add Discount List')"
           variant="flat"
           @click="openCreateList"
         />
@@ -44,7 +44,7 @@
         <PageSidebar v-model="selectedListId" :items="listItems" :width="240">
           <template #append="{ item }">
             <v-icon v-if="item.is_special" color="amber-darken-2" icon="mdi-star" size="16" />
-            <v-chip v-if="item.is_default" color="primary" size="x-small" text="Default" />
+            <v-chip v-if="item.is_default" color="primary" size="x-small" :text="t('Default')" />
             <v-icon
               v-else-if="!item.is_active"
               color="grey"
@@ -58,24 +58,24 @@
 
         <div class="vlm-content">
           <div v-if="!selectedList" class="pa-6 text-medium-emphasis">
-            Select a {{ cfg.singular }} on the left, or add one.
+            {{ kind === 'price' ? t('Select a price list on the left, or add one.') : t('Select a discount list on the left, or add one.') }}
           </div>
 
           <template v-else>
             <div class="d-flex align-center flex-wrap ga-2 pa-4 pb-2">
               <span class="text-h6">{{ selectedList.name }}</span>
-              <v-chip v-if="selectedList.is_default" color="primary" size="small" text="Default" />
+              <v-chip v-if="selectedList.is_default" color="primary" size="small" :text="t('Default')" />
               <v-chip
                 :color="selectedList.is_active ? 'success' : 'grey'"
                 size="small"
-                :text="selectedList.is_active ? 'Active' : 'Inactive'"
+                :text="selectedList.is_active ? t('Active') : t('Inactive')"
               />
               <v-chip
                 v-if="selectedList.is_special"
                 color="amber-darken-2"
                 prepend-icon="mdi-star"
                 size="small"
-                text="Special"
+                :text="t('Special')"
               />
               <span class="text-medium-emphasis text-body-2">
                 {{ formatDate(selectedList.valid_from) }} – {{ formatDate(selectedList.valid_to) }}
@@ -85,7 +85,7 @@
                 v-if="canEdit"
                 prepend-icon="mdi-store-outline"
                 size="small"
-                text="Branches"
+                :text="t('Branches')"
                 variant="tonal"
                 @click="branchesDialog = true"
               />
@@ -131,7 +131,7 @@
                 item-title="label"
                 item-value="id"
                 :items="variantOptions"
-                label="Product variant"
+                :label="t('Product variant')"
                 :loading="variantSearchLoading"
                 no-filter
                 return-object
@@ -145,7 +145,7 @@
                 :disabled="addDealId !== 0"
                 hide-details
                 :items="saleOptionChoices"
-                label="Sold as"
+                :label="t('Sold as')"
                 style="max-width: 150px;"
                 variant="outlined"
               />
@@ -155,7 +155,7 @@
                 density="compact"
                 hide-details
                 :items="dealChoices"
-                label="Gives"
+                :label="t('Gives')"
                 style="max-width: 190px;"
                 variant="outlined"
               />
@@ -176,21 +176,21 @@
                 color="primary"
                 :disabled="!addVariant || (addValue === '' && addDealId === 0)"
                 :loading="addingItem"
-                text="Add"
+                :text="t('Add')"
                 variant="flat"
                 @click="addItem"
               />
               <v-btn
                 v-if="kind === 'discount'"
                 prepend-icon="mdi-playlist-plus"
-                text="Paste codes"
+                :text="t('Paste codes')"
                 variant="tonal"
                 @click="bulkDialog = true"
               />
               <v-btn
                 v-if="kind === 'discount'"
                 prepend-icon="mdi-tag-multiple"
-                text="Ask at the till"
+                :text="t('Ask at the till')"
                 variant="tonal"
                 @click="optionsDialog = true"
               />
@@ -202,7 +202,7 @@
               clearable
               density="compact"
               hide-details
-              label="Search products in this list"
+              :label="t('Search products in this list')"
               prepend-inner-icon="mdi-magnify"
               variant="outlined"
             />
@@ -235,11 +235,11 @@
               </template>
               <template #item.sale_option="{ item }">
                 <v-chip v-if="item.sale_option" size="small" :text="item.sale_option" />
-                <span v-else class="text-medium-emphasis">Any</span>
+                <span v-else class="text-medium-emphasis">{{ t('Any') }}</span>
               </template>
               <template #item.rule_name="{ item }">
-                <span v-if="item.from_rule" class="text-medium-emphasis">{{ item.rule_name || 'Rule' }}</span>
-                <span v-else>By hand</span>
+                <span v-if="item.from_rule" class="text-medium-emphasis">{{ item.rule_name || t('Rule') }}</span>
+                <span v-else>{{ t('By hand') }}</span>
               </template>
               <template #[`item.${cfg.valueKey}`]="{ item }">
                 <v-chip
@@ -261,15 +261,15 @@
     <!-- create / edit list -->
     <v-dialog v-model="listDialog" max-width="520">
       <v-card>
-        <v-card-title>{{ editingList ? `Edit ${cfg.singularTitle}` : `Add ${cfg.singularTitle}` }}</v-card-title>
+        <v-card-title>{{ editingList ? (kind === 'price' ? t('Edit Price List') : t('Edit Discount List')) : (kind === 'price' ? t('Add Price List') : t('Add Discount List')) }}</v-card-title>
         <v-card-text>
-          <v-text-field v-model="listForm.name" density="compact" label="Name" variant="outlined" />
+          <v-text-field v-model="listForm.name" density="compact" :label="t('Name')" variant="outlined" />
           <v-row>
             <v-col cols="6">
               <DateField
                 v-model="listForm.validFrom"
                 density="compact"
-                label="Valid From"
+                :label="t('Valid From')"
                 variant="outlined"
               />
             </v-col>
@@ -277,7 +277,7 @@
               <DateField
                 v-model="listForm.validTo"
                 density="compact"
-                label="Valid To"
+                :label="t('Valid To')"
                 variant="outlined"
               />
             </v-col>
@@ -288,35 +288,34 @@
               color="primary"
               density="compact"
               hide-details
-              label="Active"
+              :label="t('Active')"
             />
             <v-switch
               v-model="listForm.isDefault"
               color="primary"
               density="compact"
               hide-details
-              label="Default"
+              :label="t('Default')"
             />
             <v-switch
               v-model="listForm.isSpecial"
               color="amber-darken-2"
               density="compact"
               hide-details
-              label="Special"
+              :label="t('Special')"
             />
           </div>
           <p class="text-caption text-medium-emphasis mt-1">
-            Special lists get a star badge on the till's invoice screen, so cashiers notice
-            the price came from a promo/loyalty list rather than the usual catalog price.
+            {{ t("Special lists get a star badge on the till's invoice screen, so cashiers notice the price came from a promo/loyalty list rather than the usual catalog price.") }}
           </p>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="listDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="listDialog = false" />
           <v-btn
             color="primary"
             :loading="savingList"
-            text="Save"
+            :text="t('Save')"
             variant="flat"
             @click="saveList"
           />
@@ -327,11 +326,10 @@
     <!-- edit item value -->
     <v-dialog v-model="bulkDialog" max-width="520">
       <v-card>
-        <v-card-title>Add many products to this list</v-card-title>
+        <v-card-title>{{ t('Add many products to this list') }}</v-card-title>
         <v-card-text>
           <p class="text-body-2 text-medium-emphasis mb-3">
-            Paste product codes or barcodes, one per line or separated by commas. A product code
-            covers all of its colours and sizes. Tills pick the change up within seconds.
+            {{ t('Paste product codes or barcodes, one per line or separated by commas. A product code covers all of its colours and sizes. Tills pick the change up within seconds.') }}
           </p>
           <v-textarea
             v-model="bulkEntries"
@@ -339,7 +337,7 @@
             autofocus
             density="compact"
             hide-details
-            label="Codes or barcodes"
+            :label="t('Codes or barcodes')"
             rows="5"
             variant="outlined"
           />
@@ -349,7 +347,7 @@
               density="compact"
               hide-details
               :items="dealChoices"
-              label="Gives"
+              :label="t('Gives')"
               style="max-width: 200px;"
               variant="outlined"
             />
@@ -358,7 +356,7 @@
               v-model="bulkValue"
               density="compact"
               hide-details
-              label="Discount"
+              :label="t('Discount')"
               style="max-width: 160px;"
               suffix="%"
               type="number"
@@ -370,14 +368,13 @@
               density="compact"
               hide-details
               :items="saleOptionChoices"
-              label="Only when sold as"
+              :label="t('Only when sold as')"
               style="max-width: 200px;"
               variant="outlined"
             />
           </div>
           <p v-if="bulkSaleOptionId" class="text-caption text-medium-emphasis mt-1">
-            Applies only when the till sells the product as this option, and wins over the
-            product's plain discount then. The products must also ask for it at the till.
+            {{ t("Applies only when the till sells the product as this option, and wins over the product's plain discount then. The products must also ask for it at the till.") }}
           </p>
           <v-alert
             v-if="bulkUnmatched.length > 0"
@@ -386,17 +383,17 @@
             type="warning"
             variant="tonal"
           >
-            Not found: {{ bulkUnmatched.join(', ') }}
+            {{ t('Not found: {codes}', { codes: bulkUnmatched.join(', ') }) }}
           </v-alert>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Close" variant="text" @click="bulkDialog = false" />
+          <v-btn :text="t('Close')" variant="text" @click="bulkDialog = false" />
           <v-btn
             color="primary"
             :disabled="!bulkEntries.trim() || (bulkValue === '' && bulkDealId === 0)"
             :loading="bulkSaving"
-            text="Apply"
+            :text="t('Apply')"
             variant="flat"
             @click="applyBulk"
           />
@@ -410,7 +407,7 @@
           {{ editItemTarget?.product_code }} — {{ editItemTarget?.product_name }}
           <div class="text-caption text-medium-emphasis">
             {{ variantText(editItemTarget) }} · {{ editItemTarget?.barcode }}
-            <template v-if="editItemTarget?.sale_option"> · sold as {{ editItemTarget.sale_option }}</template>
+            <template v-if="editItemTarget?.sale_option"> · {{ t('sold as {option}', { option: editItemTarget.sale_option }) }}</template>
           </div>
         </v-card-title>
         <v-card-text>
@@ -421,7 +418,7 @@
             density="compact"
             hide-details
             :items="dealChoices"
-            label="Gives"
+            :label="t('Gives')"
             variant="outlined"
           />
           <v-text-field
@@ -442,16 +439,16 @@
           <v-btn
             color="error"
             prepend-icon="mdi-delete"
-            text="Remove"
+            :text="t('Remove')"
             variant="text"
             @click="deleteCurrentItem"
           />
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="editItemDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="editItemDialog = false" />
           <v-btn
             color="primary"
             :loading="savingItem"
-            text="Save"
+            :text="t('Save')"
             variant="flat"
             @click="saveEditItem"
           />
@@ -462,13 +459,10 @@
     <!-- which products the till asks a sale option for -->
     <v-dialog v-model="optionsDialog" max-width="520">
       <v-card>
-        <v-card-title>Ask at the till</v-card-title>
+        <v-card-title>{{ t('Ask at the till') }}</v-card-title>
         <v-card-text>
           <p class="text-body-2 text-medium-emphasis mb-3">
-            When one of these products is scanned, the till asks which option is being sold
-            (e.g. Summer or Winter) and shows each option's discount. This belongs to the
-            product, not this list: it applies in every branch. Choosing no option stops the
-            till asking.
+            {{ t("When one of these products is scanned, the till asks which option is being sold (e.g. Summer or Winter) and shows each option's discount. This belongs to the product, not this list: it applies in every branch. Choosing no option stops the till asking.") }}
           </p>
           <v-textarea
             v-model="optionsEntries"
@@ -476,7 +470,7 @@
             autofocus
             density="compact"
             hide-details
-            label="Codes or barcodes"
+            :label="t('Codes or barcodes')"
             rows="5"
             variant="outlined"
           />
@@ -487,7 +481,7 @@
             density="compact"
             hide-details
             :items="saleOptionChoices.filter(o => o.value)"
-            label="Options to ask"
+            :label="t('Options to ask')"
             multiple
             variant="outlined"
           />
@@ -498,17 +492,17 @@
             type="warning"
             variant="tonal"
           >
-            Not found: {{ optionsUnmatched.join(', ') }}
+            {{ t('Not found: {codes}', { codes: optionsUnmatched.join(', ') }) }}
           </v-alert>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Close" variant="text" @click="optionsDialog = false" />
+          <v-btn :text="t('Close')" variant="text" @click="optionsDialog = false" />
           <v-btn
             color="primary"
             :disabled="!optionsEntries.trim()"
             :loading="optionsSaving"
-            text="Apply"
+            :text="t('Apply')"
             variant="flat"
             @click="applyOptions"
           />
@@ -519,17 +513,17 @@
     <!-- delete list -->
     <v-dialog v-model="deleteListDialog" max-width="420">
       <v-card>
-        <v-card-title>Delete {{ cfg.singular }}</v-card-title>
+        <v-card-title>{{ kind === 'price' ? t('Delete price list') : t('Delete discount list') }}</v-card-title>
         <v-card-text>
-          Delete <strong>{{ selectedList?.name }}</strong> and all its entries? This can't be undone.
+          {{ t('Delete') }} <strong>{{ selectedList?.name }}</strong> {{ t("and all its entries? This can't be undone.") }}
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="deleteListDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="deleteListDialog = false" />
           <v-btn
             color="error"
             :loading="deletingList"
-            text="Delete"
+            :text="t('Delete')"
             variant="flat"
             @click="doDeleteList"
           />
@@ -545,7 +539,7 @@
       :kind="cfg.singular"
       :load-fn="() => fetchBranchIds(selectedList.id)"
       :save-fn="ids => setBranches(selectedList.id, ids)"
-      :title="`Branches using “${selectedList?.name}”`"
+      :title="t('Branches using “{name}”', { name: selectedList?.name })"
     />
   </div>
 </template>
@@ -560,6 +554,7 @@
   import PageSidebar from '@/components/PageSidebar.vue'
   import BulkDeleteBar from '@/components/Tables/BulkDeleteBar.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
+  import { t } from '@/i18n'
   import { authFetch } from '@/composables/useApi'
   import { useBulkDelete } from '@/composables/useBulkDelete'
   import { useDeals } from '@/composables/useDeals'
@@ -582,11 +577,11 @@
   const CONFIGS = {
     price: {
       icon: 'mdi-format-list-bulleted',
-      title: 'Price Lists',
+      get title () { return t('Price Lists') },
       singular: 'price list',
       singularTitle: 'Price List',
       valueKey: 'price',
-      valueLabel: 'Price',
+      get valueLabel () { return t('Price') },
       prefix: '$',
       suffix: undefined,
       parse: v => Math.round(Number.parseFloat(v) * 100),
@@ -595,11 +590,11 @@
     },
     discount: {
       icon: 'mdi-sale',
-      title: 'Discount Lists',
+      get title () { return t('Discount Lists') },
       singular: 'discount list',
       singularTitle: 'Discount List',
       valueKey: 'discount',
-      valueLabel: 'Discount',
+      get valueLabel () { return t('Discount') },
       prefix: undefined,
       suffix: '%',
       parse: v => Math.round(Number.parseFloat(v)),
@@ -619,14 +614,14 @@
   // product shares them — so the variant's colour/size and barcode are shown
   // alongside.
   const itemHeaders = computed(() => [
-    { title: 'Code', key: 'product_code', align: 'start', width: 140 },
-    { title: 'Product', key: 'product_name', align: 'start' },
-    { title: 'Variant', key: 'variant', align: 'start', width: 160, sortable: false },
-    { title: 'Barcode', key: 'barcode', align: 'start', width: 150 },
+    { title: t('Code'), key: 'product_code', align: 'start', width: 140 },
+    { title: t('Product'), key: 'product_name', align: 'start' },
+    { title: t('Variant'), key: 'variant', align: 'start', width: 160, sortable: false },
+    { title: t('Barcode'), key: 'barcode', align: 'start', width: 150 },
     ...(props.kind === 'discount'
       ? [
-        { title: 'Sold as', key: 'sale_option', align: 'start', width: 110, sortable: false },
-        { title: 'From', key: 'rule_name', align: 'start', width: 130, sortable: false },
+        { title: t('Sold as'), key: 'sale_option', align: 'start', width: 110, sortable: false },
+        { title: t('From'), key: 'rule_name', align: 'start', width: 130, sortable: false },
       ]
       : []),
     { title: cfg.value.valueLabel, key: cfg.value.valueKey, align: 'end', width: 140 },
@@ -637,14 +632,14 @@
   // these (Summer/Winter); 0 is the plain row that applies otherwise.
   const saleOptions = ref([])
   const saleOptionChoices = computed(() => [
-    { title: 'Any', value: 0 },
+    { title: t('Any'), value: 0 },
     ...saleOptions.value.map(o => ({ title: o.name, value: o.id })),
   ])
 
   async function fetchSaleOptions () {
     const res = await authFetch(`${API_BASE}/sale_options`)
     const data = await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(data.error || `Request failed with status ${res.status}`)
+    if (!res.ok) throw new Error(data.error || t('Request failed with status {status}', { status: res.status }))
     saleOptions.value = data.sale_options ?? []
   }
 
@@ -659,7 +654,7 @@
   const dealsDialog = ref(false)
   const invoiceDiscountsDialog = ref(false)
   const dealChoices = computed(() => [
-    { title: 'A discount', value: 0 },
+    { title: t('A discount'), value: 0 },
     ...deals.value.map(d => ({ title: d.name, value: d.id })),
   ])
 
@@ -690,11 +685,11 @@
         }),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || `Request failed with status ${res.status}`)
+      if (!res.ok) throw new Error(data.error || t('Request failed with status {status}', { status: res.status }))
       optionsUnmatched.value = data.unmatched ?? []
       notify.success(optionsSelected.value.length > 0
-        ? `${data.set} product(s) will ask at the till.`
-        : 'Those products no longer ask at the till.')
+        ? t('{count} product(s) will ask at the till.', { count: data.set })
+        : t('Those products no longer ask at the till.'))
       if (optionsUnmatched.value.length === 0) {
         optionsDialog.value = false
         optionsEntries.value = ''
@@ -806,7 +801,7 @@
     if (addValue.value === '') return
     const parsed = cfg.value.parse(addValue.value)
     if (!Number.isFinite(parsed) || parsed < 0) {
-      notify.error(`Enter a valid ${cfg.value.valueLabel.toLowerCase()}.`)
+      notify.error(props.kind === 'price' ? t('Enter a valid price.') : t('Enter a valid discount.'))
       return
     }
     addingItem.value = true
@@ -848,7 +843,7 @@
     const dealId = bulkDealId.value
     const discount = dealId ? 0 : Number(bulkValue.value)
     if (!Number.isInteger(discount) || discount < 0 || discount > 100) {
-      notify.error('Enter a discount from 0 to 100.')
+      notify.error(t('Enter a discount from 0 to 100.'))
       return
     }
     bulkSaving.value = true
@@ -865,11 +860,11 @@
         }),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || `Request failed with status ${res.status}`)
+      if (!res.ok) throw new Error(data.error || t('Request failed with status {status}', { status: res.status }))
       bulkUnmatched.value = data.unmatched ?? []
       notify.success(dealId
-        ? `${data.set} product(s) put on ${dealChoices.value.find(d => d.value === dealId)?.title}.`
-        : `${data.set} product(s) set to ${discount}%.`)
+        ? t('{count} product(s) put on {deal}.', { count: data.set, deal: dealChoices.value.find(d => d.value === dealId)?.title })
+        : t('{count} product(s) set to {discount}%.', { count: data.set, discount }))
       if (bulkUnmatched.value.length === 0) {
         bulkDialog.value = false
         bulkEntries.value = ''
@@ -955,7 +950,7 @@
 
   async function saveList () {
     if (!listForm.name.trim() || !listForm.validFrom || !listForm.validTo) {
-      notify.error('Name and both dates are required.')
+      notify.error(t('Name and both dates are required.'))
       return
     }
     savingList.value = true

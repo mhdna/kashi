@@ -5,7 +5,7 @@
         icon="mdi-cart-check"
         :loading="loading"
         :prev-value="prevMetric('items_sold')"
-        title="Items Sold"
+        :title="t('Items Sold')"
         unit=""
         :value="metric('items_sold')"
       />
@@ -13,7 +13,7 @@
         icon="mdi-card-account-details"
         :loading="loading"
         :prev-value="prevMetric('new_clients')"
-        title="New Clients"
+        :title="t('New Clients')"
         unit=""
         :value="metric('new_clients')"
       />
@@ -21,7 +21,7 @@
         icon="mdi-invoice"
         :loading="loading"
         :prev-value="prevMetric('invoices')"
-        title="Invoices"
+        :title="t('Invoices')"
         unit=""
         :value="metric('invoices')"
       />
@@ -29,7 +29,7 @@
         icon="mdi-hand-coin"
         :loading="loading"
         :prev-value="prevMetric('due_loans')"
-        title="Due Loans"
+        :title="t('Due Loans')"
         unit="$"
         :value="metric('due_loans')"
       />
@@ -37,7 +37,7 @@
         icon="mdi-package-variant"
         :loading="loading"
         :prev-value="prevMetric('purchases')"
-        title="Purchases"
+        :title="t('Purchases')"
         unit="$"
         :value="metric('purchases')"
       />
@@ -45,7 +45,7 @@
         icon="mdi-target"
         :loading="loading"
         :prev-value="prevMetric('targets_pct')"
-        title="Targets"
+        :title="t('Targets')"
         unit="%"
         :value="metric('targets_pct')"
       />
@@ -53,7 +53,7 @@
         icon="mdi-receipt-text-check"
         :loading="loading"
         :prev-value="prevAvgInvoice"
-        title="Avg Invoice"
+        :title="t('Avg Invoice')"
         unit="$"
         :value="avgInvoice"
       />
@@ -61,7 +61,7 @@
         icon="mdi-account-cash"
         :loading="loading"
         :prev-value="prevRevPerClient"
-        title="Revenue / Client"
+        :title="t('Revenue / Client')"
         unit="$"
         :value="revPerClient"
       />
@@ -73,6 +73,7 @@
   import { computed } from 'vue'
   import MetricCard from '@/components/Cards/MetricCard.vue'
   import { useDashboardSummary } from '@/composables/useDashboardSummary'
+  import { t } from '@/i18n'
 
   const { summary, prevSummary, loading } = useDashboardSummary()
 

@@ -8,12 +8,12 @@
     <v-card rounded="lg">
       <v-card-title class="d-flex align-center ga-2 px-4 py-3">
         <v-icon icon="mdi-tag-multiple" />
-        <span>Invoice Types</span>
+        <span>{{ t('Invoice Types') }}</span>
         <v-spacer />
         <v-btn
           color="primary"
           prepend-icon="mdi-plus"
-          text="Add Invoice Type"
+          :text="t('Add Invoice Type')"
           variant="flat"
           @click="openCreate"
         />
@@ -32,11 +32,11 @@
           @click:row="openRow"
         >
           <template #item.is_default="{ item }">
-            <v-chip v-if="item.is_default" color="primary" size="small">Default</v-chip>
+            <v-chip v-if="item.is_default" color="primary" size="small">{{ t('Default') }}</v-chip>
           </template>
           <template #item.is_active="{ item }">
             <v-chip :color="item.is_active ? 'success' : 'default'" size="small">
-              {{ item.is_active ? 'Active' : 'Inactive' }}
+              {{ item.is_active ? t('Active') : t('Inactive') }}
             </v-chip>
           </template>
         </v-data-table>
@@ -47,7 +47,7 @@
   <v-dialog v-model="formDialog" max-width="420">
     <v-card rounded="lg">
       <v-card-title class="d-flex align-center px-4 py-3 text-h6">
-        {{ editingId ? 'Edit Invoice Type' : 'Add Invoice Type' }}
+        {{ editingId ? t('Edit Invoice Type') : t('Add Invoice Type') }}
         <v-spacer />
         <v-btn icon="mdi-close" size="small" variant="text" @click="closeForm" />
       </v-card-title>
@@ -58,15 +58,15 @@
             v-model="name.value.value"
             density="compact"
             :error-messages="name.errorMessage.value"
-            label="Name"
+            :label="t('Name')"
             variant="outlined"
           />
           <v-text-field
             v-model="code.value.value"
             density="compact"
             :error-messages="code.errorMessage.value"
-            hint="Short code used in invoice numbers, e.g. RT, WS"
-            label="Code"
+            :hint="t('Short code used in invoice numbers, e.g. RT, WS')"
+            :label="t('Code')"
             persistent-hint
             variant="outlined"
           />
@@ -75,16 +75,16 @@
             color="primary"
             density="compact"
             hide-details
-            label="Active"
+            :label="t('Active')"
           />
 
           <v-card-actions class="px-0 pt-4">
             <v-spacer />
-            <v-btn text="Cancel" variant="text" @click="closeForm" />
+            <v-btn :text="t('Cancel')" variant="text" @click="closeForm" />
             <v-btn
               color="primary"
               :loading="submitting"
-              :text="editingId ? 'Save' : 'Add'"
+              :text="editingId ? t('Save') : t('Add')"
               type="submit"
               variant="flat"
             />
@@ -100,6 +100,7 @@
   import { ref, watch } from 'vue'
   import { useInvoiceTypes } from '@/composables/useInvoiceTypes'
   import { useNotify } from '@/composables/useNotify'
+  import { t } from '@/i18n'
 
   const props = defineProps({
     modelValue: {
@@ -117,19 +118,19 @@
   const editingId = ref(null)
 
   const headers = [
-    { title: 'Name', key: 'name', align: 'start' },
-    { title: 'Code', key: 'code', align: 'start' },
+    { title: t('Name'), key: 'name', align: 'start' },
+    { title: t('Code'), key: 'code', align: 'start' },
     { title: '', key: 'is_default', align: 'center', sortable: false },
-    { title: 'Status', key: 'is_active', align: 'center', sortable: false },
+    { title: t('Status'), key: 'is_active', align: 'center', sortable: false },
   ]
 
   const { handleSubmit, handleReset, setValues } = useForm({
     validationSchema: {
       name (value) {
-        return value?.length >= 2 || 'Name needs to be at least 2 characters.'
+        return value?.length >= 2 || t('Name needs to be at least 2 characters.')
       },
       code (value) {
-        return value?.length >= 1 || 'Code is required.'
+        return value?.length >= 1 || t('Code is required.')
       },
     },
   })

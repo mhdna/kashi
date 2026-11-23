@@ -10,25 +10,25 @@
 <template>
   <div class="rlp">
     <div class="rlp-choices">
-      <div class="rlp-label">Theme</div>
+      <div class="rlp-label">{{ t('Theme') }}</div>
       <v-list class="rlp-themes" density="compact" nav>
         <v-list-item
-          v-for="t in themes"
-          :key="t.id"
-          :active="t.id === currentTheme"
+          v-for="th in themes"
+          :key="th.id"
+          :active="th.id === currentTheme"
           :disabled="disabled"
           rounded="lg"
-          :subtitle="t.best_for"
-          :title="t.name"
-          @click="pickTheme(t)"
+          :subtitle="th.best_for"
+          :title="th.name"
+          @click="pickTheme(th)"
         >
-          <template v-if="t.id === savedTheme" #append>
-            <v-chip color="success" size="x-small" variant="tonal">In use</v-chip>
+          <template v-if="th.id === savedTheme" #append>
+            <v-chip color="success" size="x-small" variant="tonal">{{ t('In use') }}</v-chip>
           </template>
         </v-list-item>
       </v-list>
 
-      <div class="rlp-label mt-4">Layout</div>
+      <div class="rlp-label mt-4">{{ t('Layout') }}</div>
       <v-btn-toggle
         class="rlp-layouts"
         color="primary"
@@ -53,7 +53,7 @@
       <!-- The designer puts its editable paper here. -->
       <slot :layout="layoutInfo" name="preview" :theme="themeInfo">
         <img
-          :alt="`${themeInfo.name} receipt, layout ${layoutInfo.id}`"
+          :alt="t('{name} receipt, layout {layout}', { name: themeInfo.name, layout: layoutInfo.id })"
           :src="receiptPreviewURL(layoutInfo.modes?.[0] ?? { file: layoutInfo.preview })"
         >
       </slot>
@@ -63,6 +63,7 @@
 
 <script setup lang="ts">
   import { computed } from 'vue'
+  import { t } from '@/i18n'
   import catalog from '@/data/receiptThemes.json'
   import { receiptPreviewURL } from '@/utils/receiptDesign'
 

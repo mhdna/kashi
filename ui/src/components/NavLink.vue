@@ -13,7 +13,7 @@
   >
     <template v-if="status" #append>
       <span
-        :aria-label="`${item.title} status is ${status}`"
+        :aria-label="t('{title} status is {status}', { title: item.title, status: t(status) })"
         class="nav-status d-flex align-center ga-2"
         role="img"
       >
@@ -21,7 +21,7 @@
       </span>
     </template>
     <template v-else-if="item.append === 'alert-count' && !alertCounts.loaded" #append>
-      <span aria-label="Alerts are loading" class="nav-status d-flex align-center ga-2" role="img">
+      <span :aria-label="t('Alerts are loading')" class="nav-status d-flex align-center ga-2" role="img">
         <span class="nav-status-dot nav-status-dot--loading" />
       </span>
     </template>
@@ -38,6 +38,7 @@
 </template>
 
 <script setup lang="ts">
+  import { t } from '@/i18n'
   defineProps({
     item: { type: Object, required: true },
     status: { type: String, default: null },

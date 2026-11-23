@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="d-flex align-center justify-space-between mb-1">
-      <h3 class="text-subtitle-1">Roles</h3>
+      <h3 class="text-subtitle-1">{{ t('Roles') }}</h3>
       <v-btn
         color="primary"
         prepend-icon="mdi-plus"
@@ -9,22 +9,20 @@
         variant="tonal"
         @click="openEditor()"
       >
-        Add role
+        {{ t('Add role') }}
       </v-btn>
     </div>
     <p class="text-body-2 text-medium-emphasis mb-4">
-      A role decides which pages a user can open, and whether they can change
-      what's on them (add, edit, delete) or only look. Assign roles to users in
-      the Users tab.
+      {{ t("A role decides which pages a user can open, and whether they can change what's on them (add, edit, delete) or only look. Assign roles to users in the Users tab.") }}
     </p>
 
     <v-table density="compact">
       <thead>
         <tr>
-          <th class="text-left">Role</th>
-          <th class="text-left">Access</th>
-          <th class="text-left">Users</th>
-          <th class="text-right">Actions</th>
+          <th class="text-left">{{ t('Role') }}</th>
+          <th class="text-left">{{ t('Access') }}</th>
+          <th class="text-left">{{ t('Users') }}</th>
+          <th class="text-right">{{ t('Actions') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -32,7 +30,7 @@
           <td>{{ r.name }}</td>
           <td>
             <v-chip v-if="r.is_admin" color="primary" size="x-small" variant="tonal">
-              Everything, including users and roles
+              {{ t('Everything, including users and roles') }}
             </v-chip>
             <span v-else class="text-body-2 text-medium-emphasis">{{ summary(r) }}</span>
           </td>
@@ -42,7 +40,7 @@
               <v-btn
                 icon="mdi-pencil"
                 size="small"
-                title="Edit role"
+                :title="t('Edit role')"
                 variant="text"
                 @click="openEditor(r)"
               />
@@ -51,7 +49,7 @@
                 :disabled="r.user_count > 0"
                 icon="mdi-delete"
                 size="small"
-                :title="r.user_count > 0 ? 'Reassign its users first' : 'Delete role'"
+                :title="r.user_count > 0 ? t('Reassign its users first') : t('Delete role')"
                 variant="text"
                 @click="confirmDelete(r)"
               />
@@ -65,25 +63,23 @@
     <v-dialog v-model="editorOpen" max-width="860">
       <v-card>
         <v-card-title class="text-subtitle-1">
-          {{ editing ? `Edit role — ${editing.name}` : 'Add role' }}
+          {{ editing ? t('Edit role: {name}', { name: editing.name }) : t('Add role') }}
         </v-card-title>
         <v-card-text class="pb-0">
           <v-text-field
             v-model="form.name"
             density="compact"
-            label="Role name"
+            :label="t('Role name')"
           />
 
           <div class="d-flex align-center mb-1">
             <span class="text-caption text-medium-emphasis">
-              <strong>View</strong> opens a page read-only. <strong>Edit</strong> also
-              shows its add, edit and delete controls. Switching a section off hides
-              all of its pages but keeps their settings.
+              <strong>{{ t('View') }}</strong> {{ t('opens a page read-only.') }} <strong>{{ t('Edit') }}</strong> {{ t("also shows its add, edit and delete controls. Switching a section off hides all of its pages but keeps their settings.") }}
             </span>
             <v-spacer />
-            <v-btn size="x-small" variant="text" @click="setAll('none')">None</v-btn>
-            <v-btn size="x-small" variant="text" @click="setAll('view')">All view</v-btn>
-            <v-btn size="x-small" variant="text" @click="setAll('edit')">All edit</v-btn>
+            <v-btn size="x-small" variant="text" @click="setAll('none')">{{ t('None') }}</v-btn>
+            <v-btn size="x-small" variant="text" @click="setAll('view')">{{ t('All view') }}</v-btn>
+            <v-btn size="x-small" variant="text" @click="setAll('edit')">{{ t('All edit') }}</v-btn>
           </div>
         </v-card-text>
 
@@ -129,15 +125,15 @@
                   density="compact"
                   hide-details
                   inset
-                  :label="form.sections[s.key] ? 'On' : 'Off'"
+                  :label="form.sections[s.key] ? t('On') : t('Off')"
                 />
               </div>
 
               <template v-if="s.pages?.length">
                 <div class="d-flex justify-end mb-1">
-                  <v-btn :disabled="!form.sections[s.key]" size="x-small" variant="text" @click="setSection(s, 'none')">None</v-btn>
-                  <v-btn :disabled="!form.sections[s.key]" size="x-small" variant="text" @click="setSection(s, 'view')">All view</v-btn>
-                  <v-btn :disabled="!form.sections[s.key]" size="x-small" variant="text" @click="setSection(s, 'edit')">All edit</v-btn>
+                  <v-btn :disabled="!form.sections[s.key]" size="x-small" variant="text" @click="setSection(s, 'none')">{{ t('None') }}</v-btn>
+                  <v-btn :disabled="!form.sections[s.key]" size="x-small" variant="text" @click="setSection(s, 'view')">{{ t('All view') }}</v-btn>
+                  <v-btn :disabled="!form.sections[s.key]" size="x-small" variant="text" @click="setSection(s, 'edit')">{{ t('All edit') }}</v-btn>
                 </div>
                 <div
                   v-for="p in s.pages"
@@ -156,9 +152,9 @@
                     mandatory
                     variant="outlined"
                   >
-                    <v-btn size="small" value="none">None</v-btn>
-                    <v-btn size="small" value="view">View</v-btn>
-                    <v-btn size="small" value="edit">Edit</v-btn>
+                    <v-btn size="small" value="none">{{ t('None') }}</v-btn>
+                    <v-btn size="small" value="view">{{ t('View') }}</v-btn>
+                    <v-btn size="small" value="edit">{{ t('Edit') }}</v-btn>
                   </v-btn-toggle>
                 </div>
               </template>
@@ -169,7 +165,7 @@
         <v-divider />
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="editorOpen = false">Cancel</v-btn>
+          <v-btn variant="text" @click="editorOpen = false">{{ t('Cancel') }}</v-btn>
           <v-btn
             color="primary"
             :disabled="!form.name.trim()"
@@ -177,7 +173,7 @@
             variant="tonal"
             @click="submit"
           >
-            Save
+            {{ t('Save') }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -186,14 +182,14 @@
     <!-- Delete confirm -->
     <v-dialog v-model="deleteOpen" max-width="380">
       <v-card>
-        <v-card-title class="text-subtitle-1">Delete role</v-card-title>
+        <v-card-title class="text-subtitle-1">{{ t('Delete role') }}</v-card-title>
         <v-card-text>
-          Delete <strong>{{ deleteTarget?.name }}</strong>? This cannot be undone.
+          {{ t('Delete') }} <strong>{{ deleteTarget?.name }}</strong>? {{ t('This cannot be undone.') }}
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="deleteOpen = false">Cancel</v-btn>
-          <v-btn color="error" :loading="saving" variant="tonal" @click="submitDelete">Delete</v-btn>
+          <v-btn variant="text" @click="deleteOpen = false">{{ t('Cancel') }}</v-btn>
+          <v-btn color="error" :loading="saving" variant="tonal" @click="submitDelete">{{ t('Delete') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -204,6 +200,7 @@
   import { onMounted, reactive, ref } from 'vue'
   import { useRoles } from '@/composables/useRoles'
   import { useNotify } from '@/composables/useNotify'
+  import { t } from '@/i18n'
 
   const { roles, sections, fetchRoles, createRole, updateRole, deleteRole } = useRoles()
   const notify = useNotify()
@@ -228,12 +225,12 @@
         const granted = levels.filter(l => l !== 'none').length
         if (granted === 0) {return null}
         if (granted === levels.length && levels.every(l => l === levels[0])) {
-          return `${s.label} (${levels[0]})`
+          return `${s.label} (${t(levels[0])})`
         }
-        return `${s.label} (${granted}/${levels.length} pages)`
+        return `${s.label} (${t('{granted}/{total} pages', { granted, total: levels.length })})`
       })
       .filter(Boolean)
-    return parts.length > 0 ? parts.join(', ') : 'No access'
+    return parts.length > 0 ? parts.join(', ') : t('No access')
   }
 
   // The editor keeps one of 'none' | 'view' | 'edit' per page plus an on/off

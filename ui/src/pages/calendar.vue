@@ -23,7 +23,7 @@
         hide-details
         item-title="name"
         :items="searchEvents"
-        placeholder="Search events"
+        :placeholder="t('Search events')"
         prepend-inner-icon="mdi-magnify"
         return-object
         variant="outlined"
@@ -33,26 +33,26 @@
 
       <!-- Phones: icon-only buttons so the toolbar fits on one line. -->
       <template v-if="xs">
-        <v-btn aria-label="Manage events" icon="mdi-calendar-plus" variant="text" @click="manageOpen = true" />
-        <v-btn aria-label="Events picture" icon="mdi-image" variant="text" @click="openPoster" />
-        <v-btn aria-label="Today" icon="mdi-calendar-today" variant="text" @click="goToToday" />
+        <v-btn :aria-label="t('Manage events')" icon="mdi-calendar-plus" variant="text" @click="manageOpen = true" />
+        <v-btn :aria-label="t('Events picture')" icon="mdi-image" variant="text" @click="openPoster" />
+        <v-btn :aria-label="t('Today')" icon="mdi-calendar-today" variant="text" @click="goToToday" />
       </template>
       <template v-else>
         <v-btn
           class="me-2"
           prepend-icon="mdi-calendar-plus"
-          text="Events"
+          :text="t('Events')"
           variant="tonal"
           @click="manageOpen = true"
         />
         <v-btn
           class="me-2"
           prepend-icon="mdi-image"
-          text="Picture"
+          :text="t('Picture')"
           variant="tonal"
           @click="openPoster"
         />
-        <v-btn prepend-icon="mdi-calendar-today" text="Today" variant="tonal" @click="goToToday" />
+        <v-btn prepend-icon="mdi-calendar-today" :text="t('Today')" variant="tonal" @click="goToToday" />
       </template>
     </v-toolbar>
 
@@ -65,7 +65,7 @@
         hide-details
         item-title="name"
         :items="searchEvents"
-        placeholder="Search events"
+        :placeholder="t('Search events')"
         prepend-inner-icon="mdi-magnify"
         return-object
         variant="outlined"
@@ -101,7 +101,7 @@
 
     <v-list v-if="xs" class="py-0" density="compact" lines="two">
       <v-list-subheader>{{ title }}</v-list-subheader>
-      <v-list-item v-if="monthEvents.length === 0" class="text-medium-emphasis" title="No events this month" />
+      <v-list-item v-if="monthEvents.length === 0" class="text-medium-emphasis" :title="t('No events this month')" />
       <v-list-item
         v-for="event in monthEvents"
         :key="`${event.name}-${event.start.getTime()}`"
@@ -120,7 +120,7 @@
     <v-dialog v-model="manageOpen" max-width="560" scrollable>
       <v-card>
         <v-card-title class="text-subtitle-1 d-flex align-center">
-          Calendar events
+          {{ t('Calendar events') }}
           <v-spacer />
           <v-btn icon="mdi-close" size="small" variant="text" @click="manageOpen = false" />
         </v-card-title>
@@ -128,14 +128,14 @@
 
         <v-card-text>
           <template v-if="canEdit">
-            <div class="text-subtitle-2 mb-2">Add an event</div>
+            <div class="text-subtitle-2 mb-2">{{ t('Add an event') }}</div>
             <v-row dense>
               <v-col cols="12" sm="6">
                 <v-text-field
                   v-model="form.name"
                   density="compact"
                   hide-details
-                  label="Name"
+                  :label="t('Name')"
                   variant="outlined"
                 />
               </v-col>
@@ -148,7 +148,7 @@
                   density="compact"
                   hide-details
                   :items="colorOptions"
-                  label="Colour"
+                  :label="t('Colour')"
                   variant="outlined"
                 >
                   <template #prepend-inner>
@@ -162,7 +162,7 @@
                   density="compact"
                   hide-details
                   :items="CALENDAR_ICONS"
-                  label="Icon"
+                  :label="t('Icon')"
                   variant="outlined"
                 >
                   <template #prepend-inner>
@@ -184,7 +184,7 @@
                 :loading="adding"
                 prepend-icon="mdi-plus"
                 size="small"
-                text="Add event"
+                :text="t('Add event')"
                 variant="tonal"
                 @click="addEvent"
               />
@@ -193,7 +193,7 @@
 
           <template v-if="customEvents.length > 0">
             <v-divider class="my-4" />
-            <div class="text-subtitle-2 mb-1">Your events</div>
+            <div class="text-subtitle-2 mb-1">{{ t('Your events') }}</div>
             <v-list density="compact">
               <v-list-item
                 v-for="ev in customEvents"
@@ -219,7 +219,7 @@
           </template>
 
           <v-divider class="my-4" />
-          <div class="text-subtitle-2 mb-1">Built-in events</div>
+          <div class="text-subtitle-2 mb-1">{{ t('Built-in events') }}</div>
           <v-select
             class="mb-2"
             density="compact"
@@ -228,7 +228,7 @@
             item-title="title"
             item-value="value"
             :items="businessTypeItems"
-            label="Type of business"
+            :label="t('Type of business')"
             :model-value="settingsStore.businessType"
             variant="outlined"
             @update:model-value="changeBusinessType"
@@ -238,8 +238,7 @@
             </template>
           </v-select>
           <p class="text-caption text-medium-emphasis mb-1">
-            The type picks which events are listed. Turn one off to hide it
-            from the calendar and the appbar card.
+            {{ t('The type picks which events are listed. Turn one off to hide it from the calendar and the appbar card.') }}
           </p>
           <template v-for="group in builtinGroups" :key="group.key">
             <v-list-subheader class="d-flex align-center px-0">
@@ -297,14 +296,14 @@
           <v-btn
             v-if="canShare"
             prepend-icon="mdi-share-variant"
-            text="Share"
+            :text="t('Share')"
             variant="tonal"
             @click="sharePoster"
           />
           <v-btn
             color="primary"
             prepend-icon="mdi-download"
-            text="Download"
+            :text="t('Download')"
             variant="flat"
             @click="downloadPoster"
           />
@@ -315,6 +314,7 @@
 </template>
 
 <script setup>
+  import { t } from '@/i18n'
   import { computed, onMounted, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
   import { useDisplay, useTheme  } from 'vuetify'

@@ -3,7 +3,7 @@
     <v-card class="bk-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-source-branch-sync" />
-        <span>Conflicts</span>
+        <span>{{ t('Conflicts') }}</span>
         <v-spacer />
         <v-btn
           v-if="canEdit && selectedConflicts.length > 0"
@@ -13,7 +13,7 @@
         >
           Take branch spelling ({{ selectedConflicts.length }})
         </v-btn>
-        <v-btn prepend-icon="mdi-refresh" text="Reload" variant="text" @click="reload" />
+        <v-btn prepend-icon="mdi-refresh" :text="t('Reload')" variant="text" @click="reload" />
       </v-card-title>
       <v-divider />
 
@@ -46,27 +46,24 @@
 
         <div class="bk-content pa-5">
           <p class="text-body-2 text-medium-emphasis mb-4">
-            Things a till sent that kashi couldn't apply on its own: a client whose phone already
-            belongs to someone with another name, a client with no usable phone, or a sale that took
-            a product below zero stock. Red means stock went negative and needs fixing; yellow is
-            everything else.
+            {{ t('Things a till sent that kashi couldn\'t apply on its own: a client whose phone already belongs to someone with another name, a client with no usable phone, or a sale that took a product below zero stock. Red means stock went negative and needs fixing; yellow is everything else.') }}
           </p>
 
           <div class="bk-stats mb-4">
             <div class="bk-stat">
-              <div class="bk-stat-label">Open</div>
+              <div class="bk-stat-label">{{ t('Open') }}</div>
               <div class="bk-stat-value" :class="{ 'text-warning': totals.open > 0 }">{{ totals.open }}</div>
               <div class="bk-stat-sub">{{ totals.oldestOpenAt ? `oldest ${ago(totals.oldestOpenAt)}` : 'nothing to review' }}</div>
             </div>
             <div class="bk-stat">
-              <div class="bk-stat-label">Oversold stock</div>
+              <div class="bk-stat-label">{{ t('Oversold stock') }}</div>
               <div class="bk-stat-value" :class="{ 'text-error': totals.oversold > 0 }">{{ totals.oversold }}</div>
-              <div class="bk-stat-sub">fix with an adjustment, transfer or count</div>
+              <div class="bk-stat-sub">{{ t('fix with an adjustment, transfer or count') }}</div>
             </div>
             <div class="bk-stat">
-              <div class="bk-stat-label">Client conflicts</div>
+              <div class="bk-stat-label">{{ t('Client conflicts') }}</div>
               <div class="bk-stat-value">{{ totals.open - totals.oversold }}</div>
-              <div class="bk-stat-sub">names and phones to reconcile</div>
+              <div class="bk-stat-sub">{{ t('names and phones to reconcile') }}</div>
             </div>
           </div>
 
@@ -89,7 +86,7 @@
               density="compact"
               hide-details
               :items="ENTITY_FILTERS"
-              placeholder="Any kind"
+              :placeholder="t('Any kind')"
               style="max-width: 180px"
               variant="outlined"
             />
@@ -98,7 +95,7 @@
               clearable
               density="compact"
               hide-details
-              placeholder="Search ref, name, phone"
+              :placeholder="t('Search ref, name, phone')"
               prepend-inner-icon="mdi-magnify"
               style="max-width: 240px"
               variant="outlined"
@@ -143,8 +140,8 @@
             </template>
             <template #item.actions="{ item }">
               <template v-if="canEdit && item.status === 'open'">
-                <v-btn size="small" variant="text" @click.stop="openResolve(item)">Resolve</v-btn>
-                <v-btn size="small" variant="text" @click.stop="dismiss(item)">Dismiss</v-btn>
+                <v-btn size="small" variant="text" @click.stop="openResolve(item)">{{ t('Resolve') }}</v-btn>
+                <v-btn size="small" variant="text" @click.stop="dismiss(item)">{{ t('Dismiss') }}</v-btn>
               </template>
             </template>
             <template #expanded-row="{ columns, item }">
@@ -155,16 +152,16 @@
                   </div>
                   <div v-else class="py-3 px-2">
                     <table class="conflict-diff">
-                      <tr><th /><th>Branch says</th><th>kashi has</th></tr>
+                      <tr><th /><th>{{ t('Branch says') }}</th><th>{{ t('kashi has') }}</th></tr>
                       <tr>
-                        <td>Name</td>
+                        <td>{{ t('Name') }}</td>
                         <td :class="diffClass(branchPayload(item).name, item.central_name?.String)">
                           {{ branchPayload(item).name || '—' }}
                         </td>
                         <td>{{ item.central_name?.String || '—' }}</td>
                       </tr>
                       <tr>
-                        <td>Phone</td>
+                        <td>{{ t('Phone') }}</td>
                         <td>{{ branchPayload(item).phone || '—' }}</td>
                         <td>{{ item.central_phone?.String || '—' }}</td>
                       </tr>
@@ -202,14 +199,14 @@
                 :label="`Use the branch's name (${branchPayload(resolveTarget).name})`"
                 value="branch"
               />
-              <v-radio label="Type a name" value="custom" />
+              <v-radio :label="t('Type a name')" value="custom" />
             </v-radio-group>
             <v-text-field
               v-if="resolveForm.choice === 'custom'"
               v-model="resolveForm.name"
               class="mt-2"
               density="compact"
-              label="Name"
+              :label="t('Name')"
               variant="outlined"
             />
           </div>
@@ -220,8 +217,8 @@
               usable phone.
             </div>
             <v-radio-group v-model="resolveForm.choice" density="compact" hide-details>
-              <v-radio label="Merge into an existing client" value="merge" />
-              <v-radio label="Create a new client with a phone" value="create" />
+              <v-radio :label="t('Merge into an existing client')" value="merge" />
+              <v-radio :label="t('Create a new client with a phone')" value="create" />
             </v-radio-group>
             <v-autocomplete
               v-if="resolveForm.choice === 'merge'"
@@ -229,7 +226,7 @@
               class="mt-2"
               density="compact"
               :items="clientOptions"
-              label="Existing client"
+              :label="t('Existing client')"
               variant="outlined"
             />
             <v-text-field
@@ -237,7 +234,7 @@
               v-model="resolveForm.phone"
               class="mt-2"
               density="compact"
-              label="Phone"
+              :label="t('Phone')"
               variant="outlined"
             />
           </div>
@@ -245,19 +242,17 @@
           <div v-else-if="resolveTarget.kind === 'oversold'" class="text-body-2">
             <p class="mb-2">{{ oversoldSummary(resolveTarget) }}</p>
             <p class="mb-0">
-              The sale stands. Correct the stock the usual way (a stock adjustment, a
-              transfer in, or a stock count), then mark this resolved. It reopens if the
-              product goes below zero again.
+              {{ t('The sale stands. Correct the stock the usual way (a stock adjustment, a transfer in, or a stock count), then mark this resolved. It reopens if the product goes below zero again.') }}
             </p>
           </div>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="resolveDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="resolveDialog = false" />
           <v-btn
             color="primary"
             :loading="resolveSaving"
-            text="Resolve"
+            :text="t('Resolve')"
             variant="flat"
             @click="submitResolve"
           />
@@ -268,6 +263,7 @@
 </template>
 
 <script setup>
+  import { t } from '@/i18n'
   import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import PageSidebar from '@/components/PageSidebar.vue'
@@ -295,14 +291,14 @@
   } = useBranchSyncConflicts()
 
   const STATUS_FILTERS = [
-    { title: 'Open', value: 'open' },
-    { title: 'Resolved', value: 'resolved' },
-    { title: 'Dismissed', value: 'dismissed' },
-    { title: 'All', value: '' },
+    { title: t('Open'), value: 'open' },
+    { title: t('Resolved'), value: 'resolved' },
+    { title: t('Dismissed'), value: 'dismissed' },
+    { title: t('All'), value: '' },
   ]
   const ENTITY_FILTERS = [
-    { title: 'Clients', value: 'client' },
-    { title: 'Stock', value: 'stock' },
+    { title: t('Clients'), value: 'client' },
+    { title: t('Stock'), value: 'stock' },
   ]
 
   const branchesLoading = ref(false)
@@ -320,11 +316,11 @@
     ...(canEdit.value && statusFilter.value === 'open'
       ? [{ title: '', key: 'data-table-select', sortable: false, width: '44px' }]
       : []),
-    { title: 'Type', key: 'kind', sortable: false },
-    ...(selectedId.value == null ? [{ title: 'Branch', key: 'branch_id', sortable: false }] : []),
-    { title: 'What', key: 'summary', sortable: false },
-    { title: 'Status', key: 'status', sortable: false },
-    { title: 'Reported', key: 'created_at', sortable: true },
+    { title: t('Type'), key: 'kind', sortable: false },
+    ...(selectedId.value == null ? [{ title: t('Branch'), key: 'branch_id', sortable: false }] : []),
+    { title: t('What'), key: 'summary', sortable: false },
+    { title: t('Status'), key: 'status', sortable: false },
+    { title: t('Reported'), key: 'created_at', sortable: true },
     { title: '', key: 'actions', sortable: false, align: 'end' },
   ])
 

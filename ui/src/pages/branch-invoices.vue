@@ -6,54 +6,54 @@
           <v-icon icon="mdi-invoice" size="22" />
         </v-avatar>
         <div>
-          <div class="text-subtitle-1 font-weight-bold">Invoice details</div>
+          <div class="text-subtitle-1 font-weight-bold">{{ t('Invoice details') }}</div>
           <div class="text-caption text-medium-emphasis">{{ itemsTarget?.branch_invoice_code }}</div>
         </div>
       </v-card-title>
       <v-divider />
       <v-card-text class="invoice-details-content pa-6">
         <div v-if="itemsLoading" class="d-flex justify-center pa-4">
-          <PreparingState kind="receipt" min-height="160px" title="Loading the items" />
+          <PreparingState kind="receipt" min-height="160px" :title="t('Loading the items')" />
         </div>
         <template v-else-if="itemsDetails">
           <v-sheet class="pa-0" rounded="lg">
             <v-row density="compact">
               <v-col cols="6" md="4">
-                <span class="text-caption">Branch</span>
+                <span class="text-caption">{{ t('Branch') }}</span>
                 <div>{{ branchName(itemsDetails.invoice?.branch_id) }}</div>
               </v-col>
               <v-col cols="6" md="4">
-                <span class="text-caption">Kind</span>
+                <span class="text-caption">{{ t('Kind') }}</span>
                 <div class="text-capitalize">{{ itemsDetails.invoice?.kind }}</div>
               </v-col>
               <v-col cols="6" md="4">
-                <span class="text-caption">Salesperson</span>
+                <span class="text-caption">{{ t('Salesperson') }}</span>
                 <div>{{ itemsDetails.invoice?.salesperson_name || '--' }}</div>
               </v-col>
               <v-col cols="6" md="4">
-                <span class="text-caption">Loyalty Points</span>
+                <span class="text-caption">{{ t('Loyalty Points') }}</span>
                 <div>{{ itemsDetails.invoice?.loyalty_points_delta }}</div>
               </v-col>
               <v-col cols="6" md="4">
-                <span class="text-caption">Grand Total</span>
+                <span class="text-caption">{{ t('Grand Total') }}</span>
                 <div class="font-weight-bold">{{ formatMoney(itemsDetails.invoice?.grand_total) }}</div>
               </v-col>
               <v-col v-if="nullableString(itemsDetails.invoice?.related_client_ref)" cols="6" md="4">
-                <span class="text-caption">Original Sale Ref</span>
+                <span class="text-caption">{{ t('Original Sale Ref') }}</span>
                 <div class="text-truncate">{{ nullableString(itemsDetails.invoice.related_client_ref) }}</div>
               </v-col>
             </v-row>
           </v-sheet>
 
-          <div class="text-subtitle-2 mt-6 mb-2">Items</div>
+          <div class="text-subtitle-2 mt-6 mb-2">{{ t('Items') }}</div>
           <v-table class="details-table" density="comfortable">
             <thead>
               <tr>
-                <th>Product</th>
-                <th class="text-end">Qty</th>
-                <th class="text-end">Unit Price</th>
-                <th class="text-end">Discount</th>
-                <th class="text-end">Line Total</th>
+                <th>{{ t('Product') }}</th>
+                <th class="text-end">{{ t('Qty') }}</th>
+                <th class="text-end">{{ t('Unit Price') }}</th>
+                <th class="text-end">{{ t('Discount') }}</th>
+                <th class="text-end">{{ t('Line Total') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -86,12 +86,12 @@
             </tbody>
           </v-table>
 
-          <div class="text-subtitle-2 mt-6 mb-2">Settlement</div>
+          <div class="text-subtitle-2 mt-6 mb-2">{{ t('Settlement') }}</div>
           <v-table class="details-table" density="comfortable">
             <thead>
               <tr>
-                <th>Account</th>
-                <th class="text-end">Amount</th>
+                <th>{{ t('Account') }}</th>
+                <th class="text-end">{{ t('Amount') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -100,7 +100,7 @@
                 <td class="text-end">{{ formatMoney(payment.amount) }}</td>
               </tr>
               <tr v-if="!itemsDetails.payments?.length">
-                <td class="text-medium-emphasis" colspan="2">No settlement reported (older kashi-pos build).</td>
+                <td class="text-medium-emphasis" colspan="2">{{ t('No settlement reported (older kashi-pos build).') }}</td>
               </tr>
             </tbody>
           </v-table>
@@ -117,7 +117,7 @@
           v-if="auth.canEdit('branches') && canEditRefund(itemsTarget) && itemsDetails"
           data-test="edit-refund"
           prepend-icon="mdi-pencil"
-          text="Edit refund"
+          :text="t('Edit refund')"
           variant="text"
           @click="refundEditOpen = true"
         />
@@ -125,7 +125,7 @@
           v-if="auth.canEdit('branches') && itemsTarget?.kind === 'sales' && !isCancelled(itemsTarget) && itemsDetails"
           data-test="change-settlement"
           prepend-icon="mdi-swap-horizontal"
-          text="Change settlement"
+          :text="t('Change settlement')"
           variant="text"
           @click="settlementOpen = true"
         />
@@ -133,7 +133,7 @@
           v-if="auth.canEdit('branches') && canOpenForExchange(itemsDetails?.invoice) && itemsDetails"
           data-test="open-exchange"
           prepend-icon="mdi-calendar-clock-outline"
-          text="Open for exchange"
+          :text="t('Open for exchange')"
           variant="text"
           @click="exchangeOpeningOpen = true"
         />
@@ -141,25 +141,25 @@
         <v-btn
           v-if="itemsTarget?.kind === 'sales' && !isCancelled(itemsTarget)"
           color="error"
-          text="Cancel invoice"
+          :text="t('Cancel invoice')"
           variant="text"
           @click="cancelViewedInvoice"
         />
         <v-btn
           v-if="itemsTarget?.kind === 'sales' && !isCancelled(itemsTarget)"
           color="primary"
-          text="Exchange"
+          :text="t('Exchange')"
           variant="text"
           @click="exchangeViewedInvoice"
         />
         <v-btn
           v-if="itemsTarget?.kind === 'sales' && !isCancelled(itemsTarget)"
           color="primary"
-          text="Return"
+          :text="t('Return')"
           variant="tonal"
           @click="returnViewedInvoice"
         />
-        <v-btn text="Close" @click="itemsDialog = false" />
+        <v-btn :text="t('Close')" @click="itemsDialog = false" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -181,7 +181,7 @@
       v-if="filterCount"
       data-test="clear-filters"
       prepend-icon="mdi-close"
-      text="Clear"
+      :text="t('Clear')"
       variant="text"
       @click="clearFilters"
     />
@@ -190,7 +190,7 @@
       color="success"
       :loading="exporting"
       prepend-icon="mdi-microsoft-excel"
-      text="Export to Excel"
+      :text="t('Export to Excel')"
       variant="tonal"
       @click="exportToExcel"
     />
@@ -230,7 +230,7 @@
         color="error"
         size="small"
         variant="tonal"
-      >Cancelled</v-chip>
+      >{{ t('Cancelled') }}</v-chip>
     </template>
     <template #item.grand_total="{ item }">
       {{ formatMoney(item.grand_total) }}
@@ -281,7 +281,7 @@
             longer count in sales, targets or salesperson stats. It runs the next time the branch
             is online.
           </v-alert>
-          <v-textarea v-model="remoteReturnReason" label="Reason (optional)" rows="2" />
+          <v-textarea v-model="remoteReturnReason" :label="t('Reason (optional)')" rows="2" />
           <RemoteReturnReceiptCheckbox v-model="remoteReturnPrint" />
         </template>
         <template v-else-if="remoteReturnPhase === 'items'">
@@ -290,13 +290,12 @@
             the {{ remoteMode }} itself. It isn't executed instantly -- the branch picks it up next
             time it's online.
             <template v-if="remoteMode === 'exchange'">
-              The branch prices the new items from its own lists, and the difference goes on the
-              sale's payment account.
+              {{ t('The branch prices the new items from its own lists, and the difference goes on the sale\'s payment account.') }}
             </template>
           </v-alert>
 
           <div v-if="remoteReturnItemsLoading" class="d-flex justify-center pa-4">
-            <PreparingState kind="receipt" min-height="160px" title="Loading the invoice's items" />
+            <PreparingState kind="receipt" min-height="160px" :title="t('Loading the invoice\'s items')" />
           </div>
           <template v-else>
             <div class="text-body-2 mb-2">{{ remoteMode === 'exchange' ? 'Items to take back' : 'Items to return' }}</div>
@@ -304,8 +303,8 @@
               <thead>
                 <tr>
                   <th />
-                  <th>Product</th>
-                  <th class="text-end">Qty</th>
+                  <th>{{ t('Product') }}</th>
+                  <th class="text-end">{{ t('Qty') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -334,7 +333,7 @@
             </v-table>
 
             <template v-if="remoteMode === 'exchange'">
-              <div class="text-body-2 mt-6 mb-2">Give in exchange</div>
+              <div class="text-body-2 mt-6 mb-2">{{ t('Give in exchange') }}</div>
               <div class="d-flex align-center ga-2">
                 <v-autocomplete
                   v-model="replacementPick"
@@ -346,7 +345,7 @@
                   :items="skuOptions"
                   :loading="skuLoading"
                   no-filter
-                  placeholder="Search SKU / barcode"
+                  :placeholder="t('Search SKU / barcode')"
                   return-object
                   @update:search="onSkuSearch"
                 />
@@ -354,12 +353,12 @@
                   v-model.number="replacementQuantity"
                   density="compact"
                   hide-details
-                  label="Qty"
+                  :label="t('Qty')"
                   min="1"
                   style="max-width: 90px"
                   type="number"
                 />
-                <v-btn :disabled="!replacementPick" text="Add" @click="addReplacement" />
+                <v-btn :disabled="!replacementPick" :text="t('Add')" @click="addReplacement" />
               </div>
               <v-table v-if="replacements.length > 0" class="mt-2" density="compact">
                 <tbody>
@@ -368,7 +367,7 @@
                     <td class="text-end">{{ row.quantity }}</td>
                     <td class="text-end" style="width: 48px">
                       <v-btn
-                        aria-label="Remove"
+                        :aria-label="t('Remove')"
                         density="comfortable"
                         icon="mdi-close"
                         size="small"
@@ -382,7 +381,7 @@
             </template>
           </template>
 
-          <v-textarea v-model="remoteReturnReason" class="mt-4" label="Reason (optional)" rows="2" />
+          <v-textarea v-model="remoteReturnReason" class="mt-4" :label="t('Reason (optional)')" rows="2" />
           <RemoteReturnReceiptCheckbox v-model="remoteReturnPrint" />
         </template>
 
@@ -431,14 +430,14 @@
         <v-spacer />
         <v-btn
           v-if="remoteReturnPhase === 'items'"
-          text="Cancel"
+          :text="t('Cancel')"
           @click="closeRemoteReturn"
         />
         <v-btn
           v-if="remoteReturnPhase === 'items' && remoteMode === 'cancel'"
           color="error"
           :loading="remoteReturnLoading"
-          text="Cancel invoice"
+          :text="t('Cancel invoice')"
           @click="submitRemoteCancel"
         />
         <v-btn
@@ -446,16 +445,16 @@
           color="primary"
           data-test="remote-next"
           :disabled="!hasSelectedReturnItems || (remoteMode === 'exchange' && replacements.length === 0)"
-          text="Next: payments"
+          :text="t('Next: payments')"
           @click="openRemotePayments"
         />
         <template v-else-if="remoteReturnPhase === 'payments'">
-          <v-btn text="Back" @click="remoteReturnPhase = 'items'" />
+          <v-btn :text="t('Back')" @click="remoteReturnPhase = 'items'" />
           <v-btn
             data-test="remote-till-settles"
             :disabled="remotePaymentsLoading"
             :loading="remoteReturnLoading && !remoteSendingPayments"
-            text="Let the till settle it"
+            :text="t('Let the till settle it')"
             @click="submitRemoteReturn(false)"
           />
           <v-btn
@@ -468,16 +467,17 @@
           />
         </template>
         <template v-else-if="remoteReturnPhase === 'result' && remoteReturnResult?.status === 'failed' && remoteMode !== 'cancel'">
-          <v-btn text="Close" @click="closeRemoteReturn" />
-          <v-btn color="primary" text="Edit and send again" @click="remoteReturnPhase = 'payments'" />
+          <v-btn :text="t('Close')" @click="closeRemoteReturn" />
+          <v-btn color="primary" :text="t('Edit and send again')" @click="remoteReturnPhase = 'payments'" />
         </template>
-        <v-btn v-else text="Close" @click="closeRemoteReturn" />
+        <v-btn v-else :text="t('Close')" @click="closeRemoteReturn" />
       </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
 <script setup lang="ts">
+  import { t } from '@/i18n'
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
   import ExchangeOpeningDialog from '@/components/Invoice/ExchangeOpeningDialog.vue'
@@ -581,12 +581,12 @@
   }
 
   const headers = ref([
-    { title: 'Branch', key: 'branch_id', align: 'start', sortable: false },
-    { title: 'Kind', key: 'kind', align: 'start', sortable: false },
-    { title: 'Code', key: 'branch_invoice_code', align: 'start', sortable: false },
-    { title: 'Grand Total', key: 'grand_total', align: 'end', sortable: false },
-    { title: 'Occurred At', key: 'occurred_at', align: 'start', sortable: false },
-    { title: 'Received At', key: 'received_at', align: 'start', sortable: false },
+    { title: t('Branch'), key: 'branch_id', align: 'start', sortable: false },
+    { title: t('Kind'), key: 'kind', align: 'start', sortable: false },
+    { title: t('Code'), key: 'branch_invoice_code', align: 'start', sortable: false },
+    { title: t('Grand Total'), key: 'grand_total', align: 'end', sortable: false },
+    { title: t('Occurred At'), key: 'occurred_at', align: 'start', sortable: false },
+    { title: t('Received At'), key: 'received_at', align: 'start', sortable: false },
     { title: '', key: 'print', align: 'end', sortable: false, width: 56 },
   ])
 

@@ -1,27 +1,27 @@
 <template>
   <v-dialog v-model="createDialog" max-width="480">
     <v-card class="px-4">
-      <v-card-title>Add a New Branch</v-card-title>
+      <v-card-title>{{ t('Add a New Branch') }}</v-card-title>
       <v-card-text>
         <form @submit.prevent="submitCreate">
           <v-text-field
             v-model="createName"
             density="compact"
-            label="Name"
+            :label="t('Name')"
           />
           <v-text-field
             v-model="createCode"
             density="compact"
-            hint="Short unique code, e.g. MAIN"
-            label="Code"
+            :hint="t('Short unique code, e.g. MAIN')"
+            :label="t('Code')"
             persistent-hint
             @update:model-value="createCode = createCode.toUpperCase()"
           />
 
           <v-card-actions class="px-0">
             <v-spacer />
-            <v-btn text="Cancel" @click="createDialog = false" />
-            <v-btn color="primary" :loading="creating" text="Add Branch" type="submit" />
+            <v-btn :text="t('Cancel')" @click="createDialog = false" />
+            <v-btn color="primary" :loading="creating" :text="t('Add Branch')" type="submit" />
           </v-card-actions>
         </form>
       </v-card-text>
@@ -34,15 +34,15 @@
        server-side. -->
   <v-dialog v-model="keyDialog" max-width="520">
     <v-card class="px-4">
-      <v-card-title>API Key</v-card-title>
+      <v-card-title>{{ t('API Key') }}</v-card-title>
       <v-card-text>
         <p v-if="revealedCode" class="mb-3">
-          Enter code <strong>{{ revealedCode }}</strong> and this key in the till's kashi-pos settings.
+          {{ t('Enter code') }} <strong>{{ revealedCode }}</strong> {{ t('and this key in the till\'s kashi-pos settings.') }}
         </p>
         <v-text-field
           v-model="revealedKey"
           density="compact"
-          label="API key"
+          :label="t('API key')"
           readonly
           variant="outlined"
         >
@@ -53,7 +53,7 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn color="primary" text="Done" @click="keyDialog = false" />
+        <v-btn color="primary" :text="t('Done')" @click="keyDialog = false" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -72,11 +72,11 @@
         <v-table density="compact">
           <thead>
             <tr>
-              <th>Code</th>
-              <th>Name</th>
-              <th>Status</th>
-              <th class="text-center">Active</th>
-              <th class="text-center">In reports</th>
+              <th>{{ t('Code') }}</th>
+              <th>{{ t('Name') }}</th>
+              <th>{{ t('Status') }}</th>
+              <th class="text-center">{{ t('Active') }}</th>
+              <th class="text-center">{{ t('In reports') }}</th>
               <th />
             </tr>
           </thead>
@@ -89,7 +89,7 @@
                   v-if="connectedRegisterIds.includes(register.id)"
                   color="success"
                   size="small"
-                  text="Online"
+                  :text="t('Online')"
                   variant="tonal"
                 />
                 <span v-else class="text-medium-emphasis">
@@ -134,7 +134,7 @@
               </td>
             </tr>
             <tr v-if="!registersLoading && registers.length === 0">
-              <td class="text-medium-emphasis" colspan="6">No registers yet.</td>
+              <td class="text-medium-emphasis" colspan="6">{{ t('No registers yet.') }}</td>
             </tr>
           </tbody>
         </v-table>
@@ -144,8 +144,8 @@
             v-model="registerCode"
             class="register-code-field"
             density="compact"
-            hint="1–8 letters/digits, e.g. CT2"
-            label="Code"
+            :hint="t('1–8 letters/digits, e.g. CT2')"
+            :label="t('Code')"
             maxlength="8"
             persistent-hint
             @update:model-value="registerCode = registerCode.toUpperCase()"
@@ -153,8 +153,8 @@
           <v-text-field
             v-model="registerName"
             density="compact"
-            hint="Optional, e.g. Second till"
-            label="Name"
+            :hint="t('Optional, e.g. Second till')"
+            :label="t('Name')"
             persistent-hint
           />
           <v-btn
@@ -162,29 +162,29 @@
             :disabled="!registerCode"
             :loading="addingRegister"
             prepend-icon="mdi-plus"
-            text="Add Register"
+            :text="t('Add Register')"
             type="submit"
           />
         </form>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn text="Close" @click="registersDialog = false" />
+        <v-btn :text="t('Close')" @click="registersDialog = false" />
       </v-card-actions>
     </v-card>
   </v-dialog>
 
   <v-dialog v-model="rotateDialog" max-width="420">
     <v-card>
-      <v-card-title>Rotate API Key</v-card-title>
+      <v-card-title>{{ t('Rotate API Key') }}</v-card-title>
       <v-card-text>
         Rotating register {{ rotateTarget?.code }}'s key immediately invalidates its current key.
         That till will need the new key entered before it can sync again.
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn text="Cancel" @click="rotateDialog = false" />
-        <v-btn color="warning" :loading="rotating" text="Rotate Key" @click="confirmRotate" />
+        <v-btn :text="t('Cancel')" @click="rotateDialog = false" />
+        <v-btn color="warning" :loading="rotating" :text="t('Rotate Key')" @click="confirmRotate" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -203,14 +203,14 @@
       </v-card-title>
 
       <v-tabs v-model="targetsTab" color="primary">
-        <v-tab value="targets">Targets</v-tab>
-        <v-tab value="recurring">Recurring</v-tab>
+        <v-tab value="targets">{{ t('Targets') }}</v-tab>
+        <v-tab value="recurring">{{ t('Recurring') }}</v-tab>
       </v-tabs>
       <v-divider />
 
       <v-card-text class="targets-dialog-body">
         <div v-if="targetsLoading" class="d-flex justify-center pa-8">
-          <PreparingState kind="data" min-height="160px" title="Loading targets" />
+          <PreparingState kind="data" min-height="160px" :title="t('Loading targets')" />
         </div>
 
         <v-window v-else v-model="targetsTab">
@@ -218,7 +218,7 @@
             <TargetProgressBars v-if="targetsList.length > 0" class="mb-4" :targets="targetsList" />
             <div v-if="targetsList.length === 0" class="targets-empty">
               <v-icon class="mb-2" icon="mdi-flag-outline" size="32" />
-              <div>No targets set for this branch yet.</div>
+              <div>{{ t('No targets set for this branch yet.') }}</div>
             </div>
             <v-list v-else class="target-list" lines="two">
               <v-list-item v-for="target in targetsList" :key="target.id" class="target-list-item">
@@ -231,7 +231,7 @@
                     v-if="target.series_id?.Valid"
                     icon="mdi-repeat"
                     size="14"
-                    title="Generated by a recurring target"
+                    :title="t('Generated by a recurring target')"
                   />
                 </v-list-item-title>
                 <v-list-item-subtitle>
@@ -260,9 +260,9 @@
           <v-window-item value="recurring">
             <div v-if="seriesList.length === 0" class="targets-empty">
               <v-icon class="mb-2" icon="mdi-repeat" size="32" />
-              <div>No recurring targets set up yet.</div>
+              <div>{{ t('No recurring targets set up yet.') }}</div>
               <div class="text-caption text-medium-emphasis mt-1">
-                Each period (e.g. every month) creates its own target automatically, starting fresh at $0.
+                {{ t('Each period (e.g. every month) creates its own target automatically, starting fresh at $0.') }}
               </div>
             </div>
             <v-list v-else class="target-list" lines="two">
@@ -280,7 +280,7 @@
                     :disabled="!canEdit"
                     hide-details
                     :model-value="s.active"
-                    title="Pause/resume -- keeps already-generated targets"
+                    :title="t('Pause/resume -- keeps already-generated targets')"
                     @update:model-value="value => toggleSeriesActive(s, value)"
                   />
                   <v-icon-btn
@@ -310,7 +310,7 @@
           v-if="canEdit && targetsTab === 'targets'"
           color="primary"
           prepend-icon="mdi-plus"
-          text="Add Target"
+          :text="t('Add Target')"
           variant="tonal"
           @click="openAddTarget"
         />
@@ -318,12 +318,12 @@
           v-if="canEdit && targetsTab !== 'targets'"
           color="primary"
           prepend-icon="mdi-plus"
-          text="Add Recurring Target"
+          :text="t('Add Recurring Target')"
           variant="tonal"
           @click="openAddSeries"
         />
         <v-spacer />
-        <v-btn text="Close" @click="targetsDialog = false" />
+        <v-btn :text="t('Close')" @click="targetsDialog = false" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -357,7 +357,7 @@
               v-model="targetForm.color"
               density="compact"
               hide-details
-              label="Color"
+              :label="t('Color')"
               style="max-width: 100px"
               type="color"
               variant="outlined"
@@ -366,7 +366,7 @@
 
           <v-card-actions class="px-0 field-full">
             <v-spacer />
-            <v-btn text="Cancel" variant="text" @click="targetFormDialog = false" />
+            <v-btn :text="t('Cancel')" variant="text" @click="targetFormDialog = false" />
             <v-btn
               color="primary"
               :loading="targetSaving"
@@ -398,8 +398,8 @@
           <v-text-field
             v-model.number="seriesForm.startDay"
             density="compact"
-            hint="Day of month a period starts on -- clamped in short months"
-            label="Starts on day"
+            :hint="t('Day of month a period starts on -- clamped in short months')"
+            :label="t('Starts on day')"
             max="31"
             min="1"
             persistent-hint
@@ -409,8 +409,8 @@
           <v-text-field
             v-model.number="seriesForm.intervalCount"
             density="compact"
-            hint="1 = every month, 3 = quarterly, etc."
-            label="Repeat every N month(s)"
+            :hint="t('1 = every month, 3 = quarterly, etc.')"
+            :label="t('Repeat every N month(s)')"
             min="1"
             persistent-hint
             type="number"
@@ -428,7 +428,7 @@
               v-model="seriesForm.color"
               density="compact"
               hide-details
-              label="Color"
+              :label="t('Color')"
               style="max-width: 100px"
               type="color"
               variant="outlined"
@@ -436,13 +436,12 @@
           </div>
 
           <div v-if="editingSeriesId" class="text-caption text-medium-emphasis field-full">
-            Changes only apply to periods generated from now on -- the current period keeps its
-            already-set amount and color.
+            {{ t('Changes only apply to periods generated from now on -- the current period keeps its already-set amount and color.') }}
           </div>
 
           <v-card-actions class="px-0 field-full">
             <v-spacer />
-            <v-btn text="Cancel" variant="text" @click="seriesFormDialog = false" />
+            <v-btn :text="t('Cancel')" variant="text" @click="seriesFormDialog = false" />
             <v-btn
               color="primary"
               :loading="seriesSaving"
@@ -457,15 +456,14 @@
 
   <v-dialog v-model="deleteSeriesDialog" max-width="420">
     <v-card>
-      <v-card-title>Delete Recurring Target</v-card-title>
+      <v-card-title>{{ t('Delete Recurring Target') }}</v-card-title>
       <v-card-text>
-        This removes the recurring schedule and every target it has generated (past and
-        current), for every branch install syncing it. This can't be undone.
+        {{ t('This removes the recurring schedule and every target it has generated (past and current), for every branch install syncing it. This can\'t be undone.') }}
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn text="Cancel" @click="deleteSeriesDialog = false" />
-        <v-btn color="error" :loading="deleteSeriesSaving" text="Delete" @click="confirmDeleteSeries" />
+        <v-btn :text="t('Cancel')" @click="deleteSeriesDialog = false" />
+        <v-btn color="error" :loading="deleteSeriesSaving" :text="t('Delete')" @click="confirmDeleteSeries" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -482,22 +480,22 @@
       <v-card-title>Staff -- {{ salespersonsBranch?.name }}</v-card-title>
       <v-card-text>
         <div v-if="salespersonsLoading" class="d-flex justify-center pa-4">
-          <PreparingState kind="data" min-height="160px" title="Loading staff" />
+          <PreparingState kind="data" min-height="160px" :title="t('Loading staff')" />
         </div>
         <template v-else>
           <v-alert v-if="salespersonsList.length === 0" class="mb-4" type="info" variant="tonal">
-            No staff for this branch yet.
+            {{ t('No staff for this branch yet.') }}
           </v-alert>
 
           <v-table class="mb-4" density="compact">
             <thead>
-              <tr><th>Color</th><th>Name</th><th title="User number on the branch's fingerprint device">Attendance ID</th><th title="Offered as a salesperson at checkout">Sells</th><th>Active</th><th /></tr>
+              <tr><th>{{ t('Color') }}</th><th>{{ t('Name') }}</th><th :title="t('User number on the branch\'s fingerprint device')">{{ t('Attendance ID') }}</th><th :title="t('Offered as a salesperson at checkout')">{{ t('Sells') }}</th><th>{{ t('Active') }}</th><th /></tr>
             </thead>
             <tbody>
               <tr v-for="person in salespersonsList" :key="person.id">
                 <td>
                   <input
-                    aria-label="Avatar color"
+                    :aria-label="t('Avatar color')"
                     class="salesperson-color-input"
                     :disabled="!canEdit"
                     type="color"
@@ -522,7 +520,7 @@
                     v-model="editingSalespersonAttendanceId"
                     density="compact"
                     hide-details
-                    placeholder="e.g. 15"
+                    :placeholder="t('e.g. 15')"
                     style="max-width: 110px"
                     variant="outlined"
                     @keyup.enter="submitEditSalesperson(person)"
@@ -574,14 +572,14 @@
               v-model="newSalespersonName"
               density="compact"
               hide-details
-              label="Full name"
+              :label="t('Full name')"
               variant="outlined"
             />
             <v-text-field
               v-model="newSalespersonAttendanceId"
               density="compact"
               hide-details
-              label="Attendance ID"
+              :label="t('Attendance ID')"
               style="max-width: 140px"
               variant="outlined"
             />
@@ -589,16 +587,16 @@
               v-model="newSalespersonSells"
               density="compact"
               hide-details
-              label="Sells"
-              title="Offered as a salesperson at checkout"
+              :label="t('Sells')"
+              :title="t('Offered as a salesperson at checkout')"
             />
-            <v-btn color="primary" :loading="salespersonSaving" text="Add" type="submit" />
+            <v-btn color="primary" :loading="salespersonSaving" :text="t('Add')" type="submit" />
           </form>
         </template>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn text="Close" @click="salespersonsDialog = false" />
+        <v-btn :text="t('Close')" @click="salespersonsDialog = false" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -607,13 +605,13 @@
     <v-card class="branches-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-store-outline" />
-        <span>Branches</span>
+        <span>{{ t('Branches') }}</span>
         <v-spacer />
         <v-btn
           v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
-          text="Add Branch"
+          :text="t('Add Branch')"
           variant="flat"
           @click="openCreate"
         />
@@ -639,7 +637,7 @@
               :disabled="!canEdit"
               hide-details
               :model-value="!item.hidden_from_reports"
-              title="Off: out of reports, and its own clients stay off the other tills"
+              :title="t('Off: out of reports, and its own clients stay off the other tills')"
               @update:model-value="value => toggleInReports(item, value)"
             />
           </template>
@@ -647,11 +645,11 @@
             {{ item.last_seen_at?.Valid ? new Date(item.last_seen_at.Time).toLocaleString() : 'Never' }}
           </template>
           <template #item.actions="{ item }">
-            <v-tooltip location="top" text="Targets">
+            <v-tooltip location="top" :text="t('Targets')">
               <template #activator="{ props: tip }">
                 <v-icon-btn
                   v-bind="tip"
-                  aria-label="Targets"
+                  :aria-label="t('Targets')"
                   icon="mdi-flag-outline"
                   size="small"
                   variant="text"
@@ -659,11 +657,11 @@
                 />
               </template>
             </v-tooltip>
-            <v-tooltip location="top" text="Staff: add salespersons and other staff">
+            <v-tooltip location="top" :text="t('Staff: add salespersons and other staff')">
               <template #activator="{ props: tip }">
                 <v-icon-btn
                   v-bind="tip"
-                  aria-label="Staff"
+                  :aria-label="t('Staff')"
                   icon="mdi-account-tie-outline"
                   size="small"
                   variant="text"
@@ -671,11 +669,11 @@
                 />
               </template>
             </v-tooltip>
-            <v-tooltip location="top" text="Registers (tills)">
+            <v-tooltip location="top" :text="t('Registers (tills)')">
               <template #activator="{ props: tip }">
                 <v-icon-btn
                   v-bind="tip"
-                  aria-label="Registers"
+                  :aria-label="t('Registers')"
                   icon="mdi-cash-register"
                   size="small"
                   variant="text"
@@ -691,6 +689,7 @@
 </template>
 
 <script setup lang="ts">
+  import { t } from '@/i18n'
   import { onMounted, onUnmounted, ref } from 'vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import WatchTillButton from '@/components/WatchTillButton.vue'
@@ -742,13 +741,13 @@
   } = useBranchSalespersons()
 
   const headers = ref([
-    { title: 'Name', key: 'name', align: 'start' },
-    { title: 'Code', key: 'code', align: 'start' },
-    { title: 'Active', key: 'is_active', align: 'center', sortable: false },
+    { title: t('Name'), key: 'name', align: 'start' },
+    { title: t('Code'), key: 'code', align: 'start' },
+    { title: t('Active'), key: 'is_active', align: 'center', sortable: false },
     // Off keeps the branch syncing but out of every report and stat, and
     // keeps its own clients off the other tills (a test branch).
-    { title: 'Shared', key: 'hidden_from_reports', align: 'center', sortable: false },
-    { title: 'Last Seen', key: 'last_seen_at', align: 'start', sortable: false },
+    { title: t('Shared'), key: 'hidden_from_reports', align: 'center', sortable: false },
+    { title: t('Last Seen'), key: 'last_seen_at', align: 'start', sortable: false },
     { title: '', key: 'actions', align: 'end', sortable: false },
   ])
 

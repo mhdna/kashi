@@ -8,24 +8,24 @@
             v-model="name.value.value"
             density="compact"
             :error-messages="name.errorMessage.value"
-            label="Name"
+            :label="t('Name')"
           />
           <v-text-field
             v-model="phone.value.value"
             density="compact"
             :error-messages="phone.errorMessage.value"
-            label="Phone"
+            :label="t('Phone')"
           />
           <v-select
             v-model="clientType"
             density="compact"
             :items="[{ title: 'Retail', value: 'retail' }, { title: 'Wholesale', value: 'wholesale' }]"
-            label="Type"
+            :label="t('Type')"
           />
 
           <v-card-actions class="px-0">
             <v-spacer />
-            <v-btn text="Cancel" @click="closeDialog" />
+            <v-btn :text="t('Cancel')" @click="closeDialog" />
             <v-btn color="primary" :loading="submitting" :text="editingId ? 'Save' : 'Add Client'" type="submit" />
           </v-card-actions>
         </form>
@@ -35,9 +35,9 @@
 
   <v-dialog v-model="exportDialog" max-width="520">
     <v-card>
-      <v-card-title>Export Clients to CSV</v-card-title>
+      <v-card-title>{{ t('Export Clients to CSV') }}</v-card-title>
       <v-card-text>
-        <div class="text-caption text-medium-emphasis mb-1">Fields</div>
+        <div class="text-caption text-medium-emphasis mb-1">{{ t('Fields') }}</div>
         <div class="d-flex flex-wrap mb-2">
           <v-checkbox
             v-for="field in exportFieldOptions"
@@ -61,7 +61,7 @@
           item-title="name"
           item-value="id"
           :items="branches"
-          label="Branches (empty = all)"
+          :label="t('Branches (empty = all)')"
           multiple
           variant="outlined"
         />
@@ -73,13 +73,13 @@
           v-model="exportNoDuplicates"
           density="compact"
           hide-details
-          label="No duplicates"
+          :label="t('No duplicates')"
         />
         <v-checkbox
           v-model="exportIncludeExcluded"
           density="compact"
           hide-details
-          label="Include cancelled invoices and hidden branches"
+          :label="t('Include cancelled invoices and hidden branches')"
         />
         <div class="text-caption text-medium-emphasis mt-2">
           A client belongs to a branch if they bought something there (cancelled invoices and
@@ -87,19 +87,17 @@
           its own file (a zip when there are several); with none selected you get one file of
           every {{ tab }} client. Dates keep only those who bought in that period, and Total
           spent / Invoices count just that scope.
-          <b>No duplicates</b> removes anyone with the same phone in more than one file from all
-          of them, and keeps one row per phone inside a file. <b>Phone check</b> adds a column
-          marking numbers that aren't valid Lebanese numbers as Invalid.
+          <b>{{ t('No duplicates') }}</b> {{ t('removes anyone with the same phone in more than one file from all of them, and keeps one row per phone inside a file.') }} <b>{{ t('Phone check') }}</b> {{ t('adds a column marking numbers that aren\'t valid Lebanese numbers as Invalid.') }}
         </div>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn text="Cancel" @click="exportDialog = false" />
+        <v-btn :text="t('Cancel')" @click="exportDialog = false" />
         <v-btn
           color="primary"
           :disabled="exportFields.length === 0"
           :loading="exporting"
-          text="Export"
+          :text="t('Export')"
           @click="exportCsv"
         />
       </v-card-actions>
@@ -108,7 +106,7 @@
 
   <v-dialog v-model="deleteDialog" max-width="420">
     <v-card>
-      <v-card-title>Delete Client</v-card-title>
+      <v-card-title>{{ t('Delete Client') }}</v-card-title>
       <v-card-text>
         Delete "{{ deleteTarget?.name }}"? A client with invoices, loyalty history or a
         branch link is deactivated instead, so their history stays intact and every till
@@ -116,16 +114,16 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn text="Cancel" @click="deleteDialog = false" />
-        <v-btn color="error" :loading="deleting" text="Delete" @click="confirmDelete" />
+        <v-btn :text="t('Cancel')" @click="deleteDialog = false" />
+        <v-btn color="error" :loading="deleting" :text="t('Delete')" @click="confirmDelete" />
       </v-card-actions>
     </v-card>
   </v-dialog>
 
   <div class="clients-toolbar d-flex flex-wrap align-center justify-space-between ga-3 mb-2">
     <v-tabs v-model="tab" color="primary">
-      <v-tab value="retail">Retail</v-tab>
-      <v-tab value="wholesale">Wholesale</v-tab>
+      <v-tab value="retail">{{ t('Retail') }}</v-tab>
+      <v-tab value="wholesale">{{ t('Wholesale') }}</v-tab>
     </v-tabs>
 
     <div class="d-flex align-center ga-2">
@@ -143,7 +141,7 @@
         </template>
         <v-list>
           <v-list-item :active="selectedBranchIds.length === 0" @click="selectedBranchIds = []">
-            <v-list-item-title>All Branches</v-list-item-title>
+            <v-list-item-title>{{ t('All Branches') }}</v-list-item-title>
           </v-list-item>
           <v-list-item
             v-for="branch in branches"
@@ -172,7 +170,7 @@
         </template>
         <v-list>
           <v-list-item :active="selectedCountry === ''" @click="selectedCountry = ''">
-            <v-list-item-title>All Countries</v-list-item-title>
+            <v-list-item-title>{{ t('All Countries') }}</v-list-item-title>
           </v-list-item>
           <v-list-item
             v-for="c in phoneCountries"
@@ -195,9 +193,9 @@
         rounded="lg"
         variant="outlined"
       >
-        <v-btn text="Any Phone" value="any" />
-        <v-btn text="Valid" value="valid" />
-        <v-btn text="Invalid" value="invalid" />
+        <v-btn :text="t('Any Phone')" value="any" />
+        <v-btn :text="t('Valid')" value="valid" />
+        <v-btn :text="t('Invalid')" value="invalid" />
       </v-btn-toggle>
       <DateRangePicker v-model="dateRange" clearable />
       <v-btn-toggle
@@ -209,15 +207,15 @@
         rounded="lg"
         variant="outlined"
       >
-        <v-btn text="All" value="" />
-        <v-btn text="First-timers" value="first" />
-        <v-btn text="Returning" value="returning" />
+        <v-btn :text="t('All')" value="" />
+        <v-btn :text="t('First-timers')" value="first" />
+        <v-btn :text="t('Returning')" value="returning" />
       </v-btn-toggle>
       <v-btn
         prepend-icon="mdi-file-delimited-outline"
         rounded="lg"
         style="border-color: rgb(var(--v-theme-surface-light));"
-        text="Export CSV"
+        :text="t('Export CSV')"
         variant="outlined"
         @click="openExport"
       />
@@ -225,7 +223,7 @@
         prepend-icon="mdi-file-chart-outline"
         rounded="lg"
         style="border-color: rgb(var(--v-theme-surface-light));"
-        text="Monthly report"
+        :text="t('Monthly report')"
         to="/reports?report=customers"
         variant="outlined"
       />
@@ -233,7 +231,7 @@
         v-if="canEdit"
         color="primary"
         prepend-icon="mdi-plus"
-        text="Add Client"
+        :text="t('Add Client')"
         @click="openCreate"
       />
     </div>
@@ -256,6 +254,7 @@
 </template>
 
 <script setup>
+  import { t } from '@/i18n'
   import { useField, useForm } from 'vee-validate'
   import { computed, onMounted, ref } from 'vue'
   import ClientLoyaltyBoard from '@/components/Clients/ClientLoyaltyBoard.vue'
@@ -318,16 +317,16 @@
 
   // ---- CSV export ----------------------------------------------------------
   const exportFieldOptions = [
-    { title: 'Name', value: 'name' },
-    { title: 'Phone', value: 'phone' },
-    { title: 'Phone check (Lebanese)', value: 'phone_check' },
-    { title: 'Type', value: 'client_type' },
-    { title: 'Status', value: 'status' },
-    { title: 'Member since', value: 'created_at' },
-    { title: 'Loyalty points', value: 'loyalty' },
-    { title: 'Total spent', value: 'total_spent' },
-    { title: 'Invoices', value: 'invoices' },
-    { title: 'Last visit', value: 'last_visit' },
+    { title: t('Name'), value: 'name' },
+    { title: t('Phone'), value: 'phone' },
+    { title: t('Phone check (Lebanese)'), value: 'phone_check' },
+    { title: t('Type'), value: 'client_type' },
+    { title: t('Status'), value: 'status' },
+    { title: t('Member since'), value: 'created_at' },
+    { title: t('Loyalty points'), value: 'loyalty' },
+    { title: t('Total spent'), value: 'total_spent' },
+    { title: t('Invoices'), value: 'invoices' },
+    { title: t('Last visit'), value: 'last_visit' },
   ]
   const exportDialog = ref(false)
   const exporting = ref(false)

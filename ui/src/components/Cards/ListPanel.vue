@@ -27,10 +27,12 @@
 </template>
 
 <script setup>
+  import { t } from '@/i18n'
+
   defineProps({
     title: { type: String, required: true },
     rows: { type: Array, default: () => [] },
-    emptyText: { type: String, default: 'Nothing recorded.' },
+    emptyText: { type: String, default: () => t('Nothing recorded.') },
   })
 </script>
 

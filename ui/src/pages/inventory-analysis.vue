@@ -3,7 +3,7 @@
     <!-- Header / controls -->
     <div class="d-flex align-center flex-wrap ga-3 pa-4 pb-2">
       <v-icon icon="mdi-warehouse" />
-      <div class="text-h6 font-weight-medium">Inventory Analysis</div>
+      <div class="text-h6 font-weight-medium">{{ t('Inventory Analysis') }}</div>
       <v-chip
         v-if="overview"
         class="ml-1"
@@ -21,7 +21,7 @@
         density="compact"
         hide-details
         :items="locationOptions"
-        label="Branch / Location"
+        :label="t('Branch / Location')"
         style="min-width: 220px; max-width: 300px"
         variant="outlined"
       />
@@ -29,15 +29,15 @@
     </div>
 
     <v-tabs v-model="tab" class="px-4" color="primary">
-      <v-tab value="overview">Overview</v-tab>
-      <v-tab value="locations">By Branch / Location</v-tab>
-      <v-tab value="low-stock">Low Stock</v-tab>
-      <v-tab value="slow-movers">Slow Movers</v-tab>
-      <v-tab value="movements">Movements</v-tab>
+      <v-tab value="overview">{{ t('Overview') }}</v-tab>
+      <v-tab value="locations">{{ t('By Branch / Location') }}</v-tab>
+      <v-tab value="low-stock">{{ t('Low Stock') }}</v-tab>
+      <v-tab value="slow-movers">{{ t('Slow Movers') }}</v-tab>
+      <v-tab value="movements">{{ t('Movements') }}</v-tab>
     </v-tabs>
     <v-divider />
 
-    <PreparingState v-if="loading" kind="chart" title="Analysing inventory" />
+    <PreparingState v-if="loading" kind="chart" :title="t('Analysing inventory')" />
 
     <v-window v-else v-model="tab" class="flex-grow-1" style="overflow-y: auto">
       <!-- Overview ------------------------------------------------------ -->
@@ -49,8 +49,7 @@
             density="compact"
             type="info"
             variant="tonal"
-          >
-            Showing figures for <strong>{{ selectedLocation.name }}</strong> only. Clear the location filter for company-wide totals.
+          >{{ t('Showing figures for') }}<strong>{{ selectedLocation.name }}</strong> only. Clear the location filter for company-wide totals.
           </v-alert>
 
           <v-row dense>
@@ -65,13 +64,13 @@
           <v-row dense>
             <v-col cols="12" md="6">
               <v-card class="chart-card" variant="flat">
-                <div class="chart-card__title">Inventory value by location</div>
+                <div class="chart-card__title">{{ t('Inventory value by location') }}</div>
                 <v-chart autoresize class="chart" :option="valueByLocationOption" />
               </v-card>
             </v-col>
             <v-col cols="12" md="6">
               <v-card class="chart-card" variant="flat">
-                <div class="chart-card__title">Days of inventory by location</div>
+                <div class="chart-card__title">{{ t('Days of inventory by location') }}</div>
                 <div class="chart-card__subtitle">Lower is faster-moving; locations with no sales in 30 days aren't shown</div>
                 <v-chart autoresize class="chart" :option="daysByLocationOption" />
               </v-card>
@@ -85,11 +84,11 @@
         <v-container class="pa-4 pt-2" fluid>
           <v-card class="chart-card" variant="flat">
             <div class="d-flex align-center flex-wrap ga-3 mb-2">
-              <div class="chart-card__title mb-0">Stock by branch / location</div>
+              <div class="chart-card__title mb-0">{{ t('Stock by branch / location') }}</div>
               <v-btn-toggle v-model="locationTypeFilter" density="compact" mandatory variant="outlined">
-                <v-btn size="small" value="all">All</v-btn>
-                <v-btn size="small" value="store">Branches</v-btn>
-                <v-btn size="small" value="warehouse">Warehouses</v-btn>
+                <v-btn size="small" value="all">{{ t('All') }}</v-btn>
+                <v-btn size="small" value="store">{{ t('Branches') }}</v-btn>
+                <v-btn size="small" value="warehouse">{{ t('Warehouses') }}</v-btn>
               </v-btn-toggle>
               <v-spacer />
               <v-text-field
@@ -134,30 +133,30 @@
             <v-col cols="6" md="3">
               <v-card class="pa-3 d-flex flex-column justify-center fill-height" variant="tonal">
                 <div class="text-h6 font-weight-medium">{{ (lowStockSummary?.low_stock_count ?? 0).toLocaleString() }}</div>
-                <div class="text-caption text-medium-emphasis mt-1">Low stock</div>
+                <div class="text-caption text-medium-emphasis mt-1">{{ t('Low stock') }}</div>
               </v-card>
             </v-col>
             <v-col cols="6" md="3">
               <v-card class="pa-3 d-flex flex-column justify-center fill-height" variant="tonal">
                 <div class="text-h6 font-weight-medium">{{ (lowStockSummary?.out_of_stock_count ?? 0).toLocaleString() }}</div>
-                <div class="text-caption text-medium-emphasis mt-1">Out of stock</div>
+                <div class="text-caption text-medium-emphasis mt-1">{{ t('Out of stock') }}</div>
               </v-card>
             </v-col>
             <v-col cols="6" md="3">
               <v-card class="pa-3 d-flex flex-column justify-center fill-height" variant="tonal">
                 <div class="text-h6 font-weight-medium">{{ (lowStockSummary?.total_products ?? 0).toLocaleString() }}</div>
-                <div class="text-caption text-medium-emphasis mt-1">Active products</div>
+                <div class="text-caption text-medium-emphasis mt-1">{{ t('Active products') }}</div>
               </v-card>
             </v-col>
           </v-row>
 
           <v-card class="chart-card" variant="flat">
             <div class="d-flex align-center flex-wrap ga-3 mb-2">
-              <div class="chart-card__title mb-0">Products at or below threshold</div>
+              <div class="chart-card__title mb-0">{{ t('Products at or below threshold') }}</div>
               <v-btn-toggle v-model="lowStockStatusFilter" density="compact" mandatory variant="outlined">
-                <v-btn size="small" value="">All</v-btn>
-                <v-btn size="small" value="low_stock">Low</v-btn>
-                <v-btn size="small" value="out_of_stock">Out</v-btn>
+                <v-btn size="small" value="">{{ t('All') }}</v-btn>
+                <v-btn size="small" value="low_stock">{{ t('Low') }}</v-btn>
+                <v-btn size="small" value="out_of_stock">{{ t('Out') }}</v-btn>
               </v-btn-toggle>
               <v-spacer />
               <v-text-field
@@ -200,7 +199,7 @@
             <v-col cols="6" md="3">
               <v-card class="pa-3 d-flex flex-column justify-center fill-height" variant="tonal">
                 <div class="text-h6 font-weight-medium">{{ (overview?.dead_stock_count ?? 0).toLocaleString() }}</div>
-                <div class="text-caption text-medium-emphasis mt-1">Dead stock (no sales in 90d)</div>
+                <div class="text-caption text-medium-emphasis mt-1">{{ t('Dead stock (no sales in 90d)') }}</div>
               </v-card>
             </v-col>
             <v-col cols="6" md="3">
@@ -213,11 +212,11 @@
 
           <v-card class="chart-card" variant="flat">
             <div class="d-flex align-center flex-wrap ga-3 mb-2">
-              <div class="chart-card__title mb-0">Slow-moving products</div>
+              <div class="chart-card__title mb-0">{{ t('Slow-moving products') }}</div>
               <v-btn-toggle v-model="slowMoverCategoryFilter" density="compact" mandatory variant="outlined">
-                <v-btn size="small" value="">All</v-btn>
-                <v-btn size="small" value="dead">Dead</v-btn>
-                <v-btn size="small" value="overstocked">Overstocked</v-btn>
+                <v-btn size="small" value="">{{ t('All') }}</v-btn>
+                <v-btn size="small" value="dead">{{ t('Dead') }}</v-btn>
+                <v-btn size="small" value="overstocked">{{ t('Overstocked') }}</v-btn>
               </v-btn-toggle>
               <v-spacer />
               <v-text-field
@@ -260,14 +259,14 @@
         <v-container class="pa-4 pt-2" fluid>
           <v-card class="chart-card" variant="flat">
             <div class="d-flex align-center flex-wrap ga-3 mb-2">
-              <div class="chart-card__title mb-0">Stock movement ledger</div>
+              <div class="chart-card__title mb-0">{{ t('Stock movement ledger') }}</div>
               <v-select
                 v-model="movementReasonFilter"
                 clearable
                 density="compact"
                 hide-details
                 :items="reasonOptions"
-                label="Reason"
+                :label="t('Reason')"
                 style="max-width: 170px"
                 variant="outlined"
               />
@@ -315,6 +314,7 @@
   import { STOCK_MOVEMENT_REASONS } from '@/composables/useStockMovements'
   import { API_BASE } from '@/config'
   import { formatMoney } from '@/utils/money'
+  import { t } from '@/i18n'
 
   const theme = useTheme()
   const c = computed(() => theme.current.value.colors)
@@ -380,15 +380,15 @@
     if (!src) return []
     const daysOfInventory = selectedLocation.value ? selectedLocation.value.days_of_inventory : overview.value.days_of_inventory
     const base = [
-      { label: 'Days of inventory', value: daysOfInventory == null ? '—' : String(daysOfInventory) },
-      { label: 'Inventory value', value: formatMoney(src.inventory_value) },
-      { label: 'Units on hand', value: (src.total_units ?? 0).toLocaleString() },
-      { label: 'Units sold (30d)', value: (src.units_sold_30d ?? 0).toLocaleString() },
+      { label: t('Days of inventory'), value: daysOfInventory == null ? '—' : String(daysOfInventory) },
+      { label: t('Inventory value'), value: formatMoney(src.inventory_value) },
+      { label: t('Units on hand'), value: (src.total_units ?? 0).toLocaleString() },
+      { label: t('Units sold (30d)'), value: (src.units_sold_30d ?? 0).toLocaleString() },
     ]
     if (!selectedLocation.value && overview.value) {
       base.push(
-        { label: 'Dead / overstocked', value: `${overview.value.dead_stock_count} / ${overview.value.overstocked_count}` },
-        { label: 'Active products', value: (overview.value.total_active_products ?? 0).toLocaleString() },
+        { label: t('Dead / overstocked'), value: `${overview.value.dead_stock_count} / ${overview.value.overstocked_count}` },
+        { label: t('Active products'), value: (overview.value.total_active_products ?? 0).toLocaleString() },
       )
     }
     return base
@@ -461,12 +461,12 @@
       : locations.value.filter(l => l.type === locationTypeFilter.value),
   )
   const locationHeaders = [
-    { title: 'Location', key: 'name' },
-    { title: 'Type', key: 'type' },
-    { title: 'Units on hand', key: 'total_units', align: 'end' },
-    { title: 'Inventory value', key: 'inventory_value', align: 'end' },
-    { title: 'Sold (30d)', key: 'units_sold_30d', align: 'end' },
-    { title: 'Days of inventory', key: 'days_of_inventory', align: 'end' },
+    { title: t('Location'), key: 'name' },
+    { title: t('Type'), key: 'type' },
+    { title: t('Units on hand'), key: 'total_units', align: 'end' },
+    { title: t('Inventory value'), key: 'inventory_value', align: 'end' },
+    { title: t('Sold (30d)'), key: 'units_sold_30d', align: 'end' },
+    { title: t('Days of inventory'), key: 'days_of_inventory', align: 'end' },
   ]
 
   // --- Low stock -----------------------------------------------------------
@@ -479,10 +479,10 @@
     lowStockSummary.value = await fetchLowStockSummary().catch(() => null)
   }
   const lowStockHeaders = [
-    { title: 'Product', key: 'name' },
-    { title: 'Code', key: 'code' },
-    { title: 'On hand', key: 'on_hand', align: 'end' },
-    { title: 'Threshold', key: 'effective_threshold', align: 'end' },
+    { title: t('Product'), key: 'name' },
+    { title: t('Code'), key: 'code' },
+    { title: t('On hand'), key: 'on_hand', align: 'end' },
+    { title: t('Threshold'), key: 'effective_threshold', align: 'end' },
   ]
 
   // --- Slow movers -----------------------------------------------------------
@@ -490,12 +490,12 @@
   const slowMoverCategoryFilter = ref('')
   const slowMoverSearch = ref('')
   const slowMoverHeaders = [
-    { title: 'Product', key: 'name' },
-    { title: 'Code', key: 'code' },
-    { title: 'On hand', key: 'on_hand', align: 'end' },
-    { title: 'Sold (90d)', key: 'units_sold_90d', align: 'end' },
-    { title: 'Days of inventory', key: 'days_of_inventory', align: 'end' },
-    { title: 'Category', key: 'category' },
+    { title: t('Product'), key: 'name' },
+    { title: t('Code'), key: 'code' },
+    { title: t('On hand'), key: 'on_hand', align: 'end' },
+    { title: t('Sold (90d)'), key: 'units_sold_90d', align: 'end' },
+    { title: t('Days of inventory'), key: 'days_of_inventory', align: 'end' },
+    { title: t('Category'), key: 'category' },
   ]
 
   // --- Movements -----------------------------------------------------------
@@ -511,13 +511,13 @@
     to_date: movementToDate.value ? `${movementToDate.value}T23:59:59Z` : null,
   }))
   const movementHeaders = [
-    { title: 'Date', key: 'created_at' },
-    { title: 'Location', key: 'inventory_name' },
-    { title: 'Product', key: 'variant' },
-    { title: 'Reason', key: 'reason' },
-    { title: 'Qty', key: 'quantity', align: 'end' },
-    { title: 'Before → After', key: 'change' },
-    { title: 'Note', key: 'note' },
+    { title: t('Date'), key: 'created_at' },
+    { title: t('Location'), key: 'inventory_name' },
+    { title: t('Product'), key: 'variant' },
+    { title: t('Reason'), key: 'reason' },
+    { title: t('Qty'), key: 'quantity', align: 'end' },
+    { title: t('Before → After'), key: 'change' },
+    { title: t('Note'), key: 'note' },
   ]
 </script>
 

@@ -2,7 +2,7 @@
   <div class="busy d-flex flex-column fill-height" style="overflow-y: auto">
     <div class="d-flex align-center flex-wrap ga-3 pa-4 pb-2">
       <v-icon icon="mdi-clock-time-four-outline" />
-      <div class="text-h6 font-weight-medium">Busy Hours</div>
+      <div class="text-h6 font-weight-medium">{{ t('Busy Hours') }}</div>
       <v-spacer />
       <v-select
         v-model="rangeDays"
@@ -19,22 +19,22 @@
         density="compact"
         hide-details
         :items="branchOptions"
-        label="Branches"
+        :label="t('Branches')"
         multiple
         style="min-width: 220px; max-width: 340px"
         variant="outlined"
       >
         <template #prepend-item>
-          <v-list-item title="All branches" @click="selectedBranchIds = []" />
+          <v-list-item :title="t('All branches')" @click="selectedBranchIds = []" />
           <v-divider />
         </template>
       </v-select>
     </div>
 
-    <PreparingState v-if="loading && !loaded" kind="chart" title="Finding the busy hours" />
+    <PreparingState v-if="loading && !loaded" kind="chart" :title="t('Finding the busy hours')" />
 
     <v-alert v-else-if="!hasAny" class="mx-4" type="info" variant="tonal">
-      No customers counted and no sales in this range.
+      {{ t('No customers counted and no sales in this range.') }}
     </v-alert>
 
     <v-container v-else class="pa-4 pt-2" fluid>
@@ -51,24 +51,24 @@
       <v-row class="mt-1" dense>
         <v-col cols="12" lg="6">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">When customers come in</div>
-            <div class="chart-card__subtitle">Average visitors per day, from the people counters.</div>
+            <div class="chart-card__title">{{ t('When customers come in') }}</div>
+            <div class="chart-card__subtitle">{{ t('Average visitors per day, from the people counters.') }}</div>
             <v-chart autoresize class="chart chart--heat" :option="heatOption('visitors')" />
           </v-card>
         </v-col>
         <v-col cols="12" lg="6">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">When they buy</div>
-            <div class="chart-card__subtitle">Average sales per day.</div>
+            <div class="chart-card__title">{{ t('When they buy') }}</div>
+            <div class="chart-card__subtitle">{{ t('Average sales per day.') }}</div>
             <v-chart autoresize class="chart chart--heat" :option="heatOption('invoices')" />
           </v-card>
         </v-col>
 
         <v-col cols="12">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Through the day</div>
+            <div class="chart-card__title">{{ t('Through the day') }}</div>
             <div class="chart-card__subtitle">
-              Average per day at each hour: customers in and sales (bars), and the share of customers who bought (line).
+              {{ t('Average per day at each hour: customers in and sales (bars), and the share of customers who bought (line).') }}
             </div>
             <v-chart autoresize class="chart" :option="hourOption" />
           </v-card>
@@ -76,15 +76,15 @@
 
         <v-col cols="12" md="6">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Through the week</div>
-            <div class="chart-card__subtitle">Average per day of each weekday: customers in, sales and revenue.</div>
+            <div class="chart-card__title">{{ t('Through the week') }}</div>
+            <div class="chart-card__subtitle">{{ t('Average per day of each weekday: customers in, sales and revenue.') }}</div>
             <v-chart autoresize class="chart" :option="weekdayOption" />
           </v-card>
         </v-col>
         <v-col cols="12" md="6">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Revenue by hour</div>
-            <div class="chart-card__subtitle">Average revenue per day at each hour (bars) and the average sale (line).</div>
+            <div class="chart-card__title">{{ t('Revenue by hour') }}</div>
+            <div class="chart-card__subtitle">{{ t('Average revenue per day at each hour (bars) and the average sale (line).') }}</div>
             <v-chart autoresize class="chart" :option="revenueOption" />
           </v-card>
         </v-col>
@@ -94,6 +94,7 @@
 </template>
 
 <script setup>
+  import { t } from '@/i18n'
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useTheme } from 'vuetify'
   import VChart from '@/components/EChart.vue'
@@ -110,10 +111,10 @@
 
   const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] // ISO 1..7
   const RANGE_OPTIONS = [
-    { title: 'Last 4 weeks', value: 28 },
-    { title: 'Last 3 months', value: 91 },
-    { title: 'Last 6 months', value: 182 },
-    { title: 'Last 12 months', value: 364 },
+    { title: t('Last 4 weeks'), value: 28 },
+    { title: t('Last 3 months'), value: 91 },
+    { title: t('Last 6 months'), value: 182 },
+    { title: t('Last 12 months'), value: 364 },
   ]
   const rangeDays = ref(91)
   const selectedBranchIds = ref([])
@@ -232,12 +233,12 @@
     const best = enough.toSorted((a, b) => b.invoices / b.visitors - a.invoices / a.visitors)[0]
     const sum = (key) => byHour.value.reduce((a, r) => a + r[key], 0)
     return [
-      hasVisitors.value && peakVisit && { label: 'Busiest time', value: `${WEEKDAYS[peakVisit.w - 1]} ${hourLabel(peakVisit.h)}`, hint: `${round1(peakVisit.v)} customers in, on average` },
-      peakSale && { label: 'Most sales at', value: `${WEEKDAYS[peakSale.w - 1]} ${hourLabel(peakSale.h)}`, hint: `${round1(peakSale.v)} sales, on average` },
-      busiestDay && { label: 'Busiest day', value: busiestDay.name, hint: hasVisitors.value ? `${Math.round(busiestDay.visitors)} customers in` : `${Math.round(busiestDay.invoices)} sales` },
-      best && { label: 'Best buying hour', value: hourLabel(best.h), hint: `${Math.round((best.invoices / best.visitors) * 100)}% of customers buy` },
-      hasVisitors.value && { label: 'Customers a day', value: Math.round(sum('visitors')).toLocaleString(), hint: 'on average' },
-      { label: 'Sales a day', value: Math.round(sum('invoices')).toLocaleString(), hint: `${money(sum('revenue'))} on average` },
+      hasVisitors.value && peakVisit && { label: t('Busiest time'), value: `${WEEKDAYS[peakVisit.w - 1]} ${hourLabel(peakVisit.h)}`, hint: `${round1(peakVisit.v)} customers in, on average` },
+      peakSale && { label: t('Most sales at'), value: `${WEEKDAYS[peakSale.w - 1]} ${hourLabel(peakSale.h)}`, hint: `${round1(peakSale.v)} sales, on average` },
+      busiestDay && { label: t('Busiest day'), value: busiestDay.name, hint: hasVisitors.value ? `${Math.round(busiestDay.visitors)} customers in` : `${Math.round(busiestDay.invoices)} sales` },
+      best && { label: t('Best buying hour'), value: hourLabel(best.h), hint: `${Math.round((best.invoices / best.visitors) * 100)}% of customers buy` },
+      hasVisitors.value && { label: t('Customers a day'), value: Math.round(sum('visitors')).toLocaleString(), hint: t('on average') },
+      { label: t('Sales a day'), value: Math.round(sum('invoices')).toLocaleString(), hint: `${money(sum('revenue'))} on average` },
     ].filter(Boolean)
   })
 

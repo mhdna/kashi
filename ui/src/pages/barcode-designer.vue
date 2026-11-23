@@ -3,13 +3,13 @@
     <v-card class="bd-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-palette" />
-        <span>Barcode Designer</span>
+        <span>{{ t('Barcode Designer') }}</span>
         <v-spacer />
-        <v-chip v-if="dirty" color="warning" size="small" variant="tonal">Unsaved changes</v-chip>
+        <v-chip v-if="dirty" color="warning" size="small" variant="tonal">{{ t('Unsaved changes') }}</v-chip>
         <v-btn
           :disabled="!customised || !design"
           prepend-icon="mdi-restore"
-          text="Reset to theme"
+          :text="t('Reset to theme')"
           variant="tonal"
           @click="resetToTheme"
         />
@@ -19,7 +19,7 @@
           :disabled="!dirty"
           :loading="saving"
           prepend-icon="mdi-content-save"
-          text="Save"
+          :text="t('Save')"
           variant="flat"
           @click="save"
         />
@@ -30,7 +30,7 @@
       <div v-if="design" class="bd-body">
         <div class="bd-controls">
           <section class="bd-section">
-            <div class="bd-section-title">Theme</div>
+            <div class="bd-section-title">{{ t('Theme') }}</div>
             <div class="bd-themes">
               <button
                 v-for="t in themes"
@@ -48,23 +48,23 @@
             </div>
             <div class="text-caption text-medium-emphasis mt-2">
               {{ currentTheme?.description }}
-              <span v-if="customised"> You have changed it from the theme; <b>Reset to theme</b> undoes that.</span>
+              <span v-if="customised"> {{ t('You have changed it from the theme;') }} <b>{{ t('Reset to theme') }}</b> {{ t('undoes that.') }}</span>
             </div>
           </section>
 
           <section class="bd-section">
-            <div class="bd-section-title">Look</div>
+            <div class="bd-section-title">{{ t('Look') }}</div>
             <div class="bd-row">
               <v-select
                 v-model="design.font"
                 density="compact"
                 hide-details
                 :items="FONTS"
-                label="Font"
+                :label="t('Font')"
                 variant="outlined"
               />
               <div>
-                <div class="text-caption text-medium-emphasis mb-1">Alignment</div>
+                <div class="text-caption text-medium-emphasis mb-1">{{ t('Alignment') }}</div>
                 <v-btn-toggle
                   v-model="design.align"
                   color="primary"
@@ -82,7 +82,7 @@
             <BarcodeDesignSlider
               v-model="design.margin"
               class="mt-3"
-              label="Side margin"
+              :label="t('Side margin')"
               :max="60"
               :min="0"
             />
@@ -104,23 +104,23 @@
                 <div class="bd-stack" :class="{ 'bd-off': !design[el.key].enabled }">
                   <BarcodeDesignSlider
                     v-model="design[el.key].size"
-                    label="Size"
+                    :label="t('Size')"
                     :max="80"
                     :min="4"
                     :step="0.5"
                   />
-                  <BarcodeDesignSlider v-model="design[el.key].y" label="Height from bottom" :max="144" :min="0" />
+                  <BarcodeDesignSlider v-model="design[el.key].y" :label="t('Height from bottom')" :max="144" :min="0" />
                   <div class="bd-checks">
-                    <v-checkbox v-model="design[el.key].bold" density="compact" hide-details label="Bold" />
-                    <v-checkbox v-model="design[el.key].upper" density="compact" hide-details label="Capitals" />
-                    <v-checkbox v-model="design[el.key].fit" density="compact" hide-details label="Shrink to fit the label" />
+                    <v-checkbox v-model="design[el.key].bold" density="compact" hide-details :label="t('Bold')" />
+                    <v-checkbox v-model="design[el.key].upper" density="compact" hide-details :label="t('Capitals')" />
+                    <v-checkbox v-model="design[el.key].fit" density="compact" hide-details :label="t('Shrink to fit the label')" />
                   </div>
                   <v-select
                     v-model="design[el.key].align"
                     density="compact"
                     hide-details
                     :items="ALIGN_OPTIONS"
-                    label="Alignment"
+                    :label="t('Alignment')"
                     variant="outlined"
                   />
                   <template v-if="el.key === 'price'">
@@ -129,7 +129,7 @@
                         v-model="design.price.prefix"
                         density="compact"
                         hide-details
-                        label="Before the price"
+                        :label="t('Before the price')"
                         maxlength="8"
                         variant="outlined"
                       />
@@ -137,17 +137,17 @@
                         v-model="design.price.suffix"
                         density="compact"
                         hide-details
-                        label="After the price"
+                        :label="t('After the price')"
                         maxlength="8"
                         variant="outlined"
                       />
                     </div>
-                    <v-checkbox v-model="design.price.rule" density="compact" hide-details label="Line under the price" />
+                    <v-checkbox v-model="design.price.rule" density="compact" hide-details :label="t('Line under the price')" />
                     <template v-if="design.price.rule">
-                      <BarcodeDesignSlider v-model="design.price.rule_y" label="Line height" :max="144" :min="0" />
+                      <BarcodeDesignSlider v-model="design.price.rule_y" :label="t('Line height')" :max="144" :min="0" />
                       <BarcodeDesignSlider
                         v-model="design.price.rule_scale"
-                        label="Line width"
+                        :label="t('Line width')"
                         :max="4"
                         :min="0.2"
                         :step="0.1"
@@ -159,7 +159,7 @@
                     v-model="design.name.variant"
                     density="compact"
                     hide-details
-                    label="Add colour and size after the name"
+                    :label="t('Add colour and size after the name')"
                   />
                 </div>
               </v-expansion-panel-text>
@@ -174,38 +174,38 @@
                   hide-details
                   @click.stop
                 />
-                <span class="ms-2">Barcode</span>
+                <span class="ms-2">{{ t('Barcode') }}</span>
               </v-expansion-panel-title>
               <v-expansion-panel-text>
                 <div class="bd-stack" :class="{ 'bd-off': !design.barcode.enabled }">
-                  <BarcodeDesignSlider v-model="design.barcode.height" label="Bar height" :max="120" :min="6" />
+                  <BarcodeDesignSlider v-model="design.barcode.height" :label="t('Bar height')" :max="120" :min="6" />
                   <BarcodeDesignSlider
                     v-model="design.barcode.module"
-                    label="Bar width"
+                    :label="t('Bar width')"
                     :max="3"
                     :min="0.8"
                     :step="0.05"
                   />
-                  <BarcodeDesignSlider v-model="design.barcode.guard" label="Guard bars" :max="24" :min="0" />
-                  <BarcodeDesignSlider v-model="design.barcode.y" label="Height from bottom" :max="144" :min="0" />
+                  <BarcodeDesignSlider v-model="design.barcode.guard" :label="t('Guard bars')" :max="24" :min="0" />
+                  <BarcodeDesignSlider v-model="design.barcode.y" :label="t('Height from bottom')" :max="144" :min="0" />
                   <v-select
                     v-model="design.barcode.align"
                     density="compact"
                     hide-details
                     :items="ALIGN_OPTIONS"
-                    label="Alignment"
+                    :label="t('Alignment')"
                     variant="outlined"
                   />
-                  <v-checkbox v-model="design.digits.enabled" density="compact" hide-details label="Show the number under the bars" />
+                  <v-checkbox v-model="design.digits.enabled" density="compact" hide-details :label="t('Show the number under the bars')" />
                   <template v-if="design.digits.enabled">
                     <BarcodeDesignSlider
                       v-model="design.digits.size"
-                      label="Number size"
+                      :label="t('Number size')"
                       :max="40"
                       :min="4"
                       :step="0.5"
                     />
-                    <BarcodeDesignSlider v-model="design.digits.gap" label="Number gap" :max="40" :min="0" />
+                    <BarcodeDesignSlider v-model="design.digits.gap" :label="t('Number gap')" :max="40" :min="0" />
                   </template>
                 </div>
               </v-expansion-panel-text>
@@ -215,7 +215,7 @@
 
         <aside class="bd-preview">
           <div class="bd-preview-sticky">
-            <div class="bd-section-title">Preview</div>
+            <div class="bd-section-title">{{ t('Preview') }}</div>
             <!-- eslint-disable-next-line vue/no-v-html -->
             <div class="bd-label" v-html="svg" />
             <v-btn-toggle
@@ -227,11 +227,11 @@
               mandatory
               variant="outlined"
             >
-              <v-btn text="Typical" :value="0" />
-              <v-btn text="Long name" :value="1" />
-              <v-btn text="No price" :value="2" />
+              <v-btn :text="t('Typical')" :value="0" />
+              <v-btn :text="t('Long name')" :value="1" />
+              <v-btn :text="t('No price')" :value="2" />
             </v-btn-toggle>
-            <v-checkbox v-model="borders" density="compact" hide-details label="Side strips (separator pages on)" />
+            <v-checkbox v-model="borders" density="compact" hide-details :label="t('Side strips (separator pages on)')" />
             <div class="text-caption text-medium-emphasis mt-2">
               Label {{ labelSize.width }} × {{ labelSize.height }} points (72 = 1 inch). Change the size in
               Settings, or per print in Barcodes. Sizes and positions are on a 288 × 144 label and scale with it.
@@ -244,6 +244,7 @@
 </template>
 
 <script setup lang="ts">
+  import { t } from '@/i18n'
   import { computed, onMounted, ref, toRaw, watch } from 'vue'
   import BarcodeDesignSlider from '@/components/BarcodeDesignSlider.vue'
   import { useBarcodes } from '@/composables/useBarcodes'
@@ -270,21 +271,21 @@
   const notify = useNotify()
 
   const FONTS = [
-    { title: 'Helvetica (sans-serif)', value: 'helvetica' },
-    { title: 'Times (serif)', value: 'times' },
-    { title: 'Courier (typewriter)', value: 'courier' },
+    { title: t('Helvetica (sans-serif)'), value: 'helvetica' },
+    { title: t('Times (serif)'), value: 'times' },
+    { title: t('Courier (typewriter)'), value: 'courier' },
   ]
   const ALIGN_OPTIONS = [
-    { title: 'Follow the label', value: '' },
-    { title: 'Left', value: 'left' },
-    { title: 'Center', value: 'center' },
-    { title: 'Right', value: 'right' },
+    { title: t('Follow the label'), value: '' },
+    { title: t('Left'), value: 'left' },
+    { title: t('Center'), value: 'center' },
+    { title: t('Right'), value: 'right' },
   ]
   const TEXT_ELEMENTS = [
-    { key: 'price', title: 'Price' },
-    { key: 'name', title: 'Name' },
-    { key: 'brand', title: 'Brand' },
-    { key: 'code', title: 'Product code' },
+    { key: 'price', title: t('Price') },
+    { key: 'name', title: t('Name') },
+    { key: 'brand', title: t('Brand') },
+    { key: 'code', title: t('Product code') },
   ] as const
 
   const loading = ref(true)

@@ -2,7 +2,7 @@
   <div class="em d-flex flex-column fill-height">
     <div class="d-flex align-center flex-wrap flex-shrink-0 ga-3 pa-4 pb-2">
       <v-icon icon="mdi-email-outline" />
-      <div class="text-h6 font-weight-medium">Emails</div>
+      <div class="text-h6 font-weight-medium">{{ t('Emails') }}</div>
       <v-chip
         v-if="configured !== null"
         :color="configured ? 'success' : 'warning'"
@@ -20,7 +20,7 @@
         mandatory
         variant="outlined"
       >
-        <v-btn text="All" value="" />
+        <v-btn :text="t('All')" value="" />
         <v-btn
           v-for="(meta, key) in STATUS"
           :key="key"
@@ -32,7 +32,7 @@
       <v-btn
         v-if="tab === 'history'"
         icon="mdi-refresh"
-        title="Refresh"
+        :title="t('Refresh')"
         variant="text"
         @click="load"
       />
@@ -40,15 +40,15 @@
         v-if="auth.canEditPage('analytics', 'daily-income')"
         color="primary"
         prepend-icon="mdi-send-outline"
-        text="Send report"
+        :text="t('Send report')"
         variant="flat"
         @click="dialogOpen = true"
       />
     </div>
 
     <v-tabs v-model="tab" class="flex-shrink-0 px-4" color="primary" density="compact">
-      <v-tab prepend-icon="mdi-history" text="History" value="history" />
-      <v-tab prepend-icon="mdi-calendar-clock-outline" text="Schedules" value="schedules" />
+      <v-tab prepend-icon="mdi-history" :text="t('History')" value="history" />
+      <v-tab prepend-icon="mdi-calendar-clock-outline" :text="t('Schedules')" value="schedules" />
     </v-tabs>
     <v-divider class="flex-shrink-0" />
 
@@ -109,23 +109,24 @@
   import { useNotify } from '@/composables/useNotify'
   import { useAuthStore } from '@/stores/auth'
   import { tablePageSizeOptions, useSettingsStore } from '@/stores/settings'
+  import { t } from '@/i18n'
 
   // Every invoice report emailed from kashi (api/email_report.go), sent or
   // failed, newest first. Sender, reply-to and CSV columns are on
   // Settings > Email.
 
   const STATUS = {
-    sent: { label: 'Sent', color: 'success', icon: 'mdi-check-circle' },
-    failed: { label: 'Failed', color: 'error', icon: 'mdi-alert-circle' },
+    sent: { label: t('Sent'), color: 'success', icon: 'mdi-check-circle' },
+    failed: { label: t('Failed'), color: 'error', icon: 'mdi-alert-circle' },
   }
 
   const headers = [
-    { title: 'When', key: 'created_at', sortable: false },
-    { title: 'Report', key: 'label', sortable: false },
-    { title: 'To', key: 'recipients', sortable: false },
-    { title: 'Invoices', key: 'invoice_count', sortable: false, align: 'end' },
-    { title: 'Net total', key: 'total_cents', sortable: false, align: 'end' },
-    { title: 'Status', key: 'status', sortable: false },
+    { title: t('When'), key: 'created_at', sortable: false },
+    { title: t('Report'), key: 'label', sortable: false },
+    { title: t('To'), key: 'recipients', sortable: false },
+    { title: t('Invoices'), key: 'invoice_count', sortable: false, align: 'end' },
+    { title: t('Net total'), key: 'total_cents', sortable: false, align: 'end' },
+    { title: t('Status'), key: 'status', sortable: false },
   ]
 
   const auth = useAuthStore()

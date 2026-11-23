@@ -2,7 +2,7 @@
   <div v-if="registers.length > 0" class="px-4 py-2">
     <div class="d-flex flex-wrap align-center ga-2">
       <span class="text-body-2 font-weight-medium">{{ summary }}</span>
-      <span v-if="changedAt" class="text-caption text-medium-emphasis">last changed {{ ago(changedAt) }}</span>
+      <span v-if="changedAt" class="text-caption text-medium-emphasis">{{ t('last changed {when}', { when: ago(changedAt) }) }}</span>
     </div>
     <v-progress-linear
       v-if="pendingCount > 0"
@@ -20,7 +20,7 @@
             variant="tonal"
           >
             <v-icon v-if="r.verified" class="me-1" icon="mdi-check-circle" size="16" />
-            {{ r.branch_name }} · {{ r.register_code }}: {{ chipTitle(r) }}
+            {{ r.branch_name }}, {{ r.register_code }}: {{ chipTitle(r) }}
           </v-chip>
         </template>
       </v-tooltip>
@@ -28,7 +28,7 @@
     <p v-if="firstError" class="text-caption text-error mt-1 mb-0">{{ firstError }}</p>
   </div>
   <p v-else-if="loaded" class="px-4 py-2 text-body-2 text-medium-emphasis mb-0">
-    No branch uses this list yet, so no till gets it.
+    {{ t('No branch uses this list yet, so no till gets it.') }}
   </p>
 </template>
 
@@ -36,6 +36,7 @@
   import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
   import { authFetch } from '@/composables/useApi'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
 
   // Whether this list's latest change has reached each till (api/list_delivery.go).
   const props = defineProps({
@@ -44,12 +45,12 @@
   })
 
   const STATES = {
-    reached: { title: 'Reached', color: 'success' },
-    sending: { title: 'Sending…', color: 'primary' },
-    waiting: { title: 'Waiting for the till', color: 'warning' },
-    offline: { title: 'Offline', color: undefined },
-    stuck: { title: 'Stuck', color: 'error' },
-    different: { title: 'Different', color: 'error' },
+    reached: { title: t('Reached'), color: 'success' },
+    sending: { title: t('Sending…'), color: 'primary' },
+    waiting: { title: t('Waiting for the till'), color: 'warning' },
+    offline: { title: t('Offline'), color: undefined },
+    stuck: { title: t('Stuck'), color: 'error' },
+    different: { title: t('Different'), color: 'error' },
   }
 
   const registers = ref([])
@@ -68,34 +69,40 @@
   const firstError = computed(() => registers.value.find(r => r.error)?.error ?? '')
 
   const summary = computed(() => {
-    const parts = [`Reached ${reachedCount.value} of ${registers.value.length} till${registers.value.length === 1 ? '' : 's'}`]
-    if (stuckCount.value > 0) parts.push(`${stuckCount.value} with a problem`)
-    if (offlineCount.value > 0) parts.push(`${offlineCount.value} offline`)
-    return parts.join(' · ')
+    const reached = reachedCount.value
+    const total = registers.value.length
+    const parts = [total === 1
+      ? t('Reached {reached} of {total} till', { reached, total })
+      : t('Reached {reached} of {total} tills', { reached, total })]
+    if (stuckCount.value > 0) parts.push(t('{n} with a problem', { n: stuckCount.value }))
+    if (offlineCount.value > 0) parts.push(t('{n} offline', { n: offlineCount.value }))
+    return parts.join(', ')
   })
 
   function ago (value) {
     const seconds = Math.max(0, Math.round((Date.now() - new Date(value)) / 1000))
-    if (seconds < 60) return 'just now'
-    if (seconds < 3600) return `${Math.round(seconds / 60)} min ago`
-    if (seconds < 86_400) return `${Math.round(seconds / 3600)} h ago`
-    return `${Math.round(seconds / 86_400)} d ago`
+    if (seconds < 60) return t('just now')
+    if (seconds < 3600) return t('{n} min ago', { n: Math.round(seconds / 60) })
+    if (seconds < 86_400) return t('{n} h ago', { n: Math.round(seconds / 3600) })
+    return t('{n} d ago', { n: Math.round(seconds / 86_400) })
   }
 
   function chipTitle (r) {
     // An older till can't be checked: it should have it, going by its sync.
-    if (r.state === 'reached' && !r.verified) return 'Reached (not checked)'
+    if (r.state === 'reached' && !r.verified) return t('Reached (not checked)')
     return STATES[r.state].title
   }
 
   function detail (r) {
-    if (r.state === 'reached' && r.verified) return `Checked: the till holds exactly this list${r.reached_at ? `, as of ${ago(r.reached_at)}` : ''}`
-    if (r.state === 'reached') return 'Going by its sync it should have this. It needs a newer version of the app to check what it really holds.'
-    if (r.state === 'different') return `The till says it's up to date but holds something else (${r.till_rows ?? '?'} rows, kashi has ${expectedRows.value}). To send it again, edit this list and save it.`
-    if (r.state === 'stuck') return r.error || 'It keeps asking for the same data, so applying it is failing'
-    if (r.state === 'offline') return `Last seen ${r.last_seen_at ? ago(r.last_seen_at) : 'never'}. It gets this when it comes back.`
-    if (r.state === 'sending') return `Pulled it ${r.last_pull_at ? ago(r.last_pull_at) : ''}; it confirms when applied, or on its next pull`
-    return 'Online, and it hasn\'t asked for this version yet'
+    if (r.state === 'reached' && r.verified) return r.reached_at
+      ? t('Checked: the till holds exactly this list, as of {when}', { when: ago(r.reached_at) })
+      : t('Checked: the till holds exactly this list')
+    if (r.state === 'reached') return t('Going by its sync it should have this. It needs a newer version of the app to check what it really holds.')
+    if (r.state === 'different') return t("The till says it's up to date but holds something else ({rows} rows, kashi has {expected}). To send it again, edit this list and save it.", { rows: r.till_rows ?? '?', expected: expectedRows.value })
+    if (r.state === 'stuck') return r.error || t('It keeps asking for the same data, so applying it is failing')
+    if (r.state === 'offline') return t('Last seen {when}. It gets this when it comes back.', { when: r.last_seen_at ? ago(r.last_seen_at) : t('never') })
+    if (r.state === 'sending') return t('Pulled it {when}; it confirms when applied, or on its next pull', { when: r.last_pull_at ? ago(r.last_pull_at) : '' })
+    return t("Online, and it hasn't asked for this version yet")
   }
 
   // Only the newest answer counts when another list is picked mid-request.

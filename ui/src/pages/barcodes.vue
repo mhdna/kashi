@@ -3,7 +3,7 @@
     <v-card class="barcodes-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-barcode" />
-        <span>Barcodes</span>
+        <span>{{ t('Barcodes') }}</span>
         <v-spacer />
         <v-text-field
           v-model="search"
@@ -11,7 +11,7 @@
           clearable
           density="compact"
           hide-details
-          label="Search product / code / barcode"
+          :label="t('Search product / code / barcode')"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
         />
@@ -20,20 +20,20 @@
           :disabled="selected.length === 0 || assigning"
           :loading="assigning"
           prepend-icon="mdi-barcode"
-          text="Generate barcodes"
+          :text="t('Generate barcodes')"
           variant="tonal"
           @click="generate"
         />
         <v-btn
           :disabled="selected.length === 0"
           prepend-icon="mdi-playlist-plus"
-          text="Add to queue"
+          :text="t('Add to queue')"
           variant="tonal"
           @click="addSelectedToQueue"
         />
         <v-btn
           prepend-icon="mdi-warehouse"
-          text="Fill from inventory"
+          :text="t('Fill from inventory')"
           variant="tonal"
           @click="openFill"
         />
@@ -47,7 +47,7 @@
           color="primary"
           :disabled="selected.length === 0"
           prepend-icon="mdi-printer"
-          text="Print PDF"
+          :text="t('Print PDF')"
           variant="flat"
           @click="openPrint(false)"
         />
@@ -88,7 +88,7 @@
                 class="ms-2"
                 color="warning"
                 size="x-small"
-                text="no barcode"
+                :text="t('no barcode')"
               />
             </template>
             <template #item.price="{ item }">
@@ -108,10 +108,10 @@
             </template>
             <template #item.queue="{ item }">
               <v-btn
-                aria-label="Add to print queue"
+                :aria-label="t('Add to print queue')"
                 icon="mdi-playlist-plus"
                 size="small"
-                title="Add to print queue"
+                :title="t('Add to print queue')"
                 variant="text"
                 @click="addToQueue(item)"
               />
@@ -131,14 +131,14 @@
         <v-divider />
         <v-card-text class="pa-0">
           <p v-if="queue.length === 0" class="text-body-2 text-medium-emphasis pa-4 mb-0">
-            Nothing queued yet. Search for a product and press its add button.
+            {{ t('Nothing queued yet. Search for a product and press its add button.') }}
           </p>
           <v-table v-else density="comfortable">
             <thead>
               <tr>
-                <th>Product</th>
-                <th>Barcode</th>
-                <th class="text-center">Qty</th>
+                <th>{{ t('Product') }}</th>
+                <th>{{ t('Barcode') }}</th>
+                <th class="text-center">{{ t('Qty') }}</th>
                 <th />
               </tr>
             </thead>
@@ -157,7 +157,7 @@
                     class="ms-2"
                     color="warning"
                     size="x-small"
-                    text="no barcode"
+                    :text="t('no barcode')"
                   />
                 </td>
                 <td>
@@ -175,7 +175,7 @@
                 </td>
                 <td class="text-end">
                   <v-btn
-                    aria-label="Remove from queue"
+                    :aria-label="t('Remove from queue')"
                     color="error"
                     icon="mdi-delete-outline"
                     size="small"
@@ -192,17 +192,17 @@
           <v-btn
             color="error"
             :disabled="queue.length === 0"
-            text="Clear queue"
+            :text="t('Clear queue')"
             variant="text"
             @click="clearQueue"
           />
           <v-spacer />
-          <v-btn text="Close" variant="text" @click="queueDialog = false" />
+          <v-btn :text="t('Close')" variant="text" @click="queueDialog = false" />
           <v-btn
             color="primary"
             :disabled="queue.length === 0"
             prepend-icon="mdi-printer"
-            text="Print all"
+            :text="t('Print all')"
             variant="flat"
             @click="openPrint(true)"
           />
@@ -213,11 +213,10 @@
     <!-- Fill the queue from an inventory: one label per piece on hand -->
     <v-dialog v-model="fillDialog" max-width="480">
       <v-card>
-        <v-card-title class="text-h6">Fill from inventory</v-card-title>
+        <v-card-title class="text-h6">{{ t('Fill from inventory') }}</v-card-title>
         <v-card-text>
           <p class="text-body-2 mb-4">
-            Queues one label for every piece in stock: each product's quantity to print is what the
-            inventory holds. A product already in the queue gets that quantity instead.
+            {{ t('Queues one label for every piece in stock: each product\'s quantity to print is what the inventory holds. A product already in the queue gets that quantity instead.') }}
           </p>
           <v-select
             v-model="fillInventoryId"
@@ -225,7 +224,7 @@
             item-title="name"
             item-value="id"
             :items="inventories"
-            label="Inventory"
+            :label="t('Inventory')"
             variant="outlined"
           />
           <v-checkbox
@@ -239,12 +238,12 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="fillDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="fillDialog = false" />
           <v-btn
             color="primary"
             :disabled="!fillInventoryId"
             :loading="filling"
-            text="Add to queue"
+            :text="t('Add to queue')"
             variant="flat"
             @click="fillFromInventory"
           />
@@ -261,11 +260,11 @@
             v-model="separatorEnabled"
             density="compact"
             hide-details
-            label="Separator page before each item (adds side borders to labels)"
+            :label="t('Separator page before each item (adds side borders to labels)')"
           />
           <v-expand-transition>
             <div v-show="separatorEnabled" class="ms-8 mt-1">
-              <div class="text-caption text-medium-emphasis mb-1">Fields to show on the separator page</div>
+              <div class="text-caption text-medium-emphasis mb-1">{{ t('Fields to show on the separator page') }}</div>
               <v-checkbox
                 v-for="f in separatorFieldOptions"
                 :key="f.value"
@@ -282,18 +281,18 @@
             v-model="blankFirstPage"
             density="compact"
             hide-details
-            label="Start with an empty page (for printers that skip the first page)"
+            :label="t('Start with an empty page (for printers that skip the first page)')"
           />
 
           <v-divider class="my-3" />
 
-          <div class="text-caption text-medium-emphasis mb-1">Label size (points, 72 = 1 inch)</div>
+          <div class="text-caption text-medium-emphasis mb-1">{{ t('Label size (points, 72 = 1 inch)') }}</div>
           <div class="d-flex ga-3">
             <v-text-field
               v-model.number="labelWidth"
               density="compact"
               hide-details
-              label="Width"
+              :label="t('Width')"
               type="number"
               variant="outlined"
             />
@@ -301,7 +300,7 @@
               v-model.number="labelHeight"
               density="compact"
               hide-details
-              label="Height"
+              :label="t('Height')"
               type="number"
               variant="outlined"
             />
@@ -316,16 +315,16 @@
             class="mt-2"
             density="compact"
             hide-details
-            label="Empty the queue after printing"
+            :label="t('Empty the queue after printing')"
           />
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="printDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="printDialog = false" />
           <v-btn
             color="primary"
             :loading="printing"
-            text="Generate PDF"
+            :text="t('Generate PDF')"
             variant="flat"
             @click="doPrint"
           />
@@ -336,6 +335,7 @@
 </template>
 
 <script setup lang="ts">
+  import { t } from '@/i18n'
   import { computed, onMounted, reactive, ref, watch } from 'vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useBarcodeQueue } from '@/composables/useBarcodeQueue'
@@ -357,20 +357,20 @@
 
   const apiURL = `${API_BASE}/barcodes`
   const headers = [
-    { title: 'Product', key: 'product', sortable: false },
-    { title: 'Variant', key: 'variant', sortable: false },
-    { title: 'Barcode', key: 'barcode', sortable: false },
-    { title: 'Price', key: 'price', align: 'end', sortable: false },
-    { title: 'Qty to print', key: 'qty', align: 'center', sortable: false, width: 110 },
-    { title: 'Queue', key: 'queue', align: 'center', sortable: false, width: 70 },
+    { title: t('Product'), key: 'product', sortable: false },
+    { title: t('Variant'), key: 'variant', sortable: false },
+    { title: t('Barcode'), key: 'barcode', sortable: false },
+    { title: t('Price'), key: 'price', align: 'end', sortable: false },
+    { title: t('Qty to print'), key: 'qty', align: 'center', sortable: false, width: 110 },
+    { title: t('Queue'), key: 'queue', align: 'center', sortable: false, width: 70 },
   ]
 
   const separatorFieldOptions = [
-    { title: 'Name', value: 'name' },
-    { title: 'Quantity', value: 'qty' },
-    { title: 'Brand', value: 'brand' },
-    { title: 'Color', value: 'color' },
-    { title: 'Size', value: 'size' },
+    { title: t('Name'), value: 'name' },
+    { title: t('Quantity'), value: 'qty' },
+    { title: t('Brand'), value: 'brand' },
+    { title: t('Color'), value: 'color' },
+    { title: t('Size'), value: 'size' },
   ]
 
   const tableRef = ref(null)

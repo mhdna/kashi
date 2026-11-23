@@ -5,10 +5,10 @@
       <div style="flex: 1 1 220px; min-width: 0">
         <div class="d-flex align-center text-subtitle-2 text-uppercase text-medium-emphasis mb-1">
           <v-icon class="me-2" color="indigo-lighten-2" :icon="stateIcon" size="20" />
-          Financial Position
+          {{ t('Financial Position') }}
         </div>
 
-        <PreparingState v-if="loading && summary == null" kind="chart" :size="36" title="Loading" />
+        <PreparingState v-if="loading && summary == null" kind="chart" :size="36" :title="t('Loading')" />
 
         <template v-else>
           <div class="d-flex align-baseline ga-3">
@@ -45,6 +45,7 @@
 </template>
 
 <script setup>
+  import { t } from '@/i18n'
   import { computed } from 'vue'
   import VChart from '@/components/EChart.vue'
   import { formatCompactMoney, formatMoney } from '@/utils/money'
@@ -103,11 +104,11 @@
   const breakdown = computed(() => {
     const s = props.summary ?? {}
     return [
-      { label: 'Revenue', value: `$${formatMoney(s.revenue ?? 0)}` },
-      { label: 'Expenses', value: `$${formatMoney(s.expenses ?? 0)}` },
-      { label: 'Purchases', value: `$${formatMoney(s.purchases ?? 0)}` },
+      { label: t('Revenue'), value: `$${formatMoney(s.revenue ?? 0)}` },
+      { label: t('Expenses'), value: `$${formatMoney(s.expenses ?? 0)}` },
+      { label: t('Purchases'), value: `$${formatMoney(s.purchases ?? 0)}` },
       {
-        label: 'Margin',
+        label: t('Margin'),
         value: marginPct.value == null ? '—' : `${marginPct.value.toFixed(1)}%`,
       },
     ]

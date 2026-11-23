@@ -10,7 +10,7 @@
     :items="sortedCurrencies"
     :label="label"
     :loading="loading"
-    :no-data-text="loadError || 'No currencies found'"
+    :no-data-text="loadError || t('No currencies found')"
     :return-object="false"
   />
 </template>
@@ -18,9 +18,10 @@
 <script setup lang="ts">
   import { computed, onMounted, ref } from 'vue'
   import { useCurrencies } from '@/composables/useCurrencies'
+  import { t } from '@/i18n'
 
   const props = defineProps({
-    label: { type: String, default: 'Currency' },
+    label: { type: String, default: () => t('Currency') },
     errorMessages: { type: [String, Array], default: () => [] },
   })
 
@@ -34,7 +35,7 @@
   function itemProps (c) {
     return {
       title: c.code,
-      subtitle: [c.symbol, c.name].filter(Boolean).join(' · '),
+      subtitle: [c.symbol, c.name].filter(Boolean).join(', '),
     }
   }
 
@@ -61,7 +62,7 @@
     try {
       await fetchCurrencies(true)
     } catch (error) {
-      loadError.value = `Could not load currencies: ${error.message}`
+      loadError.value = t('Could not load currencies: {message}', { message: error.message })
       console.error('CurrencySelect: failed to load currencies', error)
     } finally {
       loading.value = false

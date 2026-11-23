@@ -7,6 +7,7 @@
   import VChart from '@/components/EChart.vue'
   import { useAssetsTreemap } from '@/composables/useAssetsTreemap'
   import { useNotify } from '@/composables/useNotify'
+  import { t } from '@/i18n'
 
   const props = defineProps({
     // inventory id, or 'all' for every location
@@ -21,17 +22,17 @@
   const option = ref({})
 
   const formatMoney = cents => '$ ' + Math.round(Number(cents || 0) / 100).toLocaleString('en-US')
-  const formatCount = n => Number(n || 0).toLocaleString('en-US') + ' units'
+  const formatCount = n => Number(n || 0).toLocaleString('en-US') + ' ' + t('units')
 
   function tooltipFormatter (info) {
     const d = info.data || {}
     const rows = [
       `<div style="font-weight:600;margin-bottom:4px">${info.name}</div>`,
-      `Book Value:&nbsp;&nbsp;${formatMoney(info.value)}`,
+      `${t('Book Value')}:&nbsp;&nbsp;${formatMoney(info.value)}`,
     ]
-    if (d.qty !== undefined) rows.push(`Count:&nbsp;&nbsp;${formatCount(d.qty)}`)
-    if (d.code) rows.push(`Asset Tag:&nbsp;&nbsp;${d.code}`)
-    if (d.location) rows.push(`Location:&nbsp;&nbsp;${d.location}`)
+    if (d.qty !== undefined) rows.push(`${t('Count')}:&nbsp;&nbsp;${formatCount(d.qty)}`)
+    if (d.code) rows.push(`${t('Asset Tag')}:&nbsp;&nbsp;${d.code}`)
+    if (d.location) rows.push(`${t('Location')}:&nbsp;&nbsp;${d.location}`)
     return rows.join('<br>')
   }
 

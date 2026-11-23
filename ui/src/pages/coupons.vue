@@ -3,7 +3,7 @@
     <v-card class="coupons-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-ticket-percent" />
-        <span>Coupons</span>
+        <span>{{ t('Coupons') }}</span>
         <v-spacer />
         <v-text-field
           v-if="tab === 'coupons'"
@@ -12,7 +12,7 @@
           clearable
           density="compact"
           hide-details
-          label="Search code"
+          :label="t('Search code')"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
         />
@@ -24,16 +24,16 @@
           mandatory
           variant="outlined"
         >
-          <v-btn value="all">All</v-btn>
-          <v-btn value="active">Active</v-btn>
-          <v-btn value="inactive">Inactive</v-btn>
-          <v-btn value="redeemed">Redeemed</v-btn>
+          <v-btn value="all">{{ t('All') }}</v-btn>
+          <v-btn value="active">{{ t('Active') }}</v-btn>
+          <v-btn value="inactive">{{ t('Inactive') }}</v-btn>
+          <v-btn value="redeemed">{{ t('Redeemed') }}</v-btn>
         </v-btn-toggle>
         <v-btn
           v-if="canEdit && tab === 'coupons'"
           color="primary"
           prepend-icon="mdi-plus"
-          text="Add Coupon"
+          :text="t('Add Coupon')"
           variant="flat"
           @click="openCreate"
         />
@@ -41,7 +41,7 @@
           v-if="canEdit && tab === 'types'"
           color="primary"
           prepend-icon="mdi-plus"
-          text="Add Type"
+          :text="t('Add Type')"
           variant="flat"
           @click="openCreateType"
         />
@@ -49,7 +49,7 @@
           v-if="canEdit && tab === 'lists'"
           color="primary"
           prepend-icon="mdi-plus"
-          text="Generate List"
+          :text="t('Generate List')"
           variant="flat"
           @click="openCreateList"
         />
@@ -63,9 +63,9 @@
           color="primary"
           :direction="$vuetify.display.smAndDown ? 'horizontal' : 'vertical'"
         >
-          <v-tab prepend-icon="mdi-ticket-percent" text="Coupons" value="coupons" />
-          <v-tab prepend-icon="mdi-tag-multiple" text="Types" value="types" />
-          <v-tab prepend-icon="mdi-format-list-numbered" text="Lists" value="lists" />
+          <v-tab prepend-icon="mdi-ticket-percent" :text="t('Coupons')" value="coupons" />
+          <v-tab prepend-icon="mdi-tag-multiple" :text="t('Types')" value="types" />
+          <v-tab prepend-icon="mdi-format-list-numbered" :text="t('Lists')" value="lists" />
         </v-tabs>
 
         <v-divider vertical />
@@ -132,7 +132,7 @@
                       v-if="canEdit"
                       :disabled="item.status !== 'active'"
                       size="small"
-                      text="Deactivate"
+                      :text="t('Deactivate')"
                       variant="text"
                       @click.stop="deactivate(item)"
                     />
@@ -196,7 +196,7 @@
                   v-if="canEdit"
                   :disabled="!item.is_active"
                   size="small"
-                  text="Close"
+                  :text="t('Close')"
                   variant="text"
                   @click.stop="closeList(item)"
                 />
@@ -218,7 +218,7 @@
               density="compact"
               :disabled="!!editingCode"
               :error-messages="formErrors.code"
-              label="Code"
+              :label="t('Code')"
             />
             <v-select
               v-model="form.typeId"
@@ -227,7 +227,7 @@
               item-title="name"
               item-value="id"
               :items="couponTypes"
-              label="Coupon Type"
+              :label="t('Coupon Type')"
             />
             <v-select
               v-model="form.categoryId"
@@ -236,7 +236,7 @@
               item-title="name"
               item-value="id"
               :items="activeCategories"
-              label="Category"
+              :label="t('Category')"
             />
             <v-select
               v-model="form.clientId"
@@ -245,23 +245,23 @@
               :item-title="c => `${c.name} (${c.phone})`"
               :item-value="c => c.id"
               :items="selectableClients"
-              label="Client (optional)"
+              :label="t('Client (optional)')"
             />
             <v-select
               v-model="form.status"
               density="compact"
               :items="['active', 'inactive']"
-              label="Status"
+              :label="t('Status')"
             />
             <DateField
               v-model="form.validUntil"
               density="compact"
-              label="Valid Until (optional)"
+              :label="t('Valid Until (optional)')"
             />
 
             <v-card-actions class="px-0">
               <v-spacer />
-              <v-btn text="Cancel" @click="closeDialog" />
+              <v-btn :text="t('Cancel')" @click="closeDialog" />
               <v-btn
                 color="primary"
                 :loading="submitting"
@@ -291,7 +291,7 @@
               v-model="typeForm.name"
               density="compact"
               :error-messages="typeFormErrors.name"
-              label="Name"
+              :label="t('Name')"
             />
             <v-row>
               <v-col cols="8">
@@ -299,7 +299,7 @@
                   v-model.number="typeForm.valueAmount"
                   density="compact"
                   :error-messages="typeFormErrors.value"
-                  label="Value"
+                  :label="t('Value')"
                   min="0"
                   step="0.01"
                   type="number"
@@ -309,7 +309,7 @@
                 <v-text-field
                   v-model="typeForm.currencyCode"
                   density="compact"
-                  label="Currency"
+                  :label="t('Currency')"
                 />
               </v-col>
             </v-row>
@@ -320,37 +320,37 @@
               item-title="name"
               item-value="id"
               :items="activeCategories"
-              label="Category"
+              :label="t('Category')"
             />
             <v-checkbox
               v-model="typeForm.isActive"
               density="compact"
               hide-details
-              label="Active"
+              :label="t('Active')"
             />
             <v-checkbox
               v-model="typeForm.referenceOnly"
               density="compact"
               hide-details
-              label="Reference-only (no monetary value calculated at checkout)"
+              :label="t('Reference-only (no monetary value calculated at checkout)')"
             />
             <v-checkbox
               v-model="typeForm.calculateOnCheckout"
               density="compact"
               hide-details
-              label="Auto-apply the value at checkout"
+              :label="t('Auto-apply the value at checkout')"
             />
             <v-checkbox
               v-model="typeForm.codeRequired"
               class="mb-2"
               density="compact"
               hide-details
-              label="A code must be typed to redeem"
+              :label="t('A code must be typed to redeem')"
             />
 
             <v-card-actions class="px-0">
               <v-spacer />
-              <v-btn text="Cancel" @click="closeTypeDialog" />
+              <v-btn :text="t('Cancel')" @click="closeTypeDialog" />
               <v-btn
                 color="primary"
                 :loading="typeSubmitting"
@@ -367,14 +367,14 @@
     <v-dialog v-model="listDialog" max-width="520">
       <v-card class="px-4">
         <template v-if="!generatedCodes">
-          <v-card-title>Generate a Coupon List</v-card-title>
+          <v-card-title>{{ t('Generate a Coupon List') }}</v-card-title>
           <v-card-text>
             <form @submit.prevent="submitList">
               <v-text-field
                 v-model="listForm.name"
                 density="compact"
                 :error-messages="listFormErrors.name"
-                label="Campaign name"
+                :label="t('Campaign name')"
               />
               <v-select
                 v-model="listForm.typeId"
@@ -383,26 +383,26 @@
                 item-title="name"
                 item-value="id"
                 :items="couponTypes"
-                label="Coupon Type"
+                :label="t('Coupon Type')"
               />
               <v-text-field
                 v-model.number="listForm.count"
                 density="compact"
                 :error-messages="listFormErrors.count"
-                label="How many codes?"
+                :label="t('How many codes?')"
                 min="1"
                 type="number"
               />
               <DateField
                 v-model="listForm.validUntil"
                 density="compact"
-                label="Valid Until (optional)"
+                :label="t('Valid Until (optional)')"
               />
 
               <v-card-actions class="px-0">
                 <v-spacer />
-                <v-btn text="Cancel" @click="closeListDialog" />
-                <v-btn color="primary" :loading="listSubmitting" text="Generate" type="submit" />
+                <v-btn :text="t('Cancel')" @click="closeListDialog" />
+                <v-btn color="primary" :loading="listSubmitting" :text="t('Generate')" type="submit" />
               </v-card-actions>
             </form>
           </v-card-text>
@@ -416,7 +416,7 @@
             <v-textarea
               auto-grow
               density="compact"
-              label="Codes"
+              :label="t('Codes')"
               :model-value="generatedCodes.join('\n')"
               readonly
               rows="6"
@@ -427,12 +427,12 @@
               variant="tonal"
               @click="copyGeneratedCodes"
             >
-              Copy all codes
+              {{ t('Copy all codes') }}
             </v-btn>
           </v-card-text>
           <v-card-actions>
             <v-spacer />
-            <v-btn color="primary" text="Done" @click="closeListDialog" />
+            <v-btn color="primary" :text="t('Done')" @click="closeListDialog" />
           </v-card-actions>
         </template>
       </v-card>
@@ -441,6 +441,7 @@
 </template>
 
 <script setup lang="ts">
+  import { t } from '@/i18n'
   import { computed, onMounted, reactive, ref, watch } from 'vue'
   import CategoryChip from '@/components/CategoryChip.vue'
   import CategorySidebar from '@/components/CategorySidebar.vue'
@@ -481,26 +482,26 @@
 
   const apiURL = `${API_BASE}/coupons`
   const headers = ref([
-    { title: 'Code', key: 'code', align: 'start' },
-    { title: 'Type', key: 'type_name', align: 'start', sortable: false },
-    { title: 'Category', key: 'category_id', align: 'start', sortable: false },
-    { title: 'Status', key: 'status', align: 'start' },
-    { title: 'Value', key: 'value_cents', align: 'end' },
-    { title: 'Valid Until', key: 'valid_until', align: 'end' },
-    { title: 'Actions', key: 'actions', align: 'end', sortable: false },
+    { title: t('Code'), key: 'code', align: 'start' },
+    { title: t('Type'), key: 'type_name', align: 'start', sortable: false },
+    { title: t('Category'), key: 'category_id', align: 'start', sortable: false },
+    { title: t('Status'), key: 'status', align: 'start' },
+    { title: t('Value'), key: 'value_cents', align: 'end' },
+    { title: t('Valid Until'), key: 'valid_until', align: 'end' },
+    { title: t('Actions'), key: 'actions', align: 'end', sortable: false },
   ])
   const typeHeaders = ref([
-    { title: 'Name', key: 'name', align: 'start' },
-    { title: 'Value', key: 'value_cents', align: 'end' },
-    { title: 'Status', key: 'is_active', align: 'start' },
-    { title: 'Flags', key: 'flags', align: 'start', sortable: false },
+    { title: t('Name'), key: 'name', align: 'start' },
+    { title: t('Value'), key: 'value_cents', align: 'end' },
+    { title: t('Status'), key: 'is_active', align: 'start' },
+    { title: t('Flags'), key: 'flags', align: 'start', sortable: false },
     { title: '', key: 'actions', align: 'end', sortable: false },
   ])
   const listHeaders = ref([
-    { title: 'Campaign', key: 'name', align: 'start' },
-    { title: 'Type', key: 'coupon_type_name', align: 'start' },
-    { title: 'Codes', key: 'coupon_count', align: 'start', sortable: false },
-    { title: 'Status', key: 'is_active', align: 'start' },
+    { title: t('Campaign'), key: 'name', align: 'start' },
+    { title: t('Type'), key: 'coupon_type_name', align: 'start' },
+    { title: t('Codes'), key: 'coupon_count', align: 'start', sortable: false },
+    { title: t('Status'), key: 'is_active', align: 'start' },
     { title: '', key: 'actions', align: 'end', sortable: false },
   ])
 

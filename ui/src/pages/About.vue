@@ -1,8 +1,8 @@
 <template>
   <div>
-    <h1>Health Check Status</h1>
+    <h1>{{ $t('Health Check Status') }}</h1>
     <p v-if="error">{{ error }}</p>
-    <p v-else-if="loading">Loading...</p>
+    <p v-else-if="loading">{{ $t('Loading...') }}</p>
     <p v-else>{{ healthData }}</p>
   </div>
 </template>

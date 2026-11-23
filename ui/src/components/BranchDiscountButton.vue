@@ -8,20 +8,20 @@
   <v-btn
     v-if="auth.canEdit('pricing')"
     icon="mdi-sale"
-    title="Set a branch discount"
+    :title="t('Set a branch discount')"
     variant="text"
     @click="open = true"
   />
 
   <v-dialog v-model="open" max-width="520">
     <v-card>
-      <v-card-title>Branch discount</v-card-title>
+      <v-card-title>{{ t('Branch discount') }}</v-card-title>
       <v-card-text>
         <v-select
           v-model="branchId"
           density="compact"
           :items="branchItems"
-          label="Branch"
+          :label="t('Branch')"
           variant="outlined"
         />
         <v-text-field
@@ -29,8 +29,8 @@
           autofocus
           class="mt-2"
           density="compact"
-          hint="A code covers all its colours and sizes; a barcode just that one"
-          label="Product code or barcode"
+          :hint="t('A code covers all its colours and sizes; a barcode just that one')"
+          :label="t('Product code or barcode')"
           :loading="looking"
           persistent-hint
           variant="outlined"
@@ -43,8 +43,8 @@
           <v-table class="mt-1" density="compact">
             <thead>
               <tr>
-                <th>Variant</th>
-                <th>Barcode</th>
+                <th>{{ t('Variant') }}</th>
+                <th>{{ t('Barcode') }}</th>
                 <th class="text-end">Now</th>
               </tr>
             </thead>
@@ -64,11 +64,10 @@
             variant="tonal"
           >
             <template v-if="found.list.is_default && found.list.branches > 1">
-              This branch uses the default list, <strong>{{ found.list.name }}</strong>: the discount
-              applies to all {{ found.list.branches }} branches without a list of their own.
+              {{ t('This branch uses the default list,') }} <strong>{{ found.list.name }}</strong>: {{ t('the discount applies to all {n} branches without a list of their own.', { n: found.list.branches }) }}
             </template>
             <template v-else>
-              Goes into <strong>{{ found.list.name }}</strong>, this branch's discount list.
+              {{ t('Goes into') }} <strong>{{ found.list.name }}</strong>{{ t(", this branch's discount list.") }}
             </template>
           </v-alert>
 
@@ -93,17 +92,17 @@
           type="warning"
           variant="tonal"
         >
-          No product has that code or barcode.
+          {{ t('No product has that code or barcode.') }}
         </v-alert>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn text="Close" variant="text" @click="open = false" />
+        <v-btn :text="t('Close')" variant="text" @click="open = false" />
         <v-btn
           color="primary"
           :disabled="!found || discount === ''"
           :loading="saving"
-          text="Set discount"
+          :text="t('Set discount')"
           variant="flat"
           @click="save"
         />
@@ -113,6 +112,7 @@
 </template>
 
 <script setup>
+  import { t } from '@/i18n'
   import { computed, ref, watch } from 'vue'
   import { authFetch } from '@/composables/useApi'
   import { useBranches } from '@/composables/useBranches'
@@ -183,14 +183,14 @@
   async function save () {
     const value = Number(discount.value)
     if (!found.value || !Number.isInteger(value) || value < 0 || value > 100) {
-      notify.error('Enter a discount from 0 to 100.')
+      notify.error(t('Enter a discount from 0 to 100.'))
       return
     }
     saving.value = true
     try {
       const data = await request('PUT', { entry: entry.value.trim(), discount: value })
-      const branch = branchItems.value.find(b => b.value === branchId.value)?.title ?? 'the branch'
-      notify.success(`${found.value.variants[0].product_name}: ${value}% on ${branch} (${data.list.name}). The till updates now.`)
+      const branch = branchItems.value.find(b => b.value === branchId.value)?.title ?? t('the branch')
+      notify.success(t('{product}: {value}% on {branch} ({list}). The till updates now.', { product: found.value.variants[0].product_name, value, branch, list: data.list.name }))
       lookedUp = ''
       await lookUp()
     } catch (error) {

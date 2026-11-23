@@ -3,7 +3,7 @@
     <!-- Header / controls -->
     <div class="d-flex align-center flex-wrap ga-3 pa-4 pb-2">
       <v-icon icon="mdi-walk" />
-      <div class="text-h6 font-weight-medium">Footfall</div>
+      <div class="text-h6 font-weight-medium">{{ t('Footfall') }}</div>
       <v-spacer />
       <v-select
         v-model="rangeMonths"
@@ -20,25 +20,23 @@
         density="compact"
         hide-details
         :items="branchOptions"
-        label="Branches"
+        :label="t('Branches')"
         multiple
         style="min-width: 220px; max-width: 340px"
         variant="outlined"
       >
         <template #prepend-item>
-          <v-list-item title="All branches" @click="selectedBranchIds = []" />
+          <v-list-item :title="t('All branches')" @click="selectedBranchIds = []" />
           <v-divider />
         </template>
       </v-select>
     </div>
 
     <div v-if="loading" class="d-flex justify-center pa-12">
-      <PreparingState kind="people" min-height="160px" title="Counting visitors" />
+      <PreparingState kind="people" min-height="160px" :title="t('Counting visitors')" />
     </div>
 
-    <v-alert v-else-if="rows.length === 0" class="ff-notice mx-4" type="info" variant="tonal">
-      No visitor counts in this range.
-    </v-alert>
+    <v-alert v-else-if="rows.length === 0" class="ff-notice mx-4" type="info" variant="tonal">{{ t('No visitor counts in this range.') }}</v-alert>
 
     <v-container v-else class="pa-4 pt-2" fluid>
       <!-- KPIs -->
@@ -72,7 +70,7 @@
               <table class="ff-heat" @mouseleave="heatHoverCol = null">
                 <thead>
                   <tr>
-                    <th class="ff-heat__daycol">Day</th>
+                    <th class="ff-heat__daycol">{{ t('Day') }}</th>
                     <th
                       v-for="(m, mi) in heatMonths"
                       :key="m"
@@ -103,7 +101,7 @@
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td class="ff-heat__daycol ff-heat__foot">Total</td>
+                    <td class="ff-heat__daycol ff-heat__foot">{{ t('Total') }}</td>
                     <td
                       v-for="(m, mi) in heatMonths"
                       :key="m"
@@ -121,7 +119,7 @@
         </v-col>
         <v-col cols="12" md="4">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Average by weekday</div>
+            <div class="chart-card__title">{{ t('Average by weekday') }}</div>
             <v-chart autoresize class="chart" :option="weekdayOption" />
           </v-card>
         </v-col>
@@ -131,7 +129,7 @@
       <v-row dense>
         <v-col cols="12" md="7">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Month over month by branch</div>
+            <div class="chart-card__title">{{ t('Month over month by branch') }}</div>
             <v-chart autoresize class="chart" :option="monthlyOption" />
           </v-card>
         </v-col>
@@ -154,6 +152,7 @@
   import { useBranches } from '@/composables/useBranches'
   import { useBranchVisitors } from '@/composables/useBranchVisitors'
   import { useNotify } from '@/composables/useNotify'
+  import { t } from '@/i18n'
 
   const theme = useTheme()
   const c = computed(() => theme.current.value.colors)
@@ -180,9 +179,9 @@
   }))
 
   const RANGE_OPTIONS = [
-    { title: 'Last 3 months', value: 3 },
-    { title: 'Last 6 months', value: 6 },
-    { title: 'Last 12 months', value: 12 },
+    { title: t('Last 3 months'), value: 3 },
+    { title: t('Last 6 months'), value: 6 },
+    { title: t('Last 12 months'), value: 12 },
   ]
   const rangeMonths = ref(6)
   const selectedBranchIds = ref([]) // empty = all
@@ -393,17 +392,17 @@
       ? Math.round(((totalIn.value - prevTotalIn.value) / prevTotalIn.value) * 100)
       : null
     return [
-      { label: 'Customers in', value: totalIn.value.toLocaleString(), delta, hint: 'vs previous period' },
-      { label: 'Customers out', value: totalOut.value.toLocaleString() },
-      { label: 'Net', value: (totalIn.value - totalOut.value).toLocaleString() },
-      { label: 'Avg in / day', value: Math.round(totalIn.value / activeDayCount).toLocaleString() },
+      { label: t('Customers in'), value: totalIn.value.toLocaleString(), delta, hint: 'vs previous period' },
+      { label: t('Customers out'), value: totalOut.value.toLocaleString() },
+      { label: t('Net'), value: (totalIn.value - totalOut.value).toLocaleString() },
+      { label: t('Avg in / day'), value: Math.round(totalIn.value / activeDayCount).toLocaleString() },
       {
-        label: 'Busiest day',
+        label: t('Busiest day'),
         value: busiestDay.value ? String(busiestDay.value.n) : '—',
         hint: busiestDay.value ? new Date(`${busiestDay.value.day}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '',
       },
       {
-        label: 'Busiest branch',
+        label: t('Busiest branch'),
         value: busiestBranch.value ? String(busiestBranch.value.n) : '—',
         hint: busiestBranch.value ? branchName(busiestBranch.value.id) : '',
       },

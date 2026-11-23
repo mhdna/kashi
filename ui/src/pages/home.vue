@@ -5,7 +5,7 @@
         <section class="home-hero text-center">
           <div
             v-if="mdAndUp"
-            aria-label="K"
+            :aria-label="t('K')"
             class="home-desktop-logo mx-auto"
             role="img"
             :style="{ '--home-logo-color': logoColor, '--home-logo-image': `url(${appLogo})` }"
@@ -14,17 +14,13 @@
           <p v-if="appVersion || appCommit" class="mt-0 mb-0 text-caption text-disabled build-info">
             {{ [appVersion, appCommit && `commit: ${appCommit}`].filter(Boolean).join(' · ') }}
           </p>
-          <h1 class="mt-1 font-weight-medium" :class="xs ? 'text-h6' : 'text-h5'">Welcome to Kashi Cloud</h1>
-          <p class="mt-2 mb-0 text-body-2 text-medium-emphasis">
-            Take a look at the latest updates.
-          </p>
+          <h1 class="mt-1 font-weight-medium" :class="xs ? 'text-h6' : 'text-h5'">{{ t('Welcome to Kashi Cloud') }}</h1>
+          <p class="mt-2 mb-0 text-body-2 text-medium-emphasis">{{ t('Take a look at the latest updates.') }}</p>
           <!-- TEMP: month summary + feed-count note hidden
           <p class="mt-2 text-body-2 text-medium-emphasis month-summary">
             {{ monthSummary || "Here's what's new." }}
           </p>
-          <p class="mt-1 mb-0 text-caption text-disabled">
-            Feed counts cover the last week.
-          </p>
+          <p class="mt-1 mb-0 text-caption text-disabled">{{ t('Feed counts cover the last week.') }}</p>
           -->
         </section>
 
@@ -34,10 +30,10 @@
       <ActiveLinksCard class="home-active-links" />
 
       <div v-if="canViewKashiActivity || canViewActivity || canViewLatest" class="home-feeds">
-        <section v-if="canViewKashiActivity" aria-label="IT Management" class="home-activities">
+        <section v-if="canViewKashiActivity" :aria-label="t('IT Management')" class="home-activities">
           <div class="home-activities-head d-flex align-center px-1 mb-2">
             <v-icon class="me-2 text-medium-emphasis" icon="mdi-account-group" size="18" />
-            <span class="text-body-2 font-weight-medium">IT Management</span>
+            <span class="text-body-2 font-weight-medium">{{ t('IT Management') }}</span>
             <v-spacer />
             <span
               v-if="recentCounts"
@@ -82,13 +78,13 @@
               >
                 <v-icon icon="mdi-help-box-outline" size="20" />
                 <div class="flex-grow-1 text-body-2">
-                  <div class="font-weight-medium">Unknown items to resolve</div>
+                  <div class="font-weight-medium">{{ t('Unknown items to resolve') }}</div>
                   <div class="text-caption text-medium-emphasis">
                     <template v-if="unknownItems.waiting > 0">{{ unknownItems.waiting }} waiting for a picture right now · </template>
                     {{ unknownItems.pending }} to match with a product
                   </div>
                 </div>
-                <v-btn size="small" variant="text" @click="router.push('/unknown-items')">Open</v-btn>
+                <v-btn size="small" variant="text" @click="router.push('/unknown-items')">{{ t('Open') }}</v-btn>
               </div>
               <v-divider v-if="group.key === 'unknown' && unknownItems.waiting + unknownItems.pending > 0" />
               <div class="home-activities-scroll" @scroll.passive="onFeedScroll($event, loadMoreKashi)">
@@ -145,17 +141,17 @@
                   {{ group.empty }}
                 </div>
                 <div v-if="kashiLoading && group.key === 'other'" class="d-flex justify-center py-2">
-                  <PreparingState kind="data" :size="25" title="Loading" />
+                  <PreparingState kind="data" :size="25" :title="t('Loading')" />
                 </div>
               </div>
             </v-card>
           </div>
         </section>
 
-        <section v-if="canViewActivity" aria-label="Recent activity" class="home-activities">
+        <section v-if="canViewActivity" :aria-label="t('Recent activity')" class="home-activities">
           <div class="home-activities-head d-flex align-center px-1 mb-2">
             <v-icon class="me-2 text-medium-emphasis" icon="mdi-history" size="18" />
-            <span class="text-body-2 font-weight-medium">Recent activity</span>
+            <span class="text-body-2 font-weight-medium">{{ t('Recent activity') }}</span>
             <v-spacer />
             <span
               v-if="recentCounts"
@@ -207,7 +203,7 @@
                           color="error"
                           icon="mdi-pin"
                           size="14"
-                          title="Pinned until someone resolves it"
+                          :title="t('Pinned until someone resolves it')"
                         />
                         {{ activityTitle(item) }}
                       </v-list-item-title>
@@ -263,20 +259,18 @@
               <div
                 v-if="activitiesLoaded && feedRows.length === 0"
                 class="text-body-2 text-medium-emphasis py-4 text-center"
-              >
-                No recent activity yet.
-              </div>
+              >{{ t('No recent activity yet.') }}</div>
               <div v-if="activitiesLoading" class="d-flex justify-center py-2">
-                <PreparingState kind="data" :size="25" title="Loading" />
+                <PreparingState kind="data" :size="25" :title="t('Loading')" />
               </div>
             </div>
           </v-card>
         </section>
 
-        <section v-if="canViewLatest" aria-label="Latest attachments" class="home-activities">
+        <section v-if="canViewLatest" :aria-label="t('Latest attachments')" class="home-activities">
           <div class="home-activities-head d-flex align-center px-1 mb-2">
             <v-icon class="me-2 text-medium-emphasis" icon="mdi-image-multiple-outline" size="18" />
-            <span class="text-body-2 font-weight-medium">Latest attachments</span>
+            <span class="text-body-2 font-weight-medium">{{ t('Latest attachments') }}</span>
             <v-spacer />
             <span
               v-if="recentCounts"
@@ -348,16 +342,14 @@
               <div
                 v-if="latestLoaded && latestItems.length === 0"
                 class="text-body-2 text-medium-emphasis py-4 text-center"
-              >
-                Nothing added yet.
-              </div>
+              >{{ t('Nothing added yet.') }}</div>
               <div v-else-if="latestLoading" class="d-flex justify-center py-2">
-                <PreparingState kind="data" :size="25" title="Loading" />
+                <PreparingState kind="data" :size="25" :title="t('Loading')" />
               </div>
               <div v-else-if="latestLoaded && canShowMoreLatest && !mdAndUp" class="d-flex justify-center py-2">
                 <v-btn
                   size="small"
-                  text="Show more"
+                  :text="t('Show more')"
                   variant="text"
                   @click="showMoreLatest"
                 />
@@ -403,7 +395,7 @@
           </div>
           <v-spacer />
           <v-btn
-            aria-label="Close"
+            :aria-label="t('Close')"
             icon="mdi-close"
             size="small"
             variant="text"
@@ -414,16 +406,16 @@
         <v-list class="py-2" density="compact">
           <template v-if="kashiDetail.method === 'RELEASE'">
             <v-list-item>
-              <v-list-item-subtitle class="text-caption">Commit</v-list-item-subtitle>
+              <v-list-item-subtitle class="text-caption">{{ t('Commit') }}</v-list-item-subtitle>
               <v-list-item-title class="text-body-2">{{ releaseCommit(kashiDetail).hash }}</v-list-item-title>
             </v-list-item>
             <v-list-item v-if="releaseCommit(kashiDetail).scope">
-              <v-list-item-subtitle class="text-caption">Area</v-list-item-subtitle>
+              <v-list-item-subtitle class="text-caption">{{ t('Area') }}</v-list-item-subtitle>
               <v-list-item-title class="text-body-2">{{ releaseCommit(kashiDetail).scope }}</v-list-item-title>
             </v-list-item>
           </template>
           <v-list-item v-else-if="kashiDetail.detail">
-            <v-list-item-subtitle class="text-caption">Detail</v-list-item-subtitle>
+            <v-list-item-subtitle class="text-caption">{{ t('Detail') }}</v-list-item-subtitle>
             <v-list-item-title class="text-body-2" style="white-space: normal">{{ kashiDetail.detail }}</v-list-item-title>
           </v-list-item>
           <v-list-item>
@@ -433,11 +425,11 @@
             <v-list-item-title class="text-body-2">{{ dateTime(kashiDetail.created_at) }}</v-list-item-title>
           </v-list-item>
           <v-list-item v-if="kashiDetail.repeat_count > 1">
-            <v-list-item-subtitle class="text-caption">Times in a row</v-list-item-subtitle>
+            <v-list-item-subtitle class="text-caption">{{ t('Times in a row') }}</v-list-item-subtitle>
             <v-list-item-title class="text-body-2">{{ kashiDetail.repeat_count }}, each within an hour of the last</v-list-item-title>
           </v-list-item>
           <v-list-item v-if="kashiDetail.method !== 'RELEASE'">
-            <v-list-item-subtitle class="text-caption">Made through</v-list-item-subtitle>
+            <v-list-item-subtitle class="text-caption">{{ t('Made through') }}</v-list-item-subtitle>
             <v-list-item-title class="text-body-2 text-medium-emphasis">
               {{ kashiDetail.method }} {{ kashiDetail.route }}<template v-if="kashiDetail.entity_id?.Valid"> · #{{ kashiDetail.entity_id.Int64 }}</template>
             </v-list-item-title>
@@ -465,7 +457,7 @@
           <span class="text-subtitle-1 font-weight-medium">{{ photoItem?.title }}</span>
           <v-spacer />
           <v-btn
-            aria-label="Close"
+            :aria-label="t('Close')"
             icon="mdi-close"
             size="small"
             variant="text"
@@ -486,7 +478,7 @@
             @rotate="delta => changeLatestPhoto(item => rotatePhoto(item.kind, item.id, delta))"
           />
           <div v-else class="d-flex justify-center pa-8">
-            <PreparingState kind="data" min-height="160px" title="Loading the photo" />
+            <PreparingState kind="data" min-height="160px" :title="t('Loading the photo')" />
           </div>
         </div>
         <template v-if="photoItem && latestTarget(photoItem)">
@@ -525,6 +517,7 @@
   import { API_BASE } from '@/config'
   import { useAuthStore } from '@/stores/auth'
   import { formatAmount } from '@/utils/money'
+  import { t } from '@/i18n'
 
   // The feed row is narrow: the first name is enough beside the avatar,
   // whose initials and hover title still carry the full name.
@@ -908,35 +901,35 @@
   // cmd/release_notes); every other row by the route it was made through,
   // and failing that by whether it added, changed or deleted something.
   const RELEASE_TAGS = {
-    feat: { label: 'Feature', color: 'success' },
-    fix: { label: 'Fix', color: 'error' },
-    style: { label: 'Style', color: 'purple' },
-    perf: { label: 'Performance', color: 'warning' },
-    refactor: { label: 'Refactor', color: 'blue-grey' },
-    docs: { label: 'Docs', color: 'grey' },
+    feat: { label: t('Feature'), color: 'success' },
+    fix: { label: t('Fix'), color: 'error' },
+    style: { label: t('Style'), color: 'purple' },
+    perf: { label: t('Performance'), color: 'warning' },
+    refactor: { label: t('Refactor'), color: 'blue-grey' },
+    docs: { label: t('Docs'), color: 'grey' },
   }
   const ROUTE_TAGS = [
-    { match: /^\/branches\/:id\/commands/, label: 'Command', color: 'primary' },
-    { match: /^\/app_(releases|updates)/, label: 'App release', color: 'teal' },
-    { match: /^\/security/, label: 'Security', color: 'error' },
-    { match: /^\/home\/activities\/resolve/, label: 'Resolved', color: 'success' },
-    { match: /^\/email_reports/, label: 'Email', color: 'success' },
-    { match: /settings|^\/whatsapp|quick_access/, label: 'Settings', color: 'blue-grey' },
+    { match: /^\/branches\/:id\/commands/, label: t('Command'), color: 'primary' },
+    { match: /^\/app_(releases|updates)/, label: t('App release'), color: 'teal' },
+    { match: /^\/security/, label: t('Security'), color: 'error' },
+    { match: /^\/home\/activities\/resolve/, label: t('Resolved'), color: 'success' },
+    { match: /^\/email_reports/, label: t('Email'), color: 'success' },
+    { match: /settings|^\/whatsapp|quick_access/, label: t('Settings'), color: 'blue-grey' },
   ]
   const METHOD_TAGS = {
-    POST: { label: 'Added', color: 'primary' },
-    PUT: { label: 'Edited', color: 'info' },
-    PATCH: { label: 'Edited', color: 'info' },
-    DELETE: { label: 'Deleted', color: 'error' },
+    POST: { label: t('Added'), color: 'primary' },
+    PUT: { label: t('Edited'), color: 'info' },
+    PATCH: { label: t('Edited'), color: 'info' },
+    DELETE: { label: t('Deleted'), color: 'error' },
   }
 
   function kashiTag (item) {
     if (item.method === 'RELEASE') {
-      return RELEASE_TAGS[item.release_type] ?? { label: 'Update', color: 'info' }
+      return RELEASE_TAGS[item.release_type] ?? { label: t('Update'), color: 'info' }
     }
     const route = ROUTE_TAGS.find(tag => tag.match.test(item.route ?? ''))
     if (route) return route
-    return METHOD_TAGS[item.method] ?? { label: 'Change', color: 'grey' }
+    return METHOD_TAGS[item.method] ?? { label: t('Change'), color: 'grey' }
   }
 
   // IT Management row details. A release's detail line is "<hash> · <scope>"
@@ -954,15 +947,15 @@
 
   // The page a change was made on, for the dialog's Open button.
   const KASHI_PAGES = [
-    { match: /^\/branches\/:id\/commands/, label: 'Commands', to: '/branch-commands' },
-    { match: /^\/app_(releases|updates)/, label: 'App updates', to: '/app-updates' },
-    { match: /^\/security/, label: 'Security', to: '/security' },
-    { match: /^\/default_branch_settings/, label: 'Default settings', to: '/default-branch-settings' },
-    { match: /^\/branches\/:id\/settings/, label: 'Branch settings', to: '/branch-settings' },
-    { match: /^\/branch_attendance/, label: 'Attendance', to: '/attendance' },
-    { match: /^\/transfers/, label: 'Transfers', to: '/transfers' },
-    { match: /^\/whatsapp/, label: 'WhatsApp', to: '/whatsapp' },
-    { match: /^\/unknown_items/, label: 'Unknown items', to: '/unknown-items' },
+    { match: /^\/branches\/:id\/commands/, label: t('Commands'), to: '/branch-commands' },
+    { match: /^\/app_(releases|updates)/, label: t('App updates'), to: '/app-updates' },
+    { match: /^\/security/, label: t('Security'), to: '/security' },
+    { match: /^\/default_branch_settings/, label: t('Default settings'), to: '/default-branch-settings' },
+    { match: /^\/branches\/:id\/settings/, label: t('Branch settings'), to: '/branch-settings' },
+    { match: /^\/branch_attendance/, label: t('Attendance'), to: '/attendance' },
+    { match: /^\/transfers/, label: t('Transfers'), to: '/transfers' },
+    { match: /^\/whatsapp/, label: t('WhatsApp'), to: '/whatsapp' },
+    { match: /^\/unknown_items/, label: t('Unknown items'), to: '/unknown-items' },
   ]
   function kashiPage (item) {
     return KASHI_PAGES.find(page => page.match.test(item.route ?? '')) ?? null
@@ -980,21 +973,21 @@
   const KASHI_GROUPS = [
     {
       key: 'commands',
-      title: 'Commands',
+      title: t('Commands'),
       accent: 'var(--v-theme-primary)',
       empty: 'No commands sent to branches yet.',
       match: item => /^\/branches\/:id\/commands/.test(item.route ?? ''),
     },
     {
       key: 'unknown',
-      title: 'Unknown items',
+      title: t('Unknown items'),
       accent: 'var(--v-theme-warning)',
       empty: 'No unknown items matched or allowed yet.',
       match: item => /^\/unknown_items/.test(item.route ?? ''),
     },
     {
       key: 'other',
-      title: 'Other changes',
+      title: t('Other changes'),
       accent: 'var(--v-theme-on-surface)',
       empty: 'Nothing changed in kashi yet.',
       match: () => true,
@@ -1023,13 +1016,13 @@
   const thumbs = ref({})
 
   const LATEST_KINDS = {
-    expense_image: { label: 'Expense photo', icon: 'mdi-receipt-text', color: 'error', file: id => `/branch_expense_images/${id}/file` },
+    expense_image: { label: t('Expense photo'), icon: 'mdi-receipt-text', color: 'error', file: id => `/branch_expense_images/${id}/file` },
     // Its title already says "Close-shift receipt", so the label stays out
     // of the subtitle (it's still on the viewer's Open button).
-    shift_receipt: { label: 'Shift photo', subtitleLabel: false, icon: 'mdi-cash-register', color: 'info', file: id => `/branch_shift_receipt_images/${id}/file` },
-    transfer: { label: 'Transfer', icon: 'mdi-transfer', color: 'primary', file: id => `/transfers/${id}/attachment`, to: '/transfers' },
-    expense: { label: 'Expense', icon: 'mdi-cash-minus', color: 'error', to: '/expenses' },
-    purchase: { label: 'Purchase', icon: 'mdi-truck-delivery', color: 'success', to: '/purchase-invoice' },
+    shift_receipt: { label: t('Shift photo'), subtitleLabel: false, icon: 'mdi-cash-register', color: 'info', file: id => `/branch_shift_receipt_images/${id}/file` },
+    transfer: { label: t('Transfer'), icon: 'mdi-transfer', color: 'primary', file: id => `/transfers/${id}/attachment`, to: '/transfers' },
+    expense: { label: t('Expense'), icon: 'mdi-cash-minus', color: 'error', to: '/expenses' },
+    purchase: { label: t('Purchase'), icon: 'mdi-truck-delivery', color: 'success', to: '/purchase-invoice' },
   }
 
   function latestVisual (item) {
@@ -1090,10 +1083,10 @@
       }
     }
     if (item.kind === 'transfer' && item.ref_id) {
-      return { label: 'Open transfer', to: { path: '/transfers', query: { open: item.ref_id } } }
+      return { label: t('Open transfer'), to: { path: '/transfers', query: { open: item.ref_id } } }
     }
     const to = latestVisual(item).to
-    return to ? { label: 'Open', to } : null
+    return to ? { label: t('Open'), to } : null
   }
   function goToLatestTarget (item) {
     const target = latestTarget(item)

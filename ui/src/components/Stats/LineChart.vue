@@ -10,6 +10,7 @@
 <script setup>
   import { ref } from 'vue'
   import VChart from '@/components/EChart.vue'
+  import { t } from '@/i18n'
 
   const loading = ref(false)
 
@@ -36,7 +37,7 @@
     },
     series: [
       {
-        name: 'Income',
+        name: t('Income'),
         type: 'line',
         smooth: true,
         data: [],
@@ -53,7 +54,7 @@
     option.value.xAxis.data = data.income.map(i => i.date)
 
     option.value.series = branches.map(b => ({
-      name: b,
+      name: t(b),
       type: 'line',
       smooth: true,
       data: data.income.map(i => i.amounts[b]),

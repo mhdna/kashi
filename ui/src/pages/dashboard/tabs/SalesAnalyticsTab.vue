@@ -27,18 +27,19 @@
 </template>
 
 <script setup>
+  import { t } from '@/i18n'
   const panels = [
-    { key: 'categories', title: 'Top Categories' },
-    { key: 'subcategories', title: 'Top SubCategories' },
-    { key: 'kinds', title: 'Top Kinds' },
-    { key: 'brands', title: 'Top Brands' },
+    { key: 'categories', title: t('Top Categories') },
+    { key: 'subcategories', title: t('Top SubCategories') },
+    { key: 'kinds', title: t('Top Kinds') },
+    { key: 'brands', title: t('Top Brands') },
   ]
 
   const data = {
-    categories: [{ label: 'Men\'s Wear', value: 340 }, { label: 'Women\'s Wear', value: 280 }, { label: 'Kids\' Wear', value: 175 }, { label: 'Footwear', value: 155 }, { label: 'Accessories', value: 110 }, { label: 'Sportswear', value: 85 }],
-    subcategories: [{ label: 'Shirts', value: 190 }, { label: 'Pants', value: 160 }, { label: 'Dresses', value: 145 }, { label: 'Jackets', value: 120 }, { label: 'Shoes', value: 100 }, { label: 'Bags', value: 85 }, { label: 'Hats', value: 55 }],
-    kinds: [{ label: 'Casual', value: 310 }, { label: 'Formal', value: 220 }, { label: 'Athletic', value: 175 }, { label: 'Luxury', value: 120 }, { label: 'Seasonal', value: 80 }],
-    brands: [{ label: 'Nike', value: 280 }, { label: 'Adidas', value: 240 }, { label: 'Zara', value: 210 }, { label: 'H&M', value: 185 }, { label: 'Levi\'s', value: 140 }, { label: 'Gucci', value: 110 }, { label: 'Prada', value: 85 }],
+    categories: [{ label: t('Men\'s Wear'), value: 340 }, { label: t('Women\'s Wear'), value: 280 }, { label: t('Kids\' Wear'), value: 175 }, { label: t('Footwear'), value: 155 }, { label: t('Accessories'), value: 110 }, { label: t('Sportswear'), value: 85 }],
+    subcategories: [{ label: t('Shirts'), value: 190 }, { label: t('Pants'), value: 160 }, { label: t('Dresses'), value: 145 }, { label: t('Jackets'), value: 120 }, { label: t('Shoes'), value: 100 }, { label: t('Bags'), value: 85 }, { label: t('Hats'), value: 55 }],
+    kinds: [{ label: t('Casual'), value: 310 }, { label: t('Formal'), value: 220 }, { label: t('Athletic'), value: 175 }, { label: t('Luxury'), value: 120 }, { label: t('Seasonal'), value: 80 }],
+    brands: [{ label: t('Nike'), value: 280 }, { label: t('Adidas'), value: 240 }, { label: t('Zara'), value: 210 }, { label: t('H&M'), value: 185 }, { label: t('Levi\'s'), value: 140 }, { label: t('Gucci'), value: 110 }, { label: t('Prada'), value: 85 }],
   }
 
   function tableItems (key) {
