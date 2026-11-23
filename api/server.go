@@ -28,6 +28,9 @@ type Server struct {
 	router           *gin.Engine
 	branchHub        *branchHub
 	adminHub         *adminHub
+	// liveHub and liveFlags are the live view of tills (live_view.go).
+	liveHub   *liveHub
+	liveFlags liveViewFlags
 	// recordActivity writes the home page's "In kashi" feed
 	// (admin_activity.go); tests replace it.
 	recordActivity func(adminActivity)
@@ -59,6 +62,7 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 		branchHub:   newBranchHub(),
 		labelReader: newLabelReader(config),
 		adminHub:    newAdminHub(),
+		liveHub:     newLiveHub(),
 	}
 	server.security = newSecurityGuard(store, newGeoIP(config.GeoIPDir))
 	server.security.notify = func() {
@@ -226,6 +230,7 @@ func (server *Server) setupRoutes() {
 	authRoutes.GET("/app_settings", server.getAppSettings)
 	authRoutes.PUT("/app_settings", server.updateAppSettings)
 	authRoutes.PUT("/app_settings/product_autofill_rules", server.setProductAutofillRules)
+	authRoutes.PUT("/app_settings/live_view", server.setLiveViewSettings)
 
 	authRoutes.GET("/email_settings", server.getEmailSettings)
 	authRoutes.PUT("/email_settings", server.updateEmailSettings)
@@ -628,6 +633,7 @@ func (server *Server) setupRoutes() {
 	// custom headers. Auth happens inside adminWS itself via a query-param
 	// token instead.
 	router.GET("/admin/ws", server.adminWS)
+	router.GET("/live/watch/:register_id", server.watchLive)
 
 	// Security page (admin-only: not in access.go's routeRules).
 	authRoutes.GET("/security/overview", server.getSecurityOverview)
@@ -674,6 +680,7 @@ func (server *Server) setupRoutes() {
 	branchRoutes.POST("/sync/fetch", server.branchSyncFetch)
 	branchRoutes.GET("/sync/client_uids", server.branchClientUIDs)
 	branchRoutes.GET("/ws", server.branchWS)
+	branchRoutes.GET("/live", server.branchLiveStream)
 	branchRoutes.PUT("/settings", server.putBranchSettings)
 	branchRoutes.POST("/clients", server.putBranchClient)
 	branchRoutes.POST("/clients_batch", server.putBranchClients)

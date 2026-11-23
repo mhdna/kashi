@@ -47,3 +47,11 @@ SELECT report_settings FROM app_settings WHERE id = 1;
 
 -- name: SetReportSettings :exec
 UPDATE app_settings SET report_settings = sqlc.arg(report_settings), updated_at = now() WHERE id = 1;
+
+-- name: SetLiveViewSettings :one
+UPDATE app_settings
+SET live_view_enabled = $1,
+    live_view_control_enabled = $2,
+    updated_at = now()
+WHERE id = 1
+RETURNING *;

@@ -210,6 +210,16 @@ func (h *branchHub) connectedRegisters() map[int64]int64 {
 
 // connectedBranchIDs reports which distinct branches have at least one
 // register connected right now (connGrace included).
+// branchOf is the branch of a register that has a live socket now.
+func (h *branchHub) branchOf(registerID int64) (int64, bool) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	if h.conns[registerID] == nil {
+		return 0, false
+	}
+	return h.registerBranch[registerID], true
+}
+
 func (h *branchHub) connectedBranchIDs() []int64 {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
@@ -289,6 +299,9 @@ type branchWSMessage struct {
 	// a sale at this branch. A one-off notice for the till to show, so a
 	// missed push is simply never seen.
 	Review *branchReview `json:"review,omitempty"`
+	// Control is set on "live_view_start": the till may apply a watcher's
+	// clicks and typing (live_view.go). Absent means view only.
+	Control bool `json:"control,omitempty"`
 }
 
 type branchReview struct {
@@ -357,7 +370,7 @@ func (server *Server) branchWS(ctx *gin.Context) {
 	defer conn.Close()
 
 	wrapped := newWSConn(conn)
-	if err := wrapped.writeJSON(branchWSMessage{Type: "hello", Features: []string{"sync_changed", "quick_access", "app_updates"}}); err != nil {
+	if err := wrapped.writeJSON(branchWSMessage{Type: "hello", Features: append([]string{"sync_changed", "quick_access", "app_updates"}, server.liveViewFeatures()...)}); err != nil {
 		log.Printf("branch %d register %d: websocket hello failed: %v", branchID, registerID, err)
 		return
 	}

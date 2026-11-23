@@ -138,6 +138,9 @@ type adminWSMessage struct {
 	// branch_ids. Full list rather than a delta for the same idempotency
 	// reason as BranchIDs.
 	Users []onlineUser `json:"users,omitempty"`
+	// LiveSessions is the full list of tills being watched, only set for
+	// "live_view_sessions" (absent means none).
+	LiveSessions []liveSessionInfo `json:"live_sessions,omitempty"`
 }
 
 // broadcastAll notifies every currently-connected admin client. There's no
@@ -206,6 +209,12 @@ func (server *Server) adminWS(ctx *gin.Context) {
 	for _, message := range []adminWSMessage{server.branchConnectionsMessage(), server.syncingBranchesMessage()} {
 		if err := wrapped.writeJSON(message); err != nil {
 			log.Printf("admin ws: send current branch state failed: %v", err)
+			return
+		}
+	}
+
+	if live := server.liveSessionsMessage(); len(live.LiveSessions) > 0 {
+		if err := wrapped.writeJSON(live); err != nil {
 			return
 		}
 	}

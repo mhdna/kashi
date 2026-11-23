@@ -1,0 +1,71 @@
+{
+  "controlOff": {
+    "t": "control",
+    "on": false
+  },
+  "controls": [
+    {
+      "t": "click",
+      "id": 7
+    },
+    {
+      "t": "input",
+      "id": 7,
+      "v": "abc"
+    },
+    {
+      "t": "key",
+      "key": "Enter"
+    }
+  ],
+  "ended": {
+    "t": "ended"
+  },
+  "frame": {
+    "full": true,
+    "e": [
+      {
+        "type": 2,
+        "data": {},
+        "timestamp": 1
+      }
+    ],
+    "a": [
+      {
+        "k": "page",
+        "l": "Sale",
+        "at": 1
+      }
+    ]
+  },
+  "hello": {
+    "t": "hello",
+    "control": true
+  },
+  "off": {
+    "t": "error",
+    "msg": "Live view was turned off"
+  },
+  "sessions": {
+    "type": "live_view_sessions",
+    "live_sessions": [
+      {
+        "register_id": 10,
+        "branch_id": 1,
+        "watchers": [
+          "Admin"
+        ]
+      }
+    ]
+  },
+  "snapshot": {
+    "t": "snapshot"
+  },
+  "start": {
+    "type": "live_view_start",
+    "control": true
+  },
+  "waiting": {
+    "t": "waiting"
+  }
+}

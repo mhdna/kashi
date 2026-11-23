@@ -40,6 +40,7 @@ var adminActivityOverrides = map[string]string{
 	"POST /cashbox_accounts/balance":                "adjusted a payment method balance",
 	"PUT /app_settings":                             "updated app settings",
 	"PUT /app_settings/product_autofill_rules":      "updated product auto-fill rules",
+	"PUT /app_settings/live_view":                   "changed the live view settings",
 	"PUT /whatsapp_settings":                        "updated WhatsApp settings",
 	"PUT /whatsapp/rules":                           "updated WhatsApp rules",
 	"PUT /whatsapp/cost":                            "updated the WhatsApp message price",
