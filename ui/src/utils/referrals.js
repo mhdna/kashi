@@ -1,6 +1,7 @@
 // The Referrals page's logic (api/referrals.go): the rules form, in dollars
 // and days, to and from the API's cents, and how a referral reads in the
 // list. Plain functions, so the page stays a view.
+import { t } from '../i18n'
 
 // programToForm is the API's rules as the form edits them.
 export function programToForm (p = {}) {
@@ -21,12 +22,15 @@ export function programToForm (p = {}) {
   }
 }
 
-// rewardToOptions are who a referral can reward.
-export const rewardToOptions = [
-  { value: 'owner', title: 'The client who shared the code' },
-  { value: 'friend', title: 'The new customer' },
-  { value: 'both', title: 'Both' },
-]
+// rewardToOptions are who a referral can reward. A function, so the labels
+// follow the EN/FR toggle.
+export function rewardToOptions () {
+  return [
+    { value: 'owner', title: t('The client who shared the code') },
+    { value: 'friend', title: t('The new customer') },
+    { value: 'both', title: t('Both') },
+  ]
+}
 
 export function rewardsOwner (to) { return to !== 'friend' }
 export function rewardsFriend (to) { return to === 'friend' || to === 'both' }
@@ -82,33 +86,37 @@ function wholeNumber (value, label) {
 // listNames reads ["Centro", "Hara", "Dora"] as "Centro, Hara and Dora".
 export function listNames (names) {
   if (names.length <= 1) {return names.join('')}
-  return `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+  return t('{head} and {last}', { head: names.slice(0, -1).join(', '), last: names.at(-1) })
 }
 
 // programSummary is one line saying what the rules do now, and where.
 // branchName turns a branch id into its name.
-export function programSummary (p, branchName = id => `Branch #${id}`) {
+export function programSummary (p, branchName = id => t('Branch #{id}', { id })) {
   const ids = p?.enabled ? (p.branch_ids ?? []) : []
-  if (ids.length === 0) {return 'Referrals are off at every branch. Tills don\'t take codes or print them.'}
+  if (ids.length === 0) {return t('Referrals are off at every branch. Tills don\'t take codes or print them.')}
   const to = p.reward_to || 'owner'
   const gives = []
-  if (rewardsFriend(to)) {gives.push(`the new customer ${p.friend_percent}% off that purchase`)}
-  if (rewardsOwner(to)) {gives.push(`the client who shared it ${p.reward_percent}% off one later visit`)}
+  if (rewardsFriend(to)) {gives.push(t('the new customer {percent}% off that purchase', { percent: p.friend_percent }))}
+  if (rewardsOwner(to)) {gives.push(t('the client who shared it {percent}% off one later visit', { percent: p.reward_percent }))}
   // The owner only (as it always was) keeps its own sentence.
   const parts = to === 'owner'
-    ? [`A new customer's first purchase with a client's code gives that client ${p.reward_percent}% off one later visit`]
-    : [`A new customer's first purchase with a client's code gives ${gives.join(', and ')}`]
-  if (p.max_reward_cents > 0) {parts.push(`up to $${p.max_reward_cents / 100}`)}
-  if (p.min_friend_spend > 0) {parts.push(`when the purchase is $${p.min_friend_spend / 100} or more`)}
-  return `On at ${listNames(ids.map(id => branchName(id)))}. ${parts.join(', ')}.`
+    ? [t('A new customer\'s first purchase with a client\'s code gives that client {percent}% off one later visit', { percent: p.reward_percent })]
+    : [t('A new customer\'s first purchase with a client\'s code gives {gives}', { gives: gives.join(t(', and ')) })]
+  if (p.max_reward_cents > 0) {parts.push(t('up to ${amount}', { amount: p.max_reward_cents / 100 }))}
+  if (p.min_friend_spend > 0) {parts.push(t('when the purchase is ${amount} or more', { amount: p.min_friend_spend / 100 }))}
+  return t('On at {branches}. {details}.', { branches: listNames(ids.map(id => branchName(id))), details: parts.join(', ') })
 }
 
-export const statusLabels = {
-  available: 'Ready to use',
-  used: 'Used',
-  cancelled: 'Taken back',
-  refused: 'No reward',
-  friend: 'New customer rewarded',
+// statusLabels are the words for a referral's status. A function, so the
+// labels follow the EN/FR toggle.
+export function statusLabels () {
+  return {
+    available: t('Ready to use'),
+    used: t('Used'),
+    cancelled: t('Taken back'),
+    refused: t('No reward'),
+    friend: t('New customer rewarded'),
+  }
 }
 
 // statusColor is plain text colour, never a fill.
@@ -130,7 +138,7 @@ export function referralRow (r) {
     sale: r.sale_code,
     saleTotal: Number(r.sale_total ?? 0),
     status: r.status,
-    statusLabel: statusLabels[r.status] ?? r.status,
+    statusLabel: statusLabels()[r.status] ?? r.status,
     detail: referralDetail(r),
   }
 }
@@ -142,14 +150,16 @@ function referralDetail (r) {
     }
     case 'used': {
       return r.used_again_code
-        ? `${r.percent}% used on ${r.used_code}, and again on ${r.used_again_code}`
-        : `${r.percent}% used on ${r.used_code}`
+        ? t('{percent}% used on {code}, and again on {again}', { percent: r.percent, code: r.used_code, again: r.used_again_code })
+        : t('{percent}% used on {code}', { percent: r.percent, code: r.used_code })
     }
     case 'available': {
-      return r.max_cents > 0 ? `${r.percent}% off, up to $${r.max_cents / 100}` : `${r.percent}% off`
+      return r.max_cents > 0
+        ? t('{percent}% off, up to ${amount}', { percent: r.percent, amount: r.max_cents / 100 })
+        : t('{percent}% off', { percent: r.percent })
     }
     case 'cancelled': {
-      return 'The friend\'s purchase was cancelled or returned'
+      return t('The friend\'s purchase was cancelled or returned')
     }
   }
   return ''

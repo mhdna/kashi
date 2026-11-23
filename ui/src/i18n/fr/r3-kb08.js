@@ -69,7 +69,6 @@ export default {
   'Purchase #{id}': 'Achat n° {id}',
   'Add Purchase': 'Ajouter un achat',
   'Cancel Purchase': 'Annuler l\'achat',
-  'Purchase Invoices': 'Factures d\'achat',
   'Search purchase invoices': 'Rechercher des factures d\'achat',
   'Select a supplier.': 'Sélectionnez un fournisseur.',
   'Select a destination inventory.': 'Sélectionnez un inventaire de destination.',

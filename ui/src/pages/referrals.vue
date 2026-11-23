@@ -35,7 +35,7 @@
               data-test="reward-to"
               density="comfortable"
               hide-details
-              :items="rewardToOptions"
+              :items="rewardToOptions()"
               :label="t('Who gets the reward')"
               variant="outlined"
             />

@@ -1,7 +1,6 @@
 // French for the sales analysis and dashboard pages, the timesheet, the email report dialog and the live cart button.
 export default {
   // pages/sales-analysis.vue
-  'Sales Analysis': 'Analyse des ventes',
   'Year': 'Année',
   'Jan through': 'De janvier à',
   'vs. the same months last year': 'par rapport aux mêmes mois de l\'an dernier',
@@ -17,7 +16,6 @@ export default {
   'Month-over-month change': 'Variation d\'un mois à l\'autre',
   'Receivable Days Outstanding': 'Jours de créances en cours',
   'Owed on account {amount}, over the period\'s daily sales': 'Dû à crédit : {amount}, sur les ventes journalières de la période',
-  'Sales': 'Ventes',
   'Sales Target': 'Objectif de ventes',
   'Target Achievement': 'Atteinte de l\'objectif',
   'Sales Last Year': 'Ventes de l\'an dernier',
@@ -45,7 +43,6 @@ export default {
   'NOV': 'NOV.',
   'DEC': 'DÉC.',
   // pages/sales-dashboard.vue
-  'Sales Dashboard': 'Tableau de bord des ventes',
   'Month': 'Mois',
   'Monthly — Sales, Profit & Profit %': 'Par mois : ventes, bénéfice et % de bénéfice',
   'Top Product': 'Produit principal',

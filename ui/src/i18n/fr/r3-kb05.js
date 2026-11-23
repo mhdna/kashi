@@ -1,7 +1,6 @@
 // French for the Reports page chrome and the WhatsApp rules screen.
 export default {
   // Reports page: picker and filters
-  'Reports': 'Rapports',
   'Include': 'Inclure',
   'None': 'Aucun',
   'Hide its parts': 'Masquer ses éléments',

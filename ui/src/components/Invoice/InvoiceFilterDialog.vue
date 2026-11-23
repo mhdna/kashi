@@ -11,7 +11,7 @@
               data-test="filter-product-field"
               density="compact"
               hide-details
-              :items="productFieldOptions"
+              :items="productFieldOptions()"
               :label="t('Search in')"
               variant="outlined"
             />
@@ -22,7 +22,7 @@
               data-test="filter-product-match"
               density="compact"
               hide-details
-              :items="productMatchOptions"
+              :items="productMatchOptions()"
               :label="t('Match')"
               variant="outlined"
             />
@@ -83,7 +83,7 @@
               data-test="filter-kind"
               density="compact"
               hide-details
-              :items="kindOptions"
+              :items="kindOptions()"
               :label="t('Type')"
               persistent-placeholder
               :placeholder="t('All types')"
@@ -97,7 +97,7 @@
               data-test="filter-status"
               density="compact"
               hide-details
-              :items="statusOptions"
+              :items="statusOptions()"
               :label="t('Status')"
               persistent-placeholder
               :placeholder="t('Any status')"

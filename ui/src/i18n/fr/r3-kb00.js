@@ -1,7 +1,6 @@
 // French for the Settings page (pages/settings.vue). English text is the key.
 export default {
   'General': 'Général',
-  'Financials': 'Finances',
   'Barcode labels': 'Étiquettes code-barres',
   'Users': 'Utilisateurs',
   'Roles': 'Rôles',

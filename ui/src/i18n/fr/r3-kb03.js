@@ -107,7 +107,6 @@ export default {
   'Total sold amount': 'Montant total vendu',
   'Total invoices': 'Total des factures',
   'Total goods sold': 'Total des articles vendus',
-  '{from} to {to}': 'du {from} au {to}',
   'Failed to load sales activity ({status})': 'Impossible de charger l’activité des ventes ({status})',
   'Failed to load salesperson performance.': 'Impossible de charger la performance des vendeurs.',
 }

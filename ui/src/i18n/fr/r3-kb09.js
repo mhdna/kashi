@@ -1,6 +1,5 @@
 export default {
   // pages/shifts.vue
-  'Shifts': 'Sessions',
   'Search cashbox or #id': 'Rechercher une caisse ou #id',
   'Any status': 'Tous les statuts',
   'Any cashbox': 'Toutes les caisses',
@@ -10,7 +9,6 @@ export default {
   'Print this close shift on the till that closed it': 'Imprimer cette clôture de session sur la caisse qui l\'a clôturée',
   'Open a New Shift': 'Ouvrir une nouvelle session',
   'Cashbox': 'Caisse',
-  'Close-shift receipt': 'Reçu de clôture de session',
   'Loading the receipt': 'Chargement du reçu',
   'Opened At': 'Ouverte le',
   'Closed At': 'Fermée le',
@@ -25,7 +23,6 @@ export default {
   'Customers Out': 'Sorties',
   'No receipt photo for this shift yet.': 'Aucune photo de reçu pour cette session pour le moment.',
   'Select a cashbox.': 'Sélectionnez une caisse.',
-  'Products': 'Produits',
   'Filters': 'Filtres',
   'Import CSV': 'Importer un CSV',
   'Colour/size on scan': 'Couleur/taille au scan',
@@ -85,7 +82,6 @@ export default {
   'Added {code}.': '{code} ajouté.',
 
   // pages/receipt-designer.vue
-  'Receipt Designer': 'Concepteur de reçu',
   'Apply to': 'Appliquer à',
   'Make this the default': 'Définir par défaut',
   'New branches, and Default Settings\' Apply to all, get this receipt': 'Les nouvelles succursales et « Appliquer à tous » des réglages par défaut reçoivent ce reçu',
@@ -101,7 +97,6 @@ export default {
   'Drawn with the till\'s own code': 'Tracé avec le code propre à la caisse',
   'and this branch\'s details': 'et les coordonnées de cette succursale',
   'The referral code prints only at branches with referrals on.': 'Le code de parrainage n\'est imprimé que dans les succursales où le parrainage est activé.',
-  'Every branch': 'Toutes les succursales',
   'What the receipt prints about the shop. Saved to the branch\'s settings with Save.': 'Ce que le reçu imprime sur le magasin. Enregistré dans les réglages de la succursale avec Enregistrer.',
   'Store name': 'Nom du magasin',
   'Website': 'Site web',

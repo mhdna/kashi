@@ -52,7 +52,6 @@ export default {
   'Unknown': 'Inconnu',
   'counted {amount}': 'compté {amount}',
   '{amount} variance': 'Écart : {amount}',
-  'Expense': 'Dépense',
   'Sent to {branch} — it prints within a few seconds if the till is online.': "Envoyé à {branch}. Le ticket s'imprime en quelques secondes si la caisse est en ligne.",
   'Net income': 'Revenu net',
   'Registers — {branch}': 'Caisses : {branch}',

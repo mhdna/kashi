@@ -44,7 +44,6 @@ export default {
   'Match {n}': 'Associer {n}',
   '{n} item(s) allowed without a picture': '{n} article(s) autorisé(s) sans photo',
   '{n} item(s) matched': '{n} article(s) associé(s)',
-  'Assets': 'Actifs',
   'Search assets': 'Rechercher des actifs',
   'Add Asset': 'Ajouter un actif',
   'Edit Asset': "Modifier l'actif",

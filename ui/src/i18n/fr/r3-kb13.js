@@ -3,7 +3,6 @@ export default {
   // Stock counts
   'Stock Count #{id}': 'Comptage de stock n° {id}',
   'New Stock Count': 'Nouveau comptage de stock',
-  'Stock Counts': 'Comptages de stock',
   'New Count': 'Nouveau comptage',
   'Add SKU by search / barcode': 'Ajouter un SKU par recherche ou code-barres',
   '{loaded} / {total} SKUs': '{loaded} / {total} SKU',
@@ -45,7 +44,6 @@ export default {
   '{deleted} deleted': '{deleted} supprimée(s)',
 
   // Product revenues
-  'Product Revenues': 'Chiffre d’affaires par produit',
   'Wholesale': 'Grossiste',
   'Revenue by branch': 'Chiffre d’affaires par succursale',
   'Last 30 days': '30 derniers jours',
@@ -75,9 +73,7 @@ export default {
   'Today': 'Aujourd’hui',
 
   // WhatsApp page header and tabs
-  'WhatsApp & Reviews': 'WhatsApp et avis',
   'Sending after sales': 'Envoi après vente',
-  'Dashboard': 'Tableau de bord',
   'Messages': 'Messages',
   'Inbox': 'Boîte de réception',
   'Replies': 'Réponses',

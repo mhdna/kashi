@@ -1,8 +1,6 @@
 export default {
-  'Default Settings': 'Paramètres par défaut',
   'Apply to all branches': 'Appliquer à toutes les succursales',
   'A reusable template for the operational settings every branch shares — pricing, behaviour, page access, printing and attendance. Branch identity (name, storefront contact details), per-device fields (printer/COM ids, Akuvox IP) and secrets are never part of this template and stay branch-specific; edit those from': 'Modèle réutilisable pour les réglages de fonctionnement communs à toutes les succursales : prix, comportement, accès aux pages, impression et présences. L\'identité de la succursale (nom, coordonnées de la boutique), les champs propres à chaque appareil (identifiants d\'imprimante et de port COM, adresse IP Akuvox) et les secrets ne font jamais partie de ce modèle et restent propres à chaque succursale ; modifiez-les plutôt depuis',
-  'Branch Settings': 'Paramètres de la succursale',
   'instead. Saving here only updates the template — nothing is pushed to a branch until you click "Apply to all branches".': 'à la place. Enregistrer ici ne met à jour que le modèle : rien n\'est transmis à une succursale tant que vous ne cliquez pas sur « Appliquer à toutes les succursales ».',
   'Loading default settings': 'Chargement des paramètres par défaut',
   'Money': 'Argent',

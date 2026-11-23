@@ -63,8 +63,6 @@ export default {
   'Latest attachments': 'Dernières pièces jointes',
   'Level': 'Niveau',
   'Loading clients': 'Chargement des clients',
-  'Loans': 'Prêts',
-  'Loyalty': 'Fidélité',
   'Luxury': 'Luxe',
   'Made through': 'Effectué via',
   'Members': 'Membres',

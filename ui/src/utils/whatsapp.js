@@ -1,6 +1,7 @@
 // Shared bits of the WhatsApp page (pages/whatsapp.vue, components/WhatsApp).
 
 import { ymd } from './dates'
+import { t } from '../i18n'
 
 export { ymd } from './dates'
 
@@ -33,10 +34,11 @@ export function formatDollars (cents) {
   return `$${(Number(cents || 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
+// Labels are getters, so they follow the EN/FR toggle when read.
 export const STATUS = {
-  sent: { label: 'Sent', color: 'success', icon: 'mdi-check-circle-outline' },
-  skipped: { label: 'Skipped', color: 'grey', icon: 'mdi-cancel' },
-  failed: { label: 'Failed', color: 'error', icon: 'mdi-alert-circle-outline' },
+  sent: { get label () { return t('Sent') }, color: 'success', icon: 'mdi-check-circle-outline' },
+  skipped: { get label () { return t('Skipped') }, color: 'grey', icon: 'mdi-cancel' },
+  failed: { get label () { return t('Failed') }, color: 'error', icon: 'mdi-alert-circle-outline' },
 }
 
 // Placeholders a template's {{1}}, {{2}}, … can be filled with
@@ -52,11 +54,11 @@ export function formatPhone (digits) {
 // What happened after Meta accepted a sent message, from its webhook
 // (whatsapp_messages.delivery_status). '' = no word from Meta yet.
 export const DELIVERY = {
-  '': { label: 'Sent', color: 'success', icon: 'mdi-check' },
-  sent: { label: 'Sent', color: 'success', icon: 'mdi-check' },
-  delivered: { label: 'Delivered', color: 'success', icon: 'mdi-check-all' },
-  read: { label: 'Read', color: 'info', icon: 'mdi-check-all' },
-  failed: { label: 'Not delivered', color: 'error', icon: 'mdi-alert-circle-outline' },
+  '': { get label () { return t('Sent') }, color: 'success', icon: 'mdi-check' },
+  sent: { get label () { return t('Sent') }, color: 'success', icon: 'mdi-check' },
+  delivered: { get label () { return t('Delivered') }, color: 'success', icon: 'mdi-check-all' },
+  read: { get label () { return t('Read') }, color: 'info', icon: 'mdi-check-all' },
+  failed: { get label () { return t('Not delivered') }, color: 'error', icon: 'mdi-alert-circle-outline' },
 }
 
 // sqlc serves nullable timestamps as { Time, Valid }.

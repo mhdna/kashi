@@ -1,5 +1,4 @@
 export default {
-  'Security': 'Sécurité',
   "You're on": 'Vous êtes sur',
   'The server is still downloading the IP location database (it fetches it on start, then monthly).': "Le serveur télécharge encore la base de localisation des adresses IP (il la récupère au démarrage, puis chaque mois).",
   "Until it's there, locations show as unknown and the country filter lets everyone through.": "Tant qu'elle n'est pas là, les lieux s'affichent comme inconnus et le filtre par pays laisse passer tout le monde.",
@@ -70,7 +69,6 @@ export default {
   'Network': 'Réseau',
   'Refused': 'Refusées',
   'Last seen': 'Vu pour la dernière fois',
-  'App Updates': 'Mises à jour de l\'application',
   'Publish a build from the kashi-pos repo with': 'Publiez un build depuis le dépôt kashi-pos avec',
   ", then choose which tills run it. A till downloads its update in the background and installs it when it's safe: when the cashier taps \"Install now\", or by itself while no shift is open. If the new version doesn't start, the till goes back to the old one on its own. To roll back on purpose, set the tills to an older release.": ", puis choisissez quelles caisses l'exécutent. Une caisse télécharge sa mise à jour en arrière-plan et l'installe au moment opportun : lorsque le caissier appuie sur « Installer maintenant », ou d'elle-même quand aucune session de caisse n'est ouverte. Si la nouvelle version ne démarre pas, la caisse revient seule à l'ancienne. Pour revenir en arrière volontairement, réglez les caisses sur une version plus ancienne.",
   'Latest release': 'Dernière version',

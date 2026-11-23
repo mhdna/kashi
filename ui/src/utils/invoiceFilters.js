@@ -1,5 +1,6 @@
 // The Retail invoices page's server-side filters (set in the Filters dialog),
 // as the query the API reads and as the short summary shown under the search.
+import { t } from '../i18n'
 
 // The names boxes (client, salesperson) take a * wildcard: "Maya*" starts with
 // Maya, "*sen" ends with sen, "Ma*ya" has anything between. Without one the
@@ -12,30 +13,39 @@ export function clientTerm (text) {
   return term || null
 }
 
-export const productFieldOptions = [
-  { title: 'Code, name or barcode', value: 'any' },
-  { title: 'Product code', value: 'code' },
-  { title: 'Product name', value: 'name' },
-  { title: 'Barcode', value: 'barcode' },
-]
+// The option lists are functions, so their labels follow the EN/FR toggle.
+export function productFieldOptions () {
+  return [
+    { title: t('Code, name or barcode'), value: 'any' },
+    { title: t('Product code'), value: 'code' },
+    { title: t('Product name'), value: 'name' },
+    { title: t('Barcode'), value: 'barcode' },
+  ]
+}
 
-export const productMatchOptions = [
-  { title: 'Contains', value: 'contains' },
-  { title: 'Starts with', value: 'starts' },
-  { title: 'Ends with', value: 'ends' },
-  { title: 'Is exactly', value: 'exact' },
-]
+export function productMatchOptions () {
+  return [
+    { title: t('Contains'), value: 'contains' },
+    { title: t('Starts with'), value: 'starts' },
+    { title: t('Ends with'), value: 'ends' },
+    { title: t('Is exactly'), value: 'exact' },
+  ]
+}
 
-export const kindOptions = [
-  { title: 'Sales', value: 'sales' },
-  { title: 'Returns', value: 'return' },
-  { title: 'Exchanges', value: 'exchange' },
-]
+export function kindOptions () {
+  return [
+    { title: t('Sales'), value: 'sales' },
+    { title: t('Returns'), value: 'return' },
+    { title: t('Exchanges'), value: 'exchange' },
+  ]
+}
 
-export const statusOptions = [
-  { title: 'Active', value: 'active' },
-  { title: 'Cancelled', value: 'cancelled' },
-]
+export function statusOptions () {
+  return [
+    { title: t('Active'), value: 'active' },
+    { title: t('Cancelled'), value: 'cancelled' },
+  ]
+}
 
 // Every filter the dialog sets, cleared.
 export function emptyFilters () {
@@ -116,23 +126,23 @@ function money (cents) {
 export function invoiceFilterSummary (filters = {}, names = {}) {
   const p = invoiceFilterParams(filters)
   const out = []
-  if (p.branch_id) {out.push(names.branch?.(p.branch_id) ?? `Branch #${p.branch_id}`)}
-  if (p.register_id) {out.push(names.register?.(p.register_id) ?? `Register #${p.register_id}`)}
-  if (p.kind) {out.push(titleOf(kindOptions, p.kind))}
-  if (p.status) {out.push(titleOf(statusOptions, p.status))}
-  if (p.date_from && p.date_to) {out.push(`${p.date_from} to ${p.date_to}`)}
-  else if (p.date_from) {out.push(`From ${p.date_from}`)}
-  else if (p.date_to) {out.push(`Until ${p.date_to}`)}
-  if (p.client) {out.push(`Client "${p.client}"`)}
-  if (p.salesperson) {out.push(`Salesperson "${p.salesperson}"`)}
+  if (p.branch_id) {out.push(names.branch?.(p.branch_id) ?? t('Branch #{id}', { id: p.branch_id }))}
+  if (p.register_id) {out.push(names.register?.(p.register_id) ?? t('Register #{id}', { id: p.register_id }))}
+  if (p.kind) {out.push(titleOf(kindOptions(), p.kind))}
+  if (p.status) {out.push(titleOf(statusOptions(), p.status))}
+  if (p.date_from && p.date_to) {out.push(t('{from} to {to}', { from: p.date_from, to: p.date_to }))}
+  else if (p.date_from) {out.push(t('From {date}', { date: p.date_from }))}
+  else if (p.date_to) {out.push(t('Until {date}', { date: p.date_to }))}
+  if (p.client) {out.push(t('Client "{client}"', { client: p.client }))}
+  if (p.salesperson) {out.push(t('Salesperson "{name}"', { name: p.salesperson }))}
   if (p.product) {
-    const field = titleOf(productFieldOptions, filters.productField || 'any')
-    const match = titleOf(productMatchOptions, filters.productMatch || 'contains').toLowerCase()
-    out.push(`${field} ${match} "${p.product}"`)
+    const field = titleOf(productFieldOptions(), filters.productField || 'any')
+    const match = titleOf(productMatchOptions(), filters.productMatch || 'contains').toLowerCase()
+    out.push(t('{field} {match} "{product}"', { field, match, product: p.product }))
   }
-  if (p.total_min !== null && p.total_max !== null) {out.push(`Total ${money(p.total_min)} to ${money(p.total_max)}`)}
-  else if (p.total_min !== null) {out.push(`Total at least ${money(p.total_min)}`)}
-  else if (p.total_max !== null) {out.push(`Total at most ${money(p.total_max)}`)}
+  if (p.total_min !== null && p.total_max !== null) {out.push(t('Total {min} to {max}', { min: money(p.total_min), max: money(p.total_max) }))}
+  else if (p.total_min !== null) {out.push(t('Total at least {amount}', { amount: money(p.total_min) }))}
+  else if (p.total_max !== null) {out.push(t('Total at most {amount}', { amount: money(p.total_max) }))}
   return out
 }
 
@@ -140,11 +150,11 @@ export function invoiceFilterSummary (filters = {}, names = {}) {
 export function invoiceFilterError (filters = {}) {
   const min = String(filters.totalMin ?? '').trim()
   const max = String(filters.totalMax ?? '').trim()
-  if (min !== '' && amountCents(min) === null) {return 'The lowest total is not a number.'}
-  if (max !== '' && amountCents(max) === null) {return 'The highest total is not a number.'}
+  if (min !== '' && amountCents(min) === null) {return t('The lowest total is not a number.')}
+  if (max !== '' && amountCents(max) === null) {return t('The highest total is not a number.')}
   const lo = amountCents(min)
   const hi = amountCents(max)
-  if (lo !== null && hi !== null && lo > hi) {return 'The lowest total is above the highest.'}
-  if (filters.dateFrom && filters.dateTo && filters.dateFrom > filters.dateTo) {return 'The start date is after the end date.'}
+  if (lo !== null && hi !== null && lo > hi) {return t('The lowest total is above the highest.')}
+  if (filters.dateFrom && filters.dateTo && filters.dateFrom > filters.dateTo) {return t('The start date is after the end date.')}
   return ''
 }
