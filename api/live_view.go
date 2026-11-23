@@ -88,20 +88,32 @@ func (server *Server) setLiveViewSettings(ctx *gin.Context) {
 	wasControl := server.liveFlags.control.Load()
 	server.liveFlags.set(settings.LiveViewEnabled, settings.LiveViewControlEnabled)
 
-	if !settings.LiveViewEnabled {
-		for _, id := range server.liveHub.closeAll(liveOffMsg) {
-			server.branchHub.notifyRegister(id, branchWSMessage{Type: "live_view_stop"})
-		}
-		server.broadcastLiveSessions()
-	} else if wasControl && !settings.LiveViewControlEnabled {
-		for _, id := range server.liveHub.revokeControl() {
-			server.branchHub.notifyRegister(id, branchWSMessage{Type: "live_view_start"})
-		}
-	}
+	server.applyLiveViewChange(wasControl, settings.LiveViewEnabled, settings.LiveViewControlEnabled)
 	// Every till learns the new state, so it can show or hide the feature.
 	server.branchHub.broadcastAll(branchWSMessage{Type: "live_view_settings", Features: server.liveViewFeatures()})
 
 	server.writeJSON(ctx, http.StatusOK, envelope{"settings": withoutSecrets(settings)})
+}
+
+// applyLiveViewChange ends or restricts the open sessions after the switches
+// changed: view off ends everything, control off takes control from mirrors
+// and ends every separate screen.
+func (server *Server) applyLiveViewChange(wasControl, view, control bool) {
+	if !view {
+		for _, key := range server.liveHub.closeAll(liveOffMsg) {
+			server.branchHub.notifyRegister(key.ID, branchWSMessage{Type: "live_view_stop", Virtual: key.Virtual})
+		}
+		server.broadcastLiveSessions()
+	} else if wasControl && !control {
+		for _, id := range server.liveHub.revokeControl() {
+			server.branchHub.notifyRegister(id, branchWSMessage{Type: "live_view_start"})
+		}
+		// A separate screen is read and write: it ends rather than going read-only.
+		for _, key := range server.liveHub.endVirtual(liveControlEndedMsg) {
+			server.branchHub.notifyRegister(key.ID, branchWSMessage{Type: "live_view_stop", Virtual: true})
+		}
+		server.broadcastLiveSessions()
+	}
 }
 
 func (server *Server) liveSessionsMessage() adminWSMessage {
@@ -159,6 +171,18 @@ func (server *Server) watchLive(ctx *gin.Context) {
 		server.writeError(ctx, http.StatusForbidden, fmt.Errorf("your role (%s) can't watch tills", access.RoleName))
 		return
 	}
+	// The separate screen is read and write: it needs the control switch on
+	// and the right to edit System.
+	virtual := ctx.Query("mode") == "virtual"
+	if virtual && !server.liveFlags.control.Load() {
+		server.writeError(ctx, http.StatusForbidden, errors.New("remote control is turned off"))
+		return
+	}
+	if virtual && !access.canEdit("system") {
+		server.writeError(ctx, http.StatusForbidden, fmt.Errorf("your role (%s) can't use a till's separate screen", access.RoleName))
+		return
+	}
+	key := liveKey{ID: registerID, Virtual: virtual}
 	branchID, ok := server.branchHub.branchOf(registerID)
 	if !ok {
 		server.writeError(ctx, http.StatusNotFound, errors.New("that till is not connected"))
@@ -181,7 +205,7 @@ func (server *Server) watchLive(ctx *gin.Context) {
 	w := newLiveWatcher(payload.UserID, user.Name, wrapped)
 	w.control.Store(server.liveFlags.control.Load() && access.canEdit("system"))
 
-	first, err := server.liveHub.join(registerID, branchID, w)
+	first, err := server.liveHub.join(key, branchID, w)
 	if err != nil {
 		_ = wrapped.writeText(liveErrorFrame(err.Error()))
 		return
@@ -190,30 +214,31 @@ func (server *Server) watchLive(ctx *gin.Context) {
 	hello, _ := json.Marshal(struct {
 		T       string `json:"t"`
 		Control bool   `json:"control"`
-	}{"hello", w.control.Load()})
+		Virtual bool   `json:"virtual,omitempty"`
+	}{"hello", w.control.Load(), virtual})
 	w.offer(hello)
 
 	server.recordActivity(adminActivity{
 		userID: payload.UserID, username: payload.Username, method: http.MethodGet,
 		route: "/live/watch/:register_id", entityID: sql.NullInt64{Int64: registerID, Valid: true},
-		summary: "watched a till live",
+		summary: liveActivitySummary(virtual),
 	})
 	server.broadcastLiveSessions()
 	if first {
 		server.branchHub.notifyRegister(registerID, branchWSMessage{
-			Type: "live_view_start", Control: server.liveFlags.control.Load(),
+			Type: "live_view_start", Control: server.liveFlags.control.Load(), Virtual: virtual,
 		})
 	} else {
-		server.liveHub.requestSnapshot(registerID)
+		server.liveHub.requestSnapshot(key)
 	}
 
 	defer func() {
-		last, till := server.liveHub.leave(registerID, w)
+		last, till := server.liveHub.leave(key, w)
 		if last {
 			if till != nil {
 				till.close()
 			}
-			server.branchHub.notifyRegister(registerID, branchWSMessage{Type: "live_view_stop"})
+			server.branchHub.notifyRegister(registerID, branchWSMessage{Type: "live_view_stop", Virtual: virtual})
 		}
 		server.broadcastLiveSessions()
 	}()
@@ -231,7 +256,7 @@ func (server *Server) watchLive(ctx *gin.Context) {
 		if !validLiveControl(data) {
 			continue
 		}
-		if server.liveHub.forward(registerID, w, data) && !logged {
+		if server.liveHub.forward(key, w, data) && !logged {
 			logged = true
 			server.recordActivity(adminActivity{
 				userID: payload.UserID, username: payload.Username, method: http.MethodPost,
@@ -243,6 +268,13 @@ func (server *Server) watchLive(ctx *gin.Context) {
 }
 
 // validLiveControl keeps only the messages a till understands from a watcher.
+func liveActivitySummary(virtual bool) string {
+	if virtual {
+		return "opened a till's separate screen"
+	}
+	return "watched a till live"
+}
+
 func validLiveControl(data []byte) bool {
 	var m struct {
 		T string `json:"t"`
@@ -262,7 +294,8 @@ func validLiveControl(data []byte) bool {
 // or nobody is watching that register.
 func (server *Server) branchLiveStream(ctx *gin.Context) {
 	registerID := ctx.MustGet(registerIDKey).(int64)
-	if !server.liveFlags.view.Load() || !server.liveHub.wanted(registerID) {
+	key := liveKey{ID: registerID, Virtual: ctx.Query("mode") == "virtual"}
+	if !server.liveFlags.view.Load() || !server.liveHub.wanted(key) {
 		server.writeError(ctx, http.StatusConflict, errors.New("nobody is watching this till"))
 		return
 	}
@@ -276,11 +309,11 @@ func (server *Server) branchLiveStream(ctx *gin.Context) {
 	conn.SetReadLimit(liveMaxFrame)
 
 	wrapped := newWSConn(conn)
-	if !server.liveHub.attachTill(registerID, wrapped) {
+	if !server.liveHub.attachTill(key, wrapped) {
 		return
 	}
-	defer server.liveHub.detachTill(registerID, wrapped)
-	server.liveHub.requestSnapshot(registerID)
+	defer server.liveHub.detachTill(key, wrapped)
+	server.liveHub.requestSnapshot(key)
 
 	done := make(chan struct{})
 	defer close(done)
@@ -292,7 +325,7 @@ func (server *Server) branchLiveStream(ctx *gin.Context) {
 			return
 		}
 		if kind == websocket.TextMessage {
-			server.liveHub.relay(registerID, wrapped, data)
+			server.liveHub.relay(key, wrapped, data)
 		}
 	}
 }

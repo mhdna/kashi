@@ -4,10 +4,10 @@
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-btn aria-label="Back to branches" icon="mdi-arrow-left" to="/branches" variant="text" />
         <v-icon icon="mdi-monitor" />
-        <span data-test="live-title">Live view: {{ title }}</span>
+        <span data-test="live-title">{{ virtual ? 'Separate screen' : 'Live view' }}: {{ title }}</span>
         <v-spacer />
         <v-switch
-          v-if="state.canControl && state.status === 'live'"
+          v-if="!virtual && state.canControl && state.status === 'live'"
           v-model="controlOn"
           color="warning"
           data-test="take-control"
@@ -20,6 +20,16 @@
       <v-divider />
 
       <div class="pa-4">
+        <v-alert
+          v-if="virtual"
+          class="mb-3"
+          data-test="virtual-note"
+          density="compact"
+          type="warning"
+          variant="tonal"
+        >
+          This is a second, hidden screen on the till. What you do here is real (sales, printing, changes) and the cashier does not see it. Sign in with your own PIN or password.
+        </v-alert>
         <v-alert
           v-if="state.status === 'ended' || state.status === 'error'"
           data-test="live-message"
@@ -90,7 +100,9 @@
   const state = ref(initialState())
   const actions = ref([])
   const recent = computed(() => actions.value.slice(-15).toReversed())
-  const controlOn = ref(false)
+  const virtual = route.query.mode === 'virtual'
+  // The separate screen is always driven; the mirror needs "Take control".
+  const controlOn = ref(virtual)
   const box = ref(null)
   const stage = ref(null)
   const size = ref({ width: 1366, height: 768 })
@@ -221,10 +233,10 @@
 
   onMounted(() => {
     watch = createWatch({
-      url: watchUrl(WS_BASE, registerId, auth.token),
+      url: watchUrl(WS_BASE, registerId, auth.token, virtual),
       onState: s => {
         state.value = s
-        if (!s.canControl) {
+        if (!s.canControl && !virtual) {
           controlOn.value = false
         }
       },
@@ -244,7 +256,7 @@
   })
 
   // Exposed for the tests, which drive the page without a real replayer.
-  defineExpose({ state, size, scale })
+  defineExpose({ state, size, scale, virtual })
 </script>
 
 <style scoped>

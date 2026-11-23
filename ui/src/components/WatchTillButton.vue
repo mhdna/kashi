@@ -21,6 +21,23 @@
       :to="{ path: `/live/${registerId}`, query: { name } }"
       variant="outlined"
     />
+    <v-btn
+      v-if="!icon && separateAllowed"
+      class="ms-2"
+      data-test="separate-register"
+      prepend-icon="mdi-monitor-multiple"
+      size="small"
+      text="Open separate screen"
+      :to="{ path: `/live/${registerId}`, query: { name, mode: 'virtual' } }"
+      variant="outlined"
+    />
+    <span
+      v-if="!icon && separateUser"
+      class="text-caption text-medium-emphasis ms-2"
+      data-test="separate-user"
+    >
+      Separate screen used by {{ separateUser }}
+    </span>
     <span
       v-if="!icon && watchers.length > 0"
       class="text-caption text-medium-emphasis ms-2"
@@ -47,7 +64,7 @@
   })
 
   const auth = useAuthStore()
-  const { enabled, load, listen, watchersOf } = useLiveView()
+  const { enabled, controlEnabled, load, listen, watchersOf, separateUserOf } = useLiveView()
   onMounted(() => {
     listen()
     load().catch(() => {})
@@ -55,4 +72,7 @@
 
   const visible = computed(() => enabled.value && props.online && auth.canViewPage('system', 'settings'))
   const watchers = computed(() => watchersOf(props.registerId))
+  const separateUser = computed(() => separateUserOf(props.registerId))
+  // The separate screen reads and writes: it needs the control switch and the right to edit System.
+  const separateAllowed = computed(() => visible.value && controlEnabled.value && auth.canEditPage('system', 'settings'))
 </script>

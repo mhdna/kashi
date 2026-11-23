@@ -95,3 +95,9 @@ now breaks name ties by id, so a client can't show up on two pages. Tests:
 **Finding:** each `/branch/sync/ids` page of 5000 customers took 6 to 15 seconds on production; the page query itself took 29 ms, the rest was `ListWithheldClientUIDs` calling `client_withheld_from_visible` once per customer (about 1.2 ms each). Past the till's 10-second timeout the check gave up and started over on its next sync. Prefiltering on "touches a hidden branch" didn't help: Test Branch links 4778 of every 5000.
 
 **Change:** `ListWithheldClientUIDs` is the same rule written as joins over the whole page (`db/query/client.sql`): 291 ms for the same page on production. `TestWithheldClientUIDsMatchesFunction` checks it gives the function's answer on randomized data.
+
+## 2026-11-23: Live view separate screen (not yet measured on a real till)
+
+**Cost on kashi:** one more session and one more stream per till, only while an admin uses it, through the same in-memory relay; it counts toward the cap of 3 watched tills. Nothing when unused.
+
+**Cost on the till:** a second copy of the till app runs in a hidden iframe, so memory roughly doubles for the page while it is open (at most one per till). **To measure on a real till:** the window's memory with and without the separate screen open, whether the off-screen frame's timers and animations are throttled, and that a barcode scan lands in the cashier's sale while the admin types. If the frame is throttled, move it on screen behind the app's opaque background (see the plan, Risks).

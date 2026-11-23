@@ -21,7 +21,7 @@ import (
 // queue overflowed) ignores everything until the next one.
 type liveHub struct {
 	mu          sync.Mutex
-	sessions    map[int64]*liveSession
+	sessions    map[liveKey]*liveSession
 	maxSessions int
 	// grace is how long watchers wait for a till stream that dropped.
 	grace time.Duration
@@ -48,8 +48,22 @@ var (
 	errLiveFull = errors.New("too many tills are being watched, close another live view first")
 )
 
+// liveKey names one session: a register's mirror (what the cashier sees) or
+// its separate screen (a hidden copy only one admin drives). They are two
+// sessions with two till streams, so frames never cross.
+type liveKey struct {
+	ID      int64
+	Virtual bool
+}
+
+// errLiveBusy is a separate screen another admin already uses.
+type errLiveBusy struct{ name string }
+
+func (e errLiveBusy) Error() string { return e.name + " is using this till's separate screen" }
+
 type liveSession struct {
 	registerID, branchID int64
+	virtual              bool
 	till                 *wsConn
 	watchers             map[*liveWatcher]struct{}
 	graceTimer           *time.Timer
@@ -120,7 +134,7 @@ func (w *liveWatcher) drain() {
 
 func newLiveHub() *liveHub {
 	return &liveHub{
-		sessions: map[int64]*liveSession{}, maxSessions: liveMaxSessions,
+		sessions: map[liveKey]*liveSession{}, maxSessions: liveMaxSessions,
 		grace: liveTillGrace, snapshotEvery: liveSnapshotEvery, now: time.Now,
 	}
 }
@@ -128,17 +142,22 @@ func newLiveHub() *liveHub {
 // join adds a watcher, opening the register's session if it has none. first
 // is true when the session is new (the till must be told to start). A fourth
 // watched register is refused; more watchers on one already watched are not.
-func (h *liveHub) join(registerID, branchID int64, w *liveWatcher) (first bool, err error) {
+func (h *liveHub) join(key liveKey, branchID int64, w *liveWatcher) (first bool, err error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	s := h.sessions[registerID]
+	s := h.sessions[key]
 	if s == nil {
 		if len(h.sessions) >= h.maxSessions {
 			return false, errLiveFull
 		}
-		s = &liveSession{registerID: registerID, branchID: branchID, watchers: map[*liveWatcher]struct{}{}}
-		h.sessions[registerID] = s
+		s = &liveSession{registerID: key.ID, branchID: branchID, virtual: key.Virtual, watchers: map[*liveWatcher]struct{}{}}
+		h.sessions[key] = s
 		first = true
+	}
+	if key.Virtual && len(s.watchers) > 0 {
+		for other := range s.watchers {
+			return false, errLiveBusy{name: other.name}
+		}
 	}
 	s.watchers[w] = struct{}{}
 	return first, nil
@@ -147,11 +166,11 @@ func (h *liveHub) join(registerID, branchID int64, w *liveWatcher) (first bool, 
 // leave removes a watcher. last is true when it was the session's last, in
 // which case the session is gone and till is its stream socket, still to be
 // closed by the caller (nil if it never connected).
-func (h *liveHub) leave(registerID int64, w *liveWatcher) (last bool, till *wsConn) {
+func (h *liveHub) leave(key liveKey, w *liveWatcher) (last bool, till *wsConn) {
 	w.stop()
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	s := h.sessions[registerID]
+	s := h.sessions[key]
 	if s == nil {
 		return false, nil
 	}
@@ -165,23 +184,23 @@ func (h *liveHub) leave(registerID int64, w *liveWatcher) (last bool, till *wsCo
 	if s.graceTimer != nil {
 		s.graceTimer.Stop()
 	}
-	delete(h.sessions, registerID)
+	delete(h.sessions, key)
 	return true, s.till
 }
 
 // wanted reports whether a till stream for this register is expected now.
-func (h *liveHub) wanted(registerID int64) bool {
+func (h *liveHub) wanted(key liveKey) bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	return h.sessions[registerID] != nil
+	return h.sessions[key] != nil
 }
 
 // attachTill records the till's stream socket, replacing (and closing) an
 // older one, and tells waiting watchers nothing: the till's first frame does.
 // False when nobody watches the register.
-func (h *liveHub) attachTill(registerID int64, conn *wsConn) bool {
+func (h *liveHub) attachTill(key liveKey, conn *wsConn) bool {
 	h.mu.Lock()
-	s := h.sessions[registerID]
+	s := h.sessions[key]
 	if s == nil {
 		h.mu.Unlock()
 		return false
@@ -201,9 +220,9 @@ func (h *liveHub) attachTill(registerID int64, conn *wsConn) bool {
 
 // detachTill handles a till stream that ended. Watchers are told to wait and
 // get grace to see it come back before the session is closed on them.
-func (h *liveHub) detachTill(registerID int64, conn *wsConn) {
+func (h *liveHub) detachTill(key liveKey, conn *wsConn) {
 	h.mu.Lock()
-	s := h.sessions[registerID]
+	s := h.sessions[key]
 	if s == nil || s.till != conn {
 		h.mu.Unlock()
 		return
@@ -216,19 +235,19 @@ func (h *liveHub) detachTill(registerID int64, conn *wsConn) {
 	if s.graceTimer != nil {
 		s.graceTimer.Stop()
 	}
-	s.graceTimer = time.AfterFunc(h.grace, func() { h.endSession(registerID, s, liveEndedMsg) })
+	s.graceTimer = time.AfterFunc(h.grace, func() { h.endSession(key, s, liveEndedMsg) })
 	h.mu.Unlock()
 }
 
 // endSession closes a session and its watchers with a last message. It
 // ignores a session that was already replaced.
-func (h *liveHub) endSession(registerID int64, s *liveSession, last []byte) {
+func (h *liveHub) endSession(key liveKey, s *liveSession, last []byte) {
 	h.mu.Lock()
-	if h.sessions[registerID] != s {
+	if h.sessions[key] != s {
 		h.mu.Unlock()
 		return
 	}
-	delete(h.sessions, registerID)
+	delete(h.sessions, key)
 	if s.graceTimer != nil {
 		s.graceTimer.Stop()
 	}
@@ -252,10 +271,10 @@ func (h *liveHub) endSession(registerID int64, s *liveSession, last []byte) {
 // A watcher whose queue is full loses its queue and waits for a snapshot,
 // which is then requested from the till. conn must be the session's current
 // till socket.
-func (h *liveHub) relay(registerID int64, conn *wsConn, data []byte) {
+func (h *liveHub) relay(key liveKey, conn *wsConn, data []byte) {
 	full := bytes.HasPrefix(data, fullFramePrefix)
 	h.mu.Lock()
-	s := h.sessions[registerID]
+	s := h.sessions[key]
 	if s == nil || s.till != conn {
 		h.mu.Unlock()
 		return
@@ -277,15 +296,15 @@ func (h *liveHub) relay(registerID int64, conn *wsConn, data []byte) {
 	}
 	h.mu.Unlock()
 	if overflow {
-		h.requestSnapshot(registerID)
+		h.requestSnapshot(key)
 	}
 }
 
 // requestSnapshot asks the till for a full snapshot, at most once per
 // snapshotEvery.
-func (h *liveHub) requestSnapshot(registerID int64) {
+func (h *liveHub) requestSnapshot(key liveKey) {
 	h.mu.Lock()
-	s := h.sessions[registerID]
+	s := h.sessions[key]
 	if s == nil || s.till == nil || h.now().Sub(s.lastSnapshot) < h.snapshotEvery {
 		h.mu.Unlock()
 		return
@@ -298,12 +317,12 @@ func (h *liveHub) requestSnapshot(registerID int64) {
 
 // forward sends a watcher's control message to the till. Dropped unless the
 // watcher may control right now.
-func (h *liveHub) forward(registerID int64, w *liveWatcher, data []byte) bool {
+func (h *liveHub) forward(key liveKey, w *liveWatcher, data []byte) bool {
 	if !w.control.Load() || len(data) > liveMaxControl {
 		return false
 	}
 	h.mu.Lock()
-	s := h.sessions[registerID]
+	s := h.sessions[key]
 	var till *wsConn
 	if s != nil {
 		if _, ok := s.watchers[w]; ok {
@@ -324,10 +343,13 @@ func (h *liveHub) revokeControl() []int64 {
 	var affected []int64
 	var told []*liveWatcher
 	for id, s := range h.sessions {
+		if id.Virtual {
+			continue // its session ends instead (endVirtual)
+		}
 		for w := range s.watchers {
 			if w.control.Swap(false) {
 				told = append(told, w)
-				affected = append(affected, id)
+				affected = append(affected, id.ID)
 			}
 		}
 	}
@@ -340,19 +362,37 @@ func (h *liveHub) revokeControl() []int64 {
 
 // closeAll ends every session, closing watchers with last. It returns the
 // registers whose tills must be told to stop.
-func (h *liveHub) closeAll(last []byte) []int64 {
+func (h *liveHub) closeAll(last []byte) []liveKey {
+	return h.closeWhere(last, func(liveKey) bool { return true })
+}
+
+// endVirtual ends every separate screen (the control switch went off: it is
+// read and write, so it cannot continue read-only).
+func (h *liveHub) endVirtual(last []byte) []liveKey {
+	return h.closeWhere(last, func(k liveKey) bool { return k.Virtual })
+}
+
+func (h *liveHub) closeWhere(last []byte, match func(liveKey) bool) []liveKey {
 	h.mu.Lock()
-	sessions := make(map[int64]*liveSession, len(h.sessions))
+	sessions := make(map[liveKey]*liveSession, len(h.sessions))
 	for id, s := range h.sessions {
-		sessions[id] = s
+		if match(id) {
+			sessions[id] = s
+		}
 	}
 	h.mu.Unlock()
-	ids := make([]int64, 0, len(sessions))
+	keys := make([]liveKey, 0, len(sessions))
 	for id, s := range sessions {
-		ids = append(ids, id)
+		keys = append(keys, id)
 		h.endSession(id, s, last)
 	}
-	return distinctIDs(ids)
+	sort.Slice(keys, func(i, j int) bool {
+		if keys[i].ID != keys[j].ID {
+			return keys[i].ID < keys[j].ID
+		}
+		return !keys[i].Virtual
+	})
+	return keys
 }
 
 // liveSessionInfo is one watched till as admin tabs see it.
@@ -360,6 +400,8 @@ type liveSessionInfo struct {
 	RegisterID int64    `json:"register_id"`
 	BranchID   int64    `json:"branch_id"`
 	Watchers   []string `json:"watchers"`
+	// Virtual marks a separate screen, not the cashier's mirror.
+	Virtual bool `json:"virtual,omitempty"`
 }
 
 func (h *liveHub) info() []liveSessionInfo {
@@ -372,9 +414,14 @@ func (h *liveHub) info() []liveSessionInfo {
 			names = append(names, w.name)
 		}
 		sort.Strings(names)
-		out = append(out, liveSessionInfo{RegisterID: s.registerID, BranchID: s.branchID, Watchers: names})
+		out = append(out, liveSessionInfo{RegisterID: s.registerID, BranchID: s.branchID, Watchers: names, Virtual: s.virtual})
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].RegisterID < out[j].RegisterID })
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].RegisterID != out[j].RegisterID {
+			return out[i].RegisterID < out[j].RegisterID
+		}
+		return !out[i].Virtual
+	})
 	return out
 }
 
@@ -393,9 +440,10 @@ func distinctIDs(ids []int64) []int64 {
 
 // Frames kashi itself sends over the live sockets.
 var (
-	liveWaitingMsg    = []byte(`{"t":"waiting"}`)
-	liveEndedMsg      = []byte(`{"t":"ended"}`)
-	liveSnapshotMsg   = []byte(`{"t":"snapshot"}`)
-	liveControlOffMsg = []byte(`{"t":"control","on":false}`)
-	liveOffMsg        = []byte(`{"t":"error","msg":"Live view was turned off"}`)
+	liveWaitingMsg      = []byte(`{"t":"waiting"}`)
+	liveEndedMsg        = []byte(`{"t":"ended"}`)
+	liveSnapshotMsg     = []byte(`{"t":"snapshot"}`)
+	liveControlOffMsg   = []byte(`{"t":"control","on":false}`)
+	liveControlEndedMsg = []byte(`{"t":"error","msg":"Remote control was turned off"}`)
+	liveOffMsg          = []byte(`{"t":"error","msg":"Live view was turned off"}`)
 )

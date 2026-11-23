@@ -510,17 +510,24 @@ func TestLiveViewProtocolFixture(t *testing.T) {
 	relayedAck := readText(t, w)
 	require.Equal(t, ackFrame, relayedAck)
 
+	// The separate screen's own hello, and the start message its till gets.
+	virtualWatch := rig.mustWatchVirtual(1, 10)
+	virtualHello := readText(t, virtualWatch)
+	virtualStart := readText(t, branch)
+
 	fixture := map[string]any{
-		"hello":      json.RawMessage(hello),
-		"start":      json.RawMessage(start),
-		"snapshot":   json.RawMessage(snapshot),
-		"frame":      json.RawMessage(relayed),
-		"ackFrame":   json.RawMessage(relayedAck),
-		"waiting":    json.RawMessage(liveWaitingMsg),
-		"ended":      json.RawMessage(liveEndedMsg),
-		"off":        json.RawMessage(liveOffMsg),
-		"controlOff": json.RawMessage(liveControlOffMsg),
-		"sessions":   rig.server.liveSessionsMessage(),
+		"virtualHello": json.RawMessage(virtualHello),
+		"virtualStart": json.RawMessage(virtualStart),
+		"hello":        json.RawMessage(hello),
+		"start":        json.RawMessage(start),
+		"snapshot":     json.RawMessage(snapshot),
+		"frame":        json.RawMessage(relayed),
+		"ackFrame":     json.RawMessage(relayedAck),
+		"waiting":      json.RawMessage(liveWaitingMsg),
+		"ended":        json.RawMessage(liveEndedMsg),
+		"off":          json.RawMessage(liveOffMsg),
+		"controlOff":   json.RawMessage(liveControlOffMsg),
+		"sessions":     rig.server.liveSessionsMessage(),
 		"controls": []json.RawMessage{
 			json.RawMessage(`{"t":"click","id":7}`),
 			json.RawMessage(`{"t":"input","id":7,"v":"abc"}`),

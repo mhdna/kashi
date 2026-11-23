@@ -19,7 +19,7 @@ async function requestJSON (url, options) {
 const enabled = ref(false)
 const controlEnabled = ref(false)
 const loaded = ref(false)
-/** [{ register_id, branch_id, watchers: [names] }] kept current by the admin socket. */
+/** [{ register_id, branch_id, watchers: [names], virtual? }] kept current by the admin socket. */
 const sessions = ref([])
 
 let listening = false
@@ -65,10 +65,15 @@ export function useLiveView () {
 
   /** Who watches a register right now (names), for the till list. */
   function watchersOf (registerId) {
-    return sessions.value.find(s => s.register_id === registerId)?.watchers ?? []
+    return sessions.value.find(s => s.register_id === registerId && !s.virtual)?.watchers ?? []
   }
 
-  return { enabled, controlEnabled, loaded, sessions, load, save, watchersOf, listen }
+  /** Who uses a register's separate screen right now (a name), or ''. */
+  function separateUserOf (registerId) {
+    return sessions.value.find(s => s.register_id === registerId && s.virtual)?.watchers?.[0] ?? ''
+  }
+
+  return { enabled, controlEnabled, loaded, sessions, load, save, watchersOf, separateUserOf, listen }
 }
 
 /** Test helper: forget everything. */

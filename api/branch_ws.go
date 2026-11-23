@@ -302,6 +302,9 @@ type branchWSMessage struct {
 	// Control is set on "live_view_start": the till may apply a watcher's
 	// clicks and typing (live_view.go). Absent means view only.
 	Control bool `json:"control,omitempty"`
+	// Virtual marks live_view_start / live_view_stop for the separate screen,
+	// a second hidden copy of the till app (live_view.go).
+	Virtual bool `json:"virtual,omitempty"`
 }
 
 type branchReview struct {
@@ -377,8 +380,10 @@ func (server *Server) branchWS(ctx *gin.Context) {
 	server.branchHub.add(branchID, registerID, wrapped)
 	// A till whose socket dropped while it was being watched (or that was
 	// restarted) is asked to start sharing again; the session is waiting.
-	if server.liveFlags.view.Load() && server.liveHub.wanted(registerID) {
-		_ = wrapped.writeJSON(branchWSMessage{Type: "live_view_start", Control: server.liveFlags.control.Load()})
+	for _, virtual := range []bool{false, true} {
+		if server.liveFlags.view.Load() && server.liveHub.wanted(liveKey{ID: registerID, Virtual: virtual}) {
+			_ = wrapped.writeJSON(branchWSMessage{Type: "live_view_start", Control: server.liveFlags.control.Load(), Virtual: virtual})
+		}
 	}
 	server.broadcastBranchConnections()
 	defer func() {

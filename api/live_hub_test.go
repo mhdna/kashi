@@ -40,14 +40,14 @@ func hubWithTill(t *testing.T, registerID int64) (*liveHub, *wsConn) {
 func TestLiveHubWatcherWaitsForFullSnapshot(t *testing.T) {
 	h, till := hubWithTill(t, 10)
 	w := testWatcher("a")
-	_, err := h.join(10, 1, w)
+	_, err := h.join(liveKey{ID: 10}, 1, w)
 	require.NoError(t, err)
-	require.True(t, h.attachTill(10, till))
+	require.True(t, h.attachTill(liveKey{ID: 10}, till))
 
-	h.relay(10, till, []byte(`{"e":[1]}`))
+	h.relay(liveKey{ID: 10}, till, []byte(`{"e":[1]}`))
 	require.Empty(t, queued(w), "increments before a snapshot are skipped")
-	h.relay(10, till, []byte(`{"full":true,"e":[2]}`))
-	h.relay(10, till, []byte(`{"e":[3]}`))
+	h.relay(liveKey{ID: 10}, till, []byte(`{"full":true,"e":[2]}`))
+	h.relay(liveKey{ID: 10}, till, []byte(`{"e":[3]}`))
 	require.Equal(t, []string{`{"full":true,"e":[2]}`, `{"e":[3]}`}, queued(w))
 }
 
@@ -57,16 +57,16 @@ func TestLiveHubSlowWatcherNeverBlocks(t *testing.T) {
 	h.snapshotEvery = 0
 	slow, fast := testWatcher("slow"), testWatcher("fast")
 	for _, w := range []*liveWatcher{slow, fast} {
-		_, err := h.join(10, 1, w)
+		_, err := h.join(liveKey{ID: 10}, 1, w)
 		require.NoError(t, err)
 	}
-	require.True(t, h.attachTill(10, till))
-	h.relay(10, till, []byte(`{"full":true,"e":[0]}`))
+	require.True(t, h.attachTill(liveKey{ID: 10}, till))
+	h.relay(liveKey{ID: 10}, till, []byte(`{"full":true,"e":[0]}`))
 
 	start := time.Now()
 	var fastGot int
 	for i := 1; i <= liveWatcherQueue*3; i++ {
-		h.relay(10, till, []byte(fmt.Sprintf(`{"e":[%d]}`, i)))
+		h.relay(liveKey{ID: 10}, till, []byte(fmt.Sprintf(`{"e":[%d]}`, i)))
 		// The fast tab keeps up.
 		fastGot += len(queued(fast))
 	}
@@ -77,7 +77,7 @@ func TestLiveHubSlowWatcherNeverBlocks(t *testing.T) {
 	// snapshot instead of showing a broken page.
 	require.True(t, slow.needSnap)
 	require.LessOrEqual(t, len(slow.send), liveWatcherQueue)
-	h.relay(10, till, []byte(`{"full":true,"e":["fresh"]}`))
+	h.relay(liveKey{ID: 10}, till, []byte(`{"full":true,"e":["fresh"]}`))
 	require.False(t, slow.needSnap)
 	require.Equal(t, `{"full":true,"e":["fresh"]}`, queued(slow)[0])
 }
@@ -86,16 +86,16 @@ func TestLiveHubFramesFromAReplacedTillAreIgnored(t *testing.T) {
 	h, till := hubWithTill(t, 10)
 	newer, _ := wsPair(t)
 	w := testWatcher("a")
-	_, _ = h.join(10, 1, w)
-	require.True(t, h.attachTill(10, till))
-	require.True(t, h.attachTill(10, newer))
-	h.relay(10, till, []byte(`{"full":true,"e":["old"]}`))
+	_, _ = h.join(liveKey{ID: 10}, 1, w)
+	require.True(t, h.attachTill(liveKey{ID: 10}, till))
+	require.True(t, h.attachTill(liveKey{ID: 10}, newer))
+	h.relay(liveKey{ID: 10}, till, []byte(`{"full":true,"e":["old"]}`))
 	require.Empty(t, queued(w))
-	h.relay(10, newer, []byte(`{"full":true,"e":["new"]}`))
+	h.relay(liveKey{ID: 10}, newer, []byte(`{"full":true,"e":["new"]}`))
 	require.Equal(t, []string{`{"full":true,"e":["new"]}`}, queued(w))
 	// No session, nothing happens.
-	h.relay(99, newer, []byte(`{"full":true}`))
-	require.False(t, h.attachTill(99, newer))
+	h.relay(liveKey{ID: 99}, newer, []byte(`{"full":true}`))
+	require.False(t, h.attachTill(liveKey{ID: 99}, newer))
 }
 
 func TestLiveHubRevokeControlAffectsOnlyThoseWithIt(t *testing.T) {
@@ -103,9 +103,9 @@ func TestLiveHubRevokeControlAffectsOnlyThoseWithIt(t *testing.T) {
 	a, b, c := testWatcher("a"), testWatcher("b"), testWatcher("c")
 	a.control.Store(true)
 	c.control.Store(true)
-	_, _ = h.join(10, 1, a)
-	_, _ = h.join(10, 1, b)
-	_, _ = h.join(20, 1, c)
+	_, _ = h.join(liveKey{ID: 10}, 1, a)
+	_, _ = h.join(liveKey{ID: 10}, 1, b)
+	_, _ = h.join(liveKey{ID: 20}, 1, c)
 	require.Equal(t, []int64{10, 20}, h.revokeControl())
 	require.False(t, a.control.Load() || b.control.Load() || c.control.Load())
 	require.Contains(t, queued(a), string(liveControlOffMsg))
@@ -144,7 +144,7 @@ func TestLiveHubRandomRelayIdentities(t *testing.T) {
 			switch rng.Intn(5) {
 			case 0: // a watcher joins
 				w := testWatcher("w")
-				if _, err := h.join(reg, 1, w); err == nil {
+				if _, err := h.join(liveKey{ID: reg}, 1, w); err == nil {
 					x := &watching{w: w, register: reg, joinedAt: len(sent[reg])}
 					all = append(all, x)
 					active[x] = true
@@ -154,7 +154,7 @@ func TestLiveHubRandomRelayIdentities(t *testing.T) {
 				}
 			case 1: // a watcher leaves
 				for x := range active {
-					if last, _ := h.leave(x.register, x.w); last {
+					if last, _ := h.leave(liveKey{ID: x.register}, x.w); last {
 						tills[x.register] = nil // its stream was closed with the session
 					}
 					delete(active, x)
@@ -162,13 +162,13 @@ func TestLiveHubRandomRelayIdentities(t *testing.T) {
 				}
 			case 2: // a till connects
 				if till, ok := tills[reg]; !ok || till == nil {
-					if h.attachTill(reg, pool[reg]) {
+					if h.attachTill(liveKey{ID: reg}, pool[reg]) {
 						tills[reg] = pool[reg]
 					}
 				}
 			default: // a till sends a frame
 				till := tills[reg]
-				if till == nil || !h.wanted(reg) {
+				if till == nil || !h.wanted(liveKey{ID: reg}) {
 					continue
 				}
 				n := len(sent[reg])
@@ -177,7 +177,7 @@ func TestLiveHubRandomRelayIdentities(t *testing.T) {
 					frame = fmt.Sprintf(`{"full":true,"e":[%d]}`, n)
 				}
 				sent[reg] = append(sent[reg], frame)
-				h.relay(reg, till, []byte(frame))
+				h.relay(liveKey{ID: reg}, till, []byte(frame))
 			}
 			for x := range active {
 				x.got = append(x.got, queued(x.w)...)

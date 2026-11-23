@@ -9,7 +9,7 @@ import {
 // server really sends: if the server's shapes change, these fail.
 describe('what the server sends (Go fixture)', () => {
   it('reads hello with the control right', () => {
-    expect(parseFrame(JSON.stringify(fixture.hello))).toEqual({ kind: 'hello', control: true })
+    expect(parseFrame(JSON.stringify(fixture.hello))).toEqual({ kind: 'hello', control: true, virtual: false })
   })
   it('reads a relayed till frame', () => {
     const f = parseFrame(JSON.stringify(fixture.frame))
@@ -36,6 +36,12 @@ describe('what the server sends (Go fixture)', () => {
     expect(fixture.controls).toContainEqual(inputMessage(7, 'abc'))
     expect(fixture.controls).toContainEqual(keyMessage({ key: 'Enter' }))
   })
+  it('reads the separate screen\'s hello and the start message its till gets', () => {
+    expect(parseFrame(JSON.stringify(fixture.virtualHello))).toEqual({ kind: 'hello', control: true, virtual: true })
+    expect(fixture.virtualStart).toEqual({ type: 'live_view_start', control: true, virtual: true })
+    const state = nextState(initialState(), parseFrame(JSON.stringify(fixture.virtualHello)))
+    expect(state).toMatchObject({ status: 'waiting', canControl: true, virtual: true })
+  })
   it('reads the till\'s ack frame and accepts a stamped control', () => {
     expect(parseFrame(JSON.stringify(fixture.ackFrame))).toEqual({
       kind: 'frame', full: false, events: [], actions: [], ack: 1_700_000_000_123,
@@ -58,7 +64,7 @@ describe('parseFrame', () => {
     expect(parseFrame('{"e":[1]}')).toEqual({ kind: 'frame', full: false, events: [1], actions: [] })
   })
   it('a hello without control means no control', () => {
-    expect(parseFrame('{"t":"hello"}')).toEqual({ kind: 'hello', control: false })
+    expect(parseFrame('{"t":"hello"}')).toEqual({ kind: 'hello', control: false, virtual: false })
   })
   it('an error without a message still says something', () => {
     expect(parseFrame('{"t":"error"}').message).toBeTruthy()
@@ -179,6 +185,17 @@ describe('control messages', () => {
 describe('watchUrl', () => {
   it('builds the socket address and escapes the token', () => {
     expect(watchUrl('wss://x.test', 10, 'a b+c')).toBe('wss://x.test/live/watch/10?token=a%20b%2Bc')
+  })
+})
+
+describe('watchUrl', () => {
+  it('asks for the separate screen only when told to', () => {
+    expect(watchUrl('wss://k/api', 10, 'tok')).toBe('wss://k/api/live/watch/10?token=tok')
+    expect(watchUrl('wss://k/api', 10, 'tok', true)).toBe('wss://k/api/live/watch/10?token=tok&mode=virtual')
+    expect(watchUrl('wss://k/api', 10, 'a b', false)).toBe('wss://k/api/live/watch/10?token=a%20b')
+  })
+  it('a mirror hello never says virtual', () => {
+    expect(nextState(initialState(), parseFrame('{"t":"hello","control":true}')).virtual).toBe(false)
   })
 })
 
