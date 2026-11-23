@@ -65,6 +65,14 @@
         "watchers": [
           "Admin"
         ]
+      },
+      {
+        "register_id": 10,
+        "branch_id": 1,
+        "watchers": [
+          "Admin"
+        ],
+        "virtual": true
       }
     ]
   },
@@ -74,6 +82,16 @@
   "start": {
     "type": "live_view_start",
     "control": true
+  },
+  "virtualHello": {
+    "t": "hello",
+    "control": true,
+    "virtual": true
+  },
+  "virtualStart": {
+    "type": "live_view_start",
+    "control": true,
+    "virtual": true
   },
   "waiting": {
     "t": "waiting"
