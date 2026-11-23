@@ -4,6 +4,7 @@
  * Automatically included in `./src/main.js`
  */
 
+import i18n from '@/i18n'
 import router from '@/router'
 import pinia from '@/stores'
 // Plugins
@@ -14,4 +15,5 @@ export function registerPlugins (app) {
     .use(vuetify)
     .use(pinia)
     .use(router)
+    .use(i18n)
 }

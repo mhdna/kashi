@@ -29,6 +29,7 @@
         <!-- <NotificationMenu class="me-4" /> -->
         <!-- <v-icon icon="mdi-translate" /> -->
         <template v-if="!xs">
+          <ToggleLanguage />
           <ToggleTheme />
           <OnlineUsersStack />
           <v-btn icon="mdi-logout" variant="text" @click="handleLogout" />
@@ -37,10 +38,10 @@
              fits a 360px screen. -->
         <v-menu v-else location="bottom end">
           <template #activator="{ props: menuProps }">
-            <v-btn v-bind="menuProps" aria-label="More" icon="mdi-dots-vertical" variant="text" />
+            <v-btn v-bind="menuProps" :aria-label="t('More')" icon="mdi-dots-vertical" variant="text" />
           </template>
           <v-list density="compact" min-width="180">
-            <v-list-subheader>Theme</v-list-subheader>
+            <v-list-subheader>{{ t('Theme') }}</v-list-subheader>
             <v-list-item
               v-for="option in themeOptions"
               :key="option.value"
@@ -49,8 +50,13 @@
               :title="option.title"
               @click="appStore.setThemePreference(option.value)"
             />
+            <v-list-item
+              prepend-icon="mdi-translate"
+              :title="locale === 'fr' ? 'English' : 'Français'"
+              @click="setLocale(locale === 'fr' ? 'en' : 'fr')"
+            />
             <v-divider class="my-1" />
-            <v-list-item prepend-icon="mdi-logout" title="Log out" @click="handleLogout" />
+            <v-list-item prepend-icon="mdi-logout" :title="t('Log out')" @click="handleLogout" />
           </v-list>
         </v-menu>
       </template>
@@ -91,6 +97,7 @@
   import AppNotifications from "@/components/AppNotifications.vue";
   import BranchActivityToast from "@/components/BranchActivityToast.vue";
   import BranchDiscountButton from "@/components/BranchDiscountButton.vue";
+  import ToggleLanguage from "@/components/Buttons/ToggleLanguage.vue";
   import ToggleTheme from "@/components/Buttons/ToggleTheme.vue";
   import CommandPalette from "@/components/CommandPalette.vue";
   import ConnectedBranchesCard from "@/components/ConnectedBranchesCard.vue";
@@ -99,6 +106,7 @@
   import PageSkeleton from "@/components/PageSkeleton.vue";
   import SyncingBranchesCard from "@/components/SyncingBranchesCard.vue";
   // import NotificationMenu from '@/components/Menus/NotificationMenu.vue'
+  import { locale, setLocale, t } from "@/i18n";
   import { useAppStore } from "@/stores/app";
   import { useAuthStore } from "@/stores/auth";
   import { useSettingsStore } from "@/stores/settings";
@@ -107,11 +115,11 @@
   const appStore = useAppStore();
 
   // Same choices as ToggleTheme, for the phone overflow menu.
-  const themeOptions = [
-    { value: "system", title: "System", icon: "mdi-theme-light-dark" },
-    { value: "light", title: "Light", icon: "mdi-white-balance-sunny" },
-    { value: "dark", title: "Dark", icon: "mdi-weather-night" },
-  ];
+  const themeOptions = computed(() => [
+    { value: "system", title: t("System"), icon: "mdi-theme-light-dark" },
+    { value: "light", title: t("Light"), icon: "mdi-white-balance-sunny" },
+    { value: "dark", title: t("Dark"), icon: "mdi-weather-night" },
+  ]);
   const settingsStore = useSettingsStore();
   // Every table starts at the Rows per table setting (Settings > General).
   const tableDefaults = computed(() => ({
