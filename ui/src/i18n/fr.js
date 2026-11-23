@@ -1,11 +1,5 @@
-// French for the app: English text -> French. {placeholders} must stay as they are.
-export const FR = {
-  // Top bar
-  'Theme': 'Thème',
-  'System': 'Système',
-  'Light': 'Clair',
-  'Dark': 'Sombre',
-  'Log out': 'Se déconnecter',
-  'More': 'Plus',
-  'Language': 'Langue',
-}
+// French for the app: English text -> French. Each file in ./fr holds one area
+// (default export: { 'English': 'Français' }); {placeholders} must stay as they are.
+const files = import.meta.glob('./fr/*.js', { eager: true })
+
+export const FR = Object.assign({}, ...Object.values(files).map(m => m.default))
