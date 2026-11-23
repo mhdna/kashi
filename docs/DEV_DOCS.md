@@ -181,6 +181,7 @@ Business settings (WhatsApp credentials, templates, webhook secret) live **in th
 - The stream has **its own socket** (`/branch/live`), opened by the till only while watched, so a big snapshot never delays a sync push on `/branch/ws`.
 - **Memory only**: `liveHub` relays bytes, parses nothing, stores nothing. At most **3 tills** watched at once (the droplet has 1 CPU and 2 GB shared with other apps).
 - A watcher that falls behind loses its queue and waits for the next **full snapshot**; the till is never made to wait for a slow tab.
+- **Separate screen**: `?mode=virtual` opens a second, hidden copy of the till app that **one admin at a time** drives (read and write), invisible to the cashier. Needs live view on, the control switch on and System **edit**. It counts toward the cap of 3.
 :::
 
 | Topic | Rule |
@@ -188,10 +189,11 @@ Business settings (WhatsApp credentials, templates, webhook secret) live **in th
 | Flow | Admin tab `GET /live/watch/:register_id?token=` (System view). First watcher: kashi pushes `live_view_start` on the till's branch socket; the till dials `GET /branch/live`, then its page records. Last watcher leaves: `live_view_stop`, stream closed. |
 | Frames | Till to watcher: `{"full":true,"e":[...],"a":[...]}` or `{"e":..,"a":..}`. **`full` must be the first key**: kashi tells a full snapshot from an increment by the text's prefix (`fullFramePrefix`) without parsing it. |
 | Control | Watcher to till: `click {id}`, `input {id,v}`, `key {key}` (rrweb node ids). Needs the control switch **and** System edit; checked per message, so turning it off cuts open sessions at once. Anything else is dropped. |
+| Separate screen | Sessions are keyed by `liveKey{register, virtual}`: two sessions and two till streams per register (`/branch/live?mode=virtual`), so frames and controls never cross. `live_view_start`/`live_view_stop` carry `"virtual":true`. A second user is refused with `"<name> is using this till's separate screen"`. Control switch off **ends** every separate screen (mirrors only lose control). A till reconnecting is asked to restart both kinds. `liveSessionInfo.virtual` drives "Separate screen used by X". |
 | Till drops | Watchers get `waiting`, then `ended` after 30 s (`liveTillGrace`). A till whose branch socket reconnects while watched is asked to start again. |
 | Turning it off | Closes every session, stops the tills, tells tills the feature is gone (`live_view_settings`). |
 | Privacy | Password fields are masked, pictures blocked. Every watch and the first control action of a session are written to the admin activity feed. |
-| Tests | `api/live_hub_test.go` (randomised relay identities), `api/live_view_test.go` (real sockets); the Go test writes `ui/src/test/fixtures/live_view_protocol.json`, which `ui/src/utils/liveView.test.js` reads. |
+| Tests | `api/live_hub_test.go` (randomised relay identities), `api/live_view_test.go` (real sockets), `api/live_virtual_test.go` (separate screen: rights, one user, no crossing, randomised sessions); the Go test writes `ui/src/test/fixtures/live_view_protocol.json`, which `ui/src/utils/liveView.test.js` reads. |
 
 ## Remote commands {icon=mdiConsole}
 
