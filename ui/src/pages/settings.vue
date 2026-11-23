@@ -3,7 +3,7 @@
     <v-card class="set-card" flat>
       <v-card-title class="page-heading d-flex align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-cog-outline" />
-        <span>Settings</span>
+        <span>{{ t('Settings') }}</span>
       </v-card-title>
       <v-divider />
 
@@ -14,15 +14,15 @@
           color="primary"
           :direction="$vuetify.display.smAndDown ? 'horizontal' : 'vertical'"
         >
-          <v-tab prepend-icon="mdi-cog-outline" text="General" value="general" />
-          <v-tab prepend-icon="mdi-chart-line" text="Financials" value="financials" />
-          <v-tab prepend-icon="mdi-barcode" text="Barcode labels" value="barcodes" />
-          <v-tab prepend-icon="mdi-package-variant" text="Products" value="products" />
-          <v-tab v-if="auth.isAdmin" prepend-icon="mdi-account-group" text="Users" value="users" />
-          <v-tab v-if="auth.isAdmin" prepend-icon="mdi-shield-account-outline" text="Roles" value="roles" />
+          <v-tab prepend-icon="mdi-cog-outline" :text="t('General')" value="general" />
+          <v-tab prepend-icon="mdi-chart-line" :text="t('Financials')" value="financials" />
+          <v-tab prepend-icon="mdi-barcode" :text="t('Barcode labels')" value="barcodes" />
+          <v-tab prepend-icon="mdi-package-variant" :text="t('Products')" value="products" />
+          <v-tab v-if="auth.isAdmin" prepend-icon="mdi-account-group" :text="t('Users')" value="users" />
+          <v-tab v-if="auth.isAdmin" prepend-icon="mdi-shield-account-outline" :text="t('Roles')" value="roles" />
           <v-tab v-if="auth.canViewPage('system', 'settings')" prepend-icon="mdi-whatsapp" text="WhatsApp" value="whatsapp" />
-          <v-tab v-if="auth.canViewPage('system', 'settings')" prepend-icon="mdi-star-outline" text="Reviews" value="reviews" />
-          <v-tab v-if="auth.canViewPage('system', 'settings')" prepend-icon="mdi-email-outline" text="Email" value="email" />
+          <v-tab v-if="auth.canViewPage('system', 'settings')" prepend-icon="mdi-star-outline" :text="t('Reviews')" value="reviews" />
+          <v-tab v-if="auth.canViewPage('system', 'settings')" prepend-icon="mdi-email-outline" :text="t('Email')" value="email" />
         </v-tabs>
 
         <v-divider vertical />
@@ -31,18 +31,17 @@
           <!-- ------------------------------------------------------- GENERAL -->
           <section v-show="tab === 'general'" class="set-section">
             <v-form :disabled="!canEditSystem">
-              <h3 class="text-subtitle-1 mb-1">Tables</h3>
+              <h3 class="text-subtitle-1 mb-1">{{ t('Tables') }}</h3>
               <p class="text-body-2 text-medium-emphasis mb-4">
-                How many rows every table loads at a time. Fewer rows load faster; you can still page
-                through the rest.
+                {{ t('How many rows every table loads at a time. Fewer rows load faster; you can still page through the rest.') }}
               </p>
 
               <v-text-field
                 v-model.number="draft.tablePageSize"
                 class="field-md mb-6"
                 density="compact"
-                :hint="`Between ${MIN_TABLE_PAGE_SIZE} and ${MAX_TABLE_PAGE_SIZE}, ${DEFAULT_TABLE_PAGE_SIZE} by default`"
-                label="Rows per table"
+                :hint="t('Between {min} and {max}, {def} by default', { min: MIN_TABLE_PAGE_SIZE, max: MAX_TABLE_PAGE_SIZE, def: DEFAULT_TABLE_PAGE_SIZE })"
+                :label="t('Rows per table')"
                 :max="MAX_TABLE_PAGE_SIZE"
                 :min="MIN_TABLE_PAGE_SIZE"
                 persistent-hint
@@ -50,12 +49,12 @@
                 variant="outlined"
               />
 
-              <h3 class="text-subtitle-1 mb-1">Branch activity</h3>
+              <h3 class="text-subtitle-1 mb-1">{{ t('Branch activity') }}</h3>
               <p class="text-body-2 text-medium-emphasis mb-4">
-                How live branch sales / returns / expenses are shown in the appbar.
+                {{ t('How live branch sales / returns / expenses are shown in the appbar.') }}
               </p>
 
-              <div class="text-body-2 mb-2">Display mode</div>
+              <div class="text-body-2 mb-2">{{ t('Display mode') }}</div>
               <v-btn-toggle
                 v-model="draft.activityDisplayMode"
                 class="mb-4"
@@ -63,34 +62,33 @@
                 divided
                 mandatory
               >
-                <v-btn value="notification">Notification</v-btn>
-                <v-btn value="appbar">Appbar messages</v-btn>
+                <v-btn value="notification">{{ t('Notification') }}</v-btn>
+                <v-btn value="appbar">{{ t('Appbar messages') }}</v-btn>
               </v-btn-toggle>
 
               <v-text-field
                 v-model.number="draft.activityMessageSeconds"
                 class="field-md"
                 density="compact"
-                hint="How long each message is shown before moving to the next one queued behind it"
-                label="Message duration (seconds)"
+                :hint="t('How long each message is shown before moving to the next one queued behind it')"
+                :label="t('Message duration (seconds)')"
                 min="1"
                 persistent-hint
                 type="number"
                 variant="outlined"
               />
 
-              <h3 class="text-subtitle-1 mb-1 mt-6">Upcoming events</h3>
+              <h3 class="text-subtitle-1 mb-1 mt-6">{{ t('Upcoming events') }}</h3>
               <p class="text-body-2 text-medium-emphasis mb-4">
-                The appbar &ldquo;Upcoming event&rdquo; card scans the retail calendar this
-                far ahead.
+                {{ t('The appbar “Upcoming event” card scans the retail calendar this far ahead.') }}
               </p>
 
               <v-text-field
                 v-model.number="draft.upcomingEventsDays"
                 class="field-md"
                 density="compact"
-                hint="Days ahead the inline card text looks for the next event"
-                label="Card look-ahead (days)"
+                :hint="t('Days ahead the inline card text looks for the next event')"
+                :label="t('Card look-ahead (days)')"
                 max="365"
                 min="1"
                 persistent-hint
@@ -102,8 +100,8 @@
                 v-model.number="draft.upcomingEventsMenuDays"
                 class="field-md mt-4"
                 density="compact"
-                hint="Days ahead the dropdown lists events (default 180 ≈ 6 months)"
-                label="Dropdown look-ahead (days)"
+                :hint="t('Days ahead the dropdown lists events (default 180 ≈ 6 months)')"
+                :label="t('Dropdown look-ahead (days)')"
                 max="730"
                 min="1"
                 persistent-hint
@@ -113,10 +111,9 @@
 
             </v-form>
 
-            <h3 class="text-subtitle-1 mb-1 mt-6">Your avatar</h3>
+            <h3 class="text-subtitle-1 mb-1 mt-6">{{ t('Your avatar') }}</h3>
             <p class="text-body-2 text-medium-emphasis mb-3">
-              The initials badge in the top bar — your name's first two letters.
-              Everyone sees you in this colour, on every device.
+              {{ t("The initials badge in the top bar — your name's first two letters. Everyone sees you in this colour, on every device.") }}
             </p>
 
             <div class="d-flex align-center ga-4 mb-2">
@@ -142,13 +139,12 @@
               variant="text"
               @click="pickAvatarColor('')"
             >
-              Reset to default colour
+              {{ t('Reset to default colour') }}
             </v-btn>
 
-            <h3 class="text-subtitle-1 mt-8 mb-1">Phone upload pages</h3>
+            <h3 class="text-subtitle-1 mt-8 mb-1">{{ t('Phone upload pages') }}</h3>
             <p class="text-body-2 text-medium-emphasis mb-2">
-              The pages a phone opens from a QR code (receipts, transfers, unknown items) are always light.
-              Turn this on to let them follow the phone's dark mode.
+              {{ t("The pages a phone opens from a QR code (receipts, transfers, unknown items) are always light. Turn this on to let them follow the phone's dark mode.") }}
             </p>
             <v-switch
               v-model="draft.uploadPagesFollowSystem"
@@ -156,15 +152,12 @@
               density="compact"
               hide-details
               inset
-              label="Follow the phone's dark mode"
+              :label="t('Follow the phone\'s dark mode')"
             />
 
-            <h3 class="text-subtitle-1 mt-8 mb-1">Unknown item pictures</h3>
+            <h3 class="text-subtitle-1 mt-8 mb-1">{{ t('Unknown item pictures') }}</h3>
             <p class="text-body-2 text-medium-emphasis mb-2">
-              Delete old pictures automatically, once a day: a picture 30 days after all its items were
-              matched to a product, and the pictures of a checkout that never became a sale 2 days after
-              its link expired. A picture still waiting to be matched is never deleted. Off by default;
-              you can always delete pictures by hand under Attachments.
+              {{ t("Delete old pictures automatically, once a day: a picture 30 days after all its items were matched to a product, and the pictures of a checkout that never became a sale 2 days after its link expired. A picture still waiting to be matched is never deleted. Off by default; you can always delete pictures by hand under Attachments.") }}
             </p>
             <v-switch
               v-model="draft.unknownImagesAutoDelete"
@@ -172,7 +165,7 @@
               density="compact"
               hide-details
               inset
-              label="Delete old unknown item pictures automatically"
+              :label="t('Delete old unknown item pictures automatically')"
             />
 
             <LiveViewSettings :can-edit="canEditSystem" />
@@ -181,9 +174,9 @@
           <!-- ---------------------------------------------------- FINANCIALS -->
           <section v-show="tab === 'financials'" class="set-section">
             <v-form :disabled="!canEditSystem">
-              <h3 class="text-subtitle-1 mb-1">Revenue chart</h3>
+              <h3 class="text-subtitle-1 mb-1">{{ t('Revenue chart') }}</h3>
               <p class="text-body-2 text-medium-emphasis mb-4">
-                Dashboard &ldquo;Financials&rdquo; tab revenue candles.
+                {{ t('Dashboard “Financials” tab revenue candles.') }}
               </p>
 
               <v-select
@@ -191,9 +184,9 @@
                 chips
                 class="field-md"
                 density="compact"
-                hint="Months that earn ~1.5x a normal month, shaded on the revenue candles chart"
+                :hint="t('Months that earn ~1.5x a normal month, shaded on the revenue candles chart')"
                 :items="monthItems"
-                label="High season months"
+                :label="t('High season months')"
                 multiple
                 persistent-hint
                 variant="outlined"
@@ -204,9 +197,9 @@
           <!-- ------------------------------------------------------ BARCODES -->
           <section v-show="tab === 'barcodes'" class="set-section">
             <v-form :disabled="!canEditSystem">
-              <h3 class="text-subtitle-1 mb-1">Barcode labels</h3>
+              <h3 class="text-subtitle-1 mb-1">{{ t('Barcode labels') }}</h3>
               <p class="text-body-2 text-medium-emphasis mb-4">
-                Default page size for generated barcode-label PDFs.
+                {{ t('Default page size for generated barcode-label PDFs.') }}
               </p>
 
               <div class="d-flex ga-3 field-md">
@@ -214,7 +207,7 @@
                   v-model.number="draft.barcodeLabelWidth"
                   density="compact"
                   hide-details
-                  label="Width (pt)"
+                  :label="t('Width (pt)')"
                   type="number"
                   variant="outlined"
                 />
@@ -222,13 +215,13 @@
                   v-model.number="draft.barcodeLabelHeight"
                   density="compact"
                   hide-details
-                  label="Height (pt)"
+                  :label="t('Height (pt)')"
                   type="number"
                   variant="outlined"
                 />
               </div>
               <div class="text-caption text-medium-emphasis mt-2">
-                72 pt = 1 inch. Common thermal label: 288 &times; 144 (4 &times; 2 in).
+                {{ t('72 pt = 1 inch. Common thermal label: 288 × 144 (4 × 2 in).') }}
               </div>
             </v-form>
           </section>
@@ -236,10 +229,9 @@
           <!-- ------------------------------------------------------ PRODUCTS -->
           <section v-show="tab === 'products'" class="set-section">
             <v-form :disabled="!canEditSystem">
-              <h3 class="text-subtitle-1 mb-1">Smart auto-fill</h3>
+              <h3 class="text-subtitle-1 mb-1">{{ t('Smart auto-fill') }}</h3>
               <p class="text-body-2 text-medium-emphasis mb-4">
-                Shows an Auto-fill button on the New Product dialog that fills
-                attributes and price from the product's code and name.
+                {{ t("Shows an Auto-fill button on the New Product dialog that fills attributes and price from the product's code and name.") }}
               </p>
 
               <v-switch
@@ -264,7 +256,7 @@
           <!-- --------------------------------------------------------- USERS -->
           <section v-show="tab === 'users'" class="set-section">
             <div class="d-flex align-center justify-space-between mb-1">
-              <h3 class="text-subtitle-1">Users</h3>
+              <h3 class="text-subtitle-1">{{ t('Users') }}</h3>
               <v-btn
                 color="primary"
                 prepend-icon="mdi-plus"
@@ -272,22 +264,22 @@
                 variant="tonal"
                 @click="openCreate"
               >
-                Add user
+                {{ t('Add user') }}
               </v-btn>
             </div>
             <p class="text-body-2 text-medium-emphasis mb-4">
-              People who can sign in to this site (cloud.example.com), with their own passwords and the role that decides what they can see and change (see the Roles tab). POS operators are separate: they are managed per branch under Branch Settings.
+              {{ t('People who can sign in to this site (cloud.example.com), with their own passwords and the role that decides what they can see and change (see the Roles tab). POS operators are separate: they are managed per branch under Branch Settings.') }}
             </p>
 
             <v-table density="compact">
               <thead>
                 <tr>
-                  <th class="text-left">Name</th>
-                  <th class="text-left">Username</th>
-                  <th class="text-left">Role</th>
-                  <th class="text-left">Status</th>
-                  <th class="text-left">Created</th>
-                  <th class="text-right">Actions</th>
+                  <th class="text-left">{{ t('Name') }}</th>
+                  <th class="text-left">{{ t('Username') }}</th>
+                  <th class="text-left">{{ t('Role') }}</th>
+                  <th class="text-left">{{ t('Status') }}</th>
+                  <th class="text-left">{{ t('Created') }}</th>
+                  <th class="text-right">{{ t('Actions') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -297,7 +289,7 @@
                   <td>{{ roleName(u.role_id) }}</td>
                   <td>
                     <v-chip :color="u.activated ? 'success' : 'default'" size="x-small" variant="tonal">
-                      {{ u.activated ? 'Active' : 'Inactive' }}
+                      {{ u.activated ? t('Active') : t('Inactive') }}
                     </v-chip>
                   </td>
                   <td>{{ formatDate(u.created_at) }}</td>
@@ -305,14 +297,14 @@
                     <v-btn
                       icon="mdi-pencil"
                       size="small"
-                      title="Edit name, role and status"
+                      :title="t('Edit name, role and status')"
                       variant="text"
                       @click="openEdit(u)"
                     />
                     <v-btn
                       icon="mdi-key"
                       size="small"
-                      title="Change password"
+                      :title="t('Change password')"
                       variant="text"
                       @click="openPassword(u)"
                     />
@@ -320,14 +312,14 @@
                       color="error"
                       icon="mdi-delete"
                       size="small"
-                      title="Delete user"
+                      :title="t('Delete user')"
                       variant="text"
                       @click="confirmDelete(u)"
                     />
                   </td>
                 </tr>
                 <tr v-if="users.length === 0">
-                  <td class="text-medium-emphasis py-4" colspan="5">No users yet.</td>
+                  <td class="text-medium-emphasis py-4" colspan="5">{{ t('No users yet.') }}</td>
                 </tr>
               </tbody>
             </v-table>
@@ -341,14 +333,14 @@
           <!-- ------------------------------------------------------ WHATSAPP -->
           <section v-show="tab === 'whatsapp'" class="set-section set-section--wide">
             <v-form :disabled="!canEditSystem">
-              <h3 class="text-subtitle-1 mb-1">Post-sale thank-you message</h3>
+              <h3 class="text-subtitle-1 mb-1">{{ t('Post-sale thank-you message') }}</h3>
               <p class="text-body-2 text-medium-emphasis mb-4">
-                Sent after a sale to a client with a phone number: from your own WhatsApp numbers, or
-                through Meta's Cloud API — chosen under <strong>Send with</strong> below.
+                {{ t("Sent after a sale to a client with a phone number: from your own WhatsApp numbers, or through Meta's Cloud API — chosen under") }}
+                <strong>{{ t('Send with') }}</strong> {{ t('below.') }}
               </p>
               <p v-if="auth.canViewPage('system', 'whatsapp')" class="text-body-2 text-medium-emphasis mb-4">
-                Rules for which sales get a message, and what was sent, to whom and what it cost,
-                are on the <router-link to="/whatsapp">WhatsApp page</router-link>.
+                {{ t('Rules for which sales get a message, and what was sent, to whom and what it cost, are on the') }}
+                <router-link to="/whatsapp">{{ t('WhatsApp page') }}</router-link>.
               </p>
 
               <v-switch
@@ -356,14 +348,12 @@
                 class="mb-2"
                 color="primary"
                 hide-details
-                label="Send a thank-you WhatsApp after each sale"
+                :label="t('Send a thank-you WhatsApp after each sale')"
               />
 
               <h4 class="text-subtitle-2 mt-4 mb-1">Meta Cloud API</h4>
               <p class="text-body-2 text-medium-emphasis mb-4">
-                Only used when sending with Meta. Cloud API only allows a pre-approved message
-                template for business-initiated messages, so this sets which one to use and how
-                to fill it — not free-form text.
+                {{ t('Only used when sending with Meta. Cloud API only allows a pre-approved message template for business-initiated messages, so this sets which one to use and how to fill it — not free-form text.') }}
               </p>
 
               <v-text-field
@@ -371,7 +361,7 @@
                 class="field-md mb-4"
                 density="compact"
                 hide-details
-                label="Phone Number ID"
+                :label="t('Phone Number ID')"
                 variant="outlined"
               />
               <v-text-field
@@ -380,7 +370,7 @@
                 class="field-md mb-4"
                 density="compact"
                 hide-details
-                label="Access token"
+                :label="t('Access token')"
                 :type="showToken ? 'text' : 'password'"
                 variant="outlined"
                 @click:append-inner="showToken = !showToken"
@@ -390,7 +380,7 @@
                 class="field-md mb-4"
                 density="compact"
                 hide-details
-                label="Template name"
+                :label="t('Template name')"
                 variant="outlined"
               />
               <v-text-field
@@ -398,34 +388,31 @@
                 class="field-md mb-4"
                 density="compact"
                 hide-details
-                label="Template language"
+                :label="t('Template language')"
                 variant="outlined"
               />
               <v-text-field
                 v-model="whatsappDraft.templateParams"
                 class="field-md"
                 density="compact"
-                hint="Comma-separated, in order, filling the template's {{1}}, {{2}}, ... body parameters. Supported: name, market, branch, invoice, total"
-                label="Body params"
+                :hint="t('Comma-separated, in order, filling the template\'s {{1}}, {{2}}, ... body parameters. Supported: name, market, branch, invoice, total')"
+                :label="t('Body params')"
                 persistent-hint
                 variant="outlined"
               />
 
-              <h3 class="text-subtitle-1 mt-8 mb-1">Webhook: delivery, reads and replies</h3>
+              <h3 class="text-subtitle-1 mt-8 mb-1">{{ t('Webhook: delivery, reads and replies') }}</h3>
               <p class="text-body-2 text-medium-emphasis mb-4">
-                Lets Meta tell kashi when a message is delivered or read, when it couldn't be
-                delivered, and when a client writes back. In the Meta app, open
-                <strong>WhatsApp &gt; Configuration</strong>, enter this callback URL and verify
-                token, then subscribe to the <code>messages</code> field. The app secret is under
-                <strong>App settings &gt; Basic</strong>; kashi uses it to make sure each call
-                really comes from Meta.
+                {{ t("Lets Meta tell kashi when a message is delivered or read, when it couldn't be delivered, and when a client writes back. In the Meta app, open") }}
+                <strong>WhatsApp > Configuration</strong>{{ t(', enter this callback URL and verify token, then subscribe to the') }} <code>messages</code> {{ t('field. The app secret is under') }}
+                <strong>App settings > Basic</strong>{{ t('; kashi uses it to make sure each call really comes from Meta.') }}
               </p>
               <v-text-field
                 append-inner-icon="mdi-content-copy"
                 class="field-md mb-4"
                 density="compact"
                 hide-details
-                label="Callback URL"
+                :label="t('Callback URL')"
                 :model-value="webhookUrl"
                 readonly
                 variant="outlined"
@@ -437,7 +424,7 @@
                 class="field-md mb-4"
                 density="compact"
                 hide-details
-                label="Verify token"
+                :label="t('Verify token')"
                 variant="outlined"
                 @click:append-inner="copyText(whatsappDraft.webhookVerifyToken)"
               />
@@ -447,7 +434,7 @@
                 class="field-md"
                 density="compact"
                 hide-details
-                label="App secret"
+                :label="t('App secret')"
                 :type="showAppSecret ? 'text' : 'password'"
                 variant="outlined"
                 @click:append-inner="showAppSecret = !showAppSecret"
@@ -455,13 +442,13 @@
 
               <div class="d-flex align-center ga-3 mt-6">
                 <span class="text-caption text-medium-emphasis">
-                  {{ whatsappDirty ? 'Unsaved changes' : 'All changes saved' }}
+                  {{ whatsappDirty ? t('Unsaved changes') : t('All changes saved') }}
                 </span>
                 <v-spacer />
                 <v-btn
                   :disabled="!whatsappDirty || savingWhatsApp"
                   size="small"
-                  text="Discard"
+                  :text="t('Discard')"
                   variant="text"
                   @click="seedWhatsAppDraft"
                 />
@@ -470,7 +457,7 @@
                   :disabled="!whatsappDirty || !canEditSystem"
                   :loading="savingWhatsApp"
                   size="small"
-                  text="Save"
+                  :text="t('Save')"
                   variant="flat"
                   @click="saveWhatsAppSettings"
                 />
@@ -478,7 +465,7 @@
             </v-form>
 
             <v-divider class="my-6" />
-            <h3 class="text-subtitle-1 mb-1">Your numbers and the message</h3>
+            <h3 class="text-subtitle-1 mb-1">{{ t('Your numbers and the message') }}</h3>
             <WhatsAppSending v-if="tab === 'whatsapp'" :settings="{ whatsapp_enabled: whatsappSaved.enabled }" />
           </section>
 
@@ -490,13 +477,12 @@
           <!-- --------------------------------------------------------- EMAIL -->
           <section v-show="tab === 'email'" class="set-section">
             <v-form :disabled="!canEditSystem">
-              <h3 class="text-subtitle-1 mb-1">Invoice report emails</h3>
+              <h3 class="text-subtitle-1 mb-1">{{ t('Invoice report emails') }}</h3>
               <p class="text-body-2 text-medium-emphasis mb-4">
-                A day's, a date range's or a shift's invoices as a CSV, sent with the
-                <strong>Email</strong> button on a Daily Income day. Mail goes out through
-                Resend from any address on a domain verified there (example.com).
+                {{ t("A day's, a date range's or a shift's invoices as a CSV, sent with the") }}
+                <strong>{{ t('Email') }}</strong> {{ t('button on a Daily Income day. Mail goes out through Resend from any address on a domain verified there (example.com).') }}
                 <template v-if="auth.canViewPage('system', 'emails')">
-                  Everything sent is on the <router-link to="/emails">Emails page</router-link>.
+                  {{ t('Everything sent is on the') }} <router-link to="/emails">{{ t('Emails page') }}</router-link>.
                 </template>
               </p>
               <v-alert
@@ -516,7 +502,7 @@
                 class="field-md mb-4"
                 density="compact"
                 :hint="emailKeyHint"
-                label="Resend API key"
+                :label="t('Resend API key')"
                 persistent-hint
                 :placeholder="emailKeyLast4 ? `re_••••${emailKeyLast4}` : 're_…'"
                 :type="showEmailKey ? 'text' : 'password'"
@@ -529,15 +515,15 @@
                 class="field-md mb-4"
                 density="compact"
                 hide-details
-                label="Sender name"
+                :label="t('Sender name')"
                 variant="outlined"
               />
               <v-text-field
                 v-model="emailDraft.senderAddress"
                 class="field-md mb-4"
                 density="compact"
-                hint="Must be on the verified domain, e.g. reports@example.com"
-                label="Sender address"
+                :hint="t('Must be on the verified domain, e.g. reports@example.com')"
+                :label="t('Sender address')"
                 persistent-hint
                 variant="outlined"
               />
@@ -545,8 +531,8 @@
                 v-model="emailDraft.replyTo"
                 class="field-md mb-4"
                 density="compact"
-                hint="Where replies go; example.com has no inbox of its own"
-                label="Reply-to"
+                :hint="t('Where replies go; example.com has no inbox of its own')"
+                :label="t('Reply-to')"
                 persistent-hint
                 variant="outlined"
               />
@@ -554,8 +540,8 @@
                 v-model="emailDraft.defaultRecipients"
                 class="field-md mb-4"
                 density="compact"
-                hint="Pre-filled when sending; comma-separated"
-                label="Default recipients"
+                :hint="t('Pre-filled when sending; comma-separated')"
+                :label="t('Default recipients')"
                 persistent-hint
                 variant="outlined"
               />
@@ -563,16 +549,15 @@
                 v-model="emailDraft.businessName"
                 class="field-md"
                 density="compact"
-                hint="In the subject (“Demo Store Sales Report — …”) and the file name"
-                label="Business name"
+                :hint="t('In the subject (“Demo Store Sales Report — …”) and the file name')"
+                :label="t('Business name')"
                 persistent-hint
                 variant="outlined"
               />
 
-              <h3 class="text-subtitle-1 mt-8 mb-1">Attachment</h3>
+              <h3 class="text-subtitle-1 mt-8 mb-1">{{ t('Attachment') }}</h3>
               <p class="text-body-2 text-medium-emphasis mb-3">
-                The default when sending; the send dialog can switch it per email. Excel is a
-                formatted workbook with totals and a per-register summary sheet.
+                {{ t('The default when sending; the send dialog can switch it per email. Excel is a formatted workbook with totals and a per-register summary sheet.') }}
               </p>
               <v-btn-toggle
                 v-model="emailDraft.attachmentFormat"
@@ -591,19 +576,19 @@
                 color="primary"
                 density="compact"
                 hide-details
-                label="Group invoices by register (Main · CT1 first, then CT2, …)"
+                :label="t('Group invoices by register (Main · CT1 first, then CT2, …)')"
               />
               <v-switch
                 v-model="emailDraft.oldestFirst"
                 color="primary"
                 density="compact"
                 hide-details
-                label="Oldest invoice first"
+                :label="t('Oldest invoice first')"
               />
 
-              <h3 class="text-subtitle-1 mt-8 mb-1">Columns</h3>
+              <h3 class="text-subtitle-1 mt-8 mb-1">{{ t('Columns') }}</h3>
               <p class="text-body-2 text-medium-emphasis mb-3">
-                In order, one row per invoice. The default is the old kashi-admin report.
+                {{ t('In order, one row per invoice. The default is the old kashi-admin report.') }}
               </p>
               <v-list class="email-columns mb-3" density="compact">
                 <v-list-item
@@ -645,23 +630,23 @@
                   item-title="header"
                   item-value="key"
                   :items="unusedColumns"
-                  label="Add a column"
+                  :label="t('Add a column')"
                   :model-value="null"
                   variant="outlined"
                   @update:model-value="key => key && emailDraft.csvColumns.push(key)"
                 />
-                <v-btn size="small" text="Reset to default" variant="text" @click="emailDraft.csvColumns = [...DEFAULT_EMAIL_COLUMNS]" />
+                <v-btn size="small" :text="t('Reset to default')" variant="text" @click="emailDraft.csvColumns = [...DEFAULT_EMAIL_COLUMNS]" />
               </div>
 
               <div class="d-flex align-center ga-3 mt-6">
                 <span class="text-caption text-medium-emphasis">
-                  {{ emailDirty ? 'Unsaved changes' : 'All changes saved' }}
+                  {{ emailDirty ? t('Unsaved changes') : t('All changes saved') }}
                 </span>
                 <v-spacer />
                 <v-btn
                   :disabled="!emailDirty || savingEmail"
                   size="small"
-                  text="Discard"
+                  :text="t('Discard')"
                   variant="text"
                   @click="seedEmailDraft"
                 />
@@ -670,7 +655,7 @@
                   :disabled="!emailDirty || !canEditSystem"
                   :loading="savingEmail"
                   size="small"
-                  text="Save"
+                  :text="t('Save')"
                   variant="flat"
                   @click="saveEmailSettings"
                 />
@@ -684,13 +669,13 @@
         <v-divider />
         <div class="set-actions px-5 py-3 d-flex align-center ga-3">
           <span class="text-caption text-medium-emphasis">
-            {{ dirty ? 'Unsaved changes' : 'All changes saved' }}
+            {{ dirty ? t('Unsaved changes') : t('All changes saved') }}
           </span>
           <v-spacer />
           <v-btn
             :disabled="!dirty || savingSettings"
             size="small"
-            text="Discard"
+            :text="t('Discard')"
             variant="text"
             @click="seedDraft"
           />
@@ -699,7 +684,7 @@
             :disabled="!dirty || !draftValid || !canEditSystem"
             :loading="savingSettings"
             size="small"
-            text="Save"
+            :text="t('Save')"
             variant="flat"
             @click="saveSettings"
           />
@@ -710,15 +695,15 @@
     <!-- Add user -->
     <v-dialog v-model="createDialog" max-width="420" persistent>
       <v-card>
-        <v-card-title class="text-subtitle-1">Add user</v-card-title>
+        <v-card-title class="text-subtitle-1">{{ t('Add user') }}</v-card-title>
         <v-card-text>
           <v-text-field
             v-model="form.username"
             autocapitalize="none"
             autocorrect="off"
             density="compact"
-            hint="What they sign in with"
-            label="Username"
+            :hint="t('What they sign in with')"
+            :label="t('Username')"
             persistent-hint
             :rules="[usernameRule]"
           />
@@ -726,8 +711,8 @@
             v-model="form.name"
             autocapitalize="words"
             density="compact"
-            hint="Shown to others; each word is capitalised"
-            label="Display name"
+            :hint="t('Shown to others; each word is capitalised')"
+            :label="t('Display name')"
             persistent-hint
             :rules="[nameRule]"
           />
@@ -735,8 +720,8 @@
             v-model="form.password"
             autocomplete="new-password"
             density="compact"
-            hint="8 to 72 characters"
-            label="Password"
+            :hint="t('8 to 72 characters')"
+            :label="t('Password')"
             persistent-hint
             :rules="[passwordRule]"
             type="password"
@@ -747,18 +732,18 @@
             item-title="name"
             item-value="id"
             :items="roles"
-            label="Role"
+            :label="t('Role')"
           />
           <v-switch
             v-model="form.activated"
             color="primary"
             hide-details
-            label="Active"
+            :label="t('Active')"
           />
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="createDialog = false">Cancel</v-btn>
+          <v-btn variant="text" @click="createDialog = false">{{ t('Cancel') }}</v-btn>
           <v-btn
             color="primary"
             :disabled="!canSubmitCreate"
@@ -766,7 +751,7 @@
             variant="tonal"
             @click="submitCreate"
           >
-            Create
+            {{ t('Create') }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -775,21 +760,21 @@
     <!-- Edit user -->
     <v-dialog v-model="editDialog" max-width="420" persistent>
       <v-card>
-        <v-card-title class="text-subtitle-1">Edit user — {{ editTarget?.name }}</v-card-title>
+        <v-card-title class="text-subtitle-1">{{ t('Edit user — {name}', { name: editTarget?.name }) }}</v-card-title>
         <v-card-text>
           <v-text-field
             v-model="editForm.username"
             autocapitalize="none"
             autocorrect="off"
             density="compact"
-            label="Username"
+            :label="t('Username')"
             :rules="[usernameRule]"
           />
           <v-text-field
             v-model="editForm.name"
             autocapitalize="words"
             density="compact"
-            label="Display name"
+            :label="t('Display name')"
             :rules="[nameRule]"
           />
           <v-select
@@ -798,15 +783,15 @@
             item-title="name"
             item-value="id"
             :items="roles"
-            label="Role"
+            :label="t('Role')"
           />
           <v-switch
             v-model="editForm.activated"
             color="primary"
             hide-details
-            label="Active"
+            :label="t('Active')"
           />
-          <div class="text-body-2 text-medium-emphasis mt-2 mb-2">Avatar colour</div>
+          <div class="text-body-2 text-medium-emphasis mt-2 mb-2">{{ t('Avatar colour') }}</div>
           <div class="d-flex align-center ga-3">
             <v-avatar class="text-white font-weight-medium" :color="editAvatarColor" size="36">
               <span class="text-caption">{{ initialsOf(editForm.name) }}</span>
@@ -830,12 +815,12 @@
             variant="text"
             @click="editForm.avatarColor = ''"
           >
-            Reset to default colour
+            {{ t('Reset to default colour') }}
           </v-btn>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="editDialog = false">Cancel</v-btn>
+          <v-btn variant="text" @click="editDialog = false">{{ t('Cancel') }}</v-btn>
           <v-btn
             color="primary"
             :disabled="usernameRule(editForm.username) !== true || nameRule(editForm.name) !== true || !editForm.roleId"
@@ -843,7 +828,7 @@
             variant="tonal"
             @click="submitEdit"
           >
-            Save
+            {{ t('Save') }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -852,15 +837,15 @@
     <!-- Change password -->
     <v-dialog v-model="passwordDialog" max-width="420" persistent>
       <v-card>
-        <v-card-title class="text-subtitle-1">Change password — {{ passwordTarget?.name }}</v-card-title>
+        <v-card-title class="text-subtitle-1">{{ t('Change password — {name}', { name: passwordTarget?.name }) }}</v-card-title>
         <v-card-text>
           <v-text-field
             v-model="newPassword"
             autocomplete="new-password"
             autofocus
             density="compact"
-            hint="8 to 72 characters"
-            label="New password"
+            :hint="t('8 to 72 characters')"
+            :label="t('New password')"
             persistent-hint
             :rules="[passwordRule]"
             type="password"
@@ -868,7 +853,7 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="passwordDialog = false">Cancel</v-btn>
+          <v-btn variant="text" @click="passwordDialog = false">{{ t('Cancel') }}</v-btn>
           <v-btn
             color="primary"
             :disabled="!isPassword(newPassword)"
@@ -876,7 +861,7 @@
             variant="tonal"
             @click="submitPassword"
           >
-            Save
+            {{ t('Save') }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -885,14 +870,14 @@
     <!-- Delete confirm -->
     <v-dialog v-model="deleteDialog" max-width="380">
       <v-card>
-        <v-card-title class="text-subtitle-1">Delete user</v-card-title>
+        <v-card-title class="text-subtitle-1">{{ t('Delete user') }}</v-card-title>
         <v-card-text>
-          Delete <strong>{{ deleteTarget?.name }}</strong>? This cannot be undone.
+          {{ t('Delete') }} <strong>{{ deleteTarget?.name }}</strong>{{ t('? This cannot be undone.') }}
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="deleteDialog = false">Cancel</v-btn>
-          <v-btn color="error" :loading="saving" variant="tonal" @click="submitDelete">Delete</v-btn>
+          <v-btn variant="text" @click="deleteDialog = false">{{ t('Cancel') }}</v-btn>
+          <v-btn color="error" :loading="saving" variant="tonal" @click="submitDelete">{{ t('Delete') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -902,6 +887,7 @@
 <script setup lang="ts">
   import { computed, onMounted, reactive, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
+  import { t } from '@/i18n'
   import LiveViewSettings from '@/components/LiveViewSettings.vue'
   import ReviewSettings from '@/components/Reviews/ReviewSettings.vue'
   import RolesManager from '@/components/RolesManager.vue'
@@ -1047,10 +1033,8 @@
     }
   })
 
-  const monthItems = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-  ].map((title, i) => ({ title, value: i + 1 }))
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const monthItems = computed(() => MONTHS.map((month, i) => ({ title: t(month), value: i + 1 })))
 
   // ---- Users ----
   const { users, fetchUsers, createUser, updateUser, deleteUser } = useUsers()
@@ -1080,11 +1064,11 @@
   }
 
   const isPassword = v => String(v ?? '').length >= 8 && String(v).length <= 72
-  const passwordRule = v => isPassword(v) || 'Password must be 8 to 72 characters'
+  const passwordRule = v => isPassword(v) || t('Password must be 8 to 72 characters')
   // Mirrors normalizeUserNames (api/user.go): the server lowercases the
   // username and capitalises each word of the display name.
-  const usernameRule = v => /^[a-z0-9._-]{1,32}$/.test(String(v ?? '').trim().toLowerCase()) || 'Up to 32 letters, digits, ".", "_" or "-"'
-  const nameRule = v => String(v ?? '').trim() !== '' || 'Required'
+  const usernameRule = v => /^[a-z0-9._-]{1,32}$/.test(String(v ?? '').trim().toLowerCase()) || t('Up to 32 letters, digits, ".", "_" or "-"')
+  const nameRule = v => String(v ?? '').trim() !== '' || t('Required')
 
   // Add user
   const createDialog = ref(false)
@@ -1226,9 +1210,9 @@
   async function copyText (text: string) {
     try {
       await navigator.clipboard.writeText(text)
-      notify.success('Copied.')
+      notify.success(t('Copied.'))
     } catch {
-      notify.error('Could not copy; select the text instead.')
+      notify.error(t('Could not copy; select the text instead.'))
     }
   }
 
@@ -1320,9 +1304,9 @@
   const emailKeySource = ref('')
   const emailKeyLast4 = ref('')
   const emailKeyHint = computed(() => {
-    if (emailKeySource.value === 'settings') return `Saved, ending in ${emailKeyLast4.value}. Paste a new one to replace it.`
-    if (emailKeySource.value === 'env') return `Using RESEND_API_KEY from the server's app.env (ending in ${emailKeyLast4.value}).`
-    return 'From resend.com > API Keys, with sending access to example.com'
+    if (emailKeySource.value === 'settings') return t('Saved, ending in {last4}. Paste a new one to replace it.', { last4: emailKeyLast4.value })
+    if (emailKeySource.value === 'env') return t("Using RESEND_API_KEY from the server's app.env (ending in {last4}).", { last4: emailKeyLast4.value })
+    return t('From resend.com > API Keys, with sending access to example.com')
   })
   const emailColumns = ref([])
   const emailSaved = reactive({

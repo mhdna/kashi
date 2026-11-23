@@ -7,7 +7,7 @@
         <v-chip
           :color="settingsStore.productAutofillEnabled ? 'success' : undefined"
           size="small"
-          :text="settingsStore.productAutofillEnabled ? 'On' : 'Off in Settings'"
+          :text="settingsStore.productAutofillEnabled ? t('On') : t('Off in Settings')"
           to="/settings"
           variant="tonal"
         />
@@ -29,11 +29,8 @@
 
       <div class="afr-body pa-4">
         <p class="text-body-2 text-medium-emphasis mb-4">
-          The Auto-fill button on the New Product dialog runs these rules over the product's
-          code and name. Rules run top to bottom and the first one that matches a field fills
-          it, so put specific rules above general ones (e.g. &ldquo;t-shirt&rdquo; above
-          &ldquo;shirt&rdquo;). Matching ignores case, and a pattern can list alternatives
-          with <code>|</code>{{ t(', like') }} <code>boy|boys</code>.
+          {{ t('The Auto-fill button on the New Product dialog runs these rules over the product\'s code and name. Rules run top to bottom and the first one that matches a field fills it, so put specific rules above general ones (e.g. “t-shirt” above “shirt”). Matching ignores case, and a pattern can list alternatives with') }}
+          <code>|</code>{{ t(', like') }} <code>boy|boys</code>.
         </p>
 
         <!-- Code layout: splits a code into named parts for "Code part is" rules. -->
@@ -41,8 +38,7 @@
           <div class="text-overline text-medium-emphasis mb-1">{{ t('Code layout') }}</div>
           <p class="text-body-2 text-medium-emphasis mb-3">
             {{ t('A regular expression whose named groups, written') }} <code>(?&lt;name&gt;...)</code>,
-            split a code into parts that &ldquo;Code part is&rdquo; rules can match. The default
-            reads codes like <code>CAJUL25KBPA22</code> {{ t('as origin CA, month JUL, year 25, audience KB, type PA and price 22. A code the layout doesn\'t fit simply has no parts.') }}
+            {{ t('split a code into parts that “Code part is” rules can match. The default reads codes like') }} <code>CAJUL25KBPA22</code> {{ t('as origin CA, month JUL, year 25, audience KB, type PA and price 22. A code the layout doesn\'t fit simply has no parts.') }}
           </p>
           <v-text-field
             v-model="draftLayout"
@@ -50,7 +46,7 @@
             density="compact"
             :disabled="!canEdit"
             :error-messages="layoutError"
-            :hint="layoutParts.length > 0 ? `Parts: ${layoutParts.join(', ')}` : ''"
+            :hint="layoutParts.length > 0 ? t('Parts: {parts}', { parts: layoutParts.join(', ') }) : ''"
             :label="t('Layout')"
             persistent-hint
             variant="outlined"
@@ -109,7 +105,7 @@
               variant="tonal"
             >
               {{ f.label }}: <strong class="ms-1">{{ f.value }}</strong>
-              <span class="text-medium-emphasis ms-1">(rule {{ f.rule + 1 }})</span>
+              <span class="text-medium-emphasis ms-1">({{ t('rule {n}', { n: f.rule + 1 }) }})</span>
             </v-chip>
           </div>
         </v-sheet>
@@ -327,12 +323,12 @@
 
   function patternPlaceholder (match) {
     if (match === 'regex') {return '^..([A-Z]+)'}
-    if (match === 'part') {return 'e.g. JE or SWE|SWT (empty = any)'}
-    return 'e.g. L or boy|boys'
+    if (match === 'part') {return t('e.g. JE or SWE|SWT (empty = any)')}
+    return t('e.g. L or boy|boys')
   }
   function valuePlaceholder (match) {
-    if (match === 'regex') {return '$1 (empty = group 1)'}
-    if (match === 'part') {return 'empty = the part itself'}
+    if (match === 'regex') {return t('$1 (empty = group 1)')}
+    if (match === 'part') {return t('empty = the part itself')}
     return ''
   }
 
@@ -374,7 +370,7 @@
     try {
       await settingsStore.saveProductAutofillRules(strip(draft.value), draftLayout.value)
       seedDraft()
-      notify.success('Auto-fill rules saved.')
+      notify.success(t('Auto-fill rules saved.'))
     } catch (error) {
       notify.error(error.message)
     } finally {

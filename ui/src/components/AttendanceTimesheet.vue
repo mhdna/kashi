@@ -9,7 +9,7 @@
         density="compact"
         hide-details
         :items="personOptions"
-        label="Salesperson"
+        :label="t('Salesperson')"
         variant="outlined"
       />
       <v-text-field
@@ -18,7 +18,7 @@
         clearable
         density="compact"
         hide-details
-        label="Auto in at"
+        :label="t('Auto in at')"
         type="time"
         variant="outlined"
       />
@@ -28,7 +28,7 @@
         clearable
         density="compact"
         hide-details
-        label="Auto out at"
+        :label="t('Auto out at')"
         type="time"
         variant="outlined"
       />
@@ -38,23 +38,23 @@
         density="compact"
         hide-details
         :items="HIGHLIGHT_OPTIONS"
-        label="Highlight"
+        :label="t('Highlight')"
         variant="outlined"
       />
       <v-btn
         :loading="savingAuto"
         prepend-icon="mdi-content-save-outline"
-        text="Save as default"
+        :text="t('Save as default')"
         variant="text"
         @click="saveAuto"
       />
-      <PreparingState v-if="loading" kind="people" :size="28" title="Loading" />
+      <PreparingState v-if="loading" kind="people" :size="28" :title="t('Loading')" />
     </div>
     <v-divider />
 
     <div class="timesheet-body">
       <v-alert v-if="!loading && rows.length === 0" class="ma-4" type="info" variant="tonal">
-        No punches between {{ from }} and {{ to }}.
+        {{ t('No punches between {from} and {to}.', { from, to }) }}
       </v-alert>
 
       <!-- In/out pairs: one row per person per day, each IN→OUT span in its
@@ -63,14 +63,14 @@
       <v-table v-else-if="view === 'pairs'" density="compact" fixed-header>
         <thead>
           <tr>
-            <th>Date</th>
-            <th>Name</th>
+            <th>{{ t('Date') }}</th>
+            <th>{{ t('Name') }}</th>
             <template v-for="n in maxSessions" :key="n">
-              <th class="text-center">In {{ n }}</th>
-              <th class="text-center">Out {{ n }}</th>
+              <th class="text-center">{{ t('In {n}', { n }) }}</th>
+              <th class="text-center">{{ t('Out {n}', { n }) }}</th>
             </template>
-            <th class="text-end">Worked</th>
-            <th class="text-end">Breaks</th>
+            <th class="text-end">{{ t('Worked') }}</th>
+            <th class="text-end">{{ t('Breaks') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -83,20 +83,20 @@
             <template v-for="n in maxSessions" :key="n">
               <td class="text-center">
                 <span v-if="row.sessions[n - 1]" :class="{ 'text-error': row.sessions[n - 1].in === null, 'auto-hl': row.sessions[n - 1].auto === 'in' && isHighlighted('in') }">
-                  {{ row.sessions[n - 1].in === null ? 'missing' : formatClock(row.sessions[n - 1].in) }}
+                  {{ row.sessions[n - 1].in === null ? t('missing') : formatClock(row.sessions[n - 1].in) }}
                 </span>
               </td>
               <td class="text-center">
                 <template v-if="row.sessions[n - 1]">
-                  <v-chip v-if="isStillIn(row, n - 1)" color="green" size="x-small" text="still in" />
+                  <v-chip v-if="isStillIn(row, n - 1)" color="green" size="x-small" :text="t('still in')" />
                   <span v-else :class="{ 'text-error': row.sessions[n - 1].out === null, 'auto-hl': row.sessions[n - 1].auto === 'out' && isHighlighted('out') }">
-                    {{ row.sessions[n - 1].out === null ? 'missing' : formatClock(row.sessions[n - 1].out) }}
+                    {{ row.sessions[n - 1].out === null ? t('missing') : formatClock(row.sessions[n - 1].out) }}
                   </span>
                 </template>
               </td>
             </template>
             <td class="text-end text-no-wrap font-weight-medium">
-              {{ formatDuration(workedNow(row)) }}<span v-if="stillIn(row)" class="text-caption text-medium-emphasis"> so far</span>
+              {{ formatDuration(workedNow(row)) }}<span v-if="stillIn(row)" class="text-caption text-medium-emphasis"> {{ t('so far') }}</span>
             </td>
             <td class="text-end text-no-wrap text-medium-emphasis">
               {{ row.breaks.length > 0 ? `${formatDuration(row.breakTotal)} (${row.breaks.length})` : '' }}
@@ -139,7 +139,7 @@
               :key="`b${i}`"
               class="timeline-break"
               :style="spanStyle(gap.from, gap.to)"
-              :title="`Break ${formatClock(gap.from)}–${formatClock(gap.to)} (${formatDuration(gap.to - gap.from)})`"
+              :title="t('Break {from} to {to} ({duration})', { from: formatClock(gap.from), to: formatClock(gap.to), duration: formatDuration(gap.to - gap.from) })"
             />
             <template v-for="(s, i) in row.sessions" :key="`s${i}`">
               <div
@@ -154,22 +154,22 @@
                 v-else-if="isStillIn(row, i)"
                 class="timeline-span timeline-span--open"
                 :style="spanStyle(s.in, nowMinutes)"
-                :title="`In since ${formatClock(s.in)}`"
+                :title="t('In since {time}', { time: formatClock(s.in) })"
               />
               <!-- A lone punch with no partner is a marker, not a span. -->
               <div
                 v-else
                 class="timeline-orphan"
                 :style="{ left: `${pct(s.in ?? s.out)}%` }"
-                :title="s.in === null ? `OUT ${formatClock(s.out)} with no IN` : `IN ${formatClock(s.in)} with no OUT`"
+                :title="s.in === null ? t('OUT {time} with no IN', { time: formatClock(s.out) }) : t('IN {time} with no OUT', { time: formatClock(s.in) })"
               />
             </template>
           </div>
           <div class="timeline-total text-body-2 text-end">
             {{ formatDuration(workedNow(row)) }}
-            <div v-if="stillIn(row)" class="text-caption text-medium-emphasis">so far</div>
+            <div v-if="stillIn(row)" class="text-caption text-medium-emphasis">{{ t('so far') }}</div>
             <div v-if="row.breakTotal" class="text-caption text-medium-emphasis">
-              {{ formatDuration(row.breakTotal) }} break
+              {{ t('{duration} break', { duration: formatDuration(row.breakTotal) }) }}
             </div>
           </div>
         </div>
@@ -180,13 +180,13 @@
       <v-table v-else density="compact" fixed-header>
         <thead>
           <tr>
-            <th class="grid-name">Name</th>
+            <th class="grid-name">{{ t('Name') }}</th>
             <th v-for="date in gridDates" :key="date" class="text-center grid-day">
               <div>{{ date.slice(8) }}</div>
               <div class="text-caption text-medium-emphasis">{{ weekday(date) }}</div>
             </th>
-            <th class="text-end">Total</th>
-            <th class="text-end">Days</th>
+            <th class="text-end">{{ t('Total') }}</th>
+            <th class="text-end">{{ t('Days') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -218,6 +218,7 @@
   import { useAttendance } from '@/composables/useAttendance'
   import { isHighlighted, useAttendanceAutoOut } from '@/composables/useAttendanceAutoOut'
   import { useNotify } from '@/composables/useNotify'
+  import { t } from '@/i18n'
   import { buildTimesheet, formatClock, formatDuration } from '@/utils/attendanceSessions'
 
   const props = defineProps({
@@ -259,7 +260,7 @@
     savingAuto.value = true
     try {
       await saveAutoDefaults()
-      notify.success('Saved: auto in / auto out open like this from now on.')
+      notify.success(t('Saved: auto in / auto out open like this from now on.'))
     } catch (error) {
       notify.error(error.message)
     } finally {
@@ -397,7 +398,7 @@
     const spans = row.sessions
       .map(s => `${s.in === null ? '?' : formatClock(s.in)}–${s.out === null ? '?' : formatClock(s.out)}`)
       .join(', ')
-    return `${spans}\nWorked ${formatDuration(row.worked)}, breaks ${formatDuration(row.breakTotal)}`
+    return `${spans}\n${t('Worked {worked}, breaks {breaks}', { worked: formatDuration(row.worked), breaks: formatDuration(row.breakTotal) })}`
   }
 </script>
 

@@ -1,11 +1,10 @@
 <template>
   <v-dialog max-width="620" :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)">
     <v-card>
-      <v-card-title class="pt-5 px-6">Edit refund · {{ invoice?.branch_invoice_code }}</v-card-title>
+      <v-card-title class="pt-5 px-6">{{ t('Edit refund · {code}', { code: invoice?.branch_invoice_code }) }}</v-card-title>
       <v-card-text class="px-6">
         <p class="text-body-2 text-medium-emphasis mb-4">
-          Set how much each returned item gives back. The till changes the return, its total
-          and the cash in its drawer, and notes why.
+          {{ t('Set how much each returned item gives back. The till changes the return, its total and the cash in its drawer, and notes why.') }}
         </p>
         <v-checkbox
           v-model="fullPrice"
@@ -13,13 +12,13 @@
           data-test="full-price"
           density="compact"
           hide-details
-          label="Refund full price, ignoring any deal charge-back"
+          :label="t('Refund full price, ignoring any deal charge-back')"
         />
         <div v-for="row in rows" :key="row.position" class="refund-row" data-test="refund-row">
           <div class="refund-name">
             <div class="text-body-1">{{ row.name }}</div>
             <div class="text-caption text-medium-emphasis">
-              {{ row.code }} · was {{ formatMoney(row.credit) }} · at most {{ formatMoney(row.max) }}
+              {{ t('{code} · was {credit} · at most {max}', { code: row.code, credit: formatMoney(row.credit), max: formatMoney(row.max) }) }}
             </div>
           </div>
           <v-text-field
@@ -28,7 +27,7 @@
             density="compact"
             :disabled="fullPrice"
             :error-messages="problem(row)"
-            label="Gives back"
+            :label="t('Gives back')"
             prefix="$"
             variant="outlined"
           />
@@ -37,26 +36,26 @@
           v-model="reason"
           auto-grow
           class="mt-2"
-          label="Reason (written on the return)"
+          :label="t('Reason (written on the return)')"
           rows="2"
           variant="outlined"
         />
         <div class="refund-total" data-test="refund-total">
-          Total {{ formatMoney(edit.oldTotal) }} → <strong>{{ formatMoney(edit.newTotal) }}</strong>
+          {{ t('Total') }} {{ formatMoney(edit.oldTotal) }} → <strong>{{ formatMoney(edit.newTotal) }}</strong>
           <span v-if="edit.moved < 0" class="text-medium-emphasis">
-            · {{ formatMoney(-edit.moved) }} more back to the customer</span>
+            {{ t('· {amount} more back to the customer', { amount: formatMoney(-edit.moved) }) }}</span>
           <span v-else-if="edit.moved > 0" class="text-medium-emphasis">
-            · {{ formatMoney(edit.moved) }} less back</span>
+            {{ t('· {amount} less back', { amount: formatMoney(edit.moved) }) }}</span>
         </div>
       </v-card-text>
       <v-card-actions class="px-6 pb-4">
         <v-spacer />
-        <v-btn text="Cancel" variant="text" @click="emit('update:modelValue', false)" />
+        <v-btn :text="t('Cancel')" variant="text" @click="emit('update:modelValue', false)" />
         <v-btn
           color="primary"
           :disabled="!canSend"
           :loading="sending"
-          text="Send to till"
+          :text="t('Send to till')"
           variant="flat"
           @click="send"
         />
@@ -67,6 +66,7 @@
 
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue'
+  import { t } from '@/i18n'
   import { useBranchCommands } from '@/composables/useBranchCommands'
   import { useNotify } from '@/composables/useNotify'
   import { formatMoney } from '@/utils/money'

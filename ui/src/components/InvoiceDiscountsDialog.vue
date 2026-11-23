@@ -8,31 +8,30 @@
   <v-dialog v-model="open" max-width="760">
     <v-card>
       <v-card-title class="d-flex align-center ga-2">
-        <span>Invoice discounts</span>
+        <span>{{ t('Invoice discounts') }}</span>
         <v-spacer />
         <v-btn
           v-if="canEdit"
           prepend-icon="mdi-plus"
           size="small"
-          text="New invoice discount"
+          :text="t('New invoice discount')"
           variant="tonal"
           @click="openEdit(null)"
         />
       </v-card-title>
       <v-card-text>
         <p class="text-body-2 text-medium-emphasis mb-3">
-          Comes off the whole sale once its total (after item discounts and deals, before tax)
-          reaches the minimum, on top of the item discounts. Only the best one applies.
+          {{ t('Comes off the whole sale once its total (after item discounts and deals, before tax) reaches the minimum, on top of the item discounts. Only the best one applies.') }}
         </p>
-        <div v-if="rules.length === 0" class="text-body-2 text-medium-emphasis">No invoice discounts yet.</div>
+        <div v-if="rules.length === 0" class="text-body-2 text-medium-emphasis">{{ t('No invoice discounts yet.') }}</div>
         <v-table v-else density="compact">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Terms</th>
-              <th>Branches</th>
-              <th>Dates</th>
-              <th>On</th>
+              <th>{{ t('Name') }}</th>
+              <th>{{ t('Terms') }}</th>
+              <th>{{ t('Branches') }}</th>
+              <th>{{ t('Dates') }}</th>
+              <th>{{ t('On') }}</th>
               <th v-if="canEdit" style="width: 96px" />
             </tr>
           </thead>
@@ -62,7 +61,7 @@
                   density="comfortable"
                   icon="mdi-delete"
                   size="small"
-                  title="Delete"
+                  :title="t('Delete')"
                   variant="text"
                   @click="remove(rule)"
                 />
@@ -73,26 +72,26 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn text="Close" variant="text" @click="open = false" />
+        <v-btn :text="t('Close')" variant="text" @click="open = false" />
       </v-card-actions>
     </v-card>
   </v-dialog>
 
   <v-dialog v-model="editDialog" max-width="520">
     <v-card>
-      <v-card-title>{{ form.id ? 'Edit invoice discount' : 'New invoice discount' }}</v-card-title>
+      <v-card-title>{{ form.id ? t('Edit invoice discount') : t('New invoice discount') }}</v-card-title>
       <v-card-text>
         <v-text-field
           v-model="form.name"
           density="compact"
-          label="Name (printed on the receipt)"
+          :label="t('Name (printed on the receipt)')"
           variant="outlined"
         />
         <div class="d-flex flex-wrap ga-3">
           <v-text-field
             v-model="form.minTotal"
             density="compact"
-            label="When the invoice is at least"
+            :label="t('When the invoice is at least')"
             min="0"
             prefix="$"
             style="max-width: 220px"
@@ -106,14 +105,14 @@
             mandatory
             variant="outlined"
           >
-            <v-btn text="% off" value="percent" />
-            <v-btn text="$ off" value="amount" />
+            <v-btn :text="t('% off')" value="percent" />
+            <v-btn :text="t('$ off')" value="amount" />
           </v-btn-toggle>
           <v-text-field
             v-if="form.kind === 'percent'"
             v-model.number="form.percent"
             density="compact"
-            label="Off"
+            :label="t('Off')"
             max="100"
             min="1"
             style="max-width: 130px"
@@ -125,7 +124,7 @@
             v-else
             v-model="form.amount"
             density="compact"
-            label="Off"
+            :label="t('Off')"
             min="0"
             prefix="$"
             style="max-width: 150px"
@@ -138,7 +137,7 @@
           color="primary"
           density="compact"
           hide-details
-          label="All branches"
+          :label="t('All branches')"
         />
         <v-select
           v-if="!form.all_branches"
@@ -150,7 +149,7 @@
           item-title="name"
           item-value="id"
           :items="branches"
-          label="Branches"
+          :label="t('Branches')"
           multiple
           variant="outlined"
         />
@@ -159,8 +158,8 @@
             v-model="form.validFrom"
             clearable
             density="compact"
-            hint="Empty: from now"
-            label="From"
+            :hint="t('Empty: from now')"
+            :label="t('From')"
             persistent-hint
             style="max-width: 200px"
             type="date"
@@ -170,8 +169,8 @@
             v-model="form.validTo"
             clearable
             density="compact"
-            hint="Empty: no end"
-            label="Until (included)"
+            :hint="t('Empty: no end')"
+            :label="t('Until (included)')"
             persistent-hint
             style="max-width: 200px"
             type="date"
@@ -184,8 +183,8 @@
           color="primary"
           data-test="repeats"
           density="compact"
-          hint="$50 off every $100: a $200 invoice gets $100 off. Needs a minimum to count by."
-          label="Again for every minimum reached"
+          :hint="t('$50 off every $100: a $200 invoice gets $100 off. Needs a minimum to count by.')"
+          :label="t('Again for every minimum reached')"
           persistent-hint
         />
         <v-switch
@@ -193,8 +192,8 @@
           color="primary"
           data-test="replaces-item-discounts"
           density="compact"
-          hint="$50 off every $100, else 20%: when it applies, items lose their list discounts and the till charges whichever saves more."
-          label="Not with item discounts"
+          :hint="t('$50 off every $100, else 20%: when it applies, items lose their list discounts and the till charges whichever saves more.')"
+          :label="t('Not with item discounts')"
           persistent-hint
         />
         <v-switch
@@ -202,8 +201,8 @@
           color="primary"
           data-test="cashier-picks"
           density="compact"
-          hint="Like a student discount: it shows under the till's Rewards button, and the cashier turns it on for a sale. Off, it applies by itself once the total is reached."
-          label="The cashier picks it for a sale"
+          :hint="t('Like a student discount: it shows under the till\'s Rewards button, and the cashier turns it on for a sale. Off, it applies by itself once the total is reached.')"
+          :label="t('The cashier picks it for a sale')"
           persistent-hint
         />
         <v-switch
@@ -211,7 +210,7 @@
           color="primary"
           density="compact"
           hide-details
-          label="On"
+          :label="t('On')"
         />
         <v-alert class="mt-2" density="compact" type="info" variant="tonal">
           {{ ruleTerms(formRule) }}
@@ -223,17 +222,16 @@
           type="warning"
           variant="tonal"
         >
-          The change reaches the tills on their next sync. Sales already made keep the discount
-          they got.
+          {{ t('The change reaches the tills on their next sync. Sales already made keep the discount they got.') }}
         </v-alert>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn text="Cancel" variant="text" @click="editDialog = false" />
+        <v-btn :text="t('Cancel')" variant="text" @click="editDialog = false" />
         <v-btn
           color="primary"
           :loading="saving"
-          text="Save"
+          :text="t('Save')"
           variant="flat"
           @click="save"
         />
@@ -248,6 +246,7 @@
   import { useBranches } from '@/composables/useBranches'
   import { confirmDialog } from '@/composables/useDialog'
   import { useNotify } from '@/composables/useNotify'
+  import { t } from '@/i18n'
   import { API_BASE } from '@/config'
   import { formatMoney } from '@/utils/money'
 
@@ -258,7 +257,7 @@
   async function requestJSON (path, options) {
     const res = await authFetch(`${API_BASE}${path}`, options)
     const data = await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(data.error || `Request failed with status ${res.status}`)
+    if (!res.ok) throw new Error(data.error || t('Request failed with status {status}', { status: res.status }))
     return data
   }
   const { branches, fetchBranches } = useBranches()
@@ -279,26 +278,32 @@
   function ruleTerms (rule) {
     if (!rule) return ''
     const terms = baseTerms(rule)
-    return rule.replaces_item_discounts ? `${terms}, instead of item discounts` : terms
+    return rule.replaces_item_discounts ? t('{terms}, instead of item discounts', { terms }) : terms
+  }
+
+  function offText (rule) {
+    return rule.kind === 'percent'
+      ? t('{percent}% off', { percent: rule.percent })
+      : t('${amount} off', { amount: formatMoney(rule.amount) })
   }
 
   function baseTerms (rule) {
-    const off = rule.kind === 'percent' ? `${rule.percent}% off` : `$${formatMoney(rule.amount)} off`
+    const off = offText(rule)
     if (rule.repeats) {
-      const each = `$${formatMoney(rule.amount)} off for every $${formatMoney(rule.min_total)} of the invoice`
-      return rule.cashier_picks ? `When the cashier picks it: ${each}` : each
+      const each = t('${amount} off for every ${min} of the invoice', { amount: formatMoney(rule.amount), min: formatMoney(rule.min_total) })
+      return rule.cashier_picks ? t('When the cashier picks it: {each}', { each }) : each
     }
     if (rule.cashier_picks) {
-      const on = rule.min_total > 0 ? ` on invoices of $${formatMoney(rule.min_total)} or more` : ''
-      return `When the cashier picks it: ${off} the whole invoice${on}`
+      const on = rule.min_total > 0 ? t(' on invoices of ${min} or more', { min: formatMoney(rule.min_total) }) : ''
+      return t('When the cashier picks it: {off} the whole invoice{on}', { off, on })
     }
-    return `Invoices of $${formatMoney(rule.min_total)} or more get ${off} the whole invoice`
+    return t('Invoices of ${min} or more get {off} the whole invoice', { min: formatMoney(rule.min_total), off })
   }
 
   function branchesText (rule) {
-    if (rule.all_branches) return 'All'
+    if (rule.all_branches) return t('All')
     return rule.branch_ids
-      .map(id => branches.value.find(b => b.id === id)?.name ?? `#${id}`)
+      .map(id => branches.value.find(b => b.id === id)?.name ?? t('#{id}', { id }))
       .join(', ')
   }
 
@@ -318,7 +323,7 @@
   function datesText (rule) {
     const from = day(when(rule.valid_from))
     const to = untilDay(when(rule.valid_to))
-    if (!from && !to) return 'Always'
+    if (!from && !to) return t('Always')
     return `${from || '…'} → ${to || '…'}`
   }
 
@@ -405,7 +410,7 @@
   }
 
   async function remove (rule) {
-    if (!(await confirmDialog({ text: `Delete "${rule.name}"? The tills stop giving it on their next sync.`, okText: 'Delete', danger: true }))) return
+    if (!(await confirmDialog({ text: t('Delete "{name}"? The tills stop giving it on their next sync.', { name: rule.name }), okText: t('Delete'), danger: true }))) return
     try {
       await requestJSON(`/invoice_discounts/${rule.id}`, { method: 'DELETE' })
       await load()

@@ -2,12 +2,12 @@
   <div class="wa d-flex flex-column fill-height">
     <div class="d-flex align-center flex-wrap flex-shrink-0 ga-3 pa-4 pb-2">
       <v-icon color="success" icon="mdi-whatsapp" />
-      <div class="text-h6 font-weight-medium">WhatsApp &amp; Reviews</div>
+      <div class="text-h6 font-weight-medium">{{ t('WhatsApp & Reviews') }}</div>
       <v-chip
         v-if="settings"
         :color="settings.whatsapp_enabled ? 'success' : undefined"
         size="small"
-        :text="settings.whatsapp_enabled ? 'Sending after sales' : 'Off in Settings'"
+        :text="settings.whatsapp_enabled ? t('Sending after sales') : t('Off in Settings')"
         to="/settings?tab=whatsapp"
         variant="tonal"
       />
@@ -34,18 +34,18 @@
           style="min-width: 170px; max-width: 240px"
           variant="outlined"
         />
-        <v-btn icon="mdi-refresh" title="Refresh" variant="text" @click="refreshKey++" />
+        <v-btn icon="mdi-refresh" :title="t('Refresh')" variant="text" @click="refreshKey++" />
       </div>
     </div>
 
     <v-tabs v-model="tab" class="flex-shrink-0 px-4" color="primary" density="compact">
-      <v-tab prepend-icon="mdi-view-dashboard" text="Dashboard" value="overview" />
-      <v-tab prepend-icon="mdi-format-list-bulleted" text="Messages" value="messages" />
-      <v-tab prepend-icon="mdi-forum" text="Inbox" value="inbox" />
-      <v-tab prepend-icon="mdi-reply" text="Replies" value="replies" />
-      <v-tab prepend-icon="mdi-filter-variant" text="Rules" value="rules" />
+      <v-tab prepend-icon="mdi-view-dashboard" :text="t('Dashboard')" value="overview" />
+      <v-tab prepend-icon="mdi-format-list-bulleted" :text="t('Messages')" value="messages" />
+      <v-tab prepend-icon="mdi-forum" :text="t('Inbox')" value="inbox" />
+      <v-tab prepend-icon="mdi-reply" :text="t('Replies')" value="replies" />
+      <v-tab prepend-icon="mdi-filter-variant" :text="t('Rules')" value="rules" />
       <v-tab prepend-icon="mdi-heart-pulse" value="health">
-        Health
+        {{ t('Health') }}
         <v-badge
           v-if="healthAlert"
           class="ms-2"
@@ -118,6 +118,7 @@
   import { useWhatsApp } from '@/composables/useWhatsApp'
   import { useWhatsAppSettings } from '@/composables/useWhatsAppSettings'
   import { addDays, ymd } from '@/utils/whatsapp'
+  import { t } from '@/i18n'
 
   // Post-sale WhatsApp messages: what went out, to whom and what it cost
   // (Overview, Messages), and the rules deciding it (Rules). The Cloud API
@@ -135,16 +136,16 @@
   const healthAlert = ref(false)
   const { getHealth, getSender } = useWhatsApp()
 
-  const PRESETS = [
-    { title: 'Today', value: 'today' },
-    { title: 'Last 7 days', value: '7' },
-    { title: 'Last 30 days', value: '30' },
-    { title: 'Last 90 days', value: '90' },
-    { title: 'This month', value: 'month' },
-    { title: 'Last month', value: 'last-month' },
-    { title: 'This year', value: 'year' },
-    { title: 'Custom', value: 'custom' },
-  ]
+  const PRESETS = computed(() => [
+    { title: t('Today'), value: 'today' },
+    { title: t('Last 7 days'), value: '7' },
+    { title: t('Last 30 days'), value: '30' },
+    { title: t('Last 90 days'), value: '90' },
+    { title: t('This month'), value: 'month' },
+    { title: t('Last month'), value: 'last-month' },
+    { title: t('This year'), value: 'year' },
+    { title: t('Custom'), value: 'custom' },
+  ])
   const preset = ref('30')
   const customFrom = ref(ymd(addDays(new Date(), -29)))
   const customTo = ref(ymd(new Date()))
@@ -181,7 +182,7 @@
   const { branches, fetchBranches } = useBranches()
   const branchId = ref(0)
   const branchOptions = computed(() => [
-    { title: 'All branches', value: 0 },
+    { title: t('All branches'), value: 0 },
     ...branches.value.map(b => ({ title: b.name, value: b.id })),
   ])
 

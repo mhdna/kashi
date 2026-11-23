@@ -1,9 +1,9 @@
 <template>
   <v-dialog v-model="open" max-width="640" scrollable>
     <v-card data-no-discard-guard>
-      <v-card-title class="px-6 pt-5 pb-2">Filter invoices</v-card-title>
+      <v-card-title class="px-6 pt-5 pb-2">{{ t('Filter invoices') }}</v-card-title>
       <v-card-text class="px-6">
-        <div class="text-subtitle-2 mb-2">Product on the invoice</div>
+        <div class="text-subtitle-2 mb-2">{{ t('Product on the invoice') }}</div>
         <v-row density="compact">
           <v-col cols="12" sm="6">
             <v-select
@@ -12,7 +12,7 @@
               density="compact"
               hide-details
               :items="productFieldOptions"
-              label="Search in"
+              :label="t('Search in')"
               variant="outlined"
             />
           </v-col>
@@ -23,7 +23,7 @@
               density="compact"
               hide-details
               :items="productMatchOptions"
-              label="Match"
+              :label="t('Match')"
               variant="outlined"
             />
           </v-col>
@@ -34,7 +34,7 @@
               data-test="filter-product"
               field="product"
               icon="mdi-tag-outline"
-              label="Code, name or barcode (* is a wildcard)"
+              :label="t('Code, name or barcode (* is a wildcard)')"
               :product-field="draft.productField"
               :suggest="suggest"
               @enter="apply"
@@ -42,7 +42,7 @@
           </v-col>
         </v-row>
 
-        <div class="text-subtitle-2 mt-5 mb-2">Where and what</div>
+        <div class="text-subtitle-2 mt-5 mb-2">{{ t('Where and what') }}</div>
         <v-row density="compact">
           <v-col cols="12" sm="6">
             <v-select
@@ -54,9 +54,9 @@
               item-title="name"
               item-value="id"
               :items="branches"
-              label="Branch"
+              :label="t('Branch')"
               persistent-placeholder
-              placeholder="All branches"
+              :placeholder="t('All branches')"
               variant="outlined"
             />
           </v-col>
@@ -70,9 +70,9 @@
               item-title="label"
               item-value="id"
               :items="registerChoices"
-              label="Register"
+              :label="t('Register')"
               persistent-placeholder
-              placeholder="All registers"
+              :placeholder="t('All registers')"
               variant="outlined"
             />
           </v-col>
@@ -84,9 +84,9 @@
               density="compact"
               hide-details
               :items="kindOptions"
-              label="Type"
+              :label="t('Type')"
               persistent-placeholder
-              placeholder="All types"
+              :placeholder="t('All types')"
               variant="outlined"
             />
           </v-col>
@@ -98,9 +98,9 @@
               density="compact"
               hide-details
               :items="statusOptions"
-              label="Status"
+              :label="t('Status')"
               persistent-placeholder
-              placeholder="Any status"
+              :placeholder="t('Any status')"
               variant="outlined"
             />
           </v-col>
@@ -110,7 +110,7 @@
               data-test="filter-client"
               field="client"
               icon="mdi-account-search"
-              label="Client name or phone (* is a wildcard)"
+              :label="t('Client name or phone (* is a wildcard)')"
               :suggest="suggest"
               @enter="apply"
             />
@@ -122,14 +122,14 @@
               data-test="filter-salesperson"
               field="salesperson"
               icon="mdi-account-tie"
-              label="Salesperson (* is a wildcard)"
+              :label="t('Salesperson (* is a wildcard)')"
               :suggest="suggest"
               @enter="apply"
             />
           </v-col>
         </v-row>
 
-        <div class="text-subtitle-2 mt-5 mb-2">When and how much</div>
+        <div class="text-subtitle-2 mt-5 mb-2">{{ t('When and how much') }}</div>
         <v-row density="compact">
           <v-col cols="6">
             <v-text-field
@@ -137,7 +137,7 @@
               data-test="filter-date-from"
               density="compact"
               hide-details
-              label="From"
+              :label="t('From')"
               :max="draft.dateTo || undefined"
               type="date"
               variant="outlined"
@@ -149,7 +149,7 @@
               data-test="filter-date-to"
               density="compact"
               hide-details
-              label="To"
+              :label="t('To')"
               :min="draft.dateFrom || undefined"
               type="date"
               variant="outlined"
@@ -162,7 +162,7 @@
               density="compact"
               hide-details
               inputmode="decimal"
-              label="Total from"
+              :label="t('Total from')"
               variant="outlined"
               @keydown.enter="apply"
             />
@@ -174,24 +174,24 @@
               density="compact"
               hide-details
               inputmode="decimal"
-              label="Total to"
+              :label="t('Total to')"
               variant="outlined"
               @keydown.enter="apply"
             />
           </v-col>
         </v-row>
-        <div class="text-caption text-medium-emphasis mt-2">A return's total is negative.</div>
+        <div class="text-caption text-medium-emphasis mt-2">{{ t("A return's total is negative.") }}</div>
         <div v-if="error" class="text-body-2 text-error mt-3" data-test="filter-error">{{ error }}</div>
       </v-card-text>
       <v-card-actions class="px-6 pb-4">
-        <v-btn data-test="filter-clear" text="Clear all" variant="text" @click="clearAll" />
+        <v-btn data-test="filter-clear" :text="t('Clear all')" variant="text" @click="clearAll" />
         <v-spacer />
-        <v-btn text="Cancel" variant="text" @click="open = false" />
+        <v-btn :text="t('Cancel')" variant="text" @click="open = false" />
         <v-btn
           color="primary"
           data-test="filter-apply"
           :disabled="Boolean(error)"
-          text="Apply"
+          :text="t('Apply')"
           variant="flat"
           @click="apply"
         />
@@ -202,6 +202,7 @@
 
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue'
+  import { t } from '@/i18n'
   import SuggestField from '@/components/Invoice/SuggestField.vue'
   import {
     emptyFilters,

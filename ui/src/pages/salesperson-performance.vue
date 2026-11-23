@@ -1,29 +1,28 @@
 <template>
   <v-container class="performance-page px-4 px-md-6 pb-4 pb-md-6 pt-1 pt-md-2" fluid>
     <div class="d-flex align-center flex-wrap ga-3 mb-5">
-      <h1 class="text-h4 font-weight-bold">Salesperson performance</h1>
+      <h1 class="text-h4 font-weight-bold">{{ t('Salesperson performance') }}</h1>
       <v-spacer />
       <v-btn
         data-test="export-pdf"
         :disabled="loading"
         prepend-icon="mdi-file-pdf-box"
-        text="Export PDF"
+        :text="t('Export PDF')"
         variant="tonal"
         @click="exportPdf"
       />
       <v-btn
         prepend-icon="mdi-file-chart-outline"
-        text="Monthly report (PDF)"
+        :text="t('Monthly report (PDF)')"
         to="/reports?report=staff"
         variant="tonal"
       />
     </div>
 
     <v-alert class="formula-card mb-5" color="primary" icon="mdi-information" variant="tonal">
-      <div class="font-weight-bold mb-1">Formula</div>
+      <div class="font-weight-bold mb-1">{{ t('Formula') }}</div>
       <div class="text-body-2">
-        Score = 50% × (sold amount ÷ highest amount) + 25% × (invoices ÷ highest invoices)
-        + 25% × (goods sold ÷ highest goods)
+        {{ t('Score = 50% × (sold amount ÷ highest amount) + 25% × (invoices ÷ highest invoices) + 25% × (goods sold ÷ highest goods)') }}
       </div>
     </v-alert>
 
@@ -31,12 +30,12 @@
       <v-card-text>
         <div class="d-flex align-center ga-2 mb-4">
           <v-icon color="primary" icon="mdi-filter" />
-          <span class="font-weight-bold">Filters</span>
+          <span class="font-weight-bold">{{ t('Filters') }}</span>
           <v-spacer />
           <v-btn
             v-if="hasFilters"
             size="small"
-            text="Clear all"
+            :text="t('Clear all')"
             variant="text"
             @click="clearFilters"
           />
@@ -51,7 +50,7 @@
               item-title="name"
               item-value="id"
               :items="branches"
-              label="Employee branch"
+              :label="t('Employee branch')"
               prepend-inner-icon="mdi-store-outline"
               variant="outlined"
             />
@@ -65,7 +64,7 @@
               item-title="name"
               item-value="key"
               :items="availableSalespersons"
-              label="Employee name"
+              :label="t('Employee name')"
               prepend-inner-icon="mdi-account-outline"
               variant="outlined"
             />
@@ -78,7 +77,7 @@
               item-title="title"
               item-value="value"
               :items="periods"
-              label="Period"
+              :label="t('Period')"
               prepend-inner-icon="mdi-calendar"
               variant="outlined"
             />
@@ -90,7 +89,7 @@
                   v-bind="props"
                   density="comfortable"
                   hide-details
-                  label="Month"
+                  :label="t('Month')"
                   :model-value="formattedMonth"
                   prepend-inner-icon="mdi-calendar"
                   readonly
@@ -108,7 +107,7 @@
             </v-menu>
           </v-col>
           <v-col v-if="period === 'range'" cols="12" lg="4" sm="6">
-            <DateRangePicker v-model="dateRange" clearable empty-label="All time" />
+            <DateRangePicker v-model="dateRange" clearable :empty-label="t('All time')" />
           </v-col>
         </v-row>
       </v-card-text>
@@ -127,14 +126,14 @@
 
     <v-card class="mb-5" rounded="lg">
       <v-card-title class="d-flex align-center py-4">
-        <span>Performance ranking</span>
+        <span>{{ t('Performance ranking') }}</span>
         <v-spacer />
-        <span class="text-body-2 text-primary font-weight-medium">{{ rankedRows.length }} employees</span>
+        <span class="text-body-2 text-primary font-weight-medium">{{ t('{n} employees', { n: rankedRows.length }) }}</span>
       </v-card-title>
       <v-divider />
-      <PreparingState v-if="loading" kind="data" min-height="260px" title="Ranking salespersons" />
+      <PreparingState v-if="loading" kind="data" min-height="260px" :title="t('Ranking salespersons')" />
       <v-card-text v-else-if="rankedRows.length === 0" class="py-10 text-center text-medium-emphasis">
-        No salesperson activity matches these filters.
+        {{ t('No salesperson activity matches these filters.') }}
       </v-card-text>
       <v-card-text v-else class="pt-2">
         <div
@@ -156,30 +155,30 @@
             <v-spacer />
             <div class="text-end">
               <div class="text-h6 font-weight-bold">{{ employee.score.toFixed(1) }}</div>
-              <div class="text-caption text-medium-emphasis">out of 100</div>
+              <div class="text-caption text-medium-emphasis">{{ t('out of 100') }}</div>
             </div>
           </div>
           <v-progress-linear :color="scoreColor(employee.score)" height="12" :model-value="employee.score" rounded />
           <div class="d-flex flex-wrap ga-4 mt-3 text-body-2" data-test="ranking-parts">
-            <span>Amount {{ employee.amountScore.toFixed(0) }}%</span>
-            <span>Invoices {{ employee.invoiceScore.toFixed(0) }}%</span>
-            <span>Goods {{ employee.goodsScore.toFixed(0) }}%</span>
-            <span class="text-warning">Discounts {{ formatMoney(employee.totalDiscounts) }}</span>
-            <span class="text-error">Price overrides {{ formatMoney(employee.totalPriceOverrides) }}</span>
+            <span>{{ t('Amount') }} {{ employee.amountScore.toFixed(0) }}%</span>
+            <span>{{ t('Invoices') }} {{ employee.invoiceScore.toFixed(0) }}%</span>
+            <span>{{ t('Goods') }} {{ employee.goodsScore.toFixed(0) }}%</span>
+            <span class="text-warning">{{ t('Discounts') }} {{ formatMoney(employee.totalDiscounts) }}</span>
+            <span class="text-error">{{ t('Price overrides') }} {{ formatMoney(employee.totalPriceOverrides) }}</span>
           </div>
         </div>
       </v-card-text>
     </v-card>
 
     <v-card rounded="lg">
-      <v-card-title class="py-4">Performance details</v-card-title>
+      <v-card-title class="py-4">{{ t('Performance details') }}</v-card-title>
       <v-divider />
       <v-data-table
         class="performance-table"
         :headers="headers"
         :items="rankedRows"
         :loading="loading"
-        no-data-text="No salesperson activity found"
+        :no-data-text="t('No salesperson activity found')"
         @click:row="openAdjustmentsFromTable"
       >
         <template #item.employee="{ item }">
@@ -201,31 +200,29 @@
     <!-- The salesperson score: the full rule (utils/salespersonScore.js). -->
     <v-card class="mt-5" data-test="score-card" rounded="lg">
       <v-card-title class="d-flex align-center py-4">
-        <span>Performance score</span>
+        <span>{{ t('Performance score') }}</span>
         <v-spacer />
-        <span class="text-body-2 text-medium-emphasis" data-test="score-count">{{ rankedCount }} ranked</span>
+        <span class="text-body-2 text-medium-emphasis" data-test="score-count">{{ t('{n} ranked', { n: rankedCount }) }}</span>
       </v-card-title>
       <v-divider />
       <v-card-text>
         <v-alert class="formula-card mb-4" color="primary" icon="mdi-scale-balance" variant="tonal">
-          <div class="font-weight-bold mb-1">Formula</div>
+          <div class="font-weight-bold mb-1">{{ t('Formula') }}</div>
           <div class="text-body-2" data-test="score-formula">
-            Score = Target reached ({{ weight('target') }}) + Sales per hour ({{ weight('perHour') }})
-            + Average sale ({{ weight('avgSale') }}) + Items per sale ({{ weight('itemsPerSale') }})
-            + Return rate ({{ weight('returnRate') }}), out of 100
+            {{ t('Score = Target reached ({target}) + Sales per hour ({perHour}) + Average sale ({avgSale}) + Items per sale ({itemsPerSale}) + Return rate ({returnRate}), out of 100', { target: weight('target'), perHour: weight('perHour'), avgSale: weight('avgSale'), itemsPerSale: weight('itemsPerSale'), returnRate: weight('returnRate') }) }}
           </div>
           <ul class="formula-list text-body-2 mt-2">
-            <li><strong>Net sales</strong> = what was sold minus what came back. A return or exchange counts for whoever made the sale.</li>
-            <li><strong>Target reached</strong> = net sales ÷ their target (the branch target shared by hours worked), up to 150%: points = min(reached, 150%) ÷ 150% × {{ weight('target') }}.</li>
-            <li><strong>Sales per hour, average sale, items per sale</strong> are compared with the team, up to 1.5 times it: points = min(theirs ÷ team, 1.5) ÷ 1.5 × weight.</li>
-            <li><strong>Return rate</strong>, lower is better: points = (1 − theirs ÷ (2 × team)) × {{ weight('returnRate') }}, never under 0.</li>
-            <li>Discounts don't count: most come from the discount list, not the salesperson, and selling at a discount already lowers net sales against the target and per hour.</li>
-            <li>Ranked with at least {{ SCORE_RULE.minInvoices }} invoices and {{ SCORE_RULE.minHours }} hours worked. A part with no data (no target, no hours) is left out and the score is out of the rest.</li>
-            <li>Grades: A from 85, B from 70, C from 55, D under 55.</li>
+            <li><strong>{{ t('Net sales') }}</strong> {{ t('= what was sold minus what came back. A return or exchange counts for whoever made the sale.') }}</li>
+            <li><strong>{{ t('Target reached') }}</strong> {{ t('= net sales ÷ their target (the branch target shared by hours worked), up to 150%: points = min(reached, 150%) ÷ 150% × {target}.', { target: weight('target') }) }}</li>
+            <li><strong>{{ t('Sales per hour, average sale, items per sale') }}</strong> {{ t('are compared with the team, up to 1.5 times it: points = min(theirs ÷ team, 1.5) ÷ 1.5 × weight.') }}</li>
+            <li><strong>{{ t('Return rate') }}</strong>{{ t(', lower is better: points = (1 − theirs ÷ (2 × team)) × {returnRate}, never under 0.', { returnRate: weight('returnRate') }) }}</li>
+            <li>{{ t("Discounts don't count: most come from the discount list, not the salesperson, and selling at a discount already lowers net sales against the target and per hour.") }}</li>
+            <li>{{ t('Ranked with at least {minInvoices} invoices and {minHours} hours worked. A part with no data (no target, no hours) is left out and the score is out of the rest.', { minInvoices: SCORE_RULE.minInvoices, minHours: SCORE_RULE.minHours }) }}</li>
+            <li>{{ t('Grades: A from 85, B from 70, C from 55, D under 55.') }}</li>
           </ul>
         </v-alert>
       </v-card-text>
-      <PreparingState v-if="loading" kind="data" min-height="200px" title="Working out the scores" />
+      <PreparingState v-if="loading" kind="data" min-height="200px" :title="t('Working out the scores')" />
       <v-data-table
         v-else
         class="performance-table"
@@ -233,7 +230,7 @@
         :headers="scoreHeaders"
         :items="scorePeople"
         :items-per-page="-1"
-        no-data-text="No salesperson activity found"
+        :no-data-text="t('No salesperson activity found')"
         @click:row="openScoreFromTable"
       >
         <template #item.rank="{ item }">{{ item.rank ?? '' }}</template>
@@ -253,9 +250,9 @@
         <template #item.target="{ item }">
           <template v-if="item.target > 0">
             {{ formatMoney(item.target) }}
-            <div class="text-caption text-medium-emphasis">{{ formatPercent(item.net / item.target) }} reached</div>
+            <div class="text-caption text-medium-emphasis">{{ formatPercent(item.net / item.target) }} {{ t('reached') }}</div>
           </template>
-          <span v-else class="text-medium-emphasis">None</span>
+          <span v-else class="text-medium-emphasis">{{ t('None') }}</span>
         </template>
         <template #item.hours="{ item }">{{ item.hours > 0 ? item.hours.toFixed(1) : '' }}</template>
         <template #item.perHour="{ item }">{{ item.perHour === null ? '' : formatMoney(item.perHour) }}</template>
@@ -271,25 +268,25 @@
         <v-card-title class="d-flex align-center py-4">
           <div>
             <div>{{ scorePerson.name }}</div>
-            <div class="text-caption text-medium-emphasis">How the score was worked out</div>
+            <div class="text-caption text-medium-emphasis">{{ t('How the score was worked out') }}</div>
           </div>
           <v-spacer />
-          <v-btn aria-label="Close" icon="mdi-close" variant="text" @click="scoreDialog = false" />
+          <v-btn :aria-label="t('Close')" icon="mdi-close" variant="text" @click="scoreDialog = false" />
         </v-card-title>
         <v-divider />
         <v-card-text>
           <div class="score-facts text-body-2 mb-4" data-test="score-facts">
-            <div><span class="text-medium-emphasis">Sold</span> {{ formatMoney(scorePerson.sold) }}</div>
-            <div><span class="text-medium-emphasis">Came back</span> {{ formatMoney(scorePerson.returned) }}</div>
-            <div><span class="text-medium-emphasis">Net sales</span> {{ formatMoney(scorePerson.net) }}</div>
-            <div><span class="text-medium-emphasis">Invoices</span> {{ scorePerson.invoices }}</div>
-            <div><span class="text-medium-emphasis">Items</span> {{ scorePerson.units }}</div>
-            <div><span class="text-medium-emphasis">Hours</span> {{ scorePerson.hours.toFixed(1) }}</div>
-            <div><span class="text-medium-emphasis">Target</span> {{ scorePerson.target > 0 ? formatMoney(scorePerson.target) : 'None' }}</div>
+            <div><span class="text-medium-emphasis">{{ t('Sold') }}</span> {{ formatMoney(scorePerson.sold) }}</div>
+            <div><span class="text-medium-emphasis">{{ t('Came back') }}</span> {{ formatMoney(scorePerson.returned) }}</div>
+            <div><span class="text-medium-emphasis">{{ t('Net sales') }}</span> {{ formatMoney(scorePerson.net) }}</div>
+            <div><span class="text-medium-emphasis">{{ t('Invoices') }}</span> {{ scorePerson.invoices }}</div>
+            <div><span class="text-medium-emphasis">{{ t('Items') }}</span> {{ scorePerson.units }}</div>
+            <div><span class="text-medium-emphasis">{{ t('Hours') }}</span> {{ scorePerson.hours.toFixed(1) }}</div>
+            <div><span class="text-medium-emphasis">{{ t('Target') }}</span> {{ scorePerson.target > 0 ? formatMoney(scorePerson.target) : t('None') }}</div>
           </div>
           <v-table density="compact">
             <thead>
-              <tr><th>Part</th><th>Calculation</th><th class="text-end">Points</th></tr>
+              <tr><th>{{ t('Part') }}</th><th>{{ t('Calculation') }}</th><th class="text-end">{{ t('Points') }}</th></tr>
             </thead>
             <tbody>
               <tr v-for="p in scorePerson.parts" :key="p.key" :data-test="`score-part-${p.key}`">
@@ -301,11 +298,10 @@
           </v-table>
           <p class="text-body-2 mt-4 mb-0" data-test="score-total">
             <template v-if="scorePerson.score !== null">
-              {{ scorePerson.points.toFixed(2) }} points out of {{ scorePerson.outOf }},
-              so the score is {{ scorePerson.points.toFixed(2) }} ÷ {{ scorePerson.outOf }} × 100 =
-              <strong :class="gradeClass(scorePerson.grade)">{{ scorePerson.score.toFixed(1) }}, grade {{ scorePerson.grade }}</strong>
+              {{ t('{points} points out of {outOf}, so the score is {points} ÷ {outOf} × 100 =', { points: scorePerson.points.toFixed(2), outOf: scorePerson.outOf }) }}
+              <strong :class="gradeClass(scorePerson.grade)">{{ t('{score}, grade {grade}', { score: scorePerson.score.toFixed(1), grade: scorePerson.grade }) }}</strong>
             </template>
-            <template v-else>Not ranked: {{ scorePerson.notRankedWhy.toLowerCase() }} in this period.</template>
+            <template v-else>{{ t('Not ranked: {why} in this period.', { why: scorePerson.notRankedWhy.toLowerCase() }) }}</template>
           </p>
         </v-card-text>
       </v-card>
@@ -316,7 +312,7 @@
         <v-card-title class="d-flex align-center py-4">
           <div>
             <div>{{ selectedEmployee?.name }}</div>
-            <div class="text-caption text-medium-emphasis">Manual discounts and price overrides</div>
+            <div class="text-caption text-medium-emphasis">{{ t('Manual discounts and price overrides') }}</div>
           </div>
           <v-spacer />
           <v-btn icon="mdi-close" variant="text" @click="adjustmentsDialog = false" />
@@ -327,7 +323,7 @@
             <v-col cols="12" sm="6">
               <v-card color="warning" variant="tonal">
                 <v-card-text>
-                  <div class="text-caption">Total manual discounts</div>
+                  <div class="text-caption">{{ t('Total manual discounts') }}</div>
                   <div class="text-h5 font-weight-bold">{{ formatMoney(selectedEmployee?.totalDiscounts) }}</div>
                 </v-card-text>
               </v-card>
@@ -335,7 +331,7 @@
             <v-col cols="12" sm="6">
               <v-card color="error" variant="tonal">
                 <v-card-text>
-                  <div class="text-caption">Total price deductions from overrides</div>
+                  <div class="text-caption">{{ t('Total price deductions from overrides') }}</div>
                   <div class="text-h5 font-weight-bold">{{ formatMoney(selectedEmployee?.totalPriceOverrides) }}</div>
                 </v-card-text>
               </v-card>
@@ -347,7 +343,7 @@
             type="info"
             variant="tonal"
           >
-            No manual discounts or price overrides were recorded for this salesperson in the selected period.
+            {{ t('No manual discounts or price overrides were recorded for this salesperson in the selected period.') }}
           </v-alert>
           <template v-else>
             <v-text-field
@@ -357,7 +353,7 @@
               data-discard-ignore
               density="compact"
               hide-details
-              label="Search adjustments"
+              :label="t('Search adjustments')"
               prepend-inner-icon="mdi-magnify"
               variant="outlined"
             />
@@ -367,7 +363,7 @@
               :search="adjustmentSearch"
             >
               <template #item.type="{ item }">
-                <span class="font-weight-medium" :class="item.type === 'Discount' ? 'text-warning' : 'text-error'">{{ item.type }}</span>
+                <span class="font-weight-medium" :class="item.type === 'Discount' ? 'text-warning' : 'text-error'">{{ t(item.type) }}</span>
               </template>
               <template #item.date="{ item }">{{ formatDate(item.date) }}</template>
               <template #item.originalPrice="{ item }">{{ item.originalPrice == null ? '—' : formatMoney(item.originalPrice) }}</template>
@@ -391,6 +387,7 @@
   import { useBranchSalespersons } from '@/composables/useBranchSalespersons'
   import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
   import { buildTimesheet } from '@/utils/attendanceSessions'
   import { ymd } from '@/utils/dates'
   import { printReport } from '@/utils/reportExport'
@@ -425,31 +422,31 @@
   const selectedEmployee = ref(null)
   const adjustmentSearch = ref('')
 
-  const periods = [
-    { title: 'This month', value: 'month' },
-    { title: 'Custom date range', value: 'range' },
-    { title: 'All time', value: 'all' },
-  ]
-  const headers = [
-    { title: 'Employee', key: 'employee', align: 'start' },
-    { title: 'Performance', key: 'score', align: 'center' },
-    { title: 'Total Sold Amount', key: 'totalAmount', align: 'end' },
-    { title: 'Total Invoices', key: 'totalInvoices', align: 'end' },
-    { title: 'Total Number of goods', key: 'totalGoods', align: 'end' },
-    { title: 'Total Discounts', key: 'totalDiscounts', align: 'end' },
-    { title: 'Total Price Deductions', key: 'totalPriceOverrides', align: 'end' },
-  ]
-  const adjustmentHeaders = [
-    { title: 'Type', key: 'type', align: 'start' },
-    { title: 'Date', key: 'date', align: 'start' },
-    { title: 'Invoice', key: 'invoiceCode', align: 'start' },
-    { title: 'Product', key: 'product', align: 'start' },
-    { title: 'Qty', key: 'quantity', align: 'end' },
-    { title: 'Original Price', key: 'originalPrice', align: 'end' },
-    { title: 'Final Price', key: 'finalPrice', align: 'end' },
-    { title: 'Discount', key: 'percentage', align: 'end' },
-    { title: 'Deducted Amount', key: 'amount', align: 'end' },
-  ]
+  const periods = computed(() => [
+    { title: t('This month'), value: 'month' },
+    { title: t('Custom date range'), value: 'range' },
+    { title: t('All time'), value: 'all' },
+  ])
+  const headers = computed(() => [
+    { title: t('Employee'), key: 'employee', align: 'start' },
+    { title: t('Performance'), key: 'score', align: 'center' },
+    { title: t('Total Sold Amount'), key: 'totalAmount', align: 'end' },
+    { title: t('Total Invoices'), key: 'totalInvoices', align: 'end' },
+    { title: t('Total Number of goods'), key: 'totalGoods', align: 'end' },
+    { title: t('Total Discounts'), key: 'totalDiscounts', align: 'end' },
+    { title: t('Total Price Deductions'), key: 'totalPriceOverrides', align: 'end' },
+  ])
+  const adjustmentHeaders = computed(() => [
+    { title: t('Type'), key: 'type', align: 'start' },
+    { title: t('Date'), key: 'date', align: 'start' },
+    { title: t('Invoice'), key: 'invoiceCode', align: 'start' },
+    { title: t('Product'), key: 'product', align: 'start' },
+    { title: t('Qty'), key: 'quantity', align: 'end' },
+    { title: t('Original Price'), key: 'originalPrice', align: 'end' },
+    { title: t('Final Price'), key: 'finalPrice', align: 'end' },
+    { title: t('Discount'), key: 'percentage', align: 'end' },
+    { title: t('Deducted Amount'), key: 'amount', align: 'end' },
+  ])
 
   function dateKey (value) {
     if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value
@@ -509,7 +506,7 @@
         id: `${invoice.id}-${item.id ?? index}`,
         date: invoice.occurred_at || invoice.created_at || invoice.received_at,
         invoiceCode: invoice.branch_invoice_code || invoice.invoice_code || `#${invoice.id}`,
-        product: item.product_name || item.product_code || `Product #${item.branch_product_id ?? item.product_id ?? '—'}`,
+        product: item.product_name || item.product_code || t('Product #{id}', { id: item.branch_product_id ?? item.product_id ?? '—' }),
         quantity: Math.abs(Number(item.quantity) || 0),
         finalPrice: Number(item.unit_price) || 0,
       }
@@ -547,7 +544,7 @@
       const key = personKey(invoice)
       const row = result.get(key) || {
         key,
-        name: invoice.salesperson_name || invoice.salesperson?.name || 'Unassigned',
+        name: invoice.salesperson_name || invoice.salesperson?.name || t('Unassigned'),
         branchId: invoice.branch_id,
         totalAmount: 0,
         totalInvoices: 0,
@@ -567,7 +564,7 @@
     }
     return [...result.values()].map(row => ({
       ...row,
-      branchName: branches.value.find(branch => String(branch.id) === String(row.branchId))?.name || 'Main branch',
+      branchName: branches.value.find(branch => String(branch.id) === String(row.branchId))?.name || t('Main branch'),
     }))
   })
 
@@ -603,18 +600,18 @@
     ? scoreResult.value.people.filter(p => p.key === salespersonId.value)
     : scoreResult.value.people)
   const rankedCount = computed(() => scorePeople.value.filter(p => p.score !== null).length)
-  const scoreHeaders = [
-    { title: '#', key: 'rank', align: 'start', width: 40 },
-    { title: 'Employee', key: 'employee', align: 'start' },
-    { title: 'Score', key: 'score', align: 'start' },
-    { title: 'Net sales', key: 'net', align: 'end' },
-    { title: 'Target', key: 'target', align: 'end' },
-    { title: 'Hours', key: 'hours', align: 'end' },
-    { title: 'Per hour', key: 'perHour', align: 'end' },
-    { title: 'Average sale', key: 'avgSale', align: 'end' },
-    { title: 'Items per sale', key: 'itemsPerSale', align: 'end' },
-    { title: 'Return rate', key: 'returnRate', align: 'end' },
-  ]
+  const scoreHeaders = computed(() => [
+    { title: t('#'), key: 'rank', align: 'start', width: 40 },
+    { title: t('Employee'), key: 'employee', align: 'start' },
+    { title: t('Score'), key: 'score', align: 'start' },
+    { title: t('Net sales'), key: 'net', align: 'end' },
+    { title: t('Target'), key: 'target', align: 'end' },
+    { title: t('Hours'), key: 'hours', align: 'end' },
+    { title: t('Per hour'), key: 'perHour', align: 'end' },
+    { title: t('Average sale'), key: 'avgSale', align: 'end' },
+    { title: t('Items per sale'), key: 'itemsPerSale', align: 'end' },
+    { title: t('Return rate'), key: 'returnRate', align: 'end' },
+  ])
   function weight (key) {
     return SCORE_RULE.parts.find(p => p.key === key)?.weight ?? 0
   }
@@ -639,9 +636,9 @@
   }
 
   const summaries = computed(() => [
-    { label: 'Total sold amount', value: formatMoney(rankedRows.value.reduce((sum, row) => sum + row.totalAmount, 0)) },
-    { label: 'Total invoices', value: rankedRows.value.reduce((sum, row) => sum + row.totalInvoices, 0).toLocaleString() },
-    { label: 'Total goods sold', value: rankedRows.value.reduce((sum, row) => sum + row.totalGoods, 0).toLocaleString() },
+    { label: t('Total sold amount'), value: formatMoney(rankedRows.value.reduce((sum, row) => sum + row.totalAmount, 0)) },
+    { label: t('Total invoices'), value: rankedRows.value.reduce((sum, row) => sum + row.totalInvoices, 0).toLocaleString() },
+    { label: t('Total goods sold'), value: rankedRows.value.reduce((sum, row) => sum + row.totalGoods, 0).toLocaleString() },
   ])
   const selectedAdjustments = computed(() => selectedEmployee.value?.adjustments || [])
   const hasFilters = computed(() => branchId.value != null || salespersonId.value != null || period.value !== 'month' || month.value !== `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
@@ -664,24 +661,24 @@
   const periodLabel = computed(() => {
     if (period.value === 'month') {return formattedMonth.value}
     const { from, to } = periodBounds.value
-    return from ? `${from} to ${to}` : 'All time'
+    return from ? t('{from} to {to}', { from, to }) : t('All time')
   })
   async function exportPdf () {
-    const branch = branchId.value == null ? 'All branches' : branchName(branchId.value)
+    const branch = branchId.value == null ? t('All branches') : branchName(branchId.value)
     const tables = performanceTables({
       ranking: rankedRows.value,
       score: scorePeople.value.map(p => ({ ...p, branchName: branchName(p.branchId) })),
       money: formatMoney,
     })
     const sheet = performanceSheet({
-      title: 'Salesperson performance',
+      title: t('Salesperson performance'),
       period: periodLabel.value,
       branch,
       generated: new Date().toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }),
       tables,
     })
     try {
-      await printReport(sheet, { title: `Salesperson performance ${periodLabel.value} ${branch}`, landscape: true })
+      await printReport(sheet, { title: `${t('Salesperson performance')} ${periodLabel.value} ${branch}`, landscape: true })
     } catch (error) {
       notify.error(error.message)
     }
@@ -735,7 +732,7 @@
         authFetch(`${API_BASE}/salesperson_performance?${new URLSearchParams(periodBounds.value)}`),
       ])
       if (stale()) return
-      if (!response.ok) throw new Error(`Failed to load sales activity (${response.status})`)
+      if (!response.ok) throw new Error(t('Failed to load sales activity ({status})', { status: response.status }))
       const data = await response.json()
       if (stale()) return
       invoices.value = data?.invoices ?? []
@@ -743,7 +740,7 @@
       branchTargets.value = data?.branch_targets ?? []
     } catch (loadError) {
       if (stale()) return
-      notify.error(loadError.message || 'Failed to load salesperson performance.')
+      notify.error(loadError.message || t('Failed to load salesperson performance.'))
       invoices.value = []
       returns.value = []
       branchTargets.value = []

@@ -14,14 +14,14 @@
     <div class="flex-grow-1 pa-4" style="overflow-y: auto">
       <template v-if="source">
         <div class="d-flex flex-wrap align-center justify-space-between ga-2 mb-4">
-          <div class="text-h6 text-no-wrap">{{ source.title }}</div>
+          <div class="text-h6 text-no-wrap">{{ t(source.title) }}</div>
           <div class="d-flex align-center ga-2 storage-search">
             <v-text-field
               v-model="search"
               clearable
               density="compact"
               hide-details
-              placeholder="Search"
+              :placeholder="t('Search')"
               prepend-inner-icon="mdi-magnify"
               variant="outlined"
             />
@@ -34,18 +34,18 @@
               variant="tonal"
               @click="confirmDelete = true"
             >
-              Delete{{ selectedIds.length > 0 ? ` (${selectedIds.length})` : '' }}
+              {{ selectedIds.length > 0 ? t('Delete ({count})', { count: selectedIds.length }) : t('Delete') }}
             </v-btn>
-            <PreparingState v-if="loading" kind="box" :size="28" title="Loading" />
+            <PreparingState v-if="loading" kind="box" :size="28" :title="t('Loading')" />
           </div>
         </div>
 
         <div v-if="!loading && images.length === 0" class="text-medium-emphasis">
-          No photos uploaded yet.
+          {{ t('No photos uploaded yet.') }}
         </div>
 
         <div v-else-if="!loading && filteredImages.length === 0" class="text-medium-emphasis">
-          No photos match your search.
+          {{ t('No photos match your search.') }}
         </div>
 
         <div class="image-grid">
@@ -66,7 +66,7 @@
             <v-img aspect-ratio="1" cover :src="thumbnailUrls[imageKey(image)]">
               <template #placeholder>
                 <div class="d-flex align-center justify-center fill-height">
-                  <PreparingState kind="box" :size="34" title="Loading" />
+                  <PreparingState kind="box" :size="34" :title="t('Loading')" />
                 </div>
               </template>
             </v-img>
@@ -79,26 +79,25 @@
         </div>
 
         <div v-if="!loading && images.length < total" class="text-center mt-4">
-          <v-btn variant="text" @click="loadMore">Load more</v-btn>
+          <v-btn variant="text" @click="loadMore">{{ t('Load more') }}</v-btn>
         </div>
       </template>
 
       <template v-else>
-        <div class="text-medium-emphasis">Select a folder on the left.</div>
+        <div class="text-medium-emphasis">{{ t('Select a folder on the left.') }}</div>
       </template>
     </div>
 
     <v-dialog v-model="confirmDelete" max-width="420">
       <v-card>
-        <v-card-title>Delete {{ selectedIds.length }} picture(s)?</v-card-title>
+        <v-card-title>{{ t('Delete {count} picture(s)?', { count: selectedIds.length }) }}</v-card-title>
         <v-card-text>
-          The pictures are removed for good. Pictures of items from a sale that are still waiting to be matched are kept.
-          Items already matched keep their match.
+          {{ t('The pictures are removed for good. Pictures of items from a sale that are still waiting to be matched are kept. Items already matched keep their match.') }}
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="confirmDelete = false">Cancel</v-btn>
-          <v-btn color="error" :loading="deleting" variant="flat" @click="deleteSelected">Delete</v-btn>
+          <v-btn variant="text" @click="confirmDelete = false">{{ t('Cancel') }}</v-btn>
+          <v-btn color="error" :loading="deleting" variant="flat" @click="deleteSelected">{{ t('Delete') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -112,7 +111,7 @@
             v-if="previewLoading"
             kind="box"
             min-height="160px"
-            title="Loading the photo"
+            :title="t('Loading the photo')"
           />
           <ZoomableImage
             v-else-if="previewUrl"
@@ -125,17 +124,17 @@
             @replace="file => changePreview((kind, id) => replacePhoto(kind, id, file))"
             @rotate="delta => changePreview((kind, id) => rotatePhoto(kind, id, delta))"
           />
-          <span v-else class="text-medium-emphasis">Couldn't load this image.</span>
+          <span v-else class="text-medium-emphasis">{{ t('Couldn\'t load this image.') }}</span>
         </div>
         <v-card-text v-if="previewImage">
           <div class="text-subtitle-1">{{ source?.primaryText(previewImage) }}</div>
           <div class="text-caption text-medium-emphasis">
-            {{ previewImage.branch_name }} — {{ formatDate(previewImage.created_at) }}
+            {{ previewImage.branch_name }}, {{ formatDate(previewImage.created_at) }}
           </div>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="previewDialog = false">Close</v-btn>
+          <v-btn variant="text" @click="previewDialog = false">{{ t('Close') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -152,6 +151,7 @@
   import { useShiftReceiptImages } from '@/composables/useShiftReceiptImages'
   import { useTransferAttachments } from '@/composables/useTransferAttachments'
   import { useUnknownItems } from '@/composables/useUnknownItems'
+  import { t } from '@/i18n'
 
   const { fetchExpenseImages, fetchExpenseImageObjectUrl } = useExpenseImages()
   const { fetchShiftReceiptImages, fetchShiftReceiptImageObjectUrl } = useShiftReceiptImages()
@@ -183,7 +183,7 @@
       fetchObjectUrl: (image, opts) => fetchShiftReceiptImageObjectUrl(image.id, opts),
       refreshOn: 'branch_shift_receipt_uploaded',
       photoKind: 'shift_receipt',
-      primaryText: image => `Shift #${image.shift_local_id} · ${image.closing_person_name || '—'}`,
+      primaryText: image => t('Shift #{id}, {name}', { id: image.shift_local_id, name: image.closing_person_name || '-' }),
     },
     transfers: {
       title: 'Transfer photos',
@@ -192,7 +192,7 @@
       fetchObjectUrl: (image, opts) => fetchTransferAttachmentObjectUrl(image.id, opts),
       refreshOn: 'branch_transfer_photo_uploaded',
       photoKind: 'transfer',
-      primaryText: image => `${image.code || `Transfer #${image.id}`} · ${image.from_inventory_name} → ${image.to_inventory_name}`,
+      primaryText: image => `${image.code || t('Transfer #{id}', { id: image.id })}, ${image.from_inventory_name} → ${image.to_inventory_name}`,
     },
     unknownItems: {
       title: 'Unknown item photos',
@@ -202,7 +202,7 @@
       refreshOn: 'unknown_item_uploaded',
       photoKind: null,
       deletable: true,
-      primaryText: image => `Unknown item · $${(image.unit_price / 100).toFixed(2)}${image.branch_invoice_code ? ` · ${image.branch_invoice_code}` : ''}`,
+      primaryText: image => t('Unknown item, {price}', { price: `$${(image.unit_price / 100).toFixed(2)}` }) + (image.branch_invoice_code ? `, ${image.branch_invoice_code}` : ''),
     },
   }
 
@@ -235,12 +235,12 @@
 
   const SOURCES = { all: ALL, ...KINDS }
 
-  const items = [
-    { value: 'expenses', title: 'Expenses', prependIcon: 'mdi-receipt-text-check' },
-    { value: 'shiftReceipts', title: 'Shift receipts', prependIcon: 'mdi-camera' },
-    { value: 'transfers', title: 'Transfers', prependIcon: 'mdi-truck-delivery' },
-    { value: 'unknownItems', title: 'Unknown items', prependIcon: 'mdi-help-box-outline' },
-  ]
+  const items = computed(() => [
+    { value: 'expenses', title: t('Expenses'), prependIcon: 'mdi-receipt-text-check' },
+    { value: 'shiftReceipts', title: t('Shift receipts'), prependIcon: 'mdi-camera' },
+    { value: 'transfers', title: t('Transfers'), prependIcon: 'mdi-truck-delivery' },
+    { value: 'unknownItems', title: t('Unknown items'), prependIcon: 'mdi-help-box-outline' },
+  ])
 
   // null is PageSidebar's "All" row.
   const selectedKind = ref(null)
@@ -297,8 +297,8 @@
     try {
       const { deleted, kept, deletedIds } = await deleteUnknownItemImages(selectedIds.value)
       notify.success(kept
-        ? `${deleted} deleted, ${kept} kept (their sale is still waiting to be matched)`
-        : `${deleted} deleted`)
+        ? t('{deleted} deleted, {kept} kept (their sale is still waiting to be matched)', { deleted, kept })
+        : t('{deleted} deleted', { deleted }))
       confirmDelete.value = false
       selectedIds.value = []
       // Take just the deleted pictures out of the grid; reloading it would

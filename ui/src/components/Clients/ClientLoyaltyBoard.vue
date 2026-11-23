@@ -4,7 +4,7 @@
       <v-card-title class="d-flex flex-wrap align-center justify-space-between ga-2">
         <div class="d-flex align-center">
           <v-icon class="me-2" icon="mdi-account-cash" />
-          Top Spenders
+          {{ t('Top Spenders') }}
         </div>
         <div class="d-flex align-center ga-2">
           <v-select
@@ -12,7 +12,7 @@
             density="compact"
             hide-details
             :items="sortOptions"
-            label="Sort by"
+            :label="t('Sort by')"
             style="width: 180px"
             variant="outlined"
           />
@@ -21,11 +21,11 @@
             density="compact"
             hide-details
             :items="[15, 50, 100]"
-            label="Show top"
+            :label="t('Show top')"
             style="width: 110px"
             variant="outlined"
           />
-          <v-icon-btn icon="mdi-cog-outline" title="Edit tiers" variant="text" @click="tiersDialog = true" />
+          <v-icon-btn icon="mdi-cog-outline" :title="t('Edit tiers')" variant="text" @click="tiersDialog = true" />
         </div>
       </v-card-title>
 
@@ -38,10 +38,10 @@
           v-if="pyramidLoading"
           kind="people"
           min-height="240px"
-          title="Ranking clients by spending"
+          :title="t('Ranking clients by spending')"
         />
         <div v-else-if="pyramidClients.length === 0" class="text-center text-medium-emphasis pa-8">
-          No spending data yet.
+          {{ t('No spending data yet.') }}
         </div>
         <div v-else class="pyramid">
           <div v-for="(row, ri) in pyramidRows" :key="ri" class="pyramid-row">
@@ -69,7 +69,7 @@
     <div class="d-flex flex-column rest-card">
       <v-card-title class="d-flex flex-wrap align-center justify-space-between ga-2">
         <div class="d-flex align-center ga-2">
-          All Clients
+          {{ t('All Clients') }}
           <span class="text-caption text-medium-emphasis">{{ restTotal }}</span>
         </div>
         <v-text-field
@@ -77,7 +77,7 @@
           clearable
           density="compact"
           hide-details
-          label="Search name or phone"
+          :label="t('Search name or phone')"
           prepend-inner-icon="mdi-magnify"
           style="max-width: 280px"
           variant="outlined"
@@ -110,7 +110,7 @@
             <div class="client-row-main">
               <div class="d-flex align-center ga-2">
                 <span class="text-body-2 font-weight-medium text-truncate">{{ item.name }}</span>
-                <v-chip v-if="item.is_active === false" size="x-small" variant="tonal">Inactive</v-chip>
+                <v-chip v-if="item.is_active === false" size="x-small" variant="tonal">{{ t('Inactive') }}</v-chip>
               </div>
               <div class="text-caption text-medium-emphasis text-truncate d-flex align-center ga-1">
                 <v-icon
@@ -118,7 +118,7 @@
                   color="error"
                   icon="mdi-phone-alert"
                   size="14"
-                  title="Not a recognizable phone number"
+                  :title="t('Not a recognizable phone number')"
                 />
                 <span v-else-if="countryFlag(item.phone_country)">{{ countryFlag(item.phone_country) }}</span>
                 {{ item.phone || '—' }}
@@ -128,7 +128,7 @@
             <div class="client-row-metrics text-end flex-shrink-0">
               <div class="text-body-2 font-weight-medium">${{ formatMoney(item.total_spent) }}</div>
               <div class="text-caption text-medium-emphasis">
-                {{ item.invoice_count }} inv · {{ item.item_count }} items
+                {{ t('{invoices} inv, {items} items', { invoices: item.invoice_count, items: item.item_count }) }}
               </div>
             </div>
 
@@ -141,20 +141,20 @@
         v-if="restLoading && restItems.length === 0"
         class="flex-grow-1 d-flex align-center justify-center"
       >
-        <PreparingState kind="people" :size="34" title="Loading" />
+        <PreparingState kind="people" :size="34" :title="t('Loading')" />
       </div>
       <div
         v-else-if="!restLoading && restItems.length === 0"
         class="flex-grow-1 d-flex align-center justify-center text-medium-emphasis text-body-2"
       >
-        {{ search ? 'No clients match your search.' : 'No clients yet.' }}
+        {{ search ? t('No clients match your search.') : t('No clients yet.') }}
       </div>
       <div
         v-else-if="restLoading && restItems.length > 0"
         class="rest-more-loader d-flex align-center justify-center ga-2 py-2 text-caption text-medium-emphasis"
       >
-        <PreparingState kind="people" :size="24" title="Loading" />
-        Loading more…
+        <PreparingState kind="people" :size="24" :title="t('Loading')" />
+        {{ t('Loading more…') }}
       </div>
     </div>
 
@@ -168,7 +168,7 @@
             <div class="text-subtitle-1 font-weight-medium text-truncate">{{ detailClient.name }}</div>
             <div class="d-flex align-center ga-1 mt-1">
               <TierChip size="x-small" :spent="detailClient.total_spent" />
-              <v-chip v-if="detailClient.is_active === false" size="x-small" variant="tonal">Inactive</v-chip>
+              <v-chip v-if="detailClient.is_active === false" size="x-small" variant="tonal">{{ t('Inactive') }}</v-chip>
             </div>
           </div>
           <v-icon-btn icon="mdi-close" variant="text" @click="detailOpen = false" />
@@ -179,21 +179,21 @@
         <div class="pa-4 d-flex flex-column ga-3">
           <div class="d-flex ga-2">
             <v-sheet class="detail-stat pa-3 rounded" color="surface-light">
-              <div class="text-caption text-medium-emphasis">Total spent</div>
+              <div class="text-caption text-medium-emphasis">{{ t('Total spent') }}</div>
               <div class="text-subtitle-1 font-weight-medium">${{ formatMoney(detailClient.total_spent) }}</div>
             </v-sheet>
             <v-sheet class="detail-stat pa-3 rounded" color="surface-light">
-              <div class="text-caption text-medium-emphasis">Invoices</div>
+              <div class="text-caption text-medium-emphasis">{{ t('Invoices') }}</div>
               <div class="text-subtitle-1 font-weight-medium">{{ detailClient.invoice_count }}</div>
             </v-sheet>
             <v-sheet class="detail-stat pa-3 rounded" color="surface-light">
-              <div class="text-caption text-medium-emphasis">Items</div>
+              <div class="text-caption text-medium-emphasis">{{ t('Items') }}</div>
               <div class="text-subtitle-1 font-weight-medium">{{ detailClient.item_count }}</div>
             </v-sheet>
           </div>
 
           <v-list class="pa-0" density="compact">
-            <v-list-item class="px-0" title="Phone">
+            <v-list-item class="px-0" :title="t('Phone')">
               <template #append>
                 <span class="text-body-2 d-flex align-center ga-1">
                   <v-icon
@@ -201,20 +201,20 @@
                     color="error"
                     icon="mdi-phone-alert"
                     size="14"
-                    title="Not a recognizable phone number"
+                    :title="t('Not a recognizable phone number')"
                   />
                   <span v-else-if="countryFlag(detailClient.phone_country)">{{ countryFlag(detailClient.phone_country) }}</span>
                   {{ detailClient.phone || '—' }}
                 </span>
               </template>
             </v-list-item>
-            <v-list-item class="px-0" title="Type">
+            <v-list-item class="px-0" :title="t('Type')">
               <template #append><span class="text-body-2 text-capitalize">{{ detailClient.client_type }}</span></template>
             </v-list-item>
-            <v-list-item class="px-0" title="Loyalty points">
+            <v-list-item class="px-0" :title="t('Loyalty points')">
               <template #append><span class="text-body-2">{{ detailClient.valid_loyalty_points }}</span></template>
             </v-list-item>
-            <v-list-item class="px-0" title="Member since">
+            <v-list-item class="px-0" :title="t('Member since')">
               <template #append><span class="text-body-2">{{ formatDate(detailClient.created_at) }}</span></template>
             </v-list-item>
           </v-list>
@@ -225,7 +225,7 @@
             :to="`/clients/${detailClient.id}`"
             variant="tonal"
           >
-            Open full profile
+            {{ t('Open full profile') }}
           </v-btn>
           <div v-if="canEdit" class="d-flex ga-2">
             <v-btn
@@ -234,7 +234,7 @@
               variant="outlined"
               @click="$emit('edit', detailClient); detailOpen = false"
             >
-              Edit
+              {{ t('Edit') }}
             </v-btn>
             <v-btn
               v-if="detailClient.is_active === false"
@@ -243,7 +243,7 @@
               variant="outlined"
               @click="$emit('reactivate', detailClient); detailOpen = false"
             >
-              Reactivate
+              {{ t('Reactivate') }}
             </v-btn>
             <v-btn
               v-else
@@ -253,7 +253,7 @@
               variant="outlined"
               @click="$emit('delete', detailClient); detailOpen = false"
             >
-              Delete
+              {{ t('Delete') }}
             </v-btn>
           </div>
         </div>
@@ -263,40 +263,40 @@
     <v-dialog v-model="tiersDialog" max-width="600">
       <v-card>
         <v-card-title class="d-flex align-center justify-space-between">
-          Spend Tiers
+          {{ t('Spend Tiers') }}
           <v-icon-btn icon="mdi-close" variant="text" @click="tiersDialog = false" />
         </v-card-title>
         <v-card-text>
           <p class="text-caption text-medium-emphasis mb-4">
-            A client's tier is the highest one whose minimum they clear. Shared across the Retail and Wholesale tabs.
+            {{ t("A client's tier is the highest one whose minimum they clear. Shared across the Retail and Wholesale tabs.") }}
           </p>
-          <div v-for="t in tiers" :key="t.id" class="d-flex align-center ga-3 mb-3">
-            <input v-model="t.color" class="tier-color-input" type="color">
+          <div v-for="tier in tiers" :key="tier.id" class="d-flex align-center ga-3 mb-3">
+            <input v-model="tier.color" class="tier-color-input" type="color">
             <v-text-field
-              v-model="t.label"
+              v-model="tier.label"
               density="compact"
               hide-details
-              label="Name"
+              :label="t('Name')"
               style="max-width: 160px"
             />
             <v-text-field
-              v-model.number="t.minAmount"
+              v-model.number="tier.minAmount"
               density="compact"
               hide-details
-              label="Min spend"
+              :label="t('Min spend')"
               prefix="$"
               style="max-width: 130px"
               type="number"
             />
             <v-spacer />
-            <v-icon-btn color="error" icon="mdi-delete" variant="text" @click="removeTier(t.id)" />
+            <v-icon-btn color="error" icon="mdi-delete" variant="text" @click="removeTier(tier.id)" />
           </div>
-          <v-btn prepend-icon="mdi-plus" variant="tonal" @click="addTier">Add Tier</v-btn>
+          <v-btn prepend-icon="mdi-plus" variant="tonal" @click="addTier">{{ t('Add Tier') }}</v-btn>
         </v-card-text>
         <v-card-actions>
-          <v-btn text="Reset to Defaults" variant="text" @click="resetTiers" />
+          <v-btn :text="t('Reset to Defaults')" variant="text" @click="resetTiers" />
           <v-spacer />
-          <v-btn color="primary" text="Done" @click="tiersDialog = false" />
+          <v-btn color="primary" :text="t('Done')" @click="tiersDialog = false" />
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -305,6 +305,7 @@
 
 <script setup>
   import { computed, onMounted, ref, watch } from 'vue'
+  import { t } from '@/i18n'
   import TierChip from '@/components/Clients/TierChip.vue'
   import { useClientTiers } from '@/composables/useClientTiers'
   import { useNotify } from '@/composables/useNotify'
@@ -370,16 +371,16 @@
     return rows
   })
 
-  const sortOptions = [
-    { title: 'Most Spent', value: 'spending' },
-    { title: 'Most Invoices', value: 'invoices' },
-    { title: 'Most Items', value: 'items' },
-  ]
+  const sortOptions = computed(() => [
+    { title: t('Most Spent'), value: 'spending' },
+    { title: t('Most Invoices'), value: 'invoices' },
+    { title: t('Most Items'), value: 'items' },
+  ])
   const sortBy = ref('spending')
 
   function metricLabel (client) {
-    if (sortBy.value === 'invoices') return `${client.invoice_count} invoice${client.invoice_count === 1 ? '' : 's'}`
-    if (sortBy.value === 'items') return `${client.item_count} item${client.item_count === 1 ? '' : 's'}`
+    if (sortBy.value === 'invoices') return client.invoice_count === 1 ? t('1 invoice') : t('{n} invoices', { n: client.invoice_count })
+    if (sortBy.value === 'items') return client.item_count === 1 ? t('1 item') : t('{n} items', { n: client.item_count })
     return `$${formatMoney(client.total_spent)}`
   }
 

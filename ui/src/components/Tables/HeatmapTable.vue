@@ -10,7 +10,7 @@
               <YearStepper v-if="props.yearNav" v-model="selectedYear" />
             </th>
             <th v-for="month in months" :key="month">
-              {{ month }}
+              {{ t(month) }}
             </th>
           </tr>
         </thead>
@@ -37,7 +37,7 @@
         </tbody>
         <tfoot>
           <tr>
-            <td class="sticky-col day-col sticky-foot">Total</td>
+            <td class="sticky-col day-col sticky-foot">{{ t('Total') }}</td>
             <td
               v-for="(month, mi) in months"
               :key="month"
@@ -51,7 +51,7 @@
       </table>
     </div>
     <div v-if="loading" class="heatmap-loader">
-      <PreparingState kind="chart" min-height="160px" title="Loading" />
+      <PreparingState kind="chart" min-height="160px" :title="t('Loading')" />
     </div>
   </div>
 </template>
@@ -63,6 +63,7 @@
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useDailyIncome } from '@/composables/useDailyIncome'
   import { useIncomeFilters } from '@/pages/dashboard/composables/useIncomeFilters'
+  import { t } from '@/i18n'
 
   const months = [
     'Jan',
@@ -293,11 +294,11 @@
   }
 
   function cellStyle (v) {
-    const t = (v - min.value) / (max.value - min.value || 1)
-    const alpha = 0.08 + t * 0.85
+    const ratio = (v - min.value) / (max.value - min.value || 1)
+    const alpha = 0.08 + ratio * 0.85
     return {
       backgroundColor: `rgba(var(--v-theme-primary), ${alpha})`,
-      color: t > 0.55 ? '#fff' : 'inherit',
+      color: ratio > 0.55 ? '#fff' : 'inherit',
     }
   }
 </script>

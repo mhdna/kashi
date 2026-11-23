@@ -49,7 +49,7 @@
             density="compact"
             type="info"
             variant="tonal"
-          >{{ t('Showing figures for') }}<strong>{{ selectedLocation.name }}</strong> only. Clear the location filter for company-wide totals.
+          >{{ t('Showing figures for') }}<strong>{{ selectedLocation.name }}</strong> {{ t('only. Clear the location filter for company-wide totals.') }}
           </v-alert>
 
           <v-row dense>
@@ -71,7 +71,7 @@
             <v-col cols="12" md="6">
               <v-card class="chart-card" variant="flat">
                 <div class="chart-card__title">{{ t('Days of inventory by location') }}</div>
-                <div class="chart-card__subtitle">Lower is faster-moving; locations with no sales in 30 days aren't shown</div>
+                <div class="chart-card__subtitle">{{ t("Lower is faster-moving; locations with no sales in 30 days aren't shown") }}</div>
                 <v-chart autoresize class="chart" :option="daysByLocationOption" />
               </v-card>
             </v-col>
@@ -127,7 +127,7 @@
       <v-window-item value="low-stock">
         <v-container class="pa-4 pt-2" fluid>
           <div class="text-caption text-medium-emphasis mb-2">
-            Total on-hand across every location, company-wide — not filterable by branch.
+            {{ t('Total on-hand across every location, company-wide — not filterable by branch.') }}
           </div>
           <v-row dense>
             <v-col cols="6" md="3">
@@ -193,7 +193,7 @@
       <v-window-item value="slow-movers">
         <v-container class="pa-4 pt-2" fluid>
           <div class="text-caption text-medium-emphasis mb-2">
-            Carrying stock company-wide — not filterable by branch.
+            {{ t('Carrying stock company-wide — not filterable by branch.') }}
           </div>
           <v-row dense>
             <v-col cols="6" md="3">
@@ -205,7 +205,7 @@
             <v-col cols="6" md="3">
               <v-card class="pa-3 d-flex flex-column justify-center fill-height" variant="tonal">
                 <div class="text-h6 font-weight-medium">{{ (overview?.overstocked_count ?? 0).toLocaleString() }}</div>
-                <div class="text-caption text-medium-emphasis mt-1">Overstocked (&gt;90 days supply)</div>
+                <div class="text-caption text-medium-emphasis mt-1">{{ t('Overstocked (>90 days supply)') }}</div>
               </v-card>
             </v-col>
           </v-row>
@@ -365,7 +365,7 @@
   })
 
   const statusColor = computed(() => ({ healthy: 'success', warning: 'warning', critical: 'error' }[overview.value?.status] || 'grey'))
-  const statusLabel = computed(() => ({ healthy: 'Healthy', warning: 'Needs Attention', critical: 'Critical' }[overview.value?.status] || '—'))
+  const statusLabel = computed(() => ({ healthy: t('Healthy'), warning: t('Needs Attention'), critical: t('Critical') }[overview.value?.status] || '—'))
 
   const locationOptions = computed(() =>
     locations.value
@@ -460,14 +460,14 @@
       ? locations.value
       : locations.value.filter(l => l.type === locationTypeFilter.value),
   )
-  const locationHeaders = [
+  const locationHeaders = computed(() => [
     { title: t('Location'), key: 'name' },
     { title: t('Type'), key: 'type' },
     { title: t('Units on hand'), key: 'total_units', align: 'end' },
     { title: t('Inventory value'), key: 'inventory_value', align: 'end' },
     { title: t('Sold (30d)'), key: 'units_sold_30d', align: 'end' },
     { title: t('Days of inventory'), key: 'days_of_inventory', align: 'end' },
-  ]
+  ])
 
   // --- Low stock -----------------------------------------------------------
   const lowStockApiURL = `${API_BASE}/low_stock`
@@ -478,25 +478,25 @@
   async function loadLowStockSummary () {
     lowStockSummary.value = await fetchLowStockSummary().catch(() => null)
   }
-  const lowStockHeaders = [
+  const lowStockHeaders = computed(() => [
     { title: t('Product'), key: 'name' },
     { title: t('Code'), key: 'code' },
     { title: t('On hand'), key: 'on_hand', align: 'end' },
     { title: t('Threshold'), key: 'effective_threshold', align: 'end' },
-  ]
+  ])
 
   // --- Slow movers -----------------------------------------------------------
   const slowMoversApiURL = `${API_BASE}/stock_health/slow_movers`
   const slowMoverCategoryFilter = ref('')
   const slowMoverSearch = ref('')
-  const slowMoverHeaders = [
+  const slowMoverHeaders = computed(() => [
     { title: t('Product'), key: 'name' },
     { title: t('Code'), key: 'code' },
     { title: t('On hand'), key: 'on_hand', align: 'end' },
     { title: t('Sold (90d)'), key: 'units_sold_90d', align: 'end' },
     { title: t('Days of inventory'), key: 'days_of_inventory', align: 'end' },
     { title: t('Category'), key: 'category' },
-  ]
+  ])
 
   // --- Movements -----------------------------------------------------------
   const movementsApiURL = `${API_BASE}/stock_movements`
@@ -510,7 +510,7 @@
     from_date: movementFromDate.value ? `${movementFromDate.value}T00:00:00Z` : null,
     to_date: movementToDate.value ? `${movementToDate.value}T23:59:59Z` : null,
   }))
-  const movementHeaders = [
+  const movementHeaders = computed(() => [
     { title: t('Date'), key: 'created_at' },
     { title: t('Location'), key: 'inventory_name' },
     { title: t('Product'), key: 'variant' },
@@ -518,7 +518,7 @@
     { title: t('Qty'), key: 'quantity', align: 'end' },
     { title: t('Before → After'), key: 'change' },
     { title: t('Note'), key: 'note' },
-  ]
+  ])
 </script>
 
 <style scoped>

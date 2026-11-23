@@ -3,11 +3,11 @@
     <v-card class="alerts-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-alert-circle-outline" />
-        <span>Alerts</span>
+        <span>{{ t('Alerts') }}</span>
         <v-chip-group v-model="viewIndex" class="ms-2" mandatory selected-class="text-primary">
-          <v-chip filter size="small" variant="tonal">Active</v-chip>
+          <v-chip filter size="small" variant="tonal">{{ t('Active') }}</v-chip>
           <v-chip filter size="small" variant="tonal">
-            Ignored
+            {{ t('Ignored') }}
             <v-badge
               v-if="ignoredCount"
               class="ml-2"
@@ -24,7 +24,7 @@
           variant="text"
           @click="defaultDialog = true"
         >
-          Default threshold: {{ defaultThresholdSaved ?? '—' }}
+          {{ t('Default threshold: {n}', { n: defaultThresholdSaved ?? '—' }) }}
         </v-btn>
       </v-card-title>
       <v-divider />
@@ -40,11 +40,11 @@
                 <AlertList
                   ref="outListRef"
                   color="error"
-                  empty-text="Nothing is out of stock."
+                  :empty-text="t('Nothing is out of stock.')"
                   :endpoint="activeURL"
                   icon="mdi-close-circle"
                   status="out_of_stock"
-                  title="Out of Stock"
+                  :title="t('Out of Stock')"
                   @select="item => openEdit(item, false)"
                 />
               </v-col>
@@ -52,11 +52,11 @@
                 <AlertList
                   ref="lowListRef"
                   color="warning"
-                  empty-text="Nothing is running low."
+                  :empty-text="t('Nothing is running low.')"
                   :endpoint="activeURL"
                   icon="mdi-alert"
                   status="low_stock"
-                  title="Low Stock"
+                  :title="t('Low Stock')"
                   @select="item => openEdit(item, false)"
                 />
               </v-col>
@@ -65,10 +65,10 @@
               <AlertList
                 ref="ignoredListRef"
                 color="grey"
-                empty-text="No ignored products."
+                :empty-text="t('No ignored products.')"
                 :endpoint="ignoredURL"
                 icon="mdi-bell-off-outline"
-                title="Ignored Products"
+                :title="t('Ignored Products')"
                 @select="item => openEdit(item, true)"
               />
             </v-col>
@@ -80,18 +80,18 @@
     <v-dialog v-model="defaultDialog" max-width="380">
       <v-card>
         <v-card-title class="d-flex align-center justify-space-between ga-2">
-          Default low-stock threshold
+          {{ t('Default low-stock threshold') }}
           <v-icon-btn icon="mdi-close" variant="text" @click="defaultDialog = false" />
         </v-card-title>
         <v-card-text>
           <p class="text-caption text-medium-emphasis mb-4">
-            Applied to every product that has no threshold of its own.
+            {{ t('Applied to every product that has no threshold of its own.') }}
           </p>
           <v-text-field
             v-model.number="defaultThresholdInput"
             density="compact"
             hide-details
-            label="Threshold"
+            :label="t('Threshold')"
             min="0"
             type="number"
             variant="outlined"
@@ -100,12 +100,12 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="defaultDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="defaultDialog = false" />
           <v-btn
             color="primary"
             :disabled="!defaultThresholdDirty"
             :loading="savingDefault"
-            text="Save"
+            :text="t('Save')"
             @click="saveDefaultThreshold"
           />
         </v-card-actions>
@@ -120,28 +120,29 @@
         </v-card-title>
         <v-card-text>
           <div class="text-caption text-medium-emphasis mb-4">
-            {{ editItem.code }} · On hand: {{ editItem.on_hand }}
+            {{ editItem.code }}
+            <span class="ms-2">{{ t('On hand: {n}', { n: editItem.on_hand }) }}</span>
           </div>
           <v-text-field
             v-model.number="editThreshold"
             density="compact"
             hide-details
-            label="Low-stock threshold"
+            :label="t('Low-stock threshold')"
             min="0"
             type="number"
             variant="outlined"
           />
           <div class="text-caption text-medium-emphasis mt-2">
             {{ editHasOverride
-              ? 'Custom threshold set for this product.'
-              : `Currently using the default (${defaultThresholdSaved ?? '—'}).` }}
+              ? t('Custom threshold set for this product.')
+              : t('Currently using the default ({n}).', { n: defaultThresholdSaved ?? '—' }) }}
           </div>
         </v-card-text>
         <v-card-actions>
           <v-btn
             v-if="editHasOverride"
             :loading="editSaving"
-            text="Reset to default"
+            :text="t('Reset to default')"
             variant="text"
             @click="resetEditThreshold"
           />
@@ -149,11 +150,11 @@
           <v-btn
             :loading="editMuting"
             :prepend-icon="editMuted ? 'mdi-bell-outline' : 'mdi-bell-off-outline'"
-            :text="editMuted ? 'Resume alerts' : 'Mute alerts'"
+            :text="editMuted ? t('Resume alerts') : t('Mute alerts')"
             variant="tonal"
             @click="toggleEditMute"
           />
-          <v-btn color="primary" :loading="editSaving" text="Save" @click="saveEditThreshold" />
+          <v-btn color="primary" :loading="editSaving" :text="t('Save')" @click="saveEditThreshold" />
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -163,6 +164,7 @@
 <script setup lang="ts">
   import { computed, onMounted, ref } from 'vue'
   import AlertList from '@/components/Alerts/AlertList.vue'
+  import { t } from '@/i18n'
   import { useAppSettings } from '@/composables/useAppSettings'
   import { useLowStockAlerts } from '@/composables/useLowStockAlerts'
   import { usePageAccess } from '@/composables/usePageAccess'

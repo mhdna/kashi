@@ -3,7 +3,7 @@
     <v-card class="cp-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-cash-multiple" />
-        <span>Currencies &amp; Payment Methods</span>
+        <span>{{ t('Currencies & Payment Methods') }}</span>
         <v-spacer />
         <v-text-field
           v-if="tab === 'currencies'"
@@ -167,7 +167,7 @@
     <!-- add / edit currency -->
     <v-dialog v-model="currencyDialog" max-width="480">
       <v-card class="px-4">
-        <v-card-title>{{ editingCode ? 'Edit Currency' : 'Add a New Currency' }}</v-card-title>
+        <v-card-title>{{ editingCode ? t('Edit Currency') : t('Add a New Currency') }}</v-card-title>
         <v-card-text>
           <v-text-field
             v-model="currencyForm.code"
@@ -197,8 +197,8 @@
             density="compact"
             :disabled="editingIsDefault"
             :hint="editingIsDefault
-              ? 'The default currency is the accounting anchor; its rate is fixed.'
-              : 'e.g. 90000 for LBP, 0.92 for EUR'"
+              ? t('The default currency is the accounting anchor; its rate is fixed.')
+              : t('e.g. 90000 for LBP, 0.92 for EUR')"
             :label="t('Units per 1 USD')"
             persistent-hint
             type="number"
@@ -230,7 +230,7 @@
           <v-btn
             color="primary"
             :loading="currencySaving"
-            :text="editingCode ? 'Save' : 'Add Currency'"
+            :text="editingCode ? t('Save') : t('Add Currency')"
             variant="flat"
             @click="saveCurrency"
           />
@@ -285,7 +285,7 @@
       <v-card>
         <v-card-title class="d-flex align-center ga-2 px-4 py-3 text-h6">
           <v-icon icon="mdi-credit-card-outline" size="22" />
-          <span>{{ editingMethodId ? 'Edit Payment Method' : 'Add Payment Method' }}</span>
+          <span>{{ editingMethodId ? t('Edit Payment Method') : t('Add Payment Method') }}</span>
           <v-spacer />
           <v-btn icon="mdi-close" size="small" variant="text" @click="methodDialog = false" />
         </v-card-title>
@@ -337,7 +337,7 @@
           <v-btn
             color="primary"
             :loading="methodSaving"
-            :text="editingMethodId ? 'Save' : 'Add'"
+            :text="editingMethodId ? t('Save') : t('Add')"
             variant="flat"
             @click="saveMethod"
           />
@@ -407,7 +407,7 @@
   watch(currencySearch, () => { currencyPage.value = 1 })
   watch(methodSearch, () => { methodPage.value = 1 })
 
-  const currencyHeaders = [
+  const currencyHeaders = computed(() => [
     { title: t('Code'), key: 'code', align: 'start' },
     { title: t('Name'), key: 'name', align: 'start' },
     { title: t('Symbol'), key: 'symbol', align: 'start' },
@@ -416,9 +416,9 @@
     { title: t('Cash rounding'), key: 'cash_rounding_unit', align: 'end' },
     { title: '', key: 'is_default', align: 'center', sortable: false },
     { title: t('Active'), key: 'is_active', align: 'center', sortable: false },
-  ]
+  ])
 
-  const methodHeaders = [
+  const methodHeaders = computed(() => [
     { title: t('Name'), key: 'name', align: 'start' },
     { title: t('Currency'), key: 'currency_code', align: 'start' },
     { title: t('Color'), key: 'color', align: 'start' },
@@ -426,7 +426,7 @@
     { title: '', key: 'reserved', align: 'center', sortable: false },
     { title: t('Active'), key: 'is_active', align: 'center', sortable: false },
     { title: '', key: 'actions', align: 'end', sortable: false },
-  ]
+  ])
 
   // "On Account" / "On Coupon" are internal bookkeeping tenders in kashi-pos
   // and can't be edited there, so flag them read-only here too.
@@ -533,19 +533,19 @@
 
   async function saveCurrency () {
     if (!editingCode.value && (currencyForm.code ?? '').trim().length < 2) {
-      notify.error('Code is required.')
+      notify.error(t('Code is required.'))
       return
     }
     if ((currencyForm.name ?? '').trim().length < 2) {
-      notify.error('Name needs to be at least 2 characters.')
+      notify.error(t('Name needs to be at least 2 characters.'))
       return
     }
     if (!(currencyForm.symbol ?? '').trim()) {
-      notify.error('Symbol is required.')
+      notify.error(t('Symbol is required.'))
       return
     }
     if (!(Number(currencyForm.valueInDefaultCurrency) > 0)) {
-      notify.error('Value in default currency must be greater than 0.')
+      notify.error(t('Value in default currency must be greater than 0.'))
       return
     }
     // The default currency's rate is the anchor everything else is expressed
@@ -554,11 +554,11 @@
     const cashRoundingUnit = Number(currencyForm.cashRoundingUnit)
     if (!editingIsDefault.value) {
       if (!(unitsPerUsdMicros > 0)) {
-        notify.error('Units per 1 USD must be greater than 0.')
+        notify.error(t('Units per 1 USD must be greater than 0.'))
         return
       }
       if (!Number.isInteger(cashRoundingUnit) || cashRoundingUnit < 1) {
-        notify.error('Cash rounding unit must be a whole number of 1 or more.')
+        notify.error(t('Cash rounding unit must be a whole number of 1 or more.'))
         return
       }
     }
@@ -698,12 +698,12 @@
 
   async function saveMethod () {
     if (!(methodForm.name ?? '').trim()) {
-      notify.error('Name is required.')
+      notify.error(t('Name is required.'))
       return
     }
     const color = normalizeHex(methodForm.color)
     if (color && !isValidHex(color)) {
-      notify.error('Accent color must be a valid hex value.')
+      notify.error(t('Accent color must be a valid hex value.'))
       return
     }
     methodSaving.value = true

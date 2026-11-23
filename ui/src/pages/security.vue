@@ -2,13 +2,13 @@
   <div class="security pa-4">
     <div class="d-flex align-center flex-wrap ga-2 mb-1">
       <v-icon icon="mdi-shield-lock-outline" />
-      <div class="text-h6 font-weight-medium">Security</div>
-      <PreparingState v-if="loading" kind="data" :size="25" title="Loading" />
+      <div class="text-h6 font-weight-medium">{{ t('Security') }}</div>
+      <PreparingState v-if="loading" kind="data" :size="25" :title="t('Loading')" />
       <v-spacer />
-      <v-btn prepend-icon="mdi-refresh" variant="text" @click="refreshAll">Refresh</v-btn>
+      <v-btn prepend-icon="mdi-refresh" variant="text" @click="refreshAll">{{ t('Refresh') }}</v-btn>
     </div>
     <div v-if="overview" class="text-body-2 text-medium-emphasis mb-4">
-      You're on <b>{{ overview.my_ip }}</b>
+      {{ t("You're on") }} <b>{{ overview.my_ip }}</b>
       <template v-if="overview.my_location?.country">
         · {{ flag(overview.my_location.country_code) }} {{ place(overview.my_location) }}
         <span v-if="overview.my_location.network">· {{ overview.my_location.network }}</span>
@@ -22,8 +22,8 @@
       type="info"
       variant="tonal"
     >
-      The server is still downloading the IP location database (it fetches it on start, then monthly).
-      Until it's there, locations show as unknown and the country filter lets everyone through.
+      {{ t('The server is still downloading the IP location database (it fetches it on start, then monthly).') }}
+      {{ t("Until it's there, locations show as unknown and the country filter lets everyone through.") }}
     </v-alert>
 
     <div class="top-grid mb-4">
@@ -31,9 +31,9 @@
       <v-card class="section" variant="flat">
         <div class="d-flex align-center ga-2 mb-2">
           <v-icon color="warning" icon="mdi-shield-alert-outline" size="20" />
-          <div class="section__title">Alerts</div>
+          <div class="section__title">{{ t('Alerts') }}</div>
           <v-chip v-if="overview?.open_alerts" color="warning" size="x-small" variant="flat">
-            {{ overview.open_alerts }} new
+            {{ t('{n} new', { n: overview.open_alerts }) }}
           </v-chip>
           <v-spacer />
           <v-btn
@@ -43,14 +43,14 @@
             variant="text"
             @click="acknowledge([])"
           >
-            Mark all seen
+            {{ t('Mark all seen') }}
           </v-btn>
           <v-btn size="small" variant="text" @click="showSeen = !showSeen">
-            {{ showSeen ? 'Hide seen' : 'Show seen' }}
+            {{ showSeen ? t('Hide seen') : t('Show seen') }}
           </v-btn>
         </div>
         <div v-if="shownAlerts.length === 0" class="text-body-2 text-medium-emphasis py-6 text-center">
-          {{ showSeen ? 'No alerts yet.' : 'Nothing new. 👍' }}
+          {{ showSeen ? t('No alerts yet.') : t('Nothing new.') }} 👍
         </div>
         <v-list v-else class="alert-list pa-0" density="compact">
           <v-list-item
@@ -71,16 +71,16 @@
                 size="x-small"
                 variant="flat"
               >
-                {{ severityOf(a).label }}
+                {{ severityOf(a).label() }}
               </v-chip>
-              <b>{{ ALERT_KINDS[a.kind]?.label ?? a.kind }}</b>
+              <b>{{ ALERT_KINDS[a.kind] ? ALERT_KINDS[a.kind].label() : a.kind }}</b>
               <span v-if="a.count > 1" class="text-medium-emphasis"> ×{{ a.count }}</span>
               — {{ a.detail }}
             </v-list-item-title>
             <v-list-item-subtitle class="text-caption">
               {{ flag(a.country_code) }} {{ a.ip }} · {{ ago(a.last_at) }}
               <template v-if="a.acknowledged_at && a.acknowledged_by">
-                · {{ a.severity === 'critical' ? 'resolved' : 'seen' }} by {{ a.acknowledged_by }}
+                · {{ a.severity === 'critical' ? t('resolved') : t('seen') }} {{ t('by') }} {{ a.acknowledged_by }}
               </template>
             </v-list-item-subtitle>
             <template #append>
@@ -93,7 +93,7 @@
                     variant="text"
                     @click="openBan(a.ip)"
                   >
-                    Ban
+                    {{ t('Ban') }}
                   </v-btn>
                   <v-btn
                     v-if="a.pinned"
@@ -103,11 +103,11 @@
                     variant="tonal"
                     @click="acknowledge([a.id])"
                   >
-                    Resolve
+                    {{ t('Resolve') }}
                   </v-btn>
                   <v-btn
                     v-else-if="!a.acknowledged_at"
-                    aria-label="Mark seen"
+                    :aria-label="t('Mark seen')"
                     icon="mdi-check"
                     size="x-small"
                     variant="text"
@@ -116,7 +116,7 @@
                 </template>
                 <v-icon
                   v-if="a.pinned"
-                  aria-label="Pinned until resolved"
+                  :aria-label="t('Pinned until resolved')"
                   color="error"
                   icon="mdi-pin"
                   size="18"
@@ -131,24 +131,24 @@
       <v-card class="section" variant="flat">
         <div class="d-flex align-center ga-2 mb-2">
           <v-icon icon="mdi-earth" size="20" />
-          <div class="section__title">Where visitors are</div>
+          <div class="section__title">{{ t('Where visitors are') }}</div>
         </div>
-        <div v-if="countries.length === 0" class="text-body-2 text-medium-emphasis py-6 text-center">No visitors recorded yet.</div>
+        <div v-if="countries.length === 0" class="text-body-2 text-medium-emphasis py-6 text-center">{{ t('No visitors recorded yet.') }}</div>
         <div v-for="c in countries" :key="c.country_code" class="country-row" @click="filterCountry(c.country_code)">
           <span class="country-row__name">
-            {{ flag(c.country_code) }} {{ c.country || 'Unknown' }}
+            {{ flag(c.country_code) }} {{ c.country || t('Unknown') }}
             <v-icon
               v-if="c.country_code && !allowedSet.has(c.country_code)"
               color="warning"
               icon="mdi-alert"
               size="14"
-              title="Not one of your allowed countries"
+              :title="t('Not one of your allowed countries')"
             />
           </span>
           <span class="country-row__bar"><span :style="{ width: barWidth(c.requests) }" /></span>
           <span class="country-row__num text-caption">
-            {{ c.ips }} IP{{ c.ips === 1 ? '' : 's' }} · {{ c.requests.toLocaleString() }}
-            <span v-if="c.blocked" class="text-error"> · {{ c.blocked }} refused</span>
+            {{ c.ips === 1 ? t('{n} IP', { n: c.ips }) : t('{n} IPs', { n: c.ips }) }} · {{ c.requests.toLocaleString() }}
+            <span v-if="c.blocked" class="text-error"> · {{ t('{n} refused', { n: c.blocked }) }}</span>
           </span>
         </div>
       </v-card>
@@ -158,7 +158,7 @@
     <v-card class="section mb-4" variant="flat">
       <div class="d-flex align-center flex-wrap ga-2 mb-2">
         <v-icon icon="mdi-web" size="20" />
-        <div class="section__title">Visitors</div>
+        <div class="section__title">{{ t('Visitors') }}</div>
         <span class="text-caption text-medium-emphasis">{{ visitorTotal.toLocaleString() }} IPs</span>
         <v-spacer />
         <v-chip
@@ -174,7 +174,7 @@
           clearable
           density="compact"
           hide-details
-          placeholder="IP, city, network, user…"
+          :placeholder="t('IP, city, network, user…')"
           prepend-inner-icon="mdi-magnify"
           style="max-width: 280px"
           variant="outlined"
@@ -200,11 +200,11 @@
             color="error"
             size="x-small"
             variant="flat"
-          >banned</v-chip>
+          >{{ t('banned') }}</v-chip>
         </template>
         <template #item.place="{ item }">
           <span :class="{ 'text-warning': item.country_code && !allowedSet.has(item.country_code) }">
-            {{ flag(item.country_code) }} {{ place(item) || 'Unknown' }}
+            {{ flag(item.country_code) }} {{ place(item) || t('Unknown') }}
           </span>
         </template>
         <template #item.who="{ item }">
@@ -228,7 +228,7 @@
             variant="text"
             @click="unban(item.ip)"
           >
-            Unban
+            {{ t('Unban') }}
           </v-btn>
           <v-btn
             v-else-if="item.ip !== overview?.my_ip"
@@ -237,18 +237,18 @@
             variant="text"
             @click="openBan(item.ip)"
           >
-            Ban
+            {{ t('Ban') }}
           </v-btn>
         </template>
         <template #expanded-row="{ columns, item }">
           <tr>
             <td class="py-2 text-caption" :colspan="columns.length">
-              <div><b>Network:</b> {{ item.network || '—' }}<span v-if="item.asn"> (AS{{ item.asn }})</span></div>
-              <div><b>Last request:</b> {{ item.last_method }} {{ item.last_path }} → {{ item.last_status }}</div>
-              <div><b>Browser:</b> {{ item.user_agent || '—' }}</div>
+              <div><b>{{ t('Network:') }}</b> {{ item.network || '—' }}<span v-if="item.asn"> (AS{{ item.asn }})</span></div>
+              <div><b>{{ t('Last request:') }}</b> {{ item.last_method }} {{ item.last_path }} → {{ item.last_status }}</div>
+              <div><b>{{ t('Browser:') }}</b> {{ item.user_agent || '—' }}</div>
               <div>
-                <b>First seen:</b> {{ new Date(item.first_seen_at).toLocaleString() }} ·
-                <b>sign-ins:</b> {{ item.logins }} · <b>not found:</b> {{ item.not_found }}
+                <b>{{ t('First seen:') }}</b> {{ new Date(item.first_seen_at).toLocaleString() }} ·
+                <b>{{ t('sign-ins:') }}</b> {{ item.logins }} · <b>{{ t('not found:') }}</b> {{ item.not_found }}
               </div>
             </td>
           </tr>
@@ -259,7 +259,7 @@
     <div class="top-grid">
       <!-- Settings -->
       <v-card class="section" variant="flat">
-        <div class="section__title mb-3">Protection</div>
+        <div class="section__title mb-3">{{ t('Protection') }}</div>
         <v-switch
           v-model="draft.country_filter_enabled"
           color="primary"
@@ -267,11 +267,10 @@
           :disabled="!canEdit"
           hide-details
           inset
-          label="Only allow these countries"
+          :label="t('Only allow these countries')"
         />
         <div class="text-caption text-medium-emphasis mb-2">
-          Everyone else gets "access denied" from the API, so they can't sign in or read anything. Tills keep
-          syncing regardless, and the server refuses a setting that would block you.
+          {{ t(`Everyone else gets "access denied" from the API, so they can't sign in or read anything. Tills keep syncing regardless, and the server refuses a setting that would block you.`) }}
         </div>
         <v-autocomplete
           v-model="draft.allowed_countries"
@@ -284,7 +283,7 @@
           :item-title="c => `${flag(c)} ${countryName(c)}`"
           :item-value="c => c"
           :items="COUNTRY_CODES"
-          label="Allowed countries"
+          :label="t('Allowed countries')"
           multiple
           variant="outlined"
         />
@@ -296,15 +295,15 @@
           density="compact"
           :disabled="!canEdit"
           hide-details
-          label="Always allow these IPs or ranges"
+          :label="t('Always allow these IPs or ranges')"
           multiple
-          placeholder="e.g. 198.51.100.7 or 198.51.100.0/24"
+          :placeholder="t('e.g. 198.51.100.7 or 198.51.100.0/24')"
           variant="outlined"
         />
         <div class="text-caption text-medium-emphasis mb-3">
-          For someone who must get in from abroad. Type an address and press Enter.
+          {{ t('For someone who must get in from abroad. Type an address and press Enter.') }}
           <a v-if="canEdit && overview && !draft.always_allowed.includes(overview.my_ip)" href="#" @click.prevent="draft.always_allowed.push(overview.my_ip)">
-            Add my IP
+            {{ t('Add my IP') }}
           </a>
         </div>
         <v-divider class="mb-3" />
@@ -315,7 +314,7 @@
           :disabled="!canEdit"
           hide-details
           inset
-          label="Ban an IP after repeated failed sign-ins"
+          :label="t('Ban an IP after repeated failed sign-ins')"
         />
         <div class="d-flex ga-3 mt-2 mb-3">
           <v-text-field
@@ -323,7 +322,7 @@
             density="compact"
             :disabled="!canEdit || !draft.auto_ban_enabled"
             hide-details
-            label="Failed sign-ins (15 min)"
+            :label="t('Failed sign-ins (15 min)')"
             min="3"
             type="number"
             variant="outlined"
@@ -333,7 +332,7 @@
             density="compact"
             :disabled="!canEdit || !draft.auto_ban_enabled"
             hide-details
-            label="Ban for (minutes)"
+            :label="t('Ban for (minutes)')"
             min="1"
             type="number"
             variant="outlined"
@@ -341,7 +340,7 @@
         </div>
         <div v-if="canEdit" class="d-flex">
           <v-spacer />
-          <v-btn color="primary" :disabled="!settingsDirty" :loading="saving" @click="saveSettings">Save</v-btn>
+          <v-btn color="primary" :disabled="!settingsDirty" :loading="saving" @click="saveSettings">{{ t('Save') }}</v-btn>
         </div>
       </v-card>
 
@@ -349,17 +348,17 @@
       <v-card class="section" variant="flat">
         <div class="d-flex align-center ga-2 mb-2">
           <v-icon icon="mdi-cancel" size="20" />
-          <div class="section__title">Banned IPs</div>
+          <div class="section__title">{{ t('Banned IPs') }}</div>
           <v-spacer />
-          <v-btn v-if="canEdit" size="small" variant="text" @click="openBan('')">Ban an IP</v-btn>
+          <v-btn v-if="canEdit" size="small" variant="text" @click="openBan('')">{{ t('Ban an IP') }}</v-btn>
         </div>
-        <div v-if="bans.length === 0" class="text-body-2 text-medium-emphasis py-6 text-center">No one is banned.</div>
+        <div v-if="bans.length === 0" class="text-body-2 text-medium-emphasis py-6 text-center">{{ t('No one is banned.') }}</div>
         <v-list v-else class="pa-0" density="compact">
           <v-list-item v-for="b in bans" :key="b.ip" class="px-1">
-            <v-list-item-title class="text-body-2"><b>{{ b.ip }}</b> — {{ b.reason || 'no reason given' }}</v-list-item-title>
+            <v-list-item-title class="text-body-2"><b>{{ b.ip }}</b> — {{ b.reason || t('no reason given') }}</v-list-item-title>
             <v-list-item-subtitle class="text-caption">
-              {{ b.until ? `until ${new Date(b.until).toLocaleString()}` : 'until lifted' }}
-              · by {{ b.created_by || '—' }}
+              {{ b.until ? t('until {date}', { date: new Date(b.until).toLocaleString() }) : t('until lifted') }}
+              · {{ t('by') }} {{ b.created_by || '—' }}
             </v-list-item-subtitle>
             <template v-if="canEdit" #append>
               <v-btn
@@ -368,7 +367,7 @@
                 variant="text"
                 @click="unban(b.ip)"
               >
-                Unban
+                {{ t('Unban') }}
               </v-btn>
             </template>
           </v-list-item>
@@ -377,19 +376,19 @@
     </div>
 
     <div class="text-caption text-disabled mt-4">
-      Counts every request that reaches the API (signing in, data, tills), not loads of the web app's own files.
+      {{ t("Counts every request that reaches the API (signing in, data, tills), not loads of the web app's own files.") }}
       <a href="https://db-ip.com" rel="noopener" target="_blank">IP Geolocation by DB-IP</a>.
     </div>
 
     <v-dialog v-model="banDialog" max-width="420">
-      <v-card title="Ban an IP">
+      <v-card :title="t('Ban an IP')">
         <v-card-text>
           <v-text-field
             v-model="banForm.ip"
             class="mb-3"
             density="compact"
             hide-details
-            label="IP address"
+            :label="t('IP address')"
             variant="outlined"
           />
           <v-text-field
@@ -397,22 +396,22 @@
             class="mb-3"
             density="compact"
             hide-details
-            label="Reason (optional)"
+            :label="t('Reason (optional)')"
             variant="outlined"
           />
           <v-select
             v-model="banForm.minutes"
             density="compact"
             hide-details
-            :items="BAN_LENGTHS"
-            label="For"
+            :items="banLengths"
+            :label="t('For')"
             variant="outlined"
           />
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="banDialog = false">Cancel</v-btn>
-          <v-btn color="error" :loading="banning" variant="flat" @click="ban">Ban</v-btn>
+          <v-btn variant="text" @click="banDialog = false">{{ t('Cancel') }}</v-btn>
+          <v-btn color="error" :loading="banning" variant="flat" @click="ban">{{ t('Ban') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -421,6 +420,7 @@
 
 <script setup>
   import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+  import { t, locale } from '@/i18n'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { authFetch } from '@/composables/useApi'
   import { useNotify } from '@/composables/useNotify'
@@ -436,39 +436,40 @@
   const notify = useNotify()
   const { canEdit } = usePageAccess()
 
+  // label is a function so the text follows the language toggle when read.
   const ALERT_KINDS = {
-    failed_logins: { label: 'Failed sign-ins', icon: 'mdi-account-outline', color: 'warning' },
-    auto_ban: { label: 'Banned automatically', icon: 'mdi-cancel', color: 'error' },
-    probe: { label: 'Probing', icon: 'mdi-magnify', color: 'error' },
-    login_abroad: { label: 'Sign-in from abroad', icon: 'mdi-earth', color: 'error' },
-    foreign_visit: { label: 'Visit from abroad', icon: 'mdi-earth', color: 'warning' },
-    blocked_country: { label: 'Refused (country)', icon: 'mdi-shield-lock-outline', color: 'info' },
+    failed_logins: { label: () => t('Failed sign-ins'), icon: 'mdi-account-outline', color: 'warning' },
+    auto_ban: { label: () => t('Banned automatically'), icon: 'mdi-cancel', color: 'error' },
+    probe: { label: () => t('Probing'), icon: 'mdi-magnify', color: 'error' },
+    login_abroad: { label: () => t('Sign-in from abroad'), icon: 'mdi-earth', color: 'error' },
+    foreign_visit: { label: () => t('Visit from abroad'), icon: 'mdi-earth', color: 'warning' },
+    blocked_country: { label: () => t('Refused (country)'), icon: 'mdi-shield-lock-outline', color: 'info' },
   }
   // Severity comes from the server (alertSeverities in api/security.go).
   // color is the chip's, bar the strip down the card's left edge.
   const SEVERITIES = {
-    critical: { label: 'Critical', color: 'error', bar: 'rgb(var(--v-theme-error))' },
-    high: { label: 'High', color: 'deep-orange', bar: '#ff5722' },
-    medium: { label: 'Medium', color: 'warning', bar: 'rgb(var(--v-theme-warning))' },
-    low: { label: 'Low', color: 'info', bar: 'rgb(var(--v-theme-info))' },
+    critical: { label: () => t('Critical'), color: 'error', bar: 'rgb(var(--v-theme-error))' },
+    high: { label: () => t('High'), color: 'deep-orange', bar: '#ff5722' },
+    medium: { label: () => t('Medium'), color: 'warning', bar: 'rgb(var(--v-theme-warning))' },
+    low: { label: () => t('Low'), color: 'info', bar: 'rgb(var(--v-theme-info))' },
   }
   function severityOf (a) {
     return SEVERITIES[a.severity] ?? SEVERITIES.medium
   }
   const KIND_COLORS = { admin: 'primary', till: 'success', public: 'grey' }
-  const BAN_LENGTHS = [
-    { title: '1 hour', value: 60 },
-    { title: '1 day', value: 1440 },
-    { title: '1 week', value: 10_080 },
-    { title: 'Until lifted', value: 0 },
-  ]
+  const banLengths = computed(() => [
+    { title: t('1 hour'), value: 60 },
+    { title: t('1 day'), value: 1440 },
+    { title: t('1 week'), value: 10_080 },
+    { title: t('Until lifted'), value: 0 },
+  ])
 
   // ISO 3166-1 alpha-2 codes; names come from the browser (Intl).
   const COUNTRY_CODES = 'AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW'.split(' ')
-  const regionNames = new Intl.DisplayNames(['en'], { type: 'region' })
+  const regionNames = computed(() => new Intl.DisplayNames([locale.value === 'fr' ? 'fr' : 'en'], { type: 'region' }))
   function countryName (code) {
     try {
-      return regionNames.of(code) ?? code
+      return regionNames.value.of(code) ?? code
     } catch {
       return code
     }
@@ -483,16 +484,16 @@
   }
   function ago (value) {
     const s = Math.max(0, (Date.now() - new Date(value)) / 1000)
-    if (s < 60) return 'just now'
-    if (s < 3600) return `${Math.floor(s / 60)}m ago`
-    if (s < 86_400) return `${Math.floor(s / 3600)}h ago`
-    return `${Math.floor(s / 86_400)}d ago`
+    if (s < 60) return t('just now')
+    if (s < 3600) return t('{n}m ago', { n: Math.floor(s / 60) })
+    if (s < 86_400) return t('{n}h ago', { n: Math.floor(s / 3600) })
+    return t('{n}d ago', { n: Math.floor(s / 86_400) })
   }
 
   async function request (path, options) {
     const res = await authFetch(`${API_BASE}${path}`, options)
     const body = await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(body.error || `Request failed (${res.status})`)
+    if (!res.ok) throw new Error(body.error || t('Request failed ({status})', { status: res.status }))
     return body
   }
 
@@ -582,7 +583,7 @@
       })
       overview.value = { ...overview.value, settings }
       resetDraft()
-      notify.success('Protection settings saved.')
+      notify.success(t('Protection settings saved.'))
     } catch (error) {
       notify.error(error.message)
     } finally {
@@ -624,17 +625,17 @@
   }
 
   // ---- Visitors -------------------------------------------------------------------
-  const visitorHeaders = [
-    { title: 'IP', key: 'ip', sortable: false },
-    { title: 'Location', key: 'place', sortable: false },
-    { title: 'Network', key: 'network', sortable: false },
-    { title: 'Who', key: 'who', sortable: false },
-    { title: 'Requests', key: 'requests', sortable: false, align: 'end' },
-    { title: 'Failed sign-ins', key: 'failed_logins', sortable: false, align: 'end' },
-    { title: 'Refused', key: 'blocked', sortable: false, align: 'end' },
-    { title: 'Last seen', key: 'last_seen_at', sortable: false },
+  const visitorHeaders = computed(() => [
+    { title: t('IP'), key: 'ip', sortable: false },
+    { title: t('Location'), key: 'place', sortable: false },
+    { title: t('Network'), key: 'network', sortable: false },
+    { title: t('Who'), key: 'who', sortable: false },
+    { title: t('Requests'), key: 'requests', sortable: false, align: 'end' },
+    { title: t('Failed sign-ins'), key: 'failed_logins', sortable: false, align: 'end' },
+    { title: t('Refused'), key: 'blocked', sortable: false, align: 'end' },
+    { title: t('Last seen'), key: 'last_seen_at', sortable: false },
     { title: '', key: 'actions', sortable: false, align: 'end' },
-  ]
+  ])
   const visitors = ref([])
   const visitorTotal = ref(0)
   const visitorsLoading = ref(false)

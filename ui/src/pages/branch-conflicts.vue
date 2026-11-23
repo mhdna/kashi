@@ -11,7 +11,7 @@
           variant="tonal"
           @click="bulkTakeBranch"
         >
-          Take branch spelling ({{ selectedConflicts.length }})
+          {{ t('Take branch spelling ({n})', { n: selectedConflicts.length }) }}
         </v-btn>
         <v-btn prepend-icon="mdi-refresh" :text="t('Reload')" variant="text" @click="reload" />
       </v-card-title>
@@ -20,8 +20,8 @@
       <div class="bk-layout">
         <PageSidebar
           v-model="selectedId"
-          all-title="All branches"
-          empty-text="No branches yet."
+          :all-title="t('All branches')"
+          :empty-text="t('No branches yet.')"
           :items="branchItems"
           :loading="branchesLoading"
           show-all
@@ -53,7 +53,7 @@
             <div class="bk-stat">
               <div class="bk-stat-label">{{ t('Open') }}</div>
               <div class="bk-stat-value" :class="{ 'text-warning': totals.open > 0 }">{{ totals.open }}</div>
-              <div class="bk-stat-sub">{{ totals.oldestOpenAt ? `oldest ${ago(totals.oldestOpenAt)}` : 'nothing to review' }}</div>
+              <div class="bk-stat-sub">{{ totals.oldestOpenAt ? t('oldest {time}', { time: ago(totals.oldestOpenAt) }) : t('nothing to review') }}</div>
             </div>
             <div class="bk-stat">
               <div class="bk-stat-label">{{ t('Oversold stock') }}</div>
@@ -132,7 +132,7 @@
             <template #item.summary="{ item }">{{ conflictSummaryText(item) }}</template>
             <template #item.status="{ item }">
               <v-chip :color="item.status === 'open' ? 'warning' : 'default'" size="small" variant="tonal">
-                {{ item.status }}
+                {{ t(item.status) }}
               </v-chip>
             </template>
             <template #item.created_at="{ item }">
@@ -168,7 +168,7 @@
                     </table>
                   </div>
                   <div v-if="item.status !== 'open'" class="px-2 pb-3 text-caption text-medium-emphasis">
-                    {{ item.status === 'dismissed' ? 'Dismissed' : 'Resolved' }} {{ ago(item.updated_at) }}
+                    {{ item.status === 'dismissed' ? t('Dismissed') : t('Resolved') }} {{ ago(item.updated_at) }}
                   </div>
                 </td>
               </tr>
@@ -182,21 +182,20 @@
     <v-dialog v-model="resolveDialog" max-width="480">
       <v-card v-if="resolveTarget">
         <v-card-title class="text-subtitle-1">
-          Resolve — {{ conflictKindLabel(resolveTarget.kind) }}
+          {{ t('Resolve — {kind}', { kind: conflictKindLabel(resolveTarget.kind) }) }}
         </v-card-title>
         <v-card-text>
           <div v-if="resolveTarget.kind === 'phone_name_mismatch'">
             <div class="text-caption text-medium-emphasis mb-2">
-              Phone {{ branchPayload(resolveTarget).phone }} already belongs to a
-              kashi client under a different name.
+              {{ t('Phone {phone} already belongs to a kashi client under a different name.', { phone: branchPayload(resolveTarget).phone }) }}
             </div>
             <v-radio-group v-model="resolveForm.choice" density="compact" hide-details>
               <v-radio
-                :label="`Keep kashi's name (${resolveTarget.central_name?.String})`"
+                :label="t('Keep kashi\'s name ({name})', { name: resolveTarget.central_name?.String })"
                 value="central"
               />
               <v-radio
-                :label="`Use the branch's name (${branchPayload(resolveTarget).name})`"
+                :label="t('Use the branch\'s name ({name})', { name: branchPayload(resolveTarget).name })"
                 value="branch"
               />
               <v-radio :label="t('Type a name')" value="custom" />
@@ -213,8 +212,7 @@
 
           <div v-else-if="resolveTarget.kind === 'invalid_phone'">
             <div class="text-caption text-medium-emphasis mb-2">
-              The branch reported "{{ branchPayload(resolveTarget).name }}" with no
-              usable phone.
+              {{ t('The branch reported "{name}" with no usable phone.', { name: branchPayload(resolveTarget).name }) }}
             </div>
             <v-radio-group v-model="resolveForm.choice" density="compact" hide-details>
               <v-radio :label="t('Merge into an existing client')" value="merge" />
@@ -290,16 +288,17 @@
     bulkResolve,
   } = useBranchSyncConflicts()
 
-  const STATUS_FILTERS = [
+  // Computed so the labels follow the EN/FR toggle.
+  const STATUS_FILTERS = computed(() => [
     { title: t('Open'), value: 'open' },
     { title: t('Resolved'), value: 'resolved' },
     { title: t('Dismissed'), value: 'dismissed' },
     { title: t('All'), value: '' },
-  ]
-  const ENTITY_FILTERS = [
+  ])
+  const ENTITY_FILTERS = computed(() => [
     { title: t('Clients'), value: 'client' },
     { title: t('Stock'), value: 'stock' },
-  ]
+  ])
 
   const branchesLoading = ref(false)
   const selectedId = ref(null)
@@ -358,10 +357,10 @@
 
   function conflictKindLabel (kind) {
     return {
-      phone_name_mismatch: 'Name differs',
-      invalid_phone: 'No usable phone',
-      phone_taken: 'Phone already taken',
-      oversold: 'Oversold',
+      phone_name_mismatch: t('Name differs'),
+      invalid_phone: t('No usable phone'),
+      phone_taken: t('Phone already taken'),
+      oversold: t('Oversold'),
     }[kind] ?? kind
   }
   function branchPayload (item) {
@@ -375,13 +374,14 @@
   function oversoldSummary (item) {
     const p = branchPayload(item)
     const register = registerCodes.value[p.register_id]
-    return `Barcode ${p.barcode || '—'}: ${p.quantity_sold} sold on ${p.invoice_code || 'an invoice'}`
-      + `${register ? ` at register ${register}` : ''}, leaving ${p.on_hand} in stock.`
+    const invoice = p.invoice_code || t('an invoice')
+    const at = register ? t(' at register {register}', { register }) : ''
+    return t('Barcode {barcode}: {sold} sold on {invoice}{at}, leaving {onHand} in stock.', { barcode: p.barcode || '—', sold: p.quantity_sold, invoice, at, onHand: p.on_hand })
   }
   function conflictSummaryText (item) {
     const p = branchPayload(item)
-    if (item.kind === 'oversold') return `${p.barcode || item.ref} · ${p.on_hand} left`
-    if (item.kind === 'phone_name_mismatch') return `${p.name} vs ${item.central_name?.String || '—'} · ${p.phone}`
+    if (item.kind === 'oversold') return t('{ref}, {n} left', { ref: p.barcode || item.ref, n: p.on_hand })
+    if (item.kind === 'phone_name_mismatch') return t('{name} vs {central}, {phone}', { name: p.name, central: item.central_name?.String || '—', phone: p.phone })
     return p.name || item.ref
   }
   function diffClass (a, b) {
@@ -389,10 +389,10 @@
   }
   function ago (value) {
     const seconds = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 1000))
-    if (seconds < 60) return 'just now'
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`
-    if (seconds < 86_400) return `${Math.floor(seconds / 3600)} h ago`
-    return `${Math.floor(seconds / 86_400)} d ago`
+    if (seconds < 60) return t('just now')
+    if (seconds < 3600) return t('{n} min ago', { n: Math.floor(seconds / 60) })
+    if (seconds < 86_400) return t('{n} h ago', { n: Math.floor(seconds / 3600) })
+    return t('{n} d ago', { n: Math.floor(seconds / 86_400) })
   }
 
   function reload () {
@@ -404,7 +404,7 @@
   async function dismiss (item) {
     try {
       await dismissConflict(item.id)
-      notify.success('Dismissed.')
+      notify.success(t('Dismissed.'))
       reload()
     } catch (error) {
       notify.error(String(error.message || error))
@@ -414,7 +414,7 @@
   async function bulkTakeBranch () {
     try {
       const res = await bulkResolve(selectedConflicts.value.map(c => c.id), 'branch')
-      notify.success(`Resolved ${res?.resolved ?? 0} conflict(s).`)
+      notify.success(t('Resolved {n} conflict(s).', { n: res?.resolved ?? 0 }))
       reload()
     } catch (error) {
       notify.error(String(error.message || error))
@@ -427,7 +427,7 @@
   const resolveForm = reactive({ choice: 'branch', name: '', phone: '', clientId: null })
   const { clients, fetchClients } = useClients()
   const clientOptions = computed(() =>
-    clients.value.map(c => ({ title: `${c.name} — ${c.phone}`, value: c.id })),
+    clients.value.map(c => ({ title: `${c.name} (${c.phone})`, value: c.id })),
   )
 
   function openResolve (item) {
@@ -464,7 +464,7 @@
     resolveSaving.value = true
     try {
       await resolveConflict(item.id, body)
-      notify.success('Resolved.')
+      notify.success(t('Resolved.'))
       resolveDialog.value = false
       reload()
     } catch (error) {

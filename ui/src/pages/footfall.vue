@@ -65,7 +65,7 @@
       <v-row dense>
         <v-col cols="12" md="8">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Daily footfall — customers in</div>
+            <div class="chart-card__title">{{ t('Daily footfall — customers in') }}</div>
             <div ref="heatWrapRef" class="ff-heat-wrap">
               <table class="ff-heat" @mouseleave="heatHoverCol = null">
                 <thead>
@@ -135,7 +135,7 @@
         </v-col>
         <v-col cols="12" md="5">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Branch comparison — total customers in</div>
+            <div class="chart-card__title">{{ t('Branch comparison — total customers in') }}</div>
             <v-chart autoresize class="chart" :option="branchOption" />
           </v-card>
         </v-col>
@@ -178,11 +178,11 @@
     textStyle: { color: textColor.value, fontSize: 10 },
   }))
 
-  const RANGE_OPTIONS = [
+  const RANGE_OPTIONS = computed(() => [
     { title: t('Last 3 months'), value: 3 },
     { title: t('Last 6 months'), value: 6 },
     { title: t('Last 12 months'), value: 12 },
-  ]
+  ])
   const rangeMonths = ref(6)
   const selectedBranchIds = ref([]) // empty = all
 
@@ -298,7 +298,7 @@
   watch(rangeMonths, load)
 
   function branchName (id) {
-    return branches.value.find(b => b.id === id)?.name ?? `Branch #${id}`
+    return branches.value.find(b => b.id === id)?.name ?? t('Branch #{id}', { id })
   }
 
   const branchOptions = computed(() =>
@@ -392,7 +392,7 @@
       ? Math.round(((totalIn.value - prevTotalIn.value) / prevTotalIn.value) * 100)
       : null
     return [
-      { label: t('Customers in'), value: totalIn.value.toLocaleString(), delta, hint: 'vs previous period' },
+      { label: t('Customers in'), value: totalIn.value.toLocaleString(), delta, hint: t('vs previous period') },
       { label: t('Customers out'), value: totalOut.value.toLocaleString() },
       { label: t('Net'), value: (totalIn.value - totalOut.value).toLocaleString() },
       { label: t('Avg in / day'), value: Math.round(totalIn.value / activeDayCount).toLocaleString() },
@@ -488,7 +488,7 @@
 
   // --- charts -----------------------------------------------------------
   const weekdayOption = computed(() => {
-    const LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    const LABELS = [t('Mon'), t('Tue'), t('Wed'), t('Thu'), t('Fri'), t('Sat'), t('Sun')]
     const totals = Array.from({ length: 7 }, () => 0)
     const counts = Array.from({ length: 7 }, () => 0)
     const byDay = {}

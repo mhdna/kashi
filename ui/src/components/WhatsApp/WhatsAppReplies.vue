@@ -2,17 +2,17 @@
   <div class="pa-4 pt-3">
     <div class="d-flex align-center flex-wrap ga-3 mb-2">
       <span class="text-body-2 text-medium-emphasis">
-        What clients wrote back to the business number. Needs the webhook set up in
-        <router-link to="/settings?tab=whatsapp">Settings</router-link>.
+        {{ t('What clients wrote back to the business number. Needs the webhook set up in') }}
+        <router-link to="/settings?tab=whatsapp">{{ t('Settings') }}</router-link>.
       </span>
       <v-spacer />
-      <span class="text-caption text-medium-emphasis">{{ total.toLocaleString() }} replies</span>
+      <span class="text-caption text-medium-emphasis">{{ t('{n} replies', { n: total.toLocaleString() }) }}</span>
       <v-text-field
         v-model="search"
         clearable
         density="compact"
         hide-details
-        placeholder="Client, phone, text, invoice…"
+        :placeholder="t('Client, phone, text, invoice…')"
         prepend-inner-icon="mdi-magnify"
         style="max-width: 300px"
         variant="outlined"
@@ -29,7 +29,7 @@
       :items-length="total"
       :items-per-page-options="tablePageSizeOptions(pageSize)"
       :loading="loading"
-      no-data-text="No replies in this range."
+      :no-data-text="t('No replies in this range.')"
     >
       <template #item.received_at="{ item }">
         <span :title="new Date(item.received_at).toLocaleString()">{{ when(item.received_at) }}</span>
@@ -40,7 +40,7 @@
       </template>
       <template #item.body="{ item }">
         <span v-if="item.body" class="wr-body">{{ item.body }}</span>
-        <span v-else class="text-caption text-medium-emphasis">({{ item.kind || 'message' }})</span>
+        <span v-else class="text-caption text-medium-emphasis">({{ item.kind || t('message') }})</span>
       </template>
       <template #item.answers="{ item }">
         <template v-if="item.invoice_code">
@@ -54,11 +54,12 @@
 </template>
 
 <script setup>
-  import { onUnmounted, ref, watch } from 'vue'
+  import { computed, onUnmounted, ref, watch } from 'vue'
   import { useNotify } from '@/composables/useNotify'
   import { useWhatsApp } from '@/composables/useWhatsApp'
   import { formatPhone } from '@/utils/whatsapp'
   import { tablePageSizeOptions, useSettingsStore } from '@/stores/settings'
+  import { t } from '@/i18n'
 
   const props = defineProps({
     from: { type: String, required: true },
@@ -70,12 +71,12 @@
   const notify = useNotify()
   const { listReplies } = useWhatsApp()
 
-  const headers = [
-    { title: 'When', key: 'received_at', sortable: false },
-    { title: 'Client', key: 'client', sortable: false },
-    { title: 'Message', key: 'body', sortable: false },
-    { title: 'Answering', key: 'answers', sortable: false },
-  ]
+  const headers = computed(() => [
+    { title: t('When'), key: 'received_at', sortable: false },
+    { title: t('Client'), key: 'client', sortable: false },
+    { title: t('Message'), key: 'body', sortable: false },
+    { title: t('Answering'), key: 'answers', sortable: false },
+  ])
 
   const replies = ref([])
   const total = ref(0)

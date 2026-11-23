@@ -84,9 +84,9 @@
 
     <v-tabs v-model="tab" color="primary" show-arrows>
       <v-tab value="overview">{{ t('Overview') }}</v-tab>
-      <v-tab value="sales">Products &amp; People</v-tab>
+      <v-tab value="sales">{{ t('Products & People') }}</v-tab>
       <v-tab value="invoices">{{ t('Invoices') }}</v-tab>
-      <v-tab value="cash">Shifts &amp; Expenses</v-tab>
+      <v-tab value="cash">{{ t('Shifts & Expenses') }}</v-tab>
     </v-tabs>
 
     <PreparingState v-if="loading && !summary" kind="data" :title="t('Adding up the day\'s income')" />
@@ -98,7 +98,7 @@
           <v-col cols="12" md="8">
             <v-card border class="fill-height" flat tile>
               <v-card-title class="text-caption text-uppercase text-grey py-1 px-3">
-                Hour by hour — net income &amp; customers in
+                {{ t('Hour by hour — net income & customers in') }}
               </v-card-title>
               <v-divider />
               <v-chart autoresize class="chart" :option="hourlyOption" />
@@ -147,7 +147,7 @@
       <v-window-item value="invoices">
         <v-card border flat tile>
           <v-card-title class="text-caption text-uppercase text-grey py-1 px-3">
-            Invoices ({{ summary.invoices.length }})
+            {{ t('Invoices') }} ({{ summary.invoices.length }})
           </v-card-title>
           <v-divider />
           <v-data-table
@@ -159,7 +159,7 @@
             <template #item.occurred_at="{ item }">{{ timeOf(item.occurred_at) }}</template>
             <template #item.kind="{ item }">
               <v-chip :color="item.kind === 'return' ? 'error' : 'primary'" size="x-small" variant="tonal">
-                {{ item.kind === 'return' ? 'Return' : 'Sale' }}
+                {{ item.kind === 'return' ? t('Return') : t('Sale') }}
               </v-chip>
             </template>
             <template #item.grand_total="{ item }">{{ money(item.grand_total) }}</template>
@@ -173,7 +173,7 @@
       <v-window-item value="cash">
         <v-row no-gutters>
           <v-col cols="12" md="6">
-            <ListPanel empty-text="No shifts closed this day." :rows="shiftRows" :title="t('Shifts Closed')">
+            <ListPanel :empty-text="t('No shifts closed this day.')" :rows="shiftRows" :title="t('Shifts Closed')">
               <template v-if="canPrintBranchShift" #row-append="{ row }">
                 <v-btn
                   icon="mdi-printer"
@@ -187,7 +187,7 @@
             </ListPanel>
           </v-col>
           <v-col cols="12" md="6">
-            <ListPanel empty-text="No expenses this day." :rows="expenseRows" :title="t('Expenses')" />
+            <ListPanel :empty-text="t('No expenses this day.')" :rows="expenseRows" :title="t('Expenses')" />
           </v-col>
         </v-row>
       </v-window-item>
@@ -262,8 +262,8 @@
     ...branches.value.map(b => ({ title: b.name, value: b.id })),
   ])
   const branchLabel = computed(() => {
-    if (!branchId.value) return 'All branches'
-    return branches.value.find(b => b.id === branchId.value)?.name ?? `Branch #${branchId.value}`
+    if (!branchId.value) return t('All branches')
+    return branches.value.find(b => b.id === branchId.value)?.name ?? t('Branch #{id}', { id: branchId.value })
   })
 
   function shiftDay (n) {
@@ -293,7 +293,7 @@
       if (!isCurrent()) return
       summary.value = null
       lastWeek.value = null
-      error.value = error_.message || 'Could not load this day.'
+      error.value = error_.message || t('Could not load this day.')
     } finally {
       if (isCurrent()) loading.value = false
     }
@@ -354,14 +354,14 @@
     const before = figures(lastWeek.value)
     const card = (title, icon, unit, key) => ({ title, icon, unit, value: now?.[key] ?? null, prev: before?.[key] ?? null })
     return [
-      card('Net Income', 'mdi-cash-multiple', '$', 'net'),
-      card('Invoices', 'mdi-invoice', '', 'salesCount'),
-      card('Items Sold', 'mdi-cart-check', '', 'items'),
-      card('Avg Invoice', 'mdi-receipt-text-check', '$', 'avgInvoice'),
-      card('Returns', 'mdi-keyboard-return', '', 'returns'),
-      card('Customers In', 'mdi-walk', '', 'visitorsIn'),
-      card('Conversion', 'mdi-account-cash', '%', 'conversion'),
-      card('Expenses', 'mdi-cash-minus', '$', 'expenses'),
+      card(t('Net Income'), 'mdi-cash-multiple', '$', 'net'),
+      card(t('Invoices'), 'mdi-invoice', '', 'salesCount'),
+      card(t('Items Sold'), 'mdi-cart-check', '', 'items'),
+      card(t('Avg Invoice'), 'mdi-receipt-text-check', '$', 'avgInvoice'),
+      card(t('Returns'), 'mdi-keyboard-return', '', 'returns'),
+      card(t('Customers In'), 'mdi-walk', '', 'visitorsIn'),
+      card(t('Conversion'), 'mdi-account-cash', '%', 'conversion'),
+      card(t('Expenses'), 'mdi-cash-minus', '$', 'expenses'),
     ]
   })
 
@@ -371,9 +371,9 @@
     const total = sum(rows, 'total')
     return rows.map(p => ({
       key: p.account_name,
-      label: p.account_name || 'Unnamed account',
+      label: p.account_name || t('Unnamed account'),
       icon: paymentIcon(p.account_name),
-      sub: `${p.invoice_count} ${p.invoice_count === 1 ? 'invoice' : 'invoices'}`,
+      sub: p.invoice_count === 1 ? t('{n} invoice', { n: p.invoice_count }) : t('{n} invoices', { n: p.invoice_count }),
       value: money(p.total),
       pct: pct(p.total, total),
     }))
@@ -384,8 +384,8 @@
     const total = sum(rows, 'net_total')
     return rows.map(s => ({
       key: s.salesperson_name,
-      label: s.salesperson_name || 'Unassigned',
-      sub: `${s.sales_count} ${s.sales_count === 1 ? 'sale' : 'sales'}`,
+      label: s.salesperson_name || t('Unassigned'),
+      sub: s.sales_count === 1 ? t('{n} sale', { n: s.sales_count }) : t('{n} sales', { n: s.sales_count }),
       value: money(s.net_total),
       pct: pct(s.net_total, total),
     }))
@@ -396,8 +396,8 @@
     const total = sum(rows, 'revenue')
     return rows.map(p => ({
       key: p.product_id,
-      label: p.product_name || 'Unknown product',
-      sub: `${p.product_code ? `${p.product_code} · ` : ''}${p.quantity} sold`,
+      label: p.product_name || t('Unknown product'),
+      sub: `${p.product_code ? `${p.product_code} · ` : ''}${t('{n} sold', { n: p.quantity })}`,
       value: money(p.revenue),
       pct: pct(p.revenue, total),
     }))
@@ -405,9 +405,9 @@
 
   const shiftRows = computed(() => (summary.value?.shifts ?? []).map(s => ({
     key: s.id,
-    label: `${s.closing_person_name || 'Unknown'} · ${s.branch_name}`,
-    sub: `${timeOf(s.opened_at)} – ${timeOf(s.closed_at)} · counted ${money(s.counted_usd)}`,
-    value: `${signedMoney(s.variance_usd)} variance`,
+    label: `${s.closing_person_name || t('Unknown')} · ${s.branch_name}`,
+    sub: `${timeOf(s.opened_at)} – ${timeOf(s.closed_at)} · ${t('counted {amount}', { amount: money(s.counted_usd) })}`,
+    value: t('{amount} variance', { amount: signedMoney(s.variance_usd) }),
     shift: s,
   })))
 
@@ -422,7 +422,7 @@
     printingShiftId.value = shift.id
     try {
       await printBranchShift(shift)
-      notify.success(`Sent to ${shift.branch_name} — it prints within a few seconds if the till is online.`)
+      notify.success(t('Sent to {branch} — it prints within a few seconds if the till is online.', { branch: shift.branch_name }))
     } catch (error) {
       notify.error(error.message)
     } finally {
@@ -432,7 +432,7 @@
 
   const expenseRows = computed(() => (summary.value?.expenses ?? []).map(e => ({
     key: e.id,
-    label: e.description || e.category_name || 'Expense',
+    label: e.description || e.category_name || t('Expense'),
     sub: `${timeOf(e.occurred_at)} · ${e.branch_name}${e.category_name ? ` · ${e.category_name}` : ''}`,
     value: currencyAmount(e.amount, e.currency_code),
   })))
@@ -451,7 +451,7 @@
     })
   })
 
-  const branchHeaders = [
+  const branchHeaders = computed(() => [
     { title: t('Branch'), key: 'branch_name' },
     { title: t('Net'), key: 'net_total', align: 'end' },
     { title: t('Sales'), key: 'sales_count', align: 'end' },
@@ -460,7 +460,7 @@
     { title: t('Returns'), key: 'return_total', align: 'end' },
     { title: t('Customers in'), key: 'visitors_in', align: 'end' },
     { title: t('Conversion'), key: 'conversion', align: 'end' },
-  ]
+  ])
 
   const invoiceHeaders = computed(() => [
     { title: t('Time'), key: 'occurred_at' },
@@ -522,14 +522,14 @@
       ],
       series: [
         {
-          name: 'Net income',
+          name: t('Net income'),
           type: 'bar',
           barWidth: '55%',
           itemStyle: { color: theme.current.value.colors.primary, borderRadius: [3, 3, 0, 0] },
           data: hours.map(h => sales[h]),
         },
         {
-          name: 'Customers in',
+          name: t('Customers in'),
           type: 'line',
           yAxisIndex: 1,
           smooth: true,

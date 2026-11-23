@@ -12,13 +12,13 @@
           class="text-h4 font-weight-bold"
           :class="status.done ? 'text-success' : (status.remaining !== 0 ? 'text-error' : '')"
           data-test="remaining"
-        >{{ status.done ? 'Done' : formatCents(Math.abs(status.remaining)) }}</div>
+        >{{ status.done ? t('Done') : formatCents(Math.abs(status.remaining)) }}</div>
       </div>
     </div>
 
     <div class="d-flex align-center ga-2 mb-3">
       <v-btn
-        aria-label="Count the next amount as paid by the customer"
+        :aria-label="t('Count the next amount as paid by the customer')"
         :aria-pressed="sign === '+'"
         :color="sign === '+' ? 'primary' : undefined"
         data-test="sign-plus"
@@ -28,7 +28,7 @@
         @click="toggleSign('+')"
       />
       <v-btn
-        aria-label="Count the next amount as given back"
+        :aria-label="t('Count the next amount as given back')"
         :aria-pressed="sign === '-'"
         :color="sign === '-' ? 'primary' : undefined"
         data-test="sign-minus"
@@ -39,7 +39,7 @@
       />
       <v-text-field
         v-model="typed"
-        aria-label="Amount"
+        :aria-label="t('Amount')"
         class="payment-entry-display"
         data-test="display"
         density="comfortable"
@@ -53,7 +53,7 @@
         </template>
         <template #append-inner>
           <v-btn
-            aria-label="Backspace"
+            :aria-label="t('Backspace')"
             icon="mdi-backspace-outline"
             size="small"
             variant="text"
@@ -74,7 +74,7 @@
           @click="press(key)"
         >{{ key }}</v-btn>
       </div>
-      <div aria-label="Payment methods" class="payment-entry-methods d-flex flex-column ga-2" role="list">
+      <div :aria-label="t('Payment methods')" class="payment-entry-methods d-flex flex-column ga-2" role="list">
         <v-btn
           v-for="method in methods"
           :key="method.name"
@@ -89,7 +89,7 @@
           <span v-if="method.currency !== 'USD'" class="ms-1 text-medium-emphasis">{{ method.currency }}</span>
         </v-btn>
         <div v-if="methods.length === 0" class="text-body-2 text-medium-emphasis">
-          This branch has no payment methods to choose from.
+          {{ t('This branch has no payment methods to choose from.') }}
         </div>
       </div>
     </div>
@@ -103,7 +103,7 @@
           <td v-else />
           <td class="text-end" style="width: 48px">
             <v-btn
-              :aria-label="`Remove ${entry.name}`"
+              :aria-label="t('Remove {name}', { name: entry.name })"
               density="comfortable"
               icon="mdi-close"
               size="small"
@@ -115,13 +115,14 @@
       </tbody>
     </v-table>
     <p v-else class="text-body-2 text-medium-emphasis mt-3">
-      Type an amount and tap a payment method, or tap one with nothing typed to put all of it there.
+      {{ t('Type an amount and tap a payment method, or tap one with nothing typed to put all of it there.') }}
     </p>
   </div>
 </template>
 
 <script setup lang="ts">
   import { computed, ref } from 'vue'
+  import { t } from '@/i18n'
   import { addEntry, formatCents, formatEntry, paymentStatus, removeEntry } from '@/utils/paymentEntry'
 
   const props = defineProps({
@@ -140,12 +141,12 @@
   const sign = ref(null)
 
   const status = computed(() => paymentStatus(props.modelValue, props.dueCents, props.currencies))
-  const dueLabel = computed(() => props.dueCents < 0 ? 'To give back' : 'To pay')
+  const dueLabel = computed(() => props.dueCents < 0 ? t('To give back') : t('To pay'))
   const remainingLabel = computed(() => {
-    if (status.value.done) return 'Left'
+    if (status.value.done) return t('Left')
     // Past the total: more was entered than due, in whichever direction.
     const past = props.dueCents >= 0 ? status.value.remaining < 0 : status.value.remaining > 0
-    return past ? 'Entered too much by' : 'Left to enter'
+    return past ? t('Entered too much by') : t('Left to enter')
   })
   const typedPlaceholder = computed(() => status.value.remaining === 0 ? '0' : formatCents(Math.abs(status.value.remaining)).slice(1))
 

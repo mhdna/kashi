@@ -1,21 +1,21 @@
 <template>
   <v-dialog v-model="detailsDialog" max-width="480">
     <v-card v-if="detailsTarget">
-      <v-card-title>Movement #{{ detailsTarget.id }}</v-card-title>
+      <v-card-title>{{ t('Movement #{id}', { id: detailsTarget.id }) }}</v-card-title>
       <v-card-text>
         <v-row density="compact">
-          <v-col cols="6"><span class="text-caption">Before</span><div>{{ detailsTarget.quantity_before }}</div></v-col>
-          <v-col cols="6"><span class="text-caption">After</span><div>{{ detailsTarget.quantity_after }}</div></v-col>
-          <v-col cols="6"><span class="text-caption">Actor</span><div>{{ detailsTarget.created_by_name || '—' }}</div></v-col>
-          <v-col cols="6"><span class="text-caption">Reference</span><div>{{ nullableString(detailsTarget.reference_type) || '—' }} #{{ nullableString(detailsTarget.reference_id) || '' }}</div></v-col>
+          <v-col cols="6"><span class="text-caption">{{ t('Before') }}</span><div>{{ detailsTarget.quantity_before }}</div></v-col>
+          <v-col cols="6"><span class="text-caption">{{ t('After') }}</span><div>{{ detailsTarget.quantity_after }}</div></v-col>
+          <v-col cols="6"><span class="text-caption">{{ t('Actor') }}</span><div>{{ detailsTarget.created_by_name || '—' }}</div></v-col>
+          <v-col cols="6"><span class="text-caption">{{ t('Reference') }}</span><div>{{ nullableString(detailsTarget.reference_type) || '—' }} #{{ nullableString(detailsTarget.reference_id) || '' }}</div></v-col>
         </v-row>
         <v-divider class="my-2" />
-        <div class="text-caption mb-1">Metadata</div>
+        <div class="text-caption mb-1">{{ t('Metadata') }}</div>
         <pre class="metadata-block">{{ formattedMetadata }}</pre>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn text="Close" @click="detailsDialog = false" />
+        <v-btn :text="t('Close')" @click="detailsDialog = false" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -24,7 +24,7 @@
     <v-card class="movements-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-swap-vertical" />
-        <span>Stock Movements</span>
+        <span>{{ t('Stock Movements') }}</span>
         <v-spacer />
         <v-select
           v-model="filters.inventoryId"
@@ -35,7 +35,7 @@
           :item-title="i => i.name"
           :item-value="i => i.id"
           :items="inventories"
-          label="Inventory"
+          :label="t('Inventory')"
           variant="outlined"
         />
         <v-select
@@ -45,7 +45,7 @@
           density="compact"
           hide-details
           :items="reasons"
-          label="Reason"
+          :label="t('Reason')"
           variant="outlined"
         />
         <v-select
@@ -55,7 +55,7 @@
           density="compact"
           hide-details
           :items="referenceTypes"
-          label="Document"
+          :label="t('Document')"
           variant="outlined"
         />
       </v-card-title>
@@ -106,6 +106,7 @@
 
 <script setup lang="ts">
   import { computed, onMounted, ref } from 'vue'
+  import { t } from '@/i18n'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useInventories } from '@/composables/useInventories'
   import { STOCK_MOVEMENT_REASONS } from '@/composables/useStockMovements'
@@ -136,18 +137,18 @@
     return value.Int64 ?? value.int64 ?? '—'
   }
 
-  const headers = [
-    { title: 'When', key: 'created_at', sortable: false },
-    { title: 'Inventory', key: 'inventory_name', sortable: false },
-    { title: 'SKU', key: 'sku', sortable: false },
-    { title: 'Barcode', key: 'barcode', sortable: false },
-    { title: 'Reason', key: 'reason', sortable: false },
-    { title: 'Qty', key: 'quantity', align: 'end', sortable: false },
-    { title: 'Before → After', key: 'change', align: 'end', sortable: false },
-    { title: 'Unit Cost', key: 'unit_cost', align: 'end', sortable: false },
-    { title: 'By', key: 'created_by_name', sortable: false },
-    { title: 'Note', key: 'note', sortable: false },
-  ]
+  const headers = computed(() => [
+    { title: t('When'), key: 'created_at', sortable: false },
+    { title: t('Inventory'), key: 'inventory_name', sortable: false },
+    { title: t('SKU'), key: 'sku', sortable: false },
+    { title: t('Barcode'), key: 'barcode', sortable: false },
+    { title: t('Reason'), key: 'reason', sortable: false },
+    { title: t('Qty'), key: 'quantity', align: 'end', sortable: false },
+    { title: t('Before → After'), key: 'change', align: 'end', sortable: false },
+    { title: t('Unit Cost'), key: 'unit_cost', align: 'end', sortable: false },
+    { title: t('By'), key: 'created_by_name', sortable: false },
+    { title: t('Note'), key: 'note', sortable: false },
+  ])
 
   const detailsDialog = ref(false)
   const detailsTarget = ref(null)

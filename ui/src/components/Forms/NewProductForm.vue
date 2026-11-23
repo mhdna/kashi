@@ -4,7 +4,7 @@
        `scrollable`). -->
   <v-card class="new-product-card" tag="form" @submit.prevent="submitAndClose">
     <v-card-title class="d-flex align-center ga-2">
-      <span class="text-h6">New Product</span>
+      <span class="text-h6">{{ t('New Product') }}</span>
       <v-spacer />
       <v-btn
         v-if="settingsStore.productAutofillEnabled"
@@ -15,9 +15,9 @@
         variant="tonal"
         @click="autofill"
       >
-        Auto-fill
+        {{ t('Auto-fill') }}
         <v-tooltip activator="parent" location="bottom">
-          Fill attributes and price from the code and name
+          {{ t('Fill attributes and price from the code and name') }}
         </v-tooltip>
       </v-btn>
       <v-btn icon="mdi-close" size="small" variant="text" @click="$emit('close')" />
@@ -32,7 +32,7 @@
             v-model="code.value.value"
             density="compact"
             :error-messages="code.errorMessage.value"
-            label="Code"
+            :label="t('Code')"
             variant="outlined"
           />
         </v-col>
@@ -41,7 +41,7 @@
             v-model="name.value.value"
             density="compact"
             :error-messages="name.errorMessage.value"
-            label="Name"
+            :label="t('Name')"
             variant="outlined"
           />
         </v-col>
@@ -52,12 +52,12 @@
         auto-grow
         density="compact"
         :error-messages="description.errorMessage.value"
-        label="Description (optional)"
+        :label="t('Description (optional)')"
         rows="2"
         variant="outlined"
       />
 
-      <div class="text-overline text-medium-emphasis mt-1 mb-1">Attributes</div>
+      <div class="text-overline text-medium-emphasis mt-1 mb-1">{{ t('Attributes') }}</div>
       <v-row density="compact">
         <v-col v-for="field in attributeFields" :key="field.key" cols="12" sm="6">
           <v-combobox
@@ -65,16 +65,16 @@
             clearable
             density="compact"
             hide-details="auto"
-            :hint="field.hint"
+            :hint="field.hint?.()"
             :items="optionsFor(field.attribute)"
-            :label="field.label"
+            :label="t(field.label)"
             :persistent-hint="!!field.hint"
             variant="outlined"
           />
         </v-col>
       </v-row>
 
-      <div class="text-overline text-medium-emphasis mt-3 mb-1">Variants</div>
+      <div class="text-overline text-medium-emphasis mt-3 mb-1">{{ t('Variants') }}</div>
       <v-row density="compact">
         <v-col cols="12" sm="6">
           <v-autocomplete
@@ -87,7 +87,7 @@
             item-title="name"
             item-value="id"
             :items="colors"
-            label="Colors"
+            :label="t('Colors')"
             :menu-props="{ maxHeight: 320 }"
             multiple
             variant="outlined"
@@ -116,7 +116,7 @@
             :item-title="s => `${s.type}: ${s.name}`"
             item-value="id"
             :items="sizes"
-            label="Sizes"
+            :label="t('Sizes')"
             :menu-props="{ maxHeight: 320 }"
             multiple
             variant="outlined"
@@ -124,8 +124,7 @@
         </v-col>
       </v-row>
       <div class="text-caption text-medium-emphasis mt-1">
-        {{ variantCount }} variant{{ variantCount === 1 ? '' : 's' }} will be created,
-        each with its own barcode.
+        {{ variantCount === 1 ? t('1 variant will be created, each with its own barcode.') : t('{n} variants will be created, each with its own barcode.', { n: variantCount }) }}
       </div>
 
       <v-text-field
@@ -135,14 +134,14 @@
         density="compact"
         :disabled="variantCount > 1"
         :error-messages="barcode.errorMessage.value"
-        :hint="variantCount > 1 ? 'Barcodes are auto-generated when creating multiple variants' : 'Leave empty to auto-generate'"
-        label="Barcode (optional)"
+        :hint="variantCount > 1 ? t('Barcodes are auto-generated when creating multiple variants') : t('Leave empty to auto-generate')"
+        :label="t('Barcode (optional)')"
         persistent-hint
         type="number"
         variant="outlined"
       />
 
-      <div class="text-overline text-medium-emphasis mt-3 mb-1">Price</div>
+      <div class="text-overline text-medium-emphasis mt-3 mb-1">{{ t('Price') }}</div>
       <v-row density="compact">
         <v-col cols="12" sm="6">
           <v-select
@@ -152,14 +151,14 @@
             item-title="name"
             item-value="id"
             :items="priceLists"
-            label="Price list"
+            :label="t('Price list')"
             variant="outlined"
           >
             <template #item="{ props: itemProps, item }">
               <v-list-item v-bind="itemProps">
                 <template #append>
-                  <v-chip v-if="item.is_default" color="primary" size="x-small" text="Default" />
-                  <v-chip v-else-if="!item.is_active" size="x-small" text="Inactive" />
+                  <v-chip v-if="item.is_default" color="primary" size="x-small" :text="t('Default')" />
+                  <v-chip v-else-if="!item.is_active" size="x-small" :text="t('Inactive')" />
                 </template>
               </v-list-item>
             </template>
@@ -172,9 +171,9 @@
             density="compact"
             :disabled="!priceListId.value.value"
             :error-messages="price.errorMessage.value"
-            :hint="variantCount > 1 ? `Applied to all ${variantCount} variants` : 'Leave empty to price it later'"
+            :hint="variantCount > 1 ? t('Applied to all {n} variants', { n: variantCount }) : t('Leave empty to price it later')"
             inputmode="decimal"
-            label="Price (optional)"
+            :label="t('Price (optional)')"
             persistent-hint
             variant="outlined"
           />
@@ -186,12 +185,12 @@
     <v-divider />
     <v-card-actions class="px-4 py-3">
       <v-spacer />
-      <v-btn text="Clear" variant="text" @click="resetForm" />
+      <v-btn :text="t('Clear')" variant="text" @click="resetForm" />
       <v-btn
         color="primary"
         :disabled="submitting && !addingAnother"
         :loading="submitting && addingAnother"
-        text="Save & Add Another"
+        :text="t('Save & Add Another')"
         variant="tonal"
         @click="submitAndAddAnother"
       />
@@ -199,7 +198,7 @@
         color="primary"
         :disabled="submitting && addingAnother"
         :loading="submitting && !addingAnother"
-        text="Add Product"
+        :text="t('Add Product')"
         type="submit"
         variant="flat"
       />
@@ -216,6 +215,7 @@
   import { useNotify } from '@/composables/useNotify'
   import { usePriceLists } from '@/composables/usePriceLists'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
   import { useSettingsStore } from '@/stores/settings'
   import { applyAutofillRules, AUTOFILL_FIELDS } from '@/utils/productAutofill'
 
@@ -234,10 +234,10 @@
   const { handleSubmit, handleReset } = useForm({
     validationSchema: {
       code (value) {
-        return value?.length >= 1 ? true : 'Code is required.'
+        return value?.length >= 1 ? true : t('Code is required.')
       },
       name (value) {
-        return value?.length >= 2 ? true : 'Name needs to be at least 2 characters.'
+        return value?.length >= 2 ? true : t('Name needs to be at least 2 characters.')
       },
       description () {
         return true
@@ -257,7 +257,7 @@
       price (value) {
         if (value === null || value === undefined || String(value).trim() === '') return true
         const n = Number(value)
-        return Number.isFinite(n) && n >= 0 ? true : 'Price must be a positive number.'
+        return Number.isFinite(n) && n >= 0 ? true : t('Price must be a positive number.')
       },
     },
   })
@@ -297,7 +297,7 @@
     { key: 'kind', attribute: 'kind', label: 'Kind', model: useField('kind') },
     { key: 'type', attribute: 'type', label: 'Type', model: useField('type') },
     { key: 'unit', attribute: 'unit', label: 'Unit', model: useField('unit') },
-    { key: 'year', attribute: 'year', label: 'Year', model: useField('year'), hint: `Leave empty for ${new Date().getFullYear()}` },
+    { key: 'year', attribute: 'year', label: 'Year', model: useField('year'), hint: () => t('Leave empty for {year}', { year: new Date().getFullYear() }) },
     { key: 'season', attribute: 'season', label: 'Season', model: useField('season') },
     { key: 'origin', attribute: 'origin', label: 'Origin', model: useField('origin') },
   ]
@@ -332,9 +332,9 @@
       filled.push(AUTOFILL_FIELDS.find(f => f.key === key)?.label ?? key)
     }
     if (filled.length === 0) {
-      notify.info('No auto-fill rule matched this code or name.')
+      notify.info(t('No auto-fill rule matched this code or name.'))
     } else {
-      notify.success(`Auto-filled ${filled.join(', ')}.`)
+      notify.success(t('Auto-filled {fields}.', { fields: filled.join(', ') }))
     }
   }
 
@@ -376,12 +376,12 @@
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || `Request failed with status ${res.status}`)
+        throw new Error(err.error || t('Request failed with status {status}', { status: res.status }))
       }
 
       resetForm()
       if (addingAnother.value) {
-        notify.success(`Added ${values.code}.`)
+        notify.success(t('Added {code}.', { code: values.code }))
         await nextTick()
         codeInput.value?.focus()
       }

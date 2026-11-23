@@ -4,7 +4,7 @@
     <aside class="reports-side">
       <div class="d-flex align-center ga-2 px-4 pt-4 pb-2">
         <v-icon icon="mdi-file-chart-outline" />
-        <div class="text-h6 font-weight-medium">Reports</div>
+        <div class="text-h6 font-weight-medium">{{ t('Reports') }}</div>
         <v-spacer />
         <v-btn-toggle
           v-model="lang"
@@ -30,8 +30,8 @@
           :key="r.key"
           :prepend-icon="r.icon"
           rounded="lg"
-          :subtitle="r.subtitle"
-          :title="r.title"
+          :subtitle="t(r.subtitle)"
+          :title="t(r.title)"
           :value="r.key"
         />
       </v-list>
@@ -41,12 +41,12 @@
       <div class="d-flex flex-column ga-3 px-4 pb-4">
         <div>
           <div class="d-flex align-center">
-            <div class="text-caption text-medium-emphasis">Include</div>
+            <div class="text-caption text-medium-emphasis">{{ t('Include') }}</div>
             <v-spacer />
             <v-btn
               density="compact"
               size="x-small"
-              :text="allParts ? 'None' : 'All'"
+              :text="allParts ? t('None') : t('All')"
               variant="text"
               @click="toggleAllParts"
             />
@@ -60,7 +60,7 @@
               density="compact"
               hide-details
               :indeterminate="tickedCount(group.parts) > 0 && tickedCount(group.parts) < group.parts.length"
-              :label="group.title"
+              :label="t(group.title)"
               :model-value="tickedCount(group.parts) === group.parts.length"
               @update:model-value="setParts(group.parts, $event)"
             />
@@ -72,7 +72,7 @@
                   class="part-check"
                   density="compact"
                   hide-details
-                  :label="node.part.title"
+                  :label="t(node.part.title)"
                   :value="node.part.key"
                 />
                 <template v-else>
@@ -82,7 +82,7 @@
                       density="compact"
                       hide-details
                       :indeterminate="tickedCount(node.children) > 0 && tickedCount(node.children) < node.children.length"
-                      :label="node.section"
+                      :label="t(node.section)"
                       :model-value="tickedCount(node.children) === node.children.length"
                       @update:model-value="setParts(node.children, $event)"
                     />
@@ -91,7 +91,7 @@
                       density="compact"
                       :icon="openNodes.includes(node.key) ? 'mdi-chevron-up' : 'mdi-chevron-down'"
                       size="x-small"
-                      :title="openNodes.includes(node.key) ? 'Hide its parts' : 'Show its parts'"
+                      :title="openNodes.includes(node.key) ? t('Hide its parts') : t('Show its parts')"
                       variant="text"
                       @click="toggleOpen(node.key)"
                     />
@@ -104,7 +104,7 @@
                       class="part-check"
                       density="compact"
                       hide-details
-                      :label="part.title"
+                      :label="t(part.title)"
                       :value="part.key"
                     />
                   </div>
@@ -119,8 +119,8 @@
           v-model="codesDraft"
           clearable
           density="compact"
-          hint="Separate several with commas, then press Enter"
-          label="Product codes start with"
+          :hint="t('Separate several with commas, then press Enter')"
+          :label="t('Product codes start with')"
           persistent-hint
           placeholder="TT, TX"
           variant="outlined"
@@ -134,8 +134,8 @@
           hide-details
           item-title="title"
           item-value="value"
-          :items="PERIODS"
-          label="Period"
+          :items="periodItems"
+          :label="t('Period')"
           variant="outlined"
         />
         <div v-if="period === 'custom'" class="d-flex flex-column ga-2">
@@ -143,14 +143,14 @@
             v-model="customFrom"
             density="compact"
             hide-details
-            label="From"
+            :label="t('From')"
             variant="outlined"
           />
           <DateField
             v-model="customTo"
             density="compact"
             hide-details
-            label="To"
+            :label="t('To')"
             variant="outlined"
           />
         </div>
@@ -159,7 +159,7 @@
           density="compact"
           hide-details
           :items="HIGHLIGHT_OPTIONS"
-          label="Highlight auto in / out (*)"
+          :label="t('Highlight auto in / out (*)')"
           variant="outlined"
         />
         <div class="d-flex ga-2">
@@ -168,7 +168,7 @@
             clearable
             density="compact"
             hide-details
-            label="Auto in at"
+            :label="t('Auto in at')"
             type="time"
             variant="outlined"
           />
@@ -177,7 +177,7 @@
             clearable
             density="compact"
             hide-details
-            label="Auto out at"
+            :label="t('Auto out at')"
             type="time"
             variant="outlined"
           />
@@ -189,10 +189,10 @@
           density="compact"
           hide-details
           :items="branchOptions"
-          label="Branches"
+          :label="t('Branches')"
           multiple
           persistent-placeholder
-          placeholder="All branches"
+          :placeholder="t('All branches')"
           variant="outlined"
         />
         <v-autocomplete
@@ -205,10 +205,10 @@
           item-title="title"
           item-value="value"
           :items="employeeOptions"
-          label="Employees"
+          :label="t('Employees')"
           multiple
           persistent-placeholder
-          placeholder="Everyone"
+          :placeholder="t('Everyone')"
           variant="outlined"
         />
         <div v-if="needsTopN || usesPart('bestsellers')" class="d-flex ga-2">
@@ -218,7 +218,7 @@
             density="compact"
             hide-details
             :items="[10, 20, 25, 50, 100]"
-            label="List length"
+            :label="t('List length')"
             variant="outlined"
           />
           <v-select
@@ -226,15 +226,15 @@
             v-model="sortBy"
             density="compact"
             hide-details
-            :items="[{ title: 'Net sales', value: 'revenue' }, { title: 'Units', value: 'units' }]"
-            label="Best sellers by"
+            :items="[{ title: t('Net sales'), value: 'revenue' }, { title: t('Units'), value: 'units' }]"
+            :label="t('Best sellers by')"
             variant="outlined"
           />
         </div>
 
         <v-btn
           prepend-icon="mdi-filter-remove-outline"
-          :text="excludedCount > 0 ? `Left out of reports (${excludedCount})` : 'Leave out products or customers'"
+          :text="excludedCount > 0 ? t('Left out of reports ({n})', { n: excludedCount }) : t('Leave out products or customers')"
           variant="tonal"
           @click="exclusionsDialog = true"
         />
@@ -242,7 +242,7 @@
           :disabled="!dirty || !canEdit"
           :loading="savingDefaults"
           prepend-icon="mdi-content-save-outline"
-          :text="dirty ? 'Save as default' : 'Saved as default'"
+          :text="dirty ? t('Save as default') : t('Saved as default')"
           variant="text"
           @click="saveDefaults"
         />
@@ -253,7 +253,7 @@
             color="primary"
             :disabled="!ready || parts.length === 0"
             prepend-icon="mdi-file-pdf-box"
-            text="Export PDF"
+            :text="t('Export PDF')"
             variant="flat"
             @click="exportPdf"
           />
@@ -266,7 +266,7 @@
           />
         </div>
         <div class="text-caption text-medium-emphasis">
-          Export PDF opens the print dialog -- pick "Save as PDF".
+          {{ t('Export PDF opens the print dialog -- pick "Save as PDF".') }}
         </div>
       </div>
     </aside>
@@ -278,7 +278,7 @@
           density="comfortable"
           icon="mdi-magnify-minus-outline"
           size="small"
-          title="Zoom out"
+          :title="t('Zoom out')"
           variant="text"
           @click="zoomBy(-1)"
         />
@@ -287,7 +287,7 @@
           density="comfortable"
           icon="mdi-magnify-plus-outline"
           size="small"
-          title="Zoom in"
+          :title="t('Zoom in')"
           variant="text"
           @click="zoomBy(1)"
         />
@@ -297,7 +297,7 @@
           density="comfortable"
           prepend-icon="mdi-arrow-expand-horizontal"
           size="small"
-          text="Fit width"
+          :text="t('Fit width')"
           variant="text"
           @click="zoom = 'fit'"
         />
@@ -315,7 +315,7 @@
           density="comfortable"
           icon="mdi-weather-night"
           size="small"
-          :title="darkView ? 'Show the page white' : 'Show the page dark (the PDF stays white)'"
+          :title="darkView ? t('Show the page white') : t('Show the page dark (the PDF stays white)')"
           variant="text"
           @click="darkView = !darkView"
         />
@@ -324,7 +324,7 @@
           density="comfortable"
           icon="mdi-text"
           size="small"
-          :title="showNotes ? 'Hide the explanatory lines under headings' : 'Show the explanatory lines under headings'"
+          :title="showNotes ? t('Hide the explanatory lines under headings') : t('Show the explanatory lines under headings')"
           variant="text"
           @click="showNotes = !showNotes"
         />
@@ -334,15 +334,15 @@
         v-if="(loading && !ready) || !fontsReady || !settingsReady"
         kind="pdf"
         min-height="60vh"
-        subtitle="Gathering the numbers and laying out the pages"
-        title="Preparing your report"
+        :subtitle="t('Gathering the numbers and laying out the pages')"
+        :title="t('Preparing your report')"
       />
       <v-alert v-else-if="loadError" class="ma-6" type="error" variant="tonal">{{ loadError }}</v-alert>
       <v-alert v-else-if="report.codes && codes.length === 0" class="ma-6" type="info" variant="tonal">
-        Type the start of the product codes on the left (TT, or TT, TX) to see how those products sold.
+        {{ t('Type the start of the product codes on the left (TT, or TT, TX) to see how those products sold.') }}
       </v-alert>
       <v-alert v-else-if="parts.length === 0" class="ma-6" type="info" variant="tonal">
-        Tick at least one part of the report on the left.
+        {{ t('Tick at least one part of the report on the left.') }}
       </v-alert>
       <div v-else-if="ready" class="zoom-box" :style="{ width: `${pageWidth * scale}px`, height: `${sheetHeight * scale}px` }">
         <div class="zoom-inner" :class="{ 'zoom-inner--dark': darkView }" :style="{ width: `${pageWidth}px`, transform: `scale(${scale})` }">
@@ -363,9 +363,9 @@
               <div class="rpt-meta">
                 <div><strong>{{ branchLabel }}</strong></div>
                 <div v-if="report.employees && employees.length > 0">{{ employeeLabel }}</div>
-                <div>{{ t('Generated {at}', { at: generatedLabel }) }}</div>
+                <div>{{ rt('Generated {at}', { at: generatedLabel }) }}</div>
                 <div v-if="showExcluded && excludedCount > 0 && (needsSales || needsGroup)">
-                  {{ t('Left out: {products} products, {clients} customers', { products: exclusions.products.length, clients: exclusions.clients.length }) }}
+                  {{ rt('Left out: {products} products, {clients} customers', { products: exclusions.products.length, clients: exclusions.clients.length }) }}
                 </div>
               </div>
             </header>
@@ -388,15 +388,13 @@
     <!-- Each pick is saved as it is made: nothing to discard. -->
     <v-dialog v-model="exclusionsDialog" max-width="620">
       <v-card data-no-discard-guard>
-        <v-card-title>Left out of reports</v-card-title>
+        <v-card-title>{{ t('Left out of reports') }}</v-card-title>
         <v-card-text>
           <p class="text-body-2 text-medium-emphasis mb-4">
-            Saved for everyone. A customer left out is gone from every figure (their sales too).
-            A product left out is gone from best sellers, categories, sizes and item counts;
-            the money it brought in stays in the sales totals. Pick from who and what sold in the loaded period.
+            {{ t('Saved for everyone. A customer left out is gone from every figure (their sales too). A product left out is gone from best sellers, categories, sizes and item counts; the money it brought in stays in the sales totals. Pick from who and what sold in the loaded period.') }}
           </p>
 
-          <div class="text-subtitle-2 mb-1">Customers</div>
+          <div class="text-subtitle-2 mb-1">{{ t('Customers') }}</div>
           <v-autocomplete
             v-model="pickClient"
             clearable
@@ -405,8 +403,8 @@
             item-title="title"
             item-value="value"
             :items="clientChoices"
-            no-data-text="No customer bought in the loaded period"
-            placeholder="Search a customer by name or phone"
+            :no-data-text="t('No customer bought in the loaded period')"
+            :placeholder="t('Search a customer by name or phone')"
             prepend-inner-icon="mdi-account-search"
             return-object
             variant="outlined"
@@ -421,10 +419,10 @@
               :text="c.label"
               @click:close="removeExclusion('clients', c.id)"
             />
-            <span v-if="exclusions.clients.length === 0" class="text-caption text-medium-emphasis">None</span>
+            <span v-if="exclusions.clients.length === 0" class="text-caption text-medium-emphasis">{{ t('None') }}</span>
           </div>
 
-          <div class="text-subtitle-2 mb-1">Products</div>
+          <div class="text-subtitle-2 mb-1">{{ t('Products') }}</div>
           <v-autocomplete
             v-model="pickProduct"
             clearable
@@ -433,8 +431,8 @@
             item-title="title"
             item-value="value"
             :items="productChoices"
-            no-data-text="No product sold in the loaded period"
-            placeholder="Search a product by name or code"
+            :no-data-text="t('No product sold in the loaded period')"
+            :placeholder="t('Search a product by name or code')"
             prepend-inner-icon="mdi-package-variant"
             return-object
             variant="outlined"
@@ -449,7 +447,7 @@
               :text="p.label"
               @click:close="removeExclusion('products', p.id)"
             />
-            <span v-if="exclusions.products.length === 0" class="text-caption text-medium-emphasis">None</span>
+            <span v-if="exclusions.products.length === 0" class="text-caption text-medium-emphasis">{{ t('None') }}</span>
           </div>
 
           <v-switch
@@ -458,12 +456,12 @@
             color="primary"
             density="compact"
             hide-details
-            label="Say on the report how many are left out"
+            :label="t('Say on the report how many are left out')"
           />
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Done" @click="exclusionsDialog = false" />
+          <v-btn :text="t('Done')" @click="exclusionsDialog = false" />
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -484,7 +482,8 @@
   import ProductGroupReport from '@/components/reports/ProductGroupReport.vue'
   import ProductsReport from '@/components/reports/ProductsReport.vue'
   import { ARABIC_FONT, installReportFonts } from '@/components/reports/reportFonts'
-  import { setReportLang, t } from '@/components/reports/reportI18n'
+  import { t } from '@/i18n'
+  import { setReportLang, t as rt } from '@/components/reports/reportI18n'
   import { buildPeople } from '@/components/reports/reportRows'
   import SalespersonReport from '@/components/reports/SalespersonReport.vue'
   import SummaryReport from '@/components/reports/SummaryReport.vue'
@@ -818,7 +817,7 @@
   })
   // The components to draw, in report order, each with its ticked parts.
   const blocks = computed(() => partGroups.value
-    .map(g => ({ comp: g.comp, title: sheetLang.value && t(BLOCK_TITLES[g.comp]), parts: g.parts.filter(p => parts.value.includes(p.key)).map(p => p.key) }))
+    .map(g => ({ comp: g.comp, title: sheetLang.value && rt(BLOCK_TITLES[g.comp]), parts: g.parts.filter(p => parts.value.includes(p.key)).map(p => p.key) }))
     .filter(b => b.parts.length > 0))
   const usesComp = comp => blocks.value.some(b => b.comp === comp)
   const usesPart = key => parts.value.includes(key) && report.value.parts.some(p => p.key === key)
@@ -838,6 +837,7 @@
     { title: 'This year', value: 'this-year' },
     { title: 'Custom…', value: 'custom' },
   ]
+  const periodItems = computed(() => PERIODS.map(p => ({ title: t(p.title), value: p.value })))
   // Early in a month the month that just ended is the one people report on.
   const autoPeriod = () => (new Date().getDate() <= 5 ? 'last-month' : 'this-month')
   const period = ref(autoPeriod())
@@ -1016,7 +1016,7 @@
     savingDefaults.value = true
     try {
       await saveSettings({ ...settings.value, defaults: currentDefaults.value })
-      notify.success('Saved: the Reports page opens like this from now on.')
+      notify.success(t('Saved: the Reports page opens like this from now on.'))
     } catch (error) {
       notify.error(error.message)
     } finally {
@@ -1270,8 +1270,8 @@
   const dateLocale = () => (sheetLang.value === 'ar' ? 'ar-LB-u-nu-latn' : 'en-GB')
   const listSep = () => (sheetLang.value === 'ar' ? '، ' : ', ')
   const sheetTitle = computed(() => (sheetLang.value && report.value.codes && codes.value.length > 0
-    ? t('Products: {codes}', { codes: codesLabel(codes.value, listSep()) })
-    : sheetLang.value && t(report.value.title)))
+    ? rt('Products: {codes}', { codes: codesLabel(codes.value, listSep()) })
+    : sheetLang.value && rt(report.value.title)))
   const longDate = d => new Date(`${d}T00:00:00`).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long', year: 'numeric' })
   const periodLabel = computed(() => {
     const { from, to } = range.value
@@ -1284,7 +1284,7 @@
     return from === to ? longDate(from) : `${longDate(from)} – ${longDate(to)}`
   })
   const branchLabel = computed(() => (branchIds.value.length === 0
-    ? sheetLang.value && t('All branches')
+    ? sheetLang.value && rt('All branches')
     : branchIds.value.map(id => branchNames.value[id] ?? `#${id}`).join(listSep())))
   const employeeLabel = computed(() => {
     const names = new Map(people.value.list.map(p => [p.key, p.name]))

@@ -1,18 +1,18 @@
 <template>
   <v-card>
     <v-card-title class="d-flex align-center">
-      <span class="text-h6">Edit Product</span>
+      <span class="text-h6">{{ t('Edit Product') }}</span>
       <v-spacer />
       <v-btn icon="mdi-close" size="small" variant="text" @click="$emit('close')" />
     </v-card-title>
     <v-divider />
 
     <v-card-text class="py-4">
-      <PreparingState v-if="loading" kind="box" min-height="220px" title="Loading the product" />
+      <PreparingState v-if="loading" kind="box" min-height="220px" :title="t('Loading the product')" />
 
       <div v-else-if="loadError" class="text-center py-8 text-medium-emphasis">
-        <div class="mb-2">Failed to load product.</div>
-        <v-btn size="small" text="Retry" variant="tonal" @click="load" />
+        <div class="mb-2">{{ t('Failed to load product.') }}</div>
+        <v-btn size="small" :text="t('Retry')" variant="tonal" @click="load" />
       </div>
 
       <template v-else>
@@ -22,7 +22,7 @@
               v-model="form.code"
               density="compact"
               :error-messages="errors.code"
-              label="Code"
+              :label="t('Code')"
               variant="outlined"
             />
           </v-col>
@@ -31,7 +31,7 @@
               v-model="form.name"
               density="compact"
               :error-messages="errors.name"
-              label="Name"
+              :label="t('Name')"
               variant="outlined"
             />
           </v-col>
@@ -41,7 +41,7 @@
           v-model="form.description"
           auto-grow
           density="compact"
-          label="Description"
+          :label="t('Description')"
           rows="2"
           variant="outlined"
         />
@@ -51,10 +51,10 @@
           color="primary"
           density="compact"
           hide-details
-          label="Active"
+          :label="t('Active')"
         />
 
-        <div class="text-overline text-medium-emphasis mt-2 mb-1">Attributes</div>
+        <div class="text-overline text-medium-emphasis mt-2 mb-1">{{ t('Attributes') }}</div>
         <v-row density="compact">
           <v-col v-for="field in attributeFields" :key="field.key" cols="12" sm="6">
             <v-combobox
@@ -63,19 +63,19 @@
               density="compact"
               hide-details="auto"
               :items="optionsFor(field.attrName)"
-              :label="field.label"
+              :label="t(field.label)"
               variant="outlined"
             />
           </v-col>
         </v-row>
 
         <div class="d-flex align-center mt-4 mb-1">
-          <div class="text-overline text-medium-emphasis">Variants</div>
+          <div class="text-overline text-medium-emphasis">{{ t('Variants') }}</div>
           <v-spacer />
           <v-btn
             prepend-icon="mdi-plus"
             size="small"
-            text="Add variant"
+            :text="t('Add variant')"
             variant="text"
             @click="addVariant"
           />
@@ -84,11 +84,11 @@
         <v-table v-if="variants.length > 0" density="compact">
           <thead>
             <tr>
-              <th>Color</th>
-              <th>Size</th>
-              <th>Barcode</th>
-              <th style="width: 96px">Price</th>
-              <th style="width: 64px">Active</th>
+              <th>{{ t('Color') }}</th>
+              <th>{{ t('Size') }}</th>
+              <th>{{ t('Barcode') }}</th>
+              <th style="width: 96px">{{ t('Price') }}</th>
+              <th style="width: 64px">{{ t('Active') }}</th>
               <th style="width: 88px" />
             </tr>
           </thead>
@@ -158,7 +158,7 @@
             </tr>
           </tbody>
         </v-table>
-        <div v-else class="text-caption text-medium-emphasis mb-2">No variants.</div>
+        <div v-else class="text-caption text-medium-emphasis mb-2">{{ t('No variants.') }}</div>
 
       </template>
     </v-card-text>
@@ -168,17 +168,17 @@
       <v-btn
         color="error"
         :disabled="loading || !!loadError"
-        text="Delete product"
+        :text="t('Delete product')"
         variant="text"
         @click="deleteConfirm = true"
       />
       <v-spacer />
-      <v-btn text="Cancel" variant="text" @click="$emit('close')" />
+      <v-btn :text="t('Cancel')" variant="text" @click="$emit('close')" />
       <v-btn
         color="primary"
         :disabled="loading || !!loadError"
         :loading="saving"
-        text="Save"
+        :text="t('Save')"
         variant="flat"
         @click="save"
       />
@@ -186,18 +186,18 @@
 
     <v-dialog v-model="deleteConfirm" max-width="440">
       <v-card>
-        <v-card-title class="text-h6">Delete product</v-card-title>
+        <v-card-title class="text-h6">{{ t('Delete product') }}</v-card-title>
         <v-card-text>
-          Delete <strong>{{ form.name || 'this product' }}</strong> and all its variants?
-          This can't be undone.
+          {{ t('Delete') }} <strong>{{ form.name || t('this product') }}</strong> {{ t('and all its variants?') }}
+          {{ t("This can't be undone.") }}
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="deleteConfirm = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="deleteConfirm = false" />
           <v-btn
             color="error"
             :loading="deleting"
-            text="Delete"
+            :text="t('Delete')"
             variant="flat"
             @click="doDelete"
           />
@@ -213,6 +213,7 @@
   import { useColorsAndSizes } from '@/composables/useColorsAndSizes'
   import { useProducts } from '@/composables/useProducts'
   import { useNotify } from '@/composables/useNotify'
+  import { t } from '@/i18n'
 
   const props = defineProps({
     productId: {
@@ -311,8 +312,8 @@
   watch(() => props.productId, load, { immediate: true })
 
   function validate () {
-    errors.code = form.code.trim() ? '' : 'Code is required.'
-    errors.name = form.name.trim().length >= 2 ? '' : 'Name needs to be at least 2 characters.'
+    errors.code = form.code.trim() ? '' : t('Code is required.')
+    errors.name = form.name.trim().length >= 2 ? '' : t('Name needs to be at least 2 characters.')
     return !errors.code && !errors.name
   }
 
@@ -370,13 +371,13 @@
       if (outcome === 'deactivated') {
         // Kept for its history; tick "active" and save to bring it back.
         v.is_active = false
-        notify.warning('This variant has stock or sales history, so it was deactivated instead of deleted.')
+        notify.warning(t('This variant has stock or sales history, so it was deactivated instead of deleted.'))
       } else {
         variants.value = variants.value.filter(x => x.id !== v.id)
       }
     } catch (error) {
       notify.error(error.message === 'still referenced by one or more products'
-        ? 'This variant is used on an invoice or transfer and can\'t be deleted.'
+        ? t("This variant is used on an invoice or transfer and can't be deleted.")
         : error.message)
     } finally {
       v._deleting = false
@@ -395,7 +396,7 @@
       emit('deleted')
     } catch (error) {
       notify.error(error.message === 'still referenced by one or more products'
-        ? 'This product is referenced elsewhere (invoices, purchases, or transfers) and can\'t be deleted.'
+        ? t("This product is referenced elsewhere (invoices, purchases, or transfers) and can't be deleted.")
         : error.message)
     } finally {
       deleting.value = false

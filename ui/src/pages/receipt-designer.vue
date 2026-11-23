@@ -3,7 +3,7 @@
     <v-card class="rd-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-palette" />
-        <span>Receipt Designer</span>
+        <span>{{ t('Receipt Designer') }}</span>
         <v-spacer />
         <v-select
           v-model="target"
@@ -14,7 +14,7 @@
           item-title="name"
           item-value="id"
           :items="targets"
-          label="Apply to"
+          :label="t('Apply to')"
           variant="outlined"
         />
         <v-btn
@@ -22,8 +22,8 @@
           data-test="make-default"
           :loading="savingDefault"
           prepend-icon="mdi-star-outline"
-          text="Make this the default"
-          title="New branches, and Default Settings' Apply to all, get this receipt"
+          :text="t('Make this the default')"
+          :title="t('New branches, and Default Settings\' Apply to all, get this receipt')"
           variant="text"
           @click="makeDefault"
         />
@@ -33,16 +33,16 @@
           :disabled="!theme || !layout"
           :loading="saving"
           prepend-icon="mdi-content-save"
-          text="Save"
+          :text="t('Save')"
           variant="flat"
           @click="save"
         />
       </v-card-title>
       <v-divider />
       <v-tabs v-model="tab" class="px-4" color="primary" density="compact">
-        <v-tab data-test="tab-receipt" value="receipt">Receipt</v-tab>
-        <v-tab data-test="tab-banners" value="banners">Banners</v-tab>
-        <v-tab data-test="tab-shop" value="shop">Shop details</v-tab>
+        <v-tab data-test="tab-receipt" value="receipt">{{ t('Receipt') }}</v-tab>
+        <v-tab data-test="tab-banners" value="banners">{{ t('Banners') }}</v-tab>
+        <v-tab data-test="tab-shop" value="shop">{{ t('Shop details') }}</v-tab>
       </v-tabs>
       <v-progress-linear v-if="loading" indeterminate />
       <div class="rd-body">
@@ -66,7 +66,7 @@
               mandatory
               variant="outlined"
             >
-              <v-btn v-for="m in allModes" :key="m.mode" size="small" :value="m.mode">{{ m.label }}</v-btn>
+              <v-btn v-for="m in allModes" :key="m.mode" size="small" :value="m.mode">{{ t(m.label) }}</v-btn>
             </v-btn-toggle>
             <ReceiptLivePaper
               :catalog="catalog"
@@ -86,8 +86,8 @@
             />
             <div v-if="previewError" class="text-body-2 text-error" data-test="preview-error">{{ previewError }}</div>
             <div class="text-caption text-medium-emphasis rd-paper-note">
-              <template v-if="canEdit && tab === 'receipt'">Click any words to change them, or a part for all of it. </template>Drawn with the till's own code<template v-if="target !== ALL"> and this branch's details</template>.
-              <template v-if="mode === 'referral'"> The referral code prints only at branches with referrals on.</template>
+              <template v-if="canEdit && tab === 'receipt'">{{ t('Click any words to change them, or a part for all of it.') }} </template>{{ t('Drawn with the till\'s own code') }}<template v-if="target !== ALL"> {{ t('and this branch\'s details') }}</template>.
+              <template v-if="mode === 'referral'"> {{ t('The referral code prints only at branches with referrals on.') }}</template>
             </div>
           </div>
 
@@ -105,17 +105,17 @@
 
           <div v-if="tab === 'shop'" class="rd-panel" data-test="shop-tab">
             <div class="text-subtitle-1 font-weight-medium mb-1">
-              {{ target === ALL ? 'Every branch' : branchName(target) }}
+              {{ target === ALL ? t('Every branch') : branchName(target) }}
             </div>
             <div class="text-caption text-medium-emphasis mb-4">
-              What the receipt prints about the shop. Saved to the branch's settings with Save.
+              {{ t('What the receipt prints about the shop. Saved to the branch\'s settings with Save.') }}
             </div>
             <v-text-field
               v-model="shop.store_name"
               data-test="shop-store-name"
               density="compact"
               :disabled="!canEdit"
-              label="Store name"
+              :label="t('Store name')"
               variant="outlined"
               @update:model-value="shopTouched = true"
             />
@@ -125,7 +125,7 @@
               data-test="shop-phone"
               density="compact"
               :disabled="!canEdit"
-              label="Phone"
+              :label="t('Phone')"
               variant="outlined"
               @update:model-value="shopTouched = true"
             />
@@ -134,7 +134,7 @@
               data-test="shop-website"
               density="compact"
               :disabled="!canEdit"
-              label="Website"
+              :label="t('Website')"
               variant="outlined"
               @update:model-value="shopTouched = true"
             />
@@ -144,12 +144,12 @@
               data-test="shop-policy"
               density="compact"
               :disabled="!canEdit"
-              label="Exchange policy"
+              :label="t('Exchange policy')"
               rows="2"
               variant="outlined"
               @update:model-value="shopTouched = true"
             />
-            <div class="text-subtitle-2 mb-2">Follow us</div>
+            <div class="text-subtitle-2 mb-2">{{ t('Follow us') }}</div>
             <div v-for="p in socialPlatforms" :key="p.value" class="rd-social">
               <v-checkbox-btn
                 :data-test="`social-${p.value}`"
@@ -172,7 +172,7 @@
               />
             </div>
             <div v-if="target === ALL" class="text-caption text-medium-emphasis mt-2">
-              Saving for every branch sets the same name, website, policy and socials everywhere; each branch keeps its own phone.
+              {{ t('Saving for every branch sets the same name, website, policy and socials everywhere; each branch keeps its own phone.') }}
             </div>
           </div>
         </div>
@@ -192,6 +192,7 @@
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
   import {
     dealModes, designJSON, emptyDesign, emptyShop, footerOrder, groupInfo, moveSection, parseDesign, previewQuery,
     shopFromSettings, shopPayload, socialPlatforms,
@@ -238,17 +239,17 @@
   const currentMode = computed(() => allModes.value.find(m => m.mode === mode.value) ?? baseModes[0])
 
   const targets = computed(() => [
-    { id: ALL, name: 'All branches' },
+    { id: ALL, name: t('All branches') },
     ...branches.value.map((b: { id: number, name: string }) => ({ id: b.id, name: b.name })),
   ])
   function branchName (id: number) {
-    return branches.value.find((b: { id: number }) => b.id === id)?.name ?? `Branch #${id}`
+    return branches.value.find((b: { id: number }) => b.id === id)?.name ?? t('Branch #{id}', { id })
   }
 
   async function requestJSON (url: string, options?: RequestInit) {
     const res = await authFetch(url, options)
     const data = await res.json().catch(() => ({}))
-    if (!res.ok) {throw new Error(data.error || `Request failed with status ${res.status}`)}
+    if (!res.ok) {throw new Error(data.error || t('Request failed with status {status}', { status: res.status }))}
     return data
   }
 
@@ -387,8 +388,9 @@
       }
       if (!all) {savedTheme.value = theme.value}
       shopTouched.value = false
-      const done = `Saved for ${saved === 1 ? (all ? '1 branch' : 'the branch') : `${saved} branches`}. Each register applies it within a few seconds if online.`
-      notify.success(skipped.length > 0 ? `${done} Skipped ${skipped.join(', ')}: no register has connected there yet.` : done)
+      const what = saved === 1 ? (all ? t('1 branch') : t('the branch')) : t('{n} branches', { n: saved })
+      const done = t('Saved for {what}. Each register applies it within a few seconds if online.', { what })
+      notify.success(skipped.length > 0 ? t('{done} Skipped {names}: no register has connected there yet.', { done, names: skipped.join(', ') }) : done)
     } catch (error) {
       notify.error((error as Error).message)
     } finally {
@@ -412,7 +414,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
       })
-      notify.success('This receipt is now the default. Default Settings\' Apply to all sends it to every branch.')
+      notify.success(t('This receipt is now the default. Default Settings\' Apply to all sends it to every branch.'))
     } catch (error) {
       notify.error((error as Error).message)
     } finally {

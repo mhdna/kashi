@@ -1,7 +1,7 @@
 <template>
   <v-dialog max-width="720" :model-value="modelValue" @update:model-value="close">
     <v-card>
-      <v-card-title class="px-6 pt-5">Change settlement</v-card-title>
+      <v-card-title class="px-6 pt-5">{{ t('Change settlement') }}</v-card-title>
       <v-card-subtitle class="px-6">{{ invoice?.branch_invoice_code }}, {{ branchName }}</v-card-subtitle>
       <v-card-text class="px-6">
         <div v-if="phase === 'loading'" class="d-flex justify-center pa-6">
@@ -9,8 +9,7 @@
         </div>
         <template v-else-if="phase === 'edit'">
           <p class="text-body-2 mb-4">
-            How the {{ formatCents(invoice?.grand_total ?? 0) }} was paid. The till moves the money between its
-            payment methods in the sale's own shift, and an On Account part becomes what the client owes.
+            {{ t("How the {amount} was paid. The till moves the money between its payment methods in the sale's own shift, and an On Account part becomes what the client owes.", { amount: formatCents(invoice?.grand_total ?? 0) }) }}
           </p>
           <PaymentEntryPanel
             v-model="entries"
@@ -18,13 +17,13 @@
             :due-cents="invoice?.grand_total ?? 0"
             :methods="methods"
           />
-          <v-textarea v-model="reason" class="mt-4" label="Reason (optional)" rows="2" />
+          <v-textarea v-model="reason" class="mt-4" :label="t('Reason (optional)')" rows="2" />
         </template>
         <PreparingState
           v-else-if="phase === 'waiting'"
           kind="receipt"
           min-height="220px"
-          :title="`Waiting for ${branchName} to change the settlement`"
+          :title="t('Waiting for {branch} to change the settlement', { branch: branchName })"
         />
         <v-alert
           v-else-if="phase === 'result'"
@@ -36,21 +35,21 @@
       <v-card-actions class="px-6 pb-4">
         <v-spacer />
         <template v-if="phase === 'edit' || phase === 'loading'">
-          <v-btn text="Cancel" @click="close" />
+          <v-btn :text="t('Cancel')" @click="close" />
           <v-btn
             color="primary"
             data-test="send-settlement"
             :disabled="!status.done || phase !== 'edit'"
             :loading="sending"
-            text="Change settlement"
+            :text="t('Change settlement')"
             @click="send"
           />
         </template>
         <template v-else-if="phase === 'result' && result?.status === 'failed'">
-          <v-btn text="Close" @click="close" />
-          <v-btn color="primary" text="Edit and send again" @click="phase = 'edit'" />
+          <v-btn :text="t('Close')" @click="close" />
+          <v-btn color="primary" :text="t('Edit and send again')" @click="phase = 'edit'" />
         </template>
-        <v-btn v-else text="Close" @click="close" />
+        <v-btn v-else :text="t('Close')" @click="close" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -62,6 +61,7 @@
   import { useBranchCommands } from '@/composables/useBranchCommands'
   import { useNotify } from '@/composables/useNotify'
   import { usePaymentEntry } from '@/composables/usePaymentEntry'
+  import { t } from '@/i18n'
   import { entriesFromSettlement, formatCents, paymentStatus, toPayload } from '@/utils/paymentEntry'
   import PaymentEntryPanel from './PaymentEntryPanel.vue'
 
@@ -90,9 +90,9 @@
 
   const status = computed(() => paymentStatus(entries.value, props.invoice?.grand_total ?? 0, currencies.value))
   const resultText = computed(() => {
-    if (result.value?.status === 'success') return 'Settlement changed.'
-    if (result.value?.status === 'failed') return result.value.error || 'The till reported a failure with no message.'
-    return "Still waiting: the till may be offline. It changes the settlement the next time it's online."
+    if (result.value?.status === 'success') return t('Settlement changed.')
+    if (result.value?.status === 'failed') return result.value.error || t('The till reported a failure with no message.')
+    return t("Still waiting: the till may be offline. It changes the settlement the next time it's online.")
   })
 
   watch(() => props.modelValue, async open => {

@@ -1,7 +1,7 @@
 <template>
   <v-dialog v-model="dialog" max-width="520">
     <v-card class="px-4">
-      <v-card-title>Add a New Purchase</v-card-title>
+      <v-card-title>{{ t('Add a New Purchase') }}</v-card-title>
       <v-card-text>
         <form @submit.prevent="submit">
           <v-select
@@ -11,7 +11,7 @@
             :item-title="s => s.name"
             :item-value="s => s.id"
             :items="suppliers"
-            label="Supplier"
+            :label="t('Supplier')"
           />
           <v-select
             v-model="inventoryId.value.value"
@@ -20,7 +20,7 @@
             :item-title="i => i.name"
             :item-value="i => i.id"
             :items="inventories"
-            label="Destination Inventory"
+            :label="t('Destination Inventory')"
           />
           <CurrencySelect
             v-model="currencyCode.value.value"
@@ -30,13 +30,13 @@
             v-model="purchasedAt.value.value"
             density="compact"
             :error-messages="purchasedAt.errorMessage.value"
-            label="Purchased At"
+            :label="t('Purchased At')"
           />
 
           <v-card-actions class="px-0">
             <v-spacer />
-            <v-btn text="Cancel" @click="closeDialog" />
-            <v-btn color="primary" :loading="submitting" text="Create Purchase" type="submit" />
+            <v-btn :text="t('Cancel')" @click="closeDialog" />
+            <v-btn color="primary" :loading="submitting" :text="t('Create Purchase')" type="submit" />
           </v-card-actions>
         </form>
       </v-card-text>
@@ -46,7 +46,7 @@
   <v-dialog v-model="itemsDialog" max-width="800">
     <v-card class="px-4">
       <v-card-title>
-        Purchase #{{ itemsTarget?.id }}
+        {{ t('Purchase #{id}', { id: itemsTarget?.id }) }}
         <v-chip class="ml-2" :color="statusColor(itemsTarget?.status)" size="small">{{ itemsTarget?.status }}</v-chip>
       </v-card-title>
       <v-card-text>
@@ -62,7 +62,7 @@
               :items="skuOptions"
               :loading="skuLoading"
               no-filter
-              placeholder="Search SKU / barcode"
+              :placeholder="t('Search SKU / barcode')"
               @update:search="onSkuSearch"
             />
           </v-col>
@@ -71,7 +71,7 @@
               v-model.number="itemQuantity"
               density="compact"
               hide-details
-              label="Quantity"
+              :label="t('Quantity')"
               type="number"
             />
           </v-col>
@@ -80,21 +80,21 @@
               v-model.number="itemUnitPrice"
               density="compact"
               hide-details
-              label="Unit Cost"
+              :label="t('Unit Cost')"
               type="number"
             />
           </v-col>
           <v-col cols="3" sm="2">
-            <v-btn :loading="itemSubmitting" text="Add" @click="addItem" />
+            <v-btn :loading="itemSubmitting" :text="t('Add')" @click="addItem" />
           </v-col>
         </v-row>
         <v-table density="compact">
           <thead>
             <tr>
-              <th>SKU</th>
-              <th>Barcode</th>
-              <th class="text-end">Quantity</th>
-              <th class="text-end">Unit Cost</th>
+              <th>{{ t('SKU') }}</th>
+              <th>{{ t('Barcode') }}</th>
+              <th class="text-end">{{ t('Quantity') }}</th>
+              <th class="text-end">{{ t('Unit Cost') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -112,19 +112,19 @@
           v-if="canEdit && itemsTarget?.status === 'draft'"
           color="success"
           :loading="receiving"
-          text="Receive"
+          :text="t('Receive')"
           @click="receive"
         />
         <v-btn
           v-if="canEdit && (itemsTarget?.status === 'draft' || itemsTarget?.status === 'received')"
           color="error"
           :loading="cancelling"
-          text="Cancel Purchase"
+          :text="t('Cancel Purchase')"
           variant="text"
           @click="cancel"
         />
         <v-spacer />
-        <v-btn text="Close" @click="itemsDialog = false" />
+        <v-btn :text="t('Close')" @click="itemsDialog = false" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -133,7 +133,7 @@
     <v-card class="purchase-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-invoice" />
-        <span>Purchase Invoices</span>
+        <span>{{ t('Purchase Invoices') }}</span>
         <v-spacer />
         <v-text-field
           v-model="search"
@@ -141,7 +141,7 @@
           clearable
           density="compact"
           hide-details
-          label="Search purchase invoices"
+          :label="t('Search purchase invoices')"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
         />
@@ -149,7 +149,7 @@
           v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
-          text="Add Purchase"
+          :text="t('Add Purchase')"
           variant="flat"
           @click="openCreate"
         />
@@ -181,7 +181,7 @@
 
 <script setup lang="ts">
   import { useField, useForm } from 'vee-validate'
-  import { ref } from 'vue'
+  import { computed, ref } from 'vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { useInventories } from '@/composables/useInventories'
   import { useNotify } from '@/composables/useNotify'
@@ -190,6 +190,7 @@
   import { useSuppliers } from '@/composables/useSuppliers'
   import { useVariants } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
@@ -209,14 +210,14 @@
   }
 
   const apiURL = `${API_BASE}/purchases`
-  const headers = ref([
-    { title: 'ID', key: 'id', align: 'start' },
-    { title: 'Code', key: 'code', align: 'start' },
-    { title: 'Supplier', key: 'supplier_name', align: 'start' },
-    { title: 'Inventory', key: 'inventory_name', align: 'start' },
-    { title: 'Total', key: 'grand_total', align: 'end' },
-    { title: 'Status', key: 'status', align: 'start' },
-    { title: 'Purchased At', key: 'purchased_at', align: 'end' },
+  const headers = computed(() => [
+    { title: t('ID'), key: 'id', align: 'start' },
+    { title: t('Code'), key: 'code', align: 'start' },
+    { title: t('Supplier'), key: 'supplier_name', align: 'start' },
+    { title: t('Inventory'), key: 'inventory_name', align: 'start' },
+    { title: t('Total'), key: 'grand_total', align: 'end' },
+    { title: t('Status'), key: 'status', align: 'start' },
+    { title: t('Purchased At'), key: 'purchased_at', align: 'end' },
   ])
 
   function statusColor (s) {
@@ -246,16 +247,16 @@
   const { handleSubmit, handleReset } = useForm({
     validationSchema: {
       supplierId (value) {
-        return !!value || 'Select a supplier.'
+        return !!value || t('Select a supplier.')
       },
       inventoryId (value) {
-        return !!value || 'Select a destination inventory.'
+        return !!value || t('Select a destination inventory.')
       },
       currencyCode (value) {
-        return !!value || 'Select a currency.'
+        return !!value || t('Select a currency.')
       },
       purchasedAt (value) {
-        return !!value || 'Purchase date is required.'
+        return !!value || t('Purchase date is required.')
       },
     },
   })

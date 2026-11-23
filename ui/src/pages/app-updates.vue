@@ -3,54 +3,50 @@
     <v-card class="au-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-update" />
-        <span>App Updates</span>
+        <span>{{ t('App Updates') }}</span>
         <v-spacer />
-        <v-btn prepend-icon="mdi-refresh" text="Reload" variant="text" @click="reloadAll" />
+        <v-btn prepend-icon="mdi-refresh" :text="t('Reload')" variant="text" @click="reloadAll" />
       </v-card-title>
       <v-divider />
 
       <div class="au-content pa-5">
         <p class="text-body-2 text-medium-emphasis mb-4">
-          Publish a build from the kashi-pos repo with <code>make publish</code>, then choose which
-          tills run it. A till downloads its update in the background and installs it when it's
-          safe: when the cashier taps "Install now", or by itself while no shift is open. If the new
-          version doesn't start, the till goes back to the old one on its own. To roll back on
-          purpose, set the tills to an older release.
+          {{ t('Publish a build from the kashi-pos repo with') }} <code>make publish</code>{{ t(', then choose which tills run it. A till downloads its update in the background and installs it when it\'s safe: when the cashier taps "Install now", or by itself while no shift is open. If the new version doesn\'t start, the till goes back to the old one on its own. To roll back on purpose, set the tills to an older release.') }}
         </p>
 
         <!-- ------------------------------------------------ overview -->
         <div class="au-stats mb-5">
           <div class="au-stat">
-            <div class="au-stat-label">Latest release</div>
+            <div class="au-stat-label">{{ t('Latest release') }}</div>
             <div class="au-stat-value">{{ latestRelease ? latestRelease.version : '—' }}</div>
-            <div class="au-stat-sub">{{ latestRelease ? `published ${ago(latestRelease.created_at)}` : 'nothing published yet' }}</div>
+            <div class="au-stat-sub">{{ latestRelease ? t('published {when}', { when: ago(latestRelease.created_at) }) : t('nothing published yet') }}</div>
           </div>
           <div class="au-stat">
-            <div class="au-stat-label">On their target</div>
+            <div class="au-stat-label">{{ t('On their target') }}</div>
             <div class="au-stat-value">{{ upToDateCount }} / {{ targetedRegisters.length }}</div>
-            <div class="au-stat-sub">tills running what they're set to</div>
+            <div class="au-stat-sub">{{ t("tills running what they're set to") }}</div>
           </div>
           <div class="au-stat">
-            <div class="au-stat-label">Updating</div>
+            <div class="au-stat-label">{{ t('Updating') }}</div>
             <div class="au-stat-value" :class="{ 'text-info': updatingCount > 0 }">{{ updatingCount }}</div>
-            <div class="au-stat-sub">downloading, ready or installing</div>
+            <div class="au-stat-sub">{{ t('downloading, ready or installing') }}</div>
           </div>
           <div class="au-stat">
-            <div class="au-stat-label">Problems</div>
+            <div class="au-stat-label">{{ t('Problems') }}</div>
             <div class="au-stat-value" :class="{ 'text-error': problemCount > 0 }">{{ problemCount }}</div>
-            <div class="au-stat-sub">failed, rolled back or blocked</div>
+            <div class="au-stat-sub">{{ t('failed, rolled back or blocked') }}</div>
           </div>
         </div>
 
         <!-- ------------------------------------------------ registers -->
         <div class="d-flex flex-wrap align-center ga-3 mb-2">
-          <div class="au-section-title">Tills</div>
+          <div class="au-section-title">{{ t('Tills') }}</div>
           <v-spacer />
           <v-btn
             v-if="canEdit"
             :disabled="selectedRegisterIds.length === 0"
             prepend-icon="mdi-rocket-launch-outline"
-            :text="selectedRegisterIds.length > 0 ? `Set version for ${selectedRegisterIds.length}` : 'Set version'"
+            :text="selectedRegisterIds.length > 0 ? t('Set version for {n}', { n: selectedRegisterIds.length }) : t('Set version')"
             variant="tonal"
             @click="openTargetDialog(selectedRegisterIds)"
           />
@@ -64,7 +60,7 @@
           :items="activeRegisters"
           :items-per-page="-1"
           :loading="loading"
-          no-data-text="No registers yet."
+          :no-data-text="t('No registers yet.')"
           :show-select="canEdit"
         >
           <template #item.register="{ item }">
@@ -73,15 +69,15 @@
               <div>
                 <div class="font-weight-medium">{{ item.branch_name }} · {{ item.code }}</div>
                 <div class="text-caption text-medium-emphasis">
-                  {{ item.connected ? 'online' : `seen ${item.last_seen_at?.Valid ? ago(item.last_seen_at.Time) : 'never'}` }}
+                  {{ item.connected ? t('online') : t('seen {when}', { when: item.last_seen_at?.Valid ? ago(item.last_seen_at.Time) : t('never') }) }}
                 </div>
               </div>
             </div>
           </template>
           <template #item.app_version="{ item }">
             <span v-if="item.app_version">{{ item.app_version }}</span>
-            <span v-else class="text-medium-emphasis" title="This till hasn't reported a version: it runs a build from before remote updates, so it needs one manual install.">unknown</span>
-            <v-chip v-if="item.app_flavor === 'compact'" class="ms-1" size="x-small" variant="outlined">compact</v-chip>
+            <span v-else class="text-medium-emphasis" :title="t(&quot;This till hasn't reported a version: it runs a build from before remote updates, so it needs one manual install.&quot;)">{{ t('unknown') }}</span>
+            <v-chip v-if="item.app_flavor === 'compact'" class="ms-1" size="x-small" variant="outlined">{{ t('compact') }}</v-chip>
           </template>
           <template #item.target="{ item }">
             <span v-if="item.target_version?.Valid">{{ item.target_version.String }}</span>
@@ -104,12 +100,12 @@
             </div>
           </template>
           <template v-if="canEdit" #item.actions="{ item }">
-            <v-btn size="small" text="Set version" variant="text" @click="openTargetDialog([item.id])" />
+            <v-btn size="small" :text="t('Set version')" variant="text" @click="openTargetDialog([item.id])" />
             <v-btn
               v-if="previousReleaseFor(item)"
               prepend-icon="mdi-backup-restore"
               size="small"
-              :text="`Roll back to ${previousReleaseFor(item).version}`"
+              :text="t('Roll back to {version}', { version: previousReleaseFor(item).version })"
               variant="text"
               @click="confirmRollback(item)"
             />
@@ -118,7 +114,7 @@
 
         <!-- ------------------------------------------------ releases -->
         <div class="mb-2 d-flex align-center ga-3 flex-wrap">
-          <div class="au-section-title">Releases</div>
+          <div class="au-section-title">{{ t('Releases') }}</div>
           <v-spacer />
           <v-select
             v-model="keep"
@@ -127,7 +123,7 @@
             :disabled="!canEdit"
             hide-details
             :items="KEEP_OPTIONS"
-            label="Keep old builds"
+            :label="t('Keep old builds')"
             variant="outlined"
             @update:model-value="saveKeep"
           />
@@ -139,7 +135,7 @@
           :items="releases"
           :items-per-page="-1"
           :loading="loading"
-          no-data-text="Nothing published yet. In the kashi-pos repo run: git tag v1.2.3 && make publish NOTES=&quot;what changed&quot;"
+          :no-data-text="t('Nothing published yet. In the kashi-pos repo run: git tag v1.2.3 && make publish NOTES=&quot;what changed&quot;')"
         >
           <template #item.version="{ item }">
             <span class="font-weight-medium">{{ item.version }}</span>
@@ -149,15 +145,15 @@
             <div class="au-notes" :title="item.notes">{{ item.notes || '—' }}</div>
           </template>
           <template #item.size_bytes="{ item }">
-            <span v-if="item.file_removed" class="text-medium-emphasis" title="The file was deleted once its tills installed it. Publish this version again to send it to other tills.">Deleted</span>
+            <span v-if="item.file_removed" class="text-medium-emphasis" :title="t('The file was deleted once its tills installed it. Publish this version again to send it to other tills.')">{{ t('Deleted') }}</span>
             <template v-else>
               <!-- What a till downloads: the compressed build, or a patch
                    from the build it runs (api/app_update_compact.go). -->
               <span :title="`The program is ${formatSize(item.size_bytes)}`">
                 {{ formatSize(item.encoding ? item.download_bytes : item.size_bytes) }}
               </span>
-              <div v-if="item.patches" class="text-caption text-medium-emphasis" title="Tills on a build this was patched from download only the difference">
-                patch {{ formatSize(item.patch_bytes) }}{{ item.patches > 1 ? ` · ${item.patches} builds` : '' }}
+              <div v-if="item.patches" class="text-caption text-medium-emphasis" :title="t('Tills on a build this was patched from download only the difference')">
+                {{ t('patch') }} {{ formatSize(item.patch_bytes) }}{{ item.patches > 1 ? ` · ${t('{n} builds', { n: item.patches })}` : '' }}
               </div>
             </template>
           </template>
@@ -165,22 +161,22 @@
             <span :title="formatDate(item.created_at)">{{ ago(item.created_at) }}</span>
           </template>
           <template #item.usage="{ item }">
-            {{ item.running_count }} running · {{ item.target_count }} set
+            {{ t('{running} running', { running: item.running_count }) }} · {{ t('{set} set', { set: item.target_count }) }}
           </template>
           <template v-if="canEdit" #item.actions="{ item }">
             <v-btn
               :disabled="item.file_removed"
               prepend-icon="mdi-rocket-launch-outline"
               size="small"
-              text="Deploy"
-              :title="item.file_removed ? 'The file was deleted; publish this version again first' : undefined"
+              :text="t('Deploy')"
+              :title="item.file_removed ? t('The file was deleted; publish this version again first') : undefined"
               variant="text"
               @click="openDeployDialog(item)"
             />
             <v-btn
               icon="mdi-pencil"
               size="small"
-              title="Edit notes"
+              :title="t('Edit notes')"
               variant="text"
               @click="openNotesDialog(item)"
             />
@@ -188,7 +184,7 @@
               :disabled="item.target_count > 0"
               icon="mdi-delete"
               size="small"
-              :title="item.target_count > 0 ? 'Tills are still set to this release' : 'Delete'"
+              :title="item.target_count > 0 ? t('Tills are still set to this release') : t('Delete')"
               variant="text"
               @click="deleteRelease(item)"
             />
@@ -196,20 +192,20 @@
         </v-data-table>
 
         <!-- ------------------------------------------------ history -->
-        <div class="au-section-title mb-2">History</div>
+        <div class="au-section-title mb-2">{{ t('History') }}</div>
         <v-data-table
           density="compact"
           :headers="eventHeaders"
           :items="events"
           :loading="loading"
-          no-data-text="No update activity yet."
+          :no-data-text="t('No update activity yet.')"
         >
           <template #item.created_at="{ item }">
             <span :title="formatDate(item.created_at)">{{ ago(item.created_at) }}</span>
           </template>
           <template #item.register="{ item }">{{ item.branch_name }} · {{ item.register_code }}</template>
           <template #item.state="{ item }">
-            <v-chip :color="STATES[item.state]?.color" size="small" variant="tonal">{{ STATES[item.state]?.label ?? item.state }}</v-chip>
+            <v-chip :color="STATES[item.state]?.color" size="small" variant="tonal">{{ stateLabel(item.state) }}</v-chip>
           </template>
           <template #item.version="{ item }">
             {{ item.app_version || '—' }}<span v-if="item.release_version?.Valid && item.release_version.String !== item.app_version"> → {{ item.release_version.String }}</span>
@@ -224,7 +220,7 @@
     <!-- set the version for some tills -->
     <v-dialog v-model="targetDialog" max-width="480">
       <v-card>
-        <v-card-title class="text-subtitle-1">Set the version for {{ targetRegisterIds.length }} till(s)</v-card-title>
+        <v-card-title class="text-subtitle-1">{{ t('Set the version for {n} till(s)', { n: targetRegisterIds.length }) }}</v-card-title>
         <v-card-text>
           <v-select
             v-model="targetReleaseId"
@@ -232,7 +228,7 @@
             item-title="label"
             item-value="id"
             :items="targetOptions"
-            label="Version"
+            :label="t('Version')"
             variant="outlined"
           />
           <v-checkbox
@@ -241,23 +237,22 @@
             density="compact"
             :disabled="!targetReleaseId"
             hide-details
-            label="Install now, even during a shift"
+            :label="t('Install now, even during a shift')"
           />
           <p v-if="forceInstall" class="text-caption text-error mb-2">
-            The cashier gets a one-minute countdown to finish the sale, then the till closes and updates.
+            {{ t('The cashier gets a one-minute countdown to finish the sale, then the till closes and updates.') }}
           </p>
           <p class="text-body-2 text-medium-emphasis">
-            Each till downloads it right away (or when it's next online) and installs it at a safe
-            moment. "Keep what it runs" stops any update that hasn't installed yet.
+            {{ t("Each till downloads it right away (or when it's next online) and installs it at a safe moment. \"Keep what it runs\" stops any update that hasn't installed yet.") }}
           </p>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="targetDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="targetDialog = false" />
           <v-btn
             color="primary"
             :loading="saving"
-            text="Save"
+            :text="t('Save')"
             variant="flat"
             @click="submitTarget"
           />
@@ -268,7 +263,7 @@
     <!-- deploy one release -->
     <v-dialog v-model="deployDialog" max-width="520">
       <v-card v-if="deployRelease">
-        <v-card-title class="text-subtitle-1">Deploy {{ deployRelease.version }} ({{ deployRelease.flavor }})</v-card-title>
+        <v-card-title class="text-subtitle-1">{{ t('Deploy {version} ({flavor})', { version: deployRelease.version, flavor: deployRelease.flavor }) }}</v-card-title>
         <v-card-text>
           <v-checkbox
             v-for="r in deployCandidates"
@@ -276,11 +271,11 @@
             v-model="deployRegisterIds"
             density="compact"
             hide-details
-            :label="`${r.branch_name} · ${r.code}${r.app_version ? ` (runs ${r.app_version})` : ''}`"
+            :label="`${r.branch_name} · ${r.code}${r.app_version ? ` ${t('(runs {version})', { version: r.app_version })}` : ''}`"
             :value="r.id"
           />
           <p v-if="deployCandidates.length === 0" class="text-body-2">
-            No till runs the {{ deployRelease.flavor }} build.
+            {{ t('No till runs the {flavor} build.', { flavor: deployRelease.flavor }) }}
           </p>
           <v-checkbox
             v-model="forceInstall"
@@ -288,26 +283,26 @@
             color="error"
             density="compact"
             hide-details
-            label="Install now, even during a shift"
+            :label="t('Install now, even during a shift')"
           />
           <p v-if="forceInstall" class="text-caption text-error mb-2">
-            The cashier gets a one-minute countdown to finish the sale, then the till closes and updates.
+            {{ t('The cashier gets a one-minute countdown to finish the sale, then the till closes and updates.') }}
           </p>
         </v-card-text>
         <v-card-actions>
           <v-btn
             v-if="deployCandidates.length > 0"
-            :text="deployRegisterIds.length === deployCandidates.length ? 'None' : 'All'"
+            :text="deployRegisterIds.length === deployCandidates.length ? t('None') : t('All')"
             variant="text"
             @click="toggleAllDeploy"
           />
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="deployDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="deployDialog = false" />
           <v-btn
             color="primary"
             :disabled="deployRegisterIds.length === 0"
             :loading="saving"
-            :text="`Deploy to ${deployRegisterIds.length}`"
+            :text="t('Deploy to {n}', { n: deployRegisterIds.length })"
             variant="flat"
             @click="submitDeploy"
           />
@@ -318,12 +313,12 @@
     <!-- edit release notes -->
     <v-dialog v-model="notesDialog" max-width="520">
       <v-card v-if="notesRelease">
-        <v-card-title class="text-subtitle-1">What's new in {{ notesRelease.version }}</v-card-title>
+        <v-card-title class="text-subtitle-1">{{ t("What's new in {version}", { version: notesRelease.version }) }}</v-card-title>
         <v-card-text>
           <v-textarea
             v-model="notesText"
             auto-grow
-            hint="Cashiers see this after the update installs."
+            :hint="t('Cashiers see this after the update installs.')"
             persistent-hint
             rows="4"
             variant="outlined"
@@ -331,11 +326,11 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="notesDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="notesDialog = false" />
           <v-btn
             color="primary"
             :loading="saving"
-            text="Save"
+            :text="t('Save')"
             variant="flat"
             @click="submitNotes"
           />
@@ -347,6 +342,7 @@
 
 <script setup>
   import { computed, onMounted, onUnmounted, ref } from 'vue'
+  import { t } from '@/i18n'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useAppUpdates } from '@/composables/useAppUpdates'
   import { confirmDialog } from '@/composables/useDialog'
@@ -358,17 +354,21 @@
   const api = useAppUpdates()
   const socket = useAdminSocket()
 
+  // label is a function so the text follows the language toggle.
   const STATES = {
-    up_to_date: { label: 'Up to date', color: 'success' },
-    downloading: { label: 'Downloading', color: 'info' },
-    ready: { label: 'Ready to install', color: 'info' },
-    installing: { label: 'Installing', color: 'info' },
-    updated: { label: 'Updated', color: 'success' },
-    failed: { label: 'Failed', color: 'error' },
-    rolled_back: { label: 'Rolled back', color: 'warning' },
-    blocked: { label: 'Needs manual install', color: 'error' },
-    targeted: { label: 'Version set', color: undefined },
-    target_cleared: { label: 'Target cleared', color: undefined },
+    up_to_date: { label: () => t('Up to date'), color: 'success' },
+    downloading: { label: () => t('Downloading'), color: 'info' },
+    ready: { label: () => t('Ready to install'), color: 'info' },
+    installing: { label: () => t('Installing'), color: 'info' },
+    updated: { label: () => t('Updated'), color: 'success' },
+    failed: { label: () => t('Failed'), color: 'error' },
+    rolled_back: { label: () => t('Rolled back'), color: 'warning' },
+    blocked: { label: () => t('Needs manual install'), color: 'error' },
+    targeted: { label: () => t('Version set'), color: undefined },
+    target_cleared: { label: () => t('Target cleared'), color: undefined },
+  }
+  function stateLabel (key) {
+    return STATES[key] ? STATES[key].label() : key
   }
   const PROBLEM_STATES = new Set(['failed', 'rolled_back', 'blocked'])
   const UPDATING_STATES = new Set(['downloading', 'ready', 'installing'])
@@ -380,41 +380,41 @@
   // installed it), N the newest N per flavor, -1 all. See
   // api/app_release_cleanup.go.
   const keep = ref(0)
-  const KEEP_OPTIONS = [
-    { value: 0, title: 'None (delete once installed)' },
-    { value: 1, title: 'Newest 1' },
-    { value: 2, title: 'Newest 2' },
-    { value: 3, title: 'Newest 3' },
-    { value: 5, title: 'Newest 5' },
-    { value: 10, title: 'Newest 10' },
-    { value: -1, title: 'All' },
-  ]
+  const KEEP_OPTIONS = computed(() => [
+    { value: 0, title: t('None (delete once installed)') },
+    { value: 1, title: t('Newest {n}', { n: 1 }) },
+    { value: 2, title: t('Newest {n}', { n: 2 }) },
+    { value: 3, title: t('Newest {n}', { n: 3 }) },
+    { value: 5, title: t('Newest {n}', { n: 5 }) },
+    { value: 10, title: t('Newest {n}', { n: 10 }) },
+    { value: -1, title: t('All') },
+  ])
   const registers = ref([])
   const events = ref([])
   const selectedRegisterIds = ref([])
 
-  const registerHeaders = [
-    { title: 'Till', key: 'register', sortable: false },
-    { title: 'Runs', key: 'app_version', sortable: false },
-    { title: 'Set to', key: 'target', sortable: false },
-    { title: 'Status', key: 'status', sortable: false },
+  const registerHeaders = computed(() => [
+    { title: t('Till'), key: 'register', sortable: false },
+    { title: t('Runs'), key: 'app_version', sortable: false },
+    { title: t('Set to'), key: 'target', sortable: false },
+    { title: t('Status'), key: 'status', sortable: false },
     { title: '', key: 'actions', sortable: false, align: 'end' },
-  ]
-  const releaseHeaders = [
-    { title: 'Version', key: 'version', sortable: false },
-    { title: "What's new", key: 'notes', sortable: false },
-    { title: 'Size', key: 'size_bytes', sortable: false },
-    { title: 'Published', key: 'created_at', sortable: false },
-    { title: 'Tills', key: 'usage', sortable: false },
+  ])
+  const releaseHeaders = computed(() => [
+    { title: t('Version'), key: 'version', sortable: false },
+    { title: t("What's new"), key: 'notes', sortable: false },
+    { title: t('Size'), key: 'size_bytes', sortable: false },
+    { title: t('Published'), key: 'created_at', sortable: false },
+    { title: t('Tills'), key: 'usage', sortable: false },
     { title: '', key: 'actions', sortable: false, align: 'end' },
-  ]
-  const eventHeaders = [
-    { title: 'When', key: 'created_at', sortable: false },
-    { title: 'Till', key: 'register', sortable: false },
-    { title: 'What', key: 'state', sortable: false },
-    { title: 'Version', key: 'version', sortable: false },
-    { title: 'Detail', key: 'detail', sortable: false },
-  ]
+  ])
+  const eventHeaders = computed(() => [
+    { title: t('When'), key: 'created_at', sortable: false },
+    { title: t('Till'), key: 'register', sortable: false },
+    { title: t('What'), key: 'state', sortable: false },
+    { title: t('Version'), key: 'version', sortable: false },
+    { title: t('Detail'), key: 'detail', sortable: false },
+  ])
 
   const activeRegisters = computed(() => registers.value.filter(r => r.is_active))
   const latestRelease = computed(() => releases.value[0] ?? null)
@@ -427,15 +427,16 @@
   // up to date whatever it last reported; one that hasn't reported at all
   // runs a build from before remote updates.
   function stateInfo (r) {
-    if (!r.app_version) return { label: 'Not reporting', color: undefined }
-    if (r.update_state === 'downloading') return { label: `Downloading ${r.update_progress}%`, color: 'info' }
+    if (!r.app_version) return { label: t('Not reporting'), color: undefined }
+    if (r.update_state === 'downloading') return { label: t('Downloading {percent}%', { percent: r.update_progress }), color: 'info' }
     if (r.target_version?.Valid && r.app_version === r.target_version.String && !PROBLEM_STATES.has(r.update_state)) {
-      return STATES.up_to_date
+      return { color: STATES.up_to_date.color, label: STATES.up_to_date.label() }
     }
     if (r.target_version?.Valid && r.app_version !== r.target_version.String && !r.update_state) {
-      return { label: 'Waiting', color: undefined }
+      return { label: t('Waiting'), color: undefined }
     }
-    return STATES[r.update_state] ?? { label: 'Up to date', color: 'success' }
+    const state = STATES[r.update_state]
+    return state ? { color: state.color, label: state.label() } : { label: t('Up to date'), color: 'success' }
   }
   function showDetail (r) {
     return PROBLEM_STATES.has(r.update_state) || r.update_state === 'ready'
@@ -485,11 +486,11 @@
     const chosen = registers.value.filter(r => targetRegisterIds.value.includes(r.id))
     const flavors = new Set(chosen.map(r => r.app_flavor).filter(Boolean))
     return [
-      { id: null, label: 'Keep what it runs (no update)' },
+      { id: null, label: t('Keep what it runs (no update)') },
       ...releases.value
         .filter(rel => !rel.file_removed || rel.id === targetReleaseId.value)
         .filter(rel => flavors.size === 0 || (flavors.size === 1 && flavors.has(rel.flavor)))
-        .map(rel => ({ id: rel.id, label: `${rel.version} (${rel.flavor})` })),
+        .map(rel => ({ id: rel.id, label: t('{version} ({flavor})', { version: rel.version, flavor: rel.flavor }) })),
     ]
   })
   function openTargetDialog (ids) {
@@ -508,7 +509,7 @@
     saving.value = true
     try {
       await api.setTarget(releaseId, registerIds, force && !!releaseId)
-      notify.success(releaseId ? 'Saved. The tills are fetching it now.' : 'Saved.')
+      notify.success(releaseId ? t('Saved. The tills are fetching it now.') : t('Saved.'))
       await reloadAll()
     } catch (error) {
       notify.error(error.message)
@@ -519,7 +520,8 @@
   async function confirmRollback (r) {
     const prev = previousReleaseFor(r)
     if (!prev) return
-    if (!(await confirmDialog({ text: `Roll ${r.branch_name} · ${r.code} back from ${r.app_version} to ${prev.version}? It installs at the next safe moment, like an update.`, okText: 'Roll back' }))) return
+    const text = t('Roll {till} back from {from} to {to}? It installs at the next safe moment, like an update.', { till: `${r.branch_name} · ${r.code}`, from: r.app_version, to: prev.version })
+    if (!(await confirmDialog({ text, okText: t('Roll back') }))) return
     await saveTarget(prev.id, [r.id])
   }
 
@@ -569,14 +571,15 @@
   async function saveKeep (value) {
     try {
       await api.setKeep(value)
-      notify.success(value === 0 ? 'Build files are deleted once their tills install them' : 'Saved')
+      notify.success(value === 0 ? t('Build files are deleted once their tills install them') : t('Saved'))
     } catch (error) {
       notify.error(error.message)
       reloadAll()
     }
   }
   async function deleteRelease (release) {
-    if (!(await confirmDialog({ text: `Delete release ${release.version} (${release.flavor})? Tills that already run it keep it.`, okText: 'Delete', danger: true }))) return
+    const text = t('Delete release {version} ({flavor})? Tills that already run it keep it.', { version: release.version, flavor: release.flavor })
+    if (!(await confirmDialog({ text, okText: t('Delete'), danger: true }))) return
     try {
       await api.deleteRelease(release.id)
       await reloadAll()
@@ -591,10 +594,10 @@
   }
   function ago (value) {
     const seconds = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 1000))
-    if (seconds < 60) return 'just now'
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`
-    if (seconds < 86_400) return `${Math.floor(seconds / 3600)} h ago`
-    return `${Math.floor(seconds / 86_400)} d ago`
+    if (seconds < 60) return t('just now')
+    if (seconds < 3600) return t('{n} min ago', { n: Math.floor(seconds / 60) })
+    if (seconds < 86_400) return t('{n} h ago', { n: Math.floor(seconds / 3600) })
+    return t('{n} d ago', { n: Math.floor(seconds / 86_400) })
   }
   function formatSize (bytes) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`

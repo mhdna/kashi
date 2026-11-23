@@ -1,7 +1,7 @@
 <template>
   <v-dialog v-model="dialog" max-width="560">
     <v-card class="px-4">
-      <v-card-title>{{ editingId ? 'Edit Inventory' : 'Add a New Inventory' }}</v-card-title>
+      <v-card-title>{{ editingId ? t('Edit Inventory') : t('Add a New Inventory') }}</v-card-title>
       <v-card-text>
         <form @submit.prevent="submit">
           <v-text-field
@@ -15,7 +15,7 @@
             density="compact"
             :disabled="!!editingId"
             :error-messages="type.errorMessage.value"
-            :items="['warehouse', 'store']"
+            :items="typeItems"
             :label="t('Type')"
           />
           <v-text-field
@@ -59,7 +59,7 @@
             />
             <v-spacer />
             <v-btn :text="t('Cancel')" @click="closeDialog" />
-            <v-btn color="primary" :loading="submitting" :text="editingId ? 'Save' : 'Add Inventory'" type="submit" />
+            <v-btn color="primary" :loading="submitting" :text="editingId ? t('Save') : t('Add Inventory')" type="submit" />
           </v-card-actions>
         </form>
       </v-card-text>
@@ -69,7 +69,7 @@
   <v-dialog v-model="deleteDialog" max-width="420">
     <v-card>
       <v-card-title>{{ t('Delete Inventory') }}</v-card-title>
-      <v-card-text>Are you sure you want to delete "{{ deleteTarget?.name }}"? This cannot be undone.</v-card-text>
+      <v-card-text>{{ t('Are you sure you want to delete "{name}"? This cannot be undone.', { name: deleteTarget?.name }) }}</v-card-text>
       <v-card-actions>
         <v-spacer />
         <v-btn :text="t('Cancel')" @click="deleteDialog = false" />
@@ -129,7 +129,7 @@
 
   <v-dialog v-model="stockDialog" max-width="820">
     <v-card class="px-4">
-      <v-card-title>Stock — {{ stockTarget?.name }}</v-card-title>
+      <v-card-title>{{ t('Stock — {name}', { name: stockTarget?.name }) }}</v-card-title>
       <v-card-text>
         <v-text-field
           v-model="stockSearch"
@@ -167,7 +167,7 @@
                   v-model.number="adjustInputs[row.variant_id]"
                   density="compact"
                   hide-details
-                  placeholder="set count"
+                  :placeholder="t('set count')"
                   style="max-width: 120px; display: inline-block;"
                   type="number"
                 />
@@ -200,7 +200,7 @@
 
 <script setup lang="ts">
   import { useField, useForm } from 'vee-validate'
-  import { ref } from 'vue'
+  import { computed, ref } from 'vue'
   import { useRouter } from 'vue-router'
   import BulkDeleteBar from '@/components/Tables/BulkDeleteBar.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
@@ -245,7 +245,11 @@
   }
 
   const apiURL = `${API_BASE}/inventories/`
-  const headers = ref([
+  const typeItems = computed(() => [
+    { title: t('Warehouse'), value: 'warehouse' },
+    { title: t('Store'), value: 'store' },
+  ])
+  const headers = computed(() => [
     { title: t('ID'), key: 'id', align: 'start' },
     { title: t('Name'), key: 'name', align: 'start' },
     { title: t('Type'), key: 'type', align: 'start' },
@@ -264,15 +268,15 @@
     validationSchema: {
       name (value) {
         if (value?.length >= 2) return true
-        return 'Name needs to be at least 2 characters.'
+        return t('Name needs to be at least 2 characters.')
       },
       type (value) {
         if (editingId.value) return true
-        return ['warehouse', 'store'].includes(value) || 'Select a type.'
+        return ['warehouse', 'store'].includes(value) || t('Select a type.')
       },
       code (value) {
         if (editingId.value) return true
-        return (value?.length >= 1) || 'Code is required.'
+        return (value?.length >= 1) || t('Code is required.')
       },
     },
   })

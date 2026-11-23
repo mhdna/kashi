@@ -45,7 +45,7 @@
               <tr>
                 <th>{{ t('Variant') }}</th>
                 <th>{{ t('Barcode') }}</th>
-                <th class="text-end">Now</th>
+                <th class="text-end">{{ t('Now') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -75,7 +75,7 @@
             v-model="discount"
             class="mt-3"
             density="compact"
-            label="Discount"
+            :label="t('Discount')"
             max="100"
             min="0"
             style="max-width: 160px"

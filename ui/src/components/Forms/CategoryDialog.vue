@@ -1,7 +1,7 @@
 <template>
   <v-dialog max-width="540" :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)">
     <v-card class="px-4">
-      <v-card-title>{{ category ? 'Edit Category' : 'Add a New Category' }}</v-card-title>
+      <v-card-title>{{ category ? t('Edit Category') : t('Add a New Category') }}</v-card-title>
       <v-card-text>
         <form @submit.prevent="submit">
           <div class="d-flex align-center ga-3 mb-4">
@@ -14,13 +14,13 @@
               :error-messages="nameError"
               hide-details="auto"
               :hint="nameHint"
-              label="Name"
+              :label="t('Name')"
               persistent-hint
             />
           </div>
 
           <template v-if="showScope && !scope">
-            <div class="text-caption text-medium-emphasis mb-1">Scope</div>
+            <div class="text-caption text-medium-emphasis mb-1">{{ t('Scope') }}</div>
             <v-btn-toggle
               v-model="form.scope"
               class="mb-4"
@@ -29,12 +29,12 @@
               mandatory
               variant="outlined"
             >
-              <v-btn value="central">Central</v-btn>
-              <v-btn value="branch">Branch</v-btn>
+              <v-btn value="central">{{ t('Central') }}</v-btn>
+              <v-btn value="branch">{{ t('Branch') }}</v-btn>
             </v-btn-toggle>
           </template>
 
-          <div class="text-caption text-medium-emphasis mb-1">Icon</div>
+          <div class="text-caption text-medium-emphasis mb-1">{{ t('Icon') }}</div>
           <div class="d-flex flex-wrap ga-1 mb-4">
             <v-btn
               v-for="icon in EXPENSE_CATEGORY_ICONS"
@@ -49,7 +49,7 @@
             />
           </div>
 
-          <div class="text-caption text-medium-emphasis mb-1">Colour</div>
+          <div class="text-caption text-medium-emphasis mb-1">{{ t('Colour') }}</div>
           <div class="d-flex flex-wrap ga-2 mb-4">
             <v-btn
               v-for="color in EXPENSE_CATEGORY_COLORS"
@@ -66,16 +66,16 @@
             color="primary"
             density="compact"
             hide-details
-            label="Active"
+            :label="t('Active')"
           />
 
           <v-card-actions class="px-0">
             <v-spacer />
-            <v-btn text="Cancel" @click="$emit('update:modelValue', false)" />
+            <v-btn :text="t('Cancel')" @click="$emit('update:modelValue', false)" />
             <v-btn
               color="primary"
               :loading="submitting"
-              :text="category ? 'Save' : 'Add Category'"
+              :text="category ? t('Save') : t('Add Category')"
               type="submit"
             />
           </v-card-actions>
@@ -88,6 +88,7 @@
 <script setup lang="ts">
   import { computed, reactive, ref, watch } from 'vue'
   import { useNotify } from '@/composables/useNotify'
+  import { t } from '@/i18n'
   import {
     categoryColor,
     categoryIcon,
@@ -149,7 +150,7 @@
 
   async function submit () {
     if (!form.name || form.name.trim().length < 2) {
-      nameError.value = 'Name needs to be at least 2 characters.'
+      nameError.value = t('Name needs to be at least 2 characters.')
       return
     }
     nameError.value = ''

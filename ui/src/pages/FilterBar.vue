@@ -1,4 +1,6 @@
 <script setup>
+  import { t } from '@/i18n'
+
   const menu = ref(false)
   const today = new Date()
   const past = new Date()
@@ -45,10 +47,10 @@
           <v-card-actions>
             <v-spacer />
             <v-btn variant="text" @click="menu = false">
-              Cancel
+              {{ t('Cancel') }}
             </v-btn>
             <v-btn color="primary" variant="text" @click="menu = false">
-              Save
+              {{ t('Save') }}
             </v-btn>
           </v-card-actions>
         </v-card>
@@ -59,7 +61,7 @@
         class="pt-6"
         density="compact"
         :items="['Branch 1', 'Branch 2', 'Branch 3', 'Branch 4']"
-        label="Branch"
+        :label="t('Branch')"
         max-width="150"
         variant="flat"
       />

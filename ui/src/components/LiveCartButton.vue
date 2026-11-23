@@ -9,7 +9,7 @@
   <v-btn
     v-if="auth.canEdit('pricing')"
     icon="mdi-cart"
-    title="Live cart: the sale open on a till"
+    :title="t('Live cart: the sale open on a till')"
     variant="text"
     @click="open = true"
   />
@@ -18,13 +18,13 @@
     <v-card>
       <!-- The branch and Online filters pick what to look at; they aren't edits. -->
       <v-card-title class="d-flex align-center ga-2" data-discard-ignore>
-        Live cart
+        {{ t('Live cart') }}
         <v-spacer />
         <v-chip
           :color="onlineOnly ? 'success' : undefined"
           filter
           :model-value="onlineOnly"
-          :text="`Online${offlineCount ? ` (${registers.length - offlineCount}/${registers.length})` : ''}`"
+          :text="onlineChipText"
           :variant="onlineOnly ? 'tonal' : 'outlined'"
           @click="onlineOnly = !onlineOnly"
         />
@@ -33,7 +33,7 @@
           density="compact"
           hide-details
           :items="branchItems"
-          label="Branch"
+          :label="t('Branch')"
           style="max-width: 240px"
           variant="outlined"
         />
@@ -49,7 +49,7 @@
           type="info"
           variant="tonal"
         >
-          This branch has no active till.
+          {{ t('This branch has no active till.') }}
         </v-alert>
         <v-alert
           v-else-if="shownRegisters.length === 0"
@@ -57,8 +57,8 @@
           type="info"
           variant="tonal"
         >
-          None of this branch's {{ registers.length }} tills is reporting right now.
-          <a class="text-decoration-underline cursor-pointer" @click="onlineOnly = false">Show them all</a>
+          {{ t('None of this branch\'s {count} tills is reporting right now.', { count: registers.length }) }}
+          <a class="text-decoration-underline cursor-pointer" @click="onlineOnly = false">{{ t('Show them all') }}</a>
         </v-alert>
 
         <v-card
@@ -75,7 +75,7 @@
                 :color="reg.online ? 'success' : 'grey'"
                 label
                 size="x-small"
-                :text="reg.online ? 'online' : 'not reporting'"
+                :text="reg.online ? t('online') : t('not reporting')"
               />
               <v-spacer />
               <span v-if="cartOf(reg)?.invoiceCode" class="text-caption text-medium-emphasis">
@@ -83,16 +83,16 @@
               </span>
             </v-card-title>
             <v-card-subtitle v-if="hasSale(reg)">
-              {{ cartOf(reg).client || 'No client yet' }} · {{ cartOf(reg).salesperson || 'No salesperson yet' }}
+              {{ cartOf(reg).client || t('No client yet') }} · {{ cartOf(reg).salesperson || t('No salesperson yet') }}
             </v-card-subtitle>
           </v-card-item>
 
           <v-card-text>
             <div v-if="!reg.online" class="text-medium-emphasis">
-              This till hasn't reported lately; it may be off or offline.
+              {{ t('This till hasn\'t reported lately; it may be off or offline.') }}
             </div>
             <div v-else-if="!hasSale(reg)" class="text-medium-emphasis">
-              No sale open.
+              {{ t('No sale open.') }}
             </div>
             <template v-else>
               <v-alert
@@ -102,7 +102,7 @@
                 type="info"
                 variant="tonal"
               >
-                The till is on {{ cartOf(reg).mode === 'exchange' ? 'an exchange' : 'a settlement' }}: only a plain sale can be changed.
+                {{ t('The till is on {mode}: only a plain sale can be changed.', { mode: cartOf(reg).mode === 'exchange' ? t('an exchange') : t('a settlement') }) }}
               </v-alert>
 
               <v-switch
@@ -112,21 +112,21 @@
                 density="compact"
                 hide-details
                 inset
-                label="Turn every deal off"
+                :label="t('Turn every deal off')"
                 @update:model-value="touch(reg)"
               />
 
               <v-table class="live-cart-table" density="compact">
                 <thead>
                   <tr>
-                    <th>Item</th>
-                    <th class="text-end">Qty</th>
-                    <th class="text-end">List</th>
-                    <th class="text-end">On the till</th>
+                    <th>{{ t('Item') }}</th>
+                    <th class="text-end">{{ t('Qty') }}</th>
+                    <th class="text-end">{{ t('List') }}</th>
+                    <th class="text-end">{{ t('On the till') }}</th>
                     <template v-if="editable(reg)">
-                      <th style="width: 120px">Price</th>
-                      <th style="width: 100px">Discount</th>
-                      <th class="text-center">Deal</th>
+                      <th style="width: 120px">{{ t('Price') }}</th>
+                      <th style="width: 100px">{{ t('Discount') }}</th>
+                      <th class="text-center">{{ t('Deal') }}</th>
                     </template>
                   </tr>
                 </thead>
@@ -143,7 +143,7 @@
                           color="primary"
                           icon="mdi-lock-outline"
                           size="14"
-                          title="Set from kashi"
+                          :title="t('Set from kashi')"
                         />
                         <span class="font-weight-medium">{{ line.name }}</span>
                       </div>
@@ -240,10 +240,10 @@
               <div class="d-flex align-center mt-3 ga-2 flex-wrap">
                 <div>
                   <div v-if="cartOf(reg).invoiceDiscountCents" class="text-caption">
-                    {{ cartOf(reg).invoiceDiscountName || 'Invoice discount' }}: −{{ money(cartOf(reg).invoiceDiscountCents) }}
+                    {{ cartOf(reg).invoiceDiscountName || t('Invoice discount') }}: −{{ money(cartOf(reg).invoiceDiscountCents) }}
                   </div>
                   <div class="text-h6">
-                    Total {{ cartOf(reg).totalCents == null ? '—' : money(cartOf(reg).totalCents) }}
+                    {{ t('Total {amount}', { amount: cartOf(reg).totalCents == null ? '—' : money(cartOf(reg).totalCents) }) }}
                   </div>
                 </div>
                 <v-spacer />
@@ -254,7 +254,7 @@
                   <v-btn
                     :disabled="!hasOverrides(reg) && !draftOf(reg).dirty"
                     :loading="saving === reg.register_id"
-                    text="Undo all"
+                    :text="t('Undo all')"
                     variant="text"
                     @click="undoAll(reg)"
                   />
@@ -262,7 +262,7 @@
                     color="primary"
                     :disabled="!draftOf(reg).dirty"
                     :loading="saving === reg.register_id"
-                    text="Apply to the till"
+                    :text="t('Apply to the till')"
                     variant="flat"
                     @click="apply(reg)"
                   />
@@ -275,10 +275,10 @@
 
       <v-card-actions>
         <span class="text-caption text-medium-emphasis ms-2">
-          Changes go to this one sale, past the branch's price and deal settings.
+          {{ t('Changes go to this one sale, past the branch\'s price and deal settings.') }}
         </span>
         <v-spacer />
-        <v-btn text="Close" variant="text" @click="open = false" />
+        <v-btn :text="t('Close')" variant="text" @click="open = false" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -300,6 +300,7 @@
     lockedLineText,
     unknownDealItems,
   } from '@/utils/liveCart'
+  import { t } from '@/i18n'
 
   const auth = useAuthStore()
   const notify = useNotify()
@@ -324,6 +325,9 @@
     } catch {}
   })
   const offlineCount = computed(() => registers.value.filter(r => !r.online).length)
+  const onlineChipText = computed(() => offlineCount.value
+    ? t('Online ({online}/{total})', { online: registers.value.length - offlineCount.value, total: registers.value.length })
+    : t('Online'))
   const shownRegisters = computed(() => onlineOnly.value ? registers.value.filter(r => r.online) : registers.value)
   const loading = ref(false)
   const saving = ref(null)
@@ -383,7 +387,7 @@
     try {
       const res = await authFetch(`${API_BASE}/live_carts/${branchId.value}`)
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || `Request failed with status ${res.status}`)
+      if (!res.ok) throw new Error(data.error || t('Request failed with status {status}', { status: res.status }))
       registers.value = data.registers ?? []
       for (const reg of registers.value) syncDraft(reg)
     } catch (error) {
@@ -414,9 +418,9 @@
         body: JSON.stringify({ register_id: reg.register_id, sale_ref: reg.cart.saleRef, ...body }),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || `Request failed with status ${res.status}`)
+      if (!res.ok) throw new Error(data.error || t('Request failed with status {status}', { status: res.status }))
       draftOf(reg).dirty = false
-      notify.success(`Sent to ${reg.register_name}.`)
+      notify.success(t('Sent to {register}.', { register: reg.register_name }))
       await load()
     } catch (error) {
       notify.error(error.message)
@@ -444,8 +448,8 @@
   function statusText (reg) {
     const c = reg.last_command
     if (!c) return ''
-    if (c.status === 'pending') return 'Waiting for the till…'
-    if (c.status === 'failed') return `The till refused: ${c.error || 'unknown error'}`
+    if (c.status === 'pending') return t('Waiting for the till…')
+    if (c.status === 'failed') return t('The till refused: {error}', { error: c.error || t('unknown error') })
     return ''
   }
 

@@ -4,17 +4,17 @@
       <v-btn
         v-bind="activatorProps"
         prepend-icon="mdi-palette"
-        text="Colors & Sizes"
+        :text="t('Colors & Sizes')"
         variant="tonal"
       />
     </template>
 
     <v-card class="px-2">
-      <v-card-title>Manage Colors & Sizes</v-card-title>
+      <v-card-title>{{ t('Manage Colors & Sizes') }}</v-card-title>
 
       <v-tabs v-model="tab" color="primary">
-        <v-tab value="color">Colors</v-tab>
-        <v-tab value="size">Sizes</v-tab>
+        <v-tab value="color">{{ t('Colors') }}</v-tab>
+        <v-tab value="size">{{ t('Sizes') }}</v-tab>
       </v-tabs>
 
       <v-card-text>
@@ -27,7 +27,7 @@
                     v-model="colorName.value.value"
                     density="compact"
                     :error-messages="colorName.errorMessage.value"
-                    label="Color Name"
+                    :label="t('Color Name')"
                   />
                 </v-col>
                 <v-col cols="6">
@@ -35,7 +35,7 @@
                     v-model="colorHex.value.value"
                     density="compact"
                     :error-messages="colorHex.errorMessage.value"
-                    label="Hex Value"
+                    :label="t('Hex Value')"
                     placeholder="#FF0000"
                   >
                     <template #append-inner>
@@ -48,7 +48,7 @@
                 </v-col>
               </v-row>
 
-              <v-btn color="primary" :loading="colorSubmitting" text="Add Color" type="submit" />
+              <v-btn color="primary" :loading="colorSubmitting" :text="t('Add Color')" type="submit" />
             </form>
 
             <v-divider class="my-4" />
@@ -74,7 +74,7 @@
                     v-model="sizeName.value.value"
                     density="compact"
                     :error-messages="sizeName.errorMessage.value"
-                    label="Size Name"
+                    :label="t('Size Name')"
                     placeholder="XL"
                   />
                 </v-col>
@@ -83,7 +83,7 @@
                     v-model="sizeType.value.value"
                     density="compact"
                     :error-messages="sizeType.errorMessage.value"
-                    label="Type"
+                    :label="t('Type')"
                     placeholder="Shoes"
                   />
                 </v-col>
@@ -92,13 +92,13 @@
                     v-model="sizeOrder.value.value"
                     density="compact"
                     :error-messages="sizeOrder.errorMessage.value"
-                    label="Order"
+                    :label="t('Order')"
                     placeholder="1"
                   />
                 </v-col>
               </v-row>
 
-              <v-btn color="primary" :loading="sizeSubmitting" text="Add Size" type="submit" />
+              <v-btn color="primary" :loading="sizeSubmitting" :text="t('Add Size')" type="submit" />
             </form>
 
             <v-divider class="my-4" />
@@ -118,7 +118,7 @@
 
       <v-card-actions>
         <v-spacer />
-        <v-btn text="Close" @click="dialog = false" />
+        <v-btn :text="t('Close')" @click="dialog = false" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -127,6 +127,7 @@
 <script setup>
   import { useField, useForm } from 'vee-validate'
   import { ref } from 'vue'
+  import { t } from '@/i18n'
   import { useColorsAndSizes } from '@/composables/useColorsAndSizes'
   import { useNotify } from '@/composables/useNotify'
 
@@ -146,11 +147,11 @@
     validationSchema: {
       colorName (value) {
         if (value?.length >= 2) return true
-        return 'Name needs to be at least 2 characters.'
+        return t('Name needs to be at least 2 characters.')
       },
       colorHex (value) {
         if (isValidHex(value)) return true
-        return 'Enter a valid hex color, e.g. #FF0000.'
+        return t('Enter a valid hex color, e.g. #FF0000.')
       },
     },
   })
@@ -175,15 +176,15 @@
     validationSchema: {
       sizeName (value) {
         if (value?.length >= 1) return true
-        return 'Name is required.'
+        return t('Name is required.')
       },
       sizeType (value) {
         if (value?.length >= 1) return true
-        return 'Type is required.'
+        return t('Type is required.')
       },
       sizeOrder (value) {
         if (value?.length >= 1) return true
-        return 'Order is required.'
+        return t('Order is required.')
       },
     },
   })

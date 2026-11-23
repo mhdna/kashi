@@ -9,7 +9,7 @@
     <v-card>
       <v-card-title class="d-flex align-center ga-2 pt-4">
         <v-icon icon="mdi-calendar-clock-outline" />
-        {{ schedule ? 'Edit scheduled report' : 'New scheduled report' }}
+        {{ schedule ? t('Edit scheduled report') : t('New scheduled report') }}
       </v-card-title>
 
       <v-card-text class="pt-2">
@@ -18,20 +18,20 @@
           class="mb-4"
           density="compact"
           hide-details
-          label="Name"
+          :label="t('Name')"
           persistent-placeholder
-          placeholder="e.g. Centro end of day"
+          :placeholder="t('e.g. Centro end of day')"
           variant="outlined"
         />
 
-        <div class="text-subtitle-2 mb-2">What</div>
+        <div class="text-subtitle-2 mb-2">{{ t('What') }}</div>
         <div class="d-flex ga-3 mb-4">
           <v-select
             v-model="form.period"
             density="compact"
             hide-details
             :items="PERIODS"
-            label="Invoices from"
+            :label="t('Invoices from')"
             variant="outlined"
           />
           <v-btn-toggle
@@ -42,7 +42,7 @@
             variant="outlined"
           >
             <v-btn icon="mdi-file-delimited-outline" title="CSV" value="csv" />
-            <v-btn icon="mdi-microsoft-excel" title="Excel workbook" value="xlsx" />
+            <v-btn icon="mdi-microsoft-excel" :title="t('Excel workbook')" value="xlsx" />
           </v-btn-toggle>
         </div>
         <v-select
@@ -52,21 +52,21 @@
           density="compact"
           hide-details
           :items="registerOptions"
-          label="Registers"
+          :label="t('Registers')"
           multiple
           persistent-placeholder
-          placeholder="All registers"
+          :placeholder="t('All registers')"
           variant="outlined"
         >
           <template #selection="{ item, index }">
             <span v-if="index === 0" class="text-truncate">{{ item.title }}</span>
             <span v-else-if="index === 1" class="text-medium-emphasis text-no-wrap ms-1">
-              , +{{ form.registerIds.length - 1 }} more
+              {{ t(', +{n} more', { n: form.registerIds.length - 1 }) }}
             </span>
           </template>
         </v-select>
 
-        <div class="text-subtitle-2 mb-2">When</div>
+        <div class="text-subtitle-2 mb-2">{{ t('When') }}</div>
         <div class="d-flex flex-wrap align-center ga-3 mb-3">
           <v-btn-toggle
             v-model="form.frequency"
@@ -76,15 +76,15 @@
             mandatory
             variant="outlined"
           >
-            <v-btn text="Daily" value="daily" />
-            <v-btn text="Weekly" value="weekly" />
-            <v-btn text="Monthly" value="monthly" />
+            <v-btn :text="t('Daily')" value="daily" />
+            <v-btn :text="t('Weekly')" value="weekly" />
+            <v-btn :text="t('Monthly')" value="monthly" />
           </v-btn-toggle>
           <v-text-field
             v-model="form.time"
             density="compact"
             hide-details
-            label="At"
+            :label="t('At')"
             style="max-width: 130px"
             type="time"
             variant="outlined"
@@ -103,7 +103,7 @@
             :key="day"
             filter
             size="small"
-            :text="day"
+            :text="t(day)"
             :value="index"
             variant="outlined"
           />
@@ -113,16 +113,16 @@
           v-model="form.monthDay"
           class="mb-4"
           density="compact"
-          hint="A shorter month sends on its last day"
+          :hint="t('A shorter month sends on its last day')"
           :items="MONTH_DAYS"
-          label="On day"
+          :label="t('On day')"
           persistent-hint
           style="max-width: 200px"
           variant="outlined"
         />
-        <div class="text-caption text-medium-emphasis mb-4">{{ whenSummary }} (Beirut time)</div>
+        <div class="text-caption text-medium-emphasis mb-4">{{ whenSummary }} {{ t('(Beirut time)') }}</div>
 
-        <div class="text-subtitle-2 mb-2">Who</div>
+        <div class="text-subtitle-2 mb-2">{{ t('Who') }}</div>
         <v-combobox
           v-model="form.recipients"
           chips
@@ -130,9 +130,9 @@
           closable-chips
           :delimiters="[',', ';', ' ']"
           density="compact"
-          :hint="invalidRecipients.length > 0 ? `Not an email address: ${invalidRecipients.join(', ')}` : 'Press Enter after each address'"
+          :hint="invalidRecipients.length > 0 ? t('Not an email address: {list}', { list: invalidRecipients.join(', ') }) : t('Press Enter after each address')"
           :items="pastRecipients"
-          label="Send to"
+          :label="t('Send to')"
           multiple
           persistent-hint
           variant="outlined"
@@ -144,9 +144,9 @@
           closable-chips
           :delimiters="[',', ';', ' ']"
           density="compact"
-          :hint="invalidBcc.length > 0 ? `Not an email address: ${invalidBcc.join(', ')}` : 'Hidden from everyone else'"
+          :hint="invalidBcc.length > 0 ? t('Not an email address: {list}', { list: invalidBcc.join(', ') }) : t('Hidden from everyone else')"
           :items="pastRecipients"
-          label="Bcc"
+          :label="t('Bcc')"
           multiple
           persistent-hint
           variant="outlined"
@@ -155,7 +155,7 @@
           v-model="form.note"
           counter="2000"
           density="compact"
-          label="Note (optional)"
+          :label="t('Note (optional)')"
           maxlength="2000"
           no-resize
           rows="2"
@@ -166,25 +166,25 @@
           color="primary"
           density="compact"
           hide-details
-          label="Don't send when there are no invoices"
+          :label="t('Don\'t send when there are no invoices')"
         />
         <v-switch
           v-model="form.enabled"
           color="primary"
           density="compact"
           hide-details
-          label="On"
+          :label="t('On')"
         />
       </v-card-text>
 
       <v-card-actions class="px-4 pb-4">
         <v-spacer />
-        <v-btn text="Cancel" variant="text" @click="open = false" />
+        <v-btn :text="t('Cancel')" variant="text" @click="open = false" />
         <v-btn
           color="primary"
           :disabled="!canSave"
           :loading="saving"
-          text="Save"
+          :text="t('Save')"
           variant="flat"
           @click="save"
         />
@@ -197,6 +197,7 @@
   import { computed, reactive, ref, watch } from 'vue'
   import { useEmailReports } from '@/composables/useEmailReports'
   import { useNotify } from '@/composables/useNotify'
+  import { t } from '@/i18n'
 
   const props = defineProps({
     // The schedule being edited; null creates one.
@@ -205,14 +206,14 @@
   const emit = defineEmits(['saved'])
   const open = defineModel({ type: Boolean, default: false })
 
-  const PERIODS = [
-    { title: 'Today', value: 'today' },
-    { title: 'Yesterday', value: 'yesterday' },
-    { title: 'Last 7 days', value: 'last_7_days' },
-    { title: 'This week (from Monday)', value: 'this_week' },
-    { title: 'This month', value: 'this_month' },
-    { title: 'Last month', value: 'last_month' },
-  ]
+  const PERIODS = computed(() => [
+    { title: t('Today'), value: 'today' },
+    { title: t('Yesterday'), value: 'yesterday' },
+    { title: t('Last 7 days'), value: 'last_7_days' },
+    { title: t('This week (from Monday)'), value: 'this_week' },
+    { title: t('This month'), value: 'this_month' },
+    { title: t('Last month'), value: 'last_month' },
+  ])
   const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const MONTH_DAYS = Array.from({ length: 31 }, (_, i) => i + 1)
   const EMAIL_RE = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/
@@ -307,13 +308,13 @@
   const whenSummary = computed(() => {
     const at = form.time || '--:--'
     if (form.frequency === 'weekly') {
-      const days = form.weekdays.toSorted((a, b) => a - b).map(d => WEEKDAYS[d])
-      return days.length > 0 ? `Every ${days.join(', ')} at ${at}` : 'Pick at least one day'
+      const days = form.weekdays.toSorted((a, b) => a - b).map(d => t(WEEKDAYS[d]))
+      return days.length > 0 ? t('Every {days} at {time}', { days: days.join(', '), time: at }) : t('Pick at least one day')
     }
     if (form.frequency === 'monthly') {
-      return `Every month on day ${form.monthDay} at ${at}`
+      return t('Every month on day {day} at {time}', { day: form.monthDay, time: at })
     }
-    return `Every day at ${at}`
+    return t('Every day at {time}', { time: at })
   })
 
   const canSave = computed(() =>

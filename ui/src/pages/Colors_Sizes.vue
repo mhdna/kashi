@@ -3,7 +3,7 @@
     <v-card class="cs-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-palette" />
-        <span>Colors &amp; Sizes</span>
+        <span>{{ t('Colors & Sizes') }}</span>
         <v-spacer />
         <v-text-field
           v-if="tab === 'colors'"
@@ -345,7 +345,7 @@
     <!-- delete -->
     <v-dialog v-model="deleteDialog" max-width="420">
       <v-card>
-        <v-card-title class="text-h6">Delete {{ deleteKind }}</v-card-title>
+        <v-card-title class="text-h6">{{ deleteKind === 'color' ? t('Delete color') : t('Delete size') }}</v-card-title>
         <v-card-text>
           {{ t('Delete') }} <strong>{{ deleteLabel }}</strong>{{ t('? This can\'t be undone.') }}
         </v-card-text>
@@ -437,20 +437,21 @@
   const colorSearch = ref('')
   const sizeSearch = ref('')
 
-  const colorHeaders = [
+  // Computed so the column titles follow the EN/FR toggle.
+  const colorHeaders = computed(() => [
     { title: t('Name'), key: 'name', align: 'start' },
     { title: t('Hex'), key: 'hex_value', align: 'start' },
     { title: t('ID'), key: 'id', align: 'start', width: 80 },
     { title: t('Created At'), key: 'created_at', align: 'start', width: 200 },
-  ]
+  ])
 
-  const sizeHeaders = [
+  const sizeHeaders = computed(() => [
     { title: t('Type'), key: 'type', align: 'start' },
     { title: t('Name'), key: 'name', align: 'start' },
     { title: t('Order'), key: 'order', align: 'start', width: 90 },
     { title: t('ID'), key: 'id', align: 'start', width: 80 },
     { title: t('Created At'), key: 'created_at', align: 'start', width: 200 },
-  ]
+  ])
 
   // Distinct size types for the add/edit dialog picker — derived from the
   // full size list (fetchSizes), not the visible table page.
@@ -488,11 +489,11 @@
 
   async function addColor () {
     if (!colorForm.name.trim()) {
-      notify.error('Name is required.')
+      notify.error(t('Name is required.'))
       return
     }
     if (!isValidHex(normalizeHex(colorForm.hex))) {
-      notify.error('Pick a valid hex color.')
+      notify.error(t('Pick a valid hex color.'))
       return
     }
     colorSaving.value = true
@@ -519,7 +520,7 @@
 
   async function addSize () {
     if (!sizeForm.type?.trim() || !sizeForm.name.trim() || sizeForm.order === '') {
-      notify.error('Type, name and order are all required.')
+      notify.error(t('Type, name and order are all required.'))
       return
     }
     sizeSaving.value = true
@@ -567,7 +568,7 @@
 
   async function saveColor () {
     if (!editColorForm.name.trim() || !isValidHex(normalizeHex(editColorForm.hex))) {
-      notify.error('Name and a valid hex are required.')
+      notify.error(t('Name and a valid hex are required.'))
       return
     }
     editSaving.value = true
@@ -584,7 +585,7 @@
 
   async function saveSize () {
     if (!editSizeForm.type?.trim() || !editSizeForm.name.trim() || editSizeForm.order === '') {
-      notify.error('Type, name and order are all required.')
+      notify.error(t('Type, name and order are all required.'))
       return
     }
     editSaving.value = true

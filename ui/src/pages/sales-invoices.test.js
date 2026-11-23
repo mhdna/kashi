@@ -49,6 +49,8 @@ afterEach(() => { wrapper?.unmount(); wrapper = null })
 // fresh copy of the page and its composables, as a fresh page load would.
 async function open () {
   vi.resetModules()
+  // A fresh module copy starts in the app's default (French); tests read English.
+  ;(await import('@/i18n')).setLocale('en')
   const { default: SalesInvoices } = await import('./sales-invoices.vue')
   window.innerWidth = 1400
   wrapper = mount(SalesInvoices, { global: { plugins: [vuetify(), pinia] }, attachTo: document.body })

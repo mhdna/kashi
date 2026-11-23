@@ -1,7 +1,7 @@
 <template>
   <v-dialog v-model="dialog" max-width="560">
     <v-card class="px-4">
-      <v-card-title>{{ editingId ? 'Edit Transfer' : 'Add a New Transfer' }}</v-card-title>
+      <v-card-title>{{ editingId ? t('Edit Transfer') : t('Add a New Transfer') }}</v-card-title>
       <v-card-text>
         <form @submit.prevent="submit">
           <v-row>
@@ -13,7 +13,7 @@
                 :item-title="i => i.name"
                 :item-value="i => i.id"
                 :items="inventories"
-                label="From Inventory"
+                :label="t('From Inventory')"
               />
             </v-col>
             <v-col cols="6">
@@ -24,16 +24,16 @@
                 :item-title="i => i.name"
                 :item-value="i => i.id"
                 :items="inventories"
-                label="To Inventory"
+                :label="t('To Inventory')"
               />
             </v-col>
           </v-row>
-          <v-text-field v-model="note.value.value" density="compact" label="Note (optional)" />
+          <v-text-field v-model="note.value.value" density="compact" :label="t('Note (optional)')" />
 
           <v-card-actions class="px-0">
             <v-spacer />
-            <v-btn text="Cancel" @click="closeDialog" />
-            <v-btn color="primary" :loading="submitting" :text="editingId ? 'Save' : 'Create Transfer'" type="submit" />
+            <v-btn :text="t('Cancel')" @click="closeDialog" />
+            <v-btn color="primary" :loading="submitting" :text="editingId ? t('Save') : t('Create Transfer')" type="submit" />
           </v-card-actions>
         </form>
       </v-card-text>
@@ -43,21 +43,21 @@
   <v-dialog v-model="itemsDialog" max-width="720">
     <v-card class="px-4">
       <v-card-title>
-        Transfer #{{ itemsTarget?.id }}
+        {{ t('Transfer #{id}', { id: itemsTarget?.id }) }}
         <v-chip class="ml-2" :color="statusColor(itemsTarget?.status)" size="small">{{ itemsTarget?.status }}</v-chip>
       </v-card-title>
       <v-card-text>
         <div v-if="itemsTarget?.branch_name" class="text-body-2 text-medium-emphasis mb-2">
-          Requested by <strong>{{ itemsTarget.branch_name }}</strong>
+          {{ t('Requested by') }} <strong>{{ itemsTarget.branch_name }}</strong>
           <span v-if="itemsTarget.note"> — {{ itemsTarget.note }}</span>
         </div>
         <div class="text-body-2 mb-2">
           <v-chip v-if="itemsTarget?.confirmed_at" color="success" size="small" variant="tonal">
             <v-icon icon="mdi-check-circle-outline" start />
-            Confirmed by destination {{ formatDateTime(itemsTarget.confirmed_at) }}
+            {{ t('Confirmed by destination {date}', { date: formatDateTime(itemsTarget.confirmed_at) }) }}
           </v-chip>
           <v-chip v-else-if="itemsTarget?.status === 'requested'" color="warning" size="small" variant="tonal">
-            Awaiting destination confirmation
+            {{ t('Awaiting destination confirmation') }}
           </v-chip>
           <div v-if="itemsTarget?.confirmed_note" class="text-caption text-medium-emphasis mt-1">
             “{{ itemsTarget.confirmed_note }}”
@@ -81,26 +81,26 @@
             :items="skuOptions"
             :loading="skuLoading"
             no-filter
-            placeholder="Search SKU / barcode"
+            :placeholder="t('Search SKU / barcode')"
             @update:search="onSkuSearch"
           />
           <v-text-field
             v-model.number="itemQuantity"
             density="compact"
             hide-details
-            label="Quantity"
+            :label="t('Quantity')"
             style="max-width: 140px;"
             type="number"
           />
-          <v-btn :loading="itemSubmitting" text="Add" @click="addItem" />
+          <v-btn :loading="itemSubmitting" :text="t('Add')" @click="addItem" />
         </div>
         <v-table density="compact">
           <thead>
             <tr>
-              <th>SKU</th>
-              <th>Barcode</th>
-              <th class="text-end">Sent</th>
-              <th class="text-end">Received</th>
+              <th>{{ t('SKU') }}</th>
+              <th>{{ t('Barcode') }}</th>
+              <th class="text-end">{{ t('Sent') }}</th>
+              <th class="text-end">{{ t('Received') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -136,33 +136,33 @@
           color="success"
           :loading="staging"
           prepend-icon="mdi-check"
-          text="Approve"
+          :text="t('Approve')"
           @click="stage('approve')"
         />
         <v-btn
           v-if="canEdit && itemsTarget?.status === 'draft'"
           color="primary"
           :loading="staging"
-          text="Dispatch"
+          :text="t('Dispatch')"
           @click="stage('dispatch')"
         />
         <v-btn
           v-if="canEdit && itemsTarget?.status === 'dispatched'"
           color="success"
           :loading="staging"
-          text="Receive"
+          :text="t('Receive')"
           @click="stage('receive')"
         />
         <v-btn
           v-if="canEdit && ['requested', 'draft', 'dispatched', 'received'].includes(itemsTarget?.status)"
           color="error"
           :loading="staging"
-          :text="itemsTarget?.status === 'requested' ? 'Reject' : 'Cancel Transfer'"
+          :text="itemsTarget?.status === 'requested' ? t('Reject') : t('Cancel Transfer')"
           variant="text"
           @click="stage('cancel')"
         />
         <v-spacer />
-        <v-btn text="Close" @click="closeItemsDialog" />
+        <v-btn :text="t('Close')" @click="closeItemsDialog" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -171,7 +171,7 @@
     <v-card class="transfers-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-transfer" />
-        <span>Transfers</span>
+        <span>{{ t('Transfers') }}</span>
         <v-btn-toggle
           v-model="statusFilter"
           color="primary"
@@ -179,18 +179,18 @@
           mandatory
           variant="outlined"
         >
-          <v-btn value="">All</v-btn>
-          <v-btn value="requested">Requested</v-btn>
-          <v-btn value="draft">Draft</v-btn>
-          <v-btn value="dispatched">Dispatched</v-btn>
-          <v-btn value="received">Received</v-btn>
+          <v-btn value="">{{ t('All') }}</v-btn>
+          <v-btn value="requested">{{ t('Requested') }}</v-btn>
+          <v-btn value="draft">{{ t('Draft') }}</v-btn>
+          <v-btn value="dispatched">{{ t('Dispatched') }}</v-btn>
+          <v-btn value="received">{{ t('Received') }}</v-btn>
         </v-btn-toggle>
         <v-spacer />
         <v-btn
           v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
-          text="Add Transfer"
+          :text="t('Add Transfer')"
           variant="flat"
           @click="openCreate"
         />
@@ -246,6 +246,7 @@
   import { useTransfers } from '@/composables/useTransfers'
   import { useVariants } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
@@ -268,14 +269,14 @@
   }
 
   const apiURL = `${API_BASE}/transfers`
-  const headers = ref([
-    { title: 'ID', key: 'id', align: 'start' },
-    { title: 'From', key: 'from_inventory_name', align: 'start' },
-    { title: 'To', key: 'to_inventory_name', align: 'start' },
-    { title: 'Branch', key: 'branch_name', align: 'start' },
-    { title: 'Items', key: 'item_count', align: 'end' },
-    { title: 'Status', key: 'status', align: 'start' },
-    { title: 'Created At', key: 'created_at', align: 'end' },
+  const headers = computed(() => [
+    { title: t('ID'), key: 'id', align: 'start' },
+    { title: t('From'), key: 'from_inventory_name', align: 'start' },
+    { title: t('To'), key: 'to_inventory_name', align: 'start' },
+    { title: t('Branch'), key: 'branch_name', align: 'start' },
+    { title: t('Items'), key: 'item_count', align: 'end' },
+    { title: t('Status'), key: 'status', align: 'start' },
+    { title: t('Created At'), key: 'created_at', align: 'end' },
     { title: '', key: 'actions', align: 'end', sortable: false, width: 96 },
   ])
 
@@ -302,11 +303,11 @@
   const { handleSubmit, handleReset, setValues } = useForm({
     validationSchema: {
       fromInventoryId (value) {
-        return !!value || 'Select the source inventory.'
+        return !!value || t('Select the source inventory.')
       },
       toInventoryId (value, { form }) {
-        if (!value) return 'Select the destination inventory.'
-        if (value === form.fromInventoryId) return 'From and To inventories must be different.'
+        if (!value) return t('Select the destination inventory.')
+        if (value === form.fromInventoryId) return t('From and To inventories must be different.')
         return true
       },
     },

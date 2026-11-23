@@ -19,8 +19,8 @@
       <div class="bc-layout">
         <PageSidebar
           v-model="selectedId"
-          all-title="All branches"
-          empty-text="No branches yet."
+          :all-title="t('All branches')"
+          :empty-text="t('No branches yet.')"
           :items="branchItems"
           :loading="branchesLoading"
           show-all
@@ -57,7 +57,7 @@
               <div class="bc-stat-label">{{ t('Queued') }}</div>
               <div class="bc-stat-value" :class="{ 'text-warning': totals.pending > 0 }">{{ totals.pending }}</div>
               <div class="bc-stat-sub">
-                {{ totals.oldestPendingAt ? `oldest ${ago(totals.oldestPendingAt)}` : 'all commands have run' }}
+                {{ totals.oldestPendingAt ? t('oldest {time}', { time: ago(totals.oldestPendingAt) }) : t('all commands have run') }}
               </div>
             </div>
             <div class="bc-stat">
@@ -75,7 +75,7 @@
               <div class="bc-stat-value bc-stat-value--small">
                 {{ totals.lastIssuedAt ? ago(totals.lastIssuedAt) : '—' }}
               </div>
-              <div class="bc-stat-sub">{{ totals.lastIssuedAt ? formatDate(totals.lastIssuedAt) : 'none issued yet' }}</div>
+              <div class="bc-stat-sub">{{ totals.lastIssuedAt ? formatDate(totals.lastIssuedAt) : t('none issued yet') }}</div>
             </div>
           </div>
 
@@ -90,7 +90,7 @@
               <span class="bc-dot me-2" :class="registerOnline(r) ? 'is-online' : 'is-offline'" />
               {{ r.name ? `${r.code} — ${r.name}` : r.code }}
               <span class="text-medium-emphasis ms-2">
-                {{ registerOnline(r) ? 'online' : `seen ${r.last_seen_at?.Valid ? ago(r.last_seen_at.Time) : 'never'}` }}
+                {{ registerOnline(r) ? t('online') : t('seen {time}', { time: r.last_seen_at?.Valid ? ago(r.last_seen_at.Time) : t('never') }) }}
               </span>
             </v-chip>
           </div>
@@ -205,7 +205,7 @@
     <!-- send a one-off command -->
     <v-dialog v-model="sendDialog" max-width="520">
       <v-card v-if="activeBranch">
-        <v-card-title class="text-subtitle-1">Send a command to {{ activeBranch.name }}</v-card-title>
+        <v-card-title class="text-subtitle-1">{{ t('Send a command to {branch}', { branch: activeBranch.name }) }}</v-card-title>
         <v-card-text>
           <v-select
             v-model="sendForm.type"
@@ -227,7 +227,7 @@
               hide-details
               item-title="label"
               item-value="id"
-              :items="[{ id: 0, label: 'Every register' }, ...registerOptions]"
+              :items="[{ id: 0, label: t('Every register') }, ...registerOptions]"
               :label="t('Register')"
               variant="outlined"
             />
@@ -246,7 +246,7 @@
               :items="shiftOptions"
               :label="t('Closed shift')"
               :loading="pickerLoading"
-              no-data-text="No closed shifts reported yet"
+              :no-data-text="t('No closed shifts reported yet')"
               variant="outlined"
             />
           </template>
@@ -306,13 +306,10 @@
             />
             <p v-if="sendForm.fromAccount && sendForm.toAccount && sendForm.amountUsd > 0" class="text-caption text-medium-emphasis mt-2">
               <template v-if="sendForm.allowNegative">
-                {{ sendForm.fromAccount }} goes down by {{ formatMoney(amountCents) }} and
-                {{ sendForm.toAccount }} goes up by {{ formatMoney(amountCents) }}.
+                {{ t('{from} goes down by {amount} and {to} goes up by {amount}.', { from: sendForm.fromAccount, to: sendForm.toAccount, amount: formatMoney(amountCents) }) }}
               </template>
               <template v-else>
-                Swaps {{ formatMoney(amountCents) }} of {{ sendForm.fromAccount }}'s balance into
-                {{ sendForm.toAccount }}, keeping its sign. The till refuses it if that's more than
-                {{ sendForm.fromAccount }} holds.
+                {{ t("Swaps {amount} of {from}'s balance into {to}, keeping its sign. The till refuses it if that's more than {from} holds.", { from: sendForm.fromAccount, to: sendForm.toAccount, amount: formatMoney(amountCents) }) }}
               </template>
             </p>
           </template>
@@ -331,7 +328,7 @@
               :items="invoiceOptions"
               :label="t('Invoice')"
               :loading="pickerLoading"
-              no-data-text="No matching invoices"
+              :no-data-text="t('No matching invoices')"
               no-filter
               variant="outlined"
             />
@@ -384,20 +381,21 @@
   // The API checks it again (api/branch_command.go).
   const canTransferNegative = computed(() => auth.canEdit('shift_negative_balance'))
 
-  const STATUS_FILTERS = [
+  // Computed so the labels follow the EN/FR toggle.
+  const STATUS_FILTERS = computed(() => [
     { title: t('All'), value: '' },
     { title: t('Queued'), value: 'pending' },
     { title: t('Failed'), value: 'failed' },
     { title: t('Done'), value: 'success' },
     { title: t('Cancelled'), value: 'cancelled' },
-  ]
-  const SENDABLE_TYPES = [
+  ])
+  const SENDABLE_TYPES = computed(() => [
     { title: t('Sync now'), value: 'sync_now' },
     { title: t('Print a close shift'), value: 'print_shift_report' },
     { title: t('Reprint an invoice'), value: 'reprint_invoice' },
     { title: t('Swap a shift balance'), value: 'replace_shift_balance' },
-  ]
-  const typeOptions = Object.entries(COMMAND_TYPE_LABELS).map(([value, title]) => ({ value, title }))
+  ])
+  const typeOptions = computed(() => Object.entries(COMMAND_TYPE_LABELS).map(([value, title]) => ({ value, title: t(title) })))
 
   const branchesLoading = ref(false)
   const selectedId = ref(null)
@@ -478,7 +476,7 @@
   async function cancel (item) {
     try {
       await cancelCommand(item.id)
-      notify.success('Cancelled — the till won\'t run it.')
+      notify.success(t('Cancelled — the till won\'t run it.'))
       reloadTable()
     } catch (error) {
       notify.error(error.message)
@@ -488,7 +486,7 @@
   async function retry (item) {
     try {
       await retryCommand(item.id)
-      notify.success(`Queued again for ${item.register_code}.`)
+      notify.success(t('Queued again for {register}.', { register: item.register_code }))
       reloadTable()
     } catch (error) {
       notify.error(error.message)
@@ -512,7 +510,11 @@
 
   const shiftOptions = computed(() => shifts.value.map(s => ({
     id: s.id,
-    label: `${s.closed_at?.Valid ? formatDate(s.closed_at.Time) : formatDate(s.occurred_at)} · ${s.closing_person_name || 'Unknown'} · counted ${formatMoney(s.counted_usd)}`,
+    label: t('{date}, {name}, counted {amount}', {
+      date: s.closed_at?.Valid ? formatDate(s.closed_at.Time) : formatDate(s.occurred_at),
+      name: s.closing_person_name || t('Unknown'),
+      amount: formatMoney(s.counted_usd),
+    }),
   })))
   const invoiceOptions = computed(() => invoices.value.map(i => ({
     client_ref: i.client_ref,
@@ -530,7 +532,7 @@
 
   async function getJSON (url) {
     const res = await authFetch(url)
-    if (!res.ok) throw new Error(`Request failed with status ${res.status}`)
+    if (!res.ok) throw new Error(t('Request failed with status {status}', { status: res.status }))
     return res.json()
   }
 
@@ -606,7 +608,7 @@
           sent = await sendCommand(branchId, sendForm.type, {}, sendForm.registerId)
         }
       }
-      notify.success(`Sent to ${sent.length} register${sent.length === 1 ? '' : 's'}.`)
+      notify.success(sent.length === 1 ? t('Sent to 1 register.') : t('Sent to {count} registers.', { count: sent.length }))
       sendDialog.value = false
       reloadTable()
     } catch (error) {
@@ -618,7 +620,7 @@
 
   // ---- formatting --------------------------------------------------------
   function typeLabel (type) {
-    return COMMAND_TYPE_LABELS[type] ?? type
+    return t(COMMAND_TYPE_LABELS[type] ?? type)
   }
   function statusColor (status) {
     return { success: 'success', failed: 'error', pending: 'warning' }[status] ?? 'default'
@@ -628,16 +630,16 @@
   }
   function ago (value) {
     const seconds = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 1000))
-    if (seconds < 60) return 'just now'
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`
-    if (seconds < 86_400) return `${Math.floor(seconds / 3600)} h ago`
-    return `${Math.floor(seconds / 86_400)} d ago`
+    if (seconds < 60) return t('just now')
+    if (seconds < 3600) return t('{n} min ago', { n: Math.floor(seconds / 60) })
+    if (seconds < 86_400) return t('{n} h ago', { n: Math.floor(seconds / 3600) })
+    return t('{n} d ago', { n: Math.floor(seconds / 86_400) })
   }
   function tookLabel (item) {
     const seconds = Math.round((new Date(item.completed_at.Time) - new Date(item.created_at)) / 1000)
-    if (seconds < 60) return `after ${seconds}s`
-    if (seconds < 3600) return `after ${Math.round(seconds / 60)} min`
-    return `after ${Math.round(seconds / 3600)} h`
+    if (seconds < 60) return t('after {n}s', { n: seconds })
+    if (seconds < 3600) return t('after {n} min', { n: Math.round(seconds / 60) })
+    return t('after {n} h', { n: Math.round(seconds / 3600) })
   }
   function prettyPayload (raw) {
     try {

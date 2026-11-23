@@ -1,32 +1,32 @@
 <template>
   <v-dialog v-model="dialog" max-width="560">
     <v-card class="px-4">
-      <v-card-title>Add a New Supplier</v-card-title>
+      <v-card-title>{{ t('Add a New Supplier') }}</v-card-title>
       <v-card-text>
         <form @submit.prevent="submit">
           <v-text-field
             v-model="name.value.value"
             density="compact"
             :error-messages="name.errorMessage.value"
-            label="Name"
+            :label="t('Name')"
           />
           <v-text-field
             v-model="phone.value.value"
             density="compact"
             :error-messages="phone.errorMessage.value"
-            label="Phone"
+            :label="t('Phone')"
           />
           <v-text-field
             v-model="country.value.value"
             density="compact"
             :error-messages="country.errorMessage.value"
-            label="Country"
+            :label="t('Country')"
           />
           <v-text-field
             v-model="address.value.value"
             density="compact"
             :error-messages="address.errorMessage.value"
-            label="Address"
+            :label="t('Address')"
           />
           <v-row>
             <v-col cols="6">
@@ -34,7 +34,7 @@
                 v-model.number="latitude.value.value"
                 density="compact"
                 :error-messages="latitude.errorMessage.value"
-                label="Latitude"
+                :label="t('Latitude')"
                 type="number"
               />
             </v-col>
@@ -43,7 +43,7 @@
                 v-model.number="longitude.value.value"
                 density="compact"
                 :error-messages="longitude.errorMessage.value"
-                label="Longitude"
+                :label="t('Longitude')"
                 type="number"
               />
             </v-col>
@@ -51,8 +51,8 @@
 
           <v-card-actions class="px-0">
             <v-spacer />
-            <v-btn text="Cancel" @click="closeDialog" />
-            <v-btn color="primary" :loading="submitting" text="Add Supplier" type="submit" />
+            <v-btn :text="t('Cancel')" @click="closeDialog" />
+            <v-btn color="primary" :loading="submitting" :text="t('Add Supplier')" type="submit" />
           </v-card-actions>
         </form>
       </v-card-text>
@@ -63,7 +63,7 @@
     <v-card class="suppliers-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-truck-delivery" />
-        <span>Suppliers</span>
+        <span>{{ t('Suppliers') }}</span>
         <v-spacer />
         <v-text-field
           v-model="search"
@@ -71,7 +71,7 @@
           clearable
           density="compact"
           hide-details
-          label="Search suppliers"
+          :label="t('Search suppliers')"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
         />
@@ -79,7 +79,7 @@
           v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
-          text="Add Supplier"
+          :text="t('Add Supplier')"
           variant="flat"
           @click="dialog = true"
         />
@@ -102,7 +102,8 @@
 
 <script setup lang="ts">
   import { useField, useForm } from 'vee-validate'
-  import { ref } from 'vue'
+  import { computed, ref } from 'vue'
+  import { t } from '@/i18n'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { authFetch } from '@/composables/useApi'
   import { usePageAccess } from '@/composables/usePageAccess'
@@ -113,13 +114,13 @@
   const { canEdit } = usePageAccess()
 
   const apiURL = `${API_BASE}/suppliers`
-  const headers = ref([
-    { title: 'ID', key: 'id', align: 'start' },
-    { title: 'Name', key: 'name', align: 'start' },
-    { title: 'Phone', key: 'phone', align: 'start' },
-    { title: 'Country', key: 'country', align: 'start' },
-    { title: 'Address', key: 'address', align: 'start' },
-    { title: 'Created At', key: 'created_at', align: 'end' },
+  const headers = computed(() => [
+    { title: t('ID'), key: 'id', align: 'start' },
+    { title: t('Name'), key: 'name', align: 'start' },
+    { title: t('Phone'), key: 'phone', align: 'start' },
+    { title: t('Country'), key: 'country', align: 'start' },
+    { title: t('Address'), key: 'address', align: 'start' },
+    { title: t('Created At'), key: 'created_at', align: 'end' },
   ])
 
   const tableRef = ref(null)
@@ -132,27 +133,27 @@
     validationSchema: {
       name (value) {
         if (value?.length >= 2) return true
-        return 'Name needs to be at least 2 characters.'
+        return t('Name needs to be at least 2 characters.')
       },
       phone (value) {
         if (/^[0-9-]{7,}$/.test(value)) return true
-        return 'Phone number needs to be at least 7 digits.'
+        return t('Phone number needs to be at least 7 digits.')
       },
       country (value) {
         if (value?.length >= 2) return true
-        return 'Country is required.'
+        return t('Country is required.')
       },
       address (value) {
         if (value?.length >= 2) return true
-        return 'Address is required.'
+        return t('Address is required.')
       },
       latitude (value) {
         if (value !== undefined && value !== null && value !== '') return true
-        return 'Latitude is required.'
+        return t('Latitude is required.')
       },
       longitude (value) {
         if (value !== undefined && value !== null && value !== '') return true
-        return 'Longitude is required.'
+        return t('Longitude is required.')
       },
     },
   })
@@ -187,7 +188,7 @@
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || `Request failed with status ${res.status}`)
+        throw new Error(err.error || t('Request failed with status {status}', { status: res.status }))
       }
 
       closeDialog()

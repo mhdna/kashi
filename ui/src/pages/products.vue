@@ -21,7 +21,7 @@
     <v-card class="products-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-package-variant" />
-        <span>Products</span>
+        <span>{{ t('Products') }}</span>
         <v-spacer />
         <v-text-field
           v-model="search"
@@ -29,7 +29,7 @@
           clearable
           density="compact"
           hide-details
-          label="Search products"
+          :label="t('Search products')"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
         />
@@ -40,7 +40,7 @@
         >
           <v-btn
             prepend-icon="mdi-filter-variant"
-            text="Filters"
+            :text="t('Filters')"
             variant="tonal"
             @click="filterMenu = true"
           />
@@ -49,7 +49,7 @@
           v-if="canEdit"
           :loading="importing"
           prepend-icon="mdi-file-delimited-outline"
-          text="Import CSV"
+          :text="t('Import CSV')"
           variant="tonal"
           @click="fileInput?.click()"
         />
@@ -63,7 +63,7 @@
         <v-btn
           v-if="canEdit"
           prepend-icon="mdi-palette"
-          text="Colour/size on scan"
+          :text="t('Colour/size on scan')"
           variant="tonal"
           @click="variantPickDialog = true"
         />
@@ -71,7 +71,7 @@
           v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
-          text="Add Product"
+          :text="t('Add Product')"
           variant="flat"
           @click="dialog = true"
         />
@@ -83,13 +83,13 @@
         <v-card data-no-discard-guard>
           <v-card-title class="d-flex align-center ga-2">
             <v-icon icon="mdi-filter-variant" size="20" />
-            <span class="text-h6">Filter Products</span>
+            <span class="text-h6">{{ t('Filter Products') }}</span>
             <v-chip
               v-if="activeFilterCount > 0"
               class="ms-1"
               color="primary"
               size="small"
-              :text="`${activeFilterCount} active`"
+              :text="t('{n} active', { n: activeFilterCount })"
               variant="tonal"
             />
             <v-spacer />
@@ -98,7 +98,7 @@
           <v-divider />
 
           <v-card-text class="py-4">
-            <div class="text-caption text-medium-emphasis mb-1">Status</div>
+            <div class="text-caption text-medium-emphasis mb-1">{{ t('Status') }}</div>
             <v-btn-toggle
               v-model="statusFilter"
               class="mb-5"
@@ -108,9 +108,9 @@
               mandatory
               variant="outlined"
             >
-              <v-btn value="all">All</v-btn>
-              <v-btn value="active">Active</v-btn>
-              <v-btn value="inactive">Inactive</v-btn>
+              <v-btn value="all">{{ t('All') }}</v-btn>
+              <v-btn value="active">{{ t('Active') }}</v-btn>
+              <v-btn value="inactive">{{ t('Inactive') }}</v-btn>
             </v-btn-toggle>
 
             <v-switch
@@ -119,7 +119,7 @@
               color="primary"
               density="compact"
               hide-details
-              label="Has variants"
+              :label="t('Has variants')"
             />
 
             <v-switch
@@ -128,16 +128,16 @@
               color="primary"
               density="compact"
               hide-details
-              label="From photo (made by the label reader)"
+              :label="t('From photo (made by the label reader)')"
             />
 
-            <div class="text-caption text-medium-emphasis mb-1">Created between</div>
+            <div class="text-caption text-medium-emphasis mb-1">{{ t('Created between') }}</div>
             <div class="d-flex flex-wrap ga-3 mb-5">
-              <DateRangePicker v-model:from="createdFrom" v-model:to="createdTo" clearable empty-label="Any time" />
+              <DateRangePicker v-model:from="createdFrom" v-model:to="createdTo" clearable :empty-label="t('Any time')" />
             </div>
 
             <template v-if="attributeTypes.length > 0">
-              <div class="text-caption text-medium-emphasis mb-1">Attributes</div>
+              <div class="text-caption text-medium-emphasis mb-1">{{ t('Attributes') }}</div>
               <div class="d-flex flex-wrap ga-3">
                 <v-select
                   v-for="t in attributeTypes"
@@ -164,12 +164,12 @@
           <v-card-actions class="px-4">
             <v-btn
               :disabled="activeFilterCount === 0"
-              text="Clear all"
+              :text="t('Clear all')"
               variant="text"
               @click="clearFilters"
             />
             <v-spacer />
-            <v-btn color="primary" text="Done" variant="flat" @click="filterMenu = false" />
+            <v-btn color="primary" :text="t('Done')" variant="flat" @click="filterMenu = false" />
           </v-card-actions>
         </v-card>
       </v-dialog>
@@ -194,6 +194,7 @@
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { useProducts } from '@/composables/useProducts'
+  import { t } from '@/i18n'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
@@ -238,9 +239,9 @@
     try {
       const res = await importCsv(file)
       const skipped = res?.skipped ?? []
-      let message = `Imported ${res?.created ?? 0} products.`
+      let message = t('Imported {count} products.', { count: res?.created ?? 0 })
       if (skipped.length > 0) {
-        message += ` Skipped ${skipped.length} that already exist: ${skipped.join(', ')}`
+        message += ` ${t('Skipped {count} that already exist: {names}', { count: skipped.length, names: skipped.join(', ') })}`
       }
       notify.success(message)
       productsTableRef.value?.reload()

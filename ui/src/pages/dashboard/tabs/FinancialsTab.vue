@@ -29,9 +29,9 @@
     <v-card class="chart-card mb-3" variant="flat">
       <div class="d-flex align-center flex-wrap ga-2">
         <div>
-          <div class="chart-card__title">Sales &amp; Forecast</div>
+          <div class="chart-card__title">{{ t('Sales & Forecast') }}</div>
           <div class="chart-card__subtitle">
-            Daily sales, and what past sales predict for the next {{ forecastDays }} days
+            {{ t('Daily sales, and what past sales predict for the next {days} days', { days: forecastDays }) }}
           </div>
         </div>
         <v-spacer />
@@ -48,8 +48,7 @@
       </div>
       <VChart autoresize class="chart chart--main" :option="forecastOption" />
       <div class="text-caption text-medium-emphasis px-1">
-        The forecast is the last 4 weeks' average day, adjusted for the day of the week and for how sales moved
-        around the same date last year. The shaded range is where 80% of days landed against past forecasts.
+        {{ t('The forecast is the last 4 weeks\' average day, adjusted for the day of the week and for how sales moved around the same date last year. The shaded range is where 80% of days landed against past forecasts.') }}
       </div>
     </v-card>
 
@@ -66,7 +65,7 @@
       </v-card>
       <v-card class="chart-card" variant="flat">
         <div class="chart-card__title">{{ t('Gross Margin') }}</div>
-        <div class="chart-card__subtitle">Daily, last 30 days · items with a known cost</div>
+        <div class="chart-card__subtitle">{{ t('Daily, last 30 days · items with a known cost') }}</div>
         <VChart autoresize class="chart" :option="marginOption" />
       </v-card>
     </div>
@@ -74,7 +73,7 @@
     <!-- Hidden temporarily -- drop the v-if="false" to bring it back. -->
     <v-card v-if="false" class="chart-card" variant="flat">
       <div class="chart-card__title">{{ t('When Sales Happen') }}</div>
-      <div class="chart-card__subtitle">Sales per weekday and hour, last {{ report?.hourly_since_days ?? 90 }} days, in each branch's time</div>
+      <div class="chart-card__subtitle">{{ t('Sales per weekday and hour, last {days} days, in each branch\'s time', { days: report?.hourly_since_days ?? 90 }) }}</div>
       <VChart autoresize class="chart chart--heat" :option="hourlyOption" />
     </v-card>
   </div>
@@ -120,7 +119,7 @@
       const res = await authFetch(`${API_BASE}/financials`)
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || `Failed to load financials (${res.status})`)
+        throw new Error(err.error || t('Failed to load financials ({status})', { status: res.status }))
       }
       report.value = await res.json()
     } catch (error) {
@@ -136,6 +135,14 @@
   const fmtUsd = v => (v == null ? '—' : '$' + Math.round(v).toLocaleString('en-US'))
 
   // ---- Stat tiles ----------------------------------------------------------
+  function grossHint (r, coverage) {
+    if (r?.gross_margin_30 == null) return t('Last 30 days')
+    const margin = Math.round(r.gross_margin_30)
+    if (coverage != null && coverage < 100) {
+      return t('{margin}% margin on the {coverage}% of sales with a known cost', { margin, coverage: Math.round(coverage) })
+    }
+    return t('{margin}% margin', { margin })
+  }
   const stats = computed(() => {
     const r = report.value
     const change = r && r.sales_prior_30 > 0 ? ((r.sales_30 - r.sales_prior_30) / r.sales_prior_30) * 100 : null
@@ -146,9 +153,7 @@
       {
         label: t('Gross Profit'),
         value: money(r?.gross_profit_30),
-        hint: r?.gross_margin_30 == null
-          ? 'Last 30 days'
-          : `${Math.round(r.gross_margin_30)}% margin${coverage != null && coverage < 100 ? ` on the ${Math.round(coverage)}% of sales with a known cost` : ''}`,
+        hint: grossHint(r, coverage),
       },
       { label: t('Expenses'), value: money(r?.expenses_30), hint: t('Last 30 days') },
     ]
@@ -197,10 +202,10 @@
   const forecastOption = computed(() => {
     const labels = days.value.map(d => dayLabel(d.day))
     const w = WINDOWS.find(x => x.key === windowKey.value)
-    const t = Math.max(0, todayIndex.value)
+    const todayAt = Math.max(0, todayIndex.value)
     const last = Math.max(1, labels.length - 1)
-    const startValue = Math.max(0, t - w.before)
-    const endValue = Math.min(last, t + w.after)
+    const startValue = Math.max(0, todayAt - w.before)
+    const endValue = Math.min(last, todayAt + w.after)
     const low = days.value.map(d => dollars(d.forecast_low))
     const band = days.value.map(d => dollars(d.forecast_high - d.forecast_low))
 
@@ -212,7 +217,7 @@
         itemWidth: 12,
         itemHeight: 8,
         textStyle: { color: textColor.value, fontSize: 11 },
-        data: ['Sales', '7-day average', 'Gross profit', 'Forecast', 'Forecast range'],
+        data: [t('Sales'), t('7-day average'), t('Gross profit'), t('Forecast'), t('Forecast range')],
       },
       tooltip: {
         trigger: 'axis',
@@ -222,11 +227,11 @@
           const d = days.value[i]
           if (!d) return ''
           const rows = [`<b>${dayLabel(d.day)}</b>`]
-          if (d.sales != null) rows.push(`Sales: ${money(d.sales)}`)
-          if (average7.value[i] != null) rows.push(`7-day average: ${fmtUsd(average7.value[i])}`)
-          if (d.gross_profit != null) rows.push(`Gross profit: ${money(d.gross_profit)}`)
-          rows.push(`Forecast: ${money(d.forecast)} <span style="opacity:.7">(${money(d.forecast_low)}–${money(d.forecast_high)})</span>`)
-          if (d.expenses) rows.push(`Expenses: ${money(d.expenses)}${d.expense_spike ? ' — unusually high' : ''}`)
+          if (d.sales != null) rows.push(t('Sales: {amount}', { amount: money(d.sales) }))
+          if (average7.value[i] != null) rows.push(t('7-day average: {amount}', { amount: fmtUsd(average7.value[i]) }))
+          if (d.gross_profit != null) rows.push(t('Gross profit: {amount}', { amount: money(d.gross_profit) }))
+          rows.push(t('Forecast: {amount} <span style="opacity:.7">({low}–{high})</span>', { amount: money(d.forecast), low: money(d.forecast_low), high: money(d.forecast_high) }))
+          if (d.expenses) rows.push(t('Expenses: {amount}', { amount: money(d.expenses) }) + (d.expense_spike ? t(' — unusually high') : ''))
           return rows.join('<br/>')
         },
       },
@@ -261,7 +266,7 @@
           tooltip: { show: false },
         },
         {
-          name: 'Forecast range',
+          name: t('Forecast range'),
           type: 'line',
           data: band,
           stack: 'band',
@@ -278,7 +283,7 @@
           },
         },
         {
-          name: 'Sales',
+          name: t('Sales'),
           type: 'bar',
           data: days.value.map(d => dollars(d.sales)),
           barMaxWidth: 12,
@@ -289,7 +294,7 @@
               silent: true,
               symbol: 'none',
               lineStyle: { color: neutral.value, type: 'dashed' },
-              label: { formatter: 'Today', color: textColor.value, fontSize: 10 },
+              label: { formatter: t('Today'), color: textColor.value, fontSize: 10 },
               data: [{ xAxis: todayIndex.value }],
             },
           markPoint: {
@@ -298,14 +303,14 @@
             symbolRotate: 180,
             itemStyle: { color: warning.value },
             label: { show: false },
-            tooltip: { formatter: p => `Unusually high expenses: ${money(days.value[p.data.coord[0]]?.expenses)}` },
+            tooltip: { formatter: p => t('Unusually high expenses: {amount}', { amount: money(days.value[p.data.coord[0]]?.expenses) }) },
             data: days.value
               .map((d, i) => (d.expense_spike ? { coord: [i, dollars(d.sales) ?? 0] } : null))
               .filter(Boolean),
           },
         },
         {
-          name: '7-day average',
+          name: t('7-day average'),
           type: 'line',
           data: average7.value,
           smooth: true,
@@ -314,7 +319,7 @@
           itemStyle: { color: primary.value },
         },
         {
-          name: 'Gross profit',
+          name: t('Gross profit'),
           type: 'line',
           data: days.value.map(d => dollars(d.gross_profit)),
           showSymbol: false,
@@ -323,7 +328,7 @@
           itemStyle: { color: neutral.value },
         },
         {
-          name: 'Forecast',
+          name: t('Forecast'),
           type: 'line',
           data: days.value.map(d => dollars(d.forecast)),
           smooth: true,
@@ -339,7 +344,7 @@
   const branchOption = computed(() => {
     const rows = (report.value?.branches ?? [])
       .filter(b => b.sales > 0)
-      .map(b => ({ name: b.branch_name || 'Entered in kashi', value: dollars(b.sales) }))
+      .map(b => ({ name: b.branch_name || t('Entered in kashi'), value: dollars(b.sales) }))
       .toSorted((a, b) => a.value - b.value)
     return {
       grid: { top: 8, right: 56, bottom: 8, left: 8, containLabel: true },
@@ -403,7 +408,7 @@
         splitLine: { lineStyle: { color: axisColor.value, type: 'dashed' } },
       },
       series: [{
-        name: 'Gross margin',
+        name: t('Gross margin'),
         type: 'line',
         data: rows.map(r => (r.margin_pct == null ? null : Math.round(r.margin_pct))),
         smooth: true,
@@ -431,7 +436,7 @@
       grid: { top: 8, right: 12, bottom: 48, left: 44 },
       tooltip: {
         appendTo: 'body',
-        formatter: p => `${WEEKDAYS[p.data[1]]} ${hours[p.data[0]]}:00<br/>${p.data[2]} sales`,
+        formatter: p => t('{day} {hour}:00<br/>{count} sales', { day: t(WEEKDAYS[p.data[1]]), hour: hours[p.data[0]], count: p.data[2] }),
       },
       xAxis: {
         type: 'category',
@@ -443,7 +448,7 @@
       },
       yAxis: {
         type: 'category',
-        data: WEEKDAYS,
+        data: WEEKDAYS.map(day => t(day)),
         inverse: true,
         axisLine: { show: false },
         axisTick: { show: false },
@@ -458,7 +463,7 @@
         bottom: 0,
         itemWidth: 10,
         itemHeight: 120,
-        text: ['More', 'Fewer'],
+        text: [t('More'), t('Fewer')],
         textStyle: { color: textColor.value, fontSize: 10 },
         inRange: { color: [isDark.value ? '#262626' : '#f3f3f3', primary.value] },
       },
