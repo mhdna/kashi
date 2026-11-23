@@ -13,6 +13,7 @@ export default defineConfig({
     environment: 'happy-dom',
     include: ['src/**/*.test.js'],
     css: false,
+    setupFiles: ['src/test/useEnglish.js'],
     server: { deps: { inline: ['vuetify'] } },
   },
 })
