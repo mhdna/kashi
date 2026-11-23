@@ -12,6 +12,27 @@ Measured or reported slow things that are not fixed yet.
 
 ## Entries
 
+### 2026-11-23 Live view of tills: what it costs
+
+Not a slow thing, a cost check for a new feature (`docs/plans/live-view.md`).
+
+**Off (the default):** nothing. Tills are not told the feature exists, the
+endpoints refuse, `liveHub` is an empty map, and rrweb is never loaded on a till.
+
+**Server, measured** (`LIVE_LOAD=1 go test ./api -run TestLiveViewLoad -v`): 3
+tills each streaming 4 KB frames 20 times a second (80 KB/s each, a busy till)
+to one watcher for 10 s, after a 300 KB first snapshot. The whole test process,
+fake tills and watchers included: heap +3.4 MB, 1.2% of one core, every frame
+delivered. A slow watcher is dropped and resynced, never waited on
+(`TestLiveHubSlowWatcherNeverBlocks`).
+
+**Not measured yet:** the till's own cost (rrweb recording inside the Wails
+webview) and the real droplet's memory while watching. To do on a real kashi-pos
+build: watch one till for 5 minutes of normal use and record kashi-api RSS before,
+during and after, bytes a second on the stream, and the till's CPU in Task Manager
+with and without a watcher. Expected: under 20 MB extra on kashi, a few KB/s, no
+visible lag. Add the numbers here.
+
 ### 2026-11-17 Filtering retail invoices by client took over a minute
 
 **Symptom:** typing a name or phone in the new client box on Invoices took ages.
