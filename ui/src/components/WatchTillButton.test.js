@@ -71,4 +71,15 @@ describe('WatchTillButton', () => {
     await wrapper.vm.$nextTick()
     expect(wrapper.find('[data-test="watchers"]').exists()).toBe(false)
   })
+  it('icon mode shows only the eye, with no label or watcher text', async () => {
+    await show({ live_view_enabled: true }, { icon: true })
+    const btn = wrapper.find('[data-test="watch-register"]')
+    expect(btn.exists()).toBe(true)
+    expect(btn.text()).toBe('')
+    expect(wrapper.find('[data-test="watchers"]').exists()).toBe(false)
+  })
+  it('icon mode is hidden while live view is off', async () => {
+    await show({ live_view_enabled: false }, { icon: true })
+    expect(wrapper.find('[data-test="watch-register"]').exists()).toBe(false)
+  })
 })

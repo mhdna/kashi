@@ -1,6 +1,18 @@
 <template>
   <span v-if="visible">
     <v-btn
+      v-if="icon"
+      aria-label="Watch till"
+      data-test="watch-register"
+      density="comfortable"
+      icon="mdi-eye"
+      size="small"
+      :to="{ path: `/live/${registerId}`, query: { name } }"
+      variant="text"
+      @click.stop
+    />
+    <v-btn
+      v-else
       class="ms-2"
       data-test="watch-register"
       prepend-icon="mdi-eye"
@@ -10,7 +22,7 @@
       variant="outlined"
     />
     <span
-      v-if="watchers.length > 0"
+      v-if="!icon && watchers.length > 0"
       class="text-caption text-medium-emphasis ms-2"
       data-test="watchers"
     >
@@ -30,6 +42,8 @@
     registerId: { type: Number, required: true },
     name: { type: String, default: '' },
     online: { type: Boolean, default: false },
+    // Just the eye, for tight lists such as the connected branches popup.
+    icon: { type: Boolean, default: false },
   })
 
   const auth = useAuthStore()

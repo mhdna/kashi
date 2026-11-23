@@ -46,6 +46,16 @@
           <template #prepend>
             <v-icon color="success" icon="mdi-circle" size="10" />
           </template>
+          <template #append>
+            <WatchTillButton
+              v-for="register in onlineRegisters(id)"
+              :key="register.id"
+              icon
+              :name="`${branchName(id)} ${register.code}`"
+              online
+              :register-id="register.id"
+            />
+          </template>
         </v-list-item>
       </v-list>
       <v-card-text v-else class="text-medium-emphasis">
@@ -57,14 +67,15 @@
 </template>
 
 <script setup>
-  import { computed, onMounted, onUnmounted, ref } from 'vue'
+  import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useDisplay } from 'vuetify'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { NO_INTERNET_MESSAGE, SERVER_DOWN_MESSAGE } from '@/composables/useApi'
   import { useBranches } from '@/composables/useBranches'
+  import WatchTillButton from '@/components/WatchTillButton.vue'
   import { useNetworkStatus } from '@/composables/useNetworkStatus'
 
-  const { branches, fetchBranches, fetchConnectedBranches } = useBranches()
+  const { branches, fetchBranches, fetchConnectedBranches, fetchConnectedRegisters, listRegisters } = useBranches()
   const { status, ensureConnected, onMessage } = useAdminSocket()
   const { mobile } = useDisplay()
 
@@ -89,6 +100,24 @@
   function branchName (branchId) {
     return branches.value.find(b => b.id === branchId)?.name ?? `Branch #${branchId}`
   }
+
+  // The tills online in each connected branch, so each can get a watch eye.
+  const registersByBranch = ref({})
+  const connectedRegisterIds = ref([])
+  function onlineRegisters (branchId) {
+    return (registersByBranch.value[branchId] ?? []).filter(r => connectedRegisterIds.value.includes(r.id))
+  }
+  async function loadRegisters () {
+    try {
+      connectedRegisterIds.value = await fetchConnectedRegisters()
+      for (const id of connectedBranchIds.value) {
+        if (!registersByBranch.value[id]) registersByBranch.value[id] = await listRegisters(id)
+      }
+    } catch {
+      // The eyes are optional; the branch list still works without them.
+    }
+  }
+  watch(menu, open => { if (open) loadRegisters() })
 
   onMounted(async () => {
     try {
