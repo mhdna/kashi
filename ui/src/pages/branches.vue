@@ -65,7 +65,7 @@
     <v-card>
       <v-card-title class="d-flex align-center ga-2">
         <v-icon icon="mdi-cash-register" />
-        <span>Registers — {{ registersBranch?.name }}</span>
+        <span>{{ t('Registers — {branch}', { branch: registersBranch?.name }) }}</span>
       </v-card-title>
       <v-divider />
       <v-card-text>
@@ -93,7 +93,7 @@
                   variant="tonal"
                 />
                 <span v-else class="text-medium-emphasis">
-                  {{ register.last_seen_at?.Valid ? `Last seen ${new Date(register.last_seen_at.Time).toLocaleString()}` : 'Never connected' }}
+                  {{ register.last_seen_at?.Valid ? t('Last seen {time}', { time: new Date(register.last_seen_at.Time).toLocaleString() }) : t('Never connected') }}
                 </span>
                 <WatchTillButton
                   :name="`${registersBranch?.name} ${register.code}`"
@@ -178,8 +178,7 @@
     <v-card>
       <v-card-title>{{ t('Rotate API Key') }}</v-card-title>
       <v-card-text>
-        Rotating register {{ rotateTarget?.code }}'s key immediately invalidates its current key.
-        That till will need the new key entered before it can sync again.
+        {{ t('Rotating register {code}\'s key immediately invalidates its current key. That till will need the new key entered before it can sync again.', { code: rotateTarget?.code }) }}
       </v-card-text>
       <v-card-actions>
         <v-spacer />
@@ -197,7 +196,7 @@
   <v-dialog v-model="targetsDialog" max-width="720" scrollable>
     <v-card class="targets-dialog-card">
       <v-card-title class="d-flex align-center">
-        Targets -- {{ targetsBranch?.name }}
+        {{ t('Targets -- {branch}', { branch: targetsBranch?.name }) }}
         <v-spacer />
         <v-icon-btn icon="mdi-close" size="small" variant="text" @click="targetsDialog = false" />
       </v-card-title>
@@ -330,7 +329,7 @@
 
   <v-dialog v-model="targetFormDialog" max-width="440" :persistent="true">
     <v-card class="px-4">
-      <v-card-title>{{ editingTargetId ? "Edit Target" : "Add Target" }}</v-card-title>
+      <v-card-title>{{ editingTargetId ? t('Edit Target') : t('Add Target') }}</v-card-title>
       <v-card-text>
         <form class="field-grid" @submit.prevent="submitTarget">
           <DateRangePicker v-model:from="targetForm.dateFrom" v-model:to="targetForm.dateTo" class="field-full" />
@@ -338,7 +337,7 @@
             v-model.number="targetForm.targetAmount"
             class="field-full"
             density="compact"
-            label="Target Amount ($)"
+            :label="t('Target Amount ($)')"
             min="0"
             prefix="$"
             step="0.01"
@@ -350,7 +349,7 @@
               v-model="targetForm.autoColor"
               density="compact"
               hide-details
-              :label="editingTargetId ? 'Keep current color' : 'Auto-assign color'"
+              :label="editingTargetId ? t('Keep current color') : t('Auto-assign color')"
             />
             <v-text-field
               v-if="!targetForm.autoColor"
@@ -370,7 +369,7 @@
             <v-btn
               color="primary"
               :loading="targetSaving"
-              :text="editingTargetId ? 'Save' : 'Add'"
+              :text="editingTargetId ? t('Save') : t('Add')"
               type="submit"
             />
           </v-card-actions>
@@ -381,14 +380,14 @@
 
   <v-dialog v-model="seriesFormDialog" max-width="440" :persistent="true">
     <v-card class="px-4">
-      <v-card-title>{{ editingSeriesId ? "Edit Recurring Target" : "Add Recurring Target" }}</v-card-title>
+      <v-card-title>{{ editingSeriesId ? t('Edit Recurring Target') : t('Add Recurring Target') }}</v-card-title>
       <v-card-text>
         <form class="field-grid" @submit.prevent="submitSeries">
           <v-text-field
             v-model.number="seriesForm.targetAmount"
             class="field-full"
             density="compact"
-            label="Target Amount ($)"
+            :label="t('Target Amount ($)')"
             min="0"
             prefix="$"
             step="0.01"
@@ -421,7 +420,7 @@
               v-model="seriesForm.autoColor"
               density="compact"
               hide-details
-              :label="editingSeriesId ? 'Keep current color' : 'Auto-assign color'"
+              :label="editingSeriesId ? t('Keep current color') : t('Auto-assign color')"
             />
             <v-text-field
               v-if="!seriesForm.autoColor"
@@ -445,7 +444,7 @@
             <v-btn
               color="primary"
               :loading="seriesSaving"
-              :text="editingSeriesId ? 'Save' : 'Add'"
+              :text="editingSeriesId ? t('Save') : t('Add')"
               type="submit"
             />
           </v-card-actions>
@@ -477,7 +476,7 @@
        is the avatar background on the till. -->
   <v-dialog v-model="salespersonsDialog" max-width="720">
     <v-card>
-      <v-card-title>Staff -- {{ salespersonsBranch?.name }}</v-card-title>
+      <v-card-title>{{ t('Staff -- {branch}', { branch: salespersonsBranch?.name }) }}</v-card-title>
       <v-card-text>
         <div v-if="salespersonsLoading" class="d-flex justify-center pa-4">
           <PreparingState kind="data" min-height="160px" :title="t('Loading staff')" />
@@ -642,7 +641,7 @@
             />
           </template>
           <template #item.last_seen_at="{ item }">
-            {{ item.last_seen_at?.Valid ? new Date(item.last_seen_at.Time).toLocaleString() : 'Never' }}
+            {{ item.last_seen_at?.Valid ? new Date(item.last_seen_at.Time).toLocaleString() : t('Never') }}
           </template>
           <template #item.actions="{ item }">
             <v-tooltip location="top" :text="t('Targets')">
@@ -690,7 +689,7 @@
 
 <script setup lang="ts">
   import { t } from '@/i18n'
-  import { onMounted, onUnmounted, ref } from 'vue'
+  import { computed, onMounted, onUnmounted, ref } from 'vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import WatchTillButton from '@/components/WatchTillButton.vue'
   import { useBranches } from '@/composables/useBranches'
@@ -740,7 +739,7 @@
     setBranchSalespersonColor,
   } = useBranchSalespersons()
 
-  const headers = ref([
+  const headers = computed(() => [
     { title: t('Name'), key: 'name', align: 'start' },
     { title: t('Code'), key: 'code', align: 'start' },
     { title: t('Active'), key: 'is_active', align: 'center', sortable: false },
@@ -784,7 +783,7 @@
   function revealKey (code, apiKey) {
     revealedCode.value = code
     revealedKey.value = apiKey
-    notify.warning('This key is shown once. Copy it into the till\'s kashi-pos settings now — it cannot be retrieved again.')
+    notify.warning(t('This key is shown once. Copy it into the till\'s kashi-pos settings now — it cannot be retrieved again.'))
     keyDialog.value = true
   }
 
@@ -804,9 +803,9 @@
   async function copyKey () {
     try {
       await navigator.clipboard.writeText(revealedKey.value)
-      notify.success('Copied to clipboard')
+      notify.success(t('Copied to clipboard'))
     } catch {
-      notify.error('Failed to copy to clipboard')
+      notify.error(t('Failed to copy to clipboard'))
     }
   }
 
@@ -876,7 +875,7 @@
 
   async function submitTarget () {
     if (!targetForm.value.dateFrom || !targetForm.value.dateTo) {
-      notify.error('Pick the dates this target covers')
+      notify.error(t('Pick the dates this target covers'))
       return
     }
     targetSaving.value = true
@@ -917,8 +916,8 @@
   }
 
   function describeSeries (s) {
-    const every = s.interval_count === 1 ? 'month' : `${s.interval_count} months`
-    return `Every ${every}, starting day ${s.start_day}`
+    const every = s.interval_count === 1 ? t('month') : t('{n} months', { n: s.interval_count })
+    return t('Every {every}, starting day {day}', { every, day: s.start_day })
   }
 
   const seriesFormDialog = ref(false)

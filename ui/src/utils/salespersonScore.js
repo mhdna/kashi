@@ -20,17 +20,20 @@
 // and the score is out of the parts that remain, so nobody gets zero for data
 // kashi doesn't have.
 
+import { t } from '../i18n'
+
+// Part labels are getters, so they follow the EN/FR toggle when read.
 export const SCORE_RULE = Object.freeze({
   minHours: 40,
   minInvoices: 10,
   // Nobody gets more for being further than this above the team.
   cap: 1.5,
   parts: Object.freeze([
-    { key: 'target', label: 'Target reached', weight: 40 },
-    { key: 'perHour', label: 'Sales per hour', weight: 25 },
-    { key: 'avgSale', label: 'Average sale', weight: 15 },
-    { key: 'itemsPerSale', label: 'Items per sale', weight: 15 },
-    { key: 'returnRate', label: 'Return rate', weight: 5, lowerIsBetter: true },
+    { key: 'target', get label () { return t('Target reached') }, weight: 40 },
+    { key: 'perHour', get label () { return t('Sales per hour') }, weight: 25 },
+    { key: 'avgSale', get label () { return t('Average sale') }, weight: 15 },
+    { key: 'itemsPerSale', get label () { return t('Items per sale') }, weight: 15 },
+    { key: 'returnRate', get label () { return t('Return rate') }, weight: 5, lowerIsBetter: true },
   ]),
 })
 
@@ -155,7 +158,7 @@ export function scoreSalespersons ({ invoices = [], returns = [], branchTargets 
     p.ranked = p.invoices >= rule.minInvoices && (!anyHours || p.hours >= rule.minHours)
     p.notRankedWhy = p.ranked
       ? ''
-      : (p.invoices < rule.minInvoices ? `Under ${rule.minInvoices} invoices` : `Under ${rule.minHours} hours worked`)
+      : (p.invoices < rule.minInvoices ? t('Under {n} invoices', { n: rule.minInvoices }) : t('Under {n} hours worked', { n: rule.minHours }))
   }
 
   // The team: the ranked people taken together.
@@ -251,17 +254,23 @@ const two = n => (Math.round(n * 100) / 100).toLocaleString('en-US', { maximumFr
 // that part (money, items, a rate).
 export function explainPart (part, show, cap = SCORE_RULE.cap) {
   if (!part.available) {
-    if (part.key === 'target') {return 'Not counted: no target for this period.'}
-    if (part.key === 'perHour') {return 'Not counted: no hours worked on record.'}
-    return 'Not counted: nobody ranked to compare with.'
+    if (part.key === 'target') {return t('Not counted: no target for this period.')}
+    if (part.key === 'perHour') {return t('Not counted: no hours worked on record.')}
+    return t('Not counted: nobody ranked to compare with.')
   }
   const capPct = `${two(cap * 100)}%`
   if (part.key === 'target') {
     const pct = `${two(part.ratio * 100)}%`
-    return `${show('net', part.value)} ÷ ${show('net', part.compare)} = ${pct}, then min(${pct}, ${capPct}) ÷ ${capPct} × ${part.weight} = ${two(part.points)}`
+    return t('{value} ÷ {compare} = {pct}, then min({pct}, {cap}) ÷ {cap} × {weight} = {points}', {
+      value: show('net', part.value), compare: show('net', part.compare), pct, cap: capPct, weight: part.weight, points: two(part.points),
+    })
   }
   if (part.lowerIsBetter) {
-    return `${show(part.key, part.value)} against the team's ${show(part.key, part.compare)}: (1 − ${show(part.key, part.value)} ÷ (2 × ${show(part.key, part.compare)})) × ${part.weight} = ${two(part.points)}`
+    return t("{value} against the team's {compare}: (1 − {value} ÷ (2 × {compare})) × {weight} = {points}", {
+      value: show(part.key, part.value), compare: show(part.key, part.compare), weight: part.weight, points: two(part.points),
+    })
   }
-  return `${show(part.key, part.value)} ÷ the team's ${show(part.key, part.compare)} = ${two(part.ratio)}, then min(${two(part.ratio)}, ${two(cap)}) ÷ ${two(cap)} × ${part.weight} = ${two(part.points)}`
+  return t("{value} ÷ the team's {compare} = {ratio}, then min({ratio}, {cap}) ÷ {cap} × {weight} = {points}", {
+    value: show(part.key, part.value), compare: show(part.key, part.compare), ratio: two(part.ratio), cap: two(cap), weight: part.weight, points: two(part.points),
+  })
 }

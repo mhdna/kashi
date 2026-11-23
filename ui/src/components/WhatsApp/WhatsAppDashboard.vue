@@ -9,7 +9,7 @@
 -->
 <template>
   <div class="pa-4 pt-3">
-    <PreparingState v-if="loading && !stats" kind="chart" title="Loading WhatsApp stats" />
+    <PreparingState v-if="loading && !stats" kind="chart" :title="t('Loading WhatsApp stats')" />
 
     <template v-else-if="stats">
       <!-- Sale messages still not sent after the till's retries (the same
@@ -22,11 +22,11 @@
         variant="tonal"
       >
         <div class="font-weight-medium">
-          {{ failures.failed_24h }} sale {{ failures.failed_24h === 1 ? 'message' : 'messages' }} failed in the last 24 hours<template v-if="failures.failed_1h">, {{ failures.failed_1h }} in the last hour</template>.
+          {{ failures.failed_24h === 1 ? t('1 sale message failed in the last 24 hours') : t('{n} sale messages failed in the last 24 hours', { n: failures.failed_24h }) }}<template v-if="failures.failed_1h">{{ t(', {n} in the last hour', { n: failures.failed_1h }) }}</template>.
         </div>
-        <div v-if="failures.last_reason" class="text-body-2">Latest: {{ failures.last_reason }}</div>
+        <div v-if="failures.last_reason" class="text-body-2">{{ t('Latest: {reason}', { reason: failures.last_reason }) }}</div>
         <v-btn class="mt-1 px-0" size="small" variant="text" @click="emit('show-messages', { status: 'failed', search: '' })">
-          See failed messages
+          {{ t('See failed messages') }}
         </v-btn>
       </v-alert>
 
@@ -57,32 +57,31 @@
       </div>
 
       <div v-if="!hasAny" class="card empty mt-3">
-        No WhatsApp messages in this range yet. Every sale to a client with a phone number shows up
-        here once WhatsApp is on in Settings, whether it was sent, skipped by a rule or failed.
+        {{ t('No WhatsApp messages in this range yet. Every sale to a client with a phone number shows up here once WhatsApp is on in Settings, whether it was sent, skipped by a rule or failed.') }}
       </div>
 
       <template v-else>
         <v-row class="mt-1" density="compact">
           <v-col cols="12" md="8">
             <v-card class="card" variant="flat">
-              <div class="card__title">Per day</div>
+              <div class="card__title">{{ t('Per day') }}</div>
               <div class="card__subtitle">
-                Messages by outcome<template v-if="ratings.totals.answers">; the line is the average answer (out of 5)</template>.
+                {{ t('Messages by outcome') }}<template v-if="ratings.totals.answers">{{ t('; the line is the average answer (out of 5)') }}</template>.
               </div>
               <v-chart autoresize class="chart" :option="dailyOption" />
             </v-card>
           </v-col>
           <v-col cols="12" md="4">
             <v-card class="card" variant="flat">
-              <div class="card__title">Answers</div>
+              <div class="card__title">{{ t('Answers') }}</div>
               <div class="card__subtitle">
-                {{ ratings.totals.answers }} of {{ ratings.totals.polls }} clients answered the poll.
+                {{ t('{answers} of {polls} clients answered the poll.', { answers: ratings.totals.answers, polls: ratings.totals.polls }) }}
               </div>
-              <div v-if="!ratings.totals.answers" class="empty">No answers in this range.</div>
+              <div v-if="!ratings.totals.answers" class="empty">{{ t('No answers in this range.') }}</div>
               <div v-for="o in answerRows" v-else :key="o.label" class="answer">
                 <div class="d-flex justify-space-between text-body-2 mb-1">
                   <span>{{ o.label }}</span>
-                  <span class="text-medium-emphasis">{{ o.count }} · {{ o.pct }}%</span>
+                  <span class="text-medium-emphasis">{{ o.count }} ({{ o.pct }}%)</span>
                 </div>
                 <v-progress-linear :color="answerColor(o.stars)" height="8" :model-value="o.pct" rounded />
               </div>
@@ -92,17 +91,17 @@
           <!-- Each branch's messages and answers side by side. -->
           <v-col v-if="branchRows.length > 1" cols="12">
             <v-card class="card" variant="flat">
-              <div class="card__title mb-1">By branch</div>
+              <div class="card__title mb-1">{{ t('By branch') }}</div>
               <v-table class="table" density="compact">
                 <thead>
                   <tr>
-                    <th>Branch</th>
-                    <th class="text-end">Sent</th>
-                    <th class="text-end">Delivered</th>
-                    <th class="text-end">Read</th>
-                    <th class="text-end">Answered</th>
-                    <th class="text-end">Average</th>
-                    <th class="text-end">Failed</th>
+                    <th>{{ t('Branch') }}</th>
+                    <th class="text-end">{{ t('Sent') }}</th>
+                    <th class="text-end">{{ t('Delivered') }}</th>
+                    <th class="text-end">{{ t('Read') }}</th>
+                    <th class="text-end">{{ t('Answered') }}</th>
+                    <th class="text-end">{{ t('Average') }}</th>
+                    <th class="text-end">{{ t('Failed') }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -122,17 +121,17 @@
 
           <v-col cols="12" md="6">
             <v-card class="card" variant="flat">
-              <div class="card__title">To call back</div>
-              <div class="card__subtitle">Clients who gave the lowest answer.</div>
-              <div v-if="ratings.low.length === 0" class="empty">Nobody gave the lowest answer in this range.</div>
+              <div class="card__title">{{ t('To call back') }}</div>
+              <div class="card__subtitle">{{ t('Clients who gave the lowest answer.') }}</div>
+              <div v-if="ratings.low.length === 0" class="empty">{{ t('Nobody gave the lowest answer in this range.') }}</div>
               <div v-for="r in ratings.low.slice(0, LIST_SIZE)" :key="r.id" class="entry">
                 <div class="d-flex align-center ga-3">
                   <div class="flex-grow-1">
-                    <div class="text-body-2 font-weight-medium">{{ r.client_name || 'No name' }}</div>
+                    <div class="text-body-2 font-weight-medium">{{ r.client_name || t('No name') }}</div>
                     <a class="text-caption" :href="`tel:+${r.client_phone}`">+{{ r.client_phone }}</a>
                   </div>
                   <div class="text-caption text-medium-emphasis text-end">
-                    <div>{{ [r.branch_name, r.invoice_code].filter(Boolean).join(' · ') }}</div>
+                    <div>{{ [r.branch_name, r.invoice_code].filter(Boolean).join(', ') }}</div>
                     <div>{{ formatWhen(r.poll_voted_at) }}</div>
                   </div>
                 </div>
@@ -143,21 +142,21 @@
           <v-col cols="12" md="6">
             <v-card class="card" variant="flat">
               <div class="d-flex align-center">
-                <div class="card__title flex-grow-1">What clients wrote</div>
+                <div class="card__title flex-grow-1">{{ t('What clients wrote') }}</div>
                 <v-btn
                   v-if="ratings.replies.length > 0"
                   append-icon="mdi-chevron-right"
                   size="small"
-                  text="See all"
+                  :text="t('See all')"
                   variant="text"
                   @click="emit('show-replies')"
                 />
               </div>
-              <div class="card__subtitle">The latest replies after the poll.</div>
-              <div v-if="ratings.replies.length === 0" class="empty">No replies in this range.</div>
+              <div class="card__subtitle">{{ t('The latest replies after the poll.') }}</div>
+              <div v-if="ratings.replies.length === 0" class="empty">{{ t('No replies in this range.') }}</div>
               <div v-for="r in ratings.replies.slice(0, LIST_SIZE)" :key="r.id" class="entry">
                 <div class="d-flex align-start ga-2">
-                  <div class="reply text-body-2 flex-grow-1">{{ r.body || KIND_LABELS[r.kind] || 'A message' }}</div>
+                  <div class="reply text-body-2 flex-grow-1">{{ r.body || KIND_LABELS[r.kind] || t('A message') }}</div>
                   <v-chip
                     v-if="r.poll_answer"
                     :color="answerColor(nullable(r.poll_rating))"
@@ -168,7 +167,7 @@
                   </v-chip>
                 </div>
                 <div class="text-caption text-medium-emphasis mt-1">
-                  {{ [r.client_name || '+' + r.client_phone, r.branch_name, formatWhen(r.received_at)].filter(Boolean).join(' · ') }}
+                  {{ [r.client_name || '+' + r.client_phone, r.branch_name, formatWhen(r.received_at)].filter(Boolean).join(', ') }}
                 </div>
               </div>
             </v-card>
@@ -181,19 +180,17 @@
          Spent card. -->
     <v-dialog v-model="priceDialog" max-width="420">
       <v-card>
-        <v-card-title>Price per message</v-card-title>
+        <v-card-title>{{ t('Price per message') }}</v-card-title>
         <v-card-text>
           <p class="text-body-2 text-medium-emphasis mb-3">
-            Meta charges each delivered template message at a rate set by the template's category and
-            the client's country (WhatsApp Manager › Insights has the real bill). Spent uses this
-            price, as it was when each message went out.
+            {{ t("Meta charges each delivered template message at a rate set by the template's category and the client's country (WhatsApp Manager › Insights has the real bill). Spent uses this price, as it was when each message went out.") }}
           </p>
           <v-text-field
             v-model="priceDraft"
             density="compact"
             :disabled="!canEdit"
             hide-details
-            label="USD per message"
+            :label="t('USD per message')"
             min="0"
             prefix="$"
             step="0.0001"
@@ -203,12 +200,12 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Close" variant="text" @click="priceDialog = false" />
+          <v-btn :text="t('Close')" variant="text" @click="priceDialog = false" />
           <v-btn
             v-if="canEdit"
             color="primary"
             :loading="savingPrice"
-            text="Save"
+            :text="t('Save')"
             variant="flat"
             @click="savePrice"
           />
@@ -220,6 +217,7 @@
 
 <script setup>
   import { computed, ref, watch } from 'vue'
+  import { t } from '@/i18n'
   import { useTheme } from 'vuetify'
   import VChart from '@/components/EChart.vue'
   import { useNotify } from '@/composables/useNotify'
@@ -312,56 +310,56 @@
     return stars === 3 ? 'warning' : 'error'
   }
   // A reply that isn't text (or a photo's, a video's caption under it).
-  const KIND_LABELS = {
-    image: '📷 Photo',
-    video: '🎥 Video',
-    audio: '🎤 Voice note: listen on the phone',
-    sticker: 'A sticker',
-    document: '📄 A file',
-    other: 'A contact or location',
-  }
+  const KIND_LABELS = computed(() => ({
+    image: `📷 ${t('Photo')}`,
+    video: `🎥 ${t('Video')}`,
+    audio: `🎤 ${t('Voice note: listen on the phone')}`,
+    sticker: t('A sticker'),
+    document: `📄 ${t('A file')}`,
+    other: t('A contact or location'),
+  }))
 
   // ---- totals ----------------------------------------------------------------
   const hasAny = computed(() => {
-    const t = stats.value?.totals
-    return Boolean(t && (t.sent || t.skipped || t.failed))
+    const tot = stats.value?.totals
+    return Boolean(t && (tot.sent || tot.skipped || tot.failed))
   })
   const kpis = computed(() => {
-    const t = stats.value.totals
+    const tot = stats.value.totals
     const p = stats.value.previous
     const r = ratings.value.totals
     const lowest = ratings.value.low.length
-    const failed = t.failed + t.undelivered
+    const failed = tot.failed + tot.undelivered
     return [
       {
-        label: 'Sent',
-        value: t.sent.toLocaleString(),
-        delta: delta(t.sent, p.sent),
-        hint: `to ${t.recipients.toLocaleString()} client${t.recipients === 1 ? '' : 's'}`,
+        label: t('Sent'),
+        value: tot.sent.toLocaleString(),
+        delta: delta(tot.sent, p.sent),
+        hint: tot.recipients === 1 ? t('to 1 client') : t('to {n} clients', { n: tot.recipients.toLocaleString() }),
         open: () => emit('show-messages', { status: 'sent' }),
       },
-      { label: 'Delivered', value: percent(t.delivered, t.sent), hint: `${t.delivered.toLocaleString()} messages` },
-      { label: 'Read', value: percent(t.read, t.sent), hint: `${t.read.toLocaleString()} messages` },
-      { label: 'Answered the poll', value: percent(r.answers, r.polls), hint: `${r.answers} of ${r.polls}` },
-      { label: 'Average answer', value: r.answers ? `★ ${r.average.toFixed(1)}` : '—', hint: 'out of 5' },
+      { label: t('Delivered'), value: percent(tot.delivered, tot.sent), hint: t('{n} messages', { n: tot.delivered.toLocaleString() }) },
+      { label: t('Read'), value: percent(tot.read, tot.sent), hint: t('{n} messages', { n: tot.read.toLocaleString() }) },
+      { label: t('Answered the poll'), value: percent(r.answers, r.polls), hint: t('{answers} of {polls}', { answers: r.answers, polls: r.polls }) },
+      { label: t('Average answer'), value: r.answers ? `★ ${r.average.toFixed(1)}` : '—', hint: t('out of 5') },
       {
-        label: 'To call back',
+        label: t('To call back'),
         value: lowest.toLocaleString(),
         tone: lowest ? 'error' : undefined,
-        hint: 'lowest answer',
+        hint: t('lowest answer'),
       },
       props.meta && {
-        label: 'Spent',
-        value: formatCost(t.cost_micros),
-        delta: delta(t.cost_micros, p.cost_micros),
-        hint: t.sent ? `${formatCost(t.cost_micros / t.sent)} per message` : 'set the price',
+        label: t('Spent'),
+        value: formatCost(tot.cost_micros),
+        delta: delta(tot.cost_micros, p.cost_micros),
+        hint: tot.sent ? t('{cost} per message', { cost: formatCost(tot.cost_micros / tot.sent) }) : t('set the price'),
         open: openPrice,
       },
       {
-        label: 'Failed',
+        label: t('Failed'),
         value: failed.toLocaleString(),
         tone: failed ? 'error' : undefined,
-        hint: t.skipped ? `${t.skipped} skipped by rules` : '',
+        hint: tot.skipped ? t('{n} skipped by rules', { n: tot.skipped }) : '',
         open: () => emit('show-messages', { status: 'failed' }),
       },
     ].filter(Boolean)
@@ -388,7 +386,7 @@
     const answers = Object.fromEntries(ratings.value.branches.map(b => [b.branch_id, b]))
     return (stats.value?.branches ?? []).map(b => ({
       id: b.branch_id,
-      name: b.branch_name || 'Deleted branch',
+      name: b.branch_name || t('Deleted branch'),
       sent: b.sent,
       delivered: b.delivered ?? 0,
       read: b.read ?? 0,
@@ -444,7 +442,7 @@
           data: days.map(d => messages[d]?.[s] ?? 0),
         })),
         withRating && {
-          name: 'Average answer',
+          name: t('Average answer'),
           type: 'line',
           yAxisIndex: 1,
           smooth: true,
@@ -475,7 +473,7 @@
       await setMessageCost(micros)
       stats.value = { ...stats.value, message_cost_micros: micros }
       priceDialog.value = false
-      notify.success('Price per message saved.')
+      notify.success(t('Price per message saved.'))
     } catch (error) {
       notify.error(error.message)
     } finally {

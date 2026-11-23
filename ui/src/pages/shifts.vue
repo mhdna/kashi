@@ -3,7 +3,7 @@
     <v-card class="shifts-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-clock-outline" />
-        <span>Shifts</span>
+        <span>{{ t('Shifts') }}</span>
         <v-spacer />
         <v-text-field
           v-if="tab === 'central'"
@@ -12,7 +12,7 @@
           clearable
           density="compact"
           hide-details
-          label="Search cashbox or #id"
+          :label="t('Search cashbox or #id')"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
         />
@@ -23,7 +23,7 @@
           density="compact"
           hide-details
           :items="STATUS_OPTIONS"
-          placeholder="Any status"
+          :placeholder="t('Any status')"
           style="max-width: 150px"
           variant="outlined"
         />
@@ -36,7 +36,7 @@
           :item-title="c => `${c.name} (${c.code})`"
           :item-value="c => c.id"
           :items="cashboxes"
-          placeholder="Any cashbox"
+          :placeholder="t('Any cashbox')"
           style="max-width: 220px"
           variant="outlined"
         />
@@ -47,15 +47,15 @@
           mandatory
           variant="outlined"
         >
-          <v-btn value="branch">Branch</v-btn>
-          <v-btn value="central">Central</v-btn>
-          <v-btn value="visitors">Visitors</v-btn>
+          <v-btn value="branch">{{ t('Branch') }}</v-btn>
+          <v-btn value="central">{{ t('Central') }}</v-btn>
+          <v-btn value="visitors">{{ t('Visitors') }}</v-btn>
         </v-btn-toggle>
         <v-btn
           v-if="canEdit && tab === 'central'"
           color="primary"
           prepend-icon="mdi-plus"
-          text="Open Shift"
+          :text="t('Open Shift')"
           variant="flat"
           @click="openCreate"
         />
@@ -85,7 +85,7 @@
           </template>
           <template #item.is_closed="{ item }">
             <v-chip :color="item.is_closed ? 'default' : 'success'" size="small" variant="tonal">
-              {{ item.is_closed ? 'Closed' : 'Open' }}
+              {{ item.is_closed ? t('Closed') : t('Open') }}
             </v-chip>
           </template>
           <template #item.created_at="{ item }">{{ formatDate(item.created_at) }}</template>
@@ -96,7 +96,7 @@
               :disabled="item.is_closed"
               :loading="closingId === item.id"
               size="small"
-              text="Close"
+              :text="t('Close')"
               variant="text"
               @click="close(item)"
             />
@@ -108,8 +108,8 @@
       <div v-else-if="tab === 'branch'" class="shifts-layout">
         <PageSidebar
           v-model="selectedBranch"
-          all-title="All branches"
-          empty-text="No branches yet."
+          :all-title="t('All branches')"
+          :empty-text="t('No branches yet.')"
           :items="branchItems"
           :loading="branchesLoading"
           show-all
@@ -163,7 +163,7 @@
                 icon="mdi-printer"
                 :loading="printingShiftId === item.id"
                 size="small"
-                title="Print this close shift on the till that closed it"
+                :title="t('Print this close shift on the till that closed it')"
                 variant="text"
                 @click="printShift(item)"
               />
@@ -179,8 +179,8 @@
       <div v-else class="shifts-layout">
         <PageSidebar
           v-model="selectedBranch"
-          all-title="All branches"
-          empty-text="No branches yet."
+          :all-title="t('All branches')"
+          :empty-text="t('No branches yet.')"
           :items="branchItems"
           :loading="branchesLoading"
           show-all
@@ -213,7 +213,7 @@
 
     <v-dialog v-model="dialog" max-width="420">
       <v-card class="px-4">
-        <v-card-title>Open a New Shift</v-card-title>
+        <v-card-title>{{ t('Open a New Shift') }}</v-card-title>
         <v-card-text>
           <form @submit.prevent="submit">
             <v-select
@@ -223,13 +223,13 @@
               :item-title="c => `${c.name} (${c.code})`"
               :item-value="c => c.id"
               :items="cashboxes"
-              label="Cashbox"
+              :label="t('Cashbox')"
             />
 
             <v-card-actions class="px-0">
               <v-spacer />
-              <v-btn text="Cancel" @click="closeDialog" />
-              <v-btn color="primary" :loading="submitting" text="Open Shift" type="submit" />
+              <v-btn :text="t('Cancel')" @click="closeDialog" />
+              <v-btn color="primary" :loading="submitting" :text="t('Open Shift')" type="submit" />
             </v-card-actions>
           </form>
         </v-card-text>
@@ -240,7 +240,7 @@
       <v-card>
         <v-card-title class="d-flex align-center ga-2">
           <v-icon icon="mdi-camera" />
-          <span>Close-shift receipt</span>
+          <span>{{ t('Close-shift receipt') }}</span>
           <v-spacer />
           <span v-if="receiptShift" class="text-caption text-medium-emphasis">
             {{ branchName(receiptShift.branch_id) }} · {{ receiptShift.closing_person_name || '—' }}
@@ -253,11 +253,11 @@
             v-if="receiptLoading"
             kind="receipt"
             min-height="160px"
-            title="Loading the receipt"
+            :title="t('Loading the receipt')"
           />
           <ZoomableImage
             v-else-if="receiptUrl"
-            alt="Close-shift receipt"
+            :alt="t('Close-shift receipt')"
             :busy="receiptChanging"
             height="100%"
             :progress="uploadProgress"
@@ -270,7 +270,7 @@
         </div>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="receiptDialog = false">Close</v-btn>
+          <v-btn variant="text" @click="receiptDialog = false">{{ t('Close') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -292,15 +292,16 @@
   import { useShiftReceiptImages } from '@/composables/useShiftReceiptImages'
   import { useShifts } from '@/composables/useShifts'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
   import { useAuthStore } from '@/stores/auth'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
 
-  const STATUS_OPTIONS = [
-    { title: 'Open', value: 'open' },
-    { title: 'Closed', value: 'closed' },
-  ]
+  const STATUS_OPTIONS = computed(() => [
+    { title: t('Open'), value: 'open' },
+    { title: t('Closed'), value: 'closed' },
+  ])
 
   const { createShift, closeShift } = useShifts()
   const { cashboxes, fetchCashboxes } = useCashboxes()
@@ -312,35 +313,35 @@
 
   const tab = ref('branch')
 
-  const centralHeaders = [
-    { title: 'ID', key: 'id', align: 'start', width: 80 },
-    { title: 'Cashbox', key: 'cashbox', align: 'start' },
-    { title: 'Status', key: 'is_closed', align: 'start' },
-    { title: 'Opened At', key: 'created_at', align: 'end' },
-    { title: 'Closed At', key: 'closed_at', align: 'end' },
+  const centralHeaders = computed(() => [
+    { title: t('ID'), key: 'id', align: 'start', width: 80 },
+    { title: t('Cashbox'), key: 'cashbox', align: 'start' },
+    { title: t('Status'), key: 'is_closed', align: 'start' },
+    { title: t('Opened At'), key: 'created_at', align: 'end' },
+    { title: t('Closed At'), key: 'closed_at', align: 'end' },
     { title: '', key: 'actions', align: 'end', sortable: false, width: 90 },
-  ]
+  ])
 
-  const branchHeaders = [
-    { title: 'Branch', key: 'branch_id', align: 'start', sortable: false },
-    { title: 'Closed By', key: 'closing_person_name', align: 'start', sortable: false },
-    { title: 'Opened', key: 'opened_at', align: 'start', sortable: false },
-    { title: 'Closed', key: 'closed_at', align: 'start', sortable: false },
-    { title: 'Expected', key: 'expected_usd', align: 'end', sortable: false },
-    { title: 'Counted', key: 'counted_usd', align: 'end', sortable: false },
-    { title: 'Variance', key: 'variance_usd', align: 'end', sortable: false },
-    { title: 'Receipt', key: 'receipt', align: 'center', sortable: false, width: 90 },
-    { title: 'Received', key: 'received_at', align: 'end', sortable: false },
+  const branchHeaders = computed(() => [
+    { title: t('Branch'), key: 'branch_id', align: 'start', sortable: false },
+    { title: t('Closed By'), key: 'closing_person_name', align: 'start', sortable: false },
+    { title: t('Opened'), key: 'opened_at', align: 'start', sortable: false },
+    { title: t('Closed'), key: 'closed_at', align: 'start', sortable: false },
+    { title: t('Expected'), key: 'expected_usd', align: 'end', sortable: false },
+    { title: t('Counted'), key: 'counted_usd', align: 'end', sortable: false },
+    { title: t('Variance'), key: 'variance_usd', align: 'end', sortable: false },
+    { title: t('Receipt'), key: 'receipt', align: 'center', sortable: false, width: 90 },
+    { title: t('Received'), key: 'received_at', align: 'end', sortable: false },
     { title: '', key: 'print', align: 'end', sortable: false, width: 56 },
-  ]
+  ])
 
-  const visitorHeaders = [
-    { title: 'Branch', key: 'branch_id', align: 'start', sortable: false },
-    { title: 'Day', key: 'day', align: 'start', sortable: false },
-    { title: 'Customers In', key: 'in_count', align: 'end', sortable: false },
-    { title: 'Customers Out', key: 'out_count', align: 'end', sortable: false },
-    { title: 'Net', key: 'net', align: 'end', sortable: false },
-  ]
+  const visitorHeaders = computed(() => [
+    { title: t('Branch'), key: 'branch_id', align: 'start', sortable: false },
+    { title: t('Day'), key: 'day', align: 'start', sortable: false },
+    { title: t('Customers In'), key: 'in_count', align: 'end', sortable: false },
+    { title: t('Customers Out'), key: 'out_count', align: 'end', sortable: false },
+    { title: t('Net'), key: 'net', align: 'end', sortable: false },
+  ])
 
   const search = ref('')
   const statusFilter = ref(null)
@@ -355,7 +356,7 @@
   })))
 
   function branchName (id) {
-    return branches.value.find(b => b.id === id)?.name ?? (id ? `Branch #${id}` : '—')
+    return branches.value.find(b => b.id === id)?.name ?? (id ? t('Branch #{id}', { id }) : '—')
   }
 
   // ServerSideTable merges these into every request and refetches from page 1
@@ -393,7 +394,7 @@
     printingShiftId.value = item.id
     try {
       await printBranchShift(item)
-      notify.success(`Sent to ${branchName(item.branch_id)} — it prints within a few seconds if the till is online.`)
+      notify.success(t('Sent to {branch} — it prints within a few seconds if the till is online.', { branch: branchName(item.branch_id) }))
     } catch (error) {
       notify.error(error.message)
     } finally {
@@ -417,7 +418,7 @@
     try {
       const image = await fetchShiftReceiptImageForShift(item.id)
       if (!image) {
-        notify.warning('No receipt photo for this shift yet.')
+        notify.warning(t('No receipt photo for this shift yet.'))
         return
       }
       receiptImageId.value = image.id
@@ -534,7 +535,7 @@
   const { handleSubmit, handleReset } = useForm({
     validationSchema: {
       cashboxId (value) {
-        return !!value || 'Select a cashbox.'
+        return !!value || t('Select a cashbox.')
       },
     },
   })

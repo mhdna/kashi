@@ -2,35 +2,34 @@
   <div class="pa-4 pt-3">
     <div class="d-flex align-center flex-wrap ga-2 mb-3">
       <p class="text-body-2 text-medium-emphasis wr-intro mb-0">
-        After each sale to a client with a phone number, these rules run top to bottom and the
-        <strong>first one that matches</strong> decides: send a message (with its own template, or
-        the default) or send nothing. A sale no rule matches gets the default template
+        {{ t('After each sale to a client with a phone number, these rules run top to bottom and the') }}
+        <strong>{{ t('first one that matches') }}</strong> {{ t('decides: send a message (with its own template, or the default) or send nothing. A sale no rule matches gets the default template') }}
         <template v-if="defaultTemplate"><code>{{ defaultTemplate }}</code></template>
-        from <router-link to="/settings?tab=whatsapp">Settings</router-link>. To only message the
-        sales you pick, end with a rule that has no conditions set to &ldquo;Don't send&rdquo;.
+        {{ t('from') }} <router-link to="/settings?tab=whatsapp">{{ t('Settings') }}</router-link>. {{ t('To only message the sales you pick, end with a rule that has no conditions set to') }}
+        &ldquo;{{ t("Don't send") }}&rdquo;.
       </p>
       <v-spacer />
       <template v-if="canEdit">
         <v-menu>
           <template #activator="{ props: menuProps }">
-            <v-btn v-bind="menuProps" prepend-icon="mdi-plus" text="Add rule" variant="tonal" />
+            <v-btn v-bind="menuProps" prepend-icon="mdi-plus" :text="t('Add rule')" variant="tonal" />
           </template>
           <v-list density="compact">
             <v-list-item
               v-for="p in PRESETS"
               :key="p.key"
-              :subtitle="p.subtitle"
-              :title="p.title"
+              :subtitle="t(p.subtitle)"
+              :title="t(p.title)"
               @click="addRule(p.key)"
             />
           </v-list>
         </v-menu>
-        <v-btn :disabled="!dirty" text="Discard" variant="text" @click="seedDraft" />
+        <v-btn :disabled="!dirty" :text="t('Discard')" variant="text" @click="seedDraft" />
         <v-btn
           color="primary"
           :disabled="!dirty || hasErrors"
           :loading="saving"
-          text="Save"
+          :text="t('Save')"
           variant="flat"
           @click="save"
         />
@@ -39,7 +38,7 @@
 
     <!-- Try it: runs the unsaved list on the server, so edits can be checked before saving. -->
     <v-sheet border class="pa-3 mb-4" rounded>
-      <div class="text-overline text-medium-emphasis mb-2">Try it</div>
+      <div class="text-overline text-medium-emphasis mb-2">{{ t('Try it') }}</div>
       <v-row density="compact">
         <v-col cols="12" md="2" sm="4">
           <v-select
@@ -47,7 +46,7 @@
             density="compact"
             hide-details
             :items="branchItems"
-            label="Branch"
+            :label="t('Branch')"
             variant="outlined"
           />
         </v-col>
@@ -56,7 +55,7 @@
             v-model="test.phone"
             density="compact"
             hide-details
-            label="Client phone"
+            :label="t('Client phone')"
             placeholder="+961 70 123 456"
             variant="outlined"
           />
@@ -66,7 +65,7 @@
             v-model="test.total"
             density="compact"
             hide-details
-            label="Total"
+            :label="t('Total')"
             min="0"
             prefix="$"
             type="number"
@@ -80,7 +79,7 @@
             closable-chips
             density="compact"
             hide-details
-            label="Item codes sold"
+            :label="t('Item codes sold')"
             multiple
             variant="outlined"
           />
@@ -93,14 +92,14 @@
             density="compact"
             hide-details
             :items="categoryNames"
-            label="Categories"
+            :label="t('Categories')"
             multiple
             variant="outlined"
           />
         </v-col>
       </v-row>
       <div class="d-flex align-center flex-wrap ga-2 mt-3 text-body-2">
-        <PreparingState v-if="testing" kind="chat" :size="24" title="Loading" />
+        <PreparingState v-if="testing" kind="chat" :size="24" :title="t('Loading')" />
         <template v-else-if="testResult">
           <v-chip
             :color="testResult.action === 'skip' ? undefined : 'success'"
@@ -108,26 +107,26 @@
             size="small"
             variant="tonal"
           >
-            {{ testResult.action === 'skip' ? "Don't send" : 'Send' }}
+            {{ testResult.action === 'skip' ? t("Don't send") : t('Send') }}
           </v-chip>
           <span v-if="testResult.rule_index >= 0">
-            decided by <strong>{{ testResult.rule_index + 1 }}. {{ testResult.rule_name }}</strong>
+            {{ t('decided by') }} <strong>{{ testResult.rule_index + 1 }}. {{ testResult.rule_name }}</strong>
           </span>
-          <span v-else class="text-medium-emphasis">no rule matches — the default applies</span>
+          <span v-else class="text-medium-emphasis">{{ t('no rule matches — the default applies') }}</span>
           <span v-if="testResult.action !== 'skip'" class="text-medium-emphasis">
-            · template <code>{{ testResult.template_name || '(none set)' }}</code>
-            ({{ testResult.template_lang }}) filled with <code>{{ testResult.template_params || '—' }}</code>
+            {{ t('template') }} <code>{{ testResult.template_name || t('(none set)') }}</code>
+            ({{ testResult.template_lang }}) {{ t('filled with') }} <code>{{ testResult.template_params || '—' }}</code>
           </span>
           <span v-if="testResult.last_sent_at" class="text-caption text-medium-emphasis">
-            · this number was last messaged {{ new Date(testResult.last_sent_at).toLocaleDateString() }}
+            {{ t('this number was last messaged') }} {{ new Date(testResult.last_sent_at).toLocaleDateString() }}
           </span>
         </template>
       </div>
     </v-sheet>
 
-    <PreparingState v-if="loading" kind="chat" min-height="240px" title="Loading message rules" />
+    <PreparingState v-if="loading" kind="chat" min-height="240px" :title="t('Loading message rules')" />
     <div v-else-if="draft.length === 0" class="text-body-2 text-medium-emphasis text-center py-8">
-      No rules: every sale to a client with a phone gets the default message.
+      {{ t('No rules: every sale to a client with a phone gets the default message.') }}
     </div>
 
     <v-card
@@ -146,7 +145,7 @@
           :disabled="!canEdit"
           hide-details
           inset
-          :title="rule.enabled ? 'On' : 'Off'"
+          :title="rule.enabled ? t('On') : t('Off')"
         />
         <v-text-field
           v-model="rule.name"
@@ -154,7 +153,7 @@
           density="compact"
           :disabled="!canEdit"
           hide-details
-          placeholder="Rule name"
+          :placeholder="t('Rule name')"
           variant="plain"
         />
         <v-spacer />
@@ -166,8 +165,8 @@
           mandatory
           variant="outlined"
         >
-          <v-btn prepend-icon="mdi-send-outline" text="Send" value="send" />
-          <v-btn prepend-icon="mdi-cancel" text="Don't send" value="skip" />
+          <v-btn prepend-icon="mdi-send-outline" :text="t('Send')" value="send" />
+          <v-btn prepend-icon="mdi-cancel" :text="t(&quot;Don't send&quot;)" value="skip" />
         </v-btn-toggle>
         <template v-if="canEdit">
           <v-btn
@@ -175,7 +174,7 @@
             :disabled="i === 0"
             icon="mdi-arrow-up"
             size="small"
-            title="Move up"
+            :title="t('Move up')"
             variant="text"
             @click="move(i, -1)"
           />
@@ -184,7 +183,7 @@
             :disabled="i === draft.length - 1"
             icon="mdi-arrow-down"
             size="small"
-            title="Move down"
+            :title="t('Move down')"
             variant="text"
             @click="move(i, 1)"
           />
@@ -193,7 +192,7 @@
             density="comfortable"
             icon="mdi-delete"
             size="small"
-            title="Delete rule"
+            :title="t('Delete rule')"
             variant="text"
             @click="draft.splice(i, 1)"
           />
@@ -203,7 +202,7 @@
       <div class="px-3 pb-1 text-body-2 text-medium-emphasis">{{ summary(rule) }}</div>
 
       <div class="pa-3 pt-2">
-        <div class="text-caption text-medium-emphasis mb-2">When the sale… (leave a field empty to ignore it)</div>
+        <div class="text-caption text-medium-emphasis mb-2">{{ t('When the sale… (leave a field empty to ignore it)') }}</div>
         <v-row density="compact">
           <v-col cols="6" md="2">
             <v-text-field
@@ -211,7 +210,7 @@
               density="compact"
               :disabled="!canEdit"
               hide-details="auto"
-              label="Total at least"
+              :label="t('Total at least')"
               min="0"
               prefix="$"
               type="number"
@@ -225,7 +224,7 @@
               :disabled="!canEdit"
               :error-messages="errors[i]?.total"
               hide-details="auto"
-              label="Total at most"
+              :label="t('Total at most')"
               min="0"
               prefix="$"
               type="number"
@@ -241,7 +240,7 @@
               :disabled="!canEdit"
               hide-details
               :items="branchItems.filter(b => b.value)"
-              label="At branches"
+              :label="t('At branches')"
               multiple
               variant="outlined"
             />
@@ -258,10 +257,10 @@
               item-title="label"
               item-value="digits"
               :items="clientItems(rule)"
-              label="Client is"
+              :label="t('Client is')"
               multiple
               no-filter
-              placeholder="Search a name or type a number"
+              :placeholder="t('Search a name or type a number')"
               variant="outlined"
               @update:search="searchClients"
             />
@@ -273,8 +272,8 @@
               closable-chips
               density="compact"
               :disabled="!canEdit"
-              hint="Press Enter after each. JE* = every code starting with JE."
-              label="Includes item code"
+              :hint="t('Press Enter after each. JE* = every code starting with JE.')"
+              :label="t('Includes item code')"
               multiple
               persistent-hint
               variant="outlined"
@@ -289,7 +288,7 @@
               :disabled="!canEdit"
               hide-details
               :items="categoryNames"
-              label="Includes an item in category"
+              :label="t('Includes an item in category')"
               multiple
               variant="outlined"
             />
@@ -299,8 +298,8 @@
               v-model="rule.messaged_within_days"
               density="compact"
               :disabled="!canEdit"
-              hint="Matches a client already messaged this recently — use with Don't send to avoid spamming."
-              label="Client was messaged in the last … days"
+              :hint="t('Matches a client already messaged this recently — use with Don\'t send to avoid spamming.')"
+              :label="t('Client was messaged in the last … days')"
               min="0"
               persistent-hint
               type="number"
@@ -311,7 +310,7 @@
 
         <template v-if="rule.action === 'send'">
           <div class="text-caption text-medium-emphasis mt-3 mb-2">
-            Send this approved template (empty = the default from Settings)
+            {{ t('Send this approved template (empty = the default from Settings)') }}
           </div>
           <v-row density="compact">
             <v-col cols="12" md="4">
@@ -320,8 +319,8 @@
                 density="compact"
                 :disabled="!canEdit"
                 hide-details
-                label="Template name"
-                :placeholder="defaultTemplate || 'from Settings'"
+                :label="t('Template name')"
+                :placeholder="defaultTemplate || t('from Settings')"
                 variant="outlined"
               />
             </v-col>
@@ -331,7 +330,7 @@
                 density="compact"
                 :disabled="!canEdit"
                 hide-details
-                label="Language"
+                :label="t('Language')"
                 :placeholder="settings?.whatsapp_template_lang || 'en_US'"
                 variant="outlined"
               />
@@ -343,7 +342,7 @@
                 :disabled="!canEdit"
                 :error-messages="errors[i]?.params"
                 hide-details="auto"
-                label="Body params"
+                :label="t('Body params')"
                 :placeholder="settings?.whatsapp_template_params || 'name,invoice,total'"
                 variant="outlined"
               />
@@ -355,7 +354,7 @@
 
     <div v-if="draft.length > 0" class="d-flex align-center ga-2 text-body-2 text-medium-emphasis wr-default pa-3">
       <v-icon icon="mdi-arrow-down" size="18" />
-      Nothing above matched: send the default template
+      {{ t('Nothing above matched: send the default template') }}
       <code v-if="defaultTemplate">{{ defaultTemplate }}</code>.
     </div>
   </div>
@@ -369,6 +368,7 @@
   import { useWhatsApp } from '@/composables/useWhatsApp'
   import { API_BASE } from '@/config'
   import { formatPhone, TEMPLATE_PARAMS } from '@/utils/whatsapp'
+  import { t } from '@/i18n'
 
   const props = defineProps({
     branches: { type: Array, default: () => [] },
@@ -382,10 +382,10 @@
 
   const defaultTemplate = computed(() => props.settings?.whatsapp_template_name ?? '')
   const branchItems = computed(() => [
-    { title: 'Any branch', value: 0 },
+    { title: t('Any branch'), value: 0 },
     ...props.branches.map(b => ({ title: b.name, value: b.id })),
   ])
-  const branchName = id => props.branches.find(b => b.id === id)?.name ?? `branch ${id}`
+  const branchName = id => props.branches.find(b => b.id === id)?.name ?? t('branch {id}', { id })
 
   // ---- draft -----------------------------------------------------------------
   // The page edits a flat copy (dollars, plain lists) and writes the whole
@@ -456,13 +456,13 @@
     const e = {}
     const min = cents(rule.min_total)
     const max = cents(rule.max_total)
-    if ((min != null && min < 0) || (max != null && max < 0)) e.total = "Totals can't be negative"
-    else if (min != null && max != null && min > max) e.total = 'Below the minimum'
+    if ((min != null && min < 0) || (max != null && max < 0)) e.total = t("Totals can't be negative")
+    else if (min != null && max != null && min > max) e.total = t('Below the minimum')
     const unknown = rule.template_params
       .split(',')
       .map(p => p.trim())
       .filter(p => p && !TEMPLATE_PARAMS.includes(p))
-    if (unknown.length > 0) e.params = `Unknown: ${unknown.join(', ')} (use ${TEMPLATE_PARAMS.join(', ')})`
+    if (unknown.length > 0) e.params = t('Unknown: {names} (use {params})', { names: unknown.join(', '), params: TEMPLATE_PARAMS.join(', ') })
     return e
   }))
   const hasErrors = computed(() => errors.value.some(e => Object.keys(e).length > 0))
@@ -487,7 +487,7 @@
     try {
       saved.value = await saveRules(draft.value.map(r => toApi(r)))
       seedDraft()
-      notify.success('WhatsApp rules saved.')
+      notify.success(t('WhatsApp rules saved.'))
     } catch (error) {
       notify.error(error.message)
     } finally {
@@ -514,19 +514,19 @@
     const rule = toDraft({ enabled: true, action: 'skip', conditions: {} })
     switch (preset) {
       case 'min-total': {
-        Object.assign(rule, { name: 'Under $50', max_total: '49.99' })
+        Object.assign(rule, { name: t('Under $50'), max_total: '49.99' })
         break
       }
       case 'clients': {
-        rule.name = 'Never message'
+        rule.name = t('Never message')
         break
       }
       case 'item': {
-        Object.assign(rule, { name: 'Item sold', action: 'send' })
+        Object.assign(rule, { name: t('Item sold'), action: 'send' })
         break
       }
       case 'cooldown': {
-        Object.assign(rule, { name: 'Messaged this week', messaged_within_days: '7' })
+        Object.assign(rule, { name: t('Messaged this week'), messaged_within_days: '7' })
         break
       }
       default: {
@@ -546,23 +546,26 @@
     const parts = []
     const min = cents(rule.min_total)
     const max = cents(rule.max_total)
-    if (min != null && max != null) parts.push(`the total is $${min / 100}–$${max / 100}`)
-    else if (min != null) parts.push(`the total is at least $${min / 100}`)
-    else if (max != null) parts.push(`the total is at most $${max / 100}`)
-    if (rule.branch_ids.length > 0) parts.push(`it's at ${rule.branch_ids.map(id => branchName(id)).join(' or ')}`)
+    const or = t('or')
+    if (min != null && max != null) parts.push(t('the total is {min}–{max}', { min: `$${min / 100}`, max: `$${max / 100}` }))
+    else if (min != null) parts.push(t('the total is at least {amount}', { amount: `$${min / 100}` }))
+    else if (max != null) parts.push(t('the total is at most {amount}', { amount: `$${max / 100}` }))
+    if (rule.branch_ids.length > 0) parts.push(t("it's at {branches}", { branches: rule.branch_ids.map(id => branchName(id)).join(` ${or} `) }))
     if (rule.client_phones.length > 0) {
       const names = rule.client_phones.map(p => clientLabel(p))
-      parts.push(`the client is ${names.length > 3 ? `one of ${names.length} clients` : names.join(' or ')}`)
+      parts.push(t('the client is {who}', { who: names.length > 3 ? t('one of {n} clients', { n: names.length }) : names.join(` ${or} `) }))
     }
-    if (rule.product_codes.length > 0) parts.push(`it includes ${rule.product_codes.join(', ')}`)
-    if (rule.categories.length > 0) parts.push(`it includes ${rule.categories.join(' or ')}`)
+    if (rule.product_codes.length > 0) parts.push(t('it includes {list}', { list: rule.product_codes.join(', ') }))
+    if (rule.categories.length > 0) parts.push(t('it includes {list}', { list: rule.categories.join(` ${or} `) }))
     const days = Number(rule.messaged_within_days) || 0
-    if (days > 0) parts.push(`the client was messaged in the last ${days} day${days === 1 ? '' : 's'}`)
+    if (days > 0) parts.push(days === 1
+      ? t('the client was messaged in the last {n} day', { n: days })
+      : t('the client was messaged in the last {n} days', { n: days }))
 
-    const when = parts.length > 0 ? `When ${parts.join(' and ')}` : 'Every sale'
-    if (rule.action === 'skip') return `${when}: don't send anything.`
-    const tpl = rule.template_name.trim() || defaultTemplate.value || 'the default template'
-    return `${when}: send ${tpl}.`
+    const when = parts.length > 0 ? t('When {conditions}', { conditions: parts.join(` ${t('and')} `) }) : t('Every sale')
+    if (rule.action === 'skip') return t("{when}: don't send anything.", { when })
+    const tpl = rule.template_name.trim() || defaultTemplate.value || t('the default template')
+    return t('{when}: send {template}.', { when, template: tpl })
   }
 
   // ---- clients ---------------------------------------------------------------
@@ -618,7 +621,7 @@
     }
     const typed = searchText.value.replaceAll(/\D/g, '')
     if (typed.length >= 8 && !items.has(typed)) {
-      items.set(typed, { digits: typed, label: `${formatPhone(typed)} (this number)` })
+      items.set(typed, { digits: typed, label: t('{phone} (this number)', { phone: formatPhone(typed) }) })
     }
     return [...items.values()]
   }

@@ -18,7 +18,7 @@
       <div class="bs-layout">
         <PageSidebar
           v-model="selectedId"
-          empty-text="No branches yet."
+          :empty-text="t('No branches yet.')"
           :items="branchItems"
           :loading="listLoading"
         >
@@ -42,7 +42,7 @@
               <h3 class="text-subtitle-1">{{ activeBranch.name }}</h3>
               <v-chip size="x-small" variant="tonal">{{ activeBranch.code }}</v-chip>
               <span class="text-caption text-medium-emphasis">
-                Last seen {{ lastSeenLabel(activeBranch) }}
+                {{ t('Last seen {when}', { when: lastSeenLabel(activeBranch) }) }}
               </span>
               <v-spacer />
               <v-btn
@@ -63,9 +63,7 @@
               />
             </div>
             <p class="text-body-2 text-medium-emphasis mb-4">
-              Saving enqueues a remote command &mdash; the branch applies it itself within a few
-              seconds if it's online, or on its next sync otherwise. Nothing here writes to the
-              branch database directly.
+              {{ t("Saving enqueues a remote command: the branch applies it itself within a few seconds if it's online, or on its next sync otherwise. Nothing here writes to the branch database directly.") }}
             </p>
 
             <v-alert
@@ -77,10 +75,9 @@
             >
               <div class="d-flex flex-wrap align-center ga-2">
                 <span>
-                  {{ drift.length }} setting{{ drift.length === 1 ? '' : 's' }} on the till
-                  differ{{ drift.length === 1 ? 's' : '' }} from kashi:
+                  {{ t('{n} setting(s) on the till differ from kashi:', { n: drift.length }) }}
                   {{ drift.slice(0, 6).map(d => `${d.label} (${d.registers.join(', ')})`).join(', ') }}{{ drift.length > 6 ? '…' : '' }}.
-                  Saving sends kashi's values; or take the till's values into the form first.
+                  {{ t("Saving sends kashi's values; or take the till's values into the form first.") }}
                 </span>
                 <v-spacer />
                 <v-btn size="small" :text="t('Use till values')" variant="text" @click="adoptTillValues" />
@@ -100,8 +97,7 @@
               type="info"
               variant="tonal"
             >
-              This branch hasn't pushed its settings yet &mdash; it needs to sync at least once
-              before you can view or edit them.
+              {{ t("This branch hasn't pushed its settings yet: it needs to sync at least once before you can view or edit them.") }}
             </v-alert>
 
             <div v-else class="bs-detail">
@@ -117,7 +113,7 @@
                 <v-tab class="text-none" :text="t('Behaviour')" value="behaviour" />
                 <v-tab class="text-none" :text="t('Till display')" value="display" />
                 <v-tab class="text-none" :text="t('Quick access')" value="quick_access" />
-                <v-tab class="text-none" text="Cash &amp; shifts" value="cash" />
+                <v-tab class="text-none" :text="t('Cash & shifts')" value="cash" />
                 <v-tab class="text-none" :text="t('Printing')" value="printing" />
                 <v-tab class="text-none" :text="t('Attendance')" value="attendance" />
                 <v-tab class="text-none" :text="t('Users')" value="users" />
@@ -146,7 +142,7 @@
 
                   <div v-show="sectionTab === 'money'">
                     <section class="bs-section">
-                      <div class="bs-section-title">Rates &amp; rounding</div>
+                      <div class="bs-section-title">{{ t('Rates & rounding') }}</div>
                       <div class="field-grid">
                         <v-text-field
                           v-model.number="settingsForm.tax_rate"
@@ -185,8 +181,8 @@
                           density="compact"
                           hide-details
                           :label="settingsForm.split_primary_first
-                            ? 'Primary currency shown first'
-                            : 'Rounding currency shown first'"
+                            ? t('Primary currency shown first')
+                            : t('Rounding currency shown first')"
                         />
                         <v-text-field
                           v-model.number="settingsForm.split_primary_step"
@@ -210,7 +206,7 @@
                     </section>
 
                     <section class="bs-section">
-                      <div class="bs-section-title">Returns &amp; exchange</div>
+                      <div class="bs-section-title">{{ t('Returns & exchange') }}</div>
                       <div class="field-grid">
                         <v-text-field
                           v-model.number="settingsForm.exchange_window_hours"
@@ -333,7 +329,7 @@
                     </section>
 
                     <section class="bs-section">
-                      <div class="bs-section-title">Pricing &amp; discounts</div>
+                      <div class="bs-section-title">{{ t('Pricing & discounts') }}</div>
                       <div class="bs-switch-grid">
                         <v-switch
                           v-model="settingsForm.custom_item_discounts_enabled"
@@ -459,7 +455,7 @@
                     </section>
 
                     <section class="bs-section">
-                      <div class="bs-section-title">Counters &amp; charts</div>
+                      <div class="bs-section-title">{{ t('Counters & charts') }}</div>
                       <div class="bs-switch-grid">
                         <v-switch
                           v-model="settingsForm.visitor_counter_enabled"
@@ -482,7 +478,7 @@
 
                   <div v-show="sectionTab === 'display'">
                     <section class="bs-section">
-                      <div class="bs-section-title">Look &amp; feel</div>
+                      <div class="bs-section-title">{{ t('Look & feel') }}</div>
                       <p class="text-caption text-medium-emphasis mb-3">
                         {{ t('Save sends these to every register. To change one till only, pick it below and send. A cashier can still change them on the till afterwards; the latest change wins.') }}
                       </p>
@@ -491,7 +487,7 @@
                           v-model="displayForm.theme"
                           density="compact"
                           hide-details
-                          :items="[{ title: 'Light', value: 'light' }, { title: 'Dark', value: 'dark' }]"
+                          :items="[{ title: t('Light'), value: 'light' }, { title: t('Dark'), value: 'dark' }]"
                           :label="t('Theme')"
                           variant="outlined"
                         />
@@ -537,7 +533,7 @@
                       <div class="bs-section-title">{{ t('Quick access cards') }}</div>
                       <div class="text-body-2">
                         {{ t('Quick access rows:') }}
-                        <strong>{{ displayForm.quick_access_rows === 0 ? 'Hidden' : displayForm.quick_access_rows }}</strong>
+                        <strong>{{ displayForm.quick_access_rows === 0 ? t('Hidden') : displayForm.quick_access_rows }}</strong>
                       </div>
                       <v-slider
                         v-model="displayForm.quick_access_rows"
@@ -597,7 +593,7 @@
                           item-value="id"
                           :items="registerOptions"
                           :label="t('Register')"
-                          no-data-text="This branch has no registers"
+                          :no-data-text="t('This branch has no registers')"
                           style="max-width: 280px"
                           variant="outlined"
                         />
@@ -606,7 +602,7 @@
                           :disabled="!canEdit || displayRegisterId == null"
                           :loading="displaySending"
                           prepend-icon="mdi-send-outline"
-                          :text="`Send to ${registerCodeById(displayRegisterId) || 'register'}`"
+                          :text="t('Send to {code}', { code: registerCodeById(displayRegisterId) || t('register') })"
                           variant="tonal"
                           @click="sendDisplayToRegister"
                         />
@@ -819,7 +815,7 @@
                     </section>
 
                     <section class="bs-section">
-                      <div class="bs-section-title">Receipt header &amp; footer</div>
+                      <div class="bs-section-title">{{ t('Receipt header & footer') }}</div>
                       <div class="field-grid">
                         <v-text-field
                           v-model="settingsForm.market_name"
@@ -878,7 +874,7 @@
                           v-model="socialPlatformsText"
                           class="field-full"
                           density="compact"
-                          hint="JSON array, e.g. [&quot;facebook&quot;, &quot;instagram&quot;]"
+                          :hint="t('JSON array, e.g. {example}', { example: '[&quot;facebook&quot;, &quot;instagram&quot;]' })"
                           :label="t('Social Platforms')"
                           persistent-hint
                           rows="2"
@@ -888,7 +884,7 @@
                           v-model="socialHandlesText"
                           class="field-full"
                           density="compact"
-                          hint="JSON object, e.g. {&quot;instagram&quot;: &quot;@handle&quot;}"
+                          :hint="t('JSON object, e.g. {example}', { example: '{&quot;instagram&quot;: &quot;@handle&quot;}' })"
                           :label="t('Social Handles')"
                           persistent-hint
                           rows="2"
@@ -911,7 +907,7 @@
                         item-value="id"
                         :items="registerOptions"
                         :label="t('Register')"
-                        no-data-text="This branch has no registers"
+                        :no-data-text="t('This branch has no registers')"
                         variant="outlined"
                       />
                       <template v-if="deviceRegisterId != null">
@@ -944,7 +940,7 @@
                             :disabled="!canEdit"
                             :loading="deviceSaving"
                             prepend-icon="mdi-send-outline"
-                            :text="`Send to ${selectedRegister?.code ?? 'register'}`"
+                            :text="t('Send to {code}', { code: selectedRegister?.code ?? t('register') })"
                             variant="tonal"
                             @click="saveDeviceSettings"
                           />
@@ -1023,8 +1019,7 @@
                         </v-btn-toggle>
                       </div>
                       <p class="text-caption text-medium-emphasis mb-3">
-                        Write-only &mdash; kashi never displays these back. Leave blank to keep the
-                        branch's current value; type a new one to push it.
+                        {{ t('Write-only — kashi never displays these back. Leave blank to keep the branch\'s current value; type a new one to push it.') }}
                       </p>
                       <div class="field-grid">
                         <v-text-field
@@ -1069,8 +1064,7 @@
                         </v-btn-toggle>
                       </div>
                       <p class="text-caption text-medium-emphasis mb-3">
-                        Write-only &mdash; kashi never displays it back. Leave blank to keep the
-                        branch's current login; type a new one to push it.
+                        {{ t('Write-only — kashi never displays it back. Leave blank to keep the branch\'s current login; type a new one to push it.') }}
                       </p>
                       <div class="field-grid">
                         <v-text-field
@@ -1078,7 +1072,7 @@
                           autocomplete="new-password"
                           density="compact"
                           :disabled="isLocal('secrets')"
-                          hint="Resets the branch's POS &quot;admin&quot; login"
+                          :hint="t('Resets the branch\'s POS &quot;admin&quot; login')"
                           :label="t('POS admin password')"
                           persistent-hint
                           type="password"
@@ -1187,7 +1181,7 @@
                         <td>{{ u.akuvox_user_id || '—' }}</td>
                         <td>
                           <v-chip :color="u.is_active ? 'success' : 'grey'" size="x-small" variant="tonal">
-                            {{ u.is_active ? 'Active' : 'Inactive' }}
+                            {{ u.is_active ? t('Active') : t('Inactive') }}
                           </v-chip>
                         </td>
                         <td class="text-end">
@@ -1330,7 +1324,7 @@
     <!-- add / edit POS user -->
     <v-dialog v-model="userDialog" max-width="440">
       <v-card>
-        <v-card-title class="text-subtitle-1">{{ editingUser ? 'Edit user' : 'Add user' }}</v-card-title>
+        <v-card-title class="text-subtitle-1">{{ editingUser ? t('Edit user') : t('Add user') }}</v-card-title>
         <v-card-text>
           <v-text-field
             v-model="userForm.username"
@@ -1390,7 +1384,7 @@
     <!-- set PIN -->
     <v-dialog v-model="pinDialog" max-width="380">
       <v-card>
-        <v-card-title class="text-subtitle-1">Set PIN — {{ pinTarget?.username }}</v-card-title>
+        <v-card-title class="text-subtitle-1">{{ t('Set PIN — {username}', { username: pinTarget?.username }) }}</v-card-title>
         <v-card-text>
           <v-text-field
             v-model="pinValue"
@@ -1476,7 +1470,7 @@
   function lastSeenLabel (branch) {
     return branch.last_seen_at?.Valid
       ? new Date(branch.last_seen_at.Time).toLocaleString()
-      : 'never'
+      : t('never')
   }
 
   const syncing = ref(false)
@@ -1484,7 +1478,9 @@
     syncing.value = true
     try {
       const sent = await sendCommand(selectedId.value, 'sync_now')
-      notify.success(`Asked ${sent.length} register${sent.length === 1 ? '' : 's'} to sync now.`)
+      notify.success(sent.length === 1
+        ? t('Asked {n} register to sync now.', { n: sent.length })
+        : t('Asked {n} registers to sync now.', { n: sent.length }))
     } catch (error) {
       notify.error(error.message)
     } finally {
@@ -1536,7 +1532,7 @@
     displaySending.value = true
     try {
       await updateBranchSettings(selectedId.value, { display_prefs: { ...displayForm.value } }, displayRegisterId.value)
-      notify.success(`Sent to ${registerCodeById(displayRegisterId.value)} — it applies within a few seconds if online.`)
+      notify.success(t('Sent to {code} — it applies within a few seconds if online.', { code: registerCodeById(displayRegisterId.value) }))
     } catch (error) {
       notify.error(error.message)
     } finally {
@@ -1568,27 +1564,28 @@
     secrets: ['akuvox_password', 'attendance_approver_password', 'admin_password'],
   }
 
-  const SHIFT_RECEIPT_UPLOAD_MODES = [
+  // Computed so the option titles follow the language toggle.
+  const SHIFT_RECEIPT_UPLOAD_MODES = computed(() => [
     { title: t('Hybrid (office when online, else the till)'), value: 2 },
     { title: t('Local only (the till, over shop Wi-Fi)'), value: 3 },
     { title: t('Central only (straight to the office)'), value: 1 },
     { title: t('Off (no photo)'), value: 0 },
-  ]
+  ])
 
-  const SEARCH_FIELD_OPTIONS = [
+  const SEARCH_FIELD_OPTIONS = computed(() => [
     { title: t('Code'), value: 'code' },
     { title: t('Name'), value: 'name' },
     { title: t('Brand'), value: 'brand' },
     { title: t('Color'), value: 'color' },
     { title: t('Size'), value: 'size' },
     { title: t('Price'), value: 'price' },
-  ]
+  ])
 
-  const OVERSELL_MODES = [
+  const OVERSELL_MODES = computed(() => [
     { title: t('Allow — sell, fix stock in kashi later'), value: 'allow' },
     { title: t('Warn — cashier confirms before selling'), value: 'warn' },
     { title: t('Block — refuse the sale'), value: 'block' },
-  ]
+  ])
 
   const BOOL_KEYS = [
     'search_button_enabled',
@@ -1769,7 +1766,7 @@
     deviceSaving.value = true
     try {
       await updateBranchSettings(selectedId.value, { ...deviceForm.value }, deviceRegisterId.value)
-      notify.success(`Command sent to ${selectedRegister.value?.code} — it applies within a few seconds if online.`)
+      notify.success(t('Command sent to {code} — it applies within a few seconds if online.', { code: selectedRegister.value?.code }))
     } catch (error) {
       notify.error(error.message)
     } finally {
@@ -1880,11 +1877,11 @@
   async function submitUser () {
     const f = userForm.value
     if (!f.username.trim()) {
-      notify.error('Username is required.')
+      notify.error(t('Username is required.'))
       return
     }
     if (!editingUser.value && !/^\d{4,6}$/.test(f.pin)) {
-      notify.error('Initial PIN must be 4 to 6 digits.')
+      notify.error(t('Initial PIN must be 4 to 6 digits.'))
       return
     }
     userSaving.value = true
@@ -1932,7 +1929,7 @@
 
   async function submitPin () {
     if (!/^\d{4,6}$/.test(pinValue.value)) {
-      notify.error('PIN must be 4 to 6 digits.')
+      notify.error(t('PIN must be 4 to 6 digits.'))
       return
     }
     pinSaving.value = true
@@ -1968,7 +1965,7 @@
       socialPlatforms = JSON.parse(socialPlatformsText.value)
       socialHandles = JSON.parse(socialHandlesText.value)
     } catch {
-      throw new Error('Social Platforms/Handles must be valid JSON')
+      throw new Error(t('Social Platforms/Handles must be valid JSON'))
     }
     return {
       ...settingsForm.value,
@@ -1989,70 +1986,70 @@
 
   // ---- drift: what the tills report vs what kashi holds --------------------
   // Labels for the settings worth comparing (per-machine fields excluded).
-  const DRIFT_LABELS = {
-    tax_rate: 'Tax rate',
-    rounding_mode: 'Rounding mode',
-    rounding_currency: 'Rounding currency',
-    exchange_rate: 'Exchange rate',
-    exchange_window_hours: 'Exchange window',
-    search_button_enabled: 'Search button',
-    scan_by_code_enabled: 'Code in scan field',
-    product_search_code_only: 'Code-only product search',
-    price_edit_restricted: 'Price edits by code',
-    price_edit_codes: 'Codes allowed for price edits',
-    discount_toggle: 'Turn discounts off at the till',
-    discount_toggle_default_off: 'Discounts start off',
-    deal_toggle: 'Turn deals off at the till',
-    deals_stack: 'Invoice deals add up',
-    variant_pick_required: 'Pick colour/size on scan',
-    sync_verbose: 'Sync light: every step',
-    invoice_ratings_enabled: 'Client ratings in the invoices list',
-    unknown_product_barcode: 'Unknown item product',
-    product_search_hidden_fields: 'Product search hidden columns',
-    receipt_theme: 'Receipt theme',
-    receipt_layout: 'Receipt layout',
-    sounds_enabled: 'Sounds',
-    attendance_manager_approval_enabled: 'Manager approval on till',
-    custom_item_discounts_enabled: 'Custom discounts',
-    custom_item_prices_enabled: 'Custom prices',
-    per_unit_item_prices_enabled: 'Per-unit pricing',
-    invoice_keyboard_mode: 'Keyboard mode',
-    client_required: 'Client required',
-    salesperson_per_invoice_required: 'Salesperson required',
-    non_admin_month_nav_enabled: 'Month browsing',
-    opening_float_enabled: 'Opening float',
-    count_opening_cash_on_close: 'Count opening cash',
-    overchange_confirmation: 'Overchange confirmation',
-    close_shift_requires_sync: 'Upload before close',
-    hide_payment_method_currency: 'Hide payment currency',
-    auto_append_lbp_zeros: 'LBP thousands',
-    auto_close_stale_shifts: 'Auto-close shifts',
-    visitor_counter_enabled: 'Visitor counter',
-    shift_receipt_upload_mode: 'Receipt photo',
-    oversell_mode: 'Oversell mode',
-    max_overpayment_cents: 'Max overpayment',
-    default_opening_float_usd: 'Opening float USD',
-    default_opening_float_lbp: 'Opening float LBP',
-    page_unlock_clients: 'Clients page',
-    page_unlock_inventory: 'Inventory page',
-    page_unlock_products: 'Products page',
-    page_unlock_transfers: 'Transfers page',
-    page_unlock_attendance: 'Attendance page',
-    page_unlock_salespersons: 'Salespersons page',
-    receipt_enabled: 'Print receipt',
-    receipt_cutoff: 'Cut paper',
-    shift_report_signatures: 'Shift receipt signatures',
-    shift_report_uppercase_header: 'Shift receipt capitals',
-    printer_size: 'Printer size',
-    branch_phone: 'Branch phone',
-  }
+  const DRIFT_LABELS = computed(() => ({
+    tax_rate: t('Tax rate'),
+    rounding_mode: t('Rounding mode'),
+    rounding_currency: t('Rounding currency'),
+    exchange_rate: t('Exchange rate'),
+    exchange_window_hours: t('Exchange window'),
+    search_button_enabled: t('Search button'),
+    scan_by_code_enabled: t('Code in scan field'),
+    product_search_code_only: t('Code-only product search'),
+    price_edit_restricted: t('Price edits by code'),
+    price_edit_codes: t('Codes allowed for price edits'),
+    discount_toggle: t('Turn discounts off at the till'),
+    discount_toggle_default_off: t('Discounts start off'),
+    deal_toggle: t('Turn deals off at the till'),
+    deals_stack: t('Invoice deals add up'),
+    variant_pick_required: t('Pick colour/size on scan'),
+    sync_verbose: t('Sync light: every step'),
+    invoice_ratings_enabled: t('Client ratings in the invoices list'),
+    unknown_product_barcode: t('Unknown item product'),
+    product_search_hidden_fields: t('Product search hidden columns'),
+    receipt_theme: t('Receipt theme'),
+    receipt_layout: t('Receipt layout'),
+    sounds_enabled: t('Sounds'),
+    attendance_manager_approval_enabled: t('Manager approval on till'),
+    custom_item_discounts_enabled: t('Custom discounts'),
+    custom_item_prices_enabled: t('Custom prices'),
+    per_unit_item_prices_enabled: t('Per-unit pricing'),
+    invoice_keyboard_mode: t('Keyboard mode'),
+    client_required: t('Client required'),
+    salesperson_per_invoice_required: t('Salesperson required'),
+    non_admin_month_nav_enabled: t('Month browsing'),
+    opening_float_enabled: t('Opening float'),
+    count_opening_cash_on_close: t('Count opening cash'),
+    overchange_confirmation: t('Overchange confirmation'),
+    close_shift_requires_sync: t('Upload before close'),
+    hide_payment_method_currency: t('Hide payment currency'),
+    auto_append_lbp_zeros: t('LBP thousands'),
+    auto_close_stale_shifts: t('Auto-close shifts'),
+    visitor_counter_enabled: t('Visitor counter'),
+    shift_receipt_upload_mode: t('Receipt photo'),
+    oversell_mode: t('Oversell mode'),
+    max_overpayment_cents: t('Max overpayment'),
+    default_opening_float_usd: t('Opening float USD'),
+    default_opening_float_lbp: t('Opening float LBP'),
+    page_unlock_clients: t('Clients page'),
+    page_unlock_inventory: t('Inventory page'),
+    page_unlock_products: t('Products page'),
+    page_unlock_transfers: t('Transfers page'),
+    page_unlock_attendance: t('Attendance page'),
+    page_unlock_salespersons: t('Salespersons page'),
+    receipt_enabled: t('Print receipt'),
+    receipt_cutoff: t('Cut paper'),
+    shift_report_signatures: t('Shift receipt signatures'),
+    shift_report_uppercase_header: t('Shift receipt capitals'),
+    printer_size: t('Printer size'),
+    branch_phone: t('Branch phone'),
+  }))
 
   // Compared against what was loaded, not the live form, so editing a field
   // doesn't make the warning come and go.
   const drift = computed(() => {
     if (!loadedForm.value) return []
     const out = []
-    for (const [key, label] of Object.entries(DRIFT_LABELS)) {
+    for (const [key, label] of Object.entries(DRIFT_LABELS.value)) {
       const registers = branchRegisters.value
         .filter(r => r.reported_settings && key in r.reported_settings
           && JSON.stringify(r.reported_settings[key]) !== JSON.stringify(loadedForm.value[key]))
@@ -2069,7 +2066,7 @@
       const register = branchRegisters.value.find(r => r.reported_settings && key in r.reported_settings)
       settingsForm.value[key] = register.reported_settings[key]
     }
-    notify.info('Till values copied into the form. Save to keep them.')
+    notify.info(t('Till values copied into the form. Save to keep them.'))
   }
 
   async function saveSettings () {
@@ -2102,11 +2099,11 @@
       }
 
       if (Object.keys(payload).length === 0) {
-        notify.success('Nothing changed.')
+        notify.success(t('Nothing changed.'))
         return
       }
       await updateBranchSettings(selectedId.value, payload)
-      notify.success('Saved — every register of this branch applies it within a few seconds if online.')
+      notify.success(t('Saved — every register of this branch applies it within a few seconds if online.'))
       secretForm.value = { akuvox_password: '', attendance_approver_password: '', admin_password: '' }
       loadedForm.value = structuredClone(full)
     } catch (error) {

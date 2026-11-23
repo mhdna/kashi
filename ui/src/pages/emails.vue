@@ -7,7 +7,7 @@
         v-if="configured !== null"
         :color="configured ? 'success' : 'warning'"
         size="small"
-        :text="configured ? `From ${sender}` : 'Not set up: add the API key in Settings'"
+        :text="configured ? t('From {sender}', { sender }) : t('Not set up: add the API key in Settings')"
         :to="auth.canViewPage('system', 'settings') ? '/settings?tab=email' : undefined"
         variant="tonal"
       />
@@ -66,11 +66,11 @@
         :items-length="total"
         :items-per-page-options="tablePageSizeOptions(pageSize)"
         :loading="loading"
-        no-data-text="No emails sent yet."
+        :no-data-text="t('No emails sent yet.')"
       >
         <template #item.created_at="{ item }">
           <span :title="new Date(item.created_at).toLocaleString()">{{ when(item.created_at) }}</span>
-          <div v-if="item.sent_by" class="text-caption text-medium-emphasis">by {{ item.sent_by }}</div>
+          <div v-if="item.sent_by" class="text-caption text-medium-emphasis">{{ t('by {name}', { name: item.sent_by }) }}</div>
         </template>
         <template #item.label="{ item }">
           <div>{{ item.label }}</div>
@@ -102,7 +102,7 @@
 </template>
 
 <script setup>
-  import { onMounted, ref, watch } from 'vue'
+  import { computed, onMounted, ref, watch } from 'vue'
   import EmailSchedules from '@/components/Email/EmailSchedules.vue'
   import SendEmailReportDialog from '@/components/Email/SendEmailReportDialog.vue'
   import { useEmailReports } from '@/composables/useEmailReports'
@@ -115,19 +115,20 @@
   // failed, newest first. Sender, reply-to and CSV columns are on
   // Settings > Email.
 
-  const STATUS = {
+  // Computed so the labels follow the EN/FR toggle.
+  const STATUS = computed(() => ({
     sent: { label: t('Sent'), color: 'success', icon: 'mdi-check-circle' },
     failed: { label: t('Failed'), color: 'error', icon: 'mdi-alert-circle' },
-  }
+  }))
 
-  const headers = [
+  const headers = computed(() => [
     { title: t('When'), key: 'created_at', sortable: false },
     { title: t('Report'), key: 'label', sortable: false },
     { title: t('To'), key: 'recipients', sortable: false },
     { title: t('Invoices'), key: 'invoice_count', sortable: false, align: 'end' },
     { title: t('Net total'), key: 'total_cents', sortable: false, align: 'end' },
     { title: t('Status'), key: 'status', sortable: false },
-  ]
+  ])
 
   const auth = useAuthStore()
   const notify = useNotify()

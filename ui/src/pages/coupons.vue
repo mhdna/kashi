@@ -155,13 +155,13 @@
               </template>
               <template #item.is_active="{ item }">
                 <v-chip :color="item.is_active ? 'success' : 'default'" size="small">
-                  {{ item.is_active ? 'active' : 'inactive' }}
+                  {{ item.is_active ? t('active') : t('inactive') }}
                 </v-chip>
               </template>
               <template #item.flags="{ item }">
-                <v-chip v-if="item.reference_only" class="mr-1" size="small" variant="tonal">reference-only</v-chip>
-                <v-chip v-if="item.calculate_on_checkout" class="mr-1" size="small" variant="tonal">auto-apply</v-chip>
-                <v-chip v-if="!item.code_optional" size="small" variant="tonal">code required</v-chip>
+                <v-chip v-if="item.reference_only" class="mr-1" size="small" variant="tonal">{{ t('reference-only') }}</v-chip>
+                <v-chip v-if="item.calculate_on_checkout" class="mr-1" size="small" variant="tonal">{{ t('auto-apply') }}</v-chip>
+                <v-chip v-if="!item.code_optional" size="small" variant="tonal">{{ t('code required') }}</v-chip>
               </template>
               <template #item.actions="{ item }">
                 <v-btn
@@ -184,11 +184,11 @@
             >
               <template #item.coupon_type_name="{ item }">{{ item.coupon_type_name }}</template>
               <template #item.coupon_count="{ item }">
-                {{ item.redeemed_count }} / {{ item.coupon_count }} redeemed
+                {{ t('{redeemed} / {count} redeemed', { redeemed: item.redeemed_count, count: item.coupon_count }) }}
               </template>
               <template #item.is_active="{ item }">
                 <v-chip :color="item.is_active ? 'success' : 'default'" size="small">
-                  {{ item.is_active ? 'active' : 'closed' }}
+                  {{ item.is_active ? t('active') : t('closed') }}
                 </v-chip>
               </template>
               <template #item.actions="{ item }">
@@ -210,7 +210,7 @@
     <!-- add / edit coupon -->
     <v-dialog v-model="dialog" max-width="560">
       <v-card class="px-4">
-        <v-card-title>{{ editingCode ? 'Edit Coupon' : 'Add a New Coupon' }}</v-card-title>
+        <v-card-title>{{ editingCode ? t('Edit Coupon') : t('Add a New Coupon') }}</v-card-title>
         <v-card-text>
           <form @submit.prevent="submit">
             <v-text-field
@@ -265,7 +265,7 @@
               <v-btn
                 color="primary"
                 :loading="submitting"
-                :text="editingCode ? 'Save' : 'Add Coupon'"
+                :text="editingCode ? t('Save') : t('Add Coupon')"
                 type="submit"
               />
             </v-card-actions>
@@ -277,14 +277,14 @@
     <CategoryDialog
       v-model="categoryDialog"
       :category="editingCategory"
-      name-hint="Coupon group, e.g. Seasonal, VIP"
+      :name-hint="t('Coupon group, e.g. Seasonal, VIP')"
       :on-submit="submitCategory"
     />
 
     <!-- add / edit coupon type -->
     <v-dialog v-model="typeDialog" max-width="520">
       <v-card class="px-4">
-        <v-card-title>{{ editingTypeId ? 'Edit Coupon Type' : 'Add a New Coupon Type' }}</v-card-title>
+        <v-card-title>{{ editingTypeId ? t('Edit Coupon Type') : t('Add a New Coupon Type') }}</v-card-title>
         <v-card-text>
           <form @submit.prevent="submitType">
             <v-text-field
@@ -354,7 +354,7 @@
               <v-btn
                 color="primary"
                 :loading="typeSubmitting"
-                :text="editingTypeId ? 'Save' : 'Add Type'"
+                :text="editingTypeId ? t('Save') : t('Add Type')"
                 type="submit"
               />
             </v-card-actions>
@@ -410,7 +410,7 @@
         <template v-else>
           <v-card-title class="d-flex align-center ga-2">
             <v-icon color="success" icon="mdi-check-circle" />
-            <span>{{ generatedCodes.length }} codes generated</span>
+            <span>{{ t('{count} codes generated', { count: generatedCodes.length }) }}</span>
           </v-card-title>
           <v-card-text>
             <v-textarea
@@ -481,7 +481,8 @@
   const { couponLists, fetchCouponLists, createCouponList, deactivateCouponList } = useCouponLists()
 
   const apiURL = `${API_BASE}/coupons`
-  const headers = ref([
+  // Computed so the column titles follow the EN/FR toggle.
+  const headers = computed(() => [
     { title: t('Code'), key: 'code', align: 'start' },
     { title: t('Type'), key: 'type_name', align: 'start', sortable: false },
     { title: t('Category'), key: 'category_id', align: 'start', sortable: false },
@@ -490,14 +491,14 @@
     { title: t('Valid Until'), key: 'valid_until', align: 'end' },
     { title: t('Actions'), key: 'actions', align: 'end', sortable: false },
   ])
-  const typeHeaders = ref([
+  const typeHeaders = computed(() => [
     { title: t('Name'), key: 'name', align: 'start' },
     { title: t('Value'), key: 'value_cents', align: 'end' },
     { title: t('Status'), key: 'is_active', align: 'start' },
     { title: t('Flags'), key: 'flags', align: 'start', sortable: false },
     { title: '', key: 'actions', align: 'end', sortable: false },
   ])
-  const listHeaders = ref([
+  const listHeaders = computed(() => [
     { title: t('Campaign'), key: 'name', align: 'start' },
     { title: t('Type'), key: 'coupon_type_name', align: 'start' },
     { title: t('Codes'), key: 'coupon_count', align: 'start', sortable: false },
@@ -624,8 +625,8 @@
   }
 
   function validate () {
-    formErrors.code = editingCode.value || form.code?.trim().length >= 1 ? '' : 'Code is required.'
-    formErrors.typeId = form.typeId ? '' : 'Coupon type is required.'
+    formErrors.code = editingCode.value || form.code?.trim().length >= 1 ? '' : t('Code is required.')
+    formErrors.typeId = form.typeId ? '' : t('Coupon type is required.')
     return !formErrors.code && !formErrors.typeId
   }
 
@@ -682,7 +683,7 @@
   }
 
   async function removeCategory (category) {
-    if (!(await confirmDialog({ text: `Delete category "${category.name}"? Categories still used by a coupon can't be deleted.`, okText: 'Delete', danger: true }))) return
+    if (!(await confirmDialog({ text: t('Delete category "{name}"? Categories still used by a coupon can\'t be deleted.', { name: category.name }), okText: t('Delete'), danger: true }))) return
     try {
       await deleteCouponCategory(category.id)
       if (selectedCategory.value === category.id) selectedCategory.value = null
@@ -739,8 +740,8 @@
   }
 
   function validateType () {
-    typeFormErrors.name = typeForm.name?.trim().length >= 1 ? '' : 'Name is required.'
-    typeFormErrors.value = typeForm.valueAmount > 0 ? '' : 'Value must be greater than zero.'
+    typeFormErrors.name = typeForm.name?.trim().length >= 1 ? '' : t('Name is required.')
+    typeFormErrors.value = typeForm.valueAmount > 0 ? '' : t('Value must be greater than zero.')
     return !typeFormErrors.name && !typeFormErrors.value
   }
 
@@ -768,7 +769,7 @@
   }
 
   async function removeType (item) {
-    if (!(await confirmDialog({ text: `Delete coupon type "${item.name}"? Types still used by a coupon can't be deleted.`, okText: 'Delete', danger: true }))) return
+    if (!(await confirmDialog({ text: t('Delete coupon type "{name}"? Types still used by a coupon can\'t be deleted.', { name: item.name }), okText: t('Delete'), danger: true }))) return
     try {
       await deleteCouponType(item.id)
     } catch (error) {
@@ -801,9 +802,9 @@
   }
 
   function validateList () {
-    listFormErrors.name = listForm.name?.trim().length >= 1 ? '' : 'Campaign name is required.'
-    listFormErrors.typeId = listForm.typeId ? '' : 'Coupon type is required.'
-    listFormErrors.count = listForm.count > 0 ? '' : 'Enter how many codes to generate.'
+    listFormErrors.name = listForm.name?.trim().length >= 1 ? '' : t('Campaign name is required.')
+    listFormErrors.typeId = listForm.typeId ? '' : t('Coupon type is required.')
+    listFormErrors.count = listForm.count > 0 ? '' : t('Enter how many codes to generate.')
     return !listFormErrors.name && !listFormErrors.typeId && !listFormErrors.count
   }
 
@@ -819,7 +820,7 @@
       })
       generatedCodes.value = result.codes
       if (result.generated < result.requested) {
-        notify.error(`Only generated ${result.generated} of ${result.requested} codes -- retry to top up the rest.`)
+        notify.error(t('Only generated {generated} of {requested} codes, retry to top up the rest.', { generated: result.generated, requested: result.requested }))
       }
     } catch (error) {
       notify.error(error.message)
@@ -829,7 +830,7 @@
   }
 
   async function closeList (item) {
-    if (!(await confirmDialog({ text: `Close campaign "${item.name}"? Every still-active code it minted will be deactivated too.`, okText: 'Close', danger: true }))) return
+    if (!(await confirmDialog({ text: t('Close campaign "{name}"? Every still-active code it minted will be deactivated too.', { name: item.name }), okText: t('Close'), danger: true }))) return
     try {
       await deactivateCouponList(item.id)
     } catch (error) {
@@ -841,7 +842,7 @@
     if (!generatedCodes.value) return
     try {
       await navigator.clipboard.writeText(generatedCodes.value.join('\n'))
-      notify.success('Codes copied to clipboard.')
+      notify.success(t('Codes copied to clipboard.'))
     } catch {
       // Clipboard access can be denied; the textarea above still lets
       // someone select-and-copy manually.

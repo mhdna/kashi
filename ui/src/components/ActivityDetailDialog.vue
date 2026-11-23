@@ -20,7 +20,7 @@
             {{ formatAmount(item.amount, item.currency_code) }}
           </div>
           <v-btn
-            aria-label="Close"
+            :aria-label="t('Close')"
             icon="mdi-close"
             size="small"
             variant="text"
@@ -32,7 +32,7 @@
 
       <v-card-text class="pa-4">
         <div v-if="loading" class="d-flex justify-center pa-4">
-          <PreparingState kind="data" min-height="160px" title="Loading details" />
+          <PreparingState kind="data" min-height="160px" :title="t('Loading details')" />
         </div>
         <v-alert v-else-if="error" density="compact" type="warning" variant="tonal">{{ error }}</v-alert>
 
@@ -41,18 +41,18 @@
                difference, per payment method; then the receipt photo. -->
           <template v-if="data.shift">
             <div class="facts">
-              <Fact label="Closed by" :value="data.shift.closing_person_name" />
-              <Fact label="Opened" :value="dateTime(nullTime(data.shift.opened_at))" />
-              <Fact label="Closed" :value="dateTime(nullTime(data.shift.closed_at))" />
-              <Fact label="Opening float" :value="`${formatAmount(data.shift.opening_float_usd)} · ${formatLBP(data.shift.opening_float_lbp)}`" />
+              <Fact :label="t('Closed by')" :value="data.shift.closing_person_name" />
+              <Fact :label="t('Opened')" :value="dateTime(nullTime(data.shift.opened_at))" />
+              <Fact :label="t('Closed')" :value="dateTime(nullTime(data.shift.closed_at))" />
+              <Fact :label="t('Opening float')" :value="`${formatAmount(data.shift.opening_float_usd)} · ${formatLBP(data.shift.opening_float_lbp)}`" />
             </div>
             <v-table class="mt-3" density="compact">
               <thead>
                 <tr>
                   <th />
-                  <th class="text-end">Expected</th>
-                  <th class="text-end">Counted</th>
-                  <th class="text-end">Variance</th>
+                  <th class="text-end">{{ t('Expected') }}</th>
+                  <th class="text-end">{{ t('Counted') }}</th>
+                  <th class="text-end">{{ t('Variance') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -66,39 +66,39 @@
                 </tr>
               </tbody>
             </v-table>
-            <div class="section-label">Close-shift receipt</div>
+            <div class="section-label">{{ t('Close-shift receipt') }}</div>
             <PhotoThumb
               v-if="data.receipt_image_id"
               :src="thumbs[`shift_receipt-${data.receipt_image_id}`]"
-              @click="openPhoto('shift_receipt', data.receipt_image_id, 'Close-shift receipt')"
+              @click="openPhoto('shift_receipt', data.receipt_image_id, t('Close-shift receipt'))"
             />
-            <div v-else class="text-body-2 text-medium-emphasis">The till sent no receipt photo.</div>
+            <div v-else class="text-body-2 text-medium-emphasis">{{ t('The till sent no receipt photo.') }}</div>
           </template>
 
           <!-- Invoice: who sold it, the lines and how it was paid. -->
           <template v-else-if="data.invoice && data.items">
             <div class="facts">
-              <Fact label="Invoice" :value="data.invoice.branch_invoice_code" />
-              <Fact label="Kind" :value="capitalize(data.invoice.kind)" />
-              <Fact label="Salesperson" :value="data.invoice.salesperson_name" />
-              <Fact label="Sold at" :value="dateTime(data.invoice.occurred_at)" />
-              <Fact v-if="data.invoice.discount" label="Discount" :value="`${data.invoice.discount}%`" />
-              <Fact v-if="data.invoice.loyalty_points_delta" label="Loyalty points" :value="data.invoice.loyalty_points_delta" />
-              <Fact v-if="data.invoice.cancelled_at?.Valid" label="Cancelled" :value="dateTime(data.invoice.cancelled_at.Time)" />
+              <Fact :label="t('Invoice')" :value="data.invoice.branch_invoice_code" />
+              <Fact :label="t('Kind')" :value="capitalize(data.invoice.kind)" />
+              <Fact :label="t('Salesperson')" :value="data.invoice.salesperson_name" />
+              <Fact :label="t('Sold at')" :value="dateTime(data.invoice.occurred_at)" />
+              <Fact v-if="data.invoice.discount" :label="t('Discount')" :value="`${data.invoice.discount}%`" />
+              <Fact v-if="data.invoice.loyalty_points_delta" :label="t('Loyalty points')" :value="data.invoice.loyalty_points_delta" />
+              <Fact v-if="data.invoice.cancelled_at?.Valid" :label="t('Cancelled')" :value="dateTime(data.invoice.cancelled_at.Time)" />
             </div>
-            <div class="section-label">Items</div>
+            <div class="section-label">{{ t('Items') }}</div>
             <v-table density="compact">
               <tbody>
                 <tr v-for="line in data.items" :key="line.id">
                   <td>
-                    {{ line.product_name || 'Unknown product' }}
+                    {{ line.product_name || t('Unknown product') }}
                     <div v-if="line.product_code" class="text-caption text-medium-emphasis">{{ line.product_code }}</div>
                   </td>
                   <td class="text-end text-no-wrap">{{ line.quantity }} × {{ formatAmount(line.unit_price) }}</td>
                   <td class="text-end text-no-wrap font-weight-medium">{{ formatAmount(line.line_total) }}</td>
                 </tr>
                 <tr v-if="data.items.length === 0">
-                  <td class="text-medium-emphasis">No lines reported.</td>
+                  <td class="text-medium-emphasis">{{ t('No lines reported.') }}</td>
                 </tr>
               </tbody>
             </v-table>
@@ -108,50 +108,50 @@
           <!-- Settlement changed: the sale it re-settled and its new split. -->
           <template v-else-if="data.settlement">
             <div class="facts">
-              <Fact label="Invoice" :value="data.invoice?.branch_invoice_code || data.settlement.sale_client_ref" />
-              <Fact v-if="data.invoice" label="Salesperson" :value="data.invoice.salesperson_name" />
-              <Fact v-if="data.invoice" label="Sold at" :value="dateTime(data.invoice.occurred_at)" />
-              <Fact label="Changed at" :value="dateTime(data.settlement.occurred_at)" />
-              <Fact label="Status" :value="data.settlement.status" />
+              <Fact :label="t('Invoice')" :value="data.invoice?.branch_invoice_code || data.settlement.sale_client_ref" />
+              <Fact v-if="data.invoice" :label="t('Salesperson')" :value="data.invoice.salesperson_name" />
+              <Fact v-if="data.invoice" :label="t('Sold at')" :value="dateTime(data.invoice.occurred_at)" />
+              <Fact :label="t('Changed at')" :value="dateTime(data.settlement.occurred_at)" />
+              <Fact :label="t('Status')" :value="data.settlement.status" />
             </div>
-            <Payments label="New payments" :payments="data.payments" />
+            <Payments :label="t('New payments')" :payments="data.payments" />
           </template>
 
           <!-- Expense: what it was for, paid from where, and its photos. -->
           <template v-else-if="data.expense">
             <div class="facts">
-              <Fact label="Description" :value="data.expense.description" />
-              <Fact label="Paid from" :value="data.expense.branch_cashbox_account_name?.String" />
-              <Fact label="Spent at" :value="dateTime(data.expense.occurred_at)" />
+              <Fact :label="t('Description')" :value="data.expense.description" />
+              <Fact :label="t('Paid from')" :value="data.expense.branch_cashbox_account_name?.String" />
+              <Fact :label="t('Spent at')" :value="dateTime(data.expense.occurred_at)" />
             </div>
-            <div class="section-label">Photos</div>
+            <div class="section-label">{{ t('Photos') }}</div>
             <div v-if="data.image_ids?.length" class="d-flex flex-wrap ga-2">
               <PhotoThumb
                 v-for="imageId in data.image_ids"
                 :key="imageId"
                 :src="thumbs[`expense_image-${imageId}`]"
-                @click="openPhoto('expense_image', imageId, 'Expense photo')"
+                @click="openPhoto('expense_image', imageId, t('Expense photo'))"
               />
             </div>
-            <div v-else class="text-body-2 text-medium-emphasis">No photo attached.</div>
+            <div v-else class="text-body-2 text-medium-emphasis">{{ t('No photo attached.') }}</div>
           </template>
 
           <template v-else-if="data.loan">
             <div class="facts">
-              <Fact label="Description" :value="data.loan.description" />
-              <Fact label="Account" :value="data.loan.branch_cashbox_account_name?.String" />
-              <Fact label="Taken at" :value="dateTime(data.loan.occurred_at)" />
+              <Fact :label="t('Description')" :value="data.loan.description" />
+              <Fact :label="t('Account')" :value="data.loan.branch_cashbox_account_name?.String" />
+              <Fact :label="t('Taken at')" :value="dateTime(data.loan.occurred_at)" />
             </div>
           </template>
 
           <template v-else-if="data.event">
             <div class="facts">
-              <Fact label="Name" :value="data.event.salesperson_name" />
-              <Fact label="Punch" :value="data.event.type" />
-              <Fact label="Date" :value="data.event.event_date" />
-              <Fact label="Time" :value="data.event.event_time" />
-              <Fact label="Status" :value="data.event.status" />
-              <Fact v-if="data.event.changed_by" label="Changed by" :value="`${data.event.changed_by}${data.event.change_note ? ` · ${data.event.change_note}` : ''}`" />
+              <Fact :label="t('Name')" :value="data.event.salesperson_name" />
+              <Fact :label="t('Punch')" :value="data.event.type" />
+              <Fact :label="t('Date')" :value="data.event.event_date" />
+              <Fact :label="t('Time')" :value="data.event.event_time" />
+              <Fact :label="t('Status')" :value="data.event.status" />
+              <Fact v-if="data.event.changed_by" :label="t('Changed by')" :value="`${data.event.changed_by}${data.event.change_note ? ` · ${data.event.change_note}` : ''}`" />
             </div>
           </template>
 
@@ -159,19 +159,19 @@
                decision on one. -->
           <template v-else-if="data.change">
             <div class="facts">
-              <Fact label="Name" :value="data.change.salesperson_name" />
-              <Fact label="What" :value="data.change.kind === 'complaint' ? 'Change requested' : 'Request reviewed'" />
-              <Fact label="Status" :value="capitalize(data.change.status)" />
-              <Fact label="Attendance date" :value="data.change.attendance_date" />
-              <Fact label="Change" :value="changeSummary(data.change)" />
-              <Fact label="Note" :value="data.change.note" />
-              <Fact label="By" :value="data.change.actor" />
-              <Fact label="At" :value="dateTime(data.change.occurred_at)" />
+              <Fact :label="t('Name')" :value="data.change.salesperson_name" />
+              <Fact :label="t('What')" :value="data.change.kind === 'complaint' ? t('Change requested') : t('Request reviewed')" />
+              <Fact :label="t('Status')" :value="capitalize(data.change.status)" />
+              <Fact :label="t('Attendance date')" :value="data.change.attendance_date" />
+              <Fact :label="t('Change')" :value="changeSummary(data.change)" />
+              <Fact :label="t('Note')" :value="data.change.note" />
+              <Fact :label="t('By')" :value="data.change.actor" />
+              <Fact :label="t('At')" :value="dateTime(data.change.occurred_at)" />
             </div>
           </template>
         </template>
 
-        <div class="text-caption text-medium-emphasis mt-4">Synced {{ dateTime(item.synced_at) }}</div>
+        <div class="text-caption text-medium-emphasis mt-4">{{ t('Synced {time}', { time: dateTime(item.synced_at) }) }}</div>
       </v-card-text>
 
       <template v-if="canResolve && (item.pinned || item.resolved)">
@@ -180,24 +180,24 @@
           <template v-if="item.resolved">
             <v-icon color="success" icon="mdi-check-circle" size="18" />
             <span class="text-caption text-medium-emphasis">
-              Resolved{{ item.resolved_by ? ` by ${item.resolved_by}` : '' }}.
+              {{ item.resolved_by ? t('Resolved by {name}.', { name: item.resolved_by }) : t('Resolved.') }}
             </span>
             <v-spacer />
             <v-btn
               :loading="resolving"
-              text="Mark unresolved"
+              :text="t('Mark unresolved')"
               variant="text"
               @click="emit('unresolve', item)"
             />
           </template>
           <template v-else>
-            <span class="text-caption text-medium-emphasis">Pinned on Home until resolved.</span>
+            <span class="text-caption text-medium-emphasis">{{ t('Pinned on Home until resolved.') }}</span>
             <v-spacer />
             <v-btn
               color="error"
               :loading="resolving"
               prepend-icon="mdi-check-circle-outline"
-              text="Mark resolved"
+              :text="t('Mark resolved')"
               variant="tonal"
               @click="emit('resolve', item)"
             />
@@ -213,6 +213,7 @@
   import { authFetch } from '@/composables/useApi'
   import { PHOTO_FETCH } from '@/composables/usePhotoActions'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
   import { formatAmount, formatLBP } from '@/utils/money'
 
   // Everything about one Recent activity row, from /home/activities/detail.
@@ -265,7 +266,7 @@
       const res = await authFetch(`${API_BASE}/home/activities/detail?${params}`)
       const body = await res.json().catch(() => ({}))
       if (seq !== loadSeq) return
-      if (!res.ok) throw new Error(body.error || `Couldn't load the details (${res.status})`)
+      if (!res.ok) throw new Error(body.error || t("Couldn't load the details ({status})", { status: res.status }))
       data.value = body
       loadThumbs(body)
     } catch (error_) {
@@ -312,8 +313,8 @@
     return value ? value.charAt(0).toUpperCase() + value.slice(1) : ''
   }
   function changeSummary (change) {
-    if (change.action === 'add') return `Add ${change.requested_type} ${change.requested_time}`
-    if (change.action === 'delete') return `Delete ${change.original_time}`
+    if (change.action === 'add') return t('Add {type} {time}', { type: change.requested_type, time: change.requested_time })
+    if (change.action === 'delete') return t('Delete {time}', { time: change.original_time })
     if (change.original_time || change.requested_time) {
       return `${change.original_time || '—'} → ${[change.requested_type, change.requested_time].filter(Boolean).join(' ')}`
     }
@@ -333,13 +334,14 @@
     },
   })
 
+  // The label is passed already translated (t('New payments')); the default is shown in the locale at render time.
   const Payments = defineComponent({
-    props: { payments: { type: Array, default: () => [] }, label: { type: String, default: 'Payments' } },
+    props: { payments: { type: Array, default: () => [] }, label: { type: String, default: '' } },
     setup (paymentProps) {
       return () => [
-        h('div', { class: 'section-label' }, paymentProps.label),
+        h('div', { class: 'section-label' }, paymentProps.label || t('Payments')),
         paymentProps.payments.length === 0
-          ? h('div', { class: 'text-body-2 text-medium-emphasis' }, 'No payments reported.')
+          ? h('div', { class: 'text-body-2 text-medium-emphasis' }, t('No payments reported.'))
           : h('div', { class: 'd-flex flex-wrap ga-2' }, paymentProps.payments.map(p =>
             h('div', { class: 'payment', key: p.id }, [
               h('span', { class: 'text-medium-emphasis' }, p.account_name),

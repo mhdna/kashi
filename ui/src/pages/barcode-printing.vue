@@ -12,7 +12,7 @@
     </v-row>
     <v-row>
       <v-col v-if="multiLine" cols="4">
-        <v-textarea label="Barcode,Quantity" variant="outlined" />
+        <v-textarea :label="t('Barcode,Quantity')" variant="outlined" />
       </v-col>
       <v-col>
         <server-side-table />

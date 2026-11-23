@@ -3,7 +3,7 @@
     <!-- Header / controls -->
     <div class="d-flex align-center flex-wrap flex-shrink-0 ga-3 pa-4 pb-2">
       <v-icon icon="mdi-package-variant" />
-      <div class="text-h6 font-weight-medium">Product Revenues</div>
+      <div class="text-h6 font-weight-medium">{{ t('Product Revenues') }}</div>
       <v-spacer />
       <v-select
         v-model="rangeDays"
@@ -19,7 +19,7 @@
         density="compact"
         hide-details
         :items="categoryOptions"
-        label="Category"
+        :label="t('Category')"
         style="min-width: 160px; max-width: 200px"
         variant="outlined"
       />
@@ -29,7 +29,7 @@
         density="compact"
         hide-details
         :items="subcategoryOptions"
-        label="Sub-category"
+        :label="t('Sub-category')"
         style="min-width: 160px; max-width: 200px"
         variant="outlined"
       />
@@ -39,7 +39,7 @@
         density="compact"
         hide-details
         :items="brandOptions"
-        label="Brand"
+        :label="t('Brand')"
         style="min-width: 160px; max-width: 200px"
         variant="outlined"
       />
@@ -50,15 +50,15 @@
         density="compact"
         hide-details
         :items="branchOptions"
-        label="Branch"
+        :label="t('Branch')"
         style="min-width: 160px; max-width: 200px"
         variant="outlined"
       />
     </div>
 
     <v-tabs v-model="tab" class="flex-shrink-0 px-4" color="primary">
-      <v-tab value="pos">Branches</v-tab>
-      <v-tab value="kashi">Wholesale</v-tab>
+      <v-tab value="pos">{{ t('Branches') }}</v-tab>
+      <v-tab value="kashi">{{ t('Wholesale') }}</v-tab>
     </v-tabs>
     <v-divider />
 
@@ -78,7 +78,7 @@
               <v-row dense>
                 <v-col cols="12">
                   <v-card class="chart-card" variant="flat">
-                    <div class="chart-card__title">Revenue by branch</div>
+                    <div class="chart-card__title">{{ t('Revenue by branch') }}</div>
                     <v-chart autoresize class="chart" :option="branchOption" />
                   </v-card>
                 </v-col>
@@ -110,6 +110,7 @@
   import { useAttributes } from '@/composables/useAttributes'
   import { useBranches } from '@/composables/useBranches'
   import { useProductRevenues } from '@/composables/useProductRevenues'
+  import { t } from '@/i18n'
 
   const theme = useTheme()
   const c = computed(() => theme.current.value.colors)
@@ -129,12 +130,12 @@
 
   const tab = ref('pos')
 
-  const RANGE_OPTIONS = [
-    { title: 'Last 30 days', value: 30 },
-    { title: 'Last 90 days', value: 90 },
-    { title: 'Last 6 months', value: 182 },
-    { title: 'Last 12 months', value: 365 },
-  ]
+  const RANGE_OPTIONS = computed(() => [
+    { title: t('Last 30 days'), value: 30 },
+    { title: t('Last 90 days'), value: 90 },
+    { title: t('Last 6 months'), value: 182 },
+    { title: t('Last 12 months'), value: 365 },
+  ])
   const rangeDays = ref(90)
   const selectedCategory = ref(null)
   const selectedSubcategory = ref(null)

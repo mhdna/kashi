@@ -10,7 +10,7 @@
     <v-card>
       <v-card-title class="d-flex align-center ga-2 pt-4">
         <v-icon icon="mdi-email-outline" />
-        Email invoice report
+        {{ t('Email invoice report') }}
       </v-card-title>
 
       <v-card-text class="pt-2">
@@ -21,7 +21,7 @@
           type="warning"
           variant="tonal"
         >
-          Email isn't set up yet: add the Resend API key on Settings &gt; Email.
+          {{ t('Email isn\'t set up yet: add the Resend API key on Settings > Email.') }}
         </v-alert>
 
         <div class="d-flex align-center flex-wrap ga-3 mb-4">
@@ -33,9 +33,9 @@
             mandatory
             variant="outlined"
           >
-            <v-btn text="Day" value="day" />
-            <v-btn text="Date range" value="range" />
-            <v-btn text="Shift" value="shift" />
+            <v-btn :text="t('Day')" value="day" />
+            <v-btn :text="t('Date range')" value="range" />
+            <v-btn :text="t('Shift')" value="shift" />
           </v-btn-toggle>
           <v-spacer />
           <v-btn-toggle
@@ -47,7 +47,7 @@
             variant="outlined"
           >
             <v-btn icon="mdi-file-delimited-outline" title="CSV" value="csv" />
-            <v-btn icon="mdi-microsoft-excel" title="Excel workbook" value="xlsx" />
+            <v-btn icon="mdi-microsoft-excel" :title="t('Excel workbook')" value="xlsx" />
           </v-btn-toggle>
         </div>
 
@@ -63,7 +63,7 @@
             v-model="from"
             density="compact"
             hide-details
-            label="Day"
+            :label="t('Day')"
             :max="today"
             variant="outlined"
           />
@@ -81,16 +81,16 @@
           density="compact"
           hide-details
           :items="registerOptions"
-          label="Registers"
+          :label="t('Registers')"
           multiple
           persistent-placeholder
-          placeholder="All registers"
+          :placeholder="t('All registers')"
           variant="outlined"
         >
           <template #selection="{ item, index }">
             <span v-if="index === 0" class="text-truncate">{{ item.title }}</span>
             <span v-else-if="index === 1" class="text-medium-emphasis text-no-wrap ms-1">
-              , +{{ registerIds.length - 1 }} more
+              {{ t(', +{count} more', { count: registerIds.length - 1 }) }}
             </span>
           </template>
         </v-select>
@@ -101,9 +101,9 @@
           density="compact"
           hide-details
           :items="shiftOptions"
-          label="Shift"
+          :label="t('Shift')"
           :loading="loadingShifts"
-          :no-data-text="loadingShifts ? 'Loading…' : 'No shifts closed that day'"
+          :no-data-text="loadingShifts ? t('Loading…') : t('No shifts closed that day')"
           variant="outlined"
         />
 
@@ -115,11 +115,11 @@
           closable-chips
           :delimiters="[',', ';', ' ']"
           density="compact"
-          :hint="invalidRecipients.length > 0 ? `Not an email address: ${invalidRecipients.join(', ')}` : 'Press Enter after each address'"
+          :hint="invalidRecipients.length > 0 ? t('Not an email address: {addresses}', { addresses: invalidRecipients.join(', ') }) : t('Press Enter after each address')"
           :items="pastRecipients"
-          label="Send to"
+          :label="t('Send to')"
           multiple
-          :no-data-text="'No one emailed yet'"
+          :no-data-text="t('No one emailed yet')"
           persistent-hint
           variant="outlined"
         />
@@ -132,11 +132,11 @@
           closable-chips
           :delimiters="[',', ';', ' ']"
           density="compact"
-          :hint="invalidBcc.length > 0 ? `Not an email address: ${invalidBcc.join(', ')}` : 'Hidden from everyone else'"
+          :hint="invalidBcc.length > 0 ? t('Not an email address: {addresses}', { addresses: invalidBcc.join(', ') }) : t('Hidden from everyone else')"
           :items="pastRecipients"
-          label="Bcc"
+          :label="t('Bcc')"
           multiple
-          :no-data-text="'No one emailed yet'"
+          :no-data-text="t('No one emailed yet')"
           persistent-hint
           variant="outlined"
         />
@@ -146,11 +146,11 @@
           class="mt-4"
           counter="2000"
           density="compact"
-          label="Note (optional)"
+          :label="t('Note (optional)')"
           maxlength="2000"
           no-resize
           persistent-counter
-          placeholder="Shown at the top of the email, above the totals"
+          :placeholder="t('Shown at the top of the email, above the totals')"
           rows="2"
           variant="outlined"
         />
@@ -162,11 +162,10 @@
           <template v-else-if="preview">
             <div class="font-weight-medium text-truncate" :title="preview.subject">{{ preview.subject }}</div>
             <div class="text-medium-emphasis text-truncate">
-              {{ preview.invoice_count.toLocaleString() }} invoice{{ preview.invoice_count === 1 ? '' : 's' }}
-              · net {{ money(preview.total_cents) }} · {{ preview.filename }}
+              {{ t(preview.invoice_count === 1 ? '{count} invoice, net {total}, {file}' : '{count} invoices, net {total}, {file}', { count: preview.invoice_count.toLocaleString(), total: money(preview.total_cents), file: preview.filename }) }}
             </div>
           </template>
-          <span v-else class="text-medium-emphasis">{{ loadingPreview ? 'Checking…' : '' }}</span>
+          <span v-else class="text-medium-emphasis">{{ loadingPreview ? t('Checking…') : '' }}</span>
         </div>
       </v-card-text>
 
@@ -174,18 +173,18 @@
         <v-btn
           v-if="canSeeHistory"
           size="small"
-          text="Sent emails"
+          :text="t('Sent emails')"
           to="/emails"
           variant="text"
         />
         <v-spacer />
-        <v-btn text="Cancel" variant="text" @click="open = false" />
+        <v-btn :text="t('Cancel')" variant="text" @click="open = false" />
         <v-btn
           color="primary"
           :disabled="!canSend"
           :loading="sending"
           prepend-icon="mdi-send-outline"
-          text="Send"
+          :text="t('Send')"
           variant="flat"
           @click="send"
         />
@@ -198,6 +197,7 @@
   import { computed, ref, watch } from 'vue'
   import { useEmailReports } from '@/composables/useEmailReports'
   import { useNotify } from '@/composables/useNotify'
+  import { t } from '@/i18n'
   import { useAuthStore } from '@/stores/auth'
 
   const props = defineProps({
@@ -353,7 +353,7 @@
     sending.value = true
     try {
       const report = await sendEmailReport(params.value, recipients.value.map(r => String(r).trim()).join(', '), note.value, bcc.value.map(r => String(r).trim()).join(', '))
-      notify.success(`Sent to ${report?.recipients}.`)
+      notify.success(t('Sent to {recipients}.', { recipients: report?.recipients }))
       emit('sent', report)
       open.value = false
     } catch (error) {

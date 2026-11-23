@@ -3,7 +3,7 @@
     <v-card class="attendance-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-clock-check-outline" />
-        <span>Attendance</span>
+        <span>{{ t('Attendance') }}</span>
         <v-spacer />
         <v-select
           v-model="branchFilter"
@@ -13,24 +13,24 @@
           item-title="name"
           item-value="id"
           :items="branchOptions"
-          label="Branch"
+          :label="t('Branch')"
           variant="outlined"
         />
         <v-btn
           prepend-icon="mdi-clipboard-check-outline"
-          :text="pendingRequests.length > 0 ? `Requests (${pendingRequests.length})` : 'Requests'"
+          :text="pendingRequests.length > 0 ? t('Requests ({n})', { n: pendingRequests.length }) : t('Requests')"
           variant="tonal"
           @click="openRequests"
         />
         <v-btn
           prepend-icon="mdi-file-chart-outline"
-          text="Hours report"
+          :text="t('Hours report')"
           to="/reports?report=staff&parts=hours,grid"
           variant="tonal"
         />
         <v-btn
           prepend-icon="mdi-refresh"
-          text="Sync from POS"
+          :text="t('Sync from POS')"
           variant="text"
           @click="reload"
         />
@@ -38,7 +38,7 @@
           v-if="canEdit"
           color="primary"
           prepend-icon="mdi-file-delimited-outline"
-          text="Import CSV"
+          :text="t('Import CSV')"
           variant="flat"
           @click="fileInput?.click()"
         />
@@ -51,10 +51,10 @@
         >
       </v-card-title>
       <v-tabs v-model="tab" class="px-4" color="primary" density="compact">
-        <v-tab prepend-icon="mdi-chart-timeline" text="Timeline" value="timeline" />
-        <v-tab prepend-icon="mdi-table-clock" text="In / out pairs" value="pairs" />
-        <v-tab prepend-icon="mdi-calendar" text="Monthly grid" value="grid" />
-        <v-tab prepend-icon="mdi-format-list-bulleted" text="Punches" value="punches" />
+        <v-tab prepend-icon="mdi-chart-timeline" :text="t('Timeline')" value="timeline" />
+        <v-tab prepend-icon="mdi-table-clock" :text="t('In / out pairs')" value="pairs" />
+        <v-tab prepend-icon="mdi-calendar" :text="t('Monthly grid')" value="grid" />
+        <v-tab prepend-icon="mdi-format-list-bulleted" :text="t('Punches')" value="punches" />
       </v-tabs>
       <v-divider />
 
@@ -104,7 +104,7 @@
             :title="item.change_note"
             variant="tonal"
           >
-            {{ item.change_note || 'Changed' }} · by {{ item.changed_by }}
+            {{ t('{note} · by {by}', { note: item.change_note || t('Changed'), by: item.changed_by }) }}
           </v-chip>
           <span v-else>{{ item.status }}</span>
         </template>
@@ -130,30 +130,30 @@
 
     <v-dialog v-model="dialog" max-width="460">
       <v-card class="px-4 py-2">
-        <v-card-title>Edit attendance punch</v-card-title>
+        <v-card-title>{{ t('Edit attendance punch') }}</v-card-title>
         <v-card-text>
-          <v-text-field v-model="form.salesperson_name" density="compact" label="Name" />
+          <v-text-field v-model="form.salesperson_name" density="compact" :label="t('Name')" />
           <v-row dense>
             <v-col cols="6">
-              <DateField v-model="form.event_date" density="compact" label="Date" />
+              <DateField v-model="form.event_date" density="compact" :label="t('Date')" />
             </v-col>
             <v-col cols="6">
-              <v-text-field v-model="form.event_time" density="compact" label="Time" type="time" />
+              <v-text-field v-model="form.event_time" density="compact" :label="t('Time')" type="time" />
             </v-col>
           </v-row>
           <v-row dense>
             <v-col cols="6">
-              <v-select v-model="form.type" density="compact" :items="['IN', 'OUT']" label="Type" />
+              <v-select v-model="form.type" density="compact" :items="['IN', 'OUT']" :label="t('Type')" />
             </v-col>
             <v-col cols="6">
-              <v-text-field v-model="form.status" density="compact" label="Status" />
+              <v-text-field v-model="form.status" density="compact" :label="t('Status')" />
             </v-col>
           </v-row>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" @click="dialog = false" />
-          <v-btn color="primary" :loading="submitting" text="Save" @click="submit" />
+          <v-btn :text="t('Cancel')" @click="dialog = false" />
+          <v-btn color="primary" :loading="submitting" :text="t('Save')" @click="submit" />
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -164,34 +164,34 @@
          decision then syncs back and the request leaves this list. -->
     <v-dialog v-model="requestsDialog" max-width="760">
       <v-card>
-        <v-card-title>Attendance requests</v-card-title>
+        <v-card-title>{{ t('Attendance requests') }}</v-card-title>
         <v-card-text>
           <div v-if="requestsLoading" class="d-flex justify-center pa-4">
-            <PreparingState kind="people" min-height="160px" title="Loading requests" />
+            <PreparingState kind="people" min-height="160px" :title="t('Loading requests')" />
           </div>
           <v-alert v-else-if="pendingRequests.length === 0" type="info" variant="tonal">
-            No pending attendance requests.
+            {{ t('No pending attendance requests.') }}
           </v-alert>
           <v-table v-else density="compact">
             <thead>
-              <tr><th>Branch</th><th>Date</th><th>Name</th><th>Request</th><th /></tr>
+              <tr><th>{{ t('Branch') }}</th><th>{{ t('Date') }}</th><th>{{ t('Name') }}</th><th>{{ t('Request') }}</th><th /></tr>
             </thead>
             <tbody>
               <tr v-for="request in pendingRequests" :key="request.id">
-                <td>{{ branchNames[request.branch_id] ?? `#${request.branch_id}` }}</td>
+                <td>{{ branchNames[request.branch_id] ?? t('Branch #{id}', { id: request.branch_id }) }}</td>
                 <td>{{ request.attendance_date }}</td>
                 <td>{{ request.salesperson_name }}</td>
                 <td>{{ requestSummary(request) }}</td>
                 <td class="text-end text-no-wrap">
                   <span v-if="sentRequests[request.id]" class="text-caption text-medium-emphasis">
-                    {{ sentRequests[request.id] }} -- waiting for the till
+                    {{ t('{sent} -- waiting for the till', { sent: t(sentRequests[request.id]) }) }}
                   </span>
                   <template v-else-if="canEdit">
                     <v-btn
                       color="error"
                       :loading="reviewingId === request.id"
                       size="small"
-                      text="Reject"
+                      :text="t('Reject')"
                       variant="text"
                       @click="review(request, false)"
                     />
@@ -199,7 +199,7 @@
                       color="primary"
                       :loading="reviewingId === request.id"
                       size="small"
-                      text="Approve"
+                      :text="t('Approve')"
                       variant="tonal"
                       @click="review(request, true)"
                     />
@@ -211,7 +211,7 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Close" @click="requestsDialog = false" />
+          <v-btn :text="t('Close')" @click="requestsDialog = false" />
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -227,6 +227,7 @@
   import { confirmDialog } from '@/composables/useDialog'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
+  import { t } from '@/i18n'
   import { API_BASE } from '@/config'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
@@ -236,22 +237,22 @@
   const { branches, fetchBranches } = useBranches()
 
   const apiURL = `${API_BASE}/branch_attendance_events`
-  const headers = [
-    { title: 'Branch', key: 'branch_id', align: 'start', sortable: false },
-    { title: 'Date', key: 'event_date', align: 'start' },
-    { title: 'Time', key: 'event_time' },
-    { title: 'Name', key: 'salesperson_name', align: 'start' },
-    { title: 'Type', key: 'type' },
-    { title: 'Status', key: 'status' },
-    { title: 'User ID', key: 'attendance_user_id' },
+  const headers = computed(() => [
+    { title: t('Branch'), key: 'branch_id', align: 'start', sortable: false },
+    { title: t('Date'), key: 'event_date', align: 'start' },
+    { title: t('Time'), key: 'event_time' },
+    { title: t('Name'), key: 'salesperson_name', align: 'start' },
+    { title: t('Type'), key: 'type' },
+    { title: t('Status'), key: 'status' },
+    { title: t('User ID'), key: 'attendance_user_id' },
     { title: '', key: 'actions', align: 'end', sortable: false },
-  ]
+  ])
 
   // 'all' lists every branch's punches; importing still needs one branch.
   const ALL_BRANCHES = 'all'
   const branchFilter = ref(ALL_BRANCHES)
   const branchId = computed(() => (branchFilter.value === ALL_BRANCHES ? null : branchFilter.value))
-  const branchOptions = computed(() => [{ id: ALL_BRANCHES, name: 'All branches' }, ...branches.value])
+  const branchOptions = computed(() => [{ id: ALL_BRANCHES, name: t('All branches') }, ...branches.value])
   const branchNames = computed(() => Object.fromEntries(branches.value.map(b => [b.id, b.name])))
   const tab = ref('timeline')
   const tableRef = ref(null)
@@ -295,9 +296,9 @@
   }
 
   function requestSummary (request) {
-    if (request.action === 'add') return `Add ${request.requested_type} ${request.requested_time}`
-    if (request.action === 'delete') return `Delete ${request.original_time}`
-    return `Replace ${request.original_time} with ${request.requested_type} ${request.requested_time}`
+    if (request.action === 'add') return t('Add {type} {time}', { type: request.requested_type, time: request.requested_time })
+    if (request.action === 'delete') return t('Delete {time}', { time: request.original_time })
+    return t('Replace {original} with {type} {time}', { original: request.original_time, type: request.requested_type, time: request.requested_time })
   }
 
   async function review (request, approved) {
@@ -317,12 +318,12 @@
     event.target.value = ''
     if (!file) return
     if (!branchId.value) {
-      notify.warning('Pick a branch (not "All branches") before importing.')
+      notify.warning(t('Pick a branch (not "All branches") before importing.'))
       return
     }
     try {
       const res = await importCsv(file, branchId.value)
-      notify.success(`Imported ${res?.inserted ?? 0} punches (${res?.skipped ?? 0} already present).`)
+      notify.success(t('Imported {inserted} punches ({skipped} already present).', { inserted: res?.inserted ?? 0, skipped: res?.skipped ?? 0 }))
       reload()
     } catch (error) {
       notify.error(error.message)
@@ -371,7 +372,8 @@
   }
 
   async function remove (item) {
-    if (!(await confirmDialog({ text: `Delete the ${item.event_date} ${item.event_time} punch for ${item.salesperson_name || 'this employee'}?`, okText: 'Delete', danger: true }))) return
+    const name = item.salesperson_name || t('this employee')
+    if (!(await confirmDialog({ text: t('Delete the {date} {time} punch for {name}?', { date: item.event_date, time: item.event_time, name }), okText: t('Delete'), danger: true }))) return
     try {
       await deleteEvent(item.id)
       reload()

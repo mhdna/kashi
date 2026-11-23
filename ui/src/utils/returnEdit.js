@@ -3,6 +3,7 @@
 // (kashi-pos return_edit.go) and syncs back. Amounts are cents; a returned
 // line's credit is shown positive ("15.00") and sent signed like the line
 // (-1500).
+import { t } from '../i18n'
 
 // canEditRefund says whether this invoice is a till return or exchange a till
 // holds: not a sale, not imported from the old POS, named by its client_ref.
@@ -75,6 +76,6 @@ export function refundEditPayload (invoice, lines, reason) {
 }
 
 export function refundEditSentMessage (invoice, branchName) {
-  const code = invoice?.branch_invoice_code || 'The return'
-  return `${code}: the change was sent to ${branchName || 'the till'}. It shows here once the till applies it (a few seconds if online).`
+  const code = invoice?.branch_invoice_code || t('The return')
+  return t('{code}: the change was sent to {branch}. It shows here once the till applies it (a few seconds if online).', { code, branch: branchName || t('the till') })
 }

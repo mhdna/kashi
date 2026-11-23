@@ -26,13 +26,9 @@
       <v-divider />
 
       <p class="text-body-2 text-medium-emphasis px-4 pt-3">
-        A reusable template for the operational settings every branch shares &mdash; pricing,
-        behaviour, page access, printing and attendance. Branch identity (name, storefront
-        contact details), per-device fields (printer/COM ids, Akuvox IP) and secrets are never
-        part of this template and stay branch-specific; edit those from
-        <RouterLink to="/branch-settings">{{ t('Branch Settings') }}</RouterLink> instead.
-        Saving here only updates the template &mdash; nothing is pushed to a branch until you
-        click "Apply to all branches".
+        {{ t('A reusable template for the operational settings every branch shares — pricing, behaviour, page access, printing and attendance. Branch identity (name, storefront contact details), per-device fields (printer/COM ids, Akuvox IP) and secrets are never part of this template and stay branch-specific; edit those from') }}
+        <RouterLink to="/branch-settings">{{ t('Branch Settings') }}</RouterLink>
+        {{ t('instead. Saving here only updates the template — nothing is pushed to a branch until you click "Apply to all branches".') }}
       </p>
 
       <PreparingState
@@ -65,7 +61,7 @@
           <v-form :disabled="!canEdit">
             <div v-show="sectionTab === 'money'">
               <section class="dbs-section">
-                <div class="dbs-section-title">Rates &amp; rounding</div>
+                <div class="dbs-section-title">{{ t('Rates & rounding') }}</div>
                 <div class="field-grid">
                   <v-text-field
                     v-model.number="form.tax_rate"
@@ -104,8 +100,8 @@
                     density="compact"
                     hide-details
                     :label="form.split_primary_first
-                      ? 'Primary currency shown first'
-                      : 'Rounding currency shown first'"
+                      ? t('Primary currency shown first')
+                      : t('Rounding currency shown first')"
                   />
                   <v-text-field
                     v-model.number="form.split_primary_step"
@@ -129,7 +125,7 @@
               </section>
 
               <section class="dbs-section">
-                <div class="dbs-section-title">Returns &amp; exchange</div>
+                <div class="dbs-section-title">{{ t('Returns & exchange') }}</div>
                 <div class="field-grid">
                   <v-text-field
                     v-model.number="form.exchange_window_hours"
@@ -148,7 +144,7 @@
               <section class="dbs-section">
                 <div class="dbs-section-title">{{ t('At the till') }}</div>
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
-                  "Leave as is" keeps each branch's own value when you apply to all.
+                  {{ t('"Leave as is" keeps each branch\'s own value when you apply to all.') }}
                 </p>
                 <div class="field-grid">
                   <template v-for="f in OPTIONAL_FIELDS.payments" :key="f.key">
@@ -194,7 +190,7 @@
                   />
                 </div>
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
-                  "Leave as is" keeps each branch's own value when you apply to all.
+                  {{ t('"Leave as is" keeps each branch\'s own value when you apply to all.') }}
                 </p>
                 <div class="field-grid">
                   <template v-for="f in OPTIONAL_FIELDS.productSearch" :key="f.key">
@@ -228,7 +224,7 @@
               <section class="dbs-section">
                 <div class="dbs-section-title">{{ t('Scanning') }}</div>
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
-                  "Leave as is" keeps each branch's own value when you apply to all.
+                  {{ t('"Leave as is" keeps each branch\'s own value when you apply to all.') }}
                 </p>
                 <div class="field-grid">
                   <template v-for="f in OPTIONAL_FIELDS.scanning" :key="f.key">
@@ -260,7 +256,7 @@
               </section>
 
               <section class="dbs-section">
-                <div class="dbs-section-title">Pricing &amp; discounts</div>
+                <div class="dbs-section-title">{{ t('Pricing & discounts') }}</div>
                 <div class="dbs-switch-grid">
                   <v-switch
                     v-model="form.custom_item_discounts_enabled"
@@ -292,7 +288,7 @@
                   />
                 </div>
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
-                  "Leave as is" keeps each branch's own value when you apply to all.
+                  {{ t('"Leave as is" keeps each branch\'s own value when you apply to all.') }}
                 </p>
                 <div class="field-grid">
                   <template v-for="f in OPTIONAL_FIELDS.pricing" :key="f.key">
@@ -335,7 +331,7 @@
                   />
                 </div>
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
-                  "Leave as is" keeps each branch's own value when you apply to all.
+                  {{ t('"Leave as is" keeps each branch\'s own value when you apply to all.') }}
                 </p>
                 <div class="field-grid">
                   <template v-for="f in OPTIONAL_FIELDS.invoice" :key="f.key">
@@ -367,9 +363,9 @@
               </section>
 
               <section class="dbs-section">
-                <div class="dbs-section-title">Counters &amp; charts</div>
+                <div class="dbs-section-title">{{ t('Counters & charts') }}</div>
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
-                  "Leave as is" keeps each branch's own value when you apply to all.
+                  {{ t('"Leave as is" keeps each branch\'s own value when you apply to all.') }}
                 </p>
                 <div class="field-grid">
                   <template v-for="f in OPTIONAL_FIELDS.counters" :key="f.key">
@@ -404,9 +400,9 @@
 
             <div v-show="sectionTab === 'display'">
               <section class="dbs-section">
-                <div class="dbs-section-title">Look &amp; feel</div>
+                <div class="dbs-section-title">{{ t('Look & feel') }}</div>
                 <p class="text-caption text-medium-emphasis mb-2">
-                  "Leave as is" keeps each till's own value when you apply to all.
+                  {{ t('"Leave as is" keeps each till\'s own value when you apply to all.') }}
                 </p>
                 <div class="field-grid">
                   <template v-for="f in LOOK_FIELDS" :key="f.key">
@@ -453,7 +449,7 @@
                   />
                 </div>
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
-                  "Leave as is" keeps each branch's own value when you apply to all.
+                  {{ t('"Leave as is" keeps each branch\'s own value when you apply to all.') }}
                 </p>
                 <div class="field-grid">
                   <template v-for="f in OPTIONAL_FIELDS.look" :key="f.key">
@@ -522,7 +518,7 @@
               <section class="dbs-section">
                 <div class="dbs-section-title">{{ t('Opening cash') }}</div>
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
-                  "Leave as is" keeps each branch's own value when you apply to all.
+                  {{ t('"Leave as is" keeps each branch\'s own value when you apply to all.') }}
                 </p>
                 <div class="field-grid">
                   <template v-for="f in OPTIONAL_FIELDS.opening" :key="f.key">
@@ -565,7 +561,7 @@
                   variant="outlined"
                 />
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
-                  "Leave as is" keeps each branch's own value when you apply to all.
+                  {{ t('"Leave as is" keeps each branch\'s own value when you apply to all.') }}
                 </p>
                 <div class="field-grid">
                   <template v-for="f in OPTIONAL_FIELDS.closing" :key="f.key">
@@ -610,7 +606,7 @@
                   @update:model-value="setLookInTemplate"
                 />
                 <p class="text-caption text-medium-emphasis mt-1 mb-3">
-                  Off keeps each branch's own look when you apply to all.
+                  {{ t('Off keeps each branch\'s own look when you apply to all.') }}
                 </p>
                 <ReceiptLookPicker
                   v-if="lookInTemplate"
@@ -700,7 +696,7 @@
               <section class="dbs-section">
                 <div class="dbs-section-title">{{ t('End-of-shift receipt') }}</div>
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
-                  "Leave as is" keeps each branch's own value when you apply to all.
+                  {{ t('"Leave as is" keeps each branch\'s own value when you apply to all.') }}
                 </p>
                 <div class="field-grid">
                   <template v-for="f in OPTIONAL_FIELDS.endShift" :key="f.key">
@@ -730,9 +726,7 @@
                   </template>
                 </div>
                 <p class="text-caption text-medium-emphasis mt-3">
-                  Physical device identifiers (printer name, receipt printer, customer-screen
-                  COM port) are specific to one till and are never part of this template &mdash;
-                  set those per branch from Branch Settings.
+                  {{ t('Physical device identifiers (printer name, receipt printer, customer-screen COM port) are specific to one till and are never part of this template — set those per branch from Branch Settings.') }}
                 </p>
               </section>
 
@@ -776,8 +770,7 @@
                   />
                 </div>
                 <p class="text-caption text-medium-emphasis mt-3">
-                  The Akuvox device IP/username and its device password are per-machine and
-                  never part of this template &mdash; set those per branch from Branch Settings.
+                  {{ t('The Akuvox device IP/username and its device password are per-machine and never part of this template — set those per branch from Branch Settings.') }}
                 </p>
               </section>
 
@@ -824,7 +817,7 @@
                   />
                 </div>
                 <p class="text-caption text-medium-emphasis mt-4 mb-2">
-                  "Leave as is" keeps each branch's own value when you apply to all.
+                  {{ t('"Leave as is" keeps each branch\'s own value when you apply to all.') }}
                 </p>
                 <div class="field-grid">
                   <template v-for="f in OPTIONAL_FIELDS.pages" :key="f.key">
@@ -865,10 +858,7 @@
       <v-card>
         <v-card-title class="text-subtitle-1">{{ t('Apply to all branches?') }}</v-card-title>
         <v-card-text>
-          This sends the saved template as a remote command to every branch
-          ({{ branches.length }} total). Each branch applies it on its own within a few seconds
-          if online, or on its next sync otherwise &mdash; nothing here writes to a branch
-          directly. Save your changes first if you've edited anything above.
+          {{ t('This sends the saved template as a remote command to every branch ({n} total). Each branch applies it on its own within a few seconds if online, or on its next sync otherwise — nothing here writes to a branch directly. Save your changes first if you\'ve edited anything above.', { n: branches.length }) }}
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -907,25 +897,26 @@
   const applying = ref(false)
   const confirmApplyOpen = ref(false)
 
-  const SHIFT_RECEIPT_UPLOAD_MODES = [
+  // Computed so the option titles follow the EN/FR toggle.
+  const SHIFT_RECEIPT_UPLOAD_MODES = computed(() => [
     { title: t('Hybrid (office when online, else the till)'), value: 2 },
     { title: t('Local only (the till, over shop Wi-Fi)'), value: 3 },
     { title: t('Central only (straight to the office)'), value: 1 },
     { title: t('Off (no photo)'), value: 0 },
-  ]
+  ])
 
   // null in a select = "leave as is": the field is left out of the template.
-  const TRI_STATE = [
+  const TRI_STATE = computed(() => [
     { title: t('Leave as is'), value: null },
     { title: t('On'), value: true },
     { title: t('Off'), value: false },
-  ]
+  ])
 
   // Fields added after the template's first version. Each is optional, so
   // applying the template never pushes a value the admin didn't pick (see
   // defaultBranchSettings in api/default_branch_settings.go). Money is
   // stored in cents and edited in dollars (scale 100).
-  const OPTIONAL_FIELDS = {
+  const OPTIONAL_FIELDS = computed(() => ({
     payments: [
       { key: 'max_overpayment_cents', label: t('Max overpayment (USD, 0 = no limit)'), type: 'number', scale: 100, step: 0.01 },
       { key: 'overchange_confirmation', label: t('Confirm change larger than owed'), type: 'bool' },
@@ -940,9 +931,9 @@
     ],
     pricing: [
       { key: 'price_edit_restricted', label: t('Manual price/discount edits only for selected codes'), type: 'bool' },
-      { key: 'discount_toggle', label: "Salespersons can turn a line's discount (30%) off and on", type: 'bool' },
+      { key: 'discount_toggle', label: t('Salespersons can turn a line\'s discount (30%) off and on'), type: 'bool' },
       { key: 'discount_toggle_default_off', label: t('Discounts start off on each new line'), type: 'bool' },
-      { key: 'deal_toggle', label: "Salespersons can turn a line's deal (B2G1) off and on", type: 'bool' },
+      { key: 'deal_toggle', label: t('Salespersons can turn a line\'s deal (B2G1) off and on'), type: 'bool' },
       { key: 'deals_stack', label: t('Invoice deals add up (off: the biggest one takes over)'), type: 'bool' },
       { key: 'variant_pick_required', label: t('Cashier must pick the colour/size when a scanned item has variants'), type: 'bool' },
       { key: 'sync_verbose', label: t('Sync light: show every step (verbose), not only what changed'), type: 'bool' },
@@ -953,7 +944,7 @@
     ],
     counters: [
       { key: 'visitor_counter_enabled', label: t('Visitor counter buttons'), type: 'bool' },
-      { key: 'non_admin_month_nav_enabled', label: "Cashiers browse other months' income", type: 'bool' },
+      { key: 'non_admin_month_nav_enabled', label: t('Cashiers browse other months\' income'), type: 'bool' },
     ],
     look: [
       { key: 'sounds_enabled', label: t('Play sounds (scan, checkout, errors, keypad)'), type: 'bool' },
@@ -965,7 +956,7 @@
       { key: 'default_opening_float_lbp', label: t('Default opening float (LBP)'), type: 'number', scale: 1, step: 1000 },
     ],
     closing: [
-      { key: 'auto_close_stale_shifts', label: "Close yesterday's open shift at startup", type: 'bool' },
+      { key: 'auto_close_stale_shifts', label: t('Close yesterday\'s open shift at startup'), type: 'bool' },
       { key: 'close_shift_requires_sync', label: t('Upload everything before closing a shift'), type: 'bool' },
     ],
     endShift: [
@@ -975,27 +966,27 @@
     pages: [
       { key: 'page_unlock_products', label: t('Products page'), type: 'bool' },
     ],
-  }
-  const OPTIONAL_KEYS = Object.values(OPTIONAL_FIELDS).flat().map(f => f.key)
+  }))
+  const OPTIONAL_KEYS = Object.values(OPTIONAL_FIELDS.value).flat().map(f => f.key)
 
   // Till screen prefs (kashi-pos display_prefs.go), same "leave as is" rule.
-  const DISPLAY_FIELDS = [
+  const DISPLAY_FIELDS = computed(() => [
     { key: 'quick_access_rows', label: t('Quick access rows (0 hides)'), min: 0, max: 8 },
     { key: 'quick_access_font_scale', label: t('Quick access text size (%)'), min: 70, max: 200 },
-    { key: 'quick_access_show_code', label: t('Code on quick access cards'), items: TRI_STATE },
-    { key: 'quick_access_show_name', label: t('Name on quick access cards'), items: TRI_STATE },
-    { key: 'quick_access_show_remove', label: t('Remove (X) on quick access cards'), items: TRI_STATE },
-    { key: 'animations_enabled', label: t('Animations'), items: TRI_STATE },
-    { key: 'print_return_receipts', label: t('Print return and exchange receipts'), items: TRI_STATE },
+    { key: 'quick_access_show_code', label: t('Code on quick access cards'), items: TRI_STATE.value },
+    { key: 'quick_access_show_name', label: t('Name on quick access cards'), items: TRI_STATE.value },
+    { key: 'quick_access_show_remove', label: t('Remove (X) on quick access cards'), items: TRI_STATE.value },
+    { key: 'animations_enabled', label: t('Animations'), items: TRI_STATE.value },
+    { key: 'print_return_receipts', label: t('Print return and exchange receipts'), items: TRI_STATE.value },
     {
       key: 'theme',
       label: t('Theme'),
       items: [{ title: t('Leave as is'), value: null }, { title: t('Light'), value: 'light' }, { title: t('Dark'), value: 'dark' }],
     },
-  ]
+  ])
 
-  const LOOK_FIELDS = DISPLAY_FIELDS.filter(f => ['theme', 'animations_enabled'].includes(f.key))
-  const CARD_FIELDS = DISPLAY_FIELDS.filter(f => !['theme', 'animations_enabled'].includes(f.key))
+  const LOOK_FIELDS = computed(() => DISPLAY_FIELDS.value.filter(f => ['theme', 'animations_enabled'].includes(f.key)))
+  const CARD_FIELDS = computed(() => DISPLAY_FIELDS.value.filter(f => !['theme', 'animations_enabled'].includes(f.key)))
 
   function scaledValue (value, scale) {
     return value == null ? '' : value / scale
@@ -1088,7 +1079,7 @@
     try {
       const saved = await updateDefaultBranchSettings(templatePayload())
       if (saved) form.value = formFromTemplate(saved)
-      notify.success('Default settings saved.')
+      notify.success(t('Default settings saved.'))
     } catch (error) {
       notify.error(error.message)
     } finally {
@@ -1100,7 +1091,7 @@
     applying.value = true
     try {
       const count = await applyDefaultBranchSettingsToAll()
-      notify.success(`Queued for ${count} branch(es) — each applies it within a few seconds if online.`)
+      notify.success(t('Queued for {count} branch(es) — each applies it within a few seconds if online.', { count }))
       confirmApplyOpen.value = false
     } catch (error) {
       notify.error(error.message)

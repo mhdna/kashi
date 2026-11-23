@@ -3,7 +3,7 @@
     <v-card class="employees-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-account-cash" />
-        <span>Employees &amp; Payroll</span>
+        <span>{{ t('Employees & Payroll') }}</span>
         <v-spacer />
         <v-text-field
           v-model="search"
@@ -11,7 +11,7 @@
           clearable
           density="compact"
           hide-details
-          label="Search name or role"
+          :label="t('Search name or role')"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
           @update:model-value="debouncedReload"
@@ -25,18 +25,18 @@
           item-title="name"
           item-value="id"
           :items="branches"
-          label="Branch"
+          :label="t('Branch')"
           variant="outlined"
           @update:model-value="reload"
         />
         <template v-if="canEdit && editing">
-          <v-btn text="Cancel" variant="text" @click="cancelEdit" />
+          <v-btn :text="t('Cancel')" variant="text" @click="cancelEdit" />
           <v-btn
             color="primary"
             :disabled="!dirtyCount"
             :loading="saving"
             prepend-icon="mdi-content-save-all"
-            :text="`Save all${dirtyCount ? ` (${dirtyCount})` : ''}`"
+            :text="dirtyCount ? t('Save all ({count})', { count: dirtyCount }) : t('Save all')"
             variant="flat"
             @click="saveAll"
           />
@@ -44,14 +44,14 @@
         <template v-else-if="canEdit">
           <v-btn
             prepend-icon="mdi-pencil"
-            text="Edit salaries"
+            :text="t('Edit salaries')"
             variant="outlined"
             @click="startEdit"
           />
           <v-btn
             color="primary"
             prepend-icon="mdi-plus"
-            text="Add employee"
+            :text="t('Add employee')"
             variant="flat"
             @click="openCreate"
           />
@@ -133,7 +133,7 @@
                     density="compact"
                     hide-details
                     style="min-width: 60px"
-                    :suffix="draft[item.id].unit === 'day' ? 'd' : 'h'"
+                    :suffix="draft[item.id].unit === 'day' ? t('d') : t('h')"
                     type="number"
                     variant="plain"
                   />
@@ -183,17 +183,17 @@
     <!-- add / edit employee -->
     <v-dialog v-model="dialog" max-width="520">
       <v-card class="px-4 py-2">
-        <v-card-title>{{ form.id ? 'Edit employee' : 'Add employee' }}</v-card-title>
+        <v-card-title>{{ form.id ? t('Edit employee') : t('Add employee') }}</v-card-title>
         <v-card-text>
           <v-text-field
             v-model="form.name"
             density="compact"
             :error-messages="formError.name"
-            label="Name"
+            :label="t('Name')"
           />
           <v-row dense>
             <v-col cols="6">
-              <v-text-field v-model="form.role" density="compact" label="Role" />
+              <v-text-field v-model="form.role" density="compact" :label="t('Role')" />
             </v-col>
             <v-col cols="6">
               <v-select
@@ -203,7 +203,7 @@
                 item-title="name"
                 item-value="id"
                 :items="branches"
-                label="Branch (optional)"
+                :label="t('Branch (optional)')"
               />
             </v-col>
           </v-row>
@@ -213,32 +213,32 @@
                 v-model="form.status"
                 density="compact"
                 :items="['active', 'inactive']"
-                label="Status"
+                :label="t('Status')"
               />
             </v-col>
             <v-col cols="6">
               <DateField
                 v-model="form.hiredOn"
                 density="compact"
-                label="Hired on"
+                :label="t('Hired on')"
               />
             </v-col>
           </v-row>
           <v-text-field
             v-model="form.base"
             density="compact"
-            label="Base salary"
+            :label="t('Base salary')"
             prefix="$"
             type="number"
           />
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" @click="dialog = false" />
+          <v-btn :text="t('Cancel')" @click="dialog = false" />
           <v-btn
             color="primary"
             :loading="submitting"
-            :text="form.id ? 'Save' : 'Add'"
+            :text="form.id ? t('Save') : t('Add')"
             @click="submit"
           />
         </v-card-actions>
@@ -249,6 +249,7 @@
 
 <script setup lang="ts">
   import { computed, onMounted, reactive, ref } from 'vue'
+  import { t } from '@/i18n'
   import { useBranches } from '@/composables/useBranches'
   import { confirmDialog } from '@/composables/useDialog'
   import { useEmployees } from '@/composables/useEmployees'
@@ -262,18 +263,18 @@
   const { listEmployees, createEmployee, updateEmployee, deleteEmployee, batchSetSalaries } = useEmployees()
   const { branches, fetchBranches } = useBranches()
 
-  const headers = [
-    { title: 'Name', key: 'name', align: 'start' },
-    { title: 'Branch', key: 'branch' },
-    { title: 'Role', key: 'role' },
-    { title: 'Base', key: 'base', align: 'end' },
-    { title: 'Commission', key: 'commission', align: 'end' },
-    { title: 'Late حسم (rate × units)', key: 'late' },
-    { title: 'Deduction', key: 'deduction', align: 'end' },
-    { title: 'Net salary', key: 'net', align: 'end' },
-    { title: 'Status', key: 'status' },
+  const headers = computed(() => [
+    { title: t('Name'), key: 'name', align: 'start' },
+    { title: t('Branch'), key: 'branch' },
+    { title: t('Role'), key: 'role' },
+    { title: t('Base'), key: 'base', align: 'end' },
+    { title: t('Commission'), key: 'commission', align: 'end' },
+    { title: t('Late حسم (rate × units)'), key: 'late' },
+    { title: t('Deduction'), key: 'deduction', align: 'end' },
+    { title: t('Net salary'), key: 'net', align: 'end' },
+    { title: t('Status'), key: 'status' },
     { title: '', key: 'actions', align: 'end', sortable: false },
-  ]
+  ])
 
   const rows = ref([])
   const loading = ref(false)
@@ -291,7 +292,7 @@
 
   function unitsLabel (item) {
     const n = Number(item.late_units_centi || 0) / 100
-    return `${n} ${item.late_deduction_unit === 'day' ? 'd' : 'h'}`
+    return `${n} ${item.late_deduction_unit === 'day' ? t('d') : t('h')}`
   }
 
   // Mirror the server's arithmetic so edit-mode cells update live before a save.
@@ -476,7 +477,7 @@
   }
 
   async function submit () {
-    formError.name = form.name.trim() ? '' : 'Name is required.'
+    formError.name = form.name.trim() ? '' : t('Name is required.')
     if (formError.name) return
     submitting.value = true
     const payload = {
@@ -500,7 +501,7 @@
   }
 
   async function remove (item) {
-    if (!(await confirmDialog({ text: `Delete employee "${item.name}"?`, okText: 'Delete', danger: true }))) return
+    if (!(await confirmDialog({ text: t('Delete employee "{name}"?', { name: item.name }), okText: t('Delete'), danger: true }))) return
     try {
       await deleteEmployee(item.id)
       await reload()

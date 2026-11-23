@@ -1,16 +1,16 @@
 <template>
   <v-dialog max-width="520" :model-value="modelValue" @update:model-value="close">
     <v-card>
-      <v-card-title class="px-6 pt-5">Open for exchange</v-card-title>
+      <v-card-title class="px-6 pt-5">{{ t('Open for exchange') }}</v-card-title>
       <v-card-subtitle class="px-6">{{ invoice?.branch_invoice_code }}, {{ branchName }}</v-card-subtitle>
       <v-card-text class="px-6">
         <template v-if="phase === 'edit'">
           <p class="text-body-2 mb-4">
-            The till lets this sale be exchanged past the branch's exchange window, until the end of the last day.
+            {{ t("The till lets this sale be exchanged past the branch's exchange window, until the end of the last day.") }}
           </p>
           <v-radio-group v-model="mode" hide-details>
-            <v-radio data-test="mode-today" label="Only today" value="today" />
-            <v-radio data-test="mode-days" label="For a number of days" value="days" />
+            <v-radio data-test="mode-today" :label="t('Only today')" value="today" />
+            <v-radio data-test="mode-days" :label="t('For a number of days')" value="days" />
           </v-radio-group>
           <v-text-field
             v-if="mode === 'days'"
@@ -18,8 +18,8 @@
             class="mt-2"
             data-test="days"
             density="compact"
-            :hint="'Counting today, up to ' + MAX_OPENING_DAYS"
-            label="Days"
+            :hint="t('Counting today, up to {max}', { max: MAX_OPENING_DAYS })"
+            :label="t('Days')"
             :max="MAX_OPENING_DAYS"
             min="1"
             persistent-hint
@@ -27,16 +27,16 @@
             variant="outlined"
           />
           <p class="text-body-2 mt-4" data-test="until">
-            <template v-if="untilDate">Open until the end of <strong>{{ formatOpeningDate(untilDate) }}</strong></template>
-            <template v-else>Enter between 1 and {{ MAX_OPENING_DAYS }} days.</template>
+            <template v-if="untilDate">{{ t('Open until the end of') }} <strong>{{ formatOpeningDate(untilDate) }}</strong></template>
+            <template v-else>{{ t('Enter between 1 and {max} days.', { max: MAX_OPENING_DAYS }) }}</template>
           </p>
-          <v-textarea v-model="reason" class="mt-2" label="Reason (optional)" rows="2" />
+          <v-textarea v-model="reason" class="mt-2" :label="t('Reason (optional)')" rows="2" />
         </template>
         <PreparingState
           v-else-if="phase === 'waiting'"
           kind="receipt"
           min-height="180px"
-          :title="`Waiting for ${branchName} to open the sale`"
+          :title="t('Waiting for {branch} to open the sale', { branch: branchName })"
         />
         <p v-else-if="phase === 'result'" class="text-body-2" :class="result?.status === 'failed' ? 'text-error' : ''" data-test="result">
           {{ resultText }}
@@ -45,21 +45,21 @@
       <v-card-actions class="px-6 pb-4">
         <v-spacer />
         <template v-if="phase === 'edit'">
-          <v-btn text="Cancel" @click="close" />
+          <v-btn :text="t('Cancel')" @click="close" />
           <v-btn
             color="primary"
             data-test="send-opening"
             :disabled="!untilDate"
             :loading="sending"
-            text="Open for exchange"
+            :text="t('Open for exchange')"
             @click="send"
           />
         </template>
         <template v-else-if="phase === 'result' && result?.status === 'failed'">
-          <v-btn text="Close" @click="close" />
-          <v-btn color="primary" text="Edit and send again" @click="phase = 'edit'" />
+          <v-btn :text="t('Close')" @click="close" />
+          <v-btn color="primary" :text="t('Edit and send again')" @click="phase = 'edit'" />
         </template>
-        <v-btn v-else text="Close" @click="close" />
+        <v-btn v-else :text="t('Close')" @click="close" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -67,6 +67,7 @@
 
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue'
+  import { t } from '@/i18n'
   import PreparingState from '@/components/PreparingState.vue'
   import { useBranchCommands } from '@/composables/useBranchCommands'
   import { useNotify } from '@/composables/useNotify'
@@ -97,9 +98,9 @@
   const untilDate = computed(() => openingUntilDate(mode.value, days.value))
   const resultText = computed(() => {
     const until = formatOpeningDate(sentUntil.value)
-    if (result.value?.status === 'success') return `Open for exchange on the till until the end of ${until}.`
-    if (result.value?.status === 'failed') return result.value.error || 'The till reported a failure with no message.'
-    return `Still waiting: the till may be offline. It opens the sale until ${until} the next time it's online.`
+    if (result.value?.status === 'success') return t('Open for exchange on the till until the end of {until}.', { until })
+    if (result.value?.status === 'failed') return result.value.error || t('The till reported a failure with no message.')
+    return t("Still waiting: the till may be offline. It opens the sale until {until} the next time it's online.", { until })
   })
 
   watch(() => props.modelValue, open => {

@@ -33,7 +33,7 @@
                   v-bind="activatorProps"
                   class="gt-group"
                   :prepend-icon="group.icon"
-                  :title="group.name"
+                  :title="t(group.name)"
                 />
               </template>
               <v-list-item
@@ -54,7 +54,7 @@
 
         <div class="guide-content">
           <div v-if="current" :key="current.id" class="guide-page pa-6">
-            <div class="text-overline text-medium-emphasis">{{ current.group }}</div>
+            <div class="text-overline text-medium-emphasis">{{ t(current.group) }}</div>
             <h1 class="text-h5 mb-3">{{ current.title }}</h1>
             <template v-for="(block, i) in current.blocks" :key="i">
               <h2 v-if="block.kind === 'heading'" class="text-subtitle-1 font-weight-bold mt-5 mb-2">
@@ -125,11 +125,12 @@
 
   const visible = computed(() => {
     const q = (search.value ?? '').trim().toLowerCase()
-    return q ? guideSections.filter(s => textOf(s).includes(q)) : guideSections
+    const all = guideSections()
+    return q ? all.filter(s => textOf(s).includes(q)) : all
   })
 
   // The contents tree: a group per area, its pages underneath.
-  const tree = computed(() => guideGroups
+  const tree = computed(() => guideGroups()
     .map(name => ({
       name,
       icon: guideGroupIcons[name],

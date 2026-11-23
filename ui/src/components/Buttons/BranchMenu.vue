@@ -18,7 +18,7 @@
           :active="selectedBranchId === null"
           @click="selectedBranchId = null"
         >
-          <v-list-item-title>All Branches</v-list-item-title>
+          <v-list-item-title>{{ t('All Branches') }}</v-list-item-title>
         </v-list-item>
         <v-list-item
           v-for="branch in reportBranches"

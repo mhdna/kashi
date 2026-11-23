@@ -3,7 +3,7 @@
     <v-card class="assets-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-hammer-wrench" />
-        <span>Assets</span>
+        <span>{{ t('Assets') }}</span>
         <v-spacer />
         <v-text-field
           v-model="search"
@@ -11,7 +11,7 @@
           clearable
           density="compact"
           hide-details
-          label="Search assets"
+          :label="t('Search assets')"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
         />
@@ -20,7 +20,7 @@
           color="primary"
           :disabled="activeCategories.length === 0"
           prepend-icon="mdi-plus"
-          text="Add Asset"
+          :text="t('Add Asset')"
           variant="flat"
           @click="openCreate"
         />
@@ -79,7 +79,7 @@
     <!-- add / edit asset -->
     <v-dialog v-model="editDialog" max-width="460">
       <v-card>
-        <v-card-title class="text-h6">{{ editing ? 'Edit Asset' : 'Add Asset' }}</v-card-title>
+        <v-card-title class="text-h6">{{ editing ? t('Edit Asset') : t('Add Asset') }}</v-card-title>
         <v-card-text>
           <v-text-field
             v-model="form.name"
@@ -87,7 +87,7 @@
             class="mb-3"
             density="compact"
             hide-details="auto"
-            label="Name"
+            :label="t('Name')"
             variant="outlined"
           />
           <v-text-field
@@ -95,7 +95,7 @@
             class="mb-3"
             density="compact"
             hide-details="auto"
-            label="Code"
+            :label="t('Code')"
             variant="outlined"
           />
           <v-select
@@ -106,7 +106,7 @@
             item-title="name"
             item-value="id"
             :items="activeCategories"
-            label="Category"
+            :label="t('Category')"
             variant="outlined"
           >
             <template #item="{ props: itemProps, item }">
@@ -123,7 +123,7 @@
             v-model="form.boughtAt"
             density="compact"
             hide-details="auto"
-            label="Bought At"
+            :label="t('Bought At')"
             variant="outlined"
           />
         </v-card-text>
@@ -132,16 +132,16 @@
             v-if="editing"
             color="error"
             prepend-icon="mdi-delete"
-            text="Delete"
+            :text="t('Delete')"
             variant="text"
             @click="deleteEditedAsset"
           />
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="editDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="editDialog = false" />
           <v-btn
             color="primary"
             :loading="saving"
-            text="Save"
+            :text="t('Save')"
             variant="flat"
             @click="saveAsset"
           />
@@ -152,17 +152,17 @@
     <!-- delete asset -->
     <v-dialog v-model="deleteDialog" max-width="420">
       <v-card>
-        <v-card-title class="text-h6">Delete asset</v-card-title>
+        <v-card-title class="text-h6">{{ t('Delete asset') }}</v-card-title>
         <v-card-text>
-          Delete <strong>{{ deleteTarget?.name }}</strong>? This can't be undone.
+          {{ t("Delete {name}? This can't be undone.", { name: deleteTarget?.name }) }}
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="deleteDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="deleteDialog = false" />
           <v-btn
             color="error"
             :loading="deleting"
-            text="Delete"
+            :text="t('Delete')"
             variant="flat"
             @click="doDelete"
           />
@@ -173,7 +173,7 @@
     <CategoryDialog
       v-model="categoryDialog"
       :category="editingCategory"
-      name-hint="e.g. Vehicles, Equipment, Furniture"
+      :name-hint="t('e.g. Vehicles, Equipment, Furniture')"
       :on-submit="submitCategory"
       :show-scope="false"
     />
@@ -195,6 +195,7 @@
   import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
   import { categoryColor, categoryIcon } from '@/data/expenseCategoryIcons'
+  import { t } from '@/i18n'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
@@ -239,13 +240,13 @@
     return assetCategories.value.find(c => c.id === id) ?? null
   }
 
-  const headers = [
-    { title: 'Name', key: 'name', align: 'start' },
-    { title: 'Code', key: 'code', align: 'start' },
-    { title: 'Category', key: 'category_id', align: 'start' },
-    { title: 'Bought At', key: 'bought_at', align: 'start', width: 160 },
-    { title: 'Created At', key: 'created_at', align: 'start', width: 200 },
-  ]
+  const headers = computed(() => [
+    { title: t('Name'), key: 'name', align: 'start' },
+    { title: t('Code'), key: 'code', align: 'start' },
+    { title: t('Category'), key: 'category_id', align: 'start' },
+    { title: t('Bought At'), key: 'bought_at', align: 'start', width: 160 },
+    { title: t('Created At'), key: 'created_at', align: 'start', width: 200 },
+  ])
 
   function formatDate (value) {
     if (!value) return '—'
@@ -296,11 +297,11 @@
 
   async function saveAsset () {
     if (!form.name.trim() || !form.code.trim()) {
-      notify.error('Name and code are required.')
+      notify.error(t('Name and code are required.'))
       return
     }
     if (!form.categoryId) {
-      notify.error('Pick a category.')
+      notify.error(t('Pick a category.'))
       return
     }
     saving.value = true
@@ -371,7 +372,7 @@
   }
 
   async function removeCategory (category) {
-    if (!(await confirmDialog({ text: `Delete category "${category.name}"? Categories still used by an asset can't be deleted.`, okText: 'Delete', danger: true }))) return
+    if (!(await confirmDialog({ text: t('Delete category "{name}"? Categories still used by an asset can\'t be deleted.', { name: category.name }), okText: t('Delete'), danger: true }))) return
     try {
       await deleteAssetCategory(category.id)
       if (selectedCategory.value === category.id) selectedCategory.value = null

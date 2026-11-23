@@ -20,7 +20,7 @@
             v-if="loading"
             kind="chat"
             min-height="200px"
-            title="Loading the conversation"
+            :title="t('Loading the conversation')"
           />
           <template v-else>
             <template v-for="(b, i) in bubbles" :key="i">
@@ -34,7 +34,7 @@
 
                   <template v-if="b.kind === 'poll'">
                     <div class="font-weight-bold mb-1" style="white-space: pre-line">{{ b.text }}</div>
-                    <div class="wc__poll-hint">Select one</div>
+                    <div class="wc__poll-hint">{{ t('Select one') }}</div>
                     <div v-for="o in b.options" :key="o" class="wc__option">
                       <v-icon
                         :color="o === b.chosen ? 'green-darken-1' : 'grey'"
@@ -47,7 +47,7 @@
                   </template>
 
                   <div v-else-if="b.kind === 'template'" class="wc__text">
-                    <span class="text-medium-emphasis">Meta template</span> <strong>{{ b.text }}</strong>
+                    <span class="text-medium-emphasis">{{ t('Meta template') }}</span> <strong>{{ b.text }}</strong>
                   </div>
 
                   <!-- A voice note, photo, video or file the bridge kept. -->
@@ -68,14 +68,14 @@
                       :src="media[b.media_url]"
                     />
                     <a v-else class="wc__text" :download="KIND_LABEL[b.kind] ?? 'file'" :href="media[b.media_url]">
-                      <v-icon icon="mdi-paperclip" size="16" /> {{ KIND_LABEL[b.kind] ?? 'File' }}
+                      <v-icon icon="mdi-paperclip" size="16" /> {{ t(KIND_LABEL[b.kind] ?? 'File') }}
                     </a>
                     <div v-if="mediaError[b.media_url]" class="text-caption text-medium-emphasis">{{ mediaError[b.media_url] }}</div>
                     <!-- eslint-disable-next-line vue/no-v-html -- escaped in format() -->
                     <div v-if="b.text" class="wc__text mt-1" v-html="format(b.text)" />
                   </template>
                   <div v-else-if="b.kind !== 'text' && !b.text" class="wc__text text-medium-emphasis">
-                    <v-icon :icon="KIND_ICON[b.kind] ?? 'mdi-paperclip'" size="16" /> {{ KIND_LABEL[b.kind] ?? b.kind }}
+                    <v-icon :icon="KIND_ICON[b.kind] ?? 'mdi-paperclip'" size="16" /> {{ t(KIND_LABEL[b.kind] ?? b.kind) }}
                   </div>
                   <!-- eslint-disable-next-line vue/no-v-html -- escaped in format() -->
                   <div v-else class="wc__text" v-html="format(b.text)" />
@@ -87,17 +87,17 @@
                       :class="`wc__ticks--${b.ticks}`"
                       :icon="TICK_ICON[b.ticks]"
                       size="15"
-                      :title="TICK_TITLE[b.ticks]"
+                      :title="t(TICK_TITLE[b.ticks])"
                     />
                   </div>
                   <div v-if="b.read_at || b.delivered_at" class="wc__seen" :class="{ 'wc__seen--read': b.read_at }">
-                    {{ b.read_at ? `Read ${time(b.read_at)}` : `Delivered ${time(b.delivered_at)}` }}
+                    {{ b.read_at ? t('Read {time}', { time: time(b.read_at) }) : t('Delivered {time}', { time: time(b.delivered_at) }) }}
                   </div>
                 </div>
               </div>
             </template>
             <div v-if="bubbles.length > 0 && message && !message.saved" class="wc__foot">
-              Sent before kashi kept the text: rebuilt with today's wording.
+              {{ t('Sent before kashi kept the text: rebuilt with today\'s wording.') }}
             </div>
           </template>
         </div>
@@ -105,45 +105,45 @@
         <!-- The sale and the message, beside the chat. -->
         <aside class="wc__side pa-4">
           <template v-if="message">
-            <div class="wc__side-title">Message</div>
+            <div class="wc__side-title">{{ t('Message') }}</div>
             <div class="wc__facts">
-              <span>Sent</span><span>{{ new Date(message.created_at).toLocaleString() }}</span>
-              <span>Outcome</span>
+              <span>{{ t('Sent') }}</span><span>{{ new Date(message.created_at).toLocaleString() }}</span>
+              <span>{{ t('Outcome') }}</span>
               <span>
                 {{ STATUS[message.status]?.label ?? message.status }}<template v-if="message.reason"> · {{ message.reason }}</template>
-                <v-chip v-if="message.is_test" class="ms-1" size="x-small" variant="tonal">Test</v-chip>
+                <v-chip v-if="message.is_test" class="ms-1" size="x-small" variant="tonal">{{ t('Test') }}</v-chip>
               </span>
-              <span>Rule</span><span>{{ message.rule_name || 'Default' }}</span>
+              <span>{{ t('Rule') }}</span><span>{{ message.rule_name || t('Default') }}</span>
               <template v-if="message.poll_answer">
-                <span>Answer</span><span>{{ message.poll_answer }}</span>
+                <span>{{ t('Answer') }}</span><span>{{ message.poll_answer }}</span>
               </template>
             </div>
 
             <div class="wc__side-title mt-5">
-              Sale
+              {{ t('Sale') }}
               <v-chip
                 v-if="invoice?.cancelled_at?.Valid"
                 class="ms-1"
                 color="error"
                 size="x-small"
                 variant="tonal"
-              >Cancelled</v-chip>
+              >{{ t('Cancelled') }}</v-chip>
             </div>
             <div v-if="!invoice" class="text-body-2 text-medium-emphasis">
-              {{ message.is_test ? 'A test send: there is no sale.' : "This sale hasn't reached kashi yet." }}
+              {{ message.is_test ? t('A test send: there is no sale.') : t('This sale hasn\'t reached kashi yet.') }}
             </div>
             <template v-else>
               <div class="wc__facts">
-                <span>Invoice</span><span>{{ invoice.code }}</span>
-                <span>When</span><span>{{ new Date(invoice.occurred_at).toLocaleString() }}</span>
-                <span>Branch</span><span>{{ message.branch_name || '—' }}</span>
-                <span>Salesperson</span><span>{{ invoice.salesperson || '—' }}</span>
+                <span>{{ t('Invoice') }}</span><span>{{ invoice.code }}</span>
+                <span>{{ t('When') }}</span><span>{{ new Date(invoice.occurred_at).toLocaleString() }}</span>
+                <span>{{ t('Branch') }}</span><span>{{ message.branch_name || '—' }}</span>
+                <span>{{ t('Salesperson') }}</span><span>{{ invoice.salesperson || '—' }}</span>
               </div>
 
-              <div class="wc__side-title mt-5">{{ invoice.items.length }} item{{ invoice.items.length === 1 ? '' : 's' }}</div>
+              <div class="wc__side-title mt-5">{{ invoice.items.length }} {{ invoice.items.length === 1 ? t('item') : t('items') }}</div>
               <div v-for="it in invoice.items" :key="it.id" class="wc__item">
                 <div class="flex-grow-1 min-w-0">
-                  <div class="text-body-2 font-weight-medium">{{ it.product_name || 'Unknown product' }}</div>
+                  <div class="text-body-2 font-weight-medium">{{ it.product_name || t('Unknown product') }}</div>
                   <div class="text-caption text-medium-emphasis">
                     {{ [it.product_code, it.color_name, it.size_name].filter(Boolean).join(' · ') }}
                   </div>
@@ -155,13 +155,13 @@
               </div>
 
               <div class="wc__totals">
-                <span>Subtotal</span><span>{{ formatDollars(invoice.subtotal) }}</span>
+                <span>{{ t('Subtotal') }}</span><span>{{ formatDollars(invoice.subtotal) }}</span>
                 <template v-if="invoice.discount">
-                  <span>Discount</span><span>−{{ invoice.discount }}%</span>
+                  <span>{{ t('Discount') }}</span><span>−{{ invoice.discount }}%</span>
                 </template>
-                <strong>Total</strong><strong>{{ formatDollars(invoice.grand_total) }}</strong>
+                <strong>{{ t('Total') }}</strong><strong>{{ formatDollars(invoice.grand_total) }}</strong>
                 <template v-for="p in invoice.payments" :key="p.id">
-                  <span class="text-medium-emphasis">Paid · {{ p.account_name }}</span>
+                  <span class="text-medium-emphasis">{{ t('Paid · {account}', { account: p.account_name }) }}</span>
                   <span class="text-medium-emphasis">{{ formatDollars(p.amount) }}</span>
                 </template>
               </div>
@@ -180,6 +180,7 @@
   import { useNotify } from '@/composables/useNotify'
   import { useWhatsApp } from '@/composables/useWhatsApp'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
   import { formatDollars, formatPhone, STATUS } from '@/utils/whatsapp'
 
   // One row of the Messages tab as a WhatsApp chat: what we sent, the poll
@@ -251,7 +252,7 @@
       if (!path || media.value[path] || mediaError.value[path]) continue
       try {
         const res = await authFetch(`${API_BASE}${path}`)
-        if (!res.ok) throw new Error(res.status === 404 ? 'No longer kept' : `Couldn't load it (${res.status})`)
+        if (!res.ok) throw new Error(res.status === 404 ? t('No longer kept') : t('Couldn\'t load it ({status})', { status: res.status }))
         media.value = { ...media.value, [path]: URL.createObjectURL(await res.blob()) }
       } catch (error) {
         mediaError.value = { ...mediaError.value, [path]: error.message }
@@ -279,7 +280,7 @@
   function dayLabel (i) {
     const day = new Date(bubbles.value[i].at).toDateString()
     if (i > 0 && new Date(bubbles.value[i - 1].at).toDateString() === day) return ''
-    if (day === new Date().toDateString()) return 'Today'
+    if (day === new Date().toDateString()) return t('Today')
     return new Date(bubbles.value[i].at).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
   }
 </script>

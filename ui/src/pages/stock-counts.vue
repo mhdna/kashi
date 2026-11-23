@@ -2,7 +2,7 @@
   <v-dialog v-model="editorDialog" fullscreen scrollable>
     <v-card>
       <v-card-title class="d-flex align-center ga-3">
-        <span>{{ editingId ? `Stock Count #${editingId}` : 'New Stock Count' }}</span>
+        <span>{{ editingId ? t('Stock Count #{id}', { id: editingId }) : t('New Stock Count') }}</span>
         <v-chip v-if="editorStatus" :color="statusColor(editorStatus)" size="small">{{ editorStatus }}</v-chip>
         <v-spacer />
         <v-btn icon="mdi-close" variant="text" @click="closeEditor" />
@@ -19,7 +19,7 @@
               :item-title="i => i.name"
               :item-value="i => i.id"
               :items="inventories"
-              label="Inventory"
+              :label="t('Inventory')"
               @update:model-value="seedFromInventory"
             />
           </v-col>
@@ -29,7 +29,7 @@
               density="compact"
               :disabled="!isDraft"
               hide-details
-              label="Note"
+              :label="t('Note')"
             />
           </v-col>
           <v-col v-if="isDraft" cols="12" md="3">
@@ -43,7 +43,7 @@
               :items="skuOptions"
               :loading="skuLoading"
               no-filter
-              placeholder="Add SKU by search / barcode"
+              :placeholder="t('Add SKU by search / barcode')"
               @update:model-value="addLine"
               @update:search="onSkuSearch"
             />
@@ -54,7 +54,7 @@
         <div v-if="seedProgress" class="d-flex align-center ga-2 my-2">
           <v-progress-linear color="primary" :model-value="seedProgress.pct" />
           <span class="text-caption text-medium-emphasis text-no-wrap">
-            {{ seedProgress.loaded }} / {{ seedProgress.total }} SKUs
+            {{ t('{loaded} / {total} SKUs', { loaded: seedProgress.loaded, total: seedProgress.total }) }}
           </span>
         </div>
 
@@ -96,7 +96,7 @@
             />
           </template>
           <template #no-data>
-            <div class="text-medium-emphasis pa-4">No lines yet.</div>
+            <div class="text-medium-emphasis pa-4">{{ t('No lines yet.') }}</div>
           </template>
         </v-data-table-virtual>
       </v-card-text>
@@ -107,18 +107,18 @@
           color="error"
           :disabled="!editingId"
           :loading="cancelling"
-          text="Cancel Count"
+          :text="t('Cancel Count')"
           variant="text"
           @click="cancelDraft"
         />
         <v-spacer />
         <template v-if="isDraft">
-          <v-btn :loading="saving" text="Save Draft" @click="save" />
+          <v-btn :loading="saving" :text="t('Save Draft')" @click="save" />
           <v-btn
             color="success"
             :disabled="!editingId"
             :loading="posting"
-            text="Post"
+            :text="t('Post')"
             @click="post"
           />
         </template>
@@ -130,7 +130,7 @@
     <v-card class="counts-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-clipboard-list-outline" />
-        <span>Stock Counts</span>
+        <span>{{ t('Stock Counts') }}</span>
         <v-spacer />
         <v-select
           v-model="filterInventoryId"
@@ -141,14 +141,14 @@
           :item-title="i => i.name"
           :item-value="i => i.id"
           :items="inventories"
-          label="Inventory"
+          :label="t('Inventory')"
           variant="outlined"
         />
         <v-btn
           v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
-          text="New Count"
+          :text="t('New Count')"
           variant="flat"
           @click="openCreate"
         />
@@ -188,6 +188,7 @@
   import { useNotify } from '@/composables/useNotify'
   import { useVariants, variantLabel } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
@@ -210,13 +211,13 @@
 
   const apiURL = `${API_BASE}/stock_counts`
   const filterInventoryId = ref(null)
-  const headers = [
-    { title: 'ID', key: 'id', align: 'start' },
-    { title: 'Inventory', key: 'inventory_name', align: 'start' },
-    { title: 'Note', key: 'note', align: 'start' },
-    { title: 'Status', key: 'status', align: 'start' },
-    { title: 'Created At', key: 'created_at', align: 'end' },
-  ]
+  const headers = computed(() => [
+    { title: t('ID'), key: 'id', align: 'start' },
+    { title: t('Inventory'), key: 'inventory_name', align: 'start' },
+    { title: t('Note'), key: 'note', align: 'start' },
+    { title: t('Status'), key: 'status', align: 'start' },
+    { title: t('Created At'), key: 'created_at', align: 'end' },
+  ])
 
   function statusColor (s) {
     return { draft: 'grey', posted: 'success', cancelled: 'error' }[s] || 'grey'
@@ -240,9 +241,9 @@
 
   const lineHeaders = computed(() => [
     { title: 'SKU', key: 'label' },
-    { title: 'System Qty', key: 'system_quantity', align: 'end' },
-    { title: 'Counted Qty', key: 'counted_quantity', align: 'end' },
-    { title: 'Difference', key: 'difference', align: 'end' },
+    { title: t('System Qty'), key: 'system_quantity', align: 'end' },
+    { title: t('Counted Qty'), key: 'counted_quantity', align: 'end' },
+    { title: t('Difference'), key: 'difference', align: 'end' },
     ...(isDraft.value ? [{ title: '', key: 'actions', align: 'end', width: 40 }] : []),
   ])
 
@@ -344,7 +345,7 @@
     const variant = skuOptions.value.find(v => v.id === variantId)
     lines.value.push({
       variantId,
-      label: variant ? variantLabel(variant) : `SKU #${variantId}`,
+      label: variant ? variantLabel(variant) : t('SKU #{id}', { id: variantId }),
       systemQuantity: 0,
       countedQuantity: 0,
     })
@@ -357,7 +358,7 @@
 
   async function save () {
     if (!inventoryId.value) {
-      notify.error('Select an inventory.')
+      notify.error(t('Select an inventory.'))
       return
     }
     saving.value = true

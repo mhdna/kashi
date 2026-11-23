@@ -1,4 +1,5 @@
 import { ref, watch } from 'vue'
+import { t } from '../i18n'
 
 // Shared across both the retail and wholesale clients pages -- a client's
 // spend tier means the same thing regardless of which tab they're viewed
@@ -56,7 +57,7 @@ function tierFor (centsSpent) {
 function addTier () {
   tiers.value.push({
     id: `tier-${Date.now()}`,
-    label: 'New Tier',
+    label: t('New Tier'),
     color: '#607D8B',
     minAmount: 0,
   })

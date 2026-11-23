@@ -3,8 +3,8 @@
     <v-card class="bk-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-help-box-outline" />
-        <span>Unknown items</span>
-        <v-chip v-if="pending > 0" color="warning" size="small" variant="flat">{{ pending }} to resolve</v-chip>
+        <span>{{ t('Unknown items') }}</span>
+        <v-chip v-if="pending > 0" color="warning" size="small" variant="flat">{{ t('{n} to resolve', { n: pending }) }}</v-chip>
         <v-spacer />
         <v-btn-toggle
           v-model="view"
@@ -15,7 +15,7 @@
           @update:model-value="reload"
         >
           <v-btn value="waiting">
-            Waiting
+            {{ t('Waiting') }}
             <v-badge
               v-if="waitingCount > 0"
               class="ms-2"
@@ -24,25 +24,23 @@
               inline
             />
           </v-btn>
-          <v-btn value="pending">To resolve</v-btn>
-          <v-btn value="resolved">Resolved</v-btn>
+          <v-btn value="pending">{{ t('To resolve') }}</v-btn>
+          <v-btn value="resolved">{{ t('Resolved') }}</v-btn>
         </v-btn-toggle>
-        <v-btn prepend-icon="mdi-refresh" text="Reload" variant="text" @click="reload" />
+        <v-btn prepend-icon="mdi-refresh" :text="t('Reload')" variant="text" @click="reload" />
       </v-card-title>
       <v-divider />
 
       <v-card-text>
         <p v-if="view !== 'waiting'" class="text-body-2 text-medium-emphasis mb-4">
-          Items a till sold without a code, with the picture its cashier took. Select the units that are the
-          same product, pick the product, and the sold lines are relabelled and the stock is taken.
+          {{ t('Items a till sold without a code, with the picture its cashier took. Select the units that are the same product, pick the product, and the sold lines are relabelled and the stock is taken.') }}
         </p>
 
         <template v-if="view === 'waiting'">
           <p class="text-body-2 text-medium-emphasis mb-3">
-            Sales being rung up right now that are still missing a picture. If the cashier sent it another way,
-            allow those units through and the till takes payment straight away; they stay under “To resolve”.
+            {{ t('Sales being rung up right now that are still missing a picture. If the cashier sent it another way, allow those units through and the till takes payment straight away; they stay under “To resolve”.') }}
           </p>
-          <div v-if="waiting.length === 0" class="text-center text-medium-emphasis py-10">Nobody is waiting.</div>
+          <div v-if="waiting.length === 0" class="text-center text-medium-emphasis py-10">{{ t('Nobody is waiting.') }}</div>
           <v-list v-else density="compact" lines="two">
             <v-list-item
               v-for="unit in waiting"
@@ -64,25 +62,25 @@
                     v-else-if="unit.image_id && thumbFailed[unit.image_id]"
                     color="warning"
                     icon="mdi-alert-circle-outline"
-                    :title="`${thumbFailed[unit.image_id]} — tap to retry`"
+                    :title="t('{error}, tap to retry', { error: thumbFailed[unit.image_id] })"
                     @click.stop="retryThumb(unit.image_id)"
                   />
-                  <PreparingState v-else kind="box" :size="28" title="Loading" />
+                  <PreparingState v-else kind="box" :size="28" :title="t('Loading')" />
                 </v-avatar>
               </template>
               <v-list-item-title>
-                {{ unit.branch_name }} · {{ unknownLabel(unit.label, unit.unit_price) }}
+                {{ unit.branch_name }}, {{ unknownLabel(unit.label, unit.unit_price) }}
                 <v-chip
                   v-if="unit.help_requested_at"
                   class="ms-2"
                   color="warning"
                   size="x-small"
                   variant="flat"
-                >asked for help</v-chip>
+                >{{ t('asked for help') }}</v-chip>
               </v-list-item-title>
               <v-list-item-subtitle>
-                {{ formatAmount(unit.unit_price) }} · {{ formatWhen(unit.created_at) }} ·
-                {{ unit.image_id ? 'picture taken' : unit.waived_at ? 'allowed without a picture' : 'no picture yet' }}
+                {{ formatAmount(unit.unit_price) }}, {{ formatWhen(unit.created_at) }},
+                {{ unit.image_id ? t('picture taken') : unit.waived_at ? t('allowed without a picture') : t('no picture yet') }}
               </v-list-item-subtitle>
             </v-list-item>
           </v-list>
@@ -90,7 +88,7 @@
 
         <v-skeleton-loader v-else-if="loading && items.length === 0" type="card, card, card" />
         <div v-else-if="items.length === 0" class="text-center text-medium-emphasis py-10">
-          {{ resolved ? 'Nothing resolved yet.' : 'Nothing to resolve.' }}
+          {{ resolved ? t('Nothing resolved yet.') : t('Nothing to resolve.') }}
         </div>
 
         <div v-if="view !== 'waiting' && items.length > 0" class="unknown-grid">
@@ -105,8 +103,8 @@
             <div class="unknown-photo">
               <img v-if="thumbs[item.image_id]" alt="" :src="thumbs[item.image_id]" @click.stop="preview = item.image_id">
               <div v-else-if="!item.image_id" class="text-caption text-medium-emphasis text-center px-2">
-                <template v-if="item.waived_at">No picture<br>allowed by {{ item.waived_by || 'a manager' }}</template>
-                <template v-else>Picture deleted</template>
+                <template v-if="item.waived_at">{{ t('No picture') }}<br>{{ t('allowed by {by}', { by: item.waived_by || t('a manager') }) }}</template>
+                <template v-else>{{ t('Picture deleted') }}</template>
               </div>
               <div
                 v-else-if="thumbFailed[item.image_id]"
@@ -114,9 +112,9 @@
                 @click.stop="retryThumb(item.image_id)"
               >
                 <v-icon color="warning" icon="mdi-alert-circle-outline" /><br>
-                {{ thumbFailed[item.image_id] }}<br>tap to retry
+                {{ thumbFailed[item.image_id] }}<br>{{ t('tap to retry') }}
               </div>
-              <PreparingState v-else kind="box" :size="34" title="Loading" />
+              <PreparingState v-else kind="box" :size="34" :title="t('Loading')" />
               <v-checkbox-btn
                 v-if="view === 'pending' && canEdit"
                 class="unknown-check"
@@ -131,10 +129,10 @@
                 <span class="text-body-2">{{ formatAmount(item.unit_price) }}<span v-if="item.discount"> −{{ item.discount }}%</span></span>
               </div>
               <div class="text-caption text-medium-emphasis">
-                {{ item.branch_invoice_code }} · {{ formatWhen(item.occurred_at) }}
+                {{ item.branch_invoice_code }}, {{ formatWhen(item.occurred_at) }}
               </div>
               <div v-if="resolved" class="text-caption mt-1">
-                → {{ item.resolved_name || 'a product' }}
+                → {{ item.resolved_name || t('a product') }}
                 <span class="text-medium-emphasis">{{ item.resolved_barcode }}</span>
                 <v-chip
                   v-if="labelReading(item).fromPhoto"
@@ -143,18 +141,18 @@
                   label
                   size="x-small"
                 >
-                  From photo
+                  {{ t('From photo') }}
                 </v-chip>
               </div>
               <div v-if="labelReading(item).status === 'read'" class="text-caption mt-1" data-test="label-reading">
-                <div>Label: <bdi>{{ labelReading(item).name || 'no name' }}</bdi></div>
+                <div>{{ t('Label:') }} <bdi>{{ labelReading(item).name || t('no name') }}</bdi></div>
                 <div v-if="labelReading(item).details" class="text-medium-emphasis">{{ labelReading(item).details }}</div>
                 <div v-if="labelReading(item).warning" class="text-warning" data-test="label-warning">
                   {{ labelReading(item).warning }}
                 </div>
               </div>
               <div v-else-if="labelReading(item).status === 'failed'" class="text-caption text-medium-emphasis mt-1">
-                Couldn't read the label
+                {{ t("Couldn't read the label") }}
               </div>
             </div>
           </v-card>
@@ -172,15 +170,15 @@
       </v-card-text>
 
       <v-card-actions v-if="view === 'waiting' && canWaive && selectedWaiting.length > 0" class="unknown-bar px-4 py-3">
-        <span class="text-body-2">{{ selectedWaiting.length }} selected</span>
+        <span class="text-body-2">{{ t('{n} selected', { n: selectedWaiting.length }) }}</span>
         <v-btn color="warning" :loading="saving" variant="flat" @click="waive">
-          Allow {{ selectedWaiting.length }} without a picture
+          {{ t('Allow {n} without a picture', { n: selectedWaiting.length }) }}
         </v-btn>
-        <v-btn variant="text" @click="selectedWaiting = []">Clear</v-btn>
+        <v-btn variant="text" @click="selectedWaiting = []">{{ t('Clear') }}</v-btn>
       </v-card-actions>
 
       <v-card-actions v-if="view === 'pending' && canEdit && selected.length > 0" class="unknown-bar px-4 py-3">
-        <span class="text-body-2">{{ selected.length }} selected</span>
+        <span class="text-body-2">{{ t('{n} selected', { n: selected.length }) }}</span>
         <v-autocomplete
           v-model="variantId"
           class="ms-4"
@@ -190,7 +188,7 @@
           item-title="label"
           item-value="id"
           :items="variantItems"
-          label="What is it? Search a product, code or barcode"
+          :label="t('What is it? Search a product, code or barcode')"
           :loading="searching"
           no-filter
           style="max-width: 460px"
@@ -204,9 +202,9 @@
           variant="flat"
           @click="resolve"
         >
-          Match {{ selected.length }}
+          {{ t('Match {n}', { n: selected.length }) }}
         </v-btn>
-        <v-btn variant="text" @click="selected = []">Clear</v-btn>
+        <v-btn variant="text" @click="selected = []">{{ t('Clear') }}</v-btn>
       </v-card-actions>
     </v-card>
 
@@ -221,6 +219,7 @@
 
 <script setup>
   import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+  import { t } from '@/i18n'
   import { useAdminSocket } from '@/composables/useAdminSocket'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
@@ -262,7 +261,7 @@
 
   const variantItems = computed(() => variants.value.map(v => ({
     id: v.id,
-    label: [v.product_name, v.color_name, v.size_name].filter(Boolean).join(' / ') + ` · ${v.product_code} · ${v.barcode}`,
+    label: [v.product_name, v.color_name, v.size_name].filter(Boolean).join(' / ') + `, ${v.product_code}, ${v.barcode}`,
   })))
 
   function formatWhen (value) {
@@ -304,7 +303,7 @@
     saving.value = true
     try {
       const done = await waiveUnknownItems(selectedWaiting.value)
-      notify.success(`${done} item(s) allowed without a picture`)
+      notify.success(t('{n} item(s) allowed without a picture', { n: done }))
       selectedWaiting.value = []
       await loadWaiting()
     } catch (error) {
@@ -374,7 +373,7 @@
     saving.value = true
     try {
       await resolveUnknownItems(selected.value, variantId.value)
-      notify.success(`${selected.value.length} item(s) matched`)
+      notify.success(t('{n} item(s) matched', { n: selected.value.length }))
       variantId.value = null
       await load()
     } catch (error) {

@@ -2,15 +2,15 @@
   <div class="pa-4 pt-3">
     <div class="d-flex align-center flex-wrap ga-3 mb-3">
       <p class="text-body-2 text-medium-emphasis wh-intro mb-0">
-        Warning signs before WhatsApp bans a number, from the last 24 hours: disconnects, messages
-        WhatsApp refused, failed sends and sudden jumps in volume. A number that reaches
-        <strong>70</strong> pauses itself and keeps its messages queued until you resume it.
+        {{ t('Warning signs before WhatsApp bans a number, from the last 24 hours: disconnects, messages WhatsApp refused, failed sends and sudden jumps in volume. A number that reaches') }}
+        <strong>70</strong>
+        {{ t('pauses itself and keeps its messages queued until you resume it.') }}
       </p>
       <v-spacer />
       <v-btn
         :loading="loading"
         prepend-icon="mdi-refresh"
-        text="Refresh"
+        :text="t('Refresh')"
         variant="tonal"
         @click="load"
       />
@@ -27,7 +27,7 @@
     </v-alert>
 
     <div v-if="!loading && numbers.length === 0" class="text-body-2 text-medium-emphasis py-6 text-center">
-      No numbers yet. Add one in <router-link to="/settings?tab=whatsapp">Settings</router-link>.
+      {{ t('No numbers yet. Add one in') }} <router-link to="/settings?tab=whatsapp">{{ t('Settings') }}</router-link>.
     </div>
 
     <v-row dense>
@@ -43,16 +43,16 @@
             <div class="flex-grow-1 min-w-0">
               <div class="text-subtitle-1 font-weight-bold text-truncate">
                 {{ n.label || formatPhone(n.phone) || n.instance }}
-                <v-chip v-if="n.is_default" class="ms-1" size="x-small" variant="tonal">Default</v-chip>
+                <v-chip v-if="n.is_default" class="ms-1" size="x-small" variant="tonal">{{ t('Default') }}</v-chip>
               </div>
               <div class="text-caption text-medium-emphasis">
-                {{ formatPhone(n.phone) || '—' }} · {{ stateText(n.state) }}
-                <template v-if="n.queued"> · {{ n.queued }} queued</template>
+                {{ formatPhone(n.phone) || '—' }}, {{ stateText(n.state) }}
+                <template v-if="n.queued">, {{ t('{n} queued', { n: n.queued }) }}</template>
               </div>
             </div>
             <div class="text-end">
               <div class="wh-risk" :class="`text-${levelColor(n)}`">{{ n.health ? n.health.risk : '—' }}</div>
-              <div class="text-caption text-medium-emphasis">risk</div>
+              <div class="text-caption text-medium-emphasis">{{ t('risk') }}</div>
             </div>
           </div>
 
@@ -73,15 +73,13 @@
             type="error"
             variant="tonal"
           >
-            <div class="font-weight-bold">Paused {{ when(n.health.paused_at) }}</div>
+            <div class="font-weight-bold">{{ t('Paused {when}', { when: when(n.health.paused_at) }) }}</div>
             <div class="text-body-2">{{ n.health.paused_reason }}</div>
             <div class="text-caption mt-1">
-              Open WhatsApp on that phone and check for a warning before resuming. Its branches'
-              messages wait in the queue meanwhile.
+              {{ t("Open WhatsApp on that phone and check for a warning before resuming. Its branches' messages wait in the queue meanwhile.") }}
             </div>
             <div v-if="n.queued" class="text-caption mt-1">
-              {{ n.queued }} waiting. Dropping them is safer: a backlog sent in one go is what gets a
-              number restricted. New sales get their messages as usual.
+              {{ t('{n} waiting. Dropping them is safer: a backlog sent in one go is what gets a number restricted. New sales get their messages as usual.', { n: n.queued }) }}
             </div>
             <div class="d-flex flex-wrap ga-2 mt-2">
               <v-btn
@@ -89,7 +87,7 @@
                 :loading="resuming === n.id"
                 prepend-icon="mdi-play"
                 size="small"
-                :text="n.queued ? `Drop ${n.queued} waiting and resume` : 'Resume sending'"
+                :text="n.queued ? t('Drop {n} waiting and resume', { n: n.queued }) : t('Resume sending')"
                 variant="flat"
                 @click="resume(n, true)"
               />
@@ -98,7 +96,7 @@
                 color="error"
                 :disabled="resuming === n.id"
                 size="small"
-                text="Resume and send them too"
+                :text="t('Resume and send them too')"
                 variant="text"
                 @click="resume(n, false)"
               />
@@ -114,27 +112,27 @@
             </div>
             <div v-else class="d-flex align-center ga-2 text-body-2 text-success mb-2">
               <v-icon icon="mdi-shield-check" size="18" />
-              <span>No warning signs</span>
+              <span>{{ t('No warning signs') }}</span>
             </div>
 
             <div class="wh-stats text-body-2">
-              <span title="Sales messages of the last 24 hours, test sends left out">Sent, last 24 h</span>
-              <strong>{{ n.health.sent_24h }} <span class="text-medium-emphasis font-weight-regular">({{ n.health.sent_daily_avg == null ? 'new number' : `usual ${n.health.sent_daily_avg}` }})</span></strong>
-              <span>Disconnects</span><strong>{{ n.health.disconnects_24h }}</strong>
-              <span>Refused by WhatsApp</span><strong>{{ n.health.rejected_24h }}</strong>
-              <span>Failed sends</span><strong>{{ n.health.failed_24h }}</strong>
-              <span title="Messages of the last week not delivered after 3 days: blocked, or the phone is off">Stuck on one tick</span><strong>{{ n.health.one_tick ?? 0 }}</strong>
+              <span :title="t('Sales messages of the last 24 hours, test sends left out')">{{ t('Sent, last 24 h') }}</span>
+              <strong>{{ n.health.sent_24h }} <span class="text-medium-emphasis font-weight-regular">({{ n.health.sent_daily_avg == null ? t('new number') : t('usual {n}', { n: n.health.sent_daily_avg }) }})</span></strong>
+              <span>{{ t('Disconnects') }}</span><strong>{{ n.health.disconnects_24h }}</strong>
+              <span>{{ t('Refused by WhatsApp') }}</span><strong>{{ n.health.rejected_24h }}</strong>
+              <span>{{ t('Failed sends') }}</span><strong>{{ n.health.failed_24h }}</strong>
+              <span :title="t('Messages of the last week not delivered after 3 days: blocked, or the phone is off')">{{ t('Stuck on one tick') }}</span><strong>{{ n.health.one_tick ?? 0 }}</strong>
             </div>
             <div v-if="n.health.last_problem_at" class="text-caption text-medium-emphasis mt-2">
-              Last problem: {{ n.health.last_problem }}, {{ when(n.health.last_problem_at) }}
+              {{ t('Last problem: {problem}, {when}', { problem: n.health.last_problem, when: when(n.health.last_problem_at) }) }}
             </div>
           </template>
           <div v-else class="text-body-2 text-medium-emphasis">
-            The bridge doesn't report health for this number (it needs bridge 2.4.0).
+            {{ t("The bridge doesn't report health for this number (it needs bridge 2.4.0).") }}
           </div>
 
           <div class="text-caption text-medium-emphasis mt-3">
-            Sends for: {{ n.branches.length > 0 ? n.branches.join(', ') : 'no branch' }}
+            {{ t('Sends for: {branches}', { branches: n.branches.length > 0 ? n.branches.join(', ') : t('no branch') }) }}
           </div>
         </v-card>
       </v-col>
@@ -144,6 +142,7 @@
 
 <script setup>
   import { onMounted, onUnmounted, ref, watch } from 'vue'
+  import { t } from '@/i18n'
   import { useNotify } from '@/composables/useNotify'
   import { useWhatsApp } from '@/composables/useWhatsApp'
   import { formatPhone } from '@/utils/whatsapp'
@@ -167,13 +166,13 @@
 
   const level = n => (n.health?.paused_at ? 'high' : n.health?.level ?? 'unknown')
   const levelColor = n => ({ high: 'error', warning: 'warning', ok: 'success' })[level(n)] ?? 'grey'
-  const stateText = state => ({ open: 'linked', close: 'not linked', connecting: 'connecting', missing: 'missing on the bridge' })[state] ?? state
+  const stateText = state => ({ open: t('linked'), close: t('not linked'), connecting: t('connecting'), missing: t('missing on the bridge') })[state] ?? state
 
   function when (at) {
     const minutes = Math.round((Date.now() - new Date(at).getTime()) / 60_000)
-    if (minutes < 1) return 'just now'
-    if (minutes < 60) return `${minutes} min ago`
-    if (minutes < 24 * 60) return `${Math.round(minutes / 60)} h ago`
+    if (minutes < 1) return t('just now')
+    if (minutes < 60) return t('{n} min ago', { n: minutes })
+    if (minutes < 24 * 60) return t('{n} h ago', { n: Math.round(minutes / 60) })
     return new Date(at).toLocaleString()
   }
 
@@ -195,7 +194,7 @@
     resuming.value = n.id
     try {
       const res = await resumeNumber(n.id, dropQueued)
-      notify.success(res.dropped ? `Sending again, ${res.dropped} waiting messages dropped` : 'Sending again')
+      notify.success(res.dropped ? t('Sending again, {n} waiting messages dropped', { n: res.dropped }) : t('Sending again'))
       await load()
     } catch (error) {
       notify.error(error.message)

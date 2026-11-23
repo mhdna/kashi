@@ -8,7 +8,7 @@
         mandatory
         variant="outlined"
       >
-        <v-btn text="All" value="" />
+        <v-btn :text="t('All')" value="" />
         <v-btn
           v-for="(meta, key) in STATUS"
           :key="key"
@@ -18,13 +18,13 @@
         />
       </v-btn-toggle>
       <v-spacer />
-      <span class="text-caption text-medium-emphasis">{{ total.toLocaleString() }} messages</span>
+      <span class="text-caption text-medium-emphasis">{{ t('{n} messages', { n: total.toLocaleString() }) }}</span>
       <v-text-field
         v-model="searchModel"
         clearable
         density="compact"
         hide-details
-        placeholder="Client, phone, invoice, rule…"
+        :placeholder="t('Client, phone, invoice, rule…')"
         prepend-inner-icon="mdi-magnify"
         style="max-width: 300px"
         variant="outlined"
@@ -42,7 +42,7 @@
       :items-length="total"
       :items-per-page-options="tablePageSizeOptions(pageSize)"
       :loading="loading"
-      no-data-text="No messages match."
+      :no-data-text="t('No messages match.')"
       @click:row="(_, { item }) => (openId = item.id)"
     >
       <template #item.created_at="{ item }">
@@ -55,7 +55,7 @@
       <template #item.grand_total_cents="{ item }">
         {{ formatDollars(item.grand_total_cents) }}
         <div v-if="item.item_count" class="text-caption text-medium-emphasis">
-          {{ item.item_count }} item{{ item.item_count === 1 ? '' : 's' }}
+          {{ item.item_count === 1 ? t('{n} item', { n: item.item_count }) : t('{n} items', { n: item.item_count }) }}
         </div>
       </template>
       <template #item.status="{ item }">
@@ -74,24 +74,24 @@
           color="amber-darken-2"
           prepend-icon="mdi-star"
           size="x-small"
-          :title="`Opened the review link ${new Date(nullTime(item.review_clicked_at)).toLocaleString()}`"
+          :title="t('Opened the review link {time}', { time: new Date(nullTime(item.review_clicked_at)).toLocaleString() })"
           variant="tonal"
         >
-          Review link
+          {{ t('Review link') }}
         </v-chip>
         <v-chip
           v-if="item.poll_rating?.Valid"
           class="ms-1"
           :color="item.poll_rating.Int16 >= 4 ? 'success' : item.poll_rating.Int16 === 3 ? 'amber-darken-2' : 'error'"
           size="x-small"
-          :title="`${item.poll_rating.Int16} of 5`"
+          :title="t('{n} of 5', { n: item.poll_rating.Int16 })"
           variant="tonal"
         >
           {{ item.poll_answer || '★'.repeat(item.poll_rating.Int16) }}
         </v-chip>
       </template>
       <template #item.rule="{ item }">
-        <div>{{ item.rule_name || 'Default' }}</div>
+        <div>{{ item.rule_name || t('Default') }}</div>
         <div v-if="meta && item.template_name" class="text-caption text-medium-emphasis">{{ item.template_name }}</div>
       </template>
       <template #item.reason="{ item }">
@@ -116,6 +116,7 @@
   import { useWhatsApp } from '@/composables/useWhatsApp'
   import { DELIVERY, formatCost, formatDollars, formatPhone, nullTime, STATUS } from '@/utils/whatsapp'
   import { tablePageSizeOptions, useSettingsStore } from '@/stores/settings'
+  import { t } from '@/i18n'
 
   const props = defineProps({
     from: { type: String, required: true },
@@ -141,15 +142,15 @@
   const searchModel = computed({ get: () => props.search, set: v => emit('update:search', v ?? '') })
 
   const headers = computed(() => [
-    { title: 'When', key: 'created_at', sortable: false },
-    { title: 'Client', key: 'client', sortable: false },
-    { title: 'Branch', key: 'branch_name', sortable: false },
-    { title: 'Invoice', key: 'invoice_code', sortable: false },
-    { title: 'Total', key: 'grand_total_cents', sortable: false, align: 'end' },
-    { title: 'Outcome', key: 'status', sortable: false },
-    { title: props.meta ? 'Rule / template' : 'Rule', key: 'rule', sortable: false },
-    { title: 'Why', key: 'reason', sortable: false },
-    ...(props.meta ? [{ title: 'Cost', key: 'cost_micros', sortable: false, align: 'end' }] : []),
+    { title: t('When'), key: 'created_at', sortable: false },
+    { title: t('Client'), key: 'client', sortable: false },
+    { title: t('Branch'), key: 'branch_name', sortable: false },
+    { title: t('Invoice'), key: 'invoice_code', sortable: false },
+    { title: t('Total'), key: 'grand_total_cents', sortable: false, align: 'end' },
+    { title: t('Outcome'), key: 'status', sortable: false },
+    { title: props.meta ? t('Rule / template') : t('Rule'), key: 'rule', sortable: false },
+    { title: t('Why'), key: 'reason', sortable: false },
+    ...(props.meta ? [{ title: t('Cost'), key: 'cost_micros', sortable: false, align: 'end' }] : []),
   ])
 
   const messages = ref([])
@@ -191,21 +192,21 @@
       const age = Date.now() - new Date(item.created_at).getTime()
       // The bridge reports "sent" within seconds of sending; after 10 minutes
       // with no report it went out unreported (a bridge before 2.4.0).
-      if (!item.delivery_status && age < 10 * 60_000) return { label: 'Queued', color: 'grey', icon: 'mdi-clock-outline' }
+      if (!item.delivery_status && age < 10 * 60_000) return { label: t('Queued'), color: 'grey', icon: 'mdi-clock-outline' }
       if (item.delivery_status === 'sent' && age > ONE_TICK_DAYS * 864e5) {
-        return { label: 'One tick', color: 'warning', icon: 'mdi-account-cancel-outline' }
+        return { label: t('One tick'), color: 'warning', icon: 'mdi-account-cancel-outline' }
       }
     }
     return DELIVERY[item.delivery_status] ?? DELIVERY['']
   }
   function deliveryTimes (item) {
     const parts = []
-    if (outcome(item).label === 'One tick') parts.push(`Not delivered after ${ONE_TICK_DAYS} days: they may have blocked the number, or their phone is off`)
+    if (outcome(item).label === t('One tick')) parts.push(t('Not delivered after {days} days: they may have blocked the number, or their phone is off', { days: ONE_TICK_DAYS }))
     const delivered = nullTime(item.delivered_at)
     const read = nullTime(item.read_at)
-    if (delivered) parts.push(`Delivered ${new Date(delivered).toLocaleString()}`)
-    if (read) parts.push(`Read ${new Date(read).toLocaleString()}`)
-    if (item.pricing_category) parts.push(`Billed as ${item.pricing_category}`)
+    if (delivered) parts.push(t('Delivered {time}', { time: new Date(delivered).toLocaleString() }))
+    if (read) parts.push(t('Read {time}', { time: new Date(read).toLocaleString() }))
+    if (item.pricing_category) parts.push(t('Billed as {category}', { category: item.pricing_category }))
     return parts.join(' · ') || undefined
   }
 

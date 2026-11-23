@@ -60,7 +60,7 @@
                       clearable
                       density="compact"
                       hide-details
-                      label="Search products"
+                      :label="t('Search products')"
                       prepend-inner-icon="mdi-magnify"
                       variant="outlined"
                     />
@@ -86,7 +86,7 @@
                           </v-avatar>
                         </template>
                         <v-list-item-title class="font-weight-medium">{{ item.name }}</v-list-item-title>
-                        <v-list-item-subtitle>{{ item.code }} · On hand: {{ item.on_hand }}</v-list-item-subtitle>
+                        <v-list-item-subtitle>{{ item.code }} · {{ t('On hand: {n}', { n: item.on_hand }) }}</v-list-item-subtitle>
                         <template #append>
                           <span class="text-caption text-medium-emphasis">{{ t('Never sold') }}</span>
                         </template>
@@ -112,7 +112,7 @@
                       clearable
                       density="compact"
                       hide-details
-                      label="Search products"
+                      :label="t('Search products')"
                       prepend-inner-icon="mdi-magnify"
                       variant="outlined"
                     />
@@ -138,9 +138,9 @@
                           </v-avatar>
                         </template>
                         <v-list-item-title class="font-weight-medium">{{ item.name }}</v-list-item-title>
-                        <v-list-item-subtitle>{{ item.code }} · On hand: {{ item.on_hand }} · Sold 90d: {{ item.units_sold_90d }}</v-list-item-subtitle>
+                        <v-list-item-subtitle>{{ item.code }} · {{ t('On hand: {n}', { n: item.on_hand }) }} · {{ t('Sold 90d: {n}', { n: item.units_sold_90d }) }}</v-list-item-subtitle>
                         <template #append>
-                          <span class="text-caption text-medium-emphasis">{{ item.days_of_inventory }}d supply</span>
+                          <span class="text-caption text-medium-emphasis">{{ t('{n} j de stock', { n: item.days_of_inventory }) }}</span>
                         </template>
                       </v-list-item>
                       <v-divider />
@@ -194,7 +194,7 @@
         page_id: String(offset),
       })
       const res = await authFetch(`${API_BASE}/stock_health/slow_movers?${params}`)
-      if (!res.ok) throw new Error(`Request failed with status ${res.status}`)
+      if (!res.ok) throw new Error(t('Request failed with status {status}', { status: res.status }))
       const data = await res.json().catch(() => null)
       const products = data?.products ?? []
       out.push(...products)
@@ -223,7 +223,7 @@
   }
 
   const statusColor = computed(() => ({ healthy: 'success', warning: 'warning', critical: 'error' }[health.value.status] || 'grey'))
-  const statusLabel = computed(() => ({ healthy: 'Healthy', warning: 'Needs Attention', critical: 'Critical' }[health.value.status] || '—'))
+  const statusLabel = computed(() => ({ healthy: t('Healthy'), warning: t('Needs Attention'), critical: t('Critical') }[health.value.status] || '—'))
 
   const daysLabel = computed(() => health.value.days_of_inventory ?? '—')
 

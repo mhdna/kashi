@@ -18,7 +18,7 @@
           <td>
             <span class="font-weight-medium">{{ r.code }}</span>
             <span v-if="r.name" class="text-medium-emphasis"> · {{ r.name }}</span>
-            <v-chip v-if="!r.is_active" class="ms-2" size="x-small" text="Disabled" />
+            <v-chip v-if="!r.is_active" class="ms-2" size="x-small" :text="t('Disabled')" />
           </td>
           <td class="text-right">
             <v-btn-toggle
@@ -87,7 +87,7 @@
     </div>
 
     <v-progress-linear v-if="loading" class="mb-2" indeterminate />
-    <div v-else-if="items.length === 0" class="text-medium-emphasis py-4">No cards yet.</div>
+    <div v-else-if="items.length === 0" class="text-medium-emphasis py-4">{{ t('No cards yet.') }}</div>
     <div
       v-for="(item, index) in items"
       :key="item.product_variant_id"
@@ -118,10 +118,10 @@
         </div>
       </div>
       <template v-if="canEdit">
-        <label class="qa-color" title="Card colour">
+        <label class="qa-color" :title="t('Card colour')">
           <input type="color" :value="item.color || '#ffffff'" @input="setColor(item, 'color', $event)">
         </label>
-        <label class="qa-color" title="Text colour">
+        <label class="qa-color" :title="t('Text colour')">
           <input type="color" :value="item.text_color || autoTextColor(item.color)" @input="setColor(item, 'text_color', $event)">
         </label>
         <v-btn
@@ -135,7 +135,7 @@
         <v-btn
           icon="mdi-delete"
           size="small"
-          title="Remove"
+          :title="t('Remove')"
           variant="text"
           @click="items.splice(index, 1)"
         />

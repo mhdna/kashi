@@ -8,7 +8,7 @@
           clearable
           density="compact"
           hide-details
-          placeholder="Name, phone or what they wrote…"
+          :placeholder="t('Name, phone or what they wrote…')"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
         />
@@ -18,10 +18,10 @@
           v-if="loadingChats && chats.length === 0"
           kind="chat"
           min-height="200px"
-          title="Loading conversations"
+          :title="t('Loading conversations')"
         />
         <div v-else-if="chats.length === 0" class="pa-6 text-body-2 text-medium-emphasis text-center">
-          {{ search ? 'No conversation matches.' : 'No conversations yet. Messages show up here as they come in on your numbers.' }}
+          {{ search ? t('No conversation matches.') : t('No conversations yet. Messages show up here as they come in on your numbers.') }}
         </div>
         <button
           v-for="c in chats"
@@ -40,12 +40,12 @@
               <span class="text-caption text-medium-emphasis flex-shrink-0">{{ when(c.last_at) }}</span>
             </div>
             <div class="text-body-2 text-medium-emphasis text-truncate wi__preview">
-              <span v-if="c.last_from_me">You: </span>{{ preview(c) }}
+              <span v-if="c.last_from_me">{{ t('You:') }} </span>{{ preview(c) }}
             </div>
           </div>
         </button>
         <div v-if="moreChats" class="pa-3 text-center">
-          <v-btn :loading="loadingChats" size="small" variant="text" @click="loadChats(true)">Show more</v-btn>
+          <v-btn :loading="loadingChats" size="small" variant="text" @click="loadChats(true)">{{ t('Show more') }}</v-btn>
         </div>
       </div>
     </div>
@@ -71,13 +71,13 @@
         </div>
         <div ref="chatEl" class="wi__chatbox pa-3">
           <div v-if="moreMessages" class="text-center mb-2">
-            <v-btn :loading="loadingMessages" size="small" variant="tonal" @click="loadEarlier">Earlier messages</v-btn>
+            <v-btn :loading="loadingMessages" size="small" variant="tonal" @click="loadEarlier">{{ t('Earlier messages') }}</v-btn>
           </div>
           <PreparingState
             v-if="loadingMessages && messages.length === 0"
             kind="chat"
             min-height="200px"
-            title="Loading messages"
+            :title="t('Loading messages')"
           />
           <template v-for="(m, i) in messages" :key="m.id">
             <div v-if="dayLabel(i)" class="wi__day">{{ dayLabel(i) }}</div>
@@ -100,15 +100,15 @@
                     :src="media[m.media_url]"
                   />
                   <a v-else-if="media[m.media_url]" class="wi__text" download :href="media[m.media_url]">
-                    <v-icon icon="mdi-paperclip" size="16" /> {{ KIND_LABEL[m.kind] ?? 'File' }}
+                    <v-icon icon="mdi-paperclip" size="16" /> {{ KIND_LABEL[m.kind] ?? t('File') }}
                   </a>
                   <div v-else class="wi__text text-medium-emphasis">
-                    <v-icon :icon="KIND_ICON[m.kind] ?? 'mdi-paperclip'" size="16" /> {{ mediaError[m.media_url] || KIND_LABEL[m.kind] || 'File' }}
+                    <v-icon :icon="KIND_ICON[m.kind] ?? 'mdi-paperclip'" size="16" /> {{ mediaError[m.media_url] || KIND_LABEL[m.kind] || t('File') }}
                   </div>
                 </template>
                 <template v-else-if="m.kind === 'poll'">
                   <div class="font-weight-bold mb-1" style="white-space: pre-line">{{ m.text }}</div>
-                  <div class="wi__poll-hint">Select one</div>
+                  <div class="wi__poll-hint">{{ t('Select one') }}</div>
                   <div v-for="o in m.options" :key="o" class="wi__option">
                     <v-icon color="grey" icon="mdi-checkbox-blank-circle-outline" size="20" />
                     <span>{{ o }}</span>
@@ -125,7 +125,7 @@
           </template>
         </div>
       </template>
-      <div v-else class="wi__empty text-medium-emphasis">Pick a conversation.</div>
+      <div v-else class="wi__empty text-medium-emphasis">{{ t('Pick a conversation.') }}</div>
     </div>
   </div>
 </template>
@@ -138,6 +138,7 @@
   import { useWhatsApp } from '@/composables/useWhatsApp'
   import { API_BASE } from '@/config'
   import { formatPhone } from '@/utils/whatsapp'
+  import { t } from '@/i18n'
 
   // Every message on our own WhatsApp numbers, both ways, one thread per
   // customer, including what staff type on the phone (api/whatsapp_chat.go).
@@ -152,7 +153,7 @@
   const { listChats, getChat, clientsByPhones } = useWhatsApp()
 
   const KIND_ICON = { image: 'mdi-camera', video: 'mdi-video', audio: 'mdi-microphone', sticker: 'mdi-sticker-emoji', document: 'mdi-file-document-outline' }
-  const KIND_LABEL = { image: 'Photo', video: 'Video', audio: 'Voice message', sticker: 'Sticker', document: 'Document', other: 'Message' }
+  const KIND_LABEL = computed(() => ({ image: t('Photo'), video: t('Video'), audio: t('Voice message'), sticker: t('Sticker'), document: t('Document'), other: t('Message') }))
 
   // ---- customers ----
   const search = ref('')
@@ -205,7 +206,7 @@
   }
 
   const title = c => clientNames.value[c.phone] || c.name || formatPhone(c.phone)
-  const preview = c => c.last_body || KIND_LABEL[c.last_kind] || ''
+  const preview = c => c.last_body || KIND_LABEL.value[c.last_kind] || ''
 
   let searchTimer = 0
   watch(search, () => {
@@ -308,7 +309,7 @@
       if (!path || media.value[path] || mediaError.value[path]) continue
       try {
         const res = await authFetch(`${API_BASE}${path}`)
-        if (!res.ok) throw new Error(res.status === 404 ? 'No longer kept' : `Couldn't load it (${res.status})`)
+        if (!res.ok) throw new Error(res.status === 404 ? t('No longer kept') : t('Couldn\'t load it ({status})', { status: res.status }))
         const url = URL.createObjectURL(await res.blob())
         if (phone.value !== p) {
           URL.revokeObjectURL(url)
@@ -341,7 +342,7 @@
     const d = new Date(at)
     const days = Math.floor((new Date().setHours(0, 0, 0, 0) - new Date(d).setHours(0, 0, 0, 0)) / 86_400_000)
     if (days <= 0) return time(at)
-    if (days === 1) return 'Yesterday'
+    if (days === 1) return t('Yesterday')
     if (days < 7) return d.toLocaleDateString(undefined, { weekday: 'long' })
     return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
   }
@@ -349,7 +350,7 @@
   function dayLabel (i) {
     const day = new Date(messages.value[i].at).toDateString()
     if (i > 0 && new Date(messages.value[i - 1].at).toDateString() === day) return ''
-    if (day === new Date().toDateString()) return 'Today'
+    if (day === new Date().toDateString()) return t('Today')
     return new Date(messages.value[i].at).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
   }
 </script>

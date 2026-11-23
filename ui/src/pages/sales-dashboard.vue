@@ -2,15 +2,15 @@
   <div class="sales-dashboard d-flex flex-column fill-height" style="overflow-y: auto">
     <!-- Header -->
     <div class="d-flex align-center flex-wrap ga-3 pa-4 pb-2">
-      <div class="text-h6 font-weight-medium">Sales Dashboard</div>
-      <PreparingState v-if="loading" kind="chart" :size="25" title="Loading" />
+      <div class="text-h6 font-weight-medium">{{ t('Sales Dashboard') }}</div>
+      <PreparingState v-if="loading" kind="chart" :size="25" :title="t('Loading')" />
       <v-spacer />
       <v-select
         v-model="selectedYear"
         density="compact"
         hide-details
         :items="years"
-        label="Year"
+        :label="t('Year')"
         style="max-width: 120px"
         variant="outlined"
       />
@@ -19,7 +19,7 @@
         density="compact"
         hide-details
         :items="monthItems"
-        label="Month"
+        :label="t('Month')"
         style="max-width: 130px"
         variant="outlined"
       />
@@ -50,32 +50,32 @@
       <v-row>
         <v-col cols="12" md="8">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Monthly — Sales, Profit &amp; Profit %</div>
+            <div class="chart-card__title">{{ t('Monthly — Sales, Profit & Profit %') }}</div>
             <v-chart autoresize class="chart chart--tall" :option="monthlyOption" />
           </v-card>
         </v-col>
         <v-col cols="12" md="4">
           <div class="d-flex flex-column ga-3 fill-height">
             <v-card class="pa-4 flex-grow-1 d-flex flex-column justify-center" variant="flat">
-              <div class="chart-card__title">Top Product</div>
+              <div class="chart-card__title">{{ t('Top Product') }}</div>
               <div class="text-h5 font-weight-medium mt-2">{{ topProduct.name }}</div>
               <div v-if="topProduct.code" class="text-caption text-medium-emphasis">{{ topProduct.code }}</div>
               <div class="d-flex ga-6 mt-2">
                 <div>
-                  <div class="text-caption text-medium-emphasis">Quantity</div>
+                  <div class="text-caption text-medium-emphasis">{{ t('Quantity') }}</div>
                   <div class="text-subtitle-1 font-weight-medium">{{ topProduct.qty }}</div>
                 </div>
                 <div>
-                  <div class="text-caption text-medium-emphasis">Revenue</div>
+                  <div class="text-caption text-medium-emphasis">{{ t('Revenue') }}</div>
                   <div class="text-subtitle-1 font-weight-medium">{{ money(topProduct.value) }}</div>
                 </div>
               </div>
             </v-card>
             <v-card class="pa-4 flex-grow-1 d-flex flex-column justify-center" variant="flat">
-              <div class="chart-card__title">Top Category</div>
+              <div class="chart-card__title">{{ t('Top Category') }}</div>
               <div class="text-h5 font-weight-medium mt-2">{{ topCategory.name }}</div>
               <div class="mt-2">
-                <div class="text-caption text-medium-emphasis">Revenue</div>
+                <div class="text-caption text-medium-emphasis">{{ t('Revenue') }}</div>
                 <div class="text-subtitle-1 font-weight-medium">{{ money(topCategory.value) }}</div>
               </div>
             </v-card>
@@ -87,19 +87,19 @@
       <v-row>
         <v-col cols="12" md="4">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Revenue by Product</div>
+            <div class="chart-card__title">{{ t('Revenue by Product') }}</div>
             <v-chart autoresize class="chart chart--tall" :option="productOption" />
           </v-card>
         </v-col>
         <v-col cols="12" md="4">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Sales by Branch</div>
+            <div class="chart-card__title">{{ t('Sales by Branch') }}</div>
             <v-chart autoresize class="chart chart--tall" :option="branchOption" />
           </v-card>
         </v-col>
         <v-col cols="12" md="4">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Payment Mode</div>
+            <div class="chart-card__title">{{ t('Payment Mode') }}</div>
             <v-chart autoresize class="chart chart--tall" :option="paymentOption" />
           </v-card>
         </v-col>
@@ -109,13 +109,13 @@
       <v-row>
         <v-col cols="12" md="8">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Daily Sales</div>
+            <div class="chart-card__title">{{ t('Daily Sales') }}</div>
             <v-chart autoresize class="chart chart--tall" :option="dailyOption" />
           </v-card>
         </v-col>
         <v-col cols="12" md="4">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Category</div>
+            <div class="chart-card__title">{{ t('Category') }}</div>
             <v-chart autoresize class="chart chart--tall" :option="categoryOption" />
           </v-card>
         </v-col>
@@ -131,6 +131,7 @@
   import { authFetch } from '@/composables/useApi'
   import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
 
   // Every sale kashi knows of -- till sales and sales entered in kashi --
   // for a year or one month of it, from GET /sales_dashboard
@@ -148,8 +149,9 @@
   const axisColor = computed(() => (isDark.value ? '#3a3a3a' : '#e0e0e0'))
   const textColor = computed(() => (isDark.value ? '#aaa' : '#666'))
 
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  const monthItems = [{ title: 'All', value: 0 }, ...months.map((title, i) => ({ title, value: i + 1 }))]
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const months = computed(() => monthNames.map(m => t(m)))
+  const monthItems = computed(() => [{ title: t('All'), value: 0 }, ...months.value.map((title, i) => ({ title, value: i + 1 }))])
 
   // null until the first answer: the server then picks the latest year
   // that has sales.
@@ -171,7 +173,7 @@
       const res = await authFetch(`${API_BASE}/sales_dashboard?${params}`)
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || `Failed to load the sales dashboard (${res.status})`)
+        throw new Error(err.error || t('Failed to load the sales dashboard ({status})', { status: res.status }))
       }
       const data = await res.json()
       if (mySeq !== seq) return
@@ -197,11 +199,11 @@
     const r = report.value
     // Profit only counts items with a known cost; say how much that is.
     const coverage = r?.cost_coverage
-    const hint = coverage != null && coverage < 100 ? `Based on ${Math.round(coverage)}% of sales with a known cost` : ''
+    const hint = coverage != null && coverage < 100 ? t('Based on {pct}% of sales with a known cost', { pct: Math.round(coverage) }) : ''
     return [
-      { label: 'Total Sales', value: money(r?.sales), icon: 'mdi-cash-multiple' },
-      { label: 'Gross Profit', value: money(r?.profit), icon: 'mdi-chart-box-outline', hint },
-      { label: 'Profit %', value: pct(r?.profit_pct), icon: 'mdi-percent-outline', hint },
+      { label: t('Total Sales'), value: money(r?.sales), icon: 'mdi-cash-multiple' },
+      { label: t('Gross Profit'), value: money(r?.profit), icon: 'mdi-chart-box-outline', hint },
+      { label: t('Profit %'), value: pct(r?.profit_pct), icon: 'mdi-percent-outline', hint },
     ]
   })
 
@@ -215,12 +217,12 @@
 
   const categories = computed(() => (report.value?.categories ?? [])
     .filter(cat => cat.revenue > 0)
-    .map(cat => ({ name: cat.category || 'Uncategorised', value: cat.revenue })))
-  const topCategory = computed(() => categories.value.find(cat => cat.name !== 'Uncategorised') ?? { name: '—', value: 0 })
+    .map(cat => ({ name: cat.category || t('Uncategorised'), value: cat.revenue })))
+  const topCategory = computed(() => categories.value.find(cat => cat.name !== t('Uncategorised')) ?? { name: '—', value: 0 })
 
   const branches = computed(() => (report.value?.branches ?? [])
     .filter(b => b.sales > 0)
-    .map(b => ({ name: b.branch_name || 'Entered in kashi', value: b.sales })))
+    .map(b => ({ name: b.branch_name || t('Entered in kashi'), value: b.sales })))
   const paymentMode = computed(() => (report.value?.payments ?? [])
     .filter(p => p.amount > 0)
     .map(p => ({ name: p.name, value: p.amount })))
@@ -230,7 +232,7 @@
   // A single month labels days 1..31; a whole year labels "Oct 5".
   const dailyLabels = computed(() => daily.value.map(d => {
     const [, m, day] = d.day.split('-').map(Number)
-    return selectedMonth.value ? String(day) : `${months[m - 1]} ${day}`
+    return selectedMonth.value ? String(day) : `${months.value[m - 1]} ${day}`
   }))
 
   // ---- Shared axis styling ---------------------------------------------
@@ -245,6 +247,7 @@
   }))
 
   // ---- Chart options -------------------------------------------------
+  // Series names are shown in the legend and tooltips, so they're translated too.
   const monthlyOption = computed(() => ({
     grid: { top: 32, right: 48, bottom: 28, left: 56 },
     tooltip: { trigger: 'axis', appendTo: 'body' },
@@ -255,16 +258,16 @@
       itemHeight: 10,
       textStyle: { color: textColor.value, fontSize: 10 },
     },
-    xAxis: { type: 'category', data: months, ...catAxis.value },
+    xAxis: { type: 'category', data: months.value, ...catAxis.value },
     yAxis: [
       { type: 'value', axisLabel: { color: textColor.value, fontSize: 11, formatter: v => '$' + Math.round(v / 100_000) + 'k' }, splitLine: { lineStyle: { color: axisColor.value, type: 'dashed' } } },
       { type: 'value', axisLabel: { color: textColor.value, fontSize: 11, formatter: '{value}%' }, splitLine: { show: false } },
     ],
     series: [
-      { name: 'Sales', type: 'bar', barWidth: '32%', itemStyle: { color: primary.value }, tooltip: { valueFormatter: money }, data: monthly.value.map(m => m.sales) },
-      { name: 'Profit', type: 'bar', barWidth: '32%', itemStyle: { color: tint.value }, tooltip: { valueFormatter: money }, data: monthly.value.map(m => m.profit) },
+      { name: t('Sales'), type: 'bar', barWidth: '32%', itemStyle: { color: primary.value }, tooltip: { valueFormatter: money }, data: monthly.value.map(m => m.sales) },
+      { name: t('Profit'), type: 'bar', barWidth: '32%', itemStyle: { color: tint.value }, tooltip: { valueFormatter: money }, data: monthly.value.map(m => m.profit) },
       {
-        name: 'Profit %',
+        name: t('Profit %'),
         type: 'line',
         yAxisIndex: 1,
         smooth: true,

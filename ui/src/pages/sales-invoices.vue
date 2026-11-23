@@ -1,7 +1,7 @@
 <template>
   <v-dialog v-model="dialog" max-width="960" scrollable>
     <v-card class="px-4">
-      <v-card-title>New Sales Invoice</v-card-title>
+      <v-card-title>{{ t('New Sales Invoice') }}</v-card-title>
       <v-card-text>
         <form @submit.prevent="submit">
           <v-row>
@@ -13,7 +13,7 @@
                 :item-title="c => c.name"
                 :item-value="c => c.id"
                 :items="cashboxes"
-                label="Cashbox"
+                :label="t('Cashbox')"
                 @update:model-value="onCashboxChange"
               />
             </v-col>
@@ -25,7 +25,7 @@
                 :item-title="a => a.name"
                 :item-value="a => a.id"
                 :items="cashboxAccounts"
-                label="Cashbox Account"
+                :label="t('Cashbox Account')"
               />
             </v-col>
             <v-col cols="6" md="3">
@@ -36,7 +36,7 @@
                 :item-title="s => `#${s.id} (cashbox ${s.cashbox_id})`"
                 :item-value="s => s.id"
                 :items="openShifts"
-                label="Shift"
+                :label="t('Shift')"
               />
             </v-col>
             <v-col cols="6" md="3">
@@ -47,7 +47,7 @@
                 :item-title="i => i.name"
                 :item-value="i => i.id"
                 :items="inventories"
-                label="Inventory"
+                :label="t('Inventory')"
               />
             </v-col>
             <v-col cols="6" md="3">
@@ -58,7 +58,7 @@
                 :item-title="c => c.name"
                 :item-value="c => c.id"
                 :items="selectableClients"
-                label="Client"
+                :label="t('Client')"
               />
             </v-col>
             <v-col cols="6" md="3">
@@ -69,7 +69,7 @@
                 item-title="name"
                 item-value="id"
                 :items="salespersons"
-                label="Salesperson (optional)"
+                :label="t('Salesperson (optional)')"
                 :loading="salespersonsLoading"
               />
             </v-col>
@@ -81,7 +81,7 @@
                 :item-title="p => p.name"
                 :item-value="p => p.id"
                 :items="priceLists"
-                label="Price List (optional)"
+                :label="t('Price List (optional)')"
               />
             </v-col>
             <v-col cols="6" md="3">
@@ -89,7 +89,7 @@
                 v-model.number="discount.value.value"
                 density="compact"
                 :error-messages="discount.errorMessage.value"
-                label="Invoice Discount %"
+                :label="t('Invoice Discount %')"
                 type="number"
               />
             </v-col>
@@ -97,11 +97,11 @@
 
           <v-divider class="my-2" />
           <div class="d-flex justify-space-between align-center mb-2">
-            <span class="text-subtitle-2">Line Items</span>
+            <span class="text-subtitle-2">{{ t('Line Items') }}</span>
             <v-btn
               prepend-icon="mdi-plus"
               size="small"
-              text="Add Line"
+              :text="t('Add Line')"
               variant="tonal"
               @click="addLine"
             />
@@ -110,11 +110,11 @@
           <v-table density="compact">
             <thead>
               <tr>
-                <th>Product</th>
-                <th style="width: 110px;">Quantity</th>
-                <th style="width: 130px;">Unit Price</th>
-                <th style="width: 110px;">Discount %</th>
-                <th style="width: 110px;">Line Total</th>
+                <th>{{ t('Product') }}</th>
+                <th style="width: 110px;">{{ t('Quantity') }}</th>
+                <th style="width: 130px;">{{ t('Unit Price') }}</th>
+                <th style="width: 110px;">{{ t('Discount %') }}</th>
+                <th style="width: 110px;">{{ t('Line Total') }}</th>
                 <th style="width: 40px;" />
               </tr>
             </thead>
@@ -131,7 +131,7 @@
                     :items="skuOptions"
                     :loading="skuLoading"
                     no-filter
-                    placeholder="Search SKU / barcode"
+                    :placeholder="t('Search SKU / barcode')"
                     @update:search="onSkuSearch"
                   />
                 </td>
@@ -147,19 +147,19 @@
           </v-table>
 
           <v-row class="mt-2">
-            <v-col class="text-end" cols="12" sm="4">Items Total: <strong>{{ itemsTotal }}</strong></v-col>
-            <v-col class="text-end" cols="12" sm="4">Sub Total: <strong>{{ subTotal }}</strong></v-col>
-            <v-col class="text-end" cols="12" sm="4">Grand Total: <strong>{{ grandTotal }}</strong></v-col>
+            <v-col class="text-end" cols="12" sm="4">{{ t('Items Total') }}: <strong>{{ itemsTotal }}</strong></v-col>
+            <v-col class="text-end" cols="12" sm="4">{{ t('Sub Total') }}: <strong>{{ subTotal }}</strong></v-col>
+            <v-col class="text-end" cols="12" sm="4">{{ t('Grand Total') }}: <strong>{{ grandTotal }}</strong></v-col>
           </v-row>
 
           <v-card-actions class="px-0">
             <v-spacer />
-            <v-btn text="Cancel" @click="closeDialog" />
+            <v-btn :text="t('Cancel')" @click="closeDialog" />
             <v-btn
               color="primary"
               :disabled="lines.length === 0"
               :loading="submitting"
-              text="Create Invoice"
+              :text="t('Create Invoice')"
               type="submit"
             />
           </v-card-actions>
@@ -170,33 +170,33 @@
 
   <v-dialog v-model="detailsDialog" max-width="720">
     <v-card>
-      <v-card-title>Invoice Details -- {{ details?.invoice?.invoice_code }}</v-card-title>
+      <v-card-title>{{ t('Invoice Details') }} -- {{ details?.invoice?.invoice_code }}</v-card-title>
       <v-card-text>
         <div v-if="detailsLoading" class="d-flex justify-center pa-4">
-          <PreparingState kind="receipt" min-height="160px" title="Loading the invoice" />
+          <PreparingState kind="receipt" min-height="160px" :title="t('Loading the invoice')" />
         </div>
         <template v-else-if="details">
           <v-row density="compact">
-            <v-col cols="6" md="4"><span class="text-caption">Kind</span><div class="text-capitalize">{{ details.kind }}</div></v-col>
-            <v-col cols="6" md="4"><span class="text-caption">Client</span><div>{{ details.client?.name || '--' }}</div></v-col>
-            <v-col cols="6" md="4"><span class="text-caption">Salesperson</span><div>{{ details.salesperson?.name || '--' }}</div></v-col>
-            <v-col cols="6" md="4"><span class="text-caption">Loyalty Points</span><div>{{ details.invoice?.loyalty_points_delta }}</div></v-col>
-            <v-col cols="6" md="4"><span class="text-caption">Grand Total</span><div>{{ formatMoney(details.invoice?.grand_total) }}</div></v-col>
+            <v-col cols="6" md="4"><span class="text-caption">{{ t('Kind') }}</span><div class="text-capitalize">{{ details.kind }}</div></v-col>
+            <v-col cols="6" md="4"><span class="text-caption">{{ t('Client') }}</span><div>{{ details.client?.name || '--' }}</div></v-col>
+            <v-col cols="6" md="4"><span class="text-caption">{{ t('Salesperson') }}</span><div>{{ details.salesperson?.name || '--' }}</div></v-col>
+            <v-col cols="6" md="4"><span class="text-caption">{{ t('Loyalty Points') }}</span><div>{{ details.invoice?.loyalty_points_delta }}</div></v-col>
+            <v-col cols="6" md="4"><span class="text-caption">{{ t('Grand Total') }}</span><div>{{ formatMoney(details.invoice?.grand_total) }}</div></v-col>
             <v-col v-if="details.related_sales_invoice_id" cols="6" md="4">
-              <span class="text-caption">Original Sale</span><div>#{{ details.related_sales_invoice_id }}</div>
+              <span class="text-caption">{{ t('Original Sale') }}</span><div>#{{ details.related_sales_invoice_id }}</div>
             </v-col>
           </v-row>
 
           <v-divider class="my-3" />
-          <div class="text-subtitle-2 mb-1">Items</div>
+          <div class="text-subtitle-2 mb-1">{{ t('Items') }}</div>
           <v-table density="compact">
             <thead>
               <tr>
-                <th>Product</th>
-                <th class="text-end">Qty</th>
-                <th class="text-end">Unit Price</th>
-                <th class="text-end">Discount</th>
-                <th class="text-end">Line Total</th>
+                <th>{{ t('Product') }}</th>
+                <th class="text-end">{{ t('Qty') }}</th>
+                <th class="text-end">{{ t('Unit Price') }}</th>
+                <th class="text-end">{{ t('Discount') }}</th>
+                <th class="text-end">{{ t('Line Total') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -210,12 +210,12 @@
             </tbody>
           </v-table>
 
-          <div class="text-subtitle-2 mt-3 mb-1">Settlement</div>
+          <div class="text-subtitle-2 mt-3 mb-1">{{ t('Settlement') }}</div>
           <v-table density="compact">
             <thead>
               <tr>
-                <th>Account</th>
-                <th class="text-end">Amount</th>
+                <th>{{ t('Account') }}</th>
+                <th class="text-end">{{ t('Amount') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -224,7 +224,7 @@
                 <td class="text-end">{{ formatMoney(payment.amount) }}</td>
               </tr>
               <tr v-if="!details.payments?.length">
-                <td class="text-medium-emphasis" colspan="2">No settlement recorded.</td>
+                <td class="text-medium-emphasis" colspan="2">{{ t('No settlement recorded.') }}</td>
               </tr>
             </tbody>
           </v-table>
@@ -232,7 +232,7 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn text="Close" @click="detailsDialog = false" />
+        <v-btn :text="t('Close')" @click="detailsDialog = false" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -243,7 +243,7 @@
     <v-card class="invoices-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-invoice" />
-        <span>Invoices</span>
+        <span>{{ t('Invoices') }}</span>
         <v-spacer />
         <template v-if="invoiceTab === 'retail'">
           <v-text-field
@@ -252,7 +252,7 @@
             clearable
             density="compact"
             hide-details
-            label="Search invoice code or salesperson"
+            :label="t('Search invoice code or salesperson')"
             prepend-inner-icon="mdi-magnify"
             variant="outlined"
           />
@@ -264,14 +264,14 @@
             clearable
             density="compact"
             hide-details
-            label="Search wholesale invoices"
+            :label="t('Search wholesale invoices')"
             prepend-inner-icon="mdi-magnify"
             variant="outlined"
           />
           <v-btn
             v-if="canEdit"
             prepend-icon="mdi-tag-multiple"
-            text="Invoice Types"
+            :text="t('Invoice Types')"
             variant="tonal"
             @click="invoiceTypesDialog = true"
           />
@@ -279,7 +279,7 @@
             v-if="canEdit"
             color="primary"
             prepend-icon="mdi-plus"
-            text="Add Invoice"
+            :text="t('Add Invoice')"
             variant="flat"
             @click="openCreate"
           />
@@ -294,8 +294,8 @@
           color="primary"
           :direction="$vuetify.display.smAndDown ? 'horizontal' : 'vertical'"
         >
-          <v-tab prepend-icon="mdi-store-outline" text="Retail" value="retail" />
-          <v-tab prepend-icon="mdi-cart" text="Wholesale" value="wholesale" />
+          <v-tab prepend-icon="mdi-store-outline" :text="t('Retail')" value="retail" />
+          <v-tab prepend-icon="mdi-cart" :text="t('Wholesale')" value="wholesale" />
         </v-tabs>
 
         <v-divider vertical />
@@ -353,6 +353,7 @@
   import { useShifts } from '@/composables/useShifts'
   import { useVariants } from '@/composables/useVariants'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
   import BranchInvoices from '@/pages/branch-invoices.vue'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
@@ -400,13 +401,13 @@
   const openShifts = computed(() => shifts.value.filter(s => !s.is_closed))
 
   const apiURL = `${API_BASE}/sales_invoices`
-  const headers = ref([
+  const headers = computed(() => [
     { title: 'ID', key: 'id', align: 'start' },
-    { title: 'Invoice Code', key: 'invoice_code', align: 'start' },
-    { title: 'Client ID', key: 'client_id', align: 'start' },
-    { title: 'Subtotal', key: 'subtotal', align: 'end' },
-    { title: 'Grand Total', key: 'grand_total', align: 'end' },
-    { title: 'Created At', key: 'created_at', align: 'end' },
+    { title: t('Invoice Code'), key: 'invoice_code', align: 'start' },
+    { title: t('Client ID'), key: 'client_id', align: 'start' },
+    { title: t('Subtotal'), key: 'subtotal', align: 'end' },
+    { title: t('Grand Total'), key: 'grand_total', align: 'end' },
+    { title: t('Created At'), key: 'created_at', align: 'end' },
     { title: '', key: 'actions', align: 'end', sortable: false },
   ])
 
@@ -430,19 +431,19 @@
   const { handleSubmit, handleReset } = useForm({
     validationSchema: {
       cashboxId (value) {
-        return !!value || 'Select a cashbox.'
+        return !!value || t('Select a cashbox.')
       },
       cashboxAccountId (value) {
-        return !!value || 'Select a cashbox account.'
+        return !!value || t('Select a cashbox account.')
       },
       shiftId (value) {
-        return !!value || 'Select an open shift.'
+        return !!value || t('Select an open shift.')
       },
       inventoryId (value) {
-        return !!value || 'Select an inventory.'
+        return !!value || t('Select an inventory.')
       },
       clientId (value) {
-        return !!value || 'Select a client.'
+        return !!value || t('Select a client.')
       },
       discount () {
         return true
