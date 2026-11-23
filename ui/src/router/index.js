@@ -93,6 +93,7 @@ const routes = [
   { path: '/settings', component: () => import('@/pages/settings.vue'), meta: { title: 'Settings' } },
   { path: '/whatsapp', component: () => import('@/pages/whatsapp.vue'), meta: { title: 'WhatsApp & Reviews', section: 'system', page: 'whatsapp' } },
   { path: '/emails', component: () => import('@/pages/emails.vue'), meta: { title: 'Emails', section: 'system', page: 'emails' } },
+  { path: '/live/:registerId', component: () => import('@/pages/live-view.vue'), meta: { title: 'Live view', section: 'system', page: 'settings' } },
   { path: '/logs', component: () => import('@/pages/logs.vue'), meta: { title: 'Dev Logs', section: 'system', page: 'logs' } },
 ]
 

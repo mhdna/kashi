@@ -174,6 +174,8 @@
               inset
               label="Delete old unknown item pictures automatically"
             />
+
+            <LiveViewSettings :can-edit="canEditSystem" />
           </section>
 
           <!-- ---------------------------------------------------- FINANCIALS -->
@@ -900,6 +902,7 @@
 <script setup lang="ts">
   import { computed, onMounted, reactive, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
+  import LiveViewSettings from '@/components/LiveViewSettings.vue'
   import ReviewSettings from '@/components/Reviews/ReviewSettings.vue'
   import RolesManager from '@/components/RolesManager.vue'
   import WhatsAppSending from '@/components/WhatsApp/WhatsAppSending.vue'
