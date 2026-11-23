@@ -5,9 +5,9 @@
     hotkey="cmd+k"
     :items="items"
     location="center center"
-    :no-data-text="'No commands found'"
+    :no-data-text="t('No commands found')"
     offset-top="0"
-    placeholder="Search commands..."
+    :placeholder="t('Search commands...')"
     @click:item="onItemClick"
     @update:model-value="onToggle"
   >
@@ -21,6 +21,7 @@
   import { computed, nextTick, shallowRef } from 'vue'
   import { useRouter } from 'vue-router'
   import { useAllowedNav } from '@/composables/useAllowedNav'
+  import { t } from '@/i18n'
 
   const router = useRouter()
   const search = shallowRef('')
@@ -66,7 +67,7 @@
       }
     }
 
-    items.push({ type: 'divider' }, { type: 'subheader', title: 'More' })
+    items.push({ type: 'divider' }, { type: 'subheader', title: t('More') })
     for (const item of allowedAppendItems.value) {
       items.push({
         title: item.title,

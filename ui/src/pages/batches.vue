@@ -3,7 +3,7 @@
     <v-card class="batches-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-package-variant-closed" />
-        <span>Batches</span>
+        <span>{{ t('Batches') }}</span>
       </v-card-title>
       <v-divider />
 
@@ -16,7 +16,7 @@
               clearable
               density="compact"
               hide-details
-              label="Search batches"
+              :label="t('Search batches')"
               prepend-inner-icon="mdi-magnify"
               variant="outlined"
               @update:model-value="onSearch"
@@ -55,7 +55,7 @@
               block
               color="primary"
               prepend-icon="mdi-plus"
-              text="Add Batch"
+              :text="t('Add Batch')"
               variant="flat"
               @click="openCreate"
             />
@@ -68,7 +68,7 @@
         <div class="batches-content">
           <div v-if="!selectedId" class="empty-state">
             <v-icon color="medium-emphasis" icon="mdi-package-variant-closed" size="48" />
-            <div class="text-medium-emphasis mt-2">Select a batch, or add one from a purchase invoice.</div>
+            <div class="text-medium-emphasis mt-2">{{ t('Select a batch, or add one from a purchase invoice.') }}</div>
           </div>
 
           <template v-else>
@@ -95,28 +95,28 @@
             </div>
             <v-divider />
 
-            <div v-if="detailLoading" class="pa-4 text-medium-emphasis">Loading…</div>
+            <div v-if="detailLoading" class="pa-4 text-medium-emphasis">{{ t('Loading…') }}</div>
             <template v-else>
               <!-- summary strip -->
               <div class="stat-strip px-4 py-3">
                 <div class="stat-tile">
-                  <div class="text-caption text-medium-emphasis">Bought</div>
+                  <div class="text-caption text-medium-emphasis">{{ t('Bought') }}</div>
                   <div class="text-h6">{{ totals.bought }}</div>
                 </div>
                 <div class="stat-tile">
-                  <div class="text-caption text-medium-emphasis">Sold</div>
+                  <div class="text-caption text-medium-emphasis">{{ t('Sold') }}</div>
                   <div class="text-h6">{{ totals.sold }}</div>
                 </div>
                 <div class="stat-tile">
-                  <div class="text-caption text-medium-emphasis">Total Cost</div>
+                  <div class="text-caption text-medium-emphasis">{{ t('Total Cost') }}</div>
                   <div class="text-h6">${{ formatMoney(totals.cost) }}</div>
                 </div>
                 <div class="stat-tile">
-                  <div class="text-caption text-medium-emphasis">Revenue</div>
+                  <div class="text-caption text-medium-emphasis">{{ t('Revenue') }}</div>
                   <div class="text-h6 text-success">${{ formatMoney(totals.revenue) }}</div>
                 </div>
                 <div class="stat-tile">
-                  <div class="text-caption text-medium-emphasis">Profit</div>
+                  <div class="text-caption text-medium-emphasis">{{ t('Profit') }}</div>
                   <div class="text-h6" :class="totals.profit >= 0 ? 'text-success' : 'text-error'">
                     ${{ formatMoney(totals.profit) }}
                   </div>
@@ -125,8 +125,8 @@
               <v-divider />
 
               <v-tabs v-model="tab" color="primary">
-                <v-tab prepend-icon="mdi-format-list-bulleted" text="Products" value="products" />
-                <v-tab prepend-icon="mdi-chart-bar" text="Insights" value="insights" />
+                <v-tab prepend-icon="mdi-format-list-bulleted" :text="t('Products')" value="products" />
+                <v-tab prepend-icon="mdi-chart-bar" :text="t('Insights')" value="insights" />
               </v-tabs>
               <v-divider />
 
@@ -136,16 +136,16 @@
                   <v-table class="products-table" density="comfortable">
                     <thead>
                       <tr>
-                        <th>Product</th>
-                        <th>Barcode</th>
-                        <th class="text-end">Bought</th>
-                        <th class="text-end">Sold</th>
-                        <th class="text-end">Remaining</th>
-                        <th class="text-end">Unit Cost</th>
-                        <th class="text-end">Total Cost</th>
-                        <th class="text-end">Revenue</th>
-                        <th class="text-end">Profit</th>
-                        <th>Status</th>
+                        <th>{{ t('Product') }}</th>
+                        <th>{{ t('Barcode') }}</th>
+                        <th class="text-end">{{ t('Bought') }}</th>
+                        <th class="text-end">{{ t('Sold') }}</th>
+                        <th class="text-end">{{ t('Remaining') }}</th>
+                        <th class="text-end">{{ t('Unit Cost') }}</th>
+                        <th class="text-end">{{ t('Total Cost') }}</th>
+                        <th class="text-end">{{ t('Revenue') }}</th>
+                        <th class="text-end">{{ t('Profit') }}</th>
+                        <th>{{ t('Status') }}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -177,7 +177,7 @@
                     <v-sheet class="insight-card" color="surface-light" rounded="lg">
                       <div class="d-flex align-center ga-2 mb-1">
                         <v-icon color="success" icon="mdi-trending-up" size="18" />
-                        <span class="text-caption text-medium-emphasis">Top Revenue</span>
+                        <span class="text-caption text-medium-emphasis">{{ t('Top Revenue') }}</span>
                       </div>
                       <template v-if="topRevenue">
                         <div class="font-weight-medium">{{ topRevenue.product_name }}</div>
@@ -189,7 +189,7 @@
                     <v-sheet class="insight-card" color="surface-light" rounded="lg">
                       <div class="d-flex align-center ga-2 mb-1">
                         <v-icon color="primary" icon="mdi-trophy" size="18" />
-                        <span class="text-caption text-medium-emphasis">Best Seller</span>
+                        <span class="text-caption text-medium-emphasis">{{ t('Best Seller') }}</span>
                       </div>
                       <template v-if="bestSeller">
                         <div class="font-weight-medium">{{ bestSeller.product_name }}</div>
@@ -208,7 +208,7 @@
                       <v-list v-if="deadStock.length > 0" density="compact">
                         <v-list-item v-for="it in deadStock" :key="it.batch_item_id" :subtitle="`${it.quantity_bought} bought, never sold`" :title="it.product_name" />
                       </v-list>
-                      <div v-else class="text-medium-emphasis text-body-2">Nothing dead in this batch.</div>
+                      <div v-else class="text-medium-emphasis text-body-2">{{ t('Nothing dead in this batch.') }}</div>
                     </v-col>
 
                     <v-col cols="12" md="4">
@@ -219,7 +219,7 @@
                       <v-list v-if="lowStock.length > 0" density="compact">
                         <v-list-item v-for="it in lowStock" :key="it.batch_item_id" :subtitle="`${it.remaining_quantity} left`" :title="it.product_name" />
                       </v-list>
-                      <div v-else class="text-medium-emphasis text-body-2">Nothing low.</div>
+                      <div v-else class="text-medium-emphasis text-body-2">{{ t('Nothing low.') }}</div>
                     </v-col>
 
                     <v-col cols="12" md="4">
@@ -230,7 +230,7 @@
                       <v-list v-if="outOfStock.length > 0" density="compact">
                         <v-list-item v-for="it in outOfStock" :key="it.batch_item_id" :subtitle="`${it.quantity_sold} sold total`" :title="it.product_name" />
                       </v-list>
-                      <div v-else class="text-medium-emphasis text-body-2">Nothing out.</div>
+                      <div v-else class="text-medium-emphasis text-body-2">{{ t('Nothing out.') }}</div>
                     </v-col>
                   </v-row>
                 </div>
@@ -244,7 +244,7 @@
     <!-- add batch -->
     <v-dialog v-model="createDialog" max-width="480">
       <v-card>
-        <v-card-title class="text-h6">Add Batch</v-card-title>
+        <v-card-title class="text-h6">{{ t('Add Batch') }}</v-card-title>
         <v-card-text>
           <v-autocomplete
             v-model="form.purchaseId"
@@ -255,7 +255,7 @@
             :items="purchaseOptions"
             :loading="purchaseLoading"
             no-filter
-            placeholder="Search purchase invoices"
+            :placeholder="t('Search purchase invoices')"
             variant="outlined"
             @update:search="onPurchaseSearch"
           />
@@ -264,7 +264,7 @@
             class="mt-3"
             density="compact"
             hide-details="auto"
-            label="Batch code (optional)"
+            :label="t('Batch code (optional)')"
             variant="outlined"
           />
           <v-textarea
@@ -272,18 +272,18 @@
             class="mt-3"
             density="compact"
             hide-details="auto"
-            label="Note (optional)"
+            :label="t('Note (optional)')"
             rows="2"
             variant="outlined"
           />
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="createDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="createDialog = false" />
           <v-btn
             color="primary"
             :loading="creating"
-            text="Create"
+            :text="t('Create')"
             variant="flat"
             @click="submitCreate"
           />
@@ -294,17 +294,17 @@
     <!-- delete -->
     <v-dialog v-model="deleteDialog" max-width="420">
       <v-card>
-        <v-card-title class="text-h6">Delete Batch</v-card-title>
+        <v-card-title class="text-h6">{{ t('Delete Batch') }}</v-card-title>
         <v-card-text>
-          Delete <strong>{{ selectedBatch?.code || `Batch #${selectedId}` }}</strong>? This can't be undone.
+          {{ t('Delete') }} <strong>{{ selectedBatch?.code || `Batch #${selectedId}` }}</strong>{{ t('? This can\'t be undone.') }}
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="deleteDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="deleteDialog = false" />
           <v-btn
             color="error"
             :loading="deleting"
-            text="Delete"
+            :text="t('Delete')"
             variant="flat"
             @click="doDelete"
           />
@@ -315,6 +315,7 @@
 </template>
 
 <script setup lang="ts">
+  import { t } from '@/i18n'
   import { computed, onMounted, reactive, ref } from 'vue'
   import { useBatches } from '@/composables/useBatches'
   import { usePageAccess } from '@/composables/usePageAccess'
@@ -401,9 +402,9 @@
   }
 
   function itemStatus (it) {
-    if (it.remaining_quantity <= 0) return { label: 'Out of stock', color: 'error' }
-    if (it.remaining_quantity <= it.low_stock_threshold) return { label: 'Low stock', color: 'warning' }
-    if (it.quantity_sold === 0) return { label: 'Dead stock', color: 'grey' }
+    if (it.remaining_quantity <= 0) return { label: t('Out of stock'), color: 'error' }
+    if (it.remaining_quantity <= it.low_stock_threshold) return { label: t('Low stock'), color: 'warning' }
+    if (it.quantity_sold === 0) return { label: t('Dead stock'), color: 'grey' }
     return null
   }
 

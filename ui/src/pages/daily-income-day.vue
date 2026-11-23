@@ -14,7 +14,7 @@
     <!-- Header -->
     <div class="day-header d-flex align-center flex-wrap ga-2 px-4 pt-3 pb-2">
       <v-btn
-        aria-label="Back to Daily Income"
+        :aria-label="t('Back to Daily Income')"
         icon="mdi-arrow-left"
         size="small"
         to="/daily-income"
@@ -27,14 +27,14 @@
 
       <div class="d-flex align-center ga-2 day-header__controls">
         <v-btn
-          aria-label="Previous day"
+          :aria-label="t('Previous day')"
           icon="mdi-chevron-left"
           size="small"
           variant="tonal"
           @click="shiftDay(-1)"
         />
         <v-btn
-          aria-label="Next day"
+          :aria-label="t('Next day')"
           :disabled="isToday"
           icon="mdi-chevron-right"
           size="small"
@@ -54,7 +54,7 @@
           v-if="auth.canEditPage('analytics', 'daily-income')"
           prepend-icon="mdi-email-outline"
           size="small"
-          text="Email"
+          :text="t('Email')"
           variant="tonal"
           @click="emailOpen = true"
         />
@@ -83,13 +83,13 @@
     </div>
 
     <v-tabs v-model="tab" color="primary" show-arrows>
-      <v-tab value="overview">Overview</v-tab>
+      <v-tab value="overview">{{ t('Overview') }}</v-tab>
       <v-tab value="sales">Products &amp; People</v-tab>
-      <v-tab value="invoices">Invoices</v-tab>
+      <v-tab value="invoices">{{ t('Invoices') }}</v-tab>
       <v-tab value="cash">Shifts &amp; Expenses</v-tab>
     </v-tabs>
 
-    <PreparingState v-if="loading && !summary" kind="data" title="Adding up the day's income" />
+    <PreparingState v-if="loading && !summary" kind="data" :title="t('Adding up the day\'s income')" />
 
     <v-window v-else-if="summary" v-model="tab" class="day-window">
       <!-- Overview -->
@@ -105,11 +105,11 @@
             </v-card>
           </v-col>
           <v-col cols="12" md="4">
-            <ListPanel :rows="paymentRows" title="Payments" />
+            <ListPanel :rows="paymentRows" :title="t('Payments')" />
           </v-col>
           <v-col v-if="!branchId && branchRows.length > 1" cols="12">
             <v-card border class="fill-height" flat tile>
-              <v-card-title class="text-caption text-uppercase text-grey py-1 px-3">Branches</v-card-title>
+              <v-card-title class="text-caption text-uppercase text-grey py-1 px-3">{{ t('Branches') }}</v-card-title>
               <v-divider />
               <v-data-table
                 density="compact"
@@ -135,10 +135,10 @@
       <v-window-item value="sales">
         <v-row no-gutters>
           <v-col cols="12" md="6">
-            <ListPanel :rows="productRows" title="Best Sellers" />
+            <ListPanel :rows="productRows" :title="t('Best Sellers')" />
           </v-col>
           <v-col cols="12" md="6">
-            <ListPanel :rows="salespersonRows" title="Salespeople" />
+            <ListPanel :rows="salespersonRows" :title="t('Salespeople')" />
           </v-col>
         </v-row>
       </v-window-item>
@@ -173,13 +173,13 @@
       <v-window-item value="cash">
         <v-row no-gutters>
           <v-col cols="12" md="6">
-            <ListPanel empty-text="No shifts closed this day." :rows="shiftRows" title="Shifts Closed">
+            <ListPanel empty-text="No shifts closed this day." :rows="shiftRows" :title="t('Shifts Closed')">
               <template v-if="canPrintBranchShift" #row-append="{ row }">
                 <v-btn
                   icon="mdi-printer"
                   :loading="printingShiftId === row.key"
                   size="x-small"
-                  title="Print this close shift on the till that closed it"
+                  :title="t('Print this close shift on the till that closed it')"
                   variant="text"
                   @click="printShift(row.shift)"
                 />
@@ -187,7 +187,7 @@
             </ListPanel>
           </v-col>
           <v-col cols="12" md="6">
-            <ListPanel empty-text="No expenses this day." :rows="expenseRows" title="Expenses" />
+            <ListPanel empty-text="No expenses this day." :rows="expenseRows" :title="t('Expenses')" />
           </v-col>
         </v-row>
       </v-window-item>
@@ -196,6 +196,7 @@
 </template>
 
 <script setup>
+  import { t } from '@/i18n'
   import { computed, onMounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { useDisplay, useTheme } from 'vuetify'
@@ -257,7 +258,7 @@
   }))
 
   const branchOptions = computed(() => [
-    { title: 'All branches', value: null },
+    { title: t('All branches'), value: null },
     ...branches.value.map(b => ({ title: b.name, value: b.id })),
   ])
   const branchLabel = computed(() => {
@@ -451,25 +452,25 @@
   })
 
   const branchHeaders = [
-    { title: 'Branch', key: 'branch_name' },
-    { title: 'Net', key: 'net_total', align: 'end' },
-    { title: 'Sales', key: 'sales_count', align: 'end' },
-    { title: 'Avg ticket', key: 'avg_ticket', align: 'end' },
-    { title: 'Items', key: 'items_sold', align: 'end' },
-    { title: 'Returns', key: 'return_total', align: 'end' },
-    { title: 'Customers in', key: 'visitors_in', align: 'end' },
-    { title: 'Conversion', key: 'conversion', align: 'end' },
+    { title: t('Branch'), key: 'branch_name' },
+    { title: t('Net'), key: 'net_total', align: 'end' },
+    { title: t('Sales'), key: 'sales_count', align: 'end' },
+    { title: t('Avg ticket'), key: 'avg_ticket', align: 'end' },
+    { title: t('Items'), key: 'items_sold', align: 'end' },
+    { title: t('Returns'), key: 'return_total', align: 'end' },
+    { title: t('Customers in'), key: 'visitors_in', align: 'end' },
+    { title: t('Conversion'), key: 'conversion', align: 'end' },
   ]
 
   const invoiceHeaders = computed(() => [
-    { title: 'Time', key: 'occurred_at' },
-    { title: 'Code', key: 'branch_invoice_code' },
-    ...(branchId.value ? [] : [{ title: 'Branch', key: 'branch_name' }]),
-    { title: 'Type', key: 'kind' },
-    { title: 'Salesperson', key: 'salesperson_name' },
-    { title: 'Items', key: 'item_count', align: 'end' },
-    { title: 'Discount', key: 'discount', align: 'end' },
-    { title: 'Total', key: 'grand_total', align: 'end' },
+    { title: t('Time'), key: 'occurred_at' },
+    { title: t('Code'), key: 'branch_invoice_code' },
+    ...(branchId.value ? [] : [{ title: t('Branch'), key: 'branch_name' }]),
+    { title: t('Type'), key: 'kind' },
+    { title: t('Salesperson'), key: 'salesperson_name' },
+    { title: t('Items'), key: 'item_count', align: 'end' },
+    { title: t('Discount'), key: 'discount', align: 'end' },
+    { title: t('Total'), key: 'grand_total', align: 'end' },
   ])
 
   // ---- hourly chart ----

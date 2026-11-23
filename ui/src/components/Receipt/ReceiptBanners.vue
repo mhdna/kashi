@@ -13,13 +13,13 @@
       item-title="label"
       item-value="key"
       :items="styles"
-      label="Design of all banners"
+      :label="t('Design of all banners')"
       :model-value="globalStyle"
       variant="outlined"
       @update:model-value="v => update(setGlobalBannerStyle(design, v))"
     />
     <div class="text-body-2 text-medium-emphasis mt-2 mb-3" data-test="banners-one">
-      Write the words for each kind of invoice; leave it empty for no banner. An invoice prints the one that fits it best.
+      {{ t('Write the words for each kind of invoice; leave it empty for no banner. An invoice prints the one that fits it best.') }}
     </div>
     <div
       v-for="k in kinds"
@@ -35,7 +35,7 @@
           :data-test="`title-${k.when || 'always'}`"
           density="compact"
           hide-details
-          label="Words"
+          :label="t('Words')"
           :maxlength="40"
           :model-value="of(k)?.title ?? ''"
           variant="outlined"
@@ -45,7 +45,7 @@
           :data-test="`subtitle-${k.when || 'always'}`"
           density="compact"
           hide-details
-          label="Under them"
+          :label="t('Under them')"
           :maxlength="80"
           :model-value="of(k)?.subtitle ?? ''"
           variant="outlined"
@@ -58,7 +58,7 @@
           item-title="title"
           item-value="value"
           :items="styleChoices"
-          label="Design"
+          :label="t('Design')"
           :model-value="of(k)?.own_style ? of(k).style : ''"
           variant="outlined"
           @update:model-value="v => set(k, { style: v })"
@@ -70,7 +70,7 @@
         :data-test="`see-${k.when || 'always'}`"
         density="compact"
         size="small"
-        text="See it on the receipt"
+        :text="t('See it on the receipt')"
         variant="text"
         @click="emit('see', bannerMode(of(k), deals))"
       />
@@ -83,6 +83,7 @@
   import {
     bannerKinds, bannerMode, bannerOfKind, globalBannerStyle, setGlobalBannerStyle, setKindBanner,
   } from '@/utils/receiptDesign'
+  import { t } from '@/i18n'
 
   const props = withDefaults(defineProps<{
     catalog: Record<string, any>
@@ -99,7 +100,7 @@
   const banners = computed(() => props.design.banners ?? [])
   const styles = computed(() => props.catalog.banner_styles ?? [])
   const globalStyle = computed(() => globalBannerStyle(props.design))
-  const styleChoices = computed(() => [{ value: '', title: 'Same as all' }, ...styles.value.map((s: any) => ({ value: s.key, title: s.label }))])
+  const styleChoices = computed(() => [{ value: '', title: t('Same as all') }, ...styles.value.map((s: any) => ({ value: s.key, title: s.label }))])
   // The kinds, and any a saved banner has that the list no longer offers
   // (a deal since removed), so it can still be seen and cleared.
   const kinds = computed(() => {

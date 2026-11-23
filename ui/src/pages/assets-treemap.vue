@@ -3,20 +3,21 @@
   import AssetTreemap from '@/components/Stats/AssetTreemap.vue'
   import { useAssetsTreemap } from '@/composables/useAssetsTreemap'
   import { useNotify } from '@/composables/useNotify'
+  import { t } from '@/i18n'
 
   const notify = useNotify()
   const { fetchRows, totals, locationOptions } = useAssetsTreemap()
 
-  const options = ref([{ title: 'All Locations', value: 'all' }])
+  const options = ref([{ title: t('All Locations'), value: 'all' }])
   const selected = ref('all')
 
   const totalValue = computed(() => '$ ' + Math.round(totals(selected.value).valueCents / 100).toLocaleString('en-US'))
-  const totalCount = computed(() => totals(selected.value).qty.toLocaleString('en-US') + ' units')
+  const totalCount = computed(() => t('{n} units', { n: totals(selected.value).qty.toLocaleString('en-US') }))
 
   onMounted(async () => {
     try {
       await fetchRows()
-      options.value = [{ title: 'All Locations', value: 'all' }, ...locationOptions()]
+      options.value = [{ title: t('All Locations'), value: 'all' }, ...locationOptions()]
     } catch (error) {
       notify.error(error.message)
     }
@@ -48,7 +49,7 @@
         density="compact"
         hide-details
         :items="options"
-        label="Location"
+        :label="t('Location')"
         max-width="260"
         variant="outlined"
       />
@@ -57,7 +58,7 @@
       <div class="text-center">
         <div class="text-h6 font-weight-bold">{{ totalValue }}</div>
         <div class="text-caption text-medium-emphasis">
-          Total book value &middot; {{ totalCount }}
+          {{ t('Total book value') }} &middot; {{ totalCount }}
         </div>
       </div>
       <v-spacer />
@@ -65,7 +66,7 @@
       <v-btn
         color="primary"
         prepend-icon="mdi-plus"
-        text="Add Location"
+        :text="t('Add Location')"
         @click="openAdd"
       />
     </div>
@@ -77,20 +78,20 @@
 
   <v-dialog v-model="dialog" max-width="420">
     <v-card>
-      <v-card-title>Add Location</v-card-title>
+      <v-card-title>{{ t('Add Location') }}</v-card-title>
       <v-card-text>
         <v-text-field
           v-model="newName"
           autofocus
           density="compact"
-          label="Location name"
+          :label="t('Location name')"
           @keyup.enter="addLocation"
         />
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn text="Cancel" @click="dialog = false" />
-        <v-btn color="primary" text="Add" @click="addLocation" />
+        <v-btn :text="t('Cancel')" @click="dialog = false" />
+        <v-btn color="primary" :text="t('Add')" @click="addLocation" />
       </v-card-actions>
     </v-card>
   </v-dialog>

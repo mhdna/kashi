@@ -4,17 +4,13 @@
     <v-card class="pa-4" flat style="flex: 1 1 320px; min-width: 0">
       <div class="d-flex justify-space-between align-center mb-3">
         <span class="d-flex align-center text-subtitle-2 text-uppercase text-medium-emphasis">
-          <v-icon class="me-2" color="indigo-lighten-2" icon="mdi-target" size="20" />
-          Targets
-        </span>
+          <v-icon class="me-2" color="indigo-lighten-2" icon="mdi-target" size="20" />{{ t('Targets') }}</span>
         <span class="text-subtitle-1 font-weight-bold">{{ overallPct }}</span>
       </div>
 
       <v-skeleton-loader v-if="!props.summary" type="text@3" />
 
-      <div v-else-if="targets.length === 0" class="text-body-2 text-medium-emphasis">
-        No active targets
-      </div>
+      <div v-else-if="targets.length === 0" class="text-body-2 text-medium-emphasis">{{ t('No active targets') }}</div>
 
       <div v-for="(t, i) in targets" v-else :key="i" class="mb-3">
         <div class="d-flex justify-space-between align-center">
@@ -38,17 +34,13 @@
     <v-card class="pa-4" flat style="flex: 1 1 320px; min-width: 0">
       <div class="d-flex justify-space-between align-center mb-3">
         <span class="d-flex align-center text-subtitle-2 text-uppercase text-medium-emphasis">
-          <v-icon class="me-2" color="indigo-lighten-2" icon="mdi-hand-coin" size="20" />
-          Due Loans
-        </span>
+          <v-icon class="me-2" color="indigo-lighten-2" icon="mdi-hand-coin" size="20" />{{ t('Due Loans') }}</span>
         <span class="text-subtitle-1 font-weight-bold">{{ props.summary ? fmt(props.summary.due_loans) : '—' }}</span>
       </div>
 
       <v-skeleton-loader v-if="!props.summary" type="text@3" />
 
-      <div v-else-if="loans.length === 0" class="text-body-2 text-medium-emphasis">
-        No outstanding loans
-      </div>
+      <div v-else-if="loans.length === 0" class="text-body-2 text-medium-emphasis">{{ t('No outstanding loans') }}</div>
 
       <div
         v-for="(l, i) in loans"
@@ -75,6 +67,7 @@
 <script setup>
   import { computed } from 'vue'
   import { formatCompactMoney as fmt } from '@/utils/money'
+  import { t } from '@/i18n'
 
   const props = defineProps({
     // The whole /dashboard/summary payload (or null while first loading).

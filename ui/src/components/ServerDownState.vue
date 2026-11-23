@@ -27,7 +27,7 @@
         variant="tonal"
         @click="retry"
       >
-        Try again
+        {{ t('Try again') }}
       </v-btn>
     </section>
   </div>
@@ -36,6 +36,7 @@
 <script setup lang="ts">
   import { computed, onUnmounted, ref } from 'vue'
   import { NO_INTERNET_MESSAGE, SERVER_DOWN_MESSAGE } from '@/composables/useApi'
+  import { t } from '@/i18n'
 
   const props = defineProps({
     message: {
@@ -74,13 +75,13 @@
     return props.updating ? 'mdi-update' : 'mdi-server-network-off'
   })
   const title = computed(() => {
-    if (props.offline) return 'No internet'
-    return props.updating ? 'Updating Kashi Cloud' : 'Can\'t reach the server'
+    if (props.offline) return t('No internet')
+    return props.updating ? t('Updating Kashi Cloud') : t('Can\'t reach the server')
   })
   const text = computed(() => {
-    if (props.offline) return NO_INTERNET_MESSAGE
-    if (slow.value) return 'Taking longer than usual. Still checking…'
-    return props.updating ? 'Back in a few seconds.' : props.message
+    if (props.offline) return t(NO_INTERNET_MESSAGE)
+    if (slow.value) return t('Taking longer than usual. Still checking…')
+    return props.updating ? t('Back in a few seconds.') : t(props.message)
   })
 
   // A full reload is the simplest reliable recovery: it re-runs auth, re-mounts

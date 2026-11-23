@@ -1,13 +1,14 @@
 <template>
   <v-card class="d-flex" flat style="gap: 0">
-    <ChartCard :option="charts.revenue" title="Revenue" />
-    <ChartCard :option="charts.expenses" title="Expenses" />
-    <ChartCard :option="charts.profit" title="Profit" />
-    <ChartCard :option="charts.margin" title="Profit Margin %" />
+    <ChartCard :option="charts.revenue" :title="t('Revenue')" />
+    <ChartCard :option="charts.expenses" :title="t('Expenses')" />
+    <ChartCard :option="charts.profit" :title="t('Profit')" />
+    <ChartCard :option="charts.margin" :title="t('Profit Margin %')" />
   </v-card>
 </template>
 
 <script setup>
+  import { t } from '@/i18n'
   import { computed } from 'vue'
   import ChartCard from './ChartCard.vue'
   import { buildChartOptions } from './chartOptions'

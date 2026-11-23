@@ -10,9 +10,9 @@
           rounded="lg"
           variant="outlined"
         >
-          <v-btn value="all">All</v-btn>
-          <v-btn value="branch">Branches</v-btn>
-          <v-btn value="admin">Admin</v-btn>
+          <v-btn value="all">{{ t('All') }}</v-btn>
+          <v-btn value="branch">{{ t('Branches') }}</v-btn>
+          <v-btn value="admin">{{ t('Admin') }}</v-btn>
         </v-btn-toggle>
         <branch-menu />
       </div>
@@ -25,10 +25,10 @@
           rounded="lg"
           variant="outlined"
         >
-          <v-btn value="this-month">This month</v-btn>
+          <v-btn value="this-month">{{ t('This month') }}</v-btn>
           <v-btn value="30d">30D</v-btn>
-          <v-btn value="last-month">Last month</v-btn>
-          <v-btn value="this-year">This year</v-btn>
+          <v-btn value="last-month">{{ t('Last month') }}</v-btn>
+          <v-btn value="this-year">{{ t('This year') }}</v-btn>
         </v-btn-toggle>
       </div>
     </div>
@@ -40,6 +40,7 @@
 </template>
 
 <script setup>
+  import { t } from '@/i18n'
   import BranchMenu from '@/components/Buttons/BranchMenu.vue'
   import { useIncomeFilters } from './composables/useIncomeFilters'
   import OverviewTab from './tabs/OverviewTab.vue'

@@ -2,7 +2,7 @@
   <span v-if="visible">
     <v-btn
       v-if="icon"
-      aria-label="Watch till"
+      :aria-label="t('Watch till')"
       data-test="watch-register"
       density="comfortable"
       icon="mdi-eye"
@@ -17,7 +17,7 @@
       data-test="watch-register"
       prepend-icon="mdi-eye"
       size="small"
-      text="Watch"
+      :text="t('Watch')"
       :to="{ path: `/live/${registerId}`, query: { name } }"
       variant="outlined"
     />
@@ -43,13 +43,14 @@
       class="text-caption text-medium-emphasis ms-2"
       data-test="watchers"
     >
-      Watched by {{ watchers.join(', ') }}
+      {{ t('Watched by {names}', { names: watchers.join(', ') }) }}
     </span>
   </span>
 </template>
 
 <script setup lang="ts">
   import { computed, onMounted } from 'vue'
+  import { t } from '@/i18n'
   import { useLiveView } from '@/composables/useLiveView'
   import { useAuthStore } from '@/stores/auth'
 

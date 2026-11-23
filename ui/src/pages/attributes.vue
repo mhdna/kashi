@@ -3,7 +3,7 @@
     <v-card class="attr-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-tag-multiple" />
-        <span>Attributes</span>
+        <span>{{ t('Attributes') }}</span>
         <v-spacer />
         <v-text-field
           v-model="search"
@@ -11,7 +11,7 @@
           clearable
           density="compact"
           hide-details
-          label="Search values"
+          :label="t('Search values')"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
         />
@@ -20,7 +20,7 @@
           color="primary"
           :disabled="!selectedType"
           prepend-icon="mdi-plus"
-          text="Add Value"
+          :text="t('Add Value')"
           variant="flat"
           @click="openCreate"
         />
@@ -34,7 +34,7 @@
 
         <div class="attr-content">
           <div v-if="!selectedType" class="pa-6 text-medium-emphasis">
-            Select an attribute on the left.
+            {{ t('Select an attribute on the left.') }}
           </div>
 
           <template v-else>
@@ -74,7 +74,7 @@
     <v-dialog v-model="editDialog" max-width="420">
       <v-card>
         <v-card-title class="text-h6">
-          {{ editing ? 'Edit Value' : `New ${labelize(selectedType)} Value` }}
+          {{ editing ? t('Edit Value') : t('New {type} Value', { type: labelize(selectedType) }) }}
         </v-card-title>
         <v-card-text>
           <v-text-field
@@ -82,7 +82,7 @@
             autofocus
             density="compact"
             hide-details="auto"
-            label="Value"
+            :label="t('Value')"
             variant="outlined"
             @keyup.enter="saveValue"
           />
@@ -92,16 +92,16 @@
             v-if="editing"
             color="error"
             prepend-icon="mdi-delete"
-            text="Delete"
+            :text="t('Delete')"
             variant="text"
             @click="deleteEditedValue"
           />
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="editDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="editDialog = false" />
           <v-btn
             color="primary"
             :loading="saving"
-            text="Save"
+            :text="t('Save')"
             variant="flat"
             @click="saveValue"
           />
@@ -111,17 +111,17 @@
 
     <v-dialog v-model="deleteDialog" max-width="420">
       <v-card>
-        <v-card-title class="text-h6">Delete value</v-card-title>
+        <v-card-title class="text-h6">{{ t('Delete value') }}</v-card-title>
         <v-card-text>
-          Delete <strong>{{ deleteTarget?.value }}</strong>? This can't be undone.
+          {{ t('Delete') }} <strong>{{ deleteTarget?.value }}</strong>{{ t('? This can\'t be undone.') }}
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="deleteDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="deleteDialog = false" />
           <v-btn
             color="error"
             :loading="deleting"
-            text="Delete"
+            :text="t('Delete')"
             variant="flat"
             @click="doDelete"
           />
@@ -141,6 +141,7 @@
   import { usePageAccess } from '@/composables/usePageAccess'
   import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
@@ -178,9 +179,9 @@
   const selectedType = ref(null)
   const search = ref('')
 
-  const typeItems = computed(() => types.value.map(t => ({
-    value: t.name,
-    title: labelize(t.name),
+  const typeItems = computed(() => types.value.map(item => ({
+    value: item.name,
+    title: labelize(item.name),
   })))
 
   watch(selectedType, () => {
@@ -188,11 +189,11 @@
     resetSel()
   })
 
-  const headers = [
-    { title: 'Value', key: 'value', align: 'start' },
-    { title: 'ID', key: 'id', align: 'start', width: 90 },
-    { title: 'Created At', key: 'created_at', align: 'start', width: 200 },
-  ]
+  const headers = computed(() => [
+    { title: t('Value'), key: 'value', align: 'start' },
+    { title: t('ID'), key: 'id', align: 'start', width: 90 },
+    { title: t('Created At'), key: 'created_at', align: 'start', width: 200 },
+  ])
 
   function labelize (name) {
     if (!name) return ''
@@ -238,7 +239,7 @@
   async function saveValue () {
     const value = draftValue.value.trim()
     if (!value) {
-      notify.error('Value is required.')
+      notify.error(t('Value is required.'))
       return
     }
     saving.value = true

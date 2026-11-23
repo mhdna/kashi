@@ -1,12 +1,12 @@
 <template>
   <div v-if="count > 0" class="bulk-bar d-flex flex-wrap align-center ga-2 px-3 py-2 mb-2 rounded">
     <v-icon icon="mdi-checkbox-multiple-marked-outline" size="20" />
-    <span class="font-weight-medium">{{ count }} selected</span>
+    <span class="font-weight-medium">{{ t('{count} selected', { count }) }}</span>
     <v-btn
       class="ms-1"
       density="comfortable"
       size="small"
-      text="Clear"
+      :text="t('Clear')"
       variant="text"
       @click="$emit('clear')"
     />
@@ -16,24 +16,24 @@
       :loading="loading"
       prepend-icon="mdi-delete"
       size="small"
-      :text="`Delete ${count}`"
+      :text="t('Delete {count}', { count })"
       variant="flat"
       @click="confirm = true"
     />
 
     <v-dialog v-model="confirm" max-width="420">
       <v-card>
-        <v-card-title class="text-h6">Delete {{ count }} {{ count === 1 ? 'row' : 'rows' }}?</v-card-title>
+        <v-card-title class="text-h6">{{ t('Delete {count} {rows}?', { count, rows: count === 1 ? t('row') : t('rows') }) }}</v-card-title>
         <v-card-text>
-          The selected {{ count === 1 ? 'row' : 'rows' }} will be permanently deleted. This can't be undone.
+          {{ t('The selected {rows} will be permanently deleted. This can\'t be undone.', { rows: count === 1 ? t('row') : t('rows') }) }}
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="confirm = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="confirm = false" />
           <v-btn
             color="error"
             :loading="loading"
-            text="Delete"
+            :text="t('Delete')"
             variant="flat"
             @click="onConfirm"
           />
@@ -46,6 +46,7 @@
 <script setup lang="ts">
   import { ref, watch } from 'vue'
   import { useNotify } from '@/composables/useNotify'
+  import { t } from '@/i18n'
 
   const props = defineProps({
     count: { type: Number, default: 0 },

@@ -4,24 +4,24 @@
       <v-card-title>{{ detailsTarget.entity_type }} #{{ detailsTarget.entity_id }} — {{ detailsTarget.action }}</v-card-title>
       <v-card-text>
         <v-row density="compact">
-          <v-col cols="6"><span class="text-caption">Actor</span><div>{{ detailsTarget.actor_name || '—' }}</div></v-col>
-          <v-col cols="6"><span class="text-caption">When</span><div>{{ new Date(detailsTarget.created_at).toLocaleString() }}</div></v-col>
+          <v-col cols="6"><span class="text-caption">{{ t('Actor') }}</span><div>{{ detailsTarget.actor_name || '—' }}</div></v-col>
+          <v-col cols="6"><span class="text-caption">{{ t('When') }}</span><div>{{ new Date(detailsTarget.created_at).toLocaleString() }}</div></v-col>
         </v-row>
         <v-divider class="my-2" />
         <v-row>
           <v-col cols="6">
-            <div class="text-caption mb-1">Before</div>
+            <div class="text-caption mb-1">{{ t('Before') }}</div>
             <pre class="diff-block">{{ formatJSON(detailsTarget.before) }}</pre>
           </v-col>
           <v-col cols="6">
-            <div class="text-caption mb-1">After</div>
+            <div class="text-caption mb-1">{{ t('After') }}</div>
             <pre class="diff-block">{{ formatJSON(detailsTarget.after) }}</pre>
           </v-col>
         </v-row>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn text="Close" @click="detailsDialog = false" />
+        <v-btn :text="t('Close')" @click="detailsDialog = false" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -30,7 +30,7 @@
     <v-card class="audit-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-history" />
-        <span>Audit Log</span>
+        <span>{{ t('Audit Log') }}</span>
         <v-spacer />
         <v-select
           v-model="filters.entityType"
@@ -39,7 +39,7 @@
           density="compact"
           hide-details
           :items="entityTypes"
-          label="Entity"
+          :label="t('Entity')"
           variant="outlined"
         />
         <v-select
@@ -49,7 +49,7 @@
           density="compact"
           hide-details
           :items="actions"
-          label="Action"
+          :label="t('Action')"
           variant="outlined"
         />
       </v-card-title>
@@ -84,23 +84,24 @@
 </template>
 
 <script setup lang="ts">
-  import { ref } from 'vue'
+  import { computed, ref } from 'vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
 
   const apiURL = `${API_BASE}/audit_logs`
   const entityTypes = ['client', 'product', 'supplier', 'expense', 'price_list', 'branch_settings']
   const actions = ['create', 'update', 'delete']
   const filters = ref({ entityType: null, action: null })
 
-  const headers = [
-    { title: 'When', key: 'created_at', sortable: false },
-    { title: 'Entity', key: 'entity_type', sortable: false },
-    { title: 'ID', key: 'entity_id', align: 'end', sortable: false },
-    { title: 'Action', key: 'action', sortable: false },
-    { title: 'Actor', key: 'actor_name', sortable: false },
-    { title: 'Source', key: 'source', sortable: false },
-  ]
+  const headers = computed(() => [
+    { title: t('When'), key: 'created_at', sortable: false },
+    { title: t('Entity'), key: 'entity_type', sortable: false },
+    { title: t('ID'), key: 'entity_id', align: 'end', sortable: false },
+    { title: t('Action'), key: 'action', sortable: false },
+    { title: t('Actor'), key: 'actor_name', sortable: false },
+    { title: t('Source'), key: 'source', sortable: false },
+  ])
 
   function actionColor (a) {
     return { create: 'success', update: 'warning', delete: 'error' }[a] || 'grey'

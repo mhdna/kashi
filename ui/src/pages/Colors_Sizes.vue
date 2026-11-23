@@ -12,7 +12,7 @@
           clearable
           density="compact"
           hide-details
-          label="Search colors"
+          :label="t('Search colors')"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
         />
@@ -23,7 +23,7 @@
           clearable
           density="compact"
           hide-details
-          label="Search sizes"
+          :label="t('Search sizes')"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
         />
@@ -31,7 +31,7 @@
           v-if="canEdit && tab === 'colors'"
           color="primary"
           prepend-icon="mdi-plus"
-          text="Add Color"
+          :text="t('Add Color')"
           variant="flat"
           @click="openAddColor"
         />
@@ -39,7 +39,7 @@
           v-if="canEdit && tab !== 'colors'"
           color="primary"
           prepend-icon="mdi-plus"
-          text="Add Size"
+          :text="t('Add Size')"
           variant="flat"
           @click="openAddSize"
         />
@@ -53,8 +53,8 @@
           color="primary"
           :direction="$vuetify.display.smAndDown ? 'horizontal' : 'vertical'"
         >
-          <v-tab prepend-icon="mdi-palette" text="Colors" value="colors" />
-          <v-tab prepend-icon="mdi-tshirt-crew" text="Sizes" value="sizes" />
+          <v-tab prepend-icon="mdi-palette" :text="t('Colors')" value="colors" />
+          <v-tab prepend-icon="mdi-tshirt-crew" :text="t('Sizes')" value="sizes" />
         </v-tabs>
 
         <v-divider vertical />
@@ -136,7 +136,7 @@
       <v-card rounded="lg">
         <v-card-title class="d-flex align-center ga-2 px-4 py-3 text-h6">
           <v-icon icon="mdi-palette" size="22" />
-          <span>Add Color</span>
+          <span>{{ t('Add Color') }}</span>
           <v-spacer />
           <v-btn icon="mdi-close" size="small" variant="text" @click="addColorDialog = false" />
         </v-card-title>
@@ -154,7 +154,7 @@
             v-model="colorForm.name"
             density="compact"
             hide-details="auto"
-            label="Color name"
+            :label="t('Color name')"
             variant="outlined"
           />
           <v-text-field
@@ -162,7 +162,7 @@
             class="mt-3"
             density="compact"
             hide-details="auto"
-            label="Hex"
+            :label="t('Hex')"
             variant="outlined"
           >
             <template #append-inner>
@@ -172,11 +172,11 @@
         </v-card-text>
         <v-card-actions class="px-4 pb-4">
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="addColorDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="addColorDialog = false" />
           <v-btn
             color="primary"
             :loading="colorSaving"
-            text="Add"
+            :text="t('Add')"
             variant="flat"
             @click="addColor"
           />
@@ -187,7 +187,7 @@
     <!-- add size -->
     <v-dialog v-model="addSizeDialog" max-width="420">
       <v-card>
-        <v-card-title class="text-h6">Add Size</v-card-title>
+        <v-card-title class="text-h6">{{ t('Add Size') }}</v-card-title>
         <v-card-text>
           <v-combobox
             v-model="sizeForm.type"
@@ -195,15 +195,15 @@
             density="compact"
             hide-details="auto"
             :items="sizeTypes"
-            label="Type"
+            :label="t('Type')"
             variant="outlined"
           />
           <v-text-field
             v-model="sizeForm.name"
             density="compact"
             hide-details="auto"
-            label="Name"
-            placeholder="XL / 42"
+            :label="t('Name')"
+            :placeholder="t('XL / 42')"
             variant="outlined"
           />
           <v-text-field
@@ -211,18 +211,18 @@
             class="mt-3"
             density="compact"
             hide-details="auto"
-            label="Order"
+            :label="t('Order')"
             type="number"
             variant="outlined"
           />
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="addSizeDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="addSizeDialog = false" />
           <v-btn
             color="primary"
             :loading="sizeSaving"
-            text="Add"
+            :text="t('Add')"
             variant="flat"
             @click="addSize"
           />
@@ -235,7 +235,7 @@
       <v-card rounded="lg">
         <v-card-title class="d-flex align-center ga-2 px-4 py-3 text-h6">
           <v-icon icon="mdi-palette" size="22" />
-          <span>Edit Color</span>
+          <span>{{ t('Edit Color') }}</span>
           <v-spacer />
           <v-btn icon="mdi-close" size="small" variant="text" @click="editColorDialog = false" />
         </v-card-title>
@@ -253,7 +253,7 @@
             v-model="editColorForm.name"
             density="compact"
             hide-details="auto"
-            label="Name"
+            :label="t('Name')"
             variant="outlined"
           />
           <v-text-field
@@ -261,7 +261,7 @@
             class="mt-3"
             density="compact"
             hide-details="auto"
-            label="Hex"
+            :label="t('Hex')"
             variant="outlined"
           >
             <template #append-inner>
@@ -273,16 +273,16 @@
           <v-btn
             color="error"
             prepend-icon="mdi-delete"
-            text="Delete"
+            :text="t('Delete')"
             variant="text"
             @click="deleteEditedColor"
           />
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="editColorDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="editColorDialog = false" />
           <v-btn
             color="primary"
             :loading="editSaving"
-            text="Save"
+            :text="t('Save')"
             variant="flat"
             @click="saveColor"
           />
@@ -293,7 +293,7 @@
     <!-- edit size -->
     <v-dialog v-model="editSizeDialog" max-width="420">
       <v-card>
-        <v-card-title class="text-h6">Edit Size</v-card-title>
+        <v-card-title class="text-h6">{{ t('Edit Size') }}</v-card-title>
         <v-card-text>
           <v-combobox
             v-model="editSizeForm.type"
@@ -301,14 +301,14 @@
             density="compact"
             hide-details="auto"
             :items="sizeTypes"
-            label="Type"
+            :label="t('Type')"
             variant="outlined"
           />
           <v-text-field
             v-model="editSizeForm.name"
             density="compact"
             hide-details="auto"
-            label="Name"
+            :label="t('Name')"
             variant="outlined"
           />
           <v-text-field
@@ -316,7 +316,7 @@
             class="mt-3"
             density="compact"
             hide-details="auto"
-            label="Order"
+            :label="t('Order')"
             type="number"
             variant="outlined"
           />
@@ -325,16 +325,16 @@
           <v-btn
             color="error"
             prepend-icon="mdi-delete"
-            text="Delete"
+            :text="t('Delete')"
             variant="text"
             @click="deleteEditedSize"
           />
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="editSizeDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="editSizeDialog = false" />
           <v-btn
             color="primary"
             :loading="editSaving"
-            text="Save"
+            :text="t('Save')"
             variant="flat"
             @click="saveSize"
           />
@@ -347,15 +347,15 @@
       <v-card>
         <v-card-title class="text-h6">Delete {{ deleteKind }}</v-card-title>
         <v-card-text>
-          Delete <strong>{{ deleteLabel }}</strong>? This can't be undone.
+          {{ t('Delete') }} <strong>{{ deleteLabel }}</strong>{{ t('? This can\'t be undone.') }}
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="deleteDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="deleteDialog = false" />
           <v-btn
             color="error"
             :loading="deleting"
-            text="Delete"
+            :text="t('Delete')"
             variant="flat"
             @click="doDelete"
           />
@@ -366,6 +366,7 @@
 </template>
 
 <script setup lang="ts">
+  import { t } from '@/i18n'
   import { computed, onMounted, reactive, ref } from 'vue'
   import BulkDeleteBar from '@/components/Tables/BulkDeleteBar.vue'
   import ServerSideTable from '@/components/Tables/ServerSideTable.vue'
@@ -437,18 +438,18 @@
   const sizeSearch = ref('')
 
   const colorHeaders = [
-    { title: 'Name', key: 'name', align: 'start' },
-    { title: 'Hex', key: 'hex_value', align: 'start' },
-    { title: 'ID', key: 'id', align: 'start', width: 80 },
-    { title: 'Created At', key: 'created_at', align: 'start', width: 200 },
+    { title: t('Name'), key: 'name', align: 'start' },
+    { title: t('Hex'), key: 'hex_value', align: 'start' },
+    { title: t('ID'), key: 'id', align: 'start', width: 80 },
+    { title: t('Created At'), key: 'created_at', align: 'start', width: 200 },
   ]
 
   const sizeHeaders = [
-    { title: 'Type', key: 'type', align: 'start' },
-    { title: 'Name', key: 'name', align: 'start' },
-    { title: 'Order', key: 'order', align: 'start', width: 90 },
-    { title: 'ID', key: 'id', align: 'start', width: 80 },
-    { title: 'Created At', key: 'created_at', align: 'start', width: 200 },
+    { title: t('Type'), key: 'type', align: 'start' },
+    { title: t('Name'), key: 'name', align: 'start' },
+    { title: t('Order'), key: 'order', align: 'start', width: 90 },
+    { title: t('ID'), key: 'id', align: 'start', width: 80 },
+    { title: t('Created At'), key: 'created_at', align: 'start', width: 200 },
   ]
 
   // Distinct size types for the add/edit dialog picker — derived from the

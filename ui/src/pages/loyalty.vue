@@ -3,7 +3,7 @@
     <!-- Header / controls -- same shape as the Footfall / Conversion pages. -->
     <div class="d-flex align-center flex-wrap ga-3 pa-4 pb-2">
       <v-icon icon="mdi-trophy" />
-      <div class="text-h6 font-weight-medium">Loyalty</div>
+      <div class="text-h6 font-weight-medium">{{ t('Loyalty') }}</div>
       <v-spacer />
       <DateRangePicker v-model="dateRange" clearable empty-label="All time" :max="todayIso" />
       <v-btn-toggle
@@ -22,15 +22,13 @@
     <!-- Tier ladder: the thresholds every number on this page is bucketed by.
       Edited from the Clients page; shared across retail and wholesale. -->
     <div class="d-flex flex-wrap align-center ga-2 px-4 pb-2">
-      <span class="text-caption text-medium-emphasis me-1">Tiers</span>
+      <span class="text-caption text-medium-emphasis me-1">{{ t('Tiers') }}</span>
       <TierChip v-for="t in tierLadder" :key="t.id" show-threshold :tier="t" />
     </div>
 
-    <PreparingState v-if="loading" kind="data" title="Loading clients" />
+    <PreparingState v-if="loading" kind="data" :title="t('Loading clients')" />
 
-    <v-alert v-else-if="totalMembers === 0" class="ly-notice mx-4" type="info" variant="tonal">
-      No clients to analyse yet.
-    </v-alert>
+    <v-alert v-else-if="totalMembers === 0" class="ly-notice mx-4" type="info" variant="tonal">{{ t('No clients to analyse yet.') }}</v-alert>
 
     <v-container v-else class="pa-4 pt-2" fluid>
       <!-- KPIs -->
@@ -48,14 +46,14 @@
       <v-row dense>
         <v-col cols="12" md="8">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Members by tier</div>
-            <div class="chart-card__subtitle">How many clients have reached each tier</div>
+            <div class="chart-card__title">{{ t('Members by tier') }}</div>
+            <div class="chart-card__subtitle">{{ t('How many clients have reached each tier') }}</div>
             <v-chart autoresize class="chart" :option="membersByTierOption" />
           </v-card>
         </v-col>
         <v-col cols="12" md="4">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Revenue share by tier</div>
+            <div class="chart-card__title">{{ t('Revenue share by tier') }}</div>
             <div class="chart-card__subtitle">Spend in {{ rangeLabel }}, split by current tier</div>
             <v-chart autoresize class="chart" :option="revenueShareOption" />
           </v-card>
@@ -66,15 +64,15 @@
       <v-row dense>
         <v-col cols="12" md="8">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">New members per month</div>
-            <div class="chart-card__subtitle">Sign-ups over the trailing 12 months</div>
+            <div class="chart-card__title">{{ t('New members per month') }}</div>
+            <div class="chart-card__subtitle">{{ t('Sign-ups over the trailing 12 months') }}</div>
             <v-chart autoresize class="chart" :option="newMembersOption" />
           </v-card>
         </v-col>
         <v-col cols="12" md="4">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Points outstanding by tier</div>
-            <div class="chart-card__subtitle">Unredeemed balance held in each tier</div>
+            <div class="chart-card__title">{{ t('Points outstanding by tier') }}</div>
+            <div class="chart-card__subtitle">{{ t('Unredeemed balance held in each tier') }}</div>
             <v-chart autoresize class="chart" :option="pointsByTierOption" />
           </v-card>
         </v-col>
@@ -84,20 +82,20 @@
       <v-row dense>
         <v-col cols="12" md="7">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Tier breakdown</div>
+            <div class="chart-card__title">{{ t('Tier breakdown') }}</div>
             <div class="table-scroll">
               <v-table density="compact">
                 <thead>
                   <tr>
-                    <th class="text-left">Tier</th>
-                    <th class="text-right">Min spend</th>
-                    <th class="text-right">Members</th>
+                    <th class="text-left">{{ t('Tier') }}</th>
+                    <th class="text-right">{{ t('Min spend') }}</th>
+                    <th class="text-right">{{ t('Members') }}</th>
                     <th class="text-right">% of base</th>
-                    <th class="text-right">Active</th>
-                    <th class="text-right">Revenue</th>
+                    <th class="text-right">{{ t('Active') }}</th>
+                    <th class="text-right">{{ t('Revenue') }}</th>
                     <th class="text-right">% of rev.</th>
-                    <th class="text-right">Avg / active</th>
-                    <th class="text-right">Points</th>
+                    <th class="text-right">{{ t('Avg / active') }}</th>
+                    <th class="text-right">{{ t('Points') }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -118,7 +116,7 @@
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td class="font-weight-bold">All</td>
+                    <td class="font-weight-bold">{{ t('All') }}</td>
                     <td />
                     <td class="text-right font-weight-bold">{{ totalMembers.toLocaleString() }}</td>
                     <td class="text-right font-weight-bold">100%</td>
@@ -138,8 +136,8 @@
 
         <v-col cols="12" md="5">
           <v-card class="chart-card" variant="flat">
-            <div class="chart-card__title">Tier composition</div>
-            <div class="chart-card__subtitle">Share of the member base in each tier</div>
+            <div class="chart-card__title">{{ t('Tier composition') }}</div>
+            <div class="chart-card__subtitle">{{ t('Share of the member base in each tier') }}</div>
 
             <div class="mt-3">
               <div v-for="t in tierStats" :key="t.id" class="comp-row">
@@ -185,7 +183,7 @@
           <v-card class="chart-card" variant="flat">
             <div class="d-flex align-center flex-wrap ga-3">
               <div>
-                <div class="chart-card__title">Close to leveling up</div>
+                <div class="chart-card__title">{{ t('Close to leveling up') }}</div>
                 <div class="chart-card__subtitle">
                   Clients within reach of their next tier — a nudge here moves them up
                 </div>
@@ -197,7 +195,7 @@
                 clearable
                 density="compact"
                 hide-details
-                placeholder="Search clients"
+                :placeholder="t('Search clients')"
                 prepend-inner-icon="mdi-magnify"
                 variant="outlined"
               />
@@ -230,9 +228,7 @@
                   style="min-width: 90px"
                 />
               </template>
-              <template #no-data>
-                No clients are close to their next tier right now.
-              </template>
+              <template #no-data>{{ t('No clients are close to their next tier right now.') }}</template>
             </v-data-table>
           </v-card>
         </v-col>
@@ -252,6 +248,7 @@
   import { API_BASE } from '@/config'
   import { ymd } from '@/utils/dates'
   import { formatCompactMoney } from '@/utils/money'
+  import { t } from '@/i18n'
 
   // --- echarts chrome (same helpers as footfall.vue / conversion.vue) -------
   const theme = useTheme()
@@ -269,9 +266,9 @@
   }))
 
   const clientTypeOptions = [
-    { title: 'All clients', value: 'all' },
-    { title: 'Retail', value: 'retail' },
-    { title: 'Wholesale', value: 'wholesale' },
+    { title: t('All clients'), value: 'all' },
+    { title: t('Retail'), value: 'retail' },
+    { title: t('Wholesale'), value: 'wholesale' },
   ]
   const clientType = ref('all')
   const clientTypeLabel = computed(
@@ -399,12 +396,12 @@
   )
 
   const kpis = computed(() => [
-    { label: 'Members', value: totalMembers.value.toLocaleString(), hint: clientTypeLabel.value },
-    { label: 'Active members', value: activeMembers.value.toLocaleString(), hint: '≥ 1 purchase in period' },
-    { label: 'Revenue', value: formatCompactMoney(totalRevenue.value), hint: rangeLabel.value },
-    { label: 'Points outstanding', value: totalPoints.value.toLocaleString(), hint: 'unredeemed balance' },
+    { label: t('Members'), value: totalMembers.value.toLocaleString(), hint: clientTypeLabel.value },
+    { label: t('Active members'), value: activeMembers.value.toLocaleString(), hint: '≥ 1 purchase in period' },
+    { label: t('Revenue'), value: formatCompactMoney(totalRevenue.value), hint: rangeLabel.value },
+    { label: t('Points outstanding'), value: totalPoints.value.toLocaleString(), hint: 'unredeemed balance' },
     {
-      label: 'Avg spend / active member',
+      label: t('Avg spend / active member'),
       value: activeMembers.value ? formatCompactMoney(totalRevenue.value / activeMembers.value) : '—',
     },
     { label: `${topTier.value?.label ?? 'Top'} revenue share`, value: pct(topTierRevShare.value) },
@@ -518,12 +515,12 @@
   // --- close to leveling up -------------------------------------------------
   const risingSearch = ref('')
   const risingHeaders = [
-    { title: 'Client', key: 'name' },
-    { title: 'Current', key: 'current', sortable: false },
-    { title: 'Spend', key: 'spent', align: 'end' },
-    { title: 'Gap to next', key: 'gapCents', align: 'end' },
-    { title: 'Next tier', key: 'next', sortable: false },
-    { title: 'Progress', key: 'progress', align: 'end', sortable: false },
+    { title: t('Client'), key: 'name' },
+    { title: t('Current'), key: 'current', sortable: false },
+    { title: t('Spend'), key: 'spent', align: 'end' },
+    { title: t('Gap to next'), key: 'gapCents', align: 'end' },
+    { title: t('Next tier'), key: 'next', sortable: false },
+    { title: t('Progress'), key: 'progress', align: 'end', sortable: false },
   ]
 
   // The server picks the 25 closest to their next tier; this only attaches

@@ -8,18 +8,16 @@
       <v-divider />
       <v-card-text>
         <p class="text-medium-emphasis text-body-2 mb-3">
-          A branch can only use one {{ kind }} at a time. A branch on another {{ kind }}
-          that is switched off moves over to this one; one in force has to be unticked
-          there first.
+          {{ t('A branch can only use one {kind} at a time. A branch on another {kind} that is switched off moves over to this one; one in force has to be unticked there first.', { kind: t(kind) }) }}
         </p>
 
         <div v-if="loading" class="py-4 text-center">
-          <PreparingState kind="data" :size="34" title="Loading" />
+          <PreparingState kind="data" :size="34" :title="t('Loading')" />
         </div>
 
         <template v-else>
           <div v-if="branches.length === 0" class="text-medium-emphasis py-2">
-            No branches yet.
+            {{ t('No branches yet.') }}
           </div>
           <v-list v-else class="py-0" density="compact">
             <v-list-item
@@ -42,11 +40,11 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn text="Cancel" variant="text" @click="$emit('update:modelValue', false)" />
+        <v-btn :text="t('Cancel')" variant="text" @click="$emit('update:modelValue', false)" />
         <v-btn
           color="primary"
           :loading="saving"
-          text="Save"
+          :text="t('Save')"
           variant="flat"
           @click="save"
         />
@@ -59,10 +57,11 @@
   import { ref, watch } from 'vue'
   import { useBranches } from '@/composables/useBranches'
   import { useNotify } from '@/composables/useNotify'
+  import { t } from '@/i18n'
 
   const props = defineProps({
     modelValue: { type: Boolean, default: false },
-    title: { type: String, default: 'Enabled Branches' },
+    title: { type: String, default: () => t('Enabled Branches') },
     kind: { type: String, default: 'price list' },
     // async (branchIds) => any ; throws Error on conflict
     saveFn: { type: Function, required: true },

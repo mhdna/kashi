@@ -3,7 +3,7 @@
     <div class="login-form-content">
       <AppLogo class="login-logo mx-auto" />
 
-      <div class="text-subtitle-1 text-medium-emphasis">Account</div>
+      <div class="text-subtitle-1 text-medium-emphasis">{{ t('Account') }}</div>
 
       <!-- Usernames match exactly, so stop phone keyboards from capitalising
            or autocorrecting them. -->
@@ -13,14 +13,14 @@
         autocomplete="username"
         autocorrect="off"
         density="compact"
-        placeholder="Username"
+        :placeholder="t('Username')"
         prepend-inner-icon="mdi-account-outline"
         variant="outlined"
         @keyup.enter="submit"
       />
 
       <div class="text-subtitle-1 text-medium-emphasis d-flex align-center justify-space-between">
-        Password
+        {{ t('Password') }}
 
         <!-- <a -->
         <!--   class="text-caption text-decoration-none text-blue" -->
@@ -38,7 +38,7 @@
         autocomplete="current-password"
         autocorrect="off"
         density="compact"
-        placeholder="Enter your password"
+        :placeholder="t('Enter your password')"
         prepend-inner-icon="mdi-lock-outline"
         :type="visible ? 'text' : 'password'"
         variant="outlined"
@@ -54,7 +54,7 @@
         variant="tonal"
         @click="submit"
       >
-        Log In
+        {{ t('Log In') }}
       </v-btn>
 
       <!-- Feedback lives here, absolutely positioned under the card so the
@@ -68,8 +68,7 @@
           variant="tonal"
         >
           <v-card-text class="text-medium-emphasis text-caption">
-            Warning: After 3 consecutive failed login attempts, your account will be temporarily locked for three hours.
-            If you must login now, you can also click "Forgot login password?" below to reset the login password.
+            {{ t('Warning: After 3 consecutive failed login attempts, your account will be temporarily locked for three hours. If you must login now, you can also click "Forgot login password?" below to reset the login password.') }}
           </v-card-text>
         </v-card>
       </div>
@@ -83,6 +82,7 @@
   import AppLogo from '@/components/AppLogo.vue'
   import { useNotify } from '@/composables/useNotify'
   import { useAuthStore } from '@/stores/auth'
+  import { t } from '@/i18n'
 
   const router = useRouter()
   const authStore = useAuthStore()
@@ -98,7 +98,7 @@
     if (submitting.value) return
 
     if (!username.value.trim() || !password.value) {
-      notify.error('Enter your username and password.')
+      notify.error(t('Enter your username and password.'))
       return
     }
 

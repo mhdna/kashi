@@ -12,7 +12,7 @@
     >
       <span class="text-caption">{{ initialsOf(u.name) }}</span>
       <v-tooltip activator="parent" location="bottom">
-        {{ u.name }}<template v-if="u.id === auth.user?.id"> (you)</template>
+        {{ u.name }}<template v-if="u.id === auth.user?.id"> {{ t('(you)') }}</template>
       </v-tooltip>
     </v-avatar>
 
@@ -36,6 +36,7 @@
   import { useOnlineUsers } from '@/composables/useOnlineUsers'
   import { colorForUser, initialsOf, useUserAvatar } from '@/composables/useUserAvatar'
   import { useAuthStore } from '@/stores/auth'
+  import { t } from '@/i18n'
 
   const auth = useAuthStore()
   const { users, start } = useOnlineUsers()

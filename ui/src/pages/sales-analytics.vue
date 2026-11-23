@@ -3,8 +3,8 @@
     <SalesSummary />
 
     <v-tabs v-model="tab" color="primary">
-      <v-tab value="sales">Sales Analytics</v-tab>
-      <v-tab value="demand">Demand</v-tab>
+      <v-tab value="sales">{{ t('Sales Analytics') }}</v-tab>
+      <v-tab value="demand">{{ t('Demand') }}</v-tab>
     </v-tabs>
 
     <div class="d-flex flex-column flex-grow-1" style="min-height: 0">
@@ -17,6 +17,7 @@
   import { defineAsyncComponent, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import SalesSummary from './dashboard/tabs/SalesTab.vue'
+  import { t } from '@/i18n'
 
   const tabComponents = {
     sales: defineAsyncComponent(() => import('./dashboard/tabs/SalesAnalyticsTab.vue')),

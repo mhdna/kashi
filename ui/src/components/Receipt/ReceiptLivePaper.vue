@@ -11,7 +11,7 @@
   <div class="rlive" :style="{ width: `${width}px` }" @keydown.esc="close">
     <div v-if="image" class="rlive-paper">
       <img
-        alt="The receipt as it prints"
+        :alt="t('The receipt as it prints')"
         class="rlive-img"
         data-test="receipt-image"
         :src="image"
@@ -19,7 +19,7 @@
       <button
         v-for="m in marks"
         :key="m.group"
-        :aria-label="`Change ${groupLabel(m.group)}`"
+        :aria-label="t('Change {name}', { name: groupLabel(m.group) })"
         class="rlive-part"
         :class="{ 'rlive-part--picked': m.group === picked }"
         :data-test="`pick-${m.group}`"
@@ -35,12 +35,12 @@
         <button
           v-for="(l, i) in lines"
           :key="`${l.key}-${i}`"
-          :aria-label="`Change ${l.text}`"
+          :aria-label="t('Change {name}', { name: l.text })"
           class="rlive-line"
           :class="{ 'rlive-line--picked': line && line.key === l.key && line.top === l.top }"
           :data-test="`words-${l.key}`"
           :style="lineStyle(l)"
-          :title="`Change: ${l.text}`"
+          :title="t('Change: {text}', { text: l.text })"
           type="button"
           @click="pickLine(l)"
         />
@@ -96,13 +96,14 @@
         />
       </div>
     </div>
-    <div v-else class="rlive-empty">Drawing the receipt</div>
+    <div v-else class="rlive-empty">{{ t('Drawing the receipt') }}</div>
     <v-progress-linear v-if="loading" class="rlive-loading" color="primary" indeterminate />
   </div>
 </template>
 
 <script setup lang="ts">
   import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+  import { t } from '@/i18n'
   import ReceiptLineTools from '@/components/Receipt/ReceiptLineTools.vue'
   import ReceiptPartTools from '@/components/Receipt/ReceiptPartTools.vue'
   import { can, setElement } from '@/utils/receiptDesign'
@@ -158,7 +159,7 @@
 
   const groups = computed(() => props.catalog?.groups ?? [])
   function groupLabel (key: string) {
-    if (key.startsWith('banner-')) {return 'Banner'}
+    if (key.startsWith('banner-')) {return t('Banner')}
     return groups.value.find((g: any) => g.key === key)?.label ?? key
   }
   function elementInfo (key: string) {

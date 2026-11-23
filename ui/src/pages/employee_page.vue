@@ -1,4 +1,5 @@
 <script setup lang="ts">
+  import { t } from '@/i18n'
   import InitialsAvatar from '@/components/InitialsAvatar.vue'
   import Heatmap from '@/components/Stats/Heatmap.vue'
   import PercentageCircle from '@/components/Stats/PercentageCircle.vue'
@@ -11,8 +12,8 @@
       <!-- <InitialsAvatar /> -->
       <AttendanceTable />
       <div>
-        <v-card-title>Test Employee</v-card-title>
-        <v-card-text> This is the employee page. </v-card-text>
+        <v-card-title>{{ t('Test Employee') }}</v-card-title>
+        <v-card-text> {{ t('This is the employee page.') }} </v-card-text>
       </div>
     </div>
     <v-progress-circular

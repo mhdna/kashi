@@ -9,7 +9,7 @@
             v-model="description.value.value"
             density="compact"
             :error-messages="description.errorMessage.value"
-            label="Description"
+            :label="t('Description')"
           />
           <v-select
             v-model="categoryId.value.value"
@@ -19,7 +19,7 @@
             item-title="name"
             item-value="id"
             :items="activeExpenseCategories"
-            label="Category"
+            :label="t('Category')"
           >
             <template #item="{ props: itemProps, item }">
               <v-list-item v-bind="itemProps" :prepend-icon="categoryIcon(item.raw)" />
@@ -31,7 +31,7 @@
                 v-model.number="amount.value.value"
                 density="compact"
                 :error-messages="amount.errorMessage.value"
-                label="Amount"
+                :label="t('Amount')"
                 type="number"
               />
             </v-col>
@@ -48,12 +48,12 @@
               v-if="editingExpenseId"
               color="error"
               prepend-icon="mdi-delete"
-              text="Delete"
+              :text="t('Delete')"
               variant="text"
               @click="deleteCurrentExpense"
             />
             <v-spacer />
-            <v-btn text="Cancel" @click="closeExpenseDialog" />
+            <v-btn :text="t('Cancel')" @click="closeExpenseDialog" />
             <v-btn
               color="primary"
               :loading="expenseSubmitting"
@@ -69,14 +69,14 @@
   <!-- Add a recurring expense template -->
   <v-dialog v-model="recurringDialog" max-width="480">
     <v-card class="px-4">
-      <v-card-title>Add Recurring Expense</v-card-title>
+      <v-card-title>{{ t('Add Recurring Expense') }}</v-card-title>
       <v-card-text>
         <form @submit.prevent="submitRecurring">
           <v-text-field
             v-model="rDescription.value.value"
             density="compact"
             :error-messages="rDescription.errorMessage.value"
-            label="Description"
+            :label="t('Description')"
           />
           <v-select
             v-model="rCategoryId.value.value"
@@ -86,7 +86,7 @@
             item-title="name"
             item-value="id"
             :items="activeExpenseCategories"
-            label="Category"
+            :label="t('Category')"
           />
           <v-row density="compact">
             <v-col cols="7">
@@ -94,7 +94,7 @@
                 v-model.number="rAmount.value.value"
                 density="compact"
                 :error-messages="rAmount.errorMessage.value"
-                label="Amount"
+                :label="t('Amount')"
                 type="number"
               />
             </v-col>
@@ -111,7 +111,7 @@
                 v-model.number="rIntervalCount.value.value"
                 density="compact"
                 :error-messages="rIntervalCount.errorMessage.value"
-                label="Every"
+                :label="t('Every')"
                 type="number"
               />
             </v-col>
@@ -121,7 +121,7 @@
                 density="compact"
                 :error-messages="rIntervalUnit.errorMessage.value"
                 :items="[{ title: 'Days', value: 'day' }, { title: 'Months', value: 'month' }]"
-                label="Unit"
+                :label="t('Unit')"
               />
             </v-col>
           </v-row>
@@ -129,13 +129,13 @@
             v-model="rNextDueAt.value.value"
             density="compact"
             :error-messages="rNextDueAt.errorMessage.value"
-            label="First Due Date"
+            :label="t('First Due Date')"
           />
 
           <v-card-actions class="px-0">
             <v-spacer />
-            <v-btn text="Cancel" @click="closeRecurringDialog" />
-            <v-btn color="primary" :loading="recurringSubmitting" text="Add Recurring Expense" type="submit" />
+            <v-btn :text="t('Cancel')" @click="closeRecurringDialog" />
+            <v-btn color="primary" :loading="recurringSubmitting" :text="t('Add Recurring Expense')" type="submit" />
           </v-card-actions>
         </form>
       </v-card-text>
@@ -145,7 +145,7 @@
   <!-- Record an expense against a branch (central-side entry) -->
   <v-dialog v-model="branchExpenseDialog" max-width="460">
     <v-card class="px-4">
-      <v-card-title>Add Branch Expense</v-card-title>
+      <v-card-title>{{ t('Add Branch Expense') }}</v-card-title>
       <v-card-text>
         <form @submit.prevent="submitBranchExpense">
           <v-select
@@ -155,13 +155,13 @@
             item-title="name"
             item-value="id"
             :items="branches"
-            label="Branch"
+            :label="t('Branch')"
           />
           <v-text-field
             v-model="bxForm.description"
             density="compact"
             :error-messages="bxErrors.description"
-            label="Description"
+            :label="t('Description')"
           />
           <v-select
             v-model="bxForm.categoryId"
@@ -170,7 +170,7 @@
             item-title="name"
             item-value="id"
             :items="activeBranchCategories"
-            label="Category"
+            :label="t('Category')"
           >
             <template #item="{ props: itemProps, item }">
               <v-list-item v-bind="itemProps" :prepend-icon="categoryIcon(item.raw)" />
@@ -182,7 +182,7 @@
                 v-model.number="bxForm.amount"
                 density="compact"
                 :error-messages="bxErrors.amount"
-                label="Amount"
+                :label="t('Amount')"
                 type="number"
               />
             </v-col>
@@ -193,15 +193,15 @@
           <DateField
             v-model="bxForm.occurredAt"
             density="compact"
-            hint="Defaults to now"
-            label="Date"
+            :hint="t('Defaults to now')"
+            :label="t('Date')"
             persistent-hint
           />
 
           <v-card-actions class="px-0">
             <v-spacer />
-            <v-btn text="Cancel" @click="branchExpenseDialog = false" />
-            <v-btn color="primary" :loading="branchExpenseSubmitting" text="Add Branch Expense" type="submit" />
+            <v-btn :text="t('Cancel')" @click="branchExpenseDialog = false" />
+            <v-btn color="primary" :loading="branchExpenseSubmitting" :text="t('Add Branch Expense')" type="submit" />
           </v-card-actions>
         </form>
       </v-card-text>
@@ -212,7 +212,7 @@
     <v-card class="expenses-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-cash-minus" />
-        <span>Expenses</span>
+        <span>{{ t('Expenses') }}</span>
         <v-spacer />
         <v-text-field
           v-model="search"
@@ -220,7 +220,7 @@
           clearable
           density="compact"
           hide-details
-          label="Search expenses"
+          :label="t('Search expenses')"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
         />
@@ -232,30 +232,30 @@
           mandatory
           variant="outlined"
         >
-          <v-btn value="branch">Branch</v-btn>
-          <v-btn value="own">Central</v-btn>
-          <v-btn value="recurring">Recurring</v-btn>
+          <v-btn value="branch">{{ t('Branch') }}</v-btn>
+          <v-btn value="own">{{ t('Central') }}</v-btn>
+          <v-btn value="recurring">{{ t('Recurring') }}</v-btn>
         </v-btn-toggle>
         <div class="d-flex ga-2">
           <v-btn
             v-if="canEdit && tab === 'recurring'"
             color="primary"
             prepend-icon="mdi-plus"
-            text="Add Recurring"
+            :text="t('Add Recurring')"
             @click="recurringDialog = true"
           />
           <v-btn
             v-else-if="canEdit && tab === 'own'"
             color="primary"
             prepend-icon="mdi-plus"
-            text="Add Expense"
+            :text="t('Add Expense')"
             @click="openCreateExpense"
           />
           <v-btn
             v-else-if="canEdit && tab === 'branch'"
             color="primary"
             prepend-icon="mdi-plus"
-            text="Add Branch Expense"
+            :text="t('Add Branch Expense')"
             @click="openCreateBranchExpense"
           />
         </div>
@@ -281,7 +281,7 @@
                 <div v-if="canEdit && filteredExpenses.length > 0" class="d-flex align-center ga-2 mb-1">
                   <v-checkbox-btn
                     :indeterminate="expenseSelected.length > 0 && !allExpensesSelected"
-                    label="Select all"
+                    :label="t('Select all')"
                     :model-value="allExpensesSelected"
                     @update:model-value="toggleAllExpenses"
                   />
@@ -325,10 +325,10 @@
                   <v-divider v-if="i < filteredExpenses.length - 1" />
                 </template>
               </v-list>
-              <div v-else-if="!expensesLoading" class="text-medium-emphasis text-center pa-10">No matching expenses.</div>
+              <div v-else-if="!expensesLoading" class="text-medium-emphasis text-center pa-10">{{ t('No matching expenses.') }}</div>
 
               <div class="d-flex justify-center pa-3">
-                <PreparingState v-if="expensesLoading" kind="receipt" :size="34" title="Loading" />
+                <PreparingState v-if="expensesLoading" kind="receipt" :size="34" :title="t('Loading')" />
                 <div v-if="expensesHasMore" ref="expensesSentinel" class="infinite-scroll-sentinel" />
               </div>
             </v-window-item>
@@ -374,7 +374,7 @@
                   item-title="name"
                   item-value="id"
                   :items="branches"
-                  placeholder="All branches"
+                  :placeholder="t('All branches')"
                   style="max-width: 260px"
                   variant="outlined"
                   @update:model-value="reloadBranchExpenses"
@@ -416,9 +416,7 @@
                         color="error"
                         size="small"
                         variant="tonal"
-                      >
-                        Cancelled
-                      </v-chip>
+                      >{{ t('Cancelled') }}</v-chip>
                       <span
                         class="font-weight-medium"
                         :class="isCancelled(item) ? 'text-medium-emphasis text-decoration-line-through' : 'text-error'"
@@ -439,7 +437,7 @@
                         class="ms-1"
                         icon="mdi-cancel"
                         size="small"
-                        title="Cancel expense"
+                        :title="t('Cancel expense')"
                         variant="text"
                         @click.stop="cancelBranchExpense(item)"
                       />
@@ -448,10 +446,10 @@
                   <v-divider v-if="i < filteredBranchExpenses.length - 1" />
                 </template>
               </v-list>
-              <div v-else-if="!branchLoading" class="text-medium-emphasis text-center pa-10">No branch expenses yet.</div>
+              <div v-else-if="!branchLoading" class="text-medium-emphasis text-center pa-10">{{ t('No branch expenses yet.') }}</div>
 
               <div class="d-flex justify-center pa-3">
-                <PreparingState v-if="branchLoading" kind="receipt" :size="34" title="Loading" />
+                <PreparingState v-if="branchLoading" kind="receipt" :size="34" :title="t('Loading')" />
                 <div v-if="branchHasMore" ref="branchSentinel" class="infinite-scroll-sentinel" />
               </div>
             </v-window-item>
@@ -487,6 +485,7 @@
   import { API_BASE } from '@/config'
   import { categoryIcon } from '@/data/expenseCategoryIcons'
   import { useSettingsStore } from '@/stores/settings'
+  import { t } from '@/i18n'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
@@ -946,12 +945,12 @@
   const filteredRecurring = computed(() => recurringExpenses.value.filter(item => matchesCategory(item)))
 
   const recurringHeaders = [
-    { title: 'Description', key: 'description', align: 'start' },
-    { title: 'Category', key: 'category_id', align: 'start', sortable: false },
-    { title: 'Amount', key: 'amount', align: 'end' },
-    { title: 'Interval', key: 'interval', align: 'start', sortable: false },
-    { title: 'Next Due', key: 'next_due_at', align: 'start' },
-    { title: 'Active', key: 'active', align: 'center', sortable: false },
+    { title: t('Description'), key: 'description', align: 'start' },
+    { title: t('Category'), key: 'category_id', align: 'start', sortable: false },
+    { title: t('Amount'), key: 'amount', align: 'end' },
+    { title: t('Interval'), key: 'interval', align: 'start', sortable: false },
+    { title: t('Next Due'), key: 'next_due_at', align: 'start' },
+    { title: t('Active'), key: 'active', align: 'center', sortable: false },
   ]
 
   async function fetchRecurringExpenses () {

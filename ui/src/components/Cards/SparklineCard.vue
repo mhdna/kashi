@@ -18,7 +18,7 @@
         class="mt-3"
         kind="chart"
         :size="31"
-        title="Loading"
+        :title="t('Loading')"
       />
       <div v-else class="d-flex align-center flex-wrap ga-2 mt-2">
         <span class="metric-value text-h4 font-weight-black">
@@ -47,6 +47,7 @@
   </v-card>
 </template>
 <script setup>
+  import { t } from '@/i18n'
   import { computed } from 'vue'
   import VChart from '@/components/EChart.vue'
   import { formatMoney } from '@/utils/money'

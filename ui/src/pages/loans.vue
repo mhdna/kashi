@@ -3,7 +3,7 @@
     <v-card class="loans-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-cash-multiple" />
-        <span>Loans</span>
+        <span>{{ t('Loans') }}</span>
         <v-spacer />
         <v-text-field
           v-model="search"
@@ -11,7 +11,7 @@
           clearable
           density="compact"
           hide-details
-          label="Search loans"
+          :label="t('Search loans')"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
         />
@@ -21,7 +21,7 @@
           density="compact"
           hide-details
           :items="STATUS_OPTIONS"
-          placeholder="Any status"
+          :placeholder="t('Any status')"
           style="max-width: 160px"
           variant="outlined"
         />
@@ -32,14 +32,14 @@
           mandatory
           variant="outlined"
         >
-          <v-btn value="branch">Branch</v-btn>
-          <v-btn value="own">Central</v-btn>
+          <v-btn value="branch">{{ t('Branch') }}</v-btn>
+          <v-btn value="own">{{ t('Central') }}</v-btn>
         </v-btn-toggle>
         <v-btn
           v-if="canEdit && tab === 'own'"
           color="primary"
           prepend-icon="mdi-plus"
-          text="Add Loan"
+          :text="t('Add Loan')"
           variant="flat"
           @click="openCreate"
         />
@@ -67,7 +67,7 @@
               item-title="name"
               item-value="id"
               :items="branches"
-              placeholder="All branches"
+              :placeholder="t('All branches')"
               style="max-width: 260px"
               variant="outlined"
             />
@@ -138,7 +138,7 @@
                   v-if="canEdit && item.origin === 'branch_loan' && item.status !== 'cancelled'"
                   icon="mdi-cancel"
                   size="small"
-                  title="Cancel loan"
+                  :title="t('Cancel loan')"
                   variant="text"
                   @click.stop="cancelLoan(item)"
                 />
@@ -150,7 +150,7 @@
                     <div class="py-3 px-2">
                       <div class="payments-header mb-3">
                         <div class="d-flex align-center flex-wrap ga-3">
-                          <span class="text-h6 font-weight-bold">Payments</span>
+                          <span class="text-h6 font-weight-bold">{{ t('Payments') }}</span>
                           <v-chip
                             :color="STATUS_META[item.status]?.color"
                             size="large"
@@ -174,9 +174,9 @@
                       <v-table v-if="paymentsFor(item.id).list.length > 0" class="mb-3" density="compact">
                         <thead>
                           <tr>
-                            <th class="text-start">Amount</th>
-                            <th class="text-start">Note</th>
-                            <th class="text-start">Paid At</th>
+                            <th class="text-start">{{ t('Amount') }}</th>
+                            <th class="text-start">{{ t('Note') }}</th>
+                            <th class="text-start">{{ t('Paid At') }}</th>
                             <th />
                           </tr>
                         </thead>
@@ -200,9 +200,7 @@
                       <div
                         v-else-if="!paymentsFor(item.id).loading"
                         class="text-medium-emphasis text-caption mb-3"
-                      >
-                        No payments recorded yet.
-                      </div>
+                      >{{ t('No payments recorded yet.') }}</div>
 
                       <form
                         v-if="canEdit && item.status !== 'paid'"
@@ -214,7 +212,7 @@
                           density="compact"
                           :error-messages="payAmountError(item)"
                           :hint="`Remaining: ${formatMoney(remaining(item))} ${item.currency_code}`"
-                          label="Amount"
+                          :label="t('Amount')"
                           persistent-hint
                           style="max-width: 180px"
                           type="number"
@@ -228,7 +226,7 @@
                           v-model="payFormFor(item.id).note"
                           density="compact"
                           hide-details
-                          label="Note"
+                          :label="t('Note')"
                           style="max-width: 220px"
                           variant="outlined"
                         />
@@ -236,7 +234,7 @@
                           color="primary"
                           :disabled="!!payAmountError(item)"
                           :loading="payFormFor(item.id).submitting"
-                          text="Add Payment"
+                          :text="t('Add Payment')"
                           type="submit"
                           variant="flat"
                         />
@@ -261,7 +259,7 @@
               v-model="form.description"
               density="compact"
               :error-messages="formErrors.description"
-              label="Description"
+              :label="t('Description')"
             />
             <v-select
               v-model="form.categoryId"
@@ -270,13 +268,13 @@
               item-title="name"
               item-value="id"
               :items="activeCategories"
-              label="Category"
+              :label="t('Category')"
             />
             <v-text-field
               v-model.number="form.amount"
               density="compact"
               :error-messages="formErrors.amount"
-              label="Amount"
+              :label="t('Amount')"
               type="number"
             />
             <CurrencySelect
@@ -289,12 +287,12 @@
                 v-if="editingId"
                 color="error"
                 prepend-icon="mdi-delete"
-                text="Delete"
+                :text="t('Delete')"
                 variant="text"
                 @click="removeLoan"
               />
               <v-spacer />
-              <v-btn text="Cancel" @click="closeDialog" />
+              <v-btn :text="t('Cancel')" @click="closeDialog" />
               <v-btn
                 color="primary"
                 :loading="submitting"
@@ -332,21 +330,22 @@
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
 
   const STATUS_META = {
-    paid: { color: 'success', label: 'Paid' },
-    partial: { color: 'warning', label: 'Partial' },
-    unpaid: { color: 'grey', label: 'Unpaid' },
-    cancelled: { color: 'error', label: 'Cancelled' },
+    paid: { color: 'success', label: t('Paid') },
+    partial: { color: 'warning', label: t('Partial') },
+    unpaid: { color: 'grey', label: t('Unpaid') },
+    cancelled: { color: 'error', label: t('Cancelled') },
   }
   const STATUS_OPTIONS = [
-    { title: 'Unpaid', value: 'unpaid' },
-    { title: 'Partial', value: 'partial' },
-    { title: 'Paid', value: 'paid' },
-    { title: 'Cancelled', value: 'cancelled' },
+    { title: t('Unpaid'), value: 'unpaid' },
+    { title: t('Partial'), value: 'partial' },
+    { title: t('Paid'), value: 'paid' },
+    { title: t('Cancelled'), value: 'cancelled' },
   ]
 
   const { branches, fetchBranches } = useBranches()
@@ -433,20 +432,20 @@
   const headers = computed(() => {
     const base = tab.value === 'branch'
       ? [
-        { title: 'Branch', key: 'branch_id', align: 'start', sortable: false },
-        { title: 'Description', key: 'description', align: 'start', sortable: false },
+        { title: t('Branch'), key: 'branch_id', align: 'start', sortable: false },
+        { title: t('Description'), key: 'description', align: 'start', sortable: false },
       ]
       : [
-        { title: 'ID', key: 'id', align: 'start', width: 80 },
-        { title: 'Description', key: 'description', align: 'start' },
+        { title: t('ID'), key: 'id', align: 'start', width: 80 },
+        { title: t('Description'), key: 'description', align: 'start' },
       ]
     return [
       ...base,
-      { title: 'Category', key: 'category_id', align: 'start', sortable: false },
-      { title: 'Amount', key: 'amount', align: 'end', sortable: false },
-      { title: 'Paid', key: 'paid_amount', align: 'end', sortable: false },
-      { title: 'Status', key: 'status', align: 'start', sortable: false },
-      { title: 'Date', key: 'occurred_at', align: 'start', sortable: false },
+      { title: t('Category'), key: 'category_id', align: 'start', sortable: false },
+      { title: t('Amount'), key: 'amount', align: 'end', sortable: false },
+      { title: t('Paid'), key: 'paid_amount', align: 'end', sortable: false },
+      { title: t('Status'), key: 'status', align: 'start', sortable: false },
+      { title: t('Date'), key: 'occurred_at', align: 'start', sortable: false },
       { title: '', key: 'actions', align: 'end', sortable: false, width: 56 },
     ]
   })
@@ -679,7 +678,7 @@
 
   async function removeLoan () {
     if (!editingId.value) return
-    if (!(await confirmDialog({ text: 'Delete this loan? Loans that still have payments can\'t be deleted.', okText: 'Delete', danger: true }))) return
+    if (!(await confirmDialog({ text: t('Delete this loan? Loans that still have payments can\'t be deleted.'), okText: 'Delete', danger: true }))) return
     submitting.value = true
     try {
       const res = await authFetch(`${API_BASE}/loans/${editingId.value}`, { method: 'DELETE' })

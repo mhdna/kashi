@@ -13,15 +13,15 @@
 <template>
   <div class="px-4 pt-3 pb-1">
     <div class="d-flex align-center ga-2 mb-2">
-      <span class="text-subtitle-1 font-weight-medium">Rules</span>
-      <span class="text-body-2 text-medium-emphasis">first match wins, top to bottom</span>
+      <span class="text-subtitle-1 font-weight-medium">{{ t('Rules') }}</span>
+      <span class="text-body-2 text-medium-emphasis">{{ t('first match wins, top to bottom') }}</span>
       <v-spacer />
       <template v-if="canEdit">
         <v-chip
           v-if="dirty"
           color="warning"
           size="small"
-          text="Not saved"
+          :text="t('Not saved')"
           variant="tonal"
         />
         <v-switch
@@ -31,19 +31,19 @@
           color="primary"
           density="compact"
           hide-details
-          label="All on"
+          :label="t('All on')"
         />
         <v-btn
           prepend-icon="mdi-plus-box-outline"
           size="small"
-          text="Add group"
+          :text="t('Add group')"
           variant="tonal"
           @click="openGroup(-1)"
         />
         <v-btn
           prepend-icon="mdi-plus"
           size="small"
-          text="Add rule"
+          :text="t('Add rule')"
           variant="tonal"
           @click="openRule(groups.length - 1, -1)"
         />
@@ -53,7 +53,7 @@
           :loading="saving"
           prepend-icon="mdi-content-save"
           size="small"
-          text="Save rules"
+          :text="t('Save rules')"
           variant="flat"
           @click="save"
         />
@@ -62,17 +62,17 @@
 
     <div v-if="loading" class="py-2"><v-progress-linear indeterminate /></div>
     <div v-else-if="groups.length === 0" class="text-body-2 text-medium-emphasis pb-2">
-      No rules: this list has only the products added below.
+      {{ t('No rules: this list has only the products added below.') }}
     </div>
     <v-table v-else class="rules-table" density="compact">
       <thead>
         <tr>
           <th style="width: 56px" />
           <th style="width: 32px">#</th>
-          <th>Rule</th>
-          <th>Matches</th>
-          <th class="text-end">Discount</th>
-          <th class="text-end">Products</th>
+          <th>{{ t('Rule') }}</th>
+          <th>{{ t('Matches') }}</th>
+          <th class="text-end">{{ t('Discount') }}</th>
+          <th class="text-end">{{ t('Products') }}</th>
           <th v-if="canEdit" style="width: 172px" />
         </tr>
       </thead>
@@ -89,10 +89,10 @@
             />
           </td>
           <td colspan="5">
-            <span class="font-weight-medium">{{ group.name || 'Untitled group' }}</span>
+            <span class="font-weight-medium">{{ group.name || t('Untitled group') }}</span>
             <span class="text-body-2 text-medium-emphasis">
-              · {{ group.rules.length }} {{ group.rules.length === 1 ? 'rule' : 'rules' }}
-              <template v-if="!group.enabled"> · off</template>
+              {{ group.rules.length }} {{ group.rules.length === 1 ? t('rule') : t('rules') }}
+              <template v-if="!group.enabled">({{ t('off') }})</template>
             </span>
           </td>
           <td v-if="canEdit" class="text-end text-no-wrap">
@@ -101,7 +101,7 @@
               :disabled="g === 0"
               icon="mdi-arrow-up"
               size="small"
-              title="Move the group up"
+              :title="t('Move the group up')"
               variant="text"
               @click="moveGroup(g, -1)"
             />
@@ -110,7 +110,7 @@
               :disabled="g === groups.length - 1"
               icon="mdi-arrow-down"
               size="small"
-              title="Move the group down"
+              :title="t('Move the group down')"
               variant="text"
               @click="moveGroup(g, 1)"
             />
@@ -118,7 +118,7 @@
               density="comfortable"
               icon="mdi-plus"
               size="small"
-              title="Add a rule to this group"
+              :title="t('Add a rule to this group')"
               variant="text"
               @click="openRule(g, -1)"
             />
@@ -126,7 +126,7 @@
               density="comfortable"
               icon="mdi-pencil"
               size="small"
-              title="Rename the group"
+              :title="t('Rename the group')"
               variant="text"
               @click="openGroup(g)"
             />
@@ -135,7 +135,7 @@
               density="comfortable"
               icon="mdi-delete"
               size="small"
-              title="Delete the group and its rules"
+              :title="t('Delete the group and its rules')"
               variant="text"
               @click="removeGroup(g)"
             />
@@ -157,7 +157,7 @@
             />
           </td>
           <td class="text-medium-emphasis">{{ ruleNumber(g, r) }}</td>
-          <td>{{ rule.name || '—' }}</td>
+          <td>{{ rule.name || '-' }}</td>
           <td>
             <div class="d-flex flex-wrap ga-1 py-1">
               <v-chip
@@ -176,7 +176,7 @@
               density="comfortable"
               icon="mdi-target"
               size="small"
-              title="Only this rule: turn every other rule off"
+              :title="t('Only this rule: turn every other rule off')"
               variant="text"
               @click="onlyThis(g, r)"
             />
@@ -218,59 +218,58 @@
 
     <v-dialog v-model="groupDialog" max-width="420">
       <v-card>
-        <v-card-title>{{ editingGroup < 0 ? 'Add group' : 'Rename group' }}</v-card-title>
+        <v-card-title>{{ editingGroup < 0 ? t('Add group') : t('Rename group') }}</v-card-title>
         <v-card-text>
           <v-text-field
             v-model="groupName"
             autofocus
             density="compact"
             hide-details
-            label="Name"
-            placeholder="e.g. Exclusions, Winter sale"
+            :label="t('Name')"
+            :placeholder="t('e.g. Exclusions, Winter sale')"
             variant="outlined"
             @keyup.enter="applyGroup"
           />
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="groupDialog = false" />
-          <v-btn color="primary" text="Done" variant="flat" @click="applyGroup" />
+          <v-btn :text="t('Cancel')" variant="text" @click="groupDialog = false" />
+          <v-btn color="primary" :text="t('Done')" variant="flat" @click="applyGroup" />
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <v-dialog v-model="ruleDialog" max-width="600">
       <v-card>
-        <v-card-title>{{ editing.rule < 0 ? 'Add rule' : 'Edit rule' }}</v-card-title>
+        <v-card-title>{{ editing.rule < 0 ? t('Add rule') : t('Edit rule') }}</v-card-title>
         <v-card-text>
           <div class="d-flex ga-3">
             <v-text-field
               v-model="form.name"
               density="compact"
-              label="Name"
-              placeholder="e.g. Lady Turkey"
+              :label="t('Name')"
+              :placeholder="t('e.g. Lady Turkey')"
               variant="outlined"
             />
             <v-select
               v-if="groups.length > 1"
               v-model="form.group"
               density="compact"
-              :items="groups.map((group, g) => ({ title: group.name || 'Untitled group', value: g }))"
-              label="Group"
+              :items="groups.map((group, g) => ({ title: group.name || t('Untitled group'), value: g }))"
+              :label="t('Group')"
               style="max-width: 200px"
               variant="outlined"
             />
           </div>
           <p class="text-body-2 text-medium-emphasis mb-3">
-            A product matches when it fits every box that has something in it; within a box,
-            any one value is enough.
+            {{ t('A product matches when it fits every box that has something in it; within a box, any one value is enough.') }}
           </p>
           <v-switch
             v-model="form.allProducts"
             color="primary"
             density="compact"
             hide-details
-            label="Every product (no conditions)"
+            :label="t('Every product (no conditions)')"
           />
           <div v-if="!form.allProducts" class="rule-grid">
             <v-combobox
@@ -279,7 +278,7 @@
               closable-chips
               density="compact"
               hide-details
-              label="Code starts with"
+              :label="t('Code starts with')"
               multiple
               variant="outlined"
             />
@@ -289,7 +288,7 @@
               closable-chips
               density="compact"
               hide-details
-              label="But not codes starting with"
+              :label="t('But not codes starting with')"
               multiple
               variant="outlined"
             />
@@ -297,7 +296,7 @@
               v-model="form.maxPrice"
               density="compact"
               hide-details
-              label="Price up to (at most)"
+              :label="t('Price up to (at most)')"
               min="0"
               prefix="$"
               step="0.01"
@@ -313,7 +312,7 @@
               density="compact"
               hide-details
               :items="valuesFor(f.attribute)"
-              :label="f.label"
+              :label="t(f.label)"
               multiple
               variant="outlined"
             />
@@ -325,13 +324,12 @@
             density="compact"
             hide-details
             :items="dealChoices"
-            label="Gives"
+            :label="t('Gives')"
             style="max-width: 280px"
             variant="outlined"
           />
           <p v-if="form.dealId === NO_DISCOUNT" class="text-body-2 text-medium-emphasis mt-2">
-            These products sell at full price, with no discount and no deal, and the rules below
-            don't apply to them: put this rule above the ones it should keep them out of.
+            {{ t("These products sell at full price, with no discount and no deal, and the rules below don't apply to them: put this rule above the ones it should keep them out of.") }}
           </p>
           <!-- Every product on a deal is pooled with the others; this is only
                what this rule's products get when they're left outside a set. -->
@@ -340,8 +338,8 @@
             v-model="form.dealFallback"
             class="mt-4"
             density="compact"
-            hint="what these get when they're not in a full set; empty for the deal's own"
-            label="Otherwise"
+:hint="t('what these get when they\'re not in a full set; empty for the deal\'s own')"
+            :label="t('Otherwise')"
             max="100"
             min="0"
             persistent-hint
@@ -355,8 +353,8 @@
             <v-text-field
               v-model="form.discount"
               density="compact"
-              hint="0 is the same as No discount"
-              label="Discount"
+:hint="t('0 is the same as No discount')"
+              :label="t('Discount')"
               max="100"
               min="0"
               persistent-hint
@@ -370,12 +368,12 @@
               :key="o.id"
               v-model="form.options[o.id]"
               density="compact"
-              hint="when the till sells it as this"
-              :label="`Sold as ${o.name}`"
+:hint="t('when the till sells it as this')"
+              :label="t('Sold as {name}', { name: o.name })"
               max="100"
               min="0"
               persistent-hint
-              placeholder="same"
+:placeholder="t('same')"
               style="max-width: 170px"
               suffix="%"
               type="number"
@@ -389,13 +387,13 @@
             type="info"
             variant="tonal"
           >
-            Option discounts apply only to products that ask at the till (“Ask at the till”).
+            {{ t('Option discounts apply only to products that ask at the till (“Ask at the till”).') }}
           </v-alert>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="ruleDialog = false" />
-          <v-btn color="primary" text="Done" variant="flat" @click="applyRule" />
+          <v-btn :text="t('Cancel')" variant="text" @click="ruleDialog = false" />
+          <v-btn color="primary" :text="t('Done')" variant="flat" @click="applyRule" />
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -407,6 +405,7 @@
   import { authFetch } from '@/composables/useApi'
   import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
 
   const props = defineProps({
     listId: { type: Number, required: true },
@@ -481,8 +480,8 @@
   // don't apply -- how exclusions are made), a discount (0), or a deal.
   const NO_DISCOUNT = -1
   const dealChoices = computed(() => [
-    { title: 'No discount (full price)', value: NO_DISCOUNT },
-    { title: 'A discount', value: 0 },
+    { title: t('No discount (full price)'), value: NO_DISCOUNT },
+    { title: t('A discount'), value: 0 },
     ...props.deals.map(d => ({ title: d.name, value: d.id })),
   ])
 
@@ -493,20 +492,20 @@
 
   function conditionChips (rule) {
     const chips = CONDITIONS.flatMap(c => (rule[c.key] ?? []).length > 0
-      ? [`${c.label}: ${rule[c.key].map(v => c.fmt(v)).join(', ')}`]
+      ? [`${t(c.label)}: ${rule[c.key].map(v => c.fmt(v)).join(', ')}`]
       : [])
-    if (rule.max_price > 0) chips.push(`Price: up to $${rule.max_price / 100}`)
-    return hasConditions(rule) ? chips : ['Every product', ...chips]
+    if (rule.max_price > 0) chips.push(t('Price: up to ${amount}', { amount: rule.max_price / 100 }))
+    return hasConditions(rule) ? chips : [t('Every product'), ...chips]
   }
 
   function discountText (rule) {
     if (rule.deal_id) {
-      const name = props.deals.find(d => d.id === rule.deal_id)?.name ?? 'Deal'
-      return rule.deal_fallback_percent != null ? `${name} · otherwise ${rule.deal_fallback_percent}%` : name
+      const name = props.deals.find(d => d.id === rule.deal_id)?.name ?? t('Deal')
+      return rule.deal_fallback_percent != null ? `${name}, ${t('otherwise')} ${rule.deal_fallback_percent}%` : name
     }
     const parts = (rule.options ?? []).map(o => `${o.sale_option} ${o.discount}%`)
-    const plain = rule.discount > 0 ? `${rule.discount}%` : 'No discount'
-    return parts.length > 0 ? `${plain} · ${parts.join(' · ')}` : plain
+    const plain = rule.discount > 0 ? `${rule.discount}%` : t('No discount')
+    return parts.length > 0 ? `${plain}, ${parts.join(', ')}` : plain
   }
 
   const ruleCount = computed(() => groups.value.reduce((n, group) => n + group.rules.length, 0))
@@ -594,7 +593,7 @@
   // The deal's own fallback, shown in the empty "Otherwise" field.
   const dealFallbackPlaceholder = computed(() => {
     const deal = props.deals.find(d => d.id === form.dealId)
-    return deal?.fallback_percent ? `${deal.fallback_percent} (the deal's own)` : "the deal's own"
+    return deal?.fallback_percent ? `${deal.fallback_percent} (${t("the deal's own")})` : t("the deal's own")
   })
 
   function openRule (g, r) {
@@ -630,7 +629,7 @@
     const dealId = noDiscount ? 0 : form.dealId
     const discount = dealId || noDiscount ? 0 : percent(form.discount)
     if (discount === null) {
-      notify.error('Enter a discount from 0 to 100.')
+      notify.error(t('Enter a discount from 0 to 100.'))
       return
     }
     const options = []
@@ -640,7 +639,7 @@
       if (raw === '' || raw == null) continue
       const d = percent(raw)
       if (d === null) {
-        notify.error(`Enter a ${o.name} discount from 0 to 100, or leave it empty.`)
+        notify.error(t('Enter a {name} discount from 0 to 100, or leave it empty.', { name: o.name }))
         return
       }
       options.push({ sale_option_id: o.id, sale_option: o.name, discount: d })
@@ -649,7 +648,7 @@
     if (dealId && String(form.dealFallback).trim() !== '') {
       dealFallback = percent(form.dealFallback)
       if (dealFallback === null) {
-        notify.error('Enter the "otherwise" percent from 0 to 100, or leave it empty for the deal\'s own.')
+        notify.error(t('Enter the "otherwise" percent from 0 to 100, or leave it empty for the deal\'s own.'))
         return
       }
     }
@@ -660,13 +659,13 @@
     }
     const maxPrice = form.allProducts || String(form.maxPrice).trim() === '' ? 0 : Math.round(Number(form.maxPrice) * 100)
     if (!Number.isFinite(maxPrice) || maxPrice < 0) {
-      notify.error('Enter the price limit in dollars, like 1.11, or leave it empty.')
+      notify.error(t('Enter the price limit in dollars, like 1.11, or leave it empty.'))
       return
     }
     rule.max_price = maxPrice
     rule.all_products = form.allProducts
     if (!form.allProducts && !hasConditions(rule)) {
-      notify.error('Give the rule at least one condition: a code start, kind, category, origin, brand or price.')
+      notify.error(t('Give the rule at least one condition: a code start, kind, category, origin, brand or price.'))
       return
     }
     // The first rule of a list with no groups makes one for it.
@@ -698,7 +697,7 @@
         })),
       })
       dirty.value = false
-      notify.success('Rules saved: the list below now follows them.')
+      notify.success(t('Rules saved: the list below now follows them.'))
       emit('saved')
     } catch (error) {
       notify.error(error.message)

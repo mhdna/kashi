@@ -3,7 +3,7 @@
     <v-card class="health-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-heart-pulse" />
-        <span>Stock Health</span>
+        <span>{{ t('Stock Health') }}</span>
         <v-chip :color="statusColor" size="small" variant="flat">
           <v-icon icon="mdi-circle" size="10" start />
           {{ statusLabel }}
@@ -15,7 +15,7 @@
 
       <div class="health-content">
         <div class="pa-4 health-body">
-          <PreparingState v-if="loading && !loaded" kind="chart" title="Checking stock health" />
+          <PreparingState v-if="loading && !loaded" kind="chart" :title="t('Checking stock health')" />
           <template v-else>
             <v-row class="mb-2 flex-grow-0" density="compact">
               <v-col cols="12" sm="6">
@@ -27,7 +27,7 @@
                       </v-avatar>
                     </template>
                     <v-card-title class="text-h4">{{ daysLabel }}</v-card-title>
-                    <v-card-subtitle>Days of Inventory Left</v-card-subtitle>
+                    <v-card-subtitle>{{ t('Days of Inventory Left') }}</v-card-subtitle>
                   </v-card-item>
                 </v-card>
               </v-col>
@@ -40,7 +40,7 @@
                       </v-avatar>
                     </template>
                     <v-card-title class="text-h4">{{ formatMoney(health.inventory_value) }}</v-card-title>
-                    <v-card-subtitle>Inventory Value (cost)</v-card-subtitle>
+                    <v-card-subtitle>{{ t('Inventory Value (cost)') }}</v-card-subtitle>
                   </v-card-item>
                 </v-card>
               </v-col>
@@ -51,7 +51,7 @@
                 <v-card class="slow-mover-card d-flex flex-column" variant="flat">
                   <div class="d-flex flex-wrap align-center ga-2 px-4 pt-3 pb-2">
                     <v-icon color="error" icon="mdi-skull-outline" size="24" />
-                    <span class="text-h6 font-weight-medium">Dead Stock</span>
+                    <span class="text-h6 font-weight-medium">{{ t('Dead Stock') }}</span>
                     <span class="text-subtitle-1 text-medium-emphasis">· {{ deadCount }}</span>
                     <v-spacer />
                     <v-text-field
@@ -88,14 +88,14 @@
                         <v-list-item-title class="font-weight-medium">{{ item.name }}</v-list-item-title>
                         <v-list-item-subtitle>{{ item.code }} · On hand: {{ item.on_hand }}</v-list-item-subtitle>
                         <template #append>
-                          <span class="text-caption text-medium-emphasis">Never sold</span>
+                          <span class="text-caption text-medium-emphasis">{{ t('Never sold') }}</span>
                         </template>
                       </v-list-item>
                       <v-divider />
                     </template>
                   </v-virtual-scroll>
                   <div v-else class="text-medium-emphasis text-center pa-6">
-                    {{ deadSearch ? 'No matches.' : 'No dead stock -- everything active is selling.' }}
+                    {{ deadSearch ? t('No matches.') : t('No dead stock -- everything active is selling.') }}
                   </div>
                 </v-card>
               </v-col>
@@ -103,7 +103,7 @@
                 <v-card class="slow-mover-card d-flex flex-column" variant="flat">
                   <div class="d-flex flex-wrap align-center ga-2 px-4 pt-3 pb-2">
                     <v-icon color="warning" icon="mdi-tray-full" size="24" />
-                    <span class="text-h6 font-weight-medium">Overstocked</span>
+                    <span class="text-h6 font-weight-medium">{{ t('Overstocked') }}</span>
                     <span class="text-subtitle-1 text-medium-emphasis">· {{ overCount }}</span>
                     <v-spacer />
                     <v-text-field
@@ -147,7 +147,7 @@
                     </template>
                   </v-virtual-scroll>
                   <div v-else class="text-medium-emphasis text-center pa-6">
-                    {{ overSearch ? 'No matches.' : 'Nothing overstocked right now.' }}
+                    {{ overSearch ? t('No matches.') : t('Nothing overstocked right now.') }}
                   </div>
                 </v-card>
               </v-col>
@@ -165,6 +165,7 @@
   import { useStockHealth } from '@/composables/useStockHealth'
   import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
 
   const { fetchStockHealth } = useStockHealth()
 

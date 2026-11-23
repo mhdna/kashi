@@ -10,7 +10,7 @@
         <div class="date-range-activator" v-bind="$attrs">
           <v-btn
             v-if="clearable && hasModelRange"
-            aria-label="Clear dates"
+            :aria-label="t('Clear dates')"
             class="date-range-clear"
             rounded="lg"
             style="border-color: rgb(var(--v-theme-surface-light));"
@@ -63,7 +63,7 @@
                   @blur="commitStart"
                   @keydown.enter="commitStart"
                 />
-                <span class="text-medium-emphasis">—</span>
+                <span class="text-medium-emphasis">{{ t('to') }}</span>
                 <v-text-field
                   v-model="endText"
                   density="compact"
@@ -73,11 +73,11 @@
                   @keydown.enter="commitEnd"
                 />
                 <v-spacer />
-                <v-btn v-if="clearable && hasModelRange" text="Clear" variant="text" @click="clear" />
+                <v-btn v-if="clearable && hasModelRange" :text="t('Clear')" variant="text" @click="clear" />
                 <v-btn
                   color="primary"
                   :disabled="!hasDraftRange"
-                  text="Apply"
+                  :text="t('Apply')"
                   variant="flat"
                   @click="apply"
                 />
@@ -96,6 +96,7 @@
   import { computed, ref, watch } from 'vue'
   import { useDate, useDisplay } from 'vuetify'
   import { VDateRangePicker } from 'vuetify/labs/VDateRangePicker'
+  import { t } from '@/i18n'
 
   defineOptions({ inheritAttrs: false })
   const props = defineProps({
@@ -107,7 +108,7 @@
     clearable: Boolean,
     // Latest pickable day, e.g. today for reports.
     max: { type: String, default: undefined },
-    emptyLabel: { type: String, default: 'All dates' },
+    emptyLabel: { type: String, default: () => t('All dates') },
   })
   const emit = defineEmits(['update:modelValue', 'update:from', 'update:to'])
 
@@ -140,18 +141,18 @@
   const hasModelRange = computed(() => current.value.length > 0)
   const label = computed(() => {
     if (!hasModelRange.value) return props.emptyLabel
-    return `${formatDate(current.value[0])} — ${formatDate(current.value.at(-1))}`
+    return t('{start} to {end}', { start: formatDate(current.value[0]), end: formatDate(current.value.at(-1)) })
   })
 
-  const presets = [
-    { title: 'Today', value: 'today' },
-    { title: 'Last 7 days', value: 'last-7d' },
-    { title: 'Last 30 days', value: 'last-30d' },
-    { title: 'Last 3 months', value: 'last-3m' },
-    { title: 'Last 12 months', value: 'last-12m' },
-    { title: 'Month to date', value: 'month-to-date' },
-    { title: 'Year to date', value: 'year-to-date' },
-  ]
+  const presets = computed(() => [
+    { title: t('Today'), value: 'today' },
+    { title: t('Last 7 days'), value: 'last-7d' },
+    { title: t('Last 30 days'), value: 'last-30d' },
+    { title: t('Last 3 months'), value: 'last-3m' },
+    { title: t('Last 12 months'), value: 'last-12m' },
+    { title: t('Month to date'), value: 'month-to-date' },
+    { title: t('Year to date'), value: 'year-to-date' },
+  ])
 
   function formatDate (value) {
     if (!value) return ''

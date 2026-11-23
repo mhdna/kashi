@@ -26,7 +26,7 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn variant="text" @click="cancel">Cancel</v-btn>
+        <v-btn variant="text" @click="cancel">{{ t('Cancel') }}</v-btn>
         <v-btn
           :autofocus="dialogState.kind === 'confirm'"
           :color="dialogState.danger ? 'error' : 'primary'"
@@ -40,6 +40,7 @@
 
 <script setup lang="ts">
   import { closeDialog, dialogState } from '@/composables/useDialog'
+  import { t } from '@/i18n'
 
   function ok () {
     closeDialog(dialogState.kind === 'confirm' ? true : dialogState.value)

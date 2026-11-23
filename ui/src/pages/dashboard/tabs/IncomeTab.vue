@@ -20,9 +20,7 @@
           :size="xs ? 'small' : undefined"
           :value="ALL"
           :variant="isPicked(ALL) ? 'flat' : 'outlined'"
-        >
-          All branches
-        </v-chip>
+        >{{ t('All branches') }}</v-chip>
         <v-chip
           v-for="branch in reportBranches"
           :key="branch.id"
@@ -85,6 +83,7 @@
   import YearStepper from '@/components/Buttons/YearStepper.vue'
   import HeatmapTable from '@/components/Tables/HeatmapTable.vue'
   import { useBranches } from '@/composables/useBranches'
+  import { t } from '@/i18n'
 
   // Which branches the grid sums, picked as chips. It lives in the URL
   // (?branch_ids=1,2), so a refresh, a bookmark or coming back from a day

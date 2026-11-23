@@ -2,16 +2,14 @@
   <v-card data-test="variant-pick-dialog">
     <v-card-title class="d-flex align-center ga-2">
       <v-icon icon="mdi-palette" size="20" />
-      <span class="text-h6">Colour/size on scan</span>
+      <span class="text-h6">{{ t('Colour/size on scan') }}</span>
       <v-spacer />
       <v-btn icon="mdi-close" size="small" variant="text" @click="$emit('close')" />
     </v-card-title>
     <v-divider />
     <v-card-text class="py-4">
       <p class="text-body-2 text-medium-emphasis mb-4">
-        For items whose barcodes aren't printed per colour/size: make the till ask which
-        colour/size when one of them is scanned. Paste product codes or barcodes. The branch
-        setting (Branch settings, Scanning) is the default for every item.
+        {{ t('For items whose barcodes aren\'t printed per colour/size: make the till ask which colour/size when one of them is scanned. Paste product codes or barcodes. The branch setting (Branch settings, Scanning) is the default for every item.') }}
       </p>
       <v-textarea
         v-model="text"
@@ -19,7 +17,7 @@
         data-test="variant-pick-entries"
         density="compact"
         hide-details="auto"
-        label="Product codes or barcodes"
+        :label="t('Product codes or barcodes')"
         rows="4"
         variant="outlined"
       />
@@ -39,19 +37,19 @@
         type="warning"
         variant="tonal"
       >
-        Not found: {{ unmatched.join(', ') }}
+        {{ t('Not found: {items}', { items: unmatched.join(', ') }) }}
       </v-alert>
     </v-card-text>
     <v-divider />
     <v-card-actions>
       <v-spacer />
-      <v-btn text="Cancel" variant="text" @click="$emit('close')" />
+      <v-btn :text="t('Cancel')" variant="text" @click="$emit('close')" />
       <v-btn
         color="primary"
         data-test="variant-pick-save"
         :disabled="entries.length === 0"
         :loading="saving"
-        text="Save"
+        :text="t('Save')"
         variant="flat"
         @click="save"
       />
@@ -61,6 +59,7 @@
 
 <script setup>
   import { computed, ref } from 'vue'
+  import { t } from '@/i18n'
   import { authFetch } from '@/composables/useApi'
   import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'

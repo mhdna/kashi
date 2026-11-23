@@ -4,6 +4,7 @@
 
 <script setup>
   import VChart from '@/components/EChart.vue'
+  import { t } from '@/i18n'
 
   const option = ref({
     tooltip: {
@@ -12,15 +13,15 @@
     },
     series: [
       {
-        name: 'Access From',
+        name: t('Access From'),
         type: 'pie',
         radius: '50%',
         data: [
-          { value: 1048, name: 'Search Engine' },
-          { value: 735, name: 'Direct' },
-          { value: 580, name: 'Email' },
-          { value: 484, name: 'Union Ads' },
-          { value: 300, name: 'Video Ads' },
+          { value: 1048, name: t('Search Engine') },
+          { value: 735, name: t('Direct') },
+          { value: 580, name: t('Email') },
+          { value: 484, name: t('Union Ads') },
+          { value: 300, name: t('Video Ads') },
         ],
         emphasis: {
           itemStyle: {

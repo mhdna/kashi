@@ -8,7 +8,7 @@
             clearable
             density="comfortable"
             hide-details
-            placeholder="Search"
+            :placeholder="t('Search')"
             prepend-inner-icon="mdi-magnify"
             style="max-width: 300px"
             variant="solo"
@@ -40,7 +40,7 @@
                     border
                     class="text-none"
                     size="small"
-                    text="Read"
+                    :text="t('Read')"
                     variant="flat"
                   />
                 </div>
@@ -80,6 +80,7 @@
 </template>
 <script setup>
   import { shallowRef } from 'vue'
+  import { t } from '@/i18n'
 
   const search = shallowRef('')
   const games = [

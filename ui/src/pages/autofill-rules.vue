@@ -3,7 +3,7 @@
     <v-card class="afr-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-auto-fix" />
-        <span>Auto-fill Rules</span>
+        <span>{{ t('Auto-fill Rules') }}</span>
         <v-chip
           :color="settingsStore.productAutofillEnabled ? 'success' : undefined"
           size="small"
@@ -13,13 +13,13 @@
         />
         <v-spacer />
         <template v-if="canEdit">
-          <v-btn prepend-icon="mdi-plus" text="Add rule" variant="tonal" @click="addRule" />
-          <v-btn :disabled="!dirty" text="Discard" variant="text" @click="seedDraft" />
+          <v-btn prepend-icon="mdi-plus" :text="t('Add rule')" variant="tonal" @click="addRule" />
+          <v-btn :disabled="!dirty" :text="t('Discard')" variant="text" @click="seedDraft" />
           <v-btn
             color="primary"
             :disabled="!dirty || hasErrors"
             :loading="saving"
-            text="Save"
+            :text="t('Save')"
             variant="flat"
             @click="save"
           />
@@ -33,17 +33,16 @@
           code and name. Rules run top to bottom and the first one that matches a field fills
           it, so put specific rules above general ones (e.g. &ldquo;t-shirt&rdquo; above
           &ldquo;shirt&rdquo;). Matching ignores case, and a pattern can list alternatives
-          with <code>|</code>, like <code>boy|boys</code>.
+          with <code>|</code>{{ t(', like') }} <code>boy|boys</code>.
         </p>
 
         <!-- Code layout: splits a code into named parts for "Code part is" rules. -->
         <v-sheet border class="pa-3 mb-4" rounded>
-          <div class="text-overline text-medium-emphasis mb-1">Code layout</div>
+          <div class="text-overline text-medium-emphasis mb-1">{{ t('Code layout') }}</div>
           <p class="text-body-2 text-medium-emphasis mb-3">
-            A regular expression whose named groups, written <code>(?&lt;name&gt;...)</code>,
+            {{ t('A regular expression whose named groups, written') }} <code>(?&lt;name&gt;...)</code>,
             split a code into parts that &ldquo;Code part is&rdquo; rules can match. The default
-            reads codes like <code>CAJUL25KBPA22</code> as origin CA, month JUL, year 25,
-            audience KB, type PA and price 22. A code the layout doesn't fit simply has no parts.
+            reads codes like <code>CAJUL25KBPA22</code> {{ t('as origin CA, month JUL, year 25, audience KB, type PA and price 22. A code the layout doesn\'t fit simply has no parts.') }}
           </p>
           <v-text-field
             v-model="draftLayout"
@@ -52,7 +51,7 @@
             :disabled="!canEdit"
             :error-messages="layoutError"
             :hint="layoutParts.length > 0 ? `Parts: ${layoutParts.join(', ')}` : ''"
-            label="Layout"
+            :label="t('Layout')"
             persistent-hint
             variant="outlined"
           />
@@ -60,14 +59,14 @@
 
         <!-- Try it: runs the unsaved rules, so edits can be checked before saving. -->
         <v-sheet border class="pa-3 mb-4" rounded>
-          <div class="text-overline text-medium-emphasis mb-2">Try it</div>
+          <div class="text-overline text-medium-emphasis mb-2">{{ t('Try it') }}</div>
           <v-row density="compact">
             <v-col cols="12" sm="4">
               <v-text-field
                 v-model="testCode"
                 density="compact"
                 hide-details
-                label="Code"
+                :label="t('Code')"
                 placeholder="L6KBSWT25"
                 variant="outlined"
               />
@@ -77,14 +76,14 @@
                 v-model="testName"
                 density="compact"
                 hide-details
-                label="Name"
-                placeholder="Kids boy sweatshirt"
+                :label="t('Name')"
+                :placeholder="t('Kids boy sweatshirt')"
                 variant="outlined"
               />
             </v-col>
           </v-row>
           <div v-if="testPartList.length > 0" class="d-flex flex-wrap align-center ga-2 mt-3">
-            <span class="text-caption text-medium-emphasis">Code parts:</span>
+            <span class="text-caption text-medium-emphasis">{{ t('Code parts:') }}</span>
             <v-chip
               v-for="p in testPartList"
               :key="p.name"
@@ -97,10 +96,10 @@
           </div>
           <div class="d-flex flex-wrap ga-2 mt-3">
             <span v-if="!testCode && !testName" class="text-caption text-medium-emphasis">
-              Type a code or name to see what gets filled.
+              {{ t('Type a code or name to see what gets filled.') }}
             </span>
             <span v-else-if="testFilled.length === 0" class="text-caption text-medium-emphasis">
-              No rule matches.
+              {{ t('No rule matches.') }}
             </span>
             <v-chip
               v-for="f in testFilled"
@@ -121,8 +120,8 @@
           clearable
           density="compact"
           hide-details
-          label="Find rules"
-          placeholder="e.g. jeans, JE or origin"
+          :label="t('Find rules')"
+          :placeholder="t('e.g. jeans, JE or origin')"
           variant="outlined"
         />
 
@@ -131,19 +130,19 @@
             <thead>
               <tr>
                 <th class="afr-num">#</th>
-                <th>Read from</th>
-                <th>When</th>
-                <th class="afr-pos">Position / part</th>
-                <th>Pattern</th>
-                <th>Fill</th>
-                <th>With value</th>
+                <th>{{ t('Read from') }}</th>
+                <th>{{ t('When') }}</th>
+                <th class="afr-pos">{{ t('Position / part') }}</th>
+                <th>{{ t('Pattern') }}</th>
+                <th>{{ t('Fill') }}</th>
+                <th>{{ t('With value') }}</th>
                 <th v-if="canEdit" />
               </tr>
             </thead>
             <tbody>
               <tr v-if="draft.length === 0">
                 <td class="text-medium-emphasis text-center py-6" colspan="8">
-                  No rules yet.
+                  {{ t('No rules yet.') }}
                 </td>
               </tr>
               <tr
@@ -218,7 +217,7 @@
                 </td>
                 <td class="afr-value">
                   <span v-if="rule.match === 'trailing_number'" class="text-caption text-medium-emphasis">
-                    the number itself
+                    {{ t('the number itself') }}
                   </span>
                   <v-text-field
                     v-else
@@ -267,6 +266,7 @@
 </template>
 
 <script setup>
+  import { t } from '@/i18n'
   import { computed, onMounted, ref, watch } from 'vue'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'

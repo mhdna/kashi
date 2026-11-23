@@ -48,27 +48,27 @@
     </template>
 
     <v-card class="menu-card" max-width="400" min-width="320">
-      <v-card-title class="flex-shrink-0 text-subtitle-1">Branch sync</v-card-title>
+      <v-card-title class="flex-shrink-0 text-subtitle-1">{{ t('Branch sync') }}</v-card-title>
       <v-divider />
 
       <v-card-text v-if="serverDown" class="text-medium-emphasis">
-        {{ online ? 'Can\'t reach the server, we\'ll be back soon.' : NO_INTERNET_MESSAGE }}
+        {{ online ? t('Can\'t reach the server, we\'ll be back soon.') : t(NO_INTERNET_MESSAGE) }}
       </v-card-text>
       <v-list v-else-if="recentInvoices.length > 0" class="menu-scroll" density="compact" lines="two">
         <v-list-item
           v-for="invoice in recentInvoices"
           :key="invoice.id"
           :prepend-icon="invoiceIcon(invoice)"
-          :subtitle="`${branchName(invoice.branch_id)} — ${relativeTime(invoice.received_at)}`"
+          :subtitle="`${branchName(invoice.branch_id)}, ${relativeTime(invoice.received_at)}`"
           :title="invoiceTitle(invoice)"
           @click="openInvoice(invoice)"
         />
       </v-list>
       <v-card-text v-else-if="loaded" class="text-medium-emphasis">
-        No branch data has synced yet.
+        {{ t('No branch data has synced yet.') }}
       </v-card-text>
       <v-card-text v-else class="text-medium-emphasis">
-        Loading...
+        {{ t('Loading...') }}
       </v-card-text>
     </v-card>
   </v-menu>
@@ -88,6 +88,7 @@
   import { useAuthStore } from '@/stores/auth'
   import { useSettingsStore } from '@/stores/settings'
   import { activityPill } from '@/utils/activityPill'
+  import { t } from '@/i18n'
 
   const { branches, fetchBranches } = useBranches()
   const { listRecentBranchInvoices } = useBranchInvoices()
@@ -200,7 +201,7 @@
   }
 
   function branchName (branchId) {
-    return branches.value.find(b => b.id === branchId)?.name ?? `Branch #${branchId}`
+    return branches.value.find(b => b.id === branchId)?.name ?? t('Branch #{id}', { id: branchId })
   }
 
   // A sale in the list opens on the Invoices page, searched and with its
@@ -218,9 +219,9 @@
   }
 
   function invoiceKindLabel (invoice) {
-    if (invoice.kind === 'exchange') return 'Exchange'
-    if (invoice.kind === 'return') return 'Return'
-    return 'Sale'
+    if (invoice.kind === 'exchange') return t('Exchange')
+    if (invoice.kind === 'return') return t('Return')
+    return t('Sale')
   }
 
   function invoiceTitle (invoice) {
@@ -232,25 +233,25 @@
     const then = new Date(value).getTime()
     const diffSeconds = Math.max(0, Math.round((now.value - then) / 1000))
 
-    if (diffSeconds < 45) return 'just now'
+    if (diffSeconds < 45) return t('just now')
     const diffMinutes = Math.round(diffSeconds / 60)
-    if (diffMinutes < 60) return `${diffMinutes} min${diffMinutes === 1 ? '' : 's'} ago`
+    if (diffMinutes < 60) return t(diffMinutes === 1 ? '{n} min ago' : '{n} mins ago', { n: diffMinutes })
     const diffHours = Math.round(diffMinutes / 60)
-    if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`
+    if (diffHours < 24) return t(diffHours === 1 ? '{n} hour ago' : '{n} hours ago', { n: diffHours })
     const diffDays = Math.round(diffHours / 24)
-    return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`
+    return t(diffDays === 1 ? '{n} day ago' : '{n} days ago', { n: diffDays })
   }
 
   // Compact form for the pill: "now", "5m ago", "1h ago", "2d ago". The cloud
   // icon already says it's about syncing, so no "synced" prefix.
   function shortTime (value) {
     const diffSeconds = Math.max(0, Math.round((now.value - new Date(value).getTime()) / 1000))
-    if (diffSeconds < 45) return 'now'
+    if (diffSeconds < 45) return t('now')
     const diffMinutes = Math.round(diffSeconds / 60)
-    if (diffMinutes < 60) return `${diffMinutes}m ago`
+    if (diffMinutes < 60) return t('{n}m ago', { n: diffMinutes })
     const diffHours = Math.round(diffMinutes / 60)
-    if (diffHours < 24) return `${diffHours}h ago`
-    return `${Math.round(diffHours / 24)}d ago`
+    if (diffHours < 24) return t('{n}h ago', { n: diffHours })
+    return t('{n}d ago', { n: Math.round(diffHours / 24) })
   }
 
   // Most recent proof of sync: newest invoice's received_at vs. the last
@@ -262,10 +263,10 @@
   })
 
   const statusText = computed(() => {
-    if (!online.value) return 'offline'
-    if (serverDown.value) return 'not syncing'
-    if (!loaded.value) return 'syncing...'
-    if (!lastSyncMs.value) return 'no sync yet'
+    if (!online.value) return t('offline')
+    if (serverDown.value) return t('not syncing')
+    if (!loaded.value) return t('syncing...')
+    if (!lastSyncMs.value) return t('no sync yet')
     return shortTime(lastSyncMs.value)
   })
 

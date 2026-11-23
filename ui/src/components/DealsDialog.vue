@@ -8,30 +8,29 @@
   <v-dialog v-model="open" max-width="720">
     <v-card>
       <v-card-title class="d-flex align-center ga-2">
-        <span>Deals</span>
+        <span>{{ t('Deals') }}</span>
         <v-spacer />
         <v-btn
           v-if="canEdit"
           prepend-icon="mdi-plus"
           size="small"
-          text="New deal"
+          :text="t('New deal')"
           variant="tonal"
           @click="openEdit(null)"
         />
       </v-card-title>
       <v-card-text>
         <p class="text-body-2 text-medium-emphasis mb-3">
-          Every unit in a cart on the same deal counts together, whatever the product, and the
-          cheapest units get the reward. A deal replaces a product's discount.
+          {{ t("Every unit in a cart on the same deal counts together, whatever the product, and the cheapest units get the reward. A deal replaces a product's discount.") }}
         </p>
-        <div v-if="deals.length === 0" class="text-body-2 text-medium-emphasis">No deals yet.</div>
+        <div v-if="deals.length === 0" class="text-body-2 text-medium-emphasis">{{ t('No deals yet.') }}</div>
         <v-table v-else density="compact">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Terms</th>
-              <th class="text-end">Products</th>
-              <th class="text-end">Rules</th>
+              <th>{{ t('Name') }}</th>
+              <th>{{ t('Terms') }}</th>
+              <th class="text-end">{{ t('Products') }}</th>
+              <th class="text-end">{{ t('Rules') }}</th>
               <th v-if="canEdit" style="width: 96px" />
             </tr>
           </thead>
@@ -55,7 +54,7 @@
                   :disabled="deal.variants > 0 || deal.rules > 0"
                   icon="mdi-delete"
                   size="small"
-                  :title="deal.variants > 0 || deal.rules > 0 ? 'Take it off its lists and rules first' : 'Delete'"
+                  :title="deal.variants > 0 || deal.rules > 0 ? t('Take it off its lists and rules first') : t('Delete')"
                   variant="text"
                   @click="remove(deal)"
                 />
@@ -66,21 +65,21 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn text="Close" variant="text" @click="open = false" />
+        <v-btn :text="t('Close')" variant="text" @click="open = false" />
       </v-card-actions>
     </v-card>
   </v-dialog>
 
   <v-dialog v-model="editDialog" max-width="520">
     <v-card>
-      <v-card-title>{{ form.id ? 'Edit deal' : 'New deal' }}</v-card-title>
+      <v-card-title>{{ form.id ? t('Edit deal') : t('New deal') }}</v-card-title>
       <v-card-text>
         <div v-if="!form.id" class="d-flex flex-wrap ga-1 mb-4">
           <v-chip
             v-for="p in PRESETS"
             :key="p.name"
             size="small"
-            :text="p.name"
+            :text="t(p.name)"
             variant="outlined"
             @click="applyPreset(p)"
           />
@@ -88,21 +87,21 @@
         <v-text-field
           v-model="form.name"
           density="compact"
-          label="Name (printed on the receipt)"
+          :label="t('Name (printed on the receipt)')"
           variant="outlined"
         />
         <v-select
           v-model="form.kind"
           density="compact"
           :items="KINDS"
-          label="Kind"
+          :label="t('Kind')"
           variant="outlined"
         />
         <div class="d-flex flex-wrap ga-3">
           <v-text-field
             v-model.number="form.buy_qty"
             density="compact"
-            :label="form.kind === 'buy_get' ? 'Buy' : (form.kind === 'bundle_price' ? 'Units in the bundle' : 'From units')"
+            :label="form.kind === 'buy_get' ? t('Buy') : (form.kind === 'bundle_price' ? t('Units in the bundle') : t('From units'))"
             min="1"
             style="max-width: 150px"
             type="number"
@@ -112,7 +111,7 @@
             v-if="form.kind === 'buy_get'"
             v-model.number="form.get_qty"
             density="compact"
-            label="Get"
+            :label="t('Get')"
             min="1"
             style="max-width: 150px"
             type="number"
@@ -122,8 +121,8 @@
             v-if="form.kind !== 'bundle_price'"
             v-model.number="form.percent"
             density="compact"
-            :hint="form.kind === 'buy_get' ? '100% is free' : ''"
-            label="Off"
+            :hint="form.kind === 'buy_get' ? t('100% is free') : ''"
+            :label="t('Off')"
             max="100"
             min="1"
             persistent-hint
@@ -136,7 +135,7 @@
             v-else
             v-model="form.bundlePrice"
             density="compact"
-            label="Bundle price"
+            :label="t('Bundle price')"
             min="0"
             prefix="$"
             style="max-width: 170px"
@@ -149,8 +148,8 @@
           v-model.number="form.fallback_percent"
           class="mt-3"
           density="compact"
-          hint="What units that don't make up a set get: with Buy 2 get 1, one or two items. 0 for nothing."
-          label="Otherwise, off"
+          :hint="t('What units that don\'t make up a set get: with Buy 2 get 1, one or two items. 0 for nothing.')"
+          :label="t('Otherwise, off')"
           max="100"
           min="0"
           persistent-hint
@@ -165,7 +164,7 @@
           color="primary"
           density="compact"
           hide-details
-          label="Only when no unit is free"
+          :label="t('Only when no unit is free')"
         />
         <v-alert class="mt-2" density="compact" type="info" variant="tonal">
           {{ dealTerms(formDeal) }}
@@ -177,17 +176,16 @@
           type="warning"
           variant="tonal"
         >
-          The new terms reach every branch using this deal. Sales already made keep the terms they
-          were sold under, for exchanges too.
+          {{ t('The new terms reach every branch using this deal. Sales already made keep the terms they were sold under, for exchanges too.') }}
         </v-alert>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn text="Cancel" variant="text" @click="editDialog = false" />
+        <v-btn :text="t('Cancel')" variant="text" @click="editDialog = false" />
         <v-btn
           color="primary"
           :loading="saving"
-          text="Save"
+          :text="t('Save')"
           variant="flat"
           @click="save"
         />
@@ -200,17 +198,18 @@
   import { computed, reactive, ref, watch } from 'vue'
   import { useDeals } from '@/composables/useDeals'
   import { useNotify } from '@/composables/useNotify'
+  import { t } from '@/i18n'
 
   const open = defineModel({ type: Boolean, default: false })
   defineProps({ canEdit: { type: Boolean, default: false } })
   const notify = useNotify()
   const { deals, fetchDeals, saveDeal, deleteDeal, dealTerms } = useDeals()
 
-  const KINDS = [
-    { title: 'Buy X, get Y free or % off', value: 'buy_get' },
-    { title: 'X for a fixed price', value: 'bundle_price' },
-    { title: 'Buy X or more, % off all', value: 'volume_percent' },
-  ]
+  const KINDS = computed(() => [
+    { title: t('Buy X, get Y free or % off'), value: 'buy_get' },
+    { title: t('X for a fixed price'), value: 'bundle_price' },
+    { title: t('Buy X or more, % off all'), value: 'volume_percent' },
+  ])
   // The usual ones, one click away. "Every 3rd item 50% off" is buy 2 get 1 at 50%.
   const PRESETS = [
     { name: 'Buy 2 get 1 free', kind: 'buy_get', buy_qty: 2, get_qty: 1, percent: 100 },

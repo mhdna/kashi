@@ -6,7 +6,7 @@
       icon="mdi-cart-check"
       root-key="sales"
       style="flex: 1 1 0; min-width: 0"
-      title="Sales"
+      :title="t('Sales')"
     >
       <template #row="{ item }">
         <InitialsAvatar :name="item.client" :show-name="false" />
@@ -26,11 +26,11 @@
       <template #details="{ item }">
         <DetailList
           :rows="[
-            ['Source', item.source],
-            ['Client', item.client],
-            ['Amount', money(item.total, item.currency)],
-            ['Currency', item.currency],
-            ['Date', dateFull(item.occurred_at)],
+            [t('Source'), item.source],
+            [t('Client'), item.client],
+            [t('Amount'), money(item.total, item.currency)],
+            [t('Currency'), item.currency],
+            [t('Date'), dateFull(item.occurred_at)],
           ]"
         />
       </template>
@@ -42,7 +42,7 @@
       icon="mdi-truck-delivery"
       root-key="purchases"
       style="flex: 1 1 0; min-width: 0"
-      title="Purchases"
+      :title="t('Purchases')"
     >
       <template #row="{ item }">
         <span class="text-body-2 text-truncate">{{ item.supplier }}</span>
@@ -53,11 +53,11 @@
       <template #details="{ item }">
         <DetailList
           :rows="[
-            ['Supplier', item.supplier],
-            ['Items', item.items],
-            ['Amount', money(item.total, item.currency)],
-            ['Currency', item.currency],
-            ['Date', dateFull(item.purchased_at)],
+            [t('Supplier'), item.supplier],
+            [t('Items'), item.items],
+            [t('Amount'), money(item.total, item.currency)],
+            [t('Currency'), item.currency],
+            [t('Date'), dateFull(item.purchased_at)],
           ]"
         />
       </template>
@@ -69,10 +69,10 @@
       icon="mdi-receipt-text-check"
       root-key="expenses"
       style="flex: 1 1 0; min-width: 0"
-      title="Recent Expenses"
+      :title="t('Recent Expenses')"
     >
       <template #row="{ item }">
-        <span class="text-body-2 text-truncate">{{ item.category || 'Uncategorised' }}</span>
+        <span class="text-body-2 text-truncate">{{ item.category || t('Uncategorised') }}</span>
         <v-spacer />
         <span class="text-body-2 font-weight-medium me-2">{{ money(item.amount, item.currency) }}</span>
         <v-chip class="me-1" size="x-small" variant="tonal">{{ dateChip(item.occurred_at) }}</v-chip>
@@ -81,12 +81,12 @@
       <template #details="{ item }">
         <DetailList
           :rows="[
-            ['Source', item.source],
-            ['Description', item.description],
-            ['Category', item.category],
-            ['Amount', money(item.amount, item.currency)],
-            ['Currency', item.currency],
-            ['Date', dateFull(item.occurred_at)],
+            [t('Source'), item.source],
+            [t('Description'), item.description],
+            [t('Category'), item.category],
+            [t('Amount'), money(item.amount, item.currency)],
+            [t('Currency'), item.currency],
+            [t('Date'), dateFull(item.occurred_at)],
           ]"
         />
       </template>
@@ -104,6 +104,7 @@
   import DetailList from './DetailList.vue'
   import ExpenseReceiptThumb from './ExpenseReceiptThumb.vue'
   import InitialsAvatar from './InitialsAvatar.vue'
+  import { t } from '@/i18n'
 
   const { dashboardQuery } = useIncomeFilters()
 

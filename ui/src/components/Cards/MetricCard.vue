@@ -14,7 +14,7 @@
       class="mt-3"
       kind="chart"
       :size="31"
-      title="Loading"
+      :title="t('Loading')"
     />
     <template v-else>
       <div class="metric-value text-headline-small font-weight-bold">
@@ -26,7 +26,7 @@
           <v-icon :icon="deltaUp ? 'mdi-arrow-up' : 'mdi-arrow-down'" size="12" />{{ deltaText }}
         </span>
         <span class="metric-prev text-medium-emphasis">
-          {{ deltaPct != null ? props.compareLabel : 'Prev' }}: {{ prevDisplay }}
+          {{ deltaPct != null ? props.compareLabel : t('Prev') }}: {{ prevDisplay }}
         </span>
       </div>
     </template>
@@ -34,6 +34,7 @@
 </template>
 
 <script setup>
+  import { t } from '@/i18n'
   import { computed } from 'vue'
   import { formatMoney } from '@/utils/money'
 
@@ -68,7 +69,7 @@
     // What prevValue is, e.g. "vs last week" on the per-day page.
     compareLabel: {
       type: String,
-      default: 'vs last period',
+      default: () => t('vs last period'),
     },
   })
 

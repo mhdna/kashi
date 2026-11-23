@@ -25,8 +25,8 @@
           size="16"
         />
         <span v-if="!mobile" class="ms-1 text-body-2">
-          <template v-if="!online">No internet</template>
-          <template v-else-if="serverDown">Server is down, we'll be back soon.</template>
+          <template v-if="!online">{{ t('No internet') }}</template>
+          <template v-else-if="serverDown">{{ t("Server is down, we'll be back soon.") }}</template>
           <template v-else>
             {{ connectedBranchIds.length }}
           </template>
@@ -35,7 +35,7 @@
     </template>
 
     <v-card class="menu-card" max-width="320" min-width="240">
-      <v-card-title class="text-subtitle-1">Connected branches</v-card-title>
+      <v-card-title class="text-subtitle-1">{{ t('Connected branches') }}</v-card-title>
       <v-divider />
 
       <v-card-text v-if="serverDown" class="text-medium-emphasis">
@@ -59,7 +59,7 @@
         </v-list-item>
       </v-list>
       <v-card-text v-else class="text-medium-emphasis">
-        No branches connected.
+        {{ t('No branches connected.') }}
       </v-card-text>
     </v-card>
   </v-menu>
@@ -74,6 +74,7 @@
   import { useBranches } from '@/composables/useBranches'
   import WatchTillButton from '@/components/WatchTillButton.vue'
   import { useNetworkStatus } from '@/composables/useNetworkStatus'
+  import { t } from '@/i18n'
 
   const { branches, fetchBranches, fetchConnectedBranches, fetchConnectedRegisters, listRegisters } = useBranches()
   const { status, ensureConnected, onMessage } = useAdminSocket()
@@ -98,7 +99,7 @@
   })
 
   function branchName (branchId) {
-    return branches.value.find(b => b.id === branchId)?.name ?? `Branch #${branchId}`
+    return branches.value.find(b => b.id === branchId)?.name ?? t('Succursale #{id}', { id: branchId })
   }
 
   // The tills online in each connected branch, so each can get a watch eye.

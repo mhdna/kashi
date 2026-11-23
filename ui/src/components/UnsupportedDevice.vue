@@ -2,14 +2,14 @@
   <v-main class="unsupported-device">
     <section class="unsupported-device__content text-center">
       <v-img
-        alt="Kashi Cloud"
+        :alt="t('Kashi Cloud')"
         class="unsupported-device__logo mx-auto"
         :src="appLogo"
       />
 
-      <h1 class="text-h4 font-weight-bold mt-6">Desktop only</h1>
+      <h1 class="text-h4 font-weight-bold mt-6">{{ t('Desktop only') }}</h1>
       <p class="text-body-1 text-medium-emphasis mt-3 mb-0">
-        Please continue on a desktop computer.
+        {{ t('Please continue on a desktop computer.') }}
       </p>
     </section>
   </v-main>
@@ -17,6 +17,7 @@
 
 <script lang="ts" setup>
   import appLogo from '@/assets/app-logo.png'
+  import { t } from '@/i18n'
 </script>
 
 <style scoped>

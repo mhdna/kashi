@@ -1,16 +1,16 @@
 <template>
   <div>
-    <div class="bs-section-title mb-0">Where each till's Quick Access comes from</div>
+    <div class="bs-section-title mb-0">{{ t("Where each till's Quick Access comes from") }}</div>
     <p class="text-body-2 text-medium-emphasis mb-3">
-      <strong>Till</strong>: the till keeps and edits its own cards (the default).
-      <strong>kashi</strong>: the till shows this branch's list below, read-only.
-      A till can also switch itself; the most recent switch wins.
+      <strong>{{ t('Till') }}</strong>: {{ t('the till keeps and edits its own cards (the default).') }}
+      <strong>kashi</strong>: {{ t("the till shows this branch's list below, read-only.") }}
+      {{ t('A till can also switch itself; the most recent switch wins.') }}
     </p>
     <v-table class="mb-6" density="compact">
       <thead>
         <tr>
-          <th>Register</th>
-          <th class="text-right">Quick Access from</th>
+          <th>{{ t('Register') }}</th>
+          <th class="text-right">{{ t('Quick Access from') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -30,24 +30,24 @@
               variant="outlined"
               @update:model-value="mode => setMode(r, mode)"
             >
-              <v-btn size="small" text="Till" value="till" />
+              <v-btn size="small" :text="t('Till')" value="till" />
               <v-btn size="small" text="kashi" value="kashi" />
             </v-btn-toggle>
           </td>
         </tr>
         <tr v-if="registers.length === 0">
-          <td class="text-medium-emphasis py-4" colspan="2">This branch has no registers yet.</td>
+          <td class="text-medium-emphasis py-4" colspan="2">{{ t('This branch has no registers yet.') }}</td>
         </tr>
       </tbody>
     </v-table>
 
     <div class="d-flex align-center justify-space-between">
-      <div class="bs-section-title mb-0">Branch list</div>
+      <div class="bs-section-title mb-0">{{ t('Branch list') }}</div>
       <div v-if="canEdit" class="d-flex ga-2">
         <v-btn
           :disabled="!dirty || saving"
           size="small"
-          text="Discard"
+          :text="t('Discard')"
           variant="text"
           @click="discard"
         />
@@ -56,15 +56,15 @@
           :disabled="!dirty"
           :loading="saving"
           size="small"
-          text="Save list"
+          :text="t('Save list')"
           variant="flat"
           @click="save"
         />
       </div>
     </div>
     <p class="text-body-2 text-medium-emphasis mb-3">
-      Shown on every register set to <strong>kashi</strong>, in this order. Drag to reorder.
-      The first till to connect after this feature arrived seeded it with its own cards.
+      {{ t('Shown on every register set to') }} <strong>kashi</strong>{{ t(', in this order. Drag to reorder.') }}
+      {{ t('The first till to connect after this feature arrived seeded it with its own cards.') }}
     </p>
 
     <div v-if="canEdit" class="d-flex ga-2 mb-3">
@@ -77,7 +77,7 @@
         item-title="label"
         item-value="id"
         :items="variantOptions"
-        label="Add a product"
+        :label="t('Add a product')"
         :loading="variantSearchLoading"
         no-filter
         variant="outlined"
@@ -113,7 +113,7 @@
             class="ms-1"
             color="warning"
             size="x-small"
-            text="Inactive"
+            :text="t('Inactive')"
           />
         </div>
       </div>
@@ -128,7 +128,7 @@
           :disabled="!item.color && !item.text_color"
           icon="mdi-close"
           size="x-small"
-          title="Default colours"
+          :title="t('Default colours')"
           variant="text"
           @click="item.color = ''; item.text_color = ''"
         />
@@ -145,6 +145,7 @@
 </template>
 
 <script setup lang="ts">
+  import { t } from '@/i18n'
   import { computed, ref, watch } from 'vue'
   import { useBranchQuickAccess } from '@/composables/useBranchQuickAccess'
   import { useNotify } from '@/composables/useNotify'
@@ -194,7 +195,7 @@
     saving.value = true
     try {
       apply(await saveBranchQuickAccess(props.branchId, items.value))
-      notify.success('Quick Access saved -- tills set to kashi update within seconds')
+      notify.success(t('Quick Access saved -- tills set to kashi update within seconds'))
     } catch (error: any) {
       notify.error(error.message)
     } finally {
@@ -234,7 +235,7 @@
     addVariantId.value = null
     if (!v) return
     if (items.value.some(i => i.product_variant_id === v.id)) {
-      notify.error('That product is already on the list')
+      notify.error(t('That product is already on the list'))
       return
     }
     items.value.push({

@@ -6,7 +6,7 @@
     v-bind="$attrs"
     clearable
     :model-value="date"
-    placeholder="yyyy/mm/dd"
+    :placeholder="t('yyyy/mm/dd')"
     prepend-icon=""
     prepend-inner-icon="mdi-calendar"
     @update:model-value="onUpdate"
@@ -19,6 +19,7 @@
   // `min` / `max` take 'YYYY-MM-DD' strings too.
   import { computed } from 'vue'
   import { ymd } from '@/utils/dates'
+  import { t } from '@/i18n'
 
   defineOptions({ inheritAttrs: false })
   const props = defineProps({ modelValue: { type: String, default: '' } })

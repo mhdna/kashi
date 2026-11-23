@@ -8,7 +8,7 @@
             v-model="name.value.value"
             density="compact"
             :error-messages="name.errorMessage.value"
-            label="Name"
+            :label="t('Name')"
           />
           <v-select
             v-model="type.value.value"
@@ -16,14 +16,14 @@
             :disabled="!!editingId"
             :error-messages="type.errorMessage.value"
             :items="['warehouse', 'store']"
-            label="Type"
+            :label="t('Type')"
           />
           <v-text-field
             v-model="code.value.value"
             density="compact"
             :disabled="!!editingId"
             :error-messages="code.errorMessage.value"
-            label="Code"
+            :label="t('Code')"
           />
           <v-row>
             <v-col cols="6">
@@ -32,7 +32,7 @@
                 clearable
                 density="compact"
                 :disabled="!!editingId"
-                label="Latitude (optional)"
+                :label="t('Latitude (optional)')"
                 type="number"
               />
             </v-col>
@@ -42,7 +42,7 @@
                 clearable
                 density="compact"
                 :disabled="!!editingId"
-                label="Longitude (optional)"
+                :label="t('Longitude (optional)')"
                 type="number"
               />
             </v-col>
@@ -53,12 +53,12 @@
               v-if="editingId"
               color="error"
               prepend-icon="mdi-delete"
-              text="Delete"
+              :text="t('Delete')"
               variant="text"
               @click="deleteFromEdit"
             />
             <v-spacer />
-            <v-btn text="Cancel" @click="closeDialog" />
+            <v-btn :text="t('Cancel')" @click="closeDialog" />
             <v-btn color="primary" :loading="submitting" :text="editingId ? 'Save' : 'Add Inventory'" type="submit" />
           </v-card-actions>
         </form>
@@ -68,12 +68,12 @@
 
   <v-dialog v-model="deleteDialog" max-width="420">
     <v-card>
-      <v-card-title>Delete Inventory</v-card-title>
+      <v-card-title>{{ t('Delete Inventory') }}</v-card-title>
       <v-card-text>Are you sure you want to delete "{{ deleteTarget?.name }}"? This cannot be undone.</v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn text="Cancel" @click="deleteDialog = false" />
-        <v-btn color="error" :loading="deleting" text="Delete" @click="confirmDelete" />
+        <v-btn :text="t('Cancel')" @click="deleteDialog = false" />
+        <v-btn color="error" :loading="deleting" :text="t('Delete')" @click="confirmDelete" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -82,13 +82,13 @@
     <v-card class="inventory-card" flat>
       <v-card-title class="page-heading d-flex flex-wrap align-center ga-3 px-4 py-3">
         <v-icon icon="mdi-warehouse" />
-        <span>Inventory</span>
+        <span>{{ t('Inventory') }}</span>
         <v-spacer />
         <v-btn
           v-if="canEdit"
           color="primary"
           prepend-icon="mdi-plus"
-          text="Add Inventory"
+          :text="t('Add Inventory')"
           variant="flat"
           @click="openCreate"
         />
@@ -138,17 +138,17 @@
           data-discard-ignore
           density="compact"
           hide-details
-          placeholder="Search SKU / barcode"
+          :placeholder="t('Search SKU / barcode')"
           @update:model-value="onStockSearch"
         />
         <v-table density="compact">
           <thead>
             <tr>
-              <th>SKU</th>
-              <th>Barcode</th>
-              <th class="text-end">On hand</th>
-              <th class="text-end">Avg cost</th>
-              <th v-if="canEdit" class="text-end" style="width: 220px;">Adjust</th>
+              <th>{{ t('SKU') }}</th>
+              <th>{{ t('Barcode') }}</th>
+              <th class="text-end">{{ t('On hand') }}</th>
+              <th class="text-end">{{ t('Avg cost') }}</th>
+              <th v-if="canEdit" class="text-end" style="width: 220px;">{{ t('Adjust') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -175,7 +175,7 @@
                   class="ml-1"
                   :loading="adjustingId === row.variant_id"
                   size="small"
-                  text="Set"
+                  :text="t('Set')"
                   @click="applyCount(row)"
                 />
               </td>
@@ -187,12 +187,12 @@
         <v-btn
           v-if="canEdit"
           prepend-icon="mdi-clipboard-list-outline"
-          text="Start Count"
+          :text="t('Start Count')"
           variant="tonal"
           @click="startCount"
         />
         <v-spacer />
-        <v-btn text="Close" @click="stockDialog = false" />
+        <v-btn :text="t('Close')" @click="stockDialog = false" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -209,6 +209,7 @@
   import { usePageAccess } from '@/composables/usePageAccess'
   import { useNotify } from '@/composables/useNotify'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
 
   // Read-only roles keep the page but lose add/edit/delete (see usePageAccess).
   const { canEdit } = usePageAccess()
@@ -245,11 +246,11 @@
 
   const apiURL = `${API_BASE}/inventories/`
   const headers = ref([
-    { title: 'ID', key: 'id', align: 'start' },
-    { title: 'Name', key: 'name', align: 'start' },
-    { title: 'Type', key: 'type', align: 'start' },
-    { title: 'Code', key: 'code', align: 'start' },
-    { title: 'Created At', key: 'created_at', align: 'end' },
+    { title: t('ID'), key: 'id', align: 'start' },
+    { title: t('Name'), key: 'name', align: 'start' },
+    { title: t('Type'), key: 'type', align: 'start' },
+    { title: t('Code'), key: 'code', align: 'start' },
+    { title: t('Created At'), key: 'created_at', align: 'end' },
     { title: '', key: 'actions', align: 'end', sortable: false, width: 56 },
   ])
 

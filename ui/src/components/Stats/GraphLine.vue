@@ -4,6 +4,7 @@
 
 <script setup>
   import VChart from '@/components/EChart.vue'
+  import { t } from '@/i18n'
 
   const colorList = [
     '#4f81bd', '#c0504d', '#9bbb59', '#604a7b', '#948a54', '#e46c0b',
@@ -26,7 +27,7 @@
 
   const option = ref({
     title: {
-      text: 'Profit',
+      text: t('Profit'),
       left: 'center',
     },
     tooltip: {

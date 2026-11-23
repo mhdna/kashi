@@ -4,7 +4,7 @@
        so. CSS only, and only transform/opacity move, so it costs next to
        nothing; it holds still for people who turn motion off. -->
   <div
-    :aria-label="title"
+    :aria-label="title || t('Preparing…')"
     aria-live="polite"
     class="preparing"
     :class="{ 'preparing--small': size }"
@@ -50,13 +50,15 @@
       </div>
     </div>
     <template v-if="!size">
-      <div class="text-subtitle-1 font-weight-medium">{{ title }}</div>
+      <div class="text-subtitle-1 font-weight-medium">{{ title || t('Preparing…') }}</div>
       <div v-if="subtitle" class="text-caption text-medium-emphasis">{{ subtitle }}</div>
     </template>
   </div>
 </template>
 
 <script setup>
+  import { t } from '@/i18n'
+
   defineProps({
     // What's being prepared, which picks the picture: 'pdf' (a page writing
     // itself), 'chart' (bars growing), 'people' (heads bobbing), 'chat'
@@ -65,7 +67,7 @@
     // arrow rising through a cloud in a turning ring) or 'data' (rows
     // filling in).
     kind: { type: String, default: 'data' },
-    title: { type: String, default: 'Preparing…' },
+    title: { type: String, default: '' },
     subtitle: { type: String, default: '' },
     minHeight: { type: String, default: '320px' },
     // A size in px makes it a small inline icon with no text, in place of a

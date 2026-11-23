@@ -34,10 +34,10 @@
         rounded="lg"
         variant="outlined"
       >
-        <v-btn value="this-month">This month</v-btn>
+        <v-btn value="this-month">{{ t('This month') }}</v-btn>
         <v-btn value="30d">30D</v-btn>
-        <v-btn value="last-month">Last month</v-btn>
-        <v-btn value="this-year">This year</v-btn>
+        <v-btn value="last-month">{{ t('Last month') }}</v-btn>
+        <v-btn value="this-year">{{ t('This year') }}</v-btn>
       </v-btn-toggle>
     </div>
 
@@ -48,15 +48,16 @@
 </template>
 
 <script setup lang="ts">
+  import { t } from '@/i18n'
   import { computed, ref } from 'vue'
   import BranchMenu from '@/components/Buttons/BranchMenu.vue'
   import { useIncomeFilters } from './composables/useIncomeFilters'
   import OverviewTab from './tabs/OverviewTab.vue'
 
   const scopeItems = [
-    { title: 'All Branches', value: 'all' },
-    { title: 'Branches', value: 'branch' },
-    { title: 'Admin', value: 'admin' },
+    { title: t('All Branches'), value: 'all' },
+    { title: t('Branches'), value: 'branch' },
+    { title: t('Admin'), value: 'admin' },
   ]
   const { period, scope } = useIncomeFilters()
   const scopeLabel = computed(() => scopeItems.find(item => item.value === scope.value)?.title ?? 'All Branches')

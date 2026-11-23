@@ -1,0 +1,103 @@
+// French for chunk 03: Google reviews, roles, search, sync status, stats and
+// the attendance calendar. {placeholders} must stay as they are.
+export default {
+  // Reviews settings
+  'Google reviews': 'Avis Google',
+  "The Google side of reviews: links to your Google review box in the message (instead of the poll), and each place's rating and latest reviews on the Reviews page. Off, the page shows only the poll.": "Le volet Google des avis : liens vers votre boîte d'avis Google dans le message (à la place du sondage), et la note de chaque établissement ainsi que ses derniers avis sur la page Avis. Désactivé, la page n'affiche que le sondage.",
+  'Show Google reviews': 'Afficher les avis Google',
+  'Each message\'s link opens the Google "write a review" box of the branch that made the sale: its own place when set, else the main one. Paste a place id, or a whole review link. WhatsApp shows the title and line below on the link\'s card.': "Le lien de chaque message ouvre la case Google « écrire un avis » de la succursale qui a réalisé la vente : son propre lieu s'il est défini, sinon le lieu principal. Collez un identifiant de lieu ou un lien d'avis complet. WhatsApp affiche le titre et la ligne ci-dessous sur la carte du lien.",
+  'Google place id, e.g. ChIJ…': 'Identifiant de lieu Google, par ex. ChIJ…',
+  'Main Google place': 'Lieu Google principal',
+  'Where the links live; each message adds its own code': 'Adresse des liens ; chaque message ajoute son propre code',
+  'Link address': 'Adresse du lien',
+  'Card title': 'Titre de la carte',
+  'Card line (optional)': 'Ligne de la carte (facultatif)',
+  'Google Cloud > Places API (New). Read every 3 hours.': 'Google Cloud > Places API (New). Lu toutes les 3 heures.',
+  'Places API key': 'Clé API Places',
+  'Branches with their own Google place': 'Succursales avec leur propre lieu Google',
+  'Uses the main place': 'Utilise le lieu principal',
+  'Check Google now': 'Vérifier Google maintenant',
+  "Review link saved.": "Lien d'avis enregistré.",
+  'Read from Google.': 'Lecture depuis Google effectuée.',
+  'Google': 'Google',
+
+  // Roles
+  'Roles': 'Rôles',
+  'Add role': 'Ajouter un rôle',
+  "A role decides which pages a user can open, and whether they can change what's on them (add, edit, delete) or only look. Assign roles to users in the Users tab.": "Un rôle détermine les pages qu'un utilisateur peut ouvrir, et s'il peut modifier leur contenu (ajouter, modifier, supprimer) ou seulement le consulter. Attribuez les rôles aux utilisateurs dans l'onglet Utilisateurs.",
+  'Access': 'Accès',
+  'Everything, including users and roles': 'Tout, y compris les utilisateurs et les rôles',
+  'Edit role': 'Modifier le rôle',
+  "Reassign its users first": "Réaffectez d'abord ses utilisateurs",
+  'Delete role': 'Supprimer le rôle',
+  'Edit role: {name}': 'Modifier le rôle : {name}',
+  'Role name': 'Nom du rôle',
+  'View': 'Consulter',
+  'opens a page read-only.': 'ouvre une page en lecture seule.',
+  'Edit': 'Modifier',
+  "also shows its add, edit and delete controls. Switching a section off hides all of its pages but keeps their settings.": "affiche aussi ses commandes d'ajout, de modification et de suppression. Désactiver une section masque toutes ses pages, mais conserve leurs réglages.",
+  'None': 'Aucun',
+  'All view': 'Tout consulter',
+  'All edit': 'Tout modifier',
+  'This cannot be undone.': 'Cette action est irréversible.',
+  '{granted}/{total} pages': '{granted}/{total} pages',
+  'No access': 'Aucun accès',
+  'view': 'consultation',
+  'edit': 'modification',
+
+  // Search
+  'Search': 'Rechercher',
+  'No routes found': 'Aucune page trouvée',
+  'Safe Search': 'Recherche sécurisée',
+  'Screenshots': "Captures d'écran",
+  'URL List': 'Liste des URL',
+  'Phrases': 'Expressions',
+  'Redirects': 'Redirections',
+
+  // Server status
+  'Try again': 'Réessayer',
+  'No internet': 'Pas de connexion Internet',
+  'Updating Kashi Cloud': 'Mise à jour de Kashi Cloud',
+  "Can't reach the server": 'Impossible de joindre le serveur',
+  "Taking longer than usual. Still checking…": "Cela prend plus de temps que d'habitude. Vérification en cours…",
+  'Back in a few seconds.': 'Retour dans quelques secondes.',
+  "Server is down, we'll be back soon.": 'Le serveur est indisponible, nous revenons bientôt.',
+  'No internet connection. Check your network and try again.': 'Pas de connexion Internet. Vérifiez votre réseau et réessayez.',
+
+  // Snackbar demo
+  'Open Snackbar': 'Ouvrir la notification',
+
+  // Stats charts
+  'units': 'unités',
+  'Book Value': 'Valeur comptable',
+  'Count': 'Nombre',
+  'Asset Tag': "Étiquette d'actif",
+  'Profile': 'Profil',
+
+  // Branch sync
+  'Syncing': 'Synchronisation de',
+  'Branch sync': 'Synchronisation des succursales',
+  "Can't reach the server, we'll be back soon.": 'Impossible de joindre le serveur, nous revenons bientôt.',
+  'No branch data has synced yet.': "Aucune donnée de succursale n'a encore été synchronisée.",
+  'Sale': 'Vente',
+  'just now': "à l'instant",
+  'now': 'maintenant',
+  '{n} min ago': 'il y a {n} min',
+  '{n} mins ago': 'il y a {n} min',
+  '{n} hour ago': 'il y a {n} heure',
+  '{n} hours ago': 'il y a {n} heures',
+  '{n} day ago': 'il y a {n} jour',
+  '{n} days ago': 'il y a {n} jours',
+  '{n}m ago': 'il y a {n} min',
+  '{n}h ago': 'il y a {n} h',
+  '{n}d ago': 'il y a {n} j',
+  'offline': 'hors ligne',
+  'not syncing': 'pas de synchronisation',
+  'syncing...': 'synchronisation...',
+  'no sync yet': 'aucune synchronisation',
+
+  // Attendance calendar
+  'Week': 'Semaine',
+  '4 days': '4 jours',
+  '4 Days': '4 jours',
+}

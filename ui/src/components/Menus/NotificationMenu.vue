@@ -52,6 +52,7 @@
 </template>
 <script setup>
   import { ref } from 'vue'
+  import { t } from '@/i18n'
 
   const fav = ref(true)
   const menu = ref(false)
@@ -60,41 +61,41 @@
   const stock = product => Math.floor(Math.random() * 25)
 
   const items = [
-    { type: 'subheader', title: 'Low Stock Alerts' },
+    { type: 'subheader', title: t('Low Stock Alerts') },
     {
       prependIcon: 'mdi-tshirt-crew',
       title: 'Lady T-Shirt',
-      subtitle: `Code: 8000000135892 &mdash; Only ${stock()} items left &mdash; $22.00`,
+      subtitle: `${t('Code')}: 8000000135892, ${t('Only {n} items left', { n: stock() })}, $22.00`,
     },
     { type: 'divider', inset: true },
     {
       prependIcon: 'mdi-bag-personal',
       title: 'Travel Bag',
-      subtitle: `Code: 8000000246713 &mdash; Only ${stock()} items left &mdash; $90.00`,
+      subtitle: `${t('Code')}: 8000000246713, ${t('Only {n} items left', { n: stock() })}, $90.00`,
     },
     { type: 'divider', inset: true },
     {
       prependIcon: 'mdi-hanger',
       title: 'Kids Boy Pants',
-      subtitle: `Code: 8000000357424 &mdash; Only ${stock()} items left &mdash; $49.99`,
+      subtitle: `${t('Code')}: 8000000357424, ${t('Only {n} items left', { n: stock() })}, $49.99`,
     },
     { type: 'divider', inset: true },
     {
       prependIcon: 'mdi-hanger',
       title: 'Baby Shorts',
-      subtitle: `Code: 8000000468135 &mdash; Only ${stock()} items left &mdash; $39.99`,
+      subtitle: `${t('Code')}: 8000000468135, ${t('Only {n} items left', { n: stock() })}, $39.99`,
     },
     { type: 'divider', inset: true },
     {
       prependIcon: 'mdi-hanger',
       title: 'Kids Sweatshirt',
-      subtitle: `Code: 8000000579246 &mdash; Only ${stock()} items left &mdash; $39.00`,
+      subtitle: `${t('Code')}: 8000000579246, ${t('Only {n} items left', { n: stock() })}, $39.00`,
     },
     { type: 'divider', inset: true },
     {
       prependIcon: 'mdi-shoe-sneaker',
       title: 'Men Sneakers',
-      subtitle: `Code: 8000000680157 &mdash; Only ${stock()} items left &mdash; $35.00`,
+      subtitle: `${t('Code')}: 8000000680157, ${t('Only {n} items left', { n: stock() })}, $35.00`,
     },
   ]
 </script>

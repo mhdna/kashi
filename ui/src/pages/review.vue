@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { computed, ref } from 'vue'
+  import { t } from '@/i18n'
 
   // Swap for the real Google "write a review" URL when ready.
   const PUBLIC_REVIEW_URL = ''
@@ -26,18 +27,18 @@
     }
   } catch { /* storage blocked — show the form */ }
 
-  const verdict = computed(() => (rating.value ? VERDICTS[rating.value] : 'Tap a star'))
+  const verdict = computed(() => (rating.value ? t(VERDICTS[rating.value]) : t('Tap a star')))
 
   const doneTitle = computed(() => {
-    if (alreadySent.value) return "You've already shared this"
-    if (rating.value >= 4) return 'Thank you — that means a lot'
-    return 'Thank you for the honesty'
+    if (alreadySent.value) return t("You've already shared this")
+    if (rating.value >= 4) return t('Thank you — that means a lot')
+    return t('Thank you for the honesty')
   })
 
   const doneBody = computed(() => {
-    if (alreadySent.value) return 'Your feedback for the Beirut branch is in. See you next visit.'
-    if (rating.value >= 4) return "We're glad the visit landed well. A public review helps other shoppers find us."
-    return 'This goes straight to the branch team so we can put it right.'
+    if (alreadySent.value) return t('Your feedback for the Beirut branch is in. See you next visit.')
+    if (rating.value >= 4) return t("We're glad the visit landed well. A public review helps other shoppers find us.")
+    return t('This goes straight to the branch team so we can put it right.')
   })
 
   const showPublicLink = computed(() => !alreadySent.value && rating.value >= 4 && !!PUBLIC_REVIEW_URL)
@@ -60,9 +61,9 @@
       <div class="flourish" />
 
       <template v-if="!submitted">
-        <p class="eyebrow">Your visit</p>
-        <p class="question">How did we do today?</p>
-        <p class="sub">One tap tells the branch team how your experience felt.</p>
+        <p class="eyebrow">{{ t('Your visit') }}</p>
+        <p class="question">{{ t('How did we do today?') }}</p>
+        <p class="sub">{{ t('One tap tells the branch team how your experience felt.') }}</p>
 
         <v-rating
           v-model="rating"
@@ -82,7 +83,7 @@
             auto-grow
             class="mt-2 text-start"
             counter="400"
-            :label="rating >= 4 ? 'What stood out?' : 'What could we do better?'"
+            :label="rating >= 4 ? t('What stood out?') : t('What could we do better?')"
             maxlength="400"
             rows="3"
             variant="outlined"
@@ -97,7 +98,7 @@
           size="large"
           @click="submit"
         >
-          Send feedback
+          {{ t('Send feedback') }}
         </v-btn>
 
         <p class="foot">Demo Store &middot; Beirut</p>
@@ -116,7 +117,7 @@
             target="_blank"
             variant="tonal"
           >
-            Leave a public review
+            {{ t('Leave a public review') }}
           </v-btn>
         </div>
       </template>

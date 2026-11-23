@@ -44,6 +44,7 @@
   import { describeBranchActivity, isBranchActivityMessage } from '@/composables/useBranchActivityMessage'
   import { useBranches } from '@/composables/useBranches'
   import { useSettingsStore } from '@/stores/settings'
+  import { t } from '@/i18n'
   import { displayCurrencyCode, formatMoney } from '@/utils/money'
 
   const { branches, fetchBranches } = useBranches()
@@ -64,7 +65,7 @@
   let unsubscribe = null
 
   function branchName (branchId) {
-    return branches.value.find(b => b.id === branchId)?.name ?? `Branch #${branchId}`
+    return branches.value.find(b => b.id === branchId)?.name ?? t('Branch #{id}', { id: branchId })
   }
 
   function removeItem (id) {

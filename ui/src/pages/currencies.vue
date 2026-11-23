@@ -12,7 +12,7 @@
           clearable
           density="compact"
           hide-details
-          label="Search currencies"
+          :label="t('Search currencies')"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
         />
@@ -23,7 +23,7 @@
           clearable
           density="compact"
           hide-details
-          label="Search payment methods"
+          :label="t('Search payment methods')"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
         />
@@ -31,7 +31,7 @@
           v-if="canEdit && tab === 'currencies'"
           color="primary"
           prepend-icon="mdi-plus"
-          text="Add Currency"
+          :text="t('Add Currency')"
           variant="flat"
           @click="openAddCurrency"
         />
@@ -39,7 +39,7 @@
           v-if="canEdit && tab !== 'currencies'"
           color="primary"
           prepend-icon="mdi-plus"
-          text="Add Payment Method"
+          :text="t('Add Payment Method')"
           variant="flat"
           @click="openAddMethod"
         />
@@ -53,8 +53,8 @@
           color="primary"
           :direction="$vuetify.display.smAndDown ? 'horizontal' : 'vertical'"
         >
-          <v-tab prepend-icon="mdi-currency-usd" text="Currencies" value="currencies" />
-          <v-tab prepend-icon="mdi-credit-card-outline" text="Payment Methods" value="methods" />
+          <v-tab prepend-icon="mdi-currency-usd" :text="t('Currencies')" value="currencies" />
+          <v-tab prepend-icon="mdi-credit-card-outline" :text="t('Payment Methods')" value="methods" />
         </v-tabs>
 
         <v-divider vertical />
@@ -94,7 +94,7 @@
                   {{ formatUnitsPerUsd(item.units_per_usd_micros) }}
                 </template>
                 <template #item.is_default="{ item }">
-                  <v-chip v-if="item.is_default" color="primary" size="small">Default</v-chip>
+                  <v-chip v-if="item.is_default" color="primary" size="small">{{ t('Default') }}</v-chip>
                 </template>
                 <template #item.is_active="{ item }">
                   <v-switch
@@ -133,7 +133,7 @@
                   <span v-else class="text-disabled">—</span>
                 </template>
                 <template #item.reserved="{ item }">
-                  <v-chip v-if="item.reserved" size="small" variant="tonal">System</v-chip>
+                  <v-chip v-if="item.reserved" size="small" variant="tonal">{{ t('System') }}</v-chip>
                 </template>
                 <template #item.is_active="{ item }">
                   <v-switch
@@ -173,23 +173,23 @@
             v-model="currencyForm.code"
             density="compact"
             :disabled="!!editingCode"
-            hint="e.g. USD, EUR"
-            label="Code"
+            :hint="t('e.g. USD, EUR')"
+            :label="t('Code')"
           />
           <v-text-field
             v-model="currencyForm.name"
             density="compact"
-            label="Name"
+            :label="t('Name')"
           />
           <v-text-field
             v-model="currencyForm.symbol"
             density="compact"
-            label="Symbol"
+            :label="t('Symbol')"
           />
           <v-text-field
             v-model.number="currencyForm.valueInDefaultCurrency"
             density="compact"
-            label="Value in Default Currency"
+            :label="t('Value in Default Currency')"
             type="number"
           />
           <v-text-field
@@ -199,7 +199,7 @@
             :hint="editingIsDefault
               ? 'The default currency is the accounting anchor; its rate is fixed.'
               : 'e.g. 90000 for LBP, 0.92 for EUR'"
-            label="Units per 1 USD"
+            :label="t('Units per 1 USD')"
             persistent-hint
             type="number"
           />
@@ -208,8 +208,8 @@
             class="mt-3"
             density="compact"
             :disabled="editingIsDefault"
-            hint="Cash in this currency rounds to the nearest multiple of this. 1 = no rounding."
-            label="Cash rounding unit"
+            :hint="t('Cash in this currency rounds to the nearest multiple of this. 1 = no rounding.')"
+            :label="t('Cash rounding unit')"
             persistent-hint
             type="number"
           />
@@ -221,12 +221,12 @@
             color="error"
             :disabled="editingIsDefault"
             prepend-icon="mdi-delete"
-            text="Delete"
+            :text="t('Delete')"
             variant="text"
             @click="deleteCurrentCurrency"
           />
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="currencyDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="currencyDialog = false" />
           <v-btn
             color="primary"
             :loading="currencySaving"
@@ -241,17 +241,17 @@
     <!-- delete currency -->
     <v-dialog v-model="deleteDialog" max-width="420">
       <v-card>
-        <v-card-title>Delete Currency</v-card-title>
+        <v-card-title>{{ t('Delete Currency') }}</v-card-title>
         <v-card-text>
-          Delete <strong>{{ deleteTarget?.name }}</strong>? This cannot be undone.
+          {{ t('Delete') }} <strong>{{ deleteTarget?.name }}</strong>{{ t('? This cannot be undone.') }}
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="deleteDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="deleteDialog = false" />
           <v-btn
             color="error"
             :loading="deleting"
-            text="Delete"
+            :text="t('Delete')"
             variant="flat"
             @click="confirmDeleteCurrency"
           />
@@ -262,18 +262,17 @@
     <!-- delete payment method -->
     <v-dialog v-model="methodDeleteDialog" max-width="420">
       <v-card>
-        <v-card-title>Delete Payment Method</v-card-title>
+        <v-card-title>{{ t('Delete Payment Method') }}</v-card-title>
         <v-card-text>
-          Delete <strong>{{ methodDeleteTarget?.name }}</strong>? This cannot be undone. If any
-          branch has customized this method, deactivate it instead.
+          {{ t('Delete') }} <strong>{{ methodDeleteTarget?.name }}</strong>{{ t('? This cannot be undone. If any branch has customized this method, deactivate it instead.') }}
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="methodDeleteDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="methodDeleteDialog = false" />
           <v-btn
             color="error"
             :loading="methodDeleting"
-            text="Delete"
+            :text="t('Delete')"
             variant="flat"
             @click="confirmDeleteMethod"
           />
@@ -296,8 +295,8 @@
             v-model="methodForm.name"
             density="compact"
             hide-details="auto"
-            label="Name"
-            placeholder="Cash / Card / Transfer"
+            :label="t('Name')"
+            :placeholder="t('Cash / Card / Transfer')"
             variant="outlined"
           />
           <CurrencySelect v-model="methodForm.currencyCode" class="mt-3" />
@@ -306,7 +305,7 @@
             class="mt-3"
             density="compact"
             hide-details="auto"
-            label="Order"
+            :label="t('Order')"
             type="number"
             variant="outlined"
           />
@@ -315,7 +314,7 @@
             class="mt-3"
             density="compact"
             hide-details="auto"
-            label="Accent color (optional)"
+            :label="t('Accent color (optional)')"
             placeholder="#4CAF50"
             variant="outlined"
           >
@@ -334,7 +333,7 @@
         </v-card-text>
         <v-card-actions class="px-4 pb-4">
           <v-spacer />
-          <v-btn text="Cancel" variant="text" @click="methodDialog = false" />
+          <v-btn :text="t('Cancel')" variant="text" @click="methodDialog = false" />
           <v-btn
             color="primary"
             :loading="methodSaving"
@@ -349,6 +348,7 @@
 </template>
 
 <script setup lang="ts">
+  import { t } from '@/i18n'
   import { computed, onMounted, reactive, ref, watch } from 'vue'
   import CurrencySelect from '@/components/CurrencySelect.vue'
   import BulkDeleteBar from '@/components/Tables/BulkDeleteBar.vue'
@@ -408,23 +408,23 @@
   watch(methodSearch, () => { methodPage.value = 1 })
 
   const currencyHeaders = [
-    { title: 'Code', key: 'code', align: 'start' },
-    { title: 'Name', key: 'name', align: 'start' },
-    { title: 'Symbol', key: 'symbol', align: 'start' },
-    { title: 'Value in Default Currency', key: 'value_in_default_currency', align: 'end' },
-    { title: 'Units per 1 USD', key: 'units_per_usd_micros', align: 'end' },
-    { title: 'Cash rounding', key: 'cash_rounding_unit', align: 'end' },
+    { title: t('Code'), key: 'code', align: 'start' },
+    { title: t('Name'), key: 'name', align: 'start' },
+    { title: t('Symbol'), key: 'symbol', align: 'start' },
+    { title: t('Value in Default Currency'), key: 'value_in_default_currency', align: 'end' },
+    { title: t('Units per 1 USD'), key: 'units_per_usd_micros', align: 'end' },
+    { title: t('Cash rounding'), key: 'cash_rounding_unit', align: 'end' },
     { title: '', key: 'is_default', align: 'center', sortable: false },
-    { title: 'Active', key: 'is_active', align: 'center', sortable: false },
+    { title: t('Active'), key: 'is_active', align: 'center', sortable: false },
   ]
 
   const methodHeaders = [
-    { title: 'Name', key: 'name', align: 'start' },
-    { title: 'Currency', key: 'currency_code', align: 'start' },
-    { title: 'Color', key: 'color', align: 'start' },
-    { title: 'Order', key: 'sort_order', align: 'end', width: 90 },
+    { title: t('Name'), key: 'name', align: 'start' },
+    { title: t('Currency'), key: 'currency_code', align: 'start' },
+    { title: t('Color'), key: 'color', align: 'start' },
+    { title: t('Order'), key: 'sort_order', align: 'end', width: 90 },
     { title: '', key: 'reserved', align: 'center', sortable: false },
-    { title: 'Active', key: 'is_active', align: 'center', sortable: false },
+    { title: t('Active'), key: 'is_active', align: 'center', sortable: false },
     { title: '', key: 'actions', align: 'end', sortable: false },
   ]
 

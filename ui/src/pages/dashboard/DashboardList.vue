@@ -48,7 +48,7 @@
                 variant="tonal"
                 @click="openItem = item"
               >
-                Open
+                {{ t('Open') }}
               </v-btn>
             </v-card>
           </v-menu>
@@ -59,13 +59,13 @@
         v-if="!error && loading && items.length === 0"
         class="flex-grow-1 d-flex align-center justify-center"
       >
-        <PreparingState kind="data" :size="31" title="Loading" />
+        <PreparingState kind="data" :size="31" :title="t('Loading')" />
       </div>
       <div
         v-else-if="!error && !loading && items.length === 0"
         class="flex-grow-1 d-flex align-center justify-center text-medium-emphasis text-body-2"
       >
-        Nothing here yet
+        {{ t('Nothing here yet') }}
       </div>
     </v-card>
 
@@ -80,7 +80,7 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text="Close" @click="dialog = false" />
+          <v-btn :text="t('Close')" @click="dialog = false" />
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -88,6 +88,7 @@
 </template>
 
 <script setup>
+  import { t } from '@/i18n'
   import { computed, onMounted, ref, watch } from 'vue'
   import { dedupedFetch } from '@/composables/useRequestDedup'
   import { useNotify } from '@/composables/useNotify'

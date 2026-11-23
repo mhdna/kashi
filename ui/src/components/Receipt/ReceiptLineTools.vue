@@ -13,12 +13,12 @@
         density="compact"
         prepend-icon="mdi-restore"
         size="small"
-        text="Default"
+        :text="t('Default')"
         variant="text"
         @click="update(resetElement(design, info.key))"
       />
       <v-btn
-        aria-label="Close"
+        :aria-label="t('Close')"
         data-test="line-close"
         density="compact"
         icon="mdi-close"
@@ -38,9 +38,9 @@
         variant="outlined"
         @update:model-value="v => set({ case: v || '' })"
       >
-        <v-btn size="small" title="ALL CAPITALS" value="upper">ABC</v-btn>
-        <v-btn size="small" title="First Letters" value="title">Abc</v-btn>
-        <v-btn size="small" title="all small" value="lower">abc</v-btn>
+        <v-btn size="small" :title="t('ALL CAPITALS')" value="upper">ABC</v-btn>
+        <v-btn size="small" :title="t('First Letters')" value="title">Abc</v-btn>
+        <v-btn size="small" :title="t('all small')" value="lower">abc</v-btn>
       </v-btn-toggle>
       <SizeStepper
         v-if="can(catalog, info, 'size')"
@@ -67,8 +67,8 @@
         variant="outlined"
         @update:model-value="v => update(setBold(design, info.key, v))"
       >
-        <v-btn size="small" title="Bold" value="bold"><strong>B</strong></v-btn>
-        <v-btn size="small" title="Regular" value="regular">Regular</v-btn>
+        <v-btn size="small" :title="t('Bold')" value="bold"><strong>B</strong></v-btn>
+        <v-btn size="small" title="Regular" value="regular">{{ t('Regular') }}</v-btn>
       </v-btn-toggle>
       <v-btn-toggle
         v-if="can(catalog, info, 'align')"
@@ -80,9 +80,9 @@
         variant="outlined"
         @update:model-value="v => set({ align: v || '' })"
       >
-        <v-btn aria-label="Left" icon="mdi-format-align-left" size="small" value="left" />
-        <v-btn aria-label="Centre" icon="mdi-format-align-center" size="small" value="center" />
-        <v-btn aria-label="Right" icon="mdi-format-align-right" size="small" value="right" />
+        <v-btn :aria-label="t('Left')" icon="mdi-format-align-left" size="small" value="left" />
+        <v-btn :aria-label="t('Centre')" icon="mdi-format-align-center" size="small" value="center" />
+        <v-btn :aria-label="t('Right')" icon="mdi-format-align-right" size="small" value="right" />
       </v-btn-toggle>
       <v-btn-toggle
         v-if="can(catalog, info, 'arabic')"
@@ -105,31 +105,32 @@
         density="comfortable"
         prepend-icon="mdi-invert-colors"
         size="small"
-        :text="isDark(design, info) ? 'White on black' : 'On black'"
+        :text="isDark(design, info) ? t('White on black') : t('On black')"
         :variant="isDark(design, info) ? 'flat' : 'text'"
         @click="update(setDark(design, info, !isDark(design, info)))"
       />
       <v-btn
         v-if="can(catalog, info, 'hide')"
-        :aria-label="el.hide ? 'Print it' : 'Leave it out'"
+        :aria-label="el.hide ? t('Print it') : t('Leave it out')"
         data-test="line-hide"
         density="comfortable"
         :prepend-icon="el.hide ? 'mdi-eye' : 'mdi-eye-off'"
         size="small"
-        :text="el.hide ? 'Print it' : 'Leave out'"
+        :text="el.hide ? t('Print it') : t('Leave out')"
         variant="text"
         @click="set({ hide: !el.hide })"
       />
     </div>
     <div v-if="hint" class="rtools-hint">{{ hint }}</div>
     <div v-if="el.lang && !el.text_ar && !info.ar_default" class="rtools-hint" data-test="line-lang-hint">
-      Click the Arabic line on the receipt to write its words; until then it prints in English.
+      {{ t('Click the Arabic line on the receipt to write its words; until then it prints in English.') }}
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
   import { computed } from 'vue'
+  import { t } from '@/i18n'
   import ReceiptFontSelect from '@/components/Receipt/ReceiptFontSelect.vue'
   import SizeStepper from '@/components/Receipt/SizeStepper.vue'
   import { boldState, can, isDark, isElementChanged, langOptions, resetElement, setBold, setDark, setElement, sizeStep } from '@/utils/receiptDesign'
@@ -144,8 +145,8 @@
 
   const el = computed(() => props.design.elements?.[props.info.key] ?? {})
   const hint = computed(() => {
-    if ((props.info.default ?? '').includes('{percent}')) {return '{percent} prints as the reward.'}
-    if ((props.info.default ?? '').includes('{currency}')) {return '{currency} prints as the currency.'}
+    if ((props.info.default ?? '').includes('{percent}')) {return t('{percent} prints as the reward.')}
+    if ((props.info.default ?? '').includes('{currency}')) {return t('{currency} prints as the currency.')}
     return ''
   })
 

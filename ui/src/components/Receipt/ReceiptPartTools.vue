@@ -10,24 +10,24 @@
       <span class="rtools-title" data-test="part-tools-title">{{ info.label }}</span>
       <template v-if="movable">
         <v-btn
-          aria-label="Move up"
+          :aria-label="t('Move up')"
           data-test="move-up"
           density="compact"
           :disabled="!canMove(-1)"
           icon="mdi-arrow-up"
           size="small"
-          title="Move up (Alt+Up)"
+          :title="t('Move up (Alt+Up)')"
           variant="text"
           @click="update(moveSection(design, catalog, info.section, -1))"
         />
         <v-btn
-          aria-label="Move down"
+          :aria-label="t('Move down')"
           data-test="move-down"
           density="compact"
           :disabled="!canMove(1)"
           icon="mdi-arrow-down"
           size="small"
-          title="Move down (Alt+Down)"
+          :title="t('Move down (Alt+Down)')"
           variant="text"
           @click="update(moveSection(design, catalog, info.section, 1))"
         />
@@ -38,12 +38,12 @@
         density="compact"
         prepend-icon="mdi-restore"
         size="small"
-        text="Default"
+        :text="t('Default')"
         variant="text"
         @click="update(resetGroup(design, catalog, group))"
       />
       <v-btn
-        aria-label="Close"
+        :aria-label="t('Close')"
         data-test="part-close"
         density="compact"
         icon="mdi-close"
@@ -60,7 +60,7 @@
         density="comfortable"
         :prepend-icon="hidden ? 'mdi-eye' : 'mdi-eye-off'"
         size="small"
-        :text="hidden ? 'Print this part' : 'Leave out'"
+        :text="hidden ? t('Print this part') : t('Leave out')"
         variant="text"
         @click="update(toggleSection(design, info.section))"
       />
@@ -73,7 +73,7 @@
         item-title="label"
         item-value="key"
         :items="catalog.date_formats"
-        label="Date"
+        :label="t('Date')"
         :model-value="design.date_format || ''"
         variant="outlined"
         @update:model-value="v => update({ ...design, date_format: v || '' })"
@@ -81,7 +81,7 @@
     </div>
 
     <template v-if="parts.length > 0">
-      <div class="rtools-label">On each item</div>
+      <div class="rtools-label">{{ t('On each item') }}</div>
       <div class="rtools-row" data-test="item-parts">
         <v-btn-toggle
           color="primary"
@@ -96,7 +96,7 @@
             :key="p.key"
             :data-test="`item-part-${p.key}`"
             size="small"
-            :title="isPartPrinted(design, catalog, p) ? `Leave out the ${p.label.toLowerCase()}` : `Print the ${p.label.toLowerCase()}`"
+            :title="isPartPrinted(design, catalog, p) ? t('Leave out the {part}', { part: p.label.toLowerCase() }) : t('Print the {part}', { part: p.label.toLowerCase() })"
             :value="p.key"
             @click="update(setPartPrinted(design, catalog, p, !isPartPrinted(design, catalog, p)))"
           >
@@ -106,7 +106,7 @@
       </div>
     </template>
 
-    <div class="rtools-label">Every line</div>
+    <div class="rtools-label">{{ t('Every line') }}</div>
     <div class="rtools-row" data-test="whole-part">
       <v-btn-toggle
         color="primary"
@@ -117,9 +117,9 @@
         variant="outlined"
         @update:model-value="v => update(setGroup(design, group, { case: v || '' }))"
       >
-        <v-btn size="small" title="ALL CAPITALS" value="upper">ABC</v-btn>
-        <v-btn size="small" title="First Letters" value="title">Abc</v-btn>
-        <v-btn size="small" title="all small" value="lower">abc</v-btn>
+        <v-btn size="small" :title="t('ALL CAPITALS')" value="upper">ABC</v-btn>
+        <v-btn size="small" :title="t('First Letters')" value="title">Abc</v-btn>
+        <v-btn size="small" :title="t('all small')" value="lower">abc</v-btn>
       </v-btn-toggle>
       <SizeStepper
         data-key="group"
@@ -143,8 +143,8 @@
         variant="outlined"
         @update:model-value="v => update(setGroupBold(design, group, v))"
       >
-        <v-btn size="small" title="Bold" value="bold"><strong>B</strong></v-btn>
-        <v-btn size="small" title="Regular" value="regular">Regular</v-btn>
+        <v-btn size="small" :title="t('Bold')" value="bold"><strong>B</strong></v-btn>
+        <v-btn size="small" :title="t('Regular')" value="regular">{{ t('Regular') }}</v-btn>
       </v-btn-toggle>
       <v-btn-toggle
         color="primary"
@@ -155,8 +155,8 @@
         variant="outlined"
         @update:model-value="v => update(setGroupDark(design, group, v))"
       >
-        <v-btn size="small" title="Every line white on black" value="dark">On black</v-btn>
-        <v-btn size="small" title="Every line on white" value="light">On white</v-btn>
+        <v-btn size="small" :title="t('Every line white on black')" value="dark">{{ t('On black') }}</v-btn>
+        <v-btn size="small" :title="t('Every line on white')" value="light">{{ t('On white') }}</v-btn>
       </v-btn-toggle>
       <v-btn-toggle
         color="primary"
@@ -179,13 +179,13 @@
         variant="outlined"
         @update:model-value="v => update(setGroup(design, group, { align: v || '' }))"
       >
-        <v-btn aria-label="Left" icon="mdi-format-align-left" size="small" value="left" />
-        <v-btn aria-label="Centre" icon="mdi-format-align-center" size="small" value="center" />
-        <v-btn aria-label="Right" icon="mdi-format-align-right" size="small" value="right" />
+        <v-btn :aria-label="t('Left')" icon="mdi-format-align-left" size="small" value="left" />
+        <v-btn :aria-label="t('Centre')" icon="mdi-format-align-center" size="small" value="center" />
+        <v-btn :aria-label="t('Right')" icon="mdi-format-align-right" size="small" value="right" />
       </v-btn-toggle>
     </div>
 
-    <div class="rtools-label">Lines and box</div>
+    <div class="rtools-label">{{ t('Lines and box') }}</div>
     <div class="rtools-row" data-test="part-lines">
       <v-select
         class="rtools-select"
@@ -194,7 +194,7 @@
         density="compact"
         hide-details
         :items="lineStyleOptions"
-        label="Line above"
+        :label="t('Line above')"
         :model-value="d.above || null"
         variant="outlined"
         @update:model-value="v => update(setDecor(design, group, { above: v || '' }))"
@@ -206,7 +206,7 @@
         density="compact"
         hide-details
         :items="belowOptions"
-        label="Line under"
+        :label="t('Line under')"
         :model-value="d.below || null"
         variant="outlined"
         @update:model-value="v => update(setDecor(design, group, { below: v || '' }))"
@@ -218,7 +218,7 @@
         density="compact"
         hide-details
         :items="lineStyleOptions"
-        label="Box"
+        :label="t('Box')"
         :model-value="d.box || null"
         variant="outlined"
         @update:model-value="v => update(setDecor(design, group, { box: v || '' }))"
@@ -227,14 +227,14 @@
         v-if="d.box"
         data-test="decor-rounded"
         density="compact"
-        label="Round"
+        :label="t('Round')"
         :model-value="Boolean(d.rounded)"
         @update:model-value="v => update(setDecor(design, group, { rounded: v }))"
       />
       <SizeStepper
         v-if="d.above || (d.below && d.below !== 'none') || d.box"
         data-key="thickness"
-        label="Thick"
+        :label="t('Thick')"
         :max="4"
         :min="1"
         :signed="false"
@@ -247,6 +247,7 @@
 
 <script setup lang="ts">
   import { computed } from 'vue'
+  import { t } from '@/i18n'
   import ReceiptFontSelect from '@/components/Receipt/ReceiptFontSelect.vue'
   import SizeStepper from '@/components/Receipt/SizeStepper.vue'
   import {
@@ -268,7 +269,7 @@
   const movable = computed(() => Boolean(info.value.section) && (props.catalog.footer_order ?? []).includes(info.value.section))
   const parts = computed(() => partsOf(props.catalog, props.group))
   const printedParts = computed(() => parts.value.filter(p => isPartPrinted(props.design, props.catalog, p)).map(p => p.key))
-  const belowOptions = [{ value: 'none', title: 'None' }, ...lineStyleOptions]
+  const belowOptions = [{ value: 'none', title: t('None') }, ...lineStyleOptions]
 
   function canMove (step: number) {
     const order = footerOrder(props.design, props.catalog)

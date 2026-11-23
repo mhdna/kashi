@@ -1,7 +1,7 @@
 <template>
   <div class="year-stepper">
     <v-btn
-      aria-label="Previous year"
+      :aria-label="t('Previous year')"
       color="primary"
       icon="mdi-chevron-left"
       size="small"
@@ -10,7 +10,7 @@
     />
     <span>{{ year }}</span>
     <v-btn
-      aria-label="Next year"
+      :aria-label="t('Next year')"
       color="primary"
       :disabled="year >= currentYear"
       icon="mdi-chevron-right"
@@ -22,6 +22,7 @@
 </template>
 
 <script setup lang="ts">
+import { t } from '@/i18n'
   // ‹ 2026 › -- steps a year back or forward, never past this year.
   const year = defineModel<number>({ required: true })
   const currentYear = new Date().getFullYear()
