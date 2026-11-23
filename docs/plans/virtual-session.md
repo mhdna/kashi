@@ -16,10 +16,28 @@ One commit per step, strong tests each (see both repos' CLAUDE.md/AGENTS.md).
 - Till router is `createWebHashHistory` (`frontend/src/router/index.ts`); the
   app loads from `index.html`, so an iframe `index.html?virtual=1#/` is a second
   independent app instance with its own router and Pinia.
-- **Login is frontend-only** (`stores/auth.ts`, `currentUser` ref). The hidden
-  copy starts logged out: the admin logs in with their own PIN/password through
-  the screen. That keeps attribution and PIN security right. Do not copy the
+- **Login is NOT frontend-only.** The screen keeps `currentUser` (`stores/auth.ts`),
+  but Go keeps one `a.currentRole` too (`app.go:73`, set by the PIN and admin
+  logins at `app.go:633/658`, restored by `resume.go:151`) and the shared PIN
+  lockout counters (`failedPINAttempts`, `pinLockedUntil`). 14 server-side gates read
+  it via `currentUserIsAdmin()` / `anyoneSignedInThisSession()`: expenses.go,
+  branches.go (x3), products.go, attendance.go, management.go,
+  conversion_report.go, sync_quick_access.go, records_cancel.go (x2),
+  invoice_cancel.go, sync_branch_history.go. Left as is, an admin signing in on the
+  hidden copy makes the cashier admin on all of these, and the cashier signing in
+  demotes the admin. See "Per-copy sign-in" below.
+- The hidden copy starts logged out: the admin logs in with their own PIN/password
+  through the screen (attribution and PIN security stay right). Never copy the
   cashier's session.
+- Because the iframe calls `parent.go`, **Go cannot tell which copy is calling**.
+  Every binding is `window['go']['main']['App']['X'](...)` (`wailsjs/go/main/App.js`),
+  so the bridge can swap in a proxy object and route each call where it wants.
+- **Go events reach both copies** (about 25 names, e.g. `settings_changed`,
+  `app_update_prompt`, `cash_machine_setup_done`, `clock_status_changed`), since the
+  iframe's listeners live in the parent's runtime.
+- **Focus can be stolen.** If code in the iframe calls `.focus()` (44 `focus()` /
+  `autofocus` uses in `frontend/src`), focus moves into the iframe, and the
+  cashier's barcode scanner and keyboard then type into the hidden copy.
 - **localStorage is shared** by same-origin frames, and the sale draft lives there
   (`kashi-pos.invoice-draft`, `lib/draftSaver.ts`, also `home.vue`). The hidden
   copy must get a **prefixed localStorage** or it clobbers the cashier's cart.
@@ -76,10 +94,40 @@ kashi-pos Go (`live_view.go`):
   is ignored unless the hello offered `live_view_control`.
 - Same safety: 2 minute silence stop, never block `send`.
 
+kashi-pos Go, per-copy sign-in (`live_virtual_call.go`, its own commit, first):
+- One binding `LiveVirtualCall(method string, args []json.RawMessage) (any, error)`.
+  All of the hidden copy's calls go through it (the bridge's `go` proxy). It refuses
+  calls while no virtual session is active, then dispatches through a table built once
+  with `reflect` from `*App`'s exported methods (args are unmarshalled into the
+  parameter types, and a wrong count or type is an error, never a panic).
+- Separate state for the hidden copy, under `pinMu`: `virtualRole` plus its own
+  lockout counters. Inside the dispatcher, the PIN and admin login methods and
+  Logout run virtual twins that set only `virtualRole`. `SaveResumeRoute` and
+  `TakeResumeSession` are no-ops. The session ending clears `virtualRole`.
+- Gates, without a shared "who is calling" field (that would race with the
+  cashier's calls): each gated method X becomes a thin `X(...)` that calls
+  `x(isAdmin bool, ...)` with `currentUserIsAdmin()`, and the dispatcher's table maps
+  X to `x(virtualIsAdmin(), ...)`. Same for `anyoneSignedInThisSession`.
+- Denied from the hidden copy, because they act on the whole till: `SwitchBranch`,
+  `CreateBranch`, `SetDefaultBranch`, `RestartApp`, `RestartComputer`,
+  `StartCashMachineSetup`, app update install, and every `LiveView*`/`LiveVirtual*`
+  binding. The error says "Not available on the separate screen".
+
 kashi-pos UI:
 - `src/virtualBridge.ts` (first import in `main.ts`, runs only when
-  `?virtual=1`): bridge `go`/`runtime` to the parent, prefix `localStorage`
-  (override `window.localStorage` with a prefixing wrapper), expose `isVirtual`.
+  `?virtual=1`): set `window.go` to a proxy whose `main.App.X(...args)` calls
+  `parent.go.main.App.LiveVirtualCall("X", args)` (never hand the iframe the raw
+  parent bindings), bridge `runtime` to the parent, prefix `localStorage`
+  (override `window.localStorage` with a prefixing wrapper; `sessionStorage` too),
+  and expose `isVirtual`.
+- Focus guard: the iframe gets `tabindex="-1"`, and the main frame listens for
+  `focusin`/`blur`. When `document.activeElement` becomes the iframe, it puts focus
+  straight back where it was. The cashier's keys and scanner must never reach the
+  hidden copy.
+- Go events in the hidden copy: go through the ~25 names once and gate each listener
+  that drives UI meant only for the cashier (update prompt, cash machine, clock
+  warning, device status) on `isVirtual`. Data refreshes (`settings_changed`,
+  `sync_applied:*`) stay.
 - `lib/virtualSession.ts` (main frame): on `live_virtual:start` create the hidden
   iframe (`index.html?virtual=1#/`), on `live_virtual:stop` remove it and call the
   remembered cancel functions; on load ask `LiveVirtualStatus` to resume.
@@ -107,19 +155,42 @@ kashi-pos Go: stand-in kashi test for the `?mode=virtual` dial, event prefix,
 no cross-talk between the two `liveView` instances, ignored without
 `live_view_control`.
 
+kashi-pos Go, per-copy sign-in:
+- The reported case first: admin signs in on the hidden copy while a cashier is signed
+  in; every one of the 14 gates still refuses the cashier and allows the admin. And
+  the other way round (cashier signs in again, admin keeps admin).
+- Wrong PINs on one copy never lock the other out.
+- Guard test with `go/ast`: every function that calls `currentUserIsAdmin`,
+  `anyoneSignedInThisSession` or reads `currentRole` is reached from an exported
+  method that is in the dispatcher's twin table or the deny list. A new gate added
+  later fails this test until it gets a twin.
+- Deny list: each name exists on `*App` (catches renames), and each is refused.
+- Dispatcher: unknown method, wrong arg count or type, and no active session are all
+  errors; a randomized test runs hundreds of interleaved cashier/virtual logins and
+  gated calls from goroutines (`-race`) and checks that each side sees only its own role.
+
 kashi-pos UI: bridge sets `go`/`runtime` from a fake parent and prefixes storage
 (the cashier's `kashi-pos.invoice-draft` is never read or written by the iframe);
 iframe created on start and removed on stop with listeners cancelled; the live
 cart reporter and toasts do not run when virtual; rrweb still not loaded until a
-session starts.
+session starts. The proxy sends every `App` call through `LiveVirtualCall` (no
+direct parent binding is reachable). Focus guard: a `.focus()` inside the iframe
+leaves the main frame's focused input focused.
 
-Prove the tests bite (break the prefix, break the one-user rule, see failures).
+Prove the tests bite (break the prefix, break the one-user rule, point a twin at
+`currentUserIsAdmin`, remove the focus guard; see failures).
 
 ## Risks to check on a real till (cannot be tested here)
 
 - WebView2 on Windows: that `window.parent.go`/`runtime` work from the iframe and
   that the asset server serves `index.html?virtual=1`. If the bridge fails, the
   fallback is a second route in the same page instead of an iframe.
+- Throttling: the engine may slow timers, `requestAnimationFrame` and transitions
+  in an off-screen iframe, which can stall dialogs and route transitions in the
+  hidden copy. If it does, place the iframe on screen at `inset:0; z-index:-1;
+  pointer-events:none` under the main app's opaque background.
+- Focus on a real till: scan a barcode while the admin types in the hidden copy;
+  the scan must land in the cashier's sale.
 - Memory: a second app instance. Measure on a till and note it in
   `docs/PERFORMANCE.md`; keep at most one hidden screen per till.
 - Printing and hardware actions from the hidden copy are real (receipt prints on the
