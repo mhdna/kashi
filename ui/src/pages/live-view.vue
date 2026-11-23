@@ -67,7 +67,7 @@
   import { WS_BASE } from '@/config'
   import { useAuthStore } from '@/stores/auth'
   import {
-    clickMessage, clockSkew, fitScale, initialState, inputMessage, keyMessage, PLAY_BEHIND_MS,
+    clickMessage, clockSkew, fitScale, initialState, inputMessage, keyMessage, liveStartTime,
     pointOnTill, pushActions, screenSize, shiftEvent, watchUrl,
   } from '@/utils/liveView'
   import { createWatch } from '@/utils/liveWatch'
@@ -127,7 +127,7 @@
       fit()
     })
     skew = clockSkew(Date.now(), events[0].timestamp)
-    next.startLive(events[0].timestamp + skew - PLAY_BEHIND_MS)
+    next.startLive(liveStartTime(events, skew, Date.now()))
     replayer = next
   }
 

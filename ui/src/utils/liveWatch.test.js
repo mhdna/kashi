@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clockSkew, shiftEvent } from './liveView'
+import { clockSkew, liveStartTime, PLAY_BEHIND_MS, shiftEvent } from './liveView'
 import { createWatch, RETRY_MS } from './liveWatch'
 
 class FakeSocket {
@@ -132,5 +132,23 @@ describe('clock skew', () => {
     expect(shiftEvent({ type: 3, timestamp: 4500 }, skew)).toEqual({ type: 3, timestamp: 10_500 })
     expect(shiftEvent({ type: 3 }, 5).timestamp).toBe(5)
     expect(clockSkew(10, undefined)).toBe(0)
+  })
+})
+
+describe('live clock start', () => {
+  it('plays only a little behind', () => {
+    expect(PLAY_BEHIND_MS).toBeLessThanOrEqual(50)
+  })
+
+  it('starts from the newest event, never later than now', () => {
+    const skew = 1000
+    expect(liveStartTime([{ timestamp: 100 }, { timestamp: 400 }], skew, 5000)).toBe(1400 - PLAY_BEHIND_MS)
+    expect(liveStartTime([{ timestamp: 9000 }], skew, 5000)).toBe(5000 - PLAY_BEHIND_MS)
+  })
+
+  it('ignores events without a timestamp and falls back to now', () => {
+    expect(liveStartTime([{}, { timestamp: 300 }], 0, 5000)).toBe(300 - PLAY_BEHIND_MS)
+    expect(liveStartTime([{}], 0, 5000)).toBe(5000 - PLAY_BEHIND_MS)
+    expect(liveStartTime([], 0, 5000)).toBe(5000 - PLAY_BEHIND_MS)
   })
 })

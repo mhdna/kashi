@@ -141,7 +141,18 @@ export function isControlMessage (m) {
 
 // The till's clock and this one differ: events are moved onto this clock and
 // played a little behind it so batches arrive in time.
-export const PLAY_BEHIND_MS = 300
+export const PLAY_BEHIND_MS = 50
+
+/**
+ * Where the replayer's live clock starts: the newest event of the first batch
+ * (never later than now), minus the small delay. A late batch is then already
+ * in the past and plays at once instead of waiting.
+ */
+export function liveStartTime (events, skew, now) {
+  const stamps = events.map(e => e?.timestamp).filter(t => Number.isFinite(t))
+  const newest = stamps.length > 0 ? Math.max(...stamps) + skew : now
+  return Math.min(newest, now) - PLAY_BEHIND_MS
+}
 
 export function clockSkew (now, firstTimestamp) {
   return Number.isFinite(firstTimestamp) ? now - firstTimestamp : 0
