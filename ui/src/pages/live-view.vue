@@ -48,6 +48,13 @@
             @keydown="onKey"
             @paste="onPaste"
           />
+          <span
+            v-if="mark"
+            class="live-mark"
+            data-test="click-mark"
+            :style="{ left: mark.x + 'px', top: mark.y + 'px' }"
+          />
+          <div v-if="typed" class="live-typed" data-test="typed-overlay">{{ typed }}</div>
         </div>
 
         <div v-if="actions.length > 0" class="mt-4" data-test="live-actions">
@@ -67,8 +74,8 @@
   import { WS_BASE } from '@/config'
   import { useAuthStore } from '@/stores/auth'
   import {
-    clickMessage, clockSkew, fitScale, initialState, inputMessage, keyMessage, liveStartTime,
-    pointOnTill, pushActions, screenSize, shiftEvent, watchUrl,
+    clickMessage, clockSkew, fitScale, initialState, inputMessage, keyMessage, liveStartTime, markAt,
+    pointOnTill, pushActions, screenSize, shiftEvent, typedAfter, watchUrl,
   } from '@/utils/liveView'
   import { createWatch } from '@/utils/liveWatch'
 
@@ -88,6 +95,9 @@
   const size = ref({ width: 1366, height: 768 })
   const scale = ref(1)
   const stageHeight = ref(0)
+  // Shown at once for what this admin just did; the till's next frame replaces them.
+  const mark = ref(null)
+  const typed = ref('')
 
   let rrweb = null
   let replayer = null
@@ -136,6 +146,8 @@
     if (frame.events.length === 0) {
       return
     }
+    mark.value = null
+    typed.value = ''
     await loadRrweb()
     await nextTick()
     // Only a full snapshot can start (or restart) the picture.
@@ -172,6 +184,7 @@
     const message = clickMessage(id)
     if (message && watch.send(message)) {
       lastClicked = id
+      mark.value = markAt(event.clientX, event.clientY, box.value?.getBoundingClientRect())
     }
   }
 
@@ -179,7 +192,9 @@
     const message = keyMessage(event)
     if (message) {
       event.preventDefault()
-      watch.send(message)
+      if (watch.send(message)) {
+        typed.value = typedAfter(typed.value, message.key)
+      }
     }
   }
 
@@ -231,6 +246,27 @@
 }
 .live-stage {
   transform-origin: top left;
+}
+.live-mark {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border: 2px solid rgb(var(--v-theme-warning));
+  border-radius: 50%;
+  pointer-events: none;
+}
+.live-typed {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  max-width: 80%;
+  padding: 2px 8px;
+  border: 1px solid rgb(var(--v-theme-warning));
+  border-radius: 6px;
+  background: rgb(var(--v-theme-surface));
+  font-family: monospace;
+  pointer-events: none;
 }
 .live-overlay {
   position: absolute;

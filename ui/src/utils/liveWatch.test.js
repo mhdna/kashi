@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clockSkew, liveStartTime, PLAY_BEHIND_MS, shiftEvent } from './liveView'
+import { clockSkew, liveStartTime, markAt, PLAY_BEHIND_MS, shiftEvent, TYPED_MAX, typedAfter } from './liveView'
 import { createWatch, RETRY_MS } from './liveWatch'
 
 class FakeSocket {
@@ -150,5 +150,33 @@ describe('live clock start', () => {
     expect(liveStartTime([{}, { timestamp: 300 }], 0, 5000)).toBe(300 - PLAY_BEHIND_MS)
     expect(liveStartTime([{}], 0, 5000)).toBe(5000 - PLAY_BEHIND_MS)
     expect(liveStartTime([], 0, 5000)).toBe(5000 - PLAY_BEHIND_MS)
+  })
+})
+
+describe('typed overlay and click mark', () => {
+  it('adds printable keys, removes with Backspace, ignores the rest', () => {
+    let t = ''
+    for (const k of ['1', '2', '3']) {
+      t = typedAfter(t, k)
+    }
+    expect(t).toBe('123')
+    expect(typedAfter(t, 'Backspace')).toBe('12')
+    expect(typedAfter('', 'Backspace')).toBe('')
+    expect(typedAfter(t, 'Enter')).toBe('123')
+    expect(typedAfter(t, 'ArrowLeft')).toBe('123')
+    expect(typedAfter('a', 'ب')).toBe('aب')
+  })
+
+  it('keeps only the last characters', () => {
+    let t = ''
+    for (let i = 0; i < TYPED_MAX + 10; i++) {
+      t = typedAfter(t, String(i % 10))
+    }
+    expect([...t]).toHaveLength(TYPED_MAX)
+  })
+
+  it('puts the mark inside the box', () => {
+    expect(markAt(110, 120, { left: 10, top: 20 })).toEqual({ x: 100, y: 100 })
+    expect(markAt(5.4, 6.6, undefined)).toEqual({ x: 5, y: 7 })
   })
 })

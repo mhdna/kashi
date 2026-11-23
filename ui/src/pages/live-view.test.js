@@ -206,6 +206,41 @@ describe('live-view page', () => {
       expect(socket().sent).toEqual([{ t: 'key', key: 'Enter' }, { t: 'key', key: '5' }])
     })
 
+    it('shows a click mark and the typed characters at once, and clears them on the till\'s next frame', async () => {
+      await controlled()
+      const overlay = wrapper.find('[data-test="control-overlay"]')
+      const stage = wrapper.find('.live-stage').element
+      stage.getBoundingClientRect = () => ({ left: 0, top: 0 })
+      const iframe = document.createElement('iframe')
+      stage.append(iframe)
+      Object.defineProperty(iframe, 'contentDocument', { value: { elementFromPoint: () => ({ rrId: 7 }) } })
+      expect(wrapper.find('[data-test="click-mark"]').exists()).toBe(false)
+
+      await overlay.trigger('click', { clientX: 30, clientY: 40 })
+      expect(wrapper.find('[data-test="click-mark"]').attributes('style')).toContain('left: 30px')
+      await overlay.trigger('keydown', { key: '1' })
+      await overlay.trigger('keydown', { key: '2' })
+      await overlay.trigger('keydown', { key: '3' })
+      await overlay.trigger('keydown', { key: 'Backspace' })
+      expect(wrapper.find('[data-test="typed-overlay"]').text()).toBe('12')
+
+      socket().receive({ e: [{ type: 3, timestamp: 1002, data: {} }], a: [] })
+      await flushPromises()
+      expect(wrapper.find('[data-test="click-mark"]').exists()).toBe(false)
+      expect(wrapper.find('[data-test="typed-overlay"]').exists()).toBe(false)
+    })
+
+    it('a click on something that is not on the till leaves no mark', async () => {
+      await controlled()
+      const stage = wrapper.find('.live-stage').element
+      stage.getBoundingClientRect = () => ({ left: 0, top: 0 })
+      const iframe = document.createElement('iframe')
+      stage.append(iframe)
+      Object.defineProperty(iframe, 'contentDocument', { value: { elementFromPoint: () => ({}) } })
+      await wrapper.find('[data-test="control-overlay"]').trigger('click', { clientX: 5, clientY: 5 })
+      expect(wrapper.find('[data-test="click-mark"]').exists()).toBe(false)
+    })
+
     it('control going away takes the overlay and the switch away at once', async () => {
       await controlled()
       socket().receive({ t: 'control', on: false })

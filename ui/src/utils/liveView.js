@@ -161,3 +161,21 @@ export function clockSkew (now, firstTimestamp) {
 export function shiftEvent (event, skew) {
   return { ...event, timestamp: (event.timestamp ?? 0) + skew }
 }
+
+export const TYPED_MAX = 40
+
+/** The characters shown in the "typing" overlay after a key: printable keys add, Backspace removes, other keys leave it. */
+export function typedAfter (text, key) {
+  if (key === 'Backspace') {
+    return [...text].slice(0, -1).join('')
+  }
+  if (typeof key === 'string' && [...key].length === 1) {
+    return [...text, key].slice(-TYPED_MAX).join('')
+  }
+  return text
+}
+
+/** Where to draw the click mark: the click position inside the box that holds the screen. */
+export function markAt (clientX, clientY, rect) {
+  return { x: Math.round(clientX - (rect?.left ?? 0)), y: Math.round(clientY - (rect?.top ?? 0)) }
+}
