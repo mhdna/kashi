@@ -7,8 +7,9 @@
 export const MAX_ACTIONS = 200
 
 /** The watch socket's URL (the browser can't set headers, so the token rides in the query). */
-export function watchUrl (wsBase, registerId, token) {
-  return `${wsBase}/live/watch/${encodeURIComponent(registerId)}?token=${encodeURIComponent(token)}`
+export function watchUrl (wsBase, registerId, token, virtual = false) {
+  const mode = virtual ? '&mode=virtual' : ''
+  return `${wsBase}/live/watch/${encodeURIComponent(registerId)}?token=${encodeURIComponent(token)}${mode}`
 }
 
 /**
@@ -29,7 +30,7 @@ export function parseFrame (text) {
   }
   if (typeof m.t === 'string') {
     switch (m.t) {
-      case 'hello': { return { kind: 'hello', control: m.control === true }
+      case 'hello': { return { kind: 'hello', control: m.control === true, virtual: m.virtual === true }
       }
       case 'waiting': { return { kind: 'waiting' }
       }
@@ -56,12 +57,12 @@ export function parseFrame (text) {
   return { kind: 'ignored' }
 }
 
-export const initialState = () => ({ status: 'connecting', canControl: false, message: '' })
+export const initialState = () => ({ status: 'connecting', canControl: false, virtual: false, message: '' })
 
 /** What the page shows after one parsed frame. status: connecting, waiting, live, ended, error. */
 export function nextState (state, frame) {
   switch (frame.kind) {
-    case 'hello': { return { status: 'waiting', canControl: frame.control, message: '' }
+    case 'hello': { return { status: 'waiting', canControl: frame.control, virtual: frame.virtual === true, message: '' }
     }
     case 'waiting': { return { ...state, status: 'waiting' }
     }

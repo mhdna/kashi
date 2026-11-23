@@ -36,13 +36,15 @@ vi.mock('rrweb', () => ({ Replayer: FakeReplayer }))
 vi.mock('rrweb/dist/style.css', () => ({}))
 vi.mock('@/config', () => ({ WS_BASE: 'wss://k.test/api' }))
 vi.mock('@/stores/auth', () => ({ useAuthStore: () => ({ token: 'tok' }) }))
-vi.mock('vue-router', () => ({ useRoute: () => ({ params: { registerId: '10' }, query: { name: 'Centro CT1' } }) }))
+let routeQuery = { name: 'Centro CT1' }
+vi.mock('vue-router', () => ({ useRoute: () => ({ params: { registerId: '10' }, query: routeQuery }) }))
 
 const { default: LiveView } = await import('./live-view.vue')
 
 let wrapper = null
 const socket = () => FakeSocket.all.at(-1)
 beforeEach(() => {
+  routeQuery = { name: 'Centro CT1' }
   FakeSocket.all = []
   replayers.length = 0
   vi.stubGlobal('WebSocket', FakeSocket)
@@ -157,6 +159,43 @@ describe('live-view page', () => {
     await flushPromises()
     expect(wrapper.find('[data-test="take-control"]').exists()).toBe(true)
     expect(wrapper.find('[data-test="control-overlay"]').exists()).toBe(false) // not until switched on
+  })
+
+  describe('the separate screen', () => {
+    beforeEach(() => {
+      routeQuery = { name: 'Centro CT1', mode: 'virtual' }
+    })
+
+    it('asks for the separate screen, says what it is, and has no take-control switch', async () => {
+      show()
+      expect(socket().url).toBe('wss://k.test/api/live/watch/10?token=tok&mode=virtual')
+      expect(wrapper.find('[data-test="live-title"]').text()).toBe('Separate screen: Centro CT1')
+      expect(wrapper.find('[data-test="virtual-note"]').text()).toContain('cashier does not see it')
+      socket().receive({ t: 'hello', control: true, virtual: true })
+      socket().receive(full())
+      await flushPromises()
+      expect(wrapper.find('[data-test="take-control"]').exists()).toBe(false)
+      // Always driven: the overlay is there without a switch, and keys go through.
+      const overlay = wrapper.find('[data-test="control-overlay"]')
+      expect(overlay.exists()).toBe(true)
+      await overlay.trigger('keydown', { key: '7' })
+      expect(socket().sent).toEqual([{ t: 'key', key: '7', ts: expect.any(Number) }])
+    })
+
+    it('shows the other user\'s name when it is taken', async () => {
+      show()
+      socket().receive({ t: 'error', msg: "Sara is using this till's separate screen" })
+      await flushPromises()
+      expect(wrapper.find('[data-test="live-message"]').text()).toContain('Sara is using this till')
+      expect(wrapper.find('[data-test="control-overlay"]').exists()).toBe(false)
+    })
+
+    it('the mirror page has none of this', () => {
+      routeQuery = { name: 'Centro CT1' }
+      show()
+      expect(wrapper.find('[data-test="virtual-note"]').exists()).toBe(false)
+      expect(socket().url).not.toContain('mode=')
+    })
   })
 
   describe('controlling', () => {

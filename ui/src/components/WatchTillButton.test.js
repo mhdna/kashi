@@ -11,7 +11,8 @@ vi.mock('@/composables/useAdminSocket', () => ({
 }))
 vi.mock('@/config', () => ({ API_BASE: 'https://k.test/api' }))
 const canViewPage = vi.fn(() => true)
-vi.mock('@/stores/auth', () => ({ useAuthStore: () => ({ canViewPage }) }))
+const canEditPage = vi.fn(() => true)
+vi.mock('@/stores/auth', () => ({ useAuthStore: () => ({ canViewPage, canEditPage }) }))
 
 const { default: WatchTillButton } = await import('./WatchTillButton.vue')
 const { resetLiveViewState } = await import('@/composables/useLiveView')
@@ -21,6 +22,7 @@ beforeEach(() => {
   setActivePinia(createPinia())
   resetLiveViewState()
   canViewPage.mockReturnValue(true)
+  canEditPage.mockReturnValue(true)
 })
 afterEach(() => {
   wrapper?.unmount()
@@ -81,5 +83,53 @@ describe('WatchTillButton', () => {
   it('icon mode is hidden while live view is off', async () => {
     await show({ live_view_enabled: false }, { icon: true })
     expect(wrapper.find('[data-test="watch-register"]').exists()).toBe(false)
+  })
+  describe('separate screen', () => {
+    const on = { live_view_enabled: true, live_view_control_enabled: true }
+
+    it('offers the button only with the control switch on and the right to edit System', async () => {
+      await show(on)
+      const btn = wrapper.find('[data-test="separate-register"]')
+      expect(btn.exists()).toBe(true)
+      expect(btn.text()).toBe('Open separate screen')
+      expect(wrapper.findComponent('[data-test="separate-register"]').props('to')).toEqual({ path: '/live/10', query: { name: 'Centro CT1', mode: 'virtual' } })
+      wrapper.unmount()
+      resetLiveViewState()
+      await show({ live_view_enabled: true, live_view_control_enabled: false })
+      expect(wrapper.find('[data-test="separate-register"]').exists()).toBe(false)
+      expect(wrapper.find('[data-test="watch-register"]').exists()).toBe(true)
+    })
+
+    it('is hidden from a role that can only view System, while Watch stays', async () => {
+      canEditPage.mockReturnValue(false)
+      await show(on)
+      expect(wrapper.find('[data-test="separate-register"]').exists()).toBe(false)
+      expect(wrapper.find('[data-test="watch-register"]').exists()).toBe(true)
+    })
+
+    it('is hidden for an offline till and in icon mode', async () => {
+      await show(on, { online: false })
+      expect(wrapper.find('[data-test="separate-register"]').exists()).toBe(false)
+      wrapper.unmount()
+      resetLiveViewState()
+      await show(on, { icon: true })
+      expect(wrapper.find('[data-test="separate-register"]').exists()).toBe(false)
+    })
+
+    it('says who uses it, and keeps the mirror\'s watchers apart', async () => {
+      await show(on)
+      for (const cb of listeners) {
+        cb({
+          type: 'live_view_sessions',
+          live_sessions: [
+            { register_id: 10, branch_id: 1, watchers: ['Ana'] },
+            { register_id: 10, branch_id: 1, watchers: ['Sam'], virtual: true },
+          ],
+        })
+      }
+      await wrapper.vm.$nextTick()
+      expect(wrapper.find('[data-test="watchers"]').text()).toBe('Watched by Ana')
+      expect(wrapper.find('[data-test="separate-user"]').text()).toBe('Separate screen used by Sam')
+    })
   })
 })
