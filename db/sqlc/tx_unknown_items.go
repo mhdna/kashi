@@ -60,19 +60,30 @@ func (store *SQLStore) ResolveUnknownItemsTx(ctx context.Context, slotIDs []int6
 					return err
 				}
 			} else {
-				// One unit's share of the line; the rounding remainder stays
-				// on the unknown units so the invoice total never moves.
-				unitTotal := item.LineTotal / item.Quantity
-				if err := q.SplitUnknownInvoiceItem(ctx, SplitUnknownInvoiceItemParams{ID: item.ID, LineTotal: unitTotal}); err != nil {
+				// One unit's share of the deal and invoice discounts taken off
+				// the line, and its price less those as its total, so the new
+				// line reads price - discounts = total. The rounding remainders
+				// stay on the unknown units so the invoice total never moves.
+				unit := SplitUnknownInvoiceItemParams{
+					ID:              item.ID,
+					DealDiscount:    item.DealDiscount / item.Quantity,
+					InvoiceDiscount: item.InvoiceDiscount / item.Quantity,
+				}
+				unitPrice := (item.UnitPrice*int64(100-item.Discount) + 50) / 100
+				unit.LineTotal = min(max(unitPrice-unit.DealDiscount-unit.InvoiceDiscount, 0), item.LineTotal)
+				if err := q.SplitUnknownInvoiceItem(ctx, unit); err != nil {
 					return err
 				}
 				if err := q.CreateResolvedBranchInvoiceItem(ctx, CreateResolvedBranchInvoiceItemParams{
 					BranchInvoiceID: invoiceID,
 					BranchProductID: item.BranchProductID,
 					UnitPrice:       item.UnitPrice,
-					LineTotal:       unitTotal,
+					LineTotal:       unit.LineTotal,
 					Discount:        item.Discount,
 					ProductUid:      uid,
+					Deal:            item.Deal,
+					DealDiscount:    unit.DealDiscount,
+					InvoiceDiscount: unit.InvoiceDiscount,
 				}); err != nil {
 					return err
 				}

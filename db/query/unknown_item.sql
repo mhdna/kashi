@@ -133,12 +133,18 @@ FOR UPDATE;
 UPDATE branch_invoice_items SET unknown = false, product_uid = $2 WHERE id = $1;
 
 -- name: SplitUnknownInvoiceItem :exec
-UPDATE branch_invoice_items SET quantity = quantity - 1, line_total = line_total - $2 WHERE id = $1;
+-- One unit leaves the line with its share of the line total and of the
+-- deal and invoice discounts taken off it.
+UPDATE branch_invoice_items
+SET quantity = quantity - 1, line_total = line_total - $2,
+    deal_discount = deal_discount - $3, invoice_discount = invoice_discount - $4
+WHERE id = $1;
 
 -- name: CreateResolvedBranchInvoiceItem :exec
 INSERT INTO branch_invoice_items (
-  branch_invoice_id, branch_product_id, unit_price, line_total, discount, quantity, product_uid, unknown
-) VALUES ($1, $2, $3, $4, $5, 1, $6, false);
+  branch_invoice_id, branch_product_id, unit_price, line_total, discount, quantity, product_uid, unknown,
+  deal, deal_discount, invoice_discount
+) VALUES ($1, $2, $3, $4, $5, 1, $6, false, $7, $8, $9);
 
 -- name: MarkUnknownItemSlotResolved :exec
 UPDATE unknown_item_slots SET resolved_variant_id = $2, resolved_at = now() WHERE id = $1;
