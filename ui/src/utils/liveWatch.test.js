@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clockSkew, shiftEvent } from './liveView'
+import { clockSkew, liveStartTime, markAt, PLAY_BEHIND_MS, shiftEvent, TYPED_MAX, typedAfter } from './liveView'
 import { createWatch, RETRY_MS } from './liveWatch'
 
 class FakeSocket {
@@ -132,5 +132,51 @@ describe('clock skew', () => {
     expect(shiftEvent({ type: 3, timestamp: 4500 }, skew)).toEqual({ type: 3, timestamp: 10_500 })
     expect(shiftEvent({ type: 3 }, 5).timestamp).toBe(5)
     expect(clockSkew(10, undefined)).toBe(0)
+  })
+})
+
+describe('live clock start', () => {
+  it('plays only a little behind', () => {
+    expect(PLAY_BEHIND_MS).toBeLessThanOrEqual(50)
+  })
+
+  it('starts from the newest event, never later than now', () => {
+    const skew = 1000
+    expect(liveStartTime([{ timestamp: 100 }, { timestamp: 400 }], skew, 5000)).toBe(1400 - PLAY_BEHIND_MS)
+    expect(liveStartTime([{ timestamp: 9000 }], skew, 5000)).toBe(5000 - PLAY_BEHIND_MS)
+  })
+
+  it('ignores events without a timestamp and falls back to now', () => {
+    expect(liveStartTime([{}, { timestamp: 300 }], 0, 5000)).toBe(300 - PLAY_BEHIND_MS)
+    expect(liveStartTime([{}], 0, 5000)).toBe(5000 - PLAY_BEHIND_MS)
+    expect(liveStartTime([], 0, 5000)).toBe(5000 - PLAY_BEHIND_MS)
+  })
+})
+
+describe('typed overlay and click mark', () => {
+  it('adds printable keys, removes with Backspace, ignores the rest', () => {
+    let t = ''
+    for (const k of ['1', '2', '3']) {
+      t = typedAfter(t, k)
+    }
+    expect(t).toBe('123')
+    expect(typedAfter(t, 'Backspace')).toBe('12')
+    expect(typedAfter('', 'Backspace')).toBe('')
+    expect(typedAfter(t, 'Enter')).toBe('123')
+    expect(typedAfter(t, 'ArrowLeft')).toBe('123')
+    expect(typedAfter('a', 'ب')).toBe('aب')
+  })
+
+  it('keeps only the last characters', () => {
+    let t = ''
+    for (let i = 0; i < TYPED_MAX + 10; i++) {
+      t = typedAfter(t, String(i % 10))
+    }
+    expect([...t]).toHaveLength(TYPED_MAX)
+  })
+
+  it('puts the mark inside the box', () => {
+    expect(markAt(110, 120, { left: 10, top: 20 })).toEqual({ x: 100, y: 100 })
+    expect(markAt(5.4, 6.6, undefined)).toEqual({ x: 5, y: 7 })
   })
 })

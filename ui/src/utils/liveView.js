@@ -49,6 +49,8 @@ export function parseFrame (text) {
       full: m.full === true,
       events: m.e,
       actions: Array.isArray(m.a) ? m.a : [],
+      // The till echoes the stamp (ts) of the last control it applied, once.
+      ...(Number.isFinite(m.ack) ? { ack: m.ack } : {}),
     }
   }
   return { kind: 'ignored' }
@@ -141,7 +143,18 @@ export function isControlMessage (m) {
 
 // The till's clock and this one differ: events are moved onto this clock and
 // played a little behind it so batches arrive in time.
-export const PLAY_BEHIND_MS = 300
+export const PLAY_BEHIND_MS = 50
+
+/**
+ * Where the replayer's live clock starts: the newest event of the first batch
+ * (never later than now), minus the small delay. A late batch is then already
+ * in the past and plays at once instead of waiting.
+ */
+export function liveStartTime (events, skew, now) {
+  const stamps = events.map(e => e?.timestamp).filter(t => Number.isFinite(t))
+  const newest = stamps.length > 0 ? Math.max(...stamps) + skew : now
+  return Math.min(newest, now) - PLAY_BEHIND_MS
+}
 
 export function clockSkew (now, firstTimestamp) {
   return Number.isFinite(firstTimestamp) ? now - firstTimestamp : 0
@@ -149,4 +162,32 @@ export function clockSkew (now, firstTimestamp) {
 
 export function shiftEvent (event, skew) {
   return { ...event, timestamp: (event.timestamp ?? 0) + skew }
+}
+
+export const TYPED_MAX = 40
+
+/** The characters shown in the "typing" overlay after a key: printable keys add, Backspace removes, other keys leave it. */
+export function typedAfter (text, key) {
+  if (key === 'Backspace') {
+    return [...text].slice(0, -1).join('')
+  }
+  if (typeof key === 'string' && [...key].length === 1) {
+    return [...text, key].slice(-TYPED_MAX).join('')
+  }
+  return text
+}
+
+/** Where to draw the click mark: the click position inside the box that holds the screen. */
+export function markAt (clientX, clientY, rect) {
+  return { x: Math.round(clientX - (rect?.left ?? 0)), y: Math.round(clientY - (rect?.top ?? 0)) }
+}
+
+/** A control message with this page's clock on it, so the till can echo it back as an ack. */
+export function stamped (message, now) {
+  return { ...message, ts: now }
+}
+
+/** The round trip in ms for an echoed stamp, or null when there is no (sane) ack. */
+export function delayFrom (ack, now) {
+  return Number.isFinite(ack) && ack > 0 && now >= ack ? Math.round(now - ack) : null
 }

@@ -1,4 +1,9 @@
 {
+  "ackFrame": {
+    "e": [],
+    "a": [],
+    "ack": 1700000000123
+  },
   "controlOff": {
     "t": "control",
     "on": false
@@ -16,6 +21,11 @@
     {
       "t": "key",
       "key": "Enter"
+    },
+    {
+      "t": "click",
+      "id": 7,
+      "ts": 1700000000123
     }
   ],
   "ended": {
