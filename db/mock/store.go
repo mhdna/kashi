@@ -13118,6 +13118,21 @@ func (mr *MockStoreMockRecorder) SetEmailSettings(arg0, arg1 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetEmailSettings", reflect.TypeOf((*MockStore)(nil).SetEmailSettings), arg0, arg1)
 }
 
+// SetLiveViewSettings mocks base method.
+func (m *MockStore) SetLiveViewSettings(arg0 context.Context, arg1 db.SetLiveViewSettingsParams) (db.AppSetting, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetLiveViewSettings", arg0, arg1)
+	ret0, _ := ret[0].(db.AppSetting)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetLiveViewSettings indicates an expected call of SetLiveViewSettings.
+func (mr *MockStoreMockRecorder) SetLiveViewSettings(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLiveViewSettings", reflect.TypeOf((*MockStore)(nil).SetLiveViewSettings), arg0, arg1)
+}
+
 // SetNewClientReferralCode mocks base method.
 func (m *MockStore) SetNewClientReferralCode(arg0 context.Context, arg1 db.SetNewClientReferralCodeParams) (db.Client, error) {
 	m.ctrl.T.Helper()

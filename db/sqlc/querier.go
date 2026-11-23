@@ -1942,6 +1942,7 @@ type Querier interface {
 	SetDefaultWhatsAppNumber(ctx context.Context, id int64) error
 	SetEmailResendAPIKey(ctx context.Context, emailResendApiKey string) error
 	SetEmailSettings(ctx context.Context, arg SetEmailSettingsParams) error
+	SetLiveViewSettings(ctx context.Context, arg SetLiveViewSettingsParams) (AppSetting, error)
 	// A till made this new client's code offline (printed on their first
 	// receipt): keep it, unless another client has it.
 	SetNewClientReferralCode(ctx context.Context, arg SetNewClientReferralCodeParams) (Client, error)
@@ -2001,6 +2002,8 @@ type Querier interface {
 	// Messages the bridge dropped from a paused number's queue on resume (refs
 	// from POST /instance/resume): logged as sent when queued, they never went.
 	SkipDroppedWhatsAppMessages(ctx context.Context, arg SkipDroppedWhatsAppMessagesParams) error
+	// One unit leaves the line with its share of the line total and of the
+	// deal and invoice discounts taken off it.
 	SplitUnknownInvoiceItem(ctx context.Context, arg SplitUnknownInvoiceItemParams) error
 	// Clients for the invoice filter's client box, by name pattern or phone digits.
 	SuggestInvoiceClients(ctx context.Context, arg SuggestInvoiceClientsParams) ([]SuggestInvoiceClientsRow, error)

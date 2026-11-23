@@ -43,8 +43,9 @@ func (q *Queries) CountUnknownItems(ctx context.Context, resolved bool) (int64, 
 
 const createResolvedBranchInvoiceItem = `-- name: CreateResolvedBranchInvoiceItem :exec
 INSERT INTO branch_invoice_items (
-  branch_invoice_id, branch_product_id, unit_price, line_total, discount, quantity, product_uid, unknown
-) VALUES ($1, $2, $3, $4, $5, 1, $6, false)
+  branch_invoice_id, branch_product_id, unit_price, line_total, discount, quantity, product_uid, unknown,
+  deal, deal_discount, invoice_discount
+) VALUES ($1, $2, $3, $4, $5, 1, $6, false, $7, $8, $9)
 `
 
 type CreateResolvedBranchInvoiceItemParams struct {
@@ -54,6 +55,9 @@ type CreateResolvedBranchInvoiceItemParams struct {
 	LineTotal       int64         `json:"line_total"`
 	Discount        int16         `json:"discount"`
 	ProductUid      uuid.NullUUID `json:"product_uid"`
+	Deal            string        `json:"deal"`
+	DealDiscount    int64         `json:"deal_discount"`
+	InvoiceDiscount int64         `json:"invoice_discount"`
 }
 
 func (q *Queries) CreateResolvedBranchInvoiceItem(ctx context.Context, arg CreateResolvedBranchInvoiceItemParams) error {
@@ -64,6 +68,9 @@ func (q *Queries) CreateResolvedBranchInvoiceItem(ctx context.Context, arg Creat
 		arg.LineTotal,
 		arg.Discount,
 		arg.ProductUid,
+		arg.Deal,
+		arg.DealDiscount,
+		arg.InvoiceDiscount,
 	)
 	return err
 }
@@ -1067,16 +1074,28 @@ func (q *Queries) ShareUnknownLineImages(ctx context.Context, sessionID int64) e
 }
 
 const splitUnknownInvoiceItem = `-- name: SplitUnknownInvoiceItem :exec
-UPDATE branch_invoice_items SET quantity = quantity - 1, line_total = line_total - $2 WHERE id = $1
+UPDATE branch_invoice_items
+SET quantity = quantity - 1, line_total = line_total - $2,
+    deal_discount = deal_discount - $3, invoice_discount = invoice_discount - $4
+WHERE id = $1
 `
 
 type SplitUnknownInvoiceItemParams struct {
-	ID        int64 `json:"id"`
-	LineTotal int64 `json:"line_total"`
+	ID              int64 `json:"id"`
+	LineTotal       int64 `json:"line_total"`
+	DealDiscount    int64 `json:"deal_discount"`
+	InvoiceDiscount int64 `json:"invoice_discount"`
 }
 
+// One unit leaves the line with its share of the line total and of the
+// deal and invoice discounts taken off it.
 func (q *Queries) SplitUnknownInvoiceItem(ctx context.Context, arg SplitUnknownInvoiceItemParams) error {
-	_, err := q.db.ExecContext(ctx, splitUnknownInvoiceItem, arg.ID, arg.LineTotal)
+	_, err := q.db.ExecContext(ctx, splitUnknownInvoiceItem,
+		arg.ID,
+		arg.LineTotal,
+		arg.DealDiscount,
+		arg.InvoiceDiscount,
+	)
 	return err
 }
 

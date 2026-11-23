@@ -95,6 +95,11 @@
                 <span v-else class="text-medium-emphasis">
                   {{ register.last_seen_at?.Valid ? `Last seen ${new Date(register.last_seen_at.Time).toLocaleString()}` : 'Never connected' }}
                 </span>
+                <WatchTillButton
+                  :name="`${registersBranch?.name} ${register.code}`"
+                  :online="connectedRegisterIds.includes(register.id)"
+                  :register-id="register.id"
+                />
               </td>
               <td class="text-center">
                 <v-switch
@@ -688,6 +693,7 @@
 <script setup lang="ts">
   import { onMounted, onUnmounted, ref } from 'vue'
   import { useAdminSocket } from '@/composables/useAdminSocket'
+  import WatchTillButton from '@/components/WatchTillButton.vue'
   import { useBranches } from '@/composables/useBranches'
   import { useBranchSalespersons } from '@/composables/useBranchSalespersons'
   import { useBranchTargets } from '@/composables/useBranchTargets'

@@ -173,6 +173,26 @@ Business settings (WhatsApp credentials, templates, webhook secret) live **in th
 
 ::: group Features
 
+## Live view of tills {icon=mdiMonitorEye}
+
+::: glance
+- **Off by default and free when off.** Two switches in Settings (`app_settings.live_view_enabled`, `live_view_control_enabled`; control needs view). Off: tills are never told the feature exists, the watch and stream endpoints refuse, the hub is an empty map.
+- An admin watches a connected till's screen **rebuilt from its page structure (rrweb), never video**. The till sends the page once, then changes, a few KB/s.
+- The stream has **its own socket** (`/branch/live`), opened by the till only while watched, so a big snapshot never delays a sync push on `/branch/ws`.
+- **Memory only**: `liveHub` relays bytes, parses nothing, stores nothing. At most **3 tills** watched at once (the droplet has 1 CPU and 2 GB shared with other apps).
+- A watcher that falls behind loses its queue and waits for the next **full snapshot**; the till is never made to wait for a slow tab.
+:::
+
+| Topic | Rule |
+| --- | --- |
+| Flow | Admin tab `GET /live/watch/:register_id?token=` (System view). First watcher: kashi pushes `live_view_start` on the till's branch socket; the till dials `GET /branch/live`, then its page records. Last watcher leaves: `live_view_stop`, stream closed. |
+| Frames | Till to watcher: `{"full":true,"e":[...],"a":[...]}` or `{"e":..,"a":..}`. **`full` must be the first key**: kashi tells a full snapshot from an increment by the text's prefix (`fullFramePrefix`) without parsing it. |
+| Control | Watcher to till: `click {id}`, `input {id,v}`, `key {key}` (rrweb node ids). Needs the control switch **and** System edit; checked per message, so turning it off cuts open sessions at once. Anything else is dropped. |
+| Till drops | Watchers get `waiting`, then `ended` after 30 s (`liveTillGrace`). A till whose branch socket reconnects while watched is asked to start again. |
+| Turning it off | Closes every session, stops the tills, tells tills the feature is gone (`live_view_settings`). |
+| Privacy | Password fields are masked, pictures blocked. Every watch and the first control action of a session are written to the admin activity feed. |
+| Tests | `api/live_hub_test.go` (randomised relay identities), `api/live_view_test.go` (real sockets); the Go test writes `ui/src/test/fixtures/live_view_protocol.json`, which `ui/src/utils/liveView.test.js` reads. |
+
 ## Remote commands {icon=mdiConsole}
 
 ::: glance

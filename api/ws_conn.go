@@ -98,3 +98,17 @@ func (c *wsConn) startHeartbeat(done <-chan struct{}) {
 		}
 	}()
 }
+
+// writeText sends one ready-made text frame within wsWriteWait, closing the
+// socket if it can't take it (see writeJSON). The live view relays rrweb
+// frames this way without parsing them.
+func (c *wsConn) writeText(data []byte) error {
+	c.wmu.Lock()
+	defer c.wmu.Unlock()
+	_ = c.conn.SetWriteDeadline(time.Now().Add(wsWriteWait))
+	err := c.conn.WriteMessage(websocket.TextMessage, data)
+	if err != nil {
+		_ = c.conn.Close()
+	}
+	return err
+}

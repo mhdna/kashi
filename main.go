@@ -52,6 +52,9 @@ func main() {
 		log.Fatal("cannot start server:", err)
 	}
 
+	if err := server.LoadLiveViewSettings(context.Background()); err != nil {
+		log.Println("live view settings:", err)
+	}
 	go runGatewayServer(config, store)
 	go runRecurringExpenseScheduler(context.Background(), store)
 	go api.RunBranchTargetSeriesScheduler(context.Background(), store, server.BranchHub())
