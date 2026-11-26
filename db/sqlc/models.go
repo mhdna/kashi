@@ -980,6 +980,7 @@ type BranchSetting struct {
 	SyncVerbose                        bool            `json:"sync_verbose"`
 	ReceiptTexts                       string          `json:"receipt_texts"`
 	DealsStack                         bool            `json:"deals_stack"`
+	RememberItemDiscounts              bool            `json:"remember_item_discounts"`
 }
 
 type BranchShift struct {

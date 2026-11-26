@@ -394,6 +394,13 @@
                           :label="t('Discounts start off on each new line')"
                         />
                         <v-switch
+                          v-model="settingsForm.remember_item_discounts"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          :label="t('Remember discounts typed on an item')"
+                        />
+                        <v-switch
                           v-model="settingsForm.deal_toggle"
                           color="primary"
                           density="compact"
@@ -1616,6 +1623,7 @@
     'discount_toggle_default_off',
     'deal_toggle',
     'deals_stack',
+    'remember_item_discounts',
     'variant_pick_required',
     'sync_verbose',
     'invoice_ratings_enabled',
@@ -2000,6 +2008,7 @@
     discount_toggle: t('Turn discounts off at the till'),
     discount_toggle_default_off: t('Discounts start off'),
     deal_toggle: t('Turn deals off at the till'),
+    remember_item_discounts: t('Remember typed discounts'),
     deals_stack: t('Invoice deals add up'),
     variant_pick_required: t('Pick colour/size on scan'),
     sync_verbose: t('Sync light: every step'),

@@ -77,6 +77,7 @@ export default {
   'Accept a product code in the scan field': 'Accepter un code produit dans le champ de lecture',
   'Manual price/discount edits only for selected codes': 'Modifications manuelles des prix et remises seulement pour les codes choisis',
   'Salespersons can turn a line\'s discount (30%) off and on': 'Les vendeurs peuvent activer et désactiver la remise (30 %) d\'une ligne',
+  'Remember discounts typed on an item': 'Mémoriser les remises saisies sur un article',
   'Discounts start off on each new line': 'Les remises sont désactivées sur chaque nouvelle ligne',
   'Salespersons can turn a line\'s deal (B2G1) off and on': 'Les vendeurs peuvent activer et désactiver l\'offre (B2G1) d\'une ligne',
   'Invoice deals add up (off: the biggest one takes over)': 'Les offres de facture se cumulent (désactivé : la plus avantageuse s\'applique seule)',

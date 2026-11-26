@@ -30,6 +30,7 @@ export default {
   'Price edits by code': 'Modifications de prix par code',
   'Codes allowed for price edits': 'Codes autorisés pour modifier les prix',
   'Turn discounts off at the till': 'Désactiver les remises à la caisse',
+  'Remember typed discounts': 'Mémoriser les remises saisies',
   'Discounts start off': 'Remises désactivées au départ',
   'Turn deals off at the till': 'Désactiver les promotions à la caisse',
   'Invoice deals add up': 'Cumul des promotions sur la facture',

@@ -141,6 +141,9 @@ type branchSettingsRequest struct {
 	DiscountToggle           *bool `json:"discount_toggle"`
 	DiscountToggleDefaultOff *bool `json:"discount_toggle_default_off"`
 	DealToggle               *bool `json:"deal_toggle"`
+	// A discount typed on a sale line is saved on the product and carried to
+	// the next piece scanned. Nil leaves it off: it stays on its own line.
+	RememberItemDiscounts *bool `json:"remember_item_discounts"`
 	// DealsStack: the branch's invoice deals add up instead of the biggest
 	// taking over (the till's invoiceDiscountsStacked). Nil leaves it off.
 	DealsStack *bool `json:"deals_stack"`
@@ -522,6 +525,7 @@ func (server *Server) upsertBranchSettings(ctx *gin.Context, branchID int64, req
 		DiscountToggleDefaultOff:           orZero(req.DiscountToggleDefaultOff),
 		DealToggle:                         orZero(req.DealToggle),
 		DealsStack:                         orZero(req.DealsStack),
+		RememberItemDiscounts:              orZero(req.RememberItemDiscounts),
 		VariantPickRequired:                orZero(req.VariantPickRequired),
 		SyncVerbose:                        orZero(req.SyncVerbose),
 		InvoiceRatingsEnabled:              orTrue(req.InvoiceRatingsEnabled),

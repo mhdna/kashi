@@ -933,6 +933,7 @@
       { key: 'price_edit_restricted', label: t('Manual price/discount edits only for selected codes'), type: 'bool' },
       { key: 'discount_toggle', label: t('Salespersons can turn a line\'s discount (30%) off and on'), type: 'bool' },
       { key: 'discount_toggle_default_off', label: t('Discounts start off on each new line'), type: 'bool' },
+      { key: 'remember_item_discounts', label: t('Remember discounts typed on an item'), type: 'bool' },
       { key: 'deal_toggle', label: t('Salespersons can turn a line\'s deal (B2G1) off and on'), type: 'bool' },
       { key: 'deals_stack', label: t('Invoice deals add up (off: the biggest one takes over)'), type: 'bool' },
       { key: 'variant_pick_required', label: t('Cashier must pick the colour/size when a scanned item has variants'), type: 'bool' },
