@@ -97,6 +97,19 @@
       </div>
     </div>
     <div v-else class="rlive-empty">{{ t('Drawing the receipt') }}</div>
+    <!-- A part left out is no longer on the paper to click. -->
+    <div v-if="editable && leftOut.length > 0" class="rlive-left-out" data-test="left-out">
+      <v-btn
+        v-for="g in leftOut"
+        :key="g.key"
+        :data-test="`print-${g.key}`"
+        prepend-icon="mdi-eye"
+        size="small"
+        :text="t('Print the {part} again', { part: g.label.toLowerCase() })"
+        variant="text"
+        @click="emit('update:design', toggleSection(design, g.section))"
+      />
+    </div>
     <v-progress-linear v-if="loading" class="rlive-loading" color="primary" indeterminate />
   </div>
 </template>
@@ -106,7 +119,7 @@
   import { t } from '@/i18n'
   import ReceiptLineTools from '@/components/Receipt/ReceiptLineTools.vue'
   import ReceiptPartTools from '@/components/Receipt/ReceiptPartTools.vue'
-  import { can, setElement } from '@/utils/receiptDesign'
+  import { can, isSectionHidden, setElement, toggleSection } from '@/utils/receiptDesign'
   import { fontStyle, loadReceiptFont } from '@/utils/receiptFonts'
 
   type Band = { top: number, bottom: number }
@@ -158,6 +171,7 @@
   })
 
   const groups = computed(() => props.catalog?.groups ?? [])
+  const leftOut = computed(() => groups.value.filter((g: any) => props.design.hide && isSectionHidden(props.design, g.section)))
   function groupLabel (key: string) {
     if (key.startsWith('banner-')) {return t('Banner')}
     return groups.value.find((g: any) => g.key === key)?.label ?? key

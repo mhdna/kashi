@@ -60,6 +60,27 @@ describe('ReceiptLineTools', () => {
     expect(find('line-hide').text()).toContain('Print it')
   })
 
+  it('the reported case: the whole exchange policy is left out from either of its lines', async () => {
+    for (const key of ['policy_title', 'policy_text']) {
+      lineTools(key)
+      expect(find('line-part-hide').text()).toBe('Leave out the whole exchange policy')
+      await find('line-part-hide').trigger('click')
+      expect(design().hide).toEqual(['policy'])
+      expect(JSON.parse(designJSON(design())).hide).toEqual(['policy'])
+      wrapper.unmount()
+      wrapper = null
+    }
+  })
+
+  it('offers leaving out the whole part exactly on lines of a part that can be', () => {
+    for (const e of catalog.elements) {
+      lineTools(e.key)
+      expect(find('line-part-hide').exists(), e.key).toBe(Boolean(catalog.groups.find(g => g.key === e.group).section))
+      wrapper.unmount()
+      wrapper = null
+    }
+  })
+
   it('explains placeholders, and closes', async () => {
     lineTools('referral_note')
     expect(wrapper.text()).toContain('{percent} prints as the reward')

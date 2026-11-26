@@ -39,6 +39,8 @@ export default {
   'Print it': 'Imprimer',
   'Print the {part}': 'Imprimer : {part}',
   'Print this part': 'Imprimer cette partie',
+  'Leave out the whole {part}': 'Retirer toute la partie {part}',
+  'Print the {part} again': 'Réimprimer la partie {part}',
   'Regular': 'Normal',
   'Round': 'Arrondi',
   'Smaller {item}': 'Réduire {item}',
