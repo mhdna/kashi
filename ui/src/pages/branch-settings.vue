@@ -1693,7 +1693,7 @@
       split_primary_currency: d.split_primary_currency ?? '',
       split_primary_step: d.split_primary_step ?? 0,
       oversell_mode: d.oversell_mode ?? 'allow',
-      till_language: d.till_language || 'fr',
+      till_language: d.till_language || 'en',
       branch_phone: d.branch_phone ?? '',
       price_edit_codes: d.price_edit_codes ?? '',
       unknown_product_barcode: d.unknown_product_barcode ?? '',

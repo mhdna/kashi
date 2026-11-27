@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Tills are French unless a branch picks English, and the choice survives the
+// Tills are English unless a branch picks French, and the choice survives the
 // trip to the till. What is sent is written to the fixture the UI test reads.
 func TestBranchSettingsTillLanguage(t *testing.T) {
 	sentFor := func(report string) string {
@@ -41,8 +41,8 @@ func TestBranchSettingsTillLanguage(t *testing.T) {
 	}
 	seen := map[string]bool{}
 	for report, want := range map[string]string{
-		`{}`: "fr", `{"till_language":null}`: "fr", `{"till_language":""}`: "fr",
-		`{"till_language":"de"}`: "fr", `{"till_language":"fr"}`: "fr", `{"till_language":"en"}`: "en",
+		`{}`: "en", `{"till_language":null}`: "en", `{"till_language":""}`: "en",
+		`{"till_language":"de"}`: "en", `{"till_language":"fr"}`: "fr", `{"till_language":"en"}`: "en",
 	} {
 		got := sentFor(report)
 		require.Equal(t, want, got, report)

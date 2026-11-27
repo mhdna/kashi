@@ -12,11 +12,11 @@ describe('till language setting', () => {
     expect(TILL_LANGUAGES.map(l => l.title)).toEqual(['Français', 'English'])
   })
 
-  it('is on a branch\'s settings, French when unset', () => {
+  it('is on a branch\'s settings, English when unset', () => {
     const source = page('branch-settings')
     expect(source).toContain('v-model="settingsForm.till_language"')
     expect(source).toContain(':items="TILL_LANGUAGES"')
-    expect(source).toContain('till_language: d.till_language || \'fr\'')
+    expect(source).toContain('till_language: d.till_language || \'en\'')
   })
 
   it('is on the default settings, left as is unless picked', () => {

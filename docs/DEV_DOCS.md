@@ -111,7 +111,7 @@ Business settings (WhatsApp credentials, templates, webhook secret) live **in th
 
 > [!NOTE] The socket hub is an in-memory map, so it assumes **one kashi instance**. Horizontal scaling would break live push (catch-up still works).
 
-- `till_language` (branch setting, `fr` default or `en`): the language the tills show, also changeable on the till (Settings > Behaviour > Language). Separate from kashi's own screen language.
+- `till_language` (branch setting, `en` default or `fr`): the language the tills show, also changeable on the till (Settings > Behaviour > Language). Separate from kashi's own screen language.
 - `remember_item_discounts` (branch setting, off by default): off, a discount typed on a till line stays on that line; on, the till saves it on the product and copies it to the next piece scanned.
 
 ## Money and time {icon=mdiCash}

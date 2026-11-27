@@ -144,7 +144,7 @@ type branchSettingsRequest struct {
 	// A discount typed on a sale line is saved on the product and carried to
 	// the next piece scanned. Nil leaves it off: it stays on its own line.
 	RememberItemDiscounts *bool `json:"remember_item_discounts"`
-	// The tills' screen language. Nil leaves French, the till's own default.
+	// The tills' screen language. Nil or unknown is English, the default.
 	TillLanguage *string `json:"till_language"`
 	// DealsStack: the branch's invoice deals add up instead of the biggest
 	// taking over (the till's invoiceDiscountsStacked). Nil leaves it off.
@@ -465,7 +465,7 @@ func (server *Server) upsertBranchSettings(ctx *gin.Context, branchID int64, req
 		oversellMode = *req.OversellMode
 	}
 
-	tillLanguage := "fr"
+	tillLanguage := "en"
 	if req.TillLanguage != nil && validTillLanguage(*req.TillLanguage) {
 		tillLanguage = *req.TillLanguage
 	}
