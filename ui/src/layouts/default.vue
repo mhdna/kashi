@@ -29,7 +29,7 @@
         <!-- <NotificationMenu class="me-4" /> -->
         <!-- <v-icon icon="mdi-translate" /> -->
         <template v-if="!xs">
-          <ToggleLanguage />
+          <!-- <ToggleLanguage /> -->
           <ToggleTheme />
           <OnlineUsersStack />
           <v-btn icon="mdi-logout" variant="text" @click="handleLogout" />
@@ -50,11 +50,11 @@
               :title="option.title"
               @click="appStore.setThemePreference(option.value)"
             />
-            <v-list-item
+            <!-- <v-list-item
               prepend-icon="mdi-translate"
               :title="locale === 'fr' ? 'English' : 'Français'"
               @click="setLocale(locale === 'fr' ? 'en' : 'fr')"
-            />
+            /> -->
             <v-divider class="my-1" />
             <v-list-item prepend-icon="mdi-logout" :title="t('Log out')" @click="handleLogout" />
           </v-list>
@@ -97,7 +97,7 @@
   import AppNotifications from "@/components/AppNotifications.vue";
   import BranchActivityToast from "@/components/BranchActivityToast.vue";
   import BranchDiscountButton from "@/components/BranchDiscountButton.vue";
-  import ToggleLanguage from "@/components/Buttons/ToggleLanguage.vue";
+  // import ToggleLanguage from "@/components/Buttons/ToggleLanguage.vue";
   import ToggleTheme from "@/components/Buttons/ToggleTheme.vue";
   import CommandPalette from "@/components/CommandPalette.vue";
   import ConnectedBranchesCard from "@/components/ConnectedBranchesCard.vue";
@@ -106,7 +106,7 @@
   import PageSkeleton from "@/components/PageSkeleton.vue";
   import SyncingBranchesCard from "@/components/SyncingBranchesCard.vue";
   // import NotificationMenu from '@/components/Menus/NotificationMenu.vue'
-  import { locale, setLocale, t } from "@/i18n";
+  import { t } from "@/i18n";
   import { useAppStore } from "@/stores/app";
   import { useAuthStore } from "@/stores/auth";
   import { useSettingsStore } from "@/stores/settings";
