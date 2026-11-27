@@ -446,6 +446,20 @@
                     </section>
 
                     <section class="bs-section">
+                      <div class="bs-section-title">{{ t('Till language') }}</div>
+                      <v-select
+                        v-model="settingsForm.till_language"
+                        class="mt-3"
+                        data-test="till-language"
+                        density="compact"
+                        hide-details
+                        :items="TILL_LANGUAGES"
+                        :label="t('Language on the tills')"
+                        variant="outlined"
+                      />
+                    </section>
+
+                    <section class="bs-section">
                       <div class="bs-section-title">{{ t('Stock') }}</div>
                       <v-select
                         v-model="settingsForm.oversell_mode"
@@ -1437,6 +1451,7 @@
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { displayFormFrom } from '@/utils/tillDisplayPrefs'
+  import { TILL_LANGUAGES } from '@/utils/tillLanguage'
 
   const notify = useNotify()
 
@@ -1678,6 +1693,7 @@
       split_primary_currency: d.split_primary_currency ?? '',
       split_primary_step: d.split_primary_step ?? 0,
       oversell_mode: d.oversell_mode ?? 'allow',
+      till_language: d.till_language || 'fr',
       branch_phone: d.branch_phone ?? '',
       price_edit_codes: d.price_edit_codes ?? '',
       unknown_product_barcode: d.unknown_product_barcode ?? '',
@@ -2036,6 +2052,7 @@
     visitor_counter_enabled: t('Visitor counter'),
     shift_receipt_upload_mode: t('Receipt photo'),
     oversell_mode: t('Oversell mode'),
+    till_language: t('Till language'),
     max_overpayment_cents: t('Max overpayment'),
     default_opening_float_usd: t('Opening float USD'),
     default_opening_float_lbp: t('Opening float LBP'),

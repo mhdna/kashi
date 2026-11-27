@@ -405,6 +405,15 @@
                   {{ t('"Leave as is" keeps each till\'s own value when you apply to all.') }}
                 </p>
                 <div class="field-grid">
+                  <v-select
+                    v-model="form.till_language"
+                    data-test="till-language"
+                    density="compact"
+                    hide-details
+                    :items="TILL_LANGUAGE_CHOICES"
+                    :label="t('Language on the tills')"
+                    variant="outlined"
+                  />
                   <template v-for="f in LOOK_FIELDS" :key="f.key">
                     <v-select
                       v-if="f.items"
@@ -885,6 +894,7 @@
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { t } from '@/i18n'
+  import { TILL_LANGUAGES } from '@/utils/tillLanguage'
 
   const notify = useNotify()
   const { canEdit } = usePageAccess()
@@ -986,6 +996,7 @@
     },
   ])
 
+  const TILL_LANGUAGE_CHOICES = computed(() => [{ title: t('Leave as is'), value: '' }, ...TILL_LANGUAGES])
   const LOOK_FIELDS = computed(() => DISPLAY_FIELDS.value.filter(f => ['theme', 'animations_enabled'].includes(f.key)))
   const CARD_FIELDS = computed(() => DISPLAY_FIELDS.value.filter(f => !['theme', 'animations_enabled'].includes(f.key)))
 
@@ -1034,6 +1045,7 @@
       invoice_keyboard_mode: false,
       client_required: false,
       shift_receipt_upload_mode: 2,
+      till_language: '',
       page_unlock_clients: false,
       page_unlock_inventory: false,
       page_unlock_transfers: false,
