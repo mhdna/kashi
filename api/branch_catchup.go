@@ -245,6 +245,10 @@ func (server *Server) branchSyncChanges(ctx *gin.Context) {
 		items, err = server.store.ListExpenseCategoriesUpdatedSince(ctx, since)
 	case "loan_categories":
 		items, err = server.store.ListLoanCategoriesUpdatedSince(ctx, since)
+	case "client_sources":
+		// Whole set every time, like currencies: the till asks "where did
+		// you hear about us?" from exactly this list, and drops what's gone.
+		items, err = server.store.ListClientSourcesForSync(ctx)
 	case "branch_stock":
 		// Always paged -- a brand-new entity with no pre-paging kashi-pos
 		// build to keep working, unlike products/clients above. clampSyncLimit

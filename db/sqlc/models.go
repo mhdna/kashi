@@ -1144,6 +1144,7 @@ type Client struct {
 	PhoneValid         bool          `json:"phone_valid"`
 	PhoneCountry       string        `json:"phone_country"`
 	ReferralCode       string        `json:"referral_code"`
+	SourceID           sql.NullInt64 `json:"source_id"`
 }
 
 type ClientLink struct {
@@ -1151,6 +1152,16 @@ type ClientLink struct {
 	BranchClientID int64 `json:"branch_client_id"`
 	ClientID       int64 `json:"client_id"`
 	RegisterID     int64 `json:"register_id"`
+}
+
+type ClientSource struct {
+	ID        int64     `json:"id"`
+	Uid       uuid.UUID `json:"uid"`
+	Name      string    `json:"name"`
+	SortOrder int32     `json:"sort_order"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type ClientSpend struct {

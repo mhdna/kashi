@@ -201,6 +201,7 @@ type Querier interface {
 	CountClientsBySpending(ctx context.Context, arg CountClientsBySpendingParams) (int64, error)
 	// Count for ListClientsBySpendingCached.
 	CountClientsBySpendingCached(ctx context.Context, arg CountClientsBySpendingCachedParams) (int64, error)
+	CountClientsWithSource(ctx context.Context, sourceID sql.NullInt64) (int64, error)
 	CountColors(ctx context.Context, search string) (int64, error)
 	CountCoupons(ctx context.Context, arg CountCouponsParams) (int64, error)
 	CountCouponsByTypeID(ctx context.Context, typeID sql.NullInt64) (int64, error)
@@ -307,6 +308,7 @@ type Querier interface {
 	CreateCashboxAccount(ctx context.Context, arg CreateCashboxAccountParams) (CashboxAccount, error)
 	CreateCentralLoan(ctx context.Context, arg CreateCentralLoanParams) (Loan, error)
 	CreateClient(ctx context.Context, arg CreateClientParams) (Client, error)
+	CreateClientSource(ctx context.Context, arg CreateClientSourceParams) (ClientSource, error)
 	// A till-created client keeps the uid the till minted, so the till never
 	// has to rewrite anything once kashi accepts it.
 	CreateClientWithUID(ctx context.Context, arg CreateClientWithUIDParams) (Client, error)
@@ -504,6 +506,7 @@ type Querier interface {
 	// of NULLs keeps "no override" a single state instead of two.
 	DeleteCashboxAccountOverride(ctx context.Context, arg DeleteCashboxAccountOverrideParams) error
 	DeleteClient(ctx context.Context, id int64) error
+	DeleteClientSource(ctx context.Context, id int64) error
 	DeleteColor(ctx context.Context, id int64) error
 	DeleteColors(ctx context.Context, ids []int64) (int64, error)
 	DeleteCouponCategory(ctx context.Context, id int64) error
@@ -637,6 +640,7 @@ type Querier interface {
 	// Shared-identity (uid) queries for branch sync. See 000093_sync_uid.up.sql.
 	GetClientByUID(ctx context.Context, uid uuid.UUID) (Client, error)
 	GetClientLink(ctx context.Context, arg GetClientLinkParams) (int64, error)
+	GetClientSourceName(ctx context.Context, id int64) (string, error)
 	GetColorByName(ctx context.Context, name string) (Color, error)
 	GetCoupon(ctx context.Context, code string) (Coupon, error)
 	GetCouponCategory(ctx context.Context, id int64) (CouponCategory, error)
@@ -1138,6 +1142,10 @@ type Querier interface {
 	// country that would return at least one result, instead of the full
 	// ~240-country ISO list.
 	ListClientPhoneCountries(ctx context.Context) ([]ListClientPhoneCountriesRow, error)
+	// Every option with how many clients gave it, for the settings page.
+	ListClientSources(ctx context.Context) ([]ListClientSourcesRow, error)
+	// The whole list for tills, inactive ones included so a till hides them.
+	ListClientSourcesForSync(ctx context.Context) ([]ClientSource, error)
 	// Completeness check: every retail client's uid + updated_at, keyset-paged
 	// by uid. Inactive clients are included -- a till must learn they're
 	// inactive, not just stop hearing about them.
@@ -1938,6 +1946,9 @@ type Querier interface {
 	// client id), as in ListClientsForExport. updated_at is left alone: the
 	// column isn't synced to tills, so this mustn't make them re-pull the client.
 	SetClientBranchIfNull(ctx context.Context, arg SetClientBranchIfNullParams) error
+	// The first answer wins: a client who already has a source keeps it. Leaves
+	// updated_at alone, since tills don't pull a client's source.
+	SetClientSourceFromTill(ctx context.Context, arg SetClientSourceFromTillParams) (int64, error)
 	SetDefaultLowStockThreshold(ctx context.Context, defaultLowStockThreshold int64) (AppSetting, error)
 	SetDefaultWhatsAppNumber(ctx context.Context, id int64) error
 	SetEmailResendAPIKey(ctx context.Context, emailResendApiKey string) error
@@ -2050,6 +2061,7 @@ type Querier interface {
 	UpdateCashboxAccount(ctx context.Context, arg UpdateCashboxAccountParams) (CashboxAccount, error)
 	UpdateClient(ctx context.Context, arg UpdateClientParams) (Client, error)
 	UpdateClientPhone(ctx context.Context, arg UpdateClientPhoneParams) error
+	UpdateClientSource(ctx context.Context, arg UpdateClientSourceParams) (ClientSource, error)
 	UpdateColor(ctx context.Context, arg UpdateColorParams) (Color, error)
 	UpdateCoupon(ctx context.Context, arg UpdateCouponParams) (Coupon, error)
 	UpdateCouponCategory(ctx context.Context, arg UpdateCouponCategoryParams) (CouponCategory, error)

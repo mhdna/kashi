@@ -46,7 +46,7 @@ func (q *Queries) BranchInvoicesReferenceVariant(ctx context.Context, id int64) 
 const createClientWithUID = `-- name: CreateClientWithUID :one
 INSERT INTO clients (uid, name, phone, client_type)
 VALUES ($1, $2, $3, 'retail')
-RETURNING id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code
+RETURNING id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code, source_id
 `
 
 type CreateClientWithUIDParams struct {
@@ -75,13 +75,14 @@ func (q *Queries) CreateClientWithUID(ctx context.Context, arg CreateClientWithU
 		&i.PhoneValid,
 		&i.PhoneCountry,
 		&i.ReferralCode,
+		&i.SourceID,
 	)
 	return i, err
 }
 
 const getClientByUID = `-- name: GetClientByUID :one
 
-SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code FROM clients WHERE uid = $1 LIMIT 1
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code, source_id FROM clients WHERE uid = $1 LIMIT 1
 `
 
 // Shared-identity (uid) queries for branch sync. See 000093_sync_uid.up.sql.
@@ -103,6 +104,7 @@ func (q *Queries) GetClientByUID(ctx context.Context, uid uuid.UUID) (Client, er
 		&i.PhoneValid,
 		&i.PhoneCountry,
 		&i.ReferralCode,
+		&i.SourceID,
 	)
 	return i, err
 }
@@ -211,7 +213,7 @@ func (q *Queries) ListClientSyncIDs(ctx context.Context, arg ListClientSyncIDsPa
 }
 
 const listClientsByUIDs = `-- name: ListClientsByUIDs :many
-SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code FROM clients
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code, source_id FROM clients
 WHERE client_type = 'retail' AND uid = ANY($1::uuid[])
 `
 
@@ -239,6 +241,7 @@ func (q *Queries) ListClientsByUIDs(ctx context.Context, uids []uuid.UUID) ([]Cl
 			&i.PhoneValid,
 			&i.PhoneCountry,
 			&i.ReferralCode,
+			&i.SourceID,
 		); err != nil {
 			return nil, err
 		}

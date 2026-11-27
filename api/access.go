@@ -242,6 +242,7 @@ var routeRules = []routeRule{
 	rule("/branch_invoice_settlements", "sales", "sales", "analytics", "accounting"),
 	lookup("/invoice_types", "sales"),
 	rule("/clients", "clients", "clients", "sales", "analytics"),
+	rule("/client_sources", "clients", "clients", "sales", "analytics"),
 
 	// Pricing
 	rule("/price_lists", "pricing", "pricing", "products", "sales"),

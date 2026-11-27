@@ -1362,6 +1362,21 @@ func (mr *MockStoreMockRecorder) CountClientsBySpendingCached(arg0, arg1 interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountClientsBySpendingCached", reflect.TypeOf((*MockStore)(nil).CountClientsBySpendingCached), arg0, arg1)
 }
 
+// CountClientsWithSource mocks base method.
+func (m *MockStore) CountClientsWithSource(arg0 context.Context, arg1 sql.NullInt64) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountClientsWithSource", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountClientsWithSource indicates an expected call of CountClientsWithSource.
+func (mr *MockStoreMockRecorder) CountClientsWithSource(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountClientsWithSource", reflect.TypeOf((*MockStore)(nil).CountClientsWithSource), arg0, arg1)
+}
+
 // CountColors mocks base method.
 func (m *MockStore) CountColors(arg0 context.Context, arg1 string) (int64, error) {
 	m.ctrl.T.Helper()
@@ -2694,6 +2709,21 @@ func (m *MockStore) CreateClient(arg0 context.Context, arg1 db.CreateClientParam
 func (mr *MockStoreMockRecorder) CreateClient(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClient", reflect.TypeOf((*MockStore)(nil).CreateClient), arg0, arg1)
+}
+
+// CreateClientSource mocks base method.
+func (m *MockStore) CreateClientSource(arg0 context.Context, arg1 db.CreateClientSourceParams) (db.ClientSource, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateClientSource", arg0, arg1)
+	ret0, _ := ret[0].(db.ClientSource)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateClientSource indicates an expected call of CreateClientSource.
+func (mr *MockStoreMockRecorder) CreateClientSource(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClientSource", reflect.TypeOf((*MockStore)(nil).CreateClientSource), arg0, arg1)
 }
 
 // CreateClientWithUID mocks base method.
@@ -4306,6 +4336,20 @@ func (m *MockStore) DeleteClient(arg0 context.Context, arg1 int64) error {
 func (mr *MockStoreMockRecorder) DeleteClient(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClient", reflect.TypeOf((*MockStore)(nil).DeleteClient), arg0, arg1)
+}
+
+// DeleteClientSource mocks base method.
+func (m *MockStore) DeleteClientSource(arg0 context.Context, arg1 int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteClientSource", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteClientSource indicates an expected call of DeleteClientSource.
+func (mr *MockStoreMockRecorder) DeleteClientSource(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClientSource", reflect.TypeOf((*MockStore)(nil).DeleteClientSource), arg0, arg1)
 }
 
 // DeleteColor mocks base method.
@@ -5986,6 +6030,21 @@ func (m *MockStore) GetClientLink(arg0 context.Context, arg1 db.GetClientLinkPar
 func (mr *MockStoreMockRecorder) GetClientLink(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClientLink", reflect.TypeOf((*MockStore)(nil).GetClientLink), arg0, arg1)
+}
+
+// GetClientSourceName mocks base method.
+func (m *MockStore) GetClientSourceName(arg0 context.Context, arg1 int64) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClientSourceName", arg0, arg1)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetClientSourceName indicates an expected call of GetClientSourceName.
+func (mr *MockStoreMockRecorder) GetClientSourceName(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClientSourceName", reflect.TypeOf((*MockStore)(nil).GetClientSourceName), arg0, arg1)
 }
 
 // GetColorByName mocks base method.
@@ -8833,6 +8892,36 @@ func (m *MockStore) ListClientPhoneCountries(arg0 context.Context) ([]db.ListCli
 func (mr *MockStoreMockRecorder) ListClientPhoneCountries(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClientPhoneCountries", reflect.TypeOf((*MockStore)(nil).ListClientPhoneCountries), arg0)
+}
+
+// ListClientSources mocks base method.
+func (m *MockStore) ListClientSources(arg0 context.Context) ([]db.ListClientSourcesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListClientSources", arg0)
+	ret0, _ := ret[0].([]db.ListClientSourcesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListClientSources indicates an expected call of ListClientSources.
+func (mr *MockStoreMockRecorder) ListClientSources(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClientSources", reflect.TypeOf((*MockStore)(nil).ListClientSources), arg0)
+}
+
+// ListClientSourcesForSync mocks base method.
+func (m *MockStore) ListClientSourcesForSync(arg0 context.Context) ([]db.ClientSource, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListClientSourcesForSync", arg0)
+	ret0, _ := ret[0].([]db.ClientSource)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListClientSourcesForSync indicates an expected call of ListClientSourcesForSync.
+func (mr *MockStoreMockRecorder) ListClientSourcesForSync(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClientSourcesForSync", reflect.TypeOf((*MockStore)(nil).ListClientSourcesForSync), arg0)
 }
 
 // ListClientSyncIDs mocks base method.
@@ -13061,6 +13150,21 @@ func (mr *MockStoreMockRecorder) SetClientBranchIfNull(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetClientBranchIfNull", reflect.TypeOf((*MockStore)(nil).SetClientBranchIfNull), arg0, arg1)
 }
 
+// SetClientSourceFromTill mocks base method.
+func (m *MockStore) SetClientSourceFromTill(arg0 context.Context, arg1 db.SetClientSourceFromTillParams) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetClientSourceFromTill", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetClientSourceFromTill indicates an expected call of SetClientSourceFromTill.
+func (mr *MockStoreMockRecorder) SetClientSourceFromTill(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetClientSourceFromTill", reflect.TypeOf((*MockStore)(nil).SetClientSourceFromTill), arg0, arg1)
+}
+
 // SetDefaultLowStockThreshold mocks base method.
 func (m *MockStore) SetDefaultLowStockThreshold(arg0 context.Context, arg1 int64) (db.AppSetting, error) {
 	m.ctrl.T.Helper()
@@ -14123,6 +14227,21 @@ func (m *MockStore) UpdateClientPhone(arg0 context.Context, arg1 db.UpdateClient
 func (mr *MockStoreMockRecorder) UpdateClientPhone(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClientPhone", reflect.TypeOf((*MockStore)(nil).UpdateClientPhone), arg0, arg1)
+}
+
+// UpdateClientSource mocks base method.
+func (m *MockStore) UpdateClientSource(arg0 context.Context, arg1 db.UpdateClientSourceParams) (db.ClientSource, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateClientSource", arg0, arg1)
+	ret0, _ := ret[0].(db.ClientSource)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateClientSource indicates an expected call of UpdateClientSource.
+func (mr *MockStoreMockRecorder) UpdateClientSource(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClientSource", reflect.TypeOf((*MockStore)(nil).UpdateClientSource), arg0, arg1)
 }
 
 // UpdateColor mocks base method.
