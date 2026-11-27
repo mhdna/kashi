@@ -79,6 +79,7 @@ type defaultBranchSettings struct {
 	DealToggle                       *bool  `json:"deal_toggle,omitempty"`
 	DealsStack                       *bool  `json:"deals_stack,omitempty"`
 	RememberItemDiscounts            *bool  `json:"remember_item_discounts,omitempty"`
+	TillLanguage                     string `json:"till_language,omitempty" binding:"omitempty,oneof=fr en"`
 	VariantPickRequired              *bool  `json:"variant_pick_required,omitempty"`
 	SyncVerbose                      *bool  `json:"sync_verbose,omitempty"`
 	InvoiceRatingsEnabled            *bool  `json:"invoice_ratings_enabled,omitempty"`

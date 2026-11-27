@@ -144,6 +144,8 @@ type branchSettingsRequest struct {
 	// A discount typed on a sale line is saved on the product and carried to
 	// the next piece scanned. Nil leaves it off: it stays on its own line.
 	RememberItemDiscounts *bool `json:"remember_item_discounts"`
+	// The tills' screen language. Nil leaves French, the till's own default.
+	TillLanguage *string `json:"till_language"`
 	// DealsStack: the branch's invoice deals add up instead of the biggest
 	// taking over (the till's invoiceDiscountsStacked). Nil leaves it off.
 	DealsStack *bool `json:"deals_stack"`
@@ -245,6 +247,10 @@ func (server *Server) applyBranchSettingsPatch(ctx *gin.Context, branchID int64,
 	if req.OversellMode != nil && !validOversellMode(*req.OversellMode) {
 		return nil, errors.New("oversell_mode must be allow, warn or block")
 	}
+	// Empty is a branch with nothing saved yet: it takes the default.
+	if req.TillLanguage != nil && *req.TillLanguage != "" && !validTillLanguage(*req.TillLanguage) {
+		return nil, errors.New("till_language must be fr or en")
+	}
 	if req.ShiftReceiptUploadMode != nil && (*req.ShiftReceiptUploadMode < 0 || *req.ShiftReceiptUploadMode > 3) {
 		return nil, errors.New("shift_receipt_upload_mode must be 0 to 3")
 	}
@@ -306,6 +312,10 @@ func receiptLookID(p *string, fallback string) string {
 
 func validOversellMode(mode string) bool {
 	return mode == "allow" || mode == "warn" || mode == "block"
+}
+
+func validTillLanguage(language string) bool {
+	return language == "fr" || language == "en"
 }
 
 // branchWideSettingsPayload is the full update_settings payload that brings
@@ -455,6 +465,11 @@ func (server *Server) upsertBranchSettings(ctx *gin.Context, branchID int64, req
 		oversellMode = *req.OversellMode
 	}
 
+	tillLanguage := "fr"
+	if req.TillLanguage != nil && validTillLanguage(*req.TillLanguage) {
+		tillLanguage = *req.TillLanguage
+	}
+
 	return server.store.UpsertBranchSettings(ctx, db.UpsertBranchSettingsParams{
 		BranchID:            branchID,
 		BranchName:          req.BranchName,
@@ -526,6 +541,7 @@ func (server *Server) upsertBranchSettings(ctx *gin.Context, branchID int64, req
 		DealToggle:                         orZero(req.DealToggle),
 		DealsStack:                         orZero(req.DealsStack),
 		RememberItemDiscounts:              orZero(req.RememberItemDiscounts),
+		TillLanguage:                       tillLanguage,
 		VariantPickRequired:                orZero(req.VariantPickRequired),
 		SyncVerbose:                        orZero(req.SyncVerbose),
 		InvoiceRatingsEnabled:              orTrue(req.InvoiceRatingsEnabled),

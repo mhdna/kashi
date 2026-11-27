@@ -981,6 +981,7 @@ type BranchSetting struct {
 	ReceiptTexts                       string          `json:"receipt_texts"`
 	DealsStack                         bool            `json:"deals_stack"`
 	RememberItemDiscounts              bool            `json:"remember_item_discounts"`
+	TillLanguage                       string          `json:"till_language"`
 }
 
 type BranchShift struct {
