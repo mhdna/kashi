@@ -233,7 +233,7 @@ INSERT INTO clients (
   phone_country
 ) VALUES (
     $1, $2, $3, $4, $5
-) RETURNING id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code
+) RETURNING id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code, source_id
 `
 
 type CreateClientParams struct {
@@ -268,6 +268,7 @@ func (q *Queries) CreateClient(ctx context.Context, arg CreateClientParams) (Cli
 		&i.PhoneValid,
 		&i.PhoneCountry,
 		&i.ReferralCode,
+		&i.SourceID,
 	)
 	return i, err
 }
@@ -283,7 +284,7 @@ func (q *Queries) DeleteClient(ctx context.Context, id int64) error {
 }
 
 const getClient = `-- name: GetClient :one
-SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code FROM clients
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code, source_id FROM clients
 WHERE id = $1 LIMIT 1
 `
 
@@ -305,12 +306,13 @@ func (q *Queries) GetClient(ctx context.Context, id int64) (Client, error) {
 		&i.PhoneValid,
 		&i.PhoneCountry,
 		&i.ReferralCode,
+		&i.SourceID,
 	)
 	return i, err
 }
 
 const getClientByPhone = `-- name: GetClientByPhone :one
-SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code FROM clients
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code, source_id FROM clients
 WHERE phone = $1 LIMIT 1
 `
 
@@ -332,6 +334,7 @@ func (q *Queries) GetClientByPhone(ctx context.Context, phone string) (Client, e
 		&i.PhoneValid,
 		&i.PhoneCountry,
 		&i.ReferralCode,
+		&i.SourceID,
 	)
 	return i, err
 }
@@ -464,7 +467,7 @@ func (q *Queries) ListClientPhoneCountries(ctx context.Context) ([]ListClientPho
 }
 
 const listClients = `-- name: ListClients :many
-SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code FROM clients
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code, source_id FROM clients
 WHERE $3::text IS NULL OR client_type = $3
 ORDER BY name
 LIMIT $1
@@ -504,6 +507,7 @@ func (q *Queries) ListClients(ctx context.Context, arg ListClientsParams) ([]Cli
 			&i.PhoneValid,
 			&i.PhoneCountry,
 			&i.ReferralCode,
+			&i.SourceID,
 		); err != nil {
 			return nil, err
 		}
@@ -519,7 +523,7 @@ func (q *Queries) ListClients(ctx context.Context, arg ListClientsParams) ([]Cli
 }
 
 const listClientsByInvoiceCountCached = `-- name: ListClientsByInvoiceCountCached :many
-SELECT c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type, c.uid, c.is_active, c.branch_id, c.phone_valid, c.phone_country, c.referral_code, cs.total_spent, cs.invoice_count, cs.item_count
+SELECT c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type, c.uid, c.is_active, c.branch_id, c.phone_valid, c.phone_country, c.referral_code, c.source_id, cs.total_spent, cs.invoice_count, cs.item_count
 FROM clients c
 JOIN client_spend cs ON cs.client_id = c.id
 WHERE ($3::text IS NULL OR c.client_type = $3)
@@ -555,6 +559,7 @@ type ListClientsByInvoiceCountCachedRow struct {
 	PhoneValid         bool          `json:"phone_valid"`
 	PhoneCountry       string        `json:"phone_country"`
 	ReferralCode       string        `json:"referral_code"`
+	SourceID           sql.NullInt64 `json:"source_id"`
 	TotalSpent         int64         `json:"total_spent"`
 	InvoiceCount       int64         `json:"invoice_count"`
 	ItemCount          int64         `json:"item_count"`
@@ -592,6 +597,7 @@ func (q *Queries) ListClientsByInvoiceCountCached(ctx context.Context, arg ListC
 			&i.PhoneValid,
 			&i.PhoneCountry,
 			&i.ReferralCode,
+			&i.SourceID,
 			&i.TotalSpent,
 			&i.InvoiceCount,
 			&i.ItemCount,
@@ -610,7 +616,7 @@ func (q *Queries) ListClientsByInvoiceCountCached(ctx context.Context, arg ListC
 }
 
 const listClientsByItemCountCached = `-- name: ListClientsByItemCountCached :many
-SELECT c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type, c.uid, c.is_active, c.branch_id, c.phone_valid, c.phone_country, c.referral_code, cs.total_spent, cs.invoice_count, cs.item_count
+SELECT c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type, c.uid, c.is_active, c.branch_id, c.phone_valid, c.phone_country, c.referral_code, c.source_id, cs.total_spent, cs.invoice_count, cs.item_count
 FROM clients c
 JOIN client_spend cs ON cs.client_id = c.id
 WHERE ($3::text IS NULL OR c.client_type = $3)
@@ -646,6 +652,7 @@ type ListClientsByItemCountCachedRow struct {
 	PhoneValid         bool          `json:"phone_valid"`
 	PhoneCountry       string        `json:"phone_country"`
 	ReferralCode       string        `json:"referral_code"`
+	SourceID           sql.NullInt64 `json:"source_id"`
 	TotalSpent         int64         `json:"total_spent"`
 	InvoiceCount       int64         `json:"invoice_count"`
 	ItemCount          int64         `json:"item_count"`
@@ -683,6 +690,7 @@ func (q *Queries) ListClientsByItemCountCached(ctx context.Context, arg ListClie
 			&i.PhoneValid,
 			&i.PhoneCountry,
 			&i.ReferralCode,
+			&i.SourceID,
 			&i.TotalSpent,
 			&i.InvoiceCount,
 			&i.ItemCount,
@@ -721,7 +729,7 @@ WITH firsts AS (
   GROUP BY x.client_id
 ), ranked AS (
   SELECT
-    c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type, c.uid, c.is_active, c.branch_id, c.phone_valid, c.phone_country, c.referral_code,
+    c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type, c.uid, c.is_active, c.branch_id, c.phone_valid, c.phone_country, c.referral_code, c.source_id,
     (
       CASE WHEN COALESCE(cardinality($5::bigint[]), 0) = 0 THEN COALESCE(ci.central_total, 0) ELSE 0 END
       + COALESCE(bi.branch_total, 0)
@@ -827,7 +835,7 @@ WITH firsts AS (
       OR ($4::text = 'first' AND (CASE WHEN COALESCE(cardinality($5::bigint[]), 0) = 0 THEN fcs.first_purchase_at ELSE f.first_at END) >= $6::timestamptz)
       OR ($4::text = 'returning' AND (CASE WHEN COALESCE(cardinality($5::bigint[]), 0) = 0 THEN fcs.first_purchase_at ELSE f.first_at END) < $6::timestamptz))
 )
-SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code, total_spent, invoice_count, item_count
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code, source_id, total_spent, invoice_count, item_count
 FROM ranked
 ORDER BY
   (CASE $3::text
@@ -869,6 +877,7 @@ type ListClientsBySpendingRow struct {
 	PhoneValid         bool          `json:"phone_valid"`
 	PhoneCountry       string        `json:"phone_country"`
 	ReferralCode       string        `json:"referral_code"`
+	SourceID           sql.NullInt64 `json:"source_id"`
 	TotalSpent         int64         `json:"total_spent"`
 	InvoiceCount       int64         `json:"invoice_count"`
 	ItemCount          int64         `json:"item_count"`
@@ -930,6 +939,7 @@ func (q *Queries) ListClientsBySpending(ctx context.Context, arg ListClientsBySp
 			&i.PhoneValid,
 			&i.PhoneCountry,
 			&i.ReferralCode,
+			&i.SourceID,
 			&i.TotalSpent,
 			&i.InvoiceCount,
 			&i.ItemCount,
@@ -948,7 +958,7 @@ func (q *Queries) ListClientsBySpending(ctx context.Context, arg ListClientsBySp
 }
 
 const listClientsBySpendingCached = `-- name: ListClientsBySpendingCached :many
-SELECT c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type, c.uid, c.is_active, c.branch_id, c.phone_valid, c.phone_country, c.referral_code, cs.total_spent, cs.invoice_count, cs.item_count
+SELECT c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type, c.uid, c.is_active, c.branch_id, c.phone_valid, c.phone_country, c.referral_code, c.source_id, cs.total_spent, cs.invoice_count, cs.item_count
 FROM clients c
 JOIN client_spend cs ON cs.client_id = c.id
 WHERE ($3::text IS NULL OR c.client_type = $3)
@@ -984,6 +994,7 @@ type ListClientsBySpendingCachedRow struct {
 	PhoneValid         bool          `json:"phone_valid"`
 	PhoneCountry       string        `json:"phone_country"`
 	ReferralCode       string        `json:"referral_code"`
+	SourceID           sql.NullInt64 `json:"source_id"`
 	TotalSpent         int64         `json:"total_spent"`
 	InvoiceCount       int64         `json:"invoice_count"`
 	ItemCount          int64         `json:"item_count"`
@@ -1026,6 +1037,7 @@ func (q *Queries) ListClientsBySpendingCached(ctx context.Context, arg ListClien
 			&i.PhoneValid,
 			&i.PhoneCountry,
 			&i.ReferralCode,
+			&i.SourceID,
 			&i.TotalSpent,
 			&i.InvoiceCount,
 			&i.ItemCount,
@@ -1244,7 +1256,7 @@ func (q *Queries) ListClientsMissingPhoneCountry(ctx context.Context) ([]ListCli
 }
 
 const listClientsUpdatedSince = `-- name: ListClientsUpdatedSince :many
-SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code FROM clients
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code, source_id FROM clients
 WHERE updated_at > $1 AND client_type = 'retail'
 ORDER BY updated_at
 `
@@ -1280,6 +1292,7 @@ func (q *Queries) ListClientsUpdatedSince(ctx context.Context, updatedAt time.Ti
 			&i.PhoneValid,
 			&i.PhoneCountry,
 			&i.ReferralCode,
+			&i.SourceID,
 		); err != nil {
 			return nil, err
 		}
@@ -1295,7 +1308,7 @@ func (q *Queries) ListClientsUpdatedSince(ctx context.Context, updatedAt time.Ti
 }
 
 const listClientsUpdatedSincePaged = `-- name: ListClientsUpdatedSincePaged :many
-SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code FROM clients
+SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code, source_id FROM clients
 WHERE client_type = 'retail'
   AND (updated_at, id) > ($1::timestamptz, $2::bigint)
 ORDER BY updated_at, id
@@ -1337,6 +1350,7 @@ func (q *Queries) ListClientsUpdatedSincePaged(ctx context.Context, arg ListClie
 			&i.PhoneValid,
 			&i.PhoneCountry,
 			&i.ReferralCode,
+			&i.SourceID,
 		); err != nil {
 			return nil, err
 		}
@@ -1352,9 +1366,9 @@ func (q *Queries) ListClientsUpdatedSincePaged(ctx context.Context, arg ListClie
 }
 
 const listClientsWithLoyalty = `-- name: ListClientsWithLoyalty :many
-SELECT c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type, c.uid, c.is_active, c.branch_id, c.phone_valid, c.phone_country, c.referral_code, COALESCE(bl.branch_points, 0)::bigint AS branch_loyalty_points
+SELECT c.id, c.name, c.phone, c.total_loyalty_points, c.valid_loyalty_points, c.created_at, c.updated_at, c.client_type, c.uid, c.is_active, c.branch_id, c.phone_valid, c.phone_country, c.referral_code, c.source_id, COALESCE(bl.branch_points, 0)::bigint AS branch_loyalty_points
 FROM (
-  SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code FROM clients
+  SELECT id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code, source_id FROM clients
   WHERE $3::text IS NULL OR client_type = $3
   ORDER BY name, id
   LIMIT $1
@@ -1390,6 +1404,7 @@ type ListClientsWithLoyaltyRow struct {
 	PhoneValid          bool          `json:"phone_valid"`
 	PhoneCountry        string        `json:"phone_country"`
 	ReferralCode        string        `json:"referral_code"`
+	SourceID            sql.NullInt64 `json:"source_id"`
 	BranchLoyaltyPoints int64         `json:"branch_loyalty_points"`
 }
 
@@ -1426,6 +1441,7 @@ func (q *Queries) ListClientsWithLoyalty(ctx context.Context, arg ListClientsWit
 			&i.PhoneValid,
 			&i.PhoneCountry,
 			&i.ReferralCode,
+			&i.SourceID,
 			&i.BranchLoyaltyPoints,
 		); err != nil {
 			return nil, err
@@ -1883,7 +1899,7 @@ UPDATE clients
   phone_country = $6,
   updated_at = now()
 WHERE id = $1
-RETURNING id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code
+RETURNING id, name, phone, total_loyalty_points, valid_loyalty_points, created_at, updated_at, client_type, uid, is_active, branch_id, phone_valid, phone_country, referral_code, source_id
 `
 
 type UpdateClientParams struct {
@@ -1920,6 +1936,7 @@ func (q *Queries) UpdateClient(ctx context.Context, arg UpdateClientParams) (Cli
 		&i.PhoneValid,
 		&i.PhoneCountry,
 		&i.ReferralCode,
+		&i.SourceID,
 	)
 	return i, err
 }

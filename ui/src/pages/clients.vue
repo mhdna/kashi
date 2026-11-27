@@ -220,6 +220,15 @@
         @click="openExport"
       />
       <v-btn
+        data-test="open-client-sources"
+        prepend-icon="mdi-bullhorn"
+        rounded="lg"
+        style="border-color: rgb(var(--v-theme-surface-light));"
+        :text="t('How they found us')"
+        variant="outlined"
+        @click="sourcesDialog = true"
+      />
+      <v-btn
         prepend-icon="mdi-file-chart-outline"
         rounded="lg"
         style="border-color: rgb(var(--v-theme-surface-light));"
@@ -236,6 +245,8 @@
       />
     </div>
   </div>
+
+  <ClientSourcesDialog v-model="sourcesDialog" :can-edit="canEdit" />
 
   <ClientLoyaltyBoard
     :key="tab"
@@ -254,16 +265,17 @@
 </template>
 
 <script setup>
-  import { t } from '@/i18n'
   import { useField, useForm } from 'vee-validate'
   import { computed, onMounted, ref } from 'vue'
   import ClientLoyaltyBoard from '@/components/Clients/ClientLoyaltyBoard.vue'
+  import ClientSourcesDialog from '@/components/Clients/ClientSourcesDialog.vue'
   import { authFetch } from '@/composables/useApi'
   import { useBranches } from '@/composables/useBranches'
   import { useClients } from '@/composables/useClients'
   import { useNotify } from '@/composables/useNotify'
   import { usePageAccess } from '@/composables/usePageAccess'
   import { API_BASE } from '@/config'
+  import { t } from '@/i18n'
   import { countryFlag } from '@/utils/countryFlag'
   import { rangeBounds } from '@/utils/dateRange'
 
@@ -329,6 +341,7 @@
     { title: t('Last visit'), value: 'last_visit' },
   ]
   const exportDialog = ref(false)
+  const sourcesDialog = ref(false)
   const exporting = ref(false)
   const exportFields = ref(['name', 'phone'])
   const exportBranchIds = ref([])

@@ -28,6 +28,9 @@ type branchClientRequest struct {
 	// ReferralCode is the code the till made for the client offline and
 	// printed on their first receipt; kept for a client this push creates.
 	ReferralCode string `json:"referral_code"`
+	// SourceUID is where the customer heard about the shop (client_sources),
+	// asked when the cashier added them; kept unless the client has one.
+	SourceUID string `json:"source_uid"`
 }
 
 // validBranchPhone reports whether a branch-reported phone is usable as the
@@ -117,6 +120,7 @@ func (server *Server) putBranchClient(ctx *gin.Context) {
 		return
 	}
 	outcome = server.keepTillReferralCode(ctx, outcome, req)
+	server.keepTillClientSource(ctx, outcome, req)
 	if outcome.changed {
 		server.notifyClientsChanged(ctx, branchID)
 	}

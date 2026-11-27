@@ -74,6 +74,7 @@
       { label: t('Phone'),         value: client.value?.phone ? `${countryFlag(client.value.phone_country)} ${client.value.phone}`.trim() : '—' },
       { label: t('Home branch'),   value: profile.value.homeBranch  || '—' },
       { label: t('First purchase'), value: formatDate(profile.value.firstPurchaseAt) || '—' },
+      { label: t('Heard about us'), value: profile.value.heardFrom ? t(profile.value.heardFrom) : '—' },
     ]
   })
 

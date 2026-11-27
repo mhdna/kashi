@@ -85,6 +85,8 @@ func (server *Server) getClientProfile(ctx *gin.Context) {
 		return
 	}
 
+	heardFrom := server.clientHeardFrom(ctx, client)
+
 	paymentMix, err := pq.ListClientPaymentMix(ctx, req.ID)
 	if err != nil {
 		server.writeError(ctx, http.StatusInternalServerError, err)
@@ -162,6 +164,7 @@ func (server *Server) getClientProfile(ctx *gin.Context) {
 		"pointsRemaining": client.ValidLoyaltyPoints,
 		"pointsRedeemed":  pointsRedeemed,
 		"homeBranch":      homeBranch,
+		"heardFrom":       heardFrom,
 		"firstPurchaseAt": firstPurchase,
 		"paymentMix":      payMixOut,
 		"recentInvoices":  recentOut,

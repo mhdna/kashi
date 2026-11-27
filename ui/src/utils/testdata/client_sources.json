@@ -1,0 +1,64 @@
+{
+  "client_sources": [
+    {
+      "client_count": 41,
+      "created_at": "2026-11-27T10:00:00Z",
+      "id": 1,
+      "is_active": true,
+      "name": "Social media",
+      "sort_order": 1,
+      "uid": "6f1c2a00-5e1d-4c7a-9b00-000000000001",
+      "updated_at": "2026-11-27T10:00:00Z"
+    },
+    {
+      "client_count": 12,
+      "created_at": "2026-11-27T10:00:00Z",
+      "id": 2,
+      "is_active": true,
+      "name": "SMS",
+      "sort_order": 2,
+      "uid": "6f1c2a00-5e1d-4c7a-9b00-000000000002",
+      "updated_at": "2026-11-27T10:00:00Z"
+    },
+    {
+      "client_count": 22,
+      "created_at": "2026-11-27T10:00:00Z",
+      "id": 3,
+      "is_active": true,
+      "name": "A friend",
+      "sort_order": 3,
+      "uid": "6f1c2a00-5e1d-4c7a-9b00-000000000003",
+      "updated_at": "2026-11-27T10:00:00Z"
+    },
+    {
+      "client_count": 7,
+      "created_at": "2026-11-27T10:00:00Z",
+      "id": 4,
+      "is_active": true,
+      "name": "Walking by",
+      "sort_order": 4,
+      "uid": "6f1c2a00-5e1d-4c7a-9b00-000000000004",
+      "updated_at": "2026-11-27T10:00:00Z"
+    },
+    {
+      "client_count": 0,
+      "created_at": "2026-11-27T10:00:00Z",
+      "id": 5,
+      "is_active": true,
+      "name": "Other",
+      "sort_order": 5,
+      "uid": "6f1c2a00-5e1d-4c7a-9b00-000000000005",
+      "updated_at": "2026-11-27T10:00:00Z"
+    },
+    {
+      "client_count": 3,
+      "created_at": "2026-11-27T10:00:00Z",
+      "id": 6,
+      "is_active": false,
+      "name": "Radio",
+      "sort_order": 6,
+      "uid": "0b7e1f7c-3a2d-4f55-9d0c-6a1f2b3c4d5e",
+      "updated_at": "2026-11-27T10:00:00Z"
+    }
+  ]
+}

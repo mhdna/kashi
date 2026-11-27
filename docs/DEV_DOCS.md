@@ -276,6 +276,18 @@ Every client has a code (`clients.referral_code`, migration 000243): 5 random ch
 
 Everything here is best-effort after the sale is stored: a failure is logged, never fails the till's push, and a replay is harmless (one row per source invoice).
 
+## Customer sources {icon=mdiBullhorn}
+
+"Where did they hear about us?", asked at the till when a cashier adds a new customer (migration 000260, `api/client_source.go`).
+
+| Part | Rule |
+| --- | --- |
+| Options | `client_sources` (uid, name, sort_order, is_active). Managed on the Clients page, **How they found us**, which also shows each option's customers and share. An option a customer gave can't be deleted (409), only hidden. |
+| Seeds | Social media, SMS, A friend, Walking by, Other, with fixed uids `6f1c2a00-5e1d-4c7a-9b00-00000000000N`. The till seeds the same rows (kashi-pos migration 000151) so it asks before its first sync. Never change those uids. |
+| Tills | Entity `client_sources`, the whole set every pull (hidden ones included, so the till drops them); `client_sources_updated` on the branch socket plus the table's `sync_notify` trigger. |
+| Answer | The till sends `source_uid` with the client push (single and batch). `keepTillClientSource` sets `clients.source_id` only when it is empty: the first answer wins, an unknown uid is ignored, `updated_at` is left alone. A hidden option still takes answers from a till that hasn't heard. |
+| Shown | Client page, **Heard about us** (`heardFrom` on `/clients/:id/profile`). |
+
 ## Security guard {icon=mdiShieldAlert}
 
 ::: glance

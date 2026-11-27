@@ -78,6 +78,7 @@ var adminResourceNames = map[string]string{
 	"asset_categories":          "asset category",
 	"expense_categories":        "expense category",
 	"loan_categories":           "loan category",
+	"client_sources":            "customer source",
 	"coupon_categories":         "coupon category",
 	"inventories":               "inventory",
 	"currencies":                "currency",

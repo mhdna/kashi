@@ -1,0 +1,22 @@
+// French for "where did the customer hear about us" (clients page, client page).
+export default {
+  'How they found us': 'Comment ils nous ont connus',
+  'How customers found us': 'Comment les clients nous ont connus',
+  'The till asks this when a cashier adds a new customer. Hidden options are no longer offered.': 'La caisse pose cette question quand un caissier ajoute un nouveau client. Les options masquées ne sont plus proposées.',
+  '{n} customers answered': '{n} clients ont répondu',
+  '{n} customers, {share}%': '{n} clients, {share} %',
+  'Hidden': 'Masquée',
+  'Move up': 'Monter',
+  'Move down': 'Descendre',
+  'Hide': 'Masquer',
+  'Show': 'Afficher',
+  'New option': 'Nouvelle option',
+  'Enter a name for the option': 'Saisissez un nom pour l\'option',
+  'There is already an option with this name': 'Une option porte déjà ce nom',
+  'Heard about us': 'Nous a connus par',
+  'Social media': 'Réseaux sociaux',
+  'SMS': 'SMS',
+  'A friend': 'Un ami',
+  'Walking by': 'En passant',
+  'Other': 'Autre',
+}
