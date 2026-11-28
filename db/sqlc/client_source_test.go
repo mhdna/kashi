@@ -10,21 +10,22 @@ import (
 )
 
 // The options a till seeds offline have these uids (kashi-pos migrations
-// 000151 and 000152): kashi must hold the same ones so a till's first answers
+// 000151 to 000153): kashi must hold the same ones so a till's first answers
 // land.
 var seededClientSources = map[string]string{
 	"6f1c2a00-5e1d-4c7a-9b00-000000000001": "Social media",
 	"6f1c2a00-5e1d-4c7a-9b00-000000000003": "A friend or family",
 	"6f1c2a00-5e1d-4c7a-9b00-000000000004": "Walking by",
-	"6f1c2a00-5e1d-4c7a-9b00-000000000006": "Google Maps",
-	"6f1c2a00-5e1d-4c7a-9b00-000000000007": "WhatsApp",
-	"6f1c2a00-5e1d-4c7a-9b00-000000000008": "An ad or flyer",
 }
 
-// SMS and Other were dropped (migration 000261); a till never offers them.
+// SMS and Other (migration 000261), then Google Maps, WhatsApp and An ad or
+// flyer (000262) were dropped; a till never offers them.
 var droppedClientSources = []string{
 	"6f1c2a00-5e1d-4c7a-9b00-000000000002",
 	"6f1c2a00-5e1d-4c7a-9b00-000000000005",
+	"6f1c2a00-5e1d-4c7a-9b00-000000000006",
+	"6f1c2a00-5e1d-4c7a-9b00-000000000007",
+	"6f1c2a00-5e1d-4c7a-9b00-000000000008",
 }
 
 func TestClientSourcesSeededWithTillUIDs(t *testing.T) {

@@ -20,9 +20,9 @@ import (
 
 // Seeded options, the same uids as the till's migration 000151.
 const (
-	sourceSocialUID   = "6f1c2a00-5e1d-4c7a-9b00-000000000001"
-	sourceWhatsAppUID = "6f1c2a00-5e1d-4c7a-9b00-000000000007"
-	sourceFriendUID   = "6f1c2a00-5e1d-4c7a-9b00-000000000003"
+	sourceSocialUID  = "6f1c2a00-5e1d-4c7a-9b00-000000000001"
+	sourceWalkingUID = "6f1c2a00-5e1d-4c7a-9b00-000000000004"
+	sourceFriendUID  = "6f1c2a00-5e1d-4c7a-9b00-000000000003"
 )
 
 type syncedSourceRow struct {
@@ -109,13 +109,13 @@ func TestClientSourceFlow(t *testing.T) {
 	t.Run("the till gets the whole list", func(t *testing.T) {
 		rows := synced()
 		require.Equal(t, "Social media", rows[sourceSocialUID].Name)
-		require.Equal(t, "WhatsApp", rows[sourceWhatsAppUID].Name)
+		require.Equal(t, "Walking by", rows[sourceWalkingUID].Name)
 		require.Equal(t, "A friend or family", rows[sourceFriendUID].Name)
 	})
 
 	t.Run("a new client keeps the answer the till sent", func(t *testing.T) {
-		c := push("Maya", phone(), sourceWhatsAppUID)
-		require.Equal(t, "WhatsApp", sourceOf(c.ID))
+		c := push("Maya", phone(), sourceWalkingUID)
+		require.Equal(t, "Walking by", sourceOf(c.ID))
 	})
 
 	t.Run("an edit with another answer changes nothing", func(t *testing.T) {
@@ -138,7 +138,7 @@ func TestClientSourceFlow(t *testing.T) {
 	t.Run("a client another till added first keeps their answer", func(t *testing.T) {
 		p := phone()
 		first := push("Lea", p, sourceSocialUID)
-		second := push("Lea", p, sourceWhatsAppUID)
+		second := push("Lea", p, sourceWalkingUID)
 		require.Equal(t, first.ID, second.ID)
 		require.Equal(t, "Social media", sourceOf(first.ID))
 	})
@@ -160,12 +160,12 @@ func TestClientSourceFlow(t *testing.T) {
 	t.Run("the batch route keeps the answer too", func(t *testing.T) {
 		p := phone()
 		rec := till(http.MethodPost, "/branch/clients_batch", map[string]any{"clients": []map[string]any{
-			{"branch_client_id": 5001, "name": "Sara", "phone": p, "source_uid": sourceWhatsAppUID},
+			{"branch_client_id": 5001, "name": "Sara", "phone": p, "source_uid": sourceWalkingUID},
 		}})
 		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 		var id int64
 		require.NoError(t, conn.QueryRow(`SELECT id FROM clients WHERE phone = $1`, p).Scan(&id))
-		require.Equal(t, "WhatsApp", sourceOf(id))
+		require.Equal(t, "Walking by", sourceOf(id))
 	})
 
 	t.Run("the profile shows where they heard about us", func(t *testing.T) {
@@ -231,7 +231,7 @@ func TestClientSourceFlow(t *testing.T) {
 			return out
 		}
 		before := counts()
-		choices := []string{sourceSocialUID, sourceWhatsAppUID, sourceFriendUID, "", uuid.NewString()}
+		choices := []string{sourceSocialUID, sourceWalkingUID, sourceFriendUID, "", uuid.NewString()}
 		want := map[string]int64{}
 		rng := rand.New(rand.NewSource(7))
 		phones := []string{}
@@ -246,14 +246,14 @@ func TestClientSourceFlow(t *testing.T) {
 			}
 			src := choices[rng.Intn(len(choices))]
 			push("Customer", p, src)
-			known := src == sourceSocialUID || src == sourceWhatsAppUID || src == sourceFriendUID
+			known := src == sourceSocialUID || src == sourceWalkingUID || src == sourceFriendUID
 			if _, has := first[p]; !has && known {
 				first[p] = src
 				want[src]++
 			}
 		}
 		after := counts()
-		for _, uid := range []string{sourceSocialUID, sourceWhatsAppUID, sourceFriendUID} {
+		for _, uid := range []string{sourceSocialUID, sourceWalkingUID, sourceFriendUID} {
 			require.Equal(t, want[uid], after[uid]-before[uid], uid)
 		}
 	})
