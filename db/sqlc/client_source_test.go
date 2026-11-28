@@ -9,25 +9,39 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// The options a till seeds offline have these uids (kashi-pos migration
-// 000151): kashi must hold the same ones so a till's first answers land.
+// The options a till seeds offline have these uids (kashi-pos migrations
+// 000151 and 000152): kashi must hold the same ones so a till's first answers
+// land.
 var seededClientSources = map[string]string{
 	"6f1c2a00-5e1d-4c7a-9b00-000000000001": "Social media",
-	"6f1c2a00-5e1d-4c7a-9b00-000000000002": "SMS",
-	"6f1c2a00-5e1d-4c7a-9b00-000000000003": "A friend",
+	"6f1c2a00-5e1d-4c7a-9b00-000000000003": "A friend or family",
 	"6f1c2a00-5e1d-4c7a-9b00-000000000004": "Walking by",
-	"6f1c2a00-5e1d-4c7a-9b00-000000000005": "Other",
+	"6f1c2a00-5e1d-4c7a-9b00-000000000006": "Google Maps",
+	"6f1c2a00-5e1d-4c7a-9b00-000000000007": "WhatsApp",
+	"6f1c2a00-5e1d-4c7a-9b00-000000000008": "An ad or flyer",
+}
+
+// SMS and Other were dropped (migration 000261); a till never offers them.
+var droppedClientSources = []string{
+	"6f1c2a00-5e1d-4c7a-9b00-000000000002",
+	"6f1c2a00-5e1d-4c7a-9b00-000000000005",
 }
 
 func TestClientSourcesSeededWithTillUIDs(t *testing.T) {
 	rows, err := testQueries.ListClientSourcesForSync(context.Background())
 	require.NoError(t, err)
-	found := map[string]string{}
+	found := map[string]ClientSource{}
 	for _, r := range rows {
-		found[r.Uid.String()] = r.Name
+		found[r.Uid.String()] = r
 	}
 	for uid, name := range seededClientSources {
-		require.Equal(t, name, found[uid], "seeded option %s", uid)
+		require.Equal(t, name, found[uid].Name, "seeded option %s", uid)
+		require.True(t, found[uid].IsActive, "seeded option %s", uid)
+	}
+	for _, uid := range droppedClientSources {
+		if r, ok := found[uid]; ok {
+			require.False(t, r.IsActive, "dropped option %s still offered", uid)
+		}
 	}
 }
 

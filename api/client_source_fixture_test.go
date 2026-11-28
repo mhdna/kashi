@@ -28,7 +28,7 @@ func TestClientSourcesFixtureForUI(t *testing.T) {
 	}
 	store.EXPECT().ListClientSources(gomock.Any()).Return([]db.ListClientSourcesRow{
 		row(1, sourceSocialUID, "Social media", 1, true, 41),
-		row(2, sourceSMSUID, "SMS", 2, true, 12),
+		row(2, "6f1c2a00-5e1d-4c7a-9b00-000000000002", "SMS", 2, true, 12),
 		row(3, sourceFriendUID, "A friend", 3, true, 22),
 		row(4, "6f1c2a00-5e1d-4c7a-9b00-000000000004", "Walking by", 4, true, 7),
 		row(5, "6f1c2a00-5e1d-4c7a-9b00-000000000005", "Other", 5, true, 0),
