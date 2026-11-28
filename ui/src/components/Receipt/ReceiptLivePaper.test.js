@@ -194,4 +194,22 @@ describe('ReceiptLivePaper', () => {
     await flushPromises()
     expect(find('edit-words').exists()).toBe(true)
   })
+
+  it('a part left out can be printed again from under the paper', async () => {
+    open({ catalog, design: { ...emptyDesign(), hide: ['policy', 'thanks'] } })
+    const find = sel => wrapper.find(`[data-test="${sel}"]`)
+    expect(find('print-policy').text()).toBe('Print the exchange policy again')
+    expect(find('print-thanks').exists()).toBe(true)
+    expect(find('print-socials').exists()).toBe(false)
+    await find('print-policy').trigger('click')
+    expect(wrapper.emitted('update:design').at(-1)[0].hide).toEqual(['thanks'])
+  })
+
+  it('shows nothing left out for a whole receipt, or to who cannot edit', () => {
+    open({ catalog, design: emptyDesign() })
+    expect(wrapper.find('[data-test="left-out"]').exists()).toBe(false)
+    wrapper.unmount()
+    open({ catalog, design: { ...emptyDesign(), hide: ['policy'] }, editable: false })
+    expect(wrapper.find('[data-test="left-out"]').exists()).toBe(false)
+  })
 })

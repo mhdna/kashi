@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -134,6 +135,13 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 		server.sendWhatsAppViaBridge(ctx, entry, sender, "Centro", nil, sale)
 		return rec
 	}
+	runSale := func(server *Server, sale branchWhatsAppThankYouRequest, sender db.GetWhatsAppSenderSettingsRow) *httptest.ResponseRecorder {
+		rec := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(rec)
+		ctx.Request = httptest.NewRequest(http.MethodPost, "/", nil)
+		server.sendWhatsAppViaBridge(ctx, entry, sender, "Centro", nil, sale)
+		return rec
+	}
 
 	t.Run("link mode: sends from the branch's number with the review link and its card", func(t *testing.T) {
 		bridge, got, path := fakeBridge(t, http.StatusCreated, `{"status":"QUEUED","queued":1}`)
@@ -213,7 +221,7 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		store := mockdb.NewMockStore(ctrl)
 		server := newTestServer(t, store)
-		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), numberForBranch(2)).Return(db.WhatsappNumber{}, sql.ErrNoRows)
+		store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), numberForBranch(2)).Return(db.WhatsappNumber{}, sql.ErrNoRows).Times(2)
 		store.EXPECT().DeleteFailedWhatsAppMessagesForInvoice(gomock.Any(), gomock.Any()).Return(nil)
 		store.EXPECT().CreateWhatsAppMessage(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(_ any, arg db.CreateWhatsAppMessageParams) (db.WhatsappMessage, error) {
@@ -222,8 +230,47 @@ func TestSendWhatsAppViaBridge(t *testing.T) {
 				return db.WhatsappMessage{}, nil
 			})
 		rec := run(server, db.GetWhatsAppSenderSettingsRow{WhatsappMessageNew: true, WhatsappMessageReturning: true, WhatsappPollNew: true, WhatsappPollReturning: true, WhatsappSender: "bridge", WhatsappBridgeKey: "secret-key"})
-		require.JSONEq(t, `{"sent":false,"reason":"no WhatsApp number for this branch, or the invoice is under every number's minimum (Settings > WhatsApp)","retry":false}`, rec.Body.String())
+		require.JSONEq(t, `{"sent":false,"reason":"no WhatsApp number for this branch (Settings > WhatsApp)","retry":false}`, rec.Body.String())
 	})
+
+	// The reported case: Centro sends from the Hara number, whose minimum is
+	// $20; a $7 sale is skipped with that reason, not failed. At or above the
+	// minimum (or with no minimum) the first lookup finds the number.
+	for _, tc := range []struct {
+		name         string
+		total, min   int64
+		wantStatus   string
+		wantInReason string
+	}{
+		{"$7 under the Hara number's $20 is skipped", 700, 2000, whatsAppStatusSkipped, "under $20.00, the minimum of the Hara number"},
+		{"$0 under $50 is skipped", 0, 5000, whatsAppStatusSkipped, "under $50.00"},
+		{"$19.99 under $20 is skipped", 1999, 2000, whatsAppStatusSkipped, "under $20.00"},
+		{"a number found with no limit but no minimum above the sale still fails", 700, 0, whatsAppStatusFailed, "no WhatsApp number"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			store := mockdb.NewMockStore(ctrl)
+			server := newTestServer(t, store)
+			gomock.InOrder(
+				store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), numberForBranch(2)).Return(db.WhatsappNumber{}, sql.ErrNoRows),
+				store.EXPECT().WhatsAppNumberForBranch(gomock.Any(), numberForBranch(2)).DoAndReturn(
+					func(_ any, arg db.WhatsAppNumberForBranchParams) (db.WhatsappNumber, error) {
+						require.Equal(t, int64(math.MaxInt64), arg.TotalCents)
+						return db.WhatsappNumber{ID: 3, Label: "Hara", MinTotalCents: tc.min}, nil
+					}),
+			)
+			store.EXPECT().DeleteFailedWhatsAppMessagesForInvoice(gomock.Any(), gomock.Any()).Return(nil)
+			store.EXPECT().CreateWhatsAppMessage(gomock.Any(), gomock.Any()).DoAndReturn(
+				func(_ any, arg db.CreateWhatsAppMessageParams) (db.WhatsappMessage, error) {
+					require.Equal(t, tc.wantStatus, arg.Status)
+					require.Contains(t, arg.Reason, tc.wantInReason)
+					return db.WhatsappMessage{}, nil
+				})
+			sale := branchWhatsAppThankYouRequest{ClientName: "Sara", ClientPhone: "+961 81 818603", InvoiceCode: "SA/CT/2026/03534", GrandTotalCents: tc.total}
+			rec := runSale(server, sale, db.GetWhatsAppSenderSettingsRow{WhatsappMessageNew: true, WhatsappMessageReturning: true, WhatsappPollNew: true, WhatsappPollReturning: true, WhatsappSender: "bridge", WhatsappBridgeKey: "secret-key"})
+			require.Contains(t, rec.Body.String(), tc.wantInReason)
+		})
+	}
 
 	t.Run("a number that isn't linked reports the bridge's reason", func(t *testing.T) {
 		const downReason = "Centro's WhatsApp is logged out or disconnected: link it again in Settings > WhatsApp (WhatsApp bridge: WhatsApp is not connected)"

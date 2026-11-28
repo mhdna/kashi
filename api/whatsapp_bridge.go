@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -348,7 +349,16 @@ func (server *Server) sendWhatsAppViaBridge(ctx *gin.Context, entry db.CreateWha
 		BranchID: entry.BranchID.Int64, TotalCents: req.GrandTotalCents,
 	})
 	if errors.Is(err, sql.ErrNoRows) {
-		server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, "no WhatsApp number for this branch, or the invoice is under every number's minimum (Settings > WhatsApp)")
+		// A sale under the minimum of the number the branch sends from is
+		// meant to send nothing: skipped, not failed. Asked again with no
+		// limit on the total, the query names that number.
+		if own, ownErr := server.store.WhatsAppNumberForBranch(ctx, db.WhatsAppNumberForBranchParams{
+			BranchID: entry.BranchID.Int64, TotalCents: math.MaxInt64,
+		}); ownErr == nil && own.MinTotalCents > req.GrandTotalCents {
+			server.logWhatsAppMessage(ctx, entry, whatsAppStatusSkipped, fmt.Sprintf("under %s, the minimum of the %s number (Settings > WhatsApp)", formatUSDCents(own.MinTotalCents), own.Label))
+			return
+		}
+		server.logWhatsAppMessage(ctx, entry, whatsAppStatusFailed, "no WhatsApp number for this branch (Settings > WhatsApp)")
 		return
 	}
 	if err != nil {

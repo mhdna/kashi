@@ -121,6 +121,19 @@
         @click="set({ hide: !el.hide })"
       />
     </div>
+    <!-- A part's lines cover most of it, so the whole part is left out from
+         any of its lines too. -->
+    <div v-if="section" class="rtools-row mt-1">
+      <v-btn
+        data-test="line-part-hide"
+        density="comfortable"
+        prepend-icon="mdi-eye-off"
+        size="small"
+        :text="t('Leave out the whole {part}', { part: section.label.toLowerCase() })"
+        variant="text"
+        @click="update(toggleSection(design, section.section))"
+      />
+    </div>
     <div v-if="hint" class="rtools-hint">{{ hint }}</div>
     <div v-if="el.lang && !el.text_ar && !info.ar_default" class="rtools-hint" data-test="line-lang-hint">
       {{ t('Click the Arabic line on the receipt to write its words; until then it prints in English.') }}
@@ -133,17 +146,21 @@
   import { t } from '@/i18n'
   import ReceiptFontSelect from '@/components/Receipt/ReceiptFontSelect.vue'
   import SizeStepper from '@/components/Receipt/SizeStepper.vue'
-  import { boldState, can, isDark, isElementChanged, langOptions, resetElement, setBold, setDark, setElement, sizeStep } from '@/utils/receiptDesign'
+  import { boldState, can, groupInfo, isDark, isElementChanged, langOptions, resetElement, setBold, setDark, setElement, sizeStep, toggleSection } from '@/utils/receiptDesign'
 
   const props = defineProps<{
     catalog: Record<string, any>
     design: Record<string, any>
     // The line's catalog entry.
-    info: { key: string, label: string, default?: string, ar_default?: string, dark_default?: boolean, can: number }
+    info: { key: string, group?: string, label: string, default?: string, ar_default?: string, dark_default?: boolean, can: number }
   }>()
   const emit = defineEmits<{ 'update:design': [design: Record<string, any>], close: [] }>()
 
   const el = computed(() => props.design.elements?.[props.info.key] ?? {})
+  const section = computed(() => {
+    const g = groupInfo(props.catalog, props.info.group)
+    return g?.section ? g : null
+  })
   const hint = computed(() => {
     if ((props.info.default ?? '').includes('{percent}')) {return t('{percent} prints as the reward.')}
     if ((props.info.default ?? '').includes('{currency}')) {return t('{currency} prints as the currency.')}
