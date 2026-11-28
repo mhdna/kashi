@@ -17,6 +17,10 @@ export default {
   'Social media': 'Réseaux sociaux',
   'SMS': 'SMS',
   'A friend': 'Un ami',
+  'A friend or family': 'Un ami ou la famille',
+  'Google Maps': 'Google Maps',
+  'WhatsApp': 'WhatsApp',
+  'An ad or flyer': 'Une pub ou un flyer',
   'Walking by': 'En passant',
   'Other': 'Autre',
 }
